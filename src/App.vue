@@ -56,6 +56,18 @@ export default defineComponent({
     const selectedIndex = ref(0);
     const appPages = [
       {
+        title: 'Switch Profile',
+        url: '/',
+        iosIcon: mailOutline,
+        mdIcon: mailSharp
+      },
+      {
+        title: 'My Dashboard',
+        url: '/my-dashboard',
+        iosIcon: mailOutline,
+        mdIcon: mailSharp
+      },
+      {
         title: 'Inbox',
         url: '/folder/Inbox',
         iosIcon: mailOutline,
