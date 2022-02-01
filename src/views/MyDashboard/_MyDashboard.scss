@@ -1,0 +1,47 @@
+  #container {
+    text-align: center;
+    ion-button{
+      --border-radius: 300px;
+      max-width: 100%;
+      text-transform: none;
+
+      &.achievements-btn,
+      &.abilities-btn{
+        height: 15vh;
+        max-width: 15vh;
+      }
+
+      &.accessories-btn{
+        margin-top: 0;
+        max-width: 50vw;
+        max-height: 50vw;
+        height: 30vh;
+        width: 30vh;
+      }
+
+      .user-buffs{
+        ion-img, img{
+        }
+      }
+    }
+  }
+
+  #container strong {
+    font-size: 20px;
+    line-height: 26px;
+  }
+
+  #container p {
+    font-size: 16px;
+    line-height: 22px;
+    color: #8c8c8c;
+    margin: 0;
+  }
+
+  #container a {
+    text-decoration: none;
+  }
+  .dashboard-item {
+    width: 33%;
+  }
+

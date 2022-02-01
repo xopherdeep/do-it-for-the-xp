@@ -36,12 +36,11 @@ export default class User {
   constructor(defaults) {
     console.log("made it");
     const name = this.setName(defaults.name);
-
-    const { avatar } = defaults
+    // const { avatar } = defaults
 
     return {
+      ...defaults,
       birthday: "", // Timestamp
-      avatar,
       name,
       stats: new stats()
     }

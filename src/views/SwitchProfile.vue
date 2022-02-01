@@ -17,46 +17,36 @@
       </ion-header>
 
       <div id="container">
-        <ion-list>
-          <ion-item v-for="user, key in users" :key="key"
-            :router-link="'/my-dashboard/'+user.avatar"
-            router-direction="root" 
-          >
-            <ion-thumbnail slot="start">
-              <ion-img :src="getUserAvatar(user)"></ion-img>
-            </ion-thumbnail>
-            <ion-label>
-              <strong class="capitalize">
-                {{ user.name.full }}
-              </strong>
-            </ion-label>
-          </ion-item>
-        </ion-list>
-        <strong class="capitalize">{{ $route.params.id }}</strong>
-        <p>
-          Explore
-          <a
-            target="_blank"
-            rel="noopener noreferrer"
-            href="https://ionicframework.com/docs/components"
-            >UI Components</a
-          >
-        </p>
+        <ion-grid >
+          <ion-row>
+            <ion-col v-for="(user, key) in users" :key="key" size="6" size-md="6">
+              <router-link :to="'/my-portal/' + user.id">
+              <ion-card class="ion-no-margin">
+                <ion-card-header>
+                  <ion-avatar>
+                    <img :src="getUserAvatar(user)" />
+                  </ion-avatar>
+                  <ion-card-title> {{user.name.first}} </ion-card-title>
+                  <ion-card-subtitle> {{user.name.nick}} </ion-card-subtitle>
+                </ion-card-header>
+
+                <ion-card-content>
+                </ion-card-content>
+              </ion-card>
+              </router-link>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
       </div>
     </ion-content>
   </ion-page>
 </template>
 
 <script>
-  import users from "../assets/js/users.js";
-  const requireAvatar = require.context('@/assets/images/avatars/')
+  import users from "@/assets/js/users.js";
+  const requireAvatar = require.context("@/assets/images/avatars/");
 
   import {
-    IonImg,
-    IonItem,
-    IonLabel,
-    IonList,
-    IonThumbnail,
     IonButtons,
     IonContent,
     IonHeader,
@@ -67,11 +57,6 @@
   } from "@ionic/vue";
   export default {
     components: {
-      IonImg,
-      IonItem,
-      IonLabel,
-      IonList,
-      IonThumbnail,
       IonButtons,
       IonContent,
       IonHeader,
@@ -86,23 +71,26 @@
       };
     },
     methods: {
-      getUserAvatar(user){
-        const avatar = `./${user.avatar}.svg`
-        return requireAvatar(avatar)
-      }
-    }
+      getUserAvatar(user) {
+        const avatar = `./${user.avatar}.svg`;
+        return requireAvatar(avatar);
+      },
+    },
   };
 </script>
 
 <style scoped>
-  #container {
+  ion-avatar{
+    margin: auto;
+  }
+  /* #container {
     text-align: center;
     position: absolute;
     left: 0;
     right: 0;
     top: 50%;
     transform: translateY(-50%);
-  }
+  } */
 
   #container strong {
     font-size: 20px;

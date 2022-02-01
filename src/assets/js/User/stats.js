@@ -2,11 +2,18 @@ export default class stats {
   constructor() {
     return {
       level: 1,
-      xp: 0,
-      gp: 0,
+      xp: {
+        now: 100, 
+        next_level: 1000,
+      },
+      gp: {
+        limit: 1000,
+        debt: 200,  
+        wallet: 100,
+      },
       hp: {
-        now: 0,
-        max: 0,
+        now: 25,
+        max: 30,
         min: 0,
       },
       mp: {

@@ -1,0 +1,6 @@
+{
+	"appId": "com.midnightnerd.xp",
+	"appName": "Do it for the XP",
+	"webDir": "public",
+	"bundledWebRuntime": false
+}

@@ -5,6 +5,7 @@
     "strict": true,
     "jsx": "preserve",
     "importHelpers": true,
+"noImplicitAny": false,
     "moduleResolution": "node",
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -33,7 +34,7 @@
     "src/**/*.vue",
     "tests/**/*.ts",
     "tests/**/*.tsx"
-  ],
+, "src/router/index.js", "src/router/routes.ts", "src/views/MyDashboard/MyDashboard.js"  ],
   "exclude": [
     "node_modules"
   ]

@@ -1,0 +1,26 @@
+  .user-stats{
+    .ion-col-avatar{
+      margin: 0;
+      
+      ion-avatar{
+        height: 100%;
+        width: auto;
+        max-height: 100px;
+        img{
+          object-fit: unset;
+        }
+      }
+    }
+    ion-chip{
+      border-radius: 0;
+      width: 100%;
+      margin: 0 0 0 0;
+      height: 50px;
+      .full-width{
+        width: 100%;
+      }
+      &.chip-ap{
+        margin: 0;
+      }
+    }
+  }
