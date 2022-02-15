@@ -1,0 +1,16 @@
+:root{
+  --color-light: var(--ion-color-danger-tint);
+  --color-medium: var(--ion-color-danger-shade);
+  --color-dark: var(--ion-color-danger);
+  --color-darkest: var(--ion-color-danger-shade);
+  --animation-speed: 4s;
+  --animation-loop: infinite;
+}
+
+
+.my-abilities{
+  #container{
+    background-color: white;
+  }
+
+}

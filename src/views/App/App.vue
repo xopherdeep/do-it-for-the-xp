@@ -1,6 +1,6 @@
 <template>
-  <ion-app>
-    <ion-split-pane content-id="main-content">
+  <ion-app >
+    <ion-split-pane content-id="main-content" @click="clickSound">
       <ion-menu content-id="main-content" type="overlay">
         <ion-content>
           <ion-list id="inbox-list">
@@ -11,17 +11,18 @@
 
             <ion-menu-toggle
               auto-hide="false"
-              v-for="(p, i) in appPages"
+              v-for="(p, i) in getCurrentMenu()"
               :key="i"
             >
               <ion-item
-                @click="selectedIndex = i"
+                @click="selectedIndex = i; $fx.ui[$fx.theme.ui].select.play()"
                 router-direction="root"
                 :router-link="p.url"
                 lines="none"
                 detail="false"
                 class="hydrated"
                 :class="{ selected: selectedIndex === i }"
+                button
               >
                 <ion-icon
                   slot="start"
@@ -32,18 +33,8 @@
               </ion-item>
             </ion-menu-toggle>
           </ion-list>
-          <ion-list class="dashboard">
-            <ion-item>
-                <ion-icon
-                  slot="start"
-                ></ion-icon>
-                <ion-label>
-                  My Dashboard
-                </ion-label>
-            </ion-item>
-          </ion-list>
 
-          <ion-list id="labels-list">
+          <ion-list id="labels-list" v-if="bookmarks">
             <ion-list-header>Labels</ion-list-header>
             <ion-item
               v-for="(label, index) in labels"

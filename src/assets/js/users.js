@@ -30,12 +30,12 @@ export default [
   }), 
   new User({
     id: 6,
-    name: { full: "Ashley Nicole McQuinn" },
+    name: { full: "Ashley Nicole McQuinn aka Gale Axy" },
     avatar: "012-gamer",
   }), 
   new User({
     id: 7,
-    name: { full: "Yvette Madison Judy" },
+    name: { full: "Yvette Madison Judy aka Eevee" },
     avatar: "025-gamer",
   }), 
   new User({

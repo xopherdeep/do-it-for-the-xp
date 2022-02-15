@@ -9,7 +9,7 @@ export default class stats {
       gp: {
         limit: 1000,
         debt: 200,  
-        wallet: 100,
+        wallet: 400,
       },
       hp: {
         now: 25,
@@ -29,24 +29,28 @@ export default class stats {
         year: [],
       },
       // SPECIAL-G Stats
-      // HP
-      strength: 0, //? achievements take less HP
-      defense: 0, //? influences max HP
-      endurance: 0, //? increases HP restore rate
-      // MP
-      intelligence: 0, //? abilities cost less MP to cast
-      perception: 0, //? influences max MP
-      wisdom: 0, //? increases MP restore rate
-      // GP
-      charm: 0, //? influences shop rates
-      charisma: 0, //? increases reward of GP,
-      presence: 0, //?
+
+      // HP - Physical 
+      strength    : 0,   //? achievements take less HP
+      defense     : 0,   //? influences max HP
+      endurance   : 0,   //? increases HP restore rate
+
+      // MP - Mental
+      intelligence: 0,   //? abilities cost less MP to cast
+      perception  : 0,   //? influences max MP
+      wisdom      : 0,   //? increases MP restore rate
+
+      // GP - Social
+      charm       : 0,   //? influences shop rates
+      charisma    : 0,   //? increases reward of GP,
+      presence    : 0,   //?
+
       // AP
-      agility: 0, //? influences AP reward points
-      // ??
-      lucky: 0, //? higher chance of successful outcome of random event
-      // Influences XP points rewarded
-      guts: 0, //? Smmmmassssshhhhhhhh!!!
+      agility     : 0,   //? influences AP reward points
+      guts        : 0,   // Influences XP points rewarded //? Smmmmassssshhhhhhhh!!!
+
+      luck        : 0,   //? higher chance of successful outcome of random event
+      
     };
   }
 }

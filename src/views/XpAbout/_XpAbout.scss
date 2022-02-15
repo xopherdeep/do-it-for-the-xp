@@ -1,0 +1,22 @@
+.ion-page {
+      height: 100vh;
+  ion-content {
+    height: 100vh;
+
+    ion-slides {
+      height: 100vh;
+
+      ion-slide {
+        display: flex;
+        flex-direction: column;
+        padding: 2em;
+
+        ion-img {
+          width: 80%;
+          max-height: 200px;
+        }
+      }
+    }
+  }
+
+}

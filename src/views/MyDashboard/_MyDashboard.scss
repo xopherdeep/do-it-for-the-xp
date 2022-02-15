@@ -1,3 +1,4 @@
+
   #container {
     text-align: center;
     ion-button{
@@ -24,7 +25,33 @@
         }
       }
     }
+
+
   }
+
+    .party{
+      ion-progress-bar{
+        height: 10px;
+        border-radius:  0 5px 5px 0 ;
+      }
+
+      ion-chip{
+        width: 100%;
+      }
+    }
+
+
+    ion-fab{
+      ion-fab-list{
+        ion-fab-button{
+          width: 55px;
+          height: 55px;
+          ion-img{
+            margin: 8px;
+          }
+        }
+      }
+    }
 
   #container strong {
     font-size: 20px;

@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import App from './views/App/App.vue'
-import router from './router';
+import createRouter from './router';
+import store from './store';
 
 import { IonicVue } from '@ionic/vue';
 
@@ -19,14 +20,29 @@ import '@ionic/vue/css/text-alignment.css';
 import '@ionic/vue/css/text-transformation.css';
 import '@ionic/vue/css/flex-utils.css';
 import '@ionic/vue/css/display.css';
+import '@/assets/fonts/font-awesome/css/all.css'
 
+import $fx from "@/assets/js/fx"
+import Vue3Autocounter from 'vue3-autocounter';
 /* Theme variables */
 import './theme/variables.css';
 
+const router = createRouter(store)
+
 const app = createApp(App)
+  .component('vue3-autocounter', Vue3Autocounter)
   .use(IonicVue)
+  .use(store)
   .use(router);
-  
+
+// use $store like in Vue2
+app.config.globalProperties = {
+  ...app.config.globalProperties,
+  $store: store,
+  $requireImg: require.context("@/assets/images/"),
+  $fx
+};
+
 router.isReady().then(() => {
   app.mount('#app');
 });

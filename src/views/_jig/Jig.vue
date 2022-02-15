@@ -1,7 +1,20 @@
 <template>
-  <div>
+  <ion-page :class="$options.name">
+    <ion-header :translucent="true">
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button :router-link="`/my-portal/${userId}`" >
+            <ion-icon :icon="arrowBack" slot="icon-only"/>
+          </ion-button>
+        </ion-buttons>
+        <ion-title> 
+        </ion-title>
+      </ion-toolbar>
+    </ion-header>
     
-  </div>
+    <ion-content :fullscreen="true">
+    </ion-content>
+  </ion-page>
 </template>
 
 <script src="./Jig.js" />

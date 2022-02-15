@@ -1,4 +1,4 @@
-import { defineComponent } from "vue";
+import { computed, defineComponent } from "vue";
 import requireImg from "@/assets/js/requireImg";
 import {
   IonIcon,
@@ -9,6 +9,7 @@ import {
   IonTabs,
   IonRouterOutlet,
 } from "@ionic/vue";
+
 import {
   calendar,
   peopleCircle,
@@ -20,12 +21,12 @@ import {
   storefrontOutline,
   medkitOutline,
   medalOutline,
-  accessibilityOutline
-
+  accessibilityOutline,
 } from "ionicons/icons";
 
+import { mapGetters, useStore } from "vuex";
+
 export default defineComponent({
-  props: ["id"],
   components: {
     IonIcon,
     IonLabel,
@@ -35,36 +36,25 @@ export default defineComponent({
     IonTabs,
     IonRouterOutlet,
   },
-  computed: {
-    user_id() {
-      return this.id;
-    },
-    user() {
-      return this.users.find((user) => user.id == this.user_id);
-    },
-  },
-  setup() {
-    const beforeTabChange = () => {
-      // do something before tab change
-    };
-    const afterTabChange = () => {
-      // do something after tab change
-    };
+  setup(props) {
+    const store = useStore();
+
+    const user = computed(() => store.getters.getUserById(props.userId)) 
+
     return {
-      home,
-      calendar,
+      user,
+      accessibilityOutline,
+      storefrontOutline,
+      fitnessOutline,
       peopleCircle,
-      beforeTabChange,
-      afterTabChange,
+      personCircle,
+      medkitOutline,
+      medalOutline,
+      requireImg,
+      calendar,
       chatbox,
       wallet,
-      personCircle,
-      requireImg,
-      storefrontOutline,
-  fitnessOutline,
-  medkitOutline,
-  medalOutline,
-      accessibilityOutline
+      home,
     };
   },
 });

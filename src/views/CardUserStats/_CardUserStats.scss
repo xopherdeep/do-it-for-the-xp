@@ -1,26 +1,49 @@
-  .user-stats{
-    .ion-col-avatar{
+  .user-stats {
+    i {
+      margin-right: .25em;
+    }
+
+    ion-progress-bar {
+      height: 12px;
+      border-radius: 5px;
+    }
+
+    .ion-col-avatar {
       margin: 0;
-      
-      ion-avatar{
-        height: 100%;
+
+      ion-img {
+        // height: 100%;
         width: auto;
-        max-height: 100px;
-        img{
-          object-fit: unset;
+        height: 100px;
+
+        img {
+          height: 100px;
         }
       }
     }
-    ion-chip{
+
+    ion-chip {
       border-radius: 0;
       width: 100%;
       margin: 0 0 0 0;
       height: 50px;
-      .full-width{
+
+      .full-width {
         width: 100%;
       }
-      &.chip-ap{
+
+      &.chip-ap {
         margin: 0;
+      }
+    }
+
+
+    .ap-breakdown{
+      ion-col{
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.25em;
       }
     }
   }

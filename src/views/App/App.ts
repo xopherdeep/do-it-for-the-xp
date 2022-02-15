@@ -1,4 +1,4 @@
-import { defineComponent, ref } from "vue"
+import { computed, defineComponent, getCurrentInstance, ref } from "vue"
 import { useRoute } from "vue-router";
 import {
   IonApp,
@@ -13,6 +13,7 @@ import {
   IonNote,
   IonRouterOutlet,
   IonSplitPane,
+  alertController
 } from "@ionic/vue";
 
 import {
@@ -30,24 +31,12 @@ import {
   trashSharp,
   warningOutline,
   warningSharp,
-  settingsOutline,
-  settingsSharp,
-  helpBuoySharp,
-  helpBuoyOutline,
-  informationCircleOutline,
-  informationCircleSharp,
-  logOutOutline,
-  logOutSharp,
-  diamondOutline,
-  diamondSharp,
-  peopleOutline,
-  peopleSharp,
-  shareOutline,
-  shareSharp,
-  peopleCircleOutline,
-  peopleCircleSharp
 } from "ionicons/icons";
+import { mapActions, mapState, useStore } from "vuex";
 
+
+import appPages from "./App.Pages";
+import appPagesAnon from "./App.Pages.Anon";
 
 export default defineComponent({
   name: "App",
@@ -65,6 +54,53 @@ export default defineComponent({
     IonRouterOutlet,
     IonSplitPane,
   },
+  computed: {
+    ...mapState(['users', 'user']),
+  },
+  methods: {
+    ...mapActions(['loadUsers']),
+    clickSound(){
+      const vm = getCurrentInstance()
+      console.log(vm);
+      
+      // vm.$fx.ui[vm.$fx.theme.ui].select.play()
+    },
+    getCurrentMenu(){
+      return this.isLoggedIn
+        ? appPages
+        : appPagesAnon
+    },
+    async presentAlertConfirm() {
+      const alert = await alertController
+        .create({
+          cssClass: 'my-custom-class',
+          header: 'Confirm!',
+          message: 'Message <strong>text</strong>!!!',
+          buttons: [
+            {
+              text: 'Cancel',
+              role: 'cancel',
+              cssClass: 'secondary',
+              id: 'cancel-button',
+              handler: blah => {
+                console.log('Confirm Cancel:', blah)
+              },
+            },
+            {
+              text: 'Okay',
+              id: 'confirm-button',
+              handler: () => {
+                console.log('Confirm Okay')
+              },
+            },
+          ],
+        });
+      return alert.present();
+    },
+  },
+  watch:{
+
+  },
   setup() {
     const selectedIndex = ref(0);
     const menus = { 
@@ -79,50 +115,6 @@ export default defineComponent({
       }
     } 
     const userMenu = []
-    const appPages = [
-      {
-        title: "Switch Profile",
-        url: "/",
-        iosIcon: peopleCircleOutline,
-        mdIcon: peopleCircleSharp,
-      },
-      {
-        title: "XP Membership",
-        url: "/xp-membership",
-        iosIcon: diamondOutline,
-        mdIcon: diamondSharp,
-      },
-      {
-        title: "XP Settings",
-        url: "/xp-settings",
-        iosIcon: settingsOutline,
-        mdIcon: settingsSharp,
-      },
-      {
-        title: "XP Support",
-        url: "/xp-support",
-        iosIcon: helpBuoyOutline,
-        mdIcon: helpBuoySharp,
-      },
-      {
-        title: "About XP",
-        url: "/about-xp",
-        iosIcon: informationCircleOutline,
-        mdIcon: informationCircleSharp,
-      },
-      {
-        title: "Referral Bonuses",
-        url: "/referral-bonuses",
-        iosIcon: shareOutline,
-        mdIcon: shareSharp,
-      },
-      {
-        title: "Log Out",
-        url: "/log-out",
-        iosIcon: logOutOutline,
-        mdIcon: logOutSharp,
-      },
-    ];
     const labels = [
       "Family",
       "Friends",
@@ -140,10 +132,15 @@ export default defineComponent({
     }
 
     const route = useRoute();
+    const store = useStore();
+    store.dispatch('loadUsers');
+
 
     return {
+      isLoggedIn: computed( () => store.getters.isLoggedIn ),
       selectedIndex,
       appPages,
+      appPagesAnon,
       labels,
       archiveOutline,
       archiveSharp,

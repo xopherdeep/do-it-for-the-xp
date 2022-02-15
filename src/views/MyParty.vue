@@ -3,12 +3,13 @@
     <ion-header :translucent="true">
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-menu-button color="primary"></ion-menu-button>
+          <ion-button :router-link="`/my-portal/${userId}`">
+            <ion-icon :icon="arrowBack" slot="icon-only" />
+          </ion-button>
         </ion-buttons>
         <ion-title>My Party</ion-title>
       </ion-toolbar>
     </ion-header>
-
     <ion-content :fullscreen="true">
       <ion-header collapse="condense">
         <ion-toolbar>
@@ -17,8 +18,13 @@
       </ion-header>
       <ion-grid>
         <ion-row>
-          <ion-col v-for="(user, key) in users" :key="key" size="12" size-md="6" >
-            <card-user-stats :id="user.id"/>
+          <ion-col
+            v-for="(user, key) in users"
+            :key="key"
+            size="12"
+            size-md="6"
+          >
+            <card-user-stats :id="user.id" />
           </ion-col>
         </ion-row>
       </ion-grid>
@@ -33,11 +39,14 @@
   const requireAvatar = require.context("@/assets/images/avatars/");
   import CardUserStats from "./CardUserStats/CardUserStats.vue";
 
+  import { arrowBack } from "ionicons/icons";
+
   import {
     IonButtons,
+    IonButton,
     IonContent,
     IonHeader,
-    IonMenuButton,
+    // IonMenuButton,
     IonPage,
     IonTitle,
     IonToolbar,
@@ -45,6 +54,7 @@
     IonRow,
     IonCol,
   } from "@ionic/vue";
+  import { computed } from "vue";
   export default {
     components: {
       IonGrid,
@@ -54,7 +64,9 @@
       IonButtons,
       IonContent,
       IonHeader,
-      IonMenuButton,
+      // IonMenuButton,
+
+      IonButton,
       IonPage,
       IonTitle,
       IonToolbar,
@@ -62,8 +74,12 @@
     data() {
       return {
         users,
+        arrowBack,
       };
     },
+  mounted() {
+    // this.$fx.ui[this.$fx.theme.ui].user.play()
+  },
     methods: {
       getUserAvatar(user) {
         const avatar = `./${user.avatar}.svg`;
@@ -73,7 +89,8 @@
   };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
+
   #container {
     text-align: center;
     position: absolute;
