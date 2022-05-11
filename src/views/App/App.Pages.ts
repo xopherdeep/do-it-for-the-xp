@@ -42,16 +42,16 @@ export default [
       },
       {
         title: "About XP",
-        url: "/",
+        url: "/about-xp",
         iosIcon: informationCircleOutline,
         mdIcon: informationCircleSharp,
       },
-      {
-        title: "Referral Bonuses",
-        url: "/referral-bonuses",
-        iosIcon: shareOutline,
-        mdIcon: shareSharp,
-      },
+      // {
+      //   title: "Referral Bonuses",
+      //   url: "/referral-bonuses",
+      //   iosIcon: shareOutline,
+      //   mdIcon: shareSharp,
+      // },
       {
         title: "Log Out",
         url: "/log-out",

@@ -1,4 +1,6 @@
 .my-task {
+  --background: transparent;
+  --box-shadow: none;
 
   ion-slides {
     height: 100%;
@@ -17,6 +19,23 @@
           }
         }
 
+        .week {
+          justify-content: center;
+          align-items: center;
+          text-align: center;
+          flex-wrap: nowrap;
+          ion-col {
+            width: 100%;
+            // min-width: 15vw;
+
+            padding: 2px;
+
+            ion-chip {
+              margin: 0;
+              display: block;
+            }
+          }
+        }
       }
 
       &.complete {
@@ -25,7 +44,7 @@
           border-radius: 0;
           width: 100%;
           margin: 0 0 0 0;
-          height: 50px;
+          height: 57px;
 
           .full-width {
             width: 100%;
@@ -124,33 +143,10 @@
     text-align: left;
 
     ion-toolbar {
-      .week {
-        flex-wrap: nowrap;
-        align-items: center;
-
-        ion-col {
-          display: flex;
-          justify-content: center;
-          align-items: center;
-
-          //  padding: 0;
-          ion-chip {
-            margin: 0;
-            display: block;
-          }
-        }
-      }
-
-      ion-chip {
-        display: block;
-      }
 
       &.points {
-        background-color: var(--color-dark);
-
-        ion-grid {
-          height: 56px;
-        }
+        --background: transparent;
+        // background-color: var(--color-dark);
 
         ion-col {
           padding: 0;
@@ -158,16 +154,16 @@
         }
 
         ion-chip {
-          border-radius: 0;
-          width: 100%;
-          margin: 0 0 0 0;
-          height: 50px;
-          display: flex;
-          justify-content: center;
-          align-items: center;
+          // border-radius: 0;
+          // width: 100%;
+          // margin: 0 0 0 0;
+          // height: 57px;
+          // display: flex;
+          // justify-content: center;
+          // align-items: center;
 
           .full-width {
-            width: 100%;
+            // width: 100%;
           }
 
           &.chip-ap {
@@ -179,11 +175,14 @@
   }
 
   ion-fab {
+    ion-fab-list{
+      // max-width: 20vw;
+    }
     ion-button {
-      width: 100%;
+      // width: 100%;
       font-family: 'Courier New', Courier, monospace;
       text-transform: capitalize;
-      font-size: 13px;
+      // font-size: 13px;
       letter-spacing: 0px;
 
       i {
@@ -192,5 +191,17 @@
     }
 
     margin-bottom: 65px;
+
+
+      margin-inline-start: unset;
+      left: unset;
+// width: 100px;
+ion-fab-button{
+  width: 100px;
+  height: 100px;
+}
+    &.click-loot{
+
+    }
   }
 }

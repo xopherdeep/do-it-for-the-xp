@@ -73,7 +73,8 @@ export default defineComponent({
     },
   },
   mounted() {
-    this.getItems();
+    if(this.request.type)
+      this.getItems();
   },
   methods: {
     clickPrev(){

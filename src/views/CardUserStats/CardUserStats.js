@@ -27,55 +27,62 @@ import {
 } from "ionicons/icons";
 
 import {
-  IonProgressBar,
-  IonCol,
-  IonGrid,
-  IonRow,
+  IonBadge,
   IonButtons,
+  IonCard,
+  IonCardContent,
+  IonCardHeader,
+  IonChip,
+  IonCol,
   IonContent,
+  IonFab,
+  IonFabButton,
+  IonGrid,
   IonHeader,
+  IonIcon,
+  IonImg,
+  IonItem,
+  IonLabel,
   IonMenuButton,
   IonPage,
-  IonTitle,
-  IonToolbar,
-  IonChip,
-  IonItem,
-  IonImg,
-  IonIcon,
-  IonLabel,
+  IonProgressBar,
+  IonRow,
   IonTabBar,
   IonTabButton,
   IonTabs,
-  IonFab,
-  IonFabButton
+  IonText,
+  IonTitle,
+  IonToolbar,
 } from "@ionic/vue";
+
+import ionic from "@/assets/js/mixins/ionic";
+
 import { mapGetters } from "vuex";
 
 export default {
-  props: ["id", "startCounting"],
+  props: ["id", "startCounting", "hideMenu"],
+  mixins: [ionic],
   data() {
     return {
       users,
-
       icons: {
+        bandageOutline,
+        bonfireOutline,
+        calendar,
+        calendarClear,
+        calendarNumber,
+        card,
+        colorWand,
+        fitnessOutline,
+        flameOutline,
+        heart,
+        hourglass,
         medal,
         server,
         sparkles,
-        card,
-        today,
-        calendar,
-        calendarNumber,
-        hourglass,
-        calendarClear,
         time,
-        heart,
-        colorWand,
-        bonfireOutline,
-
-        flameOutline,
+        today,
         waterOutline,
-        bandageOutline,
-        fitnessOutline,
       },
       dashboardItems: {
         achievements: {},
@@ -86,31 +93,6 @@ export default {
         alerts: {},
       },
     };
-  },
-  components: {
-  IonFab,
-  IonFabButton,
-    IonButton,
-    IonProgressBar,
-    IonCol,
-    IonGrid,
-    IonRow,
-    IonChip,
-    IonButtons,
-    IonContent,
-    IonHeader,
-    IonMenuButton,
-    IonPage,
-    IonTitle,
-    IonToolbar,
-    IonItem,
-    IonImg,
-
-    IonIcon,
-    IonLabel,
-    IonTabBar,
-    IonTabButton,
-    IonTabs,
   },
   setup() {
     const router = useRouter();
@@ -128,44 +110,49 @@ export default {
       afterTabChange,
     };
   },
+
   computed: {
-    ...mapGetters(['getUserById']),
+    ...mapGetters(["getUserById"]),
+
     user_id() {
       return parseInt(this.id);
     },
+
     user() {
-      return this.getUserById(this.user_id)
+      return this.getUserById(this.user_id);
     },
-    xpBar(){
-      return  this.getCounterXPCurrentAmount()  / 200
+
+    xpBar() {
+      return this.getCounterXPCurrentAmount() / 200;
     },
   },
+
   mounted() {
-    if(!this.startCounting){
-       this.beginCounter()
+    if (!this.startCounting) {
+      this.beginCounter();
     }
   },
-  watch:{
-    startCounting(count){
-      this.beginCounter()
-    }
+  watch: {
+    startCounting(count) {
+      this.beginCounter();
+    },
   },
   methods: {
-    clickAction(action){
+    clickAction(action) {
       const user = this.user;
-      this.$fx.ui[this.$fx.theme.ui].openPage.play()
+      this.$fx.ui[this.$fx.theme.ui].openPage.play();
       this.router.push(`/${action}/${user.id}/`);
     },
-    getCounterXPCurrentAmount(){
-      if(this.$refs.countXPTotal)
-        return this.$refs.countXPTotal.currentAmount / 200
+    getCounterXPCurrentAmount() {
+      if (this.$refs.countXPTotal)
+        return this.$refs.countXPTotal.currentAmount / 200;
     },
-    beginCounter(){
-      this.$refs.countAPTotal.start()
-      this.$refs.countXPTotal.start()
+    beginCounter() {
+      this.$refs.countAPTotal.start();
+      this.$refs.countXPTotal.start();
     },
     getUserAvatar(user) {
-      if(user.avatar){
+      if (user.avatar) {
         const avatar = `./${user.avatar}.svg`;
         return requireAvatar(avatar);
       }

@@ -3,6 +3,15 @@
       margin-right: .25em;
     }
 
+    ion-card-title {
+      text-transform: uppercase;
+      position: absolute;
+      top: -15px;
+      padding: 1px 5px;
+      font-size: 15px;
+      background-color: #280828;
+    }
+
     ion-progress-bar {
       height: 12px;
       border-radius: 5px;
@@ -38,8 +47,8 @@
     }
 
 
-    .ap-breakdown{
-      ion-col{
+    .ap-breakdown {
+      ion-col {
         display: flex;
         justify-content: center;
         align-items: center;

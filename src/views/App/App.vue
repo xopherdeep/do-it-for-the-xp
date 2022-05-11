@@ -1,13 +1,11 @@
 <template>
-  <ion-app >
+  <ion-app :id="rpgTheme">
     <ion-split-pane content-id="main-content" @click="clickSound">
-      <ion-menu content-id="main-content" type="overlay">
+      <ion-menu v-show="!battleState('active')" content-id="main-content" type="overlay">
         <ion-content>
           <ion-list id="inbox-list">
             <ion-list-header>XP</ion-list-header>
-            <ion-note>
-              Do it for the XP
-            </ion-note>
+            <ion-note> Do it for the XP </ion-note>
 
             <ion-menu-toggle
               auto-hide="false"
@@ -15,7 +13,10 @@
               :key="i"
             >
               <ion-item
-                @click="selectedIndex = i; $fx.ui[$fx.theme.ui].select.play()"
+                @click="
+                  selectedIndex = i;
+                  $fx.ui[$fx.theme.ui].select.play();
+                "
                 router-direction="root"
                 :router-link="p.url"
                 lines="none"
@@ -33,20 +34,19 @@
               </ion-item>
             </ion-menu-toggle>
           </ion-list>
-
-          <ion-list id="labels-list" v-if="bookmarks">
-            <ion-list-header>Labels</ion-list-header>
-            <ion-item
-              v-for="(label, index) in labels"
-              lines="none"
-              :key="index"
-            >
-              <ion-icon
-                slot="start"
-                :ios="bookmarkOutline"
-                :md="bookmarkSharp"
-              ></ion-icon>
-              <ion-label>{{ label }}</ion-label>
+          <ion-list>
+            <ion-note> Background Music (BGM) </ion-note>
+            <ion-item>
+              <i class="fad fa-music"> </i>
+              <ion-buttons>
+                <ion-toggle @ionChange="changeToggle" :checked="bgm.is_on"></ion-toggle>
+                <ion-button @click="clickBGMTrack(-1)">
+                  <i class="fad fa-step-backward"></i>
+                </ion-button>
+                <ion-button @click="clickBGMTrack(+1)">
+                  <i class="fad fa-step-forward"></i>
+                </ion-button>
+              </ion-buttons>
             </ion-item>
           </ion-list>
         </ion-content>
@@ -56,5 +56,5 @@
   </ion-app>
 </template>
 
-<script lang="ts" src="./App.ts" />
-<style scoped src="./_App.scss" lang="scss"/>
+<script src="./App.js" />
+<style src="./_App.scss" lang="scss" />

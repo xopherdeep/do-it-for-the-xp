@@ -24,10 +24,12 @@
             size="12"
             size-md="6"
           >
-            <card-user-stats :id="user.id" />
+            <card-user-stats :id="user.id" :hide-menu="true" />
           </ion-col>
         </ion-row>
       </ion-grid>
+
+
 
       <div id="container"></div>
     </ion-content>

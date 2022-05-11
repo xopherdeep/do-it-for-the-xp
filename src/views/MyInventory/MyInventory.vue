@@ -9,31 +9,33 @@
           <ion-icon :icon="bagOutline" size="large" />
         </ion-buttons>
         <ion-title> 
-          My Inventory 
+        Goods
         </ion-title>
       </ion-toolbar>
-      <ion-segment @ionChange="segmentChanged($event)" color="danger" scrollable value="all">
-        <ion-segment-button value="all">
-          <ion-icon :icon="bagOutline" color="primary"></ion-icon>
-          All
-        </ion-segment-button>
-        <ion-segment-button value="hp">
-          <ion-icon :icon="fitnessOutline" color="danger"></ion-icon>
-          HP 
-        </ion-segment-button>
-        <ion-segment-button value="mp">
-          <ion-icon :icon="colorWandOutline" color="tertiary"></ion-icon>
-          MP 
-        </ion-segment-button>
-        <ion-segment-button value="misc">
-          <ion-icon :icon="sparklesOutline" color="success"></ion-icon>
-          Misc
-        </ion-segment-button>
-        <ion-segment-button value="key">
-          <ion-icon :icon="keyOutline" color="gold"></ion-icon>
-          Key 
-        </ion-segment-button>
-      </ion-segment>
+      <ion-toolbar>
+        <ion-segment @ionChange="segmentChanged($event)" color="danger" scrollable value="all">
+          <ion-segment-button value="all">
+            <ion-icon :icon="bagOutline" color="primary"></ion-icon>
+            All
+          </ion-segment-button>
+          <ion-segment-button value="hp">
+            <ion-icon :icon="fitnessOutline" color="danger"></ion-icon>
+            HP 
+          </ion-segment-button>
+          <ion-segment-button value="mp">
+            <ion-icon :icon="colorWandOutline" color="tertiary"></ion-icon>
+            MP 
+          </ion-segment-button>
+          <ion-segment-button value="misc">
+            <ion-icon :icon="sparklesOutline" color="success"></ion-icon>
+            Misc
+          </ion-segment-button>
+          <ion-segment-button value="key">
+            <ion-icon :icon="keyOutline" color="gold"></ion-icon>
+            Key 
+          </ion-segment-button>
+        </ion-segment>
+      </ion-toolbar>
     </ion-header>
 
     <ion-content class="ion-padding">

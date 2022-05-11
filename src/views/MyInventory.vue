@@ -8,7 +8,6 @@
           </ion-button>
         </ion-buttons>
         <ion-title>
-          My Inventory
         </ion-title>
       </ion-toolbar>
     </ion-header>

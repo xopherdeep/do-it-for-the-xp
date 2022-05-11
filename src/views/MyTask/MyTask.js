@@ -12,15 +12,29 @@ import {
   alertController,
   IonSegment,
   IonSegmentButton,
-toastController
+  toastController,
+  createAnimation,
 } from "@ionic/vue";
 
+import { Swiper, SwiperSlide } from "swiper/vue";
+ // Import Swiper styles
+import 'swiper/css';
 import { arrowBack, informationCircle } from "ionicons/icons";
+
+/* eslint-disable */
+// eslint-disable-next-line to
+
+import rabbitFast from "@/assets/fonts/font-awesome/svgs/duotone/rabbit-fast.svg";
+import comment from "@/assets/fonts/font-awesome/svgs/duotone/comment.svg";
+import wandMagic from "@/assets/fonts/font-awesome/svgs/duotone/wand-magic.svg";
+import sack from "@/assets/fonts/font-awesome/svgs/duotone/sack.svg";
 
 import { NativeAudio } from "@awesome-cordova-plugins/native-audio";
 import CardUserStats from "@/views/CardUserStats/CardUserStats.vue";
 import fetchItems from "@/assets/js/mixins/fetchItems.js";
-import AnimatedNumber from "@/assets/js/components/AnimatedNumber.vue"
+import AnimatedNumber from "@/assets/js/components/AnimatedNumber.vue";
+import { mapActions } from "vuex";
+import { useRouter } from "vue-router";
 
 export default defineComponent({
   props: ["taskId", "item", "user"],
@@ -39,9 +53,12 @@ export default defineComponent({
     IonMenuButton,
     IonTitle,
     IonContent,
+    Swiper,
+    SwiperSlide,
   },
   data() {
     return {
+      debug: false,
       nativeAudio: NativeAudio,
       isOpen: false,
       // slider: IonSlides,
@@ -54,10 +71,6 @@ export default defineComponent({
       ],
       itemsLooted: [],
       segment: 0,
-      slideOpts: {
-        initialSlide: 0,
-        speed: 400,
-      },
       request: {
         type: "xp_achievement",
         params: {
@@ -70,7 +83,7 @@ export default defineComponent({
       temp: {
         gp: {
           wallet: 0,
-          gained: 0
+          gained: 0,
         },
       },
     };
@@ -89,15 +102,16 @@ export default defineComponent({
     },
   },
   methods: {
+    ...mapActions(["leaveBattle"]),
     addUpGP() {
       this.temp.gp.wallet = this.user.stats.gp.wallet;
       this.$fx.rpg[this.$fx.theme.rpg].countCoins.play();
-      setTimeout(()=>{
+      setTimeout(() => {
         this.$fx.rpg[this.$fx.theme.rpg].countCoins.pause();
-      },4000)
+      }, 4000);
       this.startCounting();
       this.temp.gp.wallet += 100;
-      this.temp.gp.gained = this.temp.gp.wallet
+      this.temp.gp.gained = this.temp.gp.wallet;
       // this.$store.dispatch("addToWallet", 100 )
     },
     startCounting() {
@@ -203,10 +217,16 @@ export default defineComponent({
           },
           {
             text: "Cast",
-            handler: () => {
+            handler: (value) => {
               this.$fx.rpg[this.$fx.theme.rpg].useMP.play();
               this.$fx.ui[this.$fx.theme.ui].yes.play();
-              console.log("Confirm Ok");
+              console.log(value);
+
+              this.createToast({
+                header: `${this.user.name.nick} uses a spell...`,
+                message: "Ha! Take that",
+                icon: wandMagic,
+              });
             },
           },
         ],
@@ -246,6 +266,11 @@ export default defineComponent({
               this.$fx.ui[this.$fx.theme.ui].yes.play();
               this.$fx.rpg[this.$fx.theme.rpg].useItem.play();
               console.log("Confirm Ok");
+              this.createToast({
+                header: `${this.user.name.nick} took out something from their bag...`,
+                message: "...nothing happened.",
+                icon: sack,
+              });
             },
           },
         ],
@@ -257,6 +282,7 @@ export default defineComponent({
       return alert.present();
     },
     async clickClaim() {
+      const { slides } = this.$refs
       const alert = await alertController.create({
         cssClass: "my-custom-class",
         header: "Claim Achievement?",
@@ -269,14 +295,91 @@ export default defineComponent({
             cssClass: "secondary",
             handler: () => {
               this.$fx.ui[this.$fx.theme.ui].no.play();
-              console.log("Confirm Cancel");
+              this.createToast({
+                header: `${this.user.name.nick}:`,
+                message: `"I'll come back to that later..."`,
+                duration: 1800,
+                icon: comment,
+              });
             },
           },
           {
             text: "Yes",
             handler: () => {
               this.$fx.ui[this.$fx.theme.ui].yes.play();
-              this.$refs.slides.slideNext();
+              console.log(slides);
+              slides.slideNext();
+              this.createToast({
+                header: `${this.user.name.nick} tamed ${this.item.title.rendered}!`,
+                message: `Gained 2AP`,
+                duration: 1800,
+                icon: comment,
+              })
+              setTimeout(
+                () =>
+                  this.createToast({
+                    header: `Do-it-for-the-XP!`,
+                    message: `${this.user.name.nick} Gained 200XP`,
+                    duration: 1800,
+                    icon: comment,
+                  }),
+                2500
+              );
+            },
+          },
+        ],
+      });
+      this.$fx.ui[this.$fx.theme.ui].alert.play();
+      return alert.present();
+    },
+    async clickRun() {
+      const alert = await alertController.create({
+        cssClass: "my-custom-class",
+        header: "Roll 1d8 to Run Away",
+        // subHeader: 'Adds Mark in Quest log',
+        message:
+          "Running away will take -1d8 from your HP. Click Roll to continue.",
+        buttons: [
+          {
+            text: "No",
+            role: "cancel",
+            cssClass: "secondary",
+            handler: () => {
+              this.$fx.ui[this.$fx.theme.ui].no.play();
+              console.log("Confirm Cancel");
+            },
+          },
+          {
+            text: "Roll",
+            handler: () => {
+              const { $fx, closeModal, leaveBattle, router, user } = this
+
+              const roll = Math.floor(Math.random() * 7) + 1;
+              leaveBattle().then( afterLeaveBattle )
+
+              function afterLeaveBattle(){
+                router.push({
+                  name: 'world-map',
+                  params: { userId: user.id }
+                }).then(leaveBattleMessage)
+              }
+
+              async function leaveBattleMessage(){
+                $fx.rpg[$fx.theme.rpg].attack.play();
+
+                const toast = await toastController.create({
+                  header  : user.name.nick + " Ran Away ",
+                  cssClass: $fx.theme.rpg,
+                  message : `-${roll} HP`,
+                  icon    : rabbitFast,
+                  duration: 2000,
+                  position: "top",
+                });
+
+                closeModal();
+
+                await toast.present();
+              }
             },
           },
         ],
@@ -285,33 +388,33 @@ export default defineComponent({
       return alert.present();
     },
     async closeModal() {
-const toast = await toastController
-        .create({
-          header: this.user.name.nick + 'Ran Away',
-          message: 'Click to Close',
-          icon: informationCircle,
-          duration: 2000,
-          position: 'top',
-          // buttons: [
-          //   {
-          //     side: 'start',
-          //     icon: 'star',
-          //     text: 'Favorite',
-          //     handler: () => {
-          //       console.log('Favorite clicked');
-          //     }
-          //   }, {
-          //     text: 'Done',
-          //     role: 'cancel',
-          //     handler: () => {
-          //       console.log('Cancel clicked');
-          //     }
-          //   }
-          // ]
-        })
-      await toast.present();
       await modalController.dismiss();
+    },
+    async createToast({ header, message, icon, duration }) {
+      const toast = await toastController.create({
+        header,
+        cssClass: this.$fx.theme.rpg,
+        message,
+        icon,
+        duration: duration ? duration : 1750,
+        position: "top",
+      });
 
+      await toast.present();
+    },
+    typewriter(el) {
+      return createAnimation()
+        .addElement(el)
+        .duration(2000)
+        .iterations(Infinity)
+        .fromTo("width", "0", "100%");
+    },
+    blinkTextCursor(el) {
+      return createAnimation()
+        .addElement(el)
+        .duration(500)
+        .iterations(Infinity)
+        .fromTo("border-color", "transparent", "white");
     },
   },
   watch: {
@@ -319,7 +422,6 @@ const toast = await toastController
       switch (segment) {
         case 0:
           this.didPresent();
-
           this.$fx.ui[this.$fx.theme.ui].openTask.play();
           break;
         case 1:
@@ -327,6 +429,7 @@ const toast = await toastController
           if (this.$refs.userCard) this.$refs.userCard.beginCounter();
           this.startCounting();
           this.$fx.rpg[this.$fx.theme.rpg].gainXP.play();
+          // setTimeout(()=>this.$refs.slides.slideNext(), 5000)
           break;
         case 2:
           this.addUpGP();
@@ -340,7 +443,9 @@ const toast = await toastController
 
   mixins: [fetchItems],
   setup() {
-    // code
-    return {};
+    const router = useRouter();
+    return {
+      router
+    };
   },
 });

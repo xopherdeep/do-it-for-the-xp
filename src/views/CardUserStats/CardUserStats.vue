@@ -1,5 +1,80 @@
 <template>
   <ion-card class="user-stats">
+
+            <ion-card-title v-if="user.name">
+              {{ user.name.nick }}
+            </ion-card-title>
+    <ion-toolbar style="--background: transparent" v-if="!hideMenu" class="ion-no-margin">
+      <ion-grid class="ion-no-padding">
+        <ion-row>
+
+          <ion-col size="6" size-sm="3">
+            <ion-button
+              expand="block"
+              color="success"
+              @click.stop="clickAction('my-tasks')"
+            >
+              <i class="fad fa-2x fa-hand-holding-seedling"></i>
+              Quest
+            </ion-button>
+          </ion-col>
+          <ion-col size="6" size-sm="3">
+            <ion-button
+              expand="block"
+              color="tertiary"
+              @click.stop="clickAction('my-abilities')"
+            >
+              <i class="fad fa-2x fa-hand-holding-medical"></i>
+              Abilities
+            </ion-button>
+          </ion-col>
+          <ion-col size="6" size-sm="3">
+            <ion-button
+              expand="block"
+              color="danger"
+              @click.stop="clickAction('my-inventory')"
+            >
+              <i class="fad fa-2x fa-hand-holding-box"></i>
+              Goods
+            </ion-button>
+          </ion-col>
+          <ion-col size="6" size-sm="3">
+            <ion-button
+              expand="block"
+              color="gold"
+              :router-link="`/my-gold-points/${user.id}/`"
+            >
+              <i class="fad fa-2x fa-hand-holding-usd"></i>
+              Wallet 
+            </ion-button>
+          </ion-col>
+          <ion-col size="4">
+            <ion-button
+              expand="block"
+              color="dark"
+              @click.stop="clickAction('my-tasks')"
+            >
+              <i class="fad fa-2x fa-comment"></i>
+              Talk 
+            </ion-button>
+          </ion-col>
+          <ion-col size="4">
+            <ion-button
+              expand="block"
+              color="dark"
+              :router-link="`/user/${user.id}`"
+              size="4"
+              router-direction="forward"
+            >
+              <i class="fad fa-2x fa-axe-battle"></i>
+              Equip 
+            </ion-button>
+          </ion-col>
+          <ion-col size="4">
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </ion-toolbar>
     <ion-card-header class="ion-no-padding">
       <ion-grid class="ion-no-padding">
         <ion-row>
@@ -12,7 +87,7 @@
             />
 
             <!-- AP -->
-            <ion-chip color="tertiary" class="chip-ap ion-no-margin">
+            <ion-chip color="light" class="chip-ap ion-no-margin">
               <i class="fad fa-hand-holding-medical fa-2x"></i>
               <ion-label class="full-width">
                 <ion-text class="ion-float-left"> AP </ion-text>
@@ -60,7 +135,7 @@
               <ion-row>
                 <ion-col class="ion-no-padding">
                   <!-- MP -->
-                  <ion-chip color="primary">
+                  <ion-chip color="tertiary">
                     <i class="fad fa-hand-holding-magic fa-2x"></i>
                     <!-- <ion-icon
                             :icon="icons.colorWand"
@@ -72,7 +147,7 @@
                         <b> {{ user.stats.mp.now }}/{{ user.stats.mp.max }} </b>
                       </ion-text>
                       <ion-progress-bar
-                        color="primary"
+                        color="tertiary"
                         :value="user.stats.mp.now / user.stats.mp.max"
                       ></ion-progress-bar>
                     </ion-label>
@@ -131,12 +206,12 @@
     <ion-card-content class="ion-no-padding" v-if="user.stats">
       <ion-grid class="ion-no-margin ion-no-padding">
         <ion-row class="ap-breakdown">
-          <ion-col>
-                <ion-badge color="tertiary"> 10d </ion-badge>
-                <ion-badge color="tertiary"> 89w </ion-badge>
-                <ion-badge color="tertiary"> 300m </ion-badge>
-                <ion-badge color="tertiary"> 1000y </ion-badge>
-            <!-- <ion-chip color="tertiary" class="chip-ap ion-no-margin">
+          <ion-col size="5">
+                <ion-badge color="light"> 10d </ion-badge>
+                <ion-badge color="light"> 89w </ion-badge>
+                <ion-badge color="light"> 300m </ion-badge>
+                <ion-badge color="light"> 1000y </ion-badge>
+            <!-- <ion-chip color="light" class="chip-ap ion-no-margin">
               <ion-icon :icon="icons.medal"></ion-icon>
             </ion-chip> -->
           </ion-col>
@@ -167,87 +242,6 @@
         </ion-row>
       </ion-grid>
     </ion-card-content>
-    <ion-toolbar color="medium">
-      <ion-grid class="ion-no-margin">
-        <ion-row>
-          <ion-col size="4">
-            <ion-button
-              expand="block"
-              color="light"
-              @click.stop="clickAction('my-tasks')"
-            >
-              <i class="fad fa-2x fa-comment"></i>
-              Talk 
-            </ion-button>
-          </ion-col>
-          <ion-col size="4">
-            <ion-button
-              expand="block"
-              color="light"
-              :router-link="`/user/${user.id}`"
-              size="4"
-              router-direction="forward"
-            >
-              <i class="fad fa-2x fa-hand-holding"></i>
-              Equip 
-            </ion-button>
-          </ion-col>
-
-          <ion-col size="4">
-            <ion-button
-              expand="block"
-              color="light"
-              :router-link="`/user/${user.id}`"
-              size="4"
-              router-direction="forward"
-            >
-              <i class="fad fa-2x fa-hand-holding-heart"></i>
-              Status
-            </ion-button>
-          </ion-col>
-          <ion-col size="6" size-md="3">
-            <ion-button
-              expand="block"
-              color="success"
-              @click.stop="clickAction('my-tasks')"
-            >
-              <i class="fad fa-2x fa-hand-holding-seedling"></i>
-              Quest
-            </ion-button>
-          </ion-col>
-          <ion-col size="6" size-md="3">
-            <ion-button
-              expand="block"
-              color="tertiary"
-              @click.stop="clickAction('my-abilities')"
-            >
-              <i class="fad fa-2x fa-hand-holding-medical"></i>
-              Abilities
-            </ion-button>
-          </ion-col>
-          <ion-col size="6" size-md="3">
-            <ion-button
-              expand="block"
-              color="danger"
-              @click.stop="clickAction('my-inventory')"
-            >
-              <i class="fad fa-2x fa-hand-holding-box"></i>
-              Goods
-            </ion-button>
-          </ion-col>
-          <ion-col size="6" size-md="3">
-            <ion-button
-              expand="block"
-              color="gold"
-              :router-link="`/my-gold-points/${user.id}/`"
-            >
-              <i class="fad fa-2x fa-hand-holding-usd"></i>
-              Wallet 
-            </ion-button>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-    </ion-toolbar>
   </ion-card>
 </template>
 

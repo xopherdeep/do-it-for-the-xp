@@ -1,0 +1,13 @@
+.my-home{
+  ion-content{
+    --background: url(https://external-preview.redd.it/V6UV_5qn6GRvkpTeSkaDLaa8Sw4ZqdQHR9Lu06Uw8Eo.png?auto=webp&s=d641e7c729d6b8cc859389043113a951d678223d) 
+    center center/cover;
+    ion-card{
+      ion-button{
+        &::part(native){
+        }
+      }
+    }
+  }
+
+}

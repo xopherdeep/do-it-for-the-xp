@@ -1,11 +1,19 @@
 <template>
   <ion-page :class="$options.name">
     <ion-header :translucent="true">
-      <ion-toolbar>
+      <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-menu-button color="primary" @click="$fx.ui[$fx.theme.ui].select.play()"></ion-menu-button>
+          <ion-menu-button
+            color="primary"
+            @click="$fx.ui[$fx.theme.ui].select.play()"
+          ></ion-menu-button>
+          <ion-button>
+            <i class="fad fa-save fa-2x"></i>
+          </ion-button>
         </ion-buttons>
-        <ion-title>Choose Your Profile</ion-title>
+        <ion-title>
+          Choose Save Profile
+        </ion-title>
       </ion-toolbar>
     </ion-header>
 
@@ -23,24 +31,29 @@
               v-for="(user, key) in users"
               :key="key"
               size="6"
-              size-md="6"
+              size-sm="4"
+              size-md="3"
+              size-xl="2"
             >
               <ion-card class="ion-no-margin" button @click="clickUser(user)">
+                <ion-card-title>
+                  {{ user.name.first }}
+                </ion-card-title>
                 <ion-card-header>
                   <ion-avatar>
                     <img :src="getUserAvatar(user)" />
                   </ion-avatar>
-                  <ion-card-title> {{ user.name.first }} </ion-card-title>
-                  <ion-card-subtitle> {{ user.name.nick }} </ion-card-subtitle>
                 </ion-card-header>
-                <ion-card-content> </ion-card-content>
+                <ion-card-content>
+                  {{ user.name.nick }}
+                </ion-card-content>
               </ion-card>
             </ion-col>
           </ion-row>
         </ion-grid>
       </div>
     </ion-content>
-<!-- fab placed to the (vertical) center and end -->
+    <!-- fab placed to the (vertical) center and end -->
     <ion-fab vertical="bottom" horizontal="end" slot="fixed">
       <ion-fab-button>
         <ion-icon :icon="add"></ion-icon>
@@ -50,32 +63,22 @@
 </template>
 
 <script>
+  import ionic from "@/assets/js/mixins/ionic";
   import users from "@/assets/js/users.js";
   const requireAvatar = require.context("@/assets/images/avatars/");
 
-  import { add } from "ionicons/icons"
+  import { add } from "ionicons/icons";
 
   import {
-    IonButtons,
-    IonContent,
-    IonHeader,
-    IonMenuButton,
-    IonPage,
-    IonTitle,
-    IonToolbar,
     useIonRouter,
   } from "@ionic/vue";
+import { mapActions, useStore } from 'vuex';
+import { computed } from '@vue/runtime-core';
 
   export default {
     name: "switch-profile",
+    mixins: [ionic],
     components: {
-      IonButtons,
-      IonContent,
-      IonHeader,
-      IonMenuButton,
-      IonPage,
-      IonTitle,
-      IonToolbar,
     },
     data() {
       return {
@@ -83,17 +86,22 @@
       };
     },
     methods: {
+      ...mapActions(["loginUser"]),
       getUserAvatar(user) {
         const avatar = `./${user.avatar}.svg`;
         return requireAvatar(avatar);
       },
       clickUser(user) {
+        this.loginUser(user)
         this.ionRouter.navigate(`/my-portal/${user.id}`, "forward");
       },
     },
     setup() {
+      const store = useStore() 
+      const bgm = computed(() => store.state.bgm);
       const ionRouter = useIonRouter();
       return {
+        bgm,
         add,
         ionRouter,
       };
@@ -102,9 +110,36 @@
 </script>
 
 <style scoped lang="scss">
+  ion-content {
+    --background: transparent;
+
+    #container {
+      height: 100vh;
+      background-color: #68a8d8;
+      background-image: linear-gradient(
+          45deg,
+          #80d890 25%,
+          transparent 25%,
+          transparent 75%,
+          #80d890 75%
+        ),
+        linear-gradient(
+          45deg,
+          #80d890 25%,
+          transparent 25%,
+          transparent 75%,
+          #80d890 75%
+        );
+      background-size: 60px 60px;
+      background-position: 0 0, 30px 30px;
+      animation: slide 4s infinite linear;
+    }
+  }
   .switch-profile {
-    ion-card{
+    ion-card {
       text-align: center;
+      width: calc(100% - 35px);
+      // min-width: calc(15vw)
     }
 
     ion-avatar {
@@ -119,7 +154,7 @@
     transform: translateY(-50%);
   } */
 
-     #container strong {
+    #container strong {
       font-size: 20px;
       line-height: 26px;
     }
@@ -133,7 +168,16 @@
 
     #container a {
       text-decoration: none;
-    } 
+    }
+  }
 
+  @keyframes slide {
+    from {
+      background-position: 0 0, 30px 30px;
+    }
+
+    to {
+      background-position: 0 0, -30px -30px;
+    }
   }
 </style>

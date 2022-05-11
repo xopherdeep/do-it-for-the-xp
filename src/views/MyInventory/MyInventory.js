@@ -1,24 +1,5 @@
 import { defineComponent } from "vue";
-import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonGrid,
-  IonRow,
-  IonCol,
-  IonButtons,
-  IonButton,
-  IonIcon,
-  IonTitle,
-  IonContent,
-  IonTabBar,
-  IonTabButton,
-  IonTabs,
-  IonRouterOutlet,
-  IonSegment,
-  IonSegmentButton,
-    IonFooter,
-} from "@ionic/vue";
+import ionic from "@/assets/js/mixins/ionic"
 
 import {
   arrowBack,
@@ -46,26 +27,7 @@ import { mapGetters } from "vuex";
 export default defineComponent({
   props: ["userId"],
   name: "my-inventory",
-  components: {
-  IonGrid,
-  IonRow,
-  IonCol,
-    IonTabBar,
-    IonTabButton,
-    IonTabs,
-    IonRouterOutlet,
-    IonSegment,
-    IonSegmentButton,
-    IonHeader,
-    IonFooter,
-    IonToolbar,
-    IonButtons,
-    IonButton,
-    IonIcon,
-    IonTitle,
-    IonContent,
-    IonPage,
-  },
+  mixins: [ionic],
   computed: {
     ...mapGetters(["getUserById"]),
     user() {

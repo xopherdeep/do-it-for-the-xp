@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar color="success">
         <ion-buttons slot="start">
-          <ion-button :router-link="`/my-portal/${userId}`">
+          <ion-button @click="clickBack" >
             <ion-icon :icon="arrowBack" slot="icon-only" />
           </ion-button>
           <i class="fad fa-medal fa-2x"></i>
@@ -11,38 +11,40 @@
         </ion-buttons>
         <ion-title> Quest Log </ion-title>
       </ion-toolbar>
-      <ion-segment
-        @ionChange="segmentChanged($event)"
-        color="success"
-        scrollable
-        value="all"
-      >
-        <ion-segment-button value="all">
-          <i class="fal fa-medal fa-2x"></i>
-          <!-- <ion-icon :icon="medalOutline"></ion-icon> -->
-          All
-        </ion-segment-button>
-        <ion-segment-button value="morning">
-          <i class="fal fa-sun fa-2x"></i>
-          <!-- <ion-icon :icon="sunnyOutline"></ion-icon> -->
-          Sol
-        </ion-segment-button>
-        <ion-segment-button value="afternoon">
-          <i class="fal fa-cloud-sun fa-2x"></i>
-          <!-- <ion-icon :icon="partlySunnyOutline"></ion-icon> -->
-          Nut
-        </ion-segment-button>
-        <ion-segment-button value="evening">
-          <i class="fal fa-cloud-moon fa-2x"></i>
-          <!-- <ion-icon :icon="cloudyNightOutline"></ion-icon> -->
-          Eve
-        </ion-segment-button>
-        <ion-segment-button value="night">
-          <i class="fal fa-moon-stars fa-2x"></i>
-          <!-- <ion-icon :icon="moonOutline"></ion-icon> -->
-          Nyx
-        </ion-segment-button>
-      </ion-segment>
+      <ion-toolbar>
+        <ion-segment
+          @ionChange="segmentChanged($event)"
+          color="success"
+          scrollable
+          value="all"
+        >
+          <ion-segment-button value="all">
+            <i class="fal fa-medal fa-2x"></i>
+            <!-- <ion-icon :icon="medalOutline"></ion-icon> -->
+            All
+          </ion-segment-button>
+          <ion-segment-button value="morning">
+            <i class="fal fa-sun fa-2x"></i>
+            <!-- <ion-icon :icon="sunnyOutline"></ion-icon> -->
+            Sol
+          </ion-segment-button>
+          <ion-segment-button value="afternoon">
+            <i class="fal fa-cloud-sun fa-2x"></i>
+            <!-- <ion-icon :icon="partlySunnyOutline"></ion-icon> -->
+            Nut
+          </ion-segment-button>
+          <ion-segment-button value="evening">
+            <i class="fal fa-cloud-moon fa-2x"></i>
+            <!-- <ion-icon :icon="cloudyNightOutline"></ion-icon> -->
+            Eve
+          </ion-segment-button>
+          <ion-segment-button value="night">
+            <i class="fal fa-moon-stars fa-2x"></i>
+            <!-- <ion-icon :icon="moonOutline"></ion-icon> -->
+            Nyx
+          </ion-segment-button>
+        </ion-segment>
+      </ion-toolbar>
       <!-- <ion-progress-bar color="success" :value="0.5"></ion-progress-bar> -->
     </ion-header>
 

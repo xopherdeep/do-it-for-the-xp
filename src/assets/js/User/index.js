@@ -34,7 +34,6 @@ export default class User {
     return name 
   }
   constructor(defaults) {
-    console.log("made it");
     const name = this.setName(defaults.name);
     // const { avatar } = defaults
 

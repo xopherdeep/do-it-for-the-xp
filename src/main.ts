@@ -24,8 +24,12 @@ import '@/assets/fonts/font-awesome/css/all.css'
 
 import $fx from "@/assets/js/fx"
 import Vue3Autocounter from 'vue3-autocounter';
+import Countdown from 'vue3-flip-countdown'
 /* Theme variables */
 import './theme/variables.css';
+import * as IonComponents from '@ionic/vue';
+import { useRoute } from 'vue-router';
+
 
 const router = createRouter(store)
 
@@ -33,14 +37,28 @@ const app = createApp(App)
   .component('vue3-autocounter', Vue3Autocounter)
   .use(IonicVue)
   .use(store)
+  .use(Countdown)
   .use(router);
+
+// Object.keys(IonComponents).forEach(key => {
+//     if (/^Ion[A-Z]\w+$/.test(key)) {
+//         app.component(key, IonComponents[key]);
+//     }
+// });
+
 
 // use $store like in Vue2
 app.config.globalProperties = {
   ...app.config.globalProperties,
-  $store: store,
+  $fx,
+  $requireAvatar: require.context("@/assets/images/avatars/"),
   $requireImg: require.context("@/assets/images/"),
-  $fx
+  $router: router,
+  $store: store,
+  play$fx: (fx='select')=>{
+    $fx.ui[$fx.theme.ui][fx].play()
+  },
+  $historyCount: window.history.length
 };
 
 router.isReady().then(() => {

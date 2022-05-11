@@ -8,31 +8,33 @@
           </ion-button>
           <ion-icon :icon="colorWand" size="large" />
         </ion-buttons>
-        <ion-title> My Abilities </ion-title>
+        <ion-title> Abilities </ion-title>
       </ion-toolbar>
-      <ion-segment
-        @ionChange="segmentChanged($event)"
-        color="tertiary"
-        scrollable
-        value="all"
-      >
-        <ion-segment-button value="all">
-          <ion-icon :icon="colorWandOutline"></ion-icon>
-          All
-        </ion-segment-button>
-        <ion-segment-button value="">
-          <ion-icon :icon="accessibilityOutline"></ion-icon>
-          Now
-        </ion-segment-button>
-        <ion-segment-button value="unlocked">
-          <ion-icon :icon="lockOpenOutline"></ion-icon>
-          Ready
-        </ion-segment-button>
-        <ion-segment-button value="locked">
-          <ion-icon :icon="lockClosedOutline"></ion-icon>
-          Next
-        </ion-segment-button>
-      </ion-segment>
+      <ion-toolbar >
+        <ion-segment
+          @ionChange="segmentChanged($event)"
+          color="tertiary"
+          scrollable
+          value="all"
+        >
+          <ion-segment-button value="all">
+            <ion-icon :icon="colorWandOutline"></ion-icon>
+            All
+          </ion-segment-button>
+          <ion-segment-button value="">
+            <ion-icon :icon="accessibilityOutline"></ion-icon>
+            Now
+          </ion-segment-button>
+          <ion-segment-button value="unlocked">
+            <ion-icon :icon="lockOpenOutline"></ion-icon>
+            Ready
+          </ion-segment-button>
+          <ion-segment-button value="locked">
+            <ion-icon :icon="lockClosedOutline"></ion-icon>
+            Next
+          </ion-segment-button>
+        </ion-segment>
+      </ion-toolbar>
 
       <!-- <ion-progress-bar
         v-if="user.stats"

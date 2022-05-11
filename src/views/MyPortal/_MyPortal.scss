@@ -1,0 +1,142 @@
+.my-portal {
+  ion-fab {
+
+    &.fab-user {
+      width: 500px;
+      max-width: 95vw;
+
+      ion-chip {
+        box-shadow: 3px 3px 0px;
+        width: 100%;
+        padding: 1em 15px;
+
+        // text-shadow: 2px 2px 0px black,
+        // -2px -2px 0px black;
+        i {
+          margin: 0.25em
+        }
+      }
+
+    }
+
+    &.fab-gp {
+      ion-card-content {
+        padding: 0 17px 0 5px;
+
+        small:last-child {
+          border-bottom: 1px solid var(--ion-color-primary);
+          position: absolute;
+          top: 0;
+          right: 2px;
+          height: 20px;
+          text-align: right;
+          width: auto;
+
+        }
+      }
+    }
+
+  }
+
+  .equipment {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    justify-content: center;
+    align-items: center;
+
+  }
+
+  .items {
+    ion-buttons {
+      display: flex;
+      flex-wrap: wrap;
+    }
+  }
+
+  .rpg-box {
+    ion-card {
+      &.todays-achievements {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5em;
+        justify-content: center;
+        align-items: center;
+        height: 110px;
+
+        i {
+          margin: 2em;
+        }
+
+      }
+
+
+      &.items {
+        ion-buttons {
+          display: flex;
+          flex-wrap: wrap;
+        }
+      }
+
+    }
+  }
+
+  ion-grid {
+    border-radius: 7px;
+
+    &.user-hud,
+    &.gp-hud {
+      background-color: rgba($color: #000000, $alpha: .5);
+    }
+
+    &.gp-hud {
+      ion-chip {
+        width: 50vw;
+        max-width: 175px;
+      }
+
+      ion-label {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+    }
+  }
+}
+
+.rpg-box {
+
+  .equipment {
+
+    display: flex;
+
+    i {
+      // width: 30px;
+
+      margin: 2px 1px 0 2px
+    }
+
+  }
+
+  .todays-achievements {
+    ion-button {
+      width: 100%;
+    }
+
+    padding: 1em 0 !important;
+    height: auto !important;
+
+    text-align: center;
+
+    i {
+      width: calc((100% / 7) - 5px)
+    }
+  }
+
+  .info {
+    i {
+      float: right;
+      margin: 0 .15em .15em;
+    }
+  }
+}

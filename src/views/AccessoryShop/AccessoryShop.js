@@ -1,25 +1,5 @@
 import { defineComponent } from "vue";
-import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonGrid,
-  IonRow,
-  IonCol,
-  IonButtons,
-  IonButton,
-  IonIcon,
-  IonTitle,
-  IonContent,
-  IonTabBar,
-  IonTabButton,
-  IonTabs,
-  IonRouterOutlet,
-  IonSegment,
-  IonSegmentButton,
-  IonFooter,
-  IonBackButton,
-} from "@ionic/vue";
+import ionic from "@/assets/js/mixins/ionic";
 
 import {
   arrowBack,
@@ -45,37 +25,16 @@ import {
   banOutline,
   bagOutline,
 } from "ionicons/icons";
-import { mapGetters } from "vuex";
 import fetchItems from "@/assets/js/mixins/fetchItems.js"
 
 export default defineComponent({
   props: ["userId"],
   name: "accessory-shop",
-  components: {
-    IonGrid,
-    IonRow,
-    IonCol,
-    IonTabBar,
-    IonTabButton,
-    IonTabs,
-    IonRouterOutlet,
-    IonSegment,
-    IonSegmentButton,
-    IonHeader,
-    IonFooter,
-    IonToolbar,
-    IonButtons,
-    IonButton,
-    IonIcon,
-    IonTitle,
-    IonContent,
-    IonPage,
-    IonBackButton,
-  },
-  mixins: [fetchItems],
+  mixins: [ionic,fetchItems],
   data() {
     return {
       isLoading: false,
+      shelves: ['affordable'], 
       request: {
         type: "xp_accessory",
         params: {
@@ -86,11 +45,23 @@ export default defineComponent({
       },
     };
   },
+  methods: {
+    selectShelf($ev) {
+      this.shelves = $ev.detail.value
+    }
+  },
   mounted() {
     this.$fx.ui[this.$fx.theme.ui].openShop.play()
   },
   setup() {
+const customAlertOptions = {
+      header: 'Pizza Toppings',
+      subHeader: 'Select your toppings',
+      message: '$1.00 per topping',
+      translucent: true
+    };
     return {
+      customAlertOptions,
       storefrontOutline,
       banOutline,
       chevronBack,

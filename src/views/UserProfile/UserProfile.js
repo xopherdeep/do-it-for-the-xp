@@ -18,7 +18,9 @@ import {
   IonNote,
   IonAccordion,
   IonAccordionGroup,
-  IonList
+  IonList,
+
+modalController
 } from "@ionic/vue";
 
 import { 
@@ -113,10 +115,17 @@ export default defineComponent({
       return this.getUserById(this.userId);
     },
   },
+  updated(){
+    this.$refs.userStats.present()
+  },
+  mounted(){
+  // modalController.present()
+  },
 
   setup() {
-    // code
     return {
+
+modalController,
       ...icons
     };
   },

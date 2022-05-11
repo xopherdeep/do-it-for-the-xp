@@ -1,33 +1,7 @@
 import { computed, defineComponent, onMounted, reactive, ref } from "vue";
+
+import ionic from "@/assets/js/mixins/ionic"
 import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonGrid,
-  IonRow,
-  IonCol,
-  IonButtons,
-  IonButton,
-  IonIcon,
-  IonTitle,
-  IonContent,
-  IonTabBar,
-  IonTabButton,
-  IonTabs,
-  IonRouterOutlet,
-  IonSegment,
-  IonSegmentButton,
-  IonBadge,
-  IonCard,
-  IonCardContent,
-  IonCardHeader,
-  IonCardSubtitle,
-  IonCardTitle,
-  IonItem,
-  IonModal,
-  IonLabel,
-  IonFooter,
-  IonSearchbar,
   alertController,
 } from "@ionic/vue";
 import {
@@ -55,39 +29,12 @@ import { mapActions, mapGetters, mapState, useStore } from "vuex";
 import fetchItems from "@/assets/js/mixins/fetchItems.js";
 
 import MyTask from "@/views/MyTask/MyTask.vue";
+import { useRouter } from "vue-router";
 
 export default defineComponent({
   props: ["userId"],
   name: "my-tasks",
   components: {
-    IonBadge,
-    IonButton,
-    IonButtons,
-    IonCard,
-    IonCardContent,
-    IonCardHeader,
-    IonCardSubtitle,
-    IonCardTitle,
-    IonCol,
-    IonContent,
-    IonFooter,
-    IonGrid,
-    IonHeader,
-    IonIcon,
-    IonItem,
-    IonLabel,
-    IonModal,
-    IonPage,
-    IonRouterOutlet,
-    IonRow,
-    IonSearchbar,
-    IonSegment,
-    IonSegmentButton,
-    IonTabBar,
-    IonTabButton,
-    IonTabs,
-    IonTitle,
-    IonToolbar,
     MyTask,
   },
   data() {
@@ -104,7 +51,7 @@ export default defineComponent({
       },
     };
   },
-  mixins: [fetchItems],
+  mixins: [fetchItems, ionic],
   activated() {
     this.$fx.ui[this.$fx.theme.ui].openPage.play()
     // const mp3 = this.$requireAudio('./take_item.mp3')
@@ -121,6 +68,14 @@ export default defineComponent({
   },
   methods: {
     ...mapActions(["fetchWPItems"]),
+    clickBack(){
+      const hasHistory = this.$historyCount - window.history.length
+      console.log("hashistory",hasHistory);
+      if(hasHistory)
+        this.router.go(-1)
+      else
+        this.router.push(`/my-portal/${this.userId}`)
+    },
     clickItem(item) {
       this.activeModal = item.id;
     },
@@ -196,8 +151,10 @@ export default defineComponent({
     // const store = useStore();
     // const tasks    = computed(() => store.getters.requestedItems(request) )
     // const getTasks = async () => await store.dispatch("fetchWPItems", request);
+    const router = useRouter();
 
     return {
+      router,
       chevronBack,
       chevronForward,
       stop,

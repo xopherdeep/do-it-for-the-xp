@@ -1,29 +1,12 @@
 import { defineComponent } from 'vue'
-
-import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonButtons,
-  IonMenuButton,
-  IonTitle,
-  IonContent
-} from '@ionic/vue'
+import ionic from "@/assets/js/mixins/ionic";
 
 import {
   arrowBack
 } from "ionicons/icons"
 
 export default defineComponent({
-  components: {
-    IonPage,
-    IonHeader,
-    IonToolbar,
-    IonButtons,
-    IonMenuButton,
-    IonTitle,
-    IonContent
-  },
+  mixins: [ionic],
   setup() {
     // code
     return {

@@ -11,6 +11,10 @@ export default {
    * @return Object || undefined
    */
   request: (state) => ({ type, params }) => {
+    if(!type){
+      console.log("TYPE NOT FOUND", type);
+      return false
+    }
     // recycle the request if its been stored
     return state.requests[type].find((request) => {
       // return state[type].requests.find((request) => {
@@ -34,7 +38,7 @@ export default {
    */
   requestedItems: (state, getters) => ({ type, params }) => {
     let request = getters.request({ type, params });
-    console.log("ITEMS REQUESTS", request);
+    // console.log("ITEMS REQUESTS", request);
     // if we do have a request, map the ids stored in the state
     return request ? request.ids.map((id) => state[type][id]) : [];
   },
@@ -65,12 +69,30 @@ export default {
     // console.log(state.users);
     return state.user.isAuthenticated 
   },
+
   getUserById: (state) => (id) => {
-    console.log("OVER HERE",state.users);
+    // console.log("OVER HERE",state.users);
     const user = state.users[id]
     return user ? user: state.users[1] ;
   },
-  getUser: (state) => {
+
+  user: (state) => {
     return state.user
   },
+
+  theme: (state) => (theme) => {
+    return state.theme[theme]
+  },
+
+  battleState: (state) => (key) => {
+    return state.battle[key]
+  },
+
+  bgm: (state) => (key) => {
+    return key ? state.bgm[key] : state.bgm
+  },
+  userActions: (state) => {
+    return state.userActions
+  },
+
 };

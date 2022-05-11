@@ -2,7 +2,7 @@
   <ion-page>
     <ion-header>
       <ion-toolbar color="secondary">
-        <ion-buttons slot="start" >
+        <ion-buttons slot="start">
           <!-- <ion-menu-button></ion-menu-button> -->
           <ion-icon :icon="storefrontOutline" slot="icon-only" />
           <!-- <ion-button :router-link="`/my-portal/${userId}`">
@@ -10,42 +10,47 @@
           </ion-button>
           <ion-icon :icon="storefrontOutline" size="large" /> -->
         </ion-buttons>
-        <ion-title> 
-          Shop
-        </ion-title>
+        <ion-title> Shop </ion-title>
       </ion-toolbar>
-<ion-item>
-      <ion-label>
-        Shelves
-      </ion-label>
-      <ion-select @ionChange="changeDate" :interface-options="customAlertOptions" interface="alert" placeholder="..." :v-bind="date" multiple>
-        <ion-select-option value="today" selected>
-          Can Afford
-        </ion-select-option>
-        <ion-select-option value="yesterday" checked>
-          Can't Afford
-        </ion-select-option>
-        <ion-select-option value="thisWeek">
-          Favorites
-        </ion-select-option>
-        <ion-select-option value="last7days">
-          Wish List
-        </ion-select-option>
-        <ion-select-option value="last14days">
-          Bought
-        </ion-select-option>
-      </ion-select>
-    </ion-item>
+      <ion-item>
+        <ion-label> Shelves </ion-label>
+        <ion-select
+          @ionChange="selectShelf"
+          :value="shelves"
+          :interface-options="customAlertOptions"
+          interface="alert"
+          placeholder="..."
+          multiple
+        >
+          <ion-select-option value="affordable" selected>
+            Can Afford
+          </ion-select-option>
+          <ion-select-option value="out-of-budget" checked>
+            Can't Afford
+          </ion-select-option>
+          <ion-select-option value="favorites"> Favorites </ion-select-option>
+          <ion-select-option value="wish-list"> Wish List </ion-select-option>
+          <ion-select-option value="purchased"> Purchased </ion-select-option>
+        </ion-select>
+      </ion-item>
     </ion-header>
 
     <ion-content class="accessory-shop">
-      <XpLoading v-if="isLoading"/>
+      <XpLoading v-if="isLoading" />
       <ion-grid v-else>
         <ion-row>
-          <ion-col size=6 v-for="item in items" :key="item.id" class="ion-no-padding">
-            <ion-card class="item ion-no-padding" >
+          <ion-col
+            size="6"
+            v-for="item in items"
+            :key="item.id"
+            class="ion-no-padding"
+          >
+            <ion-card class="item ion-no-padding">
               <ion-card-header>
-                <ion-card-subtitle v-if="item.title" v-html="item.title.rendered" />
+                <ion-card-subtitle
+                  v-if="item.title"
+                  v-html="item.title.rendered"
+                />
                 <!-- <ion-card-title v-if="item.title" v-html="item.title.rendered"></ion-card-title> -->
               </ion-card-header>
               <ion-img v-bind="getImgObj(item.featured_media)"></ion-img>
@@ -71,18 +76,18 @@
           </ion-col>
         </ion-row>
       </ion-grid>
- <!-- fab placed to the bottom and start and on the bottom edge of the content overlapping footer with a list to the right -->
-    <ion-fab vertical="bottom" horizontal="center" slot="fixed">
-      <ion-fab-button color="secondary">
-        <ion-icon :icon="cartOutline"></ion-icon>
-      </ion-fab-button>
-      <ion-fab-list side="start">
-        <ion-fab-button>
-          <ion-icon :icon="banOutline"></ion-icon>
+      <!-- fab placed to the bottom and start and on the bottom edge of the content overlapping footer with a list to the right -->
+      <ion-fab vertical="bottom" horizontal="center" slot="fixed">
+        <ion-fab-button color="secondary">
+          <ion-icon :icon="cartOutline"></ion-icon>
         </ion-fab-button>
-Empty
-      </ion-fab-list>
-    </ion-fab>
+        <ion-fab-list side="start">
+          <ion-fab-button>
+            <ion-icon :icon="banOutline"></ion-icon>
+          </ion-fab-button>
+          Empty
+        </ion-fab-list>
+      </ion-fab>
       <!-- <ion-tabs @ionTabsWillChange="beforeTabChange" @ionTabsDidChange="afterTabChange">
         <ion-router-outlet></ion-router-outlet>
         <ion-tab-bar slot="bottom">
@@ -113,10 +118,14 @@ Empty
     </ion-content>
     <ion-footer>
       <ion-toolbar color="secondary">
-        <ion-grid >
+        <ion-grid>
           <ion-row>
             <ion-col class="ion-no-padding">
-              <ion-searchbar color="light" @ionChange="request.params.page = 1" v-model="request.params.search"></ion-searchbar>
+              <ion-searchbar
+                color="light"
+                @ionChange="request.params.page = 1"
+                v-model="request.params.search"
+              ></ion-searchbar>
             </ion-col>
           </ion-row>
           <ion-row>

@@ -1,4 +1,5 @@
 import { defineComponent } from 'vue'
+import InputSettings from "./components/InputSettings.vue"
 
 import {
   IonPage,
@@ -15,10 +16,12 @@ import {
 import {
   arrowBack
 } from "ionicons/icons"
+import { mapActions } from 'vuex'
 
 export default defineComponent({
   name: 'xp-settings',
   components: {
+    InputSettings,
     IonSelect,
     IonSelectOption,
     IonPage,
@@ -31,15 +34,6 @@ export default defineComponent({
   },
   mounted() {
     this.$fx.ui[this.$fx.theme.ui].options.play()
-  },
-  methods:{
-    changeUISound(ev){
-      this.$fx.theme.ui = ev.detail.value
-    },
-
-    changeRPGSound(ev){
-      this.$fx.theme.rpg = ev.detail.value
-    }
   },
   setup() {
     // code
