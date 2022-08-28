@@ -1,5 +1,5 @@
 {
-  "name": "do-it-for-the-xp",
+  "name": "@xopherdeep/do-it-for-the-xp",
   "version": "0.0.2",
   "private": false,
   "scripts": {
@@ -64,8 +64,7 @@
     "dist"
   ],
   "publishConfig": {
-    "registry": "https://npm.pkg.github.com/",
-    "@knerd:registry": "https://npm.pkg.github.com/"
+    "@xopherdeep:registry": "https://npm.pkg.github.com/"
   },
   "description": "An Ionic project"
 }
