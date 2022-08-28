@@ -7,7 +7,6 @@
     <ion-toolbar style="--background: transparent" v-if="!hideMenu" class="ion-no-margin">
       <ion-grid class="ion-no-padding">
         <ion-row>
-
           <ion-col size="6" size-sm="3">
             <ion-button
               expand="block"

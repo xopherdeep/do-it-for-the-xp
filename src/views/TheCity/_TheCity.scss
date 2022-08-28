@@ -1,9 +1,3 @@
-.my-home{
-  ion-content{
-    --background: url(
-"@/assets/backgrounds/world-map.jpg"
-    )
-      center center/cover no-repeat;
-  }
-
+ion-content{
+  --background: url("@/assets/backgrounds/hometown.jpg") center center/cover no-repeat;
 }

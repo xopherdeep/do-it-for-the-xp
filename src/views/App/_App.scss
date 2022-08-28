@@ -542,10 +542,22 @@ ion-item.selected {
         --fa-secondary-opacity: 1
       }
 
+      &comment {
+        // --fa-primary-color: var(--xp-color-blue);
+        // --fa-secondary-color: var(--xp-color-green);
+        --fa-secondary-opacity: 1
+      }
+
       &compass {
         --fa-primary-color: var(--xp-color-lightBlue);
         --fa-secondary-color: var(--xp-color-blue);
         --fa-secondary-opacity: 1
+      }
+
+      &bell-exclamation {
+        // --fa-primary-color:  var(--xp-color-lightBlue);
+        // --fa-secondary-color: var(--xp-color-gray);
+        // --fa-secondary-opacity: 1
       }
 
       &sack {
@@ -624,14 +636,14 @@ ion-item.selected {
       }
 
       &wallet{
-        --fa-primary-color: var(--xp-color-brown);
-        --fa-secondary-color: var(--xp-color-yellow);
+        --fa-primary-color: var(--xp-color-yellow);
+        --fa-secondary-color: var(--xp-color-brown);
         --fa-secondary-opacity: 1
       }
 
       &backpack{
-        --fa-primary-color: var(--xp-color-gray);
-        --fa-secondary-color: var(--xp-color-brown);
+        --fa-primary-color: var(--xp-color-red);
+        --fa-secondary-color: var(--xp-color-red);
         --fa-secondary-opacity: 1
       }
 
@@ -644,7 +656,7 @@ ion-item.selected {
 
       &book-spells {
         --fa-primary-color: var(--ion-color-tertiary);
-        --fa-secondary-color: var(--xp-color-white);
+        --fa-secondary-color: var(--xp-color-lightBlue);
         --fa-secondary-opacity: 1
       }
 
@@ -656,9 +668,8 @@ ion-item.selected {
 
       &staff {
         &.quest{
-
           --fa-primary-color: var(--xp-color-brown);
-          --fa-secondary-color: var(--xp-color-green);
+          --fa-secondary-color: var(--xp-color-yellow);
           --fa-secondary-opacity: 1
         }
         &.fire {
@@ -720,8 +731,16 @@ ion-item.selected {
         --fa-secondary-opacity: 1
       }
 
+      &medal {
+        --fa-primary-color: var(--xp-color-green);
+        --fa-secondary-color: var(--xp-color-green);
+        --fa-secondary-opacity: .5
+      }
+
       &hand-holding-seedling{
         --fa-primary-color: var(--xp-color-green);
+        // --fa-secondary-color: var(--xp-color-white);
+        --fa-secondary-opacity: 1
       }
     }
   }

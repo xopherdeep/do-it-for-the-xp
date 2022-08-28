@@ -2,11 +2,11 @@
   <ion-page v-cloak>
     <ion-header :translucent="true">
       <ion-toolbar>
-        <ion-buttons slot="start">
+        <!-- <ion-buttons slot="start">
           <ion-button :router-link="`/my-portal/${userId}`">
             <ion-icon :icon="arrowBack" slot="icon-only" />
           </ion-button>
-        </ion-buttons>
+        </ion-buttons> -->
         <ion-title>My Party</ion-title>
       </ion-toolbar>
     </ion-header>
@@ -42,10 +42,11 @@
   import CardUserStats from "./CardUserStats/CardUserStats.vue";
 
   import { arrowBack } from "ionicons/icons";
+import userActions from "@/assets/js/mixins/userActions";
 
   import {
-    IonButtons,
-    IonButton,
+    // IonButtons,
+    // IonButton,
     IonContent,
     IonHeader,
     // IonMenuButton,
@@ -58,17 +59,21 @@
   } from "@ionic/vue";
   import { computed } from "vue";
   export default {
+    mixins: [userActions],
+    ionViewDidEnter(){
+      this.setUserActions(this.userActions)
+    },
     components: {
       IonGrid,
       IonRow,
       IonCol,
       CardUserStats,
-      IonButtons,
+      // IonButtons,
       IonContent,
       IonHeader,
       // IonMenuButton,
 
-      IonButton,
+      // IonButton,
       IonPage,
       IonTitle,
       IonToolbar,
@@ -79,20 +84,45 @@
         arrowBack,
       };
     },
-  mounted() {
-    // this.$fx.ui[this.$fx.theme.ui].user.play()
-  },
+    mounted() {
+      // this.$fx.ui[this.$fx.theme.ui].user.play()
+    },
     methods: {
       getUserAvatar(user) {
         const avatar = `./${user.avatar}.svg`;
         return requireAvatar(avatar);
       },
     },
+    setup(){
+      return {
+        userActions: [
+          {
+            label: "My Guilds",
+            id: "users",
+            faIcon: "users",
+          },
+          {
+            label: "Create Guild",
+            id: "create-team",
+            faIcon: "users-crown",
+          },
+          {
+            label: "Join Guild",
+            id: "join-team",
+            faIcon: "user-plus",
+          },
+          {
+            label: "Guild Chat",
+            id: "talk-to",
+            faIcon: "comments",
+          },
+        ]
+      }
+    }
   };
 </script>
 
 <style scoped lang="scss">
-
   #container {
     text-align: center;
     position: absolute;

@@ -38,19 +38,8 @@ export default defineComponent({
           faIcon: "tornado",
         },
         {
-          label: "Mountains",
-          faIcon: "mountains",
-          click(){
-            router.push({ name:'mountain', params: {userId} })
-          }
-        },
-        {
           label: "Forest",
           faIcon: "trees",
-        },
-        {
-          label: "Desert",
-          faIcon: "cactus",
         },
         {
           label: "Islands",
@@ -61,8 +50,19 @@ export default defineComponent({
           faIcon: "skull-crossbones",
         },
         {
+          label: "Desert",
+          faIcon: "cactus",
+        },
+        {
           label: "Ice Fortress",
           faIcon: "igloo",
+        },
+        {
+          label: "Mountains",
+          faIcon: "mountains",
+          click(){
+            router.push({ name:'mountain', params: {userId} })
+          }
         },
         {
           label: "To Moon",

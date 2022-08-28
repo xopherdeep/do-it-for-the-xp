@@ -34,16 +34,11 @@ export default defineComponent({
       userId,
       arrowBack,
       userActions: [
-        {
-          label: "Save & Quit",
-          id: 'save-quit',
-          faIcon: "save",
-        },
-        {
-          label: "Calendar",
-          id: 'adventure-time',
-          faIcon: "calendar",
-        },
+        // {
+        //   label: "Calendar",
+        //   id: 'adventure-time',
+        //   faIcon: "calendar",
+        // },
         {
           id: 'rest',
           label: "Rest",
@@ -60,14 +55,14 @@ export default defineComponent({
           }
         },
         {
-          label: "Cook",
-          id: 'cook',
-          faIcon: "hat-chef",
-        },
-        {
           label: "Craft",
           id: 'craft',
           faIcon: "tools",
+        },
+        {
+          label: "Cook",
+          id: 'cook',
+          faIcon: "hat-chef",
         },
         {
           label: "Go Outside",
@@ -75,7 +70,7 @@ export default defineComponent({
           faIcon: "door-open",
           click($ev){
             router.push({ name:'the-city', params: {userId} })
-            // console.log($ev.preventDefault());
+            console.log($ev.preventDefault());
           }
         },
       ],

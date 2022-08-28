@@ -22,12 +22,10 @@ export default defineComponent({
 
     const userActions = [
       {
-        label: " Home",
-        id: "my-home",
-        faIcon: "home",
-        click($ev) {
+        label: "Home",
+        faIcon: "house-user",
+        click() {
           router.push({ name: "my-home", params: { userId } });
-          console.log($ev.preventDefault());
         },
       },
       {
@@ -48,6 +46,15 @@ export default defineComponent({
       {
         label: "Temple",
         faIcon: "place-of-worship",
+      },
+      {
+        label: "Town Hall",
+        id: "town-hall",
+        faIcon: "university",
+        click($ev) {
+          router.push({ name: "town-hall", params: { userId } });
+          console.log($ev.preventDefault());
+        },
       },
       {
         label: "Travel World",

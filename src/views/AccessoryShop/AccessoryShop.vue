@@ -3,6 +3,9 @@
     <ion-header>
       <ion-toolbar color="secondary">
         <ion-buttons slot="start">
+          <ion-button :router-link="`/my-portal/${userId}/the-city`">
+            <ion-icon :icon="arrowBack" slot="icon-only" />
+          </ion-button>
           <!-- <ion-menu-button></ion-menu-button> -->
           <ion-icon :icon="storefrontOutline" slot="icon-only" />
           <!-- <ion-button :router-link="`/my-portal/${userId}`">
@@ -88,33 +91,6 @@
           Empty
         </ion-fab-list>
       </ion-fab>
-      <!-- <ion-tabs @ionTabsWillChange="beforeTabChange" @ionTabsDidChange="afterTabChange">
-        <ion-router-outlet></ion-router-outlet>
-        <ion-tab-bar slot="bottom">
-          <ion-tab-button tab="my-home" :router-link="`/my-portal/${user.id}`">
-            <ion-icon :icon="chevronBack"></ion-icon>
-          </ion-tab-button>
-
-          <ion-tab-button color="success" tab="speakers" :href="`/my-portal/${user.id}/deeds`">
-            <ion-icon :icon="medalOutline" color="success"></ion-icon>
-            <ion-label>Advents</ion-label>
-          </ion-tab-button>
-
-          <ion-tab-button tab="my-party" :href="`/my-portal/${user.id}/inventory`">
-            <ion-icon :icon="colorWandOutline" color="ternary"></ion-icon>
-          </ion-tab-button>
-
-          <ion-tab-button tab="my-party" :href="`/my-portal/${user.id}/my-party`">
-            <ion-icon :icon="peopleCircle" color="ternary"></ion-icon>
-            <ion-label>Party</ion-label>
-          </ion-tab-button>
-
-          <ion-tab-button tab="my-home" :href="`/my-portal/${user.id}`">
-            <ion-icon :icon="chevronForward"></ion-icon>
-          </ion-tab-button>
-
-        </ion-tab-bar>
-      </ion-tabs> -->
     </ion-content>
     <ion-footer>
       <ion-toolbar color="secondary">

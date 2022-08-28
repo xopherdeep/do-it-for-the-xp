@@ -12,7 +12,9 @@
               v-for="(p, i) in getCurrentMenu()"
               :key="i"
             >
+              
               <ion-item
+                v-if="p.title"
                 @click="
                   selectedIndex = i;
                   $fx.ui[$fx.theme.ui].select.play();
@@ -32,6 +34,7 @@
                 ></ion-icon>
                 <ion-label>{{ p.title }}</ion-label>
               </ion-item>
+              <hr v-else />
             </ion-menu-toggle>
           </ion-list>
           <ion-list>

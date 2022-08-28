@@ -63,6 +63,9 @@ export default defineComponent({
     },
     pageIcon(){
       return this.route.meta.faIcon || 'home'
+    },
+    isUserFabOn(){
+      return !this.route.meta.hideUserFab 
     }
   },
   methods: {
@@ -145,69 +148,39 @@ export default defineComponent({
       chatbox,
       wallet,
       specialItems: [
-        {
-          faIcon: "staff quest",
-          name: "Quest Log",
-          desc: "5HP | Open Quest Log...",
-          click(){
-            router.push({name: 'my-tasks', params: {userId}})
-          }
-        },
-        {
-          faIcon: "book-spells",
-          name: "Book Of Spells",
-          desc: "It does stuff...",
-          click(){
-            router.push({name: 'my-abilities', params: {userId}})
-          }
-        },
-        {
-          faIcon: "backpack",
-          name: "Goods",
-          desc: "Open currently held inventory.",
-          click(){
-            router.push({name: 'my-inventory', params: {userId}})
-          }
-        },
+        // {
+        //   faIcon: "staff quest",
+        //   name: "Quest Log",
+        //   desc: "5HP | Open Quest Log...",
+        //   click(){
+        //     router.push({name: 'my-tasks', params: {userId}})
+        //   }
+        // },
+        // {
+        //   faIcon: "book-spells",
+        //   name: "Book Of Spells",
+        //   desc: "It does stuff...",
+        //   click(){
+        //     router.push({name: 'my-abilities', params: {userId}})
+        //   }
+        // },
+        // {
+        //   faIcon: "backpack",
+        //   name: "Goods",
+        //   desc: "Open currently held inventory.",
+        //   click(){
+        //     router.push({name: 'my-inventory', params: {userId}})
+        //   }
+        // },
 
-        {
-          faIcon: "wallet",
-          name: "Wallet",
-          desc: "Open wallet to see GP earnings",
-          click(){
-            router.push({name: 'my-gold-points', params: {userId}})
-          }
-        },
-        {
-          faIcon: "flashlight",
-          name: "Lantern",
-          desc: "It does stuff...",
-        },
-        {
-          faIcon: "bow-arrow",
-          name: "Silver Arrow",
-          desc: "25MP | Immediately removes task from battle",
-        },
-        {
-          faIcon: "expand-alt",
-          name: "Hook Shot",
-          desc: "It does stuff...",
-        },
-        {
-          faIcon: "bomb",
-          name: "Bombs",
-          desc: "It does stuff...",
-        },
-        {
-          faIcon: "hammer-war",
-          name: "Thor's Hammer",
-          desc: "It does stuff...",
-        },
-        {
-          faIcon: "flask-potion",
-          name: "Bottles",
-          desc: "Quick access to your potions and ethers",
-        },
+        // {
+        //   faIcon: "wallet",
+        //   name: "Wallet",
+        //   desc: "Open wallet to see GP earnings",
+        //   click(){
+        //     router.push({name: 'my-gold-points', params: {userId}})
+        //   }
+        // },
         {
           faIcon: "flame",
           name: "Sol's Flare",
@@ -269,6 +242,36 @@ export default defineComponent({
           desc: "It does stuff...",
         },
         {
+          faIcon: "bow-arrow",
+          name: "Silver Arrow",
+          desc: "25MP | Immediately removes task from battle",
+        },
+        {
+          faIcon: "expand-alt",
+          name: "Hook Shot",
+          desc: "It does stuff...",
+        },
+        {
+          faIcon: "bomb",
+          name: "Bombs",
+          desc: "It does stuff...",
+        },
+        {
+          faIcon: "hammer-war",
+          name: "Thor's Hammer",
+          desc: "It does stuff...",
+        },
+        {
+          faIcon: "flashlight",
+          name: "Lantern",
+          desc: "It does stuff...",
+        },
+        {
+          faIcon: "flask-potion",
+          name: "Bottles",
+          desc: "Quick access to your potions and ethers",
+        },
+        {
           name: "Portal Home",
           faIcon: "portal-enter",
           desc: "10MP | Open portal to go directly home. Takes 15min to recharge.",
@@ -284,12 +287,9 @@ export default defineComponent({
           faIcon: "comment",
         },
         {
-          label: "My Goods",
-          id: "my-inventory",
-          faIcon: "backpack",
-          click($ev) {
-            router.push({ name: "my-inventory", params: { userId } });
-          },
+          label: "Notifications",
+          id: "notifications",
+          faIcon: "bell-exclamation",
         },
         {
           id: "abilities",
@@ -300,32 +300,48 @@ export default defineComponent({
           },
         },
         {
-          label: "My Equipment",
-          id: "toolbox",
-          faIcon: "compass",
-          // link: 'storage',
-          click($ev) {
-            this.isRPGBoxOpen = true;
-          },
-        },
-        {
-          label: "My Quests",
+          label: "Quest Log",
           id: "staff",
-          faIcon: "staff quest",
+          faIcon: "medal quest",
           click(){
             router.push({name: 'my-tasks', params: {userId}})
           }
         },
         {
-          label: "My Growth",
+          label: "My Items",
+          id: "my-inventory",
+          faIcon: "backpack",
+          click($ev) {
+            router.push({ name: "my-inventory", params: { userId } });
+          },
+        },
+        {
+          label: "Stats",
           id: "user-profile",
           faIcon: "hand-holding-seedling",
         },
         {
-          label: "My Notifications",
-          id: "notifications",
-          faIcon: "bell-exclamation",
+          label: "My Wallet",
+          id: "wallet",
+          faIcon: "wallet",
+          click(){
+            router.push({name: 'my-gold-points', params: {userId}})
+          }
         },
+        {
+          label: "Save & Quit",
+          id: 'save-quit',
+          faIcon: "save",
+        },
+        // {
+        //   label: "Inventory Screen",
+        //   id: "toolbox",
+        //   faIcon: "compass",
+        //   // link: 'storage',
+        //   click($ev) {
+        //     this.isRPGBoxOpen = true;
+        //   },
+        // },
         // {
         //   label: "Gold Points",
         //   id: "gold-points",

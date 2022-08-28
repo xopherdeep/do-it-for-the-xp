@@ -1,7 +1,7 @@
 {
   "name": "do-it-for-the-xp",
   "version": "0.0.1",
-  "private": true,
+  "private": false,
   "scripts": {
     "serve": "vue-cli-service serve",
     "build": "vue-cli-service build",
@@ -59,6 +59,13 @@
     "sass-loader": "^10",
     "ts-jest": "^27.0.7",
     "typescript": "^4.3.5"
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com/",
+    "@knerd:registry": "https://npm.pkg.github.com/"
   },
   "description": "An Ionic project"
 }

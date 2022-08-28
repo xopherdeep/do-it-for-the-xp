@@ -27,11 +27,11 @@
       </ion-toolbar>
     </ion-header> -->
     <ion-content>
-      <ion-fab vertical="top" horizontal="end" v-if="user.stats">
+      <ion-fab vertical="center" horizontal="end" v-if="user.stats">
         <ion-fab-button color="tertiary">
           <i class="fad fa-hand-sparkles fa-2x"></i>
         </ion-fab-button>
-        <ion-fab-list side="bottom">
+        <ion-fab-list side="start">
           <ion-fab-button color="dark" @click="isRPGBoxOpen = true">
             <i class="fad fa-compass fa-lg"></i>
           </ion-fab-button>
@@ -39,7 +39,7 @@
             <i class="fad fa-map fa-lg"></i>
           </ion-fab-button>
         </ion-fab-list>
-        <ion-fab-list side="start" class="items">
+        <ion-fab-list side="top" class="items">
           <ion-fab-button v-for="item in equipment" :key="item.faIcon" color="dark" @click="item.click">
             <i class="fad fa-2x "
               :class="`fa-${item.faIcon}`"
@@ -49,7 +49,7 @@
       </ion-fab>
       <!-- PAGE MENU -->
       <ion-fab
-        vertical="top"
+        vertical="bottom"
         horizontal="start"
         class="fab-user"
         v-if="user.stats"
@@ -58,12 +58,14 @@
           <ion-row>
             <ion-col>
               <ion-fab-button color="light" v-if="user.avatar">
-                <i class="fad fa-2x" :class="`fa-${pageIcon}`"></i>
+
+                <i v-if="pageIcon != 'fort-awesome'" class="fad fa-2x" :class="`fa-${pageIcon}`"></i>
+                <i v-else class="fab fa-2x" :class="`fa-${pageIcon}`"></i>
               </ion-fab-button>
             </ion-col>
           </ion-row>
         </ion-grid>
-        <ion-fab-list side="end">
+        <!-- <ion-fab-list side="end">
           <ion-grid>
             <ion-row>
               <ion-col>
@@ -73,8 +75,8 @@
               </ion-col>
             </ion-row>
           </ion-grid>
-        </ion-fab-list>
-        <ion-fab-list side="bottom" >
+        </ion-fab-list> -->
+        <ion-fab-list side="top" >
           <ion-card>
             <ion-card-title>
               {{ pageName }}
@@ -109,18 +111,18 @@
       </ion-fab>
       <!-- USER MENU -->
       <ion-fab
-        vertical="bottom"
+        vertical="top"
         horizontal="start"
         class="fab-user"
-        v-if="user.stats"
+        v-if="user.stats && isUserFabOn"
       >
         <ion-grid>
           <ion-row>
             <ion-col size="2">
-        <ion-badge color="medium">
-          0/10
-          <i class="fad fa-diamond fa-lg"></i>
-        </ion-badge>
+              <!-- <ion-badge color="medium">
+                0/10
+                <i class="fad fa-diamond fa-lg"></i>
+              </ion-badge> -->
               <ion-fab-button color="light" v-if="user.avatar">
                 <ion-img
                   class="ion-no-padding"
@@ -129,7 +131,7 @@
               </ion-fab-button>
 
             </ion-col>
-            <ion-col size="5" size-lg="5" class="ion-no-margin ion-no-padding">
+            <!-- <ion-col size="5" size-lg="5" class="ion-no-margin ion-no-padding">
               <ion-chip color="danger" class="ion-no-padding">
                 HP
                 <i class="fad fa-heart fa-2x"></i>
@@ -148,7 +150,7 @@
                   :value="user.stats.mp.now / user.stats.mp.max"
                 ></ion-progress-bar>
               </ion-chip>
-            </ion-col>
+            </ion-col> -->
             <!-- <ion-col size="4" size-lg="4" class="ion-no-padding">
               <ion-chip color="warning">
                 <ion-progress-bar
@@ -162,7 +164,12 @@
             </ion-col> -->
           </ion-row>
         </ion-grid>
-        <ion-fab-list class="fab-user" side="top">
+        <!-- <ion-fab-list side="end">
+          <ion-fab-button>
+            <ion-menu-button color="primary"></ion-menu-button>
+          </ion-fab-button>
+        </ion-fab-list> -->
+        <ion-fab-list class="fab-user" side="bottom">
           <ion-card>
             <ion-card-title>
               {{ user.name.nick }}
@@ -188,6 +195,16 @@
                       ></i>
                       {{ action.label }}
                     </ion-button>
+                  </ion-col>
+                  <ion-col>
+                    <ion-menu-toggle>
+                      <ion-button>
+                        <i
+                          class="fad fa-lg fa-bars"
+                        ></i>
+                        Open Menu
+                      </ion-button>
+                    </ion-menu-toggle>
                   </ion-col>
                 </ion-row>
               </ion-grid>
@@ -234,7 +251,7 @@
 
       <!-- GOLD POINTS -->
       <ion-fab
-        vertical="bottom"
+        vertical="top"
         horizontal="end"
         class="fab-gp"
       >
@@ -258,51 +275,60 @@
         <ion-router-outlet ref="outlet" :userId="user.id"></ion-router-outlet>
         <ion-tab-bar
           slot="bottom"
-          v-if="debug && user.stats && !battleState('active')"
+          v-if="user.stats && !battleState('active')"
         >
           <ion-tab-button
-            tab="the-city"
-            :href="`/my-portal/${user.id}/the-city`"
+            color="success"
+            tab="my-profile"
+            :href="`/my-portal/${user.id}/my-profile`"
           >
-            <i class="fal fa-city fa-2x"></i>
-            <ion-label>City</ion-label>
-          </ion-tab-button>
-          <ion-tab-button tab="my-home" :href="`/my-portal/${user.id}/my-home`">
-            <i class="fal fa-home fa-2x"></i>
-            <ion-label>Home</ion-label>
-          </ion-tab-button>
-          <ion-tab-button
-            tab="world-map"
-            :href="`/my-portal/${user.id}/world-map`"
-          >
-            <i class="fal fa-globe fa-2x"></i>
-            <ion-label>World</ion-label>
-          </ion-tab-button>
-          <ion-tab-button tab="shop" :href="`/my-portal/${user.id}/shop`">
-            <ion-icon :icon="storefrontOutline" color="secondary"></ion-icon>
-            <ion-label>Shop</ion-label>
-            <ion-badge color="warning"
-              >¤{{ user.stats.gp.wallet }} GP</ion-badge
-            >
-          </ion-tab-button>
-          <ion-tab-button
-            color="danger"
-            tab="my-dashboard"
-            :href="`/my-portal/${user.id}/my-dashboard`"
-          >
-            <ion-icon :icon="accessibilityOutline" color="danger"></ion-icon>
+            <ion-icon :icon="personCircle" color="success"></ion-icon>
             <ion-label v-if="user.name">
               {{ user.name.nick }}
             </ion-label>
             <ion-badge color="danger">{{ user.stats.hp.now }} HP</ion-badge>
           </ion-tab-button>
+          <ion-tab-button tab="my-home" :href="`/my-portal/${user.id}/my-home`">
+            <!-- <i class="fal fa-home fa-2x"></i> -->
+            <!-- <i class="fad fa-house-user fa-2x"></i> -->
+
+            <i class="fad fa-2x" :class="`fa-${pageIcon}`"></i>
+            <ion-label>Home</ion-label>
+            this is my editor.... 
+            sooo slow....
+            this is my editor.
+          </ion-tab-button>
+          <!-- <ion-tab-button
+            tab="the-city"
+            :href="`/my-portal/${user.id}/the-city`"
+          >
+            <i class="fad fa-archway fa-2x"></i>
+            <i class="fal fa-city fa-2x"></i>
+            <ion-label>Town</ion-label>
+          </ion-tab-button> -->
           <ion-tab-button
             tab="my-party"
             :href="`/my-portal/${user.id}/my-party`"
           >
-            <ion-icon :icon="peopleCircle" color="ternary"></ion-icon>
+
+            <i class="fab fa-fort-awesome fa-2x"></i>
             <ion-label>Party</ion-label>
           </ion-tab-button>
+          <!-- <ion-tab-button
+            tab="world-map"
+            :disabled="false"
+            :href="`/my-portal/${user.id}/world-map`"
+          >
+            <i class="fal fa-globe fa-2x"></i>
+            <ion-label>World</ion-label>
+          </ion-tab-button> -->
+          <!-- <ion-tab-button tab="shop" :href="`/my-portal/${user.id}/shop`">
+            <ion-icon :icon="storefrontOutline" color="secondary"></ion-icon>
+            <ion-label>Shop</ion-label>
+            <ion-badge color="warning"
+              >¤{{ user.stats.gp.wallet }} GP</ion-badge
+            >
+          </ion-tab-button> -->
         </ion-tab-bar>
       </ion-tabs>
     </ion-content>

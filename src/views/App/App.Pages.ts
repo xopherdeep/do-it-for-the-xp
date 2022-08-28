@@ -17,28 +17,37 @@ import {
 
 export default [
       {
-        title: "Switch Profile",
-        url: "/switch-profile",
+        title: "Home",
+        url: "/home",
         iosIcon: peopleCircleOutline,
         mdIcon: peopleCircleSharp,
       },
       {
-        title: "XP Membership",
-        url: "/xp-membership",
-        iosIcon: diamondOutline,
-        mdIcon: diamondSharp,
-      },
-      {
-        title: "XP Settings",
+        title: "Settings",
         url: "/xp-settings",
         iosIcon: settingsOutline,
         mdIcon: settingsSharp,
       },
       {
-        title: "XP Support",
+        title: ''
+      },
+      {
+        title: "Membership",
+        url: "/xp-membership",
+        iosIcon: diamondOutline,
+        mdIcon: diamondSharp,
+      },
+      {
+        title: "FAQ & Support",
         url: "/xp-support",
         iosIcon: helpBuoyOutline,
         mdIcon: helpBuoySharp,
+      },
+      {
+        title: "Tell a Friend",
+        url: "/tell-a-friend",
+        iosIcon: shareOutline,
+        mdIcon: shareSharp,
       },
       {
         title: "About XP",
@@ -46,16 +55,28 @@ export default [
         iosIcon: informationCircleOutline,
         mdIcon: informationCircleSharp,
       },
-      // {
-      //   title: "Referral Bonuses",
-      //   url: "/referral-bonuses",
-      //   iosIcon: shareOutline,
-      //   mdIcon: shareSharp,
-      // },
+      {
+        title: ''
+      },
+      {
+        title: "Delete Profile",
+        url: "/log-out",
+        iosIcon: logOutOutline,
+        mdIcon: logOutSharp,
+      },
+      {
+        title: ''
+      },
+      {
+        title: "Switch Profile",
+        url: "/switch-profile",
+        iosIcon: peopleCircleOutline,
+        mdIcon: peopleCircleSharp,
+      },
       {
         title: "Log Out",
         url: "/log-out",
         iosIcon: logOutOutline,
         mdIcon: logOutSharp,
-      },
+      }
 ]

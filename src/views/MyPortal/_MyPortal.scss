@@ -1,5 +1,8 @@
 .my-portal {
   ion-fab {
+    &.fab-vertical-bottom {
+        bottom: 60px;
+    }
 
     &.fab-user {
       width: 500px;

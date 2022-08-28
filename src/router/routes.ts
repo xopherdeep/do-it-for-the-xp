@@ -34,7 +34,7 @@ export default [
         path: 'my-home',
         name: 'my-home',
         meta: {
-          faIcon: 'home'
+          faIcon: 'house-user'
         },
         component: () => import ('@/views/MyHome/MyHome.vue'),
         children: [
@@ -55,16 +55,11 @@ export default [
         props: true,
       },
       {
-        path: 'shop',
-        name: 'shop',
-        meta: {
-          faIcon: 'store'
-        },
-        component: () => import ('@/views/AccessoryShop/AccessoryShop.vue'),
-        props: true,
-      },
-      {
         path: 'my-party',
+        meta: {
+          faIcon: 'fort-awesome',
+          hideUserFab: true
+        },
         component: () => import('@/views/MyParty.vue'),
       },
       {
@@ -79,7 +74,7 @@ export default [
         path: 'the-city',
         name: 'the-city',
         meta: {
-          faIcon: 'building'
+          faIcon: 'archway'
         },
         component: () => import ('@/views/TheCity/TheCity.vue'),
       },
@@ -90,6 +85,15 @@ export default [
           faIcon: 'globe'
         },
         component: () => import ('@/views/WorldMap/WorldMap.vue'),
+      },
+      {
+        path: 'my-profile',
+        name: 'my-profile',
+        meta: {
+          faIcon: 'user-circle',
+          hideUserFab: true
+        },
+        component: () => import ('@/views/MyProfile/MyProfile.vue'),
       },
     ],
   },
@@ -105,6 +109,15 @@ export default [
   {
     path: '/my-dashboard/:userId/my-party',
     component: () => import('@/views/MyParty.vue'),
+  },
+  {
+    path: '/shop',
+    name: 'shop',
+    meta: {
+      faIcon: 'store'
+    },
+    component: () => import ('@/views/AccessoryShop/AccessoryShop.vue'),
+    props: true,
   },
   {
     path: '/my-tasks/:userId?/',

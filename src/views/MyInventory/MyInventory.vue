@@ -6,10 +6,10 @@
           <ion-button :router-link="`/my-portal/${userId}`">
             <ion-icon :icon="arrowBack" slot="icon-only" />
           </ion-button>
-          <ion-icon :icon="bagOutline" size="large" />
+          <ion-icon :icon="backpack" size="large" />
         </ion-buttons>
         <ion-title> 
-        Goods
+        My Goods
         </ion-title>
       </ion-toolbar>
       <ion-toolbar>
