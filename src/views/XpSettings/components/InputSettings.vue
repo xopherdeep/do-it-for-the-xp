@@ -6,7 +6,7 @@
     </ion-list-header> -->
     <ion-item>
       <i class="fad fa-music fa-lg ion-float-left" slot="start"></i>
-      <ion-label> Music </ion-label>
+      <ion-label> Battle Music </ion-label>
       <ion-toggle
         @ionChange="changeBGMToggle"
         :checked="bgm.is_on"
@@ -14,7 +14,7 @@
     </ion-item>
 
     <ion-item>
-      <ion-label>User Interface (UI)</ion-label>
+      <ion-label>User Interface Sound Fx</ion-label>
       <i class="fad fa-tv fa-lg ion-float-left" slot="start"></i>
       <ion-select
         @ionChange="changeUISound"
@@ -28,8 +28,8 @@
     </ion-item>
 
     <ion-item @click="play$fx">
-      <ion-label>Role Playing Game (RPG)</ion-label>
-      <i class="fad fa-terminal fa-lg ion-float-left" slot="start"></i>
+      <ion-label>Look and feel</ion-label>
+      <i class="fad fa-brush fa-lg ion-float-left" slot="start"></i>
       <ion-select
         @ionChange="changeRPGSound"
         :value="$fx.theme.rpg"

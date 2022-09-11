@@ -1,5 +1,6 @@
 import { defineComponent } from 'vue'
 import InputSettings from "./components/InputSettings.vue"
+const requireIconImg = require.context("@/assets/images/icons/");
 
 import {
   IonPage,
@@ -38,7 +39,8 @@ export default defineComponent({
   setup() {
     // code
     return {
-      arrowBack
+      arrowBack,
+      requireIconImg
     }
   },
 })
