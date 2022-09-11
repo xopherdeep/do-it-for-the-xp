@@ -1,22 +1,17 @@
 <template>
   <ion-page :class="$options.name">
-      <ion-content :fullscreen="true" v-if="user.stats">
-<ion-card>
-        <ion-title v-if="user.name"> 
-
-        <ion-buttons >
-          <ion-button :router-link="`/my-portal/${userId}`" @click="modalController.dismiss">
-            <ion-icon :icon="arrowBack" slot="icon-only"/>
-          </ion-button>
-        </ion-buttons>
-          {{user.name.first}}
-          {{user.name.middle}}
-          {{user.name.last}}
-        </ion-title>
       <ion-toolbar>
-      </ion-toolbar>
+        <ion-buttons>
+          <ion-back-button :default-href="`/my-portal/${user.id}/my-profile`" :icon="arrowBack"></ion-back-button>
+          <ion-title v-if="user.name"> 
+            {{user.name.first}}
+            {{user.name.middle}}
+            {{user.name.last}}
+          </ion-title>
+        </ion-buttons>
 
-</ion-card>
+      </ion-toolbar>
+      <ion-content :fullscreen="true" v-if="user.stats">
         <ion-card v-for="area, category in areas" :key="category">
           <ion-accordion-group :value="category">
               <ion-accordion :value="category">

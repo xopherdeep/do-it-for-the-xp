@@ -19,7 +19,6 @@ import {
   IonAccordion,
   IonAccordionGroup,
   IonList,
-
 modalController
 } from "@ionic/vue";
 
@@ -116,7 +115,7 @@ export default defineComponent({
     },
   },
   updated(){
-    this.$refs.userStats.present()
+    // this.$refs.userStats.present()
   },
   mounted(){
   // modalController.present()
