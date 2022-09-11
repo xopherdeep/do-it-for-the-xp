@@ -1,4 +1,4 @@
-import { computed, defineComponent, ref } from "vue";
+import { computed, defineComponent, handleError, ref } from "vue";
 import requireImg from "@/assets/js/requireImg";
 import fetchItems from "@/assets/js/mixins/fetchItems.js";
 import ionic from "@/assets/js/mixins/ionic";
@@ -49,6 +49,11 @@ export default defineComponent({
         type: "xp_achievement",
         per_page: 8,
       },
+      compass: {
+        name: 'Home',
+        icon: 'house-user',
+        link: `/my-portal/`
+      },
     };
   },
 
@@ -59,18 +64,21 @@ export default defineComponent({
       return this.battleState("steps").counter;
     },
     pageName() {
-      return this.route.name;
+      return this.compass.name;
     },
     pageIcon(){
-      return this.route.meta.faIcon || 'home'
+      return this.route.meta.faIcon
     },
     isUserFabOn(){
       return !this.route.meta.hideUserFab 
+    },
+    pageLink(){
+      return this.compass.link
     }
   },
   methods: {
     ...mapActions(["resetBattleTimer", "stopBattleTimer"]),
-    ...mapMutations(["ACTIVATEp_BATTLE"]),
+    ...mapMutations(["ACTIVATE_BATTLE"]),
     displayInfo(item) {
       this.info = item;
     },
@@ -92,8 +100,40 @@ export default defineComponent({
     enterBattle() {
       this.$refs.outlet.enterBattle();
     },
+    updateNav(icon){
+      switch (icon) {
+        case 'pegasus':
+          this.compass = {
+            icon,
+            name: 'The World',
+            link: `/my-portal/${this.user.id}/world-map`
+          }
+          break;
+        case 'archway':
+          this.compass = {
+            icon,
+            name: 'Hometown',
+            link: `/my-portal/${this.user.id}/the-city`
+          }
+          break;
+      
+        case 'house-user':
+          this.compass = {
+            ...this.compass,
+            link: `/my-portal/${this.user.id}/my-home`
+          }
+      }
+      console.log(this.compass);
+    }
+
+  },
+  created(){
+    this.updateNav()
   },
   watch: {
+    pageIcon(icon){
+      this.updateNav(icon)
+    },
     battleCounter(counter) {
       const {
         router,
@@ -105,15 +145,14 @@ export default defineComponent({
         bgm: { $fx },
       } = this;
       const route = { name: "my-dashboard", props: { userId } };
-      return false;
-      // if (counter <= 0) {
-      //   $fx.rpg[theme.rpg].enterBattle.play();
-      //   router
-      //     .push(route)
-      //     .then(stopBattleTimer)
-      //     .then(resetBattleTimer)
-      //     .then(ACTIVATE_BATTLE);
-      // }
+      if (counter <= 0) {
+        // $fx.rpg[theme.rpg].enterBattle.play();
+        // router
+        //   .push(route)
+        //   .then(stopBattleTimer)
+        //   .then(resetBattleTimer)
+        //   .then(ACTIVATE_BATTLE);
+      }
     },
   },
   setup(props) {

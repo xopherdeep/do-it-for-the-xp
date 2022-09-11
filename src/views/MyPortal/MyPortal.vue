@@ -131,26 +131,22 @@
               </ion-fab-button>
 
             </ion-col>
-            <!-- <ion-col size="5" size-lg="5" class="ion-no-margin ion-no-padding">
-              <ion-chip color="danger" class="ion-no-padding">
+            <ion-col size="5" size-lg="5" class="ion-no-margin ion-no-padding">
                 HP
-                <i class="fad fa-heart fa-2x"></i>
+                <!-- <i class="fad fa-heart fa-2x"></i> -->
                 <ion-progress-bar
                   color="danger"
                   v-if="user.stats"
                   :value="user.stats.hp.now / user.stats.hp.max"
                 ></ion-progress-bar>
-              </ion-chip>
-              <ion-chip color="tertiary" class="ion-no-padding">
                 MP
-                <i class="fad fa-magic fa-2x"></i>
+                <!-- <i class="fad fa-magic fa-2x" color="tertiary"></i> -->
                 <ion-progress-bar
                   color="tertiary"
                   v-if="user.stats"
                   :value="user.stats.mp.now / user.stats.mp.max"
                 ></ion-progress-bar>
-              </ion-chip>
-            </ion-col> -->
+            </ion-col>
             <!-- <ion-col size="4" size-lg="4" class="ion-no-padding">
               <ion-chip color="warning">
                 <ion-progress-bar
@@ -255,7 +251,7 @@
         horizontal="end"
         class="fab-gp"
       >
-        <ion-card v-if="user.stats">
+        <ion-card v-if="user.stats && isUserFabOn">
           <ion-card-title>
           GP
           </ion-card-title>
@@ -288,15 +284,16 @@
             </ion-label>
             <ion-badge color="danger">{{ user.stats.hp.now }} HP</ion-badge>
           </ion-tab-button>
-          <ion-tab-button tab="my-home" :href="`/my-portal/${user.id}/my-home`">
+          <ion-tab-button tab="my-home" 
+            :href="compass.link"
+          >
             <!-- <i class="fal fa-home fa-2x"></i> -->
             <!-- <i class="fad fa-house-user fa-2x"></i> -->
 
-            <i class="fad fa-2x" :class="`fa-${pageIcon}`"></i>
-            <ion-label>Home</ion-label>
-            this is my editor.... 
-            sooo slow....
-            this is my editor.
+            <i class="fad fa-2x" :class="`fa-${compass.icon}`"></i>
+            <ion-label>
+              {{compass.name}}
+            </ion-label>
           </ion-tab-button>
           <!-- <ion-tab-button
             tab="the-city"
@@ -473,7 +470,6 @@
       ref="userProfile"
       class="user-profile"
       trigger="user-profile"
-      v-if="user.name"
       :breakpoints="[1]"
       :initialBreakpoint="1"
     >

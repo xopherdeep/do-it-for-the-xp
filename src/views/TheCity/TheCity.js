@@ -48,6 +48,10 @@ export default defineComponent({
         faIcon: "place-of-worship",
       },
       {
+        label: "Bank",
+        faIcon: "piggy-bank",
+      },
+      {
         label: "Town Hall",
         id: "town-hall",
         faIcon: "university",
