@@ -19,6 +19,7 @@ import {
   IonSegmentButton,
   IonSearchbar,
   IonFooter,
+  IonBackButton
 } from "@ionic/vue";
 
 import {
@@ -42,6 +43,7 @@ export default defineComponent({
   props: ["userId"],
   name: "my-abilities",
   components: {
+    IonBackButton,
     IonSearchbar,
     IonGrid,
     IonRow,

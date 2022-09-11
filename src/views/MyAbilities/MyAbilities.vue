@@ -3,9 +3,7 @@
     <ion-header>
       <ion-toolbar color="tertiary" v-if="user.stats">
         <ion-buttons slot="start">
-          <ion-button :router-link="`/my-portal/${userId}`">
-            <ion-icon :icon="arrowBack" slot="icon-only" />
-          </ion-button>
+          <ion-back-button :default-href="`/my-portal/${user.id}`" :icon="arrowBack"></ion-back-button>
           <ion-icon :icon="colorWand" size="large" />
         </ion-buttons>
         <ion-title> Abilities </ion-title>

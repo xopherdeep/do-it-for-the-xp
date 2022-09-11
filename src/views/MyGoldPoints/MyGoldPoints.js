@@ -1,5 +1,6 @@
 import { computed, defineComponent } from "vue";
 import {
+  IonBackButton,
   IonPage,
   IonHeader,
   IonToolbar,
@@ -65,6 +66,7 @@ export default defineComponent({
     }
   },
   components: {
+    IonBackButton,
     IonGrid,
     IonRow,
     IonCol,

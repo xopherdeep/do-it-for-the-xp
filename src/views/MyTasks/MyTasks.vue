@@ -3,9 +3,8 @@
     <ion-header>
       <ion-toolbar color="success">
         <ion-buttons slot="start">
-          <ion-button @click="clickBack" >
-            <ion-icon :icon="arrowBack" slot="icon-only" />
-          </ion-button>
+          <ion-back-button :default-href="`/my-portal/${user.id}`">
+          </ion-back-button>
           <i class="fad fa-medal fa-2x"></i>
           <!-- <ion-icon :icon="medalOutline" size="large" /> -->
         </ion-buttons>
@@ -26,12 +25,12 @@
           <ion-segment-button value="morning">
             <i class="fal fa-sun fa-2x"></i>
             <!-- <ion-icon :icon="sunnyOutline"></ion-icon> -->
-            Sol
+            Morn
           </ion-segment-button>
           <ion-segment-button value="afternoon">
             <i class="fal fa-cloud-sun fa-2x"></i>
             <!-- <ion-icon :icon="partlySunnyOutline"></ion-icon> -->
-            Nut
+            Noon
           </ion-segment-button>
           <ion-segment-button value="evening">
             <i class="fal fa-cloud-moon fa-2x"></i>
@@ -41,7 +40,7 @@
           <ion-segment-button value="night">
             <i class="fal fa-moon-stars fa-2x"></i>
             <!-- <ion-icon :icon="moonOutline"></ion-icon> -->
-            Nyx
+            Night
           </ion-segment-button>
         </ion-segment>
       </ion-toolbar>

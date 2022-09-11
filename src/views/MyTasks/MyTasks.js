@@ -2,6 +2,7 @@ import { computed, defineComponent, onMounted, reactive, ref } from "vue";
 
 import ionic from "@/assets/js/mixins/ionic"
 import {
+  IonBackButton,
   alertController,
 } from "@ionic/vue";
 import {
@@ -35,6 +36,7 @@ export default defineComponent({
   props: ["userId"],
   name: "my-tasks",
   components: {
+    IonBackButton,
     MyTask,
   },
   data() {

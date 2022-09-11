@@ -16,15 +16,21 @@ import {
 } from "ionicons/icons";
 
 export default [
+      // {
+      //   title: "Home",
+      //   url: "/home",
+      //   iosIcon: peopleCircleOutline,
+      //   mdIcon: peopleCircleSharp,
+      // },
       {
-        title: "Home",
-        url: "/home",
+        title: "Switch Profile",
+        url: "/switch-profile",
         iosIcon: peopleCircleOutline,
         mdIcon: peopleCircleSharp,
       },
       {
         title: "Settings",
-        url: "/xp-settings",
+        url: "/xp-settings/",
         iosIcon: settingsOutline,
         mdIcon: settingsSharp,
       },
@@ -58,20 +64,14 @@ export default [
       {
         title: ''
       },
-      {
-        title: "Delete Profile",
-        url: "/log-out",
-        iosIcon: logOutOutline,
-        mdIcon: logOutSharp,
-      },
+      // {
+      //   title: "Delete Profile",
+      //   url: "/log-out",
+      //   iosIcon: logOutOutline,
+      //   mdIcon: logOutSharp,
+      // },
       {
         title: ''
-      },
-      {
-        title: "Switch Profile",
-        url: "/switch-profile",
-        iosIcon: peopleCircleOutline,
-        mdIcon: peopleCircleSharp,
       },
       {
         title: "Log Out",
