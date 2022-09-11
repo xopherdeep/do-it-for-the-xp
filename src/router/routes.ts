@@ -46,15 +46,6 @@ export default [
         ]
       },
       {
-        path: 'my-dashboard',
-        name: 'my-dashboard',
-        meta: {
-          faIcon: 'dungeon'
-        },
-        component: () => import ('@/views/MyDashboard/MyDashboard.vue'),
-        props: true,
-      },
-      {
         path: 'my-party',
         meta: {
           faIcon: 'fort-awesome',
@@ -82,7 +73,7 @@ export default [
         path: 'world-map',
         name: 'world-map',
         meta: {
-          faIcon: 'globe'
+          faIcon: 'pegasus'
         },
         component: () => import ('@/views/WorldMap/WorldMap.vue'),
       },
@@ -96,6 +87,15 @@ export default [
         component: () => import ('@/views/MyProfile/MyProfile.vue'),
       },
     ],
+  },
+  {
+    path: '/my-dashboard',
+    name: 'my-dashboard',
+    meta: {
+      faIcon: 'dungeon'
+    },
+    component: () => import ('@/views/MyDashboard/MyDashboard.vue'),
+    props: true,
   },
   {
     path: '/my-party/:userId?',
@@ -154,7 +154,22 @@ export default [
   },
   {
     path: '/xp-settings',
+    name: 'xp-settings',
     component: () => import ('@/views/XpSettings/XpSettings.vue'),
+    children: [
+      {
+        path: '',
+        component: () => import ('@/views/XpSettingsHome/XpSettingsHome.vue'),
+      },
+      {
+        path: 'general',
+        component: () => import ('@/views/XpSettings/components/GeneralSettings.vue'),
+      },
+      {
+        path: 'sound',
+        component: () => import ('@/views/XpSettings/components/SoundSettings.vue'),
+      },
+    ],
   },
   {
     path: '/xp-support',
