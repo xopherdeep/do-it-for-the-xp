@@ -14,7 +14,7 @@ export default defineComponent({
   mixins: [ionic, userActions],
 
   ionViewDidEnter(){
-    this.setUserActions(this.userActions)
+    this.setActions( this.$options.name )
   },
   setup() {
     const route      = useRoute();
@@ -36,26 +36,30 @@ export default defineComponent({
         {
           label: "Plains",
           faIcon: "tornado",
-        },
-        {
-          label: "Forest",
-          faIcon: "trees",
+          click(){
+            router.push({ name:'plains', params: {userId} })
+          }
         },
         {
           label: "Islands",
           faIcon: "island-tropical",
+          click(){
+            router.push({ name:'islands', params: {userId} })
+          }
+        },
+        {
+          label: "Forest",
+          faIcon: "trees",
+          click(){
+            router.push({ name:'forest', params: {userId} })
+          }
         },
         {
           label: "Swamps",
           faIcon: "skull-crossbones",
-        },
-        {
-          label: "Desert",
-          faIcon: "cactus",
-        },
-        {
-          label: "Ice Fortress",
-          faIcon: "igloo",
+          click(){
+            router.push({ name:'swamps', params: {userId} })
+          }
         },
         {
           label: "Mountains",
@@ -65,8 +69,25 @@ export default defineComponent({
           }
         },
         {
+          label: "Desert",
+          faIcon: "cactus",
+          click(){
+            router.push({ name:'desert', params: {userId} })
+          }
+        },
+        {
+          label: "Tundras",
+          faIcon: "igloo",
+          click(){
+            router.push({ name:'frozen-tundra', params: {userId} })
+          }
+        },
+        {
           label: "To Moon",
           faIcon: "rocket",
+          click(){
+            router.push({ name:'the-moon', params: {userId} })
+          }
         },
       ]
     return {
