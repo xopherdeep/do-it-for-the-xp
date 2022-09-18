@@ -116,12 +116,81 @@ export default defineComponent({
             link: `/my-portal/${this.user.id}/the-city`
           }
           break;
-      
         case 'house-user':
           this.compass = {
-            ...this.compass,
+            name: 'My Home',
+            icon: 'house-person',
             link: `/my-portal/${this.user.id}/my-home`
           }
+          break;
+
+        case 'tornado':
+          this.compass = {
+            name: 'Plains',
+            icon: 'tornado',
+            link: `/my-portal/${this.user.id}/plains`
+          }
+          break;
+
+        case 'island-tropical':
+          this.compass = {
+            name: 'Islands',
+            icon: 'island-tropical',
+            link: `/my-portal/${this.user.id}/islands`
+          }
+          break;
+
+        case 'trees':
+          this.compass = {
+            name: 'Forest',
+            icon: 'trees',
+            link: `/my-portal/${this.user.id}/forest`
+          }
+          break;
+
+        case 'skull-crossbones':
+          this.compass = {
+            name: 'Swamps',
+            icon: 'skull-crossbones',
+            link: `/my-portal/${this.user.id}/frozen-tundra`
+          }
+          break;
+
+        case 'mountains':
+          this.compass = {
+            name: 'Mountains',
+            icon: 'mountains',
+            link: `/my-portal/${this.user.id}/mountains`
+          }
+          break;
+
+        case 'cactus':
+          this.compass = {
+            name: 'Desert',
+            icon: 'cactus',
+            link: `/my-portal/${this.user.id}/desert`
+          }
+          break;
+
+        case 'igloo':
+          this.compass = {
+            name: 'Frozen Tundra',
+            icon: 'igloo',
+            link: `/my-portal/${this.user.id}/frozen-tundra`
+          }
+          break;
+
+        case 'rocket':
+          this.compass = {
+            name: 'The Moon',
+            icon: 'rocket',
+            link: `/my-portal/${this.user.id}/the-moon`
+          }
+          break;
+
+
+
+
       }
       console.log(this.compass);
     }
