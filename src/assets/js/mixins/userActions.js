@@ -1,17 +1,26 @@
 import { computed, defineComponent } from "vue";
 import { mapActions, mapGetters, useStore } from "vuex";
-import { IonPage, onIonViewWillEnter, onIonViewDidEnter, onIonViewWillLeave, onIonViewDidLeave } from '@ionic/vue';
+import { IonPage } from '@ionic/vue';
 import { useRoute, useRouter } from "vue-router";
+import travelingMerchant from "@/assets/js/mixins/travelingMerchant"
 
 export default defineComponent({
   components: { IonPage },
+  mixins: [travelingMerchant],
   computed: {
     ...mapGetters(["userActions"]),
   },
   methods: {
     ...mapActions(["setUserActions"]),
-    setActions(){
-      this.setUserActions(this.userActions);
+    setActions(area){
+      const { 
+        userActions, 
+        maybeAddMerchantToActionsIfInArea,
+        setUserActions, 
+      } = this
+      const actions = [ ...userActions ]
+      maybeAddMerchantToActionsIfInArea({ actions, area })
+      setUserActions( actions );
     }
   },
   setup(){
