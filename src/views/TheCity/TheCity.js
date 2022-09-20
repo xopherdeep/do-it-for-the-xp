@@ -38,18 +38,30 @@ export default defineComponent({
       {
         label: "Hotel",
         faIcon: "hotel",
+        click() {
+          router.push({ name: "hotel", params: { userId } });
+        },
       },
       {
         label: "Hospital",
         faIcon: "hospital",
+        click() {
+          router.push({ name: "hospital", params: { userId } });
+        },
       },
       {
         label: "Temple",
         faIcon: "place-of-worship",
+        click() {
+          router.push({ name: "temple", params: { userId } });
+        },
       },
       {
         label: "Bank",
         faIcon: "piggy-bank",
+        click() {
+          router.push({ name: "bank", params: { userId } });
+        },
       },
       {
         label: "Town Hall",

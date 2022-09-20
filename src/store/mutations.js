@@ -78,5 +78,8 @@ export default {
   },
   SET_USER_ACTIONS(state, userActions){
     state.userActions = userActions
+  },
+  SET_AREA(state, area){
+    state.area = area
   }
 };

@@ -92,6 +92,7 @@
                     <ion-button
                       :id="action.id"
                       :router-link="action.link"
+                      router-direction="root"
                       @click="action.click"
                       size="large"
                       expand="fill"

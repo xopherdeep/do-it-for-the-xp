@@ -84,7 +84,7 @@ export default defineComponent({
         },
         {
           label: "To Moon",
-          faIcon: "rocket",
+          faIcon: "moon",
           click(){
             router.push({ name:'the-moon', params: {userId} })
           }

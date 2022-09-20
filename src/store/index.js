@@ -51,7 +51,7 @@ const state = {
     steps: {
       min: 64,
       max: 255,
-      counter: 255,
+      counter: 555,
     },
     timer: 500,
     bgmWaitToStart: 4200,

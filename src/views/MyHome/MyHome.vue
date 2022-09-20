@@ -111,7 +111,7 @@
           </ion-col>
         </ion-row>
       </ion-grid> -->
-      <ion-modal
+      <!-- <ion-modal
         trigger="adventure-time"
         :breakpoints="[0.9]"
         :initialBreakpoint="0.9"
@@ -154,7 +154,7 @@
             </ion-card-title>
           </ion-card-header>
         </ion-card>
-      </ion-modal>
+      </ion-modal> -->
       <ion-modal
         trigger="world-map"
         :breakpoints="[0.9]"

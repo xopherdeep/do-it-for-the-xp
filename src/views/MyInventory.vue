@@ -3,9 +3,9 @@
     <ion-header>
       <ion-toolbar color="danger">
         <ion-buttons slot="start">
-          <ion-button :router-link="`/my-portal/${userId}`">
-            <ion-icon :icon="arrowBack" slot="icon-only" />
-          </ion-button>
+          <ion-back-button 
+            :default-href="`/my-portal/${user.id}/my-home`"
+          ></ion-back-button>
         </ion-buttons>
         <ion-title>
         </ion-title>
@@ -37,8 +37,7 @@
       IonHeader,
       IonPage,
       IonTitle,
-    IonButtons,
-    IonButton,
+      IonButtons,
       IonToolbar,
     },
     setup() {

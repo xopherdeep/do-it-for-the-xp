@@ -32,7 +32,7 @@ export default defineComponent({
         },
       },
       {
-        label: "Fire Temple",
+        label: "Fire Fortress",
         id: "fire-temple",
         faIcon: "place-of-worship",
         click() {

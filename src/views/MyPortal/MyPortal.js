@@ -180,10 +180,10 @@ export default defineComponent({
           }
           break;
 
-        case 'rocket':
+        case 'moon':
           this.compass = {
             name: 'The Moon',
-            icon: 'rocket',
+            icon: 'moon',
             link: `/my-portal/${this.user.id}/the-moon`
           }
           break;

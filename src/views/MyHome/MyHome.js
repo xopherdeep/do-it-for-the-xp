@@ -34,35 +34,40 @@ export default defineComponent({
       userId,
       arrowBack,
       userActions: [
+        {
+          label: "Calendar",
+          id: 'adventure-time',
+          faIcon: "clock",
+        },
         // {
-        //   label: "Calendar",
-        //   id: 'adventure-time',
-        //   faIcon: "calendar",
+        //   id: 'rest',
+        //   label: "Rest",
+        //   faIcon: "bed",
         // },
         {
-          id: 'rest',
-          label: "Rest",
-          faIcon: "bed",
+          label: "Craft Item",
+          id: 'craft',
+          faIcon: "tools",
+          click($ev){
+            router.push({ name:'craft-item', params: {userId} })
+          }
         },
         {
-          label: "Storage",
+          label: "Cook Food",
+          id: 'cook',
+          faIcon: "hat-chef",
+          click($ev){
+            router.push({ name:'cook-food', params: {userId} })
+          }
+        },
+        {
+          label: "Open Storage",
           // id: 'storage',
           faIcon: "treasure-chest",
           // link: 'storage',
           click($ev){
             router.push({ name:'storage', params: {userId} })
-            console.log($ev.preventDefault());
           }
-        },
-        {
-          label: "Craft",
-          id: 'craft',
-          faIcon: "tools",
-        },
-        {
-          label: "Cook",
-          id: 'cook',
-          faIcon: "hat-chef",
         },
         {
           label: "Go Outside",

@@ -56,7 +56,8 @@ app.config.globalProperties = {
   $router: router,
   $store: store,
   play$fx: (fx='select')=>{
-    $fx.ui[$fx.theme.ui][fx].play()
+    if($fx.ui[$fx.theme.ui][fx])
+      $fx.ui[$fx.theme.ui][fx].play()
   },
   $historyCount: window.history.length
 };

@@ -59,7 +59,7 @@ const WorldMapRoutes = [
     path: 'the-moon',
     name: 'the-moon',
     meta: {
-      faIcon: 'rocket'
+      faIcon: 'moon'
     },
     component: () => import ('@/views/WorldView/WorldMoon/WorldMoon.vue'),
   },

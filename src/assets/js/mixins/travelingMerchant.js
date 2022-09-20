@@ -4,7 +4,13 @@ const TravelingMerchant = defineComponent({
   data(){
     return {
       merchant: {
-        label: "Traveling Merchant",
+        // label: "Traveling Merchant",
+        // label: "Douglas",
+        label: "Boobeedeedle",
+        // label: "The Watcher",
+        // label: "Terrance",
+        // label: "Dr. Who",
+        // label: "Francis",
         faIcon: "wagon-covered",
         travels : {
           sunday: 'world-plains',

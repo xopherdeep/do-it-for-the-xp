@@ -10,7 +10,8 @@
 
   --ion-color-step-850: #e7e6b3;
   font-family: 'Apple Kid';
-  background-color: #280828;
+  // background-color: #280828;
+  background-color: #383050;
   color: #e7e6b3;
   padding: 5px 3px;
   border-radius: 1px;
@@ -23,7 +24,7 @@
     /* minty blue */
     0 0 0 12px #f7e8a8,
     /* white */
-    0 0 0 15px #3d3c55;
+    0 0 0 16px #3d3c55;
   /* black */
   --ion-safe-area-top: 85px;
   --background: #280828;
@@ -37,7 +38,7 @@
     0 0 0 5px #383050,
     0 0 0 10px #68d0b8,
     0 0 0 12px #f7e8a8,
-    0 0 0 15px #3d3c55;
+    0 0 0 16px #3d3c55;
   --button-color: #e7e6b3;
 
   ion-list {
@@ -126,7 +127,9 @@ ion-app {
     ion-toolbar {
       &.rpg-box {
         margin-bottom: 1em;
-        --background: #280828;
+        // --background: #280828;
+        --background: #3d3c55;
+
         @include earthboundBox();
       }
     }
@@ -148,9 +151,12 @@ ion-app {
         color: var(--ion-color-primary);
         padding: 1px 5px;
         font-size: 15px;
-        background-color: #280828;
+        background-color: #383050;
+        // #280828;
+        
       }
     }
+
 
     ion-modal {
       --background: transparent;
@@ -233,7 +239,7 @@ ion-app {
         /* minty blue */
         0 0 0 12px #f7e8a8,
         /* white */
-        0 0 0 15px #3d3c55;
+        0 0 0 16px #3d3c55;
       /* black */
       --width: 90%;
       --button-color: #e7e6b3;
@@ -255,6 +261,7 @@ ion-app {
 
       }
     }
+
   }
 
   &#chronoTrigger {
@@ -748,6 +755,29 @@ ion-item.selected {
 
 .rpg-box {
 
+  ion-toolbar{
+    --background: #3d3c55;
+    // background-color: #280828;
+  }
+
+  .searchbar-input, ion-item, input, ion-input, ion-select, ion-searchbar, ion-content, ion-footer{
+    --background: #3d3c55 !important;
+    --color: #e7e6b3 !important;
+    --placeholder-color: #e7e6b3 !important;
+    --icon-color: var(--ion-color-contrast) !important;
+    background:  #3d3c55  !important;
+    color: #e7e6b3 !important
+  }
+
+  ion-content, ion-footer{
+    --background: #3d3c55 !important;
+    --color: #e7e6b3 !important;
+    --placeholder-color: #e7e6b3 !important;
+    --icon-color: var(--ion-color-contrast) !important;
+    background:  #3d3c55  !important;
+    color: #e7e6b3 !important
+  }
+
   ion-card {
     overflow: visible;
 
@@ -758,7 +788,8 @@ ion-item.selected {
       color: var(--ion-color-primary);
       padding: 1px 5px;
       font-size: 15px;
-      background-color: #280828;
+      // background-color: #280828;
+      background-color: #3d3c55;
     }
 
 

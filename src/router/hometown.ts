@@ -7,9 +7,7 @@ const HometownRoutes = [
       faIcon: 'store'
     },
     component: () => import ('@/views/AccessoryShop/AccessoryShop.vue'),
-    props: {
-      merchant: null
-    },
+    props: true,
   },
   {
     path: '/bank',

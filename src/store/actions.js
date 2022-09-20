@@ -114,8 +114,10 @@ export default {
   },
   turnMusicOnOff({ state }) {
     const { audio, is_on } = state.bgm;
-    if (is_on) audio.play();
-    else audio.pause();
+    if(audio){
+      if (is_on) audio.play();
+      else audio.pause();
+    }
   },
 
   leaveBattle({commit}){
@@ -173,5 +175,8 @@ export default {
 
   setUserActions({commit}, userActions){
     commit("SET_USER_ACTIONS", userActions)
+  },
+  setArea({commit}, area){
+    commit("SET_AREA", area)
   }
 };
