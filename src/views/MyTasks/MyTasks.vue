@@ -49,51 +49,52 @@
 
     <ion-content class="my-tasks">
       <XpLoading v-if="isLoading" />
-<ion-slides ref="slides" @ionSlideWillChange="slideWillChange" v-if="nTotalPages" >
-    <ion-slide v-for="page in nTotalPages" pager="true" :key="page">
-      <ion-grid >
-        <ion-row>
-          <ion-col
-            size="6"
-            v-for="item in getSlideItems(page)"
-            :key="item.id"
-            class="ion-no-padding"
-          >
-            <ion-card @click="clickItem(item)" button class="item ion-no-padding" :id="item.id">
-              <!-- :router-link="`/my-tasks/${user.id}/task/${item.id}`" -->
-              <ion-card-header>
-                <ion-card-subtitle
-                  v-if="item.title"
-                  v-html="item.title.rendered"
-                />
-                <!-- <ion-card-title v-if="item.title" v-html="item.title.rendered"></ion-card-title> -->
-              </ion-card-header>
-              <ion-img v-bind="getImgObj(item.featured_media)"></ion-img>
+      <ion-slides ref="slides" @ionSlideWillChange="slideWillChange" v-if="nTotalPages" >
+        <ion-slide v-for="page in nTotalPages" pager="true" :key="page">
+          <ion-grid >
+            <ion-row>
+              <ion-col
+                size="6"
+                size-md="3"
+                v-for="item in getSlideItems(page)"
+                :key="item.id"
+                class="ion-no-padding"
+              >
+                <ion-card @click="clickItem(item)" button class="item ion-no-padding" :id="item.id">
+                  <!-- :router-link="`/my-tasks/${user.id}/task/${item.id}`" -->
+                  <ion-card-header>
+                    <ion-card-subtitle
+                      v-if="item.title"
+                      v-html="item.title.rendered"
+                    />
+                    <!-- <ion-card-title v-if="item.title" v-html="item.title.rendered"></ion-card-title> -->
+                  </ion-card-header>
+                  <ion-img v-bind="getImgObj(item.featured_media)"></ion-img>
 
-              <ion-card-content class="ion-no-margin ion-no-padding">
-                <!-- <ion-badge color="warning">
-                  {{item.meta._xp_achievement_gp}}
-                  &nbsp;
-                  <strong>GP</strong>
-                </ion-badge>
-                <ion-badge color="tertiary">
-                  {{item.meta._xp_achievement_ap}}
-                  &nbsp;
-                  <strong>AP</strong>
-                </ion-badge>
-                <ion-badge color="success">
-                  {{item.meta._xp_achievement_xp}}
-                  &nbsp;
-                  <strong>XP</strong>
-                </ion-badge> -->
-              </ion-card-content>
-            </ion-card>
-            <MyTask @didDismiss="activeModal=0" :item="item" :user="user" v-if="activeModal == item.id" />
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-    </ion-slide>
-  </ion-slides>
+                  <ion-card-content class="ion-no-margin ion-no-padding">
+                    <!-- <ion-badge color="warning">
+                      {{item.meta._xp_achievement_gp}}
+                      &nbsp;
+                      <strong>GP</strong>
+                    </ion-badge>
+                    <ion-badge color="tertiary">
+                      {{item.meta._xp_achievement_ap}}
+                      &nbsp;
+                      <strong>AP</strong>
+                    </ion-badge>
+                    <ion-badge color="success">
+                      {{item.meta._xp_achievement_xp}}
+                      &nbsp;
+                      <strong>XP</strong>
+                    </ion-badge> -->
+                  </ion-card-content>
+                </ion-card>
+                <MyTask @didDismiss="activeModal=0" :item="item" :user="user" v-if="activeModal == item.id" />
+              </ion-col>
+            </ion-row>
+          </ion-grid>
+        </ion-slide>
+      </ion-slides>
 
       <!-- <ion-tabs @ionTabsWillChange="beforeTabChange" @ionTabsDidChange="afterTabChange">
         <ion-router-outlet></ion-router-outlet>
@@ -150,7 +151,7 @@
             </ion-col>
             <ion-col>
               <ion-button
-                @click="clickNext"
+                @click="request.params.page++"
                 :disabled="!hasNextPage"
                 color="dark"
                 expand="block"

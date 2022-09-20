@@ -24,6 +24,15 @@ export default defineComponent({
 
     const userActions = [
       {
+        label: " Hometown",
+        id: 'the-city',
+        faIcon: "city",
+        click($ev){
+          router.push({ name:'the-city', params: {userId} })
+          console.log($ev.preventDefault());
+        }
+      },
+      {
         label: "Pegasus Ranch",
         // label: "Zodiac Ranch",
         id: "pegasus-ranch",

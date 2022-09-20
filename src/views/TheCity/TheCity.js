@@ -73,10 +73,10 @@ export default defineComponent({
         },
       },
       {
-        label: "Travel World",
-        faIcon: "pegasus",
+        label: "The Plains",
+        faIcon: "tornado",
         click() {
-          router.push({ name: "world-map", params: { userId } });
+          router.push({ name: "plains", params: { userId } });
         },
       },
     ];
