@@ -49,9 +49,14 @@
 
     <ion-content class="my-tasks">
       <XpLoading v-if="isLoading" />
-      <ion-slides ref="slides" @ionSlideWillChange="slideWillChange" v-if="nTotalPages" >
-        <ion-slide v-for="page in nTotalPages" pager="true" :key="page">
-          <ion-grid >
+      <swiper
+        :modules="modules"
+        ref="slides"
+        @slideChangeTransitionStart="slideWillChange"
+        v-if="nTotalPages"
+      >
+        <swiper-slide v-for="page in nTotalPages" pager="true" :key="page">
+          <ion-grid>
             <ion-row>
               <ion-col
                 size="6"
@@ -60,15 +65,23 @@
                 :key="item.id"
                 class="ion-no-padding"
               >
-                <ion-card @click="clickItem(item)" button class="item ion-no-padding" :id="item.id">
+                <ion-card
+                  @click="clickItem(item)"
+                  button
+                  class="item ion-no-padding"
+                  :id="item.id"
+                >
                   <!-- :router-link="`/my-tasks/${user.id}/task/${item.id}`" -->
-                  <ion-card-header>
+                  <ion-card-title
+                    v-if="item.title"
+                    v-html="item.title.rendered"
+                  ></ion-card-title>
+                  <!-- <ion-card-header>
                     <ion-card-subtitle
                       v-if="item.title"
                       v-html="item.title.rendered"
                     />
-                    <!-- <ion-card-title v-if="item.title" v-html="item.title.rendered"></ion-card-title> -->
-                  </ion-card-header>
+                  </ion-card-header> -->
                   <ion-img v-bind="getImgObj(item.featured_media)"></ion-img>
 
                   <ion-card-content class="ion-no-margin ion-no-padding">
@@ -89,12 +102,17 @@
                     </ion-badge> -->
                   </ion-card-content>
                 </ion-card>
-                <MyTask @didDismiss="activeModal=0" :item="item" :user="user" v-if="activeModal == item.id" />
+                <MyTask
+                  @didDismiss="activeModal = 0"
+                  :item="item"
+                  :user="user"
+                  v-if="activeModal == item.id"
+                />
               </ion-col>
             </ion-row>
           </ion-grid>
-        </ion-slide>
-      </ion-slides>
+        </swiper-slide>
+      </swiper>
 
       <!-- <ion-tabs @ionTabsWillChange="beforeTabChange" @ionTabsDidChange="afterTabChange">
         <ion-router-outlet></ion-router-outlet>
@@ -141,7 +159,7 @@
           <ion-row>
             <ion-col>
               <ion-button
-                @click="clickPrev"
+                @click="swiper.slidePrev()"
                 :disabled="currentSlide == 0"
                 color="dark"
                 expand="block"
@@ -151,7 +169,7 @@
             </ion-col>
             <ion-col>
               <ion-button
-                @click="request.params.page++"
+                @click="swiper.slideNext()"
                 :disabled="!hasNextPage"
                 color="dark"
                 expand="block"

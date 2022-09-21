@@ -47,7 +47,7 @@ export default defineComponent({
       merchants: {
         "pegasus-ranch": {
           icon: "farm",
-          shopkeep: "Fransis the Rancher",
+          shopkeep: "Francis the Rancher",
           greeting: "Howdy partner, let me know what I can do ya for."
         },
         "wrecked-ship":{
@@ -103,13 +103,14 @@ export default defineComponent({
         : this.merchants.default.icon
     },
     currentMerchant(){
+      console.log(this.merchant);
       return this.merchants[this.merchant]
     },
     shopGreeting(){
-      return this.currentMerchant.greeting
+      return this.currentMerchant?.greeting
     },
     shopkeeper(){
-      return this.currentMerchant.shopkeep || "Shopkeeper"
+      return this.currentMerchant?.shopkeep
     }
   },
   methods: {

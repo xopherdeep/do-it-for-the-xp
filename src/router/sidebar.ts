@@ -31,6 +31,10 @@ const SidebarRoutes = [
         component: () => import ('@/views/XpSettings/components/GeneralSettings.vue'),
       },
       {
+        path: 'family',
+        component: () => import ('@/views/XpSettings/components/FamilySettings.vue'),
+      },
+      {
         path: 'sound',
         component: () => import ('@/views/XpSettings/components/SoundSettings.vue'),
       },

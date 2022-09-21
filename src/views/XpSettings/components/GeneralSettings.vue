@@ -3,9 +3,9 @@
     <ion-header :translucent="true">
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-button :router-link="`/xp-settings/`" >
-            <ion-icon :icon="arrowBack" slot="icon-only"/>
-          </ion-button>
+          <ion-back-button 
+            :default-href="`/xp-settings/`" 
+          ></ion-back-button>
         </ion-buttons>
         <ion-title> 
           General Settings
@@ -17,26 +17,72 @@
       <!-- Toggles in a List -->
       <ion-list>
         <ion-item>
-          <ion-label>Pepperoni</ion-label>
+          <ion-label>
+            Set my landing page
+            <p>
+              This is the page you are taken to when signing in.
+            </p>
+          </ion-label>
+          <ion-select placeholder="Select page...">
+            <ion-select-option value="community">
+              Community
+            </ion-select-option>
+            <ion-select-option value="party">
+              Family Party
+            </ion-select-option>
+            <ion-select-option value="quests">
+              Quests Tab
+            </ion-select-option>
+            <ion-select-option value="merchant">
+              Merchant Tab
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+
+        <ion-item>
+          <ion-label>Start My Week on Sunday</ion-label>
           <ion-toggle
-            value="pepperoni"
+            value="start_week_on_sunday"
           >
           </ion-toggle>
         </ion-item>
 
         <ion-item>
-          <ion-label>Sausage</ion-label>
+          <ion-label>
+            Lock My Family Setup
+            <p>
+              Prevent making changes to the family
+            </p>
+          </ion-label>
           <ion-toggle
-            @ionChange="toppings.value.push($event.target.value)"
-            value="sausage"
+            value="family"
           >
           </ion-toggle>
         </ion-item>
-
         <ion-item>
-          <ion-label>Mushrooms</ion-label>
+          <ion-label>
+            Enable "Overview" from Choose Profile
+          </ion-label>
           <ion-toggle
             value="mushrooms"
+          >
+          </ion-toggle>
+        </ion-item>
+        <ion-item>
+          <ion-label>
+            Community
+              <ion-badge color="warning" size="small">
+                <i class="fa fa-crown"/>
+                Premium
+              </ion-badge>
+            <p>
+              For premium users only, turn off community by disabling this switch.
+            </p>
+          </ion-label>
+          <ion-toggle
+            value="community"
+            checked
+            disabled
           >
           </ion-toggle>
         </ion-item>

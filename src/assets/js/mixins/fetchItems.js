@@ -8,15 +8,25 @@ import {
   IonRow,
   IonSearchbar,
   IonToolbar,
+  IonSlides,
+  IonSlide,
+  IonicSlides
 } from "@ionic/vue";
 
-import { defineComponent } from "vue";
+import 'swiper/scss';
+import '@ionic/vue/css/ionic-swiper.css';
+
+import { defineComponent, ref } from "vue";
+
+import { Swiper, SwiperSlide } from 'swiper/vue';
 import { mapActions, mapGetters } from "vuex";
 import XpLoading from "@/views/XpLoading/XpLoading.vue";
 
 export default defineComponent({
   props: ["userId"],
   components: {
+    Swiper, 
+    SwiperSlide,
     IonButton,
     IonButtons,
     IonCol,
@@ -26,6 +36,9 @@ export default defineComponent({
     IonRow,
     IonSearchbar,
     IonToolbar,
+    IonSlide,
+    IonSlides,
+    IonicSlides,
     XpLoading,
   },
   data() {
@@ -71,15 +84,15 @@ export default defineComponent({
       const { totalItems, request } = this;
       return parseInt(totalItems(request));
     },
+    slides(){
+      return this.$refs.slides
+    }
   },
   mounted() {
     if(this.request.type)
       this.getItems();
   },
   methods: {
-    clickPrev(){
-      this.$refs.slides.slidePrev()
-    },
     getImages(page){
       return this.requestedItems({
         ...this.request,
@@ -88,9 +101,6 @@ export default defineComponent({
           page
         }
       }).map((t) => t.featured_media);
-    },
-    clickNext(){
-      this.$refs.slides.slideNext()
     },
     getSlideItems(page){
       return this.requestedItems({
@@ -154,4 +164,8 @@ export default defineComponent({
       deep: true,
     },
   },
+    setup() {
+      return { 
+      };
+    }
 });

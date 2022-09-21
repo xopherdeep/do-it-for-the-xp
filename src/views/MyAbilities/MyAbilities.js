@@ -73,7 +73,7 @@ export default defineComponent({
         params: {
           page: 1,
           search: "",
-          per_page: 4,
+          per_page: 8,
         },
       },
     };

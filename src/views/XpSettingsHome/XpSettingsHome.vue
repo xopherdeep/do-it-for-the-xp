@@ -23,7 +23,7 @@
           &nbsp;- Customize your family setup and general preferences from here.
         </small>
       </ion-item>
-      <ion-item href="family" detail="true">
+      <ion-item :routerLink="`/xp-settings/family`" detail="true">
         <ion-avatar>
           <img :src="requireIconImg('./team.png')"/>
         </ion-avatar>

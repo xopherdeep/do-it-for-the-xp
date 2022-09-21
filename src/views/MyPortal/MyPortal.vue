@@ -133,6 +133,7 @@
 
             </ion-col>
             <ion-col size="5" size-lg="5" class="ion-no-margin ion-no-padding">
+              <ion-card>
                 HP
                 <!-- <i class="fad fa-heart fa-2x"></i> -->
                 <ion-progress-bar
@@ -147,6 +148,8 @@
                   v-if="user.stats"
                   :value="user.stats.mp.now / user.stats.mp.max"
                 ></ion-progress-bar>
+
+              </ion-card>
             </ion-col>
             <!-- <ion-col size="4" size-lg="4" class="ion-no-padding">
               <ion-chip color="warning">

@@ -4,6 +4,9 @@ import ionic from "@/assets/js/mixins/ionic"
 import {
   IonBackButton,
   alertController,
+  IonSlides,
+  IonSlide,
+  IonicSlides
 } from "@ionic/vue";
 import {
   ribbonOutline,
@@ -31,6 +34,8 @@ import fetchItems from "@/assets/js/mixins/fetchItems.js";
 
 import MyTask from "@/views/MyTask/MyTask.vue";
 import { useRouter } from "vue-router";
+import { useSwiper } from "swiper/vue";
+
 
 export default defineComponent({
   props: ["userId"],
@@ -38,6 +43,8 @@ export default defineComponent({
   components: {
     IonBackButton,
     MyTask,
+    IonSlides,
+    IonSlide
   },
   data() {
     return {
@@ -48,7 +55,7 @@ export default defineComponent({
         params: {
           page: 1,
           search: "",
-          per_page: 4,
+          per_page: 8,
         },
       },
     };
@@ -154,8 +161,13 @@ export default defineComponent({
     // const tasks    = computed(() => store.getters.requestedItems(request) )
     // const getTasks = async () => await store.dispatch("fetchWPItems", request);
     const router = useRouter();
+    const swiper = useSwiper()
+
+    console.log("SWIPER", useSwiper);
 
     return {
+      swiper,
+      modules: [IonicSlides],
       router,
       chevronBack,
       chevronForward,
