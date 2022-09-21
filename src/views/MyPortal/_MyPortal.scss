@@ -2,6 +2,75 @@
   // temp fix to stop z-index prob with other root ion-pages
   z-index: 0 !important; 
 
+  .user-hud{
+    ion-badge{
+      width: 10vw;
+      height: 35px;
+      background-color: transparent;
+      ion-badge{
+        font-size: xx-small;
+        display: flex;
+        align-items: center;
+        justify-content: start;
+        position: absolute;
+        // width: 35%;
+        // left: 15%;
+        text-align: left;
+      }
+      i{
+        margin: .10em .5em .25em .15em;
+      }
+      &.hp-badge{
+        margin: 0;
+        display: flex;
+        ion-progress-bar{
+          border-radius: 5px 10px 5px 5px ;
+        }
+      }
+      &.mp-badge{
+        display: flex;
+        ion-progress-bar{
+          border-radius: 5px 5px 10px  10px ;
+        }
+      }
+      i{
+        color: var(--xp-color-white);
+      }
+
+      &.gp-badge{
+        margin-top: 1em;
+        margin-right: 0;
+        width: 56px;
+        overflow: visible;
+        ion-progress-bar{
+          height: 40%;
+        }
+
+        ion-badge{
+          top:0;
+          left: 0;
+          font-size: small;
+          font-family: 'Courier New', Courier, monospace;
+          background-color: rgba(0,0,0,.15);
+          height: 25px;
+          position: relative;
+        }
+        i{
+          margin: 0;
+        }
+      }
+      ion-progress-bar{
+        height: 100%;
+        border-radius: 5px 5px 10px 10px ;
+        box-shadow: 1px 2px 4px rgba(0,0,0,.5);
+      }
+    }
+    ion-card-content{
+      margin: 0;
+      padding: 0;
+    }
+  }
+
   ion-fab {
     &.fab-vertical-bottom {
         bottom: 60px;

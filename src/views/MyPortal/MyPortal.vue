@@ -114,7 +114,7 @@
       <ion-fab
         vertical="top"
         horizontal="start"
-        class="fab-user"
+        class="fab-user user-hud"
         v-if="user.stats && isUserFabOn"
       >
         <ion-grid>
@@ -130,26 +130,52 @@
                   :src="getUserAvatar(user)"
                 ></ion-img>
               </ion-fab-button>
+              <ion-badge class="gp-badge">
+                <ion-progress-bar
+                  color="warning"
+                  v-if="user.stats"
+                  :value="user.stats.gp.wallet / user.stats.gp.limit"
+                ></ion-progress-bar>
+                <ion-badge>
+                  <!-- <i class="fad fa-coins fa-lg"></i> -->
+                  <small>₲</small>
+                  {{ user.stats.gp.wallet }}
+                  <small>00</small>
+                </ion-badge>
+              </ion-badge>
 
             </ion-col>
             <ion-col size="5" size-lg="5" class="ion-no-margin ion-no-padding">
-              <ion-card>
-                HP
-                <!-- <i class="fad fa-heart fa-2x"></i> -->
+              <ion-badge class="hp-badge">
                 <ion-progress-bar
                   color="danger"
                   v-if="user.stats"
                   :value="user.stats.hp.now / user.stats.hp.max"
-                ></ion-progress-bar>
-                MP
-                <!-- <i class="fad fa-magic fa-2x" color="tertiary"></i> -->
+                >
+                </ion-progress-bar>
+                <ion-badge>
+                  <i class="fad fa-heart fa-2x"></i>
+                  {{user.stats.hp.now}}
+                  / 
+                  {{user.stats.hp.max}}
+                </ion-badge>
+              </ion-badge>
+              <ion-badge class="mp-badge">
+                <!-- <p>
+                  MP
+                </p> -->
                 <ion-progress-bar
                   color="tertiary"
                   v-if="user.stats"
                   :value="user.stats.mp.now / user.stats.mp.max"
                 ></ion-progress-bar>
-
-              </ion-card>
+                <ion-badge>
+                  <i class="fad fa-magic fa-2x" color="tertiary"></i>
+                  {{user.stats.mp.now}}
+                  / 
+                  {{user.stats.mp.max}}
+                </ion-badge>
+              </ion-badge>
             </ion-col>
             <!-- <ion-col size="4" size-lg="4" class="ion-no-padding">
               <ion-chip color="warning">
@@ -250,10 +276,10 @@
       </ion-fab>
 
       <!-- GOLD POINTS -->
-      <ion-fab
+      <!-- <ion-fab
         vertical="top"
         horizontal="end"
-        class="fab-gp"
+        class="fab-gp hide"
       >
         <ion-card v-if="user.stats && isUserFabOn">
           <ion-card-title>
@@ -263,6 +289,11 @@
               <small>₲</small>
               {{ user.stats.gp.wallet }}
               <small>00</small>
+                <ion-progress-bar
+                  color="warning"
+                  v-if="user.stats"
+                  :value="user.stats.gp.wallet / user.stats.gp.limit"
+                ></ion-progress-bar>
           </ion-card-content>
                 <ion-progress-bar
                   color="warning"
@@ -270,7 +301,7 @@
                   :value="user.stats.gp.wallet / user.stats.gp.limit"
                 ></ion-progress-bar>
         </ion-card>
-      </ion-fab>
+      </ion-fab> -->
       <ion-tabs v-if="user.stats">
         <ion-router-outlet ref="outlet" :userId="user.id"></ion-router-outlet>
         <ion-tab-bar
