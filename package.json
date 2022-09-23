@@ -1,6 +1,14 @@
 {
   "name": "@xopherdeep/do-it-for-the-xp",
+  "description": "An Ionic project",
   "version": "0.0.2",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xopherdeep/do-it-for-the-xp.git"
+  },
+  "publishConfig": {
+    "@xopherdeep:registry": "https://registry.npmjs.org/"
+  },
   "private": false,
   "scripts": {
     "serve": "vue-cli-service serve",
@@ -25,8 +33,9 @@
     "cordova-plugin-nativeaudio": "^3.0.9",
     "core-js": "^3.6.5",
     "earthbound-battle-backgrounds": "^2.0.6",
-    "swiper": "^8.0.6",
+    "swiper": "^8.4.2",
     "vue": "^3.2.21",
+    "vue-query": "^1.26.0",
     "vue-router": "^4.0.12",
     "vue3-autocounter": "^1.0.6",
     "vue3-flip-countdown": "^0.1.6",
@@ -62,9 +71,5 @@
   },
   "files": [
     "dist"
-  ],
-  "publishConfig": {
-    "@xopherdeep:registry": "https://npm.pkg.github.com/"
-  },
-  "description": "An Ionic project"
+  ]
 }

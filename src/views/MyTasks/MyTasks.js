@@ -1,12 +1,12 @@
 import { computed, defineComponent, onMounted, reactive, ref } from "vue";
 
-import ionic from "@/assets/js/mixins/ionic"
+import ionic from "@/assets/js/mixins/ionic";
 import {
   IonBackButton,
   alertController,
   IonSlides,
   IonSlide,
-  IonicSlides
+  IonicSlides,
 } from "@ionic/vue";
 import {
   ribbonOutline,
@@ -35,7 +35,7 @@ import fetchItems from "@/assets/js/mixins/fetchItems.js";
 import MyTask from "@/views/MyTask/MyTask.vue";
 import { useRouter } from "vue-router";
 import { useSwiper } from "swiper/vue";
-
+import { Controller, Navigation } from "swiper";
 
 export default defineComponent({
   props: ["userId"],
@@ -44,12 +44,15 @@ export default defineComponent({
     IonBackButton,
     MyTask,
     IonSlides,
-    IonSlide
+    IonSlide,
   },
   data() {
     return {
       activeModal: 0,
-      currentSlide: 0,
+      swiperNavigation: {
+        nextEl: "#swiper-forward",
+        prevEl: "#swiper-back",
+      },
       request: {
         type: "xp_achievement",
         params: {
@@ -62,28 +65,27 @@ export default defineComponent({
   },
   mixins: [fetchItems, ionic],
   activated() {
-    this.$fx.ui[this.$fx.theme.ui].openPage.play()
+    this.$fx.ui[this.$fx.theme.ui].openPage.play();
     // const mp3 = this.$requireAudio('./take_item.mp3')
     // this.nativeAudio.preloadSimple('openTask', mp3).then(onSuccess, onError)
     // this.nativeAudio.preloadSimple('openTask', '../src/assets/audio/click.mp3').then(onSuccess, onError)
   },
   computed: {
     ...mapState(["xp_achievement"]),
-    isPrevDisabled(){
-      return this.$refs.slides 
-        ? this.$refs.slides.getActiveIndex() == 0
-        : true 
+    isPrevDisabled() {
+      return this.currentSlide == 0
     },
+    currentSlide(){
+      return this.controlledSwiper?.activeIndex
+    }
   },
   methods: {
     ...mapActions(["fetchWPItems"]),
-    clickBack(){
-      const hasHistory = this.$historyCount - window.history.length
-      console.log("hashistory",hasHistory);
-      if(hasHistory)
-        this.router.go(-1)
-      else
-        this.router.push(`/my-portal/${this.userId}`)
+    clickBack() {
+      const hasHistory = this.$historyCount - window.history.length;
+      console.log("hashistory", hasHistory);
+      if (hasHistory) this.router.go(-1);
+      else this.router.push(`/my-portal/${this.userId}`);
     },
     clickItem(item) {
       this.activeModal = item.id;
@@ -95,13 +97,11 @@ export default defineComponent({
       this.activeModal = 0;
       this.presentAlertMultipleButtons();
     },
-    slideWillChange(){
-      this.$refs.slides.getActiveIndex().then((index)=>{
-        this.currentSlide = index;
-        const page = index + 1
-        // this.request.params.page = page
-        this.getItems(page)
-      })
+    slideWillChange(index) {
+      let page = Number(this.currentSlide) + 2;
+      this.getItems(page);
+      this.getItems(page++);
+      // this.request.params.page = page
     },
     async presentAlertMultipleButtons() {
       const alert = await alertController.create({
@@ -134,24 +134,24 @@ export default defineComponent({
     getSingleMediaById(id) {
       return this.singleById({ type: "media", id });
     },
-    searchChanged(){
-      this.$refs.slides.slideTo(0)
+    searchChanged() {
+      this.$refs.slides.slideTo(0);
       this.currentSlide = 0;
-      this.request.params.page = 1
+      this.request.params.page = 1;
     },
-    resetTextSound(){
-      this.$fx.rpg[this.$fx.theme.rpg].text.pause()
-      this.$fx.rpg[this.$fx.theme.rpg].text.currentTime = 0
-      this.$fx.rpg[this.$fx.theme.rpg].text.play()
+    resetTextSound() {
+      this.$fx.rpg[this.$fx.theme.rpg].text.pause();
+      this.$fx.rpg[this.$fx.theme.rpg].text.currentTime = 0;
+      this.$fx.rpg[this.$fx.theme.rpg].text.play();
     },
-    playTextSound(){
-      this.$fx.rpg[this.$fx.theme.rpg].text.play()
-    }
+    playTextSound() {
+      this.$fx.rpg[this.$fx.theme.rpg].text.play();
+    },
   },
   watch: {
     request: {
       handler() {
-        this.$fx.rpg[this.$fx.theme.rpg].text.play()
+        this.$fx.rpg[this.$fx.theme.rpg].text.play();
       },
       deep: true,
     },
@@ -161,13 +161,15 @@ export default defineComponent({
     // const tasks    = computed(() => store.getters.requestedItems(request) )
     // const getTasks = async () => await store.dispatch("fetchWPItems", request);
     const router = useRouter();
-    const swiper = useSwiper()
-
-    console.log("SWIPER", useSwiper);
+    const controlledSwiper = ref(null);
+    const setControlledSwiper = (swiper) => {
+      controlledSwiper.value = swiper;
+    };
 
     return {
-      swiper,
-      modules: [IonicSlides],
+      controlledSwiper,
+      setControlledSwiper,
+      modules: [IonicSlides, Navigation, Controller],
       router,
       chevronBack,
       chevronForward,

@@ -45,7 +45,7 @@
       <XpLoading v-if="isLoading"/>
       <ion-grid v-else >
         <ion-row>
-          <ion-col size="3" v-for="item in items" :key="item.id" class="ion-no-padding">
+          <ion-col size="6" size-lg="3" v-for="item in items" :key="item.id" class="ion-no-padding">
             <ion-card class="item ion-no-padding" >
               <ion-card-title v-if="item.title" v-html="item.title.rendered"></ion-card-title>
               <ion-img v-bind="getImgObj(item.featured_media)"></ion-img>

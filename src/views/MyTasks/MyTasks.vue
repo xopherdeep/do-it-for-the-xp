@@ -50,12 +50,17 @@
     <ion-content class="my-tasks">
       <XpLoading v-if="isLoading" />
       <swiper
+        :navigation="swiperNavigation"
         :modules="modules"
         ref="slides"
         @slideChangeTransitionStart="slideWillChange"
-        v-if="nTotalPages"
+        @swiper="setControlledSwiper"
       >
-        <swiper-slide v-for="page in nTotalPages" pager="true" :key="page">
+        <swiper-slide 
+          v-for="page in nTotalPages" pager="true" 
+          :key="page"
+          :data-page="page"
+        >
           <ion-grid>
             <ion-row>
               <ion-col
@@ -159,7 +164,7 @@
           <ion-row>
             <ion-col>
               <ion-button
-                @click="swiper.slidePrev()"
+                id="swiper-back"
                 :disabled="currentSlide == 0"
                 color="dark"
                 expand="block"
@@ -168,8 +173,11 @@
               </ion-button>
             </ion-col>
             <ion-col>
+              Page {{currentPage}} of {{nTotalPages}}
+            </ion-col>
+            <ion-col>
               <ion-button
-                @click="swiper.slideNext()"
+                id="swiper-forward"
                 :disabled="!hasNextPage"
                 color="dark"
                 expand="block"

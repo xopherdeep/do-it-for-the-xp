@@ -18,7 +18,7 @@ import '@ionic/vue/css/ionic-swiper.css';
 
 import { defineComponent, ref } from "vue";
 
-import { Swiper, SwiperSlide } from 'swiper/vue';
+import { Swiper, SwiperSlide, useSwiper } from 'swiper/vue';
 import { mapActions, mapGetters } from "vuex";
 import XpLoading from "@/views/XpLoading/XpLoading.vue";
 
@@ -86,6 +86,9 @@ export default defineComponent({
     },
     slides(){
       return this.$refs.slides
+    },
+    currentPage(){
+      return this.request.params.page
     }
   },
   mounted() {
@@ -164,8 +167,4 @@ export default defineComponent({
       deep: true,
     },
   },
-    setup() {
-      return { 
-      };
-    }
 });

@@ -45,6 +45,7 @@ import { mapActions, mapGetters, mapState, useStore } from "vuex";
 
 import appPages from "./App.Pages";
 import appPagesAnon from "./App.Pages.Anon";
+import { useQueryProvider } from "vue-query";
 
 export default defineComponent({
   name: "App",
@@ -241,6 +242,7 @@ export default defineComponent({
   setup() {
     const route = useRoute();
     const store = useStore();
+    useQueryProvider();
 
     const selectedIndex = ref(0);
     const menus = {
