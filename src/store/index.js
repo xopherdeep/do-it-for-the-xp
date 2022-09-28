@@ -17,7 +17,7 @@ import $fx from "@/assets/js/fx"
 
 const state = {
   bgm: {
-    audio: null,
+    audio: new Audio(),
     saveBookmark: false,
     is_on: false,
     startDelay: 0,
@@ -51,7 +51,7 @@ const state = {
     steps: {
       min: 64,
       max: 255,
-      counter: 555,
+      counter: 155,
     },
     timer: 500,
     bgmWaitToStart: 4200,

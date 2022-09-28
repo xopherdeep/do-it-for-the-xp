@@ -35,9 +35,20 @@ export default defineComponent({
       arrowBack,
       userActions: [
         {
+          label: "Open Storage",
+          // id: 'storage',
+          faIcon: "treasure-chest",
+          side: "start",
+          // link: 'storage',
+          click($ev){
+            router.push({ name:'storage', params: {userId} })
+          }
+        },
+        {
           label: "Calendar",
           id: 'adventure-time',
           faIcon: "clock",
+          side: "start",
         },
         // {
         //   id: 'rest',
@@ -48,6 +59,7 @@ export default defineComponent({
           label: "Craft Item",
           id: 'craft',
           faIcon: "tools",
+          side: "end",
           click($ev){
             router.push({ name:'craft-item', params: {userId} })
           }
@@ -56,23 +68,16 @@ export default defineComponent({
           label: "Cook Food",
           id: 'cook',
           faIcon: "hat-chef",
+          side: "end",
           click($ev){
             router.push({ name:'cook-food', params: {userId} })
-          }
-        },
-        {
-          label: "Open Storage",
-          // id: 'storage',
-          faIcon: "treasure-chest",
-          // link: 'storage',
-          click($ev){
-            router.push({ name:'storage', params: {userId} })
           }
         },
         {
           label: "Go Outside",
           id: 'the-city',
           faIcon: "door-open",
+          side: "top",
           click($ev){
             router.push({ name:'the-city', params: {userId} })
             console.log($ev.preventDefault());

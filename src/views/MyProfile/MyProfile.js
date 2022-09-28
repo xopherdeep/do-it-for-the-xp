@@ -5,14 +5,15 @@ import { useStore } from 'vuex';
 import userActions from "@/assets/js/mixins/userActions";
 
 import CardUserStats from "@/views/CardUserStats/CardUserStats.vue";
-
+import XpCardMenu from "@/views/MyPortal/components/XpCardMenu.vue"
 import {
   arrowBack
 } from "ionicons/icons"
 
 export default defineComponent({
+  name: "my-profile",
   mixins: [ionic, userActions],
-  components: { CardUserStats },
+  components: { CardUserStats, XpCardMenu },
   ionViewDidEnter(){
     this.setUserActions(this.userActions)
   },
@@ -46,7 +47,7 @@ export default defineComponent({
           },
         },
         {
-          label: "Quest Log",
+          label: "My Quests",
           id: "staff",
           faIcon: "medal quest",
           click(){

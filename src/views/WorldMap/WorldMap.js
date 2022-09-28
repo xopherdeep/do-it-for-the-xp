@@ -25,57 +25,65 @@ export default defineComponent({
 
     const userActions = [
         {
-          label: "Plains",
-          faIcon: "tornado",
+          label: "Forest",
+          faIcon: "trees",
+          side: "start",
           click(){
-            router.push({ name:'plains', params: {userId} })
+            router.push({ name:'world-forest', params: {userId} })
           }
         },
         {
           label: "Islands",
           faIcon: "island-tropical",
+          side: "start",
           click(){
-            router.push({ name:'islands', params: {userId} })
+            router.push({ name:'world-islands', params: {userId} })
           }
         },
         {
-          label: "Forest",
-          faIcon: "trees",
+          label: "Plains",
+          faIcon: "tornado",
+          side: "start",
           click(){
-            router.push({ name:'forest', params: {userId} })
+            router.push({ name:'world-plains', params: {userId} })
           }
         },
         {
           label: "Swamps",
           faIcon: "skull-crossbones",
+          side: "end",
           click(){
-            router.push({ name:'swamps', params: {userId} })
+            router.push({ name:'world-swamps', params: {userId} })
           }
         },
         {
           label: "Mountains",
           faIcon: "mountains",
+          side: "end",
           click(){
-            router.push({ name:'mountain', params: {userId} })
+            router.push({ name:'world-mountains', params: {userId} })
           }
         },
         {
-          label: "Desert",
+          label: "Sands",
           faIcon: "cactus",
+          side: "end",
           click(){
-            router.push({ name:'desert', params: {userId} })
+            router.push({ name:'world-sands', params: {userId} })
           }
         },
         {
           label: "Tundras",
           faIcon: "igloo",
+          side: "top",
           click(){
-            router.push({ name:'frozen-tundra', params: {userId} })
+            router.push({ name:'world-ice', params: {userId} })
           }
         },
         {
           label: "To Moon",
           faIcon: "moon",
+          side: "top",
           click(){
             router.push({ name:'the-moon', params: {userId} })
           }

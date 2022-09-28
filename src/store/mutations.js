@@ -1,4 +1,4 @@
-// import Vue from "vue";
+/// import Vue from "vue";
 
 /**
  * mutations.js
@@ -50,7 +50,7 @@ export default {
     state.bgm.is_on = !state.bgm.is_on;
   },
   CHANGE_BGM(state, bgm) {
-    // console.log(bgm);
+    console.log("Background Music:", bgm);
     state.bgm = {
       ...state.bgm,
       ...bgm,

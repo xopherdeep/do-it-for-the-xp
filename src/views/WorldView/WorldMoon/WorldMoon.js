@@ -31,6 +31,7 @@ export default defineComponent({
         // label: "Moon Light Markert",
         // label: "Moon Light Gateway",
         faIcon: "chess-rook",
+        side: "start",
         click() {
           const merchant = "theia-city"
           router.push({ name: "shop", params: { merchant }})
@@ -40,6 +41,7 @@ export default defineComponent({
         label: "Moon Temple",
         id: "moon-temple",
         faIcon: "place-of-worship",
+        side: "end",
         click() {
           router.push({ name: "temple", params: { userId } });
         },
@@ -47,6 +49,7 @@ export default defineComponent({
       {
         label: "Travel World",
         faIcon: "pegasus",
+        side: "top",
         click() {
           router.push({ name: "world-map", params: { userId } });
         },

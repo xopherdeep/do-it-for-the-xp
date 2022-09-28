@@ -24,6 +24,7 @@ export default defineComponent({
         // label: "Oasis",
         label: "Pond of Life",
         faIcon: "island-tropical",
+        side: "start",
         click() {
           const merchant = "pond-of-life"
           router.push({ name: "shop", params: { merchant }})
@@ -33,6 +34,7 @@ export default defineComponent({
         label: "Sun Temple",
         id: "sun-temple",
         faIcon: "place-of-worship",
+        side: "end",
         click() {
           router.push({ name: "temple", params: { userId } });
         },
@@ -40,6 +42,7 @@ export default defineComponent({
       {
         label: "Travel World",
         faIcon: "pegasus",
+        side: "top",
         click() {
           router.push({ name: "world-map", params: { userId } });
         },

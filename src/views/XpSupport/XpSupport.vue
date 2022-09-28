@@ -1,7 +1,7 @@
 <template>
   <ion-page :class="$options.name">
     <ion-header :translucent="true">
-      <ion-toolbar>
+      <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
           <ion-menu-button></ion-menu-button>
         </ion-buttons>

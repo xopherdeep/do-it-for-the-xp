@@ -1,58 +1,77 @@
-  .user-stats {
-    i {
-      margin-right: .25em;
-    }
+.user-stats {
+  i {
+    margin-right: 0.25em;
+  }
 
-    ion-card-title {
-      text-transform: uppercase;
-      position: absolute;
-      top: -15px;
-      padding: 1px 5px;
-      font-size: 15px;
-      background-color: #280828;
-    }
+  ion-card-title {
+    text-transform: uppercase;
+    position: absolute;
+    top: -15px;
+    padding: 1px 5px;
+    font-size: 15px;
+    background-color: #280828;
+  }
 
-    ion-progress-bar {
-      height: 12px;
-      border-radius: 5px;
-    }
+  ion-progress-bar {
+    height: 12px;
+    border-radius: 5px;
+  }
 
-    .ion-col-avatar {
-      margin: 0;
+  .ion-col-avatar {
+    margin: 0;
 
-      ion-img {
-        // height: 100%;
-        width: auto;
+    ion-img {
+      // height: 100%;
+      width: auto;
+      height: 100px;
+
+      img {
         height: 100px;
-
-        img {
-          height: 100px;
-        }
-      }
-    }
-
-    ion-chip {
-      border-radius: 0;
-      width: 100%;
-      margin: 0 0 0 0;
-      height: 50px;
-
-      .full-width {
-        width: 100%;
-      }
-
-      &.chip-ap {
-        margin: 0;
-      }
-    }
-
-
-    .ap-breakdown {
-      ion-col {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 0.25em;
       }
     }
   }
+
+  ion-chip {
+    border-radius: 0;
+    width: 100%;
+    margin: 0 0 0 0;
+    height: 50px;
+
+    .full-width {
+      width: 100%;
+    }
+
+    &.chip-ap {
+      margin: 0;
+    }
+  }
+
+  .ap-breakdown {
+    ion-col {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.25em;
+    }
+  }
+
+  ion-badge{
+    &.mp-badge, &.xp-badge-bar{
+      width: 100%;
+      background-color: transparent;
+      ion-progress-bar{
+        height: 30px;
+      }
+      position: relative;
+      ion-badge{
+        width: 96%;
+        color: var(--ion-color-light);
+        background-color: transparent;
+        height: 98%;
+        position: absolute;
+        top: 8px;
+        left: 2%;
+      }
+    }
+  }
+}

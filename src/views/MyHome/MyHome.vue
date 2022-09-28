@@ -11,37 +11,6 @@
         </ion-title>
       </ion-toolbar>
     </ion-header> -->
-    <ion-fab vertical="center" horizontal="center">
-      <ion-fab-button expand="block">
-        <i class="fad fa-house-user fa-2x"></i>
-      </ion-fab-button>
-      <ion-fab-list side="end">
-        <ion-fab-button>
-          <i class="fad fa-hammer fa-2x"></i>
-        </ion-fab-button>
-        <ion-fab-button>
-          <i class="fad fa-hat-chef fa-2x"></i>
-        </ion-fab-button>
-      </ion-fab-list>
-      <!-- <ion-fab-list side="bottom">
-        <ion-fab-button>
-          <i class="fad fa-door-open fa-2x"></i>
-        </ion-fab-button>
-      </ion-fab-list> -->
-      <ion-fab-list side="top">
-        <ion-fab-button size="large">
-          <i class="fad fa-garage fa-2x"></i>
-        </ion-fab-button>
-      </ion-fab-list>
-      <ion-fab-list side="start">
-        <ion-fab-button>
-          <i class="fad fa-calendar fa-2x"></i>
-        </ion-fab-button>
-        <ion-fab-button>
-          <i class="fad fa-bed fa-2x"></i>
-        </ion-fab-button>
-      </ion-fab-list>
-    </ion-fab>
 
     <ion-content :fullscreen="true">
       <IonRouterOutlet />

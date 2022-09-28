@@ -1,9 +1,8 @@
 <template>
   <ion-card class="user-stats">
-
-            <ion-card-title v-if="user.name">
-              {{ user.name.nick }}
-            </ion-card-title>
+    <ion-card-title v-if="user.name">
+      {{ user.name.nick }}
+    </ion-card-title>
     <ion-toolbar style="--background: transparent" v-if="!hideMenu" class="ion-no-margin">
       <ion-grid class="ion-no-padding">
         <ion-row>
@@ -76,48 +75,45 @@
     </ion-toolbar>
     <ion-card-header class="ion-no-padding">
       <ion-grid class="ion-no-padding">
-        <ion-row>
-          <ion-col class="ion-col-avatar">
+        <ion-row
+          class=" ion-justify-content-center ion-align-items-center"
+        >
+          <ion-col 
+            class="ion-col-avatar"
+          >
             <IonImg
               v-if="user.avatar"
               :router-link="`/user/${user.id}`"
               router-direction="forward"
               :src="getUserAvatar(user)"
             />
-
-            <!-- AP -->
-            <ion-chip color="light" class="chip-ap ion-no-margin">
-              <i class="fad fa-hand-holding-medical fa-2x"></i>
-              <ion-label class="full-width">
-                <ion-text class="ion-float-left"> AP </ion-text>
-                <ion-text class="ion-float-right">
-                  <vue3-autocounter
-                    ref="countAPTotal"
-                    :startAmount="2000"
-                    :endAmount="2000 + 3"
-                    :duration="4"
-                    separator=","
-                    :autoinit="false"
-                  />
-                </ion-text>
-              </ion-label>
-            </ion-chip>
           </ion-col>
-          <ion-col size="7" class="ion-no-padding">
+          <ion-col size="9" class="ion-no-padding">
             <ion-grid class="ion-no-padding" v-if="user.stats">
               <ion-row>
                 <ion-col class="ion-no-padding">
                   <!-- HP -->
-                  <ion-chip
+                  <ion-badge class="xp-badge-bar">
+                    <ion-progress-bar
+                      color="danger"
+                      :value="user.stats.hp.now / user.stats.hp.max"
+                    ></ion-progress-bar>
+                    <ion-badge>
+                      <ion-text class="ion-float-left"> 
+                        <i class="fad fa-hand-holding-heart fa-lg"></i>
+                      </ion-text>
+                      <ion-text class="ion-float-right"> HP </ion-text>
+                      <ion-text class="ion-float-right">
+                        <b> {{ user.stats.hp.now }}/{{ user.stats.hp.max }} </b>
+                      </ion-text>
+                    </ion-badge>
+                  </ion-badge>
+                  <!-- <ion-chip
                     color="danger"
                     class="ion-no-margin"
                     @click="clickHP"
                   >
                     <i class="fad fa-hand-holding-heart fa-2x"></i>
-                    <!-- <ion-icon
-                            :icon="icons.fitnessOutline"
-                            color="danger"
-                          ></ion-icon> -->
                     <ion-label class="full-width">
                       <ion-text class="ion-float-left"> HP </ion-text>
                       <ion-text class="ion-float-right">
@@ -128,18 +124,31 @@
                         :value="user.stats.hp.now / user.stats.hp.max"
                       ></ion-progress-bar>
                     </ion-label>
-                  </ion-chip>
+                  </ion-chip> -->
                 </ion-col>
               </ion-row>
               <ion-row>
                 <ion-col class="ion-no-padding">
                   <!-- MP -->
-                  <ion-chip color="tertiary">
+                  <ion-badge class="mp-badge">
+                      <ion-progress-bar
+                        color="tertiary"
+                        :value="user.stats.mp.now / user.stats.mp.max"
+                      ></ion-progress-bar>
+                      <ion-badge>
+                        <ion-text class="ion-float-left"> 
+                          <i class="fad fa-hand-holding-magic fa-lg"></i>
+                        </ion-text>
+                        <ion-text class="ion-float-right"> 
+                          MP 
+                        </ion-text>
+                        <ion-text class="ion-float-right">
+                          <b> {{ user.stats.mp.now }}/{{ user.stats.mp.max }} </b>
+                        </ion-text>
+                      </ion-badge>
+                  </ion-badge>
+                  <!-- <ion-chip color="tertiary">
                     <i class="fad fa-hand-holding-magic fa-2x"></i>
-                    <!-- <ion-icon
-                            :icon="icons.colorWand"
-                            color="tertiary"
-                          ></ion-icon> -->
                     <ion-label class="full-width">
                       <ion-text class="ion-float-left"> MP </ion-text>
                       <ion-text class="ion-float-right">
@@ -150,17 +159,68 @@
                         :value="user.stats.mp.now / user.stats.mp.max"
                       ></ion-progress-bar>
                     </ion-label>
-                  </ion-chip>
+                  </ion-chip> -->
+                </ion-col>
+              </ion-row>
+              <ion-row>
+                <ion-col class="ion-no-padding">
+                  <!-- GP -->
+                  <ion-badge class="xp-badge-bar">
+                    <ion-progress-bar
+                      color="warning"
+                      :value="user.stats.gp.wallet / user.stats.gp.limit"
+                    ></ion-progress-bar>
+                    <ion-badge>
+                      <ion-text class="ion-float-left"> 
+                        <i class="fad fa-hand-holding-usd fa-lg"></i>
+                      </ion-text>
+                      <ion-text class="ion-float-right"> HP </ion-text>
+                      <ion-text class="ion-float-right">
+                        <b>
+                          <i class="fad fa-coin"></i>
+                          ¤{{ user.stats.gp.wallet }}
+                          /
+                          <i class="fad fa-wallet"></i>
+                          ¤{{ user.stats.gp.limit }}
+                        </b>
+                      </ion-text>
+                    </ion-badge>
+                  </ion-badge>
+                  <!-- <ion-chip color="warning">
+                    <i class="fad fa-hand-holding-usd fa-2x"></i>
+                    &nbsp;
+                    <ion-label class="full-width">
+                      <ion-text ion-text class="ion-float-left"> GP </ion-text>
+                      <ion-text class="ion-float-right">
+                        <b>
+                          <i class="fad fa-coin"></i>
+                          ¤{{ user.stats.gp.wallet }}
+                          /
+                          <i class="fad fa-wallet"></i>
+                          ¤{{ user.stats.gp.limit }}
+                        </b>
+                      </ion-text>
+                      <ion-progress-bar
+                        color="warning"
+                        :value="user.stats.gp.wallet / user.stats.gp.limit"
+                      ></ion-progress-bar>
+                    </ion-label>
+                  </ion-chip> -->
                 </ion-col>
               </ion-row>
               <ion-row>
                 <ion-col class="ion-no-padding">
                   <!-- USER LEVEL & XP Bar -->
-                  <ion-chip color="green">
-                    <!-- <ion-icon :icon="icons.sparkles"></ion-icon> -->
-                    <i class="fad fa-hand-holding-seedling fa-2x"></i>
-                    <ion-label class="full-width">
-                      <ion-text class="ion-float-left"> XP </ion-text>
+                  <ion-badge class="xp-badge-bar">
+                    <ion-progress-bar
+                      color="green"
+                      :value="getCounterXPCurrentAmount()"
+                    ></ion-progress-bar>
+                    <ion-badge>
+                      <ion-text class="ion-float-left"> 
+                        <i class="fad fa-hand-holding-seedling fa-lg"></i>
+                      </ion-text>
+                      <ion-text class="ion-float-right"> XP </ion-text>
                       <ion-text class="ion-float-right">
                         Level
                         {{ user.stats.level }}
@@ -181,12 +241,8 @@
                           200
                         </b>
                       </ion-text>
-                      <ion-progress-bar
-                        color="green"
-                        :value="getCounterXPCurrentAmount()"
-                      ></ion-progress-bar>
-                    </ion-label>
-                  </ion-chip>
+                    </ion-badge>
+                  </ion-badge>
                 </ion-col>
               </ion-row>
             </ion-grid>
@@ -205,41 +261,87 @@
     <ion-card-content class="ion-no-padding" v-if="user.stats">
       <ion-grid class="ion-no-margin ion-no-padding">
         <ion-row class="ap-breakdown">
-          <ion-col size="5">
-                <ion-badge color="light"> 10d </ion-badge>
-                <ion-badge color="light"> 89w </ion-badge>
-                <ion-badge color="light"> 300m </ion-badge>
-                <ion-badge color="light"> 1000y </ion-badge>
-            <!-- <ion-chip color="light" class="chip-ap ion-no-margin">
-              <ion-icon :icon="icons.medal"></ion-icon>
-            </ion-chip> -->
+          <!-- <ion-col size="5">
+              <ion-badge color="light"> 10d </ion-badge>
+              <ion-badge color="light"> 89w </ion-badge>
+              <ion-badge color="light"> 300m </ion-badge>
+              <ion-badge color="light"> 1000y </ion-badge>
+              <ion-chip color="light" class="chip-ap ion-no-margin">
+                <ion-icon :icon="icons.medal"></ion-icon>
+              </ion-chip>
+          </ion-col> -->
+          <ion-col size="12">
           </ion-col>
-          <ion-col size="7">
-            <!-- GP -->
-            <ion-chip color="warning">
-              <!-- <ion-icon :icon="icons.server"></ion-icon> -->
-              <i class="fad fa-hand-holding-usd fa-2x"></i>
-              &nbsp;
+        </ion-row>
+        <ion-row>
+          <ion-col size="12">
+            <!-- AP -->
+            <ion-chip color="light" class="chip-ap ion-no-margin">
               <ion-label class="full-width">
-                <ion-text ion-text class="ion-float-left"> GP </ion-text>
+                <i class="fad fa-hand-holding-medical fa-2x"></i>
+                <ion-text class="ion-float-left"> AP </ion-text>
                 <ion-text class="ion-float-right">
-                  <b>
-                    <i class="fad fa-coin"></i>
-                    ¤{{ user.stats.gp.wallet }}
-                    /
-                    <i class="fad fa-wallet"></i>
-                    ¤{{ user.stats.gp.limit }}
-                  </b>
+                <ion-badge color="danger"> 
+                  <vue3-autocounter
+                    ref="countAPTotal"
+                    :startAmount="2000"
+                    :endAmount="2000 + 3"
+                    :duration="4"
+                    separator=","
+                    :autoinit="false"
+                  />
+                  AP
+                </ion-badge>
+                [
+                <ion-badge size="small" color="warning"> 10d </ion-badge>
+                <ion-badge color="warning"> 89w </ion-badge>
+                <ion-badge color="success"> 300m </ion-badge>
+                <ion-badge color="success"> 
+                  1000y 
+                </ion-badge>
+                ]
                 </ion-text>
-                <ion-progress-bar
-                  color="warning"
-                  :value="user.stats.gp.wallet / user.stats.gp.limit"
-                ></ion-progress-bar>
               </ion-label>
             </ion-chip>
+            <!-- 
+              <ion-chip color="green">
+                <i class="fad fa-hand-holding-seedling fa-2x"></i>
+                <ion-label class="full-width">
+                  <ion-text class="ion-float-left"> XP </ion-text>
+                  <ion-text class="ion-float-right">
+                    Level
+                    {{ user.stats.level }}
+                    -
+                    <b>
+                      <vue3-autocounter
+                        ref="countXPTotal"
+                        :startAmount="0"
+                        :endAmount="100"
+                        :duration="4"
+                        suffix="XP"
+                        separator=","
+                        :autoinit="false"
+                      />
+                      /
+
+                      <i class="fad fa-level-up"></i>
+                      200
+                    </b>
+                  </ion-text>
+                  <ion-progress-bar
+                    color="green"
+                    :value="getCounterXPCurrentAmount()"
+                  ></ion-progress-bar>
+                </ion-label>
+              </ion-chip> 
+            -->
           </ion-col>
         </ion-row>
       </ion-grid>
+
+              <ion-button expand="full" color="primary" :router-link="`/user/${user.id}`">
+                View Stats
+              </ion-button>
     </ion-card-content>
   </ion-card>
 </template>

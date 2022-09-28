@@ -26,6 +26,7 @@ export default defineComponent({
       {
         label: "Wrecked Ship",
         faIcon: "ship",
+        side: "start",
         click() {
           const merchant = "wrecked-ship"
           router.push({ name: "shop", params: { merchant }})
@@ -35,6 +36,7 @@ export default defineComponent({
         label: "Water Temple",
         id: "water-temple",
         faIcon: "place-of-worship",
+        side: "end",
         click() {
           router.push({ name: "temple", params: { userId } });
         },
@@ -42,6 +44,7 @@ export default defineComponent({
       {
         label: "Travel World",
         faIcon: "pegasus",
+        side: "top",
         click() {
           router.push({ name: "world-map", params: { userId } });
         },

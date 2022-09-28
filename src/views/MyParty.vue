@@ -1,13 +1,17 @@
 <template>
-  <ion-page v-cloak>
+  <ion-page v-cloak >
     <ion-header :translucent="true">
-      <ion-toolbar>
-        <!-- <ion-buttons slot="start">
-          <ion-button :router-link="`/my-portal/${userId}`">
-            <ion-icon :icon="arrowBack" slot="icon-only" />
-          </ion-button>
-        </ion-buttons> -->
-        <ion-title>My Party</ion-title>
+      <ion-toolbar class="rpg-box">
+        <ion-buttons slot="start">
+          <ion-back-button
+            :default-href="`/switch-profile`"
+          ></ion-back-button>
+          <i class="fa fa-2x" :class="`fa-${shopIcon}`" />
+        </ion-buttons>
+        <ion-title>
+          <i class="fab fa-fort-awesome fa-lg" />
+          My Party
+        </ion-title>
       </ion-toolbar>
     </ion-header>
     <ion-content :fullscreen="true">
@@ -123,6 +127,7 @@ import userActions from "@/assets/js/mixins/userActions";
 </script>
 
 <style scoped lang="scss">
+
   #container {
     text-align: center;
     position: absolute;

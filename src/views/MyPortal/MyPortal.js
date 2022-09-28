@@ -1,38 +1,39 @@
-import { computed, defineComponent, handleError, ref } from "vue";
+import { computed, defineComponent, handleError, reactive, ref } from "vue";
 import requireImg from "@/assets/js/requireImg";
 import fetchItems from "@/assets/js/mixins/fetchItems.js";
 import ionic from "@/assets/js/mixins/ionic";
 import userActions from "@/assets/js/mixins/userActions";
-import CardUserStats from "@/views/CardUserStats/CardUserStats.vue";
-import { Swiper, SwiperSlide } from "swiper/vue";
 import "swiper/css";
 import { toastController, modalController } from "@ionic/vue";
+import components from "./components"
+
+// import XpFabUserHud  from "./components/XpFabUserHud.vue"
 
 import {
+  sparklesOutline,
   calendar,
   peopleCircle,
   home,
   chatbox,
   wallet,
   personCircle,
+      // const route = useRoute()
   fitnessOutline,
   storefrontOutline,
   medkitOutline,
   medalOutline,
   accessibilityOutline,
+  colorWand,
+  walletOutline
 } from "ionicons/icons";
 
 import { mapActions, mapGetters, mapMutations, mapState, useStore } from "vuex";
 import { useRoute, useRouter } from "vue-router";
 
 export default defineComponent({
-  name: "my-portal",
+  components,
   mixins: [fetchItems, ionic, userActions],
-  components: {
-    Swiper,
-    SwiperSlide,
-    CardUserStats,
-  },
+  name: "my-portal",
   data() {
     return {
       debug: false,
@@ -49,11 +50,6 @@ export default defineComponent({
         type: "xp_achievement",
         per_page: 8,
       },
-      compass: {
-        name: 'Home',
-        icon: 'house-user',
-        link: `/my-portal/`
-      },
     };
   },
 
@@ -64,17 +60,17 @@ export default defineComponent({
       return this.battleState("steps").counter;
     },
     pageName() {
-      return this.compass.name;
-    },
-    pageIcon(){
-      return this.route.meta.faIcon
+      return this.compass?.name;
     },
     isUserFabOn(){
       return !this.route.meta.hideUserFab 
     },
     pageLink(){
-      return this.compass.link
-    }
+      return this.compass?.link
+    },
+    routeName(){
+      return this.route.name
+    },
   },
   methods: {
     ...mapActions(["resetBattleTimer", "stopBattleTimer"]),
@@ -100,108 +96,76 @@ export default defineComponent({
     enterBattle() {
       this.$refs.outlet.enterBattle();
     },
-    updateNav(icon){
-      switch (icon) {
-        case 'pegasus':
-          this.compass = {
-            icon,
-            name: 'The World',
-            link: `/my-portal/${this.user.id}/world-map`
-          }
-          break;
-        case 'archway':
-          this.compass = {
-            icon,
-            name: 'Hometown',
-            link: `/my-portal/${this.user.id}/the-city`
-          }
-          break;
-        case 'house-user':
-          this.compass = {
-            name: 'My Home',
-            icon: 'house-person',
-            link: `/my-portal/${this.user.id}/my-home`
-          }
-          break;
-
-        case 'tornado':
-          this.compass = {
-            name: 'Plains',
-            icon: 'tornado',
-            link: `/my-portal/${this.user.id}/plains`
-          }
-          break;
-
-        case 'island-tropical':
-          this.compass = {
-            name: 'Islands',
-            icon: 'island-tropical',
-            link: `/my-portal/${this.user.id}/islands`
-          }
-          break;
-
-        case 'trees':
-          this.compass = {
+    updateCompass(name){
+      const { user: {id: userId }} = this
+      const worlds = {
+        "world-map": {
+          name: 'The World',
+          icon: 'pegasus',
+          link: `/my-portal/${userId}/world-map`
+        },
+        "the-city": {
+          name: 'Hometown',
+          icon: 'archway',
+          link: `/my-portal/${userId}/the-city`
+        },
+        "my-home": {
+          name: 'My Home',
+          icon: 'house-user',
+          link: `/my-portal/${userId}/my-home`
+        },
+        "world-plains": {
+          name: 'Plains',
+          icon: 'tornado',
+          link: `/my-portal/${userId}/plains`
+        },
+        "world-islands": {
+          name: 'Islands',
+          icon: 'island-tropical',
+          link: `/my-portal/${userId}/islands`
+        },
+        "world-forest": {
             name: 'Forest',
             icon: 'trees',
-            link: `/my-portal/${this.user.id}/forest`
-          }
-          break;
-
-        case 'skull-crossbones':
-          this.compass = {
+            link: `/my-portal/${userId}/forest`
+        },
+        "world-swamps": {
             name: 'Swamps',
             icon: 'skull-crossbones',
-            link: `/my-portal/${this.user.id}/frozen-tundra`
-          }
-          break;
-
-        case 'mountains':
-          this.compass = {
+            link: `/my-portal/${userId}/world-ice`
+        },
+        "world-mountains": {
             name: 'Mountains',
             icon: 'mountains',
-            link: `/my-portal/${this.user.id}/mountains`
-          }
-          break;
-
-        case 'cactus':
-          this.compass = {
+            link: `/my-portal/${userId}/mountains`
+        },
+        "world-sands": {
             name: 'Desert',
             icon: 'cactus',
-            link: `/my-portal/${this.user.id}/desert`
-          }
-          break;
-
-        case 'igloo':
-          this.compass = {
+            link: `/my-portal/${userId}/desert`
+        },
+        "world-ice": {
             name: 'Frozen Tundra',
             icon: 'igloo',
-            link: `/my-portal/${this.user.id}/frozen-tundra`
-          }
-          break;
-
-        case 'moon':
-          this.compass = {
+            link: `/my-portal/${userId}/world-ice`
+        },
+        "the-moon": {
             name: 'The Moon',
             icon: 'moon',
-            link: `/my-portal/${this.user.id}/the-moon`
-          }
-          break;
-
-
-
-
-      }
-      console.log(this.compass);
+            link: `/my-portal/${userId}/the-moon`
+        },
+      } 
+      const world = worlds[name]
+      if(world)
+        this.compass = world 
     }
-
   },
   created(){
-    this.updateNav()
+    this.updateCompass(this.routeName)
   },
   watch: {
-    pageIcon(icon){
-      this.updateNav(icon)
+    routeName(name){
+      this.updateCompass(name)
     },
     battleCounter(counter) {
       const {
@@ -230,36 +194,48 @@ export default defineComponent({
     const route = useRoute();
     const { userId } = route.params;
     const user = computed(() => store.getters.getUserById(userId));
-
     const equipment = ref([]);
     const clickItem = (item) => equipment.value.push(item);
 
     const clickAction = (action) => action.click() || null;
 
+    const compass = reactive({
+      name: 'Home',
+      icon: 'house-user',
+      link: `/my-portal/${userId}/my-home`
+    })
+
+    const pageIcon = computed( () => route.meta.faIcon )
+
     return {
-      clickItem,
-      equipment,
-      clickAction,
-      route,
-      router,
-      user,
+      compass,
+      pageIcon,
       accessibilityOutline,
       calendar,
-      medalOutline,
+      chatbox,
+      clickAction,
+      clickItem,
+      colorWand,
+      equipment,
       fitnessOutline,
       home,
+      medalOutline,
+      medkitOutline,
       peopleCircle,
       personCircle,
       requireImg,
+      route,
+      router,
+      sparklesOutline,
       storefrontOutline,
-      medkitOutline,
-      chatbox,
+      user,
       wallet,
+      walletOutline,
       specialItems: [
         // {
         //   faIcon: "staff quest",
-        //   name: "Quest Log",
-        //   desc: "5HP | Open Quest Log...",
+        //   name: "My Quests",
+        //   desc: "5HP | Open My Quests...",
         //   click(){
         //     router.push({name: 'my-tasks', params: {userId}})
         //   }
@@ -387,83 +363,6 @@ export default defineComponent({
             router.push({name: 'my-home', params: {userId}})
           }
         },
-      ],
-      staticActions: [
-        {
-          label: "Talk",
-          id: "talk-to",
-          faIcon: "comment",
-        },
-        {
-          label: "Notifications",
-          id: "notifications",
-          faIcon: "bell-exclamation",
-        },
-        {
-          id: "abilities",
-          label: "My Abilities",
-          faIcon: "book-spells",
-          click($ev) {
-            router.push({ name: "my-abilities", params: { userId } });
-          },
-        },
-        {
-          label: "Quest Log",
-          id: "staff",
-          faIcon: "medal quest",
-          click(){
-            router.push({name: 'my-tasks', params: {userId}})
-          }
-        },
-        {
-          label: "My Items",
-          id: "my-inventory",
-          faIcon: "backpack",
-          click($ev) {
-            router.push({ name: "my-inventory", params: { userId } });
-          },
-        },
-        {
-          label: "Stats",
-          id: "user-profile",
-          faIcon: "hand-holding-seedling",
-        },
-        {
-          label: "My Wallet",
-          id: "wallet",
-          faIcon: "wallet",
-          click(){
-            router.push({name: 'my-gold-points', params: {userId}})
-          }
-        },
-        {
-          label: "Save & Quit",
-          id: 'save-quit',
-          faIcon: "save",
-        },
-        // {
-        //   label: "Inventory Screen",
-        //   id: "toolbox",
-        //   faIcon: "compass",
-        //   // link: 'storage',
-        //   click($ev) {
-        //     this.isRPGBoxOpen = true;
-        //   },
-        // },
-        // {
-        //   label: "Gold Points",
-        //   id: "gold-points",
-        //   faIcon: "hand-holding-usd",
-        //   click($ev) {
-        //     router.push({ name: "my-gold-points", params: { userId } });
-        //     // console.log($ev.preventDefault());
-        //   },
-        // },
-        // {
-        //   label: "Settings",
-        //   id: "settings",
-        //   faIcon: "cogs",
-        // },
       ],
     };
   },

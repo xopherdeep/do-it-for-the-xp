@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <ion-page >
     <ion-header>
       <ion-toolbar color="success">
         <ion-buttons slot="start">
@@ -8,7 +8,7 @@
           <i class="fad fa-medal fa-2x"></i>
           <!-- <ion-icon :icon="medalOutline" size="large" /> -->
         </ion-buttons>
-        <ion-title> Quest Log </ion-title>
+        <ion-title> My Quests </ion-title>
       </ion-toolbar>
       <ion-toolbar>
         <ion-segment
@@ -53,7 +53,8 @@
         :navigation="swiperNavigation"
         :modules="modules"
         ref="slides"
-        @slideChangeTransitionStart="slideWillChange"
+        @slidePrevTransitionStart="slidePrev"
+        @slideNextTransitionStart="slideNext"
         @swiper="setControlledSwiper"
       >
         <swiper-slide 
@@ -66,8 +67,8 @@
               <ion-col
                 size="6"
                 size-md="3"
-                v-for="item in getSlideItems(page)"
-                :key="item.id"
+                v-for="item in tasks"
+                :key="`${page}-${item.id}`"
                 class="ion-no-padding"
               >
                 <ion-card
@@ -77,17 +78,26 @@
                   :id="item.id"
                 >
                   <!-- :router-link="`/my-tasks/${user.id}/task/${item.id}`" -->
+                  <ion-card-title v-if="isFetching">
+                    <ion-skeleton-text :animated="true" style="width: 100px;"></ion-skeleton-text>
+                  </ion-card-title>
                   <ion-card-title
-                    v-if="item.title"
+                    v-else
                     v-html="item.title.rendered"
                   ></ion-card-title>
-                  <!-- <ion-card-header>
-                    <ion-card-subtitle
-                      v-if="item.title"
-                      v-html="item.title.rendered"
-                    />
-                  </ion-card-header> -->
-                  <ion-img v-bind="getImgObj(item.featured_media)"></ion-img>
+
+                  <ion-thumbnail v-if="isFetching">
+                    <ion-skeleton-text :animated="true" style="width: 100%;"></ion-skeleton-text>
+                  </ion-thumbnail>
+                  <ion-img v-else-if="item._embedded" v-bind="getFeaturedImg(item._embedded)"/>
+
+                  <ion-button v-if="isFetching" expand="block">
+                    <ion-skeleton-text :animated="true" style="width: 100%;"></ion-skeleton-text>
+                  </ion-button>
+
+                  <ion-button v-else color="primary">
+                    View Quest
+                  </ion-button>
 
                   <ion-card-content class="ion-no-margin ion-no-padding">
                     <!-- <ion-badge color="warning">
@@ -157,7 +167,7 @@
                 @keypress="playTextSound"
                 @keyUp="resetTextSound"
                 @ionChange="searchChanged"
-                v-model="request.params.search"
+                v-model="searchText"
               ></ion-searchbar>
             </ion-col>
           </ion-row>
@@ -165,15 +175,27 @@
             <ion-col>
               <ion-button
                 id="swiper-back"
-                :disabled="currentSlide == 0"
+                :disabled="page == 1"
                 color="dark"
                 expand="block"
               >
                 <ion-icon :icon="chevronBack" slot="icon-only" />
               </ion-button>
             </ion-col>
-            <ion-col>
-              Page {{currentPage}} of {{nTotalPages}}
+            <ion-col class="total-pages" v-if="isLoading">
+              <ion-skeleton-text :animated="true" style="width: 60%;"></ion-skeleton-text>
+              <ion-skeleton-text :animated="true" style="width: 20%"></ion-skeleton-text>
+            </ion-col>
+            <ion-col class="total-pages" v-else>
+              <ion-text class="ion-text-align-center">
+                Viewing Quests: {{ pageNumbers.min }} - {{ pageNumbers.max }} of {{ nTotalTasks }}
+              </ion-text>
+              <ion-text>
+                <small>
+                  Page: {{ page }} of 
+                  {{nTotalPages}}
+                </small>
+              </ion-text>
             </ion-col>
             <ion-col>
               <ion-button
@@ -193,4 +215,4 @@
 </template>
 
 <script src="./MyTasks.js" />
-<style lang="scss" src="./_MyTasks.scss" />
+<style lang="scss" src="./_MyTasks.scss" scoped />

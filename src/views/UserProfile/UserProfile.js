@@ -70,9 +70,9 @@ export default defineComponent({
           color:'warning',
           icon: serverOutline,
           stats: {
-            charisma: 'Gain more GP when completing tasks',
-            charm   : 'Influences GP discounts on items',
-            presence: 'Influences GP to $ conversion rate',
+            charisma : 'Influences GP discounts on items',
+            awareness : 'Gain more GP when completing tasks',
+            presence : 'Influences GP to $ conversion rate',
           }
         },
         misc: {

@@ -41,14 +41,13 @@ export default class stats {
       wisdom      : 0,   //? increases MP restore rate
 
       // GP - Social
-      charm       : 0,   //? influences shop rates
-      charisma    : 0,   //? increases reward of GP,
+      charisma    : 0,   //? influences shop rates
+      awareness   : 0,   //? increases reward of GP,
       presence    : 0,   //?
 
       // AP
       agility     : 0,   //? influences AP reward points
       guts        : 0,   // Influences XP points rewarded //? Smmmmassssshhhhhhhh!!!
-
       luck        : 0,   //? higher chance of successful outcome of random event
       
     };

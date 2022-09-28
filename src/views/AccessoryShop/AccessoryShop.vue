@@ -1,5 +1,5 @@
 <template>
-  <ion-page class="accessory-shop rpg-box">
+  <ion-page class="accessory-shop">
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
@@ -17,7 +17,6 @@
     <ion-content>
       <xp-loading v-if="isLoading" />
       <ion-grid v-else>
-        <!-- Hero -->
         <ion-card>
           <ion-card-title>
             {{ shopkeeper }}
@@ -61,6 +60,7 @@
             </ion-item>
           </ion-card-content>
         </ion-card>
+        <!-- Hero -->
         <ion-row>
           <ion-col
             size-md="3"
@@ -69,6 +69,66 @@
             :key="`${shopIcon}-${item.id}`"
             class="ion-no-padding"
           >
+            <ion-modal :ref="`modal-${item.id}`" :trigger="`${shopIcon}-${item.id}`">
+              <ion-card>
+                <ion-card-title
+                  v-if="item.title"
+                  v-html="item.title.rendered"
+                ></ion-card-title>
+                <ion-grid>
+                  <ion-row>
+                    <ion-col size="6">
+                      <ion-img
+                        v-bind="getImgObj(item.featured_media)"
+                        class="featured-media"
+                      ></ion-img>
+                    </ion-col>
+                    <ion-col>
+                      <ion-card-content>
+                        {{item.content.rendered}}
+                        Lorem ipsum dolor sit amet, persequeris mediocritatem vel ut. Qui et officiis salutandi sadipscing. At placerat invidunt duo, vis quem sale adipisci an, impetus electram incorrupte vix ne. Ad ipsum inani accommodare cum, adhuc timeam et cum. Consequat intellegebat ius ea. In eam utamur malorum maluisset.
+                      </ion-card-content>
+                    </ion-col>
+                  </ion-row>
+                  <hr/>
+                  <ion-row>
+                    <ion-col size="12">
+                      <ion-card-title>
+                        Would you like to buy this?
+                      <ion-badge color="warning">
+                        <i class="fa fa-coins" />
+                        {{ item.meta._xp_achievement_gp }}
+                        100
+                        <strong>GP</strong>
+                      </ion-badge>
+                      </ion-card-title>
+                    </ion-col>
+                  </ion-row>
+                  <ion-row>
+                    <ion-col>
+                      <ion-button
+                        @click="buyItem(item.id)"
+                        color="success"
+                        expand="block"
+                      >
+                        Yes 
+                        <i class="fa fad fa-lg fa-thumbs-up" />
+                      </ion-button>
+                    </ion-col>
+                    <ion-col>
+                      <ion-button
+                        @click="closeModal(item.id)"
+                        color="danger"
+                        expand="block"
+                      >
+                        <i class="fa fad fa-lg fa-thumbs-down" />
+                        No
+                      </ion-button>
+                    </ion-col>
+                  </ion-row>
+                </ion-grid>
+              </ion-card>
+            </ion-modal>
             <ion-card
               class="item ion-no-padding"
               :id="`${shopIcon}-${item.id}`"
@@ -94,69 +154,6 @@
                 <strong>GP</strong>
               </ion-badge>
             </ion-card>
-            <ion-modal :ref="`modal-${item.id}`" :trigger="`${shopIcon}-${item.id}`">
-              <ion-card>
-                <ion-card-title
-                  v-if="item.title"
-                  v-html="item.title.rendered"
-                ></ion-card-title>
-                  <ion-grid>
-                    <ion-row>
-                      <ion-col size="6">
-                        <ion-img
-                          v-bind="getImgObj(item.featured_media)"
-                          class="featured-media"
-                        ></ion-img>
-                      </ion-col>
-                      <ion-col>
-                <ion-card-content>
-
-                        {{item.content.rendered}}
-  Lorem ipsum dolor sit amet, persequeris mediocritatem vel ut. Qui et officiis salutandi sadipscing. At placerat invidunt duo, vis quem sale adipisci an, impetus electram incorrupte vix ne. Ad ipsum inani accommodare cum, adhuc timeam et cum. Consequat intellegebat ius ea. In eam utamur malorum maluisset.
-
-
-                </ion-card-content>
-                      </ion-col>
-                    </ion-row>
-                    <hr/>
-                    <ion-row>
-                      <ion-col size="12">
-                        <ion-card-title>
-                          Would you like to buy this?
-                        <ion-badge color="warning">
-                          <i class="fa fa-coins" />
-                          {{ item.meta._xp_achievement_gp }}
-                          100
-                          <strong>GP</strong>
-                        </ion-badge>
-                        </ion-card-title>
-                      </ion-col>
-                    </ion-row>
-                    <ion-row>
-                      <ion-col>
-                        <ion-button
-                          @click="buyItem(item.id)"
-                          color="success"
-                          expand="block"
-                        >
-                          Yes 
-                          <i class="fa fad fa-lg fa-thumbs-up" />
-                        </ion-button>
-                      </ion-col>
-                      <ion-col>
-                        <ion-button
-                          @click="closeModal(item.id)"
-                          color="danger"
-                          expand="block"
-                        >
-                          <i class="fa fad fa-lg fa-thumbs-down" />
-                          No
-                        </ion-button>
-                      </ion-col>
-                    </ion-row>
-                  </ion-grid>
-              </ion-card>
-            </ion-modal>
           </ion-col>
         </ion-row>
       </ion-grid>

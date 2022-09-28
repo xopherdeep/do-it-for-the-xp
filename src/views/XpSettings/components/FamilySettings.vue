@@ -1,7 +1,7 @@
 <template>
   <ion-page :class="$options.name">
     <ion-header :translucent="true">
-      <ion-toolbar>
+      <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
           <ion-back-button 
             :default-href="`/xp-settings/`" 
@@ -14,32 +14,36 @@
     </ion-header>
     
     <ion-content :fullscreen="true">
-      <ion-card>
-          <ion-card-title>
-            Your Family
+      <ion-grid>
+        <ion-row>
+          <ion-col>
+            <ion-card>
+              <ion-card-title>
+                Your Family
+              </ion-card-title>
+              <ion-card-header>
+                <h1>
 
-          </ion-card-title>
-        
-        <ion-card-header>
-            <h1>
+                McJudyPollard
+                </h1>
 
-            McJudyPollard
-            </h1>
-
-        </ion-card-header>
-      </ion-card>
-        <ion-item>
-          <ion-label>
-            Lock My Family Setup
-            <p>
-              Prevent making changes to the family
-            </p>
-          </ion-label>
-          <ion-toggle
-            @ionChange="toggleFamily"
-          >
-          </ion-toggle>
-        </ion-item>
+              </ion-card-header>
+            </ion-card>
+            <ion-item>
+              <ion-label>
+                Lock My Family Setup
+                <p>
+                  Prevent making changes to the family
+                </p>
+              </ion-label>
+              <ion-toggle
+                @ionChange="toggleFamily"
+              >
+              </ion-toggle>
+            </ion-item>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
       <ion-item-group>
         <ion-item-divider>
           <ion-label>Adults</ion-label>

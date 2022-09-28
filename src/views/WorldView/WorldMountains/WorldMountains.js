@@ -26,6 +26,7 @@ export default defineComponent({
       {
         label: "Crystal Caverns",
         faIcon: "dungeon",
+        side: "start",
         click() {
           const merchant = "crystal-caverns"
           router.push({ name: "shop", params: { merchant }})
@@ -35,6 +36,7 @@ export default defineComponent({
         label: "Fire Fortress",
         id: "fire-temple",
         faIcon: "place-of-worship",
+        side: "end",
         click() {
           router.push({ name: "temple", params: { userId } });
         },
@@ -42,6 +44,7 @@ export default defineComponent({
       {
         label: "Travel World",
         faIcon: "pegasus",
+        side: "top",
         click() {
           router.push({ name: "world-map", params: { userId } });
         },

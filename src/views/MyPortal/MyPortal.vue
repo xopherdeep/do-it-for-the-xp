@@ -1,309 +1,27 @@
 <template>
   <ion-page class="ion-page" :class="$options.name" v-cloak>
-    <!-- <ion-header>
-      <ion-toolbar v-if="user" class="rpg-box">
-        <ion-buttons slot="start">
-          <ion-menu-button color="primary"></ion-menu-button>
-          <ion-avatar v-if="user.avatar">
-            <ion-img class="ion-no-padding" :src="getUserAvatar(user)"></ion-img>
-          </ion-avatar>
-        </ion-buttons>
-        <ion-icon :icon="accessibilityOutline" slot="icon-only" />
-        <ion-title v-if="user.name">{{ user.name.nick }}</ion-title>
-        <ion-buttons slot="end">
-          <ion-button id="toolbox">
-            <i class="fad fa-compass fa-2x"></i>
-          </ion-button>
-          <ion-button expand="block">
-            <i class="fad fa-map fa-2x"></i>
-          </ion-button>
-          <ion-button size="large" id="user-profile">
-            <i class="fad fa-user-circle fa-2x"></i>
-          </ion-button>
-          <ion-button size="large">
-            <i class="fad fa-book-spells fa-2x"></i>
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header> -->
     <ion-content>
-      <ion-fab vertical="center" horizontal="end" v-if="user.stats">
-        <ion-fab-button color="tertiary">
-          <i class="fad fa-hand-sparkles fa-2x"></i>
-        </ion-fab-button>
-        <ion-fab-list side="start">
-          <ion-fab-button color="dark" @click="isRPGBoxOpen = true">
-            <i class="fad fa-compass fa-lg"></i>
-          </ion-fab-button>
-          <ion-fab-button color="dark" id="world-map">
-            <i class="fad fa-map fa-lg"></i>
-          </ion-fab-button>
-        </ion-fab-list>
-        <ion-fab-list side="top" class="items">
-          <ion-fab-button v-for="item in equipment" :key="item.faIcon" color="dark" @click="item.click">
-            <i class="fad fa-2x "
-              :class="`fa-${item.faIcon}`"
-              ></i>
-          </ion-fab-button>
-        </ion-fab-list>
-      </ion-fab>
-      <!-- PAGE MENU -->
-      <ion-fab
-        vertical="bottom"
-        horizontal="start"
-        class="fab-user"
-        v-if="user.stats"
-      >
-        <ion-grid>
-          <ion-row>
-            <ion-col>
-              <ion-fab-button color="light" v-if="user.avatar">
+      <xp-fab-user-hud :user="user" :isUserFabOn="isUserFabOn" />
+      <xp-fab-gold-points :user="user" :isUserFabOn="isUserFabOn" />
+      <xp-fab-quick-draw v-if="isUserFabOn" :user="user" :equipment="equipment" @openHud="isRPGBoxOpen = true" />
+      <xp-fab-page-menu v-if="isUserFabOn" :user="user" :page-name="compass.name" />
+      <xp-fab-page-shortcuts v-if="isUserFabOn" :shortcuts="userActions"/>
 
-                <i v-if="pageIcon != 'fort-awesome'" class="fad fa-2x" :class="`fa-${pageIcon}`"></i>
-                <i v-else class="fab fa-2x" :class="`fa-${pageIcon}`"></i>
-              </ion-fab-button>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-        <!-- <ion-fab-list side="end">
-          <ion-grid>
-            <ion-row>
-              <ion-col>
-                <ion-fab-button>
-                  <ion-menu-button color="primary"></ion-menu-button>
-                </ion-fab-button>
-              </ion-col>
-            </ion-row>
-          </ion-grid>
-        </ion-fab-list> -->
-        <ion-fab-list side="top" >
-          <ion-card>
-            <ion-card-title>
-              {{ pageName }}
-            </ion-card-title>
-            <ion-buttons>
-              <ion-grid>
-                <ion-row>
-                  <ion-col
-                    v-for="action in userActions"
-                    :key="action.id"
-                    size="6"
-                  >
-                    <ion-button
-                      :id="action.id"
-                      :router-link="action.link"
-                      router-direction="root"
-                      @click="action.click"
-                      size="large"
-                      expand="fill"
-                    >
-                      <i
-                        class="fad fa-lg"
-                        :class="`fa-${action.faIcon.replace('fa-', '')}`"
-                      ></i>
-                      {{ action.label }}
-                    </ion-button>
-                  </ion-col>
-                </ion-row>
-              </ion-grid>
-            </ion-buttons>
-          </ion-card>
-        </ion-fab-list>
-      </ion-fab>
-      <!-- USER MENU -->
-      <ion-fab
-        vertical="top"
-        horizontal="start"
-        class="fab-user user-hud"
-        v-if="user.stats && isUserFabOn"
-      >
-        <ion-grid>
-          <ion-row>
-            <ion-col size="2">
-              <!-- <ion-badge color="medium">
-                0/10
-                <i class="fad fa-diamond fa-lg"></i>
-              </ion-badge> -->
-              <ion-fab-button color="light" v-if="user.avatar">
-                <ion-img
-                  class="ion-no-padding"
-                  :src="getUserAvatar(user)"
-                ></ion-img>
-              </ion-fab-button>
-              <ion-badge class="gp-badge">
-                <ion-progress-bar
-                  color="warning"
-                  v-if="user.stats"
-                  :value="user.stats.gp.wallet / user.stats.gp.limit"
-                ></ion-progress-bar>
-                <ion-badge>
-                  <!-- <i class="fad fa-coins fa-lg"></i> -->
-                  <small>₲</small>
-                  {{ user.stats.gp.wallet }}
-                  <small>00</small>
-                </ion-badge>
-              </ion-badge>
-
-            </ion-col>
-            <ion-col size="5" size-lg="5" class="ion-no-margin ion-no-padding">
-              <ion-badge class="hp-badge">
-                <ion-progress-bar
-                  color="danger"
-                  v-if="user.stats"
-                  :value="user.stats.hp.now / user.stats.hp.max"
-                >
-                </ion-progress-bar>
-                <ion-badge>
-                  <i class="fad fa-heart fa-2x"></i>
-                  {{user.stats.hp.now}}
-                  / 
-                  {{user.stats.hp.max}}
-                </ion-badge>
-              </ion-badge>
-              <ion-badge class="mp-badge">
-                <!-- <p>
-                  MP
-                </p> -->
-                <ion-progress-bar
-                  color="tertiary"
-                  v-if="user.stats"
-                  :value="user.stats.mp.now / user.stats.mp.max"
-                ></ion-progress-bar>
-                <ion-badge>
-                  <i class="fad fa-magic fa-2x" color="tertiary"></i>
-                  {{user.stats.mp.now}}
-                  / 
-                  {{user.stats.mp.max}}
-                </ion-badge>
-              </ion-badge>
-            </ion-col>
-            <!-- <ion-col size="4" size-lg="4" class="ion-no-padding">
-              <ion-chip color="warning">
-                <ion-progress-bar
-                  color="warning"
-                  v-if="user.stats"
-                  :value="user.stats.gp.wallet / user.stats.gp.limit"
-                ></ion-progress-bar>
-                <i class="fad fa-coins fa-lg"></i>
-                {{ user.stats.gp.wallet }}GP
-              </ion-chip>
-            </ion-col> -->
-          </ion-row>
-        </ion-grid>
-        <!-- <ion-fab-list side="end">
-          <ion-fab-button>
-            <ion-menu-button color="primary"></ion-menu-button>
-          </ion-fab-button>
-        </ion-fab-list> -->
-        <ion-fab-list class="fab-user" side="bottom">
-          <ion-card>
-            <ion-card-title>
-              {{ user.name.nick }}
-            </ion-card-title>
-            <ion-buttons>
-              <ion-grid>
-                <ion-row>
-                  <ion-col
-                    v-for="action in staticActions"
-                    :key="action.id"
-                    size="6"
-                  >
-                    <ion-button
-                      :id="action.id"
-                      :router-link="action.link"
-                      @click="action.click"
-                      size="large"
-                      expand="fill"
-                    >
-                      <i
-                        class="fad fa-lg"
-                        :class="`fa-${action.faIcon.replace('fa-', '')}`"
-                      ></i>
-                      {{ action.label }}
-                    </ion-button>
-                  </ion-col>
-                  <ion-col>
-                    <ion-menu-toggle>
-                      <ion-button>
-                        <i
-                          class="fad fa-lg fa-bars"
-                        ></i>
-                        Open Menu
-                      </ion-button>
-                    </ion-menu-toggle>
-                  </ion-col>
-                </ion-row>
-              </ion-grid>
-            </ion-buttons>
-          </ion-card>
-          <!-- <CardUserStats :id="isUserModalOpen" /> -->
-          <!-- <ion-grid class="user-hud" v-if="user.stats">
-              <ion-row>
-                <ion-col size="5" size-sm="3" size-lg="3">
-                  <ion-fab-button
-                    color="light"
-                    v-if="user.avatar"
-                    id="user-profile"
-                  >
-                    <ion-img
-                      class="ion-no-padding"
-                      :src="getUserAvatar(user)"
-                    ></ion-img>
-                  </ion-fab-button>
-                </ion-col>
-                <ion-col size="12" class="ion-no-padding">
-                </ion-col>
-              </ion-row>
-              <ion-row>
-                <ion-col>
-                  <ion-buttons>
-                    <ion-menu-button color="primary"></ion-menu-button>
-                  </ion-buttons>
-                  <ion-icon :icon="accessibilityOutline" slot="icon-only" />
-                  <ion-title v-if="user.name">{{ user.name.nick }}</ion-title>
-                  <ion-buttons>
-                    <ion-button id="toolbox">
-                      <i class="fad fa-compass fa-2x"></i>
-                    </ion-button>
-                    <ion-button @click="enterBattle" size="" expand="block">
-                      <i class="fad fa-map fa-2x"></i>
-                    </ion-button>
-                  </ion-buttons>
-                </ion-col>
-              </ion-row>
-            </ion-grid> -->
-        </ion-fab-list>
-      </ion-fab>
-
-      <!-- GOLD POINTS -->
-      <!-- <ion-fab
-        vertical="top"
-        horizontal="end"
-        class="fab-gp hide"
-      >
-        <ion-card v-if="user.stats && isUserFabOn">
-          <ion-card-title>
-          GP
-          </ion-card-title>
-          <ion-card-content>
-              <small>₲</small>
-              {{ user.stats.gp.wallet }}
-              <small>00</small>
-                <ion-progress-bar
-                  color="warning"
-                  v-if="user.stats"
-                  :value="user.stats.gp.wallet / user.stats.gp.limit"
-                ></ion-progress-bar>
-          </ion-card-content>
-                <ion-progress-bar
-                  color="warning"
-                  v-if="user.stats"
-                  :value="user.stats.gp.wallet / user.stats.gp.limit"
-                ></ion-progress-bar>
-        </ion-card>
-      </ion-fab> -->
       <ion-tabs v-if="user.stats">
         <ion-router-outlet ref="outlet" :userId="user.id"></ion-router-outlet>
+        <ion-badge class="xp-badge">
+          <ion-progress-bar
+            color="success"
+            v-if="user.stats"
+            :value="user.stats.xp.now / user.stats.xp.next_level"
+          ></ion-progress-bar>
+          <ion-badge>
+            <!-- <ion-icon :icon="sparklesOutline" size="small" /> -->
+            <p>
+              Level {{ user.stats.level }}
+            </p>
+          </ion-badge>
+        </ion-badge>
         <ion-tab-bar
           slot="bottom"
           v-if="user.stats && !battleState('active')"
@@ -319,18 +37,25 @@
             </ion-label>
             <ion-badge color="danger">{{ user.stats.hp.now }} HP</ion-badge>
           </ion-tab-button>
-          <ion-tab-button tab="my-home" 
+          <ion-tab-button 
+            tab="my-home" 
             :href="compass.link"
           >
-            <!-- <i class="fal fa-home fa-2x"></i> -->
-            <!-- <i class="fad fa-house-user fa-2x"></i> -->
-
             <i class="fad fa-2x" :class="`fa-${compass.icon}`"></i>
             <ion-label>
-              {{compass.name}}
+              {{ compass.name }}
             </ion-label>
           </ion-tab-button>
-          <!-- <ion-tab-button
+          <ion-tab-button
+            tab="my-party"
+            :href="`/my-portal/${user.id}/my-party`"
+          >
+            <i class="fab fa-fort-awesome fa-2x"></i>
+            <ion-label>Party</ion-label>
+          </ion-tab-button>
+          <!-- 
+          To favor immersion, we're taking these out
+          <ion-tab-button
             tab="the-city"
             :href="`/my-portal/${user.id}/the-city`"
           >
@@ -338,14 +63,6 @@
             <i class="fal fa-city fa-2x"></i>
             <ion-label>Town</ion-label>
           </ion-tab-button> -->
-          <ion-tab-button
-            tab="my-party"
-            :href="`/my-portal/${user.id}/my-party`"
-          >
-
-            <i class="fab fa-fort-awesome fa-2x"></i>
-            <ion-label>Party</ion-label>
-          </ion-tab-button>
           <!-- <ion-tab-button
             tab="world-map"
             :disabled="false"
@@ -360,7 +77,8 @@
             <ion-badge color="warning"
               >¤{{ user.stats.gp.wallet }} GP</ion-badge
             >
-          </ion-tab-button> -->
+          </ion-tab-button> 
+          -->
         </ion-tab-bar>
       </ion-tabs>
     </ion-content>
@@ -385,12 +103,14 @@
       </ion-card>
     </ion-modal>
 
+    <!-- EQUIPMENT MODAL -->
     <ion-modal
       class="rpg-box"
       :is-open="isRPGBoxOpen"
       trigger="toolbox"
       :breakpoints="[1]"
       :initialBreakpoint="1"
+      :fullscreen="true"
       @didDismiss="didDismissRPGBox"
     >
       <ion-header>
@@ -405,7 +125,7 @@
           <ion-row>
             <ion-col size="7">
               <ion-card class="items">
-                <ion-card-title> equipment </ion-card-title>
+                <ion-card-title> Equipment </ion-card-title>
                 <ion-card-content class="ion-no-padding">
                   <ion-buttons slot="end"> </ion-buttons>
                   <ion-buttons>

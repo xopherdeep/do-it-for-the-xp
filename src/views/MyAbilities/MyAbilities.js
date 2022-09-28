@@ -1,4 +1,5 @@
 import { computed, defineComponent } from "vue";
+import ionic from "@/assets/js/mixins/ionic";
 import {
   IonPage,
   IonHeader,
@@ -64,7 +65,7 @@ export default defineComponent({
     IonContent,
     IonPage,
   },
-  mixins: [fetchItems],
+  mixins: [fetchItems, ionic],
   data() {
     return {
       isLoading: false,

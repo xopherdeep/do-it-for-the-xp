@@ -112,8 +112,11 @@ export default {
   changeBGM({ commit }, bgm) {
     return commit("CHANGE_BGM", bgm);
   },
+  
   turnMusicOnOff({ state }) {
     const { audio, is_on } = state.bgm;
+    console.log("PLAY AUDIO!!!!!!!");
+
     if(audio){
       if (is_on) audio.play();
       else audio.pause();
@@ -125,8 +128,10 @@ export default {
   },
 
   enterBattle({ dispatch, commit, state, getters }) {
-    const changeBGM = () => dispatch("changeBGM", { is_on: true });
-    setTimeout( changeBGM, state.battle.bgmWaitToStart );
+    const playMusic = () => dispatch("turnMusicOnOff");
+    // dispatch("changeBGM", { is_on: true })
+    dispatch("changeBGM")
+    setTimeout( playMusic, state.battle.bgmWaitToStart );
   },
 
   startBattleTimer({ dispatch, state, commit }) {
@@ -169,7 +174,7 @@ export default {
     const isBattleActive  = getters.battleState("active");
     const isBattleTimerUp = currentStep < 0;
     if (isBattleTimerUp && !isBattleActive) {
-      dispatch("enterBattle");
+      // dispatch("enterBattle");
     }
   },
 

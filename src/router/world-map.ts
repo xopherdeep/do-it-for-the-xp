@@ -1,7 +1,7 @@
 const WorldMapRoutes = [
   {
     path: 'plains',
-    name: 'plains',
+    name: 'world-plains',
     meta: {
       faIcon: 'tornado'
     },
@@ -9,7 +9,7 @@ const WorldMapRoutes = [
   },
   {
     path: 'islands',
-    name: 'islands',
+    name: 'world-islands',
     meta: {
       faIcon: 'island-tropical'
     },
@@ -17,7 +17,7 @@ const WorldMapRoutes = [
   },
   {
     path: 'forest',
-    name: 'forest',
+    name: 'world-forest',
     meta: {
       faIcon: 'trees'
     },
@@ -25,31 +25,31 @@ const WorldMapRoutes = [
   },
   {
     path: 'swamps',
-    name: 'swamps',
+    name: 'world-swamps',
     meta: {
       faIcon: 'skull-crossbones'
     },
     component: () => import ('@/views/WorldView/WorldSwamps/WorldSwamps.vue'),
   },
   {
-    path: 'mountain',
-    name: 'mountain',
+    path: 'mountains',
+    name: 'world-mountains',
     meta: {
       faIcon: 'mountains'
     },
     component: () => import ('@/views/WorldView/WorldMountains/WorldMountains.vue'),
   },
   {
-    path: 'desert',
-    name: 'desert',
+    path: 'sands',
+    name: 'world-sands',
     meta: {
       faIcon: 'cactus'
     },
     component: () => import ('@/views/WorldView/WorldDesert/WorldDesert.vue'),
   },
   {
-    path: 'frozen-tundra',
-    name: 'frozen-tundra',
+    path: 'world-ice',
+    name: 'world-ice',
     meta: {
       faIcon: 'igloo'
     },

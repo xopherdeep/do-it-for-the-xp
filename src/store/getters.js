@@ -11,6 +11,7 @@ export default {
    * @return Object || undefined
    */
   request: (state) => ({ type, params }) => {
+    console.log("SEARCH FOR TYPE", type, params);
     if(!type){
       console.log("TYPE NOT FOUND", type);
       return false

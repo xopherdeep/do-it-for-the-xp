@@ -26,7 +26,8 @@ export default defineComponent({
       {
         label: " Hometown",
         id: 'the-city',
-        faIcon: "city",
+        faIcon: "archway",
+        side: "top",
         click($ev){
           router.push({ name:'the-city', params: {userId} })
           console.log($ev.preventDefault());
@@ -37,6 +38,7 @@ export default defineComponent({
         // label: "Zodiac Ranch",
         id: "pegasus-ranch",
         faIcon: "farm",
+        side: "start",
         click() {
           const merchant = "pegasus-ranch"
           router.push({ name: "shop", params: { merchant }})
@@ -46,6 +48,7 @@ export default defineComponent({
         label: "Wind Temple",
         id: "wind-temple",
         faIcon: "place-of-worship",
+        side: "end",
         click() {
           router.push({ name: "temple", params: { userId } });
         },
@@ -53,6 +56,7 @@ export default defineComponent({
       {
         label: "Travel World",
         faIcon: "pegasus",
+        side: "top",
         click() {
           router.push({ name: "world-map", params: { userId } });
         },

@@ -7,6 +7,7 @@ import {
 } from "ionicons/icons"
 
 export default defineComponent({
+  name: 'xp-settings-home',
   mixins: [ionic],
   setup() {
     // code

@@ -1,4 +1,12 @@
-import { computed, defineComponent, onMounted, reactive, ref } from "vue";
+import {
+  computed,
+  defineComponent,
+  nextTick,
+  onMounted,
+  reactive,
+  ref,
+} from "vue";
+import XpApi from "@/assets/js/api/xp.js";
 
 import ionic from "@/assets/js/mixins/ionic";
 import {
@@ -36,6 +44,7 @@ import MyTask from "@/views/MyTask/MyTask.vue";
 import { useRouter } from "vue-router";
 import { useSwiper } from "swiper/vue";
 import { Controller, Navigation } from "swiper";
+import { useQuery, useQueryClient } from "vue-query";
 
 export default defineComponent({
   props: ["userId"],
@@ -53,14 +62,6 @@ export default defineComponent({
         nextEl: "#swiper-forward",
         prevEl: "#swiper-back",
       },
-      request: {
-        type: "xp_achievement",
-        params: {
-          page: 1,
-          search: "",
-          per_page: 8,
-        },
-      },
     };
   },
   mixins: [fetchItems, ionic],
@@ -73,10 +74,33 @@ export default defineComponent({
   computed: {
     ...mapState(["xp_achievement"]),
     isPrevDisabled() {
-      return this.currentSlide == 0
+      return this.currentSlide == 0;
     },
-    currentSlide(){
-      return this.controlledSwiper?.activeIndex
+    currentSlide() {
+      return this.controlledSwiper?.activeIndex;
+    },
+    hasNextPage() {
+      return this.page < this.nTotalPages;
+    },
+    searchText:{
+      get(){
+        return this.params.search
+      },
+      set(text){
+        this.params.search = text
+        this.params.page = 1 
+      }
+    },
+    pageNumbers(){
+      const { params: {page, per_page}, nTotalTasks } = this
+      const max = Number(page) * Number(per_page) 
+
+      return {
+        min: max - (per_page - 1),
+        max: max < nTotalTasks
+          ? max
+          : nTotalTasks
+      }
     }
   },
   methods: {
@@ -97,11 +121,11 @@ export default defineComponent({
       this.activeModal = 0;
       this.presentAlertMultipleButtons();
     },
-    slideWillChange(index) {
-      let page = Number(this.currentSlide) + 2;
-      this.getItems(page);
-      this.getItems(page++);
-      // this.request.params.page = page
+    slidePrev() {
+      this.page--;
+    },
+    slideNext() {
+      this.page++;
     },
     async presentAlertMultipleButtons() {
       const alert = await alertController.create({
@@ -113,14 +137,21 @@ export default defineComponent({
       });
       return alert.present();
     },
-    showLoading() {
-      this.isLoading = true;
-    },
-    hideLoading() {
-      this.isLoading = false;
-    },
+    // showLoading() {
+    //   this.isLoading = true;
+    // },
+    // hideLoading() {
+    //   this.isLoading = false;
+    // },
     fetchTasks() {
-      return this.fetchWPItems(this.request).then(this.fetchImages);
+      // return this.fetchWPItems(this.params).then(this.fetchImages);
+    },
+    getFeaturedImg(embedded){
+      const [ img ] = embedded["wp:featuredmedia"] || [{}] 
+      return {
+        src: img?.source_url,
+        alt: img?.alt_text,
+      };
     },
     getImgObj(id) {
       const img = this.getSingleMediaById(id);
@@ -137,7 +168,7 @@ export default defineComponent({
     searchChanged() {
       this.$refs.slides.slideTo(0);
       this.currentSlide = 0;
-      this.request.params.page = 1;
+      this.params.page = 1;
     },
     resetTextSound() {
       this.$fx.rpg[this.$fx.theme.rpg].text.pause();
@@ -149,7 +180,7 @@ export default defineComponent({
     },
   },
   watch: {
-    request: {
+    params: {
       handler() {
         this.$fx.rpg[this.$fx.theme.rpg].text.play();
       },
@@ -157,16 +188,71 @@ export default defineComponent({
     },
   },
   setup() {
-    // const store = useStore();
-    // const tasks    = computed(() => store.getters.requestedItems(request) )
-    // const getTasks = async () => await store.dispatch("fetchWPItems", request);
+    const queryClient = useQueryClient();
+    const nTotalTasks = ref(0);
+    const nTotalPages = ref(0);
     const router = useRouter();
     const controlledSwiper = ref(null);
     const setControlledSwiper = (swiper) => {
       controlledSwiper.value = swiper;
     };
 
+    const params = reactive({
+      page: 1,
+      search: "",
+      per_page: 4,
+      _embed: true 
+    });
+
+    const page = computed({
+      get: () => params.page,
+      set: page => params.page = page
+    })
+
+    const {
+      isLoading,
+      isError,
+      data: tasks,
+      error,
+      isFetching,
+    } = useTasks(page.value);
+
+    const getSlideItems = p => queryClient
+      .getQueryData(["tasks", p, params]) 
+      || [];
+
+    const slideItems = computed({
+      get() {
+        return queryClient.getQueryData(["tasks", page.value, params]) || [];
+      },
+    });
+
+    // const featuredMedia = computed({
+    //   get() {
+    //     return slideItems.value.map((t) => t.featured_media).join(",");
+    //   },
+    // });
+
+    // const { data: images } = useImages({
+    //   type: "media",
+    //   include: featuredMedia.value,
+    // });
+
     return {
+      useTasks,
+      params,
+      tasks,
+      // images,
+      // featuredMedia,
+      page,
+      getSlideItems,
+      slideItems,
+      nTotalTasks,
+      nTotalPages,
+      isLoading,
+      isError,
+      error,
+      isFetching,
       controlledSwiper,
       setControlledSwiper,
       modules: [IonicSlides, Navigation, Controller],
@@ -190,5 +276,36 @@ export default defineComponent({
       ribbonOutline,
       checkmarkDone,
     };
+
+    function useTasks(page) {
+      const updateTotals = ({ data, headers }) => {
+        nTotalTasks.value = Number(headers.get("x-wp-total"));
+        nTotalPages.value = Number(headers.get("x-wp-totalpages"));
+        return data;
+      };
+
+      const fetchAchievements = async () => await XpApi
+        .get("xp_achievement", params)
+        .then(updateTotals);
+
+      return useQuery(["tasks", page, params], fetchAchievements, {
+        refetchOnWindowFocus: false,
+        keepPreviousData: true,
+      });
+    }
+
+    // function useImages({ type, include }) {
+    //   const params = { include };
+    //   const options = {
+    //     keepPreviousData: true,
+    //     refetchOnWindowFocus: false,
+    //     enabled: !!include.length,
+    //   };
+
+    //   const fetchImages = async () => await XpApi
+    //     .get(type, params).then(({ data }) => data);
+
+    //   return useQuery(["images", page.value, include], fetchImages, options);
+    // }
   },
 });

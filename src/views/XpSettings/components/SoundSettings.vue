@@ -1,7 +1,7 @@
 <template>
   <ion-page :class="$options.name">
     <ion-header :translucent="true">
-      <ion-toolbar>
+      <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
           <ion-button :router-link="`/xp-settings/`" >
             <ion-icon :icon="arrowBack" slot="icon-only"/>
@@ -15,12 +15,20 @@
     
     <ion-content :fullscreen="true">
       <!-- Toggles in a List -->
-      <InputSettings/>
+      <ion-grid>
+        <ion-row>
+          <ion-col>
+            <ion-card>
+              <InputSettings/>
+            </ion-card>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
     </ion-content>
   </ion-page>
 </template>
 
-<script lang="ts">
+<script lang="js">
   import { defineComponent } from 'vue'
 
   import ionic from "@/assets/js/mixins/ionic";

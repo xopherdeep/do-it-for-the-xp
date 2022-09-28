@@ -8,6 +8,11 @@
 }
 
 .accessory-shop{
+  display: flex;
+  height: 100%;
+  flex-direction: column;
+  justify-content: space-between;
+  contain: layout size style;
 
   ion-badge {
     position: absolute;

@@ -2,17 +2,18 @@
   --background: transparent;
   --box-shadow: none;
 
-  ion-slides {
+  swiper-slides {
     height: 100%;
 
-    ion-slide {
+    swiper-slide {
       align-items: flex-start;
 
       &.task {
         ion-card {
 
+
           ion-img {
-            height: 20vh;
+            // height: 20vh;
             float: left;
             margin: 0 1em 1em 0;
 

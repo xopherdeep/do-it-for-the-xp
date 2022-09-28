@@ -12,13 +12,14 @@ const TravelingMerchant = defineComponent({
         // label: "Dr. Who",
         // label: "Francis",
         faIcon: "wagon-covered",
+        side: "end",
         travels : {
           sunday: 'world-plains',
           monday: 'world-islands',
           tuesday: 'world-forest',
           wednesday: 'world-swamps',
           thursday: 'world-mountains',
-          friday: 'world-desert',
+          friday: 'world-sands',
           saturday: 'world-ice',
         },
       },
@@ -27,8 +28,8 @@ const TravelingMerchant = defineComponent({
 
   computed: {
     merchantAction(){
-      const { merchant: { label, faIcon }, click } = this
-      return { label, faIcon, click }
+      const { merchant: { label, faIcon, side }, click } = this
+      return { label, side, faIcon, click }
     },
 
     areaWhereMerchantIs(){

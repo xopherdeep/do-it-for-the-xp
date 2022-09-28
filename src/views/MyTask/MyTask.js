@@ -1,4 +1,4 @@
-import { defineComponent } from "vue";
+import { defineComponent, ref } from "vue";
 import { modalController } from "@ionic/vue";
 import {
   IonPage,
@@ -40,19 +40,19 @@ export default defineComponent({
   props: ["taskId", "item", "user"],
   name: "my-task",
   components: {
-    AnimatedNumber,
-    IonSegment,
-    CardUserStats,
     alertController,
-    IonSegmentButton,
+    AnimatedNumber,
+    CardUserStats,
     IonBackdrop,
-    IonPage,
-    IonHeader,
-    IonToolbar,
     IonButtons,
-    IonMenuButton,
-    IonTitle,
     IonContent,
+    IonHeader,
+    IonMenuButton,
+    IonPage,
+    IonSegment,
+    IonSegmentButton,
+    IonTitle,
+    IonToolbar,
     Swiper,
     SwiperSlide,
   },
@@ -444,7 +444,13 @@ export default defineComponent({
   mixins: [fetchItems],
   setup() {
     const router = useRouter();
+    const controlledSwiper = ref(null);
+    const setControlledSwiper = (swiper) => {
+      controlledSwiper.value = swiper;
+    };
     return {
+      controlledSwiper,
+      setControlledSwiper,
       router
     };
   },

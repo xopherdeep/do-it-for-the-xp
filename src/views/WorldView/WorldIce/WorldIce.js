@@ -27,6 +27,7 @@ export default defineComponent({
       {
         label: "Snow Shack",
         faIcon: "igloo",
+        side: "start",
         click() {
           const merchant = "snow-shack"
           router.push({ name: "shop", params: { merchant }})
@@ -36,6 +37,7 @@ export default defineComponent({
         label: "Frozen Fortress",
         id: "frozen-fortress",
         faIcon: "place-of-worship",
+        side: "end",
         click() {
           router.push({ name: "temple", params: { userId } });
         },
@@ -43,6 +45,7 @@ export default defineComponent({
       {
         label: "Travel World",
         faIcon: "pegasus",
+        side: "top",
         click() {
           router.push({ name: "world-map", params: { userId } });
         },

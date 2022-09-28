@@ -174,10 +174,11 @@ export default defineComponent({
       // const audio = this.bookmark ? this.bookmark : new Audio( bgm.tracks[bgmTrack] );
       // audio: new Audio($fx.rpg[$fx.theme.rpg].bgm[bgmTrack]),
 
-      // changeBGM({ audio }).then(addEventNextSong);
+      changeBGM({ audio }).then(addEventNextSong);
       // changeBGM({
       //   audio: new Audio($fx.rpg[$fx.theme.rpg].bgm[bgmTrack]),
       // }).then(addEventNextSong)
+
 
     },
 
@@ -208,13 +209,14 @@ export default defineComponent({
     },
 
     playAudio() {
-      const { bgm: {audio, track, is_on, startDelay, saveBookmark} } = this
-
-      if (this.bgm.audio) {
+      const { bgm: { track, is_on, startDelay, saveBookmark} } = this
+      
+      if(this.bgm.audio){
         this.bgm.audio.pause();
         this.loadBGM(track, this.bgm.audio.currentTime);
         this.bgm.audio.load();
-        this.bgm.audio.play();
+        if(is_on)
+          this.bgm.audio.play();
       }
     },
   },
@@ -274,27 +276,27 @@ export default defineComponent({
     //   isBMGOn,
 
     return {
-      bgm,
-      isLoggedIn: computed(() => store.getters.isLoggedIn),
-      selectedIndex,
       appPages,
       appPagesAnon,
-      labels,
       archiveOutline,
       archiveSharp,
+      bgm,
       bookmarkOutline,
       bookmarkSharp,
       heartOutline,
       heartSharp,
+      isLoggedIn: computed(() => store.getters.isLoggedIn),
+      isSelected: (url) => (url === route.path ? "selected" : ""),
+      labels,
       mailOutline,
       mailSharp,
       paperPlaneOutline,
       paperPlaneSharp,
+      selectedIndex,
       trashOutline,
       trashSharp,
       warningOutline,
       warningSharp,
-      isSelected: (url) => (url === route.path ? "selected" : ""),
     };
   },
 });

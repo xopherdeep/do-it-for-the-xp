@@ -46,12 +46,13 @@
       </ion-header>
     </transition>
 
-    <ion-slides
+    <swiper
       @ionSlideDidChange="slideChanged"
       ref="slides"
       class="swiper-no-swiping"
+      @swiper="setControlledSwiper"
     >
-      <ion-slide class="task">
+      <swiper-slide class="task">
         <ion-card color="success">
           <ion-card-title
             v-if="item.title"
@@ -67,6 +68,7 @@
                   <ion-text class="ion-float-right">
                     <strong>
                       +2 AP
+                      Text
                       <i class="fad fa-hand-holding-medical fa-lg" />
                     </strong>
                   </ion-text>
@@ -74,9 +76,11 @@
               </ion-col>
             </ion-row>
             <ion-row>
-              <ion-col size="12">
+              <ion-col size="5">
+                <ion-img v-bind="getImgObj(item.featured_media)"></ion-img>
+              </ion-col>
+              <ion-col size="7">
                 <ion-card-content>
-                  <ion-img v-bind="getImgObj(item.featured_media)"></ion-img>
                   <vue3-flip-countdown
                     labelColor="#e7e6b3"
                     mainColor="#e7e6b3"
@@ -189,8 +193,8 @@
             </ion-button>
           </ion-fab-list>
         </ion-fab>
-      </ion-slide>
-      <ion-slide class="complete">
+      </swiper-slide>
+      <swiper-slide class="complete">
         <ion-grid>
           <ion-row class="points">
             <ion-col size="12" size-sm="6">
@@ -271,8 +275,8 @@
             <i class="fad fa-treasure-chest fa-4x"></i>
           </ion-fab-button>
         </ion-fab>
-      </ion-slide>
-      <ion-slide class="loot">
+      </swiper-slide>
+      <swiper-slide class="loot">
         <ion-grid>
           <ion-row>
             <ion-col size="12" class="ion-no-padding">
@@ -469,8 +473,8 @@
             <i class="fad fa-times fa-4x"></i>
           </ion-fab-button>
         </ion-fab>
-      </ion-slide>
-    </ion-slides>
+      </swiper-slide>
+    </swiper>
     <ion-content>
       <!-- fab placed in the center of the content with a list on each side -->
       <!-- <ion-fab vertical="bottom" horizontal="end" slot="fixed">

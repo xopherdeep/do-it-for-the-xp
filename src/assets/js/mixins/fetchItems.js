@@ -74,7 +74,7 @@ export default defineComponent({
     },
     hasNextPage() {
       const { nTotalPages, request } = this;
-      return nTotalPages != request.params.page || nTotalPages > 2;
+      return request.params.page <= nTotalPages 
     },
     nTotalPages(){
       const { totalPages, request } = this;
@@ -92,8 +92,8 @@ export default defineComponent({
     }
   },
   mounted() {
-    if(this.request.type)
-      this.getItems();
+    // if(this.request.type)
+    //   this.getItems();
   },
   methods: {
     getImages(page){
@@ -162,7 +162,7 @@ export default defineComponent({
   watch: {
     request: {
       handler(request) {
-        this.getItems(request.params.page);
+        // this.getItems(request.params.page);
       },
       deep: true,
     },

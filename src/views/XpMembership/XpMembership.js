@@ -8,14 +8,27 @@ import {
   IonMenuButton,
   IonTitle,
   IonContent,
-  IonText
+  IonText,
 } from '@ionic/vue'
 
 import {
-  arrowBack
+  arrowBack,
+  checkmarkCircle,
+  stopCircle,
 } from "ionicons/icons"
 
 export default defineComponent({
+  data() {
+    return {
+      benefits: [
+        "No-Ads",
+        "Unlimited Usage",
+        "Exclusive Offers",
+        "Premium Features",
+        "Price Lock Guaranteed",
+      ]
+    }
+  },
   components: {
     IonPage,
     IonHeader,
@@ -29,7 +42,9 @@ export default defineComponent({
   setup() {
     // code
     return {
-      arrowBack
+      arrowBack,
+      checkmarkCircle,
+
     }
   },
 })

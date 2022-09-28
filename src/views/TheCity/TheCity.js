@@ -23,6 +23,7 @@ export default defineComponent({
     const userActions = [
       {
         label: "Home",
+        side: "top",
         faIcon: "house-user",
         click() {
           router.push({ name: "my-home", params: { userId } });
@@ -30,6 +31,7 @@ export default defineComponent({
       },
       {
         label: "Shop",
+        side: "start",
         faIcon: "store",
         click() {
           router.push({ name: "shop", params: { userId } });
@@ -38,13 +40,15 @@ export default defineComponent({
       {
         label: "Hotel",
         faIcon: "hotel",
+        side: "end",
         click() {
           router.push({ name: "hotel", params: { userId } });
         },
       },
       {
         label: "Hospital",
-        faIcon: "hospital",
+        faIcon: "hospital-alt",
+        side: "end",
         click() {
           router.push({ name: "hospital", params: { userId } });
         },
@@ -52,6 +56,7 @@ export default defineComponent({
       {
         label: "Temple",
         faIcon: "place-of-worship",
+        side: "end",
         click() {
           router.push({ name: "temple", params: { userId } });
         },
@@ -59,6 +64,7 @@ export default defineComponent({
       {
         label: "Bank",
         faIcon: "piggy-bank",
+        side: "start",
         click() {
           router.push({ name: "bank", params: { userId } });
         },
@@ -67,6 +73,7 @@ export default defineComponent({
         label: "Town Hall",
         id: "town-hall",
         faIcon: "university",
+        side: "start",
         click($ev) {
           router.push({ name: "town-hall", params: { userId } });
           console.log($ev.preventDefault());
@@ -75,8 +82,9 @@ export default defineComponent({
       {
         label: "The Plains",
         faIcon: "tornado",
+        side: "top",
         click() {
-          router.push({ name: "plains", params: { userId } });
+          router.push({ name: "world-plains", params: { userId } });
         },
       },
     ];

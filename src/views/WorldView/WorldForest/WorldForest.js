@@ -25,6 +25,7 @@ export default defineComponent({
       {
         label: "Hermit's Tent",
         faIcon: "campground",
+        side: "start",
         click() {
           const merchant = "hermits-tent"
           router.push({ name: "shop", params: { merchant }})
@@ -34,6 +35,7 @@ export default defineComponent({
         label: "Forest Temple",
         id: "forest-temple",
         faIcon: "place-of-worship",
+        side: "end",
         click() {
           router.push({ name: "temple", params: { userId } });
         },
@@ -41,6 +43,7 @@ export default defineComponent({
       {
         label: "Travel World",
         faIcon: "pegasus",
+        side: "top",
         click() {
           router.push({ name: "world-map", params: { userId } });
         },
