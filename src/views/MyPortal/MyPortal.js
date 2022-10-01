@@ -1,11 +1,12 @@
 import { computed, defineComponent, handleError, reactive, ref } from "vue";
-import requireImg from "@/assets/js/requireImg";
-import fetchItems from "@/assets/js/mixins/fetchItems.js";
-import ionic from "@/assets/js/mixins/ionic";
-import userActions from "@/assets/js/mixins/userActions";
+// import requireImg from "@/assets/js/requireImg";
+import fetchItems from "@/mixins/fetchItems";
+import ionic from "@/mixins/ionic";
+import userActions from "@/mixins/userActions";
 import "swiper/css";
 import { toastController, modalController } from "@ionic/vue";
 import components from "./components"
+
 
 // import XpFabUserHud  from "./components/XpFabUserHud.vue"
 
@@ -37,11 +38,6 @@ export default defineComponent({
   data() {
     return {
       debug: false,
-      info: {
-        name: "Choose item...",
-        faIcon: "question",
-        desc: "Hover/Touch an item to learn more.",
-      },
       now: new Date(),
       battleInterval: null,
       isRPGBoxOpen: false,
@@ -75,18 +71,6 @@ export default defineComponent({
   methods: {
     ...mapActions(["resetBattleTimer", "stopBattleTimer"]),
     ...mapMutations(["ACTIVATE_BATTLE"]),
-    displayInfo(item) {
-      this.info = item;
-    },
-    changeBG() {
-      //remove
-    },
-    closeModal() {
-      modalController.dismiss();
-    },
-    didDismissRPGBox() {
-      this.isRPGBoxOpen = false;
-    },
     getUserAvatar(user) {
       // console.log(user.avatar);
       const avatar = `./${user.avatar}.svg`;
@@ -94,7 +78,14 @@ export default defineComponent({
       return this.$requireAvatar(avatar);
     },
     enterBattle() {
-      this.$refs.outlet.enterBattle();
+      this.$refs?.outlet?.enterBattle();
+    },
+    dismissRPGBox() {
+      this.isRPGBoxOpen = false;
+      modalController.dismiss();
+    },
+    closeModal() {
+      this.dismissRPGBox()
     },
     updateCompass(name){
       const { user: {id: userId }} = this
@@ -104,10 +95,10 @@ export default defineComponent({
           icon: 'pegasus',
           link: `/my-portal/${userId}/world-map`
         },
-        "the-city": {
+        "home-town": {
           name: 'Hometown',
           icon: 'archway',
-          link: `/my-portal/${userId}/the-city`
+          link: `/my-portal/${userId}/home-town`
         },
         "my-home": {
           name: 'My Home',
@@ -178,14 +169,15 @@ export default defineComponent({
         bgm: { $fx },
       } = this;
       const route = { name: "my-dashboard", props: { userId } };
-      if (counter <= 0) {
-        $fx.rpg[theme.rpg].enterBattle.play();
-        router
-          .push(route)
-          .then(stopBattleTimer)
-          .then(resetBattleTimer)
-          .then(ACTIVATE_BATTLE);
-      }
+      // UNCOMMENT TO TURN ON BATTLES
+      // if (counter <= 0) {
+      //   $fx.rpg[theme.rpg].enterBattle.play();
+      //   router
+      //     .push(route)
+      //     .then(stopBattleTimer)
+      //     .then(resetBattleTimer)
+      //     .then(ACTIVATE_BATTLE);
+      // }
     },
   },
   setup(props) {
@@ -195,9 +187,17 @@ export default defineComponent({
     const { userId } = route.params;
     const user = computed(() => store.getters.getUserById(userId));
     const equipment = ref([]);
-    const clickItem = (item) => equipment.value.push(item);
+    const clickItem = (item, hand) => {
+      const existingItemIndex = equipment.value.findIndex((i) => i.icon === item.icon);
 
-    const clickAction = (action) => action.click() || null;
+      if (existingItemIndex !== -1) {
+        // If the item with the same hand already exists, update it
+        equipment.value[existingItemIndex] = {...item, hand};
+      } else {
+        // Otherwise, add the new item
+        equipment.value.push({...item, hand});
+      }
+    };
 
     const compass = reactive({
       name: 'Home',
@@ -208,13 +208,12 @@ export default defineComponent({
     const pageIcon = computed( () => route.meta.faIcon )
 
     return {
+      clickItem,
       compass,
       pageIcon,
       accessibilityOutline,
       calendar,
       chatbox,
-      clickAction,
-      clickItem,
       colorWand,
       equipment,
       fitnessOutline,
@@ -223,7 +222,7 @@ export default defineComponent({
       medkitOutline,
       peopleCircle,
       personCircle,
-      requireImg,
+      // requireImg,
       route,
       router,
       sparklesOutline,
@@ -231,139 +230,6 @@ export default defineComponent({
       user,
       wallet,
       walletOutline,
-      specialItems: [
-        // {
-        //   faIcon: "staff quest",
-        //   name: "My Quests",
-        //   desc: "5HP | Open My Quests...",
-        //   click(){
-        //     router.push({name: 'my-tasks', params: {userId}})
-        //   }
-        // },
-        // {
-        //   faIcon: "book-spells",
-        //   name: "Book Of Spells",
-        //   desc: "It does stuff...",
-        //   click(){
-        //     router.push({name: 'my-abilities', params: {userId}})
-        //   }
-        // },
-        // {
-        //   faIcon: "backpack",
-        //   name: "Goods",
-        //   desc: "Open currently held inventory.",
-        //   click(){
-        //     router.push({name: 'my-inventory', params: {userId}})
-        //   }
-        // },
-
-        // {
-        //   faIcon: "wallet",
-        //   name: "Wallet",
-        //   desc: "Open wallet to see GP earnings",
-        //   click(){
-        //     router.push({name: 'my-gold-points', params: {userId}})
-        //   }
-        // },
-        {
-          faIcon: "flame",
-          name: "Sol's Flare",
-          desc: "100MP | Set everything ablaze! All tasks take 100HP damage.",
-        },
-        {
-          faIcon: "bolt",
-          name: "Tesla's Bolt",
-          desc: "100MP | Move like lightning for 1hr and take your turns instantly. Takes 2hr to recharge. ",
-        },
-        {
-          faIcon: "wave-sine",
-          name: "Gaia's Quake",
-          desc: "100MP | Shuffle all tasks. Takes 24 Hour to recharge.",
-        },
-        {
-          faIcon: "flux-capacitor",
-          name: "Chronos' Clock",
-          desc: "100MP | Pause time for 1hr... (wouldn't that make infinity?)",
-        },
-        {
-          faIcon: "moon-stars",
-          name: "Night's Light",
-          desc: "100MP | Removes any bedtime curfew for the night. Takes 3 days to recharge",
-        },
-        // {
-        //   faIcon: 'waveform',
-        //   name: 'Satori\'s Vibe',
-        //   desc: 'It does stuff...'
-        // },
-        {
-          faIcon: "wind",
-          name: "Gale's Wind",
-          desc: "300MP | Blow off all chores for the next 24 hours. Takes 7days to recharge.",
-        },
-        {
-          faIcon: "shield-virus",
-          name: "Yve's Shield",
-          desc: "300MP | Protects against all attacks for the next 24 hours. Takes 2days to recharge.",
-        },
-        {
-          faIcon: "hat-wizard",
-          name: "X's Invisibility",
-          desc: "300MP | Avoid random encounters for the next 24 hours. Takes 2 days to recharge.",
-        },
-        {
-          faIcon: "wand-magic fire",
-          name: "Fire Wand",
-          desc: "It does stuff...",
-        },
-        {
-          faIcon: "wand-magic ice",
-          name: "Ice Wand",
-          desc: "It does stuff...",
-        },
-        {
-          faIcon: "staff fire",
-          name: "",
-          desc: "It does stuff...",
-        },
-        {
-          faIcon: "bow-arrow",
-          name: "Silver Arrow",
-          desc: "25MP | Immediately removes task from battle",
-        },
-        {
-          faIcon: "expand-alt",
-          name: "Hook Shot",
-          desc: "It does stuff...",
-        },
-        {
-          faIcon: "bomb",
-          name: "Bombs",
-          desc: "It does stuff...",
-        },
-        {
-          faIcon: "hammer-war",
-          name: "Thor's Hammer",
-          desc: "It does stuff...",
-        },
-        {
-          faIcon: "flashlight",
-          name: "Lantern",
-          desc: "It does stuff...",
-        },
-        {
-          faIcon: "flask-potion",
-          name: "Bottles",
-          desc: "Quick access to your potions and ethers",
-        },
-        {
-          name: "Portal Home",
-          faIcon: "portal-enter",
-          desc: "10MP | Open portal to go directly home. Takes 15min to recharge.",
-          click($ev){
-            router.push({name: 'my-home', params: {userId}})
-          }
-        },
-      ],
     };
   },
 });

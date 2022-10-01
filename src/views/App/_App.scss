@@ -1,114 +1,14 @@
-@import "_fonts";
+@import "@/styles";
+@import "@/theme";
 
-@mixin earthboundBox {
-  --ion-color-primary: #e7e6b3;
-  --ion-color-primary-rgb: 17, 23, 77;
-  --ion-color-primary-contrast: #383838;
-  --ion-color-primary-contrast-rgb: 56, 56, 56;
-  --ion-color-primary-shade: #dcd93b;
-  --ion-color-primary-tint: #b9dc3b;
-
-  --ion-color-step-850: #e7e6b3;
-  font-family: 'Apple Kid';
-  // background-color: #280828;
-  background-color: #383050;
-  color: #e7e6b3;
-  padding: 5px 3px;
-  border-radius: 1px;
-  transform: translateY(0);
-  transition: transform linear 150ms;
-  box-shadow:
-    0 0 0 5px #383050,
-    /* dark grey */
-    0 0 0 10px #68d0b8,
-    /* minty blue */
-    0 0 0 12px #f7e8a8,
-    /* white */
-    0 0 0 16px #3d3c55;
-  /* black */
-  --ion-safe-area-top: 85px;
-  --background: #383050;
-  // background-color: #383050;
-  // background-color: #280828;
-  --color: #e7e6b3;
-  --padding: 5px 3px;
-  --border-radius: 1px;
-  --transform: translateY(0);
-  --transition: transform linear 150ms;
-  --box-shadow:
-    0 0 0 5px #383050,
-    0 0 0 10px #68d0b8,
-    0 0 0 12px #f7e8a8,
-    0 0 0 16px #3d3c55;
-  --button-color: #e7e6b3;
-
-  ion-grid{
-    background-color:#280828;
-  }
-
-  ion-list {
-    background: transparent;
-    --background: transparent;
-
-    ion-item {
-      --ion-item-background: transparent;
-      --color: var(--ion-color-primary);
-    }
-  }
-
-  ion-accordion {
-    --ion-background-color: transparent;
-
-    ion-list {
-      background: transparent;
-
-      ion-item {
-        --ion-item-background: transparent;
-        --color: var(--ion-color-primary);
-      }
-    }
-
-  }
-
-  ion-card-content{
-    font-size: 17pt;
-  }
-
-  ion-button {
-    --background: transparent;
-    i{
-      // margin-right: 5px;
-      // display: inline-block;
-      width: 35px;
-      font-size: 20px;
-    }
-
-    &::part(native) {
-      overflow: visible;
-
-      font-family: 'Apple Kid';
-      font-size: 20pt;
-      text-transform: capitalize;
-      // padding-left: 5px;
-
-
-      &:hover::before {
-        content: '';
-        position: absolute;
-        left: -10px;
-        top: 10px;
-        width: 0;
-        border-color: yellow;
-        height: 0;
-        border-top: 0.3rem solid transparent;
-        border-bottom: 0.3rem solid transparent;
-        border-left: 0.3rem solid var(--ion-color-primary);
-      }
-    }
-  }
-}
+// .ion-app moved to @/styles/_app.scss
 
 ion-app {
+  .fullscreen {
+    --width:100% !important;
+    --height:100% !important;
+  }
+
   &#earthbound {
     font-family: 'Apple Kid';
 
@@ -121,8 +21,9 @@ ion-app {
       font-family: 'StatusPlz';
       font-weight: normal;
       // font-style: italic;
-      font-size: 11pt;
+      font-size: 15pt;
       text-transform: capitalize;
+
     }
 
     ion-toolbar {
@@ -161,13 +62,14 @@ ion-app {
       overflow: visible;
       ion-card-title {
         // text-transform: uppercase;
-        position: absolute;
-        top: -15px;
+        // position: absolute;
+        // top: -15px;
         color: var(--ion-color-primary);
         padding: 1px 5px;
-        font-size: 15px;
+        font-size: 20px;
         background-color: #383050;
         // #280828;
+
         
       }
     }
@@ -281,6 +183,12 @@ ion-app {
   }
 
   &#chronoTrigger {
+    ion-card{
+      @include chronoTriggerBox(); 
+    }
+  }
+
+  &#finalFantasy {
 
     ion-card {
       border: solid 1px #424542;
@@ -366,8 +274,6 @@ ion-app {
   }
 }
 
-
-
 @keyframes typewriter {
   from {
     width: 0;
@@ -388,114 +294,6 @@ ion-app {
   }
 }
 
-ion-menu ion-content {
-  --background: var(--ion-item-background, var(--ion-background-color, #fff));
-}
-
-ion-menu.md ion-content {
-  --padding-start: 8px;
-  --padding-end: 8px;
-  --padding-top: 20px;
-  --padding-bottom: 20px;
-}
-
-ion-menu.md ion-list {
-  padding: 20px 0;
-}
-
-ion-menu.md ion-note {
-  margin-bottom: 30px;
-}
-
-ion-menu.md ion-list-header,
-ion-menu.md ion-note {
-  padding-left: 10px;
-}
-
-ion-menu.md ion-list#inbox-list {
-  border-bottom: 1px solid var(--ion-color-step-150, #d7d8da);
-}
-
-ion-menu.md ion-list#inbox-list ion-list-header {
-  font-size: 22px;
-  font-weight: 600;
-
-  min-height: 20px;
-}
-
-ion-menu.md ion-list#labels-list ion-list-header {
-  font-size: 16px;
-
-  margin-bottom: 18px;
-
-  color: #757575;
-
-  min-height: 26px;
-}
-
-ion-menu.md ion-item {
-  --padding-start: 10px;
-  --padding-end: 10px;
-  border-radius: 4px;
-}
-
-ion-menu.md ion-item.selected {
-  --background: rgba(var(--ion-color-primary-rgb), 0.14);
-}
-
-ion-menu.md ion-item.selected ion-icon {
-  color: var(--ion-color-primary);
-}
-
-ion-menu.md ion-item ion-icon {
-  color: #616e7e;
-}
-
-ion-menu.md ion-item ion-label {
-  font-weight: 500;
-}
-
-ion-menu.ios ion-content {
-  --padding-bottom: 20px;
-}
-
-ion-menu.ios ion-list {
-  padding: 20px 0 0 0;
-}
-
-ion-menu.ios ion-note {
-  line-height: 24px;
-  margin-bottom: 20px;
-}
-
-ion-menu.ios ion-item {
-  --padding-start: 16px;
-  --padding-end: 16px;
-  --min-height: 50px;
-}
-
-ion-menu.ios ion-item.selected ion-icon {
-  color: var(--ion-color-primary);
-}
-
-ion-menu.ios ion-item ion-icon {
-  font-size: 24px;
-  color: #73849a;
-}
-
-ion-menu.ios ion-list#labels-list ion-list-header {
-  margin-bottom: 8px;
-}
-
-ion-menu.ios ion-list-header,
-ion-menu.ios ion-note {
-  padding-left: 16px;
-  padding-right: 16px;
-}
-
-ion-menu.ios ion-note {
-  margin-bottom: 8px;
-}
 
 ion-note {
   display: inline-block;
@@ -522,249 +320,6 @@ ion-item.selected {
     ion-button {
       width: calc(20% - 1em);
       margin: .5em;
-    }
-  }
-}
-.fab-user,
-.equipment,
-.todays-achievements,
-.info,
-.items {
-  i {
-    --xp-color-red: #BD0C00;
-    --xp-color-blue: #4870D0;
-    --xp-color-green: #1FA627;
-    --xp-color-brown: #BE5C00;
-    --xp-color-yellow: #DE9A00;
-    --xp-color-white: white;
-    --xp-color-gray: #A8A8A8;
-    --xp-color-lightBlue: skyblue;
-
-    &.fa- {
-      &bow-arrow {
-        --fa-primary-color: var(--xp-color-white);
-        --fa-secondary-color: var(--xp-color-brown);
-        --fa-secondary-opacity: 1
-      }
-
-      &wind {
-        --fa-primary-color: white;
-        --fa-secondary-color: var(--xp-color-lightBlue);
-        --fa-secondary-opacity: 0.9
-      }
-
-      &expand-alt {
-        --fa-primary-color: var(--xp-color-white);
-        --fa-secondary-color: var(--xp-color-red);
-        --fa-secondary-opacity: 1
-      }
-
-      &bomb {
-        --fa-primary-color: var(--xp-color-blue);
-        --fa-secondary-color: var(--xp-color-white);
-        --fa-secondary-opacity: 1
-      }
-
-      &comment {
-        // --fa-primary-color: var(--xp-color-blue);
-        // --fa-secondary-color: var(--xp-color-green);
-        --fa-secondary-opacity: 1
-      }
-
-      &compass {
-        --fa-primary-color: var(--xp-color-lightBlue);
-        --fa-secondary-color: var(--xp-color-blue);
-        --fa-secondary-opacity: 1
-      }
-
-      &bell-exclamation {
-        // --fa-primary-color:  var(--xp-color-lightBlue);
-        // --fa-secondary-color: var(--xp-color-gray);
-        // --fa-secondary-opacity: 1
-      }
-
-      &sack {
-        --fa-primary-color: var(--xp-color-gray);
-        --fa-secondary-color: var(--xp-color-brown);
-        --fa-secondary-opacity: 1
-      }
-
-      &wand-magic {
-        &.fire {
-          --fa-primary-color: var(--xp-color-red);
-          --fa-secondary-color: var(--xp-color-yellow);
-          --fa-secondary-opacity: 1
-        }
-
-        &.ice {
-          --fa-primary-color: var(--xp-color-blue);
-          --fa-secondary-color: var(--xp-color-lightBlue);
-          --fa-secondary-opacity: 1
-        }
-      }
-
-      &flame {
-        --fa-primary-color: var(--xp-color-red);
-        --fa-secondary-color: var(--xp-color-yellow);
-        --fa-secondary-opacity: 1
-      }
-
-      &bolt {
-        --fa-primary-color: var(--xp-color-yellow);
-        --fa-secondary-color: var(--xp-color-yellow);
-        --fa-secondary-opacity: .6
-      }
-
-      &hat-wizard {
-        --fa-primary-color: var(--xp-color-blue);
-        --fa-secondary-color: var(--xp-color-yellow);
-        --fa-secondary-opacity: 1
-      }
-
-      &diamond {
-        --fa-primary-color: var(--xp-color-lightBlue);
-        --fa-secondary-color: var(--xp-color-blue);
-        --fa-secondary-opacity: 1
-      }
-
-      &wave-sine {
-        --fa-primary-color: var(--xp-color-yellow);
-        --fa-secondary-color: var(--xp-color-green);
-        --fa-secondary-opacity: 1
-      }
-
-      &flashlight {
-        --fa-primary-color: var(--xp-color-yellow);
-        --fa-secondary-color: var(--xp-color-red);
-
-        --fa-secondary-opacity: 1
-      }
-
-      &hammer-war {
-        --fa-primary-color: var(--xp-color-gray);
-        --fa-secondary-color: var(--xp-color-brown);
-        --fa-secondary-opacity: 1
-      }
-
-      &waveform {
-        --fa-primary-color: var(--xp-color-yellow);
-        --fa-secondary-color: var(--xp-color-blue);
-        --fa-secondary-opacity: 1
-      }
-
-      &bug {
-        --fa-primary-color: var(--xp-color-red);
-        --fa-secondary-color: var(--xp-color-green);
-        --fa-secondary-opacity: 1
-      }
-
-      &wallet{
-        --fa-primary-color: var(--xp-color-yellow);
-        --fa-secondary-color: var(--xp-color-brown);
-        --fa-secondary-opacity: 1
-      }
-
-      &backpack{
-        --fa-primary-color: var(--xp-color-red);
-        --fa-secondary-color: var(--xp-color-red);
-        --fa-secondary-opacity: 1
-      }
-
-      &ankh{
-        --fa-primary-color: var(--xp-color-yellow);
-        --fa-secondary-color: var(--xp-color-brown);
-        --fa-secondary-opacity: 1
-
-      }
-
-      &book-spells {
-        --fa-primary-color: var(--ion-color-tertiary);
-        --fa-secondary-color: var(--xp-color-lightBlue);
-        --fa-secondary-opacity: 1
-      }
-
-      &flask-potion {
-        --fa-primary-color: var(--xp-color-white);
-        --fa-secondary-color: var(--xp-color-blue);
-        --fa-secondary-opacity: 1
-      }
-
-      &staff {
-        &.quest{
-          --fa-primary-color: var(--xp-color-brown);
-          --fa-secondary-color: var(--xp-color-yellow);
-          --fa-secondary-opacity: 1
-        }
-        &.fire {
-          --fa-primary-color: var(--xp-color-red);
-          --fa-secondary-color: var(--xp-color-yellow);
-          --fa-secondary-opacity: 1
-        }
-
-        &.ice {
-          --fa-primary-color: var(--xp-color-blue);
-          --fa-secondary-color: var(--xp-color-lightBlue);
-          --fa-secondary-opacity: 1
-        }
-      }
-
-      &shield-virus {
-        --fa-primary-color: var(--xp-color-lightBlue);
-        --fa-secondary-color: var(--xp-color-blue);
-        --fa-primary-opacity: 1;
-        --fa-secondary-opacity: 1
-      }
-
-      &flux-capacitor {
-        --fa-primary-color: var(--xp-color-yellow);
-        --fa-secondary-color: var(--xp-color-red);
-        --fa-primary-opacity: 1;
-        // --fa-secondary-opacity: 1
-      }
-
-      &moon-stars {
-        --fa-primary-color: var(--xp-color-lightBlue);
-        --fa-secondary-color: var(--xp-color-white);
-        --fa-primary-opacity: 1;
-        --fa-secondary-opacity: 1
-      }
-
-      &hood-cloak {
-        --fa-primary-color: var(--xp-color-white);
-        --fa-secondary-color: var(--xp-color-red);
-        --fa-primary-opacity: .5;
-        --fa-secondary-opacity: 1
-      }
-
-      &portal-enter {
-        --fa-primary-color: var(--xp-color-yellow);
-        --fa-secondary-color: var(--xp-color-blue);
-        --fa-secondary-opacity: 1
-      }
-
-      &tint {
-        --fa-primary-color: var(--xp-color-lightBlue);
-        --fa-secondary-color: var(--xp-color-blue);
-        --fa-secondary-opacity: 1 --fa-primary-opacity:.9
-      }
-
-      &whistle {
-        --fa-primary-color: var(--xp-color-white);
-        --fa-secondary-color: var(--xp-color-blue);
-        --fa-secondary-opacity: 1
-      }
-
-      &medal {
-        --fa-primary-color: var(--xp-color-green);
-        --fa-secondary-color: var(--xp-color-green);
-        --fa-secondary-opacity: .5
-      }
-
-      &hand-holding-seedling{
-        --fa-primary-color: var(--xp-color-green);
-        // --fa-secondary-color: var(--xp-color-white);
-        --fa-secondary-opacity: 1
-      }
     }
   }
 }

@@ -17,7 +17,7 @@
               router-direction="root"
               @click="action.click"
               size="large"
-              expand="fill"
+              class="ion-justify-content-left"
             >
               <i
                 class="fad fa-lg"
@@ -40,7 +40,7 @@
 
 <script lang="js">
   import { defineComponent } from 'vue'
-  import ionic from "@/assets/js/mixins/ionic";
+  import ionic from "@/mixins/ionic";
   export default defineComponent({
     name: 'xp-card-menu',
     props: ["cardTitle", "actions"],
@@ -50,3 +50,4 @@
     },
   })
 </script>
+@/mixins/ionic@/mixins/ionic

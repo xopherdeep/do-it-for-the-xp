@@ -1,0 +1,38 @@
+@mixin home-town{
+  &archway {
+    --fa-primary-color: var(--xp-color-grey);
+    --fa-secondary-color: var(--xp-color-pink);
+    --fa-secondary-opacity: 0.7;
+  }
+  &store {
+    --fa-primary-color: var(--xp-color-red);
+    --fa-secondary-color: var(--xp-color-lightBlue);
+    --fa-secondary-opacity: 0.9;
+  }
+  &hotel {
+    --fa-primary-color: var(--xp-color-brown);
+    --fa-secondary-color: var(--xp-color-red);
+    --fa-secondary-opacity: 0.6;
+  }
+  &hospital-alt, &hospital {
+    --fa-primary-color: var(--xp-color-red);
+    --fa-secondary-color: var(--xp-color-white);
+    --fa-secondary-opacity: 0.9;
+  }
+  &place-of-worship {
+    --fa-primary-color: var(--xp-color-gray);
+    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-secondary-opacity: 0.7;
+  }
+  &piggy-bank {
+    --fa-primary-color: var(--xp-color-yellow);
+    --fa-secondary-color: var(--xp-color-pink);
+    --fa-secondary-opacity: 1;
+  }
+  &university {
+    --fa-primary-color: var(--xp-color-grey);
+
+    --fa-secondary-color: var(--xp-color-pink);
+    --fa-secondary-opacity: 0.9;
+  }
+}

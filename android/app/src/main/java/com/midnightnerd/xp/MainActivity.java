@@ -1,4 +1,4 @@
-package com.midnightnerd.xp;
+package com.forthexp.doit;
 
 import com.getcapacitor.BridgeActivity;
 

@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+TIMEFORMAT="Done in %Rs(real)"
+
+# Console colors
+black='\033[0;30m'
+blue='\033[0;34m'
+cyan='\033[0;36m'
+dark_gray='\033[1;30m'
+green_bg='\033[1;97;42m'
+green='\033[0;32m'
+light_blue='\033[1;34m'
+light_cyan='\033[1;36m'
+light_gray='\033[0;37m'
+light_green='\033[1;32m'
+light_purple='\033[1;35m'
+light_red='\033[1;31m'
+orange='\033[0;33m'
+purple='\033[0;35m'
+red_bg='\033[1;97;41m'
+red='\033[0;31m'
+white='\033[1;37m'
+yellow='\033[1;33m'
+NC='\033[0m'
+
+echo-green-bg() { echo -e "${green_bg}$1${NC}"; }
+echo-green() { echo -e "${green}$1${NC}"; }
+echo-red-bg() { echo -e "${red_bg}$1${NC}"; }
+echo-red() { echo -e "${red}$1${NC}"; }
+echo-yellow() { echo -e "${yellow}$1${NC}"; }
+
+# Get the flag options
+while getopts y flag
+do
+    case "${flag}" in
+        # Accept flag -y to bypass y/n questions
+        y) export YES=true;;
+        *) echo $flag;
+    esac
+done
+export YES=$YES
+
+# reusable method to ask Questions - utilizes -y option to skip question 
+function askQ(){
+  Q="$1"
+  if [ $YES ]; then
+    answer=y
+  else
+    read -n 1 -p "${Q}" answer
+  fi
+  echo "${answer}"
+}
+
+function askYN(){
+  Q="$1"
+  Q=$(echo-green "? ${yellow} ${Q}? ${green}(y/n) ")
+  shift
+  CMD="$@"
+  while true; do
+    answer=$(askQ "$Q")
+    echo ""
+    case ${answer:0:1} in
+        [Yy]*)
+          ${CMD}
+          break;;
+        [Nn]*) echo "No."; break;;
+        *) echo "Sorry, what?" >&2
+    esac
+  done
+}
+
+LOGO=$(cat ${PROJECT_ROOT}/.docksal/bin/ascii)

@@ -1,0 +1,39 @@
+#!/usr/bin/env bash
+## Quickly change the environment of your local setup 
+################################## SETTINGS 
+source ${PROJECT_ROOT}/.docksal/bin/helpers
+LOCAL_ENV=${PROJECT_ROOT}/.docksal/docksal-local.env
+
+changeDevEnv(){
+  ENV=$1
+  if [ -z "$ENV" ] 
+  then
+    echo-green "Choose an environment:"
+    ENV=$(gum choose development dev:stage dev:prod production prod:stage prod:prod)
+  fi
+  echo-green "Build the ${red}$ENV${green} environment"
+  sed -i "s/BUILD_ENV=${BUILD_ENV}/BUILD_ENV=${ENV}/g" "${LOCAL_ENV}"
+  if command -v fin &> /dev/null
+  then
+    fin reboot
+  fi
+}
+
+checkLocalEnv(){
+  if [ -f "$LOCAL_ENV" ]; then
+    changeDevEnv $1
+  else 
+    cp ${PROJECT_ROOT}/.docksal/docksal-local.env.example ${LOCAL_ENV}
+    fin env $1
+  fi
+}
+
+checkGum(){
+  if ! command -v gum &> /dev/null
+  then
+    fin gum-env $1
+  fi
+}
+
+checkGum $1
+checkLocalEnv $1

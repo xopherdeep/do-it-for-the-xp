@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+## Initiate project 
+################################## SETTINGS 
+source ${PROJECT_ROOT}/.docksal/bin/helpers
+
+################################## FUNCTIONS
+installCert(){
+  echo-green-bg "Install Certificate..."
+  fin debug -c 'mkdir -p ${CONFIG_CERTS}; mkcert -key-file ${CONFIG_CERTS}/${VIRTUAL_HOST}.key -cert-file ${CONFIG_CERTS}/${VIRTUAL_HOST}.crt *.${VIRTUAL_HOST} ${VIRTUAL_HOST}'
+}
+
+removeProject(){
+  echo-yellow "Remove Project:"
+  fin project rm -f 
+}
+
+startProject(){
+  echo-green-bg "Start Project..."
+  fin env 
+}
+
+projectInfo(){
+  fin info
+}
+
+init(){
+  removeProject
+  installCert
+  startProject
+  # projectInfo
+}
+################################## END: FUNCTIONS
+
+################################## EXECUTION 
+time init

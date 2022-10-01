@@ -1,0 +1,34 @@
+@mixin my-home{
+  &house-user {
+    --fa-primary-color: var(--xp-color-lightBlue);
+    --fa-secondary-color: var(--xp-color-blue);
+    --fa-secondary-opacity: 0.8;
+  }
+  &clock {
+    --fa-primary-color: var(--xp-color-gray);
+    --fa-secondary-color: var(--xp-color-white);
+
+        --fa-secondary-opacity:1 
+  }
+  &treasure-chest {
+    --fa-primary-color: var(--xp-color-brown);
+    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-secondary-opacity:1 
+  }
+  &tools {
+    --fa-primary-color: var(--xp-color-gray);
+    --fa-secondary-color: var(--xp-color-blue);
+    --fa-secondary-opacity:1 
+  }
+  &hat-chef {
+    --fa-primary-color: var(--xp-color-white);
+    --fa-secondary-color: var(--xp-color-brown);
+
+    --fa-secondary-opacity:.9 
+  }
+  &door-open {
+    --fa-primary-color: var(--xp-color-blue);
+    --fa-secondary-color: var(--xp-color-brown);
+    --fa-secondary-opacity:.7 
+  }
+}

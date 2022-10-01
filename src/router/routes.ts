@@ -1,17 +1,17 @@
-import HometownRoutes from './hometown';
-import MyHomeRoutes from './my-home';
-import MyPortalRoutes from './my-portal';
-import MyProfileRoutes from './my-profile';
-import SidebarRoutes from './sidebar';
+import SideMenuRoutes from './side-menu.routes';
+import MyProfileRoutes from './my-profile.routes';
+import MyHomeRoutes from './my-home.routes';
+import MyPortalRoutes from './my-portal.routes';
+import HometownRoutes from './hometown.routes';
 
 export default [
-  ...SidebarRoutes,
+  ...SideMenuRoutes,
   ...MyProfileRoutes,
   ...MyHomeRoutes,
   ...HometownRoutes,
   {
     path: '/user/:userId?',
-    component: () => import ('@/views/UserProfile/UserProfile.vue'),
+    component: () => import ('@/views/App/UserProfile/UserProfile.vue'),
     props: true
   },
   {
@@ -21,26 +21,12 @@ export default [
     children: MyPortalRoutes,
   },
   {
-    path: '/my-party/:userId?',
-    component: () => import('@/views/MyParty.vue'),
-    props: true
-  },
-  {
-    path: '/my-dashboard/:userId/my-party',
-    component: () => import('@/views/MyParty.vue'),
-  },
-  {
     path: '/my-dashboard',
     name: 'my-dashboard',
     meta: {
       faIcon: 'dungeon'
     },
-    component: () => import ('@/views/MyDashboard/MyDashboard.vue'),
+    component: () => import ('@/views/MyPortal/HomeTown/BattleGround/BattleGround.vue'),
     props: true,
   },
-  // {
-  //   path: '/accessory-shop/:userId?',
-  //   component: () => import ('@/views/Xp/Xp.vue'),
-  //   props: true,
-  // },
 ]

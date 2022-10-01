@@ -1,5 +1,5 @@
 <template>
-  <ion-fab vertical="bottom" horizontal="center">
+  <ion-fab vertical="center" horizontal="end">
     <ion-fab-button expand="block" color="light">
       <i :class="`fad fa-${pageIcon} fa-2x`"></i>
     </ion-fab-button>
@@ -15,14 +15,10 @@
   </ion-fab>
 </template>
 
-<style>
-
-</style>
-
-<script lang="js">
+<script lang="ts">
   import { computed, defineComponent } from 'vue'
   import { useRoute } from "vue-router";
-  import ionic from "@/assets/js/mixins/ionic";
+  import ionic from "@/mixins/ionic";
 
   export default defineComponent({
     props: ["shortcuts"],
@@ -35,9 +31,8 @@
       return {
         pageIcon,
         filterShortcutsBySide,
-        sides: ["top", "start", "end"]
+        sides: ["top", "start", "end", "bottom"]
       }
     },
   })
 </script>
-

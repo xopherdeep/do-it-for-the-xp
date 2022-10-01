@@ -50,8 +50,8 @@
 <script lang="js">
   import { useRoute, useRouter } from "vue-router";
   import { computed, defineComponent } from 'vue'
-  import userActions from "@/assets/js/mixins/userActions";
-  import ionic from "@/assets/js/mixins/ionic";
+  import userActions from "@/mixins/userActions";
+  import ionic from "@/mixins/ionic";
   import XpCardMenu from "./XpCardMenu.vue"
 
   export default defineComponent({
@@ -89,3 +89,4 @@
 </script>
 
 
+@/mixins/userActions@/mixins/ionic@/mixins/userActions@/mixins/ionic
