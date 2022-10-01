@@ -4,5 +4,5 @@
   </div>
 </template>
 
-<script src="./Jig.js" />
+<script src="./Jig" />
 <style lang="scss" src="./_Jig.scss" scoped/>

@@ -346,5 +346,5 @@
   </ion-card>
 </template>
 
-<script src="./CardUserStats.js" />
+<script src="./CardUserStats" />
 <style src="./_CardUserStats.scss" lang="scss" />

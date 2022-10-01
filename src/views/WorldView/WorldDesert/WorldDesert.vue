@@ -17,7 +17,7 @@
   </ion-page>
 </template>
 
-<script src="./WorldDesert.js" />
+<script src="./WorldDesert" />
 <style lang="scss" src="./_WorldDesert.scss" scoped />
 <style lang="scss">
   #sun-temple{

@@ -8,8 +8,8 @@ import { useStore } from "vuex";
 import userActions from "@/assets/js/mixins/userActions";
 import { onIonViewDidEnter } from "@ionic/vue";
 
-export default defineComponent({
-  name: "world-mountains",
+export default defineComponent<userActions>({
+  name: "world-moon",
   mixins: [ionic, userActions],
 
   ionViewDidEnter() {
@@ -24,17 +24,22 @@ export default defineComponent({
 
     const userActions = [
       {
-        label: "Crystal Caverns",
-        faIcon: "dungeon",
+        // label: "Theia Tower",
+        label: "Theia City",
+        // label: "Theia's Market",
+        // label: "Theia Trinkets",
+        // label: "Moon Light Markert",
+        // label: "Moon Light Gateway",
+        faIcon: "chess-rook",
         side: "start",
         click() {
-          const merchant = "crystal-caverns"
+          const merchant = "theia-city"
           router.push({ name: "shop", params: { merchant }})
         },
       },
       {
-        label: "Fire Fortress",
-        id: "fire-temple",
+        label: "Moon Temple",
+        id: "moon-temple",
         faIcon: "place-of-worship",
         side: "end",
         click() {

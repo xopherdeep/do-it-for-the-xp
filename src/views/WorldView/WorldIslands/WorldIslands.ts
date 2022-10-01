@@ -8,7 +8,7 @@ import { useStore } from "vuex";
 import userActions from "@/assets/js/mixins/userActions";
 import { onIonViewDidEnter } from "@ionic/vue";
 
-export default defineComponent({
+export default defineComponent<userActions>({
   name: "world-islands",
   mixins: [ionic, userActions],
 

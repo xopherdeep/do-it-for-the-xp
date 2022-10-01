@@ -4,5 +4,5 @@
   </ion-page>
 </template>
 
-<script src="./XpSettings.js" />
+<script src="./XpSettings" />
 <style lang="scss" src="./_XpSettings.scss" scoped/>

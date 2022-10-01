@@ -140,5 +140,5 @@
   </ion-page>
 </template>
 
-<script src="./MyGoldPoints.js" />
+<script src="./MyGoldPoints" />
 <style lang="scss" src="./_MyGoldPoints.scss" scoped />

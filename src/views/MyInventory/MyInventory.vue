@@ -8,7 +8,7 @@
           <ion-icon :icon="backpack" size="large" />
         </ion-buttons>
         <ion-title> 
-        My Goods
+          My Goods
         </ion-title>
       </ion-toolbar>
       <ion-toolbar>
@@ -107,5 +107,5 @@
   </ion-page>
 </template>
 
-<script src="./MyInventory.js" />
+<script src="./MyInventory" />
 <style lang="scss" src="./_MyInventory.scss" scoped />

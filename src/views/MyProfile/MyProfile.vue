@@ -28,5 +28,5 @@
   </ion-page>
 </template>
 
-<script src="./MyProfile.js" />
+<script src="./MyProfile" />
 <style lang="scss" src="./_MyProfile.scss" scoped/>

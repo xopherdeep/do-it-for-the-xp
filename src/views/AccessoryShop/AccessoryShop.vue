@@ -210,5 +210,5 @@
   </ion-page>
 </template>
 
-<script src="./AccessoryShop.js" />
+<script src="./AccessoryShop" />
 <style lang="scss" src="./_AccessoryShop.scss" />

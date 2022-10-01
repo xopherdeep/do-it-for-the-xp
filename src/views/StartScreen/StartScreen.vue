@@ -17,5 +17,5 @@
   </ion-page>
 </template>
 
-<script src="./StartScreen.js" />
+<script src="./StartScreen" />
 <style lang="scss" src="./_StartScreen.scss" scoped/>

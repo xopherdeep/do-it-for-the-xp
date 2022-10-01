@@ -214,5 +214,5 @@
   </ion-page>
 </template>
 
-<script src="./MyTasks.js" />
+<script src="./MyTasks" />
 <style lang="scss" src="./_MyTasks.scss" scoped />

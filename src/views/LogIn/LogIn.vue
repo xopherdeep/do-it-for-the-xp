@@ -147,5 +147,5 @@
   </ion-page>
 </template>
 
-<script src="./LogIn.js" />
+<script src="./LogIn" />
 <style lang="scss" src="./_LogIn.scss" scoped />

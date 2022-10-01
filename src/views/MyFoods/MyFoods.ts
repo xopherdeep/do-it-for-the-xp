@@ -1,11 +1,12 @@
-import { defineComponent, ref } from "vue";
+import { defineComponent } from "vue";
 import ionic from "@/assets/js/mixins/ionic";
 
 import {
-  arrowBack,
-  removeCircleOutline,
+  calendarOutline,
   addCircleOutline,
-  walletOutline,
+  removeCircleOutline,
+  close,
+  arrowBack,
   chevronBack,
   chevronForward,
   stop,
@@ -27,19 +28,14 @@ import {
   storefrontOutline,
   banOutline,
   bagOutline,
-  trash,
-  share,
-  caretForwardCircle,
-  heart,
-  close
-  
+  fastFoodOutline
 } from "ionicons/icons";
 import fetchItems from "@/assets/js/mixins/fetchItems.js"
 import { actionSheetController } from "@ionic/vue";
 
 export default defineComponent({
   props: ["userId"],
-  name: "gold-bank",
+  name: "my-foods",
   mixins: [ionic,fetchItems],
   data() {
     return {
@@ -56,13 +52,16 @@ export default defineComponent({
     };
   },
   methods: {
+    segmentChanged(ev) {
+      console.log("Segment changed", ev);
+    },
     selectShelf($ev) {
       this.shelves = $ev.detail.value
     },
     async presentActionSheet() {
       const actionSheet = await actionSheetController
         .create({
-          header: 'Yeeessss....?',
+          header: 'Look at the time!',
           cssClass: 'my-custom-class',
           buttons: [
             // {
@@ -77,7 +76,7 @@ export default defineComponent({
             //   },
             // },
             {
-              text: 'Deposit GP',
+              text: 'Add Quest',
               icon: addCircleOutline,
               data: 'Data value',
               handler: () => {
@@ -85,7 +84,7 @@ export default defineComponent({
               },
             },
             {
-              text: 'Withdrawl GP',
+              text: 'Request Time Off',
               icon: removeCircleOutline,
               data: 10,  
               handler: () => {
@@ -93,8 +92,8 @@ export default defineComponent({
               },
             },
             {
-              text: 'Cash Out GP',
-              icon: walletOutline,
+              text: 'Some other action...',
+              icon: calendarOutline,
               handler: () => {
                 console.log('Favorite clicked')
               },
@@ -109,43 +108,51 @@ export default defineComponent({
             },
           ],
         });
-      await actionSheet.present();
+      actionSheet.present();
 
       const { role, data } = await actionSheet.onDidDismiss();
       console.log('onDidDismiss resolved with role and data', role, data);
     },
   },
   mounted() {
-    // const { ui, theme: {ui: uiTheme} } = this.fx
-    // ui[uiTheme].openShop.play()
     // this.$fx.ui[this.$fx.theme.ui].openShop.play()
   },
-
   setup() {
-      return {
-        storefrontOutline,
-        banOutline,
-        chevronBack,
-        chevronForward,
-        stop,
-        play,
-        pause,
-        arrowBack,
-        colorWand,
-        colorWandOutline,
-        lockClosedOutline,
-        lockOpenOutline,
-        bagOutline,
-        sunnyOutline,
-        partlySunnyOutline,
-        moonOutline,
-        cloudyNightOutline,
-        fitnessOutline,
-        sparklesOutline,
-        keyOutline,
-        cartOutline,
-        starSharp,
-
-      }
+    const customAlertOptions = {
+      header: 'View Quests',
+      subHeader: 'Select what quests to view',
+      message: '',
+      translucent: true
+    };
+    return {
+      calendarOutline,
+      customAlertOptions,
+      storefrontOutline,
+      banOutline,
+      chevronBack,
+      chevronForward,
+      stop,
+      play,
+      pause,
+      arrowBack,
+      colorWand,
+      colorWandOutline,
+      lockClosedOutline,
+      lockOpenOutline,
+      bagOutline,
+      sunnyOutline,
+      partlySunnyOutline,
+      moonOutline,
+      cloudyNightOutline,
+      fitnessOutline,
+      sparklesOutline,
+      keyOutline,
+      cartOutline,
+      starSharp,
+      addCircleOutline,
+      removeCircleOutline,
+      close,
+      fastFoodOutline
+    };
   },
 });

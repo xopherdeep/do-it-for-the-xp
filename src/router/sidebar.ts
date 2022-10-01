@@ -46,6 +46,7 @@ const SidebarRoutes = [
   },
   {
     path: '/about-xp',
+    name: 'about-xp',
     component: () => import ('@/views/XpAbout/XpAbout.vue'),
   },
   {

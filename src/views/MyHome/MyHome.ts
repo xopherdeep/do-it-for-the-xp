@@ -1,10 +1,10 @@
 import { defineComponent, ref } from "vue";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { useStore } from "vuex";
+import { mapActions, useStore } from "vuex";
 import userActions from "@/assets/js/mixins/userActions";
 import ionic from "@/assets/js/mixins/ionic";
-import {modalController} from "@ionic/vue";
+import {modalController, toastController} from "@ionic/vue";
 
 import { arrowBack } from "ionicons/icons";
 
@@ -12,17 +12,51 @@ export default defineComponent({
   name: "my-home",
   data() {
     return {
+      handlerMessage: '',
+      roleMessage: '',
     };
   },
   mixins: [ionic, userActions],
 
   ionViewDidEnter(){
     this.setUserActions(this.userActions)
+    // this.presentToast()
+  },
+
+  methods:{
+    ...mapActions(["setUserActions"]),
+    async presentToast() {
+     const { router, user: {name: {first}, id: userId } } = this
+     const toast = await toastController.create({
+        message: `Welcome home ${first}!`,
+        duration: 50000,
+        buttons: [
+          {
+            text: 'About XP',
+            role: 'info',
+            handler: () => { 
+              router.push({ name:'about-xp', params: {userId} })
+            }
+          },
+          {
+            text: 'Dismiss',
+            role: 'cancel',
+            handler: () => { this.handlerMessage = 'Dismiss clicked'; }
+          }
+        ]
+      });
+
+      await toast.present();
+
+      const { role } = await toast.onDidDismiss();
+      this.roleMessage = `Dismissed with role: ${role}`;
+    },
   },
   setup() {
     const route      = useRoute();
     const router     = useRouter()
     const store      = useStore();
+    
     const { userId } = route.params;
     const user       = computed(() => store.getters.getUserById(userId));
     const closeModal = () => modalController.dismiss()
@@ -33,6 +67,7 @@ export default defineComponent({
       user,
       userId,
       arrowBack,
+      router,
       userActions: [
         {
           label: "Open Storage",
@@ -49,6 +84,9 @@ export default defineComponent({
           id: 'adventure-time',
           faIcon: "clock",
           side: "start",
+          click($ev){
+            router.push({ name:'calendar', params: {userId} })
+          }
         },
         // {
         //   id: 'rest',

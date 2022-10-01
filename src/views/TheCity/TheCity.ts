@@ -7,7 +7,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
 import userActions from "@/assets/js/mixins/userActions";
 
-export default defineComponent({
+export default defineComponent<userActions>({
   name: "the-city",
   mixins: [ionic, userActions],
   ionViewDidEnter(){

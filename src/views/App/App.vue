@@ -59,5 +59,5 @@
   </ion-app>
 </template>
 
-<script src="./App.js" />
+<script src="./App" />
 <style src="./_App.scss" lang="scss" />

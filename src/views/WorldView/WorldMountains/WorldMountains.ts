@@ -8,8 +8,8 @@ import { useStore } from "vuex";
 import userActions from "@/assets/js/mixins/userActions";
 import { onIonViewDidEnter } from "@ionic/vue";
 
-export default defineComponent({
-  name: "world-plains",
+export default defineComponent<userActions>({
+  name: "world-mountains",
   mixins: [ionic, userActions],
 
   ionViewDidEnter() {
@@ -24,29 +24,17 @@ export default defineComponent({
 
     const userActions = [
       {
-        label: " Hometown",
-        id: 'the-city',
-        faIcon: "archway",
-        side: "top",
-        click($ev){
-          router.push({ name:'the-city', params: {userId} })
-          console.log($ev.preventDefault());
-        }
-      },
-      {
-        label: "Pegasus Ranch",
-        // label: "Zodiac Ranch",
-        id: "pegasus-ranch",
-        faIcon: "farm",
+        label: "Crystal Caverns",
+        faIcon: "dungeon",
         side: "start",
         click() {
-          const merchant = "pegasus-ranch"
+          const merchant = "crystal-caverns"
           router.push({ name: "shop", params: { merchant }})
         },
       },
       {
-        label: "Wind Temple",
-        id: "wind-temple",
+        label: "Fire Fortress",
+        id: "fire-temple",
         faIcon: "place-of-worship",
         side: "end",
         click() {

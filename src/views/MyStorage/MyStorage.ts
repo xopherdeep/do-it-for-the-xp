@@ -1,11 +1,10 @@
-import { defineComponent, ref } from "vue";
+import { defineComponent } from "vue";
 import ionic from "@/assets/js/mixins/ionic";
 
 import {
+  close,
+  cubeOutline,
   arrowBack,
-  removeCircleOutline,
-  addCircleOutline,
-  walletOutline,
   chevronBack,
   chevronForward,
   stop,
@@ -24,27 +23,29 @@ import {
   keyOutline,
   cartOutline,
   starSharp,
+  addCircleOutline,
   storefrontOutline,
+  walletOutline,
+  removeCircleOutline,
   banOutline,
   bagOutline,
-  trash,
-  share,
-  caretForwardCircle,
-  heart,
-  close
-  
 } from "ionicons/icons";
 import fetchItems from "@/assets/js/mixins/fetchItems.js"
 import { actionSheetController } from "@ionic/vue";
 
 export default defineComponent({
   props: ["userId"],
-  name: "gold-bank",
+  name: "my-storage",
   mixins: [ionic,fetchItems],
   data() {
     return {
       isLoading: false,
-      shelves: ['affordable'], 
+      boxes: [
+        'hp-items',
+        'mp-items',
+        'misc-items',
+        'key-items'
+      ], 
       request: {
         type: "xp_accessory",
         params: {
@@ -57,12 +58,12 @@ export default defineComponent({
   },
   methods: {
     selectShelf($ev) {
-      this.shelves = $ev.detail.value
+      this.boxes = $ev.detail.value
     },
     async presentActionSheet() {
       const actionSheet = await actionSheetController
         .create({
-          header: 'Yeeessss....?',
+          header: 'What would you like to do...?',
           cssClass: 'my-custom-class',
           buttons: [
             // {
@@ -77,7 +78,7 @@ export default defineComponent({
             //   },
             // },
             {
-              text: 'Deposit GP',
+              text: 'Add Items to Storage',
               icon: addCircleOutline,
               data: 'Data value',
               handler: () => {
@@ -85,7 +86,7 @@ export default defineComponent({
               },
             },
             {
-              text: 'Withdrawl GP',
+              text: 'Remove Items From Storage',
               icon: removeCircleOutline,
               data: 10,  
               handler: () => {
@@ -93,8 +94,8 @@ export default defineComponent({
               },
             },
             {
-              text: 'Cash Out GP',
-              icon: walletOutline,
+              text: 'Some other action...',
+              icon: cubeOutline,
               handler: () => {
                 console.log('Favorite clicked')
               },
@@ -116,36 +117,39 @@ export default defineComponent({
     },
   },
   mounted() {
-    // const { ui, theme: {ui: uiTheme} } = this.fx
-    // ui[uiTheme].openShop.play()
     // this.$fx.ui[this.$fx.theme.ui].openShop.play()
   },
-
   setup() {
-      return {
-        storefrontOutline,
-        banOutline,
-        chevronBack,
-        chevronForward,
-        stop,
-        play,
-        pause,
-        arrowBack,
-        colorWand,
-        colorWandOutline,
-        lockClosedOutline,
-        lockOpenOutline,
-        bagOutline,
-        sunnyOutline,
-        partlySunnyOutline,
-        moonOutline,
-        cloudyNightOutline,
-        fitnessOutline,
-        sparklesOutline,
-        keyOutline,
-        cartOutline,
-        starSharp,
-
-      }
+    const customAlertOptions = {
+      header: 'Storage Categories',
+      subHeader: 'Categorized by type',
+      message: 'What would you like to view?',
+      translucent: true
+    };
+    return {
+      customAlertOptions,
+      storefrontOutline,
+      banOutline,
+      chevronBack,
+      chevronForward,
+      stop,
+      play,
+      pause,
+      arrowBack,
+      colorWand,
+      colorWandOutline,
+      lockClosedOutline,
+      lockOpenOutline,
+      bagOutline,
+      sunnyOutline,
+      partlySunnyOutline,
+      moonOutline,
+      cloudyNightOutline,
+      fitnessOutline,
+      sparklesOutline,
+      keyOutline,
+      cartOutline,
+      starSharp,
+    };
   },
 });

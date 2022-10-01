@@ -9,7 +9,7 @@ import userActions from "@/assets/js/mixins/userActions";
 import { onIonViewDidEnter } from "@ionic/vue";
 
 
-export default defineComponent({
+export default defineComponent<userActions>({
   name: "my-home",
   mixins: [ionic, userActions],
 
@@ -25,11 +25,11 @@ export default defineComponent({
 
     const userActions = [
         {
-          label: "Forest",
-          faIcon: "trees",
+          label: "Plains",
+          faIcon: "tornado",
           side: "start",
           click(){
-            router.push({ name:'world-forest', params: {userId} })
+            router.push({ name:'world-plains', params: {userId} })
           }
         },
         {
@@ -41,11 +41,11 @@ export default defineComponent({
           }
         },
         {
-          label: "Plains",
-          faIcon: "tornado",
+          label: "Forest",
+          faIcon: "trees",
           side: "start",
           click(){
-            router.push({ name:'world-plains', params: {userId} })
+            router.push({ name:'world-forest', params: {userId} })
           }
         },
         {

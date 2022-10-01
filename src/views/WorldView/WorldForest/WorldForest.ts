@@ -8,8 +8,8 @@ import { useStore } from "vuex";
 import userActions from "@/assets/js/mixins/userActions";
 import { onIonViewDidEnter } from "@ionic/vue";
 
-export default defineComponent({
-  name: "world-swamps",
+export default defineComponent<userActions>({
+  name: "world-forest",
   mixins: [ionic, userActions],
 
   ionViewDidEnter() {
@@ -21,20 +21,19 @@ export default defineComponent({
     const store = useStore();
     const { userId } = route.params;
     const user = computed(() => store.getters.getUserById(userId));
-
     const userActions = [
       {
-        label: "Witch's Hut",
-        faIcon: "cauldron",
+        label: "Hermit's Tent",
+        faIcon: "campground",
         side: "start",
         click() {
-          const merchant = "witchs-hut"
+          const merchant = "hermits-tent"
           router.push({ name: "shop", params: { merchant }})
         },
       },
       {
-        label: "Moon Temple",
-        id: "moon-temple",
+        label: "Forest Temple",
+        id: "forest-temple",
         faIcon: "place-of-worship",
         side: "end",
         click() {

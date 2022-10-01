@@ -111,5 +111,5 @@
   </ion-page>
 </template>
 
-<script src="./MyDashboard.js" />
+<script src="./MyDashboard" />
 <style src="./_MyDashboard.scss" lang="scss" />

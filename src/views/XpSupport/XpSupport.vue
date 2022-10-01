@@ -36,5 +36,5 @@
   </ion-page>
 </template>
 
-<script src="./XpSupport.js" />
+<script src="./XpSupport" />
 <style lang="scss" src="./_XpSupport.scss" scoped/>

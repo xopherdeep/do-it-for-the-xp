@@ -9,7 +9,7 @@ import userActions from "@/assets/js/mixins/userActions";
 import { onIonViewDidEnter } from "@ionic/vue";
 import travelingMerchant from "@/assets/js/mixins/travelingMerchant"
 
-export default defineComponent({
+export default defineComponent<userActions>({
   name: "world-ice",
   mixins: [ionic, userActions, travelingMerchant],
 

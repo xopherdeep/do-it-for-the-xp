@@ -1,17 +1,14 @@
 import { defineComponent } from "vue";
-import createGlobe from "cobe";
 import ionic from "@/assets/js/mixins/ionic";
 import { arrowBack } from "ionicons/icons";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
 import userActions from "@/assets/js/mixins/userActions";
-import { onIonViewDidEnter } from "@ionic/vue";
 
-export default defineComponent({
-  name: "world-forest",
+export default defineComponent<userActions>({
+  name: "world-sands",
   mixins: [ionic, userActions],
-
   ionViewDidEnter() {
     this.setActions( this.$options.name )
   },
@@ -21,19 +18,21 @@ export default defineComponent({
     const store = useStore();
     const { userId } = route.params;
     const user = computed(() => store.getters.getUserById(userId));
+
     const userActions = [
       {
-        label: "Hermit's Tent",
-        faIcon: "campground",
+        // label: "Oasis",
+        label: "Pond of Life",
+        faIcon: "island-tropical",
         side: "start",
         click() {
-          const merchant = "hermits-tent"
+          const merchant = "pond-of-life"
           router.push({ name: "shop", params: { merchant }})
         },
       },
       {
-        label: "Forest Temple",
-        id: "forest-temple",
+        label: "Sun Temple",
+        id: "sun-temple",
         faIcon: "place-of-worship",
         side: "end",
         click() {

@@ -52,5 +52,5 @@
   </ion-page>
 </template>
 
-<script src="./UserProfile.js" />
+<script src="./UserProfile" />
 <style lang="scss" src="./_UserProfile.scss" scoped/>

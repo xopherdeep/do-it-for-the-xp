@@ -6,14 +6,20 @@
           <ion-back-button 
             :default-href="`/my-portal/${user.id}/my-home`"
           ></ion-back-button>
-          <ion-icon :icon="storefrontOutline" slot="icon-only" />
+          <ion-icon :icon="calendarOutline" slot="icon-only" />
+          <i class="fad fa-calendar" />
         </ion-buttons>
         <ion-title> 
-          New App 
+          My Calendar
         </ion-title>
       </ion-toolbar>
+    </ion-header>
+
+    <ion-content class="my-calendar">
       <ion-item>
-        <ion-label> Shelves </ion-label>
+        <ion-label> 
+          Quests
+        </ion-label>
         <ion-select
           @ionChange="selectShelf"
           :value="shelves"
@@ -22,33 +28,25 @@
           placeholder="..."
           multiple
         >
-          <ion-select-option value="affordable" selected>
-            Can Afford
+          <ion-select-option value="affordable">
+            Individual
           </ion-select-option>
-          <ion-select-option value="out-of-budget" checked>
-            Can't Afford
+          <ion-select-option value="out-of-budget">
+            As Needed
           </ion-select-option>
-          <ion-select-option value="favorites"> Favorites </ion-select-option>
-          <ion-select-option value="wish-list"> Wish List </ion-select-option>
-          <ion-select-option value="purchased"> Purchased </ion-select-option>
+          <ion-select-option value="favorites"> 
+            Rotating
+          </ion-select-option>
+          <ion-select-option value="wish-list"> 
+            Compete
+          </ion-select-option>
+          <ion-select-option value="purchased"> 
+            Collaborative
+          </ion-select-option>
         </ion-select>
       </ion-item>
-    </ion-header>
-
-    <ion-content class="accessory-shop">
       <xp-loading v-if="isLoading" />
       <ion-grid v-else>
-        <ion-row>
-          <ion-col size="4">
-            <ion-card>
-              <ion-title>Shopkeeper</ion-title>
-              <ion-card-content>
-                Welcome, come in, take a look around!
-              </ion-card-content>
-            </ion-card>
-
-          </ion-col>
-        </ion-row>
         <ion-row>
           <ion-col
             size="6"
@@ -88,9 +86,14 @@
         </ion-row>
       </ion-grid>
       <!-- fab placed to the bottom and start and on the bottom edge of the content overlapping footer with a list to the right -->
-      <ion-fab vertical="bottom" horizontal="center" slot="fixed">
-        <ion-fab-button color="secondary">
-          <ion-icon :icon="cartOutline"></ion-icon>
+      <ion-fab
+        vertical="bottom"
+        horizontal="center"
+        slot="fixed"
+        @click.stop="presentActionSheet"
+      >
+        <ion-fab-button >
+          <ion-icon :icon="calendarOutline"></ion-icon>
         </ion-fab-button>
         <ion-fab-list side="start">
           <ion-fab-button>
@@ -140,5 +143,5 @@
   </ion-page>
 </template>
 
-<script src="./_jig_app" />
-<style lang="scss" src="./_jig_app.scss" scoped />
+<script src="./MyCalendar" />
+<style lang="scss" src="./_MyCalendar.scss" scoped />
