@@ -4,57 +4,58 @@
       <ion-toolbar color="warning">
         <ion-buttons slot="start">
           <ion-back-button :default-href="`/my-portal/${user.id}`" ></ion-back-button>
-          <ion-icon :icon="serverOutline" size="large" />
+          <!-- <ion-icon :icon="serverOutline" size="large" /> -->
+          <i class="fad fa-wallet fa-lg" />
         </ion-buttons>
         <ion-title> 
-          My Gold Points
+          My Wallet 
         </ion-title>
       </ion-toolbar>
-<ion-item>
-      <ion-label>Date Range</ion-label>
-      <ion-select @ionChange="changeDate" :interface-options="customAlertOptions" interface="alert" placeholder="All Time" :v-bind="date">
-        <ion-select-option value="All Time">All Time</ion-select-option>
-        <ion-select-option value="today">
-          Today
-        </ion-select-option>
-        <ion-select-option value="yesterday">
-          Yesterday
-        </ion-select-option>
-        <ion-select-option value="thisWeek">
-          This Week
-        </ion-select-option>
-        <ion-select-option value="last7days">
-          Last 7 Days
-        </ion-select-option>
-        <ion-select-option value="last14days">
-          Last 14 Days
-        </ion-select-option>
-        <ion-select-option value="olives">
-          Last 30 Days
-        </ion-select-option>
-        <ion-select-option value="olives">
-          This Month
-        </ion-select-option>
-        <ion-select-option value="olives">
-          Last Month
-        </ion-select-option>
-        <ion-select-option value="olives">
-          Last 2 Months
-        </ion-select-option>
-        <ion-select-option value="olives">
-          Last 3 Months
-        </ion-select-option>
-        <ion-select-option value="olives">
-          Last 4 Months
-        </ion-select-option>
-        <ion-select-option value="olives">
-          Last 6 Months
-        </ion-select-option>
-        <ion-select-option value="olives">
-          This Year
-        </ion-select-option>
-      </ion-select>
-    </ion-item>
+      <ion-item>
+        <ion-label>Date Range</ion-label>
+        <ion-select @ionChange="changeDate" :interface-options="customAlertOptions" interface="alert" placeholder="All Time" :v-bind="date">
+          <ion-select-option value="All Time">All Time</ion-select-option>
+          <ion-select-option value="today">
+            Today
+          </ion-select-option>
+          <ion-select-option value="yesterday">
+            Yesterday
+          </ion-select-option>
+          <ion-select-option value="thisWeek">
+            This Week
+          </ion-select-option>
+          <ion-select-option value="last7days">
+            Last 7 Days
+          </ion-select-option>
+          <ion-select-option value="last14days">
+            Last 14 Days
+          </ion-select-option>
+          <ion-select-option value="olives">
+            Last 30 Days
+          </ion-select-option>
+          <ion-select-option value="olives">
+            This Month
+          </ion-select-option>
+          <ion-select-option value="olives">
+            Last Month
+          </ion-select-option>
+          <ion-select-option value="olives">
+            Last 2 Months
+          </ion-select-option>
+          <ion-select-option value="olives">
+            Last 3 Months
+          </ion-select-option>
+          <ion-select-option value="olives">
+            Last 4 Months
+          </ion-select-option>
+          <ion-select-option value="olives">
+            Last 6 Months
+          </ion-select-option>
+          <ion-select-option value="olives">
+            This Year
+          </ion-select-option>
+        </ion-select>
+      </ion-item>
     </ion-header>
 
     <ion-content class="ion-padding">

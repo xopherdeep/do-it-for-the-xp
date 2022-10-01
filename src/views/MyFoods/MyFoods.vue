@@ -10,7 +10,7 @@
           <i class="fad fa-hat-chef fa-lg" />
         </ion-buttons>
         <ion-title> 
-          Cook Food
+          Cook Foods
         </ion-title>
       </ion-toolbar>
     </ion-header>

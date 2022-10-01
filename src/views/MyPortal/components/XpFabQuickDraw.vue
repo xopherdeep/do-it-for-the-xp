@@ -19,11 +19,13 @@
           ></i>
       </ion-fab-button>
     </ion-fab-list>
-    <ion-fab-list side="bottom">
-      <ion-fab-button>
-        <ion-menu-button color="primary"></ion-menu-button>
-      </ion-fab-button>
-    </ion-fab-list>
+    <ion-menu-toggle>
+      <ion-fab-list side="bottom">
+          <ion-fab-button>
+            <ion-menu-button color="primary"></ion-menu-button>
+          </ion-fab-button>
+      </ion-fab-list>
+    </ion-menu-toggle>
   </ion-fab>
 </template>
 

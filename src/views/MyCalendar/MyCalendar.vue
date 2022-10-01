@@ -7,7 +7,7 @@
             :default-href="`/my-portal/${user.id}/my-home`"
           ></ion-back-button>
           <ion-icon :icon="calendarOutline" slot="icon-only" />
-          <i class="fad fa-calendar" />
+          <!-- <i class="fad fa-calendar" /> -->
         </ion-buttons>
         <ion-title> 
           My Calendar
@@ -95,12 +95,6 @@
         <ion-fab-button >
           <ion-icon :icon="calendarOutline"></ion-icon>
         </ion-fab-button>
-        <ion-fab-list side="start">
-          <ion-fab-button>
-            <ion-icon :icon="banOutline"></ion-icon>
-          </ion-fab-button>
-          Empty
-        </ion-fab-list>
       </ion-fab>
     </ion-content>
     <ion-footer>

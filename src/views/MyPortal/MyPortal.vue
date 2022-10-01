@@ -35,7 +35,7 @@
             <ion-label v-if="user.name">
               {{ user.name.nick }}
             </ion-label>
-            <ion-badge color="danger">{{ user.stats.hp.now }} HP</ion-badge>
+            <!-- <ion-badge color="danger">{{ user.stats.hp.now }} HP</ion-badge> -->
           </ion-tab-button>
           <ion-tab-button 
             tab="my-home" 

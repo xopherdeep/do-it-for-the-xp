@@ -10,7 +10,7 @@
           <i class="fad fa-tools fa-lg" />
         </ion-buttons>
         <ion-title> 
-          My Crafts
+          Craft Items
         </ion-title>
       </ion-toolbar>
     </ion-header>

@@ -6,9 +6,10 @@
           <ion-back-button :default-href="`/my-portal/${user.id}`">
           </ion-back-button>
           <ion-icon :icon="backpack" size="large" />
+          <i class="fad fa-backpack fa-lg" />
         </ion-buttons>
         <ion-title> 
-          My Goods
+          My Items 
         </ion-title>
       </ion-toolbar>
       <ion-toolbar>

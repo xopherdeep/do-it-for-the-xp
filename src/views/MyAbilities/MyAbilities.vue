@@ -4,9 +4,10 @@
       <ion-toolbar color="tertiary" v-if="user.stats">
         <ion-buttons slot="start">
           <ion-back-button :default-href="`/my-portal/${user.id}`" :icon="arrowBack"></ion-back-button>
-          <ion-icon :icon="colorWand" size="large" />
+          <!-- <ion-icon :icon="colorWand" size="large" /> -->
+          <i class="fad fa-book-spells fa-lg" />
         </ion-buttons>
-        <ion-title> Abilities </ion-title>
+        <ion-title> My Abilities </ion-title>
       </ion-toolbar>
       <ion-toolbar >
         <ion-segment

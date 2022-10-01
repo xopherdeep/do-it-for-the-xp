@@ -94,7 +94,7 @@ export default defineComponent({
         //   faIcon: "bed",
         // },
         {
-          label: "Craft Item",
+          label: "Craft Items",
           id: 'craft',
           faIcon: "tools",
           side: "end",
@@ -103,7 +103,7 @@ export default defineComponent({
           }
         },
         {
-          label: "Cook Food",
+          label: "Cook Foods",
           id: 'cook',
           faIcon: "hat-chef",
           side: "end",
