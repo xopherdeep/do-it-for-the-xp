@@ -13,38 +13,33 @@
           Craft Items
         </ion-title>
       </ion-toolbar>
+      <ion-toolbar>
+        <ion-segment @ionChange="segmentChanged($event)" color="danger" scrollable value="all">
+          <ion-segment-button value="all">
+            <ion-icon :icon="bagOutline" color="primary"></ion-icon>
+            All
+          </ion-segment-button>
+          <ion-segment-button value="hp">
+            <ion-icon :icon="fitnessOutline" color="danger"></ion-icon>
+            HP 
+          </ion-segment-button>
+          <ion-segment-button value="mp">
+            <ion-icon :icon="colorWandOutline" color="tertiary"></ion-icon>
+            MP 
+          </ion-segment-button>
+          <ion-segment-button value="misc">
+            <ion-icon :icon="sparklesOutline" color="success"></ion-icon>
+            Misc
+          </ion-segment-button>
+          <ion-segment-button value="key">
+            <ion-icon :icon="keyOutline" color="gold"></ion-icon>
+            Key 
+          </ion-segment-button>
+        </ion-segment>
+      </ion-toolbar>
     </ion-header>
 
     <ion-content class="my-calendar">
-      <ion-item>
-        <ion-label> 
-          Quests
-        </ion-label>
-        <ion-select
-          @ionChange="selectShelf"
-          :value="shelves"
-          :interface-options="customAlertOptions"
-          interface="alert"
-          placeholder="..."
-          multiple
-        >
-          <ion-select-option value="affordable">
-            Individual
-          </ion-select-option>
-          <ion-select-option value="out-of-budget">
-            As Needed
-          </ion-select-option>
-          <ion-select-option value="favorites"> 
-            Rotating
-          </ion-select-option>
-          <ion-select-option value="wish-list"> 
-            Compete
-          </ion-select-option>
-          <ion-select-option value="purchased"> 
-            Collaborative
-          </ion-select-option>
-        </ion-select>
-      </ion-item>
       <xp-loading v-if="isLoading" />
       <ion-grid v-else>
         <ion-row>

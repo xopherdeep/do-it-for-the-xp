@@ -50,6 +50,7 @@
       @ionSlideDidChange="slideChanged"
       ref="slides"
       class="swiper-no-swiping"
+      :modules="modules"
       @swiper="setControlledSwiper"
     >
       <swiper-slide class="task">

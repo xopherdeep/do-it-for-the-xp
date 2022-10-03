@@ -13,6 +13,30 @@
           My Party
         </ion-title>
       </ion-toolbar>
+      <ion-toolbar>
+        <ion-segment @ionChange="segmentChanged($event)" color="danger" scrollable value="all">
+          <ion-segment-button value="all">
+            <ion-icon :icon="bagOutline" color="primary"></ion-icon>
+            My Family
+          </ion-segment-button>
+          <ion-segment-button value="hp">
+            <ion-icon :icon="fitnessOutline" color="danger"></ion-icon>
+            My Guilds
+          </ion-segment-button>
+          <ion-segment-button value="mp">
+            <ion-icon :icon="colorWandOutline" color="tertiary"></ion-icon>
+            MP 
+          </ion-segment-button>
+          <ion-segment-button value="misc">
+            <ion-icon :icon="sparklesOutline" color="success"></ion-icon>
+            Misc
+          </ion-segment-button>
+          <ion-segment-button value="key">
+            <ion-icon :icon="keyOutline" color="gold"></ion-icon>
+            Key 
+          </ion-segment-button>
+        </ion-segment>
+      </ion-toolbar>
     </ion-header>
     <ion-content :fullscreen="true">
       <ion-header collapse="condense">

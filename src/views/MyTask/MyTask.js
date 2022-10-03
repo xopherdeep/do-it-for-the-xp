@@ -1,5 +1,6 @@
 import { defineComponent, ref } from "vue";
-import { modalController } from "@ionic/vue";
+import ionic from "@/assets/js/mixins/ionic"
+import { IonicSlides, modalController } from "@ionic/vue";
 import {
   IonPage,
   IonHeader,
@@ -19,7 +20,6 @@ import {
 import { Swiper, SwiperSlide } from "swiper/vue";
  // Import Swiper styles
 import 'swiper/css';
-import { arrowBack, informationCircle } from "ionicons/icons";
 
 /* eslint-disable */
 // eslint-disable-next-line to
@@ -35,9 +35,10 @@ import fetchItems from "@/assets/js/mixins/fetchItems.js";
 import AnimatedNumber from "@/assets/js/components/AnimatedNumber.vue";
 import { mapActions } from "vuex";
 import { useRouter } from "vue-router";
+import { Controller, Navigation } from "swiper";
 
 export default defineComponent({
-  props: ["taskId", "item", "user"],
+  props: ["taskId", "item"],
   name: "my-task",
   components: {
     alertController,
@@ -167,7 +168,7 @@ export default defineComponent({
     clickLoot() {
       this.$fx.ui[this.$fx.theme.ui].select.play();
       this.$fx.rpg[this.$fx.theme.rpg].loot.play();
-      this.$refs.slides.slideNext();
+      this.controlledSwiper.slideNext();
     },
 
     async segmentChanged(ev) {
@@ -282,6 +283,7 @@ export default defineComponent({
       return alert.present();
     },
     async clickClaim() {
+      const { controlledSwiper } = this
       const { slides } = this.$refs
       const alert = await alertController.create({
         cssClass: "my-custom-class",
@@ -308,7 +310,7 @@ export default defineComponent({
             handler: () => {
               this.$fx.ui[this.$fx.theme.ui].yes.play();
               console.log(slides);
-              slides.slideNext();
+              controlledSwiper.slideNext();
               this.createToast({
                 header: `${this.user.name.nick} tamed ${this.item.title.rendered}!`,
                 message: `Gained 2AP`,
@@ -441,7 +443,7 @@ export default defineComponent({
     },
   },
 
-  mixins: [fetchItems],
+  mixins: [fetchItems, ionic],
   setup() {
     const router = useRouter();
     const controlledSwiper = ref(null);
@@ -451,6 +453,7 @@ export default defineComponent({
     return {
       controlledSwiper,
       setControlledSwiper,
+      modules: [IonicSlides, Navigation, Controller],
       router
     };
   },

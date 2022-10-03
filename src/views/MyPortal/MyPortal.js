@@ -179,12 +179,12 @@ export default defineComponent({
       } = this;
       const route = { name: "my-dashboard", props: { userId } };
       if (counter <= 0) {
-        // $fx.rpg[theme.rpg].enterBattle.play();
-        // router
-        //   .push(route)
-        //   .then(stopBattleTimer)
-        //   .then(resetBattleTimer)
-        //   .then(ACTIVATE_BATTLE);
+        $fx.rpg[theme.rpg].enterBattle.play();
+        router
+          .push(route)
+          .then(stopBattleTimer)
+          .then(resetBattleTimer)
+          .then(ACTIVATE_BATTLE);
       }
     },
   },

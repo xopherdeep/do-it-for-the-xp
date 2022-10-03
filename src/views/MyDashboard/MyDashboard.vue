@@ -15,10 +15,11 @@
               @click="clickTask(task)"
             >
               <ion-img v-bind="getImgObj(task.featured_media)"></ion-img>
+
               <MyTask
                 @didDismiss="activeModal = 0"
                 :item="task"
-                :user="user"
+                :userId="user.id"
                 v-if="activeModal == task.id"
               />
             </ion-avatar>

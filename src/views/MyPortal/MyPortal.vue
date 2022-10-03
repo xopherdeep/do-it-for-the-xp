@@ -229,7 +229,7 @@
       :initialBreakpoint="1"
     >
       <ion-content>
-        <swiper @swiper="onSwiper" >
+        <swiper @swiper="onSwiper">
           <swiper-slide>
             <ion-grid class="ion-no-padding">
               <ion-row>

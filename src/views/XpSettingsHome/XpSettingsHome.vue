@@ -4,6 +4,7 @@
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
           <ion-menu-button color="primary" @click="$fx.ui[$fx.theme.ui].select.play()"></ion-menu-button>
+          <i class="fa fa-cog fa-lg" />
         </ion-buttons>
         <ion-title> 
           Settings

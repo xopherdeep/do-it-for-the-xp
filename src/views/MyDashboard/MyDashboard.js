@@ -142,6 +142,7 @@ export default {
   },
   computed: {
     ...mapState(["xp_achievement"]),
+
   },
   mounted() {
     this.changeBG();
