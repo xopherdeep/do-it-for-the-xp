@@ -9,7 +9,7 @@ import userActions from "@/mixins/userActions";
 import { onIonViewDidEnter } from "@ionic/vue";
 
 
-export default defineComponent({
+export default defineComponent<userActions>({
   name: "my-home",
   mixins: [ionic, userActions],
 

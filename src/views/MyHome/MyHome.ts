@@ -2,9 +2,9 @@ import { defineComponent, ref } from "vue";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { mapActions, useStore } from "vuex";
-import userActions from "@/mixins/userActions";
-import ionic from "@/mixins/ionic";
-import { modalController, toastController } from "@ionic/vue";
+import userActions from "@/assets/js/mixins/userActions";
+import ionic from "@/assets/js/mixins/ionic";
+import {modalController, toastController} from "@ionic/vue";
 
 import { arrowBack } from "ionicons/icons";
 
@@ -12,47 +12,38 @@ export default defineComponent({
   name: "my-home",
   data() {
     return {
-      showSaveQuit: false,
-      handlerMessage: "",
-      roleMessage: "",
+      handlerMessage: '',
+      roleMessage: '',
     };
   },
   mixins: [ionic, userActions],
 
-  ionViewDidEnter() {
-    this.setUserActions(this.userActions);
+  ionViewDidEnter(){
+    this.setUserActions(this.userActions)
     // this.presentToast()
   },
 
-  methods: {
+  methods:{
     ...mapActions(["setUserActions"]),
     async presentToast() {
-      const {
-        router,
-        user: {
-          name: { first },
-          id: userId,
-        },
-      } = this;
-      const toast = await toastController.create({
+     const { router, user: {name: {first}, id: userId } } = this
+     const toast = await toastController.create({
         message: `Welcome home ${first}!`,
         duration: 50000,
         buttons: [
           {
-            text: "About XP",
-            role: "info",
-            handler: () => {
-              router.push({ name: "about-xp", params: { userId } });
-            },
+            text: 'About XP',
+            role: 'info',
+            handler: () => { 
+              router.push({ name:'about-xp', params: {userId} })
+            }
           },
           {
-            text: "Dismiss",
-            role: "cancel",
-            handler: () => {
-              this.handlerMessage = "Dismiss clicked";
-            },
-          },
-        ],
+            text: 'Dismiss',
+            role: 'cancel',
+            handler: () => { this.handlerMessage = 'Dismiss clicked'; }
+          }
+        ]
       });
 
       await toast.present();
@@ -61,25 +52,15 @@ export default defineComponent({
       this.roleMessage = `Dismissed with role: ${role}`;
     },
   },
-  // methods: {
-  //     openModal() {
-  //       this.showSaveQuit = true;
-  //     },
-  //     closeModal() {
-  //       this.showSaveQuit = false;
-  //     },
-
-  // },
   setup() {
-    const route = useRoute();
-    const router = useRouter();
-    const store = useStore();
-
+    const route      = useRoute();
+    const router     = useRouter()
+    const store      = useStore();
+    
     const { userId } = route.params;
-    const user = computed(() => store.getters.getUserById(userId));
-    const closeModal = () => modalController.dismiss();
-    const clickSave = () =>
-      router.push({ name: "switch-profile" }).then(closeModal);
+    const user       = computed(() => store.getters.getUserById(userId));
+    const closeModal = () => modalController.dismiss()
+    const clickSave  = () => router.push({name: 'switch-profile'}).then(closeModal)
     return {
       closeModal,
       clickSave,
@@ -89,29 +70,23 @@ export default defineComponent({
       router,
       userActions: [
         {
-          label: "My Calendar",
-          id: "adventure-time",
-          faIcon: "clock",
-          side: "bottom",
-        },
-        {
-          label: "My Storage",
+          label: "Open Storage",
           // id: 'storage',
           faIcon: "treasure-chest",
-          side: "bottom",
+          side: "start",
           // link: 'storage',
-          click($ev) {
-            router.push({ name: "storage", params: { userId } });
-          },
+          click($ev){
+            router.push({ name:'storage', params: {userId} })
+          }
         },
         {
           label: "Calendar",
-          id: "adventure-time",
+          id: 'adventure-time',
           faIcon: "clock",
           side: "start",
-          click($ev) {
-            router.push({ name: "calendar", params: { userId } });
-          },
+          click($ev){
+            router.push({ name:'calendar', params: {userId} })
+          }
         },
         // {
         //   id: 'rest',
@@ -119,32 +94,32 @@ export default defineComponent({
         //   faIcon: "bed",
         // },
         {
-          label: "My Workbench",
-          id: "craft",
+          label: "Craft Item",
+          id: 'craft',
           faIcon: "tools",
-          side: "top",
-          click($ev) {
-            router.push({ name: "craft-item", params: { userId } });
-          },
+          side: "end",
+          click($ev){
+            router.push({ name:'craft-item', params: {userId} })
+          }
         },
         {
-          label: "My Kitchen",
-          id: "cook",
+          label: "Cook Food",
+          id: 'cook',
           faIcon: "hat-chef",
-          side: "top",
-          click($ev) {
-            router.push({ name: "cook-food", params: { userId } });
-          },
+          side: "end",
+          click($ev){
+            router.push({ name:'cook-food', params: {userId} })
+          }
         },
         {
           label: "Go Outside",
-          id: "home-town",
+          id: 'the-city',
           faIcon: "door-open",
-          side: "start",
-          click($ev) {
-            router.push({ name: "home-town", params: { userId } });
+          side: "top",
+          click($ev){
+            router.push({ name:'the-city', params: {userId} })
             console.log($ev.preventDefault());
-          },
+          }
         },
       ],
     };
