@@ -118,7 +118,7 @@
                   {{ action.label }}
                 </ion-button>
               </ion-col>
-              <!-- <ion-col>
+              <ion-col>
                 <ion-menu-toggle>
                   <ion-button>
                     <i
@@ -127,7 +127,7 @@
                     Open Menu
                   </ion-button>
                 </ion-menu-toggle>
-              </ion-col> -->
+              </ion-col>
             </ion-row>
           </ion-grid>
         </ion-buttons>
@@ -141,8 +141,8 @@
   import { computed, defineComponent } from 'vue'
   import { walletOutline, colorWand, fitnessOutline } from 'ionicons/icons';
   import { useRouter } from 'vue-router';
-  import ionic from "@/assets/js/mixins/ionic";
-  import userActions from "@/assets/js/mixins/userActions";
+  import ionic from "@/mixins/ionic";
+  import userActions from "@/mixins/userActions";
 
   const XpFabUserHud = defineComponent({
     mixins: [ userActions, ionic ],
@@ -385,6 +385,7 @@
       }
       &.gp-badge2 {
         display: flex;
+        display: none;
         align-content: center;
         ion-progress-bar {
           border-radius: 5px 2px 1em 5px;
@@ -447,4 +448,4 @@
       padding: 0;
     }
   }
-</style>
+</style>@/mixins/ionic@/mixins/userActions@/mixins/ionic@/mixins/userActions

@@ -1,5 +1,5 @@
 import { defineComponent, ref } from "vue";
-import ionic from "@/assets/js/mixins/ionic";
+import ionic from "@/mixins/ionic";
 
 import {
   arrowBack,
@@ -37,7 +37,7 @@ import {
   close
   
 } from "ionicons/icons";
-import fetchItems from "@/assets/js/mixins/fetchItems.js"
+import fetchItems from "@/mixins/fetchItems"
 import { actionSheetController } from "@ionic/vue";
 
 export default defineComponent({

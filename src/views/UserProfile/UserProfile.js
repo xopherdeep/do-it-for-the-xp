@@ -27,8 +27,6 @@ import {
   fitnessOutline,
   colorWand,
   sparklesOutline,
-  infinite,
-  happyOutline,
   serverOutline,
   arrowBack
  } from "ionicons/icons";

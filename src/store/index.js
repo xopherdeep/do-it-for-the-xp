@@ -3,7 +3,7 @@ import getters from "./getters";
 import mutations from "./mutations";
 import actions from "./actions";
 
-import $fx from "@/assets/js/fx"
+import $fx from "@/assets/fx"
 
 // const strict = process.env.NODE_ENV !== "production";
 

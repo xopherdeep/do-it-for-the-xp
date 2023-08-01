@@ -4,7 +4,7 @@
       <ion-toolbar color="warning">
         <ion-buttons slot="start">
           <ion-back-button 
-            :default-href="`/my-portal/${user.id}/the-city`"
+            :default-href="`/my-portal/${user.id}/home-town`"
           ></ion-back-button>
           <!-- <ion-icon :icon="storefrontOutline" slot="icon-only" /> -->
           <i class="fa fa-piggy-bank fa-2x"></i>

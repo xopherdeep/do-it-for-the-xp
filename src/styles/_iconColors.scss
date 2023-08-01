@@ -1,0 +1,240 @@
+.icon-colors {
+  i {
+    --xp-color-red: #BD0C00;
+    --xp-color-blue: #4870D0;
+    --xp-color-green: #1FA627;
+    --xp-color-brown: #BE5C00;
+    --xp-color-yellow: #DE9A00;
+    --xp-color-white: white;
+    --xp-color-gray: #A8A8A8;
+    --xp-color-lightBlue: skyblue;
+
+    &.fa- {
+      &bow-arrow {
+        --fa-primary-color: var(--xp-color-white);
+        --fa-secondary-color: var(--xp-color-brown);
+        --fa-secondary-opacity: 1
+      }
+
+      &wind {
+        --fa-primary-color: white;
+        --fa-secondary-color: var(--xp-color-lightBlue);
+        --fa-secondary-opacity: 0.9
+      }
+
+      &expand-alt {
+        --fa-primary-color: var(--xp-color-white);
+        --fa-secondary-color: var(--xp-color-red);
+        --fa-secondary-opacity: 1
+      }
+
+      &bomb {
+        --fa-primary-color: var(--xp-color-blue);
+        --fa-secondary-color: var(--xp-color-white);
+        --fa-secondary-opacity: 1
+      }
+
+      &comment {
+        // --fa-primary-color: var(--xp-color-blue);
+        // --fa-secondary-color: var(--xp-color-green);
+        --fa-secondary-opacity: 1
+      }
+
+      &compass {
+        --fa-primary-color: var(--xp-color-lightBlue);
+        --fa-secondary-color: var(--xp-color-blue);
+        --fa-secondary-opacity: 1
+      }
+
+      &bell-exclamation {
+        // --fa-primary-color:  var(--xp-color-lightBlue);
+        // --fa-secondary-color: var(--xp-color-gray);
+        // --fa-secondary-opacity: 1
+      }
+
+      &sack {
+        --fa-primary-color: var(--xp-color-gray);
+        --fa-secondary-color: var(--xp-color-brown);
+        --fa-secondary-opacity: 1
+      }
+
+      &wand-magic {
+        &.fire {
+          --fa-primary-color: var(--xp-color-red);
+          --fa-secondary-color: var(--xp-color-yellow);
+          --fa-secondary-opacity: 1
+        }
+
+        &.ice {
+          --fa-primary-color: var(--xp-color-blue);
+          --fa-secondary-color: var(--xp-color-lightBlue);
+          --fa-secondary-opacity: 1
+        }
+      }
+
+      &flame {
+        --fa-primary-color: var(--xp-color-red);
+        --fa-secondary-color: var(--xp-color-yellow);
+        --fa-secondary-opacity: 1
+      }
+
+      &bolt {
+        --fa-primary-color: var(--xp-color-yellow);
+        --fa-secondary-color: var(--xp-color-yellow);
+        --fa-secondary-opacity: .6
+      }
+
+      &hat-wizard {
+        --fa-primary-color: var(--xp-color-blue);
+        --fa-secondary-color: var(--xp-color-yellow);
+        --fa-secondary-opacity: 1
+      }
+
+      &diamond {
+        --fa-primary-color: var(--xp-color-lightBlue);
+        --fa-secondary-color: var(--xp-color-blue);
+        --fa-secondary-opacity: 1
+      }
+
+      &wave-sine {
+        --fa-primary-color: var(--xp-color-yellow);
+        --fa-secondary-color: var(--xp-color-green);
+        --fa-secondary-opacity: 1
+      }
+
+      &flashlight {
+        --fa-primary-color: var(--xp-color-yellow);
+        --fa-secondary-color: var(--xp-color-red);
+
+        --fa-secondary-opacity: 1
+      }
+
+      &hammer-war {
+        --fa-primary-color: var(--xp-color-gray);
+        --fa-secondary-color: var(--xp-color-brown);
+        --fa-secondary-opacity: 1
+      }
+
+      &waveform {
+        --fa-primary-color: var(--xp-color-yellow);
+        --fa-secondary-color: var(--xp-color-blue);
+        --fa-secondary-opacity: 1
+      }
+
+      &bug {
+        --fa-primary-color: var(--xp-color-red);
+        --fa-secondary-color: var(--xp-color-green);
+        --fa-secondary-opacity: 1
+      }
+
+      &wallet{
+        --fa-primary-color: var(--xp-color-yellow);
+        --fa-secondary-color: var(--xp-color-brown);
+        --fa-secondary-opacity: 1
+      }
+
+      &backpack{
+        --fa-primary-color: var(--xp-color-red);
+        --fa-secondary-color: var(--xp-color-red);
+        --fa-secondary-opacity: 1
+      }
+
+      &ankh{
+        --fa-primary-color: var(--xp-color-yellow);
+        --fa-secondary-color: var(--xp-color-brown);
+        --fa-secondary-opacity: 1
+
+      }
+
+      &book-spells {
+        --fa-primary-color: var(--ion-color-tertiary);
+        --fa-secondary-color: var(--xp-color-lightBlue);
+        --fa-secondary-opacity: 1
+      }
+
+      &flask-potion {
+        --fa-primary-color: var(--xp-color-white);
+        --fa-secondary-color: var(--xp-color-blue);
+        --fa-secondary-opacity: 1
+      }
+
+      &staff {
+        &.quest{
+          --fa-primary-color: var(--xp-color-brown);
+          --fa-secondary-color: var(--xp-color-yellow);
+          --fa-secondary-opacity: 1
+        }
+        &.fire {
+          --fa-primary-color: var(--xp-color-red);
+          --fa-secondary-color: var(--xp-color-yellow);
+          --fa-secondary-opacity: 1
+        }
+
+        &.ice {
+          --fa-primary-color: var(--xp-color-blue);
+          --fa-secondary-color: var(--xp-color-lightBlue);
+          --fa-secondary-opacity: 1
+        }
+      }
+
+      &shield-virus {
+        --fa-primary-color: var(--xp-color-lightBlue);
+        --fa-secondary-color: var(--xp-color-blue);
+        --fa-primary-opacity: 1;
+        --fa-secondary-opacity: 1
+      }
+
+      &flux-capacitor {
+        --fa-primary-color: var(--xp-color-yellow);
+        --fa-secondary-color: var(--xp-color-red);
+        --fa-primary-opacity: 1;
+        // --fa-secondary-opacity: 1
+      }
+
+      &moon-stars {
+        --fa-primary-color: var(--xp-color-lightBlue);
+        --fa-secondary-color: var(--xp-color-white);
+        --fa-primary-opacity: 1;
+        --fa-secondary-opacity: 1
+      }
+
+      &hood-cloak {
+        --fa-primary-color: var(--xp-color-white);
+        --fa-secondary-color: var(--xp-color-red);
+        --fa-primary-opacity: .5;
+        --fa-secondary-opacity: 1
+      }
+
+      &portal-enter {
+        --fa-primary-color: var(--xp-color-yellow);
+        --fa-secondary-color: var(--xp-color-blue);
+        --fa-secondary-opacity: 1
+      }
+
+      &tint {
+        --fa-primary-color: var(--xp-color-lightBlue);
+        --fa-secondary-color: var(--xp-color-blue);
+        --fa-secondary-opacity: 1 --fa-primary-opacity:.9
+      }
+
+      &whistle {
+        --fa-primary-color: var(--xp-color-white);
+        --fa-secondary-color: var(--xp-color-blue);
+        --fa-secondary-opacity: 1
+      }
+
+      &medal {
+        --fa-primary-color: var(--xp-color-green);
+        --fa-secondary-color: var(--xp-color-green);
+        --fa-secondary-opacity: .5
+      }
+
+      &hand-holding-seedling{
+        --fa-primary-color: var(--xp-color-green);
+        // --fa-secondary-color: var(--xp-color-white);
+        --fa-secondary-opacity: 1
+      }
+    }
+  }
+}
+

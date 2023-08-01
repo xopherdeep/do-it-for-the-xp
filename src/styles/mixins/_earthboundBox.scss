@@ -1,0 +1,107 @@
+@mixin earthboundBox {
+  --ion-color-primary: #e7e6b3;
+  --ion-color-primary-rgb: 17, 23, 77;
+  --ion-color-primary-contrast: #383838;
+  --ion-color-primary-contrast-rgb: 56, 56, 56;
+  --ion-color-primary-shade: #dcd93b;
+  --ion-color-primary-tint: #b9dc3b;
+
+  --ion-color-step-850: #e7e6b3;
+  font-family: 'Apple Kid';
+  // background-color: #280828;
+  background-color: #383050;
+  color: #e7e6b3;
+  padding: 5px 3px;
+  border-radius: 1px;
+  transform: translateY(0);
+  transition: transform linear 150ms;
+  box-shadow:
+    0 0 0 5px #383050,
+    /* dark grey */
+    0 0 0 10px #68d0b8,
+    /* minty blue */
+    0 0 0 12px #f7e8a8,
+    /* white */
+    0 0 0 16px #3d3c55;
+  /* black */
+  --ion-safe-area-top: 85px;
+  --background: #383050;
+  // background-color: #383050;
+  // background-color: #280828;
+  --color: #e7e6b3;
+  --padding: 5px 3px;
+  --border-radius: 1px;
+  --transform: translateY(0);
+  --transition: transform linear 150ms;
+  --box-shadow:
+    0 0 0 5px #383050,
+    0 0 0 10px #68d0b8,
+    0 0 0 12px #f7e8a8,
+    0 0 0 16px #3d3c55;
+  --button-color: #e7e6b3;
+
+  ion-grid{
+    background-color:#280828;
+  }
+
+  ion-list {
+    background: transparent;
+    --background: transparent;
+
+    ion-item {
+      --ion-item-background: transparent;
+      --color: var(--ion-color-primary);
+    }
+  }
+
+  ion-accordion {
+    --ion-background-color: transparent;
+
+    ion-list {
+      background: transparent;
+
+      ion-item {
+        --ion-item-background: transparent;
+        --color: var(--ion-color-primary);
+      }
+    }
+
+  }
+
+  ion-card-content{
+    font-size: 17pt;
+  }
+
+  ion-button {
+    --background: transparent;
+    i{
+      // margin-right: 5px;
+      // display: inline-block;
+      width: 35px;
+      font-size: 20px;
+    }
+
+    &::part(native) {
+      overflow: visible;
+
+      font-family: 'Apple Kid';
+      font-size: 20pt;
+      text-transform: capitalize;
+      // padding-left: 5px;
+
+
+      &:hover::before {
+        content: '';
+        position: absolute;
+        left: -10px;
+        top: 10px;
+        width: 0;
+        border-color: yellow;
+        height: 0;
+        border-top: 0.3rem solid transparent;
+        border-bottom: 0.3rem solid transparent;
+        border-left: 0.3rem solid var(--ion-color-primary);
+      }
+    }
+  }
+}

@@ -139,9 +139,10 @@
         </ion-card>
       </ion-modal>
       <ion-modal
-        trigger="save-quit"
+        trigger="save-quit" 
         :breakpoints="[0.9]"
         :initialBreakpoint="0.9"
+        @ionModalDidDismiss="closeModal"
       >
         <ion-card>
           <ion-card-header>

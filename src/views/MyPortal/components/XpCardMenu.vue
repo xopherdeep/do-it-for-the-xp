@@ -40,7 +40,7 @@
 
 <script lang="js">
   import { defineComponent } from 'vue'
-  import ionic from "@/assets/js/mixins/ionic";
+  import ionic from "@/mixins/ionic";
   export default defineComponent({
     name: 'xp-card-menu',
     props: ["cardTitle", "actions"],
@@ -50,3 +50,4 @@
     },
   })
 </script>
+@/mixins/ionic@/mixins/ionic

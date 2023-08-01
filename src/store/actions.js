@@ -1,7 +1,5 @@
-import Api from "@/assets/js/api.js";
-import XpApi from "@/assets/js/api/xp.js";
-import router from "@/router";
-import { useRoute } from "vue-router";
+import Api from "@/api";
+import XpApi from "@/api/doit.forthexp.com.api";
 
 export default {
   getSingleById({ getters, commit }, request) {
@@ -127,7 +125,7 @@ export default {
     commit("DEACTIVATE_BATTLE");
   },
 
-  enterBattle({ dispatch, commit, state, getters }) {
+  enterBattle({ dispatch, state }) {
     const playMusic = () => dispatch("turnMusicOnOff");
     // dispatch("changeBGM", { is_on: true })
     dispatch("changeBGM")
@@ -136,12 +134,11 @@ export default {
 
   startBattleTimer({ dispatch, state, commit }) {
     const randomEncounter = () => dispatch("randomEncounter");
-    let {
-      counter,
-      interval,
+    const {
       timer,
       steps: { max, min },
     } = state.battle;
+    let {counter, interval} = state.battle
 
     if (counter <= 0) {
       counter = Math.floor(Math.random() * (max - min + 1) + min);
@@ -152,7 +149,7 @@ export default {
     if (interval) commit("SET_BATTLE_INTERVAL", interval);
   },
 
-  stopBattleTimer({ state, commit }) {
+  stopBattleTimer({ commit }) {
     commit("SET_BATTLE_INTERVAL", 0);
     // commit("SET_BATTLE_COUNTER", state.battle.steps.max);
   },
@@ -161,7 +158,7 @@ export default {
     commit("SET_BATTLE_COUNTER", state.battle.steps.max);
   },
 
-  randomEncounter({ state, commit, getters, dispatch }) {
+  randomEncounter({ state, commit, getters }) {
     const {
       terrain: { plains, swamp, forest, mountain, island },
       steps: { counter },

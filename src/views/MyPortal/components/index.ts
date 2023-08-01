@@ -3,8 +3,12 @@ import XpFabUserHud from "./XpFabUserHud.vue"
 import XpFabQuickDraw from "./XpFabQuickDraw.vue"
 import XpFabGoldPoints from "./XpFabGoldPoints.vue"
 import XpFabPageShortcuts from "./XpFabPageShortcuts.vue"
-import CardUserStats from "@/views/CardUserStats/CardUserStats.vue";
+import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
 import { Swiper, SwiperSlide } from "swiper/vue";
+import XpEquipmentModal from "./XpEquipmentModal.vue"
+
+
+
 
 export default { 
   Swiper,
@@ -14,5 +18,7 @@ export default {
   XpFabQuickDraw,
   XpFabGoldPoints,
   XpFabPageShortcuts,
-  XpFabUserHud 
+  XpFabUserHud,
+  XpEquipmentModal
+
 }

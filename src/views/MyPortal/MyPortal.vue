@@ -1,11 +1,11 @@
 <template>
   <ion-page class="ion-page" :class="$options.name" v-cloak>
-    <ion-content>
+    <ion-content class="bg-transparent icon-colors">
       <xp-fab-user-hud :user="user" :isUserFabOn="isUserFabOn" />
       <xp-fab-gold-points :user="user" :isUserFabOn="isUserFabOn" />
       <xp-fab-quick-draw v-if="isUserFabOn" :user="user" :equipment="equipment" @openHud="isRPGBoxOpen = true" />
       <xp-fab-page-menu v-if="isUserFabOn" :user="user" :page-name="compass.name" />
-      <xp-fab-page-shortcuts v-if="isUserFabOn" :shortcuts="userActions"/>
+      <xp-fab-page-shortcuts v-if="isUserFabOn" :shortcuts="userActions" />
 
       <ion-tabs v-if="user.stats">
         <ion-router-outlet ref="outlet" :userId="user.id"></ion-router-outlet>
@@ -56,8 +56,8 @@
           <!-- 
           To favor immersion, we're taking these out
           <ion-tab-button
-            tab="the-city"
-            :href="`/my-portal/${user.id}/the-city`"
+            tab="home-town"
+            :href="`/my-portal/${user.id}/home-town`"
           >
             <i class="fad fa-archway fa-2x"></i>
             <i class="fal fa-city fa-2x"></i>
@@ -104,122 +104,13 @@
     </ion-modal>
 
     <!-- EQUIPMENT MODAL -->
-    <ion-modal
-      class="rpg-box"
-      :is-open="isRPGBoxOpen"
-      trigger="toolbox"
-      :breakpoints="[1]"
-      :initialBreakpoint="1"
-      :fullscreen="true"
-      @didDismiss="didDismissRPGBox"
-    >
-      <ion-header>
-        <ion-buttons>
-          <ion-button class="ion-float-right" size="large" @click="closeModal">
-            <i class="fad fa-times fa-2x"></i>
-          </ion-button>
-        </ion-buttons>
-      </ion-header>
-      <ion-content>
-        <ion-grid>
-          <ion-row>
-            <ion-col size="7">
-              <ion-card class="items">
-                <ion-card-title> Equipment </ion-card-title>
-                <ion-card-content class="ion-no-padding">
-                  <ion-buttons slot="end"> </ion-buttons>
-                  <ion-buttons>
-                    <ion-button
-                      @mouseover="displayInfo(item)"
-                      v-for="item in specialItems"
-                      :key="item.faIcon"
-                      @click="clickItem(item)"
-                      size=""
-                      expand="block"
-                    >
-                      <i
-                        class="ion-float-left fad fa-2x"
-                        :class="`fa-${item.faIcon}`"
-                        :style="item.style || {}"
-                      ></i>
-                    </ion-button>
-                  </ion-buttons>
-                </ion-card-content>
-              </ion-card>
-              <ion-card class="status">
-                <ion-card-title> Status </ion-card-title>
-                <ion-card-content class="content">
-                  <i class="fad fa-2x fa-dice-d4"></i>
-                  <i class="fad fa-2x fa-dice-d6"></i>
-                  <i class="fad fa-2x fa-dice-d8"></i>
-                  <i class="fad fa-2x fa-dice-d10"></i>
-                  <i class="fad fa-2x fa-dice-d12"></i>
-                  <i class="fad fa-2x fa-dice-d20"></i>
-                </ion-card-content>
-              </ion-card>
-            </ion-col>
-            <ion-col size="5">
-              <ion-card class="todays-achievements">
-                <ion-card-title> Achievements </ion-card-title>
-                <ion-button @click="changeBG" size="" expand="block">
-                  <i class="fad fa-ankh fa-2x"></i>
-                </ion-button>
-                <i class="fad fa-diamond fa-lg"></i>
-                <i class="fad fa-diamond fa-lg"></i>
-                <i class="fad fa-diamond fa-lg"></i>
-                <i class="fad fa-diamond fa-lg"></i>
-                <i class="fad fa-diamond fa-lg"></i>
-                <i class="fad fa-diamond fa-lg"></i>
-                <i class="fad fa-diamond fa-lg"></i>
-                <!-- <i class="fad fa-ankh fa-lg"></i>
-                <i class="fad fa-ankh fa-lg"></i>
-                <i class="fad fa-ankh fa-lg"></i> -->
-              </ion-card>
-              <ion-card class="equipment">
-                <ion-card-title> Equipped </ion-card-title>
-                <i
-                  v-for="item in equipment"
-                  :key="item.faIcon"
-                  :class="`fa-${item.faIcon}`"
-                  class="fad fa-2x"
-                ></i>
-              </ion-card>
-              <ion-card class="info">
-                <ion-card-title v-if="info"> {{ info.name }} </ion-card-title>
-                <i
-                  class="fad fa-2x"
-                  :class="`fa-${info.faIcon}`"
-                  :style="info.style || {}"
-                ></i>
-                {{ info.desc }}
-                <ion-grid>
-                  <ion-row>
-                    <ion-col size="6">
-                      <ion-button
-                        expand="block"
-                        color="dark"
-                      >
-                        Use 
-                      </ion-button>
-                    </ion-col>
-                    <ion-col size="6">
-                      <ion-button
-                        expand="block"
-                        color="dark"
-                        @click="clickAction(info)"
-                      >
-                        Equip
-                      </ion-button>
-                    </ion-col>
-                  </ion-row>
-                </ion-grid>
-              </ion-card>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-      </ion-content>
-      <ion-toolbar class="rpg-box"> </ion-toolbar>
-    </ion-modal>
+    <xp-equipment-modal 
+      :isOpen="isRPGBoxOpen" 
+      :equipment="equipment"
+      @equip="clickItem"
+      @didDimiss="didDimissRPGBox" 
+      @close="closeModal"
+    />
 
     <ion-modal
       ref="userProfile"
@@ -383,4 +274,4 @@
 </template>
 
 <script src="./MyPortal.js" />
-<style lang="scss" src="./_MyPortal.scss" scoped />
+<style lang="scss" src="./_MyPortal.scss" />

@@ -1,10 +1,10 @@
 <template>
   <!-- EQUIPPED MENU -->
-  <ion-fab vertical="center" horizontal="end" v-if="user.stats">
+  <ion-fab vertical="bottom" horizontal="center" v-if="user.stats">
     <ion-fab-button color="tertiary">
       <i class="fad fa-hand-sparkles fa-2x"></i>
     </ion-fab-button>
-    <ion-fab-list side="start">
+    <ion-fab-list side="top">
       <ion-fab-button color="dark" @click="$emit('openHud')">
         <i class="fad fa-compass fa-lg"></i>
       </ion-fab-button>
@@ -12,16 +12,23 @@
         <i class="fad fa-map fa-lg"></i>
       </ion-fab-button>
     </ion-fab-list>
-    <ion-fab-list side="top" class="items">
-      <ion-fab-button v-for="item in equipment" :key="item.faIcon" color="dark" @click="item.click">
+    <ion-fab-list side="start">
+      <ion-fab-button>
+        <ion-menu-button color="primary"></ion-menu-button>
+      </ion-fab-button>
+    </ion-fab-list>
+    <ion-fab-list side="start" class="items">
+      <ion-fab-button v-for="item in leftItems" :key="item.faIcon" color="dark" @click="item.click">
         <i class="fad fa-2x "
           :class="`fa-${item.faIcon}`"
           ></i>
       </ion-fab-button>
     </ion-fab-list>
-    <ion-fab-list side="bottom">
-      <ion-fab-button>
-        <ion-menu-button color="primary"></ion-menu-button>
+    <ion-fab-list side="end" class="items">
+      <ion-fab-button v-for="item in rightItems" :key="item.faIcon" color="dark" @click="item.click">
+        <i class="fad fa-2x "
+          :class="`fa-${item.faIcon}`"
+          ></i>
       </ion-fab-button>
     </ion-fab-list>
   </ion-fab>
@@ -34,11 +41,20 @@
 
 <script lang="js">
   import { defineComponent } from 'vue'
-  import ionic from "@/assets/js/mixins/ionic";
+  import ionic from "@/mixins/ionic";
 
   export default defineComponent({
     props: ['user', 'equipment'],
     mixins: [ ionic ],
+    computed:{
+      leftItems(){
+        return this.equipment.filter(item => item.hand === 'left')
+      },
+
+      rightItems(){
+        return this.equipment.filter(item => item.hand === 'right')
+      }
+    },
     setup() {
     //
       
@@ -49,3 +65,4 @@
 
 
 
+@/mixins/ionic@/mixins/ionic

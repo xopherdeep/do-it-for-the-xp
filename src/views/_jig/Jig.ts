@@ -1,5 +1,5 @@
 import { defineComponent } from 'vue'
-import ionic from "@/assets/js/mixins/ionic";
+import ionic from "@/mixins/ionic";
 
 import {
   arrowBack

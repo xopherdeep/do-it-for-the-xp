@@ -2,6 +2,7 @@
   "name": "@xopherdeep/do-it-for-the-xp",
   "description": "An Ionic project",
   "version": "0.0.2",
+  "license": "UNLICENSED",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/xopherdeep/do-it-for-the-xp.git"
@@ -11,11 +12,12 @@
   },
   "private": false,
   "scripts": {
-    "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build",
+    "serve": "ionic serve",
+    "build": "ionic build",
     "test:unit": "vue-cli-service test:unit",
     "test:e2e": "vue-cli-service test:e2e",
-    "lint": "vue-cli-service lint"
+    "lint": "vue-cli-service lint",
+    "lint:fix": "vue-cli-service lint --fix"
   },
   "dependencies": {
     "@awesome-cordova-plugins/core": "^5.40.0",

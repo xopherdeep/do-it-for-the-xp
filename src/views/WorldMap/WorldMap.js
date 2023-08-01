@@ -1,11 +1,11 @@
 import { defineComponent } from "vue";
 import createGlobe from "cobe";
-import ionic from "@/assets/js/mixins/ionic";
+import ionic from "@/mixins/ionic";
 import { arrowBack } from "ionicons/icons";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
-import userActions from "@/assets/js/mixins/userActions";
+import userActions from "@/mixins/userActions";
 import { onIonViewDidEnter } from "@ionic/vue";
 
 
@@ -25,11 +25,11 @@ export default defineComponent({
 
     const userActions = [
         {
-          label: "Forest",
-          faIcon: "trees",
-          side: "start",
+          label: "Plains",
+          faIcon: "tornado",
+          side: "top",
           click(){
-            router.push({ name:'world-forest', params: {userId} })
+            router.push({ name:'world-plains', params: {userId} })
           }
         },
         {
@@ -41,17 +41,17 @@ export default defineComponent({
           }
         },
         {
-          label: "Plains",
-          faIcon: "tornado",
+          label: "Forest",
+          faIcon: "trees",
           side: "start",
           click(){
-            router.push({ name:'world-plains', params: {userId} })
+            router.push({ name:'world-forest', params: {userId} })
           }
         },
         {
           label: "Swamps",
           faIcon: "skull-crossbones",
-          side: "end",
+          side: "bottom",
           click(){
             router.push({ name:'world-swamps', params: {userId} })
           }
@@ -59,7 +59,7 @@ export default defineComponent({
         {
           label: "Mountains",
           faIcon: "mountains",
-          side: "end",
+          side: "bottom",
           click(){
             router.push({ name:'world-mountains', params: {userId} })
           }
@@ -67,7 +67,7 @@ export default defineComponent({
         {
           label: "Sands",
           faIcon: "cactus",
-          side: "end",
+          side: "bottom",
           click(){
             router.push({ name:'world-sands', params: {userId} })
           }

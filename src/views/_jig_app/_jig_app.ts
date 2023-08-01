@@ -1,5 +1,5 @@
 import { defineComponent } from "vue";
-import ionic from "@/assets/js/mixins/ionic";
+import ionic from "@/mixins/ionic";
 
 import {
   arrowBack,
@@ -25,7 +25,7 @@ import {
   banOutline,
   bagOutline,
 } from "ionicons/icons";
-import fetchItems from "@/assets/js/mixins/fetchItems.js"
+import fetchItems from "@/mixins/fetchItems"
 
 export default defineComponent({
   props: ["userId"],

@@ -6,6 +6,7 @@
     "jsx": "preserve",
     "importHelpers": true,
     "noImplicitAny": false,
+    "allowJs": true,
     "moduleResolution": "node",
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -16,18 +17,18 @@
     "paths": {
       "@/*": ["src/*"]
     },
-    "lib": ["esnext", "dom", "dom.iterable", "scripthost"]
+    "lib": ["esnext", "dom", "dom.iterable", "scripthost"],
   },
   "include": [
+    "src/**/*.js",
     "src/**/*.ts",
-    "src/**/*.tsx",
     "src/**/*.vue",
     "tests/**/*.ts",
-    "tests/**/*.tsx",
-    "src/router/index.ts",
-    "src/router/routes.ts",
-    "src/views/MyDashboard/MyDashboard.ts",
-    "src/assets/js/store/index.js"
+    "tests/**/*.js",
+    // "src/router/router.ts",
+    // "src/router/routes.ts",
+    // "src/assets/js/store/index.js", 
+    // "src/assets/js/requireImg.js"  
   ],
   "exclude": ["node_modules"]
 }

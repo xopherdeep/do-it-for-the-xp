@@ -2,8 +2,8 @@ import { defineComponent, ref } from "vue";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
-import userActions from "@/assets/js/mixins/userActions";
-import ionic from "@/assets/js/mixins/ionic";
+import userActions from "@/mixins/userActions";
+import ionic from "@/mixins/ionic";
 import {modalController} from "@ionic/vue";
 
 import { arrowBack } from "ionicons/icons";
@@ -12,6 +12,7 @@ export default defineComponent({
   name: "my-home",
   data() {
     return {
+        showSaveQuit: false,
     };
   },
   mixins: [ionic, userActions],
@@ -19,6 +20,15 @@ export default defineComponent({
   ionViewDidEnter(){
     this.setUserActions(this.userActions)
   },
+  // methods: {
+  //     openModal() {
+  //       this.showSaveQuit = true;
+  //     },
+  //     closeModal() {
+  //       this.showSaveQuit = false;
+  //     },
+
+  // },
   setup() {
     const route      = useRoute();
     const router     = useRouter()
@@ -35,20 +45,20 @@ export default defineComponent({
       arrowBack,
       userActions: [
         {
-          label: "Open Storage",
+          label: "My Calendar",
+          id: 'adventure-time',
+          faIcon: "clock",
+          side: "bottom",
+        },
+        {
+          label: "My Storage",
           // id: 'storage',
           faIcon: "treasure-chest",
-          side: "start",
+          side: "bottom",
           // link: 'storage',
           click($ev){
             router.push({ name:'storage', params: {userId} })
           }
-        },
-        {
-          label: "Calendar",
-          id: 'adventure-time',
-          faIcon: "clock",
-          side: "start",
         },
         // {
         //   id: 'rest',
@@ -56,30 +66,30 @@ export default defineComponent({
         //   faIcon: "bed",
         // },
         {
-          label: "Craft Item",
+          label: "My Workbench",
           id: 'craft',
           faIcon: "tools",
-          side: "end",
+          side: "top",
           click($ev){
             router.push({ name:'craft-item', params: {userId} })
           }
         },
         {
-          label: "Cook Food",
+          label: "My Kitchen",
           id: 'cook',
           faIcon: "hat-chef",
-          side: "end",
+          side: "top",
           click($ev){
             router.push({ name:'cook-food', params: {userId} })
           }
         },
         {
           label: "Go Outside",
-          id: 'the-city',
+          id: 'home-town',
           faIcon: "door-open",
-          side: "top",
+          side: "start",
           click($ev){
-            router.push({ name:'the-city', params: {userId} })
+            router.push({ name:'home-town', params: {userId} })
             console.log($ev.preventDefault());
           }
         },

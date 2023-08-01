@@ -4,7 +4,7 @@
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
           <ion-back-button
-            :default-href="`/my-portal/${user.id}/the-city`"
+            :default-href="`/my-portal/${user.id}/home-town`"
           ></ion-back-button>
           <i class="fa fa-2x" :class="`fa-${shopIcon}`" />
         </ion-buttons>
@@ -210,5 +210,5 @@
   </ion-page>
 </template>
 
-<script src="./AccessoryShop.js" />
+<script src="./AccessoryShop.ts" />
 <style lang="scss" src="./_AccessoryShop.scss" />

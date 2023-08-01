@@ -44,7 +44,7 @@
 </style>
 
 <script lang="js">
-  import ionic from "@/assets/js/mixins/ionic";
+  import ionic from "@/mixins/ionic";
   import { defineComponent } from 'vue'
 
   export default defineComponent({
@@ -56,3 +56,4 @@
   })
 </script>
 
+@/mixins/ionic@/mixins/ionic

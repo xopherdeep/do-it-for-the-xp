@@ -1,0 +1,198 @@
+@import url('https://fonts.googleapis.com/css?family=Passion+One:700');
+
+.ion-page{
+  background:
+    url("@/assets/images/backgrounds/parallax/battleback1-1.png") right bottom/cover no-repeat fixed,
+    url("@/assets/images/backgrounds/parallax/battleback1-2.png") left bottom/cover no-repeat;
+  transition: all 5.7s linear;
+
+  h1{
+    font-family: 'The Font Against Giygas';
+    font-size: 45pt;
+    color: white;
+    text-shadow: 7px 7px 0px black;
+
+  }
+
+  ion-content {
+    height: 100%;
+  // --background:
+  //   url("@/assets/images/backgrounds/parallax/battleback1-1.png") right bottom/cover no-repeat fixed,
+  //   url("@/assets/images/backgrounds/parallax/battleback1-2.png") left bottom/cover no-repeat;
+    // --background: url(https://78.media.tumblr.com/ab5d1b5e315a2eca8f7ceecbac7fd622/tumblr_oz2jfje5Jn1u6t6uao1_1280.jpg) center center/cover no-repeat;
+
+    --background: transparent;
+    :host {
+
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+    }
+  }
+
+  .login{
+    ion-card{
+      i{
+        &.close{
+          position: absolute;
+          top: -25px;
+          right: -20px;
+          --fa-primary-color: maroon;
+          --fa-secondary-color: red;
+        }
+      }
+    }
+  }
+}
+
+
+
+ion-col {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#brand {
+  text-align: center;
+  cursor: pointer;
+  height: 100vh;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+
+  ion-button {
+    --border-radius: 10px;
+
+
+    &.button-solid {
+      --background: transparent;
+      --border-radius: 10px;
+
+      transition: 0.4s
+    }
+  }
+}
+
+#brand img {
+  display: block;
+  width: 80vw;
+  max-width: 400px;
+  height: auto;
+  transition: all 0.2s;
+
+  &:hover {
+    // transform: scale(1.25)
+  }
+
+  &.filter-green {
+    // filter: invert(48%) sepia(79%) saturate(2476%) hue-rotate(86deg) brightness(118%) contrast(119%);
+  }
+}
+
+ion-modal {
+  ion-input{
+    &.error{
+      color:rgba(200, 80, 50, 1)
+    }
+  }
+  ion-button {
+    --background: transparent;
+
+    &::part(native) {
+      overflow: visible;
+      border-color: transparent;
+      color: white;
+      border-color: white;
+      transition: 0.7s;
+
+      &:hover {
+        color: var(--ion-color-primary);
+        border-color: var(--ion-color-primary);
+
+        &::before {
+          content: '';
+          position: absolute;
+          left: -1em;
+          top: .8em;
+          width: 0;
+          border-color: yellow;
+          height: 0;
+          // border-top: 0.3rem solid transparent;
+          // border-bottom: 0.3rem solid transparent;
+          // border-left: 0.3rem solid var(--ion-color-primary);
+          // animation: blink infinite step-end;
+
+
+
+        }
+      }
+
+    }
+  }
+
+}
+
+@keyframes blink {
+  from {
+    border-top: 0.6rem solid transparent;
+    border-bottom: 0.6rem solid transparent;
+    border-left: 0.6rem solid var(--ion-color-primary);
+  }
+
+  to {
+    border-top: 0.3rem solid transparent;
+    border-bottom: 0.3rem solid transparent;
+    border-left: 0.3rem solid var(--ion-color-primary);
+  }
+}
+
+#brand a {
+  display: block;
+  font-family: 'Passion One';
+  font-size: 3em;
+  color: #333;
+  font-weight: 800;
+  text-decoration: none;
+  background: rgba(0, 0, 40, 0);
+  padding: 5px 15px;
+  color: rgba(200, 80, 50, 1);
+  transition: 0.4s
+}
+
+#brand:hover a {
+  color: rgba(200, 80, 50, 1);
+  text-shadow: 2px 5px 0 rgba(0, 0, 0, 0.6);
+}
+
+/* follow me @nodws */
+.btn-twtr {
+  color: #ddd;
+  border: 2px solid;
+  border-radius: 3px;
+  text-decoration: none;
+  display: inline-block;
+  padding: 5px 10px;
+  font-family: 'Curtain Call';
+  // font-size: 20pt;
+  font-weight: 300;
+  margin-top: 80vh;
+  background: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 0px 3px rgba(0, 0, 0, 0.2);
+  opacity: 0.8;
+  position: absolute;
+  bottom: 20px;
+  right: 20px
+}
+
+.btn-twtr:hover {
+  color: #fff;
+}
+
+.btn-twtr:after {
+  content: "\1F426";
+  padding-left: 5px
+}
