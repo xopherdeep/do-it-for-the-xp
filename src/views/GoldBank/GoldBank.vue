@@ -9,9 +9,7 @@
           <!-- <ion-icon :icon="storefrontOutline" slot="icon-only" /> -->
           <i class="fa fa-piggy-bank fa-2x"></i>
         </ion-buttons>
-        <ion-title> 
-          Gold Bank
-        </ion-title>
+        <ion-title> Gold Bank </ion-title>
       </ion-toolbar>
     </ion-header>
 
@@ -26,12 +24,16 @@
                 Welcome, come in, take a look around!
               </ion-card-content>
             </ion-card>
-
           </ion-col>
         </ion-row>
       </ion-grid>
       <!-- fab placed to the bottom and start and on the bottom edge of the content overlapping footer with a list to the right -->
-      <ion-fab vertical="bottom" horizontal="center" slot="fixed" @click.stop="presentActionSheet">
+      <ion-fab
+        vertical="bottom"
+        horizontal="center"
+        slot="fixed"
+        @click.stop="presentActionSheet"
+      >
         <ion-fab-button color="warning">
           <i class="fad fa-piggy-bank fa-2x"></i>
         </ion-fab-button>
@@ -40,5 +42,5 @@
   </ion-page>
 </template>
 
-<script src="./GoldBank.ts" />
+<script src="./GoldBank" />
 <style lang="scss" src="./_GoldBank.scss" scoped />

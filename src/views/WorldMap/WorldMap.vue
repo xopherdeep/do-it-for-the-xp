@@ -17,5 +17,5 @@
   </ion-page>
 </template>
 
-<script src="./WorldMap.js" />
+<script src="./WorldMap" />
 <style lang="scss" src="./_WorldMap.scss" scoped />

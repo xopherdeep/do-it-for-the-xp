@@ -103,5 +103,5 @@
   </ion-page>
 </template>
 
-<script src="./XpSettingsHome.js" />
+<script src="./XpSettingsHome" />
 <style lang="scss" src="./_XpSettingsHome.scss" scoped/>

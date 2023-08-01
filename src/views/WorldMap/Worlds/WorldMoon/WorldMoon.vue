@@ -17,7 +17,7 @@
   </ion-page>
 </template>
 
-<script src="./WorldMoon.js" />
+<script src="./WorldMoon" />
 <style lang="scss" src="./_WorldMoon.scss" scoped />
 
 <style lang="scss">

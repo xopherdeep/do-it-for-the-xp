@@ -174,5 +174,5 @@
   </ion-page>
 </template>
 
-<script src="./MyHome.js" />
+<script src="./MyHome" />
 <style lang="scss" src="./_MyHome.scss" scoped />

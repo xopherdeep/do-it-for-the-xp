@@ -1,7 +1,7 @@
 <template>
   <ion-page>
     <ion-header>
-      <ion-toolbar color="secondary">
+      <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
           <ion-back-button 
             :default-href="`/my-portal/${user.id}/my-home`"
@@ -140,5 +140,5 @@
   </ion-page>
 </template>
 
-<script src="./_jig_app.ts" />
+<script src="./_jig_app" />
 <style lang="scss" src="./_jig_app.scss" scoped />

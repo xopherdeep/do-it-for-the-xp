@@ -50,7 +50,7 @@
   </ion-list>
 </template>
 
-<script lang="javascript">
+<script lang="ts">
 import { computed, defineComponent } from "vue";
 
 import {

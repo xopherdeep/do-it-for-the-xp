@@ -11,10 +11,8 @@
     background-color: white;
     border-radius: 0px;
     padding: 0em;
-    color: rgba(var(--ion-color-dark-rgb),0.5);
-    text-shadow: 
-      1px 1px 1px var(--ion-color-success-shade),
-      ;
+    color: rgba(var(--ion-color-dark-rgb), 0.5);
+    text-shadow: 1px 1px 1px var(--ion-color-success-shade);
 
     ion-icon {
       color: var(--ion-color-success-contrast);
@@ -33,7 +31,7 @@
 
     ion-badge {
       background: none;
-      margin: -0.20em 1em;
+      margin: -0.2em 1em;
       // width: 90%;
       font-size: x-small;
       display: flex;
@@ -50,7 +48,42 @@
       }
       ion-icon {
         border-radius: 5px;
-        font-size: 13 !important
+        font-size: 13 !important;
+        color: var(--ion-color-success-contrast);
+        font-size: 8px;
+        text-shadow: 0px 0px 3px var(--ion-color-success-shade);
+      }
+
+      ion-progress-bar {
+        // margin: 0.2em 0.5em;
+        height: 15px;
+        border-radius: 0px;
+        box-shadow: 0px 0px 5px rgba(var(--ion-color-success-rgb), 0.85);
+        border: 0;
+        border-top: 1px solid var(--ion-color-dark);
+      }
+
+      ion-badge {
+        background: none;
+        margin: -0.2em 1em;
+        // width: 90%;
+        font-size: x-small;
+        display: flex;
+        align-items: center;
+        position: absolute;
+        height: 20px;
+        text-align: left;
+        justify-content: end;
+        color: var(--ion-color-success-contrast);
+        text-shadow: 0 0px 5px var(--xp-color-success);
+
+        p {
+          margin: 0em;
+        }
+        ion-icon {
+          border-radius: 5px;
+          font-size: 13 !important;
+        }
       }
     }
   }
@@ -85,14 +118,12 @@
     gap: 0.5em;
     justify-content: center;
     align-items: center;
-    ion-button{
-      i{
+    ion-button {
+      i {
         // font-size: 10px !important;
       }
     }
   }
-
-
 
   .rpg-box {
     ion-card {
@@ -114,7 +145,6 @@
           display: flex;
           flex-wrap: wrap;
           i {
-
             width: auto;
             height: auto;
             font-size: inherit;
@@ -147,5 +177,3 @@
     }
   }
 }
-
-

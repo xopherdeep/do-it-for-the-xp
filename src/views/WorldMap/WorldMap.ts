@@ -27,7 +27,7 @@ export default defineComponent({
         {
           label: "Plains",
           faIcon: "tornado",
-          side: "top",
+          side: "start",
           click(){
             router.push({ name:'world-plains', params: {userId} })
           }

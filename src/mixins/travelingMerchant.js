@@ -1,6 +1,6 @@
 import { defineComponent } from "vue";
+
 const TravelingMerchant = defineComponent({
-  
   data(){
     return {
       merchant: {
@@ -28,7 +28,13 @@ const TravelingMerchant = defineComponent({
 
   computed: {
     merchantAction(){
-      const { merchant: { label, faIcon, side }, click } = this
+      const { merchant: { label, faIcon, side }, $router } = this
+      const click = () => $router.push({ 
+        name: "shop", 
+        params: {
+          merchant: "traveling-merchant"
+        } 
+      })
       return { label, side, faIcon, click }
     },
 
@@ -54,14 +60,9 @@ const TravelingMerchant = defineComponent({
       return this.areaWhereMerchantIs == area 
     },
 
-    click(){
-      this.$router.push({ 
-        name: "shop", 
-        params: {
-          merchant: "traveling-merchant"
-        } 
-      })
-    },
+    // click(){
+    //   this.
+    // },
   },
 })
 

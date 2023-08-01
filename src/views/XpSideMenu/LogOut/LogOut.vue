@@ -17,5 +17,5 @@
   </ion-page>
 </template>
 
-<script src="./LogOut.js" />
+<script src="./LogOut" />
 <style lang="scss" src="./_LogOut.scss" scoped/>

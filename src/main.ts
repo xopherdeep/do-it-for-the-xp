@@ -21,6 +21,11 @@ const app = createApp(App)
 //         app.component(key, IonComponents[key]);
 //     }
 // });
+declare module '@vue/runtime-core' {
+  interface ComponentCustomProperties {
+    $fx: any
+  }
+}
 
 
 app.config.globalProperties = {

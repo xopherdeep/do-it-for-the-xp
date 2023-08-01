@@ -165,6 +165,7 @@ ion-app {
       &::part(header),
       &::part(message) {
         font-family: "Apple Kid";
+        font-size: x-large;
 
         &::before {
           content: "\2022";

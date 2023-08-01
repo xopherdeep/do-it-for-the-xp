@@ -17,7 +17,7 @@
   </ion-page>
 </template>
 
-<script src="./WorldIslands.js" />
+<script src="./WorldIslands" />
 <style lang="scss" src="./_WorldIslands.scss"/>
 <style lang="scss">
   #water-temple{

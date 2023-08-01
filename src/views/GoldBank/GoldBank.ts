@@ -3,12 +3,9 @@ import ionic from "@/mixins/ionic";
 
 import {
   arrowBack,
-  arrowDownCircleOutline,
-  arrowUpCircleOutline,
   removeCircleOutline,
   addCircleOutline,
   walletOutline,
-  cashOutline,
   chevronBack,
   chevronForward,
   stop,

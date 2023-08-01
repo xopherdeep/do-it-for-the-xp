@@ -17,7 +17,7 @@
   </ion-page>
 </template>
 
-<script src="./WorldMountains.js" />
+<script src="./WorldMountains" />
 <style lang="scss" src="./_WorldMountains.scss" scoped />
 <style lang="scss">
   #fire-temple{

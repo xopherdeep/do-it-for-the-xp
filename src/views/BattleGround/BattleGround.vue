@@ -111,5 +111,5 @@
   </ion-page>
 </template>
 
-<script src="./BattleGround.js" />
+<script src="./BattleGround" />
 <style src="./_BattleGround.scss" lang="scss" />

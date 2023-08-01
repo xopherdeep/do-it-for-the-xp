@@ -17,7 +17,7 @@
   </ion-page>
 </template>
 
-<script src="./WorldPlains.js" />
+<script src="./WorldPlains" />
 <style lang="scss" src="./_WorldPlains.scss" scoped />
 <style lang="scss">
   #wind-temple{
