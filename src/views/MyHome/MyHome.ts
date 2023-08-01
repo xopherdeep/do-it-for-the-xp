@@ -2,8 +2,8 @@ import { defineComponent, ref } from "vue";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { mapActions, useStore } from "vuex";
-import userActions from "@/assets/js/mixins/userActions";
-import ionic from "@/assets/js/mixins/ionic";
+import userActions from "@/mixins/userActions";
+import ionic from "@/mixins/ionic";
 import {modalController, toastController} from "@ionic/vue";
 
 import { arrowBack } from "ionicons/icons";

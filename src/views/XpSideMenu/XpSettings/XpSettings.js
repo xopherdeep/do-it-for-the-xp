@@ -17,7 +17,6 @@ import {
 import {
   arrowBack
 } from "ionicons/icons"
-import { mapActions } from 'vuex'
 
 export default defineComponent({
   name: 'xp-settings',

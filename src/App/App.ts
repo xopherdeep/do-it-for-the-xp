@@ -103,7 +103,7 @@ export default defineComponent({
   },
   mounted() {
     const { $fx:{rpg, theme}, changeBGM, loadBGM } = this; 
-    changeBGM({ tracks: rpg[theme.rpg].BGM.startScreen }).then(loadBGM)
+    changeBGM({ tracks: rpg[theme.rpg].BGM.startScreen }).then(loadBGM as any)
   },
   methods: {
     ...mapActions(["toggleBGM", "changeBGM", "turnMusicOnOff"]),
@@ -167,7 +167,7 @@ export default defineComponent({
       if(bgm.saveBookmark)
         this.bgmBookmark.currentTime = currentTime  
 
-      console.log("BOOKMARK", this.bookmark);
+      // console.log("BOOKMARK", this.bookmark);
       console.log("BOOKMARK AUDIO", audio);
 
       // const audio = this.bookmark ? this.bookmark : new Audio( bgm.tracks[bgmTrack] );

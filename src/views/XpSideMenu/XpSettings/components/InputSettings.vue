@@ -50,14 +50,13 @@
   </ion-list>
 </template>
 
-<script lang="ts">
+<script>
 import { computed, defineComponent } from "vue";
 
 import {
   IonSelect,
   IonSelectOption,
   IonList,
-  IonListHeader,
   IonItem,
   IonToggle,
   IonLabel,
