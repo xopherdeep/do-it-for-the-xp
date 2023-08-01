@@ -11,7 +11,7 @@ export default [
   ...HometownRoutes,
   {
     path: '/user/:userId?',
-    component: () => import ('@/views/UserProfile/UserProfile.vue'),
+    component: () => import ('@/views/App/UserProfile/UserProfile.vue'),
     props: true
   },
   {
@@ -26,7 +26,7 @@ export default [
     meta: {
       faIcon: 'dungeon'
     },
-    component: () => import ('@/views/BattleGround/BattleGround.vue'),
+    component: () => import ('@/views/MyPortal/HomeTown/BattleGround/BattleGround.vue'),
     props: true,
   },
 ]

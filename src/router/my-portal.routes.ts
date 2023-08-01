@@ -14,7 +14,7 @@ const MyPortalRoutes = [
     meta: {
       faIcon: "house-user",
     },
-    component: () => import("@/views/MyHome/MyHome.vue"),
+    component: () => import("@/views/MyPortal/MyHome/MyHome.vue"),
     children: [],
   },
   {
@@ -26,20 +26,12 @@ const MyPortalRoutes = [
     component: () => import("@/views/MyPortal/MyParty.vue"),
   },
   {
-    path: "speakers",
-    component: () => import("@/views/MySpeakers.vue"),
-  },
-  {
-    path: "schedule",
-    component: () => import("@/views/MySchedule.vue"),
-  },
-  {
     path: "home-town",
     name: "home-town",
     meta: {
       faIcon: "archway",
     },
-    component: () => import("@/views/HomeTown/HomeTown.vue"),
+    component: () => import("@/views/MyPortal/HomeTown/HomeTown.vue"),
   },
   {
     path: "world-map",
@@ -47,7 +39,7 @@ const MyPortalRoutes = [
     meta: {
       faIcon: "pegasus",
     },
-    component: () => import("@/views/WorldMap/WorldMap.vue"),
+    component: () => import("@/views/MyPortal/WorldMap/WorldMap.vue"),
   },
   {
     path: "my-profile",
@@ -56,7 +48,7 @@ const MyPortalRoutes = [
       faIcon: "user-circle",
       hideUserFab: true,
     },
-    component: () => import("@/views/UserMenu/MyProfile/MyProfile.vue"),
+    component: () => import("@/views/MyPortal/MyProfile/MyProfile.vue"),
   },
   ...WorldMapRoutes
 ];
