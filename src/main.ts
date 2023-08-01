@@ -5,7 +5,7 @@ import store from './store';
 import $fx from "@/assets/fx"
 import Vue3Autocounter from 'vue3-autocounter';
 import Countdown from 'vue3-flip-countdown'
-import App from './App/App.vue'
+import App from './views/App/App.vue'
 
 const router = createRouter(store)
 

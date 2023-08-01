@@ -1,4 +1,4 @@
-import stats from "./stats.js"
+import stats from "./stats"
 
 export interface ProfileName{
   full: string,

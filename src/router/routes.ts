@@ -20,11 +20,6 @@ export default [
     props: true,
     children: MyPortalRoutes,
   },
-  // {
-  //   path: '/my-party/:userId?',
-  //   component: () => import('@/views/MyParty.vue'),
-  //   props: true
-  // },
   {
     path: '/my-dashboard',
     name: 'my-dashboard',
@@ -34,9 +29,4 @@ export default [
     component: () => import ('@/views/BattleGround/BattleGround.vue'),
     props: true,
   },
-  // {
-  //   path: '/accessory-shop/:userId?',
-  //   component: () => import ('@/views/Xp/Xp.vue'),
-  //   props: true,
-  // },
 ]
