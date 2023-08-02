@@ -28,7 +28,7 @@
         <ion-grid>
           <ion-row>
             <ion-col
-              v-for="(user, key) in users"
+              v-for="(user, key) in profiles"
               :key="key"
               size="6"
               size-sm="4"
@@ -53,14 +53,14 @@
         </ion-grid>
       </div>
     </ion-content>
-    <add-profile />
+    <add-profile @addProfile="refreshProfiles" />
   </ion-page>
 </template>
 
 <script lang="ts">
   import ionic from "@/mixins/ionic";
-
   import users from "@/api/users.api";
+  
   const requireAvatar = require.context("@/assets/images/avatars/");
 
   import { add } from "ionicons/icons";
@@ -69,9 +69,8 @@
     useIonRouter,
   } from "@ionic/vue";
   import { mapActions, useStore } from 'vuex';
-  import { computed, defineComponent } from '@vue/runtime-core';
+  import { computed, defineComponent, ref } from '@vue/runtime-core';
   import AddProfile from './AddProfile/AddProfile.vue';
-
 
   export default defineComponent({
     name: "switch-profile",
@@ -84,14 +83,20 @@
         users,
       };
     },
+
     methods: {
       ...mapActions(["loginUser"]),
       clickAddProfile(){
         this.ionRouter.navigate(`/new-profile`, "forward");
       },
       getUserAvatar(user) {
-        const avatar = `./${user.avatar}.svg`;
-        return requireAvatar(avatar);
+        const { avatar } = user
+        if(avatar) {
+          return requireAvatar(`./${user.avatar}.svg`);
+        }
+      },
+      refreshProfiles() {
+        this.refresh = !this.refresh
       },
       clickUser(user) {
         this.loginUser(user)
@@ -99,13 +104,20 @@
       },
     },
     setup() {
+      const refresh = ref(false)
       const store = useStore() 
       const bgm = computed(() => store.state.bgm);
       const ionRouter = useIonRouter();
+      const profiles = computed(() => {
+        refresh.value
+        return JSON.parse(localStorage.getItem('profiles') || '')
+      });
       return {
         bgm,
         add,
         ionRouter,
+        profiles,
+        refresh
       };
     },
   });
@@ -183,4 +195,3 @@
     }
   }
 </style>
-@/api/users.api@/mixins/ionic@/mixins/ionic

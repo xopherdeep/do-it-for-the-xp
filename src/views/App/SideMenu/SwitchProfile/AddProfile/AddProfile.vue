@@ -52,8 +52,9 @@
   </ion-modal>
 </template>
 
-<script>
+<script lang="ts">
   import ionic from "@/mixins/ionic";
+import User from "@/utils/User";
   import { add } from "ionicons/icons";
   import Vue, { defineComponent } from 'vue'
   export default defineComponent({
@@ -93,6 +94,16 @@
         const selectedFood = this.foodOptions.find(food => food.value === this.favoriteFood);
         return selectedFood ? selectedFood.icon : '';
       }, 
+      storedProfiles:{
+        get(){
+          const storedProfiles = localStorage.getItem('profiles');
+          return storedProfiles ? JSON.parse(storedProfiles) : []
+        },
+        set(storedProfiles){
+          // Save the updated profiles array back to local storage
+          localStorage.setItem('profiles', JSON.stringify(storedProfiles));
+        }
+      }
     },
     methods: {
       openModal() {
@@ -103,33 +114,35 @@
         this.showModal = false;
       },
       saveProfile() {
+        const { 
+          fullName, 
+          favoriteThing, 
+          favoriteFood 
+        } = this;
+
+        const newProfile = new User({
+          name: {fullName},
+          favoriteThing,
+          favoriteFood
+        })
+
         // Create a new profile object
-        const newProfile = {
-          fullName: this.fullName,
-          favoriteThing: this.favoriteThing,
-          favoriteFood: this.favoriteFood
-        };
+        this.storedProfiles.push(newProfile);
+        this.setProfiles(this.storedProfiles);
 
-        // Retrieve the profiles from local storage
-        const storedProfiles = JSON.parse(localStorage.getItem('profiles')) || [];
-
-        // Add the new profile to the array
-        storedProfiles.push(newProfile);
-
-        // Save the updated profiles array back to local storage
-        localStorage.setItem('profiles', JSON.stringify(storedProfiles));
-
-        // Clear the form data
+        this.clearForm()
+        this.closeModal();
+        this.$emit('add-profile', newProfile);
+      },
+      // Clear the form data
+      clearForm(){
         this.fullName = '';
         this.favoriteThing = '';
         this.favoriteFood = '';
-
-        console.log(storedProfiles);
-        // Close the modal
-        this.closeModal();
       },
-
-
+      setProfiles(profiles){
+        localStorage.setItem('profiles', JSON.stringify(profiles));
+      }
     },
     setup() {
       return {
@@ -137,4 +150,4 @@
       }
     }
   })
-</script>@/mixins/ionic@/mixins/ionic
+</script>

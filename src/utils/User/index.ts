@@ -1,7 +1,7 @@
 import stats from "./stats"
 
 export interface ProfileName{
-  full: string,
+  fullName: string,
   first: string,
   last: string,
   middle: string,
@@ -9,10 +9,10 @@ export interface ProfileName{
   preferred: string
 }
 export default class User {
-  setName({ full, first, last, middle, nick, preferred }){
-    const name = { full, first, last, middle, nick, preferred }
-    if(full){
-      const parts    = full.split(" ")
+  setName({ fullName, first, last, middle, nick, preferred }){
+    const name = { fullName, first, last, middle, nick, preferred }
+    if(fullName){
+      const parts    = fullName.split(" ")
       const numParts = parts.length;
 
       switch(numParts){

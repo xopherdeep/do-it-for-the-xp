@@ -43,13 +43,15 @@ const demoUsers = [
   }) 
 ]
 
-let users = JSON.parse(localStorage.getItem('users') || '[]');
-console.log("users", users);
+let users = JSON.parse(localStorage.getItem('profiles') || '[]');
 
-if(users) {
-  users = users?.map( (user:any) => new User(user) ); // convert plain objects to User instances
+console.log("users", users, users?.length);
+
+if(users.length) {
+
+  users = users?.map( (user:any) => user ? new User(user) : null  ); // convert plain objects to User instances
 } else {
-  localStorage.setItem('users', JSON.stringify(demoUsers)); // save default users to local storage
+  localStorage.setItem('profiles', JSON.stringify(demoUsers)); // save default users to local storage
 }
 
 export default users;
