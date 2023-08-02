@@ -113,7 +113,10 @@ export default defineComponent({
   methods: {
     ...mapActions(["loginUser", "changeBGM"]),
     setBGStyle(key, value) {
-      this.$refs.page.$el.style[key] = value;
+      const { page } = this.$refs
+      if(page){
+        page.$el.style[key] = value;
+      }
     },
     changeBG() {
       // if (this.$fx.theme.rpg == "earthbound") {
