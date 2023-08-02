@@ -1,27 +1,25 @@
-.my-home{
-  ion-content{
-    // --background: url(https://external-preview.redd.it/V6UV_5qn6GRvkpTeSkaDLaa8Sw4ZqdQHR9Lu06Uw8Eo.png?auto=webp&s=d641e7c729d6b8cc859389043113a951d678223d) 
+.my-home {
+  ion-content {
+    // --background: url(https://external-preview.redd.it/V6UV_5qn6GRvkpTeSkaDLaa8Sw4ZqdQHR9Lu06Uw8Eo.png?auto=webp&s=d641e7c729d6b8cc859389043113a951d678223d)
     // center center/cover;
-.my-home{
-  ion-content{
     --background: url("@/assets/images/backgrounds/my-home.jpg") center center/cover no-repeat;
-    ion-card{
-      ion-button{
-        &::part(native){
+    ion-card {
+      ion-button {
+        &::part(native) {
         }
       }
     }
   }
+
 }
 
-.rpg-toast {
-  --background: rgba(0, 0, 0, 0.8);
-  --color: #fff;
-  --border-radius: 10px;
-  --padding: 10px;
-  --width: 90%;
-  --max-height: 150px;
-  --min-height: 50px;
-  --margin-bottom: 20px;
-}
-}
+  ion-toast {
+    --background: rgba(0, 0, 0, 0.8);
+    --color: #fff;
+    --border-radius: 10px;
+    --padding: 10px;
+    --width: 90%;
+    --max-height: 150px;
+    --min-height: 50px;
+    --margin-bottom: 20px;
+  }

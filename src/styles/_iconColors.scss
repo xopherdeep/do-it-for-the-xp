@@ -10,6 +10,23 @@
     --xp-color-lightBlue: skyblue;
 
     &.fa- {
+      &island-tropical{
+        --fa-primary-color: var(--xp-color-blue);
+        --fa-secondary-color: var(--xp-color-blue);
+      }
+      &tornado{
+        --fa-primary-color: var(--xp-color-white);
+        --fa-secondary-color: var(--xp-color-white);
+      }
+      &trees {
+        --fa-primary-color: var(--xp-color-green);
+        --fa-secondary-color: var(--xp-color-green);
+      }
+      &skull-crossbones{
+        --fa-primary-color: var(--xp-color-yellow);
+        --fa-secondary-color: var(--xp-color-yellow);
+        // --fa-secondary-opacity: 1
+      }
       &bow-arrow {
         --fa-primary-color: var(--xp-color-white);
         --fa-secondary-color: var(--xp-color-brown);

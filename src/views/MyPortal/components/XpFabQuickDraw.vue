@@ -25,7 +25,9 @@
       </ion-fab-button>
     </ion-fab-list>
     <ion-fab-list side="end" class="items">
-      <ion-fab-button v-for="item in rightItems" :key="item.faIcon" color="dark" @click="item.click">
+      <ion-fab-button v-for="item in rightItems" :key="item.faIcon" color="dark" @click="item.click"
+        class="icon-colors"
+      >
         <i class="fad fa-2x "
           :class="`fa-${item.faIcon}`"
           ></i>
@@ -39,7 +41,7 @@
 
 </style>
 
-<script lang="js">
+<script>
   import { defineComponent } from 'vue'
   import ionic from "@/mixins/ionic";
 
@@ -61,8 +63,3 @@
     },
   })
 </script>
-
-
-
-
-@/mixins/ionic@/mixins/ionic

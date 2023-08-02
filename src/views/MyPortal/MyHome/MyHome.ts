@@ -20,7 +20,7 @@ export default defineComponent({
 
   ionViewDidEnter(){
     this.setUserActions(this.userActions)
-    this.presentToast()
+    // this.presentToast()
   },
 
   methods:{
@@ -30,23 +30,16 @@ export default defineComponent({
      const toast = await toastController.create({
         message: `Welcome home ${first}!`,
         duration: 50000,
-        position: 'bottom',
+        position: 'middle',
         cssClass: 'rpg-toast',
-        inputs: [
-          {
-            name: 'rpgInput',
-            type: 'text',
-            placeholder: 'Enter your response...'
-          }
-        ],
         buttons: [
-          {
-            text: 'About XP',
-            role: 'info',
-            handler: () => { 
-              router.push({ name:'about-xp', params: {userId} })
-            }
-          },
+          // {
+          //   text: 'About XP',
+          //   role: 'info',
+          //   handler: () => { 
+          //     router.push({ name:'about-xp', params: {userId} })
+          //   }
+          // },
           {
             text: 'Dismiss',
             role: 'cancel',
