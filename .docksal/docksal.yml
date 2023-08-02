@@ -1,0 +1,22 @@
+version: "3.9"
+
+# Docker Tech Stack / Dockal Services
+services:
+  cli:
+    # docksal image defined in .env file
+    extends:
+      service: cli
+      file: ${HOME}/.docksal/stacks/services.yml
+    # ENV vars to pass to the container
+    environment:
+      - BUILD_ENV
+      - WATCHPACK_POLLING
+      - API_JWT
+    # map VIRTUAL_HOST and port to docksal's virtual host & port
+    labels:
+      - io.docksal.virtual-host=${VIRTUAL_HOST}
+      - io.docksal.virtual-port=8100
+    extra_hosts:
+      - "${VIRTUAL_HOST}:127.0.0.1"
+    # build the project
+    command: ["bash", "-lc", "yarn && yarn serve --host"]

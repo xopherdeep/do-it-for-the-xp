@@ -8,7 +8,6 @@ import chronoTrigger from "./chronoTrigger.fx";
 import purchaseWAV from "@/assets/audio/Purchase.wav";
 import pointsMP3 from "@/assets/audio/points.mp3";
 import Coins from "@/assets/audio/nintendo/chrono trigger/cursor.mp3";
-import Menu1B from "@/assets/audio/Menu1B.wav";
 
 const coins = new Audio(Coins);
 const loading = new Audio(loadingMP3);

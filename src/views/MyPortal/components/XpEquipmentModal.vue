@@ -1,6 +1,5 @@
 <template>
   <ion-modal
-    trigger="toolbox"
     class="fullscreen"
     :class="$options.name"
     :is-open="isOpen"

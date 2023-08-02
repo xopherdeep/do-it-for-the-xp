@@ -57,7 +57,7 @@
   </ion-page>
 </template>
 
-<script>
+<script lang="ts">
   import ionic from "@/mixins/ionic";
 
   import users from "@/api/users.api";
@@ -69,10 +69,11 @@
     useIonRouter,
   } from "@ionic/vue";
   import { mapActions, useStore } from 'vuex';
-  import { computed } from '@vue/runtime-core';
+  import { computed, defineComponent } from '@vue/runtime-core';
   import AddProfile from './AddProfile/AddProfile.vue';
 
-  export default {
+
+  export default defineComponent({
     name: "switch-profile",
     mixins: [ionic],
     components: {
@@ -107,7 +108,7 @@
         ionRouter,
       };
     },
-  };
+  });
 </script>
 
 <style scoped lang="scss">

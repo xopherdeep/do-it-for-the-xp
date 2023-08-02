@@ -6,8 +6,9 @@ import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
 import userActions from "@/mixins/userActions";
 import travelingMerchant from "@/mixins/travelingMerchant"
+import type { DefineUserActionComponent } from "@/mixins/userActions";
 
-export default defineComponent({
+export default defineComponent<DefineUserActionComponent>({
   name: "world-ice",
   mixins: [ionic, userActions, travelingMerchant],
 

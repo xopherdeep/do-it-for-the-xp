@@ -82,5 +82,5 @@
   </ion-page>
 </template>
 
-<script src="./HomeTown.js" />
+<script src="./HomeTown" />
 <style lang="scss" src="./_HomeTown.scss" scoped />

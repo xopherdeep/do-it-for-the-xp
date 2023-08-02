@@ -1,5 +1,6 @@
+import MyPortal from '@/views/MyPortal/MyPortal'
 import { mount } from '@vue/test-utils'
-import FolderPage from '@/views/FolderPage.vue'
+// import FolderPage from '@/views/FolderPage.vue'
 
 describe('FolderPage.vue', () => {
   it('renders folder view', () => {
@@ -8,7 +9,7 @@ describe('FolderPage.vue', () => {
         id: 'Outbox'
       }
     }
-    const wrapper = mount(FolderPage, {
+    const wrapper = mount(MyPortal, {
       global: {
         mocks: {
           $route: mockRoute

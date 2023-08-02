@@ -78,7 +78,7 @@ export default defineComponent({
       return this.$requireAvatar(avatar);
     },
     enterBattle() {
-      this.$refs.outlet.enterBattle();
+      this.$refs?.outlet?.enterBattle();
     },
     dismissRPGBox() {
       this.isRPGBoxOpen = false;

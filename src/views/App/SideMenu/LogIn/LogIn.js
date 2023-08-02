@@ -34,6 +34,22 @@ import {} from "ionicons/icons";
 import { mapActions, useStore } from "vuex";
 import { useRouter, useRoute } from "vue-router";
 
+// interface RootState {
+//   bgm: unknown;
+//   // Specify other state properties here
+// }
+
+// interface Oauth {
+//   domain: string;
+//   authorize: string;
+//   token: string;
+//   me: string;
+//   client_id: string;
+//   client_secret: string;
+//   redirect_uri: string;
+//   access: Record<string, unknown>;
+// }
+
 export default defineComponent({
   name: "log-in",
   components: {
@@ -68,7 +84,7 @@ export default defineComponent({
       error: false,
       toggleBGDirection: 0,
       currentBG: 0,
-      interval: null,
+      interval: 0,
       authDomain: "hallofthegods.docksal",
       oauth: {
         domain: "hallofthegods.docksal",
@@ -85,7 +101,7 @@ export default defineComponent({
   mounted() {
     this.animateLogo();
     this.interval = setInterval(this.changeBG, 5777);
-    this.getAccessToken()
+    // this.getAccessToken()
     // const { $fx:{rpg, theme}, changeBGM } = this; 
     // changeBGM({ tracks: rpg[theme.rpg].BGM.startScreen })
   },

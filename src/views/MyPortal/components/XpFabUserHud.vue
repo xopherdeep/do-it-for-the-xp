@@ -134,7 +134,27 @@
       </ion-card>
       <!-- <CardUserStats :id="isUserModalOpen" /> -->
     </ion-fab-list>
+    <ion-modal
+      trigger="talk-to"
+      :breakpoints="[.9]"
+      :initialBreakpoint=".9"
+      >
+      <ion-card>
+        <ion-card-title>
+          Talk
+        </ion-card-title>
+        <ion-card-header>
+          <ion-card-subtitle>
+            What do you want to say?
+          </ion-card-subtitle>
+          <ion-card-content>
+
+          </ion-card-content>
+        </ion-card-header>
+      </ion-card>
+    </ion-modal>
   </ion-fab>
+
 </template>
 
 <script lang="js">

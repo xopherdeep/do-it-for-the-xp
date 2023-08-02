@@ -83,32 +83,12 @@
       </ion-tabs>
     </ion-content>
 
-    <ion-modal
-      trigger="talk-to"
-      :breakpoints="[.9]"
-      :initialBreakpoint=".9"
-      >
-      <ion-card>
-        <ion-card-title>
-          Talk
-        </ion-card-title>
-        <ion-card-header>
-          <ion-card-subtitle>
-            What do you want to say?
-          </ion-card-subtitle>
-          <ion-card-content>
-
-          </ion-card-content>
-        </ion-card-header>
-      </ion-card>
-    </ion-modal>
-
     <!-- EQUIPMENT MODAL -->
     <xp-equipment-modal 
       :isOpen="isRPGBoxOpen" 
       :equipment="equipment"
       @equip="clickItem"
-      @didDimiss="didDimissRPGBox" 
+      @didDimiss="dismissRPGBox" 
       @close="closeModal"
     />
 
@@ -273,5 +253,5 @@
   </ion-page>
 </template>
 
-<script src="./MyPortal.js" />
+<script src="./MyPortal" />
 <style lang="scss" src="./_MyPortal.scss" />

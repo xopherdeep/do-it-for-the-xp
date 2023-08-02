@@ -24,18 +24,22 @@ const SideMenu = [
     children: [
       {
         path: '',
+        name: 'xp-settings-home',
         component: () => import ('@/views/App/SideMenu/XpSettingsHome/XpSettingsHome.vue'),
       },
       {
         path: 'general',
+        name: 'xp-settings-general',
         component: () => import ('@/views/App/SideMenu/XpSettings/components/GeneralSettings.vue'),
       },
       {
         path: 'family',
+        name: 'xp-settings-family',
         component: () => import ('@/views/App/SideMenu/XpSettings/components/FamilySettings.vue'),
       },
       {
         path: 'sound',
+        name: 'xp-settings-sound',
         component: () => import ('@/views/App/SideMenu/XpSettings/components/SoundSettings.vue'),
       },
     ],

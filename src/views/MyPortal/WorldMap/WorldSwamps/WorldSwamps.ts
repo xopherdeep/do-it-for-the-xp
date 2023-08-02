@@ -6,7 +6,9 @@ import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
 import userActions from "@/mixins/userActions";
 
-export default defineComponent({
+import type { DefineUserActionComponent } from "@/mixins/userActions";
+
+export default defineComponent<DefineUserActionComponent>({
   name: "world-swamps",
   mixins: [ionic, userActions],
 
