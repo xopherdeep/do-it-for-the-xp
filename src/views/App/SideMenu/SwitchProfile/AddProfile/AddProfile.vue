@@ -29,6 +29,12 @@
           </ion-select>
         </ion-item>
         <ion-item>
+          <ion-label>Avatar</ion-label>
+          <ion-button @click="previousAvatar"><ion-icon :icon="arrowBack"></ion-icon></ion-button>
+          <ion-img :src="`/path/to/avatars/${avatarIndex}-gamer.svg`"></ion-img>
+          <ion-button @click="nextAvatar"><ion-icon :icon="arrowForward"></ion-icon></ion-button>
+        </ion-item>
+        <ion-item>
           <ion-label>Favorite Thing</ion-label>
           <ion-input v-model="favoriteThing"></ion-input>
         </ion-item>
@@ -65,8 +71,6 @@ import User from "@/utils/User";
   import { add } from "ionicons/icons";
   import Vue, { defineComponent } from 'vue'
   export default defineComponent({
-    name: 'AddProfile',
-    mixins: [ionic],
     data() {
       return {
         showModal: false,
@@ -74,9 +78,15 @@ import User from "@/utils/User";
         favoriteThing: '',
         favoriteFood: '',
         jobClass: '',
+        avatarIndex: 1,
+        maxAvatarIndex: 51,
         jobClassOptions: ['Warrior', 'Mage', 'Thief', 'Monk'],
         foodOptions: [
           { value: 'Pizza', icon: 'fad fa-pizza-slice' },
+          // ...
+        ],
+      };
+    },
           { value: 'Burger', icon: 'fad fa-burger-soda' },
           { value: 'Cheeseburger', icon: 'fad fa-cheeseburger' },
           { value: 'French Fries', icon: 'fad fa-french-fries' },
@@ -125,14 +135,16 @@ import User from "@/utils/User";
           fullName, 
           favoriteThing, 
           favoriteFood,
-          jobClass
+          jobClass,
+          avatarIndex
         } = this;
 
         const newProfile = new User({
           name: {fullName},
           favoriteThing,
           favoriteFood,
-          jobClass
+          jobClass,
+          avatar: `/path/to/avatars/${avatarIndex}-gamer.svg`
         })
 
         // Create a new profile object
@@ -149,9 +161,20 @@ import User from "@/utils/User";
         this.favoriteThing = '';
         this.favoriteFood = '';
         this.jobClass = '';
+        this.avatarIndex = 1;
       },
       setProfiles(profiles){
         localStorage.setItem('profiles', JSON.stringify(profiles));
+      },
+      previousAvatar() {
+        if (this.avatarIndex > 1) {
+          this.avatarIndex--;
+        }
+      },
+      nextAvatar() {
+        if (this.avatarIndex < this.maxAvatarIndex) {
+          this.avatarIndex++;
+        }
       },
       unlockJobClass(level) {
         if (level >= 10) {
