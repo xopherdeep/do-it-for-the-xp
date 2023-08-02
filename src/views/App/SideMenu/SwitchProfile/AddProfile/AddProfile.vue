@@ -26,7 +26,6 @@
         </ion-item>
         <ion-item>
           <ion-label>Favorite Food
-
             <i :class="`${selectedFoodIcon} fa-2x`"></i>
           </ion-label>
           <ion-select v-model="favoriteFood">
@@ -36,8 +35,14 @@
             </ion-select-option>
           </ion-select>
         </ion-item>
-
-        <ion-icon :icon="selectedFoodIcon"></ion-icon>
+        <ion-item>
+          <ion-label>Job Class</ion-label>
+          <ion-select v-model="jobClass">
+            <ion-select-option v-for="job in jobClassOptions" :key="job" :value="job">
+              {{ job }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
       </ion-list>
       <ion-button expand="full" @click="saveProfile">Save Profile</ion-button>
     </ion-content>
@@ -60,16 +65,20 @@ import User from "@/utils/User";
   export default defineComponent({
     name: 'AddProfile',
     mixins: [ionic],
-    components: {
-    },
     data() {
       return {
         showModal: false,
         fullName: '',
         favoriteThing: '',
         favoriteFood: '',
+        jobClass: '',
+        jobClassOptions: ['Warrior', 'Mage', 'Thief', 'Monk'],
         foodOptions: [
           { value: 'Pizza', icon: 'fad fa-pizza-slice' },
+          // ...
+        ],
+      };
+    },
           { value: 'Burger', icon: 'fad fa-burger-soda' },
           { value: 'Cheeseburger', icon: 'fad fa-cheeseburger' },
           { value: 'French Fries', icon: 'fad fa-french-fries' },
@@ -117,13 +126,15 @@ import User from "@/utils/User";
         const { 
           fullName, 
           favoriteThing, 
-          favoriteFood 
+          favoriteFood,
+          jobClass
         } = this;
 
         const newProfile = new User({
           name: {fullName},
           favoriteThing,
-          favoriteFood
+          favoriteFood,
+          jobClass
         })
 
         // Create a new profile object
@@ -139,10 +150,20 @@ import User from "@/utils/User";
         this.fullName = '';
         this.favoriteThing = '';
         this.favoriteFood = '';
+        this.jobClass = '';
       },
       setProfiles(profiles){
         localStorage.setItem('profiles', JSON.stringify(profiles));
       }
+      unlockJobClass(level) {
+        if (level >= 10) {
+          this.jobClassOptions.push('Knight');
+        }
+        if (level >= 20) {
+          this.jobClassOptions.push('Black Mage');
+        }
+        // Add more job classes as needed
+      },
     },
     setup() {
       return {
