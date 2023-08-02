@@ -21,27 +21,29 @@
           <ion-input v-model="fullName"></ion-input>
         </ion-item>
         <ion-item>
-          <ion-label>Favorite Thing</ion-label>
-          <ion-input v-model="favoriteThing"></ion-input>
-        </ion-item>
-        <ion-item>
-          <ion-label>Favorite Food
-            <i :class="`${selectedFoodIcon} fa-2x`"></i>
-          </ion-label>
-          <ion-select v-model="favoriteFood">
-            <ion-select-option v-for="food in foodOptions" :key="food.value" :value="food.value">
-              <i :class="`${food.icon}`"></i>
-              {{ food.value }}
-            </ion-select-option>
-          </ion-select>
-        </ion-item>
-        <ion-item>
           <ion-label>Job Class</ion-label>
           <ion-select v-model="jobClass">
             <ion-select-option v-for="job in jobClassOptions" :key="job" :value="job">
               {{ job }}
             </ion-select-option>
           </ion-select>
+        </ion-item>
+        <ion-item>
+          <ion-label>Favorite Thing</ion-label>
+          <ion-input v-model="favoriteThing"></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-label>
+            Favorite Food
+          </ion-label>
+          <ion-select v-model="favoriteFood">
+            <ion-select-option v-for="food in foodOptions" :key="food.value" :value="food.value">
+              <i :class="`${food.icon}`"></i>
+              {{ food.value }}
+            </ion-select-option>
+            <i :class="`${selectedFoodIcon} fa-2x`"></i>
+          </ion-select>
+
         </ion-item>
       </ion-list>
       <ion-button expand="full" @click="saveProfile">Save Profile</ion-button>
@@ -75,10 +77,6 @@ import User from "@/utils/User";
         jobClassOptions: ['Warrior', 'Mage', 'Thief', 'Monk'],
         foodOptions: [
           { value: 'Pizza', icon: 'fad fa-pizza-slice' },
-          // ...
-        ],
-      };
-    },
           { value: 'Burger', icon: 'fad fa-burger-soda' },
           { value: 'Cheeseburger', icon: 'fad fa-cheeseburger' },
           { value: 'French Fries', icon: 'fad fa-french-fries' },
@@ -154,7 +152,7 @@ import User from "@/utils/User";
       },
       setProfiles(profiles){
         localStorage.setItem('profiles', JSON.stringify(profiles));
-      }
+      },
       unlockJobClass(level) {
         if (level >= 10) {
           this.jobClassOptions.push('Knight');
