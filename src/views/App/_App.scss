@@ -18,8 +18,9 @@ ion-app {
       font-family: 'StatusPlz';
       font-weight: normal;
       // font-style: italic;
-      font-size: 11pt;
+      font-size: 15pt;
       text-transform: capitalize;
+
     }
 
     ion-toolbar {
@@ -58,13 +59,14 @@ ion-app {
       overflow: visible;
       ion-card-title {
         // text-transform: uppercase;
-        position: absolute;
-        top: -15px;
+        // position: absolute;
+        // top: -15px;
         color: var(--ion-color-primary);
         padding: 1px 5px;
-        font-size: 15px;
+        font-size: 20px;
         background-color: #383050;
         // #280828;
+
         
       }
     }
@@ -178,6 +180,12 @@ ion-app {
   }
 
   &#chronoTrigger {
+    ion-card{
+      @include chronoTriggerBox(); 
+    }
+  }
+
+  &#finalFantasy {
 
     ion-card {
       border: solid 1px #424542;
