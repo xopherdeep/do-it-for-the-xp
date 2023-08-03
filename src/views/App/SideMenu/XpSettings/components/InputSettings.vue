@@ -37,7 +37,7 @@
         cancel-text="Dismiss"
       >
         <ion-select-option value="earthbound" @ionSelect="play$fx"
-          >Children of Earth</ion-select-option
+          >Down to Earth</ion-select-option
         >
         <ion-select-option value="chronoTrigger" @ionSelect="play$fx"
           >Timeless Contention</ion-select-option

@@ -42,7 +42,8 @@
             </ion-button>
           </ion-col>
         </ion-row>
-        <!-- <ion-row>
+
+        <ion-row>
           <ion-col>
             <ion-button
               size=""
@@ -53,7 +54,10 @@
               <i class="fad fa-tools"></i>
             </ion-button>
           </ion-col>
-        </ion-row> -->
+        </ion-row>
+        <ion-menu-toggle>
+          Open menu
+        </ion-menu-toggle>
       </ion-grid>
       <ion-modal :is-open="code" ref="modal" trigger="login-button" class="login">
         <ion-content>

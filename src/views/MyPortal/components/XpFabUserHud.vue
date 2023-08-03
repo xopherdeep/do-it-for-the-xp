@@ -5,6 +5,7 @@
     horizontal="start"
     class="fab-user user-hud"
     :class="$options.name"
+    :activated="fabActive"
     v-if="user.stats && $attrs.isUserFabOn"
   >
     <ion-grid>
@@ -23,7 +24,6 @@
           <ion-badge>
             {{ user.nick }}
           </ion-badge>
-
           <!-- <ion-badge class="gp-badge">
             <ion-badge>
               <ion-icon :icon="walletOutline" />
@@ -39,7 +39,6 @@
               :value="user.stats.gp.wallet / user.stats.gp.limit"
             ></ion-progress-bar>
           </ion-badge> -->
-
         </ion-col>
         <ion-col size="5" size-lg="5" class="ion-no-margin ion-no-padding">
           <ion-badge class="hp-badge">
@@ -73,7 +72,7 @@
               </p>
             </ion-badge>
           </ion-badge>
-          <ion-badge class="gp-badge2">
+          <ion-badge class="gp-badge">
             <ion-progress-bar
               color="warning"
               v-if="user.stats"
@@ -92,10 +91,16 @@
         </ion-col>
       </ion-row>
     </ion-grid>
-    <ion-fab-list class="fab-user" side="bottom">
+    <ion-fab-list class="fab-user" side="bottom" ref="userFab" >
       <ion-card>
         <ion-card-title>
-          {{ user.name.nick }}
+          {{ user.name.nick }} 
+
+          <ion-text class="wallet">
+            <small>₲</small>
+            {{ user.stats.gp.wallet }}
+            <small>00</small>
+          </ion-text>
         </ion-card-title>
         <ion-buttons>
           <ion-grid>
@@ -107,7 +112,7 @@
               >
                 <ion-button
                   :id="action.id"
-                  @click="action.click"
+                  @click.capture="clickAction(action)"
                   size="large"
                   expand="fill"
                 >
@@ -158,7 +163,7 @@
 </template>
 
 <script lang="js">
-  import { computed, defineComponent } from 'vue'
+  import { computed, defineComponent, ref } from 'vue'
   import { walletOutline, colorWand, fitnessOutline } from 'ionicons/icons';
   import { useRouter } from 'vue-router';
   import ionic from "@/mixins/ionic";
@@ -185,8 +190,21 @@
     setup(props){
       const router = useRouter()
       const userId = computed({ get: () => props.user.id }) 
+      const fabActive = ref(false)
+      const toggleFab = () => fabActive.value = !fabActive.value
+
+      const clickAction = (action) => {
+        console.log("clickAction");
+        if(action.click)
+          action.click()
+        fabActive.value = false
+      }
+
 
       return {
+        clickAction,
+        toggleFab,
+        fabActive,
         userId,
         walletOutline,
         colorWand,
@@ -337,6 +355,10 @@
           margin: 0.25em;
         }
       }
+
+      .wallet{
+        float: right
+      }
     }
   }
   .user-hud {
@@ -362,19 +384,34 @@
       i {
         margin: 0.1em 0.5em 0.25em 0.15em;
       }
-      &.hp-badge {
+
+      &.hp-badge, &.mp-badge, &.gp-badge{
         margin: 0;
-        margin-top: .5em;
         display: flex;
         align-content: center;
+
         ion-progress-bar {
           border-radius: 5px 2px 1em 5px;
-          box-shadow: 1px 2px 4px rgba(var(--ion-color-danger-rgb), 0.5);
-          .progress {
-            border-right: 4px solid maroon;
-          }
+          box-shadow: 1px 2px 4px rgba(var(--ion-color-tertinary-rgb), 0.5);
           .progress-buffer-bar {
             background: rgba(var(--ion-color-base-rgb), 0.8);
+          }
+        }
+
+        ion-badge {
+          ion-icon {
+            border-radius: 5px;
+          }
+          margin: 0 0.5em 0 0;
+          justify-content: space-between;
+        }
+      }
+
+      &.hp-badge {
+        margin-top: .5em;
+        ion-progress-bar {
+          .progress {
+            border-right: 4px solid maroon;
           }
         }
         ion-badge {
@@ -388,12 +425,6 @@
         }
       }
       &.mp-badge {
-        display: flex;
-        align-content: center;
-        ion-progress-bar {
-          border-radius: 5px 2px 1em 5px;
-          box-shadow: 1px 2px 4px rgba(var(--ion-color-tertinary-rgb), 0.5);
-        }
         ion-badge {
           color: var(--ion-color-danger-contrast);
           text-shadow: 0 0px 5px blue;
@@ -425,38 +456,28 @@
       }
 
       &.gp-badge {
-        margin-top: 1em;
-        margin-right: 0;
-        width: 84px;
-        margin-left: -14px;
-        overflow: visible;
-        position: relative;
-        ion-progress-bar {
-          height: 50%;
-        }
+        // ion-badge {
+        //   overflow: visible;
+        //   max-width: 100%;
+        //   top: -2.5px;
+        //   left: 0;
+        //   font-size: small;
+        //   font-family: "Courier New", Courier, monospace;
+        //   background-color: rgba(0, 0, 0, 0.25);
+        //   text-shadow: 0 0 2px black;
+        //   height: 15px;
+        //   position: relative;
+        //   justify-content: space-between;
+        //   p {
+        //     margin: 0;
+        //     letter-spacing: -1.5px;
+        //     word-spacing: -5px;
+        //   }
+        // }
 
-        ion-badge {
-          overflow: visible;
-          max-width: 100%;
-          top: -2.5px;
-          left: 0;
-          font-size: small;
-          font-family: "Courier New", Courier, monospace;
-          background-color: rgba(0, 0, 0, 0.25);
-          text-shadow: 0 0 2px black;
-          height: 15px;
-          position: relative;
-          justify-content: space-between;
-          p {
-            margin: 0;
-            letter-spacing: -1.5px;
-            word-spacing: -5px;
-          }
-        }
-
-        i {
-          margin: 0;
-        }
+        // i {
+        //   margin: 0;
+        // }
       }
       ion-progress-bar {
         height: 100%;

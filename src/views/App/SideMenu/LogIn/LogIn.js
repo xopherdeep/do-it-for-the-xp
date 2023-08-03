@@ -30,7 +30,7 @@ import {
   modalController,
 } from "@ionic/vue";
 
-import {} from "ionicons/icons";
+import { arrowBack, arrowForward } from "ionicons/icons";
 import { mapActions, useStore } from "vuex";
 import { useRouter, useRoute } from "vue-router";
 

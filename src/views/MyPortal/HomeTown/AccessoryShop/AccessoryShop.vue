@@ -27,7 +27,7 @@
             message="Thank you for your purchase!"
             :duration="1500"
           ></ion-toast>
-          <ion-card-content>
+          <ion-card-content class="rpg-box">
             <!-- Welcome! What shelves can I interest you looking at today? -->
             {{ shopGreeting }}
             <!-- Filters -->

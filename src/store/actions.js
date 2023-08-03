@@ -83,10 +83,8 @@ export default {
   },
 
   loadUsers({ dispatch }) {
+    const dispatchData = ({data}) => dispatch("addUsers", { data })
     return Api.get("users", {}).then(dispatchData);
-    function dispatchData({ data }) {
-      dispatch("addUsers", { data });
-    }
   },
 
   addUsers({ commit }, { data }) {
@@ -113,7 +111,6 @@ export default {
   
   turnMusicOnOff({ state }) {
     const { audio, is_on } = state.bgm;
-    console.log("PLAY AUDIO!!!!!!!");
 
     if(audio){
       if (is_on) audio.play();

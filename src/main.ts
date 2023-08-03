@@ -33,12 +33,16 @@ app.config.globalProperties = {
   $fx,
   $requireAvatar: require.context("@/assets/images/avatars/"),
   $requireImg: require.context("@/assets/images/"),
+  $requireIcon: require.context("@/assets/icons/"),
   $router: router,
   // TODO: update, using $store like in Vue2 atm
   $store: store,
   play$fx: (fx='select')=>{
-    if($fx.ui[$fx.theme.ui][fx])
-      $fx.ui[$fx.theme.ui][fx].play()
+    const { ui, theme: { ui: themeUi } }  = $fx
+    const soundFx = ui[themeUi][fx]
+
+    if(soundFx)
+      soundFx.play()
   },
   $historyCount: window.history.length
 };

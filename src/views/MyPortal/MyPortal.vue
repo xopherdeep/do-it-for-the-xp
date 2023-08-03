@@ -2,14 +2,13 @@
   <ion-page class="ion-page" :class="$options.name" v-cloak>
     <ion-content class="bg-transparent icon-colors">
       <xp-fab-user-hud :user="user" :isUserFabOn="isUserFabOn" />
-      <xp-fab-gold-points :user="user" :isUserFabOn="isUserFabOn" />
+      <!-- <xp-fab-gold-points :user="user" :isUserFabOn="isUserFabOn" /> -->
       <xp-fab-quick-draw v-if="isUserFabOn" :user="user" :equipment="equipment" @openHud="isRPGBoxOpen = true" />
       <xp-fab-page-menu v-if="isUserFabOn" :user="user" :page-name="compass.name" />
       <xp-fab-page-shortcuts v-if="isUserFabOn" :shortcuts="userActions" />
 
       <ion-tabs v-if="user.stats">
-        <ion-router-outlet ref="outlet" :userId="user.id"></ion-router-outlet>
-        <ion-badge class="xp-badge">
+        <ion-badge slot="top" class="xp-badge">
           <ion-progress-bar
             color="success"
             v-if="user.stats"
@@ -22,6 +21,7 @@
             </p>
           </ion-badge>
         </ion-badge>
+        <ion-router-outlet ref="outlet" :userId="user.id"></ion-router-outlet>
         <ion-tab-bar
           slot="bottom"
           v-if="user.stats && !battleState('active')"

@@ -12,7 +12,9 @@
   },
   "private": false,
   "scripts": {
-    "serve": "ionic serve",
+    "serve": "ionic serve --external --consolelogs",
+    "vue-serve": "vue-cli-service serve",
+    "vue-build": "vue-cli-service build",
     "build": "ionic build",
     "test:unit": "vue-cli-service test:unit",
     "test:e2e": "vue-cli-service test:e2e",
@@ -67,7 +69,7 @@
     "fs": "^0.0.1-security",
     "jest": "^27.3.1",
     "node-sass": "^7.0.1",
-    "sass": "^1.49.0",
+    "sass": "^1.64.2",
     "sass-loader": "^10",
     "ts-jest": "^27.0.7",
     "typescript": "^4.3.5"
@@ -76,6 +78,6 @@
     "dist"
   ],
   "engines": {
-    "node": ">=17.0.0"
+    "node": ">=16.0.0"
   }
 }

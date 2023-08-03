@@ -74,7 +74,7 @@
 
   export default defineComponent({
     name: "switch-profile",
-    mixins: [ionic],
+    mixins: [ ionic ],
     components: {
       AddProfile
     },

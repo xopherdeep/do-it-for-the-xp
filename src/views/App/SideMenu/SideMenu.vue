@@ -12,15 +12,14 @@
           <ion-item
             v-if="menuItem.title"
             @click="
-              selectedIndex = i;
-              $fx.ui[$fx.theme.ui].select.play();
-            "
+              setMenuItem(i);
+              $fx.ui[$fx.theme.ui].select.play()"
             router-direction="root"
             :router-link="menuItem.url"
             lines="none"
             detail="false"
             class="hydrated"
-            :class="{ selected: selectedIndex === i }"
+            :class="{ selected: activeMenuItem === i }"
             button
           >
             <ion-icon
@@ -54,7 +53,7 @@
 </template>
 
 <script lang="ts">
-  import { computed, defineComponent, ref } from 'vue'
+  import { computed, defineComponent } from 'vue'
   import { mapActions, mapState, useStore } from 'vuex';
   import ionic from "@/mixins/ionic";
   import {
@@ -79,8 +78,10 @@
   export default defineComponent({
     name: 'side-menu',
     mixins: [ionic],
+
     data(){
       return {
+        activeMenuItem: 0,
         appPagesAnon: [
           {
             title: "Log In",
@@ -159,20 +160,23 @@
     },
     computed: {
     ...mapState(["theme", "bgm"]),
-      selectedIndex(): number {
-        const path = window.location.pathname.split("folder/")[1];
-
-        if (path !== undefined && this.appPages) {
-          return this.appPages.findIndex(
-            (page) => page.title.toLowerCase() === path.toLowerCase()
-          );
-        }
-
-        return 0 
-      },
 
     },
     methods:{
+      setMenuItem(index){
+        this.activeMenuItem = index
+      },
+      initialIndex(): number {
+        const { pathname } = window.location
+        const [, name] = pathname.split("/");
+
+        if (name !== undefined && this.appPages) {
+          return this.appPages.findIndex(
+            (page) => page.title.toLowerCase() === name.toLowerCase()
+          );
+        }
+        return 0 
+      },
       ...mapActions(["changeBGM", "turnMusicOnOff", "changeSoundFX"]),
       getCurrentMenu() {
         const { appPages, appPagesAnon, isLoggedIn} = this
