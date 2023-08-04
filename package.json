@@ -12,7 +12,7 @@
   },
   "private": false,
   "scripts": {
-    "serve": "ionic serve --external --consolelogs",
+    "serve": "ionic serve --external",
     "vue-serve": "vue-cli-service serve",
     "vue-build": "vue-cli-service build",
     "build": "ionic build",
