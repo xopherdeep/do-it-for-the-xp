@@ -350,15 +350,15 @@
       }
 
       &medal {
-        --fa-primary-color: var(--xp-color-green);
+        --fa-primary-color: var(--xp-color-yellow);
         --fa-secondary-color: var(--xp-color-green);
-        --fa-secondary-opacity: .5
+        --fa-secondary-opacity: .8
       }
 
       &hand-holding-seedling{
         --fa-primary-color: var(--xp-color-green);
-        // --fa-secondary-color: var(--xp-color-white);
-        --fa-secondary-opacity: 1
+        --fa-secondary-color: var(--xp-color-brown);
+        --fa-secondary-opacity: .9
       }
     }
   }
