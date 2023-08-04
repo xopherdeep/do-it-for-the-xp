@@ -220,7 +220,9 @@ export default defineComponent({
       data: tasks,
       error,
       isFetching,
-    } = useTasks(page.value);
+      nTotalTasks,
+      nTotalPages,
+    } = useQuests(page.value);
 
     const getSlideItems = p => queryClient
       .getQueryData(["tasks", p, params]) 
@@ -281,23 +283,7 @@ export default defineComponent({
       checkmarkDone,
     };
 
-    function useTasks(page) {
-      return useQuery( ["tasks", page, params], fetchAchievements, {
-        refetchOnWindowFocus: false,
-        keepPreviousData: true,
-      });
-
-      async function fetchAchievements(){
-        return await XpApi
-        .get("xp_achievement", params)
-        .then(updateTotals)
-      }
-
-      function updateTotals({ data, headers }) {
-        nTotalTasks.value = Number(headers.get("x-wp-total"));
-        nTotalPages.value = Number(headers.get("x-wp-totalpages"));
-        return data;
-      }
+// useTasks function removed as it's replaced by useQuests
     }
 
     // function useImages({ type, include }) {
