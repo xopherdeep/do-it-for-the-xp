@@ -12,7 +12,7 @@
       </ion-toolbar>
       <ion-toolbar>
         <ion-segment
-          @ionChange="segmentChanged($event)"
+          @ionChange="segmentChanged"
           color="success"
           scrollable
           value="all"
@@ -214,5 +214,5 @@
   </ion-page>
 </template>
 
-<script src="./MyTasks.js" />
-<style lang="scss" src="./_MyTasks.scss" scoped />
+<script src="./MyQuests" />
+<style lang="scss" src="./_MyQuests.scss" scoped />

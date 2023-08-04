@@ -2,7 +2,7 @@ const MyProfileRoutes = [
   {
     path: '/my-tasks/:userId?/',
     name: 'my-tasks',
-    component: () => import ('@/views/MyDialogBox/MyTasks/MyTasks.vue'),
+    component: () => import ('@/views/MyDialogBox/MyQuests/MyQuests.vue'),
     props: true,
   },
   {

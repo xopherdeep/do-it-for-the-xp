@@ -15,11 +15,7 @@
   </ion-fab>
 </template>
 
-<style>
-
-</style>
-
-<script lang="js">
+<script lang="ts">
   import { computed, defineComponent } from 'vue'
   import { useRoute } from "vue-router";
   import ionic from "@/mixins/ionic";
@@ -40,5 +36,3 @@
     },
   })
 </script>
-
-@/mixins/ionic@/mixins/ionic

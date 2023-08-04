@@ -40,7 +40,7 @@ import { useQuery, useQueryClient } from "vue-query";
 
 export default defineComponent({
   props: ["userId"],
-  name: "my-tasks",
+  name: "my-quests",
   components: {
     IonBackButton,
     MyTask,
@@ -170,13 +170,25 @@ export default defineComponent({
     playTextSound() {
       this.$fx.rpg[this.$fx.theme.rpg].text.play();
     },
+
+    segmentChanged($ev) {
+      console.log("Segment changed", $ev);
+    },
   },
   watch: {
     params: {
-      handler() {
-        this.$fx.rpg[this.$fx.theme.rpg].text.play();
-      },
       deep: true,
+      handler() {
+        this.play$fx("text")
+        // const { $fx: { rpg, theme } } = this
+        // const { text } = rpg[theme.rpg]
+
+        // // if(text) text.play();
+
+        // console.log("WAATCH", rpg, theme);
+        // console.log("text", text);
+        // this.$fx.rpg[this.$fx.theme.rpg].text.play();
+      },
     },
   },
   setup() {
@@ -231,7 +243,6 @@ export default defineComponent({
     // });
 
     return {
-      useTasks,
       params,
       tasks,
       // images,
@@ -270,20 +281,22 @@ export default defineComponent({
     };
 
     function useTasks(page) {
-      const updateTotals = ({ data, headers }) => {
-        nTotalTasks.value = Number(headers.get("x-wp-total"));
-        nTotalPages.value = Number(headers.get("x-wp-totalpages"));
-        return data;
-      };
-
-      const fetchAchievements = async () => await XpApi
-        .get("xp_achievement", params)
-        .then(updateTotals);
-
-      return useQuery(["tasks", page, params], fetchAchievements, {
+      return useQuery( ["tasks", page, params], fetchAchievements, {
         refetchOnWindowFocus: false,
         keepPreviousData: true,
       });
+
+      async function fetchAchievements(){
+        return await XpApi
+        .get("xp_achievement", params)
+        .then(updateTotals)
+      }
+
+      function updateTotals({ data, headers }) {
+        nTotalTasks.value = Number(headers.get("x-wp-total"));
+        nTotalPages.value = Number(headers.get("x-wp-totalpages"));
+        return data;
+      }
     }
 
     // function useImages({ type, include }) {

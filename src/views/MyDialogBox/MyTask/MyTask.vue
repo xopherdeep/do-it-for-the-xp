@@ -485,5 +485,5 @@
   </ion-modal>
 </template>
 
-<script src="./MyTask.js" />
+<script src="./MyTask" />
 <style lang="scss" src="./_MyTask.scss" scoped />

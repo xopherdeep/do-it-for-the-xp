@@ -23,10 +23,10 @@ import 'swiper/css';
 /* eslint-disable */
 // eslint-disable-next-line to
 
-import rabbitFast from "@/assets/fonts/font-awesome/svgs/duotone/rabbit-fast.svg";
-import comment from "@/assets/fonts/font-awesome/svgs/duotone/comment.svg";
-import wandMagic from "@/assets/fonts/font-awesome/svgs/duotone/wand-magic.svg";
-import sack from "@/assets/fonts/font-awesome/svgs/duotone/sack.svg";
+// import rabbitFast from "@/assets/fonts/font-awesome/svgs/duotone/rabbit-fast.svg";
+// import comment from "@/assets/fonts/font-awesome/svgs/duotone/comment.svg";
+// import wandMagic from "@/assets/fonts/font-awesome/svgs/duotone/wand-magic.svg";
+// import sack from "@/assets/fonts/font-awesome/svgs/duotone/sack.svg";
 
 import { NativeAudio } from "@awesome-cordova-plugins/native-audio";
 import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
@@ -114,10 +114,12 @@ export default defineComponent({
       // this.$store.dispatch("addToWallet", 100 )
     },
     startCounting() {
-      this.$refs.countXPGained.start();
-      this.$refs.countAPGained.start();
-      this.$refs.countGPGained.start();
-      this.$refs.countWallet.start();
+      if(this.$refs.length){
+        // this.$refs.countXPGained.start();
+        // this.$refs.countAPGained.start();
+        // this.$refs.countGPGained.start();
+        // this.$refs.countWallet.start();
+      }
     },
     finishedCounting() {
       // alert()
@@ -141,7 +143,9 @@ export default defineComponent({
       return `${item.quantity.toString()}x ${item.label}`;
     },
     filterList(list, item) {
-      this[list] = this[list].filter((i) => i.label != item.label);
+      this[list] =  this[list] 
+        ? this[list].filter((i) => i.label != item.label) 
+        : [];
     },
     slideLootItem(item) {
       this.$fx.rpg[this.$fx.theme.rpg].lootItem.play();
@@ -224,7 +228,7 @@ export default defineComponent({
               this.createToast({
                 header: `${this.user.name.nick} uses a spell...`,
                 message: "Ha! Take that",
-                icon: wandMagic,
+                // icon: wandMagic,
               });
             },
           },
@@ -268,7 +272,7 @@ export default defineComponent({
               this.createToast({
                 header: `${this.user.name.nick} took out something from their bag...`,
                 message: "...nothing happened.",
-                icon: sack,
+                // icon: sack,
               });
             },
           },
@@ -298,7 +302,7 @@ export default defineComponent({
                 header: `${this.user.name.nick}:`,
                 message: `"I'll come back to that later..."`,
                 duration: 1800,
-                icon: comment,
+                // icon: comment,
               });
             },
           },
@@ -312,7 +316,7 @@ export default defineComponent({
                 header: `${this.user.name.nick} tamed ${this.item.title.rendered}!`,
                 message: `Gained 2AP`,
                 duration: 1800,
-                icon: comment,
+                // icon: comment,
               })
               setTimeout(
                 () =>
@@ -320,7 +324,7 @@ export default defineComponent({
                     header: `Do-it-for-the-XP!`,
                     message: `${this.user.name.nick} Gained 200XP`,
                     duration: 1800,
-                    icon: comment,
+                    // icon: comment,
                   }),
                 2500
               );
@@ -370,7 +374,7 @@ export default defineComponent({
                   header  : user.name.nick + " Ran Away ",
                   cssClass: $fx.theme.rpg,
                   message : `-${roll} HP`,
-                  icon    : rabbitFast,
+                  // icon    : rabbitFast,
                   duration: 2000,
                   position: "top",
                 });
