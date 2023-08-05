@@ -30,7 +30,7 @@ import {
   bagOutline,
   fastFoodOutline
 } from "ionicons/icons";
-import fetchItems from "@/mixins/fetchItems.js"
+import fetchItems from "@/mixins/fetchItems"
 import { actionSheetController } from "@ionic/vue";
 
 export default defineComponent({

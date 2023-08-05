@@ -73,8 +73,7 @@ export default defineComponent({
       return this.items.map((t) => t.featured_media);
     },
     hasNextPage() {
-      const { nTotalPages, request } = this;
-      return request.params.page <= nTotalPages 
+      return this.page < this.nTotalPages 
     },
     nTotalPages(){
       const { totalPages, request } = this;
@@ -88,14 +87,25 @@ export default defineComponent({
       return this.$refs.slides
     },
     currentPage(){
+      return 
       return this.request.params.page
+    },
+
+    page: {
+      get(){
+        return this.request.params.page
+      },
+      set(page){
+        this.$emit("update:page", page)
+      } 
     }
   },
   mounted() {
     // if(this.request.type)
-    //   this.getItems();
+    //   this.getItems(1);
   },
   methods: {
+
     getImages(page){
       return this.requestedItems({
         ...this.request,
