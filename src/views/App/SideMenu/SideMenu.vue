@@ -72,7 +72,9 @@
     peopleCircleOutline,
     peopleCircleSharp,
     logInOutline,
-    logInSharp
+    logInSharp,
+    gameControllerOutline,
+    gameControllerSharp
   } from "ionicons/icons";
 
   export default defineComponent({
@@ -102,6 +104,12 @@
               url: "/switch-profile",
               iosIcon: peopleCircleOutline,
               mdIcon: peopleCircleSharp,
+            },
+            {
+              title: "Game Master",
+              url: "/game-master",
+              iosIcon: gameControllerOutline,
+              mdIcon: gameControllerSharp,
             },
             {
               title: "Settings",

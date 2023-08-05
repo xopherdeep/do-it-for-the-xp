@@ -4,6 +4,8 @@ const SideMenu = [
     redirect: '/log-in'
     // component: () => import ('@/views/StartScreen/StartScreen.vue'),
   },
+
+  // Game Master
   // Switch Profile
   {
     path: '/switch-profile',
@@ -12,6 +14,23 @@ const SideMenu = [
     meta: {
       requiresAuth: false
     }
+  },
+  {
+    path: '/game-master',
+    name: 'game-master',
+    component: () => import ('@/views/App/SideMenu/XpGameMaster/XpGameMaster.vue'),
+    children: [
+      {
+        path: '',
+        name: 'xp-dashboard',
+        component: () => import ('@/views/App/SideMenu/XpGameMaster/XpDashboard/XpDashboard.vue'),
+      },
+      {
+        path: 'general',
+        name: 'xp-settings-general',
+        component: () => import ('@/views/App/SideMenu/XpSettings/components/GeneralSettings.vue'),
+      },
+    ],
   },
   {
     path: '/xp-membership',
