@@ -8,6 +8,12 @@
 }
 
 .accessory-shop{
+
+  ion-content{
+    --background: url("@/assets/images/midjourney/shop.png") center center/cover no-repeat;
+  }
+
+  background-image: url();
   display: flex;
   height: 100%;
   flex-direction: column;
