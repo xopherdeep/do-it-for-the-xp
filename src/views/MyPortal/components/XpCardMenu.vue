@@ -17,7 +17,8 @@
               router-direction="root"
               @click="action.click"
               size="large"
-              expand="fill"
+              expand="full"
+              class="ion-justify-content-left"
             >
               <i
                 class="fad fa-lg"

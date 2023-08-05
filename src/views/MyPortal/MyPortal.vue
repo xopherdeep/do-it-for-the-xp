@@ -2,25 +2,13 @@
   <ion-page class="ion-page" :class="$options.name" v-cloak>
     <ion-content class="bg-transparent icon-colors">
       <xp-fab-user-hud :user="user" :isUserFabOn="isUserFabOn" />
+      <xp-user-points-hud :stats="user.stats" />
       <!-- <xp-fab-gold-points :user="user" :isUserFabOn="isUserFabOn" /> -->
       <xp-fab-quick-draw v-if="isUserFabOn" :user="user" :equipment="equipment" @openHud="isRPGBoxOpen = true" />
       <xp-fab-page-menu v-if="isUserFabOn" :user="user" :page-name="compass.name" />
       <xp-fab-page-shortcuts v-if="isUserFabOn" :shortcuts="userActions" />
 
       <ion-tabs v-if="user.stats">
-        <ion-badge slot="top" class="xp-badge">
-          <ion-progress-bar
-            color="success"
-            v-if="user.stats"
-            :value="user.stats.xp.now / user.stats.xp.next_level"
-          ></ion-progress-bar>
-          <ion-badge>
-            <!-- <ion-icon :icon="sparklesOutline" size="small" /> -->
-            <p>
-              Level {{ user.stats.level }}
-            </p>
-          </ion-badge>
-        </ion-badge>
         <ion-router-outlet ref="outlet" :userId="user.id"></ion-router-outlet>
         <ion-tab-bar
           slot="bottom"
@@ -35,7 +23,9 @@
             <ion-label v-if="user.name">
               {{ user.name.nick }}
             </ion-label>
-            <ion-badge color="danger">{{ user.stats.hp.now }} HP</ion-badge>
+            <ion-badge color="danger">
+              {{ user.stats.hp.now }} HP
+            </ion-badge>
           </ion-tab-button>
           <ion-tab-button 
             tab="my-home" 

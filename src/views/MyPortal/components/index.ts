@@ -8,6 +8,7 @@ import { Swiper, SwiperSlide } from "swiper/vue";
 import XpEquipmentModal from "./XpEquipmentModal.vue"
 
 
+import XpUserPointsHud from "./XpUserPointsHud.vue"
 
 
 export default { 
@@ -19,6 +20,6 @@ export default {
   XpFabGoldPoints,
   XpFabPageShortcuts,
   XpFabUserHud,
-  XpEquipmentModal
-
+  XpEquipmentModal,
+  XpUserPointsHud
 }
