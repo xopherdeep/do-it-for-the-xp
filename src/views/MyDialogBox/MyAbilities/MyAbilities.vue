@@ -43,7 +43,17 @@
 
     <ion-content class="my-abilities">
       <XpLoading v-if="isLoading"/>
-      <ion-grid v-else >
+      <xp-swiper-gallery v-else 
+        :nTotalPages="nTotalPages"
+        :nTotal="nTotal"
+        :items="items"
+        :isFetching="isFetching"
+        params 
+        @next="slideNext"
+        @prev="slidePrev"
+        @changePage="changePage"
+      />
+      <!-- <ion-grid v-else >
         <ion-row>
           <ion-col size="6" size-lg="3" v-for="item in items" :key="item.id" class="ion-no-padding">
             <ion-card class="item ion-no-padding" >
@@ -51,7 +61,7 @@
               <ion-img v-bind="getImgObj(item.featured_media)"></ion-img>
 
               <ion-card-content class="ion-no-margin ion-no-padding">
-                <!-- <ion-badge color="warning">
+                <ion-badge color="warning">
                   {{item.meta._xp_achievement_gp}}
                   &nbsp;
                   <strong>GP</strong>
@@ -65,13 +75,13 @@
                   {{item.meta._xp_achievement_xp}}
                   &nbsp;
                   <strong>XP</strong>
-                </ion-badge> -->
+                </ion-badge>
               </ion-card-content>
             </ion-card>
           </ion-col>
         </ion-row>
       </ion-grid>
-      <!-- <ion-tabs @ionTabsWillChange="beforeTabChange" @ionTabsDidChange="afterTabChange">
+      <ion-tabs @ionTabsWillChange="beforeTabChange" @ionTabsDidChange="afterTabChange">
         <ion-router-outlet></ion-router-outlet>
         <ion-tab-bar slot="bottom">
           <ion-tab-button tab="my-home" :router-link="`/my-portal/${user.id}`">
@@ -101,7 +111,56 @@
     </ion-content>
     <ion-footer>
       <ion-toolbar color="tertiary">
-        <ion-grid >
+        <ion-grid>
+          <ion-row>
+            <ion-col class="ion-no-padding">
+              <ion-searchbar
+                color="light"
+                @keypress="playTextSound"
+                @keyUp="resetTextSound"
+                @ionChange="searchChanged"
+                v-model="searchText"
+              ></ion-searchbar>
+            </ion-col>
+          </ion-row>
+          <ion-row>
+            <ion-col>
+              <ion-button
+                id="swiper-back"
+                :disabled="page == 1"
+                color="dark"
+                expand="block"
+              >
+                <ion-icon :icon="chevronBack" slot="icon-only" />
+              </ion-button>
+            </ion-col>
+            <ion-col class="total-pages" v-if="isLoading">
+              <ion-skeleton-text :animated="true" style="width: 60%;"></ion-skeleton-text>
+              <ion-skeleton-text :animated="true" style="width: 20%"></ion-skeleton-text>
+            </ion-col>
+            <ion-col class="total-pages" v-else>
+              <ion-text class="ion-text-align-center">
+                Viewing: {{ pageNumbers?.min }} - {{ pageNumbers?.max }} of {{ nTotal }}
+              </ion-text>
+              <ion-text>
+                <small>
+                  Page: {{ page }} of {{nTotalPages}}
+                </small>
+              </ion-text>
+            </ion-col>
+            <ion-col>
+              <ion-button
+                id="swiper-forward"
+                :disabled="!hasNextPage"
+                color="dark"
+                expand="block"
+              >
+                <ion-icon :icon="chevronForward" slot="icon-only" />
+              </ion-button>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+        <!-- <ion-grid >
           <ion-row>
             <ion-col class="ion-no-padding">
               <ion-searchbar color="light" @ionChange="request.params.page = 1" v-model="request.params.search"></ion-searchbar>
@@ -129,7 +188,7 @@
               </ion-button>
             </ion-col>
           </ion-row>
-        </ion-grid>
+        </ion-grid> -->
       </ion-toolbar>
     </ion-footer>
   </ion-page>

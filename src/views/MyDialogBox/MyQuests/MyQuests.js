@@ -34,10 +34,10 @@ import fetchItems from "@/mixins/fetchItems";
 
 import MyTask from "@/views/MyDialogBox/MyTask/MyTask.vue";
 import { useRouter } from "vue-router";
-import useQuests from "@/hooks/useQuests";
 // import { useSwiper } from "swiper/vue";
 import { Controller, Navigation } from "swiper";
 import { useQuery, useQueryClient } from "vue-query";
+import useQuests  from "@/hooks/useQuests";
 
 export default defineComponent({
   props: ["userId"],
@@ -87,6 +87,7 @@ export default defineComponent({
     pageNumbers(){
       const { params: {page, per_page}, nTotalTasks } = this
       const max = Number(page) * Number(per_page) 
+
 
       return {
         min: max - (per_page - 1),
@@ -214,19 +215,21 @@ export default defineComponent({
       set: page => params.page = page
     })
 
+    const updateTotals = ({ data, headers }) => {
+      nTotalTasks.value = Number(headers.get("x-wp-total"));
+      nTotalPages.value = Number(headers.get("x-wp-totalpages"));
+      return data;
+    }
+
     const {
       isLoading,
       isError,
       data: tasks,
       error,
       isFetching,
-      nTotalTasks,
-      nTotalPages,
-    } = useQuests(page.value);
+    } = useQuests(page.value, params, updateTotals);
 
-    const getSlideItems = p => queryClient
-      .getQueryData(["tasks", p, params]) 
-      || [];
+    const getSlideItems = p => queryClient.getQueryData(["tasks", p, params]) || [];
 
     const slideItems = computed({
       get() {
@@ -246,6 +249,7 @@ export default defineComponent({
     // });
 
     return {
+      useTasks,
       params,
       tasks,
       // images,
@@ -283,7 +287,23 @@ export default defineComponent({
       checkmarkDone,
     };
 
-// useTasks function removed as it's replaced by useQuests
+    function useTasks(page, params) {
+      return useQuery( ["tasks", page, params], fetchAchievements, {
+        refetchOnWindowFocus: false,
+        keepPreviousData: true,
+      });
+
+      async function fetchAchievements(){
+        await XpApi
+          .get("xp_achievement", params)
+          .then(updateTotals)
+      }
+
+      function updateTotals({ data, headers }) {
+        nTotalTasks.value = Number(headers.get("x-wp-total"));
+        nTotalPages.value = Number(headers.get("x-wp-totalpages"));
+        return data;
+      }
     }
 
     // function useImages({ type, include }) {
@@ -298,6 +318,6 @@ export default defineComponent({
     //     .get(type, params).then(({ data }) => data);
 
     //   return useQuery(["images", page.value, include], fetchImages, options);
-    // }
-  },
+    }
+   //},
 });
