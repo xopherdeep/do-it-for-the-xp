@@ -5,18 +5,17 @@ import { mapActions, useStore } from "vuex";
 import userActions from "@/mixins/userActions";
 import ionic from "@/mixins/ionic";
 import {modalController, toastController} from "@ionic/vue";
-
 import { arrowBack } from "ionicons/icons";
 
 export default defineComponent({
   name: "my-home",
+  mixins: [ionic, userActions],
   data() {
     return {
       handlerMessage: '',
       roleMessage: '',
     };
   },
-  mixins: [ionic, userActions],
 
   ionViewDidEnter(){
     this.setUserActions(this.userActions)

@@ -23,14 +23,23 @@ const SideMenu = [
       {
         path: '',
         name: 'xp-dashboard',
-        component: () => import ('@/views/App/SideMenu/XpGameMaster/XpDashboard/XpDashboard.vue'),
+        component: () => import ("../views/App/SideMenu/XpGameMaster/XpDashboard/XpDashboard.vue"),
       },
       {
-        path: 'general',
-        name: 'xp-settings-general',
-        component: () => import ('@/views/App/SideMenu/XpSettings/components/GeneralSettings.vue'),
+        path: 'achievements',
+        name: 'xp-achievements',
+        component: () => import ('@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAchievements.vue'),
+      },
+      {
+        path: 'beastiary',
+        name: 'xp-beastiary',
+        component: () => import ('@/views/App/SideMenu/XpGameMaster/XpBeastiary/XpBeastiary.vue'),
       },
     ],
+  },
+  {
+    path: '/add-achievement',
+    component: () => import ('@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAddAchievement/XpAddAchievement.vue'),
   },
   {
     path: '/xp-membership',

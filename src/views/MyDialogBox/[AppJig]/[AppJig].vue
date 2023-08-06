@@ -142,4 +142,3 @@
 
 <script src="./[AppJig]" />
 <style lang="scss" src="./_[AppJig].scss" scoped />
-./[AppJig].js./[AppJig].js

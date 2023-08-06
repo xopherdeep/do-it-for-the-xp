@@ -74,10 +74,12 @@
 <script lang="ts">
   import { walletOutline, colorWand, fitnessOutline } from "ionicons/icons";
   import { defineComponent } from "vue";
+  import ionic from '@/mixins/ionic'
 
   export default defineComponent({
     name: "xp-user-points-hud",
     props: ["stats"],
+    mixins: [ionic],
 
     setup() {
       return {

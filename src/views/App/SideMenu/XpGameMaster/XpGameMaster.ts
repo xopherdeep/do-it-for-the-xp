@@ -1,9 +1,14 @@
 import { defineComponent } from 'vue'
 import ionic from "@/mixins/ionic";
 
-
 import {
-  arrowBack
+  arrowBack,
+  speedometerOutline,
+  speedometerSharp,
+  trophyOutline,
+  trophySharp,
+  pawOutline,
+  pawSharp
 } from "ionicons/icons"
 
 export default defineComponent({
@@ -14,7 +19,13 @@ export default defineComponent({
   setup() {
     // code
     return {
-      arrowBack
+      arrowBack,
+      speedometerOutline,
+      speedometerSharp,
+      trophyOutline,
+      trophySharp,
+      pawOutline,
+      pawSharp
     }
   },
 })

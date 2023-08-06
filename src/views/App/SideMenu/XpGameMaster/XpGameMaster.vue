@@ -12,26 +12,39 @@
         </ion-title>
       </ion-toolbar>
     </ion-header>
-    
-    <ion-content :fullscreen="true">
+    <ion-content>
       <ion-tabs>
         <ion-router-outlet ref="outlet"></ion-router-outlet>
         <ion-tab-bar slot="bottom">
           <ion-tab-button
+            tab="achievements"
+            href="/game-master/achievements"
+          >
+            <ion-icon 
+              :ios="trophyOutline" 
+              :md="trophySharp" 
+            />
+            Achievements
+          </ion-tab-button>
+          <ion-tab-button
             tab="dashboard"
             href="/game-master"
           >
-            <ion-icon :icon="arrowBack" color="success"></ion-icon>
+            <ion-icon 
+              :ios="speedometerOutline" 
+              :md="speedometerSharp" 
+            />
             Dashboard 
           </ion-tab-button>
           <ion-tab-button
-            tab="general"
-            href="/game-master/general"
+            tab="beastiary"
+            href="/game-master/beastiary"
           >
-            <ion-icon :icon="arrowBack" color="success"></ion-icon>
-            Achievements
-
-
+            <ion-icon 
+              :ios="pawOutline" 
+              :md="pawSharp" 
+            />
+            Beastiary
           </ion-tab-button>
         </ion-tab-bar>
       </ion-tabs>

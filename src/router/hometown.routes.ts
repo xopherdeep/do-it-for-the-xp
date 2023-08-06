@@ -36,7 +36,7 @@ const HometownRoutes = [
   {
     path: '/hotel',
     name: 'hotel',
-    component: () => import ('@/views/MyDialogBox/[AppJig]/[AppJig].vue'),
+    component: () => import ('@/views/MyPortal/HomeTown/HotelHub/HotelHub.vue'),
   },
   // END TOWN
 ]
