@@ -8,7 +8,11 @@
             @click="$fx.ui[$fx.theme.ui].select.play()"
           ></ion-menu-button>
           <ion-button>
-            <i class="fad fa-save fa-2x"></i>
+            <ion-icon 
+              :ios="peopleCircleOutline"
+              :md="peopleCircleSharp"
+            />
+            <!-- <i class="fad fa-profile fa-2x"></i> -->
           </ion-button>
         </ion-buttons>
         <ion-title>
@@ -59,11 +63,11 @@
 
 <script lang="ts">
   import ionic from "@/mixins/ionic";
-  import users from "@/api/users.api";
+  // import users from "@/api/users.api";
   
   const requireAvatar = require.context("@/assets/images/avatars/");
 
-  import { add } from "ionicons/icons";
+  import { add, peopleCircleSharp, peopleCircleOutline } from "ionicons/icons";
 
   import {
     useIonRouter,
@@ -71,6 +75,7 @@
   import { mapActions, useStore } from 'vuex';
   import { computed, defineComponent, ref } from '@vue/runtime-core';
   import AddProfile from './AddProfile/AddProfile.vue';
+  import User from "@/utils/User";
 
   export default defineComponent({
     name: "switch-profile",
@@ -80,7 +85,7 @@
     },
     data() {
       return {
-        users,
+        // users,
       };
     },
 
@@ -109,12 +114,18 @@
       const bgm = computed(() => store.state.bgm);
       const ionRouter = useIonRouter();
       const profiles = computed(() => {
+        const storedProfiles = JSON.parse(localStorage.getItem('profiles') || '')
+
         refresh.value
-        return JSON.parse(localStorage.getItem('profiles') || '')
+        return storedProfiles?.map(
+          (user:any) => user ? new User(user) : null
+        )
       });
       return {
         bgm,
         add,
+        peopleCircleSharp,
+        peopleCircleOutline,
         ionRouter,
         profiles,
         refresh

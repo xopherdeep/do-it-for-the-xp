@@ -9,10 +9,10 @@ export interface ProfileName{
   preferred: string
 }
 export default class User {
-  setName({ fullName, first, last, middle, nick, preferred }){
-    const name = { fullName, first, last, middle, nick, preferred }
-    if(fullName){
-      const parts    = fullName.split(" ")
+  setName({ full, first, last, middle, nick, preferred }){
+    const name = { full, first, last, middle, nick, preferred }
+    if(full){
+      const parts    = full.split(" ")
       const numParts = parts.length;
 
       switch(numParts){
@@ -43,8 +43,11 @@ export default class User {
     return name 
   }
   constructor(defaults) {
+    console.log(defaults.name);
     const name = this.setName(defaults.name);
     // const { avatar } = defaults
+
+    
 
     return {
       ...defaults,
