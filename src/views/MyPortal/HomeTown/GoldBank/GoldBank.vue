@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <ion-page :class="$options.name">
     <ion-header>
       <ion-toolbar color="warning">
         <ion-buttons slot="start">

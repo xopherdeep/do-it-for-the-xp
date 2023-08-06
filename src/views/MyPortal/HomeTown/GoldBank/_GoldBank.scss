@@ -7,6 +7,9 @@
   --animation-loop: infinite;
 }
 
-.bank{
+.gold-bank{
+  ion-content{
+    --background: url("@/assets/images/midjourney/bank.png") center / cover no-repeat;
+  }
 }
 
