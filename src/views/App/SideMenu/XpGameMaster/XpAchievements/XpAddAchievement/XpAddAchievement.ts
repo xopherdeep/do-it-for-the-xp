@@ -31,7 +31,16 @@ export default defineComponent({
     const assignee = ref([]);
     const type = ref('individual');
     const bonusAchievement = ref(false);
-    const schedule = ref('');
+    const startsOn = ref(new Date().toISOString());
+    const endsOn = ref('');
+    const dueByTime = ref('');
+    const scheduleType = ref('basic');
+    const basicSchedule = ref('once');
+    const showDailyUntilComplete = ref(false);
+    const repeatOnDays = ref([]);
+    const customFrequency = ref(1);
+    const customPeriodNumber = ref(1);
+    const customPeriodType = ref('day');
     const difficulty = ref(1);
 
     const xp = ref(difficulty.value * 200);

@@ -154,18 +154,74 @@
                 <ion-card-title>Schedule</ion-card-title>
               </ion-card-header>
               <ion-card-content>
-                <ion-segment value="basic">
+                <ion-item>
+                  <ion-label>Starts On</ion-label>
+                  <ion-datetime v-model="startsOn"></ion-datetime>
+                </ion-item>
+                <ion-item>
+                  <ion-label>Ends On</ion-label>
+                  <ion-datetime v-model="endsOn"></ion-datetime>
+                </ion-item>
+                <ion-item>
+                  <ion-label>Due By Time</ion-label>
+                  <ion-datetime v-model="dueByTime" display-format="h:mm A"></ion-datetime>
+                </ion-item>
+                <ion-segment v-model="scheduleType">
                   <ion-segment-button value="basic">
                     <ion-label>Basic</ion-label>
                   </ion-segment-button>
                   <ion-segment-button value="custom">
-                    <ion-label>custom</ion-label>
+                    <ion-label>Custom</ion-label>
                   </ion-segment-button>
                 </ion-segment>
-                  <ion-item>
-                    <ion-label>When</ion-label>
-                    <ion-datetime v-model="schedule"></ion-datetime>
+                <div v-if="scheduleType === 'basic'">
+                  <ion-radio-group v-model="basicSchedule">
+                    <ion-item>
+                      <ion-label>Once</ion-label>
+                      <ion-radio value="once"></ion-radio>
+                    </ion-item>
+                    <ion-item>
+                      <ion-label>Daily</ion-label>
+                      <ion-radio value="daily"></ion-radio>
+                    </ion-item>
+                    <ion-item>
+                      <ion-label>Weekly</ion-label>
+                      <ion-radio value="weekly"></ion-radio>
+                    </ion-item>
+                  </ion-radio-group>
+                  <ion-item v-if="basicSchedule === 'once'">
+                    <ion-label>Show daily until complete</ion-label>
+                    <ion-checkbox v-model="showDailyUntilComplete"></ion-checkbox>
                   </ion-item>
+                  <ion-item v-if="basicSchedule === 'weekly'">
+                    <ion-label>Repeat On:</ion-label>
+                    <ion-select v-model="repeatOnDays" multiple>
+                      <ion-select-option value="mon">Monday</ion-select-option>
+                      <ion-select-option value="tue">Tuesday</ion-select-option>
+                      <ion-select-option value="wed">Wednesday</ion-select-option>
+                      <ion-select-option value="thu">Thursday</ion-select-option>
+                      <ion-select-option value="fri">Friday</ion-select-option>
+                      <ion-select-option value="sat">Saturday</ion-select-option>
+                      <ion-select-option value="sun">Sunday</ion-select-option>
+                    </ion-select>
+                  </ion-item>
+                </div>
+                <div v-if="scheduleType === 'custom'">
+                  <ion-item>
+                    <ion-label>Frequency</ion-label>
+                    <ion-input v-model="customFrequency" type="number"></ion-input>
+                  </ion-item>
+                  <ion-item>
+                    <ion-label>Period</ion-label>
+                    <ion-input v-model="customPeriodNumber" type="number"></ion-input>
+                    <ion-select v-model="customPeriodType">
+                      <ion-select-option value="day">Day(s)</ion-select-option>
+                      <ion-select-option value="week">Week(s)</ion-select-option>
+                      <ion-select-option value="month">Month(s)</ion-select-option>
+                      <ion-select-option value="year">Year(s)</ion-select-option>
+                    </ion-select>
+                  </ion-item>
+                </div>
               </ion-card-content>
             </ion-card>
           </ion-col>
