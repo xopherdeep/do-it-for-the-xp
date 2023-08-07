@@ -33,6 +33,7 @@ export default defineComponent({
 
     const addCategory = (newCategory) => {
       categories.value.push(newCategory);
+      category.value = newCategory.id;
     };
 
     const submitForm = () => {
