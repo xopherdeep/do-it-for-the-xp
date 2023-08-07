@@ -27,10 +27,15 @@
                   <ion-input v-model="achievementName" placeholder="Enter Achievement Name"></ion-input>
                 </ion-item>
 
-                <ion-item>
-                  <ion-label>Category</ion-label>
+                <ion-list>
+                  <ion-radio-group v-model="category">
+                    <ion-item v-for="(cat, index) in categories" :key="index">
+                      <ion-label>{{ cat.name }}</ion-label>
+                      <ion-radio slot="start" :value="cat.id"></ion-radio>
+                    </ion-item>
+                  </ion-radio-group>
                   <ion-button @click="openAddCategoryModal" color="success">Add New Category</ion-button>
-                </ion-item>
+                </ion-list>
 
                 <ion-item>
                   <ion-label>Requires Approval</ion-label>

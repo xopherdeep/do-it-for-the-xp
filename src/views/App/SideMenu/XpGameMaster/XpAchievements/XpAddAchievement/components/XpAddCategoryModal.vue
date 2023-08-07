@@ -92,6 +92,12 @@ export default defineComponent({
       actionSheetOpen.value = true;
     };
 
+    const addNewCategory = () => {
+      // emit event with new category name
+      this.$emit('add-category', { id: Date.now(), name: newCategoryName });
+      newCategoryName = '';
+    };
+
     const predefinedCategories = ref([
       'After School', 'Bathroom', 'Before School', 'Cleaning', 'Evening', 
       'Garden', 'Healthy Habit', 'Home', 'Kitchen', 'Maintenance', 
