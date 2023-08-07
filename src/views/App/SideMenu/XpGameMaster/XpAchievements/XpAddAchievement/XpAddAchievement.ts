@@ -66,21 +66,5 @@ export default defineComponent({
       categories,
       addCategory,
     };
-
-    return {
-      openAddCategoryModal,
-      addCategoryModalOpen,
-      achievementName,
-      category,
-      requiresApproval,
-      points,
-      assign,
-      type,
-      bonusAchievement,
-      schedule,
-      submitForm,
-      checkmarkOutline,
-      checkmarkSharp,
-    };
   },
 });
