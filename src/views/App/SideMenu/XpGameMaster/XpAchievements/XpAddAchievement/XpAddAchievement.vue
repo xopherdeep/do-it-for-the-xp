@@ -22,6 +22,7 @@
                 <ion-card-title>Achievement Form</ion-card-title>
               </ion-card-header>
               <ion-card-content class="rpg-box ion-no-padding">
+                <ion-list-header>Main</ion-list-header>
                 <ion-item>
                   <ion-label>Achievement Name</ion-label>
                   <ion-input v-model="achievementName" placeholder="Enter Achievement Name"></ion-input>
@@ -43,10 +44,12 @@
                 </ion-item>
 
                 <ion-item>
-                  <ion-label>Points: GP, AP, XP</ion-label>
-                  <ion-input v-model="points" placeholder="Enter Points"></ion-input>
-                </ion-item>
-
+  <ion-list-header>Points</ion-list-header>
+  <ion-list-header>Assign and Schedule</ion-list-header>
+  <ion-item>
+    <ion-label>Assign</ion-label>
+    <ion-input v-model="assign" placeholder="Enter Assign"></ion-input>
+  </ion-item>
                 <ion-item>
                   <ion-label>Assign</ion-label>
                   <ion-input v-model="assign" placeholder="Enter Assign"></ion-input>
