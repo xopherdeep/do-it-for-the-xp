@@ -47,16 +47,30 @@
                   <ion-input v-model="assign" placeholder="Enter Assign"></ion-input>
                 </ion-item>
 
-                <ion-item>
-                  <ion-label>Type</ion-label>
-                  <ion-select v-model="type">
-                    <ion-select-option value="individual">Individual</ion-select-option>
-                    <ion-select-option value="asNeeded">As Needed</ion-select-option>
-                    <ion-select-option value="rotate">Rotate</ion-select-option>
-                    <ion-select-option value="compete">Compete</ion-select-option>
-                    <ion-select-option value="collaborate">Collaborate</ion-select-option>
-                  </ion-select>
-                </ion-item>
+                <ion-list>
+                  <ion-radio-group v-model="type">
+                    <ion-item>
+                      <ion-label>Individual</ion-label>
+                      <ion-radio slot="start" value="individual"></ion-radio>
+                    </ion-item>
+                    <ion-item>
+                      <ion-label>As Needed</ion-label>
+                      <ion-radio slot="start" value="asNeeded"></ion-radio>
+                    </ion-item>
+                    <ion-item>
+                      <ion-label>Rotate</ion-label>
+                      <ion-radio slot="start" value="rotate"></ion-radio>
+                    </ion-item>
+                    <ion-item>
+                      <ion-label>Compete</ion-label>
+                      <ion-radio slot="start" value="compete"></ion-radio>
+                    </ion-item>
+                    <ion-item>
+                      <ion-label>Collaborate</ion-label>
+                      <ion-radio slot="start" value="collaborate"></ion-radio>
+                    </ion-item>
+                  </ion-radio-group>
+                </ion-list>
 
                 <ion-item>
                   <ion-label>Bonus Achievement</ion-label>
