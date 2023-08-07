@@ -9,6 +9,12 @@ export default defineComponent({
     // create refs for form fields
     const achievementName = ref('');
     const category = ref('');
+    const predefinedCategories = ref(['Category 1', 'Category 2', 'Category 3']); // replace with actual categories
+    const addCategoryModalOpen = ref(false);
+
+    const openAddCategoryModal = () => {
+      addCategoryModalOpen.value = true;
+    };
     const requiresApproval = ref(false);
     const points = ref('');
     const assign = ref('');

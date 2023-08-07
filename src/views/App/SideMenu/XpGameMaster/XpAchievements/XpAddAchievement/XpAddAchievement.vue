@@ -30,7 +30,16 @@
 
                 <ion-item>
                   <ion-label>Category</ion-label>
-                  <ion-input v-model="category" placeholder="Enter Category"></ion-input>
+                  <ion-radio-group v-model="category">
+                    <ion-list-header>
+                      <ion-label>Predefined Categories</ion-label>
+                    </ion-list-header>
+                    <ion-item v-for="cat in predefinedCategories" :key="cat">
+                      <ion-label>{{ cat }}</ion-label>
+                      <ion-radio slot="start" :value="cat"></ion-radio>
+                    </ion-item>
+                  </ion-radio-group>
+                  <ion-button @click="openAddCategoryModal">Add New Category</ion-button>
                 </ion-item>
 
                 <ion-item>
