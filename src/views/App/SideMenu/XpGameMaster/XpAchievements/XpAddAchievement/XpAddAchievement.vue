@@ -19,42 +19,51 @@
           <ion-col>
             <ion-card class="">
               <ion-card-header>
-                <ion-card-title>Achievement Form</ion-card-title>
+                <ion-card-title>Classification</ion-card-title>
               </ion-card-header>
               <ion-card-content class="rpg-box ion-no-padding">
-                <ion-list-header>Main</ion-list-header>
-                <ion-item>
-                  <ion-label>Achievement Name</ion-label>
-                  <ion-input v-model="achievementName" placeholder="Enter Achievement Name"></ion-input>
-                </ion-item>
-
                 <ion-list>
+                  <ion-item>
+                    <ion-label>Achievement Name</ion-label>
+                    <ion-input v-model="achievementName" placeholder="Enter Achievement Name"></ion-input>
+                  </ion-item>
                   <ion-radio-group v-model="category">
-                    <ion-item v-for="(cat, index) in categories" :key="index">
-                      <ion-label>{{ cat.name }}</ion-label>
-                      <ion-radio slot="start" :value="cat.id"></ion-radio>
-                    </ion-item>
+                    <ion-row>
+                      <ion-col>
+                        <ion-button @click="openAddCategoryModal" color="success">Add New Category</ion-button>
+                      </ion-col>
+                      <ion-col v-for="(cat, index) in categories" :key="index">
+                        <ion-item>
+                          <ion-label>{{ cat.name }}</ion-label>
+                          <ion-radio slot="start" :value="cat.id"></ion-radio>
+                        </ion-item>
+                      </ion-col>
+                    </ion-row>
                   </ion-radio-group>
-                  <ion-button @click="openAddCategoryModal" color="success">Add New Category</ion-button>
+                  <ion-item>
+                    <ion-label>Requires Approval</ion-label>
+                    <ion-toggle v-model="requiresApproval"></ion-toggle>
+                  </ion-item>
+                  <ion-item>
+                    <ion-label>Bonus Achievement</ion-label>
+                    <ion-toggle v-model="bonusAchievement"></ion-toggle>
+                  </ion-item>
                 </ion-list>
+              </ion-card-content>
+            </ion-card>
+            <ion-card class="">
+              <ion-card-header>
+                <ion-card-title>Points</ion-card-title>
+              </ion-card-header>
+              <ion-card-content class="rpg-box ion-no-padding">
 
-                <ion-item>
-                  <ion-label>Requires Approval</ion-label>
-                  <ion-toggle v-model="requiresApproval"></ion-toggle>
-                </ion-item>
-
-                <ion-item>
-  <ion-list-header>Points</ion-list-header>
-  <ion-list-header>Assign and Schedule</ion-list-header>
-  <ion-item>
-    <ion-label>Assign</ion-label>
-    <ion-input v-model="assign" placeholder="Enter Assign"></ion-input>
-  </ion-item>
-                <ion-item>
-                  <ion-label>Assign</ion-label>
-                  <ion-input v-model="assign" placeholder="Enter Assign"></ion-input>
-                </ion-item>
-
+              </ion-card-content>
+            </ion-card>
+            <ion-card class="">
+              <ion-card-header>
+                <ion-card-title>Assignment</ion-card-title>
+              </ion-card-header>
+              <ion-card-content class="rpg-box ion-no-padding">
                 <ion-list>
                   <ion-radio-group v-model="type">
                     <ion-item>
@@ -78,17 +87,11 @@
                       <ion-radio slot="start" value="individual"></ion-radio>
                     </ion-item>
                   </ion-radio-group>
+                  <ion-item>
+                    <ion-label>Who & When</ion-label>
+                    <ion-datetime v-model="schedule"></ion-datetime>
+                  </ion-item>
                 </ion-list>
-
-                <ion-item>
-                  <ion-label>Bonus Achievement</ion-label>
-                  <ion-toggle v-model="bonusAchievement"></ion-toggle>
-                </ion-item>
-
-                <ion-item>
-                  <ion-label>Schedule</ion-label>
-                  <ion-datetime v-model="schedule"></ion-datetime>
-                </ion-item>
 
                 <ion-button expand="full" @click="submitForm">Submit</ion-button>
               </ion-card-content>
