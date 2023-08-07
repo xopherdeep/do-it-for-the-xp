@@ -100,6 +100,7 @@
     <xp-add-category-modal 
       :is-open="addCategoryModalOpen" 
       @dismiss="addCategoryModalOpen = false"
+      @add-category="addCategory"
     />
   </ion-page>
 </template>

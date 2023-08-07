@@ -87,7 +87,8 @@ export default defineComponent({
     addNewCategory(){                                                                                                                                                           
       // emit event with new category name                                                                                                                                                   
       this.$emit('add-category', { id: Date.now(), name: this.newCategoryName });                                                                                                                 
-      this.newCategoryName = '';                                                                                                                                                                  
+      this.newCategoryName = '';
+      this.$emit('dismiss');                                                                                                                                                                  
     } 
   },
   setup() {

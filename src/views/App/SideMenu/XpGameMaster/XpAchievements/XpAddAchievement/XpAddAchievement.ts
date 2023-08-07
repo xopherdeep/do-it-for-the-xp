@@ -25,6 +25,16 @@ export default defineComponent({
     const bonusAchievement = ref(false);
     const schedule = ref('');
 
+    const categories = ref([
+      { id: 1, name: 'Category 1' },
+      { id: 2, name: 'Category 2' },
+      // Add more categories as needed
+    ]);
+
+    const addCategory = (newCategory) => {
+      categories.value.push(newCategory);
+    };
+
     const submitForm = () => {
       console.log({
         achievementName: achievementName.value,
@@ -37,6 +47,24 @@ export default defineComponent({
         schedule: schedule.value,
       });
       // Now you can send this data to your server
+    };
+
+    return {
+      openAddCategoryModal,
+      addCategoryModalOpen,
+      achievementName,
+      category,
+      requiresApproval,
+      points,
+      assign,
+      type,
+      bonusAchievement,
+      schedule,
+      submitForm,
+      checkmarkOutline,
+      checkmarkSharp,
+      categories,
+      addCategory,
     };
 
     return {
