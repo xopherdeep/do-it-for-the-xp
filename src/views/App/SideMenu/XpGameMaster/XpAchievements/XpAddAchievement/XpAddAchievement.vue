@@ -50,24 +50,24 @@
                 <ion-list>
                   <ion-radio-group v-model="type">
                     <ion-item>
-                      <ion-label>Individual</ion-label>
-                      <ion-radio slot="start" value="individual"></ion-radio>
-                    </ion-item>
-                    <ion-item>
-                      <ion-label>As Needed</ion-label>
-                      <ion-radio slot="start" value="asNeeded"></ion-radio>
-                    </ion-item>
-                    <ion-item>
-                      <ion-label>Rotate</ion-label>
-                      <ion-radio slot="start" value="rotate"></ion-radio>
-                    </ion-item>
-                    <ion-item>
                       <ion-label>Compete</ion-label>
                       <ion-radio slot="start" value="compete"></ion-radio>
                     </ion-item>
                     <ion-item>
                       <ion-label>Collaborate</ion-label>
                       <ion-radio slot="start" value="collaborate"></ion-radio>
+                    </ion-item>
+                    <ion-item>
+                      <ion-label>Rotate</ion-label>
+                      <ion-radio slot="start" value="rotate"></ion-radio>
+                    </ion-item>
+                    <ion-item>
+                      <ion-label>As Needed</ion-label>
+                      <ion-radio slot="start" value="asNeeded"></ion-radio>
+                    </ion-item>
+                    <ion-item>
+                      <ion-label>Individual</ion-label>
+                      <ion-radio slot="start" value="individual"></ion-radio>
                     </ion-item>
                   </ion-radio-group>
                 </ion-list>
