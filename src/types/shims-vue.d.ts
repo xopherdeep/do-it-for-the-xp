@@ -18,4 +18,5 @@ declare module '@vue/runtime-core' {
   }
 }
 
+declare module '@/mixins/ionic'{}
 export {}  // Important! See note.
