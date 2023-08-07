@@ -54,24 +54,24 @@
               <ion-card-content class="rpg-box ion-no-padding">
                 <ion-list>
                   <ion-item>
+                    <ion-label>Difficulty Point Value</ion-label>
+                    <ion-select v-model="difficulty">
+                      <ion-select-option value="1">1  </ion-select-option>
+                      <ion-select-option value="2">2 </ion-select-option>
+                      <ion-select-option value="3">3 </ion-select-option>
+                      <ion-select-option value="5">5 </ion-select-option>
+                      <ion-select-option value="8">8 </ion-select-option>
+                      <ion-select-option value="13">13 </ion-select-option>
+                      <!-- Add more options as needed -->
+                    </ion-select>
+                  </ion-item>
+                  <ion-item>
                     <ion-label>XP</ion-label>
                     <ion-input v-model="xp" type="number" placeholder="Enter XP"></ion-input>
                   </ion-item>
                   <ion-item>
                     <ion-label>GP</ion-label>
                     <ion-input v-model="gp" type="number" placeholder="Enter GP"></ion-input>
-                  </ion-item>
-                  <ion-item>
-                    <ion-label>Difficulty</ion-label>
-                    <ion-select v-model="difficulty">
-                      <ion-select-option value="1">1 (fa-dice-d4)</ion-select-option>
-                      <ion-select-option value="2">2 (fa-dice-d6)</ion-select-option>
-                      <ion-select-option value="3">3 (fa-dice-d8)</ion-select-option>
-                      <ion-select-option value="5">5 (fa-dice-d10)</ion-select-option>
-                      <ion-select-option value="8">8 (fa-dice-d12)</ion-select-option>
-                      <ion-select-option value="13">13 (fa-dice-d20)</ion-select-option>
-                      <!-- Add more options as needed -->
-                    </ion-select>
                   </ion-item>
                   <ion-item>
                     <ion-label>AP</ion-label>

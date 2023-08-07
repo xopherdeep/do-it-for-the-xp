@@ -6,9 +6,17 @@ import XpAddCategoryModal from './components/XpAddCategoryModal.vue';
 export default defineComponent({
   name: 'xp-add-achievement',
   mixins: [ionic],
-    components: {
-      XpAddCategoryModal
-    },
+  components: {
+    XpAddCategoryModal
+  },
+  watch: {
+    difficulty: function (val) {
+      this.xp = val * 100;
+      this.gp = val * 10;
+      this.ap = val;
+    }
+  },
+
   setup() {
     // create refs for form fields
     const achievementName = ref('');
@@ -79,6 +87,10 @@ export default defineComponent({
       checkmarkSharp,
       categories,
       addCategory,
+      difficulty,
+      xp,
+      ap, 
+      gp
     };
   },
 });
