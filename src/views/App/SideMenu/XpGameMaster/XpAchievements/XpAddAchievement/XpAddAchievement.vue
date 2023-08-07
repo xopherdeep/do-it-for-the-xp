@@ -38,11 +38,11 @@
                   </ion-item>
                   <ion-item>
                     <ion-label>Requires Approval</ion-label>
-                    <ion-toggle v-model="requiresApproval"></ion-toggle>
+                    <ion-checkbox v-model="requiresApproval"></ion-checkbox>
                   </ion-item>
                   <ion-item>
                     <ion-label>Bonus Achievement</ion-label>
-                    <ion-toggle v-model="bonusAchievement"></ion-toggle>
+                    <ion-checkbox v-model="bonusAchievement"></ion-checkbox>
                   </ion-item>
                 </ion-list>
               </ion-card-content>
@@ -72,7 +72,15 @@
                     </ion-select>
                   </ion-item>
                   <ion-item>
-                    <ion-label>Who & When</ion-label>
+                    <ion-label>Who</ion-label>
+                    <ion-select v-model="assignee">
+                      <!-- Replace with actual list of users -->
+                      <ion-select-option value="user1">User 1</ion-select-option>
+                      <ion-select-option value="user2">User 2</ion-select-option>
+                    </ion-select>
+                  </ion-item>
+                  <ion-item>
+                    <ion-label>When</ion-label>
                     <ion-datetime v-model="schedule"></ion-datetime>
                   </ion-item>
                 </ion-list>
