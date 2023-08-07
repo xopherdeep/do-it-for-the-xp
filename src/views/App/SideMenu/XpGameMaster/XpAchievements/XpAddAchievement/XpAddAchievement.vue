@@ -53,35 +53,58 @@
               </ion-card-header>
               <ion-card-content class="rpg-box ion-no-padding">
                 <ion-list>
-                  <ion-item>
-                    <ion-label>Difficulty Point Value</ion-label>
-                    <ion-radio-group v-model="difficulty">
-                      <ion-item>
-                        <ion-label><i class="fad fa-dice-d4"></i></ion-label>
-                        <ion-radio value="1"></ion-radio>
-                      </ion-item>
-                      <ion-item>
-                        <ion-label><i class="fad fa-dice-d6"></i></ion-label>
-                        <ion-radio value="2"></ion-radio>
-                      </ion-item>
-                      <ion-item>
-                        <ion-label><i class="fad fa-dice-d8"></i></ion-label>
-                        <ion-radio value="3"></ion-radio>
-                      </ion-item>
-                      <ion-item>
-                        <ion-label><i class="fad fa-dice-d10"></i></ion-label>
-                        <ion-radio value="5"></ion-radio>
-                      </ion-item>
-                      <ion-item>
-                        <ion-label><i class="fad fa-dice-d12"></i></ion-label>
-                        <ion-radio value="8"></ion-radio>
-                      </ion-item>
-                      <ion-item>
-                        <ion-label><i class="fad fa-dice-d20"></i></ion-label>
-                        <ion-radio value="13"></ion-radio>
-                      </ion-item>
-                    </ion-radio-group>
-                  </ion-item>
+                  <ion-radio-group v-model="difficulty">
+                    <ion-item>
+                      <ion-label>Difficulty </ion-label>
+                    <ion-grid>
+                      <ion-row>
+                        <ion-col>
+
+                          <ion-item>
+                            <ion-label><i class="fad fa-dice-d4 fa-lg"></i></ion-label>
+                            <ion-radio value="1"></ion-radio>
+                          </ion-item>
+                        </ion-col>
+                        <ion-col>
+                          <ion-item>
+                            <ion-label><i class="fad fa-dice-d6 fa-lg"></i></ion-label>
+                            <ion-radio value="2"></ion-radio>
+                          </ion-item>
+
+                        </ion-col>
+                        <ion-col>
+                          <ion-item>
+                            <ion-label><i class="fad fa-dice-d8 fa-lg"></i></ion-label>
+                            <ion-radio value="3"></ion-radio>
+                          </ion-item>
+
+                        </ion-col>
+                        <ion-col>
+                          <ion-item>
+                            <ion-label><i class="fad fa-dice-d10 fa-lg"></i></ion-label>
+                            <ion-radio value="5"></ion-radio>
+                          </ion-item>
+
+                        </ion-col>
+                        <ion-col>
+                          <ion-item>
+                            <ion-label><i class="fad fa-dice-d12 fa-lg"></i></ion-label>
+                            <ion-radio value="8"></ion-radio>
+                          </ion-item>
+
+                        </ion-col>
+                        <ion-col>
+                          <ion-item>
+                            <ion-label><i class="fad fa-dice-d20 fa-lg"></i></ion-label>
+                            <ion-radio value="13"></ion-radio>
+                          </ion-item>
+
+                        </ion-col>
+                      </ion-row>
+                    </ion-grid>
+                    </ion-item>
+                  </ion-radio-group>
+
                   <ion-item>
                     <ion-label>XP</ion-label>
                     <ion-input v-model="xp" type="number" placeholder="Enter XP"></ion-input>

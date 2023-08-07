@@ -11,9 +11,9 @@ export default defineComponent({
   },
   watch: {
     difficulty: function (val) {
-      this.xp = val * 100;
-      this.gp = val * 10;
-      this.ap = val;
+      this.xp = val * 200;
+      this.gp = val * 20;
+      this.ap = val * 2;
     }
   },
 
@@ -34,9 +34,9 @@ export default defineComponent({
     const schedule = ref('');
     const difficulty = ref(1);
 
-    const xp = ref(difficulty.value * 100);
-    const gp = ref(difficulty.value * 10);
-    const ap = ref(difficulty.value);
+    const xp = ref(difficulty.value * 200);
+    const gp = ref(difficulty.value * 20);
+    const ap = ref(difficulty.value * 2);
 
     const categories = ref([
       { id: 1, name: 'Category 1' },
@@ -50,9 +50,9 @@ export default defineComponent({
     };
 
     const submitForm = () => {
-      xp.value = difficulty.value * 100;
-      gp.value = difficulty.value * 10;
-      ap.value = difficulty.value;
+      xp.value = difficulty.value * 200;
+      gp.value = difficulty.value * 20;
+      ap.value = difficulty.value * 2;
 
       console.log({
         achievementName: achievementName.value,
