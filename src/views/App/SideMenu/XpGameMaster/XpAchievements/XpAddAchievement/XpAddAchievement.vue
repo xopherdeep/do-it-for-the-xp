@@ -52,7 +52,20 @@
                 <ion-card-title>Points</ion-card-title>
               </ion-card-header>
               <ion-card-content class="rpg-box ion-no-padding">
-
+                <ion-list>
+                  <ion-item>
+                    <ion-label>XP</ion-label>
+                    <ion-input v-model="xp" type="number" placeholder="Enter XP"></ion-input>
+                  </ion-item>
+                  <ion-item>
+                    <ion-label>GP</ion-label>
+                    <ion-input v-model="gp" type="number" placeholder="Enter GP"></ion-input>
+                  </ion-item>
+                  <ion-item>
+                    <ion-label>AP</ion-label>
+                    <ion-input v-model="ap" type="number" placeholder="Enter AP"></ion-input>
+                  </ion-item>
+                </ion-list>
               </ion-card-content>
             </ion-card>
             <ion-card class="">

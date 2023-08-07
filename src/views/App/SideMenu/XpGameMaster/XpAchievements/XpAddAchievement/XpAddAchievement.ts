@@ -24,6 +24,9 @@ export default defineComponent({
     const type = ref('individual');
     const bonusAchievement = ref(false);
     const schedule = ref('');
+    const xp = ref('');
+    const gp = ref('');
+    const ap = ref('');
 
     const categories = ref([
       { id: 1, name: 'Category 1' },
