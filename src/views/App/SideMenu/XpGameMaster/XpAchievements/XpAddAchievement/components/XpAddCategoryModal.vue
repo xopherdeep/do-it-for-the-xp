@@ -1,5 +1,5 @@
 <template>
-  <ion-modal :is-open="addCategoryModalOpen" onDidDismiss="addCategoryModalOpen = false">
+  <ion-modal :is-open="isOpen" @didDismiss="didDismiss">
     <ion-header>
       <ion-toolbar>
         <ion-title>Add New Category</ion-title>
@@ -25,7 +25,13 @@ import ionic from '@/mixins/ionic';
 
 export default defineComponent({
   name: 'xp-add-category',
+  props: ['isOpen'],
   mixins: [ionic],
+  methods: {
+    didDismiss(){
+      this.$emit('dismiss');
+    }
+  }
 })
 </script>
 

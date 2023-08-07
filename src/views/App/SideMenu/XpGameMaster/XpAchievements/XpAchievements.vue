@@ -27,6 +27,7 @@
 <script lang="ts">
   import { defineComponent } from 'vue'
   import ionic from "@/mixins/ionic";
+
   import {
     addOutline,
     addSharp,

@@ -87,6 +87,11 @@
       </ion-grid>
       <!-- fab placed to the bottom and start and on the bottom edge of the content overlapping footer with a list to the right -->
     </ion-content>
+
+    <xp-add-category-modal 
+      :is-open="addCategoryModalOpen" 
+      @dismiss="addCategoryModalOpen = false"
+    />
   </ion-page>
 </template>
 

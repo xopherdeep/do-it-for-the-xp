@@ -1,10 +1,14 @@
 import { defineComponent, ref } from 'vue';
 import { checkmarkOutline, checkmarkSharp } from 'ionicons/icons';
 import ionic from '@/mixins/ionic'
+import XpAddCategoryModal from './components/XpAddCategoryModal.vue';
 
 export default defineComponent({
   name: 'xp-add-achievement',
   mixins: [ionic],
+    components: {
+      XpAddCategoryModal
+    },
   setup() {
     // create refs for form fields
     const achievementName = ref('');
@@ -37,6 +41,8 @@ export default defineComponent({
     };
 
     return {
+      openAddCategoryModal,
+      addCategoryModalOpen,
       achievementName,
       category,
       requiresApproval,
