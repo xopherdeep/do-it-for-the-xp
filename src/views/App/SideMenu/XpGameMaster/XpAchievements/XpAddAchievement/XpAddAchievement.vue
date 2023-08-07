@@ -86,7 +86,7 @@
                   </ion-item>
                   <ion-item>
                     <ion-label>Who</ion-label>
-                    <ion-select v-model="assignee">
+                    <ion-select v-model="assignee" multiple :disabled="type === 'asNeeded'">
                       <!-- Replace with actual list of users -->
                       <ion-select-option value="user1">User 1</ion-select-option>
                       <ion-select-option value="user2">User 2</ion-select-option>

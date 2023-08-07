@@ -20,7 +20,7 @@ export default defineComponent({
     };
     const requiresApproval = ref(false);
     const points = ref('');
-    const assignee = ref('');
+    const assignee = ref([]);
     const type = ref('individual');
     const bonusAchievement = ref(false);
     const schedule = ref('');
