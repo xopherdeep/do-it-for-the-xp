@@ -83,19 +83,18 @@ export default defineComponent({
   methods: {
     didDismiss(){
       this.$emit('dismiss');
-    }
+    },
+    addNewCategory(){                                                                                                                                                           
+      // emit event with new category name                                                                                                                                                   
+      this.$emit('add-category', { id: Date.now(), name: this.newCategoryName });                                                                                                                 
+      this.newCategoryName = '';                                                                                                                                                                  
+    } 
   },
   setup() {
     const actionSheetOpen = ref(false);
 
     const openActionSheet = () => {
       actionSheetOpen.value = true;
-    };
-
-    const addNewCategory = () => {
-      // emit event with new category name
-      this.$emit('add-category', { id: Date.now(), name: newCategoryName });
-      newCategoryName = '';
     };
 
     const predefinedCategories = ref([
