@@ -62,6 +62,18 @@
                     <ion-input v-model="gp" type="number" placeholder="Enter GP"></ion-input>
                   </ion-item>
                   <ion-item>
+                    <ion-label>Difficulty</ion-label>
+                    <ion-select v-model="difficulty">
+                      <ion-select-option value="1">1 (fa-dice-d4)</ion-select-option>
+                      <ion-select-option value="2">2 (fa-dice-d6)</ion-select-option>
+                      <ion-select-option value="3">3 (fa-dice-d8)</ion-select-option>
+                      <ion-select-option value="5">5 (fa-dice-d10)</ion-select-option>
+                      <ion-select-option value="8">8 (fa-dice-d12)</ion-select-option>
+                      <ion-select-option value="13">13 (fa-dice-d20)</ion-select-option>
+                      <!-- Add more options as needed -->
+                    </ion-select>
+                  </ion-item>
+                  <ion-item>
                     <ion-label>AP</ion-label>
                     <ion-input v-model="ap" type="number" placeholder="Enter AP"></ion-input>
                   </ion-item>

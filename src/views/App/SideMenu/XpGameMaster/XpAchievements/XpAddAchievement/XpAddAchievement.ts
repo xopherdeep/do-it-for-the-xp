@@ -24,9 +24,11 @@ export default defineComponent({
     const type = ref('individual');
     const bonusAchievement = ref(false);
     const schedule = ref('');
-    const xp = ref('');
-    const gp = ref('');
-    const ap = ref('');
+    const difficulty = ref(1);
+
+    const xp = ref(difficulty.value * 100);
+    const gp = ref(difficulty.value * 10);
+    const ap = ref(difficulty.value);
 
     const categories = ref([
       { id: 1, name: 'Category 1' },
@@ -40,6 +42,10 @@ export default defineComponent({
     };
 
     const submitForm = () => {
+      xp.value = difficulty.value * 100;
+      gp.value = difficulty.value * 10;
+      ap.value = difficulty.value;
+
       console.log({
         achievementName: achievementName.value,
         category: category.value,
@@ -49,6 +55,10 @@ export default defineComponent({
         type: type.value,
         bonusAchievement: bonusAchievement.value,
         schedule: schedule.value,
+        difficulty: difficulty.value,
+        xp: xp.value,
+        gp: gp.value,
+        ap: ap.value,
       });
       // Now you can send this data to your server
     };
