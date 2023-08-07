@@ -144,13 +144,28 @@
                       <ion-select-option value="user2">User 2</ion-select-option>
                     </ion-select>
                   </ion-item>
+                </ion-list>
+
+                <ion-button expand="full" @click="submitForm">Submit</ion-button>
+              </ion-card-content>
+            </ion-card>
+            <ion-card>
+              <ion-card-header>
+                <ion-card-title>Schedule</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <ion-segment value="basic">
+                  <ion-segment-button value="basic">
+                    <ion-label>Basic</ion-label>
+                  </ion-segment-button>
+                  <ion-segment-button value="custom">
+                    <ion-label>custom</ion-label>
+                  </ion-segment-button>
+                </ion-segment>
                   <ion-item>
                     <ion-label>When</ion-label>
                     <ion-datetime v-model="schedule"></ion-datetime>
                   </ion-item>
-                </ion-list>
-
-                <ion-button expand="full" @click="submitForm">Submit</ion-button>
               </ion-card-content>
             </ion-card>
           </ion-col>
