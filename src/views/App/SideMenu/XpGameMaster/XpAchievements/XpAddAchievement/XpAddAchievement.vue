@@ -55,15 +55,32 @@
                 <ion-list>
                   <ion-item>
                     <ion-label>Difficulty Point Value</ion-label>
-                    <ion-select v-model="difficulty">
-                      <ion-select-option value="1">1  </ion-select-option>
-                      <ion-select-option value="2">2 </ion-select-option>
-                      <ion-select-option value="3">3 </ion-select-option>
-                      <ion-select-option value="5">5 </ion-select-option>
-                      <ion-select-option value="8">8 </ion-select-option>
-                      <ion-select-option value="13">13 </ion-select-option>
-                      <!-- Add more options as needed -->
-                    </ion-select>
+                    <ion-radio-group v-model="difficulty">
+                      <ion-item>
+                        <ion-label><i class="fad fa-dice-d4"></i></ion-label>
+                        <ion-radio value="1"></ion-radio>
+                      </ion-item>
+                      <ion-item>
+                        <ion-label><i class="fad fa-dice-d6"></i></ion-label>
+                        <ion-radio value="2"></ion-radio>
+                      </ion-item>
+                      <ion-item>
+                        <ion-label><i class="fad fa-dice-d8"></i></ion-label>
+                        <ion-radio value="3"></ion-radio>
+                      </ion-item>
+                      <ion-item>
+                        <ion-label><i class="fad fa-dice-d10"></i></ion-label>
+                        <ion-radio value="5"></ion-radio>
+                      </ion-item>
+                      <ion-item>
+                        <ion-label><i class="fad fa-dice-d12"></i></ion-label>
+                        <ion-radio value="8"></ion-radio>
+                      </ion-item>
+                      <ion-item>
+                        <ion-label><i class="fad fa-dice-d20"></i></ion-label>
+                        <ion-radio value="13"></ion-radio>
+                      </ion-item>
+                    </ion-radio-group>
                   </ion-item>
                   <ion-item>
                     <ion-label>XP</ion-label>
