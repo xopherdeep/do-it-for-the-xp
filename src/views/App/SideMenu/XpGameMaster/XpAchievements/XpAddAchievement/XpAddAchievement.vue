@@ -27,19 +27,15 @@
                     <ion-label>Achievement Name</ion-label>
                     <ion-input v-model="achievementName" placeholder="Enter Achievement Name"></ion-input>
                   </ion-item>
-                  <ion-radio-group v-model="category">
-                    <ion-row>
-                      <ion-col>
-                        <ion-button @click="openAddCategoryModal" color="success">Add New Category</ion-button>
-                      </ion-col>
-                      <ion-col v-for="(cat, index) in categories" :key="index">
-                        <ion-item>
-                          <ion-label>{{ cat.name }}</ion-label>
-                          <ion-radio slot="start" :value="cat.id"></ion-radio>
-                        </ion-item>
-                      </ion-col>
-                    </ion-row>
-                  </ion-radio-group>
+                  <ion-item>
+                    <ion-label>Category</ion-label>
+                    <ion-select v-model="category">
+                      <ion-select-option v-for="(cat, index) in categories" :value="cat.id" :key="index">
+                        {{ cat.name }}
+                      </ion-select-option>
+                    </ion-select>
+                    <ion-button @click="openAddCategoryModal" color="success">Add New Category</ion-button>
+                  </ion-item>
                   <ion-item>
                     <ion-label>Requires Approval</ion-label>
                     <ion-toggle v-model="requiresApproval"></ion-toggle>
@@ -65,28 +61,16 @@
               </ion-card-header>
               <ion-card-content class="rpg-box ion-no-padding">
                 <ion-list>
-                  <ion-radio-group v-model="type">
-                    <ion-item>
-                      <ion-label>Compete</ion-label>
-                      <ion-radio slot="start" value="compete"></ion-radio>
-                    </ion-item>
-                    <ion-item>
-                      <ion-label>Collaborate</ion-label>
-                      <ion-radio slot="start" value="collaborate"></ion-radio>
-                    </ion-item>
-                    <ion-item>
-                      <ion-label>Rotate</ion-label>
-                      <ion-radio slot="start" value="rotate"></ion-radio>
-                    </ion-item>
-                    <ion-item>
-                      <ion-label>As Needed</ion-label>
-                      <ion-radio slot="start" value="asNeeded"></ion-radio>
-                    </ion-item>
-                    <ion-item>
-                      <ion-label>Individual</ion-label>
-                      <ion-radio slot="start" value="individual"></ion-radio>
-                    </ion-item>
-                  </ion-radio-group>
+                  <ion-item>
+                    <ion-label>Type</ion-label>
+                    <ion-select v-model="type">
+                      <ion-select-option value="compete">Compete</ion-select-option>
+                      <ion-select-option value="collaborate">Collaborate</ion-select-option>
+                      <ion-select-option value="rotate">Rotate</ion-select-option>
+                      <ion-select-option value="asNeeded">As Needed</ion-select-option>
+                      <ion-select-option value="individual">Individual</ion-select-option>
+                    </ion-select>
+                  </ion-item>
                   <ion-item>
                     <ion-label>Who & When</ion-label>
                     <ion-datetime v-model="schedule"></ion-datetime>
