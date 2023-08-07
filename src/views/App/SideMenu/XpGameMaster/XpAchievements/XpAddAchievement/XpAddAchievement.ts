@@ -13,7 +13,11 @@ export default defineComponent({
     // create refs for form fields
     const achievementName = ref('');
     const category = ref('');
-    const predefinedCategories = ref(['Category 1', 'Category 2', 'Category 3']); // replace with actual categories
+    const predefinedCategories = ref([
+      'After School', 'Bathroom', 'Before School', 'Cleaning', 'Evening', 
+      'Garden', 'Healthy Habit', 'Home', 'Kitchen', 'Maintenance', 
+      'Meals', 'Morning', 'Personal'
+    ]);
     const addCategoryModalOpen = ref(false);
 
     const openAddCategoryModal = () => {

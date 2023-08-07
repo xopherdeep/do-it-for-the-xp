@@ -34,10 +34,14 @@
                     <ion-list-header>
                       <ion-label>Predefined Categories</ion-label>
                     </ion-list-header>
-                    <ion-item v-for="cat in predefinedCategories" :key="cat">
-                      <ion-label>{{ cat }}</ion-label>
-                      <ion-radio slot="start" :value="cat"></ion-radio>
-                    </ion-item>
+                    <ion-row>
+                      <ion-col v-for="cat in predefinedCategories" :key="cat">
+                        <ion-item>
+                          <ion-radio slot="start" :value="cat"></ion-radio>
+                          {{ cat }}
+                        </ion-item>
+                      </ion-col>
+                    </ion-row>
                   </ion-radio-group>
                   <ion-button @click="openAddCategoryModal">Add New Category</ion-button>
                 </ion-item>

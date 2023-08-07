@@ -6,16 +6,16 @@
       </ion-toolbar>
     </ion-header>
     <ion-content>
-      <ion-item>
-        <ion-label>Name</ion-label>
-        <ion-input v-model="newCategoryName" placeholder="Enter Category Name"></ion-input>
-      </ion-item>
-      <ion-item>
-        <ion-label>Picture</ion-label>
-        <ion-thumbnail @click="openActionSheet">
-          <ion-img :src="newCategoryPicture"></ion-img>
-        </ion-thumbnail>
-      </ion-item>
+      <ion-row>
+        <ion-col size="2">
+          <ion-thumbnail @click="openActionSheet">
+            <ion-skeleton-text animated></ion-skeleton-text>
+          </ion-thumbnail>
+        </ion-col>
+        <ion-col size="10">
+          <ion-input v-model="newCategoryName" placeholder="Enter Category Name"></ion-input>
+        </ion-col>
+      </ion-row>
       <ion-button expand="full" @click="addNewCategory">Add</ion-button>
     </ion-content>
     <ion-action-sheet
