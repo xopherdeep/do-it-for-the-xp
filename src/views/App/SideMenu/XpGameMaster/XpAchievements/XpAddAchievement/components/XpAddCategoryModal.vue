@@ -5,17 +5,51 @@
         <ion-title>Add New Category</ion-title>
       </ion-toolbar>
     </ion-header>
-    <ion-content>
-      <ion-row>
-        <ion-col size="2">
-          <ion-thumbnail @click="openActionSheet">
-            <ion-skeleton-text animated></ion-skeleton-text>
-          </ion-thumbnail>
-        </ion-col>
-        <ion-col size="10">
-          <ion-input v-model="newCategoryName" placeholder="Enter Category Name"></ion-input>
-        </ion-col>
-      </ion-row>
+    <ion-content class="rpg-box">
+      <ion-grid>
+        <ion-row>
+          <ion-col size="4">
+            <ion-item>
+                  <ion-avatar @click="openActionSheet">
+                    <ion-skeleton-text ></ion-skeleton-text>
+                  </ion-avatar>
+            </ion-item>
+          </ion-col>
+          <ion-col size="8">
+            <ion-item>
+                  <ion-input v-model="newCategoryName" placeholder="Enter Category Name"></ion-input>
+            </ion-item>
+          </ion-col>
+        </ion-row>
+        <ion-row>
+          <ion-col>
+            <ion-list>
+            <ion-list-header>
+              <ion-label>Predefined Categories</ion-label>
+            </ion-list-header>
+            <ion-item>
+                <ion-row
+                  class="ion-justify-content-center ion-align-items-center"
+                >
+                  <ion-col 
+                    size="4" 
+                    v-for="cat in predefinedCategories" 
+                    :key="cat"
+                  >
+                  <ion-item>
+
+                    <ion-avatar>
+                      <ion-skeleton-text />
+                    </ion-avatar>
+                    {{ cat }}
+                  </ion-item>
+                  </ion-col>
+                </ion-row>
+            </ion-item>
+            </ion-list>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
       <ion-button expand="full" @click="addNewCategory">Add</ion-button>
     </ion-content>
     <ion-action-sheet
@@ -41,6 +75,16 @@ export default defineComponent({
   name: 'xp-add-category',
   props: ['isOpen'],
   mixins: [ionic],
+  data(){
+    return {
+        newCategoryName: '',
+    }
+  },
+  methods: {
+    didDismiss(){
+      this.$emit('dismiss');
+    }
+  },
   setup() {
     const actionSheetOpen = ref(false);
 
@@ -48,16 +92,22 @@ export default defineComponent({
       actionSheetOpen.value = true;
     };
 
+    const predefinedCategories = ref([
+      'After School', 'Bathroom', 'Before School', 'Cleaning', 'Evening', 
+      'Garden', 'Healthy Habit', 'Home', 'Kitchen', 'Maintenance', 
+      'Meals', 'Morning', 'Personal'
+    ]);
+
     return {
+      
       actionSheetOpen,
       openActionSheet,
+      cameraOutline,
+      imagesOutline,
+      predefinedCategories
+
     };
   },
-  methods: {
-    didDismiss(){
-      this.$emit('dismiss');
-    }
-  }
 })
 </script>
 

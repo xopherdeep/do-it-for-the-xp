@@ -13,16 +13,15 @@
         </ion-title>
       </ion-toolbar>
     </ion-header>
-
     <ion-content >
-      <ion-grid>
+      <ion-grid >
         <ion-row>
           <ion-col>
-            <ion-card>
+            <ion-card class="">
               <ion-card-header>
                 <ion-card-title>Achievement Form</ion-card-title>
               </ion-card-header>
-              <ion-card-content class="rpg-box">
+              <ion-card-content class="rpg-box ion-no-padding">
                 <ion-item>
                   <ion-label>Achievement Name</ion-label>
                   <ion-input v-model="achievementName" placeholder="Enter Achievement Name"></ion-input>
@@ -30,20 +29,7 @@
 
                 <ion-item>
                   <ion-label>Category</ion-label>
-                  <ion-radio-group v-model="category">
-                    <ion-list-header>
-                      <ion-label>Predefined Categories</ion-label>
-                    </ion-list-header>
-                    <ion-row>
-                      <ion-col v-for="cat in predefinedCategories" :key="cat">
-                        <ion-item>
-                          <ion-radio slot="start" :value="cat"></ion-radio>
-                          {{ cat }}
-                        </ion-item>
-                      </ion-col>
-                    </ion-row>
-                  </ion-radio-group>
-                  <ion-button @click="openAddCategoryModal">Add New Category</ion-button>
+                  <ion-button @click="openAddCategoryModal" color="success">Add New Category</ion-button>
                 </ion-item>
 
                 <ion-item>
