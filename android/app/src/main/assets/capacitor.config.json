@@ -1,6 +1,6 @@
 {
-	"appId": "com.midnightnerd.xp",
+	"appId": "com.forthexp.doit",
 	"appName": "Do it for the XP",
 	"webDir": "public",
-	"bundledWebRuntime": false
+	"bundledWebRuntime": true
 }
