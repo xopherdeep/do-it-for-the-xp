@@ -295,7 +295,7 @@
   }
 
     ion-button{
-      width: 100%;
+      // width: 100%;
       justify-content: flex-start !important;
       * {
         display: flex;

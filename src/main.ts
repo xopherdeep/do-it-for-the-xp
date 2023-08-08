@@ -38,11 +38,14 @@ app.config.globalProperties = {
   // TODO: update, using $store like in Vue2 atm
   $store: store,
   play$fx: (fx='select')=>{
-    const { ui, theme: { ui: themeUi } }  = $fx
+    const { rpg, ui, theme: { ui: themeUi } }  = $fx
     const soundFx = ui[themeUi][fx]
+    // const rpgFx = rpg[themeUi]
 
     if(soundFx)
       soundFx.play()
+    // else(rpgFx && rpgFx[fx])
+    //   rpgFx[fx].play()
   },
   $historyCount: window.history.length
 };

@@ -36,7 +36,7 @@
             <ion-button
               size="large"
               id="login-button"
-              @click.stop="play$fx('alert')"
+              @click.stop="play$fx('start')"
             >
               START 
             </ion-button>

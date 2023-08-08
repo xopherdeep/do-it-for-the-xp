@@ -17,7 +17,6 @@
               router-direction="root"
               @click="action.click"
               size="large"
-              expand="full"
               class="ion-justify-content-left"
             >
               <i

@@ -41,13 +41,21 @@
   export default defineComponent({
     name: 'xp-achievements',
     mixins: [ionic],
+    methods: {
+      
+      clickAdd(){
+        this.$router.push("/add-achievement")
+
+      }
+    },
     setup(){
+
       const router = useRouter()
 
-      const clickAdd = () => router.push("/add-achievement")
+      // const clickAdd = () => router.push("/add-achievement")
 
       return {
-        clickAdd,
+        // clickAdd,
         addOutline,
         addSharp,
         searchOutline,
@@ -58,7 +66,7 @@
     },
   })
 </script>
-<style lang="scss">
+<style lang="scss" scoped>
   ion-fab-list{
     ion-fab-button{
       &::before{

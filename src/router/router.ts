@@ -35,8 +35,11 @@ export default function (store) {
   router.beforeEach((to, from, next) => {
     // log-out safe gaurd
     if(to.name === 'log-out' && !to.params.confirm){
-      const toLogout = () => router.push({ name:'log-out', params: { confirm: 1 }} )
-      const onConfirm = () =>  store.dispatch('logOutUser').then(toLogout) 
+      const onConfirm = () =>  {
+        store.dispatch('logOutUser')
+        router.push({ name:'log-out', params: { confirm: 1 }} )
+      }
+      // .then(toLogout) 
       logoutAlert(onConfirm, null);
       return next(false);
     }

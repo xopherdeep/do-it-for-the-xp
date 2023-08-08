@@ -1,25 +1,6 @@
 <template>
   <ion-row v-if="stats" :class="$options.name">
     <ion-col size="12" class="ion-no-margin ion-no-padding">
-      <ion-badge class="xp-badge">
-        <ion-progress-bar
-          color="success"
-          v-if="stats"
-          :value="stats.xp.now / stats.xp.next_level"
-        ></ion-progress-bar>
-        <ion-badge>
-          <!-- <ion-icon :icon="sparklesOutline" size="small" /> -->
-          <p>
-            XP: ({{ stats.xp.now }} / {{ stats.xp.next_level }})
-          </p>
-          <p>
-            <small>
-              Level 
-            </small>
-            {{ stats.level }}
-          </p>
-        </ion-badge>
-      </ion-badge>
       <ion-badge class="hp-badge">
         <ion-progress-bar
           color="danger"
@@ -39,7 +20,7 @@
       </ion-badge>
       <ion-badge class="mp-badge">
         <ion-progress-bar
-          color="tertiary"
+          color=""
           v-if="stats"
           :value="stats.mp.now / stats.mp.max"
         ></ion-progress-bar>
@@ -65,6 +46,25 @@
             <small>00</small>
           </p>
           <ion-icon :icon="walletOutline" size="small" />
+        </ion-badge>
+      </ion-badge>
+      <ion-badge class="xp-badge">
+        <ion-progress-bar
+          color="success"
+          v-if="stats"
+          :value="stats.xp.now / stats.xp.next_level"
+        ></ion-progress-bar>
+        <ion-badge>
+          <!-- <ion-icon :icon="sparklesOutline" size="small" /> -->
+          <p>
+            XP: ({{ stats.xp.now }} / {{ stats.xp.next_level }})
+          </p>
+          <p>
+            <small>
+              Level 
+            </small>
+            {{ stats.level }}
+          </p>
         </ion-badge>
       </ion-badge>
     </ion-col>

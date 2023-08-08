@@ -85,14 +85,14 @@ export default defineComponent({
       toggleBGDirection: 0,
       currentBG: 0,
       interval: 0,
-      authDomain: "hallofthegods.docksal",
+      authDomain: "doit.forthexp.com",
       oauth: {
-        domain: "hallofthegods.docksal",
+        domain: "doit.forthexp.com",
         authorize: "/oauth/authorize",
         token: "/oauth/token",
         me: "/oauth/me",
-        client_id: "wTipF3eZ5IH7V6gR0GQUMJnFGsU2g2YGBYHR2Tjd",
-        client_secret: "rssqcO0udTX2TU7ErzjXzgc7xcHErSPQqWx2FXKj",
+        client_id: "ou5F5T2fsFimg6rEzZx76jEHXY7cJfdeb6cQroz9",
+        client_secret: "NypjizBfVSyZTbjbgXUbyjR1FfmlrLtwsGeREfwk",
         redirect_uri: "http://localhost:8100/log-in",
         access: {} 
       }
@@ -277,6 +277,12 @@ export default defineComponent({
     const route = useRoute();
 
     const { code } = route.query
+
+    // fake login
+    // if(code){
+    //   router.push('/switch-profile')
+
+    // }
 
 
     return {

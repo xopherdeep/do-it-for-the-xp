@@ -16,6 +16,8 @@ export default defineComponent({
       this.ap = val * 2;
     }
   },
+  methods: {
+  },
 
   setup() {
     // create refs for form fields
@@ -71,7 +73,7 @@ export default defineComponent({
         assignee: assignee.value,
         type: type.value,
         bonusAchievement: bonusAchievement.value,
-        schedule: schedule.value,
+        // schedule: schedule.value,
         difficulty: difficulty.value,
         xp: xp.value,
         gp: gp.value,
@@ -81,22 +83,31 @@ export default defineComponent({
     };
 
     return {
-      openAddCategoryModal,
-      addCategoryModalOpen,
       achievementName,
-      category,
-      requiresApproval,
-      points,
+      addCategory,
+      addCategoryModalOpen,
       assignee,
-      type,
+      basicSchedule,
       bonusAchievement,
-      schedule,
-      submitForm,
+      categories,
+      category,
       checkmarkOutline,
       checkmarkSharp,
-      categories,
-      addCategory,
       difficulty,
+      openAddCategoryModal,
+      points,
+      requiresApproval,
+      scheduleType,
+      submitForm,
+      type,
+      startsOn,
+      endsOn,
+      dueByTime,
+      showDailyUntilComplete,
+      repeatOnDays,
+      customFrequency,
+      customPeriodNumber,
+      customPeriodType,
       xp,
       ap, 
       gp
