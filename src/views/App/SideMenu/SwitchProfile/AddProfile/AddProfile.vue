@@ -172,7 +172,7 @@
     methods: {
       openModal() {
         this.showModal = true;
-        this.$fx.rpg[this.$fx.theme.rpg].countCoins.pause();
+          this.$fx.rpg[this.$fx.theme.rpg].countCoins.pause();
         console.log(this.showModal);
       },
       closeModal() {

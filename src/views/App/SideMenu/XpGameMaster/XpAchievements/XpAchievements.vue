@@ -45,7 +45,6 @@
       
       clickAdd(){
         this.$router.push("/add-achievement")
-
       }
     },
     setup(){

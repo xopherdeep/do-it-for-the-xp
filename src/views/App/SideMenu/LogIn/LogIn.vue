@@ -59,7 +59,7 @@
           Open menu
         </ion-menu-toggle>
       </ion-grid>
-      <ion-modal :is-open="code" ref="modal" trigger="login-button" class="login">
+      <ion-modal :is-open="code && !showSuccessModal" ref="modal" trigger="login-button" class="login">
         <ion-content>
           <ion-grid>
             <ion-row>
@@ -112,6 +112,7 @@
           </ion-grid>
         </ion-content>
       </ion-modal>
+      <successful-login-modal :is-open="showSuccessModal" @close="closeSuccessModal" />
       <ion-modal ref="settings" trigger="settings-button">
         <ion-content>
           <ion-grid>
@@ -137,6 +138,7 @@
           </ion-grid>
         </ion-content>
       </ion-modal>
+      <successful-login-modal :is-open="showSuccessModal" @close="closeSuccessModal" />
       <!-- <footer>
         <p align="center">
           <a href="https://twitter.com/xopherdeep" class="btn-twtr" target="_b"

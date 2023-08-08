@@ -3,6 +3,7 @@ const requireImg = require.context("@/assets/icons/");
 import backgrounds from "@/assets/images/backgrounds/parallax/index.js";
 
 import InputSettings from "../XpSettings/components/InputSettings.vue";
+import SuccessfulLoginModal from "./SuccessfulLoginModal.vue";
 
 import {
   IonPage,
@@ -54,6 +55,7 @@ export default defineComponent({
   name: "log-in",
   components: {
     InputSettings,
+    SuccessfulLoginModal,
     IonItem,
     IonCardContent,
     IonGrid,
@@ -112,6 +114,10 @@ export default defineComponent({
   
   methods: {
     ...mapActions(["loginUser", "changeBGM"]),
+    closeSuccessModal() {
+      this.showSuccessModal = false;
+      this.router.push({ name: "switch-profile" });
+    },
     setBGStyle(key, value) {
       const { page } = this.$refs
       if(page){
@@ -264,9 +270,7 @@ export default defineComponent({
       // this.dispatch('')
 
       this.loginUser();
-      modalController.dismiss();
-      this.play$fx("start");
-      this.router.push({ name: "switch-profile" });
+      this.showSuccessModal = true;
       this.error = false;
     }
   },
