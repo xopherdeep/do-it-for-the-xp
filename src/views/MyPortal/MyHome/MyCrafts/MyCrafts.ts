@@ -28,9 +28,12 @@ import {
   storefrontOutline,
   banOutline,
   bagOutline,
+  cubeOutline,
+  bookOutline,
+  videocamOutline
+  
 } from "ionicons/icons";
 import fetchItems from "@/mixins/fetchItems"
-import { actionSheetController } from "@ionic/vue";
 
 export default defineComponent({
   props: ["userId"],
@@ -39,6 +42,7 @@ export default defineComponent({
   data() {
     return {
       isLoading: false,
+      actionSheetOpen: false,
       shelves: ['affordable'], 
       request: {
         type: "xp_accessory",
@@ -54,63 +58,15 @@ export default defineComponent({
     segmentChanged(ev) {
       console.log("Segment changed", ev);
     },
-    selectShelf($ev) {
-      this.shelves = $ev.detail.value
-    },
-    async presentActionSheet() {
-      const actionSheet = await actionSheetController
-        .create({
-          header: 'Look at the time!',
-          cssClass: 'my-custom-class',
-          buttons: [
-            // {
-            //   text: 'Save Cash',
-            //   icon: cashOutline,
-            //   id: 'delete-button', 
-            //   data: {
-            //     type: 'delete'
-            //   },
-            //   handler: () => {
-            //     console.log('Delete clicked')
-            //   },
-            // },
-            {
-              text: 'Add Quest',
-              icon: addCircleOutline,
-              data: 'Data value',
-              handler: () => {
-                console.log('Play clicked')
-              },
-            },
-            {
-              text: 'Request Time Off',
-              icon: removeCircleOutline,
-              data: 10,  
-              handler: () => {
-                console.log('Share clicked')
-              },
-            },
-            {
-              text: 'Some other action...',
-              icon: calendarOutline,
-              handler: () => {
-                console.log('Favorite clicked')
-              },
-            },
-            {
-              text: 'Cancel',
-              icon: close,
-              role: 'cancel',
-              handler: () => {
-                console.log('Cancel clicked')
-              },
-            },
-          ],
-        });
-      actionSheet.present();
-
-      const { role, data } = await actionSheet.onDidDismiss();
-      console.log('onDidDismiss resolved with role and data', role, data);
+    handleInventoryClick(){
+          // Navigate to Materials Inventory or execute related function
+          console.log('Materials Inventory clicked')
+          this.$router.push({
+            name: 'my-inventory',
+            params: {
+              userId: this.user.id
+            }
+          })
     },
   },
   mounted() {
@@ -123,6 +79,7 @@ export default defineComponent({
       message: '',
       translucent: true
     };
+
     return {
       calendarOutline,
       customAlertOptions,
@@ -151,6 +108,9 @@ export default defineComponent({
       addCircleOutline,
       removeCircleOutline,
       close,
+      cubeOutline,
+      bookOutline,
+      videocamOutline
     };
   },
 });

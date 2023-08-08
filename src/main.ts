@@ -11,22 +11,10 @@ const router = createRouter(store)
 
 const app = createApp(App)
   .component('vue3-autocounter', Vue3Autocounter)
+  .use(Countdown)
   .use(IonicVue)
   .use(store)
-  .use(Countdown)
   .use(router);
-
-// Object.keys(IonComponents).forEach(key => {
-//     if (/^Ion[A-Z]\w+$/.test(key)) {
-//         app.component(key, IonComponents[key]);
-//     }
-// });
-declare module '@vue/runtime-core' {
-  interface ComponentCustomProperties {
-    $fx: any
-  }
-}
-
 
 app.config.globalProperties = {
   ...app.config.globalProperties,
@@ -38,14 +26,11 @@ app.config.globalProperties = {
   // TODO: update, using $store like in Vue2 atm
   $store: store,
   play$fx: (fx='select')=>{
-    const { rpg, ui, theme: { ui: themeUi } }  = $fx
+    const { ui, theme: { ui: themeUi } }  = $fx
     const soundFx = ui[themeUi][fx]
-    // const rpgFx = rpg[themeUi]
 
     if(soundFx)
       soundFx.play()
-    // else(rpgFx && rpgFx[fx])
-    //   rpgFx[fx].play()
   },
   $historyCount: window.history.length
 };

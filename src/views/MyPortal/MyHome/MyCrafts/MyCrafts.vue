@@ -7,44 +7,15 @@
             :default-href="`/my-portal/${user.id}/my-home`"
           ></ion-back-button>
           <!-- <ion-icon :icon="calendarOutline" slot="icon-only" /> -->
-          <i class="fad fa-tools fa-lg" />
         </ion-buttons>
         <ion-title> 
-          My Crafts
+          <i class="fad fa-tools" />
+          My Workbench 
         </ion-title>
       </ion-toolbar>
     </ion-header>
 
     <ion-content class="my-calendar">
-      <ion-item>
-        <ion-label> 
-          Quests
-        </ion-label>
-        <ion-select
-          @ionChange="selectShelf"
-          :value="shelves"
-          :interface-options="customAlertOptions"
-          interface="alert"
-          placeholder="..."
-          multiple
-        >
-          <ion-select-option value="affordable">
-            Individual
-          </ion-select-option>
-          <ion-select-option value="out-of-budget">
-            As Needed
-          </ion-select-option>
-          <ion-select-option value="favorites"> 
-            Rotating
-          </ion-select-option>
-          <ion-select-option value="wish-list"> 
-            Compete
-          </ion-select-option>
-          <ion-select-option value="purchased"> 
-            Collaborative
-          </ion-select-option>
-        </ion-select>
-      </ion-item>
       <xp-loading v-if="isLoading" />
       <ion-grid v-else>
         <ion-row>
@@ -90,12 +61,45 @@
         vertical="bottom"
         horizontal="center"
         slot="fixed"
-        @click.stop="presentActionSheet"
+        @click="actionSheetOpen = true"
       >
         <ion-fab-button >
           <i class="fad fa-tools fa-lg" />
         </ion-fab-button>
       </ion-fab>
+      <ion-action-sheet
+          :is-open="actionSheetOpen"
+          :header="'Workbench Options'"
+          :buttons="[
+              {
+                text: 'Materials Inventory',
+                icon: cubeOutline, 
+                handler: handleInventoryClick,
+              },
+              {
+                  text: 'Crafting History',
+                  icon: bookOutline, // You can update this with a more suitable icon
+                  handler: () => {
+                      // Navigate to Crafting History or execute related function
+                      console.log('Crafting History clicked')
+                  },
+              },
+              {
+                  text: 'Quick Tutorials',
+                  icon: videocamOutline, // You can update this with a more suitable icon
+                  handler: () => {
+                      // Play or Navigate to Quick Tutorials
+                      console.log('Quick Tutorials clicked')
+                  },
+              },
+              {
+                  text: 'Cancel',
+                  icon: close,
+                  role: 'cancel',
+              }
+          ]"
+          @didDismiss="actionSheetOpen = false"
+      />
     </ion-content>
     <ion-footer>
       <ion-toolbar color="secondary">

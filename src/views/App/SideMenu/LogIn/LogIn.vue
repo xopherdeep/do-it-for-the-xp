@@ -38,7 +38,7 @@
               id="login-button"
               @click.stop="play$fx('start')"
             >
-              START 
+            Press Start
             </ion-button>
           </ion-col>
         </ion-row>
@@ -105,6 +105,9 @@
                       <i class="fad fa-sword fa-lg"> </i>
                       &nbsp; Login 
                     </ion-button>
+                    <ion-button color="light" fill="outline" expand="block" @click="closeModal">
+                      Close
+                    </ion-button>
                   </ion-card-content>
                 </ion-card>
               </ion-col>
@@ -131,6 +134,9 @@
                   </ion-card-header>
                   <ion-card-content>
                     <InputSettings />
+                    <ion-button color="light" fill="outline" expand="block" @click="closeModal">
+                      Close
+                    </ion-button>
                   </ion-card-content>
                 </ion-card>
               </ion-col>
