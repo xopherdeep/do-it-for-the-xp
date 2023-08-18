@@ -18,9 +18,9 @@
             <ion-card>
               <ion-list>
                 <ion-item button :routerLink="`/xp-settings/general`" detail="true">
-                  <ion-avatar>
+                  <ion-thumbnail slot="start">
                     <img :src="requireIconImg('./settings.png')"/>
-                  </ion-avatar>
+                  </ion-thumbnail>
                   &nbsp;
                   General
                   <br/>
@@ -29,9 +29,9 @@
                   </small>
                 </ion-item>
                 <ion-item button :routerLink="`/xp-settings/family`" detail="true">
-                  <ion-avatar>
+                  <ion-thumbnail slot="start">
                     <img :src="requireIconImg('./team.png')"/>
-                  </ion-avatar>
+                  </ion-thumbnail>
                   &nbsp;
                   Family Settings
                   &nbsp;-&nbsp;
@@ -40,9 +40,9 @@
                   </small>
                 </ion-item>
                 <ion-item href="chore" detail="true">
-                  <ion-avatar>
+                  <ion-thumbnail slot="start">
                     <img :src="requireIconImg('./innovation.png')"/>
-                  </ion-avatar>
+                  </ion-thumbnail>
                   &nbsp;
                   Chore
                   &nbsp;-&nbsp;
@@ -51,9 +51,9 @@
                   </small>
                 </ion-item>
                 <ion-item href="notifications" detail="true">
-                  <ion-avatar>
+                  <ion-thumbnail slot="start">
                     <img :src="requireIconImg('./notification.png')"/>
-                  </ion-avatar>
+                  </ion-thumbnail>
                   &nbsp;
                   Notifications
                   &nbsp;-&nbsp;
@@ -62,9 +62,9 @@
                   </small>
                 </ion-item>
                 <ion-item href="reward" detail="true">
-                  <ion-avatar>
+                  <ion-thumbnail slot="start">
                     <img :src="requireIconImg('./new.png')"/>
-                  </ion-avatar>
+                  </ion-thumbnail>
                   &nbsp;
                   Reward
                   &nbsp;-&nbsp;
@@ -73,9 +73,9 @@
                   </small>
                 </ion-item>
                 <ion-item href="party" detail="true">
-                  <ion-avatar>
+                  <ion-thumbnail slot="start">
                     <img :src="requireIconImg('./collaboration.png')"/>
-                  </ion-avatar>
+                  </ion-thumbnail>
                   &nbsp;
                   Party
                   &nbsp;-&nbsp;
@@ -84,9 +84,9 @@
                   </small>
                 </ion-item>
                 <ion-item router-link="/xp-settings/sound" button detail="true">
-                  <ion-avatar>
+                  <ion-thumbnail slot="start">
                     <img :src="requireIconImg('./listener.png')"/>
-                  </ion-avatar>
+                  </ion-thumbnail>
                   &nbsp;
                   Sound
                   &nbsp;-&nbsp;
