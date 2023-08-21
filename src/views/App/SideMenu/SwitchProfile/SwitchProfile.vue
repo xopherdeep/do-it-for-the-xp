@@ -7,138 +7,145 @@
             color="primary"
             @click="$fx.ui[$fx.theme.ui].select.play()"
           ></ion-menu-button>
-          <ion-button>
-            <ion-icon 
-              :ios="peopleCircleOutline"
-              :md="peopleCircleSharp"
-            />
-            <!-- <i class="fad fa-profile fa-2x"></i> -->
+          <ion-button class="m-8">
+            <ion-icon :ios="peopleCircleOutline" :md="peopleCircleSharp" />
           </ion-button>
         </ion-buttons>
-        <ion-title>
-          Choose Save Profile
-        </ion-title>
+        <ion-title> Choose Profile Save </ion-title>
       </ion-toolbar>
     </ion-header>
-
-    <ion-content :fullscreen="true">
-      <ion-header collapse="condense">
-        <ion-toolbar>
-          <ion-title size="large">{{ $route.params.id }}</ion-title>
-        </ion-toolbar>
-      </ion-header>
-
-      <div id="container">
-        <ion-grid>
-          <ion-row>
-            <ion-col
-              v-for="(user, key) in profiles"
+    <ion-content :fullscreen="true" id="container" class="ion-padding">
+      <ion-card>
+        <ion-card-content>
+          <ion-list>
+            <ion-item
+              v-for="(profile, key) in profiles"
               :key="key"
-              size="6"
-              size-sm="4"
-              size-md="3"
-              size-xl="2"
+              button
+              detail="true"
+              @click="clickProfile(profile)"
             >
-              <ion-card class="ion-no-margin" button @click="clickUser(user)">
-                <ion-card-title>
-                  {{ user.name.first }}
-                </ion-card-title>
-                <ion-card-header>
-                  <ion-avatar>
-                    <img :src="getUserAvatar(user)" />
-                  </ion-avatar>
-                </ion-card-header>
-                <ion-card-content>
-                  {{ user.name.nick }}
-                </ion-card-content>
-              </ion-card>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-      </div>
+              <ion-label>
+                <h2>{{ profile.name.full }}</h2>
+                <p>{{ profile.name.nick }}</p>
+              </ion-label>
+              <ion-avatar slot="end">
+                <img :src="getUserAvatar(profile)" />
+              </ion-avatar>
+              <ion-label slot="end">
+                <h2>Level: {{ profile.stats.level }}</h2>
+                <p><b>XP:</b> {{ profile.stats.xp.now }}</p>
+              </ion-label>
+            </ion-item>
+          </ion-list>
+          <ion-buttons>
+            <ion-button @click="openModal"> Start New Profile</ion-button>
+          </ion-buttons>
+        </ion-card-content>
+      </ion-card>
     </ion-content>
-    <add-profile @addProfile="refreshProfiles" />
+    <ion-fab
+      :class="$options.name"
+      vertical="bottom"
+      horizontal="center"
+      slot="fixed"
+    >
+      <ion-fab-button @click="openModal">
+        <ion-icon :icon="add"></ion-icon>
+      </ion-fab-button>
+    </ion-fab>
   </ion-page>
 </template>
 
 <script lang="ts">
+  import { useIonRouter } from "@ionic/vue";
+  import { mapActions, useStore } from "vuex";
+  import { computed, defineComponent, ref } from "@vue/runtime-core";
   import ionic from "@/mixins/ionic";
-  // import users from "@/api/users.api";
-  
+  import { add, peopleCircleSharp, peopleCircleOutline } from "ionicons/icons";
+  import User from "@/utils/User";
+  import { Drivers, Storage } from "@ionic/storage";
+
+  import { modalController } from "@ionic/vue";
+  import { ProfileDb } from "@/databases";
+
+  import AddProfile from "./AddProfile/AddProfile.vue";
+
   const requireAvatar = require.context("@/assets/images/avatars/");
 
-  import { add, peopleCircleSharp, peopleCircleOutline } from "ionicons/icons";
-
-  import {
-    useIonRouter,
-  } from "@ionic/vue";
-  import { mapActions, useStore } from 'vuex';
-  import { computed, defineComponent, ref } from '@vue/runtime-core';
-  import AddProfile from './AddProfile/AddProfile.vue';
-  import User from "@/utils/User";
+  export const profileStorage = new Storage({
+    name: "__profiles",
+    driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
+  });
 
   export default defineComponent({
     name: "switch-profile",
-    mixins: [ ionic ],
-    components: {
-      AddProfile
-    },
-    data() {
-      return {
-        // users,
-      };
-    },
-
+    mixins: [ionic],
     methods: {
       ...mapActions(["loginUser"]),
-      clickAddProfile(){
+
+      clickAddProfile() {
         this.ionRouter.navigate(`/new-profile`, "forward");
       },
+
       getUserAvatar(user) {
-        const { avatar } = user
-        if(avatar) {
+        const { avatar } = user;
+        if (avatar) {
           return requireAvatar(`./${user.avatar}.svg`);
         }
       },
-      refreshProfiles() {
-        this.refresh = !this.refresh
+
+      clickProfile(profile) {
+        this.loginUser(profile);
+        this.ionRouter.navigate(`/my-portal/${profile.id}`, "forward");
       },
-      clickUser(user) {
-        this.loginUser(user)
-        this.ionRouter.navigate(`/my-portal/${user.id}`, "forward");
+
+      setProfiles(profiles: User[]) {
+        this.profiles = profiles;
+      },
+
+      async loadProflies() {
+        return await this.storage.getAll().then(this.setProfiles);
+      },
+
+      async openModal() {
+        const modal = await modalController.create({
+          component: AddProfile,
+        });
+        modal.onDidDismiss().then(this.loadProflies);
+        modal.present();
       },
     },
+    mounted() {
+      this.loadProflies();
+    },
     setup() {
-      const refresh = ref(false)
-      const store = useStore() 
+      const refresh = ref(false);
+      const store = useStore();
       const bgm = computed(() => store.state.bgm);
       const ionRouter = useIonRouter();
-      const profiles = computed(() => {
-        const storedProfiles = JSON.parse(localStorage.getItem('profiles') || '')
 
-        refresh.value
-        return storedProfiles?.map(
-          (user:any) => user ? new User(user) : null
-        )
-      });
+      const storage = new ProfileDb(profileStorage);
+      const profiles = ref([] as User[]);
+
       return {
+        storage,
         bgm,
         add,
         peopleCircleSharp,
         peopleCircleOutline,
         ionRouter,
         profiles,
-        refresh
+        refresh,
       };
     },
   });
 </script>
-
 <style scoped lang="scss">
   ion-content {
     --background: transparent;
 
-    #container {
+    &#container {
       height: 100vh;
       background-color: #68a8d8;
       background-image: linear-gradient(
@@ -196,6 +203,31 @@
     }
   }
 
+  ion-modal {
+    .img-avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      flex-grow: 1;
+      margin: 1em;
+    }
+    ion-input {
+      text-align: right;
+    }
+  }
+  ion-modal.auto-height {
+    --height: auto;
+  }
+  ion-modal.auto-height .ion-page {
+    position: relative;
+    display: block;
+    contain: content;
+  }
+  ion-modal.auto-height .ion-page .inner-content {
+    max-height: 80vh;
+    overflow: auto;
+  }
+
   @keyframes slide {
     from {
       background-position: 0 0, 30px 30px;
@@ -206,3 +238,4 @@
     }
   }
 </style>
+@/databases/profile @/databases/profile.db

@@ -1,0 +1,48 @@
+
+export const JOB_CLASS_OPTIONS = [
+
+  {
+    name: "Warrior",
+    icon: "fad fa-user-cowboy",
+  },
+  {
+    name: "Mage",
+    icon: "fad fa-user-crown",
+  },
+  {
+    name: "Thief",
+    icon: "fad fa-user-secret",
+  },
+  {
+    name: "Monk",
+    icon: "fad fa-user-hard-hat",
+  },
+  // { name: "Paladin", icon: "fad fa-shield-cross" },
+  // { name: "Dark Knight", icon: "fad fa-skull" },
+  // { name: "Gunbreaker", icon: "fad fa-gun" },
+  // { name: "White Mage", icon: "fad fa-hat-wizard" },
+  // { name: "Scholar", icon: "fad fa-book-spells" },
+  // { name: "Astrologian", icon: "fad fa-astrology" },
+  // { name: "Monk", icon: "fad fa-fist-raised" },
+  // { name: "Dragoon", icon: "fad fa-dragon" },
+  // { name: "Ninja", icon: "fad fa-ninja" },
+  // { name: "Samurai", icon: "fad fa-samurai" },
+  // { name: "Bard", icon: "fad fa-bow-arrow" },
+  // { name: "Machinist", icon: "fad fa-crosshairs" },
+  // { name: "Dancer", icon: "fad fa-dance-ballroom" },
+  // { name: "Black Mage", icon: "fad fa-hat-wizard" },
+  // { name: "Summoner", icon: "fad fa-hat-wizard" },
+  // { name: "Red Mage", icon: "fad fa-hat-wizard" },
+  // { name: "Blue Mage", icon: "fad fa-hat-wizard" },
+  // { name: "Carpenter", icon: "fad fa-hammer" },
+  // { name: "Blacksmith", icon: "fad fa-hammer-war" },
+  // { name: "Armorer", icon: "fad fa-shield" },
+  // { name: "Goldsmith", icon: "fad fa-gem" },
+  // { name: "Leatherworker", icon: "fad fa-leather" },
+  // { name: "Weaver", icon: "fad fa-spider" },
+  // { name: "Alchemist", icon: "fad fa-flask" },
+  // { name: "Culinarian", icon: "fad fa-utensils" },
+  // { name: "Miner", icon: "fad fa-pickaxe" },
+  // { name: "Botanist", icon: "fad fa-leaf" },
+  // { name: "Fisher", icon: "fad fa-fish" },
+]
