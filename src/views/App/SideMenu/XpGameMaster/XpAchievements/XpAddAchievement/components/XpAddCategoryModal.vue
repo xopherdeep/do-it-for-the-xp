@@ -10,42 +10,44 @@
         <ion-row>
           <ion-col size="4">
             <ion-item>
-                  <ion-avatar @click="openActionSheet">
-                    <ion-skeleton-text ></ion-skeleton-text>
-                  </ion-avatar>
+              <ion-avatar @click="openActionSheet">
+                <ion-skeleton-text></ion-skeleton-text>
+              </ion-avatar>
             </ion-item>
           </ion-col>
           <ion-col size="8">
             <ion-item>
-                  <ion-input v-model="newCategoryName" placeholder="Enter Category Name"></ion-input>
+              <ion-input
+                v-model="newCategoryName"
+                placeholder="Enter Category Name"
+              ></ion-input>
             </ion-item>
           </ion-col>
         </ion-row>
         <ion-row>
           <ion-col>
             <ion-list>
-            <ion-list-header>
-              <ion-label>Predefined Categories</ion-label>
-            </ion-list-header>
-            <ion-item>
+              <ion-list-header>
+                <ion-label>Predefined Categories</ion-label>
+              </ion-list-header>
+              <ion-item>
                 <ion-row
                   class="ion-justify-content-center ion-align-items-center"
                 >
-                  <ion-col 
-                    size="4" 
-                    v-for="cat in predefinedCategories" 
+                  <ion-col
+                    size="4"
+                    v-for="cat in predefinedCategories"
                     :key="cat"
                   >
-                  <ion-item>
-
-                    <ion-avatar>
-                      <ion-skeleton-text />
-                    </ion-avatar>
-                    {{ cat }}
-                  </ion-item>
+                    <ion-item>
+                      <ion-avatar>
+                        <ion-skeleton-text />
+                      </ion-avatar>
+                      {{ cat }}
+                    </ion-item>
                   </ion-col>
                 </ion-row>
-            </ion-item>
+              </ion-item>
             </ion-list>
           </ion-col>
         </ion-row>
@@ -58,7 +60,7 @@
       :buttons="[
         { text: 'Take Picture', icon: cameraOutline, handler: () => {} },
         { text: 'Choose from Gallery', icon: imagesOutline, handler: () => {} },
-        { text: 'Cancel', role: 'cancel' }
+        { text: 'Cancel', role: 'cancel' },
       ]"
       @didDismiss="actionSheetOpen = false"
     />
@@ -66,57 +68,64 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from "vue";
-import ionic from '@/mixins/ionic';
-import { IonActionSheet } from '@ionic/vue';
-import { cameraOutline, imagesOutline } from 'ionicons/icons';
+  import { defineComponent, ref } from "vue";
+  import ionic from "@/mixins/ionic";
+  import { IonActionSheet } from "@ionic/vue";
+  import { cameraOutline, imagesOutline } from "ionicons/icons";
+  import { v4 as uuid4 } from "uuid";
 
-export default defineComponent({
-  name: 'xp-add-category',
-  props: ['isOpen'],
-  mixins: [ionic],
-  data(){
-    return {
-        newCategoryName: '',
-    }
-  },
-  methods: {
-    didDismiss(){
-      this.$emit('dismiss');
+  export default defineComponent({
+    name: "xp-add-category",
+    props: ["isOpen"],
+    mixins: [ionic],
+    data() {
+      return {
+        newCategoryName: "",
+      };
     },
-    addNewCategory(){                                                                                                                                                           
-      // emit event with new category name                                                                                                                                                   
-      this.$emit('add-category', { id: Date.now(), name: this.newCategoryName });                                                                                                                 
-      this.newCategoryName = '';
-      this.$emit('dismiss');                                                                                                                                                                  
-    } 
-  },
-  setup() {
-    const actionSheetOpen = ref(false);
+    methods: {
+      didDismiss() {
+        this.$emit("dismiss");
+      },
+      addNewCategory() {
+        // emit event with new category name
+        this.$emit("add-category", { id: uuid4(), name: this.newCategoryName });
+        this.newCategoryName = "";
+        this.$emit("dismiss");
+      },
+    },
+    setup() {
+      const actionSheetOpen = ref(false);
 
-    const openActionSheet = () => {
-      actionSheetOpen.value = true;
-    };
+      const openActionSheet = () => {
+        actionSheetOpen.value = true;
+      };
 
-    const predefinedCategories = ref([
-      'After School', 'Bathroom', 'Before School', 'Cleaning', 'Evening', 
-      'Garden', 'Healthy Habit', 'Home', 'Kitchen', 'Maintenance', 
-      'Meals', 'Morning', 'Personal'
-    ]);
+      const predefinedCategories = ref([
+        "After School",
+        "Bathroom",
+        "Before School",
+        "Cleaning",
+        "Evening",
+        "Garden",
+        "Healthy Habit",
+        "Home",
+        "Kitchen",
+        "Maintenance",
+        "Meals",
+        "Morning",
+        "Personal",
+      ]);
 
-    return {
-      
-      actionSheetOpen,
-      openActionSheet,
-      cameraOutline,
-      imagesOutline,
-      predefinedCategories
-
-    };
-  },
-})
+      return {
+        actionSheetOpen,
+        openActionSheet,
+        cameraOutline,
+        imagesOutline,
+        predefinedCategories,
+      };
+    },
+  });
 </script>
 
-<style>
-
-</style>
+<style></style>
