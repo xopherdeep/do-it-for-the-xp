@@ -186,7 +186,7 @@
             <ion-label>
               Email Address:
             </ion-label>
-            <ion-input type="email"></ion-input>
+            <ion-input type="email" autocomplete="off"></ion-input>
           </ion-item>
         </ion-list>
       </ion-card>
@@ -200,7 +200,7 @@
                 name="passcode"
                 class="ion-text-center"
                 :type="passcodeType"
-                autocomplete="off"
+                autocomplete="new-password"
                 pattern="[0-9]*"
                 inputmode="numeric"
                 maxlength="1"
@@ -213,6 +213,7 @@
                 name="passcode"
                 class="ion-text-center"
                 :type="passcodeType"
+                autocomplete="new-password"
                 pattern="[0-9]*"
                 inputmode="numeric"
                 maxlength="1"
@@ -223,7 +224,7 @@
             <ion-col>
               <ion-input
                 ref="passcode3"
-                autocomplete="off"
+                autocomplete="new-password"
                 name="passcode"
                 class="ion-text-center"
                 :type="passcodeType"
@@ -237,7 +238,7 @@
             <ion-col class="text-xl">
               <ion-input
                 ref="passcode4"
-                autocomplete="off"
+                autocomplete="new-password"
                 name="passcode"
                 class="ion-text-center text-5xl"
                 :type="passcodeType"
