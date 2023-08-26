@@ -19,9 +19,10 @@ export const AddProfile = defineComponent({
     async loadProfile() {
       this.storage.get(this.$props.id).then(this.setProfile);
     },
-    moveFocus(event, nextInput) {
-      if (event.target.value.length === 1 && this.$refs[nextInput] && typeof this.$refs[nextInput].focus === 'function') {
-        this.$refs[nextInput].focus();
+    moveFocus(event: Event, nextInput: string) {
+      const target = event.target as HTMLInputElement;
+      if (target.value.length === 1 && this.$refs[nextInput] && typeof this.$refs[nextInput].focus === 'function') {
+        (this.$refs[nextInput] as HTMLInputElement).focus();
       }
     }
   },
