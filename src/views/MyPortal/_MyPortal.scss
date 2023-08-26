@@ -2,7 +2,6 @@
   // temp fix to stop z-index prob with other root ion-pages
   z-index: -1 !important;
 
-
   ion-fab {
     &.fab-vertical-bottom {
       bottom: 60px;
@@ -33,14 +32,12 @@
     gap: 0.5em;
     justify-content: center;
     align-items: center;
-    ion-button{
-      i{
-        // font-size: 10px !important;
-      }
-    }
+    // ion-button {
+    //   i {
+    //     font-size: 10px !important;
+    //   }
+    // }
   }
-
-
 
   .rpg-box {
     ion-card {
@@ -62,7 +59,6 @@
           display: flex;
           flex-wrap: wrap;
           i {
-
             width: auto;
             height: auto;
             font-size: inherit;

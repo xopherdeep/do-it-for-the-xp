@@ -12,7 +12,10 @@
         :user="user"
         :isUserFabOn="isUserFabOn"
       />
-      <xp-user-points-hud :stats="user.stats" />
+      <xp-user-points-hud
+        v-if="isUserFabOn"
+        :stats="user.stats"
+      />
       <!-- <xp-fab-gold-points :user="user" :isUserFabOn="isUserFabOn" /> -->
       <xp-fab-quick-draw
         v-if="isUserFabOn"

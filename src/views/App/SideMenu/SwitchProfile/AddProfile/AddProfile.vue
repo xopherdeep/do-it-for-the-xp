@@ -38,51 +38,10 @@
           </ion-segment-button>
         </ion-segment>
       </ion-card>
-      <ion-card v-if="activeSegment === 'info'">
-        <ion-grid>
-          <ion-row class="ion-justify-center ion-align-middle">
-            <ion-col
-              class="ion-text-center"
-              size="2"
-            >
-              <i :class="`${selectedJobIcon} fa-4x`" />
-            </ion-col>
-            <ion-col
-              class="ion-text-center"
-              size="2"
-            >
-              <i :class="`${selectedFoodIcon} fa-4x`" />
-            </ion-col>
-            <ion-col>
-              <ion-label>
-                <h1>
-                  {{ fullName }}
-                </h1>
-                <p>
-                  {{ favoriteThing }}
-                </p>
-                <p>
-                  &nbsp;
-                  <ion-badge color="success">
-                    Level {{ profile?.stats.level || 1 }}
-                  </ion-badge>
-                  <ion-badge color="warning">
-                    <xp-gp :gp="profile?.stats.gp.wallet || 0" />
-                  </ion-badge>
-                </p>
-              </ion-label>
-            </ion-col>
-            <ion-col size="2">
-              <ion-avatar size="large">
-                <ion-img
-                  :src="currentAvatar"
-                  class="img-avatar"
-                />
-              </ion-avatar>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-      </ion-card>
+      <gamer-card
+        :profile="profile"
+        v-if="activeSegment === 'info'"
+      />
 
       <ion-card v-if="activeSegment === 'info'">
         <ion-grid class="ion-no-padding">
@@ -207,52 +166,11 @@
                 autocomplete="new-password"
                 pattern="[0-9]*"
                 inputmode="numeric"
-                maxlength="1"
+                maxlength="4"
+                v-model="passcode"
                 @keyup="moveFocus($event, 'passcode2')"
               ></ion-input>
             </ion-col>
-            <ion-col>
-              <ion-input
-                ref="passcode2"
-                name="passcode"
-                class="ion-text-center"
-                :type="passcodeType"
-                autocomplete="new-password"
-                pattern="[0-9]*"
-                inputmode="numeric"
-                maxlength="1"
-                @keyup="moveFocus($event, 'passcode3')"
-              ></ion-input>
-
-            </ion-col>
-            <ion-col>
-              <ion-input
-                ref="passcode3"
-                autocomplete="new-password"
-                name="passcode"
-                class="ion-text-center"
-                :type="passcodeType"
-                pattern="[0-9]*"
-                inputmode="numeric"
-                maxlength="1"
-                @keyup="moveFocus($event, 'passcode4')"
-              ></ion-input>
-
-            </ion-col>
-            <ion-col class="text-xl">
-              <ion-input
-                ref="passcode4"
-                autocomplete="new-password"
-                name="passcode"
-                class="ion-text-center text-5xl"
-                :type="passcodeType"
-                pattern="[0-9]*"
-                inputmode="numeric"
-                maxlength="1"
-              ></ion-input>
-
-            </ion-col>
-
           </ion-row>
         </ion-grid>
         <ion-item>
@@ -275,7 +193,7 @@
             @click="toggleReward"
           >
             <ion-label>
-              <h2>Rewards</h2>
+              <h2>Buy from Shops</h2>
               <p>Allowed this player access to shops and purchase rewards.
               </p>
             </ion-label>
@@ -290,12 +208,44 @@
             @click="toggleGoal"
           >
             <ion-label>
-              <h2>Savings Goals</h2>
+              <h2>Save towards Goals</h2>
               <p>Allowed player access to the banks and saves toward gaols.
               </p>
             </ion-label>
             <ion-toggle
               v-model="features.goals"
+              @click.stop
+            >
+            </ion-toggle>
+          </ion-item>
+          <ion-item
+            button
+            @click="toggleBattles"
+          >
+            <ion-label>
+              <h2>Random Battles</h2>
+              <p>Turn on/off random battles. If off, players will have to manually
+                check their achievements.
+              </p>
+            </ion-label>
+            <ion-toggle
+              v-model="features.battles"
+              @click.stop
+            >
+            </ion-toggle>
+          </ion-item>
+          <ion-item
+            button
+            @click="toggleCommunity"
+          >
+            <ion-label>
+              <h2>Participate in Town Hall</h2>
+              <p>
+                For players who want to participate in Town Hall.
+              </p>
+            </ion-label>
+            <ion-toggle
+              v-model="features.community"
               @click.stop
             >
             </ion-toggle>
@@ -334,5 +284,6 @@
         </ion-button>
       </ion-buttons>
     </ion-toolbar>
-  </ion-footer></template>
+  </ion-footer>
+</template>
 <script lang="ts"  src="./AddProfile.ts"></script>

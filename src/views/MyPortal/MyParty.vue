@@ -1,11 +1,9 @@
 <template>
-  <ion-page v-cloak >
+  <ion-page v-cloak>
     <ion-header :translucent="true">
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button
-            :default-href="`/switch-profile`"
-          ></ion-back-button>
+          <ion-back-button :default-href="`/switch-profile`"></ion-back-button>
         </ion-buttons>
         <ion-title>
           <i class="fab fa-fort-awesome fa-lg" />
@@ -13,26 +11,46 @@
         </ion-title>
       </ion-toolbar>
       <ion-toolbar>
-        <ion-segment @ionChange="segmentChanged($event)" color="danger" scrollable value="all">
+        <ion-segment
+          @ionChange="segmentChanged($event)"
+          color="danger"
+          scrollable
+          value="all"
+        >
           <ion-segment-button value="all">
-            <ion-icon :icon="bagOutline" color="primary"></ion-icon>
+            <ion-icon
+              :icon="bagOutline"
+              color="primary"
+            ></ion-icon>
             My Family
           </ion-segment-button>
           <ion-segment-button value="hp">
-            <ion-icon :icon="fitnessOutline" color="danger"></ion-icon>
+            <ion-icon
+              :icon="fitnessOutline"
+              color="danger"
+            ></ion-icon>
             My Guilds
           </ion-segment-button>
           <ion-segment-button value="mp">
-            <ion-icon :icon="colorWandOutline" color="tertiary"></ion-icon>
-            MP 
+            <ion-icon
+              :icon="colorWandOutline"
+              color="tertiary"
+            ></ion-icon>
+            MP
           </ion-segment-button>
           <ion-segment-button value="misc">
-            <ion-icon :icon="sparklesOutline" color="success"></ion-icon>
+            <ion-icon
+              :icon="sparklesOutline"
+              color="success"
+            ></ion-icon>
             Misc
           </ion-segment-button>
           <ion-segment-button value="key">
-            <ion-icon :icon="keyOutline" color="gold"></ion-icon>
-            Key 
+            <ion-icon
+              :icon="keyOutline"
+              color="gold"
+            ></ion-icon>
+            Key
           </ion-segment-button>
         </ion-segment>
       </ion-toolbar>
@@ -51,7 +69,10 @@
             size="12"
             size-md="6"
           >
-            <card-user-stats :id="user.id" :hide-menu="true" />
+            <card-user-stats
+              :id="user?.id"
+              :hide-menu="true"
+            />
           </ion-col>
         </ion-row>
       </ion-grid>
@@ -63,54 +84,36 @@
   </ion-page>
 </template>
 
-<script>
-  import users from "@/api/users.api";
-  const requireAvatar = require.context("@/assets/images/avatars/");
+<script lang="ts">
+  import { mapGetters } from "vuex";
   import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
 
-  import { arrowBack } from "ionicons/icons";
+  import {
+    arrowBack,
+    bagOutline,
+    fitnessOutline,
+    colorWandOutline,
+    sparklesOutline,
+    keyOutline
+  } from "ionicons/icons";
   import userActions from "@/mixins/userActions";
 
-  import {
-    // IonButtons,
-    // IonButton,
-    IonContent,
-    IonHeader,
-    // IonMenuButton,
-    IonPage,
-    IonTitle,
-    IonToolbar,
-    IonGrid,
-    IonRow,
-    IonCol,
-  } from "@ionic/vue";
   import ionic from "@/mixins/ionic";
-  import { computed } from "vue";
   export default {
     mixins: [userActions, ionic],
-    ionViewDidEnter(){
+    ionViewDidEnter() {
       this.setUserActions(this.userActions)
     },
     components: {
-      IonGrid,
-      IonRow,
-      IonCol,
       CardUserStats,
       // IonButtons,
-      IonContent,
-      IonHeader,
       // IonMenuButton,
 
       // IonButton,
-      IonPage,
-      IonTitle,
-      IonToolbar,
     },
-    data() {
-      return {
-        users,
-        arrowBack,
-      };
+    computed: {
+      ...mapGetters(["usersAz"]),
+      users() { return this.usersAz },
     },
     mounted() {
       // this.$fx.ui[this.$fx.theme.ui].user.play()
@@ -120,9 +123,20 @@
         const avatar = `./${user.avatar}.svg`;
         return this.$requireAvatar(avatar);
       },
+      segmentChanged($event) {
+        $event.preventDefault()
+
+      }
     },
-    setup(){
+    setup() {
       return {
+        keyOutline,
+        arrowBack,
+        bagOutline,
+        fitnessOutline,
+        colorWandOutline,
+        sparklesOutline,
+
         userActions: [
           {
             label: "My Guilds",
@@ -151,7 +165,6 @@
 </script>
 
 <style scoped lang="scss">
-
   #container {
     text-align: center;
     position: absolute;

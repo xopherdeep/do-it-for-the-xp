@@ -8,6 +8,7 @@ export interface NewProfileForm {
   name: {
     full: string;
   }
+  passcode?: string
   avatar: string
   favoriteFood: string
   favoriteThing: string

@@ -10,11 +10,12 @@ import InputSettings from "../../XpSettings/components/InputSettings.vue";
 import ionic from "@/mixins/ionic";
 
 import XpGp from "@/components/XpGp/XpGp.vue";
+import GamerCard from "./GamerCard.vue"
 
 export const AddProfile = defineComponent({
   props: ["id", "profile", "showIsAdult"],
   mixins: [ionic],
-  components: { InputSettings, XpGp },
+  components: { InputSettings, XpGp, GamerCard },
   methods: {
     async loadProfile() {
       this.storage.get(this.$props.id).then(this.setProfile);
@@ -23,11 +24,11 @@ export const AddProfile = defineComponent({
       const target = event.target as HTMLInputElement;
       const el = this.$refs[nextInput] as HTMLInputElement;
       if (target.value.length === 1 && el && typeof el.focus === 'function') {
-        alert("hello")
         el.focus();
       }
     }
   },
+
   mounted() {
     const { id, profile } = this.$props;
     if (id) this.loadProfile();
@@ -42,6 +43,7 @@ export const AddProfile = defineComponent({
 
     const storage = new ProfileDb(profileStorage);
     const email = ref("");
+    const passcode = ref("");
     const isAdult = ref(false);
     const avatarIndex = ref(1);
     const fullName = ref("");
@@ -60,29 +62,8 @@ export const AddProfile = defineComponent({
       $requireAvatar(`./${paddedIndex.value}-gamer.svg`)
     );
 
-    const selectedFoodIcon = computed(() => {
-      const findFavoriteFood = (food) => food.value === favoriteFood.value;
-      const selectedFood = foodOptions.value.find(findFavoriteFood);
-      return selectedFood ? selectedFood.icon : "fad fa-utensils";
-    });
-
-    const selectedJobIcon = computed(() => {
-      const findJobClass = (job) => job.name === jobClass.value;
-      const selectedJob = jobClassOptions.value.find(findJobClass);
-      return selectedJob ? selectedJob.icon : "fad fa-question";
-    });
     const clickSaveProfile = () => {
-      const profile = storage.newProfile({
-        id: props?.id || props.profile?.id || "",
-        email: email.value,
-        name: { full: fullName.value },
-        avatar: `${paddedIndex.value}-gamer`,
-        favoriteThing: favoriteThing.value,
-        favoriteFood: favoriteFood.value,
-        jobClass: jobClass.value,
-        isAdult: isAdult?.value,
-        stats: props.profile?.stats
-      });
+      const profile = storage.newProfile(newProfile.value);
       storage.setProfile(profile).then(profileAdded);
       closeModal();
     };
@@ -117,6 +98,7 @@ export const AddProfile = defineComponent({
 
     const setProfile = (profile) => {
       if (!profile.name) return;
+      passcode.value = profile.passcode;
       email.value = profile.email;
       fullName.value = profile.name.full;
       favoriteThing.value = profile.favoriteThing;
@@ -137,13 +119,30 @@ export const AddProfile = defineComponent({
 
     const toggleReward = () => features.value.rewards = !features.value.rewards
     const toggleGoal = () => features.value.goals = !features.value.goals
+    const toggleBattles = () => features.value.battles = !features.value.battles
+    const toggleCommunity = () => features.value.community = !features.value.community
 
 
     const hidePasscode = ref(true)
-    const passcodeType = computed(() => hidePasscode.value ? "password" : "number")
+    const passcodeType = computed(() => hidePasscode.value ? "password" : "text")
 
+
+    const newProfile = computed(() => ({
+      id: props?.id || props.profile?.id || "",
+      email: email.value,
+      passcode: passcode.value,
+      name: { full: fullName.value },
+      avatar: `${paddedIndex.value}-gamer`,
+      favoriteThing: favoriteThing.value,
+      favoriteFood: favoriteFood.value,
+      jobClass: jobClass.value,
+      isAdult: isAdult?.value,
+      stats: props.profile?.stats
+    }))
 
     return {
+      // profile,
+      passcode,
       activeSegment,
       arrowBack,
       arrowForward,
@@ -165,10 +164,10 @@ export const AddProfile = defineComponent({
       nextAvatar,
       passcodeType,
       previousAvatar,
-      selectedFoodIcon,
-      selectedJobIcon,
       setProfile,
       storage,
+      toggleBattles,
+      toggleCommunity,
       toggleGoal,
       toggleReward,
     };

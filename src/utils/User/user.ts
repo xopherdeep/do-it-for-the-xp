@@ -13,6 +13,7 @@ export interface ProfileName {
 export default class User {
   public id: string
   public email: string
+  public passcode: string
   public name: {
     full: string
     first: string
@@ -32,6 +33,7 @@ export default class User {
   constructor(defaults: NewProfileForm) {
     this.id = defaults?.id || uuidv4()
     this.email = defaults.email || ""
+    this.passcode = defaults.passcode || "";
     this.name = this.setName(defaults.name)
     this.stats = new Stats(defaults.stats)
     this.birthday = defaults.birthday

@@ -22,7 +22,7 @@
       id="container"
       class="ion-padding"
     >
-      <ion-card>
+      <ion-card v-if="!loading">
         <ion-card-content>
           <ion-list>
             <ion-item
@@ -72,6 +72,7 @@
         <ion-icon :icon="add"></ion-icon>
       </ion-fab-button>
     </ion-fab> -->
+
   </ion-page>
 </template>
 
@@ -89,6 +90,8 @@
 
   import AddProfile from "./AddProfile/AddProfile.vue";
   import XpGp from "@/components/XpGp/XpGp.vue";
+
+  import DialPad from "./DialPad.vue"
 
   const requireAvatar = require.context("@/assets/images/avatars/");
 
@@ -119,9 +122,40 @@
         }
       },
 
-      clickProfile(profile) {
+      clickProfile(profile: User) {
+        const { passcode } = profile
+        if (passcode)
+          this.showKeyPad(profile)
+        else {
+          this.openProfile(profile)
+        }
+      },
+
+      openProfile(profile: User) {
         this.loginUser(profile);
         this.ionRouter.navigate(`/my-portal/${profile.id}`, "forward");
+      },
+
+      async showKeyPad(profile: User) {
+        const modal = await modalController.create({
+          component: DialPad,
+          componentProps: {
+            profile
+          }
+        })
+        modal.present();
+        modal.onDidDismiss().then(this.passcodeVerified)
+      },
+
+      passcodeVerified(dismiss: any) {
+        if (dismiss.data) {
+          this.showLoader()
+          this.openProfile(dismiss.data)
+        }
+      },
+      showLoader() {
+        this.loading = true
+        setTimeout(() => this.loading = false, 5000)
       },
 
       setProfiles(profiles: User[]) {
@@ -154,6 +188,7 @@
       },
     },
     setup() {
+      const loading = ref(false);
       const refresh = ref(false);
       const store = useStore();
       const bgm = computed(() => store.state.bgm);
@@ -168,6 +203,7 @@
       const loadUsers = () => store.dispatch("loadUsers")
 
       return {
+        loading,
         loadUsers,
         storage,
         bgm,
@@ -215,14 +251,14 @@
       margin: auto;
     }
 
-    /* #container {
-          text-align: center;
-          position: absolute;
-          left: 0;
-          right: 0;
-          top: 50%;
-          transform: translateY(-50%);
-        } */
+    // #container {
+    //   text-align: center;
+    //   position: absolute;
+    //   left: 0;
+    //   right: 0;
+    //   top: 50%;
+    //   transform: translateY(-50%);
+    // }
 
     #container strong {
       font-size: 20px;

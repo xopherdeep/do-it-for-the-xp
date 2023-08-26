@@ -1,6 +1,6 @@
-import { IonButton, actionSheetController } from "@ionic/vue";
+import { actionSheetController } from "@ionic/vue";
 import { defineComponent } from "vue";
-import { caretForwardCircle, close, heart, trash, share } from "ionicons/icons";
+import { close, heart } from "ionicons/icons";
 
 import users from "@/api/users.api";
 const requireAvatar = require.context("@/assets/images/avatars/");
@@ -26,40 +26,15 @@ import {
   fitnessOutline,
 } from "ionicons/icons";
 
-import {
-  IonBadge,
-  IonButtons,
-  IonCard,
-  IonCardContent,
-  IonCardHeader,
-  IonChip,
-  IonCol,
-  IonContent,
-  IonFab,
-  IonFabButton,
-  IonGrid,
-  IonHeader,
-  IonIcon,
-  IonImg,
-  IonItem,
-  IonLabel,
-  IonMenuButton,
-  IonPage,
-  IonProgressBar,
-  IonRow,
-  IonTabBar,
-  IonTabButton,
-  IonTabs,
-  IonText,
-  IonTitle,
-  IonToolbar,
-} from "@ionic/vue";
 
 import ionic from "@/mixins/ionic";
 
 import { mapGetters } from "vuex";
+import Vue3Autocounter from 'vue3-autocounter';
 
-export default {
+
+
+export default defineComponent({
   props: ["id", "startCounting", "hideMenu"],
   mixins: [ionic],
   data() {
@@ -115,11 +90,11 @@ export default {
     ...mapGetters(["getUserById"]),
 
     user_id() {
-      return parseInt(this.id);
+      return this.id;
     },
 
     user() {
-      return this.getUserById(this.user_id);
+      return this.getUserById(this.id);
     },
 
     xpBar() {
@@ -133,7 +108,7 @@ export default {
     }
   },
   watch: {
-    startCounting(count) {
+    startCounting() {
       this.beginCounter();
     },
   },
@@ -144,12 +119,17 @@ export default {
       this.router.push(`/${action}/${user.id}/`);
     },
     getCounterXPCurrentAmount() {
-      if (this.$refs.countXPTotal)
-        return this.$refs.countXPTotal.currentAmount / 200;
+      const XpTotal = this.$refs.countXPTotal as typeof Vue3Autocounter
+      if (XpTotal)
+        return XpTotal.currentAmount / 200;
+      else
+        return 0
     },
     beginCounter() {
-      this.$refs.countAPTotal.start();
-      this.$refs.countXPTotal.start();
+      const XpTotal = this.$refs.countXPTotal as typeof Vue3Autocounter
+      const ApTotal = this.$refs.countAPTotal as typeof Vue3Autocounter
+      ApTotal.start();
+      XpTotal.start();
     },
     getUserAvatar(user) {
       if (user.avatar) {
@@ -209,8 +189,8 @@ export default {
         ],
       });
       await actionSheet.present();
-      const { role, data } = await actionSheet.onDidDismiss();
+      // const { role, data } = await actionSheet.onDidDismiss();
       // console.log("onDidDismiss resolved with role and data", role, data);
     },
   },
-};
+});

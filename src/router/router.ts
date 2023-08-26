@@ -48,6 +48,7 @@ const useRouter = (store) => {
     const { theme, bgm: { $fx }, audio } = store.state
     const { BGM } = $fx.rpg[theme.rpg]
     // Music environment 
+
     // Battle safe gaurd
     switch (to.name) {
       case 'log-in':

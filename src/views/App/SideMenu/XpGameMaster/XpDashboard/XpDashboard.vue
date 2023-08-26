@@ -30,8 +30,6 @@
           </ion-col>
         </ion-row>
       </ion-grid>
-      hello
-
     </ion-content>
   </ion-page>
 </template>

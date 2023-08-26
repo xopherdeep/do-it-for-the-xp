@@ -9,5 +9,5 @@
   </div>
 </template>
 
-<script src="./XpLoading"  />
-<style src="./_XpLoading.scss"  lang="scss" />./XpLoading.jd./XpLoading.jd
+<script src="./XpLoading" lang="ts"  />
+<style src="./_XpLoading.scss"  lang="scss" />
