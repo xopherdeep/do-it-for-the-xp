@@ -21,8 +21,10 @@ export const AddProfile = defineComponent({
     },
     moveFocus(event: Event, nextInput: string) {
       const target = event.target as HTMLInputElement;
-      if (target.value.length === 1 && this.$refs[nextInput] && typeof this.$refs[nextInput].focus === 'function') {
-        (this.$refs[nextInput] as HTMLInputElement).focus();
+      const el = this.$refs[nextInput] as HTMLInputElement;
+      if (target.value.length === 1 && el && typeof el.focus === 'function') {
+        alert("hello")
+        el.focus();
       }
     }
   },
@@ -39,6 +41,7 @@ export const AddProfile = defineComponent({
     );
 
     const storage = new ProfileDb(profileStorage);
+    const email = ref("");
     const isAdult = ref(false);
     const avatarIndex = ref(1);
     const fullName = ref("");
@@ -71,6 +74,7 @@ export const AddProfile = defineComponent({
     const clickSaveProfile = () => {
       const profile = storage.newProfile({
         id: props?.id || props.profile?.id || "",
+        email: email.value,
         name: { full: fullName.value },
         avatar: `${paddedIndex.value}-gamer`,
         favoriteThing: favoriteThing.value,
@@ -113,6 +117,7 @@ export const AddProfile = defineComponent({
 
     const setProfile = (profile) => {
       if (!profile.name) return;
+      email.value = profile.email;
       fullName.value = profile.name.full;
       favoriteThing.value = profile.favoriteThing;
       favoriteFood.value = profile.favoriteFood;
@@ -139,32 +144,33 @@ export const AddProfile = defineComponent({
 
 
     return {
-      passcodeType,
-      hidePasscode,
-      toggleGoal,
-      toggleReward,
-      features,
       activeSegment,
-      isAdult,
-      closeModal,
-      storage,
-      jobClassOptions,
-      foodOptions,
-      favoriteFood,
-      favoriteThing,
-      jobClass,
-      fullName,
-      currentAvatar,
-      selectedFoodIcon,
-      selectedJobIcon,
-      clickSaveProfile,
-      setProfile,
-      nextAvatar,
-      previousAvatar,
-      avatarIndex,
-      maxAvatarIndex,
       arrowBack,
       arrowForward,
+      avatarIndex,
+      clickSaveProfile,
+      closeModal,
+      currentAvatar,
+      email,
+      favoriteFood,
+      favoriteThing,
+      features,
+      foodOptions,
+      fullName,
+      hidePasscode,
+      isAdult,
+      jobClass,
+      jobClassOptions,
+      maxAvatarIndex,
+      nextAvatar,
+      passcodeType,
+      previousAvatar,
+      selectedFoodIcon,
+      selectedJobIcon,
+      setProfile,
+      storage,
+      toggleGoal,
+      toggleReward,
     };
   },
 });

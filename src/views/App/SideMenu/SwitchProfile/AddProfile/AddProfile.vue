@@ -186,7 +186,7 @@
             <ion-label>
               Email Address:
             </ion-label>
-            <ion-input type="email" autocomplete="off"></ion-input>
+            <ion-input v-model="email" type="email" autocomplete="off"></ion-input>
           </ion-item>
         </ion-list>
       </ion-card>
