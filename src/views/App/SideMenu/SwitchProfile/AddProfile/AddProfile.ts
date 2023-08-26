@@ -20,7 +20,7 @@ export const AddProfile = defineComponent({
       this.storage.get(this.$props.id).then(this.setProfile);
     },
     moveFocus(event, nextInput) {
-      if (event.target.value.length === 1) {
+      if (event.target.value.length === 1 && this.$refs[nextInput] && typeof this.$refs[nextInput].focus === 'function') {
         this.$refs[nextInput].focus();
       }
     }
