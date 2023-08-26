@@ -16,7 +16,7 @@
     "sourceMap": true,
     "strict": true,
     "target": "esnext",
-    "types": ["webpack-env", "jest", "node"],
+    "types": ["webpack-env", "jest", "node"]
   },
   "include": [
     "src/**/*.js",

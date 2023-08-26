@@ -1,4 +1,4 @@
-import { defineComponent } from "vue";
+import { computed, defineComponent } from "vue";
 import ionic from "@/mixins/ionic"
 
 import {
@@ -22,7 +22,7 @@ import {
 
   bagOutline
 } from "ionicons/icons";
-import { mapGetters } from "vuex";
+import { mapGetters, useStore } from "vuex";
 
 export default defineComponent({
   props: ["userId"],
@@ -30,17 +30,18 @@ export default defineComponent({
   mixins: [ionic],
   computed: {
     ...mapGetters(["getUserById"]),
-    user() {
-      return this.getUserById(this.userId);
-    },
   },
   methods: {
     segmentChanged(ev) {
-      console.log("Segment changed", ev);
+      // console.log("Segment changed", ev);
     },
   },
-  setup() {
+  setup(props) {
+    const store = useStore()
+    const user = computed(() => store.getters.getUserById(props.userId));
+
     return {
+      user,
       chevronBack,
       chevronForward,
       stop,
@@ -51,14 +52,14 @@ export default defineComponent({
       colorWandOutline,
       lockClosedOutline,
       lockOpenOutline,
-  bagOutline,
-  sunnyOutline,
-  partlySunnyOutline,
-  moonOutline,
-  cloudyNightOutline,
-  fitnessOutline,
-  sparklesOutline,
-  keyOutline,
+      bagOutline,
+      sunnyOutline,
+      partlySunnyOutline,
+      moonOutline,
+      cloudyNightOutline,
+      fitnessOutline,
+      sparklesOutline,
+      keyOutline,
 
     };
   },

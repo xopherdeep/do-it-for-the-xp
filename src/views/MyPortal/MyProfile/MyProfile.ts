@@ -14,19 +14,20 @@ export default defineComponent({
   name: "my-profile",
   mixins: [ionic, userActions],
   components: { CardUserStats, XpCardMenu },
-  ionViewDidEnter(){
+  ionViewDidEnter() {
     this.setUserActions(this.userActions)
   },
   setup() {
-    const route      = useRoute();
-    const router     = useRouter();
-    const store      = useStore();
+    const route = useRoute();
+    const router = useRouter();
+    const store = useStore();
     const { userId } = route.params;
-    const user       = computed(() => store.getters.getUserById(userId));
+    const user = computed(() => store.getters.getUserById(userId));
     // code
     return {
       arrowBack,
       userId,
+      user,
       userActions: [
         {
           label: "Talk",
@@ -42,7 +43,7 @@ export default defineComponent({
           id: "abilities",
           label: "My Abilities",
           faIcon: "book-spells",
-          click($ev) {
+          click() {
             router.push({ name: "my-abilities", params: { userId } });
           },
         },
@@ -50,15 +51,15 @@ export default defineComponent({
           label: "My Quests",
           id: "staff",
           faIcon: "medal quest",
-          click(){
-            router.push({name: 'my-tasks', params: {userId}})
+          click() {
+            router.push({ name: 'my-tasks', params: { userId } })
           }
         },
         {
           label: "My Items",
           id: "my-inventory",
           faIcon: "backpack",
-          click($ev) {
+          click() {
             router.push({ name: "my-inventory", params: { userId } });
           },
         },
@@ -71,8 +72,8 @@ export default defineComponent({
           label: "My Wallet",
           id: "wallet",
           faIcon: "wallet",
-          click(){
-            router.push({name: 'my-gold-points', params: {userId}})
+          click() {
+            router.push({ name: 'my-gold-points', params: { userId } })
           }
         },
         {

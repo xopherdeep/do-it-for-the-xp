@@ -3,37 +3,51 @@
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button 
-            :default-href="`/my-portal/${user.id}/my-home`"
-          ></ion-back-button>
+          <ion-back-button :default-href="`/my-portal/${user.id}/my-home`"></ion-back-button>
           <!-- <ion-icon :icon="calendarOutline" slot="icon-only" /> -->
         </ion-buttons>
-        <ion-title> 
+        <ion-title>
           <i class="fad fa-tools" />
-          My Workbench 
+          My Workbench
         </ion-title>
       </ion-toolbar>
       <ion-toolbar>
-        <ion-segment @ionChange="segmentChanged($event)" color="danger" scrollable value="all">
+        <ion-segment
+          @ionChange="segmentChanged($event)"
+          color="primary"
+          scrollable
+          value="all"
+        >
           <ion-segment-button value="all">
-            <ion-icon :icon="bagOutline" color="primary"></ion-icon>
+            <ion-icon
+              :icon="appsOutline"
+              color="primary"
+            ></ion-icon>
             All
           </ion-segment-button>
           <ion-segment-button value="hp">
-            <ion-icon :icon="fitnessOutline" color="danger"></ion-icon>
-            HP 
+            <ion-icon
+              :icon="bedOutline"
+              color=""
+            ></ion-icon>
           </ion-segment-button>
           <ion-segment-button value="mp">
-            <ion-icon :icon="colorWandOutline" color="tertiary"></ion-icon>
-            MP 
+            <ion-icon
+              :icon="colorWandOutline"
+              color=""
+            ></ion-icon>
           </ion-segment-button>
           <ion-segment-button value="misc">
-            <ion-icon :icon="sparklesOutline" color="success"></ion-icon>
-            Misc
+            <ion-icon
+              :icon="sparklesOutline"
+              color=""
+            ></ion-icon>
           </ion-segment-button>
           <ion-segment-button value="key">
-            <ion-icon :icon="keyOutline" color="gold"></ion-icon>
-            Key 
+            <ion-icon
+              :icon="keyOutline"
+              color=""
+            ></ion-icon>
           </ion-segment-button>
         </ion-segment>
       </ion-toolbar>
@@ -87,42 +101,42 @@
         slot="fixed"
         @click="actionSheetOpen = true"
       >
-        <ion-fab-button >
+        <ion-fab-button>
           <i class="fad fa-tools fa-lg" />
         </ion-fab-button>
       </ion-fab>
       <ion-action-sheet
-          :is-open="actionSheetOpen"
-          :header="'Workbench Options'"
-          :buttons="[
-              {
-                text: 'Materials Inventory',
-                icon: cubeOutline, 
-                handler: handleInventoryClick,
-              },
-              {
-                  text: 'Crafting History',
-                  icon: bookOutline, // You can update this with a more suitable icon
-                  handler: () => {
-                      // Navigate to Crafting History or execute related function
-                      console.log('Crafting History clicked')
-                  },
-              },
-              {
-                  text: 'Quick Tutorials',
-                  icon: videocamOutline, // You can update this with a more suitable icon
-                  handler: () => {
-                      // Play or Navigate to Quick Tutorials
-                      console.log('Quick Tutorials clicked')
-                  },
-              },
-              {
-                  text: 'Cancel',
-                  icon: close,
-                  role: 'cancel',
-              }
-          ]"
-          @didDismiss="actionSheetOpen = false"
+        :is-open="actionSheetOpen"
+        :header="'Workbench Options'"
+        :buttons="[
+          {
+            text: 'Materials Inventory',
+            icon: cubeOutline,
+            handler: handleInventoryClick,
+          },
+          {
+            text: 'Crafting History',
+            icon: bookOutline, // You can update this with a more suitable icon
+            handler: () => {
+              // Navigate to Crafting History or execute related function
+              // console.log('Crafting History clicked')
+            },
+          },
+          {
+            text: 'Quick Tutorials',
+            icon: videocamOutline, // You can update this with a more suitable icon
+            handler: () => {
+              // Play or Navigate to Quick Tutorials
+              // console.log('Quick Tutorials clicked')
+            },
+          },
+          {
+            text: 'Cancel',
+            icon: close,
+            role: 'cancel',
+          }
+        ]"
+        @didDismiss="actionSheetOpen = false"
       />
     </ion-content>
     <ion-footer>
@@ -145,25 +159,30 @@
                 color="light"
                 expand="block"
               >
-                <ion-icon :icon="chevronBack" slot="icon-only" />
+                <ion-icon
+                  :icon="chevronBack"
+                  slot="icon-only"
+                />
               </ion-button>
             </ion-col>
-            <ion-col>
-              <ion-button
-                @click="request.params.page++"
-                :disabled="!hasNextPage"
-                color="light"
-                expand="block"
-              >
-                <ion-icon :icon="chevronForward" slot="icon-only" />
-              </ion-button>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-      </ion-toolbar>
-    </ion-footer>
-  </ion-page>
-</template>
+          <ion-col>
+            <ion-button
+              @click="request.params.page++"
+              :disabled="!hasNextPage"
+              color="light"
+              expand="block"
+            >
+              <ion-icon
+                :icon="chevronForward"
+                slot="icon-only"
+              />
+            </ion-button>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </ion-toolbar>
+  </ion-footer>
+</ion-page></template>
 
 <script src="./MyCrafts" />
 <style lang="scss" src="./_MyCrafts.scss" scoped />

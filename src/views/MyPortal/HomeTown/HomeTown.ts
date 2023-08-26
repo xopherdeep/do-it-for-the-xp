@@ -11,7 +11,7 @@ import type { DefineUserActionComponent } from "@/mixins/userActions";
 export default defineComponent<DefineUserActionComponent>({
   name: "home-town",
   mixins: [ionic, userActions],
-  ionViewDidEnter(){
+  ionViewDidEnter() {
     this.setUserActions(this.userActions)
   },
   setup() {
@@ -75,9 +75,9 @@ export default defineComponent<DefineUserActionComponent>({
         id: "town-hall",
         faIcon: "university",
         side: "top",
-        click($ev) {
+        click() {
           router.push({ name: "town-hall", params: { userId } });
-          console.log($ev.preventDefault());
+          // console.log($ev.preventDefault());
         },
       },
       {

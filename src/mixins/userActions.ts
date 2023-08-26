@@ -4,6 +4,7 @@ import { IonPage } from '@ionic/vue';
 import { useRoute, useRouter } from "vue-router";
 import travelingMerchant from "./travelingMerchant"
 import type { ComponentPublicInstance } from 'vue';
+import User from "@/utils/User/user";
 
 export interface UserActionsMixin {
   setUserActions(action: any): void;
@@ -22,23 +23,24 @@ export default defineComponent<DefineUserActionComponent>({
   },
   methods: {
     ...mapActions(["setUserActions"]),
-    setActions(area){
-      const { 
-        userActions, 
+    setActions(area) {
+      const {
+        userActions,
         maybeAddMerchantToActionsIfInArea,
-        setUserActions, 
+        setUserActions,
       } = this
-      const actions = [ ...userActions ]
+      const actions = [...userActions]
       maybeAddMerchantToActionsIfInArea({ actions, area })
-      setUserActions( actions );
+      setUserActions(actions);
     }
   },
-  setup(){
-    const route      = useRoute();
-    const router     = useRouter()
-    const store      = useStore();
+  setup() {
+    // let user = new User({})
+    const route = useRoute();
+    const router = useRouter()
+    const store = useStore();
     const { userId } = route.params;
-    const user       = computed(() => store.getters.getUserById(userId));
+    const user = computed(() => store.getters.getUserById(userId));
     return {
       route,
       router,

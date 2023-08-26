@@ -50,7 +50,7 @@ export default {
     state.bgm.is_on = !state.bgm.is_on;
   },
   CHANGE_BGM(state, bgm) {
-    console.log("Background Music:", bgm);
+    // console.log("Background Music:", bgm);
     state.bgm = {
       ...state.bgm,
       ...bgm,
@@ -59,7 +59,7 @@ export default {
   ACTIVATE_BATTLE(state) {
     state.battle.active = true;
   },
-  DEACTIVATE_BATTLE(state){
+  DEACTIVATE_BATTLE(state) {
     state.battle.active = false;
   },
 
@@ -76,10 +76,10 @@ export default {
       ...terrain,
     };
   },
-  SET_USER_ACTIONS(state, userActions){
+  SET_USER_ACTIONS(state, userActions) {
     state.userActions = userActions
   },
-  SET_AREA(state, area){
+  SET_AREA(state, area) {
     state.area = area
   }
 };

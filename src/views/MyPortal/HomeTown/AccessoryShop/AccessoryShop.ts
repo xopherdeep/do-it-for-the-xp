@@ -50,7 +50,7 @@ export default defineComponent({
           shopkeep: "Francis the Rancher",
           greeting: "Howdy partner, let me know what I can do ya for."
         },
-        "wrecked-ship":{
+        "wrecked-ship": {
           icon: "ship",
           shopkeep: "Douglas the Pirate",
           greeting: "Rrrrrr matey, I be wilin ta trade with ya."
@@ -60,32 +60,32 @@ export default defineComponent({
           shopkeep: "Terrance the Hermit",
           greeting: "No loitering, I have work that needs my attention."
         },
-        "witchs-hut":{
+        "witchs-hut": {
           icon: "cauldron",
           shopkeep: "Dr. Who",
           greeting: "Hello my sweet, will you be staying long?"
         },
-        "crystal-caverns":{
+        "crystal-caverns": {
           icon: "dungeon",
           shopkeep: "Jeff",
           greeting: "Hi there, take a look at our lovely jewels!"
         },
-        "snow-shack":{
+        "snow-shack": {
           icon: "igloo",
           shopkeep: "Abominable Snowman",
           greeting: "Greetings, the warmth is free, but please buy something if you plan on staying."
         },
-        "traveling-merchant":{
+        "traveling-merchant": {
           icon: "wagon-covered",
           shopkeep: "Boobeedeedle",
           greeting: "Ah, It's you! Here's what I have today."
         },
-        "theia-city":{
+        "theia-city": {
           icon: "chess-rook",
           shopkeep: "The Watcher",
           greeting: "Ah, It's you! Here's what I have today."
         },
-        default:{
+        default: {
           icon: "store",
           shopkeep: "Dr. Who",
           greeting: "Hello! What shelf can I show you?"
@@ -102,14 +102,14 @@ export default defineComponent({
         ? this.currentMerchant.icon
         : this.merchants.default.icon
     },
-    currentMerchant(){
-      console.log(this.merchant);
+    currentMerchant() {
+      // console.log(this.merchant);
       return this.merchants[this.merchant]
     },
-    shopGreeting(){
+    shopGreeting() {
       return this.currentMerchant?.greeting
     },
-    shopkeeper(){
+    shopkeeper() {
       return this.currentMerchant?.shopkeep
     }
   },
@@ -117,11 +117,11 @@ export default defineComponent({
     selectShelf($ev) {
       this.shelves = $ev.detail.value;
     },
-    closeModal(itemId){
+    closeModal(itemId) {
       return modalController.dismiss(null, 'cancel');
       // this.$refs[`modal-${itemId}`].$el.dismiss(null, 'cancel');
     },
-    buyItem(itemId){
+    buyItem(itemId) {
       this.setThankYouOpen(true)
       return modalController.dismiss(null, 'confirm');
       // this.$refs[`modal-${itemId}`].$el.dismiss(null, 'cancel');
@@ -139,7 +139,7 @@ export default defineComponent({
     };
     const isThankYouOpenRef = ref(false);
     const setThankYouOpen = (state) => isThankYouOpenRef.value = state;
-    
+
     return {
       isThankYouOpenRef, setThankYouOpen,
       customAlertOptions,

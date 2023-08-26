@@ -1,13 +1,18 @@
 <template>
   <ion-header>
-    <ion-toolbar v-if="user" class="rpg-box">
+    <ion-toolbar
+      v-if="user"
+      class="rpg-box"
+    >
       <ion-buttons slot="start">
         <ion-menu-button color="primary"></ion-menu-button>
         <ion-avatar v-if="user.avatar">
-          <ion-img class="ion-no-padding" :src="getUserAvatar(user)"></ion-img>
+          <ion-img
+            class="ion-no-padding"
+            :src="getUserAvatar(user)"
+          ></ion-img>
         </ion-avatar>
       </ion-buttons>
-      <ion-icon :icon="accessibilityOutline" slot="icon-only" />
       <ion-title v-if="user.name">{{ user.name.nick }}</ion-title>
       <ion-buttons slot="end">
         <ion-button id="toolbox">
@@ -16,7 +21,10 @@
         <ion-button expand="block">
           <i class="fad fa-map fa-2x"></i>
         </ion-button>
-        <ion-button size="large" id="user-profile">
+        <ion-button
+          size="large"
+          id="user-profile"
+        >
           <i class="fad fa-user-circle fa-2x"></i>
         </ion-button>
         <ion-button size="large">
@@ -27,17 +35,15 @@
   </ion-header>
 </template>
 
-<script lang="js">
+<script lang="ts">
+  import User from '@/utils/User/user';
   import { defineComponent } from 'vue'
 
   export default defineComponent({
     props: {
       user: {
-        default(){
-          return {
-            name: null,
-          }
-        }
+        type: User,
+        required: true
       }
     },
     computed: {
@@ -48,7 +54,17 @@
     },
 
     setup() {
-      //
+      const requireAvatar = require.context("@/assets/images/avatars/");
+      const getUserAvatar = (user) => {
+        const { avatar } = user;
+        if (avatar) {
+          return requireAvatar(`./${user.avatar}.svg`);
+        }
+      }
+
+      return {
+        getUserAvatar
+      }
     },
   })
 </script>

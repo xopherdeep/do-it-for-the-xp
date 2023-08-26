@@ -12,7 +12,7 @@ export default defineComponent<DefineUserActionComponent>({
   mixins: [ionic, userActions],
 
   ionViewDidEnter() {
-    this.setActions( this.$options.name )
+    this.setActions(this.$options.name)
   },
   setup() {
     const route = useRoute();
@@ -27,9 +27,9 @@ export default defineComponent<DefineUserActionComponent>({
         id: 'home-town',
         faIcon: "archway",
         side: "start",
-        click($ev){
-          router.push({ name:'home-town', params: {userId} })
-          console.log($ev.preventDefault());
+        click($ev) {
+          $ev.preventDefault()
+          router.push({ name: 'home-town', params: { userId } })
         }
       },
       {
@@ -48,7 +48,7 @@ export default defineComponent<DefineUserActionComponent>({
         side: "top",
         click() {
           const merchant = "pegasus-ranch"
-          router.push({ name: "shop", params: { merchant }})
+          router.push({ name: "shop", params: { merchant } })
         },
       },
       {

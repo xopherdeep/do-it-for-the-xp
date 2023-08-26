@@ -64,15 +64,11 @@ const state = {
     media: [],
   },
   user: {
-    isAuthenticated: true 
+    isAuthenticated: true
   },
-  users: {
-    1: {
-      id: 1
-    }
-  } 
+  users: {}
 };
- 
+
 export default createStore({
   state,
   actions,

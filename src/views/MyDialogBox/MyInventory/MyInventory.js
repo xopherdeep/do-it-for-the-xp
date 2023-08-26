@@ -1,5 +1,5 @@
 import { defineComponent } from "vue";
-import ionic from "@/mixins/ionic"
+import ionic from "@/mixins/ionic";
 
 import {
   arrowBack,
@@ -19,8 +19,7 @@ import {
   fitnessOutline,
   sparklesOutline,
   keyOutline,
-
-  bagOutline
+  bagOutline,
 } from "ionicons/icons";
 import { mapGetters } from "vuex";
 
@@ -36,7 +35,7 @@ export default defineComponent({
   },
   methods: {
     segmentChanged(ev) {
-      console.log("Segment changed", ev);
+      // console.log("Segment changed", ev);
     },
   },
   setup() {
@@ -51,15 +50,14 @@ export default defineComponent({
       colorWandOutline,
       lockClosedOutline,
       lockOpenOutline,
-  bagOutline,
-  sunnyOutline,
-  partlySunnyOutline,
-  moonOutline,
-  cloudyNightOutline,
-  fitnessOutline,
-  sparklesOutline,
-  keyOutline,
-
+      bagOutline,
+      sunnyOutline,
+      partlySunnyOutline,
+      moonOutline,
+      cloudyNightOutline,
+      fitnessOutline,
+      sparklesOutline,
+      keyOutline,
     };
   },
 });

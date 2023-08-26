@@ -8,18 +8,32 @@
             @click="$fx.ui[$fx.theme.ui].select.play()"
           ></ion-menu-button>
           <ion-button class="m-8">
-            <ion-icon :ios="peopleCircleOutline" :md="peopleCircleSharp" />
+            <ion-icon
+              :ios="peopleCircleOutline"
+              :md="peopleCircleSharp"
+            />
           </ion-button>
         </ion-buttons>
         <ion-title> Choose Profile Save </ion-title>
       </ion-toolbar>
     </ion-header>
-    <ion-content :fullscreen="true" id="container" class="ion-padding">
+    <ion-content
+      :fullscreen="true"
+      id="container"
+      class="ion-padding"
+    >
       <ion-card>
         <ion-card-content>
           <ion-list>
             <ion-item
-              v-for="(profile, key) in profiles"
+              detail
+              button
+              @click="openModal"
+            >
+              Start New Profile
+            </ion-item>
+            <ion-item
+              v-for="(profile, key) in users"
               :key="key"
               button
               detail="true"
@@ -29,22 +43,26 @@
                 <h2>{{ profile.name.full }}</h2>
                 <p>{{ profile.name.nick }}</p>
               </ion-label>
+              <i
+                :class="profile"
+                class="fas fa-lg ion-margin"
+              ></i>
               <ion-avatar slot="end">
                 <img :src="getUserAvatar(profile)" />
               </ion-avatar>
               <ion-label slot="end">
-                <h2>Level: {{ profile.stats.level }}</h2>
-                <p><b>XP:</b> {{ profile.stats.xp.now }}</p>
+                <h2>Level: {{ profile?.stats?.level }}</h2>
+                <p>
+                  <xp-gp :gp="profile?.stats?.gp.wallet" />
+                </p>
               </ion-label>
             </ion-item>
           </ion-list>
-          <ion-buttons>
-            <ion-button @click="openModal"> Start New Profile</ion-button>
-          </ion-buttons>
+          <ion-buttons> </ion-buttons>
         </ion-card-content>
       </ion-card>
     </ion-content>
-    <ion-fab
+    <!-- <ion-fab
       :class="$options.name"
       vertical="bottom"
       horizontal="center"
@@ -53,13 +71,13 @@
       <ion-fab-button @click="openModal">
         <ion-icon :icon="add"></ion-icon>
       </ion-fab-button>
-    </ion-fab>
+    </ion-fab> -->
   </ion-page>
 </template>
 
 <script lang="ts">
   import { useIonRouter } from "@ionic/vue";
-  import { mapActions, useStore } from "vuex";
+  import { mapActions, useStore, mapGetters } from "vuex";
   import { computed, defineComponent, ref } from "@vue/runtime-core";
   import ionic from "@/mixins/ionic";
   import { add, peopleCircleSharp, peopleCircleOutline } from "ionicons/icons";
@@ -70,6 +88,7 @@
   import { ProfileDb } from "@/databases";
 
   import AddProfile from "./AddProfile/AddProfile.vue";
+  import XpGp from "@/components/XpGp/XpGp.vue";
 
   const requireAvatar = require.context("@/assets/images/avatars/");
 
@@ -81,6 +100,11 @@
   export default defineComponent({
     name: "switch-profile",
     mixins: [ionic],
+    components: { XpGp },
+    computed: {
+      ...mapGetters(["usersAz"]),
+      users() { return this.usersAz },
+    },
     methods: {
       ...mapActions(["loginUser"]),
 
@@ -101,10 +125,23 @@
       },
 
       setProfiles(profiles: User[]) {
-        this.profiles = profiles;
+        this.loadUsers()
+        this.profiles = profiles.sort((a, b) => {
+          const nameA = a.name.full.toLowerCase();
+          const nameB = b.name.full.toLowerCase();
+          if (nameA < nameB) {
+            return -1;
+          }
+          if (nameA > nameB) {
+            return 1;
+          }
+          return 0;
+        });
+
       },
 
-      async loadProflies() {
+      async loadProfiles() {
+        // this.setProfiles(this.users)
         return await this.storage.getAll().then(this.setProfiles);
       },
 
@@ -112,12 +149,9 @@
         const modal = await modalController.create({
           component: AddProfile,
         });
-        modal.onDidDismiss().then(this.loadProflies);
+        modal.onDidDismiss().then(this.loadProfiles);
         modal.present();
       },
-    },
-    mounted() {
-      this.loadProflies();
     },
     setup() {
       const refresh = ref(false);
@@ -126,9 +160,15 @@
       const ionRouter = useIonRouter();
 
       const storage = new ProfileDb(profileStorage);
-      const profiles = ref([] as User[]);
+      const profiles = computed({
+        get: () => store.state.users,
+        set: (users) => store.state.users = users
+      });
+
+      const loadUsers = () => store.dispatch("loadUsers")
 
       return {
+        loadUsers,
         storage,
         bgm,
         add,
@@ -148,25 +188,22 @@
     &#container {
       height: 100vh;
       background-color: #68a8d8;
-      background-image: linear-gradient(
-          45deg,
+      background-image: linear-gradient(45deg,
           #80d890 25%,
           transparent 25%,
           transparent 75%,
-          #80d890 75%
-        ),
-        linear-gradient(
-          45deg,
+          #80d890 75%),
+        linear-gradient(45deg,
           #80d890 25%,
           transparent 25%,
           transparent 75%,
-          #80d890 75%
-        );
+          #80d890 75%);
       background-size: 60px 60px;
       background-position: 0 0, 30px 30px;
       animation: slide 4s infinite linear;
     }
   }
+
   .switch-profile {
     ion-card {
       text-align: center;
@@ -177,14 +214,15 @@
     ion-avatar {
       margin: auto;
     }
+
     /* #container {
-    text-align: center;
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%);
-  } */
+          text-align: center;
+          position: absolute;
+          left: 0;
+          right: 0;
+          top: 50%;
+          transform: translateY(-50%);
+        } */
 
     #container strong {
       font-size: 20px;
@@ -211,18 +249,22 @@
       flex-grow: 1;
       margin: 1em;
     }
+
     ion-input {
       text-align: right;
     }
   }
+
   ion-modal.auto-height {
     --height: auto;
   }
+
   ion-modal.auto-height .ion-page {
     position: relative;
     display: block;
     contain: content;
   }
+
   ion-modal.auto-height .ion-page .inner-content {
     max-height: 80vh;
     overflow: auto;
@@ -238,4 +280,3 @@
     }
   }
 </style>
-@/databases/profile @/databases/profile.db

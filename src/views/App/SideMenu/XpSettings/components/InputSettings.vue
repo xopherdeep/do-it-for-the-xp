@@ -50,74 +50,74 @@
   </ion-list>
 </template>
 
-<script>
-import { computed, defineComponent } from "vue";
+<script lang="ts">
+  import { computed, defineComponent } from "vue";
 
-import {
-  IonSelect,
-  IonSelectOption,
-  IonList,
-  IonItem,
-  IonToggle,
-  IonLabel,
-} from "@ionic/vue";
-
-import { mapActions, mapState, useStore } from "vuex";
-
-export default defineComponent({
-  name: "input-settings",
-  components: {
+  import {
     IonSelect,
-    IonToggle,
     IonSelectOption,
     IonList,
-    // IonListHeader,
     IonItem,
+    IonToggle,
     IonLabel,
-  },
+  } from "@ionic/vue";
 
-  computed: {
-    ...mapState(["theme", "bgm"]),
-  },
+  import { mapActions, mapState, useStore } from "vuex";
 
-  methods: {
-    ...mapActions(["changeBGM", "turnMusicOnOff", "changeSoundFX"]),
-    changeBGMToggle($ev) {
-      const is_on = $ev.detail.checked;
-      const { play$fx, changeBGM, turnMusicOnOff } = this;
-      play$fx();
-      changeBGM({ is_on }).then(turnMusicOnOff);
-    },
-    update$fx({ rpg, ui }) {
-      const { $fx, changeSoundFX, play$fx } = this;
-      const newFx = { ...$fx.theme, rpg, ui };
-      play$fx();
-      changeSoundFX(newFx).then(() => ($fx.theme = newFx));
+  export default defineComponent({
+    name: "input-settings",
+    components: {
+      IonSelect,
+      IonToggle,
+      IonSelectOption,
+      IonList,
+      // IonListHeader,
+      IonItem,
+      IonLabel,
     },
 
-    changeUISound(ev) {
-      const { rpg } = this.theme;
-      this.update$fx({
-        ui: ev.detail.value,
-        rpg,
-      });
+    computed: {
+      ...mapState(["theme", "bgm"]),
     },
 
-    changeRPGSound(ev) {
-      const { ui } = this.theme;
-      this.update$fx({
-        rpg: ev.detail.value,
-        ui,
-      });
-    },
-  },
+    methods: {
+      ...mapActions(["changeBGM", "turnMusicOnOff", "changeSoundFX"]),
+      changeBGMToggle($ev) {
+        const is_on = $ev.detail.checked;
+        const { play$fx, changeBGM, turnMusicOnOff } = this;
+        play$fx();
+        changeBGM({ is_on }).then(turnMusicOnOff);
+      },
+      update$fx({ rpg, ui }) {
+        const { $fx, changeSoundFX, play$fx } = this;
+        const newFx = { ...$fx.theme, rpg, ui };
+        play$fx();
+        changeSoundFX(newFx).then(() => ($fx.theme = newFx));
+      },
 
-  setup() {
-    const store = useStore();
-    return {
-      bgm: computed(() => store.state.bgm),
-      theme: computed(() => store.state.theme),
-    };
-  },
-});
+      changeUISound(ev) {
+        const { rpg } = this.theme;
+        this.update$fx({
+          ui: ev.detail.value,
+          rpg,
+        });
+      },
+
+      changeRPGSound(ev) {
+        const { ui } = this.theme;
+        this.update$fx({
+          rpg: ev.detail.value,
+          ui,
+        });
+      },
+    },
+
+    setup() {
+      const store = useStore();
+      return {
+        bgm: computed(() => store.state.bgm),
+        theme: computed(() => store.state.theme),
+      };
+    },
+  });
 </script>

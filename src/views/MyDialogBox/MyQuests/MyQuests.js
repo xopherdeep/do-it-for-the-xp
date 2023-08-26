@@ -37,7 +37,7 @@ import { useRouter } from "vue-router";
 // import { useSwiper } from "swiper/vue";
 import { Controller, Navigation } from "swiper";
 import { useQuery, useQueryClient } from "vue-query";
-import useQuests  from "@/hooks/useQuests";
+import useQuests from "@/hooks/useQuests";
 
 export default defineComponent({
   props: ["userId"],
@@ -75,33 +75,33 @@ export default defineComponent({
     hasNextPage() {
       return this.page < this.nTotalPages;
     },
-    searchText:{
-      get(){
-        return this.params.search
+    searchText: {
+      get() {
+        return this.params.search;
       },
-      set(text){
-        this.params.search = text
-        this.params.page = 1 
-      }
+      set(text) {
+        this.params.search = text;
+        this.params.page = 1;
+      },
     },
-    pageNumbers(){
-      const { params: {page, per_page}, nTotalTasks } = this
-      const max = Number(page) * Number(per_page) 
-
+    pageNumbers() {
+      const {
+        params: { page, per_page },
+        nTotalTasks,
+      } = this;
+      const max = Number(page) * Number(per_page);
 
       return {
         min: max - (per_page - 1),
-        max: max < nTotalTasks
-          ? max
-          : nTotalTasks
-      }
-    }
+        max: max < nTotalTasks ? max : nTotalTasks,
+      };
+    },
   },
   methods: {
     ...mapActions(["fetchWPItems"]),
     clickBack() {
       const hasHistory = this.$historyCount - window.history.length;
-      console.log("hashistory", hasHistory);
+      // console.log("hashistory", hasHistory);
       if (hasHistory) this.router.go(-1);
       else this.router.push(`/my-portal/${this.userId}`);
     },
@@ -140,8 +140,8 @@ export default defineComponent({
     fetchTasks() {
       // return this.fetchWPItems(this.params).then(this.fetchImages);
     },
-    getFeaturedImg(embedded){
-      const [ img ] = embedded["wp:featuredmedia"] || [{}] 
+    getFeaturedImg(embedded) {
+      const [img] = embedded["wp:featuredmedia"] || [{}];
       return {
         src: img?.source_url,
         alt: img?.alt_text,
@@ -174,14 +174,14 @@ export default defineComponent({
     },
 
     segmentChanged($ev) {
-      console.log("Segment changed", $ev);
+      // console.log("Segment changed", $ev);
     },
   },
   watch: {
     params: {
       deep: true,
       handler() {
-        this.play$fx("text")
+        this.play$fx("text");
         // const { $fx: { rpg, theme } } = this
         // const { text } = rpg[theme.rpg]
 
@@ -207,19 +207,19 @@ export default defineComponent({
       page: 1,
       search: "",
       per_page: 4,
-      _embed: true 
+      _embed: true,
     });
 
     const page = computed({
       get: () => params.page,
-      set: page => params.page = page
-    })
+      set: (page) => (params.page = page),
+    });
 
     const updateTotals = ({ data, headers }) => {
       nTotalTasks.value = Number(headers.get("x-wp-total"));
       nTotalPages.value = Number(headers.get("x-wp-totalpages"));
       return data;
-    }
+    };
 
     const {
       isLoading,
@@ -229,7 +229,8 @@ export default defineComponent({
       isFetching,
     } = useQuests(page.value, params, updateTotals);
 
-    const getSlideItems = p => queryClient.getQueryData(["tasks", p, params]) || [];
+    const getSlideItems = (p) =>
+      queryClient.getQueryData(["tasks", p, params]) || [];
 
     const slideItems = computed({
       get() {
@@ -288,15 +289,13 @@ export default defineComponent({
     };
 
     function useTasks(page, params) {
-      return useQuery( ["tasks", page, params], fetchAchievements, {
+      return useQuery(["tasks", page, params], fetchAchievements, {
         refetchOnWindowFocus: false,
         keepPreviousData: true,
       });
 
-      async function fetchAchievements(){
-        await XpApi
-          .get("xp_achievement", params)
-          .then(updateTotals)
+      async function fetchAchievements() {
+        await XpApi.get("xp_achievement", params).then(updateTotals);
       }
 
       function updateTotals({ data, headers }) {
@@ -318,6 +317,6 @@ export default defineComponent({
     //     .get(type, params).then(({ data }) => data);
 
     //   return useQuery(["images", page.value, include], fetchImages, options);
-    }
-   //},
+  },
+  //},
 });

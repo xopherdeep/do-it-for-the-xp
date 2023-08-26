@@ -3,6 +3,6 @@ import ProfileDb from "@/databases/ProfileDb"
 import { profileStorage } from "@/views/App/SideMenu/SwitchProfile/SwitchProfile.vue"
 
 const profilesDb = new ProfileDb(profileStorage)
-const users = profilesDb.getAll()
+const users = async () => await profilesDb.getAll()
 
 export default users

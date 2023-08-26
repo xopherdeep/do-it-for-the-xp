@@ -3,13 +3,14 @@
     <ion-header>
       <ion-toolbar color="secondary">
         <ion-buttons slot="start">
-          <ion-back-button 
-            :default-href="`/my-portal/${user.id}/my-home`"
-          ></ion-back-button>
-          <ion-icon :icon="storefrontOutline" slot="icon-only" />
+          <ion-back-button :default-href="`/my-portal/${userId}/my-home`"></ion-back-button>
+          <ion-icon
+            :icon="storefrontOutline"
+            slot="icon-only"
+          />
         </ion-buttons>
-        <ion-title> 
-          New App 
+        <ion-title>
+          New App
         </ion-title>
       </ion-toolbar>
       <ion-item>
@@ -22,10 +23,16 @@
           placeholder="..."
           multiple
         >
-          <ion-select-option value="affordable" selected>
+          <ion-select-option
+            value="affordable"
+            selected
+          >
             Can Afford
           </ion-select-option>
-          <ion-select-option value="out-of-budget" checked>
+          <ion-select-option
+            value="out-of-budget"
+            checked
+          >
             Can't Afford
           </ion-select-option>
           <ion-select-option value="favorites"> Favorites </ion-select-option>
@@ -88,7 +95,11 @@
         </ion-row>
       </ion-grid>
       <!-- fab placed to the bottom and start and on the bottom edge of the content overlapping footer with a list to the right -->
-      <ion-fab vertical="bottom" horizontal="center" slot="fixed">
+      <ion-fab
+        vertical="bottom"
+        horizontal="center"
+        slot="fixed"
+      >
         <ion-fab-button color="secondary">
           <ion-icon :icon="cartOutline"></ion-icon>
         </ion-fab-button>
@@ -120,7 +131,10 @@
                 color="light"
                 expand="block"
               >
-                <ion-icon :icon="chevronBack" slot="icon-only" />
+                <ion-icon
+                  :icon="chevronBack"
+                  slot="icon-only"
+                />
               </ion-button>
             </ion-col>
             <ion-col>
@@ -129,16 +143,18 @@
                 :disabled="!hasNextPage"
                 color="light"
                 expand="block"
-              >
-                <ion-icon :icon="chevronForward" slot="icon-only" />
-              </ion-button>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-      </ion-toolbar>
-    </ion-footer>
-  </ion-page>
-</template>
+            >
+              <ion-icon
+                :icon="chevronForward"
+                slot="icon-only"
+              />
+            </ion-button>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </ion-toolbar>
+  </ion-footer>
+</ion-page></template>
 
 <script src="./[AppJig]" />
 <style lang="scss" src="./_[AppJig].scss" scoped />

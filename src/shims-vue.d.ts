@@ -8,15 +8,15 @@ declare module '*.vue' {
 declare module '@vue/runtime-core' {
   // TODO: replace 'any' with actual type
   interface ComponentCustomProperties {
-    $fx: any; 
-    $requireAvatar: any; 
-    $requireImg: any;  
-    $router: any; 
-    $store: any; 
+    $fx: any;
+    $requireAvatar: any;
+    $requireImg: any;
+    $router: any;
+    $store: any;
     play$fx: (fx?: string) => void;
     $historyCount: number;
   }
 }
 
-declare module '@/mixins/ionic'{}
-export {}  // Important! See note.
+declare module '@/mixins/ionic' { }
+export { }  // Important! See note.

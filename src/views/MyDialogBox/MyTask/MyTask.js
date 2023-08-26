@@ -1,5 +1,5 @@
 import { defineComponent, ref } from "vue";
-import ionic from "@/assets/js/mixins/ionic"
+import ionic from "@/mixins/ionic";
 import { IonicSlides, modalController } from "@ionic/vue";
 import {
   IonPage,
@@ -18,8 +18,8 @@ import {
 } from "@ionic/vue";
 
 import { Swiper, SwiperSlide } from "swiper/vue";
- // Import Swiper styles
-import 'swiper/css';
+// Import Swiper styles
+import "swiper/css";
 
 /* eslint-disable */
 // eslint-disable-next-line to
@@ -116,7 +116,7 @@ export default defineComponent({
       // this.$store.dispatch("addToWallet", 100 )
     },
     startCounting() {
-      if(this.$refs.length){
+      if (this.$refs.length) {
         // this.$refs.countXPGained.start();
         // this.$refs.countAPGained.start();
         // this.$refs.countGPGained.start();
@@ -145,8 +145,8 @@ export default defineComponent({
       return `${item.quantity.toString()}x ${item.label}`;
     },
     filterList(list, item) {
-      this[list] =  this[list] 
-        ? this[list].filter((i) => i.label != item.label) 
+      this[list] = this[list]
+        ? this[list].filter((i) => i.label != item.label)
         : [];
     },
     slideLootItem(item) {
@@ -176,7 +176,7 @@ export default defineComponent({
     },
 
     async segmentChanged(ev) {
-      console.log(ev);
+      // console.log(ev);
       this.segment = ev.detail.value;
 
       await this.$refs.slides.slideTo(this.segment);
@@ -217,7 +217,7 @@ export default defineComponent({
             cssClass: "secondary",
             handler: () => {
               this.$fx.ui[this.$fx.theme.ui].no.play();
-              console.log("Confirm Cancel");
+              // console.log("Confirm Cancel");
             },
           },
           {
@@ -225,7 +225,7 @@ export default defineComponent({
             handler: (value) => {
               this.$fx.rpg[this.$fx.theme.rpg].useMP.play();
               this.$fx.ui[this.$fx.theme.ui].yes.play();
-              console.log(value);
+              // console.log(value);
 
               this.createToast({
                 header: `${this.user.name.nick} uses a spell...`,
@@ -262,7 +262,7 @@ export default defineComponent({
             handler: () => {
               this.$fx.ui[this.$fx.theme.ui].no.play();
 
-              console.log("Confirm Cancel");
+              // console.log("Confirm Cancel");
             },
           },
           {
@@ -270,7 +270,7 @@ export default defineComponent({
             handler: () => {
               this.$fx.ui[this.$fx.theme.ui].yes.play();
               this.$fx.rpg[this.$fx.theme.rpg].useItem.play();
-              console.log("Confirm Ok");
+              // console.log("Confirm Ok");
               this.createToast({
                 header: `${this.user.name.nick} took out something from their bag...`,
                 message: "...nothing happened.",
@@ -287,8 +287,8 @@ export default defineComponent({
       return alert.present();
     },
     async clickClaim() {
-      const { controlledSwiper } = this
-      const { slides } = this.$refs
+      const { controlledSwiper } = this;
+      const { slides } = this.$refs;
       const alert = await alertController.create({
         cssClass: "my-custom-class",
         header: "Claim Achievement?",
@@ -313,14 +313,14 @@ export default defineComponent({
             text: "Yes",
             handler: () => {
               this.$fx.ui[this.$fx.theme.ui].yes.play();
-              console.log(slides);
+              // console.log(slides);
               controlledSwiper.slideNext();
               this.createToast({
                 header: `${this.user.name.nick} tamed ${this.item.title.rendered}!`,
                 message: `Gained 2AP`,
                 duration: 1800,
                 // icon: comment,
-              })
+              });
               setTimeout(
                 () =>
                   this.createToast({
@@ -352,31 +352,33 @@ export default defineComponent({
             cssClass: "secondary",
             handler: () => {
               this.$fx.ui[this.$fx.theme.ui].no.play();
-              console.log("Confirm Cancel");
+              // console.log("Confirm Cancel");
             },
           },
           {
             text: "Roll",
             handler: () => {
-              const { $fx, closeModal, leaveBattle, router, user } = this
+              const { $fx, closeModal, leaveBattle, router, user } = this;
 
               const roll = Math.floor(Math.random() * 7) + 1;
-              leaveBattle().then( afterLeaveBattle )
+              leaveBattle().then(afterLeaveBattle);
 
-              function afterLeaveBattle(){
-                router.push({
-                  name: 'world-map',
-                  params: { userId: user.id }
-                }).then(leaveBattleMessage)
+              function afterLeaveBattle() {
+                router
+                  .push({
+                    name: "world-map",
+                    params: { userId: user.id },
+                  })
+                  .then(leaveBattleMessage);
               }
 
-              async function leaveBattleMessage(){
+              async function leaveBattleMessage() {
                 $fx.rpg[$fx.theme.rpg].attack.play();
 
                 const toast = await toastController.create({
-                  header  : user.name.nick + " Ran Away ",
+                  header: user.name.nick + " Ran Away ",
                   cssClass: $fx.theme.rpg,
-                  message : `-${roll} HP`,
+                  message: `-${roll} HP`,
                   // icon    : rabbitFast,
                   duration: 2000,
                   position: "top",
@@ -458,7 +460,7 @@ export default defineComponent({
       controlledSwiper,
       setControlledSwiper,
       modules: [IonicSlides, Navigation, Controller],
-      router
+      router,
     };
   },
 });

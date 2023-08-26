@@ -1,6 +1,6 @@
 {
   "name": "@xopherdeep/do-it-for-the-xp",
-  "description": "An Ionic project",
+  "description": "Do it for the XP",
   "version": "0.0.2",
   "license": "UNLICENSED",
   "repository": {
@@ -30,7 +30,9 @@
     "@capacitor/haptics": "1.1.4",
     "@capacitor/ios": "3.9.0",
     "@capacitor/keyboard": "1.2.1",
+    "@capacitor/share": "^5.0.6",
     "@capacitor/status-bar": "1.0.7",
+    "@ionic/storage": "^4.0.0",
     "@ionic/utils-fs": "^3.1.5",
     "@ionic/vue": "^6.0.0",
     "@ionic/vue-router": "^6.0.0",
@@ -40,6 +42,8 @@
     "core-js": "^3.6.5",
     "earthbound-battle-backgrounds": "^2.0.6",
     "swiper": "^8.4.2",
+    "tailwindcss": "^3.3.3",
+    "uuid": "^9.0.0",
     "vue": "^3.2.21",
     "vue-query": "^1.26.0",
     "vue-router": "^4.0.12",
@@ -64,6 +68,7 @@
     "@vue/eslint-config-typescript": "^9.1.0",
     "@vue/test-utils": "^2.0.0-rc.16",
     "@vue/vue3-jest": "^27.0.0-alpha.3",
+    "autoprefixer": "^10.4.15",
     "babel-jest": "^27.3.1",
     "cypress": "^8.7.0",
     "eslint": "^8.4.1",
@@ -71,10 +76,11 @@
     "fs": "^0.0.1-security",
     "jest": "^27.3.1",
     "node-sass": "^7.0.1",
+    "postcss": "^8.4.28",
     "sass": "^1.64.2",
     "sass-loader": "^10",
     "ts-jest": "^27.0.7",
-    "typescript": "^4.3.5"
+    "typescript": "^5.1.6"
   },
   "files": [
     "dist"

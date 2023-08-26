@@ -36,11 +36,11 @@ import { actionSheetController } from "@ionic/vue";
 export default defineComponent({
   props: ["userId"],
   name: "my-foods",
-  mixins: [ionic,fetchItems],
+  mixins: [ionic, fetchItems],
   data() {
     return {
       isLoading: false,
-      shelves: ['affordable'], 
+      shelves: ['affordable'],
       request: {
         type: "xp_accessory",
         params: {
@@ -52,8 +52,8 @@ export default defineComponent({
     };
   },
   methods: {
-    segmentChanged(ev) {
-      console.log("Segment changed", ev);
+    segmentChanged() {
+      // console.log("Segment changed", ev);
     },
     selectShelf($ev) {
       this.shelves = $ev.detail.value
@@ -72,7 +72,7 @@ export default defineComponent({
             //     type: 'delete'
             //   },
             //   handler: () => {
-            //     console.log('Delete clicked')
+            //     // console.log('Delete clicked')
             //   },
             // },
             {
@@ -80,22 +80,22 @@ export default defineComponent({
               icon: addCircleOutline,
               data: 'Data value',
               handler: () => {
-                console.log('Play clicked')
+                // console.log('Play clicked')
               },
             },
             {
               text: 'Request Time Off',
               icon: removeCircleOutline,
-              data: 10,  
+              data: 10,
               handler: () => {
-                console.log('Share clicked')
+                // console.log('Share clicked')
               },
             },
             {
               text: 'Some other action...',
               icon: calendarOutline,
               handler: () => {
-                console.log('Favorite clicked')
+                // console.log('Favorite clicked')
               },
             },
             {
@@ -103,15 +103,15 @@ export default defineComponent({
               icon: close,
               role: 'cancel',
               handler: () => {
-                console.log('Cancel clicked')
+                // console.log('Cancel clicked')
               },
             },
           ],
         });
       actionSheet.present();
-
-      const { role, data } = await actionSheet.onDidDismiss();
-      console.log('onDidDismiss resolved with role and data', role, data);
+      await actionSheet.onDidDismiss();
+      // const { role, data } = 
+      // console.log('onDidDismiss resolved with role and data', role, data);
     },
   },
   mounted() {

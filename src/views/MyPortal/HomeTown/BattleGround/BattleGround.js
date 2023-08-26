@@ -6,16 +6,13 @@ import alienMonster from "@/assets/fonts/font-awesome/svgs/duotone/medal.svg";
 import backgrounds from "@/assets/images/backgrounds/parallax/index";
 import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
 import fetchItems from "@/mixins/fetchItems";
-import ionic from "@/mixins/ionic"
+import ionic from "@/mixins/ionic";
 import MyTask from "@/views/MyDialogBox/MyTask/MyTask.vue";
 // import requireImg from "@/assets/js/requireImg.js";
 import users from "@/api/users.api";
 import userActions from "@/mixins/userActions";
 
-import {
-  toastController,
-  modalController,
-} from "@ionic/vue";
+import { toastController, modalController } from "@ionic/vue";
 import {
   today,
   calendarNumber,
@@ -142,7 +139,6 @@ export default {
   },
   computed: {
     ...mapState(["xp_achievement"]),
-
   },
   mounted() {
     this.changeBG();
@@ -170,7 +166,6 @@ export default {
     },
   },
   methods: {
-
     onSwiper(swiper) {
       this.swiper = swiper;
     },
@@ -261,7 +256,7 @@ export default {
       return requireAvatar(avatar);
     },
     segmentChanged(ev) {
-      console.log("Segment changed", ev);
+      // console.log("Segment changed", ev);
     },
 
     async openToast() {
@@ -298,7 +293,7 @@ export default {
           //   text: "No Thanks",
           //   role: "cancel",
           //   handler: () => {
-          //     console.log("Cancel clicked");
+          //     // console.log("Cancel clicked");
           //   },
           // },
         ],
@@ -306,7 +301,7 @@ export default {
       await toast.present();
 
       const { role } = await toast.onDidDismiss();
-      console.log("onDidDismiss resolved with role", role);
+      // console.log("onDidDismiss resolved with role", role);
     },
     async openMagicToast(magic) {
       const { nick } = this.user.name;
@@ -334,10 +329,10 @@ export default {
       }
     },
   },
-  ionViewDidEnter(){
-    this.setUserActions(this.userActions)
+  ionViewDidEnter() {
+    this.setUserActions(this.userActions);
   },
-  
+
   setup(props) {
     const store = useStore();
     const router = useRouter();
@@ -347,63 +342,62 @@ export default {
       initialSlide: 1,
       speed: 400,
     };
-    console.log(props.userId);
+    // console.log(props.userId);
     const user = computed(() => store.getters.getUserById(props.userId));
     const xp_achievement = computed(() => store.state.xp_achievement);
-    console.log(store.state.users);
+    // console.log(store.state.users);
 
-    async function clickRoll($ev){
-      let newActions = []
-      Object.values(xp_achievement.value).forEach( item => {
+    async function clickRoll($ev) {
+      let newActions = [];
+      Object.values(xp_achievement.value).forEach((item) => {
         newActions[item.id] = {
           label: item.title.rendered,
           id: item.id,
-          click(){
+          click() {
             // this.rollId(item.id)
             // this.setUserActions()
-            store.dispatch('setUserActions', userActions)
-          }
-        }
+            store.dispatch("setUserActions", userActions);
+          },
+        };
       });
 
-      store.dispatch('setUserActions', newActions)
-        // const toast = await toastController.create({
-        //   header: `${user.value.name.nick} throws their die...`,
-        //   message: `...hmm, what now?`,
-        //   position: "top",
-        //   duration: 3200,
-        // });
-        // toast.present();
+      store.dispatch("setUserActions", newActions);
+      // const toast = await toastController.create({
+      //   header: `${user.value.name.nick} throws their die...`,
+      //   message: `...hmm, what now?`,
+      //   position: "top",
+      //   duration: 3200,
+      // });
+      // toast.present();
 
       // console.log("new actions",newActions);
       $ev.stopPropagation();
-    //
+      //
     }
 
     const userActions = [
-        {
-          label: "Roll",
-          faIcon: "dice-d8",
-          click: clickRoll
-        },
-        {
-          label: "Goods",
-          faIcon: "backpack",
-        },
-        {
-          label: "Abilities",
-          faIcon: "hand-holding-magic",
-        },
-        {
-          label: "Defend",
-          faIcon: "shield",
-        },
-        {
-          label: "Run Away",
-          faIcon: "running",
-        },
-      ]
-
+      {
+        label: "Roll",
+        faIcon: "dice-d8",
+        click: clickRoll,
+      },
+      {
+        label: "Goods",
+        faIcon: "backpack",
+      },
+      {
+        label: "Abilities",
+        faIcon: "hand-holding-magic",
+      },
+      {
+        label: "Defend",
+        faIcon: "shield",
+      },
+      {
+        label: "Run Away",
+        faIcon: "running",
+      },
+    ];
 
     return {
       // mySwiper,

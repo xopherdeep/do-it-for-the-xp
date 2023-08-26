@@ -1,5 +1,8 @@
 <template>
-  <ion-menu content-id="main-content" type="overlay">
+  <ion-menu
+    content-id="main-content"
+    type="overlay"
+  >
     <ion-content>
       <ion-list id="inbox-list">
         <ion-list-header>XP</ion-list-header>
@@ -13,10 +16,11 @@
             v-if="menuItem.title"
             @click="
               setMenuItem(i);
-              $fx.ui[$fx.theme.ui].select.play()"
+            $fx.ui[$fx.theme.ui].select.play();
+            "
             router-direction="root"
             :router-link="menuItem.url"
-            lines="none"
+            :lines="menuItem.lines"
             detail="false"
             class="hydrated"
             :class="{ selected: activeMenuItem === i }"
@@ -37,7 +41,10 @@
         <ion-item>
           <i class="fad fa-music"> </i>
           <ion-buttons>
-            <ion-toggle @ionChange="bgmToggle" :checked="bgm.is_on"></ion-toggle>
+            <ion-toggle
+              @ionChange="bgmToggle"
+              :checked="bgm.is_on"
+            ></ion-toggle>
             <ion-button @click="bgmPrev">
               <i class="fad fa-step-backward"></i>
             </ion-button>
@@ -49,14 +56,15 @@
       </ion-list>
     </ion-content>
   </ion-menu>
-
 </template>
 
 <script lang="ts">
-  import { computed, defineComponent } from 'vue'
-  import { mapActions, mapState, useStore } from 'vuex';
+  import { computed, defineComponent } from "vue";
+  import { mapActions, mapState, useStore } from "vuex";
   import ionic from "@/mixins/ionic";
   import {
+    megaphoneOutline,
+    megaphoneSharp,
     settingsOutline,
     settingsSharp,
     helpBuoySharp,
@@ -74,14 +82,18 @@
     logInOutline,
     logInSharp,
     gameControllerOutline,
-    gameControllerSharp
+    gameControllerSharp,
+    optionsOutline,
+    optionsSharp,
+    lockClosedOutline,
+    lockClosedSharp,
   } from "ionicons/icons";
 
   export default defineComponent({
-    name: 'side-menu',
+    name: "side-menu",
     mixins: [ionic],
 
-    data(){
+    data() {
       return {
         activeMenuItem: 0,
         appPagesAnon: [
@@ -90,92 +102,100 @@
             url: "/log-in",
             iosIcon: logInOutline,
             mdIcon: logInSharp,
+            lines: "none"
           },
         ],
         appPages: [
-            // {
-            //   title: "Home",
-            //   url: "/home",
-            //   iosIcon: peopleCircleOutline,
-            //   mdIcon: peopleCircleSharp,
-            // },
-            {
-              title: "Switch Profile",
-              url: "/switch-profile",
-              iosIcon: peopleCircleOutline,
-              mdIcon: peopleCircleSharp,
-            },
-            {
-              title: "Game Master",
-              url: "/game-master",
-              iosIcon: gameControllerOutline,
-              mdIcon: gameControllerSharp,
-            },
-            {
-              title: "Settings",
-              url: "/xp-settings/",
-              iosIcon: settingsOutline,
-              mdIcon: settingsSharp,
-            },
-            {
-              title: ''
-            },
-            {
-              title: "Membership",
-              url: "/xp-membership",
-              iosIcon: diamondOutline,
-              mdIcon: diamondSharp,
-            },
-            {
-              title: "FAQ & Support",
-              url: "/xp-support",
-              iosIcon: helpBuoyOutline,
-              mdIcon: helpBuoySharp,
-            },
-            {
-              title: "Tell a Friend",
-              url: "/tell-a-friend",
-              iosIcon: shareOutline,
-              mdIcon: shareSharp,
-            },
-            {
-              title: "About XP",
-              url: "/about-xp",
-              iosIcon: informationCircleOutline,
-              mdIcon: informationCircleSharp,
-            },
-            {
-              title: ''
-            },
-            // {
-            //   title: "Delete Profile",
-            //   url: "/log-out",
-            //   iosIcon: logOutOutline,
-            //   mdIcon: logOutSharp,
-            // },
-            {
-              title: ''
-            },
-            {
-              title: "Log Out",
-              url: "/log-out",
-              iosIcon: logOutOutline,
-              mdIcon: logOutSharp,
-            }
-        ]
+          // {
+          //   title: "Home",
+          //   url: "/home",
+          //   iosIcon: peopleCircleOutline,
+          //   mdIcon: peopleCircleSharp,
+          // },
+          {
+            title: "Switch Profile",
+            url: "/switch-profile",
+            iosIcon: peopleCircleOutline,
+            mdIcon: peopleCircleSharp,
+            lines: "none"
+          },
+          {
+            title: "Settings",
+            url: "/xp-settings/",
+            iosIcon: optionsOutline,
+            mdIcon: optionsSharp,
+            lines: "full"
+          },
+          {
+            title: "",
+          },
+          {
+            title: "Subscription",
+            url: "/xp-membership",
+            iosIcon: diamondOutline,
+            mdIcon: diamondSharp,
+            lines: "none"
+          },
+          {
+            title: "FAQ & Support",
+            url: "/xp-support",
+            iosIcon: helpBuoyOutline,
+            mdIcon: helpBuoySharp,
+            lines: "none"
+          },
+          {
+            title: "Tell a Friend",
+            url: "/tell-a-friend",
+            iosIcon: megaphoneOutline,
+            mdIcon: megaphoneSharp,
+            lines: "none"
+          },
+          {
+            title: "About Us",
+            url: "/about-xp",
+            iosIcon: informationCircleOutline,
+            mdIcon: informationCircleSharp,
+            lines: "full"
+          },
+          {
+            title: "",
+          },
+          // {
+          //   title: "Delete Profile",
+          //   url: "/log-out",
+          //   iosIcon: logOutOutline,
+          //   mdIcon: logOutSharp,
+          // },
+          {
+            title: "",
+          },
+          {
+            title: "Game Master",
+            url: "/game-master",
+            iosIcon: gameControllerOutline,
+            mdIcon: gameControllerSharp,
 
-      }
+            lines: "none"
+          },
+          {
+            title: "Log Out",
+            url: "/log-out",
+            iosIcon: lockClosedOutline,
+            mdIcon: lockClosedSharp,
+            lines: "none"
+          },
+        ],
+      };
     },
     computed: {
-    ...mapState(["theme", "bgm"]),
-
+      ...mapState(["theme", "bgm"]),
     },
-    methods:{
-      setMenuItem(index){
-        this.activeMenuItem = index
+    methods: {
+      setMenuItem(index) {
+        this.activeMenuItem = index;
       },
       initialIndex(): number {
-        const { pathname } = window.location
+        const { pathname } = window.location;
         const [, name] = pathname.split("/");
 
         if (name !== undefined && this.appPages) {
@@ -183,41 +203,33 @@
             (page) => page.title.toLowerCase() === name.toLowerCase()
           );
         }
-        return 0 
+        return 1;
       },
       ...mapActions(["changeBGM", "turnMusicOnOff", "changeSoundFX"]),
       getCurrentMenu() {
-        const { appPages, appPagesAnon, isLoggedIn} = this
-        return isLoggedIn 
-          ? appPages 
-          : appPagesAnon;
+        const { appPages, appPagesAnon, isLoggedIn } = this;
+        return isLoggedIn ? appPages : appPagesAnon;
       },
-      bgmToggle($event){
-        this.$emit('toggleBGM', $event)
+      bgmToggle($event) {
+        this.$emit("toggleBGM", $event);
       },
 
-      bgmNext(){
-        this.$emit('changeBGM', 1)
+      bgmNext() {
+        this.$emit("changeBGM", 1);
       },
 
-      bgmPrev(){
-        this.$emit('changeBGM', -1)
+      bgmPrev() {
+        this.$emit("changeBGM", -1);
       },
     },
-    setup(){
-
-
-      const store = useStore()
+    setup() {
+      const store = useStore();
 
       return {
         isLoggedIn: computed(() => store.getters.isLoggedIn),
-      }
+      };
     },
-
-
-  })
+  });
 </script>
 
-<style lang="scss">
-
-</style>
+<style lang="scss"></style>

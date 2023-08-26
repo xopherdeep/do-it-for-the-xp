@@ -4,7 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import { mapActions, useStore } from "vuex";
 import userActions from "@/mixins/userActions";
 import ionic from "@/mixins/ionic";
-import {modalController, toastController} from "@ionic/vue";
+import { modalController, toastController } from "@ionic/vue";
 import { arrowBack } from "ionicons/icons";
 
 export default defineComponent({
@@ -17,15 +17,15 @@ export default defineComponent({
     };
   },
 
-  ionViewDidEnter(){
+  ionViewDidEnter() {
     this.setUserActions(this.userActions)
     // this.presentToast()
   },
 
-  methods:{
+  methods: {
     ...mapActions(["setUserActions"]),
     async presentToast() {
-      const { router, user: {name: {first}, id: userId } } = this
+      const { router, user: { name: { first }, id: userId } } = this
       const toast = await toastController.create({
         message: `Welcome home ${first}!`,
         duration: 50000,
@@ -54,14 +54,14 @@ export default defineComponent({
     },
   },
   setup() {
-    const route      = useRoute();
-    const router     = useRouter()
-    const store      = useStore();
-    
+    const route = useRoute();
+    const router = useRouter()
+    const store = useStore();
+
     const { userId } = route.params;
-    const user       = computed(() => store.getters.getUserById(userId));
+    const user = computed(() => store.getters.getUserById(userId));
     const closeModal = () => modalController.dismiss()
-    const clickSave  = () => router.push({name: 'switch-profile'}).then(closeModal)
+    const clickSave = () => router.push({ name: 'switch-profile' }).then(closeModal)
     return {
       closeModal,
       clickSave,
@@ -76,8 +76,8 @@ export default defineComponent({
           id: 'adventure-time',
           faIcon: "clock",
           side: "bottom",
-          click($ev){
-            router.push({ name:'calendar', params: {userId} })
+          click() {
+            router.push({ name: 'calendar', params: { userId } })
           }
         },
         {
@@ -86,8 +86,8 @@ export default defineComponent({
           faIcon: "treasure-chest",
           side: "bottom",
           // link: 'storage',
-          click($ev){
-            router.push({ name:'storage', params: {userId} })
+          click() {
+            router.push({ name: 'storage', params: { userId } })
           }
         },
         // {
@@ -100,8 +100,8 @@ export default defineComponent({
           id: 'craft',
           faIcon: "tools",
           side: "top",
-          click($ev){
-            router.push({ name:'craft-item', params: {userId} })
+          click() {
+            router.push({ name: 'craft-item', params: { userId } })
           }
         },
         {
@@ -109,8 +109,8 @@ export default defineComponent({
           id: 'cook',
           faIcon: "hat-chef",
           side: "top",
-          click($ev){
-            router.push({ name:'cook-food', params: {userId} })
+          click() {
+            router.push({ name: 'cook-food', params: { userId } })
           }
         },
         {
@@ -118,9 +118,9 @@ export default defineComponent({
           id: 'home-town',
           faIcon: "door-open",
           side: "start",
-          click($ev){
-            router.push({ name:'home-town', params: {userId} })
-            console.log($ev.preventDefault());
+          click() {
+            router.push({ name: 'home-town', params: { userId } })
+            // console.log($ev.preventDefault());
           }
         },
       ],

@@ -42,7 +42,11 @@ const SideMenu = [
     name: 'xp-add-achievement',
     component: () => import('@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAddAchievement/XpAddAchievement.vue'),
     props: true
-
+  },
+  {
+    path: '/discover-achievements',
+    name: 'xp-discover-achievements',
+    component: () => import('@/views/App/SideMenu/XpGameMaster/XpAchievements/XpDiscoverAchievements/XpDiscoverAchievements.vue'),
   },
   {
     path: '/xp-membership',
@@ -78,6 +82,10 @@ const SideMenu = [
   {
     path: '/xp-support',
     component: () => import('@/views/App/SideMenu/XpSupport/XpSupport.vue'),
+  },
+  {
+    path: '/tell-a-friend',
+    component: () => import('@/views/App/SideMenu/XpShareApp/XpShareApp.vue'),
   },
   {
     path: '/about-xp',

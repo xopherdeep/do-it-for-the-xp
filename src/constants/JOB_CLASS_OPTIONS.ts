@@ -3,11 +3,11 @@ export const JOB_CLASS_OPTIONS = [
 
   {
     name: "Warrior",
-    icon: "fad fa-user-cowboy",
+    icon: "fad fa-swords",
   },
   {
     name: "Mage",
-    icon: "fad fa-user-crown",
+    icon: "fad fa-hat-wizard",
   },
   {
     name: "Thief",
@@ -15,7 +15,7 @@ export const JOB_CLASS_OPTIONS = [
   },
   {
     name: "Monk",
-    icon: "fad fa-user-hard-hat",
+    icon: "fad fa-fist-raised",
   },
   // { name: "Paladin", icon: "fad fa-shield-cross" },
   // { name: "Dark Knight", icon: "fad fa-skull" },

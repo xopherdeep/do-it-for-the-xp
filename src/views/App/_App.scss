@@ -2,28 +2,62 @@
 @import "@/theme";
 
 // .ion-app moved to @/styles/_app.scss
+@keyframes slide {
+  from {
+    background-position: 0 0, 30px 30px;
+  }
+
+  to {
+    background-position: 0 0, -30px -30px;
+  }
+}
 
 ion-app {
   .fullscreen {
-    --width:100% !important;
-    --height:100% !important;
+    --width: 100% !important;
+    --height: 100% !important;
   }
 
   &#earthbound {
-    font-family: 'Apple Kid';
+    font-family: "Apple Kid";
 
-    ion-title{
+    ion-title {
       font-family: Twoson;
-      
     }
 
-    ion-card-title{
-      font-family: 'StatusPlz';
+    ion-content {
+      // --background: transparent;
+
+      &#container,
+      &.bg-slide {
+        height: 100vh;
+        background-color: #68a8d8;
+        background-image: linear-gradient(
+            45deg,
+            #80d890 25%,
+            transparent 25%,
+            transparent 75%,
+            #80d890 75%
+          ),
+          linear-gradient(
+            45deg,
+            #80d890 25%,
+            transparent 25%,
+            transparent 75%,
+            #80d890 75%
+          );
+        background-size: 60px 60px;
+        background-position: 0 0, 30px 30px;
+        animation: slide 4s infinite linear;
+      }
+    }
+
+    ion-card-title {
+      font-family: "StatusPlz";
       font-weight: normal;
       // font-style: italic;
       font-size: 15pt;
       text-transform: capitalize;
-
     }
 
     ion-toolbar {
@@ -45,12 +79,11 @@ ion-app {
       position: relative;
       vertical-align: top;
 
-      ion-thumbnail{
+      ion-thumbnail {
         max-width: 100%;
         min-width: 200px;
         min-height: 200px;
         margin: auto;
-
       }
 
       ion-skeleton-text {
@@ -69,11 +102,8 @@ ion-app {
         font-size: 20px;
         background-color: #383050;
         // #280828;
-
-        
       }
     }
-
 
     ion-modal {
       --background: transparent;
@@ -84,17 +114,20 @@ ion-app {
         padding: 2em;
         // font-family: sans-serif;
         background-color: #68a8d8;
-        background-image:
-          linear-gradient(45deg,
+        background-image: linear-gradient(
+            45deg,
             #80d890 25%,
             transparent 25%,
             transparent 75%,
-            #80d890 75%),
-          linear-gradient(45deg,
+            #80d890 75%
+          ),
+          linear-gradient(
+            45deg,
             #80d890 25%,
             transparent 25%,
             transparent 75%,
-            #80d890 75%);
+            #80d890 75%
+          );
         background-size: 60px 60px;
         background-position: 0 0, 30px 30px;
         animation: slide 4s infinite linear;
@@ -112,14 +145,13 @@ ion-app {
               display: inline-block;
               background-size: auto;
               background-blend-mode: multiply;
-              background-image: url('http://www.videogamesprites.net/Earthbound/Party/Ness/Ness%20-%20Walk%20(Front).gif')
+              background-image: url("http://www.videogamesprites.net/Earthbound/Party/Ness/Ness%20-%20Walk%20(Front).gif");
             }
 
             ion-card {
               width: calc(100% - 35px);
 
               &.favorite-food {
-
                 ion-card-content {
                   display: flex;
                   justify-content: center;
@@ -127,7 +159,6 @@ ion-app {
                   gap: 1em;
                   flex-wrap: wrap;
                 }
-
               }
             }
           }
@@ -149,14 +180,8 @@ ion-app {
       --transform: translateY(0);
       --transition: transform linear 150ms;
       // --height: 35px;
-      --box-shadow:
-        0 0 0 5px #383050,
-        /* dark grey */
-        0 0 0 10px #68d0b8,
-        /* minty blue */
-        0 0 0 12px #f7e8a8,
-        /* white */
-        0 0 0 16px #3d3c55;
+      --box-shadow: 0 0 0 5px #383050, /* dark grey */ 0 0 0 10px #68d0b8,
+        /* minty blue */ 0 0 0 12px #f7e8a8, /* white */ 0 0 0 16px #3d3c55;
       /* black */
       --width: 90%;
       --button-color: #e7e6b3;
@@ -174,44 +199,41 @@ ion-app {
 
         &::before {
           content: "\2022";
-          margin-right: 0.35em
+          margin-right: 0.35em;
         }
-
       }
     }
-
   }
 
   &#chronoTrigger {
-    ion-card{
-      @include chronoTriggerBox(); 
+    ion-card {
+      @include chronoTriggerBox();
     }
   }
 
   &#finalFantasy {
-
     ion-card {
       border: solid 1px #424542;
-      box-shadow: 1px 1px #e7dfe7,
-        -1px -1px #e7dfe7,
-        1px -1px #e7dfe7,
-        -1px 1px #e7dfe7,
-        0 -2px #9c9a9c,
-        -2px 0 #7b757b,
-        0 2px #424542;
+      box-shadow: 1px 1px #e7dfe7, -1px -1px #e7dfe7, 1px -1px #e7dfe7,
+        -1px 1px #e7dfe7, 0 -2px #9c9a9c, -2px 0 #7b757b, 0 2px #424542;
       width: calc(100% - 2em);
       padding: 5px 10px;
       margin: 1em;
 
       background: #04009d;
       background: -moz-linear-gradient(top, #04009d 0%, #06004d 100%);
-      background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #04009d), color-stop(100%, #06004d));
+      background: -webkit-gradient(
+        linear,
+        left top,
+        left bottom,
+        color-stop(0%, #04009d),
+        color-stop(100%, #06004d)
+      );
       background: -webkit-linear-gradient(top, #04009d 0%, #06004d 100%);
       background: -o-linear-gradient(top, #04009d 0%, #06004d 100%);
       background: -ms-linear-gradient(top, #04009d 0%, #06004d 100%);
       background: linear-gradient(to bottom, #04009d 0%, #06004d 100%);
       filter: progid:DXImageTransform.Microsoft.gradient(startColorstr='#04009d', endColorstr='#06004d', GradientType=0);
-
 
       -webkit-border-radius: 7px;
       -moz-border-radius: 7px;
@@ -219,8 +241,7 @@ ion-app {
 
       * {
         // color: #eff1ff;
-        text-shadow: 2px 2px #212421,
-          1px 1px #212021;
+        text-shadow: 2px 2px #212421, 1px 1px #212021;
         font-size: 20px;
         font-weight: normal;
         // margin: 5px 0;
@@ -233,23 +254,23 @@ ion-app {
     }
 
     ion-toast {
-
       --ion-safe-area-top: 85px;
       --border: solid 1px #424542;
-      --box-shadow: 1px 1px #e7dfe7,
-        -1px -1px #e7dfe7,
-        1px -1px #e7dfe7,
-        -1px 1px #e7dfe7,
-        0 -2px #9c9a9c,
-        -2px 0 #7b757b,
-        0 2px #424542;
+      --box-shadow: 1px 1px #e7dfe7, -1px -1px #e7dfe7, 1px -1px #e7dfe7,
+        -1px 1px #e7dfe7, 0 -2px #9c9a9c, -2px 0 #7b757b, 0 2px #424542;
       --width: 500px;
       --padding: 5px 10px;
       --margin: 50px 50px;
 
       --background: #04009d;
       --background: -moz-linear-gradient(top, #04009d 0%, #06004d 100%);
-      --background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #04009d), color-stop(100%, #06004d));
+      --background: -webkit-gradient(
+        linear,
+        left top,
+        left bottom,
+        color-stop(0%, #04009d),
+        color-stop(100%, #06004d)
+      );
       --background: -webkit-linear-gradient(top, #04009d 0%, #06004d 100%);
       --background: -o-linear-gradient(top, #04009d 0%, #06004d 100%);
       --background: -ms-linear-gradient(top, #04009d 0%, #06004d 100%);
@@ -262,15 +283,13 @@ ion-app {
 
       * {
         color: #eff1ff;
-        text-shadow: 2px 2px #212421,
-          1px 1px #212021;
+        text-shadow: 2px 2px #212421, 1px 1px #212021;
         // font-family: Verdana, sans-serif;
         // font-size: 20px;
         // font-weight: normal;
         // margin: 5px 0;
       }
     }
-
   }
 }
 
@@ -286,14 +305,13 @@ ion-app {
 
 @keyframes blinkTextCursor {
   from {
-    border-right-color: rgba(255, 255, 255, .75);
+    border-right-color: rgba(255, 255, 255, 0.75);
   }
 
   to {
     border-right-color: transparent;
   }
 }
-
 
 ion-note {
   display: inline-block;
@@ -319,25 +337,31 @@ ion-item.selected {
 
     ion-button {
       width: calc(20% - 1em);
-      margin: .5em;
+      margin: 0.5em;
     }
   }
 }
 
 .rpg-box {
-
-  ion-toolbar{
+  ion-toolbar {
     --background: #3d3c55;
     // background-color: #280828;
   }
 
-  .searchbar-input, ion-item, input, ion-input, ion-select, ion-searchbar, ion-content, ion-footer{
+  .searchbar-input,
+  ion-item,
+  input,
+  ion-input,
+  ion-select,
+  ion-searchbar,
+  ion-content,
+  ion-footer {
     --background: #3d3c55 !important;
     --color: #e7e6b3 !important;
     --placeholder-color: #e7e6b3 !important;
     --icon-color: var(--ion-color-contrast) !important;
-    background:  #3d3c55  !important;
-    color: #e7e6b3 !important
+    background: #3d3c55 !important;
+    color: #e7e6b3 !important;
   }
 
   // ion-content, ion-footer{
@@ -363,7 +387,6 @@ ion-item.selected {
       background-color: #3d3c55;
     }
 
-
     &.todays-achievements {
       display: flex;
       flex-wrap: wrap;
@@ -375,26 +398,20 @@ ion-item.selected {
       i {
         margin: 0.45em;
       }
-
     }
-
 
     &.status {
       i {
-        width: calc((100% / 6) - .5em);
-        margin: .25em;
+        width: calc((100% / 6) - 0.5em);
+        margin: 0.25em;
       }
     }
-
-
 
     &.todays-achievements {
       display: flex;
       justify-content: center;
       align-items: center;
-
     }
-
   }
 
   ion-modal {
@@ -409,20 +426,19 @@ ion-item.selected {
 /* The typing effect */
 @keyframes typing {
   from {
-    width: 0
+    width: 0;
   }
 
   to {
-    width: 100%
+    width: 100%;
   }
 }
 
 /* The typewriter cursor effect */
 @keyframes blink-caret {
-
   from,
   to {
-    border-color: transparent
+    border-color: transparent;
   }
 
   50% {

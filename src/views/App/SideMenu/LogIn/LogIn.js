@@ -96,22 +96,22 @@ export default defineComponent({
         client_id: "ou5F5T2fsFimg6rEzZx76jEHXY7cJfdeb6cQroz9",
         client_secret: "NypjizBfVSyZTbjbgXUbyjR1FfmlrLtwsGeREfwk",
         redirect_uri: "http://localhost:8100/log-in",
-        access: {} 
-      }
+        access: {},
+      },
     };
   },
   mounted() {
     this.animateLogo();
     this.interval = setInterval(this.changeBG, 5777);
     // this.getAccessToken()
-    // const { $fx:{rpg, theme}, changeBGM } = this; 
+    // const { $fx:{rpg, theme}, changeBGM } = this;
     // changeBGM({ tracks: rpg[theme.rpg].BGM.startScreen })
   },
 
   deactivated() {
     clearInterval(this.interval);
   },
-  
+
   methods: {
     ...mapActions(["loginUser", "changeBGM"]),
     closeSuccessModal() {
@@ -119,8 +119,8 @@ export default defineComponent({
       this.router.push({ name: "switch-profile" });
     },
     setBGStyle(key, value) {
-      const { page } = this.$refs
-      if(page){
+      const { page } = this.$refs;
+      if (page) {
         page.$el.style[key] = value;
       }
     },
@@ -155,17 +155,16 @@ export default defineComponent({
 
       // setTimeout(() => setBGStyle("backdropFilter", "blur(0px)"), 3000);
     },
-    
 
     clickSignIn() {
-      const { domain, authorize, redirect_uri, client_id } = this.oauth
-      const params = (new URLSearchParams({
-        response_type: 'code',
+      const { domain, authorize, redirect_uri, client_id } = this.oauth;
+      const params = new URLSearchParams({
+        response_type: "code",
         redirect_uri,
-        client_id
-      })).toString()
+        client_id,
+      }).toString();
 
-      window.location.href = `https://${domain}${authorize}?${params}`
+      window.location.href = `https://${domain}${authorize}?${params}`;
     },
 
     closeModal() {
@@ -194,7 +193,7 @@ export default defineComponent({
       swing(start);
 
       let start_button = start.querySelector("ion-button");
-      console.log(start_button);
+      // console.log(start_button);
       let og_color = start_button.style.color;
 
       start_button.style.borderRadius = "10px";
@@ -221,58 +220,68 @@ export default defineComponent({
       });
     },
 
-    async getAccessToken(){
-      const { oauth: {domain, token, client_id, client_secret, redirect_uri}, code } = this
-      const url = `https://${domain}${token}`
-      const response = await fetch(url,{
-        method: 'POST',
-        mode: 'cors', // no-cors, *cors, same-origin
-        cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+    async getAccessToken() {
+      const {
+        oauth: { domain, token, client_id, client_secret, redirect_uri },
+        code,
+      } = this;
+      const url = `https://${domain}${token}`;
+      const response = await fetch(url, {
+        method: "POST",
+        mode: "cors", // no-cors, *cors, same-origin
+        cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
         // credentials: 'same-origin', // include, *same-origin, omit
         headers: {
           // 'Content-Type': 'application/json'
-          'Content-Type': 'application/x-www-form-urlencoded',
+          "Content-Type": "application/x-www-form-urlencoded",
         },
         // body: JSON.stringify({
         //   grant_type: 'authorization_code',
         //   code,
         //   client_id,
         //   client_secret,
-        //   redirect_uri 
+        //   redirect_uri
         // })
         body: new URLSearchParams({
-          grant_type: 'authorization_code',
+          grant_type: "authorization_code",
           code,
           client_id,
           client_secret,
-          redirect_uri 
-        })
-      }).catch(error=> this.error = error)
-      return response.json().then(this.setAuthAccess)
+          redirect_uri,
+        }),
+      }).catch((error) => (this.error = error));
+      return response.json().then(this.setAuthAccess);
     },
 
-    setAuthAccess(data){
+    setAuthAccess(data) {
       // alert();
-      console.log(data);
-      this.oauth.access = data
-      this.fetchUserData().then(this.setUserData)
+      // console.log(data);
+      this.oauth.access = data;
+      this.fetchUserData().then(this.setUserData);
     },
 
-    async fetchUserData(){
-      const {setUserData, oauth: {domain, me, access: {access_token}}} = this
-      const url = `https://${domain}${me}?access_token=${access_token}`
-      const response = await fetch(url)
-      return response.json()
+    async fetchUserData() {
+      const {
+        setUserData,
+        oauth: {
+          domain,
+          me,
+          access: { access_token },
+        },
+      } = this;
+      const url = `https://${domain}${me}?access_token=${access_token}`;
+      const response = await fetch(url);
+      return response.json();
     },
 
-    setUserData(data){
-      console.log(data);
+    setUserData(data) {
+      // console.log(data);
       // this.dispatch('')
 
       this.loginUser();
       this.showSuccessModal = true;
       this.error = false;
-    }
+    },
   },
   setup() {
     const store = useStore();
@@ -280,14 +289,13 @@ export default defineComponent({
     const router = useRouter();
     const route = useRoute();
 
-    const { code } = route.query
+    const { code } = route.query;
 
     // fake login
     // if(code){
     //   router.push('/switch-profile')
 
     // }
-
 
     return {
       code,

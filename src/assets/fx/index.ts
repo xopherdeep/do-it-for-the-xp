@@ -30,7 +30,7 @@ loading.addEventListener(
   false
 );
 
-export default {
+const $fx = {
   theme: {
     ui: "nintendo",
     rpg: "earthbound",
@@ -225,4 +225,14 @@ export default {
       cursorVerti: new Audio(chronoTrigger.cursverti),
     },
   },
-};
+}
+
+export const play$fx = (fx = 'select') => {
+  const { ui, theme: { ui: themeUi } } = $fx
+  const soundFx = ui[themeUi][fx]
+
+  if (soundFx)
+    soundFx.play()
+}
+
+export default $fx;

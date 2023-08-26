@@ -84,7 +84,7 @@ export default defineComponent({
       return this.bgm.track;
     },
 
-    tracks(){
+    tracks() {
       return this.bgm.tracks
     },
 
@@ -102,7 +102,7 @@ export default defineComponent({
     },
   },
   mounted() {
-    const { $fx:{rpg, theme}, changeBGM, loadBGM } = this; 
+    const { $fx: { rpg, theme }, changeBGM, loadBGM } = this;
     changeBGM({ tracks: rpg[theme.rpg].BGM.startScreen }).then(loadBGM as any)
   },
   methods: {
@@ -129,14 +129,14 @@ export default defineComponent({
             cssClass: "secondary",
             id: "cancel-button",
             handler: (blah) => {
-              console.log("Confirm Cancel:", blah);
+              // console.log("Confirm Cancel:", blah);
             },
           },
           {
             text: "Okay",
             id: "confirm-button",
             handler: () => {
-              console.log("Confirm Okay");
+              // console.log("Confirm Okay");
             },
           },
         ],
@@ -151,24 +151,24 @@ export default defineComponent({
     },
 
     loadBGM(track, currentTime) {
-      const { changeBGM,  bgmTrack, addEventNextSong, bgm, bgmBookmark } = this;
+      const { changeBGM, bgmTrack, addEventNextSong, bgm, bgmBookmark } = this;
 
       // Are we using bookmarked audio?
       const isTimeToPlayBookmark = null != bgmBookmark.track && false == bgm.saveBookmark
 
-      const time      = isTimeToPlayBookmark ? bgmBookmark.currentTime : 0
+      const time = isTimeToPlayBookmark ? bgmBookmark.currentTime : 0
       const playTrack = isTimeToPlayBookmark ? bgmBookmark.track : bgmTrack
-      const audio     = new Audio( bgm.tracks[playTrack] )
+      const audio = new Audio(bgm.tracks[playTrack])
       audio.currentTime = time
       // Set time to bookmarked audio 
 
       // Here set bookmarks if need to be saved and current
       // this.bookmark = bgm.saveBookmark ? bgm.audio : false
-      if(bgm.saveBookmark)
-        this.bgmBookmark.currentTime = currentTime  
+      if (bgm.saveBookmark)
+        this.bgmBookmark.currentTime = currentTime
 
       // console.log("BOOKMARK", this.bookmark);
-      console.log("BOOKMARK AUDIO", audio);
+      // console.log("BOOKMARK AUDIO", audio);
 
       // const audio = this.bookmark ? this.bookmark : new Audio( bgm.tracks[bgmTrack] );
       // audio: new Audio($fx.rpg[$fx.theme.rpg].bgm[bgmTrack]),
@@ -200,21 +200,21 @@ export default defineComponent({
         playAudio,
       } = this;
       const maxTrackIndex = -1 + bgm.tracks.length;
-      let   track         = bgm.track + inc;
-      const cantGoBack    = track < 0;
-      const hasNextTrack  = track <= maxTrackIndex && !cantGoBack;
+      let track = bgm.track + inc;
+      const cantGoBack = track < 0;
+      const hasNextTrack = track <= maxTrackIndex && !cantGoBack;
       track = cantGoBack ? maxTrackIndex : hasNextTrack ? track : 0;
       this.changeBGM({ track, is_on: true }).then(playAudio);
     },
 
     playAudio() {
-      const { bgm: { track, is_on, startDelay, saveBookmark} } = this
-      
-      if(this.bgm.audio){
+      const { bgm: { track, is_on, startDelay, saveBookmark } } = this
+
+      if (this.bgm.audio) {
         this.bgm.audio.pause();
         this.loadBGM(track, this.bgm.audio.currentTime);
         this.bgm.audio.load();
-        if(is_on)
+        if (is_on)
           this.bgm.audio.play();
       }
     },
@@ -223,23 +223,24 @@ export default defineComponent({
     theme: {
       handler(theme) {
         this.$forceUpdate();
-        console.log(theme);
+        // console.log(theme);
       },
       deep: true,
     },
-    tracks:{
+    tracks: {
       handler() {
-        const { changeBGM, playAudio, bgm: {audio, track, is_on, startDelay, saveBookmark} } = this
-        if(audio)
+        const { changeBGM, playAudio, bgm: { audio, track, is_on, startDelay, saveBookmark } } = this
+        if (audio)
           audio.pause()
 
-        this.bgmBookmark.track = saveBookmark ? track : null 
+        this.bgmBookmark.track = saveBookmark ? track : null
 
         const startAudio = () => is_on ? setTimeout(playAudio, startDelay) : 0
         changeBGM({ is_on }).then(startAudio)
       },
     },
   },
+
   setup() {
     const route = useRoute();
     const store = useStore();
@@ -260,7 +261,6 @@ export default defineComponent({
       "Reminders",
     ];
 
-
     store.dispatch("loadUsers");
 
     const bgm = computed(() => store.state.bgm);
@@ -268,6 +268,7 @@ export default defineComponent({
     //   isBMGOn,
 
     return {
+      store,
       archiveOutline,
       archiveSharp,
       bgm,

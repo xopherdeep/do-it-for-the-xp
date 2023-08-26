@@ -79,7 +79,8 @@ export class AchievementDb extends DbStorageApi {
         id: uuidv4(),
         achievementName: `${task.achievementName} (clone)`
       }
-      return await this.setTask(clone).then(this.showSuccessToast)
+      const cloneToast = () => this.showSuccessToast("Clone Successful!")
+      return await this.setTask(clone).then(cloneToast)
     }
 
     const clone = await this.getTasks().then(cloneFromTasks)

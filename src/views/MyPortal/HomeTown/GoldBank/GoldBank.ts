@@ -35,7 +35,7 @@ import {
   caretForwardCircle,
   heart,
   close
-  
+
 } from "ionicons/icons";
 import fetchItems from "@/mixins/fetchItems"
 import { actionSheetController } from "@ionic/vue";
@@ -43,11 +43,11 @@ import { actionSheetController } from "@ionic/vue";
 export default defineComponent({
   props: ["userId"],
   name: "gold-bank",
-  mixins: [ionic,fetchItems],
+  mixins: [ionic, fetchItems],
   data() {
     return {
       isLoading: false,
-      shelves: ['affordable'], 
+      shelves: ['affordable'],
       request: {
         type: "xp_accessory",
         params: {
@@ -76,7 +76,7 @@ export default defineComponent({
             //     type: 'delete'
             //   },
             //   handler: () => {
-            //     console.log('Delete clicked')
+            //     // console.log('Delete clicked')
             //   },
             // },
             {
@@ -84,22 +84,22 @@ export default defineComponent({
               icon: addCircleOutline,
               data: 'Data value',
               handler: () => {
-                console.log('Play clicked')
+                // console.log('Play clicked')
               },
             },
             {
               text: 'Withdrawl GP',
               icon: removeCircleOutline,
-              data: 10,  
+              data: 10,
               handler: () => {
-                console.log('Share clicked')
+                // console.log('Share clicked')
               },
             },
             {
               text: 'Cash Out GP',
               icon: walletOutline,
               handler: () => {
-                console.log('Favorite clicked')
+                // console.log('Favorite clicked')
               },
             },
             {
@@ -107,7 +107,7 @@ export default defineComponent({
               icon: close,
               role: 'cancel',
               handler: () => {
-                console.log('Cancel clicked')
+                // console.log('Cancel clicked')
               },
             },
           ],
@@ -115,7 +115,7 @@ export default defineComponent({
       await actionSheet.present();
 
       const { role, data } = await actionSheet.onDidDismiss();
-      console.log('onDidDismiss resolved with role and data', role, data);
+      // console.log('onDidDismiss resolved with role and data', role, data);
     },
   },
   mounted() {
@@ -125,30 +125,30 @@ export default defineComponent({
   },
 
   setup() {
-      return {
-        storefrontOutline,
-        banOutline,
-        chevronBack,
-        chevronForward,
-        stop,
-        play,
-        pause,
-        arrowBack,
-        colorWand,
-        colorWandOutline,
-        lockClosedOutline,
-        lockOpenOutline,
-        bagOutline,
-        sunnyOutline,
-        partlySunnyOutline,
-        moonOutline,
-        cloudyNightOutline,
-        fitnessOutline,
-        sparklesOutline,
-        keyOutline,
-        cartOutline,
-        starSharp,
+    return {
+      storefrontOutline,
+      banOutline,
+      chevronBack,
+      chevronForward,
+      stop,
+      play,
+      pause,
+      arrowBack,
+      colorWand,
+      colorWandOutline,
+      lockClosedOutline,
+      lockOpenOutline,
+      bagOutline,
+      sunnyOutline,
+      partlySunnyOutline,
+      moonOutline,
+      cloudyNightOutline,
+      fitnessOutline,
+      sparklesOutline,
+      keyOutline,
+      cartOutline,
+      starSharp,
 
-      }
+    }
   },
 });

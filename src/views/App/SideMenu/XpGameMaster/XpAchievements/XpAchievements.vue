@@ -1,9 +1,20 @@
 <template>
   <ion-page :class="$options.name">
+    <ion-header :translucent="true">
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-back-button defaultHref="/game-master" />
+        </ion-buttons>
+        <ion-title> XP Game Master Achievements</ion-title>
+      </ion-toolbar>
+    </ion-header>
     <ion-content>
       <ion-grid class="ion-overflow">
         <ion-row class="ion-align-items-center ion-justify-content-center">
-          <ion-col class="ion-text-center" v-if="!hasAchievements">
+          <ion-col
+            class="ion-text-center"
+            v-if="!hasAchievements"
+          >
             <i class="fa fad fa-medal fa-5x" />
             <br />
             No Achievements
@@ -52,7 +63,11 @@
         </ion-row>
       </ion-grid>
     </ion-content>
-    <ion-fab slot="fixed" vertical="bottom" horizontal="end">
+    <ion-fab
+      slot="fixed"
+      vertical="bottom"
+      horizontal="end"
+    >
       <ion-fab-button>
         <ion-icon :icon="addOutline" />
       </ion-fab-button>
@@ -60,11 +75,17 @@
         <ion-fab-button @click="clickAdd">
           <ion-icon :icon="addSharp" />
         </ion-fab-button>
-        <ion-fab-button>
-          <ion-icon :ios="searchOutline" :md="searchSharp" />
+        <ion-fab-button @click="clickDiscover">
+          <ion-icon
+            :ios="searchOutline"
+            :md="searchSharp"
+          />
         </ion-fab-button>
         <ion-fab-button>
-          <ion-icon :ios="thumbsUpOutline" :md="thumbsUpSharp" />
+          <ion-icon
+            :ios="thumbsUpOutline"
+            :md="thumbsUpSharp"
+          />
         </ion-fab-button>
       </ion-fab-list>
     </ion-fab>
@@ -73,7 +94,10 @@
         <ion-grid>
           <ion-row>
             <ion-col class="ion-no-padding">
-              <ion-searchbar color="light" v-model="searchText"></ion-searchbar>
+              <ion-searchbar
+                color="light"
+                v-model="searchText"
+              ></ion-searchbar>
             </ion-col>
           </ion-row>
         </ion-grid>
@@ -83,7 +107,7 @@
 </template>
 
 <script lang="ts">
-  import { computed, defineComponent, ref } from "vue";
+  import { defineComponent, ref } from "vue";
   import ionic from "@/mixins/ionic";
 
   import {
@@ -94,7 +118,6 @@
     thumbsUpOutline,
     thumbsUpSharp,
   } from "ionicons/icons";
-  import { useRouter } from "vue-router";
   import { AchievementDb } from "@/databases";
   import { alertController } from "@ionic/vue";
   import type { Achievement } from "@/databases/AchievementDb";
@@ -129,6 +152,9 @@
 
       clickAdd() {
         this.$router.push("/add-achievement");
+      },
+      clickDiscover() {
+        this.$router.push("/discover-achievements");
       },
       clickEdit(id) {
         this.$router.push({
@@ -182,6 +208,9 @@
     mounted() {
       this.loadAchievements();
     },
+    updated() {
+      this.loadAchievements();
+    },
     setup() {
       const achievements = ref();
       const storage = new AchievementDb(achievementStorage);
@@ -201,24 +230,26 @@
   });
 </script>
 <style lang="scss" scoped>
-  ion-fab-list {
-    ion-fab-button {
-      &::before {
-        position: absolute;
-        right: 53px;
-        top: 12px;
-        cursor: pointer;
-      }
+ion-fab-list {
+  ion-fab-button {
+    &::before {
+      position: absolute;
+      right: 53px;
+      top: 12px;
+      cursor: pointer;
+    }
 
-      &:nth-child(1)::before {
-        content: "Create your Own ";
-      }
-      &:nth-child(2)::before {
-        content: "Add from Discover";
-      }
-      &:nth-child(3)::before {
-        content: "Add from Recommended";
-      }
+    &:nth-child(1)::before {
+      content: "Create your Own ";
+    }
+
+    &:nth-child(2)::before {
+      content: "Add from Discover";
+    }
+
+    &:nth-child(3)::before {
+      content: "Add from Recommended";
     }
   }
+}
 </style>

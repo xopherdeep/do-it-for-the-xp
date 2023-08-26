@@ -3,36 +3,59 @@
     <ion-header>
       <ion-toolbar color="danger">
         <ion-buttons slot="start">
-          <ion-back-button :default-href="`/my-portal/${user.id}`">
+          <ion-back-button :default-href="`/my-portal/${userId}`">
           </ion-back-button>
-          <ion-icon :icon="backpack" size="large" />
+          <ion-icon
+            :icon="backpack"
+            size="large"
+          />
           <i class="fad fa-backpack fa-lg" />
         </ion-buttons>
-        <ion-title> 
-        My Goods
+        <ion-title>
+          My Goods
         </ion-title>
       </ion-toolbar>
       <ion-toolbar>
-        <ion-segment @ionChange="segmentChanged($event)" color="danger" scrollable value="all">
+        <ion-segment
+          @ionChange="segmentChanged($event)"
+          color="danger"
+          scrollable
+          value="all"
+        >
           <ion-segment-button value="all">
-            <ion-icon :icon="bagOutline" color="primary"></ion-icon>
+            <ion-icon
+              :icon="bagOutline"
+              color="primary"
+            ></ion-icon>
             All
           </ion-segment-button>
           <ion-segment-button value="hp">
-            <ion-icon :icon="fitnessOutline" color="danger"></ion-icon>
-            HP 
+            <ion-icon
+              :icon="fitnessOutline"
+              color="danger"
+            ></ion-icon>
+            HP
           </ion-segment-button>
           <ion-segment-button value="mp">
-            <ion-icon :icon="colorWandOutline" color="tertiary"></ion-icon>
-            MP 
+            <ion-icon
+              :icon="colorWandOutline"
+              color="tertiary"
+            ></ion-icon>
+            MP
           </ion-segment-button>
           <ion-segment-button value="misc">
-            <ion-icon :icon="sparklesOutline" color="success"></ion-icon>
+            <ion-icon
+              :icon="sparklesOutline"
+              color="success"
+            ></ion-icon>
             Misc
           </ion-segment-button>
           <ion-segment-button value="key">
-            <ion-icon :icon="keyOutline" color="gold"></ion-icon>
-            Key 
+            <ion-icon
+              :icon="keyOutline"
+              color="gold"
+            ></ion-icon>
+            Key
           </ion-segment-button>
         </ion-segment>
       </ion-toolbar>
@@ -77,8 +100,15 @@
           </ion-row>
           <ion-row>
             <ion-col>
-              <ion-button color="dark" :router-link="`/my-portal/${userId}`" expand="block">
-                <ion-icon :icon="chevronBack" slot="icon-only" />
+              <ion-button
+                color="dark"
+                :router-link="`/my-portal/${userId}`"
+                expand="block"
+              >
+                <ion-icon
+                  :icon="chevronBack"
+                  slot="icon-only"
+                />
               </ion-button>
             </ion-col>
             <!-- <ion-col>
@@ -96,17 +126,23 @@
                 <ion-icon :icon="stop" slot="icon-only" />
               </ion-button>
             </ion-col> -->
-            <ion-col>
-              <ion-button color="dark" :router-link="`/my-portal/${userId}`" expand="block">
-                <ion-icon :icon="chevronForward" slot="icon-only" />
-              </ion-button>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-      </ion-toolbar>
-    </ion-footer>
-  </ion-page>
-</template>
+          <ion-col>
+            <ion-button
+              color="dark"
+              :router-link="`/my-portal/${userId}`"
+              expand="block"
+            >
+              <ion-icon
+                :icon="chevronForward"
+                slot="icon-only"
+              />
+            </ion-button>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </ion-toolbar>
+  </ion-footer>
+</ion-page></template>
 
 <script src="./MyInventory.js" />
 <style lang="scss" src="./_MyInventory.scss" scoped />

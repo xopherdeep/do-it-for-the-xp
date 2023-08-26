@@ -36,9 +36,9 @@ export class DbStorageApi {
     return await this.storage.keys().then(promiseMap);
   }
 
-  public async showSuccessToast() {
+  public async showSuccessToast(message?: string) {
     const toast = await toastController.create({
-      message: `Save Succesfull!`,
+      message: message || `Save Succesfull!`,
       duration: 2500,
       position: 'top',
       buttons: [

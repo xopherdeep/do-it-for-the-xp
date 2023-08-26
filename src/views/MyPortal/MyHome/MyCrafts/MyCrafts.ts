@@ -30,20 +30,22 @@ import {
   bagOutline,
   cubeOutline,
   bookOutline,
-  videocamOutline
-  
+  videocamOutline,
+  appsOutline,
+  bedOutline
+
 } from "ionicons/icons";
 import fetchItems from "@/mixins/fetchItems"
 
 export default defineComponent({
   props: ["userId"],
   name: "my-foods",
-  mixins: [ionic,fetchItems],
+  mixins: [ionic, fetchItems],
   data() {
     return {
       isLoading: false,
       actionSheetOpen: false,
-      shelves: ['affordable'], 
+      shelves: ['affordable'],
       request: {
         type: "xp_accessory",
         params: {
@@ -55,18 +57,18 @@ export default defineComponent({
     };
   },
   methods: {
-    segmentChanged(ev) {
-      console.log("Segment changed", ev);
+    segmentChanged() {
+      // console.log("Segment changed", ev);
     },
-    handleInventoryClick(){
-          // Navigate to Materials Inventory or execute related function
-          console.log('Materials Inventory clicked')
-          this.$router.push({
-            name: 'my-inventory',
-            params: {
-              userId: this.user.id
-            }
-          })
+    handleInventoryClick() {
+      // Navigate to Materials Inventory or execute related function
+      // console.log('Materials Inventory clicked')
+      this.$router.push({
+        name: 'my-inventory',
+        params: {
+          userId: this.user.id
+        }
+      })
     },
   },
   mounted() {
@@ -110,7 +112,9 @@ export default defineComponent({
       close,
       cubeOutline,
       bookOutline,
-      videocamOutline
+      videocamOutline,
+      appsOutline,
+      bedOutline
     };
   },
 });

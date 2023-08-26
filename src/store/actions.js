@@ -84,10 +84,11 @@ export default {
 
   loadUsers({ dispatch }) {
     const dispatchUsers = (users) => dispatch("addUsers", users);
-    return Api.get("users", {}).then(dispatchUsers);
+    return Api.get("users").then(dispatchUsers);
   },
 
   addUsers({ commit }, users) {
+    // console.log("users", users);
     users?.forEach((user) => commit("ADD_USER", user));
   },
 

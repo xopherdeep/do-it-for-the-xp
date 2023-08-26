@@ -1,15 +1,21 @@
 <template>
   <ion-page v-if="user">
     <ion-header>
-      <ion-toolbar color="tertiary" v-if="user.stats">
+      <ion-toolbar
+        color="tertiary"
+        v-if="user.stats"
+      >
         <ion-buttons slot="start">
-          <ion-back-button :default-href="`/my-portal/${user.id}`" :icon="arrowBack"></ion-back-button>
+          <ion-back-button
+            :default-href="`/my-portal/${userId}`"
+            :icon="arrowBack"
+          ></ion-back-button>
           <!-- <ion-icon :icon="colorWand" size="large" /> -->
           <i class="fad fa-book-spells fa-lg" />
         </ion-buttons>
         <ion-title> My Abilities </ion-title>
       </ion-toolbar>
-      <ion-toolbar >
+      <ion-toolbar>
         <ion-segment
           @ionChange="segmentChanged($event)"
           color="tertiary"
@@ -43,13 +49,14 @@
     </ion-header>
 
     <ion-content class="my-abilities">
-      <XpLoading v-if="isLoading"/>
-      <xp-swiper-gallery v-else 
+      <XpLoading v-if="isLoading" />
+      <xp-swiper-gallery
+        v-else
         :nTotalPages="nTotalPages"
         :nTotal="nTotal"
         :items="items"
         :isFetching="isFetching"
-        params 
+        params
         @next="slideNext"
         @prev="slidePrev"
         @changePage="changePage"
@@ -85,25 +92,25 @@
       <ion-tabs @ionTabsWillChange="beforeTabChange" @ionTabsDidChange="afterTabChange">
         <ion-router-outlet></ion-router-outlet>
         <ion-tab-bar slot="bottom">
-          <ion-tab-button tab="my-home" :router-link="`/my-portal/${user.id}`">
+          <ion-tab-button tab="my-home" :router-link="`/my-portal/${userId}`">
             <ion-icon :icon="chevronBack"></ion-icon>
           </ion-tab-button>
 
-          <ion-tab-button color="success" tab="speakers" :href="`/my-portal/${user.id}/deeds`">
+          <ion-tab-button color="success" tab="speakers" :href="`/my-portal/${userId}/deeds`">
             <ion-icon :icon="medalOutline" color="success"></ion-icon>
             <ion-label>Advents</ion-label>
           </ion-tab-button>
 
-          <ion-tab-button tab="my-party" :href="`/my-portal/${user.id}/inventory`">
+          <ion-tab-button tab="my-party" :href="`/my-portal/${userId}/inventory`">
             <ion-icon :icon="colorWandOutline" color="ternary"></ion-icon>
           </ion-tab-button>
 
-          <ion-tab-button tab="my-party" :href="`/my-portal/${user.id}/my-party`">
+          <ion-tab-button tab="my-party" :href="`/my-portal/${userId}/my-party`">
             <ion-icon :icon="peopleCircle" color="ternary"></ion-icon>
             <ion-label>Party</ion-label>
           </ion-tab-button>
 
-          <ion-tab-button tab="my-home" :href="`/my-portal/${user.id}`">
+          <ion-tab-button tab="my-home" :href="`/my-portal/${userId}`">
             <ion-icon :icon="chevronForward"></ion-icon>
           </ion-tab-button>
 
@@ -132,20 +139,35 @@
                 color="dark"
                 expand="block"
               >
-                <ion-icon :icon="chevronBack" slot="icon-only" />
+                <ion-icon
+                  :icon="chevronBack"
+                  slot="icon-only"
+                />
               </ion-button>
             </ion-col>
-            <ion-col class="total-pages" v-if="isLoading">
-              <ion-skeleton-text :animated="true" style="width: 60%;"></ion-skeleton-text>
-              <ion-skeleton-text :animated="true" style="width: 20%"></ion-skeleton-text>
+            <ion-col
+              class="total-pages"
+              v-if="isLoading"
+            >
+              <ion-skeleton-text
+                :animated="true"
+                style="width: 60%;"
+              ></ion-skeleton-text>
+              <ion-skeleton-text
+                :animated="true"
+                style="width: 20%"
+              ></ion-skeleton-text>
             </ion-col>
-            <ion-col class="total-pages" v-else>
+            <ion-col
+              class="total-pages"
+              v-else
+            >
               <ion-text class="ion-text-align-center">
                 Viewing: {{ pageNumbers?.min }} - {{ pageNumbers?.max }} of {{ nTotal }}
               </ion-text>
               <ion-text>
                 <small>
-                  Page: {{ page }} of {{nTotalPages}}
+                  Page: {{ page }} of {{ nTotalPages }}
                 </small>
               </ion-text>
             </ion-col>
@@ -156,7 +178,10 @@
                 color="dark"
                 expand="block"
               >
-                <ion-icon :icon="chevronForward" slot="icon-only" />
+                <ion-icon
+                  :icon="chevronForward"
+                  slot="icon-only"
+                />
               </ion-button>
             </ion-col>
           </ion-row>

@@ -172,7 +172,7 @@ export default {
               type: "delete",
             },
             handler: () => {
-              console.log("Delete clicked");
+              // console.log("Delete clicked");
             },
           },
           {
@@ -180,7 +180,7 @@ export default {
             icon: waterOutline,
             data: 10,
             handler: () => {
-              console.log("Share clicked");
+              // console.log("Share clicked");
             },
           },
           {
@@ -188,14 +188,14 @@ export default {
             icon: flameOutline,
             data: "Data value",
             handler: () => {
-              console.log("Play clicked");
+              // console.log("Play clicked");
             },
           },
           {
             text: "Mega Potion (200 HP to ALL) ",
             icon: bonfireOutline,
             handler: () => {
-              console.log("Favorite clicked");
+              // console.log("Favorite clicked");
             },
           },
           {
@@ -203,14 +203,14 @@ export default {
             icon: close,
             role: "cancel",
             handler: () => {
-              console.log("Cancel clicked");
+              // console.log("Cancel clicked");
             },
           },
         ],
       });
       await actionSheet.present();
       const { role, data } = await actionSheet.onDidDismiss();
-      console.log("onDidDismiss resolved with role and data", role, data);
+      // console.log("onDidDismiss resolved with role and data", role, data);
     },
   },
 };

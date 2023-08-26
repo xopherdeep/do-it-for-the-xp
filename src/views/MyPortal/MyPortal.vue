@@ -1,15 +1,40 @@
 <template>
-  <ion-page class="ion-page" :class="$options.name" v-cloak>
-    <ion-content class="bg-transparent icon-colors">
-      <xp-fab-user-hud :user="user" :isUserFabOn="isUserFabOn" />
+  <ion-page
+    class="ion-page"
+    :class="$options.name"
+    v-cloak
+  >
+    <ion-content
+      class="bg-transparent icon-colors"
+      v-if="user"
+    >
+      <xp-fab-user-hud
+        :user="user"
+        :isUserFabOn="isUserFabOn"
+      />
       <xp-user-points-hud :stats="user.stats" />
       <!-- <xp-fab-gold-points :user="user" :isUserFabOn="isUserFabOn" /> -->
-      <xp-fab-quick-draw v-if="isUserFabOn" :user="user" :equipment="equipment" @openHud="isRPGBoxOpen = true" />
-      <xp-fab-page-menu v-if="isUserFabOn" :user="user" :page-name="compass.name" />
-      <xp-fab-page-shortcuts v-if="isUserFabOn" :shortcuts="userActions" />
+      <xp-fab-quick-draw
+        v-if="isUserFabOn"
+        :user="user"
+        :equipment="equipment"
+        @openHud="isRPGBoxOpen = true"
+      />
+      <xp-fab-page-menu
+        v-if="isUserFabOn"
+        :user="user"
+        :page-name="compass.name"
+      />
+      <xp-fab-page-shortcuts
+        v-if="isUserFabOn"
+        :shortcuts="userActions"
+      />
 
       <ion-tabs v-if="user.stats">
-        <ion-router-outlet ref="outlet" :userId="user.id"></ion-router-outlet>
+        <ion-router-outlet
+          ref="outlet"
+          :userId="user.id"
+        ></ion-router-outlet>
         <ion-tab-bar
           slot="bottom"
           v-if="user.stats && !battleState('active')"
@@ -19,7 +44,10 @@
             tab="my-profile"
             :href="`/my-portal/${user.id}/my-profile`"
           >
-            <ion-icon :icon="personCircle" color="success"></ion-icon>
+            <ion-icon
+              :icon="personCircle"
+              color="success"
+            ></ion-icon>
             <ion-label v-if="user.name">
               {{ user.name.nick }}
             </ion-label>
@@ -27,11 +55,14 @@
               {{ user.stats.hp.now }} HP
             </ion-badge>
           </ion-tab-button>
-          <ion-tab-button 
-            tab="my-home" 
+          <ion-tab-button
+            tab="my-home"
             :href="compass.link"
           >
-            <i class="fad fa-2x" :class="`fa-${compass.icon}`"></i>
+            <i
+              class="fad fa-2x"
+              :class="`fa-${compass.icon}`"
+            ></i>
             <ion-label>
               {{ compass.name }}
             </ion-label>
@@ -74,11 +105,11 @@
     </ion-content>
 
     <!-- EQUIPMENT MODAL -->
-    <xp-equipment-modal 
-      :isOpen="isRPGBoxOpen" 
+    <xp-equipment-modal
+      :isOpen="isRPGBoxOpen"
       :equipment="equipment"
       @equip="clickItem"
-      @didDimiss="dismissRPGBox" 
+      @didDimiss="dismissRPGBox"
       @close="closeModal"
     />
 
@@ -97,7 +128,10 @@
                 <ion-col size="2">
                   <span></span>
                 </ion-col>
-                <ion-col size="6" class="ion-no-margin">
+                <ion-col
+                  size="6"
+                  class="ion-no-margin"
+                >
                   <ion-card>
                     {{ user.name.full }}
                     <ion-button
@@ -221,7 +255,10 @@
                                 {{ stat }}
                               </strong>
                             </ion-label>
-                            <ion-note slot="end" :color="area.color">
+                            <ion-note
+                              slot="end"
+                              :color="area.color"
+                            >
                               <strong>
                                 {{ desc }}
                                 --

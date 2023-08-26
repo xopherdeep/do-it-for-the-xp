@@ -1,12 +1,11 @@
-import { computed, defineComponent, handleError, reactive, ref } from "vue";
+import { computed, defineComponent, reactive, ref } from "vue";
 // import requireImg from "@/assets/js/requireImg";
 import fetchItems from "@/mixins/fetchItems";
 import ionic from "@/mixins/ionic";
 import userActions from "@/mixins/userActions";
 import "swiper/css";
-import { toastController, modalController } from "@ionic/vue";
-import components from "./components"
-
+import { modalController } from "@ionic/vue";
+import components from "./components";
 
 // import XpFabUserHud  from "./components/XpFabUserHud.vue"
 
@@ -18,14 +17,14 @@ import {
   chatbox,
   wallet,
   personCircle,
-      // const route = useRoute()
+  // const route = useRoute()
   fitnessOutline,
   storefrontOutline,
   medkitOutline,
   medalOutline,
   accessibilityOutline,
   colorWand,
-  walletOutline
+  walletOutline,
 } from "ionicons/icons";
 
 import { mapActions, mapGetters, mapMutations, mapState, useStore } from "vuex";
@@ -50,7 +49,7 @@ export default defineComponent({
   },
 
   computed: {
-    ...mapGetters(["battleState"]),
+    ...mapGetters(["battleState", "getUserById"]),
     ...mapState(["theme", "bgm", "actions"]),
     battleCounter() {
       return this.battleState("steps").counter;
@@ -58,23 +57,23 @@ export default defineComponent({
     pageName() {
       return this.compass?.name;
     },
-    isUserFabOn(){
-      return !this.route.meta.hideUserFab 
+    isUserFabOn() {
+      return !this.route.meta.hideUserFab;
     },
-    pageLink(){
-      return this.compass?.link
+    pageLink() {
+      return this.compass?.link;
     },
-    routeName(){
-      return this.route.name
+    routeName() {
+      return this.route.name;
     },
   },
   methods: {
-    ...mapActions(["resetBattleTimer", "stopBattleTimer"]),
+    ...mapActions(["resetBattleTimer", "stopBattleTimer", "loginUser"]),
     ...mapMutations(["ACTIVATE_BATTLE"]),
     getUserAvatar(user) {
       // console.log(user.avatar);
       const avatar = `./${user.avatar}.svg`;
-      console.log(avatar);
+      // console.log(avatar);
       return this.$requireAvatar(avatar);
     },
     enterBattle() {
@@ -85,102 +84,101 @@ export default defineComponent({
       modalController.dismiss();
     },
     closeModal() {
-      this.dismissRPGBox()
+      this.dismissRPGBox();
     },
-    updateCompass(name){
-      const { user: {id: userId }} = this
+    updateCompass(name) {
+      const { userId } = this;
       const worlds = {
         "world-map": {
-          name: 'The World',
-          icon: 'pegasus',
-          link: `/my-portal/${userId}/world-map`
+          name: "The World",
+          icon: "pegasus",
+          link: `/my-portal/${userId}/world-map`,
         },
         "home-town": {
-          name: 'Hometown',
-          icon: 'archway',
-          link: `/my-portal/${userId}/home-town`
+          name: "Hometown",
+          icon: "archway",
+          link: `/my-portal/${userId}/home-town`,
         },
         "my-home": {
-          name: 'My Home',
-          icon: 'house-user',
-          link: `/my-portal/${userId}/my-home`
+          name: "My Home",
+          icon: "house-user",
+          link: `/my-portal/${userId}/my-home`,
         },
         "world-plains": {
-          name: 'Plains',
-          icon: 'tornado',
-          link: `/my-portal/${userId}/plains`
+          name: "Plains",
+          icon: "tornado",
+          link: `/my-portal/${userId}/plains`,
         },
         "world-islands": {
-          name: 'Islands',
-          icon: 'island-tropical',
-          link: `/my-portal/${userId}/islands`
+          name: "Islands",
+          icon: "island-tropical",
+          link: `/my-portal/${userId}/islands`,
         },
         "world-forest": {
-            name: 'Forest',
-            icon: 'trees',
-            link: `/my-portal/${userId}/forest`
+          name: "Forest",
+          icon: "trees",
+          link: `/my-portal/${userId}/forest`,
         },
         "world-swamps": {
-            name: 'Swamps',
-            icon: 'skull-crossbones',
-            link: `/my-portal/${userId}/world-ice`
+          name: "Swamps",
+          icon: "skull-crossbones",
+          link: `/my-portal/${userId}/world-ice`,
         },
         "world-mountains": {
-            name: 'Mountains',
-            icon: 'mountains',
-            link: `/my-portal/${userId}/mountains`
+          name: "Mountains",
+          icon: "mountains",
+          link: `/my-portal/${userId}/mountains`,
         },
         "world-sands": {
-            name: 'Desert',
-            icon: 'cactus',
-            link: `/my-portal/${userId}/desert`
+          name: "Desert",
+          icon: "cactus",
+          link: `/my-portal/${userId}/desert`,
         },
         "world-ice": {
-            name: 'Frozen Tundra',
-            icon: 'igloo',
-            link: `/my-portal/${userId}/world-ice`
+          name: "Frozen Tundra",
+          icon: "igloo",
+          link: `/my-portal/${userId}/world-ice`,
         },
         "the-moon": {
-            name: 'The Moon',
-            icon: 'moon',
-            link: `/my-portal/${userId}/the-moon`
+          name: "The Moon",
+          icon: "moon",
+          link: `/my-portal/${userId}/the-moon`,
         },
-      } 
-      const world = worlds[name]
-      if(world)
-        this.compass = world 
-    }
+      };
+      const world = worlds[name];
+      if (world) this.compass = world;
+    },
   },
-  created(){
-    this.updateCompass(this.routeName)
+  created() {
+    this.updateCompass(this.routeName);
   },
   watch: {
-    routeName(name){
-      this.updateCompass(name)
+    routeName(name) {
+      this.updateCompass(name);
     },
     battleCounter(counter) {
-      const {
-        router,
-        userId,
-        ACTIVATE_BATTLE,
-        stopBattleTimer,
-        resetBattleTimer,
-        theme,
-        bgm: { $fx },
-      } = this;
-      const route = { name: "my-dashboard", props: { userId } };
+      // const {
+      //   router,
+      //   userId,
+      //   ACTIVATE_BATTLE,
+      //   stopBattleTimer,
+      //   resetBattleTimer,
+      //   theme,
+      //   bgm: { $fx },
+      // } = this;
+      // const route = { name: "my-dashboard", props: { userId } };
       // UNCOMMENT TO TURN ON BATTLES
-      // if (counter <= 0) {
-      //   $fx.rpg[theme.rpg].enterBattle.play();
-      //   router
-      //     .push(route)
-      //     .then(stopBattleTimer)
-      //     .then(resetBattleTimer)
-      //     .then(ACTIVATE_BATTLE);
-      // }
+      if (counter <= 0) {
+        // $fx.rpg[theme.rpg].enterBattle.play();
+        // router
+        //   .push(route)
+        //   .then(stopBattleTimer)
+        //   .then(resetBattleTimer)
+        //   .then(ACTIVATE_BATTLE);
+      }
     },
   },
-  setup(props) {
+  setup() {
     const store = useStore();
     const router = useRouter();
     const route = useRoute();
@@ -188,26 +186,29 @@ export default defineComponent({
     const user = computed(() => store.getters.getUserById(userId));
     const equipment = ref([]);
     const clickItem = (item, hand) => {
-      const existingItemIndex = equipment.value.findIndex((i) => i.icon === item.icon);
+      const existingItemIndex = equipment.value.findIndex(
+        (i) => i.icon === item.icon
+      );
 
       if (existingItemIndex !== -1) {
         // If the item with the same hand already exists, update it
-        equipment.value[existingItemIndex] = {...item, hand};
+        equipment.value[existingItemIndex] = { ...item, hand };
       } else {
         // Otherwise, add the new item
-        equipment.value.push({...item, hand});
+        equipment.value.push({ ...item, hand });
       }
     };
 
     const compass = reactive({
-      name: 'Home',
-      icon: 'house-user',
-      link: `/my-portal/${userId}/my-home`
-    })
+      name: "Home",
+      icon: "house-user",
+      link: `/my-portal/${userId}/my-home`,
+    });
 
-    const pageIcon = computed( () => route.meta.faIcon )
+    const pageIcon = computed(() => route.meta.faIcon);
 
     return {
+      userId,
       clickItem,
       compass,
       pageIcon,

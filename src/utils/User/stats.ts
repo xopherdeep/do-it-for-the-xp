@@ -7,6 +7,7 @@ interface GPStats {
   limit: number;
   debt: number;
   wallet: number;
+  savings: number;
 }
 
 interface HPMPStats {
@@ -47,47 +48,60 @@ export default class Stats {
   ap: APStats;
   special: SpecialStats;
 
-  constructor() {
-    this.level = 1;
+  constructor({ level, xp, gp, hp, mp, ap, special }: { level?: number, xp: XPStats, gp?: GPStats, hp?: HPMPStats, mp?: HPMPStats, ap?: APStats, special?: SpecialStats } = {
+    xp: {
+      now: 0,
+      next_level: 100
+    }
+
+  }) {
+
+    const debt = gp && gp.wallet < 0 ? 1 * gp?.wallet : 0
+
+    // console.log("debt", debt);
+
+
+    this.level = level ?? 1;
     this.xp = {
-      now: 100,
-      next_level: 1000,
+      now: xp?.now,
+      next_level: xp?.next_level,
     };
     this.gp = {
-      limit: 1000,
-      debt: 200,
-      wallet: 400,
+      limit: gp?.limit || 100,
+      debt: Number(gp?.debt) + Number(debt) ?? debt,
+      wallet: gp?.wallet ?? 0,
+      savings: gp?.savings ?? 100
     };
     this.hp = {
-      now: 25,
-      max: 30,
-      min: 0,
+      now: hp?.now ?? 25,
+      max: hp?.max ?? 30,
+      min: hp?.min ?? 0,
     };
     this.mp = {
-      now: 0,
-      max: 0,
-      min: 0,
+      now: mp?.now ?? 0,
+      max: mp?.max ?? 0,
+      min: mp?.min ?? 0,
     };
     this.ap = {
-      hour: [],
-      day: [],
-      week: [],
-      month: [],
-      year: [],
+      hour: ap?.hour ?? [],
+      day: ap?.day ?? [],
+      week: ap?.week ?? [],
+      month: ap?.month ?? [],
+      year: ap?.year ?? [],
     };
     this.special = {
-      strength: 0,
-      defense: 0,
-      endurance: 0,
-      intelligence: 0,
-      perception: 0,
-      wisdom: 0,
-      charisma: 0,
-      awareness: 0,
-      presence: 0,
-      agility: 0,
-      guts: 0,
-      luck: 0,
+      strength: special?.strength ?? 0,
+      defense: special?.defense ?? 0,
+      endurance: special?.endurance ?? 0,
+      intelligence: special?.intelligence ?? 0,
+      perception: special?.perception ?? 0,
+      wisdom: special?.wisdom ?? 0,
+      charisma: special?.charisma ?? 0,
+      awareness: special?.awareness ?? 0,
+      presence: special?.presence ?? 0,
+      agility: special?.agility ?? 0,
+      guts: special?.guts ?? 0,
+      luck: special?.luck ?? 0,
     };
   }
 }

@@ -11,22 +11,29 @@
     <ion-grid>
       <ion-row>
         <ion-col>
-          <ion-fab-button color="light" v-if="user.avatar">
+          <ion-fab-button
+            color="light"
+            v-if="user.avatar"
+          >
             <ion-img
               class="ion-no-padding"
               :src="userAvatar"
             ></ion-img>
           </ion-fab-button>
           <ion-badge>
-            {{ user.nick }}
+            {{ user.name.nick }}
           </ion-badge>
         </ion-col>
       </ion-row>
     </ion-grid>
-    <ion-fab-list class="fab-user" side="bottom" ref="userFab" >
+    <ion-fab-list
+      class="fab-user"
+      side="bottom"
+      ref="userFab"
+    >
       <ion-card>
         <ion-card-title>
-          {{ user.name.nick }} 
+          {{ user.name.nick }}
           <ion-text class="wallet">
             <small>₲</small>
             {{ user.stats.gp.wallet }}
@@ -57,9 +64,7 @@
               <ion-col>
                 <ion-menu-toggle>
                   <ion-button>
-                    <i
-                      class="fad fa-lg fa-bars"
-                    ></i>
+                    <i class="fad fa-lg fa-bars"></i>
                     Open Menu
                   </ion-button>
                 </ion-menu-toggle>
@@ -74,7 +79,7 @@
       trigger="talk-to"
       :breakpoints="[.9]"
       :initialBreakpoint=".9"
-      >
+    >
       <ion-card>
         <ion-card-title>
           Talk
@@ -92,7 +97,7 @@
   </ion-fab>
 </template>
 
-<script lang="js">
+<script lang="ts">
   import { computed, defineComponent, ref } from 'vue'
   import { walletOutline, colorWand, fitnessOutline } from 'ionicons/icons';
   import { useRouter } from 'vue-router';
@@ -100,12 +105,23 @@
   import userActions from "@/mixins/userActions";
 
   const XpFabUserHud = defineComponent({
-    mixins: [ userActions, ionic ],
+    name: "xp-fab-user-hud",
+    mixins: [userActions, ionic],
     props: {
       user: {
         default() {
           return {
-            id: 0
+            avatar: "",
+            id: 0,
+            stats: {
+              gp: {
+                wallet: 0
+              }
+            },
+            name: {
+              full: '',
+              nick: ''
+            }
           }
         }
       }
@@ -117,15 +133,15 @@
       },
     },
 
-    setup(props){
+    setup(props) {
       const router = useRouter()
-      const userId = computed({ get: () => props.user.id }) 
+      const userId = computed(() => props.user.id)
       const fabActive = ref(false)
       const toggleFab = () => fabActive.value = !fabActive.value
 
       const clickAction = (action) => {
-        console.log("clickAction");
-        if(action.click)
+        // console.log("clickAction");
+        if (action.click)
           action.click()
         fabActive.value = false
       }
@@ -210,7 +226,7 @@
         // ],
 
         staticActions: [
-        // userActions: [
+          // userActions: [
           {
             label: "Talk",
             id: "talk-to",
@@ -225,24 +241,24 @@
             id: "abilities",
             label: "My Abilities",
             faIcon: "book-spells",
-            click($ev) {
-              console.log("click", userId);
-              router.push({ name: "my-abilities", params: { userId: userId.value  } });
+            click() {
+              // console.log("click", userId);
+              router.push({ name: "my-abilities", params: { userId: userId.value } });
             },
           },
           {
             label: "My Quests",
             id: "staff",
             faIcon: "medal quest",
-            click(){
-              router.push({name: 'my-tasks', params: { userId: userId.value}})
+            click() {
+              router.push({ name: 'my-tasks', params: { userId: userId.value } })
             }
           },
           {
             label: "My Items",
             id: "my-inventory",
             faIcon: "backpack",
-            click($ev) {
+            click() {
               router.push({ name: "my-inventory", params: { userId: userId.value } });
             },
           },
@@ -255,8 +271,8 @@
             label: "My Wallet",
             id: "wallet",
             faIcon: "wallet",
-            click(){
-              router.push({name: 'my-gold-points', params: {userId: userId.value}})
+            click() {
+              router.push({ name: 'my-gold-points', params: { userId: userId.value } })
             }
           },
           {
@@ -272,34 +288,35 @@
   export default XpFabUserHud;
 </script>
 <style lang="scss" scoped>
-  ion-fab {
-    &.fab-user {
-      width: 500px;
-      max-width: 95vw;
+ion-fab {
+  &.fab-user {
+    width: 500px;
+    max-width: 95vw;
 
-      ion-chip {
-        box-shadow: 3px 3px 0px;
-        width: 100%;
-        padding: 1em 15px;
+    ion-chip {
+      box-shadow: 3px 3px 0px;
+      width: 100%;
+      padding: 1em 15px;
 
-        i {
-          margin: 0.25em;
-        }
-      }
-
-      .wallet{
-        float: right
+      i {
+        margin: 0.25em;
       }
     }
 
+    .wallet {
+      float: right
+    }
   }
 
-    ion-button{
-      // width: 100%;
-      justify-content: flex-start !important;
-      * {
-        display: flex;
-        justify-content: flex-start !important;
-      }
-    }
+}
+
+ion-button {
+  // width: 100%;
+  justify-content: flex-start !important;
+
+  * {
+    display: flex;
+    justify-content: flex-start !important;
+  }
+}
 </style>

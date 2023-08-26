@@ -1,9 +1,9 @@
 <template>
-  <ion-page >
+  <ion-page>
     <ion-header>
       <ion-toolbar color="success">
         <ion-buttons slot="start">
-          <ion-back-button :default-href="`/my-portal/${user.id}`">
+          <ion-back-button :default-href="`/my-portal/${userId}`">
           </ion-back-button>
           <i class="fad fa-medal fa-2x"></i>
           <!-- <ion-icon :icon="medalOutline" size="large" /> -->
@@ -57,8 +57,9 @@
         @slideNextTransitionStart="slideNext"
         @swiper="setControlledSwiper"
       >
-        <swiper-slide 
-          v-for="page in nTotalPages" pager="true" 
+        <swiper-slide
+          v-for="page in nTotalPages"
+          pager="true"
           :key="page"
           :data-page="page"
         >
@@ -79,7 +80,10 @@
                 >
                   <!-- :router-link="`/my-tasks/${user.id}/task/${item.id}`" -->
                   <ion-card-title v-if="isFetching">
-                    <ion-skeleton-text :animated="true" style="width: 100px;"></ion-skeleton-text>
+                    <ion-skeleton-text
+                      :animated="true"
+                      style="width: 100px;"
+                    ></ion-skeleton-text>
                   </ion-card-title>
                   <ion-card-title
                     v-else
@@ -87,15 +91,30 @@
                   ></ion-card-title>
 
                   <ion-thumbnail v-if="isFetching">
-                    <ion-skeleton-text :animated="true" style="width: 100%;"></ion-skeleton-text>
+                    <ion-skeleton-text
+                      :animated="true"
+                      style="width: 100%;"
+                    ></ion-skeleton-text>
                   </ion-thumbnail>
-                  <ion-img v-else-if="item._embedded" v-bind="getFeaturedImg(item._embedded)"/>
+                  <ion-img
+                    v-else-if="item._embedded"
+                    v-bind="getFeaturedImg(item._embedded)"
+                  />
 
-                  <ion-button v-if="isFetching" expand="block">
-                    <ion-skeleton-text :animated="true" style="width: 100%;"></ion-skeleton-text>
+                  <ion-button
+                    v-if="isFetching"
+                    expand="block"
+                  >
+                    <ion-skeleton-text
+                      :animated="true"
+                      style="width: 100%;"
+                    ></ion-skeleton-text>
                   </ion-button>
 
-                  <ion-button v-else color="primary">
+                  <ion-button
+                    v-else
+                    color="primary"
+                  >
                     View Quest
                   </ion-button>
 
@@ -179,40 +198,57 @@
                 color="dark"
                 expand="block"
               >
-                <ion-icon :icon="chevronBack" slot="icon-only" />
+                <ion-icon
+                  :icon="chevronBack"
+                  slot="icon-only"
+                />
               </ion-button>
             </ion-col>
-            <ion-col class="total-pages" v-if="isLoading">
-              <ion-skeleton-text :animated="true" style="width: 60%;"></ion-skeleton-text>
-              <ion-skeleton-text :animated="true" style="width: 20%"></ion-skeleton-text>
+            <ion-col
+              class="total-pages"
+              v-if="isLoading"
+            >
+              <ion-skeleton-text
+                :animated="true"
+                style="width: 60%;"
+              ></ion-skeleton-text>
+              <ion-skeleton-text
+                :animated="true"
+                style="width: 20%"
+              ></ion-skeleton-text>
             </ion-col>
-            <ion-col class="total-pages" v-else>
-              <ion-text class="ion-text-align-center">
-                Viewing Quests: {{ pageNumbers.min }} - {{ pageNumbers.max }} of {{ nTotalTasks }}
-              </ion-text>
-              <ion-text>
-                <small>
-                  Page: {{ page }} of 
-                  {{nTotalPages}}
-                </small>
-              </ion-text>
-            </ion-col>
-            <ion-col>
-              <ion-button
-                id="swiper-forward"
-                :disabled="!hasNextPage"
-                color="dark"
-                expand="block"
-              >
-                <ion-icon :icon="chevronForward" slot="icon-only" />
-              </ion-button>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-      </ion-toolbar>
-    </ion-footer>
-  </ion-page>
-</template>
+            <ion-col
+            class="total-pages"
+            v-else
+          >
+            <ion-text class="ion-text-align-center">
+              Viewing Quests: {{ pageNumbers.min }} - {{ pageNumbers.max }} of {{ nTotalTasks }}
+            </ion-text>
+            <ion-text>
+              <small>
+                Page: {{ page }} of
+                {{nTotalPages}}
+              </small>
+            </ion-text>
+          </ion-col>
+          <ion-col>
+            <ion-button
+              id="swiper-forward"
+              :disabled="!hasNextPage"
+              color="dark"
+              expand="block"
+            >
+              <ion-icon
+                :icon="chevronForward"
+                slot="icon-only"
+              />
+            </ion-button>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </ion-toolbar>
+  </ion-footer>
+</ion-page></template>
 
 <script src="./MyQuests" />
 <style lang="scss" src="./_MyQuests.scss" scoped />

@@ -9,11 +9,11 @@ export interface ApiType {
   base: string;
   uri?: string;
 }
-export default class Api{
-  uri: string 
+export default class Api {
+  uri: string
 
-  constructor({protocol, url, base}){
-    this.uri = protocol 
+  constructor({ protocol, url, base }) {
+    this.uri = protocol
       ? `${protocol}://${url}/${base}`
       : `${url}/${base}`
   }
@@ -21,7 +21,7 @@ export default class Api{
 
   get(type, params) {
     // turn our params into url query string
-    const query = new URLSearchParams(params).toString().replace(/%2C/g,',');
+    const query = new URLSearchParams(params).toString().replace(/%2C/g, ',');
     const uri = `${this.uri}/${type}?${query}`;
     const options = { method: "GET" };
     return fetch(uri, options).then(this.responseHandler).catch(this.errorHandler);
@@ -56,7 +56,7 @@ export default class Api{
       return Promise.reject(error);
     }
 
-    console.log("response", response);
+    // console.log("response", response);
 
     return { data, headers: response.headers };
   }
@@ -65,7 +65,7 @@ export default class Api{
    * errorHandler
    * log error to console
    */
-  errorHandler(error){
+  errorHandler(error) {
     console.error("There was an error!", error)
     return Promise.reject(error)
   }

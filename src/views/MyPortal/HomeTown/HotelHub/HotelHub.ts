@@ -35,11 +35,11 @@ import { actionSheetController } from "@ionic/vue";
 export default defineComponent({
   props: ["userId"],
   name: "hotel-hub",
-  mixins: [ionic,fetchItems],
+  mixins: [ionic, fetchItems],
   data() {
     return {
       isLoading: false,
-      shelves: ['affordable'], 
+      shelves: ['affordable'],
       request: {
         type: "xp_accessory",
         params: {
@@ -69,7 +69,7 @@ export default defineComponent({
             //     type: 'delete'
             //   },
             //   handler: () => {
-            //     console.log('Delete clicked')
+            //     // console.log('Delete clicked')
             //   },
             // },
             {
@@ -77,22 +77,22 @@ export default defineComponent({
               icon: heartHalfOutline,
               data: 'Data value',
               handler: () => {
-                console.log('Play clicked')
+                // console.log('Play clicked')
               },
             },
             {
               text: 'Community Events',
               icon: calendarOutline,
-              data: 10,  
+              data: 10,
               handler: () => {
-                console.log('Share clicked')
+                // console.log('Share clicked')
               },
             },
             {
               text: 'Rent a Room',
               icon: bedOutline,
               handler: () => {
-                console.log('Favorite clicked')
+                // console.log('Favorite clicked')
               },
             },
             {
@@ -100,22 +100,23 @@ export default defineComponent({
               icon: close,
               role: 'cancel',
               handler: () => {
-                console.log('Cancel clicked')
+                // console.log('Cancel clicked')
               },
             },
           ],
         });
       await actionSheet.present();
 
-      const { role, data } = await actionSheet.onDidDismiss();
-      console.log('onDidDismiss resolved with role and data', role, data);
+      await actionSheet.onDidDismiss().then();
+      // const { role, data } = ;
+      // console.log('onDidDismiss resolved with role and data', role, data);
     },
   },
   mounted() {
     // this.$fx.ui[this.$fx.theme.ui].openShop.play()
   },
   setup() {
-const customAlertOptions = {
+    const customAlertOptions = {
       header: 'Pizza Toppings',
       subHeader: 'Select your toppings',
       message: '$1.00 per topping',

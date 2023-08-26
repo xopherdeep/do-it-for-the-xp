@@ -97,9 +97,10 @@ export default defineComponent({
 
     const submitForm = () => {
       const goBack = () => router.go(-1)
+      const showToast = () => storage.showSuccessToast("Achievement Added!")
       storage.setTask(achievement.value)
-        .then(storage.showSuccessToast)
         .then(goBack)
+        .then(showToast)
     };
 
     // create refs for form fields

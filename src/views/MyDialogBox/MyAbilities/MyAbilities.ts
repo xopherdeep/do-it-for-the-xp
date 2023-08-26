@@ -86,9 +86,9 @@ export default defineComponent({
   },
   computed: {
     ...mapState(["xp_ability"]),
-    pageNumbers(){
-      const { params: {page, per_page}, nTotal } = this
-      const max = Number(page) * Number(per_page) 
+    pageNumbers() {
+      const { params: { page, per_page }, nTotal } = this
+      const max = Number(page) * Number(per_page)
 
       return {
         min: max - (per_page - 1),
@@ -100,8 +100,8 @@ export default defineComponent({
   },
 
   methods: {
-    segmentChanged($ev){
-      console.log($ev);
+    segmentChanged($ev) {
+      // console.log($ev);
     },
     slidePrev() {
       this.page--;
@@ -109,7 +109,7 @@ export default defineComponent({
     slideNext() {
       this.page++;
     },
-    changePage(page){
+    changePage(page) {
       this.page = page
     }
   },
@@ -129,7 +129,7 @@ export default defineComponent({
       page: 1,
       search: "",
       per_page: 4,
-      _embed: true 
+      _embed: true
     });
 
     const page = computed({
@@ -157,7 +157,7 @@ export default defineComponent({
       nTotal,
       nTotalPages,
       items,
-      isLoading, 
+      isLoading,
       isError,
       error,
       isFetching,
