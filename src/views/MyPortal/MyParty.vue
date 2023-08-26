@@ -85,83 +85,83 @@
 </template>
 
 <script>
-import { mapGetters } from "vuex";
-import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
+  import { mapGetters } from "vuex";
+  import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
 
-import {
-  arrowBack,
-  bagOutline,
-  fitnessOutline,
-  colorWandOutline,
-  sparklesOutline,
-  keyOutline
-} from "ionicons/icons";
-import userActions from "@/mixins/userActions";
+  import {
+    arrowBack,
+    bagOutline,
+    fitnessOutline,
+    colorWandOutline,
+    sparklesOutline,
+    keyOutline
+  } from "ionicons/icons";
+  import userActions from "@/mixins/userActions";
 
-import ionic from "@/mixins/ionic";
-export default {
-  mixins: [userActions, ionic],
-  ionViewDidEnter() {
-    this.setUserActions(this.userActions)
-  },
-  components: {
-    CardUserStats,
-    // IonButtons,
-    // IonMenuButton,
-
-    // IonButton,
-  },
-  computed: {
-    ...mapGetters(["usersAz"]),
-    users() { return this.usersAz },
-  },
-  mounted() {
-    // this.$fx.ui[this.$fx.theme.ui].user.play()
-  },
-  methods: {
-    getUserAvatar(user) {
-      const avatar = `./${user.avatar}.svg`;
-      return this.$requireAvatar(avatar);
+  import ionic from "@/mixins/ionic";
+  export default {
+    mixins: [userActions, ionic],
+    ionViewDidEnter() {
+      this.setUserActions(this.userActions)
     },
-    segmentChanged($event) {
-      $event.preventDefault()
+    components: {
+      CardUserStats,
+      // IonButtons,
+      // IonMenuButton,
 
-    }
-  },
-  setup() {
-    return {
-      keyOutline,
-      arrowBack,
-      bagOutline,
-      fitnessOutline,
-      colorWandOutline,
-      sparklesOutline,
+      // IonButton,
+    },
+    computed: {
+      ...mapGetters(["usersAz"]),
+      users() { return this.usersAz },
+    },
+    mounted() {
+      // this.$fx.ui[this.$fx.theme.ui].user.play()
+    },
+    methods: {
+      getUserAvatar(user) {
+        const avatar = `./${user.avatar}.svg`;
+        return this.$requireAvatar(avatar);
+      },
+      segmentChanged($event) {
+        $event.preventDefault()
 
-      userActions: [
-        {
-          label: "My Guilds",
-          id: "users",
-          faIcon: "users",
-        },
-        {
-          label: "Create Guild",
-          id: "create-team",
-          faIcon: "users-crown",
-        },
-        {
-          label: "Join Guild",
-          id: "join-team",
-          faIcon: "user-plus",
-        },
-        {
-          label: "Guild Chat",
-          id: "talk-to",
-          faIcon: "comments",
-        },
-      ]
+      }
+    },
+    setup() {
+      return {
+        keyOutline,
+        arrowBack,
+        bagOutline,
+        fitnessOutline,
+        colorWandOutline,
+        sparklesOutline,
+
+        userActions: [
+          {
+            label: "My Guilds",
+            id: "users",
+            faIcon: "users",
+          },
+          {
+            label: "Create Guild",
+            id: "create-team",
+            faIcon: "users-crown",
+          },
+          {
+            label: "Join Guild",
+            id: "join-team",
+            faIcon: "user-plus",
+          },
+          {
+            label: "Guild Chat",
+            id: "talk-to",
+            faIcon: "comments",
+          },
+        ]
+      }
     }
-  }
-};
+  };
 </script>
 
 <style scoped lang="scss">
