@@ -186,7 +186,11 @@
             <ion-label>
               Email Address:
             </ion-label>
-            <ion-input v-model="email" type="email" autocomplete="off"></ion-input>
+            <ion-input
+              v-model="email"
+              type="email"
+              autocomplete="off"
+            ></ion-input>
           </ion-item>
         </ion-list>
       </ion-card>
@@ -330,6 +334,5 @@
         </ion-button>
       </ion-buttons>
     </ion-toolbar>
-  </ion-footer>
-</template>
+  </ion-footer></template>
 <script lang="ts"  src="./AddProfile.ts"></script>
