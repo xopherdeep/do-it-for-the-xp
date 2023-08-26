@@ -6,7 +6,7 @@ module.exports = {
     "./src/**/*.jsx",
     // etc.
   ], // purge: ["./src/**/*.html", "./src/**/*.vue", "./src/**/*.ts"],
-  darkMode: false, // or 'media' or 'class'
+  darkMode: 'media', // or 'media' or 'class'
   theme: {
     screens: {
       sm: "576px",
