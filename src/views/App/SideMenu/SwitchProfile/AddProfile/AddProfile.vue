@@ -196,6 +196,7 @@
           <ion-row>
             <ion-col>
               <ion-input
+                ref="passcode1"
                 name="passcode"
                 class="ion-text-center"
                 :type="passcodeType"
@@ -203,21 +204,25 @@
                 pattern="[0-9]*"
                 inputmode="numeric"
                 maxlength="1"
+                @keyup="moveFocus($event, 'passcode2')"
               ></ion-input>
             </ion-col>
             <ion-col>
               <ion-input
+                ref="passcode2"
                 name="passcode"
                 class="ion-text-center"
                 :type="passcodeType"
                 pattern="[0-9]*"
                 inputmode="numeric"
                 maxlength="1"
+                @keyup="moveFocus($event, 'passcode3')"
               ></ion-input>
 
             </ion-col>
             <ion-col>
               <ion-input
+                ref="passcode3"
                 autocomplete="off"
                 name="passcode"
                 class="ion-text-center"
@@ -225,11 +230,13 @@
                 pattern="[0-9]*"
                 inputmode="numeric"
                 maxlength="1"
+                @keyup="moveFocus($event, 'passcode4')"
               ></ion-input>
 
             </ion-col>
             <ion-col class="text-xl">
               <ion-input
+                ref="passcode4"
                 autocomplete="off"
                 name="passcode"
                 class="ion-text-center text-5xl"

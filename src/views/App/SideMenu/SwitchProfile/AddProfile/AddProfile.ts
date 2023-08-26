@@ -131,6 +131,12 @@ export const AddProfile = defineComponent({
     const hidePasscode = ref(true)
     const passcodeType = computed(() => hidePasscode.value ? "password" : "number")
 
+    const moveFocus = (event, nextInput) => {
+      if (event.target.value.length === 1) {
+        this.$refs[nextInput].focus();
+      }
+    };
+
     return {
       passcodeType,
       hidePasscode,
@@ -158,6 +164,7 @@ export const AddProfile = defineComponent({
       maxAvatarIndex,
       arrowBack,
       arrowForward,
+      moveFocus,
     };
   },
 });
