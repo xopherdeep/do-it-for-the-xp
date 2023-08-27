@@ -1,14 +1,12 @@
-import { defineComponent, ref } from "vue";
+import { defineComponent } from "vue";
+import { mapGetters } from "vuex";
 import ionic from "@/mixins/ionic";
 
 import {
   arrowBack,
-  arrowDownCircleOutline,
-  arrowUpCircleOutline,
   removeCircleOutline,
   addCircleOutline,
   walletOutline,
-  cashOutline,
   chevronBack,
   chevronForward,
   stop,
@@ -30,10 +28,6 @@ import {
   storefrontOutline,
   banOutline,
   bagOutline,
-  trash,
-  share,
-  caretForwardCircle,
-  heart,
   close
 
 } from "ionicons/icons";
@@ -58,41 +52,45 @@ export default defineComponent({
       },
     };
   },
+  computed: {
+    ...mapGetters(["getUserById"]),
+    user() {
+      return this.getUserById(this.userId)
+    }
+
+  },
   methods: {
-    selectShelf($ev) {
-      this.shelves = $ev.detail.value
-    },
     async presentActionSheet() {
       const actionSheet = await actionSheetController
         .create({
-          header: 'Yeeessss....?',
+          header: 'Welcome to the Automatic Teller Machine.',
           cssClass: 'my-custom-class',
           buttons: [
-            // {
-            //   text: 'Save Cash',
-            //   icon: cashOutline,
-            //   id: 'delete-button', 
-            //   data: {
-            //     type: 'delete'
-            //   },
-            //   handler: () => {
-            //     // console.log('Delete clicked')
-            //   },
-            // },
             {
-              text: 'Deposit GP',
-              icon: addCircleOutline,
-              data: 'Data value',
+              text: 'Use Atm',
+              // icon: cashOutline,
+              id: 'bank-atm',
+              data: {
+                type: 'delete'
+              },
               handler: () => {
-                // console.log('Play clicked')
+                // console.log('Delete clicked')
               },
             },
             {
-              text: 'Withdrawl GP',
+              text: 'Withdrawl',
               icon: removeCircleOutline,
               data: 10,
               handler: () => {
                 // console.log('Share clicked')
+              },
+            },
+            {
+              text: 'Deposit',
+              icon: addCircleOutline,
+              data: 'Data value',
+              handler: () => {
+                // console.log('Play clicked')
               },
             },
             {
@@ -117,11 +115,6 @@ export default defineComponent({
       const { role, data } = await actionSheet.onDidDismiss();
       // console.log('onDidDismiss resolved with role and data', role, data);
     },
-  },
-  mounted() {
-    // const { ui, theme: {ui: uiTheme} } = this.fx
-    // ui[uiTheme].openShop.play()
-    // this.$fx.ui[this.$fx.theme.ui].openShop.play()
   },
 
   setup() {

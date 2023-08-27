@@ -1,0 +1,7 @@
+ion-app {
+  &#chronoTrigger {
+    ion-card {
+      @include chronoTriggerBox();
+    }
+  }
+}

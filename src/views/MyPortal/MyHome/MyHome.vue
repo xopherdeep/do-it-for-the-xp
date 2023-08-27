@@ -21,7 +21,7 @@
           <ion-col offset-sm="5" offset-xl="6" size="12" size-sm="7" size-xl="6">
             <ion-card>
               <ion-buttons class="ion-float-right">
-                <ion-button :router-link="`/my-portal/${user.id}/world-map`">
+                <ion-button :router-link="`/my-portal/${userId}/world-map`">
                   <i class="fad fa-door-open fa-2x"></i>
                 </ion-button>
               </ion-buttons>
@@ -130,16 +130,16 @@
         :initialBreakpoint="0.9"
       >
         <ion-card>
-            <ion-card-title>
-              World Map
-            </ion-card-title>
-            <i class="fad fa-globe fa-3x ion-float-right"></i>
+          <ion-card-title>
+            World Map
+          </ion-card-title>
+          <i class="fad fa-globe fa-3x ion-float-right"></i>
           <ion-card-header>
           </ion-card-header>
         </ion-card>
       </ion-modal>
       <ion-modal
-        trigger="save-quit" 
+        trigger="save-quit"
         :breakpoints="[0.9]"
         :initialBreakpoint="0.9"
         @ionModalDidDismiss="closeModal"
@@ -158,10 +158,18 @@
             <ion-grid>
               <ion-row>
                 <ion-col>
-                  <ion-button color="success" expand="block" @click="clickSave"> Yes. </ion-button>
+                  <ion-button
+                    color="success"
+                    expand="block"
+                    @click="clickSave"
+                  > Yes. </ion-button>
                 </ion-col>
                 <ion-col>
-                  <ion-button color="danger" expand="block" @click="closeModal">
+                  <ion-button
+                    color="danger"
+                    expand="block"
+                    @click="closeModal"
+                  >
                     No.
                   </ion-button>
                 </ion-col>
@@ -170,9 +178,8 @@
           </ion-card-content>
         </ion-card>
       </ion-modal>
-    </ion-content>
-  </ion-page>
-</template>
+  </ion-content>
+</ion-page></template>
 
 <script src="./MyHome" />
 <style lang="scss" src="./_MyHome.scss" scoped />

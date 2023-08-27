@@ -8,7 +8,7 @@
             :icon="serverOutline"
             size="large"
           /> -->
-          <i class="fad fa-coins fa-2x"></i>
+          <i class="fad fa-wallet fa-2x"></i>
         </ion-buttons>
 
         <ion-title> My Wallet </ion-title>
@@ -49,7 +49,7 @@
       <ion-card color="gold">
         <ion-card-header>
           <ion-card-title>
-            Earned GP
+            GP Earned
           </ion-card-title>
           <!-- <ion-chip>
             <xp-gp :gp="100" />
@@ -107,13 +107,6 @@
               ></i>
             </ion-item>
           </ion-list>
-          <ul>
-            <li>
-
-            </li>
-            <li>
-            </li>
-          </ul>
         </ion-card-content>
       </ion-card>
       <ion-card>

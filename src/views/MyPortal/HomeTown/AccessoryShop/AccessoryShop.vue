@@ -3,10 +3,11 @@
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button
-            :default-href="`/my-portal/${user.id}/home-town`"
-          ></ion-back-button>
-          <i class="fa fa-2x" :class="`fa-${shopIcon}`" />
+          <ion-back-button :default-href="`/my-portal/${userId}/home-town`"></ion-back-button>
+          <i
+            class="fa fa-2x"
+            :class="`fa-${shopIcon}`"
+          />
         </ion-buttons>
         <ion-title>
           {{ shopName }}
@@ -41,13 +42,19 @@
                 placeholder="..."
                 multiple
               >
-                <ion-select-option value="out-of-budget" checked>
+                <ion-select-option
+                  value="out-of-budget"
+                  checked
+                >
                   Can't Afford
                 </ion-select-option>
                 <ion-select-option value="wish-list">
                   Wish List
                 </ion-select-option>
-                <ion-select-option value="affordable" selected>
+                <ion-select-option
+                  value="affordable"
+                  selected
+                >
                   Can Afford
                 </ion-select-option>
                 <ion-select-option value="purchased">
@@ -69,7 +76,10 @@
             :key="`${shopIcon}-${item.id}`"
             class="ion-no-padding"
           >
-            <ion-modal :ref="`modal-${item.id}`" :trigger="`${shopIcon}-${item.id}`">
+            <ion-modal
+              :ref="`modal-${item.id}`"
+              :trigger="`${shopIcon}-${item.id}`"
+            >
               <ion-card>
                 <ion-card-title
                   v-if="item.title"
@@ -85,22 +95,25 @@
                     </ion-col>
                     <ion-col>
                       <ion-card-content>
-                        {{item.content.rendered}}
-                        Lorem ipsum dolor sit amet, persequeris mediocritatem vel ut. Qui et officiis salutandi sadipscing. At placerat invidunt duo, vis quem sale adipisci an, impetus electram incorrupte vix ne. Ad ipsum inani accommodare cum, adhuc timeam et cum. Consequat intellegebat ius ea. In eam utamur malorum maluisset.
+                        {{ item.content.rendered }}
+                        Lorem ipsum dolor sit amet, persequeris mediocritatem vel ut. Qui et officiis salutandi
+                        sadipscing. At placerat invidunt duo, vis quem sale adipisci an, impetus electram incorrupte vix
+                        ne. Ad ipsum inani accommodare cum, adhuc timeam et cum. Consequat intellegebat ius ea. In eam
+                        utamur malorum maluisset.
                       </ion-card-content>
                     </ion-col>
                   </ion-row>
-                  <hr/>
+                  <hr />
                   <ion-row>
                     <ion-col size="12">
                       <ion-card-title>
                         Would you like to buy this?
-                      <ion-badge color="warning">
-                        <i class="fa fa-coins" />
-                        {{ item.meta._xp_achievement_gp }}
-                        100
-                        <strong>GP</strong>
-                      </ion-badge>
+                        <ion-badge color="warning">
+                          <i class="fa fa-coins" />
+                          {{ item.meta._xp_achievement_gp }}
+                          100
+                          <strong>GP</strong>
+                        </ion-badge>
                       </ion-card-title>
                     </ion-col>
                   </ion-row>
@@ -111,7 +124,7 @@
                         color="success"
                         expand="block"
                       >
-                        Yes 
+                        Yes
                         <i class="fa fad fa-lg fa-thumbs-up" />
                       </ion-button>
                     </ion-col>
@@ -143,7 +156,10 @@
                   class="featured-media"
                 ></ion-img>
               </ion-card-content>
-              <ion-button size="large" expand="fill">
+              <ion-button
+                size="large"
+                expand="fill"
+              >
                 <i class="fa fa-lg fa-eye" />
                 &nbsp; Look Closer
               </ion-button>
@@ -190,25 +206,30 @@
                 color="dark"
                 expand="block"
               >
-                <ion-icon :icon="chevronBack" slot="icon-only" />
+                <ion-icon
+                  :icon="chevronBack"
+                  slot="icon-only"
+                />
               </ion-button>
             </ion-col>
             <ion-col>
               <ion-button
-                @click="request.params.page++"
-                :disabled="!hasNextPage"
-                color="dark"
-                expand="block"
-              >
-                <ion-icon :icon="chevronForward" slot="icon-only" />
-              </ion-button>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-      </ion-toolbar>
-    </ion-footer>
-  </ion-page>
-</template>
+              @click="request.params.page++"
+              :disabled="!hasNextPage"
+              color="dark"
+              expand="block"
+            >
+              <ion-icon
+                :icon="chevronForward"
+                slot="icon-only"
+              />
+            </ion-button>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </ion-toolbar>
+  </ion-footer>
+</ion-page></template>
 
 <script src="./AccessoryShop.ts" />
 <style lang="scss" src="./_AccessoryShop.scss" />

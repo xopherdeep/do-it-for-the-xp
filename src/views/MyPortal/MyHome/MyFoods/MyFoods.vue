@@ -3,13 +3,11 @@
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button 
-            :default-href="`/my-portal/${user.id}/my-home`"
-          ></ion-back-button>
+          <ion-back-button :default-href="`/my-portal/${userId}my-home`"></ion-back-button>
           <!-- <ion-icon :icon="fastFoodOutline" slot="icon-only" /> -->
           <i class="fad fa-hat-chef fa-lg" />
         </ion-buttons>
-        <ion-title> 
+        <ion-title>
           Cook Foods
         </ion-title>
       </ion-toolbar>
@@ -17,7 +15,7 @@
 
     <ion-content class="my-calendar">
       <ion-item>
-        <ion-label> 
+        <ion-label>
           Quests
         </ion-label>
         <ion-select
@@ -34,13 +32,13 @@
           <ion-select-option value="out-of-budget">
             As Needed
           </ion-select-option>
-          <ion-select-option value="favorites"> 
+          <ion-select-option value="favorites">
             Rotating
           </ion-select-option>
-          <ion-select-option value="wish-list"> 
+          <ion-select-option value="wish-list">
             Compete
           </ion-select-option>
-          <ion-select-option value="purchased"> 
+          <ion-select-option value="purchased">
             Collaborative
           </ion-select-option>
         </ion-select>
@@ -92,7 +90,7 @@
         slot="fixed"
         @click.stop="presentActionSheet"
       >
-        <ion-fab-button >
+        <ion-fab-button>
           <!-- <ion-icon :icon="fastFoodOutline"  /> -->
           <i class="fad fa-hat-chef fa-lg" />
         </ion-fab-button>
@@ -118,7 +116,10 @@
                 color="light"
                 expand="block"
               >
-                <ion-icon :icon="chevronBack" slot="icon-only" />
+                <ion-icon
+                  :icon="chevronBack"
+                  slot="icon-only"
+                />
               </ion-button>
             </ion-col>
             <ion-col>

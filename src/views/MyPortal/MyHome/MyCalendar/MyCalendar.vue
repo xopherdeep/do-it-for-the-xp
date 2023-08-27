@@ -4,7 +4,7 @@
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
           <ion-back-button 
-            :default-href="`/my-portal/${user.id}/my-home`"
+            :default-href="`/my-portal/${userId}/my-home`"
           ></ion-back-button>
           <ion-icon :icon="calendarOutline" slot="icon-only" />
           <!-- <i class="fad fa-calendar" /> -->

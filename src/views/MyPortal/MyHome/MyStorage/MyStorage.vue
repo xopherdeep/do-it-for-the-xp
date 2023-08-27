@@ -3,35 +3,53 @@
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button
-            :default-href="`/my-portal/${user.id}/my-home`"
-          ></ion-back-button>
+          <ion-back-button :default-href="`/my-portal/${userId}/my-home`"></ion-back-button>
           <!-- <ion-icon :icon="storefrontOutline" slot="icon-only" /> -->
           <i class="fad fa-treasure-chest fa-2x"></i>
         </ion-buttons>
         <ion-title> My Storage </ion-title>
       </ion-toolbar>
       <ion-toolbar>
-        <ion-segment @ionChange="selectShelf($event)" color="danger" scrollable value="all">
+        <ion-segment
+          @ionChange="selectShelf($event)"
+          color="danger"
+          scrollable
+          value="all"
+        >
           <ion-segment-button value="all">
-            <ion-icon :icon="bagOutline" color="primary"></ion-icon>
+            <ion-icon
+              :icon="bagOutline"
+              color="primary"
+            ></ion-icon>
             All
           </ion-segment-button>
           <ion-segment-button value="hp">
-            <ion-icon :icon="fitnessOutline" color="danger"></ion-icon>
-            HP 
+            <ion-icon
+              :icon="fitnessOutline"
+              color="danger"
+            ></ion-icon>
+            HP
           </ion-segment-button>
           <ion-segment-button value="mp">
-            <ion-icon :icon="colorWandOutline" color="tertiary"></ion-icon>
-            MP 
+            <ion-icon
+              :icon="colorWandOutline"
+              color="tertiary"
+            ></ion-icon>
+            MP
           </ion-segment-button>
           <ion-segment-button value="misc">
-            <ion-icon :icon="sparklesOutline" color="success"></ion-icon>
+            <ion-icon
+              :icon="sparklesOutline"
+              color="success"
+            ></ion-icon>
             Misc
           </ion-segment-button>
           <ion-segment-button value="key">
-            <ion-icon :icon="keyOutline" color="gold"></ion-icon>
-            Key 
+            <ion-icon
+              :icon="keyOutline"
+              color="gold"
+            ></ion-icon>
+            Key
           </ion-segment-button>
         </ion-segment>
       </ion-toolbar>
@@ -116,7 +134,7 @@
       </ion-fab>
     </ion-content>
     <ion-footer>
-      <ion-toolbar >
+      <ion-toolbar>
         <ion-grid>
           <ion-row>
             <ion-col class="ion-no-padding">
@@ -136,25 +154,30 @@
                 color="light"
                 expand="block"
               >
-                <ion-icon :icon="chevronBack" slot="icon-only" />
+                <ion-icon
+                  :icon="chevronBack"
+                  slot="icon-only"
+                />
               </ion-button>
-            </ion-col>
-            <ion-col>
-              <ion-button
-                @click="request.params.page++"
-                :disabled="!hasNextPage"
-                color="light"
-                expand="block"
-              >
-                <ion-icon :icon="chevronForward" slot="icon-only" />
-              </ion-button>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-      </ion-toolbar>
-    </ion-footer>
-  </ion-page>
-</template>
+          </ion-col>
+          <ion-col>
+            <ion-button
+              @click="request.params.page++"
+              :disabled="!hasNextPage"
+              color="light"
+              expand="block"
+            >
+              <ion-icon
+                :icon="chevronForward"
+                slot="icon-only"
+              />
+            </ion-button>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </ion-toolbar>
+  </ion-footer>
+</ion-page></template>
 
 <script src="./MyStorage" />
 <style lang="scss" src="./_MyStorage.scss" />

@@ -249,7 +249,7 @@ export default {
     // clickAction(action){
     //   const user = this.user;
     //   this.$fx.ui[this.$fx.theme.ui].openPage.play()
-    //   this.router.push(`/${action}/${user.id}/`);
+    //   this.router.push(`/${action}/${userId}/`);
     // },
     getUserAvatar(user) {
       const avatar = `./${user.avatar}.svg`;

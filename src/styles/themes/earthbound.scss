@@ -1,0 +1,208 @@
+ion-app {
+  &#earthbound {
+    font-family: "Apple Kid";
+
+    ion-list {
+      list-style-type: circle;
+    }
+    ion-item {
+      font-family: "Apple Kid";
+      font-size: 100%;
+
+      &::before {
+        content: "";
+        position: absolute;
+        left: -0.3em;
+        top: 0.4em;
+        width: 0;
+        height: 0;
+        border-top: 0.3rem solid transparent;
+        border-bottom: 0.3rem solid transparent;
+        border-left: 0.3rem solid #e7e6b3;
+      }
+    }
+
+    ion-title {
+      font-family: Twoson;
+    }
+
+    ion-content {
+      // --background: transparent;
+
+      &#container,
+      &.bg-slide {
+        height: 100vh;
+        background-color: #68a8d8;
+        background-image: linear-gradient(
+            45deg,
+            #80d890 25%,
+            transparent 25%,
+            transparent 75%,
+            #80d890 75%
+          ),
+          linear-gradient(
+            45deg,
+            #80d890 25%,
+            transparent 25%,
+            transparent 75%,
+            #80d890 75%
+          );
+        background-size: 60px 60px;
+        background-position: 0 0, 30px 30px;
+        animation: slide 4s infinite linear;
+      }
+    }
+
+    ion-card-title {
+      font-family: "StatusPlz";
+      font-weight: normal;
+      // font-style: italic;
+      font-size: 15pt;
+      text-transform: capitalize;
+    }
+
+    ion-toolbar {
+      &.rpg-box {
+        margin-bottom: 1em;
+        // --background: #280828;
+        --background: #3d3c55;
+
+        @include earthboundBox();
+      }
+    }
+
+    ion-card {
+      @include earthboundBox();
+      margin: 1.25em;
+      width: calc(100% - 2.5em);
+      // min-width: 5em;
+      display: inline-block;
+      position: relative;
+      vertical-align: top;
+
+      ion-thumbnail {
+        max-width: 100%;
+        min-width: 200px;
+        min-height: 200px;
+        margin: auto;
+      }
+
+      ion-skeleton-text {
+        --border-radius: 9999px;
+        --background: rgba(var(--ion-color-primary-rgb), 0.65);
+        --background-rgb: 255, 255, 255;
+      }
+
+      overflow: visible;
+      ion-card-title {
+        // text-transform: uppercase;
+        // position: absolute;
+        // top: -15px;
+        color: var(--ion-color-primary);
+        padding: 1px 5px;
+        font-size: 20px;
+        background-color: #383050;
+        // #280828;
+      }
+    }
+
+    ion-modal {
+      --background: transparent;
+      --box-shadow: none;
+
+      &.user-profile {
+        font-size: 1.2rem;
+        padding: 2em;
+        // font-family: sans-serif;
+        background-color: #68a8d8;
+        background-image: linear-gradient(
+            45deg,
+            #80d890 25%,
+            transparent 25%,
+            transparent 75%,
+            #80d890 75%
+          ),
+          linear-gradient(
+            45deg,
+            #80d890 25%,
+            transparent 25%,
+            transparent 75%,
+            #80d890 75%
+          );
+        background-size: 60px 60px;
+        background-position: 0 0, 30px 30px;
+        animation: slide 4s infinite linear;
+
+        ion-content {
+          --background: transparent;
+          padding: 10px;
+
+          ion-col {
+            span {
+              float: right;
+              width: 32px;
+              height: 48px;
+              margin-right: 1.5em;
+              display: inline-block;
+              background-size: auto;
+              background-blend-mode: multiply;
+              background-image: url("http://www.videogamesprites.net/Earthbound/Party/Ness/Ness%20-%20Walk%20(Front).gif");
+            }
+
+            ion-card {
+              width: calc(100% - 35px);
+
+              &.favorite-food {
+                ion-card-content {
+                  display: flex;
+                  justify-content: center;
+                  align-items: center;
+                  gap: 1em;
+                  flex-wrap: wrap;
+                }
+              }
+            }
+          }
+        }
+      }
+
+      ion-content {
+        --background: transparent;
+      }
+    }
+
+    ion-toast {
+      --ion-safe-area-top: 100px;
+      --background: #280828;
+      // background-color: #280828;
+      --color: #e7e6b3;
+      --padding: 5px 3px;
+      --border-radius: 1px;
+      --transform: translateY(0);
+      --transition: transform linear 150ms;
+      // --height: 35px;
+      --box-shadow: 0 0 0 5px #383050, /* dark grey */ 0 0 0 10px #68d0b8,
+        /* minty blue */ 0 0 0 12px #f7e8a8, /* white */ 0 0 0 16px #3d3c55;
+      /* black */
+      --width: 90%;
+      --button-color: #e7e6b3;
+
+      &::part(header) {
+        font-weight: 800;
+        text-transform: capitalize;
+        overflow: hidden;
+      }
+
+      &::part(header),
+      &::part(message) {
+        font-family: "Apple Kid";
+        font-size: x-large;
+
+        &::before {
+          content: "\2022";
+          margin-right: 0.35em;
+        }
+      }
+    }
+  }
+}

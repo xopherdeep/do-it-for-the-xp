@@ -3,12 +3,13 @@
     <ion-header>
       <ion-toolbar color="danger">
         <ion-buttons slot="start">
-          <ion-back-button 
-            :default-href="`/my-portal/${user.id}/my-home`"
-          ></ion-back-button>
-          <ion-icon :icon="bedOutline" slot="icon-only" />
+          <ion-back-button :default-href="`/my-portal/${userId}/my-home`"></ion-back-button>
+          <ion-icon
+            :icon="bedOutline"
+            slot="icon-only"
+          />
         </ion-buttons>
-        <ion-title> 
+        <ion-title>
           Hotel Hub
         </ion-title>
       </ion-toolbar>
@@ -87,12 +88,15 @@
         </ion-row>
       </ion-grid>
       <!-- fab placed to the bottom and start and on the bottom edge of the content overlapping footer with a list to the right -->
-      <ion-fab vertical="bottom" horizontal="center" slot="fixed"
+      <ion-fab
+        vertical="bottom"
+        horizontal="center"
+        slot="fixed"
         @click.stop="presentActionSheet"
       >
         <ion-fab-button color="danger">
           <!-- <ion-icon :icon="cartOutline"></ion-icon> -->
-            <i class="fad fa-concierge-bell fa-2x"></i>
+          <i class="fad fa-concierge-bell fa-2x"></i>
         </ion-fab-button>
       </ion-fab>
     </ion-content>

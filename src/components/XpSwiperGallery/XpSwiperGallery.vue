@@ -27,7 +27,7 @@
               class="item ion-no-padding"
               :id="item.id"
             >
-              <!-- :router-link="`/my-tasks/${user.id}/task/${item.id}`" -->
+              <!-- :router-link="`/my-tasks/${userId}/task/${item.id}`" -->
               <ion-card-title v-if="isFetching">
                 <ion-skeleton-text :animated="true" style="width: 100px;"></ion-skeleton-text>
               </ion-card-title>

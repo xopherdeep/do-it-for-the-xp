@@ -45,7 +45,7 @@
           <ion-tab-button
             color="success"
             tab="my-profile"
-            :href="`/my-portal/${user.id}/my-profile`"
+            :href="`/my-portal/${userId}/my-profile`"
           >
             <ion-icon
               :icon="personCircle"
@@ -72,7 +72,7 @@
           </ion-tab-button>
           <ion-tab-button
             tab="my-party"
-            :href="`/my-portal/${user.id}/my-party`"
+            :href="`/my-portal/${userId}/my-party`"
           >
             <i class="fab fa-fort-awesome fa-2x"></i>
             <ion-label>Party</ion-label>
@@ -81,7 +81,7 @@
           To favor immersion, we're taking these out
           <ion-tab-button
             tab="home-town"
-            :href="`/my-portal/${user.id}/home-town`"
+            :href="`/my-portal/${userId}/home-town`"
           >
             <i class="fad fa-archway fa-2x"></i>
             <i class="fal fa-city fa-2x"></i>
@@ -90,12 +90,12 @@
           <!-- <ion-tab-button
             tab="world-map"
             :disabled="false"
-            :href="`/my-portal/${user.id}/world-map`"
+            :href="`/my-portal/${userId}/world-map`"
           >
             <i class="fal fa-globe fa-2x"></i>
             <ion-label>World</ion-label>
           </ion-tab-button> -->
-          <!-- <ion-tab-button tab="shop" :href="`/my-portal/${user.id}/shop`">
+          <!-- <ion-tab-button tab="shop" :href="`/my-portal/${userId}/shop`">
             <ion-icon :icon="storefrontOutline" color="secondary"></ion-icon>
             <ion-label>Shop</ion-label>
             <ion-badge color="warning"

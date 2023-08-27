@@ -78,7 +78,7 @@
                   class="item ion-no-padding"
                   :id="item.id"
                 >
-                  <!-- :router-link="`/my-tasks/${user.id}/task/${item.id}`" -->
+                  <!-- :router-link="`/my-tasks/${userId}/task/${item.id}`" -->
                   <ion-card-title v-if="isFetching">
                     <ion-skeleton-text
                       :animated="true"
@@ -151,25 +151,25 @@
       <!-- <ion-tabs @ionTabsWillChange="beforeTabChange" @ionTabsDidChange="afterTabChange">
         <ion-router-outlet></ion-router-outlet>
         <ion-tab-bar slot="bottom">
-          <ion-tab-button tab="my-home" :router-link="`/my-portal/${user.id}`">
+          <ion-tab-button tab="my-home" :router-link="`/my-portal/${userId}`">
             <ion-icon :icon="chevronBack"></ion-icon>
           </ion-tab-button>
 
-          <ion-tab-button color="success" tab="speakers" :href="`/my-portal/${user.id}/deeds`">
+          <ion-tab-button color="success" tab="speakers" :href="`/my-portal/${userId}/deeds`">
             <ion-icon :icon="medalOutline" color="success"></ion-icon>
             <ion-label>Advents</ion-label>
           </ion-tab-button>
 
-          <ion-tab-button tab="my-party" :href="`/my-portal/${user.id}/inventory`">
+          <ion-tab-button tab="my-party" :href="`/my-portal/${userId}/inventory`">
             <ion-icon :icon="colorWandOutline" color="ternary"></ion-icon>
           </ion-tab-button>
 
-          <ion-tab-button tab="my-party" :href="`/my-portal/${user.id}/my-party`">
+          <ion-tab-button tab="my-party" :href="`/my-portal/${userId}/my-party`">
             <ion-icon :icon="peopleCircle" color="ternary"></ion-icon>
             <ion-label>Party</ion-label>
           </ion-tab-button>
 
-          <ion-tab-button tab="my-home" :href="`/my-portal/${user.id}`">
+          <ion-tab-button tab="my-home" :href="`/my-portal/${userId}`">
             <ion-icon :icon="chevronForward"></ion-icon>
           </ion-tab-button>
 
