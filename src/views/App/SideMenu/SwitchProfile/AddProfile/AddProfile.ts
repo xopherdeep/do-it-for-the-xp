@@ -11,6 +11,7 @@ import ionic from "@/mixins/ionic";
 
 import XpGp from "@/components/XpGp/XpGp.vue";
 import GamerCard from "./GamerCard.vue"
+import Stats from "@/utils/User/stats";
 
 export const AddProfile = defineComponent({
   props: ["id", "profile", "showIsAdult"],
@@ -137,11 +138,12 @@ export const AddProfile = defineComponent({
       favoriteFood: favoriteFood.value,
       jobClass: jobClass.value,
       isAdult: isAdult?.value,
-      stats: props.profile?.stats
+      stats: props.profile?.stats || new Stats(),
     }))
 
     return {
       // profile,
+      newProfile,
       passcode,
       activeSegment,
       arrowBack,

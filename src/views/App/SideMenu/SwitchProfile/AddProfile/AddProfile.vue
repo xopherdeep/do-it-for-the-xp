@@ -39,7 +39,7 @@
         </ion-segment>
       </ion-card>
       <gamer-card
-        :profile="profile"
+        :profile="newProfile"
         v-if="activeSegment === 'info'"
       />
 
