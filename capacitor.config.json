@@ -2,5 +2,5 @@
   "appId": "com.forthexp.doit",
   "appName": "Do it for the XP",
   "webDir": "dist",
-  "bundledWebRuntime": false
+  "bundledWebRuntime": true
 }

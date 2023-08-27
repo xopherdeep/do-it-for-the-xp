@@ -24,7 +24,7 @@
   "dependencies": {
     "@awesome-cordova-plugins/core": "^6.4.0",
     "@awesome-cordova-plugins/native-audio": "^6.4.0",
-    "@capacitor/android": "^5.3.0",
+    "@capacitor/android": "5.3.0",
     "@capacitor/app": "^5.0.6",
     "@capacitor/core": "^5.3.0",
     "@capacitor/haptics": "^5.0.6",
@@ -52,7 +52,7 @@
     "vuex": "^4.0.2"
   },
   "devDependencies": {
-    "@capacitor/cli": "^3.4.0",
+    "@capacitor/cli": "^5.3.0",
     "@ionic/cli": "^7.1.1",
     "@types/jest": "^29.5.4",
     "@types/node": "^17.0.17",
