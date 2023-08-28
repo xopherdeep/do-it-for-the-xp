@@ -26,6 +26,62 @@ export default defineComponent({
   components: {
     XpAddCategoryModal
   },
+  data() {
+    return {
+      segments: [{
+        name: "Class",
+        icon: "fa-book-open"
+      },
+      {
+        name: "Loot",
+        icon: "fa-star"
+      }, {
+        name: "Assign",
+        icon: "fa-user"
+      }, {
+        name: "Schedule",
+        icon: "fa-calendar"
+      }],
+    }
+  },
+  computed: {
+    nextButton() {
+      const { activeSegment } = this
+      const findIndex = segment => segment.name.toLowerCase() === activeSegment.toLowerCase()
+      const index = this.segments.findIndex(findIndex)
+
+      const nextIndex = index + 1
+      const maxLenght = this.segments.length
+      const nextSegment = this.segments[nextIndex]
+
+      return (nextIndex >= maxLenght)
+        ? {
+          text: this.segments[0].name
+        }
+        : {
+          text: this.segments[index + 1].name,
+        }
+    },
+
+    prevButton() {
+      const { activeSegment } = this
+      const findIndex = segment => segment.name.toLowerCase() === activeSegment.toLowerCase()
+      const index = this.segments.findIndex(findIndex)
+
+      const lastIndex = index - 1
+      const maxLength = this.segments.length
+      const nextSegment = this.segments[lastIndex]
+
+      return (lastIndex < 0)
+        ? {
+          text: this.segments[maxLength - 1].name
+        }
+        : {
+          text: this.segments[lastIndex].name,
+        }
+    }
+  },
+
   methods: {
     async loadAchievement() {
       if (this.id) {
@@ -68,8 +124,6 @@ export default defineComponent({
     const profilesDb = new ProfileDb(profileStorage)
     const router = useRouter()
     const id = router.currentRoute.value.params.id
-
-
     const achievement = ref({
       id: id ? id : uuidv4(),
       achievementName: '',
@@ -126,7 +180,10 @@ export default defineComponent({
       achievement.value.categoryId = newCategory.id
     };
 
+    const activeSegment = ref('class')
+
     return {
+      activeSegment,
       users,
       id,
       storage,

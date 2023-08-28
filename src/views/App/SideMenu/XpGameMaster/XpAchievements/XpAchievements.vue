@@ -6,62 +6,70 @@
           <ion-back-button defaultHref="/game-master" />
         </ion-buttons>
         <ion-title> XP Game Master Achievements</ion-title>
+        <ion-buttons slot="end">
+          <ion-button @click="clickFilter">
+            <i class="fad fa-filter fa-lg" />
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+      <ion-toolbar v-if="showFilters">
+        <ion-select
+          label="Stacked label"
+          label-placement="stacked"
+          placeholder="Group by..."
+        >
+          <ion-select-option>
+            Category
+          </ion-select-option>
+          <!-- <ion-select-option>
+            Assignee
+          </ion-select-option> -->
+
+        </ion-select>
       </ion-toolbar>
     </ion-header>
     <ion-content>
-      <ion-grid class="ion-overflow">
-        <ion-row class="ion-align-items-center ion-justify-content-center">
-          <ion-col
-            class="ion-text-center"
-            v-if="!hasAchievements"
-          >
-            <i class="fa fad fa-medal fa-5x" />
-            <br />
-            No Achievements
-          </ion-col>
-          <!-- <ion-col class="" v-if="!hasAchievements"> No Achievements </ion-col> -->
-          <ion-col
-            v-for="(achivement, index) in filteredAchievements"
-            :key="index"
-            size-sm="12"
-            size-lg="6"
-          >
-            <ion-card class="rpg-box ion-width-full">
-              <ion-card-header>
-                <ion-card-title>
-                  <!-- {{ achivement.achievementName }} -->
-                </ion-card-title>
-              </ion-card-header>
-              <ion-card-content>
-                Name: {{ achivement?.achievementName }}
-                <br />
-                xp: {{ achivement?.xp }}
-                <ion-footer>
-                  <ion-toolbar>
-                    <ion-buttons>
-                      <ion-button @click="clickEdit(achivement.id)">
-                        <i class="fa fad fa-edit"></i>
-                        <!-- Edit -->
-                        Edit
-                      </ion-button>
-                      <ion-button @click="clickCloneAchievement(achivement)">
-                        <i class="fa fad fa-copy"></i>
-                        <!-- Edit -->
-                        Clone
-                      </ion-button>
-                      <ion-button @click="clickDeleteAchievement(achivement)">
-                        <i class="fa fad fa-trash"></i>
-                        <!-- Edit -->
-                        Delete
-                      </ion-button>
-                    </ion-buttons>
-                  </ion-toolbar>
-                </ion-footer>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
+      <ion-list>
+        <ion-item-sliding
+          v-for="(achivement, index) in filteredAchievements"
+          :key="index"
+        >
+          <ion-item>
+            <ion-label>
+
+              {{ achivement?.achievementName }}
+            </ion-label>
+            <ion-buttons>
+              <ion-button @click="clickEdit(achivement.id)">
+                <i class="fa fad fa-edit"></i>
+              </ion-button>
+              <ion-button @click="clickCloneAchievement(achivement)">
+                <i class="fa fad fa-copy"></i>
+              </ion-button>
+              <ion-button @click="clickDeleteAchievement(achivement)">
+                <i class="fa fad fa-trash"></i>
+              </ion-button>
+            </ion-buttons>
+
+          </ion-item>
+          <ion-item-options side="end">
+            <ion-item-option @click="clickEdit(achivement.id)">
+              <!-- Edit -->
+              Edit
+            </ion-item-option>
+            <ion-item-option>
+              <!-- Edit -->
+              Clone
+            </ion-item-option>
+            <ion-item-option
+              color="danger"
+              @click="clickDeleteAchievement(achivement)"
+            >
+              Delete
+            </ion-item-option>
+          </ion-item-options>
+        </ion-item-sliding>
+      </ion-list>
     </ion-content>
     <ion-fab
       slot="fixed"
@@ -150,6 +158,9 @@
         this.achievements = achievements;
       },
 
+      clickFilter() {
+        this.showFilters = !this.showFilters
+      },
       clickAdd() {
         this.$router.push("/add-achievement");
       },
@@ -215,7 +226,9 @@
       const achievements = ref();
       const storage = new AchievementDb(achievementStorage);
       const searchText = ref("");
+      const showFilters = ref(false)
       return {
+        showFilters,
         achievements,
         searchText,
         storage,
@@ -230,26 +243,26 @@
   });
 </script>
 <style lang="scss" scoped>
-ion-fab-list {
-  ion-fab-button {
-    &::before {
-      position: absolute;
-      right: 53px;
-      top: 12px;
-      cursor: pointer;
-    }
+  ion-fab-list {
+    ion-fab-button {
+      &::before {
+        position: absolute;
+        right: 53px;
+        top: 12px;
+        cursor: pointer;
+      }
 
-    &:nth-child(1)::before {
-      content: "Create your Own ";
-    }
+      &:nth-child(1)::before {
+        content: "Create your Own ";
+      }
 
-    &:nth-child(2)::before {
-      content: "Add from Discover";
-    }
+      &:nth-child(2)::before {
+        content: "Add from Discover";
+      }
 
-    &:nth-child(3)::before {
-      content: "Add from Recommended";
+      &:nth-child(3)::before {
+        content: "Add from Recommended";
+      }
     }
   }
-}
 </style>
