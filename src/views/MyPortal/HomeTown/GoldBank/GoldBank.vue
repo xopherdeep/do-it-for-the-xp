@@ -13,7 +13,7 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="accessory-shop">
+    <ion-content class="gold-bank" v-if="user">
       <xp-loading v-if="isLoading" />
       <ion-grid v-else>
         <ion-row>
@@ -54,7 +54,7 @@
           </ion-col>
 
         </ion-row>
-        <ion-row>
+        <ion-row v-if="user">
           <ion-col size="6">
             <ion-card>
               <ion-title>
@@ -97,6 +97,45 @@
                 $1 = <xp-gp :gp="100" />
               </ion-card-content>
             </ion-card>
+          </ion-col>
+        </ion-row>
+        <ion-row>
+          <ion-col>
+            <ion-card>
+
+        <ion-card-header>
+          <ion-card-title>
+            My Wallet
+          </ion-card-title>
+          <!-- <ion-title>
+            My Wallet
+          </ion-title> -->
+          <!-- <ion-chip>
+            <xp-gp :gp="100" />
+            (Earned)
+          </ion-chip>
+          -
+          <ion-chip>
+            (Spent)
+            <xp-gp :gp="50" />
+          </ion-chip>
+          = -->
+          <ion-card-subtitle class="ion-float-right">
+            Max: {{ user.stats.gp.limit }}
+          </ion-card-subtitle>
+          <ion-progress-bar
+            color="warning"
+            :value="user.stats.gp.wallet / user.stats.gp.limit"
+          >
+          </ion-progress-bar>
+          <ion-card-title>
+            <xp-gp :gp="user.stats.gp.wallet" />
+            available
+            <i class="fad fa-wallet ion-float-right"></i>
+          </ion-card-title>
+        </ion-card-header>
+            </ion-card>
+
           </ion-col>
         </ion-row>
       </ion-grid>

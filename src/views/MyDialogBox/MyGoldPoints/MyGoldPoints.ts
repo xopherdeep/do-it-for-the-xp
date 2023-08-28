@@ -97,7 +97,7 @@ export default defineComponent({
         header: "Savings",
         buttons: [{
           text: "Withdraw",
-          handler: this.widthdrawSavings,
+          handler: this.withdrawSaving,
         }, {
           text: "Deposit",
           handler: this.saveGp,
@@ -132,7 +132,7 @@ export default defineComponent({
       }).then(this.loadUsers)
     },
 
-    widthdrawSavings({ gp }: Stats) {
+    withdrawSaving({ gp }: Stats) {
       const savings = Math.round(Number(this.user.stats.gp.savings) - Number(gp))
       const wallet = Math.round(Number(this.user.stats.gp.wallet) + Number(gp))
 

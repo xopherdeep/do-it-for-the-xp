@@ -1,5 +1,5 @@
 import { defineComponent } from "vue";
-import { mapGetters } from "vuex";
+import { mapActions, mapGetters } from "vuex";
 import ionic from "@/mixins/ionic";
 
 import {
@@ -32,7 +32,10 @@ import {
 
 } from "ionicons/icons";
 import fetchItems from "@/mixins/fetchItems"
-import { actionSheetController } from "@ionic/vue";
+import { actionSheetController, alertController, toastController } from "@ionic/vue";
+import Stats from "@/utils/User/stats";
+import { ProfileDb } from "@/databases";
+import { profileStorage } from "@/views/App/SideMenu/SwitchProfile/SwitchProfile.vue";
 
 export default defineComponent({
   props: ["userId"],
@@ -60,45 +63,40 @@ export default defineComponent({
 
   },
   methods: {
+    ...mapActions(["loadUsers"]),
     async presentActionSheet() {
       const actionSheet = await actionSheetController
         .create({
-          header: 'Welcome to the Automatic Teller Machine.',
+          // header: 'Welcome to the Automatic Teller Machine.',
           cssClass: 'my-custom-class',
           buttons: [
+            // {
+            //   text: 'Use Atm',
+            //   // icon: cashOutline,
+            //   id: 'bank-atm',
+            //   data: {
+            //     type: 'delete'
+            //   },
+            //   handler: () => {
+            //     // console.log('Delete clicked')
+            //   },
+            // },
             {
-              text: 'Use Atm',
-              // icon: cashOutline,
-              id: 'bank-atm',
-              data: {
-                type: 'delete'
-              },
-              handler: () => {
-                // console.log('Delete clicked')
-              },
-            },
-            {
-              text: 'Withdrawl',
-              icon: removeCircleOutline,
+              text: 'Withdraw from Savings',
+              icon: walletOutline,
               data: 10,
-              handler: () => {
-                // console.log('Share clicked')
-              },
+              handler: this.clickWithdraw,
             },
             {
-              text: 'Deposit',
+              text: 'Deposit to Savings',
               icon: addCircleOutline,
               data: 'Data value',
-              handler: () => {
-                // console.log('Play clicked')
-              },
+              handler: this.clickDeposit,
             },
             {
-              text: 'Cash Out GP',
-              icon: walletOutline,
-              handler: () => {
-                // console.log('Favorite clicked')
-              },
+              text: 'Pay down Debt',
+              icon: removeCircleOutline,
+              handler: this.clickPayDebt,
             },
             {
               text: 'Cancel',
@@ -112,13 +110,188 @@ export default defineComponent({
         });
       await actionSheet.present();
 
-      const { role, data } = await actionSheet.onDidDismiss();
+      await actionSheet.onDidDismiss();
       // console.log('onDidDismiss resolved with role and data', role, data);
+    },
+
+    async clickPayDebt() {
+      const { wallet, debt } = this.user.stats.gp
+      const isWalletEmpty  = wallet <= 0 
+      if(isWalletEmpty){
+        const alert = await alertController.create({
+          header: "Your wallet is empty!",
+          buttons: ["Ok"]
+        })
+        alert.present()
+      }else{
+        const alert = await alertController.create({
+          header: `Pay Down Debt (₲${debt}.00)`,
+          buttons: [{
+            text: "Cancel",
+            role: "cancel",
+            cssClass: "secondary",
+            handler: () => {
+              // console.log("Confirm Cancel:", blah);
+            },
+          }, {
+            text: "Pay",
+            handler: this.payDebt,
+          }],
+          inputs: [{
+            placeholder: 'GP',
+            type: 'number',
+            name: "gp",
+            max: wallet < debt ? wallet : debt,
+            min: 0 
+          }],
+        })
+        alert.present()
+      }
+      },
+    payDebt({ gp }: Stats) {
+      const wallet = Math.round(Number(this.user.stats.gp.wallet) - Number(gp))
+      const debt = Math.round(Number(this.user.stats.gp.debt) - Number(gp))
+      const updatedUser = {
+        ...this.user.stats,
+        gp: {
+          ...this.user.stats.gp,
+          wallet,
+          debt
+        }
+      }
+
+      const showToast = () => this.showToast(`Thank you for your payment of ${gp}. Your new balance is: ${debt}`) 
+
+      this.profileDb
+        .updateStats(this.userId, updatedUser)
+        .then(this.loadUsers)
+        .then(showToast)
+
+    },
+
+    async clickWithdraw() {
+      const { limit, wallet, savings } = this.user.stats.gp
+      const isWalletFull  = wallet >= limit
+      if(isWalletFull){
+        const alert = await alertController.create({
+          header: "Your wallet is full!",
+          buttons: ["Ok"]
+        })
+      alert.present()
+      }else{
+        const holdLimit = limit - wallet
+        const alert = await alertController.create({
+          header: `Withdraw from Savings: (₲${this.user.stats.gp.savings}.00)`,
+          buttons: [{
+            text: "Withdraw",
+            handler: this.withdrawSavings,
+          }],
+          inputs: [{
+            placeholder: 'GP',
+            type: 'number',
+            name: 'gp',
+            max: holdLimit >= savings ? savings : holdLimit,
+            min: 0 
+          }],
+        })
+      alert.present()
+      }
+
+    },
+
+    async clickDeposit() {
+      const { wallet, savings } = this.user.stats.gp
+      const isWalletEmpty  = wallet <= 0 
+      if(isWalletEmpty){
+        const alert = await alertController.create({
+          header: "Your wallet is empty!",
+          buttons: ["Ok"]
+        })
+        alert.present()
+      }else{
+        const alert = await alertController.create({
+          header: `Deposit to Savings: (₲${savings}.00)`,
+          buttons: [{
+            text: "Deposit",
+            handler: this.depositGp,
+          }],
+          inputs: [{
+            placeholder: 'GP',
+            type: 'number',
+            name: 'gp',
+            max: wallet,
+            min: 1
+          }],
+        })
+        alert.present()
+      }
+    },
+
+    withdrawSavings({ gp }: Stats) {
+      const savings = Math.round(Number(this.user.stats.gp.savings) - Number(gp))
+      const wallet = Math.round(Number(this.user.stats.gp.wallet) + Number(gp))
+
+      const debt = savings < 0
+        ? Math.round(Number(this.user.stats.gp.debt) - Number(savings))
+        : this.user.stats.gp.debt
+
+
+      const updatedUser = {
+        ...this.user.stats,
+        gp: {
+          ...this.user.stats.gp,
+          wallet,
+          savings: savings > 0 ? savings : 0,
+          debt
+        }
+      }
+
+      const showToast = () => this.showToast(`₲${gp} GP Withdrawn. New Balance: ₲${debt}.`) 
+
+      this.profileDb.updateStats(this.user.id, updatedUser)
+      .then(this.loadUsers)
+      .then(showToast)
+    },
+    depositGp({ gp }: any) {
+      const wallet = Math.round(Number(this.user.stats.gp.wallet) - Number(gp))
+      const savings = Math.round(Number(this.user.stats.gp.savings) + Number(gp))
+      const debt = wallet < 0
+        ? Math.round(Number(this.user.stats.gp.debt) - Number(wallet))
+        : this.user.stats.gp.debt
+
+      const updatedUser = {
+        ...this.user.stats,
+        gp: {
+          ...this.user.stats.gp,
+          wallet: wallet > 0 ? wallet : 0,
+          savings,
+          debt
+        }
+      }
+
+      const showToast = () => this.showToast(`Thank you for your deposit of ₲${gp}. Your new balance is: ₲${savings}`) 
+
+      this.profileDb.updateStats(this.user.id, updatedUser )
+        .then(this.loadUsers)
+        .then(showToast)
+    },
+
+    async showToast(message: string){
+        const toast = await toastController.create({
+          message,
+          duration: 3000,
+          position: 'bottom'
+        })
+        toast.present()
     },
   },
 
+
   setup() {
+  const profileDb =  new ProfileDb(profileStorage)
+
     return {
+      profileDb,
       storefrontOutline,
       banOutline,
       chevronBack,
