@@ -233,15 +233,16 @@
           What treasures shall be bestowed for conquering this achievement?
         </ion-card-content>
       </ion-card>
+      <ion-list-header>
+        Amount of Effort
+      </ion-list-header>
       <ion-list>
         <ion-item>
-          <ion-label>
-            Amount of Effort
-          </ion-label>
           <ion-range
-            slot="end"
             min="1"
             max="13"
+            :pin="true"
+            mode="ios"
             step="1"
             snaps
             ticks
@@ -249,10 +250,15 @@
             v-model="achievement.difficulty"
             @ionChange="updatePoints"
           >
-            <ion-label slot="start">Minimum</ion-label>
-            <ion-label slot="end">Maximum</ion-label>
+            <ion-label slot="start">Minimal </ion-label>
+            <ion-label slot="end">Maximum </ion-label>
           </ion-range>
         </ion-item>
+      </ion-list>
+      <ion-list-header>
+        Points
+      </ion-list-header>
+      <ion-list>
         <ion-item-sliding>
           <ion-item-options side="start">
             <ion-item-option color="success">
@@ -271,7 +277,8 @@
                 class="ion-float-right text-white"
                 color="success"
               >
-                {{ achievement.xp }} XP
+                {{ achievement.xp }}
+                <i class="fad fa-hand-holding-seedling" />
               </ion-badge>
               XP (Experience Points)
               <p class="w-100">
@@ -303,6 +310,7 @@
                 color="warning"
               >
                 <xp-gp :gp="achievement.gp" />
+                <i class="fad fa-hand-holding-usd ml-1" />
               </ion-badge>
               <p>
                 What: Acts as the in-app currency, providing tangible rewards for task completion.<br />
@@ -330,7 +338,8 @@
                 class="ion-float-right"
                 color="danger"
               >
-                {{ achievement.ap }} AP
+                {{ achievement.ap }}
+                <i class="fad fa-hand-holding-magic" />
               </ion-badge>
               AP (Ability Points)
               <p>
