@@ -250,7 +250,7 @@
             v-model="achievement.difficulty"
             @ionChange="updatePoints"
           >
-            <ion-label slot="start">Minimal </ion-label>
+            <ion-label slot="start">Minimum</ion-label>
             <ion-label slot="end">Maximum </ion-label>
           </ion-range>
         </ion-item>
@@ -280,9 +280,9 @@
                 {{ achievement.xp }}
                 <i class="fad fa-hand-holding-seedling" />
               </ion-badge>
-              XP (Experience Points)
+              Experience Points (XP)
               <p>
-                Earned by completing tasks. Levels up player's characters and can be spent on rewards or privileges.
+                Points earned for task completion, motivating and tracking skill growth.
               </p>
             </ion-label>
           </ion-item>
@@ -302,7 +302,7 @@
           </ion-item-options>
           <ion-item>
             <ion-label>
-              GP (Gold Points)
+              Gold Points (GP)
               <ion-badge
                 class="ion-float-right"
                 color="warning"
@@ -311,7 +311,7 @@
                 <i class="fad fa-hand-holding-usd ml-1" />
               </ion-badge>
               <p>
-                In-app currency for rewards. Earned by completing tasks and can be spent on rewards or privileges.
+                In-app currency for tasks, teaching financial literacy through rewards.
               </p>
             </ion-label>
           </ion-item>
@@ -337,11 +337,9 @@
                 {{ achievement.ap }}
                 <i class="fad fa-hand-holding-magic" />
               </ion-badge>
-              AP (Ability Points)
+              Ability Points (AP)
               <p>
-                What: Unlocks special abilities or features within the app.
-                Use: Earned alongside XP and GP; needed for specific unlocks or long-term benefits.
-                Importance: Adds a strategic element, encouraging long-term planning and decision-making.
+                Special points for unlocking abilities, encouraging strategic planning.
               </p>
             </ion-label>
           </ion-item>
