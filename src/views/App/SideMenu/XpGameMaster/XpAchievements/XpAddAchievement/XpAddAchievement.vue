@@ -110,68 +110,10 @@
       </ion-list>
     </ion-content>
 
-    <ion-content v-if="activeSegment === 'xp'">
-      <ion-card>
-        <ion-card-content>
-          What treasures shall be bestowed for conquering this achievement?
-        </ion-card-content>
-      </ion-card>
-      <ion-list>
-        <ion-item>
-
-          <ion-label>
-            Amount of Effort
-          </ion-label>
-          <ion-select
-            @ionChange="updatePoints"
-            v-model="achievement.difficulty"
-          >
-            <ion-select-option value="1">Minimum</ion-select-option>
-            <ion-select-option value="2">Slight</ion-select-option>
-            <ion-select-option value="3">Some</ion-select-option>
-            <ion-select-option value="5">Moderate</ion-select-option>
-            <ion-select-option value="8">Significant</ion-select-option>
-            <ion-select-option value="13">Maximum</ion-select-option>
-          </ion-select>
-        </ion-item>
-
-        <ion-item class="ion-text-left">
-          <ion-label>XP</ion-label>
-          <ion-input
-            slot="end"
-            v-model="achievement.xp"
-            type="number"
-            placeholder="Enter XP"
-            class="ion-text-right"
-          ></ion-input>
-        </ion-item>
-        <ion-item>
-          <ion-label>GP</ion-label>
-          <ion-input
-            slot="end"
-            v-model="achievement.gp"
-            type="number"
-            class="ion-text-right"
-            placeholder="Enter GP"
-          ></ion-input>
-        </ion-item>
-        <ion-item>
-          <ion-label>AP</ion-label>
-          <ion-input
-            slot="end"
-            class="ion-text-right"
-            v-model="achievement.ap"
-            type="number"
-            placeholder="Enter AP"
-          ></ion-input>
-        </ion-item>
-      </ion-list>
-    </ion-content>
-
     <ion-content v-if="activeSegment === 'assign'">
       <ion-card>
         <ion-card-content>
-          Who shall be chosen to conquer this dragon? Choose your brave warriors and decide their fate.
+          Who are the chosen and how is this dragon conquered?
         </ion-card-content>
       </ion-card>
       <ion-list>
@@ -275,6 +217,64 @@
 
       </ion-list>
 
+    </ion-content>
+
+    <ion-content v-if="activeSegment === 'xp'">
+      <ion-card>
+        <ion-card-content>
+          What treasures shall be bestowed for conquering this achievement?
+        </ion-card-content>
+      </ion-card>
+      <ion-list>
+        <ion-item>
+
+          <ion-label>
+            Amount of Effort
+          </ion-label>
+          <ion-select
+            @ionChange="updatePoints"
+            v-model="achievement.difficulty"
+          >
+            <ion-select-option value="1">Minimum</ion-select-option>
+            <ion-select-option value="2">Slight</ion-select-option>
+            <ion-select-option value="3">Some</ion-select-option>
+            <ion-select-option value="5">Moderate</ion-select-option>
+            <ion-select-option value="8">Significant</ion-select-option>
+            <ion-select-option value="13">Maximum</ion-select-option>
+          </ion-select>
+        </ion-item>
+
+        <ion-item class="ion-text-left">
+          <ion-label>XP</ion-label>
+          <ion-input
+            slot="end"
+            v-model="achievement.xp"
+            type="number"
+            placeholder="Enter XP"
+            class="ion-text-right"
+          ></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-label>GP</ion-label>
+          <ion-input
+            slot="end"
+            v-model="achievement.gp"
+            type="number"
+            class="ion-text-right"
+            placeholder="Enter GP"
+          ></ion-input>
+        </ion-item>
+        <ion-item>
+          <ion-label>AP</ion-label>
+          <ion-input
+            slot="end"
+            class="ion-text-right"
+            v-model="achievement.ap"
+            type="number"
+            placeholder="Enter AP"
+          ></ion-input>
+        </ion-item>
+      </ion-list>
     </ion-content>
 
     <ion-content v-if="activeSegment === 'schedule'">
