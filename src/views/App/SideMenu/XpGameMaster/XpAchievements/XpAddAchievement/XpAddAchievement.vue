@@ -282,9 +282,7 @@
               </ion-badge>
               XP (Experience Points)
               <p class="w-100">
-                What: Acts as the in-app currency, providing tangible rewards for task completion.<br />
-                Use: Assigned to tasks; earned points can be spent on in-app rewards or privileges.<br />
-                Importance: Introduces financial literacy through earning, spending, and saving.<br />
+                In-app currency for rewards. Earned by completing tasks and can be spent on rewards or privileges.
               </p>
             </ion-label>
           </ion-item>

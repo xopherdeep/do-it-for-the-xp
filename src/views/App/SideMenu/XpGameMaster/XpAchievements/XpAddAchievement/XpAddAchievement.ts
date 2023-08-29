@@ -30,6 +30,9 @@ export default defineComponent({
   },
   data() {
     return {
+      efforts: [
+
+      ],
       segments: [{
         name: "Classify",
         icon: "fa-book-open"
@@ -232,7 +235,7 @@ export default defineComponent({
       achievement.value.categoryId = newCategory.id
     };
 
-    const activeSegment = ref('class')
+    const activeSegment = ref('classify')
 
     return {
       sortCategoryByName,
