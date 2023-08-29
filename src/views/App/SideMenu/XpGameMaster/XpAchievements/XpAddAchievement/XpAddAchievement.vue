@@ -95,6 +95,10 @@
             </p>
           </ion-label>
           <ion-checkbox v-model="achievement.requiresApproval"></ion-checkbox>
+          <i
+            class="fad fa-clipboard-check fa-2x w-8 mr-3"
+            slot="start"
+          />
         </ion-item>
         <ion-item>
           <ion-label>
@@ -106,6 +110,10 @@
             </p>
           </ion-label>
           <ion-checkbox v-model="achievement.bonusAchievement"></ion-checkbox>
+          <i
+            class="fad fa-gift fa-2x w-8 mr-3"
+            slot="start"
+          />
         </ion-item>
       </ion-list>
     </ion-content>
@@ -135,20 +143,20 @@
           </ion-select>
         </ion-item>
         <ion-list-header>
-          Quest Types
+          Quest Type
         </ion-list-header>
         <ion-radio-group v-model="achievement.type">
           <ion-item>
             <i
               slot="end"
-              class="fad"
+              class="fad fa-2x w-10"
               :class="achievementTypeIcons['asNeeded']"
             />
             <ion-label>
               As Needed
               <p>
-                For quests that can be embarked upon by any brave soul at any time, this approach <br />
-                offers the freedom to swiftly respond to whatever challenges may arise.
+                For quests open to any brave soul, anytime, <br />
+                enjoy the freedom to quickly tackle emerging challenges.
               </p>
             </ion-label>
             <ion-radio value="asNeeded"></ion-radio>
@@ -156,7 +164,7 @@
           <ion-item>
             <i
               slot="end"
-              class="fad"
+              class="fad fa-2x w-10"
               :class="achievementTypeIcons['collaborate']"
             />
             <ion-label>
@@ -171,7 +179,7 @@
           <ion-item>
             <i
               slot="end"
-              class="fad"
+              class="fad fa-2x w-10"
               :class="achievementTypeIcons['compete']"
             />
             <ion-label>
@@ -186,7 +194,7 @@
           <ion-item>
             <i
               slot="end"
-              class="fad"
+              class="fad fa-2x w-10"
               :class="achievementTypeIcons['individual']"
             />
             <ion-label>
@@ -201,7 +209,7 @@
           <ion-item>
             <i
               slot="end"
-              class="fad"
+              class="fad fa-2x w-10"
               :class="achievementTypeIcons['rotate']"
             />
             <ion-label>
@@ -227,11 +235,11 @@
       </ion-card>
       <ion-list>
         <ion-item>
-
           <ion-label>
             Amount of Effort
           </ion-label>
           <ion-select
+            slot="end"
             @ionChange="updatePoints"
             v-model="achievement.difficulty"
           >
@@ -243,37 +251,94 @@
             <ion-select-option value="13">Maximum</ion-select-option>
           </ion-select>
         </ion-item>
-
-        <ion-item class="ion-text-left">
-          <ion-label>XP</ion-label>
-          <ion-input
-            slot="end"
-            v-model="achievement.xp"
-            type="number"
-            placeholder="Enter XP"
-            class="ion-text-right"
-          ></ion-input>
-        </ion-item>
-        <ion-item>
-          <ion-label>GP</ion-label>
-          <ion-input
-            slot="end"
-            v-model="achievement.gp"
-            type="number"
-            class="ion-text-right"
-            placeholder="Enter GP"
-          ></ion-input>
-        </ion-item>
-        <ion-item>
-          <ion-label>AP</ion-label>
-          <ion-input
-            slot="end"
-            class="ion-text-right"
-            v-model="achievement.ap"
-            type="number"
-            placeholder="Enter AP"
-          ></ion-input>
-        </ion-item>
+        <ion-item-sliding>
+          <ion-item-options side="start">
+            <ion-item-option color="success">
+              <i class="fad fa-hand-holding-seedling fa-2x" />
+              <ion-input
+                v-model="achievement.xp"
+                type="number"
+                placeholder="Enter XP"
+                class="ion-text-right w-2 w-10/12"
+              ></ion-input>
+            </ion-item-option>
+          </ion-item-options>
+          <ion-item>
+            <ion-label position="">
+              <ion-badge
+                class="ion-float-right text-white"
+                color="success"
+              >
+                {{ achievement.xp }} XP
+              </ion-badge>
+              XP (Experience Points)
+              <p class="w-100">
+                What: Acts as the in-app currency, providing tangible rewards for task completion.<br />
+                Use: Assigned to tasks; earned points can be spent on in-app rewards or privileges.<br />
+                Importance: Introduces financial literacy through earning, spending, and saving.<br />
+              </p>
+            </ion-label>
+          </ion-item>
+        </ion-item-sliding>
+        <ion-item-sliding>
+          <ion-item-options side="start">
+            <ion-item-option color="warning">
+              <i class="fad fa-hand-holding-usd fa-2x" />
+              <ion-input
+                slot="end"
+                v-model="achievement.gp"
+                type="number"
+                class="ion-text-right text-xl"
+                placeholder="Enter GP"
+              ></ion-input>
+            </ion-item-option>
+          </ion-item-options>
+          <ion-item>
+            <ion-label>
+              GP (Gold Points)
+              <ion-badge
+                class="ion-float-right"
+                color="warning"
+              >
+                <xp-gp :gp="achievement.gp" />
+              </ion-badge>
+              <p>
+                What: Acts as the in-app currency, providing tangible rewards for task completion.<br />
+                Use: Assigned to tasks; earned points can be spent on in-app rewards or privileges.<br />
+                Importance: Introduces financial literacy through earning, spending, and saving.<br />
+              </p>
+            </ion-label>
+          </ion-item>
+        </ion-item-sliding>
+        <ion-item-sliding>
+          <ion-item-options side="start">
+            <ion-item-option color="danger">
+              <i class="fad fa-hand-holding-magic fa-2x" />
+              <ion-input
+                class="ion-text-right text-xl"
+                v-model="achievement.ap"
+                type="number"
+                placeholder="Enter AP"
+              ></ion-input>
+            </ion-item-option>
+          </ion-item-options>
+          <ion-item>
+            <ion-label>
+              <ion-badge
+                class="ion-float-right"
+                color="danger"
+              >
+                {{ achievement.ap }} AP
+              </ion-badge>
+              AP (Ability Points)
+              <p>
+                What: Unlocks special abilities or features within the app.
+                Use: Earned alongside XP and GP; needed for specific unlocks or long-term benefits.
+                Importance: Adds a strategic element, encouraging long-term planning and decision-making.
+              </p>
+            </ion-label>
+          </ion-item>
+        </ion-item-sliding>
       </ion-list>
     </ion-content>
 
