@@ -120,56 +120,17 @@
         <ion-grid>
           <ion-row>
             <ion-col>
-              <ion-radio-group
+              <ion-select
                 @ionChange="updatePoints"
                 v-model="achievement.difficulty"
               >
-                <ion-item>
-                  <ion-grid>
-                    <ion-row>
-                      <ion-col size="4">
-                        <ion-item>
-                          <ion-label>
-                            <i class="fad fa-dice-d4 fa-lg"></i>
-                            Easy
-                          </ion-label>
-                          <ion-radio value="1"></ion-radio>
-                        </ion-item>
-                      </ion-col>
-                      <ion-col size="4">
-                        <ion-item>
-                          <ion-label><i class="fad fa-dice-d6 fa-lg"></i></ion-label>
-                          <ion-radio value="2"></ion-radio>
-                        </ion-item>
-                      </ion-col>
-                      <ion-col size="4">
-                        <ion-item>
-                          <ion-label><i class="fad fa-dice-d8 fa-lg"></i></ion-label>
-                          <ion-radio value="3"></ion-radio>
-                        </ion-item>
-                      </ion-col>
-                      <ion-col size="4">
-                        <ion-item>
-                          <ion-label><i class="fad fa-dice-d10 fa-lg"></i></ion-label>
-                          <ion-radio value="5"></ion-radio>
-                        </ion-item>
-                      </ion-col>
-                      <ion-col size="4">
-                        <ion-item>
-                          <ion-label><i class="fad fa-dice-d12 fa-lg"></i></ion-label>
-                          <ion-radio value="8"></ion-radio>
-                        </ion-item>
-                      </ion-col>
-                      <ion-col size="4">
-                        <ion-item>
-                          <ion-label><i class="fad fa-dice-d20 fa-lg"></i></ion-label>
-                          <ion-radio value="13"></ion-radio>
-                        </ion-item>
-                      </ion-col>
-                    </ion-row>
-                  </ion-grid>
-                </ion-item>
-              </ion-radio-group>
+                <ion-select-option value="1">Easy</ion-select-option>
+                <ion-select-option value="2">Medium</ion-select-option>
+                <ion-select-option value="3">Hard</ion-select-option>
+                <ion-select-option value="5">Very Hard</ion-select-option>
+                <ion-select-option value="8">Extreme</ion-select-option>
+                <ion-select-option value="13">Impossible</ion-select-option>
+              </ion-select>
             </ion-col>
           </ion-row>
         </ion-grid>
