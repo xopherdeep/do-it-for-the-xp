@@ -42,7 +42,7 @@
     <ion-content v-if="activeSegment === 'classify'">
       <ion-card>
         <ion-card-content>
-          Tell us about this achievement...
+          Unveil the secrets of this achievement...
         </ion-card-content>
       </ion-card>
       <ion-list>
@@ -113,7 +113,7 @@
     <ion-content v-if="activeSegment === 'xp'">
       <ion-card>
         <ion-card-content>
-          What should be awarded for this achievement?
+          What treasures shall be bestowed for conquering this achievement?
         </ion-card-content>
       </ion-card>
       <ion-list>
@@ -171,7 +171,7 @@
     <ion-content v-if="activeSegment === 'assign'">
       <ion-card>
         <ion-card-content>
-          How shall this achievement be assigned?
+          Who shall be chosen to conquer this dragon?
         </ion-card-content>
       </ion-card>
       <ion-list>
@@ -280,7 +280,7 @@
     <ion-content v-if="activeSegment === 'schedule'">
       <ion-card>
         <ion-card-content>
-          What is the schedule for this achievement?
+          When shall the quest for this achievement begin and end?
         </ion-card-content>
       </ion-card>
       <ion-segment v-model="achievement.scheduleType">
