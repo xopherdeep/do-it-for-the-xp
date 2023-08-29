@@ -282,6 +282,7 @@
               </ion-badge>
               XP (Experience Points)
               <p>
+                Earned by completing tasks. Levels up player's characters and can be spent on rewards or privileges.
               </p>
             </ion-label>
           </ion-item>
