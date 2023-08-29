@@ -238,6 +238,9 @@
       </ion-list-header>
       <ion-list>
         <ion-item>
+          <ion-button @click="achievement.difficulty = Math.max(1, achievement.difficulty - 1)">
+            <i class="fas fa-minus"></i>
+          </ion-button>
           <ion-range
             min="1"
             max="13"
@@ -253,6 +256,9 @@
             <ion-label slot="start">Minimum</ion-label>
             <ion-label slot="end">Maximum </ion-label>
           </ion-range>
+          <ion-button @click="achievement.difficulty = Math.min(13, achievement.difficulty + 1)">
+            <i class="fas fa-plus"></i>
+          </ion-button>
         </ion-item>
       </ion-list>
       <ion-list-header>
