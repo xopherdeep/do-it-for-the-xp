@@ -113,7 +113,7 @@
     <ion-content v-if="activeSegment === 'assign'">
       <ion-card>
         <ion-card-content>
-          Who are the chosen and how is this dragon conquered?
+          Who are the chosen ones and how shall they embark on this quest?
         </ion-card-content>
       </ion-card>
       <ion-list>
@@ -135,7 +135,7 @@
           </ion-select>
         </ion-item>
         <ion-list-header>
-          Assignment Types
+          Quest Types
         </ion-list-header>
         <ion-radio-group v-model="achievement.type">
           <ion-item>
@@ -147,8 +147,8 @@
             <ion-label>
               As Needed
               <p>
-                For tasks that can be tackled by anyone at any time, this approach <br />
-                offers the freedom to swiftly respond to whatever needs may come up.
+                For quests that can be embarked upon by any brave soul at any time, this approach <br />
+                offers the freedom to swiftly respond to whatever challenges may arise.
               </p>
             </ion-label>
             <ion-radio value="asNeeded"></ion-radio>
