@@ -171,7 +171,7 @@
     <ion-content v-if="activeSegment === 'assign'">
       <ion-card>
         <ion-card-content>
-          Who shall be chosen to conquer this dragon?
+          Who shall be chosen to conquer this dragon? Choose your brave warriors and decide their fate.
         </ion-card-content>
       </ion-card>
       <ion-list>
