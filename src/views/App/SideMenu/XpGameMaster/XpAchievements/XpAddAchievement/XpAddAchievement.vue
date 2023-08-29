@@ -192,24 +192,58 @@
             </ion-select-option>
           </ion-select>
         </ion-item>
+        <ion-list-header>
+          Assignment Types
+        </ion-list-header>
         <ion-radio-group v-model="achievement.type">
           <ion-item>
-            <ion-label>As Needed</ion-label>
+            <i
+              slot="end"
+              class="fad"
+              :class="achievementTypeIcons['asNeeded']"
+            />
+            <ion-label>
+              As Needed
+              <p>
+                description here...
+              </p>
+            </ion-label>
             <ion-radio value="asNeeded"></ion-radio>
           </ion-item>
           <ion-item>
+            <i
+              slot="end"
+              class="fad"
+              :class="achievementTypeIcons['collaborate']"
+            />
+
             <ion-label>Collaborate</ion-label>
             <ion-radio value="collaborate"></ion-radio>
           </ion-item>
           <ion-item>
+            <i
+              slot="end"
+              class="fad"
+              :class="achievementTypeIcons['compete']"
+            />
             <ion-label>Compete</ion-label>
             <ion-radio value="compete"></ion-radio>
           </ion-item>
           <ion-item>
+            <i
+              slot="end"
+              class="fad"
+              :class="achievementTypeIcons['individual']"
+            />
             <ion-label>Individual</ion-label>
             <ion-radio value="individual"></ion-radio>
           </ion-item>
           <ion-item>
+            <i
+              slot="end"
+              class="fad"
+              :class="achievementTypeIcons['rotate']"
+            />
             <ion-label>Rotate</ion-label>
             <ion-radio value="rotate"></ion-radio>
           </ion-item>
