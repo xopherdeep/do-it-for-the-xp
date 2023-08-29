@@ -192,19 +192,28 @@
             </ion-select-option>
           </ion-select>
         </ion-item>
-        <ion-item>
-          <ion-label>Assignment Type</ion-label>
-          <ion-select
-            v-model="achievement.type"
-            placeholder="Choose a type..."
-          >
-            <ion-select-option value="asNeeded">As Needed</ion-select-option>
-            <ion-select-option value="collaborate">Collaborate</ion-select-option>
-            <ion-select-option value="compete">Compete</ion-select-option>
-            <ion-select-option value="individual">Individual</ion-select-option>
-            <ion-select-option value="rotate">Rotate</ion-select-option>
-          </ion-select>
-        </ion-item>
+        <ion-radio-group v-model="achievement.type">
+          <ion-item>
+            <ion-label>As Needed</ion-label>
+            <ion-radio value="asNeeded"></ion-radio>
+          </ion-item>
+          <ion-item>
+            <ion-label>Collaborate</ion-label>
+            <ion-radio value="collaborate"></ion-radio>
+          </ion-item>
+          <ion-item>
+            <ion-label>Compete</ion-label>
+            <ion-radio value="compete"></ion-radio>
+          </ion-item>
+          <ion-item>
+            <ion-label>Individual</ion-label>
+            <ion-radio value="individual"></ion-radio>
+          </ion-item>
+          <ion-item>
+            <ion-label>Rotate</ion-label>
+            <ion-radio value="rotate"></ion-radio>
+          </ion-item>
+        </ion-radio-group>
       </ion-list>
 
     </ion-content>
