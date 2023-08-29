@@ -162,8 +162,8 @@
             <ion-label>
               Collaborate
               <p>
-                For tasks that require team effort and collaboration.<br />
-                Ideal for projects that benefit from multiple perspectives.
+                For quests requiring unity and teamwork.<br />
+                Perfect for challenges needing diverse insights.
               </p>
             </ion-label>
             <ion-radio value="collaborate"></ion-radio>
@@ -177,8 +177,8 @@
             <ion-label>
               Compete
               <p>
-                For tasks that involve competition among team members.<br />
-                Useful for incentivizing performance and engagement.
+                For quests sparking rivalry among heroes.<br />
+                Great for boosting performance and involvement.
               </p>
             </ion-label>
             <ion-radio value="compete"></ion-radio>
@@ -192,8 +192,8 @@
             <ion-label>
               Individual
               <p>
-                For tasks that are best completed individually.<br />
-                Ideal for focused, independent work.
+                For quests best tackled alone.<br />
+                Ideal for concentrated, solitary endeavors.
               </p>
             </ion-label>
             <ion-radio value="individual"></ion-radio>
@@ -207,8 +207,8 @@
             <ion-label>
               Rotate
               <p>
-                For tasks that rotate among team members.<br />
-                Helps distribute responsibility and adds variety.
+                For quests rotating among heroes.<br />
+                Helps share duty and adds diversity.
               </p>
             </ion-label>
             <ion-radio value="rotate"></ion-radio>
