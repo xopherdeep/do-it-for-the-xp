@@ -238,18 +238,20 @@
           <ion-label>
             Amount of Effort
           </ion-label>
-          <ion-select
+          <ion-range
             slot="end"
-            @ionChange="updatePoints"
+            min="1"
+            max="13"
+            step="1"
+            snaps
+            ticks
+            color="primary"
             v-model="achievement.difficulty"
+            @ionChange="updatePoints"
           >
-            <ion-select-option value="1">Minimum</ion-select-option>
-            <ion-select-option value="2">Slight</ion-select-option>
-            <ion-select-option value="3">Some</ion-select-option>
-            <ion-select-option value="5">Moderate</ion-select-option>
-            <ion-select-option value="8">Significant</ion-select-option>
-            <ion-select-option value="13">Maximum</ion-select-option>
-          </ion-select>
+            <ion-label slot="start">Minimum</ion-label>
+            <ion-label slot="end">Maximum</ion-label>
+          </ion-range>
         </ion-item>
         <ion-item-sliding>
           <ion-item-options side="start">
