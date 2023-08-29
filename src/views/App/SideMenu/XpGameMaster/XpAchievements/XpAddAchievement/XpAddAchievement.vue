@@ -205,7 +205,7 @@
             <ion-label>
               As Needed
               <p>
-                description here...
+                This assignment type is for tasks that need to be done as and when required.
               </p>
             </ion-label>
             <ion-radio value="asNeeded"></ion-radio>
