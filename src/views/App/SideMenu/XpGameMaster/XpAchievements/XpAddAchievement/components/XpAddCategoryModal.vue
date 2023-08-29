@@ -1,65 +1,75 @@
 <template>
-  <ion-modal :is-open="isOpen" @didDismiss="didDismiss">
+  <ion-modal
+    :is-open="isOpen"
+    @didDismiss="didDismiss"
+  >
     <ion-header>
       <ion-toolbar>
+
         <ion-title>Add New Category</ion-title>
       </ion-toolbar>
     </ion-header>
-    <ion-content class="rpg-box">
-      <ion-grid>
-        <ion-row>
-          <ion-col size="4">
-            <ion-item>
-              <ion-avatar @click="openActionSheet">
-                <ion-skeleton-text></ion-skeleton-text>
-              </ion-avatar>
-            </ion-item>
-          </ion-col>
-          <ion-col size="8">
-            <ion-item>
-              <ion-input
-                v-model="newCategoryName"
-                placeholder="Enter Category Name"
-              ></ion-input>
-            </ion-item>
-          </ion-col>
-        </ion-row>
+    <ion-content class="bg-slide">
+      <ion-grid class="ion-no-padding">
         <ion-row>
           <ion-col>
             <ion-list>
-              <ion-list-header>
-                <ion-label>Predefined Categories</ion-label>
-              </ion-list-header>
               <ion-item>
-                <ion-row
-                  class="ion-justify-content-center ion-align-items-center"
+                <ion-avatar
+                  @click="openActionSheet"
+                  slot="start"
                 >
-                  <ion-col
-                    size="4"
-                    v-for="cat in predefinedCategories"
-                    :key="cat"
-                  >
-                    <ion-item>
-                      <ion-avatar>
-                        <ion-skeleton-text />
-                      </ion-avatar>
-                      {{ cat }}
-                    </ion-item>
-                  </ion-col>
-                </ion-row>
+                  <ion-skeleton-text></ion-skeleton-text>
+                </ion-avatar>
+                <ion-input
+                  v-model="newCategoryName"
+                  placeholder="Enter Category Name"
+                ></ion-input>
               </ion-item>
+              <ion-list-header>
+                Use a predefined category
+              </ion-list-header>
+              <ion-radio-group @ionChange="setPredefinedCategory">
+
+                <ion-item
+                  size="4"
+                  v-for="cat in categoriesNotAdded"
+                  :key="cat"
+                >
+                  <ion-avatar slot="start">
+                    <ion-skeleton-text />
+                  </ion-avatar>
+                  <ion-label>
+                    {{ cat }}
+                  </ion-label>
+                  <ion-radio
+                    name="category"
+                    :value="cat"
+                  ></ion-radio>
+                </ion-item>
+              </ion-radio-group>
             </ion-list>
           </ion-col>
         </ion-row>
       </ion-grid>
-      <ion-button expand="full" @click="addNewCategory">Add</ion-button>
+      <ion-button
+        expand="full"
+        @click="addNewCategory"
+      >Add</ion-button>
     </ion-content>
+    <ion-footer>
+      <ion-toolbar>
+        <ion-button @click="didDismiss">
+          Cancel
+        </ion-button>
+      </ion-toolbar>
+    </ion-footer>
     <ion-action-sheet
       :is-open="actionSheetOpen"
       :header="'Choose an option'"
       :buttons="[
-        { text: 'Take Picture', icon: cameraOutline, handler: () => {} },
-        { text: 'Choose from Gallery', icon: imagesOutline, handler: () => {} },
+        { text: 'Take Picture', icon: cameraOutline, handler: () => { } },
+        { text: 'Choose from Gallery', icon: imagesOutline, handler: () => { } },
         { text: 'Cancel', role: 'cancel' },
       ]"
       @didDismiss="actionSheetOpen = false"
@@ -76,12 +86,21 @@
 
   export default defineComponent({
     name: "xp-add-category",
-    props: ["isOpen"],
+    props: ["isOpen", "categories"],
     mixins: [ionic],
     data() {
       return {
         newCategoryName: "",
       };
+    },
+    computed: {
+      categoriesNotAdded() {
+        // return a list of predefined categoreis that aren't found in categories.
+        return this.predefinedCategories.filter((predefinedCat) => {
+          return !this.categories.some((category) => category.name === predefinedCat);
+        });
+      },
+
     },
     methods: {
       didDismiss() {
@@ -93,6 +112,10 @@
         this.newCategoryName = "";
         this.$emit("dismiss");
       },
+      setPredefinedCategory($event) {
+        this.newCategoryName = $event.detail.value;
+
+      }
     },
     setup() {
       const actionSheetOpen = ref(false);

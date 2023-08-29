@@ -4,6 +4,8 @@ import { useRouter } from 'vue-router';
 import { modalController } from '@ionic/vue';
 import { Drivers, Storage } from "@ionic/storage";
 
+import { IonModal } from '@ionic/vue';
+
 import AchievementDb, { AchievementCategoryDb, AchievementCategoryInterface } from "@/databases/AchievementDb"
 import { achievementStorage } from '../XpAchievements.vue';
 import ProfileDb from '@/databases/ProfileDb';
@@ -42,9 +44,38 @@ export default defineComponent({
         name: "Schedule",
         icon: "fa-calendar"
       }],
+      achievementTypeIcons: {
+        compete: "fa-trophy",
+        collaborate: "fa-users",
+        rotate: "fa-sync",
+        asNeeded: "fa-star",
+        individual: "fa-user"
+      }
     }
   },
   computed: {
+    assignedTo() {
+
+      // get the list of users that are assigned to the achievement
+      const { assignee } = this.achievement || {}
+
+      // filter them from the users 
+      const filterUserById = user => user.id === assignee
+      const users = this.users.filter(filterUserById)
+
+      const assignedTo = users.join(", ")
+
+      return assignedTo
+
+    },
+    category() {
+
+      // get the category that maatches the idea
+      const { categoryId } = this.achievement || {}
+      const findCategoryByName = category => category.id === categoryId
+      const category = this.categories.find(findCategoryByName)
+      return category
+    },
     nextButton() {
       const { activeSegment } = this
       const findIndex = segment => segment.name.toLowerCase() === activeSegment.toLowerCase()
@@ -91,9 +122,12 @@ export default defineComponent({
     },
     async loadCategories() {
       const categories = await this.categoryStorage.getAll();
-      this.categories = categories;
+      this.categories = categories.sort(this.sortCategoryByName);
     },
-
+    setNever() {
+      this.achievement.endsOn = '';
+      this.dismissModal();
+    },
     async loadUsers() {
       const users = await this.profilesDb.getAll();
       this.users = users;
@@ -131,10 +165,10 @@ export default defineComponent({
       requiresApproval: false,
       points: '',
       assignee: [],
-      type: 'individual',
+      type: '',
       bonusAchievement: false,
       startsOn: new Date().toISOString(),
-      endsOn: new Date().toISOString(),
+      endsOn: '',
       dueByTime: '',
       scheduleType: 'basic',
       basicSchedule: 'once',
@@ -144,10 +178,28 @@ export default defineComponent({
       customPeriodNumber: 1,
       customPeriodType: 'day',
       difficulty: 1,
-      xp: 200,
-      gp: 20,
-      ap: 2
+      xp: 0,
+      gp: 0,
+      ap: 0
     });
+
+    const ends = ref({} as typeof IonModal);
+
+    const endsIsOpen = ref(false)
+
+    const showEndsModal = () => endsIsOpen.value = true
+
+    const sortCategoryByName = (a, b) => {
+      const nameA = a.name.toLowerCase();
+      const nameB = b.name.toLowerCase();
+      if (nameA < nameB) {
+        return -1;
+      }
+      if (nameA > nameB) {
+        return 1;
+      }
+      return 0;
+    }
 
     const submitForm = () => {
       const goBack = () => router.go(-1)
@@ -159,7 +211,7 @@ export default defineComponent({
 
     // create refs for form fields
     const achievementName = ref('');
-    const category = ref('');
+    // const category = ref('');
     const addCategoryModalOpen = ref(false);
 
     const openAddCategoryModal = () => {
@@ -170,8 +222,8 @@ export default defineComponent({
     const users = ref([] as User[])
 
     const syncCategories = async () => {
-      const syncCategories = sync => categories.value = sync
-      await categoryStorage.getAll().then(syncCategories)
+      const updateCategories = newCategories => categories.value = newCategories.sort(sortCategoryByName)
+      await categoryStorage.getAll().then(updateCategories)
     }
 
     const addCategory = (newCategory) => {
@@ -183,6 +235,7 @@ export default defineComponent({
     const activeSegment = ref('class')
 
     return {
+      sortCategoryByName,
       activeSegment,
       users,
       id,
@@ -194,7 +247,7 @@ export default defineComponent({
       addCategory,
       addCategoryModalOpen,
       categories,
-      category,
+      // category,
       checkmarkOutline,
       checkmarkSharp,
       openAddCategoryModal,

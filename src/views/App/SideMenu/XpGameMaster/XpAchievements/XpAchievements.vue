@@ -36,36 +36,40 @@
         >
           <ion-item>
             <ion-label>
+              <h2>
+                {{ achivement?.achievementName }}
+              </h2>
+              <p>
 
-              {{ achivement?.achievementName }}
+              </p>
             </ion-label>
-            <ion-buttons>
-              <ion-button @click="clickEdit(achivement.id)">
+            <!-- <ion-buttons> -->
+            <!-- <ion-button @click="clickEdit(achivement.id)">
                 <i class="fa fad fa-edit"></i>
               </ion-button>
               <ion-button @click="clickCloneAchievement(achivement)">
-                <i class="fa fad fa-copy"></i>
-              </ion-button>
-              <ion-button @click="clickDeleteAchievement(achivement)">
+              </ion-button> -->
+            <!-- <ion-button @click="clickDeleteAchievement(achivement)">
                 <i class="fa fad fa-trash"></i>
-              </ion-button>
-            </ion-buttons>
+              </ion-button> -->
+            <!-- </ion-buttons> -->
 
           </ion-item>
-          <ion-item-options side="end">
-            <ion-item-option @click="clickEdit(achivement.id)">
-              <!-- Edit -->
-              Edit
-            </ion-item-option>
-            <ion-item-option>
-              <!-- Edit -->
-              Clone
-            </ion-item-option>
+          <ion-item-options side="start">
             <ion-item-option
               color="danger"
               @click="clickDeleteAchievement(achivement)"
             >
               Delete
+            </ion-item-option>
+          </ion-item-options>
+          <ion-item-options side="end">
+            <ion-item-option @click="clickEdit(achivement.id)">
+              <!-- Edit -->
+              <i class="fa fad fa-edit"></i>
+            </ion-item-option>
+            <ion-item-option @click="clickCloneAchievement(achivement)">
+              <i class="fa fad fa-copy"></i>
             </ion-item-option>
           </ion-item-options>
         </ion-item-sliding>
