@@ -245,6 +245,7 @@
             min="1"
             max="13"
             :pin="true"
+            always-show-pin
             mode="ios"
             step="1"
             snaps
