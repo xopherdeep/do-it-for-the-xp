@@ -39,7 +39,7 @@
         </ion-segment-button>
       </ion-segment>
     </ion-header>
-    <ion-content v-if="activeSegment === 'class'">
+    <ion-content v-if="activeSegment === 'classify'">
       <ion-card>
         <ion-card-content>
           Tell us about this achievement...
@@ -110,7 +110,7 @@
       </ion-list>
     </ion-content>
 
-    <ion-content v-if="activeSegment === 'loot'">
+    <ion-content v-if="activeSegment === 'xp'">
       <ion-card>
         <ion-card-content>
           What should be awarded for this achievement?
@@ -205,7 +205,8 @@
             <ion-label>
               As Needed
               <p>
-                This assignment type is for tasks that need to be done as and when required.
+                For tasks that can be tackled by anyone at any time, this approach <br />
+                offers the freedom to swiftly respond to whatever needs may come up.
               </p>
             </ion-label>
             <ion-radio value="asNeeded"></ion-radio>
@@ -216,8 +217,13 @@
               class="fad"
               :class="achievementTypeIcons['collaborate']"
             />
-
-            <ion-label>Collaborate</ion-label>
+            <ion-label>
+              Collaborate
+              <p>
+                For tasks that require team effort and collaboration.<br />
+                Ideal for projects that benefit from multiple perspectives.
+              </p>
+            </ion-label>
             <ion-radio value="collaborate"></ion-radio>
           </ion-item>
           <ion-item>
@@ -226,7 +232,13 @@
               class="fad"
               :class="achievementTypeIcons['compete']"
             />
-            <ion-label>Compete</ion-label>
+            <ion-label>
+              Compete
+              <p>
+                For tasks that involve competition among team members.<br />
+                Useful for incentivizing performance and engagement.
+              </p>
+            </ion-label>
             <ion-radio value="compete"></ion-radio>
           </ion-item>
           <ion-item>
@@ -235,7 +247,13 @@
               class="fad"
               :class="achievementTypeIcons['individual']"
             />
-            <ion-label>Individual</ion-label>
+            <ion-label>
+              Individual
+              <p>
+                For tasks that are best completed individually.<br />
+                Ideal for focused, independent work.
+              </p>
+            </ion-label>
             <ion-radio value="individual"></ion-radio>
           </ion-item>
           <ion-item>
@@ -244,10 +262,17 @@
               class="fad"
               :class="achievementTypeIcons['rotate']"
             />
-            <ion-label>Rotate</ion-label>
+            <ion-label>
+              Rotate
+              <p>
+                For tasks that rotate among team members.<br />
+                Helps distribute responsibility and adds variety.
+              </p>
+            </ion-label>
             <ion-radio value="rotate"></ion-radio>
           </ion-item>
         </ion-radio-group>
+
       </ion-list>
 
     </ion-content>

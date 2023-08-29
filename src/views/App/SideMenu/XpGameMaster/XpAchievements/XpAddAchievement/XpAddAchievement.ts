@@ -31,25 +31,25 @@ export default defineComponent({
   data() {
     return {
       segments: [{
-        name: "Class",
+        name: "Classify",
         icon: "fa-book-open"
       },
       {
-        name: "Loot",
-        icon: "fa-star"
-      }, {
         name: "Assign",
-        icon: "fa-user"
+        icon: "fa-dragon"
+      }, {
+        name: "XP",
+        icon: "fa-ring"
       }, {
         name: "Schedule",
-        icon: "fa-calendar"
+        icon: "fa-hourglass"
       }],
       achievementTypeIcons: {
-        compete: "fa-trophy",
-        collaborate: "fa-users",
-        rotate: "fa-sync",
-        asNeeded: "fa-star",
-        individual: "fa-user"
+        compete: "fa-swords",
+        collaborate: "fa-dungeon",
+        rotate: "fa-game-board",
+        asNeeded: "fa-paw-claws",
+        individual: "fa-scroll"
       }
     }
   },
