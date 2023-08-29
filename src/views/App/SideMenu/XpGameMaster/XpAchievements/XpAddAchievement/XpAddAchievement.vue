@@ -117,23 +117,23 @@
         </ion-card-content>
       </ion-card>
       <ion-list>
-        <ion-grid>
-          <ion-row>
-            <ion-col>
-              <ion-select
-                @ionChange="updatePoints"
-                v-model="achievement.difficulty"
-              >
-                <ion-select-option value="1">Easy</ion-select-option>
-                <ion-select-option value="2">Medium</ion-select-option>
-                <ion-select-option value="3">Hard</ion-select-option>
-                <ion-select-option value="5">Very Hard</ion-select-option>
-                <ion-select-option value="8">Extreme</ion-select-option>
-                <ion-select-option value="13">Impossible</ion-select-option>
-              </ion-select>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
+        <ion-item>
+
+          <ion-label>
+            Amount of Effort
+          </ion-label>
+          <ion-select
+            @ionChange="updatePoints"
+            v-model="achievement.difficulty"
+          >
+            <ion-select-option value="1">Minimum</ion-select-option>
+            <ion-select-option value="2">Slight</ion-select-option>
+            <ion-select-option value="3">Some</ion-select-option>
+            <ion-select-option value="5">Moderate</ion-select-option>
+            <ion-select-option value="8">Significant</ion-select-option>
+            <ion-select-option value="13">Maximum</ion-select-option>
+          </ion-select>
+        </ion-item>
 
         <ion-item class="ion-text-left">
           <ion-label>XP</ion-label>
@@ -171,23 +171,10 @@
     <ion-content v-if="activeSegment === 'assign'">
       <ion-card>
         <ion-card-content>
-          Who is this for?
+          How shall this achievement be assigned?
         </ion-card-content>
       </ion-card>
       <ion-list>
-        <ion-item>
-          <ion-label>Assignment Type</ion-label>
-          <ion-select
-            v-model="achievement.type"
-            placeholder="Choose a type..."
-          >
-            <ion-select-option value="compete">Compete</ion-select-option>
-            <ion-select-option value="collaborate">Collaborate</ion-select-option>
-            <ion-select-option value="rotate">Rotate</ion-select-option>
-            <ion-select-option value="asNeeded">As Needed</ion-select-option>
-            <ion-select-option value="individual">Individual</ion-select-option>
-          </ion-select>
-        </ion-item>
         <ion-item>
           <ion-label>Who</ion-label>
           <ion-select
@@ -203,6 +190,19 @@
             >
               {{ user.name.first }}
             </ion-select-option>
+          </ion-select>
+        </ion-item>
+        <ion-item>
+          <ion-label>Assignment Type</ion-label>
+          <ion-select
+            v-model="achievement.type"
+            placeholder="Choose a type..."
+          >
+            <ion-select-option value="asNeeded">As Needed</ion-select-option>
+            <ion-select-option value="collaborate">Collaborate</ion-select-option>
+            <ion-select-option value="compete">Compete</ion-select-option>
+            <ion-select-option value="individual">Individual</ion-select-option>
+            <ion-select-option value="rotate">Rotate</ion-select-option>
           </ion-select>
         </ion-item>
       </ion-list>
@@ -315,50 +315,10 @@
             <ion-item>
               <ion-label>Starts On</ion-label>
               <ion-datetime-button datetime="starts-on" />
-              <ion-modal
-                trigger="ok-button"
-                ref="starts"
-                :keep-contents-mounted="true"
-              >
-                <ion-datetime
-                  v-model="achievement.startsOn"
-                  id="starts-on"
-                  presentation="date"
-                />
-                <ion-button
-                  @click="dismissModal"
-                  expand="full"
-                >
-                  OK
-                </ion-button>
-              </ion-modal>
             </ion-item>
             <ion-item>
               <ion-label>Ends On</ion-label>
               <ion-datetime-button datetime="ends-on" />
-              <ion-modal
-                ref="ends"
-                :keep-contents-mounted="true"
-                mode="ios"
-              >
-                <ion-datetime
-                  id="ends-on"
-                  v-model="achievement.endsOn"
-                  presentation="date"
-                />
-                <ion-button
-                  @click="setNever"
-                  expand="full"
-                >
-                  Never
-                </ion-button>
-                <ion-button
-                  @click="dismissModal"
-                  expand="full"
-                >
-                  OK
-                </ion-button>
-              </ion-modal>
             </ion-item>
             <ion-item>
               <ion-label>Due By Time</ion-label>
@@ -368,31 +328,71 @@
               >
                 <!-- <div slot="date-target"><i class="fad fa-clock fa-lg"></i></div> -->
               </ion-datetime-button>
-              <ion-modal
-                :keep-contents-mounted="true"
-                mode="ios"
-              >
-                <ion-datetime
-                  id="due-by"
-                  v-model="achievement.dueByTime"
-                  presentation="time"
-                >
-                </ion-datetime>
-                <ion-button
-                  @click="dismissModal"
-                  expand="full"
-                >
-                  OK
-                </ion-button>
-              </ion-modal>
             </ion-item>
           </ion-col>
         </ion-row>
       </ion-grid>
 
     </ion-content>
+    <ion-modal
+      :keep-contents-mounted="true"
+      mode="ios"
+    >
+      <ion-datetime
+        id="due-by"
+        v-model="achievement.dueByTime"
+        presentation="time"
+      >
+      </ion-datetime>
+      <ion-button
+        @click="dismissModal"
+        expand="full"
+      >
+        OK
+      </ion-button>
+    </ion-modal>
 
+    <ion-modal
+      trigger="ok-button"
+      ref="starts"
+      :keep-contents-mounted="true"
+    >
+      <ion-datetime
+        v-model="achievement.startsOn"
+        id="starts-on"
+        presentation="date"
+      />
+      <ion-button
+        @click="dismissModal"
+        expand="full"
+      >
+        OK
+      </ion-button>
+    </ion-modal>
 
+    <ion-modal
+      ref="ends"
+      :keep-contents-mounted="true"
+      mode="ios"
+    >
+      <ion-datetime
+        id="ends-on"
+        v-model="achievement.endsOn"
+        presentation="date"
+      />
+      <ion-button
+        @click="setNever"
+        expand="full"
+      >
+        Never
+      </ion-button>
+      <ion-button
+        @click="dismissModal"
+        expand="full"
+      >
+        OK
+      </ion-button>
+    </ion-modal>
     <xp-add-category-modal
       :is-open="addCategoryModalOpen"
       :categories="categories"
@@ -405,114 +405,107 @@
         <ion-list>
           <ion-item lines="none">
             <!-- requires approval icon -->
-            <i
-              v-if="achievement.requiresApproval"
-              class="fad fa-thumbs-up fa-2x"
-              slot="end"
-            ></i>
-            <!-- bonus achievement icon -->
-            <i
-              v-if="achievement.bonusAchievement"
-              class="fad fa-sparkles fa-2x "
-              slot="end"
-            ></i>
-            <i
-              v-if="achievement.type"
-              class="fad fa-2x "
-              :class="achievementTypeIcons[achievement.type]"
-              slot="end"
-            ></i>
             <ion-label>
+              <i
+                v-if="achievement.difficulty == 1"
+                class="fad fa-dice-d4 ion-float-right text-xl ml-2"
+              />
+              <i
+                v-else-if="achievement.difficulty == 2"
+                class="fad fa-dice-d6 fa-2x ion-float-right text-xl ml-2"
+              />
+              <i
+                v-else-if="achievement.difficulty == 3"
+                class="fad fa-dice-d8 fa-2x ion-float-right text-xl ml-2"
+              />
+              <i
+                v-else-if="achievement.difficulty == 5"
+                class="fad fa-dice-d10 fa-2x ion-float-right text-xl ml-2"
+              />
+              <i
+                v-else-if="achievement.difficulty == 8"
+                class="fad fa-dice-d12 fa-2x ion-float-right text-xl ml-2"
+              />
+              <i
+                v-else-if="achievement.difficulty == 13"
+                class="fad fa-dice-d20 fa-2x ion-float-right text-xl ml-2"
+              />
+              <i
+                v-else
+                class="fad fa-dice fa-2x"
+              />
+              <i
+                v-if="achievement.type"
+                class="fad ion-float-right text-xl mx-2"
+                :class="achievementTypeIcons[achievement.type]"
+                slot="end"
+              ></i>
+              <i
+                v-if="achievement.requiresApproval"
+                class="fad fa-clipboard-check ion-float-right text-xl mx-2"
+              ></i>
+              <i
+                v-if="achievement.bonusAchievement"
+                class="fad fa-gift ion-float-right text-xl mx-2"
+                slot="end"
+              ></i>
               <h1>
                 {{ achievement.achievementName }}
               </h1>
               <p>
                 {{ category?.name }}
+                <ion-badge
+                  color="success"
+                  class="ion-float-right"
+                >
+                  XP: {{ achievement.xp }}
+                </ion-badge>
+                <ion-badge
+                  color="warning"
+                  class="ion-float-right mx-2"
+                >
+                  <xp-gp :gp="achievement.gp"></xp-gp>
+                </ion-badge>
+                <ion-badge
+                  color="danger"
+                  class="ion-float-right"
+                >
+                  AP: {{ achievement.ap }}
+                </ion-badge>
               </p>
             </ion-label>
           </ion-item>
-          <ion-item
-            v-if="achievement.xp"
-            lines='none'
-          >
-            <ion-badge
-              color="success"
-              slot="start"
-            >
-              XP: {{ achievement.xp }}
-            </ion-badge>
-            <ion-badge
-              color="warning"
-              slot="start"
-            >
-              <xp-gp :gp="achievement.gp"></xp-gp>
-            </ion-badge>
-            <ion-badge
-              color="danger"
-              slot="start"
-            >
-              AP: {{ achievement.ap }}
-            </ion-badge>
+          <ion-item lines='none'>
+            <ion-label v-if="achievement.scheduleType === 'custom'">
+              Frequency: {{ achievement.customFrequency }}
+              time(s)
 
+              every
+              {{ achievement.customPeriodNumber }}
+              {{ achievement.customPeriodType }}
 
-
-          </ion-item>
-          <ion-select
-            v-model="achievement.assignee"
-            multiple
-            disabled
-          >
-            <!-- Replace with actual list of users -->
-            <ion-select-option
-              v-for="user in users"
-              :key="user.id"
-              :value="user.id"
-            >
-              {{ user.name.first }}
-            </ion-select-option>
-          </ion-select>
-          <ion-item lines="none">
-            <ion-label>
-              <h2>
-                Schedule:
-                {{ achievement.scheduleType }}
-
-                -
-                <span
-                  v-if="achievement.scheduleType === 'basic'"
-                  v-html="achievement.basicSchedule"
-                />
-              </h2>
-
-              <p>
-                Starts:
-                <ion-chip>
-                  <ion-datetime-button datetime="starts-on" />
-
-                </ion-chip>
-
-              </p>
-              <p>
-                Ends:
-                <ion-chip>
-                  <ion-datetime-button datetime="ends-on" />
-
-                </ion-chip>
-
-              </p>
-              <p>
-                Due By:
-                <ion-chip>
-                  <ion-datetime-button datetime="due-by" />
-                </ion-chip>
-              </p>
             </ion-label>
+            <ion-select
+              v-model="achievement.assignee"
+              multiple
+              disabled
+              slot="end"
+            >
+              <ion-select-option
+                v-for="user in users"
+                :key="user.id"
+                :value="user.id"
+              >
+                {{ user.name.first }}
+              </ion-select-option>
+            </ion-select>
             <ion-select
               v-if="achievement.scheduleType === 'basic' && achievement.basicSchedule === 'weekly'"
               v-model="achievement.repeatOnDays"
+              label="Repeat On:"
               placeholder="Which days...?"
               multiple
-              slot="end"
+              slot="start"
             >
               <ion-select-option value="mon">Monday</ion-select-option>
               <ion-select-option value="tue">Tuesday</ion-select-option>
@@ -522,19 +515,26 @@
               <ion-select-option value="sat">Saturday</ion-select-option>
               <ion-select-option value="sun">Sunday</ion-select-option>
             </ion-select>
+          </ion-item>
+          <ion-item lines="none">
             <ion-label
-              v-if="achievement.scheduleType === 'custom'"
-              slot="end"
+              slot="start"
+              placement="stacked"
             >
-              Frequency: {{ achievement.customFrequency }}
-              time(s)
-
-              every
-              {{ achievement.customPeriodNumber }}
-              {{ achievement.customPeriodType }}
-
+              Starts:
+              <ion-datetime-button datetime="starts-on" />
             </ion-label>
-
+            <ion-label
+              slot="start"
+              placement="stacked"
+            >
+              Ends:
+              <ion-datetime-button datetime="ends-on" />
+            </ion-label>
+            <ion-label slot="end">
+              Due By:
+              <ion-datetime-button datetime="due-by" />
+            </ion-label>
           </ion-item>
         </ion-list>
       </ion-card>
@@ -558,7 +558,7 @@
           </ion-col>
           <ion-col>
             <ion-button
-              expand="full"
+              expand="block"
               @click="activeSegment = nextButton.text.toLowerCase()"
             >
               {{ nextButton.text }}
