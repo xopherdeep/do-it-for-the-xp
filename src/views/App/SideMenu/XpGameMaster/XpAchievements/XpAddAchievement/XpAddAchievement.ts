@@ -137,11 +137,30 @@ export default defineComponent({
     },
     updatePoints() {
       const { difficulty } = this.achievement
+      let multiplier;
+      switch (difficulty) {
+        case 1:
+        case 2:
+        case 3:
+          multiplier = 200;
+          break;
+        case 5:
+          multiplier = 400;
+          break;
+        case 8:
+          multiplier = 800;
+          break;
+        case 13:
+          multiplier = 1300;
+          break;
+        default:
+          multiplier = 200;
+      }
       this.achievement = {
         ...this.achievement,
-        xp: difficulty * 200,
-        gp: difficulty * 20,
-        ap: difficulty * 2
+        xp: multiplier,
+        gp: multiplier / 10,
+        ap: multiplier / 100
       }
     },
     dismissModal() {

@@ -242,17 +242,22 @@
             <i class="fas fa-minus"></i>
           </ion-button>
           <ion-range
-            min="1"
-            max="13"
             :pin="true"
             always-show-pin
             mode="ios"
-            step="1"
             snaps
             ticks
             color="primary"
             v-model="achievement.difficulty"
             @ionChange="updatePoints"
+            :value="achievement.difficulty"
+            :options="{
+              floor: 1,
+              ceil: 13,
+              step: 1,
+              showTicks: true,
+              stepsArray: [1, 2, 3, 5, 8, 13]
+            }"
           >
             <ion-label slot="start">Minimum</ion-label>
             <ion-label slot="end">Maximum </ion-label>
