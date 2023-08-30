@@ -34,7 +34,12 @@ export class AchievementCategoryDb extends DbStorageApi {
   public async setCategory(category: AchievementCategoryInterface) {
     await this.set(category.id, category)
   }
+
+  public async setCategories(categories: AchievementCategoryInterface[]) {
+    categories.forEach(this.setCategory)
+  }
 }
+
 
 export class AchievementDb extends DbStorageApi {
   private createAchievement(): Achievement {

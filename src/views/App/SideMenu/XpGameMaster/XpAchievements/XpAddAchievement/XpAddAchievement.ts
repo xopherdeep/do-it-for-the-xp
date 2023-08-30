@@ -273,15 +273,30 @@ export default defineComponent({
       await categoryStorage.getAll().then(updateCategories)
     }
 
-    const addCategory = (newCategory) => {
-      categoryStorage.setCategory(newCategory)
+    const addCategory = (newCategory: AchievementCategoryInterface) => {
+      categoryStorage
+        .setCategory(newCategory)
         .then(syncCategories)
       achievement.value.categoryId = newCategory.id
     };
 
+    const editCategories = (categories: AchievementCategoryInterface[]) => {
+      categoryStorage
+        .setCategories(categories)
+        .then(syncCategories)
+    }
+
+    const deleteCategory = (category: AchievementCategoryInterface) => {
+      categoryStorage
+        .remove(category.id)
+        .then(syncCategories)
+    }
+
     const activeSegment = ref('classify')
 
     return {
+      deleteCategory,
+      editCategories,
       sortCategoryByName,
       activeSegment,
       users,

@@ -582,22 +582,11 @@
       :categories="categories"
       @dismiss="addCategoryModalOpen = false"
       @add-category="addCategory"
+      @edit-categories="editCategories"
+      @delete-category="deleteCategory"
     />
 
     <ion-footer>
-      <ion-segment v-model="activeSegment">
-        <ion-segment-button
-          v-for="segment in segments"
-          :key="segment.name"
-          :value="segment.name.toLowerCase()"
-        >
-          {{ segment.name }}
-          <i
-            class="fad fa-lg mt-1"
-            :class="segment.icon"
-          ></i>
-        </ion-segment-button>
-      </ion-segment>
       <ion-card>
         <ion-list>
           <ion-item-sliding>
@@ -717,7 +706,7 @@
           </ion-item>
         </ion-list>
         <ion-button
-          class="ion-float-right"
+          class="ion-float-right hidden"
           @click="activeSegment = nextButton.text.toLowerCase()"
           color="primary"
         >
@@ -734,7 +723,7 @@
         <ion-button
           @click="activeSegment = prevButton.text.toLowerCase()"
           color="primary"
-          class="ion-float-left"
+          class="ion-float-left hidden"
         >
           <i
             class="fas fa-chevron-left"
@@ -749,6 +738,19 @@
           ></i>
         </ion-button>
       </ion-card>
+      <ion-segment v-model="activeSegment">
+        <ion-segment-button
+          v-for="segment in segments"
+          :key="segment.name"
+          :value="segment.name.toLowerCase()"
+        >
+          {{ segment.name }}
+          <i
+            class="fad fa-lg mt-1"
+            :class="segment.icon"
+          ></i>
+        </ion-segment-button>
+      </ion-segment>
     </ion-footer>
   </ion-page>
 </template>
