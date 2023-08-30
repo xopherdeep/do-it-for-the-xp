@@ -29,11 +29,15 @@
       </ion-toolbar>
     </ion-header>
     <ion-content>
-      <ion-list>
-        <ion-item-sliding
-          v-for="(achivement, index) in filteredAchievements"
-          :key="index"
-        >
+      <ion-list v-for="(group, category) in groupedAchievements" :key="category">
+        <ion-item-group>
+          <ion-item-divider>
+            <ion-label>{{ category }}</ion-label>
+          </ion-item-divider>
+          <ion-item-sliding
+            v-for="(achievement, index) in group"
+            :key="index"
+          >
           <xp-achievement-item
             :achievement="achivement"
             :categories="categories"
