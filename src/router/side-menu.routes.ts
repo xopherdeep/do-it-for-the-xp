@@ -1,8 +1,11 @@
 const SideMenu = [
   {
     path: '/',
-    redirect: '/log-in'
+    redirect: '/log-in',
     // component: () => import ('@/views/StartScreen/StartScreen.vue'),
+    meta: {
+      title: "Do it for the XP"
+    }
   },
 
   // Game Master
@@ -101,7 +104,8 @@ const SideMenu = [
     path: '/log-in',
     component: () => import('@/views/App/SideMenu/LogIn/LogIn.vue'),
     meta: {
-      requiresAuth: false
+      requiresAuth: false,
+      title: "Do it for the XP"
     }
   },
 ]
