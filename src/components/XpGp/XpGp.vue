@@ -1,5 +1,7 @@
 <template>
-  ₲{{ formattedGp }}<small>.00</small>
+  <span>
+    ₲{{ formattedGp }}<small>.00</small>
+  </span>
 </template>
 
 <script lang="ts">

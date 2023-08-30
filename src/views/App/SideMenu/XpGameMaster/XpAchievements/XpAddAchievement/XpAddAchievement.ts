@@ -22,17 +22,41 @@ export const achievementCategoryStorage = new Storage({
   driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
 });
 
+import XpAchievementItem from './components/XpAchievementItem.vue';
+import { DIFFICULTY_ICONS, ACHIEVEMENT_TYPE_ICONS, BASIC_SCHEDULE_ICONS } from "@/constants"
+
 export default defineComponent({
   name: 'xp-add-achievement',
   mixins: [ionic],
   components: {
-    XpAddCategoryModal
+    XpAddCategoryModal,
+    XpAchievementItem
   },
   data() {
     return {
-      efforts: [
-
+      fibonacciArray: [1, 2, 3, 5, 8, 13],
+      efforts: [{
+        name: "Minimum Effort",
+        value: 1
+      }, {
+        name: "Slight",
+        value: 2
+      }, {
+        name: "Some",
+        value: 3
+      }, {
+        name: "Moderate",
+        value: 5
+      }, {
+        name: "Significant",
+        value: 8
+      }, {
+        name: "Maximum Effort",
+        value: 13
+      }
       ],
+      prev1: 1,
+      prev2: 1,
       segments: [{
         name: "Classify",
         icon: "fa-book-open"
@@ -41,22 +65,26 @@ export default defineComponent({
         name: "Assign",
         icon: "fa-dragon"
       }, {
+        name: "Schedule",
+        icon: "fa-flux-capacitor"
+      }, {
         name: "XP",
         icon: "fa-ring"
-      }, {
-        name: "Schedule",
-        icon: "fa-hourglass"
       }],
-      achievementTypeIcons: {
-        compete: "fa-swords",
-        collaborate: "fa-dungeon",
-        rotate: "fa-game-board",
-        asNeeded: "fa-paw-claws",
-        individual: "fa-scroll"
-      }
+      achievementTypeIcons: ACHIEVEMENT_TYPE_ICONS,
+      basicScheduleIcons: BASIC_SCHEDULE_ICONS,
+      difficultyIcons: DIFFICULTY_ICONS
+
     }
   },
   computed: {
+    difficultyIcon() {
+      const icon = this.difficultyIcons[this.achievement.difficulty]
+      return icon || 'fa-dice'
+    },
+    isFibonacci() {
+      return this.fibonacciArray.includes(this.achievement.difficulty)
+    },
     assignedTo() {
 
       // get the list of users that are assigned to the achievement
@@ -72,7 +100,6 @@ export default defineComponent({
 
     },
     category() {
-
       // get the category that maatches the idea
       const { categoryId } = this.achievement || {}
       const findCategoryByName = category => category.id === categoryId
@@ -90,10 +117,12 @@ export default defineComponent({
 
       return (nextIndex >= maxLenght)
         ? {
-          text: this.segments[0].name
+          text: this.segments[0].name,
+          icon: this.segments[0].icon
         }
         : {
           text: this.segments[index + 1].name,
+          icon: this.segments[index + 1].icon
         }
     },
 
@@ -104,19 +133,33 @@ export default defineComponent({
 
       const lastIndex = index - 1
       const maxLength = this.segments.length
-      const nextSegment = this.segments[lastIndex]
+      const lastSegment = this.segments[lastIndex]
 
       return (lastIndex < 0)
         ? {
-          text: this.segments[maxLength - 1].name
+          text: this.segments[maxLength - 1].name,
+          icon: this.segments[maxLength - 1].icon,
         }
         : {
-          text: this.segments[lastIndex].name,
+          text: lastSegment.name,
+          icon: lastSegment.icon,
         }
     }
   },
 
   methods: {
+    increaseDifficulty() {
+      const currentIndex = this.fibonacciArray.indexOf(this.achievement.difficulty);
+      if (currentIndex < this.fibonacciArray.length - 1) {
+        this.achievement.difficulty = this.fibonacciArray[currentIndex + 1];
+      }
+    },
+    decreaseDifficulty() {
+      const currentIndex = this.fibonacciArray.indexOf(this.achievement.difficulty);
+      if (currentIndex > 0) {
+        this.achievement.difficulty = this.fibonacciArray[currentIndex - 1];
+      }
+    },
     async loadAchievement() {
       if (this.id) {
         const task = await this.storage.getTaskById(this.id);
@@ -137,30 +180,12 @@ export default defineComponent({
     },
     updatePoints() {
       const { difficulty } = this.achievement
-      let multiplier;
-      switch (difficulty) {
-        case 1:
-        case 2:
-        case 3:
-          multiplier = 200;
-          break;
-        case 5:
-          multiplier = 400;
-          break;
-        case 8:
-          multiplier = 800;
-          break;
-        case 13:
-          multiplier = 1300;
-          break;
-        default:
-          multiplier = 200;
-      }
+      const multiplier = 200;
       this.achievement = {
         ...this.achievement,
-        xp: multiplier,
-        gp: multiplier / 10,
-        ap: multiplier / 100
+        xp: difficulty * multiplier,
+        gp: difficulty * (multiplier / 10),
+        ap: difficulty * (multiplier / 100)
       }
     },
     dismissModal() {
@@ -193,13 +218,13 @@ export default defineComponent({
       endsOn: '',
       dueByTime: '',
       scheduleType: 'basic',
-      basicSchedule: 'once',
+      basicSchedule: 'daily',
       showDailyUntilComplete: false,
       repeatOnDays: [],
       customFrequency: 1,
       customPeriodNumber: 1,
       customPeriodType: 'day',
-      difficulty: 1,
+      difficulty: 0,
       xp: 0,
       gp: 0,
       ap: 0

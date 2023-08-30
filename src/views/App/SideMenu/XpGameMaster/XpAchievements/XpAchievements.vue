@@ -34,45 +34,37 @@
           v-for="(achivement, index) in filteredAchievements"
           :key="index"
         >
-          <ion-item>
-            <ion-label>
-              <h2>
-                {{ achivement?.achievementName }}
-              </h2>
-              <p>
-
-              </p>
-            </ion-label>
-            <!-- <ion-buttons> -->
-            <!-- <ion-button @click="clickEdit(achivement.id)">
-                <i class="fa fad fa-edit"></i>
-              </ion-button>
-              <ion-button @click="clickCloneAchievement(achivement)">
-              </ion-button> -->
-            <!-- <ion-button @click="clickDeleteAchievement(achivement)">
-                <i class="fa fad fa-trash"></i>
-              </ion-button> -->
-            <!-- </ion-buttons> -->
-
-          </ion-item>
+          <xp-achievement-item
+            :achievement="achivement"
+            :categories="categories"
+          >
+            <template #end>
+              <i
+                class="fad fa-grip-vertical ml-2"
+                slot="end"
+              />
+            </template>
+          </xp-achievement-item>
           <ion-item-options side="start">
             <ion-item-option
               color="danger"
               @click="clickDeleteAchievement(achivement)"
             >
-              Delete
+              <i class="fad fa-trash fa-lg"></i>
             </ion-item-option>
           </ion-item-options>
           <ion-item-options side="end">
             <ion-item-option @click="clickEdit(achivement.id)">
               <!-- Edit -->
-              <i class="fa fad fa-edit"></i>
+              <i class="fa fad fa-edit fa-lg mx-2"></i>
             </ion-item-option>
             <ion-item-option @click="clickCloneAchievement(achivement)">
-              <i class="fa fad fa-copy"></i>
+              <i class="fa fad fa-copy fa-lg mx-2"></i>
             </ion-item-option>
           </ion-item-options>
         </ion-item-sliding>
+
+
       </ion-list>
     </ion-content>
     <ion-fab
@@ -130,10 +122,14 @@
     thumbsUpOutline,
     thumbsUpSharp,
   } from "ionicons/icons";
-  import { AchievementDb } from "@/databases";
   import { alertController } from "@ionic/vue";
   import type { Achievement } from "@/databases/AchievementDb";
   import { Drivers, Storage } from "@ionic/storage";
+
+  import XpAchievementItem from "./XpAddAchievement/components/XpAchievementItem.vue";
+  import AchievementDb, { AchievementCategoryDb, AchievementCategoryInterface } from "@/databases/AchievementDb"
+
+  import { achievementCategoryStorage } from "./XpAddAchievement/XpAddAchievement.vue";
 
   export const achievementStorage = new Storage({
     name: "__achievements",
@@ -143,6 +139,7 @@
   export default defineComponent({
     name: "xp-achievements",
     mixins: [ionic],
+    components: { XpAchievementItem },
 
     computed: {
       hasAchievements() {
@@ -219,9 +216,14 @@
 
         return lowerName ? indexOf > -1 : !lowerSearch;
       },
+      async loadCategories() {
+        const categories = await this.categoryStorage.getAll();
+        this.categories = categories.sort(this.sortCategoryByName);
+      },
     },
     mounted() {
       this.loadAchievements();
+      this.loadCategories();
     },
     updated() {
       this.loadAchievements();
@@ -231,7 +233,24 @@
       const storage = new AchievementDb(achievementStorage);
       const searchText = ref("");
       const showFilters = ref(false)
+      const categoryStorage = new AchievementCategoryDb(achievementCategoryStorage)
+
+      const categories = ref([] as AchievementCategoryInterface[]);
+      const sortCategoryByName = (a, b) => {
+        const nameA = a.name.toLowerCase();
+        const nameB = b.name.toLowerCase();
+        if (nameA < nameB) {
+          return -1;
+        }
+        if (nameA > nameB) {
+          return 1;
+        }
+        return 0;
+      }
       return {
+        categories,
+        sortCategoryByName,
+        categoryStorage,
         showFilters,
         achievements,
         searchText,

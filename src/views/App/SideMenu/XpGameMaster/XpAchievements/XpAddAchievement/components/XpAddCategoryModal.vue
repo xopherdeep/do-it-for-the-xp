@@ -31,14 +31,14 @@
                   placeholder="Enter Category Name"
                 ></ion-input>
               </ion-item>
-              <ion-list-header>
+              <ion-list-header v-if="categoriesNotAdded.length > 0">
                 Use a predefined category
               </ion-list-header>
               <ion-radio-group @ionChange="setPredefinedCategory">
 
                 <ion-item
                   size="4"
-                  v-for="cat in categoriesNotAdded"
+                  v-for=" cat  in  categoriesNotAdded "
                   :key="cat"
                 >
                   <ion-avatar slot="start">
@@ -76,7 +76,8 @@
         { text: 'Take Picture', icon: cameraOutline, handler: () => { } },
         { text: 'Choose from Gallery', icon: imagesOutline, handler: () => { } },
         { text: 'Cancel', role: 'cancel' },
-      ]"
+      ]
+        "
       @didDismiss="actionSheetOpen = false"
     />
   </ion-modal>
