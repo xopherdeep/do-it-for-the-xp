@@ -244,6 +244,8 @@
       const showFilters = ref(false)
       const categoryStorage = new AchievementCategoryDb(achievementCategoryStorage)
 
+      const groupBy = ref("");
+
       const categories = ref([] as AchievementCategoryInterface[]);
       const sortCategoryByName = (a, b) => {
         const nameA = a.name.toLowerCase();
@@ -257,6 +259,7 @@
         return 0;
       }
       return {
+        groupBy,
         categories,
         sortCategoryByName,
         categoryStorage,
