@@ -143,10 +143,19 @@
 
     computed: {
       hasAchievements() {
-        return this.filteredAchievements?.length > 0;
+        return this.groupedAchievements?.length > 0;
       },
       filteredAchievements() {
         return this.achievements?.filter(this.filterAchievement);
+      },
+      groupedAchievements() {
+        if (this.groupBy === 'category') {
+          return this.achievements.reduce((grouped, achievement) => {
+            (grouped[achievement.category] = grouped[achievement.category] || []).push(achievement);
+            return grouped;
+          }, {});
+        }
+        return this.achievements;
       },
     },
     methods: {
