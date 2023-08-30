@@ -29,16 +29,16 @@
       </ion-toolbar>
     </ion-header>
     <ion-content>
-      <ion-list
-        v-for="(group, category) in groupedAchievements"
-        :key="category"
+      <div
+        v-for="(group, index) in groupedAchievements"
+        :key="index"
       >
         <ion-item-group>
           <ion-item-divider>
-            <ion-label>{{ category }}</ion-label>
+            <ion-label>{{ group.category }}</ion-label>
           </ion-item-divider>
           <ion-item-sliding
-            v-for="(achievement, index) in group"
+            v-for="(achievement, index) in filteredAchievements"
             :key="index"
           >
             <xp-achievement-item
@@ -159,9 +159,14 @@
       groupedAchievements() {
         if (this.groupBy === 'category') {
           return this.achievements.reduce((grouped, achievement) => {
-            (grouped[achievement.category] = grouped[achievement.category] || []).push(achievement);
+            const category = grouped.find(group => group.category === achievement.category);
+            if (category) {
+              category.achievements.push(achievement);
+            } else {
+              grouped.push({ category: achievement.category, achievements: [achievement] });
+            }
             return grouped;
-          }, {});
+          }, []);
         }
         return this.achievements;
       },
