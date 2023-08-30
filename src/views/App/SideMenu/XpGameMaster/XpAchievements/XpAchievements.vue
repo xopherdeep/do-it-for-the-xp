@@ -29,7 +29,10 @@
       </ion-toolbar>
     </ion-header>
     <ion-content>
-      <ion-list v-for="(group, category) in groupedAchievements" :key="category">
+      <ion-list
+        v-for="(group, category) in groupedAchievements"
+        :key="category"
+      >
         <ion-item-group>
           <ion-item-divider>
             <ion-label>{{ category }}</ion-label>
@@ -38,35 +41,36 @@
             v-for="(achievement, index) in group"
             :key="index"
           >
-          <xp-achievement-item
-            :achievement="achivement"
-            :categories="categories"
-          >
-            <template #end>
-              <i
-                class="fad fa-grip-vertical ml-2"
-                slot="end"
-              />
-            </template>
-          </xp-achievement-item>
-          <ion-item-options side="start">
-            <ion-item-option
-              color="danger"
-              @click="clickDeleteAchievement(achivement)"
+            <xp-achievement-item
+              :achievement="achievement"
+              :categories="categories"
             >
-              <i class="fad fa-trash fa-lg"></i>
-            </ion-item-option>
-          </ion-item-options>
-          <ion-item-options side="end">
-            <ion-item-option @click="clickEdit(achivement.id)">
-              <!-- Edit -->
-              <i class="fa fad fa-edit fa-lg mx-2"></i>
-            </ion-item-option>
-            <ion-item-option @click="clickCloneAchievement(achivement)">
-              <i class="fa fad fa-copy fa-lg mx-2"></i>
-            </ion-item-option>
-          </ion-item-options>
-        </ion-item-sliding>
+              <template #end>
+                <i
+                  class="fad fa-grip-vertical ml-2"
+                  slot="end"
+                />
+              </template>
+            </xp-achievement-item>
+            <ion-item-options side="start">
+              <ion-item-option
+                color="danger"
+                @click="clickDeleteAchievement(achievement)"
+              >
+                <i class="fad fa-trash fa-lg"></i>
+              </ion-item-option>
+            </ion-item-options>
+            <ion-item-options side="end">
+              <ion-item-option @click="clickEdit(achievement.id)">
+                <!-- Edit -->
+                <i class="fa fad fa-edit fa-lg mx-2"></i>
+              </ion-item-option>
+              <ion-item-option @click="clickCloneAchievement(achievement)">
+                <i class="fa fad fa-copy fa-lg mx-2"></i>
+              </ion-item-option>
+            </ion-item-options>
+          </ion-item-sliding>
+        </ion-item-group>
 
 
       </ion-list>
