@@ -17,14 +17,14 @@
           label="Stacked label"
           label-placement="stacked"
           placeholder="Group by..."
+          v-model="groupBy"
         >
-          <ion-select-option>
+          <ion-select-option value="category">
             Category
           </ion-select-option>
-          <!-- <ion-select-option>
+          <!-- <ion-select-option value="assignee">
             Assignee
           </ion-select-option> -->
-
         </ion-select>
       </ion-toolbar>
     </ion-header>
