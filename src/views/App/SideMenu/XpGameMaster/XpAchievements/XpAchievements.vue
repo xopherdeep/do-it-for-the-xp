@@ -29,51 +29,51 @@
       </ion-toolbar>
     </ion-header>
     <ion-content>
-      <div
+      <ion-item-group
         v-for="(group, index) in groupedAchievements"
         :key="index"
       >
-        <ion-item-group>
-          <ion-item-divider>
-            <ion-label>{{ group.category }}</ion-label>
-          </ion-item-divider>
-          <ion-item-sliding
-            v-for="(achievement, index) in filteredAchievements"
-            :key="index"
+        <ion-item-divider>
+          <ion-label>
+            {{ getCategoryById(group.categoryId)?.name }}
+          </ion-label>
+        </ion-item-divider>
+        <ion-item-sliding
+          v-for="(achievement, index) in group.achievements"
+          :key="index"
+        >
+          <xp-achievement-item
+            :achievement="achievement"
+            :categories="categories"
           >
-            <xp-achievement-item
-              :achievement="achievement"
-              :categories="categories"
+            <template #end>
+              <i
+                class="fad fa-grip-vertical ml-2"
+                slot="end"
+              />
+            </template>
+          </xp-achievement-item>
+          <ion-item-options side="start">
+            <ion-item-option
+              color="danger"
+              @click="clickDeleteAchievement(achievement)"
             >
-              <template #end>
-                <i
-                  class="fad fa-grip-vertical ml-2"
-                  slot="end"
-                />
-              </template>
-            </xp-achievement-item>
-            <ion-item-options side="start">
-              <ion-item-option
-                color="danger"
-                @click="clickDeleteAchievement(achievement)"
-              >
-                <i class="fad fa-trash fa-lg"></i>
-              </ion-item-option>
-            </ion-item-options>
-            <ion-item-options side="end">
-              <ion-item-option @click="clickEdit(achievement.id)">
-                <!-- Edit -->
-                <i class="fa fad fa-edit fa-lg mx-2"></i>
-              </ion-item-option>
-              <ion-item-option @click="clickCloneAchievement(achievement)">
-                <i class="fa fad fa-copy fa-lg mx-2"></i>
-              </ion-item-option>
-            </ion-item-options>
-          </ion-item-sliding>
-        </ion-item-group>
+              <i class="fad fa-trash fa-lg"></i>
+            </ion-item-option>
+          </ion-item-options>
+          <ion-item-options side="end">
+            <ion-item-option @click="clickEdit(achievement.id)">
+              <!-- Edit -->
+              <i class="fa fad fa-edit fa-lg mx-2"></i>
+            </ion-item-option>
+            <ion-item-option @click="clickCloneAchievement(achievement)">
+              <i class="fa fad fa-copy fa-lg mx-2"></i>
+            </ion-item-option>
+          </ion-item-options>
+        </ion-item-sliding>
+      </ion-item-group>
 
 
-      </ion-list>
     </ion-content>
     <ion-fab
       slot="fixed"
@@ -158,18 +158,19 @@
       },
       groupedAchievements() {
         if (this.groupBy === 'category') {
-          return this.achievements.reduce((grouped, achievement) => {
-            const category = grouped.find(group => group.category === achievement.category);
+          return this.achievements?.reduce((grouped, achievement) => {
+            const category = grouped.find(group => group.categoryId === achievement.categoryId);
             if (category) {
               category.achievements.push(achievement);
             } else {
-              grouped.push({ category: achievement.category, achievements: [achievement] });
+              grouped.push({ categoryId: achievement.categoryId, achievements: [achievement] });
             }
             return grouped;
           }, []);
         }
         return this.achievements;
       },
+
     },
     methods: {
       async loadAchievements() {
@@ -242,6 +243,11 @@
         const categories = await this.categoryStorage.getAll();
         this.categories = categories.sort(this.sortCategoryByName);
       },
+
+      getCategoryById(id: string) {
+        const findCatById = cat => cat.id === id
+        return this.categories.find(findCatById)
+      },
     },
     mounted() {
       this.loadAchievements();
@@ -257,7 +263,7 @@
       const showFilters = ref(false)
       const categoryStorage = new AchievementCategoryDb(achievementCategoryStorage)
 
-      const groupBy = ref("");
+      const groupBy = ref("category");
 
       const categories = ref([] as AchievementCategoryInterface[]);
       const sortCategoryByName = (a, b) => {
