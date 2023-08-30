@@ -1,3 +1,4 @@
+import { v4 as uuidv4 } from 'uuid'
 import useQuests, { useInfiniteQuests } from "@/hooks/useQuests";
 import { computed, defineComponent, reactive, ref } from "vue";
 import { useQueryClient } from "vue-query";
@@ -45,6 +46,7 @@ import { useQuery } from "vue-query";
 import XpAchievementDetails from "./XpAchievementDetails.vue"
 import { AchievementDb } from "@/databases";
 import { Storage, Drivers } from "@ionic/storage";
+import { Achievement } from '@/databases/AchievementDb';
 
 
 const achievementStorage = new Storage({
