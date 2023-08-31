@@ -1,9 +1,23 @@
 import { v4 as uuidv4 } from 'uuid'
 import DbStorageApi from './DbStorageApi';
 
+import { Drivers, Storage } from "@ionic/storage";
+
+export const achievementStorage = new Storage({
+  name: "__achievements",
+  driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
+});
+
+export const achievementCategoryStorage = new Storage({
+  name: "__achievementCategories",
+  driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
+});
+
 export interface Achievement {
   id: any
   achievementName: string;
+  imageUrl?: string;
+  localImage?: string;
   categoryId: string;
   requiresApproval: boolean;
   points: string;
@@ -69,7 +83,11 @@ export class AchievementDb extends DbStorageApi {
   }
 
   public async setTask(task: Achievement) {
-    await this.set(task.id, task)
+    const id = task.id ? task.id : uuidv4()
+    await this.set(id, {
+      ...this.createAchievement(),
+      ...task
+    })
   }
 
   public async deleteTask(task: Achievement) {
@@ -104,5 +122,6 @@ export class AchievementDb extends DbStorageApi {
     return tasks
   }
 }
+
 
 export default AchievementDb

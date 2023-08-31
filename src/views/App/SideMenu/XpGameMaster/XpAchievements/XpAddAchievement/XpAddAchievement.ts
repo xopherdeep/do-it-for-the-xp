@@ -2,25 +2,25 @@ import { v4 as uuidv4 } from 'uuid'
 import { defineComponent, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { modalController } from '@ionic/vue';
-import { Drivers, Storage } from "@ionic/storage";
 
 import { IonModal } from '@ionic/vue';
 
-import AchievementDb, { AchievementCategoryDb, AchievementCategoryInterface } from "@/databases/AchievementDb"
-import { achievementStorage } from '../XpAchievements.vue';
+import AchievementDb, {
+  achievementStorage,
+  achievementCategoryStorage,
+  AchievementCategoryDb,
+  AchievementCategoryInterface
+} from "@/databases/AchievementDb"
+
 import ProfileDb from '@/databases/ProfileDb';
 import { profileStorage } from '../../../SwitchProfile/SwitchProfile.vue';
+
 import User from '@/utils/User';
 
 import XpAddCategoryModal from "./components/XpAddCategoryModal.vue";
 
 import ionic from '@/mixins/ionic';
 import { checkmarkOutline, checkmarkSharp } from 'ionicons/icons';
-
-export const achievementCategoryStorage = new Storage({
-  name: "__achievementCategories",
-  driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
-});
 
 import XpAchievementItem from './components/XpAchievementItem.vue';
 import { DIFFICULTY_ICONS, ACHIEVEMENT_TYPE_ICONS, BASIC_SCHEDULE_ICONS } from "@/constants"

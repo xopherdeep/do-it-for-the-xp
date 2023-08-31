@@ -1,6 +1,6 @@
 <template>
   <ion-page :class="$options.name">
-    <ion-header :translucent="true">
+    <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
           <ion-back-button defaultHref="/game-master" />
@@ -132,60 +132,63 @@
         </ion-segment-button>
       </ion-segment>
     </ion-header>
+
     <ion-content>
-      <ion-item-group
-        v-for="(group, index) in groupedAchievements"
-        :key="index"
-      >
-        <ion-item-divider>
-          <ion-label v-if="groupBy === 'assignee'">
-            {{ getAssigneeById(group.assignee)?.name.full }}
-          </ion-label>
-          <ion-label v-else>
-            {{ getCategoryById(group.categoryId)?.name }}
-          </ion-label>
-        </ion-item-divider>
-        <ion-item-sliding
-          v-for="(achievement, index) in group.achievements"
+      <xp-loading v-if="isLoading" />
+      <ion-list v-else>
+        <ion-item-group
+          v-for="(group, index) in groupedAchievements"
           :key="index"
         >
-          <xp-achievement-item
-            :achievement="achievement"
-            :categories="categories"
-            :show-points="showPoints"
+          <ion-item-divider>
+            <ion-label v-if="groupBy === 'assignee'">
+              {{ getAssigneeById(group.assignee)?.name.full }}
+            </ion-label>
+            <ion-label v-else>
+              {{ getCategoryById(group.categoryId)?.name }}
+            </ion-label>
+          </ion-item-divider>
+          <ion-item-sliding
+            v-for="(achievement, index) in group.achievements"
+            :key="index"
           >
-            <template #end>
-              <i
-                class="fad fa-grip-vertical ml-2"
-                slot="end"
-              />
-            </template>
-          </xp-achievement-item>
-          <ion-item-options side="start">
-            <ion-item-option
-              color="danger"
-              @click="clickDeleteAchievement(achievement)"
+            <xp-achievement-item
+              :achievement="achievement"
+              :categories="categories"
+              :show-points="showPoints"
             >
-              <i class="fad fa-fire fa-lg mx-1"></i>
-              Remove
-            </ion-item-option>
-          </ion-item-options>
-          <ion-item-options side="end">
-            <ion-item-option @click="clickEdit(achievement.id)">
-              <!-- Edit -->
-              <i class="fa fad fa-treasure-chest fa-lg mx-2"></i>
-              Edit
-            </ion-item-option>
-            <ion-item-option @click="clickCloneAchievement(achievement)">
-              <i class="fa fad fa-swords fa-lg mx-2"></i>
-              Copy
-            </ion-item-option>
-          </ion-item-options>
-        </ion-item-sliding>
-      </ion-item-group>
-
-
+              <template #end>
+                <i
+                  class="fad fa-grip-vertical ml-2"
+                  slot="end"
+                />
+              </template>
+            </xp-achievement-item>
+            <ion-item-options side="start">
+              <ion-item-option
+                color="danger"
+                @click="clickDeleteAchievement(achievement)"
+              >
+                <i class="fad fa-fire fa-lg mx-1"></i>
+                Remove
+              </ion-item-option>
+            </ion-item-options>
+            <ion-item-options side="end">
+              <ion-item-option @click="clickEdit(achievement.id)">
+                <!-- Edit -->
+                <i class="fa fad fa-treasure-chest fa-lg mx-2"></i>
+                Edit
+              </ion-item-option>
+              <ion-item-option @click="clickCloneAchievement(achievement)">
+                <i class="fa fad fa-swords fa-lg mx-2"></i>
+                Copy
+              </ion-item-option>
+            </ion-item-options>
+          </ion-item-sliding>
+        </ion-item-group>
+      </ion-list>
     </ion-content>
+
     <ion-fab
       slot="fixed"
       vertical="bottom"
@@ -232,6 +235,7 @@
 <script lang="ts">
   import { defineComponent, ref } from "vue";
   import { mapGetters } from "vuex";
+  import { alertController } from "@ionic/vue";
   import ionic from "@/mixins/ionic";
 
   import {
@@ -242,25 +246,21 @@
     thumbsUpOutline,
     thumbsUpSharp,
   } from "ionicons/icons";
-  import { alertController } from "@ionic/vue";
-  import type { Achievement } from "@/databases/AchievementDb";
-  import { Drivers, Storage } from "@ionic/storage";
+
+  import AchievementDb, {
+    achievementStorage,
+    achievementCategoryStorage,
+    Achievement,
+    AchievementCategoryDb,
+    AchievementCategoryInterface
+  } from "@/databases/AchievementDb"
 
   import XpAchievementItem from "./XpAddAchievement/components/XpAchievementItem.vue";
-  import AchievementDb, { AchievementCategoryDb, AchievementCategoryInterface } from "@/databases/AchievementDb"
-
-  import { achievementCategoryStorage } from "./XpAddAchievement/XpAddAchievement.vue";
-
-  export const achievementStorage = new Storage({
-    name: "__achievements",
-    driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
-  });
 
   export default defineComponent({
     name: "xp-achievements",
     mixins: [ionic],
     components: { XpAchievementItem },
-
     computed: {
       ...mapGetters(["usersAz"]),
       users() { return this.usersAz },
@@ -273,11 +273,11 @@
       },
       expiredAchievements() {
         const now = new Date();
-        return this.achievements?.filter(achievement => new Date(achievement.endsOn) < now);
+        return this.filteredAchievements?.filter(achievement => new Date(achievement.endsOn) < now);
       },
 
       asNeededAchievements() {
-        return this.achievements?.filter(achievement => achievement.type === "asNeeded");
+        return this.filteredAchievements?.filter(achievement => achievement.type === "asNeeded");
       },
 
       groupedAchievements() {
@@ -311,37 +311,42 @@
           return grouped;
         }
 
-        return this.achievements?.reduce(groupAchievements, []);
+        return this.filteredAchievements?.reduce(groupAchievements, []);
 
       },
     },
+
     watch: {
       groupBy(group) {
+        let groupAchievements = () => { /** Do nothing */ };
+
         switch (group) {
           case "category":
-            this.loadAchievements();
-            break;
           case "assignee":
-            this.loadAchievements();
+            // No specific grouping logic for these cases, so just load achievements.
             break;
           case "asNeeded":
-            this.loadAchievements().then(() => this.setAchievements(this.asNeededAchievements));
+            groupAchievements = () => this.setAchievements(this.asNeededAchievements);
             break;
           case "expired":
-            this.loadAchievements().then(() => this.setAchievements(this.expiredAchievements));
+            groupAchievements = () => this.setAchievements(this.expiredAchievements);
             break;
         }
-      }
+
+        this.loadAchievements().then(groupAchievements);
+      },
     },
 
     methods: {
       async loadAchievements() {
+        this.isLoading = true;
         const achievements = await this.storage.getTasks();
         this.setAchievements(achievements);
       },
 
       setAchievements(achievements: Achievement[]) {
         this.achievements = achievements;
+        this.isLoading = false;
       },
 
       clickFilter() {
@@ -452,8 +457,10 @@
       }
 
       const showPoints = ref(true)
+      const isLoading = ref(true)
 
       return {
+        isLoading,
         showPoints,
         groupBy,
         categories,
