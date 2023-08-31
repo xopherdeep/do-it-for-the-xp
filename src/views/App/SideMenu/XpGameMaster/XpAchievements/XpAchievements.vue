@@ -5,14 +5,104 @@
         <ion-buttons slot="start">
           <ion-back-button defaultHref="/game-master" />
         </ion-buttons>
-        <ion-title> XP Game Master Achievements</ion-title>
+        <ion-title>
+          Achievements
+        </ion-title>
         <ion-buttons slot="end">
-          <ion-button @click="clickFilter">
+          <!-- <ion-button @click="clickFilter">
             <i class="fad fa-filter fa-lg" />
+          </ion-button> -->
+          <ion-button id="popover-button">
+            <i class="fad fa-eye fa-2x" />
           </ion-button>
         </ion-buttons>
+        <ion-popover
+          trigger="popover-button"
+          :dismiss-on-select="true"
+        >
+          <ion-content>
+            <ion-list>
+              <ion-item
+                :button="true"
+                :detail="false"
+                @click="showPoints = !showPoints"
+              >
+                <i
+                  class="fad fa-ring fa-lg mr-3"
+                  slot="start"
+                />
+
+                <ion-label slot="start">
+                  Points
+                </ion-label>
+                <ion-checkbox
+                  v-model="showPoints"
+                  slot="end"
+                  @click.stop
+                >
+                </ion-checkbox>
+              </ion-item>
+              <ion-item
+                :button="true"
+                :detail="false"
+                @click="showPoints = !showPoints"
+              >
+                <i
+                  class="fad fa-clipboard-check fa-lg mr-3"
+                  slot="start"
+                />
+                <ion-label>
+                  Requires Approval
+                </ion-label>
+                <ion-checkbox
+                  slot="end"
+                  @click.stop
+                >
+                </ion-checkbox>
+              </ion-item>
+              <ion-item
+                :button="true"
+                :detail="false"
+                @click="showPoints = !showPoints"
+              >
+                <i
+                  class="fad fa-gift fa-lg mr-3"
+                  slot="start"
+                />
+
+                <ion-label>
+                  Bonus Chore
+                </ion-label>
+
+                <ion-checkbox
+                  slot="end"
+                  @click.stop
+                >
+                </ion-checkbox>
+              </ion-item>
+
+              <ion-popover
+                trigger="nested-trigger"
+                :dismiss-on-select="true"
+                side="end"
+              >
+                <ion-content>
+                  <ion-list>
+                    <ion-item
+                      :button="true"
+                      :detail="false"
+                    >
+                      Nested option
+                    </ion-item>
+                  </ion-list>
+                </ion-content>
+              </ion-popover>
+
+            </ion-list>
+          </ion-content>
+        </ion-popover>
       </ion-toolbar>
-      <ion-toolbar v-if="showFilters">
+      <!-- <ion-toolbar v-if="showFilters">
         <ion-select
           label="Stacked label"
           label-placement="stacked"
@@ -22,11 +112,25 @@
           <ion-select-option value="category">
             Category
           </ion-select-option>
-          <!-- <ion-select-option value="assignee">
-            Assignee
-          </ion-select-option> -->
         </ion-select>
-      </ion-toolbar>
+      </ion-toolbar> -->
+      <ion-segment
+        v-model="groupBy"
+        mode="ios"
+      >
+        <ion-segment-button value="category">
+          By Category
+        </ion-segment-button>
+        <ion-segment-button value="assignee">
+          By Assignee
+        </ion-segment-button>
+        <ion-segment-button value="asNeeded">
+          As Needed
+        </ion-segment-button>
+        <ion-segment-button value="expired">
+          Expired
+        </ion-segment-button>
+      </ion-segment>
     </ion-header>
     <ion-content>
       <ion-item-group
@@ -45,6 +149,7 @@
           <xp-achievement-item
             :achievement="achievement"
             :categories="categories"
+            :show-points="showPoints"
           >
             <template #end>
               <i
@@ -58,16 +163,19 @@
               color="danger"
               @click="clickDeleteAchievement(achievement)"
             >
-              <i class="fad fa-trash fa-lg"></i>
+              <i class="fad fa-fire fa-lg mx-1"></i>
+              Remove
             </ion-item-option>
           </ion-item-options>
           <ion-item-options side="end">
             <ion-item-option @click="clickEdit(achievement.id)">
               <!-- Edit -->
-              <i class="fa fad fa-edit fa-lg mx-2"></i>
+              <i class="fa fad fa-treasure-chest fa-lg mx-2"></i>
+              Edit
             </ion-item-option>
             <ion-item-option @click="clickCloneAchievement(achievement)">
-              <i class="fa fad fa-copy fa-lg mx-2"></i>
+              <i class="fa fad fa-swords fa-lg mx-2"></i>
+              Copy
             </ion-item-option>
           </ion-item-options>
         </ion-item-sliding>
@@ -219,6 +327,7 @@
                 // handlerMessage.value = "Alert canceled";
               },
             },
+
             {
               text: "OK",
               role: "confirm",
@@ -226,6 +335,7 @@
             },
           ],
         });
+
         await alert.present();
       },
       filterAchievement(achievement: Achievement) {
@@ -239,6 +349,7 @@
 
         return lowerName ? indexOf > -1 : !lowerSearch;
       },
+
       async loadCategories() {
         const categories = await this.categoryStorage.getAll();
         this.categories = categories.sort(this.sortCategoryByName);
@@ -258,26 +369,32 @@
     },
     setup() {
       const achievements = ref();
-      const storage = new AchievementDb(achievementStorage);
       const searchText = ref("");
       const showFilters = ref(false)
-      const categoryStorage = new AchievementCategoryDb(achievementCategoryStorage)
-
       const groupBy = ref("category");
-
+      const storage = new AchievementDb(achievementStorage);
+      const categoryStorage = new AchievementCategoryDb(achievementCategoryStorage)
       const categories = ref([] as AchievementCategoryInterface[]);
+
       const sortCategoryByName = (a, b) => {
         const nameA = a.name.toLowerCase();
         const nameB = b.name.toLowerCase();
+
         if (nameA < nameB) {
           return -1;
         }
+
         if (nameA > nameB) {
           return 1;
         }
+
         return 0;
       }
+
+      const showPoints = ref(true)
+
       return {
+        showPoints,
         groupBy,
         categories,
         sortCategoryByName,
