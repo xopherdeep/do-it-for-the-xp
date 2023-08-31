@@ -137,8 +137,11 @@
         v-for="(group, index) in groupedAchievements"
         :key="index"
       >
-        <ion-item-divider v-if="groupBy !== 'expired'">
-          <ion-label>
+        <ion-item-divider>
+          <ion-label v-if="groupBy === 'assignee'">
+            {{ getAssigneeById(group.assignee)?.name.full }}
+          </ion-label>
+          <ion-label v-else>
             {{ getCategoryById(group.categoryId)?.name }}
           </ion-label>
         </ion-item-divider>
@@ -228,6 +231,7 @@
 
 <script lang="ts">
   import { defineComponent, ref } from "vue";
+  import { mapGetters } from "vuex";
   import ionic from "@/mixins/ionic";
 
   import {
@@ -258,6 +262,9 @@
     components: { XpAchievementItem },
 
     computed: {
+      ...mapGetters(["usersAz"]),
+      users() { return this.usersAz },
+
       hasAchievements() {
         return this.groupedAchievements?.length > 0;
       },
@@ -268,24 +275,65 @@
         const now = new Date();
         return this.achievements?.filter(achievement => new Date(achievement.endsOn) < now);
       },
-      groupedAchievements() {
-        if (this.groupBy === 'category') {
-          return this.achievements?.reduce((grouped, achievement) => {
-            const category = grouped.find(group => group.categoryId === achievement.categoryId);
-            if (category) {
-              category.achievements.push(achievement);
-            } else {
-              grouped.push({ categoryId: achievement.categoryId, achievements: [achievement] });
-            }
-            return grouped;
-          }, []);
-        } else if (this.groupBy === 'expired') {
-          return this.expiredAchievements;
-        }
-        return this.achievements;
+
+      asNeededAchievements() {
+        return this.achievements?.filter(achievement => achievement.type === "asNeeded");
       },
 
+      groupedAchievements() {
+        const groupAchievements = (grouped, achievement) => {
+          const category = grouped.find(group => group.categoryId === achievement.categoryId);
+          // TODO: do the same for assignee, but its an array of ids
+          const assignee = grouped.find(group => achievement.assignee.includes(group.assignee));
+
+          switch (this.groupBy) {
+            case "assignee":
+              if (assignee) {
+                assignee.achievements.push(achievement);
+              } else {
+                achievement.assignee.forEach(assignee => {
+                  grouped.push({ assignee, achievements: [achievement] });
+                });
+              }
+              break;
+
+            default:
+
+              if (category) {
+                category.achievements.push(achievement);
+              } else {
+                grouped.push({ categoryId: achievement.categoryId, achievements: [achievement] });
+              }
+
+              break;
+          }
+
+          return grouped;
+        }
+
+        return this.achievements?.reduce(groupAchievements, []);
+
+      },
     },
+    watch: {
+      groupBy(group) {
+        switch (group) {
+          case "category":
+            this.loadAchievements();
+            break;
+          case "assignee":
+            this.loadAchievements();
+            break;
+          case "asNeeded":
+            this.loadAchievements().then(() => this.setAchievements(this.asNeededAchievements));
+            break;
+          case "expired":
+            this.loadAchievements().then(() => this.setAchievements(this.expiredAchievements));
+            break;
+        }
+      }
+    },
+
     methods: {
       async loadAchievements() {
         const achievements = await this.storage.getTasks();
@@ -365,6 +413,12 @@
         const findCatById = cat => cat.id === id
         return this.categories.find(findCatById)
       },
+
+      getAssigneeById(id: string) {
+        const findUserById = user => user.id === id
+        return this.users.find(findUserById);
+      },
+
     },
     mounted() {
       this.loadAchievements();
