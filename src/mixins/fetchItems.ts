@@ -51,6 +51,8 @@ export default defineComponent({
           page: 1,
           search: "",
           per_page: 4,
+          order: "asc",
+          orderby: "slug",
         },
       },
     };
