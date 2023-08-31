@@ -4,6 +4,9 @@
       name="start"
       slot="start"
     ></slot>
+    <ion-avatar slot="start">
+      <ion-skeleton-text></ion-skeleton-text>
+    </ion-avatar>
     <ion-label>
       <i
         v-if="achievement.difficulty"
