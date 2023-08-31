@@ -137,7 +137,7 @@
         v-for="(group, index) in groupedAchievements"
         :key="index"
       >
-        <ion-item-divider>
+        <ion-item-divider v-if="groupBy !== 'expired'">
           <ion-label>
             {{ getCategoryById(group.categoryId)?.name }}
           </ion-label>
@@ -264,6 +264,10 @@
       filteredAchievements() {
         return this.achievements?.filter(this.filterAchievement);
       },
+      expiredAchievements() {
+        const now = new Date();
+        return this.achievements?.filter(achievement => new Date(achievement.endsOn) < now);
+      },
       groupedAchievements() {
         if (this.groupBy === 'category') {
           return this.achievements?.reduce((grouped, achievement) => {
@@ -275,6 +279,8 @@
             }
             return grouped;
           }, []);
+        } else if (this.groupBy === 'expired') {
+          return this.expiredAchievements;
         }
         return this.achievements;
       },
