@@ -1,6 +1,7 @@
 interface XPStats {
   now: number;
   next_level: number;
+  ledger: Entry[]
 }
 
 interface GPStats {
@@ -8,6 +9,7 @@ interface GPStats {
   debt: number;
   wallet: number;
   savings: number;
+  ledger: Entry[]
 }
 
 interface HPMPStats {
@@ -22,9 +24,20 @@ interface APStats {
   week: number[];
   month: number[];
   year: number[];
+  total: number;
+  ledger: Entry[];
+}
+interface Entry {
+  type: 'reward' | 'penalty'; // Could be more types like 'purchase', 'exchange', etc.
+  timestamp: number; // The Unix timestamp when the transaction occurred
+  achievementId: any; // The ID of the achievement tied to this entry
+  amount: number; // The amount gained or lost
+  description: string; // A brief description of the entry
 }
 
+
 interface SpecialStats {
+  ledger: Entry[];
   strength: number;
   defense: number;
   endurance: number;
@@ -48,13 +61,23 @@ export default class Stats {
   ap: APStats;
   special: SpecialStats;
 
-  constructor({ level, xp, gp, hp, mp, ap, special }: { level?: number, xp: XPStats, gp?: GPStats, hp?: HPMPStats, mp?: HPMPStats, ap?: APStats, special?: SpecialStats } = {
-    xp: {
-      now: 0,
-      next_level: 100
-    }
-
-  }) {
+  constructor({
+    level, xp, gp, hp, mp, ap, special
+  }: {
+    level?: number,
+    xp: XPStats,
+    gp?: GPStats,
+    hp?: HPMPStats,
+    mp?: HPMPStats,
+    ap?: APStats,
+    special?: SpecialStats
+  } = {
+      xp: {
+        now: 0,
+        next_level: 100,
+        ledger: [],
+      }
+    }) {
 
     const debt = gp && gp.wallet < 0 ? 1 * gp?.wallet : 0
 
@@ -65,22 +88,14 @@ export default class Stats {
     this.xp = {
       now: xp?.now,
       next_level: xp?.next_level,
+      ledger: xp?.ledger,
     };
     this.gp = {
       limit: gp?.limit || 100,
       debt: Number(gp?.debt) + Number(debt) ?? debt,
       wallet: gp?.wallet ?? 0,
-      savings: gp?.savings ?? 100
-    };
-    this.hp = {
-      now: hp?.now ?? 25,
-      max: hp?.max ?? 30,
-      min: hp?.min ?? 0,
-    };
-    this.mp = {
-      now: mp?.now ?? 0,
-      max: mp?.max ?? 0,
-      min: mp?.min ?? 0,
+      savings: gp?.savings ?? 100,
+      ledger: gp?.ledger ?? [],
     };
     this.ap = {
       hour: ap?.hour ?? [],
@@ -88,8 +103,11 @@ export default class Stats {
       week: ap?.week ?? [],
       month: ap?.month ?? [],
       year: ap?.year ?? [],
+      total: ap?.total ?? 0,
+      ledger: ap?.ledger ?? [],
     };
     this.special = {
+      ledger: special?.ledger ?? [],
       strength: special?.strength ?? 0,
       defense: special?.defense ?? 0,
       endurance: special?.endurance ?? 0,
@@ -102,6 +120,17 @@ export default class Stats {
       agility: special?.agility ?? 0,
       guts: special?.guts ?? 0,
       luck: special?.luck ?? 0,
+
+    };
+    this.hp = {
+      now: hp?.now ?? 25,
+      max: hp?.max ?? 30,
+      min: hp?.min ?? 0,
+    };
+    this.mp = {
+      now: mp?.now ?? 0,
+      max: mp?.max ?? 0,
+      min: mp?.min ?? 0,
     };
   }
 }
