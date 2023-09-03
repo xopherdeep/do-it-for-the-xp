@@ -8,68 +8,58 @@ export const monsterStorage = new Storage({
   driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
 });
 
-export interface Monster {
+export interface Beast {
   id: any
   monsterName: string;
   imageUrl?: string;
   localImage?: string;
-  achievementId: string;
-  type: string;
-  difficulty: number;
-  xp: number;
-  gp: number;
-  ap: number;
+  achievementIds: string[];
 }
 
 export class BestiaryDb extends DbStorageApi {
-  private createMonster(): Monster {
+  private createBeast(): Beast {
     return {
       id: uuidv4(),
       monsterName: '',
-      achievementId: '',
-      type: 'individual',
-      difficulty: 1,
-      xp: 200,
-      gp: 20,
-      ap: 2
+      achievementIds: [],
     }
   }
 
-  public async setMonster(monster: Monster) {
-    const id = monster.id ? monster.id : uuidv4()
+  public async setBeast(Beast: Beast) {
+    const id = Beast.id ? Beast.id : uuidv4()
     await this.set(id, {
-      ...this.createMonster(),
-      ...monster
+      ...this.createBeast(),
+      ...Beast
     })
   }
 
-  public async deleteMonster(monster: Monster) {
-    this.remove(monster.id)
-    return await this.getMonsters()
+  public async deleteBeast(beast: Beast) {
+    this.remove(beast.id)
+    return await this.getBeasts()
   }
 
-  public async cloneMonster(monster: Monster) {
-    const cloneFromMonsters = async () => {
+  public async cloneBeast(monster: Beast) {
+    const cloneFromBeasts = async () => {
       const clone = {
         ...monster,
         id: uuidv4(),
         monsterName: `${monster.monsterName} (clone)`
       }
       const cloneToast = () => this.showSuccessToast("Clone Successful!")
-      return await this.setMonster(clone).then(cloneToast)
+      return await this.setBeast(clone).then(cloneToast)
     }
 
-    const clone = await this.getMonsters().then(cloneFromMonsters)
+    const clone = await this.getBeasts().then(cloneFromBeasts)
     return clone
   }
 
-  public async getMonsterById(id) {
-    const monsters = await this.getMonsters();
-    const monster = monsters.find((monster) => monster.id === id);
-    return monster || this.createMonster()
+  public async getBeastById(id) {
+    const beasts = await this.getBeasts();
+    const beast = beasts.find(beast => beast.id === id);
+    return beast || this.createBeast()
   }
 
-  public async getMonsters() {
+  public async getBeasts() {
     const monsters = await this.getAll()
     return monsters
   }
