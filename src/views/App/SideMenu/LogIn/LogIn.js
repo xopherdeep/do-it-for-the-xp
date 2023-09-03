@@ -164,7 +164,10 @@ export default defineComponent({
         client_id,
       }).toString();
 
-      window.location.href = `https://${domain}${authorize}?${params}`;
+      this.$router.push("/switch-profile")
+      modalController.dismiss()
+
+      // window.location.href = `https://${domain}${authorize}?${params}`;
     },
 
     closeModal() {
