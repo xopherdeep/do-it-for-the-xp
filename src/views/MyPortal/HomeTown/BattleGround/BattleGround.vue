@@ -1,11 +1,20 @@
 <template>
   <ion-page ref="battle">
     <canvas class="battle-bg"></canvas>
-    <ion-header :translucent="true" v-if="user.stats">
+    <ion-header
+      :translucent="true"
+      v-if="user.stats"
+    >
 
     </ion-header>
-    <ion-content :fullscreen="false" class="battle-bg">
-      <ion-grid class="battle-grid" :class="$fx.theme.rpg">
+    <ion-content
+      :fullscreen="false"
+      class="battle-bg"
+    >
+      <ion-grid
+        class="battle-grid"
+        :class="$fx.theme.rpg"
+      >
         <ion-row>
           <ion-col class="tasks">
             <ion-avatar
@@ -24,9 +33,15 @@
               />
             </ion-avatar>
           </ion-col>
-          <ion-col size="5" class="party">
-            <ion-avatar v-for="member in users" :key="member.id">
-              <ion-img :src="getUserAvatar(member)" />
+          <ion-col
+            size="5"
+            class="party"
+          >
+            <ion-avatar
+              v-for="member in users"
+              :key="member.id"
+            >
+              <ion-img :src="$getUserAvatar(member)" />
             </ion-avatar>
           </ion-col>
         </ion-row>
@@ -39,8 +54,14 @@
         v-if="!activeModal"
         @click="clickUserChip(user)"
       >
-        <ion-fab-button color="light" v-if="user.avatar">
-          <ion-img class="ion-no-padding" :src="getUserAvatar(user)"></ion-img>
+        <ion-fab-button
+          color="light"
+          v-if="user.avatar"
+        >
+          <ion-img
+            class="ion-no-padding"
+            :src="$getUserAvatar(user)"
+          ></ion-img>
           <!-- <ion-icon :icon="accessibilityOutline"></ion-icon> -->
           <!-- <i class="fad fa-2x fa-hand-holding"></i> -->
         </ion-fab-button>
@@ -57,7 +78,10 @@
         color="danger"
         :value="user.stats.hp.now / user.stats.hp.max"
       ></ion-progress-bar>
-      <ion-grid class="party" v-if="!activeModal">
+      <ion-grid
+        class="party"
+        v-if="!activeModal"
+      >
         <ion-row>
           <ion-col
             v-for="member in users.filter((u) => u.id != user.id)"
@@ -65,9 +89,12 @@
             class="ion-no-padding"
             size="3"
           >
-            <ion-chip class="ion-no-margin" @click="clickUserChip(member)">
+            <ion-chip
+              class="ion-no-margin"
+              @click="clickUserChip(member)"
+            >
               <ion-avatar>
-                <img :src="getUserAvatar(member)" />
+                <ion-img :src="$getUserAvatar(member)" />
               </ion-avatar>
               <ion-grid class="ion-no-margin ion-no-padding">
                 <ion-row>
@@ -107,7 +134,10 @@
           <CardUserStats :id="isUserModalOpen" />
         </ion-content>
       </ion-modal>
-      <ion-progress-bar color="success" :value="0.5"></ion-progress-bar>
+      <ion-progress-bar
+        color="success"
+        :value="0.5"
+      ></ion-progress-bar>
     </ion-footer>
   </ion-page>
 </template>

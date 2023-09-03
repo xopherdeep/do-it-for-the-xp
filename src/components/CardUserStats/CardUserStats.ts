@@ -131,12 +131,6 @@ export default defineComponent({
       ApTotal.start();
       XpTotal.start();
     },
-    getUserAvatar(user) {
-      if (user.avatar) {
-        const avatar = `./${user.avatar}.svg`;
-        return requireAvatar(avatar);
-      }
-    },
 
     async clickHP() {
       const actionSheet = await actionSheetController.create({

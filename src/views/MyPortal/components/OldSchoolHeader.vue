@@ -9,7 +9,7 @@
         <ion-avatar v-if="user.avatar">
           <ion-img
             class="ion-no-padding"
-            :src="getUserAvatar(user)"
+            :src="$getUserAvatar(user)"
           ></ion-img>
         </ion-avatar>
       </ion-buttons>

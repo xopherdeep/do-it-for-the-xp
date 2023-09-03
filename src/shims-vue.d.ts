@@ -15,6 +15,7 @@ declare module '@vue/runtime-core' {
     $store: any;
     play$fx: (fx?: string) => void;
     $historyCount: number;
+    $getUserAvatar: (user: User) => string; 
   }
 }
 

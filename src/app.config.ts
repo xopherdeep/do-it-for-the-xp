@@ -7,7 +7,14 @@ const appConfig = {
   $requireAvatar: require.context("@/assets/images/avatars/"),
   $requireImg: require.context("@/assets/images/"),
   $requireIcon: require.context("@/assets/icons/"),
-  $historyCount: window.history.length
+  $historyCount: window.history.length,
+
+  $getUserAvatar(user) {
+    const { avatar } = user;
+    if (avatar) {
+      return this.$requireAvatar(`./${user.avatar}.svg`);
+    }
+  },
 }
 
-export default appConfig 
+export default appConfig;

@@ -100,7 +100,7 @@
               v-if="user.avatar"
               :router-link="`/user/${user.id}`"
               router-direction="forward"
-              :src="getUserAvatar(user)"
+              :src="$getUserAvatar(user)"
             />
           </ion-col>
           <ion-col

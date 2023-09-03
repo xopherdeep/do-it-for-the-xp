@@ -168,7 +168,7 @@
           <ion-fab-button color="light">
             <ion-img
               class="ion-no-padding"
-              :src="getUserAvatar(user)"
+              :src="$getUserAvaatar(user)"
             ></ion-img>
           </ion-fab-button>
           <ion-fab-list side="top"> </ion-fab-list>
