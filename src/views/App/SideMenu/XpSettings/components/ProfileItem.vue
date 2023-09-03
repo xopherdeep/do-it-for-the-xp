@@ -1,7 +1,7 @@
 <template>
   <ion-item>
     <ion-avatar slot="start">
-      <img :src="getUserAvatar(profile)" />
+      <ion-img :src="$getUserAvatar(profile)" />
     </ion-avatar>
     <!-- <ion-buttons slot="start"> </ion-buttons> -->
     <ion-buttons
