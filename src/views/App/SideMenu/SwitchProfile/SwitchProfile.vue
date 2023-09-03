@@ -178,7 +178,9 @@
         const modal = await modalController.create({
           component: AddProfile,
         });
-        modal.onDidDismiss().then(this.loadProfiles);
+        modal.onDidDismiss()
+          .then(this.loadUsers)
+          .then(this.loadProfiles)
         modal.present();
       },
     },

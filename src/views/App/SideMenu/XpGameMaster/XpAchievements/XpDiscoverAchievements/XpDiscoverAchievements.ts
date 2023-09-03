@@ -127,6 +127,7 @@ export const XpDiscoverAchievements = defineComponent({
           .then(showToast)
       }
     },
+
     ionInfinite(ev: InfiniteScrollCustomEvent) {
       this.page++
       this.fetchNextPage()
@@ -138,6 +139,7 @@ export const XpDiscoverAchievements = defineComponent({
       }, 1000)
 
     },
+
     clickBack() {
       const hasHistory = this.$historyCount - window.history.length;
       // console.log("hashistory", hasHistory);

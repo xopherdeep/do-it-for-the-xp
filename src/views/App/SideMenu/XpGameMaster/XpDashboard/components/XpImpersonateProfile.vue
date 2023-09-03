@@ -7,7 +7,7 @@
   >
     <ion-avatar slot="start">
       <ion-img
-        :src="$getUserAvaatar(user)"
+        :src="$getUserAvatar(user)"
         class="mb-1"
       />
       <ion-progress-bar

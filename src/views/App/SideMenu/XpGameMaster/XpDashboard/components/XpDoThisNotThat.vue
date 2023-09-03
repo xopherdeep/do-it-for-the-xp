@@ -12,7 +12,6 @@
         ></i>
         Bonus
       </ion-item-option>
-
       <ion-item-option
         color="danger"
         expand="block"
@@ -24,10 +23,7 @@
         ></i>
         Penalty
       </ion-item-option>
-
-
     </ion-item-options>
-
     <ion-item
       button
       detail
@@ -41,7 +37,7 @@
         class="fad fa-rainbow fa-2x mr-2"
       ></i>
       <ion-label>
-        Do this ... Not that
+        Do this, Not that
         <p>
           Reward or penalize player's GP
         </p>
