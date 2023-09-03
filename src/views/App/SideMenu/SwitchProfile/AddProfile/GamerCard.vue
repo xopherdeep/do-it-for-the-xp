@@ -2,17 +2,20 @@
   <ion-card>
     <ion-grid>
       <ion-row class="ion-justify-center ion-align-middle">
-        <ion-col
-          class="ion-text-center"
-          size="2"
-        >
-          <i :class="`${selectedJobIcon} fa-4x`" />
-        </ion-col>
-        <ion-col
-          class="ion-text-center"
-          size="2"
-        >
-          <i :class="`${selectedFoodIcon} fa-4x`" />
+        <ion-col size="2">
+          <ion-avatar size="large">
+            <ion-img
+              v-if="profile?.avatar"
+              :src="currentAvatar"
+              class="img-avatar"
+            />
+          </ion-avatar>
+          <!-- <ion-badge
+            color="success"
+            class="my-2"
+          >
+            Level {{ profile?.stats.level || 1 }}
+          </ion-badge> -->
         </ion-col>
         <ion-col>
           <ion-label>
@@ -22,28 +25,28 @@
             <p>
               {{ profile?.favoriteThing }}
             </p>
-            <p>
+            <!-- <p>
               &nbsp;
-              <ion-badge color="success">
-                Level {{ profile?.stats.level || 1 }}
-              </ion-badge>
               <ion-badge
                 color="warning"
                 class="ion-float-right"
               >
                 <xp-gp :gp="profile?.stats.gp.wallet || 0" />
               </ion-badge>
-            </p>
+            </p> -->
           </ion-label>
         </ion-col>
-        <ion-col size="2">
-          <ion-avatar size="large">
-            <ion-img
-              v-if="profile?.avatar"
-              :src="currentAvatar"
-              class="img-avatar"
-            />
-          </ion-avatar>
+        <ion-col
+          class="ion-text-center"
+          size="2"
+        >
+          <i :class="`fad ${selectedJobIcon} fa-4x`" />
+        </ion-col>
+        <ion-col
+          class="ion-text-center"
+          size="2"
+        >
+          <i :class="`fad ${selectedFoodIcon} fa-4x`" />
         </ion-col>
       </ion-row>
     </ion-grid>
@@ -54,11 +57,8 @@
   import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
   import ionic from "@/mixins/ionic";
 
-  import XpGp from "@/components/XpGp/XpGp.vue"
-
   export default defineComponent({
     props: ['profile'],
-    components: { XpGp },
     name: 'GamerCard',
     mixins: [ionic],
     setup(props) {

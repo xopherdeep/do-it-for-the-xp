@@ -44,91 +44,115 @@
       />
 
       <ion-card v-if="activeSegment === 'info'">
+        <ion-list>
+          <ion-item class="avatar-row">
+            <ion-label>
+              Choose Avatar
+            </ion-label>
+            <ion-input
+              slot="end"
+              type="number"
+              v-model="avatarIndex"
+              min="1"
+              max="51"
+            />
+            <ion-button slot="start"
+                :disabled="avatarIndex === 1"
+                @click="previousAvatar"
+                color="primary"
+                fill="outline"
+              >
+                <i class="fa fa-caret-down" />
+                <!-- <ion-icon :icon="arrowBack" />  -->
+                <!-- Back -->
+              </ion-button>
+
+            <ion-button
+              :disabled="avatarIndex === maxAvatarIndex"
+              @click="nextAvatar"
+              color="primary"
+              slot="end"
+            >
+              <i class="fa fa-caret-up" />
+              <!-- <ion-icon :icon="arrowForward" /> -->
+              <!-- Next -->
+            </ion-button>
+          </ion-item>
+          <ion-item>
+            <ion-label>
+              Full Name
+              <p>
+                First M. Last aka Nickname
+              </p>
+            </ion-label>
+            <ion-input
+              v-model="fullName"
+              class="ion-text-right"
+            ></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label>
+              Favorite Thing
+              <p>What's your most favorite thing?</p>
+            </ion-label>
+            <ion-input
+              v-model="favoriteThing"
+              cols="20"
+              class="ion-text-right"
+            ></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label>
+              Job Class
+              <p>
+                Choose your starter job class.
+              </p>
+            </ion-label>
+            <ion-select
+              slot="end"
+              v-model="jobClass"
+              placeholder="Starter Class..."
+            >
+              <ion-select-option
+                v-for="(job, index) in jobClassOptions"
+                :key="index"
+                :value="job.name"
+              >
+                {{ job.name }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+          <ion-item>
+            <ion-label>
+              Favorite Food
+              <p>
+                Pick a favorite food from the bunch.
+              </p>
+            </ion-label>
+            <ion-select
+              v-model="favoriteFood"
+              slot="end"
+              placeholder="Favorite Food..."
+            >
+              <ion-select-option
+                v-for="food in foodOptions"
+                :key="food.value"
+                :value="food.value"
+              >
+                {{ food.value }}
+              </ion-select-option>
+            </ion-select>
+          </ion-item>
+        </ion-list>
         <ion-grid class="ion-no-padding">
           <ion-row>
-            <ion-col>
-              <ion-item class="avatar-row">
-                <ion-label>
-                  Choose Avatar
-                </ion-label>
-                <ion-input
-                  type="number"
-                  v-model="avatarIndex"
-                  min="1"
-                  max="51"
-                />
-                <ion-buttons>
-
-                  <ion-button
-                    :disabled="avatarIndex === 1"
-                    @click="previousAvatar"
-                  >
-                    <ion-icon :icon="arrowBack" /> Back
-                  </ion-button>
-                  <ion-button
-                    :disabled="avatarIndex === maxAvatarIndex"
-                    @click="nextAvatar"
-                  >
-                    Next <ion-icon :icon="arrowForward" />
-                  </ion-button>
-                </ion-buttons>
-              </ion-item>
-            </ion-col>
-          </ion-row>
-          <ion-row>
             <ion-col size="7">
-              <ion-item>
-                <ion-label position="stacked">Full Name</ion-label>
-                <ion-input
-                  v-model="fullName"
-                  class="ion-text-right"
-                ></ion-input>
-              </ion-item>
             </ion-col>
             <ion-col size="5">
-              <ion-item>
-                <ion-label position="stacked">Favorite Thing</ion-label>
-                <ion-input
-                  v-model="favoriteThing"
-                  class="ion-text-right"
-                ></ion-input>
-              </ion-item>
             </ion-col>
           </ion-row>
           <ion-row>
             <ion-col>
-              <ion-item>
-                <ion-label> Job Class </ion-label>
-                <ion-select
-                  slot="end"
-                  v-model="jobClass"
-                  placeholder="Starter Class..."
-                >
-                  <ion-select-option
-                    v-for="(job, index) in jobClassOptions"
-                    :key="index"
-                    :value="job.name"
-                  >
-                    {{ job.name }}
-                  </ion-select-option>
-                </ion-select>
-              </ion-item>
-              <ion-item>
-                <ion-label> Favorite Food </ion-label>
-                <ion-select
-                  v-model="favoriteFood"
-                  slot="end"
-                  placeholder="Favorite Food..."
-                >
-                  <ion-select-option
-                    v-for="food in foodOptions"
-                    :key="food.value"
-                    :value="food.value"
-                  >
-                    {{ food.value }}
-                  </ion-select-option>
-                </ion-select>
-              </ion-item>
             </ion-col>
           </ion-row>
         </ion-grid>

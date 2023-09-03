@@ -23,56 +23,51 @@
       class="ion-padding"
     >
       <ion-card v-if="!loading">
-        <ion-card-content>
-          <ion-list>
-            <ion-item
-              detail
-              button
-              @click="openModal"
+        <ion-list>
+          <ion-item
+            detail
+            button
+            @click="openModal"
+          >
+            <ion-label>
+              New Profile
+              <p>
+                New players Start Here.
+
+              </p>
+            </ion-label>
+          </ion-item>
+          <ion-item
+            v-for="(profile, key) in users"
+            :key="key"
+            @click="clickProfile(profile)"
+            button
+            detail
+          >
+            <ion-label>
+              {{ profile.name.nick }}
+              <p>
+                <small>
+                  {{ profile.name.full }}
+                </small>
+              </p>
+            </ion-label>
+            <ion-avatar slot="end">
+              <ion-img :src="$getUserAvatar(profile)" />
+            </ion-avatar>
+            <ion-label
+              slot="end"
+              class="w-20 ml-2"
             >
-              Start New Profile
-            </ion-item>
-            <ion-item
-              v-for="(profile, key) in users"
-              :key="key"
-              button
-              detail="true"
-              @click="clickProfile(profile)"
-            >
-              <ion-label>
-                <h2>{{ profile.name.full }}</h2>
-                <p>{{ profile.name.nick }}</p>
-              </ion-label>
-              <i
-                :class="profile"
-                class="fas fa-lg ion-margin"
-              ></i>
-              <ion-avatar slot="end">
-                <img :src="getUserAvatar(profile)" />
-              </ion-avatar>
-              <ion-label slot="end">
-                <h2>Level: {{ profile?.stats?.level }}</h2>
-                <p>
-                  <xp-gp :gp="profile?.stats?.gp.wallet" />
-                </p>
-              </ion-label>
-            </ion-item>
-          </ion-list>
-          <ion-buttons> </ion-buttons>
-        </ion-card-content>
+              Level: {{ profile?.stats?.level }}
+              <p>
+                <xp-gp :gp="profile?.stats?.gp.wallet" />
+              </p>
+            </ion-label>
+          </ion-item>
+        </ion-list>
       </ion-card>
     </ion-content>
-    <!-- <ion-fab
-      :class="$options.name"
-      vertical="bottom"
-      horizontal="center"
-      slot="fixed"
-    >
-      <ion-fab-button @click="openModal">
-        <ion-icon :icon="add"></ion-icon>
-      </ion-fab-button>
-    </ion-fab> -->
-
   </ion-page>
 </template>
 

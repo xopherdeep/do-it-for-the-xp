@@ -18,7 +18,7 @@
         </ion-card-title>
         <ion-card-header>
           <ion-avatar>
-            <img :src="getUserAvatar(user)" />
+            <ion-img :src="$getUserAvatar(user)" />
           </ion-avatar>
         </ion-card-header>
         <ion-card-content>
@@ -57,19 +57,11 @@
       }
     },
     setup() {
-      const requireAvatar = require.context("@/assets/images/avatars/");
       const clickUser = () => {
         // console.log("clickUser", user);
       }
-      const getUserAvatar = (user) => {
-        const { avatar } = user;
-        if (avatar) {
-          return requireAvatar(`./${user.avatar}.svg`);
-        }
-      }
 
       return {
-        getUserAvatar,
         clickUser
       }
     }
