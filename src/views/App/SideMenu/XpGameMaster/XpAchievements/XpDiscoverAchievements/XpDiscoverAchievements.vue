@@ -76,13 +76,8 @@
             <ion-img v-bind="getFeaturedImg(task?._embedded)" />
           </ion-avatar>
           <ion-label>
-            <h3>
-
-              {{ task?.title.rendered }}
-            </h3>
-            <p v-html="task.content.rendered">
-
-            </p>
+            <h3 v-html="task.title.rendered" />
+            <p v-html="task.content.rendered" />
           </ion-label>
         </ion-item>
       </ion-list>

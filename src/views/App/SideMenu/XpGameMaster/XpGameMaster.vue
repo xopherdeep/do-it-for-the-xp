@@ -8,35 +8,41 @@
         <ion-router-outlet ref="outlet"></ion-router-outlet>
         <ion-tab-bar slot="bottom">
           <ion-tab-button
-            tab="achievements"
-            href="/game-master/achievements"
+            tab="abilities"
+            href="/game-master/abilities"
           >
-            <ion-icon
-              :ios="trophyOutline"
-              :md="trophySharp"
-            />
-            Achievements
+            <i class="fad fa-magic fa-2x" />
+            Abilities
+          </ion-tab-button>
+          <ion-tab-button
+            tab="accessories"
+            href="/game-master/accessories"
+          >
+            <i class="fad fa-hand-holding-box fa-2x" />
+            Accessories
           </ion-tab-button>
           <ion-tab-button
             tab="dashboard"
             href="/game-master"
           >
-            <ion-icon
-              :ios="speedometerOutline"
-              :md="speedometerSharp"
-            />
+            <i class="fad fa-tachometer-alt fa-2x" />
             Dashboard
+          </ion-tab-button>
+          <ion-tab-button
+            tab="achievements"
+            href="/game-master/achievements"
+          >
+            <i class="fad fa-trophy fa-2x" />
+            Achievements
           </ion-tab-button>
           <ion-tab-button
             tab="beastiary"
             href="/game-master/beastiary"
           >
-            <ion-icon
-              :ios="pawOutline"
-              :md="pawSharp"
-            />
+            <i class="fad fa-dragon fa-2x" />
             Beastiary
           </ion-tab-button>
+
         </ion-tab-bar>
       </ion-tabs>
     </ion-content>

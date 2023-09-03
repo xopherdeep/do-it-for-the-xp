@@ -89,6 +89,9 @@
           v-for="category in categories"
           :key="category.id"
         >
+          <ion-avatar slot="start">
+            <ion-skeleton-text/>
+          </ion-avatar>
           <ion-input :value="category.name">
 
           </ion-input>

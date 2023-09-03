@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid'
-import { defineComponent, reactive, ref } from 'vue';
+import { defineComponent, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { modalController } from '@ionic/vue';
 
@@ -58,18 +58,18 @@ export default defineComponent({
       prev1: 1,
       prev2: 1,
       segments: [{
-        name: "Classify",
-        icon: "fa-book-open"
+        name: "Adventure",
+        icon: "fa-map-signs"
       },
       {
-        name: "Assign",
-        icon: "fa-dragon"
+        name: "Heros",
+        icon: "fa-user-shield"
       }, {
-        name: "Schedule",
-        icon: "fa-flux-capacitor"
+        name: "Timer",
+        icon: "fa-hourglass"
       }, {
-        name: "XP",
-        icon: "fa-ring"
+        name: "Treasure",
+        icon: "fa-treasure-chest"
       }],
       achievementTypeIcons: ACHIEVEMENT_TYPE_ICONS,
       basicScheduleIcons: BASIC_SCHEDULE_ICONS,
@@ -112,17 +112,17 @@ export default defineComponent({
       const index = this.segments.findIndex(findIndex)
 
       const nextIndex = index + 1
-      const maxLenght = this.segments.length
+      const maxLength = this.segments.length
       const nextSegment = this.segments[nextIndex]
 
-      return (nextIndex >= maxLenght)
+      return (nextIndex >= maxLength)
         ? {
           text: this.segments[0].name,
           icon: this.segments[0].icon
         }
         : {
-          text: this.segments[index + 1].name,
-          icon: this.segments[index + 1].icon
+          text: nextSegment.name,
+          icon: nextSegment.icon
         }
     },
 
@@ -225,6 +225,7 @@ export default defineComponent({
       customPeriodNumber: 1,
       customPeriodType: 'day',
       difficulty: 0,
+      imageUrl: '',
       xp: 0,
       gp: 0,
       ap: 0
@@ -292,7 +293,7 @@ export default defineComponent({
         .then(syncCategories)
     }
 
-    const activeSegment = ref('classify')
+    const activeSegment = ref('adventure')
 
     return {
       deleteCategory,

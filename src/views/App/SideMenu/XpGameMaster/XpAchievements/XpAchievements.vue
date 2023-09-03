@@ -6,7 +6,7 @@
           <ion-back-button defaultHref="/game-master" />
         </ion-buttons>
         <ion-title>
-          Achievements
+          {{ achievements?.length }} Achievements
         </ion-title>
         <ion-buttons slot="end">
           <!-- <ion-button @click="clickFilter">
@@ -37,8 +37,8 @@
                 </ion-label>
                 <ion-checkbox
                   v-model="showPoints"
-                  slot="end"
                   @click.stop
+                  slot="end"
                 >
                 </ion-checkbox>
               </ion-item>
@@ -80,7 +80,6 @@
                 >
                 </ion-checkbox>
               </ion-item>
-
               <ion-popover
                 trigger="nested-trigger"
                 :dismiss-on-select="true"
@@ -97,7 +96,6 @@
                   </ion-list>
                 </ion-content>
               </ion-popover>
-
             </ion-list>
           </ion-content>
         </ion-popover>
@@ -415,8 +413,8 @@
       },
 
       getCategoryById(id: string) {
-        const findCatById = cat => cat.id === id
-        return this.categories.find(findCatById)
+        const findCatById = cat => cat.id === id;
+        return this.categories.find(findCatById);
       },
 
       getAssigneeById(id: string) {
@@ -430,7 +428,7 @@
       this.loadCategories();
     },
     updated() {
-      this.loadAchievements();
+      // this.loadAchievements();
     },
     setup() {
       const achievements = ref();

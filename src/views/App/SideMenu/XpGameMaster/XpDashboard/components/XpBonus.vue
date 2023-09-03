@@ -1,21 +1,32 @@
 <template>
   <ion-header>
     <ion-toolbar class="rpg-box">
-      <ion-title>
+      <ion-title v-if="isPenalty">
+        Take away Points
+      </ion-title>
+      <ion-title v-else>
         Add Bonus
       </ion-title>
       <ion-buttons slot="start">
         <ion-button @click="dismiss">
           <i class="fad fa-arrow-left fa-3x"></i>
-
         </ion-button>
       </ion-buttons>
       <ion-buttons slot="end">
         <ion-button
+          v-if="isPenalty"
           @click="clickAward"
           :disabled="members.length === 0 || gPoints === 0"
         >
-          <i class="fad fa-trophy fa-3x"></i>
+          <i class="fad fa-minus-circle fa-3x"></i>
+          Subtract Points
+        </ion-button>
+        <ion-button
+          v-else
+          @click="clickAward"
+          :disabled="members.length === 0 || gPoints === 0"
+        >
+          <i class="fad fa-gift fa-3x"></i>
           Award Points
         </ion-button>
       </ion-buttons>
@@ -29,7 +40,10 @@
           <ion-card>
             <ion-card-header>
               <ion-card-title>
-                <i class="fad fa-medal fa-3x ion-float-right"></i>
+                <i
+                  class="fad fa-2x ion-float-right"
+                  :class="isPenalty ? 'fa-minus-circle' : 'fa-gift'"
+                ></i>
                 <h1>
                   Select Family Member
                 </h1>
@@ -42,98 +56,91 @@
                 :key="user.id"
               >
 
+                <ion-avatar slot="start">
+                  <ion-img :src="$getUserAvatar(user)" />
+                </ion-avatar>
+                <ion-label>
+                  {{ user.name.nick }}
+                  <p>
+                    {{ user.name.first }}
+                  </p>
+                </ion-label>
                 <ion-checkbox
                   slot="end"
                   :checked="members.includes(user.id)"
                   @ionChange="toggleMember(user.id)"
                 >
                 </ion-checkbox>
-                <ion-avatar slot="start">
-                  <img :src="getUserAvatar(user)" />
-                </ion-avatar>
-                {{ user.name.full }}
               </ion-item>
             </ion-list>
           </ion-card>
           <ion-card>
             <ion-card-header>
               <ion-card-title>
-                <i class="fad fa-coins fa-3x ion-float-right"></i>
-                <h1>
+                <i class="fad fa-coins fa-2x ion-float-right"></i>
+                <h1 v-if="isPenalty">
                   Amount of GP to Award
+                </h1>
+                <h1 v-else>
+                  Take Away GP
                 </h1>
               </ion-card-title>
             </ion-card-header>
-
-            <ion-radio-group
-              v-model="gPoints"
-              @ionChange="onRadioChange"
-            >
+            <ion-card-content>
               <ion-list>
-
-                <ion-grid class="ion-no-padding">
-                  <ion-row>
-                    <ion-col>
-                      <ion-item>
-                        <ion-label position="stacked">
-                          ₲P
-                        </ion-label>
-                        <ion-input
-                          v-model="gPoints"
-                          type="number"
-                        />
-                      </ion-item>
-                    </ion-col>
-                  </ion-row>
-                  <ion-row>
-
-                    <ion-col>
-                      <ion-item>
-                        <ion-label>
-                          <xp-gp gp="1" />
-                        </ion-label>
-                        <ion-radio value="1" />
-                      </ion-item>
-                    </ion-col>
-                    <ion-col>
-                      <ion-item>
-                        <ion-label>
-                          <xp-gp gp="10" />
-                        </ion-label>
-                        <ion-radio value="10" />
-                      </ion-item>
-                    </ion-col>
-                    <ion-col>
-                      <ion-item>
-                        <ion-label>
-                          <xp-gp gp="50" />
-                        </ion-label>
-                        <ion-radio value="50" />
-                      </ion-item>
-                    </ion-col>
-                    <ion-col>
-                      <ion-item>
-                        <ion-label>
-                          <xp-gp gp="100" />
-                        </ion-label>
-                        <ion-radio value="100" />
-                      </ion-item>
-                    </ion-col>
-                  </ion-row>
-                </ion-grid>
+                <ion-item lines="none">
+                  <ion-label position="floating">
+                    ₲P
+                  </ion-label>
+                  <ion-input
+                    v-if="isPenalty"
+                    v-model="gPoints"
+                    type="number"
+                    :max="0"
+                  />
+                  <ion-input
+                    v-else
+                    v-model="gPoints"
+                    type="number"
+                    :min="0"
+                  />
+                </ion-item>
               </ion-list>
-            </ion-radio-group>
+              <ion-segment
+                v-model="gPoints"
+                mode="ios"
+              >
+                <ion-segment-button value="0">
+                  Custom
+                </ion-segment-button>
+                <ion-segment-button :value="getNumber(1)">
+                  <xp-gp :gp="getNumber(1)" />
+                </ion-segment-button>
+                <ion-segment-button :value="getNumber(10)">
+                  <xp-gp :gp="getNumber(10)" />
+                </ion-segment-button>
+                <ion-segment-button :value="getNumber(50)">
+                  <xp-gp :gp="getNumber(50)" />
+                </ion-segment-button>
+                <ion-segment-button :value="getNumber(100)">
+                  <xp-gp :gp="getNumber(100)" />
+                </ion-segment-button>
+              </ion-segment>
+            </ion-card-content>
           </ion-card>
           <ion-card>
             <ion-card-header>
               <ion-card-title>
                 <i class="fad fa-pencil fa-2x ion-float-right"></i>
                 <h1>
-                  Notes
+                  Optional Note
                 </h1>
               </ion-card-title>
-              <ion-card-content>
-                <ion-textarea>
+              <ion-card-content class="ion-no-padding">
+                <ion-textarea
+                  class="border border-dashed rounded"
+                  rows="5"
+                >
 
                 </ion-textarea>
               </ion-card-content>
@@ -157,6 +164,7 @@
   import XpGp from "@/components/XpGp/XpGp.vue";
 
   export const XpBonus = defineComponent({
+    props: ["isPenalty"],
 
     mixins: [ionic],
     components: {
@@ -174,7 +182,8 @@
           profile.stats.gp.wallet = Math.round(Number(wallet) + Number(this.gPoints))
 
           await this.profileDb.setProfile(profile).then(() => {
-            this.profileDb.showSuccessToast("Bonus Awarded")
+            const message = this.isPenalty ? "Points Subtracted" : "Bonus Awarded"
+            this.profileDb.showSuccessToast(message)
             this.dismiss()
           })
         })
@@ -184,6 +193,11 @@
       },
       getUserAvatar(user) {
         return this.$requireAvatar(`./${user.avatar}.svg`)
+      },
+      getNumber(number) {
+        return this.isPenalty
+          ? number * -1
+          : number
       }
     },
 

@@ -119,11 +119,10 @@ export const XpDiscoverAchievements = defineComponent({
     },
     async shouldSaveAchievement(achievement) {
       const showToast = () => this.achievementDb.showSuccessToast("Achievement Saved")
-      if (achievement.data && achievement.data.id) {
-        await this.achievementDb.setTask({
-          ...achievement.data,
-          achievementName: achievement.data.title.rendered
-        }).then(showToast)
+      if (achievement.data) {
+        await this.achievementDb
+          .setTask(achievement.data)
+          .then(showToast)
       }
     },
     ionInfinite(ev: InfiniteScrollCustomEvent) {
@@ -223,36 +222,38 @@ export const XpDiscoverAchievements = defineComponent({
     },
   },
   setup(props, ctx) {
-    const queryClient = useQueryClient();
-    const nTotalTasks = ref(0);
-    const nTotalPages = ref(0);
-    const router = useRouter();
-    const controlledSwiper = ref({} as Swiper);
-    const setControlledSwiper = (swiper) => {
-      controlledSwiper.value = swiper;
-    };
-
     const params = reactive({
       page: 1,
       search: "",
       per_page: 20,
-      _embed: true
+      _embed: true,
+      orderby: "title",
+      order: "asc",
     });
+
     const page = computed({
       get: () => params.page,
       set: page => params.page = page
     })
 
+    const queryClient = useQueryClient();
+    const nTotalTasks = ref(0);
+    const nTotalPages = ref(0);
+    const router = useRouter();
+    const controlledSwiper = ref({} as Swiper);
+    const setControlledSwiper = swiper => controlledSwiper.value = swiper;
+
+
+    const hasNextPage = computed(() => page.value <= nTotalPages.value)
     const updateTotals = ({ data, headers }) => {
       nTotalTasks.value = Number(headers.get("x-wp-total"));
       nTotalPages.value = Number(headers.get("x-wp-totalpages"));
       return data;
     }
-    const hasNextPage = computed(() => page.value <= nTotalPages.value)
 
-    const getNextPageParams = ({ data, headers }) => {
-      return hasNextPage.value ? page.value : undefined
-    }
+    const getNextPageParams = () => hasNextPage.value
+      ? page.value
+      : undefined
 
     const {
       isLoading,
@@ -264,9 +265,6 @@ export const XpDiscoverAchievements = defineComponent({
     } = useInfiniteQuests(page.value, params, updateTotals, getNextPageParams);
 
 
-
-    const getSlideItems = p => queryClient.getQueryData(["tasks", p, params]) || [];
-
     const slideItems = computed(() => queryClient.getQueryData(["tasks", page.value, params]) || []);
 
     const achievementDb = new AchievementDb(achievementStorage)
@@ -277,7 +275,6 @@ export const XpDiscoverAchievements = defineComponent({
       params,
       tasks,
       page,
-      getSlideItems,
       slideItems,
       nTotalTasks,
       nTotalPages,

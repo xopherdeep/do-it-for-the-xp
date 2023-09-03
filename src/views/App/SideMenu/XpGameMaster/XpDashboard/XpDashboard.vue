@@ -10,27 +10,47 @@
       </ion-toolbar>
     </ion-header>
     <ion-content>
-      <ion-grid>
-        <ion-row>
-          <ion-col>
-            <xp-impersonate-profile />
-          </ion-col>
-        </ion-row>
-        <ion-row>
-          <ion-col>
-            <xp-reward-shelf />
-          </ion-col>
-          <ion-col>
-            <xp-action-items />
-          </ion-col>
-        </ion-row>
-        <ion-row>
-          <ion-col>
-            <xp-do-this-not-that />
-          </ion-col>
-        </ion-row>
-      </ion-grid>
+      <ion-list>
+        <ion-list-header>
+          <ion-label>
+            Action Items
+            <p>
+              Stay on top of all approvals.
+            </p>
+          </ion-label>
+        </ion-list-header>
+        <xp-action-items />
+        <ion-list-header>
+          <ion-label>
+            Reward Shelf
+            <p>
+              Create rewards, redeem points.
+            </p>
+          </ion-label>
+        </ion-list-header>
+        <xp-reward-shelf />
+        <xp-do-this-not-that />
+        <ion-list-header>
+          <ion-label>
+            Impersonate Profile
+            <p>
+              Clicking a profile will impersonate that user.
+            </p>
+          </ion-label>
+        </ion-list-header>
+        <xp-impersonate-profile />
+      </ion-list>
     </ion-content>
+    <ion-fab
+      vertical="bottom"
+      horizontal="center"
+    >
+      <ion-fab-button>
+        <i class="fad fa-shield fa-2x"></i>
+      </ion-fab-button>
+      Badges
+
+    </ion-fab>
   </ion-page>
 </template>
 

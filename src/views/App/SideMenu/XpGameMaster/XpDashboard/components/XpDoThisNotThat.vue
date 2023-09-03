@@ -1,53 +1,67 @@
 <template>
-  <ion-card>
-    <ion-card-title>
-      Do this ... Not that
-    </ion-card-title>
-    <ion-grid>
-      <ion-row>
-        <ion-col class="ion-justify-content-center">
-          <ion-card-title class="ion-text-center">
-            <i class="fad fa-thumbs-up fa-lg"></i>
-            35 Dos
-          </ion-card-title>
-        </ion-col>
-        <ion-col>
-          <ion-card-title class="ion-text-center">
-            <i class="fad fa-thumbs-down fa-lg"></i>
-            29 Don'ts
-          </ion-card-title>
-        </ion-col>
-      </ion-row>
-      <ion-row>
-        <ion-col>
-          <ion-button
-            color="success"
-            expand="block"
-            @click="openBonus"
-          >
-            Bonus
-          </ion-button>
-        </ion-col>
-        <ion-col>
-          <ion-button
-            color="secondary"
-            expand="block"
-          >
-            Badges
-          </ion-button>
-        </ion-col>
-        <ion-col>
-          <ion-button
-            color="danger"
-            expand="block"
-          >
-            Penalty
-          </ion-button>
-        </ion-col>
+  <ion-item-sliding>
+    <ion-item-options side="start">
+      <ion-item-option
+        color="success"
+        expand="block"
+        @click="openBonus"
+      >
+        <i
+          class="fad fa-sack-dollar fa-lg my-2"
+          slot="bottom"
+        ></i>
+        Bonus
+      </ion-item-option>
 
-      </ion-row>
-    </ion-grid>
-  </ion-card>
+      <ion-item-option
+        color="danger"
+        expand="block"
+        @click="openPenalty"
+      >
+        <i
+          class="fad fa-minus-circle fa-lg my-2"
+          slot="bottom"
+        ></i>
+        Penalty
+      </ion-item-option>
+
+
+    </ion-item-options>
+
+    <ion-item
+      button
+      detail
+    >
+      <i
+        slot="start"
+        class="fad fa-grip-vertical fa-lg mr-4"
+      ></i>
+      <i
+        slot="start"
+        class="fad fa-rainbow fa-2x mr-2"
+      ></i>
+      <ion-label>
+        Do this ... Not that
+        <p>
+          Reward or penalize player's GP
+        </p>
+      </ion-label>
+      <ion-label
+        slot="end"
+        class="ion-text-center"
+      >
+        35
+        <i class="fad fa-thumbs-up fa-lg mx-1"></i>
+      </ion-label>
+      <ion-label
+        class="ion-text-center"
+        slot="end"
+      >
+        29
+        <i class="fad fa-thumbs-down fa-lg mx-1"></i>
+      </ion-label>
+    </ion-item>
+  </ion-item-sliding>
 </template>
 
 <script lang="ts">
@@ -62,6 +76,16 @@
       async openBonus() {
         const modal = await modalController.create({
           component: XpBonus,
+        })
+        modal.present()
+      },
+
+      async openPenalty() {
+        const modal = await modalController.create({
+          component: XpBonus,
+          componentProps: {
+            isPenalty: true
+          }
         })
         modal.present()
       }

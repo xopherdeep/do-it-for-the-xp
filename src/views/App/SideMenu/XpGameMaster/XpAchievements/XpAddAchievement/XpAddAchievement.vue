@@ -1,15 +1,17 @@
 <template>
   <ion-page :class="$options.name">
-    <ion-header>
+    <ion-header class="rpg-box">
+
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
           <ion-back-button :default-href="`/game-master/achievements`"></ion-back-button>
-
           <!-- <ion-icon :icon="storefrontOutline" slot="icon-only" /> -->
         </ion-buttons>
+
         <ion-title v-if="id">
           Edit Achievement: {{ achievement.achievementName }}
         </ion-title>
+
         <ion-title v-else>
           Create Achievement: {{ achievement.achievementName }}
         </ion-title>
@@ -24,23 +26,48 @@
             Save Achievement
           </ion-button>
         </ion-buttons>
+
       </ion-toolbar>
+
+      <ion-segment v-model="activeSegment">
+        <ion-segment-button
+          v-for="segment in segments"
+          :key="segment.name"
+          :value="segment.name.toLowerCase()"
+        >
+          {{ segment.name }}
+          <i
+            class="fad fa-lg mt-1"
+            :class="segment.icon"
+          ></i>
+        </ion-segment-button>
+      </ion-segment>
     </ion-header>
     <ion-content
-      v-if="activeSegment === 'classify'"
+      v-if="activeSegment === 'adventure'"
       class="bg-slide p-4"
     >
       <ion-card>
         <ion-card-content>
-          Unveil the secrets of this achievement...
+          Unveil the secrets of this achievement, instead of "Do the dishes" try "Slay the Grease Dragon"...
         </ion-card-content>
       </ion-card>
       <ion-list>
+        <ion-item class="ion-items-center items-center align-middle justify-center">
+          <ion-thumbnail class="w-50 h-50">
+            <ion-img :src="achievement?.imageUrl" />
+          </ion-thumbnail>
+          <!-- <ion-label position="floating">
+            Image URL
+          </ion-label>
+          <ion-input
+            v-model="achievement.imageUrl"
+            placeholder="Enter Image URL"
+          ></ion-input> -->
+        </ion-item>
         <ion-item>
           <ion-label position="floating">
             Name Achievement
-            <p>
-            </p>
           </ion-label>
           <ion-input
             v-model="achievement.achievementName"
@@ -105,7 +132,7 @@
       </ion-list>
     </ion-content>
 
-    <ion-content v-if="activeSegment === 'assign'">
+    <ion-content v-if="activeSegment === 'heros'">
       <ion-card>
         <ion-card-content>
           Who are the chosen ones and how shall they embark on this quest?
@@ -113,7 +140,7 @@
       </ion-card>
       <ion-list>
         <ion-item>
-          <ion-label position="floating">The Chosen</ion-label>
+          <ion-label position="floating">The Chosen Heros</ion-label>
           <ion-select
             v-model="achievement.assignee"
             multiple
@@ -215,187 +242,7 @@
 
     </ion-content>
 
-    <ion-content v-if="activeSegment === 'xp'">
-      <ion-card>
-        <ion-card-content>
-          What treasures shall be bestowed for conquering this achievement?
-        </ion-card-content>
-      </ion-card>
-      <ion-list>
-        <ion-item>
-          <ion-label>
-            Amount of Effort
-            <p>
-              Select the difficulty of this achievement.
-            </p>
-          </ion-label>
-          <i
-            slot="end"
-            class="fad fa-2x"
-            :class="difficultyIcon"
-            :style="isFibonacci ? { color: 'var(--ion-color-warning)' } : {}"
-          />
-          <ion-select
-            v-model="achievement.difficulty"
-            placeholder="Outside Golden Ratio"
-            mode="ios"
-          >
-            <ion-select-option
-              v-for="effort in efforts"
-              :key="effort.value"
-              :value="effort.value"
-            >
-              {{ effort.name }}
-            </ion-select-option>
-          </ion-select>
-        </ion-item>
-        <ion-item>
-          <ion-button
-            :disabled="achievement.difficulty === 1"
-            @click="decreaseDifficulty"
-            color="danger"
-          >
-            <i class="fas fa-minus"></i>
-          </ion-button>
-          <ion-range
-            v-model="achievement.difficulty"
-            mode="ios"
-            min="0"
-            max="13"
-            :pin="true"
-            step="1"
-            :snaps="isFibonacci"
-            :ticks="isFibonacci"
-            color="success"
-            @ionChange="updatePoints"
-          >
-            <ion-label slot="start">Minimum
-
-            </ion-label>
-            <ion-label slot="end">Maximum
-
-            </ion-label>
-          </ion-range>
-          <ion-button
-            :disabled="achievement.difficulty === 13"
-            @click="increaseDifficulty"
-            color="success"
-          >
-            <i class="fas fa-plus"></i>
-          </ion-button>
-        </ion-item>
-      </ion-list>
-      <ion-list-header>
-        Reward Points
-      </ion-list-header>
-      <ion-list>
-        <ion-item-sliding>
-          <ion-item-options side="start">
-            <ion-item-option color="success">
-              <i class="fad fa-hand-holding-seedling fa-2x" />
-              <ion-input
-                v-model="achievement.xp"
-                type="number"
-                placeholder="Enter XP"
-                class="ion-text-right w-2 w-10/12"
-              ></ion-input>
-            </ion-item-option>
-          </ion-item-options>
-          <ion-item>
-            <i
-              class="fad fa-grip-vertical fa-lg mr-3"
-              slot="start"
-            />
-            <ion-label position="">
-              <h2>
-                <ion-badge
-                  class="ion-float-right text-white px-2"
-                  color="success"
-                >
-                  {{ achievement.xp }}
-                  <i class="fad fa-hand-holding-seedling ml-2" />
-                </ion-badge>
-                Experience Points (XP)
-              </h2>
-              <p>
-                Points earned for task completion, motivating and tracking skill growth.
-              </p>
-            </ion-label>
-          </ion-item>
-        </ion-item-sliding>
-        <ion-item-sliding>
-          <ion-item-options side="start">
-            <ion-item-option color="warning">
-              <i class="fad fa-hand-holding-usd fa-2x" />
-              <ion-input
-                slot="end"
-                v-model="achievement.gp"
-                type="number"
-                class="ion-text-right text-xl"
-                placeholder="Enter GP"
-              ></ion-input>
-            </ion-item-option>
-          </ion-item-options>
-          <ion-item>
-            <i
-              class="fad fa-grip-vertical fa-lg mr-3"
-              slot="start"
-            />
-            <ion-label>
-              <h2>
-                <ion-badge
-                  class="ion-float-right text-sm px-2"
-                  color="warning"
-                >
-                  <xp-gp :gp="achievement.gp" />
-                  <i class="fad fa-hand-holding-usd ml-2" />
-                </ion-badge>
-                Gold Points (GP)
-              </h2>
-              <p>
-                In-app currency for tasks, teaching financial literacy through rewards.
-              </p>
-            </ion-label>
-          </ion-item>
-        </ion-item-sliding>
-        <ion-item-sliding>
-          <ion-item-options side="start">
-            <ion-item-option color="danger">
-              <i class="fad fa-hand-holding-magic fa-2x" />
-              <ion-input
-                class="ion-text-right text-xl"
-                v-model="achievement.ap"
-                type="number"
-                placeholder="Enter AP"
-              ></ion-input>
-            </ion-item-option>
-          </ion-item-options>
-          <ion-item>
-            <i
-              class="fad fa-grip-vertical fa-lg mr-3"
-              slot="start"
-            />
-            <ion-label>
-              <h2>
-                <ion-badge
-                  class="ion-float-right text-sm px-2"
-                  color="danger"
-                >
-                  {{ achievement.ap }}
-                  <i class="fad fa-hand-holding-magic ml-2" />
-                </ion-badge>
-                Ability Points (AP)
-              </h2>
-              <p>
-                Special points for unlocking abilities, encouraging strategic planning.
-              </p>
-            </ion-label>
-          </ion-item>
-        </ion-item-sliding>
-      </ion-list>
-    </ion-content>
-
-    <ion-content v-if="activeSegment === 'schedule'">
+    <ion-content v-if="activeSegment === 'timer'">
       <ion-card>
         <ion-card-content>
           When shall the quest for this achievement begin and end?
@@ -512,9 +359,215 @@
           <ion-select-option value="sun">Sunday</ion-select-option>
         </ion-select>
       </ion-item>
-
-
     </ion-content>
+
+    <ion-content v-if="activeSegment === 'treasure'">
+      <ion-card>
+        <ion-card-content>
+          What treasures shall be bestowed for conquering this achievement?
+        </ion-card-content>
+      </ion-card>
+      <ion-list>
+        <ion-item>
+          <ion-label>
+            Estimated Amount of Effort
+          </ion-label>
+          <i
+            slot="end"
+            class="fad fa-2x"
+            :class="difficultyIcon"
+            :style="isFibonacci ? { color: 'var(--ion-color-warning)' } : {}"
+          />
+          <ion-select
+            v-model="achievement.difficulty"
+            placeholder="Outside Golden Ratio"
+            mode="ios"
+          >
+            <ion-select-option
+              v-for="effort in efforts"
+              :key="effort.value"
+              :value="effort.value"
+            >
+              {{ effort.name }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+        <ion-item>
+          <ion-button
+            :disabled="achievement.difficulty === 1"
+            @click="decreaseDifficulty"
+            color="danger"
+          >
+            <i class="fas fa-minus"></i>
+          </ion-button>
+          <ion-range
+            v-model="achievement.difficulty"
+            mode="ios"
+            min="0"
+            max="13"
+            :pin="true"
+            step="1"
+            :snaps="isFibonacci"
+            :ticks="isFibonacci"
+            color="warning"
+            @ionChange="updatePoints"
+          >
+            <ion-label slot="start">
+              <p>
+                Min
+              </p>
+            </ion-label>
+            <ion-label slot="end">
+              <p>
+                Max
+              </p>
+
+            </ion-label>
+          </ion-range>
+          <ion-button
+            :disabled="achievement.difficulty === 13"
+            @click="increaseDifficulty"
+            color="success"
+          >
+            <i class="fas fa-plus"></i>
+          </ion-button>
+        </ion-item>
+      </ion-list>
+      <ion-list-header>
+        Amount of Points to Award
+      </ion-list-header>
+      <ion-list>
+        <ion-item-sliding>
+          <ion-item-options side="end">
+            <ion-item-option color="success">
+              <i
+                class="fad fa-hand-holding-seedling fa-2x"
+                slot="end"
+              />
+              <ion-input
+                slot="end"
+                v-model="achievement.xp"
+                type="number"
+                placeholder="Enter XP"
+                class="ion-text-right"
+              ></ion-input>
+              <ion-label slot="end">
+                XP
+              </ion-label>
+            </ion-item-option>
+          </ion-item-options>
+          <ion-item>
+            <i
+              class="fad fa-hand-holding-seedling fa-2x mr-3"
+              slot="start"
+              style="color: var(--ion-color-success)"
+            />
+            <ion-label>
+              Experience Points (XP)
+              <p>
+                Motivates and tracks skill growth.
+              </p>
+            </ion-label>
+            <ion-badge
+              class="ion-float-right text-white px-2"
+              color="success"
+              slot="end"
+            >
+              {{ achievement.xp }}
+              <i class="fad fa-hand-holding-seedling ml-2" />
+            </ion-badge>
+            <i
+              class="fad fa-grip-vertical fa-lg mr-3"
+              slot="end"
+            />
+          </ion-item>
+        </ion-item-sliding>
+        <ion-item-sliding>
+          <ion-item-options side="end">
+            <ion-item-option color="warning">
+              <i class="fad fa-hand-holding-usd fa-2x" />
+              <ion-input
+                slot="end"
+                v-model="achievement.gp"
+                type="number"
+                class="ion-text-right text-xl"
+                placeholder="Enter GP"
+              ></ion-input>
+              <ion-label slot="end">
+                GP
+              </ion-label>
+            </ion-item-option>
+          </ion-item-options>
+          <ion-item>
+            <i
+              class="fad fa-hand-holding-usd fa-2x mr-3"
+              slot="start"
+              style="color: var(--ion-color-warning)"
+            />
+            <ion-label>
+              Gold Points (GP)
+              <p>
+                In-app currency, teaching financial literacy.
+              </p>
+            </ion-label>
+            <ion-badge
+              class="ion-float-right text-sm px-2"
+              color="warning"
+              slot="end"
+            >
+              <xp-gp :gp="achievement.gp" />
+              <i class="fad fa-hand-holding-usd ml-2" />
+            </ion-badge>
+            <i
+              class="fad fa-grip-vertical fa-lg mr-3"
+              slot="end"
+            />
+          </ion-item>
+        </ion-item-sliding>
+        <ion-item-sliding>
+          <ion-item-options side="end">
+            <ion-item-option color="danger">
+              <i class="fad fa-hand-holding-magic fa-2x" />
+              <ion-input
+                class="ion-text-right text-xl"
+                v-model="achievement.ap"
+                type="number"
+                placeholder="Enter AP"
+              ></ion-input>
+              <ion-label slot="end">
+                AP
+              </ion-label>
+            </ion-item-option>
+          </ion-item-options>
+          <ion-item>
+            <i
+              class="fad fa-hand-holding-magic fa-2x mr-3"
+              slot="start"
+              style="color: var(--ion-color-danger)"
+            />
+            <ion-label>
+              Ability Points (AP)
+              <p>
+                Unlocks abilities, encourages strategic planning.
+              </p>
+            </ion-label>
+            <ion-badge
+              class="ion-float-right text-sm px-2"
+              color="danger"
+              slot="end"
+            >
+              {{ achievement.ap }}
+              <i class="fad fa-hand-holding-magic ml-2" />
+            </ion-badge>
+            <i
+              class="fad fa-grip-vertical fa-lg mr-3"
+              slot="end"
+            />
+          </ion-item>
+        </ion-item-sliding>
+      </ion-list>
+    </ion-content>
+
 
     <ion-modal
       :keep-contents-mounted="true"
@@ -587,7 +640,8 @@
     />
 
     <ion-footer>
-      <ion-card>
+      <ion-card class="ion-margin">
+
         <ion-list>
           <ion-item-sliding>
             <ion-item-options side="start">
@@ -613,8 +667,8 @@
             lines="none"
             v-if="achievement.type !== 'asNeeded' && achievement.assignee.length"
           >
-            <ion-label position="floating">
-              The Chosen
+            <ion-label position="stacked">
+              The Chosen Heros
             </ion-label>
             <ion-select
               label=""
@@ -706,36 +760,36 @@
           </ion-item>
         </ion-list>
         <ion-button
-          class="ion-float-right hidden"
+          class="ion-float-right "
           @click="activeSegment = nextButton.text.toLowerCase()"
           color="primary"
+          size="small"
         >
+          {{ nextButton.text }}
           <i
             class="fas"
             :class="nextButton.icon"
           ></i>
-          {{ nextButton.text }}
-          <i
+          <!-- <i
             class="fas fa-chevron-right"
             slot="end"
-          ></i>
+          ></i> -->
         </ion-button>
         <ion-button
           @click="activeSegment = prevButton.text.toLowerCase()"
           color="primary"
-          class="ion-float-left hidden"
+          class="ion-float-left "
+          size="small"
         >
-          <i
-            class="fas fa-chevron-left"
+          <!-- <i
+            class="fas fa-chevron-left hidden"
             slot="start"
-          ></i>
-          {{
-            prevButton.text
-          }}
+          ></i> -->
           <i
             class="fas"
             :class="prevButton.icon"
           ></i>
+          {{ prevButton.text }}
         </ion-button>
       </ion-card>
       <ion-segment v-model="activeSegment">

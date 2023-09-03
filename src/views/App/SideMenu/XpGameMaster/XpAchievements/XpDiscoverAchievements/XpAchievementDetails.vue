@@ -104,8 +104,13 @@
         };
       }
 
+      const featuredImg = getFeaturedImg(props.achievement._embedded)
+
       const closeAchievement = modalController.dismiss
-      const saveAchievement = () => closeAchievement(props.achievement)
+      const saveAchievement = () => closeAchievement({
+        achievementName: props.achievement.title.rendered,
+        imageUrl: featuredImg.src,
+      })
 
       return {
         closeAchievement,

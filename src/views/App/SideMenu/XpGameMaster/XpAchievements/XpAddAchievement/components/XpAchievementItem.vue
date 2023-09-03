@@ -5,7 +5,11 @@
       slot="start"
     ></slot>
     <ion-avatar slot="start">
-      <ion-skeleton-text></ion-skeleton-text>
+      <ion-img
+        v-if="achievement.imageUrl"
+        :src="achievement.imageUrl"
+      />
+      <ion-skeleton-text v-else />
     </ion-avatar>
     <ion-label>
       <i
