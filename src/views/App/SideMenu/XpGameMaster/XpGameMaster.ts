@@ -20,7 +20,9 @@ export default defineComponent({
     // code
     const selectedTab = ref('dashboard'); // default selected tab
     const updateSelectedTab = (event) => {
+      console.log('ionTabsDidChange event:', event);
       if (event && event.detail) {
+        console.log('event.detail.tab:', event.detail.tab);
         selectedTab.value = event.detail.tab;
       }
     };
