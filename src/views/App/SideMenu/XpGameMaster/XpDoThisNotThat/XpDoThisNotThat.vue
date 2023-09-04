@@ -22,11 +22,12 @@
   </ion-page>
 </template>
 <script lang="ts">
-  import { defineComponent, ref, watch } from "vue";
+  import { defineComponent, ref, watch, computed } from "vue";
   import { modalController } from "@ionic/vue";
   import { add } from "ionicons/icons";
   import XpAddDoDont from "./components/XpAddDoDont.vue";
   import { useRoute } from "vue-router";
+  import DoDontDb, { doDontStorage } from "@/databases/DoDontDb";
 
   import ionic from "@/mixins/ionic";
   export default defineComponent({
@@ -43,22 +44,44 @@
         });
         modal.present();
       },
+
+      async loadDoDonts() {
+        this.doDonts = await this.doDontDb.getAll();
+      },
+    },
+
+    computed: {
+      filteredDoDonts() {
+        // Add your filtering logic here
+      },
+
+      groupedDoDonts() {
+        // Add your grouping logic here
+      },
     },
 
     setup() {
       const activeSegment = ref("dos");
+      const doDontDb = new DoDontDb(doDontStorage);
+      const doDonts = ref([]);
+
       const route = useRoute();
       watch(
         () => route.path,
         async (newPath, oldPath) => {
           if (newPath !== oldPath) {
             // Reload your component's data when the route changes
-            // Add your data reloading logic here
+            await this.loadDoDonts();
           }
         },
         { immediate: true } // Fetch data immediately when the component is created
       );
-      return { add, activeSegment };
+
+      return { add, activeSegment, doDontDb, doDonts };
+    },
+
+    mounted() {
+      this.loadDoDonts();
     },
   });
 </script>
