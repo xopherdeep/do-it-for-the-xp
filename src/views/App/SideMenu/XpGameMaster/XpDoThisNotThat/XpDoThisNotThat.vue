@@ -22,11 +22,11 @@
   </ion-page>
 </template>
 <script lang="ts">
-  import { defineComponent, ref } from "vue";
+  import { defineComponent, ref, watch } from "vue";
   import { modalController } from "@ionic/vue";
   import { add } from "ionicons/icons";
   import XpAddDoDont from "./components/XpAddDoDont.vue";
-  import { useRoute, watch } from 'vue-router';
+  import { useRoute } from "vue-router";
 
   import ionic from "@/mixins/ionic";
   export default defineComponent({
@@ -56,7 +56,7 @@
             // Add your data reloading logic here
           }
         },
-        { immediate: true }  // Fetch data immediately when the component is created
+        { immediate: true } // Fetch data immediately when the component is created
       );
       return { add, activeSegment };
     },
