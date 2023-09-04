@@ -1,11 +1,12 @@
 import { v4 as uuidv4 } from 'uuid'
-import { defineComponent, ref } from 'vue';
-import { useRouter } from 'vue-router';
+import { defineComponent, ref, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 import { modalController } from '@ionic/vue';
 
 import { IonModal } from '@ionic/vue';
 
 import AchievementDb, {
+  Achievement,
   achievementStorage,
   achievementCategoryStorage,
   AchievementCategoryDb,
@@ -23,13 +24,17 @@ import ionic from '@/mixins/ionic';
 import { checkmarkOutline, checkmarkSharp } from 'ionicons/icons';
 
 import XpAchievementItem from './components/XpAchievementItem.vue';
+import XpReorderAchievementsModal from './components/XpReorderAchievementsModal.vue';
 import { DIFFICULTY_ICONS, ACHIEVEMENT_TYPE_ICONS, BASIC_SCHEDULE_ICONS } from "@/constants"
+
+import BestiaryDb, { Beast, beastStorage } from '@/databases/BestiaryDb';
 
 export default defineComponent({
   name: 'xp-add-achievement',
   mixins: [ionic],
   components: {
     XpAddCategoryModal,
+    XpReorderAchievementsModal,
     XpAchievementItem
   },
   data() {
@@ -60,16 +65,25 @@ export default defineComponent({
       segments: [{
         name: "Adventure",
         icon: "fa-map-signs"
-      },
-      {
+      }, {
+        name: "Treasure",
+        icon: "fa-treasure-chest"
+      }, {
         name: "Heros",
         icon: "fa-user-shield"
       }, {
         name: "Timer",
         icon: "fa-hourglass"
+      }],
+      adventureTypes: [{
+        segment: "simple",
+        text: `Simple adventures are the quests of everyday life. They may not have beasts to slay or treasure to find, but they are essential steps in your journey.`
       }, {
-        name: "Treasure",
-        icon: "fa-treasure-chest"
+        segment: "beast",
+        text: `Challenging tasks deserve formidable foes. Choose a beast from your Bestiary to face off against and elevate your quest to the next level.`
+      }, {
+        segment: "quest",
+        text: `Some adventures are too grand to stand alone. Assemble a series of challenges that lead you toward an ultimate goal. These quests are perfect for epic undertakings that require multiple steps to complete.`
       }],
       achievementTypeIcons: ACHIEVEMENT_TYPE_ICONS,
       basicScheduleIcons: BASIC_SCHEDULE_ICONS,
@@ -77,7 +91,36 @@ export default defineComponent({
 
     }
   },
+
   computed: {
+    achievementChain() {
+      const { subAchievementIds } = this.achievement;
+      const mapAchievement = id => this.achievements.find(a => a.id === id);
+      const achievements = subAchievementIds.map(mapAchievement);
+
+      return achievements;
+    },
+    hasBeast() {
+      return !!this.achievement.beastId
+    },
+
+    hasSubAchievements() {
+      return !!this.achievement.subAchievementIds
+    },
+
+    typeOfAdventure() {
+      const isQuest = !this.hasBeast && this.hasSubAchievements;
+      return isQuest ? "quest" : "beast"
+    },
+
+    activeAdventureType() {
+      const { adventureTypes, adventureType } = this;
+      const [firstType] = adventureTypes;
+      const bySegment = type => type.segment === adventureType;
+      return adventureTypes.find(bySegment) || firstType;
+    },
+
+
     difficultyIcon() {
       const icon = this.difficultyIcons[this.achievement.difficulty]
       return icon || 'fa-dice'
@@ -148,6 +191,23 @@ export default defineComponent({
   },
 
   methods: {
+
+    async clickReorder() {
+      const { achievementChain } = this
+      const modal = await modalController.create({
+        component: XpReorderAchievementsModal,
+        componentProps: {
+          achievements: achievementChain
+        }
+      });
+
+      modal.onDidDismiss().then(({ data }) => {
+        if (data)
+          this.achievement.subAchievementIds = data
+      });
+
+      modal.present()
+    },
     increaseDifficulty() {
       const currentIndex = this.fibonacciArray.indexOf(this.achievement.difficulty);
       if (currentIndex < this.fibonacciArray.length - 1) {
@@ -162,12 +222,23 @@ export default defineComponent({
     },
     async loadAchievement() {
       if (this.id) {
-        const task = await this.storage.getTaskById(this.id);
+        const task = await this.achievementDb.getTaskById(this.id);
         this.achievement = { ...this.achievement, ...task };
+
+        const hasBeast = task.beastId != ''
+        const hasSubAchievement = task.subAchievementIds.length > 0
+
+        this.adventureType = this.typeOfAdventure
       }
     },
+    async loadAchievements() {
+      this.achievements = await this.achievementDb.getAll();
+    },
+    async loadBeasts() {
+      this.beasts = await this.bestiaryDb.getAll();
+    },
     async loadCategories() {
-      const categories = await this.categoryStorage.getAll();
+      const categories = await this.categoryDb.getAll();
       this.categories = categories.sort(this.sortCategoryByName);
     },
     setNever() {
@@ -194,20 +265,29 @@ export default defineComponent({
   },
 
   mounted() {
-    this.loadAchievement()
-    this.loadCategories()
-    this.loadUsers()
+    this.loadAchievements()
+      .then(this.loadAchievement)
+      .then(this.loadBeasts)
+      .then(this.loadCategories)
+      .then(this.loadUsers)
   },
 
   setup() {
-    const storage = new AchievementDb(achievementStorage)
-    const categoryStorage = new AchievementCategoryDb(achievementCategoryStorage)
-    const profilesDb = new ProfileDb(profileStorage)
-    const router = useRouter()
+
+    const route = useRoute();
+    const router = useRouter();
     const id = router.currentRoute.value.params.id
+    const profilesDb = new ProfileDb(profileStorage);
+    const bestiaryDb = new BestiaryDb(beastStorage);
+    const achievementDb = new AchievementDb(achievementStorage);
+    const categoryDb = new AchievementCategoryDb(achievementCategoryStorage);
+
+    const achievements = ref([] as Achievement[]);
     const achievement = ref({
       id: id ? id : uuidv4(),
       achievementName: '',
+      beastId: '',
+      subAchievementIds: [''],
       categoryId: '',
       requiresApproval: false,
       points: '',
@@ -231,6 +311,8 @@ export default defineComponent({
       ap: 0
     });
 
+    const beasts = ref([] as Beast[])
+
     const ends = ref({} as typeof IonModal);
 
     const endsIsOpen = ref(false)
@@ -249,10 +331,11 @@ export default defineComponent({
       return 0;
     }
 
-    const submitForm = () => {
+    const saveAchievement = () => {
       const goBack = () => router.go(-1)
-      const showToast = () => storage.showSuccessToast("Achievement Added!")
-      storage.setTask(achievement.value)
+      const showToast = () => achievementDb.showSuccessToast("Achievement Added!")
+      achievementDb
+        .setTask(achievement.value)
         .then(goBack)
         .then(showToast)
     };
@@ -271,39 +354,47 @@ export default defineComponent({
 
     const syncCategories = async () => {
       const updateCategories = newCategories => categories.value = newCategories.sort(sortCategoryByName)
-      await categoryStorage.getAll().then(updateCategories)
+      await categoryDb.getAll().then(updateCategories)
     }
 
     const addCategory = (newCategory: AchievementCategoryInterface) => {
-      categoryStorage
+      categoryDb
         .setCategory(newCategory)
         .then(syncCategories)
       achievement.value.categoryId = newCategory.id
     };
 
     const editCategories = (categories: AchievementCategoryInterface[]) => {
-      categoryStorage
+      categoryDb
         .setCategories(categories)
         .then(syncCategories)
     }
 
     const deleteCategory = (category: AchievementCategoryInterface) => {
-      categoryStorage
+      categoryDb
         .remove(category.id)
         .then(syncCategories)
     }
 
     const activeSegment = ref('adventure')
 
+    const adventureType = ref('beast')
+
+
+    // Watch for changes in route
     return {
+      achievements,
+      beasts,
+      adventureType,
       deleteCategory,
       editCategories,
       sortCategoryByName,
       activeSegment,
       users,
       id,
-      storage,
-      categoryStorage,
+      achievementDb,
+      bestiaryDb,
+      categoryDb,
       profilesDb,
       achievement,
       achievementName,
@@ -314,7 +405,7 @@ export default defineComponent({
       checkmarkOutline,
       checkmarkSharp,
       openAddCategoryModal,
-      submitForm,
+      saveAchievement,
     };
   },
 });

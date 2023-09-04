@@ -231,10 +231,11 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref } from "vue";
+  import { defineComponent, ref, watch } from "vue";
   import { mapGetters } from "vuex";
   import { alertController } from "@ionic/vue";
   import ionic from "@/mixins/ionic";
+  import { useRouter, useRoute } from 'vue-router';
 
   import {
     addOutline,
@@ -338,7 +339,7 @@
     methods: {
       async loadAchievements() {
         this.isLoading = true;
-        const achievements = await this.storage.getTasks();
+        const achievements = await this.achievementDb.getTasks();
         this.setAchievements(achievements);
       },
 
@@ -363,12 +364,12 @@
         });
       },
       clickCloneAchievement(task: Achievement) {
-        const { storage, loadAchievements } = this;
-        storage.cloneTask(task).then(loadAchievements);
+        const { achievementDb, loadAchievements } = this;
+        achievementDb.cloneTask(task).then(loadAchievements);
       },
       deleteTask(task: Achievement) {
-        const { storage, loadAchievements } = this;
-        storage.deleteTask(task).then(loadAchievements);
+        const { achievementDb, loadAchievements } = this;
+        achievementDb.deleteTask(task).then(loadAchievements);
       },
       async clickDeleteAchievement(task: Achievement) {
         const alert = await alertController.create({
@@ -408,7 +409,7 @@
       },
 
       async loadCategories() {
-        const categories = await this.categoryStorage.getAll();
+        const categories = await this.categoryDb.getAll();
         this.categories = categories.sort(this.sortCategoryByName);
       },
 
@@ -435,8 +436,8 @@
       const searchText = ref("");
       const showFilters = ref(false)
       const groupBy = ref("category");
-      const storage = new AchievementDb(achievementStorage);
-      const categoryStorage = new AchievementCategoryDb(achievementCategoryStorage)
+      const achievementDb = new AchievementDb(achievementStorage);
+      const categoryDb = new AchievementCategoryDb(achievementCategoryStorage)
       const categories = ref([] as AchievementCategoryInterface[]);
 
       const sortCategoryByName = (a, b) => {
@@ -457,21 +458,34 @@
       const showPoints = ref(true)
       const isLoading = ref(true)
 
+
+      const route = useRoute();
+      watch(
+        () => route.path,
+        async (newPath, oldPath) => {
+          if (newPath !== oldPath) {
+            // Reload your component's data when the route changes
+            achievements.value = await achievementDb.getAll();
+          }
+        },
+        { immediate: true }  // Fetch data immediately when the component is created
+      );
+
       return {
-        isLoading,
-        showPoints,
-        groupBy,
-        categories,
-        sortCategoryByName,
-        categoryStorage,
-        showFilters,
+        achievementDb,
         achievements,
-        searchText,
-        storage,
         addOutline,
         addSharp,
+        categories,
+        categoryDb,
+        groupBy,
+        isLoading,
         searchOutline,
         searchSharp,
+        searchText,
+        showFilters,
+        showPoints,
+        sortCategoryByName,
         thumbsUpOutline,
         thumbsUpSharp,
       };

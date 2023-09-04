@@ -3,33 +3,36 @@ import DbStorageApi from './DbStorageApi';
 
 import { Drivers, Storage } from "@ionic/storage";
 
-export const monsterStorage = new Storage({
-  name: "__monsters",
+export const beastStorage = new Storage({
+  name: "__beasts",
   driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
 });
 
 export interface Beast {
-  id: any
-  monsterName: string;
+  id?: any
+  name: string;
+  checklist: string[]
   imageUrl?: string;
   localImage?: string;
-  achievementIds: string[];
+  achievementIds?: string[];
 }
 
 export class BestiaryDb extends DbStorageApi {
   private createBeast(): Beast {
     return {
       id: uuidv4(),
-      monsterName: '',
+      name: '',
       achievementIds: [],
+      checklist: []
     }
   }
 
-  public async setBeast(Beast: Beast) {
-    const id = Beast.id ? Beast.id : uuidv4()
+  public async setBeast(beast: Beast) {
+    const id = beast.id ? beast.id : uuidv4()
     await this.set(id, {
       ...this.createBeast(),
-      ...Beast
+      ...beast,
+      id
     })
   }
 
@@ -38,12 +41,12 @@ export class BestiaryDb extends DbStorageApi {
     return await this.getBeasts()
   }
 
-  public async cloneBeast(monster: Beast) {
+  public async cloneBeast(beast: Beast) {
     const cloneFromBeasts = async () => {
       const clone = {
-        ...monster,
+        ...beast,
         id: uuidv4(),
-        monsterName: `${monster.monsterName} (clone)`
+        beastName: `${beast.name} (clone)`
       }
       const cloneToast = () => this.showSuccessToast("Clone Successful!")
       return await this.setBeast(clone).then(cloneToast)
@@ -60,8 +63,8 @@ export class BestiaryDb extends DbStorageApi {
   }
 
   public async getBeasts() {
-    const monsters = await this.getAll()
-    return monsters
+    const beasts = await this.getAll()
+    return beasts
   }
 }
 

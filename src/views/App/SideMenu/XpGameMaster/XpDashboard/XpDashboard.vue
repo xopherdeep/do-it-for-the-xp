@@ -59,7 +59,7 @@
   import XpRewardShelf from "./components/XpRewardShelf.vue";
   import XpImpersonateProfile from "./components/XpImpersonateProfile.vue";
   import XpActionItems from "./components/XpActionItems.vue";
-  import XpDoThisNotThat from "./components/XpDoThisNotThat.vue";
+  import XpDoThisNotThat from "./components/XpDoThisNotThatItem.vue";
 
   import { defineComponent } from "vue";
   export default defineComponent({

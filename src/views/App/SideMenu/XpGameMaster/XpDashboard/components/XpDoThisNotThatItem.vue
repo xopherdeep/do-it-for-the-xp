@@ -25,6 +25,7 @@
       </ion-item-option>
     </ion-item-options>
     <ion-item
+      @click="clickDoThisNotThat"
       button
       detail
     >
@@ -42,20 +43,18 @@
           Reward or penalize player's GP
         </p>
       </ion-label>
-      <ion-label
-        slot="end"
-        class="ion-text-center"
-      >
-        35
-        <i class="fad fa-thumbs-up fa-lg mx-1"></i>
-      </ion-label>
-      <ion-label
-        class="ion-text-center"
-        slot="end"
-      >
-        29
-        <i class="fad fa-thumbs-down fa-lg mx-1"></i>
-      </ion-label>
+      <ion-buttons slot="end">
+        <ion-button>
+
+          35
+          <i class="fad fa-thumbs-up fa-lg mx-1"></i>
+        </ion-button>
+        <ion-button>
+
+          29
+          <i class="fad fa-thumbs-down fa-lg mx-1"></i>
+        </ion-button>
+      </ion-buttons>
     </ion-item>
   </ion-item-sliding>
 </template>
@@ -66,9 +65,12 @@
   import { modalController } from '@ionic/vue';
   import XpBonus from './XpBonus.vue';
   export default defineComponent({
-    name: 'xp-do-this-not-that',
+    name: 'XpDoThisNotThatItem',
     mixins: [ionic],
     methods: {
+      clickDoThisNotThat() {
+        this.$router.push('/game-master/do-this-not-that')
+      },
       async openBonus() {
         const modal = await modalController.create({
           component: XpBonus,
@@ -84,8 +86,8 @@
           }
         })
         modal.present()
-      }
-    }
+      },
+    },
 
   })
 </script>

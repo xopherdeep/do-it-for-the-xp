@@ -14,25 +14,29 @@ export const achievementCategoryStorage = new Storage({
 });
 
 export interface Achievement {
+  // achievement
   id: any
   achievementName: string;
+  categoryId: string;
   imageUrl?: string;
   localImage?: string;
-  categoryId: string;
-  requiresApproval: boolean;
-  points: string;
-  assignee: never[];
-  type: string;
   bonusAchievement: boolean;
-  startsOn: string;
-  endsOn: string;
-  dueByTime: string;
-  scheduleType: string,
+  requiresApproval: boolean;
+  beastId?: string;
+  subAchievementIds?: string[];
+  // assignment
+  type: string;
+  assignee: never[];
+  // schedule
   basicSchedule: string;
-  showDailyUntilComplete: boolean;
-  repeatOnDays: never[],
   customFrequency: number;
   customPeriodType: string;
+  dueByTime: string;
+  endsOn: string;
+  startsOn: string;
+  repeatOnDays: never[],
+  showDailyUntilComplete: boolean;
+  // stats
   difficulty: number;
   xp: number;
   gp: number;
@@ -61,15 +65,15 @@ export class AchievementDb extends DbStorageApi {
       id: uuidv4(),
       achievementName: '',
       categoryId: '',
+      beastId: '',
+      subAchievementIds: [],
       requiresApproval: false,
-      points: '',
       assignee: [],
       type: 'individual',
       bonusAchievement: false,
       startsOn: new Date().toISOString(),
       endsOn: new Date().toISOString(),
       dueByTime: '',
-      scheduleType: 'basic',
       basicSchedule: 'once',
       showDailyUntilComplete: false,
       customFrequency: 0,
@@ -86,7 +90,8 @@ export class AchievementDb extends DbStorageApi {
     const id = task.id ? task.id : uuidv4()
     await this.set(id, {
       ...this.createAchievement(),
-      ...task
+      ...task,
+      id
     })
   }
 

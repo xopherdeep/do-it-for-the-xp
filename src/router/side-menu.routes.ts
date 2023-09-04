@@ -36,7 +36,13 @@ const SideMenu = [
       {
         path: 'beastiary',
         name: 'xp-beastiary',
-        component: () => import('@/views/App/SideMenu/XpGameMaster/XpBeastiary/XpBeastiary.vue'),
+        component: () => import('@/views/App/SideMenu/XpGameMaster/XpBeastiary/XpBestiary.vue'),
+      },
+      {
+        path: 'do-this-not-that/:id?',
+        name: 'xp-do-this-not-that',
+        component: () => import('@/views/App/SideMenu/XpGameMaster/XpDoThisNotThat/XpDoThisNotThat.vue'),
+        props: true
       },
     ],
   },
