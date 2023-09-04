@@ -1,7 +1,18 @@
 <template>
   <ion-header>
     <ion-toolbar>
-      <ion-title> Add </ion-title>
+      <ion-buttons slot="start">
+        <ion-back-button :default-href="`/game-master/do-this-not-that`" />
+        <i
+          class="fad fa-2x"
+          :class="{
+            'fa-thumbs-up': form.type === 'do',
+            'fa-thumbs-down': form.type === 'dont',
+          }"
+        ></i>
+        <!-- <ion-icon :icon="medalOutline" size="large" /> -->
+      </ion-buttons>
+      <ion-title> Add {{ form.type }}</ion-title>
     </ion-toolbar>
   </ion-header>
   <ion-content class="bg-slide">
@@ -12,14 +23,28 @@
           <p>Choose between the two.</p>
         </ion-label>
       </ion-list-header>
-      <ion-segment v-model="form.type">
+      <ion-segment v-model="form.type" @ionChange="updatePoints">
         <ion-segment-button value="do" color="success">Do</ion-segment-button>
         <ion-segment-button value="dont" color="danger">
           Don't
         </ion-segment-button>
       </ion-segment>
       <ion-item>
-        <ion-label> Estimated Amount of Effort </ion-label>
+        <ion-avatar slot="start">
+          <ion-skeleton-text></ion-skeleton-text>
+        </ion-avatar>
+        <ion-label position="floating">
+          What is the
+          {{ form.type === "do" ? "Bonus" : "Penalty" }}
+          for?
+        </ion-label>
+        <ion-input v-model="form.whatFor" />
+      </ion-item>
+      <ion-item>
+        <ion-label>
+          Amount
+          {{ form.type === "do" ? "Awarded" : "Penalized" }}
+        </ion-label>
         <i
           slot="end"
           class="fad fa-2x"
@@ -74,32 +99,44 @@
           <i class="fas fa-plus"></i>
         </ion-button>
       </ion-item>
-      <ion-item>
-        <ion-label>Notes</ion-label>
-        <ion-textarea v-model="form.notes"></ion-textarea>
-      </ion-item>
-      <ion-list-header> Amount of Points to Award </ion-list-header>
+      <ion-list-header>
+        Amount of Points to
+        {{ form.type === "do" ? "Award" : "Penalize" }}
+      </ion-list-header>
       <ion-row>
         <ion-col>
-          <ion-checkbox v-model="form.points.xp" color="success"></ion-checkbox>
-          <ion-label>
-            <i class="fad fa-hand-holding-seedling"></i> XP
-          </ion-label>
+          <ion-item :color="form.awardPoints.xp ? 'success' : ''">
+            <ion-label>
+              <i class="fad fa-hand-holding-seedling"></i> XP
+            </ion-label>
+            <ion-checkbox
+              v-model="form.awardPoints.xp"
+              color="success"
+            ></ion-checkbox>
+          </ion-item>
         </ion-col>
         <ion-col>
-          <ion-checkbox v-model="form.points.gp" color="warning"></ion-checkbox>
-          <ion-label>
-            <i class="fad fa-hand-holding-usd"></i> GP
-          </ion-label>
+          <ion-item :color="form.awardPoints.gp ? 'warning' : ''">
+            <ion-label> <i class="fad fa-hand-holding-usd"></i> GP </ion-label>
+            <ion-checkbox
+              v-model="form.awardPoints.gp"
+              color="warning"
+            ></ion-checkbox>
+          </ion-item>
         </ion-col>
         <ion-col>
-          <ion-checkbox v-model="form.points.ap" color="danger"></ion-checkbox>
-          <ion-label>
-            <i class="fad fa-hand-holding-magic"></i> AP
-          </ion-label>
+          <ion-item :color="form.awardPoints.ap ? 'danger' : ''">
+            <ion-label>
+              <i class="fad fa-hand-holding-magic"></i> AP
+            </ion-label>
+            <ion-checkbox
+              v-model="form.awardPoints.ap"
+              color="danger"
+            ></ion-checkbox>
+          </ion-item>
         </ion-col>
       </ion-row>
-      <ion-item-sliding>
+      <ion-item-sliding v-if="form.awardPoints.xp">
         <ion-item-options side="end">
           <ion-item-option color="success">
             <i class="fad fa-hand-holding-seedling fa-2x" slot="end" />
@@ -134,7 +171,7 @@
           <i class="fad fa-grip-vertical fa-lg mr-3" slot="end" />
         </ion-item>
       </ion-item-sliding>
-      <ion-item-sliding>
+      <ion-item-sliding v-if="form.awardPoints.gp">
         <ion-item-options side="end">
           <ion-item-option color="warning">
             <i class="fad fa-hand-holding-usd fa-2x" />
@@ -169,7 +206,7 @@
           <i class="fad fa-grip-vertical fa-lg mr-3" slot="end" />
         </ion-item>
       </ion-item-sliding>
-      <ion-item-sliding>
+      <ion-item-sliding v-if="form.awardPoints.ap">
         <ion-item-options side="end">
           <ion-item-option color="danger">
             <i class="fad fa-hand-holding-magic fa-2x" />
@@ -203,6 +240,10 @@
           <i class="fad fa-grip-vertical fa-lg mr-3" slot="end" />
         </ion-item>
       </ion-item-sliding>
+      <ion-item>
+        <ion-label position="floating">Notes</ion-label>
+        <ion-textarea v-model="form.notes" rows="5"></ion-textarea>
+      </ion-item>
     </ion-list>
   </ion-content>
   <ion-footer>
@@ -212,7 +253,7 @@
         <ion-button @click="dismiss">Cancel</ion-button>
       </ion-buttons>
       <ion-buttons slot="end">
-        <ion-button expand="full" type="submit">
+        <ion-button expand="full" @click="submitForm">
           <i class="fad fa-save fa-lg mx-1" />
           Save
         </ion-button>
@@ -245,7 +286,13 @@
         efforts: EFFORTS,
         form: {
           type: this.do ? "do" : "dont",
+          whatFor: "",
           difficulty: 1,
+          awardPoints: {
+            xp: false,
+            gp: true,
+            ap: false,
+          },
           points: {
             xp: 0,
             gp: 0,
@@ -273,10 +320,11 @@
       updatePoints() {
         const { difficulty } = this.form;
         const multiplier = 200;
+        const negator = this.form.type === "do" ? 1 : -1;
         this.form.points = {
-          xp: difficulty * multiplier,
-          gp: difficulty * (multiplier / 10),
-          ap: difficulty * (multiplier / 100),
+          xp: difficulty * multiplier * negator,
+          gp: difficulty * (multiplier / 10) * negator,
+          ap: difficulty * (multiplier / 100) * negator,
         };
       },
       increaseDifficulty() {

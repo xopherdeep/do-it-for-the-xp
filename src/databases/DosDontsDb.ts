@@ -11,7 +11,13 @@ export const dosDontsStorage = new Storage({
 export interface DosDont {
   id?: any
   type: 'do' | 'dont'
+  whatFor: string
   difficulty: number,
+  awardPoints: {
+    xp: boolean
+    gp: boolean
+    ap: boolean
+  },
   points: {
     xp: number;
     gp: number;
@@ -25,12 +31,18 @@ export class DosDontsDb extends DbStorageApi {
     const pointsValue = type === 'do' ? 1 : -1;
     return {
       id: uuidv4(),
+      whatFor: '',
       type,
       difficulty: 1,
       points: {
         xp: pointsValue,
         gp: pointsValue,
         ap: pointsValue,
+      },
+      awardPoints: {
+        xp: false,
+        gp: false,
+        ap: false,
       },
       notes: '',
     }
