@@ -20,7 +20,9 @@ export default defineComponent({
     // code
     const selectedTab = ref('dashboard'); // default selected tab
     const updateSelectedTab = (event) => {
-      selectedTab.value = event.detail.tab;
+      if (event && event.detail) {
+        selectedTab.value = event.detail.tab;
+      }
     };
     return {
       arrowBack,
