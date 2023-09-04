@@ -25,6 +25,10 @@ const SideMenu = [
     children: [
       {
         path: '',
+        redirect: 'dashboard',
+      },
+      {
+        path: 'dashboard',
         name: 'xp-dashboard',
         component: () => import("../views/App/SideMenu/XpGameMaster/XpDashboard/XpDashboard.vue"),
       },
@@ -34,15 +38,25 @@ const SideMenu = [
         component: () => import('@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAchievements.vue'),
       },
       {
-        path: 'beastiary',
-        name: 'xp-beastiary',
-        component: () => import('@/views/App/SideMenu/XpGameMaster/XpBeastiary/XpBestiary.vue'),
+        path: 'bestiary',
+        name: 'xp-bestiary',
+        component: () => import('@/views/App/SideMenu/XpGameMaster/XpBestiary/XpBestiary.vue'),
       },
       {
         path: 'do-this-not-that/:id?',
         name: 'xp-do-this-not-that',
         component: () => import('@/views/App/SideMenu/XpGameMaster/XpDoThisNotThat/XpDoThisNotThat.vue'),
         props: true
+      },
+      {
+        path: 'accessories',
+        name: 'xp-accessories',
+        component: () => import('@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAchievements.vue'),
+      },
+      {
+        path: 'abilities',
+        name: 'xp-abilities',
+        component: () => import('@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAchievements.vue'),
       },
     ],
   },

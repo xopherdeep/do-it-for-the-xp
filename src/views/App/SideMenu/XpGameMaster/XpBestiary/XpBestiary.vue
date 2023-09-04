@@ -84,7 +84,7 @@
   import BestiaryDb, { beastStorage, Beast } from '@/databases/BestiaryDb';
 
   export default defineComponent({
-    name: 'xp-beastiary',
+    name: 'xp-bestiary',
     mixins: [ionic],
     methods: {
       async clickDeleteBeast(beast: Beast) {

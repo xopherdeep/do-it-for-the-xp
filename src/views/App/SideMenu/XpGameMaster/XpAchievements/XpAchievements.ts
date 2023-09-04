@@ -56,7 +56,7 @@ export default defineComponent({
           case "assignee":
             if (assignee) {
               assignee.achievements.push(achievement);
-            } else {
+            } else if (achievement.assignee) {
               achievement.assignee.forEach(assignee => {
                 grouped.push({ assignee, achievements: [achievement] });
               });

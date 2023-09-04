@@ -94,6 +94,9 @@
         >
           <ion-item-divider>
             <ion-label v-if="groupBy === 'assignee'">
+              <ion-avatar class="ion-float-left h-6 w-6 mr-2">
+                <ion-img :src="$getUserAvatar(getAssigneeById(group.assignee))"/>
+              </ion-avatar>
               {{ getAssigneeById(group.assignee)?.name.full }}
             </ion-label>
             <ion-label v-else>

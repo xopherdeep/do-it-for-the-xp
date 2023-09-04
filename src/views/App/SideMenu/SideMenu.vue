@@ -16,7 +16,7 @@
             v-if="menuItem.title"
             @click="
               setMenuItem(i);
-            $fx.ui[$fx.theme.ui].select.play();
+              $fx.ui[$fx.theme.ui].select.play();
             "
             router-direction="root"
             :router-link="menuItem.url"
@@ -113,7 +113,7 @@
           //   mdIcon: peopleCircleSharp,
           // },
           {
-            title: "Switch Profile",
+            title: "Start XP",
             url: "/switch-profile",
             iosIcon: peopleCircleOutline,
             mdIcon: peopleCircleSharp,

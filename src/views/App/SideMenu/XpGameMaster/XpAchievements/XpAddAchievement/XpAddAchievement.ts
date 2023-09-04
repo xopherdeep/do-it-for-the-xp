@@ -75,6 +75,10 @@ export default defineComponent({
   },
 
   computed: {
+    achievementExpired() {
+      if(!this.achievement.endsOn) return false
+      return new Date(this.achievement.endsOn) < new Date()
+    },
     achievementChain() {
       const { subAchievementIds } = this.achievement;
       const mapAchievement = id => this.achievements.find(a => a.id === id);

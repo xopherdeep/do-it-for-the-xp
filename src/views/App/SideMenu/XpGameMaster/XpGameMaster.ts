@@ -14,8 +14,6 @@ import {
 export default defineComponent({
   name: "xp-game-master",
   mixins: [ionic],
-  components: {
-  },
   setup() {
     // code
     const selectedTab = ref('dashboard'); // default selected tab
