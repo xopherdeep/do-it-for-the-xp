@@ -11,7 +11,7 @@ export const dosDontsStorage = new Storage({
 export interface DosDont {
   id?: any
   type: 'do' | 'dont'
-  bonus: {
+  points: {
     xp: number;
     gp: number;
     ap: number;
@@ -20,14 +20,15 @@ export interface DosDont {
 }
 
 export class DosDontsDb extends DbStorageApi {
-  private createDosDont(): DosDont {
+  private createDosDont(type: 'do' | 'dont'): DosDont {
+    const pointsValue = type === 'do' ? 1 : -1;
     return {
       id: uuidv4(),
-      type: 'do',
-      bonus: {
-        xp: 0,
-        gp: 0,
-        ap: 0,
+      type,
+      points: {
+        xp: pointsValue,
+        gp: pointsValue,
+        ap: pointsValue,
       },
       notes: '',
     }
@@ -35,9 +36,15 @@ export class DosDontsDb extends DbStorageApi {
 
   public async setDosDont(dosDont: DosDont) {
     const id = dosDont.id ? dosDont.id : uuidv4()
+    const pointsValue = dosDont.type === 'do' ? 1 : -1;
     await this.set(id, {
-      ...this.createDosDont(),
+      ...this.createDosDont(dosDont.type),
       ...dosDont,
+      points: {
+        xp: pointsValue,
+        gp: pointsValue,
+        ap: pointsValue,
+      },
       id
     })
   }
