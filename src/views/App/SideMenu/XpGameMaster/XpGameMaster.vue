@@ -18,6 +18,7 @@
           <ion-tab-button
             tab="accessories"
             href="/game-master/accessories"
+            :selected="selectedTab === 'accessories'"
           >
             <i class="fad fa-hand-holding-box fa-2x" />
             Accessories
@@ -25,6 +26,7 @@
           <ion-tab-button
             tab="dashboard"
             href="/game-master"
+            :selected="selectedTab === 'dashboard'"
           >
             <i class="fad fa-tachometer-alt fa-2x" />
             Dashboard
@@ -32,6 +34,7 @@
           <ion-tab-button
             tab="achievements"
             href="/game-master/achievements"
+            :selected="selectedTab === 'achievements'"
           >
             <i class="fad fa-trophy fa-2x" />
             Achievements
@@ -39,9 +42,10 @@
           <ion-tab-button
             tab="bestiary"
             href="/game-master/bestiary"
+            :selected="selectedTab === 'bestiary'"
           >
             <i class="fad fa-dragon fa-2x" />
-            Beastiary
+            Bestiary
           </ion-tab-button>
 
         </ion-tab-bar>
