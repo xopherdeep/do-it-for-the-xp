@@ -5,14 +5,11 @@
     </ion-toolbar>
   </ion-header>
   <ion-content class="bg-slide">
-    <form @submit.prevent="submitForm">
-      <ion-item>
-        <ion-label>Type</ion-label>
-        <ion-select v-model="form.type" placeholder="Select One">
-          <ion-select-option value="do">Do</ion-select-option>
-          <ion-select-option value="dont">Don't</ion-select-option>
-        </ion-select>
-      </ion-item>
+    <ion-list>
+      <ion-segment v-model="form.type">
+        <ion-segment-button value="do">Do</ion-segment-button>
+        <ion-segment-button value="dont">Don't</ion-segment-button>
+      </ion-segment>
       <ion-item>
         <ion-label>XP</ion-label>
         <ion-input v-model.number="form.points.xp" type="number"></ion-input>
@@ -30,7 +27,7 @@
         <ion-textarea v-model="form.notes"></ion-textarea>
       </ion-item>
       <ion-button expand="full" type="submit">Submit</ion-button>
-    </form>
+    </ion-list>
   </ion-content>
   <ion-footer>
     <ion-button @click="dismiss">Cancel</ion-button>
@@ -40,10 +37,11 @@
 <script lang="ts">
   import { defineComponent } from "vue";
   import { modalController } from "@ionic/vue";
+  import ionic from "@/mixins/ionic";
 
-  import DosDontsDb from "@/databases/DosDontsDb";
+  import DosDontsDb, { dosDontsStorage } from "@/databases/DosDontsDb";
 
-  const dosDontsDb = new DosDontsDb();
+  const dosDontsDb = new DosDontsDb(dosDontsStorage);
 
   export default defineComponent({
     name: "XpAddDoDont",
@@ -53,16 +51,17 @@
         default: true,
       },
     },
+    mixins: [ionic],
     data() {
       return {
         form: {
-          type: this.do ? 'do' : 'dont',
+          type: this.do ? "do" : "dont",
           points: {
             xp: 0,
             gp: 0,
             ap: 0,
           },
-          notes: '',
+          notes: "",
         },
       };
     },
