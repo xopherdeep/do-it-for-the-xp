@@ -28,6 +28,7 @@ import XpReorderAchievementsModal from './components/XpReorderAchievementsModal.
 import { DIFFICULTY_ICONS, ACHIEVEMENT_TYPE_ICONS, BASIC_SCHEDULE_ICONS } from "@/constants"
 
 import BestiaryDb, { Beast, beastStorage } from '@/databases/BestiaryDb';
+import EFFORTS from '@/constants/EFFORTS';
 
 export default defineComponent({
   name: 'xp-add-achievement',
@@ -40,26 +41,7 @@ export default defineComponent({
   data() {
     return {
       fibonacciArray: [1, 2, 3, 5, 8, 13],
-      efforts: [{
-        name: "Minimum Effort",
-        value: 1
-      }, {
-        name: "Slight",
-        value: 2
-      }, {
-        name: "Some",
-        value: 3
-      }, {
-        name: "Moderate",
-        value: 5
-      }, {
-        name: "Significant",
-        value: 8
-      }, {
-        name: "Maximum Effort",
-        value: 13
-      }
-      ],
+      efforts: EFFORTS,
       prev1: 1,
       prev2: 1,
       segments: [{

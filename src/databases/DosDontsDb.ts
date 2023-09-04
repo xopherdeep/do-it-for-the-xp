@@ -11,6 +11,7 @@ export const dosDontsStorage = new Storage({
 export interface DosDont {
   id?: any
   type: 'do' | 'dont'
+  difficulty: number,
   points: {
     xp: number;
     gp: number;
@@ -25,6 +26,7 @@ export class DosDontsDb extends DbStorageApi {
     return {
       id: uuidv4(),
       type,
+      difficulty: 1,
       points: {
         xp: pointsValue,
         gp: pointsValue,

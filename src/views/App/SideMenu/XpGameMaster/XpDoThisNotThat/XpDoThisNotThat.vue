@@ -7,7 +7,7 @@
         </ion-buttons>
         <ion-title> Do This Not That </ion-title>
       </ion-toolbar>
-      <ion-segment v-modle="activeSegment">
+      <ion-segment v-model="activeSegment">
         <ion-segment-button value="dos"> Do's </ion-segment-button>
         <ion-segment-button value="donts"> Don'ts </ion-segment-button>
         <ion-segment-button value="history"> History </ion-segment-button>
