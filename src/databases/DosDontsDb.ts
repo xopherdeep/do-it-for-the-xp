@@ -57,7 +57,7 @@ export class DosDontsDb extends DbStorageApi {
   public async getDosDontById(id) {
     const dosDonts = await this.getDosDonts();
     const dosDont = dosDonts.find(dosDont => dosDont.id === id);
-    return dosDont || this.createDosDont()
+    return dosDont || this.createDosDont('do')
   }
 
   public async getDosDonts() {

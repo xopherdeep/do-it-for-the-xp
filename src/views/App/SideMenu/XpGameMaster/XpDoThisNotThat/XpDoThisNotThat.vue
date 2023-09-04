@@ -15,7 +15,7 @@
     </ion-header>
     <ion-content> </ion-content>
     <ion-fab vertical="bottom" horizontal="end">
-      <ion-fab-button>
+      <ion-fab-button @click="clickAdd">
         <ion-icon :icon="add" />
       </ion-fab-button>
     </ion-fab>
@@ -23,12 +23,26 @@
 </template>
 <script lang="ts">
   import { defineComponent, ref } from "vue";
+  import { modalController } from "@ionic/vue";
   import { add } from "ionicons/icons";
+  import XpAddDoDont from "./components/XpAddDoDont.vue";
 
   import ionic from "@/mixins/ionic";
   export default defineComponent({
     name: "XpDoThisNotThat",
     mixins: [ionic],
+
+    methods: {
+      async clickAdd() {
+        const modal = await modalController.create({
+          component: XpAddDoDont,
+          componentProps: {
+            do: true,
+          },
+        });
+        modal.present();
+      },
+    },
 
     setup() {
       const activeSegment = ref("dos");
