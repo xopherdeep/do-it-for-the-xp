@@ -73,8 +73,12 @@
           </ion-item>
           <ion-item-options side="end">
             <ion-item-option color="primary" @click="clickAdd(task)">
-              <i class="fad fa-edit fa-lg mx-2 my-1" />
+              <i class="fad fa-edit fa-lg mx-2 my-1" slot="top" />
               Edit
+            </ion-item-option>
+            <ion-item-option color="primary" @click="clickAdd(task)">
+              Clone
+              <i class="fad fa-clone fa-lg mx-2 my-1" slot="top" />
             </ion-item-option>
           </ion-item-options>
         </ion-item-sliding>
