@@ -6,37 +6,45 @@
           :default-href="`/game-master/do-this-not-that`"
           @click="dismiss"
         />
-        <i
-          class="fad fa-2x"
-          :class="{
-            'fa-thumbs-up': form.type === 'do',
-            'fa-thumbs-down': form.type === 'dont',
-          }"
-        ></i>
         <!-- <ion-icon :icon="medalOutline" size="large" /> -->
       </ion-buttons>
       <ion-title> Add {{ form.type }}</ion-title>
     </ion-toolbar>
   </ion-header>
   <ion-content class="bg-slide">
+    <ion-card>
+      <ion-card-content>
+        <i
+          class="fad fa-2x mx-3 ion-float-right"
+          :style="{
+            color:
+              form.type === 'do'
+                ? 'var(--ion-color-success)'
+                : 'var(--ion-color-danger)',
+          }"
+          :class="{
+            'fa-thumbs-up': form.type === 'do',
+            'fa-thumbs-down': form.type === 'dont',
+          }"
+        ></i>
+        To Do or Not to Do?
+        <p>Choose between the two.</p>
+        <ion-segment mode="ios" v-model="form.type" @ionChange="updatePoints">
+          <ion-segment-button value="do" color="success">
+            Do
+          </ion-segment-button>
+          <ion-segment-button value="dont" color="danger">
+            Don't
+          </ion-segment-button>
+        </ion-segment>
+      </ion-card-content>
+    </ion-card>
     <ion-list>
-      <ion-list-header>
-        <ion-label>
-          To Do or Not to Do?
-          <p>Choose between the two.</p>
-        </ion-label>
-      </ion-list-header>
-      <ion-segment v-model="form.type" @ionChange="updatePoints">
-        <ion-segment-button value="do" color="success">Do</ion-segment-button>
-        <ion-segment-button value="dont" color="danger">
-          Don't
-        </ion-segment-button>
-      </ion-segment>
       <ion-item>
         <ion-avatar slot="start">
           <ion-skeleton-text></ion-skeleton-text>
         </ion-avatar>
-        <ion-label position="floating">
+        <ion-label>
           What is the
           {{ form.type === "do" ? "Bonus" : "Penalty" }}
           for?
@@ -108,13 +116,13 @@
       </ion-list-header>
       <ion-row>
         <ion-col>
-          <ion-item :color="form.awardPoints.xp ? 'success' : ''">
+          <ion-item :color="form.awardPoints.ap ? 'danger' : ''">
             <ion-label>
-              <i class="fad fa-hand-holding-seedling"></i> XP
+              <i class="fad fa-hand-holding-magic"></i> AP
             </ion-label>
             <ion-checkbox
-              v-model="form.awardPoints.xp"
-              color="success"
+              v-model="form.awardPoints.ap"
+              color="danger"
             ></ion-checkbox>
           </ion-item>
         </ion-col>
@@ -128,48 +136,47 @@
           </ion-item>
         </ion-col>
         <ion-col>
-          <ion-item :color="form.awardPoints.ap ? 'danger' : ''">
+          <ion-item :color="form.awardPoints.xp ? 'success' : ''">
             <ion-label>
-              <i class="fad fa-hand-holding-magic"></i> AP
+              <i class="fad fa-hand-holding-seedling"></i> XP
             </ion-label>
             <ion-checkbox
-              v-model="form.awardPoints.ap"
-              color="danger"
+              v-model="form.awardPoints.xp"
+              color="success"
             ></ion-checkbox>
           </ion-item>
         </ion-col>
       </ion-row>
-      <ion-item-sliding v-if="form.awardPoints.xp">
+      <ion-item-sliding v-if="form.awardPoints.ap">
         <ion-item-options side="end">
-          <ion-item-option color="success">
-            <i class="fad fa-hand-holding-seedling fa-2x" slot="end" />
+          <ion-item-option color="danger">
+            <i class="fad fa-hand-holding-magic fa-2x" />
             <ion-input
-              slot="end"
-              v-model="form.points.xp"
+              class="ion-text-right text-xl"
+              v-model="form.points.ap"
               type="number"
-              placeholder="Enter XP"
-              class="ion-text-right"
+              placeholder="Enter AP"
             ></ion-input>
-            <ion-label slot="end"> XP </ion-label>
+            <ion-label slot="end"> AP </ion-label>
           </ion-item-option>
         </ion-item-options>
         <ion-item>
           <i
-            class="fad fa-hand-holding-seedling fa-2x mr-3"
+            class="fad fa-hand-holding-magic fa-2x mr-3"
             slot="start"
-            style="color: var(--ion-color-success)"
+            style="color: var(--ion-color-danger)"
           />
           <ion-label>
-            Experience Points (XP)
-            <p>Motivates and tracks skill growth.</p>
+            Ability Points (AP)
+            <p>Unlocks abilities, encourages strategic planning.</p>
           </ion-label>
           <ion-badge
-            class="ion-float-right text-white px-2"
-            color="success"
+            class="ion-float-right text-sm px-2"
+            color="danger"
             slot="end"
           >
-            {{ form.points.xp }}
-            <i class="fad fa-hand-holding-seedling ml-2" />
+            {{ form.points.ap }}
+            <i class="fad fa-hand-holding-magic ml-2" />
           </ion-badge>
           <i class="fad fa-grip-vertical fa-lg mr-3" slot="end" />
         </ion-item>
@@ -209,36 +216,37 @@
           <i class="fad fa-grip-vertical fa-lg mr-3" slot="end" />
         </ion-item>
       </ion-item-sliding>
-      <ion-item-sliding v-if="form.awardPoints.ap">
+      <ion-item-sliding v-if="form.awardPoints.xp">
         <ion-item-options side="end">
-          <ion-item-option color="danger">
-            <i class="fad fa-hand-holding-magic fa-2x" />
+          <ion-item-option color="success">
+            <i class="fad fa-hand-holding-seedling fa-2x" slot="end" />
             <ion-input
-              class="ion-text-right text-xl"
-              v-model="form.points.ap"
+              slot="end"
+              v-model="form.points.xp"
               type="number"
-              placeholder="Enter AP"
+              placeholder="Enter XP"
+              class="ion-text-right"
             ></ion-input>
-            <ion-label slot="end"> AP </ion-label>
+            <ion-label slot="end"> XP </ion-label>
           </ion-item-option>
         </ion-item-options>
         <ion-item>
           <i
-            class="fad fa-hand-holding-magic fa-2x mr-3"
+            class="fad fa-hand-holding-seedling fa-2x mr-3"
             slot="start"
-            style="color: var(--ion-color-danger)"
+            style="color: var(--ion-color-success)"
           />
           <ion-label>
-            Ability Points (AP)
-            <p>Unlocks abilities, encourages strategic planning.</p>
+            Experience Points (XP)
+            <p>Motivates and tracks skill growth.</p>
           </ion-label>
           <ion-badge
             class="ion-float-right text-sm px-2"
-            color="danger"
+            color="success"
             slot="end"
           >
-            {{ form.points.ap }}
-            <i class="fad fa-hand-holding-magic ml-2" />
+            {{ form.points.xp }}
+            <i class="fad fa-hand-holding-seedling ml-2" />
           </ion-badge>
           <i class="fad fa-grip-vertical fa-lg mr-3" slot="end" />
         </ion-item>
@@ -313,13 +321,24 @@
       isFibonacci() {
         return this.fibonacciArray.includes(this.form.difficulty);
       },
+
+      saveRecord() {
+        return {
+          ...this.form,
+          points: {
+            xp: this.form.points.xp * Number(this.form.awardPoints.xp),
+            gp: this.form.points.gp * Number(this.form.awardPoints.gp),
+            ap: this.form.points.ap * Number(this.form.awardPoints.ap),
+          },
+        };
+      },
     },
     methods: {
       dismiss() {
         modalController.dismiss();
       },
       async submitForm() {
-        await dosDontsDb.setDosDont(this.form);
+        await dosDontsDb.setDosDont(this.saveRecord);
         this.dismiss();
       },
 

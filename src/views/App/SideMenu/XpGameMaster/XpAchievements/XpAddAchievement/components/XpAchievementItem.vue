@@ -1,14 +1,8 @@
 <template>
-  <ion-item>
-    <slot
-      name="start"
-      slot="start"
-    ></slot>
+  <ion-item :disabled="$attrs.disabled">
+    <slot name="start" slot="start"></slot>
     <ion-avatar slot="start">
-      <ion-img
-        v-if="achievement.imageUrl"
-        :src="achievement.imageUrl"
-      />
+      <ion-img v-if="achievement.imageUrl" :src="achievement.imageUrl" />
       <ion-skeleton-text v-else />
     </ion-avatar>
     <ion-label>
@@ -60,10 +54,7 @@
           v-if="achievement.gp > 0 && showPoints"
         >
           <i class="fad fa-hand-holding-usd mr-2" />
-          <xp-gp
-            xp-gp
-            :gp="achievement.gp"
-          ></xp-gp>
+          <xp-gp xp-gp :gp="achievement.gp"></xp-gp>
         </ion-badge>
         <ion-badge
           color="danger"
@@ -75,38 +66,39 @@
         </ion-badge>
       </p>
     </ion-label>
-    <slot
-      name="end"
-      slot="end"
-    ></slot>
+    <slot name="end" slot="end"></slot>
   </ion-item>
 </template>
 
 <script lang="ts">
-  import { defineComponent } from 'vue';
-  import { DIFFICULTY_ICONS, ACHIEVEMENT_TYPE_ICONS, BASIC_SCHEDULE_ICONS } from "@/constants"
-  import ionic from "@/mixins/ionic"
+  import { defineComponent } from "vue";
+  import {
+    DIFFICULTY_ICONS,
+    ACHIEVEMENT_TYPE_ICONS,
+    BASIC_SCHEDULE_ICONS,
+  } from "@/constants";
+  import ionic from "@/mixins/ionic";
   export default defineComponent({
     props: ["achievement", "categories", "showPoints"],
-    name: 'XpAchievementItem',
+    name: "XpAchievementItem",
     mixins: [ionic],
     computed: {
       category() {
-        const findCatById = cat => cat.id === this.achievement.categoryId
-        return this.categories?.find(findCatById)
+        const findCatById = (cat) => cat.id === this.achievement.categoryId;
+        return this.categories?.find(findCatById);
       },
       achievementTypeIcon() {
-        return ACHIEVEMENT_TYPE_ICONS[this.achievement.type]
+        return ACHIEVEMENT_TYPE_ICONS[this.achievement.type];
       },
 
       basicScheduleIcon() {
-        return BASIC_SCHEDULE_ICONS[this.achievement.basicSchedule]
+        return BASIC_SCHEDULE_ICONS[this.achievement.basicSchedule];
       },
 
       difficultyIcon() {
-        const icon = DIFFICULTY_ICONS[this.achievement.difficulty]
-        return icon || 'fa-dice'
+        const icon = DIFFICULTY_ICONS[this.achievement.difficulty];
+        return icon || "fa-dice";
       },
-    }
-  })
+    },
+  });
 </script>

@@ -77,7 +77,7 @@
           </ion-select-option>
         </ion-select>
       </ion-toolbar> -->
-      <ion-segment v-model="groupBy" mode="ios">
+      <ion-segment v-model="groupBy">
         <ion-segment-button value="category"> By Category </ion-segment-button>
         <ion-segment-button value="assignee"> By Assignee </ion-segment-button>
         <ion-segment-button value="asNeeded"> As Needed </ion-segment-button>
@@ -108,6 +108,7 @@
               :achievement="achievement"
               :categories="categories"
               :show-points="showPoints"
+              :disabled="new Date(achievement.endsOn) < new Date()"
             >
               <template #end>
                 <i class="fad fa-grip-vertical ml-2" slot="end" />

@@ -5,11 +5,18 @@
         <ion-buttons slot="start">
           <ion-back-button defaultHref="/game-master" />
         </ion-buttons>
-        <ion-title> Do This Not That </ion-title>
+        <ion-title>
+          {{ doDonts.length }}
+          Do This, Not That!
+        </ion-title>
       </ion-toolbar>
       <ion-segment v-model="activeSegment">
-        <ion-segment-button value="do"> Do's </ion-segment-button>
-        <ion-segment-button value="dont"> Don'ts </ion-segment-button>
+        <ion-segment-button value="do">
+          {{ dos.length }} Do's
+        </ion-segment-button>
+        <ion-segment-button value="dont">
+          {{ donts.length }} Don'ts
+        </ion-segment-button>
         <ion-segment-button value="history"> History </ion-segment-button>
       </ion-segment>
     </ion-header>
@@ -26,34 +33,39 @@
             </ion-item-option>
           </ion-item-options>
           <ion-item>
+            <ion-avatar slot="start">
+              <ion-skeleton-text></ion-skeleton-text>
+            </ion-avatar>
             <ion-label>
               {{ task.whatFor }}
               <p>
                 <ion-badge
-                  color="success"
+                  v-if="task.awardPoints.ap"
                   slot="end"
-                  v-if="task.points.xp"
-                  class="mr-1"
-                >
-                  {{ task.points.xp }}
-                  <i class="fad fa-hand-holding-seedling" />
-                </ion-badge>
-                <ion-badge
                   color="danger"
-                  slot="end"
-                  v-if="task.points.ap"
-                  class="mx-1"
+                  class="mr-1"
                 >
                   {{ task.points.ap }}
                   <i class="fad fa-hand-holding-magic" />
                 </ion-badge>
                 <ion-badge
-                  color="warning"
+                  v-if="task.awardPoints.xp"
                   slot="end"
-                  v-if="task.points.gp"
+                  color="success"
+                  class="mx-1"
+                >
+                  {{ task.points.xp }}
+                  <i class="fad fa-hand-holding-seedling" />
+                </ion-badge>
+                <ion-badge
+                  v-if="task.awardPoints.gp"
+                  slot="end"
+                  color="warning"
                   class="mx-1"
                 >
                   <xp-gp :gp="task.points.gp" />
+
+                  <i class="fad fa-hand-holding-usd ml-1" />
                 </ion-badge>
               </p>
             </ion-label>
@@ -69,7 +81,7 @@
                 />
               </ion-button>
             </ion-buttons>
-            <i class="fad fa-grip-vertical mr-1" slot="end" />
+            <i class="fad fa-grip-vertical ml-1" slot="end" />
           </ion-item>
           <ion-item-options side="end">
             <ion-item-option color="primary" @click="clickAdd(task)">
@@ -110,6 +122,14 @@
           (doDont) => doDont.type === this.activeSegment
         );
       },
+      dos() {
+        const isDo = (doDont) => doDont.type === "do";
+        return this.doDonts.filter(isDo);
+      },
+      donts() {
+        const isDont = (doDont) => doDont.type === "dont";
+        return this.doDonts.filter(isDont);
+      },
     },
 
     methods: {
@@ -126,10 +146,11 @@
             {
               text: "Delete",
               role: "destructive",
-              handler: () => this.deleteDoDont(doDont),
+              handler: () => this.deleteDoDont(doDont).then(showToast),
             },
           ],
         });
+        const showToast = () => this.doDontDb.showSuccessToast("Deleted!");
         alert.present();
       },
       async deleteDoDont(doDont: DosDont) {
@@ -151,21 +172,26 @@
         modal.present();
       },
       async clickCloneDoDont(doDont: DosDont) {
-        await this.doDontDb.clone(doDont).then(() => {
+        await this.doDontDb.cloneMe(doDont).then(() => {
           this.loadDoDonts();
         });
       },
     },
 
     setup() {
-      const activeSegment = ref("do");
+      const route = useRoute();
+      const query = route.query;
+      const segment = query.openDo === "false" ? "dont" : "do";
+      const activeSegment = ref(segment);
+
+      // const activeSegment = ref("do");
       const doDontDb = new DoDontDb(dosDontsStorage);
       const doDonts = ref([] as DosDont[]);
 
-      const route = useRoute();
-
       const loadDoDonts = async () => {
-        doDonts.value = await doDontDb.getAll();
+        const all = await doDontDb.getAll();
+        //sort them a-z
+        doDonts.value = all.sort((a, b) => a.whatFor.localeCompare(b.whatFor));
       };
       watch(
         () => route.path,

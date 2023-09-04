@@ -10,7 +10,7 @@
         Penalty
       </ion-item-option>
     </ion-item-options>
-    <ion-item @click="clickDoThisNotThat" button detail>
+    <ion-item @click="clickDoThisNotThat(true)" button detail>
       <i slot="start" class="fad fa-grip-vertical fa-lg mr-4"></i>
       <i slot="start" class="fad fa-rainbow fa-2x mr-2"></i>
       <ion-label>
@@ -22,7 +22,7 @@
           {{ dos.length }}
           <i class="fad fa-thumbs-up fa-lg mx-1"></i>
         </ion-button>
-        <ion-button>
+        <ion-button @click.stop="clickDoThisNotThat(false)">
           {{ donts.length }}
           <i class="fad fa-thumbs-down fa-lg mx-1"></i>
         </ion-button>
@@ -41,8 +41,8 @@
     name: "XpDoThisNotThatItem",
     mixins: [ionic],
     methods: {
-      clickDoThisNotThat() {
-        this.$router.push("/game-master/do-this-not-that");
+      clickDoThisNotThat(openDo = true) {
+        this.$router.push("/game-master/do-this-not-that?openDo=" + openDo);
       },
       async openBonus() {
         const modal = await modalController.create({

@@ -72,6 +72,16 @@ export class DosDontsDb extends DbStorageApi {
     const dosDonts = await this.getAll()
     return dosDonts
   }
+
+  public async cloneMe(dosDont: DosDont) {
+    const clone = {
+      ...dosDont,
+      id: uuidv4(),
+      whatFor: `${dosDont.whatFor} (clone)`
+    }
+    const cloneToast = () => this.showSuccessToast("Clone Successful!")
+    return await this.setDosDont(clone).then(cloneToast)
+  }
 }
 
 export default DosDontsDb
