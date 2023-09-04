@@ -10,6 +10,7 @@
           <ion-tab-button
             tab="abilities"
             href="/game-master/abilities"
+            :selected="selectedTab === 'abilities'"
           >
             <i class="fad fa-magic fa-2x" />
             Abilities

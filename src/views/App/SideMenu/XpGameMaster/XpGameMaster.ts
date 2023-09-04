@@ -18,6 +18,7 @@ export default defineComponent({
   },
   setup() {
     // code
+    const selectedTab = ref('dashboard'); // default selected tab
     return {
       arrowBack,
       speedometerOutline,
@@ -25,7 +26,8 @@ export default defineComponent({
       trophyOutline,
       trophySharp,
       pawOutline,
-      pawSharp
+      pawSharp,
+      selectedTab
     }
   },
 })
