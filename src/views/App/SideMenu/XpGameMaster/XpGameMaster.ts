@@ -16,14 +16,6 @@ export default defineComponent({
   mixins: [ionic],
   setup() {
     // code
-    const selectedTab = ref('dashboard'); // default selected tab
-    const updateSelectedTab = (event) => {
-      console.log('ionTabsDidChange event:', event);
-      if (event && event.detail) {
-        console.log('event.detail.tab:', event.detail.tab);
-        selectedTab.value = event.detail.tab;
-      }
-    };
     return {
       arrowBack,
       speedometerOutline,
@@ -31,9 +23,7 @@ export default defineComponent({
       trophyOutline,
       trophySharp,
       pawOutline,
-      pawSharp,
-      selectedTab,
-      updateSelectedTab
+      pawSharp
     }
   },
 })
