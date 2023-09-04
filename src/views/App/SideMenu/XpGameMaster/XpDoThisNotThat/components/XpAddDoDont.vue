@@ -79,6 +79,26 @@
         <ion-textarea v-model="form.notes"></ion-textarea>
       </ion-item>
       <ion-list-header> Amount of Points to Award </ion-list-header>
+      <ion-row>
+        <ion-col>
+          <ion-checkbox v-model="form.points.xp" color="success"></ion-checkbox>
+          <ion-label>
+            <i class="fad fa-hand-holding-seedling"></i> XP
+          </ion-label>
+        </ion-col>
+        <ion-col>
+          <ion-checkbox v-model="form.points.gp" color="warning"></ion-checkbox>
+          <ion-label>
+            <i class="fad fa-hand-holding-usd"></i> GP
+          </ion-label>
+        </ion-col>
+        <ion-col>
+          <ion-checkbox v-model="form.points.ap" color="danger"></ion-checkbox>
+          <ion-label>
+            <i class="fad fa-hand-holding-magic"></i> AP
+          </ion-label>
+        </ion-col>
+      </ion-row>
       <ion-item-sliding>
         <ion-item-options side="end">
           <ion-item-option color="success">
