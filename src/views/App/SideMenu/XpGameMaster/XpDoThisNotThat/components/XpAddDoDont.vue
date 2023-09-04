@@ -2,7 +2,10 @@
   <ion-header>
     <ion-toolbar>
       <ion-buttons slot="start">
-        <ion-back-button :default-href="`/game-master/do-this-not-that`" />
+        <ion-back-button
+          :default-href="`/game-master/do-this-not-that`"
+          @click="dismiss"
+        />
         <i
           class="fad fa-2x"
           :class="{
@@ -279,6 +282,9 @@
         type: Boolean,
         default: true,
       },
+      doDont: {
+        type: Object as () => DosDont,
+      },
     },
     mixins: [ionic],
     data() {
@@ -339,6 +345,9 @@
           this.form.difficulty = this.fibonacciArray[currentIndex - 1];
         }
       },
+    },
+    mounted() {
+      this.form = this.doDont || this.form;
     },
   });
 </script>
