@@ -4,7 +4,7 @@
     class="rpg-box"
   >
     <ion-content>
-      <ion-tabs>
+      <ion-tabs @ionTabsDidChange="updateSelectedTab($event)">
         <ion-router-outlet ref="outlet"></ion-router-outlet>
         <ion-tab-bar slot="bottom">
           <ion-tab-button
