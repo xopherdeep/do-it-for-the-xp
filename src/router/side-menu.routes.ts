@@ -57,6 +57,13 @@ const SideMenu = [
         path: 'abilities',
         name: 'xp-abilities',
         component: () => import('@/views/App/SideMenu/XpGameMaster/XpAbilities/XpAbilities.vue'),
+        children: [
+          {
+            path: 'create-update/:id?',
+            name: 'xp-create-update-ability',
+            component: () => import('@/views/App/SideMenu/XpGameMaster/XpAbilities/components/XpCreateUpdateAbility.vue'),
+          },
+        ],
       },
     ],
   },
