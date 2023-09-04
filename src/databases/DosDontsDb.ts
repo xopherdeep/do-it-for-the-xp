@@ -36,15 +36,9 @@ export class DosDontsDb extends DbStorageApi {
 
   public async setDosDont(dosDont: DosDont) {
     const id = dosDont.id ? dosDont.id : uuidv4()
-    const pointsValue = dosDont.type === 'do' ? 1 : -1;
     await this.set(id, {
       ...this.createDosDont(dosDont.type),
       ...dosDont,
-      points: {
-        xp: pointsValue,
-        gp: pointsValue,
-        ap: pointsValue,
-      },
       id
     })
   }
