@@ -76,7 +76,7 @@
               <i class="fad fa-edit fa-lg mx-2 my-1" slot="top" />
               Edit
             </ion-item-option>
-            <ion-item-option color="primary" @click="clickAdd(task)">
+            <ion-item-option color="primary" @click="clickCloneDoDont(task)">
               Clone
               <i class="fad fa-clone fa-lg mx-2 my-1" slot="top" />
             </ion-item-option>
@@ -149,6 +149,11 @@
           this.loadDoDonts();
         });
         modal.present();
+      },
+      async clickCloneDoDont(doDont: DosDont) {
+        await this.doDontDb.clone(doDont).then(() => {
+          this.loadDoDonts();
+        });
       },
     },
 
