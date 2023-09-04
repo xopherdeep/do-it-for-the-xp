@@ -26,6 +26,7 @@
   import { modalController } from "@ionic/vue";
   import { add } from "ionicons/icons";
   import XpAddDoDont from "./components/XpAddDoDont.vue";
+  import { useRoute, watch } from 'vue-router';
 
   import ionic from "@/mixins/ionic";
   export default defineComponent({
@@ -46,6 +47,17 @@
 
     setup() {
       const activeSegment = ref("dos");
+      const route = useRoute();
+      watch(
+        () => route.path,
+        async (newPath, oldPath) => {
+          if (newPath !== oldPath) {
+            // Reload your component's data when the route changes
+            // Add your data reloading logic here
+          }
+        },
+        { immediate: true }  // Fetch data immediately when the component is created
+      );
       return { add, activeSegment };
     },
   });
