@@ -51,12 +51,12 @@ const SideMenu = [
       {
         path: 'accessories',
         name: 'xp-accessories',
-        component: () => import('@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAchievements.vue'),
+        component: () => import('@/views/App/SideMenu/XpGameMaster/XpAccessories/XpAccessories.vue'),
       },
       {
         path: 'abilities',
         name: 'xp-abilities',
-        component: () => import('@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAchievements.vue'),
+        component: () => import('@/views/App/SideMenu/XpGameMaster/XpAbilities/XpAbilities.vue'),
       },
     ],
   },
