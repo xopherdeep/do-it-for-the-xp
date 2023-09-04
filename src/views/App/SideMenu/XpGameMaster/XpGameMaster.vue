@@ -36,8 +36,8 @@
             Achievements
           </ion-tab-button>
           <ion-tab-button
-            tab="beastiary"
-            href="/game-master/beastiary"
+            tab="bestiary"
+            href="/game-master/bestiary"
           >
             <i class="fad fa-dragon fa-2x" />
             Beastiary
