@@ -1,17 +1,14 @@
 <template>
-  <ion-page>
+  <ion-page :class="$options.name">
     <ion-header>
       <ion-toolbar color="secondary">
         <ion-buttons slot="start">
-          <ion-back-button :default-href="`/my-portal/${userId}/my-home`"></ion-back-button>
-          <ion-icon
-            :icon="storefrontOutline"
-            slot="icon-only"
-          />
+          <ion-back-button
+            :default-href="`/my-portal/${userId}/my-home`"
+          ></ion-back-button>
+          <ion-icon :icon="storefrontOutline" slot="icon-only" />
         </ion-buttons>
-        <ion-title>
-          New App
-        </ion-title>
+        <ion-title> Hospital Hub </ion-title>
       </ion-toolbar>
       <ion-item>
         <ion-label> Shelves </ion-label>
@@ -23,16 +20,10 @@
           placeholder="..."
           multiple
         >
-          <ion-select-option
-            value="affordable"
-            selected
-          >
+          <ion-select-option value="affordable" selected>
             Can Afford
           </ion-select-option>
-          <ion-select-option
-            value="out-of-budget"
-            checked
-          >
+          <ion-select-option value="out-of-budget" checked>
             Can't Afford
           </ion-select-option>
           <ion-select-option value="favorites"> Favorites </ion-select-option>
@@ -48,12 +39,11 @@
         <ion-row>
           <ion-col size="12">
             <ion-card>
-              <ion-title>Shopkeeper</ion-title>
+              <ion-title>Nurse</ion-title>
               <ion-card-content>
-                Welcome, come in, take a look around!
+                Welcome traveler! You look like you've had quite an adventure. How can we assist you today?
               </ion-card-content>
             </ion-card>
-
           </ion-col>
         </ion-row>
         <ion-row>
@@ -95,24 +85,21 @@
         </ion-row>
       </ion-grid>
       <!-- fab placed to the bottom and start and on the bottom edge of the content overlapping footer with a list to the right -->
-      <ion-fab
-        vertical="bottom"
-        horizontal="center"
-        slot="fixed"
-      >
-        <ion-fab-button color="secondary">
-          <ion-icon :icon="cartOutline"></ion-icon>
+      <ion-fab vertical="bottom" horizontal="center" slot="fixed">
+        <ion-fab-button color="secondary" id="open-action-sheet">
+          <i class="fa-user-nurse fad fa-2x"/>
         </ion-fab-button>
-        <ion-fab-list side="start">
+        <!-- <ion-fab-list side="start">
           <ion-fab-button>
             <ion-icon :icon="banOutline"></ion-icon>
           </ion-fab-button>
           Empty
-        </ion-fab-list>
+        </ion-fab-list> -->
       </ion-fab>
+
     </ion-content>
     <ion-footer>
-      <ion-toolbar color="secondary">
+      <!-- <ion-toolbar color="secondary">
         <ion-grid>
           <ion-row>
             <ion-col class="ion-no-padding">
@@ -152,9 +139,10 @@
           </ion-col>
         </ion-row>
       </ion-grid>
-    </ion-toolbar>
-  </ion-footer>
-</ion-page></template>
+    </ion-toolbar> -->
+    </ion-footer>
+  </ion-page>
+</template>
 
-<script src="./[AppJig]" />
-<style lang="scss" src="./_[AppJig].scss" scoped />
+<script src="./HospitalHub" lang="ts" />
+<style lang="scss" src="./_HospitalHub.scss" scoped />

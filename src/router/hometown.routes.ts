@@ -21,7 +21,7 @@ const HometownRoutes = [
   {
     path: '/hospital/:userId?/',
     name: 'hospital',
-    component: () => import('@/views/MyDialogBox/[AppJig]/[AppJig].vue'),
+    component: () => import('@/views/MyPortal/HomeTown/HospitalHub/HospitalHub.vue'),
     props: true,
   },
   {
