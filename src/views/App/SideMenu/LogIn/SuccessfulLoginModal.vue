@@ -12,9 +12,15 @@
   </ion-modal>
 </template>
 
-<script>
-export default {
+<script lang="ts">
+import { defineComponent } from 'vue'
+import ionic from '@/mixins/ionic'
+
+
+
+export default defineComponent({
   name: 'SuccessfulLoginModal',
+  mixins: [ionic],
   emits: ['close']
-}
+})
 </script>

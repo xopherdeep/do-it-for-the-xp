@@ -1,4 +1,4 @@
-import { computed, defineComponent } from "vue";
+import { computed, defineComponent, ref } from "vue";
 const requireImg = require.context("@/assets/icons/");
 import backgrounds from "@/assets/images/backgrounds/parallax/index.js";
 
@@ -6,34 +6,12 @@ import InputSettings from "../XpSettings/components/InputSettings.vue";
 import SuccessfulLoginModal from "./SuccessfulLoginModal.vue";
 
 import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonButtons,
-  IonMenuButton,
-  IonTitle,
-  IonContent,
-  IonModal,
-  IonCard,
-  IonButton,
-  IonCardHeader,
-  IonCardTitle,
-  IonCardSubtitle,
-  IonInput,
-  IonList,
-  IonLabel,
-  IonGrid,
-  IonCol,
-  IonRow,
-  IonCardContent,
-  IonItem,
-  IonToggle,
   modalController,
 } from "@ionic/vue";
 
-import { arrowBack, arrowForward } from "ionicons/icons";
 import { mapActions, useStore } from "vuex";
 import { useRouter, useRoute } from "vue-router";
+import ionic from "@/mixins/ionic";
 
 // interface RootState {
 //   bgm: unknown;
@@ -53,31 +31,10 @@ import { useRouter, useRoute } from "vue-router";
 
 export default defineComponent({
   name: "log-in",
+  mixins: [ionic],
   components: {
     InputSettings,
     SuccessfulLoginModal,
-    IonItem,
-    IonCardContent,
-    IonGrid,
-    IonCol,
-    IonRow,
-    IonCard,
-    IonList,
-    IonLabel,
-    IonToggle,
-    IonInput,
-    IonButtons,
-    IonButton,
-    IonCardHeader,
-    IonCardSubtitle,
-    IonCardTitle,
-    IonPage,
-    IonHeader,
-    IonToolbar,
-    IonMenuButton,
-    IonTitle,
-    IonContent,
-    IonModal,
   },
   data() {
     return {
@@ -291,6 +248,7 @@ export default defineComponent({
     const bgm = computed(() => store.state.bgm);
     const router = useRouter();
     const route = useRoute();
+    const showSuccessModal = ref(false);
 
     const { code } = route.query;
 
@@ -301,6 +259,7 @@ export default defineComponent({
     // }
 
     return {
+      showSuccessModal,
       code,
       router,
       bgm,

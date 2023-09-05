@@ -25,7 +25,7 @@ const SideMenu = [
     children: [
       {
         path: '',
-        redirect: 'dashboard',
+        redirect: '/game-master/dashboard',
       },
       {
         path: 'dashboard',
