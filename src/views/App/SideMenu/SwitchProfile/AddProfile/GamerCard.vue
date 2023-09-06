@@ -36,30 +36,25 @@
             </p> -->
           </ion-label>
         </ion-col>
-        <ion-col
-          class="ion-text-center"
-          size="2"
-        >
+        <ion-col class="ion-text-center" size="2">
           <i :class="`fad ${selectedJobIcon} fa-4x`" />
         </ion-col>
-        <ion-col
-          class="ion-text-center"
-          size="2"
-        >
+        <ion-col class="ion-text-center" size="2">
           <i :class="`fad ${selectedFoodIcon} fa-4x`" />
         </ion-col>
       </ion-row>
     </ion-grid>
+    <slot></slot>
   </ion-card>
 </template>
 <script lang="ts">
-  import { defineComponent, computed, ref } from 'vue';
+  import { defineComponent, computed, ref } from "vue";
   import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
   import ionic from "@/mixins/ionic";
 
   export default defineComponent({
-    props: ['profile'],
-    name: 'GamerCard',
+    props: ["profile"],
+    name: "GamerCard",
     mixins: [ionic],
     setup(props) {
       const $requireAvatar = require.context(
@@ -74,7 +69,8 @@
 
       const foodOptions = ref(FOOD_OPTIONS);
       const selectedFoodIcon = computed(() => {
-        const findFavoriteFood = (food) => food.value === props.profile?.favoriteFood;
+        const findFavoriteFood = (food) =>
+          food.value === props.profile?.favoriteFood;
         const selectedFood = foodOptions.value.find(findFavoriteFood);
         return selectedFood ? selectedFood.icon : "fad fa-utensils";
       });
@@ -93,6 +89,4 @@
       };
     },
   });
-
-
 </script>

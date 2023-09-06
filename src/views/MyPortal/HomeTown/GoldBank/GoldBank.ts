@@ -28,7 +28,9 @@ import {
   storefrontOutline,
   banOutline,
   bagOutline,
-  close
+  close,
+  handLeftOutline
+
 
 } from "ionicons/icons";
 import fetchItems from "@/mixins/fetchItems"
@@ -106,6 +108,14 @@ export default defineComponent({
                 // console.log('Cancel clicked')
               },
             },
+
+            {
+              text: "Leave Bank",
+              icon: handLeftOutline,
+              handler: () => {
+                this.$router.go(-1)
+              }
+            }
           ],
         });
       await actionSheet.present();
@@ -116,14 +126,14 @@ export default defineComponent({
 
     async clickPayDebt() {
       const { wallet, debt } = this.user.stats.gp
-      const isWalletEmpty  = wallet <= 0 
-      if(isWalletEmpty){
+      const isWalletEmpty = wallet <= 0
+      if (isWalletEmpty) {
         const alert = await alertController.create({
           header: "Your wallet is empty!",
           buttons: ["Ok"]
         })
         alert.present()
-      }else{
+      } else {
         const alert = await alertController.create({
           header: `Pay Down Debt (₲${debt}.00)`,
           buttons: [{
@@ -142,12 +152,12 @@ export default defineComponent({
             type: 'number',
             name: "gp",
             max: wallet < debt ? wallet : debt,
-            min: 0 
+            min: 0
           }],
         })
         alert.present()
       }
-      },
+    },
     payDebt({ gp }: Stats) {
       const wallet = Math.round(Number(this.user.stats.gp.wallet) - Number(gp))
       const debt = Math.round(Number(this.user.stats.gp.debt) - Number(gp))
@@ -160,7 +170,7 @@ export default defineComponent({
         }
       }
 
-      const showToast = () => this.showToast(`Thank you for your payment of ${gp}. Your new balance is: ${debt}`) 
+      const showToast = () => this.showToast(`Thank you for your payment of ${gp}. Your new balance is: ${debt}`)
 
       this.profileDb
         .updateStats(this.userId, updatedUser)
@@ -171,14 +181,14 @@ export default defineComponent({
 
     async clickWithdraw() {
       const { limit, wallet, savings } = this.user.stats.gp
-      const isWalletFull  = wallet >= limit
-      if(isWalletFull){
+      const isWalletFull = wallet >= limit
+      if (isWalletFull) {
         const alert = await alertController.create({
           header: "Your wallet is full!",
           buttons: ["Ok"]
         })
-      alert.present()
-      }else{
+        alert.present()
+      } else {
         const holdLimit = limit - wallet
         const alert = await alertController.create({
           header: `Withdraw from Savings: (₲${this.user.stats.gp.savings}.00)`,
@@ -191,24 +201,24 @@ export default defineComponent({
             type: 'number',
             name: 'gp',
             max: holdLimit >= savings ? savings : holdLimit,
-            min: 0 
+            min: 0
           }],
         })
-      alert.present()
+        alert.present()
       }
 
     },
 
     async clickDeposit() {
       const { wallet, savings } = this.user.stats.gp
-      const isWalletEmpty  = wallet <= 0 
-      if(isWalletEmpty){
+      const isWalletEmpty = wallet <= 0
+      if (isWalletEmpty) {
         const alert = await alertController.create({
           header: "Your wallet is empty!",
           buttons: ["Ok"]
         })
         alert.present()
-      }else{
+      } else {
         const alert = await alertController.create({
           header: `Deposit to Savings: (₲${savings}.00)`,
           buttons: [{
@@ -246,11 +256,11 @@ export default defineComponent({
         }
       }
 
-      const showToast = () => this.showToast(`₲${gp} GP Withdrawn. New Balance: ₲${debt}.`) 
+      const showToast = () => this.showToast(`₲${gp} GP Withdrawn. New Balance: ₲${debt}.`)
 
       this.profileDb.updateStats(this.user.id, updatedUser)
-      .then(this.loadUsers)
-      .then(showToast)
+        .then(this.loadUsers)
+        .then(showToast)
     },
     depositGp({ gp }: any) {
       const wallet = Math.round(Number(this.user.stats.gp.wallet) - Number(gp))
@@ -269,26 +279,26 @@ export default defineComponent({
         }
       }
 
-      const showToast = () => this.showToast(`Thank you for your deposit of ₲${gp}. Your new balance is: ₲${savings}`) 
+      const showToast = () => this.showToast(`Thank you for your deposit of ₲${gp}. Your new balance is: ₲${savings}`)
 
-      this.profileDb.updateStats(this.user.id, updatedUser )
+      this.profileDb.updateStats(this.user.id, updatedUser)
         .then(this.loadUsers)
         .then(showToast)
     },
 
-    async showToast(message: string){
-        const toast = await toastController.create({
-          message,
-          duration: 3000,
-          position: 'bottom'
-        })
-        toast.present()
+    async showToast(message: string) {
+      const toast = await toastController.create({
+        message,
+        duration: 3000,
+        position: 'bottom'
+      })
+      toast.present()
     },
   },
 
 
   setup() {
-  const profileDb =  new ProfileDb(profileStorage)
+    const profileDb = new ProfileDb(profileStorage)
 
     return {
       profileDb,

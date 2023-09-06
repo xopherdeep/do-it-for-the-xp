@@ -31,9 +31,15 @@ const HometownRoutes = [
     props: true,
   },
   {
-    path: '/temple',
+    path: '/user-stats/:userId?/',
+    name: 'view-stats',
+    component: () => import('@/views/MyPortal/HomeTown/HospitalHub/components/XpViewStats.vue'),
+    props: true
+  },
+  {
+    path: '/temple/:userId?/',
     name: 'temple',
-    component: () => import('@/views/MyDialogBox/[AppJig]/[AppJig].vue'),
+    component: () => import('@/views/MyPortal/HomeTown/TempleGrounds/TempleGrounds.vue'),
     props: true,
   },
   {

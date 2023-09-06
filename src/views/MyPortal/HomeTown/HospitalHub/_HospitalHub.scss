@@ -1,33 +1,54 @@
-:root{
-  --color-light: var(--ion-color-primary-tint);
-  --color-medium: var(--ion-color-primary-shade);
-  --color-dark: var(--ion-color-primary);
-  --color-darkest: var(--ion-color-primary-shade);
-  --animation-speed: 4s;
-  --animation-loop: infinite;
-}
+.hospital-hub {
+  .heartbeat {
+    float: right;
+    width: 80%;
+    height: 85px;
+    border: 1px solid green;
+    background-color: black;
+    position: relative;
+  }
+  .heartbeat:after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(
+      to right,
+      rgba(0, 0, 0, 1) 0%,
+      rgba(0, 0, 0, 1) 50%,
+      rgba(0, 0, 0, 0) 100%
+    );
+    background-repeat: repeat-x;
+    background-size: 130% 100%;
+    background-position: 0 0;
+    animation: graph 3s linear infinite;
+  }
+  @keyframes graph {
+    100% {
+      background-position: 450px 0;
+    }
+  }
 
-.hospital-hub{
-  ion-content{
-    --background: url("@/assets/images/midjourney/hospital.png") center / cover no-repeat;
+  ion-content {
+    --background: url("@/assets/images/midjourney/hospital.png") center / cover
+      no-repeat;
   }
   ion-card {
     &.item {
       margin: 1em;
-      // 100% view height - header - footer toolbar - padding / 2 
+      // 100% view height - header - footer toolbar - padding / 2
       height: calc((100vh - 120px - 110px - 50px - 5em) / 2);
       border-radius: 0 0 65px 65px;
-      box-shadow: 
-      rgb(0 0 0 / 20%) 0px 3px 1px -2px,
-      rgb(0 0 0 / 14%) 0px 2px 2px 0px,
-      rgb(0 0 0 / 12%) 0px 1px 5px 0px;
+      box-shadow: rgb(0 0 0 / 20%) 0px 3px 1px -2px,
+        rgb(0 0 0 / 14%) 0px 2px 2px 0px, rgb(0 0 0 / 12%) 0px 1px 5px 0px;
 
       ion-img {
-      margin: .5em auto;
+        margin: 0.5em auto;
         object-fit: fill;
         transform: scale(1.15);
       }
     }
   }
-
 }

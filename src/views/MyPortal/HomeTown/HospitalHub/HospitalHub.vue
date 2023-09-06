@@ -6,34 +6,13 @@
           <ion-back-button
             :default-href="`/my-portal/${userId}/my-home`"
           ></ion-back-button>
-          <ion-icon :icon="storefrontOutline" slot="icon-only" />
+          <i class="fad fa-hospital fa-2x" />
         </ion-buttons>
         <ion-title> Hospital Hub </ion-title>
       </ion-toolbar>
-      <ion-item>
-        <ion-label> Shelves </ion-label>
-        <ion-select
-          @ionChange="selectShelf"
-          :value="shelves"
-          :interface-options="customAlertOptions"
-          interface="alert"
-          placeholder="..."
-          multiple
-        >
-          <ion-select-option value="affordable" selected>
-            Can Afford
-          </ion-select-option>
-          <ion-select-option value="out-of-budget" checked>
-            Can't Afford
-          </ion-select-option>
-          <ion-select-option value="favorites"> Favorites </ion-select-option>
-          <ion-select-option value="wish-list"> Wish List </ion-select-option>
-          <ion-select-option value="purchased"> Purchased </ion-select-option>
-        </ion-select>
-      </ion-item>
     </ion-header>
 
-    <ion-content class="accessory-shop">
+    <ion-content>
       <xp-loading v-if="isLoading" />
       <ion-grid v-else>
         <ion-row>
@@ -41,63 +20,39 @@
             <ion-card>
               <ion-title>Nurse</ion-title>
               <ion-card-content>
-                Welcome traveler! You look like you've had quite an adventure. How can we assist you today?
+                Welcome traveler! You look like you've had quite an adventure.
+                How can we assist you today?
               </ion-card-content>
             </ion-card>
-          </ion-col>
-        </ion-row>
-        <ion-row>
-          <ion-col
-            size="6"
-            v-for="item in items"
-            :key="item.id"
-            class="ion-no-padding"
-          >
-            <ion-card class="item ion-no-padding">
-              <ion-card-header>
-                <ion-card-subtitle
-                  v-if="item.title"
-                  v-html="item.title.rendered"
-                />
-                <!-- <ion-card-title v-if="item.title" v-html="item.title.rendered"></ion-card-title> -->
-              </ion-card-header>
-              <ion-img v-bind="getImgObj(item.featured_media)"></ion-img>
+            <ion-card v-for="user in users" :key="user.id">
+              <div class="heartbeat">
+                <svg height="100%" width="100%">
+                  <polyline
+                    fill="none"
+                    stroke="red"
+                    stroke-width="3"
+                    points="0,45 50,45 55,10 60,45 80,45 90,45 100,70 110,10 120,45 150,45
+            200,45 205,10 210,45 230,45 240,45 250,70 260,10 270,45 300,45 
+            350,45 355,10 360,45 380,45 390,45 400,70 410,10 420,45 450,45 500,45"
+                  ></polyline>
+                </svg>
+              </div>
+              <ion-avatar>
+                <ion-img :src="$getUserAvatar(user)"></ion-img>
+              </ion-avatar>
 
-              <ion-card-content class="ion-no-margin ion-no-padding">
-                <!-- <ion-badge color="warning">
-                  {{item.meta._xp_achievement_gp}}
-                  &nbsp;
-                  <strong>GP</strong>
-                </ion-badge>
-                <ion-badge color="tertiary">
-                  {{item.meta._xp_achievement_ap}}
-                  &nbsp;
-                  <strong>AP</strong>
-                </ion-badge>
-                <ion-badge color="success">
-                  {{item.meta._xp_achievement_xp}}
-                  &nbsp;
-                  <strong>XP</strong>
-                </ion-badge> -->
-              </ion-card-content>
+              <ion-progress-bar color="danger"></ion-progress-bar>
             </ion-card>
           </ion-col>
         </ion-row>
       </ion-grid>
-      <!-- fab placed to the bottom and start and on the bottom edge of the content overlapping footer with a list to the right -->
       <ion-fab vertical="bottom" horizontal="center" slot="fixed">
-        <ion-fab-button color="secondary" id="open-action-sheet">
-          <i class="fa-user-nurse fad fa-2x"/>
+        <ion-fab-button color="secondary" @click="clickButton">
+          <i class="fa-user-nurse fad fa-2x" />
         </ion-fab-button>
-        <!-- <ion-fab-list side="start">
-          <ion-fab-button>
-            <ion-icon :icon="banOutline"></ion-icon>
-          </ion-fab-button>
-          Empty
-        </ion-fab-list> -->
       </ion-fab>
-
     </ion-content>
+    <ion-router-outlet />
     <ion-footer>
       <!-- <ion-toolbar color="secondary">
         <ion-grid>

@@ -12,16 +12,12 @@
           {{ user.name.last }}
         </ion-title>
       </ion-buttons>
-
     </ion-toolbar>
-    <ion-content
-      :fullscreen="true"
-      v-if="user.stats"
-    >
+    <ion-content :fullscreen="true" v-if="user.stats">
       <ion-grid>
         <ion-row>
           <ion-col
-            v-for="area, category in areas"
+            v-for="(area, category) in areas"
             :key="category"
             size="12"
             size-md="6"
@@ -42,10 +38,7 @@
                     </ion-label>
                   </ion-item>
                   <ion-list slot="content">
-                    <ion-item
-                      v-for="desc, stat in area.stats"
-                      :key="stat"
-                    >
+                    <ion-item v-for="(desc, stat) in area.stats" :key="stat">
                       <ion-label :color="area.color">
                         <strong>
                           {{ stat }}
@@ -54,23 +47,20 @@
                           {{ desc }}
                         </p>
                       </ion-label>
-                      <ion-note
-                      slot="end"
-                      :color="area.color"
-                    >
-                      {{user.stats[stat]}}
-                    </ion-note>
-                  </ion-item>
-                </ion-list>
-              </ion-accordion>
-            </ion-accordion-group>
-          </ion-card>
-        </ion-col>
-      </ion-row>
-    </ion-grid>
-  </ion-content>
-
-</ion-page></template>
+                      <ion-note slot="end" :color="area.color">
+                        {{ user.stats[stat] }}
+                      </ion-note>
+                    </ion-item>
+                  </ion-list>
+                </ion-accordion>
+              </ion-accordion-group>
+            </ion-card>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </ion-content>
+  </ion-page>
+</template>
 
 <script src="./UserProfile.js" />
-<style lang="scss" src="./_UserProfile.scss" scoped/>
+<style lang="scss" src="./_UserProfile.scss" scoped />

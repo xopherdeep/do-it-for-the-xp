@@ -2,6 +2,41 @@ import Stats from '@/utils/User/stats';
 import DbStorageApi from './DbStorageApi';
 import User from '@/utils/User';
 
+import { Entry, SpecialStats } from '@/utils/User/stats';
+
+// New types and interfaces for Skills, JobClass, Equipment, and Quests
+interface Skill {
+  name: string;
+  level: number;
+}
+
+interface JobClass {
+  name: string;
+  level: number;
+  xp: number;
+  skills: Skill[];
+  ledger: Entry[];
+  statBonuses: Partial<SpecialStats>;
+  multiClassPenalty: number;
+  multiClassBonus: number;
+}
+
+interface Equipment {
+  accessory: string;
+  weapon: string;
+  armor: string;
+}
+
+interface Quest {
+  id: string;
+  status: 'completed' | 'in-progress' | 'not-started';
+  // ...other details
+}
+
+interface InventoryItem {
+  itemId: string;
+  quantity: number;
+}
 export interface NewProfileForm {
   id?: string
   email?: string
@@ -13,9 +48,13 @@ export interface NewProfileForm {
   favoriteFood: string
   favoriteThing: string
   jobClass: string
+  jobClasses?: JobClass[];
   isAdult: boolean
   birthday?: string
   stats: Stats
+  equipment?: Equipment;
+  quests?: Quest[];
+  inventory?: InventoryItem[];
 }
 
 export class ProfileDb extends DbStorageApi {

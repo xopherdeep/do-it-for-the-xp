@@ -1,3 +1,4 @@
+
 interface XPStats {
   now: number;
   next_level: number;
@@ -27,7 +28,7 @@ interface APStats {
   total: number;
   ledger: Entry[];
 }
-interface Entry {
+export interface Entry {
   type: 'reward' | 'penalty'; // Could be more types like 'purchase', 'exchange', etc.
   timestamp: number; // The Unix timestamp when the transaction occurred
   achievementId: any; // The ID of the achievement tied to this entry
@@ -35,8 +36,13 @@ interface Entry {
   description: string; // A brief description of the entry
 }
 
+interface Ailment {
+  type: string; // e.g., 'Poison', 'Stun', 'Curse'
+  severity: number; // e.g., 1-5 to indicate how bad the ailment is
+  duration: number; // Number of turns or seconds or any unit that ailment will last
+}
 
-interface SpecialStats {
+export interface SpecialStats {
   ledger: Entry[];
   strength: number;
   defense: number;
@@ -60,9 +66,10 @@ export default class Stats {
   mp: HPMPStats;
   ap: APStats;
   special: SpecialStats;
+  ailments: Ailment[];
 
   constructor({
-    level, xp, gp, hp, mp, ap, special
+    level, xp, gp, hp, mp, ap, special, ailments
   }: {
     level?: number,
     xp: XPStats,
@@ -71,6 +78,7 @@ export default class Stats {
     mp?: HPMPStats,
     ap?: APStats,
     special?: SpecialStats
+    ailments?: Ailment[]
   } = {
       xp: {
         now: 0,
@@ -106,6 +114,7 @@ export default class Stats {
       total: ap?.total ?? 0,
       ledger: ap?.ledger ?? [],
     };
+    this.ailments = ailments ?? [];
     this.special = {
       ledger: special?.ledger ?? [],
       strength: special?.strength ?? 0,
