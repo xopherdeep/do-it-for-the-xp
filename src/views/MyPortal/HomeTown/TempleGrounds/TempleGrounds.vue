@@ -124,7 +124,7 @@
         id="room-action"
         @click="showRoomActions"
       >
-        <ion-fab-button :color="actionColor">
+        <ion-fab-button :color="currentRoom.content ? actionColor : 'none'">
           <i class="fad fa-2x" :class="ROOM_ICONS[currentRoom.type]" />
         </ion-fab-button>
       </ion-fab>

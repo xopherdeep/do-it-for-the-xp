@@ -96,7 +96,11 @@ export default defineComponent({
           actions.buttons = [{
             text: "Open Chest",
             handler: () => {
-              // handle loot
+              alert(`You found a ${this.currentRoom.content.item}!`);
+              const action = confirm('Do you want to take the loot?');
+              if (action) {
+                this.handleLoot();
+              }
             }
           }]
           break;
@@ -162,6 +166,12 @@ export default defineComponent({
   },
 
   methods: {
+    handleLoot() {
+      // Remove the item from the room
+      delete this.currentRoom.content;
+      // Change the button color
+      this.currentRoom.type = 'empty';
+    },
     clickFight() {
       alert()
     },
