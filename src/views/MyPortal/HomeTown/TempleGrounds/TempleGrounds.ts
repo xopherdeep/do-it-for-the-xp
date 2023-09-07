@@ -101,7 +101,13 @@ export default defineComponent({
             handler: async () => {
               const alert = await alertController.create({
                 header: 'Chest Contents',
-                message: `You found a ${this.currentRoom.content.item}!`,
+                inputs: this.currentRoom.content.items.map(item => ({
+                  name: item,
+                  type: 'checkbox',
+                  label: item,
+                  value: item,
+                  checked: false
+                })),
                 buttons: [
                   {
                     text: 'Leave',
@@ -109,8 +115,8 @@ export default defineComponent({
                   },
                   {
                     text: 'Loot',
-                    handler: () => {
-                      this.handleLoot();
+                    handler: (selectedItems) => {
+                      this.handleLoot(selectedItems);
                     }
                   }
                 ]
@@ -181,11 +187,20 @@ export default defineComponent({
   },
 
   methods: {
-    handleLoot() {
-      // Remove the item from the room
+    handleLoot(selectedItems) {
+      selectedItems.forEach(item => {
+        if (item === 'key') {
+          this.playerKeys += 1;
+        } else if (item === 'dungeon') {
+          if (this.currentRoom.content.dungeon === 'map') {
+            this.hasMap = true;
+          } else if (this.currentRoom.content.dungeon === 'compass') {
+            this.hasCompass = true;
+          }
+        }
+      });
+      // Remove the items from the room
       delete this.currentRoom.content;
-      // Change the button color
-      // this.currentRoom.type = 'empty';
     },
     clickFight() {
       alert()
