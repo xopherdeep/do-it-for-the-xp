@@ -278,7 +278,7 @@ export default defineComponent({
       }
       return this.rooms[cell]?.type.toLowerCase() || 'empty';
     },
-    move(direction: 'up' | 'down' | 'left' | 'right') {
+    async move(direction: 'up' | 'down' | 'left' | 'right') {
       const [row, col] = this.currentPosition;
       let newRow = row, newCol = col;
 
@@ -303,13 +303,42 @@ export default defineComponent({
       const newRoom = this.rooms[newRoomKey];
 
       if (newRoom.type !== 'wall') {
-        this.currentPosition = [newRow, newCol];
+        if (this.isDoorLocked(newRow, newCol)) {
+          await this.showUnlockDoorAlert(direction);
+        } else {
+          this.currentPosition = [newRow, newCol];
 
-        // Mark the room as visited
-        newRoom.visited = true;
+          // Mark the room as visited
+          newRoom.visited = true;
 
-        // ... handle other room logic like picking up keys, etc.
+          // ... handle other room logic like picking up keys, etc.
+        }
       }
+    },
+
+    async showUnlockDoorAlert(direction: 'north' | 'south' | 'east' | 'west') {
+      const alert = await alertController.create({
+        header: 'Locked Door',
+        message: this.playerKeys > 0 ? 'Would you like to use a key to unlock this door?' : 'You need a key to unlock this door!',
+        buttons: [
+          {
+            text: 'Cancel',
+            role: 'cancel'
+          },
+          {
+            text: 'Unlock (-1 Key)',
+            handler: () => {
+              if (this.playerKeys > 0) {
+                this.unlockDoor(direction);
+                this.playerKeys -= 1;
+              }
+            },
+            disabled: this.playerKeys <= 0
+          }
+        ]
+      });
+
+      await alert.present();
     },
 
     isDoorLocked(newRow, newCol) {
