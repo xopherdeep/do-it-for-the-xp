@@ -1,6 +1,6 @@
 import { defineComponent, ref } from "vue";
 import ionic from "@/mixins/ionic";
-import { alertController } from "@ionic/vue";
+import { alertController, toastController } from "@ionic/vue";
 
 import {
   ROOM_ICONS,
@@ -35,7 +35,7 @@ export default defineComponent({
       maze: [
         [____, TELE, q__q, ____, ____, ____],
         [____, ____, q__q, ____, X__X, $__$],
-        [SHOP, q__q, LCOM, q__q, q__q, ____],
+        [SHOP, q__q, LCOM, q__q, x__x, ____],
         [____, q__q, q__q, LMAP, ____, $__$],
         [____, ____, q__q, ____, q__q, x__x],
         [____, K___, _00_, q__q, ____, TELE],
@@ -49,7 +49,7 @@ export default defineComponent({
         [q__q]: { type: "monster", content: { monsterType: "small" } },
         [TELE]: { type: "teleport" },
         [SHOP]: { type: "shop" },
-        [x__x]: { type: "miniboss" },
+        [x__x]: { type: "miniboss", locked: { north: true } },
         [$__$]: { type: "loot", content: { chest: 'random', quantity: 1, items: ["potion", "ether"] } },
         [K___]: { type: "loot", content: { chest: "dungeon", dungeon: "key" } },
         [LMAP]: { type: "loot", content: { chest: "dungeon", dungeon: "map" } },
@@ -244,7 +244,7 @@ export default defineComponent({
       })
       alert.present();
     },
-    handleLoot(selectedItems) {
+    async handleLoot(selectedItems) {
       selectedItems.forEach(item => {
         if (item === 'key') {
           this.playerKeys += 1;
@@ -259,7 +259,14 @@ export default defineComponent({
         } else if (this.currentRoom.content.dungeon) {
           delete this.currentRoom.content
         }
+
       });
+
+      const toast = await toastController.create({
+        message: `Nice, you picked up ${selectedItems}!`,
+        duration: 2000
+      })
+      toast.present()
       // Remove the items from the room
     },
     clickFight() {
@@ -278,23 +285,26 @@ export default defineComponent({
       }
       return this.rooms[cell]?.type.toLowerCase() || 'empty';
     },
-    async move(direction: 'up' | 'down' | 'left' | 'right') {
+    async move(direction: 'north' | 'south' | 'west' | 'east') {
       const [row, col] = this.currentPosition;
       let newRow = row, newCol = col;
 
       const currentRoom = this.rooms[this.maze[row][col]];
 
       switch (direction) {
-        case 'up':
-          if (row > 0 && !currentRoom.locked?.north) newRow = row - 1;
+        case 'north':
+          if (row > 0 && !currentRoom.locked?.north)
+            newRow = row - 1;
+          else if (currentRoom.locked?.north)
+            await this.showUnlockDoorAlert(direction);
           break;
-        case 'down':
+        case 'south':
           if (row < this.maze.length - 1 && !currentRoom.locked?.south) newRow = row + 1;
           break;
-        case 'left':
+        case 'west':
           if (col > 0 && !currentRoom.locked?.west) newCol = col - 1;
           break;
-        case 'right':
+        case 'east':
           if (col < this.maze[0].length - 1 && !currentRoom.locked?.east) newCol = col + 1;
           break;
       }
@@ -317,10 +327,8 @@ export default defineComponent({
     },
 
     async showUnlockDoorAlert(direction: 'north' | 'south' | 'east' | 'west') {
-      const alert = await alertController.create({
-        header: 'Locked Door',
-        message: this.playerKeys > 0 ? 'Would you like to use a key to unlock this door?' : 'You need a key to unlock this door!',
-        buttons: [
+      const buttons = this.playerKeys
+        ? [
           {
             text: 'Cancel',
             role: 'cancel'
@@ -330,12 +338,19 @@ export default defineComponent({
             handler: () => {
               if (this.playerKeys > 0) {
                 this.unlockDoor(direction);
-                this.playerKeys -= 1;
               }
             },
-            disabled: this.playerKeys <= 0
+            // disabled: this.playerKeys <= 0
           }
         ]
+        : [{
+          text: 'Ok',
+          role: 'cancel'
+        }]
+      const alert = await alertController.create({
+        header: 'Locked Door',
+        message: this.playerKeys > 0 ? 'Would you like to use a key to unlock this door?' : 'You need a key to unlock this door!',
+        buttons
       });
 
       await alert.present();
@@ -358,8 +373,17 @@ export default defineComponent({
         if (this.playerKeys > 0) {
           currentRoom.locked[direction] = false;
           this.playerKeys -= 1; // subtract a key
+          this.showToast({
+            message: 'Door Unlocked',
+            duration: 2000
+          })
+
         }
       }
+    },
+    async showToast(toastObj: any) {
+      const toast = await toastController.create(toastObj)
+      toast.present()
     },
     getDirection(newRow, newCol) {
       const [currentRow, currentCol] = this.currentPosition;

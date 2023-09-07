@@ -104,26 +104,54 @@
       </ion-fab>
 
       <ion-fab v-if="canMoveRight" vertical="center" horizontal="end">
-        <ion-fab-button @click.stop="move('right')">
-          <i class="fad fa-2x fa-arrow-right" />
+        <ion-fab-button @click.stop="move('east')">
+          <i
+            class="fad fa-2x"
+            :class="
+              isDoorLocked(currentPosition[0], currentPosition[1] + 1)
+                ? 'fa-lock'
+                : 'fa-arrow-right'
+            "
+          />
         </ion-fab-button>
       </ion-fab>
 
       <ion-fab v-if="canMoveLeft" vertical="center" horizontal="start">
-        <ion-fab-button @click.stop="move('left')">
-          <i class="fad fa-2x fa-arrow-left" />
+        <ion-fab-button @click.stop="move('west')">
+          <i
+            class="fad fa-2x"
+            :class="
+              isDoorLocked(currentPosition[0], currentPosition[1] - 1)
+                ? 'fa-lock'
+                : ' fa-arrow-left'
+            "
+          />
         </ion-fab-button>
       </ion-fab>
 
       <ion-fab v-if="canMoveDown" vertical="bottom" horizontal="center">
-        <ion-fab-button @click="move('down')">
-          <i class="fad fa-2x fa-arrow-down" />
+        <ion-fab-button @click="move('south')">
+          <i
+            class="fad fa-2x"
+            :class="
+              isDoorLocked(currentPosition[0] + 1, currentPosition[1])
+                ? 'fa-lock'
+                : 'fa-arrow-down'
+            "
+          />
         </ion-fab-button>
       </ion-fab>
 
       <ion-fab v-if="canMoveUp" vertical="top" horizontal="center">
-        <ion-fab-button @click="move('up')">
-          <i class="fad fa-2x fa-arrow-up" />
+        <ion-fab-button @click="move('north')">
+          <i
+            class="fad fa-2x"
+            :class="
+              isDoorLocked(currentPosition[0] - 1, currentPosition[1])
+                ? 'fa-lock'
+                : ' fa-arrow-up'
+            "
+          />
         </ion-fab-button>
       </ion-fab>
 
