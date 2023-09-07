@@ -29,6 +29,8 @@ export default defineComponent({
     return {
       ROOM_ICONS,
       playerKeys: 0,
+      hasMap: false,
+      hasCompass: false,
       maze: [
         [____, TELE, q__q, ____, ____, ____],
         [____, ____, q__q, ____, X__X, $__$],
@@ -68,7 +70,7 @@ export default defineComponent({
           return "danger";
           break;
         case "loot":
-          return "warning"
+          return this.currentRoom.content ? "warning" : "none";
           break;
         case "entrance":
         case "shop":
@@ -183,7 +185,7 @@ export default defineComponent({
       // Remove the item from the room
       delete this.currentRoom.content;
       // Change the button color
-      this.currentRoom.type = 'empty';
+      // this.currentRoom.type = 'empty';
     },
     clickFight() {
       alert()
