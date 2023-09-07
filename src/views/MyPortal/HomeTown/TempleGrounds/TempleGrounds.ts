@@ -26,6 +26,7 @@ export default defineComponent({
   data() {
     const LMAP = "LMAP";
     const LCOM = "LCOM";
+    const K001 = "K001";
     return {
       ROOM_ICONS,
       playerKeys: 0,
@@ -33,10 +34,10 @@ export default defineComponent({
       isMapOpen: false,
       hasCompass: false,
       maze: [
-        [____, TELE, q__q, ____, ____, ____],
+        [____, TELE, K001, ____, ____, ____],
         [____, ____, q__q, ____, X__X, $__$],
         [SHOP, q__q, LCOM, q__q, x__x, ____],
-        [____, q__q, q__q, LMAP, ____, $__$],
+        [____, $__$, q__q, LMAP, ____, $__$],
         [____, ____, q__q, ____, q__q, x__x],
         [____, K___, _00_, q__q, ____, TELE],
       ],
@@ -50,8 +51,10 @@ export default defineComponent({
         [TELE]: { type: "teleport" },
         [SHOP]: { type: "shop" },
         [x__x]: { type: "miniboss", locked: { north: true } },
-        [$__$]: { type: "loot", content: { chest: 'random', quantity: 1, items: ["potion", "ether"] } },
+        [$__$]: { type: "loot", content: { chest: "dungeon", dungeon: "some awesome item" } },
+        // [$__$]: { type: "loot", content: { chest: 'random', quantity: 1, items: ["potion", "ether"] } },
         [K___]: { type: "loot", content: { chest: "dungeon", dungeon: "key" } },
+        [K001]: { type: "loot", content: { chest: "dungeon", dungeon: "key" } },
         [LMAP]: { type: "loot", content: { chest: "dungeon", dungeon: "map" } },
         [LCOM]: { type: "loot", content: { chest: "dungeon", dungeon: "compass" } },
         // [LOOT]: {
@@ -128,6 +131,7 @@ export default defineComponent({
         header: "What would you like to do?",
         buttons: [{
           text: "Leave Temple",
+          role: "cancel",
           // icon: heartHalfOutline,
           handler: () => {
             //
@@ -138,6 +142,7 @@ export default defineComponent({
         case "loot":
           actions.buttons = [{
             text: "Open Chest",
+            role: "open",
             handler: currentRoom.content
               ? alertChestContents
               : alertEmptyChest
@@ -147,6 +152,7 @@ export default defineComponent({
           actions.header = "A Monster approaches!"
           actions.buttons = [{
             text: "Fight",
+            role: "fight",
             handler: () => {
               // ats
             }
@@ -156,6 +162,7 @@ export default defineComponent({
           actions.header = "Can I interest you in my wares?"
           actions.buttons = [{
             text: "View Wares",
+            role: "view",
             handler: () => {
               // handle shop
             }
@@ -165,14 +172,22 @@ export default defineComponent({
           actions.header = "You found a teleport!"
           actions.buttons = [{
             text: "Teleport",
+            role: "teleport",
             handler: () => {
               // handle teleport
             }
           }]
           break;
-
-
       }
+
+      actions.buttons.push({
+        text: "Cancel",
+        role: "cancel", 
+        handler: () =>{
+          //do nothing
+        } 
+      })
+
       return actions
     },
     currentRoom() {
@@ -262,15 +277,14 @@ export default defineComponent({
 
       });
 
-      const toast = await toastController.create({
+      this.showToast({
         message: `Nice, you picked up ${selectedItems}!`,
         duration: 2000
       })
-      toast.present()
       // Remove the items from the room
     },
     clickFight() {
-      alert()
+      //
     },
     async showRoomActions() {
       if (this.roomActions) {
@@ -382,7 +396,11 @@ export default defineComponent({
       }
     },
     async showToast(toastObj: any) {
-      const toast = await toastController.create(toastObj)
+      const toast = await toastController.create({
+        ...toastObj,
+        position: 'middle'
+
+      })
       toast.present()
     },
     getDirection(newRow, newCol) {

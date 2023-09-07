@@ -37,7 +37,7 @@ export const ROOM_ICONS = {
 
   boss: 'fa-dragon',             // Boss Room
   miniboss: 'fa-helmet-battle',  // Mini Boss Room
-  monster: 'fa-helmet-battle',   // Monster Room
+  monster: 'fa-snake',   // Monster Room
   trap: 'fa-skull',              // Trap Room
 
   loot: 'fa-treasure-chest',     // Treasure Room

@@ -38,9 +38,9 @@
             class="fad fa-2x ion-float-right"
             :class="ROOM_ICONS[currentRoom.type]"
           />
-          You are at position: <br />
-          Room content:
-          {{ currentRoom }}
+          <!-- You are at position: <br /> -->
+          <!-- Room content: -->
+          <!-- {{ currentRoom }} -->
           <ion-buttons slot="end">
             <ion-button
               size="large"

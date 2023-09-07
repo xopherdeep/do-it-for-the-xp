@@ -188,6 +188,7 @@ const $fx = {
       cursorHoriz: new Audio(chronoTrigger.curshoriz),
       cursorVerti: new Audio(chronoTrigger.cursverti),
     },
+
     finalFantasy: {
       bgm: [
         "http://starmen.net/mother2/music/032-%20Earthbound%20-%20Battle%20Against%20a%20Weak%20Opponent.mp3",
@@ -228,11 +229,15 @@ const $fx = {
 }
 
 export const play$fx = (fx = 'select') => {
-  const { ui, theme: { ui: themeUi } } = $fx
-  const soundFx = ui[themeUi][fx]
-
+  const { ui, rpg, theme: { ui: themeUi, rpg: themeRpg } } = $fx
+  let soundFx = ui[themeUi][fx]
   if (soundFx)
     soundFx.play()
+  else {
+    soundFx = rpg[themeRpg][fx] 
+    if(soundFx)
+      soundFx.play()
+  }
 }
 
 export default $fx;
