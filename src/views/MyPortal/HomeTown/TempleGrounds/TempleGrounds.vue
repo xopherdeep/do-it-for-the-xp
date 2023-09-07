@@ -10,15 +10,21 @@
         </ion-buttons>
         <ion-title> Temple </ion-title>
         <ion-buttons slot="end">
-          <ion-button color="none" :disabled="true">
+          <ion-button color="none" :disabled="true" v-if="hasCompass">
             {{ currentPosition }}
             <i class="fad fa-walking fa-2x ml-2" />
           </ion-button>
-          <ion-button>
+          <ion-button v-if="hasCompass">
             <i class="fad fa-compass fa-2x" />
           </ion-button>
-          <ion-button>
-            <i class="fad fa-map fa-2x" />
+          <ion-button v-if="hasMap" @click="clickMap">
+            <i
+              class="fad fa-map fa-2x"
+              :class="{
+                'fa-map': !hasCompass,
+                'fa-map-marked': hasCompass,
+              }"
+            />
           </ion-button>
           <ion-button>
             <i class="fad fa-key-skeleton m-0 mr-2 fa-2x ion-float-right" />
@@ -49,11 +55,14 @@
       </ion-card>
     </ion-header>
     <ion-content>
-      <ion-fab vertical="bottom" horizontal="start">
-        <ion-fab-button id="map-modal">
-          <i class="fad fa-2x fa-map" />
+      <ion-fab vertical="bottom" horizontal="start" v-if="hasMap">
+        <ion-fab-button @click="clickMap">
+          <i
+            class="fad fa-2x"
+            :class="{ 'fa-map': !hasCompass, 'fa-map-marked': hasCompass }"
+          />
         </ion-fab-button>
-        <ion-modal trigger="map-modal">
+        <ion-modal :isOpen="isMapOpen" @didDismiss="dismissMap">
           <ion-card class="maze-container icon-colors">
             <ion-row
               v-for="(row, rowIndex) in maze"
@@ -72,7 +81,7 @@
                   v-if="rooms[cell].type === 'wall' || rooms[cell].visited"
                 >
                   <i
-                    v-if="[row, cell].toString() === currentPosition.toString()"
+                    v-if="isCurrentRoom(rowIndex, colIndex) && hasCompass"
                     class="fad fa-2x fa-walking"
                     :class="{ 'opacity-20': rooms[cell].type === 'wall' }"
                   />

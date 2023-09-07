@@ -30,6 +30,7 @@ export default defineComponent({
       ROOM_ICONS,
       playerKeys: 0,
       hasMap: false,
+      isMapOpen: false,
       hasCompass: false,
       maze: [
         [____, TELE, q__q, ____, ____, ____],
@@ -41,7 +42,7 @@ export default defineComponent({
       ],
       rooms: {
         [____]: { type: "wall" },
-        [_00_]: { type: "entrance", visited: true },
+        [_00_]: { type: "entrance", visited: true, locked: { north: true } },
         [O__O]: { type: "empty" },
         [H__P]: { type: "health", content: { healthPoints: 10 } },
         [X__X]: { type: "boss" },
@@ -49,10 +50,10 @@ export default defineComponent({
         [TELE]: { type: "teleport" },
         [SHOP]: { type: "shop" },
         [x__x]: { type: "miniboss" },
-        [$__$]: { type: "loot", content: { item: 'random', quantity: 1, items: ["potion", "ether"] } },
-        [K___]: { type: "loot", content: { item: "key" } },
-        [LMAP]: { type: "loot", content: { item: "dungeon", dungeon: "map" } },
-        [LCOM]: { type: "loot", content: { item: "dungeon", dungeon: "compass" } },
+        [$__$]: { type: "loot", content: { chest: 'random', quantity: 1, items: ["potion", "ether"] } },
+        [K___]: { type: "loot", content: { chest: "dungeon", dungeon: "key" } },
+        [LMAP]: { type: "loot", content: { chest: "dungeon", dungeon: "map" } },
+        [LCOM]: { type: "loot", content: { chest: "dungeon", dungeon: "compass" } },
         // [LOOT]: {
         //   "5,1": { type: "loot", content: { item: "key" } },
         //   "2,2": { type: "loot", content: { item: "map" } },
@@ -63,6 +64,40 @@ export default defineComponent({
     };
   },
   computed: {
+    chestContents() {
+      const { content } = this.currentRoom
+      if (content && typeof content.chest != undefined) {
+        switch (content.chest) {
+          case "loot":
+            return content.items.map(item => ({
+              name: item,
+              type: 'checkbox',
+              label: item,
+              value: item,
+              checked: false
+            }))
+            break;
+          case "dungeon":
+            return [{
+              name: content.dungeon,
+              type: 'checkbox',
+              label: content.dungeon,
+              value: content.dungeon,
+              checked: false
+            }]
+            break;
+          default:
+            return [{
+              name: "empty",
+              type: 'checkbox',
+              label: "empty",
+              disabled: true,
+              checked: false
+            }]
+        }
+      }
+      return {}
+    },
     actionColor() {
       switch (this.currentRoom.type) {
         case "boss":
@@ -83,6 +118,12 @@ export default defineComponent({
       }
     },
     roomActions() {
+      const {
+        currentRoom,
+        alertChestContents,
+        alertEmptyChest
+      } = this
+
       const actions = {
         header: "What would you like to do?",
         buttons: [{
@@ -93,36 +134,13 @@ export default defineComponent({
           }
         }]
       }
-      switch (this.currentRoom.type) {
-
+      switch (currentRoom.type) {
         case "loot":
           actions.buttons = [{
             text: "Open Chest",
-            handler: async () => {
-              const alert = await alertController.create({
-                header: 'Chest Contents',
-                inputs: this.currentRoom.content.items.map(item => ({
-                  name: item,
-                  type: 'checkbox',
-                  label: item,
-                  value: item,
-                  checked: false
-                })),
-                buttons: [
-                  {
-                    text: 'Leave',
-                    role: 'cancel'
-                  },
-                  {
-                    text: 'Loot',
-                    handler: (selectedItems) => {
-                      this.handleLoot(selectedItems);
-                    }
-                  }
-                ]
-              });
-              await alert.present();
-            }
+            handler: currentRoom.content
+              ? alertChestContents
+              : alertEmptyChest
           }]
           break;
         case "monster":
@@ -187,20 +205,62 @@ export default defineComponent({
   },
 
   methods: {
+    clickMap() {
+      this.isMapOpen = true
+    },
+    dismissMap() {
+      this.isMapOpen = false
+    },
+    // is row cell current room
+    isCurrentRoom(row, col) {
+      return this.currentPosition[0] === row && this.currentPosition[1] === col;
+    },
+
+    async alertChestContents() {
+      const { chestContents: inputs } = this
+      const alert = await alertController.create({
+        header: 'Chest Contents',
+        inputs,
+        buttons: [
+          {
+            text: 'Leave',
+            role: 'cancel'
+          },
+          {
+            text: 'Loot',
+            handler: (selectedItems) => {
+              this.handleLoot(selectedItems);
+            }
+          }
+        ]
+      })
+      alert.present();
+    },
+
+    async alertEmptyChest() {
+      const alert = await alertController.create({
+        header: "Chest is empty!",
+        buttons: ["Ok"]
+      })
+      alert.present();
+    },
     handleLoot(selectedItems) {
       selectedItems.forEach(item => {
         if (item === 'key') {
           this.playerKeys += 1;
-        } else if (item === 'dungeon') {
-          if (this.currentRoom.content.dungeon === 'map') {
-            this.hasMap = true;
-          } else if (this.currentRoom.content.dungeon === 'compass') {
-            this.hasCompass = true;
-          }
+        } else if (this.currentRoom.content.dungeon === 'map') {
+          this.hasMap = true;
+        } else if (this.currentRoom.content.dungeon === 'compass') {
+          this.hasCompass = true;
+        }
+        // remove the item from  the room's content itmes
+        if (this.currentRoom.content.items) {
+          this.currentRoom.content.items = this.currentRoom.content.items.filter(i => i !== item)
+        } else if (this.currentRoom.content.dungeon) {
+          delete this.currentRoom.content
         }
       });
       // Remove the items from the room
-      delete this.currentRoom.content;
     },
     clickFight() {
       alert()
