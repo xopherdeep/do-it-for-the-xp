@@ -113,17 +113,7 @@
     computed: {
       ...mapGetters(["getUserById"]),
       user(): User {
-        return (
-          this.getUserById(this.userId) ||
-          new User({
-            name: {
-              full: "",
-              first: "",
-              middle: "",
-              last: "",
-            },
-          })
-        );
+        return this.getUserById(this.userId);
       },
 
       calcPhysical() {

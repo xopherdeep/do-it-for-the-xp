@@ -1,51 +1,137 @@
-import { defineComponent } from "vue";
+import { defineComponent, ref } from "vue";
 import ionic from "@/mixins/ionic";
 
-import { ROOM_ICONS, WALL, SHOP, ENTR, HLTH, MANA, MONS, LOOT, LOCK, EMPT, TELE, BOSS } from "@/dungeons/roomTypes";
+import {
+  ROOM_ICONS,
+  _00_,
+  O__O,
+  K___,
+  H__P,
+  M__P,
+  q__q,
+  $__$,
+  x__x,
+  X__X,
+  ____,
+  SHOP,
+  TELE,
+} from "@/dungeons/roomTypes";
+import { actionSheetController } from "@ionic/vue";
 
 export default defineComponent({
   props: ["userId"],
   name: "temple-grounds",
   mixins: [ionic],
   data() {
-    const L001 = "LOO1";
-    const L002 = "LOO2";
-    const L003 = "LOO3";
+    const LMAP = "LMAP";
+    const LCOM = "LCOM";
     return {
       ROOM_ICONS,
       playerKeys: 0,
       maze: [
-        [WALL, TELE, MONS, WALL, WALL, WALL],
-        [WALL, WALL, MONS, WALL, BOSS, LOOT],
-        [SHOP, MONS, L003, MONS, MONS, WALL],
-        [WALL, MONS, MONS, L002, WALL, WALL],
-        [WALL, WALL, MONS, WALL, WALL, WALL],
-        [WALL, L001, ENTR, MONS, WALL, TELE],
+        [____, TELE, q__q, ____, ____, ____],
+        [____, ____, q__q, ____, X__X, $__$],
+        [SHOP, q__q, LCOM, q__q, q__q, ____],
+        [____, q__q, q__q, LMAP, ____, $__$],
+        [____, ____, q__q, ____, q__q, x__x],
+        [____, K___, _00_, q__q, ____, TELE],
       ],
       rooms: {
-        [WALL]: { type: "wall" },
-        [ENTR]: { type: "entrance", visited: true },
-        [EMPT]: { type: "empty" },
-        [HLTH]: { type: "health", content: { healthPoints: 10 } },
-        [BOSS]: { type: "boss" },
-        [MONS]: { type: "monster", content: { monsterType: "small" } },
+        [____]: { type: "wall" },
+        [_00_]: { type: "entrance", visited: true },
+        [O__O]: { type: "empty" },
+        [H__P]: { type: "health", content: { healthPoints: 10 } },
+        [X__X]: { type: "boss" },
+        [q__q]: { type: "monster", content: { monsterType: "small" } },
         [TELE]: { type: "teleport" },
         [SHOP]: { type: "shop" },
-        [LOCK]: { type: "lock" },
-        [LOOT]: { type: "loot" },
-        [L001]: { type: "loot", content: { item: "key" } },
-        [L002]: { type: "loot", content: { item: "map" } },
-        [L003]: { type: "loot", content: { item: "compass" } },
+        [x__x]: { type: "miniboss" },
+        [$__$]: { type: "loot", content: { item: 'random', quantity: 1, items: ["potion", "ether"] } },
+        [K___]: { type: "loot", content: { item: "key" } },
+        [LMAP]: { type: "loot", content: { item: "dungeon", dungeon: "map" } },
+        [LCOM]: { type: "loot", content: { item: "dungeon", dungeon: "compass" } },
         // [LOOT]: {
         //   "5,1": { type: "loot", content: { item: "key" } },
         //   "2,2": { type: "loot", content: { item: "map" } },
         //   "3,3": { type: "loot", content: { item: "compass" } },
         // },
       },
-      currentPosition: [5, 2] // [row, column]
+      currentPosition: [5, 2] // [row, column] - default to entrance
     };
   },
   computed: {
+    actionColor() {
+      switch (this.currentRoom.type) {
+        case "boss":
+        case "monster":
+          return "danger";
+          break;
+        case "loot":
+          return "warning"
+          break;
+        case "entrance":
+        case "shop":
+        case "teleport":
+          return "success"
+          break;
+        default:
+          return "primary"
+
+      }
+    },
+    roomActions() {
+      const actions = {
+        header: "What would you like to do?",
+        buttons: [{
+          text: "Leave Temple",
+          // icon: heartHalfOutline,
+          handler: () => {
+            //
+          }
+        }]
+      }
+      switch (this.currentRoom.type) {
+
+        case "loot":
+          actions.buttons = [{
+            text: "Open Chest",
+            handler: () => {
+              // handle loot
+            }
+          }]
+          break;
+        case "monster":
+          actions.header = "A Monster approaches!"
+          actions.buttons = [{
+            text: "Fight",
+            handler: () => {
+              // ats
+            }
+          }]
+          break;
+        case "shop":
+          actions.header = "Can I interest you in my wares?"
+          actions.buttons = [{
+            text: "View Wares",
+            handler: () => {
+              // handle shop
+            }
+          }]
+          break;
+        case "teleport":
+          actions.header = "You found a teleport!"
+          actions.buttons = [{
+            text: "Teleport",
+            handler: () => {
+              // handle teleport
+            }
+          }]
+          break;
+
+
+      }
+      return actions
+    },
     currentRoom() {
       const [row, col] = this.currentPosition;
       const roomKey = this.maze[row][col];
@@ -70,10 +156,22 @@ export default defineComponent({
       const [row, col] = this.currentPosition;
       if (col >= this.maze[0].length - 1) return false;
       return this.rooms[this.maze[row][col + 1]].type !== "wall";
-    }
+    },
+
+
   },
 
   methods: {
+    clickFight() {
+      alert()
+    },
+    async showRoomActions() {
+      if (this.roomActions) {
+        const actions = await actionSheetController.create(this.roomActions)
+        actions.present();
+
+      }
+    },
     getRoomClass(cell, visited) {
       if (!visited) {
         return 'fa-question'; // icon for unvisited rooms
@@ -115,6 +213,7 @@ export default defineComponent({
     },
 
     isDoorLocked(newRow, newCol) {
+      if (!this.currentPosition) return false;
       const currentRoom = this.rooms[this.maze[this.currentPosition[0]][this.currentPosition[1]]];
       const direction = this.getDirection(newRow, newCol); // Assume you have a function to determine the direction ('north', 'south', etc.)
 
@@ -145,7 +244,8 @@ export default defineComponent({
 
 
 
-  }
+  },
+
 })
 
 
