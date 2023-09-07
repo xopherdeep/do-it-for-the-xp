@@ -1,5 +1,6 @@
 import { defineComponent, ref } from "vue";
 import ionic from "@/mixins/ionic";
+import { alertController } from "@ionic/vue";
 
 import {
   ROOM_ICONS,
@@ -95,12 +96,24 @@ export default defineComponent({
         case "loot":
           actions.buttons = [{
             text: "Open Chest",
-            handler: () => {
-              alert(`You found a ${this.currentRoom.content.item}!`);
-              const action = confirm('Do you want to take the loot?');
-              if (action) {
-                this.handleLoot();
-              }
+            handler: async () => {
+              const alert = await alertController.create({
+                header: 'Chest Contents',
+                message: `You found a ${this.currentRoom.content.item}!`,
+                buttons: [
+                  {
+                    text: 'Leave',
+                    role: 'cancel'
+                  },
+                  {
+                    text: 'Loot',
+                    handler: () => {
+                      this.handleLoot();
+                    }
+                  }
+                ]
+              });
+              await alert.present();
             }
           }]
           break;
