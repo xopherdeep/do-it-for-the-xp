@@ -9,8 +9,34 @@ import purchaseWAV from "@/assets/audio/Purchase.wav";
 import pointsMP3 from "@/assets/audio/points.mp3";
 import Coins from "@/assets/audio/nintendo/chrono trigger/cursor.mp3";
 
+import key from "@/assets/audio/key.mp3";
+import useKey from "@/assets/audio/use-key.mp3";
+import map from "@/assets/audio/map.mp3";
+import rupee from "@/assets/audio/rupee.mp3";
+import secret from "@/assets/audio/secret.mp3";
+import menuOpen from "@/assets/audio/menu-open.mp3";
+import menuClose from "@/assets/audio/menu-close.mp3";
+import messageSound from "@/assets/audio/message.mp3";
+import finishSound from "@/assets/audio/finish.mp3";
+import fairySound from "@/assets/audio/fairy.mp3";
+import item from "@/assets/audio/item.mp3";
+import chestOpen from "@/assets/audio/chest-open.mp3";
+import doorOpen from "@/assets/audio/door-open.mp3";
+
 const coins = new Audio(Coins);
 const loading = new Audio(loadingMP3);
+
+const gp = new Audio(rupee);
+const shhh = new Audio(secret)
+const openMenu = new Audio(menuOpen);
+const closeMenu = new Audio(menuClose);
+const message = new Audio(messageSound);
+const finish = new Audio(finishSound);
+const fairy = new Audio(fairySound);
+const newItem = new Audio(item);
+const openChest = new Audio(chestOpen);
+const openDoor = new Audio(doorOpen);
+
 
 coins.addEventListener(
   "ended",
@@ -122,6 +148,16 @@ const $fx = {
         "http://starmen.net/mother2/music/119-%20Earthbound%20-%20Battle%20Against%20a%20Machine.mp3",
         "http://starmen.net/mother2/music/040-%20Earthbound%20-%20Battle%20Against%20an%20Unsettling%20Opponent.mp3",
       ],
+      gp,
+      shhh,
+      openMenu,
+      closeMenu,
+      newItem,
+      openChest,
+      fairy,
+      finish,
+      openDoor,
+      message: message,
       error: new Audio(earthbound.error),
       enterBattle: new Audio(earthbound.enterbattle),
       attack: new Audio(earthbound.attack1),
@@ -150,6 +186,9 @@ const $fx = {
       text: new Audio(earthbound.text),
       cursorHoriz: new Audio(earthbound.curshoriz),
       cursorVerti: new Audio(earthbound.cursverti),
+      key: new Audio(key),
+      useKey: new Audio(useKey),
+      map: new Audio(map),
     },
 
     chronoTrigger: {
@@ -160,6 +199,20 @@ const $fx = {
         "http://starmen.net/mother2/music/119-%20Earthbound%20-%20Battle%20Against%20a%20Machine.mp3",
         "http://starmen.net/mother2/music/040-%20Earthbound%20-%20Battle%20Against%20an%20Unsettling%20Opponent.mp3",
       ],
+
+      gp,
+      shhh,
+      openMenu,
+      closeMenu,
+      newItem,
+      openChest,
+      fairy,
+      finish,
+      openDoor,
+
+      key: new Audio(key),
+      useKey: new Audio(useKey),
+      map: new Audio(map),
       error: new Audio(chronoTrigger.alert),
       attack: new Audio(chronoTrigger.attack),
       runAway: new Audio(),
@@ -197,6 +250,19 @@ const $fx = {
         "http://starmen.net/mother2/music/119-%20Earthbound%20-%20Battle%20Against%20a%20Machine.mp3",
         "http://starmen.net/mother2/music/040-%20Earthbound%20-%20Battle%20Against%20an%20Unsettling%20Opponent.mp3",
       ],
+      gp,
+      shhh,
+      openMenu,
+      closeMenu,
+      newItem,
+      openChest,
+      fairy,
+      finish,
+      openDoor,
+
+      key: new Audio(key),
+      useKey: new Audio(useKey),
+      map: new Audio(map),
       error: new Audio(chronoTrigger.alert),
       attack: new Audio(chronoTrigger.attack),
       runAway: new Audio(),
@@ -234,8 +300,8 @@ export const play$fx = (fx = 'select') => {
   if (soundFx)
     soundFx.play()
   else {
-    soundFx = rpg[themeRpg][fx] 
-    if(soundFx)
+    soundFx = rpg[themeRpg][fx]
+    if (soundFx)
       soundFx.play()
   }
 }

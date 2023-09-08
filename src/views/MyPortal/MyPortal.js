@@ -79,9 +79,10 @@ export default defineComponent({
     enterBattle() {
       this.$refs?.outlet?.enterBattle();
     },
-    dismissRPGBox() {
+    async dismissRPGBox() {
       this.isRPGBoxOpen = false;
-      modalController.dismiss();
+      this.play$fx("closeMenu");
+      await modalController.dismiss();
     },
     closeModal() {
       this.dismissRPGBox();

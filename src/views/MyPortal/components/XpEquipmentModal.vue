@@ -1,20 +1,16 @@
 <template>
   <ion-modal
+    @willDismiss="close"
     class="fullscreen"
     :class="$options.name"
     :is-open="isOpen"
     :breakpoints="[1]"
     :initialBreakpoint="1"
     :fullscreen="true"
-    @ionModalDidDismiss="didDismiss"
   >
     <ion-header>
-      <ion-buttons class="ion-no-padding toolbar ">
-        <ion-button
-          class="ion-float-right"
-          size="large"
-          @click="close"
-        >
+      <ion-buttons class="ion-no-padding toolbar">
+        <ion-button class="ion-float-right" size="large" @click="close">
           <i class="fad fa-times fa-2x"></i>
         </ion-button>
       </ion-buttons>
@@ -25,9 +21,8 @@
           <ion-col size="7">
             <ion-card class="equipment mb-4">
               <ion-card-title> Equipment </ion-card-title>
-              <ion-card-content class="ion-no-padding h-100 ">
+              <ion-card-content class="ion-no-padding h-100">
                 <ion-buttons class="grid-container">
-
                   <ion-button
                     @mouseover="displayInfo(item)"
                     v-for="item in specialItems"
@@ -63,20 +58,12 @@
           <ion-col size="5">
             <ion-card class="info mb-4 ion-flex">
               <ion-card-title v-if="info"> {{ info.name }} </ion-card-title>
-              <i
-                class="fad fa-7x"
-                :class="`fa-${info.faIcon}`"
-              ></i>
+              <i class="fad fa-7x" :class="`fa-${info.faIcon}`"></i>
               {{ info.desc }}
               <ion-grid>
                 <ion-row>
                   <ion-col size="6">
-                    <ion-button
-                      expand="block"
-                      color="dark"
-                    >
-                      Use
-                    </ion-button>
+                    <ion-button expand="block" color="dark"> Use </ion-button>
                   </ion-col>
                   <ion-col size="6">
                     <ion-button
@@ -131,10 +118,7 @@
                 </ion-col> -->
                 <ion-col>
                   <ion-row class="dropzone">
-                    <ion-col
-                      @drop="drop($event, 'left')"
-                      @dragover="allowDrop"
-                    >
+                    <ion-col @drop="drop($event, 'left')" @dragover="allowDrop">
                       <i
                         v-for="item in equipmentOnLeft"
                         :key="item.faIcon"
@@ -144,15 +128,9 @@
                         @dragstart="drag($event, item)"
                       ></i>
                     </ion-col>
-                    <ion-col
-                      @drop="drop($event, 'left')"
-                      @dragover="allowDrop"
-                    >
+                    <ion-col @drop="drop($event, 'left')" @dragover="allowDrop">
                     </ion-col>
-                    <ion-col
-                      @drop="drop($event, 'left')"
-                      @dragover="allowDrop"
-                    >
+                    <ion-col @drop="drop($event, 'left')" @dragover="allowDrop">
                     </ion-col>
                   </ion-row>
                 </ion-col>
@@ -181,18 +159,13 @@
                       @dragover="allowDrop"
                     >
                     </ion-col>
-
                   </ion-row>
                 </ion-col>
               </ion-row>
             </ion-card>
             <ion-card class="todays-achievements">
               <ion-card-title> Achievements </ion-card-title>
-              <ion-button
-                @click="changeBG"
-                size=""
-                expand="block"
-              >
+              <ion-button @click="changeBG" size="" expand="block">
                 <i class="fad fa-ankh fa-2x"></i>
               </ion-button>
               <i class="fad fa-diamond fa-lg"></i>
@@ -215,13 +188,13 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent } from "vue"
+  import { defineComponent } from "vue";
   import { useRoute, useRouter } from "vue-router";
   import ionic from "@/mixins/ionic";
 
   export default defineComponent({
-    name: 'xp-equipment-modal',
-    props: ['isOpen', 'equipment'],
+    name: "xp-equipment-modal",
+    props: ["isOpen", "equipment"],
     mixins: [ionic],
     data() {
       return {
@@ -234,20 +207,20 @@
           }) as any,
           rightHand: Array(3).fill({}) as any,
         },
-      }
+      };
     },
     computed: {
       equipmentOnLeft() {
-        return this.equipment.filter((item,) => item.hand === 'left');
+        return this.equipment.filter((item) => item.hand === "left");
       },
       equipmentOnRight() {
-        return this.equipment.filter((item,) => item.hand === 'right');
+        return this.equipment.filter((item) => item.hand === "right");
       },
     },
     methods: {
       drag(event, item) {
         // Store the item data in the event
-        event.dataTransfer.setData('item', JSON.stringify(item));
+        event.dataTransfer.setData("item", JSON.stringify(item));
       },
       allowDrop(event) {
         // Prevent the default behavior to allow a drop
@@ -258,17 +231,17 @@
         event.preventDefault();
 
         // Get the item data from the event
-        const data = event.dataTransfer.getData('item');
+        const data = event.dataTransfer.getData("item");
         const item = JSON.parse(data);
 
-        this.$emit('equip', item, hand);
+        this.$emit("equip", item, hand);
 
         this.setHand(item, hand);
 
         // Add the item to the appropriate slot in your data
       },
       setHand(item, hand) {
-        if (hand === 'left') {
+        if (hand === "left") {
           // this.leftHand.push(item);
         } else {
           // this.rightHand[index] = item;
@@ -283,20 +256,20 @@
       },
 
       didDismiss() {
-        this.$emit('didDismiss')
+        this.$emit("close");
       },
 
       close() {
-        this.$emit('close')
+        this.$emit("close");
       },
 
       equipItem(item) {
-        this.$emit('equip', item)
-      }
+        this.$emit("equip", item);
+      },
     },
     setup() {
-      const router = useRouter()
-      const route = useRoute()
+      const router = useRouter();
+      const route = useRoute();
       const { userId } = route.params;
       const clickAction = (action) => action.click() || null;
 
@@ -309,24 +282,24 @@
             name: "My Quests",
             desc: "5HP | Open My Quests...",
             click() {
-              router.push({ name: 'my-tasks', params: { userId } })
-            }
+              router.push({ name: "my-tasks", params: { userId } });
+            },
           },
           {
             faIcon: "book-spells",
             name: "Book Of Spells",
             desc: "It does stuff...",
             click() {
-              router.push({ name: 'my-abilities', params: { userId } })
-            }
+              router.push({ name: "my-abilities", params: { userId } });
+            },
           },
           {
             faIcon: "backpack",
             name: "Goods",
             desc: "Open currently held inventory.",
             click() {
-              router.push({ name: 'my-inventory', params: { userId } })
-            }
+              router.push({ name: "my-inventory", params: { userId } });
+            },
           },
 
           {
@@ -334,8 +307,8 @@
             name: "Wallet",
             desc: "Open wallet to see GP earnings",
             click() {
-              router.push({ name: 'my-gold-points', params: { userId } })
-            }
+              router.push({ name: "my-gold-points", params: { userId } });
+            },
           },
           {
             faIcon: "flame",
@@ -432,146 +405,136 @@
             faIcon: "portal-enter",
             desc: "10MP | Open portal to go directly home. Takes 15min to recharge.",
             click() {
-              router.push({ name: 'my-home', params: { userId } })
-            }
+              router.push({ name: "my-home", params: { userId } });
+            },
           },
         ],
-      }
+      };
     },
-  })
+  });
 </script>
 
 <style lang="scss" scoped>
-.xp-equipment-modal {
-  background: transparent;
-
-  .toolbar {
-    height: 5vh;
-  }
-
-  ion-content {
-
+  .xp-equipment-modal {
     background: transparent;
 
-    .h-100 {
-      height: 100%;
+    .toolbar {
+      height: 5vh;
     }
 
-    .mb-4 {
-      margin-bottom: 4vh !important;
-    }
+    ion-content {
+      background: transparent;
 
-    &.bg-transparent {
-      background: transparent !important;
-    }
-
-    .equipment {
-      height: calc(100vh - 25vh - 5vh - 5em);
-      // margin: 2em !important;
-
-      .grid-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(10vw, 1fr));
-        /* Adjust the '100px' to match your desired square size */
-        grid-gap: .5em;
-        /* Adjust gap between squares */
-        margin: .5em;
-        height: calc(100% - 1em);
+      .h-100 {
+        height: 100%;
       }
 
-      .grid-item {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        height: 100%;
-        width: 100%;
-        border-radius: 100px !important;
+      .mb-4 {
+        margin-bottom: 4vh !important;
+      }
 
-        i {
-          font-size: calc(6vh) !important;
+      &.bg-transparent {
+        background: transparent !important;
+      }
+
+      .equipment {
+        height: calc(100vh - 25vh - 5vh - 5em);
+        // margin: 2em !important;
+
+        .grid-container {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(10vw, 1fr));
+          /* Adjust the '100px' to match your desired square size */
+          grid-gap: 0.5em;
+          /* Adjust gap between squares */
+          margin: 0.5em;
+          height: calc(100% - 1em);
         }
-      }
 
-    }
-
-    .status {
-      height: 20vh;
-    }
-
-    .info {
-      height: 15vh;
-
-      i {
-        // float: right;
-        margin: 0 0.15em 0.15em;
-      }
-
-    }
-
-    .equipped {
-      height: 25vh;
-      display: flex;
-
-      .hands {
-        // background: yellow;
-        height: 100%;
-        max-height: 45%;
-
-        ion-row {
-          gap: .5em;
+        .grid-item {
+          display: flex;
+          justify-content: center;
+          align-items: center;
           height: 100%;
+          width: 100%;
+          border-radius: 100px !important;
 
-          &.dropzone {
-            // border: 2px dashed #ccc;
-            // min-height: 100px;
-            padding: 10px;
+          i {
+            font-size: calc(6vh) !important;
           }
-
-          ion-col {
-            border: 1px dashed #ccc;
-            border-radius: 10px;
-            height: 100%;
-          }
-        }
-
-
-        .draggable-item {
-          margin: 10px;
         }
       }
 
-      ion-button {
-        width: 100%;
-        height: 10vh;
-        font-size: inherit;
+      .status {
+        height: 20vh;
+      }
+
+      .info {
+        height: 15vh;
 
         i {
-          margin: 2px 1px 0 2px;
+          // float: right;
+          margin: 0 0.15em 0.15em;
         }
       }
 
-    }
+      .equipped {
+        height: 25vh;
+        display: flex;
 
-    .todays-achievements {
+        .hands {
+          // background: yellow;
+          height: 100%;
+          max-height: 45%;
 
-      ion-button {
-        width: 100%;
+          ion-row {
+            gap: 0.5em;
+            height: 100%;
+
+            &.dropzone {
+              // border: 2px dashed #ccc;
+              // min-height: 100px;
+              padding: 10px;
+            }
+
+            ion-col {
+              border: 1px dashed #ccc;
+              border-radius: 10px;
+              height: 100%;
+            }
+          }
+
+          .draggable-item {
+            margin: 10px;
+          }
+        }
+
+        ion-button {
+          width: 100%;
+          height: 10vh;
+          font-size: inherit;
+
+          i {
+            margin: 2px 1px 0 2px;
+          }
+        }
       }
 
-      padding: 1em 0 !important;
-      // height: 40vh !important;
-      height: calc(100vh - 50vh - 20vh - 5em) !important;
+      .todays-achievements {
+        ion-button {
+          width: 100%;
+        }
 
-      text-align: center;
+        padding: 1em 0 !important;
+        // height: 40vh !important;
+        height: calc(100vh - 50vh - 20vh - 5em) !important;
 
-      i {
-        width: calc((100% / 7) - 5px);
+        text-align: center;
+
+        i {
+          width: calc((100% / 7) - 5px);
+        }
       }
     }
-
-
   }
-}
 </style>
-
-@/mixins/ionic@/mixins/ionic
