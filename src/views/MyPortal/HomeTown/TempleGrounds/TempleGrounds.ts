@@ -221,6 +221,17 @@ export default defineComponent({
       if (col >= this.maze[0].length - 1) return false;
       return this.rooms[this.maze[row][col + 1]].type !== "wall";
     },
+    validRoomCoords() {
+      let validCoords = [];
+      for (let row = 0; row < this.maze.length; row++) {
+        for (let col = 0; col < this.maze[row].length; col++) {
+          if (this.rooms[this.maze[row][col]].type !== "wall") {
+            validCoords.push(`[${row},${col}]`);
+          }
+        }
+      }
+      return validCoords;
+    },
 
 
   },
