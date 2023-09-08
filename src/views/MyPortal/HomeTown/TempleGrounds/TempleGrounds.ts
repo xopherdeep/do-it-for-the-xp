@@ -39,7 +39,7 @@ export default defineComponent({
         [____, TELE, K001, ____, ____, ____],
         [____, ____, q__q, ____, X__X, $__$],
         [SHOP, q__q, LCOM, q__q, x__x, ____],
-        [____, $__$, q__q, LMAP, ____, $__$],
+        [____, O__O, q__q, LMAP, ____, $__$],
         [____, ____, q__q, ____, q__q, x__x],
         [____, K___, _00_, q__q, ____, TELE],
       ],
@@ -53,7 +53,7 @@ export default defineComponent({
         [TELE]: { type: "teleport" },
         [SHOP]: { type: "shop" },
         [x__x]: { type: "miniboss", locked: { north: true } },
-        [$__$]: { type: "loot", content: { chest: "dungeon", dungeon: "some awesome item" } },
+        [$__$]: { type: "loot", content: { chest: "dungeon", dungeon: "Pegasus Whistle" } },
         // [$__$]: { type: "loot", content: { chest: 'random', quantity: 1, items: ["potion", "ether"] } },
         [K___]: { type: "loot", content: { chest: "dungeon", dungeon: "key" } },
         [K001]: { type: "loot", content: { chest: "dungeon", dungeon: "key" } },
@@ -222,11 +222,13 @@ export default defineComponent({
       return this.rooms[this.maze[row][col + 1]].type !== "wall";
     },
     validRoomCoords() {
-      let validCoords = [];
+      const validCoords = [] as string[];
       for (let row = 0; row < this.maze.length; row++) {
         for (let col = 0; col < this.maze[row].length; col++) {
           if (this.rooms[this.maze[row][col]].type !== "wall") {
             validCoords.push(`[${row},${col}]`);
+          } else {
+            validCoords.push(`[0,0]`);
           }
         }
       }
@@ -237,6 +239,9 @@ export default defineComponent({
   },
 
   methods: {
+    getBgImage(xy) {
+      return require(`@/assets/images/backgrounds/${this.temple}/${xy}.jpg`)
+    },
     clickMap() {
       this.play$fx('map');
       this.isMapOpen = true
@@ -355,6 +360,10 @@ export default defineComponent({
           break;
       }
 
+      // Update background position
+      this.updateBg(newCol, newRow);
+
+
       const newRoomKey = this.maze[newRow][newCol];
       const newRoom = this.rooms[newRoomKey];
 
@@ -370,6 +379,21 @@ export default defineComponent({
           // ... handle other room logic like picking up keys, etc.
         }
       }
+    },
+    updateBg(x, y) {
+      // Get dimensions of a single image tile
+      const tileWidth = window.innerWidth;  // Assuming full viewport width
+      const tileHeight = window.innerHeight - 140;  // Assuming full viewport height
+
+      // Calculate translate values
+      const translateX = -x * tileWidth;
+      const translateY = -y * tileHeight;
+
+      // Update background position
+      const backgroundContainer = document.getElementById('background-container');
+      if (backgroundContainer)
+        backgroundContainer.style.transform = `translate(${translateX}px, ${translateY}px)`;
+
     },
 
     async showUnlockDoorAlert(direction: 'north' | 'south' | 'east' | 'west') {
@@ -452,6 +476,10 @@ export default defineComponent({
 
   },
 
+  mounted() {
+    const [y, x] = this.currentPosition;
+    this.updateBg(x, y);
+  },
 })
 
 

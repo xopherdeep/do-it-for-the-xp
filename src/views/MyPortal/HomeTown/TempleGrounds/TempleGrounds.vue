@@ -32,29 +32,26 @@
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
-      <ion-card>
-        <ion-card-content>
-          <i
-            class="fad fa-2x ion-float-right"
-            :class="ROOM_ICONS[currentRoom.type]"
-          />
-          <!-- You are at position: <br /> -->
-          <!-- Room content: -->
-          <!-- {{ currentRoom }} -->
-          <ion-buttons slot="end">
-            <ion-button
-              size="large"
-              v-for="(button, index) in roomActions.buttons"
-              :key="index"
-              @click="button.handler"
-            >
-              {{ button.text }}
-            </ion-button>
-          </ion-buttons>
-        </ion-card-content>
-      </ion-card>
     </ion-header>
-    <ion-content>
+    <ion-content
+      :style="{
+        // background: `url('${templeBgImage}')`,
+        // backgroundSize: 'cover',
+        // backgroundPosition: 'center',
+        overflow: 'hidden',
+        position: 'relative',
+      }"
+      id="game-area"
+    >
+      <ion-grid id="background-container" class="ion-no-padding">
+        <ion-img
+          v-for="xy in validRoomCoords"
+          :key="xy"
+          :src="getBgImage(xy)"
+          class="background-tile"
+        />
+      </ion-grid>
+
       <ion-fab vertical="bottom" horizontal="start" v-if="hasMap">
         <ion-fab-button @click="clickMap">
           <i
@@ -64,41 +61,48 @@
         </ion-fab-button>
         <ion-modal :isOpen="isMapOpen" @didDismiss="dismissMap">
           <ion-card class="maze-container icon-colors">
-            <ion-row
-              v-for="(row, rowIndex) in maze"
-              :key="rowIndex"
-              class="maze-row"
-            >
-              <ion-col
-                v-for="(cell, colIndex) in row"
-                :key="colIndex"
-                :class="[
-                  'maze-cell ion-text-center',
-                  // getRoomClass(cell, rooms[cell].visited),
-                ]"
+            <ion-grid>
+              <ion-row
+                v-for="(row, rowIndex) in maze"
+                :key="rowIndex"
+                class="maze-row"
               >
-                <template
-                  v-if="rooms[cell].type === 'wall' || rooms[cell].visited"
+                <ion-col
+                  v-for="(cell, colIndex) in row"
+                  :key="colIndex"
+                  :class="[
+                    'maze-cell ion-text-center',
+                    // getRoomClass(cell, rooms[cell].visited),
+                  ]"
                 >
-                  <i
-                    v-if="isCurrentRoom(rowIndex, colIndex) && hasCompass"
-                    class="fad fa-2x fa-walking"
-                    :class="{ 'opacity-20': rooms[cell].type === 'wall' }"
-                  />
-                  <i
-                    v-else
-                    :class="{
-                      'opacity-20': rooms[cell].type === 'wall',
-                      [ROOM_ICONS[rooms[cell].type]]: true,
-                    }"
-                    class="fad fa-2x"
-                  ></i>
-                </template>
-                <template v-else>
-                  <i class="fad fa-2x fa-question"></i>
-                </template>
-              </ion-col>
-            </ion-row>
+                  <template
+                    v-if="rooms[cell].type === 'wall' || rooms[cell].visited"
+                  >
+                    <i
+                      v-if="isCurrentRoom(rowIndex, colIndex) && hasCompass"
+                      class="fad fa-2x fa-walking"
+                      :class="{ 'opacity-20': rooms[cell].type === 'wall' }"
+                    />
+                    <i
+                      v-else
+                      :class="{
+                        'opacity-20': rooms[cell].type === 'wall',
+                        [ROOM_ICONS[rooms[cell].type]]: true,
+                      }"
+                      class="fad fa-2x"
+                    ></i>
+                  </template>
+                  <template v-else>
+                    <i class="fad fa-2x fa-question"></i>
+                  </template>
+                </ion-col>
+              </ion-row>
+            </ion-grid>
+            <ion-buttons>
+              <ion-button @click="dismissMap" class="rounded">
+                Close Map
+              </ion-button>
+            </ion-buttons>
           </ion-card>
         </ion-modal>
       </ion-fab>
@@ -175,6 +179,27 @@
       -->
     </ion-content>
     <ion-footer>
+      <!-- <ion-card>
+        <ion-card-content>
+          <i
+            class="fad fa-2x ion-float-right"
+            :class="ROOM_ICONS[currentRoom.type]"
+          />
+          You are at position: <br />
+          Room content:
+          {{ currentRoom }}
+          <ion-buttons slot="end">
+            <ion-button
+              size="large"
+              v-for="(button, index) in roomActions.buttons"
+              :key="index"
+              @click="button.handler"
+            >
+              {{ button.text }}
+            </ion-button>
+          </ion-buttons>
+        </ion-card-content>
+      </ion-card> -->
       <ion-toolbar>
         <ion-item-sliding>
           <ion-item-options side="start">
@@ -184,8 +209,8 @@
             <ion-item-option> Right Handed </ion-item-option>
           </ion-item-options>
           <ion-item>
-            <ion-avatar slot="start">
-              <ion-skeleton-text> </ion-skeleton-text>
+            <ion-avatar slot="start" v-if="user">
+              <ion-img :src="$getUserAvatar(user)" />
             </ion-avatar>
             <ion-label slot="start">
               <i class="fad fa-heart ion-float-right" />
