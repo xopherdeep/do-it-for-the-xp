@@ -18,6 +18,7 @@ import {
   TELE,
 } from "@/dungeons/roomTypes";
 import { actionSheetController } from "@ionic/vue";
+import { mapGetters } from "vuex";
 
 export default defineComponent({
   props: ["userId"],
@@ -29,6 +30,7 @@ export default defineComponent({
     const K001 = "K001";
     return {
       ROOM_ICONS,
+      temple: "wind-temple",
       playerKeys: 0,
       hasMap: false,
       isMapOpen: false,
@@ -67,6 +69,14 @@ export default defineComponent({
     };
   },
   computed: {
+    ...mapGetters(["getUserById"]),
+    user() {
+      return this.getUserById(this.userId)
+    },
+    templeBgImage() {
+      const [row, col] = this.currentPosition;
+      return require(`@/assets/images/backgrounds/${this.temple}/[${row},${col}].jpg`) || ''
+    },
     chestContents() {
       const { content } = this.currentRoom
       if (content && typeof content.chest != undefined) {
@@ -106,15 +116,12 @@ export default defineComponent({
         case "boss":
         case "monster":
           return "danger";
-          break;
         case "loot":
           return this.currentRoom.content ? "warning" : "none";
-          break;
         case "entrance":
         case "shop":
         case "teleport":
           return "success"
-          break;
         default:
           return "primary"
 
@@ -132,7 +139,6 @@ export default defineComponent({
         buttons: [{
           text: "Leave Temple",
           role: "cancel",
-          // icon: heartHalfOutline,
           handler: () => {
             //
           }
@@ -182,10 +188,10 @@ export default defineComponent({
 
       actions.buttons.push({
         text: "Cancel",
-        role: "cancel", 
-        handler: () =>{
+        role: "cancel",
+        handler: () => {
           //do nothing
-        } 
+        }
       })
 
       return actions
@@ -221,6 +227,7 @@ export default defineComponent({
 
   methods: {
     clickMap() {
+      this.play$fx('map');
       this.isMapOpen = true
     },
     dismissMap() {
@@ -232,7 +239,8 @@ export default defineComponent({
     },
 
     async alertChestContents() {
-      const { chestContents: inputs } = this
+      const { chestContents: inputs, play$fx } = this
+      play$fx('openChest');
       const alert = await alertController.create({
         header: 'Chest Contents',
         inputs,
@@ -244,6 +252,7 @@ export default defineComponent({
           {
             text: 'Loot',
             handler: (selectedItems) => {
+              play$fx('yes');
               this.handleLoot(selectedItems);
             }
           }
@@ -253,9 +262,18 @@ export default defineComponent({
     },
 
     async alertEmptyChest() {
+      const { play$fx } = this
+      play$fx('openChest');
       const alert = await alertController.create({
         header: "Chest is empty!",
-        buttons: ["Ok"]
+        buttons: [
+          {
+            text: 'Ok',
+            role: 'cancel',
+            handler: () => {
+              play$fx('yes');
+            }
+          }]
       })
       alert.present();
     },
@@ -263,10 +281,13 @@ export default defineComponent({
       selectedItems.forEach(item => {
         if (item === 'key') {
           this.playerKeys += 1;
+          this.play$fx('key')
         } else if (this.currentRoom.content.dungeon === 'map') {
           this.hasMap = true;
+          this.play$fx('newItem')
         } else if (this.currentRoom.content.dungeon === 'compass') {
           this.hasCompass = true;
+          this.play$fx('newItem')
         }
         // remove the item from  the room's content itmes
         if (this.currentRoom.content.items) {
@@ -288,9 +309,9 @@ export default defineComponent({
     },
     async showRoomActions() {
       if (this.roomActions) {
+        this.play$fx('yes');
         const actions = await actionSheetController.create(this.roomActions)
         actions.present();
-
       }
     },
     getRoomClass(cell, visited) {
@@ -341,6 +362,7 @@ export default defineComponent({
     },
 
     async showUnlockDoorAlert(direction: 'north' | 'south' | 'east' | 'west') {
+      this.play$fx('error');
       const buttons = this.playerKeys
         ? [
           {
@@ -387,6 +409,8 @@ export default defineComponent({
         if (this.playerKeys > 0) {
           currentRoom.locked[direction] = false;
           this.playerKeys -= 1; // subtract a key
+          this.play$fx('useKey')
+          this.play$fx('openDoor')
           this.showToast({
             message: 'Door Unlocked',
             duration: 2000
