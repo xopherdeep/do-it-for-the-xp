@@ -1,18 +1,42 @@
 <template>
   <ion-item-sliding>
     <ion-item-options side="start">
-      <ion-item-option color="success" expand="block" @click="openBonus">
-        <i class="fad fa-sack-dollar fa-lg my-2" slot="bottom"></i>
+      <ion-item-option
+        color="success"
+        expand="block"
+        @click="openBonus"
+      >
+        <i
+          class="fad fa-sack-dollar fa-lg my-2"
+          slot="bottom"
+        ></i>
         Bonus
       </ion-item-option>
-      <ion-item-option color="danger" expand="block" @click="openPenalty">
-        <i class="fad fa-minus-circle fa-lg my-2" slot="bottom"></i>
+      <ion-item-option
+        color="danger"
+        expand="block"
+        @click="openPenalty"
+      >
+        <i
+          class="fad fa-minus-circle fa-lg my-2"
+          slot="bottom"
+        ></i>
         Penalty
       </ion-item-option>
     </ion-item-options>
-    <ion-item @click="clickDoThisNotThat(true)" button detail>
-      <i slot="start" class="fad fa-grip-vertical fa-lg mr-4"></i>
-      <i slot="start" class="fad fa-rainbow fa-2x mr-2"></i>
+    <ion-item
+      @click="clickDoThisNotThat(true)"
+      button
+      detail
+    >
+      <i
+        slot="start"
+        class="fad fa-grip-vertical fa-lg mr-4"
+      ></i>
+      <i
+        slot="start"
+        class="fad fa-rainbow fa-2x mr-2"
+      ></i>
       <ion-label>
         Do this, Not that
         <p>Reward or penalize player's GP</p>
@@ -66,25 +90,26 @@
       const dosDonts = ref([] as DosDont[]);
 
       const loadDoDonts = async () => {
-        dosDonts.value = await dosDontsDb.getAll();
-      };
+      dosDonts.value = await dosDontsDb.getAll();
+    };
 
-      const isDo = (doDont) => doDont.type === "do";
-      const isDont = (doDont) => doDont.type === "dont";
+    const isDo = (doDont) => doDont.type === "do";
+    const isDont = (doDont) => doDont.type === "dont";
 
-      const dos = computed(() => dosDonts.value.filter(isDo));
-      const donts = computed(() => dosDonts.value.filter(isDont));
+    const dos = computed(() => dosDonts.value.filter(isDo));
+    const donts = computed(() => dosDonts.value.filter(isDont));
 
-      onMounted(loadDoDonts);
-      return {
-        dos,
-        donts,
-        dosDontsDb,
-        loadDoDonts,
-        dosDonts,
-      };
-    },
-  });
+    onMounted(loadDoDonts);
+
+    return {
+      dos,
+      donts,
+      dosDontsDb,
+      loadDoDonts,
+      dosDonts,
+    };
+  },
+});
 </script>
 
 <style></style>

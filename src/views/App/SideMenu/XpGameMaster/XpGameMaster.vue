@@ -1,8 +1,5 @@
 <template>
-  <ion-page
-    :class="$options.name"
-    class="rpg-box"
-  >
+  <ion-page :class="$options.name" class="rpg-box">
     <ion-content>
       <ion-tabs>
         <ion-router-outlet ref="outlet"></ion-router-outlet>
@@ -44,10 +41,9 @@
             href="/game-master/bestiary"
             :selected="$route.path === '/game-master/bestiary'"
           >
-            <i class="fad fa-dragon fa-2x" />
+            <i class="fad fa-paw-claws fa-2x" />
             Bestiary
           </ion-tab-button>
-
         </ion-tab-bar>
       </ion-tabs>
     </ion-content>

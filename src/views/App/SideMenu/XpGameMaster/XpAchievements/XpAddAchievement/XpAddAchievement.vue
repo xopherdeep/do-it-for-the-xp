@@ -682,7 +682,7 @@
           </ion-segment-button>
         </ion-segment>
         <ion-item v-if="adventureType === 'beast'">
-          <i class="fad fa-dragon fa-2x mr-3" slot="start"></i>
+          <i class="fad fa-paw-claws fa-2x mr-3" slot="start"></i>
           <ion-label>
             Choose a Beast
             <p>Attach a beast to this achievement.</p>

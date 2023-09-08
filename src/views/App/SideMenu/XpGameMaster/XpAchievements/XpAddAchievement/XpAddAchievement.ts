@@ -76,7 +76,7 @@ export default defineComponent({
 
   computed: {
     achievementExpired() {
-      if(!this.achievement.endsOn) return false
+      if (!this.achievement.endsOn) return false
       return new Date(this.achievement.endsOn) < new Date()
     },
     achievementChain() {
@@ -106,14 +106,15 @@ export default defineComponent({
       return adventureTypes.find(bySegment) || firstType;
     },
 
-
     difficultyIcon() {
       const icon = this.difficultyIcons[this.achievement.difficulty]
-      return icon || 'fa-dice'
+      return icon || 'fa-chess'
     },
+
     isFibonacci() {
       return this.fibonacciArray.includes(this.achievement.difficulty)
     },
+
     assignedTo() {
 
       // get the list of users that are assigned to the achievement
