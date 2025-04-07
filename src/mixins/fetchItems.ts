@@ -130,7 +130,7 @@ export default defineComponent({
       return this.activeModal == id
     },
     ...mapActions(["fetchWPItems"]),
-    async getItems(page) {
+    async getItems(page = 1) {
       this.showLoading();
       return await this.fetchItems(page).then(this.hideLoading);
     },
