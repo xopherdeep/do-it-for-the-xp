@@ -12,11 +12,10 @@
       <ion-list>
         <ion-item-sliding v-for="beast in beasts" :key="beast.id">
           <ion-item>
-            <ion-avatar slot="start">
-              <ion-skeleton-text></ion-skeleton-text>
-              <!-- <ion-img>
-              </ion-img> -->
-            </ion-avatar>
+            <ion-thumbnail slot="start" class="cursor-pointer" id="beast-avatar">
+              <ion-img v-if="beast?.avatar" :src="getAvatar(beast.avatar)" class="w-full p-0 m-0"/>
+              <ion-skeleton-text v-else />
+            </ion-thumbnail>
             <ion-label>
               {{ beast.name }}
               <p>
@@ -133,6 +132,9 @@
           })
           .then(this.loadBeasts);
         modal.present();
+      },
+      getAvatar(id) {
+        return require(`@/assets/images/beasts/${id}.png`);
       },
 
       async loadBeasts() {

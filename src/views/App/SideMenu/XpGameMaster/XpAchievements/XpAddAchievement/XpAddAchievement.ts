@@ -30,6 +30,18 @@ import { DIFFICULTY_ICONS, ACHIEVEMENT_TYPE_ICONS, BASIC_SCHEDULE_ICONS } from "
 import BestiaryDb, { Beast, beastStorage } from '@/databases/BestiaryDb';
 import EFFORTS from '@/constants/EFFORTS';
 
+export const sortCategoryByName = (a, b) => {
+  const nameA = a.name.toLowerCase();
+  const nameB = b.name.toLowerCase();
+  if (nameA < nameB) {
+    return -1;
+  }
+  if (nameA > nameB) {
+    return 1;
+  }
+  return 0;
+}
+
 export default defineComponent({
   name: 'xp-add-achievement',
   mixins: [ionic],
@@ -48,7 +60,10 @@ export default defineComponent({
         name: "Adventure",
         icon: "fa-map-signs"
       }, {
-        name: "Treasure",
+        name: "Label",
+        icon: "fa-tag"
+      }, {
+        name: "Reward",
         icon: "fa-treasure-chest"
       }, {
         name: "Heros",
@@ -274,7 +289,7 @@ export default defineComponent({
       id: id ? id : uuidv4(),
       achievementName: '',
       beastId: '',
-      subAchievementIds: [''],
+      subAchievementIds: [],
       categoryId: '',
       requiresApproval: false,
       points: '',
@@ -306,17 +321,6 @@ export default defineComponent({
 
     const showEndsModal = () => endsIsOpen.value = true
 
-    const sortCategoryByName = (a, b) => {
-      const nameA = a.name.toLowerCase();
-      const nameB = b.name.toLowerCase();
-      if (nameA < nameB) {
-        return -1;
-      }
-      if (nameA > nameB) {
-        return 1;
-      }
-      return 0;
-    }
 
     const saveAchievement = () => {
       const goBack = () => router.go(-1)
@@ -367,9 +371,11 @@ export default defineComponent({
 
     const adventureType = ref('beast')
 
+    const endsModalOpen = ref(false)
 
     // Watch for changes in route
     return {
+      endsModalOpen,
       achievements,
       beasts,
       adventureType,

@@ -5,7 +5,10 @@
         <ion-buttons slot="start">
           <ion-back-button defaultHref="/game-master" />
         </ion-buttons>
-        <ion-title> {{ achievements?.length }} Achievements </ion-title>
+        <ion-title>
+          <i class="fad fa-medal fa-lg" />
+          Achievements ({{ achievements?.length }})
+        </ion-title>
         <ion-buttons slot="end">
           <!-- <ion-button @click="clickFilter">
             <i class="fad fa-filter fa-lg" />
@@ -77,7 +80,7 @@
           </ion-select-option>
         </ion-select>
       </ion-toolbar> -->
-      <ion-segment v-model="groupBy">
+      <ion-segment v-model="groupBy" mode="ios">
         <ion-segment-button value="category"> By Category </ion-segment-button>
         <ion-segment-button value="assignee"> By Assignee </ion-segment-button>
         <ion-segment-button value="asNeeded"> As Needed </ion-segment-button>
@@ -95,7 +98,9 @@
           <ion-item-divider>
             <ion-label v-if="groupBy === 'assignee'">
               <ion-avatar class="ion-float-left h-6 w-6 mr-2">
-                <ion-img :src="$getUserAvatar(getAssigneeById(group.assignee))"/>
+                <ion-img
+                  :src="$getUserAvatar(getAssigneeById(group.assignee))"
+                />
               </ion-avatar>
               {{ getAssigneeById(group.assignee)?.name.full }}
             </ion-label>

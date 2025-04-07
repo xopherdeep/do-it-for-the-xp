@@ -13,19 +13,11 @@
         </ion-button>
       </ion-buttons>
       <ion-buttons slot="end">
-        <ion-button
-          v-if="isPenalty"
-          @click="clickAward"
-          :disabled="members.length === 0 || gPoints === 0"
-        >
+        <ion-button v-if="isPenalty" @click="clickAward" :disabled="members.length === 0 || gPoints === 0">
           <i class="fad fa-minus-circle fa-3x"></i>
           Subtract Points
         </ion-button>
-        <ion-button
-          v-else
-          @click="clickAward"
-          :disabled="members.length === 0 || gPoints === 0"
-        >
+        <ion-button v-else @click="clickAward" :disabled="members.length === 0 || gPoints === 0">
           <i class="fad fa-gift fa-3x"></i>
           Award Points
         </ion-button>
@@ -40,10 +32,7 @@
           <ion-card>
             <ion-card-header>
               <ion-card-title>
-                <i
-                  class="fad fa-2x ion-float-right"
-                  :class="isPenalty ? 'fa-minus-circle' : 'fa-gift'"
-                ></i>
+                <i class="fad fa-2x ion-float-right" :class="isPenalty ? 'fa-minus-circle' : 'fa-gift'"></i>
                 <h1>
                   Select Family Member
                 </h1>
@@ -51,10 +40,7 @@
             </ion-card-header>
 
             <ion-list>
-              <ion-item
-                v-for="user in usersAz"
-                :key="user.id"
-              >
+              <ion-item v-for="user in usersAz" :key="user.id">
 
                 <ion-avatar slot="start">
                   <ion-img :src="$getUserAvatar(user)" />
@@ -65,11 +51,7 @@
                     {{ user.name.first }}
                   </p>
                 </ion-label>
-                <ion-checkbox
-                  slot="end"
-                  :checked="members.includes(user.id)"
-                  @ionChange="toggleMember(user.id)"
-                >
+                <ion-checkbox slot="end" :checked="members.includes(user.id)" @ionChange="toggleMember(user.id)">
                 </ion-checkbox>
               </ion-item>
             </ion-list>
@@ -92,24 +74,11 @@
                   <ion-label position="floating">
                     ₲P
                   </ion-label>
-                  <ion-input
-                    v-if="isPenalty"
-                    v-model="gPoints"
-                    type="number"
-                    :max="0"
-                  />
-                  <ion-input
-                    v-else
-                    v-model="gPoints"
-                    type="number"
-                    :min="0"
-                  />
+                  <ion-input v-if="isPenalty" v-model="gPoints" type="number" :max="0" />
+                  <ion-input v-else v-model="gPoints" type="number" :min="0" />
                 </ion-item>
               </ion-list>
-              <ion-segment
-                v-model="gPoints"
-                mode="ios"
-              >
+              <ion-segment v-model="gPoints" mode="ios">
                 <ion-segment-button value="0">
                   Custom
                 </ion-segment-button>
@@ -137,10 +106,7 @@
                 </h1>
               </ion-card-title>
               <ion-card-content class="ion-no-padding">
-                <ion-textarea
-                  class="border border-dashed rounded"
-                  rows="5"
-                >
+                <ion-textarea class="border border-dashed rounded" rows="5">
 
                 </ion-textarea>
               </ion-card-content>
@@ -161,15 +127,10 @@
   import { ProfileDb } from '@/databases';
   import { profileStorage } from '../../../SwitchProfile/SwitchProfile.vue';
 
-  import XpGp from "@/components/XpGp/XpGp.vue";
-
   export const XpBonus = defineComponent({
     props: ["isPenalty"],
 
     mixins: [ionic],
-    components: {
-      XpGp
-    },
     computed: {
       ...mapGetters(["users", "usersAz"]),
     },

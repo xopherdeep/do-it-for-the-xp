@@ -5,44 +5,28 @@
         <ion-router-outlet ref="outlet"></ion-router-outlet>
         <ion-tab-bar slot="bottom">
           <ion-tab-button
-            tab="abilities"
-            href="/game-master/abilities"
-            :selected="$route.path === '/game-master/abilities'"
-          >
-            <i class="fad fa-magic fa-2x" />
-            Abilities
-          </ion-tab-button>
-          <ion-tab-button
-            tab="accessories"
-            href="/game-master/accessories"
-            :selected="$route.path === '/game-master/accessories'"
-          >
-            <i class="fad fa-hand-holding-box fa-2x" />
-            Accessories
-          </ion-tab-button>
-          <ion-tab-button
             tab="dashboard"
             href="/game-master"
             :selected="$route.path === '/game-master/dashboard'"
           >
-            <i class="fad fa-tachometer-alt fa-2x" />
+            <i class="fad fa-tachometer-slowest fa-2x" />
             Dashboard
           </ion-tab-button>
           <ion-tab-button
-            tab="achievements"
-            href="/game-master/achievements"
-            :selected="$route.path === '/game-master/achievements'"
+            tab="compendium"
+            href="/game-master/compendium"
+            :selected="$route.path.indexOf('game-master/compendium/') >= 0"
           >
-            <i class="fad fa-trophy fa-2x" />
-            Achievements
+            <i class="fad fa-gamepad-alt fa-2x" />
+            Compendium
           </ion-tab-button>
           <ion-tab-button
-            tab="bestiary"
-            href="/game-master/bestiary"
-            :selected="$route.path === '/game-master/bestiary'"
+            tab="world"
+            href="/game-master/temples"
+            :selected="$route.path === '/game-master/temples'"
           >
-            <i class="fad fa-paw-claws fa-2x" />
-            Bestiary
+            <i class="fad fa-place-of-worship fa-2x" />
+            Temples
           </ion-tab-button>
         </ion-tab-bar>
       </ion-tabs>

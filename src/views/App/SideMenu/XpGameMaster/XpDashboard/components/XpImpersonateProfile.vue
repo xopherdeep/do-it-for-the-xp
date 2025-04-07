@@ -2,6 +2,7 @@
   <ion-item
     v-for="user in users"
     :key="user.id"
+    @click="mimicUser(user)"
     button
     detail
   >
@@ -83,12 +84,15 @@
       users() { return this.usersAz }
     },
     methods: {
-      getUserAvatar(user) {
-        const { avatar } = user;
-        if (avatar) {
-          return this.$requireAvatar(`./${user.avatar}.svg`);
-        }
-      },
+      mimicUser(user) {
+        const { id: userId } = user
+        this.$router.push({
+          name: 'my-home',
+          params: {
+            userId
+          }
+        })
+      }
     }
   })
 </script>
