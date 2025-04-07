@@ -134,4 +134,4 @@
 </template>
 
 <script src="./Contact.ts" lang="ts"></script>
-<style lang="scss" src="./_Contact.scss" scoped/>
+<style lang="scss" src="./_Contact.scss" scoped></style>

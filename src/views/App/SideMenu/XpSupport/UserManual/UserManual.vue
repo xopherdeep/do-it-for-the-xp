@@ -55,4 +55,4 @@
 </template>
 
 <script src="./UserManual.ts" lang="ts"></script>
-<style lang="scss" src="./_UserManual.scss" scoped/>
+<style lang="scss" src="./_UserManual.scss" scoped></style>

@@ -103,4 +103,4 @@
 </template>
 
 <script src="./FeatureRequest.ts" lang="ts"></script>
-<style lang="scss" src="./_FeatureRequest.scss" scoped/>
+<style lang="scss" src="./_FeatureRequest.scss" scoped></style>

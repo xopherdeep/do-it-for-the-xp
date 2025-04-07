@@ -43,4 +43,4 @@
 </template>
 
 <script src="./XpSupport.ts" lang="ts"></script>
-<style lang="scss" src="./_XpSupport.scss" scoped/>
+<style lang="scss" src="./_XpSupport.scss" scoped></style>
