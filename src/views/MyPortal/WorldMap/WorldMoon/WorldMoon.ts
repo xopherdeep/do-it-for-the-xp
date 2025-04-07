@@ -42,7 +42,14 @@ export default defineComponent<DefineUserActionComponent>({
         faIcon: "place-of-worship",
         side: "bottom",
         click() {
-          router.push({ name: "temple", params: { userId } });
+          const temple = 'moon-temple' 
+          router.push({ 
+            name: "temple", 
+            params: { 
+              userId, 
+              temple
+            } 
+          });
         },
       },
       {

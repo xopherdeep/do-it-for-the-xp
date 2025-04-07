@@ -32,12 +32,19 @@ export default defineComponent<DefineUserActionComponent>({
         },
       },
       {
-        label: "Sun Temple",
+        label: "Sun Pyramid",
         id: "sun-temple",
         faIcon: "place-of-worship",
         side: "bottom",
         click() {
-          router.push({ name: "temple", params: { userId } });
+          const temple = 'sun-temple'
+          router.push({ 
+            name: "temple", 
+            params: { 
+              userId,
+              temple
+            } 
+          });
         },
       },
       {
@@ -45,7 +52,14 @@ export default defineComponent<DefineUserActionComponent>({
         faIcon: "pegasus",
         side: "start",
         click() {
-          router.push({ name: "world-map", params: { userId } });
+          const temple = 'sun-temple'
+          router.push({ 
+            name: "world-map", 
+            params: { 
+              userId, 
+              temple
+             } 
+          });
         },
       },
     ];

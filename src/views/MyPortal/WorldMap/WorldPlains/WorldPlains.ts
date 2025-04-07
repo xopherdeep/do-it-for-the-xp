@@ -33,6 +33,21 @@ export default defineComponent<DefineUserActionComponent>({
         }
       },
       {
+        label: "Wind Temple",
+        id: "wind-temple",
+        faIcon: "place-of-worship",
+        side: "bottom",
+        click() {
+          const temple = "wind-temple"
+          router.push({ name: "temple", params: { 
+            userId, 
+            temple,
+            x: 2, 
+            y: 5 
+        } });
+        },
+      },
+      {
         label: "Travel World",
         faIcon: "pegasus",
         side: "start",
@@ -49,15 +64,6 @@ export default defineComponent<DefineUserActionComponent>({
         click() {
           const merchant = "pegasus-ranch"
           router.push({ name: "shop", params: { merchant } })
-        },
-      },
-      {
-        label: "Wind Temple",
-        id: "wind-temple",
-        faIcon: "place-of-worship",
-        side: "bottom",
-        click() {
-          router.push({ name: "temple", params: { userId } });
         },
       },
     ];

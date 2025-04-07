@@ -36,7 +36,14 @@ export default defineComponent<DefineUserActionComponent>({
         faIcon: "place-of-worship",
         side: "bottom",
         click() {
-          router.push({ name: "temple", params: { userId } });
+          const temple = "forest-temple"
+          router.push({ 
+            name: "temple", 
+            params: { 
+              userId, 
+              temple 
+            } 
+          });
         },
       },
       {
