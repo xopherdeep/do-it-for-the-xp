@@ -1,6 +1,12 @@
 .icon-colors {
   i {
     &.fa- {
+      &paw-claws {
+        --fa-primary-color: var(--xp-color-gray);
+        --fa-secondary-color: var(--xp-color-brown);
+        --fa-secondary-opacity: 0.7;
+      }
+
       &farm {
         --fa-primary-color: var(--xp-color-brown);
         --fa-secondary-color: var(--xp-color-red);
