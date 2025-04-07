@@ -158,25 +158,27 @@ export default defineComponent({
       this.updateCompass(name);
     },
     battleCounter(counter) {
-      // const {
-      //   router,
-      //   userId,
-      //   ACTIVATE_BATTLE,
-      //   stopBattleTimer,
-      //   resetBattleTimer,
-      //   theme,
-      //   bgm: { $fx },
-      // } = this;
-      // const route = { name: "my-dashboard", props: { userId } };
+      const {
+        router,
+        userId,
+        ACTIVATE_BATTLE,
+        stopBattleTimer,
+        resetBattleTimer,
+      } = this;
+
       // UNCOMMENT TO TURN ON BATTLES
-      if (counter <= 0) {
-        // $fx.rpg[theme.rpg].enterBattle.play();
-        // router
-        //   .push(route)
-        //   .then(stopBattleTimer)
-        //   .then(resetBattleTimer)
-        //   .then(ACTIVATE_BATTLE);
-      }
+      // if (counter <= 0) {
+      //   // return false;
+      //   this.play$fx("enterBattle");
+      //   router
+      //     .push({
+      //       name: "battle-ground",
+      //       params: { userId },
+      //     })
+      //     .then(stopBattleTimer)
+      //     .then(resetBattleTimer)
+      //     .then(ACTIVATE_BATTLE);
+      // }
     },
   },
   setup() {

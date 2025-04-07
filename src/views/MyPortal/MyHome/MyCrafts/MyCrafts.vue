@@ -3,7 +3,9 @@
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button :default-href="`/my-portal/${userId}/my-home`"></ion-back-button>
+          <ion-back-button
+            :default-href="`/my-portal/${userId}/my-home`"
+          ></ion-back-button>
           <!-- <ion-icon :icon="calendarOutline" slot="icon-only" /> -->
         </ion-buttons>
         <ion-title>
@@ -19,35 +21,24 @@
           value="all"
         >
           <ion-segment-button value="all">
-            <ion-icon
-              :icon="appsOutline"
-              color="primary"
-            ></ion-icon>
+            <ion-icon :icon="appsOutline" color="primary"></ion-icon>
             All
           </ion-segment-button>
           <ion-segment-button value="hp">
-            <ion-icon
-              :icon="bedOutline"
-              color=""
-            ></ion-icon>
+            <ion-icon :icon="bedOutline" color=""></ion-icon>
+            Furniture
           </ion-segment-button>
           <ion-segment-button value="mp">
-            <ion-icon
-              :icon="colorWandOutline"
-              color=""
-            ></ion-icon>
+            <ion-icon :icon="colorWandOutline" color=""></ion-icon>
+            Accessories
           </ion-segment-button>
           <ion-segment-button value="misc">
-            <ion-icon
-              :icon="sparklesOutline"
-              color=""
-            ></ion-icon>
+            <ion-icon :icon="sparklesOutline" color=""></ion-icon>
+            Weapons
           </ion-segment-button>
           <ion-segment-button value="key">
-            <ion-icon
-              :icon="keyOutline"
-              color=""
-            ></ion-icon>
+            <ion-icon :icon="keyOutline" color=""></ion-icon>
+            Key
           </ion-segment-button>
         </ion-segment>
       </ion-toolbar>
@@ -134,7 +125,7 @@
             text: 'Cancel',
             icon: close,
             role: 'cancel',
-          }
+          },
         ]"
         @didDismiss="actionSheetOpen = false"
       />
@@ -159,30 +150,25 @@
                 color="light"
                 expand="block"
               >
-                <ion-icon
-                  :icon="chevronBack"
-                  slot="icon-only"
-                />
+                <ion-icon :icon="chevronBack" slot="icon-only" />
               </ion-button>
             </ion-col>
-          <ion-col>
-            <ion-button
-              @click="request.params.page++"
-              :disabled="!hasNextPage"
-              color="light"
-              expand="block"
-            >
-              <ion-icon
-                :icon="chevronForward"
-                slot="icon-only"
-              />
-            </ion-button>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-    </ion-toolbar>
-  </ion-footer>
-</ion-page></template>
+            <ion-col>
+              <ion-button
+                @click="request.params.page++"
+                :disabled="!hasNextPage"
+                color="light"
+                expand="block"
+              >
+                <ion-icon :icon="chevronForward" slot="icon-only" />
+              </ion-button>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+      </ion-toolbar>
+    </ion-footer>
+  </ion-page>
+</template>
 
 <script src="./MyCrafts" />
 <style lang="scss" src="./_MyCrafts.scss" scoped />

@@ -68,8 +68,7 @@
                 >
                   <ion-text class="ion-float-right">
                     <strong>
-                      +2 AP
-                      Text
+                      +2 AP Text
                       <i class="fad fa-hand-holding-medical fa-lg" />
                     </strong>
                   </ion-text>
@@ -168,7 +167,7 @@
           <ion-fab-button color="light">
             <ion-img
               class="ion-no-padding"
-              :src="$getUserAvaatar(user)"
+              :src="$getUserAvatar(user)"
             ></ion-img>
           </ion-fab-button>
           <ion-fab-list side="top"> </ion-fab-list>
