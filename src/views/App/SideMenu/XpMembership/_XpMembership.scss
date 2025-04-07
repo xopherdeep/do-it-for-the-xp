@@ -138,9 +138,9 @@ $premium-color: #6e45e2;
 
     @for $i from 1 through 20 {
       &:nth-child(#{$i}) {
-        $delay: random(9999) + 0ms;
-        top: calc(50% - #{random(400) - 200px});
-        left: calc(50% - #{random(300) + 0px});
+        $delay: #{floor(random(9999))}ms;
+        top: calc(50% - #{floor(random(400)) - 200}px);
+        left: calc(50% - #{floor(random(300))}px);
         animation-delay: $delay;
         opacity: random(50) / 100 + 0.5;
 
