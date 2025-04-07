@@ -42,5 +42,5 @@
   </ion-page>
 </template>
 
-<script src="./XpSupport" lang="ts" />
+<script src="./XpSupport.ts" lang="ts" />
 <style lang="scss" src="./_XpSupport.scss" scoped/>

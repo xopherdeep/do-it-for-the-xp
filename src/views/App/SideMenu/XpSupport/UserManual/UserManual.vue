@@ -54,5 +54,5 @@
   </ion-page>
 </template>
 
-<script src="./UserManual" lang="ts" />
+<script src="./UserManual.ts" lang="ts" />
 <style lang="scss" src="./_UserManual.scss" scoped/>

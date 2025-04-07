@@ -133,5 +133,5 @@
   </ion-page>
 </template>
 
-<script src="./Contact" lang="ts" />
+<script src="./Contact.ts" lang="ts" />
 <style lang="scss" src="./_Contact.scss" scoped/>

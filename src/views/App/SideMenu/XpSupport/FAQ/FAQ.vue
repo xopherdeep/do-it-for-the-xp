@@ -32,5 +32,5 @@
   </ion-page>
 </template>
 
-<script src="./FAQ" lang="ts" />
+<script src="./FAQ.ts" lang="ts" />
 <style lang="scss" src="./_FAQ.scss" scoped/>

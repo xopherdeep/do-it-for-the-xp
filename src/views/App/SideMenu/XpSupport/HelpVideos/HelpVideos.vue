@@ -63,5 +63,5 @@
   </ion-page>
 </template>
 
-<script src="./HelpVideos" lang="ts" />
+<script src="./HelpVideos.ts" lang="ts" />
 <style lang="scss" src="./_HelpVideos.scss" scoped/>

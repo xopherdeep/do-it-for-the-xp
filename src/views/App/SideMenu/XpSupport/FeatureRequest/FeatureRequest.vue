@@ -102,5 +102,5 @@
   </ion-page>
 </template>
 
-<script src="./FeatureRequest" lang="ts" />
+<script src="./FeatureRequest.ts" lang="ts" />
 <style lang="scss" src="./_FeatureRequest.scss" scoped/>
