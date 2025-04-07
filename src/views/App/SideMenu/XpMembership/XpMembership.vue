@@ -140,4 +140,4 @@
 </template>
 
 <script src="./XpMembership.ts"></script>
-<style lang="scss" src="./_XpMembership.scss" scoped/>
+<style lang="scss" src="./_XpMembership.scss" scoped></style>

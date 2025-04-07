@@ -4,7 +4,7 @@ $premium-color: #6e45e2;
 
 .xp-membership {
   ion-toolbar {
-    --background: #{$premium-gradient};
+    --background: $premium-gradient;
     --color: white;
   }
 
@@ -47,10 +47,10 @@ $premium-color: #6e45e2;
         border-radius: 8px;
         
         ion-segment-button {
-          --indicator-color: #{$premium-color};
+          --indicator-color: $premium-color;
           --color-checked: white;
           --color: rgba(255, 255, 255, 0.7);
-          --background-checked: #{$premium-color};
+          --background-checked: $premium-color;
           --border-radius: 8px;
           font-weight: bold;
         }
@@ -138,11 +138,11 @@ $premium-color: #6e45e2;
 
     @for $i from 1 through 20 {
       &:nth-child(#{$i}) {
-        $delay: #{floor(random(9999))}ms;
-        top: calc(50% - #{floor(random(400)) - 200}px);
-        left: calc(50% - #{floor(random(300))}px);
+        $delay: (random(9999)) + 0ms;
+        top: calc(50% - ((random(400)) - 200px));
+        left: calc(50% - ((random(300)) + 0px));
         animation-delay: $delay;
-        opacity: random(50) / 100 + 0.5;
+        opacity: (random(50) / 100) + 0.5;
 
         &::before,
         &::after {
