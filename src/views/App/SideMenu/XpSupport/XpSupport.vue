@@ -15,11 +15,12 @@
       <ion-grid>
         <ion-row>
           <ion-col
-            size="6"
+            size="12"
+            size-md="6"
             v-for="tile in tiles"
             :key="tile.title"
           >
-            <ion-card>
+            <ion-card @click="navigateTo(tile.src)" class="support-card">
               <ion-card-header class="ion-text-center">
                 <i
                   class="fad fa-5x"
@@ -28,9 +29,6 @@
                 <ion-card-title>
                   {{ tile.title }}
                 </ion-card-title>
-                <!-- <ion-card-title>
-                      {{tile.title}}
-                    </ion-card-title> -->
               </ion-card-header>
               <hr />
               <ion-card-content>

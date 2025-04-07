@@ -1,4 +1,5 @@
 import { defineComponent } from 'vue'
+import { useRouter } from 'vue-router'
 
 import {
   IonPage,
@@ -7,43 +8,47 @@ import {
   IonButtons,
   IonMenuButton,
   IonTitle,
-  IonContent
+  IonContent,
+  IonGrid,
+  IonRow,
+  IonCol,
+  IonCard,
+  IonCardHeader,
+  IonCardTitle,
+  IonCardContent
 } from '@ionic/vue'
 
-import {
-  arrowBack
-} from "ionicons/icons"
-
 export default defineComponent({
+  name: 'xp-support',
   data() {
     return {
       tiles: [
         {
-          src: '',
+          src: '/support/faq',
           title: 'F.A.Q.s',
           desc: 'Answers to some of the frequently asked questions.',
           icon: 'fa-question'
         },
         {
-          src: '',
+          src: '/support/help-videos',
           title: 'Help Videos',
           desc: 'A good collection of video tutorials.',
           icon: 'fa-video'
         },
         {
-          src: '',
+          src: '/support/user-manual',
           title: 'User Manual',
           desc: 'A quick guide on how to use the app.',
           icon: 'fa-book'
         },
         {
-          src: '',
+          src: '/support/feature-request',
           title: 'Feature Request',
           desc: 'Your opinions matter! Vote or leave a comment.',
           icon: 'fa-tasks'
         },
         {
-          src: '',
+          src: '/support/contact',
           title: 'Ask the developers',
           desc: 'Ask a question or post a suggestion. We listen to our parents!',
           icon: 'fa-comments'
@@ -58,12 +63,24 @@ export default defineComponent({
     IonButtons,
     IonMenuButton,
     IonTitle,
-    IonContent
+    IonContent,
+    IonGrid,
+    IonRow,
+    IonCol,
+    IonCard,
+    IonCardHeader,
+    IonCardTitle,
+    IonCardContent
   },
   setup() {
-    // code
+    const router = useRouter();
+    
+    const navigateTo = (path: string) => {
+      router.push(path);
+    };
+    
     return {
-      arrowBack
+      navigateTo
     }
   },
 })

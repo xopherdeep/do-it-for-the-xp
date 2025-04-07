@@ -1,0 +1,21 @@
+.faq-page {
+  ion-accordion {
+    margin-bottom: 10px;
+  }
+
+  ion-accordion-group {
+    margin-bottom: 20px;
+  }
+
+  ion-item {
+    --padding-start: 16px;
+    --inner-padding-end: 16px;
+    --background: var(--ion-color-light);
+    --border-radius: 8px;
+  }
+
+  ion-label {
+    font-weight: bold;
+    font-size: 1.1rem;
+  }
+}
