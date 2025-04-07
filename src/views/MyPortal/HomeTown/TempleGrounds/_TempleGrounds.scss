@@ -1,8 +1,10 @@
 .temple-grounds {
   ion-content {
     background-size: contain;
-    --background: transparent;
+    // --background: transparent;
     --background-size: contain;
+    --overflow: hidden;
+    --background: black;
   }
   .maze-container {
     display: grid;

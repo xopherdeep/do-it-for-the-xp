@@ -3,12 +3,10 @@
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-back-button
-            :default-href="`/my-portal/${userId}/home-town`"
-          ></ion-back-button>
+          <ion-back-button :default-href="`/my-portal/${userId}/home-town`"></ion-back-button>
           <i class="fad fa-2x fa-place-of-worship" />
         </ion-buttons>
-        <ion-title> Temple </ion-title>
+        <ion-title v-html="temple.replace('-', ' ')" />
         <ion-buttons slot="end">
           <ion-button color="none" :disabled="true" v-if="hasCompass">
             {{ currentPosition }}
@@ -18,13 +16,10 @@
             <i class="fad fa-compass fa-2x" />
           </ion-button>
           <ion-button v-if="hasMap" @click="clickMap">
-            <i
-              class="fad fa-map fa-2x"
-              :class="{
-                'fa-map': !hasCompass,
-                'fa-map-marked': hasCompass,
-              }"
-            />
+            <i class="fad fa-map fa-2x" :class="{
+              'fa-map': !hasCompass,
+              'fa-map-marked': hasCompass,
+            }" />
           </ion-button>
           <ion-button>
             <i class="fad fa-key-skeleton m-0 mr-2 fa-2x ion-float-right" />
@@ -33,64 +28,36 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-    <ion-content
-      :style="{
-        // background: `url('${templeBgImage}')`,
-        // backgroundSize: 'cover',
-        // backgroundPosition: 'center',
-        overflow: 'hidden',
-        position: 'relative',
-      }"
-      id="game-area"
-    >
+    <ion-content :style="{
+      // background: `url('${templeBgImage}')`,
+      // backgroundSize: 'cover',
+      // backgroundPosition: 'center',
+      overflow: 'hidden',
+      position: 'relative',
+    }" id="game-area">
       <ion-grid id="background-container" class="ion-no-padding">
-        <ion-img
-          v-for="xy in validRoomCoords"
-          :key="xy"
-          :src="getBgImage(xy)"
-          class="background-tile"
-        />
+        <ion-img v-for="xy in validRoomCoords" :key="xy" :src="getBgImage(xy)" class="background-tile" />
       </ion-grid>
 
       <ion-fab vertical="bottom" horizontal="start" v-if="hasMap">
         <ion-fab-button @click="clickMap">
-          <i
-            class="fad fa-2x"
-            :class="{ 'fa-map': !hasCompass, 'fa-map-marked': hasCompass }"
-          />
+          <i class="fad fa-2x" :class="{ 'fa-map': !hasCompass, 'fa-map-marked': hasCompass }" />
         </ion-fab-button>
         <ion-modal :isOpen="isMapOpen" @didDismiss="dismissMap">
           <ion-card class="maze-container icon-colors">
             <ion-grid>
-              <ion-row
-                v-for="(row, rowIndex) in maze"
-                :key="rowIndex"
-                class="maze-row"
-              >
-                <ion-col
-                  v-for="(cell, colIndex) in row"
-                  :key="colIndex"
-                  :class="[
-                    'maze-cell ion-text-center',
-                    // getRoomClass(cell, rooms[cell].visited),
-                  ]"
-                >
-                  <template
-                    v-if="rooms[cell].type === 'wall' || rooms[cell].visited"
-                  >
-                    <i
-                      v-if="isCurrentRoom(rowIndex, colIndex) && hasCompass"
-                      class="fad fa-2x fa-walking"
-                      :class="{ 'opacity-20': rooms[cell].type === 'wall' }"
-                    />
-                    <i
-                      v-else
-                      :class="{
-                        'opacity-20': rooms[cell].type === 'wall',
-                        [ROOM_ICONS[rooms[cell].type]]: true,
-                      }"
-                      class="fad fa-2x"
-                    ></i>
+              <ion-row v-for="(row, rowIndex) in maze" :key="rowIndex" class="maze-row">
+                <ion-col v-for="(cell, colIndex) in row" :key="colIndex" :class="[
+                  'maze-cell ion-text-center',
+                  // getRoomClass(cell, rooms[cell].visited),
+                ]">
+                  <template v-if="rooms[cell].type === 'wall' || rooms[cell].visited">
+                    <i v-if="isCurrentRoom(rowIndex, colIndex) && hasCompass" class="fad fa-2x fa-walking"
+                      :class="{ 'opacity-20': rooms[cell].type === 'wall' }" />
+                    <i v-else :class="{
+                      'opacity-20': rooms[cell].type === 'wall',
+                      [ROOM_ICONS[rooms[cell].type]]: true,
+                    }" class="fad fa-2x"></i>
                   </template>
                   <template v-else>
                     <i class="fad fa-2x fa-question"></i>
@@ -109,62 +76,41 @@
 
       <ion-fab v-if="canMoveRight" vertical="center" horizontal="end">
         <ion-fab-button @click.stop="move('east')">
-          <i
-            class="fad fa-2x"
-            :class="
-              isDoorLocked(currentPosition[0], currentPosition[1] + 1)
-                ? 'fa-lock'
-                : 'fa-arrow-right'
-            "
-          />
+          <i class="fad fa-2x" :class="isDoorLocked(currentPosition[0], currentPosition[1] + 1)
+            ? 'fa-lock'
+            : 'fa-arrow-right'
+            " />
         </ion-fab-button>
       </ion-fab>
 
       <ion-fab v-if="canMoveLeft" vertical="center" horizontal="start">
         <ion-fab-button @click.stop="move('west')">
-          <i
-            class="fad fa-2x"
-            :class="
-              isDoorLocked(currentPosition[0], currentPosition[1] - 1)
-                ? 'fa-lock'
-                : ' fa-arrow-left'
-            "
-          />
+          <i class="fad fa-2x" :class="isDoorLocked(currentPosition[0], currentPosition[1] - 1)
+            ? 'fa-lock'
+            : ' fa-arrow-left'
+            " />
         </ion-fab-button>
       </ion-fab>
 
       <ion-fab v-if="canMoveDown" vertical="bottom" horizontal="center">
         <ion-fab-button @click="move('south')">
-          <i
-            class="fad fa-2x"
-            :class="
-              isDoorLocked(currentPosition[0] + 1, currentPosition[1])
-                ? 'fa-lock'
-                : 'fa-arrow-down'
-            "
-          />
+          <i class="fad fa-2x" :class="isDoorLocked(currentPosition[0] + 1, currentPosition[1])
+            ? 'fa-lock'
+            : 'fa-arrow-down'
+            " />
         </ion-fab-button>
       </ion-fab>
 
       <ion-fab v-if="canMoveUp" vertical="top" horizontal="center">
         <ion-fab-button @click="move('north')">
-          <i
-            class="fad fa-2x"
-            :class="
-              isDoorLocked(currentPosition[0] - 1, currentPosition[1])
-                ? 'fa-lock'
-                : ' fa-arrow-up'
-            "
-          />
+          <i class="fad fa-2x" :class="isDoorLocked(currentPosition[0] - 1, currentPosition[1])
+            ? 'fa-lock'
+            : ' fa-arrow-up'
+            " />
         </ion-fab-button>
       </ion-fab>
 
-      <ion-fab
-        vertical="center"
-        horizontal="center"
-        id="room-action"
-        @click="showRoomActions"
-      >
+      <ion-fab vertical="center" horizontal="center" id="room-action" @click="showRoomActions">
         <ion-fab-button :color="currentRoom.content ? actionColor : 'none'">
           <i class="fad fa-2x" :class="ROOM_ICONS[currentRoom.type]" />
         </ion-fab-button>
