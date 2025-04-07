@@ -9,11 +9,15 @@ ion-modal {
 }
 
 #background-content {
-  background-position: left bottom, right bottom;
+  background-position:
+    left bottom,
+    right bottom;
 }
 
 .ion-page {
-  background-position: bottom left, bottom right;
+  background-position:
+    bottom left,
+    bottom right;
   background:
     url("@/assets/images/backgrounds/parallax/battleback1-1.png") right bottom/cover no-repeat fixed,
     url("@/assets/images/backgrounds/parallax/battleback1-2.png") left bottom/cover no-repeat;
@@ -31,7 +35,9 @@ ion-modal {
 
 ion-content {
   &.battle-bg {
-    background-position: 0 0, 0 0;
+    background-position:
+      0 0,
+      0 0;
     --background: transparent;
 
     transition: background 3s ease;
@@ -66,7 +72,6 @@ ion-content {
             width: 48px;
             max-width: 20vw;
           }
-
         }
       }
 
@@ -84,7 +89,6 @@ ion-content {
             margin-right: auto;
             width: 96px;
           }
-
         }
       }
 
@@ -106,8 +110,8 @@ ion-content {
       }
     }
   }
+  /* Player Stats Box */
 }
-
 
 .party {
   ion-progress-bar {
@@ -119,7 +123,6 @@ ion-content {
     width: 100%;
   }
 }
-
 
 ion-fab {
   ion-fab-list {
@@ -154,14 +157,17 @@ ion-fab {
   width: 33%;
 }
 
-
 @keyframes slide {
   from {
-    background-position: 0 0, 30px 30px;
+    background-position:
+      0 0,
+      30px 30px;
   }
 
   to {
-    background-position: 0 0, -30px -30px;
+    background-position:
+      0 0,
+      -30px -30px;
   }
 }
 
@@ -190,7 +196,6 @@ p {
   margin-right: 0.5em;
 }
 
-
 .characters figure:hover .box {
   transform: translateY(-0.1em);
 }
@@ -200,7 +205,6 @@ p {
   margin-top: 2em;
   display: block;
 }
-
 
 /* BUTTONS */
 button {
@@ -217,7 +221,7 @@ button {
 }
 
 .box .grid.between button:hover::before {
-  content: '';
+  content: "";
   position: absolute;
   left: -0.3em;
   top: 0.4em;
@@ -242,43 +246,42 @@ button {
 }
 
 .ness span {
-  background-image: url('http://www.videogamesprites.net/Earthbound/Party/Ness/Ness%20(Front).gif');
+  background-image: url("http://www.videogamesprites.net/Earthbound/Party/Ness/Ness%20(Front).gif");
 }
 
 .ness:hover span {
-  background-image: url('http://www.videogamesprites.net/Earthbound/Party/Ness/Ness%20-%20Walk%20(Front).gif')
+  background-image: url("http://www.videogamesprites.net/Earthbound/Party/Ness/Ness%20-%20Walk%20(Front).gif");
 }
 
 .paula span {
-  background-image: url('http://www.videogamesprites.net/Earthbound/Party/Paula/Paula%20(Front).gif');
+  background-image: url("http://www.videogamesprites.net/Earthbound/Party/Paula/Paula%20(Front).gif");
 }
 
 .paula:hover span {
-  background-image: url('http://www.videogamesprites.net/Earthbound/Party/Paula/Paula%20-%20Walk%20(Front).gif');
+  background-image: url("http://www.videogamesprites.net/Earthbound/Party/Paula/Paula%20-%20Walk%20(Front).gif");
 }
 
 .jeff span {
-  background-image: url('http://www.videogamesprites.net/Earthbound/Party/Jeff/Jeff%20(Front).gif');
+  background-image: url("http://www.videogamesprites.net/Earthbound/Party/Jeff/Jeff%20(Front).gif");
 }
 
 .jeff:hover span {
-  background-image: url('http://www.videogamesprites.net/Earthbound/Party/Jeff/Jeff%20-%20Walk%20(Front).gif');
+  background-image: url("http://www.videogamesprites.net/Earthbound/Party/Jeff/Jeff%20-%20Walk%20(Front).gif");
 }
 
 .poo span {
-  background-image: url('http://www.videogamesprites.net/Earthbound/Party/Poo/Poo%20(Front).gif');
+  background-image: url("http://www.videogamesprites.net/Earthbound/Party/Poo/Poo%20(Front).gif");
 }
 
 .poo:hover span {
-  background-image: url('http://www.videogamesprites.net/Earthbound/Party/Poo/Poo%20-%20Walk%20(Front).gif');
+  background-image: url("http://www.videogamesprites.net/Earthbound/Party/Poo/Poo%20-%20Walk%20(Front).gif");
 }
 
 .king span {
   width: 48px !important;
   height: 40px !important;
-  background-image: url('http://www.videogamesprites.net/Earthbound/NPCs/Nonhuman/Animals/King%20(Left).gif');
+  background-image: url("http://www.videogamesprites.net/Earthbound/NPCs/Nonhuman/Animals/King%20(Left).gif");
 }
-
 
 #container {
   text-align: center;
@@ -303,9 +306,9 @@ button {
     }
 
     .user-buffs {
-
       ion-img,
-      img {}
+      img {
+      }
     }
   }
 }

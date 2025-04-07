@@ -1,8 +1,8 @@
 import { BackgroundLayer, Engine } from "earthbound-battle-backgrounds";
-import { computed, ref, onMounted, reactive } from "vue";
-import { mapGetters, mapState, useStore } from "vuex";
+import { computed, defineComponent } from "vue";
+import { mapState, useStore } from "vuex";
 import { useRouter } from "vue-router";
-import alienMonster from "@/assets/fonts/font-awesome/svgs/duotone/medal.svg";
+// import alienMonster from "@/assets/fonts/font-awesome/svgs/duotone/medal.svg";
 import backgrounds from "@/assets/images/backgrounds/parallax/index";
 import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
 import fetchItems from "@/mixins/fetchItems";
@@ -45,26 +45,27 @@ import {
 
 import { Swiper, SwiperSlide, useSwiper } from "swiper/vue";
 import "swiper/css";
+import XpHpMpHud from "@/components/XpHpMpHud/XpHpMpHud.vue";
 
 const requireAvatar = require.context("@/assets/images/avatars/");
 
-export default {
-  name: "my-dashboard",
-  props: {
-    userId: {
-      default: 1,
-    },
-  },
+export default defineComponent({
+  name: "battle-ground",
+  props: ["userId"],
   mixins: [fetchItems, ionic, userActions],
   components: {
     CardUserStats,
     MyTask,
     Swiper,
     SwiperSlide,
+    XpHpMpHud,
   },
   data() {
     return {
-      // bgm: new Audio("https://smashcustommusic.net/wav/45266"),
+      currentBg: 0,
+      backgrounds,
+      bg1: 1,
+      bg2: 1,
 
       areas: {
         physical: {
@@ -106,13 +107,11 @@ export default {
           },
         },
       },
-      swiper: null,
       users,
       isUserModalOpen: false,
       initialBreakpoint: 0.1,
       activeModal: 0,
-      toggleBGDirection: 0,
-      currentBG: 0,
+      toggleBGDirection: false,
       icons: {
         medal,
         server,
@@ -140,60 +139,35 @@ export default {
   computed: {
     ...mapState(["xp_achievement"]),
   },
-  mounted() {
-    this.changeBG();
-    this.$fx.ui[this.$fx.theme.ui].chooseUser.play();
-    this.openToast();
-    this.enterBattle();
-    setTimeout(() => {
-      this.$fx.ui[this.$fx.theme.ui].chooseUser.pause();
-      this.isUserModalOpen = this.user.id;
-      // this.$refs.page.el.style.backgroundPosition = "0 100%, 0 100%";
-    }, 1250);
-  },
-  watch: {
-    activeModal(taskId) {
-      const task = this.items.filter((i) => i.id == taskId)[0];
-      this.openTaskToast(task);
-    },
-    bgmTrack() {
-      this.bgm.pause();
-      this.loadBGM();
-      this.enterBattle();
-
-      this.bgm.load();
-      this.bgm.play();
-    },
-  },
   methods: {
     onSwiper(swiper) {
-      this.swiper = swiper;
+      // this.swiper = swiper;
     },
 
     handleSlideTo() {
       // this.swiper.slideTo(1);
     },
     clickStats() {
-      this.swiper.slideTo(1);
+      // this.swiper.slideTo(1);
     },
     closeModal() {
       modalController.dismiss();
     },
     setBGStyle(key, value) {
-      this.$refs.page.$el.style[key] = value;
+      // this.$refs.page.$el.style[key] = value;
     },
-    changeBG() {
+    changeBg() {
       if (this.$fx.theme.rpg == "earthbound") {
         this.enterBattle();
         return false;
       }
-      const { setBGStyle } = this;
-      this.currentBG = Math.floor(Math.random() * 10);
+      const { setBGStyle, backgrounds } = this;
+      this.currentBg = Math.floor(Math.random() * 10);
       const values = Object.values(backgrounds);
-      let prop = false;
-      while (prop == false) {
-        prop = Math.floor(Math.random() * values.length);
-        prop = prop == this.currentBG ? false : values[prop];
+      let prop = {};
+      while (!prop) {
+        const rand = Math.floor(Math.random() * values.length);
+        prop = prop == this.currentBg ? {} : values[rand] || {};
       }
       setBGStyle("backdropFilter", "blur(10px)");
       setBGStyle(
@@ -208,29 +182,26 @@ export default {
 
       if (this.toggleBGDirection)
         setBGStyle("backgroundPosition", `right center, left center`);
-      else setBGStyle("backgroundPosition", `left center, right center`);
+      else
+        setBGStyle("backgroundPosition", `left center, right center`);
 
       setTimeout(() => setBGStyle("backdropFilter", "blur(0px)"), 3000);
     },
     enterBattle() {
-      if (this.$fx.theme.rpg != "earthbound") return false;
+      const { $fx } = this
+      if ($fx && $fx.theme.rpg != "earthbound") return false;
 
-      const bg1 = Math.floor(Math.random() * 326);
-      const bg2 = Math.floor(Math.random() * 326);
+      // const bg1 = Math.floor(Math.random() * 326);
+      // const bg2 = Math.floor(Math.random() * 326);
       /* Create two layers */
-      const layer1 = new BackgroundLayer(bg1);
-      const layer2 = new BackgroundLayer(bg2);
+      const layer1 = new BackgroundLayer(this.bg1);
+      const layer2 = new BackgroundLayer(this.bg2);
       /* Create animation engine  */
       const engine = new Engine([layer1, layer2], {
         aspectRatio: 48,
         canvas: document.querySelector("canvas.battle-bg"),
       });
       engine.animate();
-    },
-    clickBGMTrack(inc = 1) {
-      const length = this.$fx.rpg[this.$fx.theme.rpg].bgm.length;
-      const next = this.bgmTrack + inc;
-      this.bgmTrack = next == length - 1 ? 0 : next < 0 ? length - 1 : next;
     },
     clickTask(task) {
       this.activeModal = task.id;
@@ -260,8 +231,10 @@ export default {
     },
 
     async openToast() {
+      const { user } = this;
+
       const toast = await toastController.create({
-        message: `${this.user.name.nick} has entered the battle!`,
+        message: `${user?.name?.nick} has entered the battle!`,
         cssClass: this.$fx.theme.rpg,
         position: "top",
         duration: 2800,
@@ -276,13 +249,13 @@ export default {
         header: "It's pretty quiet",
         cssClass: this.$fx.theme.rpg,
         message: "You should search for some quests!",
-        icon: alienMonster,
+        // icon: alienMonster,
         position: "top",
         buttons: [
           {
-            icon: alienMonster,
+            // icon: alienMonster,
             text: "Load Quests",
-            color: "light",
+            // color: "light",
             cssClass: this.$fx.theme.rpg,
             handler: () => {
               this.request.type = "xp_achievement";
@@ -329,6 +302,31 @@ export default {
       }
     },
   },
+  mounted() {
+    this.changeBg();
+    this.$fx.ui[this.$fx.theme.ui].chooseUser.play();
+    this.openToast();
+    this.enterBattle();
+    setTimeout(() => {
+      this.$fx.ui[this.$fx.theme.ui].chooseUser.pause();
+      this.isUserModalOpen = this.userId;
+      // this.$refs.page.el.style.backgroundPosition = "0 100%, 0 100%";
+    }, 1250);
+  },
+  watch: {
+    activeModal(taskId) {
+      const task = this.items.filter((i) => i.id == taskId)[0];
+      this.openTaskToast(task);
+    },
+    // bgmTrack() {
+    //   this.bgm.pause();
+    //   this.loadBGM();
+    //   this.enterBattle();
+
+    //   this.bgm.load();
+    //   this.bgm.play();
+    // },
+  },
   ionViewDidEnter() {
     this.setUserActions(this.userActions);
   },
@@ -336,20 +334,19 @@ export default {
   setup(props) {
     const store = useStore();
     const router = useRouter();
-    // const mySwiper = useSwiper();
+    const swiper = useSwiper();
 
     const slideOpts = {
       initialSlide: 1,
       speed: 400,
     };
-    // console.log(props.userId);
+
     const user = computed(() => store.getters.getUserById(props.userId));
     const xp_achievement = computed(() => store.state.xp_achievement);
-    // console.log(store.state.users);
 
     async function clickRoll($ev) {
-      let newActions = [];
-      Object.values(xp_achievement.value).forEach((item) => {
+      const newActions = [] as UserAction[];
+      Object.values(xp_achievement.value).forEach((item: any) => {
         newActions[item.id] = {
           label: item.title.rendered,
           id: item.id,
@@ -400,7 +397,7 @@ export default {
     ];
 
     return {
-      // mySwiper,
+      swiper,
       user,
       accessibilityOutline,
       router,
@@ -425,4 +422,11 @@ export default {
       arrowBack,
     };
   },
-};
+});
+
+
+interface UserAction {
+  label: string
+  id: string
+  click: () => void
+}
