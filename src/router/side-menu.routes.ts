@@ -25,6 +25,7 @@ const SideMenu = [
     children: [
       {
         path: '',
+        name: 'dashboard',
         redirect: '/game-master/dashboard',
       },
       {
@@ -33,14 +34,53 @@ const SideMenu = [
         component: () => import("../views/App/SideMenu/XpGameMaster/XpDashboard/XpDashboard.vue"),
       },
       {
-        path: 'achievements',
-        name: 'xp-achievements',
-        component: () => import('@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAchievements.vue'),
+        path: 'compendium',
+        name: 'xp-compendium',
+        component: () => import("../views/App/SideMenu/XpGameMaster/XpCompendium/XpCompendium.vue"),
+        children: [
+          {
+            path: '',
+            name: 'achievements',
+            redirect: '/game-master/compendium/achievements',
+          },
+          {
+            path: 'achievements',
+            name: 'xp-achievements',
+            component: () => import('@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAchievements.vue'),
+          },
+          {
+            path: 'bestiary',
+            name: 'xp-bestiary',
+            component: () => import('@/views/App/SideMenu/XpGameMaster/XpBestiary/XpBestiary.vue'),
+          },
+          {
+            path: 'accessories',
+            name: 'xp-accessories',
+            component: () => import('@/views/App/SideMenu/XpGameMaster/XpAccessories/XpAccessories.vue'),
+          },
+          {
+            path: 'accessories/create-update/:id?',
+            name: 'xp-create-update-accessory',
+            component: () => import('@/views/App/SideMenu/XpGameMaster/XpAccessories/components/XpCreateUpdateAccessory.vue'),
+          },
+          {
+            path: 'abilities',
+            name: 'xp-abilities',
+            component: () => import('@/views/App/SideMenu/XpGameMaster/XpAbilities/XpAbilities.vue'),
+            children: [
+              {
+                path: 'create-update/:id?',
+                name: 'xp-create-update-ability',
+                component: () => import('@/views/App/SideMenu/XpGameMaster/XpAbilities/components/XpCreateUpdateAbility.vue'),
+              },
+            ],
+          },
+        ]
       },
       {
-        path: 'bestiary',
-        name: 'xp-bestiary',
-        component: () => import('@/views/App/SideMenu/XpGameMaster/XpBestiary/XpBestiary.vue'),
+        path: 'temples',
+        name: 'xp-temples',
+        component: () => import("../views/App/SideMenu/XpGameMaster/XpTemples"),
       },
       {
         path: 'do-this-not-that/:id?',
@@ -48,24 +88,13 @@ const SideMenu = [
         component: () => import('@/views/App/SideMenu/XpGameMaster/XpDoThisNotThat/XpDoThisNotThat.vue'),
         props: true
       },
-      {
-        path: 'accessories',
-        name: 'xp-accessories',
-        component: () => import('@/views/App/SideMenu/XpGameMaster/XpAccessories/XpAccessories.vue'),
-      },
-      {
-        path: 'abilities',
-        name: 'xp-abilities',
-        component: () => import('@/views/App/SideMenu/XpGameMaster/XpAbilities/XpAbilities.vue'),
-        children: [
-          {
-            path: 'create-update/:id?',
-            name: 'xp-create-update-ability',
-            component: () => import('@/views/App/SideMenu/XpGameMaster/XpAbilities/components/XpCreateUpdateAbility.vue'),
-          },
-        ],
-      },
     ],
+  },
+  {
+    path: '/temple-setting/:templeId',
+    name: 'xp-temple-settings',
+    component: () => import('@/views/App/SideMenu/XpGameMaster/XpTemples/components/XpTempleSettings.vue'),
+    props: true
   },
   {
     path: '/add-achievement/:id?',

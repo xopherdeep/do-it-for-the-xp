@@ -9,24 +9,19 @@ export default [
   ...MyProfileRoutes,
   ...MyHomeRoutes,
   ...HometownRoutes,
+  MyPortalRoutes,
   {
     path: '/user/:userId?',
-    component: () => import ('@/views/App/UserProfile/UserProfile.vue'),
+    component: () => import('@/views/App/UserProfile/UserProfile.vue'),
     props: true
   },
   {
-    path: '/my-portal/:userId',
-    component: () => import ('@/views/MyPortal/MyPortal.vue'),
-    props: true,
-    children: MyPortalRoutes,
-  },
-  {
-    path: '/my-dashboard',
-    name: 'my-dashboard',
+    path: '/battle-ground/:userId?',
+    name: 'battle-ground',
     meta: {
       faIcon: 'dungeon'
     },
-    component: () => import ('@/views/MyPortal/HomeTown/BattleGround/BattleGround.vue'),
+    component: () => import('@/views/MyPortal/HomeTown/BattleGround/BattleGround.vue'),
     props: true,
   },
 ]

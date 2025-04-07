@@ -51,15 +51,18 @@ const useRouter = (store) => {
 
     // Battle safe gaurd
     switch (to.name) {
-      case 'log-in':
-      case 'log-out':
-      case 'switch-profile':
-      case 'my-home':
-        store.dispatch('stopBattleTimer')
+      // case 'log-in':
+      // case 'log-out':
+      // case 'switch-profile':
+      // case 'game-master':
+      // case 'temple':
+      case 'home-town':
+      case 'world-map':
+        store.dispatch('startBattleTimer')
         break;
 
       default:
-        store.dispatch('startBattleTimer')
+        store.dispatch('stopBattleTimer')
         break;
     }
 
@@ -115,7 +118,7 @@ const useRouter = (store) => {
           saveBookmark,
         })
         break;
-      case 'my-dashboard':
+      case 'battle-ground':
         store.dispatch('changeBGM', {
           tracks: BGM.battle,
           track: Math.floor(Math.random() * BGM.battle.length),

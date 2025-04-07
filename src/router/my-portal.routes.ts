@@ -1,8 +1,13 @@
 import WorldMapRoutes from "./world-map.routes";
 
-const MyPortalRoutes = [
-  {
+const MyPortalRoutes = {
+  path: '/my-portal/:userId',
+  name: 'my-portal',
+  component: () => import('@/views/MyPortal/MyPortal.vue'),
+  props: true,
+  children: [{
     path: "",
+    name: "my-home-redirect",
     redirect: (to) => ({
       name: "my-home",
       params: { userId: to.params.userId },
@@ -51,6 +56,7 @@ const MyPortalRoutes = [
     component: () => import("@/views/MyPortal/MyProfile/MyProfile.vue"),
   },
   ...WorldMapRoutes
-];
+  ],
+};
 
 export default MyPortalRoutes;

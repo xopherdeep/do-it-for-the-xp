@@ -37,7 +37,7 @@ const HometownRoutes = [
     props: true
   },
   {
-    path: '/temple/:userId?/',
+    path: '/temple/:temple/:userId?/:x?/:y?',
     name: 'temple',
     component: () => import('@/views/MyPortal/HomeTown/TempleGrounds/TempleGrounds.vue'),
     props: true,
