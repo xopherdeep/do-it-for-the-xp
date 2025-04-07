@@ -52,7 +52,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref } from "vue";
+  import { defineComponent, ref, inject } from "vue";
   import { Share } from '@capacitor/share';
   import { 
     shareSocialOutline, 
@@ -60,6 +60,7 @@
     diamondOutline, 
     giftOutline 
   } from 'ionicons/icons';
+  import { toastController } from '@ionic/vue';
   import ionic from "@/mixins/ionic";
 
   export default defineComponent({
@@ -87,7 +88,7 @@
           });
           
           this.shareCount++;
-          this.$ionic.toastController
+          toastController
             .create({
               message: 'Thanks for sharing! Rewards added to your inventory!',
               duration: 2000,
@@ -97,7 +98,7 @@
             .then(toast => toast.present());
             
         } catch (error) {
-          this.$ionic.toastController
+          toastController
             .create({
               message: 'No worries! You can share anytime.',
               duration: 2000,
