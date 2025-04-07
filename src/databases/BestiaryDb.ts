@@ -14,6 +14,7 @@ export interface Beast {
   checklist: string[]
   imageUrl?: string;
   localImage?: string;
+  avatar?: number;
   achievementIds?: string[];
 }
 

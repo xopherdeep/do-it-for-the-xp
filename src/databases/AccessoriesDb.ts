@@ -7,7 +7,7 @@ export const accessoriesStorage = new Storage({
   driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
 });
 
-enum Rarity {
+export enum Rarity {
   Common,
   Uncommon,
   Rare,
@@ -32,12 +32,15 @@ interface SpecialStats {
 export interface Accessory {
   id?: any
   name: string;
+  url: string;
   description: string;
   basePrice: number;
-  bonusStats: SpecialStats;
-  equippableBy: CharacterType[];
+  bonusStats?: SpecialStats;
+  equippableBy?: CharacterType[];
   rarity: Rarity;
-  icon: string;
+  icon?: string;
+  rewardCount: number
+  isLayaway: boolean
 }
 
 export class AccessoriesDb extends DbStorageApi {
@@ -47,10 +50,13 @@ export class AccessoriesDb extends DbStorageApi {
       name: '',
       description: '',
       basePrice: 0,
+      url: '',
       bonusStats: {},
       equippableBy: [],
       rarity: Rarity.Common,
-      icon: ''
+      icon: '',
+      rewardCount: 0,
+      isLayaway: false
     }
   }
 
