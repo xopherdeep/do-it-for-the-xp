@@ -1,6 +1,6 @@
 <template>
   <ion-page :class="$options.name">
-    <router-view></router-view>
+    <ion-router-outlet></ion-router-outlet>
   </ion-page>
 </template>
 
