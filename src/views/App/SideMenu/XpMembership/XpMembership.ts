@@ -1,4 +1,6 @@
 import { defineComponent } from 'vue'
+import { useRouter } from 'vue-router'
+import { toastController, alertController } from '@ionic/vue'
 
 import {
   IonPage,
@@ -9,24 +11,76 @@ import {
   IonTitle,
   IonContent,
   IonText,
+  IonGrid,
+  IonRow,
+  IonCol,
+  IonCard,
+  IonCardTitle,
+  IonCardHeader,
+  IonCardContent,
+  IonChip,
+  IonBadge,
+  IonList,
+  IonItem,
+  IonIcon,
+  IonButton,
+  IonModal,
+  IonLabel,
+  IonToggle,
+  IonSegment,
+  IonSegmentButton
 } from '@ionic/vue'
 
 import {
   arrowBack,
   checkmarkCircle,
   stopCircle,
+  calendarOutline,
+  cardOutline,
+  helpCircleOutline,
+  informationCircleOutline,
+  starOutline,
+  trendingUpOutline,
+  walletOutline,
+  refreshOutline
 } from "ionicons/icons"
 
 export default defineComponent({
+  name: 'xp-membership',
   data() {
     return {
       benefits: [
-        "No-Ads",
-        "Unlimited Usage",
-        "Exclusive Offers",
-        "Premium Features",
+        "No-Ads Experience",
+        "Unlimited Usage & Access",
+        "Exclusive Member Offers",
+        "Premium Features & Content",
         "Price Lock Guaranteed",
-      ]
+        "Priority Customer Support"
+      ],
+      plans: [
+        { 
+          id: 'monthly',
+          name: 'Monthly',
+          price: 4.99,
+          interval: 'month',
+          savings: 0
+        },
+        { 
+          id: 'annual',
+          name: 'Annual',
+          price: 49.99,
+          interval: 'year',
+          savings: 20
+        }
+      ],
+      activePlan: 'annual',
+      isModalOpen: false,
+      nextPaymentDate: 'Friday, 12 August 2022',
+      memberSince: 'January 15, 2022',
+      paymentMethod: {
+        type: 'Visa',
+        last4: '4242'
+      }
     }
   },
   components: {
@@ -37,14 +91,104 @@ export default defineComponent({
     IonMenuButton,
     IonText,
     IonTitle,
-    IonContent
+    IonContent,
+    IonGrid,
+    IonRow,
+    IonCol,
+    IonCard,
+    IonCardTitle,
+    IonCardHeader,
+    IonCardContent,
+    IonChip,
+    IonBadge,
+    IonList,
+    IonItem,
+    IonIcon,
+    IonButton,
+    IonModal,
+    IonLabel,
+    IonToggle,
+    IonSegment,
+    IonSegmentButton
+  },
+  computed: {
+    currentPlan() {
+      return this.plans.find(plan => plan.id === this.activePlan)
+    }
+  },
+  methods: {
+    async openCancelModal() {
+      this.isModalOpen = true
+    },
+    closeModal() {
+      this.isModalOpen = false
+    },
+    async confirmCancel() {
+      const alert = await alertController.create({
+        header: 'Confirm Cancellation',
+        message: 'Are you sure you want to cancel your membership? You will lose access to premium features at the end of your billing period.',
+        buttons: [
+          {
+            text: 'No, Keep It',
+            role: 'cancel',
+            handler: () => {
+              this.closeModal()
+            }
+          },
+          {
+            text: 'Yes, Cancel',
+            handler: () => {
+              this.processCancellation()
+            }
+          }
+        ]
+      })
+      await alert.present()
+    },
+    async processCancellation() {
+      // Here you would call your API to cancel the subscription
+      this.closeModal()
+      const toast = await toastController.create({
+        message: 'Your membership has been canceled. It will remain active until the end of your billing period.',
+        duration: 3000,
+        position: 'bottom',
+        color: 'warning'
+      })
+      await toast.present()
+    },
+    async changePlan(planId) {
+      this.activePlan = planId
+      const toast = await toastController.create({
+        message: `Your plan preference has been updated to ${this.currentPlan.name}`,
+        duration: 2000,
+        position: 'bottom',
+        color: 'success'
+      })
+      await toast.present()
+    },
+    formatCurrency(amount) {
+      return new Intl.NumberFormat('en-US', {
+        style: 'currency',
+        currency: 'USD'
+      }).format(amount)
+    }
   },
   setup() {
-    // code
+    const router = useRouter()
+    
     return {
       arrowBack,
       checkmarkCircle,
-
+      stopCircle,
+      calendarOutline,
+      cardOutline,
+      helpCircleOutline,
+      informationCircleOutline,
+      starOutline,
+      trendingUpOutline,
+      walletOutline,
+      refreshOutline,
+      router
     }
-  },
+  }
 })
