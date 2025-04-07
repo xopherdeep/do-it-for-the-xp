@@ -28,6 +28,7 @@
       @click="clickDoThisNotThat(true)"
       button
       detail
+      class="do-dont-item"
     >
       <i
         slot="start"
@@ -38,19 +39,22 @@
         class="fad fa-rainbow fa-2x mr-2"
       ></i>
       <ion-label>
-        Do this, Not that
+        <div class="do-dont-header">
+          <span>Do this, Not that</span>
+          <ion-badge color="tertiary">{{ dos.length + donts.length }} Total</ion-badge>
+        </div>
         <p>Reward or penalize player's GP</p>
       </ion-label>
-      <ion-buttons slot="end">
-        <ion-button>
+      <div slot="end" class="do-dont-buttons">
+        <ion-badge color="success" class="do-badge">
           {{ dos.length }}
-          <i class="fad fa-thumbs-up fa-lg mx-1"></i>
-        </ion-button>
-        <ion-button @click.stop="clickDoThisNotThat(false)">
+          <i class="fad fa-thumbs-up fa-lg ml-1"></i>
+        </ion-badge>
+        <ion-badge color="danger" class="dont-badge" @click.stop="clickDoThisNotThat(false)">
           {{ donts.length }}
-          <i class="fad fa-thumbs-down fa-lg mx-1"></i>
-        </ion-button>
-      </ion-buttons>
+          <i class="fad fa-thumbs-down fa-lg ml-1"></i>
+        </ion-badge>
+      </div>
     </ion-item>
   </ion-item-sliding>
 </template>
@@ -112,4 +116,34 @@
 });
 </script>
 
-<style></style>
+<style lang="scss" scoped>
+  .do-dont-item {
+    --background: rgba(var(--ion-color-tertiary-rgb), 0.05);
+    margin-bottom: 8px;
+    border-radius: 8px;
+  }
+  
+  .do-dont-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    
+    ion-badge {
+      margin-left: 8px;
+    }
+  }
+  
+  .do-dont-buttons {
+    display: flex;
+    align-items: center;
+    
+    .do-badge, .dont-badge {
+      display: flex;
+      align-items: center;
+      padding: 6px 10px;
+      margin: 0 4px;
+      border-radius: 16px;
+      font-weight: bold;
+    }
+  }
+</style>
