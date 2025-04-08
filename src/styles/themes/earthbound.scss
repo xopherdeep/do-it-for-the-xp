@@ -13,7 +13,7 @@ $eb-color-cream: #e7e6b3;
 $eb-color-pale-yellow: #f7e8a8;
 
 // Mixins
-@mixin earthboundBox() {
+@mixin eb-box() {
   border-radius: 1px;
   box-shadow: 
     0 0 0 5px $eb-color-medium-purple, 
@@ -107,13 +107,13 @@ ion-app {
       &.rpg-box {
         margin-bottom: 1em;
         --background: #{$eb-color-slate};
-        @include earthboundBox();
+        @include eb-box();
       }
     }
 
     // Card styling
     ion-card {
-      @include earthboundBox();
+      @include eb-box();
       margin: 1.25em;
       width: calc(100% - 2.5em);
       display: inline-block;
