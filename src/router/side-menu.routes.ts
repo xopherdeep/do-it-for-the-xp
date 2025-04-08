@@ -139,7 +139,8 @@ const SideMenu = [
     ],
   },
   {
-    path: '/xp-support',
+    path: '/support',
+    name: 'support',
     component: () => import('@/views/App/SideMenu/XpSupport/XpSupport.vue'),
   },
   {

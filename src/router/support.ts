@@ -3,7 +3,7 @@ import { RouteRecordRaw } from 'vue-router';
 const supportRoutes: Array<RouteRecordRaw> = [
   {
     path: '/support',
-    name: 'XpSupport',
+    name: 'support',
     component: () => import('@/views/App/SideMenu/XpSupport/XpSupport.vue')
   },
   {

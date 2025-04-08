@@ -76,6 +76,7 @@ export default defineComponent({
     const router = useRouter();
     
     const navigateTo = (path: string) => {
+      console.log('Navigating to:', path);
       router.push(path);
     };
     
