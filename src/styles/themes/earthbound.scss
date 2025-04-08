@@ -46,10 +46,10 @@ $eb-color-pale-yellow: #f7e8a8;
 }
 
 @keyframes slide {
-  from {
+  0% {
     background-position: 0 0, 30px 30px;
   }
-  to {
+  100% {
     background-position: 60px 60px, 90px 90px;
   }
 }
