@@ -1,4 +1,6 @@
-export const SideMenuRoutes = [
+import { RouteRecordRaw } from 'vue-router';
+
+export const SideMenuRoutes: Array<RouteRecordRaw> = [
   {
     path: '/',
     redirect: '/log-in',

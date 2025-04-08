@@ -1,4 +1,6 @@
-const WorldMapRoutes = [
+import { RouteRecordRaw } from 'vue-router';
+
+const WorldMapRoutes: Array<RouteRecordRaw> = [
   {
     path: 'plains',
     name: 'world-plains',

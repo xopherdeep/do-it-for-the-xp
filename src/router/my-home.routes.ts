@@ -1,4 +1,6 @@
-const MyHomeRoutes = [ 
+import { RouteRecordRaw } from 'vue-router';
+
+const MyHomeRoutes: Array<RouteRecordRaw> = [ 
   // HOME
   {
     path: '/cook-food',

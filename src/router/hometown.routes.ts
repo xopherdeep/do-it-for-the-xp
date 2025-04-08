@@ -1,4 +1,6 @@
-export const HometownRoutes = [
+import { RouteRecordRaw } from 'vue-router';
+
+export const HometownRoutes: Array<RouteRecordRaw> = [
   // TOWN
   {
     path: '/shop/:merchant?/:userId?',

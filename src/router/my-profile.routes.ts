@@ -1,4 +1,6 @@
-const MyProfileRoutes = [ 
+import { RouteRecordRaw } from 'vue-router';
+
+const MyProfileRoutes: Array<RouteRecordRaw> = [ 
   {
     path: '/my-tasks/:userId?/',
     name: 'my-tasks',

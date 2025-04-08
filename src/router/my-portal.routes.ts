@@ -1,4 +1,4 @@
-import WorldMapRoutes from "./world-map.routes";
+import WorldMapRoutes from './world-map.routes';
 
 const MyPortalRoutes = {
   path: '/my-portal/:userId',
