@@ -1,4 +1,4 @@
-const SideMenu = [
+export const SideMenuRoutes = [
   {
     path: '/',
     redirect: '/log-in',
@@ -8,7 +8,6 @@ const SideMenu = [
     }
   },
 
-  // Game Master
   // Switch Profile
   {
     path: '/switch-profile',
@@ -18,6 +17,7 @@ const SideMenu = [
       requiresAuth: false
     }
   },
+  // Game Master
   {
     path: '/game-master',
     name: 'game-master',
@@ -167,4 +167,4 @@ const SideMenu = [
   },
 ]
 
-export default SideMenu
+export default SideMenuRoutes

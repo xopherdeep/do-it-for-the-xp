@@ -1,4 +1,4 @@
-const HometownRoutes = [
+export const HometownRoutes = [
   // TOWN
   {
     path: '/shop/:merchant?/:userId?',
