@@ -8,27 +8,27 @@ const supportRoutes: Array<RouteRecordRaw> = [
   },
   {
     path: '/support/faq',
-    name: 'SupportFAQ',
+    name: 'support-faq',
     component: () => import('@/views/App/SideMenu/XpSupport/FAQ/FAQ.vue')
   },
   {
     path: '/support/help-videos',
-    name: 'SupportHelpVideos',
+    name: 'support-help-videos',
     component: () => import('@/views/App/SideMenu/XpSupport/HelpVideos/HelpVideos.vue')
   },
   {
     path: '/support/user-manual',
-    name: 'SupportUserManual',
+    name: 'support-user-manual',
     component: () => import('@/views/App/SideMenu/XpSupport/UserManual/UserManual.vue')
   },
   {
     path: '/support/feature-request',
-    name: 'SupportFeatureRequest',
+    name: 'support-feature-request',
     component: () => import('@/views/App/SideMenu/XpSupport/FeatureRequest/FeatureRequest.vue')
   },
   {
     path: '/support/contact',
-    name: 'SupportContact',
+    name: 'support-contact',
     component: () => import('@/views/App/SideMenu/XpSupport/Contact/Contact.vue')
   }
 ];
