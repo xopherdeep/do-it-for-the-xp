@@ -12,6 +12,48 @@ $eb-color-minty-blue: #68d0b8;
 $eb-color-cream: #e7e6b3;
 $eb-color-pale-yellow: #f7e8a8;
 
+// Mixins
+@mixin earthboundBox() {
+  border-radius: 1px;
+  box-shadow: 
+    0 0 0 5px $eb-color-medium-purple, 
+    0 0 0 10px $eb-color-minty-blue,
+    0 0 0 12px $eb-color-pale-yellow, 
+    0 0 0 16px $eb-color-slate;
+  background-color: $eb-color-dark-purple;
+  color: $eb-color-cream;
+}
+
+@mixin eb-checkerboard-bg {
+  background-color: $eb-color-sky-blue;
+  background-image: linear-gradient(
+      45deg,
+      $eb-color-mint-green 25%,
+      transparent 25%,
+      transparent 75%,
+      $eb-color-mint-green 75%
+    ),
+    linear-gradient(
+      45deg,
+      $eb-color-mint-green 25%,
+      transparent 25%,
+      transparent 75%,
+      $eb-color-mint-green 75%
+    );
+  background-size: 60px 60px;
+  background-position: 0 0, 30px 30px;
+  animation: slide 4s infinite linear;
+}
+
+@keyframes slide {
+  from {
+    background-position: 0 0, 30px 30px;
+  }
+  to {
+    background-position: 60px 60px, 90px 90px;
+  }
+}
+
 // Earthbound Theme
 ion-app {
   &#earthbound {
@@ -51,27 +93,6 @@ ion-app {
       }
     }
 
-    // Background patterns
-    @mixin eb-checkerboard-bg {
-      background-color: $eb-color-sky-blue;
-      background-image: linear-gradient(
-          45deg,
-          $eb-color-mint-green 25%,
-          transparent 25%,
-          transparent 75%,
-          $eb-color-mint-green 75%
-        ),
-        linear-gradient(
-          45deg,
-          $eb-color-mint-green 25%,
-          transparent 25%,
-          transparent 75%,
-          $eb-color-mint-green 75%
-        );
-      background-size: 60px 60px;
-      background-position: 0 0, 30px 30px;
-      animation: slide 4s infinite linear;
-    }
 
     // Content areas
     ion-content {
@@ -177,11 +198,7 @@ ion-app {
       --border-radius: 1px;
       --transform: translateY(0);
       --transition: transform linear 150ms;
-      --box-shadow: 
-        0 0 0 5px #{$eb-color-medium-purple}, 
-        0 0 0 10px #{$eb-color-minty-blue},
-        0 0 0 12px #{$eb-color-pale-yellow}, 
-        0 0 0 16px #{$eb-color-slate};
+      --box-shadow: 0 0 0 5px #{$eb-color-medium-purple}, 0 0 0 10px #{$eb-color-minty-blue}, 0 0 0 12px #{$eb-color-pale-yellow}, 0 0 0 16px #{$eb-color-slate};
       --width: 90%;
       --button-color: #{$eb-color-cream};
 
