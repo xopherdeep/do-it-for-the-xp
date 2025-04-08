@@ -1,29 +1,4 @@
-@mixin chronoTriggerBox {
-  border: 3px solid #8b6d3f;
-  border-radius: 8px;
-  background: #382c14;
-  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 0 0 5px rgba(139, 109, 63, 0.5);
-  color: #e8d8b0;
-  padding: 12px;
-  margin: 10px;
-}
-
-@mixin chronoTriggerButton {
-  background: #5a4428;
-  border: 2px solid #8b6d3f;
-  border-radius: 4px;
-  color: #e8d8b0;
-  font-family: 'Arial', sans-serif;
-  font-size: 16px;
-  padding: 8px 16px;
-  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
-  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3), 0 0 3px rgba(139, 109, 63, 0.5);
-  
-  &:active, &.active {
-    background: #3d2e1c;
-    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5);
-  }
-}
+// Mixins will be defined at the end of the file to avoid the error
 
 ion-app {
   &#chronoTrigger {
@@ -47,7 +22,13 @@ ion-app {
     
     /* Cards - Menu Boxes */
     ion-card {
-      @include chronoTriggerBox();
+      border: 3px solid #8b6d3f;
+      border-radius: 8px;
+      background: #382c14;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 0 0 5px rgba(139, 109, 63, 0.5);
+      color: #e8d8b0;
+      padding: 12px;
+      margin: 10px;
       
       ion-card-header {
         border-bottom: 2px solid var(--ct-brown-light);
@@ -173,7 +154,11 @@ ion-app {
       flex-direction: column;
       padding: 12px;
       margin: 10px 0;
-      @include chronoTriggerBox();
+      border: 3px solid #8b6d3f;
+      border-radius: 8px;
+      background: #382c14;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 0 0 5px rgba(139, 109, 63, 0.5);
+      color: #e8d8b0;
       
       .character-name {
         font-size: 18px;
@@ -242,7 +227,11 @@ ion-app {
       bottom: 20px;
       right: 20px;
       width: 180px;
-      @include chronoTriggerBox();
+      border: 3px solid #8b6d3f;
+      border-radius: 8px;
+      background: #382c14;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 0 0 5px rgba(139, 109, 63, 0.5);
+      color: #e8d8b0;
       padding: 10px;
       
       .battle-option {
@@ -265,7 +254,13 @@ ion-app {
     
     /* Tech/Magic Menu */
     .tech-menu {
-      @include chronoTriggerBox();
+      border: 3px solid #8b6d3f;
+      border-radius: 8px;
+      background: #382c14;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 0 0 5px rgba(139, 109, 63, 0.5);
+      color: #e8d8b0;
+      padding: 12px;
+      margin: 10px;
       max-width: 300px;
       
       .tech-item {
@@ -301,7 +296,13 @@ ion-app {
       --background: rgba(0, 0, 0, 0.7);
       
       .modal-wrapper {
-        @include chronoTriggerBox();
+        border: 3px solid #8b6d3f;
+        border-radius: 8px;
+        background: #382c14;
+        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 0 0 5px rgba(139, 109, 63, 0.5);
+        color: #e8d8b0;
+        padding: 12px;
+        margin: 10px;
         border-width: 3px;
       }
       
@@ -325,5 +326,36 @@ ion-app {
         text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
       }
     }
+  }
+}
+
+/* 
+ * Mixins are defined here for reference but not used in the code above
+ * to avoid the error with @include being used before the mixin is defined
+ */
+@mixin chronoTriggerBox {
+  border: 3px solid #8b6d3f;
+  border-radius: 8px;
+  background: #382c14;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 0 0 5px rgba(139, 109, 63, 0.5);
+  color: #e8d8b0;
+  padding: 12px;
+  margin: 10px;
+}
+
+@mixin chronoTriggerButton {
+  background: #5a4428;
+  border: 2px solid #8b6d3f;
+  border-radius: 4px;
+  color: #e8d8b0;
+  font-family: 'Arial', sans-serif;
+  font-size: 16px;
+  padding: 8px 16px;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3), 0 0 3px rgba(139, 109, 63, 0.5);
+  
+  &:active, &.active {
+    background: #3d2e1c;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5);
   }
 }
