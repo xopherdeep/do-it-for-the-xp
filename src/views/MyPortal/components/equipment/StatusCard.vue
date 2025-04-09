@@ -47,8 +47,8 @@ export default defineComponent({
   
   .dice-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    grid-template-rows: repeat(2, 1fr);
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: 1fr;
     gap: 10px;
     width: 100%;
     height: 100%;

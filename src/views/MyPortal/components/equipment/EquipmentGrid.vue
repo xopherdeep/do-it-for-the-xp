@@ -50,13 +50,21 @@ export default defineComponent({
 <style lang="scss" scoped>
 .equipment {
   height: calc(100vh - 25vh - 5vh - 5em);
+  display: flex;
+  flex-direction: column;
+
+  ion-card-content {
+    flex: 1;
+    display: flex;
+  }
 
   .grid-container {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(10vw, 1fr));
     grid-gap: 0.5em;
     margin: 0.5em;
-    height: calc(100% - 1em);
+    width: 100%;
+    height: 100%;
   }
 
   .grid-item {
