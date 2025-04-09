@@ -54,7 +54,8 @@ export default defineComponent({
 
 <style lang="scss" scoped>
 .info {
-  height: 15vh;
+  min-height: 15vh;
+  max-height: 20vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -122,7 +123,8 @@ export default defineComponent({
       flex: 1;
       margin: 0 0 5px 0;
       overflow-y: auto;
-      max-height: 50px;
+      max-height: 60px;
+      line-height: 1.2;
     }
 
     .recharge-time {
