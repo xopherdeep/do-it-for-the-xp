@@ -24,15 +24,19 @@
             @drop="drop($event, 'left', index)" 
             @dragover="allowDrop"
             class="hand-slot"
+            :class="{ 'locked-slot': index > 0 }"
           >
             <i
-              v-if="leftSlots[index]"
+              v-if="leftSlots[index] && index === 0"
               :class="`fa-${leftSlots[index].faIcon}`"
               class="fad fa-3x"
               draggable="true"
               @dragstart="drag($event, leftSlots[index])"
             ></i>
-            <div v-else class="empty-slot">+</div>
+            <div v-else-if="index === 0" class="empty-slot">+</div>
+            <div v-else class="locked-icon">
+              <i class="fad fa-lock fa-2x"></i>
+            </div>
           </ion-col>
         </ion-row>
       </ion-col>
@@ -45,15 +49,19 @@
             @drop="drop($event, 'right', index)" 
             @dragover="allowDrop"
             class="hand-slot"
+            :class="{ 'locked-slot': index > 0 }"
           >
             <i
-              v-if="rightSlots[index]"
+              v-if="rightSlots[index] && index === 0"
               :class="`fa-${rightSlots[index].faIcon}`"
               class="fad fa-3x"
               draggable="true"
               @dragstart="drag($event, rightSlots[index])"
             ></i>
-            <div v-else class="empty-slot">+</div>
+            <div v-else-if="index === 0" class="empty-slot">+</div>
+            <div v-else class="locked-icon">
+              <i class="fad fa-lock fa-2x"></i>
+            </div>
           </ion-col>
         </ion-row>
       </ion-col>
@@ -127,6 +135,11 @@ export default defineComponent({
     drop(event: DragEvent, hand: string, index: number) {
       event.preventDefault();
       
+      // Only allow drops in the first slot (index 0) for now
+      if (index > 0) {
+        return;
+      }
+      
       if (event.dataTransfer) {
         const data = event.dataTransfer.getData("item");
         const item = JSON.parse(data);
@@ -183,14 +196,24 @@ export default defineComponent({
     background-color: rgba(255, 255, 255, 0.05);
     transition: all 0.2s ease;
     
-    &:hover {
+    &:hover:not(.locked-slot) {
       background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    &.locked-slot {
+      background-color: rgba(0, 0, 0, 0.3);
+      border: 1px solid #444;
     }
     
     .empty-slot {
       color: #ccc;
       font-size: 1.5rem;
       opacity: 0.5;
+    }
+    
+    .locked-icon {
+      color: #666;
+      opacity: 0.7;
     }
   }
 

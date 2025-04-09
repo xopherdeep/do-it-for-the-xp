@@ -197,6 +197,26 @@ export default defineComponent({
         return;
       }
 
+      // First, check if this item is already equipped somewhere else
+      const alreadyEquippedIndex = equipment.value.findIndex(
+        (i) => i.faIcon === item.faIcon
+      );
+
+      // If it's already equipped, remove it first
+      if (alreadyEquippedIndex !== -1) {
+        equipment.value.splice(alreadyEquippedIndex, 1);
+      }
+
+      // Check if there's already an item in the target slot
+      const slotOccupiedIndex = equipment.value.findIndex(
+        (i) => i.hand === hand && i.slotIndex === index
+      );
+
+      // If the slot is occupied, remove that item
+      if (slotOccupiedIndex !== -1) {
+        equipment.value.splice(slotOccupiedIndex, 1);
+      }
+
       // Create a copy of the item with the click handler preserved
       const itemToEquip = { ...item, hand, slotIndex: index };
       
@@ -205,18 +225,8 @@ export default defineComponent({
         itemToEquip.click = item.click;
       }
 
-      // Check if this item is already equipped
-      const existingItemIndex = equipment.value.findIndex(
-        (i) => i.faIcon === item.faIcon && i.hand === hand && i.slotIndex === index
-      );
-
-      if (existingItemIndex !== -1) {
-        // Update existing item
-        equipment.value[existingItemIndex] = itemToEquip;
-      } else {
-        // Add new item
-        equipment.value.push(itemToEquip);
-      }
+      // Add the new item
+      equipment.value.push(itemToEquip);
     };
 
     const compass = reactive({

@@ -85,7 +85,8 @@ export default defineComponent({
         desc: "Hover/Touch an item to learn more."
       } as EquipmentItem,
       leftHandSlots: [null, null, null] as (EquipmentItem | null)[],
-      rightHandSlots: [null, null, null] as (EquipmentItem | null)[]
+      rightHandSlots: [null, null, null] as (EquipmentItem | null)[],
+      equippedItems: new Set<string>() // Track equipped items by faIcon
     };
   },
   computed: {
@@ -105,11 +106,60 @@ export default defineComponent({
     },
     
     handleEquip(item: EquipmentItem, hand: string, index: number) {
+      // Only allow equipping to the first slot for now
+      if (index > 0) {
+        return;
+      }
+      
+      // Check if this item is already equipped somewhere
+      const isEquipped = this.equippedItems.has(item.faIcon);
+      
+      // If it's already equipped, find and remove it first
+      if (isEquipped) {
+        // Check left hand
+        const leftIndex = this.leftHandSlots.findIndex(
+          slot => slot && slot.faIcon === item.faIcon
+        );
+        if (leftIndex !== -1) {
+          // Unequip from left hand
+          const oldItem = this.leftHandSlots[leftIndex];
+          this.leftHandSlots[leftIndex] = null;
+          this.$emit("equip-item", null, 'left', leftIndex);
+        }
+        
+        // Check right hand
+        const rightIndex = this.rightHandSlots.findIndex(
+          slot => slot && slot.faIcon === item.faIcon
+        );
+        if (rightIndex !== -1) {
+          // Unequip from right hand
+          const oldItem = this.rightHandSlots[rightIndex];
+          this.rightHandSlots[rightIndex] = null;
+          this.$emit("equip-item", null, 'right', rightIndex);
+        }
+        
+        // Remove from tracked items
+        this.equippedItems.delete(item.faIcon);
+      }
+      
+      // Check if there's an item already in the target slot
+      if (hand === 'left' && this.leftHandSlots[index]) {
+        // Remove the old item from tracking
+        this.equippedItems.delete(this.leftHandSlots[index]!.faIcon);
+      } else if (hand === 'right' && this.rightHandSlots[index]) {
+        // Remove the old item from tracking
+        this.equippedItems.delete(this.rightHandSlots[index]!.faIcon);
+      }
+      
+      // Equip the new item
       if (hand === 'left') {
         this.leftHandSlots[index] = item;
       } else if (hand === 'right') {
         this.rightHandSlots[index] = item;
       }
+      
+      // Add to tracked items
+      this.equippedItems.add(item.faIcon);
       
       // Use the parent's clickItem method to update equipment
       this.$emit("equip-item", item, hand, index);
@@ -124,21 +174,27 @@ export default defineComponent({
     },
 
     equipItem(item: EquipmentItem) {
-      // Find the first empty slot in left hand
-      const leftEmptyIndex = this.leftHandSlots.findIndex(slot => slot === null);
-      if (leftEmptyIndex !== -1) {
-        this.handleEquip(item, 'left', leftEmptyIndex);
+      // Check if this item is already equipped
+      if (this.equippedItems.has(item.faIcon)) {
+        // If already equipped, unequip it
+        this.handleEquip(item, 'left', 0); // This will handle the unequipping logic
         return;
       }
       
-      // If left hand is full, try right hand
-      const rightEmptyIndex = this.rightHandSlots.findIndex(slot => slot === null);
-      if (rightEmptyIndex !== -1) {
-        this.handleEquip(item, 'right', rightEmptyIndex);
+      // Only use the first slot for each hand
+      // Check if left hand first slot is empty
+      if (this.leftHandSlots[0] === null) {
+        this.handleEquip(item, 'left', 0);
         return;
       }
       
-      // If both hands are full, replace the first left hand item
+      // If left hand is full, try right hand first slot
+      if (this.rightHandSlots[0] === null) {
+        this.handleEquip(item, 'right', 0);
+        return;
+      }
+      
+      // If both first slots are full, replace the left hand item
       this.handleEquip(item, 'left', 0);
     }
   },
