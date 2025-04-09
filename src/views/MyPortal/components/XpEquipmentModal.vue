@@ -110,14 +110,8 @@ export default defineComponent({
         this.rightHandSlots[index] = item;
       }
       
-      // Update the parent component
-      const updatedEquipment = [
-        ...this.equipment.filter(i => i.hand !== 'left' && i.hand !== 'right'),
-        ...this.leftHandSlots.filter(i => i !== null).map(i => ({...i, hand: 'left'})),
-        ...this.rightHandSlots.filter(i => i !== null).map(i => ({...i, hand: 'right'}))
-      ];
-      
-      this.$emit("equip", updatedEquipment);
+      // Use the parent's clickItem method to update equipment
+      this.$emit("equip-item", item, hand, index);
     },
 
     changeBG() {

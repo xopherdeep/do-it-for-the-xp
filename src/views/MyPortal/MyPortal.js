@@ -188,17 +188,26 @@ export default defineComponent({
     const { userId } = route.params;
     const user = computed(() => store.getters.getUserById(userId));
     const equipment = ref([]);
-    const clickItem = (item, hand) => {
+    const clickItem = (item, hand, index = 0) => {
+      // If we're removing an item from a specific slot
+      if (item === null && hand) {
+        equipment.value = equipment.value.filter(
+          (i) => !(i.hand === hand && i.slotIndex === index)
+        );
+        return;
+      }
+
+      // Check if this item is already equipped
       const existingItemIndex = equipment.value.findIndex(
-        (i) => i.icon === item.icon
+        (i) => i.faIcon === item.faIcon && i.hand === hand && i.slotIndex === index
       );
 
       if (existingItemIndex !== -1) {
-        // If the item with the same hand already exists, update it
-        equipment.value[existingItemIndex] = { ...item, hand };
+        // Update existing item
+        equipment.value[existingItemIndex] = { ...item, hand, slotIndex: index };
       } else {
-        // Otherwise, add the new item
-        equipment.value.push({ ...item, hand });
+        // Add new item
+        equipment.value.push({ ...item, hand, slotIndex: index });
       }
     };
 
@@ -209,6 +218,11 @@ export default defineComponent({
     });
 
     const pageIcon = computed(() => route.meta.faIcon);
+
+    // Method to handle equipment updates from the modal
+    const handleEquipmentUpdate = (updatedEquipment) => {
+      equipment.value = updatedEquipment;
+    };
 
     return {
       userId,
@@ -234,6 +248,7 @@ export default defineComponent({
       user,
       wallet,
       walletOutline,
+      handleEquipmentUpdate,
     };
   },
 });
