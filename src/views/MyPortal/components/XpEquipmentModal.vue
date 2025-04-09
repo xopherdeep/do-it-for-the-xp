@@ -29,6 +29,7 @@
           <ion-col size="5">
             <item-info-card 
               :item="info" 
+              :equipped-items="equipment"
               @equip="equipItem"
             />
             <equipped-items-card 
@@ -36,6 +37,7 @@
               :left-hand-items="equipmentOnLeft"
               :right-hand-items="equipmentOnRight"
               @equip="handleEquip"
+              @select-item="displayInfo"
             />
             <achievements-card @change-bg="changeBG" />
           </ion-col>
@@ -55,6 +57,7 @@ import StatusCard from "./equipment/StatusCard.vue";
 import ItemInfoCard from "./equipment/ItemInfoCard.vue";
 import EquippedItemsCard from "./equipment/EquippedItemsCard.vue";
 import AchievementsCard from "./equipment/AchievementsCard.vue";
+import { toastController } from "@ionic/vue";
 
 export default defineComponent({
   name: "xp-equipment-modal",
@@ -173,7 +176,28 @@ export default defineComponent({
       this.$emit("close");
     },
 
-    equipItem(item: EquipmentItem) {
+    async equipItem(item: EquipmentItem) {
+      // If item is null, it means we're unequipping
+      if (!item) {
+        // Find the equipped item and unequip it
+        const leftIndex = this.leftHandSlots.findIndex(slot => slot !== null);
+        if (leftIndex !== -1) {
+          const oldItem = this.leftHandSlots[leftIndex];
+          this.handleEquip(null, 'left', leftIndex);
+          
+          // Show toast
+          const toast = await toastController.create({
+            message: `${oldItem?.name} unequipped`,
+            duration: 2000,
+            position: 'bottom',
+            color: 'medium',
+            cssClass: 'rpg-toast'
+          });
+          await toast.present();
+        }
+        return;
+      }
+      
       // Check if this item is already equipped
       if (this.equippedItems.has(item.faIcon)) {
         // If already equipped, unequip it
@@ -195,7 +219,18 @@ export default defineComponent({
       }
       
       // If both first slots are full, replace the left hand item
+      const oldItem = this.leftHandSlots[0];
       this.handleEquip(item, 'left', 0);
+      
+      // Show toast about replacing
+      const toast = await toastController.create({
+        message: `${oldItem?.name} replaced with ${item.name}`,
+        duration: 2000,
+        position: 'bottom',
+        color: 'warning',
+        cssClass: 'rpg-toast'
+      });
+      await toast.present();
     }
   },
   setup() {
