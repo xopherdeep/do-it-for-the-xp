@@ -105,17 +105,20 @@ export function useEquipmentItems() {
     {
       faIcon: "wand-magic fire",
       name: "Fire Wand",
-      desc: "50MP | Channel fire magic to burn away small obstacles. Effective against paper-based tasks.",
+      desc: "50MP | Channel fire magic to burn away small obstacles. Reduces the time needed for quick tasks by 50%.",
+      mpCost: 50
     },
     {
       faIcon: "wand-magic ice",
       name: "Ice Wand",
-      desc: "50MP | Freeze distractions in their tracks, allowing better focus on important tasks.",
+      desc: "50MP | Freeze distractions in their tracks, allowing better focus. Extends task deadlines by 24 hours.",
+      mpCost: 50
     },
     {
       faIcon: "staff fire",
       name: "Flame Staff",
-      desc: "75MP | A powerful staff that amplifies fire magic. Reduces the difficulty of challenging tasks.",
+      desc: "75MP | A powerful staff that amplifies fire magic. Reduces the difficulty of challenging tasks by 30%.",
+      mpCost: 75
     },
     {
       faIcon: "bow-arrow",
@@ -126,27 +129,31 @@ export function useEquipmentItems() {
     {
       faIcon: "expand-alt",
       name: "Hook Shot",
-      desc: "15MP | Quickly grab distant objectives and bring them into focus, prioritizing important tasks.",
+      desc: "15MP | Quickly grab distant objectives and bring them into focus. Moves a future task to your current day.",
+      mpCost: 15
     },
     {
       faIcon: "bomb",
       name: "Bombs",
-      desc: "40MP | Blast through tough obstacles! Effective for breaking down large tasks into smaller pieces.",
+      desc: "40MP | Blast through tough obstacles! Breaks down one large task into three smaller, manageable pieces.",
+      mpCost: 40
     },
     {
       faIcon: "hammer-war",
       name: "Thor's Hammer",
-      desc: "60MP | A mighty hammer that can smash through the toughest challenges. Reduces task difficulty by 50%.",
+      desc: "60MP | A mighty hammer that smashes through the toughest challenges. Completes 50% of any single task.",
+      mpCost: 60
     },
     {
       faIcon: "flashlight",
       name: "Lantern",
-      desc: "5MP | Illuminate dark areas to reveal hidden tasks and secrets. Helps identify forgotten responsibilities.",
+      desc: "5MP | Illuminate dark areas to reveal hidden tasks. Shows all forgotten or overdue responsibilities.",
+      mpCost: 5
     },
     {
       faIcon: "flask-potion",
       name: "Bottles",
-      desc: "Store and access your potions and ethers. Health potions restore HP, while ethers restore MP.",
+      desc: "Store and access your potions and ethers. Health potions restore 50HP, while ethers restore 30MP each.",
     },
     {
       name: "Portal Home",
