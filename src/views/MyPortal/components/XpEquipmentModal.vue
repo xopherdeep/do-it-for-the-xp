@@ -101,8 +101,8 @@ export default defineComponent({
       this.info = item;
     },
     
-    handleEquip(item: EquipmentItem, hand: string) {
-      this.$emit("equip", item, hand);
+    handleEquip(item: EquipmentItem, hand: string, index: number) {
+      this.$emit("equip", item, hand, index);
     },
 
     changeBG() {

@@ -16,35 +16,45 @@
 
     <ion-row class="hands">
       <ion-col>
+        <div class="hand-label">Left Hand</div>
         <ion-row class="dropzone">
-          <ion-col @drop="drop($event, 'left')" @dragover="allowDrop">
+          <ion-col 
+            v-for="(_, index) in 3" 
+            :key="`left-${index}`"
+            @drop="drop($event, 'left', index)" 
+            @dragover="allowDrop"
+            class="hand-slot"
+          >
             <i
-              v-for="item in leftHandItems"
-              :key="item.faIcon"
-              :class="`fa-${item.faIcon}`"
-              class="fad fa-4x ion-padding"
+              v-if="leftHandItems[index]"
+              :class="`fa-${leftHandItems[index].faIcon}`"
+              class="fad fa-3x"
               draggable="true"
-              @dragstart="drag($event, item)"
+              @dragstart="drag($event, leftHandItems[index])"
             ></i>
+            <div v-else class="empty-slot">+</div>
           </ion-col>
-          <ion-col @drop="drop($event, 'left')" @dragover="allowDrop"></ion-col>
-          <ion-col @drop="drop($event, 'left')" @dragover="allowDrop"></ion-col>
         </ion-row>
       </ion-col>
       <ion-col>
+        <div class="hand-label">Right Hand</div>
         <ion-row class="dropzone">
-          <ion-col @drop="drop($event, 'right')" @dragover="allowDrop">
+          <ion-col 
+            v-for="(_, index) in 3" 
+            :key="`right-${index}`"
+            @drop="drop($event, 'right', index)" 
+            @dragover="allowDrop"
+            class="hand-slot"
+          >
             <i
-              v-for="item in rightHandItems"
-              :key="item.faIcon"
-              :class="`fa-${item.faIcon}`"
-              class="fad fa-4x ion-padding"
+              v-if="rightHandItems[index]"
+              :class="`fa-${rightHandItems[index].faIcon}`"
+              class="fad fa-3x"
               draggable="true"
-              @dragstart="drag($event, item)"
+              @dragstart="drag($event, rightHandItems[index])"
             ></i>
+            <div v-else class="empty-slot">+</div>
           </ion-col>
-          <ion-col @drop="drop($event, 'right')" @dragover="allowDrop"></ion-col>
-          <ion-col @drop="drop($event, 'right')" @dragover="allowDrop"></ion-col>
         </ion-row>
       </ion-col>
     </ion-row>
@@ -81,13 +91,13 @@ export default defineComponent({
     allowDrop(event: DragEvent) {
       event.preventDefault();
     },
-    drop(event: DragEvent, hand: string) {
+    drop(event: DragEvent, hand: string, index: number) {
       event.preventDefault();
       
       if (event.dataTransfer) {
         const data = event.dataTransfer.getData("item");
         const item = JSON.parse(data);
-        this.$emit("equip", item, hand);
+        this.$emit("equip", item, hand, index);
       }
     }
   }
@@ -98,35 +108,62 @@ export default defineComponent({
 .equipped {
   height: 25vh;
   display: flex;
+  flex-direction: column;
+
+  ion-card-title {
+    margin-bottom: 5px;
+  }
 
   .hands {
-    height: 100%;
-    max-height: 45%;
+    flex: 1;
+    display: flex;
+    
+    ion-col {
+      display: flex;
+      flex-direction: column;
+      
+      .hand-label {
+        text-align: center;
+        font-size: 0.8rem;
+        margin-bottom: 5px;
+        color: #ccc;
+      }
+    }
 
     ion-row {
+      flex: 1;
       gap: 0.5em;
-      height: 100%;
 
       &.dropzone {
-        padding: 10px;
-      }
-
-      ion-col {
-        border: 1px dashed #ccc;
-        border-radius: 10px;
-        height: 100%;
+        padding: 5px;
       }
     }
   }
 
-  ion-button {
-    width: 100%;
-    height: 10vh;
-    font-size: inherit;
-
-    i {
-      margin: 2px 1px 0 2px;
+  .hand-slot {
+    border: 1px dashed #ccc;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60px;
+    background-color: rgba(255, 255, 255, 0.05);
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
     }
+    
+    .empty-slot {
+      color: #ccc;
+      font-size: 1.5rem;
+      opacity: 0.5;
+    }
+  }
+
+  i {
+    margin: 0;
+    padding: 0;
   }
 }
 </style>
