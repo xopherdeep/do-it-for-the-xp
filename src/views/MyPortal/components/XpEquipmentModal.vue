@@ -84,8 +84,8 @@ export default defineComponent({
         faIcon: "question",
         desc: "Hover/Touch an item to learn more."
       } as EquipmentItem,
-      leftHandSlots: [null, null, null] as (EquipmentItem | null)[],
-      rightHandSlots: [null, null, null] as (EquipmentItem | null)[],
+      leftHandSlots: [null, null, null, null, null, null] as (EquipmentItem | null)[],
+      rightHandSlots: [null, null, null, null, null, null] as (EquipmentItem | null)[],
       equippedItems: new Set<string>() // Track equipped items by faIcon
     };
   },

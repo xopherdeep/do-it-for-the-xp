@@ -19,7 +19,7 @@
         <div class="hand-label">Left Hand</div>
         <ion-row class="dropzone">
           <ion-col 
-            v-for="(_, index) in 3" 
+            v-for="(_, index) in 6" 
             :key="`left-${index}`"
             @drop="drop($event, 'left', index)" 
             @dragover="allowDrop"
@@ -44,7 +44,7 @@
         <div class="hand-label">Right Hand</div>
         <ion-row class="dropzone">
           <ion-col 
-            v-for="(_, index) in 3" 
+            v-for="(_, index) in 6" 
             :key="`right-${index}`"
             @drop="drop($event, 'right', index)" 
             @dragover="allowDrop"
@@ -93,8 +93,8 @@ export default defineComponent({
   },
   data() {
     return {
-      leftSlots: [null, null, null] as (EquipmentItem | null)[],
-      rightSlots: [null, null, null] as (EquipmentItem | null)[]
+      leftSlots: [null, null, null, null, null, null] as (EquipmentItem | null)[],
+      rightSlots: [null, null, null, null, null, null] as (EquipmentItem | null)[]
     };
   },
   created() {
@@ -112,16 +112,16 @@ export default defineComponent({
   methods: {
     updateSlots() {
       // Reset slots
-      this.leftSlots = [null, null, null];
-      this.rightSlots = [null, null, null];
+      this.leftSlots = [null, null, null, null, null, null];
+      this.rightSlots = [null, null, null, null, null, null];
       
       // Fill slots with items
       this.leftHandItems.forEach((item, index) => {
-        if (index < 3) this.leftSlots[index] = item;
+        if (index < 6) this.leftSlots[index] = item;
       });
       
       this.rightHandItems.forEach((item, index) => {
-        if (index < 3) this.rightSlots[index] = item;
+        if (index < 6) this.rightSlots[index] = item;
       });
     },
     drag(event: DragEvent, item: EquipmentItem) {
@@ -178,10 +178,13 @@ export default defineComponent({
 
     ion-row {
       flex: 1;
-      gap: 0.5em;
+      gap: 0.3em;
 
       &.dropzone {
         padding: 5px;
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(2, 1fr);
       }
     }
   }
@@ -192,9 +195,10 @@ export default defineComponent({
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 60px;
+    min-height: 40px;
     background-color: rgba(255, 255, 255, 0.05);
     transition: all 0.2s ease;
+    margin: 2px;
     
     &:hover:not(.locked-slot) {
       background-color: rgba(255, 255, 255, 0.1);
@@ -214,6 +218,7 @@ export default defineComponent({
     .locked-icon {
       color: #666;
       opacity: 0.7;
+      font-size: 0.8em;
     }
   }
 
