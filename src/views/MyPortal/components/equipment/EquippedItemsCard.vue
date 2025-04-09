@@ -100,6 +100,7 @@ export default defineComponent({
       this.updateSlots();
     }
   },
+  emits: ["equip"],
   methods: {
     updateSlots() {
       // Reset slots
@@ -115,8 +116,6 @@ export default defineComponent({
         if (index < 3) this.rightSlots[index] = item;
       });
     },
-  emits: ["equip"],
-  methods: {
     drag(event: DragEvent, item: EquipmentItem) {
       if (event.dataTransfer) {
         event.dataTransfer.setData("item", JSON.stringify(item));
