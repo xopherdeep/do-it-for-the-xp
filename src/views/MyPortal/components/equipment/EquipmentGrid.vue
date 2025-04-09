@@ -2,24 +2,22 @@
   <ion-card class="equipment mb-4">
     <ion-card-title>Equipment</ion-card-title>
     <ion-card-content class="ion-no-padding h-100">
-      <ion-buttons class="grid-container">
-        <ion-button
+      <div class="grid-container">
+        <div 
           v-for="item in items"
           :key="item.faIcon"
+          class="grid-item"
           @mouseover="$emit('display-info', item)"
           @click="$emit('equip-item', item)"
-          expand="block"
-          size="lg"
-          class="grid-item h-100"
           draggable="true"
           @dragstart="drag($event, item)"
         >
           <i
-            class="ion-float-left fad fa-4x"
-            :class="`fa-${item.faIcon} fad fa-4x`"
+            class="fad fa-3x"
+            :class="`fa-${item.faIcon}`"
           ></i>
-        </ion-button>
-      </ion-buttons>
+        </div>
+      </div>
     </ion-card-content>
   </ion-card>
 </template>
@@ -56,27 +54,35 @@ export default defineComponent({
   ion-card-content {
     flex: 1;
     display: flex;
+    padding: 10px;
   }
 
   .grid-container {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(10vw, 1fr));
-    grid-gap: 0.5em;
-    margin: 0.5em;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    grid-auto-rows: minmax(80px, auto);
+    gap: 10px;
     width: 100%;
     height: 100%;
+    overflow-y: auto;
   }
 
   .grid-item {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100%;
-    width: 100%;
-    border-radius: 100px !important;
-
+    background-color: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background-color: rgba(255, 255, 255, 0.1);
+      transform: scale(1.05);
+    }
+    
     i {
-      font-size: calc(6vh) !important;
+      font-size: 2.5rem;
     }
   }
 }
