@@ -61,7 +61,7 @@
     },
     methods: {
       handleItemClick(item) {
-        if (item.click) {
+        if (item.click && typeof item.click === 'function') {
           item.click();
         } else if (item.mpCost) {
           // Handle items with MP cost (spells, abilities)

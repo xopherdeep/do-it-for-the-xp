@@ -154,18 +154,24 @@ export default defineComponent({
         this.equippedItems.delete(this.rightHandSlots[index]!.faIcon);
       }
       
+      // Create a copy of the item to preserve the click handler
+      const itemCopy = { ...item };
+      if (item.click && typeof item.click === 'function') {
+        itemCopy.click = item.click;
+      }
+      
       // Equip the new item
       if (hand === 'left') {
-        this.leftHandSlots[index] = item;
+        this.leftHandSlots[index] = itemCopy;
       } else if (hand === 'right') {
-        this.rightHandSlots[index] = item;
+        this.rightHandSlots[index] = itemCopy;
       }
       
       // Add to tracked items
       this.equippedItems.add(item.faIcon);
       
       // Use the parent's clickItem method to update equipment
-      this.$emit("equip-item", item, hand, index);
+      this.$emit("equip-item", itemCopy, hand, index);
     },
 
     changeBG() {

@@ -220,8 +220,9 @@ export default defineComponent({
       // Create a copy of the item with the click handler preserved
       const itemToEquip = { ...item, hand, slotIndex: index };
       
-      // Ensure the click handler is preserved
-      if (item.click) {
+      // Ensure the click handler is properly preserved
+      // Functions don't get copied with spread operator, so we need to explicitly assign it
+      if (item.click && typeof item.click === 'function') {
         itemToEquip.click = item.click;
       }
 
