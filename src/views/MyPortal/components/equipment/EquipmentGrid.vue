@@ -59,7 +59,7 @@ export default defineComponent({
 
   .grid-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    grid-template-columns: repeat(5, 1fr);
     grid-auto-rows: minmax(80px, auto);
     gap: 10px;
     width: 100%;
