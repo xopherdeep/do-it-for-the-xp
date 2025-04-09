@@ -17,11 +17,8 @@
         </div>
       </div>
       <div class="action-buttons">
-        <ion-button expand="block" color="primary" class="use-btn">
-          Use
-        </ion-button>
         <ion-button expand="block" color="secondary" @click="handleAction" class="equip-btn">
-          {{ item.click ? 'Go' : 'Equip' }}
+          {{ item.click ? 'View' : 'Equip' }}
         </ion-button>
       </div>
     </ion-card-content>
@@ -151,12 +148,9 @@ export default defineComponent({
       --padding-bottom: 0;
     }
 
-    .use-btn {
-      --background: #3880ff;
-    }
-
     .equip-btn {
       --background: #2dd36f;
+      width: 100%;
     }
   }
 }
