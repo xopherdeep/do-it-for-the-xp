@@ -19,7 +19,7 @@ export function useEquipmentItems() {
     {
       faIcon: "staff quest",
       name: "My Quests",
-      desc: "5HP | Open My Quests...",
+      desc: "5HP | View and manage all your active quests and daily tasks.",
       click() {
         router.push({ name: "my-tasks", params: { userId } });
       },
@@ -27,7 +27,7 @@ export function useEquipmentItems() {
     {
       faIcon: "book-spells",
       name: "Book Of Spells",
-      desc: "It does stuff...",
+      desc: "Access your magical abilities and learn new spells as you level up.",
       click() {
         router.push({ name: "my-abilities", params: { userId } });
       },
@@ -35,7 +35,7 @@ export function useEquipmentItems() {
     {
       faIcon: "backpack",
       name: "Goods",
-      desc: "Open currently held inventory.",
+      desc: "View all items you've collected on your journey. Organize and equip them here.",
       click() {
         router.push({ name: "my-inventory", params: { userId } });
       },
@@ -43,7 +43,7 @@ export function useEquipmentItems() {
     {
       faIcon: "wallet",
       name: "Wallet",
-      desc: "Open wallet to see GP earnings",
+      desc: "Check your Gold Points balance and transaction history.",
       click() {
         router.push({ name: "my-gold-points", params: { userId } });
       },
@@ -51,107 +51,107 @@ export function useEquipmentItems() {
     {
       faIcon: "flame",
       name: "Sol's Flare",
-      desc: "100MP | Set everything ablaze! All tasks take 100HP damage.",
+      desc: "100MP | Unleash the power of the sun! All tasks take 100HP damage, making them easier to complete.",
       mpCost: 100
     },
     {
       faIcon: "bolt",
       name: "Tesla's Bolt",
-      desc: "100MP | Move like lightning for 1hr and take your turns instantly. Takes 2hr to recharge.",
+      desc: "100MP | Channel lightning energy for 1hr, allowing instant task completion. Takes 2hr to recharge.",
       mpCost: 100,
       rechargeTime: "2hr"
     },
     {
       faIcon: "wave-sine",
       name: "Gaia's Quake",
-      desc: "100MP | Shuffle all tasks. Takes 24 Hour to recharge.",
+      desc: "100MP | Shake up your task list! Randomly reorders all tasks for a fresh perspective. Takes 24hr to recharge.",
       mpCost: 100,
       rechargeTime: "24hr"
     },
     {
       faIcon: "flux-capacitor",
       name: "Chronos' Clock",
-      desc: "100MP | Pause time for 1hr... (wouldn't that make infinity?)",
+      desc: "100MP | Manipulate time itself! Pause all task timers for 1hr, giving you extra time to complete them.",
       mpCost: 100
     },
     {
       faIcon: "moon-stars",
       name: "Night's Light",
-      desc: "100MP | Removes any bedtime curfew for the night. Takes 3 days to recharge",
+      desc: "100MP | Harness lunar energy to remove bedtime restrictions for one night. Takes 3 days to recharge.",
       mpCost: 100,
       rechargeTime: "3 days"
     },
     {
       faIcon: "wind",
       name: "Gale's Wind",
-      desc: "300MP | Blow off all chores for the next 24 hours. Takes 7days to recharge.",
+      desc: "300MP | Summon a powerful wind that blows away all chore tasks for 24 hours. Takes 7 days to recharge.",
       mpCost: 300,
       rechargeTime: "7 days"
     },
     {
       faIcon: "shield-virus",
       name: "Yve's Shield",
-      desc: "300MP | Protects against all attacks for the next 24 hours. Takes 2days to recharge.",
+      desc: "300MP | Create a magical barrier that protects against all negative effects for 24 hours. Takes 2 days to recharge.",
       mpCost: 300,
       rechargeTime: "2 days"
     },
     {
       faIcon: "hat-wizard",
       name: "X's Invisibility",
-      desc: "300MP | Avoid random encounters for the next 24 hours. Takes 2 days to recharge.",
+      desc: "300MP | Don the cloak of invisibility to avoid random task encounters for 24 hours. Takes 2 days to recharge.",
       mpCost: 300,
       rechargeTime: "2 days"
     },
     {
       faIcon: "wand-magic fire",
       name: "Fire Wand",
-      desc: "It does stuff...",
+      desc: "50MP | Channel fire magic to burn away small obstacles. Effective against paper-based tasks.",
     },
     {
       faIcon: "wand-magic ice",
       name: "Ice Wand",
-      desc: "It does stuff...",
+      desc: "50MP | Freeze distractions in their tracks, allowing better focus on important tasks.",
     },
     {
       faIcon: "staff fire",
-      name: "",
-      desc: "It does stuff...",
+      name: "Flame Staff",
+      desc: "75MP | A powerful staff that amplifies fire magic. Reduces the difficulty of challenging tasks.",
     },
     {
       faIcon: "bow-arrow",
       name: "Silver Arrow",
-      desc: "25MP | Immediately removes task from battle",
+      desc: "25MP | A precise magical arrow that instantly removes one task from your battle queue.",
       mpCost: 25
     },
     {
       faIcon: "expand-alt",
       name: "Hook Shot",
-      desc: "It does stuff...",
+      desc: "15MP | Quickly grab distant objectives and bring them into focus, prioritizing important tasks.",
     },
     {
       faIcon: "bomb",
       name: "Bombs",
-      desc: "It does stuff...",
+      desc: "40MP | Blast through tough obstacles! Effective for breaking down large tasks into smaller pieces.",
     },
     {
       faIcon: "hammer-war",
       name: "Thor's Hammer",
-      desc: "It does stuff...",
+      desc: "60MP | A mighty hammer that can smash through the toughest challenges. Reduces task difficulty by 50%.",
     },
     {
       faIcon: "flashlight",
       name: "Lantern",
-      desc: "It does stuff...",
+      desc: "5MP | Illuminate dark areas to reveal hidden tasks and secrets. Helps identify forgotten responsibilities.",
     },
     {
       faIcon: "flask-potion",
       name: "Bottles",
-      desc: "Quick access to your potions and ethers",
+      desc: "Store and access your potions and ethers. Health potions restore HP, while ethers restore MP.",
     },
     {
       name: "Portal Home",
       faIcon: "portal-enter",
-      desc: "10MP | Open portal to go directly home. Takes 15min to recharge.",
+      desc: "10MP | Open a magical portal to instantly return home from anywhere. Takes 15min to recharge.",
       mpCost: 10,
       rechargeTime: "15min",
       click() {
