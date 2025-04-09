@@ -43,6 +43,7 @@ export default defineComponent({
     justify-content: center;
     align-items: center;
     height: calc(100% - 44px); // Subtract the title height
+    padding: 0;
   }
   
   .dice-grid {
@@ -52,12 +53,16 @@ export default defineComponent({
     gap: 10px;
     width: 100%;
     height: 100%;
+    padding: 10px;
   }
   
   .dice-item {
     display: flex;
     justify-content: center;
     align-items: center;
+    padding: 5px;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.05);
   }
 }
 </style>
