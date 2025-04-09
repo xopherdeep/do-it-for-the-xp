@@ -18,48 +18,49 @@
       </ion-fab-button>
     </ion-fab-list>
     <ion-fab-list side="start" class="items">
-      <ion-fab-button v-for="item in leftItems" :key="item.faIcon" color="dark" @click="item.click">
-        <i class="fad fa-2x "
-          :class="`fa-${item.faIcon}`"
-          ></i>
+      <ion-fab-button
+        v-for="item in leftItems"
+        :key="item.faIcon"
+        color="dark"
+        @click="item.click"
+      >
+        <i class="fad fa-2x" :class="`fa-${item.faIcon}`"></i>
       </ion-fab-button>
     </ion-fab-list>
     <ion-fab-list side="end" class="items">
-      <ion-fab-button v-for="item in rightItems" :key="item.faIcon" color="dark" @click="item.click"
+      <ion-fab-button
+        v-for="item in rightItems"
+        :key="item.faIcon"
+        color="dark"
+        @click="item.click"
         class="icon-colors"
       >
-        <i class="fad fa-2x "
-          :class="`fa-${item.faIcon}`"
-          ></i>
+        <i class="fad fa-2x" :class="`fa-${item.faIcon}`" />
       </ion-fab-button>
     </ion-fab-list>
   </ion-fab>
 </template>
 
-
-<style lang="scss" scoped>
-
-</style>
+<style lang="scss" scoped></style>
 
 <script>
-  import { defineComponent } from 'vue'
+  import { defineComponent } from "vue";
   import ionic from "@/mixins/ionic";
 
   export default defineComponent({
-    props: ['user', 'equipment'],
-    mixins: [ ionic ],
-    computed:{
-      leftItems(){
-        return this.equipment.filter(item => item.hand === 'left')
+    props: ["user", "equipment"],
+    mixins: [ionic],
+    computed: {
+      leftItems() {
+        return this.equipment.filter((item) => item.hand === "left");
       },
 
-      rightItems(){
-        return this.equipment.filter(item => item.hand === 'right')
-      }
+      rightItems() {
+        return this.equipment.filter((item) => item.hand === "right");
+      },
     },
     setup() {
-    //
-      
+      //
     },
-  })
+  });
 </script>
