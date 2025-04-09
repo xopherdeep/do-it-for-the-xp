@@ -82,15 +82,17 @@ export default defineComponent({
         name: "Choose item...",
         faIcon: "question",
         desc: "Hover/Touch an item to learn more."
-      } as EquipmentItem
+      } as EquipmentItem,
+      leftHandSlots: [null, null, null] as (EquipmentItem | null)[],
+      rightHandSlots: [null, null, null] as (EquipmentItem | null)[]
     };
   },
   computed: {
     equipmentOnLeft() {
-      return this.equipment.filter((item) => item.hand === "left");
+      return this.leftHandSlots.filter(item => item !== null) as EquipmentItem[];
     },
     equipmentOnRight() {
-      return this.equipment.filter((item) => item.hand === "right");
+      return this.rightHandSlots.filter(item => item !== null) as EquipmentItem[];
     },
     specialItems() {
       return this.equipmentItems.specialItems;
@@ -102,7 +104,20 @@ export default defineComponent({
     },
     
     handleEquip(item: EquipmentItem, hand: string, index: number) {
-      this.$emit("equip", item, hand, index);
+      if (hand === 'left') {
+        this.leftHandSlots[index] = item;
+      } else if (hand === 'right') {
+        this.rightHandSlots[index] = item;
+      }
+      
+      // Update the parent component
+      const updatedEquipment = [
+        ...this.equipment.filter(i => i.hand !== 'left' && i.hand !== 'right'),
+        ...this.leftHandSlots.filter(i => i !== null).map(i => ({...i, hand: 'left'})),
+        ...this.rightHandSlots.filter(i => i !== null).map(i => ({...i, hand: 'right'}))
+      ];
+      
+      this.$emit("equip", updatedEquipment);
     },
 
     changeBG() {
@@ -114,7 +129,22 @@ export default defineComponent({
     },
 
     equipItem(item: EquipmentItem) {
-      this.$emit("equip", item);
+      // Find the first empty slot in left hand
+      const leftEmptyIndex = this.leftHandSlots.findIndex(slot => slot === null);
+      if (leftEmptyIndex !== -1) {
+        this.handleEquip(item, 'left', leftEmptyIndex);
+        return;
+      }
+      
+      // If left hand is full, try right hand
+      const rightEmptyIndex = this.rightHandSlots.findIndex(slot => slot === null);
+      if (rightEmptyIndex !== -1) {
+        this.handleEquip(item, 'right', rightEmptyIndex);
+        return;
+      }
+      
+      // If both hands are full, replace the first left hand item
+      this.handleEquip(item, 'left', 0);
     }
   },
   setup() {

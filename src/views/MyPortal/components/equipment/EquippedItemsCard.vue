@@ -26,11 +26,11 @@
             class="hand-slot"
           >
             <i
-              v-if="leftHandItems[index]"
-              :class="`fa-${leftHandItems[index].faIcon}`"
+              v-if="leftSlots[index]"
+              :class="`fa-${leftSlots[index].faIcon}`"
               class="fad fa-3x"
               draggable="true"
-              @dragstart="drag($event, leftHandItems[index])"
+              @dragstart="drag($event, leftSlots[index])"
             ></i>
             <div v-else class="empty-slot">+</div>
           </ion-col>
@@ -47,11 +47,11 @@
             class="hand-slot"
           >
             <i
-              v-if="rightHandItems[index]"
-              :class="`fa-${rightHandItems[index].faIcon}`"
+              v-if="rightSlots[index]"
+              :class="`fa-${rightSlots[index].faIcon}`"
               class="fad fa-3x"
               draggable="true"
-              @dragstart="drag($event, rightHandItems[index])"
+              @dragstart="drag($event, rightSlots[index])"
             ></i>
             <div v-else class="empty-slot">+</div>
           </ion-col>
@@ -74,13 +74,47 @@ export default defineComponent({
     },
     leftHandItems: {
       type: Array as PropType<EquipmentItem[]>,
-      required: true
+      required: true,
+      default: () => []
     },
     rightHandItems: {
       type: Array as PropType<EquipmentItem[]>,
-      required: true
+      required: true,
+      default: () => []
     }
   },
+  data() {
+    return {
+      leftSlots: [null, null, null] as (EquipmentItem | null)[],
+      rightSlots: [null, null, null] as (EquipmentItem | null)[]
+    };
+  },
+  created() {
+    this.updateSlots();
+  },
+  watch: {
+    leftHandItems() {
+      this.updateSlots();
+    },
+    rightHandItems() {
+      this.updateSlots();
+    }
+  },
+  methods: {
+    updateSlots() {
+      // Reset slots
+      this.leftSlots = [null, null, null];
+      this.rightSlots = [null, null, null];
+      
+      // Fill slots with items
+      this.leftHandItems.forEach((item, index) => {
+        if (index < 3) this.leftSlots[index] = item;
+      });
+      
+      this.rightHandItems.forEach((item, index) => {
+        if (index < 3) this.rightSlots[index] = item;
+      });
+    },
   emits: ["equip"],
   methods: {
     drag(event: DragEvent, item: EquipmentItem) {
