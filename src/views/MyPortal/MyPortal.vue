@@ -246,5 +246,5 @@
   </ion-page>
 </template>
 
-<script src="./MyPortal.js" />
+<script src="./MyPortal.js"></script>
 <style lang="scss" src="./_MyPortal.scss" />
