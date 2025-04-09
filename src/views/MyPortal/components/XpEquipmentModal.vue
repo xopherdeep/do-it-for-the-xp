@@ -75,6 +75,7 @@ export default defineComponent({
       required: true
     }
   },
+  emits: ["close", "equip-item"],
   mixins: [ionic],
   data() {
     return {

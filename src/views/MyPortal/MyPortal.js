@@ -197,6 +197,14 @@ export default defineComponent({
         return;
       }
 
+      // Create a copy of the item with the click handler preserved
+      const itemToEquip = { ...item, hand, slotIndex: index };
+      
+      // Ensure the click handler is preserved
+      if (item.click) {
+        itemToEquip.click = item.click;
+      }
+
       // Check if this item is already equipped
       const existingItemIndex = equipment.value.findIndex(
         (i) => i.faIcon === item.faIcon && i.hand === hand && i.slotIndex === index
@@ -204,10 +212,10 @@ export default defineComponent({
 
       if (existingItemIndex !== -1) {
         // Update existing item
-        equipment.value[existingItemIndex] = { ...item, hand, slotIndex: index };
+        equipment.value[existingItemIndex] = itemToEquip;
       } else {
         // Add new item
-        equipment.value.push({ ...item, hand, slotIndex: index });
+        equipment.value.push(itemToEquip);
       }
     };
 

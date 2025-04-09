@@ -22,7 +22,7 @@
         v-for="item in leftItems"
         :key="item.faIcon"
         color="dark"
-        @click="item.click"
+        @click="handleItemClick(item)"
       >
         <i class="fad fa-2x" :class="`fa-${item.faIcon}`"></i>
       </ion-fab-button>
@@ -32,7 +32,7 @@
         v-for="item in rightItems"
         :key="item.faIcon"
         color="dark"
-        @click="item.click"
+        @click="handleItemClick(item)"
         class="icon-colors"
       >
         <i class="fad fa-2x" :class="`fa-${item.faIcon}`" />
@@ -58,6 +58,18 @@
       rightItems() {
         return this.equipment.filter((item) => item.hand === "right");
       },
+    },
+    methods: {
+      handleItemClick(item) {
+        if (item.click) {
+          item.click();
+        } else if (item.mpCost) {
+          // Handle items with MP cost (spells, abilities)
+          console.log(`Using ${item.name} (${item.mpCost}MP)`);
+          // Here you would implement the actual effect
+          this.play$fx('spell');
+        }
+      }
     },
     setup() {
       //

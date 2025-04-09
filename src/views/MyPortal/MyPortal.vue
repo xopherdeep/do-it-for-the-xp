@@ -81,7 +81,7 @@
     <xp-equipment-modal
       :isOpen="isRPGBoxOpen"
       :equipment="equipment"
-      @equip="clickItem"
+      @equip-item="clickItem"
       @close="closeModal"
     />
 
