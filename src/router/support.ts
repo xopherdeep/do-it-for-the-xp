@@ -2,7 +2,7 @@ import { RouteRecordRaw } from 'vue-router';
 
 const supportRoutes: Array<RouteRecordRaw> = [
   {
-    path: '/support',
+    path: '/xp-support', // Changed path to match the side menu link
     name: 'support',
     component: () => import('@/views/App/SideMenu/XpSupport/XpSupport.vue')
   },
