@@ -145,9 +145,10 @@ export default defineComponent({
       if (!props.infoItem || !props.infoItem.faIcon) return false; 
       
       // Check if the infoItem exists in either hand's slots (only index 0 for now)
+      // Use props.leftHandItems and props.rightHandItems here
       const infoIcon = props.infoItem.faIcon; // Store for cleaner access
-      return (props.leftSlots[0]?.faIcon === infoIcon) || 
-             (props.rightSlots[0]?.faIcon === infoIcon);
+      return (props.leftHandItems[0]?.faIcon === infoIcon) || 
+             (props.rightHandItems[0]?.faIcon === infoIcon);
     });
 
     // Method to handle equipping/unequipping by clicking the icon in the info section
@@ -156,9 +157,10 @@ export default defineComponent({
 
       if (isEquipped.value) {
         // Unequip logic: Find which hand it's in and emit null for that slot
-        if (props.leftSlots[0]?.faIcon === props.infoItem.faIcon) {
+        // Use props.leftHandItems and props.rightHandItems here
+        if (props.leftHandItems[0]?.faIcon === props.infoItem.faIcon) {
           emit("equip", null, 'left', 0); 
-        } else if (props.rightSlots[0]?.faIcon === props.infoItem.faIcon) {
+        } else if (props.rightHandItems[0]?.faIcon === props.infoItem.faIcon) {
           emit("equip", null, 'right', 0);
         }
          // Toast is handled in the parent modal now for equipItem logic
