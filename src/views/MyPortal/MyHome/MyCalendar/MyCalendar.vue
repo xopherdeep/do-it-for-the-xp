@@ -9,82 +9,25 @@
           <ion-icon :icon="calendarOutline" slot="icon-only" />
           <!-- <i class="fad fa-calendar" /> -->
         </ion-buttons>
-        <ion-title> 
-          My Calendar
+        <ion-title>
+          {{ calendarTitle }} <!-- Dynamic Title -->
         </ion-title>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="my-calendar">
-      <ion-item>
-        <ion-label> 
-          Quests
-        </ion-label>
-        <ion-select
-          @ionChange="selectShelf"
-          :value="shelves"
-          :interface-options="customAlertOptions"
-          interface="alert"
-          placeholder="..."
-          multiple
-        >
-          <ion-select-option value="affordable">
-            Individual
-          </ion-select-option>
-          <ion-select-option value="out-of-budget">
-            As Needed
-          </ion-select-option>
-          <ion-select-option value="favorites"> 
-            Rotating
-          </ion-select-option>
-          <ion-select-option value="wish-list"> 
-            Compete
-          </ion-select-option>
-          <ion-select-option value="purchased"> 
-            Collaborative
-          </ion-select-option>
-        </ion-select>
-      </ion-item>
+    <ion-content class="my-calendar" :fullscreen="true">
       <xp-loading v-if="isLoading" />
-      <ion-grid v-else>
-        <ion-row>
-          <ion-col
-            size="6"
-            v-for="item in items"
-            :key="item.id"
-            class="ion-no-padding"
-          >
-            <ion-card class="item ion-no-padding">
-              <ion-card-header>
-                <ion-card-subtitle
-                  v-if="item.title"
-                  v-html="item.title.rendered"
-                />
-                <!-- <ion-card-title v-if="item.title" v-html="item.title.rendered"></ion-card-title> -->
-              </ion-card-header>
-              <ion-img v-bind="getImgObj(item.featured_media)"></ion-img>
-
-              <ion-card-content class="ion-no-margin ion-no-padding">
-                <!-- <ion-badge color="warning">
-                  {{item.meta._xp_achievement_gp}}
-                  &nbsp;
-                  <strong>GP</strong>
-                </ion-badge>
-                <ion-badge color="tertiary">
-                  {{item.meta._xp_achievement_ap}}
-                  &nbsp;
-                  <strong>AP</strong>
-                </ion-badge>
-                <ion-badge color="success">
-                  {{item.meta._xp_achievement_xp}}
-                  &nbsp;
-                  <strong>XP</strong>
-                </ion-badge> -->
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
+      <!-- v-calendar Integration -->
+      <Calendar
+        is-expanded
+        title-position="left"
+        :attributes="attributes"
+        :from-page="calendarPage"
+        @update:from-page="handleUpdatePage"
+        @dayclick="handleDayClick"
+        class="ion-padding"
+      />
+      <!-- Removed the old ion-item select and ion-grid -->
       <!-- fab placed to the bottom and start and on the bottom edge of the content overlapping footer with a list to the right -->
       <ion-fab
         vertical="bottom"
@@ -102,18 +45,21 @@
         <ion-grid>
           <ion-row>
             <ion-col class="ion-no-padding">
+              <!-- Updated search bar model and event -->
               <ion-searchbar
                 color="light"
-                @ionChange="request.params.page = 1"
-                v-model="request.params.search"
+                :debounce="500"
+                @ionChange="searchEvents"
+                v-model="searchQuery"
+                placeholder="Search Quests..."
               ></ion-searchbar>
             </ion-col>
           </ion-row>
           <ion-row>
             <ion-col>
+              <!-- Previous Month Button -->
               <ion-button
-                @click="request.params.page--"
-                :disabled="request.params.page == 1"
+                @click="prevMonth"
                 color="light"
                 expand="block"
               >
@@ -121,9 +67,9 @@
               </ion-button>
             </ion-col>
             <ion-col>
+              <!-- Next Month Button -->
               <ion-button
-                @click="request.params.page++"
-                :disabled="!hasNextPage"
+                @click="nextMonth"
                 color="light"
                 expand="block"
               >
