@@ -101,5 +101,5 @@
   </ion-page>
 </template>
 
-<script src="./MyFoods" />
+<script src="./MyFoods.ts" />
 <style lang="scss" src="./_MyFoods.scss" scoped />
