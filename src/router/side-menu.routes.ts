@@ -12,7 +12,7 @@ export const SideMenuRoutes: Array<RouteRecordRaw> = [
 
   // Switch Profile
   {
-    path: '/my-portal/switch-profile',
+    path: '/switch-profile', // Changed path
     name: 'switch-profile',
     component: () => import('@/views/App/SideMenu/SwitchProfile/SwitchProfile.vue'),
     meta: {
