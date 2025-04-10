@@ -63,6 +63,7 @@
   import { useStore } from "vuex";
   import { computed, defineComponent, ref, watch } from "@vue/runtime-core";
   import { add, peopleCircleSharp, peopleCircleOutline } from "ionicons/icons";
+  import type { HTMLIonLoadingElement } from "@ionic/core/components"; // Import the type
   import User from "@/utils/User";
   import { Drivers, Storage } from "@ionic/storage";
 
