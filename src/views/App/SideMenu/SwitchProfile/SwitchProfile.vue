@@ -63,7 +63,7 @@
   import { useStore } from "vuex";
   import { computed, defineComponent, ref, watch } from "@vue/runtime-core";
   import { add, peopleCircleSharp, peopleCircleOutline } from "ionicons/icons";
-  import type { HTMLIonLoadingElement } from "@ionic/core"; // Correct import path
+  // Removed incorrect type import
   import User from "@/utils/User";
   import { Drivers, Storage } from "@ionic/storage";
 
@@ -124,7 +124,7 @@
       };
 
       // --- Loading Indicator ---
-      let activeLoader: HTMLIonLoadingElement | null = null; // Keep track of the active loader instance
+      let activeLoader: any = null; // Keep track of the active loader instance (using 'any' or let TS infer)
 
       const presentLoading = async (message = "Loading Profiles...", duration = 10000) => { // Add default duration
         // Dismiss any existing loader first
