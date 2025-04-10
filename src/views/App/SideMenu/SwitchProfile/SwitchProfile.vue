@@ -72,9 +72,9 @@
 </template>
 
 <script lang="ts">
-  import { useIonRouter } from "@ionic/vue";
+  import { useIonRouter, onIonViewWillEnter } from "@ionic/vue";
   import { useStore } from "vuex";
-  import { computed, defineComponent, ref, onMounted } from "@vue/runtime-core";
+  import { computed, defineComponent, ref } from "@vue/runtime-core";
   import { add, peopleCircleSharp, peopleCircleOutline } from "ionicons/icons";
   import User from "@/utils/User";
   import { Drivers, Storage } from "@ionic/storage";
@@ -194,9 +194,8 @@
       };
 
       // --- Lifecycle Hooks ---
-      onMounted(() => {
-        loadUsers(); // Load users when component mounts
-        // If loadProfiles was needed: loadProfiles();
+      onIonViewWillEnter(() => {
+        loadUsers(); // Load users when the view is about to enter and become active
       });
 
       // --- Return ---
