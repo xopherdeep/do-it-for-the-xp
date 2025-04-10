@@ -19,11 +19,11 @@
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
 
-      <div v-if="isLoading" class="flex justify-center items-center h-full">
+      <div v-show="isLoading" class="flex justify-center items-center h-full">
         <ion-spinner name="circles"></ion-spinner>
       </div>
 
-      <ion-card v-else>
+      <ion-card v-show="!isLoading">
         <ion-list>
           <ion-item detail button @click="openNewProfileModal">
             <ion-label>
