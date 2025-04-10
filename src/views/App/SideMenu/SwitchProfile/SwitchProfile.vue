@@ -120,7 +120,7 @@
         // Login action MUST return a promise that resolves after state is committed
         await loginUser(profile);
         // Ensure navigation happens after login state is set
-        await ionRouter.navigate(`/my-portal/${profile.id}`, "forward", "replace"); // Use replace to avoid back button issues?
+        await ionRouter.navigate(`/my-portal/${profile.id}/my-home`, "forward", "replace"); // Navigate to the user's home page
       };
 
       // --- Loading Indicator ---
