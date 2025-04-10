@@ -142,8 +142,13 @@
 
       // Navigation functions
       const navigateToUserPortal = async (profile: User) => {
-        isProfileLoading.value = true; // Start loading indicator
+        const minLoadingTime = 1000; // Minimum display time in milliseconds (e.g., 1 second)
+        let loadingStartTime = 0;
+
         try {
+          isProfileLoading.value = true; // Start loading indicator
+          loadingStartTime = Date.now(); // Record start time
+
           // Login the user first
           await store.dispatch("loginUser", profile);
           // Then navigate to their portal
