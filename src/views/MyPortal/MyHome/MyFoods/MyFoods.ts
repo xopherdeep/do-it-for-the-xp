@@ -68,12 +68,15 @@ export default defineComponent({
     };
   },
   computed: {
-    // Assuming a getter 'currentUserProfile' exists in your Vuex store
-    // that returns the profile object including 'favoriteFood'
-    ...mapGetters(['currentUserProfile']), // Make sure 'currentUserProfile' is a valid getter name
+    // Get the user profile based on the userId prop using the getUserById getter
+    currentUserProfileData(): any { // Use 'any' or a more specific Profile type if available
+      // Ensure userId is treated as a string or number as expected by the getter
+      return this.$store.getters.getUserById(this.userId);
+    },
 
     userFavoriteFood(): string | null {
-       return this.currentUserProfile?.favoriteFood || null;
+       // Access favoriteFood from the fetched profile data
+       return this.currentUserProfileData?.favoriteFood || null;
     },
 
     filteredFoods(): FoodItem[] {
