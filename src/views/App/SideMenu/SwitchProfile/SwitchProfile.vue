@@ -185,6 +185,7 @@
       const openModal = async () => {
         const modal = await modalController.create({
           component: AddProfile,
+          cssClass: 'fullscreen-modal' // Add this class
         });
         modal.onDidDismiss().then(() => {
           loadUsers(); // Reload users from store after modal dismiss
@@ -285,6 +286,13 @@
     #container a {
       text-decoration: none;
     }
+  }
+
+  // Styles for the fullscreen modal
+  ion-modal.fullscreen-modal {
+    --height: 100%;
+    --width: 100%;
+    --border-radius: 0; // Optional: remove rounded corners if any
   }
 
   ion-modal {
