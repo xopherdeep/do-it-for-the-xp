@@ -244,7 +244,7 @@
       const effectsVolume = ref(70);
       const soundEffectsEnabled = ref(true);
       const vibrationEnabled = ref(true);
-      const volumeToastTimeout = ref<number | null>(null);
+      const volumeToastTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
 
       return {
         bgm: computed(() => store.state.bgm),
