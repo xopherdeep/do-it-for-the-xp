@@ -72,7 +72,8 @@
 
 <script lang="ts">
   import {
-    IonLoading, // <-- Import IonLoading
+    toastController, // <-- Import toastController
+    IonLoading,
     useIonRouter,
     onIonViewWillEnter,
     onIonViewDidLeave,
