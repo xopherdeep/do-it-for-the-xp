@@ -8,6 +8,9 @@ import Countdown from 'vue3-flip-countdown'
 import XpGp from './components/XpGp'
 import XpLoading from './components/XpLoading'
 
+// V-CALENDAR STYLES - Removed failing import. Styling needs investigation.
+// import 'v-calendar/style.css';
+
 // XP APP
 import App from './views/App/App.vue'
 import appConfig from "./app.config"

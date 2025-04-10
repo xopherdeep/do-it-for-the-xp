@@ -1,7 +1,7 @@
 import { defineComponent, ref } from "vue";
 import ionic from "@/mixins/ionic";
 import { Calendar, DatePicker } from 'v-calendar';
-import 'v-calendar/dist/style.css';
+// Removed CSS import from here
 
 import {
   calendarOutline,
@@ -31,7 +31,7 @@ import {
   banOutline,
   bagOutline,
 } from "ionicons/icons";
-import fetchItems from "@/mixins/fetchItems"
+// import fetchItems from "@/mixins/fetchItems" // Removed unused import
 import { actionSheetController } from "@ionic/vue";
 
 import { mapActions, mapGetters } from "vuex"; // Assuming you might need Vuex later for events
@@ -52,7 +52,9 @@ export default defineComponent({
       calendarPage: { month: today.getMonth() + 1, year: today.getFullYear() },
       searchQuery: "", // Model for the search bar
       // Example attributes for events - replace with actual data fetching
-      attributes: ref([
+      // Properties returned from data() are automatically reactive in Vue 3.
+      // No need for ref() here.
+      attributes: [
         {
           key: 'today',
           highlight: true,
@@ -65,7 +67,7 @@ export default defineComponent({
         //   dates: new Date(2025, 3, 15), // Example date
         //   popover: { label: 'Quest: Defeat the Slime King' }
         // }
-      ]),
+      ],
     };
   },
   computed: {
@@ -155,14 +157,6 @@ export default defineComponent({
       const { role, data } = await actionSheet.onDidDismiss();
       // console.log('onDidDismiss resolved with role and data', role, data);
     },
-      // ... (rest of the action sheet buttons remain the same) ...
-          ],
-        });
-      actionSheet.present();
-
-      const { role, data } = await actionSheet.onDidDismiss();
-      // console.log('onDidDismiss resolved with role and data', role, data);
-    },
     // Placeholder for fetching actual event data
     fetchEventsForMonth(year, month) {
       this.isLoading = true;
@@ -208,19 +202,12 @@ export default defineComponent({
     // const customAlertOptions = {
     //   header: 'View Quests',
     //   subHeader: 'Select what quests to view',
-    //   message: '',
-    //   translucent: true
     // };
-    return {
-      // customAlertOptions, // Remove if IonSelect is removed
-      header: 'View Quests',
-      subHeader: 'Select what quests to view',
-      message: '',
-      translucent: true
-    };
+
+    // Return all icons needed by the template and any other setup-specific refs/methods
     return {
       calendarOutline,
-      customAlertOptions,
+      // customAlertOptions, // Keep if needed elsewhere, otherwise remove
       storefrontOutline,
       banOutline,
       chevronBack,

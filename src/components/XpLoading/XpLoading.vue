@@ -9,5 +9,30 @@
   </div>
 </template>
 
-<script src="./XpLoading" lang="ts"  />
-<style src="./_XpLoading.scss"  lang="scss" />
+<script setup lang="ts">
+import { onMounted, onUnmounted, getCurrentInstance } from 'vue';
+
+// Access global properties like $fx via getCurrentInstance
+const instance = getCurrentInstance();
+const fx = instance?.appContext.config.globalProperties.$fx;
+
+onMounted(() => {
+  if (fx && fx.ui && fx.theme && fx.ui[fx.theme.ui]?.loading) {
+    fx.ui[fx.theme.ui].loading.play();
+  } else {
+    console.warn("XpLoading: Could not find sound effect property $fx.ui[theme].loading");
+  }
+});
+
+onUnmounted(() => {
+  if (fx && fx.ui && fx.theme && fx.ui[fx.theme.ui]?.loading) {
+    const loadingSound = fx.ui[fx.theme.ui].loading;
+    loadingSound.pause();
+    loadingSound.currentTime = 0;
+  }
+});
+</script>
+
+<style lang="scss">
+  @import "./_XpLoading.scss";
+</style>
