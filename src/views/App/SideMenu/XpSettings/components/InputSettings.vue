@@ -3,7 +3,7 @@
     <ion-list-header>
       <ion-label>Audio Settings</ion-label>
     </ion-list-header>
-    
+
     <ion-item>
       <i class="fad fa-music fa-lg ion-float-left" slot="start"></i>
       <ion-label>
@@ -87,18 +87,25 @@
         interface="popover"
       >
         <ion-select-option value="earthbound">Down to Earth</ion-select-option>
-        <ion-select-option value="chronoTrigger">Timeless Contention</ion-select-option>
-        <ion-select-option value="finalFantasy">Last of the Dreams</ion-select-option>
+        <ion-select-option value="chronoTrigger"
+          >Timeless Contention</ion-select-option
+        >
+        <ion-select-option value="finalFantasy"
+          >Last of the Dreams</ion-select-option
+        >
         <ion-select-option value="custom">Custom Theme</ion-select-option>
       </ion-select>
     </ion-item>
-    
+
     <ion-item>
       <ion-label>
         <h2>Vibration</h2>
         <p>Enable haptic feedback</p>
       </ion-label>
-      <ion-toggle v-model="vibrationEnabled" @ionChange="toggleVibration"></ion-toggle>
+      <ion-toggle
+        v-model="vibrationEnabled"
+        @ionChange="toggleVibration"
+      ></ion-toggle>
     </ion-item>
   </ion-list>
 </template>
@@ -116,10 +123,10 @@
     IonListHeader,
     IonRange,
     IonIcon,
-    toastController
+    toastController,
   } from "@ionic/vue";
 
-  import { volumeHigh, volumeLow } from 'ionicons/icons';
+  import { volumeHigh, volumeLow } from "ionicons/icons";
   import { mapActions, mapState, useStore } from "vuex";
 
   export default defineComponent({
@@ -133,7 +140,7 @@
       IonItem,
       IonLabel,
       IonRange,
-      IonIcon
+      IonIcon,
     },
 
     computed: {
@@ -170,61 +177,65 @@
           ui,
         });
       },
-      
+
       changeMusicVolume(ev) {
         this.musicVolume = ev.detail.value;
         // In a real app, this would update the actual volume
         if (this.bgm.audio) {
           this.bgm.audio.volume = this.musicVolume / 100;
         }
-        this.showVolumeToast('Music volume updated');
+        this.showVolumeToast("Music volume updated");
       },
-      
+
       changeEffectsVolume(ev) {
         this.effectsVolume = ev.detail.value;
         // In a real app, this would update the actual effects volume
-        this.showVolumeToast('Effects volume updated');
+        this.showVolumeToast("Effects volume updated");
       },
-      
+
       toggleSoundEffects() {
         // In a real app, this would enable/disable sound effects
-        this.showToast(`Sound effects ${this.soundEffectsEnabled ? 'enabled' : 'disabled'}`);
+        this.showToast(
+          `Sound effects ${this.soundEffectsEnabled ? "enabled" : "disabled"}`
+        );
       },
-      
+
       toggleVibration() {
         // In a real app, this would enable/disable vibration
-        this.showToast(`Vibration ${this.vibrationEnabled ? 'enabled' : 'disabled'}`);
-        
+        this.showToast(
+          `Vibration ${this.vibrationEnabled ? "enabled" : "disabled"}`
+        );
+
         // Provide haptic feedback if enabled
         if (this.vibrationEnabled && navigator.vibrate) {
           navigator.vibrate(50);
         }
       },
-      
+
       async showToast(message: string) {
         const toast = await toastController.create({
           message,
           duration: 2000,
-          position: 'bottom'
+          position: "bottom",
         });
         await toast.present();
       },
-      
+
       async showVolumeToast(message: string) {
         // Only show volume toast when dragging ends
         if (this.volumeToastTimeout) {
           clearTimeout(this.volumeToastTimeout);
         }
-        
+
         this.volumeToastTimeout = setTimeout(async () => {
           const toast = await toastController.create({
             message,
             duration: 1000,
-            position: 'bottom'
+            position: "bottom",
           });
           await toast.present();
         }, 500);
-      }
+      },
     },
 
     setup() {
@@ -233,8 +244,8 @@
       const effectsVolume = ref(70);
       const soundEffectsEnabled = ref(true);
       const vibrationEnabled = ref(true);
-      const volumeToastTimeout = ref(null);
-      
+      const volumeToastTimeout = ref<number | null>(null);
+
       return {
         bgm: computed(() => store.state.bgm),
         theme: computed(() => store.state.theme),
@@ -244,7 +255,7 @@
         vibrationEnabled,
         volumeToastTimeout,
         volumeHigh,
-        volumeLow
+        volumeLow,
       };
     },
   });
