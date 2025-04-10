@@ -53,7 +53,7 @@
               </p>
             </ion-label>
             <ion-avatar slot="end">
-              <ion-img :src="$getUserAvatar(profile)" />
+              <ion-img :src="getUserAvatar(profile)" />
             </ion-avatar>
             <ion-label
               slot="end"
@@ -73,9 +73,8 @@
 
 <script lang="ts">
   import { useIonRouter } from "@ionic/vue";
-  import { mapActions, useStore, mapGetters } from "vuex";
-  import { computed, defineComponent, ref } from "@vue/runtime-core";
-  import ionic from "@/mixins/ionic";
+  import { useStore } from "vuex";
+  import { computed, defineComponent, ref, onMounted } from "@vue/runtime-core";
   import { add, peopleCircleSharp, peopleCircleOutline } from "ionicons/icons";
   import User from "@/utils/User";
   import { Drivers, Storage } from "@ionic/storage";
@@ -97,119 +96,134 @@
 
   export default defineComponent({
     name: "switch-profile",
-    mixins: [ionic],
     components: { XpGp },
-    computed: {
-      ...mapGetters(["usersAz"]),
-      users() { return this.usersAz },
-    },
-    methods: {
-      ...mapActions(["loginUser"]),
+    setup() {
+      const loading = ref(false);
+      const refresh = ref(false);
+      const store = useStore();
+      const ionRouter = useIonRouter();
+      const storage = new ProfileDb(profileStorage);
 
-      clickAddProfile() {
-        this.ionRouter.navigate(`/new-profile`, "forward");
-      },
+      // --- Computed ---
+      const users = computed(() => store.getters.usersAz);
+      const bgm = computed(() => store.state.bgm);
+      // Note: The 'profiles' computed property seemed redundant with 'users', removed it.
+      // If it served a different purpose, it needs to be re-evaluated.
 
-      getUserAvatar(user) {
+      // --- Methods ---
+      const loadUsers = () => store.dispatch("loadUsers");
+
+      const loginUser = (profile: User) => store.dispatch("loginUser", profile);
+
+      const clickAddProfile = () => {
+        ionRouter.navigate(`/new-profile`, "forward");
+      };
+
+      const getUserAvatar = (user: User) => {
         const { avatar } = user;
         if (avatar) {
           return requireAvatar(`./${user.avatar}.svg`);
         }
-      },
+        return null; // Or a default avatar
+      };
 
-      clickProfile(profile: User) {
-        const { passcode } = profile
-        if (passcode)
-          this.showKeyPad(profile)
-        else {
-          this.openProfile(profile)
+      const openProfile = (profile: User) => {
+        loginUser(profile);
+        ionRouter.navigate(`/my-portal/${profile.id}`, "forward");
+      };
+
+      const showLoader = () => {
+        loading.value = true;
+        setTimeout(() => loading.value = false, 5000); // Consider using ion-loading controller for better UX
+      };
+
+      const passcodeVerified = (dismiss: any) => {
+        if (dismiss.data) {
+          showLoader();
+          openProfile(dismiss.data);
         }
-      },
+      };
 
-      openProfile(profile: User) {
-        this.loginUser(profile);
-        this.ionRouter.navigate(`/my-portal/${profile.id}`, "forward");
-      },
-
-      async showKeyPad(profile: User) {
+      const showKeyPad = async (profile: User) => {
         const modal = await modalController.create({
           component: DialPad,
           componentProps: {
             profile
           }
-        })
-        modal.present();
-        modal.onDidDismiss().then(this.passcodeVerified)
-      },
-
-      passcodeVerified(dismiss: any) {
-        if (dismiss.data) {
-          this.showLoader()
-          this.openProfile(dismiss.data)
-        }
-      },
-      showLoader() {
-        this.loading = true
-        setTimeout(() => this.loading = false, 5000)
-      },
-
-      setProfiles(profiles: User[]) {
-        this.loadUsers()
-        this.profiles = profiles.sort((a, b) => {
-          const nameA = a.name.full.toLowerCase();
-          const nameB = b.name.full.toLowerCase();
-          if (nameA < nameB) {
-            return -1;
-          }
-          if (nameA > nameB) {
-            return 1;
-          }
-          return 0;
         });
+        modal.present();
+        modal.onDidDismiss().then(passcodeVerified);
+      };
 
-      },
+      const clickProfile = (profile: User) => {
+        const { passcode } = profile;
+        if (passcode) {
+          showKeyPad(profile);
+        } else {
+          openProfile(profile);
+        }
+      };
 
-      async loadProfiles() {
-        // this.setProfiles(this.users)
-        return await this.storage.getAll().then(this.setProfiles);
-      },
+      // Removed setProfiles and loadProfiles as loadUsers seems to handle fetching from storage via Vuex action
+      // If direct storage interaction is needed here, uncomment and adjust loadProfiles
+      /*
+      const setProfiles = (loadedProfiles: User[]) => {
+         // This logic might conflict with Vuex state management if 'users' comes from store
+         // Decide if profiles should be managed locally or via Vuex exclusively
+         console.log("Setting profiles locally:", loadedProfiles);
+         // Example: If you need a local sorted copy:
+         // localSortedProfiles.value = loadedProfiles.sort(...)
+      };
 
-      async openModal() {
+      const loadProfiles = async () => {
+         // return await storage.getAll().then(setProfiles);
+         // Prefer using the Vuex action if it reads from storage
+         return loadUsers();
+      };
+      */
+
+      const openModal = async () => {
         const modal = await modalController.create({
           component: AddProfile,
         });
-        modal.onDidDismiss()
-          .then(this.loadUsers)
-          .then(this.loadProfiles)
+        modal.onDidDismiss().then(() => {
+          loadUsers(); // Reload users from store after modal dismiss
+          // If loadProfiles was needed: .then(loadProfiles)
+        });
         modal.present();
-      },
-    },
-    setup() {
-      const loading = ref(false);
-      const refresh = ref(false);
-      const store = useStore();
-      const bgm = computed(() => store.state.bgm);
-      const ionRouter = useIonRouter();
+      };
 
-      const storage = new ProfileDb(profileStorage);
-      const profiles = computed({
-        get: () => store.state.users,
-        set: (users) => store.state.users = users
+      // --- Lifecycle Hooks ---
+      onMounted(() => {
+        loadUsers(); // Load users when component mounts
+        // If loadProfiles was needed: loadProfiles();
       });
 
-      const loadUsers = () => store.dispatch("loadUsers")
-
+      // --- Return ---
       return {
         loading,
-        loadUsers,
-        storage,
+        refresh,
+        users, // Use the computed 'users' which gets from 'usersAz' getter
         bgm,
         add,
         peopleCircleSharp,
         peopleCircleOutline,
-        ionRouter,
-        profiles,
-        refresh,
+        ionRouter, // Not strictly needed in return if only used in setup, but good practice if template might need it later
+        // storage, // Usually not needed in template
+        loadUsers,
+        loginUser,
+        clickAddProfile,
+        getUserAvatar,
+        clickProfile,
+        openProfile,
+        showKeyPad,
+        // passcodeVerified, // Only used internally by showKeyPad
+        // showLoader, // Only used internally by passcodeVerified
+        // setProfiles, // Removed/Commented
+        // loadProfiles, // Removed/Commented
+        openModal,
+        // Expose helper directly for template
+        $getUserAvatar: getUserAvatar
       };
     },
   });
