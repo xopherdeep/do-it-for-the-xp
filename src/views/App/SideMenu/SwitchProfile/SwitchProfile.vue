@@ -55,7 +55,11 @@
 </template>
 
 <script lang="ts">
-  import { useIonRouter, onIonViewWillEnter, loadingController } from "@ionic/vue";
+  import {
+    useIonRouter,
+    onIonViewWillEnter,
+    loadingController,
+  } from "@ionic/vue";
   import { useStore } from "vuex";
   import { computed, defineComponent, ref } from "@vue/runtime-core";
   import { add, peopleCircleSharp, peopleCircleOutline } from "ionicons/icons";
@@ -117,11 +121,11 @@
       };
 
       // --- Loading Indicator ---
-      const presentLoading = async (message = 'Loading Profiles...') => {
+      const presentLoading = async (message = "Loading Profiles...") => {
         loading.value = true;
         const loader = await loadingController.create({
           message,
-          spinner: 'circles',
+          spinner: "circles",
         });
         await loader.present();
       };
@@ -138,7 +142,7 @@
 
       // Updated showLoader for passcode verification
       const showLoader = async () => {
-        await presentLoading('Unlocking Profile...');
+        await presentLoading("Unlocking Profile...");
         // Set a timeout to dismiss the loader automatically after a few seconds
         // in case the navigation/login process hangs or fails silently.
         setTimeout(dismissLoading, 5000);
@@ -154,6 +158,7 @@
       const showKeyPad = async (profile: User) => {
         const modal = await modalController.create({
           component: DialPad,
+          cssClass: "fullscreen",
           componentProps: {
             profile,
           },
