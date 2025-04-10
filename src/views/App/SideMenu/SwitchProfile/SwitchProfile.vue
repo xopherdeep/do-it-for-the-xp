@@ -8,33 +8,19 @@
             @click="$fx.ui[$fx.theme.ui].select.play()"
           ></ion-menu-button>
           <ion-button class="m-8">
-            <ion-icon
-              :ios="peopleCircleOutline"
-              :md="peopleCircleSharp"
-            />
+            <ion-icon :ios="peopleCircleOutline" :md="peopleCircleSharp" />
           </ion-button>
         </ion-buttons>
         <ion-title> Choose Profile Save </ion-title>
       </ion-toolbar>
     </ion-header>
-    <ion-content
-      :fullscreen="true"
-      id="container"
-      class="ion-padding"
-    >
+    <ion-content :fullscreen="true" id="container" class="ion-padding">
       <ion-card v-if="!loading">
         <ion-list>
-          <ion-item
-            detail
-            button
-            @click="openModal"
-          >
+          <ion-item detail button @click="openNewProfileModal">
             <ion-label>
               New Profile
-              <p>
-                New players Start Here.
-
-              </p>
+              <p>New players Start Here.</p>
             </ion-label>
           </ion-item>
           <ion-item
@@ -55,10 +41,7 @@
             <ion-avatar slot="end">
               <ion-img :src="getUserAvatar(profile)" />
             </ion-avatar>
-            <ion-label
-              slot="end"
-              class="w-20 ml-2"
-            >
+            <ion-label slot="end" class="w-20 ml-2">
               Level: {{ profile?.stats?.level }}
               <p>
                 <xp-gp :gp="profile?.stats?.gp.wallet" />
@@ -85,7 +68,7 @@
   import AddProfile from "./AddProfile/AddProfile.vue";
   import XpGp from "@/components/XpGp/XpGp.vue";
 
-  import DialPad from "./DialPad.vue"
+  import DialPad from "./DialPad.vue";
 
   const requireAvatar = require.context("@/assets/images/avatars/");
 
@@ -134,7 +117,7 @@
 
       const showLoader = () => {
         loading.value = true;
-        setTimeout(() => loading.value = false, 5000); // Consider using ion-loading controller for better UX
+        setTimeout(() => (loading.value = false), 5000); // Consider using ion-loading controller for better UX
       };
 
       const passcodeVerified = (dismiss: any) => {
@@ -148,8 +131,8 @@
         const modal = await modalController.create({
           component: DialPad,
           componentProps: {
-            profile
-          }
+            profile,
+          },
         });
         modal.present();
         modal.onDidDismiss().then(passcodeVerified);
@@ -182,10 +165,10 @@
       };
       */
 
-      const openModal = async () => {
+      const openNewProfileModal = async () => {
         const modal = await modalController.create({
           component: AddProfile,
-          cssClass: 'fullscreen-modal' // Add this class
+          cssClass: "fullscreen",
         });
         modal.onDidDismiss().then(() => {
           loadUsers(); // Reload users from store after modal dismiss
@@ -221,9 +204,9 @@
         // showLoader, // Only used internally by passcodeVerified
         // setProfiles, // Removed/Commented
         // loadProfiles, // Removed/Commented
-        openModal,
+        openNewProfileModal,
         // Expose helper directly for template
-        $getUserAvatar: getUserAvatar
+        $getUserAvatar: getUserAvatar,
       };
     },
   });
@@ -235,16 +218,20 @@
     &#container {
       height: 100vh;
       background-color: #68a8d8;
-      background-image: linear-gradient(45deg,
+      background-image: linear-gradient(
+          45deg,
           #80d890 25%,
           transparent 25%,
           transparent 75%,
-          #80d890 75%),
-        linear-gradient(45deg,
+          #80d890 75%
+        ),
+        linear-gradient(
+          45deg,
           #80d890 25%,
           transparent 25%,
           transparent 75%,
-          #80d890 75%);
+          #80d890 75%
+        );
       background-size: 60px 60px;
       background-position: 0 0, 30px 30px;
       animation: slide 4s infinite linear;

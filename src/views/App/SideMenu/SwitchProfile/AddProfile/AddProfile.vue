@@ -2,22 +2,16 @@
   <ion-header>
     <ion-toolbar class="rpg-box">
       <ion-title>Start New Profile</ion-title>
-      <ion-item
-        slot="end"
-        v-if="$props.showIsAdult"
-      >
+      <ion-item slot="end" v-if="$props.showIsAdult">
         <ion-label> Adult </ion-label>
-        <ion-checkbox
-          readonly
-          v-model="isAdult"
-          slot="end"
-        > </ion-checkbox>
+        <ion-checkbox readonly v-model="isAdult" slot="end"> </ion-checkbox>
       </ion-item>
-
     </ion-toolbar>
   </ion-header>
   <ion-content class="bg-slide rpg-box">
-    <ion-grid>
+    <ion-grid
+      class="md:max-w-[60vw] mx-auto flex flex-col items-center justify-center"
+    >
       <ion-card>
         <ion-segment v-model="activeSegment">
           <ion-segment-button value="info">
@@ -32,23 +26,18 @@
             <i class="fad fa-bell fa-2x"></i>
             Features
           </ion-segment-button>
-          <ion-segment-button value="prefrences">
+          <ion-segment-button value="preferences">
             <i class="fad fa-cog fa-2x"></i>
-            Prefrences
+            Preferences
           </ion-segment-button>
         </ion-segment>
       </ion-card>
-      <gamer-card
-        :profile="newProfile"
-        v-if="activeSegment === 'info'"
-      />
+      <gamer-card :profile="newProfile" v-if="activeSegment === 'info'" />
 
       <ion-card v-if="activeSegment === 'info'">
         <ion-list>
           <ion-item class="avatar-row">
-            <ion-label>
-              Choose Avatar
-            </ion-label>
+            <ion-label> Choose Avatar </ion-label>
             <ion-input
               slot="end"
               type="number"
@@ -56,16 +45,17 @@
               min="1"
               max="51"
             />
-            <ion-button slot="start"
-                :disabled="avatarIndex === 1"
-                @click="previousAvatar"
-                color="primary"
-                fill="outline"
-              >
-                <i class="fa fa-caret-down" />
-                <!-- <ion-icon :icon="arrowBack" />  -->
-                <!-- Back -->
-              </ion-button>
+            <ion-button
+              slot="start"
+              :disabled="avatarIndex === 1"
+              @click="previousAvatar"
+              color="primary"
+              fill="outline"
+            >
+              <i class="fa fa-caret-down" />
+              <!-- <ion-icon :icon="arrowBack" />  -->
+              <!-- Back -->
+            </ion-button>
 
             <ion-button
               :disabled="avatarIndex === maxAvatarIndex"
@@ -81,14 +71,9 @@
           <ion-item>
             <ion-label>
               Full Name
-              <p>
-                First M. Last aka Nickname
-              </p>
+              <p>First M. Last aka Nickname</p>
             </ion-label>
-            <ion-input
-              v-model="fullName"
-              class="ion-text-right"
-            ></ion-input>
+            <ion-input v-model="fullName" class="ion-text-right"></ion-input>
           </ion-item>
           <ion-item>
             <ion-label>
@@ -104,9 +89,7 @@
           <ion-item>
             <ion-label>
               Job Class
-              <p>
-                Choose your starter job class.
-              </p>
+              <p>Choose your starter job class.</p>
             </ion-label>
             <ion-select
               slot="end"
@@ -125,9 +108,7 @@
           <ion-item>
             <ion-label>
               Favorite Food
-              <p>
-                Pick a favorite food from the bunch.
-              </p>
+              <p>Pick a favorite food from the bunch.</p>
             </ion-label>
             <ion-select
               v-model="favoriteFood"
@@ -146,29 +127,22 @@
         </ion-list>
         <ion-grid class="ion-no-padding">
           <ion-row>
-            <ion-col size="7">
-            </ion-col>
-            <ion-col size="5">
-            </ion-col>
+            <ion-col size="7"> </ion-col>
+            <ion-col size="5"> </ion-col>
           </ion-row>
           <ion-row>
-            <ion-col>
-            </ion-col>
+            <ion-col> </ion-col>
           </ion-row>
         </ion-grid>
       </ion-card>
 
       <ion-card v-if="activeSegment === 'account'">
         <ion-card-header>
-          <ion-card-title>
-            Account Settings
-          </ion-card-title>
+          <ion-card-title> Account Settings </ion-card-title>
         </ion-card-header>
         <ion-list>
           <ion-item>
-            <ion-label>
-              Email Address:
-            </ion-label>
+            <ion-label> Email Address: </ion-label>
             <ion-input
               v-model="email"
               type="email"
@@ -198,105 +172,60 @@
           </ion-row>
         </ion-grid>
         <ion-item>
-          <ion-label slot="end">
-            Hide Passcode
-          </ion-label>
-          <ion-checkbox
-            label="Hide Passcode"
-            v-model="hidePasscode"
-            slot="end"
-          >
+          <ion-label slot="end"> Hide Passcode </ion-label>
+          <ion-checkbox label="Hide Passcode" v-model="hidePasscode" slot="end">
           </ion-checkbox>
         </ion-item>
       </ion-card>
 
       <ion-card v-if="activeSegment === 'features'">
         <ion-list>
-          <ion-item
-            button
-            @click="toggleReward"
-          >
+          <ion-item button @click="toggleReward">
             <ion-label>
               <h2>Buy from Shops</h2>
-              <p>Allowed this player access to shops and purchase rewards.
-              </p>
+              <p>Allowed this player access to shops and purchase rewards.</p>
             </ion-label>
-            <ion-toggle
-              v-model="features.rewards"
-              @click.stop
-            >
-            </ion-toggle>
+            <ion-toggle v-model="features.rewards" @click.stop> </ion-toggle>
           </ion-item>
-          <ion-item
-            button
-            @click="toggleGoal"
-          >
+          <ion-item button @click="toggleGoal">
             <ion-label>
               <h2>Save towards Goals</h2>
-              <p>Allowed player access to the banks and saves toward gaols.
-              </p>
+              <p>Allowed player access to the banks and saves toward gaols.</p>
             </ion-label>
-            <ion-toggle
-              v-model="features.goals"
-              @click.stop
-            >
-            </ion-toggle>
+            <ion-toggle v-model="features.goals" @click.stop> </ion-toggle>
           </ion-item>
-          <ion-item
-            button
-            @click="toggleBattles"
-          >
+          <ion-item button @click="toggleBattles">
             <ion-label>
               <h2>Random Battles</h2>
-              <p>Turn on/off random battles. If off, players will have to manually
-                check their achievements.
+              <p>
+                Turn on/off random battles. If off, players will have to
+                manually check their achievements.
               </p>
             </ion-label>
-            <ion-toggle
-              v-model="features.battles"
-              @click.stop
-            >
-            </ion-toggle>
+            <ion-toggle v-model="features.battles" @click.stop> </ion-toggle>
           </ion-item>
-          <ion-item
-            button
-            @click="toggleCommunity"
-          >
+          <ion-item button @click="toggleCommunity">
             <ion-label>
               <h2>Participate in Town Hall</h2>
-              <p>
-                For players who want to participate in Town Hall.
-              </p>
+              <p>For players who want to participate in Town Hall.</p>
             </ion-label>
-            <ion-toggle
-              v-model="features.community"
-              @click.stop
-            >
-            </ion-toggle>
+            <ion-toggle v-model="features.community" @click.stop> </ion-toggle>
           </ion-item>
         </ion-list>
-
       </ion-card>
-      <ion-card
-        class="ion-no-padding"
-        v-if="activeSegment === 'prefrences'"
-      >
+
+      <ion-card class="ion-no-padding" v-if="activeSegment === 'preferences'">
         <InputSettings />
       </ion-card>
     </ion-grid>
-
   </ion-content>
   <ion-footer>
     <ion-toolbar class="rpg-box">
       <ion-buttons slot="start">
-        <ion-button
-          color="primary"
-          @click="closeModal"
-        >
+        <ion-button color="primary" @click="closeModal">
           <i class="fad fa-times fa-3x"></i>
           Cancel
         </ion-button>
-
       </ion-buttons>
       <ion-buttons slot="end">
         <ion-button
@@ -310,4 +239,4 @@
     </ion-toolbar>
   </ion-footer>
 </template>
-<script lang="ts"  src="./AddProfile.ts"></script>
+<script lang="ts" src="./AddProfile.ts"></script>

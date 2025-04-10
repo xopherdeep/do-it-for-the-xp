@@ -29,7 +29,7 @@ const supportRoutes: Array<RouteRecordRaw> = [
   {
     path: '/support/contact',
     name: 'support-contact',
-    component: () => import('@/views/App/SideMenu/XpSupport/Contact/Contact.vue')
+    component: () => import('@/views/App/SideMenu/XpSupport/ContactPage/ContactPage.vue')
   }
 ];
 
