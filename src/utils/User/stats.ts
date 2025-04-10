@@ -100,7 +100,8 @@ export default class Stats {
     };
     this.gp = {
       limit: gp?.limit || 100,
-      debt: Number(gp?.debt) + Number(debt) ?? debt,
+      // Add calculated debt to existing debt (defaulting existing to 0 if nullish)
+      debt: (Number(gp?.debt) || 0) + Number(debt),
       wallet: gp?.wallet ?? 0,
       savings: gp?.savings ?? 100,
       ledger: gp?.ledger ?? [],

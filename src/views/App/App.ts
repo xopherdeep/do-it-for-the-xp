@@ -102,19 +102,22 @@ export default defineComponent({
     },
   },
   mounted() {
-    const { $fx: { rpg, theme }, changeBGM, loadBGM } = this;
+    // Cast this to any as a workaround for TS2339
+    const { $fx: { rpg, theme }, changeBGM, loadBGM } = (this as any);
     changeBGM({ tracks: rpg[theme.rpg].BGM.startScreen }).then(loadBGM as any)
   },
   methods: {
     ...mapActions(["toggleBGM", "changeBGM", "turnMusicOnOff"]),
     clickSound() {
-      this.$fx.ui[this.$fx.theme.ui].select.play();
+      // Cast this to any as a workaround for TS2339
+      (this as any).$fx.ui[(this as any).$fx.theme.ui].select.play();
     },
     getAudioPlayer() {
       return this.bgm.audio;
     },
     getCurrentTheme() {
-      return this.$fx.theme.rpg;
+      // Cast this to any as a workaround for TS2339
+      return (this as any).$fx.theme.rpg;
     },
     ...mapActions(["loadUsers"]),
     async presentAlertConfirm() {
@@ -194,11 +197,12 @@ export default defineComponent({
     },
 
     clickBGMTrack(inc = 1) {
+      // Cast this to any as a workaround for TS2339
       const {
         bgm,
         $fx: { rpg, theme },
         playAudio,
-      } = this;
+      } = (this as any);
       const maxTrackIndex = -1 + bgm.tracks.length;
       let track = bgm.track + inc;
       const cantGoBack = track < 0;
