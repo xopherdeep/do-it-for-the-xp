@@ -28,21 +28,33 @@ import {
   IonLabel,
   IonToggle,
   IonSegment,
-  IonSegmentButton
+  IonSegmentButton,
+  IonRadio
 } from '@ionic/vue'
 
 import {
   arrowBack,
   checkmarkCircle,
-  stopCircle,
-  calendarOutline,
+  stopCircle, // Keep for potential use, or remove if definitely unused
+  calendarOutline, // Keep for potential use, or remove if definitely unused
+  calendarClearOutline, // New
   cardOutline,
-  helpCircleOutline,
-  informationCircleOutline,
-  starOutline,
-  trendingUpOutline,
-  walletOutline,
-  refreshOutline
+  helpCircleOutline, // Keep for potential use, or remove if definitely unused
+  informationCircleOutline, // Keep for potential use, or remove if definitely unused
+  starOutline, // Keep for potential use, or remove if definitely unused
+  trendingUpOutline, // Keep for potential use, or remove if definitely unused
+  walletOutline, // Keep for potential use, or remove if definitely unused
+  refreshOutline, // Keep for potential use, or remove if definitely unused
+  shieldCheckmark, // New
+  sparklesOutline, // New
+  rocketOutline, // New
+  peopleOutline, // New
+  pauseCircleOutline, // New
+  sadOutline, // New
+  gameControllerOutline, // New
+  banOutline, // New
+  lockClosedOutline, // New
+  playCircleOutline // New
 } from "ionicons/icons"
 
 interface Plan {
@@ -58,15 +70,15 @@ export default defineComponent({
   data() {
     return {
       benefits: [
-        "No-Ads Experience",
-        "Unlimited Usage & Access",
-        "Exclusive Member Offers",
-        "Premium Features & Content",
-        "Price Lock Guaranteed",
-        "Priority Customer Support"
+        "Enjoy an Ad-Free Experience",
+        "Unlock All Quests & Activities",
+        "Access Exclusive Family Challenges",
+        "Get Special Avatars & Items",
+        "Keep Your Current Price Locked In",
+        "Receive Priority Helper Support"
       ],
       plans: [
-        { 
+        {
           id: 'monthly',
           name: 'Monthly',
           price: 4.99,
@@ -115,9 +127,10 @@ export default defineComponent({
     IonButton,
     IonModal,
     IonLabel,
-    IonToggle,
-    IonSegment,
-    IonSegmentButton
+    // IonToggle, // Removed if not used
+    // IonSegment, // Removed as replaced by cards
+    // IonSegmentButton, // Removed as replaced by cards
+    IonRadio
   },
   computed: {
     currentPlan() {
@@ -133,19 +146,21 @@ export default defineComponent({
     },
     async confirmCancel() {
       const alert = await alertController.create({
-        header: 'Confirm Cancellation',
-        message: 'Are you sure you want to cancel your membership? You will lose access to premium features at the end of your billing period.',
+        header: 'Pause Adventure Pass?',
+        message: 'Your pass will remain active until the end of the current period. Are you sure you want to pause?',
+        cssClass: 'confirm-cancel-alert',
         buttons: [
           {
-            text: 'No, Keep It',
+            text: 'Keep Adventuring',
             role: 'cancel',
+            cssClass: 'keep-button',
             handler: () => {
-              // Make sure isModalOpen is set to false directly
               this.isModalOpen = false
             }
           },
           {
-            text: 'Yes, Cancel',
+            text: 'Yes, Pause Pass',
+            cssClass: 'pause-button',
             handler: () => {
               this.processCancellation()
             }
@@ -159,12 +174,16 @@ export default defineComponent({
       this.isModalOpen = false // Set directly instead of using this.closeModal()
       
       // Check if toastController exists before using it
+      // Here you would call your API to cancel the subscription
+      this.isModalOpen = false // Set directly instead of using this.closeModal()
+
       if (toastController) {
         const toast = await toastController.create({
-          message: 'Your membership has been canceled. It will remain active until the end of your billing period.',
-          duration: 3000,
+          message: 'Your Adventure Pass is scheduled to pause. You can resume anytime!',
+          duration: 3500,
           position: 'bottom',
-          color: 'warning'
+          color: 'medium', // Less alarming than warning
+          icon: pauseCircleOutline
         })
         await toast.present()
       }
@@ -175,12 +194,14 @@ export default defineComponent({
       const matchingPlan = (this.plans as Plan[]).find(plan => plan.id === planId);
       const planName = matchingPlan ? matchingPlan.name : planId;
       
+      // Add logic here if changing plan requires API call, e.g., updateSubscription(planId)
       if (toastController) {
         const toast = await toastController.create({
-          message: `Your plan preference has been updated to ${planName}`,
-          duration: 2000,
+          message: `Adventure Pass updated to ${planName}!`,
+          duration: 2500,
           position: 'bottom',
-          color: 'success'
+          color: 'success',
+          icon: checkmarkCircle
         });
         await toast.present();
       }
@@ -196,17 +217,24 @@ export default defineComponent({
     const router = useRouter()
     
     return {
-      arrowBack,
+      // Keep necessary base icons
+      arrowBack, 
       checkmarkCircle,
-      stopCircle,
-      calendarOutline,
       cardOutline,
-      helpCircleOutline,
-      informationCircleOutline,
-      starOutline,
-      trendingUpOutline,
-      walletOutline,
-      refreshOutline,
+      // Add new icons
+      shieldCheckmark,
+      sparklesOutline,
+      rocketOutline,
+      peopleOutline,
+      calendarClearOutline,
+      pauseCircleOutline,
+      sadOutline,
+      gameControllerOutline,
+      banOutline,
+      lockClosedOutline,
+      playCircleOutline,
+      // Remove unused icons if desired (or keep them)
+      // stopCircle, calendarOutline, helpCircleOutline, informationCircleOutline, starOutline, trendingUpOutline, walletOutline, refreshOutline,
       router
     }
   }

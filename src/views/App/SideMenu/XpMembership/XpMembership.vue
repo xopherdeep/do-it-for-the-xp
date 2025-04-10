@@ -3,53 +3,51 @@
     <ion-header :translucent="true">
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-menu-button></ion-menu-button>
+          <ion-menu-button color="light"></ion-menu-button>
         </ion-buttons>
-        <ion-title>Premium Membership</ion-title>
+        <ion-title>Adventure Pass</ion-title>
       </ion-toolbar>
     </ion-header>
-    
-    <ion-content :fullscreen="true">
-      <ion-grid>
+
+    <ion-content :fullscreen="true" class="adventure-pass-content">
+      <div class="ap-background"></div>
+      <ion-grid class="ion-padding">
+        <!-- Current Status Card -->
         <ion-row>
           <ion-col>
-            <ion-card class="premium-card">
-              <ion-card-title>
-                Your Premium Plan
-              </ion-card-title>
+            <ion-card class="status-card">
               <ion-card-header>
-                <ion-text>
-                  <h1>
-                    {{ formatCurrency(currentPlan.price) }}
-                    <ion-chip color="light">
-                      Paid {{ currentPlan.interval === 'month' ? 'Monthly' : 'Annually' }}
-                    </ion-chip>
-                    <ion-badge color="warning">
-                      Premium
-                    </ion-badge>
-                  </h1>
-                </ion-text>
+                <ion-card-subtitle>Your Family's Adventure Status</ion-card-subtitle>
+                <ion-card-title class="ion-text-nowrap">
+                  <ion-icon :icon="shieldCheckmark" color="success" class="status-icon"></ion-icon>
+                  Adventure Pass: <ion-text color="success">Active!</ion-text>
+                </ion-card-title>
               </ion-card-header>
-
               <ion-card-content>
-                <div class="membership-info">
+                <div class="info-grid">
                   <div class="info-item">
-                    <ion-icon :icon="calendarOutline" size="small"></ion-icon>
-                    <ion-text>
-                      Next payment: <b>{{ nextPaymentDate }}</b>
-                    </ion-text>
+                    <ion-icon :icon="rocketOutline" size="small"></ion-icon>
+                    <ion-label>
+                      Current Plan: <b>{{ currentPlan.name }}</b>
+                    </ion-label>
                   </div>
                   <div class="info-item">
-                    <ion-icon :icon="starOutline" size="small"></ion-icon>
-                    <ion-text>
-                      Member since: <b>{{ memberSince }}</b>
-                    </ion-text>
+                    <ion-icon :icon="calendarClearOutline" size="small"></ion-icon>
+                    <ion-label>
+                      Renews: <b>{{ nextPaymentDate }}</b>
+                    </ion-label>
+                  </div>
+                  <div class="info-item">
+                    <ion-icon :icon="peopleOutline" size="small"></ion-icon>
+                    <ion-label>
+                      Adventuring Since: <b>{{ memberSince }}</b>
+                    </ion-label>
                   </div>
                   <div class="info-item">
                     <ion-icon :icon="cardOutline" size="small"></ion-icon>
-                    <ion-text>
-                      Payment method: <b>{{ paymentMethod.type }} ending in {{ paymentMethod.last4 }}</b>
-                    </ion-text>
+                    <ion-label>
+                      Payment: <b>{{ paymentMethod.type }} ...{{ paymentMethod.last4 }}</b>
+                    </ion-label>
                   </div>
                 </div>
               </ion-card-content>
@@ -57,37 +55,50 @@
           </ion-col>
         </ion-row>
 
-        <ion-row>
-          <ion-col>
-            <div class="plan-selector">
-              <ion-segment :value="activePlan" @ionChange="changePlan($event.detail.value)">
-                <ion-segment-button value="monthly">
-                  <ion-label>Monthly</ion-label>
-                </ion-segment-button>
-                <ion-segment-button value="annual">
-                  <ion-label>Annual <ion-chip color="warning" size="small">Save 20%</ion-chip></ion-label>
-                </ion-segment-button>
-              </ion-segment>
-            </div>
+        <!-- Plan Selection -->
+        <ion-row class="ion-justify-content-center ion-align-items-center">
+          <ion-col size="12">
+             <h2 class="section-title">Choose Your Adventure Length</h2>
+          </ion-col>
+          <ion-col size="12" size-md="6" v-for="plan in plans" :key="plan.id">
+            <ion-card 
+              button 
+              class="plan-card" 
+              :class="{ 'active-plan': activePlan === plan.id }"
+              @click="changePlan(plan.id)">
+              <ion-card-header>
+                 <ion-badge v-if="plan.id === 'annual'" color="warning" class="savings-badge">Save {{ plan.savings }}%</ion-badge>
+                <ion-card-title>{{ plan.name }}</ion-card-title>
+                <ion-card-subtitle>{{ formatCurrency(plan.price) }} / {{ plan.interval === 'month' ? 'month' : 'year' }}</ion-card-subtitle>
+              </ion-card-header>
+              <ion-card-content>
+                <ion-radio :value="plan.id" :checked="activePlan === plan.id" mode="md"></ion-radio>
+                <ion-label>{{ plan.id === 'annual' ? 'Best Value!' : 'Flexible Option' }}</ion-label>
+              </ion-card-content>
+            </ion-card>
           </ion-col>
         </ion-row>
 
+        <!-- Benefits Card -->
         <ion-row>
           <ion-col>
-            <ion-card>
-              <ion-card-title>
-                Premium Benefits
-              </ion-card-title>
+            <ion-card class="benefits-card">
+              <ion-card-header>
+                <ion-card-title>
+                  <ion-icon :icon="sparklesOutline" color="primary"></ion-icon>
+                  Your Adventure Perks
+                </ion-card-title>
+              </ion-card-header>
               <ion-card-content>
-                <ion-list class="benefits-list">
+                <ion-list lines="none" class="benefits-list">
                   <ion-item v-for="(benefit, index) in benefits" :key="index">
                     <ion-icon :icon="checkmarkCircle" color="success" slot="start" />
-                    {{ benefit }}
+                    <ion-label>{{ benefit }}</ion-label>
                   </ion-item>
                 </ion-list>
-                <ion-button expand="block" color="danger" class="cancel-button" @click="openCancelModal">
-                  Cancel Membership 
-                  <ion-icon :icon="stopCircle" slot="end" size="small" />
+                <ion-button expand="block" color="danger" fill="outline" class="cancel-button ion-margin-top" @click="openCancelModal">
+                  Pause Adventure Pass
+                  <ion-icon :icon="pauseCircleOutline" slot="end" size="small" />
                 </ion-button>
               </ion-card-content>
             </ion-card>
@@ -95,43 +106,45 @@
         </ion-row>
       </ion-grid>
 
-      <!-- Animated background -->
-      <div class="night">
-        <div class="shooting_star" v-for="n in 20" :key="n"></div>
-      </div>
-
       <!-- Cancel Membership Modal -->
-      <ion-modal :is-open="isModalOpen" @didDismiss="closeModal">
+      <ion-modal :is-open="isModalOpen" @didDismiss="closeModal" class="cancel-modal">
         <ion-header>
-          <ion-toolbar>
-            <ion-title>Cancel Membership</ion-title>
+          <ion-toolbar color="warning">
+            <ion-title>Pause Adventure Pass?</ion-title>
             <ion-buttons slot="end">
-              <ion-button @click="closeModal">Close</ion-button>
+              <ion-button @click="closeModal" color="dark">Close</ion-button>
             </ion-buttons>
           </ion-toolbar>
         </ion-header>
         <ion-content class="ion-padding">
-          <h2>We're sorry to see you go!</h2>
-          <p>Before you cancel, please consider:</p>
-          <ion-list>
+          <ion-icon :icon="sadOutline" size="large" color="warning" class="modal-icon"></ion-icon>
+          <h2>Thinking of Pausing Your Adventure?</h2>
+          <p>If you pause, your family will miss out on these perks:</p>
+          <ion-list lines="none">
             <ion-item>
-              <ion-icon :icon="informationCircleOutline" slot="start" color="primary"></ion-icon>
-              <ion-label>You'll lose access to all premium features</ion-label>
+              <ion-icon :icon="gameControllerOutline" slot="start" color="primary"></ion-icon>
+              <ion-label>Unlimited access to all quests & activities</ion-label>
             </ion-item>
             <ion-item>
-              <ion-icon :icon="trendingUpOutline" slot="start" color="primary"></ion-icon>
-              <ion-label>Your progress and achievements will be limited</ion-label>
+              <ion-icon :icon="banOutline" slot="start" color="primary"></ion-icon>
+              <ion-label>Ad-free experience for uninterrupted fun</ion-label>
+            </ion-item>
+             <ion-item>
+              <ion-icon :icon="sparklesOutline" slot="start" color="primary"></ion-icon>
+              <ion-label>Exclusive family challenges & rewards</ion-label>
             </ion-item>
             <ion-item>
-              <ion-icon :icon="walletOutline" slot="start" color="primary"></ion-icon>
-              <ion-label>Rejoining later may cost more due to price changes</ion-label>
+              <ion-icon :icon="lockClosedOutline" slot="start" color="primary"></ion-icon>
+              <ion-label>Your current price is locked in!</ion-label>
             </ion-item>
           </ion-list>
-          <ion-button expand="block" color="medium" @click="closeModal" class="ion-margin-top">
-            Keep My Membership
+          <ion-button expand="block" color="success" @click="closeModal" class="ion-margin-top">
+             <ion-icon :icon="playCircleOutline" slot="start"></ion-icon>
+            Keep the Adventure Going!
           </ion-button>
-          <ion-button expand="block" color="danger" @click="confirmCancel" class="ion-margin-top">
-            Proceed with Cancellation
+          <ion-button expand="block" color="danger" fill="outline" @click="confirmCancel" class="ion-margin-top">
+             <ion-icon :icon="pauseCircleOutline" slot="start"></ion-icon>
+            Yes, Pause My Pass
           </ion-button>
         </ion-content>
       </ion-modal>

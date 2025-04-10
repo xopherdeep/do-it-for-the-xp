@@ -1,217 +1,274 @@
-$shooting-time: 3000ms;
-$premium-gradient: linear-gradient(135deg, #6e45e2 0%, #88d3ce 100%);
-$premium-color: #6e45e2;
+// Adventure Pass Theme Variables
+$ap-primary-color: #4a90e2; // A friendly blue
+$ap-secondary-color: #f5a623; // A vibrant orange/gold
+$ap-success-color: #7ed321; // A bright green
+$ap-warning-color: #f8e71c; // A noticeable yellow
+$ap-danger-color: #d0021b; // Standard danger red
+$ap-background-start: #3a7bd5; // Gradient start
+$ap-background-end: #3a60d5; // Gradient end
+$ap-card-background: rgba(255, 255, 255, 0.95);
+$ap-text-color: #333;
+$ap-light-text-color: #f8f8f8;
+$ap-font-family: 'Nunito', sans-serif; // A rounded, friendly font
 
-.xp-membership {
+.xp-membership { // Keep the root class name for consistency
+  font-family: $ap-font-family;
+
   ion-toolbar {
-    --background: $premium-gradient;
-    --color: white;
+    --background: linear-gradient(135deg, $ap-primary-color, darken($ap-primary-color, 10%));
+    --color: $ap-light-text-color;
+    font-weight: bold;
   }
 
-  ion-content {
-    --background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
-    height: 100vh;
-    overflow: hidden;
-    font-family: "Anton", sans-serif;
+  .adventure-pass-content {
+    position: relative;
+    --background: #f0f4f8; // Light, clean background
 
-    ion-text {
-      color: white;
+    // Optional: Add a subtle pattern or texture background
+    // .ap-background {
+    //   position: absolute;
+    //   top: 0; left: 0; right: 0; bottom: 0;
+    //   background-image: url('/path/to/your/subtle-pattern.svg');
+    //   background-repeat: repeat;
+    //   opacity: 0.1;
+    //   z-index: 0;
+    // }
+
+    ion-grid {
+      position: relative; // Ensure grid content is above background
+      z-index: 1;
+    }
+  }
+
+  .section-title {
+    text-align: center;
+    color: $ap-primary-color;
+    font-weight: bold;
+    margin-bottom: 1rem;
+  }
+
+  ion-card {
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 10px;
+    margin-bottom: 20px;
+    background: $ap-card-background;
+    color: $ap-text-color;
+
+    ion-card-header {
+      padding-bottom: 8px;
     }
 
-    ion-card {
-      border-radius: 12px;
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-      margin: 16px;
+    ion-card-title {
+      font-weight: bold;
+      color: $ap-primary-color;
+      display: flex;
+      align-items: center;
+      gap: 8px; // Space between icon and text
+    }
+    
+    ion-card-subtitle {
+        color: darken($ap-text-color, 15%);
+        font-weight: 600;
+    }
+  }
 
-      &.premium-card {
-        background: $premium-gradient;
-        color: white;
+  .status-card {
+    border-left: 5px solid $ap-success-color;
 
-        ion-card-title,
-        ion-card-header,
-        ion-card-content {
-          color: white;
-        }
+    .status-icon {
+      font-size: 1.8em; // Make icon larger
+      margin-right: 8px;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
+        margin-top: 10px;
+    }
+
+    .info-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9em;
+
+      ion-icon {
+        color: $ap-primary-color;
+        font-size: 1.2em;
       }
+      ion-label b {
+          color: $ap-text-color;
+      }
+    }
+  }
 
+  .plan-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    cursor: pointer;
+    position: relative; // For badge positioning
+
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    &.active-plan {
+      border: 3px solid $ap-primary-color;
+      box-shadow: 0 6px 14px rgba($ap-primary-color, 0.3);
+      
       ion-card-title {
-        font-size: 1.5rem;
+          color: $ap-primary-color; // Ensure title stays colored
+      }
+    }
+
+    ion-card-header {
+      text-align: center;
+    }
+    
+    ion-card-title {
+        justify-content: center; // Center title in plan card
+        font-size: 1.4em;
+    }
+
+    ion-card-subtitle {
+      font-size: 1.1em;
+      font-weight: bold;
+      color: $ap-secondary-color;
+    }
+
+    ion-card-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding-top: 0;
+      padding-bottom: 16px;
+      
+      ion-radio {
+          --color-checked: $ap-primary-color;
+          margin-right: 5px; // Space before label
+      }
+      ion-label {
+          font-weight: 600;
+      }
+    }
+    
+    .savings-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
         font-weight: bold;
-        padding: 16px 16px 0;
+    }
+  }
+
+  .benefits-card {
+    border-left: 5px solid $ap-secondary-color;
+    
+    ion-card-title ion-icon {
+        color: $ap-secondary-color; // Match border color
+        font-size: 1.3em;
+    }
+  }
+
+  .benefits-list {
+    ion-item {
+      --background: transparent;
+      --padding-start: 0;
+      --inner-padding-end: 0;
+      --min-height: 40px;
+      font-size: 0.95em;
+
+      ion-icon[slot="start"] {
+        margin-right: 12px;
+        font-size: 1.2em;
+      }
+      ion-label {
+          white-space: normal; // Allow text wrapping
       }
     }
+  }
 
-    .plan-selector {
-      margin: 16px;
+  .cancel-button {
+    --border-radius: 20px;
+    font-weight: bold;
+  }
 
-      ion-segment {
-        --background: rgba(255, 255, 255, 0.1);
-        border-radius: 8px;
-
-        ion-segment-button {
-          --indicator-color: $premium-color;
-          --color-checked: white;
-          --color: rgba(255, 255, 255, 0.7);
-          --background-checked: $premium-color;
-          --border-radius: 8px;
+  // Modal Styles
+  .cancel-modal {
+      ion-toolbar {
+          --background: $ap-warning-color;
+          --color: darken($ap-warning-color, 40%);
+      }
+      ion-content {
+          --background: #fff;
+      }
+      .modal-icon {
+          display: block;
+          margin: 16px auto;
+          font-size: 4em;
+      }
+      h2 {
+          text-align: center;
+          color: $ap-primary-color;
           font-weight: bold;
-        }
       }
-    }
-
-    .membership-info {
-      padding: 16px;
-
-      .info-item {
-        display: flex;
-        align-items: center;
-        margin-bottom: 12px;
-
-        ion-icon {
-          margin-right: 12px;
-          color: $premium-color;
-        }
+      p {
+          text-align: center;
+          color: darken($ap-text-color, 20%);
+          margin-bottom: 1.5rem;
       }
-    }
-
-    .benefits-list {
-      ion-item {
-        --background: transparent;
-        --color: white;
-
-        ion-icon {
-          margin-right: 12px;
-        }
+      ion-list {
+          background: transparent;
+          ion-item {
+              --background: transparent;
+              --padding-start: 0;
+              --inner-padding-end: 0;
+              ion-icon {
+                  margin-right: 10px;
+                  font-size: 1.3em;
+              }
+              ion-label {
+                  font-size: 0.95em;
+                  color: $ap-text-color;
+              }
+          }
       }
-    }
-
-    .cancel-button {
-      margin: 16px;
-    }
-  }
-
-  .night {
-    position: absolute;
-    z-index: 0;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    transform: rotateZ(45deg);
-    animation: sky 200000ms linear infinite;
-  }
-
-  .shooting_star {
-    z-index: 1;
-    position: absolute;
-    left: 50%;
-    top: 50%;
-    height: 2px;
-    background: linear-gradient(
-      -45deg,
-      rgba(95, 145, 255, 1),
-      rgba(0, 0, 255, 0)
-    );
-    border-radius: 999px;
-    filter: drop-shadow(0 0 6px rgba(105, 155, 255, 1));
-    animation: tail $shooting-time ease-in-out infinite,
-      shooting $shooting-time ease-in-out infinite;
-
-    &::before {
-      content: "";
-      position: absolute;
-      top: calc(50% - 1px);
-      right: 0;
-      height: 2px;
-      background: linear-gradient(
-        -45deg,
-        rgba(0, 0, 255, 0),
-        rgba(95, 145, 255, 1),
-        rgba(0, 0, 255, 0)
-      );
-      transform: translateX(50%) rotateZ(45deg);
-      border-radius: 100%;
-      animation: shining $shooting-time ease-in-out infinite;
-    }
-
-    &::after {
-      content: "";
-      position: absolute;
-      top: calc(50% - 1px);
-      right: 0;
-      height: 2px;
-      background: linear-gradient(
-        -45deg,
-        rgba(0, 0, 255, 0),
-        rgba(95, 145, 255, 1),
-        rgba(0, 0, 255, 0)
-      );
-      transform: translateX(50%) rotateZ(-45deg);
-      border-radius: 100%;
-      animation: shining $shooting-time ease-in-out infinite;
-    }
-
-    @for $i from 1 through 20 {
-      &:nth-child(#{$i}) {
-        $delay: (random(9999)) + 0ms;
-        top: calc(50% - (#{random(400)}px - 200px));
-        left: calc(50% - (#{random(300)}px + 0px));
-        animation-delay: $delay;
-        opacity: (random(50) / 100) + 0.5;
-
-        &::before,
-        &::after {
-          animation-delay: $delay;
-        }
+      ion-button {
+          --border-radius: 20px;
+          font-weight: bold;
+          ion-icon {
+              margin-right: 8px;
+          }
       }
-    }
   }
-}
-
-@keyframes tail {
-  0% {
-    width: 0;
-  }
-
-  30% {
-    width: 100px;
-  }
-
-  100% {
-    width: 0;
-  }
-}
-
-@keyframes shining {
-  0% {
-    width: 0;
-  }
-
-  50% {
-    width: 30px;
-  }
-
-  100% {
-    width: 0;
-  }
-}
-
-@keyframes shooting {
-  0% {
-    transform: translateX(0);
-  }
-
-  100% {
-    transform: translateX(300px);
-  }
-}
-
-@keyframes sky {
-  0% {
-    transform: rotate(45deg);
-  }
-
-  100% {
-    transform: rotate(405deg);
+  
+  // Confirmation Alert Styles
+  .confirm-cancel-alert {
+      .alert-button-group {
+          flex-direction: column-reverse; // Stack buttons
+      }
+      .alert-button {
+          border-radius: 20px !important; // Ensure override
+          margin: 5px 10px !important;
+          font-weight: bold;
+          
+          &.keep-button { // Style for the "Keep" button
+              background-color: $ap-success-color;
+              color: white;
+          }
+          &.pause-button { // Style for the "Pause" button
+              background-color: $ap-danger-color;
+              color: white;
+          }
+          // Default cancel button style (if role: 'cancel' is used differently)
+          &.alert-button-role-cancel { 
+              background-color: #ccc; 
+              color: #333;
+          }
+      }
   }
 }
