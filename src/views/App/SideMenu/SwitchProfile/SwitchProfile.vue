@@ -161,7 +161,7 @@
             color: 'danger',
             position: 'top'
           });
-          await toast.present();
+          // await toast.present(); // Toast removed as requested
         } finally {
           isProfileLoading.value = false; // Stop loading indicator
         }
