@@ -110,40 +110,30 @@ export default defineComponent({
       // Example action sheet for food items
       const actionSheet = await actionSheetController.create({
           header: 'Kitchen Actions',
-          cssClass: 'my-custom-class',
+          cssClass: 'my-custom-class', // Optional custom styling
           buttons: [
-            // {
-            //   text: 'Save Cash',
-            //   icon: cashOutline,
-            //   id: 'delete-button', 
-            //   data: {
-            //     type: 'delete'
-            //   },
-            //   handler: () => {
-            //     // console.log('Delete clicked')
-            //   },
-            // },
             {
-              text: 'Add Quest',
+              text: 'Cook Something',
+              icon: restaurantOutline, // Use a relevant icon
+              handler: () => {
+                console.log('Cook Something clicked (implement logic)');
+                // Example: Navigate to a cooking detail page or show a modal
+              },
+            },
+            {
+              text: 'Add New Recipe',
               icon: addCircleOutline,
-              data: 'Data value',
               handler: () => {
-                // console.log('Play clicked')
+                console.log('Add New Recipe clicked (implement logic)');
+                // Example: Show a form to add a new food item/recipe
               },
             },
-            {
-              text: 'Request Time Off',
-              icon: removeCircleOutline,
-              data: 10,
+             {
+              text: 'View Grocery List',
+              icon: cartOutline,
               handler: () => {
-                // console.log('Share clicked')
-              },
-            },
-            {
-              text: 'Some other action...',
-              icon: calendarOutline,
-              handler: () => {
-                // console.log('Favorite clicked')
+                console.log('View Grocery List clicked (implement logic)');
+                 // Example: Navigate to a grocery list page
               },
             },
             {
@@ -151,24 +141,27 @@ export default defineComponent({
               icon: close,
               role: 'cancel',
               handler: () => {
-                // console.log('Cancel clicked')
+                // console.log('Cancel clicked');
               },
             },
           ],
         });
-      actionSheet.present();
-      await actionSheet.onDidDismiss();
-      // const { role, data } = 
-      // console.log('onDidDismiss resolved with role and data', role, data);
+      await actionSheet.present();
     },
+     // Helper to get image source, handling potential missing images
+    getFoodImageUrl(imageUrl: string): string {
+        // Basic check, replace with actual placeholder logic if needed
+        return imageUrl || '/assets/placeholder-food.png';
+    }
   },
   mounted() {
-    // this.$fx.ui[this.$fx.theme.ui].openShop.play()
+    // Optional: Play a sound effect when entering the kitchen
+    // this.$fx.ui[this.$fx.theme.ui].openPage.play() // Example sound
   },
   setup() {
     const customAlertOptions = {
-      header: 'View Quests',
-      subHeader: 'Select what quests to view',
+      header: 'Food Categories',
+      subHeader: 'Select which foods to view',
       message: 'Filter by category or view all.',
       translucent: true,
     };
