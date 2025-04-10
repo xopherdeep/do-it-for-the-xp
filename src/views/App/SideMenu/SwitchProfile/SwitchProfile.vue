@@ -152,9 +152,16 @@
             "forward"
             // "replace"
           );
-        } catch (error) {
-          console.error("Navigation error:", error);
-          // Handle navigation error (e.g., show a toast)
+        } catch (error: any) { // Catch specific error type if known
+          console.error("Login/Navigation error:", error);
+          // Show error toast
+          const toast = await toastController.create({
+            message: `Failed to load profile: ${error.message || error}`,
+            duration: 3000, // Show for 3 seconds
+            color: 'danger',
+            position: 'top'
+          });
+          await toast.present();
         } finally {
           isProfileLoading.value = false; // Stop loading indicator
         }
