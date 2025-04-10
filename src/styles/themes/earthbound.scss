@@ -15,11 +15,8 @@ $eb-color-pale-yellow: #f7e8a8;
 // Mixins
 @mixin eb-box() {
   border-radius: 1px;
-  box-shadow: 
-    0 0 0 5px $eb-color-medium-purple, 
-    0 0 0 10px $eb-color-minty-blue,
-    0 0 0 12px $eb-color-pale-yellow, 
-    0 0 0 16px $eb-color-slate;
+  box-shadow: 0 0 0 5px $eb-color-medium-purple, 0 0 0 10px $eb-color-minty-blue,
+    0 0 0 12px $eb-color-pale-yellow, 0 0 0 16px $eb-color-slate;
   background-color: $eb-color-dark-purple;
   color: $eb-color-cream;
 }
@@ -75,7 +72,7 @@ ion-app {
     ion-list {
       list-style-type: circle;
     }
-    
+
     ion-item {
       font-family: $eb-font-primary;
       font-size: 100%;
@@ -92,7 +89,6 @@ ion-app {
         border-left: 0.3rem solid $eb-color-cream;
       }
     }
-
 
     // Content areas
     ion-content {
@@ -198,7 +194,9 @@ ion-app {
       --border-radius: 1px;
       --transform: translateY(0);
       --transition: transform linear 150ms;
-      --box-shadow: 0 0 0 5px #{$eb-color-medium-purple}, 0 0 0 10px #{$eb-color-minty-blue}, 0 0 0 12px #{$eb-color-pale-yellow}, 0 0 0 16px #{$eb-color-slate};
+      --box-shadow: 0 0 0 5px #{$eb-color-medium-purple},
+        0 0 0 10px #{$eb-color-minty-blue}, 0 0 0 12px #{$eb-color-pale-yellow},
+        0 0 0 16px #{$eb-color-slate};
       --width: 90%;
       --button-color: #{$eb-color-cream};
 

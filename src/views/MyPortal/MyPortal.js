@@ -2,10 +2,10 @@ import { computed, defineComponent, reactive, ref } from "vue";
 // import requireImg from "@/assets/js/requireImg";
 import fetchItems from "@/mixins/fetchItems";
 import ionic from "@/mixins/ionic";
+import components from "./components";
 import userActions from "@/mixins/userActions";
 import "swiper/css";
 import { modalController } from "@ionic/vue";
-import components from "./components";
 
 // import XpFabUserHud  from "./components/XpFabUserHud.vue"
 
@@ -219,10 +219,10 @@ export default defineComponent({
 
       // Create a copy of the item with the click handler preserved
       const itemToEquip = { ...item, hand, slotIndex: index };
-      
+
       // Ensure the click handler is properly preserved
       // Functions don't get copied with spread operator, so we need to explicitly assign it
-      if (item.click && typeof item.click === 'function') {
+      if (item.click && typeof item.click === "function") {
         itemToEquip.click = item.click;
       }
 
