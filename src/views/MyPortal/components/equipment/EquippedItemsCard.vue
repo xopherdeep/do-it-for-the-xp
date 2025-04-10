@@ -141,10 +141,13 @@ export default defineComponent({
   emits: ["equip", "select-item"], // Ensure emits are declared
   setup(props, { emit }) { // Using setup for computed property
     const isEquipped = computed(() => {
-      if (!props.infoItem) return false;
+      // Ensure infoItem and its faIcon exist before comparing
+      if (!props.infoItem || !props.infoItem.faIcon) return false; 
+      
       // Check if the infoItem exists in either hand's slots (only index 0 for now)
-      return (props.leftSlots[0]?.faIcon === props.infoItem.faIcon) || 
-             (props.rightSlots[0]?.faIcon === props.infoItem.faIcon);
+      const infoIcon = props.infoItem.faIcon; // Store for cleaner access
+      return (props.leftSlots[0]?.faIcon === infoIcon) || 
+             (props.rightSlots[0]?.faIcon === infoIcon);
     });
 
     // Method to handle equipping/unequipping by clicking the icon in the info section
