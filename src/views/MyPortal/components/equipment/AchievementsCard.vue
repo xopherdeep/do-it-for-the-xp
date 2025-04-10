@@ -4,13 +4,23 @@
     <ion-card-content>
       <div class="crystals-circle-container">
         <div class="crystals-circle">
+          <!-- Loop for the first 6 crystals -->
           <div 
-            v-for="(crystal, index) in crystals" 
-            :key="index" 
-          class="crystal-item"
-          :class="{ 'obtained': crystal.obtained }"
-        >
-            <i class="fad fa-gem fa-lg"></i> <!-- Adjusted size slightly -->
+            v-for="(crystal, index) in crystals.slice(0, 6)" 
+            :key="`outer-${index}`" 
+            class="crystal-item outer-crystal"
+            :class="{ 'obtained': crystal.obtained }"
+          >
+            <i class="fad fa-gem fa-lg"></i>
+          </div>
+          <!-- Separate element for the 7th (center) crystal -->
+          <div 
+            v-if="crystals.length > 6"
+            class="crystal-item center-crystal"
+            :class="{ 'obtained': crystals[6].obtained }"
+            :key="'center-crystal'"
+          >
+            <i class="fad fa-gem fa-lg"></i>
           </div>
         </div>
       </div>
@@ -100,13 +110,24 @@ export default defineComponent({
     // --- Calculate positioning for 7 items ---
     // Angle = (360 / 7) * index
     // Offset = radius (50px for a 100px diameter circle)
+    // --- Calculate positioning for 6 outer items ---
+    // Angle = (360 / 6) * index
+    // Offset = radius (50px for a 100px diameter circle)
     // transform: rotate(angle) translate(offset) rotate(-angle);
     
-    @for $i from 0 through 6 {
-      &:nth-child(#{$i + 1}) {
-        $angle: (360deg / 7) * $i;
-        transform: rotate($angle) translate(50px) rotate(-$angle);
+    &.outer-crystal {
+      @for $i from 0 through 5 {
+        &:nth-child(#{$i + 1}) {
+          $angle: (360deg / 6) * $i;
+          transform: rotate($angle) translate(50px) rotate(-$angle);
+        }
       }
+    }
+    
+    // --- Position the center item ---
+    &.center-crystal {
+      // Already positioned absolute at top 50%, left 50% with negative margin
+      // No additional transform needed
     }
 
     i.fa-gem {

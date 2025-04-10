@@ -16,7 +16,8 @@
       </ion-buttons>
     </ion-header>
     <ion-content class="icon-colors">
-      <ion-grid>
+      <!-- Added padding-top to the grid -->
+      <ion-grid style="padding-top: 10px;"> 
         <ion-row>
           <ion-col size="7">
             <equipment-grid 
