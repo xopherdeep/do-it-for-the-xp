@@ -45,6 +45,14 @@ import {
   refreshOutline
 } from "ionicons/icons"
 
+interface Plan {
+  id: string;
+  name: string;
+  price: number;
+  interval: string;
+  savings: number;
+}
+
 export default defineComponent({
   name: 'xp-membership',
   data() {
@@ -132,7 +140,8 @@ export default defineComponent({
             text: 'No, Keep It',
             role: 'cancel',
             handler: () => {
-              this.closeModal()
+              // Make sure isModalOpen is set to false directly
+              this.isModalOpen = false
             }
           },
           {
@@ -147,24 +156,34 @@ export default defineComponent({
     },
     async processCancellation() {
       // Here you would call your API to cancel the subscription
-      this.closeModal()
-      const toast = await toastController.create({
-        message: 'Your membership has been canceled. It will remain active until the end of your billing period.',
-        duration: 3000,
-        position: 'bottom',
-        color: 'warning'
-      })
-      await toast.present()
+      this.isModalOpen = false // Set directly instead of using this.closeModal()
+      
+      // Check if toastController exists before using it
+      if (toastController) {
+        const toast = await toastController.create({
+          message: 'Your membership has been canceled. It will remain active until the end of your billing period.',
+          duration: 3000,
+          position: 'bottom',
+          color: 'warning'
+        })
+        await toast.present()
+      }
     },
-    async changePlan(planId) {
-      this.activePlan = planId
-      const toast = await toastController.create({
-        message: `Your plan preference has been updated to ${this.currentPlan.name}`,
-        duration: 2000,
-        position: 'bottom',
-        color: 'success'
-      })
-      await toast.present()
+    async changePlan(planId: string) {
+      this.activePlan = planId;
+      // Find the plan in the typed array
+      const matchingPlan = (this.plans as Plan[]).find(plan => plan.id === planId);
+      const planName = matchingPlan ? matchingPlan.name : planId;
+      
+      if (toastController) {
+        const toast = await toastController.create({
+          message: `Your plan preference has been updated to ${planName}`,
+          duration: 2000,
+          position: 'bottom',
+          color: 'success'
+        });
+        await toast.present();
+      }
     },
     formatCurrency(amount) {
       return new Intl.NumberFormat('en-US', {

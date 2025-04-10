@@ -15,7 +15,15 @@
       </ion-toolbar>
     </ion-header>
     <ion-content :fullscreen="true" id="container" class="ion-padding">
-      <ion-card v-if="!loading">
+      <ion-refresher slot="fixed" @ionRefresh="handleRefresh($event)">
+        <ion-refresher-content></ion-refresher-content>
+      </ion-refresher>
+
+      <div v-if="isLoading" class="flex justify-center items-center h-full">
+        <ion-spinner name="circles"></ion-spinner>
+      </div>
+
+      <ion-card v-else>
         <ion-list>
           <ion-item detail button @click="openNewProfileModal">
             <ion-label>
@@ -24,9 +32,9 @@
             </ion-label>
           </ion-item>
           <ion-item
-            v-for="(profile, key) in users"
-            :key="key"
-            @click="clickProfile(profile)"
+            v-for="profile in users"
+            :key="profile.id"
+            @click="selectProfile(profile)"
             button
             detail
           >
@@ -58,21 +66,17 @@
   import {
     useIonRouter,
     onIonViewWillEnter,
-    loadingController,
+    onIonViewDidLeave,
   } from "@ionic/vue";
   import { useStore } from "vuex";
-  import { computed, defineComponent, ref, watch } from "@vue/runtime-core";
-  import { add, peopleCircleSharp, peopleCircleOutline } from "ionicons/icons";
-  // Removed incorrect type import
+  import { computed, defineComponent, ref, onUnmounted } from "vue";
+  import { peopleCircleSharp, peopleCircleOutline } from "ionicons/icons";
   import User from "@/utils/User";
   import { Drivers, Storage } from "@ionic/storage";
-
   import { modalController } from "@ionic/vue";
   import { ProfileDb } from "@/databases";
-
   import AddProfile from "./AddProfile/AddProfile.vue";
   import XpGp from "@/components/XpGp/XpGp.vue";
-
   import DialPad from "./DialPad.vue";
 
   const requireAvatar = require.context("@/assets/images/avatars/");
@@ -86,220 +90,127 @@
     name: "switch-profile",
     components: { XpGp },
     setup() {
-      const loading = ref(false); // Keep for template v-if, managed by controller
-      const hasLoaded = ref(false); // Track initial load
-      const refresh = ref(false);
+      // State management
+      const isLoading = ref(false);
       const store = useStore();
       const ionRouter = useIonRouter();
       const storage = new ProfileDb(profileStorage);
 
-      // --- Computed ---
+      // Computed properties
       const users = computed(() => store.getters.usersAz);
       const bgm = computed(() => store.state.bgm);
-      // Note: The 'profiles' computed property seemed redundant with 'users', removed it.
-      // If it served a different purpose, it needs to be re-evaluated.
 
-      // --- Methods ---
-      const loadUsers = () => store.dispatch("loadUsers");
+      // Data loading function
+      const loadProfiles = async () => {
+        isLoading.value = true;
 
-      const loginUser = (profile: User) => store.dispatch("loginUser", profile);
-
-      const clickAddProfile = () => {
-        ionRouter.navigate(`/new-profile`, "forward");
+        try {
+          await storage.init();
+          await store.dispatch("loadUsers");
+        } catch (error) {
+          console.error("Failed to load profiles:", error);
+          // You could add a toast or alert here to notify user of the error
+        } finally {
+          isLoading.value = false;
+        }
       };
 
+      // Pull-to-refresh handler
+      const handleRefresh = async (event: any) => {
+        try {
+          await loadProfiles();
+        } finally {
+          event.target.complete();
+        }
+      };
+
+      // Navigation functions
+      const navigateToUserPortal = async (profile: User) => {
+        try {
+          // Login the user first
+          await store.dispatch("loginUser", profile);
+          // Then navigate to their portal
+          await ionRouter.navigate(
+            `/my-portal/${profile.id}/my-home`,
+            "forward",
+            "replace"
+          );
+        } catch (error) {
+          console.error("Navigation error:", error);
+          // Handle navigation error
+        }
+      };
+
+      // Profile functions
       const getUserAvatar = (user: User) => {
-        const { avatar } = user;
-        if (avatar) {
+        if (user?.avatar) {
           return requireAvatar(`./${user.avatar}.svg`);
         }
-        return null; // Or a default avatar
+        return ""; // Return empty string or default avatar path
       };
 
-      const openProfile = async (profile: User) => {
-        // Login action MUST return a promise that resolves after state is committed
-        await loginUser(profile);
-        // Ensure navigation happens after login state is set
-        await ionRouter.navigate(`/my-portal/${profile.id}/my-home`, "forward", "replace"); // Navigate to the user's home page
-      };
-
-      // --- Loading Indicator ---
-      let activeLoader: any = null; // Keep track of the active loader instance (using 'any' or let TS infer)
-
-      const presentLoading = async (message = "Loading Profiles...", duration = 10000) => { // Add default duration
-        // Dismiss any existing loader first
-        await dismissLoading();
-
-        loading.value = true;
-        activeLoader = await loadingController.create({
-          message,
-          spinner: "circles",
-          duration: duration, // Automatically dismiss after duration
-        });
-        await activeLoader.present();
-
-        // Handle case where loader might be dismissed manually before duration ends
-        activeLoader.onDidDismiss().then(() => {
-          if (activeLoader) { // Check if it's the same loader instance
-             loading.value = false;
-             activeLoader = null;
-          }
-        });
-      };
-
-      const dismissLoading = async () => {
-        if (activeLoader) {
-          try {
-            await activeLoader.dismiss();
-          } catch (e) {
-             // Ignore error if loader already dismissed
-          } finally {
-             activeLoader = null; // Clear the tracked loader instance
-             loading.value = false;
-          }
-        } else if (loading.value) {
-           // Fallback if loader instance wasn't tracked but loading state is true
-           try {
-             await loadingController.dismiss();
-           } catch(e) { /* ignore */ }
-           loading.value = false;
+      const selectProfile = async (profile: User) => {
+        if (profile.passcode) {
+          openPasscodeModal(profile);
+        } else {
+          navigateToUserPortal(profile);
         }
       };
 
-      // Updated showLoader for passcode verification - now just presents loader
-      const showUnlockLoader = async () => {
-        // Use a shorter duration or no duration, rely on explicit dismiss
-        await presentLoading("Unlocking Profile...", 0); // 0 duration means no auto-dismiss
-      };
-
-      const passcodeVerified = async (dismiss: any) => {
-        if (dismiss.data) {
-          await showUnlockLoader(); // Show loader without timeout
-          try {
-             await openProfile(dismiss.data); // Await the profile opening (which includes login and nav)
-          } catch (error) {
-             console.error("Error opening profile after passcode:", error);
-             // Optionally show error message
-          } finally {
-             await dismissLoading(); // Dismiss loader after process completes or fails
-          }
-        }
-      };
-
-      const showKeyPad = async (profile: User) => {
+      // Modal management
+      const openPasscodeModal = async (profile: User) => {
         const modal = await modalController.create({
           component: DialPad,
           cssClass: "fullscreen",
-          componentProps: {
-            profile,
-          },
+          componentProps: { profile },
         });
-        modal.present();
-        modal.onDidDismiss().then(passcodeVerified);
-      };
 
-      const clickProfile = (profile: User) => {
-        const { passcode } = profile;
-        if (passcode) {
-          showKeyPad(profile);
-        } else {
-          openProfile(profile);
+        await modal.present();
+
+        const { data } = await modal.onDidDismiss();
+        if (data) {
+          navigateToUserPortal(profile);
         }
       };
-
-      // Removed setProfiles and loadProfiles as loadUsers seems to handle fetching from storage via Vuex action
-      // If direct storage interaction is needed here, uncomment and adjust loadProfiles
-      /*
-      const setProfiles = (loadedProfiles: User[]) => {
-         // This logic might conflict with Vuex state management if 'users' comes from store
-         // Decide if profiles should be managed locally or via Vuex exclusively
-         console.log("Setting profiles locally:", loadedProfiles);
-         // Example: If you need a local sorted copy:
-         // localSortedProfiles.value = loadedProfiles.sort(...)
-      };
-
-      const loadProfiles = async () => {
-         // return await storage.getAll().then(setProfiles);
-         // Prefer using the Vuex action if it reads from storage
-         return loadUsers();
-      };
-      */
 
       const openNewProfileModal = async () => {
         const modal = await modalController.create({
           component: AddProfile,
           cssClass: "fullscreen",
         });
-        modal.onDidDismiss().then(() => {
-          loadUsers(); // Reload users from store after modal dismiss
-          // If loadProfiles was needed: .then(loadProfiles)
-        });
-        modal.present();
+
+        await modal.present();
+
+        const { data } = await modal.onDidDismiss();
+        if (data) {
+          // If profile was created successfully
+          loadProfiles();
+        }
       };
 
-      // --- Lifecycle Hooks ---
-      onIonViewWillEnter(async () => {
-        if (!hasLoaded.value) {
-          hasLoaded.value = true; // Mark that initial load attempt has started
-          await presentLoading();
-          try {
-            await storage.init(); // Ensure storage is ready before loading
-            await loadUsers(); // Assuming loadUsers returns a promise
-          } catch (error) {
-            console.error("Failed to load users:", error);
-            await dismissLoading(); // Dismiss loader on error
-            // Optionally show an error message to the user
-          }
-          // Do NOT dismiss loader here in 'finally' - let the watcher handle it on success
-        } else {
-           // If hasLoaded is true, maybe still ensure data is present if users array is empty
-           if (users.value.length === 0) {
-              console.log("View entered again, users empty, attempting reload...");
-              await presentLoading();
-              try {
-                 await storage.init();
-                 await loadUsers();
-              } catch (error) {
-                 console.error("Failed to reload users:", error);
-                 await dismissLoading();
-              }
-           }
-        }
+      // Lifecycle hooks
+      onIonViewWillEnter(() => {
+        loadProfiles();
       });
 
-      // Watcher to dismiss loader once users are loaded
-      watch(users, (newUsers) => {
-        if (newUsers && newUsers.length > 0 && loading.value && activeLoader) {
-          console.log("Users loaded, dismissing loader via watcher.");
-          dismissLoading();
-        }
+      onIonViewDidLeave(() => {
+        // Clean up or reset any state needed when navigating away
       });
 
-      // --- Return ---
+      onUnmounted(() => {
+        // Additional cleanup if needed
+      });
+
       return {
-        loading,
-        refresh,
-        users, // Use the computed 'users' which gets from 'usersAz' getter
+        isLoading,
+        users,
         bgm,
-        add,
         peopleCircleSharp,
         peopleCircleOutline,
-        ionRouter, // Not strictly needed in return if only used in setup, but good practice if template might need it later
-        // storage, // Usually not needed in template
-        loadUsers,
-        loginUser,
-        clickAddProfile,
         getUserAvatar,
-        clickProfile,
-        openProfile,
-        showKeyPad,
-        // passcodeVerified, // Only used internally by showKeyPad
-        // showLoader, // Only used internally by passcodeVerified
-        // setProfiles, // Removed/Commented
-        // loadProfiles, // Removed/Commented
+        selectProfile,
         openNewProfileModal,
-        // Expose helper directly for template
-        $getUserAvatar: getUserAvatar,
+        handleRefresh,
       };
     },
   });

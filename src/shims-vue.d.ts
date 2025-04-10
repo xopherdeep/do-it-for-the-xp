@@ -1,5 +1,4 @@
 /* eslint-disable */
-/* eslint-disable */
 import User from '@/utils/User/user'; // Import the User type
 
 declare module '*.vue' {
@@ -9,7 +8,7 @@ declare module '*.vue' {
 }
 
 declare module '@vue/runtime-core' {
-  // TODO: replace 'any' with actual type
+  // Global properties for Vue component instances
   interface ComponentCustomProperties {
     $fx: any;
     $requireAvatar: any;
@@ -19,6 +18,14 @@ declare module '@vue/runtime-core' {
     play$fx: (fx?: string) => void;
     $historyCount: number;
     $getUserAvatar: (user: User) => string; 
+  }
+}
+
+// Make sure global methods are available on Vue component instances
+declare module 'vue' {
+  interface ComponentCustomProperties {
+    $requireAvatar: any;
+    play$fx: (fx?: string) => void;
   }
 }
 

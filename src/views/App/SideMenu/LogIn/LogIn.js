@@ -5,9 +5,7 @@ import backgrounds from "@/assets/images/backgrounds/parallax/index.js";
 import InputSettings from "../XpSettings/components/InputSettings.vue";
 import SuccessfulLoginModal from "./SuccessfulLoginModal.vue";
 
-import {
-  modalController,
-} from "@ionic/vue";
+import { modalController } from "@ionic/vue";
 
 import { mapActions, useStore } from "vuex";
 import { useRouter, useRoute } from "vue-router";
@@ -73,7 +71,7 @@ export default defineComponent({
     ...mapActions(["loginUser", "changeBGM"]),
     closeSuccessModal() {
       this.showSuccessModal = false;
-      this.router.push({ name: "switch-profile" });
+      this.router.push({ name: "xp-profile" });
     },
     setBGStyle(key, value) {
       const { page } = this.$refs;
@@ -121,8 +119,8 @@ export default defineComponent({
         client_id,
       }).toString();
 
-      this.$router.push("/switch-profile")
-      modalController.dismiss()
+      this.$router.push("/switch-profile");
+      modalController.dismiss();
 
       // window.location.href = `https://${domain}${authorize}?${params}`;
     },

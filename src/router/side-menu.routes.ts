@@ -12,11 +12,11 @@ export const SideMenuRoutes: Array<RouteRecordRaw> = [
 
   // Switch Profile
   {
-    path: '/switch-profile', // Changed path
-    name: 'switch-profile',
+    path: '/xp-profile', // Changed path
+    name: 'xp-profile',
     component: () => import('@/views/App/SideMenu/SwitchProfile/SwitchProfile.vue'),
     meta: {
-      requiresAuth: false
+      // requiresAuth: false
     }
   },
   // Game Master

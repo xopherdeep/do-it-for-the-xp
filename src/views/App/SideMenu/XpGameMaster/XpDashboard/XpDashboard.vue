@@ -5,9 +5,9 @@
         <ion-buttons slot="start">
           <ion-menu-button @click="play$fx('select')" />
         </ion-buttons>
-        <ion-title> 
+        <ion-title>
           <i class="fad fa-gamepad-alt fa-lg mr-2"></i>
-          Game Master Dashboard 
+          Game Master Dashboard
         </ion-title>
         <ion-buttons slot="end">
           <ion-button @click="refreshData">
@@ -62,7 +62,9 @@
               Action Items
               <p>Stay on top of all the action!</p>
             </ion-label>
-            <ion-badge color="primary" slot="end">{{ approvals?.total || 0 }}</ion-badge>
+            <ion-badge color="primary" slot="end">{{
+              approvals?.total || 0
+            }}</ion-badge>
           </ion-item>
           <ion-list slot="content">
             <xp-action-items />
@@ -76,7 +78,9 @@
               Reward Shelf
               <p>Create rewards, redeem points.</p>
             </ion-label>
-            <ion-badge color="success" slot="end">{{ rewards?.total || 0 }}</ion-badge>
+            <ion-badge color="success" slot="end">{{
+              rewards?.total || 0
+            }}</ion-badge>
           </ion-item>
           <ion-list slot="content">
             <xp-reward-shelf />
@@ -90,7 +94,9 @@
               Impersonate Profile
               <p>Clicking a profile will impersonate that user.</p>
             </ion-label>
-            <ion-badge color="tertiary" slot="end">{{ users?.length || 0 }}</ion-badge>
+            <ion-badge color="tertiary" slot="end">{{
+              users?.length || 0
+            }}</ion-badge>
           </ion-item>
           <ion-list slot="content">
             <xp-impersonate-profile />
@@ -110,19 +116,31 @@
           <ion-grid>
             <ion-row>
               <ion-col size="4">
-                <ion-button expand="block" color="success" @click="navigateTo('/add-achievement')">
+                <ion-button
+                  expand="block"
+                  color="success"
+                  @click="navigateTo('/add-achievement')"
+                >
                   <i class="fad fa-plus-circle mr-1"></i>
                   Achievement
                 </ion-button>
               </ion-col>
               <ion-col size="4">
-                <ion-button expand="block" color="warning" @click="navigateTo('/game-master/do-this-not-that')">
+                <ion-button
+                  expand="block"
+                  color="warning"
+                  @click="navigateTo('/game-master/do-this-not-that')"
+                >
                   <i class="fad fa-rainbow mr-1"></i>
                   Do/Don't
                 </ion-button>
               </ion-col>
               <ion-col size="4">
-                <ion-button expand="block" color="tertiary" @click="navigateTo('/game-master/bestiary')">
+                <ion-button
+                  expand="block"
+                  color="tertiary"
+                  @click="navigateTo('/game-master/bestiary')"
+                >
                   <i class="fad fa-dragon mr-1"></i>
                   Beast
                 </ion-button>
@@ -149,12 +167,12 @@
   import XpDoThisNotThat from "./components/XpDoThisNotThatItem.vue";
   import XpTemples from "./components/XpTemples.vue";
   import { mapGetters } from "vuex";
-  import { useRouter } from "vue-router";
   import AchievementDb, { achievementStorage } from "@/databases/AchievementDb";
   import BestiaryDb, { beastStorage } from "@/databases/BestiaryDb";
   import DosDontsDb, { dosDontsStorage } from "@/databases/DosDontsDb";
+  import { toastController } from "@ionic/vue";
 
-  import { defineComponent, ref, computed, onMounted } from "vue";
+  import { defineComponent, ref, onMounted } from "vue";
   export default defineComponent({
     name: "xp-dashboard",
     mixins: [ionic],
@@ -167,7 +185,9 @@
     },
     computed: {
       ...mapGetters(["usersAz"]),
-      users() { return this.usersAz; }
+      users() {
+        return this.usersAz;
+      },
     },
     methods: {
       navigateTo(path) {
@@ -181,74 +201,84 @@
         // Load achievements count
         const achievements = await this.achievementDb.getTasks();
         this.stats.achievements = achievements.length;
-        
+
         // Load beasts count
         const beasts = await this.bestiaryDb.getBeasts();
         this.stats.beasts = beasts.length;
-        
+
         // Load users count from Vuex
         this.stats.users = this.users.length;
-        
+
         // Get approvals data from XpActionItems
         this.approvals = {
           chores: 10, // This would come from actual data
-          rewards: 5,  // This would come from actual data
-          total: 15    // This would come from actual data
+          rewards: 5, // This would come from actual data
+          total: 15, // This would come from actual data
         };
-        
+
         // Get rewards data from XpRewardShelf
         this.rewards = {
-          active: 10,  // This would come from actual data
-          expired: 5,  // This would come from actual data
+          active: 10, // This would come from actual data
+          expired: 5, // This would come from actual data
           redeemed: 0, // This would come from actual data
-          cashed: 0,   // This would come from actual data
-          total: 15    // This would come from actual data
+          cashed: 0, // This would come from actual data
+          total: 15, // This would come from actual data
         };
       },
       showSuccessToast(message) {
-        this.$ionic.toastController
+        // Use the imported toastController instead of this.$ionic.toastController
+        toastController
           .create({
             message: message,
             duration: 2000,
-            position: 'bottom',
-            color: 'success'
+            position: "bottom",
+            color: "success",
           })
-          .then(toast => toast.present());
-      }
+          .then((toast) => toast.present());
+      },
     },
     setup() {
-      const router = useRouter();
       const achievementDb = new AchievementDb(achievementStorage);
       const bestiaryDb = new BestiaryDb(beastStorage);
       const dosDontsDb = new DosDontsDb(dosDontsStorage);
-      
+
       const stats = ref({
         achievements: 0,
         users: 0,
-        beasts: 0
+        beasts: 0,
       });
-      
-      const approvals = ref(null);
-      const rewards = ref(null);
-      
+
+      const approvals = ref({
+        chores: 0,
+        rewards: 0,
+        total: 0,
+      });
+      const rewards = ref({
+        active: 0,
+        expired: 0,
+        redeemed: 0,
+        cashed: 0,
+        total: 0,
+      });
+
       onMounted(async () => {
         // Initial data load
         const achievements = await achievementDb.getTasks();
         stats.value.achievements = achievements.length;
-        
+
         const beasts = await bestiaryDb.getBeasts();
         stats.value.beasts = beasts.length;
       });
-      
+
       return {
         stats,
         approvals,
         rewards,
         achievementDb,
         bestiaryDb,
-        dosDontsDb
+        dosDontsDb,
       };
-    }
+    },
   });
 </script>
 
@@ -261,24 +291,25 @@
         display: flex;
         align-items: center;
       }
-      
-      &.stats-card, &.quick-actions-card {
+
+      &.stats-card,
+      &.quick-actions-card {
         margin: 16px;
         border-radius: 12px;
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
       }
     }
-    
+
     .accordion-header {
       --background: var(--ion-color-light);
       margin-bottom: 4px;
       border-radius: 8px;
     }
-    
+
     ion-accordion-group {
       margin: 16px;
     }
-    
+
     .stat-box {
       display: flex;
       flex-direction: column;
@@ -287,35 +318,35 @@
       padding: 12px;
       border-radius: 8px;
       background-color: var(--ion-color-light);
-      
+
       .stat-value {
         font-size: 24px;
         font-weight: bold;
         margin: 8px 0;
       }
-      
+
       .stat-label {
         font-size: 14px;
         color: var(--ion-color-medium);
       }
-      
+
       i {
         margin-bottom: 8px;
       }
     }
-    
+
     .text-success {
       color: var(--ion-color-success);
     }
-    
+
     .text-primary {
       color: var(--ion-color-primary);
     }
-    
+
     .text-warning {
       color: var(--ion-color-warning);
     }
-    
+
     .text-tertiary {
       color: var(--ion-color-tertiary);
     }

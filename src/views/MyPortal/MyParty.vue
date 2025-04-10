@@ -3,7 +3,7 @@
     <ion-header :translucent="true">
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button :default-href="`/switch-profile`"></ion-back-button>
+          <ion-back-button :default-href="`/xp-profile`"></ion-back-button>
         </ion-buttons>
         <ion-title>
           <i class="fab fa-fort-awesome fa-lg" />
@@ -18,38 +18,23 @@
           value="all"
         >
           <ion-segment-button value="all">
-            <ion-icon
-              :icon="bagOutline"
-              color="primary"
-            ></ion-icon>
+            <ion-icon :icon="bagOutline" color="primary"></ion-icon>
             My Family
           </ion-segment-button>
           <ion-segment-button value="hp">
-            <ion-icon
-              :icon="fitnessOutline"
-              color="danger"
-            ></ion-icon>
+            <ion-icon :icon="fitnessOutline" color="danger"></ion-icon>
             My Guilds
           </ion-segment-button>
           <ion-segment-button value="mp">
-            <ion-icon
-              :icon="colorWandOutline"
-              color="tertiary"
-            ></ion-icon>
+            <ion-icon :icon="colorWandOutline" color="tertiary"></ion-icon>
             MP
           </ion-segment-button>
           <ion-segment-button value="misc">
-            <ion-icon
-              :icon="sparklesOutline"
-              color="success"
-            ></ion-icon>
+            <ion-icon :icon="sparklesOutline" color="success"></ion-icon>
             Misc
           </ion-segment-button>
           <ion-segment-button value="key">
-            <ion-icon
-              :icon="keyOutline"
-              color="gold"
-            ></ion-icon>
+            <ion-icon :icon="keyOutline" color="gold"></ion-icon>
             Key
           </ion-segment-button>
         </ion-segment>
@@ -69,15 +54,10 @@
             size="12"
             size-md="6"
           >
-            <card-user-stats
-              :id="user?.id"
-              :hide-menu="true"
-            />
+            <card-user-stats :id="user?.id" :hide-menu="true" />
           </ion-col>
         </ion-row>
       </ion-grid>
-
-
 
       <div id="container"></div>
     </ion-content>
@@ -94,7 +74,7 @@
     fitnessOutline,
     colorWandOutline,
     sparklesOutline,
-    keyOutline
+    keyOutline,
   } from "ionicons/icons";
   import userActions from "@/mixins/userActions";
 
@@ -102,7 +82,7 @@
   export default {
     mixins: [userActions, ionic],
     ionViewDidEnter() {
-      this.setUserActions(this.userActions)
+      this.setUserActions(this.userActions);
     },
     components: {
       CardUserStats,
@@ -113,7 +93,9 @@
     },
     computed: {
       ...mapGetters(["usersAz"]),
-      users() { return this.usersAz },
+      users() {
+        return this.usersAz;
+      },
     },
     mounted() {
       // this.$fx.ui[this.$fx.theme.ui].user.play()
@@ -124,9 +106,8 @@
         return this.$requireAvatar(avatar);
       },
       segmentChanged($event) {
-        $event.preventDefault()
-
-      }
+        $event.preventDefault();
+      },
     },
     setup() {
       return {
@@ -158,9 +139,9 @@
             id: "talk-to",
             faIcon: "comments",
           },
-        ]
-      }
-    }
+        ],
+      };
+    },
   };
 </script>
 

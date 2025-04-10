@@ -18,7 +18,9 @@
       <ion-segment v-model="activeSegment">
         <ion-segment-button value="achievements">
           Achievements
-          <ion-badge color="success">{{ pendingAchievements.length }}</ion-badge>
+          <ion-badge color="success">{{
+            pendingAchievements.length
+          }}</ion-badge>
         </ion-segment-button>
         <ion-segment-button value="accessories">
           Accessories
@@ -63,7 +65,7 @@
           </ion-label>
         </ion-item>
       </ion-list>
-      
+
       <ion-list v-if="activeSegment === 'accessories'">
         <ion-item-sliding v-for="item in pendingAccessories" :key="item.id">
           <ion-item>
@@ -105,141 +107,147 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, computed } from 'vue';
-  import ionic from '@/mixins/ionic';
-  import { mapGetters } from 'vuex';
-  import { alertController } from '@ionic/vue';
-  import { format } from 'date-fns';
+  import { defineComponent, ref, computed } from "vue";
+  import ionic from "@/mixins/ionic";
+  import { mapGetters } from "vuex";
+  import { alertController, toastController } from "@ionic/vue";
+  import { format } from "date-fns";
 
   export default defineComponent({
-    name: 'xp-approvals',
+    name: "xp-approvals",
     mixins: [ionic],
     computed: {
-      ...mapGetters(['usersAz']),
-      users() { return this.usersAz; }
+      ...mapGetters(["usersAz"]),
+      users() {
+        return this.usersAz;
+      },
     },
     methods: {
       getUserName(userId) {
-        const user = this.users.find(u => u.id === userId);
-        return user ? user.name.full : 'Unknown User';
+        const user = this.users.find((u) => u.id === userId);
+        return user ? user.name.full : "Unknown User";
       },
       formatDate(dateString) {
-        if (!dateString) return '';
-        return format(new Date(dateString), 'MMM d, yyyy');
+        if (!dateString) return "";
+        return format(new Date(dateString), "MMM d, yyyy");
       },
       async approveItem(item) {
         const alert = await alertController.create({
-          header: 'Approve Item',
-          message: `Are you sure you want to approve ${item.achievementName || item.name}?`,
+          header: "Approve Item",
+          message: `Are you sure you want to approve ${
+            item.achievementName || item.name
+          }?`,
           buttons: [
             {
-              text: 'Cancel',
-              role: 'cancel'
+              text: "Cancel",
+              role: "cancel",
             },
             {
-              text: 'Approve',
+              text: "Approve",
               handler: () => {
                 // Logic to approve the item
-                this.showSuccessToast('Item approved successfully!');
+                this.showSuccessToast("Item approved successfully!");
                 this.refreshApprovals();
-              }
-            }
-          ]
+              },
+            },
+          ],
         });
         await alert.present();
       },
       async rejectItem(item) {
         const alert = await alertController.create({
-          header: 'Reject Item',
-          message: `Are you sure you want to reject ${item.achievementName || item.name}?`,
+          header: "Reject Item",
+          message: `Are you sure you want to reject ${
+            item.achievementName || item.name
+          }?`,
           inputs: [
             {
-              name: 'reason',
-              type: 'textarea',
-              placeholder: 'Reason for rejection (optional)'
-            }
+              name: "reason",
+              type: "textarea",
+              placeholder: "Reason for rejection (optional)",
+            },
           ],
           buttons: [
             {
-              text: 'Cancel',
-              role: 'cancel'
+              text: "Cancel",
+              role: "cancel",
             },
             {
-              text: 'Reject',
+              text: "Reject",
               handler: (data) => {
                 // Logic to reject the item with reason
-                this.showSuccessToast('Item rejected');
+                this.showSuccessToast("Item rejected");
                 this.refreshApprovals();
-              }
-            }
-          ]
+              },
+            },
+          ],
         });
         await alert.present();
       },
       refreshApprovals() {
         // Logic to refresh approvals data
-        this.showSuccessToast('Approvals refreshed!');
+        this.showSuccessToast("Approvals refreshed!");
       },
       showSuccessToast(message) {
-        this.$ionic.toastController
+        toastController
           .create({
             message: message,
             duration: 2000,
-            position: 'bottom',
-            color: 'success'
+            position: "bottom",
+            color: "success",
           })
-          .then(toast => toast.present());
-      }
+          .then((toast) => toast.present());
+      },
     },
     setup() {
-      const activeSegment = ref('achievements');
-      
+      const activeSegment = ref("achievements");
+
       // Mock data for pending achievements
       const pendingAchievements = ref([
         {
-          id: '1',
-          achievementName: 'Clean the Kitchen',
-          userId: '1',
-          submittedDate: '2025-04-05T12:00:00',
+          id: "1",
+          achievementName: "Clean the Kitchen",
+          userId: "1",
+          submittedDate: "2025-04-05T12:00:00",
           gp: 50,
-          imageUrl: ''
+          imageUrl: "",
         },
         {
-          id: '2',
-          achievementName: 'Homework Complete',
-          userId: '2',
-          submittedDate: '2025-04-06T14:30:00',
+          id: "2",
+          achievementName: "Homework Complete",
+          userId: "2",
+          submittedDate: "2025-04-06T14:30:00",
           gp: 30,
-          imageUrl: ''
-        }
+          imageUrl: "",
+        },
       ]);
-      
+
       // Mock data for pending accessories
       const pendingAccessories = ref([
         {
-          id: '1',
-          name: 'New Video Game',
-          userId: '2',
-          requestDate: '2025-04-04T10:15:00',
+          id: "1",
+          name: "New Video Game",
+          userId: "2",
+          requestDate: "2025-04-04T10:15:00",
           basePrice: 200,
-          icon: ''
+          icon: "",
         },
         {
-          id: '2',
-          name: 'Movie Night',
-          userId: '1',
-          requestDate: '2025-04-05T16:45:00',
+          id: "2",
+          name: "Movie Night",
+          userId: "1",
+          requestDate: "2025-04-05T16:45:00",
           basePrice: 100,
-          icon: ''
-        }
+          icon: "",
+        },
       ]);
-      
+
       return {
         activeSegment,
         pendingAchievements,
-        pendingAccessories
+        pendingAccessories,
       };
-    }
+    },
   });
 </script>
 
@@ -247,10 +255,10 @@
   .xp-approvals {
     ion-segment {
       padding: 4px 8px;
-      
+
       ion-segment-button {
         --indicator-color: var(--ion-color-primary);
-        
+
         ion-badge {
           position: absolute;
           top: 4px;
@@ -260,19 +268,19 @@
         }
       }
     }
-    
+
     ion-item {
       --padding-start: 8px;
       --inner-padding-end: 8px;
       margin-bottom: 4px;
-      
+
       ion-note {
         font-size: 12px;
         margin-left: 8px;
         color: var(--ion-color-medium);
       }
     }
-    
+
     .text-success {
       color: var(--ion-color-success);
     }

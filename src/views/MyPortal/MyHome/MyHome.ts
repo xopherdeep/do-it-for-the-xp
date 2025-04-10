@@ -61,7 +61,7 @@ export default defineComponent({
     const { userId } = route.params;
     const user = computed(() => store.getters.getUserById(userId));
     const closeModal = () => modalController.dismiss()
-    const clickSave = () => router.push({ name: 'switch-profile' }).then(closeModal)
+    const clickSave = () => router.push({ name: 'xp-profile' }).then(closeModal)
     return {
       closeModal,
       clickSave,

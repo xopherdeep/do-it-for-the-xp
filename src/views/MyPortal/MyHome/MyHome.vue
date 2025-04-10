@@ -1,5 +1,5 @@
 <template>
-  <ion-page :class="$options.name">
+  <ion-page :class="$options.name" class="page-loaded">
     <!-- <ion-header :translucent="true">
       <ion-toolbar>
         <ion-buttons slot="start">
@@ -130,12 +130,9 @@
         :initialBreakpoint="0.9"
       >
         <ion-card>
-          <ion-card-title>
-            World Map
-          </ion-card-title>
+          <ion-card-title> World Map </ion-card-title>
           <i class="fad fa-globe fa-3x ion-float-right"></i>
-          <ion-card-header>
-          </ion-card-header>
+          <ion-card-header> </ion-card-header>
         </ion-card>
       </ion-modal>
       <ion-modal
@@ -158,18 +155,12 @@
             <ion-grid>
               <ion-row>
                 <ion-col>
-                  <ion-button
-                    color="success"
-                    expand="block"
-                    @click="clickSave"
-                  > Yes. </ion-button>
+                  <ion-button color="success" expand="block" @click="clickSave">
+                    Yes.
+                  </ion-button>
                 </ion-col>
                 <ion-col>
-                  <ion-button
-                    color="danger"
-                    expand="block"
-                    @click="closeModal"
-                  >
+                  <ion-button color="danger" expand="block" @click="closeModal">
                     No.
                   </ion-button>
                 </ion-col>
@@ -178,8 +169,9 @@
           </ion-card-content>
         </ion-card>
       </ion-modal>
-  </ion-content>
-</ion-page></template>
+    </ion-content>
+  </ion-page>
+</template>
 
 <script src="./MyHome" />
 <style lang="scss" src="./_MyHome.scss" scoped />

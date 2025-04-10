@@ -48,6 +48,45 @@ import { AchievementDb } from "@/databases";
 import { Storage, Drivers } from "@ionic/storage";
 import { Achievement } from '@/databases/AchievementDb';
 
+// Define interfaces for sound effects system
+interface SoundEffect {
+  play: () => void;
+  pause: () => void;
+  currentTime: number;
+}
+
+interface ThemeUI {
+  ui: string;
+  rpg: string;
+}
+
+interface FXCategory {
+  [key: string]: SoundEffect;
+}
+
+interface FXSystem {
+  ui: {
+    [key: string]: {
+      openPage: SoundEffect;
+      [key: string]: SoundEffect;
+    }
+  };
+  rpg: {
+    [key: string]: {
+      text: SoundEffect;
+      [key: string]: SoundEffect;
+    }
+  };
+  theme: ThemeUI;
+}
+
+// Augment the Vue instance type
+declare module 'vue' {
+  interface ComponentCustomProperties {
+    $fx: FXSystem;
+    $historyCount: number;
+  }
+}
 
 const achievementStorage = new Storage({
   name: "__achievements",
@@ -108,6 +147,13 @@ export const XpDiscoverAchievements = defineComponent({
   },
   methods: {
     ...mapActions(["fetchWPItems"]),
+    // Add the missing play$fx method
+    play$fx(soundType) {
+      if (this.$fx?.rpg && this.$fx?.theme?.rpg) {
+        const sound = this.$fx.rpg[this.$fx.theme.rpg][soundType];
+        if (sound) sound.play();
+      }
+    },
     async selectTask(task) {
       const modal = await modalController.create({
         component: XpAchievementDetails,

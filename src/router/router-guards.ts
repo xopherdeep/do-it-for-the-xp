@@ -83,7 +83,7 @@ export function useRouterGuards(router: Router, store: any) {
           saveBookmark,
         })
         break;
-      case 'switch-profile':
+      case 'xp-profile':
         store.dispatch('changeBGM', {
           tracks: BGM.chooseFile,
           track,

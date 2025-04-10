@@ -1,8 +1,5 @@
 <template>
-  <ion-menu
-    content-id="main-content"
-    type="overlay"
-  >
+  <ion-menu content-id="main-content" type="overlay">
     <ion-content>
       <ion-list id="inbox-list">
         <ion-list-header>XP</ion-list-header>
@@ -62,21 +59,16 @@
   import { computed, defineComponent } from "vue";
   import { mapActions, mapState, useStore } from "vuex";
   import ionic from "@/mixins/ionic";
+  import { useRoute } from "vue-router";
   import {
     megaphoneOutline,
     megaphoneSharp,
-    settingsOutline,
-    settingsSharp,
     helpBuoySharp,
     helpBuoyOutline,
     informationCircleOutline,
     informationCircleSharp,
-    logOutOutline,
-    logOutSharp,
     diamondOutline,
     diamondSharp,
-    shareOutline,
-    shareSharp,
     peopleCircleOutline,
     peopleCircleSharp,
     logInOutline,
@@ -102,7 +94,7 @@
             url: "/log-in",
             iosIcon: logInOutline,
             mdIcon: logInSharp,
-            lines: "none"
+            lines: "none",
           },
         ],
         appPages: [
@@ -114,17 +106,17 @@
           // },
           {
             title: "Start XP",
-            url: "/switch-profile",
+            url: "/xp-profile/",
             iosIcon: peopleCircleOutline,
             mdIcon: peopleCircleSharp,
-            lines: "none"
+            lines: "none",
           },
           {
             title: "Settings",
             url: "/xp-settings/",
             iosIcon: optionsOutline,
             mdIcon: optionsSharp,
-            lines: "full"
+            lines: "full",
           },
           {
             title: "",
@@ -134,28 +126,28 @@
             url: "/xp-membership",
             iosIcon: diamondOutline,
             mdIcon: diamondSharp,
-            lines: "none"
+            lines: "none",
           },
           {
             title: "FAQ & Support",
             url: "/xp-support",
             iosIcon: helpBuoyOutline,
             mdIcon: helpBuoySharp,
-            lines: "none"
+            lines: "none",
           },
           {
             title: "Tell a Friend",
             url: "/tell-a-friend",
             iosIcon: megaphoneOutline,
             mdIcon: megaphoneSharp,
-            lines: "none"
+            lines: "none",
           },
           {
             title: "About Us",
             url: "/about-xp",
             iosIcon: informationCircleOutline,
             mdIcon: informationCircleSharp,
-            lines: "full"
+            lines: "full",
           },
           {
             title: "",
@@ -175,14 +167,14 @@
             iosIcon: gameControllerOutline,
             mdIcon: gameControllerSharp,
 
-            lines: "none"
+            lines: "none",
           },
           {
             title: "Log Out",
             url: "/log-out",
             iosIcon: lockClosedOutline,
             mdIcon: lockClosedSharp,
-            lines: "none"
+            lines: "none",
           },
         ],
       };
@@ -195,15 +187,16 @@
         this.activeMenuItem = index;
       },
       initialIndex(): number {
-        const { pathname } = window.location;
-        const [, name] = pathname.split("/");
+        const pathname = window.location.pathname;
+        const menu = this.getCurrentMenu();
 
-        if (name !== undefined && this.appPages) {
-          return this.appPages.findIndex(
-            (page) => page.title.toLowerCase() === name.toLowerCase()
-          );
-        }
-        return 1;
+        // Find the menu item whose URL matches the current path
+        const index = menu.findIndex(
+          (page) => page.url && pathname.startsWith(page.url)
+        );
+
+        // Return the found index or 0 if no match
+        return index >= 0 ? index : 0;
       },
       ...mapActions(["changeBGM", "turnMusicOnOff", "changeSoundFX"]),
       getCurrentMenu() {
@@ -224,10 +217,22 @@
     },
     setup() {
       const store = useStore();
+      const route = useRoute();
 
       return {
         isLoggedIn: computed(() => store.getters.isLoggedIn),
+        route,
       };
+    },
+    mounted() {
+      // Set the active menu item based on the current URL when component mounts
+      this.activeMenuItem = this.initialIndex();
+    },
+    watch: {
+      // Update active menu item when route changes
+      $route() {
+        this.activeMenuItem = this.initialIndex();
+      },
     },
   });
 </script>
