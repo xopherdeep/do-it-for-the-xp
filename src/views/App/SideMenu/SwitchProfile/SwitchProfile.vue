@@ -288,21 +288,6 @@
     }
   }
 
-  ion-modal.auto-height {
-    --height: auto;
-  }
-
-  ion-modal.auto-height .ion-page {
-    position: relative;
-    display: block;
-    contain: content;
-  }
-
-  ion-modal.auto-height .ion-page .inner-content {
-    max-height: 80vh;
-    overflow: auto;
-  }
-
   @keyframes slide {
     from {
       background-position: 0 0, 30px 30px;
