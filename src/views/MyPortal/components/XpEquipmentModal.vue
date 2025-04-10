@@ -24,7 +24,7 @@
               :items="specialItems" 
               @display-info="displayInfo" 
               @equip-item="equipItem"
-              class="ion-flex-grow-1" <!-- Allow grid to grow -->
+              class="ion-flex-grow-1" 
             />
             <status-card /> <!-- Status card remains below -->
           </ion-col>
