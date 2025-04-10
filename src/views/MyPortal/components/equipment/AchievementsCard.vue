@@ -8,7 +8,7 @@
           <div 
             v-for="(pegasus, index) in pegasi.slice(0, 6)" 
             :key="`outer-${index}`" 
-            class="crystal-item outer-crystal" <!-- Keeping class names -->
+            class="crystal-item outer-crystal" 
             :class="{ 'obtained': pegasus.obtained }"
           >
             <!-- Changed icon and added style binding -->
@@ -20,7 +20,7 @@
           <!-- Separate element for the 7th (center) pegasus -->
           <div 
             v-if="pegasi.length > 6"
-            class="crystal-item center-crystal" <!-- Keeping class names -->
+            class="crystal-item center-crystal" 
             :class="{ 'obtained': pegasi[6].obtained }"
             :key="'center-crystal'"
           >
