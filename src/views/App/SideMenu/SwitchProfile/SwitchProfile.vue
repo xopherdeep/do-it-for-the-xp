@@ -78,6 +78,7 @@
   import AddProfile from "./AddProfile/AddProfile.vue";
   import XpGp from "@/components/XpGp/XpGp.vue";
   import DialPad from "./DialPad.vue";
+  import ionic from "@/mixins/ionic";
 
   const requireAvatar = require.context("@/assets/images/avatars/");
 
@@ -88,7 +89,10 @@
 
   export default defineComponent({
     name: "switch-profile",
-    components: { XpGp },
+    components: {
+      XpGp,
+    },
+    mixins: [ionic],
     setup() {
       // State management
       const isLoading = ref(false);
@@ -130,10 +134,11 @@
           // Login the user first
           await store.dispatch("loginUser", profile);
           // Then navigate to their portal
-          await ionRouter.navigate(
-            `/my-portal/${profile.id}/my-home`,
-            "forward",
-            "replace"
+          // this.ionRouter.navigate(`/my-portal/${profile.id}`, "forward");
+          ionRouter.navigate(
+            `/my-portal/${profile.id}`,
+            "forward"
+            // "replace"
           );
         } catch (error) {
           console.error("Navigation error:", error);
