@@ -58,12 +58,21 @@
           </ion-item>
         </ion-list>
       </ion-card>
+
+      <!-- Loading indicator for profile selection -->
+      <ion-loading
+        :is-open="isProfileLoading"
+        message="Loading Profile..."
+        :duration="0"
+      >
+      </ion-loading>
     </ion-content>
   </ion-page>
 </template>
 
 <script lang="ts">
   import {
+    IonLoading, // <-- Import IonLoading
     useIonRouter,
     onIonViewWillEnter,
     onIonViewDidLeave,
@@ -90,12 +99,14 @@
   export default defineComponent({
     name: "switch-profile",
     components: {
+      IonLoading, // <-- Add IonLoading component
       XpGp,
     },
     mixins: [ionic],
     setup() {
       // State management
-      const isLoading = ref(false);
+      const isLoading = ref(false); // For initial list loading
+      const isProfileLoading = ref(false); // For selected profile loading
       const store = useStore();
       const ionRouter = useIonRouter();
       const storage = new ProfileDb(profileStorage);
@@ -130,11 +141,11 @@
 
       // Navigation functions
       const navigateToUserPortal = async (profile: User) => {
+        isProfileLoading.value = true; // Start loading indicator
         try {
           // Login the user first
           await store.dispatch("loginUser", profile);
           // Then navigate to their portal
-          // this.ionRouter.navigate(`/my-portal/${profile.id}`, "forward");
           ionRouter.navigate(
             `/my-portal/${profile.id}`,
             "forward"
@@ -142,7 +153,9 @@
           );
         } catch (error) {
           console.error("Navigation error:", error);
-          // Handle navigation error
+          // Handle navigation error (e.g., show a toast)
+        } finally {
+          isProfileLoading.value = false; // Stop loading indicator
         }
       };
 
@@ -216,6 +229,7 @@
         selectProfile,
         openNewProfileModal,
         handleRefresh,
+        isProfileLoading, // <-- Expose isProfileLoading
       };
     },
   });
