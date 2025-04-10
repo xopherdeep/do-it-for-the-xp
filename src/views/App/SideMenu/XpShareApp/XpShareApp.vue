@@ -2,6 +2,7 @@
   <ion-page>
     <ion-header>
       <ion-toolbar class="rpg-box">
+        <ion-buttons slot="start">
           <ion-menu-button></ion-menu-button>
         </ion-buttons>
         <ion-title>Share the Quest!</ion-title>
@@ -68,7 +69,6 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, inject } from "vue";
   import { defineComponent, ref } from "vue";
   import { Share } from "@capacitor/share";
   import {
@@ -258,114 +258,4 @@ ion-footer ion-toolbar {
   letter-spacing: 0.5px;
   margin: 8px 16px; /* Add horizontal margin */
 }
-</style>
-      async shareApp() {
-        try {
-          await Share.share({
-            title: "Do-it-for-the-XP",
-            text: "Join me on this epic adventure! Level up your productivity with Do-it-for-the-XP!",
-            url: "http://doit.forthexp.com/",
-            dialogTitle: "Share the Adventure",
-          });
-
-          this.shareCount++;
-          toastController
-            .create({
-              message: "Thanks for sharing! Rewards added to your inventory!",
-              duration: 2000,
-              position: "bottom",
-              color: "success",
-            })
-            .then((toast) => toast.present());
-        } catch (error) {
-          toastController
-            .create({
-              message: "No worries! You can share anytime.",
-              duration: 2000,
-              position: "bottom",
-              color: "medium",
-            })
-            .then((toast) => toast.present());
-        }
-      },
-    },
-  });
-</script>
-
-<style scoped>
-  .share-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 16px;
-    max-width: 600px;
-    margin: 0 auto;
-  }
-
-  .share-header {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin-bottom: 24px;
-    text-align: center;
-  }
-
-  .share-icon {
-    font-size: 64px;
-    color: var(--ion-color-primary);
-    margin-bottom: 16px;
-  }
-
-  .reward-box {
-    background: rgba(var(--ion-color-primary-rgb), 0.1);
-    border-radius: 12px;
-    padding: 20px;
-    margin-bottom: 24px;
-    width: 100%;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    border: 1px solid rgba(var(--ion-color-primary-rgb), 0.3);
-  }
-
-  .reward-box h3 {
-    text-align: center;
-    margin-top: 0;
-    color: var(--ion-color-primary);
-  }
-
-  .rewards-list {
-    margin-top: 16px;
-  }
-
-  .reward-item {
-    display: flex;
-    align-items: center;
-    margin-bottom: 12px;
-  }
-
-  .reward-item ion-icon {
-    font-size: 24px;
-    margin-right: 12px;
-    color: var(--ion-color-primary);
-  }
-
-  .share-message {
-    text-align: center;
-    margin-bottom: 24px;
-  }
-
-  .share-count {
-    font-weight: bold;
-    color: var(--ion-color-primary);
-    margin-top: 12px;
-  }
-
-  .footer-buttons {
-    padding: 16px;
-  }
-
-  .share-button {
-    --border-radius: 8px;
-    font-weight: bold;
-    height: 48px;
-  }
 </style>
