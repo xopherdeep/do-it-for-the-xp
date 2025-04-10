@@ -1,4 +1,7 @@
 /* eslint-disable */
+/* eslint-disable */
+import User from '@/utils/User/user'; // Import the User type
+
 declare module '*.vue' {
   import type { DefineComponent } from 'vue'
   const component: DefineComponent<{}, {}, any>
