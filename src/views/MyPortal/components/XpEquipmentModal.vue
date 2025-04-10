@@ -277,11 +277,6 @@ export default defineComponent({
   }
 }
 </style>
-      </ion-grid>
-    </ion-content>
-    <ion-toolbar class="rpg-box"></ion-toolbar>
-  </ion-modal>
-</template>
 
 <script lang="ts">
 import { defineComponent } from "vue";
