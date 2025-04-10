@@ -154,8 +154,8 @@ $premium-color: #6e45e2;
     @for $i from 1 through 20 {
       &:nth-child(#{$i}) {
         $delay: (random(9999)) + 0ms;
-        top: calc(50% - ((random(400) px) - 200px));
-        left: calc(50% - ((random(300) px) + 0px));
+        top: calc(50% - (#{random(400)}px - 200px));
+        left: calc(50% - (#{random(300)}px + 0px));
         animation-delay: $delay;
         opacity: (random(50) / 100) + 0.5;
 
