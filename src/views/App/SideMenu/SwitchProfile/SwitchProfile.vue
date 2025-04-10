@@ -115,43 +115,73 @@
         return null; // Or a default avatar
       };
 
-      const openProfile = (profile: User) => {
-        loginUser(profile);
-        ionRouter.navigate(`/my-portal/${profile.id}`, "forward");
+      const openProfile = async (profile: User) => {
+        // Login action MUST return a promise that resolves after state is committed
+        await loginUser(profile);
+        // Ensure navigation happens after login state is set
+        await ionRouter.navigate(`/my-portal/${profile.id}`, "forward", "replace"); // Use replace to avoid back button issues?
       };
 
       // --- Loading Indicator ---
-      const presentLoading = async (message = "Loading Profiles...") => {
+      let activeLoader: HTMLIonLoadingElement | null = null; // Keep track of the active loader instance
+
+      const presentLoading = async (message = "Loading Profiles...", duration = 10000) => { // Add default duration
+        // Dismiss any existing loader first
+        await dismissLoading();
+
         loading.value = true;
-        const loader = await loadingController.create({
+        activeLoader = await loadingController.create({
           message,
           spinner: "circles",
+          duration: duration, // Automatically dismiss after duration
         });
-        await loader.present();
+        await activeLoader.present();
+
+        // Handle case where loader might be dismissed manually before duration ends
+        activeLoader.onDidDismiss().then(() => {
+          if (activeLoader) { // Check if it's the same loader instance
+             loading.value = false;
+             activeLoader = null;
+          }
+        });
       };
 
       const dismissLoading = async () => {
-        try {
-          await loadingController.dismiss();
-        } catch (e) {
-          // Ignore error if loader already dismissed
-        } finally {
-          loading.value = false;
+        if (activeLoader) {
+          try {
+            await activeLoader.dismiss();
+          } catch (e) {
+             // Ignore error if loader already dismissed
+          } finally {
+             activeLoader = null; // Clear the tracked loader instance
+             loading.value = false;
+          }
+        } else if (loading.value) {
+           // Fallback if loader instance wasn't tracked but loading state is true
+           try {
+             await loadingController.dismiss();
+           } catch(e) { /* ignore */ }
+           loading.value = false;
         }
       };
 
-      // Updated showLoader for passcode verification
-      const showLoader = async () => {
-        await presentLoading("Unlocking Profile...");
-        // Set a timeout to dismiss the loader automatically after a few seconds
-        // in case the navigation/login process hangs or fails silently.
-        setTimeout(dismissLoading, 5000);
+      // Updated showLoader for passcode verification - now just presents loader
+      const showUnlockLoader = async () => {
+        // Use a shorter duration or no duration, rely on explicit dismiss
+        await presentLoading("Unlocking Profile...", 0); // 0 duration means no auto-dismiss
       };
 
       const passcodeVerified = async (dismiss: any) => {
         if (dismiss.data) {
-          showLoader();
-          openProfile(dismiss.data);
+          await showUnlockLoader(); // Show loader without timeout
+          try {
+             await openProfile(dismiss.data); // Await the profile opening (which includes login and nav)
+          } catch (error) {
+             console.error("Error opening profile after passcode:", error);
+             // Optionally show error message
+          } finally {
+             await dismissLoading(); // Dismiss loader after process completes or fails
+          }
         }
       };
 
@@ -216,10 +246,31 @@
             await loadUsers(); // Assuming loadUsers returns a promise
           } catch (error) {
             console.error("Failed to load users:", error);
+            await dismissLoading(); // Dismiss loader on error
             // Optionally show an error message to the user
-          } finally {
-            await dismissLoading();
           }
+          // Do NOT dismiss loader here in 'finally' - let the watcher handle it on success
+        } else {
+           // If hasLoaded is true, maybe still ensure data is present if users array is empty
+           if (users.value.length === 0) {
+              console.log("View entered again, users empty, attempting reload...");
+              await presentLoading();
+              try {
+                 await storage.init();
+                 await loadUsers();
+              } catch (error) {
+                 console.error("Failed to reload users:", error);
+                 await dismissLoading();
+              }
+           }
+        }
+      });
+
+      // Watcher to dismiss loader once users are loaded
+      watch(users, (newUsers) => {
+        if (newUsers && newUsers.length > 0 && loading.value && activeLoader) {
+          console.log("Users loaded, dismissing loader via watcher.");
+          dismissLoading();
         }
       });
 
