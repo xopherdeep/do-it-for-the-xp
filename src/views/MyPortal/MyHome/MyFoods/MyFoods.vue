@@ -28,7 +28,6 @@
           <ion-select-option value="snack"> Snacks </ion-select-option>
           <ion-select-option value="dessert"> Desserts </ion-select-option>
           <ion-select-option value="ingredient"> Ingredients </ion-select-option>
-          </ion-select-option>
         </ion-select>
       </ion-item>
 
