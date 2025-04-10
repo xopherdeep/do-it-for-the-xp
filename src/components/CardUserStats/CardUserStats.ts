@@ -50,8 +50,7 @@ import { mapGetters } from "vuex";
 import Vue3Autocounter from 'vue3-autocounter';
 
 
-
-export default defineComponent<ComponentInstance>({
+export default defineComponent({
   props: ["id", "startCounting", "hideMenu"],
   mixins: [ionic],
   data() {
@@ -133,7 +132,7 @@ export default defineComponent<ComponentInstance>({
     clickAction(action) {
       const user = this.user;
       this.$fx.ui[this.$fx.theme.ui].openPage.play();
-      this.router.push(`/${action}/${user.id}/`);
+      this.$router.push(`/${action}/${user.id}/`);
     },
     getCounterXPCurrentAmount() {
       const XpTotal = this.$refs.countXPTotal as typeof Vue3Autocounter
