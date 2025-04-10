@@ -36,16 +36,18 @@ export default defineComponent({
 
 <style lang="scss" scoped>
 .status {
-  height: 20vh;
-  
+  // height: 20vh; // Removed fixed height
+  display: flex; // Added for consistency
+  flex-direction: column; // Added for consistency
+
   .content {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: calc(100% - 44px); // Subtract the title height
+    // height: calc(100% - 44px); // Removed height calculation
     padding: 0;
+    flex: 1; // Allow content to take space
   }
-  
   .dice-grid {
     display: grid;
     grid-template-columns: repeat(6, 1fr);

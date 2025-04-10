@@ -175,7 +175,7 @@ export default defineComponent({
 
 <style lang="scss" scoped>
 .equipped {
-  height: 25vh;
+  // height: 25vh; // Removed fixed height
   display: flex;
   flex-direction: column;
 

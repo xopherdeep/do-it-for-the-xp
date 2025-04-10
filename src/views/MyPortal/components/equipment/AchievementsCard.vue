@@ -89,7 +89,7 @@ export default defineComponent({
 <style lang="scss" scoped>
 .achievements-card {
   // Increased height slightly to accommodate the circle comfortably
-  height: 18vh; 
+  // height: 18vh; // Removed fixed height
   display: flex;
   flex-direction: column;
   overflow: hidden; // Prevent potential overflow issues with absolute positioning

@@ -47,14 +47,16 @@ export default defineComponent({
 
 <style lang="scss" scoped>
 .equipment {
-  height: calc(100vh - 25vh - 5vh - 5em);
+  // height: calc(100vh - 25vh - 5vh - 5em); // Removed fixed height
   display: flex;
   flex-direction: column;
+  flex: 1; // Allow grid to take available space
 
   ion-card-content {
     flex: 1;
     display: flex;
     padding: 10px;
+    // Removed h-100 class from template, flex: 1 handles growth
   }
 
   .grid-container {
@@ -63,8 +65,8 @@ export default defineComponent({
     grid-auto-rows: minmax(80px, auto);
     gap: 10px;
     width: 100%;
-    height: 100%;
-    overflow-y: auto;
+    // height: 100%; // Removed fixed height
+    overflow-y: auto; // Keep scroll for many items
   }
 
   .grid-item {

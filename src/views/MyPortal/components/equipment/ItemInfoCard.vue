@@ -111,11 +111,11 @@ export default defineComponent({
 
 <style lang="scss" scoped>
 .info {
-  min-height: 15vh;
-  max-height: 20vh;
+  // min-height: 15vh; // Removed min-height
+  // max-height: 20vh; // Removed max-height
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  overflow: hidden; // Keep hidden for potential content overflow control
 
   ion-card-header {
     padding: 8px 16px;
@@ -132,7 +132,8 @@ export default defineComponent({
     display: flex;
     flex-direction: column;
     padding: 8px;
-    height: calc(100% - 44px);
+    // height: calc(100% - 44px); // Removed height calculation
+    flex: 1; // Allow content to take available space
   }
 
   .item-details {
@@ -206,11 +207,10 @@ export default defineComponent({
     p {
       flex: 1;
       margin: 0 0 5px 0;
-      overflow-y: auto;
-      max-height: 60px;
+      overflow-y: auto; // Keep scroll for long descriptions
+      // max-height: 60px; // Removed max-height for description
       line-height: 1.2;
     }
-    
     .item-stats {
       display: flex;
       justify-content: space-between;
