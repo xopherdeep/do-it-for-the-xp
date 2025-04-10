@@ -131,7 +131,7 @@ export default defineComponent({
   methods: {
     clickAction(action) {
       const user = this.user;
-      this.$fx.ui[this.$fx.theme.ui].openPage.play();
+      (this as any).$fx.ui[(this as any).$fx.theme.ui].openPage.play();
       this.$router.push(`/${action}/${user.id}/`);
     },
     getCounterXPCurrentAmount() {
