@@ -1,26 +1,34 @@
 <template>
   <ion-card class="achievements-card">
-    <ion-card-title>Crystals</ion-card-title>
+    <ion-card-title>Pegasi</ion-card-title> <!-- Changed title -->
     <ion-card-content>
-      <div class="crystals-circle-container">
+      <div class="crystals-circle-container"> <!-- Keeping class names for now -->
         <div class="crystals-circle">
-          <!-- Loop for the first 6 crystals -->
+          <!-- Loop for the first 6 pegasi -->
           <div 
-            v-for="(crystal, index) in crystals.slice(0, 6)" 
+            v-for="(pegasus, index) in pegasi.slice(0, 6)" 
             :key="`outer-${index}`" 
-            class="crystal-item outer-crystal"
-            :class="{ 'obtained': crystal.obtained }"
+            class="crystal-item outer-crystal" <!-- Keeping class names -->
+            :class="{ 'obtained': pegasus.obtained }"
           >
-            <i class="fad fa-gem fa-lg"></i>
+            <!-- Changed icon and added style binding -->
+            <i 
+              class="fad fa-pegasus fa-lg" 
+              :style="pegasus.obtained ? { '--fa-primary-color': pegasus.color, '--fa-secondary-color': lightenDarkenColor(pegasus.color, -40), '--fa-primary-opacity': 1, '--fa-secondary-opacity': 1 } : {}"
+            ></i>
           </div>
-          <!-- Separate element for the 7th (center) crystal -->
+          <!-- Separate element for the 7th (center) pegasus -->
           <div 
-            v-if="crystals.length > 6"
-            class="crystal-item center-crystal"
-            :class="{ 'obtained': crystals[6].obtained }"
+            v-if="pegasi.length > 6"
+            class="crystal-item center-crystal" <!-- Keeping class names -->
+            :class="{ 'obtained': pegasi[6].obtained }"
             :key="'center-crystal'"
           >
-            <i class="fad fa-gem fa-lg"></i>
+             <!-- Changed icon and added style binding -->
+            <i 
+              class="fad fa-pegasus fa-lg"
+              :style="pegasi[6].obtained ? { '--fa-primary-color': pegasi[6].color, '--fa-secondary-color': lightenDarkenColor(pegasi[6].color, -40), '--fa-primary-opacity': 1, '--fa-secondary-opacity': 1 } : {}"
+            ></i>
           </div>
         </div>
       </div>
@@ -33,20 +41,47 @@ import { defineComponent } from "vue";
 
 export default defineComponent({
   name: "achievements-card",
-  emits: ["change-bg"], // Keeping emit in case it's used elsewhere, though the button is removed
+  emits: ["change-bg"],
   data() {
+    // Define colors for the pegasi
+    const pegasusColors = [
+      '#ff6b6b', // Red
+      '#feca57', // Orange/Yellow
+      '#48dbfb', // Light Blue
+      '#1dd1a1', // Green/Teal
+      '#ff9ff3', // Pink
+      '#5f27cd', // Purple
+      '#f1f2f6'  // White/Silver (for center)
+    ];
+
     return {
-      // Placeholder data: 7 crystals, first 3 obtained
-      crystals: [
-        { obtained: true },
-        { obtained: true },
-        { obtained: true },
-        { obtained: false },
-        { obtained: false },
-        { obtained: false },
-        { obtained: false },
-      ]
+      // Updated data structure with colors
+      pegasi: pegasusColors.map((color, index) => ({
+        obtained: index < 3, // First 3 obtained
+        color: color
+      }))
     };
+  },
+  methods: {
+    // Helper function to slightly darken a color for the secondary part
+    lightenDarkenColor(col: string, amt: number): string {
+      let usePound = false;
+      if (col[0] == "#") {
+        col = col.slice(1);
+        usePound = true;
+      }
+      const num = parseInt(col, 16);
+      let r = (num >> 16) + amt;
+      if (r > 255) r = 255;
+      else if (r < 0) r = 0;
+      let b = ((num >> 8) & 0x00FF) + amt;
+      if (b > 255) b = 255;
+      else if (b < 0) b = 0;
+      let g = (num & 0x0000FF) + amt;
+      if (g > 255) g = 255;
+      else if (g < 0) g = 0;
+      return (usePound ? "#" : "") + (g | (b << 8) | (r << 16)).toString(16).padStart(6, '0');
+    }
   }
 });
 </script>
@@ -130,26 +165,24 @@ export default defineComponent({
       // No additional transform needed
     }
 
-    i.fa-gem {
-      font-size: 1.5rem; // Adjust icon size if needed
-      // Style for not-obtained crystals (default)
-      --fa-primary-color: #555; 
-      --fa-secondary-color: #333; 
+    // Updated icon class and default styles
+    i.fa-pegasus { 
+      font-size: 1.5rem; 
+      // Style for not-obtained pegasi (default)
+      --fa-primary-color: #444; // Slightly lighter grey outline
+      --fa-secondary-color: #222; // Darker grey body
       --fa-primary-opacity: 0.7;
       --fa-secondary-opacity: 0.5;
       transition: all 0.3s ease;
     }
 
     &.obtained {
-      // background-color: rgba(173, 216, 230, 0.1); // Keep or remove based on preference
+      // Removed background color change if not desired
       
-      i.fa-gem {
-        // Style for obtained crystals
-        --fa-primary-color: #add8e6; 
-        --fa-secondary-color: #4682b4; // Steel blue fill
-        --fa-primary-opacity: 1;
-        --fa-secondary-opacity: 1;
-        filter: drop-shadow(0 0 3px #add8e6); // Add a glow
+      // Removed specific i.fa-gem styles for .obtained, colors are now inline
+      // Add a subtle glow effect for obtained items
+      i.fa-pegasus {
+         filter: drop-shadow(0 0 4px var(--fa-primary-color)); 
       }
     }
   }
