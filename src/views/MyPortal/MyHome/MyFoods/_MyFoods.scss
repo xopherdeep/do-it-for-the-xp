@@ -20,10 +20,26 @@
       rgb(0 0 0 / 12%) 0px 1px 5px 0px;
 
       ion-img {
-      margin: .5em auto;
-        object-fit: fill;
-        transform: scale(1.15);
+        margin: 0 auto; // Center image, remove top/bottom margin if header has padding
+        width: 100%; // Make image fill card width
+        height: 120px; // Give image a fixed height
+        object-fit: cover; // Cover the area, cropping if needed
+        // transform: scale(1.15); // Removed scaling for potentially better layout
       }
+    }
+  }
+
+  // Add some padding below the category selector
+  ion-item[lines="full"] {
+    margin-bottom: 0.5em;
+  }
+
+  // Adjust card content padding if needed
+  ion-card-content {
+    // padding-top: 0.5em; // Example adjustment
+    p.ion-text-wrap {
+      min-height: 3em; // Ensure space for description
+      font-size: 0.8em; // Slightly smaller text
     }
   }
 

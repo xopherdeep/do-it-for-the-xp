@@ -1,5 +1,6 @@
-import { defineComponent } from "vue";
-import ionic from "@/mixins/ionic";
+import { defineComponent } from 'vue';
+import { mapGetters } from 'vuex';
+import ionic from '@/mixins/ionic';
 
 import {
   calendarOutline,
@@ -28,40 +29,87 @@ import {
   storefrontOutline,
   banOutline,
   bagOutline,
-  fastFoodOutline
-} from "ionicons/icons";
-import fetchItems from "@/mixins/fetchItems"
-import { actionSheetController } from "@ionic/vue";
+  fastFoodOutline,
+  restaurantOutline, // Added for food
+  heartOutline, // Added for favorites
+  pizzaOutline, // Added for meals
+  iceCreamOutline, // Added for snacks/desserts
+} from 'ionicons/icons';
+import { actionSheetController } from '@ionic/vue';
+
+// Mock Data Interface
+interface FoodItem {
+  id: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  category: 'meal' | 'snack' | 'dessert' | 'ingredient';
+  // Optional: ingredients, recipe steps, cooking time etc.
+}
 
 export default defineComponent({
-  props: ["userId"],
-  name: "my-foods",
-  mixins: [ionic, fetchItems],
+  props: ['userId'],
+  name: 'my-foods',
+  mixins: [ionic],
   data() {
     return {
-      isLoading: false,
-      shelves: ['affordable'],
-      request: {
-        type: "xp_accessory",
-        params: {
-          page: 1,
-          search: "",
-          per_page: 4,
-        },
-      },
+      selectedCategory: 'all', // Default category
+      searchTerm: '',
+      // Mock food data
+      mockFoods: [
+        { id: '1', name: 'Pizza', description: 'Cheesy and delicious', imageUrl: '/assets/mock/pizza.jpg', category: 'meal' },
+        { id: '2', name: 'Burger', description: 'Classic beef burger', imageUrl: '/assets/mock/burger.jpg', category: 'meal' },
+        { id: '3', name: 'Salad', description: 'Healthy green salad', imageUrl: '/assets/mock/salad.jpg', category: 'meal' },
+        { id: '4', name: 'Apple', description: 'A crisp red apple', imageUrl: '/assets/mock/apple.jpg', category: 'snack' },
+        { id: '5', name: 'Ice Cream', description: 'Sweet vanilla ice cream', imageUrl: '/assets/mock/icecream.jpg', category: 'dessert' },
+        { id: '6', name: 'Pasta', description: 'Italian pasta dish', imageUrl: '/assets/mock/pasta.jpg', category: 'meal' },
+        { id: '7', name: 'Cookies', description: 'Chocolate chip cookies', imageUrl: '/assets/mock/cookies.jpg', category: 'snack' },
+      ] as FoodItem[],
     };
   },
-  methods: {
-    segmentChanged() {
-      // console.log("Segment changed", ev);
+  computed: {
+    // Assuming a getter 'currentUserProfile' exists in your Vuex store
+    // that returns the profile object including 'favoriteFood'
+    ...mapGetters(['currentUserProfile']), // Make sure 'currentUserProfile' is a valid getter name
+
+    userFavoriteFood(): string | null {
+       return this.currentUserProfile?.favoriteFood || null;
     },
-    selectShelf($ev) {
-      this.shelves = $ev.detail.value
+
+    filteredFoods(): FoodItem[] {
+      let foods = this.mockFoods;
+
+      // Filter by Category
+      if (this.selectedCategory === 'favorites') {
+        if (this.userFavoriteFood) {
+           foods = foods.filter(food => food.name.toLowerCase() === this.userFavoriteFood.toLowerCase());
+        } else {
+            foods = []; // No favorite food set or found
+        }
+      } else if (this.selectedCategory !== 'all') {
+        foods = foods.filter(food => food.category === this.selectedCategory);
+      }
+
+      // Filter by Search Term
+      if (this.searchTerm) {
+        const lowerSearchTerm = this.searchTerm.toLowerCase();
+        foods = foods.filter(food =>
+          food.name.toLowerCase().includes(lowerSearchTerm) ||
+          food.description.toLowerCase().includes(lowerSearchTerm)
+        );
+      }
+
+      return foods;
+    }
+  },
+  methods: {
+    selectCategory($event: CustomEvent) {
+      this.selectedCategory = $event.detail.value;
     },
     async presentActionSheet() {
-      const actionSheet = await actionSheetController
-        .create({
-          header: 'Look at the time!',
+      // Example action sheet for food items
+      const actionSheet = await actionSheetController.create({
+          header: 'Kitchen Actions',
           cssClass: 'my-custom-class',
           buttons: [
             // {
@@ -121,38 +169,26 @@ export default defineComponent({
     const customAlertOptions = {
       header: 'View Quests',
       subHeader: 'Select what quests to view',
-      message: '',
-      translucent: true
+      message: 'Filter by category or view all.',
+      translucent: true,
     };
+
+    // Return icons needed in the template
     return {
-      calendarOutline,
       customAlertOptions,
-      storefrontOutline,
-      banOutline,
-      chevronBack,
-      chevronForward,
-      stop,
-      play,
-      pause,
+      chevronBack, // Keep if used elsewhere, maybe not needed now
+      chevronForward, // Keep if used elsewhere, maybe not needed now
       arrowBack,
-      colorWand,
-      colorWandOutline,
-      lockClosedOutline,
-      lockOpenOutline,
-      bagOutline,
-      sunnyOutline,
-      partlySunnyOutline,
-      moonOutline,
-      cloudyNightOutline,
-      fitnessOutline,
-      sparklesOutline,
-      keyOutline,
-      cartOutline,
-      starSharp,
       addCircleOutline,
-      removeCircleOutline,
+      removeCircleOutline, // Keep if used elsewhere, maybe not needed now
       close,
-      fastFoodOutline
+      fastFoodOutline, // Icon for the FAB
+      restaurantOutline,
+      heartOutline,
+      pizzaOutline,
+      iceCreamOutline,
+      cartOutline,
+      // Add any other icons used directly in the template here
     };
   },
 });
