@@ -55,7 +55,7 @@
 </template>
 
 <script lang="ts">
-  import { useIonRouter, onIonViewWillEnter } from "@ionic/vue";
+  import { useIonRouter, onIonViewWillEnter, loadingController } from "@ionic/vue";
   import { useStore } from "vuex";
   import { computed, defineComponent, ref } from "@vue/runtime-core";
   import { add, peopleCircleSharp, peopleCircleOutline } from "ionicons/icons";
@@ -81,7 +81,8 @@
     name: "switch-profile",
     components: { XpGp },
     setup() {
-      const loading = ref(false);
+      const loading = ref(false); // Keep for template v-if, managed by controller
+      const hasLoaded = ref(false); // Track initial load
       const refresh = ref(false);
       const store = useStore();
       const ionRouter = useIonRouter();
@@ -115,12 +116,35 @@
         ionRouter.navigate(`/my-portal/${profile.id}`, "forward");
       };
 
-      const showLoader = () => {
+      // --- Loading Indicator ---
+      const presentLoading = async (message = 'Loading Profiles...') => {
         loading.value = true;
-        setTimeout(() => (loading.value = false), 5000); // Consider using ion-loading controller for better UX
+        const loader = await loadingController.create({
+          message,
+          spinner: 'circles',
+        });
+        await loader.present();
       };
 
-      const passcodeVerified = (dismiss: any) => {
+      const dismissLoading = async () => {
+        try {
+          await loadingController.dismiss();
+        } catch (e) {
+          // Ignore error if loader already dismissed
+        } finally {
+          loading.value = false;
+        }
+      };
+
+      // Updated showLoader for passcode verification
+      const showLoader = async () => {
+        await presentLoading('Unlocking Profile...');
+        // Set a timeout to dismiss the loader automatically after a few seconds
+        // in case the navigation/login process hangs or fails silently.
+        setTimeout(dismissLoading, 5000);
+      };
+
+      const passcodeVerified = async (dismiss: any) => {
         if (dismiss.data) {
           showLoader();
           openProfile(dismiss.data);
@@ -178,8 +202,19 @@
       };
 
       // --- Lifecycle Hooks ---
-      onIonViewWillEnter(() => {
-        loadUsers(); // Load users when the view is about to enter and become active
+      onIonViewWillEnter(async () => {
+        if (!hasLoaded.value) {
+          hasLoaded.value = true; // Mark that initial load attempt has started
+          await presentLoading();
+          try {
+            await loadUsers(); // Assuming loadUsers returns a promise
+          } catch (error) {
+            console.error("Failed to load users:", error);
+            // Optionally show an error message to the user
+          } finally {
+            await dismissLoading();
+          }
+        }
       });
 
       // --- Return ---
