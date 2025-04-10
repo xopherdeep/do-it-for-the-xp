@@ -8,7 +8,7 @@
         <ion-title>Share the Quest!</ion-title>
       </ion-toolbar>
     </ion-header>
-    <ion-content :fullscreen="true" class="ion-padding share-content">
+    <ion-content :fullscreen="true" class="ion-padding share-content bg-slide">
       <ion-card class="share-intro-card">
         <ion-card-header class="ion-text-center">
            <ion-icon :icon="peopleCircleOutline" class="intro-icon"></ion-icon>

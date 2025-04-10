@@ -112,13 +112,6 @@
             lines: "none",
           },
           {
-            title: "Settings",
-            url: "/xp-settings/",
-            iosIcon: optionsOutline,
-            mdIcon: optionsSharp,
-            lines: "full",
-          },
-          {
             title: "",
           },
           {
@@ -129,17 +122,17 @@
             lines: "none",
           },
           {
-            title: "FAQ & Support",
-            url: "/xp-support",
-            iosIcon: helpBuoyOutline,
-            mdIcon: helpBuoySharp,
-            lines: "none",
-          },
-          {
             title: "Tell a Friend",
             url: "/tell-a-friend",
             iosIcon: megaphoneOutline,
             mdIcon: megaphoneSharp,
+            lines: "none",
+          },
+          {
+            title: "FAQ & Support",
+            url: "/xp-support",
+            iosIcon: helpBuoyOutline,
+            mdIcon: helpBuoySharp,
             lines: "none",
           },
           {
@@ -168,6 +161,13 @@
             mdIcon: gameControllerSharp,
 
             lines: "none",
+          },
+          {
+            title: "Settings",
+            url: "/xp-settings/",
+            iosIcon: optionsOutline,
+            mdIcon: optionsSharp,
+            lines: "full",
           },
           {
             title: "Log Out",

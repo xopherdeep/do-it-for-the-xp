@@ -56,6 +56,30 @@ ion-app {
   &#earthbound {
     font-family: $eb-font-primary;
 
+    ion-content {
+      &#bg-slide {
+        --background: transparent;
+        height: 100vh;
+        background-color: #68a8d8;
+        background-image: linear-gradient(
+            45deg,
+            #80d890 25%,
+            transparent 25%,
+            transparent 75%,
+            #80d890 75%
+          ),
+          linear-gradient(
+            45deg,
+            #80d890 25%,
+            transparent 25%,
+            transparent 75%,
+            #80d890 75%
+          );
+        background-size: 60px 60px;
+        background-position: 0 0, 30px 30px;
+        animation: slide 4s infinite linear;
+      }
+    }
     // Typography
     ion-title {
       font-family: $eb-font-title;
