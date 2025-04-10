@@ -43,7 +43,7 @@ interface ContactForm {
 }
 
 export default defineComponent({
-  name: 'contact-page',
+  name: 'ContactPage',
   components: {
     IonPage,
     IonHeader,
