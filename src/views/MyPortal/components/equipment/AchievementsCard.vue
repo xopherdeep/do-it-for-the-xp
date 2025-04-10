@@ -2,14 +2,16 @@
   <ion-card class="achievements-card">
     <ion-card-title>Crystals</ion-card-title>
     <ion-card-content>
-      <div class="crystals-grid">
-        <div 
-          v-for="(crystal, index) in crystals" 
-          :key="index" 
+      <div class="crystals-circle-container">
+        <div class="crystals-circle">
+          <div 
+            v-for="(crystal, index) in crystals" 
+            :key="index" 
           class="crystal-item"
           :class="{ 'obtained': crystal.obtained }"
         >
-          <i class="fad fa-gem fa-2x"></i>
+            <i class="fad fa-gem fa-lg"></i> <!-- Adjusted size slightly -->
+          </div>
         </div>
       </div>
     </ion-card-content>
@@ -41,12 +43,11 @@ export default defineComponent({
 
 <style lang="scss" scoped>
 .achievements-card {
-  // Adjust height based on the parent layout. This might need tweaking.
-  // Assuming it takes the remaining height after EquippedItemsCard (25vh) and ItemInfoCard (20vh)
-  // and some padding/margins. Let's aim for roughly 10-15vh.
-  height: 15vh; 
+  // Increased height slightly to accommodate the circle comfortably
+  height: 18vh; 
   display: flex;
   flex-direction: column;
+  overflow: hidden; // Prevent potential overflow issues with absolute positioning
   background-color: rgba(0, 0, 0, 0.3); // Darker background like a HUD element
   border: 1px solid rgba(255, 255, 255, 0.2);
   
@@ -64,41 +65,66 @@ export default defineComponent({
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 5px; // Reduced padding
+    padding: 0; // Remove padding to use full space for circle positioning
   }
 
-  .crystals-grid {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 5px; // Reduced gap
+  .crystals-circle-container {
     width: 100%;
-    max-width: 250px; // Limit width for better appearance
-    margin: 0 auto;
-  }
-
-  .crystal-item {
+    height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
-    aspect-ratio: 1 / 1; // Make items square
-    border-radius: 4px;
-    background-color: rgba(255, 255, 255, 0.05);
+  }
+
+  .crystals-circle {
+    position: relative;
+    width: 100px; // Diameter of the circle
+    height: 100px; // Diameter of the circle
+    border-radius: 50%;
+    // border: 1px dashed rgba(255, 255, 255, 0.1); // Optional: visualize circle boundary
+  }
+
+  .crystal-item {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 30px; // Size of the crystal item container
+    height: 30px; // Size of the crystal item container
+    margin: -15px; // Center the item (half of width/height)
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%; // Make the item container circular
+    // background-color: rgba(255, 255, 255, 0.05); // Keep or remove based on preference
+
+    // --- Calculate positioning for 7 items ---
+    // Angle = (360 / 7) * index
+    // Offset = radius (50px for a 100px diameter circle)
+    // transform: rotate(angle) translate(offset) rotate(-angle);
+    
+    @for $i from 0 through 6 {
+      &:nth-child(#{$i + 1}) {
+        $angle: (360deg / 7) * $i;
+        transform: rotate($angle) translate(50px) rotate(-$angle);
+      }
+    }
 
     i.fa-gem {
+      font-size: 1.5rem; // Adjust icon size if needed
       // Style for not-obtained crystals (default)
-      --fa-primary-color: #555; // Dark grey outline
-      --fa-secondary-color: #333; // Darker grey fill
+      --fa-primary-color: #555; 
+      --fa-secondary-color: #333; 
       --fa-primary-opacity: 0.7;
       --fa-secondary-opacity: 0.5;
       transition: all 0.3s ease;
     }
 
     &.obtained {
-      background-color: rgba(173, 216, 230, 0.1); // Faint light blue bg for obtained
+      // background-color: rgba(173, 216, 230, 0.1); // Keep or remove based on preference
       
       i.fa-gem {
         // Style for obtained crystals
-        --fa-primary-color: #add8e6; // Light blue outline (like the game)
+        --fa-primary-color: #add8e6; 
         --fa-secondary-color: #4682b4; // Steel blue fill
         --fa-primary-opacity: 1;
         --fa-secondary-opacity: 1;
