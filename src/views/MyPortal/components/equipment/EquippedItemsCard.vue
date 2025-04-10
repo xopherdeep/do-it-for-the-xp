@@ -189,7 +189,7 @@ export default defineComponent({
       this.updateSlots();
     }
   },
-  emits: ["equip", "select-item"],
+  // emits: ["equip", "select-item"], // Removed duplicate emits
   methods: {
     updateSlots() {
       // Reset slots
