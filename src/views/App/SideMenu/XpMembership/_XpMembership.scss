@@ -27,8 +27,30 @@ $ap-font-family: "Nunito", sans-serif; // A rounded, friendly font
 
   .adventure-pass-content {
     position: relative;
+    --background: transparent; // Make ion-content transparent
 
-    // Optional: Add a subtle pattern or texture background
+    // Apply the animated background from SwitchProfile
+    height: 100vh; // Ensure it covers the viewport height
+    background-color: #68a8d8; // Base color from SwitchProfile
+    background-image: linear-gradient( // Diagonal lines pattern
+        45deg,
+        #80d890 25%,
+        transparent 25%,
+        transparent 75%,
+        #80d890 75%
+      ),
+      linear-gradient(
+        45deg,
+        #80d890 25%,
+        transparent 25%,
+        transparent 75%,
+        #80d890 75%
+      );
+    background-size: 60px 60px; // Size of the pattern repeat
+    background-position: 0 0, 30px 30px; // Positioning for the two gradients
+    animation: slide 4s infinite linear; // Apply the slide animation
+
+    // Optional: Keep the subtle pattern if desired, but it might conflict visually
     // .ap-background {
     //   position: absolute;
     //   top: 0; left: 0; right: 0; bottom: 0;
