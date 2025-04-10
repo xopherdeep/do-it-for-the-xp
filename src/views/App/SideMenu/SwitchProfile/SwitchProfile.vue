@@ -212,6 +212,7 @@
           hasLoaded.value = true; // Mark that initial load attempt has started
           await presentLoading();
           try {
+            await storage.init(); // Ensure storage is ready before loading
             await loadUsers(); // Assuming loadUsers returns a promise
           } catch (error) {
             console.error("Failed to load users:", error);
