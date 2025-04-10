@@ -106,11 +106,12 @@ export default defineComponent({
   }
 
   ion-card-content {
-    flex: 1;
+    flex: 1; // Allow content to grow
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 0; // Remove padding to use full space for circle positioning
+    padding: 10px 5px 5px 5px; // Add some padding, especially top
+    min-height: 120px; // Ensure minimum height for the circle
   }
 
   .crystals-circle-container {
@@ -123,10 +124,10 @@ export default defineComponent({
 
   .crystals-circle {
     position: relative;
-    width: 100px; // Diameter of the circle
-    height: 100px; // Diameter of the circle
+    width: 90px; // Slightly smaller diameter
+    height: 90px; // Slightly smaller diameter
     border-radius: 50%;
-    // border: 1px dashed rgba(255, 255, 255, 0.1); // Optional: visualize circle boundary
+    // border: 1px dashed rgba(255, 255, 255, 0.1); 
   }
 
   .crystal-item {
@@ -154,7 +155,8 @@ export default defineComponent({
       @for $i from 0 through 5 {
         &:nth-child(#{$i + 1}) {
           $angle: (360deg / 6) * $i;
-          transform: rotate($angle) translate(50px) rotate(-$angle);
+          // Adjust translation distance based on new radius (90px diameter / 2 = 45px)
+          transform: rotate($angle) translate(45px) rotate(-$angle); 
         }
       }
     }
