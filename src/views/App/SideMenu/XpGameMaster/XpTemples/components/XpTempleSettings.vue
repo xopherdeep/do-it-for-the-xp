@@ -229,20 +229,20 @@
 
       const getTempleBg = () => {
         const worlds = {
-          'wind-temple': 'plains',
-          'earth-temple': 'forest',
-          'water-temple': 'islands',
-          'fire-fortress': 'mountains',
-          'frozen-fortress': 'ice',
-          'sun-temple': 'desert',
-          'moon-temple': 'moon',
+          "wind-temple": "plains",
+          "earth-temple": "forest",
+          "water-temple": "islands",
+          "fire-fortress": "mountains",
+          "frozen-fortress": "ice",
+          "sun-temple": "desert",
+          "moon-temple": "moon",
         };
-        const world = worlds[props.templeId] || 'plains';
+        const world = worlds[props.templeId] || "plains";
         try {
           const img = requireBg(`./world-${world}.jpg`);
           return `url(${img})`;
         } catch {
-          return 'none';
+          return "none";
         }
       };
 
