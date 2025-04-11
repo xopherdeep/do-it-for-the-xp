@@ -1,39 +1,21 @@
 import { defineComponent } from 'vue';
-import { mapGetters } from 'vuex';
+import { useStore } from 'vuex'; // Removed unused mapGetters
 import ionic from '@/mixins/ionic';
 
+// Only import the icons that are actually used
 import {
-  calendarOutline,
   addCircleOutline,
-  removeCircleOutline,
+  removeCircleOutline, // Added missing icon
   close,
   arrowBack,
   chevronBack,
   chevronForward,
-  stop,
-  play,
-  pause,
-  colorWand,
-  colorWandOutline,
-  lockClosedOutline,
-  lockOpenOutline,
-  sunnyOutline,
-  partlySunnyOutline,
-  moonOutline,
-  cloudyNightOutline,
-  fitnessOutline,
-  sparklesOutline,
-  keyOutline,
+  restaurantOutline,
+  fastFoodOutline, // Added missing icon
+  heartOutline,
+  pizzaOutline,
+  iceCreamOutline,
   cartOutline,
-  starSharp,
-  storefrontOutline,
-  banOutline,
-  bagOutline,
-  fastFoodOutline,
-  restaurantOutline, // Added for food
-  heartOutline, // Added for favorites
-  pizzaOutline, // Added for meals
-  iceCreamOutline, // Added for snacks/desserts
 } from 'ionicons/icons';
 import { actionSheetController } from '@ionic/vue';
 
@@ -65,13 +47,14 @@ export default defineComponent({
         { id: '6', name: 'Pasta', description: 'Italian pasta dish', imageUrl: '/assets/mock/pasta.jpg', category: 'meal' },
         { id: '7', name: 'Cookies', description: 'Chocolate chip cookies', imageUrl: '/assets/mock/cookies.jpg', category: 'snack' },
       ] as FoodItem[],
+      store: useStore(), // Add store reference to use in computed properties
     };
   },
   computed: {
     // Get the user profile based on the userId prop using the getUserById getter
     currentUserProfileData(): any { // Use 'any' or a more specific Profile type if available
       // Ensure userId is treated as a string or number as expected by the getter
-      return this.$store.getters.getUserById(this.userId);
+      return this.store.getters.getUserById(this.userId);
     },
 
     userFavoriteFood(): string | null {
@@ -85,7 +68,8 @@ export default defineComponent({
       // Filter by Category
       if (this.selectedCategory === 'favorites') {
         if (this.userFavoriteFood) {
-           foods = foods.filter(food => food.name.toLowerCase() === this.userFavoriteFood.toLowerCase());
+           const favFood = this.userFavoriteFood; // Store in a local const to avoid null check warnings
+           foods = foods.filter(food => food.name.toLowerCase() === favFood.toLowerCase());
         } else {
             foods = []; // No favorite food set or found
         }
@@ -119,24 +103,21 @@ export default defineComponent({
               text: 'Cook Something',
               icon: restaurantOutline, // Use a relevant icon
               handler: () => {
-                console.log('Cook Something clicked (implement logic)');
-                // Example: Navigate to a cooking detail page or show a modal
+                // Implement cooking logic
               },
             },
             {
               text: 'Add New Recipe',
               icon: addCircleOutline,
               handler: () => {
-                console.log('Add New Recipe clicked (implement logic)');
-                // Example: Show a form to add a new food item/recipe
+                // Implement recipe addition logic
               },
             },
              {
               text: 'View Grocery List',
               icon: cartOutline,
               handler: () => {
-                console.log('View Grocery List clicked (implement logic)');
-                 // Example: Navigate to a grocery list page
+                // Implement grocery list navigation
               },
             },
             {
@@ -144,7 +125,7 @@ export default defineComponent({
               icon: close,
               role: 'cancel',
               handler: () => {
-                // console.log('Cancel clicked');
+                // Just close the action sheet
               },
             },
           ],

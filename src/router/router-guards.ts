@@ -1,13 +1,13 @@
 import { Router, NavigationGuardNext, RouteLocationNormalized } from 'vue-router';
 import { Store } from 'vuex';
 import { alertController } from '@ionic/vue';
-import { RootState } from '@/types/store.types'; // Import RootState
+import { RootState } from '@/types/store.types'; // Removed unused import
 
 /**
  * Creates a logout confirmation alert
  */
 // Add types for callbacks
-async function logoutAlert(onConfirm: () => void, onCancel?: (() => void) | null) {
+async function logoutAlert(onConfirm: () => void, onCancel?: (() => void) | undefined) {
   const logOutAlert = await alertController.create({
     header: 'Log Out?',
     message: 'Are you sure you want to log out? You will have to sign in again using your credentials.', // Removed extra exclamation marks
@@ -17,7 +17,7 @@ async function logoutAlert(onConfirm: () => void, onCancel?: (() => void) | null
         role: 'cancel',
         cssClass: 'secondary',
         id: 'cancel-button',
-        handler: onCancel,
+        handler: onCancel ? () => onCancel() : undefined, // Removed unused parameter
       },
       {
         text: 'Yes',
@@ -43,7 +43,7 @@ export function useRouterGuards(router: Router, store: Store<RootState>) {
         // Ensure 'confirm' param is expected as number or string based on usage
         router.push({ name: 'log-out', params: { confirm: '1' } }); // Use string '1' for consistency if param is string
       };
-      logoutAlert(onConfirm, null);
+      logoutAlert(onConfirm, undefined); // Changed from null to undefined
       return next(false); // Explicitly return false
     }
 
