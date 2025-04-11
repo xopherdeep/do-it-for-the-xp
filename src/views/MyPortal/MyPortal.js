@@ -3,6 +3,7 @@ import { computed, defineComponent, reactive, ref } from "vue";
 import fetchItems from "@/mixins/fetchItems";
 import ionic from "@/mixins/ionic";
 import components from "./components";
+import UserProfileModal from "./components/UserProfileModal.vue"; // Import the new component
 import userActions from "@/mixins/userActions";
 import "swiper/css";
 import { modalController } from "@ionic/vue";
@@ -31,7 +32,7 @@ import { mapActions, mapGetters, mapMutations, mapState, useStore } from "vuex";
 import { useRoute, useRouter } from "vue-router";
 
 export default defineComponent({
-  components,
+  components: { ...components, UserProfileModal }, // Register the new component
   mixins: [fetchItems, ionic, userActions],
   name: "my-portal",
   data() {
@@ -40,6 +41,7 @@ export default defineComponent({
       now: new Date(),
       battleInterval: null,
       isRPGBoxOpen: false,
+      isUserProfileModalOpen: false, // Add state for the new modal
       currentTerrain: "plains",
       request: {
         type: "xp_achievement",
@@ -86,6 +88,12 @@ export default defineComponent({
     },
     closeModal() {
       this.dismissRPGBox();
+    },
+    openUserProfileModal() { // Method to open the modal
+      this.isUserProfileModalOpen = true;
+    },
+    closeUserProfileModal() { // Method to close the modal
+      this.isUserProfileModalOpen = false;
     },
     updateCompass(name) {
       const { userId } = this;
