@@ -197,6 +197,9 @@ import { Swiper, SwiperSlide } from "swiper/vue";
 import "swiper/css";
 import { ref, defineProps, defineEmits } from "vue";
 
+// Swiper instance ref
+const swiperInstance = ref(null);
+
 // Props definition
 const props = defineProps({
   isOpen: {
@@ -226,16 +229,16 @@ const areas = ref({
   // }
 });
 
-// Placeholder for Swiper instance
-const onSwiper = (swiperInstance) => {
-  console.log("Swiper initialized:", swiperInstance);
-  // You can store the swiper instance if needed: swiper.value = swiperInstance;
+// Store Swiper instance
+const onSwiper = (instance) => {
+  swiperInstance.value = instance;
 };
 
-// Placeholder for clickStats method
+// Navigate swiper on click
 const clickStats = () => {
-  console.log("Status button clicked");
-  // Implement navigation or other actions
+  if (swiperInstance.value) {
+    swiperInstance.value.slideTo(1); // Slide to the second slide (index 1)
+  }
 };
 
 </script>
