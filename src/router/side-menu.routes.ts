@@ -83,7 +83,15 @@ export const SideMenuRoutes: Array<RouteRecordRaw> = [
         path: 'temples',
         name: 'xp-temples',
         component: () => import("../views/App/SideMenu/XpGameMaster/XpTemples"),
+        children: [
+        ]
       },
+          {
+            path: 'temple/:templeId',
+            name: 'xp-temple-settings',
+            component: () => import('@/views/App/SideMenu/XpGameMaster/XpTemples/components/XpTempleSettings.vue'),
+            props: true
+          },
       {
         path: 'do-this-not-that/:id?',
         name: 'xp-do-this-not-that',
@@ -91,12 +99,6 @@ export const SideMenuRoutes: Array<RouteRecordRaw> = [
         props: true
       },
     ],
-  },
-  {
-    path: '/temple-setting/:templeId',
-    name: 'xp-temple-settings',
-    component: () => import('@/views/App/SideMenu/XpGameMaster/XpTemples/components/XpTempleSettings.vue'),
-    props: true
   },
   {
     path: '/add-achievement/:id?',

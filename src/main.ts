@@ -7,9 +7,11 @@ import Vue3Autocounter from 'vue3-autocounter';
 import Countdown from 'vue3-flip-countdown'
 import XpGp from './components/XpGp'
 import XpLoading from './components/XpLoading'
+import {setupCalendar} from 'v-calendar';
 
 // V-CALENDAR STYLES - Removed failing import. Styling needs investigation.
 // import 'v-calendar/style.css';
+
 
 // XP APP
 import App from './views/App/App.vue'
@@ -25,6 +27,7 @@ function readyRouterMountApp() {
     .component('vue3-autocounter', Vue3Autocounter)
     .component('xp-loading', XpLoading)
     .component('xp-gp', XpGp)
+    // .use(setupCalendar)
     .use(Countdown)
     .use(IonicVue)
     .use(store)
