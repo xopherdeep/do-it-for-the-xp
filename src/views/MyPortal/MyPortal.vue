@@ -95,4 +95,4 @@
 </template>
 
 <script src="./MyPortal.js"></script>
-<style lang="scss" src="./_MyPortal.scss" />
+<style lang="scss" src="./_MyPortal.scss"></style>
