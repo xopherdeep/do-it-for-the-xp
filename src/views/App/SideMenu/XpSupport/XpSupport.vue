@@ -5,13 +5,11 @@
         <ion-buttons slot="start">
           <ion-menu-button></ion-menu-button>
         </ion-buttons>
-        <ion-title>
-          Support
-        </ion-title>
+        <ion-title> Support </ion-title>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true">
+    <ion-content :fullscreen="true" class="bg-slide">
       <ion-grid>
         <ion-row>
           <ion-col
@@ -22,10 +20,7 @@
           >
             <ion-card @click="navigateTo(tile.src)" class="support-card">
               <ion-card-header class="ion-text-center">
-                <i
-                  class="fad fa-5x"
-                  :class="tile.icon"
-                ></i>
+                <i class="fad fa-5x" :class="tile.icon"></i>
                 <ion-card-title>
                   {{ tile.title }}
                 </ion-card-title>

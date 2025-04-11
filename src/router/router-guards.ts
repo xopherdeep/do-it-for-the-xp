@@ -47,12 +47,10 @@ export function useRouterGuards(router: Router, store: Store<RootState>) {
       return next(false); // Explicitly return false
     }
 
-    // Accessing state - RootState needs definition for theme, bgm, audio
-    // Using 'any' temporarily until RootState is fully defined
+    // Accessing state - RootState needs definition for theme, bgm
     const state = store.state as any;
     const theme = state.theme;
     const bgm = state.bgm;
-    const audio = state.audio; // Assuming audio exists at root level? Or within bgm? Adjust as needed.
 
     // Check if objects exist before destructuring
     const fx = bgm?.$fx;
@@ -87,13 +85,11 @@ export function useRouterGuards(router: Router, store: Store<RootState>) {
     // Handle BGM changes based on route
     const startDelay = 333;
     const track = 0; // Default track index
-    let saveBookmark = false; // Use let as it changes
 
     // Ensure BGM object exists before trying to access tracks
     if (!BGM) {
-      console.warn("BGM data not available for route:", to.name);
-      // Potentially skip BGM logic or handle default case
-      return; // Skip BGM changes if data is missing
+      // Skip BGM changes if data is missing
+      return;
     }
 
     let bgmPayload: any = null; // Use a specific type later
@@ -138,12 +134,11 @@ export function useRouterGuards(router: Router, store: Store<RootState>) {
           bgmPayload = {
             tracks: BGM.battle,
             track: Math.floor(Math.random() * BGM.battle.length),
-            startDelay: state.battle.bgmWaitToStart, // Assuming state.battle.bgmWaitToStart exists
+            startDelay: state.battle.bgmWaitToStart,
             saveBookmark: true
           };
-        } else {
-           console.warn("Battle BGM data or battle state missing for battle-ground route.");
         }
+        // Skip BGM changes if battle data is missing
         break;
       case 'shop':
         bgmPayload = {
