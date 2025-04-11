@@ -20,10 +20,10 @@
         <ion-row class="ion-align-items-center">
           <!-- Avatar/Sprite Section -->
           <ion-col size="4" class="ion-text-center">
-             <!-- Add your Ness sprite here -->
+             <!-- Reference Ness sprite from public/assets -->
              <img src="/assets/sprites/ness.png" alt="Ness Sprite" style="max-width: 80px; image-rendering: pixelated;"/>
-             <!-- Display user avatar if available -->
-             <img v-if="user?.avatar" :src="user.avatar" alt="User Avatar" style="max-width: 80px; margin-top: 10px; border-radius: 50%;"/>
+             <!-- Display user avatar using imported appConfig -->
+             <img v-if="user?.avatar" :src="appConfig.$getUserAvatar(user)" alt="User Avatar" style="max-width: 80px; margin-top: 10px; border-radius: 50%;"/>
              <!-- Placeholder if no avatar -->
              <div v-else style="margin-top: 10px; font-size: 0.8em;">(No Avatar)</div>
           </ion-col>
