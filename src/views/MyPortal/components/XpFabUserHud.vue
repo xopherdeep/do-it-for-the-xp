@@ -45,14 +45,15 @@
             <ion-row>
               <ion-col
                 v-for="action in staticActions"
-                :key="action.id"
+                v-for="action in staticActions"
+                :key="action.label" <!-- Use label or another unique key if id is removed -->
                 size="6"
               >
                 <ion-button
-                  :id="action.id"
                   @click="clickAction(action)"
                   size="large"
                   class=""
+                  :id="action.id" <!-- Keep id if needed for other modals like 'talk-to' -->
                 >
                   <i
                     class="fad fa-lg"
@@ -98,7 +99,7 @@
 </template>
 
 <script lang="ts">
-  import { computed, defineComponent, ref } from 'vue'
+  import { computed, defineComponent, ref, defineEmits } from 'vue'
   import { walletOutline, colorWand, fitnessOutline } from 'ionicons/icons';
   import { useRouter } from 'vue-router';
   import ionic from "@/mixins/ionic";
@@ -140,12 +141,14 @@
       const toggleFab = () => fabActive.value = !fabActive.value
 
       const clickAction = (action) => {
-        // console.log("clickAction");
-        if (action.click)
-          action.click()
-        fabActive.value = false
+        fabActive.value = false; // Close the fab list regardless
+        if (action.action === 'openProfile') {
+          emit('open-profile'); // Emit event for the parent
+        } else if (action.click) {
+          action.click(); // Execute the original click handler if it exists
+        }
+        // If it's just a trigger like 'talk-to', the button's `id` handles it.
       }
-
 
       return {
         clickAction,
@@ -264,8 +267,10 @@
           },
           {
             label: "Stats",
-            id: "user-profile",
+            action: "openProfile", // Add an action identifier
             faIcon: "hand-holding-seedling",
+            // No id needed here unless used elsewhere
+            // No click handler needed here, it's handled by emitting
           },
           {
             label: "My Wallet",
@@ -287,6 +292,12 @@
 
   export default XpFabUserHud;
 </script>
+
+<script setup>
+// Define the emits for the component
+const emit = defineEmits(['open-profile']);
+</script>
+
 <style lang="scss" scoped>
 ion-fab {
   &.fab-user {

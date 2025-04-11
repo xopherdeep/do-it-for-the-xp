@@ -1,7 +1,11 @@
 <template>
   <ion-page class="ion-page" :class="$options.name" v-cloak>
     <ion-content class="bg-transparent icon-colors" v-if="user">
-      <xp-fab-user-hud :user="user" :isUserFabOn="isUserFabOn" />
+      <xp-fab-user-hud
+        :user="user"
+        :isUserFabOn="isUserFabOn"
+        @open-profile="openUserProfileModal"
+      />
       <xp-user-points-hud v-if="isUserFabOn" :stats="user.stats" />
       <!-- <xp-fab-gold-points :user="user" :isUserFabOn="isUserFabOn" /> -->
       <xp-fab-quick-draw
