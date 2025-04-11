@@ -137,6 +137,7 @@
     // IonItemDivider, // Removed
   } from "@ionic/vue";
   import { defineProps, defineEmits } from "vue"; // Removed ref as areas is gone
+  import appConfig from "@/app.config"; // Import appConfig
 
   // Props definition
   const props = defineProps({
