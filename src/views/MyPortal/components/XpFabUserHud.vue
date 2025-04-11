@@ -11,14 +11,8 @@
     <ion-grid>
       <ion-row>
         <ion-col>
-          <ion-fab-button
-            color="light"
-            v-if="user.avatar"
-          >
-            <ion-img
-              class="ion-no-padding"
-              :src="userAvatar"
-            ></ion-img>
+          <ion-fab-button color="light" v-if="user.avatar">
+            <ion-img class="ion-no-padding" :src="userAvatar"></ion-img>
           </ion-fab-button>
           <ion-badge>
             {{ user.name.nick }}
@@ -26,11 +20,7 @@
         </ion-col>
       </ion-row>
     </ion-grid>
-    <ion-fab-list
-      class="fab-user"
-      side="bottom"
-      ref="userFab"
-    >
+    <ion-fab-list class="fab-user" side="bottom" ref="userFab">
       <ion-card>
         <ion-card-title>
           {{ user.name.nick }}
@@ -45,14 +35,14 @@
             <ion-row>
               <ion-col
                 v-for="action in staticActions"
-                :key="action.label" <!-- Use label or another unique key if id is removed -->
+                :key="action.label"
                 size="6"
               >
                 <ion-button
                   @click="clickAction(action)"
                   size="large"
                   class=""
-                  :id="action.id ? action.id : undefined" <!-- Conditionally bind id -->
+                  :id="action.id ? action.id : undefined"
                 >
                   <i
                     class="fad fa-lg"
@@ -75,22 +65,12 @@
       </ion-card>
       <!-- <CardUserStats :id="isUserModalOpen" /> -->
     </ion-fab-list>
-    <ion-modal
-      trigger="talk-to"
-      :breakpoints="[.9]"
-      :initialBreakpoint=".9"
-    >
+    <ion-modal trigger="talk-to" :breakpoints="[0.9]" :initialBreakpoint="0.9">
       <ion-card>
-        <ion-card-title>
-          Talk
-        </ion-card-title>
+        <ion-card-title> Talk </ion-card-title>
         <ion-card-header>
-          <ion-card-subtitle>
-            What do you want to say?
-          </ion-card-subtitle>
-          <ion-card-content>
-
-          </ion-card-content>
+          <ion-card-subtitle> What do you want to say? </ion-card-subtitle>
+          <ion-card-content> </ion-card-content>
         </ion-card-header>
       </ion-card>
     </ion-modal>
@@ -98,13 +78,13 @@
 </template>
 
 <script lang="ts">
-  import { computed, defineComponent, ref, defineEmits } from 'vue'
-  import { walletOutline, colorWand, fitnessOutline } from 'ionicons/icons';
-  import { useRouter } from 'vue-router';
+  import { computed, defineComponent, ref } from "vue";
+  import { walletOutline, colorWand, fitnessOutline } from "ionicons/icons";
+  import { useRouter } from "vue-router";
   import ionic from "@/mixins/ionic";
   import userActions from "@/mixins/userActions";
 
-  const XpFabUserHud = defineComponent({
+  export default defineComponent({
     name: "xp-fab-user-hud",
     mixins: [userActions, ionic],
     props: {
@@ -115,39 +95,103 @@
             id: 0,
             stats: {
               gp: {
-                wallet: 0
-              }
+                wallet: 0,
+              },
             },
             name: {
-              full: '',
-              nick: ''
-            }
-          }
-        }
-      }
+              full: "",
+              nick: "",
+            },
+          };
+        },
+      },
     },
+    emits: ["open-profile"],
     computed: {
       userAvatar() {
         const avatar = `./${this.user.avatar}.svg`;
         return this.$requireAvatar(avatar);
       },
     },
-
-    setup(props) {
-      const router = useRouter()
-      const userId = computed(() => props.user.id)
-      const fabActive = ref(false)
-      const toggleFab = () => fabActive.value = !fabActive.value
+    setup(props, { emit }) {
+      const router = useRouter();
+      const userId = computed(() => props.user.id);
+      const fabActive = ref(false);
+      const toggleFab = () => (fabActive.value = !fabActive.value);
 
       const clickAction = (action) => {
         fabActive.value = false; // Close the fab list regardless
-        if (action.action === 'openProfile') {
-          emit('open-profile'); // Emit event for the parent
+        if (action.action === "openProfile") {
+          emit("open-profile"); // Emit event for the parent
         } else if (action.click) {
           action.click(); // Execute the original click handler if it exists
         }
         // If it's just a trigger like 'talk-to', the button's `id` handles it.
-      }
+      };
+
+      const staticActions = [
+        {
+          label: "Talk",
+          id: "talk-to",
+          faIcon: "comment",
+        },
+        {
+          label: "Notifications",
+          id: "notifications",
+          faIcon: "bell-exclamation",
+        },
+        {
+          id: "abilities",
+          label: "My Abilities",
+          faIcon: "book-spells",
+          click() {
+            router.push({
+              name: "my-abilities",
+              params: { userId: userId.value },
+            });
+          },
+        },
+        {
+          label: "My Quests",
+          id: "staff",
+          faIcon: "medal",
+          click() {
+            router.push({ name: "my-tasks", params: { userId: userId.value } });
+          },
+        },
+        {
+          label: "My Items",
+          id: "my-inventory",
+          faIcon: "backpack",
+          click() {
+            router.push({
+              name: "my-inventory",
+              params: { userId: userId.value },
+            });
+          },
+        },
+        {
+          label: "Stats",
+          action: "openProfile",
+          faIcon: "hand-holding-seedling",
+        },
+        {
+          label: "My Wallet",
+          id: "wallet",
+          faIcon: "wallet",
+          click() {
+            router.push({
+              name: "my-gold-points",
+              params: { userId: userId.value },
+            });
+          },
+        },
+        {
+          label: "Save & Quit",
+          id: "save-quit",
+          faIcon: "save",
+        },
+      ];
 
       return {
         clickAction,
@@ -157,176 +201,41 @@
         walletOutline,
         colorWand,
         fitnessOutline,
-        // staticActions: [
-        //   {
-        //     label: "Talk",
-        //     id: "talk-to",
-        //     faIcon: "comment",
-        //   },
-        //   {
-        //     label: "Notifications",
-        //     id: "notifications",
-        //     faIcon: "bell-exclamation",
-        //   },
-        //   {
-        //     id: "abilities",
-        //     label: "My Abilities",
-        //     faIcon: "book-spells",
-        //     click($ev) {
-        //       router.push({ name: "my-abilities", params: { userId: userId.value }})
-        //     }
-        //   },
-        //   {
-        //     label: "My Items",
-        //     id: "my-inventory",
-        //     faIcon: "backpack",
-        //     click($ev) {
-        //       router.push({ name: "my-inventory", params: { userId: userId.value } });
-        //     },
-        //   },
-        //   {
-        //     label: "Stats",
-        //     id: "user-profile",
-        //     faIcon: "hand-holding-seedling",
-        //   },
-        //   {
-        //     label: "My Wallet",
-        //     id: "wallet",
-        //     faIcon: "wallet",
-        //     click(){
-        //       router.push({name: 'my-gold-points', params: {userId: userId.value}})
-        //     }
-        //   },
-        //   {
-        //     label: "Save & Quit",
-        //     id: 'save-quit',
-        //     faIcon: "save",
-        //   },
-        //   {
-        //     label: "Inventory Screen",
-        //     id: "toolbox",
-        //     faIcon: "compass",
-        //     // link: 'storage',
-        //     click($ev) {
-        //       this.isRPGBoxOpen = true;
-        //     },
-        //   },
-        //   {
-        //     label: "Gold Points",
-        //     id: "gold-points",
-        //     faIcon: "hand-holding-usd",
-        //     click($ev) {
-        //       router.push({ name: "my-gold-points", params: { userId } });
-        //       // console.log($ev.preventDefault());
-        //     },
-        //   },
-        //   {
-        //     label: "Settings",
-        //     id: "settings",
-        //     faIcon: "cogs",
-        //   },
-        // ],
-
-        staticActions: [
-          // userActions: [
-          {
-            label: "Talk",
-            id: "talk-to",
-            faIcon: "comment",
-          },
-          {
-            label: "Notifications",
-            id: "notifications",
-            faIcon: "bell-exclamation",
-          },
-          {
-            id: "abilities",
-            label: "My Abilities",
-            faIcon: "book-spells",
-            click() {
-              // console.log("click", userId);
-              router.push({ name: "my-abilities", params: { userId: userId.value } });
-            },
-          },
-          {
-            label: "My Quests",
-            id: "staff",
-            faIcon: "medal quest",
-            click() {
-              router.push({ name: 'my-tasks', params: { userId: userId.value } })
-            }
-          },
-          {
-            label: "My Items",
-            id: "my-inventory",
-            faIcon: "backpack",
-            click() {
-              router.push({ name: "my-inventory", params: { userId: userId.value } });
-            },
-          },
-          {
-            label: "Stats",
-            action: "openProfile", // Add an action identifier
-            faIcon: "hand-holding-seedling",
-            // No id needed here unless used elsewhere
-            // No click handler needed here, it's handled by emitting
-          },
-          {
-            label: "My Wallet",
-            id: "wallet",
-            faIcon: "wallet",
-            click() {
-              router.push({ name: 'my-gold-points', params: { userId: userId.value } })
-            }
-          },
-          {
-            label: "Save & Quit",
-            id: 'save-quit',
-            faIcon: "save",
-          },
-        ],
-      }
-    }
-  })
-
-  export default XpFabUserHud;
-</script>
-
-<script setup>
-// Define the emits for the component
-const emit = defineEmits(['open-profile']);
+        staticActions,
+      };
+    },
+  });
 </script>
 
 <style lang="scss" scoped>
-ion-fab {
-  &.fab-user {
-    width: 500px;
-    max-width: 95vw;
+  ion-fab {
+    &.fab-user {
+      width: 500px;
+      max-width: 95vw;
 
-    ion-chip {
-      box-shadow: 3px 3px 0px;
-      width: 100%;
-      padding: 1em 15px;
+      ion-chip {
+        box-shadow: 3px 3px 0px;
+        width: 100%;
+        padding: 1em 15px;
 
-      i {
-        margin: 0.25em;
+        i {
+          margin: 0.25em;
+        }
+      }
+
+      .wallet {
+        float: right;
       }
     }
+  }
 
-    .wallet {
-      float: right
+  ion-button {
+    // width: 100%;
+    justify-content: flex-start !important;
+
+    * {
+      display: flex;
+      justify-content: flex-start !important;
     }
   }
-
-}
-
-ion-button {
-  // width: 100%;
-  justify-content: flex-start !important;
-
-  * {
-    display: flex;
-    justify-content: flex-start !important;
-  }
-}
 </style>
