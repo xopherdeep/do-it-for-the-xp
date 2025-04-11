@@ -45,7 +45,6 @@
             <ion-row>
               <ion-col
                 v-for="action in staticActions"
-                v-for="action in staticActions"
                 :key="action.label" <!-- Use label or another unique key if id is removed -->
                 size="6"
               >
@@ -53,7 +52,7 @@
                   @click="clickAction(action)"
                   size="large"
                   class=""
-                  :id="action.id" <!-- Keep id if needed for other modals like 'talk-to' -->
+                  :id="action.id ? action.id : undefined" <!-- Conditionally bind id -->
                 >
                   <i
                     class="fad fa-lg"
