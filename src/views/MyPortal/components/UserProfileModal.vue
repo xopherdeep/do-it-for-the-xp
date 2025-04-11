@@ -17,9 +17,19 @@
     <ion-content class="ion-padding">
       <!-- Swiper removed -->
       <ion-grid class="ion-no-padding">
-        <ion-row>
+        <ion-row class="ion-align-items-center">
+          <!-- Avatar/Sprite Section -->
+          <ion-col size="4" class="ion-text-center">
+             <!-- Add your Ness sprite here -->
+             <img src="/assets/sprites/ness.png" alt="Ness Sprite" style="max-width: 80px; image-rendering: pixelated;"/>
+             <!-- Display user avatar if available -->
+             <img v-if="user?.avatar" :src="user.avatar" alt="User Avatar" style="max-width: 80px; margin-top: 10px; border-radius: 50%;"/>
+             <!-- Placeholder if no avatar -->
+             <div v-else style="margin-top: 10px; font-size: 0.8em;">(No Avatar)</div>
+          </ion-col>
+
           <!-- User Info Section -->
-          <ion-col size="12" class="user-info-header">
+          <ion-col size="8" class="user-info-header">
             <ion-card>
               <ion-card-header>
                 <ion-card-title>{{
@@ -33,71 +43,34 @@
               <!-- <img src="path/to/avatar.png" alt="User Avatar" /> -->
             </ion-card>
           </ion-col>
+        </ion-row>
 
-          <!-- Name Details (Optional - could be integrated elsewhere or kept simple) -->
-          <ion-col size="6" v-if="user?.name?.first">
-            <ion-card>
-              <ion-card-header>
-                <ion-card-subtitle>First Name</ion-card-subtitle>
-              </ion-card-header>
-              <ion-card-content>{{ user.name.first }}</ion-card-content>
-            </ion-card>
-          </ion-col>
-          <ion-col size="6" v-if="user?.name?.last">
-            <ion-card>
-              <ion-card-header>
-                <ion-card-subtitle>Last Name</ion-card-subtitle>
-              </ion-card-header>
-              <ion-card-content>{{ user.name.last }}</ion-card-content>
-            </ion-card>
-          </ion-col>
-          <!-- Middle name might be less common to display -->
-          <!-- <ion-col v-if="user?.name?.middle">...</ion-col> -->
+        <!-- Removed Name Details Section -->
 
-          <!-- Stats Section -->
+        <!-- Stats Placeholder Section -->
+        <ion-row>
           <ion-col size="12">
             <ion-card>
               <ion-card-header>
                 <ion-card-title>Stats</ion-card-title>
               </ion-card-header>
-              <ion-list lines="none">
-                <!-- Iterate through stats - Adapt this based on how 'areas' or 'user.stats' is structured -->
-                <!-- Example: Displaying HP/MP if available -->
-                <ion-item v-if="user?.stats?.hp !== undefined">
-                  <ion-label>HP</ion-label>
-                  <ion-note slot="end"
-                    >{{ user.stats.hp }} /
-                    {{ user.stats.maxHp || user.stats.hp }}</ion-note
-                  >
-                </ion-item>
-                <ion-item v-if="user?.stats?.mp !== undefined">
-                  <ion-label>MP</ion-label>
-                  <ion-note slot="end"
-                    >{{ user.stats.mp }} /
-                    {{ user.stats.maxMp || user.stats.mp }}</ion-note
-                  >
-                </ion-item>
-                <!-- Iterate through stats defined in 'areas' -->
-                <template v-for="(area, category) in areas" :key="category">
-                  <ion-item-divider v-if="Object.keys(area.stats).length > 0">
-                    <ion-label :color="area.color || 'primary'">{{
-                      category
-                    }}</ion-label>
-                  </ion-item-divider>
-                  <ion-item v-for="(desc, stat) in area.stats" :key="stat">
-                    <ion-label :color="area.color || 'primary'">{{
-                      stat
-                    }}</ion-label>
-                    <ion-note slot="end" :color="area.color || 'primary'">{{
-                      user?.stats?.[stat] ?? "N/A"
-                    }}</ion-note>
-                  </ion-item>
-                </template>
-              </ion-list>
+              <ion-card-content>
+                <!-- Placeholder for stats -->
+                <p>HP: --- / ---</p>
+                <p>MP: --- / ---</p>
+                <p>Level: --</p>
+                <p>XP: ------</p>
+                <p>GP: ------</p>
+                <p>AP: ------</p>
+                <p>...</p>
+                <p>(Stats display coming soon)</p>
+              </ion-card-content>
             </ion-card>
           </ion-col>
+        </ion-row>
 
-          <!-- Favorites Section -->
+        <!-- Favorites Section -->
+        <ion-row>
           <ion-col size="12">
             <ion-card>
               <ion-card-header>
@@ -128,7 +101,7 @@
           </ion-col>
         </ion-row>
       </ion-grid>
-      <!-- Original content from slide 1 and 2 merged above -->
+      <!-- Original content merged and simplified above -->
       <!-- Removed original grid structure -->
       <!--
               <ion-col size="2">
@@ -153,21 +126,17 @@
     IonCardHeader,
     IonCardSubtitle,
     IonCardContent,
-    IonAccordionGroup,
-    IonAccordion,
-    IonItem,
-    IonNote,
-    IonLabel,
-    IonList,
-    IonIcon,
-    IonCardTitle, // Added IonCardTitle
-    IonItemDivider, // Added IonItemDivider
+    // IonAccordionGroup, // Removed
+    // IonAccordion, // Removed
+    // IonItem, // Removed (unless needed elsewhere)
+    // IonNote, // Removed (unless needed elsewhere)
+    // IonLabel, // Removed (unless needed elsewhere)
+    // IonList, // Removed
+    // IonIcon, // Removed (unless needed elsewhere)
+    IonCardTitle,
+    // IonItemDivider, // Removed
   } from "@ionic/vue";
-  // Removed Swiper imports
-  import { ref, defineProps, defineEmits } from "vue";
-
-  // Swiper instance ref removed
-  // const swiperInstance = ref(null);
+  import { defineProps, defineEmits } from "vue"; // Removed ref as areas is gone
 
   // Props definition
   const props = defineProps({
@@ -184,32 +153,8 @@
   // Emits definition
   const emit = defineEmits(["close"]);
 
-  // Placeholder for areas data - you'll need to define this based on your application's needs
-  const areas = ref({
-    // Example structure:
-    // Stats: {
-    //   color: 'primary',
-    //   icon: 'bar-chart-outline', // Replace with actual icon if needed
-    //   stats: {
-    //     hp: 'Health Points',
-    //     mp: 'Magic Points',
-    //     // ... other stats
-    //   }
-    // Example structure (ensure this matches your actual data for stats display):
-    Stats: {
-      color: "primary",
-      icon: "bar-chart-outline", // Icon might not be used in the new layout
-      stats: {
-        hp: "Health Points",
-        mp: "Magic Points",
-        strength: "Strength",
-        defense: "Defense",
-        // ... other stats
-      },
-    },
-    // Add other categories if needed
-    // Attributes: { ... }
-  });
+  // Removed areas ref as stats are now a placeholder
+  // const areas = ref({ ... });
 
   // Swiper-related functions removed
   // const onSwiper = (instance) => { ... };
@@ -218,9 +163,9 @@
 
 <style scoped lang="scss">
   /* Add any specific styles for the modal here */
-  .user-profile {
-    --height: 90%; /* Example height */
-  }
+  /* .user-profile { */
+    /* --height: 90%; Removed to allow fullscreen */
+  /* } */
 
   .favorite-food ion-card-content {
     display: flex;
