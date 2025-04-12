@@ -81,32 +81,51 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref } from "vue";
-
+  import { defineComponent, ref, computed } from "vue";
   import ionic from "@/mixins/ionic";
-
   import { arrowBack } from "ionicons/icons";
-
   import { profileStorage } from "../../SwitchProfile/SwitchProfile.vue";
   import { ProfileDb } from "@/databases";
   import User from "@/utils/User";
-
   import { alertController, modalController } from "@ionic/vue";
-
   import XpProfileItem from "./ProfileItem.vue";
-  import XpGp from "@/components/XpGp/XpGp.vue";
-
+  import AddProfile from "../../SwitchProfile/AddProfile/AddProfile.vue";
   import { useStore } from "vuex";
 
-  import AddProfile from "../../SwitchProfile/AddProfile/AddProfile.vue";
-
-
-  const FamilySettings = defineComponent({
+  export default defineComponent({
     name: "xp-settings-family",
     mixins: [ionic],
     components: { XpProfileItem },
-    mounted() {
-      this.loadProfiles();
+    setup() {
+      const lockFamily = ref(false);
+      const toppings = [];
+      const toggleFamily = () => (lockFamily.value = !lockFamily.value);
+      const store = useStore();
+      const profileDb = new ProfileDb(profileStorage);
+      const requireAvatar = require.context("@/assets/images/avatars/");
+
+      // Get profiles from Vuex store
+      const profiles = computed(() => store.getters.usersAz);
+
+      // Methods
+      const loadProfiles = async () => {
+        await store.dispatch("loadUsers");
+      };
+
+      // Load profiles when component mounts
+      loadProfiles();
+
+      return {
+        store,
+        requireAvatar,
+        profiles,
+        profileDb,
+        lockFamily,
+        toggleFamily,
+        toppings,
+        arrowBack,
+        loadProfiles
+      };
     },
     methods: {
       async clickEditProfile(profile: User) {
@@ -158,41 +177,9 @@
         if (avatar) {
           return this.requireAvatar(`./${user.avatar}.svg`);
         }
-      },
-      async loadProfiles() {
-        await this.profileDb.getAll().then((profiles) => {
-          const sortedProfiles = Object.values(profiles).sort((a, b) => {
-            return a.name.full.localeCompare(b.name.full);
-          });
-          this.profiles = sortedProfiles;
-          this.store.dispatch("loadUsers");
-        });
-      },
-    },
-    setup() {
-      const lockFamily = ref(false);
-      const toppings = [];
-      const toggleFamily = () => (lockFamily.value = !lockFamily.value);
-      const profileDb = new ProfileDb(profileStorage);
-      const profiles = ref([] as User[]);
-      const store = useStore()
-
-      const requireAvatar = require.context("@/assets/images/avatars/");
-
-      return {
-        store,
-        requireAvatar,
-        profiles,
-        profileDb,
-        lockFamily,
-        toggleFamily,
-        toppings,
-        arrowBack,
-      };
-    },
+      }
+    }
   });
-
-  export default FamilySettings;
 </script>
 
 <style lang="scss"></style>

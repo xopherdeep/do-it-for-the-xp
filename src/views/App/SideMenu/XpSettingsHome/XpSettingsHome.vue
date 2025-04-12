@@ -21,6 +21,8 @@
       :fullscreen="true"
       class="rpg-box"
     >
+    <ion-card>
+
       <ion-list>
         <ion-item
           button
@@ -68,7 +70,8 @@
           </ion-label>
         </ion-item>
         <ion-item
-          href="notifications"
+          button
+          :routerLink="`/xp-settings/notifications`"
           detail="true"
         >
           <ion-thumbnail slot="end">
@@ -80,7 +83,8 @@
           </ion-label>
         </ion-item>
         <ion-item
-          href="reward"
+          button
+          :routerLink="`/xp-settings/reward`"
           detail="true"
         >
           <ion-thumbnail slot="end">
@@ -95,31 +99,46 @@
           </ion-label>
         </ion-item>
         <ion-item
-          href="party"
+          button
+          :routerLink="`/xp-settings/party`"
           detail="true"
         >
           <ion-thumbnail slot="end">
             <ion-img :src="requireIconImg('./collaboration.png')" />
           </ion-thumbnail>
-        <ion-label>
-          <h1>Party</h1>
-          <p>All settings pertaining to your party can be found here...</p>
-        </ion-label>
-      </ion-item>
-      <ion-item
-        router-link="/xp-settings/sound"
-        button
-        detail="true"
-      >
-        <ion-thumbnail slot="end">
-          <ion-img :src="requireIconImg('./listener.png')" />
-        </ion-thumbnail>
-        <ion-label>
-          <h1>Sound</h1>
-          <p>Adjust your sound settings here.</p>
-        </ion-label>
-      </ion-item>
-    </ion-list>
+          <ion-label>
+            <h1>Party</h1>
+            <p>All settings pertaining to your party can be found here...</p>
+          </ion-label>
+        </ion-item>
+        <ion-item
+          router-link="/xp-settings/sound"
+          button
+          detail="true"
+        >
+          <ion-thumbnail slot="end">
+            <ion-img :src="requireIconImg('./listener.png')" />
+          </ion-thumbnail>
+          <ion-label>
+            <h1>Sound</h1>
+            <p>Adjust your sound settings here.</p>
+          </ion-label>
+        </ion-item>
+        <ion-item
+          button
+          :routerLink="`/xp-settings/theme`"
+          detail="true"
+        >
+          <ion-thumbnail slot="end">
+            <ion-img :src="requireIconImg('./settings.png')" />
+          </ion-thumbnail>
+          <ion-label>
+            <h1>Theme</h1>
+            <p>Customize app appearance, UI style, and game theme</p>
+          </ion-label>
+        </ion-item>
+      </ion-list>
+    </ion-card>
   </ion-content>
 </ion-page></template>
 

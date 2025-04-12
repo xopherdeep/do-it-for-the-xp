@@ -10,19 +10,21 @@
     </ion-header>
 
     <ion-content :fullscreen="true" class="rpg-box">
-      <ion-list>
-        <ion-item
-          v-for="(item, index) in menuItems"
-          :key="index"
-          :router-link="item.route"
-          detail
-          class="settings-menu-item"
-          @click="playSelectSound"
-        >
-          <ion-icon :icon="item.icon" slot="start"></ion-icon>
-          <ion-label>{{ item.title }}</ion-label>
-        </ion-item>
-      </ion-list>
+      <ion-card>
+        <ion-list>
+          <ion-item
+            v-for="(item, index) in menuItems"
+            :key="index"
+            :router-link="item.route"
+            detail
+            class="settings-menu-item"
+            @click="playSelectSound"
+          >
+            <ion-icon :icon="item.icon" slot="start"></ion-icon>
+            <ion-label>{{ item.title }}</ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-card>
 
       <ion-card class="settings-card">
         <ion-card-header>
