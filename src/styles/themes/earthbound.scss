@@ -214,19 +214,15 @@ ion-app {
 
     // Toast notifications
     ion-toast {
+      @include eb-box(); // Apply the standard box styling
+
+      // Toast-specific overrides and properties
       --ion-safe-area-top: 100px;
-      --background: $eb-color-dark-purple;
-      --color: $eb-color-cream;
       --padding: 5px 3px;
-      --border-radius: 1px;
       --transform: translateY(0);
       --transition: transform linear 150ms;
-      // Interpolation is needed here because the value is a complex list
-      --box-shadow: 0 0 0 5px #{$eb-color-medium-purple},
-        0 0 0 10px #{$eb-color-minty-blue}, 0 0 0 12px #{$eb-color-pale-yellow},
-        0 0 0 16px #{$eb-color-slate};
       --width: 90%;
-      --button-color: $eb-color-cream;
+      --button-color: $eb-color-cream; // Keep button color if needed specifically
 
       &::part(header) {
         font-weight: 800;
