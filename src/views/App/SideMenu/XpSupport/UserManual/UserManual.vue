@@ -58,7 +58,8 @@
               <ion-card-content>
                 <ion-list>
                   <ion-item lines="none">
-                     <ion-button router-link="/dev/component-showcase" fill="outline">
+                     <!-- Use named route for router-link -->
+                     <ion-button :router-link="{ name: 'component-showcase' }" fill="outline">
                        View Component Showcase
                      </ion-button>
                   </ion-item>
