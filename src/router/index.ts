@@ -32,6 +32,11 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/MyPortal/HomeTown/BattleGround/BattleGround.vue'),
     props: true,
   },
+  {
+    path: '/dev/component-showcase', // Hidden path for developers
+    name: 'component-showcase',
+    component: () => import('@/views/Dev/ComponentShowcase.vue'),
+  },
 ];
 
 // Create and export router factory function
