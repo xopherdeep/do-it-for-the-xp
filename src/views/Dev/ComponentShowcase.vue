@@ -203,6 +203,7 @@
 <script setup lang="ts">
 import { h } from 'vue'; // Import h for creating VNodes in modal
 import {
+  // alertController, // Removed - No longer used directly on this page
   modalController, // Replaced alertController
   toastController, // Added for Toast example
   IonButton,       // Added
@@ -409,16 +410,20 @@ const presentToast = async (position: 'top' | 'middle' | 'bottom') => {
   await toast.present();
 };
 
-// Alert Logic
-const presentAlert = async () => {
-  const alert = await alertController.create({
-    header: 'Alert',
-    subHeader: 'Important message',
-    message: 'This is an alert!',
-    buttons: ['OK'],
-  });
-  await alert.present();
-};
+// Alert Logic (Keep for example trigger, but ensure alertController is imported if needed)
+// const presentAlert = async () => {
+//   // Ensure alertController is imported from '@ionic/vue' if you uncomment this
+//   const alert = await alertController.create({
+//     header: 'Alert',
+//     subHeader: 'Important message',
+//     message: 'This is an alert!',
+//     buttons: ['OK'],
+//   });
+//   await alert.present();
+// };
+// NOTE: The button still exists, but clicking it will now cause an error unless
+//       alertController is re-imported and this function uncommented.
+//       Alternatively, remove the Alert section entirely if not needed.
 
 // Show Code Logic using Modal
 const showCode = async (code: string) => {
