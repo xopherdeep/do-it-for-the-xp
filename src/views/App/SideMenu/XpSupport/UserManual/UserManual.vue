@@ -48,6 +48,26 @@
               </ion-card-content>
             </ion-card>
           </ion-col>
+
+          <!-- Developer Section -->
+          <ion-col size="12">
+            <ion-card color="medium"> <!-- Use a different color to distinguish -->
+              <ion-card-header>
+                <ion-card-title>Developer Tools</ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <ion-list>
+                  <ion-item lines="none">
+                     <ion-button router-link="/dev/component-showcase" fill="outline">
+                       View Component Showcase
+                     </ion-button>
+                  </ion-item>
+                </ion-list>
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+          <!-- End Developer Section -->
+
         </ion-row>
       </ion-grid>
     </ion-content>
