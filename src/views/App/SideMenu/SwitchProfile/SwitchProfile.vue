@@ -38,23 +38,23 @@
             button
             detail
           >
+            <ion-avatar slot="start">
+              <ion-img :src="getUserAvatar(profile)" />
+            </ion-avatar>
             <ion-label>
               {{ profile.name.nick }}
               <p>
-                <small>
-                  {{ profile.name.full }}
-                </small>
+                <small>{{ profile.name.full }}</small>
               </p>
             </ion-label>
-            <ion-avatar slot="end">
-              <ion-img :src="getUserAvatar(profile)" />
-            </ion-avatar>
-            <ion-label slot="end" class="w-20 ml-2">
-              Level: {{ profile?.stats?.level }}
-              <p>
+            <div slot="end" class="flex flex-col items-end gap-2">
+              <ion-badge color="tertiary">
+                Level {{ profile?.stats?.level }}
+              </ion-badge>
+              <ion-badge color="warning">
                 <xp-gp :gp="profile?.stats?.gp.wallet" />
-              </p>
-            </ion-label>
+              </ion-badge>
+            </div>
           </ion-item>
         </ion-list>
       </ion-card>
@@ -142,33 +142,30 @@
 
       // Navigation functions
       const navigateToUserPortal = async (profile: User) => {
-        const minLoadingTime = 1000; // Minimum display time in milliseconds (e.g., 1 second)
-        let loadingStartTime = 0;
-
         try {
           isProfileLoading.value = true; // Start loading indicator
-          loadingStartTime = Date.now(); // Record start time
-
-          // Login the user first
+          
+          // Login the user first and wait for it to complete
           await store.dispatch("loginUser", profile);
-          // Then navigate to their portal
-          ionRouter.navigate(
-            `/my-portal/${profile.id}`,
+          
+          // Then navigate to their home page
+          await ionRouter.navigate(
+            `/my-portal/${profile.id}/my-home`,
             "forward"
-            // "replace"
           );
-        } catch (error: any) { // Catch specific error type if known
+        } catch (error: any) {
           console.error("Login/Navigation error:", error);
-          // Show error toast
           const toast = await toastController.create({
             message: `Failed to load profile: ${error.message || error}`,
-            duration: 3000, // Show for 3 seconds
+            duration: 3000,
             color: 'danger',
             position: 'top'
           });
-          // await toast.present(); // Toast removed as requested
+          await toast.present();
         } finally {
-          isProfileLoading.value = false; // Stop loading indicator
+          // Add a slight delay before hiding the loading indicator
+          await new Promise(resolve => setTimeout(resolve, 500));
+          isProfileLoading.value = false;
         }
       };
 
@@ -220,12 +217,15 @@
       };
 
       // Lifecycle hooks
-      onIonViewWillEnter(() => {
-        loadProfiles();
+      onIonViewWillEnter(async () => {
+        // Load profiles when entering the view
+        await loadProfiles();
       });
 
       onIonViewDidLeave(() => {
-        // Clean up or reset any state needed when navigating away
+        // Reset loading states when leaving the view
+        isLoading.value = false;
+        isProfileLoading.value = false;
       });
 
       onUnmounted(() => {
@@ -281,10 +281,6 @@
       // min-width: calc(15vw)
     }
 
-    ion-avatar {
-      margin: auto;
-    }
-
     // #container {
     //   text-align: center;
     //   position: absolute;
@@ -308,6 +304,22 @@
 
     #container a {
       text-decoration: none;
+    }
+
+    ion-badge {
+      padding: 6px 8px;
+      border-radius: 12px;
+      font-weight: 500;
+      min-width: 60px;
+      text-align: center;
+      
+      &[color="tertiary"] {
+        --ion-color-base: var(--ion-color-tertiary);
+      }
+      
+      &[color="warning"] {
+        --ion-color-base: var(--ion-color-warning);
+      }
     }
   }
 
