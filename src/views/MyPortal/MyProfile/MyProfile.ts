@@ -3,17 +3,19 @@ import ionic from "@/mixins/ionic";
 import { useRoute, useRouter } from "vue-router";
 import { useStore } from 'vuex';
 import userActions from "@/mixins/userActions";
-
+import XpIcon from "@/components/XpIcon";
 import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
-import XpCardMenu from "@/views/MyPortal/components/XpCardMenu.vue"
-import {
-  arrowBack
-} from "ionicons/icons"
+import XpCardMenu from "@/views/MyPortal/components/XpCardMenu.vue";
+import { arrowBack } from "ionicons/icons";
 
 export default defineComponent({
   name: "my-profile",
   mixins: [ionic, userActions],
-  components: { CardUserStats, XpCardMenu },
+  components: { 
+    CardUserStats, 
+    XpCardMenu,
+    XpIcon
+  },
   ionViewDidEnter() {
     this.setUserActions(this.userActions)
   },
@@ -23,7 +25,7 @@ export default defineComponent({
     const store = useStore();
     const { userId } = route.params;
     const user = computed(() => store.getters.getUserById(userId));
-    // code
+
     return {
       arrowBack,
       userId,
@@ -32,56 +34,72 @@ export default defineComponent({
         {
           label: "Talk",
           id: "talk-to",
-          faIcon: "comment",
+          icon: "comment", // Changed from faIcon to icon
+          primary: "blue",
+          secondary: "gray"
         },
         {
           label: "Notifications",
           id: "notifications",
-          faIcon: "bell-exclamation",
+          icon: "bell-exclamation", // Changed from faIcon to icon
+          primary: "yellow",
+          secondary: "orange"
         },
         {
           id: "abilities",
           label: "My Abilities",
-          faIcon: "book-spells",
+          icon: "book-spells", // Changed from faIcon to icon
+          primary: "purple",
+          secondary: "blue",
           click() {
-            router.push({ name: "my-abilities", params: { userId } });
+            router.push(`/my-portal/${userId}/abilities`);
           },
         },
         {
           label: "My Quests",
           id: "staff",
-          faIcon: "medal quest",
+          icon: "medal", // Changed from faIcon to icon
+          primary: "gold",
+          secondary: "bronze",
           click() {
-            router.push({ name: 'my-tasks', params: { userId } })
+            router.push(`/my-portal/${userId}/quests`);
           }
         },
         {
           label: "My Items",
           id: "my-inventory",
-          faIcon: "backpack",
+          icon: "backpack", // Changed from faIcon to icon
+          primary: "brown",
+          secondary: "gold",
           click() {
-            router.push({ name: "my-inventory", params: { userId } });
-          },
+            router.push(`/my-portal/${userId}/inventory`);
+          }
         },
         {
           label: "Stats",
           id: "user-profile",
-          faIcon: "hand-holding-seedling",
+          icon: "hand-holding-seedling", // Changed from faIcon to icon
+          primary: "green",
+          secondary: "lightgreen"
         },
         {
           label: "My Wallet",
           id: "wallet",
-          faIcon: "wallet",
+          icon: "wallet", // Changed from faIcon to icon
+          primary: "black",
+          secondary: "gray",
           click() {
-            router.push({ name: 'my-gold-points', params: { userId } })
+            router.push(`/my-portal/${userId}/wallet`);
           }
         },
         {
           label: "Save & Quit",
           id: 'save-quit',
-          faIcon: "save",
-        },
-      ],
-    }
-  },
-})
+          icon: "save", // Changed from faIcon to icon
+          primary: "red",
+          secondary: "darkred"
+        }
+      ]
+    };
+  }
+});

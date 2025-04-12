@@ -44,7 +44,7 @@
                 <ion-avatar>
                   <ion-img :src="getUserAvatar(profile)" />
                 </ion-avatar>
-                <div class="role-icons">
+                <div class="role-icons icon-colors">
                   <i :class="`fad fa-${getJobClassIcon(profile)}`"></i>
                   <i :class="`fad fa-${getFoodIcon(profile)}`"></i>
                 </div>
@@ -432,13 +432,13 @@
         font-size: 1.5rem;
 
         // Set default duotone colors if not overridden
-        --fa-primary-color: var(--ion-color-primary);
-        --fa-secondary-color: var(--ion-color-primary-shade);
-        --fa-secondary-opacity: 0.6;
+        /* --fa-primary-color: var(--ion-color-primary);
+        --fa-secondary-color: var(--ion-color-primary-shade); */
+        /* --fa-secondary-opacity: 0.6; */
 
         &:last-child {
-          --fa-primary-color: var(--ion-color-success);
-          --fa-secondary-color: var(--ion-color-success-shade);
+          /* --fa-primary-color: var(--ion-color-success);
+          --fa-secondary-color: var(--ion-color-success-shade); */
         }
       }
     }
@@ -468,32 +468,34 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      background: var(--ion-color-tertiary-tint);
+      /* background: var(--ion-color-tertiary-dark); */
       padding: 0.25rem 0.75rem;
       border-radius: 8px;
       min-width: 3rem;
 
       .label {
-        font-size: 0.7rem;
+        font-size: 0.9rem;
         color: var(--ion-color-tertiary);
         font-weight: 600;
         text-transform: uppercase;
       }
 
       .value {
-        font-size: 1.1rem;
+        font-size: 1.3rem;
         font-weight: 700;
         color: var(--ion-color-tertiary);
       }
     }
 
     .wallet {
-      background: var(--ion-color-warning-tint);
+      /* background: var(--ion-color-warning-tint); */
       padding: 0.25rem 0.75rem;
       border-radius: 8px;
       display: flex;
       align-items: center;
       color: var(--ion-color-warning);
+        font-size: 1.4rem;
+        font-weight: 700;
     }
   }
 </style>

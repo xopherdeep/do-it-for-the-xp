@@ -17,6 +17,16 @@ export function useEquipmentItems() {
 
   const specialItems: EquipmentItem[] = [
     {
+      name: "Portal Home",
+      faIcon: "portal-enter",
+      desc: "10MP | Open a magical portal to instantly return home from anywhere. Takes 15min to recharge.",
+      mpCost: 10,
+      rechargeTime: "15min",
+      click() {
+        router.push({ name: "my-home", params: { userId } });
+      },
+    },
+    {
       faIcon: "staff quest",
       name: "My Quests",
       desc: "5HP | View and manage all your active quests and daily tasks.",
@@ -48,6 +58,37 @@ export function useEquipmentItems() {
         router.push({ name: "my-gold-points", params: { userId } });
       },
     },
+    {
+      faIcon: "bow-arrow",
+      name: "Silver Arrow",
+      desc: "25MP | A precise magical arrow that instantly removes one task from your battle queue.",
+      mpCost: 25
+    },
+    {
+      faIcon: "expand-alt",
+      name: "Hook Shot",
+      desc: "15MP | Quickly grab distant objectives and bring them into focus. Moves a future task to your current day.",
+      mpCost: 15
+    },
+    {
+      faIcon: "bomb",
+      name: "Bombs",
+      desc: "40MP | Blast through tough obstacles! Breaks down one large task into three smaller, manageable pieces.",
+      mpCost: 40
+    },
+    {
+      faIcon: "hammer-war",
+      name: "Thor's Hammer",
+      desc: "60MP | A mighty hammer that smashes through the toughest challenges. Completes 50% of any single task.",
+      mpCost: 60
+    },
+    {
+      faIcon: "flashlight",
+      name: "Lantern",
+      desc: "5MP | Illuminate dark areas to reveal hidden tasks. Shows all forgotten or overdue responsibilities.",
+      mpCost: 5
+    },
+
     {
       faIcon: "flame",
       name: "Sol's Flare",
@@ -114,56 +155,16 @@ export function useEquipmentItems() {
       desc: "50MP | Freeze distractions in their tracks, allowing better focus. Extends task deadlines by 24 hours.",
       mpCost: 50
     },
-    {
-      faIcon: "staff fire",
-      name: "Flame Staff",
-      desc: "75MP | A powerful staff that amplifies fire magic. Reduces the difficulty of challenging tasks by 30%.",
-      mpCost: 75
-    },
-    {
-      faIcon: "bow-arrow",
-      name: "Silver Arrow",
-      desc: "25MP | A precise magical arrow that instantly removes one task from your battle queue.",
-      mpCost: 25
-    },
-    {
-      faIcon: "expand-alt",
-      name: "Hook Shot",
-      desc: "15MP | Quickly grab distant objectives and bring them into focus. Moves a future task to your current day.",
-      mpCost: 15
-    },
-    {
-      faIcon: "bomb",
-      name: "Bombs",
-      desc: "40MP | Blast through tough obstacles! Breaks down one large task into three smaller, manageable pieces.",
-      mpCost: 40
-    },
-    {
-      faIcon: "hammer-war",
-      name: "Thor's Hammer",
-      desc: "60MP | A mighty hammer that smashes through the toughest challenges. Completes 50% of any single task.",
-      mpCost: 60
-    },
-    {
-      faIcon: "flashlight",
-      name: "Lantern",
-      desc: "5MP | Illuminate dark areas to reveal hidden tasks. Shows all forgotten or overdue responsibilities.",
-      mpCost: 5
-    },
+    // {
+    //   faIcon: "staff fire",
+    //   name: "Flame Staff",
+    //   desc: "75MP | A powerful staff that amplifies fire magic. Reduces the difficulty of challenging tasks by 30%.",
+    //   mpCost: 75
+    // },
     {
       faIcon: "flask-potion",
       name: "Bottles",
       desc: "Store and access your potions and ethers. Health potions restore 50HP, while ethers restore 30MP each.",
-    },
-    {
-      name: "Portal Home",
-      faIcon: "portal-enter",
-      desc: "10MP | Open a magical portal to instantly return home from anywhere. Takes 15min to recharge.",
-      mpCost: 10,
-      rechargeTime: "15min",
-      click() {
-        router.push({ name: "my-home", params: { userId } });
-      },
     },
   ];
 

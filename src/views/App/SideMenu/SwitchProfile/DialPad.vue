@@ -120,7 +120,7 @@
                   shape="round"
                   @click="removeLastDigit()"
                 >
-                  ⌫
+                  <xp-icon icon="backspace" />
                 </ion-button>
               </ion-col>
               <ion-col>
@@ -135,7 +135,7 @@
               </ion-col>
               <ion-col>
                 <ion-button expand="block" shape="round" @click="clearCode()">
-                  C
+                  <xp-icon icon="trash"  />
                 </ion-button>
               </ion-col>
             </ion-row>
@@ -158,7 +158,7 @@
       <ion-buttons slot="end">
         <ion-button :disabled="!isPasscodeValid" @click="clickUnlock">
           Unlock
-          <i slot="end" class="fad" :class="lockIcon" />
+          <i slot="end" class="fad" :class="lock" />
         </ion-button>
       </ion-buttons>
     </ion-toolbar>
@@ -173,16 +173,18 @@
   } from "@ionic/vue";
   import ionic from "@/mixins/ionic";
   import GamerCard from "./AddProfile/GamerCard.vue";
-
+  import XpIcon from "@/components/XpIcon";
   import { defineComponent, onUnmounted } from "vue";
+
   const KeyPad = defineComponent({
     props: ["profile"],
     mixins: [ionic],
-    components: { GamerCard },
+    components: { 
+      GamerCard,
+      XpIcon 
+    },
     setup(props) {
-      // Ensure cleanup when component unmounts
       onUnmounted(() => {
-        // Try to dismiss the modal if it somehow wasn't dismissed properly
         try {
           modalController.dismiss().catch(() => {
             // Ignore errors if already dismissed
@@ -254,6 +256,10 @@
 
       clearCode() {
         this.inputCode = "";
+      },
+
+      playKeyPadFx() {
+        // $fx.play("keypad");
       },
 
       async alertIncorrectPasscode() {
