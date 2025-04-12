@@ -430,9 +430,13 @@ const showCode = async (code: string) => {
   const modal = await modalController.create({
     component: {
       // Define an inline component for the modal content
-      setup() {
+      props: { // Define props for the inline component
+        codeToShow: { type: String, required: true }
+      },
+      setup(props) { // Accept props here
         const closeModal = () => modalController.dismiss();
-        const formattedCode = escapeHtml(code); // Escape the code once
+        // Calculate formattedCode based on the passed prop
+        const formattedCode = escapeHtml(props.codeToShow);
         return { closeModal, formattedCode };
       },
       template: `
@@ -455,6 +459,9 @@ const showCode = async (code: string) => {
       components: { // Register necessary Ionic components locally for the modal
           IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent, IonCard, IonCardContent
       }
+    },
+    componentProps: { // Pass the code string as a prop
+      codeToShow: code
     },
     // Use CSS variables for auto height and potentially width
     cssClass: 'code-modal', // Add a class for styling
