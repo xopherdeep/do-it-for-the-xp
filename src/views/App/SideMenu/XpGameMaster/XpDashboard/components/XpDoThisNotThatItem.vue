@@ -90,7 +90,7 @@
       },
     },
     setup() {
-      const dosDontsDb = new DosDontsDb(dosDontsStorage);
+      const dosDontsDb = new DosDontsDb();
       const dosDonts = ref([] as DosDont[]);
 
       const loadDoDonts = async () => {

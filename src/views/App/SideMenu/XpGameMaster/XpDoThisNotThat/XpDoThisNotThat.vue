@@ -109,7 +109,7 @@
   import { add } from "ionicons/icons";
   import XpAddDoDont from "./components/XpAddDoDont.vue";
   import { useRoute } from "vue-router";
-  import DoDontDb, { DosDont, dosDontsStorage } from "@/databases/DosDontsDb";
+  import DosDontsDb, { DosDont } from "@/databases/DosDontsDb";
 
   import ionic from "@/mixins/ionic";
   export default defineComponent({
@@ -161,6 +161,7 @@
       async clickAdd(doDont?: DosDont) {
         const modal = await modalController.create({
           component: XpAddDoDont,
+          cssClass: "fullscreen",
           componentProps: {
             do: true,
             doDont,
@@ -172,7 +173,7 @@
         modal.present();
       },
       async clickCloneDoDont(doDont: DosDont) {
-        await this.doDontDb.cloneMe(doDont).then(() => {
+        await this.doDontDb.cloneDosDont(doDont).then(() => {
           this.loadDoDonts();
         });
       },
@@ -185,7 +186,7 @@
       const activeSegment = ref(segment);
 
       // const activeSegment = ref("do");
-      const doDontDb = new DoDontDb(dosDontsStorage);
+      const doDontDb = new DosDontsDb();
       const doDonts = ref([] as DosDont[]);
 
       const loadDoDonts = async () => {

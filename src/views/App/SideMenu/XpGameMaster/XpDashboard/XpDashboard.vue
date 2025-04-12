@@ -240,7 +240,7 @@
     setup() {
       const achievementDb = new AchievementDb(achievementStorage);
       const bestiaryDb = new BestiaryDb(beastStorage);
-      const dosDontsDb = new DosDontsDb(dosDontsStorage);
+      const dosDontsDb = new DosDontsDb();
 
       const stats = ref({
         achievements: 0,
