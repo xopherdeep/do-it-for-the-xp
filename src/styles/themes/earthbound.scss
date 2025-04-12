@@ -1,8 +1,11 @@
 // Earthbound Theme Variables
-$eb-font-primary: "Apple Kid";
-$eb-font-title: "Twoson";
-$eb-font-status: "StatusPlz";
 
+// Fonts
+$eb-font-primary: "Apple Kid"; // Main body text, list items, toasts
+$eb-font-title: "Twoson"; // Page titles (ion-title)
+$eb-font-status: "StatusPlz"; // Card titles, status elements
+
+// Colors
 $eb-color-dark-purple: #280828;
 $eb-color-medium-purple: #383050;
 $eb-color-slate: #3d3c55;
