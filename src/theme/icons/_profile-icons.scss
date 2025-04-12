@@ -13,8 +13,8 @@
   }
   
   &user-secret {
-    --fa-primary-color: var(--xp-color-gray);
-    --fa-secondary-color: var(--xp-color-black);
+    --fa-primary-color: var(--xp-color-black);
+    --fa-secondary-color: var(--xp-color-white);
     --fa-secondary-opacity: 0.9;
   }
   
@@ -62,8 +62,8 @@
   }
 
   &candy-cane {
-    --fa-primary-color: var(--xp-color-red);
-    --fa-secondary-color: var(--xp-color-white);
+    --fa-primary-color: var(--xp-color-white);
+    --fa-secondary-color: var(--xp-color-red);
     --fa-secondary-opacity: 0.9;
   }
 
@@ -140,8 +140,8 @@
   }
 
   &hotdog {
-    --fa-primary-color: var(--xp-color-red);
-    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-primary-color: var(--xp-color-yellow);
+    --fa-secondary-color: var(--xp-color-brown);
     --fa-secondary-opacity: 0.8;
   }
 
@@ -170,9 +170,9 @@
   }
 
   &pizza-slice {
-    --fa-primary-color: var(--xp-color-yellow);
-    --fa-secondary-color: var(--xp-color-red);
-    --fa-secondary-opacity: 0.8;
+    --fa-primary-color: var(--xp-color-brown);
+    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-secondary-opacity: 1;
   }
 
   &popcorn {
@@ -182,9 +182,9 @@
   }
 
   &salad {
-    --fa-primary-color: var(--xp-color-green);
-    --fa-secondary-color: var(--xp-color-yellow);
-    --fa-secondary-opacity: 0.8;
+    --fa-primary-color: var(--xp-color-white);
+    --fa-secondary-color: var(--xp-color-green);
+    --fa-primary-opacity: 0.8;
   }
 
   &sandwich {
@@ -212,8 +212,8 @@
   }
 
   &taco {
-    --fa-primary-color: var(--xp-color-yellow);
-    --fa-secondary-color: var(--xp-color-brown);
-    --fa-secondary-opacity: 0.8;
+    --fa-primary-color: var(--xp-color-green);
+    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-secondary-opacity: 0.9;
   }
 }
