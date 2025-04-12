@@ -30,7 +30,8 @@
             ></ion-icon>
             <ion-label>{{ menuItem.title }}</ion-label>
           </ion-item>
-          <hr v-else />
+          <!-- Use ion-item-divider for a themed divider when title is empty -->
+          <!-- <ion-list-divider v-else /> -->
         </ion-menu-toggle>
       </ion-list>
       <ion-list>
@@ -151,9 +152,6 @@
           //   iosIcon: logOutOutline,
           //   mdIcon: logOutSharp,
           // },
-          {
-            title: "",
-          },
           {
             title: "Game Master",
             url: "/game-master",
