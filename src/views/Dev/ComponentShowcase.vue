@@ -201,8 +201,9 @@
 </template>
 
 <script setup lang="ts">
+import { h } from 'vue'; // Import h for creating VNodes in modal
 import {
-  alertController, // Added for Alert example
+  modalController, // Replaced alertController
   toastController, // Added for Toast example
   IonButton,       // Added
   IonButtons,
@@ -215,6 +216,7 @@ import {
   IonContent,
   IonHeader,
   IonInput,        // Added
+  IonModal,        // Added for code display
   IonItem,         // Added
   IonLabel,        // Added
   IonList,         // Added
@@ -418,18 +420,48 @@ const presentAlert = async () => {
   await alert.present();
 };
 
-// Show Code Logic
+// Show Code Logic using Modal
 const showCode = async (code: string) => {
-  const alert = await alertController.create({
-    header: 'Component Code',
-    message: `<pre><code>${escapeHtml(code)}</code></pre>`, // Use pre/code for formatting
-    buttons: ['OK'],
-    cssClass: 'code-alert' // Optional: Add custom class for styling
+  const modal = await modalController.create({
+    component: {
+      // Define an inline component for the modal content
+      setup() {
+        const closeModal = () => modalController.dismiss();
+        const formattedCode = escapeHtml(code); // Escape the code once
+        return { closeModal, formattedCode };
+      },
+      template: `
+        <ion-header>
+          <ion-toolbar>
+            <ion-title>Component Code</ion-title>
+            <ion-buttons slot="end">
+              <ion-button @click="closeModal">Close</ion-button>
+            </ion-buttons>
+          </ion-toolbar>
+        </ion-header>
+        <ion-content class="ion-padding">
+          <ion-card>
+            <ion-card-content>
+              <pre><code>{{ formattedCode }}</code></pre>
+            </ion-card-content>
+          </ion-card>
+        </ion-content>
+      `,
+      components: { // Register necessary Ionic components locally for the modal
+          IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent, IonCard, IonCardContent
+      }
+    },
+    // Use CSS variables for auto height and potentially width
+    cssClass: 'code-modal', // Add a class for styling
+    // Optional: Set breakpoints for sheet-like behavior on smaller screens
+    // breakpoints: [0, 0.5, 0.8],
+    // initialBreakpoint: 0.8,
   });
-  await alert.present();
+  await modal.present();
 };
 
-// Helper to escape HTML for display in the alert
+
+// Helper to escape HTML for display
 function escapeHtml(unsafe: string): string {
     return unsafe
          .replace(/&/g, "&amp;")
@@ -508,15 +540,32 @@ ion-list {
 }
 */
 
-/* Optional: Style the alert popup for code */
-:global(.code-alert .alert-message) {
-  font-family: monospace;
-  white-space: pre;
-  max-height: 60vh; /* Limit height */
-  overflow-y: auto; /* Add scroll for long code */
+/* Style the modal for code display */
+:global(.code-modal) {
+    --height: auto; /* Allow modal height to grow */
+    --max-height: 80vh; /* Optional: Set a max height */
+    --width: 90vw; /* Optional: Adjust width */
+    --max-width: 600px; /* Optional: Set a max width */
 }
 
-:global(.code-alert pre) {
-  margin: 0; /* Remove default pre margin */
+/* Style the code block inside the modal */
+:global(.code-modal pre) {
+  font-family: monospace;
+  white-space: pre-wrap; /* Allow wrapping */
+  word-wrap: break-word; /* Break long lines */
+  margin: 0;
+  background-color: var(--ion-color-step-100, #f2f2f2); /* Light background for code */
+  padding: 10px;
+  border-radius: 4px;
+  overflow-x: auto; /* Add horizontal scroll if needed */
+}
+
+:global(.code-modal ion-card-content) {
+    padding: 0; /* Remove card padding if pre has padding */
+}
+
+:global(.code-modal ion-card) {
+    margin: 0; /* Remove card margin if content has padding */
+    box-shadow: none; /* Optional: remove card shadow */
 }
 </style>
