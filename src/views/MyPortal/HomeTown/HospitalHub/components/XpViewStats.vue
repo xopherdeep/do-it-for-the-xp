@@ -1,196 +1,361 @@
 <template>
   <ion-page :class="$options.name">
     <ion-header>
-      <ion-toolbar>
+      <ion-toolbar color="secondary">
         <ion-buttons slot="start">
-          <ion-back-button
-            :default-href="`/hospital/${userId}`"
-          ></ion-back-button>
+          <ion-back-button></ion-back-button>
+          <xp-icon 
+            icon="chart-bar" 
+            primary="blue" 
+            secondary="lightblue"
+            size="2x"
+          />
         </ion-buttons>
-        <ion-title> My Stats </ion-title>
+        <ion-title>Vital Statistics</ion-title>
       </ion-toolbar>
     </ion-header>
-    <ion-content class="bg-slide" v-if="user">
-      <gamer-card :profile="user">
-        <ion-grid class="ion-no-padding">
-          <ion-row>
-            <ion-col size="12" size-md="6">
-              <ion-accordion-group>
-                <ion-accordion
-                  v-for="(area, category) in areas"
-                  :key="category"
-                  :value="category"
-                >
-                  <ion-item slot="header">
-                    <ion-note slot="start">
-                      <ion-icon
-                        size="large"
-                        :color="area.color"
-                        :icon="area.icon"
-                      ></ion-icon>
-                    </ion-note>
-                    <ion-label :color="area.color">
-                      <strong>
-                        {{ category }}
-                      </strong>
-                      <ion-note class="ion-float-right" :color="area.color">
-                        {{ getCategoryCalcTotal(category) }}
-                      </ion-note>
+
+    <ion-content class="ion-padding">
+      <ion-grid>
+        <ion-row>
+          <ion-col size="12">
+            <ion-card class="stats-overview">
+              <ion-card-header>
+                <ion-card-title class="flex items-center gap-2">
+                  <xp-icon 
+                    icon="heartbeat" 
+                    primary="red" 
+                    secondary="pink"
+                  />
+                  Current Status
+                </ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                <div class="current-stats">
+                  <div class="stat-item">
+                    <xp-icon 
+                      icon="heart" 
+                      primary="red" 
+                      secondary="darkred"
+                      size="lg"
+                    />
+                    <div class="stat-info">
+                      <div class="label">HP</div>
+                      <ion-progress-bar 
+                        :value="user.stats.hp.now / user.stats.hp.max" 
+                        color="danger"
+                        :class="{ changed: isHpChanged }"
+                      ></ion-progress-bar>
+                      <div class="value" :class="{ changed: isHpChanged }">
+                        {{user.stats.hp.now}}/{{user.stats.hp.max}}
+                      </div>
+                    </div>
+                  </div>
+                  <div class="stat-item">
+                    <xp-icon 
+                      icon="hat-wizard" 
+                      primary="purple" 
+                      secondary="blue"
+                      size="lg"
+                    />
+                    <div class="stat-info">
+                      <div class="label">MP</div>
+                      <ion-progress-bar 
+                        :value="user.stats.mp.now / user.stats.mp.max" 
+                        color="tertiary"
+                        :class="{ changed: isMpChanged }"
+                      ></ion-progress-bar>
+                      <div class="value" :class="{ changed: isMpChanged }">
+                        {{user.stats.mp.now}}/{{user.stats.mp.max}}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </ion-card-content>
+            </ion-card>
+
+            <ion-card v-for="(area, key) in areas" :key="key" class="stat-category">
+              <ion-card-header>
+                <ion-card-title class="flex items-center gap-2">
+                  <xp-icon 
+                    :icon="getAreaIcon(key)"
+                    :primary="area.color"
+                    :secondary="getLighterColor(area.color)"
+                  />
+                  {{ key.charAt(0).toUpperCase() + key.slice(1) }}
+                  <div class="total-score">
+                    {{ getAreaTotal(key) }}
+                  </div>
+                </ion-card-title>
+              </ion-card-header>
+              
+              <ion-card-content>
+                <ion-list>
+                  <ion-item v-for="(desc, stat) in area.stats" :key="stat">
+                    <ion-label>
+                      <h3>{{ stat.charAt(0).toUpperCase() + stat.slice(1) }}</h3>
+                      <p>{{ desc }}</p>
                     </ion-label>
+                    <ion-badge 
+                      slot="end" 
+                      :color="area.color"
+                      :class="{ 'stat-badge updated': changedStats.has(stat) }"
+                    >
+                      {{ getStat(stat) }}
+                    </ion-badge>
                   </ion-item>
-                  <ion-list slot="content">
-                    <ion-item v-for="(desc, stat) in area.stats" :key="stat">
-                      <ion-label :color="area.color">
-                        <strong>
-                          {{ stat }}
-                        </strong>
-                        <p>
-                          {{ desc }}
-                        </p>
-                      </ion-label>
-                      <ion-note slot="end" :color="area.color">
-                        {{ user.stats.special[stat] }}
-                      </ion-note>
-                    </ion-item>
-                  </ion-list>
-                </ion-accordion>
-              </ion-accordion-group>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-      </gamer-card>
-      <ion-card>
-        <ion-card-content>
-          <i class="fad fa-shield fa-2x ion-float-right" />
-          {{ user.jobClass }} -
-        </ion-card-content>
-      </ion-card>
+                </ion-list>
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
     </ion-content>
   </ion-page>
 </template>
 
 <script lang="ts">
-  import { defineComponent } from "vue";
-  import { mapGetters } from "vuex";
-  import ionic from "@/mixins/ionic";
-  import {
-    fitnessOutline,
-    colorWand,
-    sparklesOutline,
-    serverOutline,
-  } from "ionicons/icons";
+import { defineComponent, computed, ref, watch } from "vue";
+import { useStore, mapGetters } from "vuex";
+import ionic from "@/mixins/ionic";
+import XpIcon from "@/components/XpIcon";
+import type { User, StatAreas } from '../types';
 
-  import GamerCard from "@/views/App/SideMenu/SwitchProfile/AddProfile/GamerCard.vue";
-  import User from "@/utils/User";
+export default defineComponent({
+  name: "xp-view-stats",
+  components: { XpIcon },
+  mixins: [ionic],
+  props: {
+    userId: {
+      type: String,
+      required: true
+    }
+  },
+  
+  setup(props, { emit }) {
+    const store = useStore();
 
-  export default defineComponent({
-    props: ["userId"],
-    name: "XpViewStats",
-    mixins: [ionic],
-    components: {
-      GamerCard,
-    },
-    methods: {
-      getCategoryCalcTotal(category: string) {
-        switch (category) {
-          case "physical":
-            return this.calcPhysical;
-          case "mental":
-            return this.calcMental;
-          case "social":
-            return this.calcSocial;
-          case "misc":
-            return this.calcMisc;
-        }
-      },
-      getStat(stat: string) {
-        const statistic = this.user.stats.special[stat];
-        console.log(statistic);
+    // Get user from props via getUserById
+    const user = computed(() => store.getters['getUserById'](props.userId));
 
-        return statistic;
-      },
-    },
-    computed: {
-      ...mapGetters(["getUserById"]),
-      user(): User {
-        return this.getUserById(this.userId);
-      },
-
-      calcPhysical() {
-        const accumulate = (acc, key) => acc + this.getStat(key);
-        const stats = this.areas.physical.stats;
-        return Object.keys(stats).reduce(accumulate, 0);
-      },
-
-      calcMental() {
-        const stats = this.areas.mental.stats;
-        const accumulate = (acc, key) => acc + this.getStat(key);
-        return Object.keys(stats).reduce(accumulate, 0);
-      },
-      calcSocial() {
-        const stats = this.areas.social.stats;
-        const accumulate = (acc, key) => acc + this.getStat(key);
-        return Object.keys(stats).reduce(accumulate, 0);
-      },
-      calcMisc() {
-        const stats = this.areas.misc.stats;
-        const accumulate = (acc, key) => acc + this.getStat(key);
-        return Object.keys(stats).reduce(accumulate, 0);
-      },
-    },
-    setup() {
-      return {
-        areas: {
-          physical: {
-            open: true,
-            color: "danger",
-            icon: fitnessOutline,
-            stats: {
-              strength: "Use less HP when completing a task",
-              defense: "Influences max HP",
-              endurance: "Influences HP restore rate",
-            },
-          },
-          mental: {
-            open: false,
-            color: "tertiary",
-            icon: colorWand,
-            stats: {
-              intelligence: "Use less MP when casting abilities",
-              perception: "Influences max MP",
-              wisdom: "Influences MP restore rate",
-            },
-          },
-          social: {
-            color: "warning",
-            icon: serverOutline,
-            stats: {
-              charisma: "Influences GP discounts on items",
-              awareness: "Gain more GP when completing tasks",
-              presence: "Influences GP to $ conversion rate",
-            },
-          },
-          misc: {
-            color: "success",
-            icon: sparklesOutline,
-            stats: {
-              agility: "Gain more AP when completing tasks",
-              guts: "Gain more XP when completing tasks",
-              luck: "Influence chances of receiving bonus points",
-            },
-          },
+    const areas: StatAreas = {
+      physical: {
+        color: "danger",
+        stats: {
+          strength: "Use less HP when completing a task",
+          defense: "Influences max HP",
+          endurance: "Influences HP restore rate",
         },
-      };
-    },
-  });
+      },
+      mental: {
+        color: "tertiary", 
+        stats: {
+          intelligence: "Use less MP when casting abilities",
+          perception: "Influences max MP",
+          wisdom: "Influences MP restore rate",
+        },
+      },
+      social: {
+        color: "warning",
+        stats: {
+          charisma: "Influence success rate of social interactions",
+          leadership: "Boost party member stats",
+          luck: "Improve random outcomes",
+        },
+      },
+      misc: {
+        color: "success",
+        stats: {
+          agility: "Influences action speed",
+          dexterity: "Improves accuracy",
+          vitality: "Enhances healing effects",
+        },
+      },
+    };
+
+    const isHpChanged = ref(false);
+    const isMpChanged = ref(false);
+    const prevHp = ref(0);
+    const prevMp = ref(0);
+    const changedStats = ref<Set<string>>(new Set());
+
+    // Track HP/MP changes and trigger animations
+    watch(
+      () => user.value?.stats?.hp?.now,
+      (newVal, oldVal) => {
+        if (oldVal !== undefined && newVal !== oldVal) {
+          isHpChanged.value = true;
+          setTimeout(() => {
+            isHpChanged.value = false;
+          }, 600);
+        }
+        prevHp.value = newVal || 0;
+      }
+    );
+
+    watch(
+      () => user.value?.stats?.mp?.now,
+      (newVal, oldVal) => {
+        if (oldVal !== undefined && newVal !== oldVal) {
+          isMpChanged.value = true;
+          setTimeout(() => {
+            isMpChanged.value = false;
+          }, 600);
+        }
+        prevMp.value = newVal || 0;
+      }
+    );
+
+    // Watch special stats for changes
+    watch(
+      () => user.value?.stats?.special,
+      (newStats, oldStats) => {
+        if (!oldStats) return;
+        
+        Object.keys(newStats || {}).forEach(stat => {
+          if (newStats[stat] !== oldStats[stat]) {
+            changedStats.value.add(stat);
+            setTimeout(() => {
+              changedStats.value.delete(stat);
+            }, 500);
+          }
+        });
+      },
+      { deep: true }
+    );
+
+    return {
+      areas,
+      isHpChanged,
+      isMpChanged,
+      changedStats,
+      user
+    };
+  }
+});
 </script>
 
 <style lang="scss" scoped>
-  .view-stats {
-    ion-label {
-      strong {
-        text-transform: capitalize !important;
+.xp-view-stats {
+  ion-content {
+    --background: url("@/assets/images/midjourney/hospital.png") center / cover no-repeat;
+  }
+
+  ion-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    margin: 1rem;
+
+    ion-card-header {
+      border-bottom: 1px solid var(--ion-color-light);
+    }
+
+    ion-card-title {
+      font-size: 1.2rem;
+      color: var(--ion-color-dark);
+
+      .total-score {
+        margin-left: auto;
+        background: var(--ion-color-light);
+        padding: 0.25rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 1rem;
       }
     }
   }
+
+  .current-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+
+      .stat-info {
+        flex: 1;
+
+        .label {
+          font-weight: 600;
+          margin-bottom: 0.25rem;
+        }
+
+        ion-progress-bar {
+          height: 8px;
+          border-radius: 4px;
+          margin-bottom: 0.25rem;
+        }
+
+        .value {
+          font-size: 0.875rem;
+          color: var(--ion-color-medium);
+        }
+
+        .value.changed {
+          animation: pulse 0.6s ease-in-out;
+        }
+
+        ion-progress-bar.changed {
+          animation: progress-flash 0.6s ease-in-out;
+        }
+      }
+    }
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.1);
+      opacity: 0.8;
+    }
+  }
+
+  @keyframes progress-flash {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.6;
+    }
+  }
+
+  // Add transition for smooth stat changes
+  ion-badge {
+    transition: background-color 0.3s ease;
+  }
+
+  // Add hover effect on stat items
+  .stat-category ion-item {
+    transition: background-color 0.2s ease;
+
+    &:hover {
+      --background: rgba(var(--ion-color-light-rgb), 0.1);
+    }
+  }
+
+  // Add animation for newly updated stats
+  .stat-badge {
+    &.updated {
+      animation: badge-pop 0.5s cubic-bezier(0.26, 0.53, 0.74, 1.48);
+    }
+  }
+
+  @keyframes badge-pop {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.2);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+}
 </style>

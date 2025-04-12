@@ -3,9 +3,11 @@
     float: right;
     width: 80%;
     height: 85px;
-    border: 1px solid green;
+    border: 1px solid var(--ion-color-danger);
     background-color: black;
     position: relative;
+    border-radius: 8px;
+    overflow: hidden;
   }
   .heartbeat:after {
     content: "";
@@ -48,6 +50,132 @@
         margin: 0.5em auto;
         object-fit: fill;
         transform: scale(1.15);
+      }
+    }
+  }
+
+  .nurse-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    margin: 1rem;
+
+    ion-card-header {
+      border-bottom: 1px solid var(--ion-color-light);
+    }
+
+    ion-card-title {
+      font-size: 1.5rem;
+      color: var(--ion-color-dark);
+    }
+  }
+
+  .patient-card {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    margin: 1rem;
+
+    ion-avatar {
+      width: 60px;
+      height: 60px;
+      border: 2px solid var(--ion-color-light);
+    }
+
+    h3 {
+      margin: 0 0 0.5rem;
+      font-size: 1.2rem;
+      color: var(--ion-color-dark);
+    }
+
+    ion-progress-bar {
+      height: 8px;
+      border-radius: 4px;
+      --buffer-background: rgba(var(--ion-color-danger-rgb), 0.3);
+    }
+  }
+}
+
+// Action Sheet Custom Styling
+.action-heal::part(icon) {
+  color: var(--ion-color-success);
+  opacity: 1;
+}
+
+.action-revive::part(icon) {
+  color: var(--ion-color-warning);
+  opacity: 1;
+}
+
+.action-stats::part(icon) {
+  color: var(--ion-color-tertiary);
+  opacity: 1;
+}
+
+.action-leave::part(icon) {
+  color: var(--ion-color-medium);
+  opacity: 1;
+}
+
+.action-cancel::part(icon) {
+  color: var(--ion-color-danger);
+  opacity: 1;
+}
+
+// Add glass effect to action sheet
+ion-action-sheet {
+  --background: rgba(var(--ion-background-color-rgb), 0.9);
+  --backdrop-opacity: 0.6;
+  --button-background-selected: rgba(var(--ion-color-primary-rgb), 0.1);
+}
+
+// Alert Styling
+.hospital-alert {
+  .alert-wrapper {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    border: 1px solid rgba(var(--ion-color-light-rgb), 0.3);
+  }
+
+  .alert-head {
+    border-bottom: 1px solid var(--ion-color-light);
+    padding-bottom: 1rem;
+
+    .alert-title {
+      color: var(--ion-color-dark);
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+  }
+
+  .alert-message {
+    color: var(--ion-color-medium);
+    font-size: 1rem;
+    line-height: 1.5;
+    padding: 1rem 0;
+  }
+
+  .alert-button-group {
+    border-top: 1px solid var(--ion-color-light);
+    padding-top: 0.5rem;
+  }
+
+  .alert-button {
+    &.alert-confirm {
+      color: var(--ion-color-success);
+      font-weight: 600;
+
+      &:hover {
+        background: rgba(var(--ion-color-success-rgb), 0.1);
+      }
+    }
+
+    &.alert-cancel {
+      color: var(--ion-color-medium);
+
+      &:hover {
+        background: rgba(var(--ion-color-medium-rgb), 0.1);
       }
     }
   }
