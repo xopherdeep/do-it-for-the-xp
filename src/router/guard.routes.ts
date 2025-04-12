@@ -114,10 +114,33 @@ export function useRouterGuards(router: Router, store: Store<RootState>) {
         break;
       case 'my-home':
         bgmPayload = {
-          tracks: BGM.home, // Assuming BGM.home exists
-          track,
+            tracks: BGM.home,
+            track,
           startDelay,
           // saveBookmark defaults to false if not provided, or set explicitly if needed
+        };
+        break;
+      case 'home-town':
+        bgmPayload = {
+            tracks: BGM.hometown,
+            track: Math.floor(Math.random() * BGM.home.length),
+          startDelay,
+          // saveBookmark defaults to false if not provided, or set explicitly if needed
+        };
+        break;
+      case 'hospital':
+        bgmPayload = {
+          tracks: BGM.hotel, // Assuming BGM.hotel exists
+          track,
+          startDelay,
+        };
+        break;
+      case 'bank':
+      case 'hotel':
+        bgmPayload = {
+          tracks: BGM.hotel, // Assuming BGM.hotel exists
+          track,
+          startDelay,
         };
         break;
       case 'world-map':

@@ -8,7 +8,7 @@ import supportRoutes from './support';
 import WorldMapRoutes from './world-map.routes';
 import { createRouter, createWebHistory } from '@ionic/vue-router';
 import { RouteRecordRaw } from 'vue-router';
-import { useRouterGuards } from './router-guards';
+import { useRouterGuards } from './guard.routes';
 
 // Combine all routes
 const routes: Array<RouteRecordRaw> = [

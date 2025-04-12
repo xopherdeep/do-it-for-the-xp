@@ -108,6 +108,8 @@ const $fx = {
         ],
         home: [
           "http://starmen.net/mother2/music/151-%20Earthbound%20-%20Because%20I%20Love%20You.mp3",
+        ],
+        hometown: [
           "http://starmen.net/mother2/music/058-%20Earthbound%20-%20Apple%20Kid_s%20Theme.mp3",
           "http://starmen.net/mother2/music/064-%20Earthbound%20-%20Dead-End%20Chaos%20Theatre.mp3",
         ],
