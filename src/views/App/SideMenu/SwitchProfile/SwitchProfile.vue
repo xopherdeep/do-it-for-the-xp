@@ -37,23 +37,32 @@
             @click="selectProfile(profile)"
             button
             detail
+            class="profile-item"
           >
-            <ion-avatar slot="start">
-              <ion-img :src="getUserAvatar(profile)" />
-            </ion-avatar>
-            <ion-label>
-              {{ profile.name.nick }}
-              <p>
-                <small>{{ profile.name.full }}</small>
-              </p>
-            </ion-label>
-            <div slot="end" class="flex flex-col items-end gap-2">
-              <ion-badge color="tertiary">
-                Level {{ profile?.stats?.level }}
-              </ion-badge>
-              <ion-badge color="warning">
+            <div slot="start" class="profile-info">
+              <div class="avatar-container">
+                <ion-avatar>
+                  <ion-img :src="getUserAvatar(profile)" />
+                </ion-avatar>
+                <div class="role-icons">
+                  <i :class="`fad fa-${getJobClassIcon(profile)}`"></i>
+                  <i :class="`fad fa-${getFoodIcon(profile)}`"></i>
+                </div>
+              </div>
+              <div class="name-container">
+                <h2>{{ profile.name.nick }}</h2>
+                <p>{{ profile.name.full }}</p>
+              </div>
+            </div>
+            
+            <div slot="end" class="stats-container">
+              <div class="level">
+                <span class="label">LVL</span>
+                <span class="value">{{ profile?.stats?.level || 1 }}</span>
+              </div>
+              <div class="wallet">
                 <xp-gp :gp="profile?.stats?.gp.wallet" />
-              </ion-badge>
+              </div>
             </div>
           </ion-item>
         </ion-list>
@@ -89,6 +98,7 @@
   import XpGp from "@/components/XpGp/XpGp.vue";
   import DialPad from "./DialPad.vue";
   import ionic from "@/mixins/ionic";
+  import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
 
   const requireAvatar = require.context("@/assets/images/avatars/");
 
@@ -177,6 +187,20 @@
         return ""; // Return empty string or default avatar path
       };
 
+      const getJobClassIcon = (profile: User) => {
+        const findJobClass = (job) => job?.name === profile?.jobClass;
+        const selectedJob = JOB_CLASS_OPTIONS.find(findJobClass);
+        // Remove fa- prefix since it's added in the template
+        return selectedJob ? selectedJob.icon.replace('fa-', '') : 'question';
+      };
+
+      const getFoodIcon = (profile: User) => {
+        const findFavoriteFood = (food) => food.value === profile?.favoriteFood;
+        const selectedFood = FOOD_OPTIONS.find(findFavoriteFood);
+        // Remove fa- prefix since it's added in the template
+        return selectedFood ? selectedFood.icon.replace('fa-', '') : 'utensils';
+      };
+
       const selectProfile = async (profile: User) => {
         if (profile.passcode) {
           openPasscodeModal(profile);
@@ -239,6 +263,8 @@
         peopleCircleSharp,
         peopleCircleOutline,
         getUserAvatar,
+        getJobClassIcon,
+        getFoodIcon,
         selectProfile,
         openNewProfileModal,
         handleRefresh,
@@ -344,6 +370,22 @@
     }
   }
 
+  .avatar-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .profile-icons {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      
+      i {
+        font-size: 1.2em;
+      }
+    }
+  }
+
   @keyframes slide {
     from {
       background-position: 0 0, 30px 30px;
@@ -351,6 +393,107 @@
 
     to {
       background-position: 0 0, -30px -30px;
+    }
+  }
+
+  .profile-item {
+    --padding-start: 1rem;
+    --inner-padding-end: 1rem;
+    margin-bottom: 0.5rem;
+
+    &::part(native) {
+      align-items: center;
+    }
+  }
+
+  .profile-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .avatar-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    ion-avatar {
+      width: 50px;
+      height: 50px;
+    }
+
+    .role-icons {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-left: 0.75rem;
+
+      i {
+        font-size: 1.5rem;
+
+        // Set default duotone colors if not overridden
+        --fa-primary-color: var(--ion-color-primary);
+        --fa-secondary-color: var(--ion-color-primary-shade);
+        --fa-secondary-opacity: 0.6;
+
+        &:last-child {
+          --fa-primary-color: var(--ion-color-success);
+          --fa-secondary-color: var(--ion-color-success-shade);
+        }
+      }
+    }
+  }
+
+  .name-container {
+    h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0;
+      color: var(--ion-color-dark);
+    }
+
+    p {
+      font-size: 0.85rem;
+      margin: 0.25rem 0 0;
+      color: var(--ion-color-medium);
+    }
+  }
+
+  .stats-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    .level {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: var(--ion-color-tertiary-tint);
+      padding: 0.25rem 0.75rem;
+      border-radius: 8px;
+      min-width: 3rem;
+
+      .label {
+        font-size: 0.7rem;
+        color: var(--ion-color-tertiary);
+        font-weight: 600;
+        text-transform: uppercase;
+      }
+
+      .value {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--ion-color-tertiary);
+      }
+    }
+
+    .wallet {
+      background: var(--ion-color-warning-tint);
+      padding: 0.25rem 0.75rem;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      color: var(--ion-color-warning);
     }
   }
 </style>

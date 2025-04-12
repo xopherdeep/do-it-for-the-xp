@@ -157,77 +157,79 @@
         @didDismiss="closeModal"
         class="cancel-modal"
       >
-        <ion-header>
-          <ion-toolbar color="warning">
-            <ion-title>Pause Adventure Pass?</ion-title>
-            <ion-buttons slot="end">
-              <ion-button @click="closeModal" color="dark">Close</ion-button>
-            </ion-buttons>
-          </ion-toolbar>
-        </ion-header>
-        <ion-content class="ion-padding">
-          <ion-icon
-            :icon="sadOutline"
-            size="large"
-            color="warning"
-            class="modal-icon"
-          ></ion-icon>
-          <h2>Thinking of Pausing Your Adventure?</h2>
-          <p>If you pause, your family will miss out on these perks:</p>
-          <ion-list lines="none">
-            <ion-item>
-              <ion-icon
-                :icon="gameControllerOutline"
-                slot="start"
-                color="primary"
-              ></ion-icon>
-              <ion-label>Unlimited access to all quests & activities</ion-label>
-            </ion-item>
-            <ion-item>
-              <ion-icon
-                :icon="banOutline"
-                slot="start"
-                color="primary"
-              ></ion-icon>
-              <ion-label>Ad-free experience for uninterrupted fun</ion-label>
-            </ion-item>
-            <ion-item>
-              <ion-icon
-                :icon="sparklesOutline"
-                slot="start"
-                color="primary"
-              ></ion-icon>
-              <ion-label>Exclusive family challenges & rewards</ion-label>
-            </ion-item>
-            <ion-item>
-              <ion-icon
-                :icon="lockClosedOutline"
-                slot="start"
-                color="primary"
-              ></ion-icon>
-              <ion-label>Your current price is locked in!</ion-label>
-            </ion-item>
-          </ion-list>
-          <ion-button
-            expand="block"
-            color="success"
-            @click="closeModal"
-            class="ion-margin-top"
-          >
-            <ion-icon :icon="playCircleOutline" slot="start"></ion-icon>
-            Keep the Adventure Going!
-          </ion-button>
-          <ion-button
-            expand="block"
-            color="danger"
-            fill="outline"
-            @click="confirmCancel"
-            class="ion-margin-top"
-          >
-            <ion-icon :icon="pauseCircleOutline" slot="start"></ion-icon>
-            Yes, Pause My Pass
-          </ion-button>
-        </ion-content>
+
+          <ion-header>
+            <ion-toolbar color="warning">
+              <ion-title>Pause Adventure Pass?</ion-title>
+              <ion-buttons slot="end">
+                <ion-button @click="closeModal" color="dark">Close</ion-button>
+              </ion-buttons>
+            </ion-toolbar>
+          </ion-header>
+          <ion-content class="ion-padding">
+            <ion-icon
+              :icon="sadOutline"
+              size="large"
+              color="warning"
+              class="modal-icon"
+            ></ion-icon>
+            <h2>Thinking of Pausing Your Adventure?</h2>
+            <p>If you pause, your family will miss out on these perks:</p>
+            <ion-list lines="none">
+              <ion-item>
+                <ion-icon
+                  :icon="gameControllerOutline"
+                  slot="start"
+                  color="primary"
+                ></ion-icon>
+                <ion-label>Unlimited access to all quests & activities</ion-label>
+              </ion-item>
+              <ion-item>
+                <ion-icon
+                  :icon="banOutline"
+                  slot="start"
+                  color="primary"
+                ></ion-icon>
+                <ion-label>Ad-free experience for uninterrupted fun</ion-label>
+              </ion-item>
+              <ion-item>
+                <ion-icon
+                  :icon="sparklesOutline"
+                  slot="start"
+                  color="primary"
+                ></ion-icon>
+                <ion-label>Exclusive family challenges & rewards</ion-label>
+              </ion-item>
+              <ion-item>
+                <ion-icon
+                  :icon="lockClosedOutline"
+                  slot="start"
+                  color="primary"
+                ></ion-icon>
+                <ion-label>Your current price is locked in!</ion-label>
+              </ion-item>
+            </ion-list>
+            <ion-button
+              expand="block"
+              color="success"
+              @click="closeModal"
+              class="ion-margin-top"
+            >
+              <ion-icon :icon="playCircleOutline" slot="start"></ion-icon>
+              Keep the Adventure Going!
+            </ion-button>
+            <ion-button
+              expand="block"
+              color="danger"
+              fill="outline"
+              @click="confirmCancel"
+              class="ion-margin-top"
+            >
+              <ion-icon :icon="pauseCircleOutline" slot="start"></ion-icon>
+              Yes, Pause My Pass
+            </ion-button>
+          </ion-content>
+
       </ion-modal>
     </ion-content>
   </ion-page>

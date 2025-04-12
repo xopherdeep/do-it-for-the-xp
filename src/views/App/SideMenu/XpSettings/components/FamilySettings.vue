@@ -137,6 +137,7 @@
       async openModal(componentProps?: any) {
         const modal = await modalController.create({
           component: AddProfile,
+          cssClass: "fullscreen",
           componentProps,
         });
         modal.onDidDismiss().then(this.loadProfiles);

@@ -5,6 +5,7 @@
 @import "user-hud";
 @import "world-map";
 @import "dungeon";
+@import "profile-icons";
 
 .icon-colors {
   i {
@@ -15,6 +16,7 @@
       @include user-hud;
       @include world-map;
       @include dungeon;
+      @include profile-icons;
     }
   }
 }

@@ -6,6 +6,7 @@ import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
 import { ProfileDb } from "@/databases";
 import { profileStorage } from "../SwitchProfile.vue";
 import InputSettings from "../../XpSettings/components/InputSettings.vue";
+import AvatarSelector from "./components/AvatarSelector.vue";
 
 import ionic from "@/mixins/ionic";
 
@@ -16,7 +17,12 @@ import Stats from "@/utils/User/stats";
 export const AddProfile = defineComponent({
   props: ["id", "profile", "showIsAdult"],
   mixins: [ionic],
-  components: { InputSettings, XpGp, GamerCard },
+  components: { 
+    InputSettings, 
+    XpGp, 
+    GamerCard,
+    AvatarSelector 
+  },
   methods: {
     async loadProfile() {
       this.storage.get(this.$props.id).then(this.setProfile);
@@ -54,6 +60,7 @@ export const AddProfile = defineComponent({
     const jobClass = ref("");
     const jobClassOptions = ref(JOB_CLASS_OPTIONS);
     const maxAvatarIndex = $requireAvatar.keys().length;
+    const isAvatarSelectorOpen = ref(false);
 
     const paddedIndex = computed(() =>
       avatarIndex.value.toString().padStart(3, "0")
@@ -172,6 +179,7 @@ export const AddProfile = defineComponent({
       toggleCommunity,
       toggleGoal,
       toggleReward,
+      isAvatarSelectorOpen,
     };
   },
 });

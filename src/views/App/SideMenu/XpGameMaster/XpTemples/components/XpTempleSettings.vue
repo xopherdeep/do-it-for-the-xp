@@ -14,8 +14,8 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content>
-      <div class="temple-header" :style="{ background: getTempleBg() }">
+    <ion-content :style="{ '--background': `${getTempleBg()} no-repeat center/cover` }">
+      <div class="content-overlay">
         <div class="temple-info">
           <div class="temple-title">
             <i :class="getTempleIcon()" class="temple-icon" />
@@ -23,116 +23,116 @@
           </div>
           <p class="temple-description">{{ getTempleDescription() }}</p>
         </div>
-      </div>
 
-      <div class="temple-stats">
-        <ion-card>
-          <div class="stat-value">{{ temple.memberCount || 0 }}</div>
-          <div class="stat-label">Members</div>
-        </ion-card>
-        <ion-card>
-          <div class="stat-value">{{ temple.level || 1 }}</div>
-          <div class="stat-label">Level</div>
-        </ion-card>
-        <ion-card>
-          <div class="stat-value">{{ temple.taskCount || 0 }}</div>
-          <div class="stat-label">Tasks</div>
-        </ion-card>
-      </div>
+        <div class="temple-stats">
+          <ion-card>
+            <div class="stat-value">{{ temple.memberCount || 0 }}</div>
+            <div class="stat-label">Members</div>
+          </ion-card>
+          <ion-card>
+            <div class="stat-value">{{ temple.level || 1 }}</div>
+            <div class="stat-label">Level</div>
+          </ion-card>
+          <ion-card>
+            <div class="stat-value">{{ temple.taskCount || 0 }}</div>
+            <div class="stat-label">Tasks</div>
+          </ion-card>
+        </div>
 
-      <div class="categories-section">
-        <div class="section-title">Categories</div>
-        <ion-item>
-          <ion-label position="stacked">Related Categories</ion-label>
-          <ion-select
-            v-model="temple.categoryIds"
-            placeholder="Choose relating categories..."
-            mode="ios"
-            :multiple="true"
-          >
-            <ion-select-option
-              v-for="cat in categories"
-              :value="cat.id"
-              :key="cat.id"
+        <div class="categories-section">
+          <div class="section-title">Categories</div>
+          <ion-item>
+            <ion-label position="stacked">Related Categories</ion-label>
+            <ion-select
+              v-model="temple.categoryIds"
+              placeholder="Choose relating categories..."
+              mode="ios"
+              :multiple="true"
             >
-              {{ cat.name }}
-            </ion-select-option>
-          </ion-select>
-        </ion-item>
-      </div>
-
-      <div class="enemy-hierarchy">
-        <div class="section-title">Temple Hierarchy</div>
-
-        <ion-card class="enemy-card">
-          <ion-item button>
-            <i
-              class="fad fa-crown enemy-icon"
-              style="--fa-primary-color: gold; --fa-secondary-color: #c17e03"
-            />
-            <div class="enemy-info">
-              <h3>Temple Guardian</h3>
-              <p>Main boss of the temple</p>
-            </div>
-            <ion-badge color="danger" slot="end">Lvl 50</ion-badge>
+              <ion-select-option
+                v-for="cat in categories"
+                :value="cat.id"
+                :key="cat.id"
+              >
+                {{ cat.name }}
+              </ion-select-option>
+            </ion-select>
           </ion-item>
-        </ion-card>
+        </div>
 
-        <ion-card class="enemy-card">
-          <ion-item button>
-            <i
-              class="fad fa-helmet-battle enemy-icon"
-              style="--fa-primary-color: silver; --fa-secondary-color: #666"
-            />
-            <div class="enemy-info">
-              <h3>Temple Wardens</h3>
-              <p>Sub-bosses and elite guards</p>
-            </div>
-            <ion-badge color="warning" slot="end">Lvl 30-40</ion-badge>
-          </ion-item>
-        </ion-card>
+        <div class="enemy-hierarchy">
+          <div class="section-title">Temple Hierarchy</div>
 
-        <ion-card class="enemy-card">
-          <ion-item button>
-            <i
-              class="fad fa-shield enemy-icon"
-              style="--fa-primary-color: #cd7f32; --fa-secondary-color: #8b4513"
-            />
-            <div class="enemy-info">
-              <h3>Temple Sentinels</h3>
-              <p>Powerful temple defenders</p>
-            </div>
-            <ion-badge color="warning" slot="end">Lvl 20-30</ion-badge>
-          </ion-item>
-        </ion-card>
+          <ion-card class="enemy-card">
+            <ion-item button>
+              <i
+                class="fad fa-crown enemy-icon"
+                style="--fa-primary-color: gold; --fa-secondary-color: #c17e03"
+              />
+              <div class="enemy-info">
+                <h3>Temple Guardian</h3>
+                <p>Main boss of the temple</p>
+              </div>
+              <ion-badge color="danger" slot="end">Lvl 50</ion-badge>
+            </ion-item>
+          </ion-card>
 
-        <ion-card class="enemy-card">
-          <ion-item button>
-            <i
-              class="fad fa-sword enemy-icon"
-              style="--fa-primary-color: #a1a1a1; --fa-secondary-color: #666"
-            />
-            <div class="enemy-info">
-              <h3>Temple Guards</h3>
-              <p>Regular temple protectors</p>
-            </div>
-            <ion-badge color="primary" slot="end">Lvl 10-20</ion-badge>
-          </ion-item>
-        </ion-card>
+          <ion-card class="enemy-card">
+            <ion-item button>
+              <i
+                class="fad fa-helmet-battle enemy-icon"
+                style="--fa-primary-color: silver; --fa-secondary-color: #666"
+              />
+              <div class="enemy-info">
+                <h3>Temple Wardens</h3>
+                <p>Sub-bosses and elite guards</p>
+              </div>
+              <ion-badge color="warning" slot="end">Lvl 30-40</ion-badge>
+            </ion-item>
+          </ion-card>
 
-        <ion-card class="enemy-card">
-          <ion-item button>
-            <i
-              class="fad fa-hood-cloak enemy-icon"
-              style="--fa-primary-color: #8b8b8b; --fa-secondary-color: #666"
-            />
-            <div class="enemy-info">
-              <h3>Temple Initiates</h3>
-              <p>Novice temple members</p>
-            </div>
-            <ion-badge color="success" slot="end">Lvl 1-10</ion-badge>
-          </ion-item>
-        </ion-card>
+          <ion-card class="enemy-card">
+            <ion-item button>
+              <i
+                class="fad fa-shield enemy-icon"
+                style="--fa-primary-color: #cd7f32; --fa-secondary-color: #8b4513"
+              />
+              <div class="enemy-info">
+                <h3>Temple Sentinels</h3>
+                <p>Powerful temple defenders</p>
+              </div>
+              <ion-badge color="warning" slot="end">Lvl 20-30</ion-badge>
+            </ion-item>
+          </ion-card>
+
+          <ion-card class="enemy-card">
+            <ion-item button>
+              <i
+                class="fad fa-sword enemy-icon"
+                style="--fa-primary-color: #a1a1a1; --fa-secondary-color: #666"
+              />
+              <div class="enemy-info">
+                <h3>Temple Guards</h3>
+                <p>Regular temple protectors</p>
+              </div>
+              <ion-badge color="primary" slot="end">Lvl 10-20</ion-badge>
+            </ion-item>
+          </ion-card>
+
+          <ion-card class="enemy-card">
+            <ion-item button>
+              <i
+                class="fad fa-hood-cloak enemy-icon"
+                style="--fa-primary-color: #8b8b8b; --fa-secondary-color: #666"
+              />
+              <div class="enemy-info">
+                <h3>Temple Initiates</h3>
+                <p>Novice temple members</p>
+              </div>
+              <ion-badge color="success" slot="end">Lvl 1-10</ion-badge>
+            </ion-item>
+          </ion-card>
+        </div>
       </div>
     </ion-content>
   </ion-page>
@@ -262,32 +262,20 @@
 
 <style lang="scss" scoped>
   .xp-temple-settings {
-    .temple-header {
-      position: relative;
-      height: 200px;
-      background-size: cover;
-      background-position: center;
+    ion-content::part(background) {
+      opacity: 1;
+    }
 
-      &::before {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: linear-gradient(
-          to bottom,
-          rgba(0, 0, 0, 0.7),
-          rgba(0, 0, 0, 0.3)
-        );
-      }
+    .content-overlay {
+      min-height: 100%;
+      background: linear-gradient(to bottom, rgba(0, 0, 0, 0.7) 0%, rgba(0, 0, 0, 0.5) 100%);
+      padding-bottom: 2rem;
     }
 
     .temple-info {
       position: relative;
       color: white;
       padding: 1rem;
-      z-index: 1;
 
       .temple-title {
         display: flex;
@@ -323,6 +311,7 @@
         min-width: 120px;
         text-align: center;
         padding: 1rem;
+        background: rgba(255, 255, 255, 0.9);
 
         .stat-value {
           font-size: 1.5rem;
@@ -338,7 +327,7 @@
       }
     }
 
-    .enemy-hierarchy {
+    .enemy-hierarchy, .categories-section {
       padding: 1rem;
 
       .section-title {
@@ -346,16 +335,20 @@
         margin: 1rem 0;
         padding-left: 1rem;
         border-left: 4px solid var(--ion-color-primary);
+        color: white;
       }
 
-      .enemy-card {
+      ion-card, ion-item {
+        background: rgba(255, 255, 255, 0.9);
         margin-bottom: 1rem;
         border-radius: 12px;
         overflow: hidden;
+      }
 
+      .enemy-card {
         ion-item {
-          --padding-start: 1rem;
-          --inner-padding-end: 1rem;
+          --background: transparent;
+          margin-bottom: 0;
 
           .enemy-icon {
             font-size: 1.5rem;
@@ -379,18 +372,6 @@
             margin-left: auto;
           }
         }
-      }
-    }
-
-    .categories-section {
-      padding: 1rem;
-
-      ion-item {
-        --padding-start: 1rem;
-        --inner-padding-end: 1rem;
-        margin-bottom: 1rem;
-        border-radius: 12px;
-        overflow: hidden;
       }
     }
   }
