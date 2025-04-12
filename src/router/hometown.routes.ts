@@ -31,7 +31,10 @@ export const HometownRoutes: Array<RouteRecordRaw> = [
   {
     path: "/town-hall/:userId?/",
     name: "town-hall",
-    component: () => import("@/views/MyDialogBox/[AppJig]/[AppJig].vue"),
+    component: () => import("@/views/MyPortal/HomeTown/TownHall/TownHall.vue"),
+    meta: {
+      faIcon: "landmark",
+    },
     props: true,
   },
   {

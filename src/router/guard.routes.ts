@@ -130,7 +130,7 @@ export function useRouterGuards(router: Router, store: Store<RootState>) {
         break;
       case 'hospital':
         bgmPayload = {
-          tracks: BGM.hotel, // Assuming BGM.hotel exists
+          tracks: BGM.hospital, // Assuming BGM.hospital exists
           track,
           startDelay,
         };

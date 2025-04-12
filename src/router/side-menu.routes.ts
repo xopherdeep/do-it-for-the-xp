@@ -140,6 +140,26 @@ export const SideMenuRoutes: Array<RouteRecordRaw> = [
         name: 'xp-settings-sound',
         component: () => import('@/views/App/SideMenu/XpSettings/components/SoundSettings.vue'),
       },
+      {
+        path: 'notifications',
+        name: 'xp-settings-notifications',
+        component: () => import('@/views/App/SideMenu/XpSettings/components/NotificationSettings.vue'),
+      },
+      {
+        path: 'reward',
+        name: 'xp-settings-reward',
+        component: () => import('@/views/App/SideMenu/XpSettings/components/RewardSettings.vue'),
+      },
+      {
+        path: 'party',
+        name: 'xp-settings-party',
+        component: () => import('@/views/App/SideMenu/XpSettings/components/PartySettings.vue'),
+      },
+      {
+        path: 'theme',
+        name: 'xp-settings-theme',
+        component: () => import('@/views/App/SideMenu/XpSettings/components/ThemeSettings.vue'),
+      },
     ],
   },
   {

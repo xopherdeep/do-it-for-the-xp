@@ -4,7 +4,7 @@ import MyProfileRoutes from './my-profile.routes';
 import MyHomeRoutes from './my-home.routes';
 import MyPortalRoutes from './my-portal.routes';
 import HometownRoutes from './hometown.routes';
-import supportRoutes from './support';
+import SupportRoutes from './support';
 import WorldMapRoutes from './world-map.routes';
 import { createRouter, createWebHistory } from '@ionic/vue-router';
 import { RouteRecordRaw } from 'vue-router';
@@ -16,7 +16,7 @@ const routes: Array<RouteRecordRaw> = [
   ...MyProfileRoutes,
   ...MyHomeRoutes,
   ...HometownRoutes,
-  ...supportRoutes,
+  ...SupportRoutes,
   MyPortalRoutes,
   {
     path: '/user/:userId?',
@@ -59,6 +59,6 @@ export {
   MyHomeRoutes,
   MyPortalRoutes,
   HometownRoutes,
-  supportRoutes,
+  SupportRoutes,
   WorldMapRoutes
 };
