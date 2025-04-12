@@ -10,22 +10,67 @@
     font-size: 24px;
     margin-right: 16px;
   }
+  
+  ion-label {
+    h2 {
+      font-weight: 600; // Make titles slightly bolder
+    }
+    p {
+      font-size: 0.9em; // Slightly smaller description text
+      color: var(--ion-color-medium-shade);
+    }
+  }
 }
 
+// Consistent styling for list headers and dividers
+ion-list-header, ion-item-divider {
+  margin-top: 16px; // Add space above headers/dividers
+  font-weight: bold;
+  color: var(--ion-color-medium); // Use medium color for less emphasis
+}
+
+// Style for cards used for distinct sections (like About or Subscription)
 .settings-card {
-  margin: 16px;
-  border-radius: 8px;
-  
+  margin: 20px 16px; // Add more vertical margin
+  border-radius: 10px; // Slightly rounder corners
   ion-card-header {
-    padding-bottom: 8px;
+    padding-bottom: 4px; // Reduce padding below header
   }
   
   ion-card-title {
-    font-size: 18px;
+    font-size: 1.1em; // Slightly larger title
     font-weight: 600;
+    display: flex;
+    align-items: center;
+    ion-icon {
+      margin-right: 8px; // Space between icon and title text
+    }
+  }
+  
+  ion-card-content {
+    padding-top: 8px; // Reduce padding above content
+    p {
+      margin-bottom: 8px; // Space between paragraphs
+    }
   }
 }
 
+// Style for premium badges
 .premium-badge {
   margin-left: 8px;
+  font-size: 0.8em;
+  vertical-align: middle; // Align badge nicely with text
+  i.fa-crown { // Target FontAwesome icon specifically if needed
+    margin-right: 4px;
+  }
+}
+
+// Ensure consistent item padding
+ion-item {
+  --inner-padding-end: 8px; // Reduce padding at the end of items
+}
+
+// Add margin below buttons within items or cards for spacing
+ion-item ion-button, ion-card-content ion-button {
+  margin-top: 10px;
 }

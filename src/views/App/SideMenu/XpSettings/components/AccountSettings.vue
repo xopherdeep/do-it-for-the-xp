@@ -10,54 +10,57 @@
     </ion-header>
 
     <ion-content :fullscreen="true" class="rpg-box">
-      <ion-card class="settings-card">
-        <ion-card-header>
-          <ion-card-title>Account Information</ion-card-title>
-        </ion-card-header>
-        <ion-card-content>
+      <ion-list>
+        <!-- Account Information Section -->
+        <ion-item-group>
+          <ion-item-divider>
+            <ion-label>Account Information</ion-label>
+          </ion-item-divider>
           <ion-item>
             <ion-label position="stacked">Email Address</ion-label>
-            <ion-input v-model="accountInfo.email" type="email"></ion-input>
+            <ion-input v-model="accountInfo.email" type="email" placeholder="your@email.com"></ion-input>
           </ion-item>
           <ion-item>
             <ion-label position="stacked">Username</ion-label>
-            <ion-input v-model="accountInfo.username" type="text"></ion-input>
+            <ion-input v-model="accountInfo.username" type="text" placeholder="Choose a username"></ion-input>
           </ion-item>
-          <ion-button expand="block" class="ion-margin-top" @click="saveAccountInfo">
-            Save Changes
-          </ion-button>
-        </ion-card-content>
-      </ion-card>
+          <ion-item lines="none">
+             <ion-button expand="block" @click="saveAccountInfo" class="ion-margin-top">
+               Save Account Info
+             </ion-button>
+          </ion-item>
+        </ion-item-group>
 
-      <ion-card class="settings-card">
-        <ion-card-header>
-          <ion-card-title>Change Password</ion-card-title>
-        </ion-card-header>
-        <ion-card-content>
+        <!-- Change Password Section -->
+        <ion-item-group>
+          <ion-item-divider>
+            <ion-label>Change Password</ion-label>
+          </ion-item-divider>
           <ion-item>
             <ion-label position="stacked">Current Password</ion-label>
-            <ion-input v-model="passwordChange.current" type="password"></ion-input>
+            <ion-input v-model="passwordChange.current" type="password" placeholder="Enter current password"></ion-input>
           </ion-item>
           <ion-item>
             <ion-label position="stacked">New Password</ion-label>
-            <ion-input v-model="passwordChange.new" type="password"></ion-input>
+            <ion-input v-model="passwordChange.new" type="password" placeholder="Enter new password"></ion-input>
           </ion-item>
           <ion-item>
             <ion-label position="stacked">Confirm New Password</ion-label>
-            <ion-input v-model="passwordChange.confirm" type="password"></ion-input>
+            <ion-input v-model="passwordChange.confirm" type="password" placeholder="Confirm new password"></ion-input>
           </ion-item>
-          <ion-button expand="block" class="ion-margin-top" @click="changePassword">
-            Update Password
-          </ion-button>
-        </ion-card-content>
-      </ion-card>
+           <ion-item lines="none">
+             <ion-button expand="block" @click="changePassword" class="ion-margin-top">
+               Update Password
+             </ion-button>
+          </ion-item>
+        </ion-item-group>
 
-      <ion-card class="settings-card">
-        <ion-card-header>
-          <ion-card-title>Subscription</ion-card-title>
-        </ion-card-header>
-        <ion-card-content>
-          <ion-item lines="none">
+        <!-- Subscription Section -->
+        <ion-item-group>
+          <ion-item-divider>
+            <ion-label>Subscription</ion-label>
+          </ion-item-divider>
+          <ion-item>
             <ion-label>
               <h2>Current Plan: {{ subscriptionInfo.plan }}</h2>
               <p>Renews on: {{ subscriptionInfo.renewalDate }}</p>
@@ -66,19 +69,20 @@
               <i class="fa fa-crown"></i> Premium
             </ion-badge>
           </ion-item>
-          <ion-button expand="block" color="primary" @click="managePlan">
-            Manage Subscription
-          </ion-button>
-        </ion-card-content>
-      </ion-card>
+          <ion-item lines="none">
+            <ion-button expand="block" color="primary" @click="managePlan" class="ion-margin-top">
+              Manage Subscription
+            </ion-button>
+          </ion-item>
+        </ion-item-group>
 
-      <ion-card class="settings-card">
-        <ion-card-header>
-          <ion-card-title>Linked Accounts</ion-card-title>
-        </ion-card-header>
-        <ion-card-content>
+        <!-- Linked Accounts Section -->
+        <ion-item-group>
+          <ion-item-divider>
+            <ion-label>Linked Accounts</ion-label>
+          </ion-item-divider>
           <ion-item>
-            <ion-icon name="logo-google" slot="start"></ion-icon>
+            <ion-icon name="logo-google" slot="start" color="danger"></ion-icon>
             <ion-label>
               <h2>Google</h2>
               <p v-if="linkedAccounts.google">Connected</p>
@@ -89,7 +93,7 @@
             </ion-button>
           </ion-item>
           <ion-item>
-            <ion-icon name="logo-apple" slot="start"></ion-icon>
+            <ion-icon name="logo-apple" slot="start"></ion-icon> <!-- Default Apple logo color -->
             <ion-label>
               <h2>Apple</h2>
               <p v-if="linkedAccounts.apple">Connected</p>
@@ -99,8 +103,8 @@
               {{ linkedAccounts.apple ? 'Disconnect' : 'Connect' }}
             </ion-button>
           </ion-item>
-        </ion-card-content>
-      </ion-card>
+        </ion-item-group>
+      </ion-list>
     </ion-content>
   </ion-page>
 </template>
@@ -114,12 +118,11 @@ import {
   IonToolbar, 
   IonButtons, 
   IonBackButton,
-  IonTitle, 
-  IonContent, 
-  IonCard,
-  IonCardHeader,
-  IonCardTitle,
-  IonCardContent,
+  IonTitle,
+  IonContent,
+  IonList,        // Added
+  IonItemGroup,   // Added
+  IonItemDivider, // Added
   IonItem,
   IonLabel,
   IonInput,
@@ -140,10 +143,9 @@ export default defineComponent({
     IonBackButton,
     IonTitle,
     IonContent,
-    IonCard,
-    IonCardHeader,
-    IonCardTitle,
-    IonCardContent,
+    IonList,        // Added
+    IonItemGroup,   // Added
+    IonItemDivider, // Added
     IonItem,
     IonLabel,
     IonInput,
