@@ -198,7 +198,7 @@ ion-app {
 
     // Toast notifications
     ion-toast {
-      @include eb-box(); // Apply the standard box styling
+      // @include eb-box(); // Apply the standard box styling
 
       // Toast-specific overrides and properties
       --ion-safe-area-top: 100px;
