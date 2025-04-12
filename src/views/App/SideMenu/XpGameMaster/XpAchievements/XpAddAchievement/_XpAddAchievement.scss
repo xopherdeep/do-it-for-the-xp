@@ -47,3 +47,104 @@
     transition: transform 120ms ease, background 120ms ease;
   }
 }
+
+.bg-slide {
+  background: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+              linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+  background-size: 20px 20px;
+  background-position: center center;
+}
+
+ion-segment-button {
+  --background-hover: rgba(var(--ion-color-primary-rgb), 0.1);
+  --background-focused: rgba(var(--ion-color-primary-rgb), 0.2);
+  --background-activated: rgba(var(--ion-color-primary-rgb), 0.2);
+  
+  i {
+    font-size: 1.5rem;
+    margin-bottom: 4px;
+  }
+}
+
+ion-item {
+  &.adventure-type {
+    --background: rgba(var(--ion-color-light-rgb), 0.8);
+    border-radius: 8px;
+    margin: 8px 0;
+    
+    ion-label {
+      h2 {
+        font-weight: bold;
+        color: var(--ion-color-dark);
+      }
+      p {
+        color: var(--ion-color-medium);
+      }
+    }
+  }
+}
+
+.fibonacci-marker {
+  position: absolute;
+  width: 2px;
+  height: 10px;
+  background-color: var(--ion-color-warning);
+  pointer-events: none;
+
+  &::after {
+    content: attr(data-value);
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: var(--ion-color-warning);
+  }
+}
+
+.difficulty-range {
+  padding: 16px 8px;
+  
+  ion-range {
+    --bar-background: rgba(var(--ion-color-medium-rgb), 0.2);
+    --bar-background-active: var(--ion-color-warning);
+    --knob-background: var(--ion-color-warning);
+    --pin-background: var(--ion-color-warning);
+  }
+}
+
+.adventure-setup {
+  margin-bottom: 1.5rem;
+  background: rgba(var(--ion-color-primary-rgb), 0.05);
+  border: 1px solid rgba(var(--ion-color-primary-rgb), 0.1);
+  border-radius: 8px;
+  
+  ion-card-content {
+    padding: 1rem;
+    
+    ion-label {
+      font-size: 1.1rem;
+      font-weight: 500;
+      i {
+        color: var(--ion-color-primary);
+        font-size: 1.5rem;
+      }
+    }
+  }
+}
+
+ion-item-group {
+  ion-item-divider {
+    --background: rgba(var(--ion-color-light-rgb), 0.5);
+    --color: var(--ion-color-primary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-size: 0.9rem;
+  }
+}
+
+.ion-invalid {
+  --border-color: var(--ion-color-danger);
+  --highlight-color: var(--ion-color-danger);
+}

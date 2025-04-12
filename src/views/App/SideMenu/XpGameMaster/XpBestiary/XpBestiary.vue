@@ -103,6 +103,7 @@
       async clickAddBeast(beast?: Beast) {
         const modal = await modalController.create({
           component: AddBeast,
+          cssClass: "fullscreen",
           componentProps: {
             beast,
           },
@@ -114,6 +115,7 @@
       async clickAttachBeast(beast: Beast) {
         const modal = await modalController.create({
           component: XpAttachBeast,
+          cssClass: "fullscreen",
           componentProps: {
             beast,
           },

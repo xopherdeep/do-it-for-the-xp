@@ -24,106 +24,132 @@
       </ion-segment>
 
     </ion-header>
-    <ion-content v-if="activeSegment === 'label'" class="bg-slide p-4">
-      <ion-list>
-        <ion-item-sliding>
-          <ion-item-options side="start">
-            <ion-item-option slot="end" @click="openAddCategoryModal" color="success">
-              <i class="fad fa-plus fa-lg"></i>
-            </ion-item-option>
-          </ion-item-options>
-          <ion-item>
-            <i class="fad fa-grip-vertical my-5 mr-2" slot="start"></i>
-            <ion-avatar slot="start">
-              <ion-skeleton-text></ion-skeleton-text>
-            </ion-avatar>
-            <ion-label position="floating"> Category </ion-label>
-            <ion-select v-model="achievement.categoryId" placeholder="Choose a category..." mode="ios" :clearInput="true">
-              <ion-select-option v-for="(cat, index) in categories" :value="cat.id" :key="index">
-                {{ cat.name }}
-              </ion-select-option>
-            </ion-select>
-          </ion-item>
-        </ion-item-sliding>
-        <ion-item>
-          <ion-avatar slot="start">
-            <ion-skeleton-text v-if="!achievement.imageUrl">
-            </ion-skeleton-text>
-            <ion-img :src="achievement?.imageUrl" v-else />
-          </ion-avatar>
-          <ion-label position="floating"> Name Achievement </ion-label>
-          <ion-input v-model="achievement.achievementName" placeholder="Enter Achievement Name"></ion-input>
-        </ion-item>
-      </ion-list>
-    </ion-content>
-
+    
     <ion-content v-if="activeSegment === 'adventure'" class="bg-slide p-4">
-      <ion-card class="hidden">
+      <ion-card class="adventure-setup">
         <ion-card-content>
           <ion-label>
-            <i class="fad fa-map-signs ion-float-right " />
-            What type of adventure is this achievement?<br />
-            <p class="text-sm">
-              {{ activeAdventureType.text }}
-            </p>
+            <i class="fad fa-scroll-old ion-float-right" />
+            <span v-if="!adventureType">Choose your quest type, brave Game Master!</span>
+            <span v-else>{{ activeAdventureType.text }}</span>
           </ion-label>
         </ion-card-content>
       </ion-card>
-      <ion-list>
-        <ion-segment v-model="adventureType">
-          <ion-segment-button value="simple" :disabled="achievement.beastId != '' || achievement.subAchievementIds.length
-            ">
-            Task
-          </ion-segment-button>
-          <ion-segment-button value="beast" :disabled="achievement.subAchievementIds.length">
-            Beast
-          </ion-segment-button>
-          <ion-segment-button value="quest" :disabled="achievement.beastId != ''">
-            Quest
-          </ion-segment-button>
-        </ion-segment>
-        <ion-item v-if="adventureType === 'beast'">
-          <i class="fad fa-paw-claws fa-2x mr-3" slot="start"></i>
-          <ion-label>
-            Choose a Beast
-            <p>Attach a beast to this achievement.</p>
-          </ion-label>
-          <ion-select v-model="achievement.beastId" mode="ios" :clearInput="true">
-            <ion-select-option v-for="beast in beasts" :key="beast.id" :value="beast.id">
-              {{ beast.name }}
-            </ion-select-option>
-          </ion-select>
-          <ion-buttons slot="end" class="mx-0" v-if="achievement.beastId">
-            <ion-button @click="achievement.beastId = ''" color="danger">
-              <i class="fad fa-times-circle fa-2x"></i>
-            </ion-button>
-          </ion-buttons>
-        </ion-item>
-        <ion-item-sliding v-if="adventureType === 'quest'" :disabled="!achievement.subAchievementIds.length">
-          <ion-item-options side="start">
-            <ion-item-option @click="clickReorder">
-              <i class="fad fa-sort-alt fa-2x mx-2"></i>
-            </ion-item-option>
-          </ion-item-options>
-          <ion-item>
-            <i slot="start" class="fad fa-grip-vertical mx-4 mt-5 fa-lg"
-              :class="{ hidden: 2 > achievement.subAchievementIds.length }"></i>
-            <ion-label position="floating"> Achievement Chain </ion-label>
 
-            <ion-select v-model="achievement.subAchievementIds" :clearInput="true" mode="ios" multiple>
-              <ion-select-option v-for="quest in achievements.filter(
-                (a) => a.id != achievement.id
-              )" :key="quest.id" :value="quest.id">
-                {{ quest.achievementName }}
-              </ion-select-option>
-            </ion-select>
-            <ion-buttons v-if="achievement.subAchievementIds.length" slot="end" class="mx-0 mt-4">
-              <ion-button @click="achievement.subAchievementIds = []" color="danger">
-                <i class="fad fa-times-circle fa-2x"></i>
-              </ion-button>
-            </ion-buttons>
+      <ion-list>
+        <!-- Name and Category Section -->
+        <ion-item-group class="mb-4">
+          <ion-item>
+            <ion-avatar slot="start">
+              <ion-skeleton-text v-if="!achievement.imageUrl"></ion-skeleton-text>
+              <ion-img :src="achievement?.imageUrl" v-else />
+            </ion-avatar>
+            <ion-label position="floating">Name Your Quest</ion-label>
+            <ion-input 
+              v-model="achievement.achievementName" 
+              placeholder="Enter a name worthy of legend..."
+              :class="{ 'ion-invalid': !achievement.achievementName?.trim() && saveBtnDisabled }"
+            ></ion-input>
           </ion-item>
-        </ion-item-sliding>
+
+          <ion-item-sliding>
+            <ion-item-options side="start">
+              <ion-item-option @click="openAddCategoryModal" color="success">
+                <i class="fad fa-plus fa-lg"></i>
+              </ion-item-option>
+            </ion-item-options>
+            <ion-item>
+              <i class="fad fa-scroll-old fa-2x mr-3" slot="start"></i>
+              <ion-label position="floating">Quest Category</ion-label>
+              <ion-select 
+                v-model="achievement.categoryId" 
+                placeholder="Choose a category..." 
+                mode="ios" 
+                :clearInput="true"
+                :class="{ 'ion-invalid': !achievement.categoryId && saveBtnDisabled }"
+              >
+                <ion-select-option v-for="(cat, index) in categories" :value="cat.id" :key="index">
+                  {{ cat.name }}
+                </ion-select-option>
+              </ion-select>
+            </ion-item>
+          </ion-item-sliding>
+        </ion-item-group>
+
+        <!-- Quest Type Selection -->
+        <ion-item-group class="mb-4">
+          <ion-item-divider>
+            <ion-label>Quest Type</ion-label>
+          </ion-item-divider>
+          
+          <ion-segment v-model="adventureType" mode="ios">
+            <ion-segment-button value="simple" :disabled="achievement.beastId != '' || achievement.subAchievementIds.length">
+              <i class="fad fa-tasks fa-lg mb-1"></i>
+              <ion-label>Simple Quest</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="beast" :disabled="achievement.subAchievementIds.length">
+              <i class="fad fa-dragon fa-lg mb-1"></i>
+              <ion-label>Beast Hunt</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="quest" :disabled="achievement.beastId != ''">
+              <i class="fad fa-crown fa-lg mb-1"></i>
+              <ion-label>Epic Quest</ion-label>
+            </ion-segment-button>
+          </ion-segment>
+
+          <div class="ion-padding-vertical">
+            <ion-item v-if="adventureType === 'beast'" lines="none">
+              <i class="fad fa-dragon fa-2x mr-3" slot="start" style="color: var(--ion-color-danger)"></i>
+              <ion-label>
+                Choose Your Beast
+              </ion-label>
+              <ion-select v-model="achievement.beastId" mode="ios" :clearInput="true" interface="action-sheet" placeholder="Select a beast...">
+                <ion-select-option v-for="beast in beasts" :key="beast.id" :value="beast.id">
+                  {{ beast.name }}
+                </ion-select-option>
+              </ion-select>
+              <ion-buttons slot="end" class="mx-0" v-if="achievement.beastId">
+                <ion-button @click="achievement.beastId = ''" color="danger">
+                  <i class="fad fa-times-circle fa-2x"></i>
+                </ion-button>
+              </ion-buttons>
+            </ion-item>
+
+            <ion-item-sliding v-if="adventureType === 'quest'" :disabled="!achievement.subAchievementIds.length">
+              <ion-item-options side="start">
+                <ion-item-option @click="clickReorder" color="warning">
+                  <i class="fad fa-sort-alt fa-2x mx-2"></i>
+                </ion-item-option>
+              </ion-item-options>
+              <ion-item lines="none">
+                <i class="fad fa-scroll-old fa-2x mr-3" slot="start" style="color: var(--ion-color-warning)"></i>
+                <ion-label position="stacked">
+                  Quest Chain
+                </ion-label>
+                <ion-select v-model="achievement.subAchievementIds" :clearInput="true" mode="ios" multiple interface="action-sheet" 
+                  placeholder="Select achievements...">
+                  <ion-select-option v-for="quest in achievements.filter(
+                    (a) => a.id != achievement.id
+                  )" :key="quest.id" :value="quest.id">
+                    {{ quest.achievementName }}
+                  </ion-select-option>
+                </ion-select>
+                <ion-buttons v-if="achievement.subAchievementIds.length" slot="end" class="mx-0">
+                  <ion-button @click="achievement.subAchievementIds = []" color="danger">
+                    <i class="fad fa-times-circle fa-2x"></i>
+                  </ion-button>
+                </ion-buttons>
+              </ion-item>
+            </ion-item-sliding>
+
+            <ion-item v-if="adventureType === 'simple'" lines="none">
+              <i class="fad fa-scroll fa-2x mr-3" slot="start" style="color: var(--ion-color-success)"></i>
+              <ion-label>
+                Simple Quest
+              </ion-label>
+            </ion-item>
+          </div>
+        </ion-item-group>
       </ion-list>
     </ion-content>
 
@@ -309,31 +335,28 @@
       </ion-card>
       <ion-list>
         <ion-item>
-          <ion-label> Estimated Amount of Effort </ion-label>
+          <ion-label class="ion-text-wrap">
+            Estimated Amount of Effort
+            <p class="text-sm">Choose wisely - the golden sequence determines the rewards!</p>
+          </ion-label>
+          <div class="difficulty-range">
+            <ion-button :disabled="achievement.difficulty === 1" @click="decreaseDifficulty" color="danger" size="small">
+              <i class="fas fa-minus"></i>
+            </ion-button>
+            <ion-range v-model="achievement.difficulty" mode="ios" min="1" max="13" :pin="true" step="1"
+              :snaps="true" :ticks="true" color="warning" @ionChange="updatePoints">
+              <div v-for="value in fibonacciArray" :key="value" class="fibonacci-marker"
+                :style="{ left: ((value - 1) / 12 * 100) + '%' }" :data-value="value">
+              </div>
+              <ion-label slot="start">Novice</ion-label>
+              <ion-label slot="end">Master</ion-label>
+            </ion-range>
+            <ion-button :disabled="achievement.difficulty === 13" @click="increaseDifficulty" color="success" size="small">
+              <i class="fas fa-plus"></i>
+            </ion-button>
+          </div>
           <i slot="end" class="fad fa-2x" :class="difficultyIcon"
             :style="isFibonacci ? { color: 'var(--ion-color-warning)' } : {}" />
-          <ion-select v-model="achievement.difficulty" placeholder="Outside Golden Ratio" mode="ios">
-            <ion-select-option v-for="effort in efforts" :key="effort.value" :value="effort.value">
-              {{ effort.name }}
-            </ion-select-option>
-          </ion-select>
-        </ion-item>
-        <ion-item>
-          <ion-button :disabled="achievement.difficulty === 1" @click="decreaseDifficulty" color="danger">
-            <i class="fas fa-minus"></i>
-          </ion-button>
-          <ion-range v-model="achievement.difficulty" mode="ios" min="0" max="13" :pin="true" step="1"
-            :snaps="isFibonacci" :ticks="isFibonacci" color="warning" @ionChange="updatePoints">
-            <ion-label slot="start">
-              <p>Min</p>
-            </ion-label>
-            <ion-label slot="end">
-              <p>Max</p>
-            </ion-label>
-          </ion-range>
-          <ion-button :disabled="achievement.difficulty === 13" @click="increaseDifficulty" color="success">
-            <i class="fas fa-plus"></i>
-          </ion-button>
         </ion-item>
       </ion-list>
       <ion-accordion-group>
@@ -372,7 +395,7 @@
                   <i class="fad fa-hand-holding-usd fa-2x" />
                   <ion-input slot="end" v-model="achievement.gp" type="number" class="ion-text-right text-xl"
                     placeholder="Enter GP"></ion-input>
-                  <ion-label slot="end"> GP </ion-label>
+                  <ion-label slot="end">GP</ion-label>
                 </ion-item-option>
               </ion-item-options>
               <ion-item>
@@ -501,13 +524,13 @@
           </ion-button>
         </ion-buttons>
         <ion-buttons slot="end">
-          <ion-button id="preview-achivement">
+          <ion-button id="preview-achievement">
             <i class="fad fa-eye fa-lg mr-2" />
             Preview
           </ion-button>
-          <ion-button @click="saveAchievement">
-            <i class="fad fa-save fa-lg mr-2" />
-            Save
+          <ion-button @click="saveAchievement" :disabled="saveBtnDisabled">
+            <i class="fad" :class="isValidAdventure ? 'fa-scroll-old' : 'fa-scroll'" />
+            {{ isValidAdventure ? 'Complete Quest' : 'Quest Incomplete' }}
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
@@ -585,6 +608,34 @@
             <i class="fad fa-siren-on mr-2"></i>
             Achievement Expired
           </ion-chip>
+
+          <!-- Points Preview -->
+          <ion-list>
+            <ion-item lines="none" v-if="achievement.xp">
+              <i class="fad fa-hand-holding-seedling fa-2x mr-3" slot="start" style="color: var(--ion-color-success)" />
+              <ion-label>Experience Points (XP)</ion-label>
+              <ion-badge color="success" slot="end">
+                {{ achievement.xp }}
+                <i class="fad fa-hand-holding-seedling ml-2" />
+              </ion-badge>
+            </ion-item>
+            <ion-item lines="none" v-if="achievement.gp">
+              <i class="fad fa-hand-holding-usd fa-2x mr-3" slot="start" style="color: var(--ion-color-warning)" />
+              <ion-label>Gold Points (GP)</ion-label>
+              <ion-badge color="warning" slot="end">
+                <xp-gp :gp="achievement.gp" />
+                <i class="fad fa-hand-holding-usd ml-2" />
+              </ion-badge>
+            </ion-item>
+            <ion-item lines="none" v-if="achievement.ap">
+              <i class="fad fa-hand-holding-magic fa-2x mr-3" slot="start" style="color: var(--ion-color-danger)" />
+              <ion-label>Ability Points (AP)</ion-label>
+              <ion-badge color="danger" slot="end">
+                {{ achievement.ap }}
+                <i class="fad fa-hand-holding-magic ml-2" />
+              </ion-badge>
+            </ion-item>
+          </ion-list>
         </ion-list>
 
         <ion-buttons class="ion-float-right">
