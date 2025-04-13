@@ -358,24 +358,83 @@
         <div v-if="quickEditTab === 'locks'">
           <ion-list lines="none" class="ion-padding-top">
              <ion-item-divider>
-               <ion-label>Door Locks</ion-label>
+               <ion-label>Side Configuration</ion-label>
              </ion-item-divider>
-            <ion-item>
+            <!-- North Side -->
+            <ion-item lines="none">
               <ion-label>North</ion-label>
-              <ion-checkbox slot="end" v-model="quickNorthLock"></ion-checkbox>
             </ion-item>
-            <ion-item>
-              <ion-label>East</ion-label>
-              <ion-checkbox slot="end" v-model="quickEastLock"></ion-checkbox>
-            </ion-item>
-            <ion-item>
-              <ion-label>South</ion-label>
-              <ion-checkbox slot="end" v-model="quickSouthLock"></ion-checkbox>
-            </ion-item>
-            <ion-item>
-              <ion-label>West</ion-label>
-              <ion-checkbox slot="end" v-model="quickWestLock"></ion-checkbox>
-            </ion-item>
+            <ion-segment v-model="quickNorthSideType" class="side-type-segment">
+              <ion-segment-button value="door">
+                <i class="fas fa-door-open"></i><ion-label>Door</ion-label>
+              </ion-segment-button>
+              <ion-segment-button value="wall">
+                <i class="fas fa-square"></i><ion-label>Wall</ion-label>
+              </ion-segment-button>
+              <ion-segment-button value="bombable">
+                <i class="fas fa-bomb"></i><ion-label>Bomb</ion-label>
+              </ion-segment-button>
+              <ion-segment-button value="locked">
+                <i class="fas fa-lock"></i><ion-label>Lock</ion-label>
+              </ion-segment-button>
+            </ion-segment>
+            
+            <!-- East Side -->
+             <ion-item lines="none">
+               <ion-label>East</ion-label>
+             </ion-item>
+             <ion-segment v-model="quickEastSideType" class="side-type-segment">
+               <ion-segment-button value="door">
+                 <i class="fas fa-door-open"></i><ion-label>Door</ion-label>
+               </ion-segment-button>
+               <ion-segment-button value="wall">
+                 <i class="fas fa-square"></i><ion-label>Wall</ion-label>
+               </ion-segment-button>
+               <ion-segment-button value="bombable">
+                 <i class="fas fa-bomb"></i><ion-label>Bomb</ion-label>
+               </ion-segment-button>
+               <ion-segment-button value="locked">
+                 <i class="fas fa-lock"></i><ion-label>Lock</ion-label>
+               </ion-segment-button>
+             </ion-segment>
+
+            <!-- South Side -->
+             <ion-item lines="none">
+               <ion-label>South</ion-label>
+             </ion-item>
+             <ion-segment v-model="quickSouthSideType" class="side-type-segment">
+               <ion-segment-button value="door">
+                 <i class="fas fa-door-open"></i><ion-label>Door</ion-label>
+               </ion-segment-button>
+               <ion-segment-button value="wall">
+                 <i class="fas fa-square"></i><ion-label>Wall</ion-label>
+               </ion-segment-button>
+               <ion-segment-button value="bombable">
+                 <i class="fas fa-bomb"></i><ion-label>Bomb</ion-label>
+               </ion-segment-button>
+               <ion-segment-button value="locked">
+                 <i class="fas fa-lock"></i><ion-label>Lock</ion-label>
+               </ion-segment-button>
+             </ion-segment>
+
+            <!-- West Side -->
+             <ion-item lines="none">
+               <ion-label>West</ion-label>
+             </ion-item>
+             <ion-segment v-model="quickWestSideType" class="side-type-segment">
+               <ion-segment-button value="door">
+                 <i class="fas fa-door-open"></i><ion-label>Door</ion-label>
+               </ion-segment-button>
+               <ion-segment-button value="wall">
+                 <i class="fas fa-square"></i><ion-label>Wall</ion-label>
+               </ion-segment-button>
+               <ion-segment-button value="bombable">
+                 <i class="fas fa-bomb"></i><ion-label>Bomb</ion-label>
+               </ion-segment-button>
+               <ion-segment-button value="locked">
+                 <i class="fas fa-lock"></i><ion-label>Lock</ion-label>
+               </ion-segment-button>
+             </ion-segment>
           </ion-list>
         </div>
 
@@ -739,8 +798,18 @@ export default defineComponent({
     const quickMonsterType = ref("small");
     const quickNorthLock = ref(false);
     const quickEastLock = ref(false);
-    const quickSouthLock = ref(false);
-    const quickWestLock = ref(false);
+    // Remove old lock refs
+    // const quickNorthLock = ref(false);
+    // const quickEastLock = ref(false);
+    // const quickSouthLock = ref(false);
+    // const quickWestLock = ref(false);
+    
+    // Add new side type refs for popover
+    const quickNorthSideType = ref('door');
+    const quickEastSideType = ref('door');
+    const quickSouthSideType = ref('door');
+    const quickWestSideType = ref('door');
+    
     const quickEditTab = ref('type'); // State for active tab
 
     const showQuickEditPopover = (event: Event, row: number, col: number) => {
@@ -750,10 +819,14 @@ export default defineComponent({
 
       // Reset popover state based on the selected cell's data
       quickEditType.value = selectedRoomType.value;
-      quickNorthLock.value = northLocked.value;
-      quickEastLock.value = eastLocked.value;
-      quickSouthLock.value = southLocked.value;
-      quickWestLock.value = westLocked.value;
+      
+      // TODO: Update this when main state uses side types
+      // For now, map old boolean lock to new types
+      quickNorthSideType.value = northLocked.value ? 'locked' : 'door';
+      quickEastSideType.value = eastLocked.value ? 'locked' : 'door';
+      quickSouthSideType.value = southLocked.value ? 'locked' : 'door';
+      quickWestSideType.value = westLocked.value ? 'locked' : 'door';
+      // --- End of temporary mapping ---
 
       // Reset conditional content types based on loaded data
       if (selectedRoomType.value === 'loot' && selectedChestType.value === 'dungeon') {
@@ -787,11 +860,27 @@ export default defineComponent({
     };
 
     const applyQuickEdit = () => {
-      northLocked.value = quickNorthLock.value;
-      eastLocked.value = quickEastLock.value;
-      southLocked.value = quickSouthLock.value;
-      westLocked.value = quickWestLock.value;
-      applyRoomChanges();
+      // TODO: Update this when main state uses side types
+      // Map new types back to old boolean lock temporarily
+      northLocked.value = quickNorthSideType.value === 'locked';
+      eastLocked.value = quickEastSideType.value === 'locked';
+      southLocked.value = quickSouthSideType.value === 'locked';
+      westLocked.value = quickWestSideType.value === 'locked';
+      // --- End of temporary mapping ---
+      
+      // Apply the main room type change
+      selectedRoomType.value = quickEditType.value; 
+      
+      // Apply content changes if applicable (needs refinement based on data structure)
+      if (quickEditType.value === 'loot') {
+         selectedChestType.value = 'dungeon'; // Assuming quick edit only handles dungeon items for now
+         selectedDungeonItem.value = quickLootType.value;
+      } else if (quickEditType.value === 'monster') {
+         selectedMonsterType.value = quickMonsterType.value;
+      }
+
+      // Apply all changes (including the temporary lock mapping above)
+      applyRoomChanges(); 
       quickEditPopoverOpen.value = false;
     };
 
@@ -841,7 +930,8 @@ export default defineComponent({
       quickNorthLock,
       quickEastLock,
       quickSouthLock,
-      quickWestLock,
+      // quickWestLock, // Removed
+      quickWestSideType, // Added
       quickEditTab, // Expose tab state
       showQuickEditPopover,
       quickSetRoomType,

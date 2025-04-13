@@ -113,6 +113,23 @@
   ion-checkbox {
     margin-left: 10px; // Space between label and checkbox
   }
+
+  // Styles for the side type segment buttons in the popover
+  .side-type-segment {
+    margin-bottom: 10px; // Add space between segments
+    ion-segment-button {
+      // Ensure label and icon fit
+      flex-direction: column; 
+      i {
+        margin-bottom: 4px;
+        font-size: 1.2em; // Adjust icon size if needed
+      }
+      ion-label {
+        font-size: 0.7rem; // Adjust label size if needed
+        white-space: nowrap;
+      }
+    }
+  }
   
   ion-footer {
     ion-toolbar {
