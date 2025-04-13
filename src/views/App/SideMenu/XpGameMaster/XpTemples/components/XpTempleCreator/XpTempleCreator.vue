@@ -250,7 +250,7 @@
               <ion-label>Content</ion-label>
             </ion-segment-button>
             <ion-segment-button value="locks">
-              <ion-label>Locks</ion-label>
+              <ion-label>Sides</ion-label> <!-- Changed label -->
             </ion-segment-button>
           </ion-segment>
         </ion-toolbar>
@@ -327,6 +327,13 @@
                    </div>
                  </ion-button>
                </ion-col>
+               <ion-col size="4">
+                 <ion-button fill="clear" @click="quickSetRoomType('entrance')" :class="{ 'selected': quickEditType === 'entrance' }">
+                   <div class="button-content">
+                     <i class="fas" :class="ROOM_ICONS['entrance']"></i><span>Entrance</span>
+                   </div>
+                 </ion-button>
+               </ion-col>
             </ion-row>
           </ion-grid>
         </div>
@@ -334,23 +341,52 @@
         <!-- Tab Content: Content -->
         <div v-if="quickEditTab === 'content'">
           <ion-list lines="none" class="ion-padding-top">
-            <ion-item v-if="quickEditType === 'loot'">
-              <ion-label>Chest Content</ion-label>
-              <ion-segment v-model="quickLootType">
-                <ion-segment-button value="key">Key</ion-segment-button>
-                <ion-segment-button value="map">Map</ion-segment-button>
-                <ion-segment-button value="compass">Compass</ion-segment-button>
-              </ion-segment>
-            </ion-item>
+            <!-- Loot Content Options -->
+            <div v-if="quickEditType === 'loot'">
+              <ion-item>
+                <ion-label>Chest Type</ion-label>
+                <ion-segment v-model="quickChestType">
+                  <ion-segment-button value="dungeon">Dungeon Item</ion-segment-button>
+                  <ion-segment-button value="loot">Random Loot</ion-segment-button>
+                </ion-segment>
+              </ion-item>
+              
+              <ion-item v-if="quickChestType === 'dungeon'">
+                <ion-label>Dungeon Item</ion-label>
+                <ion-segment v-model="quickDungeonItem">
+                  <ion-segment-button value="key">Key</ion-segment-button>
+                  <ion-segment-button value="map">Map</ion-segment-button>
+                  <ion-segment-button value="compass">Compass</ion-segment-button>
+                  <ion-segment-button value="boss-key">Boss Key</ion-segment-button>
+                  <ion-segment-button value="special-item">Special</ion-segment-button>
+                </ion-segment>
+              </ion-item>
 
-            <ion-item v-if="quickEditType === 'monster'">
-              <ion-label>Monster Size</ion-label>
+              <ion-item v-if="quickChestType === 'loot'">
+                 <ion-label>Random Items</ion-label>
+                 <ion-select v-model="quickRandomLootItems" multiple="true" interface="popover" placeholder="Select Items">
+                   <ion-select-option value="potion">Potion</ion-select-option>
+                   <ion-select-option value="ether">Ether</ion-select-option>
+                   <ion-select-option value="elixir">Elixir</ion-select-option>
+                   <ion-select-option value="gold">Gold</ion-select-option>
+                   <ion-select-option value="equipment">Equipment</ion-select-option>
+                 </ion-select>
+              </ion-item>
+            </div>
+
+            <!-- Monster Content Options -->
+            <ion-item v-if="['monster', 'miniboss', 'boss'].includes(quickEditType)">
+              <ion-label>Monster Type</ion-label>
               <ion-segment v-model="quickMonsterType">
                 <ion-segment-button value="small">Small</ion-segment-button>
                 <ion-segment-button value="medium">Medium</ion-segment-button>
                 <ion-segment-button value="large">Large</ion-segment-button>
+                <ion-segment-button value="boss">Boss</ion-segment-button>
               </ion-segment>
             </ion-item>
+            
+            <!-- Add other content types here if needed (e.g., Health amount) -->
+            
           </ion-list>
         </div>
 
@@ -876,37 +912,40 @@ export default defineComponent({
       quickEditTab.value = 'type'; // Reset to the 'type' tab
 
       // Reset popover state based on the selected cell's data
-      quickEditType.value = selectedRoomType.value;
+      const cellSymbol = templeMaze.value[row][col];
+      const loadedRoomData = roomsData.value[cellSymbol] || {};
+      const loadedRoomType = getCellType(cellSymbol); // Use getCellType here
       
-      // TODO: Update this when main state uses side types
-      // For now, map old boolean lock to new types
-      quickNorthSideType.value = northLocked.value ? 'locked' : 'door';
-      quickEastSideType.value = eastLocked.value ? 'locked' : 'door';
-      quickSouthSideType.value = southLocked.value ? 'locked' : 'door';
-      quickWestSideType.value = westLocked.value ? 'locked' : 'door';
+      quickEditType.value = loadedRoomType;
+
+      // Reset Side Types (using loadedRoomData.sides if available, else default/map from locked)
+      // TODO: Fully transition to using loadedRoomData.sides once data structure is updated
+      quickNorthSideType.value = loadedRoomData.sides?.north || (loadedRoomData.locked?.north ? 'locked' : 'door');
+      quickEastSideType.value = loadedRoomData.sides?.east || (loadedRoomData.locked?.east ? 'locked' : 'door');
+      quickSouthSideType.value = loadedRoomData.sides?.south || (loadedRoomData.locked?.south ? 'locked' : 'door');
+      quickWestSideType.value = loadedRoomData.sides?.west || (loadedRoomData.locked?.west ? 'locked' : 'door');
       // --- End of temporary mapping ---
 
-      // Reset conditional content types based on loaded data
-      if (selectedRoomType.value === 'loot' && selectedChestType.value === 'dungeon') {
-        // Map detailed dungeon item to simpler popover options if possible
-        if (['key', 'map', 'compass'].includes(selectedDungeonItem.value)) {
-          quickLootType.value = selectedDungeonItem.value;
-        } else {
-          quickLootType.value = 'key'; // Default if no direct match
+      // Reset Content Types based on loaded data
+      if (loadedRoomType === 'loot') {
+        quickChestType.value = loadedRoomData.content?.chest || 'dungeon';
+        if (quickChestType.value === 'dungeon') {
+          quickDungeonItem.value = loadedRoomData.content?.dungeon || 'key';
+        } else { // 'loot'
+          quickRandomLootItems.value = loadedRoomData.content?.items || ['potion'];
         }
       } else {
-        quickLootType.value = 'key'; // Default for non-dungeon loot or other types
+        // Default values for non-loot types
+        quickChestType.value = 'dungeon';
+        quickDungeonItem.value = 'key';
+        quickRandomLootItems.value = ['potion'];
       }
 
-      if (selectedRoomType.value === 'monster') {
-        // Map detailed monster type to simpler popover options if possible
-        if (['small', 'medium', 'large'].includes(selectedMonsterType.value)) {
-          quickMonsterType.value = selectedMonsterType.value;
-        } else {
-          quickMonsterType.value = 'small'; // Default if no direct match (e.g., 'boss')
-        }
+      if (['monster', 'miniboss', 'boss'].includes(loadedRoomType)) {
+         quickMonsterType.value = loadedRoomData.content?.monsterType || 'small';
       } else {
-        quickMonsterType.value = 'small'; // Default for non-monster types
+         // Default value for non-monster types
+         quickMonsterType.value = 'small';
       }
        
       quickEditPopoverOpen.value = true; // Now open the popover
@@ -929,16 +968,32 @@ export default defineComponent({
       // Apply the main room type change
       selectedRoomType.value = quickEditType.value; 
       
-      // Apply content changes if applicable (needs refinement based on data structure)
+      // Apply content changes based on quick edit state
+      const contentData: any = {};
       if (quickEditType.value === 'loot') {
-         selectedChestType.value = 'dungeon'; // Assuming quick edit only handles dungeon items for now
-         selectedDungeonItem.value = quickLootType.value;
-      } else if (quickEditType.value === 'monster') {
-         selectedMonsterType.value = quickMonsterType.value;
+        contentData.chest = quickChestType.value;
+        if (quickChestType.value === 'dungeon') {
+          contentData.dungeon = quickDungeonItem.value;
+        } else { // 'loot'
+          contentData.items = quickRandomLootItems.value;
+        }
+      } else if (['monster', 'miniboss', 'boss'].includes(quickEditType.value)) {
+        contentData.monsterType = quickMonsterType.value;
+      } else if (quickEditType.value === 'health') {
+         contentData.healthPoints = 10; // Example default
       }
+      
+      // Prepare side data (TODO: Fully transition applyRoomChanges to use this)
+      const sideData = {
+         north: quickNorthSideType.value,
+         east: quickEastSideType.value,
+         south: quickSouthSideType.value,
+         west: quickWestSideType.value,
+      };
 
-      // Apply all changes (including the temporary lock mapping above)
-      applyRoomChanges(); 
+      // Apply all changes using the main apply function
+      // Pass quick edit state to applyRoomChanges
+      applyRoomChanges(quickEditType.value, contentData, sideData); 
       quickEditPopoverOpen.value = false;
     };
 
@@ -1002,9 +1057,12 @@ export default defineComponent({
       showPreview,
       quickEditPopoverOpen,
       popoverEvent,
-      quickEditType,
-      quickLootType,
-      quickMonsterType,
+      quickEditType, // Keep
+      // quickLootType, // Removed
+      quickChestType, // Added
+      quickDungeonItem, // Added
+      quickRandomLootItems, // Added
+      quickMonsterType, // Keep
       // quickNorthLock, // Removed
       // quickEastLock, // Removed
       // quickSouthLock, // Removed
