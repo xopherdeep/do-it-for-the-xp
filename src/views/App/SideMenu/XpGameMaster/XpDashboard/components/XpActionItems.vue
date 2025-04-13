@@ -6,7 +6,7 @@
     class="approval-item"
   >
     <i
-      class="fad fa-clipboard-check fa-2x my-2"
+      class="fad fa-shield-check fa-2x my-2"
       slot="start"
     ></i>
     <ion-label>

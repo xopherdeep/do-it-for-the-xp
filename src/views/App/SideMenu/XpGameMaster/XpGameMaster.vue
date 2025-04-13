@@ -5,14 +5,6 @@
         <ion-router-outlet ref="outlet"></ion-router-outlet>
         <ion-tab-bar slot="bottom">
           <ion-tab-button
-            tab="dashboard"
-            href="/game-master"
-            :selected="$route.path === '/game-master/dashboard'"
-          >
-            <i class="fad fa-tachometer-slowest fa-2x" />
-            Dashboard
-          </ion-tab-button>
-          <ion-tab-button
             tab="compendium"
             href="/game-master/compendium"
             :selected="$route.path.indexOf('game-master/compendium/') >= 0"
@@ -21,12 +13,20 @@
             Compendium
           </ion-tab-button>
           <ion-tab-button
-            tab="world"
-            href="/game-master/temples"
-            :selected="$route.path === '/game-master/temples'"
+            tab="dashboard"
+            href="/game-master"
+            :selected="$route.path === '/game-master/dashboard'"
           >
-            <i class="fad fa-place-of-worship fa-2x" />
-            Temples
+            <i class="fad fa-heart fa-2x" />
+            Family 
+          </ion-tab-button>
+          <ion-tab-button
+            tab="chat"
+            href="/game-master/chat"
+            :selected="$route.path === '/game-master/chat'"
+          >
+            <i class="fad fa-comments fa-2x" />
+            Chat
           </ion-tab-button>
         </ion-tab-bar>
       </ion-tabs>

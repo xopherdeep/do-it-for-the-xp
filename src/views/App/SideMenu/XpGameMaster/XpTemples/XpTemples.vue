@@ -138,9 +138,10 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref } from "vue";
+  import { defineComponent, ref, onMounted } from "vue";
   import ionic from "@/mixins/ionic";
   import { useRouter } from "vue-router";
+  import { TempleDb, TempleInterface, templeStorage } from "@/databases/TempleDb";
 
   const requireBg = require.context("@/assets/images/backgrounds/");
 
@@ -149,6 +150,63 @@
     mixins: [ionic],
     setup() {
       const $router = useRouter();
+      const templeDb = new TempleDb(templeStorage);
+      const templeData = ref({} as Record<string, TempleInterface>);
+
+      // Default temple configuration
+      const temples = ref([
+        {
+          id: "wind-temple",
+          world: "plains",
+          level: 3,
+        },
+        {
+          id: "earth-temple",
+          world: "forest",
+          level: 2,
+        },
+        {
+          id: "water-temple",
+          world: "islands",
+          level: 4,
+        },
+        {
+          id: "fire-fortress",
+          world: "mountains",
+          level: 5,
+        },
+        {
+          id: "frozen-fortress",
+          world: "ice",
+          level: 2,
+        },
+        {
+          id: "sun-temple",
+          world: "desert",
+          level: 3,
+        },
+        {
+          id: "moon-temple",
+          world: "moon",
+          level: 1,
+        },
+      ]);
+
+      // Load temple data from storage
+      const loadTempleData = async () => {
+        for (const temple of temples.value) {
+          const data = await templeDb.getTempleById(temple.id);
+          if (data) {
+            templeData.value[temple.id] = data;
+          }
+        }
+      };
+
+      // Load temple data when component is mounted
+      onMounted(() => {
+        loadTempleData();
+      });
+
       const getBgUrl = (world: string) => {
         const img = requireBg(`./world-${world}.jpg`);
         return `url(${img})`;
@@ -168,6 +226,12 @@
       };
 
       const getTempleName = (templeId: string) => {
+        // First check if there's a custom name in the temple data
+        if (templeData.value[templeId]?.customName) {
+          return templeData.value[templeId].customName;
+        }
+
+        // Fall back to default names
         const names = {
           "wind-temple": "Temple of Zephyr",
           "earth-temple": "Gaia Sanctuary",
@@ -181,6 +245,12 @@
       };
 
       const getTempleDescription = (templeId: string) => {
+        // First check if there's a custom description in the temple data
+        if (templeData.value[templeId]?.customDescription) {
+          return templeData.value[templeId].customDescription;
+        }
+
+        // Fall back to default descriptions
         const descriptions = {
           "wind-temple": "Masters of aerial magic and swift techniques",
           "earth-temple": "Guardians of nature and earthen powers",
@@ -208,43 +278,7 @@
         getTempleIcon,
         getTempleName,
         getTempleDescription,
-        temples: ref([
-          {
-            id: "wind-temple",
-            world: "plains",
-            level: 3,
-          },
-          {
-            id: "earth-temple",
-            world: "forest",
-            level: 2,
-          },
-          {
-            id: "water-temple",
-            world: "islands",
-            level: 4,
-          },
-          {
-            id: "fire-fortress",
-            world: "mountains",
-            level: 5,
-          },
-          {
-            id: "frozen-fortress",
-            world: "ice",
-            level: 2,
-          },
-          {
-            id: "sun-temple",
-            world: "desert",
-            level: 3,
-          },
-          {
-            id: "moon-temple",
-            world: "moon",
-            level: 1,
-          },
-        ]),
+        temples,
       };
     },
   });

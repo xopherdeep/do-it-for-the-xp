@@ -28,7 +28,7 @@
       const templeCount = ref(7); // This would come from actual data
       
       const navigateToTemples = () => {
-        router.push('/game-master/temples');
+        router.push('/game-master/compendium/temples');
       };
       
       return {

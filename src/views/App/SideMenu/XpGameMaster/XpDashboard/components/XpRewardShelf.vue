@@ -13,7 +13,7 @@
       button
       detail
       class="reward-item"
-      @click="navigateToAccessories"
+      @click="navigateToRewards"
     >
       <i
         slot="start"
@@ -61,27 +61,24 @@
     name: 'xp-reward-shelf',
     mixins: [ionic],
     setup() {
-      const router = useRouter();
-      
-      const rewards = ref({
-        active: 10,
-        expired: 5,
-        redeemed: 0,
-        cashed: 0,
-        total: computed(() => rewards.value.active + rewards.value.expired)
-      });
-      
-      const lastUpdated = ref('Just now');
-      
-      const navigateToAccessories = () => {
-        router.push('/game-master/accessories');
-      };
+        const rewards = ref({
+          active: 80,
+          expired: 0,
+          redeemed: 0,
+          cashed: 0,
+          total: computed(() => rewards.value.active + rewards.value.expired)
+        });
 
-      return {
-        rewards,
-        lastUpdated,
-        navigateToAccessories
-      }
+        const router = useRouter();
+        
+        const navigateToRewards = () => {
+          router.push('/game-master/rewards');
+        };
+
+        return {
+          rewards,
+          navigateToRewards
+        };
     }
   })
 </script>

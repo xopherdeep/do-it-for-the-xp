@@ -11,6 +11,12 @@
             <i class="fas fa-cog" />
           </ion-button>
         </ion-buttons>
+        <ion-buttons slot="end">
+          <ion-button @click="saveTemple">
+            <i class="fas fa-save" />
+            Save
+          </ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
@@ -19,9 +25,9 @@
         <div class="temple-info">
           <div class="temple-title">
             <i :class="getTempleIcon()" class="temple-icon" />
-            <h1>{{ getTempleName() }}</h1>
+            <h1>{{ getDisplayName() }}</h1>
           </div>
-          <p class="temple-description">{{ getTempleDescription() }}</p>
+          <p class="temple-description">{{ getDisplayDescription() }}</p>
         </div>
 
         <div class="temple-stats">
@@ -37,6 +43,22 @@
             <div class="stat-value">{{ temple.taskCount || 0 }}</div>
             <div class="stat-label">Tasks</div>
           </ion-card>
+        </div>
+
+        <div class="customization-section">
+          <div class="section-title">Temple Customization</div>
+          <ion-item>
+            <ion-label position="stacked">Custom Name (e.g. "Kitchen")</ion-label>
+            <ion-input v-model="temple.customName" placeholder="Enter a custom name for this temple"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label position="stacked">Custom Description</ion-label>
+            <ion-textarea
+              v-model="temple.customDescription"
+              placeholder="Enter a custom description for this temple"
+              rows="3"
+            ></ion-textarea>
+          </ion-item>
         </div>
 
         <div class="categories-section">
@@ -139,13 +161,14 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref } from "vue";
+  import { defineComponent, ref, onMounted, watch } from "vue";
   import ionic from "@/mixins/ionic";
   import {
     AchievementCategoryInterface,
     AchievementCategoryDb,
     achievementCategoryStorage,
   } from "@/databases/AchievementDb";
+  import { TempleDb, TempleInterface, templeStorage } from "@/databases/TempleDb";
   import { sortCategoryByName } from "@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAddAchievement/XpAddAchievement";
 
   const requireBg = require.context("@/assets/images/backgrounds/");
@@ -157,11 +180,13 @@
 
     mounted() {
       this.loadCategories();
+      this.loadTempleData();
     },
 
     setup(props) {
       const categoryDb = new AchievementCategoryDb(achievementCategoryStorage);
       const categories = ref([] as AchievementCategoryInterface[]);
+      const templeDb = new TempleDb(templeStorage);
 
       const loadCategories = async () => {
         categories.value = await categoryDb.getAll();
@@ -169,11 +194,19 @@
       };
 
       const temple = ref({
-        categoryIds: [] as number[],
+        id: props.templeId,
+        categoryIds: [] as string[],
         memberCount: 20,
         level: 3,
         taskCount: 15,
+        customName: "",
+        customDescription: "",
       });
+
+      // Watch for temple changes and autosave
+      watch(temple, (newVal) => {
+        templeDb.setTemple({...newVal, id: props.templeId});
+      }, { deep: true });
 
       const getTempleIcon = () => {
         const icons = {
@@ -246,6 +279,14 @@
         }
       };
 
+      const getDisplayName = () => {
+        return temple.value.customName || getTempleName();
+      };
+
+      const getDisplayDescription = () => {
+        return temple.value.customDescription || getTempleDescription();
+      };
+
       return {
         temple,
         categories,
@@ -255,7 +296,43 @@
         getTempleDescription,
         getTempleColor,
         getTempleBg,
+        getDisplayName,
+        getDisplayDescription,
       };
+    },
+
+    methods: {
+      async loadTempleData() {
+        await this.loadCategories();
+        if (this.templeId) {
+          await this.loadTemple(this.templeId);
+        }
+      },
+      
+      async loadTemple(id) {
+        const templeDb = new TempleDb(templeStorage);
+        const templeData = await templeDb.getTempleById(id);
+        
+        if (templeData) {
+          // Merge the loaded data with the default template
+          this.temple = {
+            ...this.temple,
+            ...templeData
+          };
+        } else {
+          // Initialize with default values and save
+          this.saveTemple();
+        }
+      },
+      
+      async saveTemple() {
+        const templeDb = new TempleDb(templeStorage);
+        const templeToSave = {
+          ...this.temple,
+          id: this.templeId
+        };
+        await templeDb.setTemple(templeToSave);
+      }
     },
   });
 </script>
@@ -327,7 +404,7 @@
       }
     }
 
-    .enemy-hierarchy, .categories-section {
+    .enemy-hierarchy, .categories-section, .customization-section {
       padding: 1rem;
 
       .section-title {
