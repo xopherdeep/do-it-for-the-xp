@@ -998,7 +998,7 @@ export default defineComponent({
 
   // Quick Edit Popover Styles
   .quick-edit-popover {
-    --width: 320px; // Adjust width as needed
+    --width: 360px; // Increased width
 
     ion-list {
       padding: 0;
