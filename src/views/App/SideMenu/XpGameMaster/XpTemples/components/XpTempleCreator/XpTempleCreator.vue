@@ -361,7 +361,7 @@
                <ion-label>Side Configuration</ion-label>
              </ion-item-divider> -->
             <!-- North Side -->
-            <ion-item button detail="false" @click="showSideSelectActionSheet('north')">
+            <ion-item button detail="false" @click="showSideSelectPopover($event, 'north')">
               <ion-label>North</ion-label>
               <ion-button fill="clear" slot="end" class="side-type-button">
                 <i :class="getSideTypeDisplay(quickNorthSideType).icon" slot="start"></i>
@@ -370,7 +370,7 @@
             </ion-item>
             
             <!-- East Side -->
-            <ion-item button detail="false" @click="showSideSelectActionSheet('east')">
+            <ion-item button detail="false" @click="showSideSelectPopover($event, 'east')">
               <ion-label>East</ion-label>
               <ion-button fill="clear" slot="end" class="side-type-button">
                 <i :class="getSideTypeDisplay(quickEastSideType).icon" slot="start"></i>
@@ -379,7 +379,7 @@
             </ion-item>
 
             <!-- South Side -->
-            <ion-item button detail="false" @click="showSideSelectActionSheet('south')">
+            <ion-item button detail="false" @click="showSideSelectPopover($event, 'south')">
               <ion-label>South</ion-label>
               <ion-button fill="clear" slot="end" class="side-type-button">
                 <i :class="getSideTypeDisplay(quickSouthSideType).icon" slot="start"></i>
@@ -388,7 +388,7 @@
             </ion-item>
 
             <!-- West Side -->
-            <ion-item button detail="false" @click="showSideSelectActionSheet('west')">
+            <ion-item button detail="false" @click="showSideSelectPopover($event, 'west')">
               <ion-label>West</ion-label>
               <ion-button fill="clear" slot="end" class="side-type-button">
                 <i :class="getSideTypeDisplay(quickWestSideType).icon" slot="start"></i>
