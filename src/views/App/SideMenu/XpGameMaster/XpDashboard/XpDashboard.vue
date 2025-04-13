@@ -51,59 +51,59 @@
         <!-- <ion-card-content> -->
           <ion-grid class="icon-colors">
             <ion-row>
-              <ion-col size="3">
+              <ion-col size="6" size-md="3" >
                 <div class="stat-box clickable" @click="navigateTo('/game-master/compendium/achievements')">
-                  <i class="fad fa-staff quest fa-2x text-success"></i>
+                  <i class="fad fa-hand-holding-seedling fa-2x"></i>
                   <div class="stat-value">{{ stats.achievements || 0 }}</div>
                   <div class="stat-label">Quests</div>
                 </div>
               </ion-col>
-              <ion-col size="3">
+              <ion-col size="6" size-md="3" >
                 <div class="stat-box clickable" @click="navigateTo('/game-master/compendium/abilities')">
-                  <i class="fad fa-book-spells fa-2x text-warning"></i>
+                  <i class="fad fa-hand-holding-magic fa-2x"></i>
                   <div class="stat-value">{{ abilities?.length || 0 }}</div>
                   <div class="stat-label">Abilities</div>
                 </div>
               </ion-col>
-              <ion-col size="3">
+              <ion-col size="6" size-md="3" >
                 <div class="stat-box clickable" @click="navigateTo('/game-master/compendium/accessories')">
-                  <i class="fad fa-backpack fa-2x"></i>
+                  <i class="fad fa-hand-holding-usd fa-2x"></i>
                   <div class="stat-value">{{ rewards?.active || 80 }}</div>
                   <div class="stat-label">Accessories</div>
                 </div>
               </ion-col>
-              <ion-col size="3">
+              <ion-col size="6" size-md="3">
                 <div class="stat-box clickable" @click="navigateTo('/game-master/compendium/bestiary')">
-                  <i class="fad fa-dragon fa-2x text-warning"></i>
+                  <i class="fad fa-hand-holding-heart fa-2x"></i>
                   <div class="stat-value">{{ stats.beasts || 0 }}</div>
-                  <div class="stat-label">Beasts</div>
+                  <div class="stat-label">Task Lists</div>
                 </div>
               </ion-col>
             </ion-row>
 
             <ion-row>
-              <ion-col size="3">
+              <ion-col size="6" size-md="3">
                 <div class="stat-box clickable" @click="navigateTo('/game-master/approvals')">
                   <i class="fad fa-clipboard-check fa-2x text-primary"></i>
                   <div class="stat-value">{{ approvals?.total || 0 }}</div>
                   <div class="stat-label">Approvals</div>
                 </div>
               </ion-col>
-              <ion-col size="3">
+              <ion-col size="6" size-md="3">
                 <div class="stat-box clickable" @click="navigateTo('/game-master/do-this-not-that?openDo=true')">
                   <i class="fad fa-thumbs-up fa-2x text-success"></i>
                   <div class="stat-value">{{ stats.dos || 0 }}</div>
                   <div class="stat-label">Do's</div>
                 </div>
               </ion-col>
-              <ion-col size="3">
+              <ion-col size="6" size-md="3">
                 <div class="stat-box clickable" @click="navigateTo('/game-master/do-this-not-that?openDo=false')">
                   <i class="fad fa-thumbs-down fa-2x text-danger"></i>
                   <div class="stat-value">{{ stats.donts || 0 }}</div>
                   <div class="stat-label">Don'ts</div>
                 </div>
               </ion-col>
-              <ion-col size="3">
+              <ion-col size="6" size-md="3">
                 <div class="stat-box clickable" @click="navigateTo('/game-master/family-settings')">
                   <i class="fad fa-users fa-2x text-tertiary"></i>
                   <div class="stat-value">{{ stats.users || 0 }}</div>

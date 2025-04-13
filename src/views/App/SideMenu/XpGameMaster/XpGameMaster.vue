@@ -3,14 +3,15 @@
     <ion-content>
       <ion-tabs>
         <ion-router-outlet ref="outlet"></ion-router-outlet>
-        <ion-tab-bar slot="bottom">
+        <ion-tab-bar slot="bottom" class="icon-colors">
           <ion-tab-button
             tab="compendium"
             href="/game-master/compendium"
             :selected="$route.path.indexOf('game-master/compendium/') >= 0"
           >
-            <i class="fad fa-gamepad-alt fa-2x" />
-            Compendium
+            <i class="fad fa-hand-holding-medical fa-2x" />
+            Setup XP
+            
           </ion-tab-button>
           <ion-tab-button
             tab="dashboard"

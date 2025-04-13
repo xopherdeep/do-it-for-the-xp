@@ -1,80 +1,179 @@
 <template>
   <ion-page class="compendium-splash">
-    <ion-header>
+    <!-- <ion-header>
       <ion-toolbar>
         <ion-title>Game Master Compendium</ion-title>
       </ion-toolbar>
-    </ion-header>
+    </ion-header> -->
     <ion-content>
-      <div class="splash-container">
-        <h1>Welcome to the Compendium</h1>
-        <p>Your central hub for managing your game elements</p>
-        
-        
-        <ion-card class="compendium-card">
+      <div class="splash-banner">
+        <h1>Setup XP</h1>
+        <p>Create an immersive experience through connected game elements.
+          <br />
+          Earn XP, AP, and GP to unlock abilities, purchase items, and progress in your game.
+
+        </p>
+      </div>
+
+      <!-- Point System Cards with visual improvements -->
+      <div class="point-cards-container">
+        <ion-card class="point-card xp-card" button>
+          <div class="point-icon-container xp-bg">
+            <i class="fad fa-star-shooting"></i>
+          </div>
           <ion-card-header>
-            <ion-card-title>
-              <i class="fad fa-book-spells icon-spacing"></i> Abilities (AP)
-            </ion-card-title>
+            <ion-card-title>Experience Points (XP)</ion-card-title>
           </ion-card-header>
           <ion-card-content>
-            Define privileges and abilities that players can unlock and purchase with AP (Ability Points).
-            These represent special permissions or skills players can earn.
-          </ion-card-content>
-        </ion-card>
-        
-        <ion-card class="compendium-card">
-          <ion-card-header>
-            <ion-card-title>
-              <i class="fad fa-paw-claws icon-spacing"></i> Bestiary
-            </ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            Create and organize task-lists as "Beasts" in your game world. Beasts are essentially task-lists 
-            that can be attached to quests. They provide a way to group related tasks together for more 
-            complex challenges.
-          </ion-card-content>
-        </ion-card>
-        
-        
-        <ion-card class="compendium-card">
-          <ion-card-header>
-            <ion-card-title>
-              <i class="fad fa-staff quest icon-spacing"></i> Quests (XP)
-            </ion-card-title>
-          </ion-card-header>
-          <ion-card-content>
-            Create and manage quests for players to complete and earn XP. Quests can be simple individual tasks, 
-            can have beasts (task-lists) attached to them, or can be organized as quest chains that link to other quests.
-            Set difficulty levels, requirements, and rewards to motivate your players.
+            <p>XP represents time and effort spent on tasks. Each minute equals roughly 10 XP.</p>
+            <p>Players earn XP by completing quests, which leads to level progression.</p>
+            <div class="quick-guide">
+              <span class="guide-item">5min = 50XP</span>
+              <span class="guide-item">30min = 300XP</span>
+              <span class="guide-item">60min = 600XP</span>
+            </div>
           </ion-card-content>
         </ion-card>
 
-        <ion-card class="compendium-card">
+        <ion-card class="point-card ap-card" button>
+          <div class="point-icon-container ap-bg">
+            <i class="fad fa-wand-sparkles"></i>
+          </div>
           <ion-card-header>
-            <ion-card-title>
-              <i class="fad fa-store icon-spacing"></i> Shops (GP)
-            </ion-card-title>
+            <ion-card-title>Ability Points (AP)</ion-card-title>
           </ion-card-header>
           <ion-card-content>
-            Create material rewards and items that players can purchase with GP (Game Points).
-            These can be physical rewards, special privileges, or other tangible benefits.
+            <p>AP unlocks special privileges and abilities based on how much is earned in specific timeframes.</p>
+            <p>AP is a "use it or lose it" currency that expires after a set time.</p>
+            <div class="quick-guide">
+              <span class="guide-item">Daily</span>
+              <span class="guide-item">Weekly</span>
+              <span class="guide-item">Monthly</span>
+            </div>
           </ion-card-content>
         </ion-card>
-        
-        <ion-card class="compendium-card">
+
+        <ion-card class="point-card gp-card" button>
+          <div class="point-icon-container gp-bg">
+            <i class="fad fa-coins"></i>
+          </div>
           <ion-card-header>
-            <ion-card-title>
-              <i class="fad fa-place-of-worship icon-spacing"></i> Temples
-            </ion-card-title>
+            <ion-card-title>Gold Points (GP)</ion-card-title>
           </ion-card-header>
           <ion-card-content>
-            Configure temples and sacred locations throughout the game world where players can undertake special quests and challenges.
+            <p>GP is the monetary value of the system. Players can earn, spend, and save GP.</p>
+            <p>Players deposit GP into savings and make withdrawals to their wallet.</p>
+            <div class="quick-guide">
+              <span class="guide-item">Starting: 99GP</span>
+              <span class="guide-item">Medium: 500GP</span>
+              <span class="guide-item">Giant: 5,000GP</span>
+            </div>
           </ion-card-content>
         </ion-card>
-        
-        <div class="start-button">
-          <ion-button router-link="/game-master/compendium/achievements">Get Started</ion-button>
+      </div>
+
+      <div class="flow-chart-container">
+        <div class="section-title">
+          <div class="line"></div>
+          <h2>Game Elements</h2>
+          <div class="line"></div>
+        </div>
+
+        <div class="flow-chart">
+          <!-- Task Lists -->
+          <div class="flow-item">
+            <ion-card button @click="navigateTo('/game-master/compendium/bestiary')" class="flow-card">
+              <i class="fad fa-hand-holding-heart card-bg-icon"></i>
+              <ion-card-header>
+                <ion-card-title>
+                  <i class="fad fa-hand-holding-heart"></i> Task Lists
+                </ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                Create and organize task-lists as "Beasts" in your game world. These task-lists can be attached to quests.
+              </ion-card-content>
+            </ion-card>
+            <div class="connector">
+              <i class="fad fa-arrow-down"></i>
+            </div>
+          </div>
+
+          <!-- Quests -->
+          <div class="flow-item">
+            <ion-card button @click="navigateTo('/game-master/compendium/achievements')" class="flow-card">
+              <i class="fad fa-hand-holding-seedling card-bg-icon"></i>
+              <ion-card-header>
+                <ion-card-title>
+                  <i class="fad fa-hand-holding-seedling"></i> Quests (XP)
+                </ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                Create quests for players to complete and earn XP. Set difficulty levels, requirements, and rewards.
+              </ion-card-content>
+            </ion-card>
+            <div class="connector fork">
+              <i class="fad fa-arrows-split-up-and-left"></i>
+            </div>
+          </div>
+
+          <!-- Rewards Row -->
+          <div class="flow-split-items">
+            <!-- Abilities -->
+            <div class="flow-split-item">
+              <ion-card button @click="navigateTo('/game-master/compendium/abilities')" class="flow-card">
+                <i class="fad fa-hand-holding-magic card-bg-icon"></i>
+                <ion-card-header>
+                  <ion-card-title>
+                    <i class="fad fa-hand-holding-magic"></i> Abilities (AP)
+                  </ion-card-title>
+                </ion-card-header>
+                <ion-card-content>
+                  Define abilities that players can unlock with AP (Ability Points).
+                </ion-card-content>
+              </ion-card>
+            </div>
+
+            <!-- Shops -->
+            <div class="flow-split-item">
+              <ion-card button @click="navigateTo('/game-master/compendium/accessories')" class="flow-card">
+                <i class="fad fa-hand-holding-usd card-bg-icon"></i>
+                <ion-card-header>
+                  <ion-card-title>
+                    <i class="fad fa-hand-holding-usd"></i> Shops (GP)
+                  </ion-card-title>
+                </ion-card-header>
+                <ion-card-content>
+                  Create items that players can purchase with GP (Game Points).
+                </ion-card-content>
+              </ion-card>
+            </div>
+          </div>
+
+          <div class="connector merge">
+            <i class="fad fa-arrows-to-dot"></i>
+          </div>
+
+          <!-- Temples -->
+          <div class="flow-item">
+            <ion-card button @click="navigateTo('/game-master/compendium/temples')" class="flow-card">
+              <i class="fad fa-hand-holding-water card-bg-icon"></i>
+              <ion-card-header>
+                <ion-card-title>
+                  <i class="fad fa-hand-holding-water"></i> Temples
+                </ion-card-title>
+              </ion-card-header>
+              <ion-card-content>
+                Configure temples where players can undertake special quests and challenges.
+              </ion-card-content>
+            </ion-card>
+          </div>
+        </div>
+
+        <div class="get-started-container">
+          <ion-button size="large" @click="navigateTo('/game-master/compendium/achievements')" class="get-started-btn">
+            <i class="fad fa-gamepad-modern"></i>
+            Get Started
+          </ion-button>
         </div>
       </div>
     </ion-content>
@@ -88,54 +187,232 @@ import ionic from "@/mixins/ionic";
 export default defineComponent({
   name: "compendium-splash",
   mixins: [ionic],
+  methods: {
+    navigateTo(path) {
+      this.$router.push(path);
+    }
+  }
 });
 </script>
 
 <style scoped>
-.splash-container {
-  padding: 1rem;
-  max-width: 800px;
-  margin: 0 auto;
+:host {
+  --xp-color: var(--ion-color-success);
+  --ap-color: var(--ion-color-tertiary);
+  --gp-color: var(--ion-color-warning);
+}
+
+/* Banner styling */
+.splash-banner {
+  background: linear-gradient(135deg, #1a237e, #283593);
+  color: white;
+  padding: 2rem 1rem;
   text-align: center;
+  margin-bottom: 2rem;
+  border-bottom-left-radius: 30% 5%;
+  border-bottom-right-radius: 30% 5%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-ion-card {
-  margin-bottom: 1.5rem;
-  text-align: left;
-  @apply pt-6;
+.splash-banner h1 {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  font-weight: bold;
 }
 
-.compendium-card ion-card-header {
-  padding-bottom: 0.5rem;
-}
-
-.compendium-card ion-card-title {
-  font-size: 1.25rem;
+/* Point cards container */
+.point-cards-container {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0 1rem;
+  margin-bottom: 3rem;
+}
+
+.point-card {
+  flex: 1 1 300px;
+  max-width: 350px;
+  margin: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s, box-shadow 0.3s;
+  position: relative;
+}
+
+.point-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+.point-icon-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 80px;
+  font-size: 2.5rem;
+  color: white;
+}
+
+.xp-bg {
+  background: linear-gradient(135deg, var(--xp-color), #4caf50);
+}
+
+.ap-bg {
+  background: linear-gradient(135deg, var(--ap-color), #9c27b0);
+}
+
+.gp-bg {
+  background: linear-gradient(135deg, var(--gp-color), #ff9800);
+}
+
+.point-card ion-card-title {
+  font-size: 1.3rem;
+  font-weight: bold;
+  margin-top: 0.5rem;
+}
+
+.quick-guide {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.guide-item {
+  background-color: rgba(0, 0, 0, 0.05);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+/* Flow chart section */
+.flow-chart-container {
+  padding: 0 1rem;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2rem;
+}
+
+.section-title h2 {
+  margin: 0 1rem;
+  color: var(--ion-color-medium);
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.section-title .line {
+  height: 1px;
+  background-color: var(--ion-color-medium);
+  flex-grow: 1;
+  max-width: 100px;
+}
+
+.flow-chart {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.flow-item {
+  width: 100%;
+  max-width: 550px;
+  display: flex;
+  flex-direction: column;
   align-items: center;
 }
 
-.icon-spacing {
+.flow-card {
+  width: 100%;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transition: transform 0.3s, box-shadow 0.3s;
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+}
+
+.card-bg-icon {
+  position: absolute;
+  right: -15px;
+  bottom: -15px;
+  font-size: 6rem;
+  opacity: 0.05;
+  z-index: -1;
+}
+
+.flow-card:hover {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+}
+
+.connector {
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  color: var(--ion-color-medium);
+  font-size: 1.5rem;
+}
+
+.flow-split-items {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 1rem;
+  width: 100%;
+  max-width: 550px;
+}
+
+.flow-split-item {
+  flex: 1 1 250px;
+  max-width: 250px;
+}
+
+.connector.fork, .connector.merge {
+  font-size: 2rem;
+  height: 60px;
+}
+
+.get-started-container {
+  margin: 3rem 0;
+  display: flex;
+  justify-content: center;
+}
+
+.get-started-btn {
+  --border-radius: 50px;
+  --padding-start: 2rem;
+  --padding-end: 2rem;
+  font-weight: bold;
+  font-size: 1.1rem;
+  height: 3.5rem;
+}
+
+.get-started-btn i {
   margin-right: 0.5rem;
-  font-size: 1.3rem;
 }
 
-.compendium-card ion-card-content {
-  padding-top: 0.5rem;
-  line-height: 1.4;
-}
-
-.start-button {
-  margin-top: 2rem;
-}
-
-@media (max-width: 480px) {
-  .compendium-card ion-card-title {
-    font-size: 1.1rem;
+/* Media queries for responsive design */
+@media (max-width: 768px) {
+  .point-cards-container {
+    flex-direction: column;
+    align-items: center;
   }
   
-  .icon-spacing {
-    margin-right: 0.3rem;
+  .point-card {
+    max-width: 100%;
+  }
+  
+  .flow-split-item {
+    max-width: 100%;
   }
 }
 </style>
