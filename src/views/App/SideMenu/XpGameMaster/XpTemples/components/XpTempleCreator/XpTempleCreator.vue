@@ -356,85 +356,45 @@
 
         <!-- Tab Content: Locks -->
         <div v-if="quickEditTab === 'locks'">
-          <ion-list lines="none" class="ion-padding-top">
-             <ion-item-divider>
+          <ion-list lines="full" class="ion-padding-top">
+             <!-- <ion-item-divider> Removed redundant title
                <ion-label>Side Configuration</ion-label>
-             </ion-item-divider>
+             </ion-item-divider> -->
             <!-- North Side -->
-            <ion-item lines="none">
+            <ion-item button detail="false" @click="showSideSelectActionSheet('north')">
               <ion-label>North</ion-label>
+              <ion-button fill="clear" slot="end" class="side-type-button">
+                <i :class="getSideTypeDisplay(quickNorthSideType).icon" slot="start"></i>
+                {{ getSideTypeDisplay(quickNorthSideType).label }}
+              </ion-button>
             </ion-item>
-            <ion-segment v-model="quickNorthSideType" class="side-type-segment">
-              <ion-segment-button value="door">
-                <i class="fas fa-door-open"></i><ion-label>Door</ion-label>
-              </ion-segment-button>
-              <ion-segment-button value="wall">
-                <i class="fas fa-square"></i><ion-label>Wall</ion-label>
-              </ion-segment-button>
-              <ion-segment-button value="bombable">
-                <i class="fas fa-bomb"></i><ion-label>Bomb</ion-label>
-              </ion-segment-button>
-              <ion-segment-button value="locked">
-                <i class="fas fa-lock"></i><ion-label>Lock</ion-label>
-              </ion-segment-button>
-            </ion-segment>
             
             <!-- East Side -->
-             <ion-item lines="none">
-               <ion-label>East</ion-label>
-             </ion-item>
-             <ion-segment v-model="quickEastSideType" class="side-type-segment">
-               <ion-segment-button value="door">
-                 <i class="fas fa-door-open"></i><ion-label>Door</ion-label>
-               </ion-segment-button>
-               <ion-segment-button value="wall">
-                 <i class="fas fa-square"></i><ion-label>Wall</ion-label>
-               </ion-segment-button>
-               <ion-segment-button value="bombable">
-                 <i class="fas fa-bomb"></i><ion-label>Bomb</ion-label>
-               </ion-segment-button>
-               <ion-segment-button value="locked">
-                 <i class="fas fa-lock"></i><ion-label>Lock</ion-label>
-               </ion-segment-button>
-             </ion-segment>
+            <ion-item button detail="false" @click="showSideSelectActionSheet('east')">
+              <ion-label>East</ion-label>
+              <ion-button fill="clear" slot="end" class="side-type-button">
+                <i :class="getSideTypeDisplay(quickEastSideType).icon" slot="start"></i>
+                {{ getSideTypeDisplay(quickEastSideType).label }}
+              </ion-button>
+            </ion-item>
 
             <!-- South Side -->
-             <ion-item lines="none">
-               <ion-label>South</ion-label>
-             </ion-item>
-             <ion-segment v-model="quickSouthSideType" class="side-type-segment">
-               <ion-segment-button value="door">
-                 <i class="fas fa-door-open"></i><ion-label>Door</ion-label>
-               </ion-segment-button>
-               <ion-segment-button value="wall">
-                 <i class="fas fa-square"></i><ion-label>Wall</ion-label>
-               </ion-segment-button>
-               <ion-segment-button value="bombable">
-                 <i class="fas fa-bomb"></i><ion-label>Bomb</ion-label>
-               </ion-segment-button>
-               <ion-segment-button value="locked">
-                 <i class="fas fa-lock"></i><ion-label>Lock</ion-label>
-               </ion-segment-button>
-             </ion-segment>
+            <ion-item button detail="false" @click="showSideSelectActionSheet('south')">
+              <ion-label>South</ion-label>
+              <ion-button fill="clear" slot="end" class="side-type-button">
+                <i :class="getSideTypeDisplay(quickSouthSideType).icon" slot="start"></i>
+                {{ getSideTypeDisplay(quickSouthSideType).label }}
+              </ion-button>
+            </ion-item>
 
             <!-- West Side -->
-             <ion-item lines="none">
-               <ion-label>West</ion-label>
-             </ion-item>
-             <ion-segment v-model="quickWestSideType" class="side-type-segment">
-               <ion-segment-button value="door">
-                 <i class="fas fa-door-open"></i><ion-label>Door</ion-label>
-               </ion-segment-button>
-               <ion-segment-button value="wall">
-                 <i class="fas fa-square"></i><ion-label>Wall</ion-label>
-               </ion-segment-button>
-               <ion-segment-button value="bombable">
-                 <i class="fas fa-bomb"></i><ion-label>Bomb</ion-label>
-               </ion-segment-button>
-               <ion-segment-button value="locked">
-                 <i class="fas fa-lock"></i><ion-label>Lock</ion-label>
-               </ion-segment-button>
-             </ion-segment>
+            <ion-item button detail="false" @click="showSideSelectActionSheet('west')">
+              <ion-label>West</ion-label>
+              <ion-button fill="clear" slot="end" class="side-type-button">
+                <i :class="getSideTypeDisplay(quickWestSideType).icon" slot="start"></i>
+                {{ getSideTypeDisplay(quickWestSideType).label }}
+              </ion-button>
+            </ion-item>
           </ion-list>
         </div>
 
@@ -455,6 +415,15 @@
         </ion-footer>
       </ion-content>
     </ion-popover>
+    
+    <!-- Action Sheet for Side Type Selection -->
+    <ion-action-sheet
+      :is-open="sideSelectActionSheetOpen"
+      header="Select Side Type"
+      :buttons="sideSelectButtons.value"
+      @didDismiss="sideSelectActionSheetOpen = false"
+    ></ion-action-sheet>
+    
   </ion-page>
 </template>
 
@@ -812,6 +781,21 @@ export default defineComponent({
     
     const quickEditTab = ref('type'); // State for active tab
 
+    // Action Sheet State
+    const sideSelectActionSheetOpen = ref(false);
+    const sideSelectDirection = ref<'north' | 'east' | 'south' | 'west'>('north');
+
+    // Helper to get side type display info (icon and label)
+    const SIDE_TYPE_INFO = {
+      door: { icon: 'fas fa-door-open', label: 'Door' },
+      wall: { icon: 'fas fa-square', label: 'Wall' },
+      bombable: { icon: 'fas fa-bomb', label: 'Bomb' },
+      locked: { icon: 'fas fa-lock', label: 'Lock' }
+    };
+    const getSideTypeDisplay = (type: string) => {
+      return SIDE_TYPE_INFO[type] || SIDE_TYPE_INFO['door']; // Default to door
+    };
+
     const showQuickEditPopover = (event: Event, row: number, col: number) => {
       popoverEvent.value = event;
       selectCell(row, col); // Load the data for the clicked cell first
@@ -884,6 +868,32 @@ export default defineComponent({
       quickEditPopoverOpen.value = false;
     };
 
+    // --- Action Sheet Logic ---
+    const showSideSelectActionSheet = (direction: 'north' | 'east' | 'south' | 'west') => {
+      sideSelectDirection.value = direction;
+      sideSelectActionSheetOpen.value = true;
+    };
+
+    const setSideType = (type: string) => {
+      switch (sideSelectDirection.value) {
+        case 'north': quickNorthSideType.value = type; break;
+        case 'east': quickEastSideType.value = type; break;
+        case 'south': quickSouthSideType.value = type; break;
+        case 'west': quickWestSideType.value = type; break;
+      }
+      sideSelectActionSheetOpen.value = false; // Close sheet after selection
+    };
+
+    const sideSelectButtons = computed(() => [
+      { text: 'Door', icon: SIDE_TYPE_INFO.door.icon, handler: () => setSideType('door') },
+      { text: 'Wall', icon: SIDE_TYPE_INFO.wall.icon, handler: () => setSideType('wall') },
+      { text: 'Bombable', icon: SIDE_TYPE_INFO.bombable.icon, handler: () => setSideType('bombable') },
+      { text: 'Locked', icon: SIDE_TYPE_INFO.locked.icon, handler: () => setSideType('locked') },
+      { text: 'Cancel', role: 'cancel', icon: 'fas fa-times' }
+    ]);
+    // --- End Action Sheet Logic ---
+
+
     onMounted(() => {
       // First try to load any existing layout
       loadTempleLayout();
@@ -938,7 +948,12 @@ export default defineComponent({
       quickEditTab, // Expose tab state
       showQuickEditPopover,
       quickSetRoomType,
-      applyQuickEdit
+      applyQuickEdit,
+      // Action Sheet related
+      sideSelectActionSheetOpen,
+      sideSelectButtons,
+      showSideSelectActionSheet,
+      getSideTypeDisplay
     };
   }
 });
