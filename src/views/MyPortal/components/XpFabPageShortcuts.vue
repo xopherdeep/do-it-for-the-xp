@@ -1,5 +1,5 @@
 <template>
-  <ion-fab vertical="center" horizontal="end">
+  <ion-fab vertical="center" horizontal="end" class="icon-colors">
     <ion-fab-button expand="block" color="light">
       <i :class="`fad fa-${pageIcon} fa-2x`"></i>
     </ion-fab-button>
@@ -8,6 +8,7 @@
         v-for="(button, index) in filterShortcutsBySide(side)"
         :key="index"
         @click="button.click"
+        class="icon-colors"
       >
         <i :class="`fa fa-${button.faIcon} fa-lg`"></i>
       </ion-fab-button>

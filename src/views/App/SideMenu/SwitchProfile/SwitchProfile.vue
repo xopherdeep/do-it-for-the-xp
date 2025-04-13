@@ -37,7 +37,7 @@
             @click="selectProfile(profile)"
             button
             detail
-            class="profile-item"
+            class="profile-item rpg-box"
           >
             <div slot="start" class="profile-info">
               <div class="avatar-container">
