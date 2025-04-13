@@ -7,7 +7,6 @@ import Vue3Autocounter from 'vue3-autocounter';
 import Countdown from 'vue3-flip-countdown'
 import XpGp from './components/XpGp'
 import XpLoading from './components/XpLoading'
-import {setupCalendar} from 'v-calendar';
 
 // V-CALENDAR STYLES - Removed failing import. Styling needs investigation.
 // import 'v-calendar/style.css';
