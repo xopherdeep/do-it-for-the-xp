@@ -136,18 +136,11 @@
       
       <!-- Temple Creator Floating Action Button -->
       <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-        <ion-fab-button @click="showCreateTempleOptions" color="primary">
-          <i class="fas fa-dungeon"></i>
+        <ion-fab-button @click="goToTempleCreator('new')" color="primary">
+          <i class="fas fa-plus"></i> <!-- Changed icon to plus -->
         </ion-fab-button>
       </ion-fab>
       
-      <!-- Temple options action sheet -->
-      <ion-action-sheet
-        :is-open="isCreateTemplateOptionsOpen"
-        header="Create Temple"
-        :buttons="createTempleButtons"
-        @didDismiss="isCreateTemplateOptionsOpen = false"
-      ></ion-action-sheet>
     </ion-content>
   </ion-page>
 </template>
@@ -167,65 +160,8 @@
       const $router = useRouter();
       const templeDb = new TempleDb(templeStorage);
       const templeData = ref({} as Record<string, TempleInterface>);
-      const isCreateTemplateOptionsOpen = ref(false);
-      const createTempleButtons = ref([
-        {
-          text: "Create Wind Temple",
-          icon: "wind",
-          handler: () => {
-            goToTempleCreator("wind-temple");
-          },
-        },
-        {
-          text: "Create Earth Temple",
-          icon: "mountain",
-          handler: () => {
-            goToTempleCreator("earth-temple");
-          },
-        },
-        {
-          text: "Create Water Temple",
-          icon: "water",
-          handler: () => {
-            goToTempleCreator("water-temple");
-          },
-        },
-        {
-          text: "Create Fire Fortress",
-          icon: "fire",
-          handler: () => {
-            goToTempleCreator("fire-fortress");
-          },
-        },
-        {
-          text: "Create Frozen Fortress",
-          icon: "snowflake",
-          handler: () => {
-            goToTempleCreator("frozen-fortress");
-          },
-        },
-        {
-          text: "Create Sun Temple",
-          icon: "sun",
-          handler: () => {
-            goToTempleCreator("sun-temple");
-          },
-        },
-        {
-          text: "Create Moon Temple",
-          icon: "moon",
-          handler: () => {
-            goToTempleCreator("moon-temple");
-          },
-        },
-        {
-          text: "Cancel",
-          icon: "close",
-          role: "cancel",
-        },
-      ]);
-
-      // Default temple configuration
+      
+      // Default temple configuration (can be used for display, actual data loaded from DB)
       const temples = ref([
         {
           id: "wind-temple",
@@ -344,13 +280,10 @@
         });
       };
 
-      const showCreateTempleOptions = () => {
-        isCreateTemplateOptionsOpen.value = true;
-      };
-
       const goToTempleCreator = (templeId: string) => {
+        // Navigate to the creator page, passing 'new' or an existing templeId
         $router.push({
-          name: 'xp-temple-creator',
+          name: 'xp-temple-creator', // Ensure your route name matches
           params: {
             templeId
           }
@@ -364,9 +297,7 @@
         getTempleName,
         getTempleDescription,
         temples,
-        isCreateTemplateOptionsOpen,
-        createTempleButtons,
-        showCreateTempleOptions,
+        goToTempleCreator // Expose the navigation function
       };
     },
   });
