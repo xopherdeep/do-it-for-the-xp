@@ -93,6 +93,12 @@ export const SideMenuRoutes: Array<RouteRecordRaw> = [
             component: () => import('@/views/App/SideMenu/XpGameMaster/XpTemples/components/XpTempleSettings.vue'),
             props: true
           },
+          {
+            path: 'temple/:templeId/creator',
+            name: 'xp-temple-creator',
+            component: () => import('@/views/App/SideMenu/XpGameMaster/XpTemples/components/XpTempleCreator/XpTempleCreator.vue'),
+            props: true
+          },
         ]
       },
       {

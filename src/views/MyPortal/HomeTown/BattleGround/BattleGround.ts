@@ -143,7 +143,26 @@ export default defineComponent({
     onSwiper(swiper) {
       // this.swiper = swiper;
     },
-
+    getBattleActionIcon(label) {
+      switch(label.toLowerCase()) {
+        case 'roll': return diceOutline;
+        case 'goods': return bagOutline;
+        case 'abilities': return colorWandOutline;
+        case 'defend': return 'shield-outline';
+        case 'run away': return 'walk-outline';
+        default: return 'help-outline';
+      }
+    },
+    getBattleActionColor(label) {
+      switch(label.toLowerCase()) {
+        case 'roll': return 'primary';
+        case 'goods': return 'success';
+        case 'abilities': return 'tertiary';
+        case 'defend': return 'warning';
+        case 'run away': return 'danger';
+        default: return 'medium';
+      }
+    },
     handleSlideTo() {
       // this.swiper.slideTo(1);
     },

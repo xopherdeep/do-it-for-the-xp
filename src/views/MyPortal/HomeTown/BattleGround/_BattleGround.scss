@@ -21,7 +21,7 @@ ion-modal {
   background:
     url("@/assets/images/backgrounds/parallax/battleback1-1.png") right bottom/cover no-repeat fixed,
     url("@/assets/images/backgrounds/parallax/battleback1-2.png") left bottom/cover no-repeat;
-  transition: all 2s ease;
+  // transition: all 2s ease;
 
   canvas {
     &.battle-bg {
@@ -111,6 +111,69 @@ ion-content {
     }
   }
   /* Player Stats Box */
+}
+
+// battle actions card styling
+.battle-actions-card {
+  margin: 10px 15px;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  z-index: 5;
+  position: relative;
+  background-color: rgba(0, 0, 0, 0.7);
+  
+  ion-card-header {
+    padding-bottom: 5px;
+    
+    ion-card-subtitle {
+      text-align: center;
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.8;
+    }
+  }
+  
+  ion-card-content {
+    padding: 0 10px 10px;
+    
+    ion-button {
+      margin: 5px 0;
+      --border-radius: 5px;
+      height: 40px;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      --box-shadow: 0 3px 5px rgba(0, 0, 0, 0.2);
+      
+      &:active {
+        --transform: scale(0.95);
+      }
+      
+      ion-icon {
+        margin-right: 5px;
+        font-size: 18px;
+      }
+    }
+  }
+  
+  &.earthbound {
+    border: 4px solid #e7e6b3;
+    background-color: rgba(48, 48, 80, 0.95);
+    
+    ion-card-subtitle {
+      color: #e7e6b3;
+    }
+    
+    ion-button {
+      --background: #555599;
+      --color: #e7e6b3;
+      --background-activated: #333366;
+      
+      &:hover {
+        --background: #6666aa;
+      }
+    }
+  }
 }
 
 .party {

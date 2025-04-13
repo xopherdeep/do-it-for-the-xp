@@ -15,6 +15,11 @@ export interface TempleInterface {
   memberCount?: number;
   level?: number;
   taskCount?: number;
+  dungeonLayout?: {
+    entrance: number[];
+    maze: string[][];
+    rooms: Record<string, any>;
+  };
 }
 
 export class TempleDb extends DbStorageApi {

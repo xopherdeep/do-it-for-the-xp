@@ -10,7 +10,7 @@
         @click="button.click"
         class="icon-colors"
       >
-        <i :class="`fa fa-${button.faIcon} fa-lg`"></i>
+        <i :class="`fad fa-${button.faIcon} fa-lg`"></i>
       </ion-fab-button>
     </ion-fab-list>
   </ion-fab>

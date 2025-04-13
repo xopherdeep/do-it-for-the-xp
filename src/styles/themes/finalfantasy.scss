@@ -71,17 +71,17 @@ ion-app {
 
     /* Buttons - FF7 Menu Selection Style */
     ion-button {
-      --background: var(--ff7-blue-dark);
+      // --background: var(--ff7-blue-dark);
       --background-activated: var(--ff7-blue-light);
       --background-focused: var(--ff7-blue-light);
       --background-hover: var(--ff7-blue-light);
       --color: var(--ff7-text);
       --border-radius: 0;
-      --border-color: var(--ff7-border-dark);
-      --border-style: solid;
-      --border-width: 1px;
-      --box-shadow: 1px 1px var(--ff7-border-light), -1px -1px var(--ff7-border-light),
-        1px -1px var(--ff7-border-light), -1px 1px var(--ff7-border-light);
+      // --border-color: var(--ff7-border-dark);
+      // --border-style: solid;
+      // --border-width: 1px;
+      // --box-shadow: 1px 1px var(--ff7-border-light), -1px -1px var(--ff7-border-light),
+      //   1px -1px var(--ff7-border-light), -1px 1px var(--ff7-border-light);
       --padding-top: 10px;
       --padding-bottom: 10px;
       
