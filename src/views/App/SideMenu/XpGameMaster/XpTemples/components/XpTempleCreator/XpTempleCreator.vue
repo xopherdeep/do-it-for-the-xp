@@ -518,7 +518,11 @@ export default defineComponent({
     const templeMaze = ref<string[][]>([]);
     const selectedCell = ref<{row: number, col: number} | null>(null);
     
-    // Room editing properties
+    // Unique Symbol Generation State
+    const symbolCounter = ref(0);
+    const usedSymbols = ref<Set<string>>(new Set([____, _00_, TELE, SHOP])); // Initialize with fixed symbols
+
+    // Room editing properties (These might become less relevant as primary state)
     const selectedRoomType = ref("wall");
     const selectedChestType = ref("dungeon");
     const selectedDungeonItem = ref("map");
@@ -542,13 +546,14 @@ export default defineComponent({
       miniboss: "x__x",
       teleport: TELE,
       shop: SHOP,
-      health: "H__P",
+      health: "H__P", // Keep this mapping for reference/initial symbol suggestion? Maybe remove later.
     };
 
-    // Room data storage
+    // Room data storage (keyed by unique symbols)
     const roomsData = ref<Record<string, any>>({
-      [____]: { type: "wall" },
-      [_00_]: { type: "entrance", visited: true }
+      [____]: { type: "wall" }, // Fixed wall data
+      [_00_]: { type: "entrance", visited: true } // Fixed entrance data
+      // Other room data will be added dynamically with unique keys like 'R001'
     });
 
     // Initialize grid with default size
@@ -570,6 +575,18 @@ export default defineComponent({
       if (entranceRow >= 0 && entranceRow < rows && entranceCol >= 0 && entranceCol < cols) {
         templeMaze.value[entranceRow][entranceCol] = _00_;
       }
+    };
+
+    // Generate a unique symbol for a new room
+    const generateUniqueSymbol = (): string => {
+      let newSymbol = '';
+      do {
+        symbolCounter.value++;
+        // Format: R + 3 digits (e.g., R001, R010, R100)
+        newSymbol = `R${symbolCounter.value.toString().padStart(3, '0')}`; 
+      } while (usedSymbols.value.has(newSymbol)); // Ensure uniqueness
+      usedSymbols.value.add(newSymbol);
+      return newSymbol;
     };
 
     // Resize grid while preserving existing cells
@@ -626,14 +643,10 @@ export default defineComponent({
       templeMaze.value = newMaze; // Update the main maze ref
     };
 
-    // Get type of cell from the room symbol
-    const getCellType = (cellSymbol: string) => {
-      for (const [type, symbol] of Object.entries(roomSymbols)) {
-        if (symbol === cellSymbol) {
-          return type;
-        }
-      }
-      return "wall"; // Default to wall
+    // Get type of cell by looking up its unique symbol in roomsData
+    const getCellType = (cellSymbol: string): string => {
+      const roomData = roomsData.value[cellSymbol];
+      return roomData?.type || "wall"; // Default to wall if symbol not found or has no type
     };
 
     // Check if cell is the entrance position
@@ -642,36 +655,11 @@ export default defineComponent({
       return row === entranceRow && col === entranceCol;
     };
 
-    // Select a cell for editing
+    // Select a cell for editing (popover reads state from here)
     const selectCell = (row: number, col: number) => {
       selectedCell.value = { row, col };
-      const cellSymbol = templeMaze.value[row][col];
-      selectedRoomType.value = getCellType(cellSymbol);
-      
-      // Load existing room data
-      if (roomsData.value[cellSymbol]) {
-        const roomData = roomsData.value[cellSymbol];
-        
-        // Set locked doors
-        northLocked.value = !!roomData.locked?.north;
-        eastLocked.value = !!roomData.locked?.east;
-        southLocked.value = !!roomData.locked?.south;
-        westLocked.value = !!roomData.locked?.west;
-        
-        // Set content data
-        if (roomData.content) {
-          if (roomData.type === "loot") {
-            selectedChestType.value = roomData.content.chest || "dungeon";
-            if (selectedChestType.value === "dungeon") {
-              selectedDungeonItem.value = roomData.content.dungeon || "map";
-            } else if (selectedChestType.value === "loot") {
-              selectedLootItems.value = roomData.content.items || ["potion"];
-            }
-          } else if (roomData.type === "monster" || roomData.type === "boss" || roomData.type === "miniboss") {
-            selectedMonsterType.value = roomData.content.monsterType || "small";
-          }
-        }
-      }
+      // No need to load data into intermediate state (selectedRoomType, northLocked etc.) here anymore.
+      // The showQuickEditPopover function will directly read from roomsData based on the symbol in the maze.
     };
 
     // Apply room changes (now accepts data from popover)
@@ -679,16 +667,45 @@ export default defineComponent({
       if (!selectedCell.value) return;
       
       const { row, col } = selectedCell.value;
+      const currentSymbol = templeMaze.value[row][col];
+      const currentType = getCellType(currentSymbol); // Get type based on current symbol's data
+      const newType = roomType; // The type selected in the popover
+
+      let symbolToUse = currentSymbol;
+      let needsNewSymbol = false;
+
+      // Determine if a new unique symbol is needed
+      if (newType !== currentType || currentSymbol === ____) {
+         // Changing type OR changing from a wall requires symbol update
+         if (newType === 'wall') {
+            symbolToUse = ____;
+         } else if (newType === 'entrance') {
+            symbolToUse = _00_;
+         } else if (currentSymbol === ____ || currentSymbol === _00_ || !currentSymbol.startsWith('R')) {
+            // If current is fixed or not a unique symbol, generate a new one
+            needsNewSymbol = true;
+            symbolToUse = generateUniqueSymbol();
+         } else {
+             // If changing type from one unique symbol to another type, reuse is complex.
+             // For simplicity, let's generate a new one for now.
+             // TODO: Potentially reuse if the old symbol is now orphaned.
+             needsNewSymbol = true;
+             symbolToUse = generateUniqueSymbol();
+         }
+      }
       
-      // Determine the symbol for the room type
-      // TODO: Handle symbol generation/reuse more robustly if needed
-      const cellSymbol = roomSymbols[roomType] || ____; // Default to wall if type unknown
-      
+      // If the symbol changed from a unique one, remove its old data
+      if (symbolToUse !== currentSymbol && currentSymbol.startsWith('R')) {
+         delete roomsData.value[currentSymbol];
+         usedSymbols.value.delete(currentSymbol);
+         // TODO: Consider symbol reuse logic here later
+      }
+
       // Update the maze grid
-      templeMaze.value[row][col] = cellSymbol;
+      templeMaze.value[row][col] = symbolToUse;
       
-      // Create or update room data in roomsData
-      const roomData: any = { type: roomType };
+      // Create or update room data in roomsData using the determined symbol
+      const roomData: any = { type: newType }; // Always store the type
       
       // Add side configuration (replacing old 'locked' structure)
       // Only add the 'sides' object if at least one side is not the default 'door'
@@ -701,17 +718,13 @@ export default defineComponent({
         roomData.content = contentData;
       }
       
-      // Store room data using the symbol as the key
-      // Ensure entrance (_00_) and wall (____) retain their fixed data
-      if (cellSymbol !== _00_ && cellSymbol !== ____) {
-         roomsData.value[cellSymbol] = roomData;
-      } else if (cellSymbol === _00_) {
-         // Update entrance data if needed (e.g., sides, but type remains 'entrance')
-         roomsData.value[_00_] = { ...roomsData.value[_00_], ...roomData, type: 'entrance' };
+      // Store room data using the symbolToUse as the key
+      // Only store data for non-wall types (wall data is implicit via ____ symbol)
+      if (symbolToUse !== ____) {
+         roomsData.value[symbolToUse] = roomData;
       }
-      // Wall data ([____]) should generally not be modified here
       
-      // TODO: Clean up unused symbols in roomsData if a room type changes
+      // TODO: Implement garbage collection for unused 'R###' symbols in roomsData later if needed.
       
       showToast("Room updated");
     };
@@ -860,6 +873,21 @@ export default defineComponent({
           // Load the room data
           if (existingTemple.dungeonLayout.rooms) {
             roomsData.value = existingTemple.dungeonLayout.rooms;
+            
+            // Populate usedSymbols and find max counter from loaded data
+            usedSymbols.value.clear();
+            usedSymbols.value.add(____).add(_00_).add(TELE).add(SHOP); // Add fixed symbols
+            let maxCounter = 0;
+            Object.keys(roomsData.value).forEach(symbol => {
+              usedSymbols.value.add(symbol);
+              if (symbol.startsWith('R')) {
+                const num = parseInt(symbol.substring(1), 10);
+                if (!isNaN(num) && num > maxCounter) {
+                  maxCounter = num;
+                }
+              }
+            });
+            symbolCounter.value = maxCounter; // Set counter beyond the max loaded
           }
           
           showToast("Temple layout loaded successfully!");
@@ -1085,6 +1113,10 @@ export default defineComponent({
       showQuickEditPopover,
       quickSetRoomType,
       applyQuickEdit,
+      // Unique Symbols (if needed in template/debug)
+      // symbolCounter, 
+      // usedSymbols,
+      // generateUniqueSymbol, 
       // Side Select Popover related
       sideSelectPopoverOpen,
       sideSelectEvent,
