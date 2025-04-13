@@ -60,14 +60,14 @@ export default defineComponent({
         name: "Adventure",
         icon: "fa-map-signs"
       }, {
+        name: "Timer",
+        icon: "fa-hourglass"
+      }, {
         name: "Reward",
         icon: "fa-treasure-chest"
       }, {
         name: "Heros",
         icon: "fa-user-shield"
-      }, {
-        name: "Timer",
-        icon: "fa-hourglass"
       }],
       adventureTypes: [{
         segment: "simple",

@@ -6,8 +6,8 @@
           <ion-back-button defaultHref="/game-master" />
         </ion-buttons>
         <ion-title>
-          <i class="fad fa-medal fa-lg" />
-          Achievements ({{ achievements?.length }})
+          <i class="fad fa-staff quest fa-lg" />
+          Quests ({{ achievements?.length }})
         </ion-title>
         <ion-buttons slot="end">
           <!-- <ion-button @click="clickFilter">
