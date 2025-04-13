@@ -528,9 +528,58 @@ export default defineComponent({
       }
     };
 
-    // Resize grid when size changes
+    // Resize grid while preserving existing cells
     const resizeGrid = () => {
-      initializeGrid();
+      const oldMaze = JSON.parse(JSON.stringify(templeMaze.value)); // Deep copy old maze
+      const oldRows = oldMaze.length;
+      const oldCols = oldMaze[0]?.length || 0;
+      
+      const [newRows, newCols] = gridSize.value.split("x").map(Number);
+      const newMaze: string[][] = [];
+
+      // Create new grid filled with walls
+      for (let i = 0; i < newRows; i++) {
+        const row: string[] = [];
+        for (let j = 0; j < newCols; j++) {
+          row.push(____); // Default to wall
+        }
+        newMaze.push(row);
+      }
+
+      // Copy old cells into the new grid
+      for (let i = 0; i < newRows; i++) {
+        for (let j = 0; j < newCols; j++) {
+          if (i < oldRows && j < oldCols) {
+            // If coordinates exist in the old grid, copy the symbol
+            // But don't copy the old entrance symbol if it's not the current entrance
+            const oldSymbol = oldMaze[i][j];
+            if (oldSymbol !== _00_) { // Don't copy old entrance markers directly
+               newMaze[i][j] = oldSymbol;
+            } else {
+               // If it was the old entrance, check if it's still the entrance
+               const [entranceRow, entranceCol] = entrancePosition.value.split(",").map(Number);
+               if (i !== entranceRow || j !== entranceCol) {
+                 // If it's not the *current* entrance, make it an empty room instead of wall
+                 newMaze[i][j] = roomSymbols['empty']; 
+               }
+               // If it *is* the current entrance, it will be set below
+            }
+          }
+          // Otherwise, it remains a wall (____) from initialization
+        }
+      }
+      
+      // Ensure the current entrance position is set correctly in the new maze
+      const [entranceRow, entranceCol] = entrancePosition.value.split(",").map(Number);
+      if (entranceRow >= 0 && entranceRow < newRows && entranceCol >= 0 && entranceCol < newCols) {
+        newMaze[entranceRow][entranceCol] = _00_;
+      } else {
+        // If entrance is outside new bounds, reset it to default and show warning?
+        console.warn("Entrance position is outside the new grid bounds!");
+        // Optionally reset entrancePosition.value to a default valid position
+      }
+
+      templeMaze.value = newMaze; // Update the main maze ref
     };
 
     // Get type of cell from the room symbol
