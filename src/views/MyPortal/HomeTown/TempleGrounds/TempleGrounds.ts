@@ -155,7 +155,7 @@ export default defineComponent({
               text: "Teleport",
               role: "teleport",
               handler: () => {
-                // handle teleport
+                this.handleTeleport();
               },
             },
           ];
@@ -460,6 +460,50 @@ export default defineComponent({
       if (newCol < currentCol) return "west";
       if (newCol > currentCol) return "east";
       return null; // shouldn't happen, or you could throw an error
+    },
+    // Find the other teleport room coordinates in the temple
+    findOtherTeleport() {
+      const [currentRow, currentCol] = this.currentPosition;
+      
+      // Loop through all rooms to find other teleport rooms
+      for (let row = 0; row < this.maze.length; row++) {
+        for (let col = 0; col < this.maze[row].length; col++) {
+          // Skip the current room
+          if (row === currentRow && col === currentCol) continue;
+          
+          const roomKey = this.maze[row][col];
+          const room = this.rooms[roomKey];
+          
+          // If we found another teleport room, return its coordinates
+          if (room.type === "teleport") {
+            return [row, col];
+          }
+        }
+      }
+      
+      // If no other teleport found, return current position (fallback)
+      return [currentRow, currentCol];
+    },
+    
+    // Handle teleport action
+    handleTeleport() {
+      this.play$fx("teleport");
+      
+      // Get the destination coordinates
+      const [destRow, destCol] = this.findOtherTeleport();
+      
+      // Update the background and position
+      this.updateBg(destCol, destRow);
+      this.currentPosition = [destRow, destCol];
+      
+      // Mark the destination room as visited
+      const destRoomKey = this.maze[destRow][destCol];
+      this.rooms[destRoomKey].visited = true;
+      
+      this.showToast({
+        message: "Teleported!",
+        duration: 2000,
+      });
     },
   },
 

@@ -24,7 +24,7 @@
   .background-tile {
     width: 100vw;
     height: calc(100vh - 140px);
-    object-fit: contain; /* Stretch/crop the images as required */
+    // object-fit: contain; /* Stretch/crop the images as required */
   }
 
   .maze-row {
