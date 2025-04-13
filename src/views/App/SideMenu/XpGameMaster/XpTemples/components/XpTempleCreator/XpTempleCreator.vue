@@ -238,109 +238,147 @@
       :event="popoverEvent"
       @didDismiss="quickEditPopoverOpen = false"
       class="quick-edit-popover"
+      :dismiss-on-select="false"
+      size="auto"
     >
-      <ion-content>
-        <div class="popover-content">
-          <div class="room-type-buttons">
-            <div class="room-type-button" @click="quickSetRoomType('wall')">
-              <i class="fas fa-square"></i>
-              <span>Wall</span>
-            </div>
-            <div class="room-type-button" @click="quickSetRoomType('empty')">
-              <i class="fas fa-square-full"></i>
-              <span>Empty</span>
-            </div>
-            <div class="room-type-button" @click="quickSetRoomType('monster')">
-              <i class="fas fa-skull"></i>
-              <span>Monster</span>
-            </div>
-            <div class="room-type-button" @click="quickSetRoomType('loot')">
-              <i class="fas fa-treasure-chest"></i>
-              <span>Chest</span>
-            </div>
-            <div class="room-type-button" @click="quickSetRoomType('boss')">
-              <i class="fas fa-dragon"></i>
-              <span>Boss</span>
-            </div>
-            <div class="room-type-button" @click="quickSetRoomType('teleport')">
-              <i class="fas fa-portal-exit"></i>
-              <span>Teleport</span>
-            </div>
-            <div class="room-type-button" @click="quickSetRoomType('shop')">
-              <i class="fas fa-store"></i>
-              <span>Shop</span>
-            </div>
-          </div>
-          
-          <div v-if="quickEditType === 'loot'" class="quick-content-options">
-            <ion-segment v-model="quickLootType">
-              <ion-segment-button value="key">
-                <ion-label>Key</ion-label>
-              </ion-segment-button>
-              <ion-segment-button value="map">
-                <ion-label>Map</ion-label>
-              </ion-segment-button>
-              <ion-segment-button value="compass">
-                <ion-label>Compass</ion-label>
+      <ion-content class="ion-padding">
+        <ion-list lines="none">
+          <ion-item-divider>
+            <ion-label>Quick Edit Room</ion-label>
+          </ion-item-divider>
 
-              </ion-segment-button>
+          <!-- Room Type Selection -->
+          <ion-item>
+            <ion-label>Type</ion-label>
+          </ion-item>
+          <ion-grid class="room-type-grid">
+            <ion-row>
+              <ion-col size="4">
+                <ion-button fill="clear" @click="quickSetRoomType('wall')" :class="{ 'selected': quickEditType === 'wall' }">
+                  <div class="button-content">
+                    <i class="fas fa-square"></i><span>Wall</span>
+                  </div>
+                </ion-button>
+              </ion-col>
+              <ion-col size="4">
+                <ion-button fill="clear" @click="quickSetRoomType('empty')" :class="{ 'selected': quickEditType === 'empty' }">
+                  <div class="button-content">
+                    <i class="fas fa-square-full"></i><span>Empty</span>
+                  </div>
+                </ion-button>
+              </ion-col>
+              <ion-col size="4">
+                <ion-button fill="clear" @click="quickSetRoomType('monster')" :class="{ 'selected': quickEditType === 'monster' }">
+                  <div class="button-content">
+                    <i class="fas fa-skull"></i><span>Monster</span>
+                  </div>
+                </ion-button>
+              </ion-col>
+            </ion-row>
+            <ion-row>
+              <ion-col size="4">
+                <ion-button fill="clear" @click="quickSetRoomType('loot')" :class="{ 'selected': quickEditType === 'loot' }">
+                  <div class="button-content">
+                    <i class="fas fa-treasure-chest"></i><span>Chest</span>
+                  </div>
+                </ion-button>
+              </ion-col>
+              <ion-col size="4">
+                <ion-button fill="clear" @click="quickSetRoomType('boss')" :class="{ 'selected': quickEditType === 'boss' }">
+                  <div class="button-content">
+                    <i class="fas fa-dragon"></i><span>Boss</span>
+                  </div>
+                </ion-button>
+              </ion-col>
+              <ion-col size="4">
+                <ion-button fill="clear" @click="quickSetRoomType('teleport')" :class="{ 'selected': quickEditType === 'teleport' }">
+                  <div class="button-content">
+                    <i class="fas fa-portal-exit"></i><span>Teleport</span>
+                  </div>
+                </ion-button>
+              </ion-col>
+            </ion-row>
+             <ion-row>
+              <ion-col size="4">
+                <ion-button fill="clear" @click="quickSetRoomType('shop')" :class="{ 'selected': quickEditType === 'shop' }">
+                  <div class="button-content">
+                    <i class="fas fa-store"></i><span>Shop</span>
+                  </div>
+                </ion-button>
+              </ion-col>
+               <ion-col size="4">
+                 <ion-button fill="clear" @click="quickSetRoomType('health')" :class="{ 'selected': quickEditType === 'health' }">
+                   <div class="button-content">
+                     <i class="fas fa-heart"></i><span>Health</span>
+                   </div>
+                 </ion-button>
+               </ion-col>
+               <ion-col size="4">
+                 <ion-button fill="clear" @click="quickSetRoomType('miniboss')" :class="{ 'selected': quickEditType === 'miniboss' }">
+                   <div class="button-content">
+                     <i class="fas fa-ghost"></i><span>MiniBoss</span>
+                   </div>
+                 </ion-button>
+               </ion-col>
+            </ion-row>
+          </ion-grid>
+
+          <!-- Conditional Content Options -->
+          <ion-item v-if="quickEditType === 'loot'">
+            <ion-label>Chest Content</ion-label>
+            <ion-segment v-model="quickLootType">
+              <ion-segment-button value="key">Key</ion-segment-button>
+              <ion-segment-button value="map">Map</ion-segment-button>
+              <ion-segment-button value="compass">Compass</ion-segment-button>
             </ion-segment>
-          </div>
-          
-          <div v-if="quickEditType === 'monster'" class="quick-content-options">
+          </ion-item>
+
+          <ion-item v-if="quickEditType === 'monster'">
+            <ion-label>Monster Size</ion-label>
             <ion-segment v-model="quickMonsterType">
-              <ion-segment-button value="small">
-                <ion-label>Small</ion-label>
-              </ion-segment-button>
-              <ion-segment-button value="medium">
-                <ion-label>Medium</ion-label>
-              </ion-segment-button>
-              <ion-segment-button value="large">
-                <ion-label>Large</ion-label>
-              </ion-segment-button>
+              <ion-segment-button value="small">Small</ion-segment-button>
+              <ion-segment-button value="medium">Medium</ion-segment-button>
+              <ion-segment-button value="large">Large</ion-segment-button>
             </ion-segment>
-          </div>
-          
-          <div class="quick-lock-toggles">
-            <ion-item lines="none">
-              <ion-label>Lock doors:</ion-label>
-            </ion-item>
-            <div class="door-lock-grid">
-              <div class="door-lock-cell"></div>
-              <div class="door-lock-cell">
-                <ion-checkbox v-model="quickNorthLock"></ion-checkbox>
-                <i class="fas fa-chevron-up"></i>
-              </div>
-              <div class="door-lock-cell"></div>
-              <div class="door-lock-cell">
-                <ion-checkbox v-model="quickWestLock"></ion-checkbox>
-                <i class="fas fa-chevron-left"></i>
-              </div>
-              <div class="door-lock-cell center-cell">
-                <i class="fas fa-dot-circle"></i>
-              </div>
-              <div class="door-lock-cell">
-                <ion-checkbox v-model="quickEastLock"></ion-checkbox>
-                <i class="fas fa-chevron-right"></i>
-              </div>
-              <div class="door-lock-cell"></div>
-              <div class="door-lock-cell">
-                <ion-checkbox v-model="quickSouthLock"></ion-checkbox>
-                <i class="fas fa-chevron-down"></i>
-              </div>
-              <div class="door-lock-cell"></div>
-            </div>
-          </div>
-          
-          <div class="popover-buttons">
-            <ion-button fill="outline" size="small" @click="quickEditPopoverOpen = false">
-              Cancel
-            </ion-button>
-            <ion-button size="small" @click="applyQuickEdit">
-              Apply
-            </ion-button>
-          </div>
-        </div>
+          </ion-item>
+
+          <!-- Door Locks -->
+          <ion-item-divider>
+            <ion-label>Door Locks</ion-label>
+          </ion-item-divider>
+          <ion-item>
+            <ion-label>North</ion-label>
+            <ion-checkbox slot="end" v-model="quickNorthLock"></ion-checkbox>
+          </ion-item>
+          <ion-item>
+            <ion-label>East</ion-label>
+            <ion-checkbox slot="end" v-model="quickEastLock"></ion-checkbox>
+          </ion-item>
+          <ion-item>
+            <ion-label>South</ion-label>
+            <ion-checkbox slot="end" v-model="quickSouthLock"></ion-checkbox>
+          </ion-item>
+          <ion-item>
+            <ion-label>West</ion-label>
+            <ion-checkbox slot="end" v-model="quickWestLock"></ion-checkbox>
+          </ion-item>
+        </ion-list>
+
+        <!-- Action Buttons -->
+        <ion-footer class="ion-no-border ion-padding-top">
+           <ion-toolbar>
+             <ion-buttons slot="primary">
+               <ion-button fill="outline" @click="quickEditPopoverOpen = false">
+                 Cancel
+               </ion-button>
+             </ion-buttons>
+             <ion-buttons slot="secondary">
+               <ion-button @click="applyQuickEdit">
+                 Apply
+               </ion-button>
+             </ion-buttons>
+           </ion-toolbar>
+        </ion-footer>
       </ion-content>
     </ion-popover>
   </ion-page>
@@ -958,72 +996,81 @@ export default defineComponent({
     color: #888;
   }
 
+  // Quick Edit Popover Styles
   .quick-edit-popover {
-    .popover-content {
-      padding: 10px;
+    --width: 320px; // Adjust width as needed
+
+    ion-list {
+      padding: 0;
     }
 
-    .room-type-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
+    ion-item-divider {
+      --background: rgba(var(--ion-color-step-150, 255, 255, 255), 0.1);
+      margin-top: 8px;
+      margin-bottom: 4px;
+    }
+
+    .room-type-grid {
+      padding: 0;
+      margin-top: 5px;
       margin-bottom: 10px;
 
-      .room-type-button {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        width: 48px;
-        height: 48px;
-        margin-bottom: 5px;
-        cursor: pointer;
-        transition: background 0.2s ease;
-
-        &:hover {
-          background: #444;
-        }
-
-        i {
-          font-size: 1.2rem;
-        }
-
-        span {
-          font-size: 0.7rem;
-          text-align: center;
-        }
+      ion-col {
+        padding: 2px;
       }
-    }
 
-    .quick-content-options {
-      margin-bottom: 10px;
-    }
+      ion-button {
+        width: 100%;
+        height: 60px; // Adjust height
+        margin: 0;
+        --padding-start: 2px;
+        --padding-end: 2px;
+        --border-radius: 4px;
+        border: 1px solid transparent; // Placeholder for selection border
+        transition: background-color 0.2s ease, border-color 0.2s ease;
 
-    .quick-lock-toggles {
-      margin-bottom: 10px;
+        &.selected {
+          background-color: rgba(var(--ion-color-primary-rgb), 0.15);
+          border: 1px solid var(--ion-color-primary);
+        }
 
-      .door-lock-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        grid-template-rows: repeat(3, 1fr);
-        gap: 5px;
-
-        .door-lock-cell {
+        .button-content {
           display: flex;
+          flex-direction: column;
           align-items: center;
           justify-content: center;
+          width: 100%;
 
-          &.center-cell {
-            background: #444;
-            border-radius: 50%;
+          i {
+            font-size: 1.4rem; // Icon size
+            margin-bottom: 4px;
+          }
+
+          span {
+            font-size: 0.7rem; // Text size
+            text-transform: none;
+            white-space: nowrap;
           }
         }
       }
     }
 
-    .popover-buttons {
-      display: flex;
-      justify-content: space-between;
+    ion-segment {
+      width: 100%;
+      margin-top: 5px;
+      font-size: 0.8rem;
+    }
+
+    ion-checkbox {
+      margin-left: 10px; // Space between label and checkbox
+    }
+    
+    ion-footer {
+      ion-toolbar {
+        --background: transparent; // Remove toolbar background in footer
+        --border-width: 0;
+        padding: 0 8px; // Add padding around buttons
+      }
     }
   }
 }
