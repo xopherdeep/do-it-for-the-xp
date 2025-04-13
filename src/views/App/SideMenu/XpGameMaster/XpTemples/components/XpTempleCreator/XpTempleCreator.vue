@@ -401,13 +401,13 @@
         <!-- Action Buttons (Remain outside tabs) -->
         <ion-footer class="ion-no-border ion-padding-top">
            <ion-toolbar>
-             <ion-buttons slot="primary">
-               <ion-button fill="outline" @click="quickEditPopoverOpen = false">
+             <ion-buttons slot="secondary">
+               <ion-button  @click="quickEditPopoverOpen = false">
                  Cancel
                </ion-button>
              </ion-buttons>
-             <ion-buttons slot="secondary">
-               <ion-button @click="applyQuickEdit">
+             <ion-buttons slot="primary">
+               <ion-button fill="outline" @click="applyQuickEdit">
                  Apply
                </ion-button>
              </ion-buttons>
