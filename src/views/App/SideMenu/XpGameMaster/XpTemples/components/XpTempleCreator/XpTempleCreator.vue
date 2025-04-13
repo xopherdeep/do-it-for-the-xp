@@ -94,7 +94,6 @@
                           @contextmenu.prevent="showQuickEditPopover($event, rowIndex, colIndex)"
                         >
                           <i 
-                            v-if="getCellType(cell) !== 'wall'" 
                             :class="[ROOM_ICONS[getCellType(cell)]]" 
                             class="fad"
                           ></i>
@@ -942,6 +941,9 @@ export default defineComponent({
   // Cell type styling
   .cell-wall {
     background: #222;
+    i {
+      opacity: 0.3; // Make wall icon less prominent
+    }
   }
 
   .cell-entrance {
