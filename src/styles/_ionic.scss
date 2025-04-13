@@ -27,8 +27,30 @@
   --min-width: 300px; // Set a minimum width
   width: auto; // Explicitly allow auto width based on content
 
+  ion-header {
+    box-shadow: none; // Remove shadow if needed
+    ion-toolbar {
+      --min-height: auto; // Adjust toolbar height
+      --padding-start: 0;
+      --padding-end: 0;
+      --padding-top: 0;
+      --padding-bottom: 0;
+    }
+    ion-segment {
+      width: 100%;
+    }
+  }
+
+  ion-content {
+    // Ensure content padding doesn't conflict with tab content padding
+    --padding-start: 0;
+    --padding-end: 0;
+    --padding-top: 0;
+    --padding-bottom: 0;
+  }
+
   ion-list {
-    padding: 0;
+    padding: 0; // Keep list padding zeroed
   }
 
   ion-item-divider {

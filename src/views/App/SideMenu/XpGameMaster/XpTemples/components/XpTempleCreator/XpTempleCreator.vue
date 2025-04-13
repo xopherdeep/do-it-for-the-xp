@@ -240,17 +240,25 @@
       :dismiss-on-select="false"
       size="auto"
     >
+      <ion-header>
+        <ion-toolbar>
+          <ion-segment v-model="quickEditTab" value="type">
+            <ion-segment-button value="type">
+              <ion-label>Type</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="content" :disabled="!['loot', 'monster'].includes(quickEditType)">
+              <ion-label>Content</ion-label>
+            </ion-segment-button>
+            <ion-segment-button value="locks">
+              <ion-label>Locks</ion-label>
+            </ion-segment-button>
+          </ion-segment>
+        </ion-toolbar>
+      </ion-header>
       <ion-content class="ion-padding">
-        <ion-list lines="none">
-          <ion-item-divider>
-            <ion-label>Quick Edit Room</ion-label>
-          </ion-item-divider>
-
-          <!-- Room Type Selection -->
-          <ion-item>
-            <ion-label>Type</ion-label>
-          </ion-item>
-          <ion-grid class="room-type-grid">
+        <!-- Tab Content: Type -->
+        <div v-if="quickEditTab === 'type'">
+          <ion-grid class="room-type-grid ion-padding-top">
             <ion-row>
               <ion-col size="4">
                 <ion-button fill="clear" @click="quickSetRoomType('wall')" :class="{ 'selected': quickEditType === 'wall' }">
@@ -321,49 +329,57 @@
                </ion-col>
             </ion-row>
           </ion-grid>
+        </div>
 
-          <!-- Conditional Content Options -->
-          <ion-item v-if="quickEditType === 'loot'">
-            <ion-label>Chest Content</ion-label>
-            <ion-segment v-model="quickLootType">
-              <ion-segment-button value="key">Key</ion-segment-button>
-              <ion-segment-button value="map">Map</ion-segment-button>
-              <ion-segment-button value="compass">Compass</ion-segment-button>
-            </ion-segment>
-          </ion-item>
+        <!-- Tab Content: Content -->
+        <div v-if="quickEditTab === 'content'">
+          <ion-list lines="none" class="ion-padding-top">
+            <ion-item v-if="quickEditType === 'loot'">
+              <ion-label>Chest Content</ion-label>
+              <ion-segment v-model="quickLootType">
+                <ion-segment-button value="key">Key</ion-segment-button>
+                <ion-segment-button value="map">Map</ion-segment-button>
+                <ion-segment-button value="compass">Compass</ion-segment-button>
+              </ion-segment>
+            </ion-item>
 
-          <ion-item v-if="quickEditType === 'monster'">
-            <ion-label>Monster Size</ion-label>
-            <ion-segment v-model="quickMonsterType">
-              <ion-segment-button value="small">Small</ion-segment-button>
-              <ion-segment-button value="medium">Medium</ion-segment-button>
-              <ion-segment-button value="large">Large</ion-segment-button>
-            </ion-segment>
-          </ion-item>
+            <ion-item v-if="quickEditType === 'monster'">
+              <ion-label>Monster Size</ion-label>
+              <ion-segment v-model="quickMonsterType">
+                <ion-segment-button value="small">Small</ion-segment-button>
+                <ion-segment-button value="medium">Medium</ion-segment-button>
+                <ion-segment-button value="large">Large</ion-segment-button>
+              </ion-segment>
+            </ion-item>
+          </ion-list>
+        </div>
 
-          <!-- Door Locks -->
-          <ion-item-divider>
-            <ion-label>Door Locks</ion-label>
-          </ion-item-divider>
-          <ion-item>
-            <ion-label>North</ion-label>
-            <ion-checkbox slot="end" v-model="quickNorthLock"></ion-checkbox>
-          </ion-item>
-          <ion-item>
-            <ion-label>East</ion-label>
-            <ion-checkbox slot="end" v-model="quickEastLock"></ion-checkbox>
-          </ion-item>
-          <ion-item>
-            <ion-label>South</ion-label>
-            <ion-checkbox slot="end" v-model="quickSouthLock"></ion-checkbox>
-          </ion-item>
-          <ion-item>
-            <ion-label>West</ion-label>
-            <ion-checkbox slot="end" v-model="quickWestLock"></ion-checkbox>
-          </ion-item>
-        </ion-list>
+        <!-- Tab Content: Locks -->
+        <div v-if="quickEditTab === 'locks'">
+          <ion-list lines="none" class="ion-padding-top">
+             <ion-item-divider>
+               <ion-label>Door Locks</ion-label>
+             </ion-item-divider>
+            <ion-item>
+              <ion-label>North</ion-label>
+              <ion-checkbox slot="end" v-model="quickNorthLock"></ion-checkbox>
+            </ion-item>
+            <ion-item>
+              <ion-label>East</ion-label>
+              <ion-checkbox slot="end" v-model="quickEastLock"></ion-checkbox>
+            </ion-item>
+            <ion-item>
+              <ion-label>South</ion-label>
+              <ion-checkbox slot="end" v-model="quickSouthLock"></ion-checkbox>
+            </ion-item>
+            <ion-item>
+              <ion-label>West</ion-label>
+              <ion-checkbox slot="end" v-model="quickWestLock"></ion-checkbox>
+            </ion-item>
+          </ion-list>
+        </div>
 
-        <!-- Action Buttons -->
+        <!-- Action Buttons (Remain outside tabs) -->
         <ion-footer class="ion-no-border ion-padding-top">
            <ion-toolbar>
              <ion-buttons slot="primary">
@@ -725,10 +741,12 @@ export default defineComponent({
     const quickEastLock = ref(false);
     const quickSouthLock = ref(false);
     const quickWestLock = ref(false);
+    const quickEditTab = ref('type'); // State for active tab
 
     const showQuickEditPopover = (event: Event, row: number, col: number) => {
       popoverEvent.value = event;
       selectCell(row, col); // Load the data for the clicked cell first
+      quickEditTab.value = 'type'; // Reset to the 'type' tab
 
       // Reset popover state based on the selected cell's data
       quickEditType.value = selectedRoomType.value;
@@ -824,6 +842,7 @@ export default defineComponent({
       quickEastLock,
       quickSouthLock,
       quickWestLock,
+      quickEditTab, // Expose tab state
       showQuickEditPopover,
       quickSetRoomType,
       applyQuickEdit
