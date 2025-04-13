@@ -19,7 +19,7 @@
     <ion-content class="my-calendar" :fullscreen="true">
       <xp-loading v-if="isLoading" />
       <!-- v-calendar Integration -->
-      <v-calendar
+      <!-- <v-calendar
         is-expanded
         :attributes="attributes"
         :model-config="{
@@ -30,7 +30,7 @@
         @update:model-config="handleUpdatePage"
         @dayclick="handleDayClick"
         class="ion-padding"
-      />
+      /> -->
       <!-- fab placed to the bottom and start and on the bottom edge of the content overlapping footer with a list to the right -->
       <ion-fab
         vertical="bottom"
@@ -106,7 +106,7 @@
     IonButton,
     actionSheetController,
   } from "@ionic/vue";
-  import { Calendar as VCalendar } from "v-calendar";
+  // import { Calendar as VCalendar } from "v-calendar";
   import {
     calendarOutline,
     addCircleOutline,
@@ -119,9 +119,9 @@
   // Define the component (required for script setup)
   defineComponent({
     name: "MyCalendar",
-    components: {
-      "v-calendar": VCalendar,
-    },
+    // components: {
+    //   "v-calendar": VCalendar,
+    // },
   });
 
   // Props
