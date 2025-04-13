@@ -729,10 +729,41 @@ export default defineComponent({
 
     const showQuickEditPopover = (event: Event, row: number, col: number) => {
       popoverEvent.value = event;
-      quickEditPopoverOpen.value = true;
-      selectCell(row, col);
-    };
+      selectCell(row, col); // Load the data for the clicked cell first
 
+      // Reset popover state based on the selected cell's data
+      quickEditType.value = selectedRoomType.value;
+      quickNorthLock.value = northLocked.value;
+      quickEastLock.value = eastLocked.value;
+      quickSouthLock.value = southLocked.value;
+      quickWestLock.value = westLocked.value;
+
+      // Reset conditional content types based on loaded data
+      if (selectedRoomType.value === 'loot' && selectedChestType.value === 'dungeon') {
+        // Map detailed dungeon item to simpler popover options if possible
+        if (['key', 'map', 'compass'].includes(selectedDungeonItem.value)) {
+          quickLootType.value = selectedDungeonItem.value;
+        } else {
+          quickLootType.value = 'key'; // Default if no direct match
+        }
+      } else {
+        quickLootType.value = 'key'; // Default for non-dungeon loot or other types
+      }
+
+      if (selectedRoomType.value === 'monster') {
+        // Map detailed monster type to simpler popover options if possible
+        if (['small', 'medium', 'large'].includes(selectedMonsterType.value)) {
+          quickMonsterType.value = selectedMonsterType.value;
+        } else {
+          quickMonsterType.value = 'small'; // Default if no direct match (e.g., 'boss')
+        }
+      } else {
+        quickMonsterType.value = 'small'; // Default for non-monster types
+      }
+       
+      quickEditPopoverOpen.value = true; // Now open the popover
+    };
+ 
     const quickSetRoomType = (type: string) => {
       quickEditType.value = type;
       selectedRoomType.value = type;
