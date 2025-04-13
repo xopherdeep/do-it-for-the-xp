@@ -927,10 +927,13 @@ export default defineComponent({
       quickEditType,
       quickLootType,
       quickMonsterType,
-      quickNorthLock,
-      quickEastLock,
-      quickSouthLock,
+      // quickNorthLock, // Removed
+      // quickEastLock, // Removed
+      // quickSouthLock, // Removed
       // quickWestLock, // Removed
+      quickNorthSideType, // Added
+      quickEastSideType, // Added
+      quickSouthSideType, // Added
       quickWestSideType, // Added
       quickEditTab, // Expose tab state
       showQuickEditPopover,
