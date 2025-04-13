@@ -99,18 +99,26 @@
                           ></i>
                           <span class="cell-coords">{{rowIndex}},{{colIndex}}</span>
                           
-                          <!-- Door lock indicators -->
-                          <div v-if="hasDoorLock(cell, 'north')" class="door-lock north">
-                            <i class="fas fa-lock"></i>
+                          <!-- Side Configuration Indicators -->
+                          <!-- North -->
+                          <div v-if="getSideConfiguration(cell, 'north') !== 'door'" 
+                               :class="['side-indicator', 'north', `indicator-${getSideConfiguration(cell, 'north')}`]">
+                            <i :class="SIDE_TYPE_INFO[getSideConfiguration(cell, 'north')].icon"></i>
                           </div>
-                          <div v-if="hasDoorLock(cell, 'east')" class="door-lock east">
-                            <i class="fas fa-lock"></i>
+                          <!-- East -->
+                          <div v-if="getSideConfiguration(cell, 'east') !== 'door'" 
+                               :class="['side-indicator', 'east', `indicator-${getSideConfiguration(cell, 'east')}`]">
+                            <i :class="SIDE_TYPE_INFO[getSideConfiguration(cell, 'east')].icon"></i>
                           </div>
-                          <div v-if="hasDoorLock(cell, 'south')" class="door-lock south">
-                            <i class="fas fa-lock"></i>
+                          <!-- South -->
+                          <div v-if="getSideConfiguration(cell, 'south') !== 'door'" 
+                               :class="['side-indicator', 'south', `indicator-${getSideConfiguration(cell, 'south')}`]">
+                            <i :class="SIDE_TYPE_INFO[getSideConfiguration(cell, 'south')].icon"></i>
                           </div>
-                          <div v-if="hasDoorLock(cell, 'west')" class="door-lock west">
-                            <i class="fas fa-lock"></i>
+                          <!-- West -->
+                          <div v-if="getSideConfiguration(cell, 'west') !== 'door'" 
+                               :class="['side-indicator', 'west', `indicator-${getSideConfiguration(cell, 'west')}`]">
+                            <i :class="SIDE_TYPE_INFO[getSideConfiguration(cell, 'west')].icon"></i>
                           </div>
                         </div>
                       </div>
@@ -708,12 +716,18 @@ export default defineComponent({
       showToast("Room updated");
     };
 
-    // Check if a specific door is locked in a room
-    const hasDoorLock = (cellSymbol: string, direction: 'north' | 'south' | 'east' | 'west') => {
-      if (!roomsData.value[cellSymbol]) return false;
-      
+    // Get the configuration of a specific side ('door', 'wall', 'bombable', 'locked')
+    const getSideConfiguration = (cellSymbol: string, direction: 'north' | 'south' | 'east' | 'west'): string => {
       const roomData = roomsData.value[cellSymbol];
-      return roomData.locked && roomData.locked[direction] === true;
+      // Default to 'door' if no specific side data exists
+      return roomData?.sides?.[direction] || 'door'; 
+    };
+
+    // Check if a specific door is locked in a room (Keep for now if needed elsewhere, but grid display will use getSideConfiguration)
+    const hasDoorLock = (cellSymbol: string, direction: 'north' | 'south' | 'east' | 'west') => {
+      const roomData = roomsData.value[cellSymbol];
+      // Check both the old locked structure and the new sides structure for backward compatibility during transition
+      return (roomData?.locked?.[direction] === true) || (roomData?.sides?.[direction] === 'locked');
     };
 
     // Generate code preview
@@ -1044,7 +1058,8 @@ export default defineComponent({
       isEntrancePosition,
       selectCell,
       applyRoomChanges,
-      hasDoorLock,
+      getSideConfiguration, // Add new function
+      hasDoorLock, // Keep old one for now if needed
       templeCodePreview,
       copyToClipboard,
       getTempleColor,
@@ -1139,43 +1154,59 @@ export default defineComponent({
       opacity: 0.7;
     }
     
-    // Door lock indicators
-    .door-lock {
+    // Side configuration indicators (replaces .door-lock)
+    .side-indicator {
       position: absolute;
-      width: 16px;
-      height: 16px;
+      width: 18px; // Slightly larger?
+      height: 18px;
       background: rgba(255, 0, 0, 0.7);
-      border-radius: 50%;
+      border-radius: 4px; // Square or rounded square
       display: flex;
       align-items: center;
       justify-content: center;
       z-index: 3;
-      
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+
       i {
-        font-size: 0.7rem;
+        font-size: 0.8rem; // Adjust icon size
         color: white;
       }
       
+      // Default background (can be overridden)
+      background: rgba(100, 100, 100, 0.8); 
+
+      // Specific types
+      &.indicator-locked {
+        background: rgba(255, 0, 0, 0.7); // Red for locked
+      }
+      &.indicator-wall {
+         background: rgba(80, 80, 80, 0.9); // Dark grey for wall
+      }
+       &.indicator-bombable {
+         background: rgba(255, 165, 0, 0.8); // Orange for bombable
+       }
+
+      // Positioning
       &.north {
-        top: -8px;
+        top: -9px; // Adjust for new size
         left: 50%;
         transform: translateX(-50%);
       }
       
       &.east {
-        right: -8px;
+        right: -9px; // Adjust for new size
         top: 50%;
         transform: translateY(-50%);
       }
       
       &.south {
-        bottom: -8px;
+        bottom: -9px; // Adjust for new size
         left: 50%;
         transform: translateX(-50%);
       }
       
       &.west {
-        left: -8px;
+        left: -9px; // Adjust for new size
         top: 50%;
         transform: translateY(-50%);
       }
