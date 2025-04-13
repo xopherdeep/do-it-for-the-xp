@@ -871,12 +871,15 @@ export default defineComponent({
     // Quick Edit Popover
     const quickEditPopoverOpen = ref(false);
     const popoverEvent = ref<Event | null>(null);
-    const quickEditType = ref("");
-    const quickLootType = ref("key");
-    const quickMonsterType = ref("small");
-    const quickNorthLock = ref(false);
-    const quickEastLock = ref(false);
-    // Remove old lock refs
+    const quickEditType = ref(""); // e.g., 'wall', 'loot', 'monster'
+    
+    // Content Refs (replaces quickLootType)
+    const quickChestType = ref("dungeon"); // 'dungeon' or 'loot'
+    const quickDungeonItem = ref("key"); // 'key', 'map', 'compass', 'boss-key', 'special-item'
+    const quickRandomLootItems = ref<string[]>(['potion']); // Array for multi-select
+    const quickMonsterType = ref("small"); // 'small', 'medium', 'large', 'boss' - Keep this one
+    
+    // Remove old lock refs (Keep these commented out or remove entirely if preferred, but they are already commented)
     // const quickNorthLock = ref(false);
     // const quickEastLock = ref(false);
     // const quickSouthLock = ref(false);
