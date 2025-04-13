@@ -666,52 +666,44 @@ export default defineComponent({
       }
     };
 
-    // Apply room changes
-    const applyRoomChanges = () => {
+    // Apply room changes (now accepts data from popover)
+    const applyRoomChanges = (roomType: string, contentData: any, sideData: any) => {
       if (!selectedCell.value) return;
       
       const { row, col } = selectedCell.value;
-      const cellSymbol = roomSymbols[selectedRoomType.value];
+      
+      // Determine the symbol for the room type
+      // TODO: Handle symbol generation/reuse more robustly if needed
+      const cellSymbol = roomSymbols[roomType] || ____; // Default to wall if type unknown
+      
+      // Update the maze grid
       templeMaze.value[row][col] = cellSymbol;
       
-      // Create room data
-      const roomData: any = { type: selectedRoomType.value };
+      // Create or update room data in roomsData
+      const roomData: any = { type: roomType };
       
-      // Add locked doors if any
-      if (northLocked.value || eastLocked.value || southLocked.value || westLocked.value) {
-        roomData.locked = {
-          north: northLocked.value,
-          east: eastLocked.value,
-          south: southLocked.value,
-          west: westLocked.value
-        };
+      // Add side configuration (replacing old 'locked' structure)
+      // Only add the 'sides' object if at least one side is not the default 'door'
+      if (Object.values(sideData).some(type => type !== 'door')) {
+         roomData.sides = sideData;
       }
       
-      // Add content based on room type
-      if (selectedRoomType.value === "loot") {
-        if (selectedChestType.value === "dungeon") {
-          roomData.content = {
-            chest: "dungeon",
-            dungeon: selectedDungeonItem.value
-          };
-        } else {
-          roomData.content = {
-            chest: "loot",
-            items: selectedLootItems.value
-          };
-        }
-      } else if (selectedRoomType.value === "monster" || selectedRoomType.value === "boss" || selectedRoomType.value === "miniboss") {
-        roomData.content = {
-          monsterType: selectedMonsterType.value
-        };
-      } else if (selectedRoomType.value === "health") {
-        roomData.content = {
-          healthPoints: 10
-        };
+      // Add content data if it's not empty
+      if (Object.keys(contentData).length > 0) {
+        roomData.content = contentData;
       }
       
-      // Store room data
-      roomsData.value[cellSymbol] = roomData;
+      // Store room data using the symbol as the key
+      // Ensure entrance (_00_) and wall (____) retain their fixed data
+      if (cellSymbol !== _00_ && cellSymbol !== ____) {
+         roomsData.value[cellSymbol] = roomData;
+      } else if (cellSymbol === _00_) {
+         // Update entrance data if needed (e.g., sides, but type remains 'entrance')
+         roomsData.value[_00_] = { ...roomsData.value[_00_], ...roomData, type: 'entrance' };
+      }
+      // Wall data ([____]) should generally not be modified here
+      
+      // TODO: Clean up unused symbols in roomsData if a room type changes
       
       showToast("Room updated");
     };
