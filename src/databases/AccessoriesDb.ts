@@ -11,6 +11,7 @@ export enum Rarity {
   Common,
   Uncommon,
   Rare,
+  Epic,
   Legendary,
 }
 
@@ -19,6 +20,11 @@ enum CharacterType {
   Mage,
   Archer,
   Healer,
+}
+
+export enum AccessoryType {
+  RealLife = 'real',
+  Virtual = 'virtual'
 }
 
 interface SpecialStats {
@@ -41,6 +47,22 @@ export interface Accessory {
   icon?: string;
   rewardCount: number
   isLayaway: boolean
+  type: AccessoryType;
+  availableToMembers: string[];
+  requiresApproval: boolean;
+  inventory?: {
+    total: number;
+    available: number;
+    reserved: number;
+  };
+  expiryDate?: string; // For limited-time items
+  tags?: string[]; // For categorization
+  imageUrl?: string; // For visual representation
+  purchaseHistory?: {
+    userId: string;
+    purchaseDate: string;
+    amount: number;
+  }[];
 }
 
 export class AccessoriesDb extends DbStorageApi {
@@ -56,7 +78,17 @@ export class AccessoriesDb extends DbStorageApi {
       rarity: Rarity.Common,
       icon: '',
       rewardCount: 0,
-      isLayaway: false
+      isLayaway: false,
+      type: AccessoryType.Virtual,
+      availableToMembers: [],
+      requiresApproval: false,
+      inventory: {
+        total: 0,
+        available: 0,
+        reserved: 0
+      },
+      tags: [],
+      purchaseHistory: []
     }
   }
 

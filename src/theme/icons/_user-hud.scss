@@ -1,4 +1,9 @@
 @mixin user-hud {
+  &heart {
+    --fa-primary-color: var(--xp-color-red);
+    --fa-secondary-color: var(--xp-color-red);
+    --fa-secondary-opacity: 0.8;
+  }
   &comment {
     --fa-primary-color: var(--xp-color-blue);
     --fa-secondary-color: var(--xp-color-green);
@@ -31,6 +36,36 @@
 
   &hand-holding-seedling {
     --fa-primary-color: var(--xp-color-green);
+    --fa-secondary-color: var(--xp-color-brown);
+    --fa-secondary-opacity: 0.9;
+  }
+
+  &hand-holding-heart {
+    --fa-primary-color: var(--xp-color-red);
+    --fa-secondary-color: var(--xp-color-brown);
+    --fa-secondary-opacity: 0.9;
+  }
+
+  &hand-holding-medical {
+    --fa-primary-color: var(--xp-color-pink);
+    --fa-secondary-color: var(--xp-color-brown);
+    --fa-secondary-opacity: 0.9;
+  }
+
+  &hand-holding-water {
+    --fa-primary-color: var(--xp-color-blueLight);
+    --fa-secondary-color: var(--xp-color-brown);
+    --fa-secondary-opacity: 0.9;
+  }
+
+  &hand-holding-magic{
+    --fa-primary-color: var(--xp-color-blue);
+    --fa-secondary-color: var(--xp-color-brown);
+    --fa-secondary-opacity: 0.9;
+  }
+  
+  &hand-holding-usd {
+    --fa-primary-color: var(--xp-color-yellow);
     --fa-secondary-color: var(--xp-color-brown);
     --fa-secondary-opacity: 0.9;
   }
