@@ -416,13 +416,37 @@
       </ion-content>
     </ion-popover>
     
-    <!-- Action Sheet for Side Type Selection -->
-    <ion-action-sheet
-      :is-open="sideSelectActionSheetOpen"
-      header="Select Side Type"
-      :buttons="sideSelectButtons.value"
-      @didDismiss="sideSelectActionSheetOpen = false"
-    ></ion-action-sheet>
+    <!-- Popover for Side Type Selection -->
+    <ion-popover
+      :is-open="sideSelectPopoverOpen"
+      :event="sideSelectEvent"
+      @didDismiss="sideSelectPopoverOpen = false"
+      :dismiss-on-select="true"
+      side="end" 
+      alignment="center"
+      class="side-select-sub-popover" 
+    >
+      <ion-content>
+        <ion-list lines="none">
+          <ion-item button @click="setSideType('door')">
+            <i :class="SIDE_TYPE_INFO.door.icon" slot="start"></i>
+            <ion-label>{{ SIDE_TYPE_INFO.door.label }}</ion-label>
+          </ion-item>
+          <ion-item button @click="setSideType('wall')">
+            <i :class="SIDE_TYPE_INFO.wall.icon" slot="start"></i>
+            <ion-label>{{ SIDE_TYPE_INFO.wall.label }}</ion-label>
+          </ion-item>
+          <ion-item button @click="setSideType('bombable')">
+            <i :class="SIDE_TYPE_INFO.bombable.icon" slot="start"></i>
+            <ion-label>{{ SIDE_TYPE_INFO.bombable.label }}</ion-label>
+          </ion-item>
+          <ion-item button @click="setSideType('locked')">
+            <i :class="SIDE_TYPE_INFO.locked.icon" slot="start"></i>
+            <ion-label>{{ SIDE_TYPE_INFO.locked.label }}</ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-content>
+    </ion-popover>
     
   </ion-page>
 </template>
@@ -781,11 +805,12 @@ export default defineComponent({
     
     const quickEditTab = ref('type'); // State for active tab
 
-    // Action Sheet State
-    const sideSelectActionSheetOpen = ref(false);
+    // Side Select Popover State
+    const sideSelectPopoverOpen = ref(false);
+    const sideSelectEvent = ref<Event | null>(null);
     const sideSelectDirection = ref<'north' | 'east' | 'south' | 'west'>('north');
 
-    // Helper to get side type display info (icon and label)
+    // Helper to get side type display info (icon and label) - Still needed for trigger button
     const SIDE_TYPE_INFO = {
       door: { icon: 'fas fa-door-open', label: 'Door' },
       wall: { icon: 'fas fa-square', label: 'Wall' },
@@ -868,10 +893,11 @@ export default defineComponent({
       quickEditPopoverOpen.value = false;
     };
 
-    // --- Action Sheet Logic ---
-    const showSideSelectActionSheet = (direction: 'north' | 'east' | 'south' | 'west') => {
+    // --- Side Select Popover Logic ---
+    const showSideSelectPopover = (event: Event, direction: 'north' | 'east' | 'south' | 'west') => {
+      sideSelectEvent.value = event;
       sideSelectDirection.value = direction;
-      sideSelectActionSheetOpen.value = true;
+      sideSelectPopoverOpen.value = true;
     };
 
     const setSideType = (type: string) => {
@@ -881,17 +907,10 @@ export default defineComponent({
         case 'south': quickSouthSideType.value = type; break;
         case 'west': quickWestSideType.value = type; break;
       }
-      sideSelectActionSheetOpen.value = false; // Close sheet after selection
+      // Popover closes automatically due to dismiss-on-select="true"
+      // sideSelectPopoverOpen.value = false; 
     };
-
-    const sideSelectButtons = computed(() => [
-      { text: 'Door', icon: SIDE_TYPE_INFO.door.icon, handler: () => setSideType('door') },
-      { text: 'Wall', icon: SIDE_TYPE_INFO.wall.icon, handler: () => setSideType('wall') },
-      { text: 'Bombable', icon: SIDE_TYPE_INFO.bombable.icon, handler: () => setSideType('bombable') },
-      { text: 'Locked', icon: SIDE_TYPE_INFO.locked.icon, handler: () => setSideType('locked') },
-      { text: 'Cancel', role: 'cancel', icon: 'fas fa-times' }
-    ]);
-    // --- End Action Sheet Logic ---
+    // --- End Side Select Popover Logic ---
 
 
     onMounted(() => {
@@ -949,11 +968,13 @@ export default defineComponent({
       showQuickEditPopover,
       quickSetRoomType,
       applyQuickEdit,
-      // Action Sheet related
-      sideSelectActionSheetOpen,
-      sideSelectButtons,
-      showSideSelectActionSheet,
-      getSideTypeDisplay
+      // Side Select Popover related
+      sideSelectPopoverOpen,
+      sideSelectEvent,
+      showSideSelectPopover,
+      setSideType, // Make sure setSideType is exposed
+      getSideTypeDisplay,
+      SIDE_TYPE_INFO // Expose for popover list rendering
     };
   }
 });

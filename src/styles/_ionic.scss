@@ -134,3 +134,21 @@
     }
   }
 }
+
+/* Styles for the Side Select Sub-Popover */
+.side-select-sub-popover {
+  --width: auto; // Let content determine width
+  --min-width: 150px; // Ensure it's not too narrow
+
+  ion-list {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+  ion-item {
+    --padding-start: 12px;
+    --padding-end: 12px;
+    i {
+      margin-right: 10px;
+    }
+  }
+}
