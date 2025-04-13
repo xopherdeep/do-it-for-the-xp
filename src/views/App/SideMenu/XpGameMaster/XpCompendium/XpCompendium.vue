@@ -58,11 +58,17 @@
   export default defineComponent({
     name: "xp-compendium",
     mixins: [ionic],
+    setup() {
+      const route = useRoute();
+      const router = useRouter();
+      
+      return { route, router };
+    },
     mounted() {
       // If we're at the exact compendium route without a sub-route,
       // redirect to the splash page
-      if (this.$route.path === '/game-master/compendium') {
-        this.$router.replace('/game-master/compendium/splash');
+      if (this.route.path === '/game-master/compendium') {
+        this.router.replace('/game-master/compendium/splash');
       }
     }
   });
