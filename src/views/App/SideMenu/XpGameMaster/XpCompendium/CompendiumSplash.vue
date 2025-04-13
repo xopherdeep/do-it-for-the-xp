@@ -11,63 +11,47 @@
         <p>Create an immersive experience through connected game elements.
           <br />
           Earn XP, AP, and GP to unlock abilities, purchase items, and progress in your game.
-
         </p>
       </div>
 
       <!-- Point System Cards with visual improvements -->
       <div class="point-cards-container">
-        <ion-card class="point-card xp-card" button>
+        <ion-card class="point-card xp-card" >
           <div class="point-icon-container xp-bg">
-            <i class="fad fa-star-shooting"></i>
+            <i class="fad fa-hand-holding-seedling"></i>
           </div>
           <ion-card-header>
-            <ion-card-title>Experience Points (XP)</ion-card-title>
+            <ion-card-title>Experience Points</ion-card-title>
           </ion-card-header>
           <ion-card-content>
-            <p>XP represents time and effort spent on tasks. Each minute equals roughly 10 XP.</p>
-            <p>Players earn XP by completing quests, which leads to level progression.</p>
-            <div class="quick-guide">
-              <span class="guide-item">5min = 50XP</span>
-              <span class="guide-item">30min = 300XP</span>
-              <span class="guide-item">60min = 600XP</span>
-            </div>
+              XP represents time and effort spent on tasks. 
+              Players earn XP by completing quests, which leads to level progression.
           </ion-card-content>
         </ion-card>
 
-        <ion-card class="point-card ap-card" button>
+        <ion-card class="point-card ap-card" >
           <div class="point-icon-container ap-bg">
-            <i class="fad fa-wand-sparkles"></i>
+            <i class="fad fa-hand-holding-magic"></i>
           </div>
           <ion-card-header>
-            <ion-card-title>Ability Points (AP)</ion-card-title>
+            <ion-card-title>Ability Points</ion-card-title>
           </ion-card-header>
           <ion-card-content>
             <p>AP unlocks special privileges and abilities based on how much is earned in specific timeframes.</p>
             <p>AP is a "use it or lose it" currency that expires after a set time.</p>
-            <div class="quick-guide">
-              <span class="guide-item">Daily</span>
-              <span class="guide-item">Weekly</span>
-              <span class="guide-item">Monthly</span>
-            </div>
           </ion-card-content>
         </ion-card>
 
-        <ion-card class="point-card gp-card" button>
+        <ion-card class="point-card gp-card" >
           <div class="point-icon-container gp-bg">
-            <i class="fad fa-coins"></i>
+            <i class="fad fa-hand-holding-usd"></i>
           </div>
           <ion-card-header>
-            <ion-card-title>Gold Points (GP)</ion-card-title>
+            <ion-card-title>Gold Points</ion-card-title>
           </ion-card-header>
           <ion-card-content>
             <p>GP is the monetary value of the system. Players can earn, spend, and save GP.</p>
             <p>Players deposit GP into savings and make withdrawals to their wallet.</p>
-            <div class="quick-guide">
-              <span class="guide-item">Starting: 99GP</span>
-              <span class="guide-item">Medium: 500GP</span>
-              <span class="guide-item">Giant: 5,000GP</span>
-            </div>
           </ion-card-content>
         </ion-card>
       </div>
@@ -223,7 +207,6 @@ export default defineComponent({
 /* Point cards container */
 .point-cards-container {
   display: flex;
-  flex-wrap: wrap;
   justify-content: center;
   gap: 1rem;
   padding: 0 1rem;
@@ -232,7 +215,7 @@ export default defineComponent({
 
 .point-card {
   flex: 1 1 300px;
-  max-width: 350px;
+  max-width: 33%;
   margin: 0;
   border-radius: 12px;
   overflow: hidden;

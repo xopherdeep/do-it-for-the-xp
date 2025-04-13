@@ -303,7 +303,7 @@
   .switch-profile {
     ion-card {
       text-align: center;
-      width: calc(100% - 35px);
+      /* width: calc(100% - 35px); */
       // min-width: calc(15vw)
     }
 
@@ -325,7 +325,7 @@
       font-size: 16px;
       line-height: 22px;
       color: #8c8c8c;
-      margin: 0;
+      /* margin: 0; */
     }
 
     #container a {
@@ -347,13 +347,6 @@
         --ion-color-base: var(--ion-color-warning);
       }
     }
-  }
-
-  // Styles for the fullscreen modal
-  ion-modal.fullscreen-modal {
-    --height: 100%;
-    --width: 100%;
-    --border-radius: 0; // Optional: remove rounded corners if any
   }
 
   ion-modal {
