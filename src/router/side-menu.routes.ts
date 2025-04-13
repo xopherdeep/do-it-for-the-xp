@@ -43,7 +43,12 @@ export const SideMenuRoutes: Array<RouteRecordRaw> = [
           {
             path: '',
             name: 'achievements',
-            redirect: '/game-master/compendium/achievements',
+            redirect: '/game-master/compendium/splash',
+          },
+          {
+            path: 'splash',
+            name: 'xp-compendium-splash',
+            component: () => import('@/views/App/SideMenu/XpGameMaster/XpCompendium/CompendiumSplash.vue'),
           },
           {
             path: 'achievements',
@@ -77,21 +82,24 @@ export const SideMenuRoutes: Array<RouteRecordRaw> = [
               },
             ],
           },
-        ]
-      },
-      {
-        path: 'temples',
-        name: 'xp-temples',
-        component: () => import("../views/App/SideMenu/XpGameMaster/XpTemples"),
-        children: [
-        ]
-      },
+          {
+            path: 'temples',
+            name: 'xp-compendium-temples',
+            component: () => import("../views/App/SideMenu/XpGameMaster/XpTemples"),
+          },
           {
             path: 'temple/:templeId',
-            name: 'xp-temple-settings',
+            name: 'xp-compendium-temple-settings',
             component: () => import('@/views/App/SideMenu/XpGameMaster/XpTemples/components/XpTempleSettings.vue'),
             props: true
           },
+        ]
+      },
+      {
+        path: 'chat',
+        name: 'xp-chat',
+        component: () => import("../views/App/SideMenu/XpGameMaster/XpChat/XpChat.vue"),
+      },
       {
         path: 'do-this-not-that/:id?',
         name: 'xp-do-this-not-that',
