@@ -53,6 +53,7 @@
 <script lang="ts">
   import { defineComponent } from "vue";
   import ionic from "@/mixins/ionic";
+  import { useRoute, useRouter } from "vue-router";
 
   export default defineComponent({
     name: "xp-compendium",
