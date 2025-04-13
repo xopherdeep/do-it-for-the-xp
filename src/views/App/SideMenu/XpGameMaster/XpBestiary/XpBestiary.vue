@@ -1,11 +1,14 @@
 <template>
   <ion-page :class="$options.name">
     <ion-header>
-      <ion-toolbar>
+      <ion-toolbar class="rpg-box icon-colors">
         <ion-buttons slot="start">
           <ion-back-button defaultHref="/game-master" />
         </ion-buttons>
-        <ion-title> Bestiary </ion-title>
+
+        <i slot="start" class="fad fa-hand-holding-heart fa-2x" />
+        <ion-title>
+           Bestiary </ion-title>
       </ion-toolbar>
     </ion-header>
     <ion-content>

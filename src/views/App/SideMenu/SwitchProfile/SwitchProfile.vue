@@ -39,7 +39,11 @@
             detail
             class="profile-item rpg-box"
           >
-            <div slot="start" class="profile-info">
+            <div slot="start" class="profile-info stats-container">
+              <div class="level">
+                <span class="label">LVL</span>
+                <span class="value">{{ profile?.stats?.level || 1 }}</span>
+              </div>
               <div class="avatar-container">
                 <ion-avatar>
                   <ion-img :src="getUserAvatar(profile)" />
@@ -56,10 +60,6 @@
             </div>
             
             <div slot="end" class="stats-container">
-              <div class="level">
-                <span class="label">LVL</span>
-                <span class="value">{{ profile?.stats?.level || 1 }}</span>
-              </div>
               <div class="wallet">
                 <xp-gp :gp="profile?.stats?.gp.wallet" />
               </div>

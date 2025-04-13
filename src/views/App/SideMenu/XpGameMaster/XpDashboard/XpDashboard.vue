@@ -1,12 +1,12 @@
 <template>
   <ion-page :class="$options.name">
     <ion-header :translucent="true">
-      <ion-toolbar>
+      <ion-toolbar class="icon-colors rpg-box">
         <ion-buttons slot="start">
           <ion-menu-button @click="play$fx('select')" />
         </ion-buttons>
+        <i class="fad fa-gamepad-alt fa-2x" slot="start"/>
         <ion-title>
-          <i class="fad fa-gamepad-alt fa-lg mr-2"></i>
           Game Master Dashboard
         </ion-title>
         <ion-buttons slot="end">

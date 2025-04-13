@@ -90,8 +90,8 @@
         <ion-buttons slot="start">
           <ion-back-button defaultHref="/game-master" />
         </ion-buttons>
+          <i class="fad fa-hand-holding-water fa-2x" slot="start" />
         <ion-title>
-          <i class="fad fa-place-of-worship fa-lg" />
           Temples
         </ion-title>
       </ion-toolbar>
@@ -133,6 +133,21 @@
           </ion-col>
         </ion-row>
       </ion-grid>
+      
+      <!-- Temple Creator Floating Action Button -->
+      <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+        <ion-fab-button @click="showCreateTempleOptions" color="primary">
+          <i class="fas fa-dungeon"></i>
+        </ion-fab-button>
+      </ion-fab>
+      
+      <!-- Temple options action sheet -->
+      <ion-action-sheet
+        :is-open="isCreateTemplateOptionsOpen"
+        header="Create Temple"
+        :buttons="createTempleButtons"
+        @didDismiss="isCreateTemplateOptionsOpen = false"
+      ></ion-action-sheet>
     </ion-content>
   </ion-page>
 </template>
@@ -152,6 +167,63 @@
       const $router = useRouter();
       const templeDb = new TempleDb(templeStorage);
       const templeData = ref({} as Record<string, TempleInterface>);
+      const isCreateTemplateOptionsOpen = ref(false);
+      const createTempleButtons = ref([
+        {
+          text: "Create Wind Temple",
+          icon: "wind",
+          handler: () => {
+            goToTempleCreator("wind-temple");
+          },
+        },
+        {
+          text: "Create Earth Temple",
+          icon: "mountain",
+          handler: () => {
+            goToTempleCreator("earth-temple");
+          },
+        },
+        {
+          text: "Create Water Temple",
+          icon: "water",
+          handler: () => {
+            goToTempleCreator("water-temple");
+          },
+        },
+        {
+          text: "Create Fire Fortress",
+          icon: "fire",
+          handler: () => {
+            goToTempleCreator("fire-fortress");
+          },
+        },
+        {
+          text: "Create Frozen Fortress",
+          icon: "snowflake",
+          handler: () => {
+            goToTempleCreator("frozen-fortress");
+          },
+        },
+        {
+          text: "Create Sun Temple",
+          icon: "sun",
+          handler: () => {
+            goToTempleCreator("sun-temple");
+          },
+        },
+        {
+          text: "Create Moon Temple",
+          icon: "moon",
+          handler: () => {
+            goToTempleCreator("moon-temple");
+          },
+        },
+        {
+          text: "Cancel",
+          icon: "close",
+          role: "cancel",
+        },
+      ]);
 
       // Default temple configuration
       const temples = ref([
@@ -272,6 +344,19 @@
         });
       };
 
+      const showCreateTempleOptions = () => {
+        isCreateTemplateOptionsOpen.value = true;
+      };
+
+      const goToTempleCreator = (templeId: string) => {
+        $router.push({
+          name: 'xp-temple-creator',
+          params: {
+            templeId
+          }
+        });
+      };
+
       return {
         getBgUrl,
         clickTemple,
@@ -279,6 +364,9 @@
         getTempleName,
         getTempleDescription,
         temples,
+        isCreateTemplateOptionsOpen,
+        createTempleButtons,
+        showCreateTempleOptions,
       };
     },
   });

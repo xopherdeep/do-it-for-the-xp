@@ -1,12 +1,13 @@
 <template>
   <ion-page :class="$options.name">
     <ion-header>
-      <ion-toolbar>
+      <ion-toolbar class="icon-colors rpg-box">
         <ion-buttons slot="start">
           <ion-back-button defaultHref="/game-master" />
         </ion-buttons>
+        <i slot="start" class="fad fa-hand-holding-magic fa-2x" />
         <ion-title>
-          Abilities Management
+          Abilities 
         </ion-title>
         <ion-buttons slot="end">
           <ion-button @click="toggleViewMode">

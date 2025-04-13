@@ -15,7 +15,7 @@
           </ion-tab-button>
           <ion-tab-button
             tab="dashboard"
-            href="/game-master"
+            href="/game-master/dashboard"
             :selected="$route.path === '/game-master/dashboard'"
           >
             <i class="fad fa-heart fa-2x" />

@@ -7,6 +7,12 @@
         </ion-buttons>
         <ion-title>Temple Settings</ion-title>
         <ion-buttons slot="end">
+          <ion-button @click="goToTempleCreator">
+            <i class="fas fa-dungeon" />
+            <ion-label >Temple Creator</ion-label>
+          </ion-button>
+        </ion-buttons>
+        <ion-buttons slot="end">
           <ion-button>
             <i class="fas fa-cog" />
           </ion-button>
@@ -332,6 +338,15 @@
           id: this.templeId
         };
         await templeDb.setTemple(templeToSave);
+      },
+      
+      goToTempleCreator() {
+        this.$router.push({
+          name: 'xp-temple-creator',
+          params: {
+            templeId: this.templeId
+          }
+        });
       }
     },
   });
