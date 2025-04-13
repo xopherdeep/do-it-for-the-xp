@@ -256,21 +256,21 @@
               <ion-col size="4">
                 <ion-button fill="clear" @click="quickSetRoomType('wall')" :class="{ 'selected': quickEditType === 'wall' }">
                   <div class="button-content">
-                    <i class="fas fa-square"></i><span>Wall</span>
+                    <i :class="ROOM_ICONS['wall']"></i><span>Wall</span>
                   </div>
                 </ion-button>
               </ion-col>
               <ion-col size="4">
                 <ion-button fill="clear" @click="quickSetRoomType('empty')" :class="{ 'selected': quickEditType === 'empty' }">
                   <div class="button-content">
-                    <i class="fas fa-square-full"></i><span>Empty</span>
+                    <i :class="ROOM_ICONS['empty']"></i><span>Empty</span>
                   </div>
                 </ion-button>
               </ion-col>
               <ion-col size="4">
                 <ion-button fill="clear" @click="quickSetRoomType('monster')" :class="{ 'selected': quickEditType === 'monster' }">
                   <div class="button-content">
-                    <i class="fas fa-skull"></i><span>Monster</span>
+                    <i :class="ROOM_ICONS['monster']"></i><span>Monster</span>
                   </div>
                 </ion-button>
               </ion-col>
@@ -279,21 +279,21 @@
               <ion-col size="4">
                 <ion-button fill="clear" @click="quickSetRoomType('loot')" :class="{ 'selected': quickEditType === 'loot' }">
                   <div class="button-content">
-                    <i class="fas fa-treasure-chest"></i><span>Chest</span>
+                    <i :class="ROOM_ICONS['loot']"></i><span>Chest</span>
                   </div>
                 </ion-button>
               </ion-col>
               <ion-col size="4">
                 <ion-button fill="clear" @click="quickSetRoomType('boss')" :class="{ 'selected': quickEditType === 'boss' }">
                   <div class="button-content">
-                    <i class="fas fa-dragon"></i><span>Boss</span>
+                    <i :class="ROOM_ICONS['boss']"></i><span>Boss</span>
                   </div>
                 </ion-button>
               </ion-col>
               <ion-col size="4">
                 <ion-button fill="clear" @click="quickSetRoomType('teleport')" :class="{ 'selected': quickEditType === 'teleport' }">
                   <div class="button-content">
-                    <i class="fas fa-portal-exit"></i><span>Teleport</span>
+                    <i :class="ROOM_ICONS['teleport']"></i><span>Teleport</span>
                   </div>
                 </ion-button>
               </ion-col>
@@ -302,21 +302,21 @@
               <ion-col size="4">
                 <ion-button fill="clear" @click="quickSetRoomType('shop')" :class="{ 'selected': quickEditType === 'shop' }">
                   <div class="button-content">
-                    <i class="fas fa-store"></i><span>Shop</span>
+                    <i :class="ROOM_ICONS['shop']"></i><span>Shop</span>
                   </div>
                 </ion-button>
               </ion-col>
                <ion-col size="4">
                  <ion-button fill="clear" @click="quickSetRoomType('health')" :class="{ 'selected': quickEditType === 'health' }">
                    <div class="button-content">
-                     <i class="fas fa-heart"></i><span>Health</span>
+                     <i :class="ROOM_ICONS['health']"></i><span>Health</span>
                    </div>
                  </ion-button>
                </ion-col>
                <ion-col size="4">
                  <ion-button fill="clear" @click="quickSetRoomType('miniboss')" :class="{ 'selected': quickEditType === 'miniboss' }">
                    <div class="button-content">
-                     <i class="fas fa-ghost"></i><span>MiniBoss</span>
+                     <i :class="ROOM_ICONS['miniboss']"></i><span>MiniBoss</span>
                    </div>
                  </ion-button>
                </ion-col>
