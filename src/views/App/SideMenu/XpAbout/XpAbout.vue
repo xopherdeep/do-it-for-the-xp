@@ -6,37 +6,22 @@
           <h1>Welcome to XP!</h1>
           <ion-img :src="$requireIcon('./mobile-game.svg')" />
           <ion-text>
-            Hello, and welcome to the World of <b>XP</b>!
-            You have been summoned to embark on a fun and fulfilling jouney.
+            Welcome to <b>XP</b>! Your life is an adventure, and this app helps you track your progress, manage your tasks (we call them quests!), and reward yourself along the way. Get ready for a fun and fulfilling journey!
           </ion-text>
         </swiper-slide>
         <swiper-slide>
-          <h1>Do it for the <b>XP</b></h1>
+          <h1>Turn Tasks into Quests</h1>
           <ion-img :src="$requireIcon('./level.svg')" />
           <ion-text>
-            We've combined the inticing power of gaming with the mezmerizing
-            functionality of a phone app to bring you a most entertaining
-            platform to manage and reward quests throughout your adventure.
+            XP transforms everyday chores and goals into exciting quests. We've blended the engaging power of gaming with practical task management to create an entertaining platform for your life's adventure. Do it for the <b>XP</b>!
           </ion-text>
         </swiper-slide>
         <swiper-slide>
-          <h1>Gain Levels</h1>
+          <h1>Earn Rewards & Gain Levels</h1>
           <ion-img :src="$requireIcon('./024-level.svg')" />
           <ion-text>
-            As in any chore app you'll see, Points are reward As chores are
-            completed. In <b>XP</b> , however, you are rewarded: AP, GP, and XP!
-            Raise your level as you continue your quest with XP. The more you
-            use XP, the more abilities you'll unlock and rewards you will cash
-            out.
-
-
+            Completing quests earns you different kinds of points: AP (Ability Points), GP (Gold Points), and XP (Experience Points)! Use AP to unlock new features, spend GP on real-world rewards you define, and gain XP to level up your character. The more you use the app, the more powerful and rewarding your journey becomes!
           </ion-text>
-          <ion-card>
-            <ion-menu-button>
-              Open Menu
-
-            </ion-menu-button>
-          </ion-card>
         </swiper-slide>
       </swiper>
     </ion-content>
