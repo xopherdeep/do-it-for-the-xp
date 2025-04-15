@@ -38,14 +38,14 @@ import 'swiper/css';
 
 import {
   IonPage,
-  IonHeader,
-  IonToolbar,
-  IonButtons,
-  IonButton,
-  IonMenuButton,
-  IonTitle,
-  IonSlides,
-  IonSlide,
+  // IonHeader, // Unused
+  // IonToolbar, // Unused
+  // IonButtons, // Unused
+  // IonButton, // Unused
+  // IonMenuButton, // Unused
+  // IonTitle, // Unused
+  // IonSlides, // Deprecated
+  // IonSlide, // Deprecated
   IonContent,
   IonText,
   IonImg,
@@ -60,16 +60,16 @@ export default defineComponent({
     SwiperSlide,
     IonImg,
     IonText,
-    IonButton,
+    // IonButton, // Unused
     IonPage,
     // IonSlides and IonSlide are deprecated in Ionic Vue, Swiper is used instead
     // IonSlides,
     // IonSlide,
-    IonHeader,
-    IonToolbar,
-    IonButtons,
-    IonMenuButton,
-    IonTitle,
+    // IonHeader, // Unused
+    // IonToolbar, // Unused
+    // IonButtons, // Unused
+    // IonMenuButton, // Unused
+    // IonTitle, // Unused
     IonContent,
   },
   setup() {
