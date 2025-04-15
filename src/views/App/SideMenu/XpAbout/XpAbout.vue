@@ -28,5 +28,61 @@
   </ion-page>
 </template>
 
-<script src="./XpAbout" />
+<script>
+import { defineComponent } from "vue";
+// import requireImg from "@/assets/js/requireImg.js";
+const requireImg = require.context("@/assets/icons/");
+import { Swiper, SwiperSlide } from "swiper/vue";
+ // Import Swiper styles
+import 'swiper/css';
+
+import {
+  IonPage,
+  IonHeader,
+  IonToolbar,
+  IonButtons,
+  IonButton,
+  IonMenuButton,
+  IonTitle,
+  IonSlides,
+  IonSlide,
+  IonContent,
+  IonText,
+  IonImg,
+} from "@ionic/vue";
+
+import { arrowBack } from "ionicons/icons";
+
+export default defineComponent({
+  name: 'XpAbout', // Add component name
+  components: {
+    Swiper,
+    SwiperSlide,
+    IonImg,
+    IonText,
+    IonButton,
+    IonPage,
+    // IonSlides and IonSlide are deprecated in Ionic Vue, Swiper is used instead
+    // IonSlides,
+    // IonSlide,
+    IonHeader,
+    IonToolbar,
+    IonButtons,
+    IonMenuButton,
+    IonTitle,
+    IonContent,
+  },
+  setup() {
+    // code
+    return {
+      arrowBack,
+      requireImg,
+      // Expose appConfig methods/properties if needed in template
+      // For example, if $requireIcon is used:
+      $requireIcon: requireImg // Assuming requireImg serves the same purpose
+    };
+  },
+});
+</script>
+
 <style lang="scss" src="./_XpAbout.scss" scoped />
