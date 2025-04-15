@@ -82,11 +82,11 @@ ion-item.selected {
   ion-searchbar,
   ion-content,
   ion-footer {
-    --background: #3d3c55 !important;
+    --background: transparent !important;
     --color: #e7e6b3 !important;
     --placeholder-color: #e7e6b3 !important;
     --icon-color: var(--ion-color-contrast) !important;
-    background: #3d3c55 !important;
+    background: transparent !important;
     color: #e7e6b3 !important;
   }
 
