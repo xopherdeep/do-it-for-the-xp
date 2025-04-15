@@ -1,33 +1,50 @@
 <template>
   <ion-page>
     <ion-header>
-      <ion-toolbar>
+      <ion-toolbar class="rpg-box">
         <ion-title>About XP</ion-title>
       </ion-toolbar>
     </ion-header>
-    <ion-content :fullscreen="true" class="ion-padding">
-      <swiper :modules="modules" navigation pager="true" :pagination="{ clickable: true }">
+    <ion-content
+      :fullscreen="true"
+      class="ion-padding bg-slide"
+    >
+      <swiper
+        :modules="modules"
+        navigation
+        pager="true"
+        :pagination="{ clickable: true }"
+      >
         <swiper-slide>
           <h1>Welcome to XP!</h1>
           <ion-img :src="$requireIcon('./mobile-game.svg')" />
           <ion-text>
-            Welcome to <b>XP</b>! Your life is an adventure, and this app helps you track your progress, manage your tasks (we call them quests!), and reward yourself along the way. Get ready for a fun and fulfilling journey!
+            Welcome to <b>XP</b>! Your life is an adventure, and this app helps you track your progress, manage your
+            tasks (we call them quests!), and reward yourself along the way. Get ready for a fun and fulfilling journey!
           </ion-text>
         </swiper-slide>
         <swiper-slide>
           <h1>Turn Tasks into Quests</h1>
           <ion-img :src="$requireIcon('./level.svg')" />
           <ion-text>
-            XP transforms everyday chores and goals into exciting quests. We've blended the engaging power of gaming with practical task management to create an entertaining platform for your life's adventure. Do it for the <b>XP</b>!
+            XP transforms everyday chores and goals into exciting quests. We've blended the engaging power of gaming
+            with practical task management to create an entertaining platform for your life's adventure. Do it for the
+            <b>XP</b>!
           </ion-text>
         </swiper-slide>
         <swiper-slide>
           <h1>Earn Rewards & Gain Levels</h1>
           <ion-img :src="$requireIcon('./024-level.svg')" />
           <ion-text>
-            Completing quests earns you different kinds of points: AP (Ability Points), GP (Gold Points), and XP (Experience Points)! Use AP to unlock new features, spend GP on real-world rewards you define, and gain XP to level up your character. The more you use the app, the more powerful and rewarding your journey becomes!
+            Completing quests earns you different kinds of points: AP (Ability Points), GP (Gold Points), and XP
+            (Experience Points)! Use AP to unlock new features, spend GP on real-world rewards you define, and gain XP
+            to level up your character. The more you use the app, the more powerful and rewarding your journey becomes!
           </ion-text>
-          <ion-button @click="getStarted" expand="block" class="ion-margin-top">
+          <ion-button
+            @click="getStarted"
+            expand="block"
+            class="ion-margin-top"
+          >
             Get Started!
           </ion-button>
         </swiper-slide>
@@ -42,7 +59,8 @@ import { defineComponent } from "vue";
 const requireImg = require.context("@/assets/icons/");
 import { useRouter } from 'vue-router';
 import { Swiper, SwiperSlide } from "swiper/vue";
-import { Pagination, Navigation } from 'swiper/modules';
+// Correct import for Swiper modules (v7+)
+import { Pagination, Navigation } from 'swiper';
 
 // Import Swiper styles
 import 'swiper/css';
@@ -115,22 +133,7 @@ export default defineComponent({
       font-size: 1.2rem;
       padding: 2em;
       font-family: sans-serif;
-      background-color: #68a8d8;
-      background-image:
-        linear-gradient(45deg,
-          #80d890 25%,
-          transparent 25%,
-          transparent 75%,
-          #80d890 75%),
-        linear-gradient(45deg,
-          #80d890 25%,
-          transparent 25%,
-          transparent 75%,
-          #80d890 75%);
-      background-size: 60px 60px;
-      background-position: 0 0, 30px 30px;
-      // Consider reducing animation intensity or removing if too distracting
-      animation: slide 4s infinite linear;
+
 
       .swiper-slide {
         display: flex;
@@ -156,7 +159,7 @@ export default defineComponent({
         }
 
         ion-button {
-           // Ensure button is not overly wide on large screens if needed
+          // Ensure button is not overly wide on large screens if needed
           // max-width: 300px;
         }
       }
@@ -219,10 +222,12 @@ ion-text {
 /* Add Swiper Navigation/Pagination Styles */
 :deep(.swiper-button-prev),
 :deep(.swiper-button-next) {
-  color: #280828; /* Match text box color */
+  color: #280828;
+  /* Match text box color */
 }
 
 :deep(.swiper-pagination-bullet-active) {
-  background: #f7e8a8; /* Match text box highlight */
+  background: #f7e8a8;
+  /* Match text box highlight */
 }
 </style>
