@@ -2,7 +2,7 @@ import { defineComponent, ref, watch } from "vue";
 import { mapGetters } from "vuex";
 import { alertController } from "@ionic/vue";
 import ionic from "@/mixins/ionic";
-import { useRouter, useRoute } from 'vue-router';
+import { useRouter, useRoute } from "vue-router";
 
 import {
   addOutline,
@@ -18,8 +18,8 @@ import AchievementDb, {
   achievementCategoryStorage,
   Achievement,
   AchievementCategoryDb,
-  AchievementCategoryInterface
-} from "@/databases/AchievementDb"
+  AchievementCategoryInterface,
+} from "@/databases/AchievementDb";
 
 import XpAchievementItem from "./XpAddAchievement/components/XpAchievementItem.vue";
 
@@ -29,7 +29,9 @@ export default defineComponent({
   components: { XpAchievementItem },
   computed: {
     ...mapGetters(["usersAz"]),
-    users() { return this.usersAz },
+    users() {
+      return this.usersAz;
+    },
 
     hasAchievements() {
       return this.groupedAchievements?.length > 0;
@@ -39,52 +41,63 @@ export default defineComponent({
     },
     expiredAchievements() {
       const now = new Date();
-      return this.filteredAchievements?.filter(achievement => new Date(achievement.endsOn) < now);
+      return this.filteredAchievements?.filter(
+        (achievement) => new Date(achievement.endsOn) < now
+      );
     },
 
     asNeededAchievements() {
-      return this.filteredAchievements?.filter(achievement => achievement.type === "asNeeded");
+      return this.filteredAchievements?.filter(
+        (achievement) => achievement.type === "asNeeded"
+      );
     },
 
     groupedAchievements() {
       const groupAchievements = (grouped, achievement) => {
-        const category = grouped.find(group => group.categoryId === achievement.categoryId);
+        const category = grouped.find(
+          (group) => group.categoryId === achievement.categoryId
+        );
         // TODO: do the same for assignee, but its an array of ids
-        const assignee = grouped.find(group => achievement.assignee.includes(group.assignee));
+        const assignee = grouped.find((group) =>
+          achievement.assignee.includes(group.assignee)
+        );
 
         switch (this.groupBy) {
           case "assignee":
             if (assignee) {
               assignee.achievements.push(achievement);
             } else if (achievement.assignee) {
-              achievement.assignee.forEach(assignee => {
+              achievement.assignee.forEach((assignee) => {
                 grouped.push({ assignee, achievements: [achievement] });
               });
             }
             break;
 
           default:
-
             if (category) {
               category.achievements.push(achievement);
             } else {
-              grouped.push({ categoryId: achievement.categoryId, achievements: [achievement] });
+              grouped.push({
+                categoryId: achievement.categoryId,
+                achievements: [achievement],
+              });
             }
 
             break;
         }
 
         return grouped;
-      }
+      };
 
       return this.filteredAchievements?.reduce(groupAchievements, []);
-
     },
   },
 
   watch: {
     groupBy(group) {
-      let groupAchievements = () => { /** Do nothing */ };
+      let groupAchievements = () => {
+        /** Do nothing */
+      };
 
       switch (group) {
         case "category":
@@ -92,10 +105,12 @@ export default defineComponent({
           // No specific grouping logic for these cases, so just load achievements.
           break;
         case "asNeeded":
-          groupAchievements = () => this.setAchievements(this.asNeededAchievements);
+          groupAchievements = () =>
+            this.setAchievements(this.asNeededAchievements);
           break;
         case "expired":
-          groupAchievements = () => this.setAchievements(this.expiredAchievements);
+          groupAchievements = () =>
+            this.setAchievements(this.expiredAchievements);
           break;
       }
 
@@ -116,13 +131,13 @@ export default defineComponent({
     },
 
     clickFilter() {
-      this.showFilters = !this.showFilters
+      this.showFilters = !this.showFilters;
     },
     clickAdd() {
-      this.$router.push("/add-achievement");
+      this.$router.push("/game-master/add-achievement");
     },
     clickDiscover() {
-      this.$router.push("/discover-achievements");
+      this.$router.push("/game-master/discover-achievements");
     },
     clickEdit(id) {
       this.$router.push({
@@ -181,15 +196,14 @@ export default defineComponent({
     },
 
     getCategoryById(id: string) {
-      const findCatById = cat => cat.id === id;
+      const findCatById = (cat) => cat.id === id;
       return this.categories.find(findCatById);
     },
 
     getAssigneeById(id: string) {
-      const findUserById = user => user.id === id
+      const findUserById = (user) => user.id === id;
       return this.users.find(findUserById);
     },
-
   },
   mounted() {
     this.loadAchievements();
@@ -201,10 +215,10 @@ export default defineComponent({
   setup() {
     const achievements = ref();
     const searchText = ref("");
-    const showFilters = ref(false)
+    const showFilters = ref(false);
     const groupBy = ref("category");
     const achievementDb = new AchievementDb(achievementStorage);
-    const categoryDb = new AchievementCategoryDb(achievementCategoryStorage)
+    const categoryDb = new AchievementCategoryDb(achievementCategoryStorage);
     const categories = ref([] as AchievementCategoryInterface[]);
 
     const sortCategoryByName = (a, b) => {
@@ -220,11 +234,10 @@ export default defineComponent({
       }
 
       return 0;
-    }
+    };
 
-    const showPoints = ref(true)
-    const isLoading = ref(true)
-
+    const showPoints = ref(true);
+    const isLoading = ref(true);
 
     const route = useRoute();
     watch(
@@ -235,7 +248,7 @@ export default defineComponent({
           achievements.value = await achievementDb.getAll();
         }
       },
-      { immediate: true }  // Fetch data immediately when the component is created
+      { immediate: true } // Fetch data immediately when the component is created
     );
 
     return {

@@ -9,17 +9,20 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true" class="rpg-box">
-      <ion-card>
+    <ion-content
+      :fullscreen="true"
+      class="rpg-box bg-slide"
+    >
+      <ion-card class="max-w-2xl">
         <ion-list>
           <ion-item-group>
             <ion-item-divider>
               <ion-label>UI Theme</ion-label>
             </ion-item-divider>
-            
+
             <ion-item>
               <ion-label>Interface Style</ion-label>
-              <ion-select 
+              <ion-select
                 :value="theme.ui"
                 interface="action-sheet"
                 @ionChange="changeUISound"
@@ -35,10 +38,10 @@
             <ion-item-divider>
               <ion-label>RPG Theme</ion-label>
             </ion-item-divider>
-            
+
             <ion-item>
               <ion-label>Game Style</ion-label>
-              <ion-select 
+              <ion-select
                 :value="theme.rpg"
                 interface="action-sheet"
                 @ionChange="changeRPGSound"
@@ -54,18 +57,25 @@
             <ion-item-divider>
               <ion-label>Display</ion-label>
             </ion-item-divider>
-            
+
             <ion-item>
               <ion-label>
                 <h2>Dark Mode</h2>
                 <p>Enable dark theme across the app</p>
               </ion-label>
-              <ion-toggle v-model="themeSettings.darkMode" @ionChange="toggleDarkMode"></ion-toggle>
+              <ion-toggle
+                v-model="themeSettings.darkMode"
+                @ionChange="toggleDarkMode"
+              ></ion-toggle>
             </ion-item>
 
             <ion-item>
               <ion-label>Color Theme</ion-label>
-              <ion-select v-model="themeSettings.colorTheme" interface="action-sheet" @ionChange="updateColorTheme">
+              <ion-select
+                v-model="themeSettings.colorTheme"
+                interface="action-sheet"
+                @ionChange="updateColorTheme"
+              >
                 <ion-select-option value="default">Default</ion-select-option>
                 <ion-select-option value="fantasy">Fantasy</ion-select-option>
                 <ion-select-option value="retro">Retro Gaming</ion-select-option>
@@ -81,7 +91,7 @@
 <script lang="ts">
 import { defineComponent, ref } from 'vue'
 import { mapState, mapActions } from 'vuex'
-import { 
+import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonList, IonItem, IonLabel, IonToggle, IonCard,
   IonBackButton, IonButtons, IonSelect, IonSelectOption,
@@ -121,7 +131,7 @@ export default defineComponent({
   },
   methods: {
     ...mapActions(['changeSoundFX']),
-    
+
     async showToast(message: string) {
       const toast = await toastController.create({
         message,

@@ -2,6 +2,12 @@
   <ion-page>
     <ion-header>
       <ion-toolbar class="rpg-box">
+        <ion-buttons slot="start">
+          <ion-menu-button
+            color="primary"
+            @click="$fx.ui[$fx.theme.ui].select.play()"
+          ></ion-menu-button>
+        </ion-buttons>
         <ion-title>About XP</ion-title>
       </ion-toolbar>
     </ion-header>
@@ -16,37 +22,66 @@
         :pagination="{ clickable: true }"
       >
         <swiper-slide>
-          <h1>Welcome to XP!</h1>
-          <ion-img :src="$requireIcon('./mobile-game.svg')" />
-          <ion-text>
-            Welcome to <b>XP</b>! Your life is an adventure, and this app helps you track your progress, manage your
-            tasks (we call them quests!), and reward yourself along the way. Get ready for a fun and fulfilling journey!
-          </ion-text>
+          <ion-img
+            :src="$requireIcon('./mobile-game.svg')"
+            class="slide-image"
+          />
+          <ion-card class=" max-w-xl">
+            <ion-card-title>Welcome to XP!</ion-card-title>
+
+            <ion-card-content>
+
+              <ion-text>
+                Welcome to <b>XP</b>! Your life is an adventure, and this app helps you track your progress, manage your
+                tasks (we call them quests!), and reward yourself along the way. Get ready for a fun and fulfilling
+                journey!
+              </ion-text>
+            </ion-card-content>
+          </ion-card>
         </swiper-slide>
         <swiper-slide>
-          <h1>Turn Tasks into Quests</h1>
-          <ion-img :src="$requireIcon('./level.svg')" />
-          <ion-text>
-            XP transforms everyday chores and goals into exciting quests. We've blended the engaging power of gaming
-            with practical task management to create an entertaining platform for your life's adventure. Do it for the
-            <b>XP</b>!
-          </ion-text>
+          <ion-img
+            :src="$requireIcon('./level.svg')"
+            class="slide-image"
+          />
+          <ion-card class="max-w-xl">
+            <ion-card-title>Turn Tasks into Quests</ion-card-title>
+            <ion-card-content>
+              <ion-text>
+                XP transforms everyday chores and goals into exciting quests. We've blended the engaging power of gaming
+                with practical task management to create an entertaining platform for your life's adventure. Do it for
+                the
+                <b>XP</b>!
+              </ion-text>
+            </ion-card-content>
+          </ion-card>
         </swiper-slide>
         <swiper-slide>
-          <h1>Earn Rewards & Gain Levels</h1>
-          <ion-img :src="$requireIcon('./024-level.svg')" />
-          <ion-text>
-            Completing quests earns you different kinds of points: AP (Ability Points), GP (Gold Points), and XP
-            (Experience Points)! Use AP to unlock new features, spend GP on real-world rewards you define, and gain XP
-            to level up your character. The more you use the app, the more powerful and rewarding your journey becomes!
-          </ion-text>
-          <ion-button
-            @click="getStarted"
-            expand="block"
-            class="ion-margin-top"
-          >
-            Get Started!
-          </ion-button>
+          <ion-img
+            :src="$requireIcon('./024-level.svg')"
+            class="slide-image"
+          />
+          <ion-card class="max-w-xl">
+            <ion-card-title>Earn Rewards & Gain Levels</ion-card-title>
+            <ion-card-content>
+              <ion-text>
+                Completing quests earns you different kinds of points: AP (Ability Points), GP (Gold Points), and XP
+                (Experience Points)! Use AP to unlock new features, spend GP on real-world rewards you define, and gain
+                XP
+                to level up your character. The more you use the app, the more powerful and rewarding your journey
+                becomes!
+              </ion-text>
+            </ion-card-content>
+            <ion-button
+              @click="getStarted"
+              expand="block"
+              color="success"
+              class=" mb-2 w-1/2 mx-auto"
+            >
+              Get Started!
+            </ion-button>
+
+          </ion-card>
         </swiper-slide>
       </swiper>
     </ion-content>
@@ -102,7 +137,7 @@ export default defineComponent({
 
     const getStarted = () => {
       // Navigate to the main part of the app, adjust '/tabs/home' as needed
-      router.push('/tabs/home');
+      router.push({ name: 'xp-profile' });
       // Optionally, set a flag in localStorage/store indicating the intro has been seen
       // localStorage.setItem('introSeen', 'true');
     };
@@ -142,25 +177,53 @@ export default defineComponent({
         align-items: center;
         padding: 1em 2em; // Adjust padding
         text-align: center; // Center text within slide
+        height: 100%;
 
-        h1 {
-          margin-top: 0; // Adjust spacing if needed
+        .slide-content {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: space-between;
+          height: 100%;
+          max-width: 600px;
+          padding-bottom: 60px;
+          /* Space for pagination dots */
         }
 
-        img {
-          width: 60%; // Adjust image size
-          max-width: 250px; // Add max-width
-          max-height: 200px;
-          margin: 1.5em 0; // Adjust margins
+        h1 {
+          margin-top: 2rem;
+          margin-bottom: 1rem;
+          font-size: 1.8rem;
+        }
+
+        .slide-image {
+          width: 45%;
+          max-width: 200px;
+          max-height: 150px;
+          margin: 1rem 0;
+          object-fit: contain;
         }
 
         ion-text {
-          margin-bottom: 1em; // Add space below text
+          margin: 1rem 0 1.5rem;
+          width: 100%;
+          line-height: 1.5;
+          font-family: "StatusPlz";
         }
 
-        ion-button {
-          // Ensure button is not overly wide on large screens if needed
-          // max-width: 300px;
+        .button-container {
+          width: 100%;
+          margin-top: 2rem;
+          margin-bottom: 3rem;
+          /* Extra space above pagination dots */
+        }
+
+        .get-started-button {
+          max-width: 250px;
+          margin: 0 auto;
+          --border-radius: 8px;
+          font-weight: bold;
+          height: 48px;
         }
       }
     }
@@ -182,30 +245,6 @@ export default defineComponent({
 /* Removed unused styles: main, .right, p, .grid, .column */
 
 
-/* EARTHBOUND STYLE CHATBOX */
-ion-text {
-  /* Reviewing this style - ensure readability */
-  min-width: 5em;
-  display: inline-block;
-  position: relative;
-  vertical-align: top;
-  background-color: #280828;
-  color: #e7e6b3;
-  padding: 5px 3px;
-  border-radius: 1px;
-  transform: translateY(0);
-  transition: transform linear 150ms;
-  box-shadow:
-    0 0 0 5px #383050,
-    /* dark grey */
-    0 0 0 10px #68d0b8,
-    /* minty blue */
-    0 0 0 12px #f7e8a8,
-    /* white */
-    0 0 0 15px #3d3c55;
-  /* black */
-}
-
 .characters figure:hover .box {
   transform: translateY(-0.1em);
 }
@@ -224,6 +263,11 @@ ion-text {
 :deep(.swiper-button-next) {
   color: #280828;
   /* Match text box color */
+}
+
+:deep(.swiper-pagination) {
+  bottom: 20px !important;
+  /* Ensure pagination is a safe distance from content */
 }
 
 :deep(.swiper-pagination-bullet-active) {

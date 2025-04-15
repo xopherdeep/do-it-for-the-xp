@@ -117,10 +117,11 @@ $ap-font-family: "Nunito", sans-serif; // A rounded, friendly font
     }
 
     .info-item {
-      display: flex;
       align-items: center;
       gap: 8px;
       font-size: 0.9em;
+      margin: 0;
+      padding: 0;
 
       ion-icon {
         color: $ap-primary-color;

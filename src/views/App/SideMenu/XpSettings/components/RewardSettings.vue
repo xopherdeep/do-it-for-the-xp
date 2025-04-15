@@ -9,8 +9,11 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true" class="rpg-box">
-      <ion-card>
+    <ion-content
+      :fullscreen="true"
+      class="rpg-box bg-slide"
+    >
+      <ion-card class="max-w-2xl">
         <ion-list>
           <!-- Cash-Out S'mores Toggle -->
           <ion-item>
@@ -28,12 +31,25 @@
               <p>Visible only for selected kids</p>
             </ion-label>
           </ion-item>
-          <ion-item v-if="settings.enableCashOut" lines="none">
+          <ion-item
+            v-if="settings.enableCashOut"
+            lines="none"
+          >
             <div class="avatar-group">
-              <div v-for="user in kidUsers" :key="user.id" class="avatar-wrapper">
+              <div
+                v-for="user in kidUsers"
+                :key="user.id"
+                class="avatar-wrapper"
+              >
                 <ion-avatar @click="toggleKidCashout(user.id)">
-                  <img :src="appConfig.$getUserAvatar(user)" :alt="user.name.full">
-                  <i class="fad fa-check-circle status-icon" v-if="settings.cashoutKids[user.id]"></i>
+                  <img
+                    :src="appConfig.$getUserAvatar(user)"
+                    :alt="user.name.full"
+                  >
+                  <i
+                    class="fad fa-check-circle status-icon"
+                    v-if="settings.cashoutKids[user.id]"
+                  ></i>
                 </ion-avatar>
                 <span class="avatar-name">{{ user.name.nick }}</span>
               </div>
@@ -47,16 +63,22 @@
               <p>Conversion rate for S'mores to Cash</p>
             </ion-label>
           </ion-item>
-          <ion-item v-if="settings.enableCashOut" lines="none">
+          <ion-item
+            v-if="settings.enableCashOut"
+            lines="none"
+          >
             <div class="coin-grid">
-              <div class="coin-option custom" @click="selectRate('custom')">
+              <div
+                class="coin-option custom"
+                @click="selectRate('custom')"
+              >
                 <div class="coin-circle">
                   <i class="fad fa-plus"></i>
                 </div>
                 <span>Custom</span>
               </div>
-              <div 
-                v-for="rate in [1, 10, 50, 100]" 
+              <div
+                v-for="rate in [1, 10, 50, 100]"
                 :key="rate"
                 class="coin-option"
                 :class="{ active: settings.conversionRate === rate }"
@@ -86,7 +108,7 @@
 <script lang="ts">
 import { defineComponent, ref, computed } from 'vue'
 import { useStore } from 'vuex'
-import { 
+import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonList, IonItem, IonLabel, IonToggle, IonCard,
   IonBackButton, IonButtons, IonAvatar
@@ -113,7 +135,7 @@ export default defineComponent({
 
     // Get all users sorted A-Z from Vuex store
     const users = computed(() => store.getters.usersAz)
-    
+
     // Filter for kid users
     const kidUsers = computed(() => users.value.filter(u => !u.isAdult))
 
@@ -164,7 +186,7 @@ export default defineComponent({
     width: 60px;
     height: 60px;
     position: relative;
-    
+
     img {
       width: 100%;
       height: 100%;

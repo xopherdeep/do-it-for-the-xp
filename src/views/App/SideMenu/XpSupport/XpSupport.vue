@@ -9,18 +9,27 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true" class="bg-slide">
-      <ion-grid>
+    <ion-content
+      :fullscreen="true"
+      class="bg-slide"
+    >
+      <ion-grid class="max-w-5xl">
         <ion-row>
           <ion-col
             size="12"
-            size-md="6"
+            size-md="4"
             v-for="tile in tiles"
             :key="tile.title"
           >
-            <ion-card @click="navigateTo(tile.src)" class="support-card">
+            <ion-card
+              @click="navigateTo(tile.src)"
+              class="support-card"
+            >
               <ion-card-header class="ion-text-center">
-                <i class="fad fa-5x" :class="tile.icon"></i>
+                <i
+                  class="fad fa-5x"
+                  :class="tile.icon"
+                ></i>
                 <ion-card-title>
                   {{ tile.title }}
                 </ion-card-title>

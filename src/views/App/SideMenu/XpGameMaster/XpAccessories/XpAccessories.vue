@@ -5,11 +5,17 @@
         <ion-buttons slot="start">
           <ion-back-button defaultHref="/game-master" />
         </ion-buttons>
-        <i slot="start" class="fad fa-hand-holding-usd fa-2x" />
+        <i
+          slot="start"
+          class="fad fa-hand-holding-usd fa-2x"
+        />
         <ion-title>
-          Shops & Accessories 
+          Shops & Accessories
         </ion-title>
         <ion-buttons slot="end">
+          <ion-button @click="openSettings">
+            <i class="fad fa-cog fa-lg" />
+          </ion-button>
           <ion-button @click="toggleFilter">
             <ion-icon :icon="filterIcon" />
           </ion-button>
@@ -22,6 +28,7 @@
           <ion-segment-button value="virtual">In-Game</ion-segment-button>
         </ion-segment>
         <ion-buttons slot="end">
+
           <ion-button @click="toggleSort">
             <ion-icon :icon="sortIcon" />
           </ion-button>
@@ -42,18 +49,32 @@
     </ion-header>
     <ion-content>
       <ion-list>
-        <ion-item v-for="accessory in filteredAccessories" :key="accessory.id" button @click="clickAccessory(accessory)">
+        <ion-item
+          v-for="accessory in filteredAccessories"
+          :key="accessory.id"
+          button
+          @click="clickAccessory(accessory)"
+        >
           <ion-label>
             {{ accessory.name }}
             <p>
               <ion-badge :color="getTypeColor(accessory.type)">{{ accessory.type || 'Unknown' }}</ion-badge>
-              <ion-badge color="medium" v-if="accessory.rarity">{{ getRarityLabel(accessory.rarity) }}</ion-badge>
+              <ion-badge
+                color="medium"
+                v-if="accessory.rarity"
+              >{{ getRarityLabel(accessory.rarity) }}</ion-badge>
             </p>
           </ion-label>
-          <xp-gp :gp="accessory.basePrice" slot="end" />
+          <xp-gp
+            :gp="accessory.basePrice"
+            slot="end"
+          />
         </ion-item>
       </ion-list>
-      <ion-fab vertical="bottom" horizontal="end">
+      <ion-fab
+        vertical="bottom"
+        horizontal="end"
+      >
         <ion-fab-button>
           <ion-icon :icon="add" />
         </ion-fab-button>
@@ -62,10 +83,16 @@
             <ion-icon :icon="addSharp" />
           </ion-fab-button>
           <ion-fab-button @click="clickDiscover">
-            <ion-icon :ios="searchOutline" :md="searchSharp" />
+            <ion-icon
+              :ios="searchOutline"
+              :md="searchSharp"
+            />
           </ion-fab-button>
           <ion-fab-button>
-            <ion-icon :ios="thumbsUpOutline" :md="thumbsUpSharp" />
+            <ion-icon
+              :ios="thumbsUpOutline"
+              :md="thumbsUpSharp"
+            />
           </ion-fab-button>
         </ion-fab-list>
       </ion-fab>
@@ -102,6 +129,11 @@
       }
     },
     methods: {
+      openSettings() {
+        this.$router.push({
+          name: 'xp-settings-reward'
+        })
+      },
       clickDiscover() {
         // Use the directly imported loadingController
         loadingController.create({

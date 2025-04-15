@@ -1,5 +1,8 @@
 <template>
-  <ion-menu content-id="main-content" type="overlay">
+  <ion-menu
+    content-id="main-content"
+    type="overlay"
+  >
     <ion-content>
       <ion-list id="inbox-list">
         <ion-list-header>XP</ion-list-header>
@@ -13,7 +16,7 @@
             v-if="menuItem.title"
             @click="
               setMenuItem(i);
-              $fx.ui[$fx.theme.ui].select.play();
+            $fx.ui[$fx.theme.ui].select.play();
             "
             router-direction="root"
             :router-link="menuItem.url"
@@ -57,182 +60,185 @@
 </template>
 
 <script lang="ts">
-  import { computed, defineComponent } from "vue";
-  import { mapActions, mapState, useStore } from "vuex";
-  import ionic from "@/mixins/ionic";
-  import { useRoute } from "vue-router";
-  import {
-    megaphoneOutline,
-    megaphoneSharp,
-    helpBuoySharp,
-    helpBuoyOutline,
-    informationCircleOutline,
-    informationCircleSharp,
-    diamondOutline,
-    diamondSharp,
-    peopleCircleOutline,
-    peopleCircleSharp,
-    logInOutline,
-    logInSharp,
-    gameControllerOutline,
-    gameControllerSharp,
-    optionsOutline,
-    optionsSharp,
-    lockClosedOutline,
-    lockClosedSharp,
-  } from "ionicons/icons";
+import { computed, defineComponent } from "vue";
+import { mapActions, mapState, useStore } from "vuex";
+import ionic from "@/mixins/ionic";
+import { useRoute } from "vue-router";
+import {
+  megaphoneOutline,
+  megaphoneSharp,
+  helpBuoySharp,
+  helpBuoyOutline,
+  informationCircleOutline,
+  informationCircleSharp,
+  diamondOutline,
+  diamondSharp,
+  peopleCircleOutline,
+  peopleCircleSharp,
+  logInOutline,
+  logInSharp,
+  gameControllerOutline,
+  gameControllerSharp,
+  optionsOutline,
+  optionsSharp,
+  lockClosedOutline,
+  lockClosedSharp,
+  heartHalfOutline,
+  heartHalfSharp,
+} from "ionicons/icons";
 
-  export default defineComponent({
-    name: "side-menu",
-    mixins: [ionic],
+export default defineComponent({
+  name: "side-menu",
+  mixins: [ionic],
 
-    data() {
-      return {
-        activeMenuItem: 0,
-        appPagesAnon: [
-          {
-            title: "Log In",
-            url: "/log-in",
-            iosIcon: logInOutline,
-            mdIcon: logInSharp,
-            lines: "none",
-          },
-        ],
-        appPages: [
-          // {
-          //   title: "Home",
-          //   url: "/home",
-          //   iosIcon: peopleCircleOutline,
-          //   mdIcon: peopleCircleSharp,
-          // },
-          {
-            title: "Start XP",
-            url: "/xp-profile/",
-            iosIcon: peopleCircleOutline,
-            mdIcon: peopleCircleSharp,
-            lines: "none",
-          },
-          {
-            title: "",
-          },
-          {
-            title: "Subscription",
-            url: "/xp-membership",
-            iosIcon: diamondOutline,
-            mdIcon: diamondSharp,
-            lines: "none",
-          },
-          {
-            title: "Tell a Friend",
-            url: "/tell-a-friend",
-            iosIcon: megaphoneOutline,
-            mdIcon: megaphoneSharp,
-            lines: "none",
-          },
-          {
-            title: "FAQ & Support",
-            url: "/xp-support",
-            iosIcon: helpBuoyOutline,
-            mdIcon: helpBuoySharp,
-            lines: "none",
-          },
-          {
-            title: "About Us",
-            url: "/about-xp",
-            iosIcon: informationCircleOutline,
-            mdIcon: informationCircleSharp,
-            lines: "full",
-          },
-          {
-            title: "",
-          },
-          // {
-          //   title: "Delete Profile",
-          //   url: "/log-out",
-          //   iosIcon: logOutOutline,
-          //   mdIcon: logOutSharp,
-          // },
-          {
-            title: "Game Master",
-            url: "/game-master",
-            iosIcon: gameControllerOutline,
-            mdIcon: gameControllerSharp,
+  data() {
+    return {
+      activeMenuItem: 0,
+      appPagesAnon: [
+        {
+          title: "Log In",
+          url: "/log-in",
+          iosIcon: logInOutline,
+          mdIcon: logInSharp,
+          lines: "none",
+        },
+      ],
+      appPages: [
+        // {
+        //   title: "Home",
+        //   url: "/home",
+        //   iosIcon: peopleCircleOutline,
+        //   mdIcon: peopleCircleSharp,
+        // },
+        {
+          title: "Switch XP Profile",
+          url: "/xp-profile/",
 
-            lines: "none",
-          },
-          {
-            title: "Settings",
-            url: "/xp-settings/",
-            iosIcon: optionsOutline,
-            mdIcon: optionsSharp,
-            lines: "full",
-          },
-          {
-            title: "Log Out",
-            url: "/log-out",
-            iosIcon: lockClosedOutline,
-            mdIcon: lockClosedSharp,
-            lines: "none",
-          },
-        ],
-      };
+          iosIcon: heartHalfOutline,
+          mdIcon: heartHalfSharp,
+          lines: "none",
+        },
+        {
+          title: "",
+        },
+        {
+          title: "Subscription",
+          url: "/xp-membership",
+          iosIcon: diamondOutline,
+          mdIcon: diamondSharp,
+          lines: "none",
+        },
+        {
+          title: "Tell a Friend",
+          url: "/tell-a-friend",
+          iosIcon: megaphoneOutline,
+          mdIcon: megaphoneSharp,
+          lines: "none",
+        },
+        {
+          title: "FAQ & Support",
+          url: "/xp-support",
+          iosIcon: helpBuoyOutline,
+          mdIcon: helpBuoySharp,
+          lines: "none",
+        },
+        {
+          title: "About Us",
+          url: "/about-xp",
+          iosIcon: informationCircleOutline,
+          mdIcon: informationCircleSharp,
+          lines: "full",
+        },
+        {
+          title: "",
+        },
+        // {
+        //   title: "Delete Profile",
+        //   url: "/log-out",
+        //   iosIcon: logOutOutline,
+        //   mdIcon: logOutSharp,
+        // },
+        {
+          title: "Game Master",
+          url: "/game-master",
+          iosIcon: gameControllerOutline,
+          mdIcon: gameControllerSharp,
+
+          lines: "none",
+        },
+        {
+          title: "Settings",
+          url: "/xp-settings/",
+          iosIcon: optionsOutline,
+          mdIcon: optionsSharp,
+          lines: "full",
+        },
+        {
+          title: "Log Out",
+          url: "/log-out",
+          iosIcon: lockClosedOutline,
+          mdIcon: lockClosedSharp,
+          lines: "none",
+        },
+      ],
+    };
+  },
+  computed: {
+    ...mapState(["theme", "bgm"]),
+  },
+  methods: {
+    setMenuItem(index) {
+      this.activeMenuItem = index;
     },
-    computed: {
-      ...mapState(["theme", "bgm"]),
+    initialIndex(): number {
+      const pathname = window.location.pathname;
+      const menu = this.getCurrentMenu();
+
+      // Find the menu item whose URL matches the current path
+      const index = menu.findIndex(
+        (page) => page.url && pathname.startsWith(page.url)
+      );
+
+      // Return the found index or 0 if no match
+      return index >= 0 ? index : 0;
     },
-    methods: {
-      setMenuItem(index) {
-        this.activeMenuItem = index;
-      },
-      initialIndex(): number {
-        const pathname = window.location.pathname;
-        const menu = this.getCurrentMenu();
-
-        // Find the menu item whose URL matches the current path
-        const index = menu.findIndex(
-          (page) => page.url && pathname.startsWith(page.url)
-        );
-
-        // Return the found index or 0 if no match
-        return index >= 0 ? index : 0;
-      },
-      ...mapActions(["changeBGM", "turnMusicOnOff", "changeSoundFX"]),
-      getCurrentMenu() {
-        const { appPages, appPagesAnon, isLoggedIn } = this;
-        return isLoggedIn ? appPages : appPagesAnon;
-      },
-      bgmToggle($event) {
-        this.$emit("toggleBGM", $event);
-      },
-
-      bgmNext() {
-        this.$emit("changeBGM", 1);
-      },
-
-      bgmPrev() {
-        this.$emit("changeBGM", -1);
-      },
+    ...mapActions(["changeBGM", "turnMusicOnOff", "changeSoundFX"]),
+    getCurrentMenu() {
+      const { appPages, appPagesAnon, isLoggedIn } = this;
+      return isLoggedIn ? appPages : appPagesAnon;
     },
-    setup() {
-      const store = useStore();
-      const route = useRoute();
-
-      return {
-        isLoggedIn: computed(() => store.getters.isLoggedIn),
-        route,
-      };
+    bgmToggle($event) {
+      this.$emit("toggleBGM", $event);
     },
-    mounted() {
-      // Set the active menu item based on the current URL when component mounts
+
+    bgmNext() {
+      this.$emit("changeBGM", 1);
+    },
+
+    bgmPrev() {
+      this.$emit("changeBGM", -1);
+    },
+  },
+  setup() {
+    const store = useStore();
+    const route = useRoute();
+
+    return {
+      isLoggedIn: computed(() => store.getters.isLoggedIn),
+      route,
+    };
+  },
+  mounted() {
+    // Set the active menu item based on the current URL when component mounts
+    this.activeMenuItem = this.initialIndex();
+  },
+  watch: {
+    // Update active menu item when route changes
+    $route() {
       this.activeMenuItem = this.initialIndex();
     },
-    watch: {
-      // Update active menu item when route changes
-      $route() {
-        this.activeMenuItem = this.initialIndex();
-      },
-    },
-  });
+  },
+});
 </script>
 
 <style lang="scss"></style>

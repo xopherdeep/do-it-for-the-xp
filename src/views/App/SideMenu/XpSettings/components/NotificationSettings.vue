@@ -5,12 +5,15 @@
         <ion-buttons slot="start">
           <ion-back-button default-href="/xp-settings"></ion-back-button>
         </ion-buttons>
-        <ion-title>Notifications</ion-title>
+        <ion-title>Notifications Settings</ion-title>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true" class="rpg-box">
-      <ion-card>
+    <ion-content
+      :fullscreen="true"
+      class="rpg-box bg-slide"
+    >
+      <ion-card class="max-w-2xl">
         <ion-list>
           <!-- Chore Due Notifications -->
           <ion-item>
@@ -20,14 +23,23 @@
             </ion-label>
             <ion-toggle v-model="settings.notifyParentsOnDue"></ion-toggle>
           </ion-item>
-          
+
           <ion-item v-if="settings.notifyParentsOnDue">
             <ion-label>Parents to notify:</ion-label>
           </ion-item>
-          <ion-item v-if="settings.notifyParentsOnDue" lines="none">
+          <ion-item
+            v-if="settings.notifyParentsOnDue"
+            lines="none"
+          >
             <div class="avatar-group">
-              <ion-avatar v-for="user in adultUsers" :key="user.id">
-                <img :src="appConfig.$getUserAvatar(user)" :alt="user.name.full">
+              <ion-avatar
+                v-for="user in adultUsers"
+                :key="user.id"
+              >
+                <img
+                  :src="appConfig.$getUserAvatar(user)"
+                  :alt="user.name.full"
+                >
                 <span class="avatar-name">{{ user.name.nick }}</span>
               </ion-avatar>
             </div>
@@ -49,10 +61,19 @@
               <p>A reminder will be sent to parents</p>
             </ion-label>
           </ion-item>
-          <ion-item v-if="settings.notifyOnComplete" lines="none">
+          <ion-item
+            v-if="settings.notifyOnComplete"
+            lines="none"
+          >
             <div class="avatar-group">
-              <ion-avatar v-for="user in adultUsers" :key="user.id">
-                <img :src="appConfig.$getUserAvatar(user)" :alt="user.name.full">
+              <ion-avatar
+                v-for="user in adultUsers"
+                :key="user.id"
+              >
+                <img
+                  :src="appConfig.$getUserAvatar(user)"
+                  :alt="user.name.full"
+                >
                 <span class="avatar-name">{{ user.name.nick }}</span>
               </ion-avatar>
             </div>
@@ -65,12 +86,21 @@
               <p>By default, no kids will be notified</p>
             </ion-label>
           </ion-item>
-          <ion-item v-if="settings.notifyOnComplete" lines="none">
+          <ion-item
+            v-if="settings.notifyOnComplete"
+            lines="none"
+          >
             <div class="avatar-group">
-              <ion-avatar v-for="user in kidUsers" :key="user.id">
-                <img :src="appConfig.$getUserAvatar(user)" :alt="user.name.full">
+              <ion-avatar
+                v-for="user in kidUsers"
+                :key="user.id"
+              >
+                <img
+                  :src="appConfig.$getUserAvatar(user)"
+                  :alt="user.name.full"
+                >
                 <span class="avatar-name">{{ user.name.nick }}</span>
-                <i 
+                <i
                   :class="notifiedKids[user.id] ? 'fad fa-check-circle' : 'fad fa-circle'"
                   class="notification-status"
                   @click="toggleKidNotification(user.id)"
@@ -87,7 +117,7 @@
 <script lang="ts">
 import { defineComponent, ref, computed } from 'vue'
 import { useStore } from 'vuex'
-import { 
+import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonList, IonItem, IonLabel, IonToggle, IonCard,
   IonBackButton, IonButtons, IonAvatar
@@ -114,10 +144,10 @@ export default defineComponent({
 
     // Get all users sorted A-Z from Vuex store
     const users = computed(() => store.getters.usersAz)
-    
+
     // Filter for adult users
     const adultUsers = computed(() => users.value.filter(u => u.isAdult))
-    
+
     // Filter for kid users
     const kidUsers = computed(() => users.value.filter(u => !u.isAdult))
 
@@ -156,7 +186,7 @@ export default defineComponent({
     display: flex;
     flex-direction: column;
     align-items: center;
-    
+
     img {
       width: 100%;
       height: 100%;

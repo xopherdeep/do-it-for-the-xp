@@ -9,15 +9,18 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true" class="rpg-box">
-      <ion-card>
+    <ion-content
+      :fullscreen="true"
+      class="rpg-box bg-slide"
+    >
+      <ion-card class="max-w-2xl">
         <ion-list>
           <!-- General Party Settings -->
           <ion-item-group>
             <ion-item-divider>
               <ion-label>General Party Settings</ion-label>
             </ion-item-divider>
-            
+
             <ion-item>
               <ion-label>
                 <h2>Lock My Family Circle</h2>
@@ -56,12 +59,25 @@
                 <p>Control who can post in family circles</p>
               </ion-label>
             </ion-item>
-            <ion-item v-if="settings.showFamilyCirclePosts" lines="none">
+            <ion-item
+              v-if="settings.showFamilyCirclePosts"
+              lines="none"
+            >
               <div class="avatar-group">
-                <div v-for="user in users" :key="user.id" class="avatar-wrapper">
+                <div
+                  v-for="user in users"
+                  :key="user.id"
+                  class="avatar-wrapper"
+                >
                   <ion-avatar @click="toggleUserPermission(user.id, 'canPost')">
-                    <img :src="appConfig.$getUserAvatar(user)" :alt="user.name.full">
-                    <i class="fad fa-check-circle status-icon" v-if="settings.permissions[user.id]?.canPost"></i>
+                    <img
+                      :src="appConfig.$getUserAvatar(user)"
+                      :alt="user.name.full"
+                    >
+                    <i
+                      class="fad fa-check-circle status-icon"
+                      v-if="settings.permissions[user.id]?.canPost"
+                    ></i>
                   </ion-avatar>
                   <span class="avatar-name">{{ user.name.nick }}</span>
                 </div>
@@ -74,12 +90,25 @@
                 <p>Control who can view family circle messages</p>
               </ion-label>
             </ion-item>
-            <ion-item v-if="settings.showFamilyCirclePosts" lines="none">
+            <ion-item
+              v-if="settings.showFamilyCirclePosts"
+              lines="none"
+            >
               <div class="avatar-group">
-                <div v-for="user in users" :key="user.id" class="avatar-wrapper">
+                <div
+                  v-for="user in users"
+                  :key="user.id"
+                  class="avatar-wrapper"
+                >
                   <ion-avatar @click="toggleUserPermission(user.id, 'canView')">
-                    <img :src="appConfig.$getUserAvatar(user)" :alt="user.name.full">
-                    <i class="fad fa-check-circle status-icon" v-if="settings.permissions[user.id]?.canView"></i>
+                    <img
+                      :src="appConfig.$getUserAvatar(user)"
+                      :alt="user.name.full"
+                    >
+                    <i
+                      class="fad fa-check-circle status-icon"
+                      v-if="settings.permissions[user.id]?.canView"
+                    ></i>
                   </ion-avatar>
                   <span class="avatar-name">{{ user.name.nick }}</span>
                 </div>
@@ -111,7 +140,10 @@
 
             <ion-item v-if="settings.allowPartyInvites">
               <ion-label>Who Can Send Invites</ion-label>
-              <ion-select v-model="settings.invitePermission" interface="action-sheet">
+              <ion-select
+                v-model="settings.invitePermission"
+                interface="action-sheet"
+              >
                 <ion-select-option value="adults">Adults Only</ion-select-option>
                 <ion-select-option value="all">All Members</ion-select-option>
                 <ion-select-option value="leader">Party Leader Only</ion-select-option>
@@ -127,7 +159,7 @@
 <script lang="ts">
 import { defineComponent, ref, computed } from 'vue'
 import { useStore } from 'vuex'
-import { 
+import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonList, IonItem, IonLabel, IonToggle, IonCard,
   IonBackButton, IonButtons, IonAvatar, IonItemDivider,
@@ -207,7 +239,7 @@ export default defineComponent({
     width: 60px;
     height: 60px;
     position: relative;
-    
+
     img {
       width: 100%;
       height: 100%;
