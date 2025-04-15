@@ -45,7 +45,6 @@
             detail
             button
             @click="openNewProfileModal"
-            class=""
           >
             <ion-label class="py-4 px-2">
               New Profile
@@ -306,8 +305,57 @@ export default defineComponent({
 <style scoped lang="scss">
 ion-content {
   --background: transparent;
+}
 
+.switch-profile {
+  ion-card {
+    text-align: center;
+    /* width: calc(100% - 35px); */
+    // min-width: calc(15vw)
+  }
 
+  // #container {
+  //   text-align: center;
+  //   position: absolute;
+  //   left: 0;
+  //   right: 0;
+  //   top: 50%;
+  //   transform: translateY(-50%);
+  // }
+
+  #container strong {
+    font-size: 20px;
+    line-height: 26px;
+  }
+
+  #container p {
+    font-size: 16px;
+    line-height: 22px;
+    color: #8c8c8c;
+    /* margin: 0; */
+  }
+
+  #container a {
+    text-decoration: none;
+  }
+
+  &#container {
+    height: 100vh;
+    background-color: #68a8d8;
+    background-image: linear-gradient(45deg,
+        #80d890 25%,
+        transparent 25%,
+        transparent 75%,
+        #80d890 75%),
+      linear-gradient(45deg,
+        #80d890 25%,
+        transparent 25%,
+        transparent 75%,
+        #80d890 75%);
+    background-size: 60px 60px;
+    background-position: 0 0, 30px 30px;
+    animation: slide 4s infinite linear;
+  }
 }
 
 .switch-profile {
@@ -436,12 +484,12 @@ ion-modal {
 
       // Set default duotone colors if not overridden
       /* --fa-primary-color: var(--ion-color-primary);
-        --fa-secondary-color: var(--ion-color-primary-shade); */
+      --fa-secondary-color: var(--ion-color-primary-shade); */
       /* --fa-secondary-opacity: 0.6; */
 
       &:last-child {
         /* --fa-primary-color: var(--ion-color-success);
-          --fa-secondary-color: var(--ion-color-success-shade); */
+        --fa-secondary-color: var(--ion-color-success-shade); */
       }
     }
   }
@@ -480,7 +528,7 @@ ion-modal {
       font-size: 0.9rem;
       color: var(--ion-color-tertiary);
       font-weight: 600;
-      text-transform: uppercase;
+      /* text-transform: uppercase; */
     }
 
     .value {
@@ -499,7 +547,7 @@ ion-modal {
     color: var(--ion-color-warning);
     font-size: 1.4rem;
     font-weight: 700;
-    font-family: "Twoson"
+    font-family: "Twoson";
   }
 }
 </style>

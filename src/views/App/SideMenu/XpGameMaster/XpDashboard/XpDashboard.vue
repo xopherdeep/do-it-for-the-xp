@@ -340,7 +340,7 @@ export default defineComponent({
       this.$router.push(path);
     },
     openSettings() {
-      this.$router.push({ name: "xp-settings-general" }, { replace: true });
+      this.$router.push({ name: "xp-settings-general" });
     },
     async openBonus() {
       const modal = await modalController.create({
@@ -412,7 +412,7 @@ export default defineComponent({
       };
     },
     openFamilySettings() {
-      this.$router.push({ name: "xp-settings-family", }, { replace: true });
+      this.$router.push({ name: "xp-settings-family" });
     },
     showSuccessToast(message) {
       // Use the imported toastController instead of this.$ionic.toastController
@@ -445,6 +445,7 @@ export default defineComponent({
         color: 'danger'
       }).then(toast => toast.present());
     },
+
     async openNewProfileModal() {
       const modal = await modalController.create({
         component: AddProfile,
