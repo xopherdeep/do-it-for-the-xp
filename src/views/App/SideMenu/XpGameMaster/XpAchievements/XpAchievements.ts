@@ -119,6 +119,12 @@ export default defineComponent({
   },
 
   methods: {
+
+    clickSettings(){
+      this.$router.push({name: "xp-settings-chore"});
+    },
+
+
     async loadAchievements() {
       this.isLoading = true;
       const achievements = await this.achievementDb.getTasks();

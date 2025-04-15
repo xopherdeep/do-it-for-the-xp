@@ -88,6 +88,22 @@ export default defineComponent({
   },
 
   computed: {
+    activeSegmentIcon() {
+      // Return the appropriate icon based on active segment
+      switch (this.activeSegment) {
+        case 'adventure':
+          return 'fa-scroll-old fa-2x';
+        case 'heros':
+          return 'fa-user-shield fa-2x';
+        case 'timer':
+          return 'fa-hourglass fa-2x';
+        case 'reward':
+          return 'fa-treasure-chest fa-2x';
+        default:
+          return 'fa-scroll-old fa-2x';
+      }
+    },
+    
     achievementExpired() {
       if (!this.achievement.endsOn) return false
       return new Date(this.achievement.endsOn) < new Date()

@@ -3,14 +3,14 @@
     <ion-header :translucent="true">
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-button :router-link="`/xp-settings/`">
-            <ion-icon
-              :icon="arrowBack"
-              slot="icon-only"
-            />
-          </ion-button>
+          <ion-back-button default-href="/xp-settings"/>
         </ion-buttons>
         <ion-title>Chore Settings</ion-title>
+        <ion-buttons slot="end">
+          <ion-button @click="clickSettings">
+            <i class="fad fa-bell fa-2x" />
+          </ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
 

@@ -18,8 +18,8 @@
           <!-- Cash-Out S'mores Toggle -->
           <ion-item>
             <ion-label>
-              <h2>Cash-Out S'mores</h2>
-              <p>Enable this option to allow cashing out S'mores</p>
+              <h1>Cash-Out GP</h1>
+              <p>Enable this option to allow cashing out GP</p>
             </ion-label>
             <ion-toggle v-model="settings.enableCashOut"></ion-toggle>
           </ion-item>
@@ -27,7 +27,7 @@
           <!-- Kids Section -->
           <ion-item v-if="settings.enableCashOut">
             <ion-label>
-              <h3>Kids</h3>
+              <h1>Kids</h1>
               <p>Visible only for selected kids</p>
             </ion-label>
           </ion-item>
@@ -59,8 +59,8 @@
           <!-- Conversion Rate Section -->
           <ion-item v-if="settings.enableCashOut">
             <ion-label>
-              <h3>Conversion Rate for 1 local currency</h3>
-              <p>Conversion rate for S'mores to Cash</p>
+              <h1>Conversion Rate for 1 local currency</h1>
+              <p>Conversion rate for GP to Cash</p>
             </ion-label>
           </ion-item>
           <ion-item
@@ -94,7 +94,7 @@
           <!-- Reward Approval Toggle -->
           <ion-item>
             <ion-label>
-              <h2>Reward Approval</h2>
+              <h1>Reward Approval</h1>
               <p>Parents approve the rewards that is redeemed by the kids</p>
             </ion-label>
             <ion-toggle v-model="settings.requireApproval"></ion-toggle>

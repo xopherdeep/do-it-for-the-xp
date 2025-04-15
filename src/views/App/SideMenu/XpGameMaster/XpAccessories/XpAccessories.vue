@@ -14,7 +14,7 @@
         </ion-title>
         <ion-buttons slot="end">
           <ion-button @click="openSettings">
-            <i class="fad fa-cog fa-lg" />
+            <i class="fad fa-cog fa-2x" />
           </ion-button>
           <ion-button @click="toggleFilter">
             <ion-icon :icon="filterIcon" />

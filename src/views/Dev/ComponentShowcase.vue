@@ -156,7 +156,12 @@
           <ion-range aria-label="Range with pin" :pin="true" :pin-formatter="pinFormatter"></ion-range>
         </ion-item>
 
-        <h2>Segment</h2>
+        <h2 class="section-header">
+          Segment
+          <ion-button fill="clear" size="small" @click="showCode(codeSnippets.segment)">
+            Show Code
+          </ion-button>
+        </h2>
         <ion-segment value="default">
           <ion-segment-button value="default">
             <ion-label>Default</ion-label>
@@ -194,6 +199,183 @@
           </ion-button>
         </h2>
         <ion-button @click="presentAlert">Present Alert</ion-button>
+
+        <h2 class="section-header">
+          RPG Typing Text
+          <ion-button fill="clear" size="small" @click="showCode(codeSnippets.typingText)">
+            Show Code
+          </ion-button>
+        </h2>
+        
+        <!-- Simple Example -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Basic Example</ion-card-title>
+          </ion-card-header>
+          <ion-card-content>
+            <xp-typing-text 
+              :text="demoText" 
+              :speed="textSpeed"
+              ref="basicTypingDemo"
+              @typing-complete="onTypingComplete('Basic demo completed!')"
+            ></xp-typing-text>
+            <div class="control-buttons mt-2">
+              <ion-button size="small" @click="restartTypingDemo('basicTypingDemo')">
+                Restart
+              </ion-button>
+              <ion-button size="small" @click="skipTypingDemo('basicTypingDemo')">
+                Skip
+              </ion-button>
+            </div>
+          </ion-card-content>
+        </ion-card>
+        
+        <!-- Interactive Demo with Controls -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Interactive Demo</ion-card-title>
+            <ion-card-subtitle>Adjust settings in real-time</ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <!-- Text Input -->
+            <ion-item>
+              <ion-label position="stacked">Custom Text</ion-label>
+              <ion-textarea 
+                v-model="customText" 
+                rows="3" 
+                placeholder="Enter text to animate"
+              ></ion-textarea>
+            </ion-item>
+            
+            <!-- Speed Control -->
+            <ion-item>
+              <ion-label>Typing Speed: {{ textSpeed }}ms</ion-label>
+              <ion-range 
+                v-model="textSpeed" 
+                :min="10" 
+                :max="200" 
+                :step="5"
+                aria-label="Typing Speed"
+              ></ion-range>
+            </ion-item>
+            
+            <!-- Sound Toggle -->
+            <ion-item>
+              <ion-label>Play Sound</ion-label>
+              <ion-toggle v-model="playSound" slot="end"></ion-toggle>
+            </ion-item>
+            
+            <!-- Cursor Toggle -->
+            <ion-item>
+              <ion-label>Show Cursor</ion-label>
+              <ion-toggle v-model="showCursor" slot="end"></ion-toggle>
+            </ion-item>
+            
+            <!-- RPG Styling Toggle -->
+            <ion-item>
+              <ion-label>RPG Styling</ion-label>
+              <ion-toggle v-model="rpgStyled" slot="end"></ion-toggle>
+            </ion-item>
+            
+            <!-- Initial Delay Control -->
+            <ion-item>
+              <ion-label>Initial Delay: {{ initialDelay }}ms</ion-label>
+              <ion-range 
+                v-model="initialDelay" 
+                :min="0" 
+                :max="2000" 
+                :step="100"
+                aria-label="Initial Delay"
+              ></ion-range>
+            </ion-item>
+            
+            <!-- Demo Display -->
+            <div :class="{'rpg-box': rpgStyled}" class="demo-container p-4 mt-3">
+              <xp-typing-text 
+                :text="customText" 
+                :speed="textSpeed"
+                :play-sound="playSound"
+                :cursor-visible="showCursor"
+                :is-rpg-styled="rpgStyled"
+                :delay="initialDelay"
+                ref="customTypingDemo"
+                @typing-complete="onTypingComplete('Custom demo completed!')"
+                @typing-start="onTypingStart('Custom typing started')"
+                @typing-char="onTypingChar"
+              ></xp-typing-text>
+              
+              <div class="typing-events mt-2">
+                <small>Events: {{ latestEvent }}</small>
+              </div>
+            </div>
+            
+            <div class="control-buttons mt-3">
+              <ion-button @click="restartTypingDemo('customTypingDemo')">
+                Restart
+              </ion-button>
+              <ion-button @click="skipTypingDemo('customTypingDemo')">
+                Skip/Complete
+              </ion-button>
+            </div>
+          </ion-card-content>
+        </ion-card>
+        
+        <!-- Multiple Examples Card -->
+        <ion-card>
+          <ion-card-header>
+            <ion-card-title>Usage Examples</ion-card-title>
+            <ion-card-subtitle>Different configuration options</ion-card-subtitle>
+          </ion-card-header>
+          <ion-card-content>
+            <!-- Slow, RPG-styled example -->
+            <div class="example-box rpg-box mb-4 p-3">
+              <strong>Slow RPG Style:</strong>
+              <xp-typing-text 
+                text="The old wizard spoke slowly... *pauses* The ancient spell requires 3 items."
+                :speed="100" 
+                :is-rpg-styled="true"
+                ref="slowTypingDemo"
+              ></xp-typing-text>
+              <div class="control-buttons mt-2">
+                <ion-button size="small" @click="restartTypingDemo('slowTypingDemo')">
+                  Restart
+                </ion-button>
+              </div>
+            </div>
+            
+            <!-- Fast, modern example -->
+            <div class="example-box mb-4 p-3">
+              <strong>Fast Modern Style:</strong>
+              <xp-typing-text 
+                text="System initialized. Running diagnostics... Complete!"
+                :speed="20" 
+                :is-rpg-styled="false"
+                ref="fastTypingDemo"
+              ></xp-typing-text>
+              <div class="control-buttons mt-2">
+                <ion-button size="small" @click="restartTypingDemo('fastTypingDemo')">
+                  Restart
+                </ion-button>
+              </div>
+            </div>
+            
+            <!-- No sound example -->
+            <div class="example-box mb-4 p-3">
+              <strong>No Sound:</strong>
+              <xp-typing-text 
+                text="This text appears silently, without any typing sounds."
+                :speed="40" 
+                :play-sound="false"
+                ref="silentTypingDemo"
+              ></xp-typing-text>
+              <div class="control-buttons mt-2">
+                <ion-button size="small" @click="restartTypingDemo('silentTypingDemo')">
+                  Restart
+                </ion-button>
+              </div>
+            </div>
+          </ion-card-content>
+        </ion-card>
 
       </div>
     </ion-content>
@@ -235,8 +417,53 @@ import {
   IonToggle,       // Added
   IonToolbar,
 } from '@ionic/vue';
+import { ref, computed } from 'vue'; // Added ref and computed for reactive state
+import XpTypingText from '@/components/XpTypingText'; // Import our custom typing text component
 
 // --- Script Logic ---
+
+// XpTypingText Demo State
+const demoText = ref("Welcome to XP! This is a demo of the RPG-style typing text component.");
+const customText = ref("Type your custom text here and see it animate with retro RPG style! Click to skip animation.");
+const textSpeed = ref(40);
+const playSound = ref(true);
+const showCursor = ref(true);
+const rpgStyled = ref(true);
+const initialDelay = ref(300);
+const latestEvent = ref("No events yet");
+
+// XpTypingText Demo Methods
+const restartTypingDemo = (refName: string) => {
+  if (refName && typeof refName === 'string') {
+    const demoRef = ref.value as any; // Get the component instance
+    if (demoRef && demoRef.resetTyping && demoRef.startTyping) {
+      demoRef.resetTyping();
+      demoRef.startTyping();
+    }
+  }
+};
+
+const skipTypingDemo = (refName: string) => {
+  if (refName && typeof refName === 'string') {
+    const demoRef = ref.value as any; // Get the component instance
+    if (demoRef && demoRef.completeTyping) {
+      demoRef.completeTyping();
+    }
+  }
+};
+
+const onTypingComplete = (message: string) => {
+  latestEvent.value = message;
+  presentToast('bottom');
+};
+
+const onTypingStart = (message: string) => {
+  latestEvent.value = message;
+};
+
+const onTypingChar = (index: number, char: string) => {
+  latestEvent.value = `Typed char at index ${index}: "${char}"`;
+};
 
 // Code Snippets for display
 const codeSnippets = {
@@ -346,11 +573,10 @@ const pinFormatter = (value: number) => \`\${value}%\`;
   segment: `
 <ion-segment value="default">
   <ion-segment-button value="default">
-    <ion-label>Default</ion-label>
+    <ion-label>Default</ion-segment-button>
   </ion-segment-button>
   <ion-segment-button value="segment">
-    <ion-label>Segment</ion-label>
-  </ion-segment-button>
+    <ion-label>Segment</ion-segment-button>
 </ion-segment>
   `.trim(),
   spinner: `
@@ -393,6 +619,184 @@ const presentAlert = async () => {
   });
   await alert.present();
 };
+  `.trim(),
+  typingText: `
+<h2 class="section-header">
+  RPG Typing Text
+  <ion-button fill="clear" size="small" @click="showCode(codeSnippets.typingText)">
+    Show Code
+  </ion-button>
+</h2>
+
+<!-- Simple Example -->
+<ion-card>
+  <ion-card-header>
+    <ion-card-title>Basic Example</ion-card-title>
+  </ion-card-header>
+  <ion-card-content>
+    <xp-typing-text 
+      :text="demoText" 
+      :speed="textSpeed"
+      ref="basicTypingDemo"
+      @typing-complete="onTypingComplete('Basic demo completed!')"
+    ></xp-typing-text>
+    <div class="control-buttons mt-2">
+      <ion-button size="small" @click="restartTypingDemo('basicTypingDemo')">
+        Restart
+      </ion-button>
+      <ion-button size="small" @click="skipTypingDemo('basicTypingDemo')">
+        Skip
+      </ion-button>
+    </div>
+  </ion-card-content>
+</ion-card>
+
+<!-- Interactive Demo with Controls -->
+<ion-card>
+  <ion-card-header>
+    <ion-card-title>Interactive Demo</ion-card-title>
+    <ion-card-subtitle>Adjust settings in real-time</ion-card-subtitle>
+  </ion-card-header>
+  <ion-card-content>
+    <!-- Text Input -->
+    <ion-item>
+      <ion-label position="stacked">Custom Text</ion-label>
+      <ion-textarea 
+        v-model="customText" 
+        rows="3" 
+        placeholder="Enter text to animate"
+      ></ion-textarea>
+    </ion-item>
+    
+    <!-- Speed Control -->
+    <ion-item>
+      <ion-label>Typing Speed: {{ textSpeed }}ms</ion-label>
+      <ion-range 
+        v-model="textSpeed" 
+        :min="10" 
+        :max="200" 
+        :step="5"
+        aria-label="Typing Speed"
+      ></ion-range>
+    </ion-item>
+    
+    <!-- Sound Toggle -->
+    <ion-item>
+      <ion-label>Play Sound</ion-toggle>
+      <ion-toggle v-model="playSound" slot="end"></ion-toggle>
+    </ion-item>
+    
+    <!-- Cursor Toggle -->
+    <ion-item>
+      <ion-label>Show Cursor</ion-toggle>
+      <ion-toggle v-model="showCursor" slot="end"></ion-toggle>
+    </ion-item>
+    
+    <!-- RPG Styling Toggle -->
+    <ion-item>
+      <ion-label>RPG Styling</ion-label>
+      <ion-toggle v-model="rpgStyled" slot="end"></ion-toggle>
+    </ion-item>
+    
+    <!-- Initial Delay Control -->
+    <ion-item>
+      <ion-label>Initial Delay: {{ initialDelay }}ms</ion-label>
+      <ion-range 
+        v-model="initialDelay" 
+        :min="0" 
+        :max="2000" 
+        :step="100"
+        aria-label="Initial Delay"
+      ></ion-range>
+    </ion-item>
+    
+    <!-- Demo Display -->
+    <div :class="{'rpg-box': rpgStyled}" class="demo-container p-4 mt-3">
+      <xp-typing-text 
+        :text="customText" 
+        :speed="textSpeed"
+        :play-sound="playSound"
+        :cursor-visible="showCursor"
+        :is-rpg-styled="rpgStyled"
+        :delay="initialDelay"
+        ref="customTypingDemo"
+        @typing-complete="onTypingComplete('Custom demo completed!')"
+        @typing-start="onTypingStart('Custom typing started')"
+        @typing-char="onTypingChar"
+      ></xp-typing-text>
+      
+      <div class="typing-events mt-2">
+        <small>Events: {{ latestEvent }}</small>
+      </div>
+    </div>
+    
+    <div class="control-buttons mt-3">
+      <ion-button @click="restartTypingDemo('customTypingDemo')">
+        Restart
+      </ion-button>
+      <ion-button @click="skipTypingDemo('customTypingDemo')">
+        Skip/Complete
+      </ion-button>
+    </div>
+  </ion-card-content>
+</ion-card>
+
+<!-- Multiple Examples Card -->
+<ion-card>
+  <ion-card-header>
+    <ion-card-title>Usage Examples</ion-card-title>
+    <ion-card-subtitle>Different configuration options</ion-card-subtitle>
+  </ion-card-header>
+  <ion-card-content>
+    <!-- Slow, RPG-styled example -->
+    <div class="example-box rpg-box mb-4 p-3">
+      <strong>Slow RPG Style:</strong>
+      <xp-typing-text 
+        text="The old wizard spoke slowly... *pauses* The ancient spell requires 3 items."
+        :speed="100" 
+        :is-rpg-styled="true"
+        ref="slowTypingDemo"
+      ></xp-typing-text>
+      <div class="control-buttons mt-2">
+        <ion-button size="small" @click="restartTypingDemo('slowTypingDemo')">
+          Restart
+        </ion-button>
+      </div>
+    </div>
+    
+    <!-- Fast, modern example -->
+    <div class="example-box mb-4 p-3">
+      <strong>Fast Modern Style:</strong>
+      <xp-typing-text 
+        text="System initialized. Running diagnostics... Complete!"
+        :speed="20" 
+        :is-rpg-styled="false"
+        ref="fastTypingDemo"
+      ></xp-typing-text>
+      <div class="control-buttons mt-2">
+        <ion-button size="small" @click="restartTypingDemo('fastTypingDemo')">
+          Restart
+        </ion-button>
+      </div>
+    </div>
+    
+    <!-- No sound example -->
+    <div class="example-box mb-4 p-3">
+      <strong>No Sound:</strong>
+      <xp-typing-text 
+        text="This text appears silently, without any typing sounds."
+        :speed="40" 
+        :play-sound="false"
+        ref="silentTypingDemo"
+      ></xp-typing-text>
+      <div class="control-buttons mt-2">
+        <ion-button size="small" @click="restartTypingDemo('silentTypingDemo')">
+          Restart
+        </ion-button>
+      </div>
+    </div>
+  </ion-card-content>
+</ion-card>
   `.trim(),
 };
 
@@ -524,33 +928,57 @@ ion-list {
   margin-bottom: 16px;
 }
 
-/* Adjust container styling if needed, or remove if default padding is sufficient */
-/*
-#container {
-  text-align: center;
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
+/* XpTypingText demo styles */
+.demo-container {
+  border: 1px solid var(--ion-color-step-200, #cccccc);
+  border-radius: 8px;
+  background-color: var(--ion-color-light, #f4f5f8);
+  min-height: 100px;
 }
 
-#container strong {
-  font-size: 20px;
-  line-height: 26px;
+.typing-events {
+  color: var(--ion-color-medium, #92949c);
+  font-style: italic;
 }
 
-#container p {
-  font-size: 16px;
-  line-height: 22px;
-  color: #8c8c8c;
-  margin: 0;
+.control-buttons {
+  display: flex;
+  gap: 8px;
 }
 
-#container a {
-  text-decoration: none;
+.example-box {
+  border: 1px solid var(--ion-color-step-200, #cccccc);
+  border-radius: 8px;
+  background-color: var(--ion-color-light, #f4f5f8);
 }
-*/
+
+.rpg-box {
+  background-color: #280828 !important;
+  color: #f7e8a8 !important;
+  font-family: 'StatusPlz', monospace;
+  border: 2px solid #f7e8a8 !important;
+}
+
+/* Utility classes */
+.mt-2 {
+  margin-top: 0.5rem;
+}
+
+.mt-3 {
+  margin-top: 0.75rem;
+}
+
+.mb-4 {
+  margin-bottom: 1rem;
+}
+
+.p-3 {
+  padding: 0.75rem;
+}
+
+.p-4 {
+  padding: 1rem;
+}
 
 /* Style the modal for code display */
 :global(.code-modal) {

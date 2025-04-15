@@ -1,87 +1,3 @@
-<style lang="scss" scoped>
-  .xp-temples {
-    ion-card {
-      background-size: cover !important;
-      background-position: center !important;
-      margin: 1rem;
-      border-radius: 12px;
-      overflow: hidden;
-    }
-
-    .temple-content {
-      background: linear-gradient(
-        to top,
-        rgba(0, 0, 0, 0.8),
-        rgba(0, 0, 0, 0.5)
-      );
-      padding: 1rem;
-      color: white;
-    }
-
-    .temple-header {
-      display: flex;
-      align-items: center;
-      margin-bottom: 0.5rem;
-
-      .temple-icon {
-        margin-right: 0.5rem;
-        font-size: 1.5rem;
-
-        &.fa-wind {
-          --fa-primary-color: #e3f2fd;
-          --fa-secondary-color: #90caf9;
-        }
-
-        &.fa-mountain {
-          --fa-primary-color: #795548;
-          --fa-secondary-color: #4e342e;
-        }
-
-        &.fa-water {
-          --fa-primary-color: #bbdefb;
-          --fa-secondary-color: #2196f3;
-        }
-
-        &.fa-fire {
-          --fa-primary-color: #ffcdd2;
-          --fa-secondary-color: #f44336;
-        }
-
-        &.fa-snowflake {
-          --fa-primary-color: #e3f2fd;
-          --fa-secondary-color: #42a5f5;
-        }
-
-        &.fa-sun {
-          --fa-primary-color: #fff176;
-          --fa-secondary-color: #ffd700;
-        }
-
-        &.fa-moon {
-          --fa-primary-color: #b39ddb;
-          --fa-secondary-color: #673ab7;
-        }
-
-        &.fa-place-of-worship {
-          --fa-primary-color: #e0e0e0;
-          --fa-secondary-color: #9e9e9e;
-        }
-      }
-    }
-
-    .temple-description {
-      font-size: 0.9rem;
-      opacity: 0.9;
-      margin: 0.5rem 0;
-    }
-
-    .temple-stats {
-      display: flex;
-      gap: 1rem;
-      margin-top: 0.5rem;
-    }
-  }
-</style>
 
 <template>
   <ion-page :class="$options.name">
@@ -94,6 +10,14 @@
         <ion-title>
           Temples
         </ion-title>
+        <ion-buttons slot="end">
+          <ion-button @click="clickSoundSettings">
+            <i class="fad fa-music fa-2x" />
+          </ion-button>
+          <ion-button @click="clickThemeSettings">
+            <i class="fad fa-paint-roller fa-2x" />
+          </ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
     <ion-content>
@@ -297,8 +221,101 @@
         getTempleName,
         getTempleDescription,
         temples,
-        goToTempleCreator // Expose the navigation function
+        goToTempleCreator, // Expose the navigation function
+        clickSoundSettings() {
+          $router.push({ name: "xp-settings-sound" });
+        },
+        clickThemeSettings() {
+          $router.push({ name: "xp-settings-theme" });
+        },
+      
+      
       };
     },
   });
 </script>
+
+<style lang="scss" scoped>
+  .xp-temples {
+    ion-card {
+      background-size: cover !important;
+      background-position: center !important;
+      margin: 1rem;
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    .temple-content {
+      background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.8),
+        rgba(0, 0, 0, 0.5)
+      );
+      padding: 1rem;
+      color: white;
+    }
+
+    .temple-header {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.5rem;
+
+      .temple-icon {
+        margin-right: 0.5rem;
+        font-size: 1.5rem;
+
+        &.fa-wind {
+          --fa-primary-color: #e3f2fd;
+          --fa-secondary-color: #90caf9;
+        }
+
+        &.fa-mountain {
+          --fa-primary-color: #795548;
+          --fa-secondary-color: #4e342e;
+        }
+
+        &.fa-water {
+          --fa-primary-color: #bbdefb;
+          --fa-secondary-color: #2196f3;
+        }
+
+        &.fa-fire {
+          --fa-primary-color: #ffcdd2;
+          --fa-secondary-color: #f44336;
+        }
+
+        &.fa-snowflake {
+          --fa-primary-color: #e3f2fd;
+          --fa-secondary-color: #42a5f5;
+        }
+
+        &.fa-sun {
+          --fa-primary-color: #fff176;
+          --fa-secondary-color: #ffd700;
+        }
+
+        &.fa-moon {
+          --fa-primary-color: #b39ddb;
+          --fa-secondary-color: #673ab7;
+        }
+
+        &.fa-place-of-worship {
+          --fa-primary-color: #e0e0e0;
+          --fa-secondary-color: #9e9e9e;
+        }
+      }
+    }
+
+    .temple-description {
+      font-size: 0.9rem;
+      opacity: 0.9;
+      margin: 0.5rem 0;
+    }
+
+    .temple-stats {
+      display: flex;
+      gap: 1rem;
+      margin-top: 0.5rem;
+    }
+  }
+</style>

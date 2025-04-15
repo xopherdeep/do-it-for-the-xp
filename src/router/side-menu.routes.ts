@@ -269,6 +269,11 @@ export const SideMenuRoutes: Array<RouteRecordRaw> = [
     component: () => import("@/views/App/SideMenu/XpAbout/XpAbout.vue"),
   },
   {
+    path: "/rpg-text-demo",
+    name: "rpg-text-demo",
+    component: () => import("@/views/App/SideMenu/XpAbout/RpgTextDemo.vue"),
+  },
+  {
     path: "/log-out",
     name: "log-out",
     component: () => import("@/views/App/SideMenu/LogOut/LogOut.vue"),

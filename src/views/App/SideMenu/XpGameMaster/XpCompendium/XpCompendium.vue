@@ -10,7 +10,8 @@
             :selected="$route.path.includes('/game-master/compendium/bestiary')"
           >
             <i class="fad fa-hand-holding-heart fa-2x" />
-            Smart Lists
+            Beasts
+            <!-- (HP) --> 
           </ion-tab-button>
           <ion-tab-button
             tab="achievements"
@@ -18,7 +19,8 @@
             :selected="$route.path.includes('/game-master/compendium/achievements')"
           >
             <i class="fad fa-hand-holding-seedling quest fa-2x" />
-            Quests (XP)
+            Quests
+            <!-- (XP) -->
           </ion-tab-button>
           <ion-tab-button
             tab="abilities"
@@ -26,7 +28,8 @@
             :selected="$route.path.includes('/game-master/compendium/abilities')"
           >
             <i class="fad fa-hand-holding-magic fa-2x" />
-            Abilities (AP)
+            Abilities 
+            <!-- (AP) -->
           </ion-tab-button>
           <ion-tab-button
             tab="accessories"
@@ -34,7 +37,8 @@
             :selected="$route.path.includes('/game-master/compendium/accessories')"
           >
             <i class="fad fa-hand-holding-usd fa-2x" />
-            Shops (GP)
+            Shops
+             <!-- (GP) -->
           </ion-tab-button>
           <ion-tab-button
             tab="temples"

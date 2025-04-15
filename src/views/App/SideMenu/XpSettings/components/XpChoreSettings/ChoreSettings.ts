@@ -24,6 +24,7 @@ import ionic from "@/mixins/ionic";
 import { arrowBack } from "ionicons/icons";
 
 import appConfig from "@/app.config";
+import { useRouter } from "vue-router";
 
 export default defineComponent({
   name: "chore-settings",
@@ -49,6 +50,7 @@ export default defineComponent({
   mixins: [ionic],
   setup() {
     const store = useStore();
+    const router = useRouter()
 
     // Initialize settings with defaults or load from storage
     const savedSettings = localStorage.getItem("choreSettings");
@@ -125,6 +127,11 @@ export default defineComponent({
       saveChoreSettings,
       arrowBack,
       appConfig,
+      clickSettings(){
+        router.push({
+          name: "xp-settings-notifications",
+        });
+      }
     };
   },
 });

@@ -7,6 +7,11 @@ declare module '*.vue' {
   export default component
 }
 
+// Add global window declaration for $fx
+interface Window {
+  $fx: any;
+}
+
 declare module '@vue/runtime-core' {
   // Global properties for Vue component instances
   interface ComponentCustomProperties {

@@ -9,7 +9,7 @@
             @click="$fx.ui[$fx.theme.ui].select.play()"
           ></ion-menu-button>
         </ion-buttons>
-        <!-- <ion-buttons slot="end">
+        <!-- <ion-buttons slot="start">
           <ion-button>
             <i class="fa fa-cog fa-lg" />
           </ion-button>
@@ -27,7 +27,7 @@
             :routerLink="`/xp-settings/general`"
             detail="true"
           >
-            <ion-thumbnail slot="end">
+            <ion-thumbnail slot="start">
               <ion-img :src="requireIconImg('./settings.png')" />
             </ion-thumbnail>
             <ion-label>
@@ -41,11 +41,13 @@
             button
             :routerLink="`/xp-settings/family`"
             detail="true"
+            class="flex flex-row gap-4 justify-between"
           >
-            <ion-thumbnail slot="end">
+            <ion-thumbnail slot="start">
               <ion-img :src="requireIconImg('./team.png')" />
             </ion-thumbnail>
-            <ion-label>
+            <ion-divider/>
+            <ion-label >
               <h1>Family Settings</h1>
               <p>
                 Add kids, invite adults and manage your family settings from here.
@@ -57,7 +59,7 @@
             :routerLink="`/xp-settings/chore`"
             detail="true"
           >
-            <ion-thumbnail slot="end">
+            <ion-thumbnail slot="start">
               <ion-img :src="requireIconImg('./innovation.png')" />
             </ion-thumbnail>
             <ion-label>
@@ -73,7 +75,7 @@
             :routerLink="`/xp-settings/notifications`"
             detail="true"
           >
-            <ion-thumbnail slot="end">
+            <ion-thumbnail slot="start">
               <ion-img :src="requireIconImg('./notification.png')" />
             </ion-thumbnail>
             <ion-label>
@@ -86,7 +88,7 @@
             :routerLink="`/xp-settings/reward`"
             detail="true"
           >
-            <ion-thumbnail slot="end">
+            <ion-thumbnail slot="start">
               <ion-img :src="requireIconImg('./new.png')" />
             </ion-thumbnail>
             <ion-label>
@@ -102,7 +104,7 @@
             :routerLink="`/xp-settings/party`"
             detail="true"
           >
-            <ion-thumbnail slot="end">
+            <ion-thumbnail slot="start">
               <ion-img :src="requireIconImg('./collaboration.png')" />
             </ion-thumbnail>
             <ion-label>
@@ -115,7 +117,7 @@
             button
             detail="true"
           >
-            <ion-thumbnail slot="end">
+            <ion-thumbnail slot="start">
               <ion-img :src="requireIconImg('./listener.png')" />
             </ion-thumbnail>
             <ion-label>
@@ -128,7 +130,7 @@
             :routerLink="`/xp-settings/theme`"
             detail="true"
           >
-            <ion-thumbnail slot="end">
+            <ion-thumbnail slot="start">
               <ion-img :src="requireIconImg('./settings.png')" />
             </ion-thumbnail>
             <ion-label>

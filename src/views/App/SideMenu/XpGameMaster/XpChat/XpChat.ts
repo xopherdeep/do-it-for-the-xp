@@ -103,7 +103,10 @@ export default defineComponent({
       sendMessage,
       formatTime,
       users,
-      currentUser
+      currentUser,
+      clickSettings(){
+        router.push({ name: 'xp-settings-notifications' });
+      }
     };
   }
 });

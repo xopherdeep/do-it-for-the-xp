@@ -13,6 +13,9 @@
           <!-- <ion-button @click="clickFilter">
             <i class="fad fa-filter fa-lg" />
           </ion-button> -->
+          <ion-button @click="clickSettings">
+            <i class="fad fa-cog fa-2x" />
+          </ion-button>
           <ion-button id="popover-button">
             <i class="fad fa-eye fa-2x" />
           </ion-button>
@@ -118,7 +121,8 @@
               :show-points="showPoints"
               :disabled="new Date(achievement.endsOn) < new Date()"
             >
-              <template #end>
+              <template #start>
+                <i class="fad fa-grip-vertical ml-2" slot="start" />
                 <i class="fad fa-grip-vertical ml-2" slot="end" />
               </template>
             </xp-achievement-item>
