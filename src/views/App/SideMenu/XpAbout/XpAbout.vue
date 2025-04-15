@@ -1,7 +1,12 @@
 <template>
   <ion-page>
-    <ion-content>
-      <swiper pager="true">
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>About XP</ion-title>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content :fullscreen="true" class="ion-padding">
+      <swiper :modules="modules" navigation pager="true" :pagination="{ clickable: true }">
         <swiper-slide>
           <h1>Welcome to XP!</h1>
           <ion-img :src="$requireIcon('./mobile-game.svg')" />
@@ -22,6 +27,9 @@
           <ion-text>
             Completing quests earns you different kinds of points: AP (Ability Points), GP (Gold Points), and XP (Experience Points)! Use AP to unlock new features, spend GP on real-world rewards you define, and gain XP to level up your character. The more you use the app, the more powerful and rewarding your journey becomes!
           </ion-text>
+          <ion-button @click="getStarted" expand="block" class="ion-margin-top">
+            Get Started!
+          </ion-button>
         </swiper-slide>
       </swiper>
     </ion-content>
@@ -32,18 +40,22 @@
 import { defineComponent } from "vue";
 // import requireImg from "@/assets/js/requireImg.js";
 const requireImg = require.context("@/assets/icons/");
+import { useRouter } from 'vue-router';
 import { Swiper, SwiperSlide } from "swiper/vue";
- // Import Swiper styles
+import { Pagination, Navigation } from 'swiper/modules';
+
+// Import Swiper styles
 import 'swiper/css';
+import 'swiper/css/pagination';
+import 'swiper/css/navigation';
+
 
 import {
   IonPage,
-  // IonHeader, // Unused
-  // IonToolbar, // Unused
-  // IonButtons, // Unused
-  // IonButton, // Unused
-  // IonMenuButton, // Unused
-  // IonTitle, // Unused
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonButton,
   // IonSlides, // Deprecated
   // IonSlide, // Deprecated
   IonContent,
@@ -54,32 +66,35 @@ import {
 import { arrowBack } from "ionicons/icons";
 
 export default defineComponent({
-  name: 'XpAbout', // Add component name
+  name: 'XpAbout',
   components: {
     Swiper,
     SwiperSlide,
     IonImg,
     IonText,
-    // IonButton, // Unused
+    IonButton, // Added back
     IonPage,
-    // IonSlides and IonSlide are deprecated in Ionic Vue, Swiper is used instead
-    // IonSlides,
-    // IonSlide,
-    // IonHeader, // Unused
-    // IonToolbar, // Unused
-    // IonButtons, // Unused
-    // IonMenuButton, // Unused
-    // IonTitle, // Unused
+    IonHeader, // Added back
+    IonToolbar, // Added back
+    IonTitle, // Added back
     IonContent,
   },
   setup() {
-    // code
+    const router = useRouter();
+
+    const getStarted = () => {
+      // Navigate to the main part of the app, adjust '/tabs/home' as needed
+      router.push('/tabs/home');
+      // Optionally, set a flag in localStorage/store indicating the intro has been seen
+      // localStorage.setItem('introSeen', 'true');
+    };
+
     return {
       arrowBack,
       requireImg,
-      // Expose appConfig methods/properties if needed in template
-      // For example, if $requireIcon is used:
-      $requireIcon: requireImg // Assuming requireImg serves the same purpose
+      $requireIcon: requireImg,
+      modules: [Pagination, Navigation], // Expose Swiper modules
+      getStarted, // Expose the navigation method
     };
   },
 });
@@ -87,17 +102,15 @@ export default defineComponent({
 
 <style lang="scss" scoped>
 .ion-page {
-
-  height: 100vh;
+  // height: 100vh; // Let ion-content handle height
 
   ion-content {
-    height: 100vh;
+    // --background: none; // Remove if you want the swiper background to fill content
+    // height: 100vh; // Let content scroll naturally if needed
 
     .swiper {
-      height: 100vh;
-.swiper-wrapper{
-
-}
+      width: 100%;
+      height: 100%; // Make swiper fill the content area
 
       font-size: 1.2rem;
       padding: 2em;
@@ -116,27 +129,42 @@ export default defineComponent({
           #80d890 75%);
       background-size: 60px 60px;
       background-position: 0 0, 30px 30px;
+      // Consider reducing animation intensity or removing if too distracting
       animation: slide 4s infinite linear;
 
       .swiper-slide {
         display: flex;
         flex-direction: column;
-        justify-content: center;
+        justify-content: center; // Center content vertically
         align-items: center;
-        padding: 2em;
+        padding: 1em 2em; // Adjust padding
+        text-align: center; // Center text within slide
+
+        h1 {
+          margin-top: 0; // Adjust spacing if needed
+        }
 
         img {
-          width: 80%;
+          width: 60%; // Adjust image size
+          max-width: 250px; // Add max-width
           max-height: 200px;
-          margin: 2em
+          margin: 1.5em 0; // Adjust margins
+        }
+
+        ion-text {
+          margin-bottom: 1em; // Add space below text
+        }
+
+        ion-button {
+           // Ensure button is not overly wide on large screens if needed
+          // max-width: 300px;
         }
       }
     }
   }
-
 }
 
-body {}
+// body {} // Generally avoid styling body directly in component styles
 
 @keyframes slide {
   from {
@@ -148,33 +176,12 @@ body {}
   }
 }
 
-main {
-  max-width: 600px;
-  margin: auto;
-}
+/* Removed unused styles: main, .right, p, .grid, .column */
 
-.right {
-  text-align: right;
-}
-
-p {
-  margin-bottom: 0;
-}
-
-.grid {
-  display: flex;
-}
-
-.grid.between {
-  justify-content: space-between;
-}
-
-.column:first-child {
-  margin-right: 0.5em;
-}
 
 /* EARTHBOUND STYLE CHATBOX */
 ion-text {
+  /* Reviewing this style - ensure readability */
   min-width: 5em;
   display: inline-block;
   position: relative;
@@ -206,81 +213,16 @@ ion-text {
   display: block;
 }
 
+/* Removed unused styles: .characters, .ness, .paula, .jeff, .poo, .king */
+/* Removed custom ion-button styles, using Ionic defaults now */
 
-/* BUTTONS */
-ion-button {
-  position: relative;
-  cursor: pointer;
-  background: transparent;
-  border: 0;
-  color: #e7e6b3;
-  font-size: 1em;
+/* Add Swiper Navigation/Pagination Styles */
+:deep(.swiper-button-prev),
+:deep(.swiper-button-next) {
+  color: #280828; /* Match text box color */
 }
 
-ion-button:first-child {
-  margin-right: 1em;
-}
-
-ion-button:hover::before {
-  content: '';
-  position: absolute;
-  left: -0.3em;
-  top: 0.4em;
-  width: 0;
-  height: 0;
-  border-top: 0.3rem solid transparent;
-  border-bottom: 0.3rem solid transparent;
-  border-left: 0.3rem solid #e7e6b3;
-}
-
-.characters figcaption {
-  margin-top: 0.5em;
-}
-
-.characters figure span {
-  width: 32px;
-  height: 48px;
-  margin-right: 1.5em;
-  display: inline-block;
-  background-size: auto;
-  background-blend-mode: multiply;
-}
-
-.ness span {
-  background-image: url('http://www.videogamesprites.net/Earthbound/Party/Ness/Ness%20(Front).gif');
-}
-
-.ness:hover span {
-  background-image: url('http://www.videogamesprites.net/Earthbound/Party/Ness/Ness%20-%20Walk%20(Front).gif')
-}
-
-.paula span {
-  background-image: url('http://www.videogamesprites.net/Earthbound/Party/Paula/Paula%20(Front).gif');
-}
-
-.paula:hover span {
-  background-image: url('http://www.videogamesprites.net/Earthbound/Party/Paula/Paula%20-%20Walk%20(Front).gif');
-}
-
-.jeff span {
-  background-image: url('http://www.videogamesprites.net/Earthbound/Party/Jeff/Jeff%20(Front).gif');
-}
-
-.jeff:hover span {
-  background-image: url('http://www.videogamesprites.net/Earthbound/Party/Jeff/Jeff%20-%20Walk%20(Front).gif');
-}
-
-.poo span {
-  background-image: url('http://www.videogamesprites.net/Earthbound/Party/Poo/Poo%20(Front).gif');
-}
-
-.poo:hover span {
-  background-image: url('http://www.videogamesprites.net/Earthbound/Party/Poo/Poo%20-%20Walk%20(Front).gif');
-}
-
-.king span {
-  width: 48px !important;
-  height: 40px !important;
-  background-image: url('http://www.videogamesprites.net/Earthbound/NPCs/Nonhuman/Animals/King%20(Left).gif');
+:deep(.swiper-pagination-bullet-active) {
+  background: #f7e8a8; /* Match text box highlight */
 }
 </style>
