@@ -64,11 +64,13 @@ ion-app {
     }
     font-family: $eb-font-primary;
 
+    // not .my-portal
+
     // Content areas
     ion-content {
-      --background: transparent;
       &#container,
       &.bg-slide {
+        --background: transparent;
         @include eb-checkerboard-bg();
       }
     }
@@ -132,6 +134,8 @@ ion-app {
 
       ion-item {
         font-family: $eb-font-primary;
+        background: $eb-color-dark-purple;
+        --background: $eb-color-dark-purple;
         font-size: 100%;
 
         ion-label {
