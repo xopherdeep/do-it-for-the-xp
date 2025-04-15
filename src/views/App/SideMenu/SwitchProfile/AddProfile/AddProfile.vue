@@ -2,35 +2,72 @@
   <ion-header>
     <ion-toolbar class="rpg-box">
       <ion-title class="text-xl font-bold">Start New Profile</ion-title>
-      <ion-item lines="none" slot="end" v-if="$props.showIsAdult">
+      <ion-item
+        lines="none"
+        slot="end"
+        v-if="$props.showIsAdult"
+      >
         <ion-label class="font-medium"> Adult </ion-label>
-        <ion-checkbox readonly v-model="isAdult" slot="end"> </ion-checkbox>
+        <ion-checkbox
+          readonly
+          v-model="isAdult"
+          slot="end"
+        > </ion-checkbox>
       </ion-item>
     </ion-toolbar>
   </ion-header>
-  <ion-content class="bg-slide rpg-box">
-    <ion-grid class="md:max-w-[60vw] mx-auto flex flex-col items-center justify-center gap-4">
+  <ion-content class="bg-slide rpg-box mb-4">
+
+
+
+
+
+    <!-- v-if="activeSegment === 'info'" -->
+    <ion-grid class="md:max-w-[60vw] mb-7 mx-auto flex flex-col items-center justify-center">
+      <gamer-card
+        :profile="newProfile"
+        class="w-full"
+        v-model:avatarIndex="avatarIndex"
+        v-model:jobClass="jobClass"
+        v-model:favoriteFood="favoriteFood"
+      />
+
       <ion-card class="w-full shadow-lg">
-        <ion-segment v-model="activeSegment" class="p-2">
-          <ion-segment-button value="info" class="segment-button-custom">
-            <div class="flex flex-col items-center gap-1">
-              <i class="fad fa-user fa-2x text-primary"></i>
+        <ion-segment
+          v-model="activeSegment"
+          class="overflow-visible p-4"
+        >
+          <ion-segment-button
+            value="info"
+            class="segment-button-custom overflow-visible"
+          >
+            <div class="flex flex-col items-center gap-1 overflow-visible">
+              <i class="fad fa-user fa-2x"></i>
               <span class="text-sm">Profile</span>
             </div>
           </ion-segment-button>
-          <ion-segment-button value="account" class="segment-button-custom">
-            <div class="flex flex-col items-center gap-1">
+          <ion-segment-button
+            value="account"
+            class="segment-button-custom overflow-visible"
+          >
+            <div class="flex flex-col items-center gap-1 overflow-visible">
               <i class="fad fa-shield fa-2x text-primary"></i>
               <span class="text-sm">Security</span>
             </div>
           </ion-segment-button>
-          <ion-segment-button value="features" class="segment-button-custom">
+          <ion-segment-button
+            value="features"
+            class="segment-button-custom"
+          >
             <div class="flex flex-col items-center gap-1">
               <i class="fad fa-bell fa-2x text-primary"></i>
               <span class="text-sm">Features</span>
             </div>
           </ion-segment-button>
-          <ion-segment-button value="preferences" class="segment-button-custom">
+          <ion-segment-button
+            value="preferences"
+            class="segment-button-custom"
+          >
             <div class="flex flex-col items-center gap-1">
               <i class="fad fa-cog fa-2x text-primary"></i>
               <span class="text-sm">Preferences</span>
@@ -39,30 +76,30 @@
         </ion-segment>
       </ion-card>
 
-      <gamer-card 
-        :profile="newProfile" 
-        v-if="activeSegment === 'info'" 
+      <ion-card
+        v-if="activeSegment === 'info'"
         class="w-full"
-        v-model:avatarIndex="avatarIndex"
-        v-model:jobClass="jobClass"
-        v-model:favoriteFood="favoriteFood"
-      />
-
-      <ion-card v-if="activeSegment === 'info'" class="w-full">
+      >
         <ion-list class="p-0">
           <!-- Avatar Selection Row -->
           <ion-item class="avatar-row p-4">
             <div class="flex items-center w-full gap-4">
-              <div 
+              <div
                 class="avatar-preview w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center cursor-pointer hover:opacity-80"
                 @click="isAvatarSelectorOpen = true"
                 id="avatar-trigger"
               >
-                <img :src="currentAvatar" alt="Selected avatar" class="w-full h-full object-cover rounded-full" />
+                <img
+                  :src="currentAvatar"
+                  alt="Selected avatar"
+                  class="w-full h-full object-cover rounded-full"
+                />
               </div>
               <div class="flex-1">
-                <ion-label class="font-medium mb-2">Choose Avatar</ion-label>
-                <p class="text-sm text-gray-500">Click the avatar to select from all available options</p>
+                <ion-label class="font-medium mb-2">Choose Avatar
+                  <p>Click the avatar to select from all available options</p>
+                </ion-label>
+
               </div>
             </div>
           </ion-item>
@@ -71,15 +108,18 @@
           <ion-grid>
             <ion-row>
               <!-- Left Column -->
-              <ion-col size="12" size-md="6">
+              <ion-col
+                size="12"
+                size-md="6"
+              >
                 <ion-item class="p-4">
                   <div class="w-full">
                     <ion-label class="font-medium block mb-1">
                       Full Name
                       <p class="text-sm text-gray-500">First M. Last aka Nickname</p>
                     </ion-label>
-                    <ion-input 
-                      v-model="fullName" 
+                    <ion-input
+                      v-model="fullName"
                       class="bg-gray-50 rounded-lg mt-1"
                       placeholder="Enter your full name"
                     ></ion-input>
@@ -102,7 +142,10 @@
               </ion-col>
 
               <!-- Right Column -->
-              <ion-col size="12" size-md="6">
+              <ion-col
+                size="12"
+                size-md="6"
+              >
                 <ion-item class="p-4">
                   <div class="w-full">
                     <ion-label class="font-medium block mb-1">
@@ -164,102 +207,178 @@
         </ion-list>
       </ion-card>
 
-      <!-- Avatar Selector Popover -->
+      <!-- Avatar Selector -->
       <avatar-selector
         v-model="avatarIndex"
         :is-open="isAvatarSelectorOpen"
         :max-avatar-index="maxAvatarIndex"
         @close="isAvatarSelectorOpen = false"
-        trigger="avatar-trigger"
+        @selected="selectAvatar"
+        :fullscreen="true"
       />
 
       <ion-card v-if="activeSegment === 'account'">
-        <ion-card-header>
-          <ion-card-title> Account Settings </ion-card-title>
-        </ion-card-header>
-        <ion-list>
-          <ion-item>
-            <ion-label> Email Address: </ion-label>
-            <ion-input
-              v-model="email"
-              type="email"
-              autocomplete="off"
-            ></ion-input>
-          </ion-item>
-        </ion-list>
-      </ion-card>
-
-      <ion-card v-if="activeSegment === 'account'">
-        <ion-grid>
-          <ion-row>
-            <ion-col>
-              <ion-input
-                ref="passcode1"
-                name="passcode"
-                class="ion-text-center"
-                :type="passcodeType"
-                autocomplete="new-password"
-                pattern="[0-9]*"
-                inputmode="numeric"
-                maxlength="4"
-                v-model="passcode"
-                @keyup="moveFocus($event, 'passcode2')"
-              ></ion-input>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-        <ion-item>
-          <ion-label slot="end"> Hide Passcode </ion-label>
-          <ion-checkbox label="Hide Passcode" v-model="hidePasscode" slot="end">
-          </ion-checkbox>
-        </ion-item>
-      </ion-card>
-
-      <ion-card v-if="activeSegment === 'features'" class="w-full">
         <ion-list class="p-0">
-          <ion-item button @click="toggleReward" class="p-4">
-            <div class="flex items-center justify-between w-full">
-              <div>
-                <h2 class="font-medium text-lg mb-1">Buy from Shops</h2>
-                <p class="text-sm text-gray-500">Allowed this player access to shops and purchase rewards.</p>
-              </div>
-              <ion-toggle v-model="features.rewards" @click.stop class="ml-4"></ion-toggle>
-            </div>
-          </ion-item>
-          
-          <ion-item button @click="toggleGoal" class="p-4">
-            <div class="flex items-center justify-between w-full">
-              <div>
-                <h2 class="font-medium text-lg mb-1">Save towards Goals</h2>
-                <p class="text-sm text-gray-500">Allowed player access to the banks and saves toward goals.</p>
-              </div>
-              <ion-toggle v-model="features.goals" @click.stop class="ml-4"></ion-toggle>
+          <ion-item class="p-4">
+            <div class="w-full">
+              <ion-label class="font-medium block mb-1">
+                Email Address
+                <p class="text-sm text-gray-500">Used for account recovery and notifications</p>
+              </ion-label>
+              <ion-input
+                v-model="email"
+                type="email"
+                autocomplete="off"
+                class="bg-gray-50 rounded-lg mt-1"
+                placeholder="Enter your email address"
+              ></ion-input>
             </div>
           </ion-item>
 
-          <ion-item button @click="toggleBattles" class="p-4">
-            <div class="flex items-center justify-between w-full">
-              <div>
-                <h2 class="font-medium text-lg mb-1">Random Battles</h2>
-                <p class="text-sm text-gray-500">Turn on/off random battles. If off, players will have to manually check their achievements.</p>
+          <ion-item class="p-4">
+            <div class="w-full">
+              <ion-label class="font-medium block mb-1">
+                Passcode Protection
+                <p class="text-sm text-gray-500">4-digit PIN to secure your profile</p>
+              </ion-label>
+              <div class="flex gap-2 mt-2">
+                <div
+                  v-for="i in 4"
+                  :key="i"
+                  class="flex-1"
+                >
+                  <input
+                    :ref="'passcode' + i"
+                    inputmode="numeric"
+                    maxlength="1"
+                    class="w-full h-12 text-center text-xl font-bold bg-gray-50 border border-gray-300 rounded-lg focus:border-primary focus:ring-2 focus:ring-primary-light"
+                    v-model="passcodeDigits[i - 1]"
+                    @input="handlePasscodeInput($event, i)"
+                    @keydown="handleKeyDown($event, i)"
+                    :type="passcodeType"
+                  />
+                </div>
               </div>
-              <ion-toggle v-model="features.battles" @click.stop class="ml-4"></ion-toggle>
             </div>
           </ion-item>
 
-          <ion-item button @click="toggleCommunity" class="p-4">
+          <ion-item class="p-4">
             <div class="flex items-center justify-between w-full">
-              <div>
-                <h2 class="font-medium text-lg mb-1">Participate in Town Hall</h2>
-                <p class="text-sm text-gray-500">For players who want to participate in Town Hall.</p>
-              </div>
-              <ion-toggle v-model="features.community" @click.stop class="ml-4"></ion-toggle>
+              <ion-label>
+                Show Passcode
+                <p>Toggle to reveal or hide your passcode</p>
+              </ion-label>
+              <ion-toggle
+                :checked="!hidePasscode"
+                @ionChange="hidePasscode = !$event.detail.checked"
+                class="ml-4"
+              ></ion-toggle>
+            </div>
+          </ion-item>
+
+          <ion-item class="p-4">
+            <div class="flex items-center justify-between w-full">
+              <ion-label>
+                Security Questions
+                <p class="text-sm text-gray-500">Add security questions to recover your account</p>
+              </ion-label>
+              <ion-button
+                fill="outline"
+                size="small"
+                class="ml-4"
+              >
+                <i class="fad fa-shield-check mr-2"></i>
+                Setup
+              </ion-button>
             </div>
           </ion-item>
         </ion-list>
       </ion-card>
 
-      <ion-card class="ion-no-padding" v-if="activeSegment === 'preferences'">
+      <ion-card
+        v-if="activeSegment === 'features'"
+        class="w-full"
+      >
+        <ion-list class="p-0">
+          <ion-item
+            button
+            @click="toggleReward"
+            class="p-4"
+          >
+            <div class="flex items-center justify-between w-full">
+              <ion-label class="font-medium">
+                Buy from Shops
+                <p class="text-sm text-gray-500">Allowed this player access to shops and purchase rewards.</p>
+              </ion-label>
+              <ion-toggle
+                v-model="features.rewards"
+                @click.stop
+                class="ml-4"
+              ></ion-toggle>
+            </div>
+          </ion-item>
+
+          <ion-item
+            button
+            @click="toggleGoal"
+            class="p-4"
+          >
+            <div class="flex items-center justify-between w-full">
+              <ion-label class="font-medium">
+                Save towards Goals
+                <p class="text-sm text-gray-500">Allowed player access to the banks and saves toward goals.</p>
+              </ion-label>
+              <ion-toggle
+                v-model="features.goals"
+                @click.stop
+                class="ml-4"
+              ></ion-toggle>
+            </div>
+          </ion-item>
+
+          <ion-item
+            button
+            @click="toggleBattles"
+            class="p-4"
+          >
+            <div class="flex items-center justify-between w-full">
+              <ion-label class="font-medium">
+                Random Battles
+                <p class="text-sm text-gray-500">Turn on/off random battles. If off, players will have to manually check
+                  their achievements.</p>
+              </ion-label>
+              <ion-toggle
+                v-model="features.battles"
+                @click.stop
+                class="ml-4"
+              ></ion-toggle>
+            </div>
+          </ion-item>
+
+          <ion-item
+            button
+            @click="toggleCommunity"
+            class="p-4"
+          >
+            <div class="flex items-center justify-between w-full">
+              <ion-label class="font-medium">
+                Participate in Town Hall
+                <p class="text-sm text-gray-500">For players who want to participate in Town Hall.</p>
+              </ion-label>
+              <ion-toggle
+                v-model="features.community"
+                @click.stop
+                class="ml-4"
+              ></ion-toggle>
+            </div>
+          </ion-item>
+        </ion-list>
+      </ion-card>
+
+      <ion-card
+        class="ion-no-padding"
+        v-if="activeSegment === 'preferences'"
+      >
         <InputSettings />
       </ion-card>
     </ion-grid>
@@ -267,7 +386,11 @@
   <ion-footer>
     <ion-toolbar class="rpg-box">
       <ion-buttons slot="start">
-        <ion-button color="medium" @click="closeModal" class="font-medium">
+        <ion-button
+          color="medium"
+          @click="closeModal"
+          class="font-medium"
+        >
           <i class="fad fa-times text-xl mr-2"></i>
           Cancel
         </ion-button>
@@ -276,7 +399,7 @@
         <ion-button
           :disabled="!favoriteFood || !favoriteThing || !jobClass || !fullName"
           @click="clickSaveProfile"
-          color="primary"
+          color="success"
           class="font-medium"
         >
           Save Profile
@@ -289,10 +412,11 @@
 <script lang="ts" src="./AddProfile.ts"></script>
 <style scoped>
 .segment-button-custom {
-  --background-hover: var(--ion-color-primary-tint);
-  --color-checked: var(--ion-color-primary);
-  --indicator-color: var(--ion-color-primary);
+  --background-hover: $eb-color-slate;
+  --color-checked: $eb-color-cream;
+  --indicator-color: $eb-color-pale-yellow;
   transition: all 0.3s ease;
+
 }
 
 .segment-button-custom:hover i {
@@ -354,6 +478,7 @@ ion-card {
     opacity: 0;
     transform: translateY(20px);
   }
+
   to {
     opacity: 1;
     transform: translateY(0);
@@ -366,5 +491,38 @@ ion-toggle {
   --background-checked: var(--ion-color-primary);
   --handle-background: var(--ion-color-light);
   --handle-background-checked: var(--ion-color-light);
+}
+
+.fullscreen-modal {
+  --width: 100%;
+  --height: 100%;
+  --border-radius: 0;
+}
+
+.avatar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.avatar-item {
+  cursor: pointer;
+  border-radius: 50%;
+  overflow: hidden;
+  aspect-ratio: 1;
+  transition: transform 0.2s ease;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.avatar-item:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 </style>

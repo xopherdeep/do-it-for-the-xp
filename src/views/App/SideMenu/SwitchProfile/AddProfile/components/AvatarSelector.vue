@@ -1,6 +1,7 @@
 <template>
-  <ion-popover 
-    :is-open="isOpen" 
+  <ion-popover
+    v-if="!fullscreen"
+    :is-open="isOpen"
     @didDismiss="$emit('close')"
     :arrow="false"
     class="avatar-selector"
@@ -8,23 +9,71 @@
     <ion-content class="ion-padding">
       <ion-grid>
         <ion-row>
-          <ion-col v-for="index in maxAvatarIndex" :key="index" size="3">
-            <div 
-              class="avatar-option" 
+          <ion-col
+            v-for="index in maxAvatarIndex"
+            :key="index"
+            size="3"
+          >
+            <div
+              class="avatar-option"
               :class="{ active: index === modelValue }"
-              @click="$emit('update:modelValue', index)"
+              @click="selectAvatar(index)"
             >
-              <img :src="getAvatarSrc(index)" :alt="`Avatar ${index}`" class="w-full h-full object-cover rounded-full" />
+              <img
+                :src="getAvatarSrc(index)"
+                :alt="`Avatar ${index}`"
+                class="w-full h-full object-cover rounded-full"
+              />
             </div>
           </ion-col>
         </ion-row>
       </ion-grid>
     </ion-content>
   </ion-popover>
+
+  <ion-modal
+    v-else
+    :is-open="isOpen"
+    @didDismiss="$emit('close')"
+    class="fullscreen-modal"
+  >
+    <ion-header>
+      <ion-toolbar class="rpg-box">
+        <ion-title>Choose Your Avatar</ion-title>
+        <ion-buttons slot="end">
+          <ion-button @click="$emit('close')">
+            <ion-icon :icon="closeOutline"></ion-icon>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="rpg-box flex flex-row justify-center items-center">
+      <ion-card class="rpg-box md:max-w-[75vw]">
+        
+        <div class="avatar-grid">
+          
+        <div
+          v-for="index in maxAvatarIndex"
+          :key="index"
+          class="avatar-item"
+          :class="{ active: index === modelValue }"
+          @click="selectAvatar(index)"
+        >
+          <img
+            :src="getAvatarSrc(index)"
+            :alt="`Avatar ${index}`"
+            class="avatar-image"
+          />
+        </div>
+        </div>
+      </ion-card>
+    </ion-content>
+  </ion-modal>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+import { closeOutline } from 'ionicons/icons';
 
 export default defineComponent({
   name: 'AvatarSelector',
@@ -40,10 +89,14 @@ export default defineComponent({
     maxAvatarIndex: {
       type: Number,
       required: true
+    },
+    fullscreen: {
+      type: Boolean,
+      default: false
     }
   },
-  emits: ['update:modelValue', 'close'],
-  setup() {
+  emits: ['update:modelValue', 'close', 'selected'],
+  setup(props, { emit }) {
     const requireAvatar = require.context("@/assets/images/avatars", false, /\.svg$/);
     
     const getAvatarSrc = (index: number) => {
@@ -51,8 +104,20 @@ export default defineComponent({
       return requireAvatar(`./${paddedIndex}-gamer.svg`);
     };
 
+    const selectAvatar = (index: number) => {
+      emit('update:modelValue', index);
+      emit('selected', index);
+      
+      // If fullscreen, automatically close when selecting
+      if (props.fullscreen) {
+        emit('close');
+      }
+    };
+
     return {
-      getAvatarSrc
+      getAvatarSrc,
+      selectAvatar,
+      closeOutline
     };
   }
 });
@@ -85,6 +150,59 @@ export default defineComponent({
     height: 100%;
     object-fit: cover;
     border-radius: 9999px;
+    filter: grayscale(100%);
+    transition: filter 0.3s ease;
+  }
+
+  &:hover img,
+  &.active img {
+    filter: grayscale(0%);
+  }
+}
+
+.fullscreen-modal {
+  --width: 100%;
+  --height: 100%;
+  --border-radius: 0;
+
+  .avatar-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .avatar-item {
+    cursor: pointer;
+    border-radius: 50%;
+    overflow: hidden;
+    aspect-ratio: 1;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    border: 3px solid transparent;
+    
+    &:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+    
+    &.active {
+      border-color: var(--ion-color-primary);
+      box-shadow: 0 0 0 3px var(--ion-color-primary-shade);
+    }
+
+    .avatar-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: grayscale(100%);
+      transition: filter 0.3s ease, transform 0.2s ease;
+    }
+
+    &:hover .avatar-image,
+    &.active .avatar-image {
+      filter: grayscale(0%);
+    }
   }
 }
 </style>

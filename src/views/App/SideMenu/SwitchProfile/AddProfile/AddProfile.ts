@@ -1,6 +1,6 @@
 import { computed, ref, defineComponent } from "vue";
 import { modalController } from "@ionic/vue";
-import { arrowBack, arrowForward } from "ionicons/icons";
+import { arrowBack, arrowForward, closeOutline } from "ionicons/icons";
 import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
 
 import { ProfileDb } from "@/databases";
@@ -33,6 +33,39 @@ export const AddProfile = defineComponent({
       if (target.value.length === 1 && el && typeof el.focus === 'function') {
         el.focus();
       }
+    },
+    getAvatarSrc(index: number) {
+      const paddedIdx = index.toString().padStart(3, "0");
+      return this.$requireAvatar(`./${paddedIdx}-gamer.svg`);
+    },
+    selectAvatar(index: number) {
+      this.avatarIndex = index;
+      this.isAvatarSelectorOpen = false; // Close the modal after selecting
+    },
+    handlePasscodeInput(event: Event, position: number) {
+      const target = event.target as HTMLInputElement;
+      // Move to next input if value is entered
+      if (target.value.length === 1 && position < 4) {
+        const nextInput = this.$refs[`passcode${position + 1}`] as HTMLInputElement;
+        if (nextInput && typeof nextInput.focus === 'function') {
+          nextInput.focus();
+        }
+      }
+      // Update the combined passcode
+      this.updatePasscode();
+    },
+    handleKeyDown(event: KeyboardEvent, position: number) {
+      // Handle backspace to navigate to previous input
+      if (event.key === 'Backspace' && position > 1 && !(event.target as HTMLInputElement).value) {
+        const prevInput = this.$refs[`passcode${position - 1}`] as HTMLInputElement;
+        if (prevInput && typeof prevInput.focus === 'function') {
+          prevInput.focus();
+        }
+      }
+    },
+    updatePasscode() {
+      // Combine the individual digits into a single passcode
+      this.passcode = this.passcodeDigits.join('');
     }
   },
 
@@ -51,6 +84,7 @@ export const AddProfile = defineComponent({
     const storage = new ProfileDb(profileStorage);
     const email = ref("");
     const passcode = ref("");
+    const passcodeDigits = ref(['', '', '', '']);
     const isAdult = ref(false);
     const avatarIndex = ref(1);
     const fullName = ref("");
@@ -90,6 +124,9 @@ export const AddProfile = defineComponent({
       favoriteFood.value = "";
       jobClass.value = "";
       avatarIndex.value = 1;
+      email.value = "";
+      passcode.value = "";
+      passcodeDigits.value = ['', '', '', ''];
     };
 
     const previousAvatar = () => {
@@ -114,6 +151,12 @@ export const AddProfile = defineComponent({
       jobClass.value = profile.jobClass;
       isAdult.value = profile.isAdult;
       avatarIndex.value = parseInt(profile.avatar.split("-")[0]);
+      
+      // Set passcode digits for the individual inputs
+      if (profile.passcode) {
+        const digits = profile.passcode.split('');
+        passcodeDigits.value = digits.length === 4 ? digits : ['', '', '', ''];
+      }
     };
 
     const activeSegment = ref("info")
@@ -152,9 +195,11 @@ export const AddProfile = defineComponent({
       // profile,
       newProfile,
       passcode,
+      passcodeDigits,
       activeSegment,
       arrowBack,
       arrowForward,
+      closeOutline,
       avatarIndex,
       clickSaveProfile,
       closeModal,
