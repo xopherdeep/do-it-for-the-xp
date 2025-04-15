@@ -1,3 +1,10 @@
+// Add declaration for the window._pendingAudioPlay property
+declare global {
+  interface Window {
+    _pendingAudioPlay?: boolean;
+  }
+}
+
 import loadingMP3 from "@/assets/audio/loading.mp3";
 
 import nintendo from "./nintendo.fx";
@@ -299,12 +306,35 @@ const $fx = {
 export const play$fx = (fx = 'select') => {
   const { ui, rpg, theme: { ui: themeUi, rpg: themeRpg } } = $fx
   let soundFx = ui[themeUi][fx]
-  if (soundFx)
-    soundFx.play()
-  else {
+  
+  // Only play sound if user has interacted with the page
+  if (soundFx && document.documentElement.hasAttribute('data-user-interacted')) {
+    try {
+      soundFx.play().catch(err => {
+        console.log('Sound playback was prevented:', err);
+        // Store that we attempted to play a sound, for future reference
+        window._pendingAudioPlay = true;
+      });
+    } catch (err) {
+      console.log('Sound playback error:', err);
+    }
+  } else if (soundFx) {
+    // Store that we attempted to play a sound, for future reference
+    window._pendingAudioPlay = true;
+  } else {
     soundFx = rpg[themeRpg][fx]
-    if (soundFx)
-      soundFx.play()
+    if (soundFx && document.documentElement.hasAttribute('data-user-interacted')) {
+      try {
+        soundFx.play().catch(err => {
+          console.log('Sound playback was prevented:', err);
+          window._pendingAudioPlay = true;
+        });
+      } catch (err) {
+        console.log('Sound playback error:', err);
+      }
+    } else if (soundFx) {
+      window._pendingAudioPlay = true;
+    }
   }
 }
 
