@@ -57,16 +57,22 @@ $eb-color-pale-yellow: #f7e8a8;
 // Earthbound Theme
 ion-app {
   &#earthbound {
-    font-family: $eb-font-primary;
-
-    ion-content {
-      &#bg-slide {
-        // Specific styles for #bg-slide if needed beyond the mixin
-        --background: transparent;
-        height: 100vh;
-        // Background is handled by the eb-checkerboard-bg mixin included below
+    ion-router-outlet {
+      * {
+        font-family: inherit, $eb-font-status;
       }
     }
+    font-family: $eb-font-primary;
+
+    // Content areas
+    ion-content {
+      --background: transparent;
+      &#container,
+      &.bg-slide {
+        @include eb-checkerboard-bg();
+      }
+    }
+
     // Typography
     ion-title {
       font-family: $eb-font-title;
@@ -101,14 +107,6 @@ ion-app {
       }
     }
 
-    // Content areas
-    ion-content {
-      &#container,
-      &.bg-slide {
-        @include eb-checkerboard-bg();
-      }
-    }
-
     // Toolbar styling
     ion-toolbar {
       &.rpg-box {
@@ -121,12 +119,34 @@ ion-app {
     // Card styling
     ion-card {
       @include eb-box();
-      margin: 1.25em;
+      margin: 1.5em auto;
       width: calc(100% - 2.5em);
-      display: inline-block;
+      display: block;
       position: relative;
       vertical-align: top;
       overflow: visible;
+
+      ion-list {
+        background: $eb-color-dark-purple;
+      }
+
+      ion-item {
+        font-family: $eb-font-primary;
+        font-size: 100%;
+
+        ion-label {
+          font-family: $eb-font-title;
+
+          h1 {
+            font-family: $eb-font-title;
+            font-size: 19px;
+          }
+          p {
+            font-family: $eb-font-status;
+            font-size: 14px;
+          }
+        }
+      }
 
       ion-thumbnail {
         max-width: 100%;
@@ -146,6 +166,11 @@ ion-app {
         padding: 1px 5px;
         font-size: 20px;
         background-color: $eb-color-medium-purple;
+      }
+
+      ion-textarea {
+        font-family: $eb-font-status;
+        border: none;
       }
     }
 
@@ -171,7 +196,7 @@ ion-app {
               float: right;
               width: 32px;
               height: 48px;
-              margin-right: 1.5em;
+              margin-right: 2em;
               display: inline-block;
               background-size: auto;
               background-blend-mode: multiply;
@@ -192,6 +217,21 @@ ion-app {
               }
             }
           }
+        }
+      }
+    }
+
+    ion-segment {
+      font-family: $eb-font-title;
+      ion-segment-button {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+
+        ion-label {
+          font-family: $eb-font-title;
+          font-size: 1.2rem;
         }
       }
     }
