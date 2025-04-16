@@ -66,6 +66,22 @@ export const AddProfile = defineComponent({
     updatePasscode() {
       // Combine the individual digits into a single passcode
       this.passcode = this.passcodeDigits.join('');
+    },
+    async clickSaveProfile() {
+      const profile = this.storage.newProfile(this.newProfile);
+      await this.storage.setProfile(profile);
+
+      // Show success splash
+      this.showSuccessSplash = true;
+        
+      // Play fanfare sound using the mixin method
+      this.play$fx('levelUp');
+
+      // Hide splash after 3 seconds
+      setTimeout(() => {
+        this.showSuccessSplash = false;
+        modalController.dismiss({ profileAdded: true });
+      }, 3000);
     }
   },
 
@@ -95,6 +111,7 @@ export const AddProfile = defineComponent({
     const jobClassOptions = ref(JOB_CLASS_OPTIONS);
     const maxAvatarIndex = $requireAvatar.keys().length;
     const isAvatarSelectorOpen = ref(false);
+    const showSuccessSplash = ref(false);
 
     const paddedIndex = computed(() =>
       avatarIndex.value.toString().padStart(3, "0")
@@ -103,12 +120,6 @@ export const AddProfile = defineComponent({
     const currentAvatar = computed(() =>
       $requireAvatar(`./${paddedIndex.value}-gamer.svg`)
     );
-
-    const clickSaveProfile = () => {
-      const profile = storage.newProfile(newProfile.value);
-      storage.setProfile(profile).then(profileAdded);
-      modalController.dismiss({ profileAdded: true });
-    };
 
     const closeModal = () => {
       modalController.dismiss();
@@ -201,7 +212,6 @@ export const AddProfile = defineComponent({
       arrowForward,
       closeOutline,
       avatarIndex,
-      clickSaveProfile,
       closeModal,
       currentAvatar,
       email,
@@ -225,6 +235,7 @@ export const AddProfile = defineComponent({
       toggleGoal,
       toggleReward,
       isAvatarSelectorOpen,
+      showSuccessSplash,
     };
   },
 });

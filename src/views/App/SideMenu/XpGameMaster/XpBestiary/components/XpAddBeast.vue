@@ -1,116 +1,152 @@
 <template>
-  <ion-header>
-    <ion-toolbar>
-      <ion-buttons slot="start">
-        <ion-back-button @click="dismiss" defaultHref="/game-master" />
-      </ion-buttons>
-
-      <ion-title> Add Beast </ion-title>
-    </ion-toolbar>
-  </ion-header>
-  <ion-content class="bg-slide">
-    <ion-card>
-      <ion-card-content>
-        This is where you can tame your checklists, aka beasts. Name your beasts
-        something like: Grease Dragon, Counter Goblins, Dust Bunnies, etc. Then
-        add a checklist of todo items for that beast. Clean 10 dishes Clean 10
-        Utensils etc.
-      </ion-card-content>
-    </ion-card>
-    <ion-list>
-      <ion-item>
-        <ion-thumbnail slot="start" class="cursor-pointer" id="beast-avatar">
-          <ion-img v-if="beast?.avatar" :src="getAvatar(beast.avatar)" class="w-full p-0 m-0"/>
-          <ion-skeleton-text v-else />
-        </ion-thumbnail>
-        <ion-label position="floating">
-          Enter name of Beast
-          <p></p>
-        </ion-label>
-        <ion-input v-model++="updateBeast.name" />
-        <ion-buttons slot="end">
-          <!-- <ion-button id="beast-avatar">
-            <i class="fad fa-paw-claws fa-2x" />
-          </ion-button> -->
-        </ion-buttons>
-      </ion-item>
-      <ion-item>
-        <ion-label>
-          Checklist Items
-          <p>Add a checklist of items: Clean 10 Plates, Clean 1o Utentils.</p>
-        </ion-label>
-        <ion-button slot="end" @click="clickAddItem"> Add Item </ion-button>
-      </ion-item>
-      <ion-item-sliding v-for="(item, index) in updateBeast.checklist" :key="index">
-        <ion-item>
-          <i class="fad fa-check fa-lg mr-2" />
-          <ion-input v-model="updateBeast.checklist[index]" @onEnterKey="clickAddItem" @keyup="onEnterKey"
-            :ref="`item-${index}`" />
-          <ion-buttons slot="end">
-            <ion-button @click="clickTrash(index)">
-              <i class="fad fa-trash fa-lg ml-2" />
-            </ion-button>
-          </ion-buttons>
-        </ion-item>
-      </ion-item-sliding>
-    </ion-list>
-  </ion-content>
-  <ion-modal trigger="beast-avatar" ref="avatarsModal">
+  <ion-page>
     <ion-header>
-      <ion-toolbar>
+      <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-button @click="cancel">Cancel</ion-button>
+          <ion-back-button
+            @click="dismiss"
+            defaultHref="/game-master"
+          />
         </ion-buttons>
-        <ion-title>Choose an Image</ion-title>
-        <ion-buttons slot="end">
-          <ion-button :strong="true" @click="confirm()" :disabled="!avatar">Confirm</ion-button>
-        </ion-buttons>
+
+        <ion-title> Add Beast </ion-title>
       </ion-toolbar>
     </ion-header>
-    <ion-content class="bg-slide">
-      <ion-radio-group v-model="avatar">
-        <ion-grid class="mb-20">
-          <ion-row class="sticky top-0 z-10">
-            <ion-col>
-              <ion-img v-if="avatar" :src="getAvatar(avatar)" />
-            </ion-col>
-          </ion-row>
-          <ion-row>
-            <ion-col v-for="i in nAvatars" :key="i" size="4">
-              <ion-item
-                :class="{
-                  'opacity-85': avatar !== i
-                }"
+    <ion-content class="bg-slide ion-padding">
+      <ion-card class="max-w-2xl">
+        <ion-card-content>
+          Beasts are themed checklists that make tasks more fun! Give your beast a creative name like "Kitchen Dragon" or "Laundry Kraken", then add specific tasks it helps you complete (e.g., "Wash 10 dishes", "Fold laundry").
+          <ion-list>
+            <ion-item>
+              <ion-thumbnail
+                slot="start"
+                class="cursor-pointer"
+                id="beast-avatar"
               >
-                <ion-label class="m-0 p-0">
-                  <ion-img class="w-full" :src="getAvatar(i)"/>
-                </ion-label>
-                <ion-radio :value="i">
-                  {{ i }}
-                </ion-radio>
+                <ion-img
+                  v-if="beast?.avatar"
+                  :src="getAvatar(beast.avatar)"
+                  class="w-full p-0 m-0"
+                />
+                <ion-skeleton-text v-else />
+              </ion-thumbnail>
+              <ion-label position="floating">
+                Enter name of Beast
+                <p></p>
+              </ion-label>
+              <ion-input v-model++="updateBeast.name" />
+              <ion-buttons slot="end">
+                <!-- <ion-button id="beast-avatar">
+            <i class="fad fa-paw-claws fa-2x" />
+          </ion-button> -->
+              </ion-buttons>
+            </ion-item>
+            <ion-item>
+              <ion-label>
+                Checklist Items
+                <p>Add a checklist of items: Clean 10 Plates, Clean 1o Utentils.</p>
+              </ion-label>
+              <ion-button
+                slot="end"
+                @click="clickAddItem"
+              > Add Item </ion-button>
+            </ion-item>
+            <ion-item-sliding
+              v-for="(item, index) in updateBeast.checklist"
+              :key="index"
+            >
+              <ion-item>
+                <i class="fad fa-check fa-lg mr-2" />
+                <ion-input
+                  v-model="updateBeast.checklist[index]"
+                  @onEnterKey="clickAddItem"
+                  @keyup="onEnterKey"
+                  :ref="`item-${index}`"
+                />
+                <ion-buttons slot="end">
+                  <ion-button @click="clickTrash(index)">
+                    <i class="fad fa-trash fa-lg ml-2" />
+                  </ion-button>
+                </ion-buttons>
               </ion-item>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-      </ion-radio-group>
+            </ion-item-sliding>
+          </ion-list>
+
+        </ion-card-content>
+      </ion-card>
     </ion-content>
-  </ion-modal>
-  <ion-footer>
-    <ion-toolbar>
-      <ion-buttons slot="start">
-        <ion-button @click="dismiss">
-          <i class="fad fa-times fa-lg mr-2" />
-          Cancel
-        </ion-button>
-      </ion-buttons>
-      <ion-buttons slot="end">
-        <ion-button @click="clickSave">
-          Save
-          <i class="fad fa-save fa-lg ml-2" />
-        </ion-button>
-      </ion-buttons>
-    </ion-toolbar>
-  </ion-footer>
+    <ion-modal
+      trigger="beast-avatar"
+      ref="avatarsModal"
+    >
+      <ion-header>
+        <ion-toolbar>
+          <ion-buttons slot="start">
+            <ion-button @click="cancel">Cancel</ion-button>
+          </ion-buttons>
+          <ion-title>Choose an Image</ion-title>
+          <ion-buttons slot="end">
+            <ion-button
+              :strong="true"
+              @click="confirm()"
+              :disabled="!avatar"
+            >Confirm</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content class="bg-slide">
+        <ion-radio-group v-model="avatar">
+          <ion-grid class="mb-20">
+            <ion-row class="sticky top-0 z-10">
+              <ion-col>
+                <ion-img
+                  v-if="avatar"
+                  :src="getAvatar(avatar)"
+                />
+              </ion-col>
+            </ion-row>
+            <ion-row>
+              <ion-col
+                v-for="i in nAvatars"
+                :key="i"
+                size="4"
+              >
+                <ion-item :class="{
+                  'opacity-85': avatar !== i
+                }">
+                  <ion-label class="m-0 p-0">
+                    <ion-img
+                      class="w-full"
+                      :src="getAvatar(i)"
+                    />
+                  </ion-label>
+                  <ion-radio :value="i">
+                    {{ i }}
+                  </ion-radio>
+                </ion-item>
+              </ion-col>
+            </ion-row>
+          </ion-grid>
+        </ion-radio-group>
+      </ion-content>
+    </ion-modal>
+    <ion-footer>
+      <ion-toolbar>
+        <ion-buttons slot="start">
+          <ion-button @click="dismiss">
+            <i class="fad fa-times fa-lg mr-2" />
+            Cancel
+          </ion-button>
+        </ion-buttons>
+        <ion-buttons slot="end">
+          <ion-button @click="clickSave">
+            Save
+            <i class="fad fa-save fa-lg ml-2" />
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-footer>
+  </ion-page>
 </template>
 <script lang="ts">
   import { computed, defineComponent, ref } from "vue";

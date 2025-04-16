@@ -46,7 +46,10 @@
             button
             @click="openNewProfileModal"
           >
-            <ion-label class="py-4 px-2">
+            <ion-buttons slot="start" class="icon-colors">
+              <i class="fad fa-heartbeat fa-3x"></i>
+            </ion-buttons>
+            <ion-label class="py-4">
               New Profile
               <p>New players Start Here.</p>
             </ion-label>
