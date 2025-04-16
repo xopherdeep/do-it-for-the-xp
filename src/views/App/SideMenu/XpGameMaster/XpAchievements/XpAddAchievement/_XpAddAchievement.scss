@@ -8,6 +8,13 @@
 }
 
 .xp-add-achievement {
+  // .segment-button-custom {
+  //   --background-hover: $eb-color-slate;
+  //   --color-checked: $eb-color-cream;
+  //   --indicator-color: $eb-color-pale-yellow;
+  //   transition: all 0.3s ease;
+  // }
+
   ion-card {
     &.item {
       margin: 1em;
@@ -46,20 +53,15 @@
     height: 28px;
     transition: transform 120ms ease, background 120ms ease;
   }
-}
-
-.bg-slide {
-  background: linear-gradient(rgba(0, 0, 0, 0.05) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
-  background-size: 20px 20px;
-  background-position: center center;
-}
+} 
 
 ion-segment-button {
-  --background-hover: rgba(var(--ion-color-primary-rgb), 0.1);
-  --background-focused: rgba(var(--ion-color-primary-rgb), 0.2);
-  --background-activated: rgba(var(--ion-color-primary-rgb), 0.2);
-  
+  // --background-hover: rgba(var(--ion-color-primary-rgb), 0.1);
+  // --background-focused: rgba(var(--ion-color-primary-rgb), 0.2);
+  // --background-activated: rgba(var(--ion-color-primary-rgb), 0.2);
+    // --background-hover: $eb-color-slate;
+    // --color-checked: $eb-color-cream;
+    // --indicator-color: $eb-color-pale-yellow;
   i {
     font-size: 1.5rem;
     margin-bottom: 4px;

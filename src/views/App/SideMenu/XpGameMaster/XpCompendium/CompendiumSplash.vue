@@ -5,7 +5,7 @@
         <ion-title>Game Master Compendium</ion-title>
       </ion-toolbar>
     </ion-header> -->
-    <ion-content :fullscreen="true">
+    <ion-content :fullscreen="true" class="bg-slide">
       <div class="splash-banner">
         <h1>Game Master Compendium</h1>
         <p>Configure the core elements of your XP system.</p>

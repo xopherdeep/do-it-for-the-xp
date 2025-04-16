@@ -374,13 +374,7 @@
           </ion-item>
         </ion-list>
       </ion-card>
-
-      <ion-card
-        class="ion-no-padding"
-        v-if="activeSegment === 'preferences'"
-      >
-        <InputSettings />
-      </ion-card>
+      <InputSettings v-if="activeSegment === 'preferences'" />
     </ion-grid>
   </ion-content>
   <ion-footer>
@@ -412,11 +406,10 @@
 <script lang="ts" src="./AddProfile.ts"></script>
 <style scoped>
 .segment-button-custom {
-  --background-hover: $eb-color-slate;
+  --background-hover: $eb-color-purple;
   --color-checked: $eb-color-cream;
   --indicator-color: $eb-color-pale-yellow;
   transition: all 0.3s ease;
-
 }
 
 .segment-button-custom:hover i {

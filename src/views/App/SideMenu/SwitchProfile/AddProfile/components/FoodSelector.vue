@@ -5,7 +5,7 @@
     :arrow="false"
     class="food-selector"
   >
-    <ion-content class="ion-padding">
+    <ion-content class="ion-padding icon-colors">
       <ion-list>
         <ion-item 
           v-for="food in foodOptions" 

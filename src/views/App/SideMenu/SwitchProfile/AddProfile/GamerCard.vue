@@ -1,7 +1,7 @@
 <template>
   <ion-card>
     <ion-grid>
-      <ion-row class="ion-justify-center ion-align-middle">
+      <ion-row class="ion-justify-center ion-align-middle icon-colors">
         <ion-col size="2">
           <ion-avatar 
             size="large" 

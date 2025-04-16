@@ -107,7 +107,7 @@ export const AddProfile = defineComponent({
     const clickSaveProfile = () => {
       const profile = storage.newProfile(newProfile.value);
       storage.setProfile(profile).then(profileAdded);
-      closeModal();
+      modalController.dismiss({ profileAdded: true });
     };
 
     const closeModal = () => {

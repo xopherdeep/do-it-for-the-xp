@@ -20,7 +20,7 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-    <ion-content>
+    <ion-content class="bg-slide">
       <ion-grid>
         <ion-row>
           <ion-col

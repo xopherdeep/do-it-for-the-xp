@@ -26,6 +26,19 @@
             <ion-card-content class="ion-text-center">
               Share your unique link and help your friends start their own productivity adventure with Do-it-for-the-XP!
             </ion-card-content>
+            <ion-card-footer>
+              <ion-button
+                expand="block"
+                class="share-button ion-margin"
+                @click="shareApp"
+              >
+                <ion-icon
+                  :icon="sendOutline"
+                  slot="start"
+                ></ion-icon>
+                Send Invite
+              </ion-button>
+            </ion-card-footer>
           </ion-card>
         </ion-row>
         <ion-row>
@@ -84,33 +97,14 @@
 
         </ion-row>
       </ion-grid>
-    </ion-content>
-    <ion-footer class="ion-no-border">
-      <ion-toolbar>
-        <ion-button
-          expand="block"
-          class="share-button ion-margin"
-          @click="shareApp"
-        >
-          <ion-icon
-            :icon="sendOutline"
-            slot="start"
-          ></ion-icon>
-          Send Invite
-        </ion-button>
-      </ion-toolbar>
-    </ion-footer>
+    </ion-content> 
   </ion-page>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref } from "vue";
 import { Share } from "@capacitor/share";
-import {
-  IonPage, IonHeader, IonToolbar, IonButtons, IonMenuButton, IonTitle,
-  IonContent, IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,
-  IonIcon, IonList, IonItem, IonLabel, IonFooter, IonButton, toastController
-} from "@ionic/vue";
+import {  toastController } from "@ionic/vue";
 import {
   shareSocialOutline, // Keep if needed elsewhere, or remove
   peopleCircleOutline, // New intro icon
@@ -119,14 +113,12 @@ import {
   cubeOutline,        // Item reward icon
   sendOutline         // Share button icon
 } from "ionicons/icons";
+import Ionic from "@/mixins/ionic";
 
 export default defineComponent({
   name: "XpShareApp",
-  components: {
-    IonPage, IonHeader, IonToolbar, IonButtons, IonMenuButton, IonTitle,
-    IonContent, IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,
-    IonIcon, IonList, IonItem, IonLabel, IonFooter, IonButton
-  },
+  mixins: [Ionic],
+   
   setup() {
     const shareCount = ref(0);
 

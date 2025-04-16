@@ -53,21 +53,30 @@ export default defineComponent({
   data() {
     return {
       fibonacciArray: [1, 2, 3, 5, 8, 13],
+      fibonacciDescriptions: [
+        'Trivial', 
+        'Simple', 
+        'Easy', 
+        'Moderate', 
+        'Challenging', 
+        'Difficult'
+      ],
+      difficultyValue: null,
       efforts: EFFORTS,
       prev1: 1,
       prev2: 1,
       segments: [{
-        name: "Adventure",
-        icon: "fa-map-signs"
+        name: "Quest",
+        icon: "fa-seedling"
       }, {
-        name: "Timer",
-        icon: "fa-hourglass"
+        name: "When",
+        icon: "fa-calendar"
       }, {
-        name: "Reward",
-        icon: "fa-treasure-chest"
+        name: "Points",
+        icon: "fa-hand-holding"
       }, {
         name: "Heros",
-        icon: "fa-user-shield"
+        icon: "fa-users"
       }],
       adventureTypes: [{
         segment: "simple",
@@ -91,16 +100,16 @@ export default defineComponent({
     activeSegmentIcon() {
       // Return the appropriate icon based on active segment
       switch (this.activeSegment) {
-        case 'adventure':
-          return 'fa-scroll-old fa-2x';
+        case 'quest':
+          return 'fa-seedling fa-3x';
         case 'heros':
-          return 'fa-user-shield fa-2x';
-        case 'timer':
-          return 'fa-hourglass fa-2x';
-        case 'reward':
-          return 'fa-treasure-chest fa-2x';
+          return 'fa-users fa-3x ';
+        case 'when':
+          return 'fa-calendar fa-3x';
+        case 'points':
+          return 'fa-hand-holding fa-3x';
         default:
-          return 'fa-scroll-old fa-2x';
+          return 'fa-seedling fa-3x';
       }
     },
     
@@ -258,6 +267,13 @@ export default defineComponent({
       const currentIndex = this.fibonacciArray.indexOf(this.achievement.difficulty);
       if (currentIndex > 0) {
         this.achievement.difficulty = this.fibonacciArray[currentIndex - 1];
+      }
+    },
+    setFibonacciDifficulty() {
+      // This method is called when selecting a value from the Fibonacci dropdown
+      if (this.difficultyValue) {
+        this.achievement.difficulty = this.difficultyValue;
+        this.updatePoints();
       }
     },
     async loadAchievement() {
@@ -463,9 +479,9 @@ export default defineComponent({
         .then(syncCategories)
     }
 
-    const activeSegment = ref('adventure')
+    const activeSegment = ref('quest')
 
-    const adventureType = ref('beast')
+    const adventureType = ref('simple')
 
     const endsModalOpen = ref(false)
 

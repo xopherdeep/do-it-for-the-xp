@@ -23,7 +23,7 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-    <ion-content>
+    <ion-content class="bg-slide">
       <!-- Profile Avatars -->
       <div class="profile-avatars-container">
         <ion-scroll horizontal="true">
