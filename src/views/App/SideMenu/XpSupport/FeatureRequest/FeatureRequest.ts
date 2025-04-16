@@ -24,7 +24,8 @@ import {
   IonButton,
   IonList,
   IonToast,
-  toastController
+  toastController,
+  IonModal
 } from '@ionic/vue'
 
 interface FeatureRequest {
@@ -66,7 +67,8 @@ export default defineComponent({
     IonSelectOption,
     IonButton,
     IonList,
-    IonToast
+    IonToast,
+    IonModal
   },
   setup() {
     const showToast = ref(false);
@@ -122,15 +124,13 @@ export default defineComponent({
           description: 'More options for customizing character appearance and abilities.',
           votes: 76
         }
-      ] as PopularFeature[]
+      ] as PopularFeature[],
+      showSubmitModal: false // Added to control the modal visibility
     };
   },
   methods: {
     submitFeatureRequest() {
-      // Here you would typically send the feature request to a server
-      // For now, we'll just show a success message
       this.presentToast('Your feature request has been submitted successfully!');
-      
       // Reset the form
       this.featureRequest = {
         title: '',
@@ -138,8 +138,11 @@ export default defineComponent({
         description: '',
         importance: ''
       };
+      // Ensure modal closes - added setTimeout to avoid potential race conditions
+      setTimeout(() => {
+        this.showSubmitModal = false;
+      }, 100);
     },
-    
     voteForFeature(featureId: number) {
       // Find the feature and increment its vote count
       const feature = this.popularFeatures.find(f => f.id === featureId);

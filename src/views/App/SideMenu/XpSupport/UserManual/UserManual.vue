@@ -11,8 +11,8 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true">
-      <ion-grid>
+    <ion-content :fullscreen="true" class="rpg-box bg-slide">
+      <ion-grid class="max-w-2xl">
         <ion-row>
           <ion-col size="12">
             <ion-card>

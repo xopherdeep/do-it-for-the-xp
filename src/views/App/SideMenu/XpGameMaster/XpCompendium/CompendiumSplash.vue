@@ -258,9 +258,11 @@ import 'swiper/css';
 import 'swiper/css/pagination';
 import 'swiper/css/navigation';
 import XpTypingText from "@/components/XpTypingText";
+import Ionic from "@/mixins/ionic";
 
 export default defineComponent({
   name: 'CompendiumSplash',
+  mixins: [Ionic],
   components: {
     Swiper,
     SwiperSlide,
@@ -269,7 +271,7 @@ export default defineComponent({
   // mixins: [Ionic],
   setup() {
     const router = useRouter();
-    const textSpeed = ref(50);
+    const textSpeed = ref(40);
     const activeSlideIndex = ref(0);
     const slidesCompleted = ref([false, false, false, false, false, false, false, false, false]);
     const swiperInstance = ref<SwiperClass | null>(null);

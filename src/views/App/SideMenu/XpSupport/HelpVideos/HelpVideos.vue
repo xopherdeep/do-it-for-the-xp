@@ -11,10 +11,10 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true">
-      <ion-grid>
+    <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
+      <ion-grid >
         <ion-row>
-          <ion-col size="12" size-md="6" v-for="(video, index) in videos" :key="index">
+          <ion-col size="12" size-md="4" v-for="(video, index) in videos" :key="index">
             <ion-card>
               <div class="video-container">
                 <img :src="video.thumbnail" :alt="video.title" class="video-thumbnail" />

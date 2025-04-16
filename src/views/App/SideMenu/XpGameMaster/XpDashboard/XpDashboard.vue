@@ -4,13 +4,14 @@
       <ion-toolbar class="icon-colors rpg-box">
         <ion-buttons slot="start">
           <ion-menu-button @click="play$fx('select')" />
+          <i
+            class="fad fa-heart fa-2x ml-2"
+            slot="start"
+          />
         </ion-buttons>
-        <i
-          class="fad fa-gamepad-alt fa-2x"
-          slot="start"
-        />
+
         <ion-title>
-          Game Master Dashboard
+          XP Family Dashboard
         </ion-title>
         <ion-buttons slot="end">
           <ion-button @click="openSettings">

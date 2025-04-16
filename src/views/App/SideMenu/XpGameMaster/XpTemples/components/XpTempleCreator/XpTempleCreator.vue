@@ -19,9 +19,12 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content>
+    <ion-content class="bg-slide">
       <!-- Preview Mode -->
-      <div v-if="showPreview" class="tab-content">
+      <div
+        v-if="showPreview"
+        class="tab-content"
+      >
         <ion-card>
           <ion-card-header>
             <ion-card-title>Temple Preview</ion-card-title>
@@ -31,7 +34,10 @@
             <div class="preview-container">
               <pre class="code-preview">{{ templeCodePreview }}</pre>
             </div>
-            <ion-button expand="block" @click="copyToClipboard">
+            <ion-button
+              expand="block"
+              @click="copyToClipboard"
+            >
               <i class="fas fa-copy"></i>
               Copy Code
             </ion-button>
@@ -40,11 +46,18 @@
       </div>
 
       <!-- Unified Editor Mode -->
-      <div v-else class="editor-content">
+      <div
+        v-else
+        class="editor-content"
+      >
         <ion-grid class="editor-grid">
           <ion-row>
             <!-- Left Side: Grid Layout -->
-            <ion-col size="12" size-md="7" class="layout-column">
+            <ion-col
+              size="12"
+              size-md="7"
+              class="layout-column"
+            >
               <ion-card>
                 <ion-card-header>
                   <ion-card-title>Temple Layout</ion-card-title>
@@ -54,7 +67,11 @@
                   <div class="layout-controls">
                     <ion-item>
                       <ion-label>Grid Size</ion-label>
-                      <ion-select v-model="gridSize" interface="popover" @ionChange="resizeGrid">
+                      <ion-select
+                        v-model="gridSize"
+                        interface="popover"
+                        @ionChange="resizeGrid"
+                      >
                         <ion-select-option value="5x5">5 x 5</ion-select-option>
                         <ion-select-option value="6x6">6 x 6</ion-select-option>
                         <ion-select-option value="7x7">7 x 7</ion-select-option>
@@ -64,20 +81,24 @@
                     </ion-item>
                     <ion-item>
                       <ion-label>Entrance Position</ion-label>
-                      <ion-input type="text" v-model="entrancePosition" placeholder="row,col (e.g. 5,2)" />
+                      <ion-input
+                        type="text"
+                        v-model="entrancePosition"
+                        placeholder="row,col (e.g. 5,2)"
+                      />
                     </ion-item>
                   </div>
 
                   <div class="grid-container">
                     <div class="temple-grid">
-                      <div 
-                        v-for="(row, rowIndex) in templeMaze" 
-                        :key="`row-${rowIndex}`" 
+                      <div
+                        v-for="(row, rowIndex) in templeMaze"
+                        :key="`row-${rowIndex}`"
                         class="grid-row"
                       >
-                        <div 
-                          v-for="(cell, colIndex) in row" 
-                          :key="`cell-${rowIndex}-${colIndex}`" 
+                        <div
+                          v-for="(cell, colIndex) in row"
+                          :key="`cell-${rowIndex}-${colIndex}`"
                           class="grid-cell"
                           :class="{
                             'cell-wall': getCellType(cell) === 'wall',
@@ -93,31 +114,39 @@
                           @click="showQuickEditPopover($event, rowIndex, colIndex)"
                           @contextmenu.prevent="showQuickEditPopover($event, rowIndex, colIndex)"
                         >
-                          <i 
-                            :class="[ROOM_ICONS[getCellType(cell)]]" 
+                          <i
+                            :class="[ROOM_ICONS[getCellType(cell)]]"
                             class="fad"
                           ></i>
                           <span class="cell-coords">{{rowIndex}},{{colIndex}}</span>
-                          
+
                           <!-- Side Configuration Indicators -->
                           <!-- North -->
-                          <div v-if="getSideConfiguration(cell, 'north') !== 'door'" 
-                               :class="['side-indicator', 'north', `indicator-${getSideConfiguration(cell, 'north')}`]">
+                          <div
+                            v-if="getSideConfiguration(cell, 'north') !== 'door'"
+                            :class="['side-indicator', 'north', `indicator-${getSideConfiguration(cell, 'north')}`]"
+                          >
                             <i :class="SIDE_TYPE_INFO[getSideConfiguration(cell, 'north')].icon"></i>
                           </div>
                           <!-- East -->
-                          <div v-if="getSideConfiguration(cell, 'east') !== 'door'" 
-                               :class="['side-indicator', 'east', `indicator-${getSideConfiguration(cell, 'east')}`]">
+                          <div
+                            v-if="getSideConfiguration(cell, 'east') !== 'door'"
+                            :class="['side-indicator', 'east', `indicator-${getSideConfiguration(cell, 'east')}`]"
+                          >
                             <i :class="SIDE_TYPE_INFO[getSideConfiguration(cell, 'east')].icon"></i>
                           </div>
                           <!-- South -->
-                          <div v-if="getSideConfiguration(cell, 'south') !== 'door'" 
-                               :class="['side-indicator', 'south', `indicator-${getSideConfiguration(cell, 'south')}`]">
+                          <div
+                            v-if="getSideConfiguration(cell, 'south') !== 'door'"
+                            :class="['side-indicator', 'south', `indicator-${getSideConfiguration(cell, 'south')}`]"
+                          >
                             <i :class="SIDE_TYPE_INFO[getSideConfiguration(cell, 'south')].icon"></i>
                           </div>
                           <!-- West -->
-                          <div v-if="getSideConfiguration(cell, 'west') !== 'door'" 
-                               :class="['side-indicator', 'west', `indicator-${getSideConfiguration(cell, 'west')}`]">
+                          <div
+                            v-if="getSideConfiguration(cell, 'west') !== 'door'"
+                            :class="['side-indicator', 'west', `indicator-${getSideConfiguration(cell, 'west')}`]"
+                          >
                             <i :class="SIDE_TYPE_INFO[getSideConfiguration(cell, 'west')].icon"></i>
                           </div>
                         </div>
@@ -129,7 +158,11 @@
             </ion-col>
 
             <!-- Right Side: Room Properties -->
-            <ion-col size="12" size-md="5" class="properties-column">
+            <ion-col
+              size="12"
+              size-md="5"
+              class="properties-column"
+            >
               <ion-card>
                 <ion-card-header>
                   <ion-card-title>Room Properties</ion-card-title>
@@ -143,7 +176,10 @@
                 <ion-card-content v-if="selectedCell">
                   <ion-item>
                     <ion-label>Room Type</ion-label>
-                    <ion-select v-model="selectedRoomType" interface="popover">
+                    <ion-select
+                      v-model="selectedRoomType"
+                      interface="popover"
+                    >
                       <ion-select-option value="wall">Wall</ion-select-option>
                       <ion-select-option value="empty">Empty Room</ion-select-option>
                       <ion-select-option value="entrance">Entrance</ion-select-option>
@@ -158,10 +194,16 @@
                   </ion-item>
 
                   <!-- Content options based on room type -->
-                  <div v-if="selectedRoomType === 'loot'" class="room-content-options">
+                  <div
+                    v-if="selectedRoomType === 'loot'"
+                    class="room-content-options"
+                  >
                     <ion-item>
                       <ion-label>Chest Type</ion-label>
-                      <ion-select v-model="selectedChestType" interface="popover">
+                      <ion-select
+                        v-model="selectedChestType"
+                        interface="popover"
+                      >
                         <ion-select-option value="dungeon">Dungeon Item</ion-select-option>
                         <ion-select-option value="loot">Random Loot</ion-select-option>
                       </ion-select>
@@ -169,7 +211,10 @@
 
                     <ion-item v-if="selectedChestType === 'dungeon'">
                       <ion-label>Dungeon Item</ion-label>
-                      <ion-select v-model="selectedDungeonItem" interface="popover">
+                      <ion-select
+                        v-model="selectedDungeonItem"
+                        interface="popover"
+                      >
                         <ion-select-option value="map">Map</ion-select-option>
                         <ion-select-option value="compass">Compass</ion-select-option>
                         <ion-select-option value="key">Key</ion-select-option>
@@ -180,7 +225,11 @@
 
                     <ion-item v-if="selectedChestType === 'loot'">
                       <ion-label>Loot Items</ion-label>
-                      <ion-select v-model="selectedLootItems" multiple="true" interface="popover">
+                      <ion-select
+                        v-model="selectedLootItems"
+                        multiple="true"
+                        interface="popover"
+                      >
                         <ion-select-option value="potion">Potion</ion-select-option>
                         <ion-select-option value="ether">Ether</ion-select-option>
                         <ion-select-option value="elixir">Elixir</ion-select-option>
@@ -190,10 +239,16 @@
                     </ion-item>
                   </div>
 
-                  <div v-if="selectedRoomType === 'monster' || selectedRoomType === 'boss' || selectedRoomType === 'miniboss'" class="room-content-options">
+                  <div
+                    v-if="selectedRoomType === 'monster' || selectedRoomType === 'boss' || selectedRoomType === 'miniboss'"
+                    class="room-content-options"
+                  >
                     <ion-item>
                       <ion-label>Monster Type</ion-label>
-                      <ion-select v-model="selectedMonsterType" interface="popover">
+                      <ion-select
+                        v-model="selectedMonsterType"
+                        interface="popover"
+                      >
                         <ion-select-option value="small">Small Enemy</ion-select-option>
                         <ion-select-option value="medium">Medium Enemy</ion-select-option>
                         <ion-select-option value="large">Large Enemy</ion-select-option>
@@ -222,11 +277,18 @@
                     </ion-item>
                   </div>
 
-                  <ion-button expand="block" @click="applyRoomChanges" class="apply-button">
+                  <ion-button
+                    expand="block"
+                    @click="applyRoomChanges"
+                    class="apply-button"
+                  >
                     Apply Changes
                   </ion-button>
                 </ion-card-content>
-                <ion-card-content v-else class="no-selection-content">
+                <ion-card-content
+                  v-else
+                  class="no-selection-content"
+                >
                   <div class="select-prompt">
                     <i class="fas fa-hand-pointer fa-2x"></i>
                     <p>Click on a cell in the grid to edit its properties</p>
@@ -238,7 +300,7 @@
         </ion-grid>
       </div>
     </ion-content>
-    
+
     <!-- Quick Edit Popover -->
     <ion-popover
       :is-open="quickEditPopoverOpen"
@@ -250,15 +312,22 @@
     >
       <ion-header>
         <ion-toolbar>
-          <ion-segment v-model="quickEditTab" value="type">
+          <ion-segment
+            v-model="quickEditTab"
+            value="type"
+          >
             <ion-segment-button value="type">
               <ion-label>Type</ion-label>
             </ion-segment-button>
-            <ion-segment-button value="content" :disabled="!['loot', 'monster'].includes(quickEditType)">
-              <ion-label>Content</ion-label>
-            </ion-segment-button>
+
             <ion-segment-button value="locks">
               <ion-label>Sides</ion-label> <!-- Changed label -->
+            </ion-segment-button>
+            <ion-segment-button
+              value="content"
+              :disabled="!['loot', 'monster'].includes(quickEditType)"
+            >
+              <ion-label>Content</ion-label>
             </ion-segment-button>
           </ion-segment>
         </ion-toolbar>
@@ -269,86 +338,159 @@
           <ion-grid class="room-type-grid ion-padding-top">
             <ion-row>
               <ion-col size="4">
-                <ion-button fill="clear" @click="quickSetRoomType('wall')" :class="{ 'selected': quickEditType === 'wall' }">
+                <ion-button
+                  fill="clear"
+                  @click="quickSetRoomType('wall')"
+                  :class="{ 'selected': quickEditType === 'wall' }"
+                >
                   <div class="button-content">
-                    <i class="fas" :class="ROOM_ICONS['wall']"></i><span>Wall</span>
+                    <i
+                      class="fas"
+                      :class="ROOM_ICONS['wall']"
+                    ></i><span>Wall</span>
                   </div>
                 </ion-button>
               </ion-col>
               <ion-col size="4">
-                <ion-button fill="clear" @click="quickSetRoomType('empty')" :class="{ 'selected': quickEditType === 'empty' }">
+                <ion-button
+                  fill="clear"
+                  @click="quickSetRoomType('empty')"
+                  :class="{ 'selected': quickEditType === 'empty' }"
+                >
                   <div class="button-content">
-                    <i class="fas" :class="ROOM_ICONS['empty']"></i><span>Empty</span>
+                    <i
+                      class="fas"
+                      :class="ROOM_ICONS['empty']"
+                    ></i><span>Empty</span>
                   </div>
                 </ion-button>
               </ion-col>
               <ion-col size="4">
-                <ion-button fill="clear" @click="quickSetRoomType('monster')" :class="{ 'selected': quickEditType === 'monster' }">
+                <ion-button
+                  fill="clear"
+                  @click="quickSetRoomType('monster')"
+                  :class="{ 'selected': quickEditType === 'monster' }"
+                >
                   <div class="button-content">
-                    <i class="fas" :class="ROOM_ICONS['monster']"></i><span>Monster</span>
+                    <i
+                      class="fas"
+                      :class="ROOM_ICONS['monster']"
+                    ></i><span>Monster</span>
                   </div>
                 </ion-button>
               </ion-col>
             </ion-row>
             <ion-row>
               <ion-col size="4">
-                <ion-button fill="clear" @click="quickSetRoomType('loot')" :class="{ 'selected': quickEditType === 'loot' }">
+                <ion-button
+                  fill="clear"
+                  @click="quickSetRoomType('loot')"
+                  :class="{ 'selected': quickEditType === 'loot' }"
+                >
                   <div class="button-content">
-                    <i class="fas" :class="ROOM_ICONS['loot']"></i><span>Chest</span>
+                    <i
+                      class="fas"
+                      :class="ROOM_ICONS['loot']"
+                    ></i><span>Chest</span>
                   </div>
                 </ion-button>
               </ion-col>
               <ion-col size="4">
-                <ion-button fill="clear" @click="quickSetRoomType('boss')" :class="{ 'selected': quickEditType === 'boss' }">
+                <ion-button
+                  fill="clear"
+                  @click="quickSetRoomType('boss')"
+                  :class="{ 'selected': quickEditType === 'boss' }"
+                >
                   <div class="button-content">
-                    <i class="fas" :class="ROOM_ICONS['boss']"></i><span>Boss</span>
+                    <i
+                      class="fas"
+                      :class="ROOM_ICONS['boss']"
+                    ></i><span>Boss</span>
                   </div>
                 </ion-button>
               </ion-col>
               <ion-col size="4">
-                <ion-button fill="clear" @click="quickSetRoomType('teleport')" :class="{ 'selected': quickEditType === 'teleport' }">
+                <ion-button
+                  fill="clear"
+                  @click="quickSetRoomType('teleport')"
+                  :class="{ 'selected': quickEditType === 'teleport' }"
+                >
                   <div class="button-content">
-                    <i class="fas" :class="ROOM_ICONS['teleport']"></i><span>Teleport</span>
+                    <i
+                      class="fas"
+                      :class="ROOM_ICONS['teleport']"
+                    ></i><span>Teleport</span>
                   </div>
                 </ion-button>
               </ion-col>
             </ion-row>
-             <ion-row>
+            <ion-row>
               <ion-col size="4">
-                <ion-button fill="clear" @click="quickSetRoomType('shop')" :class="{ 'selected': quickEditType === 'shop' }">
+                <ion-button
+                  fill="clear"
+                  @click="quickSetRoomType('shop')"
+                  :class="{ 'selected': quickEditType === 'shop' }"
+                >
                   <div class="button-content">
-                    <i class="fas" :class="ROOM_ICONS['shop']"></i><span>Shop</span>
+                    <i
+                      class="fas"
+                      :class="ROOM_ICONS['shop']"
+                    ></i><span>Shop</span>
                   </div>
                 </ion-button>
               </ion-col>
-               <ion-col size="4">
-                 <ion-button fill="clear" @click="quickSetRoomType('health')" :class="{ 'selected': quickEditType === 'health' }">
-                   <div class="button-content">
-                     <i class="fas" :class="ROOM_ICONS['health']"></i><span>Health</span>
-                   </div>
-                 </ion-button>
-               </ion-col>
-               <ion-col size="4">
-                 <ion-button fill="clear" @click="quickSetRoomType('miniboss')" :class="{ 'selected': quickEditType === 'miniboss' }">
-                   <div class="button-content">
-                     <i class="fas" :class="ROOM_ICONS['miniboss']"></i><span>MiniBoss</span>
-                   </div>
-                 </ion-button>
-               </ion-col>
-               <ion-col size="4">
-                 <ion-button fill="clear" @click="quickSetRoomType('entrance')" :class="{ 'selected': quickEditType === 'entrance' }">
-                   <div class="button-content">
-                     <i class="fas" :class="ROOM_ICONS['entrance']"></i><span>Entrance</span>
-                   </div>
-                 </ion-button>
-               </ion-col>
+              <ion-col size="4">
+                <ion-button
+                  fill="clear"
+                  @click="quickSetRoomType('health')"
+                  :class="{ 'selected': quickEditType === 'health' }"
+                >
+                  <div class="button-content">
+                    <i
+                      class="fas"
+                      :class="ROOM_ICONS['health']"
+                    ></i><span>Health</span>
+                  </div>
+                </ion-button>
+              </ion-col>
+              <ion-col size="4">
+                <ion-button
+                  fill="clear"
+                  @click="quickSetRoomType('miniboss')"
+                  :class="{ 'selected': quickEditType === 'miniboss' }"
+                >
+                  <div class="button-content">
+                    <i
+                      class="fas"
+                      :class="ROOM_ICONS['miniboss']"
+                    ></i><span>MiniBoss</span>
+                  </div>
+                </ion-button>
+              </ion-col>
+              <ion-col size="4">
+                <ion-button
+                  fill="clear"
+                  @click="quickSetRoomType('entrance')"
+                  :class="{ 'selected': quickEditType === 'entrance' }"
+                >
+                  <div class="button-content">
+                    <i
+                      class="fas"
+                      :class="ROOM_ICONS['entrance']"
+                    ></i><span>Entrance</span>
+                  </div>
+                </ion-button>
+              </ion-col>
             </ion-row>
           </ion-grid>
         </div>
 
         <!-- Tab Content: Content -->
         <div v-if="quickEditTab === 'content'">
-          <ion-list lines="none" class="ion-padding-top">
+          <ion-list
+            lines="none"
+            class="ion-padding-top"
+          >
             <!-- Loot Content Options -->
             <div v-if="quickEditType === 'loot'">
               <ion-item>
@@ -358,7 +500,7 @@
                   <ion-segment-button value="loot">Random Loot</ion-segment-button>
                 </ion-segment>
               </ion-item>
-              
+
               <ion-item v-if="quickChestType === 'dungeon'">
                 <ion-label>Dungeon Item</ion-label>
                 <ion-segment v-model="quickDungeonItem">
@@ -371,14 +513,19 @@
               </ion-item>
 
               <ion-item v-if="quickChestType === 'loot'">
-                 <ion-label>Random Items</ion-label>
-                 <ion-select v-model="quickRandomLootItems" multiple="true" interface="popover" placeholder="Select Items">
-                   <ion-select-option value="potion">Potion</ion-select-option>
-                   <ion-select-option value="ether">Ether</ion-select-option>
-                   <ion-select-option value="elixir">Elixir</ion-select-option>
-                   <ion-select-option value="gold">Gold</ion-select-option>
-                   <ion-select-option value="equipment">Equipment</ion-select-option>
-                 </ion-select>
+                <ion-label>Random Items</ion-label>
+                <ion-select
+                  v-model="quickRandomLootItems"
+                  multiple="true"
+                  interface="popover"
+                  placeholder="Select Items"
+                >
+                  <ion-select-option value="potion">Potion</ion-select-option>
+                  <ion-select-option value="ether">Ether</ion-select-option>
+                  <ion-select-option value="elixir">Elixir</ion-select-option>
+                  <ion-select-option value="gold">Gold</ion-select-option>
+                  <ion-select-option value="equipment">Equipment</ion-select-option>
+                </ion-select>
               </ion-item>
             </div>
 
@@ -392,50 +539,97 @@
                 <ion-segment-button value="boss">Boss</ion-segment-button>
               </ion-segment>
             </ion-item>
-            
+
             <!-- Add other content types here if needed (e.g., Health amount) -->
-            
+
           </ion-list>
         </div>
 
         <!-- Tab Content: Locks -->
         <div v-if="quickEditTab === 'locks'">
-          <ion-list lines="full" class="ion-padding-top">
-             <!-- <ion-item-divider> Removed redundant title
+          <ion-list
+            lines="full"
+            class="ion-padding-top"
+          >
+            <!-- <ion-item-divider> Removed redundant title
                <ion-label>Side Configuration</ion-label>
              </ion-item-divider> -->
             <!-- North Side -->
-            <ion-item button detail="false" @click="showSideSelectPopover($event, 'north')">
+            <ion-item
+              button
+              detail="false"
+              @click="showSideSelectPopover($event, 'north')"
+            >
               <ion-label>North</ion-label>
-              <ion-button fill="clear" slot="end" class="side-type-button">
-                <i :class="getSideTypeDisplay(quickNorthSideType).icon" slot="start"></i>
+              <ion-button
+                fill="clear"
+                slot="end"
+                class="side-type-button"
+              >
+                <i
+                  :class="getSideTypeDisplay(quickNorthSideType).icon"
+                  slot="start"
+                ></i>
                 {{ getSideTypeDisplay(quickNorthSideType).label }}
               </ion-button>
             </ion-item>
-            
+
             <!-- East Side -->
-            <ion-item button detail="false" @click="showSideSelectPopover($event, 'east')">
+            <ion-item
+              button
+              detail="false"
+              @click="showSideSelectPopover($event, 'east')"
+            >
               <ion-label>East</ion-label>
-              <ion-button fill="clear" slot="end" class="side-type-button">
-                <i :class="getSideTypeDisplay(quickEastSideType).icon" slot="start"></i>
+              <ion-button
+                fill="clear"
+                slot="end"
+                class="side-type-button"
+              >
+                <i
+                  :class="getSideTypeDisplay(quickEastSideType).icon"
+                  slot="start"
+                ></i>
                 {{ getSideTypeDisplay(quickEastSideType).label }}
               </ion-button>
             </ion-item>
 
             <!-- South Side -->
-            <ion-item button detail="false" @click="showSideSelectPopover($event, 'south')">
+            <ion-item
+              button
+              detail="false"
+              @click="showSideSelectPopover($event, 'south')"
+            >
               <ion-label>South</ion-label>
-              <ion-button fill="clear" slot="end" class="side-type-button">
-                <i :class="getSideTypeDisplay(quickSouthSideType).icon" slot="start"></i>
+              <ion-button
+                fill="clear"
+                slot="end"
+                class="side-type-button"
+              >
+                <i
+                  :class="getSideTypeDisplay(quickSouthSideType).icon"
+                  slot="start"
+                ></i>
                 {{ getSideTypeDisplay(quickSouthSideType).label }}
               </ion-button>
             </ion-item>
 
             <!-- West Side -->
-            <ion-item button detail="false" @click="showSideSelectPopover($event, 'west')">
+            <ion-item
+              button
+              detail="false"
+              @click="showSideSelectPopover($event, 'west')"
+            >
               <ion-label>West</ion-label>
-              <ion-button fill="clear" slot="end" class="side-type-button">
-                <i :class="getSideTypeDisplay(quickWestSideType).icon" slot="start"></i>
+              <ion-button
+                fill="clear"
+                slot="end"
+                class="side-type-button"
+              >
+                <i
+                  :class="getSideTypeDisplay(quickWestSideType).icon"
+                  slot="start"
+                ></i>
                 {{ getSideTypeDisplay(quickWestSideType).label }}
               </ion-button>
             </ion-item>
@@ -444,54 +638,81 @@
 
         <!-- Action Buttons (Remain outside tabs) -->
         <ion-footer class="ion-no-border ion-padding-top">
-           <ion-toolbar>
-             <ion-buttons slot="secondary">
-               <ion-button  @click="quickEditPopoverOpen = false">
-                 Cancel
-               </ion-button>
-             </ion-buttons>
-             <ion-buttons slot="primary">
-               <ion-button fill="outline" @click="applyQuickEdit">
-                 Apply
-               </ion-button>
-             </ion-buttons>
-           </ion-toolbar>
+          <ion-toolbar>
+            <ion-buttons slot="secondary">
+              <ion-button @click="quickEditPopoverOpen = false">
+                Cancel
+              </ion-button>
+            </ion-buttons>
+            <ion-buttons slot="primary">
+              <ion-button
+                fill="outline"
+                @click="applyQuickEdit"
+              >
+                Apply
+              </ion-button>
+            </ion-buttons>
+          </ion-toolbar>
         </ion-footer>
       </ion-content>
     </ion-popover>
-    
+
     <!-- Popover for Side Type Selection -->
     <ion-popover
       :is-open="sideSelectPopoverOpen"
       :event="sideSelectEvent"
       @didDismiss="sideSelectPopoverOpen = false"
       :dismiss-on-select="true"
-      side="end" 
+      side="end"
       alignment="center"
-      class="side-select-sub-popover" 
+      class="side-select-sub-popover"
     >
       <ion-content>
         <ion-list lines="none">
-          <ion-item button @click="setSideType('door')">
-            <i :class="SIDE_TYPE_INFO.door.icon" slot="start"></i>
+          <ion-item
+            button
+            @click="setSideType('door')"
+          >
+            <i
+              :class="SIDE_TYPE_INFO.door.icon"
+              slot="start"
+            ></i>
             <ion-label>{{ SIDE_TYPE_INFO.door.label }}</ion-label>
           </ion-item>
-          <ion-item button @click="setSideType('wall')">
-            <i :class="SIDE_TYPE_INFO.wall.icon" slot="start"></i>
+          <ion-item
+            button
+            @click="setSideType('wall')"
+          >
+            <i
+              :class="SIDE_TYPE_INFO.wall.icon"
+              slot="start"
+            ></i>
             <ion-label>{{ SIDE_TYPE_INFO.wall.label }}</ion-label>
           </ion-item>
-          <ion-item button @click="setSideType('bombable')">
-            <i :class="SIDE_TYPE_INFO.bombable.icon" slot="start"></i>
+          <ion-item
+            button
+            @click="setSideType('bombable')"
+          >
+            <i
+              :class="SIDE_TYPE_INFO.bombable.icon"
+              slot="start"
+            ></i>
             <ion-label>{{ SIDE_TYPE_INFO.bombable.label }}</ion-label>
           </ion-item>
-          <ion-item button @click="setSideType('locked')">
-            <i :class="SIDE_TYPE_INFO.locked.icon" slot="start"></i>
+          <ion-item
+            button
+            @click="setSideType('locked')"
+          >
+            <i
+              :class="SIDE_TYPE_INFO.locked.icon"
+              slot="start"
+            ></i>
             <ion-label>{{ SIDE_TYPE_INFO.locked.label }}</ion-label>
           </ion-item>
         </ion-list>
       </ion-content>
     </ion-popover>
-    
+
   </ion-page>
 </template>
 

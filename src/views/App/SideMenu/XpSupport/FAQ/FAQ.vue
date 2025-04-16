@@ -13,7 +13,7 @@
 
 
     <ion-content  class="bg-slide flex flex-row items-center justify-center h-full w-full p-10">
-      <ion-card class="max-w-[80%] w-fit self-center">
+      <ion-card class="max-w-2xl w-fit self-center">
         <ion-grid>
           <ion-row>
             <ion-col size="12">

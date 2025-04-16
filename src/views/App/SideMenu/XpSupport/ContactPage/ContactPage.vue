@@ -9,10 +9,16 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :fullscreen="true">
-      <ion-grid>
+    <ion-content
+      :fullscreen="true"
+      class="rpg-box bg-slide"
+    >
+      <ion-grid class="max-w-4xl">
         <ion-row>
-          <ion-col size="12" size-md="6">
+          <ion-col
+            size="12"
+            size-md="6"
+          >
             <ion-card>
               <ion-card-header>
                 <ion-card-title>Send us a message</ion-card-title>
@@ -21,7 +27,10 @@
                 <form @submit.prevent="submitContactForm">
                   <ion-item>
                     <ion-label position="floating">Name</ion-label>
-                    <ion-input v-model="contactForm.name" required></ion-input>
+                    <ion-input
+                      v-model="contactForm.name"
+                      required
+                    ></ion-input>
                   </ion-item>
 
                   <ion-item>
@@ -39,15 +48,9 @@
                       v-model="contactForm.subject"
                       interface="popover"
                     >
-                      <ion-select-option value="question"
-                        >Question</ion-select-option
-                      >
-                      <ion-select-option value="bug"
-                        >Bug Report</ion-select-option
-                      >
-                      <ion-select-option value="suggestion"
-                        >Suggestion</ion-select-option
-                      >
+                      <ion-select-option value="question">Question</ion-select-option>
+                      <ion-select-option value="bug">Bug Report</ion-select-option>
+                      <ion-select-option value="suggestion">Suggestion</ion-select-option>
                       <ion-select-option value="other">Other</ion-select-option>
                     </ion-select>
                   </ion-item>
@@ -63,16 +66,20 @@
                   </ion-item>
 
                   <div class="ion-padding-top">
-                    <ion-button type="submit" expand="block"
-                      >Send Message</ion-button
-                    >
+                    <ion-button
+                      type="submit"
+                      expand="block"
+                    >Send Message</ion-button>
                   </div>
                 </form>
               </ion-card-content>
             </ion-card>
           </ion-col>
 
-          <ion-col size="12" size-md="6">
+          <ion-col
+            size="12"
+            size-md="6"
+          >
             <ion-card>
               <ion-card-header>
                 <ion-card-title>Contact Information</ion-card-title>
@@ -80,7 +87,10 @@
               <ion-card-content>
                 <ion-list>
                   <ion-item>
-                    <ion-icon name="mail-outline" slot="start"></ion-icon>
+                    <i
+                      class="fad fa-envelope fa-2x mr-4"
+                      aria-hidden="true"
+                    ></i>
                     <ion-label>
                       <h2>Email</h2>
                       <p>support@xpgame.com</p>
@@ -88,7 +98,10 @@
                   </ion-item>
 
                   <ion-item>
-                    <ion-icon name="call-outline" slot="start"></ion-icon>
+                    <i
+                      class="fad fa-phone fa-2x mr-4"
+                      aria-hidden="true"
+                    ></i>
                     <ion-label>
                       <h2>Phone</h2>
                       <p>(555) 123-4567</p>
@@ -96,7 +109,10 @@
                   </ion-item>
 
                   <ion-item>
-                    <ion-icon name="logo-twitter" slot="start"></ion-icon>
+                    <i
+                      class="fad fa-feather fa-2x mr-4"
+                      aria-hidden="true"
+                    ></i>
                     <ion-label>
                       <h2>Twitter</h2>
                       <p>@XPGameOfficial</p>
@@ -104,7 +120,10 @@
                   </ion-item>
 
                   <ion-item>
-                    <ion-icon name="logo-discord" slot="start"></ion-icon>
+                    <i
+                      class="fad fa-comment fa-2x mr-4"
+                      aria-hidden="true"
+                    ></i>
                     <ion-label>
                       <h2>Discord</h2>
                       <p>Join our community server</p>
@@ -129,6 +148,12 @@
               </ion-card-content>
             </ion-card>
 
+
+          </ion-col>
+
+        </ion-row>
+        <ion-row>
+          <ion-col>
             <ion-card>
               <ion-card-header>
                 <ion-card-title>FAQ</ion-card-title>
