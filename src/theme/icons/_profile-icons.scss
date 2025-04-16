@@ -68,21 +68,21 @@
   }
 
   &candy-corn {
-    --fa-primary-color: var(--xp-color-yellow);
-    --fa-secondary-color: var(--xp-color-white);
+    --fa-primary-color: var(--xp-color-white);
+    --fa-secondary-color: var(--xp-color-yellow);
     --fa-secondary-opacity: 0.8;
   }
 
   &carrot {
     --fa-primary-color: var(--xp-color-green);
     --fa-secondary-color: var(--xp-color-yellow);
-    --fa-secondary-opacity: 0.9;
+    --fa-secondary-opacity: 1;
   }
 
   &cheese {
     --fa-primary-color: var(--xp-color-yellow);
     --fa-secondary-color: var(--xp-color-yellow);
-    --fa-secondary-opacity: 0.6;
+    --fa-secondary-opacity: .90;
   }
 
   &cheeseburger {
@@ -93,19 +93,19 @@
 
   &coffee {
     --fa-primary-color: var(--xp-color-brown);
-    --fa-secondary-color: var(--xp-color-black);
+    --fa-secondary-color: var(--xp-color-white);
     --fa-secondary-opacity: 0.8;
   }
 
   &cookie {
-    --fa-primary-color: var(--xp-color-brown);
-    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-primary-color: var(--xp-color-black);
+    --fa-secondary-color: var(--xp-color-brown);
     --fa-secondary-opacity: 0.7;
   }
 
   &corn {
-    --fa-primary-color: var(--xp-color-yellow);
-    --fa-secondary-color: var(--xp-color-green);
+    --fa-primary-color: var(--xp-color-green);
+    --fa-secondary-color: var(--xp-color-yellow);
     --fa-secondary-opacity: 0.8;
   }
 
@@ -122,9 +122,9 @@
   }
 
   &egg, &egg-fried {
-    --fa-primary-color: var(--xp-color-white);
-    --fa-secondary-color: var(--xp-color-yellow);
-    --fa-secondary-opacity: 0.9;
+    --fa-primary-color: var(--xp-color-yellow);
+    --fa-secondary-color: var(--xp-color-white);
+    --fa-secondary-opacity: 1;
   }
 
   &fish {
@@ -134,9 +134,9 @@
   }
 
   &french-fries {
-    --fa-primary-color: var(--xp-color-yellow);
-    --fa-secondary-color: var(--xp-color-brown);
-    --fa-secondary-opacity: 0.7;
+    --fa-primary-color: var(--xp-color-red);
+    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-secondary-opacity: 1;
   }
 
   &hotdog {
@@ -146,26 +146,26 @@
   }
 
   &ice-cream {
-    --fa-primary-color: var(--xp-color-pink);
-    --fa-secondary-color: var(--xp-color-brown);
-    --fa-secondary-opacity: 0.8;
+    --fa-primary-color: var(--xp-color-brown);
+    --fa-secondary-color: var(--xp-color-pink);
+    --fa-secondary-opacity: 1;
   }
 
   &lemon {
-    --fa-primary-color: var(--xp-color-yellow);
+    --fa-primary-color: var(--xp-color-green);
+    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-secondary-opacity: 1;
+  }
+
+  &pepper-hot {
+    --fa-primary-color: var(--xp-color-green);
     --fa-secondary-color: var(--xp-color-green);
     --fa-secondary-opacity: 0.7;
   }
 
-  &pepper-hot {
-    --fa-primary-color: var(--xp-color-red);
-    --fa-secondary-color: var(--xp-color-green);
-    --fa-secondary-opacity: 0.8;
-  }
-
   &pie {
     --fa-primary-color: var(--xp-color-brown);
-    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-secondary-color: var(--xp-color-white);
     --fa-secondary-opacity: 0.7;
   }
 
@@ -176,9 +176,9 @@
   }
 
   &popcorn {
-    --fa-primary-color: var(--xp-color-yellow);
-    --fa-secondary-color: var(--xp-color-white);
-    --fa-secondary-opacity: 0.9;
+    --fa-primary-color: var(--xp-color-red);
+    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-secondary-opacity: 1;
   }
 
   &salad {
