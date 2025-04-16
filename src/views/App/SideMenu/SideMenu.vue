@@ -85,6 +85,8 @@ import {
   lockClosedSharp,
   heartHalfOutline,
   heartHalfSharp,
+  homeOutline,
+  homeSharp,
 } from "ionicons/icons";
 
 export default defineComponent({
@@ -110,6 +112,14 @@ export default defineComponent({
         //   iosIcon: peopleCircleOutline,
         //   mdIcon: peopleCircleSharp,
         // },
+         {
+          title: "XP Family",
+          url: "/game-master",
+          iosIcon:  homeOutline,
+          mdIcon: homeSharp,
+
+          lines: "none",
+        },
         {
           title: "Switch XP Profile",
           url: "/xp-profile/",
@@ -158,14 +168,7 @@ export default defineComponent({
         //   iosIcon: logOutOutline,
         //   mdIcon: logOutSharp,
         // },
-        {
-          title: "Game Master",
-          url: "/game-master",
-          iosIcon: gameControllerOutline,
-          mdIcon: gameControllerSharp,
-
-          lines: "none",
-        },
+       
         {
           title: "Settings",
           url: "/xp-settings/",
