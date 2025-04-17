@@ -1,7 +1,7 @@
 import { defineComponent } from "vue";
 import ionic from "@/mixins/ionic";
 import { arrowBack } from "ionicons/icons";
-import { computed } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
 import userActions from "@/mixins/userActions";
@@ -20,6 +20,28 @@ export default defineComponent<DefineUserActionComponent>({
     const store = useStore();
     const { userId } = route.params;
     const user = computed(() => store.getters.getUserById(userId));
+    
+    const fireAudio = ref<HTMLAudioElement | null>(null);
+    
+    // Initialize fire crackling sound
+    onMounted(() => {
+      // Create fire audio element
+      fireAudio.value = new Audio();
+      fireAudio.value.src = "https://freesound.org/data/previews/390/390421_7143452-lq.mp3";
+      fireAudio.value.volume = 0.4;
+      fireAudio.value.loop = true;
+      
+      // Start playing fire sound
+      fireAudio.value.play().catch(e => console.log("Audio play failed:", e));
+    });
+    
+    // Clean up when component is unmounted
+    onUnmounted(() => {
+      if (fireAudio.value) {
+        fireAudio.value.pause();
+        fireAudio.value = null;
+      }
+    });
 
     const userActions = [
       {
