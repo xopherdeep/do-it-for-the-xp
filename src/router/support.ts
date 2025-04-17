@@ -30,6 +30,11 @@ const supportRoutes: Array<RouteRecordRaw> = [
     path: '/support/contact',
     name: 'support-contact',
     component: () => import('@/views/App/SideMenu/XpSupport/ContactPage/ContactPage.vue')
+  },
+  {
+    path: '/support/dev-tools',
+    name: 'support-dev-tools',
+    component: () => import('@/views/App/SideMenu/XpSupport/DevTools/DevTools.vue')
   }
 ];
 

@@ -37,6 +37,11 @@ const routes: Array<RouteRecordRaw> = [
     name: 'component-showcase',
     component: () => import('@/views/Dev/ComponentShowcase.vue'),
   },
+  {
+    path: '/dev/dialog-demo', // Dialog system demo
+    name: 'dialog-demo',
+    component: () => import('@/views/Dev/DialogDemo.vue'),
+  },
 ];
 
 // Create and export router factory function
