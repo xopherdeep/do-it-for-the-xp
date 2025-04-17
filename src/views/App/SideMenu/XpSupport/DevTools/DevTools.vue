@@ -1,4 +1,4 @@
-`<template>
+<template>
   <ion-page>
     <ion-header>
       <ion-toolbar>
@@ -34,6 +34,14 @@
             <p>Test the typing text animation system</p>
           </ion-label>
         </ion-item>
+
+        <ion-item button @click="navigateTo('/dev/battleroom')">
+          <ion-icon :icon="flashOutline" slot="start"></ion-icon>
+          <ion-label>
+            <h2>Battleroom Dev Tools</h2>
+            <p>Test and debug the battle system components</p>
+          </ion-label>
+        </ion-item>
       </ion-list>
     </ion-content>
   </ion-page>
@@ -43,7 +51,7 @@
 import { defineComponent } from 'vue';
 import { useRouter } from 'vue-router';
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonLabel, IonButtons, IonBackButton, IonIcon } from '@ionic/vue';
-import { cubeOutline, chatboxOutline, keypadOutline } from 'ionicons/icons';
+import { cubeOutline, chatboxOutline, keypadOutline, flashOutline } from 'ionicons/icons';
 
 export default defineComponent({
   name: 'DevTools',
@@ -71,8 +79,9 @@ export default defineComponent({
       navigateTo,
       cubeOutline,
       chatboxOutline,
-      keypadOutline
+      keypadOutline,
+      flashOutline
     };
   }
 });
-</script>`
+</script>
