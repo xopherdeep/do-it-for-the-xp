@@ -8,12 +8,12 @@
             color="primary"
             @click="$fx.ui[$fx.theme.ui].select.play()"
           ></ion-menu-button>
+          <ion-icon
+            :ios="pizzaOutline"
+            :md="pizzaSharp"
+            class="fa-2x ml-2"
+          />
         </ion-buttons>
-        <!-- <ion-buttons slot="start">
-          <ion-button>
-            <i class="fa fa-cog fa-lg" />
-          </ion-button>
-        </ion-buttons> -->
       </ion-toolbar>
     </ion-header>
     <ion-content
@@ -46,8 +46,8 @@
             <ion-thumbnail slot="start">
               <ion-img :src="requireIconImg('./team.png')" />
             </ion-thumbnail>
-            <ion-divider/>
-            <ion-label >
+            <ion-divider />
+            <ion-label>
               <h1>Family Settings</h1>
               <p>
                 Add kids, invite adults and manage your family settings from here.

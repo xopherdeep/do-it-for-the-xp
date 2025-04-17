@@ -3,7 +3,9 @@ import ionic from "@/mixins/ionic";
 const requireIconImg = require.context("@/assets/icons/");
 
 import {
-  arrowBack
+  arrowBack,
+  pizzaOutline,
+  pizzaSharp
 } from "ionicons/icons"
 
 export default defineComponent({
@@ -11,9 +13,12 @@ export default defineComponent({
   mixins: [ionic],
   setup() {
     // code
+    
     return {
       arrowBack,
-      requireIconImg
-    }
+      requireIconImg,
+      pizzaOutline,
+      pizzaSharp,
+    };
   },
 })

@@ -1,6 +1,6 @@
-import { defineComponent } from 'vue'
-import { useRouter } from 'vue-router'
-import { toastController, alertController } from '@ionic/vue'
+import { defineComponent } from "vue";
+import { useRouter } from "vue-router";
+import { toastController, alertController } from "@ionic/vue";
 
 import {
   IonPage,
@@ -29,8 +29,8 @@ import {
   IonToggle,
   IonSegment,
   IonSegmentButton,
-  IonRadio
-} from '@ionic/vue'
+  IonRadio,
+} from "@ionic/vue";
 
 import {
   arrowBack,
@@ -54,8 +54,10 @@ import {
   gameControllerOutline, // New
   banOutline, // New
   lockClosedOutline, // New
-  playCircleOutline // New
-} from "ionicons/icons"
+  playCircleOutline, // New
+  moonSharp,
+  moonOutline,
+} from "ionicons/icons";
 
 interface Plan {
   id: string;
@@ -66,7 +68,7 @@ interface Plan {
 }
 
 export default defineComponent({
-  name: 'xp-membership',
+  name: "xp-membership",
   data() {
     return {
       benefits: [
@@ -75,33 +77,33 @@ export default defineComponent({
         "Access Exclusive Family Challenges",
         "Get Special Avatars & Items",
         "Keep Your Current Price Locked In",
-        "Receive Priority Helper Support"
+        "Receive Priority Helper Support",
       ],
       plans: [
         {
-          id: 'monthly',
-          name: 'Monthly',
+          id: "monthly",
+          name: "Monthly",
           price: 4.99,
-          interval: 'month',
-          savings: 0
+          interval: "month",
+          savings: 0,
         },
-        { 
-          id: 'annual',
-          name: 'Annual',
+        {
+          id: "annual",
+          name: "Annual",
           price: 49.99,
-          interval: 'year',
-          savings: 20
-        }
+          interval: "year",
+          savings: 20,
+        },
       ],
-      activePlan: 'annual',
+      activePlan: "annual",
       isModalOpen: false,
-      nextPaymentDate: 'Friday, 12 August 2022',
-      memberSince: 'January 15, 2022',
+      nextPaymentDate: "Friday, 12 August 2022",
+      memberSince: "January 15, 2022",
       paymentMethod: {
-        type: 'Visa',
-        last4: '4242'
-      }
-    }
+        type: "Visa",
+        last4: "4242",
+      },
+    };
   },
   components: {
     IonPage,
@@ -130,95 +132,99 @@ export default defineComponent({
     // IonToggle, // Removed if not used
     // IonSegment, // Removed as replaced by cards
     // IonSegmentButton, // Removed as replaced by cards
-    IonRadio
+    IonRadio,
   },
   computed: {
     currentPlan() {
-      return this.plans.find(plan => plan.id === this.activePlan)
-    }
+      return this.plans.find((plan) => plan.id === this.activePlan);
+    },
   },
   methods: {
     async openCancelModal() {
-      this.isModalOpen = true
+      this.isModalOpen = true;
     },
     closeModal() {
-      this.isModalOpen = false
+      this.isModalOpen = false;
     },
     async confirmCancel() {
       const alert = await alertController.create({
-        header: 'Pause Adventure Pass?',
-        message: 'Your pass will remain active until the end of the current period. Are you sure you want to pause?',
-        cssClass: 'confirm-cancel-alert',
+        header: "Pause Adventure Pass?",
+        message:
+          "Your pass will remain active until the end of the current period. Are you sure you want to pause?",
+        cssClass: "confirm-cancel-alert",
         buttons: [
           {
-            text: 'Keep Adventuring',
-            role: 'cancel',
-            cssClass: 'keep-button',
+            text: "Keep Adventuring",
+            role: "cancel",
+            cssClass: "keep-button",
             handler: () => {
-              this.isModalOpen = false
-            }
+              this.isModalOpen = false;
+            },
           },
           {
-            text: 'Yes, Pause Pass',
-            cssClass: 'pause-button',
+            text: "Yes, Pause Pass",
+            cssClass: "pause-button",
             handler: () => {
-              this.processCancellation()
-            }
-          }
-        ]
-      })
-      await alert.present()
+              this.processCancellation();
+            },
+          },
+        ],
+      });
+      await alert.present();
     },
     async processCancellation() {
       // Here you would call your API to cancel the subscription
-      this.isModalOpen = false // Set directly instead of using this.closeModal()
-      
+      this.isModalOpen = false; // Set directly instead of using this.closeModal()
+
       // Check if toastController exists before using it
       // Here you would call your API to cancel the subscription
-      this.isModalOpen = false // Set directly instead of using this.closeModal()
+      this.isModalOpen = false; // Set directly instead of using this.closeModal()
 
       if (toastController) {
         const toast = await toastController.create({
-          message: 'Your Adventure Pass is scheduled to pause. You can resume anytime!',
+          message:
+            "Your Adventure Pass is scheduled to pause. You can resume anytime!",
           duration: 3500,
-          position: 'bottom',
-          color: 'medium', // Less alarming than warning
-          icon: pauseCircleOutline
-        })
-        await toast.present()
+          position: "bottom",
+          color: "medium", // Less alarming than warning
+          icon: pauseCircleOutline,
+        });
+        await toast.present();
       }
     },
     async changePlan(planId: string) {
       this.activePlan = planId;
       // Find the plan in the typed array
-      const matchingPlan = (this.plans as Plan[]).find(plan => plan.id === planId);
+      const matchingPlan = (this.plans as Plan[]).find(
+        (plan) => plan.id === planId
+      );
       const planName = matchingPlan ? matchingPlan.name : planId;
-      
+
       // Add logic here if changing plan requires API call, e.g., updateSubscription(planId)
       if (toastController) {
         const toast = await toastController.create({
           message: `Adventure Pass updated to ${planName}!`,
           duration: 2500,
-          position: 'bottom',
-          color: 'success',
-          icon: checkmarkCircle
+          position: "bottom",
+          color: "success",
+          icon: checkmarkCircle,
         });
         await toast.present();
       }
     },
     formatCurrency(amount) {
-      return new Intl.NumberFormat('en-US', {
-        style: 'currency',
-        currency: 'USD'
-      }).format(amount)
-    }
+      return new Intl.NumberFormat("en-US", {
+        style: "currency",
+        currency: "USD",
+      }).format(amount);
+    },
   },
   setup() {
-    const router = useRouter()
-    
+    const router = useRouter();
+
     return {
       // Keep necessary base icons
-      arrowBack, 
+      arrowBack,
       checkmarkCircle,
       cardOutline,
       // Add new icons
@@ -233,9 +239,11 @@ export default defineComponent({
       banOutline,
       lockClosedOutline,
       playCircleOutline,
+      moonSharp,
+      moonOutline,
       // Remove unused icons if desired (or keep them)
       // stopCircle, calendarOutline, helpCircleOutline, informationCircleOutline, starOutline, trendingUpOutline, walletOutline, refreshOutline,
-      router
-    }
-  }
-})
+      router,
+    };
+  },
+});
