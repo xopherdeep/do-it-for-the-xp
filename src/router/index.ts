@@ -20,7 +20,7 @@ const routes: Array<RouteRecordRaw> = [
   MyPortalRoutes,
   {
     path: '/user/:userId?',
-    component: () => import('@/views/App/UserProfile/UserProfile.vue'),
+    component: () => import('@/views/Console/UserProfile/UserProfile.vue'),
     props: true
   },
   {
@@ -29,7 +29,7 @@ const routes: Array<RouteRecordRaw> = [
     meta: {
       faIcon: 'dungeon'
     },
-    component: () => import('@/views/MyPortal/HomeTown/BattleGround/BattleGround.vue'),
+    component: () => import('@/views/Console/MyPortal/HomeTown/BattleGround/BattleGround.vue'),
     props: true,
   },
   {

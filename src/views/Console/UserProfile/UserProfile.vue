@@ -6,14 +6,18 @@
           :default-href="`/my-portal/${userId}/my-profile`"
           :icon="arrowBack"
         ></ion-back-button>
-        <ion-title v-if="user.name">
+        <ion-title v-if="user && user.name">
           {{ user.name.first }}
           {{ user.name.middle }}
           {{ user.name.last }}
         </ion-title>
       </ion-buttons>
     </ion-toolbar>
-    <ion-content :fullscreen="true" v-if="user.stats">
+    <ion-content
+      :fullscreen="true"
+      v-if="user && user.stats"
+      class="ion-padding rpb-box bg-slide"
+    >
       <ion-grid>
         <ion-row>
           <ion-col
@@ -38,7 +42,10 @@
                     </ion-label>
                   </ion-item>
                   <ion-list slot="content">
-                    <ion-item v-for="(desc, stat) in area.stats" :key="stat">
+                    <ion-item
+                      v-for="(desc, stat) in area.stats"
+                      :key="stat"
+                    >
                       <ion-label :color="area.color">
                         <strong>
                           {{ stat }}
@@ -47,8 +54,11 @@
                           {{ desc }}
                         </p>
                       </ion-label>
-                      <ion-note slot="end" :color="area.color">
-                        {{ user.stats[stat] }}
+                      <ion-note
+                        slot="end"
+                        :color="area.color"
+                      >
+                        {{ user.stats[stat] || 0 }}
                       </ion-note>
                     </ion-item>
                   </ion-list>
@@ -62,5 +72,5 @@
   </ion-page>
 </template>
 
-<script src="./UserProfile.js" />
+<script src="./UserProfile.ts" />
 <style lang="scss" src="./_UserProfile.scss" scoped />

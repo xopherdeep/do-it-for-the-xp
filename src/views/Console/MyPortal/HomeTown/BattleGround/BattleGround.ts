@@ -7,7 +7,7 @@ import backgrounds from "@/assets/images/backgrounds/parallax/index";
 import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
 import fetchItems from "@/mixins/fetchItems";
 import ionic from "@/mixins/ionic";
-import MyTask from "@/views/MyDialogBox/MyTask/MyTask.vue";
+import MyTask from "@/views/Console/MyDialogBox/MyTask/MyTask.vue";
 // import requireImg from "@/assets/js/requireImg.js";
 import users from "@/api/users.api";
 import userActions from "@/mixins/userActions";

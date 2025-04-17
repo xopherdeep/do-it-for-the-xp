@@ -7,7 +7,7 @@ const WorldMapRoutes: Array<RouteRecordRaw> = [
     meta: {
       faIcon: 'tornado'
     },
-    component: () => import ('@/views/MyPortal/WorldMap/WorldPlains/WorldPlains.vue'),
+    component: () => import ('@/views/Console/MyPortal/WorldMap/WorldPlains/WorldPlains.vue'),
   },
   {
     path: 'islands',
@@ -15,7 +15,7 @@ const WorldMapRoutes: Array<RouteRecordRaw> = [
     meta: {
       faIcon: 'island-tropical'
     },
-    component: () => import ('@/views/MyPortal/WorldMap/WorldIslands/WorldIslands.vue'),
+    component: () => import ('@/views/Console/MyPortal/WorldMap/WorldIslands/WorldIslands.vue'),
   },
   {
     path: 'forest',
@@ -23,7 +23,7 @@ const WorldMapRoutes: Array<RouteRecordRaw> = [
     meta: {
       faIcon: 'trees'
     },
-    component: () => import ('@/views/MyPortal/WorldMap/WorldForest/WorldForest.vue'),
+    component: () => import ('@/views/Console/MyPortal/WorldMap/WorldForest/WorldForest.vue'),
   },
   {
     path: 'swamps',
@@ -31,7 +31,7 @@ const WorldMapRoutes: Array<RouteRecordRaw> = [
     meta: {
       faIcon: 'skull-crossbones'
     },
-    component: () => import ('@/views/MyPortal/WorldMap/WorldSwamps/WorldSwamps.vue'),
+    component: () => import ('@/views/Console/MyPortal/WorldMap/WorldSwamps/WorldSwamps.vue'),
   },
   {
     path: 'mountains',
@@ -39,7 +39,7 @@ const WorldMapRoutes: Array<RouteRecordRaw> = [
     meta: {
       faIcon: 'mountains'
     },
-    component: () => import ('@/views/MyPortal/WorldMap/WorldMountains/WorldMountains.vue'),
+    component: () => import ('@/views/Console/MyPortal/WorldMap/WorldMountains/WorldMountains.vue'),
   },
   {
     path: 'sands',
@@ -47,7 +47,7 @@ const WorldMapRoutes: Array<RouteRecordRaw> = [
     meta: {
       faIcon: 'cactus'
     },
-    component: () => import ('@/views/MyPortal/WorldMap/WorldDesert/WorldDesert.vue'),
+    component: () => import ('@/views/Console/MyPortal/WorldMap/WorldDesert/WorldDesert.vue'),
   },
   {
     path: 'world-ice',
@@ -55,7 +55,7 @@ const WorldMapRoutes: Array<RouteRecordRaw> = [
     meta: {
       faIcon: 'igloo'
     },
-    component: () => import ('@/views/MyPortal/WorldMap/WorldIce/WorldIce.vue'),
+    component: () => import ('@/views/Console/MyPortal/WorldMap/WorldIce/WorldIce.vue'),
   },
   {
     path: 'the-moon',
@@ -63,7 +63,7 @@ const WorldMapRoutes: Array<RouteRecordRaw> = [
     meta: {
       faIcon: 'moon'
     },
-    component: () => import ('@/views/MyPortal/WorldMap/WorldMoon/WorldMoon.vue'),
+    component: () => import ('@/views/Console/MyPortal/WorldMap/WorldMoon/WorldMoon.vue'),
   },
 ]
 

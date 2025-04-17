@@ -38,7 +38,7 @@ import { mapActions, mapState } from "vuex";
 
 import fetchItems from "@/mixins/fetchItems";
 
-import MyTask from "@/views/MyDialogBox/MyTask/MyTask.vue";
+import MyTask from "@/views/Console/MyDialogBox/MyTask/MyTask.vue";
 // import { useSwiper } from "swiper/vue";
 import Swiper, { Controller, Navigation } from "swiper";
 import { useQuery } from "vue-query";

@@ -72,7 +72,7 @@
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted } from 'vue';
 import { useStore } from 'vuex';
-import BattleGround from '@/views/MyPortal/HomeTown/BattleGround/BattleGround.vue';
+import BattleGround from '@/views/Console/MyPortal/HomeTown/BattleGround/BattleGround.vue';
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, 
          IonButton, IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,
          IonList, IonItem, IonLabel, IonSelect, IonSelectOption, IonToggle } from '@ionic/vue';

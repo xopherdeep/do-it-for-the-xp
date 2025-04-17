@@ -3,7 +3,7 @@ import WorldMapRoutes from './world-map.routes';
 const MyPortalRoutes = {
   path: '/my-portal/:userId',
   name: 'my-portal',
-  component: () => import('@/views/MyPortal/MyPortal.vue'),
+  component: () => import('@/views/Console/MyPortal/MyPortal.vue'),
   props: true,
   children: [{
     path: "",
@@ -19,7 +19,7 @@ const MyPortalRoutes = {
     meta: {
       faIcon: "house-user",
     },
-    component: () => import("@/views/MyPortal/MyHome/MyHome.vue"),
+    component: () => import("@/views/Console/MyPortal/MyHome/MyHome.vue"),
     children: [],
   },
   {
@@ -28,7 +28,7 @@ const MyPortalRoutes = {
       faIcon: "fort-awesome",
       hideUserFab: true,
     },
-    component: () => import("@/views/MyPortal/MyParty.vue"),
+    component: () => import("@/views/Console/MyPortal/MyParty.vue"),
   },
   {
     path: "home-town",
@@ -36,7 +36,7 @@ const MyPortalRoutes = {
     meta: {
       faIcon: "archway",
     },
-    component: () => import("@/views/MyPortal/HomeTown/HomeTown.vue"),
+    component: () => import("@/views/Console/MyPortal/HomeTown/HomeTown.vue"),
   },
   {
     path: "world-map",
@@ -44,7 +44,7 @@ const MyPortalRoutes = {
     meta: {
       faIcon: "pegasus",
     },
-    component: () => import("@/views/MyPortal/WorldMap/WorldMap.vue"),
+    component: () => import("@/views/Console/MyPortal/WorldMap/WorldMap.vue"),
   },
   {
     path: "my-profile",
@@ -53,7 +53,7 @@ const MyPortalRoutes = {
       faIcon: "user-circle",
       hideUserFab: true,
     },
-    component: () => import("@/views/MyPortal/MyProfile/MyProfile.vue"),
+    component: () => import("@/views/Console/MyPortal/MyProfile/MyProfile.vue"),
   },
   ...WorldMapRoutes
   ],
