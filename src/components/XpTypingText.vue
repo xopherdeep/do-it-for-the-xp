@@ -6,6 +6,7 @@
 </template>
 
 <script lang="ts">
+import { play$fx } from '@/assets/fx';
 import { defineComponent, ref, watch, onMounted, onBeforeUnmount } from 'vue';
 
 export default defineComponent({
@@ -41,9 +42,7 @@ export default defineComponent({
 
     const playTypeSound = () => {
       // Only play sound if sound theme is provided
-      if (props.soundTheme && props.soundTheme[props.soundType]) {
-        props.soundTheme[props.soundType].play();
-      }
+      play$fx("text")
     };
 
     const typeText = () => {

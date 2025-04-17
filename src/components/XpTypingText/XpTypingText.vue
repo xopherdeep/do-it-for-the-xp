@@ -7,6 +7,7 @@
 </template>
 
 <script lang="ts">
+import { play$fx } from '@/assets/fx';
 import { defineComponent, ref, onMounted, onBeforeUnmount, watch, PropType } from 'vue';
 
 export default defineComponent({
@@ -49,6 +50,11 @@ export default defineComponent({
       default: 'text'
     }
   },
+  methods: {
+    playTextSound(){
+      this.play$fx("text")
+    },
+  },
   emits: ['typing-complete', 'typing-start', 'typing-char'],
   setup(props, { emit }) {
     const displayedText = ref('');
@@ -60,24 +66,24 @@ export default defineComponent({
     let typingInterval: number | null = null;
     let soundCooldown = false;
 
-    const playTextSound = () => {
-      if (!props.playSound || soundCooldown) return;
+    // const playTextSound = () => {
+    //   if (!props.playSound || soundCooldown) return;
       
-      try {
-        // Using the app's existing sound system
-        if (window.$fx && window.$fx[props.soundTheme] && window.$fx[props.soundTheme][props.soundType]) {
-          window.$fx[props.soundTheme][props.soundType].play();
+    //   try {
+    //     // Using the app's existing sound system
+    //     if (window.$fx && window.$fx[props.soundTheme] && window.$fx[props.soundTheme][props.soundType]) {
+    //       window.$fx[props.soundTheme][props.soundType].play();
           
-          // Add small cooldown to avoid sound overlap
-          soundCooldown = true;
-          setTimeout(() => {
-            soundCooldown = false;
-          }, 50);
-        }
-      } catch (err) {
-        console.warn('Error playing text sound:', err);
-      }
-    };
+    //       // Add small cooldown to avoid sound overlap
+    //       soundCooldown = true;
+    //       setTimeout(() => {
+    //         soundCooldown = false;
+    //       }, 50);
+    //     }
+    //   } catch (err) {
+    //     console.warn('Error playing text sound:', err);
+    //   }
+    // };
 
     const typeNextChar = () => {
       if (isPaused.value || !isTyping.value) return;
@@ -88,7 +94,7 @@ export default defineComponent({
         
         // Don't play sound for spaces and some punctuation
         if (char !== ' ' && char !== ',' && char !== '.') {
-          playTextSound();
+          play$fx("text");
         }
         
         charIndex.value++;
