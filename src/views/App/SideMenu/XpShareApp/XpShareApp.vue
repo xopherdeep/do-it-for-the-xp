@@ -5,7 +5,7 @@
         <ion-buttons slot="start">
           <ion-menu-button></ion-menu-button>
         </ion-buttons>
-        <ion-title>Share the Quest!</ion-title>
+        <ion-title>Tell A Friend</ion-title>
       </ion-toolbar>
     </ion-header>
     <ion-content

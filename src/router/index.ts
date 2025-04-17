@@ -42,6 +42,11 @@ const routes: Array<RouteRecordRaw> = [
     name: 'dialog-demo',
     component: () => import('@/views/Dev/DialogDemo.vue'),
   },
+  {
+    path: '/dev/battleroom', // Battleroom development tools
+    name: 'battleroom-dev',
+    component: () => import('@/views/Dev/BattleroomDevTools/BattleroomDevTools.vue'),
+  },
 ];
 
 // Create and export router factory function

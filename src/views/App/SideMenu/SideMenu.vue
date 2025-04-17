@@ -211,7 +211,7 @@ export default defineComponent({
         // },
 
         {
-          title: "About Us",
+          title: "About XP",
           url: "/about-xp",
           iosIcon: informationOutline,
           mdIcon: informationSharp,
