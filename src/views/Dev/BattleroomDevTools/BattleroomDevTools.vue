@@ -77,6 +77,13 @@ import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons,
          IonButton, IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,
          IonList, IonItem, IonLabel, IonSelect, IonSelectOption, IonToggle } from '@ionic/vue';
 
+// Define interface for the BattleGround component
+interface BattleGroundInstance {
+  bg1: number;
+  bg2: number;
+  enterBattle: () => void;
+}
+
 export default defineComponent({
   name: 'BattleroomDevTools',
   components: {
@@ -102,7 +109,8 @@ export default defineComponent({
   },
   setup() {
     const store = useStore();
-    const battleground = ref(null);
+    // Properly type the battleground ref
+    const battleground = ref<BattleGroundInstance | null>(null);
     const showControls = ref(true);
     const selectedBackground = ref(0);
     const selectedEnemyType = ref('basic');

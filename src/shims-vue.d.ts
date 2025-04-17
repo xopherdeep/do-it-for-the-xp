@@ -1,5 +1,6 @@
 /* eslint-disable */
 import User from '@/utils/User/user'; // Import the User type
+import { FXSystem } from '@/types/fx'; // Import our FXSystem interface
 
 declare module '*.vue' {
   import type { DefineComponent } from 'vue'
@@ -9,13 +10,13 @@ declare module '*.vue' {
 
 // Add global window declaration for $fx
 interface Window {
-  $fx: any;
+  $fx: FXSystem;
 }
 
 declare module '@vue/runtime-core' {
   // Global properties for Vue component instances
   interface ComponentCustomProperties {
-    $fx: any;
+    $fx: FXSystem;
     $requireAvatar: any;
     $requireImg: any;
     $router: any;

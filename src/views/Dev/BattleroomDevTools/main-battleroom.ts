@@ -9,6 +9,7 @@ import { createApp } from 'vue';
 import { IonicVue } from '@ionic/vue';
 import { createStore } from 'vuex';
 import BattleroomDevTools from './BattleroomDevTools.vue';
+import { FXSystem } from '@/types/fx';
 
 // Import global styles
 import '@ionic/vue/css/core.css';
@@ -119,12 +120,15 @@ const app = createApp(BattleroomDevTools)
   .use(store);
 
 // Global properties for the battle dev environment
-app.config.globalProperties.$fx = {
+const fxSystem: Partial<FXSystem> = {
   theme: {
-    rpg: 'rpg-theme'
+    rpg: 'rpg-theme',
+    ui: 'default-ui'
   },
   play$fx: (sound) => console.log(`Playing sound: ${sound}`)
 };
+
+app.config.globalProperties.$fx = fxSystem as FXSystem;
 
 app.config.globalProperties.$getUserAvatar = () => 'https://placehold.co/100';
 
