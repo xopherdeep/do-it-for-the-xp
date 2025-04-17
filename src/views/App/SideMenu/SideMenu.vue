@@ -33,10 +33,12 @@
             ></ion-icon>
             <ion-label>{{ menuItem.title }}</ion-label>
           </ion-item>
-          <!-- Use ion-item-divider for a themed divider when title is empty -->
-          <!-- <ion-list-divider v-else /> -->
+          <div v-else>
+            <hr class="w-full bg-medium-contrast"/>
+          </div>
         </ion-menu-toggle>
       </ion-list>
+
       <ion-list>
         <ion-note> Background Music (BGM) </ion-note>
         <ion-item>
@@ -56,6 +58,31 @@
         </ion-item>
       </ion-list>
     </ion-content>
+
+    <ion-footer> 
+        <ion-menu-toggle auto-hide="false">
+          <ion-item
+            @click="
+              setMenuItem(-1);
+            $fx.ui[$fx.theme.ui].select.play();
+            "
+            router-direction="root"
+            router-link="/log-out"
+            lines="none"
+            detail="false"
+            class="hydrated"
+            button
+          >
+            <ion-icon
+              slot="start"
+              :ios="icons.lockClosedOutline"
+              :md="icons.lockClosedSharp"
+              class="ml-2"
+            />
+            <ion-label>Log Out</ion-label>
+          </ion-item>
+        </ion-menu-toggle> 
+    </ion-footer>
   </ion-menu>
 </template>
 
@@ -65,28 +92,40 @@ import { mapActions, mapState, useStore } from "vuex";
 import ionic from "@/mixins/ionic";
 import { useRoute } from "vue-router";
 import {
-  megaphoneOutline,
-  megaphoneSharp,
-  helpBuoySharp,
-  helpBuoyOutline,
   informationCircleOutline,
   informationCircleSharp,
   diamondOutline,
   diamondSharp,
-  peopleCircleOutline,
-  peopleCircleSharp,
   logInOutline,
   logInSharp,
-  gameControllerOutline,
-  gameControllerSharp,
   optionsOutline,
   optionsSharp,
   lockClosedOutline,
   lockClosedSharp,
-  heartHalfOutline,
-  heartHalfSharp,
-  homeOutline,
-  homeSharp,
+  heartOutline,
+  heartSharp,
+  fingerPrintOutline,
+  fingerPrintSharp,
+  shareSocialOutline,
+  shareSocialSharp,
+  helpCircleOutline,
+  helpCircleSharp,
+  batteryChargingOutline,
+  batteryChargingSharp,
+  fitnessOutline,
+  fitnessSharp,
+  flowerOutline,
+  flowerSharp,
+  helpOutline,
+  helpSharp,
+  informationOutline,
+  informationSharp,
+  infiniteOutline,
+  infiniteSharp,
+  moonOutline,
+  moonSharp,
+  pizzaOutline,
+  pizzaSharp,
 } from "ionicons/icons";
 
 export default defineComponent({
@@ -95,7 +134,11 @@ export default defineComponent({
 
   data() {
     return {
-      activeMenuItem: 0,
+      activeMenuItem: 0,  // Changed back to number
+      icons: {
+        lockClosedOutline,
+        lockClosedSharp
+      },
       appPagesAnon: [
         {
           title: "Log In",
@@ -112,21 +155,29 @@ export default defineComponent({
         //   iosIcon: peopleCircleOutline,
         //   mdIcon: peopleCircleSharp,
         // },
-         {
-          title: "XP Family",
-          url: "/game-master",
-          iosIcon:  homeOutline,
-          mdIcon: homeSharp,
+        {
+          title: "Switch Profile",
+          url: "/xp-profile/",
 
+          iosIcon: fingerPrintOutline,
+          mdIcon: fingerPrintSharp,
           lines: "none",
         },
         {
-          title: "Switch XP Profile",
-          url: "/xp-profile/",
+          title: "Family",
+          url: "/game-master",
+          iosIcon: heartOutline,
+          mdIcon: heartSharp,
 
-          iosIcon: heartHalfOutline,
-          mdIcon: heartHalfSharp,
           lines: "none",
+        },
+
+        {
+          title: "Settings",
+          url: "/xp-settings/",
+          iosIcon: pizzaOutline,
+          mdIcon: pizzaSharp,
+          lines: "full",
         },
         {
           title: "",
@@ -134,31 +185,21 @@ export default defineComponent({
         {
           title: "Subscription",
           url: "/xp-membership",
-          iosIcon: diamondOutline,
-          mdIcon: diamondSharp,
+          // iosIcon: fitnessOutline,
+          // mdIcon: fitnessSharp,
+          iosIcon: moonOutline,
+          mdIcon: moonSharp,
           lines: "none",
         },
         {
           title: "Tell a Friend",
           url: "/tell-a-friend",
-          iosIcon: megaphoneOutline,
-          mdIcon: megaphoneSharp,
+          iosIcon: infiniteOutline,
+          mdIcon: infiniteSharp,
           lines: "none",
         },
-        {
-          title: "FAQ & Support",
-          url: "/xp-support",
-          iosIcon: helpBuoyOutline,
-          mdIcon: helpBuoySharp,
-          lines: "none",
-        },
-        {
-          title: "About Us",
-          url: "/about-xp",
-          iosIcon: informationCircleOutline,
-          mdIcon: informationCircleSharp,
-          lines: "full",
-        },
+
+
         {
           title: "",
         },
@@ -168,19 +209,21 @@ export default defineComponent({
         //   iosIcon: logOutOutline,
         //   mdIcon: logOutSharp,
         // },
-       
+
         {
-          title: "Settings",
-          url: "/xp-settings/",
-          iosIcon: optionsOutline,
-          mdIcon: optionsSharp,
+          title: "About Us",
+          url: "/about-xp",
+          iosIcon: informationOutline,
+          mdIcon: informationSharp,
           lines: "full",
         },
         {
-          title: "Log Out",
-          url: "/log-out",
-          iosIcon: lockClosedOutline,
-          mdIcon: lockClosedSharp,
+          title: "FAQ & Support",
+          url: "/xp-support",
+          // iosIcon: helpBuoyOutline,
+          // mdIcon: helpBuoySharp,
+          iosIcon: helpOutline,
+          mdIcon: helpSharp,
           lines: "none",
         },
       ],
@@ -188,6 +231,10 @@ export default defineComponent({
   },
   computed: {
     ...mapState(["theme", "bgm"]),
+    logoutMenuItem() {
+      const { appPages } = this;
+      return appPages.find((item) => item.title === "Log Out");
+    },
   },
   methods: {
     setMenuItem(index) {
@@ -244,4 +291,25 @@ export default defineComponent({
 });
 </script>
 
-<style lang="scss"></style>
+<style lang="scss">
+.menu-spacer {
+  flex: 1;
+  min-height: 20px;
+}
+
+ion-content {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  ::v-deep(.inner-scroll) {
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.logout-section {
+  margin-top: auto;
+  padding-bottom: 20px;
+}
+</style>

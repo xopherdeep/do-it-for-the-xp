@@ -33,9 +33,9 @@
     </ion-header>
 
     <ion-content
-      class="rpg-box ion-padding bg-slide pt-0 " 
+      class="rpg-box bg-slide ion-padding"
     >
-      <ion-grid>
+      <ion-grid class="max-w-2xl">
         <ion-row>
           <!-- Tabs Card with Helper Text -->
           <ion-card class="tabs-card">
