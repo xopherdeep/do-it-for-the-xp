@@ -1,7 +1,7 @@
 import { defineComponent } from "vue";
 import ionic from "@/mixins/ionic";
 import { arrowBack } from "ionicons/icons";
-import { computed } from "vue";
+import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
 import userActions from "@/mixins/userActions";
@@ -20,6 +20,45 @@ export default defineComponent<DefineUserActionComponent>({
     const store = useStore();
     const { userId } = route.params;
     const user = computed(() => store.getters.getUserById(userId));
+    
+    // Audio references
+    const windAudio = ref<HTMLAudioElement | null>(null);
+    const grasshopperInterval = ref<number | null>(null);
+    
+    // Initialize plains ambient sounds
+    onMounted(() => {
+      // Create gentle wind audio element for plains
+      windAudio.value = new Audio();
+      windAudio.value.src = "https://freesound.org/data/previews/346/346170_5121236-lq.mp3"; // Gentle wind sound
+      windAudio.value.volume = 0.3;
+      windAudio.value.loop = true;
+      
+      // Start playing wind sounds
+      windAudio.value.play().catch(e => console.log("Audio play failed:", e));
+      
+      // Occasionally play grasshopper/cricket sounds
+      grasshopperInterval.value = window.setInterval(() => {
+        if (Math.random() > 0.7) {
+          const cricketSound = new Audio();
+          cricketSound.src = "https://freesound.org/data/previews/425/425556_7552848-lq.mp3"; // Cricket/grasshopper sound
+          cricketSound.volume = 0.2 + (Math.random() * 0.2); // Random volume for variety
+          cricketSound.play().catch(e => console.log("Audio play failed:", e));
+        }
+      }, 8000);
+    });
+    
+    // Clean up when component is unmounted
+    onUnmounted(() => {
+      if (windAudio.value) {
+        windAudio.value.pause();
+        windAudio.value = null;
+      }
+      
+      if (grasshopperInterval.value) {
+        clearInterval(grasshopperInterval.value);
+        grasshopperInterval.value = null;
+      }
+    });
 
     const userActions = [
       {
