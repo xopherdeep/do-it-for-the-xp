@@ -34,7 +34,7 @@
             <ion-label>{{ menuItem.title }}</ion-label>
           </ion-item>
           <div v-else>
-            <hr class="w-full bg-medium-contrast"/>
+            <hr class="w-full bg-medium-contrast" />
           </div>
         </ion-menu-toggle>
       </ion-list>
@@ -59,29 +59,39 @@
       </ion-list>
     </ion-content>
 
-    <ion-footer> 
-        <ion-menu-toggle auto-hide="false">
-          <ion-item
-            @click="
+    <ion-footer>
+      <ion-menu-toggle auto-hide="false">
+        <ion-item
+          @click="
               setMenuItem(-1);
             $fx.ui[$fx.theme.ui].select.play();
             "
-            router-direction="root"
-            router-link="/log-out"
-            lines="none"
-            detail="false"
-            class="hydrated"
-            button
-          >
-            <ion-icon
-              slot="start"
-              :ios="icons.lockClosedOutline"
-              :md="icons.lockClosedSharp"
-              class="ml-2"
-            />
-            <ion-label>Log Out</ion-label>
-          </ion-item>
-        </ion-menu-toggle> 
+          router-direction="root"
+          router-link="/log-out"
+          lines="none"
+          detail="false"
+          class="hydrated"
+          button
+        >
+          <ion-icon
+            slot="start"
+            :ios="icons.lockClosedOutline"
+            :md="icons.lockClosedSharp"
+            class="ml-2"
+          />
+          <ion-label>Log Out</ion-label>
+        </ion-item>
+      </ion-menu-toggle>
+      <!-- copyright -->
+      <ion-item
+        lines="none"
+        class="logout-section"
+      >
+        <ion-label class="ion-text-center">
+          <p>© 2025 XP</p>
+          <small>All rights reserved.</small>
+        </ion-label>
+      </ion-item>
     </ion-footer>
   </ion-menu>
 </template>
