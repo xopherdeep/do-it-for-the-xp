@@ -3,4 +3,99 @@
     --background: url("@/assets/images/backgrounds/world-moon.jpg") center center/cover no-repeat;
   }
 
+  .night-sky {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  // Shooting stars
+  .shooting-star {
+    position: absolute;
+    width: 150px;
+    height: 2px;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0) 0%, rgba(255, 255, 255, 0.8) 50%, rgba(255, 255, 255, 0) 100%);
+    transform: rotate(-45deg);
+    border-radius: 999px;
+    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.8));
+    opacity: 0;
+    z-index: 2;
+    animation: shooting-star ease-in-out infinite;
+    
+    // Trail effect
+    &::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 30px;
+      height: 2px;
+      background: linear-gradient(to right, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0) 100%);
+      border-radius: 100px;
+      transform: translateX(-30px);
+      filter: blur(1px);
+    }
+    
+    // Random positions and timing for shooting stars
+    &.shooting-star1 {
+      top: 20%;
+      left: 80%;
+      animation-duration: 10s;
+      animation-delay: 3s;
+    }
+    
+    &.shooting-star2 {
+      top: 15%;
+      left: 60%;
+      animation-duration: 12s;
+      animation-delay: 7s;
+      transform: rotate(-55deg);
+    }
+    
+    &.shooting-star3 {
+      top: 40%;
+      left: 70%;
+      animation-duration: 15s;
+      animation-delay: 2s;
+      transform: rotate(-40deg);
+    }
+    
+    &.shooting-star4 {
+      top: 35%;
+      left: 50%;
+      animation-duration: 18s;
+      animation-delay: 11s;
+      transform: rotate(-50deg);
+    }
+    
+    &.shooting-star5 {
+      top: 25%;
+      left: 40%;
+      animation-duration: 13s;
+      animation-delay: 5s;
+      transform: rotate(-35deg);
+    }
+  }
+  
+  @keyframes shooting-star {
+    0%, 95%, 100% {
+      opacity: 0;
+      transform: translateX(0) translateY(0) rotate(-45deg);
+    }
+    96% {
+      opacity: 1;
+      transform: translateX(0) translateY(0) rotate(-45deg);
+    }
+    97.5% {
+      opacity: 1;
+      transform: translateX(-200px) translateY(200px) rotate(-45deg);
+    }
+    99% {
+      opacity: 0;
+      transform: translateX(-400px) translateY(400px) rotate(-45deg);
+    }
+  }
 }
