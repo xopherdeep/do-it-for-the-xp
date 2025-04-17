@@ -124,7 +124,7 @@ export default defineComponent({
           link: `/my-portal/${userId}/islands`,
         },
         "world-forest": {
-          name: "Forest",
+          name: "Forests",
           icon: "trees",
           link: `/my-portal/${userId}/forest`,
         },
@@ -139,14 +139,19 @@ export default defineComponent({
           link: `/my-portal/${userId}/mountains`,
         },
         "world-sands": {
-          name: "Desert",
+          name: "Sands",
           icon: "cactus",
           link: `/my-portal/${userId}/desert`,
         },
         "world-ice": {
-          name: "Frozen Tundra",
+          name: "Tundras",
           icon: "igloo",
           link: `/my-portal/${userId}/world-ice`,
+        },
+        "world-clouds": {
+          name: "Clouds",
+          icon: "cloud",
+          link: `/my-portal/${userId}/world-clouds`,
         },
         "the-moon": {
           name: "The Moon",

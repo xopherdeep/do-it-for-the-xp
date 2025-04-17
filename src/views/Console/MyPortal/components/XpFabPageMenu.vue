@@ -21,7 +21,7 @@
             ></i>
             <i
               v-else
-              class="fab fa-2x"
+              class="fab fa-lg"
               :class="`fa-${pageIcon}`"
             ></i>
           </ion-fab-button>
