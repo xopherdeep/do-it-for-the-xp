@@ -39,7 +39,7 @@ export default defineComponent({
           }
         },
         {
-          label: "Forest",
+          label: "Forests",
           faIcon: "trees",
           side: "start",
           click(){
@@ -79,8 +79,16 @@ export default defineComponent({
           }
         },
         {
-          label: "To Moon",
-          faIcon: "moon",
+          label: "Clouds",
+          faIcon: "bolt",
+          side: "top",
+          click(){
+            router.push({ name:'world-clouds', params: {userId} })
+          }
+        },
+        {
+          label: "Stars",
+          faIcon: "star",
           side: "top",
           click(){
             router.push({ name:'the-moon', params: {userId} })
