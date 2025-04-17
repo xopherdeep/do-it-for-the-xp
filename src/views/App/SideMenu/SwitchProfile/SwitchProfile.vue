@@ -7,12 +7,11 @@
             color="primary"
             @click="$fx.ui[$fx.theme.ui].select.play()"
           ></ion-menu-button>
-          <ion-button class="m-8">
-            <ion-icon
-              :ios="peopleCircleOutline"
-              :md="peopleCircleSharp"
-            />
-          </ion-button>
+          <ion-icon
+            :ios="fingerPrintOutline"
+            :md="fingerPrintSharp"
+            class="fa-2x ml-2"
+          />
         </ion-buttons>
         <ion-title> Choose Your Profile </ion-title>
       </ion-toolbar>
@@ -46,7 +45,10 @@
             button
             @click="openNewProfileModal"
           >
-            <ion-buttons slot="start" class="icon-colors">
+            <ion-buttons
+              slot="start"
+              class="icon-colors"
+            >
               <i class="fad fa-heartbeat fa-3x"></i>
             </ion-buttons>
             <ion-label class="py-4">
@@ -121,7 +123,7 @@ import {
 } from "@ionic/vue";
 import { useStore } from "vuex";
 import { computed, defineComponent, ref, onUnmounted } from "vue";
-import { peopleCircleSharp, peopleCircleOutline } from "ionicons/icons";
+import { peopleCircleSharp, peopleCircleOutline, fingerPrintOutline, fingerPrintSharp } from "ionicons/icons";
 import User from "@/utils/User";
 import { Drivers, Storage } from "@ionic/storage";
 import { modalController } from "@ionic/vue";
@@ -301,6 +303,8 @@ export default defineComponent({
       openNewProfileModal,
       handleRefresh,
       isProfileLoading, // <-- Expose isProfileLoading
+      fingerPrintOutline,
+      fingerPrintSharp,
     };
   },
 });
