@@ -50,6 +50,14 @@ const WorldMapRoutes: Array<RouteRecordRaw> = [
     component: () => import ('@/views/Console/MyPortal/WorldMap/WorldDesert/WorldDesert.vue'),
   },
   {
+    path: 'clouds',
+    name: 'world-clouds',
+    meta: {
+      faIcon: 'bolt'
+    },
+    component: () => import ('@/views/Console/MyPortal/WorldMap/WorldClouds/WorldClouds.vue'),
+  },
+  {
     path: 'world-ice',
     name: 'world-ice',
     meta: {
