@@ -13,6 +13,16 @@
     </ion-header> -->
 
     <ion-content :fullscreen="true">
+      <div class="sandstorm-container">
+        <div class="sand-overlay"></div>
+        <div class="sand-particles">
+          <div v-for="n in 30" :key="n" class="sand-particle"></div>
+        </div>
+        <div class="dust-cloud dust-cloud1"></div>
+        <div class="dust-cloud dust-cloud2"></div>
+        <div class="dust-cloud dust-cloud3"></div>
+        <div class="dust-cloud dust-cloud4"></div>
+      </div>
     </ion-content>
   </ion-page>
 </template>
