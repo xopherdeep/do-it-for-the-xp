@@ -10,7 +10,7 @@
     </ion-header>
     <ion-content
       :fullscreen="true"
-      id="container"
+      class="rpg-box bg-slide ion-padding"
     >
       <ion-grid class="max-w-2xl">
         <ion-row>
@@ -43,8 +43,8 @@
         </ion-row>
         <ion-row>
           <ion-card class="rewards-card">
-            <ion-card-header>
               <ion-card-title class="ion-text-center">Referral Rewards</ion-card-title>
+            <ion-card-header>
             </ion-card-header>
             <ion-card-content>
               <ion-list lines="none">

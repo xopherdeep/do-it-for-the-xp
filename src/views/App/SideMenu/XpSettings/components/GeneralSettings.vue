@@ -11,7 +11,7 @@
 
     <ion-content
       :fullscreen="true"
-      class="rpg-box bg-slide"
+      class="rpg-box bg-slide ion-padding"
     >
 
       <ion-card class="settings-card max-w-2xl ">

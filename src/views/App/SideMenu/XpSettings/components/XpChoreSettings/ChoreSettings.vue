@@ -16,7 +16,7 @@
 
     <ion-content
       :fullscreen="true"
-      class="rpg-box flex flex-col gap-4 bg-slide"
+      class="rpg-box bg-slide ion-padding"
     >
       <ion-grid class="max-w-5xl mx-auto">
         <ion-row>

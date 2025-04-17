@@ -10,10 +10,8 @@
         </ion-title>
       </ion-toolbar>
     </ion-header>
-
-
-    <ion-content  class="bg-slide flex flex-row items-center justify-center h-full w-full p-10">
-      <ion-card class="max-w-2xl w-fit self-center">
+    <ion-content  class="bg-slide ion-padding">
+      <ion-card class="max-w-2xl">
         <ion-grid>
           <ion-row>
             <ion-col size="12">

@@ -16,11 +16,9 @@
 
     <ion-content
       :fullscreen="true"
-      id="container"
-      class="ion-padding"
+      class="bg-slide ion-padding"
     >
-      <div class="ap-background"></div>
-      <ion-grid class="ion-padding">
+      <ion-grid>
         <!-- Current Status Card -->
         <ion-row>
           <ion-col>

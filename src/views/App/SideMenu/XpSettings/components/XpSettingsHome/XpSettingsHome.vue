@@ -18,7 +18,7 @@
     </ion-header>
     <ion-content
       :fullscreen="true"
-      class="rpg-box bg-slide"
+      class="rpg-box bg-slide ion-padding"
     >
       <ion-card class="md:max-w-[80%] max-w-[95%]">
         <ion-list>

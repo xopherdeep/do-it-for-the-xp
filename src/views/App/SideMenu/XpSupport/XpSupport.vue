@@ -8,10 +8,9 @@
         <ion-title> Support </ion-title>
       </ion-toolbar>
     </ion-header>
-
     <ion-content
       :fullscreen="true"
-      class="bg-slide"
+      class="bg-slide ion-padding"
     >
       <ion-grid class="max-w-5xl">
         <ion-row>
