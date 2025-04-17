@@ -4,8 +4,15 @@
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
           <ion-menu-button></ion-menu-button>
+          <ion-icon
+            :ios="infiniteOutline"
+            :md="infiniteSharp"
+            class="fa-2x ml-2"
+          />
         </ion-buttons>
-        <ion-title>Tell A Friend</ion-title>
+        <ion-title>
+          Tell A Friend
+        </ion-title>
       </ion-toolbar>
     </ion-header>
     <ion-content
@@ -111,7 +118,9 @@ import {
   sparklesOutline,    // XP reward icon
   cashOutline,        // Gold reward icon
   cubeOutline,        // Item reward icon
-  sendOutline         // Share button icon
+  sendOutline,        // Share button icon
+  infiniteOutline,    // Added for title
+  infiniteSharp       // Added for title
 } from "ionicons/icons";
 import Ionic from "@/mixins/ionic";
 
@@ -182,6 +191,8 @@ export default defineComponent({
       cashOutline,
       cubeOutline,
       sendOutline,
+      infiniteOutline,
+      infiniteSharp
     };
   },
   // Removed methods block as logic is now in setup()

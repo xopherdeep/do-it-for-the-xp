@@ -7,7 +7,14 @@
             <ion-icon :icon="arrowBack" slot="icon-only" />
           </ion-button>
         </ion-buttons>
-        <ion-title> </ion-title>
+        <ion-title>
+          <ion-icon
+            :ios="lockClosedOutline"
+            :md="lockClosedSharp"
+            class="fa-lg mr-2"
+          />
+          Log Out
+        </ion-title>
       </ion-toolbar>
     </ion-header>
 

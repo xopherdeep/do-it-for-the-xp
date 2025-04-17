@@ -15,8 +15,14 @@ import {
   IonCard,
   IonCardHeader,
   IonCardTitle,
-  IonCardContent
+  IonCardContent,
+  IonIcon
 } from '@ionic/vue'
+
+import {
+  helpOutline,
+  helpSharp
+} from 'ionicons/icons'
 
 export default defineComponent({
   name: 'xp-support',
@@ -82,7 +88,8 @@ export default defineComponent({
     IonCard,
     IonCardHeader,
     IonCardTitle,
-    IonCardContent
+    IonCardContent,
+    IonIcon
   },
   setup() {
     const router = useRouter();
@@ -93,7 +100,9 @@ export default defineComponent({
     };
     
     return {
-      navigateTo
+      navigateTo,
+      helpOutline,
+      helpSharp
     }
   },
 })

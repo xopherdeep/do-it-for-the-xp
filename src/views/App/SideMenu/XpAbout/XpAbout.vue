@@ -6,9 +6,16 @@
           <ion-menu-button
             color="primary"
             @click="$fx.ui[$fx.theme.ui].select.play()"
-          ></ion-menu-button>
+          />
+          <ion-icon
+            :ios="informationOutline"
+            :md="informationSharp"
+            class="fa-2x ml-2"
+          />
         </ion-buttons>
-        <ion-title>About XP</ion-title>
+        <ion-title>
+          About XP
+        </ion-title>
       </ion-toolbar>
     </ion-header>
     <ion-content
@@ -131,9 +138,11 @@ import {
   IonContent,
   IonText,
   IonImg,
+  IonIcon,
+  IonButtons
 } from "@ionic/vue";
 
-import { arrowBack } from "ionicons/icons";
+import { arrowBack, informationOutline, informationSharp } from "ionicons/icons";
 
 export default defineComponent({
   name: 'XpAbout',
@@ -142,13 +151,15 @@ export default defineComponent({
     SwiperSlide,
     IonImg,
     IonText,
-    IonButton, // Added back
+    IonButton,
     IonPage,
-    IonHeader, // Added back
-    IonToolbar, // Added back
-    IonTitle, // Added back
+    IonHeader,
+    IonToolbar,
+    IonTitle,
     IonContent,
     XpTypingText,
+    IonIcon,
+    IonButtons
   },
   setup() {
     const router = useRouter();
@@ -192,6 +203,8 @@ export default defineComponent({
 
     return {
       arrowBack,
+      informationOutline,
+      informationSharp,
       requireImg,
       $requireIcon: requireImg,
       modules: [Pagination, Navigation], // Expose Swiper modules

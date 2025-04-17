@@ -3,9 +3,16 @@
     <ion-header :translucent="true">
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-menu-button></ion-menu-button>
+          <ion-menu-button/>
+          <ion-icon
+            :ios="helpOutline"
+            :md="helpSharp"
+            class="fa-2x ml-2"
+          />
         </ion-buttons>
-        <ion-title> Support </ion-title>
+        <ion-title>
+          Support
+        </ion-title>
       </ion-toolbar>
     </ion-header>
     <ion-content

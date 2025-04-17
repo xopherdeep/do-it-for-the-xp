@@ -10,7 +10,9 @@
             class="fa-2x ml-2"
           />
         </ion-buttons>
-        <ion-title>Adventure Pass</ion-title>
+        <ion-title>
+          Adventure Pass
+        </ion-title>
       </ion-toolbar>
     </ion-header>
 
@@ -81,7 +83,7 @@
                       <ion-chip>
                         {{ paymentMethod.type }}
                         ...{{
-                        paymentMethod.last4
+                          paymentMethod.last4
                         }}
                       </ion-chip>
                     </ion-label>
@@ -118,7 +120,7 @@
                 <ion-card-title>{{ plan.name }}</ion-card-title>
                 <ion-card-subtitle>{{ formatCurrency(plan.price) }} /
                   {{
-                  plan.interval === "month" ? "month" : "year"
+                    plan.interval === "month" ? "month" : "year"
                   }}</ion-card-subtitle>
               </ion-card-header>
               <ion-card-content>
@@ -129,7 +131,7 @@
                 ></ion-radio>
                 <ion-label>{{
                   plan.id === "annual" ? "Best Value!" : "Flexible Option"
-                  }}</ion-label>
+                }}</ion-label>
               </ion-card-content>
             </ion-card>
           </ion-col>
