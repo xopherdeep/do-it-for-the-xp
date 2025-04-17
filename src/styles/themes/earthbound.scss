@@ -92,6 +92,18 @@ ion-app {
       list-style-type: circle;
     }
 
+    ion-fab-list{
+      ion-card{
+        ion-button{
+          font-family: $eb-font-status;
+          text-transform: none; 
+          i {
+            @apply mr-3 w-[24px];
+          }
+        }
+      }
+    }
+
     ion-item {
       font-family: $eb-font-primary;
       font-size: 100%;
