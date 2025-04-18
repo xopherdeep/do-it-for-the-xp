@@ -33,6 +33,11 @@ const routes: Array<RouteRecordRaw> = [
     props: true,
   },
   {
+    path: '/dev', // Main developer dashboard
+    name: 'dev-dashboard',
+    component: () => import('@/views/Dev/DevDashboard.vue'),
+  },
+  {
     path: '/dev/component-showcase', // Hidden path for developers
     name: 'component-showcase',
     component: () => import('@/views/Dev/ComponentShowcase.vue'),
@@ -46,6 +51,11 @@ const routes: Array<RouteRecordRaw> = [
     path: '/dev/battleroom', // Battleroom development tools
     name: 'battleroom-dev',
     component: () => import('@/views/Dev/BattleroomDevTools/BattleroomDevTools.vue'),
+  },
+  {
+    path: '/dev/weatherfx', // Weather FX development tools
+    name: 'weatherfx-dev',
+    component: () => import('@/views/Dev/WeatherFXDevTools/WeatherFXDevTools.vue'),
   },
 ];
 

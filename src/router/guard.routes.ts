@@ -123,7 +123,7 @@ export function useRouterGuards(router: Router, store: Store<RootState>) {
       case 'home-town':
         bgmPayload = {
             tracks: BGM.hometown,
-            track: Math.floor(Math.random() * BGM.home.length),
+            track: Math.floor(Math.random() * BGM.hometown.length),
           startDelay,
           // saveBookmark defaults to false if not provided, or set explicitly if needed
         };
@@ -146,11 +146,113 @@ export function useRouterGuards(router: Router, store: Store<RootState>) {
       case 'world-map':
         bgmPayload = {
           tracks: BGM.world, // Assuming BGM.world exists
-          track,
+          track: Math.floor(Math.random() * BGM.world.length),  
           startDelay,
           saveBookmark: false, // Explicitly false here
         };
         break;
+        
+      // Handle terrain-specific world routes
+      case 'world-plains':
+        bgmPayload = {
+          tracks: BGM.worlds.terrains.plains,
+          track: 1,
+          startDelay,
+          saveBookmark: true
+        };
+        break;
+      case 'world-desert':
+      case 'world-sands':
+        bgmPayload = {
+          tracks: BGM.worlds.terrains.desert,
+          track: Math.floor(Math.random() * BGM.worlds.terrains.desert.length),
+          startDelay,
+          saveBookmark: true
+        };
+        break;
+      case 'world-ice':
+        bgmPayload = {
+          tracks: BGM.worlds.terrains.snow,
+          track: Math.floor(Math.random() * BGM.worlds.terrains.snow.length),
+          startDelay,
+          saveBookmark: true
+        };
+        break;
+      case 'world-swamps':
+        bgmPayload = {
+          tracks: BGM.worlds.terrains.swamp,
+          track: Math.floor(Math.random() * BGM.worlds.terrains.swamp.length),
+          startDelay,
+          saveBookmark: true
+        };
+        break;
+      case 'world-mountains':
+        bgmPayload = {
+          tracks: BGM.worlds.terrains.mountains,
+          track: Math.floor(Math.random() * BGM.worlds.terrains.mountains.length),
+          startDelay,
+          saveBookmark: true
+        };
+        break;
+      case 'world-forest':
+        bgmPayload = {
+          tracks: BGM.worlds.terrains.forest,
+          track: Math.floor(Math.random() * BGM.worlds.terrains.forest.length),
+          startDelay,
+          saveBookmark: true
+        };
+        break;
+      case 'world-islands': 
+        bgmPayload = {
+          tracks: BGM.worlds.terrains.islands,
+          track: Math.floor(Math.random() * BGM.worlds.terrains.islands.length),
+          startDelay,
+          saveBookmark: true
+        };
+        break;
+      case 'world-urban':
+      case 'world-city':
+        bgmPayload = {
+          tracks: BGM.worlds.terrains.urban,
+          track: Math.floor(Math.random() * BGM.worlds.terrains.urban.length),
+          startDelay,
+          saveBookmark: true
+        };
+        break;
+      case 'the-moon':
+        bgmPayload = {
+          tracks: BGM.worlds.terrains.moon,
+          track: Math.floor(Math.random() * BGM.worlds.terrains.moon.length),
+          startDelay,
+          saveBookmark: true
+        };
+        break;
+      case 'world-clouds':
+        bgmPayload = {
+          tracks: BGM.worlds.terrains.clouds,
+          track: Math.floor(Math.random() * BGM.worlds.terrains.clouds.length),
+          startDelay,
+          saveBookmark: true
+        };
+        break;
+      case 'world-cave':
+        bgmPayload = {
+          tracks: BGM.worlds.terrains.cave,
+          track: Math.floor(Math.random() * BGM.worlds.terrains.cave.length),
+          startDelay,
+          saveBookmark: true
+        };
+        break;
+      case 'temple':
+        bgmPayload = {
+          tracks: BGM.worlds.terrains.dungeon,
+          track: Math.floor(Math.random() * BGM.worlds.terrains.dungeon.length),
+          startDelay,
+          saveBookmark: true
+        };
+        break;
+      
+      case 'battleroom-dev':
       case 'battle-ground':
         // Ensure BGM.battle is an array and state.battle exists
         if (Array.isArray(BGM.battle) && BGM.battle.length > 0 && state.battle) {
