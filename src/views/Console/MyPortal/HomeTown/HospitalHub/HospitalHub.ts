@@ -2,7 +2,7 @@ import { defineComponent, ref, onMounted } from "vue";
 import ionic from "@/mixins/ionic";
 import { actionSheetController, alertController } from "@ionic/vue";
 import XpIcon from "@/components/XpIcon";
-import XpTypingText from "@/components/XpTypingText";
+import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
 import { mapGetters } from "vuex";
 import { close, heart, heartHalf, infinite, logOut, people, statsChart } from "ionicons/icons";
 

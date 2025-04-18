@@ -125,7 +125,7 @@ import 'swiper/css/pagination';
 import 'swiper/css/navigation';
 
 // Import our typing text component
-import XpTypingText from "@/components/XpTypingText";
+import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
 
 import {
   IonPage,
