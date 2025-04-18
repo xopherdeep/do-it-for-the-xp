@@ -33,7 +33,6 @@
             <ion-card-content class="ion-text-center">
               Share your unique link and help your friends start their own productivity adventure with Do-it-for-the-XP!
             </ion-card-content>
-            <ion-card-footer>
               <ion-button
                 expand="block"
                 class="share-button ion-margin"
@@ -45,7 +44,6 @@
                 ></ion-icon>
                 Send Invite
               </ion-button>
-            </ion-card-footer>
           </ion-card>
         </ion-row>
         <ion-row>

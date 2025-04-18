@@ -46,7 +46,6 @@
             <ion-thumbnail slot="start">
               <ion-img :src="requireIconImg('./team.png')" />
             </ion-thumbnail>
-            <ion-divider />
             <ion-label>
               <h1>Family Settings</h1>
               <p>

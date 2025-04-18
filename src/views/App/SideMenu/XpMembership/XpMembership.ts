@@ -2,49 +2,12 @@ import { defineComponent } from "vue";
 import { useRouter } from "vue-router";
 import { toastController, alertController } from "@ionic/vue";
 
-import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonButtons,
-  IonMenuButton,
-  IonTitle,
-  IonContent,
-  IonText,
-  IonGrid,
-  IonRow,
-  IonCol,
-  IonCard,
-  IonCardTitle,
-  IonCardHeader,
-  IonCardContent,
-  IonChip,
-  IonBadge,
-  IonList,
-  IonItem,
-  IonIcon,
-  IonButton,
-  IonModal,
-  IonLabel,
-  IonToggle,
-  IonSegment,
-  IonSegmentButton,
-  IonRadio,
-} from "@ionic/vue";
 
 import {
   arrowBack,
   checkmarkCircle,
-  stopCircle, // Keep for potential use, or remove if definitely unused
-  calendarOutline, // Keep for potential use, or remove if definitely unused
   calendarClearOutline, // New
   cardOutline,
-  helpCircleOutline, // Keep for potential use, or remove if definitely unused
-  informationCircleOutline, // Keep for potential use, or remove if definitely unused
-  starOutline, // Keep for potential use, or remove if definitely unused
-  trendingUpOutline, // Keep for potential use, or remove if definitely unused
-  walletOutline, // Keep for potential use, or remove if definitely unused
-  refreshOutline, // Keep for potential use, or remove if definitely unused
   shieldCheckmark, // New
   sparklesOutline, // New
   rocketOutline, // New
@@ -58,6 +21,7 @@ import {
   moonSharp,
   moonOutline,
 } from "ionicons/icons";
+import Ionic from "@/mixins/ionic";
 
 interface Plan {
   id: string;
@@ -69,6 +33,7 @@ interface Plan {
 
 export default defineComponent({
   name: "xp-membership",
+  mixins: [Ionic],
   data() {
     return {
       benefits: [
@@ -104,35 +69,6 @@ export default defineComponent({
         last4: "4242",
       },
     };
-  },
-  components: {
-    IonPage,
-    IonHeader,
-    IonToolbar,
-    IonButtons,
-    IonMenuButton,
-    IonText,
-    IonTitle,
-    IonContent,
-    IonGrid,
-    IonRow,
-    IonCol,
-    IonCard,
-    IonCardTitle,
-    IonCardHeader,
-    IonCardContent,
-    IonChip,
-    IonBadge,
-    IonList,
-    IonItem,
-    IonIcon,
-    IonButton,
-    IonModal,
-    IonLabel,
-    // IonToggle, // Removed if not used
-    // IonSegment, // Removed as replaced by cards
-    // IonSegmentButton, // Removed as replaced by cards
-    IonRadio,
   },
   computed: {
     currentPlan() {
