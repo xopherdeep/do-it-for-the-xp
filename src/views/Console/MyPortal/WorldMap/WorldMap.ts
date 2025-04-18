@@ -25,7 +25,7 @@ export default defineComponent({
         {
           label: "Plains",
           faIcon: "tornado",
-          side: "top",
+          side: "start",
           click(){
             router.push({ name:'world-plains', params: {userId} })
           }
@@ -41,7 +41,7 @@ export default defineComponent({
         {
           label: "Forests",
           faIcon: "trees",
-          side: "start",
+          side: "top",
           click(){
             router.push({ name:'world-forest', params: {userId} })
           }
@@ -49,7 +49,7 @@ export default defineComponent({
         {
           label: "Swamps",
           faIcon: "skull-crossbones",
-          side: "bottom",
+          side: "start",
           click(){
             router.push({ name:'world-swamps', params: {userId} })
           }
@@ -73,7 +73,7 @@ export default defineComponent({
         {
           label: "Tundras",
           faIcon: "igloo",
-          side: "top",
+          side: "bottom",
           click(){
             router.push({ name:'world-ice', params: {userId} })
           }

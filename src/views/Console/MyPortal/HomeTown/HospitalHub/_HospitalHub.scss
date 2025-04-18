@@ -59,6 +59,7 @@
     backdrop-filter: blur(10px);
     border-radius: 16px;
     margin: 1rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 
     ion-card-header {
       border-bottom: 1px solid var(--ion-color-light);
@@ -66,7 +67,25 @@
 
     ion-card-title {
       font-size: 1.5rem;
-      color: var(--ion-color-dark);
+      color: var(--ion-color-primary);
+    }
+  }
+
+  ion-modal {
+    --border-radius: 10px;
+
+    ion-header {
+      ion-toolbar {
+        --background: var(--ion-color-secondary);
+        --color: var(--ion-color-secondary-contrast);
+      }
+    }
+
+    ion-content {
+      --padding-start: 10px;
+      --padding-end: 10px;
+      --padding-top: 10px;
+      --padding-bottom: 10px;
     }
   }
 
@@ -75,6 +94,13 @@
     backdrop-filter: blur(10px);
     border-radius: 16px;
     margin: 1rem;
+    position: relative;
+    border-radius: 8px;
+    transition: transform 0.2s;
+
+    &:hover {
+      transform: translateY(-2px);
+    }
 
     ion-avatar {
       width: 60px;
@@ -86,6 +112,8 @@
       margin: 0 0 0.5rem;
       font-size: 1.2rem;
       color: var(--ion-color-dark);
+      font-weight: 600;
+      margin-bottom: 0.5rem;
     }
 
     ion-progress-bar {
@@ -93,6 +121,120 @@
       border-radius: 4px;
       --buffer-background: rgba(var(--ion-color-danger-rgb), 0.3);
     }
+
+    .heartbeat {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 25px;
+      overflow: hidden;
+      opacity: 0.5;
+    }
+  }
+
+  @keyframes pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  ion-footer {
+    ion-button {
+      margin: 8px;
+      --border-radius: 8px;
+
+      &:active {
+        animation: pulse 0.3s;
+      }
+    }
+  }
+
+  ion-badge {
+    position: absolute;
+    top: 0;
+    right: 0;
+    transform: translate(30%, -30%);
+  }
+
+  // Custom Nurse Dialog Styles
+  .nurse-dialog-overlay {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    padding: 1rem;
+    pointer-events: auto;
+    cursor: pointer;
+    animation: slideUp 0.3s ease-out forwards;
+  }
+
+  .nurse-dialog-box {
+    background: rgba(0, 0, 0, 0.9);
+    border: 2px solid var(--ion-color-light);
+    border-radius: 8px;
+    padding: 0;
+    min-height: 120px;
+    position: relative;
+    max-width: 800px;
+    margin: 0 auto;
+    overflow: hidden;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+
+    .dialog-header {
+      background-color: var(--ion-color-primary);
+      color: white;
+      padding: 8px 12px;
+      font-weight: bold;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      border-bottom: 2px solid var(--ion-color-light);
+    }
+
+    .dialog-content {
+      padding: 1rem;
+      font-family: 'StatusPlz', monospace;
+
+      .nurse-text {
+        display: block;
+        width: 100%;
+      }
+    }
+
+    .dialog-indicator {
+      position: absolute;
+      bottom: 0.5rem;
+      right: 0.5rem;
+      color: var(--ion-color-light);
+      
+      .blink {
+        animation: blink 1s infinite;
+      }
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    to {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
   }
 }
 
@@ -127,6 +269,85 @@ ion-action-sheet {
   --background: rgba(var(--ion-background-color-rgb), 0.9);
   --backdrop-opacity: 0.6;
   --button-background-selected: rgba(var(--ion-color-primary-rgb), 0.1);
+}
+
+// Enhanced Action Sheet Custom Styling
+.hospital-action-sheet {
+  --background: rgba(var(--ion-background-color-rgb), 0.9);
+  --backdrop-opacity: 0.6;
+  
+  .action-heal::part(icon) {
+    color: var(--ion-color-success);
+    opacity: 1;
+    
+    i {
+      color: var(--ion-color-success);
+    }
+  }
+
+  .action-revive::part(icon) {
+    color: var(--ion-color-warning);
+    opacity: 1;
+    
+    i {
+      color: #FFD700; // Gold color for revive
+    }
+  }
+
+  .action-stats::part(icon) {
+    color: var(--ion-color-tertiary);
+    opacity: 1;
+    
+    i {
+      color: var(--ion-color-tertiary);
+    }
+  }
+  
+  .action-patients::part(icon) {
+    color: var(--ion-color-primary);
+    opacity: 1;
+    
+    i {
+      color: var(--ion-color-primary);
+    }
+  }
+
+  .action-leave::part(icon) {
+    color: var(--ion-color-medium);
+    opacity: 1;
+    
+    i {
+      color: var(--ion-color-medium);
+    }
+  }
+
+  .action-cancel::part(icon) {
+    color: var(--ion-color-danger);
+    opacity: 1;
+    
+    i {
+      color: var(--ion-color-danger);
+    }
+  }
+  
+  // Add RPG-style border to the action sheet
+  .action-sheet-container {
+    border: 2px solid var(--ion-color-light);
+    border-radius: 8px;
+  }
+  
+  // Style the sheet header
+  .action-sheet-title {
+    font-family: 'StatusPlz', monospace;
+    font-size: 1.2rem;
+    border-bottom: 1px solid var(--ion-color-light);
+    padding-bottom: 12px;
+  }
+  
+  // Make button text more RPG-like
+  .action-sheet-button {
+    font-family: 'StatusPlz', monospace;
+  }
 }
 
 // Alert Styling

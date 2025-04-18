@@ -123,36 +123,21 @@ export default defineComponent<DefineUserActionComponent>({
 
     const userActions = [
       {
-        label: "Hometown",
-        id: 'home-town',
-        faIcon: "archway",
-        side: "start",
-        click($ev) {
-          $ev.preventDefault()
-          router.push({ name: 'home-town', params: { userId } })
-        }
-      },
-      {
         label: "Sky Temple",
         id: "sky-temple",
         faIcon: "place-of-worship",
         side: "bottom",
         click() {
-          const temple = "sky-temple"
-          router.push({ name: "temple", params: { 
-            userId, 
-            temple,
-            x: 3, 
-            y: 4 
-          } });
-        },
-      },
-      {
-        label: "Travel World",
-        faIcon: "pegasus",
-        side: "start",
-        click() {
-          router.push({ name: "world-map", params: { userId } });
+          const temple = "sky-temple";
+          router.push({
+            name: "temple",
+            params: {
+              userId,
+              temple,
+              x: 3,
+              y: 4,
+            },
+          });
         },
       },
       {
@@ -161,8 +146,16 @@ export default defineComponent<DefineUserActionComponent>({
         faIcon: "store",
         side: "top",
         click() {
-          const merchant = "cloud-market"
-          router.push({ name: "shop", params: { merchant } })
+          const merchant = "cloud-market";
+          router.push({ name: "shop", params: { merchant } });
+        },
+      },
+      {
+        label: "Travel World",
+        faIcon: "pegasus",
+        side: "start",
+        click() {
+          router.push({ name: "world-map", params: { userId } });
         },
       },
     ];
