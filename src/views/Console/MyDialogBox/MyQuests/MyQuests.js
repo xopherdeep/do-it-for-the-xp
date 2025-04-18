@@ -3,9 +3,7 @@ import XpApi from "@/api/doit.forthexp.com.api";
 import ionic from "@/mixins/ionic";
 import {
   IonBackButton,
-  alertController,
-  IonSlides,
-  IonSlide,
+  alertController, 
   IonicSlides,
 } from "@ionic/vue";
 import {
@@ -44,9 +42,7 @@ export default defineComponent({
   name: "my-quests",
   components: {
     IonBackButton,
-    MyTask,
-    IonSlides,
-    IonSlide,
+    MyTask, 
   },
   data() {
     return {

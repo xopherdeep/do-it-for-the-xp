@@ -50,14 +50,9 @@
 
 <style lang="scss" scoped>
 ion-fab-list {
-  margin-left: -125px;
-  position: absolute;
-  width: 20%;
-  margin-left: auto;
-  margin-right: auto;
-  // max-width: 95%;
-  width: auto;
+  
 
+  margin: 65px 0 0 0;
 }
 </style>
 

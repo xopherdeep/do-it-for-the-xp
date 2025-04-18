@@ -117,11 +117,13 @@ import { useRouter } from 'vue-router';
 import { Swiper, SwiperSlide } from "swiper/vue";
 // Correct import for Swiper modules (v7+)
 import { Pagination, Navigation } from 'swiper';
+import { IonicSlides } from '@ionic/vue';
 
 // Import Swiper styles
 import 'swiper/css';
 import 'swiper/css/pagination';
 import 'swiper/css/navigation';
+import '@ionic/vue/css/ionic-swiper.css';
 
 // Import our typing text component
 import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
@@ -184,7 +186,7 @@ export default defineComponent({
       informationSharp,
       requireImg,
       $requireIcon: requireImg,
-      modules: [Pagination, Navigation], // Expose Swiper modules
+      modules: [Pagination, Navigation, IonicSlides], // Expose Swiper modules
       getStarted, // Expose the navigation method
       textSpeed,
       welcomeText,

@@ -19,7 +19,9 @@
               class="ion-no-padding"
               :src="userAvatar"
             ></ion-img>
+
           </ion-fab-button>
+
           <ion-badge>
             {{ user.name.nick }}
           </ion-badge>
@@ -31,7 +33,7 @@
       side="bottom"
       ref="userFab"
     >
-      <ion-card>
+      <ion-card class="fixed t-0">
         <ion-card-title>
           {{ user.name.nick }}
           <ion-text class="wallet">
@@ -51,7 +53,7 @@
                 <ion-button
                   @click="clickAction(action)"
                   size="large"
-                  class=""
+                  class="p-0"
                   :id="action.id ? action.id : undefined"
                 >
                   <i
@@ -248,6 +250,10 @@ ion-fab {
   &.fab-user {
     width: 500px;
     max-width: 95vw;
+
+    ion-fab-list{
+      margin-top: 65px;
+    } 
 
     ion-chip {
       box-shadow: 3px 3px 0px;

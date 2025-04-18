@@ -1,5 +1,4 @@
-import { v4 as uuidv4 } from 'uuid'
-import useQuests, { useInfiniteQuests } from "@/hooks/useQuests";
+import { useInfiniteQuests } from "@/hooks/useQuests";
 import { computed, defineComponent, reactive, ref } from "vue";
 import { useQueryClient } from "vue-query";
 import { useRouter } from "vue-router";
@@ -8,8 +7,6 @@ import ionic from "@/mixins/ionic";
 import {
   IonBackButton,
   alertController,
-  IonSlides,
-  IonSlide,
   IonicSlides,
   InfiniteScrollCustomEvent,
   modalController,
@@ -46,7 +43,6 @@ import { useQuery } from "vue-query";
 import XpAchievementDetails from "./XpAchievementDetails.vue"
 import { AchievementDb } from "@/databases";
 import { Storage, Drivers } from "@ionic/storage";
-import { Achievement } from '@/databases/AchievementDb';
 
 // Define interfaces for sound effects system
 interface SoundEffect {
@@ -98,9 +94,7 @@ export const XpDiscoverAchievements = defineComponent({
   mixins: [fetchItems, ionic],
   components: {
     IonBackButton,
-    MyTask,
-    IonSlides,
-    IonSlide,
+    MyTask, 
   },
   data() {
     return {

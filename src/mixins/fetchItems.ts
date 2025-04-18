@@ -8,8 +8,6 @@ import {
   IonRow,
   IonSearchbar,
   IonToolbar,
-  IonSlides,
-  IonSlide,
   IonicSlides
 } from "@ionic/vue";
 
@@ -35,9 +33,7 @@ export default defineComponent({
     IonModal,
     IonRow,
     IonSearchbar,
-    IonToolbar,
-    IonSlide,
-    IonSlides,
+    IonToolbar, 
     IonicSlides,
     XpLoading,
   },

@@ -27,11 +27,14 @@
     <ion-content class="bg-slide">
       <!-- Profile Avatars -->
       <div class="profile-avatars-container">
-        <ion-scroll horizontal="true">
-          <div class="profile-list">
+        <RecycleScroller
+          class="scroller profile-scroller"
+          :items="users"
+          :item-size="80"
+          direction="horizontal"
+        >
+          <template #default="{ item: user }">
             <div
-              v-for="user in users"
-              :key="user.id"
               class="profile-item"
               @click="impersonateUser(user)"
             >
@@ -43,26 +46,29 @@
               </div>
               <div class="username">{{ user.name.nick }}</div>
             </div>
-            <div
-              class="profile-item add-profile"
-              @click="openNewProfileModal"
-            >
-              <ion-avatar class="h-[64px]">
-                <i class="fad fa-heartbeat fa-2x" />
-              </ion-avatar>
-              <p class="username">Add Profile</p>
-            </div>
-            <div
-              class="profile-item add-profile"
-              @click="openFamilySettings"
-            >
-              <ion-avatar class="h-[64px]">
-                <i class="fad fa-cogs fa-2x" />
-              </ion-avatar>
-              <p class="username">Family</p>
-            </div>
+          </template>
+        </RecycleScroller>
+        
+        <div class="profile-list non-virtual-items">
+          <div
+            class="profile-item add-profile"
+            @click="openNewProfileModal"
+          >
+            <ion-avatar class="h-[64px]">
+              <i class="fad fa-heartbeat fa-2x" />
+            </ion-avatar>
+            <p class="username">Add Profile</p>
           </div>
-        </ion-scroll>
+          <div
+            class="profile-item add-profile"
+            @click="openFamilySettings"
+          >
+            <ion-avatar class="h-[64px]">
+              <i class="fad fa-cogs fa-2x" />
+            </ion-avatar>
+            <p class="username">Family</p>
+          </div>
+        </div>
       </div>
 
       <!-- Stats Overview -->
@@ -321,6 +327,7 @@ import AchievementDb, { achievementStorage } from "@/databases/AchievementDb";
 import BestiaryDb, { beastStorage } from "@/databases/BestiaryDb";
 import DosDontsDb, { dosDontsStorage } from "@/databases/DosDontsDb";
 import { toastController, modalController } from "@ionic/vue";
+import { RecycleScroller } from 'vue-virtual-scroller';
 
 import { defineComponent, ref, onMounted } from "vue";
 export default defineComponent({
@@ -332,6 +339,7 @@ export default defineComponent({
     // XpActionItems,
     // XpDoThisNotThat,
     // XpTemples,
+    RecycleScroller,
   },
   computed: {
     ...mapGetters(["usersAz"]),
@@ -619,11 +627,24 @@ export default defineComponent({
     padding: 16px;
     background: var(--ion-color-light);
 
+    .scroller {
+      height: 100px;
+      width: 100%;
+    }
+    
+    .profile-scroller {
+      direction: ltr;
+    }
+
     .profile-list {
       display: flex;
       overflow-x: auto;
       gap: 16px;
       padding: 4px;
+    }
+
+    .non-virtual-items {
+      margin-top: 10px;
     }
 
     .profile-item {
@@ -690,7 +711,7 @@ export default defineComponent({
           align-items: center;
           justify-content: center;
 
-          background: var(--ion-color-light-shade);
+          background: var (--ion-color-light-shade);
           border: 2px dashed var(--ion-color-medium);
 
           i {
