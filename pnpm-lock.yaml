@@ -159,6 +159,9 @@ importers:
       babel-jest:
         specifier: ^27.5.1
         version: 27.5.1(@babel/core@7.26.10)
+      cross-env:
+        specifier: ^7.0.3
+        version: 7.0.3
       cypress:
         specifier: ^8.7.0
         version: 8.7.0
@@ -2714,6 +2717,11 @@ packages:
   cosmiconfig@7.1.0:
     resolution: {integrity: sha512-AdmX6xUzdNASswsFtmwSt7Vj8po9IuqXm0UXz7QKPuEUmPB4XyjGfaAr2PSuELMwkRMVH1EpIkX5bTZGRB3eCA==}
     engines: {node: '>=10'}
+
+  cross-env@7.0.3:
+    resolution: {integrity: sha512-+/HKd6EgcQCJGh2PSjZuUitQBQynKor4wrFbRg4DtAgS1aWO+gU52xpH7M9ScGgXSYmAVS9bIJ8EzuaGw0oNAw==}
+    engines: {node: '>=10.14', npm: '>=6', yarn: '>=1'}
+    hasBin: true
 
   cross-spawn@5.1.0:
     resolution: {integrity: sha512-pTgQJ5KC0d2hcY8eyL1IzlBPYjTkyH72XRZPnLyKus2mBfNjQs3klqbJU2VILqZryAZUt9JOb3h/mWMy23/f5A==}
@@ -10050,6 +10058,10 @@ snapshots:
       parse-json: 5.2.0
       path-type: 4.0.0
       yaml: 1.10.2
+
+  cross-env@7.0.3:
+    dependencies:
+      cross-spawn: 7.0.6
 
   cross-spawn@5.1.0:
     dependencies:

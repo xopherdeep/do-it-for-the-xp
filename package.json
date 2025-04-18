@@ -58,6 +58,7 @@
     "vuex": "^4.1.0"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@capacitor/cli": "^5.7.8",
     "@ionic/cli": "^7.2.1",
     "@types/chart.js": "^2.9.41",
