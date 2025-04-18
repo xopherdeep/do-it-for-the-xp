@@ -1,8 +1,10 @@
 <template>
-  <span ref="textContainer" :class="['xp-typing-text', {'rpg-text': isRpgStyled}]">
+  <span ref="textContainer" :class="['xp-typing-text  rpg-box', {'rpg-text': isRpgStyled}]">
     <slot v-if="showSlot"></slot>
     <span v-else v-html="displayedText"></span>
     <span v-if="isTyping && cursorVisible" class="typing-cursor">|</span>
+    <!-- Only show the caret when typing is complete and there's more text to read -->
+    <i v-if="!isTyping && hasMoreText" class="fad fa-caret-down fa-2x float-right mt-3 animate-bounce" />
   </span>
 </template>
 
@@ -48,6 +50,10 @@ export default defineComponent({
     soundType: {
       type: String,
       default: 'text'
+    },
+    hasMoreText: {
+      type: Boolean,
+      default: false
     }
   },
   methods: {
@@ -66,25 +72,6 @@ export default defineComponent({
     let typingInterval: number | null = null;
     let soundCooldown = false;
 
-    // const playTextSound = () => {
-    //   if (!props.playSound || soundCooldown) return;
-      
-    //   try {
-    //     // Using the app's existing sound system
-    //     if (window.$fx && window.$fx[props.soundTheme] && window.$fx[props.soundTheme][props.soundType]) {
-    //       window.$fx[props.soundTheme][props.soundType].play();
-          
-    //       // Add small cooldown to avoid sound overlap
-    //       soundCooldown = true;
-    //       setTimeout(() => {
-    //         soundCooldown = false;
-    //       }, 50);
-    //     }
-    //   } catch (err) {
-    //     console.warn('Error playing text sound:', err);
-    //   }
-    // };
-
     const typeNextChar = () => {
       if (isPaused.value || !isTyping.value) return;
       
@@ -93,7 +80,7 @@ export default defineComponent({
         displayedText.value += char;
         
         // Don't play sound for spaces and some punctuation
-        if (char !== ' ' && char !== ',' && char !== '.') {
+        if (props.playSound && char !== ' ' && char !== ',' && char !== '.') {
           play$fx("text");
         }
         

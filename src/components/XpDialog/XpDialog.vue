@@ -1,4 +1,4 @@
-`<template>
+<template>
   <div class="xp-dialog-container" :class="{ 'active': isVisible }">
     <div class="xp-dialog-box rpg-box">
       <div class="dialog-content">
@@ -21,7 +21,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, PropType } from 'vue';
-import XpTypingText from '@/components/XpTypingText';
+import XpTypingText from '@/components/XpTypingText/XpTypingText.vue';
 
 export default defineComponent({
   name: 'XpDialog',
@@ -152,4 +152,4 @@ export default defineComponent({
   0%, 100% { opacity: 1; }
   50% { opacity: 0; }
 }
-</style>`
+</style>

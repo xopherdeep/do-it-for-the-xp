@@ -418,7 +418,7 @@ import {
   IonToolbar,
 } from '@ionic/vue';
 import { ref, computed } from 'vue'; // Added ref and computed for reactive state
-import XpTypingText from '@/components/XpTypingText'; // Import our custom typing text component
+import XpTypingText from '@/components/XpTypingText/XpTypingText.vue'; // Import our custom typing text component
 
 // --- Script Logic ---
 
@@ -881,7 +881,7 @@ const showCode = async (code: string) => {
 function escapeHtml(unsafe: string): string {
     return unsafe
          .replace(/&/g, "&amp;")
-         .replace(/</g, "&lt;")
+         .replace(/<//g, "&lt;")
          .replace(/>/g, "&gt;")
          .replace(/"/g, "&quot;")
          .replace(/'/g, "&#039;");

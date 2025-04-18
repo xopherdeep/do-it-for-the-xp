@@ -257,7 +257,7 @@ import { Swiper, SwiperSlide } from "swiper/vue";
 import 'swiper/css';
 import 'swiper/css/pagination';
 import 'swiper/css/navigation';
-import XpTypingText from "@/components/XpTypingText";
+import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
 import Ionic from "@/mixins/ionic";
 
 export default defineComponent({
