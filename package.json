@@ -13,6 +13,7 @@
   "private": false,
   "scripts": {
     "serve": "ionic serve --external",
+    "ui": "vue ui",
     "vue-serve": "vue-cli-service serve",
     "vue-build": "vue-cli-service build",
     "build": "ionic build",
@@ -39,6 +40,7 @@
     "@ionic/utils-fs": "^3.1.7",
     "@ionic/vue": "^6.7.5",
     "@ionic/vue-router": "^6.7.5",
+    "@vue/cli": "^5.0.8",
     "chart.js": "^4.4.9",
     "cobe": "^0.4.2",
     "cordova-plugin-ionic": "5.5.3",
@@ -96,12 +98,5 @@
   "engines": {
     "node": ">=16.0.0"
   },
-  "packageManager": "pnpm@9.12.2+sha512.22721b3a11f81661ae1ec68ce1a7b879425a1ca5b991c975b074ac220b187ce56c708fe5db69f4c962c989452eee76c82877f4ee80f474cebd61ee13461b6228",
-  "pnpm": {
-    "overrides": {
-      "postcss@<8.4.31": ">=8.4.31",
-      "@cypress/request@<=2.88.12": ">=3.0.0",
-      "cross-spawn@<6.0.6": ">=6.0.6"
-    }
-  }
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
