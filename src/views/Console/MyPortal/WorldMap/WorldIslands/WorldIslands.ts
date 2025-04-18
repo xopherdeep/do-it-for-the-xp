@@ -7,10 +7,14 @@ import { useStore } from "vuex";
 import userActions from "@/mixins/userActions";
 import type { DefineUserActionComponent } from "@/mixins/userActions";
 
+import WeatherFX from '@/components/WeatherFX/WeatherFX.vue';
+
 export default defineComponent<DefineUserActionComponent>({
   name: "world-islands",
   mixins: [ionic, userActions],
-
+  components: {
+    WeatherFX
+  },
   ionViewDidEnter() {
     this.setActions( this.$options.name )
   },
