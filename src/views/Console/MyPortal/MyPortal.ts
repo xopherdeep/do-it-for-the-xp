@@ -3,10 +3,18 @@ import { computed, defineComponent, reactive, ref } from "vue";
 import fetchItems from "@/mixins/fetchItems";
 import ionic from "@/mixins/ionic";
 import components from "./components";
-import UserProfileModal from "./components/UserProfileModal.vue"; // Import the new component
 import userActions from "@/mixins/userActions";
 import "swiper/css";
 import { modalController } from "@ionic/vue";
+
+// Define interface for equipment items
+interface EquipmentItem {
+  faIcon?: string;
+  hand?: string;
+  slotIndex?: number;
+  click?: () => void; // Replaced Function with a more specific function signature
+  [key: string]: any; // Allow for additional properties
+}
 
 // import XpFabUserHud  from "./components/XpFabUserHud.vue"
 
@@ -32,7 +40,7 @@ import { mapActions, mapGetters, mapMutations, mapState, useStore } from "vuex";
 import { useRoute, useRouter } from "vue-router";
 
 export default defineComponent({
-  components: { ...components, UserProfileModal }, // Register the new component
+  components: { ...components }, // No UserProfileModal for now
   mixins: [fetchItems, ionic, userActions],
   name: "my-portal",
   data() {
@@ -79,7 +87,9 @@ export default defineComponent({
       return this.$requireAvatar(avatar);
     },
     enterBattle() {
-      this.$refs?.outlet?.enterBattle();
+      // Type assertion for outlet ref
+      const outlet = this.$refs?.outlet as { enterBattle: () => void } | undefined;
+      outlet?.enterBattle();
     },
     async dismissRPGBox() {
       this.isRPGBoxOpen = false;
@@ -176,7 +186,7 @@ export default defineComponent({
         userId,
         ACTIVATE_BATTLE,
         stopBattleTimer,
-        resetBattleTimer,
+        resetBattleTimer
       } = this;
 
       // UNCOMMENT TO TURN ON BATTLES
@@ -200,8 +210,8 @@ export default defineComponent({
     const route = useRoute();
     const { userId } = route.params;
     const user = computed(() => store.getters.getUserById(userId));
-    const equipment = ref([]);
-    const clickItem = (item, hand, index = 0) => {
+    const equipment = ref<EquipmentItem[]>([]); // Use the defined interface
+    const clickItem = (item: EquipmentItem | null, hand: string, index = 0) => {
       // If we're removing an item from a specific slot
       if (item === null && hand) {
         equipment.value = equipment.value.filter(
@@ -210,9 +220,10 @@ export default defineComponent({
         return;
       }
 
+      // Item is not null at this point, so we can safely use it
       // First, check if this item is already equipped somewhere else
       const alreadyEquippedIndex = equipment.value.findIndex(
-        (i) => i.faIcon === item.faIcon
+        (i) => i.faIcon === item?.faIcon
       );
 
       // If it's already equipped, remove it first
@@ -231,11 +242,11 @@ export default defineComponent({
       }
 
       // Create a copy of the item with the click handler preserved
-      const itemToEquip = { ...item, hand, slotIndex: index };
+      const itemToEquip = { ...item, hand, slotIndex: index } as EquipmentItem;
 
       // Ensure the click handler is properly preserved
       // Functions don't get copied with spread operator, so we need to explicitly assign it
-      if (item.click && typeof item.click === "function") {
+      if (item?.click && typeof item.click === "function") {
         itemToEquip.click = item.click;
       }
 
@@ -250,11 +261,6 @@ export default defineComponent({
     });
 
     const pageIcon = computed(() => route.meta.faIcon);
-
-    // Method to handle equipment updates from the modal
-    const handleEquipmentUpdate = (updatedEquipment) => {
-      equipment.value = updatedEquipment;
-    };
 
     return {
       userId,
@@ -280,7 +286,6 @@ export default defineComponent({
       user,
       wallet,
       walletOutline,
-      handleEquipmentUpdate,
     };
   },
 });
