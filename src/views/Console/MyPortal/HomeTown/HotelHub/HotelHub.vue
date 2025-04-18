@@ -10,7 +10,7 @@
           />
         </ion-buttons>
         <ion-title>
-          Hotel Hub
+          Hotel
         </ion-title>
       </ion-toolbar>
       <!-- <ion-item>
