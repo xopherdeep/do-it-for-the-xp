@@ -23,8 +23,8 @@
         :page-name="compass.name"
       />
       <xp-fab-page-shortcuts v-if="isUserFabOn" :shortcuts="userActions" />
-
-      <ion-tabs v-if="user.stats">
+      
+      <ion-tabs v-if="user && user.stats">
         <ion-router-outlet ref="outlet" :userId="user.id"></ion-router-outlet>
         <ion-tab-bar slot="bottom" v-if="user.stats && !battleState('active')">
           <ion-tab-button
@@ -98,5 +98,5 @@
   </ion-page>
 </template>
 
-<script src="./MyPortal.js"></script>
+<script src="./MyPortal"></script>
 <style lang="scss" src="./_MyPortal.scss"></style>
