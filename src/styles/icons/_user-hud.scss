@@ -23,6 +23,12 @@
     --fa-secondary-opacity: 1
   }
 
+  &cauldron {
+    --fa-primary-color: var(--xp-color-purple);
+    --fa-secondary-color: var(--xp-color-green);
+    --fa-secondary-opacity: 1;
+  }
+
   &book-spells {
     --fa-primary-color: var(--xp-color-blue);
     --fa-secondary-color: var(--xp-color-white);

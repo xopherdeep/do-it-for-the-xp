@@ -29,17 +29,23 @@
     --fa-secondary-opacity: 0.5;
   }
 
+  &star {
+    --fa-primary-color: var(--xp-color-yellow);
+    --fa-secondary-color: var(--xp-color-purple);
+    --fa-secondary-opacity: 1;
+  }
+
   &tornado {
-    --fa-primary-color: var(--xp-color-white);
-    --fa-secondary-color: var(--xp-color-lightBlue);
+    --fa-primary-color: var(--xp-color-gray);
+    --fa-secondary-color: var(--xp-color-white);
   }
   &trees {
     --fa-primary-color: var(--xp-color-green);
-    --fa-secondary-color: var(--xp-color-brown);
+    --fa-secondary-color: var(--xp-color-green);
   }
   &skull-crossbones {
-    --fa-primary-color: var(--xp-color-yellow);
-    --fa-secondary-color: var(--xp-color-red);
+    --fa-primary-color: var(--xp-color-gray);
+    --fa-secondary-color: var(--xp-color-pink);
     // --fa-secondary-opacity: 1
   }
 }
