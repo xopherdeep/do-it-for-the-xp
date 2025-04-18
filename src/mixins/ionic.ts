@@ -17,6 +17,6 @@ Object.keys(IonComponents).forEach((key: string) => {
 //   components[key] = IonComponents[key]
 // }
 
-const Ion = defineComponent({ components })
+const Ionic = defineComponent({ components })
 
-export default Ion;
+export default Ionic;

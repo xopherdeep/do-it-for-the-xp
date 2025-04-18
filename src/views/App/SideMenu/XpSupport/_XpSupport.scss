@@ -1,0 +1,30 @@
+.xp-support {
+  .support-card {
+    cursor: pointer;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  ion-card-header {
+    padding-bottom: 10px;
+  }
+
+  i.fad {
+    margin-bottom: 15px;
+    color: var(--ion-color-primary);
+  }
+
+  hr {
+    margin: 0;
+    border-top: 1px solid var(--ion-color-light-shade);
+  }
+
+  ion-card-content {
+    padding-top: 15px;
+    min-height: 80px;
+  }
+}

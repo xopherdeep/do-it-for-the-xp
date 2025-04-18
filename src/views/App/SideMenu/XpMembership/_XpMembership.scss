@@ -1,135 +1,314 @@
-$shooting-time: 3000ms;
+// Adventure Pass Theme Variables
+$ap-primary-color: #4a90e2; // A friendly blue
+$ap-secondary-color: #f5a623; // A vibrant orange/gold
+$ap-success-color: #7ed321; // A bright green
+$ap-warning-color: #f8e71c; // A noticeable yellow
+$ap-danger-color: #d0021b; // Standard danger red
+$ap-background-start: #3a7bd5; // Gradient start
+$ap-background-end: #3a60d5; // Gradient end
+$ap-card-background: rgba(255, 255, 255, 0.95);
+$ap-text-color: #333;
+$ap-light-text-color: #f8f8f8;
+$ap-font-family: "Nunito", sans-serif; // A rounded, friendly font
 
-ion-content {
-  --background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
-  height: 100vh;
-  overflow: hidden;
-  display: flex;
-  font-family: 'Anton', sans-serif;
-  justify-content: center;
-  align-items: center;
-  ion-text{
-    color: white;
+.xp-membership {
+  // Keep the root class name for consistency
+  font-family: $ap-font-family;
 
+  ion-toolbar {
+    --background: linear-gradient(
+      135deg,
+      $ap-primary-color,
+      darken($ap-primary-color, 10%)
+    );
+    --color: $ap-light-text-color;
+    font-weight: bold;
   }
 
+  .adventure-pass-content {
+    position: relative;
+    --background: transparent; // Make ion-content transparent
 
-  // .night {
-  //   position: absolute;
-  //   z-index: 0;
-  //   top: 0;
-  //   left:0;
-  //   width: 100%;
-  //   height: 100%;
-  //   transform: rotateZ(45deg);
-  //   // animation: sky 200000ms linear infinite;
-  // }
+    // Apply the animated background from SwitchProfile
+    height: 100vh; // Ensure it covers the viewport height
+    background-color: #68a8d8; // Base color from SwitchProfile
+    background-image: linear-gradient( // Diagonal lines pattern
+        45deg,
+        #80d890 25%,
+        transparent 25%,
+        transparent 75%,
+        #80d890 75%
+      ),
+      linear-gradient(
+        45deg,
+        #80d890 25%,
+        transparent 25%,
+        transparent 75%,
+        #80d890 75%
+      );
+    background-size: 60px 60px; // Size of the pattern repeat
+    background-position: 0 0, 30px 30px; // Positioning for the two gradients
+    animation: slide 4s infinite linear; // Apply the slide animation
 
-  // .shooting_star {
-  //   z-index: 1;
-  //   position: absolute;
-  //   left: 50%;
-  //   top: 50%;
-  //   // width: 100px;
-  //   height: 2px;
-  //   background: linear-gradient(-45deg, rgba(95, 145, 255, 1), rgba(0, 0, 255, 0));
-  //   border-radius: 999px;
-  //   filter: drop-shadow(0 0 6px rgba(105, 155, 255, 1));
-  //   animation:
-  //     tail $shooting-time ease-in-out infinite,
-  //     shooting $shooting-time ease-in-out infinite;
+    // Optional: Keep the subtle pattern if desired, but it might conflict visually
+    // .ap-background {
+    //   position: absolute;
+    //   top: 0; left: 0; right: 0; bottom: 0;
+    //   background-image: url('/path/to/your/subtle-pattern.svg');
+    //   background-repeat: repeat;
+    //   opacity: 0.1;
+    //   z-index: 0;
+    // }
 
-  //   &::before {
-  //     content: '';
-  //     position: absolute;
-  //     top: calc(50% - 1px);
-  //     right: 0;
-  //     // width: 30px;
-  //     height: 2px;
-  //     background: linear-gradient(-45deg, rgba(0, 0, 255, 0), rgba(95, 145, 255, 1), rgba(0, 0, 255, 0));
-  //     transform: translateX(50%) rotateZ(45deg);
-  //     border-radius: 100%;
-  //     animation: shining $shooting-time ease-in-out infinite;
-  //   }
+    ion-grid {
+      position: relative; // Ensure grid content is above background
+      z-index: 1;
+    }
+  }
 
-  //   &::after {
-  //     // CodePen Error
-  //     // @extend .shooting_star::before;
+  .section-title {
+    text-align: center;
+    color: $ap-primary-color;
+    font-weight: bold;
+    margin-bottom: 1rem;
+  }
 
-  //     content: '';
-  //     position: absolute;
-  //     top: calc(50% - 1px);
-  //     right: 0;
-  //     // width: 30px;
-  //     height: 2px;
-  //     background: linear-gradient(-45deg, rgba(0, 0, 255, 0), rgba(95, 145, 255, 1), rgba(0, 0, 255, 0));
-  //     transform: translateX(50%) rotateZ(45deg);
-  //     border-radius: 100%;
-  //     animation: shining $shooting-time ease-in-out infinite;
-  //     transform: translateX(50%) rotateZ(-45deg);
-  //   }
+  ion-card {
+    border-radius: 16px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    margin-left: 0;
+    margin-right: 0;
+    margin-top: 10px;
+    margin-bottom: 20px;
+    background: $ap-card-background;
+    color: $ap-text-color;
 
-  //   @for $i from 1 through 20 {
-  //     &:nth-child(#{$i}) {
-  //       $delay: random(9999) + 0ms;
-  //       top: calc(50% - #{random(400) - 200px});
-  //       left: calc(50% - #{random(300) + 0px});
-  //       animation-delay: $delay;
-  //       // opacity: random(50) / 100 + 0.5;
+    ion-card-header {
+      padding-bottom: 8px;
+    }
 
-  //       &::before,
-  //       &::after {
-  //         animation-delay: $delay;
-  //       }
-  //     }
-  //   }
-  // }
+    ion-card-title {
+      font-weight: bold;
+      color: $ap-primary-color;
+      display: flex;
+      align-items: center;
+      gap: 8px; // Space between icon and text
+    }
+
+    ion-card-subtitle {
+      color: darken($ap-text-color, 15%);
+      font-weight: 600;
+    }
+  }
+
+  .status-card {
+    border-left: 5px solid $ap-success-color;
+
+    .status-icon {
+      font-size: 1.8em; // Make icon larger
+      margin-right: 8px;
+    }
+
+    .info-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    .info-item {
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9em;
+      margin: 0;
+      padding: 0;
+
+      ion-icon {
+        color: $ap-primary-color;
+        font-size: 1.2em;
+      }
+      ion-label b {
+        color: $ap-text-color;
+      }
+    }
+  }
+
+  .plan-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    cursor: pointer;
+    position: relative; // For badge positioning
+
+    &:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    }
+
+    &.active-plan {
+      border: 3px solid $ap-primary-color;
+      box-shadow: 0 6px 14px rgba($ap-primary-color, 0.3);
+
+      ion-card-title {
+        color: $ap-primary-color; // Ensure title stays colored
+      }
+    }
+
+    ion-card-header {
+      text-align: center;
+    }
+
+    ion-card-title {
+      justify-content: center; // Center title in plan card
+      font-size: 1.4em;
+    }
+
+    ion-card-subtitle {
+      font-size: 1.1em;
+      font-weight: bold;
+      color: $ap-secondary-color;
+    }
+
+    ion-card-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      padding-top: 0;
+      padding-bottom: 16px;
+
+      ion-radio {
+        --color-checked: $ap-primary-color;
+        margin-right: 5px; // Space before label
+      }
+      ion-label {
+        font-weight: 600;
+      }
+    }
+
+    .savings-badge {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      font-weight: bold;
+    }
+  }
+
+  .benefits-card {
+    border-left: 5px solid $ap-secondary-color;
+
+    ion-card-title ion-icon {
+      color: $ap-secondary-color; // Match border color
+      font-size: 1.3em;
+    }
+  }
+
+  .benefits-list {
+    ion-item {
+      --background: transparent;
+      --padding-start: 0;
+      --inner-padding-end: 0;
+      --min-height: 40px;
+      font-size: 0.95em;
+
+      ion-icon[slot="start"] {
+        margin-right: 12px;
+        font-size: 1.2em;
+      }
+      ion-label {
+        white-space: normal; // Allow text wrapping
+      }
+    }
+  }
+
+  .cancel-button {
+    --border-radius: 20px;
+    font-weight: bold;
+  }
+
+  // Modal Styles
+  .cancel-modal {
+    ion-toolbar {
+      --background: $ap-warning-color;
+      --color: darken($ap-warning-color, 40%);
+    }
+    ion-content {
+      --background: #fff;
+    }
+    .modal-icon {
+      display: block;
+      margin: 16px auto;
+      font-size: 4em;
+    }
+    h2 {
+      text-align: center;
+      color: $ap-primary-color;
+      font-weight: bold;
+    }
+    p {
+      text-align: center;
+      color: darken($ap-text-color, 20%);
+      margin-bottom: 1.5rem;
+    }
+    ion-list {
+      background: transparent;
+      ion-item {
+        --background: transparent;
+        --padding-start: 0;
+        --inner-padding-end: 0;
+        ion-icon {
+          margin-right: 10px;
+          font-size: 1.3em;
+        }
+        ion-label {
+          font-size: 0.95em;
+          color: $ap-text-color;
+        }
+      }
+    }
+    ion-button {
+      --border-radius: 20px;
+      font-weight: bold;
+      ion-icon {
+        margin-right: 8px;
+      }
+    }
+  }
+
+  // Confirmation Alert Styles
+  .confirm-cancel-alert {
+    .alert-button-group {
+      flex-direction: column-reverse; // Stack buttons
+    }
+    .alert-button {
+      border-radius: 20px !important; // Ensure override
+      margin: 5px 10px !important;
+      font-weight: bold;
+
+      &.keep-button {
+        // Style for the "Keep" button
+        background-color: $ap-success-color;
+        color: white;
+      }
+      &.pause-button {
+        // Style for the "Pause" button
+        background-color: $ap-danger-color;
+        color: white;
+      }
+      // Default cancel button style (if role: 'cancel' is used differently)
+      &.alert-button-role-cancel {
+        background-color: #ccc;
+        color: #333;
+      }
+    }
+  }
 }
 
-@keyframes tail {
-  0% {
-    width: 0;
+// Add the keyframes animation copied from SwitchProfile
+@keyframes slide {
+  from {
+    background-position: 0 0, 30px 30px;
   }
 
-  30% {
-    width: 100px;
-  }
-
-  100% {
-    width: 0;
-  }
-}
-
-@keyframes shining {
-  0% {
-    width: 0;
-  }
-
-  50% {
-    width: 30px;
-  }
-
-  100% {
-    width: 0;
-  }
-}
-
-@keyframes shooting {
-  0% {
-    transform: translateX(0);
-  }
-
-  100% {
-    transform: translateX(300px);
-  }
-}
-
-@keyframes sky {
-  0% {
-    transform: rotate(45deg);
-  }
-
-  100% {
-    transform: rotate(45 + 360deg);
+  to {
+    background-position: 0 0, -30px -30px;
   }
 }

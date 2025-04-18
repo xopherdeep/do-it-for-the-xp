@@ -3,32 +3,48 @@
     <ion-header :translucent="true">
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-menu-button></ion-menu-button>
+          <ion-menu-button/>
+          <ion-icon
+            :ios="helpOutline"
+            :md="helpSharp"
+            class="fa-2x ml-2"
+          />
         </ion-buttons>
-        <ion-title> 
+        <ion-title>
           Support
         </ion-title>
       </ion-toolbar>
     </ion-header>
-    
-    <ion-content :fullscreen="true">
-      <ion-grid>
+    <ion-content
+      :fullscreen="true"
+      class="bg-slide ion-padding"
+    >
+      <ion-grid class="max-w-5xl">
         <ion-row>
-          <ion-col size="6" v-for="tile in tiles" :key="tile.title">
-              <ion-card>
-                  <ion-card-header>
-                    <ion-card-subtitle>
-                      {{tile.title}}
-                    </ion-card-subtitle>
-                    <!-- <ion-card-title>
-                      {{tile.title}}
-                    </ion-card-title> -->
-                  </ion-card-header>
-
-                  <ion-card-content>
-                    {{tile.desc}}
-                  </ion-card-content>
-                </ion-card>
+          <ion-col
+            size="12"
+            size-md="4"
+            v-for="tile in tiles"
+            :key="tile.title"
+          >
+            <ion-card
+              @click="navigateTo(tile.src)"
+              class="support-card"
+            >
+              <ion-card-header class="ion-text-center">
+                <i
+                  class="fad fa-5x"
+                  :class="tile.icon"
+                ></i>
+                <ion-card-title>
+                  {{ tile.title }}
+                </ion-card-title>
+              </ion-card-header>
+              <hr />
+              <ion-card-content>
+                {{ tile.desc }}
+              </ion-card-content>
+            </ion-card>
           </ion-col>
         </ion-row>
       </ion-grid>
@@ -36,5 +52,5 @@
   </ion-page>
 </template>
 
-<script src="./XpSupport" />
-<style lang="scss" src="./_XpSupport.scss" scoped/>
+<script src="./XpSupport.ts" lang="ts"></script>
+<style lang="scss" src="./_XpSupport.scss" scoped></style>

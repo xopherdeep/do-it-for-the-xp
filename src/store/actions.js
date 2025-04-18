@@ -83,12 +83,13 @@ export default {
   },
 
   loadUsers({ dispatch }) {
-    const dispatchData = ({data}) => dispatch("addUsers", { data })
-    return Api.get("users", {}).then(dispatchData);
+    const dispatchUsers = (users) => dispatch("addUsers", users);
+    return Api.get("users").then(dispatchUsers);
   },
 
-  addUsers({ commit }, { data }) {
-    data.users.forEach((user) => commit("ADD_USER", user));
+  addUsers({ commit }, users) {
+    // console.log("users", users);
+    users?.forEach((user) => commit("ADD_USER", user));
   },
 
   loginUser({ commit }, user) {
@@ -108,25 +109,25 @@ export default {
   changeBGM({ commit }, bgm) {
     return commit("CHANGE_BGM", bgm);
   },
-  
+
   turnMusicOnOff({ state }) {
     const { audio, is_on } = state.bgm;
 
-    if(audio){
+    if (audio) {
       if (is_on) audio.play();
       else audio.pause();
     }
   },
 
-  leaveBattle({commit}){
+  leaveBattle({ commit }) {
     commit("DEACTIVATE_BATTLE");
   },
 
   enterBattle({ dispatch, state }) {
     const playMusic = () => dispatch("turnMusicOnOff");
     // dispatch("changeBGM", { is_on: true })
-    dispatch("changeBGM")
-    setTimeout( playMusic, state.battle.bgmWaitToStart );
+    dispatch("changeBGM");
+    setTimeout(playMusic, state.battle.bgmWaitToStart);
   },
 
   startBattleTimer({ dispatch, state, commit }) {
@@ -135,7 +136,7 @@ export default {
       timer,
       steps: { max, min },
     } = state.battle;
-    let {counter, interval} = state.battle
+    let { counter, interval } = state.battle;
 
     if (counter <= 0) {
       counter = Math.floor(Math.random() * (max - min + 1) + min);
@@ -164,18 +165,18 @@ export default {
     const minus = plains * 4 + (swamp + forest + mountain + island) * 8;
 
     commit("SET_BATTLE_COUNTER", counter - minus);
-    const currentStep     = getters.battleState("steps").counter;
-    const isBattleActive  = getters.battleState("active");
+    const currentStep = getters.battleState("steps").counter;
+    const isBattleActive = getters.battleState("active");
     const isBattleTimerUp = currentStep < 0;
     if (isBattleTimerUp && !isBattleActive) {
       // dispatch("enterBattle");
     }
   },
 
-  setUserActions({commit}, userActions){
-    commit("SET_USER_ACTIONS", userActions)
+  setUserActions({ commit }, userActions) {
+    commit("SET_USER_ACTIONS", userActions);
   },
-  setArea({commit}, area){
-    commit("SET_AREA", area)
-  }
+  setArea({ commit }, area) {
+    commit("SET_AREA", area);
+  },
 };

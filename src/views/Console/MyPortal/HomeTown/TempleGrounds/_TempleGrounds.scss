@@ -1,0 +1,42 @@
+.temple-grounds {
+  ion-content {
+    background-size: contain;
+    // --background: transparent;
+    --background-size: contain;
+    --overflow: hidden;
+    --background: black;
+  }
+  .maze-container {
+    display: grid;
+    grid-template-columns: auto auto auto auto auto;
+    gap: 4px 4px;
+  }
+
+  #background-container {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    grid-template-rows: repeat(6, 1fr);
+    transition: transform 0.5s; /* Smooth transition for movement */
+    /* Initially set transform to show [0,0] */
+    transform: translate(0, 0);
+  }
+
+  .background-tile {
+    width: 100vw;
+    height: calc(100vh - 140px);
+    // object-fit: contain; /* Stretch/crop the images as required */
+  }
+
+  .maze-row {
+    display: flex;
+  }
+
+  .maze-cell {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border: 1px solid #ccc;
+  }
+}

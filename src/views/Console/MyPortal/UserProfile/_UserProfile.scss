@@ -1,0 +1,16 @@
+.user-profile{
+  display: flex;
+  flex-direction: column;
+  
+
+  
+  ion-content{
+    ion-card{
+      margin: 1em
+    }
+  }
+
+  ion-label{
+    text-transform: capitalize;
+  }
+}

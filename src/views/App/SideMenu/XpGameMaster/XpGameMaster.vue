@@ -1,50 +1,33 @@
 <template>
   <ion-page :class="$options.name" class="rpg-box">
-    <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-button :router-link="`/switch-profile`" >
-            <ion-icon :icon="arrowBack" slot="icon-only"/>
-          </ion-button>
-        </ion-buttons>
-        <ion-title> 
-          XP Game Master Settings
-        </ion-title>
-      </ion-toolbar>
-    </ion-header>
     <ion-content>
       <ion-tabs>
         <ion-router-outlet ref="outlet"></ion-router-outlet>
-        <ion-tab-bar slot="bottom">
+        <ion-tab-bar slot="bottom" class="icon-colors">
           <ion-tab-button
-            tab="achievements"
-            href="/game-master/achievements"
+            tab="compendium"
+            href="/game-master/compendium"
+            :selected="$route.path.indexOf('game-master/compendium/') >= 0"
           >
-            <ion-icon 
-              :ios="trophyOutline" 
-              :md="trophySharp" 
-            />
-            Achievements
+            <i class="fad fa-hand-holding-medical fa-2x" />
+            Setup XP
+            
           </ion-tab-button>
           <ion-tab-button
             tab="dashboard"
-            href="/game-master"
+            href="/game-master/dashboard"
+            :selected="$route.path === '/game-master/dashboard'"
           >
-            <ion-icon 
-              :ios="speedometerOutline" 
-              :md="speedometerSharp" 
-            />
-            Dashboard 
+            <i class="fad fa-heart fa-2x" />
+            Family 
           </ion-tab-button>
           <ion-tab-button
-            tab="beastiary"
-            href="/game-master/beastiary"
+            tab="chat"
+            href="/game-master/chat"
+            :selected="$route.path === '/game-master/chat'"
           >
-            <ion-icon 
-              :ios="pawOutline" 
-              :md="pawSharp" 
-            />
-            Beastiary
+            <i class="fad fa-comments fa-2x" />
+            Chat
           </ion-tab-button>
         </ion-tab-bar>
       </ion-tabs>
@@ -53,4 +36,4 @@
 </template>
 
 <script src="./XpGameMaster" />
-<style lang="scss" src="./_XpGameMaster.scss" scoped/>
+<style lang="scss" src="./_XpGameMaster.scss" scoped />

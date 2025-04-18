@@ -8,7 +8,7 @@
   --ion-color-step-850: #e7e6b3;
 
   --ion-color-secondary-contrast: #280828;
-  font-family: 'Apple Kid';
+  font-family: "Apple Kid";
   // background-color: #280828;
   background-color: #383050;
   color: #e7e6b3;
@@ -16,14 +16,8 @@
   border-radius: 1px;
   transform: translateY(0);
   transition: transform linear 150ms;
-  box-shadow:
-    0 0 0 5px #383050,
-    /* dark grey */
-    0 0 0 10px #68d0b8,
-    /* minty blue */
-    0 0 0 12px #f7e8a8,
-    /* white */
-    0 0 0 16px #3d3c55;
+  box-shadow: 0 0 0 5px #383050, /* dark grey */ 0 0 0 10px #68d0b8,
+    /* minty blue */ 0 0 0 12px #f7e8a8, /* white */ 0 0 0 16px #3d3c55;
   /* black */
   --ion-safe-area-top: 85px;
   --background: #383050;
@@ -34,14 +28,11 @@
   --border-radius: 1px;
   --transform: translateY(0);
   --transition: transform linear 150ms;
-  --box-shadow:
-    0 0 0 5px #383050,
-    0 0 0 10px #68d0b8,
-    0 0 0 12px #f7e8a8,
+  --box-shadow: 0 0 0 5px #383050, 0 0 0 10px #68d0b8, 0 0 0 12px #f7e8a8,
     0 0 0 16px #3d3c55;
   --button-color: #e7e6b3;
 
-  ion-grid{
+  ion-grid {
     background-color: var(--ion-color-primary-contrast);
   }
 
@@ -66,16 +57,24 @@
         --color: var(--ion-color-primary);
       }
     }
-
   }
 
-  ion-card-content{
-    font-size: 17pt;
+  ion-card-content {
+    font-size: 25pt;
+    line-height: 25pt;
+    p {
+      // font-size: 27pt;
+      font-size: smaller;
+      line-height: 20pt 
+    }
+    ion-card-subtitle {
+      font-size: 27pt;
+    }
   }
 
   ion-button {
     --background: transparent;
-    i{
+    i {
       // margin-right: 5px;
       // display: inline-block;
       width: 35px;
@@ -85,14 +84,13 @@
     &::part(native) {
       overflow: visible;
 
-      font-family: 'Apple Kid';
+      font-family: "Apple Kid";
       font-size: 20pt;
       text-transform: capitalize;
       // padding-left: 5px;
 
-
       &:hover::before {
-        content: '';
+        content: "";
         position: absolute;
         left: -10px;
         top: 10px;

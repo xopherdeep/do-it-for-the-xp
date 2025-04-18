@@ -1,0 +1,361 @@
+// Mixins will be defined at the end of the file to avoid the error
+
+ion-app {
+  &#chronoTrigger {
+    /* Chrono Trigger Color Palette */
+    --ct-brown-dark: #382c14;
+    --ct-brown-medium: #5a4428;
+    --ct-brown-light: #8b6d3f;
+    --ct-text: #e8d8b0;
+    --ct-blue: #4878bc;
+    --ct-blue-light: #78a8dc;
+    --ct-red: #bc4848;
+    --ct-green: #48bc78;
+    --ct-yellow: #bcbc48;
+    
+    /* Global Background */
+    --background: #1a1410;
+    background-color: var(--background);
+    background-image: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23382c14' fill-opacity='0.2' fill-rule='evenodd'%3E%3Cpath d='M0 0h20v20H0V0zm20 20h20v20H20V20z'/%3E%3C/g%3E%3C/svg%3E");
+    font-family: 'Arial', sans-serif;
+    color: var(--ct-text);
+    
+    /* Cards - Menu Boxes */
+    ion-card {
+      border: 3px solid #8b6d3f;
+      border-radius: 8px;
+      background: #382c14;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 0 0 5px rgba(139, 109, 63, 0.5);
+      color: #e8d8b0;
+      padding: 12px;
+      margin: 10px;
+      
+      ion-card-header {
+        border-bottom: 2px solid var(--ct-brown-light);
+        padding-bottom: 10px;
+        margin-bottom: 10px;
+        
+        ion-card-title {
+          color: var(--ct-text);
+          font-size: 20px;
+          font-weight: bold;
+          text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+        }
+        
+        ion-card-subtitle {
+          color: var(--ct-brown-light);
+        }
+      }
+      
+      ion-card-content {
+        color: var(--ct-text);
+      }
+    }
+    
+    /* Buttons */
+    ion-button {
+      --background: var(--ct-brown-medium);
+      --background-activated: var(--ct-brown-dark);
+      --background-focused: var(--ct-brown-dark);
+      --background-hover: var(--ct-brown-dark);
+      --color: var(--ct-text);
+      --border-radius: 4px;
+      --border-color: var(--ct-brown-light);
+      --border-style: solid;
+      --border-width: 2px;
+      --box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3), 0 0 3px rgba(139, 109, 63, 0.5);
+      --padding-top: 8px;
+      --padding-bottom: 8px;
+      --padding-start: 16px;
+      --padding-end: 16px;
+      
+      font-family: 'Arial', sans-serif;
+      font-size: 16px;
+      text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+      margin: 5px;
+      
+      &.button-solid.ion-activated {
+        --background: var(--ct-brown-dark);
+        --box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5);
+      }
+    }
+    
+    /* List Items - Menu Options */
+    ion-item {
+      --background: transparent;
+      --color: var(--ct-text);
+      --border-color: rgba(139, 109, 63, 0.3);
+      --padding-start: 16px;
+      --inner-padding-end: 16px;
+      
+      &.item-active {
+        --background: rgba(139, 109, 63, 0.3);
+        
+        &::before {
+          content: "►";
+          position: absolute;
+          left: 5px;
+          color: var(--ct-text);
+        }
+      }
+    }
+    
+    /* Headers */
+    ion-header {
+      ion-toolbar {
+        --background: var(--ct-brown-dark);
+        --color: var(--ct-text);
+        --border-color: var(--ct-brown-light);
+        --border-width: 0 0 3px 0;
+        --border-style: solid;
+        
+        ion-title {
+          font-size: 22px;
+          font-weight: bold;
+          text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+        }
+      }
+    }
+    
+    /* Progress Bars - HP/MP Style */
+    ion-progress-bar {
+      height: 16px;
+      border: 2px solid var(--ct-brown-light);
+      border-radius: 4px;
+      margin: 8px 0;
+      overflow: hidden;
+      
+      &.hp-bar {
+        --progress-background: var(--ct-green);
+        --buffer-background: rgba(72, 188, 120, 0.3);
+        --background: #2a2218;
+      }
+      
+      &.mp-bar {
+        --progress-background: var(--ct-blue);
+        --buffer-background: rgba(72, 120, 188, 0.3);
+        --background: #2a2218;
+      }
+      
+      &.tp-bar {
+        --progress-background: var(--ct-yellow);
+        --buffer-background: rgba(188, 188, 72, 0.3);
+        --background: #2a2218;
+      }
+      
+      &.danger {
+        --progress-background: var(--ct-red);
+      }
+    }
+    
+    /* Character Stats Display */
+    .character-stats {
+      display: flex;
+      flex-direction: column;
+      padding: 12px;
+      margin: 10px 0;
+      border: 3px solid #8b6d3f;
+      border-radius: 8px;
+      background: #382c14;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 0 0 5px rgba(139, 109, 63, 0.5);
+      color: #e8d8b0;
+      
+      .character-name {
+        font-size: 18px;
+        font-weight: bold;
+        margin-bottom: 8px;
+        color: var(--ct-blue-light);
+      }
+      
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        margin: 5px 0;
+        
+        .stat-label {
+          font-weight: bold;
+          color: var(--ct-text);
+        }
+        
+        .stat-value {
+          color: var(--ct-yellow);
+        }
+      }
+      
+      .hp-mp-display {
+        display: flex;
+        justify-content: space-between;
+        margin: 8px 0;
+        
+        .hp-display, .mp-display {
+          display: flex;
+          flex-direction: column;
+          width: 48%;
+          
+          .label {
+            font-weight: bold;
+            margin-bottom: 4px;
+          }
+          
+          .value {
+            display: flex;
+            justify-content: space-between;
+            
+            .current {
+              color: var(--ct-text);
+            }
+            
+            .max {
+              color: var(--ct-yellow);
+            }
+          }
+        }
+        
+        .hp-display .label {
+          color: var(--ct-green);
+        }
+        
+        .mp-display .label {
+          color: var(--ct-blue);
+        }
+      }
+    }
+    
+    /* Battle Menu */
+    .battle-menu {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 180px;
+      border: 3px solid #8b6d3f;
+      border-radius: 8px;
+      background: #382c14;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 0 0 5px rgba(139, 109, 63, 0.5);
+      color: #e8d8b0;
+      padding: 10px;
+      
+      .battle-option {
+        padding: 8px 10px;
+        margin: 5px 0;
+        cursor: pointer;
+        
+        &:hover, &.selected {
+          background: rgba(139, 109, 63, 0.3);
+          
+          &::before {
+            content: "►";
+            position: absolute;
+            left: 15px;
+            color: var(--ct-text);
+          }
+        }
+      }
+    }
+    
+    /* Tech/Magic Menu */
+    .tech-menu {
+      border: 3px solid #8b6d3f;
+      border-radius: 8px;
+      background: #382c14;
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 0 0 5px rgba(139, 109, 63, 0.5);
+      color: #e8d8b0;
+      padding: 12px;
+      margin: 10px;
+      max-width: 300px;
+      
+      .tech-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px;
+        margin: 5px 0;
+        border-bottom: 1px solid rgba(139, 109, 63, 0.3);
+        
+        &:last-child {
+          border-bottom: none;
+        }
+        
+        .tech-name {
+          color: var(--ct-blue-light);
+        }
+        
+        .tech-cost {
+          color: var(--ct-yellow);
+        }
+        
+        &.disabled {
+          opacity: 0.5;
+          .tech-name {
+            color: var(--ct-text);
+          }
+        }
+      }
+    }
+    
+    /* Modal Dialogs */
+    ion-modal {
+      --background: rgba(0, 0, 0, 0.7);
+      
+      .modal-wrapper {
+        border: 3px solid #8b6d3f;
+        border-radius: 8px;
+        background: #382c14;
+        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 0 0 5px rgba(139, 109, 63, 0.5);
+        color: #e8d8b0;
+        padding: 12px;
+        margin: 10px;
+        border-width: 3px;
+      }
+      
+      ion-header {
+        background: var(--ct-brown-dark);
+      }
+    }
+    
+    /* Toast Notifications */
+    ion-toast {
+      --background: var(--ct-brown-dark);
+      --border-color: var(--ct-brown-light);
+      --border-style: solid;
+      --border-width: 3px;
+      --border-radius: 8px;
+      --box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+      --color: var(--ct-text);
+      
+      .toast-message {
+        font-size: 16px;
+        text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+      }
+    }
+  }
+}
+
+/* 
+ * Mixins are defined here for reference but not used in the code above
+ * to avoid the error with @include being used before the mixin is defined
+ */
+@mixin chronoTriggerBox {
+  border: 3px solid #8b6d3f;
+  border-radius: 8px;
+  background: #382c14;
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5), 0 0 5px rgba(139, 109, 63, 0.5);
+  color: #e8d8b0;
+  padding: 12px;
+  margin: 10px;
+}
+
+@mixin chronoTriggerButton {
+  background: #5a4428;
+  border: 2px solid #8b6d3f;
+  border-radius: 4px;
+  color: #e8d8b0;
+  font-family: 'Arial', sans-serif;
+  font-size: 16px;
+  padding: 8px 16px;
+  text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3), 0 0 3px rgba(139, 109, 63, 0.5);
+  
+  &:active, &.active {
+    background: #3d2e1c;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.5);
+  }
+}

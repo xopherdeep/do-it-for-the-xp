@@ -1,0 +1,20 @@
+@mixin dungeon {
+  &tree-large {
+    --fa-primary-color: var(--xp-color-brown);
+    --fa-secondary-color: var(--xp-color-green);
+    --fa-primary-opacity: 0.6;
+  }
+  &tree-alt {
+    --fa-primary-color: var(--xp-color-green);
+    --fa-secondary-color: var(--xp-color-brown);
+  }
+  &spider-black-widow {
+    --fa-primary-color: var(--xp-color-black);
+    --fa-secondary-color: var(--xp-color-red);
+    --fa-secondary-opacity: 0.7;
+  }
+  &square-full {
+    --fa-primary-opacity: 0.4;
+    --fa-secondary-opacity: 0.2;
+  }
+}

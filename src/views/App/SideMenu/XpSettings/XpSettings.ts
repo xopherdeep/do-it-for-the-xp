@@ -1,5 +1,6 @@
 import { defineComponent } from 'vue'
 import InputSettings from "./components/InputSettings.vue"
+import SettingsMenu from "./components/SettingsMenu.vue"
 const requireIconImg = require.context("@/assets/icons/");
 
 import {
@@ -11,17 +12,24 @@ import {
   IonTitle,
   IonSelect,
   IonSelectOption,
-  IonContent
+  IonContent,
+  IonRouterOutlet
 } from '@ionic/vue'
 
 import {
-  arrowBack
+  arrowBack,
+  settingsOutline,
+  peopleOutline,
+  volumeHighOutline,
+  lockClosedOutline,
+  personOutline
 } from "ionicons/icons"
 
 export default defineComponent({
   name: 'xp-settings',
   components: {
     InputSettings,
+    SettingsMenu,
     IonSelect,
     IonSelectOption,
     IonPage,
@@ -30,16 +38,45 @@ export default defineComponent({
     IonButtons,
     IonMenuButton,
     IonTitle,
-    IonContent
+    IonContent,
+    IonRouterOutlet
   },
   mounted() {
     this.$fx.ui[this.$fx.theme.ui].options.play()
   },
   setup() {
-    // code
+    const settingsMenuItems = [
+      {
+        title: 'General Settings',
+        icon: settingsOutline,
+        route: '/xp-settings/general'
+      },
+      {
+        title: 'Family Settings',
+        icon: peopleOutline,
+        route: '/xp-settings/family'
+      },
+      {
+        title: 'Sound Settings',
+        icon: volumeHighOutline,
+        route: '/xp-settings/sound'
+      },
+      {
+        title: 'Privacy Settings',
+        icon: lockClosedOutline,
+        route: '/xp-settings/privacy'
+      },
+      {
+        title: 'Account Settings',
+        icon: personOutline,
+        route: '/xp-settings/account'
+      }
+    ]
+    
     return {
       arrowBack,
-      requireIconImg
+      requireIconImg,
+      settingsMenuItems
     }
   },
 })

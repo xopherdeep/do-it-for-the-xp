@@ -1,0 +1,93 @@
+.my-portal {
+  // temp fix to stop z-index prob with other root ion-pages
+  z-index: -1 !important;
+
+  ion-fab {
+    &.fab-vertical-bottom {
+      bottom: 60px;
+    }
+
+    &.fab-user {
+      width: 500px;
+      max-width: 95vw;
+
+      ion-chip {
+        box-shadow: 3px 3px 0px;
+        width: 100%;
+        padding: 1em 15px;
+
+        // text-shadow: 2px 2px 0px black,
+        // -2px -2px 0px black;
+        i {
+          margin: 0.25em;
+        }
+      }
+    }
+  }
+
+  .equipment {
+    height: 100vh;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5em;
+    justify-content: center;
+    align-items: center;
+    // ion-button {
+    //   i {
+    //     font-size: 10px !important;
+    //   }
+    // }
+  }
+
+  .rpg-box {
+    ion-card {
+      &.todays-achievements {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5em;
+        justify-content: center;
+        align-items: center;
+        height: 110px;
+
+        i {
+          margin: 2em;
+        }
+      }
+
+      &.equipment {
+        ion-buttons {
+          display: flex;
+          flex-wrap: wrap;
+          i {
+            width: auto;
+            height: auto;
+            font-size: inherit;
+            margin: 2px 1px 0 2px;
+          }
+        }
+      }
+    }
+  }
+
+  ion-grid {
+    border-radius: 7px;
+
+    &.user-hud,
+    &.gp-hud {
+      background-color: rgba($color: #000000, $alpha: 0.5);
+    }
+
+    &.gp-hud {
+      ion-chip {
+        width: 50vw;
+        max-width: 175px;
+      }
+
+      ion-label {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+      }
+    }
+  }
+}

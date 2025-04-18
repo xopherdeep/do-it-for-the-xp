@@ -1,55 +1,146 @@
-export default class stats {
-  constructor() {
-    return {
-      level: 1,
+
+interface XPStats {
+  now: number;
+  next_level: number;
+  ledger: Entry[]
+}
+
+interface GPStats {
+  limit: number;
+  debt: number;
+  wallet: number;
+  savings: number;
+  ledger: Entry[]
+}
+
+interface HPMPStats {
+  now: number;
+  max: number;
+  min: number;
+}
+
+interface APStats {
+  hour: number[];
+  day: number[];
+  week: number[];
+  month: number[];
+  year: number[];
+  total: number;
+  ledger: Entry[];
+}
+export interface Entry {
+  type: 'reward' | 'penalty'; // Could be more types like 'purchase', 'exchange', etc.
+  timestamp: number; // The Unix timestamp when the transaction occurred
+  achievementId: any; // The ID of the achievement tied to this entry
+  amount: number; // The amount gained or lost
+  description: string; // A brief description of the entry
+}
+
+interface Ailment {
+  type: string; // e.g., 'Poison', 'Stun', 'Curse'
+  severity: number; // e.g., 1-5 to indicate how bad the ailment is
+  duration: number; // Number of turns or seconds or any unit that ailment will last
+}
+
+export interface SpecialStats {
+  ledger: Entry[];
+  strength: number;
+  defense: number;
+  endurance: number;
+  intelligence: number;
+  perception: number;
+  wisdom: number;
+  charisma: number;
+  awareness: number;
+  presence: number;
+  agility: number;
+  guts: number;
+  luck: number;
+}
+
+export default class Stats {
+  level: number;
+  xp: XPStats;
+  gp: GPStats;
+  hp: HPMPStats;
+  mp: HPMPStats;
+  ap: APStats;
+  special: SpecialStats;
+  ailments: Ailment[];
+
+  constructor({
+    level, xp, gp, hp, mp, ap, special, ailments
+  }: {
+    level?: number,
+    xp: XPStats,
+    gp?: GPStats,
+    hp?: HPMPStats,
+    mp?: HPMPStats,
+    ap?: APStats,
+    special?: SpecialStats
+    ailments?: Ailment[]
+  } = {
       xp: {
-        now: 100, 
-        next_level: 1000,
-      },
-      gp: {
-        limit: 1000,
-        debt: 200,  
-        wallet: 400,
-      },
-      hp: {
-        now: 25,
-        max: 30,
-        min: 0,
-      },
-      mp: {
         now: 0,
-        max: 0,
-        min: 0,
-      },
-      ap: {
-        hour: [],
-        day: [],
-        week: [],
-        month: [],
-        year: [],
-      },
-      // SPECIAL-G Stats
+        next_level: 100,
+        ledger: [],
+      }
+    }) {
 
-      // HP - Physical 
-      strength    : 0,   //? achievements take less HP
-      defense     : 0,   //? influences max HP
-      endurance   : 0,   //? increases HP restore rate
+    const debt = gp && gp.wallet < 0 ? 1 * gp?.wallet : 0
 
-      // MP - Mental
-      intelligence: 0,   //? abilities cost less MP to cast
-      perception  : 0,   //? influences max MP
-      wisdom      : 0,   //? increases MP restore rate
+    // console.log("debt", debt);
 
-      // GP - Social
-      charisma    : 0,   //? influences shop rates
-      awareness   : 0,   //? increases reward of GP,
-      presence    : 0,   //?
 
-      // AP
-      agility     : 0,   //? influences AP reward points
-      guts        : 0,   // Influences XP points rewarded //? Smmmmassssshhhhhhhh!!!
-      luck        : 0,   //? higher chance of successful outcome of random event
-      
+    this.level = level ?? 1;
+    this.xp = {
+      now: xp?.now,
+      next_level: xp?.next_level,
+      ledger: xp?.ledger,
+    };
+    this.gp = {
+      limit: gp?.limit || 100,
+      // Add calculated debt to existing debt (defaulting existing to 0 if nullish)
+      debt: (Number(gp?.debt) || 0) + Number(debt),
+      wallet: gp?.wallet ?? 0,
+      savings: gp?.savings ?? 100,
+      ledger: gp?.ledger ?? [],
+    };
+    this.ap = {
+      hour: ap?.hour ?? [],
+      day: ap?.day ?? [],
+      week: ap?.week ?? [],
+      month: ap?.month ?? [],
+      year: ap?.year ?? [],
+      total: ap?.total ?? 0,
+      ledger: ap?.ledger ?? [],
+    };
+    this.ailments = ailments ?? [];
+    this.special = {
+      ledger: special?.ledger ?? [],
+      strength: special?.strength ?? 0,
+      defense: special?.defense ?? 0,
+      endurance: special?.endurance ?? 0,
+      intelligence: special?.intelligence ?? 0,
+      perception: special?.perception ?? 0,
+      wisdom: special?.wisdom ?? 0,
+      charisma: special?.charisma ?? 0,
+      awareness: special?.awareness ?? 0,
+      presence: special?.presence ?? 0,
+      agility: special?.agility ?? 0,
+      guts: special?.guts ?? 0,
+      luck: special?.luck ?? 0,
+
+    };
+    this.hp = {
+      now: hp?.now ?? 25,
+      max: hp?.max ?? 30,
+      min: hp?.min ?? 0,
+    };
+    this.mp = {
+      now: mp?.now ?? 0,
+      max: mp?.max ?? 0,
+      min: mp?.min ?? 0,
     };
   }
 }

@@ -1,39 +1,15 @@
-import { computed, defineComponent } from "vue";
+import { computed, defineComponent, ref } from "vue";
 const requireImg = require.context("@/assets/icons/");
 import backgrounds from "@/assets/images/backgrounds/parallax/index.js";
 
 import InputSettings from "../XpSettings/components/InputSettings.vue";
 import SuccessfulLoginModal from "./SuccessfulLoginModal.vue";
 
-import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonButtons,
-  IonMenuButton,
-  IonTitle,
-  IonContent,
-  IonModal,
-  IonCard,
-  IonButton,
-  IonCardHeader,
-  IonCardTitle,
-  IonCardSubtitle,
-  IonInput,
-  IonList,
-  IonLabel,
-  IonGrid,
-  IonCol,
-  IonRow,
-  IonCardContent,
-  IonItem,
-  IonToggle,
-  modalController,
-} from "@ionic/vue";
+import { modalController } from "@ionic/vue";
 
-import { arrowBack, arrowForward } from "ionicons/icons";
 import { mapActions, useStore } from "vuex";
 import { useRouter, useRoute } from "vue-router";
+import ionic from "@/mixins/ionic";
 
 // interface RootState {
 //   bgm: unknown;
@@ -53,31 +29,10 @@ import { useRouter, useRoute } from "vue-router";
 
 export default defineComponent({
   name: "log-in",
+  mixins: [ionic],
   components: {
     InputSettings,
     SuccessfulLoginModal,
-    IonItem,
-    IonCardContent,
-    IonGrid,
-    IonCol,
-    IonRow,
-    IonCard,
-    IonList,
-    IonLabel,
-    IonToggle,
-    IonInput,
-    IonButtons,
-    IonButton,
-    IonCardHeader,
-    IonCardSubtitle,
-    IonCardTitle,
-    IonPage,
-    IonHeader,
-    IonToolbar,
-    IonMenuButton,
-    IonTitle,
-    IonContent,
-    IonModal,
   },
   data() {
     return {
@@ -96,31 +51,31 @@ export default defineComponent({
         client_id: "ou5F5T2fsFimg6rEzZx76jEHXY7cJfdeb6cQroz9",
         client_secret: "NypjizBfVSyZTbjbgXUbyjR1FfmlrLtwsGeREfwk",
         redirect_uri: "http://localhost:8100/log-in",
-        access: {} 
-      }
+        access: {},
+      },
     };
   },
   mounted() {
     this.animateLogo();
     this.interval = setInterval(this.changeBG, 5777);
     // this.getAccessToken()
-    // const { $fx:{rpg, theme}, changeBGM } = this; 
+    // const { $fx:{rpg, theme}, changeBGM } = this;
     // changeBGM({ tracks: rpg[theme.rpg].BGM.startScreen })
   },
 
   deactivated() {
     clearInterval(this.interval);
   },
-  
+
   methods: {
     ...mapActions(["loginUser", "changeBGM"]),
     closeSuccessModal() {
       this.showSuccessModal = false;
-      this.router.push({ name: "switch-profile" });
+      this.router.push({ name: "xp-profile" });
     },
     setBGStyle(key, value) {
-      const { page } = this.$refs
-      if(page){
+      const { page } = this.$refs;
+      if (page) {
         page.$el.style[key] = value;
       }
     },
@@ -155,17 +110,19 @@ export default defineComponent({
 
       // setTimeout(() => setBGStyle("backdropFilter", "blur(0px)"), 3000);
     },
-    
 
     clickSignIn() {
-      const { domain, authorize, redirect_uri, client_id } = this.oauth
-      const params = (new URLSearchParams({
-        response_type: 'code',
+      const { domain, authorize, redirect_uri, client_id } = this.oauth;
+      const params = new URLSearchParams({
+        response_type: "code",
         redirect_uri,
-        client_id
-      })).toString()
+        client_id,
+      }).toString();
 
-      window.location.href = `https://${domain}${authorize}?${params}`
+      this.$router.push("/switch-profile");
+      modalController.dismiss();
+
+      // window.location.href = `https://${domain}${authorize}?${params}`;
     },
 
     closeModal() {
@@ -194,7 +151,7 @@ export default defineComponent({
       swing(start);
 
       let start_button = start.querySelector("ion-button");
-      console.log(start_button);
+      // console.log(start_button);
       let og_color = start_button.style.color;
 
       start_button.style.borderRadius = "10px";
@@ -221,66 +178,77 @@ export default defineComponent({
       });
     },
 
-    async getAccessToken(){
-      const { oauth: {domain, token, client_id, client_secret, redirect_uri}, code } = this
-      const url = `https://${domain}${token}`
-      const response = await fetch(url,{
-        method: 'POST',
-        mode: 'cors', // no-cors, *cors, same-origin
-        cache: 'no-cache', // *default, no-cache, reload, force-cache, only-if-cached
+    async getAccessToken() {
+      const {
+        oauth: { domain, token, client_id, client_secret, redirect_uri },
+        code,
+      } = this;
+      const url = `https://${domain}${token}`;
+      const response = await fetch(url, {
+        method: "POST",
+        mode: "cors", // no-cors, *cors, same-origin
+        cache: "no-cache", // *default, no-cache, reload, force-cache, only-if-cached
         // credentials: 'same-origin', // include, *same-origin, omit
         headers: {
           // 'Content-Type': 'application/json'
-          'Content-Type': 'application/x-www-form-urlencoded',
+          "Content-Type": "application/x-www-form-urlencoded",
         },
         // body: JSON.stringify({
         //   grant_type: 'authorization_code',
         //   code,
         //   client_id,
         //   client_secret,
-        //   redirect_uri 
+        //   redirect_uri
         // })
         body: new URLSearchParams({
-          grant_type: 'authorization_code',
+          grant_type: "authorization_code",
           code,
           client_id,
           client_secret,
-          redirect_uri 
-        })
-      }).catch(error=> this.error = error)
-      return response.json().then(this.setAuthAccess)
+          redirect_uri,
+        }),
+      }).catch((error) => (this.error = error));
+      return response.json().then(this.setAuthAccess);
     },
 
-    setAuthAccess(data){
+    setAuthAccess(data) {
       // alert();
-      console.log(data);
-      this.oauth.access = data
-      this.fetchUserData().then(this.setUserData)
+      // console.log(data);
+      this.oauth.access = data;
+      this.fetchUserData().then(this.setUserData);
     },
 
-    async fetchUserData(){
-      const {setUserData, oauth: {domain, me, access: {access_token}}} = this
-      const url = `https://${domain}${me}?access_token=${access_token}`
-      const response = await fetch(url)
-      return response.json()
+    async fetchUserData() {
+      const {
+        setUserData,
+        oauth: {
+          domain,
+          me,
+          access: { access_token },
+        },
+      } = this;
+      const url = `https://${domain}${me}?access_token=${access_token}`;
+      const response = await fetch(url);
+      return response.json();
     },
 
-    setUserData(data){
-      console.log(data);
+    setUserData(data) {
+      // console.log(data);
       // this.dispatch('')
 
       this.loginUser();
       this.showSuccessModal = true;
       this.error = false;
-    }
+    },
   },
   setup() {
     const store = useStore();
     const bgm = computed(() => store.state.bgm);
     const router = useRouter();
     const route = useRoute();
+    const showSuccessModal = ref(false);
 
-    const { code } = route.query
+    const { code } = route.query;
 
     // fake login
     // if(code){
@@ -288,8 +256,8 @@ export default defineComponent({
 
     // }
 
-
     return {
+      showSuccessModal,
       code,
       router,
       bgm,

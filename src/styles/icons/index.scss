@@ -1,0 +1,22 @@
+@import "equipment";
+@import "home-town";
+@import "icon-colors";
+@import "my-home";
+@import "user-hud";
+@import "world-map";
+@import "dungeon";
+@import "profile-icons";
+
+.icon-colors {
+  i {
+    &.fa- {
+      @include equipment;
+      @include home-town;
+      @include my-home;
+      @include user-hud;
+      @include world-map;
+      @include dungeon;
+      @include profile-icons;
+    }
+  }
+}

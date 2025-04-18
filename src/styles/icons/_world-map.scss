@@ -1,0 +1,51 @@
+@mixin world-map() {
+  &pegasus {
+    --fa-primary-color: var(--xp-color-white);
+    --fa-secondary-color: var(--xp-color-pink);
+    --fa-secondary-opacity: 1;
+  }
+  &island-tropical {
+    --fa-primary-color: var(--xp-color-green);
+    --fa-secondary-color: var(--xp-color-yellow);
+  }
+  &mountains {
+    --fa-primary-color: var(--xp-color-gray);
+    --fa-secondary-color: var(--xp-color-brown);
+    --fa-secondary-opacity: 0.6;
+  }
+  &cactus {
+    --fa-primary-color: var(--xp-color-green);
+    --fa-secondary-color: var(--xp-color-green);
+    --fa-secondary-opacity: 0.7;
+  }
+  &igloo {
+    --fa-primary-color: var(--xp-color-lightBlue);
+    --fa-secondary-color: var(--xp-color-white);
+    --fa-secondary-opacity: 0.9;
+  }
+  &moon {
+    --fa-primary-color: var(--xp-color-gray);
+    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-secondary-opacity: 0.5;
+  }
+
+  &star {
+    --fa-primary-color: var(--xp-color-yellow);
+    --fa-secondary-color: var(--xp-color-purple);
+    --fa-secondary-opacity: 1;
+  }
+
+  &tornado {
+    --fa-primary-color: var(--xp-color-gray);
+    --fa-secondary-color: var(--xp-color-white);
+  }
+  &trees {
+    --fa-primary-color: var(--xp-color-green);
+    --fa-secondary-color: var(--xp-color-green);
+  }
+  &skull-crossbones {
+    --fa-primary-color: var(--xp-color-gray);
+    --fa-secondary-color: var(--xp-color-pink);
+    // --fa-secondary-opacity: 1
+  }
+}

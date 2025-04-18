@@ -1,4 +1,4 @@
-import { defineComponent } from 'vue'
+import { defineComponent , ref } from 'vue'
 import ionic from "@/mixins/ionic";
 
 import {
@@ -14,8 +14,6 @@ import {
 export default defineComponent({
   name: "xp-game-master",
   mixins: [ionic],
-  components: {
-  },
   setup() {
     // code
     return {

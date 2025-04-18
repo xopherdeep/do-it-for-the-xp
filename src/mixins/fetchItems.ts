@@ -25,7 +25,7 @@ import XpLoading from "@/components/XpLoading/XpLoading.vue";
 export default defineComponent({
   props: ["userId"],
   components: {
-    Swiper, 
+    Swiper,
     SwiperSlide,
     IonButton,
     IonButtons,
@@ -51,6 +51,8 @@ export default defineComponent({
           page: 1,
           search: "",
           per_page: 4,
+          order: "asc",
+          orderby: "slug",
         },
       },
     };
@@ -73,31 +75,31 @@ export default defineComponent({
       return this.items.map((t) => t.featured_media);
     },
     hasNextPage() {
-      return this.page < this.nTotalPages 
+      return this.page < this.nTotalPages
     },
-    nTotalPages(){
+    nTotalPages() {
       const { totalPages, request } = this;
       return parseInt(totalPages(request));
     },
-    nTotalItems(){
+    nTotalItems() {
       const { totalItems, request } = this;
       return parseInt(totalItems(request));
     },
-    slides(){
+    slides() {
       return this.$refs.slides
     },
-    currentPage(){
-      return 
+    currentPage() {
+      return
       return this.request.params.page
     },
 
     page: {
-      get(){
+      get() {
         return this.request.params.page
       },
-      set(page){
+      set(page) {
         this.$emit("update:page", page)
-      } 
+      }
     }
   },
   mounted() {
@@ -106,7 +108,7 @@ export default defineComponent({
   },
   methods: {
 
-    getImages(page){
+    getImages(page) {
       return this.requestedItems({
         ...this.request,
         params: {
@@ -115,7 +117,7 @@ export default defineComponent({
         }
       }).map((t) => t.featured_media);
     },
-    getSlideItems(page){
+    getSlideItems(page) {
       return this.requestedItems({
         ...this.request,
         params: {
@@ -124,11 +126,11 @@ export default defineComponent({
         }
       });
     },
-    isModalOpen(id){
+    isModalOpen(id) {
       return this.activeModal == id
     },
     ...mapActions(["fetchWPItems"]),
-    async getItems(page) {
+    async getItems(page = 1) {
       this.showLoading();
       return await this.fetchItems(page).then(this.hideLoading);
     },
@@ -138,14 +140,14 @@ export default defineComponent({
     hideLoading() {
       this.isLoading = false;
     },
-    fetchItems(page=1) {
+    fetchItems(page = 1) {
       return this.fetchWPItems({
         ...this.request,
-        params: { 
+        params: {
           ...this.request.params,
-          page 
+          page
         }
-      }).then(()=>this.fetchImages(page));
+      }).then(() => this.fetchImages(page));
     },
     fetchImages(page) {
       const { getImages, fetchWPItems } = this;
@@ -172,7 +174,7 @@ export default defineComponent({
   watch: {
     request: {
       handler(request) {
-        console.log(request);
+        // console.log(request);
         // this.getItems(request.params.page);
       },
       deep: true,

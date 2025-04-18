@@ -1,0 +1,84 @@
+// Impordules
+import SideMenuRoutes  from './side-menu.routes';
+import MyProfileRoutes from './my-profile.routes';
+import MyHomeRoutes from './my-home.routes';
+import MyPortalRoutes from './my-portal.routes';
+import HometownRoutes from './hometown.routes';
+import SupportRoutes from './support';
+import WorldMapRoutes from './world-map.routes';
+import { createRouter, createWebHistory } from '@ionic/vue-router';
+import { RouteRecordRaw } from 'vue-router';
+import { useRouterGuards } from './guard.routes';
+
+// Combine all routes
+const routes: Array<RouteRecordRaw> = [
+  ...SideMenuRoutes,
+  ...MyProfileRoutes,
+  ...MyHomeRoutes,
+  ...HometownRoutes,
+  ...SupportRoutes,
+  MyPortalRoutes,
+  {
+    path: '/user/:userId?',
+    component: () => import('@/views/Console/MyPortal/UserProfile/UserProfile'),
+    props: true
+  },
+  {
+    path: '/battle-ground/:userId?',
+    name: 'battle-ground',
+    meta: {
+      faIcon: 'dungeon'
+    },
+    component: () => import('@/views/Console/MyPortal/HomeTown/BattleGround/BattleGround'),
+    props: true,
+  },
+  {
+    path: '/dev', // Main developer dashboard
+    name: 'dev-dashboard',
+    component: () => import('@/views/Dev/DevDashboard.vue'),
+  },
+  {
+    path: '/dev/component-showcase', // Hidden path for developers
+    name: 'component-showcase',
+    component: () => import('@/views/Dev/ComponentShowcase.vue'),
+  },
+  {
+    path: '/dev/dialog-demo', // Dialog system demo
+    name: 'dialog-demo',
+    component: () => import('@/views/Dev/DialogDemo.vue'),
+  },
+  {
+    path: '/dev/battleroom', // Battleroom development tools
+    name: 'battleroom-dev',
+    component: () => import('@/views/Dev/BattleroomDevTools/BattleroomDevTools.vue'),
+  },
+  {
+    path: '/dev/weatherfx', // Weather FX development tools
+    name: 'weatherfx-dev',
+    component: () => import('@/views/Dev/WeatherFXDevTools/WeatherFXDevTools.vue'),
+  },
+];
+
+// Create and export router factory function
+export const createAppRouter = (store) => {
+  const router = createRouter({
+    history: createWebHistory(process.env.BASE_URL),
+    routes
+  });
+  
+  // Apply router guards
+  useRouterGuards(router, store);
+  
+  return router;
+};
+
+// Export all route collections for potential reuse
+export {
+  SideMenuRoutes,
+  MyProfileRoutes,
+  MyHomeRoutes,
+  MyPortalRoutes,
+  HometownRoutes,
+  SupportRoutes,
+  WorldMapRoutes
+};

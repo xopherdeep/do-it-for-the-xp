@@ -1,0 +1,303 @@
+ion-app {
+  &#finalFantasy {
+    /* FF7 Color Palette */
+    --ff7-blue-dark: #04009d;
+    --ff7-blue-darker: #06004d;
+    --ff7-blue-light: #0090ff;
+    --ff7-text: #eff1ff;
+    --ff7-border-dark: #424542;
+    --ff7-border-light: #e7dfe7;
+    --ff7-border-mid: #9c9a9c;
+    --ff7-border-mid-dark: #7b757b;
+    --ff7-green: #00c060;
+    --ff7-yellow: #f0c060;
+    --ff7-red: #e05048;
+    --ff7-menu-bg: rgba(0, 0, 0, 0.8);
+    
+    /* Global Font Settings */
+    font-family: "Arial", sans-serif;
+    
+    /* Background for the entire app */
+    --background: #000;
+    background-color: #000;
+    color: var(--ff7-text);
+    
+    /* Card Styling - Menu Panels */
+    ion-card {
+      border: solid 1px var(--ff7-border-dark);
+      box-shadow: 1px 1px var(--ff7-border-light), -1px -1px var(--ff7-border-light), 
+        1px -1px var(--ff7-border-light), -1px 1px var(--ff7-border-light), 
+        0 -2px var(--ff7-border-mid), -2px 0 var(--ff7-border-mid-dark), 0 2px var(--ff7-border-dark);
+      width: calc(100% - 2em);
+      padding: 5px 10px;
+      margin: 1em;
+
+      background: var(--ff7-blue-dark);
+      background: -moz-linear-gradient(top, var(--ff7-blue-dark) 0%, var(--ff7-blue-darker) 100%);
+      background: -webkit-gradient(
+        linear,
+        left top,
+        left bottom,
+        color-stop(0%, var(--ff7-blue-dark)),
+        color-stop(100%, var(--ff7-blue-darker))
+      );
+      background: -webkit-linear-gradient(top, var(--ff7-blue-dark) 0%, var(--ff7-blue-darker) 100%);
+      background: -o-linear-gradient(top, var(--ff7-blue-dark) 0%, var(--ff7-blue-darker) 100%);
+      background: -ms-linear-gradient(top, var(--ff7-blue-dark) 0%, var(--ff7-blue-darker) 100%);
+      background: linear-gradient(to bottom, var(--ff7-blue-dark) 0%, var(--ff7-blue-darker) 100%);
+
+      -webkit-border-radius: 7px;
+      -moz-border-radius: 7px;
+      border-radius: 7px;
+
+      * {
+        color: var(--ff7-text);
+        text-shadow: 2px 2px #212421, 1px 1px #212021;
+        font-size: 20px;
+        font-weight: normal;
+      }
+      
+      ion-card-header {
+        border-bottom: 2px solid var(--ff7-border-light);
+        padding-bottom: 8px;
+        
+        ion-card-title {
+          font-size: 22px;
+          font-weight: bold;
+          letter-spacing: 1px;
+        }
+      }
+    }
+
+    /* Buttons - FF7 Menu Selection Style */
+    ion-button {
+      // --background: var(--ff7-blue-dark);
+      --background-activated: var(--ff7-blue-light);
+      --background-focused: var(--ff7-blue-light);
+      --background-hover: var(--ff7-blue-light);
+      --color: var(--ff7-text);
+      --border-radius: 0;
+      // --border-color: var(--ff7-border-dark);
+      // --border-style: solid;
+      // --border-width: 1px;
+      // --box-shadow: 1px 1px var(--ff7-border-light), -1px -1px var(--ff7-border-light),
+      //   1px -1px var(--ff7-border-light), -1px 1px var(--ff7-border-light);
+      --padding-top: 10px;
+      --padding-bottom: 10px;
+      
+      font-size: 18px;
+      text-transform: none;
+      letter-spacing: 1px;
+      
+      &.button-active, &.button-solid {
+        &::before {
+          content: "▶";
+          position: absolute;
+          left: 5px;
+          color: var(--ff7-text);
+        }
+      }
+    }
+    
+    /* Progress Bars - HP/MP Style */
+    ion-progress-bar {
+      height: 20px;
+      border: 1px solid var(--ff7-border-dark);
+      border-radius: 0;
+      margin: 5px 0;
+      
+      &.hp-bar {
+        --progress-background: var(--ff7-green);
+        --buffer-background: rgba(0, 192, 96, 0.3);
+        --background: #333;
+      }
+      
+      &.mp-bar {
+        --progress-background: var(--ff7-blue-light);
+        --buffer-background: rgba(0, 144, 255, 0.3);
+        --background: #333;
+      }
+      
+      &.xp-bar {
+        --progress-background: var(--ff7-yellow);
+        --buffer-background: rgba(240, 192, 96, 0.3);
+        --background: #333;
+      }
+      
+      &.danger {
+        --progress-background: var(--ff7-red);
+      }
+    }
+    
+    /* List Items - Menu Options */
+    ion-item {
+      --background: transparent;
+      --color: var(--ff7-text);
+      --border-color: rgba(231, 223, 231, 0.3);
+      --padding-start: 16px;
+      --inner-padding-end: 16px;
+      
+      &.item-active {
+        --background: rgba(0, 144, 255, 0.3);
+        
+        &::before {
+          content: "▶";
+          position: absolute;
+          left: 5px;
+          color: var(--ff7-text);
+        }
+      }
+    }
+    
+    /* Headers - Section Titles */
+    ion-header {
+      ion-toolbar {
+        --background: var(--ff7-blue-darker);
+        --color: var(--ff7-text);
+        --border-color: var(--ff7-border-dark);
+        --border-width: 0 0 2px 0;
+        --border-style: solid;
+        
+        ion-title {
+          font-size: 24px;
+          font-weight: bold;
+          letter-spacing: 1px;
+          text-shadow: 2px 2px #212421, 1px 1px #212021;
+        }
+      }
+    }
+    
+    /* Modal Styling - Dialog Boxes */
+    ion-modal {
+      --background: var(--ff7-menu-bg);
+      --box-shadow: 0 4px 16px rgba(0, 0, 0, 0.8);
+      
+      .modal-wrapper {
+        border: solid 1px var(--ff7-border-dark);
+        box-shadow: 1px 1px var(--ff7-border-light), -1px -1px var(--ff7-border-light),
+          1px -1px var(--ff7-border-light), -1px 1px var(--ff7-border-light);
+        border-radius: 7px;
+      }
+      
+      ion-header {
+        background: var(--ff7-blue-dark);
+        background: linear-gradient(to bottom, var(--ff7-blue-dark) 0%, var(--ff7-blue-darker) 100%);
+      }
+    }
+    
+    /* Toast Notifications - Battle Messages */
+    ion-toast {
+      --ion-safe-area-top: 85px;
+      --border: solid 1px var(--ff7-border-dark);
+      --box-shadow: 1px 1px var(--ff7-border-light), -1px -1px var(--ff7-border-light),
+        1px -1px var(--ff7-border-light), -1px 1px var(--ff7-border-light),
+        0 -2px var(--ff7-border-mid), -2px 0 var(--ff7-border-mid-dark), 0 2px var(--ff7-border-dark);
+      --width: 500px;
+      --padding: 10px 15px;
+      --margin: 50px 50px;
+      --background: var(--ff7-blue-dark);
+      --background: linear-gradient(to bottom, var(--ff7-blue-dark) 0%, var(--ff7-blue-darker) 100%);
+      --border-radius: 7px;
+      
+      * {
+        color: var(--ff7-text);
+        text-shadow: 2px 2px #212421, 1px 1px #212021;
+        font-size: 18px;
+      }
+    }
+    
+    /* Character Stats Display */
+    .character-stats {
+      display: flex;
+      flex-direction: column;
+      padding: 10px;
+      margin: 10px 0;
+      border: 1px solid var(--ff7-border-dark);
+      background: rgba(0, 0, 0, 0.5);
+      
+      .stat-row {
+        display: flex;
+        justify-content: space-between;
+        margin: 5px 0;
+        
+        .stat-label {
+          font-weight: bold;
+          color: var(--ff7-text);
+        }
+        
+        .stat-value {
+          color: var(--ff7-yellow);
+        }
+      }
+      
+      .hp-mp-display {
+        display: flex;
+        justify-content: space-between;
+        margin: 5px 0;
+        
+        .hp-display, .mp-display {
+          display: flex;
+          flex-direction: column;
+          width: 48%;
+          
+          .label {
+            font-weight: bold;
+            margin-bottom: 2px;
+          }
+          
+          .value {
+            display: flex;
+            justify-content: space-between;
+            
+            .current {
+              color: var(--ff7-text);
+            }
+            
+            .max {
+              color: var(--ff7-yellow);
+            }
+          }
+        }
+        
+        .hp-display .label {
+          color: var(--ff7-green);
+        }
+        
+        .mp-display .label {
+          color: var(--ff7-blue-light);
+        }
+      }
+    }
+    
+    /* Battle Menu */
+    .battle-menu {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      width: 200px;
+      background: var(--ff7-menu-bg);
+      border: solid 1px var(--ff7-border-dark);
+      box-shadow: 1px 1px var(--ff7-border-light), -1px -1px var(--ff7-border-light),
+        1px -1px var(--ff7-border-light), -1px 1px var(--ff7-border-light);
+      border-radius: 7px;
+      padding: 10px;
+      
+      .battle-option {
+        padding: 8px 10px;
+        margin: 5px 0;
+        cursor: pointer;
+        
+        &:hover, &.selected {
+          background: rgba(0, 144, 255, 0.3);
+          
+          &::before {
+            content: "▶";
+            position: absolute;
+            left: 15px;
+            color: var(--ff7-text);
+          }
+        }
+      }
+    }
+  }
+}
