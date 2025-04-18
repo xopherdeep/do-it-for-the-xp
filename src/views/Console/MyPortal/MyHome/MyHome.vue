@@ -12,9 +12,9 @@
       </ion-toolbar>
     </ion-header> -->
 
-    <ion-content :fullscreen="true">
-      <IonRouterOutlet />
-      <!-- <ion-router-outlet></ion-router-outlet> -->
+    <ion-content :fullscreen="true" class="my-home-bg">
+      <!-- <IonRouterOutlet /> -->
+      <ion-router-outlet></ion-router-outlet>
       <!-- <ion-grid>
 
         <ion-row>
