@@ -80,15 +80,15 @@
     "babel-jest": "^27.5.1",
     "cross-env": "^7.0.3",
     "cypress": "^8.7.0",
-    "eslint": "^8.57.1",
+    "eslint": "^8.56.0",
     "eslint-plugin-vue": "^8.7.1",
     "fs": "0.0.1-security",
     "jest": "^27.5.1",
-    "node-sass": "^9.0.0",
     "postcss": "^8.5.3",
     "sass": "^1.86.3",
     "sass-loader": "^10.5.2",
-    "typescript": "^5.8.3"
+    "typescript": "^5.8.3",
+    "vue-eslint-parser": "^8.3.0"
   },
   "files": [
     "dist"
@@ -96,5 +96,12 @@
   "engines": {
     "node": ">=16.0.0"
   },
-  "packageManager": "pnpm@9.12.2+sha512.22721b3a11f81661ae1ec68ce1a7b879425a1ca5b991c975b074ac220b187ce56c708fe5db69f4c962c989452eee76c82877f4ee80f474cebd61ee13461b6228"
+  "packageManager": "pnpm@9.12.2+sha512.22721b3a11f81661ae1ec68ce1a7b879425a1ca5b991c975b074ac220b187ce56c708fe5db69f4c962c989452eee76c82877f4ee80f474cebd61ee13461b6228",
+  "pnpm": {
+    "overrides": {
+      "postcss@<8.4.31": ">=8.4.31",
+      "@cypress/request@<=2.88.12": ">=3.0.0",
+      "cross-spawn@<6.0.6": ">=6.0.6"
+    }
+  }
 }
