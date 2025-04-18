@@ -54,14 +54,15 @@ export default defineComponent<DefineUserActionComponent>({
           router.push({ name: "hospital", params: { userId } });
         },
       },
-      {
-        label: "Temple",
-        faIcon: "place-of-worship",
-        side: "bottom",
-        click() {
-          router.push({ name: "temple", params: { userId } });
-        },
-      },
+      // TODO: Uncomment when temple is implemented
+      // {
+      //   label: "Temple",
+      //   faIcon: "place-of-worship",
+      //   side: "bottom",
+      //   click() {
+      //     router.push({ name: "temple", params: { userId } });
+      //   },
+      // },
       {
         label: "Bank",
         faIcon: "piggy-bank",
