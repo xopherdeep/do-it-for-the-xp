@@ -4,7 +4,6 @@
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
           <ion-menu-button
-            color="primary"
             @click="$fx.ui[$fx.theme.ui].select.play()"
           />
           <ion-icon
@@ -127,39 +126,17 @@ import 'swiper/css/navigation';
 // Import our typing text component
 import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
 
-import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonTitle,
-  IonButton,
-  // IonSlides, // Deprecated
-  // IonSlide, // Deprecated
-  IonContent,
-  IonText,
-  IonImg,
-  IonIcon,
-  IonButtons
-} from "@ionic/vue";
 
 import { arrowBack, informationOutline, informationSharp } from "ionicons/icons";
+import Ionic from "@/mixins/ionic";
 
 export default defineComponent({
   name: 'XpAbout',
+  mixins: [Ionic],
   components: {
     Swiper,
     SwiperSlide,
-    IonImg,
-    IonText,
-    IonButton,
-    IonPage,
-    IonHeader,
-    IonToolbar,
-    IonTitle,
-    IonContent,
     XpTypingText,
-    IonIcon,
-    IonButtons
   },
   setup() {
     const router = useRouter();

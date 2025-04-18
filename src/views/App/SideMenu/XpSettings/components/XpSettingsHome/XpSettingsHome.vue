@@ -5,7 +5,6 @@
         <ion-title> Settings </ion-title>
         <ion-buttons slot="start">
           <ion-menu-button
-            color="primary"
             @click="$fx.ui[$fx.theme.ui].select.play()"
           ></ion-menu-button>
           <ion-icon
