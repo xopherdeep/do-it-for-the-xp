@@ -16,14 +16,18 @@
               :router-link="action.link"
               router-direction="root"
               @click="action.click"
-              size="large"
-              class="ion-justify-content-left"
+              size="small"
+              class="p-0 m-0"
+              expand="block "
             >
-              <i
-                class="fad fa-lg"
-                :class="`fa-${(action.faIcon || action.icon || '').replace('fa-', '')}`"
-              ></i>
-              {{ action.label }}
+
+              <span class="text-left w-full">
+                <i
+                  class="fad fa-lg"
+                  :class="`fa-${(action.faIcon || action.icon || '').replace('fa-', '')}`"
+                ></i>
+                {{ action.label }}
+              </span>
             </ion-button>
           </ion-col>
         </ion-row>
@@ -34,7 +38,9 @@
 
 <style>
   .xp-card-menu{
-    /* code */ 
+    ion-col{
+        padding: 0;
+      }
   }
 </style>
 

@@ -8,7 +8,7 @@
     :activated="fabActive"
     v-if="user.stats && $attrs.isUserFabOn"
   >
-    <ion-grid>
+    <ion-grid class="p-0">
       <ion-row>
         <ion-col>
           <ion-fab-button
@@ -52,22 +52,31 @@
               >
                 <ion-button
                   @click="clickAction(action)"
-                  size="large"
-                  class="p-0"
                   :id="action.id ? action.id : undefined"
+                  size="small"
+                  class="p-0 m-0"
+                  expand="block"
                 >
-                  <i
-                    class="fad fa-lg"
-                    :class="`fa-${action.faIcon.replace('fa-', '')}`"
-                  />
-                  {{ action.label }}
+                  <span class="text-left w-full">
+                    <i
+                      class="fad fa-lg"
+                      :class="`fa-${action.faIcon.replace('fa-', '')}`"
+                    />
+                    {{ action.label }}
+                  </span>
                 </ion-button>
               </ion-col>
               <ion-col>
                 <ion-menu-toggle>
-                  <ion-button>
-                    <i class="fad fa-lg fa-bars"></i>
-                    Open Menu
+                  <ion-button 
+                    size="small"
+                    class="p-0 m-0"
+                    expand="block "
+                  >
+                    <span class="text-left w-full">
+                      <i class="fad fa-lg fa-bars"></i>
+                      Open Menu
+                    </span>
                   </ion-button>
                 </ion-menu-toggle>
               </ion-col>
@@ -253,6 +262,11 @@ ion-fab {
 
     ion-fab-list{
       margin-top: 65px;
+
+      ion-col{
+        padding: 0;
+      }
+
     } 
 
     ion-chip {
