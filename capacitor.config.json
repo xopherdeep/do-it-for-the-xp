@@ -2,7 +2,6 @@
   "appId": "com.forthexp.doit",
   "appName": "Do it for the XP",
   "webDir": "dist",
-  "bundledWebRuntime": true,
   "plugins": {
     "SplashScreen": {
       "launchShowDuration": 3000,
@@ -19,6 +18,7 @@
     }
   },
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "cleartext": true
   }
 }

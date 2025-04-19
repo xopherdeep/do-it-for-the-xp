@@ -12,7 +12,7 @@
             class="fa-2x ml-2"
           />
         </ion-buttons>
-        <ion-title> Choose Your Profile </ion-title>
+        <ion-title> Choose A Profile </ion-title>
       </ion-toolbar>
     </ion-header>
     <ion-content
