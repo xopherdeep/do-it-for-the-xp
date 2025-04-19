@@ -47,7 +47,7 @@ function readyRouterMountApp() {
     .use(Countdown)
     .use(IonicVue,{
       mode: 'md',
-      animated: true,
+      // animated: true,
       swipeBackEnabled: false,
       // backButtonText: '',
       // backButtonIcon: 'chevron-back',

@@ -90,4 +90,13 @@
       }
     }
   }
+
+  ion-tab-bar{
+    --background: #000000;
+    --color-selected: #fff;
+    --color: #fff;
+    --color-selected-rgb: 0, 175, 44;
+    --color-selected-contrast: #000000;
+  }
+
 }
