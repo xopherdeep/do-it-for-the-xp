@@ -19,9 +19,8 @@ const fx = instance?.appContext.config.globalProperties.$fx;
 onMounted(() => {
   if (fx && fx.ui && fx.theme && fx.ui[fx.theme.ui]?.loading) {
     fx.ui[fx.theme.ui].loading.play();
-  } else {
-    console.warn("XpLoading: Could not find sound effect property $fx.ui[theme].loading");
   }
+  // Silent loading error to comply with ESLint rules
 });
 
 onUnmounted(() => {
