@@ -32,7 +32,7 @@ export default defineComponent<DefineUserActionComponent>({
       windAudio.value.loop = true;
       
       // Start playing wind sound
-      windAudio.value.play().catch(e => console.log("Audio play failed:", e));
+      windAudio.value.play().catch(e => { /* Silent error handling */ });
       
       // Occasionally increase wind intensity
       windInterval.value = window.setInterval(() => {

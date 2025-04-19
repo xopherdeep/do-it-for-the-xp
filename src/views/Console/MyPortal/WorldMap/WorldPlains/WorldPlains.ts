@@ -34,7 +34,7 @@ export default defineComponent<DefineUserActionComponent>({
       windAudio.value.loop = true;
       
       // Start playing wind sounds
-      windAudio.value.play().catch(e => console.log("Audio play failed:", e));
+      windAudio.value.play().catch(e => { /* Silent error handling */ });
       
       // Occasionally play grasshopper/cricket sounds
       grasshopperInterval.value = window.setInterval(() => {
@@ -42,7 +42,7 @@ export default defineComponent<DefineUserActionComponent>({
           const cricketSound = new Audio();
           cricketSound.src = "https://freesound.org/data/previews/425/425556_7552848-lq.mp3"; // Cricket/grasshopper sound
           cricketSound.volume = 0.2 + (Math.random() * 0.2); // Random volume for variety
-          cricketSound.play().catch(e => console.log("Audio play failed:", e));
+          cricketSound.play().catch(e => { /* Silent error handling */ });
         }
       }, 8000);
     });

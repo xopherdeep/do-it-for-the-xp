@@ -58,8 +58,8 @@ export default defineComponent<DefineUserActionComponent>({
       windAudio.value.loop = true;
       
       // Start playing ambient sounds
-      rainAudio.value.play().catch(e => console.log("Rain audio play failed:", e));
-      windAudio.value.play().catch(e => console.log("Wind audio play failed:", e));
+      rainAudio.value.play().catch(e => { /* Silent error handling */ });
+      windAudio.value.play().catch(e => { /* Silent error handling */ });
       
       // Start thunder sound effects
       startThunderSounds();
@@ -93,7 +93,7 @@ export default defineComponent<DefineUserActionComponent>({
           // Add slight volume variation
           thunder.volume = 0.5 + (Math.random() * 0.3);
           thunder.currentTime = 0;
-          thunder.play().catch(e => console.log("Thunder audio play failed:", e));
+          thunder.play().catch(e => { /* Silent error handling */ });
         }
       }, 5000 + Math.random() * 8000); // Random interval between 5-13 seconds
     };

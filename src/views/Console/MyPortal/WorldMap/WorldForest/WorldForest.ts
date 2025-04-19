@@ -32,7 +32,7 @@ export default defineComponent<DefineUserActionComponent>({
       forestAudio.value.loop = true;
       
       // Start playing forest sounds
-      forestAudio.value.play().catch(e => console.log("Audio play failed:", e));
+      forestAudio.value.play().catch(e => { /* Silent error handling */ });
     });
     
     // Clean up when component is unmounted

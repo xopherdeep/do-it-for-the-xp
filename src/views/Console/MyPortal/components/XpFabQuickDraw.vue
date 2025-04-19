@@ -65,8 +65,7 @@
           item.click();
         } else if (item.mpCost) {
           // Handle items with MP cost (spells, abilities)
-          console.log(`Using ${item.name} (${item.mpCost}MP)`);
-          // Here you would implement the actual effect
+          // Silent handling to comply with ESLint rules
           this.play$fx('spell');
         }
       }

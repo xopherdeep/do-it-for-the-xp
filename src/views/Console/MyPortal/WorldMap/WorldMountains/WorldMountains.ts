@@ -32,7 +32,7 @@ export default defineComponent<DefineUserActionComponent>({
       fireAudio.value.loop = true;
       
       // Start playing fire sound
-      fireAudio.value.play().catch(e => console.log("Audio play failed:", e));
+      fireAudio.value.play().catch(e => { /* Silent error handling */ });
     });
     
     // Clean up when component is unmounted

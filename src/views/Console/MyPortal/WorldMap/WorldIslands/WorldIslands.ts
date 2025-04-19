@@ -39,7 +39,7 @@ export default defineComponent<DefineUserActionComponent>({
       oceanAudio.value.loop = true;
       
       // Start playing ocean sounds
-      oceanAudio.value.play().catch(e => console.log("Audio play failed:", e));
+      oceanAudio.value.play().catch(e => { /* Silent error handling */ });
       
       // Play occasional seagull sounds
       seagullInterval.value = window.setInterval(() => {
@@ -47,7 +47,7 @@ export default defineComponent<DefineUserActionComponent>({
           const seagull = new Audio();
           seagull.src = "https://freesound.org/data/previews/19/19271_32633-lq.mp3"; // Seagull sound
           seagull.volume = 0.2;
-          seagull.play().catch(e => console.log("Seagull audio play failed:", e));
+          seagull.play().catch(e => { /* Silent error handling */ });
         }
       }, 20000); // Check every 20 seconds
       
