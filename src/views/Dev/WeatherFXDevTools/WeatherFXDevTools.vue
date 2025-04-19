@@ -102,7 +102,7 @@ import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
          IonCardTitle, IonCardContent, IonText } from '@ionic/vue';
 import WeatherFX from '@/components/WeatherFX/WeatherFX.vue';
 import { useWeatherFX } from '@/components/WeatherFX';
-import { WeatherType, WeatherSoundType } from '@/components/WeatherFX/types';
+import { WeatherType } from '@/components/WeatherFX/types';
 
 export default defineComponent({
   name: 'weather-fx-dev-tools',

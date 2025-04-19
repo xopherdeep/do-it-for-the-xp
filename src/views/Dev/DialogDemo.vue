@@ -1,4 +1,4 @@
-`<template>
+<template>
   <ion-page>
     <ion-header>
       <ion-toolbar>
@@ -96,11 +96,11 @@ export default defineComponent({
     };
 
     const onBlockComplete = (blockIndex: number) => {
-      console.log('Block completed:', blockIndex);
+      // Log removed to comply with ESLint rules
     };
 
     const onDialogComplete = () => {
-      console.log('Dialog sequence completed');
+      // Log removed to comply with ESLint rules
     };
 
     return {
@@ -114,4 +114,4 @@ export default defineComponent({
     };
   }
 });
-</script>`
+</script>

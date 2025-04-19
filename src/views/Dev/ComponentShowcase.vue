@@ -383,7 +383,6 @@
 </template>
 
 <script setup lang="ts">
-import { h } from 'vue'; // Import h for creating VNodes in modal
 import {
   // alertController, // Removed - No longer used directly on this page
   modalController, // Replaced alertController
@@ -399,7 +398,7 @@ import {
   IonContent,
   IonHeader,
   IonInput,        // Added
-  IonModal,        // Added for code display
+  // IonModal,        // Removed - No longer used directly
   IonItem,         // Added
   IonLabel,        // Added
   IonList,         // Added
@@ -417,7 +416,7 @@ import {
   IonToggle,       // Added
   IonToolbar,
 } from '@ionic/vue';
-import { ref, computed } from 'vue'; // Added ref and computed for reactive state
+import { ref } from 'vue'; // Removed unused computed
 import XpTypingText from '@/components/XpTypingText/XpTypingText.vue'; // Import our custom typing text component
 
 // --- Script Logic ---

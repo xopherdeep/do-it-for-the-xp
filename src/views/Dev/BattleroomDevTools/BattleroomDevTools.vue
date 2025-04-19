@@ -143,12 +143,12 @@ import { defineComponent, ref, computed, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
 import BattleGround from '@/views/Console/MyPortal/HomeTown/BattleGround/BattleGround.vue';
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, 
-         IonButton, IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,
+         IonButton, IonCard, IonCardHeader, IonCardSubtitle, IonCardContent,
          IonList, IonItem, IonLabel, IonSelect, IonSelectOption, IonToggle,
          IonItemDivider, IonRange, IonProgressBar, IonModal, IonIcon, toastController } from '@ionic/vue';
 import { 
-  skull, warning, flame, star, flash, 
-  fitnessOutline, happyOutline,
+  skull,
+  fitnessOutline,
   settingsOutline, closeOutline
 } from 'ionicons/icons';
 
@@ -274,14 +274,11 @@ export default defineComponent({
 
     // Change enemy type
     const changeEnemyType = () => {
-      console.log(`Enemy type changed to: ${selectedEnemyType.value}`);
-      // You could dispatch an action to update enemy type
-      // store.dispatch('setEnemyType', selectedEnemyType.value);
+      updateTaskEnemy();
     };
 
     // Change task type
     const changeTaskType = () => {
-      console.log(`Task type changed to: ${selectedTaskType.value}`);
       updateTaskEnemy();
     };
 
