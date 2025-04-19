@@ -10,7 +10,7 @@
 
 <script lang="ts">
 import { play$fx } from '@/assets/fx';
-import { defineComponent, ref, onMounted, onBeforeUnmount, watch, PropType } from 'vue';
+import { defineComponent, ref, onMounted, onBeforeUnmount, watch } from 'vue';
 
 export default defineComponent({
   name: 'XpTypingText',
@@ -70,7 +70,6 @@ export default defineComponent({
     const charIndex = ref(0);
     const showSlot = ref(false);
     let typingInterval: number | null = null;
-    let soundCooldown = false;
 
     const typeNextChar = () => {
       if (isPaused.value || !isTyping.value) return;
@@ -88,8 +87,10 @@ export default defineComponent({
         emit('typing-char', charIndex.value, char);
       } else {
         isTyping.value = false;
-        clearInterval(typingInterval!);
-        typingInterval = null;
+        if (typingInterval !== null) {
+          clearInterval(typingInterval);
+          typingInterval = null;
+        }
         emit('typing-complete');
       }
     };
@@ -114,7 +115,9 @@ export default defineComponent({
     const completeTyping = () => {
       if (!isTyping.value) return;
       
-      clearInterval(typingInterval!);
+      if (typingInterval !== null) {
+        clearInterval(typingInterval);
+      }
       displayedText.value = props.text;
       charIndex.value = props.text.length;
       isTyping.value = false;
@@ -151,7 +154,7 @@ export default defineComponent({
     };
 
     // Watch for text changes and restart animation
-    watch(() => props.text, (newText) => {
+    watch(() => props.text, () => {
       resetTyping();
       if (props.autoStart) {
         startTyping();

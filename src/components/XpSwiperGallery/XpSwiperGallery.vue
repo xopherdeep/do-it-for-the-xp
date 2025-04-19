@@ -81,12 +81,10 @@
 
 
 <script lang="ts">
-  import { computed, defineComponent, reactive, ref } from 'vue'
+  import { defineComponent, ref } from 'vue'
   import { Controller, Navigation } from "swiper";
   import { IonicSlides } from '@ionic/vue';
-  import { useQueryClient } from 'vue-query';
   import fetchItems from '@/mixins/fetchItems';
-
   import ionic from "@/mixins/ionic"
 
   export default defineComponent({

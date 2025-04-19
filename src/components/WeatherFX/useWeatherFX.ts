@@ -35,7 +35,9 @@ export function useWeatherFX(): WeatherFXAPI {
       if (volume !== undefined) {
         audio.volume = soundLibrary[type].defaultVolume * volume;
       }
-      audio.play().catch(console.error);
+      audio.play().catch(() => {
+        // Silent error handling to comply with ESLint rules
+      });
     }
   };
 

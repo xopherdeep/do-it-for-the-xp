@@ -24,8 +24,6 @@
 
 <script lang="ts">
 import { defineComponent, computed, ref, onMounted, onUnmounted } from 'vue';
-import type { PropType } from 'vue';
-import type { WeatherEffectProps } from '../types';
 
 interface CloudState {
   x: number;
