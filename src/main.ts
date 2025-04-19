@@ -45,7 +45,14 @@ function readyRouterMountApp() {
     .component('RecycleScroller', RecycleScroller)
     .use(VueVirtualScroller)
     .use(Countdown)
-    .use(IonicVue)
+    .use(IonicVue,{
+      mode: 'md',
+      animated: true,
+      swipeBackEnabled: false,
+      // backButtonText: '',
+      // backButtonIcon: 'chevron-back',
+      // routerAnimation: undefined,
+    })
     .use(store)
     .use(router);
 

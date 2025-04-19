@@ -6,9 +6,10 @@ import MyPortalRoutes from './my-portal.routes';
 import HometownRoutes from './hometown.routes';
 import SupportRoutes from './support';
 import WorldMapRoutes from './world-map.routes';
-import { createRouter, createWebHistory } from '@ionic/vue-router';
+import { createRouter, createWebHistory, createWebHashHistory } from '@ionic/vue-router';
 import { RouteRecordRaw } from 'vue-router';
 import { useRouterGuards } from './guard.routes';
+import { Capacitor } from '@capacitor/core';
 
 // Combine all routes
 const routes: Array<RouteRecordRaw> = [
@@ -61,8 +62,15 @@ const routes: Array<RouteRecordRaw> = [
 
 // Create and export router factory function
 export const createAppRouter = (store) => {
+  // Use hash mode for production builds and Capacitor apps
+  // This helps with navigation in production builds
+  const isNative = Capacitor.isNativePlatform();
+  const isProduction = process.env.NODE_ENV === 'production';
+  
   const router = createRouter({
-    history: createWebHistory(process.env.BASE_URL),
+    history: (isNative || isProduction) 
+      ? createWebHashHistory(process.env.BASE_URL)
+      : createWebHistory(process.env.BASE_URL),
     routes
   });
   
