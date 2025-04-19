@@ -434,7 +434,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, computed, reactive } from 'vue'
+  import { defineComponent, ref, computed } from 'vue'
   import ionic from '@/mixins/ionic'
   import { 
     add, 
@@ -456,27 +456,7 @@
     peopleOutline,
     addCircleOutline,
     removeCircleOutline,
-    refreshOutline,
-    diamondOutline,
-    heartOutline,
-    snowOutline,
-    earthOutline,
-    footballOutline,
-    fitnessOutline,
-    bookOutline,
-    schoolOutline,
-    restaurantOutline,
-    constructOutline,
-    hammerOutline,
-    eyeOutline,
-    cloudOutline,
-    desktopOutline,
-    phonePortraitOutline,
-    gitNetworkOutline,
-    compassOutline,
-    ribbonOutline,
-    bicycleOutline
-  } from 'ionicons/icons'
+    refreshOutline  } from 'ionicons/icons'
   import { v4 as uuidv4 } from 'uuid'
 
   export default defineComponent({

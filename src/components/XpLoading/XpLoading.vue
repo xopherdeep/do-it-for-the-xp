@@ -34,5 +34,5 @@ onUnmounted(() => {
 </script>
 
 <style lang="scss">
-  @import "./_XpLoading.scss";
+  @use "./_XpLoading.scss";
 </style>
