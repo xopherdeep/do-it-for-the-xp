@@ -83,15 +83,7 @@
         </ion-item>
       </ion-menu-toggle>
       <!-- copyright -->
-      <ion-item
-        lines="none"
-        class="logout-section"
-      >
-        <ion-label class="ion-text-center">
-          <p>© 2025 XP</p>
-          <small>All rights reserved.</small>
-        </ion-label>
-      </ion-item>
+
     </ion-footer>
   </ion-menu>
 </template>
