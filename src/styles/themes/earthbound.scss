@@ -14,6 +14,7 @@ $eb-color-mint-green: #80d890;
 $eb-color-minty-blue: #68d0b8;
 $eb-color-cream: #e7e6b3;
 $eb-color-pale-yellow: #f7e8a8;
+$eb-color-white: #ffffff;
 
 // Mixins
 @mixin eb-box() {
@@ -92,17 +93,29 @@ ion-app {
       list-style-type: circle;
     }
 
-    ion-fab-list{
-      // margin: 60px 0 0 0; 
+    ion-fab-list {
+      // margin: 60px 0 0 0;
 
-      ion-card{
-        ion-button{
+      ion-card {
+        ion-button {
           font-family: $eb-font-status;
-          text-transform: none; 
+          text-transform: none;
           i {
-            @apply mr-3 w-[24px];
+            @apply mr-3 w-[20px];
           }
-          font-size: 17px;
+          font-size: 16px;
+        }
+
+        ion-grid {
+          padding: 0;
+          margin: 0;
+          ion-col {
+            padding: 0;
+            margin: 0;
+          }
+          ion-button {
+            color: $eb-color-cream;
+          }
         }
       }
     }
@@ -143,6 +156,13 @@ ion-app {
       vertical-align: top;
       overflow: visible;
 
+      ion-card-title {
+        padding: 1px 5px;
+        font-size: 20px;
+        background-color: $eb-color-dark-purple;
+        color: $eb-color-pale-yellow;
+      }
+
       ion-list {
         background: $eb-color-dark-purple;
       }
@@ -178,13 +198,6 @@ ion-app {
         --border-radius: 9999px;
         --background: rgba(var(--ion-color-primary-rgb), 0.65);
         --background-rgb: 255, 255, 255;
-      }
-
-      ion-card-title {
-        color: var(--ion-color-primary);
-        padding: 1px 5px;
-        font-size: 20px;
-        background-color: $eb-color-medium-purple;
       }
 
       ion-textarea {
