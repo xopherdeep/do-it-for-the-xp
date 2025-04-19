@@ -283,7 +283,7 @@ const $fx = {
           "https://starmen.net/mother2/music/131- Earthbound - Eight Melodies.mp3",
         ],
         dungeon: [
-          "https://starmen.net/mother2/music/088- Earthbound - Belch_s Factory.mp3",
+          // "https://starmen.net/mother2/music/088- Earthbound - Belch_s Factory.mp3",
           "https://starmen.net/mother2/music/113- Earthbound - Pyramid.mp3",
           "https://starmen.net/mother2/music/114- Earthbound - Inside the Dungeon.mp3",
         ],
