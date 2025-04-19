@@ -228,7 +228,7 @@ export default defineComponent({
       }
     },
     
-    async showToast(message: string, color: string = 'success') {
+    async showToast(message: string, color = 'success') {
       const toast = await toastController.create({
         message,
         duration: 2000,

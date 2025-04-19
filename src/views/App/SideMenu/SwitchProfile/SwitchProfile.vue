@@ -27,14 +27,39 @@
       >
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
-
+      <ion-grid>
+          <ion-row>
+            <ion-col
+              v-for="(user, key) in profiles"
+              :key="`${key}-test`"
+              size="6"
+              size-sm="4"
+              size-md="3"
+              size-xl="2"
+            >
+              <ion-card class="ion-no-margin" button @click="clickUser(user)">
+                <ion-card-title>
+                  {{ user.name.first }}
+                </ion-card-title>
+                <ion-card-header>
+                  <ion-avatar>
+                    <img :src="getUserAvatar(user)" />
+                  </ion-avatar>
+                </ion-card-header>
+                <ion-card-content>
+                  {{ user.name.nick }}
+                </ion-card-content>
+              </ion-card>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
       <div
         v-show="isLoading"
         class="flex justify-center items-center h-full"
       >
         <ion-spinner name="circles"></ion-spinner>
       </div>
-
+        
       <ion-card
         v-show="!isLoading"
         class="max-w-4xl"
