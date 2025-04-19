@@ -57,8 +57,8 @@ export default defineComponent({
     }
   },
   methods: {
-    playTextSound(){
-      this.play$fx("text")
+    async playTextSound(){
+      await this.play$fx("text")
     },
   },
   emits: ['typing-complete', 'typing-start', 'typing-char'],

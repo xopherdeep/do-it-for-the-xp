@@ -1,6 +1,6 @@
 <template>
   <div class="xp-dialog-container" :class="{ 'active': isVisible }">
-    <div class="xp-dialog-box rpg-box">
+    <ion-card class="xp-dialog-box rpg-box">
       <div class="dialog-content">
         <xp-typing-text
           ref="typingText"
@@ -15,7 +15,7 @@
       <div v-if="hasMoreText" class="dialog-indicator">
         <i class="fad fa-chevron-down blink"></i>
       </div>
-    </div>
+    </ion-card>
   </div>
 </template>
 
@@ -133,7 +133,7 @@ export default defineComponent({
   .dialog-content {
     font-size: 1.1em;
     line-height: 1.5;
-    color: var(--ion-color-light);
+   
   }
 
   .dialog-indicator {
