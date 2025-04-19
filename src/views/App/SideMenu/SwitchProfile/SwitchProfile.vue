@@ -1,11 +1,12 @@
 <template>
   <ion-page :class="$options.name">
     <ion-header :translucent="true">
-      <ion-toolbar class="rpg-box">
+      <ion-toolbar class="rpg-box" mode="ios">
         <ion-buttons slot="start">
           <ion-menu-button
             @click="$fx.ui[$fx.theme.ui].select.play()"
-          ></ion-menu-button>
+          />
+        
           <ion-icon
             :ios="fingerPrintOutline"
             :md="fingerPrintSharp"

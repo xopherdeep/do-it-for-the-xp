@@ -1,7 +1,7 @@
 <template>
   <ion-header>
     <ion-toolbar class="rpg-box">
-      <ion-title class="text-xl font-bold">Start New Profile</ion-title>
+      <ion-title class="text-xl font-bold">Start a Profile</ion-title>
       <ion-item
         lines="none"
         slot="end"
@@ -16,7 +16,7 @@
       </ion-item>
     </ion-toolbar>
   </ion-header>
-  <ion-content class="bg-slide rpg-box mb-4">
+  <ion-content class="bg-slide rpg-box ion-padding">
     <!-- Success splash modal -->
     <div 
       class="success-splash-overlay" 

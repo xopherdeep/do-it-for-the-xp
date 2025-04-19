@@ -12,25 +12,22 @@
           <ion-col
             v-for="index in maxAvatarIndex"
             :key="index"
-            size="3"
-          >
-            <div
               class="avatar-option"
               :class="{ active: index === modelValue }"
               @click="selectAvatar(index)"
+              size="4"
             >
               <img
                 :src="getAvatarSrc(index)"
                 :alt="`Avatar ${index}`"
                 class="w-full h-full object-cover rounded-full"
               />
-            </div>
           </ion-col>
         </ion-row>
       </ion-grid>
     </ion-content>
   </ion-popover>
-
+  <!-- MODAL -->
   <ion-modal
     v-else
     :is-open="isOpen"
@@ -47,25 +44,32 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-    <ion-content class="rpg-box flex flex-row justify-center items-center">
-      <ion-card class="rpg-box md:max-w-[75vw]">
-        
-        <div class="avatar-grid">
-          
-        <div
-          v-for="index in maxAvatarIndex"
-          :key="index"
-          class="avatar-item"
-          :class="{ active: index === modelValue }"
-          @click="selectAvatar(index)"
-        >
-          <img
-            :src="getAvatarSrc(index)"
-            :alt="`Avatar ${index}`"
-            class="avatar-image"
-          />
-        </div>
-        </div>
+    <ion-content class="rpg-box bg-slide ion-padding flex flex-row justify-center items-center">
+      <ion-card class="rpg-box max-w-7xl">
+        <ion-grid>
+          <ion-row>
+            <ion-col
+              v-for="index in maxAvatarIndex"
+              :key="index"
+              size="6"
+              size-sm="4"
+              size-md="3"
+              size-lg="2"
+            >
+              <div
+                class="avatar-option"
+                :class="{ active: index === modelValue }"
+                @click="selectAvatar(index)"
+              >
+                <img
+                  :src="getAvatarSrc(index)"
+                  :alt="`Avatar ${index}`"
+                  class="rounded-full avatar-image"
+                />
+              </div>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
       </ion-card>
     </ion-content>
   </ion-modal>
@@ -164,22 +168,19 @@ export default defineComponent({
   --width: 100%;
   --height: 100%;
   --border-radius: 0;
-
-  .avatar-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-    gap: 1rem;
+  
+  ion-grid {
     padding: 1rem;
   }
-
-  .avatar-item {
-    cursor: pointer;
-    border-radius: 50%;
-    overflow: hidden;
-    aspect-ratio: 1;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  
+  ion-col {
+    padding: 0.5rem;
+  }
+  
+  .avatar-option {
+    padding: 0.25rem;
     border: 3px solid transparent;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     
     &:hover {
       transform: scale(1.05);
@@ -189,19 +190,6 @@ export default defineComponent({
     &.active {
       border-color: var(--ion-color-primary);
       box-shadow: 0 0 0 3px var(--ion-color-primary-shade);
-    }
-
-    .avatar-image {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      filter: grayscale(100%);
-      transition: filter 0.3s ease, transform 0.2s ease;
-    }
-
-    &:hover .avatar-image,
-    &.active .avatar-image {
-      filter: grayscale(0%);
     }
   }
 }
