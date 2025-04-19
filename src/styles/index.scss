@@ -1,12 +1,12 @@
-@import "mixins";
-@import "fonts";
-@import "ionic";
-@import "menu";
-@import "card";
+@use "mixins";
+@use "fonts";
+@use "ionic";
+@use "menu";
+@use "card";
 
 // Themes
-@import "icons";
-@import "themes";
+@use "icons";
+@use "themes";
 
 
 
