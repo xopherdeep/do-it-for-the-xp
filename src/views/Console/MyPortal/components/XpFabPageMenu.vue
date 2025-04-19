@@ -18,12 +18,12 @@
               v-if="pageIcon != 'fort-awesome'"
               class="fad fa-2x"
               :class="`fa-${pageIcon}`"
-            ></i>
+            />
             <i
               v-else
               class="fab fa-lg"
               :class="`fa-${pageIcon}`"
-            ></i>
+            />
           </ion-fab-button>
         </ion-col>
       </ion-row>

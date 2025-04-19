@@ -26,7 +26,7 @@
       
       <ion-tabs v-if="user && user.stats">
         <ion-router-outlet ref="outlet" :userId="user.id"></ion-router-outlet>
-        <ion-tab-bar slot="bottom" v-if="user.stats && !battleState('active')">
+        <ion-tab-bar mode="ios" slot="bottom" v-if="user.stats && !battleState('active')">
           <ion-tab-button
             color="success"
             tab="my-profile"
