@@ -37,9 +37,13 @@
         <ion-card-title>
           {{ user.name.nick }}
           <ion-text class="wallet">
-            <small>₲</small>
+            <small>₲ 
+            </small>
             {{ user.stats.gp.wallet }}
-            <small>00</small>
+            <small>00
+
+              <i class="fad fa-coin"></i>
+            </small>
           </ion-text>
         </ion-card-title>
         <ion-buttons>

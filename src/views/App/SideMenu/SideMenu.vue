@@ -11,9 +11,9 @@
       >
         <ion-list-header>Do it for the XP</ion-list-header>
         <ion-note class="mb-0">
-          Life's Level & Reward System
+          Life's Level Up & Reward System
         </ion-note>
-        <ion-note class="w-full flex flex-row justify-between">
+        <ion-note class="w-full flex flex-row">
           <ion-chip color="success">
             <i class="fad fa-hand-holding-seedling mr-2"></i>
             XP
