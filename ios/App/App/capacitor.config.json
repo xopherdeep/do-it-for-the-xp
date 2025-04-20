@@ -19,12 +19,14 @@
 	},
 	"server": {
 		"androidScheme": "https",
-		"cleartext": true
+		"cleartext": true,
+		"url": "http://192.168.1.189:8100"
 	},
 	"packageClassList": [
 		"AppPlugin",
 		"HapticsPlugin",
 		"KeyboardPlugin",
+		"PreferencesPlugin",
 		"SharePlugin",
 		"StatusBarPlugin",
 		"CDVPlugin"
