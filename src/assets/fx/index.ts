@@ -117,6 +117,7 @@ const $fx = {
         home: [
           "https://starmen.net/mother2/music/023- Earthbound - Home Sweet Home.mp3",
           "https://starmen.net/mother2/music/151- Earthbound - Because I Love You.mp3",
+          "https://starmen.net/mother2/music/131-%20Earthbound%20-%20Eight%20Melodies.mp3",
         ],
         hometown: [
           "https://starmen.net/mother2/music/021- Earthbound - Sunrise & Onett Theme.mp3",
@@ -143,10 +144,12 @@ const $fx = {
           "https://starmen.net/mother2/music/037- Earthbound - You Gained a Level!.mp3",
         ],
         world: [
+          "https://starmen.net/mother2/music/092-%20Earthbound%20-%20Get%20on%20the%20Bus.mp3",
           "https://starmen.net/mother2/music/065-%20Earthbound%20-%20Runaway%20Five%20~%20The%20Daily%20Show.mp3",
           "https://starmen.net/mother2/music/066-%20Earthbound%20-%20Runaway%20Five_s%20Final%20Performance.mp3",
           "https://starmen.net/mother2/music/067-%20Earthbound%20-%20Runaway%20Five%20Left%20the%20Building!.mp3",
           "https://starmen.net/mother2/music/068-%20Earthbound%20-%20Runaway%20Five%20On%20the%20Move!.mp3",
+          "https://starmen.net/mother2/music/096-%20Earthbound%20-%20Venus%20Live!.mp3",
         ],
         worlds: {
           onett:
@@ -224,7 +227,8 @@ const $fx = {
               "https://starmen.net/mother2/music/099- Earthbound - Moonside Swing.mp3",
             ],
             clouds: [
-              "https://starmen.net/mother2/music/059- Earthbound - Ness_ Bike.mp3",
+              // "https://starmen.net/mother2/music/059- Earthbound - Ness_ Bike.mp3",
+
               "https://starmen.net/mother2/music/106- Earthbound - Pink Cloud Shrine.mp3",
             ],
             cave: [
@@ -235,7 +239,7 @@ const $fx = {
               "https://starmen.net/mother2/music/088- Earthbound - Belch_s Factory.mp3",
               "https://starmen.net/mother2/music/113- Earthbound - Pyramid.mp3",
               "https://starmen.net/mother2/music/114- Earthbound - Inside the Dungeon.mp3",
-            ]
+            ],
           },
         },
         hotel: [
