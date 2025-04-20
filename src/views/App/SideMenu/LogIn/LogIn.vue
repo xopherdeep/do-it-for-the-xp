@@ -2,128 +2,156 @@
   <ion-page
     ref="page"
     @click="play$fx('noSelect')"
+    class="login-page"
   >
-    <!-- <ion-header :translucent="true">
-      <ion-toolbar>
-        <ion-buttons slot="start">
-          <ion-button :router-link="`/login`" >
-            <ion-icon :icon="arrowBack" slot="icon-only"/>
-          </ion-button>
-        </ion-buttons>
-        <ion-title> 
-        </ion-title>
-      </ion-toolbar>
-    </ion-header> -->
+    <ion-content :fullscreen="true" class="content-container">
+      <!-- Static background overlay that doesn't animate -->
+      <div class="static-background"></div>
+      
+      <!-- Content container with fixed height to prevent scrolling -->
+      <div class="content-wrapper">
+        <ion-grid id="brand" class="bottom-aligned">
 
-    <ion-content :fullscreen="true">
-      <ion-grid id="brand">
-        <ion-row>
-          <ion-col>
-            <h1>
-              <small>
-                DO IT FOR THE
-              </small>
-            </h1>
-          </ion-col>
-        </ion-row>
-        <ion-row>
-          <ion-col>
-            <div>
-              <ion-img
-                class="filter-green"
-                :src="requireImg('./level.svg')"
-              />
-            </div>
-          </ion-col>
-        </ion-row>
+          <ion-row>
+            <ion-col>
+              <ion-button
+                size="large"
+                id="login-button"
+                class="glow-button fade-in-up"
+                @click.stop="play$fx('start')"
+              >
+                <span class="pixel-text">Press Start</span>
+                <ion-ripple-effect></ion-ripple-effect>
+              </ion-button>
+            </ion-col>
+          </ion-row>
 
-        <ion-row>
-          <ion-col>
-            <ion-button
-              size="large"
-              id="login-button"
-              @click.stop="play$fx('start')"
-            >
-              Press Start
-            </ion-button>
-          </ion-col>
-        </ion-row>
-
-        <ion-row>
-          <ion-col>
-            <ion-button
-              size=""
-              id="settings-button"
-              @click.stop="play$fx('options')"
-            >
-              Settings
-              <i class="fad fa-tools"></i>
-            </ion-button>
-          </ion-col>
-        </ion-row>
-        <ion-menu-toggle>
-          Open menu
-        </ion-menu-toggle>
-      </ion-grid>
+          <ion-row>
+            <ion-col>
+              <ion-button
+                size="small"
+                id="settings-button"
+                class="settings-button fade-in-up"
+                @click.stop="play$fx('options')"
+              >
+                Settings
+                <i class="fad fa-cog"></i>
+              </ion-button>
+          <ion-menu-toggle class="menu-toggle fade-in">
+              <ion-button
+                size="small"
+                id="settings-button"
+                class="settings-button fade-in-up"
+              >
+                Open menu
+                <i class="fad fa-bars"></i>
+              </ion-button>
+          </ion-menu-toggle>
+            </ion-col>
+          </ion-row>
+          
+          <div class="version-info">
+            <span>v2.5.0</span>
+          </div>
+        </ion-grid>
+      </div>
+      
+      <!-- Login Modal -->
       <ion-modal
         :is-open="code && !showSuccessModal"
         ref="modal"
         trigger="login-button"
         class="login"
       >
-        <ion-content>
+        <ion-content class="modal-content">
           <ion-grid>
             <ion-row>
               <ion-col>
-                <ion-card v-if="!!code">
+                <ion-card v-if="!!code" class="animated-card">
                   <ion-card-title>
+                    <ion-icon name="log-in-outline" class="login-icon"></ion-icon>
                     Logging in...
                   </ion-card-title>
                   <ion-card-content>
-                    Thank you for logging in! Hold tight while we load your profile.
+                    <div class="loading-container">
+                      <p>Thank you for logging in! Hold tight while we load your profile.</p>
+                      <ion-spinner name="dots" color="primary"></ion-spinner>
+                    </div>
                   </ion-card-content>
                 </ion-card>
-                <ion-card v-else>
+                <ion-card v-else class="animated-card">
                   <i
                     @click="closeModal"
-                    class="ion-float-right fad fa-times fa-3x close"
+                    class="ion-float-right fad fa-times fa-2x close"
                   ></i>
-                  <ion-card-title>
+                  <ion-card-title class="card-title">
+                    <ion-icon name="key-outline" class="login-icon"></ion-icon>
                     Login @ DoIt.forTheXP.com
                   </ion-card-title>
                   <ion-card-content>
-                    You must login through our site:
-                    https://doit.forthexp.com
-                    <!-- Input with placeholder -->
-                    <!-- <ion-input
-                      placeholder="Enter Username or Email"
-                      :class="{ error: error }"
-                      clear-input
-                      v-model="username"
-                    ></ion-input> -->
-
-                    <!-- Input with clear button when there is a value -->
-                    <!-- <ion-input
-                      clear-input
-                      :class="{ error: error }"
-                      placeholder="Enter Password"
-                      type="password"
-                      v-model="password"
-                    ></ion-input> -->
+                    <p class="login-info">You must login through our site:</p>
+                    <a href="https://doit.forthexp.com" target="_blank" class="site-link">doit.forthexp.com</a>
+                    
                     <ion-button
                       @click="clickSignIn"
-                      color="light"
+                      color="primary"
                       expand="block"
-                      fill="outline"
+                      class="login-button"
                     >
-                      <i class="fad fa-sword fa-lg"> </i>
+                      <i class="fad fa-sword fa-lg"></i>
                       &nbsp; Login
                     </ion-button>
                     <ion-button
-                      color="light"
+                      color="medium"
                       fill="outline"
                       expand="block"
                       @click="closeModal"
+                      class="close-button"
+                    >
+                      Close
+                      </ion-button>
+                    </ion-card-content>
+                </ion-card>
+              </ion-col>
+            </ion-row>
+          </ion-grid>
+        </ion-content>
+      </ion-modal>
+      
+      <!-- Success Modal -->
+      <successful-login-modal
+        :is-open="showSuccessModal"
+        @close="closeSuccessModal"
+      />
+      
+      <!-- Settings Modal -->
+      <ion-modal
+        ref="settings"
+        trigger="settings-button"
+        class="settings-modal"
+      >
+        <ion-content class="modal-content">
+          <ion-grid>
+            <ion-row>
+              <ion-col>
+                <ion-card class="settings-card">
+                  <ion-buttons class="ion-float-right">
+                    <ion-button @click="closeModal" class="close-button">
+                      <i class="fad fa-times fa-2x"></i>
+                    </ion-button>
+                  </ion-buttons>
+                  <ion-card-title class="card-title">
+                    <i class="fad fa-cog fa-spin"></i>
+                    Settings
+                  </ion-card-title>
+                  <ion-card-content>
+                    <InputSettings />
+                    <ion-button
+                      color="medium"
+                      fill="outline"
+                      expand="block"
+                      @click="closeModal"
+                      class="close-button"
                     >
                       Close
                     </ion-button>
@@ -134,59 +162,9 @@
           </ion-grid>
         </ion-content>
       </ion-modal>
-      <successful-login-modal
-        :is-open="showSuccessModal"
-        @close="closeSuccessModal"
-      />
-      <ion-modal
-        ref="settings"
-        trigger="settings-button"
-      >
-        <ion-content>
-          <ion-grid>
-            <ion-row>
-              <ion-col>
-                <ion-card>
-                  <ion-buttons class="ion-float-right">
-                    <ion-button @click="closeModal">
-                      <i class="fad fa-times fa-2x"></i>
-                    </ion-button>
-                  </ion-buttons>
-                  <ion-card-title>
-                    Settings
-                  </ion-card-title>
-                  <ion-card-header>
-                  </ion-card-header>
-                  <ion-card-content>
-                    <InputSettings />
-                    <ion-button
-                    color="light"
-                    fill="outline"
-                    expand="block"
-                    @click="closeModal"
-                  >
-                    Close
-                  </ion-button>
-                </ion-card-content>
-              </ion-card>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-      </ion-content>
-    </ion-modal>
-    <successful-login-modal
-      :is-open="showSuccessModal"
-      @close="closeSuccessModal"
-    />
-    <!-- <footer>
-        <p align="center">
-          <a href="https://twitter.com/xopherdeep" class="btn-twtr" target="_b"
-            >Follow me on Twitter</a
-          >
-        </p>
-      </footer> -->
-  </ion-content>
-</ion-page></template>
+    </ion-content>
+  </ion-page>
+</template>
 
 <script src="./LogIn" />
 <style lang="scss" src="./_LogIn.scss" scoped />
