@@ -18,12 +18,7 @@ const routes: Array<RouteRecordRaw> = [
   ...MyHomeRoutes,
   ...HometownRoutes,
   ...SupportRoutes,
-  MyPortalRoutes,
-  {
-    path: '/user/:userId?',
-    component: () => import('@/views/Console/MyPortal/UserProfile/UserProfile'),
-    props: true
-  },
+  ...MyPortalRoutes,
   {
     path: '/battle-ground/:userId?',
     name: 'battle-ground',

@@ -1,6 +1,6 @@
 import WorldMapRoutes from './world-map.routes';
 
-const MyPortalRoutes = {
+const MyPortalRoutes = [{
   path: '/my-portal/:userId',
   name: 'my-portal',
   component: () => import('@/views/Console/MyPortal/MyPortal.vue'),
@@ -47,16 +47,26 @@ const MyPortalRoutes = {
     component: () => import("@/views/Console/MyPortal/WorldMap/WorldMap.vue"),
   },
   {
-    path: "my-profile",
-    name: "my-profile",
+    path: "old-my-profile",
+    // name: "my-profile",
     meta: {
       faIcon: "user-circle",
       hideUserFab: true,
     },
     component: () => import("@/views/Console/MyPortal/MyProfile/MyProfile.vue"),
   },
+  {
+    path: 'my-profile',
+    name: 'my-profile',
+    meta: {
+      faIcon: "user-circle",
+      hideUserFab: true,
+    },
+    component: () => import('@/views/Console/MyPortal/UserProfile/UserProfile'),
+    props: true
+  },
   ...WorldMapRoutes
   ],
-};
+}];
 
 export default MyPortalRoutes;
