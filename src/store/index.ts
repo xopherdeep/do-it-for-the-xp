@@ -19,7 +19,7 @@ const state = {
   bgm: {
     audio: new Audio(),
     saveBookmark: false,
-    is_on: false,
+    is_on: true, // Changed from false to true to enable music by default
     startDelay: 0,
     src: null,
     track: 0,
