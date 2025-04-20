@@ -16,6 +16,24 @@ $eb-color-cream: #e7e6b3;
 $eb-color-pale-yellow: #f7e8a8;
 $eb-color-white: #ffffff;
 
+:root {
+	--ion-color-rpg: #f7e8a8;
+	--ion-color-rpg-rgb: 247,232,168;
+	--ion-color-rpg-contrast: #280828;
+	--ion-color-rpg-contrast-rgb: 40,8,40;
+	--ion-color-rpg-shade: #383050;
+	--ion-color-rpg-tint: #68a8d8;
+}
+
+.ion-color-rpg {
+	--ion-color-base: var(--ion-color-rpg);
+	--ion-color-base-rgb: var(--ion-color-rpg-rgb);
+	--ion-color-contrast: var(--ion-color-rpg-contrast);
+	--ion-color-contrast-rgb: var(--ion-color-rpg-contrast-rgb);
+	--ion-color-shade: var(--ion-color-rpg-shade);
+	--ion-color-tint: var(--ion-color-rpg-tint);
+}
+
 // Mixins
 @mixin eb-box() {
   border-radius: 1px;
