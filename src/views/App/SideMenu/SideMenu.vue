@@ -2,11 +2,31 @@
   <ion-menu
     content-id="main-content"
     type="overlay"
+    class="overflow-hidden"
   >
-    <ion-content>
-      <ion-list id="inbox-list">
-        <ion-list-header>XP</ion-list-header>
-        <ion-note> Do it for the XP </ion-note>
+    <ion-content class="overflow-hidden">
+      <ion-list
+        id="inbox-list"
+        class="border-none ion-no-padding"
+      >
+        <ion-list-header>Do it for the XP</ion-list-header>
+        <ion-note class="mb-0">
+          Life's Level & Reward System
+        </ion-note>
+        <ion-note class="w-full flex flex-row justify-between">
+          <ion-chip color="success">
+            <i class="fad fa-hand-holding-seedling mr-2"></i>
+            XP
+          </ion-chip>
+          <ion-chip color="warning">
+            <i class="fad fa-hand-holding-usd mr-2"></i>
+            GP
+          </ion-chip>
+          <ion-chip color="danger">
+            <i class="fad fa-hand-holding-magic mr-2"></i>
+            AP
+          </ion-chip>
+        </ion-note>
         <ion-menu-toggle
           auto-hide="false"
           v-for="(menuItem, i) in getCurrentMenu()"
@@ -34,44 +54,31 @@
             <ion-label>{{ menuItem.title }}</ion-label>
           </ion-item>
           <div v-else>
-            <hr class="w-full bg-medium-contrast" />
+            <hr class="w-full h-4" />
           </div>
         </ion-menu-toggle>
-      </ion-list>
-
-      <ion-list>
-        <ion-note> Background Music (BGM) </ion-note>
-        <ion-item>
-          <i class="fad fa-music"> </i>
-          <ion-buttons>
-            <ion-toggle
-              @ionChange="bgmToggle"
-              :checked="bgm.is_on"
-            ></ion-toggle>
-            <ion-button @click="bgmPrev">
-              <i class="fad fa-step-backward"></i>
-            </ion-button>
-            <ion-button @click="bgmNext">
-              <i class="fad fa-step-forward"></i>
-            </ion-button>
-          </ion-buttons>
-        </ion-item>
+        <!-- <ion-note> Background Music (BGM) </ion-note> -->
+        <hr class="w-full h-4" />
       </ion-list>
     </ion-content>
 
     <ion-footer>
       <ion-menu-toggle auto-hide="false">
+        <XpMusicPlayer
+          @toggleMusic="bgmToggle"
+          @changeBGM="handleChangeBGM"
+          :showTrackInfo="true"
+        />
+
         <ion-item
           @click="
-              setMenuItem(-1);
-            $fx.ui[$fx.theme.ui].select.play();
-            "
+            setMenuItem(-1);
+          $fx.ui[$fx.theme.ui].select.play();
+          "
           router-direction="root"
           router-link="/log-out"
           lines="none"
           detail="false"
-          class="hydrated"
-          button
         >
           <ion-icon
             slot="start"
@@ -113,10 +120,14 @@ import {
   pizzaOutline,
   pizzaSharp,
 } from "ionicons/icons";
+import XpMusicPlayer from "@/components/XpMusicPlayer/XpMusicPlayer.vue";
 
 export default defineComponent({
   name: "side-menu",
   mixins: [ionic],
+  components: {
+    XpMusicPlayer
+  },
 
   data() {
     return {
@@ -135,38 +146,12 @@ export default defineComponent({
         },
       ],
       appPages: [
-        // {
-        //   title: "Home",
-        //   url: "/home",
-        //   iosIcon: peopleCircleOutline,
-        //   mdIcon: peopleCircleSharp,
-        // },
         {
-          title: "Switch Profile",
-          url: "/xp-profile/",
-
-          iosIcon: fingerPrintOutline,
-          mdIcon: fingerPrintSharp,
+          title: "About XP",
+          url: "/about-xp",
+          iosIcon: informationOutline,
+          mdIcon: informationSharp,
           lines: "none",
-        },
-        {
-          title: "Family",
-          url: "/game-master",
-          iosIcon: heartOutline,
-          mdIcon: heartSharp,
-
-          lines: "none",
-        },
-
-        {
-          title: "Settings",
-          url: "/xp-settings/",
-          iosIcon: pizzaOutline,
-          mdIcon: pizzaSharp,
-          lines: "full",
-        },
-        {
-          title: "",
         },
         {
           title: "Subscription",
@@ -184,25 +169,6 @@ export default defineComponent({
           mdIcon: infiniteSharp,
           lines: "none",
         },
-
-
-        {
-          title: "",
-        },
-        // {
-        //   title: "Delete Profile",
-        //   url: "/log-out",
-        //   iosIcon: logOutOutline,
-        //   mdIcon: logOutSharp,
-        // },
-
-        {
-          title: "About XP",
-          url: "/about-xp",
-          iosIcon: informationOutline,
-          mdIcon: informationSharp,
-          lines: "full",
-        },
         {
           title: "FAQ & Support",
           url: "/xp-support",
@@ -210,6 +176,37 @@ export default defineComponent({
           // mdIcon: helpBuoySharp,
           iosIcon: helpOutline,
           mdIcon: helpSharp,
+          lines: "none",
+        },
+        {
+          title: "",
+        },
+        {
+          title: "Family",
+          url: "/game-master",
+          iosIcon: heartOutline,
+          mdIcon: heartSharp,
+
+          lines: "none",
+        },
+
+        {
+          title: "Settings",
+          url: "/xp-settings/",
+          iosIcon: pizzaOutline,
+          mdIcon: pizzaSharp,
+          lines: "none",
+        },
+
+        {
+          title: "",
+        },
+        {
+          title: "Switch Profile",
+          url: "/xp-profile/",
+
+          iosIcon: fingerPrintOutline,
+          mdIcon: fingerPrintSharp,
           lines: "none",
         },
       ],
@@ -244,15 +241,27 @@ export default defineComponent({
       return isLoggedIn ? appPages : appPagesAnon;
     },
     bgmToggle($event) {
+      // Call the store action directly instead of just emitting
+      this.turnMusicOnOff($event.detail.checked);
+      // Still emit the event for any parent components that might be listening
       this.$emit("toggleBGM", $event);
     },
 
     bgmNext() {
+      this.changeBGM(1);
       this.$emit("changeBGM", 1);
     },
 
     bgmPrev() {
+      this.changeBGM(-1);
       this.$emit("changeBGM", -1);
+    },
+
+    handleChangeBGM(direction) {
+      // Call the store action directly
+      this.changeBGM(direction);
+      // Still emit the event for any parent components
+      this.$emit("changeBGM", direction);
     },
   },
   setup() {
@@ -283,6 +292,7 @@ export default defineComponent({
   min-height: 20px;
 }
 
+
 ion-content {
   display: flex;
   flex-direction: column;
@@ -292,10 +302,26 @@ ion-content {
     display: flex;
     flex-direction: column;
   }
+
 }
 
 .logout-section {
   margin-top: auto;
   padding-bottom: 20px;
+}
+
+/* Music player specific styling */
+ion-footer {
+  ion-menu-toggle {
+    display: block;
+
+    .xp-music-player {
+      padding: 8px 12px;
+      margin-bottom: 10px;
+      border-top: 1px solid rgba(var(--ion-color-primary-rgb), 0.2);
+      border-bottom: 1px solid rgba(var(--ion-color-primary-rgb), 0.2);
+      background-color: rgba(var(--ion-color-primary-rgb), 0.05);
+    }
+  }
 }
 </style>
