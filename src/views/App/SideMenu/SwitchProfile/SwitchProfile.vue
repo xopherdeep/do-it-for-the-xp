@@ -1,12 +1,13 @@
 <template>
   <ion-page :class="$options.name">
     <ion-header :translucent="true">
-      <ion-toolbar class="rpg-box" mode="ios">
+      <ion-toolbar
+        class="rpg-box"
+        mode="ios"
+      >
         <ion-buttons slot="start">
-          <ion-menu-button
-            @click="$fx.ui[$fx.theme.ui].select.play()"
-          />
-        
+          <ion-menu-button @click="$fx.ui[$fx.theme.ui].select.play()" />
+
           <ion-icon
             :ios="fingerPrintOutline"
             :md="fingerPrintSharp"
@@ -14,6 +15,16 @@
           />
         </ion-buttons>
         <ion-title> Choose A Profile </ion-title>
+
+        <!-- Add backup/restore buttons -->
+        <ion-buttons slot="end">
+          <ion-button @click="openBackupOptionsModal">
+            <ion-icon
+              :icon="cloudDownloadOutline"
+              slot="icon-only"
+            ></ion-icon>
+          </ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
     <ion-content
@@ -27,105 +38,154 @@
       >
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
-      <ion-grid>
-          <ion-row>
-            <ion-col
-              v-for="(user, key) in profiles"
-              :key="`${key}-test`"
-              size="6"
-              size-sm="4"
-              size-md="3"
-              size-xl="2"
-            >
-              <ion-card class="ion-no-margin" button @click="clickUser(user)">
-                <ion-card-title>
-                  {{ user.name.first }}
-                </ion-card-title>
-                <ion-card-header>
-                  <ion-avatar>
-                    <img :src="getUserAvatar(user)" />
-                  </ion-avatar>
-                </ion-card-header>
-                <ion-card-content>
-                  {{ user.name.nick }}
-                </ion-card-content>
-              </ion-card>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
       <div
         v-show="isLoading"
         class="flex justify-center items-center h-full"
       >
         <ion-spinner name="circles"></ion-spinner>
       </div>
-        
-      <ion-card
-        v-show="!isLoading"
-        class="max-w-4xl"
-      >
-        <ion-list>
-          <ion-item
-            detail
-            button
-            @click="openNewProfileModal"
-          >
-            <ion-buttons
-              slot="start"
-              class="icon-colors"
-            >
-              <i class="fad fa-heartbeat fa-3x"></i>
-            </ion-buttons>
-            <ion-label class="py-4">
-              New Profile
-              <p>New players Start Here.</p>
-            </ion-label>
-          </ion-item>
-          <ion-item
-            v-for="profile in users"
-            :key="profile.id"
-            @click="selectProfile(profile)"
-            button
-            detail
-            class="profile-item rpg-box"
-          >
-            <div
-              slot="start"
-              class="profile-info stats-container py-4"
-            >
-              <div class="level">
-                <span class="label">LVL</span>
-                <span class="value">{{ profile?.stats?.level || 1 }}</span>
-              </div>
-              <div class="avatar-container">
-                <ion-avatar>
-                  <ion-img :src="getUserAvatar(profile)" />
-                </ion-avatar>
-                <div class="role-icons icon-colors">
-                  <i :class="`fad fa-${getJobClassIcon(profile)}`"></i>
-                  <i :class="`fad fa-${getFoodIcon(profile)}`"></i>
-                </div>
-              </div>
-              <ion-label class="name-container">
-                <h1>{{ profile.name.nick }}</h1>
-                <p>{{ profile.name.full }}</p>
-              </ion-label>
-            </div>
 
-            <div
-              slot="end"
-              class="stats-container"
+      <ion-grid v-show="!isLoading">
+        <ion-row class="md:hidden">
+          <ion-col
+            v-for="(user, key) in users"
+            :key="key"
+            size="6"
+            size-sm="4"
+            size-md="3"
+            size-xl="2"
+            class="ion-no-padding"
+          >
+            <ion-card
+              class="ion-no-margin"
+              button
+              @click="selectProfile(user)"
             >
-              <ion-chip
-                class="wallet"
-                color="warning"
+              <ion-card-header class="ion-text-center">
+                <ion-card-title>
+                  {{ user.name.nick }}
+                </ion-card-title>
+                <ion-avatar class="mx-auto mt-2 w-[75px]">
+                  <img :src="getUserAvatar(user)" />
+                </ion-avatar>
+              </ion-card-header>
+              <ion-card-content>
+                <ion-card-subtitle>
+                {{ user.name.full}}
+                  <!-- <xp-gp :gp="user?.stats?.gp.wallet" /> -->
+                </ion-card-subtitle>
+                <!-- <xp-gp :gp="user?.stats?.gp.wallet" /> -->
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+          <ion-col
+            size="6"
+            size-sm="4"
+            size-md="3"
+            size-xl="2"
+            class="hidden"
+          >
+            <ion-card
+              class="ion-no-margin"
+              button
+                @click="openNewProfileModal"
+            >
+              <ion-card-header class="ion-text-center">
+                <ion-card-title>
+                  New
+                </ion-card-title>
+                <ion-avatar class="mx-auto mt-2 flex flex-col items-center justify-center icon-colors">
+                  <i class="fad fa-heartbeat fa-3x"></i>
+                </ion-avatar>
+              </ion-card-header>
+              <ion-card-content>
+                Start Here
+                <!-- <xp-gp :gp="user?.stats?.gp.wallet" /> -->
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+        </ion-row>
+        <ion-row class="ion-no-padding hidden md:block">
+          <ion-card
+            v-show="!isLoading"
+            class="max-w-4xl "
+          >
+            <ion-list>
+              <ion-item
+                detail
+                button
+                @click="openNewProfileModal"
               >
-                <xp-gp :gp="profile?.stats?.gp.wallet" />
-              </ion-chip>
-            </div>
-          </ion-item>
-        </ion-list>
-      </ion-card>
+                <ion-buttons
+                  slot="start"
+                  class="icon-colors"
+                >
+                  <i class="fad fa-heartbeat fa-3x"></i>
+                </ion-buttons>
+                <ion-label class="py-4">
+                  New Profile
+                  <p>New players Start Here.</p>
+                </ion-label>
+              </ion-item>
+              <ion-item
+                v-for="user in users"
+                :key="user.id"
+                @click="selectProfile(user)"
+                button
+                detail
+                class="profile-item rpg-box"
+              >
+                <div
+                  slot="start"
+                  class="profile-info stats-container py-4"
+                >
+                  <div class="level">
+                    <span class="label">LVL</span>
+                    <span class="value">{{ user?.stats?.level || 1 }}</span>
+                  </div>
+                  <div class="avatar-container">
+                    <ion-avatar>
+                      <ion-img :src="getUserAvatar(user)" />
+                    </ion-avatar>
+                    <div class="role-icons icon-colors">
+                      <i :class="`fad fa-${getJobClassIcon(user)}`"></i>
+                      <i :class="`fad fa-${getFoodIcon(user)}`"></i>
+                    </div>
+                  </div>
+                  <ion-label class="name-container">
+                    <h1>{{ user.name.nick }}</h1>
+                    <p>{{ user.name.full }}</p>
+                  </ion-label>
+                </div>
+
+                <div
+                  slot="end"
+                  class="stats-container"
+                >
+                  <ion-chip
+                    class="wallet"
+                    color="warning"
+                  >
+                    <xp-gp :gp="user?.stats?.gp.wallet" />
+                  </ion-chip>
+                </div>
+              </ion-item>
+            </ion-list>
+          </ion-card>
+        </ion-row>
+      </ion-grid>
+
+      <ion-fab
+        vertical="bottom"
+        horizontal="center"
+        slot="fixed"
+        @click="openNewProfileModal"
+        class="ion-no-border md:hidden"
+      >
+        <ion-fab-button color="danger">
+          <i class="fad fa-heartbeat fa-2x" />
+        </ion-fab-button>
+      </ion-fab>
 
       <!-- Loading indicator for profile selection -->
       <ion-loading
@@ -134,21 +194,41 @@
         :duration="0"
       >
       </ion-loading>
+
+      <!-- Toast for restore success -->
+      <ion-toast
+        :is-open="showRestoreToast"
+        :message="restoreMessage"
+        :duration="3000"
+        :color="restoreSuccess ? 'success' : 'warning'"
+        position="top"
+        @didDismiss="showRestoreToast = false"
+      ></ion-toast>
     </ion-content>
   </ion-page>
 </template>
 
 <script lang="ts">
 import {
-  toastController, // <-- Import toastController
+  toastController,
   IonLoading,
   useIonRouter,
   onIonViewWillEnter,
   onIonViewDidLeave,
+  alertController,
+  actionSheetController,
 } from "@ionic/vue";
 import { useStore } from "vuex";
 import { computed, defineComponent, ref, onUnmounted } from "vue";
-import { peopleCircleSharp, peopleCircleOutline, fingerPrintOutline, fingerPrintSharp } from "ionicons/icons";
+import {
+  peopleCircleSharp,
+  peopleCircleOutline,
+  fingerPrintOutline,
+  fingerPrintSharp,
+  cloudDownloadOutline,
+  cloudUploadOutline,
+  saveOutline
+} from "ionicons/icons";
 import User from "@/utils/User";
 import { Drivers, Storage } from "@ionic/storage";
 import { modalController } from "@ionic/vue";
@@ -169,7 +249,7 @@ export const profileStorage = new Storage({
 export default defineComponent({
   name: "switch-profile",
   components: {
-    IonLoading, // <-- Add IonLoading component
+    IonLoading,
     XpGp,
   },
   mixins: [ionic],
@@ -181,6 +261,12 @@ export default defineComponent({
     const ionRouter = useIonRouter();
     const storage = new ProfileDb(profileStorage);
 
+    // Restore notification state
+    const showRestoreToast = ref(false);
+    const restoreMessage = ref('');
+    const restoreSuccess = ref(false);
+    const isRestoringProfiles = ref(false);
+
     // Computed properties
     const users = computed(() => store.getters.usersAz);
     const bgm = computed(() => store.state.bgm);
@@ -191,6 +277,23 @@ export default defineComponent({
 
       try {
         await storage.init();
+
+        // Check if we have profiles, if not try to restore from persistent storage
+        const existingProfiles = await storage.getProfiles();
+
+        if (!existingProfiles || existingProfiles.length === 0) {
+          if (!isRestoringProfiles.value) {
+            isRestoringProfiles.value = true;
+            const restored = await storage.restoreProfiles();
+            if (restored) {
+              restoreSuccess.value = true;
+              restoreMessage.value = 'Successfully restored your profiles!';
+              showRestoreToast.value = true;
+            }
+            isRestoringProfiles.value = false;
+          }
+        }
+
         await store.dispatch("loadUsers");
       } catch (error) {
         console.error("Failed to load profiles:", error);
@@ -207,6 +310,153 @@ export default defineComponent({
       } finally {
         event.target.complete();
       }
+    };
+
+    // Backup and restore functions
+    const exportProfiles = async () => {
+      try {
+        const fileName = await storage.exportProfiles();
+        const toast = await toastController.create({
+          message: `Profiles exported to ${fileName}`,
+          duration: 3000,
+          color: 'success',
+          position: 'top'
+        });
+        await toast.present();
+      } catch (error: any) {
+        const toast = await toastController.create({
+          message: `Failed to export profiles: ${error.message || error}`,
+          duration: 3000,
+          color: 'danger',
+          position: 'top'
+        });
+        await toast.present();
+      }
+    };
+
+    const importProfiles = async () => {
+      // Create a file input element
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'application/json';
+
+      fileInput.addEventListener('change', async (event: any) => {
+        const file = event.target.files[0];
+        if (file) {
+          try {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+              try {
+                const content = e.target?.result as string;
+                const success = await storage.importProfiles(content);
+
+                if (success) {
+                  await store.dispatch("loadUsers");
+                  const toast = await toastController.create({
+                    message: 'Profiles imported successfully',
+                    duration: 3000,
+                    color: 'success',
+                    position: 'top'
+                  });
+                  await toast.present();
+                }
+              } catch (err: any) {
+                const toast = await toastController.create({
+                  message: `Failed to import profiles: ${err.message || err}`,
+                  duration: 3000,
+                  color: 'danger',
+                  position: 'top'
+                });
+                await toast.present();
+              }
+            };
+            reader.readAsText(file);
+          } catch (error: any) {
+            const toast = await toastController.create({
+              message: `Failed to read file: ${error.message || error}`,
+              duration: 3000,
+              color: 'danger',
+              position: 'top'
+            });
+            await toast.present();
+          }
+        }
+      });
+
+      fileInput.click();
+    };
+
+    // Options modal
+    const openBackupOptionsModal = async () => {
+      const actionSheet = await actionSheetController.create({
+        header: 'Profile Backup Options',
+        buttons: [
+          {
+            text: 'Export Profiles',
+            icon: saveOutline,
+            handler: () => {
+              exportProfiles();
+            }
+          },
+          {
+            text: 'Import Profiles',
+            icon: cloudUploadOutline,
+            handler: () => {
+              importProfiles();
+            }
+          },
+          {
+            text: 'Restore From Backup',
+            icon: cloudDownloadOutline,
+            handler: async () => {
+              const alert = await alertController.create({
+                header: 'Restore Profiles',
+                message: 'This will replace all current profiles with those from your last backup. Continue?',
+                buttons: [
+                  {
+                    text: 'Cancel',
+                    role: 'cancel'
+                  },
+                  {
+                    text: 'Restore',
+                    handler: async () => {
+                      try {
+                        isRestoringProfiles.value = true;
+                        const restored = await storage.restoreProfiles();
+
+                        if (restored) {
+                          await store.dispatch("loadUsers");
+                          restoreSuccess.value = true;
+                          restoreMessage.value = 'Successfully restored your profiles!';
+                        } else {
+                          restoreSuccess.value = false;
+                          restoreMessage.value = 'No backup found to restore.';
+                        }
+
+                        showRestoreToast.value = true;
+                      } catch (error: any) {
+                        restoreSuccess.value = false;
+                        restoreMessage.value = `Restore failed: ${error.message || error}`;
+                        showRestoreToast.value = true;
+                      } finally {
+                        isRestoringProfiles.value = false;
+                      }
+                    }
+                  }
+                ]
+              });
+
+              await alert.present();
+            }
+          },
+          {
+            text: 'Cancel',
+            role: 'cancel'
+          }
+        ]
+      });
+
+      await actionSheet.present();
     };
 
     // Navigation functions
@@ -327,9 +577,14 @@ export default defineComponent({
       selectProfile,
       openNewProfileModal,
       handleRefresh,
-      isProfileLoading, // <-- Expose isProfileLoading
+      isProfileLoading,
       fingerPrintOutline,
       fingerPrintSharp,
+      cloudDownloadOutline,
+      restoreMessage,
+      restoreSuccess,
+      showRestoreToast,
+      openBackupOptionsModal,
     };
   },
 });

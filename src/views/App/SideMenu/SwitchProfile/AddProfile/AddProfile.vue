@@ -1,10 +1,30 @@
 <template>
   <ion-header>
     <ion-toolbar class="rpg-box">
-      <ion-title class="text-xl font-bold">Start a Profile</ion-title>
+      <ion-buttons slot="start">
+        <ion-button
+          color="medium"
+          @click="closeModal"
+          class="font-medium"
+        >
+          <i class="fas fa-times text-xl mr-2"/>
+        </ion-button>
+      </ion-buttons>
+      <ion-title class="text-xl font-bold">New Profile</ion-title>
+      <ion-buttons slot="end">
+        <ion-button
+          :disabled="!favoriteFood || !favoriteThing || !jobClass || !fullName"
+          @click="clickSaveProfile"
+          class="font-medium"
+          color="rpg"
+        >
+          Save
+          <i class="fad fa-save text-xl ml-2"></i>
+        </ion-button>
+      </ion-buttons>
       <ion-item
         lines="none"
-        slot="end"
+        slot="secondary"
         v-if="$props.showIsAdult"
       >
         <ion-label class="font-medium"> Adult </ion-label>
@@ -56,42 +76,46 @@
       <ion-card class="w-full shadow-lg">
         <ion-segment
           v-model="activeSegment"
-          class="overflow-visible p-4"
+          class="overflow-visible p-2 mx-2"
         >
           <ion-segment-button
             value="info"
             class="segment-button-custom overflow-visible"
+            color="rpg"
           >
             <div class="flex flex-col items-center gap-1 overflow-visible">
               <i class="fad fa-user fa-2x"></i>
-              <span class="text-sm">Profile</span>
+              <span class="text-xs">Who</span>
             </div>
           </ion-segment-button>
           <ion-segment-button
             value="account"
             class="segment-button-custom overflow-visible"
+            color="rpg"
           >
             <div class="flex flex-col items-center gap-1 overflow-visible">
-              <i class="fad fa-shield fa-2x text-primary"></i>
-              <span class="text-sm">Security</span>
+              <i class="fad fa-fingerprint fa-2x"></i>
+              <span class="text-xs">Pin</span>
             </div>
           </ion-segment-button>
           <ion-segment-button
             value="features"
             class="segment-button-custom"
+            color="rpg"
           >
             <div class="flex flex-col items-center gap-1">
-              <i class="fad fa-bell fa-2x text-primary"></i>
-              <span class="text-sm">Features</span>
+              <i class="fad fa-gamepad fa-2x text-primary"></i>
+              <span class="text-xs">On/Off</span>
             </div>
           </ion-segment-button>
           <ion-segment-button
             value="preferences"
-            class="segment-button-custom"
+            class="segment-button-custom flex-shrink"
+            color="rpg"
           >
             <div class="flex flex-col items-center gap-1">
-              <i class="fad fa-cog fa-2x text-primary"></i>
-              <span class="text-sm">Preferences</span>
+              <i class="fad fa-cogs fa-2x"></i>
+              <!-- <span class="text-xs">Preferences</span> -->
             </div>
           </ion-segment-button>
         </ion-segment>
@@ -103,7 +127,7 @@
       >
         <ion-list class="p-0">
           <!-- Avatar Selection Row -->
-          <ion-item class="avatar-row p-4">
+          <ion-item class="avatar-row py-2">
             <div class="flex items-center w-full gap-4">
               <div
                 class="avatar-preview w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center cursor-pointer hover:opacity-80"
@@ -131,12 +155,11 @@
               <!-- Left Column -->
               <ion-col
                 size="12"
-                size-md="6"
               >
-                <ion-item class="p-4">
+                <ion-item class="py-1">
                   <div class="w-full">
                     <ion-label class="font-medium block mb-1">
-                      Full Name
+                      <!-- Full Name -->
                       <p class="text-sm text-gray-500">First M. Last aka Nickname</p>
                     </ion-label>
                     <ion-input
@@ -147,11 +170,11 @@
                   </div>
                 </ion-item>
 
-                <ion-item class="p-4">
+                <ion-item class="py-1">
                   <div class="w-full">
                     <ion-label class="font-medium block mb-1">
-                      Favorite Thing
-                      <p class="text-sm text-gray-500">What's your most favorite thing?</p>
+                      <!-- Favorite Thing -->
+                      <p>What's your most favorite thing?</p>
                     </ion-label>
                     <ion-input
                       v-model="favoriteThing"
@@ -167,17 +190,18 @@
                 size="12"
                 size-md="6"
               >
-                <ion-item class="p-4">
+                <ion-item class="py-1">
                   <div class="w-full">
                     <ion-label class="font-medium block mb-1">
-                      Job Class
-                      <p class="text-sm text-gray-500">Choose your starter job class</p>
+                      <!-- Job Class -->
+                      <p class="text-sm text-gray-500">Pick a starter job class</p>
                     </ion-label>
                     <ion-select
                       v-model="jobClass"
                       placeholder="Select starter class..."
-                      class="bg-gray-50 rounded-lg mt-1 w-full"
+                      class=" w-full"
                       interface="action-sheet"
+                      expand="block"
                       :interface-options="{
                         header: 'Choose Your Job Class',
                         subHeader: 'Select your starting role'
@@ -187,6 +211,7 @@
                         v-for="(job, index) in jobClassOptions"
                         :key="index"
                         :value="job.name"
+                        class="w-full"
                       >
                         <i :class="`fad ${job.icon} mr-2`"></i>
                         {{ job.name }}
@@ -195,17 +220,18 @@
                   </div>
                 </ion-item>
 
-                <ion-item class="p-4">
+                <ion-item class="py-1 w-full">
                   <div class="w-full">
                     <ion-label class="font-medium block mb-1">
-                      Favorite Food
-                      <p class="text-sm text-gray-500">Pick a favorite food from the bunch</p>
+                      <!-- Favorite Food -->
+                      <p class="text-sm text-gray-500">Favorite food from the bunch</p>
                     </ion-label>
                     <ion-select
                       v-model="favoriteFood"
                       placeholder="Select favorite food..."
-                      class="bg-gray-50 rounded-lg mt-1 w-full"
+                      class="mt-1 w-full"
                       interface="action-sheet"
+                      expand="full"
                       :interface-options="{
                         header: 'Choose Your Favorite Food',
                         subHeader: 'What do you enjoy eating most?'
@@ -331,29 +357,30 @@
                 Buy from Shops
                 <p class="text-sm text-gray-500">Allowed this player access to shops and purchase rewards.</p>
               </ion-label>
-              <ion-toggle
+              <ion-checkbox
                 v-model="features.rewards"
                 @click.stop
-                class="ml-4"
-              ></ion-toggle>
+                color="rpg"
+              />
             </div>
           </ion-item>
 
           <ion-item
             button
             @click="toggleGoal"
-            class="p-4"
+            class="py-2"
           >
             <div class="flex items-center justify-between w-full">
               <ion-label class="font-medium">
                 Save towards Goals
                 <p class="text-sm text-gray-500">Allowed player access to the banks and saves toward goals.</p>
               </ion-label>
-              <ion-toggle
+              <ion-checkbox
                 v-model="features.goals"
                 @click.stop
                 class="ml-4"
-              ></ion-toggle>
+                color="rpg"
+              />
             </div>
           </ion-item>
 
@@ -368,11 +395,12 @@
                 <p class="text-sm text-gray-500">Turn on/off random battles. If off, players will have to manually check
                   their achievements.</p>
               </ion-label>
-              <ion-toggle
+              <ion-checkbox
                 v-model="features.battles"
                 @click.stop
                 class="ml-4"
-              ></ion-toggle>
+                color="rpg"
+              />
             </div>
           </ion-item>
 
@@ -386,11 +414,12 @@
                 Participate in Town Hall
                 <p class="text-sm text-gray-500">For players who want to participate in Town Hall.</p>
               </ion-label>
-              <ion-toggle
+              <ion-checkbox
                 v-model="features.community"
                 @click.stop
                 class="ml-4"
-              ></ion-toggle>
+                color="rpg"
+             />
             </div>
           </ion-item>
         </ion-list>
@@ -398,40 +427,17 @@
       <InputSettings v-if="activeSegment === 'preferences'" />
     </ion-grid>
   </ion-content>
-  <ion-footer>
-    <ion-toolbar class="rpg-box">
-      <ion-buttons slot="start">
-        <ion-button
-          color="medium"
-          @click="closeModal"
-          class="font-medium"
-        >
-          <i class="fad fa-times text-xl mr-2"></i>
-          Cancel
-        </ion-button>
-      </ion-buttons>
-      <ion-buttons slot="end">
-        <ion-button
-          :disabled="!favoriteFood || !favoriteThing || !jobClass || !fullName"
-          @click="clickSaveProfile"
-          color="success"
-          class="font-medium"
-        >
-          Save Profile
-          <i class="fad fa-save text-xl ml-2"></i>
-        </ion-button>
-      </ion-buttons>
-    </ion-toolbar>
-  </ion-footer>
 </template>
 <script lang="ts" src="./AddProfile.ts"></script>
 <style scoped>
 .segment-button-custom {
-  --background-hover: $eb-color-purple;
-  --color-checked: $eb-color-cream;
-  --indicator-color: $eb-color-pale-yellow;
+  --indicator-color: white;
+  --color-checked: white;
+  --background-hover: white;
+
   transition: all 0.3s ease;
 }
+
 
 .segment-button-custom:hover i {
   transform: scale(1.1);
