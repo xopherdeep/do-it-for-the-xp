@@ -14,15 +14,15 @@
           Life's Level Up & Reward System
         </ion-note>
         <ion-note class="w-full flex flex-row">
-          <ion-chip color="success">
+          <ion-chip color="success" @click="navigateToXpPage" class="cursor-pointer">
             <i class="fad fa-hand-holding-seedling mr-2"></i>
             XP
           </ion-chip>
-          <ion-chip color="warning">
+          <ion-chip color="warning" @click="navigateToGpPage" class="cursor-pointer">
             <i class="fad fa-hand-holding-usd mr-2"></i>
             GP
           </ion-chip>
-          <ion-chip color="danger">
+          <ion-chip color="danger" @click="navigateToApPage" class="cursor-pointer">
             <i class="fad fa-hand-holding-magic mr-2"></i>
             AP
           </ion-chip>
@@ -262,6 +262,18 @@ export default defineComponent({
       this.changeBGM(direction);
       // Still emit the event for any parent components
       this.$emit("changeBGM", direction);
+    },
+    navigateToGpPage() {
+      this.$fx.ui[this.$fx.theme.ui].select.play();
+      this.$router.push("/about-xp/gp");
+    },
+    navigateToXpPage() {
+      this.$fx.ui[this.$fx.theme.ui].select.play();
+      this.$router.push("/about-xp/xp");
+    },
+    navigateToApPage() {
+      this.$fx.ui[this.$fx.theme.ui].select.play();
+      this.$router.push("/about-xp/ap");
     },
   },
   setup() {
