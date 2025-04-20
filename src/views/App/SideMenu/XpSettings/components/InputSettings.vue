@@ -16,10 +16,11 @@
           <h2>Background Music</h2>
           <p>Enable music throughout the app</p>
         </ion-label>
-        <ion-toggle
+        <ion-checkbox
           @ionChange="changeBGMToggle"
           :checked="bgm.is_on"
-        ></ion-toggle>
+          color="rpg"
+        ></ion-checkbox>
       </ion-item>
 
       <ion-item v-if="bgm.is_on">
@@ -29,7 +30,7 @@
           max="100"
           :value="musicVolume"
           @ionChange="changeMusicVolume"
-          color="primary"
+          color="rpg"
         >
           <ion-icon
             slot="start"
@@ -51,10 +52,11 @@
           <h2>Sound Effects</h2>
           <p>Enable sound effects for actions</p>
         </ion-label>
-        <ion-toggle
+        <ion-checkbox
           v-model="soundEffectsEnabled"
           @ionChange="toggleSoundEffects"
-        ></ion-toggle>
+          color="rpg"
+        ></ion-checkbox>
       </ion-item>
 
       <ion-item v-if="soundEffectsEnabled">
@@ -64,7 +66,7 @@
           max="100"
           :value="effectsVolume"
           @ionChange="changeEffectsVolume"
-          color="primary"
+          color="rpg"
         >
           <ion-icon
             slot="start"
@@ -125,10 +127,11 @@
           <h2>Vibration</h2>
           <p>Enable haptic feedback</p>
         </ion-label>
-        <ion-toggle
+        <ion-checkbox
           v-model="vibrationEnabled"
           @ionChange="toggleVibration"
-        ></ion-toggle>
+          color="rpg"
+        ></ion-checkbox>
       </ion-item>
     </ion-list>
   </ion-card>
@@ -138,34 +141,18 @@
 import { computed, defineComponent, ref } from "vue";
 
 import {
-  IonSelect,
-  IonSelectOption,
-  IonList,
-  IonItem,
-  IonToggle,
-  IonLabel,
-  IonListHeader,
-  IonRange,
-  IonIcon,
   toastController,
 } from "@ionic/vue";
+
+import Ionic from "@/mixins/ionic";
+
 
 import { volumeHigh, volumeLow } from "ionicons/icons";
 import { mapActions, mapState, useStore } from "vuex";
 
 export default defineComponent({
   name: "input-settings",
-  components: {
-    IonSelect,
-    IonToggle,
-    IonSelectOption,
-    IonList,
-    // IonListHeader,
-    IonItem,
-    IonLabel,
-    IonRange,
-    IonIcon,
-  },
+  mixins: [Ionic],
 
   computed: {
     ...mapState(["theme", "bgm"]),
