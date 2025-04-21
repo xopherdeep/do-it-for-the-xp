@@ -2,6 +2,9 @@
   <ion-page>
     <ion-content class="ion-no-padding">
       <xp-intro-splash
+        v-if="viewActive"
+        key="introSplash"
+        ref="introSplash"
         :splash-screens="splashScreens"
         :auto-play="true"
         :default-duration="4000"
@@ -19,87 +22,95 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue';
+import { defineComponent, ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import { 
-  toastController
-} from '@ionic/vue';
-import { playCircleOutline, closeCircleOutline } from 'ionicons/icons';
+import { useIonRouter, IonPage, IonContent } from '@ionic/vue';
 import { XpIntroSplash } from '@/components/XpIntroSplash';
 import type { SplashScreen } from '@/components/XpIntroSplash';
 import ionic from '@/mixins/ionic';
 
 export default defineComponent({
   name: 'XpIntro',
-  mixins: [ionic],
   components: {
-    XpIntroSplash
+    XpIntroSplash,
+    IonPage,
+    IonContent
   },
   setup() {
     const router = useRouter();
-    const showIntro = ref(false);
+    const ionRouter = useIonRouter();
+    const viewActive = ref(false);
+    const duration = 2500; // Default duration for each splash screen
     
     // Define the splash screens for the intro sequence
     const splashScreens = ref<SplashScreen[]>([
       {
-        image: require('@/assets/images/about/splash-1.png'),
+        image: require('@/assets/images/about/welcome.png'),
         text: "Welcome to 'Do it for the XP' - Your life's level-up system!",
         alt: "Do it for the XP Logo",
-        duration: 5000,
+        duration,
         soundEffect: 'splash.intro'
       },
       {
-        image: require('@/assets/images/about/splash-2.png'),
-        text: "XP (Experience Points) help you track your progress as you complete tasks and build good habits.",
-        alt: "XP Icon",
-        duration: 6000
+        image: require('@/assets/images/about/peace.png'),
+        text: "Long ago, the sacred pegasi maintained balance in our world, bringing harmony to every corner of life.",
+        alt: "World Lore",
+        duration,
       },
       {
-        image: require('@/assets/images/about/splash-3.png'),
-        text: "GP (Gold Points) are the in-app currency you earn and spend on rewards you set for yourself.",
-        duration: 6000
+        image: require('@/assets/images/about/darkness.png'),
+        text: "But the dark forces of chaos - Dust Bunnies and Grease Dragons - have risen to power, capturing the pegasi and imprisoning them in dragon eggs.",
+        alt: "Villains",
+        duration,
+      },
+      {
+        image: require('@/assets/images/about/temples.png'),
+        text: "These temples - once sacred grounds of order - now lie in disarray. The Wind Temple, the Earth Temple, the Water Temple, the Fire & Frozen Temples, and the Sun & Moon Temples have fallen to chaos.",
+        alt: "Temples",
+        duration,
+      },
+      {
+        image: require('@/assets/images/about/chosen.png'),
+        text: "As the Chosen One, you must cleanse these temples, defeat the forces of disorder, and rescue the pegasi to restore balance to your world.",
+        alt: "Hero's Journey",
+        duration,
+      },
+      {
+        image: require('@/assets/images/about/order.png'),
+        text: "Each completed task brings order to chaos, frees a pegasus, and strengthens your resolve for the battles ahead.",
+        duration,
+      },
+      {
+        image: require('@/assets/images/about/xp.png'),
+        text: "XP (Experience Points) represents how much you've grown in your quest for balance. Fueling up as you complete quests and vanquish the forces of chaos.",
+        alt: "XP Icon",
+        duration,
+      },
+      {
+        image: require('@/assets/images/about/gp.png'),
+        text: "GP (Gold Points) are the currency you use to buy treasures you collect along your journey, to be spent on rewards and tools to aid your quest.",
+        duration,
+      },
+      {
+        image: require('@/assets/images/about/ap.png'),
+        text: "AP (Ability Points) are used to unlock new abilities and skills, enhancing your powers and making you a formidable force against the forces of chaos.",
+        duration,
       },
       {
         image: require('@/assets/images/about/splash-4.png'),
-        text: "Are you ready to embark on this epic quest to level up your life?",
-        duration: 5000
+        text: "Will you answer the call? The fate of the pegasi - and the balance of your realm - rests in your hands.",
+        duration,
       },
     ]);
     
-    // Start the intro sequence
-    const startIntro = () => {
-      showIntro.value = true;
-    };
-    
-    // Skip the intro sequence
-    const skipIntro = () => {
-      showIntro.value = false;
-    };
-    
     // Handle intro completion
-    const onComplete = async () => {
-      showIntro.value = false;
-      
-      
-      const toast = await toastController.create({
-        message: 'Introduction completed! Ready to start your journey?',
-        duration: 3000,
-        position: 'bottom',
-        buttons: [
-          {
-            text: 'Get Started',
-            role: 'confirm',
-            handler: () => navigateTo('/xp-profile')
-          }
-        ]
-      });
-      
-      await toast.present().then(()=>navigateTo('/log-in'));
+    const onComplete = () => {
+      navigateTo('/log-in');
     };
     
     // Handle intro skip
     const onSkip = () => {
-      showIntro.value = false;
+      navigateTo('/log-in');
     };
     
     // Navigate to another page
@@ -108,19 +119,36 @@ export default defineComponent({
     };
 
     return {
-      showIntro,
+      viewActive,
       splashScreens,
-      startIntro,
-      skipIntro,
       onComplete,
       onSkip,
-      navigateTo,
-      playCircleOutline,
-      closeCircleOutline
+      navigateTo
     };
   },
-  mounted() {
-    this.$fx.ui[this.$fx.theme.ui].options.play();
+  
+  // Use Ionic-specific lifecycle hooks
+  beforeMount() {
+    // Play sound if needed
+    if (typeof this.$fx?.ui?.[this.$fx.theme.ui]?.options?.play === 'function') {
+      this.$fx.ui[this.$fx.theme.ui].options.play();
+    }
+  },
+  
+  // This is called every time the view is entered - Ionic specific
+  ionViewWillEnter() {
+    // Ensure intro will play when entering the view
+    this.viewActive = false;
+    // Short delay to ensure a clean start
+    setTimeout(() => {
+      this.viewActive = true;
+    }, 100);
+  },
+  
+  // This is called when leaving the view - Ionic specific
+  ionViewWillLeave() {
+    // Deactivate the component when navigating away
+    this.viewActive = false;
   }
 });
 </script>
@@ -130,6 +158,7 @@ export default defineComponent({
   max-width: 800px;
   margin: 0 auto;
 }
+
 
 ion-card {
   margin-bottom: 20px;
