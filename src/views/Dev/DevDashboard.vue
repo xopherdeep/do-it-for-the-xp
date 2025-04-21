@@ -44,6 +44,14 @@
             </ion-label>
           </ion-item>
 
+          <ion-item button detail @click="navigateTo('/dev/intro-splash')">
+            <ion-icon :icon="imageOutline" slot="start"></ion-icon>
+            <ion-label>
+              <h2>Intro Splash Demo</h2>
+              <p>Test and customize 90s-style game intro splash screens</p>
+            </ion-label>
+          </ion-item>
+
           <ion-item-divider>
             <ion-label>System Dev Tools</ion-label>
           </ion-item-divider>
@@ -90,7 +98,7 @@ import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonCard,
          IonCardHeader, IonCardTitle, IonCardContent, IonList, IonItem,
          IonItemDivider, IonLabel, IonButtons, IonBackButton, IonIcon } from '@ionic/vue';
 import { 
-  cloudOutline, shieldOutline, cubeOutline, chatboxOutline
+  cloudOutline, shieldOutline, cubeOutline, chatboxOutline, imageOutline
 } from 'ionicons/icons';
 import { isPlatform } from '@ionic/vue';
 
@@ -121,7 +129,8 @@ export default defineComponent({
       cloudOutline,
       shieldOutline,
       cubeOutline,
-      chatboxOutline
+      chatboxOutline,
+      imageOutline
     };
   }
 });
