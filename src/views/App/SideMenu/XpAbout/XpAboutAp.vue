@@ -6,14 +6,14 @@
           <ion-back-button default-href="/about-xp" />
           <i class="fad fa-hand-holding-magic fa-lg mr-2" style="color: lightcoral"></i>
         </ion-buttons>
-        <ion-title>About Action Points</ion-title>
+        <ion-title>About Ability Points</ion-title>
       </ion-toolbar>
     </ion-header>
 
     <ion-content>
       <!-- Main content with a background that matches the theme color -->
       <div class="ap-theme-background h-full flex items-center justify-center">
-        <i class="fad fa-hand-holding-magic fa-10x"></i>
+        <i class="fad fa-hand-holding-magic fa-10x"></i> AP
         <!-- FAB button to trigger the dialog -->
         <ion-fab vertical="bottom" horizontal="center" slot="fixed">
           <ion-fab-button color="danger" @click="showApDialog">
@@ -28,7 +28,7 @@
       <ion-card class="ap-dialog-box rpg-box">
         <ion-card-title class="dialog-header">
           <i class="fad fa-hand-holding-magic fa-lg mr-2"></i>
-          <span>Action Points</span>
+          <span>Ability Points</span>
         </ion-card-title>
         <div class="dialog-content">
           <xp-typing-text
@@ -91,7 +91,7 @@ export default defineComponent({
       }
       
       return [
-        "Action Points (AP) are special resources used for your most powerful abilities and actions!",
+        "Ability Points (AP) are special resources used for your most powerful abilities and actions!",
         "Unlike XP and GP, AP are limited and regenerate slowly, making them precious for special occasions.",
         "You earn AP by accomplishing difficult tasks, mastering skills, and making exceptional progress.",
         "AP can be spent to activate special abilities, skip difficult challenges, or unlock rare opportunities.",
@@ -106,7 +106,7 @@ export default defineComponent({
           icon: flameOutline,
           handler: () => {
             this.showCustomDialog([
-              "Ways to earn Action Points:",
+              "Ways to earn Ability Points:",
               "• Complete difficult challenges",
               "• Master specialized skills",
               "• Achieve exceptional progress",
@@ -120,7 +120,7 @@ export default defineComponent({
           icon: flashOutline,
           handler: () => {
             this.showCustomDialog([
-              "Ways to use Action Points:",
+              "Ways to use Ability Points:",
               "• Activate special abilities and powers",
               "• Skip difficult challenges",
               "• Unlock rare opportunities or items",
@@ -134,7 +134,7 @@ export default defineComponent({
           icon: bulbOutline,
           handler: () => {
             this.showCustomDialog([
-              "Strategies for managing Action Points:",
+              "Strategies for managing Ability Points:",
               "• Save AP for critical moments rather than routine use",
               "• Balance AP spending between different life areas",
               "• Use AP when they'll create the biggest impact",
@@ -202,7 +202,7 @@ export default defineComponent({
     async presentActionSheet() {
       const actionSheet = await actionSheetController
         .create({
-          header: 'Learn more about Action Points:',
+          header: 'Learn more about Ability Points:',
           cssClass: 'ap-action-sheet',
           buttons: this.actionButtons,
           mode: 'ios',

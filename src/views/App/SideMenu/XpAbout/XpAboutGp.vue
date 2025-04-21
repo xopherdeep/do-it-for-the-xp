@@ -68,6 +68,15 @@ interface XpTypingTextInstance {
   resumeTyping: () => void;
 }
 
+// Define interface for component options to ensure type safety
+interface ComponentOptions {
+  computed?: {
+    dialogBlocks?: () => string[];
+    [key: string]: any;
+  };
+  [key: string]: any;
+}
+
 export default defineComponent({
   name: 'XpAboutGp',
   mixins: [ionic],
@@ -208,14 +217,22 @@ export default defineComponent({
     showCustomDialog(blocks: string[]) {
       // Store original blocks
       const originalBlocks = this.dialogBlocks;
-      // Override with custom blocks
-      this.$options.computed.dialogBlocks = function() { return blocks; };
+      // Override with custom blocks - Type-safe access
+      const options = this.$options as ComponentOptions;
+      if (options.computed && options.computed.dialogBlocks) {
+        options.computed.dialogBlocks = function() { return blocks; };
+      }
+      
       // Show dialog with custom content
       this.showGpDialog();
+      
       // Reset to original blocks after dialog is closed
       this.$watch('isDialogVisible', (newVal) => {
         if (!newVal) {
-          this.$options.computed.dialogBlocks = function() { return originalBlocks; };
+          const options = this.$options as ComponentOptions;
+          if (options.computed && options.computed.dialogBlocks) {
+            options.computed.dialogBlocks = function() { return originalBlocks; };
+          }
         }
       });
     }
