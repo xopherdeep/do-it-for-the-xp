@@ -19,7 +19,7 @@
       id="container"
       class="bg-slide rpg-box"
     >
-      <InputSettings />
+      <AudioSettings />
     </ion-content>
   </ion-page>
 </template>
@@ -28,13 +28,13 @@
 import { defineComponent } from "vue";
 
 import ionic from "@/mixins/ionic";
-import InputSettings from "./InputSettings.vue";
+import AudioSettings from "@/components/AudioSettings/AudioSettings.vue";
 
 import { arrowBack } from "ionicons/icons";
 
 export default defineComponent({
   components: {
-    InputSettings,
+    AudioSettings,
   },
   mixins: [ionic],
   setup() {

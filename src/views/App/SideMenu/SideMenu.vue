@@ -147,7 +147,7 @@ export default defineComponent({
       ],
       appPages: [
         {
-          title: "Intro",
+          title: "About XP",
           url: "/xp-intro",
           iosIcon: informationOutline,
           mdIcon: informationSharp,

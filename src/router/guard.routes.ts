@@ -1,7 +1,9 @@
 import { Router, NavigationGuardNext, RouteLocationNormalized } from 'vue-router';
 import { Store } from 'vuex';
 import { alertController } from '@ionic/vue';
-import { RootState } from '@/types/store.types'; // Removed unused import
+import { RootState } from '@/types/store.types';
+import { changeBGM } from '@/engine/audio/routeMusic'; // Import our updated adapter
+import { repeat } from 'ionicons/icons';
 
 /**
  * Creates a logout confirmation alert
@@ -118,6 +120,7 @@ export function useRouterGuards(router: Router, store: Store<RootState>) {
           tracks: BGM.startScreen, // Assuming BGM.startScreen exists
           track,
           startDelay,
+          repeat: false,
           saveBookmark: false, // Explicitly false here
         };
         break;
@@ -298,8 +301,9 @@ export function useRouterGuards(router: Router, store: Store<RootState>) {
 
     // Dispatch only if a payload was determined
     if (bgmPayload) {
-      // TODO: Type the payload for 'changeBGM' action using ChangeBGMPayload from store.types.ts
-      store.dispatch('changeBGM', bgmPayload);
+      // Use our updated adapter with useNewEngine=true to use the new engine exclusively
+      // This prevents double playback
+      changeBGM(store, bgmPayload, true);
     }
   });
 }

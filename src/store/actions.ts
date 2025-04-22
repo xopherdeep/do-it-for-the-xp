@@ -106,6 +106,26 @@ export default {
   toggleBGM({ commit }) {
     return commit("TOGGLE_BGM");
   },
+  
+  /**
+   * Toggle BGM repeat setting
+   * When set to false, the music will play once and stop
+   */
+  toggleBGMRepeat({ commit, state }) {
+    // Toggle the current repeat setting
+    const repeat = !state.bgm.repeat;
+    
+    // Update both the store state and the audio element's loop property
+    commit("CHANGE_BGM", { repeat });
+    
+    // If there's an active audio element, update its loop property
+    if (state.bgm.audio) {
+      state.bgm.audio.loop = repeat;
+    }
+    
+    return repeat;
+  },
+  
   changeBGM({ commit }, bgm) {
     return commit("CHANGE_BGM", bgm);
   },

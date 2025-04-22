@@ -20,6 +20,9 @@ import appConfig from "./app.config"
 import useRouter from './router/router';
 import store from './store';
 
+// Audio Engine
+import { AudioEnginePlugin } from './engine/audio/plugin';
+
 // Set up user interaction detection for audio playback
 document.addEventListener('click', () => {
   document.documentElement.setAttribute('data-user-interacted', 'true');
@@ -34,7 +37,6 @@ document.addEventListener('click', () => {
 // Create the emitter for the events
 //const emitter = mitt();
 
-document.title = 'Do it for the XP';
 
 function readyRouterMountApp() {
   const router = useRouter(store);
@@ -54,7 +56,8 @@ function readyRouterMountApp() {
       // routerAnimation: undefined,
     })
     .use(store)
-    .use(router);
+    .use(router)
+    .use(AudioEnginePlugin);
 
   router.afterEach((to) => {
     document.title = (to.meta?.title as string) || 'Do it for the XP';
@@ -66,4 +69,5 @@ function readyRouterMountApp() {
   router.isReady().then(mountApp);
 }
 
+document.title = 'Do it for the XP';
 readyRouterMountApp()

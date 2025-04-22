@@ -25,6 +25,7 @@ const state = {
     src: null,
     track: 0,
     tracks: [],
+    repeat: true, // Add repeat flag - default to true for backward compatibility
     $fx
   },
   xp_achievement: {},

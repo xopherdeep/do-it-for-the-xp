@@ -9,35 +9,99 @@ export interface ApiType {
   base: string;
   uri?: string;
 }
+
+// Enhanced Record type that allows for numeric, boolean values
+export interface ApiParams {
+  [key: string]: string | number | boolean | string[] | null | undefined;
+}
+
 export default class Api {
-  uri: string
+  uri: string;
+  private static instance: Api | null = null;
 
-  constructor({ protocol, url, base }) {
-    this.uri = protocol
-      ? `${protocol}://${url}/${base}`
-      : `${url}/${base}`
+  constructor({ protocol, url, base }: { protocol?: string, url: string, base: string }) {
+    this.uri = protocol ? `${protocol}://${url}/${base}` : `${url}/${base}`;
   }
 
+  /**
+   * Get a singleton instance of the API
+   * @param config Configuration for the API
+   */
+  static getInstance(config?: { protocol?: string, url: string, base: string }): Api {
+    if (!Api.instance && config) {
+      Api.instance = new Api(config);
+    }
+    if (!Api.instance) {
+      throw new Error('API instance not initialized. Call with config first.');
+    }
+    return Api.instance;
+  }
 
-  get(type, params) {
+  /**
+   * Static convenience method that delegates to the instance
+   */
+  static get(type: string, params?: string | string[][] | ApiParams | URLSearchParams | undefined) {
+    return Api.getInstance().get(type, params);
+  }
+
+  /**
+   * Static convenience method that delegates to the instance
+   */
+  static post(type: string, params: any) {
+    return Api.getInstance().post(type, params);
+  }
+
+  get(
+    type: string,
+    params?:
+      | string
+      | string[][]
+      | ApiParams
+      | URLSearchParams
+      | undefined
+  ) {
     // turn our params into url query string
-    const query = new URLSearchParams(params).toString().replace(/%2C/g, ',');
-    const uri = `${this.uri}/${type}?${query}`;
+    const query = new URLSearchParams();
+    
+    // Handle different parameter types
+    if (params) {
+      if (typeof params === 'object' && !(params instanceof URLSearchParams) && !Array.isArray(params)) {
+        // Handle record objects with various value types
+        Object.entries(params).forEach(([key, value]) => {
+          if (value !== undefined && value !== null) {
+            query.append(key, String(value));
+          }
+        });
+      } else {
+        // Use the built-in URLSearchParams constructor for other types
+        const searchParams = new URLSearchParams(params);
+        searchParams.forEach((value, key) => {
+          query.append(key, value);
+        });
+      }
+    }
+
+    const queryString = query.toString().replace(/%2C/g, ",");
+    const uri = `${this.uri}/${type}${queryString ? `?${queryString}` : ''}`;
     const options = { method: "GET" };
-    return fetch(uri, options).then(this.responseHandler).catch(this.errorHandler);
+    return fetch(uri, options)
+      .then(this.responseHandler)
+      .catch(this.errorHandler);
   }
 
-  post(type, params) {
+  post(type: string, params: any) {
     const uri = `${this.uri}/${type}`;
     const options = {
       method: "POST",
       headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
+        Accept: "application/json",
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(params),
     };
-    return fetch(uri, options).then(this.responseHandler).catch(this.errorHandler);
+    return fetch(uri, options)
+      .then(this.responseHandler)
+      .catch(this.errorHandler);
   }
 
   /**
@@ -46,7 +110,7 @@ export default class Api {
    * return error if !response.ok
    * @return response.json() || Promise.reject
    */
-  async responseHandler(response) {
+  async responseHandler(response: Response) {
     const data = await response.json();
 
     // check for error response
@@ -56,8 +120,6 @@ export default class Api {
       return Promise.reject(error);
     }
 
-    // console.log("response", response);
-
     return { data, headers: response.headers };
   }
 
@@ -65,8 +127,8 @@ export default class Api {
    * errorHandler
    * log error to console
    */
-  errorHandler(error) {
-    console.error("There was an error!", error)
-    return Promise.reject(error)
+  errorHandler(error: any) {
+    console.error("There was an error!", error);
+    return Promise.reject(error);
   }
 }
