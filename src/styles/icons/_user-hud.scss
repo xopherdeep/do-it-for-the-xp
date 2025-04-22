@@ -95,4 +95,9 @@
     // --fa-secondary-opacity: 1;
   }
 
+  &sack-dollar{
+    --fa-primary-color: var(--xp-color-black);
+    --fa-secondary-color: var(--xp-color-green);
+    --fa-secondary-opacity: .9;
+  }
 }

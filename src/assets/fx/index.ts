@@ -106,6 +106,12 @@ const $fx = {
   rpg: {
     earthbound: {
       BGM: {
+        intro: [
+          "https://starmen.net/mother2/music/018-%20Earthbound%20-%20Buzz%20Buzz_s%20Prophecy.mp3",
+        ],
+        demo: [
+          "https://starmen.net/mother2/music/005- Earthbound - Opening Credits.mp3",
+        ],
         startScreen: [
           "https://starmen.net/mother2/music/004- Earthbound - Title Screen.mp3",
           "https://starmen.net/mother2/music/005- Earthbound - Opening Credits.mp3",
@@ -195,6 +201,7 @@ const $fx = {
             snow: [
               "https://starmen.net/mother2/music/075- Earthbound - Winters White.mp3",
               "https://starmen.net/mother2/music/074- Earthbound - Snowman (Snow Wood Boarding House).mp3",
+              "https://starmen.net/mother2/music/062-%20Earthbound%20-%20Happy-Happy%20is%20Blue.mp3",
             ],
             desert: [
               "https://starmen.net/mother2/music/110- Earthbound - Bazaar.mp3",
@@ -205,6 +212,7 @@ const $fx = {
             ],
             swamp: [
               "https://starmen.net/mother2/music/069- Earthbound - Threed, Zombie Central.mp3",
+              "https://starmen.net/mother2/music/062-%20Earthbound%20-%20Happy-Happy%20is%20Blue.mp3",
             ],
             mountains: [
               "https://starmen.net/mother2/music/120- Earthbound - The Lost Underworld.mp3",
@@ -304,7 +312,7 @@ const $fx = {
           "https://starmen.net/mother2/music/045- Earthbound - A Bad Dream.mp3",
         ],
         // New categories based on the complete soundtrack
-        intro: [
+        intro2: [
           "https://starmen.net/mother2/music/002- Earthbound - The Evil Giygas Attacks! (Part 1).mp3",
           "https://starmen.net/mother2/music/003- Earthbound - The Evil Giygas Attacks! (Part 2).mp3",
           "https://starmen.net/mother2/music/008- Earthbound - Now, Let_s Go!.mp3",

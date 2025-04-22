@@ -16,10 +16,11 @@ import $fx from "@/assets/fx"
  */
 
 const state = {
+  devMode: false, // Add devMode state - defaults to false in production
   bgm: {
     audio: new Audio(),
     saveBookmark: false,
-    is_on: true, // Changed from false to true to enable music by default
+    is_on: false, // Changed from false to true to enable music by default
     startDelay: 0,
     src: null,
     track: 0,

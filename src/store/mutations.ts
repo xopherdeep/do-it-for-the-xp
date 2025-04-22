@@ -43,6 +43,11 @@ export default {
   UPDATE_ITEM(state, { type, item }) {
     state[type][item.id] = item;
   },
+  
+  SET_DEV_MODE(state, isEnabled) {
+    state.devMode = isEnabled;
+  },
+  
   CHANGE_SOUND_FX(state, theme) {
     state.theme = theme;
   },
