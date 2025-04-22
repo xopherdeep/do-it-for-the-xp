@@ -1,5 +1,7 @@
 import { defineComponent } from 'vue'
 import { useRouter } from 'vue-router'
+import { useStore } from 'vuex'
+import { alertController, toastController } from '@ionic/vue'
 
 import {
   IonPage,
@@ -60,18 +62,19 @@ export default defineComponent({
       }
     ];
 
-    // Add dev tools tile only in development mode
-    if (process.env.NODE_ENV === 'development') {
+    // Only show dev tools when dev mode is explicitly enabled, regardless of environment
+    if (this.$store.state.devMode) {
       tiles.push({
         src: '/support/dev-tools',
         title: 'Developer Tools',
         desc: 'Access developer tools and demos for testing.',
-        icon: 'fa-tools'
+        icon: 'fa-construction'
       });
     }
 
     return {
-      tiles
+      tiles,
+      helpIconClicks: 0
     }
   },
   components: {
@@ -93,6 +96,7 @@ export default defineComponent({
   },
   setup() {
     const router = useRouter();
+    const store = useStore();
     
     const navigateTo = (path: string) => {
       console.log('Navigating to:', path);
@@ -102,7 +106,92 @@ export default defineComponent({
     return {
       navigateTo,
       helpOutline,
-      helpSharp
+      helpSharp,
+      store
     }
   },
+  mounted() {
+    // Check if dev mode was previously enabled
+    const savedDevMode = localStorage.getItem('xp-dev-mode') === 'true';
+    if (savedDevMode && !this.$store.state.devMode) {
+      this.$store.commit('SET_DEV_MODE', true);
+    }
+  },
+  methods: {
+    onHelpIconClick() {
+      this.helpIconClicks++;
+      
+      // Play a subtle sound effect on each click
+      if (this.$fx && this.$fx.ui && this.$fx.theme && this.$fx.theme.ui) {
+        this.$fx.ui[this.$fx.theme.ui].select.play();
+      }
+      
+      // After 7 clicks, show the dev mode confirmation
+      if (this.helpIconClicks === 7) {
+        this.showDevModeConfirmation();
+        this.helpIconClicks = 0; // Reset counter
+      }
+    },
+    
+    async showDevModeConfirmation() {
+      const isDevMode = this.$store.state.devMode;
+      
+      const alert = await alertController.create({
+        backdropDismiss: false,
+        header: isDevMode ? 'Disable Developer Mode?' : 'Enable Developer Mode?',
+        message: isDevMode 
+          ? 'Are you sure you want to disable developer tools?'
+          : 'This enables additional developer features for advanced users.',
+        buttons: [
+          {
+            text: 'Cancel',
+            role: 'cancel'
+          },
+          {
+            text: isDevMode ? 'Disable' : 'Enable',
+            handler: () => {
+              const newMode = !isDevMode;
+              this.$store.commit('SET_DEV_MODE', newMode);
+              localStorage.setItem('xp-dev-mode', newMode.toString());
+              
+              // If enabling dev mode, refresh tiles to show dev tools option
+              if (newMode) {
+                this.tiles = [...this.tiles, {
+                  src: '/support/dev-tools',
+                  title: 'Developer Tools',
+                  desc: 'Access developer tools and demos for testing.',
+                  icon: 'fa-tools'
+                }];
+              } else {
+                // If disabling, remove the dev tools option
+                this.tiles = this.tiles.filter(tile => tile.src !== '/support/dev-tools');
+              }
+              
+              // Show toast notification
+              this.showDevModeToast(newMode);
+            }
+          }
+        ]
+      });
+      
+      await alert.present();
+    },
+    
+    async showDevModeToast(isEnabled: boolean) {
+      const toast = await toastController.create({
+        message: isEnabled ? '🛠️ Developer Mode Enabled' : '🔒 Developer Mode Disabled',
+        duration: 2000,
+        position: 'bottom',
+        color: isEnabled ? 'success' : 'medium',
+        buttons: [
+          {
+            text: 'OK',
+            role: 'cancel'
+          }
+        ]
+      });
+      
+      await toast.present();
+    }
+  }
 })

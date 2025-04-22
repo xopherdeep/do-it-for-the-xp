@@ -8,19 +8,21 @@
       </ion-card-title>
 
       <ion-item>
-        <i
-          class="fad fa-music fa-lg ion-float-left"
-          slot="start"
-        ></i>
         <ion-label>
-          <h2>Background Music</h2>
+          <h2>
+            Background Music</h2>
           <p>Enable music throughout the app</p>
         </ion-label>
         <ion-checkbox
           @ionChange="changeBGMToggle"
           :checked="bgm.is_on"
           color="rpg"
+          slot="end"
         ></ion-checkbox>
+        <i
+          class="fad fa-music fa-2x"
+          slot="end"
+        ></i>
       </ion-item>
 
       <ion-item v-if="bgm.is_on">

@@ -3,12 +3,17 @@
     <ion-header :translucent="true">
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-menu-button/>
-          <ion-icon
-            :ios="helpOutline"
-            :md="helpSharp"
-            class="fa-2x ml-2"
-          />
+          <ion-menu-button />
+          <ion-button
+            @click="onHelpIconClick"
+            color="rpg"
+          >
+            <ion-icon
+              :ios="helpOutline"
+              :md="helpSharp"
+              class="fa-2x"
+            />
+          </ion-button>
         </ion-buttons>
         <ion-title>
           Support

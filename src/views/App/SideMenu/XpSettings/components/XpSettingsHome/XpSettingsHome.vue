@@ -26,7 +26,7 @@
             :routerLink="`/xp-settings/general`"
             detail="true"
           >
-            <ion-thumbnail slot="start">
+            <ion-thumbnail class="float-right">
               <ion-img :src="requireIconImg('./settings.png')" />
             </ion-thumbnail>
             <ion-label>

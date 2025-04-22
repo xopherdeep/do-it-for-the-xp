@@ -42,31 +42,6 @@ export const AddProfile = defineComponent({
       this.avatarIndex = index;
       this.isAvatarSelectorOpen = false; // Close the modal after selecting
     },
-    handlePasscodeInput(event: Event, position: number) {
-      const target = event.target as HTMLInputElement;
-      // Move to next input if value is entered
-      if (target.value.length === 1 && position < 4) {
-        const nextInput = this.$refs[`passcode${position + 1}`] as HTMLInputElement;
-        if (nextInput && typeof nextInput.focus === 'function') {
-          nextInput.focus();
-        }
-      }
-      // Update the combined passcode
-      this.updatePasscode();
-    },
-    handleKeyDown(event: KeyboardEvent, position: number) {
-      // Handle backspace to navigate to previous input
-      if (event.key === 'Backspace' && position > 1 && !(event.target as HTMLInputElement).value) {
-        const prevInput = this.$refs[`passcode${position - 1}`] as HTMLInputElement;
-        if (prevInput && typeof prevInput.focus === 'function') {
-          prevInput.focus();
-        }
-      }
-    },
-    updatePasscode() {
-      // Combine the individual digits into a single passcode
-      this.passcode = this.passcodeDigits.join('');
-    },
     async clickSaveProfile() {
       const profile = this.storage.newProfile(this.newProfile);
       await this.storage.setProfile(profile);
@@ -100,7 +75,6 @@ export const AddProfile = defineComponent({
     const storage = new ProfileDb(profileStorage);
     const email = ref("");
     const passcode = ref("");
-    const passcodeDigits = ref(['', '', '', '']);
     const isAdult = ref(false);
     const avatarIndex = ref(1);
     const fullName = ref("");
@@ -137,7 +111,6 @@ export const AddProfile = defineComponent({
       avatarIndex.value = 1;
       email.value = "";
       passcode.value = "";
-      passcodeDigits.value = ['', '', '', ''];
     };
 
     const previousAvatar = () => {
@@ -154,7 +127,7 @@ export const AddProfile = defineComponent({
 
     const setProfile = (profile) => {
       if (!profile.name) return;
-      passcode.value = profile.passcode;
+      passcode.value = profile.passcode || '';
       email.value = profile.email;
       fullName.value = profile.name.full;
       favoriteThing.value = profile.favoriteThing;
@@ -162,12 +135,6 @@ export const AddProfile = defineComponent({
       jobClass.value = profile.jobClass;
       isAdult.value = profile.isAdult;
       avatarIndex.value = parseInt(profile.avatar.split("-")[0]);
-      
-      // Set passcode digits for the individual inputs
-      if (profile.passcode) {
-        const digits = profile.passcode.split('');
-        passcodeDigits.value = digits.length === 4 ? digits : ['', '', '', ''];
-      }
     };
 
     const activeSegment = ref("info")
@@ -206,7 +173,6 @@ export const AddProfile = defineComponent({
       // profile,
       newProfile,
       passcode,
-      passcodeDigits,
       activeSegment,
       arrowBack,
       arrowForward,

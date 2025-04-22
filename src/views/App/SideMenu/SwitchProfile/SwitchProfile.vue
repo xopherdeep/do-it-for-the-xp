@@ -182,8 +182,9 @@
         @click="openNewProfileModal"
         class="ion-no-border md:hidden"
       >
-        <ion-fab-button color="danger">
-          <i class="fad fa-heartbeat fa-2x" />
+        <ion-fab-button color="danger" >
+          <i class="fad fa-plus fa-2x"></i>
+          <!-- <i class="fad fa-heartbeat fa-stack-1x" /> -->
         </ion-fab-button>
       </ion-fab>
 

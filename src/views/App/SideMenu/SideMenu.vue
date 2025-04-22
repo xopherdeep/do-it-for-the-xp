@@ -147,12 +147,19 @@ export default defineComponent({
       ],
       appPages: [
         {
-          title: "About XP",
-          url: "/about-xp",
+          title: "Intro",
+          url: "/xp-intro",
           iosIcon: informationOutline,
           mdIcon: informationSharp,
           lines: "none",
         },
+        // {
+        //   title: "About XP",
+        //   url: "/about-xp",
+        //   iosIcon: informationOutline,
+        //   mdIcon: informationSharp,
+        //   lines: "none",
+        // },
         {
           title: "Subscription",
           url: "/xp-membership",
