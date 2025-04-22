@@ -33,30 +33,40 @@ export function playRouteMusic(payload: BGMPayload, store?: Store<any>): void {
 
   const engine = AudioEngine.getInstance();
   const trackIndex = payload.track % payload.tracks.length;
-  const trackInfo = payload.tracks[trackIndex];
   const delay = payload.startDelay || 0;
   // Default to looping if repeat flag is not explicitly set to false
   const shouldRepeat = payload.repeat !== false;
 
-  // Get track information
-  let trackSrc: string;
-  let trackTitle: string | undefined;
-  let trackId: string;
+  // First, prepare all tracks in the sequence
+  const trackIds: string[] = [];
+  
+  // Process each track in the array
+  for (let i = 0; i < payload.tracks.length; i++) {
+    const trackInfo = payload.tracks[i];
+    
+    // Get track information
+    let trackSrc: string;
+    let trackTitle: string | undefined;
+    let trackId: string;
 
-  if (typeof trackInfo === 'string') {
-    // If it's just a string URL
-    trackSrc = trackInfo;
-    trackId = `route-music-${trackInfo.split('/').pop() || ''}`;
-    trackTitle = undefined;
-  } else {
-    // If it's an object with src and title
-    trackSrc = trackInfo.src;
-    trackTitle = trackInfo.title;
-    trackId = `route-music-${trackSrc.split('/').pop() || ''}`;
-  }
+    if (typeof trackInfo === 'string') {
+      // If it's just a string URL
+      trackSrc = trackInfo;
+      // Create a more unique ID to avoid collisions
+      trackId = `route-music-${trackSrc.split('/').pop() || ''}-${Date.now()}`;
+      trackTitle = undefined;
+    } else {
+      // If it's an object with src and title
+      trackSrc = trackInfo.src;
+      trackTitle = trackInfo.title;
+      // Create a more unique ID to avoid collisions
+      trackId = `route-music-${trackSrc.split('/').pop() || ''}-${Date.now()}`;
+    }
 
-  // Check if we need to load this track
-  if (!engine.hasMusicTrack(trackId)) {
+    // Add to our track ID list
+    trackIds.push(trackId);
+    
+    // Always load the track fresh to ensure playback
     engine.loadMusic(trackId, trackSrc, {
       category: 'music',
       id: trackId,
@@ -64,22 +74,22 @@ export function playRouteMusic(payload: BGMPayload, store?: Store<any>): void {
       title: trackTitle,
       loop: shouldRepeat // Set loop based on the repeat flag
     });
-  } else {
-    // If the track is already loaded, update its loop property
-    // Get the audio element for this track and update its loop setting
-    const audioElement = engine['_musicTracks'].get(trackId);
-    if (audioElement) {
-      audioElement.loop = shouldRepeat;
-    }
+  }
+
+  // Set up the track sequence for auto-advancing when non-repeating
+  if (!shouldRepeat && trackIds.length > 1) {
+    engine.setTrackSequence(trackIds);
   }
 
   // Handle bookmark if needed
   let bookmark = 0;
+  const currentTrackId = trackIds[trackIndex];
+  
   if (payload.saveBookmark && store) {
     // Check if we have a bookmark stored in the store
     try {
       const bookmarkData = store.getters.musicBookmark;
-      if (bookmarkData && bookmarkData.id === trackId && typeof bookmarkData.position === 'number') {
+      if (bookmarkData && bookmarkData.id === currentTrackId && typeof bookmarkData.position === 'number') {
         bookmark = bookmarkData.position;
       }
     } catch (e) {
@@ -90,10 +100,10 @@ export function playRouteMusic(payload: BGMPayload, store?: Store<any>): void {
   // Play the track with delay
   if (delay > 0) {
     setTimeout(() => {
-      engine.playMusic(trackId);
+      engine.playMusic(currentTrackId);
     }, delay);
   } else {
-    engine.playMusic(trackId);
+    engine.playMusic(currentTrackId);
   }
 
   // Track current music info for bookmark saving
@@ -102,7 +112,7 @@ export function playRouteMusic(payload: BGMPayload, store?: Store<any>): void {
     // This would depend on how your store is set up to handle bookmarks
     const trackPosition = 0; // You'd need to get this from the Audio element
     store.dispatch('saveMusicBookmark', {
-      id: trackId,
+      id: currentTrackId,
       position: trackPosition
     });
   }

@@ -1,5 +1,6 @@
 import Api from "@/api";
 import XpApi from "@/api/doit.forthexp.com.api";
+import { AudioEngine } from '@/engine/audio/AudioEngine';
 
 export default {
   getSingleById({ getters, commit }, request) {
@@ -123,11 +124,55 @@ export default {
       state.bgm.audio.loop = repeat;
     }
     
+    // Also update any tracks in the new AudioEngine
+    const engine = AudioEngine.getInstance();
+    engine.setLoopOption(repeat);
+    
     return repeat;
   },
   
-  changeBGM({ commit }, bgm) {
-    return commit("CHANGE_BGM", bgm);
+  /**
+   * Change BGM based on provided payload
+   * This action handles both old and new audio engines
+   */
+  changeBGM({ commit, state }, bgm) {
+    // First update the state
+    commit("CHANGE_BGM", bgm);
+    
+    // If the new audio engine already handled this, don't play again
+    if (bgm._usingNewAudioEngine) {
+      return;
+    }
+    
+    // If using old audio system, handle playback here
+    const { audio, is_on, tracks, track } = state.bgm;
+    
+    if (!is_on || !tracks || !tracks.length) {
+      return;
+    }
+    
+    // Only attempt playback if we have a valid track 
+    const targetTrack = tracks[track % tracks.length];
+    if (!targetTrack) {
+      return;
+    }
+    
+    // Get the track source URL
+    const src = typeof targetTrack === 'string' ? targetTrack : targetTrack.src;
+    
+    // Configure audio element
+    audio.src = src;
+    audio.loop = state.bgm.repeat !== false; // Default to true if not specified
+    
+    // Attempt playback
+    const playPromise = audio.play();
+    
+    // Handle potential playback errors
+    if (playPromise !== undefined) {
+      playPromise.catch(error => {
+        console.warn('Audio playback failed', error);
+      });
+    }
   },
 
   turnMusicOnOff({ state }) {
