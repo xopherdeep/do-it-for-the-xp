@@ -8,8 +8,133 @@
 }
 
 .gold-bank{
+  background: linear-gradient(to bottom, #f5edd7, #e6d6b5);
+  
+  ion-card {
+    background: rgba(255, 255, 255, 0.8);
+    border: 1px solid #e6c171;
+    box-shadow: 0 4px 8px rgba(222, 184, 135, 0.3);
+    
+    ion-card-title {
+      color: #8b4513;
+    }
+  }
+
   ion-content{
     --background: url("@/assets/images/midjourney/bank.png") center / cover no-repeat;
   }
+  
 }
 
+
+
+// Banker Dialog Styling
+.banker-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  // background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 100000; /* Higher than FAB and other elements */
+}
+
+.banker-dialog-box {
+  width: 100%;
+  max-width: 600px;
+  background-color: rgba(0, 0, 0, 0.9);
+  border: 2px solid #fbbf24;
+  color: white;
+  
+  .dialog-header {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background-color: #fbbf24;
+    color: #000;
+  }
+  
+  .dialog-content {
+    padding: 1rem;
+    min-height: 80px;
+  }
+  
+  .dialog-indicator {
+    text-align: center;
+    padding-bottom: 0.5rem;
+    
+    .blink {
+      animation: blink 1s infinite;
+    }
+  }
+}
+
+// For the banker's text container
+.banker-text {
+  font-family: 'Roboto', sans-serif;
+  font-size: 1.1rem;
+  line-height: 1.5;
+}
+
+// Global ATM action sheet styling
+:global(.atm-action-sheet) {
+  --backdrop-opacity: 0.4;
+  
+  .action-sheet-title {
+    color: #8b4513;
+  }
+  
+  .action-sheet-button {
+    color: #555;
+  }
+}
+
+.blink {
+  animation: blink-animation 1.2s infinite;
+}
+
+@keyframes blink-animation {
+  0% { opacity: 0; }
+  50% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes blink {
+  0% { opacity: 1; }
+  50% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+// Add bg-slide styles for ATM content
+.bg-slide {
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  
+  &::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+      linear-gradient(135deg, rgba(245, 237, 215, 0.7), rgba(230, 214, 181, 0.7)),
+      radial-gradient(circle at center, rgba(230, 193, 113, 0.3), rgba(212, 175, 55, 0.3));
+    z-index: -1;
+  }
+}
+
+.hidden-trigger {
+  display: none;
+  visibility: hidden;
+  position: absolute;
+  width: 0;
+  height: 0;
+  opacity: 0;
+  pointer-events: none;
+}

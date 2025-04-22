@@ -1,10 +1,11 @@
 .temple-grounds {
   ion-content {
-    background-size: contain;
+    background-size: cover;
     // --background: transparent;
-    --background-size: contain;
+    --background-size: cover;
     --overflow: hidden;
     --background: black;
+
   }
   .maze-container {
     display: grid;
@@ -16,7 +17,7 @@
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     grid-template-rows: repeat(6, 1fr);
-    transition: transform 0.5s; /* Smooth transition for movement */
+    
     /* Initially set transform to show [0,0] */
     transform: translate(0, 0);
   }
@@ -24,7 +25,7 @@
   .background-tile {
     width: 100vw;
     height: calc(100vh - 140px);
-    // object-fit: contain; /* Stretch/crop the images as required */
+    object-fit: cover; /* Stretch/crop the images as required */
   }
 
   .maze-row {

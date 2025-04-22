@@ -4,153 +4,147 @@
       <ion-toolbar color="warning">
         <ion-buttons slot="start">
           <ion-back-button :default-href="`/my-portal/${userId}/home-town`"></ion-back-button>
-          <!-- <ion-icon :icon="storefrontOutline" slot="icon-only" /> -->
           <i class="fa fa-piggy-bank fa-2x"></i>
         </ion-buttons>
         <ion-title>
           Gold Bank
         </ion-title>
+        <ion-buttons slot="end">
+          <ion-button @click="openATM" color="dark">
+            <i class="fad fa-money-check-alt fa-2x"></i>
+          </ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
     <ion-content class="gold-bank" v-if="user">
       <xp-loading v-if="isLoading" />
-      <ion-grid v-else>
-        <ion-row>
-          <ion-col size="12">
-            <ion-card>
-              <!-- <ion-title>Automatic Teller Machine</ion-title> -->
-              <ion-card-content>
-                Hello, Welcome to Gold Bank. Here you can deposit
-                and withdraw your savings, or pay off your debt.
-                <!-- <ion-list>
-                  <ion-item lines="none">
-                  </ion-item>
-                  <ion-item
-                    lines="none"
-                    v-if="user"
-                  >
-                    Your savings is
-                    <xp-gp :gp="user.stats.gp.savings" />
-
-                  </ion-item>
-                  <ion-item lines="none">
-                    Please select a transation.
-                  </ion-item>
-                </ion-list>
-                <ion-buttons>
-                  <ion-button>
-                    <i class="fad fa-wallet fa-2x"></i>
-                    Withdrawl
-                  </ion-button>
-                  <ion-button>
-                    <i class="fad fa-piggy-bank fa-2x"></i>
-                    Deposit
-                  </ion-button>
-                </ion-buttons> -->
-              </ion-card-content>
-            </ion-card>
-
-          </ion-col>
-
-        </ion-row>
-        <ion-row v-if="user">
-          <ion-col size="6">
-            <ion-card>
-              <ion-title>
-                Savings
-
-              </ion-title>
-              <ion-card-content class="ion-text-right">
-                <xp-gp :gp="user.stats.gp.savings" />
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-          <ion-col size="6">
-            <ion-card>
-              <ion-title>
-                Debt
-              </ion-title>
-              <ion-card-content class="ion-text-right">
-                <xp-gp :gp="user.stats.gp.debt" />
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-        <ion-row>
-          <ion-col size="6">
-            <ion-card>
-              <ion-title>
-                XPC$
-              </ion-title>
-              <ion-card-content class="ion-text-right">
-                0
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-          <ion-col size="6">
-            <ion-card>
-              <ion-title>
-                GP to XPC$
-              </ion-title>
-              <ion-card-content class="ion-text-right">
-                $1 = <xp-gp :gp="100" />
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-        <ion-row>
-          <ion-col>
-            <ion-card>
-
-        <ion-card-header>
-          <ion-card-title>
-            My Wallet
-          </ion-card-title>
-          <!-- <ion-title>
-            My Wallet
-          </ion-title> -->
-          <!-- <ion-chip>
-            <xp-gp :gp="100" />
-            (Earned)
-          </ion-chip>
-          -
-          <ion-chip>
-            (Spent)
-            <xp-gp :gp="50" />
-          </ion-chip>
-          = -->
-          <ion-card-subtitle class="ion-float-right">
-            Max: {{ user.stats.gp.limit }}
-          </ion-card-subtitle>
-          <ion-progress-bar
-            color="warning"
-            :value="user.stats.gp.wallet / user.stats.gp.limit"
-          >
-          </ion-progress-bar>
-          <ion-card-title>
-            <xp-gp :gp="user.stats.gp.wallet" />
-            available
-            <i class="fad fa-wallet ion-float-right"></i>
-          </ion-card-title>
-        </ion-card-header>
-            </ion-card>
-
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-      <!-- fab placed to the bottom and start and on the bottom edge of the content overlapping footer with a list to the right -->
+      
+      <!-- FAB button to trigger banker dialog -->
       <ion-fab
         vertical="bottom"
         horizontal="center"
         slot="fixed"
-        @click.stop="presentActionSheet"
       >
-        <ion-fab-button color="warning">
-          <i class="fad fa-piggy-bank fa-2x"></i>
+        <ion-fab-button color="warning" @click="showBankerDialog">
+          <i class="fad fa-user-tie fa-2x"></i>
         </ion-fab-button>
       </ion-fab>
     </ion-content>
+    
+    <!-- Custom Banker Dialog (RPG style) -->
+    <div class="banker-dialog-overlay" v-if="isDialogVisible" @click="advanceDialog">
+      <ion-card class="banker-dialog-box">
+        <ion-card-title class="dialog-header">
+          <i class="fad fa-user-tie fa-lg mr-2"></i>
+          <span>Bank Manager</span>
+        </ion-card-title>
+        <div class="dialog-content">
+          <xp-typing-text
+            ref="bankerDialogText"
+            :text="currentDialogText"
+            :speed="30"
+            :auto-start="true"
+            :sound-theme="$fx.theme.rpg"
+            sound-type="text"
+            @typing-complete="onTypingComplete"
+            class="banker-text"
+            :has-more-text="hasMoreDialog"
+          />
+        </div>
+        <div v-if="hasMoreDialog" class="dialog-indicator">
+          <i class="fad fa-chevron-down blink"></i>
+        </div>
+      </ion-card>
+    </div>
+    
+    <!-- Hidden trigger buttons for alerts -->
+    <ion-button id="deposit-trigger" class="hidden-trigger"></ion-button>
+    <ion-button id="withdraw-trigger" class="hidden-trigger"></ion-button>
+    <ion-button id="pay-debt-trigger" class="hidden-trigger"></ion-button>
+    
+    <!-- Declarative Alerts -->
+    <ion-alert
+      trigger="deposit-trigger"
+      :header="`Deposit to Savings: (₲${user?.stats.gp.savings}.00)`"
+      :buttons="[
+        {
+          text: 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: 'Deposit',
+          handler: handleDeposit
+        }
+      ]"
+      :inputs="[
+        {
+          type: 'number',
+          placeholder: 'Enter GP amount',
+          min: 1,
+          max: user?.stats.gp.wallet
+        }
+      ]"
+    ></ion-alert>
+    
+    <ion-alert
+      trigger="withdraw-trigger"
+      :header="`Withdraw from Savings: (₲${user?.stats.gp.savings}.00)`"
+      :buttons="[
+        {
+          text: 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: 'Withdraw',
+          handler: handleWithdraw
+        }
+      ]"
+      :inputs="[
+        {
+          type: 'number',
+          placeholder: 'Enter GP amount',
+          min: 1,
+          max: user?.stats.gp.limit && user?.stats.gp.wallet && user?.stats.gp.savings 
+            ? Math.min(user.stats.gp.savings, user.stats.gp.limit - user.stats.gp.wallet) 
+            : 0
+        }
+      ]"
+    ></ion-alert>
+    
+    <ion-alert
+      trigger="pay-debt-trigger"
+      :header="`Pay Down Debt (₲${user?.stats.gp.debt}.00)`"
+      :buttons="[
+        {
+          text: 'Cancel',
+          role: 'cancel'
+        },
+        {
+          text: 'Pay',
+          handler: handlePayDebt
+        }
+      ]"
+      :inputs="[
+        {
+          type: 'number',
+          placeholder: 'Enter GP amount',
+          min: 1,
+          max: user?.stats.gp.wallet && user?.stats.gp.debt 
+            ? Math.min(user.stats.gp.wallet, user.stats.gp.debt)
+            : 0
+        }
+      ]"
+    ></ion-alert>
+    
+    <!-- ATM Modal Component -->
+    <ATMModal
+      v-model:isOpen="showAtm"
+      :user="user"
+      @withdraw="clickWithdraw"
+      @deposit="clickDeposit"
+      @payDebt="clickPayDebt"
+    />
   </ion-page>
 </template>
 

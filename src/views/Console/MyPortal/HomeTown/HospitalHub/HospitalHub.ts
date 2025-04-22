@@ -156,7 +156,9 @@ export default defineComponent({
       const action = await actionSheetController.create({
         header: "How can we assist you today?",
         buttons: this.actionButtons,
-        cssClass: 'hospital-action-sheet'
+        cssClass: 'hospital-action-sheet',
+        mode: "ios",
+        backdropDismiss: true,
       });
       
       await action.present();

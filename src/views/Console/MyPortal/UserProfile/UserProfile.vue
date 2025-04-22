@@ -1,25 +1,59 @@
 <template>
   <ion-page :class="$options.name">
-    <ion-toolbar class="rpg-box">
-      <ion-buttons>
-        <ion-back-button
-          :default-href="`/my-portal/${userId}/my-profile`"
-          :icon="arrowBack"
-        ></ion-back-button>
+    <ion-header>
+      <ion-toolbar class="rpg-box">
+        <ion-buttons slot="start">
+          <ion-back-button
+            :default-href="`/my-portal/${userId}/my-home`"
+            :icon="arrowBack"
+          ></ion-back-button>
+        </ion-buttons>
         <ion-title v-if="user && user.name">
           {{ user.name.first }}
           {{ user.name.middle }}
           {{ user.name.last }}
         </ion-title>
-      </ion-buttons>
-    </ion-toolbar>
+      </ion-toolbar>
+    </ion-header>
     <ion-content
       :fullscreen="true"
       v-if="user && user.stats"
-      class="ion-padding rpb-box bg-slide"
+      class="ion-padding rpg-box bg-slide"
     >
       <ion-grid>
         <ion-row>
+          <ion-col size="12" size-md="6">
+            <ion-card>
+              <ion-card-header>
+                <ion-avatar class="mx-auto">
+                  <ion-img :src="$requireAvatar(`./${user.avatar}.svg`)" />
+                </ion-avatar>
+                <ion-card-title class="text-center mt-2">{{ user.name?.nick }}</ion-card-title>
+                <ion-card-subtitle class="text-center">{{ user.jobClass || 'Adventurer' }}</ion-card-subtitle>
+              </ion-card-header>
+              <ion-card-content>
+                <ion-list>
+                  <ion-item>
+                    <ion-label>Level</ion-label>
+                    <ion-badge color="success">{{ user.stats?.level || 1 }}</ion-badge>
+                  </ion-item>
+                  <ion-item>
+                    <ion-label>HP</ion-label>
+                    <ion-note slot="end" color="danger">{{ user.stats?.hp?.now || 0 }}/{{ user.stats?.hp?.max || 0 }}</ion-note>
+                  </ion-item>
+                  <ion-item>
+                    <ion-label>MP</ion-label>
+                    <ion-note slot="end" color="tertiary">{{ user.stats?.mp?.now || 0 }}/{{ user.stats?.mp?.max || 0 }}</ion-note>
+                  </ion-item>
+                  <ion-item>
+                    <ion-label>GP</ion-label>
+                    <ion-note slot="end" color="warning">{{ user.stats?.gp?.wallet || 0 }}</ion-note>
+                  </ion-item>
+                </ion-list>
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+          
           <ion-col
             v-for="(area, category) in areas"
             :key="category"
@@ -27,7 +61,7 @@
             size-md="6"
           >
             <ion-card>
-              <ion-accordion-group :value="category">
+              <ion-accordion-group>
                 <ion-accordion :value="category">
                   <ion-item slot="header">
                     <ion-note slot="start">

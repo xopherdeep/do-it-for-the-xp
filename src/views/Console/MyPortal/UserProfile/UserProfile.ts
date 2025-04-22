@@ -19,6 +19,14 @@ import {
   IonAccordion,
   IonAccordionGroup,
   IonList,
+  IonCard,
+  IonCardHeader,
+  IonCardContent,
+  IonCardTitle,
+  IonCardSubtitle,
+  IonAvatar,
+  IonImg,
+  IonBadge,
   modalController
 } from "@ionic/vue";
 
@@ -30,6 +38,7 @@ import {
   serverOutline,
   arrowBack
 } from "ionicons/icons";
+import Ionic from "@/mixins/ionic";
 
 // Define interfaces for type safety
 interface StatInfo {
@@ -56,8 +65,11 @@ interface UserData {
     first?: string;
     middle?: string;
     last?: string;
+    nick?: string;
   };
   stats: UserStats;
+  avatar?: string;
+  jobClass?: string;
   [key: string]: any;
 }
 
@@ -65,7 +77,9 @@ const icons = {
   chevronBack,
   colorWand,
   arrowBack,
-  fitnessOutline
+  fitnessOutline,
+  sparklesOutline,
+  serverOutline
 };
 
 export default defineComponent({
@@ -76,6 +90,7 @@ export default defineComponent({
     }
   },
   name: "user-profile",
+  mixins: [Ionic],
   data(): { areas: Areas } {
     return {
       areas: {
@@ -139,6 +154,14 @@ export default defineComponent({
     IonTitle,
     IonIcon,
     IonToolbar,
+    IonCard,
+    IonCardHeader,
+    IonCardContent,
+    IonCardTitle,
+    IonCardSubtitle,
+    IonAvatar,
+    IonImg,
+    IonBadge
   },
 
   computed: {
@@ -152,15 +175,13 @@ export default defineComponent({
       return userData;
     },
   },
-  updated() {
-    // this.$refs.userStats.present()
-  },
-  mounted() {
-    // modalController.present()
-  },
 
   setup() {
+    const requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
+    
     return {
+      requireAvatar,
+      $requireAvatar: requireAvatar,
       modalController,
       ...icons
     };

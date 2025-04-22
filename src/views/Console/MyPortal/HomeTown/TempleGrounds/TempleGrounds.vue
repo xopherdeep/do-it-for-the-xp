@@ -78,7 +78,7 @@
         <ion-fab-button @click.stop="move('east')">
           <i class="fad fa-2x" :class="isDoorLocked(currentPosition[0], currentPosition[1] + 1)
             ? 'fa-lock'
-            : 'fa-arrow-right'
+            : 'fa-arrow-alt-right'
             " />
         </ion-fab-button>
       </ion-fab>
@@ -87,7 +87,7 @@
         <ion-fab-button @click.stop="move('west')">
           <i class="fad fa-2x" :class="isDoorLocked(currentPosition[0], currentPosition[1] - 1)
             ? 'fa-lock'
-            : ' fa-arrow-left'
+            : ' fa-arrow-alt-left'
             " />
         </ion-fab-button>
       </ion-fab>
@@ -96,7 +96,7 @@
         <ion-fab-button @click="move('south')">
           <i class="fad fa-2x" :class="isDoorLocked(currentPosition[0] + 1, currentPosition[1])
             ? 'fa-lock'
-            : 'fa-arrow-down'
+            : 'fa-arrow-alt-down'
             " />
         </ion-fab-button>
       </ion-fab>
@@ -105,7 +105,7 @@
         <ion-fab-button @click="move('north')">
           <i class="fad fa-2x" :class="isDoorLocked(currentPosition[0] - 1, currentPosition[1])
             ? 'fa-lock'
-            : ' fa-arrow-up'
+            : ' fa-arrow-alt-up'
             " />
         </ion-fab-button>
       </ion-fab>

@@ -38,18 +38,18 @@
             </ion-label>
             <ion-badge color="danger"> {{ user.stats.hp.now }} HP </ion-badge>
           </ion-tab-button>
-          <ion-tab-button tab="my-home" :href="compass.link">
-            <i class="fad fa-2x" :class="`fa-${compass.icon}`"></i>
-            <ion-label>
-              {{ compass.name }}
-            </ion-label>
-          </ion-tab-button>
           <ion-tab-button
             tab="my-party"
             :href="`/my-portal/${userId}/my-party`"
           >
             <i class="fab fa-fort-awesome fa-2x"></i>
             <ion-label>Party</ion-label>
+          </ion-tab-button>
+          <ion-tab-button tab="my-home" :href="compass.link">
+            <i class="fad fa-2x" :class="`fa-${compass.icon}`"></i>
+            <ion-label>
+              {{ compass.name }}
+            </ion-label>
           </ion-tab-button>
           <!-- 
           To favor immersion, we're taking these out
