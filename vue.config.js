@@ -26,6 +26,13 @@ module.exports = {
         target: process.env.API_URL || 'http://localhost:3000',
         changeOrigin: true
       }
+    },
+    // Add explicit configuration for the error overlay
+    client: {
+      overlay: {
+        errors: true,
+        warnings: false
+      }
     }
   }
 };
