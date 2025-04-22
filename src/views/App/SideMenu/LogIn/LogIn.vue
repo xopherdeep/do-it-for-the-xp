@@ -51,7 +51,7 @@
           </ion-row>
           
           <div class="version-info">
-            <span>v2.5.0</span>
+            <span>v{{ version }}</span>
           </div>
         </ion-grid>
       </div>

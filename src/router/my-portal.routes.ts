@@ -62,7 +62,7 @@ const MyPortalRoutes = [{
       faIcon: "user-circle",
       hideUserFab: true,
     },
-    component: () => import('@/views/Console/MyPortal/UserProfile/UserProfile'),
+    component: () => import('@/views/Console/MyPortal/UserProfile/UserProfile.vue'),
     props: true
   },
   ...WorldMapRoutes

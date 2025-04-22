@@ -2,6 +2,9 @@ import { computed, defineComponent, ref, Ref } from "vue";
 const requireImg = require.context("@/assets/icons/");
 import backgrounds from "@/assets/images/backgrounds/parallax/index.js";
 
+// Import package.json for version information
+import packageInfo from '@/../package.json';
+
 import InputSettings from "../XpSettings/components/InputSettings.vue";
 import SuccessfulLoginModal from "./SuccessfulLoginModal.vue";
 
@@ -34,8 +37,10 @@ interface ComponentData {
   toggleBGDirection: boolean;
   currentBG: number | any;
   interval: ReturnType<typeof setInterval> | number;
+  inactivityTimer: ReturnType<typeof setTimeout> | number;
   authDomain: string;
   oauth: Oauth;
+  version: string;
 }
 
 export default defineComponent({
@@ -53,6 +58,7 @@ export default defineComponent({
       toggleBGDirection: false,
       currentBG: 0,
       interval: 0,
+      inactivityTimer: 0,
       authDomain: "doit.forthexp.com",
       oauth: {
         domain: "doit.forthexp.com",
@@ -64,31 +70,51 @@ export default defineComponent({
         redirect_uri: "http://localhost:8100/log-in",
         access: {},
       },
+      version: packageInfo.version,
     };
   },
   mounted(): void {
     this.animateLogo();
-    // Remove the interval to stop background changes
-    // this.interval = setInterval(this.changeBG, 5777);
     
-    // Optional: Set a specific background image you want to use
-    // this.setBGStyle("background", `url("${backgrounds[1][0]}"), url("${backgrounds[1][1]}")`);
-    // this.setBGStyle("backgroundSize", `cover`);
-    // this.setBGStyle("backgroundPosition", `right center, left center`);
-    
-    // this.getAccessToken()
-    // const { $fx:{rpg, theme}, changeBGM } = this;
-    // changeBGM({ tracks: rpg[theme.rpg].BGM.startScreen })
+    // Set a simple timeout to redirect to the intro screen after 60 seconds
+    // No route check needed - this component is only mounted on the login page
+    this.inactivityTimer = setTimeout(() => {
+      console.log('Login timeout - redirecting to intro screen');
+      this.$router.push('/xp-demo');
+    }, 18000);
   },
 
+  // Clear timer when component is deactivated (for kept-alive components)
   deactivated(): void {
     if (this.interval) {
       clearInterval(this.interval as ReturnType<typeof setInterval>);
     }
+    
+    this.clearInactivityTimer();
+  },
+  
+  // Clear timer when component is unmounted (destroyed)
+  unmounted(): void {
+    this.clearInactivityTimer();
+  },
+  
+  // Also clear when user navigates away (route change)
+  beforeRouteLeave() {
+    this.clearInactivityTimer();
   },
 
   methods: {
     ...mapActions(["loginUser", "changeBGM"]),
+    
+    // Helper method to clear the inactivity timer
+    clearInactivityTimer(): void {
+      if (this.inactivityTimer) {
+        console.log('Clearing inactivity timer');
+        clearTimeout(this.inactivityTimer as ReturnType<typeof setTimeout>);
+        this.inactivityTimer = 0;
+      }
+    },
+    
     closeSuccessModal(): void {
       (this as any).showSuccessModal = false;
       this.router.push({ name: "xp-profile" });
@@ -284,6 +310,7 @@ export default defineComponent({
       router,
       bgm,
       requireImg,
+      route,
     };
   },
 });

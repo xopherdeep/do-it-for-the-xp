@@ -53,6 +53,16 @@ const routes: Array<RouteRecordRaw> = [
     name: 'weatherfx-dev',
     component: () => import('@/views/Dev/WeatherFXDevTools/WeatherFXDevTools.vue'),
   },
+  {
+    path: '/dev/soundfx', // Sound FX development tools
+    name: 'soundfx-dev',
+    component: () => import('@/views/Dev/SoundFXDevTools/SoundFXDevTools.vue'),
+  },
+  {
+    path: '/dev/intro-splash', // Intro Splash demo
+    name: 'intro-splash-demo',
+    component: () => import('@/views/Dev/IntroSplashDemo.vue'),
+  },
 ];
 
 // Create and export router factory function

@@ -3,11 +3,25 @@ import { RouteRecordRaw } from "vue-router";
 export const SideMenuRoutes: Array<RouteRecordRaw> = [
   {
     path: "/",
-    redirect: "/log-in",
+    redirect: "/xp-intro",
     // component: () => import ('@/views/StartScreen/StartScreen.vue'),
     meta: {
       title: "Do it for the XP",
     },
+  },
+
+  // XP Intro Page
+  {
+    path: "/xp-intro",
+    name: "xp-intro",
+    component: () => import("@/views/App/SideMenu/XpIntro/XpIntro.vue"),
+  },
+
+  // XP Demo Page - World Showcase
+  {
+    path: "/xp-demo",
+    name: "xp-demo",
+    component: () => import("@/views/App/SideMenu/XpDemo/XpDemo.vue"),
   },
 
   // Switch Profile
@@ -267,6 +281,21 @@ export const SideMenuRoutes: Array<RouteRecordRaw> = [
   {
     path: "/about-xp",
     component: () => import("@/views/App/SideMenu/XpAbout/XpAbout.vue"),
+  },
+  {
+    path: "/about-xp/gp",
+    name: "about-xp-gp",
+    component: () => import("@/views/App/SideMenu/XpAbout/XpAboutGp.vue"),
+  },
+  {
+    path: "/about-xp/xp",
+    name: "about-xp-xp",
+    component: () => import("@/views/App/SideMenu/XpAbout/XpAboutXp.vue"),
+  },
+  {
+    path: "/about-xp/ap",
+    name: "about-xp-ap",
+    component: () => import("@/views/App/SideMenu/XpAbout/XpAboutAp.vue"),
   },
   {
     path: "/rpg-text-demo",

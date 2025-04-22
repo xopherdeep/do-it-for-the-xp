@@ -34,7 +34,7 @@
     background: url("@/assets/images/about/splash.png") center center/cover no-repeat fixed;
     z-index: 0;
     opacity: 0; // Start completely transparent
-    animation: bgFadeIn 5.7s forwards; // Slower, more gradual fade
+    animation: bgFadeIn 5.7s ease-in-out forwards; // Slower, more gradual fade
 
   }
 }

@@ -95,6 +95,23 @@ export function useRouterGuards(router: Router, store: Store<RootState>) {
     let bgmPayload: any = null; // Use a specific type later
 
     switch (to.name) {
+      case 'xp-intro':
+        bgmPayload = {
+          tracks: BGM.intro, // Assuming BGM.startScreen exists
+          track,
+          startDelay,
+          saveBookmark: false, // Explicitly false here
+        };
+        break;
+
+      case 'xp-demo':
+        bgmPayload = {
+          tracks: BGM.demo, // Assuming BGM.startScreen exists
+          track,
+          startDelay,
+          saveBookmark: false, // Explicitly false here
+        };
+        break;
       case 'log-in':
       case 'log-out':
         bgmPayload = {

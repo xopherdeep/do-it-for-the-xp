@@ -46,7 +46,7 @@ export default defineComponent({
     const splashScreens = ref<SplashScreen[]>([
       {
         image: require('@/assets/images/about/welcome.png'),
-        text: "Welcome to 'Do it for the XP' - Your life's level-up system!",
+        text: "Welcome to 'Do it for the XP' - Your life's level-up & reward system!",
         alt: "Do it for the XP Logo",
         duration,
         soundEffect: 'splash.intro'
