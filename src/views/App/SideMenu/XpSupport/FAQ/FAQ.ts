@@ -36,7 +36,7 @@ export default defineComponent({
         },
         {
           question: 'How does the battle system work?',
-          answer: 'The battle system is turn-based. During your turn, you can choose to attack, use an ability, use an item, or flee. Each action consumes a certain amount of action points. Strategy is key to winning battles.'
+          answer: 'The battle system is turn-based. During your turn, you can choose to attack, use an ability, use an item, or flee. Each action consumes a certain amount of Ability Points. Strategy is key to winning battles.'
         },
         {
           question: 'What is the traveling merchant?',

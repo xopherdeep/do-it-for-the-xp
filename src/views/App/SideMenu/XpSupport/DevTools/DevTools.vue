@@ -35,6 +35,30 @@
           </ion-label>
         </ion-item>
 
+        <ion-item button @click="navigateTo('/dev/soundfx')">
+          <ion-icon :icon="volumeHighOutline" slot="start"></ion-icon>
+          <ion-label>
+            <h2>Sound FX Dev Tools</h2>
+            <p>Test and preview all sound effects and music</p>
+          </ion-label>
+        </ion-item>
+
+        <ion-item button @click="navigateTo('/dev/intro-splash')">
+          <ion-icon :icon="imageOutline" slot="start"></ion-icon>
+          <ion-label>
+            <h2>IntroSplash Demo</h2>
+            <p>Test and customize 90s-style game intro splash screens</p>
+          </ion-label>
+        </ion-item>
+        
+        <ion-item button @click="navigateTo('/xp-demo')">
+          <ion-icon :icon="globeOutline" slot="start"></ion-icon>
+          <ion-label>
+            <h2>World Showcase Demo</h2>
+            <p>View a showcase of all game worlds</p>
+          </ion-label>
+        </ion-item>
+
         <ion-item button @click="navigateTo('/rpg-text-demo')">
           <ion-icon :icon="keypadOutline" slot="start"></ion-icon>
           <ion-label>
@@ -59,7 +83,7 @@
 import { defineComponent } from 'vue';
 import { useRouter } from 'vue-router';
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonLabel, IonButtons, IonBackButton, IonIcon } from '@ionic/vue';
-import { cubeOutline, chatboxOutline, keypadOutline, flashOutline, cloudOutline } from 'ionicons/icons';
+import { cubeOutline, chatboxOutline, keypadOutline, flashOutline, cloudOutline, imageOutline, volumeHighOutline, globeOutline } from 'ionicons/icons';
 
 export default defineComponent({
   name: 'DevTools',
@@ -89,7 +113,10 @@ export default defineComponent({
       chatboxOutline,
       keypadOutline,
       flashOutline,
-      cloudOutline
+      cloudOutline,
+      imageOutline,
+      volumeHighOutline,
+      globeOutline
     };
   }
 });
