@@ -269,31 +269,54 @@ export default defineComponent({
       alert.present();
     },
     async handleLoot(selectedItems) {
+      // Make sure we have a valid currentRoom with content
+      if (!this.currentRoom || !this.currentRoom.content) {
+        this.showToast({
+          message: `Error: Chest appears to be empty`,
+          duration: 2000,
+        });
+        return;
+      }
+      
       selectedItems.forEach((item) => {
         if (item === "key") {
           this.playerKeys += 1;
           this.play$fx("key");
-        } else if (this.currentRoom.content.dungeon === "map") {
+        } else if (this.currentRoom.content && this.currentRoom.content.dungeon === "map") {
           this.hasMap = true;
           this.play$fx("newItem");
-        } else if (this.currentRoom.content.dungeon === "compass") {
+        } else if (this.currentRoom.content && this.currentRoom.content.dungeon === "compass") {
           this.hasCompass = true;
           this.play$fx("newItem");
         }
-        // remove the item from  the room's content itmes
+        
+        // Make sure content still exists (it might have been deleted in a previous iteration)
+        if (!this.currentRoom.content) return;
+        
+        // remove the item from the room's content items
         if (this.currentRoom.content.items) {
           this.currentRoom.content.items =
             this.currentRoom.content.items.filter((i) => i !== item);
+          
+          // If all items are taken, mark the chest as empty
+          if (this.currentRoom.content.items.length === 0) {
+            this.currentRoom.isEmpty = true;
+          }
         } else if (this.currentRoom.content.dungeon) {
           delete this.currentRoom.content;
+          this.currentRoom.isEmpty = true;
         }
       });
 
+      // Force update of the room's state in the UI
+      const [row, col] = this.currentPosition;
+      const roomKey = this.maze[row][col];
+      this.rooms = { ...this.rooms, [roomKey]: { ...this.currentRoom } };
+      
       this.showToast({
         message: `Nice, you picked up ${selectedItems}!`,
         duration: 2000,
       });
-      // Remove the items from the room
     },
     clickFight() {
       //
@@ -309,7 +332,16 @@ export default defineComponent({
       if (!visited) {
         return "fa-question"; // icon for unvisited rooms
       }
-      return this.rooms[cell]?.type.toLowerCase() || "empty";
+
+      const room = this.rooms[cell];
+      if (!room) return "empty";
+      
+      // For chest/loot rooms, check if they're empty
+      if (room.type.toLowerCase() === "loot" && room.isEmpty) {
+        return "empty-chest"; // This will be used for the fal (light) icon version
+      }
+      
+      return room.type.toLowerCase() || "empty";
     },
     async move(direction: "north" | "south" | "west" | "east") {
       const { userId, temple } = this;
@@ -429,12 +461,24 @@ export default defineComponent({
     },
     unlockDoor(direction: "north" | "south" | "east" | "west") {
       const [row, col] = this.currentPosition;
-      const currentRoom = this.rooms[this.maze[row][col]];
+      const roomKey = this.maze[row][col];
+      const currentRoom = this.rooms[roomKey];
 
       if (currentRoom.locked && currentRoom.locked[direction]) {
         // Unlock the door if you have a key
         if (this.playerKeys > 0) {
-          currentRoom.locked[direction] = false;
+          // Create a new copy of the locked object with the direction unlocked
+          const newLocked = { ...currentRoom.locked, [direction]: false };
+          
+          // Update the room with the new locked state
+          this.rooms = { 
+            ...this.rooms, 
+            [roomKey]: { 
+              ...currentRoom, 
+              locked: newLocked 
+            } 
+          };
+          
           this.playerKeys -= 1; // subtract a key
           this.play$fx("useKey");
           this.play$fx("openDoor");
@@ -504,6 +548,50 @@ export default defineComponent({
         message: "Teleported!",
         duration: 2000,
       });
+    },
+    async resetTemple() {
+      // Show confirmation dialog before resetting
+      const alert = await alertController.create({
+        header: 'Reset Temple',
+        message: 'Are you sure you want to reset the temple? All progress will be lost.',
+        buttons: [
+          {
+            text: 'Cancel',
+            role: 'cancel',
+            handler: () => {
+              this.play$fx('no');
+            },
+          },
+          {
+            text: 'Reset',
+            handler: () => {
+              this.play$fx('teleport');
+              
+              // Reset player state
+              this.playerKeys = 0;
+              this.hasMap = false;
+              this.hasCompass = false;
+              
+              // Reset all rooms to original state
+              const temple = temples[this.temple];
+              this.rooms = JSON.parse(JSON.stringify(temple.rooms));
+              
+              // Return to temple entrance
+              this.currentPosition = temple.entrance;
+              const [y, x] = this.currentPosition;
+              this.updateBg(x, y);
+              
+              // Show confirmation toast
+              this.showToast({
+                message: 'Temple has been reset!',
+                duration: 2000,
+              });
+            },
+          },
+        ],
+      });
+      
+      await alert.present();
     },
   },
 

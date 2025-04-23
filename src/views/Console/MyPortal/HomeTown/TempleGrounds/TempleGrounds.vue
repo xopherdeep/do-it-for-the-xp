@@ -1,13 +1,17 @@
 <template>
   <ion-page :class="$options.name">
     <ion-header>
-      <ion-toolbar>
-        <ion-buttons slot="start">
+      <ion-toolbar class="rpg-box">
+        <!-- <ion-buttons slot="start">
           <ion-back-button :default-href="`/my-portal/${userId}/home-town`"></ion-back-button>
           <i class="fad fa-2x fa-place-of-worship" />
-        </ion-buttons>
-        <ion-title v-html="temple.replace('-', ' ')" />
+        </ion-buttons> -->
+        ehhlo
+        <!-- <ion-title v-html="temple.replace('-', ' ')" /> -->
         <ion-buttons slot="end">
+          <ion-button color="warning" @click="resetTemple">
+            <i class="fad fa-sync fa-2x" />
+          </ion-button>
           <ion-button color="none" :disabled="true" v-if="hasCompass">
             {{ currentPosition }}
             <i class="fad fa-walking fa-2x ml-2" />

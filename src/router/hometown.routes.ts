@@ -50,6 +50,14 @@ export const HometownRoutes: Array<RouteRecordRaw> = [
     path: "/temple/:temple/:userId?/:x?/:y?",
     name: "temple",
     component: () =>
+      import("@/views/Console/MyPortal/HomeTown/TempleGrounds/TempleGroundsEngine.vue"),
+    props: true,
+  },
+  // Legacy temple route - keep temporarily during transition
+  {
+    path: "/temple-legacy/:temple/:userId?/:x?/:y?",
+    name: "temple-legacy",
+    component: () =>
       import("@/views/Console/MyPortal/HomeTown/TempleGrounds/TempleGrounds.vue"),
     props: true,
   },

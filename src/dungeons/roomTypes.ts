@@ -41,6 +41,7 @@ export const ROOM_ICONS = {
   trap: 'fa-skull',              // Trap Room
 
   loot: 'fa-treasure-chest',     // Treasure Room
+  'empty-chest': 'fa-treasure-chest', // Empty Treasure Chest (will use fal instead of fad)
   key: 'fa-key',                 // Key Room
   health: 'fa-heart',            // Healing Room
   mana: 'fa-flask-potion',       // Mana Room

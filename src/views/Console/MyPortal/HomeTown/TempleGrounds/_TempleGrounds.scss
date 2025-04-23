@@ -1,16 +1,20 @@
-.temple-grounds {
+.temple-grounds,
+.temple-grounds-engine {
   ion-content {
     background-size: cover;
     // --background: transparent;
     --background-size: cover;
     --overflow: hidden;
     --background: black;
-
   }
+
   .maze-container {
-    display: grid;
-    grid-template-columns: auto auto auto auto auto;
-    gap: 4px 4px;
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    max-width: 90vw;
+    max-height: 70vh;
+    overflow: auto;
   }
 
   #background-container {
@@ -33,11 +37,106 @@
   }
 
   .maze-cell {
-    width: 40px;
-    height: 40px;
+    width: 48px;
+    height: 48px;
     display: flex;
     justify-content: center;
     align-items: center;
-    border: 1px solid #ccc;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: all 0.2s ease;
+    position: relative;
+
+    &.hidden-cell {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    &.invalid-cell {
+      background-color: rgba(255, 0, 0, 0.1);
+    }
+
+    &.wall-cell {
+      background-color: rgba(0, 0, 0, 0.5);
+    }
+
+    &.current-position {
+      background-color: rgba(0, 255, 0, 0.1);
+      border-color: rgba(0, 255, 0, 0.5);
+      animation: pulse 2s infinite;
+    }
+
+    &.visited-cell {
+      background-color: rgba(255, 255, 255, 0.05);
+    }
+
+    &.detailed-cell {
+      background-color: rgba(255, 215, 0, 0.05);
+    }
+
+    &.layout-only-cell {
+      background-color: rgba(100, 100, 100, 0.1);
+    }
+
+    &.room-type-loot {
+      border-color: rgba(255, 215, 0, 0.5);
+    }
+
+    &.room-type-entrance {
+      border-color: rgba(0, 255, 0, 0.5);
+    }
+
+    &.room-type-boss {
+      border-color: rgba(255, 0, 0, 0.5);
+    }
+
+    &.room-type-teleport {
+      border-color: rgba(0, 255, 255, 0.5);
+    }
+  }
+
+  // Map legend styling
+  .map-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 1rem;
+    margin: 1rem 0;
+    padding: 0.5rem;
+    background-color: rgba(0, 0, 0, 0.3);
+    border-radius: 4px;
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.8);
+    }
+  }
+
+  // Animation for current position
+  @keyframes pulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(0, 255, 0, 0.4);
+    }
+    70% {
+      box-shadow: 0 0 0 5px rgba(0, 255, 0, 0);
+    }
+    100% {
+      box-shadow: 0 0 0 0 rgba(0, 255, 0, 0);
+    }
+  }
+
+  .pulse-animation {
+    animation: bounce 2s infinite;
+  }
+
+  @keyframes bounce {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-5px);
+    }
   }
 }

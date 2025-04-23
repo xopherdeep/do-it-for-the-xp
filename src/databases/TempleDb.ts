@@ -9,6 +9,7 @@ export const templeStorage = new Storage({
 
 export interface TempleInterface {
   id: string;
+  name?: string;
   customName?: string;
   customDescription?: string;
   categoryIds: string[];
@@ -36,6 +37,21 @@ export class TempleDb extends DbStorageApi {
   public async getTempleById(id: string): Promise<TempleInterface | null> {
     return await this.get(id) || null;
   }
+  
+  public async getTempleByName(name: string): Promise<TempleInterface | null> {
+    const keys = await this.keys();
+    
+    for (const key of keys) {
+      const temple = await this.get(key);
+      if (temple && (temple.name === name || temple.customName === name)) {
+        return temple;
+      }
+    }
+    
+    return null;
+  }
 }
 
-export default TempleDb;
+// Create and export a singleton instance
+const templeDb = new TempleDb(templeStorage);
+export default templeDb;

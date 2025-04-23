@@ -1,0 +1,214 @@
+/**
+ * DungeonManager - Part of the Dungeon Engine
+ * 
+ * Bridges between the game's dungeon system and the engine components.
+ * Handles initialization of dungeons, rooms, and manages room content like chests.
+ */
+
+import { ChestSystem, ChestContent, Chest } from './ChestSystem';
+import { reactive } from 'vue';
+
+// Type definitions
+export interface Room {
+  type: string;
+  content?: any;
+  visited?: boolean;
+  locked?: {
+    north?: boolean;
+    south?: boolean;
+    east?: boolean;
+    west?: boolean;
+    [key: string]: boolean | undefined;
+  };
+  isEmpty?: boolean;
+}
+
+export interface Dungeon {
+  id: string;
+  name: string;
+  maze: string[][];
+  rooms: Record<string, Room>;
+}
+
+export class DungeonManager {
+  private static instance: DungeonManager;
+  private dungeons: Record<string, Dungeon> = reactive({});
+  private chestSystem: ChestSystem;
+  
+  private constructor() {
+    this.chestSystem = ChestSystem.getInstance();
+    console.log('DungeonManager initialized');
+  }
+  
+  public static getInstance(): DungeonManager {
+    if (!DungeonManager.instance) {
+      DungeonManager.instance = new DungeonManager();
+    }
+    return DungeonManager.instance;
+  }
+  
+  /**
+   * Register a dungeon with the manager
+   */
+  public registerDungeon(dungeon: Dungeon): void {
+    this.dungeons[dungeon.id] = reactive(dungeon);
+    this.initializeChests(dungeon.id);
+  }
+  
+  /**
+   * Get a dungeon by ID
+   */
+  public getDungeon(dungeonId: string): Dungeon | undefined {
+    return this.dungeons[dungeonId];
+  }
+  
+  /**
+   * Initialize chests for a dungeon based on room content
+   */
+  private initializeChests(dungeonId: string): void {
+    const dungeon = this.dungeons[dungeonId];
+    if (!dungeon) return;
+    
+    // Scan the maze to find chest locations
+    for (let row = 0; row < dungeon.maze.length; row++) {
+      for (let col = 0; col < dungeon.maze[row]?.length || 0; col++) {
+        const roomKey = dungeon.maze[row][col];
+        const room = dungeon.rooms[roomKey];
+        
+        // If this room has a chest, create a chest in the chest system
+        if (room && room.type === 'loot' && room.content) {
+          const chestContent: ChestContent = {};
+          
+          // Map room content to chest content
+          if (room.content.chest === 'loot' && room.content.items) {
+            chestContent.items = room.content.items;
+          } else if (room.content.chest === 'dungeon' && room.content.dungeon) {
+            chestContent.dungeon = room.content.dungeon;
+          }
+          
+          // Create a chest with position information
+          const chestId = `${dungeonId}:chest:${row}:${col}`;
+          const isLocked = !!room.content.locked;
+          const requiresKey = room.content.requiresKey || undefined;
+          
+          this.chestSystem.createChest(
+            chestId,
+            room.content.rarity || 'common',
+            chestContent,
+            [row, col],
+            isLocked,
+            requiresKey
+          );
+          
+          // Link the chest ID back to the room content for reference
+          room.content.chestId = chestId;
+        }
+      }
+    }
+  }
+  
+  /**
+   * Get a room at a specific position in a dungeon
+   */
+  public getRoom(dungeonId: string, position: [number, number]): Room | undefined {
+    const dungeon = this.dungeons[dungeonId];
+    if (!dungeon) return undefined;
+    
+    const [row, col] = position;
+    if (!dungeon.maze[row] || !dungeon.maze[row][col]) return undefined;
+    
+    const roomKey = dungeon.maze[row][col];
+    return dungeon.rooms[roomKey];
+  }
+  
+  /**
+   * Open a chest in a room
+   * @returns The chest contents or undefined if no chest exists or it's empty
+   */
+  public openChestInRoom(dungeonId: string, position: [number, number]): ChestContent | undefined {
+    const chest = this.chestSystem.getChestByPosition(position, dungeonId);
+    if (!chest) return undefined;
+    
+    // Update the room to show the chest has been opened
+    const room = this.getRoom(dungeonId, position);
+    if (room?.content?.chestId) {
+      return this.chestSystem.openChest(room.content.chestId);
+    }
+    
+    return undefined;
+  }
+  
+  /**
+   * Remove items from a chest in a room
+   */
+  public removeItemsFromRoomChest(dungeonId: string, position: [number, number], items: string[]): void {
+    const room = this.getRoom(dungeonId, position);
+    if (room?.content?.chestId) {
+      this.chestSystem.removeItemsFromChest(room.content.chestId, items);
+    }
+  }
+  
+  /**
+   * Mark a room as visited
+   */
+  public visitRoom(dungeonId: string, position: [number, number]): void {
+    const room = this.getRoom(dungeonId, position);
+    if (room) {
+      room.visited = true;
+    }
+  }
+  
+  /**
+   * Check if a room has a chest that contains a specific item
+   */
+  public roomHasItem(dungeonId: string, position: [number, number], itemId: string): boolean {
+    const room = this.getRoom(dungeonId, position);
+    if (!room?.content?.chestId) return false;
+    
+    const chest = this.chestSystem.getChest(room.content.chestId);
+    if (!chest || chest.isEmpty) return false;
+    
+    return (
+      (chest.content.items && chest.content.items.includes(itemId)) ||
+      chest.content.dungeon === itemId
+    );
+  }
+
+  /**
+   * Update a room's properties in a dungeon
+   * 
+   * @param dungeonId The ID of the dungeon
+   * @param position The position of the room [row, col]
+   * @param updates The updated room data (can be a Partial<Room> or any other properties)
+   * @returns Whether the room was successfully updated
+   */
+  public updateRoom(dungeonId: string, position: [number, number], updates: Partial<Room> | any): boolean {
+    // Method 1: Direct room reference approach
+    const room = this.getRoom(dungeonId, position);
+    if (room) {
+      // Apply updates to the room
+      Object.assign(room, updates);
+      
+      // If the room has a chest and we're marking it as empty, update the chest system too
+      if (updates.isEmpty && room.content?.chestId) {
+        this.chestSystem.markChestEmpty(room.content.chestId);
+      }
+      
+      return true;
+    }
+    
+    // Method 2: Room lookup by dungeon/position approach (fallback)
+    const dungeon = this.dungeons[dungeonId];
+    if (!dungeon) return false;
+    
+    // Get the room key for this position
+    const roomKey = dungeon.maze[position[0]]?.[position[1]];
+    if (!roomKey || !dungeon.rooms[roomKey]) return false;
+    
+    // Update the room with the new data
+    dungeon.rooms[roomKey] = { ...dungeon.rooms[roomKey], ...updates };
+    
+    console.log(`Room at [${position}] in dungeon ${dungeonId} updated:`, dungeon.rooms[roomKey]);
+    return true;
+  }
+}

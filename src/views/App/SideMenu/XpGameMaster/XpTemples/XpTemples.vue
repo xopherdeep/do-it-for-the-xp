@@ -1,67 +1,78 @@
-
 <template>
   <ion-page :class="$options.name">
     <ion-header>
-      <ion-toolbar class="rpg-box">
+      <ion-toolbar  class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button defaultHref="/game-master" />
+          <ion-back-button default-href="/game-master" />
         </ion-buttons>
-          <i class="fad fa-hand-holding-water fa-2x" slot="start" />
+        <ion-avatar slot="start" class="ion-margin-start">
+          <ion-icon name="water-outline" size="large"></ion-icon>
+        </ion-avatar>
         <ion-title>
           Temples
         </ion-title>
         <ion-buttons slot="end">
           <ion-button @click="clickSoundSettings">
-            <i class="fad fa-music fa-2x" />
+            <ion-icon name="musical-notes-outline" size="large"></ion-icon>
           </ion-button>
           <ion-button @click="clickThemeSettings">
-            <i class="fad fa-paint-roller fa-2x" />
+            <ion-icon name="color-palette-outline" size="large"></ion-icon>
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-    <ion-content class="bg-slide">
-      <ion-grid>
-        <ion-row>
-          <ion-col
-            size="12"
-            size-md="6"
-            v-for="temple in temples"
-            :key="temple.id"
-          >
-            <ion-card
-              :style="{
-                background: `${getBgUrl(temple.world)}`,
-              }"
-              @click="clickTemple(temple.id)"
-              button
+    
+    <ion-content class="ion-padding">
+      <ion-list>
+        <ion-grid>
+          <ion-row>
+            <ion-col 
+              size="12"
+              size-md="6"
+              v-for="temple in temples"
+              :key="temple.id"
             >
-              <div class="temple-content">
-                <div class="temple-header">
-                  <i :class="getTempleIcon(temple.id)" class="temple-icon" />
-                  <h2>{{ getTempleName(temple.id) }}</h2>
-                </div>
-                <div class="temple-description">
-                  {{ getTempleDescription(temple.id) }}
-                </div>
-                <div class="temple-stats">
-                  <ion-badge color="danger">
-                    <i class="fas fa-users" /> 20 Members
-                  </ion-badge>
-                  <ion-badge color="warning">
-                    <i class="fas fa-star" /> Level {{ temple.level || 1 }}
-                  </ion-badge>
-                </div>
-              </div>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
+              <ion-card button @click="clickTemple(temple.id)" class="temple-card">
+                <ion-img 
+                  :src="getBgImage(temple.world)" 
+                  class="temple-bg-image"
+                  alt="Temple background"
+                ></ion-img>
+                
+                <ion-card-header>
+                  <ion-card-subtitle>
+                    <ion-chip :color="getTempleColor(temple.id)">
+                      <ion-icon :name="getTempleIconName(temple.id)"></ion-icon>
+                      <ion-label>Level {{ temple.level || 1 }}</ion-label>
+                    </ion-chip>
+                  </ion-card-subtitle>
+                  <ion-card-title>{{ getTempleName(temple.id) }}</ion-card-title>
+                </ion-card-header>
+                
+                <ion-card-content>
+                  <p>{{ getTempleDescription(temple.id) }}</p>
+                  
+                  <ion-item lines="none" class="temple-stats">
+                    <ion-badge color="danger" slot="start">
+                      <ion-icon name="people-outline"></ion-icon>
+                      20 Members
+                    </ion-badge>
+                    <ion-badge color="warning" slot="end">
+                      <ion-icon name="star-outline"></ion-icon>
+                      Level {{ temple.level || 1 }}
+                    </ion-badge>
+                  </ion-item>
+                </ion-card-content>
+              </ion-card>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+      </ion-list>
       
       <!-- Temple Creator Floating Action Button -->
       <ion-fab vertical="bottom" horizontal="end" slot="fixed">
         <ion-fab-button @click="goToTempleCreator('new')" color="primary">
-          <i class="fas fa-plus"></i> <!-- Changed icon to plus -->
+          <ion-icon name="add"></ion-icon>
         </ion-fab-button>
       </ion-fab>
       
@@ -74,53 +85,83 @@
   import ionic from "@/mixins/ionic";
   import { useRouter } from "vue-router";
   import { TempleDb, TempleInterface, templeStorage } from "@/databases/TempleDb";
+  import { 
+    IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton, 
+    IonAvatar, IonIcon, IonTitle, IonButton, IonContent, IonList,
+    IonGrid, IonRow, IonCol, IonCard, IonImg, IonCardHeader,
+    IonCardSubtitle, IonChip, IonLabel, IonCardTitle, IonCardContent,
+    IonItem, IonBadge, IonFab, IonFabButton
+  } from '@ionic/vue';
+  import { 
+    waterOutline, musicalNotesOutline, colorPaletteOutline, 
+    peopleOutline, starOutline, add
+  } from 'ionicons/icons';
 
   const requireBg = require.context("@/assets/images/backgrounds/");
 
   export default defineComponent({
     name: "xp-temples",
+    components: {
+      IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton, 
+      IonAvatar, IonIcon, IonTitle, IonButton, IonContent, IonList,
+      IonGrid, IonRow, IonCol, IonCard, IonImg, IonCardHeader,
+      IonCardSubtitle, IonChip, IonLabel, IonCardTitle, IonCardContent,
+      IonItem, IonBadge, IonFab, IonFabButton
+    },
     mixins: [ionic],
     setup() {
       const $router = useRouter();
       const templeDb = new TempleDb(templeStorage);
       const templeData = ref({} as Record<string, TempleInterface>);
       
-      // Default temple configuration (can be used for display, actual data loaded from DB)
+      // Map with explicit connection between display names and temple IDs
       const temples = ref([
         {
           id: "wind-temple",
           world: "plains",
-          level: 3,
-        },
-        {
-          id: "earth-temple",
-          world: "forest",
-          level: 2,
+          level: 1,
         },
         {
           id: "water-temple",
           world: "islands",
-          level: 4,
-        },
-        {
-          id: "fire-fortress",
-          world: "mountains",
-          level: 5,
-        },
-        {
-          id: "frozen-fortress",
-          world: "ice",
           level: 2,
         },
         {
-          id: "sun-temple",
-          world: "desert",
+          id: "earth-temple",
+          world: "forest",
           level: 3,
         },
         {
           id: "moon-temple",
+          world: "swamps",
+          level: 4,
+        },
+        {
+          id: "fire-temple",
+          world: "mountains",
+          level: 5
+        },
+
+        {
+          id: "light-temple",
+          world: "desert",
+          level: 6,
+        },
+
+        {
+          id: "ice-temple",
+          world: "ice",
+          level: 7,
+        },
+        {
+          id: "lightning-temple",
+          world: "clouds",
+          level: 8,
+        },
+        {
+          id: "shadow-temple",
           world: "moon",
-          level: 1,
+          level: 9,
         },
       ]);
 
@@ -139,9 +180,75 @@
         loadTempleData();
       });
 
+      // For ionic image components
+      const getBgImage = (world: string) => {
+        try {
+          return requireBg(`./world-${world}.jpg`);
+        } catch (e) {
+          // Try to use world-map as fallback instead of world-default
+          try {
+            return requireBg('./world-map.jpg');
+          } catch (e2) {
+            // If world-map doesn't exist, try other fallbacks in order
+            try {
+              return requireBg('./hometown.jpg');
+            } catch (e3) {
+              // If all fallbacks fail, return a blank transparent image
+              return 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+            }
+          }
+        }
+      };
+
+      // For custom styles - kept for backward compatibility
       const getBgUrl = (world: string) => {
-        const img = requireBg(`./world-${world}.jpg`);
-        return `url(${img})`;
+        try {
+          const img = requireBg(`./world-${world}.jpg`);
+          return `url(${img})`;
+        } catch (e) {
+          // Try to use world-map as fallback
+          try {
+            const img = requireBg('./world-map.jpg');
+            return `url(${img})`;
+          } catch (e2) {
+            // If world-map doesn't exist, try hometown
+            try {
+              const img = requireBg('./hometown.jpg');
+              return `url(${img})`;
+            } catch (e3) {
+              // If all fallbacks fail, return a gradient background
+              return 'linear-gradient(135deg, #2c3e50, #4a69bd)';
+            }
+          }
+        }
+      };
+
+      // Temple icon name for Ionicons
+      const getTempleIconName = (templeId: string) => {
+        const icons = {
+          "wind-temple": "cloud-outline",
+          "earth-temple": "leaf-outline",
+          "water-temple": "water-outline",
+          "fire-temple": "flame-outline",
+          "ice-temple": "snow-outline",
+          "light-temple": "sunny-outline",
+          "shadow-temple": "moon-outline",
+        };
+        return icons[templeId] || "home-outline";
+      };
+
+      // Temple color for ion-chip
+      const getTempleColor = (templeId: string) => {
+        const colors = {
+          "wind-temple": "medium",
+          "earth-temple": "success",
+          "water-temple": "primary",
+          "fire-temple": "danger",
+          "ice-temple": "light",
+          "light-temple": "warning",
+          "shadow-temple": "dark",
+        };
+        return colors[templeId] || "medium";
       };
 
       const getTempleIcon = (templeId: string) => {
@@ -149,10 +256,10 @@
           "wind-temple": "fad fa-wind",
           "earth-temple": "fad fa-mountain",
           "water-temple": "fad fa-water",
-          "fire-fortress": "fad fa-fire",
-          "frozen-fortress": "fad fa-snowflake",
-          "sun-temple": "fad fa-sun",
-          "moon-temple": "fad fa-moon",
+          "fire-temple": "fad fa-fire",
+          "ice-temple": "fad fa-snowflake",
+          "light-temple": "fad fa-sun",
+          "shadow-temple": "fad fa-moon",
         };
         return icons[templeId] || "fad fa-place-of-worship";
       };
@@ -163,15 +270,15 @@
           return templeData.value[templeId].customName;
         }
 
-        // Fall back to default names
+        // Fall back to default names - ensure these match what's shown in the UI
         const names = {
           "wind-temple": "Temple of Zephyr",
           "earth-temple": "Gaia Sanctuary",
           "water-temple": "Aqua Haven",
-          "fire-fortress": "Inferno Citadel",
-          "frozen-fortress": "Frost Keep",
-          "sun-temple": "Solar Sanctum",
-          "moon-temple": "Lunar Shrine",
+          "fire-temple": "Inferno Citadel",
+          "ice-temple": "Frost Keep",
+          "light-temple": "Solar Sanctum",
+          "shadow-temple": "Lunar Shrine",
         };
         return names[templeId] || templeId;
       };
@@ -187,17 +294,17 @@
           "wind-temple": "Masters of aerial magic and swift techniques",
           "earth-temple": "Guardians of nature and earthen powers",
           "water-temple": "Wielders of healing and fluid combat",
-          "fire-fortress": "Home to powerful offensive spells",
-          "frozen-fortress": "Specialists in ice magic and defense",
-          "sun-temple": "Light magic and restoration abilities",
-          "moon-temple": "Dark magic and mysterious arts",
+          "fire-temple": "Home to powerful offensive spells",
+          "ice-temple": "Specialists in ice magic and defense",
+          "light-temple": "Light magic and restoration abilities",
+          "shadow-temple": "Dark magic and mysterious arts",
         };
         return descriptions[templeId] || "";
       };
 
       const clickTemple = (templeId: string) => {
         $router.push({
-          name: "xp-temple-settings",
+          name: "xp-compendium-temple-settings",
           params: {
             templeId,
           },
@@ -216,20 +323,28 @@
 
       return {
         getBgUrl,
+        getBgImage,
         clickTemple,
         getTempleIcon,
+        getTempleIconName,
+        getTempleColor,
         getTempleName,
         getTempleDescription,
         temples,
-        goToTempleCreator, // Expose the navigation function
+        goToTempleCreator,
+        // Ionicons
+        waterOutline,
+        musicalNotesOutline,
+        colorPaletteOutline,
+        peopleOutline,
+        starOutline,
+        add,
         clickSoundSettings() {
           $router.push({ name: "xp-settings-sound" });
         },
         clickThemeSettings() {
           $router.push({ name: "xp-settings-theme" });
         },
-      
-      
       };
     },
   });
@@ -237,85 +352,102 @@
 
 <style lang="scss" scoped>
   .xp-temples {
-    ion-card {
-      background-size: cover !important;
-      background-position: center !important;
-      margin: 1rem;
+    // Global page styles
+    ion-toolbar {
+      --background: var(--ion-color-primary-shade);
+      
+      ion-title {
+        font-family: var(--xp-font-fantasy, 'Fantasy');
+        font-size: 1.5rem;
+      }
+    }
+    
+    ion-content {
+      --background: var(--ion-background-color);
+    }
+    
+    // Card styles
+    .temple-card {
+      margin: 1rem 0;
       border-radius: 12px;
       overflow: hidden;
-    }
-
-    .temple-content {
-      background: linear-gradient(
-        to top,
-        rgba(0, 0, 0, 0.8),
-        rgba(0, 0, 0, 0.5)
-      );
-      padding: 1rem;
-      color: white;
-    }
-
-    .temple-header {
-      display: flex;
-      align-items: center;
-      margin-bottom: 0.5rem;
-
-      .temple-icon {
-        margin-right: 0.5rem;
-        font-size: 1.5rem;
-
-        &.fa-wind {
-          --fa-primary-color: #e3f2fd;
-          --fa-secondary-color: #90caf9;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+      
+      &:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+      }
+      
+      ion-card-header {
+        background: rgba(0, 0, 0, 0.6);
+        position: relative;
+        z-index: 2;
+        
+        ion-card-title {
+          font-family: var(--xp-font-fantasy, 'Fantasy');
+          color: white;
+          font-size: 1.5rem;
         }
-
-        &.fa-mountain {
-          --fa-primary-color: #795548;
-          --fa-secondary-color: #4e342e;
+      }
+      
+      ion-card-content {
+        background: rgba(0, 0, 0, 0.4);
+        color: white;
+        position: relative;
+        z-index: 2;
+        padding: 1rem;
+        
+        p {
+          margin-bottom: 1rem;
+          font-size: 0.9rem;
+          line-height: 1.4;
         }
-
-        &.fa-water {
-          --fa-primary-color: #bbdefb;
-          --fa-secondary-color: #2196f3;
-        }
-
-        &.fa-fire {
-          --fa-primary-color: #ffcdd2;
-          --fa-secondary-color: #f44336;
-        }
-
-        &.fa-snowflake {
-          --fa-primary-color: #e3f2fd;
-          --fa-secondary-color: #42a5f5;
-        }
-
-        &.fa-sun {
-          --fa-primary-color: #fff176;
-          --fa-secondary-color: #ffd700;
-        }
-
-        &.fa-moon {
-          --fa-primary-color: #b39ddb;
-          --fa-secondary-color: #673ab7;
-        }
-
-        &.fa-place-of-worship {
-          --fa-primary-color: #e0e0e0;
-          --fa-secondary-color: #9e9e9e;
+      }
+      
+      .temple-bg-image {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        opacity: 0.7;
+        z-index: 1;
+      }
+      
+      .temple-stats {
+        --background: transparent;
+        margin-top: 0.5rem;
+        
+        ion-badge {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.5rem;
+          border-radius: 16px;
+          
+          ion-icon {
+            font-size: 1rem;
+          }
         }
       }
     }
-
-    .temple-description {
-      font-size: 0.9rem;
-      opacity: 0.9;
-      margin: 0.5rem 0;
+    
+    // Floating button
+    ion-fab-button {
+      --box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
     }
-
-    .temple-stats {
-      display: flex;
-      gap: 1rem;
-      margin-top: 0.5rem;
+    
+    // Responsive adjustments
+    @media (max-width: 768px) {
+      ion-card-title {
+        font-size: 1.2rem;
+      }
+      
+      ion-card-content p {
+        font-size: 0.8rem;
+      }
     }
   }
 </style>

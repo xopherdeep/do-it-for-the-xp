@@ -30,6 +30,10 @@ export class DbStorageApi {
     await this.storage.clear();
   }
 
+  public async keys() {
+    return await this.storage.keys();
+  }
+
   public async getAll() {
     const mapKeyToData = (k: string) => this.get(k)
     const promiseMap = (keys: string[]) => Promise.all(keys.map(mapKeyToData))
