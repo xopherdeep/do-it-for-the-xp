@@ -1,17 +1,17 @@
 <template>
   <ion-page :class="$options.name">
     <ion-header>
-      <ion-toolbar :style="{ '--background': getTempleColor() }">
+      <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
           <ion-back-button :default-href="`/game-master/temples/${templeId}`" />
         </ion-buttons>
         <ion-title>Temple Creator</ion-title>
         <ion-buttons slot="end">
-          <ion-button @click="showPreview = !showPreview">
+          <ion-button @click="showPreview = !showPreview" color="rpg">
             <i class="fas fa-code" />
             {{ showPreview ? 'Editor' : 'Preview' }}
           </ion-button>
-          <ion-button @click="saveTemple">
+          <ion-button @click="saveTemple" color="rpg">
             <i class="fas fa-save" />
             Save
           </ion-button>

@@ -446,7 +446,7 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
       classes.push('detailed-cell');
       
       // Add room-specific classes
-      if (room.visited) classes.push('visited-cell');
+      if (templeSystem.hasVisited(templeId, [row, col])) classes.push('visited-cell');
       if (room.type) classes.push(`room-type-${room.type}`);
     } else {
       // Just layout without details
@@ -454,6 +454,11 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
     }
     
     return classes;
+  };
+
+  // Check if a specific room has been visited (using engine's coordinate tracking)
+  const isRoomVisited = (row: number, col: number): boolean => {
+    return templeSystem.hasVisited(templeId, [row, col]);
   };
 
   return {
@@ -494,6 +499,7 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
     getRoomVisibility,
     isCurrentRoom,
     getRoomIcon,
-    getMapTileClass
+    getMapTileClass,
+    isRoomVisited
   };
 }

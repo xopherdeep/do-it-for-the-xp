@@ -103,6 +103,7 @@
         <ion-modal
           :isOpen="isMapOpen"
           @didDismiss="closeMap"
+          backdropDismiss="true"
         >
           <ion-card class="maze-container icon-colors">
             <ion-grid>
@@ -124,13 +125,13 @@
                       class="fad fa-2x fa-walking"
                       :class="{ 'pulse-animation': true }"
                     />
-                    <!-- Walls are always visible with the map, using the thematic icon with reduced opacity -->
+                    <!-- Walls are always visible with the map, using the thematic icon with increased dimness -->
                     <i
                       v-else-if="rooms[cell]?.type === 'wall'"
                       class="fad fa-2x"
                       :class="{ 
                         [ROOM_ICONS.wall]: true,
-                        'opacity-30': true 
+                        'opacity-10': true 
                       }"
                     ></i>
                     <!-- Show room details if we have compass or have visited the room -->
@@ -139,14 +140,15 @@
                       :class="{ 
                         [getRoomIcon(rowIndex, colIndex)]: true,
                         'fal': rooms[cell]?.type === 'loot' && rooms[cell]?.isEmpty,
-                        'fad': !(rooms[cell]?.type === 'loot' && rooms[cell]?.isEmpty)
+                        'fad': !(rooms[cell]?.type === 'loot' && rooms[cell]?.isEmpty),
+                        'opacity-45': !isRoomVisited(rowIndex, colIndex) && hasCompass 
                       }"
                       class="fa-2x"
                     ></i>
-                    <!-- Just show a blank space for rooms we know exist but haven't visited -->
+                    <!-- Show a dimmed question mark for rooms we know exist but haven't visited -->
                     <i 
                       v-else
-                      class="fad fa-2x fa-question-circle opacity-50"
+                      class="fad fa-2x fa-question-circle opacity-40"
                     ></i>
                   </template>
                   <!-- Show nothing if we don't have the map -->
@@ -169,7 +171,7 @@
                 v-if="hasCompass"
               >
                 <i class="fad fa-compass fa-lg mr-2"></i>
-                <span>Compass reveals special rooms</span>
+                <span>Reveals rooms</span>
               </ion-chip>
             </div>
             <ion-buttons>
@@ -391,7 +393,8 @@ export default defineComponent({
       getRoomVisibility,
       isCurrentRoom,
       getRoomIcon,
-      getMapTileClass
+      getMapTileClass,
+      isRoomVisited
     } = useTemple(props.temple, props.x && props.y ? [Number(props.y), Number(props.x)] : undefined);
 
     const router = useRouter();
@@ -502,6 +505,23 @@ export default defineComponent({
       };
 
       switch (currentRoom.value.type) {
+        case 'entrance':
+          actions.header = 'Temple Entrance';
+          actions.buttons.unshift({
+            text: 'Leave Temple',
+            role: 'leave',
+            handler: () => {
+              // Get the world location for this temple
+              const templeWorldMap = getTempleWorldLocation(props.temple);
+              
+              // Navigate to the appropriate world map location
+              router.push({
+                name: templeWorldMap.route,
+                params: { userId: props.userId }
+              });
+            }
+          } as any);
+          break;
         case 'loot':
           // Check the chest state using our improved isChestEmpty computed property
           if (isChestEmpty.value) {
@@ -564,6 +584,24 @@ export default defineComponent({
 
       const actionSheet = await actionSheetController.create(actions);
       actionSheet.present();
+    };
+
+    // Get the appropriate world location for a temple
+    const getTempleWorldLocation = (templeId: string) => {
+      // Map temples to their world locations and route names
+      const templeWorldMap: Record<string, {world: string, route: string}> = {
+        'wind-temple': { world: 'plains', route: 'world-plains' },
+        'water-temple': { world: 'islands', route: 'world-islands' },
+        'earth-temple': { world: 'forest', route: 'world-forest' },
+        'fire-temple': { world: 'mountains', route: 'world-mountains' },
+        'ice-temple': { world: 'ice', route: 'world-ice' },
+        'light-temple': { world: 'desert', route: 'world-desert' },
+        'shadow-temple': { world: 'moon', route: 'world-moon' },
+        'lightning-temple': { world: 'clouds', route: 'world-clouds' }
+      };
+
+      // Return the world location or default to home-town if not found
+      return templeWorldMap[templeId] || { world: 'plains', route: 'home-town' };
     };
 
     // Handle movement with UI updates
@@ -701,6 +739,7 @@ export default defineComponent({
       getRoomVisibility,
       getRoomIcon,
       getMapTileClass,
+      isRoomVisited,
       
       // Local functions
       moveWithUpdate,

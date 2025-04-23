@@ -78,9 +78,46 @@ export class TempleSystem {
       });
     }
     
+    // Migrate any previously visited rooms (from old system) to the new coordinate-based system
+    this.migrateVisitedRooms(templeId);
+    
     // Mark the starting room as visited
     this.visitRoom(templeId, startPosition);
     return true;
+  }
+  
+  /**
+   * Migrate visited room data from the old system to the new coordinate-based system
+   * This ensures any rooms that were marked as visited before the system change
+   * are still shown as visited in the map
+   */
+  private migrateVisitedRooms(templeId: string): void {
+    const temple = this.dungeonManager.getDungeon(templeId);
+    if (!temple) return;
+    
+    // Scan the entire maze
+    for (let row = 0; row < temple.maze.length; row++) {
+      for (let col = 0; col < temple.maze[row].length; col++) {
+        const roomKey = temple.maze[row][col];
+        const room = temple.rooms[roomKey];
+        
+        // Skip walls and non-existent rooms
+        if (!room || room.type === 'wall') continue;
+        
+        // Check if this room was marked as visited in the old system
+        if ((room as any).visited === true) {
+          // Mark it as visited in the new coordinate-based system
+          const posKey = `${row},${col}`;
+          temple.visitedPositions.add(posKey);
+          
+          // Also add it to TempleState's visitedRooms for complete consistency
+          const templeState = this.templeStates[templeId];
+          if (templeState) {
+            templeState.visitedRooms.add(posKey);
+          }
+        }
+      }
+    }
   }
   
   /**
@@ -157,6 +194,12 @@ export class TempleSystem {
     const templeState = this.templeStates[templeId];
     if (!templeState) return false;
     
+    // Check coordinate-based visited status in DungeonManager first
+    if (this.dungeonManager.hasVisited(templeId, position)) {
+      return true;
+    }
+    
+    // Fall back to the TempleState's visitedRooms set (for backward compatibility)
     return templeState.visitedRooms.has(`${position[0]},${position[1]}`);
   }
   

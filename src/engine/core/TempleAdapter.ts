@@ -18,7 +18,8 @@ export function registerTemple(templeId: string, templeData: any): Dungeon {
     id: templeId,
     name: templeId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
     maze: templeData.maze || [],
-    rooms: {}
+    rooms: {},
+    visitedPositions: new Set<string>()
   };
   
   // Convert rooms

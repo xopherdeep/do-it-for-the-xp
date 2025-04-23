@@ -12,7 +12,6 @@ import { reactive } from 'vue';
 export interface Room {
   type: string;
   content?: any;
-  visited?: boolean;
   locked?: {
     north?: boolean;
     south?: boolean;
@@ -28,6 +27,8 @@ export interface Dungeon {
   name: string;
   maze: string[][];
   rooms: Record<string, Room>;
+  // Add visitedPositions to track which coordinates have been visited
+  visitedPositions: Set<string>;
 }
 
 export class DungeonManager {
@@ -51,6 +52,10 @@ export class DungeonManager {
    * Register a dungeon with the manager
    */
   public registerDungeon(dungeon: Dungeon): void {
+    // Initialize visitedPositions if not already present
+    if (!dungeon.visitedPositions) {
+      dungeon.visitedPositions = new Set<string>();
+    }
     this.dungeons[dungeon.id] = reactive(dungeon);
     this.initializeChests(dungeon.id);
   }
@@ -152,10 +157,23 @@ export class DungeonManager {
    * Mark a room as visited
    */
   public visitRoom(dungeonId: string, position: [number, number]): void {
-    const room = this.getRoom(dungeonId, position);
-    if (room) {
-      room.visited = true;
-    }
+    const dungeon = this.dungeons[dungeonId];
+    if (!dungeon) return;
+    
+    // Add the position to the visited positions set
+    const posKey = `${position[0]},${position[1]}`;
+    dungeon.visitedPositions.add(posKey);
+  }
+  
+  /**
+   * Check if a room has been visited
+   */
+  public hasVisited(dungeonId: string, position: [number, number]): boolean {
+    const dungeon = this.dungeons[dungeonId];
+    if (!dungeon) return false;
+    
+    const posKey = `${position[0]},${position[1]}`;
+    return dungeon.visitedPositions.has(posKey);
   }
   
   /**
