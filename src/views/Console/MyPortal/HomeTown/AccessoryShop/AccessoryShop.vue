@@ -1,5 +1,5 @@
 <template>
-  <ion-page class="accessory-shop">
+  <ion-page class="accessory-shop" :style="dynamicShopBackground">
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">

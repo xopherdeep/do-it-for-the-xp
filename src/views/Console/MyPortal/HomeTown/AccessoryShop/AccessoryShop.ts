@@ -44,6 +44,19 @@ export default defineComponent({
           per_page: 4,
         },
       },
+      // Map shop IDs to background image paths
+      shopBackgrounds: {
+        "pegasus-ranch": require("@/assets/images/backgrounds/shops/pegasus-ranch.png"),
+        "wrecked-ship": require("@/assets/images/backgrounds/shops/wrecked-ship.png"),
+        "witchs-hut": require("@/assets/images/backgrounds/shops/witch's-hut.png"),
+        "snow-shack": require("@/assets/images/backgrounds/shops/snow-shack.png"),
+        // For other shops without specific backgrounds, use the default
+        "hermits-tent": require("@/assets/images/midjourney/shop.png"),
+        "crystal-caverns": require("@/assets/images/midjourney/shop.png"),
+        "traveling-merchant": require("@/assets/images/midjourney/shop.png"),
+        "theia-city": require("@/assets/images/midjourney/shop.png"),
+        default: require("@/assets/images/midjourney/shop.png")
+      },
       merchants: {
         "pegasus-ranch": {
           icon: "farm",
@@ -111,6 +124,15 @@ export default defineComponent({
     },
     shopkeeper() {
       return this.currentMerchant?.shopkeep
+    },
+    dynamicShopBackground() {
+      const backgroundImage = this.shopBackgrounds[this.merchant] || this.shopBackgrounds.default;
+      return {
+        backgroundImage: `url(${backgroundImage})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat'
+      };
     }
   },
   methods: {
