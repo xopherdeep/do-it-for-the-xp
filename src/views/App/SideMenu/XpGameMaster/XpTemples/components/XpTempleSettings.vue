@@ -2,12 +2,10 @@
   <ion-page :class="$options.name">
     <ion-header>
       <ion-toolbar class="rpg-box">
-
-
         <ion-buttons slot="start">
           <ion-back-button default-href="/game-master"></ion-back-button>
         </ion-buttons>
-        <ion-title>Temple Settings</ion-title>
+        <ion-title>Temple Master Console</ion-title>
         <ion-buttons slot="end" >
           <ion-button @click="goToTempleCreator" color="rpg">
             <ion-icon :icon="gridOutline" slot="start"></ion-icon>
@@ -22,6 +20,7 @@
     </ion-header>
 
     <ion-content>
+      <!-- Temple Header with Background -->
       <div class="temple-header" :style="{ backgroundImage: getTempleBg() }">
         <div class="temple-overlay">
           <ion-avatar class="temple-icon">
@@ -32,70 +31,50 @@
         </div>
       </div>
 
-      <ion-grid class="ion-padding">
-        <ion-row>
-          <ion-col size="12" size-md="4">
-            <ion-card>
-              <ion-card-header>
-                <ion-card-subtitle>Members</ion-card-subtitle>
-                <ion-card-title>{{ temple.memberCount || 0 }}</ion-card-title>
-              </ion-card-header>
-              <ion-card-content>
-                <ion-progress-bar 
-                  :value="(temple.memberCount || 0) / 100" 
-                  :color="temple.memberCount > 50 ? 'success' : 'primary'"
-                ></ion-progress-bar>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-          <ion-col size="12" size-md="4">
-            <ion-card>
-              <ion-card-header>
-                <ion-card-subtitle>Level</ion-card-subtitle>
-                <ion-card-title>{{ temple.level || 1 }}</ion-card-title>
-              </ion-card-header>
-              <ion-card-content>
-                <ion-progress-bar 
-                  :value="(temple.level || 1) / 10" 
-                  :color="getProgressColor(temple.level || 1, 10)"
-                ></ion-progress-bar>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-          <ion-col size="12" size-md="4">
-            <ion-card>
-              <ion-card-header>
-                <ion-card-subtitle>Tasks</ion-card-subtitle>
-                <ion-card-title>{{ temple.taskCount || 0 }}</ion-card-title>
-              </ion-card-header>
-              <ion-card-content>
-                <ion-progress-bar 
-                  :value="(temple.taskCount || 0) / 50" 
-                  :color="temple.taskCount > 25 ? 'success' : 'warning'"
-                ></ion-progress-bar>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-
-      <ion-card class="power-card ion-margin">
+      <!-- Temple Status Overview -->
+      <ion-card class="status-card ion-margin">
         <ion-card-header>
-          <ion-card-subtitle>Temple Power Rating</ion-card-subtitle>
-          <ion-card-title>{{ calculatePowerRating() }}</ion-card-title>
+          <ion-card-subtitle>Temple Status</ion-card-subtitle>
+          <ion-card-title class="status-title">
+            <span>Level {{ temple.level || 1 }}</span>
+            <ion-chip :color="getTempleColor()">
+              <ion-icon :icon="getTempleIonicIcon()"></ion-icon>
+              <ion-label>{{ getTempleName() }}</ion-label>
+            </ion-chip>
+          </ion-card-title>
         </ion-card-header>
         <ion-card-content>
-          <div class="rating-stars">
-            <i class="fas fa-star" v-for="n in Math.floor(calculatePowerRating()/20)" :key="n"></i>
-            <i class="far fa-star" v-for="n in (5 - Math.floor(calculatePowerRating()/20))" :key="`empty-${n}`"></i>
+          <div class="status-grid">
+            <!-- Development Progress -->
+            <div class="status-item">
+              <div class="status-label">Development</div>
+              <ion-progress-bar 
+                :value="(temple.level || 1) / 10" 
+                :color="getProgressColor(temple.level || 1, 10)"
+              ></ion-progress-bar>
+              <div class="status-detail">{{ temple.level || 1 }}/10</div>
+            </div>
+
+            <!-- Power Rating -->
+            <div class="status-item">
+              <div class="status-label">Power Rating</div>
+              <div class="rating-stars">
+                <i class="fas fa-star" v-for="n in Math.floor(calculatePowerRating()/20)" :key="n"></i>
+                <i class="far fa-star" v-for="n in (5 - Math.floor(calculatePowerRating()/20))" :key="`empty-${n}`"></i>
+              </div>
+              <div class="status-detail">{{ calculatePowerRating() }}/100</div>
+            </div>
           </div>
-          <p>Based on level, members, and completed tasks</p>
         </ion-card-content>
       </ion-card>
 
-      <ion-card class="exploration-card ion-margin" v-if="dungeonStats">
+      <!-- Exploration Stats -->
+      <ion-card class="exploration-card ion-margin" v-if="dungeonStats.totalRooms > 0">
         <ion-card-header>
           <ion-card-subtitle>Temple Exploration</ion-card-subtitle>
+          <ion-card-title>
+            {{ Math.round((dungeonStats.visitedRooms / dungeonStats.totalRooms) * 100) }}% Explored
+          </ion-card-title>
         </ion-card-header>
         <ion-card-content>
           <ion-item lines="none">
@@ -116,90 +95,127 @@
             color="warning"
           ></ion-progress-bar>
 
-          <ion-item lines="none" class="ion-margin-top">
-            <ion-label>Keys Collected</ion-label>
-            <ion-badge slot="end" color="medium">{{ temple.keyCount || 0 }}</ion-badge>
-          </ion-item>
-
-          <ion-item lines="none" class="ion-margin-top">
-            <ion-label>Special Items</ion-label>
-            <div class="special-items" slot="end">
-              <div class="special-item" :class="{ active: temple.hasMap || false }">
-                <i class="fas fa-map" :style="{ color: temple.hasMap ? 'var(--ion-color-success)' : 'gray' }"></i>
-              </div>
-              <div class="special-item" :class="{ active: temple.hasCompass || false }">
-                <i class="fas fa-compass" :style="{ color: temple.hasCompass ? 'var(--ion-color-warning)' : 'gray' }"></i>
-              </div>
-              <div class="special-item" :class="{ active: temple.hasBossKey || false }">
-                <i class="fas fa-key" :style="{ color: temple.hasBossKey ? 'var(--ion-color-danger)' : 'gray' }"></i>
-              </div>
+          <!-- Special Items Status -->
+          <div class="special-items-container ion-margin-top">
+            <div class="special-item" :class="{ active: templeState.hasMap }">
+              <i class="fas fa-map"></i>
+              <span>Map</span>
             </div>
-          </ion-item>
+            <div class="special-item" :class="{ active: templeState.hasCompass }">
+              <i class="fas fa-compass"></i>
+              <span>Compass</span>
+            </div>
+            <div class="special-item" :class="{ active: templeState.hasBossKey }">
+              <i class="fas fa-key"></i>
+              <span>Boss Key</span>
+            </div>
+            <div class="special-item keys">
+              <i class="fas fa-key"></i>
+              <span>{{ templeState.playerKeys || 0 }} Keys</span>
+            </div>
+          </div>
         </ion-card-content>
       </ion-card>
 
-      <ion-card class="monster-population-card ion-margin">
+      <!-- Monster Stats -->
+      <ion-card class="monster-card ion-margin">
         <ion-card-header>
           <ion-card-subtitle>Monster Population</ion-card-subtitle>
-          <ion-card-title>{{ calculateTotalMonsters() }}</ion-card-title>
+          <ion-card-title>{{ countedMonsters.total }} Creatures</ion-card-title>
         </ion-card-header>
         <ion-card-content>
+          <div class="monster-grid">
+            <div class="monster-type">
+              <div class="icon-container boss">
+                <i class="fad fa-crown"></i>
+              </div>
+              <div class="monster-count">{{ countedMonsters.boss }}</div>
+              <div class="monster-label">Bosses</div>
+            </div>
+            <div class="monster-type">
+              <div class="icon-container miniboss">
+                <i class="fad fa-helmet-battle"></i>
+              </div>
+              <div class="monster-count">{{ countedMonsters.miniboss }}</div>
+              <div class="monster-label">Minibosses</div>
+            </div>
+            <div class="monster-type">
+              <div class="icon-container large">
+                <i class="fad fa-dragon"></i>
+              </div>
+              <div class="monster-count">{{ countedMonsters.large }}</div>
+              <div class="monster-label">Large</div>
+            </div>
+            <div class="monster-type">
+              <div class="icon-container medium">
+                <i class="fad fa-skull"></i>
+              </div>
+              <div class="monster-count">{{ countedMonsters.medium }}</div>
+              <div class="monster-label">Medium</div>
+            </div>
+            <div class="monster-type">
+              <div class="icon-container small">
+                <i class="fad fa-ghost"></i>
+              </div>
+              <div class="monster-count">{{ countedMonsters.small }}</div>
+              <div class="monster-label">Small</div>
+            </div>
+          </div>
+          
+          <ion-button 
+            expand="block" 
+            fill="outline" 
+            size="small" 
+            color="medium"
+            @click="showMonsterEditor = true"
+            class="ion-margin-top"
+          >
+            <ion-icon :icon="buildOutline" slot="start"></ion-icon>
+            Edit Monster Population
+          </ion-button>
+        </ion-card-content>
+      </ion-card>
+
+      <!-- Future Features Section -->
+      <ion-card class="future-card ion-margin">
+        <ion-card-header>
+          <ion-card-subtitle>Temple Management</ion-card-subtitle>
+          <ion-card-title>Coming Soon</ion-card-title>
+        </ion-card-header>
+        <ion-card-content>
+          <p class="future-desc">
+            Temple members and task tracking features are in development. These features will allow you to:
+          </p>
           <ion-list lines="none">
             <ion-item>
-              <div class="icon-container small" slot="start">
-                <i class="fad fa-ghost" style="--fa-primary-color: #8b8b8b; --fa-secondary-color: #666"></i>
-              </div>
-              <ion-label>Small Monsters</ion-label>
-              <ion-note slot="end">{{ temple.smallMonsters || getDefaultMonsterCount('small') }}</ion-note>
+              <ion-icon :icon="peopleOutline" slot="start" color="primary"></ion-icon>
+              <ion-label>Recruit and manage temple members</ion-label>
             </ion-item>
-            
             <ion-item>
-              <div class="icon-container medium" slot="start">
-                <i class="fad fa-sword" style="--fa-primary-color: #a1a1a1; --fa-secondary-color: #666"></i>
-              </div>
-              <ion-label>Medium Monsters</ion-label>
-              <ion-note slot="end">{{ temple.mediumMonsters || getDefaultMonsterCount('medium') }}</ion-note>
+              <ion-icon :icon="checkmarkDoneOutline" slot="start" color="success"></ion-icon>
+              <ion-label>Create and assign temple tasks</ion-label>
             </ion-item>
-            
             <ion-item>
-              <div class="icon-container large" slot="start">
-                <i class="fad fa-shield" style="--fa-primary-color: #cd7f32; --fa-secondary-color: #8b4513"></i>
-              </div>
-              <ion-label>Large Monsters</ion-label>
-              <ion-note slot="end">{{ temple.largeMonsters || getDefaultMonsterCount('large') }}</ion-note>
-            </ion-item>
-            
-            <ion-item>
-              <div class="icon-container miniboss" slot="start">
-                <i class="fad fa-helmet-battle" style="--fa-primary-color: silver; --fa-secondary-color: #666"></i>
-              </div>
-              <ion-label>Minibosses</ion-label>
-              <ion-note slot="end">{{ temple.minibosses || getDefaultMonsterCount('miniboss') }}</ion-note>
-            </ion-item>
-            
-            <ion-item>
-              <div class="icon-container boss" slot="start">
-                <i class="fad fa-crown" style="--fa-primary-color: gold; --fa-secondary-color: #c17e03"></i>
-              </div>
-              <ion-label>Boss</ion-label>
-              <ion-note slot="end">{{ temple.bosses || getDefaultMonsterCount('boss') }}</ion-note>
+              <ion-icon :icon="trophyOutline" slot="start" color="warning"></ion-icon>
+              <ion-label>Track achievements and rewards</ion-label>
             </ion-item>
           </ion-list>
         </ion-card-content>
       </ion-card>
 
+      <!-- Temple Customization -->
       <ion-list class="ion-padding">
         <ion-list-header>
           <ion-label>Temple Customization</ion-label>
         </ion-list-header>
         
         <ion-item>
-          <ion-label position="stacked">Custom Name</ion-label>
+          <ion-label position="stacked">Temple Name</ion-label>
           <ion-input v-model="temple.customName" placeholder="Enter a custom name for this temple"></ion-input>
         </ion-item>
         
         <ion-item>
-          <ion-label position="stacked">Custom Description</ion-label>
+          <ion-label position="stacked">Temple Description</ion-label>
           <ion-textarea
             v-model="temple.customDescription"
             placeholder="Enter a custom description for this temple"
@@ -208,6 +224,7 @@
         </ion-item>
       </ion-list>
 
+      <!-- Categories Section -->
       <ion-list class="ion-padding">
         <ion-list-header>
           <ion-label>Categories</ion-label>
@@ -230,13 +247,7 @@
             </ion-select-option>
           </ion-select>
         </ion-item>
-      </ion-list>
 
-      <ion-list class="ion-padding">
-        <ion-list-header>
-          <ion-label>Associated Categories</ion-label>
-        </ion-list-header>
-        
         <ion-item lines="none" v-if="temple.categoryIds && temple.categoryIds.length">
           <div class="category-chips">
             <ion-chip 
@@ -254,73 +265,51 @@
           <ion-note>No categories associated with this temple yet.</ion-note>
         </ion-item>
       </ion-list>
-
-      <ion-list class="ion-padding">
-        <ion-list-header>
-          <ion-label>Temple Hierarchy</ion-label>
-        </ion-list-header>
-
-        <ion-item button detail="true" class="monster-item">
-          <div class="icon-container boss" slot="start">
-            <i class="fad fa-crown" style="--fa-primary-color: gold; --fa-secondary-color: #c17e03"></i>
-          </div>
-          <ion-label>
-            <h2>Temple Boss</h2>
-            <p>Main guardian of the temple</p>
-          </ion-label>
-          <ion-badge color="danger" slot="end">Lvl 50</ion-badge>
-        </ion-item>
-
-        <ion-item button detail="true" class="monster-item">
-          <div class="icon-container miniboss" slot="start">
-            <i class="fad fa-helmet-battle" style="--fa-primary-color: silver; --fa-secondary-color: #666"></i>
-          </div>
-          <ion-label>
-            <h2>Temple Miniboss</h2>
-            <p>Sub-bosses guarding special areas</p>
-          </ion-label>
-          <ion-badge color="warning" slot="end">Lvl 35-45</ion-badge>
-        </ion-item>
-
-        <ion-item button detail="true" class="monster-item">
-          <div class="icon-container large" slot="start">
-            <i class="fad fa-shield" style="--fa-primary-color: #cd7f32; --fa-secondary-color: #8b4513"></i>
-          </div>
-          <ion-label>
-            <h2>Large Monsters</h2>
-            <p>Powerful temple guardians</p>
-          </ion-label>
-          <ion-badge color="warning" slot="end">Lvl 25-35</ion-badge>
-        </ion-item>
-
-        <ion-item button detail="true" class="monster-item">
-          <div class="icon-container medium" slot="start">
-            <i class="fad fa-sword" style="--fa-primary-color: #a1a1a1; --fa-secondary-color: #666"></i>
-          </div>
-          <ion-label>
-            <h2>Medium Monsters</h2>
-            <p>Standard temple protectors</p>
-          </ion-label>
-          <ion-badge color="primary" slot="end">Lvl 15-25</ion-badge>
-        </ion-item>
-
-        <ion-item button detail="true" class="monster-item">
-          <div class="icon-container small" slot="start">
-            <i class="fad fa-ghost" style="--fa-primary-color: #8b8b8b; --fa-secondary-color: #666"></i>
-          </div>
-          <ion-label>
-            <h2>Small Monsters</h2>
-            <p>Common temple creatures</p>
-          </ion-label>
-          <ion-badge color="success" slot="end">Lvl 5-15</ion-badge>
-        </ion-item>
-      </ion-list>
     </ion-content>
+
+    <!-- Monster Editor Popup -->
+    <ion-modal :is-open="showMonsterEditor" @did-dismiss="showMonsterEditor = false">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Edit Monster Population</ion-title>
+          <ion-buttons slot="end">
+            <ion-button @click="showMonsterEditor = false">Close</ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        <ion-list>
+          <ion-item>
+            <ion-label>Small Monsters</ion-label>
+            <ion-input type="number" v-model.number="temple.smallMonsters" min="0"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label>Medium Monsters</ion-label>
+            <ion-input type="number" v-model.number="temple.mediumMonsters" min="0"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label>Large Monsters</ion-label>
+            <ion-input type="number" v-model.number="temple.largeMonsters" min="0"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label>Minibosses</ion-label>
+            <ion-input type="number" v-model.number="temple.minibosses" min="0"></ion-input>
+          </ion-item>
+          <ion-item>
+            <ion-label>Bosses</ion-label>
+            <ion-input type="number" v-model.number="temple.bosses" min="0" max="1"></ion-input>
+          </ion-item>
+        </ion-list>
+        <div class="ion-padding">
+          <ion-button expand="block" @click="saveMonsterCounts">Save Changes</ion-button>
+        </div>
+      </ion-content>
+    </ion-modal>
   </ion-page>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted, watch } from "vue";
+import { defineComponent, ref, onMounted, watch, computed } from "vue";
 import ionic from "@/mixins/ionic";
 import { useRouter } from "vue-router";
 import {
@@ -330,17 +319,20 @@ import {
 } from "@/databases/AchievementDb";
 import { TempleDb, TempleInterface, templeStorage } from "@/databases/TempleDb";
 import { sortCategoryByName } from "@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAddAchievement/XpAddAchievement";
+import { TempleSystem } from "@/engine/core/TempleSystem";
 import {
   IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle, 
-  IonButton, IonContent, IonAvatar, IonIcon, IonGrid, IonRow, IonCol, 
+  IonButton, IonContent, IonAvatar, IonIcon, 
   IonCard, IonCardHeader, IonCardSubtitle, IonCardTitle, IonList,
   IonListHeader, IonItem, IonLabel, IonInput, IonTextarea, IonSelect,
-  IonSelectOption, IonBadge, IonProgressBar, IonCardContent, IonNote, IonChip
+  IonSelectOption, IonBadge, IonProgressBar, IonCardContent, IonNote, IonChip,
+  IonModal
 } from '@ionic/vue';
 import { 
   gridOutline, saveOutline, cloudOutline, leafOutline, waterOutline,
   flameOutline, snowOutline, sunnyOutline, moonOutline, homeOutline,
-  diamondOutline, shieldOutline, flashOutline, personOutline, starOutline
+  diamondOutline, shieldOutline, flashOutline, personOutline, starOutline,
+  buildOutline, peopleOutline, checkmarkDoneOutline, trophyOutline
 } from 'ionicons/icons';
 
 const requireBg = require.context("@/assets/images/backgrounds/");
@@ -350,10 +342,11 @@ export default defineComponent({
   name: "xp-temple-settings",
   components: {
     IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle, 
-    IonButton, IonContent, IonAvatar, IonIcon, IonGrid, IonRow, IonCol, 
+    IonButton, IonContent, IonAvatar, IonIcon, 
     IonCard, IonCardHeader, IonCardSubtitle, IonCardTitle, IonList,
     IonListHeader, IonItem, IonLabel, IonInput, IonTextarea, IonSelect,
-    IonSelectOption, IonBadge, IonProgressBar, IonCardContent, IonNote, IonChip
+    IonSelectOption, IonBadge, IonProgressBar, IonCardContent, IonNote, IonChip,
+    IonModal
   },
   mixins: [ionic],
 
@@ -362,6 +355,8 @@ export default defineComponent({
     const categoryDb = new AchievementCategoryDb(achievementCategoryStorage);
     const categories = ref([] as ExtendedCategoryInterface[]);
     const templeDb = new TempleDb(templeStorage);
+    const templeSystem = TempleSystem.getInstance();
+    const showMonsterEditor = ref(false);
 
     const loadCategories = async () => {
       categories.value = await categoryDb.getAll();
@@ -375,10 +370,7 @@ export default defineComponent({
       largeMonsters?: number;
       minibosses?: number;
       bosses?: number;
-      keyCount?: number;
-      hasMap?: boolean;
-      hasCompass?: boolean;
-      hasBossKey?: boolean;
+      hasBossKey?: boolean; // Added missing property
     }
 
     // Define room type for type checking
@@ -395,14 +387,20 @@ export default defineComponent({
       icon?: any;
     }
 
+    // Initialize temple state
     const temple = ref<ExtendedTempleInterface>({
       id: props.templeId,
       categoryIds: [] as string[],
-      memberCount: 20,
-      level: 3,
-      taskCount: 15,
-      customName: "",
-      customDescription: "",
+      level: 1
+    });
+
+    // Temple state from the temple system
+    const templeState = ref({
+      hasMap: false,
+      hasCompass: false,
+      hasBossKey: false,
+      playerKeys: 0,
+      visitedPositions: new Set<string>()
     });
 
     const dungeonStats = ref({
@@ -412,7 +410,81 @@ export default defineComponent({
       foundTreasures: 0
     });
 
+    // Computed property to count monsters in the dungeon layout
+    const countedMonsters = computed(() => {
+      let counts = {
+        small: 0,
+        medium: 0,
+        large: 0,
+        miniboss: 0,
+        boss: 0,
+        total: 0
+      };
+
+      // If we have manual counts, use those
+      if (temple.value.smallMonsters !== undefined) {
+        counts.small = temple.value.smallMonsters;
+        counts.medium = temple.value.mediumMonsters || 0;
+        counts.large = temple.value.largeMonsters || 0;
+        counts.miniboss = temple.value.minibosses || 0;
+        counts.boss = temple.value.bosses || 0;
+      } 
+      // Otherwise try to count monsters from the dungeon layout
+      else if (temple.value.dungeonLayout?.rooms) {
+        const rooms = temple.value.dungeonLayout.rooms;
+        Object.values(rooms).forEach(room => {
+          const r = room as TempleRoom;
+          if (r.type === 'monster') {
+            const monsterType = (r.content?.type || 'small').toLowerCase();
+            if (monsterType.includes('boss')) {
+              counts.boss++;
+            } else if (monsterType.includes('mini')) {
+              counts.miniboss++;
+            } else if (monsterType.includes('large')) {
+              counts.large++;
+            } else if (monsterType.includes('medium')) {
+              counts.medium++;
+            } else {
+              counts.small++;
+            }
+          }
+        });
+
+        // If no monsters were found, use default values
+        if (counts.small + counts.medium + counts.large + counts.miniboss + counts.boss === 0) {
+          counts.small = getDefaultMonsterCount('small');
+          counts.medium = getDefaultMonsterCount('medium');
+          counts.large = getDefaultMonsterCount('large');
+          counts.miniboss = getDefaultMonsterCount('miniboss');
+          counts.boss = getDefaultMonsterCount('boss');
+        }
+      } else {
+        // No layout, use defaults
+        counts.small = getDefaultMonsterCount('small');
+        counts.medium = getDefaultMonsterCount('medium');
+        counts.large = getDefaultMonsterCount('large');
+        counts.miniboss = getDefaultMonsterCount('miniboss');
+        counts.boss = getDefaultMonsterCount('boss');
+      }
+
+      // Calculate total
+      counts.total = counts.small + counts.medium + counts.large + counts.miniboss + counts.boss;
+      return counts;
+    });
+
     const calculateDungeonStats = () => {
+      // Get temple state from the TempleSystem if available
+      const sysState = templeSystem.getTempleState(props.templeId);
+      if (sysState) {
+        templeState.value = {
+          hasMap: sysState.hasMap,
+          hasCompass: sysState.hasCompass,
+          hasBossKey: !!temple.value.hasBossKey, // Now TypeScript won't complain
+          playerKeys: sysState.playerKeys,
+          visitedPositions: sysState.visitedRooms
+        };
+      }
+
       // If temple has dungeonLayout, calculate exploration stats
       if (temple.value.dungeonLayout) {
         const layout = temple.value.dungeonLayout;
@@ -459,9 +531,16 @@ export default defineComponent({
       }
     };
 
+    // Save monster counts explicitly
+    const saveMonsterCounts = async () => {
+      await saveTemple();
+      showMonsterEditor.value = false; 
+    };
+
     // Watch for temple changes and autosave
     watch(temple, (newVal) => {
-      templeDb.setTemple({...newVal, id: props.templeId});
+      // Don't actually autosave - could lead to data loss if temple becomes empty
+      // Will save manually instead
     }, { deep: true });
 
     const getTempleIcon = () => {
@@ -610,11 +689,20 @@ export default defineComponent({
 
     const calculatePowerRating = () => {
       const level = temple.value.level || 1;
-      const members = temple.value.memberCount || 0;
-      const tasks = temple.value.taskCount || 0;
+      const dungeonCompletion = dungeonStats.value.totalRooms > 0 
+        ? (dungeonStats.value.visitedRooms / dungeonStats.value.totalRooms) * 50 
+        : 0;
+      const monsterStrength = countedMonsters.value.small * 0.5 + 
+                              countedMonsters.value.medium * 1 + 
+                              countedMonsters.value.large * 2 + 
+                              countedMonsters.value.miniboss * 5 + 
+                              countedMonsters.value.boss * 10;
       
-      // Formula: level * 10 + members * 0.5 + tasks * 0.2
-      const rating = Math.min(100, Math.round(level * 10 + members * 0.5 + tasks * 0.2));
+      // New formula based on:
+      // - Temple level
+      // - Dungeon exploration %
+      // - Monster population strength
+      const rating = Math.min(100, Math.round(level * 10 + dungeonCompletion + monsterStrength * 0.5));
       return rating;
     };
 
@@ -625,20 +713,12 @@ export default defineComponent({
       return 'danger';
     };
 
-    const calculateTotalMonsters = () => {
-      return (temple.value.smallMonsters || getDefaultMonsterCount('small')) +
-             (temple.value.mediumMonsters || getDefaultMonsterCount('medium')) +
-             (temple.value.largeMonsters || getDefaultMonsterCount('large')) +
-             (temple.value.minibosses || getDefaultMonsterCount('miniboss')) +
-             (temple.value.bosses || getDefaultMonsterCount('boss'));
-    };
-
     const getDefaultMonsterCount = (type) => {
       const defaultCounts = {
-        small: 12,
-        medium: 8,
-        large: 4,
-        miniboss: 2,
+        small: 8,
+        medium: 4,
+        large: 2,
+        miniboss: 1,
         boss: 1
       };
       return defaultCounts[type] || 0;
@@ -707,7 +787,11 @@ export default defineComponent({
 
     return {
       temple,
+      templeState,
       categories,
+      dungeonStats,
+      countedMonsters,
+      showMonsterEditor,
       loadCategories,
       getTempleIcon,
       getTempleIonicIcon,
@@ -722,13 +806,12 @@ export default defineComponent({
       goToTempleCreator,
       calculatePowerRating,
       getProgressColor,
-      calculateTotalMonsters,
       getDefaultMonsterCount,
       getCategoryColor,
       getCategoryIcon,
       getCategoryName,
-      dungeonStats,
       calculateDungeonStats,
+      saveMonsterCounts,
       // Ionic icons
       gridOutline,
       saveOutline,
@@ -736,7 +819,11 @@ export default defineComponent({
       shieldOutline,
       flashOutline, 
       personOutline,
-      starOutline
+      starOutline,
+      buildOutline,
+      peopleOutline,
+      checkmarkDoneOutline,
+      trophyOutline
     };
   },
 });
@@ -811,191 +898,206 @@ export default defineComponent({
         }
       }
     }
-    
-    // Card stats styling
-    ion-grid {
-      ion-card {
-        margin: 0;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        border-radius: 12px;
-        overflow: hidden;
-        
-        ion-card-header {
-          padding: 1rem;
-          text-align: center;
-          
-          ion-card-subtitle {
-            text-transform: uppercase;
-            font-size: 0.8rem;
-            font-weight: 600;
-            opacity: 0.7;
-          }
-          
-          ion-card-title {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: var(--ion-color-primary);
-          }
-        }
-      }
-    }
-    
-    // List styling
-    ion-list {
-      background: transparent;
-      padding: 0;
-      margin-bottom: 1rem;
-      
-      ion-list-header {
-        background: transparent;
-        
-        ion-label {
-          font-size: 1.2rem;
-          font-weight: 600;
-          color: var(--ion-color-dark);
-          padding-left: 0.5rem;
-          border-left: 4px solid var(--ion-color-primary);
-        }
-      }
-      
-      ion-item {
-        --background: white;
-        --border-radius: 8px;
-        margin-bottom: 0.5rem;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-        
-        &:last-child {
-          margin-bottom: 0;
-        }
-        
-        ion-label {
-          h2 {
-            font-weight: 600;
-            font-size: 1rem;
-          }
-          
-          p {
-            font-size: 0.8rem;
-            opacity: 0.7;
-          }
-        }
-        
-        ion-avatar {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          background: rgba(var(--ion-color-primary-rgb), 0.1);
-          
-          ion-icon {
-            font-size: 1.5rem;
-          }
-        }
-      }
-    }
-    
-    // Monster hierarchy styling
-    .monster-item {
-      .icon-container {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
+
+    // Status card
+    .status-card {
+      .status-title {
         display: flex;
+        justify-content: space-between;
         align-items: center;
-        justify-content: center;
-        margin-right: 16px;
-        
-        i {
-          font-size: 24px;
-        }
-        
-        &.boss {
-          background: radial-gradient(circle, rgba(255,215,0,0.3) 0%, rgba(255,215,0,0.1) 100%);
-          border: 2px solid gold;
-        }
-        
-        &.miniboss {
-          background: radial-gradient(circle, rgba(192,192,192,0.3) 0%, rgba(192,192,192,0.1) 100%);
-          border: 2px solid silver;
-        }
-        
-        &.large {
-          background: radial-gradient(circle, rgba(205,127,50,0.3) 0%, rgba(205,127,50,0.1) 100%);
-          border: 2px solid #cd7f32;
-        }
-        
-        &.medium {
-          background: radial-gradient(circle, rgba(161,161,161,0.3) 0%, rgba(161,161,161,0.1) 100%);
-          border: 2px solid #a1a1a1;
-        }
-        
-        &.small {
-          background: radial-gradient(circle, rgba(139,139,139,0.3) 0%, rgba(139,139,139,0.1) 100%);
-          border: 2px solid #8b8b8b;
-        }
       }
-    }
-    
-    // New card styles
-    .power-card {
-      .rating-stars {
+
+      .status-grid {
         display: flex;
-        justify-content: center;
-        gap: 8px;
-        margin: 10px 0;
+        justify-content: space-between;
+        margin-top: 10px;
         
-        i {
-          font-size: 24px;
-          color: var(--ion-color-warning);
-        }
-      }
-      
-      p {
-        text-align: center;
-        font-size: 0.9rem;
-        opacity: 0.7;
-      }
-    }
-    
-    .exploration-card {
-      ion-progress-bar {
-        margin: 5px 0;
-        height: 6px;
-        --buffer-background: rgba(0,0,0,0.1);
-        border-radius: 3px;
-      }
-      
-      .special-items {
-        display: flex;
-        gap: 12px;
-        
-        .special-item {
-          width: 32px;
-          height: 32px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          border-radius: 50%;
-          background: rgba(0,0,0,0.05);
+        .status-item {
+          flex: 1;
+          text-align: center;
+          padding: 0 5px;
           
-          &.active {
-            background: rgba(var(--ion-color-success-rgb), 0.2);
-            box-shadow: 0 0 8px var(--ion-color-success);
+          .status-label {
+            font-size: 0.9rem;
+            opacity: 0.7;
+            margin-bottom: 5px;
           }
+          
+          .status-detail {
+            font-size: 0.9rem;
+            margin-top: 5px;
+            font-weight: 500;
+          }
+          
+          .rating-stars {
+            display: flex;
+            justify-content: center;
+            gap: 3px;
+            
+            i {
+              font-size: 1.2rem;
+              color: var(--ion-color-warning);
+            }
+          }
+        }
+      }
+    }
+    
+    // Special items
+    .special-items-container {
+      display: flex;
+      justify-content: space-around;
+      flex-wrap: wrap;
+      gap: 10px;
+      padding: 10px 0;
+      
+      .special-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        opacity: 0.6;
+        
+        i {
+          font-size: 1.5rem;
+          color: var(--ion-color-medium);
+          margin-bottom: 5px;
+        }
+        
+        span {
+          font-size: 0.8rem;
+        }
+        
+        &.active {
+          opacity: 1;
           
           i {
-            font-size: 16px;
+            color: var(--ion-color-success);
+          }
+          
+          &:nth-child(2) i {
+            color: var(--ion-color-warning);
+          }
+          
+          &:nth-child(3) i {
+            color: var(--ion-color-danger);
+          }
+        }
+        
+        &.keys i {
+          color: var(--ion-color-medium);
+        }
+      }
+    }
+    
+    // Monster grid
+    .monster-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 10px;
+      
+      .monster-type {
+        text-align: center;
+        
+        .icon-container {
+          width: 40px;
+          height: 40px;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin: 0 auto 5px;
+          
+          i {
+            font-size: 1.2rem;
+          }
+          
+          &.boss {
+            background: radial-gradient(circle, rgba(255,215,0,0.3) 0%, rgba(255,215,0,0.1) 100%);
+            border: 2px solid gold;
+            
+            i {
+              --fa-primary-color: gold;
+              --fa-secondary-color: #c17e03;
+            }
+          }
+          
+          &.miniboss {
+            background: radial-gradient(circle, rgba(192,192,192,0.3) 0%, rgba(192,192,192,0.1) 100%);
+            border: 2px solid silver;
+            
+            i {
+              --fa-primary-color: silver;
+              --fa-secondary-color: #666;
+            }
+          }
+          
+          &.large {
+            background: radial-gradient(circle, rgba(205,127,50,0.3) 0%, rgba(205,127,50,0.1) 100%);
+            border: 2px solid #cd7f32;
+            
+            i {
+              --fa-primary-color: #cd7f32;
+              --fa-secondary-color: #8b4513;
+            }
+          }
+          
+          &.medium {
+            background: radial-gradient(circle, rgba(161,161,161,0.3) 0%, rgba(161,161,161,0.1) 100%);
+            border: 2px solid #a1a1a1;
+            
+            i {
+              --fa-primary-color: #a1a1a1;
+              --fa-secondary-color: #666;
+            }
+          }
+          
+          &.small {
+            background: radial-gradient(circle, rgba(139,139,139,0.3) 0%, rgba(139,139,139,0.1) 100%);
+            border: 2px solid #8b8b8b;
+            
+            i {
+              --fa-primary-color: #8b8b8b;
+              --fa-secondary-color: #666;
+            }
+          }
+        }
+        
+        .monster-count {
+          font-size: 1.2rem;
+          font-weight: bold;
+          margin-bottom: 2px;
+        }
+        
+        .monster-label {
+          font-size: 0.8rem;
+          opacity: 0.7;
+        }
+      }
+    }
+    
+    // Future features card
+    .future-card {
+      .future-desc {
+        margin-bottom: 15px;
+        font-style: italic;
+      }
+      
+      ion-list {
+        background: transparent;
+        
+        ion-item {
+          --background: transparent;
+          --border-color: rgba(0,0,0,0.05);
+          
+          ion-icon {
+            margin-right: 10px;
+            font-size: 1.2rem;
           }
         }
       }
     }
     
-    .monster-population-card {
-      ion-note {
-        font-size: 1rem;
-        font-weight: bold;
-      }
-    }
-    
+    // Category chips
     .category-chips {
       display: flex;
       flex-wrap: wrap;
@@ -1008,7 +1110,7 @@ export default defineComponent({
       }
     }
     
-    // Responsive adjustments for smaller screens
+    // Responsive adjustments
     @media (max-width: 768px) {
       .temple-header {
         height: 150px;
@@ -1033,8 +1135,14 @@ export default defineComponent({
         }
       }
       
-      ion-grid ion-card ion-card-header ion-card-title {
-        font-size: 1.5rem;
+      .monster-grid {
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(2, auto);
+        
+        .monster-type:nth-child(4),
+        .monster-type:nth-child(5) {
+          grid-column: span 1;
+        }
       }
     }
   }

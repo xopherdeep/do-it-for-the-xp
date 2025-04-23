@@ -1,97 +1,117 @@
 <template>
   <ion-page :class="$options.name">
     <ion-header>
-      <ion-toolbar  class="rpg-box">
+      <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
           <ion-back-button default-href="/game-master" />
         </ion-buttons>
-        <ion-avatar slot="start" class="ion-margin-start">
-          <ion-icon name="water-outline" size="large"></ion-icon>
-        </ion-avatar>
+        <i
+          class="fad fa-2x fa-hand-holding-water"
+          slot="start"
+        />
         <ion-title>
           Temples
         </ion-title>
         <ion-buttons slot="end">
           <ion-button @click="clickSoundSettings">
-            <ion-icon name="musical-notes-outline" size="large"></ion-icon>
+            <i class="fad fa-volume-up fa-2x"></i>
           </ion-button>
           <ion-button @click="clickThemeSettings">
-            <ion-icon name="color-palette-outline" size="large"></ion-icon>
+            <i class="fad fa-palette fa-2x"></i>
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-    
-    <ion-content class="ion-padding">
-      <ion-list>
-        <ion-grid>
-          <ion-row>
-            <ion-col 
-              size="12"
-              size-md="6"
-              v-for="temple in temples"
-              :key="temple.id"
+
+    <ion-content class="ion-padding bg-slide">
+      <ion-grid>
+        <ion-row>
+          <ion-col
+            size="12"
+            size-md="6"
+            v-for="temple in temples"
+            :key="temple.id"
+          >
+            <ion-card
+              button
+              @click="clickTemple(temple.id)"
+              class="temple-card"
             >
-              <ion-card button @click="clickTemple(temple.id)" class="temple-card">
-                <ion-img 
-                  :src="getBgImage(temple.world)" 
-                  class="temple-bg-image"
-                  alt="Temple background"
-                ></ion-img>
-                
-                <ion-card-header>
-                  <ion-card-subtitle>
+              <ion-img
+                :src="getBgImage(temple.world)"
+                class="temple-bg-image"
+                alt="Temple background"
+              ></ion-img>
+
+              <ion-card-header>
+
+                <ion-card-title>
+
+                  <ion-card-subtitle class="float-right">
                     <ion-chip :color="getTempleColor(temple.id)">
-                      <ion-icon :name="getTempleIconName(temple.id)"></ion-icon>
+                      <i
+                        :class="getTempleIcon(temple.id)"
+                        class="mr-2 fa-lg"
+                      ></i>
                       <ion-label>Level {{ temple.level || 1 }}</ion-label>
                     </ion-chip>
                   </ion-card-subtitle>
-                  <ion-card-title>{{ getTempleName(temple.id) }}</ion-card-title>
-                </ion-card-header>
-                
-                <ion-card-content>
-                  <p>{{ getTempleDescription(temple.id) }}</p>
-                  
-                  <ion-item lines="none" class="temple-stats">
-                    <ion-badge color="danger" slot="start">
-                      <ion-icon name="people-outline"></ion-icon>
-                      20 Members
-                    </ion-badge>
-                    <ion-badge color="warning" slot="end">
-                      <ion-icon name="star-outline"></ion-icon>
-                      Level {{ temple.level || 1 }}
-                    </ion-badge>
-                  </ion-item>
-                </ion-card-content>
-              </ion-card>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-      </ion-list>
-      
+
+                  {{ getTempleName(temple.id) }}
+                </ion-card-title>
+              </ion-card-header>
+
+              <ion-card-content>
+                <p>{{ getTempleDescription(temple.id) }}</p>
+
+                <ion-item
+                  lines="none"
+                  class="temple-stats"
+                >
+                  <ion-badge
+                    color="danger"
+                    slot="start"
+                  >
+                    <ion-icon name="people-outline"></ion-icon>
+                    20 Members
+                  </ion-badge>
+                  <ion-badge
+                    color="warning"
+                    slot="end"
+                  >
+                    <ion-icon name="star-outline"></ion-icon>
+                    Level {{ temple.level || 1 }}
+                  </ion-badge>
+                </ion-item>
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
       <!-- Temple Creator Floating Action Button -->
-      <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-        <ion-fab-button @click="goToTempleCreator('new')" color="primary">
+      <ion-fab
+        vertical="bottom"
+        horizontal="end"
+        slot="fixed"
+      >
+        <ion-fab-button
+          @click="goToTempleCreator('new')"
+          color="primary"
+        >
           <ion-icon name="add"></ion-icon>
         </ion-fab-button>
       </ion-fab>
-      
+
     </ion-content>
   </ion-page>
 </template>
 
 <script lang="ts">
   import { defineComponent, ref, onMounted } from "vue";
-  import ionic from "@/mixins/ionic";
+  import Ionic from "@/mixins/ionic";
   import { useRouter } from "vue-router";
   import { TempleDb, TempleInterface, templeStorage } from "@/databases/TempleDb";
-  import { 
-    IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton, 
-    IonAvatar, IonIcon, IonTitle, IonButton, IonContent, IonList,
-    IonGrid, IonRow, IonCol, IonCard, IonImg, IonCardHeader,
-    IonCardSubtitle, IonChip, IonLabel, IonCardTitle, IonCardContent,
-    IonItem, IonBadge, IonFab, IonFabButton
-  } from '@ionic/vue';
+  
   import { 
     waterOutline, musicalNotesOutline, colorPaletteOutline, 
     peopleOutline, starOutline, add
@@ -101,14 +121,7 @@
 
   export default defineComponent({
     name: "xp-temples",
-    components: {
-      IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton, 
-      IonAvatar, IonIcon, IonTitle, IonButton, IonContent, IonList,
-      IonGrid, IonRow, IonCol, IonCard, IonImg, IonCardHeader,
-      IonCardSubtitle, IonChip, IonLabel, IonCardTitle, IonCardContent,
-      IonItem, IonBadge, IonFab, IonFabButton
-    },
-    mixins: [ionic],
+    mixins: [Ionic],
     setup() {
       const $router = useRouter();
       const templeDb = new TempleDb(templeStorage);
@@ -226,7 +239,7 @@
       // Temple icon name for Ionicons
       const getTempleIconName = (templeId: string) => {
         const icons = {
-          "wind-temple": "cloud-outline",
+          "wind-temple": "fad fa-wind",
           "earth-temple": "leaf-outline",
           "water-temple": "water-outline",
           "fire-temple": "flame-outline",

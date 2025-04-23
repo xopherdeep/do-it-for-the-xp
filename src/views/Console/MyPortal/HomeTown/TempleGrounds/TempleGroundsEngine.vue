@@ -2,7 +2,7 @@
   <ion-page :class="$options.name">
     <ion-header>
       <ion-toolbar class="rpg-box icon-colors">
-        <ion-buttons slot="start">
+        <ion-buttons slot="end">
           <ion-button color="rpg">
             <i class="fad fa-key-skeleton m-0 mr-2 fa-2x ion-float-right" />
             {{ playerKeys }}
@@ -13,21 +13,8 @@
           <i class="fad fa-2x fa-place-of-worship" />
         </ion-buttons> -->
         <!-- <ion-title v-html="templeName" /> -->
-        <ion-buttons slot="end">
-          <ion-button
-            color="rpg"
-            :disabled="true"
-            v-if="hasCompass"
-          >
-            {{ currentPosition }}
-            <i class="fad fa-walking fa-2x ml-2" />
-          </ion-button>
-          <ion-button
-            v-if="hasCompass"
-            color="rpg"
-          >
-            <i class="fad fa-compass fa-2x" />
-          </ion-button>
+        <ion-buttons slot="start">
+
           <ion-button
             v-if="hasMap"
             @click="openMap"
@@ -36,12 +23,30 @@
             <i
               class="fad fa-2x"
               :class="{
-              'fa-map': !hasCompass,
-              'fa-map-marked': hasCompass,
-            }"
+                'fa-map': !hasCompass,
+                'fa-map-marked': hasCompass,
+              }"
             />
           </ion-button>
+          <ion-button
+            v-if="hasCompass"
+            color="rpg"
+          >
+            <i class="fad fa-compass fa-2x" />
+          </ion-button>
 
+
+          <ion-button
+            color="rpg"
+            :disabled="true"
+            v-if="hasCompass"
+          >
+            <i class="fad fa-walking fa-2x mr-2" />
+            <ion-title>{{
+              currentPosition
+              }}
+            </ion-title>
+          </ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
@@ -120,7 +125,7 @@
                   <!-- Show appropriate content based on map/compass state -->
                   <template v-if="getRoomVisibility(rowIndex, colIndex) !== 'none'">
                     <!-- Current position always shows the player icon when we have a map -->
-                    <i 
+                    <i
                       v-if="isCurrentRoom(rowIndex, colIndex)"
                       class="fad fa-2x fa-walking"
                       :class="{ 'pulse-animation': true }"
@@ -135,7 +140,7 @@
                       }"
                     ></i>
                     <!-- Show room details if we have compass or have visited the room -->
-                    <i 
+                    <i
                       v-else-if="showRoomDetails(rowIndex, colIndex)"
                       :class="{ 
                         [getRoomIcon(rowIndex, colIndex)]: true,
@@ -146,7 +151,7 @@
                       class="fa-2x"
                     ></i>
                     <!-- Show a dimmed question mark for rooms we know exist but haven't visited -->
-                    <i 
+                    <i
                       v-else
                       class="fad fa-2x fa-question-circle opacity-40"
                     ></i>
@@ -336,7 +341,7 @@ import { ROOM_ICONS } from '@/dungeons/roomTypes';
 import { useRouter, useRoute } from 'vue-router';
 import { useTemple } from '@/hooks/useTemple';
 import { registerAllTemples, registerCustomTemples } from '@/engine/core/TempleAdapter';
-import { importWindTempleToDb } from '@/engine/core/importWindTemple';
+import { importAllTempleLayouts } from '@/engine/core/importAllTemples';
 import TempleDb from '@/databases/TempleDb';
 import temples from './temples';
 
@@ -348,14 +353,10 @@ export default defineComponent({
     // Register predefined temples with the engine
     registerAllTemples(temples);
     
-    // Import the wind temple layout into the database only if it doesn't exist yet
-    TempleDb.getTempleByName('Wind Temple')
-      .then(temple => {
-        if (!temple) {
-          return importWindTempleToDb();
-        }
-      })
-      .catch(err => console.error('Failed to import wind temple:', err));
+    // Import all temple layouts into the database
+    importAllTempleLayouts()
+      .then(() => console.log('All temple layouts imported into TempleDb'))
+      .catch(err => console.error('Failed to import temple layouts:', err));
     
     // Register custom temples from the TempleDb
     registerCustomTemples().catch(err => console.error('Failed to register custom temples:', err));
