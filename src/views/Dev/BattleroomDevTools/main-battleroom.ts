@@ -26,6 +26,7 @@ import '@ionic/vue/css/display.css';
 // Import your theme css
 import '@/theme/variables.css';
 import '@/theme/core.css';
+import debug from '@/utils/debug';
 
 // Create a simplified version of the store with just battle-related features
 const store = createStore({
@@ -45,27 +46,27 @@ const store = createStore({
         forest: 0,
         mountain: 0,
         swamp: 0,
-        island: 0
-      }
+        island: 0,
+      },
     },
-    theme: 'default',
+    theme: "default",
     bgm: {
       is_on: false,
       bookmark: 0,
-      playlist: []
+      playlist: [],
     },
     userActions: [
-      { label: 'Attack', click: () => console.log('Attack clicked') },
-      { label: 'Magic', click: () => console.log('Magic clicked') },
-      { label: 'Item', click: () => console.log('Item clicked') },
-      { label: 'Run', click: () => console.log('Run clicked') }
-    ]
+      { label: "Attack", click: () => debug.log("Attack clicked") },
+      { label: "Magic", click: () => debug.log("Magic clicked") },
+      { label: "Item", click: () => debug.log("Item clicked") },
+      { label: "Run", click: () => debug.log("Run clicked") },
+    ],
   },
   getters: {
     battleState: (state) => (key) => {
       if (key) return state.battle[key];
       return state.battle;
-    }
+    },
   },
   mutations: {
     ACTIVATE_BATTLE(state) {
@@ -86,32 +87,32 @@ const store = createStore({
     SET_BATTLE_TERRAIN(state, terrain) {
       state.battle.terrain = {
         ...state.battle.terrain,
-        ...terrain
+        ...terrain,
       };
     },
     SET_USER_ACTIONS(state, userActions) {
       state.userActions = userActions;
-    }
+    },
   },
   actions: {
     enterBattle({ commit }) {
-      commit('ACTIVATE_BATTLE');
-      console.log('Battle started');
+      commit("ACTIVATE_BATTLE");
+      debug.log("Battle started");
     },
     leaveBattle({ commit }) {
-      commit('DEACTIVATE_BATTLE');
-      console.log('Battle ended');
+      commit("DEACTIVATE_BATTLE");
+      debug.log("Battle ended");
     },
     resetBattleTimer({ commit, state }) {
-      commit('SET_BATTLE_COUNTER', state.battle.steps.max);
+      commit("SET_BATTLE_COUNTER", state.battle.steps.max);
     },
     randomEncounter({ state, commit }) {
       const currentStep = state.battle.steps.counter;
       if (currentStep <= 0) {
-        commit('ACTIVATE_BATTLE');
+        commit("ACTIVATE_BATTLE");
       }
-    }
-  }
+    },
+  },
 });
 
 // Create the Vue application
@@ -125,7 +126,7 @@ const fxSystem: Partial<FXSystem> = {
     rpg: 'rpg-theme',
     ui: 'default-ui'
   },
-  play$fx: (sound) => console.log(`Playing sound: ${sound}`)
+  play$fx: (sound) => debug.log(`Playing sound: ${sound}`)
 };
 
 app.config.globalProperties.$fx = fxSystem as FXSystem;

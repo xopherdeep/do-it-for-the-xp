@@ -1,5 +1,6 @@
 import { ref, reactive } from 'vue';
 import { loadAudioSettings, loadAudioTheme, saveAudioSettings, saveAudioTheme } from './storage';
+import debug from '@/utils/debug';
 
 // Import types directly instead of from module
 export type AudioCategory = 'ui' | 'music' | 'sfx' | 'ambient';
@@ -86,7 +87,7 @@ export class AudioEngine {
     this.loadUserPreferences();
     
     // Log that engine was created
-    console.log('AudioEngine instance created');
+    debug.log('AudioEngine instance created');
   }
   
   /**
@@ -140,7 +141,7 @@ export class AudioEngine {
     try {
       this.initializeAudioContext();
     } catch (e) {
-      console.warn('Audio context initialization deferred: user interaction required');
+      debug.warn('Audio context initialization deferred: user interaction required');
     }
     
     // Set up event listeners for user interaction to initialize audio
@@ -159,7 +160,7 @@ export class AudioEngine {
     this.state.audioPermissionGranted = this.audioContext.state !== 'suspended';
     
     if (this.audioContext.state === 'suspended') {
-      console.warn('AudioContext is suspended. Audio will not play until user interaction.');
+      debug.warn('AudioContext is suspended. Audio will not play until user interaction.');
     } else {
       this.preloadCommonSounds();
     }
@@ -177,11 +178,11 @@ export class AudioEngine {
         // Resume AudioContext if it was suspended
         if (this.audioContext && this.audioContext.state === 'suspended') {
           this.audioContext.resume().catch(err => {
-            console.error('Failed to resume AudioContext', err);
+            debug.error('Failed to resume AudioContext', err);
           });
         }
       } catch (e) {
-        console.error('Error initializing audio context:', e);
+        debug.error('Error initializing audio context:', e);
       }
     };
     
@@ -230,7 +231,7 @@ export class AudioEngine {
       this.soundCache.set(id, audioBuffer);
       return audioBuffer;
     } catch (error) {
-      console.error(`Failed to load sound: ${id}`, error);
+      debug.error(`Failed to load sound: ${id}`, error);
       throw error;
     }
   }
@@ -243,13 +244,13 @@ export class AudioEngine {
    */
   public playSound(id: string, options: { volume?: number, loop?: boolean } = {}): string {
     if (!this.audioContext || !this.state.audioReady) {
-      console.warn('Audio context not ready. Sound will not play:', id);
+      debug.warn('Audio context not ready. Sound will not play:', id);
       return '';
     }
     
     const soundBuffer = this.soundCache.get(id);
     if (!soundBuffer) {
-      console.warn(`Sound not loaded: ${id}`);
+      debug.warn(`Sound not loaded: ${id}`);
       return '';
     }
     
@@ -414,7 +415,7 @@ export class AudioEngine {
   public playMusic(id: string, fadeInTime = 1000): void {
     const track = this._musicTracks.get(id);
     if (!track) {
-      console.warn(`Music track not loaded: ${id}`);
+      debug.warn(`Music track not loaded: ${id}`);
       return;
     }
     
@@ -427,7 +428,7 @@ export class AudioEngine {
     // Start with volume 0 and fade in
     track.volume = 0;
     track.play().catch(error => {
-      console.error("Couldn't play music:", error);
+      debug.error("Couldn't play music:", error);
     });
     
     const startTime = Date.now();
@@ -605,7 +606,7 @@ export class AudioEngine {
         return Promise.resolve();
       }
       return this.loadSound(id, path).catch(err => {
-        console.error(`Failed to preload sound: ${id}`, err);
+        debug.error(`Failed to preload sound: ${id}`, err);
       });
     });
     

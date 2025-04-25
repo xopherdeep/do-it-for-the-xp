@@ -357,6 +357,7 @@ import TempleDb from '@/databases/TempleDb';
 import temples from './temples';
 import XpFabUserHud from '../../components/XpFabUserHud.vue';
 import XpUserPointsHud from '../../components/XpUserPointsHud.vue';
+import debug from '@/utils/debug';
 
 export default defineComponent({
   props: ['userId', 'temple', 'x', 'y'],
@@ -372,11 +373,11 @@ export default defineComponent({
     
     // Import all temple layouts into the database
     importAllTempleLayouts()
-      .then(() => console.log('All temple layouts imported into TempleDb'))
-      .catch(err => console.error('Failed to import temple layouts:', err));
+      .then(() => debug.log('All temple layouts imported into TempleDb'))
+      .catch(err => debug.error('Failed to import temple layouts:', err));
     
     // Register custom temples from the TempleDb
-    registerCustomTemples().catch(err => console.error('Failed to register custom temples:', err));
+    registerCustomTemples().catch(err => debug.error('Failed to register custom temples:', err));
 
     // Get temple features from the composable
     const {

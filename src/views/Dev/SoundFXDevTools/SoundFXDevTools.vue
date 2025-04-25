@@ -147,6 +147,7 @@ import {
   musicalNoteOutline, playCircleOutline, stopCircleOutline 
 } from 'ionicons/icons';
 import { SoundEffect } from '@/types/fx';
+import debug from '@/utils/debug';
 
 // Define types for our component's internal use without modifying global declarations
 interface RPGSounds {
@@ -245,11 +246,11 @@ export default defineComponent({
           sound.currentTime = 0;
           sound.volume = fxVolume.value / 100;
           sound.play().catch(err => {
-            console.error('Error playing sound:', err);
+            debug.error('Error playing sound:', err);
           });
         }
       } catch (error) {
-        console.error('Error playing UI sound:', error);
+        debug.error('Error playing UI sound:', error);
       }
     };
 
@@ -262,11 +263,11 @@ export default defineComponent({
           sound.currentTime = 0;
           sound.volume = fxVolume.value / 100;
           sound.play().catch(err => {
-            console.error('Error playing sound:', err);
+            debug.error('Error playing sound:', err);
           });
         }
       } catch (error) {
-        console.error('Error playing RPG sound:', error);
+        debug.error('Error playing RPG sound:', error);
       }
     };
 
@@ -286,11 +287,11 @@ export default defineComponent({
           audioElement.value.volume = musicVolume.value / 100;
           audioElement.value.loop = true;
           audioElement.value.play().catch(err => {
-            console.error('Error playing music track:', err);
+            debug.error('Error playing music track:', err);
           });
         }
       } catch (error) {
-        console.error('Error playing music track:', error);
+        debug.error('Error playing music track:', error);
       }
     };
 

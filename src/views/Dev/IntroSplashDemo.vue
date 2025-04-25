@@ -112,6 +112,7 @@ import {
 } from '@ionic/vue';
 import { XpIntroSplash } from '@/components/XpIntroSplash';
 import type { SplashScreen } from '@/components/XpIntroSplash';
+import debug from '@/utils/debug';
 
 export default defineComponent({
   name: 'IntroSplashDemo',
@@ -207,7 +208,7 @@ export default defineComponent({
     };
     
     const onSplashChange = (index: number) => {
-      console.log(`Splash changed to index ${index}`);
+      debug.log(`Splash changed to index ${index}`);
     };
     
     return {

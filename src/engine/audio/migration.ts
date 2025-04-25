@@ -3,6 +3,7 @@
  * to the new AudioEngine system
  */
 
+import debug from '@/utils/debug';
 import { AudioEngine } from './AudioEngine';
 import { getSound } from './soundRegistry';
 
@@ -57,7 +58,7 @@ export function createCompatibilityLayer(): CompatibilityLayer {
       }
       
       // If sound not found, log a warning
-      console.warn(`Sound not found in compatibility layer: ${soundId}`);
+      debug.warn(`Sound not found in compatibility layer: ${soundId}`);
       return '';
     },
     
@@ -77,19 +78,19 @@ export function createCompatibilityLayer(): CompatibilityLayer {
   // Setup legacy object structure to avoid breaking old code
   compatLayer.nintendo = {
     switch: {
-      play: () => console.warn('Legacy audio API used. Please migrate to the new audio system.')
+      play: () => debug.warn('Legacy audio API used. Please migrate to the new audio system.')
     }
   };
   
   compatLayer.sony = {
     ps4: {
-      play: () => console.warn('Legacy audio API used. Please migrate to the new audio system.')
+      play: () => debug.warn('Legacy audio API used. Please migrate to the new audio system.')
     }
   };
   
   compatLayer.rpg = {
     earthbound: {
-      play: () => console.warn('Legacy audio API used. Please migrate to the new audio system.')
+      play: () => debug.warn('Legacy audio API used. Please migrate to the new audio system.')
     }
   };
   
@@ -107,7 +108,7 @@ export function installGlobalCompatibilityLayer(): CompatibilityLayer {
   // Cast to any to avoid the type error - we know the structure isn't exactly the same
   // but it should be compatible enough for our migration period
   (window as any).$fx = compat;
-  console.log('Installed audio compatibility layer as window.$fx');
+  debug.log('Installed audio compatibility layer as window.$fx');
   return compat;
 }
 

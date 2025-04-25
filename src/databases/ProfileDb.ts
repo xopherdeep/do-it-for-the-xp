@@ -4,6 +4,7 @@ import User from '@/utils/User';
 import PersistentStorageService from '@/utils/PersistentStorageService';
 
 import { Entry, SpecialStats } from '@/utils/User/stats';
+import debug from '@/utils/debug';
 
 // New types and interfaces for Skills, JobClass, Equipment, and Quests
 interface Skill {
@@ -103,7 +104,7 @@ export class ProfileDb extends DbStorageApi {
       const profiles = await this.getAll()
       await PersistentStorageService.saveProfiles(profiles)
     } catch (error) {
-      console.error('Failed to backup profiles:', error)
+      debug.error('Failed to backup profiles:', error)
     }
   }
   
@@ -117,7 +118,7 @@ export class ProfileDb extends DbStorageApi {
       const profiles = await PersistentStorageService.getProfiles()
       
       if (!profiles || profiles.length === 0) {
-        console.log('No profiles found in persistent storage')
+        debug.log('No profiles found in persistent storage')
         return false
       }
       
@@ -131,10 +132,10 @@ export class ProfileDb extends DbStorageApi {
         }
       }
       
-      console.log(`Restored ${profiles.length} profiles from persistent storage`)
+      debug.log(`Restored ${profiles.length} profiles from persistent storage`)
       return true
     } catch (error) {
-      console.error('Failed to restore profiles:', error)
+      debug.error('Failed to restore profiles:', error)
       return false
     }
   }
@@ -166,7 +167,7 @@ export class ProfileDb extends DbStorageApi {
       
       return true
     } catch (error) {
-      console.error('Failed to import profiles:', error)
+      debug.error('Failed to import profiles:', error)
       return false
     }
   }

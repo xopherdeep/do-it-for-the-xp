@@ -33,6 +33,7 @@ import {
 import fetchItems from "@/mixins/fetchItems"
 import { actionSheetController } from "@ionic/vue";
 import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
+import debug from "@/utils/debug";
 
 // Define the interface for XpTypingText instance methods
 interface XpTypingTextInstance {
@@ -86,7 +87,7 @@ export default defineComponent({
           icon: heartHalfOutline,
           data: 'Data value',
           handler: () => {
-            console.log('Rest & Recover clicked')
+            debug.log('Rest & Recover clicked')
           },
         },
         {
@@ -94,14 +95,14 @@ export default defineComponent({
           icon: calendarOutline,
           data: 10,
           handler: () => {
-            console.log('Community Events clicked')
+            debug.log('Community Events clicked')
           },
         },
         {
           text: 'Rent a Room',
           icon: bedOutline,
           handler: () => {
-            console.log('Rent a Room clicked')
+            debug.log('Rent a Room clicked')
           },
         },
         {
@@ -117,7 +118,7 @@ export default defineComponent({
           icon: close,
           role: 'cancel',
           handler: () => {
-            console.log('Cancel clicked')
+            debug.log('Cancel clicked')
           },
         },
       ];
@@ -171,7 +172,7 @@ export default defineComponent({
     
     onTypingComplete() {
       // The current text block has finished typing
-      console.log(`Dialog block ${this.currentDialogIndex} completed`);
+      debug.log(`Dialog block ${this.currentDialogIndex} completed`);
       this.isTyping = false;
       
       // Play subtle sound effect between blocks if there are more blocks

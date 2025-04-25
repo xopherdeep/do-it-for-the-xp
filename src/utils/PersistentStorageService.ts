@@ -1,4 +1,5 @@
 import { Preferences } from '@capacitor/preferences';
+import debug from './debug';
 
 /**
  * PersistentStorageService provides a way to store data that persists between app installations
@@ -15,10 +16,10 @@ export class PersistentStorageService {
         key: 'xp_profiles_backup',
         value: JSON.stringify(profiles)
       });
-      console.log('Profiles saved to persistent storage');
+      debug.log('Profiles saved to persistent storage');
       return Promise.resolve();
     } catch (error) {
-      console.error('Failed to save profiles to persistent storage:', error);
+      debug.error('Failed to save profiles to persistent storage:', error);
       return Promise.reject(error);
     }
   }
@@ -34,7 +35,7 @@ export class PersistentStorageService {
       }
       return [];
     } catch (error) {
-      console.error('Failed to get profiles from persistent storage:', error);
+      debug.error('Failed to get profiles from persistent storage:', error);
       return [];
     }
   }
@@ -62,7 +63,7 @@ export class PersistentStorageService {
       
       return fileName;
     } catch (error) {
-      console.error('Failed to export profiles:', error);
+      debug.error('Failed to export profiles:', error);
       throw error;
     }
   }
@@ -79,7 +80,7 @@ export class PersistentStorageService {
       }
       return profiles;
     } catch (error) {
-      console.error('Failed to import profiles:', error);
+      debug.error('Failed to import profiles:', error);
       throw error;
     }
   }

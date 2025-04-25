@@ -17,6 +17,7 @@ import { ProfileDb } from "@/databases";
 import { profileStorage } from "@/views/App/SideMenu/SwitchProfile/SwitchProfile.vue";
 import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
 import ATMModal from "./components/ATMModal.vue";
+import debug from "@/utils/debug";
 
 // Define the interface for XpTypingText instance methods
 interface XpTypingTextInstance {
@@ -166,7 +167,7 @@ export default defineComponent({
     
     onTypingComplete() {
       // The current text block has finished typing
-      console.log(`Dialog block ${this.currentDialogIndex} completed`);
+      debug.log(`Dialog block ${this.currentDialogIndex} completed`);
       this.isTyping = false;
       
       // Play subtle sound effect between blocks if there are more blocks
@@ -246,7 +247,7 @@ export default defineComponent({
             role: "cancel",
             cssClass: "secondary",
             handler: () => {
-              // console.log("Confirm Cancel:", blah);
+              // debug.log("Confirm Cancel:", blah);
             },
           }, {
             text: "Pay",

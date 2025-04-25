@@ -152,6 +152,7 @@ import {
   addOutline, bugOutline, bulbOutline
 } from 'ionicons/icons';
 import XpLoading from '@/components/XpLoading/XpLoading.vue';
+import debug from '@/utils/debug';
 
 export default defineComponent({
   name: 'TownHall',
@@ -227,17 +228,17 @@ export default defineComponent({
 
     const submitAnnouncement = () => {
       // Implement announcement submission
-      console.log('Submit announcement');
+      debug.log('Submit announcement');
     };
 
     const reportBug = () => {
       // Implement bug reporting
-      console.log('Report bug');
+      debug.log('Report bug');
     };
 
     const suggestFeature = () => {
       // Implement feature suggestion
-      console.log('Suggest feature');
+      debug.log('Suggest feature');
     };
 
     return {
