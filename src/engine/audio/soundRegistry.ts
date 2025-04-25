@@ -1,15 +1,41 @@
 import { SoundEffect, MusicTrack } from './AudioEngine';
 import debug from '@/utils/debug';
 
-// Helper function to generate placeholder URLs for development
-function getPlaceholderAudio(id: string): string {
-  // Log the requested audio id for debugging
-  debug.log(`Generating placeholder audio for: ${id}`);
-  
-  // In a real implementation, you would use actual audio files
-  // For now, we'll use placeholders to avoid build errors
-  return `data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAAABMYXZjNTguMTMuMTAw`;
-}
+// Import actual audio files instead of using placeholders
+// Nintendo UI sounds
+import nintendoSelect from '@/assets/audio/nintendo/switch/Select.wav';
+import nintendoConfirm from '@/assets/audio/nintendo/switch/Tick.wav';
+import nintendoCancel from '@/assets/audio/nintendo/switch/Border.wav';
+import nintendoError from '@/assets/audio/nintendo/switch/Error.wav';
+import nintendoPopup from '@/assets/audio/nintendo/switch/Popup + Run Title.wav';
+
+// Sony UI sounds
+import sonySelect from '@/assets/audio/sony/ps5/Navigation.mp3';
+import sonyConfirm from '@/assets/audio/sony/ps5/Navigation_Enter.mp3';
+import sonyCancel from '@/assets/audio/sony/ps5/Navigation_Back.mp3';
+import sonyError from '@/assets/audio/sony/ps5/Prompt.mp3';
+import sonyPopup from '@/assets/audio/sony/ps5/Trophy_Notification.mp3';
+
+// Earthbound game sounds
+import ebAttack from '@/assets/audio/nintendo/earthbound/attack1.wav';
+import ebHit from '@/assets/audio/nintendo/earthbound/enemyhit.wav';
+import ebEnemyAttack from '@/assets/audio/nintendo/earthbound/enemyattack.wav';
+import ebVictory from '@/assets/audio/nintendo/earthbound/eb_win.wav';
+import ebLevelUp from '@/assets/audio/nintendo/earthbound/eb_fanfare.wav';
+
+// Use generic audio files for Chrono Trigger and FF until we can verify paths
+import ctAttack from '@/assets/audio/click.wav';
+import ctHit from '@/assets/audio/Cursor.wav';
+import ctEnemyAttack from '@/assets/audio/Error.wav';
+import ctVictory from '@/assets/audio/complete.mp3';
+import ctLevelUp from '@/assets/audio/level_up_screen.mp3';
+
+// Final Fantasy fallback sounds
+import ffAttack from '@/assets/audio/click.wav';
+import ffHit from '@/assets/audio/Cursor.wav';
+import ffEnemyAttack from '@/assets/audio/Error.wav';
+import ffVictory from '@/assets/audio/complete.mp3';
+import ffLevelUp from '@/assets/audio/level_up_screen.mp3';
 
 /**
  * Sound effects registry - organized by theme and category
@@ -23,27 +49,27 @@ export const soundEffects: Record<string, Record<string, Record<string, SoundEff
     nintendo: {
       select: { 
         id: 'nintendo_select', 
-        src: getPlaceholderAudio('nintendo_select'),
+        src: nintendoSelect,
         category: 'ui'
       },
       confirm: {
         id: 'nintendo_confirm',
-        src: getPlaceholderAudio('nintendo_confirm'),
+        src: nintendoConfirm,
         category: 'ui'
       },
       cancel: {
         id: 'nintendo_cancel',
-        src: getPlaceholderAudio('nintendo_cancel'),
+        src: nintendoCancel,
         category: 'ui'
       },
       error: {
         id: 'nintendo_error',
-        src: getPlaceholderAudio('nintendo_error'),
+        src: nintendoError,
         category: 'ui'
       },
       popup: {
         id: 'nintendo_popup',
-        src: getPlaceholderAudio('nintendo_popup'),
+        src: nintendoPopup,
         category: 'ui'
       }
     },
@@ -51,27 +77,27 @@ export const soundEffects: Record<string, Record<string, Record<string, SoundEff
     sony: {
       select: {
         id: 'sony_select',
-        src: getPlaceholderAudio('sony_select'),
+        src: sonySelect,
         category: 'ui'
       },
       confirm: {
         id: 'sony_confirm',
-        src: getPlaceholderAudio('sony_confirm'),
+        src: sonyConfirm,
         category: 'ui'
       },
       cancel: {
         id: 'sony_cancel',
-        src: getPlaceholderAudio('sony_cancel'),
+        src: sonyCancel,
         category: 'ui'
       },
       error: {
         id: 'sony_error',
-        src: getPlaceholderAudio('sony_error'),
+        src: sonyError,
         category: 'ui'
       },
       popup: {
         id: 'sony_popup',
-        src: getPlaceholderAudio('sony_popup'),
+        src: sonyPopup,
         category: 'ui'
       }
     }
@@ -83,27 +109,27 @@ export const soundEffects: Record<string, Record<string, Record<string, SoundEff
     earthbound: {
       attack: {
         id: 'earthbound_attack',
-        src: getPlaceholderAudio('earthbound_attack'),
+        src: ebAttack,
         category: 'sfx'
       },
       hit: {
         id: 'earthbound_hit',
-        src: getPlaceholderAudio('earthbound_hit'),
+        src: ebHit,
         category: 'sfx'
       },
       enemyAttack: {
         id: 'earthbound_enemy_attack',
-        src: getPlaceholderAudio('earthbound_enemy_attack'),
+        src: ebEnemyAttack,
         category: 'sfx'
       },
       victory: {
         id: 'earthbound_victory',
-        src: getPlaceholderAudio('earthbound_victory'),
+        src: ebVictory,
         category: 'sfx'
       },
       levelUp: {
         id: 'earthbound_level_up',
-        src: getPlaceholderAudio('earthbound_level_up'),
+        src: ebLevelUp,
         category: 'sfx'
       }
     },
@@ -111,27 +137,27 @@ export const soundEffects: Record<string, Record<string, Record<string, SoundEff
     chronoTrigger: {
       attack: {
         id: 'chrono_attack',
-        src: getPlaceholderAudio('chrono_attack'),
+        src: ctAttack,
         category: 'sfx'
       },
       hit: {
         id: 'chrono_hit',
-        src: getPlaceholderAudio('chrono_hit'),
+        src: ctHit,
         category: 'sfx'
       },
       enemyAttack: {
         id: 'chrono_enemy_attack',
-        src: getPlaceholderAudio('chrono_enemy_attack'),
+        src: ctEnemyAttack,
         category: 'sfx'
       },
       victory: {
         id: 'chrono_victory',
-        src: getPlaceholderAudio('chrono_victory'),
+        src: ctVictory,
         category: 'sfx'
       },
       levelUp: {
         id: 'chrono_level_up',
-        src: getPlaceholderAudio('chrono_level_up'),
+        src: ctLevelUp,
         category: 'sfx'
       }
     },
@@ -139,27 +165,27 @@ export const soundEffects: Record<string, Record<string, Record<string, SoundEff
     finalFantasy: {
       attack: {
         id: 'ff_attack',
-        src: getPlaceholderAudio('ff_attack'),
+        src: ffAttack,
         category: 'sfx'
       },
       hit: {
         id: 'ff_hit',
-        src: getPlaceholderAudio('ff_hit'),
+        src: ffHit,
         category: 'sfx'
       },
       enemyAttack: {
         id: 'ff_enemy_attack',
-        src: getPlaceholderAudio('ff_enemy_attack'),
+        src: ffEnemyAttack,
         category: 'sfx'
       },
       victory: {
         id: 'ff_victory',
-        src: getPlaceholderAudio('ff_victory'),
+        src: ffVictory,
         category: 'sfx'
       },
       levelUp: {
         id: 'ff_level_up',
-        src: getPlaceholderAudio('ff_level_up'),
+        src: ffLevelUp,
         category: 'sfx'
       }
     }
