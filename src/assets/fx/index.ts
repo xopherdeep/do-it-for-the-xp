@@ -6,6 +6,7 @@ declare global {
 }
 
 import loadingMP3 from "@/assets/audio/loading.mp3";
+import debug from "@/utils/debug";
 
 import nintendo from "./nintendo.fx";
 import earthbound from "./earthbound.fx";
@@ -543,12 +544,12 @@ export const play$fx = (fx = 'select') => {
   if (soundFx && document.documentElement.hasAttribute('data-user-interacted')) {
     try {
       soundFx.play().catch(err => {
-        console.log('Sound playback was prevented:', err);
+        debug.log('Sound playback was prevented:', err);
         // Store that we attempted to play a sound, for future reference
         window._pendingAudioPlay = true;
       });
     } catch (err) {
-      console.log('Sound playback error:', err);
+      debug.log('Sound playback error:', err);
     }
   } else if (soundFx) {
     // Store that we attempted to play a sound, for future reference
@@ -558,11 +559,11 @@ export const play$fx = (fx = 'select') => {
     if (soundFx && document.documentElement.hasAttribute('data-user-interacted')) {
       try {
         soundFx.play().catch(err => {
-          console.log('Sound playback was prevented:', err);
+          debug.log('Sound playback was prevented:', err);
           window._pendingAudioPlay = true;
         });
       } catch (err) {
-        console.log('Sound playback error:', err);
+        debug.log('Sound playback error:', err);
       }
     } else if (soundFx) {
       window._pendingAudioPlay = true;

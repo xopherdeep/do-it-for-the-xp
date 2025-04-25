@@ -104,7 +104,7 @@
   </ion-page>
 </template>
 <script lang="ts">
-  import { defineComponent, ref, watch, computed } from "vue";
+  import { defineComponent, ref, watch } from "vue";
   import { alertController, modalController } from "@ionic/vue";
   import { add } from "ionicons/icons";
   import XpAddDoDont from "./components/XpAddDoDont.vue";

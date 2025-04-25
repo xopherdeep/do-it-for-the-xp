@@ -4,6 +4,7 @@
  */
 import { Store } from 'vuex';
 import { RootState } from '@/types/store';
+import debug from '@/utils/debug';
 
 export class BattleroomTestUtils {
   private store: Store<RootState>;
@@ -62,7 +63,7 @@ export class BattleroomTestUtils {
    */
   logBattleState() {
     const battleState = this.getBattleState();
-    console.log('Current Battle State:', battleState);
+    debug.log('Current Battle State:', battleState);
     return battleState;
   }
 

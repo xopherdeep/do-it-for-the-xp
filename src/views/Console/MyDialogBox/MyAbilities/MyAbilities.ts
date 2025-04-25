@@ -44,6 +44,7 @@ import { useQueryClient } from "vue-query";
 import { useRouter } from "vue-router";
 
 import XpSwiperGallery from "@/components/XpSwiperGallery/XpSwiperGallery.vue";
+import debug from "@/utils/debug";
 
 export default defineComponent({
   props: ["userId"],
@@ -101,7 +102,14 @@ export default defineComponent({
 
   methods: {
     segmentChanged($ev) {
-      // console.log($ev);
+      // Log the segment change and update any necessary state
+      debug.log("Segment changed:", $ev.detail.value);
+      
+      // You can use the event data to filter abilities by category if needed
+      if ($ev.detail && $ev.detail.value) {
+        // Example: Update search parameters based on selected segment
+        this.request.params.search = $ev.detail.value;
+      }
     },
     slidePrev() {
       this.page--;
@@ -121,8 +129,33 @@ export default defineComponent({
     const nTotalPages = ref(0);
     const router = useRouter();
     const controlledSwiper = ref(null);
+    
+    // Setup query client for potential cache invalidation
+    queryClient.setDefaultOptions({
+      queries: {
+        staleTime: 60 * 1000, // 1 minute
+        cacheTime: 5 * 60 * 1000, // 5 minutes
+      }
+    });
+    
+    // Function to clear the abilities cache if needed
+    const clearAbilitiesCache = () => {
+      queryClient.invalidateQueries('abilities');
+    };
+    
     const setControlledSwiper = (swiper) => {
       controlledSwiper.value = swiper;
+    };
+
+    // Make router available for navigation if needed
+    const navigateToAbilityDetail = (abilityId) => {
+      router.push({
+        name: 'ability-detail',
+        params: { 
+          userId: props.userId,
+          abilityId 
+        }
+      });
     };
 
     const params = reactive({
@@ -173,6 +206,9 @@ export default defineComponent({
       play,
       stop,
       user,
+      setControlledSwiper,
+      navigateToAbilityDetail,
+      clearAbilitiesCache
     };
   },
 });

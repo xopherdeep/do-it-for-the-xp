@@ -125,7 +125,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, watch, onMounted } from 'vue';
+import { defineComponent, ref,  watch, onMounted } from 'vue';
 import { JOB_CLASS_OPTIONS } from "@/constants";
 import { closeOutline, chevronBackOutline, chevronForwardOutline } from 'ionicons/icons';
 // Import Chart.js directly

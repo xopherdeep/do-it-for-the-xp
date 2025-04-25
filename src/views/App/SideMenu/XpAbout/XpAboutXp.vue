@@ -52,11 +52,12 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue';
+import { defineComponent } from 'vue';
 import ionic from '@/mixins/ionic';
 import { actionSheetController } from '@ionic/vue';
 import XpTypingText from '@/components/XpTypingText/XpTypingText.vue';
-import { trophyOutline, starOutline, bulbOutline } from 'ionicons/icons';
+import debug from '@/utils/debug';
+import { bulbOutline, starOutline, trophyOutline } from 'ionicons/icons';
 
 // Define the interface for XpTypingText instance methods
 interface XpTypingTextInstance {
@@ -190,7 +191,7 @@ export default defineComponent({
     
     onTypingComplete() {
       // The current text block has finished typing
-      console.log(`Dialog block ${this.currentDialogIndex} completed`);
+      debug.log(`Dialog block ${this.currentDialogIndex} completed`);
       this.isTyping = false;
       
       // Play subtle sound effect between blocks if there are more blocks

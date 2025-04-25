@@ -2,6 +2,7 @@ import { defineComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { alertController, toastController } from '@ionic/vue'
+import debug from '@/utils/debug'
 
 import {
   IonPage,
@@ -99,7 +100,7 @@ export default defineComponent({
     const store = useStore();
     
     const navigateTo = (path: string) => {
-      console.log('Navigating to:', path);
+      debug.log('Navigating to:', path);
       router.push(path);
     };
     

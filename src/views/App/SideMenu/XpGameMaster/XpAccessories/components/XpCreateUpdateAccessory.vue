@@ -163,8 +163,9 @@
   import { modalController } from '@ionic/vue';
   import ionic from "@/mixins/ionic";
   import { mapGetters } from "vuex";
+  import debug from '@/utils/debug';
 
-  import AccessoriesDb, { Accessory, accessoriesStorage, Rarity, AccessoryType } from '@/databases/AccessoriesDb';
+  import AccessoriesDb, {  accessoriesStorage, Rarity, AccessoryType } from '@/databases/AccessoriesDb';
 
   export default defineComponent({
     props: ["id"],
@@ -204,7 +205,7 @@
       },
       async loadAccessoryById(id: number) {
         const accessory = await this.accessoryDb.getAccessoryById(id);
-        console.log(accessory);
+        debug.log(accessory);
 
         this.updateAccessory = accessory
       }

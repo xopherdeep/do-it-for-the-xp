@@ -355,7 +355,7 @@ export default defineComponent({
         });
       });
     },
-    onRadioChange(val: any) {
+    onRadioChange() {
       // console.log("onRadioChange", val);
     },
     getUserAvatar(user: any) {

@@ -46,6 +46,7 @@
 import { defineComponent, ref } from 'vue';
 import XpDialog from '@/components/XpDialog/XpDialog.vue';
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonButton, IonButtons, IonBackButton } from '@ionic/vue';
+import debug from '@/utils/debug';
 
 export default defineComponent({
   name: 'DialogDemo',
@@ -96,11 +97,12 @@ export default defineComponent({
     };
 
     const onBlockComplete = (blockIndex: number) => {
-      // Log removed to comply with ESLint rules
+      debug.log("Block complete:", blockIndex);
     };
 
     const onDialogComplete = () => {
-      // Log removed to comply with ESLint rules
+      debug.log("Dialog complete");
+      dialog.value?.hide();
     };
 
     return {

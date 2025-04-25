@@ -1,4 +1,4 @@
-import { defineComponent, ref } from "vue";
+import { defineComponent } from "vue";
 import ionic from "@/mixins/ionic";
 
 import {

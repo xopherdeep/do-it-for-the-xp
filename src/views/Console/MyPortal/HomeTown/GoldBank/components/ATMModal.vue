@@ -159,7 +159,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType, ref, computed, onMounted, watch } from 'vue';
+import { defineComponent, PropType, onMounted, watch } from 'vue';
 import {
   closeOutline,
   cashOutline,

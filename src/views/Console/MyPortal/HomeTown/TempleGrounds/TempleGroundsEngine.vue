@@ -344,19 +344,17 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, computed, ref, watch } from 'vue';
+import { defineComponent, onMounted, computed, ref } from 'vue';
 import ionic from '@/mixins/ionic';
 import { actionSheetController, alertController } from '@ionic/vue';
 import { mapGetters } from 'vuex';
 import { ROOM_ICONS } from '@/dungeons/roomTypes';
-import { useRouter, useRoute } from 'vue-router';
+import { useRouter } from 'vue-router';
 import { useTemple } from '@/hooks/useTemple';
 import { registerAllTemples, registerCustomTemples } from '@/engine/core/TempleAdapter';
 import { importAllTempleLayouts } from '@/engine/core/importAllTemples';
-import TempleDb from '@/databases/TempleDb';
 import temples from './temples';
 import XpFabUserHud from '../../components/XpFabUserHud.vue';
-import XpUserPointsHud from '../../components/XpUserPointsHud.vue';
 import debug from '@/utils/debug';
 
 export default defineComponent({
@@ -365,7 +363,6 @@ export default defineComponent({
   mixins: [ionic],
   components: {
     XpFabUserHud,
-    // XpUserPointsHud
   },
   setup(props) {
     // Register predefined temples with the engine
@@ -417,7 +414,6 @@ export default defineComponent({
     } = useTemple(props.temple, props.x && props.y ? [Number(props.y), Number(props.x)] : undefined);
 
     const router = useRouter();
-    const route = useRoute();
 
     // Background position state for CSS transforms - initialize with default values
     const backgroundPosition = ref({ x: 0, y: 0 });
@@ -789,7 +785,7 @@ export default defineComponent({
       const [row, col] = this.currentPosition;
       try {
         return require(`@/assets/images/backgrounds/${this.temple}/[${row},${col}].jpg`);
-      } catch (e) {
+      } catch {
         return '';
       }
     }

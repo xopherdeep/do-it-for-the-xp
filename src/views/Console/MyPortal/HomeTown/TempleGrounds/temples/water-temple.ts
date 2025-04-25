@@ -2,7 +2,6 @@
 import {
   _00_,
   O__O,
-  K___,
   H__P,
   M__P,
   q__q,
@@ -14,7 +13,6 @@ import {
   TELE,
   _XX_,
   PUZL,
-  GATE,
 } from "@/dungeons/roomTypes";
 
 // Custom room types for water temple

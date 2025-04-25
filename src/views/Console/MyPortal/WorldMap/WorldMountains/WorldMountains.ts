@@ -6,6 +6,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
 import userActions from "@/mixins/userActions";
 import type { DefineUserActionComponent } from "@/mixins/userActions";
+import debug from "@/utils/debug";
 
 export default defineComponent<DefineUserActionComponent>({
   name: "world-mountains",
@@ -32,7 +33,9 @@ export default defineComponent<DefineUserActionComponent>({
       fireAudio.value.loop = true;
       
       // Start playing fire sound
-      fireAudio.value.play().catch(e => { /* Silent error handling */ });
+      fireAudio.value.play().catch(error => {
+        debug.log("Failed to play fire crackling audio:", error);
+      });
     });
     
     // Clean up when component is unmounted

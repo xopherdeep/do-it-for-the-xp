@@ -23,6 +23,7 @@ import {
   bagOutline
 } from "ionicons/icons";
 import { mapGetters, useStore } from "vuex";
+import debug from "@/utils/debug";
 
 export default defineComponent({
   props: ["userId"],
@@ -33,7 +34,7 @@ export default defineComponent({
   },
   methods: {
     segmentChanged(ev) {
-      // console.log("Segment changed", ev);
+      debug.log("Segment changed", ev);
     },
   },
   setup(props) {

@@ -111,7 +111,6 @@ import { defineComponent, ref } from "vue";
 import { Share } from "@capacitor/share";
 import {  toastController } from "@ionic/vue";
 import {
-  shareSocialOutline, // Keep if needed elsewhere, or remove
   peopleCircleOutline, // New intro icon
   sparklesOutline,    // XP reward icon
   cashOutline,        // Gold reward icon
@@ -121,6 +120,7 @@ import {
   infiniteSharp       // Added for title
 } from "ionicons/icons";
 import Ionic from "@/mixins/ionic";
+import debug from "@/utils/debug";
 
 export default defineComponent({
   name: "XpShareApp",
@@ -158,7 +158,7 @@ export default defineComponent({
         // Check if it's a cancellation (often error message contains "Abort" or similar, but Capacitor API might not provide specific codes)
         // For simplicity, we show a generic message if it's not a success.
         if (error?.message && error.message.includes('Abort')) {
-          console.log('Share dialog was cancelled by the user.');
+          debug.log('Share dialog was cancelled by the user.');
           // Optionally show a less prominent message or do nothing
           const toast = await toastController.create({
             message: "Share cancelled.",
@@ -168,7 +168,7 @@ export default defineComponent({
           });
           await toast.present();
         } else {
-          console.error("Share failed:", error);
+          debug.error("Share failed:", error);
           const toast = await toastController.create({
             message: "Could not share. Please try again!",
             duration: 2000,

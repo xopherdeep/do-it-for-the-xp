@@ -21,7 +21,6 @@
           :sound-theme="$fx.theme.rpg"
           sound-type="text"
           @typing-complete="onTypingComplete"
-          
         />
       </div>
 
@@ -48,6 +47,7 @@
 <script lang="ts">
 import { defineComponent, ref, PropType, onMounted, onUnmounted, watch } from 'vue';
 import XpTypingText from '@/components/XpTypingText/XpTypingText.vue';
+import debug from '@/utils/debug';
 
 // Define the structure of a splash screen
 export interface SplashScreen {
@@ -144,6 +144,7 @@ export default defineComponent({
     
     // Handle keyboard and click events for skipping
     const handleKeyDown = (event: KeyboardEvent) => {
+      debug.log('Key pressed:', event.key);
       if (props.skipEnabled && isActive.value) {
         skipIntro();
       }
@@ -191,7 +192,7 @@ export default defineComponent({
           }
         }
       } catch (error) {
-        console.error("Error playing sound:", error);
+        debug.error("Error playing sound:", error);
       }
     };
     
@@ -307,7 +308,7 @@ export default defineComponent({
       // In this case, we need to start the intro manually after a short delay
       fallbackTimeout = window.setTimeout(() => {
         if (preloadedImages.value < totalImages.value && props.autoPlay) {
-          console.log('Starting intro despite not all images loaded');
+          debug.log('Starting intro despite not all images loaded');
           imagesReady.value = true;
           startIntro();
         }

@@ -1,8 +1,7 @@
 import { defineComponent, ref, computed } from 'vue';
 import { format } from 'date-fns';
 import ionic from "@/mixins/ionic";
-import { modalController, toastController } from '@ionic/vue';
-import appConfig from "@/app.config";
+import { toastController } from '@ionic/vue';
 
 // Define the Notification interface
 interface Notification {

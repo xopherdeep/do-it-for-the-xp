@@ -85,8 +85,7 @@ export default defineComponent({
       return this.$refs.slides
     },
     currentPage() {
-      return
-      return this.request.params.page
+      return this.request.params.page;
     },
 
     page: {
@@ -169,8 +168,9 @@ export default defineComponent({
   },
   watch: {
     request: {
-      handler(request) {
-        // console.log(request);
+      handler() {
+        // This handler will react to request changes
+        // Commented out for now:
         // this.getItems(request.params.page);
       },
       deep: true,

@@ -12,6 +12,8 @@
  * 3. Add the _usingNewAudioEngine flag check to your existing implementation
  */
 
+import debug from '@/utils/debug';
+
 // Modified changeBGM action that checks for the _usingNewAudioEngine flag
 export const changeBGM = function(context, payload) {
   // Always commit the payload to update the state
@@ -46,10 +48,10 @@ export const changeBGM = function(context, payload) {
       const startDelay = payload.startDelay || 0;
       if (startDelay > 0) {
         setTimeout(() => {
-          audio.play().catch(err => console.error("Failed to play audio:", err));
+          audio.play().catch(err => debug.error("Failed to play audio:", err));
         }, startDelay);
       } else {
-        audio.play().catch(err => console.error("Failed to play audio:", err));
+        audio.play().catch(err => debug.error("Failed to play audio:", err));
       }
     }
   }

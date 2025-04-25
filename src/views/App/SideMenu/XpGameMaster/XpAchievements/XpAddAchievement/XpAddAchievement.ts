@@ -1,9 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
-import { defineComponent, ref, watch } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
+import { defineComponent, ref } from 'vue';
+import { useRouter } from 'vue-router';
 import { modalController, alertController } from '@ionic/vue';
-
-import { IonModal } from '@ionic/vue';
 
 import AchievementDb, {
   Achievement,
@@ -281,8 +279,8 @@ export default defineComponent({
         const task = await this.achievementDb.getTaskById(this.id);
         this.achievement = { ...this.achievement, ...task };
 
-        const hasBeast = task.beastId != ''
-        const hasSubAchievement = task.subAchievementIds.length > 0
+        // const hasBeast = task.beastId != ''
+        // const hasSubAchievement = task.subAchievementIds.length > 0
 
         this.adventureType = this.typeOfAdventure
       }
@@ -397,8 +395,6 @@ export default defineComponent({
   },
 
   setup() {
-
-    const route = useRoute();
     const router = useRouter();
     const id = router.currentRoute.value.params.id
     const profilesDb = new ProfileDb(profileStorage);
@@ -437,11 +433,7 @@ export default defineComponent({
 
     const beasts = ref([] as Beast[])
 
-    const ends = ref({} as typeof IonModal);
-
-    const endsIsOpen = ref(false)
-
-    const showEndsModal = () => endsIsOpen.value = true
+    // const endsIsOpen = ref(false)
 
     // create refs for form fields
     const achievementName = ref('');

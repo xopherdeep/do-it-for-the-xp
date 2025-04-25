@@ -19,25 +19,41 @@
       <ion-grid class="ion-no-padding">
         <ion-row class="ion-align-items-center">
           <!-- Avatar/Sprite Section -->
-          <ion-col size="4" class="ion-text-center">
-             <!-- Reference Ness sprite from public/assets -->
-             <img src="/assets/sprites/ness.png" alt="Ness Sprite" style="max-width: 80px; image-rendering: pixelated;"/>
-             <!-- Display user avatar using imported appConfig -->
-             <img v-if="user?.avatar" :src="appConfig.$getUserAvatar(user)" alt="User Avatar" style="max-width: 80px; margin-top: 10px; border-radius: 50%;"/>
-             <!-- Placeholder if no avatar -->
-             <div v-else style="margin-top: 10px; font-size: 0.8em;">(No Avatar)</div>
+          <ion-col
+            size="4"
+            class="ion-text-center"
+          >
+            <!-- Reference Ness sprite from public/assets -->
+            <img
+              src="/assets/sprites/ness.png"
+              alt="Ness Sprite"
+              style="max-width: 80px; image-rendering: pixelated;"
+            />
+            <!-- Display user avatar using imported appConfig -->
+            <img
+              v-if="user?.avatar"
+              :src="appConfig.$getUserAvatar(user)"
+              alt="User Avatar"
+              style="max-width: 80px; margin-top: 10px; border-radius: 50%;"
+            />
+            <!-- Placeholder if no avatar -->
+            <div
+              v-else
+              style="margin-top: 10px; font-size: 0.8em;"
+            >(No Avatar)</div>
           </ion-col>
 
           <!-- User Info Section -->
-          <ion-col size="8" class="user-info-header">
+          <ion-col
+            size="8"
+            class="user-info-header"
+          >
             <ion-card>
               <ion-card-header>
                 <ion-card-title>{{
                   user?.name?.full || "User"
-                }}</ion-card-title>
-                <ion-card-subtitle v-if="user?.name?.nick"
-                  >Nickname: {{ user.name.nick }}</ion-card-subtitle
-                >
+                  }}</ion-card-title>
+                <ion-card-subtitle v-if="user?.name?.nick">Nickname: {{ user.name.nick }}</ion-card-subtitle>
               </ion-card-header>
               <!-- Placeholder for Avatar/Image -->
               <!-- <img src="path/to/avatar.png" alt="User Avatar" /> -->
@@ -95,7 +111,7 @@
                 <!--
                     <i class="fad fa-pizza-slice fa-3x"></i>
                     ... other icons ...
-                 -->
+                -->
               </ion-card-content>
             </ion-card>
           </ion-col>
@@ -139,8 +155,8 @@
   import { defineProps, defineEmits } from "vue"; // Removed ref as areas is gone
   import appConfig from "@/app.config"; // Import appConfig
 
-  // Props definition
-  const props = defineProps({
+  // Props definition - used by template but linter doesn't detect it
+  defineProps({
     isOpen: {
       type: Boolean,
       required: true,
@@ -151,8 +167,8 @@
     },
   });
 
-  // Emits definition
-  const emit = defineEmits(["close"]);
+  // Emits definition - used by template but linter doesn't detect it
+  defineEmits(["close"]);
 
   // Removed areas ref as stats are now a placeholder
   // const areas = ref({ ... });
@@ -165,17 +181,19 @@
 <style scoped lang="scss">
   /* Add any specific styles for the modal here */
   /* .user-profile { */
-    /* --height: 90%; Removed to allow fullscreen */
+  /* --height: 90%; Removed to allow fullscreen */
   /* } */
 
   .favorite-food ion-card-content {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px; /* Adjust spacing between icons */
+    gap: 10px;
+    /* Adjust spacing between icons */
     justify-content: center;
   }
 
   .favorite-food i {
-    color: var(--ion-color-primary); /* Example color */
+    color: var(--ion-color-primary);
+    /* Example color */
   }
 </style>

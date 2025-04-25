@@ -4,8 +4,8 @@
 
 import { Dungeon } from './DungeonManager';
 import { DungeonManager } from './DungeonManager';
-import { ChestSystem } from './ChestSystem';
 import { TempleDb, templeStorage } from '@/databases/TempleDb';
+import debug from '@/utils/debug';
 
 /**
  * Convert a temple from the legacy format to the engine format and register it with the DungeonManager
@@ -70,7 +70,7 @@ export async function registerCustomTemples(): Promise<void> {
       
       // Only process temples that have a dungeonLayout defined
       if (temple && temple.dungeonLayout) {
-        console.log(`Registering custom temple: ${key}`);
+        debug.log(`Registering custom temple: ${key}`);
         
         // Convert the temple data format for the engine
         const templeData = {
@@ -82,9 +82,9 @@ export async function registerCustomTemples(): Promise<void> {
         registerTemple(key, templeData);
       }
     }
-    console.log('Custom temples registered successfully');
+    debug.log('Custom temples registered successfully');
   } catch (error) {
-    console.error('Error registering custom temples:', error);
+    debug.error('Error registering custom temples:', error);
   }
 }
 

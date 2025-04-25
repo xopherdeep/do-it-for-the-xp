@@ -1,8 +1,9 @@
 import { defineComponent, ref } from "vue";
 import ionic from "@/mixins/ionic";
 import { alertController, toastController } from "@ionic/vue";
+import debug from "@/utils/debug";
 
-import { ROOM_ICONS, _00_, ____ } from "@/dungeons/roomTypes";
+import { ROOM_ICONS } from "@/dungeons/roomTypes";
 import { actionSheetController } from "@ionic/vue";
 import { mapGetters } from "vuex";
 
@@ -14,9 +15,6 @@ export default defineComponent({
   name: "temple-grounds",
   mixins: [ionic],
   data() {
-    const LMAP = "LMAP";
-    const LCOM = "LCOM";
-    const K001 = "K001";
     return {
       playerKeys: 0,
       hasMap: false,
@@ -40,7 +38,7 @@ export default defineComponent({
     },
     chestContents() {
       const { content } = this.currentRoom;
-      if (content && typeof content.chest != undefined) {
+      if (content && typeof content.chest !== "undefined") {
         switch (content.chest) {
           case "loot":
             return content.items.map((item) => ({
@@ -345,6 +343,8 @@ export default defineComponent({
     },
     async move(direction: "north" | "south" | "west" | "east") {
       const { userId, temple } = this;
+      debug.log(`Player ${userId} moving ${direction} in ${temple} temple`);
+      
       const [row, col] = this.currentPosition;
       let newRow = row,
         newCol = col;
@@ -605,7 +605,7 @@ export default defineComponent({
 
     if (!temple) router.go(-1);
 
-    console.log("temple", temple);
+    debug.log("temple", temple);
 
     const currentPosition = ref(temple.entrance);
     // [row, column] - default to entrance

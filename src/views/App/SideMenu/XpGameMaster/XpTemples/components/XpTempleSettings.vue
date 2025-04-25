@@ -320,6 +320,7 @@ import {
 import { TempleDb, TempleInterface, templeStorage } from "@/databases/TempleDb";
 import { sortCategoryByName } from "@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAddAchievement/XpAddAchievement";
 import { TempleSystem } from "@/engine/core/TempleSystem";
+import debug from "@/utils/debug";
 import {
   IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle, 
   IonButton, IonContent, IonAvatar, IonIcon, 
@@ -508,7 +509,7 @@ export default defineComponent({
 
         // Count visited rooms and treasures
         if (layout.rooms) {
-          Object.entries(layout.rooms).forEach(([key, roomData]) => {
+          Object.entries(layout.rooms).forEach(([, roomData]) => {
             const room = roomData as TempleRoom;
             if (room.visited) {
               visitedRooms++;
@@ -538,9 +539,10 @@ export default defineComponent({
     };
 
     // Watch for temple changes and autosave
-    watch(temple, (newVal) => {
+    watch(temple, () => {
       // Don't actually autosave - could lead to data loss if temple becomes empty
       // Will save manually instead
+      debug.log("Temple settings changed, skipping autosave");
     }, { deep: true });
 
     const getTempleIcon = () => {
@@ -622,16 +624,19 @@ export default defineComponent({
       try {
         const img = requireBg(`./world-${world}.jpg`);
         return `url(${img})`;
-      } catch (e) {
+      } catch (error) {
+        debug.log(`Could not find specific world background for ${world}`, error);
         // Try fallbacks in order if the specific world image doesn't exist
         try {
           const img = requireBg('./world-map.jpg');
           return `url(${img})`;
-        } catch (e2) {
+        } catch (error2) {
+          debug.log(`Could not find world-map.jpg fallback background`, error2);
           try {
             const img = requireBg('./hometown.jpg');
             return `url(${img})`;
-          } catch (e3) {
+          } catch (error3) {
+            debug.log(`Could not find hometown.jpg fallback background`, error3);
             // Return a gradient as last resort
             return 'linear-gradient(135deg, #2c3e50, #4a69bd)';
           }

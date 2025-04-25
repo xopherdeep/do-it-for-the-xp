@@ -180,7 +180,11 @@ export default defineComponent({
     routeName(name) {
       this.updateCompass(name);
     },
-    battleCounter(counter) {
+    battleCounter(
+      /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
+      counter
+    ) {
+      /* eslint-disable @typescript-eslint/no-unused-vars */
       const {
         router,
         userId,
@@ -188,6 +192,7 @@ export default defineComponent({
         stopBattleTimer,
         resetBattleTimer
       } = this;
+      /* eslint-enable @typescript-eslint/no-unused-vars */
 
       // UNCOMMENT TO TURN ON BATTLES
       // if (counter <= 0) {

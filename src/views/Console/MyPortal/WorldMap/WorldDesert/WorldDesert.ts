@@ -6,6 +6,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
 import userActions from "@/mixins/userActions";
 import type { DefineUserActionComponent } from "@/mixins/userActions";
+import debug from "@/utils/debug";
 
 export default defineComponent<DefineUserActionComponent>({
   name: "world-desert",
@@ -32,7 +33,9 @@ export default defineComponent<DefineUserActionComponent>({
       windAudio.value.loop = true;
       
       // Start playing wind sound
-      windAudio.value.play().catch(e => { /* Silent error handling */ });
+      windAudio.value.play().catch(error => {
+        debug.log("Failed to play desert wind audio:", error);
+      });
       
       // Occasionally increase wind intensity
       windInterval.value = window.setInterval(() => {

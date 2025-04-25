@@ -43,7 +43,7 @@
 
           <ion-item>
             <ion-label>Intensity: {{ intensity }}</ion-label>
-            <ion-range v-model="intensity" min="0" max="10" step="1" :pin="true"></ion-range>
+            <ion-range v-model="intensity" :min="0" :max="10" :step="1" :pin="true"></ion-range>
           </ion-item>
 
           <ion-item>
@@ -69,7 +69,7 @@
 
           <ion-item>
             <ion-label>Sound Volume: {{ soundVolume.toFixed(2) }}</ion-label>
-            <ion-range v-model="soundVolume" min="0" max="1" step="0.05" :pin="true"></ion-range>
+            <ion-range v-model="soundVolume" :min="0" :max="1" :step="0.05" :pin="true"></ion-range>
           </ion-item>
         </ion-list>
 

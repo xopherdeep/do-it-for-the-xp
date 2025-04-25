@@ -6,7 +6,6 @@
           <ion-back-button :default-href="`/my-portal/${userId}/home-town`"></ion-back-button>
           <i class="fad fa-2x fa-place-of-worship" />
         </ion-buttons> -->
-        ehhlo
         <!-- <ion-title v-html="temple.replace('-', ' ')" /> -->
         <ion-buttons slot="end">
           <ion-button color="warning" @click="resetTemple">

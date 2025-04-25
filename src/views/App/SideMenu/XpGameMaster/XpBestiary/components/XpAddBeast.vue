@@ -184,10 +184,8 @@ export default defineComponent({
       // Focus the new input after it's rendered
       this.$nextTick(() => {
         const inputEl = this.inputRefs[index];
-        if (inputEl) {
-          // Use the standard DOM focus method instead of setFocus
-          // This is more reliable across different kinds of input elements
-          inputEl.focus && inputEl.focus();
+        if (inputEl && typeof inputEl.focus === 'function') {
+          inputEl.focus();
         }
       });
     },

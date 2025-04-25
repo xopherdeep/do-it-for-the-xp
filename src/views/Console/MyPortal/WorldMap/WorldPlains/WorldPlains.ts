@@ -6,6 +6,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
 import userActions from "@/mixins/userActions";
 import type { DefineUserActionComponent } from "@/mixins/userActions";
+import debug from "@/utils/debug";
 
 export default defineComponent<DefineUserActionComponent>({
   name: "world-plains",
@@ -34,7 +35,7 @@ export default defineComponent<DefineUserActionComponent>({
       windAudio.value.loop = true;
       
       // Start playing wind sounds
-      windAudio.value.play().catch(e => { /* Silent error handling */ });
+      windAudio.value.play().catch(e => { debug.warn("Error playing wind sound:", e); });
       
       // Occasionally play grasshopper/cricket sounds
       grasshopperInterval.value = window.setInterval(() => {
@@ -42,7 +43,7 @@ export default defineComponent<DefineUserActionComponent>({
           const cricketSound = new Audio();
           cricketSound.src = "https://freesound.org/data/previews/425/425556_7552848-lq.mp3"; // Cricket/grasshopper sound
           cricketSound.volume = 0.2 + (Math.random() * 0.2); // Random volume for variety
-          cricketSound.play().catch(e => { /* Silent error handling */ });
+          cricketSound.play().catch(e => { debug.warn("Error playing cricket sound:", e); });
         }
       }, 8000);
     });

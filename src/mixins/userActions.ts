@@ -4,7 +4,6 @@ import { IonPage } from '@ionic/vue';
 import { useRoute, useRouter } from "vue-router";
 import travelingMerchant from "./travelingMerchant"
 import type { ComponentPublicInstance } from 'vue';
-import User from "@/utils/User/user";
 
 export interface UserActionsMixin {
   setUserActions(action: any): void;

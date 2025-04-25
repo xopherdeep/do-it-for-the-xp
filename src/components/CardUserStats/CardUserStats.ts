@@ -2,25 +2,7 @@ import { actionSheetController } from "@ionic/vue";
 import { defineComponent } from "vue";
 import { close, heart } from "ionicons/icons";
 
-// Define the interface for the component instance
-interface ComponentInstance {
-  $fx: {
-    ui: {
-      [key: string]: {
-        openPage: {
-          play: () => void;
-        };
-      };
-    };
-    theme: {
-      ui: string;
-      rpg: string;
-    };
-  };
-}
-
 import users from "@/api/users.api";
-const requireAvatar = require.context("@/assets/images/avatars/");
 import { useRouter } from "vue-router";
 
 import {

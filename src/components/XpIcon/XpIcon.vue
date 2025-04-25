@@ -1,7 +1,7 @@
 <template>
   <i 
     class="fad" 
-    :class="[`fa-${icon}`, colorClass, sizeClass]"
+    :class="[`fa-${icon}`, sizeClass]"
     :style="customStyle"
   ></i>
 </template>

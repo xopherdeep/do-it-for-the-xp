@@ -27,6 +27,7 @@ import {
 } from "ionicons/icons";
 import fetchItems from "@/mixins/fetchItems";
 import { modalController } from "@ionic/vue";
+import debug from "@/utils/debug";
 
 export default defineComponent({
   props: ["userId", "merchant"],
@@ -140,11 +141,13 @@ export default defineComponent({
       this.shelves = $ev.detail.value;
     },
     closeModal(itemId) {
+      debug.log("Closing modal with itemId:", itemId);
       return modalController.dismiss(null, 'cancel');
       // this.$refs[`modal-${itemId}`].$el.dismiss(null, 'cancel');
     },
     buyItem(itemId) {
-      this.setThankYouOpen(true)
+      this.setThankYouOpen(true);
+      debug.log("Buying item with itemId:", itemId);
       return modalController.dismiss(null, 'confirm');
       // this.$refs[`modal-${itemId}`].$el.dismiss(null, 'cancel');
     }

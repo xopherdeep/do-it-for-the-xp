@@ -39,6 +39,7 @@
   import XpAchievementItem from './XpAchievementItem.vue';
   import { modalController } from '@ionic/vue';
   import { Achievement } from '@/databases/AchievementDb';
+  import debug from '@/utils/debug';
 
   export default defineComponent({
     props: {
@@ -59,7 +60,7 @@
         const reorderedAchievementIds = reorderedAchievements.value.map(
           (achievement: any) => achievement.id
         );
-        console.log(" REORDER ", reorderedAchievementIds);
+        debug.log(" REORDER ", reorderedAchievementIds);
 
         modalController.dismiss(reorderedAchievementIds);
       };

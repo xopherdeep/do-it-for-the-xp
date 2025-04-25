@@ -1,5 +1,6 @@
 import { ref } from 'vue';
 import { ComponentPublicInstance } from 'vue';
+import debug from '@/utils/debug';
 
 // Define the interface for XpDialog component with its methods
 export interface XpDialogInterface {
@@ -20,8 +21,8 @@ export function useDialog() {
       if (typeof window['play$fx'] === 'function') {
         window['play$fx'](soundEffect);
       }
-    } catch (e) {
-      console.log('Sound effect not available');
+    } catch {
+      debug.log('Sound effect not available');
     }
     
     // Show the dialog component if available
@@ -37,7 +38,7 @@ export function useDialog() {
   
   // Function to handle individual dialog block completions
   const onBlockComplete = (blockIndex: number, callback?: (index: number) => void) => {
-    console.log(`Dialog block ${blockIndex} completed`);
+    debug.log(`Dialog block ${blockIndex} completed`);
     if (callback) {
       callback(blockIndex);
     }

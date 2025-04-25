@@ -1,4 +1,4 @@
-import { defineComponent, ref } from "vue";
+import { defineComponent } from "vue";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { mapActions, useStore } from "vuex";
@@ -25,7 +25,7 @@ export default defineComponent({
   methods: {
     ...mapActions(["setUserActions"]),
     async presentToast() {
-      const { router, user: { name: { first }, id: userId } } = this
+      const {  user: { name: { first } } } = this
       const toast = await toastController.create({
         message: `Welcome home ${first}!`,
         duration: 50000,

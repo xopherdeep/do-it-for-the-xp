@@ -4,6 +4,8 @@
  * @version 0.0.1
  * @since 1.0.0
  */
+import debug from '@/utils/debug';
+
 export interface ApiType {
   url: string;
   base: string;
@@ -128,7 +130,7 @@ export default class Api {
    * log error to console
    */
   errorHandler(error: any) {
-    console.error("There was an error!", error);
+    debug.error("There was an error!", error);
     return Promise.reject(error);
   }
 }

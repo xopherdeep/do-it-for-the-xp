@@ -259,6 +259,7 @@ import 'swiper/css/pagination';
 import 'swiper/css/navigation';
 import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
 import Ionic from "@/mixins/ionic";
+import debug from "@/utils/debug";
 
 export default defineComponent({
   name: 'CompendiumSplash',
@@ -299,12 +300,12 @@ export default defineComponent({
     };
 
     const handleSlideChange = (swiper) => {
-      console.log('Slide changed to:', swiper.activeIndex);
+      debug.log('Slide changed to:', swiper.activeIndex);
       activeSlideIndex.value = swiper.activeIndex;
     };
 
     const textComplete = (slideIndex: number) => {
-      console.log(`Slide ${slideIndex} completed`);
+      debug.log(`Slide ${slideIndex} completed`);
       slidesCompleted.value[slideIndex] = true;
     };
 

@@ -7,9 +7,10 @@
  * - Player progression through temples
  */
 
-import { reactive, ref, computed } from 'vue';
-import { DungeonManager, Room, Dungeon } from './DungeonManager';
+import { reactive } from 'vue';
+import { DungeonManager, Room } from './DungeonManager';
 import { ChestSystem } from './ChestSystem';
+import debug from '@/utils/debug';
 
 // Types
 export interface TempleState {
@@ -44,7 +45,7 @@ export class TempleSystem {
   private constructor() {
     this.dungeonManager = DungeonManager.getInstance();
     this.chestSystem = ChestSystem.getInstance();
-    console.log('TempleSystem initialized');
+    debug.log('TempleSystem initialized');
   }
   
   public static getInstance(): TempleSystem {
@@ -63,7 +64,7 @@ export class TempleSystem {
     // Check if the dungeon exists
     const temple = this.dungeonManager.getDungeon(templeId);
     if (!temple) {
-      console.error(`Temple ${templeId} not found`);
+      debug.error(`Temple ${templeId} not found`);
       return false;
     }
     

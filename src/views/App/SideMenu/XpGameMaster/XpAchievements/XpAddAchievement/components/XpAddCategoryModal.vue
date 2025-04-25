@@ -132,7 +132,7 @@
 <script lang="ts">
   import { defineComponent, ref } from "vue";
   import ionic from "@/mixins/ionic";
-  import { IonActionSheet, alertController } from "@ionic/vue";
+  import { alertController } from "@ionic/vue";
   import { cameraOutline, imagesOutline } from "ionicons/icons";
   import { v4 as uuid4 } from "uuid";
 

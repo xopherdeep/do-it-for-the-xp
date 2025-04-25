@@ -4,6 +4,7 @@
  */
 
 import { AudioState, AudioTheme } from './AudioEngine';
+import debug from '@/utils/debug';
 
 // Storage keys
 const AUDIO_SETTINGS_KEY = 'xp-audio-settings';
@@ -46,7 +47,7 @@ export function saveAudioSettings(settings: Partial<AudioState>): void {
   try {
     localStorage.setItem(AUDIO_SETTINGS_KEY, JSON.stringify(settingsToSave));
   } catch (e) {
-    console.error('Failed to save audio settings to localStorage:', e);
+    debug.error('Failed to save audio settings to localStorage:', e);
   }
 }
 
@@ -61,7 +62,7 @@ export function loadAudioSettings(): Partial<AudioState> {
       return { ...defaultAudioSettings, ...JSON.parse(savedSettings) };
     }
   } catch (e) {
-    console.error('Failed to load audio settings from localStorage:', e);
+    debug.error('Failed to load audio settings from localStorage:', e);
   }
   
   return { ...defaultAudioSettings };
@@ -75,7 +76,7 @@ export function saveAudioTheme(theme: AudioTheme): void {
   try {
     localStorage.setItem(AUDIO_THEME_KEY, JSON.stringify(theme));
   } catch (e) {
-    console.error('Failed to save audio theme to localStorage:', e);
+    debug.error('Failed to save audio theme to localStorage:', e);
   }
 }
 
@@ -90,7 +91,7 @@ export function loadAudioTheme(): AudioTheme {
       return { ...defaultAudioTheme, ...JSON.parse(savedTheme) };
     }
   } catch (e) {
-    console.error('Failed to load audio theme from localStorage:', e);
+    debug.error('Failed to load audio theme from localStorage:', e);
   }
   
   return { ...defaultAudioTheme };

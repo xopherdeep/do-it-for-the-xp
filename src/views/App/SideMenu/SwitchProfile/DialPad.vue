@@ -158,7 +158,7 @@
       <ion-buttons slot="end">
         <ion-button :disabled="!isPasscodeValid" @click="clickUnlock">
           Unlock
-          <i slot="end" class="fad" :class="lock" />
+          <i slot="end" class="fad fa-lock-open" />
         </ion-button>
       </ion-buttons>
     </ion-toolbar>
@@ -175,6 +175,7 @@
   import GamerCard from "./AddProfile/GamerCard.vue";
   import XpIcon from "@/components/XpIcon";
   import { defineComponent, onUnmounted } from "vue";
+import debug from "@/utils/debug";
 
   const KeyPad = defineComponent({
     props: ["profile"],
@@ -184,6 +185,9 @@
       XpIcon 
     },
     setup(props) {
+      // Log the profile information when component mounts
+      debug.log("Setting up DialPad for profile:", props.profile?.username || "Unknown user");
+      
       onUnmounted(() => {
         try {
           modalController.dismiss().catch(() => {
@@ -191,6 +195,7 @@
           });
         } catch (e) {
           // Ignore any errors during cleanup
+          debug.log("Error during cleanup:", e);
         }
       });
     },
@@ -222,7 +227,9 @@
       },
       async clickUnlock() {
         const { inputCode, profile } = this;
-        if (this.inputCode != this.profile.passcode) {
+        debug.log(`Attempting to unlock profile with code: ${inputCode.replace(/./g, '*')}`);
+        
+        if (inputCode != profile.passcode) {
           this.alertIncorrectPasscode();
         } else {
           // Dismiss toast first to avoid overlap with loading indicator in parent

@@ -1,32 +1,6 @@
 import { defineComponent, ref } from 'vue'
 
-import {
-  IonPage,
-  IonHeader,
-  IonToolbar,
-  IonButtons,
-  IonBackButton,
-  IonTitle,
-  IonContent,
-  IonGrid,
-  IonRow,
-  IonCol,
-  IonCard,
-  IonCardHeader,
-  IonCardTitle,
-  IonCardContent,
-  IonItem,
-  IonLabel,
-  IonInput,
-  IonTextarea,
-  IonSelect,
-  IonSelectOption,
-  IonButton,
-  IonList,
-  IonToast,
-  toastController,
-  IonModal
-} from '@ionic/vue'
+import Ionic from '@/mixins/ionic';
 
 interface FeatureRequest {
   title: string;
@@ -44,32 +18,8 @@ interface PopularFeature {
 
 export default defineComponent({
   name: 'feature-request',
-  components: {
-    IonPage,
-    IonHeader,
-    IonToolbar,
-    IonButtons,
-    IonBackButton,
-    IonTitle,
-    IonContent,
-    IonGrid,
-    IonRow,
-    IonCol,
-    IonCard,
-    IonCardHeader,
-    IonCardTitle,
-    IonCardContent,
-    IonItem,
-    IonLabel,
-    IonInput,
-    IonTextarea,
-    IonSelect,
-    IonSelectOption,
-    IonButton,
-    IonList,
-    IonToast,
-    IonModal
-  },
+  mixins: [Ionic],
+  
   setup() {
     const showToast = ref(false);
     const toastMessage = ref('');

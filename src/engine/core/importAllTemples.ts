@@ -3,6 +3,7 @@
  */
 import { TempleDb, templeStorage, TempleInterface } from '@/databases/TempleDb';
 import temples from '@/views/Console/MyPortal/HomeTown/TempleGrounds/temples';
+import debug from '@/utils/debug';
 
 /**
  * Import all temple layouts into the TempleDb
@@ -44,7 +45,7 @@ export async function importAllTempleLayouts(): Promise<void> {
     
     // Import each temple layout
     for (const [templeId, templeData] of Object.entries(temples)) {
-      console.log(`Importing ${templeId} layout to TempleDb...`);
+      debug.log(`Importing ${templeId} layout to TempleDb...`);
       
       // Convert the temple to the TempleInterface format
       const templeToSave: TempleInterface = {
@@ -62,12 +63,12 @@ export async function importAllTempleLayouts(): Promise<void> {
       
       // Store the temple in the database
       await templeDb.setTemple(templeToSave);
-      console.log(`${templeId} imported successfully to TempleDb`);
+      debug.log(`${templeId} imported successfully to TempleDb`);
     }
     
-    console.log('All temple layouts imported successfully to TempleDb');
+    debug.log('All temple layouts imported successfully to TempleDb');
   } catch (error) {
-    console.error('Failed to import temple layouts to TempleDb:', error);
+    debug.error('Failed to import temple layouts to TempleDb:', error);
   }
 }
 

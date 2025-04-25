@@ -1,6 +1,7 @@
-import { ref, reactive, computed, onMounted, onUnmounted, watch } from 'vue';
+import { ref, computed, onUnmounted } from 'vue';
 import { AudioEngine } from '@/engine/audio/AudioEngine';
 import { getSound, getMusicByCategory } from '@/engine/audio/soundRegistry';
+import debug from '@/utils/debug';
 
 /**
  * Hook that provides access to the AudioEngine
@@ -117,7 +118,7 @@ export function useAudio() {
   const playMusicCategory = (category: string, index = 0, fadeInTime = 1000): void => {
     const tracks = getMusicByCategory(category);
     if (tracks.length === 0) {
-      console.warn(`No music tracks found for category: ${category}`);
+      debug.warn(`No music tracks found for category: ${category}`);
       return;
     }
     

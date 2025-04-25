@@ -6,6 +6,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
 import userActions from "@/mixins/userActions";
 import type { DefineUserActionComponent } from "@/mixins/userActions";
+import debug from "@/utils/debug";
 
 import WeatherFX from '@/components/WeatherFX/WeatherFX.vue';
 
@@ -39,7 +40,9 @@ export default defineComponent<DefineUserActionComponent>({
       oceanAudio.value.loop = true;
       
       // Start playing ocean sounds
-      oceanAudio.value.play().catch(e => { /* Silent error handling */ });
+      oceanAudio.value.play().catch(error => {
+        debug.log("Failed to play ocean waves audio:", error);
+      });
       
       // Play occasional seagull sounds
       seagullInterval.value = window.setInterval(() => {
@@ -47,7 +50,9 @@ export default defineComponent<DefineUserActionComponent>({
           const seagull = new Audio();
           seagull.src = "https://freesound.org/data/previews/19/19271_32633-lq.mp3"; // Seagull sound
           seagull.volume = 0.2;
-          seagull.play().catch(e => { /* Silent error handling */ });
+          seagull.play().catch(error => {
+            debug.log("Failed to play seagull audio:", error);
+          });
         }
       }, 20000); // Check every 20 seconds
       

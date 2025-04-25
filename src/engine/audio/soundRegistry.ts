@@ -1,7 +1,11 @@
 import { SoundEffect, MusicTrack } from './AudioEngine';
+import debug from '@/utils/debug';
 
 // Helper function to generate placeholder URLs for development
-function getPlaceholderAudio(name: string): string {
+function getPlaceholderAudio(id: string): string {
+  // Log the requested audio id for debugging
+  debug.log(`Generating placeholder audio for: ${id}`);
+  
   // In a real implementation, you would use actual audio files
   // For now, we'll use placeholders to avoid build errors
   return `data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAAABMYXZjNTguMTMuMTAw`;
@@ -268,28 +272,28 @@ export const musicTracks: Record<string, Record<string, MusicTrack[]>> = {
 export function getSound(category: 'ui' | 'rpg', soundId: string, theme?: string): SoundEffect | undefined {
   // If no theme provided, we can't get the sound
   if (!theme) {
-    console.warn(`No theme provided for ${category} sound: ${soundId}`);
+    debug.warn(`No theme provided for ${category} sound: ${soundId}`);
     return undefined;
   }
   
   // Check if the category exists
   const categoryData = soundEffects[category];
   if (!categoryData) {
-    console.warn(`Sound category not found: ${category}`);
+    debug.warn(`Sound category not found: ${category}`);
     return undefined;
   }
   
   // Check if the theme exists
   const themeData = categoryData[theme];
   if (!themeData) {
-    console.warn(`Theme not found for ${category}: ${theme}`);
+    debug.warn(`Theme not found for ${category}: ${theme}`);
     return undefined;
   }
   
   // Check if the sound exists
   const sound = themeData[soundId];
   if (!sound) {
-    console.warn(`Sound not found in ${theme} ${category}: ${soundId}`);
+    debug.warn(`Sound not found in ${theme} ${category}: ${soundId}`);
     return undefined;
   }
   

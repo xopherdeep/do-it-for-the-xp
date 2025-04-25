@@ -2,7 +2,7 @@ import { defineComponent, ref, watch } from "vue";
 import { mapGetters } from "vuex";
 import { alertController } from "@ionic/vue";
 import ionic from "@/mixins/ionic";
-import { useRouter, useRoute } from "vue-router";
+import {  useRoute } from "vue-router";
 
 import {
   addOutline,

@@ -7,6 +7,7 @@
  */
 
 import { reactive } from 'vue';
+import debug from '@/utils/debug';
 
 // Types
 export interface ChestContent {
@@ -36,7 +37,7 @@ export class ChestSystem {
   
   // Private constructor prevents direct instantiation
   private constructor() {
-    console.log('ChestSystem initialized');
+    debug.log('ChestSystem initialized');
   }
   
   /**
@@ -141,7 +142,7 @@ export class ChestSystem {
     // If all items are gone, mark the chest as empty
     if (allItemsRemoved) {
       chest.isEmpty = true;
-      console.log(`Chest ${chestId} is now empty:`, chest);
+      debug.log(`Chest ${chestId} is now empty:`, chest);
     }
   }
   

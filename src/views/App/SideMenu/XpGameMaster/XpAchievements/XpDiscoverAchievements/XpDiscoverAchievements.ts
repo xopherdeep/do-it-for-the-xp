@@ -56,10 +56,6 @@ interface ThemeUI {
   rpg: string;
 }
 
-interface FXCategory {
-  [key: string]: SoundEffect;
-}
-
 interface FXSystem {
   ui: {
     [key: string]: {
@@ -245,7 +241,7 @@ export const XpDiscoverAchievements = defineComponent({
       this.$fx.rpg[this.$fx.theme.rpg].text.play();
     },
 
-    segmentChanged($ev) {
+    async segmentChanged() {
       // console.log("Segment changed", $ev);
     },
   },
@@ -265,7 +261,7 @@ export const XpDiscoverAchievements = defineComponent({
       },
     },
   },
-  setup(props, ctx) {
+  setup() {
     const params = reactive({
       page: 1,
       search: "",

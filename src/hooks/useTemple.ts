@@ -7,6 +7,7 @@ import { DungeonManager } from '@/engine/core/DungeonManager';
 import { AlertInput } from '@ionic/vue';
 import { ChestSystem } from '@/engine/core/ChestSystem';
 import { ROOM_ICONS } from '@/dungeons/roomTypes';
+import debug from '@/utils/debug';
 
 export function useTemple(templeId: string, startPosition?: [number, number]) {
   const templeSystem = TempleSystem.getInstance();
@@ -262,7 +263,7 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
     
     // Get the room key for the current position
     const [row, col] = currentPosition.value;
-    const roomKey = maze.value[row][col];
+    debug.log(`Processing chest items at position [${row}, ${col}] in temple ${templeId}`);
     
     // Process each selected item
     selectedItems.forEach(item => {
@@ -271,7 +272,7 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
         const goldAmount = parseInt(item.split(':')[1], 10);
         if (!isNaN(goldAmount)) {
           // TODO: Add gold to player inventory
-          console.log(`Added ${goldAmount} gold to player inventory`);
+          debug.log(`Added ${goldAmount} gold to player inventory`);
         }
         return;
       }

@@ -9,6 +9,7 @@
 
 import { AudioEngine } from './AudioEngine';
 import { Store } from 'vuex';
+import debug from '@/utils/debug';
 
 // Define the BGM payload structure that matches the existing system
 export interface BGMPayload {
@@ -27,7 +28,7 @@ export interface BGMPayload {
  */
 export function playRouteMusic(payload: BGMPayload, store?: Store<any>): void {
   if (!payload || !payload.tracks || !Array.isArray(payload.tracks) || payload.tracks.length === 0) {
-    console.warn('Invalid BGM payload:', payload);
+    debug.warn('Invalid BGM payload:', payload);
     return;
   }
 
@@ -92,8 +93,9 @@ export function playRouteMusic(payload: BGMPayload, store?: Store<any>): void {
       if (bookmarkData && bookmarkData.id === currentTrackId && typeof bookmarkData.position === 'number') {
         bookmark = bookmarkData.position;
       }
+      debug.log('Music bookmark loaded:', bookmark);
     } catch (e) {
-      console.warn('Failed to get music bookmark:', e);
+      debug.warn('Failed to get music bookmark:', e);
     }
   }
 

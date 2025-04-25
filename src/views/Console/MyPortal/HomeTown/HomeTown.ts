@@ -1,5 +1,4 @@
 import { defineComponent } from "vue";
-import createGlobe from "cobe";
 import ionic from "@/mixins/ionic";
 import { arrowBack } from "ionicons/icons";
 import { computed } from "vue";

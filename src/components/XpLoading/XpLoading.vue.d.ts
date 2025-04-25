@@ -1,4 +1,4 @@
-import { DefineComponent } from 'vue'
+import { DefineComponent } from 'vue';
 
-declare const component: DefineComponent<{}, {}, any>
-export default component
+declare const XpLoading: DefineComponent<Record<string, never>, Record<string, never>, any>;
+export default XpLoading;

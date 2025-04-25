@@ -1,6 +1,7 @@
 import Api from "@/api";
 import XpApi from "@/api/doit.forthexp.com.api";
 import { AudioEngine } from '@/engine/audio/AudioEngine';
+import debug from '@/utils/debug';
 
 export default {
   getSingleById({ getters, commit }, request) {
@@ -170,7 +171,7 @@ export default {
     // Handle potential playback errors
     if (playPromise !== undefined) {
       playPromise.catch(error => {
-        console.warn('Audio playback failed', error);
+        debug.warn('Audio playback failed', error);
       });
     }
   },

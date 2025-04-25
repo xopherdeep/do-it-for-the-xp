@@ -5,8 +5,9 @@
  * Handles initialization of dungeons, rooms, and manages room content like chests.
  */
 
-import { ChestSystem, ChestContent, Chest } from './ChestSystem';
+import { ChestSystem, ChestContent } from './ChestSystem';
 import { reactive } from 'vue';
+import debug from '@/utils/debug';
 
 // Type definitions
 export interface Room {
@@ -38,7 +39,7 @@ export class DungeonManager {
   
   private constructor() {
     this.chestSystem = ChestSystem.getInstance();
-    console.log('DungeonManager initialized');
+    debug.log('DungeonManager initialized');
   }
   
   public static getInstance(): DungeonManager {
@@ -226,7 +227,7 @@ export class DungeonManager {
     // Update the room with the new data
     dungeon.rooms[roomKey] = { ...dungeon.rooms[roomKey], ...updates };
     
-    console.log(`Room at [${position}] in dungeon ${dungeonId} updated:`, dungeon.rooms[roomKey]);
+    debug.log(`Room at [${position}] in dungeon ${dungeonId} updated:`, dungeon.rooms[roomKey]);
     return true;
   }
 }

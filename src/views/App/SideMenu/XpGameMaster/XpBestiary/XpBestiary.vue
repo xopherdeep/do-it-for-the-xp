@@ -83,7 +83,7 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, ref } from "vue";
+import { defineComponent, ref } from "vue";
 import { add } from "ionicons/icons";
 import ionic from "@/mixins/ionic";
 import { alertController, modalController } from "@ionic/vue";

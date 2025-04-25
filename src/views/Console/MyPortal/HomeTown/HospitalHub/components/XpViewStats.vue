@@ -116,10 +116,10 @@
 
 <script lang="ts">
 import { defineComponent, computed, ref, watch } from "vue";
-import { useStore, mapGetters } from "vuex";
+import { useStore } from "vuex";
 import ionic from "@/mixins/ionic";
 import XpIcon from "@/components/XpIcon";
-import type { User, StatAreas } from '../types';
+import type {  StatAreas } from '../types';
 
 export default defineComponent({
   name: "xp-view-stats",
@@ -132,7 +132,7 @@ export default defineComponent({
     }
   },
   
-  setup(props, { emit }) {
+  setup(props) {
     const store = useStore();
 
     // Get user from props via getUserById

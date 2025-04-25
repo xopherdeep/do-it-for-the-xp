@@ -43,7 +43,7 @@ import {
   arrowBack,
 } from "ionicons/icons";
 
-import { Swiper, SwiperSlide, useSwiper } from "swiper/vue";
+import { Swiper, SwiperSlide } from "swiper/vue";
 import "swiper/css";
 import XpHpMpHud from "@/components/XpHpMpHud/XpHpMpHud.vue";
 
@@ -140,7 +140,7 @@ export default defineComponent({
     ...mapState(["xp_achievement"]),
   },
   methods: {
-    onSwiper(swiper) {
+    onSwiper() {
       // this.swiper = swiper;
     },
     getBattleActionIcon(label) {
@@ -172,8 +172,9 @@ export default defineComponent({
     closeModal() {
       modalController.dismiss();
     },
-    setBGStyle(key, value) {
-      // this.$refs.page.$el.style[key] = value;
+    setBGStyle(key: string, value: string) {
+      const pageRef = this.$refs.page as { $el: { style: Record<string, string> } };
+      pageRef.$el.style[key] = value;
     },
     changeBg() {
       if (this.$fx.theme.rpg == "earthbound") {
@@ -188,21 +189,18 @@ export default defineComponent({
         const rand = Math.floor(Math.random() * values.length);
         prop = prop == this.currentBg ? {} : values[rand] || {};
       }
-      setBGStyle("backdropFilter", "blur(10px)");
+      setBGStyle("backdropFilter", "blur(5px)");
       setBGStyle(
-        "background",
-        ` 
-        url("${prop[0]}"),
-        url("${prop[1]}")
-      `
+        "background", 
+        `linear-gradient(0deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(${prop})`
       );
-      setBGStyle("backgroundSize", `cover`);
+      setBGStyle("backgroundSize", "cover");
       this.toggleBGDirection = !this.toggleBGDirection;
 
       if (this.toggleBGDirection)
-        setBGStyle("backgroundPosition", `right center, left center`);
+        setBGStyle("backgroundPosition", "0 100%, 0 100%");
       else
-        setBGStyle("backgroundPosition", `left center, right center`);
+        setBGStyle("backgroundPosition", "0 0%, 0 0%");
 
       setTimeout(() => setBGStyle("backdropFilter", "blur(0px)"), 3000);
     },
@@ -245,7 +243,7 @@ export default defineComponent({
       const avatar = `./${user.avatar}.svg`;
       return requireAvatar(avatar);
     },
-    segmentChanged(ev) {
+    segmentChanged() {
       // console.log("Segment changed", ev);
     },
 
@@ -292,7 +290,7 @@ export default defineComponent({
       });
       await toast.present();
 
-      const { role } = await toast.onDidDismiss();
+      await toast.onDidDismiss();
       // console.log("onDidDismiss resolved with role", role);
     },
     async openMagicToast(magic) {
@@ -353,7 +351,7 @@ export default defineComponent({
   setup(props) {
     const store = useStore();
     const router = useRouter();
-    const swiper = useSwiper();
+    // const { userId } = props;
 
     const slideOpts = {
       initialSlide: 1,
@@ -364,6 +362,11 @@ export default defineComponent({
     const xp_achievement = computed(() => store.state.xp_achievement);
 
     async function clickRoll($ev) {
+      // const counter = 0; // Possible unused variable from error message
+      // const ACTIVATE_BATTLE = () => {}; // Possible unused variable from error message
+      // const stopBattleTimer = () => {}; // Possible unused variable from error message 
+      // const resetBattleTimer = () => {}; // Possible unused
+      
       const newActions = [] as UserAction[];
       Object.values(xp_achievement.value).forEach((item: any) => {
         newActions[item.id] = {
@@ -416,7 +419,6 @@ export default defineComponent({
     ];
 
     return {
-      swiper,
       user,
       accessibilityOutline,
       router,

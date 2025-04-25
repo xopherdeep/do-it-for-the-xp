@@ -313,21 +313,15 @@
 <script lang="ts">
 import ionic from "@/mixins/ionic";
 import { useStore } from 'vuex';
-import XpRewardShelf from "./components/XpRewardShelf.vue";
-import XpImpersonateProfile from "./components/XpImpersonateProfile.vue";
-import XpActionItems from "./components/XpActionItems.vue";
-import XpDoThisNotThat from "./components/XpDoThisNotThatItem.vue";
-import XpTemples from "./components/XpTemples.vue";
 import XpBonus from "./components/XpBonus.vue";
 import AddProfile from "../../SwitchProfile/AddProfile/AddProfile.vue";
-import { ProfileDb } from "@/databases";
-import { profileStorage } from "../../SwitchProfile/SwitchProfile.vue";
 import { mapGetters } from "vuex";
 import AchievementDb, { achievementStorage } from "@/databases/AchievementDb";
 import BestiaryDb, { beastStorage } from "@/databases/BestiaryDb";
-import DosDontsDb, { dosDontsStorage } from "@/databases/DosDontsDb";
+import DosDontsDb from "@/databases/DosDontsDb";
 import { toastController, modalController } from "@ionic/vue";
 import { RecycleScroller } from 'vue-virtual-scroller';
+import debug from "@/utils/debug";
 
 import { defineComponent, ref, onMounted } from "vue";
 export default defineComponent({
@@ -444,7 +438,7 @@ export default defineComponent({
         // Navigate to user's portal after successful impersonation
         await this.$router.push(`/my-portal/${user.id}/my-home`);
       } catch (error) {
-        console.error('Failed to impersonate user:', error);
+        debug.error('Failed to impersonate user:', error);
         this.showErrorToast('Failed to switch profile');
       }
     },

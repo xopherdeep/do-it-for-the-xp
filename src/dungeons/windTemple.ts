@@ -1,7 +1,7 @@
 import { createRoom } from "./roomFacorty";
 import * as R from "./roomTypes"
 
-const windTemple = {
+export const windTemple = {
   maze: [
     [],
 

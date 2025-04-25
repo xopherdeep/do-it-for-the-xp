@@ -239,6 +239,7 @@ import XpGp from "@/components/XpGp/XpGp.vue";
 import DialPad from "./DialPad.vue";
 import ionic from "@/mixins/ionic";
 import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
+import debug from "@/utils/debug";
 
 const requireAvatar = require.context("@/assets/images/avatars/");
 
@@ -297,7 +298,7 @@ export default defineComponent({
 
         await store.dispatch("loadUsers");
       } catch (error) {
-        console.error("Failed to load profiles:", error);
+        debug.error("Failed to load profiles:", error);
         // You could add a toast or alert here to notify user of the error
       } finally {
         isLoading.value = false;
@@ -474,7 +475,7 @@ export default defineComponent({
           "forward"
         );
       } catch (error: any) {
-        console.error("Login/Navigation error:", error);
+        debug.error("Login/Navigation error:", error);
         const toast = await toastController.create({
           message: `Failed to load profile: ${error.message || error}`,
           duration: 3000,

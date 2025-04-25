@@ -6,6 +6,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
 import userActions from "@/mixins/userActions";
 import type { DefineUserActionComponent } from "@/mixins/userActions";
+import debug from "@/utils/debug";
 
 export default defineComponent<DefineUserActionComponent>({
   name: "world-clouds",
@@ -58,8 +59,12 @@ export default defineComponent<DefineUserActionComponent>({
       windAudio.value.loop = true;
       
       // Start playing ambient sounds
-      rainAudio.value.play().catch(e => { /* Silent error handling */ });
-      windAudio.value.play().catch(e => { /* Silent error handling */ });
+      rainAudio.value.play().catch(error => {
+        debug.log("Failed to play rain audio:", error);
+      });
+      windAudio.value.play().catch(error => {
+        debug.log("Failed to play wind audio:", error);
+      });
       
       // Start thunder sound effects
       startThunderSounds();
@@ -93,7 +98,9 @@ export default defineComponent<DefineUserActionComponent>({
           // Add slight volume variation
           thunder.volume = 0.5 + (Math.random() * 0.3);
           thunder.currentTime = 0;
-          thunder.play().catch(e => { /* Silent error handling */ });
+          thunder.play().catch(error => {
+            debug.log("Failed to play thunder audio:", error);
+          });
         }
       }, 5000 + Math.random() * 8000); // Random interval between 5-13 seconds
     };

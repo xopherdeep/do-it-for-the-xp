@@ -1,6 +1,7 @@
-import { ref, reactive } from 'vue';
-import { loadAudioSettings, loadAudioTheme, saveAudioSettings, saveAudioTheme } from './storage';
+// Import only needed utilities
 import debug from '@/utils/debug';
+import { reactive } from 'vue';
+import { loadAudioSettings, loadAudioTheme, saveAudioSettings, saveAudioTheme } from './storage';
 
 // Import types directly instead of from module
 export type AudioCategory = 'ui' | 'music' | 'sfx' | 'ambient';
@@ -140,8 +141,8 @@ export class AudioEngine {
     // Attempt to create AudioContext immediately
     try {
       this.initializeAudioContext();
-    } catch (e) {
-      debug.warn('Audio context initialization deferred: user interaction required');
+    } catch (error) {
+      debug.warn('Audio context initialization deferred: user interaction required', error);
     }
     
     // Set up event listeners for user interaction to initialize audio
@@ -181,8 +182,8 @@ export class AudioEngine {
             debug.error('Failed to resume AudioContext', err);
           });
         }
-      } catch (e) {
-        debug.error('Error initializing audio context:', e);
+      } catch (error) {
+        debug.error('Error initializing audio context:', error);
       }
     };
     
@@ -218,7 +219,8 @@ export class AudioEngine {
     if (!this.audioContext) {
       try {
         this.initializeAudioContext();
-      } catch (e) {
+      } catch (error) {
+        debug.error('Error initializing audio context for sound load:', error);
         throw new Error('Audio context not initialized: user interaction required');
       }
     }
@@ -308,8 +310,9 @@ export class AudioEngine {
     
     try {
       sound.source.stop();
-    } catch (e) {
+    } catch (error) {
       // Source might have already ended
+      debug.log(`Could not stop sound ${instanceId}, it might have already ended`, error);
     }
     
     this.activeSounds.delete(instanceId);
@@ -343,6 +346,7 @@ export class AudioEngine {
    * @param id The track ID that just ended
    */
   private handleTrackEnded(id: string): void {
+    debug.log(`Track ended: ${id}`);
     // If we're playing a sequence of tracks, advance to the next one
     if (this._currentTrackSequence.length > 0 && 
         this._currentTrackIndex < this._currentTrackSequence.length - 1) {
@@ -535,6 +539,9 @@ export class AudioEngine {
       const isUI = id.includes('ui-');
       const category = isUI ? 'ui' : 'sfx';
       const categoryVolume = isUI ? this.state.uiVolume : this.state.sfxVolume;
+      
+      // Log volume adjustment for debugging
+      debug.log(`Adjusting ${category} sound ${id} volume to ${categoryVolume * this.state.masterVolume}`);
       
       // Set volume based on category and master volume
       sound.gain.gain.value = categoryVolume * this.state.masterVolume * (this.state.muted ? 0 : 1);

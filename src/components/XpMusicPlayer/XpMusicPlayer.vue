@@ -40,6 +40,7 @@
 import { defineComponent } from 'vue';
 import { mapState } from 'vuex';
 import ionic from '@/mixins/ionic';
+import debug from '@/utils/debug';
 import { 
   playSkipBackSharp, 
   playBackSharp,
@@ -237,7 +238,7 @@ export default defineComponent({
           filename = decodeURIComponent(filename);
         } catch (e) {
           // If decoding fails, use the encoded version
-          console.log('Error decoding track name:', e);
+          debug.warn('Error decoding track name:', e);
         }
         
         // Remove file extension and query parameters
@@ -299,12 +300,8 @@ export default defineComponent({
     
     // Listen for changes in the audio source
     if (this.audioElement) {
-      const observer = new MutationObserver(() => {
-        this.updateTrackInfo();
-      });
-      
-      // This won't actually work on an Audio element directly, 
-      // but we'll use a different approach with a watch
+      // Using watch instead of MutationObserver since it won't work directly on Audio element
+      debug.log('Audio element available, using watch for changes instead');
     }
   },
   

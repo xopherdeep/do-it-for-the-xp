@@ -720,8 +720,9 @@
 import { defineComponent, ref, computed, onMounted } from "vue";
 import ionic from "@/mixins/ionic";
 import { ROOM_ICONS, _00_, ____, TELE, SHOP } from "@/dungeons/roomTypes";
-import { TempleDb, TempleInterface, templeStorage } from "@/databases/TempleDb";
+import { TempleDb, templeStorage } from "@/databases/TempleDb";
 import { toastController } from "@ionic/vue";
+import debug from "@/utils/debug";
 
 export default defineComponent({
   props: ["templeId"],
@@ -857,7 +858,7 @@ export default defineComponent({
         newMaze[entranceRow][entranceCol] = _00_;
       } else {
         // If entrance is outside new bounds, reset it to default and show warning?
-        console.warn("Entrance position is outside the new grid bounds!");
+        debug.warn("Entrance position is outside the new grid bounds!");
         // Optionally reset entrancePosition.value to a default valid position
       }
 
@@ -893,7 +894,6 @@ export default defineComponent({
       const newType = roomType; // The type selected in the popover
 
       let symbolToUse = currentSymbol;
-      let needsNewSymbol = false;
 
       // Determine if a new unique symbol is needed
       if (newType !== currentType || currentSymbol === ____) {
@@ -904,13 +904,11 @@ export default defineComponent({
             symbolToUse = _00_;
          } else if (currentSymbol === ____ || currentSymbol === _00_ || !currentSymbol.startsWith('R')) {
             // If current is fixed or not a unique symbol, generate a new one
-            needsNewSymbol = true;
             symbolToUse = generateUniqueSymbol();
          } else {
              // If changing type from one unique symbol to another type, reuse is complex.
              // For simplicity, let's generate a new one for now.
              // TODO: Potentially reuse if the old symbol is now orphaned.
-             needsNewSymbol = true;
              symbolToUse = generateUniqueSymbol();
          }
       }
@@ -919,7 +917,7 @@ export default defineComponent({
       if (symbolToUse !== currentSymbol && currentSymbol.startsWith('R')) {
          delete roomsData.value[currentSymbol];
          usedSymbols.value.delete(currentSymbol);
-         // TODO: Consider symbol reuse logic here later
+         // TODO: Consider symbol reuse logic here later if needed.
       }
 
       // Update the maze grid
@@ -1064,7 +1062,7 @@ export default defineComponent({
           showToast("Could not find temple to save layout");
         }
       } catch (error) {
-        console.error("Error saving temple layout:", error);
+        debug.error("Error saving temple layout:", error);
         showToast("Error saving temple layout");
       }
     };
@@ -1117,7 +1115,7 @@ export default defineComponent({
           initializeGrid();
         }
       } catch (error) {
-        console.error("Error loading temple layout:", error);
+        debug.error("Error loading temple layout:", error);
         showToast("Error loading temple layout");
         initializeGrid();
       }

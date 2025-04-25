@@ -13,10 +13,21 @@
           {{ calendarTitle }}
           <!-- Dynamic Title -->
         </ion-title>
+        <ion-buttons slot="end">
+          <ion-button
+            @click="handleDayClick"
+            color="light"
+            fill="clear"
+            slot="icon-only"
+          >
+            <ion-icon :icon="addCircleOutline" />
+          </ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
     <ion-content class="my-calendar" :fullscreen="true">
+      <ion-refresher slot="fixed" @ionRefresh="handleUpdatePage"></ion-refresher>
       <xp-loading v-if="isLoading" />
       <!-- v-calendar Integration -->
       <!-- <v-calendar
@@ -84,7 +95,6 @@
     computed,
     watch,
     onMounted,
-    defineProps,
     defineComponent,
   } from "vue";
   import {
@@ -124,10 +134,10 @@
     // },
   });
 
-  // Props
-  defineProps<{
-    userId: string | number;
-  }>();
+  // Props - correct implementation of defineProps
+  // const props = defineProps<{
+  //   userId: string | number;
+  // }>();
 
   // Data
   const today = new Date();
@@ -137,7 +147,17 @@
     year: today.getFullYear(),
   });
   const searchQuery = ref("");
-  const attributes = ref([
+
+  // Define a proper type for calendar attributes to fix the type error
+  type CalendarAttribute = {
+    key: string;
+    highlight?: { color: string; fillMode: string };
+    dot?: string;
+    dates: Date;
+    popover?: { label: string };
+  };
+
+  const attributes = ref<CalendarAttribute[]>([
     {
       key: "today",
       highlight: {
@@ -158,6 +178,7 @@
   });
 
   // Methods
+  // These functions are not used now but will be needed when v-calendar is uncommented
   const handleDayClick = (day: any) => {
     // Show selected date's events in a modal or action sheet
     const date = new Date(day.year, day.month - 1, day.day);
@@ -171,7 +192,7 @@
       presentActionSheet();
     }
   };
-
+  //
   const handleUpdatePage = (page: any) => {
     if (page?.month && page?.year) {
       calendarPage.value = { month: page.month, year: page.year };

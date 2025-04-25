@@ -200,6 +200,7 @@ export const AddProfile = defineComponent({
       toggleCommunity,
       toggleGoal,
       toggleReward,
+      profileAdded,
       isAvatarSelectorOpen,
       showSuccessSplash,
     };

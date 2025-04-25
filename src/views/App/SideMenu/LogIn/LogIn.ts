@@ -14,6 +14,7 @@ import { mapActions, useStore } from "vuex";
 import { useRouter, useRoute } from "vue-router";
 import ionic from "@/mixins/ionic";
 import { RootState } from "@/types/store";
+import debug from "@/utils/debug";
 
 interface BackgroundPair {
   [key: number]: string[];
@@ -79,7 +80,7 @@ export default defineComponent({
     // Set a simple timeout to redirect to the intro screen after 60 seconds
     // No route check needed - this component is only mounted on the login page
     this.inactivityTimer = setTimeout(() => {
-      console.log('Login timeout - redirecting to intro screen');
+      debug.log('Login timeout - redirecting to intro screen');
       this.$router.push('/xp-demo');
     }, 18000);
   },
@@ -109,7 +110,7 @@ export default defineComponent({
     // Helper method to clear the inactivity timer
     clearInactivityTimer(): void {
       if (this.inactivityTimer) {
-        console.log('Clearing inactivity timer');
+        debug.log('Clearing inactivity timer');
         clearTimeout(this.inactivityTimer as ReturnType<typeof setTimeout>);
         this.inactivityTimer = 0;
       }
@@ -173,7 +174,7 @@ export default defineComponent({
       this.$router.push("/switch-profile");
       modalController.dismiss();
 
-      // window.location.href = `https://${domain}${authorize}?${params}`;
+      window.location.href = `https://${domain}${authorize}?${params}`;
     },
 
     closeModal(): void {
@@ -203,9 +204,6 @@ export default defineComponent({
       swing(start);
 
       const start_button = start.querySelector("ion-button") as HTMLElement;
-      // console.log(start_button);
-      const og_color = start_button.style.color;
-
       start_button.style.borderRadius = "10px";
 
       // let inter: ReturnType<typeof setInterval> = 0 as unknown as ReturnType<typeof setInterval>;
@@ -272,22 +270,22 @@ export default defineComponent({
 
     async fetchUserData(): Promise<any> {
       const {
-        setUserData,
         oauth: {
           domain,
           me,
           access: { access_token },
         },
       } = this;
+      debug.log("Using fetchUserData to retrieve user information");
       const url = `https://${domain}${me}?access_token=${access_token}`;
       const response = await fetch(url);
       return response.json();
     },
 
     setUserData(data: any): void {
-      // console.log(data);
-      // this.dispatch('')
-
+      // Use data parameter to log user information 
+      debug.log("User data retrieved:", data ? `User ID: ${data.id}` : "No data available");
+      
       this.loginUser();
       (this as any).showSuccessModal = true;
       this.error = false;

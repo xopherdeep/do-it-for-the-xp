@@ -111,6 +111,7 @@
   import Ionic from "@/mixins/ionic";
   import { useRouter } from "vue-router";
   import { TempleDb, TempleInterface, templeStorage } from "@/databases/TempleDb";
+  import debug from "@/utils/debug";
   
   import { 
     waterOutline, musicalNotesOutline, colorPaletteOutline, 
@@ -197,16 +198,19 @@
       const getBgImage = (world: string) => {
         try {
           return requireBg(`./world-${world}.jpg`);
-        } catch (e) {
+        } catch (error) {
           // Try to use world-map as fallback instead of world-default
+          debug.warn(`Could not load world-${world}.jpg:`, error);
           try {
             return requireBg('./world-map.jpg');
-          } catch (e2) {
+          } catch (error) {
             // If world-map doesn't exist, try other fallbacks in order
+            debug.warn('Could not load world-map.jpg fallback:', error);
             try {
               return requireBg('./hometown.jpg');
-            } catch (e3) {
+            } catch (error) {
               // If all fallbacks fail, return a blank transparent image
+              debug.error('All background image fallbacks failed:', error);
               return 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
             }
           }
@@ -218,18 +222,21 @@
         try {
           const img = requireBg(`./world-${world}.jpg`);
           return `url(${img})`;
-        } catch (e) {
+        } catch (error) {
           // Try to use world-map as fallback
+          debug.warn(`Could not load world-${world}.jpg for URL:`, error);
           try {
             const img = requireBg('./world-map.jpg');
             return `url(${img})`;
-          } catch (e2) {
+          } catch (error) {
             // If world-map doesn't exist, try hometown
+            debug.warn('Could not load world-map.jpg URL fallback:', error);
             try {
               const img = requireBg('./hometown.jpg');
               return `url(${img})`;
-            } catch (e3) {
+            } catch (error) {
               // If all fallbacks fail, return a gradient background
+              debug.error('All background image URL fallbacks failed:', error);
               return 'linear-gradient(135deg, #2c3e50, #4a69bd)';
             }
           }

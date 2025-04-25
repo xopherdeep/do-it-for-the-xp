@@ -3,6 +3,7 @@
  */
 import { TempleDb, templeStorage, TempleInterface } from '@/databases/TempleDb';
 import windTemple from '@/views/Console/MyPortal/HomeTown/TempleGrounds/temples/wind-temple';
+import debug from '@/utils/debug';
 
 /**
  * Import the wind-temple layout into the TempleDb
@@ -32,8 +33,8 @@ export async function importWindTempleToDb(): Promise<void> {
     
     // Store the temple in the database
     await templeDb.setTemple(templeData);
-    console.log('Wind Temple imported successfully to TempleDb');
+    debug.log('Wind Temple imported successfully to TempleDb');
   } catch (error) {
-    console.error('Failed to import Wind Temple to TempleDb:', error);
+    debug.error('Failed to import Wind Temple to TempleDb:', error);
   }
 }

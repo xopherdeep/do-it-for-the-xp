@@ -33,9 +33,10 @@ import fetchItems from "@/mixins/fetchItems";
 import MyTask from "@/views/Console/MyDialogBox/MyTask/MyTask.vue";
 import { useRouter } from "vue-router";
 // import { useSwiper } from "swiper/vue";
-import { Controller, Navigation } from "swiper";
+import { Controller, Navigation, Swiper as SwiperClass } from "swiper";
 import { useQuery, useQueryClient } from "vue-query";
 import useQuests from "@/hooks/useQuests";
+import debug from "@/utils/debug";
 
 export default defineComponent({
   props: ["userId"],
@@ -156,7 +157,8 @@ export default defineComponent({
       return this.singleById({ type: "media", id });
     },
     searchChanged() {
-      this.$refs.slides.slideTo(0);
+      // Using type assertion to fix the TypeScript error
+      (this.$refs.slides as { slideTo: (index: number) => void }).slideTo(0);
       this.currentSlide = 0;
       this.params.page = 1;
     },
@@ -170,7 +172,7 @@ export default defineComponent({
     },
 
     segmentChanged($ev) {
-      // console.log("Segment changed", $ev);
+      debug.log("Segment changed", $ev);
     },
   },
   watch: {
@@ -194,8 +196,8 @@ export default defineComponent({
     const nTotalTasks = ref(0);
     const nTotalPages = ref(0);
     const router = useRouter();
-    const controlledSwiper = ref(null);
-    const setControlledSwiper = (swiper) => {
+    const controlledSwiper = ref<SwiperClass | null>(null);
+    const setControlledSwiper = (swiper: SwiperClass) => {
       controlledSwiper.value = swiper;
     };
 
@@ -228,10 +230,8 @@ export default defineComponent({
     const getSlideItems = (p) =>
       queryClient.getQueryData(["tasks", p, params]) || [];
 
-    const slideItems = computed({
-      get() {
-        return queryClient.getQueryData(["tasks", page.value, params]) || [];
-      },
+    const slideItems = computed(() => {
+      return queryClient.getQueryData(["tasks", page.value, params]) || [];
     });
 
     // const featuredMedia = computed({
@@ -313,6 +313,6 @@ export default defineComponent({
     //     .get(type, params).then(({ data }) => data);
 
     //   return useQuery(["images", page.value, include], fetchImages, options);
+    // }
   },
-  //},
 });

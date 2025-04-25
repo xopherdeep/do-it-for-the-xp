@@ -22,15 +22,16 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted } from 'vue';
+import { defineComponent, ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { useIonRouter, IonPage, IonContent } from '@ionic/vue';
+import {  IonPage, IonContent } from '@ionic/vue';
 import { XpIntroSplash } from '@/components/XpIntroSplash';
 import type { SplashScreen } from '@/components/XpIntroSplash';
-import ionic from '@/mixins/ionic';
+import Ionic from '@/mixins/ionic';
 
 export default defineComponent({
   name: 'XpIntro',
+  mixins: [Ionic],
   components: {
     XpIntroSplash,
     IonPage,
@@ -38,7 +39,7 @@ export default defineComponent({
   },
   setup() {
     const router = useRouter();
-    const ionRouter = useIonRouter();
+    // const ionRouter = useIonRouter();
     const viewActive = ref(false);
     const duration = 2500; // Default duration for each splash screen
     

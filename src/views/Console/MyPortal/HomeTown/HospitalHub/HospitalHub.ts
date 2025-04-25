@@ -1,20 +1,11 @@
-import { defineComponent, ref, onMounted } from "vue";
+import { defineComponent } from "vue";
 import ionic from "@/mixins/ionic";
 import { actionSheetController, alertController } from "@ionic/vue";
 import XpIcon from "@/components/XpIcon";
 import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
 import { mapGetters } from "vuex";
-import { close, heart, heartHalf, infinite, logOut, people, statsChart } from "ionicons/icons";
-
-// Define the interface for XpTypingText instance methods
-interface XpTypingTextInstance {
-  isTyping: boolean;
-  startTyping: () => void;
-  completeTyping: () => void;
-  resetTyping: () => void;
-  pauseTyping: () => void;
-  resumeTyping: () => void;
-}
+import { close, heart, infinite, logOut, people, statsChart } from "ionicons/icons";
+import debug from "@/utils/debug";
 
 export default defineComponent({
   props: ["userId"],
@@ -135,7 +126,7 @@ export default defineComponent({
     
     onTypingComplete() {
       // The current text block has finished typing
-      console.log(`Dialog block ${this.currentDialogIndex} completed`);
+      debug.log(`Dialog block ${this.currentDialogIndex} completed`);
       this.isTyping = false;
       
       // Play subtle sound effect between blocks if there are more blocks

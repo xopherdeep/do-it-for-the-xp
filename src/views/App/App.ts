@@ -2,7 +2,6 @@ import {
   computed,
   defineComponent,
 } from "vue";
-import { useRoute } from "vue-router";
 import {
   IonApp,
   IonButton,
@@ -43,6 +42,7 @@ import { mapActions, mapGetters, mapState, useStore } from "vuex";
 import { useQueryProvider } from "vue-query";
 
 import XpSideMenu from "@/views/App/SideMenu/SideMenu.vue";
+import debug from "@/utils/debug";
 
 export default defineComponent({
   name: "App",
@@ -100,8 +100,8 @@ export default defineComponent({
   },
   mounted() {
     // Cast this to any as a workaround for TS2339
-    const { $fx: { rpg, theme }, changeBGM, loadBGM } = (this as any);
-    changeBGM({ tracks: rpg[theme.rpg].BGM.startScreen }).then(loadBGM as any)
+    const { $fx, changeBGM, loadBGM } = (this as any);
+    changeBGM({ tracks: $fx.rpg[$fx.theme.rpg].BGM.startScreen }).then(loadBGM as any)
   },
   methods: {
     ...mapActions(["toggleBGM", "changeBGM", "turnMusicOnOff"]),
@@ -129,7 +129,7 @@ export default defineComponent({
             cssClass: "secondary",
             id: "cancel-button",
             handler: (blah) => {
-              // console.log("Confirm Cancel:", blah);
+              debug.log("Confirm Cancel:", blah);
             },
           },
           {
@@ -163,22 +163,10 @@ export default defineComponent({
       // Set time to bookmarked audio 
 
       // Here set bookmarks if need to be saved and current
-      // this.bookmark = bgm.saveBookmark ? bgm.audio : false
       if (bgm.saveBookmark)
         this.bgmBookmark.currentTime = currentTime
 
-      // console.log("BOOKMARK", this.bookmark);
-      // console.log("BOOKMARK AUDIO", audio);
-
-      // const audio = this.bookmark ? this.bookmark : new Audio( bgm.tracks[bgmTrack] );
-      // audio: new Audio($fx.rpg[$fx.theme.rpg].bgm[bgmTrack]),
-
       changeBGM({ audio }).then(addEventNextSong);
-      // changeBGM({
-      //   audio: new Audio($fx.rpg[$fx.theme.rpg].bgm[bgmTrack]),
-      // }).then(addEventNextSong)
-
-
     },
 
     addEventNextSong() {
@@ -190,14 +178,12 @@ export default defineComponent({
         },
         false
       );
-
     },
 
     clickBGMTrack(inc = 1) {
       // Cast this to any as a workaround for TS2339
       const {
         bgm,
-        $fx: { rpg, theme },
         playAudio,
       } = (this as any);
       const maxTrackIndex = -1 + bgm.tracks.length;
@@ -209,7 +195,7 @@ export default defineComponent({
     },
 
     playAudio() {
-      const { bgm: { track, is_on, startDelay, saveBookmark } } = this
+      const { bgm: { track, is_on } } = this
 
       if (this.bgm.audio) {
         this.bgm.audio.pause();
@@ -222,9 +208,8 @@ export default defineComponent({
   },
   watch: {
     theme: {
-      handler(theme) {
+      handler() {
         this.$forceUpdate();
-        // console.log(theme);
       },
       deep: true,
     },
@@ -243,16 +228,9 @@ export default defineComponent({
   },
 
   setup() {
-    const route = useRoute();
     const store = useStore();
     useQueryProvider();
 
-    const menus = {
-      app: {},
-      user: {},
-      support: {},
-    };
-    const userMenu = [];
     const labels = [
       "Family",
       "Friends",
@@ -265,8 +243,6 @@ export default defineComponent({
     store.dispatch("loadUsers");
 
     const bgm = computed(() => store.state.bgm);
-    // const isBMGOn = ref(0);
-    //   isBMGOn,
 
     return {
       store,
@@ -278,7 +254,6 @@ export default defineComponent({
       heartOutline,
       heartSharp,
       isLoggedIn: computed(() => store.getters.isLoggedIn),
-      // isSelected: (url) => (url === route.path ? "selected" : ""),
       labels,
       mailOutline,
       mailSharp,

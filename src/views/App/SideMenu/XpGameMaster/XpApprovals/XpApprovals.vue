@@ -107,11 +107,12 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, computed } from "vue";
+  import { defineComponent, ref } from "vue";
   import ionic from "@/mixins/ionic";
   import { mapGetters } from "vuex";
   import { alertController, toastController } from "@ionic/vue";
   import { format } from "date-fns";
+import debug from "@/utils/debug";
 
   export default defineComponent({
     name: "xp-approvals",
@@ -178,6 +179,8 @@
                 // Logic to reject the item with reason
                 this.showSuccessToast("Item rejected");
                 this.refreshApprovals();
+
+                debug.log(data.reason);
               },
             },
           ],
