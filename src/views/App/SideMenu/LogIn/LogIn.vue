@@ -27,7 +27,7 @@
             </ion-col>
           </ion-row>
 
-          <ion-row>
+          <ion-row class="hidden">
             <ion-col>
               <ion-button
                 size="small"
@@ -38,16 +38,16 @@
                 Settings
                 <i class="fad fa-cog"></i>
               </ion-button>
-          <ion-menu-toggle class="menu-toggle fade-in">
-              <ion-button
-                size="small"
-                id="settings-button"
-                class="settings-button fade-in-up"
-              >
-                Open menu
-                <i class="fad fa-bars"></i>
-              </ion-button>
-          </ion-menu-toggle>
+              <ion-menu-toggle class="menu-toggle fade-in">
+                  <ion-button
+                    size="small"
+                    id="settings-button"
+                    class="settings-button fade-in-up"
+                  >
+                    Open menu
+                    <i class="fad fa-bars"></i>
+                  </ion-button>
+              </ion-menu-toggle>
             </ion-col>
           </ion-row>
           
