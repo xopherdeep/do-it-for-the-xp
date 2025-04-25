@@ -23,6 +23,9 @@ import store from './store';
 // Audio Engine
 import { AudioEnginePlugin } from './engine/audio/plugin';
 
+// Accessibility fixes
+import { fixAriaHiddenFocusIssues } from './utils/a11yUtils';
+
 // Set up user interaction detection for audio playback
 document.addEventListener('click', () => {
   document.documentElement.setAttribute('data-user-interacted', 'true');
@@ -33,6 +36,9 @@ document.addEventListener('click', () => {
     window._pendingAudioPlay = false;
   }
 }, { once: true });
+
+// Apply accessibility fixes for aria-hidden issues
+fixAriaHiddenFocusIssues();
 
 // Create the emitter for the events
 //const emitter = mitt();
