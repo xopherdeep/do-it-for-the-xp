@@ -1,5 +1,5 @@
 <template>
-  <ion-page class="accessory-shop" :style="dynamicShopBackground">
+  <ion-page class="accessory-shop">
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
@@ -15,7 +15,7 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content>
+    <ion-content :style="dynamicShopBackground">
       <xp-loading v-if="isLoading" />
       <ion-grid v-else>
         <ion-card>
@@ -214,22 +214,22 @@
             </ion-col>
             <ion-col>
               <ion-button
-              @click="request.params.page++"
-              :disabled="!hasNextPage"
-              color="dark"
-              expand="block"
-            >
-              <ion-icon
-                :icon="chevronForward"
-                slot="icon-only"
-              />
-            </ion-button>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-    </ion-toolbar>
-  </ion-footer>
-</ion-page></template>
+                @click="request.params.page++"
+                :disabled="!hasNextPage"
+                color="dark"
+                expand="block"
+              >
+                <ion-icon
+                  :icon="chevronForward"
+                  slot="icon-only"
+                />
+              </ion-button>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+      </ion-toolbar>
+    </ion-footer>
+  </ion-page></template>
 
 <script src="./AccessoryShop.ts" />
 <style lang="scss" src="./_AccessoryShop.scss" />

@@ -93,6 +93,20 @@
         </template>
       </div>
 
+      <ion-fab
+        vertical="center"
+        horizontal="center"
+        id="room-action"
+        @click="showRoomActions"
+      >
+        <ion-fab-button :color="actionColor">
+          <i
+            class="fad fa-2x"
+            :class="ROOM_ICONS[currentRoom?.type]"
+          />
+        </ion-fab-button>
+      </ion-fab>
+
       <!-- Navigation buttons and other UI components -->
       <ion-fab
         vertical="bottom"
@@ -242,6 +256,10 @@
         </ion-fab-button>
       </ion-fab>
 
+      <xp-fab-user-hud
+        :user="user"
+        :isUserFabOn="true"
+      />
       <ion-fab
         v-if="canMoveUp"
         vertical="top"
@@ -259,19 +277,12 @@
         </ion-fab-button>
       </ion-fab>
 
-      <ion-fab
-        vertical="center"
-        horizontal="center"
-        id="room-action"
-        @click="showRoomActions"
-      >
-        <ion-fab-button :color="actionColor">
-          <i
-            class="fad fa-2x"
-            :class="ROOM_ICONS[currentRoom?.type]"
-          />
-        </ion-fab-button>
-      </ion-fab>
+
+      <!-- 
+      <XpUserPointsHud
+        v-if="user && user.stats"
+        :stats="user.stats"
+      /> -->
 
       <!-- Toast for messages -->
       <ion-toast
@@ -344,11 +355,17 @@ import { registerAllTemples, registerCustomTemples } from '@/engine/core/TempleA
 import { importAllTempleLayouts } from '@/engine/core/importAllTemples';
 import TempleDb from '@/databases/TempleDb';
 import temples from './temples';
+import XpFabUserHud from '../../components/XpFabUserHud.vue';
+import XpUserPointsHud from '../../components/XpUserPointsHud.vue';
 
 export default defineComponent({
   props: ['userId', 'temple', 'x', 'y'],
   name: 'temple-grounds-engine',
   mixins: [ionic],
+  components: {
+    XpFabUserHud,
+    // XpUserPointsHud
+  },
   setup(props) {
     // Register predefined temples with the engine
     registerAllTemples(temples);

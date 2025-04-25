@@ -16,11 +16,12 @@
             <ion-col>
               <ion-button
                 size="large"
-                id="login-button"
+                _id="login-button"
                 class="glow-button fade-in-up"
-                @click.stop="play$fx('start')"
+                @click.stop="play$fx('start'); pressStart()"
               >
                 <span class="pixel-text">Press Start</span>
+                
                 <ion-ripple-effect></ion-ripple-effect>
               </ion-button>
             </ion-col>

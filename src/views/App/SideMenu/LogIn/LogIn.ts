@@ -119,6 +119,10 @@ export default defineComponent({
       (this as any).showSuccessModal = false;
       this.router.push({ name: "xp-profile" });
     },
+
+    pressStart(): void {
+      this.router.push({ name: "xp-profile" });
+    },
     setBGStyle(key: string, value: string): void {
       const page = (this.$refs as any).page;
       if (page) {

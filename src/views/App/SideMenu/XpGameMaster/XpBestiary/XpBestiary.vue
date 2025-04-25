@@ -14,7 +14,7 @@
           Bestiary </ion-title>
       </ion-toolbar>
     </ion-header>
-    <ion-content>
+    <ion-content class=" bg-slide">
       <ion-list>
         <ion-item-sliding
           v-for="beast in beasts"

@@ -51,6 +51,14 @@
           </ion-label>
         </ion-item>
         
+        <ion-item button @click="navigateTo('/dev/dungeon-background')">
+          <ion-icon :icon="gridOutline" slot="start"></ion-icon>
+          <ion-label>
+            <h2>Dungeon Background Designer</h2>
+            <p>Generate and test procedural temple/dungeon backgrounds</p>
+          </ion-label>
+        </ion-item>
+        
         <ion-item button @click="navigateTo('/xp-demo')">
           <ion-icon :icon="globeOutline" slot="start"></ion-icon>
           <ion-label>
@@ -83,7 +91,7 @@
 import { defineComponent } from 'vue';
 import { useRouter } from 'vue-router';
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonList, IonItem, IonLabel, IonButtons, IonBackButton, IonIcon } from '@ionic/vue';
-import { cubeOutline, chatboxOutline, keypadOutline, flashOutline, cloudOutline, imageOutline, volumeHighOutline, globeOutline } from 'ionicons/icons';
+import { cubeOutline, chatboxOutline, keypadOutline, flashOutline, cloudOutline, imageOutline, volumeHighOutline, globeOutline, gridOutline } from 'ionicons/icons';
 
 export default defineComponent({
   name: 'DevTools',
@@ -116,7 +124,8 @@ export default defineComponent({
       cloudOutline,
       imageOutline,
       volumeHighOutline,
-      globeOutline
+      globeOutline,
+      gridOutline
     };
   }
 });

@@ -63,6 +63,11 @@ const routes: Array<RouteRecordRaw> = [
     name: 'intro-splash-demo',
     component: () => import('@/views/Dev/IntroSplashDemo.vue'),
   },
+  {
+    path: '/dev/dungeon-background', // Dungeon Background Designer
+    name: 'dungeon-background-designer',
+    component: () => import('@/views/App/SideMenu/XpSupport/DevTools/DungeonBackgroundDesigner/DungeonBackgroundDesigner.vue'),
+  },
 ];
 
 // Create and export router factory function

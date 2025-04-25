@@ -31,7 +31,7 @@
     left: 0;
     width: 100%;
     height: 100%;
-    background: url("@/assets/images/about/splash.png") center center/cover no-repeat fixed;
+    background: url("@/assets/images/about/splash.png") center top/contain no-repeat fixed;
     z-index: 0;
     opacity: 0; // Start completely transparent
     animation: bgFadeIn 5.7s ease-in-out forwards; // Slower, more gradual fade
@@ -225,7 +225,7 @@ h1 {
   
   &.title {
     animation: fadeInUp 0.8s ease-out forwards;
-    animation-delay: 2.5s; // Increased delay to let background fade completely
+    animation-delay: 5.5s; // Increased delay to let background fade completely
   }
   
   &.logo-container {

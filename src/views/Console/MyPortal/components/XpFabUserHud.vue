@@ -3,7 +3,7 @@
   <ion-fab
     vertical="top"
     horizontal="start"
-    class="fab-user user-hud"
+    class="fab-user user-hud icon-colors"
     :class="$options.name"
     :activated="fabActive"
     v-if="user.stats && $attrs.isUserFabOn"
