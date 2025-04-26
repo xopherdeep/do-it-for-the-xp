@@ -10,8 +10,8 @@
           Gold Bank
         </ion-title>
         <ion-buttons slot="end">
-          <ion-button @click="openATM" color="dark">
-            <i class="fad fa-money-check-alt fa-2x"></i>
+          <ion-button @click="openATM" color="rpg">
+            <i class="fad fa-hand-holding-usd fa-2x"></i>
           </ion-button>
         </ion-buttons>
       </ion-toolbar>

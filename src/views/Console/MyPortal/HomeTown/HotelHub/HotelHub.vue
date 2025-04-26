@@ -12,6 +12,11 @@
         <ion-title>
           Hotel
         </ion-title>
+        <ion-buttons slot="end">
+          <ion-button @click="openATM" color="rpg">
+            <i class="fad fa-hand-holding-usd fa-2x"></i>
+          </ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
@@ -78,6 +83,15 @@
         </div>
       </ion-card>
     </div>
+
+    <!-- ATM Modal Component -->
+    <ATMModal
+      v-model:isOpen="showAtm"
+      :user="user"
+      @withdraw="clickWithdraw"
+      @deposit="clickDeposit"
+      @payDebt="clickPayDebt"
+    />
   </ion-page>
 </template>
 

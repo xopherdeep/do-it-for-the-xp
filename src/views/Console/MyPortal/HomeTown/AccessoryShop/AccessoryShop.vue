@@ -173,19 +173,25 @@
           </ion-col>
         </ion-row>
       </ion-grid>
-      <!-- fab placed to the bottom and start and on the bottom edge of the content overlapping footer with a list to the right -->
-      <!-- <ion-fab vertical="bottom" horizontal="center" slot="fixed">
-        <ion-fab-button color="secondary">
-          <ion-icon :icon="cartOutline"></ion-icon>
+      
+      <!-- ATM FAB Button -->
+      <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+        <ion-fab-button @click="openATM" color="warning">
+          <ion-icon :icon="cashOutline"></ion-icon>
         </ion-fab-button>
-        <ion-fab-list side="start">
-          <ion-fab-button>
-            <ion-icon :icon="banOutline"></ion-icon>
-          </ion-fab-button>
-          Empty
-        </ion-fab-list>
-      </ion-fab> -->
+      </ion-fab>
+      
+      <!-- ATM Modal -->
+      <ATMModal 
+        :is-open="showAtm"
+        :user-id="userId"
+        @close="showAtm = false"
+        @deposit="clickDeposit"
+        @withdraw="clickWithdraw"
+        @pay-debt="clickPayDebt"
+      />
     </ion-content>
+    
     <ion-footer>
       <ion-toolbar>
         <ion-grid>
@@ -229,7 +235,8 @@
         </ion-grid>
       </ion-toolbar>
     </ion-footer>
-  </ion-page></template>
+  </ion-page>
+</template>
 
 <script src="./AccessoryShop.ts" />
 <style lang="scss" src="./_AccessoryShop.scss" />

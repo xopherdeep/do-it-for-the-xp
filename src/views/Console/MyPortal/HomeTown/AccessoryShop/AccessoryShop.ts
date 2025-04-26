@@ -24,14 +24,22 @@ import {
   storefrontOutline,
   banOutline,
   bagOutline,
+  cashOutline
 } from "ionicons/icons";
 import fetchItems from "@/mixins/fetchItems";
 import { modalController } from "@ionic/vue";
 import debug from "@/utils/debug";
+// Import ATM Modal component
+import ATMModal from "@/views/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
+// Import the GPSystem
+import { getGPSystem } from "@/engine/core/GPSystem";
 
 export default defineComponent({
   props: ["userId", "merchant"],
   name: "accessory-shop",
+  components: {
+    ATMModal
+  },
   mixins: [ionic, fetchItems],
   data() {
     return {
@@ -45,6 +53,8 @@ export default defineComponent({
           per_page: 4,
         },
       },
+      // ATM modal state
+      showAtm: false,
       // Map shop IDs to background image paths
       shopBackgrounds: {
         "pegasus-ranch": require("@/assets/images/backgrounds/shops/pegasus-ranch.png"),
@@ -137,6 +147,54 @@ export default defineComponent({
     }
   },
   methods: {
+    // ATM methods
+    openATM() {
+      this.play$fx("select");
+      this.showAtm = true;
+    },
+    
+    clickDeposit(data) {
+      const amount = Number(data.gp);
+      if (amount && amount > 0) {
+        getGPSystem()
+          .depositToSavings(this.userId, amount)
+          .then(() => {
+            this.play$fx("coins");
+          })
+          .catch(error => {
+            debug.log('Deposit error:', error.message);
+          });
+      }
+    },
+    
+    clickWithdraw(data) {
+      const amount = Number(data.gp);
+      if (amount && amount > 0) {
+        getGPSystem()
+          .withdrawFromSavings(this.userId, amount)
+          .then(() => {
+            this.play$fx("coins");
+          })
+          .catch(error => {
+            debug.log('Withdraw error:', error.message);
+          });
+      }
+    },
+    
+    clickPayDebt(data) {
+      const amount = Number(data.gp);
+      if (amount && amount > 0) {
+        getGPSystem()
+          .payDebtFromWallet(this.userId, amount)
+          .then(() => {
+            this.play$fx("success");
+          })
+          .catch(error => {
+            debug.log('Pay debt error:', error.message);
+          });
+      }
+    },
+    
     selectShelf($ev) {
       this.shelves = $ev.detail.value;
     },
@@ -190,6 +248,8 @@ export default defineComponent({
       keyOutline,
       cartOutline,
       starSharp,
+      // Add cashOutline for ATM button
+      cashOutline,
     };
   },
 });

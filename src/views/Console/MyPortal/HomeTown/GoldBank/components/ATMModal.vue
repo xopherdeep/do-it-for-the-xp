@@ -1,3 +1,13 @@
+<!-- 
+  ATM Modal
+  This component represents an ATM modal that allows users to view their account summary and perform banking actions such as depositing, withdrawing, and paying down debt.
+  It uses Ionic components for the modal, action sheet, and alerts.
+  The modal is designed to be responsive and user-friendly, with a focus on providing a seamless banking experience.
+  The component is styled with SCSS and includes animations for a smooth user experience.
+  The ATM modal is a part of a larger application and interacts with user data to display account information.
+  The component is designed to be reusable and can be integrated into different parts of the application as needed.
+
+-->
 <template>
   <ion-modal
     :is-open="isOpen"
@@ -13,6 +23,7 @@
               :icon="closeOutline"
             ></ion-icon>
           </ion-button>
+          <i class="fad fa-hand-holding-usd fa-2x"></i>
         </ion-buttons>
         <ion-title>ATM</ion-title>
       </ion-toolbar>
@@ -23,9 +34,9 @@
           <ion-card-title class="ion-text-center">Account Summary</ion-card-title>
         </ion-card-header>
         <ion-card-content>
-          <ion-list lines="none" >
+          <ion-list lines="none">
             <ion-item>
-              <i 
+              <i
                 class="fad fa-wallet fa-2x max-w-[40px]"
                 slot="start"
                 color="warning"
@@ -37,7 +48,7 @@
               >₲{{ user.stats.gp.wallet }}</ion-badge>
             </ion-item>
             <ion-item>
-              <i 
+              <i
                 class="fad fa-piggy-bank fa-2x max-w-[40px]"
                 slot="start"
                 color="warning"
@@ -49,7 +60,7 @@
               >₲{{ user.stats.gp.savings }}</ion-badge>
             </ion-item>
             <ion-item>
-              <i 
+              <i
                 class="fad fa-credit-card fa-2x max-w-[40px]"
                 slot="start"
                 color="warning"
@@ -89,7 +100,7 @@
           }
         ]"
       ></ion-alert>
-      
+
       <ion-alert
         trigger="withdraw-trigger"
         header="Withdraw from Savings"
@@ -112,7 +123,7 @@
           }
         ]"
       ></ion-alert>
-      
+
       <ion-alert
         trigger="pay-debt-trigger"
         header="Pay Down Debt"
@@ -137,9 +148,18 @@
       ></ion-alert>
 
       <!-- Hidden buttons for triggers -->
-      <ion-button id="deposit-trigger" class="hidden-trigger"></ion-button>
-      <ion-button id="withdraw-trigger" class="hidden-trigger"></ion-button>
-      <ion-button id="pay-debt-trigger" class="hidden-trigger"></ion-button>
+      <ion-button
+        id="deposit-trigger"
+        class="hidden-trigger"
+      ></ion-button>
+      <ion-button
+        id="withdraw-trigger"
+        class="hidden-trigger"
+      ></ion-button>
+      <ion-button
+        id="pay-debt-trigger"
+        class="hidden-trigger"
+      ></ion-button>
 
       <!-- FAB to show action sheet -->
       <ion-fab

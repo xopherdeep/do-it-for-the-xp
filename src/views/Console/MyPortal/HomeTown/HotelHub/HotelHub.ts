@@ -34,6 +34,12 @@ import fetchItems from "@/mixins/fetchItems"
 import { actionSheetController } from "@ionic/vue";
 import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
 import debug from "@/utils/debug";
+import { useStore } from "vuex";
+import { computed } from "vue";
+// Import the ATM Modal component
+import ATMModal from "@/views/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
+// Import our new GPSystem
+import { getGPSystem } from "@/engine/core/GPSystem";
 
 // Define the interface for XpTypingText instance methods
 interface XpTypingTextInstance {
@@ -50,7 +56,8 @@ export default defineComponent({
   name: "hotel-hub",
   mixins: [ionic, fetchItems],
   components: {
-    XpTypingText
+    XpTypingText,
+    ATMModal
   },
   data() {
     return {
@@ -69,10 +76,16 @@ export default defineComponent({
       currentDialogIndex: 0,
       currentDialogText: "",
       hasMoreDialog: true,
-      isTyping: false
+      isTyping: false,
+      // ATM modal state
+      showAtm: false
     };
   },
   computed: {
+    user() {
+      const store = useStore();
+      return computed(() => store.getters.getUserById(this.userId)).value;
+    },
     dialogBlocks() {
       return [
         "Welcome to the Grand Hotel! I'm your concierge, at your service.",
@@ -129,6 +142,60 @@ export default defineComponent({
     this.currentDialogText = this.dialogBlocks[0];
   },
   methods: {
+    // ATM methods
+    openATM() {
+      this.play$fx("select");
+      this.showAtm = true;
+    },
+    
+    clickDeposit(data) {
+      // Use new GPSystem to handle deposits
+      const amount = Number(data.gp);
+      if (amount && amount > 0) {
+        getGPSystem()
+          .depositToSavings(this.userId, amount)
+          .then(() => {
+            this.play$fx("coins");
+          })
+          .catch(error => {
+            debug.log('Deposit error:', error.message);
+            // Potential UI feedback for error
+          });
+      }
+    },
+    
+    clickWithdraw(data) {
+      // Use new GPSystem to handle withdrawals
+      const amount = Number(data.gp);
+      if (amount && amount > 0) {
+        getGPSystem()
+          .withdrawFromSavings(this.userId, amount)
+          .then(() => {
+            this.play$fx("coins");
+          })
+          .catch(error => {
+            debug.log('Withdraw error:', error.message);
+            // Potential UI feedback for error
+          });
+      }
+    },
+    
+    clickPayDebt(data) {
+      // Use new GPSystem to handle debt payments
+      const amount = Number(data.gp);
+      if (amount && amount > 0) {
+        getGPSystem()
+          .payDebtFromWallet(this.userId, amount)
+          .then(() => {
+            this.play$fx("success");
+          })
+          .catch(error => {
+            debug.log('Pay debt error:', error.message);
+            // Potential UI feedback for error
+          });
+      }
+    },
+
     selectShelf($ev) {
       this.shelves = $ev.detail.value
     },
