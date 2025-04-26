@@ -2,6 +2,7 @@
 import debug from '@/utils/debug';
 import { reactive } from 'vue';
 import { loadAudioSettings, loadAudioTheme, saveAudioSettings, saveAudioTheme } from './storage';
+import { MediaSessionHandler } from './mediaControls';
 
 // Import types directly instead of from module
 export type AudioCategory = 'ui' | 'music' | 'sfx' | 'ambient';
@@ -60,6 +61,7 @@ export class AudioEngine {
   private soundCache = new Map<string, AudioBuffer>();
   private _musicTracks = new Map<string, HTMLAudioElement>();
   private activeSounds = new Map<string, { source: AudioBufferSourceNode, gain: GainNode }>();
+  private mediaSession: MediaSessionHandler | null = null;
   
   // Keep track of the current track sequence for auto-advancing tracks
   private _currentTrackSequence: string[] = [];
@@ -147,6 +149,49 @@ export class AudioEngine {
     
     // Set up event listeners for user interaction to initialize audio
     this.setupAudioContextInitializationEvents();
+    
+    // Initialize media session handler
+    this.mediaSession = new MediaSessionHandler(this);
+    
+    // Listen for media session events
+    this.setupMediaSessionEventListeners();
+  }
+  
+  /**
+   * Set up listeners for media session events
+   */
+  private setupMediaSessionEventListeners(): void {
+    document.addEventListener('media-session-previous-track', () => {
+      // Find previous track in current sequence or emit event for app to handle
+      this.$emit('previousTrack');
+    });
+    
+    document.addEventListener('media-session-next-track', () => {
+      // Find next track in current sequence or emit event for app to handle
+      this.$emit('nextTrack');
+    });
+    
+    document.addEventListener('media-session-seek-backward', (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const seekOffset = customEvent.detail || 10;
+      this.$emit('seekBackward', seekOffset);
+    });
+    
+    document.addEventListener('media-session-seek-forward', (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const seekOffset = customEvent.detail || 10;
+      this.$emit('seekForward', seekOffset);
+    });
+  }
+  
+  /**
+   * Event emitter helper
+   */
+  private $emit(event: string, payload?: any): void {
+    document.dispatchEvent(new CustomEvent(`audio-engine:${event}`, { 
+      detail: payload,
+      bubbles: true 
+    }));
   }
   
   /**
@@ -339,6 +384,11 @@ export class AudioEngine {
     
     // Store the music track
     this._musicTracks.set(id, audio);
+    
+    // Register track with media session handler
+    if (this.mediaSession) {
+      this.mediaSession.registerTrack(id, metadata);
+    }
   }
   
   /**
@@ -450,6 +500,12 @@ export class AudioEngine {
     };
     
     requestAnimationFrame(fadeIn);
+    
+    // Update media session metadata and state
+    if (this.mediaSession) {
+      this.mediaSession.updateMetadata(id);
+      this.mediaSession.updatePlaybackState('playing');
+    }
   }
   
   /**
@@ -482,6 +538,11 @@ export class AudioEngine {
         currentTrack.pause();
         currentTrack.currentTime = 0;
         this.state.currentMusic = null;
+        
+        // Update media session state
+        if (this.mediaSession) {
+          this.mediaSession.updatePlaybackState('paused');
+        }
       }
     };
     
@@ -489,8 +550,18 @@ export class AudioEngine {
       currentTrack.pause();
       currentTrack.currentTime = 0;
       this.state.currentMusic = null;
+      
+      // Update media session state
+      if (this.mediaSession) {
+        this.mediaSession.updatePlaybackState('paused');
+      }
     } else {
       requestAnimationFrame(fadeOut);
+      
+      // Update media session state immediately
+      if (this.mediaSession) {
+        this.mediaSession.updatePlaybackState('paused');
+      }
     }
   }
   
