@@ -240,6 +240,7 @@ import DialPad from "./DialPad.vue";
 import ionic from "@/mixins/ionic";
 import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
 import debug from "@/utils/debug";
+import { fixPageTransitions } from "@/utils/ionicPageFix";
 
 const requireAvatar = require.context("@/assets/images/avatars/");
 
@@ -485,8 +486,11 @@ export default defineComponent({
         await toast.present();
       } finally {
         // Add a slight delay before hiding the loading indicator
-        await new Promise(resolve => setTimeout(resolve, 500));
-        isProfileLoading.value = false;
+        await new Promise(resolve => setTimeout(resolve, 500)).then(fixPageTransitions);
+        setTimeout(() => {
+          isProfileLoading.value = false;
+        }, 450);
+        
       }
     };
 

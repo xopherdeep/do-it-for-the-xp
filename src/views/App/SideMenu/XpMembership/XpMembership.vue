@@ -100,8 +100,7 @@
             <h2 class="section-title">Choose Your Adventure Length</h2>
           </ion-col>
           <ion-col
-            size="12"
-            size-md="6"
+            size="6"
             v-for="plan in plans"
             :key="plan.id"
           >
@@ -140,7 +139,7 @@
         <!-- Benefits Card -->
         <ion-row>
           <ion-col>
-            <ion-card class="benefits-card">
+            <ion-card class="benefits-card rpg-box">
               <ion-card-header>
                 <ion-card-title>
                   <ion-icon
