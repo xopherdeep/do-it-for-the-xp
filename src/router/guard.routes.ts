@@ -3,7 +3,6 @@ import { Store } from 'vuex';
 import { alertController } from '@ionic/vue';
 import { RootState } from '@/types/store.types';
 import { changeBGM } from '@/engine/audio/routeMusic'; // Import our updated adapter
-import { fixPageTransitions } from '@/utils/ionicPageFix'; // Import our page transition fix
 
 
 /**
@@ -307,10 +306,5 @@ export function useRouterGuards(router: Router, store: Store<RootState>) {
       changeBGM(store, bgmPayload, true);
     }
   });
-
-  // Add an afterEach hook to ensure page transitions are properly handled
-  router.afterEach(() => {
-    // Fix any page transition issues that might occur
-    fixPageTransitions();
-  });
+ 
 }

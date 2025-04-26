@@ -52,6 +52,45 @@ import {
   volumeMuteSharp
 } from 'ionicons/icons';
 
+// Define custom event types for TypeScript
+interface AudioEngineEvents {
+  'audio-engine:previousTrack': Event;
+  'audio-engine:nextTrack': Event;
+  'audio-engine:seekBackward': CustomEvent<number>;
+  'audio-engine:seekForward': CustomEvent<number>;
+}
+
+// Augment the Document interface to include our custom events
+declare global {
+  // Add missing DOM type definitions
+  interface AddEventListenerOptions {
+    capture?: boolean;
+    once?: boolean;
+    passive?: boolean;
+  }
+
+  interface EventListenerOptions {
+    capture?: boolean;
+  }
+
+  // Don't redefine EventListener as it already exists in lib.dom.d.ts
+  // Instead, we'll use proper type assertions in our code
+
+  // Add document interface with our custom events
+  interface Document {
+    addEventListener<K extends keyof AudioEngineEvents>(
+      type: K,
+      listener: (this: Document, ev: AudioEngineEvents[K]) => any,
+      options?: boolean | AddEventListenerOptions
+    ): void;
+    removeEventListener<K extends keyof AudioEngineEvents>(
+      type: K,
+      listener: (this: Document, ev: AudioEngineEvents[K]) => any,
+      options?: boolean | EventListenerOptions
+    ): void;
+  }
+}
+
 export default defineComponent({
   name: 'XpMusicPlayer',
   mixins: [ionic],
@@ -288,6 +327,27 @@ export default defineComponent({
       
       // Show the track info when it updates
       this.showTrackInfoTemporarily();
+    },
+    
+    // Handle media session events
+    handlePreviousTrack() {
+      debug.log('Media session: Previous track requested');
+      this.prevTrack();
+    },
+    
+    handleNextTrack() {
+      debug.log('Media session: Next track requested');
+      this.nextTrack();
+    },
+    
+    handleSeekBackward(event: CustomEvent<number>) {
+      debug.log(`Media session: Seek backward ${event.detail} seconds`);
+      this.rewind();
+    },
+    
+    handleSeekForward(event: CustomEvent<number>) {
+      debug.log(`Media session: Seek forward ${event.detail} seconds`);
+      this.fastForward();
     }
   },
   
@@ -302,6 +362,29 @@ export default defineComponent({
     if (this.audioElement) {
       // Using watch instead of MutationObserver since it won't work directly on Audio element
       debug.log('Audio element available, using watch for changes instead');
+    }
+    
+    // Add event listeners for media session events
+    document.addEventListener('audio-engine:previousTrack', this.handlePreviousTrack);
+    document.addEventListener('audio-engine:nextTrack', this.handleNextTrack);
+    document.addEventListener('audio-engine:seekBackward', this.handleSeekBackward as unknown as (ev: Event) => void);
+    document.addEventListener('audio-engine:seekForward', this.handleSeekForward as unknown as (ev: Event) => void);
+  },
+  
+  beforeUnmount() {
+    // Remove event listeners
+    document.removeEventListener('audio-engine:previousTrack', this.handlePreviousTrack);
+    document.removeEventListener('audio-engine:nextTrack', this.handleNextTrack);
+    document.removeEventListener('audio-engine:seekBackward', this.handleSeekBackward as unknown as (ev: Event) => void);
+    document.removeEventListener('audio-engine:seekForward', this.handleSeekForward as unknown as (ev: Event) => void);
+    
+    // Clear intervals and timeouts
+    if (this.intervalId !== null) {
+      clearInterval(this.intervalId);
+    }
+    
+    if (this.infoVisibilityTimeoutId !== null) {
+      clearTimeout(this.infoVisibilityTimeoutId);
     }
   },
   

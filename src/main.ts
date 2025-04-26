@@ -23,6 +23,9 @@ import store from './store';
 // Audio Engine
 import { AudioEnginePlugin } from './engine/audio/plugin';
 
+// GP System
+import { GPSystem } from './engine/core/GPSystem';
+
 // Accessibility fixes
 import { fixAriaHiddenFocusIssues } from './utils/a11yUtils';
 
@@ -68,6 +71,9 @@ function readyRouterMountApp() {
   router.afterEach((to) => {
     document.title = (to.meta?.title as string) || 'Do it for the XP';
   });
+
+  // Initialize the GPSystem with the Vuex store
+  GPSystem.initialize(store);
 
   Object.assign(app.config.globalProperties, appConfig);
 
