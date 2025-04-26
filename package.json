@@ -12,6 +12,7 @@
   },
   "private": false,
   "scripts": {
+    "dev": "ionic cap run -l --external",
     "serve": "ionic serve --external",
     "ui": "vue ui",
     "vue-serve": "vue-cli-service serve",
