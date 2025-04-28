@@ -72,6 +72,39 @@ export class DbStorageApi {
     await toast.present();
   }
 
+  public async showWarningToast(message: string) {
+    const toast = await toastController.create({
+      message: message,
+      duration: 2500,
+      position: 'top',
+      color: 'warning',
+      buttons: [
+        {
+          text: 'Dismiss',
+          cssClass: 'rpg-toast',
+          role: 'cancel',
+        }
+      ]
+    });
+    await toast.present();
+  }
+
+  public async showErrorToast(message: string) {
+    const toast = await toastController.create({
+      message: message,
+      duration: 2500,
+      position: 'top',
+      color: 'danger',
+      buttons: [
+        {
+          text: 'Dismiss',
+          cssClass: 'rpg-toast',
+          role: 'cancel',
+        }
+      ]
+    });
+    await toast.present();
+  }
 }
 
 export default DbStorageApi

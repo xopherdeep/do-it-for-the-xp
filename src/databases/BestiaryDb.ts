@@ -16,6 +16,9 @@ export interface Beast {
   localImage?: string;
   avatar?: number;
   achievementIds?: string[];
+  bg1?: number;            // Background layer 1 for earthbound battle backgrounds
+  bg2?: number;            // Background layer 2 for earthbound battle backgrounds
+  aspectRatio?: number;    // Aspect ratio for battle background display
 }
 
 export class BestiaryDb extends DbStorageApi {
@@ -24,7 +27,10 @@ export class BestiaryDb extends DbStorageApi {
       id: uuidv4(),
       name: '',
       achievementIds: [],
-      checklist: []
+      checklist: [],
+      bg1: 219,          // Default background layer 1
+      bg2: 218,          // Default background layer 2
+      aspectRatio: 64    // Default medium letterbox aspect ratio
     }
   }
 
