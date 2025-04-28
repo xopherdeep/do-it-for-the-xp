@@ -15,7 +15,7 @@
     >
       <ion-card class="max-w-2xl">
         <ion-list>
-          <!-- Cash-Out S'mores Toggle -->
+          <!-- Cash-Out Points Toggle -->
           <ion-item>
             <ion-label>
               <h1>Cash-Out GP</h1>

@@ -26,7 +26,7 @@
               <ion-item>
                 <ion-label>
                   <h2>Requires Approval</h2>
-                  <p>Parents approve the chores to allocate S'mores for completed chores</p>
+                  <p>Parents approve the chores to allocate Points for completed chores</p>
                 </ion-label>
                 <ion-toggle
                   v-model="choreSettings.requireApproval"
@@ -38,7 +38,7 @@
               <ion-item>
                 <ion-label>
                   <h2>Assign chores to parents</h2>
-                  <p>Turns on the Mini-Me mode and enables parents to manage their chores using S'moresUp</p>
+                  <p>Turns on the Mini-Me mode and enables parents to manage their chores using PointsUp</p>
                 </ion-label>
                 <ion-toggle
                   v-model="choreSettings.assignToParents"
@@ -76,7 +76,7 @@
               <ion-item>
                 <ion-label>
                   <h2>Complete overdue chores</h2>
-                  <p>When turned on, kids will be able to mark chores from past as complete and collect S'mores</p>
+                  <p>When turned on, kids will be able to mark chores from past as complete and collect Points</p>
                 </ion-label>
                 <ion-toggle
                   v-model="choreSettings.completeOverdue"
@@ -155,7 +155,7 @@
               <ion-item class="premium-item">
                 <ion-label>
                   <h2>Late Penalty</h2>
-                  <p><span class="highlight">0 S'mores</span> penalty to a chore that is not completed on time.</p>
+                  <p><span class="highlight">0 Points</span> penalty to a chore that is not completed on time.</p>
                 </ion-label>
                 <ion-toggle
                   disabled
@@ -163,10 +163,10 @@
                 ></ion-toggle>
               </ion-item>
 
-              <!-- Automatic S'mores Allocation -->
+              <!-- Automatic Points Allocation -->
               <ion-item class="premium-item">
                 <ion-label>
-                  <h2>Automatically allocate S'mores</h2>
+                  <h2>Automatically allocate Points</h2>
                   <p>Allocation <span class="highlight">25% Save for goal</span></p>
                 </ion-label>
                 <ion-toggle
