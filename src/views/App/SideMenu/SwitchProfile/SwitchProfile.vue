@@ -393,6 +393,7 @@ export default defineComponent({
     const openBackupOptionsModal = async () => {
       const actionSheet = await actionSheetController.create({
         header: 'Profile Backup Options',
+        mode: 'ios',
         buttons: [
           {
             text: 'Export Profiles',
