@@ -105,8 +105,8 @@ import {
   logInSharp,
   lockClosedOutline,
   lockClosedSharp,
-  heartOutline,
-  heartSharp,
+  fitnessOutline,
+  fitnessSharp,
   fingerPrintOutline,
   fingerPrintSharp,
   helpOutline,
@@ -189,11 +189,10 @@ export default defineComponent({
           title: "",
         },
         {
-          title: "Family",
+          title: "Compendium",
           url: "/game-master",
-          iosIcon: heartOutline,
-          mdIcon: heartSharp,
-
+          iosIcon: fitnessOutline,
+          mdIcon: fitnessSharp,
           lines: "none",
         },
 
