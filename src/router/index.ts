@@ -4,8 +4,9 @@ import MyProfileRoutes from './my-profile.routes';
 import MyHomeRoutes from './my-home.routes';
 import MyPortalRoutes from './my-portal.routes';
 import HometownRoutes from './hometown.routes';
-import SupportRoutes from './support';
+import SupportRoutes from './support.routes';
 import WorldMapRoutes from './world-map.routes';
+import DevRoutes from './dev.routes';
 import { createRouter, createWebHistory, createWebHashHistory } from '@ionic/vue-router';
 import { RouteRecordRaw } from 'vue-router';
 import { useRouterGuards } from './guard.routes';
@@ -19,6 +20,7 @@ const routes: Array<RouteRecordRaw> = [
   ...HometownRoutes,
   ...SupportRoutes,
   ...MyPortalRoutes,
+  ...DevRoutes,
   {
     path: '/battle-ground/:userId?',
     name: 'battle-ground',
@@ -27,51 +29,6 @@ const routes: Array<RouteRecordRaw> = [
     },
     component: () => import('@/views/Console/MyPortal/HomeTown/BattleGround/BattleGround'),
     props: true,
-  },
-  {
-    path: '/dev', // Main developer dashboard
-    name: 'dev-dashboard',
-    component: () => import('@/views/Dev/DevDashboard.vue'),
-  },
-  {
-    path: '/dev/component-showcase', // Hidden path for developers
-    name: 'component-showcase',
-    component: () => import('@/views/Dev/ComponentShowcase.vue'),
-  },
-  {
-    path: '/dev/dialog-demo', // Dialog system demo
-    name: 'dialog-demo',
-    component: () => import('@/views/Dev/DialogDemo.vue'),
-  },
-  {
-    path: '/dev/battleroom', // Battleroom development tools
-    name: 'battleroom-dev',
-    component: () => import('@/views/Dev/BattleroomDevTools/BattleroomDevTools.vue'),
-  },
-  {
-    path: '/dev/weatherfx', // Weather FX development tools
-    name: 'weatherfx-dev',
-    component: () => import('@/views/Dev/WeatherFXDevTools/WeatherFXDevTools.vue'),
-  },
-  {
-    path: '/dev/abilities', // Ability Manager development tools
-    name: 'abilities-dev',
-    component: () => import('@/views/Dev/AbilityDevTools/AbilityDevTools.vue'),
-  },
-  {
-    path: '/dev/soundfx', // Sound FX development tools
-    name: 'soundfx-dev',
-    component: () => import('@/views/Dev/SoundFXDevTools/SoundFXDevTools.vue'),
-  },
-  {
-    path: '/dev/intro-splash', // Intro Splash demo
-    name: 'intro-splash-demo',
-    component: () => import('@/views/Dev/IntroSplashDemo.vue'),
-  },
-  {
-    path: '/dev/dungeon-background', // Dungeon Background Designer
-    name: 'dungeon-background-designer',
-    component: () => import('@/views/App/SideMenu/XpSupport/DevTools/DungeonBackgroundDesigner/DungeonBackgroundDesigner.vue'),
   },
 ];
 
@@ -103,5 +60,6 @@ export {
   MyPortalRoutes,
   HometownRoutes,
   SupportRoutes,
-  WorldMapRoutes
+  WorldMapRoutes,
+  DevRoutes
 };
