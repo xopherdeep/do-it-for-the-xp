@@ -1,8 +1,7 @@
-import { BackgroundLayer, Engine } from "earthbound-battle-backgrounds";
-import { computed, defineComponent } from "vue";
+import { defineComponent, computed } from "vue";
 import { mapState, useStore } from "vuex";
 import { useRouter } from "vue-router";
-// import alienMonster from "@/assets/fonts/font-awesome/svgs/duotone/medal.svg";
+import { backgroundManager } from "@/engine/core/BackgroundManager";
 import backgrounds from "@/assets/images/backgrounds/parallax/index";
 import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
 import fetchItems from "@/mixins/fetchItems";
@@ -208,17 +207,13 @@ export default defineComponent({
       const { $fx } = this
       if ($fx && $fx.theme.rpg != "earthbound") return false;
 
-      // const bg1 = Math.floor(Math.random() * 326);
-      // const bg2 = Math.floor(Math.random() * 326);
-      /* Create two layers */
-      const layer1 = new BackgroundLayer(this.bg1);
-      const layer2 = new BackgroundLayer(this.bg2);
-      /* Create animation engine  */
-      const engine = new Engine([layer1, layer2], {
-        aspectRatio: 48,
-        canvas: document.querySelector("canvas.battle-bg"),
+      backgroundManager.initBackground({
+        canvasSelector: "canvas.battle-bg",
+        bg1: this.bg1,
+        bg2: this.bg2,
+        aspectRatio: 64,
+        handleResize: true
       });
-      engine.animate();
     },
     clickTask(task) {
       this.activeModal = task.id;
@@ -288,7 +283,7 @@ export default defineComponent({
           // },
         ],
       });
-      await toast.present();
+      // await toast.present();
 
       await toast.onDidDismiss();
       // console.log("onDidDismiss resolved with role", role);
@@ -327,8 +322,10 @@ export default defineComponent({
     setTimeout(() => {
       this.$fx.ui[this.$fx.theme.ui].chooseUser.pause();
       this.isUserModalOpen = this.userId;
-      // this.$refs.page.el.style.backgroundPosition = "0 100%, 0 100%";
     }, 1250);
+  },
+  unmounted() {
+    backgroundManager.cleanupBackground();
   },
   watch: {
     activeModal(taskId) {

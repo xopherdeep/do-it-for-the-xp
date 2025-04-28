@@ -3,34 +3,7 @@
     <canvas class="battle-bg"></canvas>
     <ion-header :translucent="true" v-if="user"> </ion-header>
     <ion-content :fullscreen="false" class="battle-bg">
-      <ion-buttons class="bg-controls">
-        <ion-button @click="
-          bg1--;
-          enterBattle();
-        ">
-          Prev
-        </ion-button>
-        {{ bg1 }}
-        <ion-button @click="
-          bg1++
-          enterBattle();
-        ">
-          Next
-        </ion-button>
-        {{ bg2 }}
-        <ion-button @click="
-          bg2--;
-          enterBattle();
-        ">
-          Prev
-        </ion-button>
-        <ion-button @click="
-          bg2++;
-          enterBattle();
-        ">
-          Next
-        </ion-button>
-      </ion-buttons>
+      <!-- Background controls moved to DevTools dialog -->
       
       <!-- Task Enemy Display -->
       <div class="enemy-container" v-if="currentEnemy">
