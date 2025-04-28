@@ -315,5 +315,61 @@ ion-app {
         }
       }
     }
+
+    // Action Sheet Styling
+    .action-sheet-wrapper {
+      &.sc-ion-action-sheet-ios {
+        .action-sheet-container {
+          @include eb-box();
+          max-width: 90%;
+          width: 360px;
+          margin: 0 auto;
+          border-radius: 4px;
+          
+          .action-sheet-group {
+            background: $eb-color-dark-purple;
+            color: $eb-color-cream;
+            border-radius: 0;
+            
+            .action-sheet-title {
+              font-family: $eb-font-title;
+              color: $eb-color-pale-yellow;
+              font-size: 20px;
+              padding: 10px;
+              border-bottom: 2px solid $eb-color-minty-blue;
+            }
+            
+            .action-sheet-button {
+              font-family: $eb-font-status;
+              color: $eb-color-cream;
+              font-size: 16px;
+              
+              &:hover {
+                background: $eb-color-medium-purple;
+              }
+              
+              &.action-sheet-cancel {
+                background: transparent;
+                color: var(--ion-color-danger);
+                
+                &:hover {
+                  background: darken($eb-color-slate, 5%);
+                }
+              }
+              
+              .action-sheet-button-inner {
+                justify-content: space-between;
+                
+                .action-sheet-icon {
+                  color: $eb-color-sky-blue;
+                  margin-left: 10px;
+                  order: 1;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
   }
 }
