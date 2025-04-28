@@ -1,8 +1,8 @@
 import { defineComponent, ref, watch } from "vue";
 import { mapGetters } from "vuex";
-import { alertController } from "@ionic/vue";
+import { alertController, actionSheetController } from "@ionic/vue";
 import ionic from "@/mixins/ionic";
-import {  useRoute } from "vue-router";
+import { useRoute } from "vue-router";
 
 import {
   addOutline,
@@ -11,6 +11,8 @@ import {
   searchSharp,
   thumbsUpOutline,
   thumbsUpSharp,
+  createOutline,
+  compassOutline
 } from "ionicons/icons";
 
 import AchievementDb, {
@@ -209,6 +211,40 @@ export default defineComponent({
     getAssigneeById(id: string) {
       const findUserById = (user) => user.id === id;
       return this.users.find(findUserById);
+    },
+    async presentActionSheet() {
+      const actionSheet = await actionSheetController.create({
+        header: 'Quest Actions',
+        cssClass: 'achievements-action-sheet',
+        mode: 'ios',
+        buttons: [
+          {
+            text: 'Create New Quest',
+            icon: createOutline,
+            cssClass: 'action-create',
+            handler: () => {
+              this.clickAdd();
+            }
+          },
+          {
+            text: 'Discover Quests',
+            icon: compassOutline,
+            cssClass: 'action-discover',
+            handler: () => {
+              this.clickDiscover();
+            }
+          },
+          {
+            text: 'Cancel',
+            role: 'cancel',
+            cssClass: 'action-cancel',
+            handler: () => {
+              // Just close the action sheet
+            }
+          },
+        ],
+      });
+      await actionSheet.present();
     },
   },
   mounted() {

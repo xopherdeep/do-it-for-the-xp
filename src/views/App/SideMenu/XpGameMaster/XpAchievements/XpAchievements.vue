@@ -5,7 +5,10 @@
         <ion-buttons slot="start">
           <ion-back-button defaultHref="/game-master" />
         </ion-buttons>
-        <i slot="start" class="fad fa-hand-holding-seedling fa-2x" />
+        <i
+          slot="start"
+          class="fad fa-hand-holding-seedling fa-2x"
+        />
         <ion-title>
           Quests ({{ achievements?.length }})
         </ion-title>
@@ -20,7 +23,10 @@
             <i class="fad fa-eye fa-2x" />
           </ion-button>
         </ion-buttons>
-        <ion-popover trigger="popover-button" :dismiss-on-select="true">
+        <ion-popover
+          trigger="popover-button"
+          :dismiss-on-select="true"
+        >
           <ion-content>
             <ion-list>
               <ion-item
@@ -28,10 +34,17 @@
                 :detail="false"
                 @click="showPoints = !showPoints"
               >
-                <i class="fad fa-ring fa-lg mr-3" slot="start" />
+                <i
+                  class="fad fa-ring fa-lg mr-3"
+                  slot="start"
+                />
 
                 <ion-label slot="start"> Points </ion-label>
-                <ion-checkbox v-model="showPoints" @click.stop slot="end">
+                <ion-checkbox
+                  v-model="showPoints"
+                  @click.stop
+                  slot="end"
+                >
                 </ion-checkbox>
               </ion-item>
               <ion-item
@@ -39,20 +52,32 @@
                 :detail="false"
                 @click="showPoints = !showPoints"
               >
-                <i class="fad fa-clipboard-check fa-lg mr-3" slot="start" />
+                <i
+                  class="fad fa-clipboard-check fa-lg mr-3"
+                  slot="start"
+                />
                 <ion-label> Requires Approval </ion-label>
-                <ion-checkbox slot="end" @click.stop> </ion-checkbox>
+                <ion-checkbox
+                  slot="end"
+                  @click.stop
+                > </ion-checkbox>
               </ion-item>
               <ion-item
                 :button="true"
                 :detail="false"
                 @click="showPoints = !showPoints"
               >
-                <i class="fad fa-gift fa-lg mr-3" slot="start" />
+                <i
+                  class="fad fa-gift fa-lg mr-3"
+                  slot="start"
+                />
 
                 <ion-label> Bonus Chore </ion-label>
 
-                <ion-checkbox slot="end" @click.stop> </ion-checkbox>
+                <ion-checkbox
+                  slot="end"
+                  @click.stop
+                > </ion-checkbox>
               </ion-item>
               <ion-popover
                 trigger="nested-trigger"
@@ -61,7 +86,10 @@
               >
                 <ion-content>
                   <ion-list>
-                    <ion-item :button="true" :detail="false">
+                    <ion-item
+                      :button="true"
+                      :detail="false"
+                    >
                       Nested option
                     </ion-item>
                   </ion-list>
@@ -70,6 +98,18 @@
             </ion-list>
           </ion-content>
         </ion-popover>
+      </ion-toolbar>
+      <ion-toolbar color="light">
+        <ion-grid>
+          <ion-row>
+            <ion-col class="ion-no-padding">
+              <ion-searchbar
+                color="light"
+                v-model="searchText"
+              ></ion-searchbar>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
       </ion-toolbar>
       <!-- <ion-toolbar v-if="showFilters">
         <ion-select
@@ -83,7 +123,10 @@
           </ion-select-option>
         </ion-select>
       </ion-toolbar> -->
-      <ion-segment v-model="groupBy" mode="ios">
+      <ion-segment
+        v-model="groupBy"
+        mode="ios"
+      >
         <ion-segment-button value="category"> By Category </ion-segment-button>
         <ion-segment-button value="assignee"> By Assignee </ion-segment-button>
         <ion-segment-button value="asNeeded"> As Needed </ion-segment-button>
@@ -91,7 +134,7 @@
       </ion-segment>
     </ion-header>
 
-    <ion-content>
+    <ion-content class="bg-slide">
       <xp-loading v-if="isLoading" />
       <ion-list v-else>
         <ion-item-group
@@ -101,9 +144,7 @@
           <ion-item-divider>
             <ion-label v-if="groupBy === 'assignee'">
               <ion-avatar class="ion-float-left h-6 w-6 mr-2">
-                <ion-img
-                  :src="$getUserAvatar(getAssigneeById(group.assignee))"
-                />
+                <ion-img :src="$getUserAvatar(getAssigneeById(group.assignee))" />
               </ion-avatar>
               {{ getAssigneeById(group.assignee)?.name.full }}
             </ion-label>
@@ -122,8 +163,14 @@
               :disabled="new Date(achievement.endsOn) < new Date()"
             >
               <template #start>
-                <i class="fad fa-grip-vertical ml-2" slot="start" />
-                <i class="fad fa-grip-vertical ml-2" slot="end" />
+                <i
+                  class="fad fa-grip-vertical ml-2"
+                  slot="start"
+                />
+                <i
+                  class="fad fa-grip-vertical ml-2"
+                  slot="end"
+                />
               </template>
             </xp-achievement-item>
             <ion-item-options side="start">
@@ -149,35 +196,18 @@
           </ion-item-sliding>
         </ion-item-group>
       </ion-list>
-    </ion-content>
 
-    <ion-fab slot="fixed" vertical="bottom" horizontal="end">
-      <ion-fab-button>
-        <ion-icon :icon="addOutline" />
-      </ion-fab-button>
-      <ion-fab-list side="top">
-        <ion-fab-button @click="clickAdd">
-          <ion-icon :icon="addSharp" />
+      <ion-fab
+        slot="fixed"
+        vertical="bottom"
+        horizontal="center"
+      >
+        <ion-fab-button @click="presentActionSheet" color="rpg">
+          <i class="fad fa-hand-holding-seedling fa-2x"/>
         </ion-fab-button>
-        <ion-fab-button @click="clickDiscover">
-          <ion-icon :ios="searchOutline" :md="searchSharp" />
-        </ion-fab-button>
-        <ion-fab-button>
-          <ion-icon :ios="thumbsUpOutline" :md="thumbsUpSharp" />
-        </ion-fab-button>
-      </ion-fab-list>
-    </ion-fab>
-    <ion-footer>
-      <ion-toolbar color="light">
-        <ion-grid>
-          <ion-row>
-            <ion-col class="ion-no-padding">
-              <ion-searchbar color="light" v-model="searchText"></ion-searchbar>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-      </ion-toolbar>
-    </ion-footer>
+      </ion-fab>
+
+    </ion-content>
   </ion-page>
 </template>
 

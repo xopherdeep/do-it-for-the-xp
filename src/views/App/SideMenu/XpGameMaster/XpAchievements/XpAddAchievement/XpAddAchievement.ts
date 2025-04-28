@@ -50,48 +50,63 @@ export default defineComponent({
   },
   data() {
     return {
-      fibonacciArray: [1, 2, 3, 5, 8, 13],
+      fibonacciArray: [1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144],
       fibonacciDescriptions: [
-        'Trivial', 
-        'Simple', 
-        'Easy', 
-        'Moderate', 
-        'Challenging', 
-        'Difficult'
+        "Trivial",
+        "Simple",
+        "Easy",
+        "Moderate",
+        "Challenging",
+        "Difficult",
+        "Very Difficult",
+        "Extremely Difficult",
+        "Insane",
+        "Legendary",
+        "Mythical",
       ],
-      difficultyValue: null,
+      fibonacciIndex: 0, // Index in the fibonacci array (for the range component)
+      difficultyValue: null as number | null,
       efforts: EFFORTS,
       prev1: 1,
       prev2: 1,
-      segments: [{
-        name: "Quest",
-        icon: "fa-seedling"
-      }, {
-        name: "When",
-        icon: "fa-calendar"
-      }, {
-        name: "Points",
-        icon: "fa-hand-holding"
-      }, {
-        name: "Heros",
-        icon: "fa-users"
-      }],
-      adventureTypes: [{
-        segment: "simple",
-        text: `A straightforward quest that tests a single skill or accomplishment. Perfect for daily tasks and building consistent habits. These are the building blocks of greater adventures.`
-      }, {
-        segment: "beast",
-        text: `Face off against a mighty beast! These challenging quests pit heroes against formidable foes, requiring strategy and determination to overcome. Choose your beast wisely, for its strength determines the rewards.`
-      }, {
-        segment: "quest",
-        text: `Embark on an epic journey! Chain multiple achievements together to create a grand adventure with multiple milestones. Perfect for complex projects or long-term goals that require multiple steps to complete.`
-      }],
+      segments: [
+        {
+          name: "Heros",
+          icon: "fa-users",
+        },
+        {
+          name: "When",
+          icon: "fa-calendar",
+        },
+
+        {
+          name: "Quest",
+          icon: "fa-seedling",
+        },
+        {
+          name: "Points",
+          icon: "fa-hand-holding-medical",
+        },
+      ],
+      adventureTypes: [
+        {
+          segment: "simple",
+          text: `A straightforward quest that tests a single skill or accomplishment. Perfect for daily tasks and building consistent habits. These are the building blocks of greater adventures.`,
+        },
+        {
+          segment: "beast",
+          text: `Face off against a mighty beast! These challenging quests pit heroes against formidable foes, requiring strategy and determination to overcome. Choose your beast wisely, for its strength determines the rewards.`,
+        },
+        {
+          segment: "quest",
+          text: `Embark on an epic journey! Chain multiple achievements together to create a grand adventure with multiple milestones. Perfect for complex projects or long-term goals that require multiple steps to complete.`,
+        },
+      ],
       achievementTypeIcons: ACHIEVEMENT_TYPE_ICONS,
       basicScheduleIcons: BASIC_SCHEDULE_ICONS,
       difficultyIcons: DIFFICULTY_ICONS,
-      messages: [] as string[]
-
-    }
+      messages: [] as string[],
+    };
   },
 
   computed: {
@@ -144,7 +159,7 @@ export default defineComponent({
 
     difficultyIcon() {
       const icon = this.difficultyIcons[this.achievement.difficulty]
-      return icon || 'fa-chess'
+      return icon || 'fa-dice'
     },
 
     isFibonacci() {
@@ -238,6 +253,11 @@ export default defineComponent({
   },
 
   methods: {
+    displayFibonacciValue(index) {
+      // Convert the range index to the actual Fibonacci value
+      const value = this.fibonacciArray[index];
+      return value ? value.toString() : '0';
+    },
 
     async clickReorder() {
       const { achievementChain } = this
@@ -255,10 +275,20 @@ export default defineComponent({
 
       modal.present()
     },
+    handleDifficultyChange(event) {
+      // Convert the slider index to the actual Fibonacci number
+      const index = event.detail.value;
+      if (index >= 0 && index < this.fibonacciArray.length) {
+        this.achievement.difficulty = this.fibonacciArray[index];
+        this.difficultyValue = this.fibonacciArray[index];
+        this.updatePoints();
+      }
+    },
     increaseDifficulty() {
       const currentIndex = this.fibonacciArray.indexOf(this.achievement.difficulty);
       if (currentIndex < this.fibonacciArray.length - 1) {
         this.achievement.difficulty = this.fibonacciArray[currentIndex + 1];
+        this.updatePoints();
       }
     },
     decreaseDifficulty() {
@@ -394,6 +424,57 @@ export default defineComponent({
       .then(this.loadUsers)
   },
 
+  watch: {
+    // Watch for changes in beastId to update the imageUrl with beast's avatar
+    'achievement.beastId': {
+      async handler(newBeastId) {
+        if (newBeastId) {
+          const beast = await this.bestiaryDb.getBeastById(newBeastId);
+          if (beast && beast.avatar) {
+            // Use the beast's avatar for the achievement image
+            const pad = beast.avatar.toString().padStart(3, '0');
+            this.achievement.imageUrl = require(`@/assets/images/beasts/${pad}.png`);
+          } else if (beast) {
+            // If beast exists but has no avatar, clear the imageUrl
+            this.achievement.imageUrl = '';
+          }
+        } else {
+          // If beastId is removed, clear the imageUrl
+          this.achievement.imageUrl = '';
+        }
+      },
+      immediate: true
+    },
+    
+    // Sync difficulty with fibonacciIndex
+    'achievement.difficulty': {
+      handler(newDifficulty) {
+        if (newDifficulty) {
+          // Find the closest Fibonacci number index
+          const index = this.fibonacciArray.indexOf(newDifficulty);
+          if (index !== -1) {
+            this.fibonacciIndex = index;
+          } else {
+            // If not found, find the closest value
+            const closestFib = this.fibonacciArray.reduce((prev, curr) => 
+              Math.abs(curr - newDifficulty) < Math.abs(prev - newDifficulty) ? curr : prev
+            );
+            this.fibonacciIndex = this.fibonacciArray.indexOf(closestFib);
+          }
+        }
+      },
+      immediate: true
+    },
+    
+    // Sync fibonacciIndex with difficulty
+    fibonacciIndex(newIndex) {
+      if (newIndex >= 0 && newIndex < this.fibonacciArray.length) {
+        this.achievement.difficulty = this.fibonacciArray[newIndex];
+        this.updatePoints();
+      }
+    }
+  },
+
   setup() {
     const router = useRouter();
     const id = router.currentRoute.value.params.id
@@ -471,7 +552,7 @@ export default defineComponent({
         .then(syncCategories)
     }
 
-    const activeSegment = ref('quest')
+    const activeSegment = ref('heros')
 
     const adventureType = ref('simple')
 

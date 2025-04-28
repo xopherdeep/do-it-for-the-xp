@@ -8,12 +8,20 @@
 }
 
 .xp-add-achievement {
-  // .segment-button-custom {
-  //   --background-hover: $eb-color-slate;
-  //   --color-checked: $eb-color-cream;
-  //   --indicator-color: $eb-color-pale-yellow;
-  //   transition: all 0.3s ease;
-  // }
+  .segment-button-custom {
+    --background-hover: $eb-color-slate;
+    // --color-checked: $eb-color-cream;
+    // --indicator-color: $eb-color-pale-yellow;
+    transition: all 0.3s ease;
+  }
+
+  ion-list{
+    @apply w-full;
+  } 
+
+  ion-card-content{
+    @apply w-full
+  }
 
   ion-card {
     &.item {
@@ -52,6 +60,31 @@
     min-width: 28px;
     height: 28px;
     transition: transform 120ms ease, background 120ms ease;
+  }
+
+  .difficulty-range {
+    position: relative;
+  }
+
+  .fibonacci-marker {
+    position: absolute;
+    width: 4px;
+    height: 10px;
+    background-color: var(--ion-color-warning);
+    bottom: 0;
+    transform: translateX(-50%);
+    pointer-events: none; // Allow clicks to pass through to the slider
+    
+    &::after {
+      content: attr(data-value);
+      position: absolute;
+      bottom: -18px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 10px;
+      white-space: nowrap;
+      color: var(--ion-color-warning);
+    }
   }
 } 
 
