@@ -31,6 +31,7 @@
             v-for="i in nAvatars"
             :key="i"
             size="4"
+            size-md="2"
             class="p-1"
           >
             <div 
@@ -53,9 +54,11 @@
 <script lang="ts">
 import { defineComponent, ref } from 'vue';
 import { modalController } from '@ionic/vue';
+import Ionic from '@/mixins/ionic';
 
 export default defineComponent({
   name: 'AvatarSelect',
+  mixins: [Ionic],
   props: {
     avatar: {
       type: Number,
@@ -63,11 +66,12 @@ export default defineComponent({
     }
   },
   setup(props) {
-    const nAvatars = 40;
+    const nAvatars = 72;
     const selectedAvatar = ref(props.avatar || 0);
 
     const getAvatarImage = (id: number) => {
-      return require(`@/assets/images/beasts/${id}.png`);
+      const pad = id.toString().padStart(3, '0')
+      return require(`@/assets/images/beasts/${pad}.png`);
     };
 
     const selectAvatar = (id: number) => {
