@@ -47,7 +47,7 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-    <ion-content>
+    <ion-content class="bg-slide">
       <ion-list>
         <ion-item
           v-for="accessory in filteredAccessories"
@@ -73,28 +73,11 @@
       </ion-list>
       <ion-fab
         vertical="bottom"
-        horizontal="end"
+        horizontal="center"
       >
-        <ion-fab-button>
-          <ion-icon :icon="add" />
+        <ion-fab-button @click="presentActionSheet" color="rpg">
+          <i class="fad fa-hand-holding-usd fa-2x"/>
         </ion-fab-button>
-        <ion-fab-list side="top">
-          <ion-fab-button @click="clickAdd">
-            <ion-icon :icon="addSharp" />
-          </ion-fab-button>
-          <ion-fab-button @click="clickDiscover">
-            <ion-icon
-              :ios="searchOutline"
-              :md="searchSharp"
-            />
-          </ion-fab-button>
-          <ion-fab-button>
-            <ion-icon
-              :ios="thumbsUpOutline"
-              :md="thumbsUpSharp"
-            />
-          </ion-fab-button>
-        </ion-fab-list>
       </ion-fab>
     </ion-content>
   </ion-page>
@@ -102,7 +85,7 @@
 <script lang="ts">
   import { defineComponent, ref, computed } from 'vue'
   import ionic from '@/mixins/ionic'
-  import { loadingController } from '@ionic/vue'
+  import { loadingController, actionSheetController } from '@ionic/vue'
 
   import {
     addSharp,
@@ -112,10 +95,12 @@
     searchOutline,
     filterOutline,
     arrowUp,
-    arrowDown
+    arrowDown,
+    add,
+    createOutline,
+    cloudDownloadOutline
   } from 'ionicons/icons'
 
-  import { add } from 'ionicons/icons'
   import { useRouter } from 'vue-router'
 
   import AccessoriesDb, { Accessory, accessoriesStorage, Rarity } from '@/databases/AccessoriesDb';
@@ -134,7 +119,7 @@
           name: 'xp-settings-reward'
         })
       },
-      clickDiscover() {
+      async clickDiscover() {
         // Use the directly imported loadingController
         loadingController.create({
           message: 'Discovering accessories...',
@@ -253,7 +238,49 @@
         toggleSortDirection,
         sortIcon: filterOutline,
         arrowUp,
-        arrowDown
+        arrowDown,
+        presentActionSheet: async () => {
+          const actionSheet = await actionSheetController.create({
+            header: 'Accessory Actions',
+            cssClass: 'accessories-action-sheet',
+            mode: 'ios',
+            buttons: [
+              {
+                text: 'Create New Accessory',
+                icon: createOutline,
+                cssClass: 'action-create',
+                handler: () => {
+                  clickAdd();
+                }
+              },
+              {
+                text: 'Discover Accessories',
+                icon: searchOutline,
+                cssClass: 'action-discover',
+                handler: () => {
+                  router.push({
+                    name: 'xp-discover-accessories'
+                  });
+                }
+              },
+              {
+                text: 'Import Accessories',
+                icon: cloudDownloadOutline,
+                cssClass: 'action-import',
+                handler: () => {
+                  // Import functionality would go here
+                  // This is a placeholder for future implementation
+                }
+              },
+              {
+                text: 'Cancel',
+                role: 'cancel',
+                cssClass: 'action-cancel'
+              }
+            ],
+          });
+          await actionSheet.present();
+        }
       }
     }
   })

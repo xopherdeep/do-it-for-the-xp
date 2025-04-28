@@ -64,25 +64,6 @@
               <ion-card-content>
                 <p>{{ getTempleDescription(temple.id) }}</p>
 
-                <ion-item
-                  lines="none"
-                  class="temple-stats"
-                >
-                  <ion-badge
-                    color="danger"
-                    slot="start"
-                  >
-                    <ion-icon name="people-outline"></ion-icon>
-                    20 Members
-                  </ion-badge>
-                  <ion-badge
-                    color="warning"
-                    slot="end"
-                  >
-                    <ion-icon name="star-outline"></ion-icon>
-                    Level {{ temple.level || 1 }}
-                  </ion-badge>
-                </ion-item>
               </ion-card-content>
             </ion-card>
           </ion-col>
@@ -91,14 +72,14 @@
       <!-- Temple Creator Floating Action Button -->
       <ion-fab
         vertical="bottom"
-        horizontal="end"
+        horizontal="center"
         slot="fixed"
       >
         <ion-fab-button
-          @click="goToTempleCreator('new')"
-          color="primary"
+          @click="presentActionSheet"
+          color="rpg"
         >
-          <ion-icon name="add"></ion-icon>
+          <i class="fad fa-hand-holding-water fa-2x"/>
         </ion-fab-button>
       </ion-fab>
 
@@ -112,10 +93,11 @@
   import { useRouter } from "vue-router";
   import { TempleDb, TempleInterface, templeStorage } from "@/databases/TempleDb";
   import debug from "@/utils/debug";
+  import { actionSheetController } from "@ionic/vue";
   
   import { 
     waterOutline, musicalNotesOutline, colorPaletteOutline, 
-    peopleOutline, starOutline, add
+    peopleOutline, starOutline, add, createOutline, cloudDownloadOutline
   } from 'ionicons/icons';
 
   const requireBg = require.context("@/assets/images/backgrounds/");
@@ -341,6 +323,42 @@
         });
       };
 
+      const presentActionSheet = async () => {
+        const actionSheet = await actionSheetController.create({
+          header: 'Temple Actions',
+          cssClass: 'temple-action-sheet',
+          mode: 'ios',
+          buttons: [
+            {
+              text: 'Create New Temple',
+              icon: createOutline,
+              cssClass: 'action-create',
+              handler: () => {
+                goToTempleCreator('new');
+              }
+            },
+            {
+              text: 'Import Temple',
+              icon: cloudDownloadOutline,
+              cssClass: 'action-import',
+              handler: () => {
+                // Import temple functionality would go here
+                // This is a placeholder for future implementation
+              }
+            },
+            {
+              text: 'Cancel',
+              role: 'cancel',
+              cssClass: 'action-cancel',
+              handler: () => {
+                // Just close the action sheet
+              }
+            },
+          ],
+        });
+        await actionSheet.present();
+      };
+
       return {
         getBgUrl,
         getBgImage,
@@ -352,6 +370,7 @@
         getTempleDescription,
         temples,
         goToTempleCreator,
+        presentActionSheet,
         // Ionicons
         waterOutline,
         musicalNotesOutline,
@@ -372,6 +391,9 @@
 
 <style lang="scss" scoped>
   .xp-temples {
+
+
+
     // Global page styles
     ion-toolbar {
       --background: var(--ion-color-primary-shade);
@@ -408,11 +430,12 @@
           font-family: var(--xp-font-fantasy, 'Fantasy');
           color: white;
           font-size: 1.5rem;
+          background-color: transparent !important;
         }
       }
       
       ion-card-content {
-        background: rgba(0, 0, 0, 0.4);
+        /* background: rgba(0, 0, 0, 0.4); */
         color: white;
         position: relative;
         z-index: 2;
