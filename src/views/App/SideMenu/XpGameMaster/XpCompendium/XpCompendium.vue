@@ -4,6 +4,16 @@
       <ion-tabs class="icon-colors">
         <ion-router-outlet ref="outlet"></ion-router-outlet>
         <ion-tab-bar slot="bottom">
+          
+          <ion-tab-button
+            tab="abilities"
+            href="/game-master/compendium/abilities"
+            :selected="$route.path.includes('/game-master/compendium/abilities')"
+          >
+            <i class="fad fa-hand-holding-magic fa-2x" />
+            Abilities 
+            <!-- (AP) -->
+          </ion-tab-button>
           <ion-tab-button
             tab="bestiary"
             href="/game-master/compendium/bestiary"
@@ -23,13 +33,12 @@
             <!-- (XP) -->
           </ion-tab-button>
           <ion-tab-button
-            tab="abilities"
-            href="/game-master/compendium/abilities"
-            :selected="$route.path.includes('/game-master/compendium/abilities')"
+            tab="temples"
+            href="/game-master/compendium/temples"
+            :selected="$route.path.includes('/game-master/compendium/temples')"
           >
-            <i class="fad fa-hand-holding-magic fa-2x" />
-            Abilities 
-            <!-- (AP) -->
+            <i class="fad fa-hand-holding-water fa-2x" />
+            Temples
           </ion-tab-button>
           <ion-tab-button
             tab="accessories"
@@ -39,14 +48,6 @@
             <i class="fad fa-hand-holding-usd fa-2x" />
             Shops
              <!-- (GP) -->
-          </ion-tab-button>
-          <ion-tab-button
-            tab="temples"
-            href="/game-master/compendium/temples"
-            :selected="$route.path.includes('/game-master/compendium/temples')"
-          >
-            <i class="fad fa-hand-holding-water fa-2x" />
-            Temples
           </ion-tab-button>
         </ion-tab-bar>
       </ion-tabs>
