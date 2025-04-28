@@ -7,6 +7,13 @@
         </ion-buttons>
         <ion-title>Battleroom Dev Tools</ion-title>
         <ion-buttons slot="end">
+          <XpBackgroundSelector
+            :target-ref="bgSelectorTarget"
+            :initial-bg1="customBg1"
+            :initial-bg2="customBg2"
+            :aspect-ratio="selectedAspectRatio"
+            @background-changed="onBackgroundChanged"
+          />
           <ion-button @click="openControlsModal">
             <ion-icon :icon="settingsOutline" slot="icon-only"></ion-icon>
           </ion-button>
@@ -17,7 +24,14 @@
     <ion-content>
       <!-- Battle Room Preview -->
       <div class="battleroom-container">
-        <BattleGround ref="battleground" />
+        <BattleGround 
+          class="battleground-component"
+          ref="battlegroundRef"
+          v-bind="{ 
+            taskId: 0,
+            enemyType: selectedEnemyType 
+          }"
+        />
       </div>
     </ion-content>
     
@@ -51,7 +65,7 @@
 
           <ion-item>
             <ion-label>Task Difficulty</ion-label>
-            <ion-range min="1" max="5" step="1" v-model="taskDifficulty" @ionChange="updateTaskEnemy" snaps>
+            <ion-range :min="1" :max="5" :step="1" v-model="taskDifficultyValue" @ionChange="onDifficultyChange" snaps>
               <ion-icon slot="start" size="small" :icon="easyIcon"></ion-icon>
               <ion-icon slot="end" :icon="hardIcon"></ion-icon>
             </ion-range>
@@ -73,15 +87,6 @@
           </ion-item-divider>
 
           <!-- Existing controls -->
-          <ion-item>
-            <ion-label>Background Theme</ion-label>
-            <ion-select v-model="selectedBackground" @ionChange="changeBackground">
-              <ion-select-option v-for="(bg, index) in backgrounds" :key="index" :value="index">
-                {{ bg.name }}
-              </ion-select-option>
-            </ion-select>
-          </ion-item>
-          
           <ion-item>
             <ion-label>Enemy Type</ion-label>
             <ion-select v-model="selectedEnemyType" @ionChange="changeEnemyType">
@@ -142,6 +147,7 @@
 import { defineComponent, ref, computed, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
 import BattleGround from '@/views/Console/MyPortal/HomeTown/BattleGround/BattleGround.vue';
+import XpBackgroundSelector from '@/components/XpBackgroundSelector/XpBackgroundSelector.vue';
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, 
          IonButton, IonCard, IonCardHeader, IonCardSubtitle, IonCardContent,
          IonList, IonItem, IonLabel, IonSelect, IonSelectOption, IonToggle,
@@ -152,17 +158,20 @@ import {
   settingsOutline, closeOutline
 } from 'ionicons/icons';
 
-// Define interface for the BattleGround component
+// Define an interface for the BattleGround component
 interface BattleGroundInstance {
-  bg1: number;
-  bg2: number;
-  enterBattle: () => void;
+  initBackground?: () => void;
+  enterBattle?: () => void; // Add the enterBattle method
+  bg1?: number;             // Add bg1 property
+  bg2?: number;             // Add bg2 property
+  // Add other methods and properties as needed
 }
 
 export default defineComponent({
   name: 'BattleroomDevTools',
   components: {
     BattleGround,
+    XpBackgroundSelector,
     IonPage,
     IonHeader,
     IonToolbar,
@@ -172,7 +181,6 @@ export default defineComponent({
     IonButton,
     IonCard,
     IonCardHeader,
-    // IonCardTitle,
     IonCardSubtitle,
     IonCardContent,
     IonList,
@@ -189,29 +197,36 @@ export default defineComponent({
   },
   setup() {
     const store = useStore();
-    // Properly type the battleground ref
-    const battleground = ref<BattleGroundInstance | null>(null);
+    // Properly type the battleground ref with the BattleGroundInstance interface
+    const battlegroundRef = ref<BattleGroundInstance | null>(null);
     const controlsModal = ref(null);
     const isControlsModalOpen = ref(false);
-    const selectedBackground = ref(0);
+    const customBg1 = ref(0);
+    const customBg2 = ref(0);
+    const selectedAspectRatio = ref(48);
     const selectedEnemyType = ref('basic');
     const battleActive = ref(false);
 
+    // Create a computed property that returns an object for the background selector
+    const bgSelectorTarget = computed(() => ({
+      bg1: customBg1.value,
+      bg2: customBg2.value,
+      aspectRatio: selectedAspectRatio.value,
+      enterBattle: () => {
+        if (battlegroundRef.value && typeof battlegroundRef.value.enterBattle === 'function') {
+          battlegroundRef.value.enterBattle();
+        }
+      }
+    }));
+
     // Task-Enemy related state
     const selectedTaskType = ref('daily');
-    const taskDifficulty = ref(3);
+    const taskDifficulty = ref<number>(3);
+    // Fix the ion-range issue by using explicit number typing
+    const taskDifficultyValue = ref<number>(3);
     const taskHealth = ref(100);
     const maxTaskHealth = ref(100);
     const taskProgressStep = ref(20);
-
-    // Sample background options
-    const backgrounds = [
-      { name: 'Forest', bg1: 0, bg2: 0 },
-      { name: 'Cave', bg1: 1, bg2: 1 },
-      { name: 'Mountain', bg1: 2, bg2: 2 },
-      { name: 'Desert', bg1: 3, bg2: 0 },
-      { name: 'Castle', bg1: 4, bg2: 1 }
-    ];
 
     const battleState = computed(() => store.getters.battleState);
     const battleStateJson = computed(() => JSON.stringify(battleState.value, null, 2));
@@ -262,13 +277,30 @@ export default defineComponent({
       isControlsModalOpen.value = true;
     };
 
-    // Change background of the battleroom
-    const changeBackground = () => {
-      const bg = backgrounds[selectedBackground.value];
-      if (battleground.value) {
-        battleground.value.bg1 = bg.bg1;
-        battleground.value.bg2 = bg.bg2;
-        battleground.value.enterBattle();
+    // Handle background changes from the selector component
+    const onBackgroundChanged = (bgData: { bg1: number, bg2: number, aspectRatio?: number }) => {
+      // Update background values
+      customBg1.value = bgData.bg1;
+      customBg2.value = bgData.bg2;
+      
+      if (bgData.aspectRatio !== undefined) {
+        selectedAspectRatio.value = bgData.aspectRatio;
+      }
+      
+      // Update the bg1 and bg2 properties on the BattleGround component
+      if (battlegroundRef.value) {
+        // Update the bg1 and bg2 properties directly
+        battlegroundRef.value.bg1 = customBg1.value;
+        battlegroundRef.value.bg2 = customBg2.value;
+
+        // Then call enterBattle to refresh the background
+        setTimeout(() => {
+          if (battlegroundRef.value && typeof battlegroundRef.value.enterBattle === 'function') {
+            battlegroundRef.value.enterBattle();
+          } else {
+            console.warn('battlegroundRef or enterBattle method not available');
+          }
+        }, 100);
       }
     };
 
@@ -360,22 +392,31 @@ export default defineComponent({
     onMounted(() => {
       // Initialize battleroom with default settings
       setTimeout(() => {
-        changeBackground();
         updateTaskEnemy();
+        // Initialize the background if ref is available
+        if (battlegroundRef.value && typeof battlegroundRef.value.initBackground === 'function') {
+          battlegroundRef.value.initBackground();
+        }
       }, 500);
     });
 
+    // Handle ion-range change for task difficulty with proper typing
+    const onDifficultyChange = (event: CustomEvent) => {
+      const value = event.detail.value;
+      taskDifficultyValue.value = typeof value === 'string' ? parseInt(value, 10) : value;
+      taskDifficulty.value = taskDifficultyValue.value;
+      updateTaskEnemy();
+    };
+
     return {
-      battleground,
+      battlegroundRef,
+      bgSelectorTarget, // Use the renamed computed property
       controlsModal,
       isControlsModalOpen,
       openControlsModal,
-      selectedBackground,
       selectedEnemyType,
       battleActive,
-      backgrounds,
       battleStateJson,
-      changeBackground,
       changeEnemyType,
       toggleBattleState,
       triggerBattle,
@@ -383,6 +424,8 @@ export default defineComponent({
       // Task-Enemy related properties
       selectedTaskType,
       taskDifficulty,
+      taskDifficultyValue, // Add this to the return object
+      onDifficultyChange, // Add this to the return object
       taskHealth,
       maxTaskHealth,
       currentTaskName,
@@ -396,6 +439,12 @@ export default defineComponent({
       updateTaskEnemy,
       simulateTaskProgress,
 
+      // Background controls
+      customBg1,
+      customBg2,
+      selectedAspectRatio,
+      onBackgroundChanged,
+      
       // Icons
       settingsOutline,
       closeOutline
@@ -437,5 +486,11 @@ pre {
 
 .enemy-status p {
   margin: 5px 0;
+}
+
+/* Fix any background rendering issues */
+.battleground-component {
+  width: 100%;
+  height: 100%;
 }
 </style>
