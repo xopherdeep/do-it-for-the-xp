@@ -3,7 +3,7 @@ export const ACHIEVEMENT_TYPE_ICONS = {
   collaborate: "fa-dungeon",
   rotate: "fa-game-board",
   asNeeded: "fa-paw-claws",
-  individual: "fa-scroll"
+  individual: "fa-shield-check"
 }
 
 export default ACHIEVEMENT_TYPE_ICONS

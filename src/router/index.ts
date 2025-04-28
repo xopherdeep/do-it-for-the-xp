@@ -54,6 +54,11 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import('@/views/Dev/WeatherFXDevTools/WeatherFXDevTools.vue'),
   },
   {
+    path: '/dev/abilities', // Ability Manager development tools
+    name: 'abilities-dev',
+    component: () => import('@/views/Dev/AbilityDevTools/AbilityDevTools.vue'),
+  },
+  {
     path: '/dev/soundfx', // Sound FX development tools
     name: 'soundfx-dev',
     component: () => import('@/views/Dev/SoundFXDevTools/SoundFXDevTools.vue'),
