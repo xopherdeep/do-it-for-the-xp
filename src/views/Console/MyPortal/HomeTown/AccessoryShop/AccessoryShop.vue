@@ -15,7 +15,7 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :style="dynamicShopBackground">
+    <ion-content :style="dynamicShopBackground" >
       <xp-loading v-if="isLoading" />
       <ion-grid v-else>
         <ion-card>
