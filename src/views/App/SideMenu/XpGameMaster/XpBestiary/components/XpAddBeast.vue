@@ -4,13 +4,10 @@
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button
-            @click="dismiss"
-            defaultHref="/game-master"
-          />
+          <ion-back-button defaultHref="/game-master/compendium/bestiary"></ion-back-button>
         </ion-buttons>
 
-        <ion-title> {{ beast?.id ? 'Edit Beast' : 'Add Beast' }} </ion-title>
+        <ion-title> {{ updateBeast.id ? 'Edit Beast' : 'Add Beast' }} </ion-title>
 
         <ion-buttons slot="end">
           <ion-button @click="openDetailsModal" color="rpg">
@@ -113,6 +110,7 @@
 <script lang="ts">
 import { defineComponent, reactive, onMounted, ref } from "vue";
 import { modalController, toastController } from "@ionic/vue";
+import { useRouter, useRoute } from 'vue-router';
 import BestiaryDb, { beastStorage, Beast } from "@/lib/databases/BestiaryDb";
 import AvatarSelect from "@/components/AvatarSelect";
 import XpBackgroundSelector from "@/components/XpBackgroundSelector/XpBackgroundSelector.vue";
@@ -142,9 +140,10 @@ interface BeastPageInstance {
 
 export default defineComponent({
   props: {
-    beast: {
-      type: Object as () => Beast,
-    },
+    id: {
+      type: String,
+      default: undefined
+    }
   },
   name: "XpAddBeast",
   components: {
@@ -157,10 +156,10 @@ export default defineComponent({
       isSaving: false,
       showErrors: false,
       inputRefs: {} as Record<number, IonInputElement>,
-      // Use nullish coalescing to properly handle zero values
-      bg1: this.beast?.bg1 ?? 219, 
-      bg2: this.beast?.bg2 ?? 218,
-      aspectRatio: this.beast?.aspectRatio ?? 64,
+      // Initialize with default values
+      bg1: 219,
+      bg2: 218,
+      aspectRatio: 64,
       detailsModal: null as IonModalElement | null, // Reference to the details modal
       resizeTimeout: null as ReturnType<typeof setTimeout> | null, // For debouncing resize events
     };
@@ -208,7 +207,8 @@ export default defineComponent({
       return require(`@/assets/images/beasts/${pad}.png`);
     },
     async dismiss() {
-      await modalController.dismiss();
+      // Navigate back instead of dismissing modal
+      this.router.push('/game-master/compendium/bestiary');
     },
     clickAddItem() {
       const index = this.updateBeast.checklist.length;
@@ -259,8 +259,9 @@ export default defineComponent({
       this.isSaving = true;
       try {
         await this.bestiary.setBeast(this.updateBeast);
-        await this.dismiss();
         await this.showToast();
+        // Navigate back to bestiary after saving
+        this.router.push('/game-master/compendium/bestiary');
       } catch (error) {
         // eslint-disable-next-line no-console
         console.error('Error saving beast:', error);
@@ -278,7 +279,7 @@ export default defineComponent({
       this.updateBeast.checklist.splice(index, 1);
     },
     async showToast() {
-      await this.bestiary.showSuccessToast(`Beast ${this.beast?.id ? 'Updated' : 'Created'} Successfully`);
+      await this.bestiary.showSuccessToast(`Beast ${this.updateBeast.id ? 'Updated' : 'Created'} Successfully`);
     },
     handleReorder(event: CustomEvent) {
       // Complete the reorder and position the item at its new location
@@ -401,39 +402,51 @@ export default defineComponent({
   },
   setup(props) {
     const bestiary = new BestiaryDb(beastStorage);
+    const router = useRouter();
+    const route = useRoute();
+    const beastId = props.id || route.params.id;
     // Properly type the ref as an HTMLElement
     const beastPage = ref<HTMLElement | null>(null);
     
     // Use reactive to ensure it's deeply reactive
     const updateBeast = reactive({
-      id: props?.beast?.id || undefined,
-      name: props?.beast?.name || "",
-      checklist: props?.beast?.checklist?.length ? [...props.beast.checklist] : [],
-      avatar: props?.beast?.avatar || 0,
-      bg1: props?.beast?.bg1 ?? 219,
-      bg2: props?.beast?.bg2 ?? 218,
-      aspectRatio: props?.beast?.aspectRatio ?? 48
+      id: undefined,
+      name: "",
+      checklist: [],
+      avatar: 0,
+      bg1: 219,
+      bg2: 218,
+      aspectRatio: 48
     } as Beast & { bg1: number, bg2: number, aspectRatio: number });
 
-    onMounted(() => {
+    onMounted(async () => {
+      // Load beast data if we have an ID (edit mode)
+      if (beastId) {
+        const existingBeast = await bestiary.getBeastById(beastId as string);
+        if (existingBeast) {
+          updateBeast.id = existingBeast.id;
+          updateBeast.name = existingBeast.name || "";
+          updateBeast.checklist = existingBeast.checklist?.length ? [...existingBeast.checklist] : [];
+          updateBeast.avatar = existingBeast.avatar || 0;
+          
+          // If we're editing a beast, make sure we use its background settings
+          if (typeof existingBeast.bg1 === 'number') updateBeast.bg1 = existingBeast.bg1;
+          if (typeof existingBeast.bg2 === 'number') updateBeast.bg2 = existingBeast.bg2;
+          if (typeof existingBeast.aspectRatio === 'number') updateBeast.aspectRatio = existingBeast.aspectRatio;
+        }
+      }
+      
       // Add a default checklist item if empty
       if (updateBeast.checklist.length === 0) {
         updateBeast.checklist.push("");
-      }
-      
-      // Sync the component data bg settings with the reactive beast object
-      if (props.beast) {
-        // If we're editing a beast, make sure we use its background settings
-        if (typeof props.beast.bg1 === 'number') updateBeast.bg1 = props.beast.bg1;
-        if (typeof props.beast.bg2 === 'number') updateBeast.bg2 = props.beast.bg2;
-        if (typeof props.beast.aspectRatio === 'number') updateBeast.aspectRatio = props.beast.aspectRatio;
       }
     });
 
     return {
       bestiary,
       updateBeast,
-      beastPage
+      beastPage,
+      router
     };
   },
 });

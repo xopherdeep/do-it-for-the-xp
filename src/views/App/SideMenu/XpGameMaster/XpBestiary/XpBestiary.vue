@@ -103,11 +103,11 @@ import { defineComponent, ref } from "vue";
 import ionic from "@/mixins/ionic";
 import { actionSheetController, alertController, modalController, toastController } from "@ionic/vue";
 import { add, createOutline, saveOutline } from 'ionicons/icons';
+import { useRouter } from 'vue-router';
 import XpAttachBeast from "./components/XpAttachBeast.vue";
 import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
 import { v4 as uuidv4 } from 'uuid';
 
-import AddBeast from "./components/XpAddBeast.vue";
 import BestiaryDb, { beastStorage, Beast } from "@/lib/databases/BestiaryDb";
 
 // Define interface for background presets (must match the one in XpBackgroundSelector)
@@ -151,15 +151,11 @@ export default defineComponent({
         .then(this.bestiary.showDeleteToast);
     },
     async clickAddBeast(beast?: Beast) {
-      const modal = await modalController.create({
-        component: AddBeast,
-        cssClass: "fullscreen",
-        componentProps: {
-          beast,
-        },
-      });
-      modal.onDidDismiss().then(this.loadBeasts).then(this.animateBg);
-      modal.present();
+      if (beast) {
+        this.router.push(`/game-master/compendium/bestiary/create-update/${beast.id}`);
+      } else {
+        this.router.push('/game-master/compendium/bestiary/create-update');
+      }
     },
 
     async clickAttachBeast(beast: Beast) {
@@ -452,10 +448,12 @@ export default defineComponent({
   setup() {
     const bestiary = new BestiaryDb(beastStorage);
     const beasts = ref([] as Beast[]);
+    const router = useRouter();
 
     return {
       beasts,
       bestiary,
+      router,
       add,
     };
   },
