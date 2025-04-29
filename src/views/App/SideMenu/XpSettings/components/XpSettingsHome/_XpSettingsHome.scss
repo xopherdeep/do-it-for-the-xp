@@ -1,13 +1,55 @@
-.xp-settings-home{
-  ion-content{
+.xp-settings-home {
+  ion-content {
     --background: radial-gradient(ellipse at bottom, #1b2735 0%, #090a0f 100%);
-    ion-thumbnail{
-      max-width: 65px !important;
-      min-width: 55px !important;
-      min-height: 55px !important;
-    }
   }
-  ion-label{
-    @apply mx-4
+  
+  .settings-card {
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    cursor: pointer;
+    
+    &:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    ion-card-header {
+      padding-bottom: 1rem;
+      
+      ion-thumbnail {
+        --size: 125px;
+        max-width: var(--size) !important;
+        max-height: var(--size) !important;
+        min-height: var(--size) !important;
+        min-width: var(--size) !important;
+        margin: 0 auto 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        padding: 0.75rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      ion-card-title {
+        font-size: 1.25rem;
+        font-weight: bold;
+        margin-top: 0.5rem;
+        color: var(--ion-color-rpg);
+      }
+    }
+    
+    hr {
+      background: rgba(255, 255, 255, 0.1);
+      margin: 0;
+    }
+    
+    ion-card-content {
+      flex-grow: 1;
+      padding: 1rem;
+      font-size: 0.9rem;
+      color: var(--ion-color-medium);
+    }
   }
 }
