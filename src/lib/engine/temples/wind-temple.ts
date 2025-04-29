@@ -10,7 +10,7 @@ import {
   ____,
   SHOP,
   TELE,
-} from "@/dungeons/roomTypes";
+} from "@/lib/engine/dungeons/roomTypes";
 
 const LMAP = "LMAP";
 const LCOM = "LCOM";

@@ -1,4 +1,4 @@
-import { createRoom } from "./roomFacorty";
+import { createRoom } from "./roomFactory";
 import * as R from "./roomTypes"
 
 export const windTemple = {

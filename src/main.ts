@@ -18,7 +18,7 @@ import appConfig from "./app.config"
 
 // ROUTER & STORE
 import useRouter from './router/router';
-import store from './store';
+import store from './lib/store';
 
 // Audio Engine
 import { AudioEnginePlugin } from './lib/engine/audio/plugin';
@@ -27,7 +27,7 @@ import { AudioEnginePlugin } from './lib/engine/audio/plugin';
 import { GPSystem } from './lib/engine/core/GPSystem';
 
 // Ability System
-import { initializeAbilitySystem } from './lib/engine/core/abilities';
+import { initializeAbilitySystem } from './lib/engine/core/abilities/abilities';
 
 // Accessibility fixes
 import { fixAriaHiddenFocusIssues } from '@/lib/utils/a11yUtils';

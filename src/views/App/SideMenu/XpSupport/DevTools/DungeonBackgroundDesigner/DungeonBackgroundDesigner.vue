@@ -331,7 +331,7 @@
   } from 'ionicons/icons';
 
   // Import the temple data
-  import windTemple from '@/views/Console/MyPortal/HomeTown/TempleGrounds/temples/wind-temple';
+  import windTemple from '@/lib/engine/temples/wind-temple';
   import { mount } from '@vue/test-utils';
 
   // Define temple type interface

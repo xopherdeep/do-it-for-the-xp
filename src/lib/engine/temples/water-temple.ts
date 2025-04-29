@@ -13,7 +13,7 @@ import {
   TELE,
   _XX_,
   PUZL,
-} from "@/dungeons/roomTypes";
+} from "@/lib/engine/dungeons/roomTypes";
 
 // Custom room types for water temple
 const LMAP = "LMAP"; // Map room

@@ -3,11 +3,11 @@ import ionic from "@/mixins/ionic";
 import { alertController, toastController } from "@ionic/vue";
 import debug from "@/lib/utils/debug";
 
-import { ROOM_ICONS } from "@/dungeons/roomTypes";
+import { ROOM_ICONS } from "@/lib/engine/dungeons/roomTypes";
 import { actionSheetController } from "@ionic/vue";
 import { mapGetters } from "vuex";
 
-import temples from "./temples";
+import temples from "../../../../../lib/engine/temples";
 import { useRouter } from "vue-router";
 
 export default defineComponent({

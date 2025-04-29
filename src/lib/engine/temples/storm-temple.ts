@@ -14,7 +14,7 @@ import {
   TELE,
   _XX_,
   PUZL,
-} from "@/dungeons/roomTypes";
+} from "@/lib/engine/dungeons/roomTypes";
 
 // Reused constants for common room types
 const LMAP = "LMAP"; // Map room

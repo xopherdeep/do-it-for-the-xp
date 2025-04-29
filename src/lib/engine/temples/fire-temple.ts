@@ -15,7 +15,7 @@ import {
   _XX_,
   PUZL,
   GATE,
-} from "@/dungeons/roomTypes";
+} from "@/lib/engine/dungeons/roomTypes";
 
 const LMAP = "LMAP";
 const LCOM = "LCOM";

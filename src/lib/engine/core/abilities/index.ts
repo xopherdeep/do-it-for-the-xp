@@ -8,7 +8,7 @@
  */
 
 // Re-export everything from engine/core/abilities to maintain backward compatibility
-export * from '@/lib/engine/core/abilities';
+export * from '@/lib/engine/core/abilities/abilities';
 
 // Export UI components
 export { default as XpAbilityDetail } from '@/components/XpAbility/XpAbilityDetail.vue';
@@ -18,7 +18,7 @@ export { default as XpAbilityManager } from '@/components/XpAbility/XpAbilityMan
 export { useAbilitySystem as useAbilitiesSystem } from '@/hooks/useAbilitySystem';
 
 // Use the new initialization function from engine/core
-import { initializeAbilitySystem as initCoreAbilitySystem } from '@/lib/engine/core/abilities';
+import { initializeAbilitySystem as initCoreAbilitySystem } from '@/lib/engine/core/abilities/abilities';
 
 /**
  * Initialize the ability system

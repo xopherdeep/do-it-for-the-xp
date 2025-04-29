@@ -483,7 +483,7 @@
     REAL_LIFE_PRESETS,
     TIME_MAGE_PRESETS,
     TECH_MAGE_PRESETS
-  } from '@/lib/engine/core/AbilityPresets'
+  } from '@/lib/engine/core/abilities/AbilityPresets'
 
   export default defineComponent({
     name: 'XpAbilities',

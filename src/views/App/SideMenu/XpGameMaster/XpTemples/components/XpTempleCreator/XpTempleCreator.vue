@@ -719,7 +719,7 @@
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted } from "vue";
 import ionic from "@/mixins/ionic";
-import { ROOM_ICONS, _00_, ____, TELE, SHOP } from "@/dungeons/roomTypes";
+import { ROOM_ICONS, _00_, ____, TELE, SHOP } from "@/lib/engine/dungeons/roomTypes";
 import { TempleDb, templeStorage } from "@/lib/databases/TempleDb";
 import { toastController } from "@ionic/vue";
 import debug from "@/lib/utils/debug";

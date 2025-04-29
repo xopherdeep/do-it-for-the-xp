@@ -348,12 +348,12 @@ import { defineComponent, onMounted, computed, ref } from 'vue';
 import ionic from '@/mixins/ionic';
 import { actionSheetController, alertController } from '@ionic/vue';
 import { mapGetters } from 'vuex';
-import { ROOM_ICONS } from '@/dungeons/roomTypes';
+import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
 import { useRouter } from 'vue-router';
 import { useTemple } from '@/hooks/useTemple';
-import { registerAllTemples, registerCustomTemples } from '@/lib/engine/core/TempleAdapter';
-import { importAllTempleLayouts } from '@/lib/engine/core/importAllTemples';
-import temples from './temples';
+import { registerAllTemples, registerCustomTemples } from '@/lib/engine/core/dungeons/TempleAdapter';
+import { importAllTempleLayouts } from '@/lib/engine/core/dungeons/importAllTemples';
+import temples from '../../../../../lib/engine/temples';
 import XpFabUserHud from '../../components/XpFabUserHud.vue';
 import debug from '@/lib/utils/debug';
 

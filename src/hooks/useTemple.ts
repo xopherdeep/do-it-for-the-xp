@@ -2,11 +2,11 @@
  * Temple Hook - Provides access to the Temple System from Vue components
  */
 import { ref, computed, watch, onMounted } from 'vue';
-import { TempleSystem, MapVisibility } from '@/lib/engine/core/TempleSystem';
-import { DungeonManager } from '@/lib/engine/core/DungeonManager';
+import { TempleSystem, MapVisibility } from '@/lib/engine/core/dungeons/TempleSystem';
+import { DungeonManager } from '@/lib/engine/core/dungeons/DungeonManager';
 import { AlertInput } from '@ionic/vue';
-import { ChestSystem } from '@/lib/engine/core/ChestSystem';
-import { ROOM_ICONS } from '@/dungeons/roomTypes';
+import { ChestSystem } from '@/lib/engine/core/dungeons/ChestSystem';
+import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
 import debug from '@/lib/utils/debug';
 
 export function useTemple(templeId: string, startPosition?: [number, number]) {

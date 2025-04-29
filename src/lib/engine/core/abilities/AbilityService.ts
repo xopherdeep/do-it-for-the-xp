@@ -6,7 +6,7 @@ import {
 } from '@/types/abilities';
 import AbilitiesDb from '@/lib/databases/AbilitiesDb';
 import { v4 as uuidv4 } from 'uuid';
-import { migrateLocalStorageAbilities } from './AbilityMigration';
+import { migrateLocalStorageAbilities } from './AbilityMigration.legacy';
 
 /**
  * Service for handling abilities and their effects

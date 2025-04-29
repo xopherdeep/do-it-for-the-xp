@@ -2,7 +2,7 @@
  * Import All Temples - A utility to import all temple layouts into the TempleDb
  */
 import { TempleDb, templeStorage, TempleInterface } from '@/lib/databases/TempleDb';
-import temples from '@/views/Console/MyPortal/HomeTown/TempleGrounds/temples';
+import temples from '@/lib/engine/temples';
 import debug from '@/lib/utils/debug';
 
 /**
