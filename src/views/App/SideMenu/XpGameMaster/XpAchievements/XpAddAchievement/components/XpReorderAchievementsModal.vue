@@ -38,7 +38,7 @@
   import ionic from '@/mixins/ionic';
   import XpAchievementItem from './XpAchievementItem.vue';
   import { modalController } from '@ionic/vue';
-  import { Achievement } from '@/databases/AchievementDb';
+  import { Achievement } from '@/lib/databases/AchievementDb';
   import debug from '@/utils/debug';
 
   export default defineComponent({

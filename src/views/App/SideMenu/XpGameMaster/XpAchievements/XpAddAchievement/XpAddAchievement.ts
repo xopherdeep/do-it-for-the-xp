@@ -9,9 +9,9 @@ import AchievementDb, {
   achievementCategoryStorage,
   AchievementCategoryDb,
   AchievementCategoryInterface
-} from "@/databases/AchievementDb"
+} from "@/lib/databases/AchievementDb"
 
-import ProfileDb from '@/databases/ProfileDb';
+import ProfileDb from '@/lib/databases/ProfileDb';
 import { profileStorage } from '../../../SwitchProfile/SwitchProfile.vue';
 
 import User from '@/utils/User';
@@ -25,7 +25,7 @@ import XpAchievementItem from './components/XpAchievementItem.vue';
 import XpReorderAchievementsModal from './components/XpReorderAchievementsModal.vue';
 import { DIFFICULTY_ICONS, ACHIEVEMENT_TYPE_ICONS, BASIC_SCHEDULE_ICONS } from "@/constants"
 
-import BestiaryDb, { Beast, beastStorage } from '@/databases/BestiaryDb';
+import BestiaryDb, { Beast, beastStorage } from '@/lib/databases/BestiaryDb';
 import EFFORTS from '@/constants/EFFORTS';
 
 export const sortCategoryByName = (a, b) => {

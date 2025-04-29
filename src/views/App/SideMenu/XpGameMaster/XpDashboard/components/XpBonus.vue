@@ -297,7 +297,7 @@ import { defineComponent } from 'vue';
 import { mapGetters } from 'vuex';
 
 import ionic from '@/mixins/ionic';
-import { ProfileDb } from '@/databases';
+import { ProfileDb } from '@/lib/databases';
 import { profileStorage } from '../../../SwitchProfile/SwitchProfile.vue';
 
 export default defineComponent({

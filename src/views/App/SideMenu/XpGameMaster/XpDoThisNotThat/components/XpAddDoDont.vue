@@ -278,7 +278,7 @@
   import { modalController } from "@ionic/vue";
   import ionic from "@/mixins/ionic";
 
-  import DosDontsDb, { DosDont } from "@/databases/DosDontsDb";
+  import DosDontsDb, { DosDont } from "@/lib/databases/DosDontsDb";
   import EFFORTS from "@/constants/EFFORTS";
 
   const dosDontsDb = new DosDontsDb();

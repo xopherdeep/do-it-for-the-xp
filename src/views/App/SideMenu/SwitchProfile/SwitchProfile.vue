@@ -233,7 +233,7 @@ import {
 import User from "@/utils/User";
 import { Drivers, Storage } from "@ionic/storage";
 import { modalController } from "@ionic/vue";
-import { ProfileDb } from "@/databases";
+import { ProfileDb } from "@/lib/databases";
 import AddProfile from "./AddProfile/AddProfile.vue";
 import XpGp from "@/components/XpGp/XpGp.vue";
 import DialPad from "./DialPad.vue";

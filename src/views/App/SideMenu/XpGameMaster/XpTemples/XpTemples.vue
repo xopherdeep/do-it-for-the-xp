@@ -91,7 +91,7 @@
   import { defineComponent, ref, onMounted } from "vue";
   import Ionic from "@/mixins/ionic";
   import { useRouter } from "vue-router";
-  import { TempleDb, TempleInterface, templeStorage } from "@/databases/TempleDb";
+  import { TempleDb, TempleInterface, templeStorage } from "@/lib/databases/TempleDb";
   import debug from "@/utils/debug";
   import { actionSheetController } from "@ionic/vue";
   

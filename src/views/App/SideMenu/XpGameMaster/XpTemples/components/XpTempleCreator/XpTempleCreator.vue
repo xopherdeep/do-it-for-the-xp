@@ -720,7 +720,7 @@
 import { defineComponent, ref, computed, onMounted } from "vue";
 import ionic from "@/mixins/ionic";
 import { ROOM_ICONS, _00_, ____, TELE, SHOP } from "@/dungeons/roomTypes";
-import { TempleDb, templeStorage } from "@/databases/TempleDb";
+import { TempleDb, templeStorage } from "@/lib/databases/TempleDb";
 import { toastController } from "@ionic/vue";
 import debug from "@/utils/debug";
 

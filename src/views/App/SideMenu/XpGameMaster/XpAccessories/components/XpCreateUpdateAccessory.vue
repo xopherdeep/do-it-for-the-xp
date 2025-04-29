@@ -165,7 +165,7 @@
   import { mapGetters } from "vuex";
   import debug from '@/utils/debug';
 
-  import AccessoriesDb, {  accessoriesStorage, Rarity, AccessoryType } from '@/databases/AccessoriesDb';
+  import AccessoriesDb, {  accessoriesStorage, Rarity, AccessoryType } from '@/lib/databases/AccessoriesDb';
 
   export default defineComponent({
     props: ["id"],

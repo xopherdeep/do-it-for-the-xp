@@ -3,7 +3,7 @@ import { modalController } from "@ionic/vue";
 import { arrowBack, arrowForward, closeOutline } from "ionicons/icons";
 import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
 
-import { ProfileDb } from "@/databases";
+import { ProfileDb } from "@/lib/databases";
 import { profileStorage } from "../SwitchProfile.vue";
 import InputSettings from "../../XpSettings/components/InputSettings.vue";
 import AvatarSelector from "./components/AvatarSelector.vue";

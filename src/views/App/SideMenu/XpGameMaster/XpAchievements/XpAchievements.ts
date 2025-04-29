@@ -21,7 +21,7 @@ import AchievementDb, {
   Achievement,
   AchievementCategoryDb,
   AchievementCategoryInterface,
-} from "@/databases/AchievementDb";
+} from "@/lib/databases/AchievementDb";
 
 import XpAchievementItem from "./XpAddAchievement/components/XpAchievementItem.vue";
 

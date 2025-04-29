@@ -109,7 +109,7 @@
   import { add } from "ionicons/icons";
   import XpAddDoDont from "./components/XpAddDoDont.vue";
   import { useRoute } from "vue-router";
-  import DosDontsDb, { DosDont } from "@/databases/DosDontsDb";
+  import DosDontsDb, { DosDont } from "@/lib/databases/DosDontsDb";
 
   import ionic from "@/mixins/ionic";
   export default defineComponent({

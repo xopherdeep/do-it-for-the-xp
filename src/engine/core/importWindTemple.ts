@@ -1,7 +1,7 @@
 /**
  * Import Wind Temple - A utility to import the wind-temple layout into the TempleDb
  */
-import { TempleDb, templeStorage, TempleInterface } from '@/databases/TempleDb';
+import { TempleDb, templeStorage, TempleInterface } from '@/lib/databases/TempleDb';
 import windTemple from '@/views/Console/MyPortal/HomeTown/TempleGrounds/temples/wind-temple';
 import debug from '@/utils/debug';
 

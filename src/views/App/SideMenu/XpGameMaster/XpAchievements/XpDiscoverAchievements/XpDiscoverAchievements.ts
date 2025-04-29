@@ -41,7 +41,7 @@ import Swiper, { Controller, Navigation } from "swiper";
 import { useQuery } from "vue-query";
 
 import XpAchievementDetails from "./XpAchievementDetails.vue"
-import { AchievementDb } from "@/databases";
+import { AchievementDb } from "@/lib/databases";
 import { Storage, Drivers } from "@ionic/storage";
 
 // Define interfaces for sound effects system

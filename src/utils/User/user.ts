@@ -1,4 +1,4 @@
-import { NewProfileForm } from "@/databases/ProfileDb"
+import { NewProfileForm } from "@/lib/databases/ProfileDb"
 import Stats from "./stats"
 import { v4 as uuidv4 } from 'uuid'
 

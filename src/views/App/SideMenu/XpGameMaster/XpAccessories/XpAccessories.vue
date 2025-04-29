@@ -103,7 +103,7 @@
 
   import { useRouter } from 'vue-router'
 
-  import AccessoriesDb, { Accessory, accessoriesStorage, Rarity } from '@/databases/AccessoriesDb';
+  import AccessoriesDb, { Accessory, accessoriesStorage, Rarity } from '@/lib/databases/AccessoriesDb';
 
   export default defineComponent({
     name: 'xp-accessories',

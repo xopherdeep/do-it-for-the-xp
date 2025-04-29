@@ -172,7 +172,7 @@
 import { defineComponent, PropType, ref, reactive, computed } from 'vue';
 import { modalController } from '@ionic/vue';
 import { close } from 'ionicons/icons';
-import { Beast } from '@/databases/BestiaryDb';
+import { Beast } from '@/lib/databases/BestiaryDb';
 import Ionic from '@/mixins/ionic';
 
 // Type for ion input refs

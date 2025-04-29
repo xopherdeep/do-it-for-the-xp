@@ -64,7 +64,7 @@
   import ionic from "@/mixins/ionic";
   import { modalController } from "@ionic/vue";
   import XpBonus from "./XpBonus.vue";
-  import DosDontsDb, { DosDont } from "@/databases/DosDontsDb";
+  import DosDontsDb, { DosDont } from "@/lib/databases/DosDontsDb";
   export default defineComponent({
     name: "XpDoThisNotThatItem",
     mixins: [ionic],

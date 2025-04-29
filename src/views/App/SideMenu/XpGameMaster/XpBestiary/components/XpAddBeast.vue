@@ -113,7 +113,7 @@
 <script lang="ts">
 import { defineComponent, reactive, onMounted, ref } from "vue";
 import { modalController, toastController } from "@ionic/vue";
-import BestiaryDb, { beastStorage, Beast } from "@/databases/BestiaryDb";
+import BestiaryDb, { beastStorage, Beast } from "@/lib/databases/BestiaryDb";
 import AvatarSelect from "@/components/AvatarSelect";
 import XpBackgroundSelector from "@/components/XpBackgroundSelector/XpBackgroundSelector.vue";
 import BeastDetailsModal from "./BeastDetailsModal.vue";

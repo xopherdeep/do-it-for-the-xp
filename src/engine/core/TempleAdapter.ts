@@ -4,7 +4,7 @@
 
 import { Dungeon } from './DungeonManager';
 import { DungeonManager } from './DungeonManager';
-import { TempleDb, templeStorage } from '@/databases/TempleDb';
+import { TempleDb, templeStorage } from '@/lib/databases/TempleDb';
 import debug from '@/utils/debug';
 
 /**

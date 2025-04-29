@@ -13,7 +13,7 @@ import {
 import fetchItems from "@/mixins/fetchItems"
 import { actionSheetController, alertController, toastController } from "@ionic/vue";
 import Stats from "@/utils/User/stats";
-import { ProfileDb } from "@/databases";
+import { ProfileDb } from "@/lib/databases";
 import { profileStorage } from "@/views/App/SideMenu/SwitchProfile/SwitchProfile.vue";
 import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
 import ATMModal from "./components/ATMModal.vue";

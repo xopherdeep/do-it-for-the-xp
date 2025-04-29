@@ -55,8 +55,8 @@
   </ion-footer>
 </template>
 <script lang="ts">
-  import { AchievementDb } from '@/databases';
-  import { Achievement, achievementStorage } from '@/databases/AchievementDb';
+  import { AchievementDb } from '@/lib/databases';
+  import { Achievement, achievementStorage } from '@/lib/databases/AchievementDb';
   import { modalController } from '@ionic/vue';
   import { defineComponent, ref } from 'vue';
   import ionic from '@/mixins/ionic';

@@ -469,7 +469,7 @@
   } from 'ionicons/icons'
   import { v4 as uuidv4 } from 'uuid'
   import { alertController, actionSheetController } from '@ionic/vue'
-  import AbilitiesDb, { abilitiesStorage } from '@/databases/AbilitiesDb'
+  import AbilitiesDb, { abilitiesStorage } from '@/lib/databases/AbilitiesDb'
   import XpAbilityManager from '@/components/XpAbility/XpAbilityManager.vue'
   import XpIconPicker from '@/components/XpIcon/XpIconPicker.vue'
   import {

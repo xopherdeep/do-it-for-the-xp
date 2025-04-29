@@ -108,7 +108,7 @@ import { backgroundManager } from "@/engine/core/BackgroundManager";
 import { v4 as uuidv4 } from 'uuid';
 
 import AddBeast from "./components/XpAddBeast.vue";
-import BestiaryDb, { beastStorage, Beast } from "@/databases/BestiaryDb";
+import BestiaryDb, { beastStorage, Beast } from "@/lib/databases/BestiaryDb";
 
 // Define interface for background presets (must match the one in XpBackgroundSelector)
 interface BackgroundPreset {

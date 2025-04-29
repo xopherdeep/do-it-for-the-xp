@@ -28,7 +28,7 @@ import ionic from "@/mixins/ionic"
 import XpGp from "@/components/XpGp/XpGp.vue";
 import { alertController, modalController } from "@ionic/vue";
 import XpSendRequest from "./SendRequest.vue"
-import { ProfileDb } from "@/databases";
+import { ProfileDb } from "@/lib/databases";
 
 import { profileStorage } from "@/views/App/SideMenu/SwitchProfile/SwitchProfile.vue"
 import Stats from "@/utils/User/stats";
