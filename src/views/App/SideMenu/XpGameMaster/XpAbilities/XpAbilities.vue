@@ -63,232 +63,9 @@
         :view-mode="viewMode"
         :ability-statuses="abilityStatuses"
         :unlock-statuses="unlockStatuses"
-        @edit-ability="editAbility"
+        @edit-ability="navigateToEditAbility"
         @view-mode-change="viewMode = $event"
       />
-
-      <!-- Add/Edit Ability Modal -->
-      <ion-modal
-        :is-open="showAbilityModal"
-        @didDismiss="closeAbilityModal"
-      >
-        <ion-header>
-          <ion-toolbar>
-            <ion-title>{{ editingAbility.id ? 'Edit Ability' : 'Create New Ability' }}</ion-title>
-            <ion-buttons slot="end">
-              <ion-button @click="closeAbilityModal">
-                <ion-icon :icon="closeOutline" />
-              </ion-button>
-            </ion-buttons>
-          </ion-toolbar>
-        </ion-header>
-        <ion-content>
-          <form @submit.prevent="saveAbility">
-            <ion-list>
-              <ion-item>
-                <ion-label position="stacked">Name</ion-label>
-                <ion-input
-                  v-model="editingAbility.name"
-                  required
-                ></ion-input>
-              </ion-item>
-
-              <ion-item>
-                <ion-label position="stacked">Description</ion-label>
-                <ion-textarea
-                  v-model="editingAbility.description"
-                  rows="3"
-                ></ion-textarea>
-              </ion-item>
-
-              <ion-item>
-                <ion-label>Type</ion-label>
-                <ion-select v-model="editingAbility.type">
-                  <ion-select-option :value="AbilityType.RealLife">Real Life Reward</ion-select-option>
-                  <ion-select-option :value="AbilityType.InGame">In-Game Ability</ion-select-option>
-                </ion-select>
-              </ion-item>
-
-              <ion-item v-if="editingAbility.type === AbilityType.InGame">
-                <ion-label>Class</ion-label>
-                <ion-select
-                  v-model="selectedClass"
-                  @ionChange="updateClassRequirement"
-                >
-                  <ion-select-option value="none">None</ion-select-option>
-                  <ion-select-option
-                    v-for="(className, key) in ABILITY_CLASSES"
-                    :key="key"
-                    :value="className"
-                  >
-                    {{ formatClassName(className) }}
-                  </ion-select-option>
-                </ion-select>
-              </ion-item>
-
-              <ion-item v-if="selectedClass !== 'none' && editingAbility.type === AbilityType.InGame">
-                <ion-label>Required Class Level</ion-label>
-                <ion-select
-                  v-model="selectedClassLevel"
-                  @ionChange="updateClassRequirement"
-                >
-                  <ion-select-option
-                    v-for="level in 10"
-                    :key="level"
-                    :value="level"
-                  >
-                    Level {{ level }}
-                  </ion-select-option>
-                </ion-select>
-              </ion-item>
-
-              <ion-item v-if="editingAbility.type === AbilityType.InGame">
-                <ion-label>Character Level Required</ion-label>
-                <ion-select
-                  v-model="characterLevelRequired"
-                  @ionChange="updateCharacterLevelRequirement"
-                >
-                  <ion-select-option value="none">None</ion-select-option>
-                  <ion-select-option
-                    v-for="level in 20"
-                    :key="level"
-                    :value="level"
-                  >
-                    Level {{ level }}
-                  </ion-select-option>
-                </ion-select>
-              </ion-item>
-
-              <ion-item>
-                <ion-label>Frequency</ion-label>
-                <ion-select v-model="editingAbility.frequency">
-                  <ion-select-option
-                    v-for="(value, key) in TimePeriod"
-                    :key="key"
-                    :value="value"
-                  >
-                    {{ formatFrequency(value) }}
-                  </ion-select-option>
-                </ion-select>
-              </ion-item>
-
-              <ion-item>
-                <ion-label position="stacked">AP Cost</ion-label>
-                <ion-input
-                  type="number"
-                  v-model="apCost"
-                  min="0"
-                  required
-                ></ion-input>
-              </ion-item>
-
-              <ion-item>
-                <ion-label>AP Period</ion-label>
-                <ion-select v-model="editingAbility.apRequirement.period">
-                  <ion-select-option
-                    v-for="(value, key) in TimePeriod"
-                    :key="key"
-                    :value="value"
-                  >
-                    {{ formatPeriod(value) }}
-                  </ion-select-option>
-                </ion-select>
-              </ion-item>
-
-              <ion-item>
-                <ion-label position="stacked">MP Cost (to cast/use)</ion-label>
-                <ion-input
-                  type="number"
-                  v-model="editingAbility.mpCost"
-                  min="0"
-                ></ion-input>
-              </ion-item>
-
-              <ion-item>
-                <ion-label>Prerequisites</ion-label>
-                <ion-select
-                  v-model="editingAbility.prerequisites"
-                  multiple="true"
-                >
-                  <ion-select-option
-                    v-for="ability in prerequisites"
-                    :key="ability.id"
-                    :value="ability.id"
-                  >
-                    {{ ability.name }}
-                  </ion-select-option>
-                </ion-select>
-              </ion-item>
-
-              <ion-item v-if="editingAbility.type === AbilityType.InGame">
-                <ion-label position="stacked">Effect</ion-label>
-                <ion-textarea
-                  v-model="editingAbility.effect"
-                  rows="2"
-                ></ion-textarea>
-              </ion-item>
-
-              <ion-item v-if="editingAbility.type === AbilityType.InGame">
-                <ion-label>Scaling Attribute</ion-label>
-                <ion-select
-                  v-model="scalingAttribute"
-                  @ionChange="updateScalingAttribute"
-                >
-                  <ion-select-option value="none">None</ion-select-option>
-                  <ion-select-option value="strength">Strength</ion-select-option>
-                  <ion-select-option value="dexterity">Dexterity</ion-select-option>
-                  <ion-select-option value="constitution">Constitution</ion-select-option>
-                  <ion-select-option value="intelligence">Intelligence</ion-select-option>
-                  <ion-select-option value="wisdom">Wisdom</ion-select-option>
-                  <ion-select-option value="charisma">Charisma</ion-select-option>
-                </ion-select>
-              </ion-item>
-
-              <ion-item v-if="scalingAttribute !== 'none' && editingAbility.type === AbilityType.InGame">
-                <ion-label position="stacked">Scaling Rate (% per point)</ion-label>
-                <ion-range
-                  min="5"
-                  max="100"
-                  step="5"
-                  :value="scalingRate * 100"
-                  @ionChange="updateScalingRate($event)"
-                  aria-label="Scaling Rate"
-                >
-                  <ion-label slot="start">5%</ion-label>
-                  <ion-label slot="end">100%</ion-label>
-                </ion-range>
-              </ion-item>
-
-              <ion-item>
-                <ion-label>Icon</ion-label>
-                <ion-button
-                  slot="end"
-                  fill="clear"
-                  @click="openIconPicker"
-                >
-                  <i :class="getIconClass(editingAbility.icon)"></i>
-                  <span class="ion-padding-start">{{ editingAbility.icon }}</span>
-                </ion-button>
-              </ion-item>
-            </ion-list>
-
-            <div class="ion-padding">
-              <ion-button
-                expand="block"
-                type="submit"
-              >Save Ability</ion-button>
-              <ion-button
-                v-if="editingAbility.id"
-                expand="block"
-                color="danger"
-                @click="confirmDeleteAbility"
-              >
-                Delete Ability
-              </ion-button>
-            </div>
-          </form>
-        </ion-content>
-      </ion-modal>
 
       <!-- Icon Picker Modal -->
       <ion-modal
@@ -306,7 +83,7 @@
           </ion-toolbar>
         </ion-header>
         <XpIconPicker
-          :initial-icon="editingAbility.icon"
+          :initial-icon="selectedIconName"
           @select="selectIcon"
         />
       </ion-modal>
@@ -484,6 +261,7 @@
     TIME_MAGE_PRESETS,
     TECH_MAGE_PRESETS
   } from '@/lib/engine/core/abilities/AbilityPresets'
+  import { useRouter } from 'vue-router'
 
   export default defineComponent({
     name: 'XpAbilities',
@@ -507,6 +285,8 @@
       const classFilter = ref('all')
       const abilityStatuses = ref<{ [abilityId: string]: AbilityStatus }>({})
       const unlockStatuses = ref<{ [abilityId: string]: boolean }>({})
+      const router = useRouter();
+      const selectedIconName = ref('');
 
       // Form field refs
       const apCost = ref(0)
@@ -571,6 +351,14 @@
       const filterByClass = () => {
         // This function is triggered when the class filter changes
         // The actual filtering is handled by the computed properties
+      };
+
+      const navigateToEditAbility = (ability: Ability) => {
+        router.push(`/game-master/compendium/abilities/create-update/${ability.id}`);
+      };
+
+      const navigateToCreateAbility = () => {
+        router.push('/game-master/compendium/abilities/create-update');
       };
 
       const openAbilityModal = (ability: Ability | null = null) => {
@@ -1035,7 +823,7 @@
               text: 'Create New Ability',
               cssClass: 'action-create',
               handler: () => {
-                openAbilityModal();
+                navigateToCreateAbility();
               }
             },
             {
@@ -1126,10 +914,14 @@
         gameControllerOutline,
         starOutline,
         closeOutline,
-        colorWandOutline
+        colorWandOutline,
+
+        selectedIconName,
+        navigateToEditAbility,
+        navigateToCreateAbility,
       };
     }
-  })
+  });
 </script>
 
 <style lang="scss" scoped>
