@@ -10,20 +10,6 @@ export const SideMenuRoutes: Array<RouteRecordRaw> = [
     },
   },
 
-  // XP Intro Page
-  {
-    path: "/xp-intro",
-    name: "xp-intro",
-    component: () => import("@/views/App/SideMenu/XpIntro/XpIntro.vue"),
-  },
-
-  // XP Demo Page - World Showcase
-  {
-    path: "/xp-demo",
-    name: "xp-demo",
-    component: () => import("@/views/App/SideMenu/XpDemo/XpDemo.vue"),
-  },
-
   // Switch Profile
   {
     path: "/xp-profile", // Changed path
@@ -305,16 +291,7 @@ export const SideMenuRoutes: Array<RouteRecordRaw> = [
   {
     path: "/log-out",
     name: "log-out",
-    component: () => import("@/views/App/SideMenu/LogOut/LogOut.vue"),
-  },
-  {
-    name: "log-in",
-    path: "/log-in",
-    component: () => import("@/views/App/SideMenu/LogIn/LogIn.vue"),
-    meta: {
-      requiresAuth: false,
-      title: "Do it for the XP",
-    },
+    component: () => null // Caught by router guard
   },
 ];
 

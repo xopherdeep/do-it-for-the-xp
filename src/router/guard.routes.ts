@@ -38,12 +38,13 @@ async function logoutAlert(onConfirm: () => void, onCancel?: (() => void) | unde
 export function useRouterGuards(router: Router, store: Store<RootState>) {
   // Type the navigation guard parameters
   router.beforeEach((to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+    
     // log-out safe guard
     if (to.name === 'log-out' && !to.params.confirm) {
       const onConfirm = () => {
-        store.dispatch('logOutUser'); // Consider adding type safety for action names later
+        // store.dispatch('logOutUser'); // Consider adding type safety for action names later
         // Ensure 'confirm' param is expected as number or string based on usage
-        router.push({ name: 'log-out', params: { confirm: '1' } }); // Use string '1' for consistency if param is string
+        router.push({ name: 'log-in', params: { confirm: '1' } }); // Use string '1' for consistency if param is string
       };
       logoutAlert(onConfirm, undefined); // Changed from null to undefined
       return next(false); // Explicitly return false

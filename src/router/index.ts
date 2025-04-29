@@ -21,13 +21,40 @@ const routes: Array<RouteRecordRaw> = [
   ...SupportRoutes,
   ...MyPortalRoutes,
   ...DevRoutes,
+
+  // XP Intro Page
   {
-    path: '/battle-ground/:userId?',
-    name: 'battle-ground',
+    path: "/xp-intro",
+    name: "xp-intro",
+    component: () => import("@/views/App/XpIntro/XpIntro.vue"),
+  },
+
+  // Start Screen / Login
+  {
+    name: "log-in",
+    path: "/log-in",
+    component: () => import("@/views/App/LogIn/LogIn.vue"),
     meta: {
-      faIcon: 'dungeon'
+      requiresAuth: false,
+      title: "Do it for the XP",
     },
-    component: () => import('@/views/Console/MyPortal/HomeTown/BattleGround/BattleGround'),
+  },
+
+  // XP Demo Page - World Showcase
+  {
+    path: "/xp-demo",
+    name: "xp-demo",
+    component: () => import("@/views/App/XpDemo/XpDemo.vue"),
+  },
+
+  {
+    path: "/battle-ground/:userId?",
+    name: "battle-ground",
+    meta: {
+      faIcon: "dungeon",
+    },
+    component: () =>
+      import("@/views/Console/MyPortal/HomeTown/BattleGround/BattleGround"),
     props: true,
   },
 ];
