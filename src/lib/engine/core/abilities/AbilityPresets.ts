@@ -4,7 +4,7 @@
  * This file contains predefined ability presets that users can add to their game.
  */
 
-import { Ability, AbilityType, TimePeriod, ABILITY_CLASSES } from '@/types/abilities';
+import { Ability, AbilityType, TimePeriod, ABILITY_CLASSES } from '@/lib/types/abilities';
 import { v4 as uuidv4 } from 'uuid';
 
 /**

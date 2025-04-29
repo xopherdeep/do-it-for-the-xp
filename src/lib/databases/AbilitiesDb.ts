@@ -1,7 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import DbStorageApi from './DbStorageApi';
 import { Drivers, Storage } from "@ionic/storage";
-import { Ability, TimePeriod, AbilityType } from '@/types/abilities';
+import { Ability, TimePeriod, AbilityType } from '@/lib/types/abilities';
 
 export const abilitiesStorage = new Storage({
   name: "__abilities",

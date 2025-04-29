@@ -13,7 +13,7 @@ import { modalController } from "@ionic/vue";
 import { mapActions, useStore } from "vuex";
 import { useRouter, useRoute } from "vue-router";
 import ionic from "@/mixins/ionic";
-import { RootState } from "@/types/store";
+import { RootState } from "@/lib/types/store";
 import debug from "@/lib/utils/debug";
 
 interface BackgroundPair {

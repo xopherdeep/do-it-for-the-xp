@@ -3,7 +3,7 @@ import {
   AbilityStatus,
   AbilityType,
   TimePeriod
-} from '@/types/abilities';
+} from '@/lib/types/abilities';
 import AbilitiesDb from '@/lib/databases/AbilitiesDb';
 import { v4 as uuidv4 } from 'uuid';
 import { migrateLocalStorageAbilities } from './AbilityMigration.legacy';

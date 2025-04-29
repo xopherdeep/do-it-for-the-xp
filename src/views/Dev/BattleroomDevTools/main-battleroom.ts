@@ -9,7 +9,7 @@ import { createApp } from 'vue';
 import { IonicVue } from '@ionic/vue';
 import { createStore } from 'vuex';
 import BattleroomDevTools from './BattleroomDevTools.vue';
-import { FXSystem } from '@/types/fx';
+import { FXSystem } from '@/lib/types/fx';
 
 // Import global styles
 import '@ionic/vue/css/core.css';

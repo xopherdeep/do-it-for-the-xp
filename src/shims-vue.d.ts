@@ -1,6 +1,6 @@
 /* eslint-disable */
 import User from '@/lib/utils/User/user'; // Import the User type
-import { FXSystem } from '@/types/fx'; // Import our FXSystem interface
+import { FXSystem } from '@/lib/types/fx'; // Import our FXSystem interface
 
 declare module '*.vue' {
   import type { DefineComponent } from 'vue'

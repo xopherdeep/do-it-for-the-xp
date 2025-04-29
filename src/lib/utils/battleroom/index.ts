@@ -6,7 +6,7 @@ export * from './BattleroomTestUtils';
 // Helper function to create and return a new instance of BattleroomTestUtils
 import { BattleroomTestUtils } from './BattleroomTestUtils';
 import { Store } from 'vuex';
-import { RootState } from '@/types/store';
+import { RootState } from '@/lib/types/store';
 
 /**
  * Creates a new battleroom test utilities instance

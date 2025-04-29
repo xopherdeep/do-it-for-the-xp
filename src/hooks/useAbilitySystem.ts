@@ -1,6 +1,6 @@
 import { ref, computed, onMounted, watch } from 'vue';
 import { abilitySystem } from '@/lib/engine/core/abilities/abilities';
-import type { Ability, AbilityType } from '@/types/abilities';
+import type { Ability, AbilityType } from '@/lib/types/abilities';
 
 /**
  * Hook that provides access to the AbilitySystem

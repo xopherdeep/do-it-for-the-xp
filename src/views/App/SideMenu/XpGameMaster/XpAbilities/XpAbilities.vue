@@ -478,7 +478,7 @@
     AbilityStatus,
     TimePeriod,
     ABILITY_CLASSES
-  } from '@/types/abilities'
+  } from '@/lib/types/abilities'
   import {
     REAL_LIFE_PRESETS,
     TIME_MAGE_PRESETS,

@@ -3,7 +3,7 @@
  * the battleroom component in development environments.
  */
 import { Store } from 'vuex';
-import { RootState } from '@/types/store';
+import { RootState } from '@/lib/types/store';
 import debug from '@/lib/utils/debug';
 
 export class BattleroomTestUtils {

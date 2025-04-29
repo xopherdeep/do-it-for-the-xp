@@ -1,7 +1,7 @@
 import { Router, NavigationGuardNext, RouteLocationNormalized } from 'vue-router';
 import { Store } from 'vuex';
 import { alertController } from '@ionic/vue';
-import { RootState } from '@/types/store.types';
+import { RootState } from '@/lib/types/store.types';
 import { changeBGM } from '@/lib/engine/audio/routeMusic'; // Import our updated adapter
 
 

@@ -148,7 +148,7 @@ import {
   Ability, 
   AbilityStatus, 
   TimePeriod
-} from '@/types/abilities';
+} from '@/lib/types/abilities';
 import { 
   addCircleOutline,
   removeCircleOutline,

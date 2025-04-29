@@ -108,7 +108,7 @@ import {
   AbilityType, 
   AbilityStatus, 
   TimePeriod 
-} from '@/types/abilities';
+} from '@/lib/types/abilities';
 import {
   starOutline,
   flameOutline,

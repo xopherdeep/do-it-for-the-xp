@@ -9,7 +9,7 @@ import {
   AbilityType, 
   TimePeriod,
   isAbility
-} from '@/types/abilities';
+} from '@/lib/types/abilities';
 import { v4 as uuidv4 } from 'uuid';
 
 // Legacy ability format (based on inference from existing code)

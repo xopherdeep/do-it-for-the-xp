@@ -10,7 +10,7 @@ export * from './AbilitySystem';
 export * from './AbilityMigration';
 
 // Import types from the original location (we'll keep these in types/ folder)
-export * from '@/types/abilities';
+export * from '@/lib/types/abilities';
 
 // Convenience method to get the singleton instance
 import AbilitySystem, { abilitySystem } from './AbilitySystem';

@@ -7,7 +7,7 @@
 
 import debug from '@/lib/utils/debug';
 import { reactive } from 'vue';
-import type { Ability, AbilityType, AbilityPreset } from '@/types/abilities';
+import type { Ability, AbilityType, AbilityPreset } from '@/lib/types/abilities';
 
 // Import presets from the new location
 import { 
