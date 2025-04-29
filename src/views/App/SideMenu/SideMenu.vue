@@ -73,12 +73,13 @@
         <ion-item
           @click="
             setMenuItem(-1);
-          $fx.ui[$fx.theme.ui].select.play();
+            $fx.ui[$fx.theme.ui].select.play();
           "
           router-direction="root"
           router-link="/log-out"
           lines="none"
           detail="false"
+          button
         >
           <ion-icon
             slot="start"
@@ -86,7 +87,7 @@
             :md="icons.lockClosedSharp"
             class="ml-2"
           />
-          <ion-label>Log Out</ion-label>
+          <ion-label>Log Outs</ion-label>
         </ion-item>
       </ion-menu-toggle>
       <!-- copyright -->

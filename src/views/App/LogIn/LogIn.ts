@@ -5,7 +5,7 @@ import backgrounds from "@/assets/images/backgrounds/parallax/index.js";
 // Import package.json for version information
 import packageInfo from '@/../package.json';
 
-import InputSettings from "../XpSettings/components/InputSettings.vue";
+import InputSettings from "../SideMenu/XpSettings/components/InputSettings.vue";
 import SuccessfulLoginModal from "./SuccessfulLoginModal.vue";
 
 import { modalController } from "@ionic/vue";
