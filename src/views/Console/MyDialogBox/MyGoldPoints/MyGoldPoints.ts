@@ -31,7 +31,7 @@ import XpSendRequest from "./SendRequest.vue"
 import { ProfileDb } from "@/lib/databases";
 
 import { profileStorage } from "@/views/App/SideMenu/SwitchProfile/SwitchProfile.vue"
-import Stats from "@/utils/User/stats";
+import Stats from "@/lib/utils/User/stats";
 
 export default defineComponent({
   mixins: [ionic],

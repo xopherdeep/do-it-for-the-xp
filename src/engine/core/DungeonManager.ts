@@ -7,7 +7,7 @@
 
 import { ChestSystem, ChestContent } from './ChestSystem';
 import { reactive } from 'vue';
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 // Type definitions
 export interface Room {

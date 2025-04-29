@@ -4,7 +4,7 @@
  * @version 0.0.1
  * @since 1.0.0
  */
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 export interface ApiType {
   url: string;

@@ -355,7 +355,7 @@ import { registerAllTemples, registerCustomTemples } from '@/engine/core/TempleA
 import { importAllTempleLayouts } from '@/engine/core/importAllTemples';
 import temples from './temples';
 import XpFabUserHud from '../../components/XpFabUserHud.vue';
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 export default defineComponent({
   props: ['userId', 'temple', 'x', 'y'],

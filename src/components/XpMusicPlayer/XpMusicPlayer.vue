@@ -40,7 +40,7 @@
 import { defineComponent } from 'vue';
 import { mapState } from 'vuex';
 import ionic from '@/mixins/ionic';
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 import { 
   playSkipBackSharp, 
   playBackSharp,

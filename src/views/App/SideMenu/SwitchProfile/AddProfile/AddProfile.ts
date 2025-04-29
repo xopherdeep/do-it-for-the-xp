@@ -12,7 +12,7 @@ import ionic from "@/mixins/ionic";
 
 import XpGp from "@/components/XpGp/XpGp.vue";
 import GamerCard from "./GamerCard.vue"
-import Stats from "@/utils/User/stats";
+import Stats from "@/lib/utils/User/stats";
 
 export const AddProfile = defineComponent({
   props: ["id", "profile", "showIsAdult"],

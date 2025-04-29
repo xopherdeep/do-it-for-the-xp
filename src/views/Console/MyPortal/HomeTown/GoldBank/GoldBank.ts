@@ -12,12 +12,12 @@ import {
 } from "ionicons/icons";
 import fetchItems from "@/mixins/fetchItems"
 import { actionSheetController, alertController, toastController } from "@ionic/vue";
-import Stats from "@/utils/User/stats";
+import Stats from "@/lib/utils/User/stats";
 import { ProfileDb } from "@/lib/databases";
 import { profileStorage } from "@/views/App/SideMenu/SwitchProfile/SwitchProfile.vue";
 import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
 import ATMModal from "./components/ATMModal.vue";
-import debug from "@/utils/debug";
+import debug from "@/lib/utils/debug";
 
 // Define the interface for XpTypingText instance methods
 interface XpTypingTextInstance {

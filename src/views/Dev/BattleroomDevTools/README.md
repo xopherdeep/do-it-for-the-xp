@@ -67,7 +67,7 @@ A utility class with methods for testing and debugging battleroom functionality 
 
 ```typescript
 // Import the utility
-import { createBattleroomTestUtils } from '@/utils/battleroom';
+import { createBattleroomTestUtils } from '@/lib/utils/battleroom';
 import { useStore } from 'vuex';
 
 // In your component or test file

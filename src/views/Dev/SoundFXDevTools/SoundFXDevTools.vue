@@ -147,7 +147,7 @@ import {
   musicalNoteOutline, playCircleOutline, stopCircleOutline 
 } from 'ionicons/icons';
 import { SoundEffect } from '@/types/fx';
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 // Define types for our component's internal use without modifying global declarations
 interface RPGSounds {

@@ -120,7 +120,7 @@ import {
   infiniteSharp       // Added for title
 } from "ionicons/icons";
 import Ionic from "@/mixins/ionic";
-import debug from "@/utils/debug";
+import debug from "@/lib/utils/debug";
 
 export default defineComponent({
   name: "XpShareApp",

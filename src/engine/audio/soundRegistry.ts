@@ -1,5 +1,5 @@
 import { SoundEffect, MusicTrack } from './AudioEngine';
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 // Import actual audio files instead of using placeholders
 // Nintendo UI sounds

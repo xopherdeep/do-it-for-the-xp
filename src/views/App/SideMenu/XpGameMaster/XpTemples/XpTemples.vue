@@ -92,7 +92,7 @@
   import Ionic from "@/mixins/ionic";
   import { useRouter } from "vue-router";
   import { TempleDb, TempleInterface, templeStorage } from "@/lib/databases/TempleDb";
-  import debug from "@/utils/debug";
+  import debug from "@/lib/utils/debug";
   import { actionSheetController } from "@ionic/vue";
   
   import { 

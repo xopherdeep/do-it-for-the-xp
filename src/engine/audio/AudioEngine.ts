@@ -1,5 +1,5 @@
 // Import only needed utilities
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 import { reactive } from 'vue';
 import { loadAudioSettings, loadAudioTheme, saveAudioSettings, saveAudioTheme } from './storage';
 import { MediaSessionHandler } from './mediaControls';

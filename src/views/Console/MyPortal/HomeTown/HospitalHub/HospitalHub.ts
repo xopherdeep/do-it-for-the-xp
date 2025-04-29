@@ -5,7 +5,7 @@ import XpIcon from "@/components/XpIcon";
 import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
 import { mapGetters } from "vuex";
 import { close, heart, infinite, logOut, people, statsChart } from "ionicons/icons";
-import debug from "@/utils/debug";
+import debug from "@/lib/utils/debug";
 
 export default defineComponent({
   props: ["userId"],

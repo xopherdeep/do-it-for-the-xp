@@ -1,7 +1,7 @@
 import { ref, computed, onUnmounted } from 'vue';
 import { AudioEngine } from '@/engine/audio/AudioEngine';
 import { getSound, getMusicByCategory } from '@/engine/audio/soundRegistry';
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 /**
  * Hook that provides access to the AudioEngine

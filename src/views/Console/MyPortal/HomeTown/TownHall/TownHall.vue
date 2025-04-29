@@ -152,7 +152,7 @@ import {
   addOutline, bugOutline, bulbOutline
 } from 'ionicons/icons';
 import XpLoading from '@/components/XpLoading/XpLoading.vue';
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 export default defineComponent({
   name: 'TownHall',

@@ -12,7 +12,7 @@
  * 3. Add the _usingNewAudioEngine flag check to your existing implementation
  */
 
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 // Modified changeBGM action that checks for the _usingNewAudioEngine flag
 export const changeBGM = function(context, payload) {

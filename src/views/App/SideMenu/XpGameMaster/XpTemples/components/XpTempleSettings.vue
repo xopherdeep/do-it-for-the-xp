@@ -320,7 +320,7 @@ import {
 import { TempleDb, TempleInterface, templeStorage } from "@/lib/databases/TempleDb";
 import { sortCategoryByName } from "@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAddAchievement/XpAddAchievement";
 import { TempleSystem } from "@/engine/core/TempleSystem";
-import debug from "@/utils/debug";
+import debug from "@/lib/utils/debug";
 import {
   IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle, 
   IonButton, IonContent, IonAvatar, IonIcon, 

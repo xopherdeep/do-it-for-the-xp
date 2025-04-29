@@ -1,5 +1,5 @@
 import { Store } from 'vuex';
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 /**
  * GPSystem handles all GP (Gold Points) operations in the game

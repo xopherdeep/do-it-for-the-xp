@@ -42,7 +42,7 @@ import { mapActions, mapGetters, mapState, useStore } from "vuex";
 import { useQueryProvider } from "vue-query";
 
 import XpSideMenu from "@/views/App/SideMenu/SideMenu.vue";
-import debug from "@/utils/debug";
+import debug from "@/lib/utils/debug";
 
 export default defineComponent({
   name: "App",

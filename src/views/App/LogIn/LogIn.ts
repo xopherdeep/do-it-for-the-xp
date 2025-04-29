@@ -14,7 +14,7 @@ import { mapActions, useStore } from "vuex";
 import { useRouter, useRoute } from "vue-router";
 import ionic from "@/mixins/ionic";
 import { RootState } from "@/types/store";
-import debug from "@/utils/debug";
+import debug from "@/lib/utils/debug";
 
 interface BackgroundPair {
   [key: number]: string[];

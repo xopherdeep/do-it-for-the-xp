@@ -5,7 +5,7 @@
  * Provides a centralized API for ability management similar to other core systems.
  */
 
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 import { reactive } from 'vue';
 import type { Ability, AbilityType, AbilityPreset } from '@/types/abilities';
 

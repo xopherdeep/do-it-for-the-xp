@@ -230,7 +230,7 @@ import {
   cloudUploadOutline,
   saveOutline
 } from "ionicons/icons";
-import User from "@/utils/User";
+import User from "@/lib/utils/User";
 import { Drivers, Storage } from "@ionic/storage";
 import { modalController } from "@ionic/vue";
 import { ProfileDb } from "@/lib/databases";
@@ -239,8 +239,8 @@ import XpGp from "@/components/XpGp/XpGp.vue";
 import DialPad from "./DialPad.vue";
 import ionic from "@/mixins/ionic";
 import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
-import debug from "@/utils/debug";
-import { fixPageTransitions } from "@/utils/ionicPageFix";
+import debug from "@/lib/utils/debug";
+import { fixPageTransitions } from "@/lib/utils/ionicPageFix";
 
 const requireAvatar = require.context("@/assets/images/avatars/");
 

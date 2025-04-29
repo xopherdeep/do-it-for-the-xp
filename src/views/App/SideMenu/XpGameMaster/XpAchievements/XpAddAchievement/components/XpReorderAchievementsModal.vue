@@ -39,7 +39,7 @@
   import XpAchievementItem from './XpAchievementItem.vue';
   import { modalController } from '@ionic/vue';
   import { Achievement } from '@/lib/databases/AchievementDb';
-  import debug from '@/utils/debug';
+  import debug from '@/lib/utils/debug';
 
   export default defineComponent({
     props: {

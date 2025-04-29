@@ -5,7 +5,7 @@
  * to maintain backward compatibility and ensure data integrity.
  */
 
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 /**
  * Check localStorage for legacy ability data and migrate it

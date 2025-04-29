@@ -1,10 +1,10 @@
-import Stats from '@/utils/User/stats';
+import Stats from '@/lib/utils/User/stats';
 import DbStorageApi from './DbStorageApi';
-import User from '@/utils/User';
-import PersistentStorageService from '@/utils/PersistentStorageService';
+import User from '@/lib/utils/User';
+import PersistentStorageService from '@/lib/utils/PersistentStorageService';
 
-import { Entry, SpecialStats } from '@/utils/User/stats';
-import debug from '@/utils/debug';
+import { Entry, SpecialStats } from '@/lib/utils/User/stats';
+import debug from '@/lib/utils/debug';
 
 // New types and interfaces for Skills, JobClass, Equipment, and Quests
 interface Skill {

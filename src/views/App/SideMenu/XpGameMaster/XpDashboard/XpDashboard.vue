@@ -321,7 +321,7 @@ import BestiaryDb, { beastStorage } from "@/lib/databases/BestiaryDb";
 import DosDontsDb from "@/lib/databases/DosDontsDb";
 import { toastController, modalController } from "@ionic/vue";
 import { RecycleScroller } from 'vue-virtual-scroller';
-import debug from "@/utils/debug";
+import debug from "@/lib/utils/debug";
 
 import { defineComponent, ref, onMounted } from "vue";
 export default defineComponent({

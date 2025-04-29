@@ -10,7 +10,7 @@
 import { reactive } from 'vue';
 import { DungeonManager, Room } from './DungeonManager';
 import { ChestSystem } from './ChestSystem';
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 // Types
 export interface TempleState {

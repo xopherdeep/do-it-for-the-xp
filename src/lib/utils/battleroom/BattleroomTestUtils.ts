@@ -4,7 +4,7 @@
  */
 import { Store } from 'vuex';
 import { RootState } from '@/types/store';
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 export class BattleroomTestUtils {
   private store: Store<RootState>;

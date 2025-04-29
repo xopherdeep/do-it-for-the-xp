@@ -4,7 +4,7 @@
  */
 
 import { AudioState, AudioTheme } from './AudioEngine';
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 // Storage keys
 const AUDIO_SETTINGS_KEY = 'xp-audio-settings';

@@ -722,7 +722,7 @@ import ionic from "@/mixins/ionic";
 import { ROOM_ICONS, _00_, ____, TELE, SHOP } from "@/dungeons/roomTypes";
 import { TempleDb, templeStorage } from "@/lib/databases/TempleDb";
 import { toastController } from "@ionic/vue";
-import debug from "@/utils/debug";
+import debug from "@/lib/utils/debug";
 
 export default defineComponent({
   props: ["templeId"],

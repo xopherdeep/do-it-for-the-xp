@@ -1,7 +1,7 @@
 import { defineComponent, ref } from "vue";
 import ionic from "@/mixins/ionic";
 import { alertController, toastController } from "@ionic/vue";
-import debug from "@/utils/debug";
+import debug from "@/lib/utils/debug";
 
 import { ROOM_ICONS } from "@/dungeons/roomTypes";
 import { actionSheetController } from "@ionic/vue";

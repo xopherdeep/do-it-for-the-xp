@@ -259,7 +259,7 @@ import 'swiper/css/pagination';
 import 'swiper/css/navigation';
 import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
 import Ionic from "@/mixins/ionic";
-import debug from "@/utils/debug";
+import debug from "@/lib/utils/debug";
 
 export default defineComponent({
   name: 'CompendiumSplash',

@@ -163,7 +163,7 @@
   import { modalController } from '@ionic/vue';
   import ionic from "@/mixins/ionic";
   import { mapGetters } from "vuex";
-  import debug from '@/utils/debug';
+  import debug from '@/lib/utils/debug';
 
   import AccessoriesDb, {  accessoriesStorage, Rarity, AccessoryType } from '@/lib/databases/AccessoriesDb';
 

@@ -6,7 +6,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useStore } from "vuex";
 import userActions from "@/mixins/userActions";
 import type { DefineUserActionComponent } from "@/mixins/userActions";
-import debug from "@/utils/debug";
+import debug from "@/lib/utils/debug";
 
 import WeatherFX from '@/components/WeatherFX/WeatherFX.vue';
 

@@ -9,7 +9,7 @@
 
 import { AudioEngine } from './AudioEngine';
 import { Store } from 'vuex';
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 // Define the BGM payload structure that matches the existing system
 export interface BGMPayload {

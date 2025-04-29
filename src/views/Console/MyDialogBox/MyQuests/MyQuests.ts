@@ -36,7 +36,7 @@ import { useRouter } from "vue-router";
 import { Controller, Navigation, Swiper as SwiperClass } from "swiper";
 import { useQuery, useQueryClient } from "vue-query";
 import useQuests from "@/hooks/useQuests";
-import debug from "@/utils/debug";
+import debug from "@/lib/utils/debug";
 
 export default defineComponent({
   props: ["userId"],

@@ -7,7 +7,7 @@ import { DungeonManager } from '@/engine/core/DungeonManager';
 import { AlertInput } from '@ionic/vue';
 import { ChestSystem } from '@/engine/core/ChestSystem';
 import { ROOM_ICONS } from '@/dungeons/roomTypes';
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 export function useTemple(templeId: string, startPosition?: [number, number]) {
   const templeSystem = TempleSystem.getInstance();

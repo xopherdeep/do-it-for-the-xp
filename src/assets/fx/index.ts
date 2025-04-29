@@ -6,7 +6,7 @@ declare global {
 }
 
 import loadingMP3 from "@/assets/audio/loading.mp3";
-import debug from "@/utils/debug";
+import debug from "@/lib/utils/debug";
 
 import nintendo from "./nintendo.fx";
 import earthbound from "./earthbound.fx";

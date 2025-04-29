@@ -3,7 +3,7 @@
  * to the new AudioEngine system
  */
 
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 import { AudioEngine } from './AudioEngine';
 import { getSound } from './soundRegistry';
 

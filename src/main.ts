@@ -30,7 +30,7 @@ import { GPSystem } from './engine/core/GPSystem';
 import { initializeAbilitySystem } from './engine/core/abilities';
 
 // Accessibility fixes
-import { fixAriaHiddenFocusIssues } from './utils/a11yUtils';
+import { fixAriaHiddenFocusIssues } from '@/lib/utils/a11yUtils';
 
 // Set up user interaction detection for audio playback
 document.addEventListener('click', () => {

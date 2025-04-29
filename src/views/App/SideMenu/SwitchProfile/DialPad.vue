@@ -175,7 +175,7 @@
   import GamerCard from "./AddProfile/GamerCard.vue";
   import XpIcon from "@/components/XpIcon";
   import { defineComponent, onUnmounted } from "vue";
-import debug from "@/utils/debug";
+import debug from "@/lib/utils/debug";
 
   const KeyPad = defineComponent({
     props: ["profile"],

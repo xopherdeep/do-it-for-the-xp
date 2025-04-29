@@ -3,7 +3,7 @@
  */
 import { TempleDb, templeStorage, TempleInterface } from '@/lib/databases/TempleDb';
 import windTemple from '@/views/Console/MyPortal/HomeTown/TempleGrounds/temples/wind-temple';
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 /**
  * Import the wind-temple layout into the TempleDb

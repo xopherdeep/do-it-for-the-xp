@@ -5,7 +5,7 @@
 import { Dungeon } from './DungeonManager';
 import { DungeonManager } from './DungeonManager';
 import { TempleDb, templeStorage } from '@/lib/databases/TempleDb';
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 /**
  * Convert a temple from the legacy format to the engine format and register it with the DungeonManager

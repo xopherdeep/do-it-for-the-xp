@@ -2,7 +2,7 @@ import { defineComponent } from 'vue'
 import { useRouter } from 'vue-router'
 import { useStore } from 'vuex'
 import { alertController, toastController } from '@ionic/vue'
-import debug from '@/utils/debug'
+import debug from '@/lib/utils/debug'
 
 import {
   IonPage,

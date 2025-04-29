@@ -112,7 +112,7 @@
   import { mapGetters } from "vuex";
   import { alertController, toastController } from "@ionic/vue";
   import { format } from "date-fns";
-import debug from "@/utils/debug";
+import debug from "@/lib/utils/debug";
 
   export default defineComponent({
     name: "xp-approvals",

@@ -88,7 +88,7 @@ import ionic from "@/mixins/ionic";
 import { arrowBack } from "ionicons/icons";
 import { profileStorage } from "../../SwitchProfile/SwitchProfile.vue";
 import { ProfileDb } from "@/lib/databases";
-import User from "@/utils/User";
+import User from "@/lib/utils/User";
 import { alertController, modalController } from "@ionic/vue";
 import XpProfileItem from "./ProfileItem.vue";
 import AddProfile from "../../SwitchProfile/AddProfile/AddProfile.vue";

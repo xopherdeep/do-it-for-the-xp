@@ -14,7 +14,7 @@ import AchievementDb, {
 import ProfileDb from '@/lib/databases/ProfileDb';
 import { profileStorage } from '../../../SwitchProfile/SwitchProfile.vue';
 
-import User from '@/utils/User';
+import User from '@/lib/utils/User';
 
 import XpAddCategoryModal from "./components/XpAddCategoryModal.vue";
 

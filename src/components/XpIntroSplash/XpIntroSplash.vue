@@ -47,7 +47,7 @@
 <script lang="ts">
 import { defineComponent, ref, PropType, onMounted, onUnmounted, watch } from 'vue';
 import XpTypingText from '@/components/XpTypingText/XpTypingText.vue';
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 // Define the structure of a splash screen
 export interface SplashScreen {

@@ -1,6 +1,6 @@
 import { ref } from 'vue';
 import { ComponentPublicInstance } from 'vue';
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 // Define the interface for XpDialog component with its methods
 export interface XpDialogInterface {

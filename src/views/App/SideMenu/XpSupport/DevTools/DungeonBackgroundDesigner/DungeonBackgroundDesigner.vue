@@ -313,7 +313,7 @@
     IonSelect, IonSelectOption, IonText, IonIcon, IonList,
     IonToggle, IonChip, IonFab, IonFabButton, IonAlert
   } from '@ionic/vue';
-  import debug from '@/utils/debug';
+  import debug from '@/lib/utils/debug';
 
   import {
     cubeOutline,

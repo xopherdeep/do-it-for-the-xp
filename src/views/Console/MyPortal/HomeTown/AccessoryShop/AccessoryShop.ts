@@ -28,7 +28,7 @@ import {
 } from "ionicons/icons";
 import fetchItems from "@/mixins/fetchItems";
 import { modalController } from "@ionic/vue";
-import debug from "@/utils/debug";
+import debug from "@/lib/utils/debug";
 // Import ATM Modal component
 import ATMModal from "@/views/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
 // Import the GPSystem

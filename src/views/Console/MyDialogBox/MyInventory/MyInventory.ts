@@ -23,7 +23,7 @@ import {
   bagOutline
 } from "ionicons/icons";
 import { mapGetters, useStore } from "vuex";
-import debug from "@/utils/debug";
+import debug from "@/lib/utils/debug";
 
 export default defineComponent({
   props: ["userId"],

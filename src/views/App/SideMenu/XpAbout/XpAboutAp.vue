@@ -56,7 +56,7 @@ import { defineComponent } from 'vue';
 import ionic from '@/mixins/ionic';
 import { actionSheetController } from '@ionic/vue';
 import XpTypingText from '@/components/XpTypingText/XpTypingText.vue';
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 import { bulbOutline, flameOutline, flashOutline } from 'ionicons/icons';
 
 // Define the interface for XpTypingText instance methods

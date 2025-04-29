@@ -3,7 +3,7 @@
  */
 import { TempleDb, templeStorage, TempleInterface } from '@/lib/databases/TempleDb';
 import temples from '@/views/Console/MyPortal/HomeTown/TempleGrounds/temples';
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 /**
  * Import all temple layouts into the TempleDb

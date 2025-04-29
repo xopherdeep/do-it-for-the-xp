@@ -7,7 +7,7 @@
  */
 
 import { reactive } from 'vue';
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 // Types
 export interface ChestContent {

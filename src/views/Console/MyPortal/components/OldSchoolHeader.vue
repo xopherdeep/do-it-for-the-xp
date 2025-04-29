@@ -36,7 +36,7 @@
 </template>
 
 <script lang="ts">
-  import User from '@/utils/User/user';
+  import User from '@/lib/utils/User/user';
   import { defineComponent } from 'vue'
 
   export default defineComponent({

@@ -26,7 +26,7 @@ import '@ionic/vue/css/display.css';
 // Import your theme css
 import '@/theme/variables.css';
 import '@/theme/core.css';
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 // Create a simplified version of the store with just battle-related features
 const store = createStore({

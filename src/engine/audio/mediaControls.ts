@@ -6,7 +6,7 @@
  */
 
 import { AudioEngine, MusicTrack } from './AudioEngine';
-import debug from '@/utils/debug';
+import debug from '@/lib/utils/debug';
 
 /**
  * Default album artwork for the game
