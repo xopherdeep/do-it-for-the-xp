@@ -1,12 +1,14 @@
 // Impordules
 import SideMenuRoutes  from './side-menu.routes';
-import MyProfileRoutes from './my-profile.routes';
+import UserHudRoutes from './user-hud.routes';
 import MyHomeRoutes from './my-home.routes';
 import MyPortalRoutes from './my-portal.routes';
 import HometownRoutes from './hometown.routes';
 import SupportRoutes from './support.routes';
 import WorldMapRoutes from './world-map.routes';
 import DevRoutes from './dev.routes';
+import GameMasterRoutes from './game-master.routes';
+import SettingsRoutes from './settings.routes';
 import { createRouter, createWebHistory, createWebHashHistory } from '@ionic/vue-router';
 import { RouteRecordRaw } from 'vue-router';
 import { useRouterGuards } from './guard.routes';
@@ -15,11 +17,13 @@ import { Capacitor } from '@capacitor/core';
 // Combine all routes
 const routes: Array<RouteRecordRaw> = [
   ...SideMenuRoutes,
-  ...MyProfileRoutes,
+  ...UserHudRoutes,
   ...MyHomeRoutes,
   ...HometownRoutes,
   ...SupportRoutes,
   ...MyPortalRoutes,
+  ...GameMasterRoutes,
+  ...SettingsRoutes,
   ...DevRoutes,
 
   // XP Intro Page
@@ -82,11 +86,13 @@ export const createAppRouter = (store) => {
 // Export all route collections for potential reuse
 export {
   SideMenuRoutes,
-  MyProfileRoutes,
+  UserHudRoutes as MyProfileRoutes,
   MyHomeRoutes,
   MyPortalRoutes,
   HometownRoutes,
   SupportRoutes,
   WorldMapRoutes,
-  DevRoutes
+  DevRoutes,
+  GameMasterRoutes,
+  SettingsRoutes
 };

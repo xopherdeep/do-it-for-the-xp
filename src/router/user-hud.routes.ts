@@ -1,6 +1,6 @@
 import { RouteRecordRaw } from 'vue-router';
 
-const MyProfileRoutes: Array<RouteRecordRaw> = [ 
+const UserHudRoutes: Array<RouteRecordRaw> = [ 
   {
     path: '/my-tasks/:userId?/',
     name: 'my-tasks',
@@ -32,4 +32,4 @@ const MyProfileRoutes: Array<RouteRecordRaw> = [
   },
 ]
 
-export default MyProfileRoutes 
+export default UserHudRoutes 
