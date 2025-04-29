@@ -480,11 +480,10 @@
     ABILITY_CLASSES
   } from '@/types/abilities'
   import {
-    TIME_MAGE_PRESETS,
-    TECH_MAGE_PRESETS,
     REAL_LIFE_PRESETS,
-    HYBRID_PRESETS
-  } from '@/services/abilities/AbilityPresets'
+    TIME_MAGE_PRESETS,
+    TECH_MAGE_PRESETS
+  } from '@/engine/core/AbilityPresets'
 
   export default defineComponent({
     name: 'XpAbilities',
@@ -555,7 +554,7 @@
       const timeMagePresets = TIME_MAGE_PRESETS;
       const techMagePresets = TECH_MAGE_PRESETS;
       const realLifePresets = REAL_LIFE_PRESETS;
-      const hybridPresets = HYBRID_PRESETS;
+      const hybridPresets = [];
 
       // Methods
       const toggleViewMode = () => {

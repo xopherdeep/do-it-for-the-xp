@@ -26,6 +26,9 @@ import { AudioEnginePlugin } from './engine/audio/plugin';
 // GP System
 import { GPSystem } from './engine/core/GPSystem';
 
+// Ability System
+import { initializeAbilitySystem } from './engine/core/abilities';
+
 // Accessibility fixes
 import { fixAriaHiddenFocusIssues } from './utils/a11yUtils';
 
@@ -42,9 +45,6 @@ document.addEventListener('click', () => {
 
 // Apply accessibility fixes for aria-hidden issues
 fixAriaHiddenFocusIssues();
-
-// Create the emitter for the events
-//const emitter = mitt();
 
 
 function readyRouterMountApp() {
@@ -74,6 +74,9 @@ function readyRouterMountApp() {
 
   // Initialize the GPSystem with the Vuex store
   GPSystem.initialize(store);
+  
+  // Initialize the AbilitySystem
+  initializeAbilitySystem();
 
   Object.assign(app.config.globalProperties, appConfig);
 

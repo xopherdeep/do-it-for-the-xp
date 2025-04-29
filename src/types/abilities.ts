@@ -62,6 +62,10 @@ export interface Ability {
   isPreset?: boolean; // Whether this is a predefined ability
 }
 
+// For consistency with our other systems, Ability and AbilityPreset are the same type
+// but we use AbilityPreset when explicitly referring to predefined abilities
+export type AbilityPreset = Ability;
+
 // Helper function to check if an object is an Ability
 export function isAbility(obj: any): obj is Ability {
   return obj 

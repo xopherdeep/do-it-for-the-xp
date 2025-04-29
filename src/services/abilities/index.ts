@@ -1,50 +1,39 @@
 /**
  * Ability System Entry Point
  * 
- * This file exports all components of the ability system for easy importing.
+ * This file re-exports all components of the ability system from the new
+ * engine/core location, providing backward compatibility.
+ * 
+ * DEPRECATED: Import from '@/engine/core/abilities' instead.
  */
 
-// Core ability types
-export * from '@/types/abilities';
+// Re-export everything from engine/core/abilities to maintain backward compatibility
+export * from '@/engine/core/abilities';
 
-// Service for manipulating abilities
-export { default as AbilityService } from './AbilityService';
-
-// Migration utilities for backward compatibility
-export * from './AbilityMigration';
-
-// Preset abilities
-export { 
-  default as AbilityPresets,
-  REAL_LIFE_PRESETS,
-  TIME_MAGE_PRESETS,
-  TECH_MAGE_PRESETS,
-  HYBRID_PRESETS
-} from './AbilityPresets';
-
-// Composable hook for using abilities in components
-export { useAbilitiesSystem } from '@/hooks/useAbilities';
-
-// UI Components
+// Export UI components
 export { default as XpAbilityDetail } from '@/components/XpAbility/XpAbilityDetail.vue';
 export { default as XpAbilityManager } from '@/components/XpAbility/XpAbilityManager.vue';
+
+// Use the new hook
+export { useAbilitySystem as useAbilitiesSystem } from '@/hooks/useAbilitySystem';
+
+// Use the new initialization function from engine/core
+import { initializeAbilitySystem as initCoreAbilitySystem } from '@/engine/core/abilities';
 
 /**
  * Initialize the ability system
  * This function should be called during app startup
+ * @deprecated Use `initializeAbilitySystem()` from '@/engine/core/abilities' instead
  */
 export function initializeAbilitySystem() {
-  // Import migration utilities
-  const { migrateLocalStorageAbilities } = require('./AbilityMigration');
-  
-  // Run migrations to ensure data is in the correct format
-  migrateLocalStorageAbilities();
-  
-  console.log('Ability system initialized');
+  console.warn('DEPRECATED: Using abilities from services/abilities is deprecated. Import from engine/core/abilities instead.');
+  // Call the new initialize function
+  initCoreAbilitySystem();
 }
 
 /**
  * Public API for the ability system
+ * @deprecated Use the exported functions from '@/engine/core/abilities' instead
  */
 export default {
   initializeAbilitySystem

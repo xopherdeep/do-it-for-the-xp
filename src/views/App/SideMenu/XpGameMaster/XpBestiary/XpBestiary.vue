@@ -495,7 +495,7 @@ export default defineComponent({
       background: transparent !important;
 
       ion-item {
-        background: transparent;
+        --background: transparent;
         font-family: "Press Start 2P";
 
 
