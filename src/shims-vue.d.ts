@@ -29,10 +29,17 @@ declare module '@vue/runtime-core' {
 
 // Make sure global methods are available on Vue component instances
 declare module 'vue' {
+  import type { defineComponent } from 'vue'
   interface ComponentCustomProperties {
     $requireAvatar: any;
     play$fx: (fx?: string) => void;
   }
+
+  const component: defaultComponent<object, object, unknown>
+  export default component
+  
+  // import Vue from 'vue'
+  // export default Vue
 }
 
 declare module '@/mixins/ionic' { }

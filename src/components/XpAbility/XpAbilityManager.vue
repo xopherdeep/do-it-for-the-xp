@@ -396,14 +396,34 @@ export default defineComponent({
       }> = [];
       
       props.abilities.forEach(ability => {
+        // Initialize position if it doesn't exist
+        if (!ability.position) {
+          ability.position = {
+            x: Math.floor(Math.random() * 800),
+            y: Math.floor(Math.random() * 600)
+          };
+        }
+
         if (ability.prerequisites && ability.prerequisites.length > 0) {
           ability.prerequisites.forEach(prereqId => {
             const prereq = props.abilities.find(a => a.id === prereqId);
             if (prereq) {
-              const startX = prereq.position.x + 25; // center of node
-              const startY = prereq.position.y + 25;
-              const endX = ability.position.x + 25;
-              const endY = ability.position.y + 25;
+              // Initialize position for prereq if it doesn't exist
+              if (!prereq.position) {
+                prereq.position = {
+                  x: Math.floor(Math.random() * 800),
+                  y: Math.floor(Math.random() * 600)
+                };
+              }
+
+              // TypeScript needs to know both positions are now defined
+              const abilityPosition = ability.position!;
+              const prereqPosition = prereq.position!;
+
+              const startX = prereqPosition.x + 25; // center of node
+              const startY = prereqPosition.y + 25;
+              const endX = abilityPosition.x + 25;
+              const endY = abilityPosition.y + 25;
               const path = `M${startX},${startY} L${endX},${endY}`;
               
               // Determine connection status based on prereq being unlocked
@@ -480,6 +500,14 @@ export default defineComponent({
     };
     
     const getMiniNodeStyle = (ability: Ability) => {
+      // Initialize position if it doesn't exist
+      if (!ability.position) {
+        ability.position = {
+          x: Math.floor(Math.random() * 800),
+          y: Math.floor(Math.random() * 600)
+        };
+      }
+      
       return {
         left: `${ability.position.x / 10}px`,
         top: `${ability.position.y / 10}px`
