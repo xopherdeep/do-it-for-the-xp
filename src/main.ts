@@ -21,13 +21,13 @@ import useRouter from './router/router';
 import store from './store';
 
 // Audio Engine
-import { AudioEnginePlugin } from './engine/audio/plugin';
+import { AudioEnginePlugin } from './lib/engine/audio/plugin';
 
 // GP System
-import { GPSystem } from './engine/core/GPSystem';
+import { GPSystem } from './lib/engine/core/GPSystem';
 
 // Ability System
-import { initializeAbilitySystem } from './engine/core/abilities';
+import { initializeAbilitySystem } from './lib/engine/core/abilities';
 
 // Accessibility fixes
 import { fixAriaHiddenFocusIssues } from '@/lib/utils/a11yUtils';

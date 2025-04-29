@@ -119,7 +119,7 @@ import XpBackgroundSelector from "@/components/XpBackgroundSelector/XpBackground
 import BeastDetailsModal from "./BeastDetailsModal.vue";
 import ionic from "@/mixins/ionic";
 // Import the background manager instead of direct library imports
-import { backgroundManager } from "@/engine/core/BackgroundManager";
+import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
 
 // Define a type for ion input elements
 type IonInputElement = HTMLElement & { setFocus: () => Promise<void> };

@@ -1,7 +1,7 @@
 import { defineComponent, computed } from "vue";
 import { mapState, useStore } from "vuex";
 import { useRouter } from "vue-router";
-import { backgroundManager } from "@/engine/core/BackgroundManager";
+import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
 import backgrounds from "@/assets/images/backgrounds/parallax/index";
 import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
 import fetchItems from "@/mixins/fetchItems";

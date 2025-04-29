@@ -32,7 +32,7 @@ import debug from "@/lib/utils/debug";
 // Import ATM Modal component
 import ATMModal from "@/views/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
 // Import the GPSystem
-import { getGPSystem } from "@/engine/core/GPSystem";
+import { getGPSystem } from "@/lib/engine/core/GPSystem";
 
 export default defineComponent({
   props: ["userId", "merchant"],

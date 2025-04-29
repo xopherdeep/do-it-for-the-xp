@@ -1,6 +1,6 @@
 import { ref, computed, onUnmounted } from 'vue';
-import { AudioEngine } from '@/engine/audio/AudioEngine';
-import { getSound, getMusicByCategory } from '@/engine/audio/soundRegistry';
+import { AudioEngine } from '@/lib/engine/audio/AudioEngine';
+import { getSound, getMusicByCategory } from '@/lib/engine/audio/soundRegistry';
 import debug from '@/lib/utils/debug';
 
 /**

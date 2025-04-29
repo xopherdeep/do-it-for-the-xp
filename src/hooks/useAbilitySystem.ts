@@ -1,5 +1,5 @@
 import { ref, computed, onMounted, watch } from 'vue';
-import { abilitySystem } from '@/engine/core/abilities';
+import { abilitySystem } from '@/lib/engine/core/abilities';
 import type { Ability, AbilityType } from '@/types/abilities';
 
 /**

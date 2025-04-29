@@ -2,7 +2,7 @@ import { Router, NavigationGuardNext, RouteLocationNormalized } from 'vue-router
 import { Store } from 'vuex';
 import { alertController } from '@ionic/vue';
 import { RootState } from '@/types/store.types';
-import { changeBGM } from '@/engine/audio/routeMusic'; // Import our updated adapter
+import { changeBGM } from '@/lib/engine/audio/routeMusic'; // Import our updated adapter
 
 
 /**

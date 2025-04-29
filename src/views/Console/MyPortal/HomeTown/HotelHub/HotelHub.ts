@@ -39,7 +39,7 @@ import { computed } from "vue";
 // Import the ATM Modal component
 import ATMModal from "@/views/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
 // Import our new GPSystem
-import { getGPSystem } from "@/engine/core/GPSystem";
+import { getGPSystem } from "@/lib/engine/core/GPSystem";
 
 // Define the interface for XpTypingText instance methods
 interface XpTypingTextInstance {

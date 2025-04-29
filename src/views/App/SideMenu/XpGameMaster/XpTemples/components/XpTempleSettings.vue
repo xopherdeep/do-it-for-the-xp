@@ -319,7 +319,7 @@ import {
 } from "@/lib/databases/AchievementDb";
 import { TempleDb, TempleInterface, templeStorage } from "@/lib/databases/TempleDb";
 import { sortCategoryByName } from "@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAddAchievement/XpAddAchievement";
-import { TempleSystem } from "@/engine/core/TempleSystem";
+import { TempleSystem } from "@/lib/engine/core/TempleSystem";
 import debug from "@/lib/utils/debug";
 import {
   IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle, 

@@ -1,6 +1,6 @@
 import Api from "@/lib/api";
 import XpApi from "@/lib/api/doit.forthexp.com.api";
-import { AudioEngine } from '@/engine/audio/AudioEngine';
+import { AudioEngine } from '@/lib/engine/audio/AudioEngine';
 import debug from '@/lib/utils/debug';
 
 export default {

@@ -104,7 +104,7 @@ import ionic from "@/mixins/ionic";
 import { actionSheetController, alertController, modalController, toastController } from "@ionic/vue";
 import { add, createOutline, saveOutline } from 'ionicons/icons';
 import XpAttachBeast from "./components/XpAttachBeast.vue";
-import { backgroundManager } from "@/engine/core/BackgroundManager";
+import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
 import { v4 as uuidv4 } from 'uuid';
 
 import AddBeast from "./components/XpAddBeast.vue";
