@@ -8,7 +8,7 @@ import fetchItems from "@/mixins/fetchItems";
 import ionic from "@/mixins/ionic";
 import MyTask from "@/views/Console/MyDialogBox/MyTask/MyTask.vue";
 // import requireImg from "@/assets/js/requireImg.js";
-import users from "@/api/users.api";
+import users from "@/lib/api/users.api";
 import userActions from "@/mixins/userActions";
 
 import { toastController, modalController } from "@ionic/vue";

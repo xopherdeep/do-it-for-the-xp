@@ -1,4 +1,4 @@
-declare module '@/api' {
+declare module '@/lib/api' {
     export interface ApiType {
         protocol?: string;
         url: string;

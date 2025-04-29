@@ -2,7 +2,7 @@ import { actionSheetController } from "@ionic/vue";
 import { defineComponent } from "vue";
 import { close, heart } from "ionicons/icons";
 
-import users from "@/api/users.api";
+import users from "@/lib/api/users.api";
 import { useRouter } from "vue-router";
 
 import {

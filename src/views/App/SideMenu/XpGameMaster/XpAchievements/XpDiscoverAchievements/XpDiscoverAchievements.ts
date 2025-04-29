@@ -2,7 +2,7 @@ import { useInfiniteQuests } from "@/hooks/useQuests";
 import { computed, defineComponent, reactive, ref } from "vue";
 import { useQueryClient } from "vue-query";
 import { useRouter } from "vue-router";
-import XpApi from "@/api/doit.forthexp.com.api";
+import XpApi from "@/lib/api/doit.forthexp.com.api";
 import ionic from "@/mixins/ionic";
 import {
   IonBackButton,
