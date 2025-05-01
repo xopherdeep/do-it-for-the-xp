@@ -6,7 +6,7 @@
         <ion-tab-bar slot="bottom" class="icon-colors">
           <ion-tab-button
             tab="compendium"
-            href="/game-master/compendium"
+            href="/game-master/compendium/splash"
             :selected="$route.path.indexOf('game-master/compendium/') >= 0"
           >
             <i class="fad fa-game-console-handheld fa-2x" />
