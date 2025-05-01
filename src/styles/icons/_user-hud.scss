@@ -1,4 +1,10 @@
 @mixin user-hud {
+  &game-console-handheld {
+    --fa-primary-color: var(--xp-color-green);
+    --fa-secondary-color: var(--xp-color-gray);
+    --fa-secondary-opacity: 1;
+    --fa-primary-opacity: .7;
+  }
   &heart {
     --fa-primary-color: var(--xp-color-red);
     --fa-secondary-color: var(--xp-color-red);
@@ -60,9 +66,10 @@
   }
 
   &hand-holding-medical {
-    --fa-primary-color: var(--xp-color-pink);
+    --fa-primary-color: var(--xp-color-red);
     --fa-secondary-color: var(--xp-color-brown);
     --fa-secondary-opacity: 0.9;
+    --fa-primary-opacity: 0.7;
   }
 
   &hand-holding-water {
