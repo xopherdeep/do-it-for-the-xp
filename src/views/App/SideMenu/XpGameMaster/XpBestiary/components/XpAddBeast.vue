@@ -24,7 +24,7 @@
       </ion-toolbar>
     </ion-header>
     <ion-content>
-      <canvas class="battle-bg"></canvas>
+      <canvas class="battle-bg fade-in"></canvas>
       <!-- Main content container with flex centering -->
       <div class="flex flex-col items-center justify-center h-full w-full p-4">
         <!-- Beast Avatar Display - Position above the card to simulate battle view -->
@@ -108,7 +108,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, onMounted, ref } from "vue";
+import { defineComponent, reactive, onMounted, ref, watch } from "vue";
 import { modalController, toastController } from "@ionic/vue";
 import { useRouter, useRoute } from 'vue-router';
 import BestiaryDb, { beastStorage, Beast } from "@/lib/databases/BestiaryDb";
@@ -118,6 +118,8 @@ import BeastDetailsModal from "./BeastDetailsModal.vue";
 import ionic from "@/mixins/ionic";
 // Import the background manager instead of direct library imports
 import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
+// Import debug utility
+import debug from "@/lib/utils/debug";
 
 // Define a type for ion input elements
 type IonInputElement = HTMLElement & { setFocus: () => Promise<void> };
@@ -138,6 +140,20 @@ interface BeastPageInstance {
   enterBattle?: () => void;
 }
 
+// Interface definition for our beast to ensure type safety
+interface BeastData {
+  id?: string;
+  name: string;
+  checklist: string[];
+  avatar: number;
+  bg1?: number;
+  bg2?: number;
+  aspectRatio: number;
+}
+
+// Define a unique page identifier for this component
+const PAGE_ID = 'beast-editor';
+
 export default defineComponent({
   props: {
     id: {
@@ -156,23 +172,28 @@ export default defineComponent({
       isSaving: false,
       showErrors: false,
       inputRefs: {} as Record<number, IonInputElement>,
-      // Initialize with default values
-      bg1: 219,
-      bg2: 218,
       aspectRatio: 64,
       detailsModal: null as IonModalElement | null, // Reference to the details modal
       resizeTimeout: null as ReturnType<typeof setTimeout> | null, // For debouncing resize events
+      backgroundInitialized: false, // Track if background has been initialized
     };
   },
   computed: {
+    bg1() {
+      return this.updateBeast.bg1 ?? (this.beastId ? 0 : Math.floor(Math.random() * 328));
+    },
+    bg2() {
+      return this.updateBeast.bg2 ?? (this.beastId ? 0 : Math.floor(Math.random() * 328));
+    },
     isNameValid() {
-      return this.updateBeast.name?.trim().length > 0;
+      return Boolean(this.updateBeast.name && this.updateBeast.name.trim().length > 0);
     },
     isChecklistValid() {
-      return this.updateBeast.checklist.some(item => item.trim().length > 0);
+      return Array.isArray(this.updateBeast.checklist) && 
+        this.updateBeast.checklist.some(item => item && item.trim().length > 0);
     },
     isFormValid() {
-      return this.isNameValid && this.isChecklistValid && (this.updateBeast.avatar || 0) > 0;
+      return this.isNameValid && this.isChecklistValid && (this.updateBeast.avatar > 0);
     },
     beastPageRef(): BeastPageInstance {
       return {
@@ -180,25 +201,35 @@ export default defineComponent({
         bg2: this.bg2,
         aspectRatio: this.aspectRatio,
         enterBattle: this.initBackground
-      }
+      };
     }
   },
   mounted() {
-    // Initialize the battle background when component mounts - do it only once here
-    this.initBackground();
+    // Initialize the battle background when component mounts
+    this.$nextTick(() => {
+      // Using nextTick ensures the DOM is ready
+      this.initBackground();
+      this.backgroundInitialized = true;
+    });
   },
   unmounted() {
-    // Clean up when component is destroyed
-    backgroundManager.cleanupBackground();
+    // Only clean up if this component was the last one to initialize the background
+    if (backgroundManager.isActiveFor(PAGE_ID)) {
+      backgroundManager.cleanupBackground();
+    }
   },
   deactivated() {
     // No need to cleanup on deactivate if we're using keep-alive
-    // The engine should persist and continue to animate
+    // Just mark our background as not initialized so we can check on activation
+    this.backgroundInitialized = false;
   },
   activated() {
-    // Only initialize if the background manager isn't active on this canvas
-    if (!backgroundManager.getBackgroundSettings().isActive) {
-      this.initBackground();
+    // Only initialize if our background isn't active anymore
+    if (!backgroundManager.isActiveFor(PAGE_ID)) {
+      this.$nextTick(() => {
+        this.initBackground();
+        this.backgroundInitialized = true;
+      });
     }
   },
   methods: {
@@ -235,7 +266,7 @@ export default defineComponent({
         });
         
         // If avatar is missing, show prompt
-        if (!this.updateBeast.avatar) {
+        if (!this.updateBeast.avatar || this.updateBeast.avatar <= 0) {
           await this.presentToast({
             message: 'Please select an avatar for your beast',
             color: 'warning',
@@ -248,23 +279,34 @@ export default defineComponent({
       }
       
       // Clean up empty checklist items
-      this.updateBeast.checklist = this.updateBeast.checklist.filter(item => item.trim().length > 0);
+      this.updateBeast.checklist = this.updateBeast.checklist.filter(item => item && item.trim().length > 0);
       
-      // Make sure bg settings are updated from component state
-      // Using typeof check to handle zero values properly
-      this.updateBeast.bg1 = typeof this.bg1 === 'number' ? this.bg1 : 219;
-      this.updateBeast.bg2 = typeof this.bg2 === 'number' ? this.bg2 : 218;
-      this.updateBeast.aspectRatio = typeof this.aspectRatio === 'number' ? this.aspectRatio : 64;
+      // Always update the beast with current background settings before saving
+      this.updateBeast.bg1 = this.bg1;
+      this.updateBeast.bg2 = this.bg2;
+      this.updateBeast.aspectRatio = this.aspectRatio;
       
       this.isSaving = true;
       try {
-        await this.bestiary.setBeast(this.updateBeast);
+        // Create a clean beast object that satisfies the Beast type
+        const beastToSave: Beast = {
+          id: this.updateBeast.id || '',
+          name: this.updateBeast.name,
+          checklist: this.updateBeast.checklist,
+          avatar: this.updateBeast.avatar,
+          bg1: this.updateBeast.bg1,
+          bg2: this.updateBeast.bg2,
+          aspectRatio: this.updateBeast.aspectRatio
+        };
+        
+        // Save the properly typed beast
+        await this.bestiary.setBeast(beastToSave);
         await this.showToast();
         // Navigate back to bestiary after saving
         this.router.push('/game-master/compendium/bestiary');
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error('Error saving beast:', error);
+        // Replace the eslint-disable comment and console.error with debug.error
+        debug.error('Error saving beast:', error);
         await this.presentToast({
           message: 'There was a problem saving your beast',
           color: 'danger',
@@ -276,13 +318,17 @@ export default defineComponent({
       }
     },
     clickTrash(index: number) {
-      this.updateBeast.checklist.splice(index, 1);
+      if (Array.isArray(this.updateBeast.checklist)) {
+        this.updateBeast.checklist.splice(index, 1);
+      }
     },
     async showToast() {
       await this.bestiary.showSuccessToast(`Beast ${this.updateBeast.id ? 'Updated' : 'Created'} Successfully`);
     },
     handleReorder(event: CustomEvent) {
-      // Complete the reorder and position the item at its new location
+      if (!Array.isArray(this.updateBeast.checklist)) return;
+      
+      // Create a safe copy of the checklist
       const items = [...this.updateBeast.checklist];
       const movedItem = items[event.detail.from];
       items.splice(event.detail.from, 1);
@@ -356,48 +402,33 @@ export default defineComponent({
     
     // Initialize the battle background using our centralized background manager
     initBackground() {
-      // Use the beast's background settings if available, otherwise use random background
-      // Check for undefined or null specifically, since 0 is a valid value
-      let bg1 = typeof this.bg1 === 'number' ? this.bg1 : undefined;
-      let bg2 = typeof this.bg2 === 'number' ? this.bg2 : undefined;
-      
-      // Only use random backgrounds if bg1 or bg2 are undefined or null
-      if (bg1 === undefined || bg2 === undefined) {
-        const randomBg = backgroundManager.getRandomBackground();
-        bg1 = bg1 !== undefined ? bg1 : randomBg.bg1;
-        bg2 = bg2 !== undefined ? bg2 : randomBg.bg2;
-      }
-
+      // Use the current component values which are already set correctly based on
+      // whether we're editing an existing beast or creating a new one
       backgroundManager.initBackground({
-        canvasSelector: "canvas.battle-bg",
-        bg1,
-        bg2,
-        aspectRatio: this.aspectRatio,
-        handleResize: true
+          canvasSelector: "canvas.battle-bg",
+          bg1: this.bg1,
+          bg2: this.bg2,
+          aspectRatio: this.aspectRatio,
+          handleResize: true,
+          page: PAGE_ID
       });
     },
     
-    // Handle background changes from the selector
     onBackgroundChanged(bgData: { bg1: number, bg2: number, aspectRatio?: number }) {
-      // eslint-disable-next-line no-console
-      console.log('Background changed in XpAddBeast:', bgData);
-      this.bg1 = bgData.bg1;
-      this.bg2 = bgData.bg2;
-      if (bgData.aspectRatio !== undefined) {
-        this.aspectRatio = bgData.aspectRatio;
-      }
-      
-      // Update the background with new settings
       backgroundManager.updateBackground({
-        bg1: this.bg1,
-        bg2: this.bg2,
-        aspectRatio: this.aspectRatio
+        bg1: bgData.bg1,
+        bg2: bgData.bg2,
+        aspectRatio: bgData.aspectRatio ?? this.aspectRatio,
+        page: PAGE_ID
       });
       
-      // Also save these values with the beast if needed
-      this.updateBeast.bg1 = this.bg1;
-      this.updateBeast.bg2 = this.bg2;
-      this.updateBeast.aspectRatio = this.aspectRatio;
+      // Update the beast object with the new background settings
+      this.updateBeast.bg1 = bgData.bg1;
+      this.updateBeast.bg2 = bgData.bg2;
+      if (bgData.aspectRatio !== undefined) {
+        this.updateBeast.aspectRatio = bgData.aspectRatio;
+        this.aspectRatio = bgData.aspectRatio;
+      }
     }
   },
   setup(props) {
@@ -405,40 +436,72 @@ export default defineComponent({
     const router = useRouter();
     const route = useRoute();
     const beastId = props.id || route.params.id;
-    // Properly type the ref as an HTMLElement
     const beastPage = ref<HTMLElement | null>(null);
     
-    // Use reactive to ensure it's deeply reactive
-    const updateBeast = reactive({
-      id: undefined,
+    // Create a properly typed reactive beast object with all required fields initialized
+    const updateBeast = reactive<BeastData>({
+      id: "",
       name: "",
       checklist: [],
       avatar: 0,
-      bg1: 219,
-      bg2: 218,
-      aspectRatio: 48
-    } as Beast & { bg1: number, bg2: number, aspectRatio: number });
+      bg1: undefined,
+      bg2: undefined,
+      aspectRatio: 64
+    });
 
     onMounted(async () => {
-      // Load beast data if we have an ID (edit mode)
       if (beastId) {
-        const existingBeast = await bestiary.getBeastById(beastId as string);
-        if (existingBeast) {
-          updateBeast.id = existingBeast.id;
-          updateBeast.name = existingBeast.name || "";
-          updateBeast.checklist = existingBeast.checklist?.length ? [...existingBeast.checklist] : [];
-          updateBeast.avatar = existingBeast.avatar || 0;
-          
-          // If we're editing a beast, make sure we use its background settings
-          if (typeof existingBeast.bg1 === 'number') updateBeast.bg1 = existingBeast.bg1;
-          if (typeof existingBeast.bg2 === 'number') updateBeast.bg2 = existingBeast.bg2;
-          if (typeof existingBeast.aspectRatio === 'number') updateBeast.aspectRatio = existingBeast.aspectRatio;
+        try {
+          const existingBeast = await bestiary.getBeastById(beastId as string);
+          if (existingBeast) {
+            // Copy all properties from existingBeast to updateBeast
+            if (existingBeast.name) updateBeast.name = existingBeast.name;
+            if (existingBeast.avatar) updateBeast.avatar = existingBeast.avatar;
+            if (existingBeast.id) updateBeast.id = existingBeast.id;
+            
+            // Ensure checklist is always an array
+            updateBeast.checklist = Array.isArray(existingBeast.checklist) ? 
+              [...existingBeast.checklist] : [];
+            
+            // Set background properties
+            updateBeast.bg1 = existingBeast.bg1;
+            updateBeast.bg2 = existingBeast.bg2;
+            updateBeast.aspectRatio = existingBeast.aspectRatio ?? 64;
+          }
+        } catch (error) {
+          debug.error('Error loading beast data:', error);
         }
+      } else {
+        // For new beasts, generate random backgrounds
+        updateBeast.bg1 = Math.floor(Math.random() * 328);
+        updateBeast.bg2 = Math.floor(Math.random() * 328);
       }
       
       // Add a default checklist item if empty
-      if (updateBeast.checklist.length === 0) {
-        updateBeast.checklist.push("");
+      if (!updateBeast.checklist || updateBeast.checklist.length === 0) {
+        updateBeast.checklist = [""];
+      }
+    });
+
+    watch(() => updateBeast.bg1, () => {
+      if (backgroundManager.isActiveFor(PAGE_ID)) {
+        backgroundManager.updateBackground({
+          bg1: updateBeast.bg1,
+          bg2: updateBeast.bg2,
+          aspectRatio: updateBeast.aspectRatio,
+          page: PAGE_ID
+        });
+      }
+    });
+
+    watch(() => updateBeast.bg2, () => {
+      if (backgroundManager.isActiveFor(PAGE_ID)) {
+        backgroundManager.updateBackground({
+          bg1: updateBeast.bg1,
+          bg2: updateBeast.bg2,
+          aspectRatio: updateBeast.aspectRatio,
+          page: PAGE_ID
+        });
       }
     });
 
@@ -446,14 +509,28 @@ export default defineComponent({
       bestiary,
       updateBeast,
       beastPage,
-      router
+      router,
+      beastId
     };
-  },
+  }
 });
 </script>
 
 <style lang="scss" scoped>
   @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+  .fade-in {
+    animation: fadeIn 1s ease-in-out;
+  }
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
 
   .battle-bg {
     position: fixed;

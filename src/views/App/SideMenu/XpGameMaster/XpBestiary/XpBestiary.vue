@@ -13,23 +13,7 @@
         <ion-title>
           Bestiary </ion-title>
 
-        <ion-buttons slot="end">
-
-          <ion-button
-            @click="importBeasts"
-            title="Import Beasts"
-            color="rpg"
-          >
-            <i class="fad fa-file-import fa-2x"></i>
-          </ion-button>
-          <ion-button
-            @click="exportBeasts"
-            title="Export Beasts"
-            color="rpg"
-          >
-            <i class="fad fa-file-export fa-2x"></i>
-          </ion-button>
-        </ion-buttons>
+        <!-- Removed import/export buttons from here -->
       </ion-toolbar>
     </ion-header>
     <ion-content class="relative">
@@ -101,27 +85,36 @@
 <script lang="ts">
 import { defineComponent, ref } from "vue";
 import ionic from "@/mixins/ionic";
-import { actionSheetController, alertController, modalController, toastController } from "@ionic/vue";
-import { add, createOutline, saveOutline } from 'ionicons/icons';
+import { actionSheetController, alertController, modalController } from "@ionic/vue";
+import { createOutline, saveOutline } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
 import XpAttachBeast from "./components/XpAttachBeast.vue";
 import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
-import { v4 as uuidv4 } from 'uuid';
 
-import BestiaryDb, { beastStorage, Beast } from "@/lib/databases/BestiaryDb";
+import BestiaryDb, { 
+  beastStorage, 
+  Beast, 
+  BESTIARY_BG_SETTINGS_KEY, 
+  BgSettings 
+} from "@/lib/databases/BestiaryDb";
+import debug from "@/lib/utils/debug";
 
-// Define interface for background presets (must match the one in XpBackgroundSelector)
-interface BackgroundPreset {
-  id: string;
-  name: string;
-  bg1: number;
-  bg2: number;
-  aspectRatio?: number;
-}
+// Define a unique ID for this page for background management
+const PAGE_ID = 'xp-bestiary';
 
 export default defineComponent({
   name: "XpBestiary",
   mixins: [ionic],
+  data() {
+    return {
+      // Background state with default values
+      bgSettings: {
+        bg1: 0,
+        bg2: 0,
+        aspectRatio: 0  // Set a default value (changed from 0 to a useful default)
+      } as BgSettings
+    };
+  },
   methods: {
     async clickDeleteBeast(beast: Beast) {
       const alert = await alertController.create({
@@ -192,20 +185,83 @@ export default defineComponent({
     setBeasts(beasts: Beast[]) {
       this.beasts = beasts;
     },
-    animateBg() {
+    
+    // Initialize background with random settings
+    initBackground() {
+      debug.log('Initializing bestiary background');
+      // Always get a random background
       const randomBg = backgroundManager.getRandomBackground();
+      this.bgSettings.bg1 = randomBg.bg1;
+      this.bgSettings.bg2 = randomBg.bg2;
       
+      // Initialize the background
       backgroundManager.initBackground({
         canvasSelector: "canvas.beasts-bg",
-        bg1: randomBg.bg1,
-        bg2: randomBg.bg2,
+        bg1: this.bgSettings.bg1,
+        bg2: this.bgSettings.bg2,
         aspectRatio: 0,
-        handleResize: true
+        handleResize: true,
+        page: PAGE_ID
       });
     },
+    
+    // Force reinitialize the background
+    reInitBackground() {
+      debug.log('Force reinitializing bestiary background');
+      // Cleanup first if active
+      if (backgroundManager.isActiveFor(PAGE_ID)) {
+        backgroundManager.cleanupBackground();
+      }
+      
+      // Then initialize with saved settings or new random ones
+      this.loadSavedBackgroundSettings();
+      this.initBackground();
+    },
+    
+    // Load saved background settings from localStorage
+    loadSavedBackgroundSettings() {
+      try {
+        const savedBgSettings = localStorage.getItem(BESTIARY_BG_SETTINGS_KEY);
+        if (savedBgSettings) {
+          const settings = JSON.parse(savedBgSettings) as BgSettings;
+          
+          // Ensure aspectRatio has a value even if it was undefined in storage
+          this.bgSettings = {
+            bg1: settings.bg1,
+            bg2: settings.bg2,
+            // aspectRatio: settings.aspectRatio ?? 48 // Use nullish coalescing to provide default
+          };
+          
+          // Apply saved settings to the background
+          backgroundManager.updateBackground({
+            bg1: settings.bg1,
+            bg2: settings.bg2,
+            // aspectRatio: settings.aspectRatio ?? 0
+          });
+          
+          debug.log('Loaded saved background settings:', this.bgSettings);
+        }
+      } catch (e) {
+        debug.error('Error loading saved background settings:', e);
+      }
+    },
+    
+    // Save background settings to localStorage - now using BestiaryDb method
+    saveBgSettings() {
+      this.bestiary.saveBgSettings(this.bgSettings);
+    },
+    
     async saveCurrentBackgroundAsPreset() {
       // Get the current background settings from the background manager
       const bgSettings = backgroundManager.getBackgroundSettings();
+      
+      // Update our local settings from the manager
+      this.bgSettings.bg1 = bgSettings.bg1;
+      this.bgSettings.bg2 = bgSettings.bg2;
+      this.bgSettings.aspectRatio = bgSettings.aspectRatio;
+      
+      // Save to localStorage for persistence
+      this.saveBgSettings();
       
       // Create a dialog to name the preset
       const alert = await alertController.create({
@@ -227,7 +283,7 @@ export default defineComponent({
             text: 'Save',
             handler: (data) => {
               const presetName = data.name || `Background (${bgSettings.bg1}/${bgSettings.bg2})`;
-              this.createBackgroundPreset(presetName, bgSettings);
+              this.bestiary.saveBackgroundPreset(presetName, bgSettings);
             }
           }
         ]
@@ -236,172 +292,6 @@ export default defineComponent({
       await alert.present();
     },
     
-    createBackgroundPreset(name, bgSettings) {
-      // Storage key for custom presets - must match the one in XpBackgroundSelector
-      const STORAGE_KEY = 'xp-custom-bg-presets';
-      
-      try {
-        // Load existing presets
-        let customPresets: BackgroundPreset[] = [];
-        const savedPresets = localStorage.getItem(STORAGE_KEY);
-        if (savedPresets) {
-          customPresets = JSON.parse(savedPresets);
-        }
-        
-        // Create new preset
-        const newPreset: BackgroundPreset = {
-          id: Date.now().toString(36) + Math.random().toString(36).substring(2),
-          name: name,
-          bg1: bgSettings.bg1,
-          bg2: bgSettings.bg2,
-          aspectRatio: bgSettings.aspectRatio || 0
-        };
-        
-        // Add to presets array
-        customPresets.push(newPreset);
-        
-        // Save back to localStorage
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(customPresets));
-        
-        // Show confirmation toast
-        toastController.create({
-          message: `Background preset "${name}" saved!`,
-          duration: 2000,
-          position: 'top',
-          color: 'success'
-        }).then(toast => toast.present());
-        
-      } catch (e) {
-        console.error('Failed to save background preset:', e);
-        toastController.create({
-          message: 'Failed to save background preset',
-          duration: 2000,
-          position: 'top',
-          color: 'danger'
-        }).then(toast => toast.present());
-      }
-    },
-    async exportBeasts() {
-      try {
-        // Get all beasts
-        const beasts = await this.bestiary.getBeasts();
-        
-        if (beasts.length === 0) {
-          this.bestiary.showWarningToast("No beasts to export!");
-          return;
-        }
-        
-        // Create a data URL with the JSON data
-        const jsonData = JSON.stringify(beasts, null, 2);
-        const dataUrl = `data:text/json;charset=utf-8,${encodeURIComponent(jsonData)}`;
-        
-        // Create a temporary link element and trigger download
-        const link = document.createElement('a');
-        link.href = dataUrl;
-        link.download = `xp-beasts-export-${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        // Show success toast
-        this.bestiary.showSuccessToast(`${beasts.length} beasts exported successfully!`);
-      } catch (error) {
-        console.error('Failed to export beasts:', error);
-        this.bestiary.showErrorToast("Failed to export beasts");
-      }
-    },
-    
-    async importBeasts() {
-      try {
-        // Create file input element
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = '.json';
-        
-        // Set up file change handler
-        fileInput.onchange = async (event) => {
-          const target = event.target as HTMLInputElement;
-          if (!target || !target.files || target.files.length === 0) return;
-          
-          const file = target.files[0];
-          if (!file) return;
-          
-          const reader = new FileReader();
-          
-          reader.onload = async (e) => {
-            try {
-              if (!e.target || e.target.result === null) {
-                this.bestiary.showErrorToast("Failed to read file");
-                return;
-              }
-
-              const content = e.target.result as string;
-              const importedBeasts = JSON.parse(content);
-              
-              if (!Array.isArray(importedBeasts)) {
-                this.bestiary.showErrorToast("Invalid beasts file format");
-                return;
-              }
-              
-              // Ask for confirmation with details about import
-              const alert = await alertController.create({
-                header: 'Import Beasts',
-                message: `Do you want to import ${importedBeasts.length} beasts? This will add them to your existing collection.`,
-                buttons: [
-                  {
-                    text: 'Cancel',
-                    role: 'cancel'
-                  },
-                  {
-                    text: 'Import',
-                    handler: async () => {
-                      // Import each beast
-                      let successCount = 0;
-                      
-                      for (const beast of importedBeasts) {
-                        try {
-                          // Ensure each beast has a new UUID to avoid conflicts
-                          const importedBeast = {
-                            ...beast,
-                            id: uuidv4()
-                          };
-                          
-                          await this.bestiary.setBeast(importedBeast);
-                          successCount++;
-                        } catch (err) {
-                          console.error('Error importing beast:', err);
-                        }
-                      }
-                      
-                      // Refresh beast list
-                      await this.loadBeasts();
-                      
-                      // Show success toast
-                      this.bestiary.showSuccessToast(`${successCount} beasts imported successfully!`);
-                    }
-                  }
-                ]
-              });
-              
-              await alert.present();
-              
-            } catch (parseError) {
-              console.error('Error parsing import file:', parseError);
-              this.bestiary.showErrorToast("Invalid JSON file");
-            }
-          };
-          
-          reader.readAsText(file);
-        };
-        
-        // Trigger file selection
-        fileInput.click();
-        
-      } catch (error) {
-        console.error('Failed to import beasts:', error);
-        this.bestiary.showErrorToast("Failed to import beasts");
-      }
-    },
     async presentActionSheet() {
       const actionSheet = await actionSheetController
         .create({
@@ -418,6 +308,24 @@ export default defineComponent({
               }
             },
             {
+              text: 'Import Beasts',
+              icon: 'fas:file-import',
+              cssClass: 'action-import',
+              handler: () => {
+                // Use the new method from BestiaryDb
+                this.bestiary.importBestiary(() => this.loadBeasts());
+              }
+            },
+            {
+              text: 'Export Beasts',
+              icon: 'fas:file-export',
+              cssClass: 'action-export',
+              handler: () => {
+                // Use the new method from BestiaryDb
+                this.bestiary.exportBestiary();
+              }
+            },
+            {
               text: 'Save Background as Preset',
               icon: saveOutline,
               cssClass: 'action-save',
@@ -427,6 +335,7 @@ export default defineComponent({
             },
             {
               text: 'Cancel',
+              icon: 'fas:times-circle',
               role: 'cancel',
               cssClass: 'action-cancel',
               handler: () => {
@@ -437,14 +346,52 @@ export default defineComponent({
         });
       await actionSheet.present();
     },
+    
+    // Ionic specific lifecycle hooks - moved inside methods object
+    ionViewWillEnter() {
+      debug.log('ionViewWillEnter - XpBestiary');
+      this.reInitBackground();
+    },
+    
+    ionViewDidEnter() {
+      debug.log('ionViewDidEnter - XpBestiary');
+      // Ensure background is properly initialized
+      if (!backgroundManager.isActiveFor(PAGE_ID)) {
+        this.reInitBackground();
+      }
+    }
   },
+  
   mounted() {
+    debug.log('mounted - XpBestiary');
     this.loadBeasts();
-    this.animateBg();
+    this.initBackground();
+    this.loadSavedBackgroundSettings();
   },
+  
+  activated() {
+    debug.log('activated - XpBestiary');
+    // Always reinitialize on activation regardless of current state
+    if (this.reInitBackground) {
+      this.reInitBackground();
+    } else {
+      debug.log('forceReinitBackground not available in activated hook');
+      // Fallback initialization
+      if (backgroundManager.isActiveFor(PAGE_ID)) {
+        backgroundManager.cleanupBackground();
+      }
+      this.initBackground();
+    }
+  },
+  
   unmounted() {
-    backgroundManager.cleanupBackground();
+    debug.log('unmounted - XpBestiary');
+    // Only clean up if this component was the last one to initialize the background
+    if (backgroundManager.isActiveFor(PAGE_ID)) {
+      backgroundManager.cleanupBackground();
+    }
   },
+  
   setup() {
     const bestiary = new BestiaryDb(beastStorage);
     const beasts = ref([] as Beast[]);
@@ -454,7 +401,7 @@ export default defineComponent({
       beasts,
       bestiary,
       router,
-      add,
+      add: 'add-outline'
     };
   },
 });
@@ -513,6 +460,16 @@ export default defineComponent({
 
   .action-create::part(icon) {
     color: var(--ion-color-success);
+    opacity: 1;
+  }
+
+  .action-import::part(icon) {
+    color: var(--ion-color-primary);
+    opacity: 1;
+  }
+
+  .action-export::part(icon) {
+    color: var(--ion-color-secondary);
     opacity: 1;
   }
 

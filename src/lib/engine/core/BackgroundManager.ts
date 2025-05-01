@@ -20,6 +20,7 @@ class BackgroundManager {
   private bg2: number = DEFAULT_BG2;
   private aspectRatio: number = 0; // Default aspect ratio (full screen)
   private resizeListener: (() => void) | null = null;
+  private activePage: string | null = null; // Track which page/component is using the background
 
   /**
    * Private constructor to enforce singleton pattern
@@ -66,6 +67,7 @@ class BackgroundManager {
     bg2?: number;
     aspectRatio?: number;
     handleResize?: boolean;
+    page?: string; // Identifier for the page/component using this background
   } = {}): boolean {
     // Clean up any existing background first
     this.cleanupBackground();
@@ -90,6 +92,11 @@ class BackgroundManager {
     if (!this.canvasElement) {
       console.error("BackgroundManager: No canvas element found");
       return false;
+    }
+
+    // Track active page if provided
+    if (options.page) {
+      this.activePage = options.page;
     }
 
     try {
@@ -167,6 +174,9 @@ class BackgroundManager {
 
     // Clear canvas reference
     this.canvasElement = null;
+    
+    // Clear active page reference
+    this.activePage = null;
   }
 
   /**
@@ -179,11 +189,13 @@ class BackgroundManager {
     bg1?: number;
     bg2?: number;
     aspectRatio?: number;
+    page?: string;
   } = {}): boolean {
     // Update the settings with validation
     if (options.bg1 !== undefined) this.bg1 = this.validateBackgroundIndex(options.bg1, this.bg1);
     if (options.bg2 !== undefined) this.bg2 = this.validateBackgroundIndex(options.bg2, this.bg2);
     if (options.aspectRatio !== undefined) this.aspectRatio = options.aspectRatio;
+    if (options.page) this.activePage = options.page;
 
     // If we have an active canvas, reinitialize the background with new settings
     if (this.canvasElement) {
@@ -193,7 +205,8 @@ class BackgroundManager {
         bg1: this.bg1,
         bg2: this.bg2,
         aspectRatio: this.aspectRatio,
-        handleResize
+        handleResize,
+        page: this.activePage || undefined
       });
     }
     
@@ -208,8 +221,17 @@ class BackgroundManager {
       bg1: this.bg1,
       bg2: this.bg2,
       aspectRatio: this.aspectRatio,
-      isActive: !!this.backgroundEngine
+      isActive: !!this.backgroundEngine,
+      activePage: this.activePage
     };
+  }
+
+  /**
+   * Check if the manager is currently active for a specific page
+   * @param page The page identifier to check
+   */
+  public isActiveFor(page: string): boolean {
+    return this.activePage === page && !!this.backgroundEngine;
   }
 
   /**
