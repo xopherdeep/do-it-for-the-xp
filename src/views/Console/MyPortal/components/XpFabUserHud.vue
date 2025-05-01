@@ -79,7 +79,7 @@
                   >
                     <span class="text-left w-full">
                       <i class="fad fa-lg fa-bars"></i>
-                      Open Menu
+                      Menu
                     </span>
                   </ion-button>
                 </ion-menu-toggle>
@@ -193,7 +193,7 @@ export default defineComponent({
       },
       {
         id: "abilities",
-        label: "My Abilities",
+        label: "Abilities",
         faIcon: "book-spells",
         click() {
           router.push({
@@ -203,7 +203,7 @@ export default defineComponent({
         },
       },
       {
-        label: "My Quests",
+        label: "Quests",
         id: "staff",
         faIcon: "medal",
         click() {
@@ -211,7 +211,7 @@ export default defineComponent({
         },
       },
       {
-        label: "My Items",
+        label: "Goods",
         id: "my-inventory",
         faIcon: "backpack",
         click() {
@@ -227,7 +227,7 @@ export default defineComponent({
         faIcon: "hand-holding-seedling",
       },
       {
-        label: "My Wallet",
+        label: "Wallet",
         id: "wallet",
         faIcon: "wallet",
         click() {
@@ -240,7 +240,7 @@ export default defineComponent({
       {
         label: "Save & Quit",
         id: "save-quit",
-        faIcon: "save",
+        faIcon: "sign-out",
       },
     ];
 
