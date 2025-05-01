@@ -10,7 +10,7 @@ import XpLoading from './components/XpLoading'
 
 // Virtual Scroller
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
-import VueVirtualScroller, { RecycleScroller } from 'vue-virtual-scroller';
+import VueVirtualScroller from 'vue-virtual-scroller';
 
 // XP APP
 import App from './views/App/App.vue'
@@ -56,7 +56,7 @@ function readyRouterMountApp() {
     .component('vue3-autocounter', Vue3AutoCounter)
     .component('xp-loading', XpLoading)
     .component('xp-gp', XpGp)
-    .component('RecycleScroller', RecycleScroller)
+    // .component('RecycleScroller', RecycleScroller)
     .use(VueVirtualScroller)
     .use(Countdown)
     .use(IonicVue,{
