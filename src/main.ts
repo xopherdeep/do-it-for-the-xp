@@ -30,7 +30,7 @@ import { GPSystem } from './lib/engine/core/GPSystem';
 import { initializeAbilitySystem } from './lib/engine/core/abilities/abilities';
 
 // Accessibility fixes
-import { fixAriaHiddenFocusIssues } from '@/lib/utils/a11yUtils';
+import { fixAriaHiddenFocusIssues, preventIOSZoom } from '@/lib/utils/a11yUtils';
 
 // Set up user interaction detection for audio playback
 document.addEventListener('click', () => {
@@ -45,6 +45,9 @@ document.addEventListener('click', () => {
 
 // Apply accessibility fixes for aria-hidden issues
 fixAriaHiddenFocusIssues();
+
+// Prevent iOS zoom on double tap
+preventIOSZoom();
 
 
 function readyRouterMountApp() {

@@ -57,6 +57,15 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
             ),
         },
         {
+          path: "bestiary/create-update/:id?",
+          name: "xp-create-update-beast",
+          component: () =>
+            import(
+              "@/views/App/SideMenu/XpGameMaster/XpBestiary/components/XpAddBeast.vue"
+            ),
+          props: true,
+        },
+        {
           path: "accessories",
           name: "xp-accessories",
           component: () =>
@@ -79,16 +88,15 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
             import(
               "@/views/App/SideMenu/XpGameMaster/XpAbilities/XpAbilities.vue"
             ),
-          children: [
-            {
-              path: "create-update/:id?",
-              name: "xp-create-update-ability",
-              component: () =>
-                import(
-                  "@/views/App/SideMenu/XpGameMaster/XpAbilities/components/XpCreateUpdateAbility.vue"
-                ),
-            },
-          ],
+        },
+        {
+          path: "abilities/create-update/:id?",
+          name: "xp-create-update-ability",
+          component: () =>
+            import(
+              "@/views/App/SideMenu/XpGameMaster/XpAbilities/components/XpCreateUpdateAbility.vue"
+            ),
+          props: true,
         },
         {
           path: "temples",
@@ -137,6 +145,24 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
       component: () =>
         import(
           "@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAddAchievement/XpAddAchievement.vue"
+        ),
+      props: true,
+    },
+    {
+      path: "add-beast/:id?",
+      name: "xp-add-beast",
+      component: () =>
+        import(
+          "@/views/App/SideMenu/XpGameMaster/XpBestiary/components/XpAddBeast.vue"
+        ),
+      props: true,
+    },
+    {
+      path: "add-ability/:id?",
+      name: "xp-add-ability",
+      component: () =>
+        import(
+          "@/views/App/SideMenu/XpGameMaster/XpAbilities/components/XpCreateUpdateAbility.vue"
         ),
       props: true,
     },
