@@ -851,6 +851,7 @@
         filteredAbilities,
         showAbilityModal,
         showPresetModal,
+        showIconPicker,
         editingAbility,
         viewMode,
         currentFilter,
