@@ -41,6 +41,7 @@ import { defineComponent } from 'vue';
 import { mapState } from 'vuex';
 import ionic from '@/mixins/ionic';
 import debug from '@/lib/utils/debug';
+import { useAudio } from '@/hooks/useAudio';
 import { 
   playSkipBackSharp, 
   playBackSharp,
@@ -110,6 +111,15 @@ export default defineComponent({
     }
   },
   
+  setup() {
+    // Initialize the audio hook
+    const audio = useAudio();
+    
+    return {
+      audio
+    };
+  },
+  
   data() {
     return {
       progressPercentage: 0,
@@ -172,19 +182,20 @@ export default defineComponent({
     
     prevTrack() {
       this.$emit('changeBGM', -1);
-      this.$fx.ui[this.$fx.theme.ui].select.play();
+      // Use AudioEngine for UI sounds instead of direct $fx access
+      this.audio.playUISound('select');
       this.resetProgress();
     },
     
     nextTrack() {
       this.$emit('changeBGM', 1);
-      this.$fx.ui[this.$fx.theme.ui].select.play();
+      this.audio.playUISound('select');
       this.resetProgress();
     },
     
     togglePlayPause() {
       this.$emit('toggleMusic', { detail: { checked: !this.isPlaying } });
-      this.$fx.ui[this.$fx.theme.ui].select.play();
+      this.audio.playUISound('select');
       this.simulateProgressUpdate();
     },
     
@@ -192,7 +203,7 @@ export default defineComponent({
       if (this.audioElement && this.audioElement.currentTime) {
         // Rewind by seekAmount seconds, but don't go below 0
         this.audioElement.currentTime = Math.max(0, this.audioElement.currentTime - this.seekAmount);
-        this.$fx.ui[this.$fx.theme.ui].select.play();
+        this.audio.playUISound('select');
         
         // Update progress percentage based on current time
         if (this.audioElement.duration) {
@@ -210,7 +221,7 @@ export default defineComponent({
         } else {
           this.audioElement.currentTime = newTime;
         }
-        this.$fx.ui[this.$fx.theme.ui].select.play();
+        this.audio.playUISound('select');
         
         // Update progress percentage based on current time
         if (this.audioElement.duration) {
