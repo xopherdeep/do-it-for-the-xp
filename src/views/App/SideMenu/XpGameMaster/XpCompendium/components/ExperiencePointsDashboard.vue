@@ -1,17 +1,23 @@
 <template>
   <ion-grid class="icon-colors">
     <ion-row>
+      <!-- Total XP Earned -->
       <ion-col size="6">
-        <XpStatBox :value="1234567" label="Total XP Given" iconName="fa-arrow-up" iconColor="primary" />
+        <XpStatBox :value="1234567" label="XP Sown" iconName="fa-tree-alt" iconColor="success" />
       </ion-col>
+      <!-- Active Streak -->
       <ion-col size="6">
-        <XpStatBox :value="99" label="Highest Level" iconName="fa-trophy" iconColor="warning" />
+        <XpStatBox :value="5678" label="Avg XP per Quest" iconName="fa-hand-holding-seedling"  />
       </ion-col>
-      <ion-col size="6">
-        <XpStatBox :value="5678" label="Avg XP per Day" iconName="fa-calendar-day" iconColor="success" />
+      <!-- Tasks Completed Today -->
+      <ion-col >
+        <XpStatBox :value="75" label="XP Today" iconName="fa-calendar-day" iconColor="primary" />
       </ion-col>
-      <ion-col size="6">
-        <XpStatBox :value="42" label="Active Users" iconName="fa-users" iconColor="tertiary" />
+      <ion-col >
+        <XpStatBox :value="123" label="XP This Week" iconName="fa-calendar-week" iconColor="warning" />
+      </ion-col>
+      <ion-col >
+        <XpStatBox :value="456" label="XP This Month" iconName="fa-calendar-alt" iconColor="tertiary" />
       </ion-col>
     </ion-row>
   </ion-grid>

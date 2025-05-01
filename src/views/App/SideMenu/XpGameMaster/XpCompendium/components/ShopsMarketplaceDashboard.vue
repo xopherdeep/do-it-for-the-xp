@@ -1,5 +1,5 @@
 <template>
-  <ion-grid class="icon-colors">
+  <ion-grid class="icon-colors w-full">
     <ion-row>
       <ion-col size="6">
         <XpStatBox :value="10" label="Total Shops" iconName="fa-store" iconColor="primary" />

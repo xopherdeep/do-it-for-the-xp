@@ -1,17 +1,24 @@
 <template>
   <ion-grid class="icon-colors">
     <ion-row>
-      <ion-col size="6">
-        <XpStatBox :value="beastCount" label="Total Beasts" iconName="fa-paw" iconColor="primary" />
+      <ion-col size="4">
+        <XpStatBox :value="beastCount" label="Total Beasts" iconName="fa-paw-claws" iconColor="primary" />
       </ion-col>
-      <ion-col size="6">
-        <XpStatBox :value="activeBeastCount" label="Active Beasts" iconName="fa-fire" iconColor="danger" />
+      <ion-col size="4">
+        <XpStatBox :value="avgChecklistLength" label="Avg Tasks" iconName="fa-check" iconColor="tertiary" />
       </ion-col>
-      <ion-col size="6">
-        <XpStatBox :value="avgChecklistLength" label="Avg Tasks per Beast" iconName="fa-check" iconColor="tertiary" />
+      <ion-col size="4">
+        <XpStatBox :value="attachedAchievements" label="Linked Quests" iconName="fa-hand-holding-seedling" iconColor="warning" />
       </ion-col>
-      <ion-col size="6">
-        <XpStatBox :value="attachedAchievements" label="Achievements Attached" iconName="fa-link" iconColor="warning" />
+      
+      <ion-col size="4">
+        <XpStatBox :value="tamedToday" label="Tamed Today" iconName="fa-calendar-day" iconColor="primary" />
+      </ion-col>
+      <ion-col size="4">
+        <XpStatBox :value="tamedThisWeek" label="This Week" iconName="fa-calendar-week" iconColor="warning" />
+      </ion-col>
+      <ion-col size="4">
+        <XpStatBox :value="tamedThisMonth" label="This Month" iconName="fa-calendar-alt" iconColor="danger" />
       </ion-col>
     </ion-row>
   </ion-grid>
@@ -33,16 +40,29 @@ export default defineComponent({
     const beasts = ref<Beast[]>([]);
     const bestiary = new BestiaryDb(beastStorage);
 
+    // Mock data for time-based stats
+    const tamedToday = ref(2);
+    const tamedThisWeek = ref(5);
+    const tamedThisMonth = ref(12);
+
     onMounted(async () => {
       await loadBeasts();
     });
 
     const loadBeasts = async () => {
       beasts.value = await bestiary.getBeasts();
+      
+      // In the future, if 'createdAt' gets added to the Beast interface,
+      // we can replace these with dynamic calculations
+      // For now, we just use mock values that make sense based on total beasts
+      if (beasts.value.length > 0) {
+        tamedToday.value = Math.min(Math.max(1, Math.floor(beasts.value.length * 0.1)), 5);
+        tamedThisWeek.value = Math.min(Math.max(2, Math.floor(beasts.value.length * 0.3)), 12);
+        tamedThisMonth.value = Math.min(Math.max(4, Math.floor(beasts.value.length * 0.6)), 25);
+      }
     };
 
     const beastCount = computed(() => beasts.value.length);
-    const activeBeastCount = computed(() => beasts.value.filter(beast => beast.checklist.length > 0).length);
     const avgChecklistLength = computed(() => {
       if (beasts.value.length === 0) return 0;
       const totalChecklistLength = beasts.value.reduce((sum, beast) => sum + beast.checklist.length, 0);
@@ -54,9 +74,11 @@ export default defineComponent({
 
     return {
       beastCount,
-      activeBeastCount,
       avgChecklistLength,
-      attachedAchievements
+      attachedAchievements,
+      tamedToday,
+      tamedThisWeek,
+      tamedThisMonth
     };
   }
 });
@@ -64,4 +86,7 @@ export default defineComponent({
 
 <style scoped>
 /* Add any specific styles for the BeastsChallengesDashboard here */
+.icon-colors {
+  padding: 10px;
+}
 </style>

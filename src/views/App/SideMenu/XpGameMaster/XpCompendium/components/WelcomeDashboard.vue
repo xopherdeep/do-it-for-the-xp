@@ -1,37 +1,37 @@
 <template>
-  <ion-grid class="icon-colors">
+  <ion-grid class="icon-colors w-full">
     <ion-row>
-      <ion-col size="3">
+      <ion-col>
         <XpStatBox
-          :value="stats.abilities || 0"
+          :value="stats?.abilities || 0"
           label="Abilities"
           iconName="fa-hand-holding-magic"
         />
       </ion-col>
-      <ion-col size="3">
+      <ion-col>
         <XpStatBox
-          :value="stats.beasts || 0"
-          label="Beasts"
-          iconName="fa-hand-holding-heart"
-        />
-      </ion-col>
-      <ion-col size="3">
-        <XpStatBox
-          :value="stats.achievements || 0"
+          :value="stats?.achievements || 0"
           label="Quests"
           iconName="fa-hand-holding-seedling"
         />
       </ion-col>
-      <ion-col size="3">
+      <ion-col>
         <XpStatBox
-          :value="stats.items || 0"
+          :value="stats?.items || 0"
           label="Items"
           iconName="fa-hand-holding-usd"
         />
       </ion-col>
-      <ion-col size="12">
+      <ion-col size="6">
         <XpStatBox
-          :value="stats.temples || 0"
+          :value="stats?.beasts || 0"
+          label="Beasts"
+          iconName="fa-hand-holding-heart"
+        />
+      </ion-col>
+      <ion-col>
+        <XpStatBox
+          :value="stats?.temples || 0"
           label="Temples"
           iconName="fa-hand-holding-water"
         />
@@ -52,13 +52,14 @@ export default defineComponent({
   props: {
     stats: {
       type: Object as PropType<{
-        abilities: number;
-        beasts: number;
-        achievements: number;
-        temples: number;
-        items: number;
+        abilities?: number;
+        beasts?: number;
+        achievements?: number;
+        temples?: number;
+        items?: number;
       }>,
-      required: true
+      required: true,
+      default: () => ({})
     }
   }
 });
