@@ -19,7 +19,7 @@
       :fullscreen="true"
       class="rpg-box bg-slide ion-padding"
     >
-      <ion-grid class="max-w-5xl">
+      <ion-grid class="max-w-5xl rpg-box">
         <ion-row>
           <ion-col
             size="12"
@@ -41,7 +41,7 @@
                 </ion-card-title>
               </ion-card-header>
               <hr />
-              <ion-card-content>
+              <ion-card-content class="rpg-box">
                 {{ item.description }}
               </ion-card-content>
             </ion-card>

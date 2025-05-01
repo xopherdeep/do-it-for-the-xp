@@ -12,6 +12,7 @@
               :ios="helpOutline"
               :md="helpSharp"
               class="fa-2x"
+              color="rpg"
             />
           </ion-button>
         </ion-buttons>
@@ -40,6 +41,7 @@
                 <i
                   class="fad fa-5x"
                   :class="tile.icon"
+                  style="color: var(--ion-color-rpg)"
                 ></i>
                 <ion-card-title>
                   {{ tile.title }}

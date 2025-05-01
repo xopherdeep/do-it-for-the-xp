@@ -38,7 +38,7 @@
             
             <ion-item>
               <ion-label>Text Speed</ion-label>
-              <ion-range v-model="textSpeed" min="10" max="150" :pin="true"></ion-range>
+              <ion-range v-model="textSpeed" :min="10" :max="150" :pin="true"></ion-range>
             </ion-item>
             
             <ion-item>

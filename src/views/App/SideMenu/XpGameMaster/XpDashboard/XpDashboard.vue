@@ -129,6 +129,14 @@
               :onClick="() => navigateTo('/game-master/approvals')"
             />
           </ion-col>
+          <ion-col size="3">
+            <XpStatBox
+              :value="abilities?.length || 0"
+              label="Abilities"
+              iconName="fa-hand-holding-magic"
+              :onClick="() => navigateTo('/game-master/compendium/abilities')"
+            />
+          </ion-col>
 
           <ion-col size="3">
             <XpStatBox
@@ -144,14 +152,6 @@
               label="Quests"
               iconName="fa-hand-holding-seedling"
               :onClick="() => navigateTo('/game-master/compendium/achievements')"
-            />
-          </ion-col>
-          <ion-col size="3">
-            <XpStatBox
-              :value="abilities?.length || 0"
-              label="Abilities"
-              iconName="fa-hand-holding-magic"
-              :onClick="() => navigateTo('/game-master/compendium/abilities')"
             />
           </ion-col>
           <ion-col size="3">

@@ -120,6 +120,8 @@ import {
   moonSharp,
   pizzaOutline,
   pizzaSharp,
+  sunnyOutline,
+  sunnySharp,
 } from "ionicons/icons";
 import XpMusicPlayer from "@/components/XpMusicPlayer/XpMusicPlayer.vue";
 
@@ -132,6 +134,7 @@ export default defineComponent({
 
   data() {
     return {
+      isAnnual: true,
       activeMenuItem: 0,  // Changed back to number
       icons: {
         lockClosedOutline,
@@ -147,13 +150,6 @@ export default defineComponent({
         },
       ],
       appPages: [
-        {
-          title: "About XP",
-          url: "/xp-intro",
-          iosIcon: informationOutline,
-          mdIcon: informationSharp,
-          lines: "none",
-        },
         // {
         //   title: "About XP",
         //   url: "/about-xp",
@@ -162,12 +158,14 @@ export default defineComponent({
         //   lines: "none",
         // },
         {
-          title: "Subscription",
+          title: "Membership",
           url: "/xp-membership",
           // iosIcon: fitnessOutline,
           // mdIcon: fitnessSharp,
-          iosIcon: moonOutline,
-          mdIcon: moonSharp,
+          // moon if monthly or sun if yearly
+          iosIcon: this.isAnnual ? moonOutline : sunnyOutline,
+          mdIcon: this.isAnnual ? moonSharp : sunnySharp,
+
           lines: "none",
         },
         {
@@ -178,7 +176,14 @@ export default defineComponent({
           lines: "none",
         },
         {
-          title: "FAQ & Support",
+          title: "Play Intro",
+          url: "/xp-intro",
+          iosIcon: informationOutline,
+          mdIcon: informationSharp,
+          lines: "none",
+        },
+        {
+          title: "Help Desk",
           url: "/xp-support",
           // iosIcon: helpBuoyOutline,
           // mdIcon: helpBuoySharp,
@@ -188,13 +193,6 @@ export default defineComponent({
         },
         {
           title: "",
-        },
-        {
-          title: "Compendium",
-          url: "/game-master",
-          iosIcon: fitnessOutline,
-          mdIcon: fitnessSharp,
-          lines: "none",
         },
 
         {
@@ -206,10 +204,18 @@ export default defineComponent({
         },
 
         {
+          title: "Compendium",
+          url: "/game-master",
+          iosIcon: fitnessOutline,
+          mdIcon: fitnessSharp,
+          lines: "none",
+        },
+
+        {
           title: "",
         },
         {
-          title: "Switch Profile",
+          title: "Select Profile",
           url: "/xp-profile/",
 
           iosIcon: fingerPrintOutline,

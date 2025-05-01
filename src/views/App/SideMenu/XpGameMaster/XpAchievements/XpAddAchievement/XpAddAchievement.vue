@@ -86,14 +86,12 @@
             </ion-segment-button>
           </ion-segment>
 
-          <ion-card-content>
-
             <!-- Dynamic helper text based on active segment -->
-            <ion-label>
-              <i
-                class="fad ion-float-right ml-2"
+              <!-- <i
+                class="fad ion-float-right ml-2 fa-sm"
                 :class="activeSegmentIcon"
-              />
+              /> -->
+            <ion-label class="p-2">
               <span v-if="activeSegment === 'quest' && !adventureType">Choose your quest type, brave Game
                 Master!</span>
               <span v-else-if="activeSegment === 'quest' && adventureType">{{ activeAdventureType.text }}</span>
@@ -104,7 +102,6 @@
               <span v-else-if="activeSegment === 'points'">What treasures shall be bestowed for conquering this
                 achievement?</span>
             </ion-label>
-          </ion-card-content>
           <!-- Content Card - Adventure -->
           <ion-list v-if="activeSegment === 'quest'">
             <ion-item-group>
@@ -595,6 +592,25 @@
                     </ion-button>
                   </ion-buttons>
                 </ion-item-divider>
+                <!-- Fibonacci dropdown menu -->
+                <ion-item>
+                  <ion-label position="stacked">Choose Fibonacci Value</ion-label>
+                  <ion-select
+                    v-model="fibonacciIndex"
+                    interface="action-sheet"
+                    @ionChange="handleDifficultyChange"
+                    placeholder="Select a value"
+                    mode="ios"
+                  >
+                    <ion-select-option
+                      v-for="(value, index) in fibonacciArray"
+                      :key="index"
+                      :value="index"
+                    >
+                      {{ value }} - {{ fibonacciDescriptions[index] || 'Custom' }}
+                    </ion-select-option>
+                  </ion-select>
+                </ion-item>
                 <ion-item>
                   <ion-label
                     class="ion-text-wrap"
@@ -624,31 +640,12 @@
                   </div>
                 </ion-item>
 
-                <!-- Fibonacci dropdown menu -->
-                <ion-item>
-                  <ion-label>Choose Fibonacci Value</ion-label>
-                  <ion-select
-                    v-model="fibonacciIndex"
-                    interface="action-sheet"
-                    @ionChange="handleDifficultyChange"
-                    placeholder="Select a value"
-                    mode="ios"
-                  >
-                    <ion-select-option
-                      v-for="(value, index) in fibonacciArray"
-                      :key="index"
-                      :value="index"
-                    >
-                      {{ value }} - {{ fibonacciDescriptions[index] || 'Custom' }}
-                    </ion-select-option>
-                  </ion-select>
-                </ion-item>
               </ion-item-group>
 
               <!-- Points to Award - No Accordion -->
               <ion-item-group class="mb-4">
                 <ion-item-divider>
-                  <ion-item-label>Amount of Points to Award</ion-item-label>
+                  <ion-label>Amount of Points to Award</ion-label>
                 </ion-item-divider>
 
                 <!-- Experience Points (XP) -->

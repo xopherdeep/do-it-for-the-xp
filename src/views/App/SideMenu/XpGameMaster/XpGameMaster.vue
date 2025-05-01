@@ -9,7 +9,7 @@
             href="/game-master/compendium"
             :selected="$route.path.indexOf('game-master/compendium/') >= 0"
           >
-            <i class="fad fa-hand-holding-medical fa-2x" />
+            <i class="fad fa-game-console-handheld fa-2x" />
             Setup XP
             
           </ion-tab-button>
