@@ -14,11 +14,11 @@
           XP Family Dashboard
         </ion-title>
         <ion-buttons slot="end">
-          <ion-button @click="openSettings">
+          <ion-button @click="openSettings" color="rpg">
             <i class="fad fa-toggle-on fa-lg" />
           </ion-button>
 
-          <ion-button @click="refreshData">
+          <ion-button @click="refreshData" color="rpg">
             <i class="fad fa-sync-alt fa-lg" />
           </ion-button>
         </ion-buttons>
@@ -536,6 +536,9 @@
         cashed: 0,
         total: 0,
       });
+      
+      // Add abilities ref with explicit typing to fix the TypeScript error
+      const abilities = ref<any[]>([]);
 
       onMounted(async () => {
         // Initial data load
@@ -549,6 +552,17 @@
         const allDosDonts = await dosDontsDb.getAll();
         stats.value.dos = allDosDonts.filter(item => item.type === 'do').length;
         stats.value.donts = allDosDonts.filter(item => item.type === 'dont').length;
+        
+        // Load abilities data - assuming there's a similar method to get abilities
+        // If there's no specific method, you might need to adapt this based on your app's structure
+        try {
+          // You might need to modify this to match how abilities are actually loaded in your app
+          const abilitiesData = await store.dispatch('getAbilities');
+          abilities.value = Array.isArray(abilitiesData) ? abilitiesData : [];
+        } catch (error) {
+          debug.error('Failed to load abilities:', error);
+          abilities.value = [];
+        }
       });
 
       return {
@@ -560,6 +574,7 @@
         bestiaryDb,
         dosDontsDb,
         getUserAvatar,
+        abilities, // Return the abilities ref
       };
     },
   });
