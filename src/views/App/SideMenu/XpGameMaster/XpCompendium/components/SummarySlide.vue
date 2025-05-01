@@ -22,6 +22,7 @@
 </template>
 
 <script lang="ts">
+import Ionic from '@/mixins/ionic';
 import { defineComponent, PropType } from 'vue';
 
 interface RouteItem {
@@ -32,6 +33,8 @@ interface RouteItem {
 
 export default defineComponent({
   name: 'SummarySlide',
+
+  mixins: [Ionic],
   props: {
     routes: {
       type: Array as PropType<RouteItem[]>,

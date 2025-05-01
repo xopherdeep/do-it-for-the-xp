@@ -15,10 +15,13 @@
 </template>
 
 <script lang="ts">
+import Ionic from '@/mixins/ionic';
 import { defineComponent } from 'vue';
 
 export default defineComponent({
   name: 'PointSystemSlide',
+
+  mixins: [Ionic],
   props: {
     title: { type: String, required: true },
     description: { type: String, required: true },
