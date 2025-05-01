@@ -9,6 +9,9 @@ import { ChestSystem } from '@/lib/engine/core/dungeons/ChestSystem';
 import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
 import debug from '@/lib/utils/debug';
 
+// Define a message display function type that can be provided by the component using this hook
+export type MessageDisplayFn = (message: string, duration?: number) => void;
+
 export function useTemple(templeId: string, startPosition?: [number, number]) {
   const templeSystem = TempleSystem.getInstance();
   const dungeonManager = DungeonManager.getInstance();
@@ -21,6 +24,9 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
   const isMapOpen = ref(false);
   const currentMessage = ref('');
   const showMessage = ref(false);
+  
+  // Optional function reference for external message display
+  let externalDisplayMessage: MessageDisplayFn | null = null;
 
   // Initialize temple
   onMounted(() => {
@@ -40,6 +46,11 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
       }
     }
   });
+  
+  // Allow components to register their own message display function
+  const registerMessageDisplay = (displayFn: MessageDisplayFn) => {
+    externalDisplayMessage = displayFn;
+  };
   
   // Watch for changes in the temple state
   watch(
@@ -171,8 +182,15 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
     return rooms.value[roomKey]?.type !== 'wall';
   });
   
-  // Helper to display messages
+  // Helper to display messages - now uses the external display function if available
   const displayMessage = (message: string, duration = 2000) => {
+    // If an external display function is registered, use it
+    if (externalDisplayMessage) {
+      externalDisplayMessage(message, duration);
+      return;
+    }
+    
+    // Otherwise fall back to the default toast behavior
     currentMessage.value = message;
     showMessage.value = true;
     
@@ -494,6 +512,7 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
     openMap,
     closeMap,
     displayMessage,
+    registerMessageDisplay,
     
     // Map and compass utilities
     showRoomDetails,
