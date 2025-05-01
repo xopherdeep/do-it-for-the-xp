@@ -87,7 +87,7 @@
             :md="icons.lockClosedSharp"
             class="ml-2"
           />
-          <ion-label>Log Outs</ion-label>
+          <ion-label>Log Out</ion-label>
         </ion-item>
       </ion-menu-toggle>
       <!-- copyright -->
