@@ -23,9 +23,11 @@
 import { defineComponent, ref, PropType, watch } from 'vue';
 import XpTypingText from '@/components/XpTypingText/XpTypingText.vue';
 import debug from '@/lib/utils/debug';
+import Ionic from '@/mixins/ionic';
 
 export default defineComponent({
   name: 'XpDialog',
+  mixins: [Ionic],
   components: {
     XpTypingText
   },
