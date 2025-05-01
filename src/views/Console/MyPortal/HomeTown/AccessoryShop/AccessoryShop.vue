@@ -12,6 +12,11 @@
         <ion-title>
           {{ shopName }}
         </ion-title>
+        <ion-buttons slot="end">
+          <ion-button @click="openATM" color="rpg">
+            <i class="fad fa-hand-holding-usd fa-2x"></i>
+          </ion-button>
+        </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
@@ -174,18 +179,11 @@
         </ion-row>
       </ion-grid>
       
-      <!-- ATM FAB Button -->
-      <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-        <ion-fab-button @click="openATM" color="warning">
-          <ion-icon :icon="cashOutline"></ion-icon>
-        </ion-fab-button>
-      </ion-fab>
-      
       <!-- ATM Modal -->
       <ATMModal 
         :is-open="showAtm"
-        :user-id="userId"
-        @close="showAtm = false"
+        :user="user"
+        @update:isOpen="showAtm = $event"
         @deposit="clickDeposit"
         @withdraw="clickWithdraw"
         @pay-debt="clickPayDebt"

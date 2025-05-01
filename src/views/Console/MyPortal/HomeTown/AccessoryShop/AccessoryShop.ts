@@ -33,6 +33,7 @@ import debug from "@/lib/utils/debug";
 import ATMModal from "@/views/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
 // Import the GPSystem
 import { getGPSystem } from "@/lib/engine/core/GPSystem";
+import { mapGetters } from "vuex";
 
 export default defineComponent({
   props: ["userId", "merchant"],
@@ -144,6 +145,10 @@ export default defineComponent({
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat'
       };
+    },
+    ...mapGetters(["getUserById"]),
+    user() {
+      return this.getUserById(this.userId);
     }
   },
   methods: {
