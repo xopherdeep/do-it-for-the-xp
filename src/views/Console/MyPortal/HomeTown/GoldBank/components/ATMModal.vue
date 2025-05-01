@@ -17,7 +17,7 @@
     <ion-header>
       <ion-toolbar color="warning">
         <ion-buttons slot="start">
-          <ion-button @click="dismiss">
+          <ion-button @click="dismiss" color="rpg">
             <ion-icon
               slot="icon-only"
               :icon="closeOutline"
@@ -29,7 +29,7 @@
       </ion-toolbar>
     </ion-header>
     <ion-content class="ion-padding bank-slide rpg-box icon-colors text-center">
-      <ion-card>
+      <ion-card v-if="user && user.stats && user.stats.gp">
         <ion-card-header>
           <ion-card-title class="ion-text-center">Account Summary</ion-card-title>
         </ion-card-header>
@@ -75,6 +75,12 @@
 
         </ion-card-content>
       </ion-card>
+      <ion-card v-else class="ion-padding">
+        <ion-card-content>
+          <ion-spinner name="crescent"></ion-spinner>
+          <p>Loading account information...</p>
+        </ion-card-content>
+      </ion-card>
       <i class="fad fa-hand-holding-usd fa-8x text-center mt-8 mx-auto"></i>
 
       <!-- Alerts with triggers -->
@@ -96,7 +102,7 @@
             type: 'number',
             placeholder: 'Enter GP amount',
             min: 1,
-            max: user.stats.gp.wallet
+            max: user?.stats?.gp?.wallet || 0
           }
         ]"
       ></ion-alert>
@@ -119,7 +125,7 @@
             type: 'number',
             placeholder: 'Enter GP amount',
             min: 1,
-            max: Math.min(user.stats.gp.savings, user.stats.gp.limit - user.stats.gp.wallet)
+            max: Math.min(user?.stats?.gp?.savings || 0, (user?.stats?.gp?.limit || 0) - (user?.stats?.gp?.wallet || 0))
           }
         ]"
       ></ion-alert>
@@ -142,7 +148,7 @@
             type: 'number',
             placeholder: 'Enter GP amount',
             min: 1,
-            max: Math.min(user.stats.gp.wallet, user.stats.gp.debt)
+            max: Math.min(user?.stats?.gp?.wallet || 0, user?.stats?.gp?.debt || 0)
           }
         ]"
       ></ion-alert>
