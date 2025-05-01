@@ -20,8 +20,9 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, PropType } from 'vue';
+import { defineComponent, ref, PropType, watch } from 'vue';
 import XpTypingText from '@/components/XpTypingText/XpTypingText.vue';
+import debug from '@/lib/utils/debug';
 
 export default defineComponent({
   name: 'XpDialog',
@@ -44,10 +45,33 @@ export default defineComponent({
     const isVisible = ref(false);
     const currentBlockIndex = ref(0);
     const typingText = ref<InstanceType<typeof XpTypingText> | null>(null);
-    const currentText = ref(props.textBlocks[0] || '');
-    const hasMoreText = ref(props.textBlocks.length > 1);
+    const currentText = ref('');
+    const hasMoreText = ref(false);
+
+    // Update the text based on current index
+    const updateCurrentText = () => {
+      if (props.textBlocks.length > 0 && currentBlockIndex.value < props.textBlocks.length) {
+        currentText.value = props.textBlocks[currentBlockIndex.value];
+      } else {
+        currentText.value = '';
+      }
+      hasMoreText.value = currentBlockIndex.value < props.textBlocks.length - 1;
+    };
+
+    // Reset component state
+    const resetState = () => {
+      currentBlockIndex.value = 0;
+      updateCurrentText();
+      debug.log(`Dialog reset with ${props.textBlocks.length} blocks. First block: "${currentText.value.substring(0, 20)}..."`);
+    };
+
+    // Watch for changes in textBlocks
+    watch(() => props.textBlocks, () => {
+      resetState();
+    }, { deep: true });
 
     const show = () => {
+      resetState();
       isVisible.value = true;
       if (typingText.value) {
         typingText.value.startTyping();
@@ -56,16 +80,13 @@ export default defineComponent({
 
     const hide = () => {
       isVisible.value = false;
-      currentBlockIndex.value = 0;
-      currentText.value = props.textBlocks[0] || '';
-      hasMoreText.value = props.textBlocks.length > 1;
+      resetState();
     };
 
     const nextBlock = () => {
       if (currentBlockIndex.value < props.textBlocks.length - 1) {
         currentBlockIndex.value++;
-        currentText.value = props.textBlocks[currentBlockIndex.value];
-        hasMoreText.value = currentBlockIndex.value < props.textBlocks.length - 1;
+        updateCurrentText();
         if (typingText.value) {
           typingText.value.startTyping();
         }
@@ -86,6 +107,9 @@ export default defineComponent({
     const onTypingComplete = () => {
       emit('block-complete', currentBlockIndex.value);
     };
+
+    // Initialize text on component creation
+    resetState();
 
     return {
       isVisible,

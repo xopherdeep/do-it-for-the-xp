@@ -172,9 +172,11 @@ import {
   appsOutline,
   helpOutline 
 } from 'ionicons/icons';
+import Ionic from '@/mixins/ionic';
 
 export default defineComponent({
   name: 'XpAbilityManager',
+  mixins: [Ionic],
   props: {
     abilities: {
       type: Array as PropType<Ability[]>,
