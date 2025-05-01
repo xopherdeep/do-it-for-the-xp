@@ -20,6 +20,9 @@ interface CompatibilityLayer {
   nintendo?: any;
   sony?: any;
   rpg?: any;
+  // Make these required instead of optional
+  playMusic: (trackId: string, options?: any) => boolean;
+  stopMusic: () => boolean;
 }
 
 /**
@@ -72,6 +75,34 @@ export function createCompatibilityLayer(): CompatibilityLayer {
     set$rpgTheme: (theme: string) => {
       compatLayer.theme.rpg = theme;
       engine.setTheme('rpg', theme);
+    },
+
+    // Add ability to play music through the AudioEngine
+    playMusic: (trackId: string, options = {}) => {
+      // This ensures music playback goes through the AudioEngine
+      if (!engine.hasMusicTrack(trackId)) {
+        const src = typeof options.src === 'string' ? options.src : '';
+        if (src) {
+          engine.loadMusic(trackId, src, {
+            category: 'music',
+            title: options.title || trackId,
+            loop: options.loop !== false
+          });
+        }
+      }
+      
+      if (engine.hasMusicTrack(trackId)) {
+        engine.playMusic(trackId);
+        return true;
+      }
+      
+      return false;
+    },
+
+    // Add stop music function to route to AudioEngine
+    stopMusic: () => {
+      engine.stopMusic();
+      return true;
     }
   };
   
@@ -90,7 +121,30 @@ export function createCompatibilityLayer(): CompatibilityLayer {
   
   compatLayer.rpg = {
     earthbound: {
+      BGM: {
+        // This will route all music playback requests through the AudioEngine
+        play: (src: string, title?: string) => {
+          const trackId = `bgm-${title || src}`;
+          return compatLayer.playMusic(trackId, { src, title, loop: true });
+        }
+      },
       play: () => debug.warn('Legacy audio API used. Please migrate to the new audio system.')
+    },
+    chronoTrigger: {
+      BGM: {
+        play: (src: string, title?: string) => {
+          const trackId = `bgm-${title || src}`;
+          return compatLayer.playMusic(trackId, { src, title, loop: true });
+        }
+      }
+    },
+    finalFantasy: {
+      BGM: {
+        play: (src: string, title?: string) => {
+          const trackId = `bgm-${title || src}`;
+          return compatLayer.playMusic(trackId, { src, title, loop: true });
+        }
+      }
     }
   };
   

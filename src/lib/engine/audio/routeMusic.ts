@@ -38,6 +38,9 @@ export function playRouteMusic(payload: BGMPayload, store?: Store<any>): void {
   // Default to looping if repeat flag is not explicitly set to false
   const shouldRepeat = payload.repeat !== false;
 
+  // IMPORTANT: Stop any existing music first to prevent overlap
+  engine.stopAllMusic();
+
   // First, prepare all tracks in the sequence
   const trackIds: string[] = [];
   
@@ -53,15 +56,17 @@ export function playRouteMusic(payload: BGMPayload, store?: Store<any>): void {
     if (typeof trackInfo === 'string') {
       // If it's just a string URL
       trackSrc = trackInfo;
-      // Create a more unique ID to avoid collisions
-      trackId = `route-music-${trackSrc.split('/').pop() || ''}-${Date.now()}`;
-      trackTitle = undefined;
+      // Create a unique ID based on the track source
+      const uniquePart = trackSrc.split('/').pop() || '';
+      trackId = `route-music-${uniquePart}-${i}`;
+      trackTitle = uniquePart.replace(/\..+$/, '').replace(/[-_]/g, ' ');
     } else {
       // If it's an object with src and title
       trackSrc = trackInfo.src;
       trackTitle = trackInfo.title;
-      // Create a more unique ID to avoid collisions
-      trackId = `route-music-${trackSrc.split('/').pop() || ''}-${Date.now()}`;
+      // Create a unique ID based on the track source and title
+      const uniquePart = trackSrc.split('/').pop() || '';
+      trackId = `route-music-${uniquePart}-${i}`;
     }
 
     // Add to our track ID list
