@@ -16,10 +16,62 @@
       </div>
     </ion-content>
 
-    <!-- Toolbox FAB -->
-    <ion-fab vertical="bottom" horizontal="center" slot="fixed">
-      <ion-fab-button color="tertiary" @click="openDevToolsActionSheet">
-        <i class="fad fa-toolbox fa-2x"></i>
+    <!-- Battle Dialog Box (Earthbound-style) -->
+    <div class="battle-dialog-overlay" v-if="showBattleDialog" @click="advanceBattleDialog">
+      <div class="battle-dialog-box rpg-box">
+        <div class="dialog-content">
+          <xp-typing-text
+            ref="battleDialogText"
+            :text="battleDialogText"
+            :speed="25"
+            :auto-start="true"
+            :sound-theme="$fx?.theme?.rpg"
+            sound-type="text"
+            @typing-complete="onBattleDialogComplete"
+            class="battle-text"
+            :has-more-text="hasMoreBattleDialog"
+          />
+        </div>
+        <div v-if="hasMoreBattleDialog" class="dialog-indicator">
+          <i class="fad fa-chevron-down blink"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Victory Dialog Box (Special styling for victory messages) -->
+    <div class="victory-dialog-overlay" v-if="showVictoryDialog" @click="advanceVictoryDialog">
+      <div class="victory-dialog-box rpg-box">
+        <div class="victory-title" v-if="isShowingVictoryTitle">You Won!</div>
+        <div class="dialog-content">
+          <xp-typing-text
+            ref="victoryDialogText"
+            :text="victoryDialogText"
+            :speed="25"
+            :auto-start="true"
+            :sound-theme="$fx?.theme?.rpg"
+            sound-type="text"
+            @typing-complete="onVictoryDialogComplete"
+            class="victory-text"
+            :has-more-text="hasMoreVictoryDialog"
+          />
+        </div>
+        <div v-if="hasMoreVictoryDialog" class="dialog-indicator">
+          <i class="fad fa-chevron-down blink"></i>
+        </div>
+      </div>
+    </div>
+
+    <!-- Configuration Toolbox FAB -->
+    <ion-fab vertical="bottom" horizontal="start" slot="fixed">
+      <ion-fab-button color="danger" @click="openDevToolsActionSheet">
+        <i class="fad fa-wrench fa-2x"></i>
+      </ion-fab-button>
+    </ion-fab>
+    
+    <!-- Battle Actions FAB -->
+    <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+      <ion-fab-button color="primary" @click="openBattleActionsSheet">
+        <i class="fad fa-bolt fa-2x"></i>
       </ion-fab-button>
     </ion-fab>
     
@@ -235,7 +287,14 @@ import {
   closeOutline,
   pawOutline,
   personOutline,
-  addOutline
+  addOutline,
+  closeCircleOutline,
+  flashOutline,
+  flameOutline,
+  pulseOutline,
+  trophyOutline,
+  skullOutline,
+  refreshOutline
 } from 'ionicons/icons';
 import Ionic from '@/mixins/ionic';
 import BestiaryDb, { Beast, beastStorage } from '@/lib/databases/BestiaryDb';
@@ -255,7 +314,13 @@ interface BattleGroundInstance {
   aspectRatio?: number;
   bg1?: number;
   bg2?: number;
-  // Add other methods and properties as needed
+  // Add the actual methods that exist in BattleGround component
+  handleBattleAction?: (action: { action: string }) => void;
+  defeatEnemy?: (enemy?: any) => void;
+  currentEnemy?: any;
+  enemyAnimationClass?: string;
+  performEnemyTurn?: () => void;
+  endPlayerTurn?: () => void;
 }
 
 // Define an interface for the Profile data
@@ -805,13 +870,420 @@ export default defineComponent({
           },
           {
             text: 'Cancel',
-            icon: 'close-outline',
+            icon: closeCircleOutline,
             role: 'cancel',
           }
         ]
       });
       
       await actionSheet.present();
+    };
+    
+    // Action sheet for battle animations and actions
+    const openBattleActionsSheet = async () => {
+      const actionSheet = await actionSheetController.create({
+        header: 'Battle Actions',
+        mode: 'ios',
+        buttons: [
+          {
+            text: 'Attack Animation',
+            icon: flashOutline,
+            handler: () => {
+              triggerAttackAnimation();
+            }
+          },
+          {
+            text: 'Enemy Hit Animation',
+            icon: flameOutline,
+            handler: () => {
+              triggerEnemyHit();
+            }
+          },
+          {
+            text: 'Player Hit Animation',
+            icon: pulseOutline,
+            handler: () => {
+              triggerPlayerHit();
+            }
+          },
+          {
+            text: 'Victory Animation',
+            icon: trophyOutline,
+            handler: () => {
+              triggerVictoryAnimation();
+            }
+          },
+          {
+            text: 'Defeat Animation',
+            icon: skullOutline,
+            handler: () => {
+              triggerDefeatAnimation();
+            }
+          },
+          {
+            text: 'Reset Battle',
+            icon: refreshOutline,
+            handler: () => {
+              resetBattle();
+            }
+          },
+          {
+            text: 'Cancel',
+            icon: closeOutline,
+            role: 'cancel',
+          }
+        ]
+      });
+      
+      await actionSheet.present();
+    };
+    
+    // Battle animation methods
+    const triggerAttackAnimation = async () => {
+      if (battlegroundRef.value) {
+        // Use the battle service to handle the attack action if available
+        if (battlegroundRef.value.handleBattleAction) {
+          battlegroundRef.value.handleBattleAction({ action: 'attack' });
+          
+          const toast = await toastController.create({
+            message: 'Player attack animation triggered',
+            duration: 1500,
+            position: 'top',
+            color: 'primary'
+          });
+          toast.present();
+        } else {
+          console.warn('handleBattleAction method not available');
+          
+          const toast = await toastController.create({
+            message: 'Attack animation not available',
+            duration: 1500,
+            position: 'top',
+            color: 'warning'
+          });
+          toast.present();
+        }
+      }
+    };
+    
+    // Add battle dialog state and methods
+    const showBattleDialog = ref(false);
+    const battleDialogText = ref('');
+    const battleDialogQueue = ref<string[]>([]);
+    const hasMoreBattleDialog = ref(false);
+    const isBattleDialogTyping = ref(false);
+    
+    // Victory dialog state
+    const showVictoryDialog = ref(false);
+    const victoryDialogText = ref('');
+    const victoryDialogQueue = ref<string[]>([]);
+    const hasMoreVictoryDialog = ref(false);
+    const isVictoryDialogTyping = ref(false);
+    const isShowingVictoryTitle = ref(false);
+    
+    // Queue battle dialog messages
+    const queueBattleDialog = (messages: string[]) => {
+      // Add messages to the queue
+      battleDialogQueue.value = [...battleDialogQueue.value, ...messages];
+      
+      // If no dialog is currently displaying, show the first message
+      if (!isBattleDialogTyping.value && !showBattleDialog.value) {
+        showNextBattleDialog();
+      }
+    };
+    
+    // Show the next dialog message from the queue
+    const showNextBattleDialog = () => {
+      if (battleDialogQueue.value.length === 0) {
+        // No more messages to show
+        showBattleDialog.value = false;
+        hasMoreBattleDialog.value = false;
+        return;
+      }
+      
+      // Get the next message
+      const nextMessage = battleDialogQueue.value.shift();
+      // Fix TypeScript error by providing fallback empty string if nextMessage is undefined
+      battleDialogText.value = nextMessage || '';
+      isBattleDialogTyping.value = true;
+      hasMoreBattleDialog.value = battleDialogQueue.value.length > 0;
+      
+      // Show the dialog if it's not already visible
+      showBattleDialog.value = true;
+    };
+    
+    // Called when a battle dialog text finishes typing
+    const onBattleDialogComplete = () => {
+      isBattleDialogTyping.value = false;
+    };
+    
+    // Called when the battle dialog is clicked
+    const advanceBattleDialog = () => {
+      if (isBattleDialogTyping.value) {
+        // Complete the current text immediately
+        const typingComponent = document.querySelector('.battle-dialog-overlay xp-typing-text') as any;
+        if (typingComponent && typingComponent.completeTyping) {
+          typingComponent.completeTyping();
+        }
+        isBattleDialogTyping.value = false;
+      } else if (battleDialogQueue.value.length > 0) {
+        // Show next message
+        showNextBattleDialog();
+      } else {
+        // No more messages, hide the dialog
+        showBattleDialog.value = false;
+      }
+    };
+    
+    // Queue victory dialog messages with special handling for victory title
+    const queueVictoryDialog = (messages: string[], showVictoryTitle = false) => {
+      // Set victory title flag
+      isShowingVictoryTitle.value = showVictoryTitle;
+      
+      // Add messages to the queue
+      victoryDialogQueue.value = [...victoryDialogQueue.value, ...messages];
+      
+      // If no dialog is currently displaying, show the first message
+      if (!isVictoryDialogTyping.value && !showVictoryDialog.value) {
+        showNextVictoryDialog();
+      }
+    };
+    
+    // Show the next victory dialog message from the queue
+    const showNextVictoryDialog = () => {
+      if (victoryDialogQueue.value.length === 0) {
+        // No more messages to show
+        setTimeout(() => {
+          showVictoryDialog.value = false;
+          isShowingVictoryTitle.value = false;
+        }, 1000);
+        hasMoreVictoryDialog.value = false;
+        return;
+      }
+      
+      // Get the next message
+      const nextMessage = victoryDialogQueue.value.shift();
+      // Fix TypeScript error by providing fallback empty string if nextMessage is undefined
+      victoryDialogText.value = nextMessage || '';
+      isVictoryDialogTyping.value = true;
+      hasMoreVictoryDialog.value = victoryDialogQueue.value.length > 0;
+      
+      // Show the dialog if it's not already visible
+      showVictoryDialog.value = true;
+    };
+    
+    // Called when a victory dialog text finishes typing
+    const onVictoryDialogComplete = () => {
+      isVictoryDialogTyping.value = false;
+    };
+    
+    // Called when the victory dialog is clicked
+    const advanceVictoryDialog = () => {
+      if (isVictoryDialogTyping.value) {
+        // Complete the current text immediately
+        const typingComponent = document.querySelector('.victory-dialog-overlay xp-typing-text') as any;
+        if (typingComponent && typingComponent.completeTyping) {
+          typingComponent.completeTyping();
+        }
+        isVictoryDialogTyping.value = false;
+      } else if (victoryDialogQueue.value.length > 0) {
+        // Show next message
+        showNextVictoryDialog();
+      } else {
+        // No more messages, hide the dialog after a delay
+        setTimeout(() => {
+          showVictoryDialog.value = false;
+          isShowingVictoryTitle.value = false;
+        }, 1000);
+      }
+    };
+    
+    const triggerEnemyHit = async () => {
+      if (battlegroundRef.value) {
+        // Try to access the enemy animation class
+        if (typeof battlegroundRef.value.enemyAnimationClass !== 'undefined') {
+          // Apply damaged animation class to enemy
+          battlegroundRef.value.enemyAnimationClass = 'damaged';
+          
+          // Reset animation class after a short delay
+          setTimeout(() => {
+            if (battlegroundRef.value) {
+              battlegroundRef.value.enemyAnimationClass = '';
+            }
+          }, 500);
+          
+          const toast = await toastController.create({
+            message: 'Enemy hit animation triggered',
+            duration: 1500,
+            position: 'top',
+            color: 'primary'
+          });
+          toast.present();
+        } else {
+          console.warn('enemyAnimationClass property not available');
+          
+          // Try fallback - handle battle action which should animate enemy hit
+          if (battlegroundRef.value.handleBattleAction) {
+            battlegroundRef.value.handleBattleAction({ action: 'attack' });
+            
+            const toast = await toastController.create({
+              message: 'Enemy hit animation triggered (fallback)',
+              duration: 1500,
+              position: 'top',
+              color: 'primary'
+            });
+            toast.present();
+          } else {
+            const toast = await toastController.create({
+              message: 'Enemy hit animation not available',
+              duration: 1500,
+              position: 'top',
+              color: 'warning'
+            });
+            toast.present();
+          }
+        }
+      }
+    };
+    
+    const triggerPlayerHit = async () => {
+      // First, create a points counter if needed
+      if (!taskHealth.value) {
+        // Initialize health if it's not set
+        taskHealth.value = maxTaskHealth.value || 100;
+      }
+      
+      // Apply screen shake animation to the battleground container
+      const battlegroundContainer = document.querySelector('.battleroom-container');
+      if (battlegroundContainer) {
+        battlegroundContainer.classList.add('screen-shake');
+        
+        // Remove the class after animation completes
+        setTimeout(() => {
+          battlegroundContainer.classList.remove('screen-shake');
+        }, 500);
+      }
+      
+      // Reduce points on the counter (using the task health as our points system)
+      const damageAmount = Math.floor(Math.random() * 15) + 10; // Random damage between 10-25
+      const previousHealth = taskHealth.value;
+      taskHealth.value = Math.max(0, taskHealth.value - damageAmount);
+      
+      // Show damage notification
+      const toast = await toastController.create({
+        message: `Player hit! -${damageAmount} HP (${taskHealth.value}/${maxTaskHealth.value})`,
+        duration: 2000,
+        position: 'top',
+        color: 'danger'
+      });
+      toast.present();
+      
+      // Check if we should also trigger the battle animation
+      if (battlegroundRef.value) {
+        // Try to trigger enemy turn which should animate player being hit
+        if (battlegroundRef.value.performEnemyTurn) {
+          battlegroundRef.value.performEnemyTurn();
+        } else if (battlegroundRef.value.endPlayerTurn) {
+          // Alternative method if performEnemyTurn isn't directly accessible
+          battlegroundRef.value.endPlayerTurn();
+        }
+      }
+      
+      // Check if player is defeated
+      if (taskHealth.value <= 0 && previousHealth > 0) {
+        const defeatToast = await toastController.create({
+          message: 'Player defeated!',
+          duration: 3000,
+          position: 'middle',
+          color: 'danger',
+          buttons: [
+            {
+              text: 'Try Again',
+              handler: () => resetBattle()
+            }
+          ]
+        });
+        defeatToast.present();
+      }
+    };
+    
+    const triggerVictoryAnimation = async () => {
+      if (battlegroundRef.value) {
+        // Try to use defeatEnemy which handles victory animations
+        if (battlegroundRef.value.defeatEnemy && battlegroundRef.value.currentEnemy) {
+          battlegroundRef.value.defeatEnemy();
+          
+          const toast = await toastController.create({
+            message: 'Victory animation triggered',
+            duration: 1500,
+            position: 'top',
+            color: 'success'
+          });
+          toast.present();
+        } else {
+          console.warn('defeatEnemy method or currentEnemy not available');
+          
+          const toast = await toastController.create({
+            message: 'Victory animation not available',
+            duration: 1500,
+            position: 'top',
+            color: 'warning'
+          });
+          toast.present();
+        }
+      }
+    };
+    
+    const triggerDefeatAnimation = async () => {
+      if (battlegroundRef.value) {
+        // Try to handle a "run" battle action, which is like a defeat/retreat
+        if (battlegroundRef.value.handleBattleAction) {
+          battlegroundRef.value.handleBattleAction({ action: 'run' });
+          
+          const toast = await toastController.create({
+            message: 'Defeat/retreat animation triggered',
+            duration: 1500,
+            position: 'top',
+            color: 'danger'
+          });
+          toast.present();
+        } else {
+          console.warn('handleBattleAction method not available');
+          
+          const toast = await toastController.create({
+            message: 'Defeat animation not available',
+            duration: 1500,
+            position: 'top',
+            color: 'warning'
+          });
+          toast.present();
+        }
+      }
+    };
+    
+    const resetBattle = async () => {
+      if (battlegroundRef.value) {
+        // Try to reset the battle using available methods
+        if (typeof battlegroundRef.value.initBattle === 'function') {
+          battlegroundRef.value.initBattle();
+        }
+        
+        if (typeof battlegroundRef.value.enterBattle === 'function') {
+          battlegroundRef.value.enterBattle();
+        }
+        
+        if (typeof battlegroundRef.value.initBackground === 'function') {
+          battlegroundRef.value.initBackground();
+        }
+        
+        const toast = await toastController.create({
+          message: 'Battle has been reset',
+          duration: 1500,
+          position: 'top',
+          color: 'primary'
+        });
+        toast.present();
+      }
     };
 
     return {
@@ -877,6 +1349,38 @@ export default defineComponent({
 
       // Action sheet for dev tools
       openDevToolsActionSheet,
+      openBattleActionsSheet,
+
+      // Battle animation methods
+      triggerAttackAnimation,
+      triggerEnemyHit,
+      triggerPlayerHit,
+      triggerVictoryAnimation,
+      triggerDefeatAnimation,
+      resetBattle,
+
+      // Battle dialog state and methods
+      showBattleDialog,
+      battleDialogText,
+      battleDialogQueue,
+      hasMoreBattleDialog,
+      isBattleDialogTyping,
+      queueBattleDialog,
+      showNextBattleDialog,
+      onBattleDialogComplete,
+      advanceBattleDialog,
+
+      // Victory dialog state and methods
+      showVictoryDialog,
+      victoryDialogText,
+      victoryDialogQueue,
+      hasMoreVictoryDialog,
+      isVictoryDialogTyping,
+      isShowingVictoryTitle,
+      queueVictoryDialog,
+      showNextVictoryDialog,
+      onVictoryDialogComplete,
+      advanceVictoryDialog,
 
       // Icons
       settingsOutline,
@@ -928,6 +1432,26 @@ pre {
   margin: 5px 0;
 }
 
+/* Screen shake animation for player hit effects */
+@keyframes screenShake {
+  0% { transform: translate(0, 0) rotate(0); }
+  10% { transform: translate(-5px, -5px) rotate(-1deg); }
+  20% { transform: translate(5px, -5px) rotate(1deg); }
+  30% { transform: translate(-5px, 5px) rotate(0); }
+  40% { transform: translate(5px, 5px) rotate(1deg); }
+  50% { transform: translate(-5px, -5px) rotate(-1deg); }
+  60% { transform: translate(5px, 0) rotate(0); }
+  70% { transform: translate(-5px, 0) rotate(-1deg); }
+  80% { transform: translate(0, 5px) rotate(1deg); }
+  90% { transform: translate(0, -5px) rotate(0); }
+  100% { transform: translate(0, 0) rotate(0); }
+}
+
+.screen-shake {
+  animation: screenShake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+  transform-origin: center center;
+}
+
 /* Fix any background rendering issues */
 .battleground-component {
   width: 100%;
@@ -960,5 +1484,117 @@ pre {
   height: 100vh;
   position: relative;
   overflow: hidden;
+}
+
+/* Battle Dialog Styling */
+.battle-dialog-overlay {
+  position: fixed;
+  bottom: 20px;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.battle-dialog-box {
+  width: 90%;
+  max-width: 500px;
+  background-color: rgba(0, 0, 0, 0.8);
+  border: 2px solid white;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 10px;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.battle-text {
+  color: white;
+  font-size: 1.1rem;
+  line-height: 1.4;
+  min-height: 3rem;
+}
+
+/* Victory Dialog Styling */
+.victory-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1500;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(0, 0, 0, 0.5);
+  pointer-events: auto;
+}
+
+.victory-dialog-box {
+  width: 90%;
+  max-width: 500px;
+  background-color: rgba(0, 0, 0, 0.9);
+  border: 3px solid gold;
+  border-radius: 8px;
+  padding: 20px;
+  text-align: center;
+}
+
+.victory-title {
+  color: gold;
+  font-size: 3rem;
+  font-weight: bold;
+  margin-bottom: 15px;
+  text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+  animation: victoryPulse 1.5s infinite;
+}
+
+.victory-text {
+  color: white;
+  font-size: 1.2rem;
+  line-height: 1.5;
+  min-height: 3rem;
+}
+
+.dialog-indicator {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.dialog-indicator i {
+  color: white;
+  font-size: 1.2rem;
+}
+
+/* Animation for the victory title */
+@keyframes victoryPulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* Animation for screen collapse effect */
+@keyframes screenCollapse {
+  0% { transform: scaleY(1); }
+  100% { transform: scaleY(0); }
+}
+
+.screen-collapse {
+  animation: screenCollapse 1s ease-in forwards;
+}
+
+/* Blinking indicator animation */
+.blink {
+  animation: blink-animation 1s steps(5, start) infinite;
+}
+
+@keyframes blink-animation {
+  to {
+    visibility: hidden;
+  }
 }
 </style>

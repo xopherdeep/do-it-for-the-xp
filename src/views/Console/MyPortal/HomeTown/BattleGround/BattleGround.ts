@@ -37,7 +37,7 @@ import {
   // bookmark,
   diceOutline,
   colorWandOutline,
-  // medalOutline,
+  medalOutline,
   bagOutline,
   // accessibilityOutline,
   // chevronBack,
@@ -47,8 +47,8 @@ import {
   // happyOutline,
   serverOutline,
   // arrowBack,
-  // cashOutline,
-  // giftOutline
+  cashOutline,
+  giftOutline
 } from "ionicons/icons";
 
 import { Swiper, SwiperSlide } from "swiper/vue";
@@ -91,6 +91,7 @@ export default defineComponent({
     XpHpMpHud,
     XpFabBattleActions,
     XpTypingText,
+
   },
   data() {
     return {
@@ -107,10 +108,19 @@ export default defineComponent({
       currentEnemy: null as Enemy | null,
       enemyAnimationClass: '',
       enemyHealthColor: '#2dd36f',
+      
+      // Battle message variables
       battleMessage: '',
       showRewardsModal: false,
       completedTask: null as CompletedTask | null,
       aspectRatio: 48, // Default aspect ratio for battle backgrounds
+      
+      // Battle dialog system variables
+      battleDialogText: '',
+      battleDialogQueue: [] as Array<string | (() => void)>, // Properly typed to allow both strings and callback functions
+      hasMoreBattleDialog: false,
+      isBattleDialogTyping: false,
+      isVictoryMessage: false, // Flag to apply special styling to victory messages
       
       // Battle turn system variables
       battleStarted: false,
@@ -121,13 +131,6 @@ export default defineComponent({
       isDefending: false,
       defenseMultiplier: 0.5, // Reduces damage by 50% when defending
       
-      // Battle dialog system variables
-      battleDialogText: '',
-      battleDialogQueue: [] as string[],
-      currentBattleDialogIndex: 0,
-      hasMoreBattleDialog: false,
-      isBattleDialogTyping: false,
-
       areas: {
         physical: {
           open: true,
@@ -187,6 +190,9 @@ export default defineComponent({
         heart,
         colorWand,
       },
+      medalOutline,
+      cashOutline,
+      giftOutline,
       dashboardItems: {
         achievements: {},
         abilities: {},
@@ -402,6 +408,8 @@ export default defineComponent({
       // Show victory message
       this.battleMessage = `${defeatedEnemy.name} was defeated!`;
       
+      this.victoryAnimation()
+      
       // Clear current enemy
       this.currentEnemy = null;
       
@@ -409,7 +417,7 @@ export default defineComponent({
       setTimeout(() => {
         this.battleMessage = '';
         this.showRewardsModal = true;
-      }, 2000);
+      }, 2500);
     },
     
     // Get random reward item name
@@ -464,9 +472,17 @@ export default defineComponent({
     
     // Create a sample enemy for demonstration using bestiary service
     createSampleEnemy() {
+      // Reset any animation classes first
+      this.enemyAnimationClass = '';
+      
       if (this.bestiaryService) {
         this.currentEnemy = this.bestiaryService.createSampleEnemy();
         this.updateEnemyHealthColor();
+        
+        // Add appear animation after a short delay to ensure DOM is updated
+        setTimeout(() => {
+          this.enemyAnimationClass = 'appear';
+        }, 100);
         
         // Start battle after a short delay
         setTimeout(() => {
@@ -485,6 +501,11 @@ export default defineComponent({
         };
         
         this.updateEnemyHealthColor();
+        
+        // Add appear animation after a short delay
+        setTimeout(() => {
+          this.enemyAnimationClass = 'appear';
+        }, 100);
         
         // Start battle after a short delay
         setTimeout(() => {
@@ -527,6 +548,11 @@ export default defineComponent({
     
     // Battle dialog and turn management methods adapted to use battle service
     initBattle() {
+      // Make sure the enemy is visible and properly animated when initializing a battle
+      if (!this.enemyAnimationClass || this.enemyAnimationClass === 'victory-fadeout' || this.enemyAnimationClass === 'victory-strobe') {
+        this.enemyAnimationClass = 'appear';
+      }
+      
       if (this.battleService && this.currentEnemy) {
         // Initialize battle through the battle service
         this.battleService.initBattle(this.currentEnemy);
@@ -578,10 +604,19 @@ export default defineComponent({
         return;
       }
       
-      // Get the next message
-      const nextMessage = this.battleDialogQueue.shift();
-      // Fix TypeScript error by providing fallback empty string if nextMessage is undefined
-      this.battleDialogText = nextMessage || '';
+      // Get the next message or function from the queue
+      const next = this.battleDialogQueue.shift();
+      
+      // Check if it's a function and execute it
+      if (typeof next === 'function') {
+        next();
+        // Process the next item in the queue
+        this.showNextBattleDialog();
+        return;
+      }
+      
+      // It's a string message, so display it
+      this.battleDialogText = next || '';
       this.isBattleDialogTyping = true;
       this.hasMoreBattleDialog = this.battleDialogQueue.length > 0;
       
@@ -1017,7 +1052,235 @@ export default defineComponent({
       }
     },
     
-    // ... rest of the component methods ...
+    // Animation methods for battle effects - used by both the game and dev tools
+    
+    /**
+     * Trigger player attack animation
+     * This applies an attack animation to the player and triggers
+     * a hit effect on the enemy
+     */
+    playerAttack() {
+      // Use battle service if available
+      if (this.battleService) {
+        this.battleService.handleBattleAction("attack");
+      } else {
+        // Fallback to basic animation
+        // Apply attack animation class to enemy
+        this.enemyAnimationClass = 'damaged';
+        setTimeout(() => {
+          this.enemyAnimationClass = '';
+        }, 500);
+      }
+    },
+    
+    /**
+     * Apply hit animation to enemy
+     * Visual effect when enemy takes damage
+     */
+    enemyHit(damage?: number) {
+      // Apply damage class for animation
+      this.enemyAnimationClass = 'damaged';
+      
+      // Remove the class after animation completes
+      setTimeout(() => {
+        this.enemyAnimationClass = '';
+      }, 500);
+      
+      // Apply damage if specified and we have an enemy
+      if (typeof damage === 'number' && this.currentEnemy) {
+        const actualDamage = Math.min(damage, this.currentEnemy.health);
+        this.currentEnemy.health = Math.max(0, this.currentEnemy.health - actualDamage);
+        
+        // Update health bar color
+        this.updateEnemyHealthColor();
+        
+        // Show damage message
+        this.battleMessage = `${this.currentEnemy.name} takes ${actualDamage} damage!`;
+        setTimeout(() => {
+          if (this.battleMessage.includes('takes')) {
+            this.battleMessage = '';
+          }
+        }, 1500);
+        
+        // Check if enemy defeated
+        if (this.currentEnemy.health <= 0) {
+          this.defeatEnemy();
+        }
+      }
+    },
+    
+    /**
+     * Apply screen shake effect and trigger player hit animation
+     * Visual effect when player takes damage
+     */
+    playerHit(damage?: number) {
+      // Apply screen shake animation
+      const pageElement = this.$refs.page as HTMLElement | undefined;
+      if (pageElement) {
+        pageElement.classList.add('screen-shake');
+        
+        // Remove the class after animation completes
+        setTimeout(() => {
+          pageElement.classList.remove('screen-shake');
+        }, 500);
+      }
+      
+      // Play hit sound
+      this.$fx.ui[this.$fx.theme.ui].cancel.play();
+      
+      // Show damage taken message if damage provided
+      if (typeof damage === 'number' && this.user?.stats) {
+        const actualDamage = Math.min(damage, this.user.stats.hp);
+        
+        // In a real game, we would dispatch to update user HP in store
+        // this.$store.dispatch('updateHP', this.user.stats.hp - actualDamage);
+        
+        // Show damage message
+        this.battleMessage = `${this.user?.name?.nick || 'Player'} takes ${actualDamage} damage!`;
+        setTimeout(() => {
+          if (this.battleMessage.includes('takes')) {
+            this.battleMessage = '';
+          }
+        }, 1500);
+      }
+    },
+    
+    /**
+     * Trigger victory animation sequence
+     * This method is called when the player wins a battle
+     */
+    victoryAnimation() {
+      // if (!this.currentEnemy) return;
+      
+      // Apply victory strobe effect to the enemy sprite
+      this.enemyAnimationClass = 'victory-strobe';
+      
+      // Play victory sound with null check to prevent errors
+      // if (this.$fx?.ui?.[this.$fx?.theme?.ui]?.confirm?.play) {
+      //   this.$fx.ui[this.$fx.theme.ui].confirm.play();
+      // }
+      
+      // Get the current aspect ratio from backgroundManager
+      const currentAspectRatio = backgroundManager.getCurrentAspectRatio() || 48;
+      
+      // Store current aspect ratio for restoration after battle
+      this.aspectRatio = currentAspectRatio;
+      
+      // Start the aspect ratio animation after a short delay for the strobe effect
+      setTimeout(() => {
+        // Use the smooth aspect ratio animation - first collapse to 0 height
+        backgroundManager.animateAspectRatio(0, 750)
+          .then(() => {
+            // Change enemy animation to fadeout with strobe when aspect ratio animation completes
+            this.enemyAnimationClass = 'victory-fadeout';
+            
+            // Animation complete - show victory dialog after a short delay
+            setTimeout(() => {
+              // Set flag for victory message styling
+              this.isVictoryMessage = true;
+              
+              // Queue battle dialog messages with "You Won!" as first message
+              this.queueBattleDialog([
+                `You Won!`, 
+                `${this.currentEnemy?.name || 'Enemy'} was defeated!`,
+                `You gained ${this.calculateXPReward()} XP!`,
+                `You earned ${this.calculateGPReward()} GP!`
+              ]);
+              
+              // Add a final callback to the queue to show rewards after dialog
+              this.battleDialogQueue.push(() => {
+                setTimeout(() => {
+                  this.isVictoryMessage = false;
+                  this.defeatEnemy();
+                }, 1000);
+              });
+            }, 500);
+          })
+          .catch(error => {
+            console.error("Error during victory animation:", error);
+            
+            // Fallback in case of error
+            this.battleMessage = `Victory! ${this.currentEnemy?.name || 'Enemy'} was defeated!`;
+            
+            // Show rewards modal after a delay
+            setTimeout(() => {
+              this.defeatEnemy();
+            }, 1500);
+          });
+      }, 1000); // Let the strobe effect run for 1 second before starting the aspect ratio animation
+    },
+    
+    /**
+     * Calculate XP reward based on enemy difficulty
+     */
+    calculateXPReward() {
+      if (!this.currentEnemy) return 0;
+      
+      // Base XP on enemy type and health
+      let baseXP = this.currentEnemy.maxHealth / 2;
+      
+      // Bonus for boss types
+      if (this.currentEnemy.isBoss) {
+        baseXP *= 1.5;
+      } else if (this.currentEnemy.type === 'miniboss') {
+        baseXP *= 1.25;
+      }
+      
+      // Round to nearest integer
+      return Math.round(baseXP);
+    },
+    
+    /**
+     * Calculate GP reward based on enemy difficulty
+     */
+    calculateGPReward() {
+      if (!this.currentEnemy) return 0;
+      
+      // Base GP on enemy type and health
+      let baseGP = this.currentEnemy.maxHealth / 4;
+      
+      // Bonus for boss types
+      if (this.currentEnemy.isBoss) {
+        baseGP *= 1.5;
+      } else if (this.currentEnemy.type === 'miniboss') {
+        baseGP *= 1.25;
+      }
+      
+      // Round to nearest integer
+      return Math.round(baseGP);
+    },
+    
+    /**
+     * Trigger defeat animation sequence
+     * This method is called when the player loses a battle
+     */
+    defeatAnimation() {
+      // Show defeat message
+      this.battleMessage = "You were defeated!";
+      
+      // Apply screen shake
+      const pageElement = this.$refs.page as HTMLElement | undefined;
+      if (pageElement) {
+        pageElement.classList.add('screen-shake');
+        
+        setTimeout(() => {
+          pageElement.classList.remove('screen-shake');
+        }, 500);
+      }
+      
+      // Play defeat sound
+      this.$fx.ui[this.$fx.theme.ui].cancel.play();
+      
+      // Return to hometown after a delay
+      setTimeout(() => {
+        // In a real game, we would handle defeat properly
+        // For now just redirect to hometown
+        this.$router.push({
+          name: "hometown",
+          params: { userId: this.userId },
+        });
+      }, 3000);
+    },
   },
   mounted() {
     // Initialize battle services

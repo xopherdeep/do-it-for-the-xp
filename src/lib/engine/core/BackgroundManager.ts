@@ -227,6 +227,78 @@ class BackgroundManager {
   }
 
   /**
+   * Get the current aspect ratio value
+   */
+  public getCurrentAspectRatio(): number | null {
+    return this.backgroundEngine ? this.aspectRatio : null;
+  }
+
+  /**
+   * Set the aspect ratio immediately
+   * @param aspectRatio The new aspect ratio value
+   */
+  public setAspectRatio(aspectRatio: number): void {
+    this.aspectRatio = aspectRatio;
+    if (this.backgroundEngine) {
+      this.backgroundEngine.setAspectRatio(aspectRatio);
+    }
+  }
+
+  /**
+   * Smoothly animate the aspect ratio from current value to target value
+   * 
+   * @param targetAspectRatio Target aspect ratio value (0 for full screen)
+   * @param duration Animation duration in milliseconds
+   * @param callback Optional callback function to call when animation completes
+   * @returns Promise that resolves when the animation is complete
+   */
+  public animateAspectRatio(targetAspectRatio: number, duration: number = 1500, callback?: () => void): Promise<void> {
+    return new Promise<void>((resolve) => {
+      // If no background engine is active, just resolve immediately
+      if (!this.backgroundEngine) {
+        if (callback) callback();
+        resolve();
+        return;
+      }
+
+      const startValue = this.aspectRatio;
+      const startTime = performance.now();
+      const change = targetAspectRatio - startValue;
+      
+      // Easing function for smooth animation (easeInOutQuad)
+      const easeInOutQuad = (t: number): number => {
+        return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
+      };
+      
+      // Animation frame function
+      const animate = (currentTime: number) => {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const easedProgress = easeInOutQuad(progress);
+        
+        // Calculate current value based on progress
+        const currentValue = startValue + change * easedProgress;
+        
+        // Set the new aspect ratio
+        this.aspectRatio = currentValue;
+        this.backgroundEngine.aspectRatio = currentValue; 
+        
+        // Continue animation if not complete
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          // Animation complete
+          if (callback) callback();
+          resolve();
+        }
+      };
+      
+      // Start the animation
+      requestAnimationFrame(animate);
+    });
+  }
+
+  /**
    * Check if the manager is currently active for a specific page
    * @param page The page identifier to check
    */

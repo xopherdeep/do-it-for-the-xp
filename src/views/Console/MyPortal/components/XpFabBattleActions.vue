@@ -1,73 +1,26 @@
 <template>
   <!-- BATTLE ACTIONS MENU -->
   <ion-fab
-    vertical="top"
-    horizontal="start"
+    vertical="bottom"
+    horizontal="center"
     class="fab-battle battle-actions icon-colors"
     :class="$options.name"
-    :activated="fabActive"
     v-if="user && $attrs.isBattleFabOn"
   >
-    <ion-grid class="p-0">
-      <ion-row>
-        <ion-col>
           <ion-fab-button
             color="primary"
-            @click="toggleFab"
+            @click="openActionSheet"
           >
-            <i class="fad fa-sword fa-lg"></i>
+            <i class="fad fa-sword fa-2x"></i>
           </ion-fab-button>
 
-          <ion-badge>
-            Battle
-          </ion-badge>
-        </ion-col>
-      </ion-row>
-    </ion-grid>
-    <ion-fab-list
-      class="fab-battle"
-      side="bottom"
-      ref="battleFab"
-    >
-      <ion-card class="fixed b-0">
-        <ion-card-title>
-          Battle Actions
-        </ion-card-title>
-        <ion-buttons>
-          <ion-grid class="ion-no-padding">
-            <ion-row>
-              <!-- First row: Attack, Goods, Abilities -->
-              <ion-col
-                v-for="action in displayActions"
-                :key="action.label"
-              >
-                <ion-button
-                  @click="clickAction(action)"
-                  :id="action.id ? action.id : undefined"
-                  size="small"
-                  :color="getBattleActionColor(action.label)"
-                  class="p-0 m-0 ion-no-padding text-left"
-                  expand="block"
-                >
-                    <!-- <i
-                      slot="start"
-                      class="fad fa-lg hidden"
-                      :class="`fa-${action.faIcon?.replace('fa-', '')}`"
-                    /> -->
-                    <ion-label>{{ action.label }}</ion-label>
-                </ion-button>
-              </ion-col>
-            </ion-row>
-          </ion-grid>
-        </ion-buttons>
-      </ion-card>
-    </ion-fab-list>
   </ion-fab>
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, ref, PropType } from "vue";
-import { toastController } from "@ionic/vue";
+import { computed, defineComponent, PropType } from "vue";
+import { toastController, actionSheetController } from "@ionic/vue";
+import { ActionSheetButton } from '@ionic/core';
 import ionic from "@/mixins/ionic";
 import userActions from "@/mixins/userActions";
 
@@ -75,6 +28,7 @@ interface UserAction {
   label: string;
   id?: string;
   faIcon?: string;
+  icon?: string;
   color?: string;
   click?: (event?: Event) => void;
 }
@@ -109,8 +63,6 @@ export default defineComponent({
   emits: ["battle-action"],
   setup(props, { emit }) {
     const userId = computed(() => props.user.id);
-    const fabActive = ref(false);
-    const toggleFab = () => (fabActive.value = !fabActive.value);
     
     // Default battle actions if none are provided
     const defaultBattleActions = computed(() => {
@@ -130,17 +82,30 @@ export default defineComponent({
           }
         },
         {
+          label: "Abilities",
+          faIcon: "hand-holding-magic",
+          click($ev) {
+            emit("battle-action", { action: "abilities", event: $ev });
+          }
+        },
+        {
+          label: "Goods",
+          faIcon: "backpack",
+          click($ev) {
+            emit("battle-action", { action: "goods", event: $ev });
+          }
+        },
+        {
           label: "Defend",
           faIcon: "shield",
           click($ev) {
-            alert("hey")
             // Remove the toast as we now handle this in the BattleGround component
             // with the dialog system for more consistency
             emit("battle-action", { action: "defend", event: $ev });
           }
         },
         {
-          label: "Run ",
+          label: "Run",
           faIcon: "running",
           click($ev) {
             const toast = toastController.create({
@@ -152,20 +117,6 @@ export default defineComponent({
             emit("battle-action", { action: "run", event: $ev });
           }
         },
-        {
-          label: "Goods",
-          faIcon: "backpack",
-          click($ev) {
-            emit("battle-action", { action: "goods", event: $ev });
-          }
-        },
-        {
-          label: "Abilities",
-          faIcon: "hand-holding-magic",
-          click($ev) {
-            emit("battle-action", { action: "abilities", event: $ev });
-          }
-        }
       ];
       return actions;
     });
@@ -175,32 +126,54 @@ export default defineComponent({
       return props.actions && props.actions.length > 0 ? props.actions : defaultBattleActions.value;
     });
 
-    const getBattleActionColor = (label) => {
+    const getBattleActionColor = (label: string): string => {
       switch(label.toLowerCase()) {
         case 'attack': return 'danger';
         case 'roll': return 'danger';
         case 'goods': return 'success';
         case 'abilities': return 'tertiary';
         case 'defend': return 'warning';
-        case 'run away': return 'medium';
+        case 'run': return 'medium';
         default: return 'primary';
       }
     };
 
-    const clickAction = async (action) => {
-      fabActive.value = false; // Close the fab list regardless
-      if (action.click) {
-        action.click(); // Execute the original click handler if it exists
-      }
+    // New action sheet presentation function
+    const openActionSheet = async (): Promise<void> => {
+      const buttons: ActionSheetButton[] = displayActions.value.map(action => ({
+        text: action.label,
+        icon: `fas:${action.faIcon}`,
+        cssClass: `action-${action.label.toLowerCase()}`,
+        handler: () => {
+          if (action.click) {
+            action.click();
+          }
+          return true;
+        }
+      }));
+
+      // Add cancel button
+      buttons.push({
+        text: 'Cancel',
+        icon: 'fas:times',
+        role: 'cancel'
+      } as ActionSheetButton);
+
+      const actionSheet = await actionSheetController.create({
+        header: 'What to do...?',
+        cssClass: 'battle-action-sheet',
+        buttons,
+        mode: 'ios'
+      });
+
+      await actionSheet.present();
     };
 
     return {
-      clickAction,
-      toggleFab,
-      fabActive,
       userId,
       displayActions,
-      getBattleActionColor
+      getBattleActionColor,
+      openActionSheet
     };
   }
 });
@@ -209,48 +182,46 @@ export default defineComponent({
 <style lang="scss" scoped>
 ion-fab {
   &.fab-battle {
-    max-width: 500px;
-    width: 95vw;
-    margin: 0 auto;
 
-    ion-fab-list{
-    width: 100%;
-    max-width: 99vw;
-      margin-top: 0px;
-
-      ion-col{
-        padding: 0;
-      }
-
-
-    } 
-
-    ion-chip {
-      box-shadow: 3px 3px 0px;
-      width: 100%;
-      padding: 1em 15px;
-
-      i {
-        margin: 0.25em;
-      }
+    ion-badge {
+      margin-top: 5px;
     }
   }
 }
 
-ion-button {
-  // width: 100%;
-  justify-content: center !important;
-  padding: 10px 0 !important;
+/* Add global styles in a separate non-scoped style block */
+</style>
 
-  * {
-    display: flex;
-    justify-content: center !important;
-    flex-direction: column;
-    align-items: center;
+<style lang="scss">
+/* Global styles for action sheet - not scoped */
+.battle-action-sheet {
+  --background: rgba(var(--ion-background-color-rgb), 0.9);
+  --backdrop-opacity: 0.6;
+  --button-background-selected: rgba(var(--ion-color-primary-rgb), 0.1);
+
+  .action-attack::part(icon) {
+    color: var(--ion-color-danger);
+    opacity: 1;
   }
-}
 
-ion-badge {
-  margin-top: 5px;
+  .action-defend::part(icon) {
+    color: var(--ion-color-warning);
+    opacity: 1;
+  }
+
+  .action-run::part(icon) {
+    color: var(--ion-color-medium);
+    opacity: 1;
+  }
+
+  .action-goods::part(icon) {
+    color: var(--ion-color-success);
+    opacity: 1;
+  }
+
+  .action-abilities::part(icon) {
+    color: var(--ion-color-tertiary);
+    opacity: 1;
+  }
 }
 </style>

@@ -5,21 +5,24 @@
       <canvas class="battle-bg" ref="battleBackground"/>
       
       <!-- Battle Dialog Box (Earthbound-style) -->
-      <div class="battle-dialog-box rpg-box" v-if="battleStarted && battleDialogText" @click="advanceBattleDialog">
-        <div class="dialog-content">
-          <xp-typing-text
-            ref="battleDialogText"
-            :text="battleDialogText"
-            :speed="25"
-            :auto-start="true"
-            :sound-theme="$fx.theme.rpg"
-            sound-type="text"
-            @typing-complete="onBattleDialogComplete"
-            class="battle-text"
-          />
-        </div>
-        <div v-if="hasMoreBattleDialog" class="dialog-indicator">
-          <i class="fad fa-chevron-down blink"></i>
+      <div class="battle-dialog-overlay" v-if="battleStarted && battleDialogText" @click="advanceBattleDialog">
+        <div class="battle-dialog-box rpg-box">
+          <div class="dialog-content">
+            <xp-typing-text
+              ref="battleDialogText"
+              :text="battleDialogText"
+              :speed="40"
+              :auto-start="true"
+              :sound-theme="$fx?.theme?.rpg"
+              sound-type="text"
+              @typing-complete="onBattleDialogComplete"
+              class="battle-text"
+              :class="{'victory-text': isVictoryMessage}"
+            />
+          </div>
+          <div v-if="hasMoreBattleDialog" class="dialog-indicator">
+            <i class="fad fa-chevron-down blink"></i>
+          </div>
         </div>
       </div>
       
