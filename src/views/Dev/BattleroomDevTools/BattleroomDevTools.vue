@@ -1,32 +1,5 @@
 <template>
   <ion-page>
-    <ion-header>
-      <ion-toolbar>
-      <ion-buttons slot="start">
-          <ion-menu-button />
-        </ion-buttons>
-        <ion-title>Battleroom Dev Tools</ion-title>
-        <ion-buttons slot="end">
-          <ion-button @click="openProfileSelector">
-            <i class="fad fa-user-circle fa-lg"></i>
-          </ion-button>
-          <ion-button @click="openBeastSelector">
-            <i class="fad fa-paw-claws fa-lg"></i>
-          </ion-button>
-          <XpBackgroundSelector
-            :target-ref="bgSelectorTarget"
-            :initial-bg1="customBg1"
-            :initial-bg2="customBg2"
-            :aspect-ratio="selectedAspectRatio"
-            @background-changed="onBackgroundChanged"
-          />
-          <ion-button @click="openControlsModal">
-            <ion-icon :icon="settingsOutline" slot="icon-only"></ion-icon>
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
-
     <ion-content>
       <!-- Battle Room Preview -->
       <div class="battleroom-container">
@@ -35,13 +8,20 @@
           ref="battlegroundRef"
           :taskId="0"
           :enemyType="selectedEnemyType"
-          :userId="selectedProfile?.userData?.id || 1"
+          :userId="String(selectedProfile?.userData?.id || 1)"
           :userName="selectedProfile?.name || 'Developer'"
           :beastAvatar="selectedBeast?.avatar || null"
           :showEnemyInfo="false"
         />
       </div>
     </ion-content>
+
+    <!-- Toolbox FAB -->
+    <ion-fab vertical="bottom" horizontal="center" slot="fixed">
+      <ion-fab-button color="tertiary" @click="openDevToolsActionSheet">
+        <i class="fad fa-toolbox fa-2x"></i>
+      </ion-fab-button>
+    </ion-fab>
     
     <!-- Dev Controls Modal -->
     <ion-modal ref="controlsModal" :is-open="isControlsModalOpen" @didDismiss="isControlsModalOpen = false">
@@ -247,7 +227,6 @@
 import { defineComponent, ref, computed, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
 import BattleGround from '@/views/Console/MyPortal/HomeTown/BattleGround/BattleGround.vue';
-import XpBackgroundSelector from '@/components/XpBackgroundSelector/XpBackgroundSelector.vue';
 import { toastController } from '@ionic/vue';
 import { 
   skull,
@@ -262,13 +241,18 @@ import Ionic from '@/mixins/ionic';
 import BestiaryDb, { Beast, beastStorage } from '@/lib/databases/BestiaryDb';
 import ProfileDb from '@/lib/databases/ProfileDb';
 import { profileStorage } from '@/views/App/SideMenu/SwitchProfile/SwitchProfile.vue';
-import { modalController } from '@ionic/vue';
+import { modalController, actionSheetController } from '@ionic/vue';
 import AddProfile from '@/views/App/SideMenu/SwitchProfile/AddProfile/AddProfile.vue';
 
 // Define an interface for the BattleGround component
 interface BattleGroundInstance {
   initBackground?: () => void;
   enterBattle?: () => void;
+  loadBeastById?: (id: string) => void;
+  loadSampleBeast?: () => void;
+  createSampleEnemy?: () => void;
+  initBattle?: () => void;
+  aspectRatio?: number;
   bg1?: number;
   bg2?: number;
   // Add other methods and properties as needed
@@ -297,7 +281,6 @@ export default defineComponent({
   mixins: [Ionic],
   components: {
     BattleGround,
-    XpBackgroundSelector,
   },
   setup() {
     const store = useStore();
@@ -416,23 +399,9 @@ export default defineComponent({
         if (typeof beast.aspectRatio === 'number') {
           selectedAspectRatio.value = beast.aspectRatio;
         }
-        
-        // Update the battleground
-        if (battlegroundRef.value) {
-          battlegroundRef.value.bg1 = beast.bg1;
-          battlegroundRef.value.bg2 = beast.bg2;
-          
-          // Then call enterBattle to refresh the background
-          setTimeout(() => {
-            if (battlegroundRef.value && typeof battlegroundRef.value.enterBattle === 'function') {
-              battlegroundRef.value.enterBattle();
-            }
-          }, 100);
-        }
       }
       
-      // Update task enemy and close modal
-      updateTaskEnemy();
+      // Close modal first to avoid UI jank
       isBeastModalOpen.value = false;
       
       // Show confirmation toast
@@ -443,6 +412,39 @@ export default defineComponent({
         color: 'success'
       });
       toast.present();
+      
+      // Update task enemy for the dev controls
+      updateTaskEnemy();
+      
+      // IMPORTANT: This is the key fix - we need to wait a moment for the component to update
+      // with the new beastAvatar prop, then directly load the beast using its ID
+      setTimeout(() => {
+        if (battlegroundRef.value && typeof battlegroundRef.value.loadBeastById === 'function') {
+          // Load the beast directly by ID
+          battlegroundRef.value.loadBeastById(beast.id);
+          
+          // Apply background settings
+          if (typeof beast.bg1 === 'number' && typeof beast.bg2 === 'number') {
+            battlegroundRef.value.bg1 = beast.bg1;
+            battlegroundRef.value.bg2 = beast.bg2;
+            if (typeof beast.aspectRatio === 'number') {
+              battlegroundRef.value.aspectRatio = beast.aspectRatio;
+            }
+            
+            // Refresh the background
+            if (typeof battlegroundRef.value.enterBattle === 'function') {
+              battlegroundRef.value.enterBattle();
+            }
+          }
+          
+          // Start the battle after loading the beast
+          setTimeout(() => {
+            if (battlegroundRef.value && typeof battlegroundRef.value.initBattle === 'function') {
+              battlegroundRef.value.initBattle();
+            }
+          }, 300);
+        }
+      }, 200);
     };
 
     // Create a computed property that returns an object for the background selector
@@ -525,16 +527,24 @@ export default defineComponent({
         selectedAspectRatio.value = bgData.aspectRatio;
       }
       
-      // Update the bg1 and bg2 properties on the BattleGround component
+      // Update the bg1, bg2, and aspectRatio properties on the BattleGround component
       if (battlegroundRef.value) {
-        // Update the bg1 and bg2 properties directly
+        // Update the properties directly
         battlegroundRef.value.bg1 = customBg1.value;
         battlegroundRef.value.bg2 = customBg2.value;
+        battlegroundRef.value.aspectRatio = selectedAspectRatio.value;
 
-        // Then call enterBattle to refresh the background
+        // Then call enterBattle to refresh the background with these new values
         setTimeout(() => {
           if (battlegroundRef.value && typeof battlegroundRef.value.enterBattle === 'function') {
             battlegroundRef.value.enterBattle();
+            
+            // Re-initialize the battle after background changes
+            setTimeout(() => {
+              if (battlegroundRef.value && typeof battlegroundRef.value.initBattle === 'function') {
+                battlegroundRef.value.initBattle();
+              }
+            }, 300);
           } else {
             console.warn('battlegroundRef or enterBattle method not available');
           }
@@ -751,6 +761,59 @@ export default defineComponent({
       }
     };
 
+    // Background selector modal state
+    const isBgSelectorModalOpen = ref(false);
+    
+    // Open the background selector modal
+    const openBgSelector = () => {
+      isBgSelectorModalOpen.value = true;
+    };
+
+    // Action sheet for dev tools
+    const openDevToolsActionSheet = async () => {
+      const actionSheet = await actionSheetController.create({
+        header: 'Battleroom Dev Tools',
+        mode: 'ios',
+        buttons: [
+          {
+            text: 'Select Profile',
+            icon: personOutline,
+            handler: () => {
+              openProfileSelector();
+            }
+          },
+          {
+            text: 'Select Beast',
+            icon: pawOutline,
+            handler: () => {
+              openBeastSelector();
+            }
+          },
+          // {
+          //   text: 'Change Background',
+          //   icon: 'image-outline',
+          //   handler: () => {
+          //     openBgSelector();
+          //   }
+          // },
+          {
+            text: 'Battle Controls',
+            icon: settingsOutline,
+            handler: () => {
+              openControlsModal();
+            }
+          },
+          {
+            text: 'Cancel',
+            icon: 'close-outline',
+            role: 'cancel',
+          }
+        ]
+      });
+      
+      await actionSheet.present();
+    };
+
     return {
       battlegroundRef,
       bgSelectorTarget, // Use the renamed computed property
@@ -808,6 +871,13 @@ export default defineComponent({
       newProfile,
       saveNewProfile,
 
+      // Background selector modal state
+      isBgSelectorModalOpen,
+      openBgSelector,
+
+      // Action sheet for dev tools
+      openDevToolsActionSheet,
+
       // Icons
       settingsOutline,
       closeOutline,
@@ -820,9 +890,13 @@ export default defineComponent({
 </script>
 
 <style scoped>
+ion-page{
+  max-height: 50vh;
+  overflow: hidden;
+} 
 .battleroom-container {
   width: 100%;
-  height: 100vh;
+  /* height: 100vh; */
   position: relative;
   overflow: hidden;
 }
@@ -858,5 +932,33 @@ pre {
 .battleground-component {
   width: 100%;
   height: 100%;
+}
+
+.toolbox-fab {
+  margin-top: 10px;
+  margin-right: 10px;
+  z-index: 100;
+}
+
+.toolbox-fab ion-fab-button {
+  --box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+  transition: transform 0.2s ease;
+}
+
+.toolbox-fab ion-fab-button:hover {
+  transform: scale(1.05);
+}
+
+.toolbox-fab i {
+  color: white;
+  font-size: 20px;
+}
+
+/* Make sure the battleground takes up full screen space */
+.battleroom-container {
+  width: 100%;
+  height: 100vh;
+  position: relative;
+  overflow: hidden;
 }
 </style>

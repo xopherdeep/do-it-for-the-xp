@@ -4,6 +4,25 @@
     <ion-content :fullscreen="false">
       <canvas class="battle-bg" ref="battleBackground"/>
       
+      <!-- Battle Dialog Box (Earthbound-style) -->
+      <div class="battle-dialog-box rpg-box" v-if="battleStarted && battleDialogText" @click="advanceBattleDialog">
+        <div class="dialog-content">
+          <xp-typing-text
+            ref="battleDialogText"
+            :text="battleDialogText"
+            :speed="25"
+            :auto-start="true"
+            :sound-theme="$fx.theme.rpg"
+            sound-type="text"
+            @typing-complete="onBattleDialogComplete"
+            class="battle-text"
+          />
+        </div>
+        <div v-if="hasMoreBattleDialog" class="dialog-indicator">
+          <i class="fad fa-chevron-down blink"></i>
+        </div>
+      </div>
+      
       <!-- Task Enemy Display -->
       <div class="enemy-container" v-if="currentEnemy">
         <div class="enemy-sprite" :class="[currentEnemy.type, enemyAnimationClass]">
@@ -20,6 +39,12 @@
             {{ currentEnemy.emoji }}
           </div>
         </div>
+        
+        <!-- Defense indicator animation when player is defending -->
+        <div class="defense-shield" v-if="isDefending">
+          <div class="shield-effect"></div>
+        </div>
+        
         <!-- Only show enemy info if showEnemyInfo prop is true (default) -->
         <div class="enemy-info" v-if="showEnemyInfo">
           <h3 class="enemy-name">{{ currentEnemy.name }}</h3>
@@ -32,9 +57,9 @@
         </div>
       </div>
       
-      <!-- Battle Actions FAB - new dynamic component -->
+      <!-- Battle Actions FAB - Only visible when it's the player's turn -->
       <XpFabBattleActions 
-        v-if="user"
+        v-if="user && battleStarted && isPlayerTurn"
         :user="user"
         :actions="userActions"
         isBattleFabOn="true"

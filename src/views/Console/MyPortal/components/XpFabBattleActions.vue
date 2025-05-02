@@ -38,9 +38,8 @@
             <ion-row>
               <!-- First row: Attack, Goods, Abilities -->
               <ion-col
-                v-for="action in displayActions.slice(0, 3)"
+                v-for="action in displayActions"
                 :key="action.label"
-                size="4"
               >
                 <ion-button
                   @click="clickAction(action)"
@@ -52,28 +51,6 @@
                 >
                     <!-- <i
                       slot="start"
-                      class="fad fa-lg hidden"
-                      :class="`fa-${action.faIcon?.replace('fa-', '')}`"
-                    /> -->
-                    <ion-label>{{ action.label }}</ion-label>
-                </ion-button>
-              </ion-col>
-              <!-- Second row: Defend, Run Away -->
-              <ion-col
-                v-for="action in displayActions.slice(3)"
-                :key="action.label"
-                :size="4"
-              >
-                <ion-button
-                  @click="clickAction(action)"
-                  :id="action.id ? action.id : undefined"
-                  size="small"
-                  :color="getBattleActionColor(action.label)"
-                  class="p-0 m-0"
-                  expand="full"
-                >
-                    <!-- <i
-                    slot="start"
                       class="fad fa-lg hidden"
                       :class="`fa-${action.faIcon?.replace('fa-', '')}`"
                     /> -->
@@ -136,63 +113,62 @@ export default defineComponent({
     const toggleFab = () => (fabActive.value = !fabActive.value);
     
     // Default battle actions if none are provided
-    const defaultBattleActions = computed<UserAction[]>(() => [
-      {
-        label: "Attack",
-        faIcon: "sword",
-        click($ev) {
-          const toast = toastController.create({
-            header: `${props.user.name?.nick || 'You'} prepare to attack...`,
-            message: "Choose your target!",
-            position: "top",
-            duration: 2000,
-          });
-          toast.then(t => t.present());
-          emit("battle-action", { action: "attack", event: $ev });
+    const defaultBattleActions = computed(() => {
+      const actions: UserAction[] = [
+        {
+          label: "Attack",
+          faIcon: "sword",
+          click($ev) {
+            const toast = toastController.create({
+              header: `${props.user.name?.nick || 'You'} prepare to attack...`,
+              message: "Choose your target!",
+              position: "top",
+              duration: 2000,
+            });
+            toast.then(t => t.present());
+            emit("battle-action", { action: "attack", event: $ev });
+          }
+        },
+        {
+          label: "Defend",
+          faIcon: "shield",
+          click($ev) {
+            alert("hey")
+            // Remove the toast as we now handle this in the BattleGround component
+            // with the dialog system for more consistency
+            emit("battle-action", { action: "defend", event: $ev });
+          }
+        },
+        {
+          label: "Run ",
+          faIcon: "running",
+          click($ev) {
+            const toast = toastController.create({
+              header: "Trying to escape...",
+              position: "top",
+              duration: 1500,
+            });
+            toast.then(t => t.present());
+            emit("battle-action", { action: "run", event: $ev });
+          }
+        },
+        {
+          label: "Goods",
+          faIcon: "backpack",
+          click($ev) {
+            emit("battle-action", { action: "goods", event: $ev });
+          }
+        },
+        {
+          label: "Abilities",
+          faIcon: "hand-holding-magic",
+          click($ev) {
+            emit("battle-action", { action: "abilities", event: $ev });
+          }
         }
-      },
-      {
-        label: "Goods",
-        faIcon: "backpack",
-        click($ev) {
-          emit("battle-action", { action: "goods", event: $ev });
-        }
-      },
-      {
-        label: "Abilities",
-        faIcon: "hand-holding-magic",
-        click($ev) {
-          emit("battle-action", { action: "abilities", event: $ev });
-        }
-      },
-      {
-        label: "Defend",
-        faIcon: "shield",
-        click($ev) {
-          const toast = toastController.create({
-            header: `${props.user.name?.nick || 'You'} take defensive stance!`,
-            message: "Defense increased for this turn.",
-            position: "top",
-            duration: 2000,
-          });
-          toast.then(t => t.present());
-          emit("battle-action", { action: "defend", event: $ev });
-        }
-      },
-      {
-        label: "Run ",
-        faIcon: "running",
-        click($ev) {
-          const toast = toastController.create({
-            header: "Trying to escape...",
-            position: "top",
-            duration: 1500,
-          });
-          toast.then(t => t.present());
-          emit("battle-action", { action: "run", event: $ev });
-        }
-      }
-    ]);
+      ];
+      return actions;
+    });
     
     // Use provided actions or fallback to defaults
     const displayActions = computed(() => {
@@ -233,11 +209,14 @@ export default defineComponent({
 <style lang="scss" scoped>
 ion-fab {
   &.fab-battle {
-    width: 400px;
-    max-width: 95vw;
+    max-width: 500px;
+    width: 95vw;
+    margin: 0 auto;
 
     ion-fab-list{
-      margin-top: 65px;
+    width: 100%;
+    max-width: 99vw;
+      margin-top: 0px;
 
       ion-col{
         padding: 0;

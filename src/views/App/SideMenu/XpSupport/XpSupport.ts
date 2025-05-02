@@ -26,9 +26,11 @@ import {
   helpOutline,
   helpSharp
 } from 'ionicons/icons'
+import Ionic from '@/mixins/ionic'
 
 export default defineComponent({
   name: 'xp-support',
+  mixins: [Ionic],
   data() {
     const tiles = [
       {
