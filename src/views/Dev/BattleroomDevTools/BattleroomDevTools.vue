@@ -29,7 +29,8 @@
           ref="battlegroundRef"
           v-bind="{ 
             taskId: 0,
-            enemyType: selectedEnemyType 
+            enemyType: selectedEnemyType,
+            userId: 1  // Add the required userId prop
           }"
         />
       </div>
@@ -148,15 +149,13 @@ import { defineComponent, ref, computed, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
 import BattleGround from '@/views/Console/MyPortal/HomeTown/BattleGround/BattleGround.vue';
 import XpBackgroundSelector from '@/components/XpBackgroundSelector/XpBackgroundSelector.vue';
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, 
-         IonButton, IonCard, IonCardHeader, IonCardSubtitle, IonCardContent,
-         IonList, IonItem, IonLabel, IonSelect, IonSelectOption, IonToggle,
-         IonItemDivider, IonRange, IonProgressBar, IonModal, IonIcon, toastController } from '@ionic/vue';
+import {  toastController } from '@ionic/vue';
 import { 
   skull,
   fitnessOutline,
   settingsOutline, closeOutline
 } from 'ionicons/icons';
+import Ionic from '@/mixins/ionic';
 
 // Define an interface for the BattleGround component
 interface BattleGroundInstance {
@@ -169,31 +168,10 @@ interface BattleGroundInstance {
 
 export default defineComponent({
   name: 'BattleroomDevTools',
+  mixins: [Ionic],
   components: {
     BattleGround,
     XpBackgroundSelector,
-    IonPage,
-    IonHeader,
-    IonToolbar,
-    IonTitle,
-    IonContent,
-    IonButtons,
-    IonButton,
-    IonCard,
-    IonCardHeader,
-    IonCardSubtitle,
-    IonCardContent,
-    IonList,
-    IonItem,
-    IonLabel,
-    IonSelect,
-    IonSelectOption,
-    IonToggle,
-    IonItemDivider,
-    IonRange,
-    IonProgressBar,
-    IonModal,
-    IonIcon
   },
   setup() {
     const store = useStore();

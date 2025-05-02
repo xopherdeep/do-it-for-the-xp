@@ -1,12 +1,20 @@
 ion-modal {
   &.rpg-box {
-    --background: transparent;
+    // --background: transparent;
 
     ion-content {
-      --background: transparent;
+      // --background: transparent;
     }
   }
 }
+
+ion-footer{
+  position: absolute;
+
+  bottom: 0;
+}
+
+
 
 #background-content {
   background-position:

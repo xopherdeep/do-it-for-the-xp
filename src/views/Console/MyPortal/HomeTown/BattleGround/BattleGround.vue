@@ -1,9 +1,8 @@
 <template>
-  <ion-page ref="battle">
-    <canvas class="battle-bg"></canvas>
+  <ion-page ref="page">
     <ion-header :translucent="true" v-if="user"> </ion-header>
-    <ion-content :fullscreen="false" class="battle-bg">
-      <!-- Background controls moved to DevTools dialog -->
+    <ion-content :fullscreen="false">
+      <canvas class="battle-bg" ref="battleBackground"/>
       
       <!-- Task Enemy Display -->
       <div class="enemy-container" v-if="currentEnemy">
@@ -24,24 +23,14 @@
         </div>
       </div>
       
-      <!-- battle actions -->
-      <ion-card class="battle-actions-card">
-        <ion-card-header>
-          <ion-card-subtitle>Battle Actions</ion-card-subtitle>
-        </ion-card-header>
-        <ion-card-content>
-          <ion-grid>
-            <ion-row>
-              <ion-col v-for="(action, index) in userActions" :key="index">
-                <ion-button expand="block" @click="executeAction(action, $event)" :color="getBattleActionColor(action.label)">
-                  <ion-icon :icon="getBattleActionIcon(action.label)" slot="start"></ion-icon>
-                  {{ action.label }}
-                </ion-button>
-              </ion-col>
-            </ion-row>
-          </ion-grid>
-        </ion-card-content>
-      </ion-card>
+      <!-- Battle Actions FAB - new dynamic component -->
+      <XpFabBattleActions 
+        v-if="user"
+        :user="user"
+        :actions="userActions"
+        isBattleFabOn="true"
+        @battle-action="handleBattleAction"
+      />
       
       <!-- Battle Message Display -->
       <div class="battle-message" v-if="battleMessage">

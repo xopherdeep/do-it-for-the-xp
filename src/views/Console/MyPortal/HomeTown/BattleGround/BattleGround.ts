@@ -10,6 +10,10 @@ import MyTask from "@/views/Console/MyDialogBox/MyTask/MyTask.vue";
 // import requireImg from "@/assets/js/requireImg.js";
 import users from "@/lib/api/users.api";
 import userActions from "@/mixins/userActions";
+import XpFabBattleActions from "@/views/Console/MyPortal/components/XpFabBattleActions.vue";
+
+// Define a unique ID for this page for background management
+const PAGE_ID = 'battle-ground';
 
 import { toastController, modalController } from "@ionic/vue";
 import {
@@ -58,6 +62,7 @@ export default defineComponent({
     Swiper,
     SwiperSlide,
     XpHpMpHud,
+    XpFabBattleActions,
   },
   data() {
     return {
@@ -142,9 +147,56 @@ export default defineComponent({
     onSwiper() {
       // this.swiper = swiper;
     },
+    handleBattleAction({ action }) {
+      // Handle different battle actions based on the action type
+      switch(action) {
+        case 'attack':
+          // Handle attack action
+          this.$fx.ui[this.$fx.theme.ui].confirm.play();
+          this.openMagicToast('Attack');
+          // You might want to set active enemy, calculate damage, etc.
+          break;
+        case 'goods':
+          // Open goods/inventory menu
+          this.$fx.ui[this.$fx.theme.ui].openPage.play();
+          this.router.push({
+            name: "my-inventory",
+            params: { userId: this.userId },
+          });
+          break;
+        case 'abilities':
+          // Open abilities menu
+          this.$fx.ui[this.$fx.theme.ui].openPage.play();
+          this.router.push({
+            name: "my-abilities",
+            params: { userId: this.userId },
+          });
+          break;
+        case 'defend':
+          // Handle defend action
+          this.$fx.ui[this.$fx.theme.ui].confirm.play();
+          this.openMagicToast('Defense');
+          // You might want to increase defense for next turn
+          break;
+        case 'run':
+          // Handle run away action
+          this.$fx.ui[this.$fx.theme.ui].cancel.play();
+          // Maybe show a confirmation dialog before actually running away
+          setTimeout(() => {
+            this.router.push({
+              name: "hometown",
+              params: { userId: this.userId },
+            });
+          }, 1500);
+          break;
+        default:
+          console.warn(`Unhandled battle action: ${action}`);
+      }
+    },
     getBattleActionIcon(label) {
       switch(label.toLowerCase()) {
         case 'roll': return diceOutline;
+        case 'attack': return 'sword-outline';
         case 'goods': return bagOutline;
         case 'abilities': return colorWandOutline;
         case 'defend': return 'shield-outline';
@@ -172,14 +224,31 @@ export default defineComponent({
       modalController.dismiss();
     },
     setBGStyle(key: string, value: string) {
-      const pageRef = this.$refs.page as { $el: { style: Record<string, string> } };
-      pageRef.$el.style[key] = value;
+      // Add safety check to prevent errors when this.$refs.page is undefined
+      const pageRef = this.$refs.page as { $el?: { style: Record<string, string> } } | undefined;
+      if (pageRef && pageRef.$el) {
+        pageRef.$el.style[key] = value;
+      } else {
+        // Fall back to using document.body when in development environment
+        const element = document.querySelector('.battle-bg') as HTMLElement;
+        if (element) {
+          element.style[key as any] = value;
+        }
+      }
     },
     changeBg() {
       if (this.$fx.theme.rpg == "earthbound") {
         this.enterBattle();
         return false;
       }
+      
+      // Check if we're even able to set bg styles
+      if (!this.$refs.page && !document.querySelector('.battle-bg')) {
+        console.warn('No suitable element found to set background styles');
+        this.enterBattle(); // Just try to enter battle directly
+        return;
+      }
+      
       const { setBGStyle, backgrounds } = this;
       this.currentBg = Math.floor(Math.random() * 10);
       const values = Object.values(backgrounds);
@@ -204,16 +273,45 @@ export default defineComponent({
       setTimeout(() => setBGStyle("backdropFilter", "blur(0px)"), 3000);
     },
     enterBattle() {
-      const { $fx } = this
-      if ($fx && $fx.theme.rpg != "earthbound") return false;
+      const { $fx } = this;
+      // First check if we should be using the Earthbound background
+      if ($fx && $fx.theme.rpg != "earthbound") {
+        return false;
+      }
+      
+      // Clean up previous background if active
+      if (backgroundManager.isActiveFor(PAGE_ID)) {
+        backgroundManager.cleanupBackground();
+      }
 
-      backgroundManager.initBackground({
-        canvasSelector: "canvas.battle-bg",
-        bg1: this.bg1,
-        bg2: this.bg2,
-        aspectRatio: 64,
-        handleResize: true
-      });
+      // Get the canvas element using the ref
+      const canvasElement = this.$refs.battleBackground as HTMLCanvasElement;
+      
+      if (!canvasElement) {
+        // Try with querySelector as fallback
+        const canvasSelector = "canvas.battle-bg";
+        
+        backgroundManager.initBackground({
+          canvasSelector,
+          bg1: this.bg1,
+          bg2: this.bg2,
+          aspectRatio: 48, // More common aspect ratio value
+          handleResize: true,
+          page: PAGE_ID
+        });
+      } else {
+        // Use the direct canvas element reference
+        backgroundManager.initBackground({
+          canvasElement,
+          bg1: this.bg1,
+          bg2: this.bg2, 
+          aspectRatio: 48, // More common aspect ratio value
+          handleResize: true,
+          page: PAGE_ID
+        });
+      }
+      
+      return true;
     },
     clickTask(task) {
       this.activeModal = task.id;
@@ -393,9 +491,9 @@ export default defineComponent({
 
     const userActions = [
       {
-        label: "Roll",
-        faIcon: "dice-d8",
-        click: clickRoll,
+        label: "Attack",
+        faIcon: "sword",
+        click: clickRoll, // Keeping the same handler for now
       },
       {
         label: "Goods",

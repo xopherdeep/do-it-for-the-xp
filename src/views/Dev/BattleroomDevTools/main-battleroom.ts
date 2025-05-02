@@ -24,8 +24,7 @@ import '@ionic/vue/css/flex-utils.css';
 import '@ionic/vue/css/display.css';
 
 // Import your theme css
-import '@/theme/variables.css';
-import '@/theme/core.css';
+import '@/styles/index.scss';
 import debug from '@/lib/utils/debug';
 
 // Create a simplified version of the store with just battle-related features
@@ -61,12 +60,43 @@ const store = createStore({
       { label: "Item", click: () => debug.log("Item clicked") },
       { label: "Run", click: () => debug.log("Run clicked") },
     ],
+    // Add mock user data for development
+    users: {
+      1: {
+        id: 1,
+        name: {
+          nick: "Dev User",
+          first: "Dev",
+          last: "User"
+        },
+        avatar: "default",
+        stats: {
+          hp: 100,
+          maxHp: 100,
+          mp: 50,
+          maxMp: 50,
+          xp: 120,
+          level: 5
+        }
+      }
+    },
+    // Add mock achievement data
+    xp_achievement: {}
   },
   getters: {
     battleState: (state) => (key) => {
       if (key) return state.battle[key];
       return state.battle;
     },
+    // Add the missing getUserById getter
+    getUserById: (state) => (userId) => {
+      return state.users[userId] || {
+        id: userId,
+        name: { nick: "Test User", first: "Test", last: "User" },
+        avatar: "default",
+        stats: { hp: 100, maxHp: 100, mp: 50, maxMp: 50, xp: 0, level: 1 }
+      };
+    }
   },
   mutations: {
     ACTIVATE_BATTLE(state) {
@@ -125,6 +155,21 @@ const fxSystem: Partial<FXSystem> = {
   theme: {
     rpg: 'rpg-theme',
     ui: 'default-ui'
+  },
+  ui: {
+    'default-ui': {
+      // Create mock audio objects for development
+      chooseUser: {
+        play: () => debug.log('Playing chooseUser sound'),
+        pause: () => debug.log('Pausing chooseUser sound'),
+        currentTime: 0
+      },
+      openPage: {
+        play: () => debug.log('Playing openPage sound'),
+        pause: () => debug.log('Pausing openPage sound'),
+        currentTime: 0
+      }
+    }
   },
   play$fx: (sound) => debug.log(`Playing sound: ${sound}`)
 };

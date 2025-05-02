@@ -38,10 +38,12 @@
   </ion-card>
 </template>
 <script lang="ts">
-  import { defineComponent } from "vue";
+  import Ionic from "@/mixins/ionic";
+import { defineComponent } from "vue";
 
   export default defineComponent({
     props: ["user"],
+    mixins: [Ionic],
     name: "XpHpMpHud",
     computed: {
       hp() {
