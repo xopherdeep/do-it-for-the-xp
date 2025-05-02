@@ -242,6 +242,29 @@ ion-fab {
   }
 }
 
+/* Beast animation keyframes */
+@keyframes damage-flash {
+  0% { opacity: 1; }
+  25% { opacity: 0.3; }
+  50% { opacity: 1; }
+  75% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+@keyframes attack-motion {
+  0% { transform: translateY(0); }
+  25% { transform: translateY(-10px); }
+  50% { transform: translateY(0); }
+  75% { transform: translateY(5px); }
+  100% { transform: translateY(0); }
+}
+
+@keyframes float-animation {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0); }
+}
+
 main {
   max-width: 600px;
   margin: auto;
@@ -379,6 +402,108 @@ button {
     .user-buffs {
       ion-img,
       img {
+      }
+    }
+  }
+}
+
+// Enemy/Beast Styling
+.enemy-container {
+  position: absolute;
+  top: 25%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  
+  .enemy-sprite {
+    margin-bottom: 15px;
+    
+    &.damaged {
+      animation: damage-flash 0.5s ease-in-out;
+    }
+    
+    &.attacking {
+      animation: attack-motion 0.8s ease-in-out;
+    }
+    
+    // Beast avatar styling
+    .beast-avatar-battle {
+      --size: 225px;
+      width: var(--size);
+      height: var(--size);
+      margin: 0 auto;
+      border-radius: 0;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      animation: float-animation 10s ease-in-out infinite;
+      
+      ion-img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        
+        &::part(image) {
+          border-radius: 0;
+        }
+      }
+    }
+    
+    .enemy-placeholder {
+      width: 150px;
+      height: 150px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 80px;
+      background-color: rgba(0, 0, 0, 0.3);
+      border-radius: 50%;
+      
+      &.boss {
+        background-color: rgba(255, 0, 0, 0.2);
+        font-size: 100px;
+      }
+    }
+  }
+  
+  .enemy-info {
+    text-align: center;
+    background-color: rgba(0, 0, 0, 0.5);
+    padding: 10px;
+    border-radius: 8px;
+    min-width: 250px;
+    
+    .enemy-name {
+      font-size: 18px;
+      margin-top: 0;
+      margin-bottom: 8px;
+      color: white;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.7);
+    }
+    
+    .enemy-health-bar {
+      .health-label {
+        font-size: 14px;
+        margin-bottom: 5px;
+        color: white;
+      }
+      
+      .health-bar-container {
+        height: 12px;
+        background-color: #333;
+        border-radius: 6px;
+        overflow: hidden;
+        
+        .health-bar {
+          height: 100%;
+          background-color: #2dd36f; // Default color
+          transition: width 0.3s ease, background-color 0.3s ease;
+        }
       }
     }
   }

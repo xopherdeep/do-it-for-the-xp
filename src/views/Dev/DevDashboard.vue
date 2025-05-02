@@ -10,6 +10,7 @@
     </ion-header>
 
     <ion-content>
+        <ion-router-outlet ref="outlet"></ion-router-outlet>
       <div class="container">
         <ion-card class="intro-card">
           <ion-card-header>

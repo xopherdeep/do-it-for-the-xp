@@ -136,12 +136,12 @@ export default {
    * Change BGM based on provided payload
    * This action handles both old and new audio engines
    */
-  changeBGM({ commit, state }, bgm) {
+  changeBGM({ commit, state }, bgm: { _usingNewAudioEngine?: boolean } = {}) {
     // First update the state
     commit("CHANGE_BGM", bgm);
     
     // If the new audio engine already handled this, don't play again
-    if (bgm._usingNewAudioEngine) {
+    if (bgm && bgm._usingNewAudioEngine) {
       return;
     }
     
@@ -161,18 +161,28 @@ export default {
     // Get the track source URL
     const src = typeof targetTrack === 'string' ? targetTrack : targetTrack.src;
     
+    // Make sure audio element exists before attempting to use it
+    if (!audio) {
+      debug.warn('Audio element not initialized');
+      return;
+    }
+    
     // Configure audio element
     audio.src = src;
     audio.loop = state.bgm.repeat !== false; // Default to true if not specified
     
     // Attempt playback
-    const playPromise = audio.play();
-    
-    // Handle potential playback errors
-    if (playPromise !== undefined) {
-      playPromise.catch(error => {
-        debug.warn('Audio playback failed', error);
-      });
+    try {
+      const playPromise = audio.play();
+      
+      // Handle potential playback errors
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          debug.warn('Audio playback failed', error);
+        });
+      }
+    } catch (error) {
+      debug.warn('Error playing audio:', error);
     }
   },
 
