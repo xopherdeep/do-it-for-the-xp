@@ -17,9 +17,9 @@
     </ion-header>
     <ion-content class="bg-slide ion-padding">
       <ion-grid>
-        <ion-row class="sticky top-0 z-10 bg-white ion-padding selected-avatar-container" v-if="selectedAvatar">
-          <ion-col size="6" offset="3" class="text-center">
-            <h4 class="mb-2">Selected Avatar</h4>
+        <ion-row class="sticky top-0 z-10 bg-white ion-padding selected-avatar-container p-0" v-if="selectedAvatar">
+          <ion-col size="12" class="text-center relative">
+            <canvas class="avatar-bg"/>
             <ion-img
               :src="getAvatarImage(selectedAvatar)"
               class="selected-avatar"
@@ -52,9 +52,13 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue';
+import { defineComponent, ref, onMounted, onUnmounted } from 'vue';
 import { modalController } from '@ionic/vue';
 import Ionic from '@/mixins/ionic';
+import { backgroundManager } from '@/lib/engine/core/BackgroundManager';
+
+// Unique page ID for this component
+const PAGE_ID = 'avatar-select';
 
 export default defineComponent({
   name: 'AvatarSelect',
@@ -65,9 +69,10 @@ export default defineComponent({
       default: 0
     }
   },
-  setup(props) {
+  setup(props: { avatar: number, bg1: number, bg2: number}) {
     const nAvatars = 72;
     const selectedAvatar = ref(props.avatar || 0);
+    const backgroundInitialized = ref(false);
 
     const getAvatarImage = (id: number) => {
       const pad = id.toString().padStart(3, '0')
@@ -76,6 +81,7 @@ export default defineComponent({
 
     const selectAvatar = (id: number) => {
       selectedAvatar.value = id;
+      initBackground();
     };
 
     const cancel = () => {
@@ -85,6 +91,39 @@ export default defineComponent({
     const confirm = () => {
       modalController.dismiss(selectedAvatar.value);
     };
+
+    const initBackground = () => {
+      // Clean up previous background if active
+      if (backgroundManager.isActiveFor(PAGE_ID)) {
+        backgroundManager.cleanupBackground();
+      }
+
+      // Initialize background with canvas selector
+      backgroundManager.initBackground({
+        canvasSelector: "canvas.avatar-bg",
+        bg1: props.bg1,
+        bg2: props.bg2,
+        aspectRatio: 25,  // Full screen
+        handleResize: true,
+        page: PAGE_ID
+      });
+
+      backgroundInitialized.value = true;
+    };
+
+    // Initialize background on component mount
+    onMounted(() => {
+      if (selectedAvatar.value) {
+        initBackground();
+      }
+    });
+
+    // Clean up background when component unmounts
+    onUnmounted(() => {
+      if (backgroundManager.isActiveFor(PAGE_ID)) {
+        backgroundManager.cleanupBackground();
+      }
+    });
 
     return {
       nAvatars,
@@ -99,6 +138,15 @@ export default defineComponent({
 </script> 
 
 <style lang="scss" scoped>
+.avatar-bg{
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+}
+
 .avatar-select-container {
   height: 100%;
   display: flex;
@@ -110,9 +158,12 @@ ion-content {
 }
 
 .selected-avatar-container {
-  background: #f8f8f8;
+  /* background: #f8f8f8; */
   box-shadow: 0 2px 5px rgba(0,0,0,0.1);
   margin-bottom: 10px;
+  border-radius: 10px;
+  overflow: hidden;
+  height: 25vh;
 }
 
 .selected-avatar {
@@ -120,6 +171,11 @@ ion-content {
   margin: 0 auto;
   border-radius: 8px;
   border: 2px solid var(--ion-color-primary);
+  position: absolute;  /* Added position absolute */
+  top: 50%;            /* Center vertically */
+  left: 50%;           /* Center horizontally */
+  transform: translate(-50%, -50%); /* Adjust for centering */
+  z-index: 1;         /* Ensure it appears above other elements */
 }
 
 .avatar-item {

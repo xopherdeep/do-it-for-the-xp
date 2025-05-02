@@ -351,7 +351,10 @@ export default defineComponent({
         component: AvatarSelect,
         componentProps: {
           avatar: this.updateBeast.avatar,
+          bg1: this.bg1,
+          bg2: this.bg2,
         },
+        
         cssClass: 'avatar-select-modal',
         // Remove the presentingElement to ensure it takes up the full screen
       });
@@ -359,6 +362,7 @@ export default defineComponent({
       modal.onDidDismiss().then(({ data }) => {
         if (data) {
           this.updateBeast.avatar = data;
+          this.initBackground()
         }
       });
 
