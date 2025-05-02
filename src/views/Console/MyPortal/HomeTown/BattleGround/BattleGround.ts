@@ -11,9 +11,31 @@ import MyTask from "@/views/Console/MyDialogBox/MyTask/MyTask.vue";
 import users from "@/lib/api/users.api";
 import userActions from "@/mixins/userActions";
 import XpFabBattleActions from "@/views/Console/MyPortal/components/XpFabBattleActions.vue";
+import BestiaryDb, { beastStorage } from "@/lib/databases/BestiaryDb";
 
 // Define a unique ID for this page for background management
 const PAGE_ID = 'battle-ground';
+
+// Define Enemy interface for type safety
+interface Enemy {
+  id: string;
+  name: string;
+  type: string;
+  isBoss: boolean;
+  health: number;
+  maxHealth: number;
+  avatar?: number;
+  imageUrl?: string;
+  emoji?: string;
+}
+
+// Define CompletedTask interface for type safety
+interface CompletedTask {
+  name: string;
+  xpReward: number;
+  gpReward: number;
+  itemReward: string | null;
+}
 
 import { toastController, modalController } from "@ionic/vue";
 import {
@@ -44,6 +66,8 @@ import {
   happyOutline,
   serverOutline,
   arrowBack,
+  cashOutline,
+  giftOutline
 } from "ionicons/icons";
 
 import { Swiper, SwiperSlide } from "swiper/vue";
@@ -51,10 +75,34 @@ import "swiper/css";
 import XpHpMpHud from "@/components/XpHpMpHud/XpHpMpHud.vue";
 
 const requireAvatar = require.context("@/assets/images/avatars/");
+// Initialize BestiaryDb
+const bestiary = new BestiaryDb(beastStorage);
 
 export default defineComponent({
   name: "battle-ground",
-  props: ["userId"],
+  props: {
+    userId: String,
+    userName: {
+      type: String,
+      default: ''
+    },
+    beastAvatar: {
+      type: Number,
+      default: null
+    },
+    showEnemyInfo: {
+      type: Boolean,
+      default: true
+    },
+    enemyType: {
+      type: String,
+      default: 'basic'
+    },
+    taskId: {
+      type: [String, Number],
+      default: 0
+    }
+  },
   mixins: [fetchItems, ionic, userActions],
   components: {
     CardUserStats,
@@ -70,6 +118,15 @@ export default defineComponent({
       backgrounds,
       bg1: 1,
       bg2: 1,
+      
+      // Current enemy data with custom background and beast image support
+      currentEnemy: null as Enemy | null,
+      enemyAnimationClass: '',
+      enemyHealthColor: '#2dd36f',
+      battleMessage: '',
+      showRewardsModal: false,
+      completedTask: null as CompletedTask | null,
+      aspectRatio: 48, // Default aspect ratio for battle backgrounds
 
       areas: {
         physical: {
@@ -144,18 +201,129 @@ export default defineComponent({
     ...mapState(["xp_achievement"]),
   },
   methods: {
+    // Get beast avatar image from the beast ID - similar to XpAddBeast component
+    getAvatar(id: number) {
+      const pad = id.toString().padStart(3, '0');
+      return require(`@/assets/images/beasts/${pad}.png`);
+    },
+    
+    // Load beast by ID from the bestiary
+    async loadBeastById(beastId: string) {
+      try {
+        const beast = await bestiary.getBeastById(beastId);
+        if (beast) {
+          this.loadBeastIntoArena(beast);
+        }
+      } catch (error) {
+        console.error('Error loading beast:', error);
+      }
+    },
+    
+    // Load a beast into the battle arena
+    loadBeastIntoArena(beast) {
+      if (!beast) return;
+      
+      // Update background if the beast has custom background settings
+      if (beast.bg1 !== undefined && beast.bg2 !== undefined) {
+        this.bg1 = beast.bg1;
+        this.bg2 = beast.bg2;
+        this.aspectRatio = beast.aspectRatio || 48;
+        
+        // Update the background with beast's settings
+        if (backgroundManager.isActiveFor(PAGE_ID)) {
+          backgroundManager.updateBackground({
+            bg1: this.bg1,
+            bg2: this.bg2,
+            aspectRatio: this.aspectRatio,
+            page: PAGE_ID
+          });
+        } else {
+          this.enterBattle();
+        }
+      }
+      
+      // Create enemy object from beast data
+      const enemy: Enemy = {
+        id: beast.id,
+        name: beast.name,
+        type: 'beast', // Generic type for custom beasts
+        isBoss: false, // Could be determined by beast properties if needed
+        health: 500,
+        maxHealth: 500,
+        avatar: beast.avatar, // Store the avatar ID for image loading
+        imageUrl: beast.avatar ? this.getAvatar(beast.avatar) : null,
+        emoji: '👾' // Fallback emoji if image fails to load
+      };
+      
+      // Set current enemy and update UI
+      this.currentEnemy = enemy;
+      this.enemyAnimationClass = '';
+      this.updateEnemyHealthColor();
+      
+      // Display battle start message
+      this.battleMessage = `A ${enemy.name} appears!`;
+      setTimeout(() => {
+        this.battleMessage = '';
+      }, 3000);
+    },
+    
+    // Update enemy health bar color based on remaining health
+    updateEnemyHealthColor() {
+      if (!this.currentEnemy) return;
+      
+      const healthPercentage = this.currentEnemy.health / this.currentEnemy.maxHealth;
+      
+      if (healthPercentage > 0.6) {
+        this.enemyHealthColor = '#2dd36f'; // green
+      } else if (healthPercentage > 0.3) {
+        this.enemyHealthColor = '#ffc409'; // yellow
+      } else {
+        this.enemyHealthColor = '#eb445a'; // red
+      }
+    },
+
     onSwiper() {
       // this.swiper = swiper;
     },
     handleBattleAction({ action }) {
+      // If no enemy is present, load a sample beast from the bestiary
+      if (!this.currentEnemy) {
+        this.loadSampleBeast();
+        return; // Wait until beast is loaded before allowing actions
+      }
+
       // Handle different battle actions based on the action type
       switch(action) {
         case 'attack':
           // Handle attack action
           this.$fx.ui[this.$fx.theme.ui].confirm.play();
           this.openMagicToast('Attack');
-          // You might want to set active enemy, calculate damage, etc.
+          
+          // Apply attack animation
+          this.enemyAnimationClass = 'damaged';
+          setTimeout(() => {
+            this.enemyAnimationClass = '';
+          }, 500);
+          
+          // Simulate damage to enemy (decrease health by 10-20%)
+          if (this.currentEnemy) {
+            const damage = Math.floor(this.currentEnemy.maxHealth * (0.1 + Math.random() * 0.1));
+            this.currentEnemy.health = Math.max(0, this.currentEnemy.health - damage);
+            this.updateEnemyHealthColor();
+            
+            // Display damage message
+            this.battleMessage = `You dealt ${damage} damage!`;
+            setTimeout(() => {
+              this.battleMessage = '';
+              
+              // Check if enemy is defeated
+              if (this.currentEnemy && this.currentEnemy.health <= 0) {
+                this.defeatEnemy();
+              }
+            }, 2000);
+          }
           break;
+          
         case 'goods':
           // Open goods/inventory menu
           this.$fx.ui[this.$fx.theme.ui].openPage.play();
@@ -164,6 +332,7 @@ export default defineComponent({
             params: { userId: this.userId },
           });
           break;
+          
         case 'abilities':
           // Open abilities menu
           this.$fx.ui[this.$fx.theme.ui].openPage.play();
@@ -172,16 +341,30 @@ export default defineComponent({
             params: { userId: this.userId },
           });
           break;
+          
         case 'defend':
           // Handle defend action
           this.$fx.ui[this.$fx.theme.ui].confirm.play();
           this.openMagicToast('Defense');
-          // You might want to increase defense for next turn
+          
+          // Show defense message
+          this.battleMessage = 'You take a defensive stance!';
+          setTimeout(() => {
+            this.battleMessage = '';
+          }, 2000);
           break;
+          
         case 'run':
           // Handle run away action
           this.$fx.ui[this.$fx.theme.ui].cancel.play();
-          // Maybe show a confirmation dialog before actually running away
+          
+          // Show running message
+          this.battleMessage = 'Running away...';
+          
+          // Fade out enemy
+          this.enemyAnimationClass = 'fadeout';
+          
+          // Return to hometown after a delay
           setTimeout(() => {
             this.router.push({
               name: "hometown",
@@ -189,9 +372,99 @@ export default defineComponent({
             });
           }, 1500);
           break;
+          
         default:
           console.warn(`Unhandled battle action: ${action}`);
       }
+    },
+    
+    // Defeat current enemy and show rewards
+    defeatEnemy() {
+      if (!this.currentEnemy) return;
+      
+      // Store defeated enemy info for rewards modal
+      this.completedTask = {
+        name: this.currentEnemy.name,
+        xpReward: Math.floor(50 + Math.random() * 100),
+        gpReward: Math.floor(10 + Math.random() * 50),
+        itemReward: Math.random() > 0.7 ? this.getRandomRewardItem() : null
+      };
+      
+      // Show victory message
+      this.battleMessage = `${this.currentEnemy.name} was defeated!`;
+      
+      // Clear current enemy
+      this.currentEnemy = null;
+      
+      // Show rewards modal after a delay
+      setTimeout(() => {
+        this.battleMessage = '';
+        this.showRewardsModal = true;
+      }, 2000);
+    },
+    
+    // Get random reward item name
+    getRandomRewardItem() {
+      const items = [
+        'Small Health Potion', 
+        'Magic Dust', 
+        'Beast Fang', 
+        'Copper Coin', 
+        'Leather Scraps',
+        'Shiny Pebble'
+      ];
+      return items[Math.floor(Math.random() * items.length)];
+    },
+    
+    // Close rewards modal
+    closeRewardsModal() {
+      this.showRewardsModal = false;
+      this.completedTask = null;
+    },
+    
+    // Load a sample beast from the bestiary (use first available beast)
+    async loadSampleBeast() {
+      try {
+        // Get all beasts from the bestiary
+        const beasts = await bestiary.getBeasts();
+        if (beasts && beasts.length > 0) {
+          // Pick a random beast from the list
+          const randomIndex = Math.floor(Math.random() * beasts.length);
+          const beast = beasts[randomIndex];
+          
+          this.loadBeastIntoArena(beast);
+        } else {
+          // If no beasts are found, create a sample enemy
+          this.createSampleEnemy();
+        }
+      } catch (error) {
+        console.error('Error loading beasts:', error);
+        // Fallback to sample enemy
+        this.createSampleEnemy();
+      }
+    },
+    
+    // Create a sample enemy for demonstration
+    createSampleEnemy() {
+      const enemy: Enemy = {
+        id: 'sample',
+        name: 'Training Dummy',
+        type: 'beast',
+        isBoss: false,
+        health: 500,
+        maxHealth: 500,
+        emoji: '👾' // Fallback emoji if no image available
+      };
+      
+      // Set current enemy and update UI
+      this.currentEnemy = enemy;
+      this.updateEnemyHealthColor();
+      
+      // Display battle start message
+      this.battleMessage = `A ${enemy.name} appears!`;
+      setTimeout(() => {
+        this.battleMessage = '';
+      }, 3000);
     },
     getBattleActionIcon(label) {
       switch(label.toLowerCase()) {
@@ -273,11 +546,11 @@ export default defineComponent({
       setTimeout(() => setBGStyle("backdropFilter", "blur(0px)"), 3000);
     },
     enterBattle() {
-      const { $fx } = this;
+      // const { $fx } = this;
       // First check if we should be using the Earthbound background
-      if ($fx && $fx.theme.rpg != "earthbound") {
-        return false;
-      }
+      // if ($fx && $fx.theme.rpg != "earthbound") {
+      //   return false;
+      // }
       
       // Clean up previous background if active
       if (backgroundManager.isActiveFor(PAGE_ID)) {
@@ -301,6 +574,7 @@ export default defineComponent({
         });
       } else {
         // Use the direct canvas element reference
+
         backgroundManager.initBackground({
           canvasElement,
           bg1: this.bg1,
@@ -417,6 +691,13 @@ export default defineComponent({
     this.$fx.ui[this.$fx.theme.ui].chooseUser.play();
     this.openToast();
     this.enterBattle();
+    
+    // Load a beast from the bestiary after a short delay
+    // This ensures the battle environment is set up first
+    setTimeout(() => {
+      this.loadSampleBeast();
+    }, 1000);
+    
     setTimeout(() => {
       this.$fx.ui[this.$fx.theme.ui].chooseUser.pause();
       this.isUserModalOpen = this.userId;
@@ -429,6 +710,35 @@ export default defineComponent({
     activeModal(taskId) {
       const task = this.items.filter((i) => i.id == taskId)[0];
       this.openTaskToast(task);
+    },
+    // Add a watcher for the beastAvatar prop
+    beastAvatar: {
+      immediate: true,
+      handler(newBeastAvatar) {
+        if (newBeastAvatar) {
+          // Create a simple enemy object using just the avatar
+          const enemy: Enemy = {
+            id: 'custom-beast',
+            name: 'Beast',
+            type: this.enemyType || 'beast',
+            isBoss: this.enemyType === 'boss',
+            health: 500,
+            maxHealth: 500,
+            avatar: newBeastAvatar, // Use the provided avatar ID
+            imageUrl: this.getAvatar(newBeastAvatar), // Generate the image URL from avatar ID
+            emoji: '👾' // Fallback emoji if image fails to load
+          };
+          
+          // Set current enemy with just the image
+          this.currentEnemy = enemy;
+          
+          // No animation or health updates needed since we're just showing the image
+        } else if (this.currentEnemy?.avatar) {
+          // If beastAvatar is cleared and we had a beast loaded, 
+          // we might want to clear the current enemy or load a default
+          this.createSampleEnemy();
+        }
+      }
     },
     // bgmTrack() {
     //   this.bgm.pause();
@@ -536,6 +846,9 @@ export default defineComponent({
       happyOutline,
       serverOutline,
       arrowBack,
+      // Add these icons for the rewards modal
+      cashOutline,
+      giftOutline
     };
   },
 });

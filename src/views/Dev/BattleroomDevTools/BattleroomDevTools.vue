@@ -7,6 +7,12 @@
         </ion-buttons>
         <ion-title>Battleroom Dev Tools</ion-title>
         <ion-buttons slot="end">
+          <ion-button @click="openProfileSelector">
+            <i class="fad fa-user-circle fa-lg"></i>
+          </ion-button>
+          <ion-button @click="openBeastSelector">
+            <i class="fad fa-paw-claws fa-lg"></i>
+          </ion-button>
           <XpBackgroundSelector
             :target-ref="bgSelectorTarget"
             :initial-bg1="customBg1"
@@ -27,11 +33,12 @@
         <BattleGround 
           class="battleground-component"
           ref="battlegroundRef"
-          v-bind="{ 
-            taskId: 0,
-            enemyType: selectedEnemyType,
-            userId: 1  // Add the required userId prop
-          }"
+          :taskId="0"
+          :enemyType="selectedEnemyType"
+          :userId="selectedProfile?.userData?.id || 1"
+          :userName="selectedProfile?.name || 'Developer'"
+          :beastAvatar="selectedBeast?.avatar || null"
+          :showEnemyInfo="false"
         />
       </div>
     </ion-content>
@@ -141,6 +148,98 @@
         </ion-card>
       </ion-content>
     </ion-modal>
+
+    <!-- Beast Selector Modal -->
+    <ion-modal ref="beastSelectorModal" :is-open="isBeastModalOpen" @didDismiss="isBeastModalOpen = false">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Beast Selector</ion-title>
+          <ion-buttons slot="end">
+            <ion-button @click="isBeastModalOpen = false">
+              <ion-icon :icon="closeOutline" slot="icon-only"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        <ion-list>
+          <ion-item-divider>
+            <ion-label>Select Beast</ion-label>
+          </ion-item-divider>
+          
+          <ion-item button v-for="beast in beasts" :key="beast.id" @click="selectBeast(beast)">
+            <ion-thumbnail slot="start" class="cursor-pointer">
+              <ion-img
+                v-if="beast?.avatar"
+                :src="getAvatar(beast.avatar)"
+                class="w-full p-0 m-0"
+              />
+              <ion-skeleton-text v-else animated />
+            </ion-thumbnail>
+            <ion-label>
+              <h2>{{ beast.name }}</h2>
+              <p>{{ beast.checklist?.length || 0 }} Challenges</p>
+            </ion-label>
+          </ion-item>
+
+          <ion-item v-if="beasts.length === 0">
+            <ion-label class="ion-text-center">
+              <p>Loading beasts or no beasts found...</p>
+            </ion-label>
+          </ion-item>
+        </ion-list>
+      </ion-content>
+    </ion-modal>
+
+    <!-- Profile Selector Modal -->
+    <ion-modal ref="profileSelectorModal" :is-open="isProfileModalOpen" @didDismiss="isProfileModalOpen = false">
+      <ion-header>
+        <ion-toolbar>
+          <ion-title>Profile Selector</ion-title>
+          <ion-buttons slot="end">
+            <ion-button @click="isProfileModalOpen = false">
+              <ion-icon :icon="closeOutline" slot="icon-only"></ion-icon>
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
+      </ion-header>
+      <ion-content>
+        <ion-list>
+          <ion-item-divider>
+            <ion-label>Select Profile</ion-label>
+          </ion-item-divider>
+          
+          <ion-item button v-for="profile in profiles" :key="profile.id" @click="selectProfile(profile)">
+            <ion-avatar slot="start" class="cursor-pointer">
+              <ion-img
+                v-if="profile?.avatar"
+                :src="profile.avatar"
+                class="w-full p-0 m-0"
+              />
+              <ion-icon v-else :icon="personOutline" class="w-full p-2 text-gray-500" />
+            </ion-avatar>
+            <ion-label>
+              <h2>{{ profile.name }}</h2>
+              <p>{{ profile.role || 'User' }} - Level {{ profile.level || 1 }}</p>
+            </ion-label>
+            <ion-badge v-if="profile.id === selectedProfile?.id" color="primary" slot="end">Selected</ion-badge>
+          </ion-item>
+
+          <ion-item v-if="profiles.length === 0">
+            <ion-label class="ion-text-center">
+              <p>Loading profiles or no profiles found...</p>
+            </ion-label>
+          </ion-item>
+
+          <ion-item>
+            <ion-button expand="block" fill="outline" @click="createNewProfile">
+              <ion-icon :icon="addOutline" slot="start"></ion-icon>
+              Create New Profile
+            </ion-button>
+          </ion-item>
+        </ion-list>
+      </ion-content>
+    </ion-modal>
   </ion-page>
 </template>
 
@@ -149,21 +248,48 @@ import { defineComponent, ref, computed, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
 import BattleGround from '@/views/Console/MyPortal/HomeTown/BattleGround/BattleGround.vue';
 import XpBackgroundSelector from '@/components/XpBackgroundSelector/XpBackgroundSelector.vue';
-import {  toastController } from '@ionic/vue';
+import { toastController } from '@ionic/vue';
 import { 
   skull,
   fitnessOutline,
-  settingsOutline, closeOutline
+  settingsOutline, 
+  closeOutline,
+  pawOutline,
+  personOutline,
+  addOutline
 } from 'ionicons/icons';
 import Ionic from '@/mixins/ionic';
+import BestiaryDb, { Beast, beastStorage } from '@/lib/databases/BestiaryDb';
+import ProfileDb from '@/lib/databases/ProfileDb';
+import { profileStorage } from '@/views/App/SideMenu/SwitchProfile/SwitchProfile.vue';
+import { modalController } from '@ionic/vue';
+import AddProfile from '@/views/App/SideMenu/SwitchProfile/AddProfile/AddProfile.vue';
 
 // Define an interface for the BattleGround component
 interface BattleGroundInstance {
   initBackground?: () => void;
-  enterBattle?: () => void; // Add the enterBattle method
-  bg1?: number;             // Add bg1 property
-  bg2?: number;             // Add bg2 property
+  enterBattle?: () => void;
+  bg1?: number;
+  bg2?: number;
   // Add other methods and properties as needed
+}
+
+// Define an interface for the Profile data
+interface Profile {
+  id: number;
+  name: string;
+  role: string;
+  level: number;
+  avatar?: string;
+  userData?: any; // Store the full user data from the database
+}
+
+// Define an interface for the new profile form
+interface NewProfile {
+  name: string;
+  role: string;
+  level: number;
+  avatar: string;
 }
 
 export default defineComponent({
@@ -184,6 +310,140 @@ export default defineComponent({
     const selectedAspectRatio = ref(48);
     const selectedEnemyType = ref('basic');
     const battleActive = ref(false);
+
+    // Beast selector related state
+    const isBeastModalOpen = ref(false);
+    const beasts = ref<Beast[]>([]);
+    const selectedBeast = ref<Beast | null>(null);
+    const bestiary = new BestiaryDb(beastStorage);
+    
+    // Load beasts from the database with improved debugging
+    const loadBeasts = async () => {
+      try {
+        // Debug the storage environment
+        console.log('Current localStorage keys:', Object.keys(localStorage));
+        
+        // Try to get beasts from normal environment
+        beasts.value = await bestiary.getBeasts();
+        console.log(`Loaded ${beasts.value.length} beasts from BestiaryDb`);
+        console.log('Beast data:', JSON.stringify(beasts.value, null, 2));
+        
+        // If no beasts found and we're in battleroom environment, try to load from main app storage
+        if (beasts.value.length === 0 && window.location.href.includes('battleroom')) {
+          console.log('No beasts found in battleroom environment. Trying to load from main app storage...');
+          
+          // Check if there's a beast data in the main app storage
+          const mainStorageKey = 'xp-bestiary'; // This is likely the key used in main app
+          const mainBeastsData = localStorage.getItem(mainStorageKey);
+          
+          if (mainBeastsData) {
+            try {
+              const parsedData = JSON.parse(mainBeastsData);
+              if (Array.isArray(parsedData) && parsedData.length > 0) {
+                console.log('Found beasts in main app storage:', parsedData.length);
+                beasts.value = parsedData;
+                
+                // Save each beast to the current environment's storage for future use
+                for (const beast of parsedData) {
+                  await bestiary.setBeast(beast);
+                }
+              }
+            } catch (parseError) {
+              console.error('Error parsing main app beast data:', parseError);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading beasts:', error);
+        
+        // Show error toast
+        const toast = await toastController.create({
+          message: 'Failed to load beasts',
+          duration: 3000,
+          position: 'top',
+          color: 'danger'
+        });
+        toast.present();
+      }
+    };
+    
+    // Open beast selector modal and load beasts if needed
+    const openBeastSelector = async () => {
+      isBeastModalOpen.value = true;
+      
+      // Load beasts if we haven't yet
+      if (beasts.value.length === 0) {
+        await loadBeasts();
+      }
+    };
+    
+    // Helper method to get beast avatar
+    const getAvatar = (id) => {
+      const pad = id.toString().padStart(3, '0');
+      return require(`@/assets/images/beasts/${pad}.png`);
+    };
+    
+    // Helper method to get beast description
+    const getBeastDescription = (beast: Beast) => {
+      // Use beast properties to create a description
+      const checklist = beast.checklist || [];
+      const aspectRatio = beast.aspectRatio || 30; // Default to 30 if undefined
+      const type = aspectRatio > 60 ? 'Boss' : 
+                   aspectRatio > 40 ? 'Miniboss' : 'Basic';
+                   
+      return `${type} - ${checklist.length} challenge${checklist.length !== 1 ? 's' : ''}`;
+    };
+    
+    // Select a beast and close the modal
+    const selectBeast = async (beast: Beast) => {
+      selectedBeast.value = beast;
+      
+      // Update enemy type based on beast aspect ratio
+      const aspectRatio = beast.aspectRatio || 30; // Default to 30 if undefined
+      if (aspectRatio > 60) {
+        selectedEnemyType.value = 'boss';
+      } else if (aspectRatio > 40) {
+        selectedEnemyType.value = 'miniboss';
+      } else {
+        selectedEnemyType.value = 'basic';
+      }
+      
+      // Update the background settings if available
+      if (typeof beast.bg1 === 'number' && typeof beast.bg2 === 'number') {
+        customBg1.value = beast.bg1;
+        customBg2.value = beast.bg2;
+        
+        if (typeof beast.aspectRatio === 'number') {
+          selectedAspectRatio.value = beast.aspectRatio;
+        }
+        
+        // Update the battleground
+        if (battlegroundRef.value) {
+          battlegroundRef.value.bg1 = beast.bg1;
+          battlegroundRef.value.bg2 = beast.bg2;
+          
+          // Then call enterBattle to refresh the background
+          setTimeout(() => {
+            if (battlegroundRef.value && typeof battlegroundRef.value.enterBattle === 'function') {
+              battlegroundRef.value.enterBattle();
+            }
+          }, 100);
+        }
+      }
+      
+      // Update task enemy and close modal
+      updateTaskEnemy();
+      isBeastModalOpen.value = false;
+      
+      // Show confirmation toast
+      const toast = await toastController.create({
+        message: `Selected beast: ${beast.name}`,
+        duration: 2000,
+        position: 'top',
+        color: 'success'
+      });
+      toast.present();
+    };
 
     // Create a computed property that returns an object for the background selector
     const bgSelectorTarget = computed(() => ({
@@ -386,6 +646,111 @@ export default defineComponent({
       updateTaskEnemy();
     };
 
+    // Profile selector related state
+    const isProfileModalOpen = ref(false);
+    const profiles = ref<Profile[]>([]);
+    const selectedProfile = ref<Profile | null>(null);
+    const newProfile = ref<NewProfile>({
+      name: '',
+      role: 'User',
+      level: 1,
+      avatar: ''
+    });
+
+    // Require avatar images
+    const requireAvatar = require.context('@/assets/images/avatars', false, /\.svg$/);
+
+    // Open profile selector modal
+    const openProfileSelector = () => {
+      isProfileModalOpen.value = true;
+      loadProfiles();
+    };
+
+    // Load profiles from the database or storage
+    const loadProfiles = async () => {
+      try {
+        const profileDb = new ProfileDb(profileStorage);
+        const userProfiles = await profileDb.getProfiles();
+        
+        if (userProfiles && userProfiles.length > 0) {
+          profiles.value = userProfiles.map(user => ({
+            id: user.id,
+            name: user.name.nick || user.name.full,
+            role: user.jobClass || 'User',
+            level: user.stats?.level || 1,
+            avatar: user.avatar ? requireAvatar(`./${user.avatar}.svg`) : '',
+            // Store the full user object for battle
+            userData: user
+          }));
+        } else {
+          // Show a message if no profiles are found
+          const toast = await toastController.create({
+            message: 'No profiles found in the database',
+            duration: 3000,
+            position: 'top',
+            color: 'warning'
+          });
+          toast.present();
+        }
+      } catch (error) {
+        console.error('Error loading profiles:', error);
+        
+        // Show error toast
+        const toast = await toastController.create({
+          message: 'Failed to load profiles',
+          duration: 3000,
+          position: 'top',
+          color: 'danger'
+        });
+        toast.present();
+      }
+    };
+
+    // Select a profile and close the modal
+    const selectProfile = (profile: Profile) => {
+      selectedProfile.value = profile;
+      isProfileModalOpen.value = false;
+    };
+
+    // Create new profile modal state
+    const isCreateProfileModalOpen = ref(false);
+
+    // Open create profile modal using the existing AddProfile component
+    const createNewProfile = async () => {
+      const modal = await modalController.create({
+        component: AddProfile,
+        cssClass: "fullscreen",
+      });
+
+      await modal.present();
+
+      const { data } = await modal.onDidDismiss();
+      if (data?.profileAdded) {
+        // If profile was created successfully, reload profiles
+        loadProfiles();
+      }
+    };
+
+    // Save new profile - This function isn't used anymore since we use the AddProfile modal
+    const saveNewProfile = async () => {
+      try {
+        // Close the current modal and open the proper AddProfile modal instead
+        isCreateProfileModalOpen.value = false;
+        await createNewProfile();
+      } catch (error) {
+        console.error('Error when opening profile creation modal:', error);
+        
+        // Show error toast
+        const toast = await toastController.create({
+          message: 'Failed to open profile creation modal',
+          duration: 3000,
+          position: 'top',
+          color: 'danger'
+        });
+        toast.present();
+      }
+    };
+
     return {
       battlegroundRef,
       bgSelectorTarget, // Use the renamed computed property
@@ -423,9 +788,32 @@ export default defineComponent({
       selectedAspectRatio,
       onBackgroundChanged,
       
+      // Beast selector related properties
+      isBeastModalOpen,
+      beasts,
+      selectedBeast,
+      openBeastSelector,
+      getAvatar, // Add the getAvatar method
+      getBeastDescription,
+      selectBeast,
+
+      // Profile selector related properties
+      isProfileModalOpen,
+      profiles,
+      selectedProfile,
+      openProfileSelector,
+      selectProfile,
+      isCreateProfileModalOpen,
+      createNewProfile,
+      newProfile,
+      saveNewProfile,
+
       // Icons
       settingsOutline,
-      closeOutline
+      closeOutline,
+      pawOutline,
+      personOutline,
+      addOutline
     };
   }
 });

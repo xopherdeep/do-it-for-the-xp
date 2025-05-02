@@ -1,5 +1,5 @@
 <template>
-  <ion-card class="cbox cbox-shadow">
+  <ion-card class="cbox cbox-shadow absolute">
     <div class="cbox-inner-four">
       <div class="cbox-row">
         <div class="cbox-name m-3">
@@ -39,7 +39,7 @@
 </template>
 <script lang="ts">
   import Ionic from "@/mixins/ionic";
-import { defineComponent } from "vue";
+  import { defineComponent } from "vue";
 
   export default defineComponent({
     props: ["user"],
@@ -78,11 +78,16 @@ import { defineComponent } from "vue";
 <style lang="scss">
   .cbox {
     max-width: 245px;
-    height: 264px;
+    width: 80vw;
+    /* height: 264px; */
     // border: 4px solid #101010;
     border-radius: 4px;
-    position: relative;
-    display: inline-block;
+    position: absolute !important;
+    margin: 0 auto;
+    left: 50%;
+    transform: translate(-50%, -10%);
+    bottom: 0%;
+    /* display: inline-block; */
     font-size: 55px;
     text-align: center;
     box-shadow: 0 0 0 8px #98a080, 0 0 0 16px #f0f0f0, 0 0 0 24px #98a080,
@@ -95,22 +100,18 @@ import { defineComponent } from "vue";
     border: 1px solid #101010;
     /* Thanks to Lea Verou's super helpful collection at: http://lea.verou.me/css3patterns/ */
     background-color: #9090e8;
-    background-image: linear-gradient(
-        45deg,
+    background-image: linear-gradient(45deg,
         #9080a8 25%,
         transparent 25%,
         transparent 75%,
         #9080a8 75%,
-        #9080a8
-      ),
-      linear-gradient(
-        45deg,
+        #9080a8),
+      linear-gradient(45deg,
         #9080a8 25%,
         transparent 25%,
         transparent 75%,
         #9080a8 75%,
-        #9080a8
-      );
+        #9080a8);
     background-size: 60px 60px;
     background-position: 0 0, 30px 30px;
   }
@@ -122,11 +123,13 @@ import { defineComponent } from "vue";
     // margin: 10px;
     font-weight: 600;
   }
+
   .cbox-row {
     color: #f0f0f0;
     display: flex;
     align-items: center;
   }
+
   .cbox-health-label {
     display: inline-block;
     // font-family: StatusPlz;
@@ -144,6 +147,7 @@ import { defineComponent } from "vue";
     // top: 12px;
     // left: 10px;
   }
+
   .cbox-health-value {
     font-family: "Orange Kid";
     background: #101010;
@@ -154,15 +158,14 @@ import { defineComponent } from "vue";
     display: flex;
     flex-direction: row;
   }
+
   .cbox-digit {
     width: 100%;
     // height: 67px;
     background: #ddd;
-    background: radial-gradient(
-      ellipse at 60% 45%,
-      rgba(255, 255, 255, 1) 45%,
-      rgba(155, 155, 155, 1) 80%
-    );
+    background: radial-gradient(ellipse at 60% 45%,
+        rgba(255, 255, 255, 1) 45%,
+        rgba(155, 155, 155, 1) 80%);
     color: #000;
 
     border: 5px solid #000;
@@ -171,6 +174,7 @@ import { defineComponent } from "vue";
     font-size: 80px;
     font-weight: 600;
     padding: 3px 4px;
+
     &::before {
       border-left: 4px solid #ccc;
     }
@@ -182,6 +186,7 @@ import { defineComponent } from "vue";
     // top: 4px;
     border-right-width: 2px;
   }
+
   .cbox-health-hun {
     // position: absolute;
     // left: 54px;
@@ -189,6 +194,7 @@ import { defineComponent } from "vue";
     border-left-width: 4px;
     border-right-width: 2px;
   }
+
   .cbox-health-ten {
     // position: absolute;
     // left: 104px;

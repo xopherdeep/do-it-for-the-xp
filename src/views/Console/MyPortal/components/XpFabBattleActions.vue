@@ -34,7 +34,7 @@
           Battle Actions
         </ion-card-title>
         <ion-buttons>
-          <ion-grid>
+          <ion-grid class="ion-no-padding">
             <ion-row>
               <!-- First row: Attack, Goods, Abilities -->
               <ion-col
@@ -47,25 +47,22 @@
                   :id="action.id ? action.id : undefined"
                   size="small"
                   :color="getBattleActionColor(action.label)"
-                  class="p-0 m-0"
+                  class="p-0 m-0 ion-no-padding text-left"
                   expand="block"
                 >
-                  <span class="text-center w-full">
-                    <i
-                      class="fad fa-lg"
+                    <!-- <i
+                      slot="start"
+                      class="fad fa-lg hidden"
                       :class="`fa-${action.faIcon?.replace('fa-', '')}`"
-                    />
-                    <div>{{ action.label }}</div>
-                  </span>
+                    /> -->
+                    <ion-label>{{ action.label }}</ion-label>
                 </ion-button>
               </ion-col>
-            </ion-row>
-            <ion-row>
               <!-- Second row: Defend, Run Away -->
               <ion-col
                 v-for="action in displayActions.slice(3)"
                 :key="action.label"
-                :size="12 / (displayActions.length - 3)"
+                :size="4"
               >
                 <ion-button
                   @click="clickAction(action)"
@@ -73,15 +70,14 @@
                   size="small"
                   :color="getBattleActionColor(action.label)"
                   class="p-0 m-0"
-                  expand="block"
+                  expand="full"
                 >
-                  <span class="text-center w-full">
-                    <i
-                      class="fad fa-lg"
+                    <!-- <i
+                    slot="start"
+                      class="fad fa-lg hidden"
                       :class="`fa-${action.faIcon?.replace('fa-', '')}`"
-                    />
-                    <div>{{ action.label }}</div>
-                  </span>
+                    /> -->
+                    <ion-label>{{ action.label }}</ion-label>
                 </ion-button>
               </ion-col>
             </ion-row>
@@ -184,7 +180,7 @@ export default defineComponent({
         }
       },
       {
-        label: "Run Away",
+        label: "Run ",
         faIcon: "running",
         click($ev) {
           const toast = toastController.create({
@@ -237,15 +233,16 @@ export default defineComponent({
 <style lang="scss" scoped>
 ion-fab {
   &.fab-battle {
-    /* width: 350px; */
-    /* max-width: 95vw; */
+    width: 400px;
+    max-width: 95vw;
 
     ion-fab-list{
-      /* margin-bottom: 65px; */
+      margin-top: 65px;
 
       ion-col{
         padding: 0;
       }
+
 
     } 
 

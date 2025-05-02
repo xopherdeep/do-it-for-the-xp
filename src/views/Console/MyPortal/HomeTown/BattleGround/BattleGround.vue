@@ -7,12 +7,21 @@
       <!-- Task Enemy Display -->
       <div class="enemy-container" v-if="currentEnemy">
         <div class="enemy-sprite" :class="[currentEnemy.type, enemyAnimationClass]">
-          <!-- Enemy sprite would be here - for now using a placeholder -->
-          <div class="enemy-placeholder" :class="currentEnemy.type">
+          <!-- Beast image display with proper avatar handling - now checking for both avatar and avatar number -->
+          <ion-thumbnail v-if="currentEnemy && currentEnemy.avatar" class="beast-avatar-battle">
+            <ion-img :src="getAvatar(currentEnemy.avatar)" :alt="currentEnemy.name" />
+          </ion-thumbnail>
+          <!-- Fallback to imageUrl if avatar number is not available but we have an image URL -->
+          <ion-thumbnail v-else-if="currentEnemy && currentEnemy.imageUrl" class="beast-avatar-battle">
+            <ion-img :src="currentEnemy.imageUrl" :alt="currentEnemy.name" />
+          </ion-thumbnail>
+          <!-- Fallback to placeholder if no image available -->
+          <div v-else class="enemy-placeholder" :class="currentEnemy.type">
             {{ currentEnemy.emoji }}
           </div>
         </div>
-        <div class="enemy-info">
+        <!-- Only show enemy info if showEnemyInfo prop is true (default) -->
+        <div class="enemy-info" v-if="showEnemyInfo">
           <h3 class="enemy-name">{{ currentEnemy.name }}</h3>
           <div class="enemy-health-bar">
             <div class="health-label">HP: {{ currentEnemy.health }} / {{ currentEnemy.maxHealth }}</div>
@@ -84,10 +93,8 @@
           </div>
         </ion-content>
       </ion-modal>
-    </ion-content>
-    <ion-footer class="text-center">
       <XpHpMpHud v-if="user" :user="user" />
-    </ion-footer>
+    </ion-content>
   </ion-page>
 </template>
 
