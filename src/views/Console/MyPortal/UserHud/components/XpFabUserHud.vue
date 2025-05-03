@@ -110,7 +110,7 @@ import ionic from "@/mixins/ionic";
 import userActions from "@/mixins/userActions";
 import { modalController } from "@ionic/vue";
 import XpChat from "@/views/App/SideMenu/XpGameMaster/XpChat/XpChat.vue";
-import XpNotifications from "@/views/Console/MyPortal/components/XpNotifications/XpNotifications.vue";
+import XpNotifications from "./XpNotifications/XpNotifications.vue";
 
 export default defineComponent({
   name: "xp-fab-user-hud",

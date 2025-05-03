@@ -2,7 +2,7 @@ import { computed, defineComponent, reactive, ref } from "vue";
 // import requireImg from "@/assets/js/requireImg";
 import fetchItems from "@/mixins/fetchItems";
 import ionic from "@/mixins/ionic";
-import components from "./components";
+import components from "./UserHud/components";
 import userActions from "@/mixins/userActions";
 import "swiper/css";
 import { modalController } from "@ionic/vue";

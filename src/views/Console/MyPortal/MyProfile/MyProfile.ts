@@ -5,7 +5,7 @@ import { useStore } from 'vuex';
 import userActions from "@/mixins/userActions";
 import XpIcon from "@/components/XpIcon";
 import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
-import XpCardMenu from "@/views/Console/MyPortal/components/XpCardMenu.vue";
+import XpCardMenu from "@/views/Console/MyPortal/UserHud/components/XpCardMenu.vue";
 import { arrowBack } from "ionicons/icons";
 
 export default defineComponent({

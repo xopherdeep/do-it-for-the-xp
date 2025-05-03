@@ -278,7 +278,7 @@
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
-import BattleGround from '@/views/Console/MyPortal/HomeTown/BattleGround/BattleGround.vue';
+import BattleGround from '@/views/Console/Battle/BattleGround.vue';
 import { toastController } from '@ionic/vue';
 import { 
   skull,

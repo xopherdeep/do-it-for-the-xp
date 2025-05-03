@@ -30,7 +30,7 @@ import { mapActions, mapState } from "vuex";
 
 import fetchItems from "@/mixins/fetchItems";
 
-import MyTask from "@/views/Console/MyDialogBox/MyTask/MyTask.vue";
+import MyTask from "../MyTask/MyTask.vue";
 import { useRouter } from "vue-router";
 // import { useSwiper } from "swiper/vue";
 import { Controller, Navigation, Swiper as SwiperClass } from "swiper";

@@ -7,7 +7,7 @@ import { ROOM_ICONS } from "@/lib/engine/dungeons/roomTypes";
 import { actionSheetController } from "@ionic/vue";
 import { mapGetters } from "vuex";
 
-import temples from "../../../../../lib/engine/temples";
+import temples from "../../../lib/engine/temples";
 import { useRouter } from "vue-router";
 
 export default defineComponent({
