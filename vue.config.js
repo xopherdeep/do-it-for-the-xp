@@ -21,6 +21,9 @@ module.exports = {
   devServer: {
     // Merge battleroom devServer settings if in battleroom dev mode
     ...(battleroomConfig.devServer || {}),
+    hot: true,
+    liveReload: true,
+    
     proxy: {
       '/api': {
         target: process.env.API_URL || 'http://localhost:3000',

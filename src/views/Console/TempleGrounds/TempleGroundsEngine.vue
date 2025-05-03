@@ -361,8 +361,8 @@
   import { useTemple } from '@/hooks/useTemple';
   import { registerAllTemples, registerCustomTemples } from '@/lib/engine/core/dungeons/TempleAdapter';
   import { importAllTempleLayouts } from '@/lib/engine/core/dungeons/importAllTemples';
-  import temples from '../../../../../lib/engine/temples';
-  import XpFabUserHud from '../../components/XpFabUserHud.vue';
+  import temples from '../../../lib/engine/temples';
+  import XpFabUserHud from '../MyPortal/UserHud/components/XpFabUserHud.vue';
   import debug from '@/lib/utils/debug';
 
   export default defineComponent({

@@ -123,7 +123,7 @@ import {
   sunnyOutline,
   sunnySharp,
 } from "ionicons/icons";
-import XpMusicPlayer from "@/components/XpMusicPlayer/XpMusicPlayer.vue";
+import XpMusicPlayer from "./XpMusicPlayer/XpMusicPlayer.vue";
 
 export default defineComponent({
   name: "side-menu",
