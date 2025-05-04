@@ -44,7 +44,7 @@ const MyPortalRoutes = [{
     meta: {
       faIcon: "pegasus",
     },
-    component: () => import("@/views/Console/MyPortal/WorldMap/WorldMap.vue"),
+    component: () => import("@/views/Console/WorldMap/WorldMap.vue"),
   },
   {
     path: "old-my-profile",

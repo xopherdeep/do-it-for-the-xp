@@ -22,6 +22,7 @@ const routes: Array<RouteRecordRaw> = [
   ...HometownRoutes,
   ...SupportRoutes,
   ...MyPortalRoutes,
+
   ...GameMasterRoutes,
   ...SettingsRoutes,
   ...DevRoutes,

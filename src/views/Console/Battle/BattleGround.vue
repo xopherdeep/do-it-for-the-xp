@@ -127,4 +127,4 @@
 </template>
 
 <style src="./_BattleGround.scss" lang="scss" />
-<script src="./BattleGround" />
+<script src="./BattleGround" lang="ts" />
