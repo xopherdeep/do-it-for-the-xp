@@ -53,7 +53,7 @@ import {
 
 import { Swiper, SwiperSlide } from "swiper/vue";
 import "swiper/css";
-import XpHpMpHud from "@/views/Console/Battle/XpHpMpHud";
+import XpHpMpHud from "@/views/Console/Battlefield/XpHpMpHud";
 
 const requireAvatar = require.context("@/assets/images/avatars/");
 

@@ -59,7 +59,7 @@ const routes: Array<RouteRecordRaw> = [
       faIcon: "dungeon",
     },
     component: () =>
-      import("@/views/Console/Battle/BattleGround"),
+      import("@/views/Console/Battlefield/BattleGround"),
     props: true,
   },
 ];
