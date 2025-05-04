@@ -1,9 +1,9 @@
 // Import only needed utilities
 import debug from '@/lib/utils/debug';
-import { reactive } from 'vue';
+import { getCurrentInstance, reactive } from 'vue';
 import { loadAudioSettings, loadAudioTheme, saveAudioSettings, saveAudioTheme } from './storage';
 import { MediaSessionHandler } from './mediaControls';
-
+  import { play$fx } from "@/assets/fx"
 // Import types directly instead of from module
 export type AudioCategory = 'ui' | 'music' | 'sfx' | 'ambient';
 export type ThemeType = 'ui' | 'rpg';
@@ -62,7 +62,8 @@ export class AudioEngine {
   private _musicTracks = new Map<string, HTMLAudioElement>();
   private activeSounds = new Map<string, { source: AudioBufferSourceNode, gain: GainNode }>();
   private mediaSession: MediaSessionHandler | null = null;
-  
+  public play$fx = getCurrentInstance()?.appContext.config.globalProperties.play$fx
+
   // Keep track of the current track sequence for auto-advancing tracks
   private _currentTrackSequence: string[] = [];
   private _currentTrackIndex = 0;
@@ -333,6 +334,10 @@ export class AudioEngine {
     sourceNode.start(0);
     
     return instanceId;
+  }
+
+  public playSoundFx(fx: string): void {
+    play$fx(fx);
   }
   
   /**

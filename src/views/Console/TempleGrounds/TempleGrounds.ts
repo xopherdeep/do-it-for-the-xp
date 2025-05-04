@@ -252,11 +252,12 @@ export default defineComponent({
     async alertEmptyChest() {
       const { play$fx } = this;
       play$fx("openChest");
-      const alert = await alertController.create({
+
+      const dialog = await alertController.create({
         header: "Chest is empty!",
         buttons: [
           {
-            text: "Ok",
+            text: "Ok okkk",
             role: "cancel",
             handler: () => {
               play$fx("yes");
@@ -264,7 +265,7 @@ export default defineComponent({
           },
         ],
       });
-      alert.present();
+      dialog.present();
     },
     async handleLoot(selectedItems) {
       // Make sure we have a valid currentRoom with content

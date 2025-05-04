@@ -5,12 +5,12 @@ import backgrounds from "@/assets/images/backgrounds/parallax/index";
 import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
 import fetchItems from "@/mixins/fetchItems";
 import ionic from "@/mixins/ionic";
-import MyTask from "@/views/Console/MyDialogBox/MyTask/MyTask.vue";
+import MyTask from "../../UserHud/MyTask/MyTask";
 // import requireImg from "@/assets/js/requireImg.js";
 import users from "@/lib/api/users.api";
 import userActions from "@/mixins/userActions";
-import XpFabBattleActions from "@/views/Console/MyPortal/components/XpFabBattleActions.vue";
-import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
+import XpFabBattleActions from "@/views/Console/MyPortal/UserHud/components/XpFabBattleActions.vue";
+import XpTypingText from "@/components/XpTypingText";
 // Import the new battle services
 import { createBattleService, createBestiaryService, BattleService, BestiaryService, Enemy, CompletedTask } from '@/lib/services/battle';
 
@@ -53,7 +53,7 @@ import {
 
 import { Swiper, SwiperSlide } from "swiper/vue";
 import "swiper/css";
-import XpHpMpHud from "@/components/XpHpMpHud/XpHpMpHud.vue";
+import XpHpMpHud from "@/views/Console/Battle/XpHpMpHud";
 
 const requireAvatar = require.context("@/assets/images/avatars/");
 
