@@ -365,6 +365,8 @@
   import XpFabUserHud from '../MyPortal/UserHud/components/XpFabUserHud.vue';
   import debug from '@/lib/utils/debug';
 
+  import { play$fx } from "@/assets/fx"
+
   export default defineComponent({
     props: ['userId', 'temple', 'x', 'y'],
     name: 'temple-grounds-engine',
@@ -373,6 +375,7 @@
       XpFabUserHud,
     },
     setup(props) {
+
       // Register predefined temples with the engine
       registerAllTemples(temples);
 
@@ -670,8 +673,8 @@
       // Show a dialog with chest contents
       const showChestContentsDialog = async () => {
         // Play chest opening sound effect
-        if (typeof window.$play$fx === 'function') {
-          window.$play$fx('openChest');
+        if (typeof play$fx === 'function') {
+          play$fx('openChest');
         }
 
         const inputs = chestContents.value;
@@ -692,8 +695,8 @@
             {
               text: 'Loot',
               handler: (selectedItems) => {
-                if (typeof window.$play$fx === 'function') {
-                  window.$play$fx('yes');
+                if (typeof play$fx === 'function') {
+                  play$fx('yes');
                 }
                 if (selectedItems && selectedItems.length > 0) {
                   processChestItems(selectedItems);
@@ -706,12 +709,12 @@
         await alert.present();
       };
 
+
       // Show an alert for an empty chest
       const showEmptyChestAlert = async () => {
         // Play chest opening sound effect
-        if (typeof window.$play$fx === 'function') {
-          window.$play$fx('openChest');
-        }
+        play$fx('openChest');
+
 
         const alert = await alertController.create({
           header: 'Chest is empty!',
@@ -720,8 +723,8 @@
               text: 'Ok',
               role: 'cancel',
               handler: () => {
-                if (typeof window.$play$fx === 'function') {
-                  window.$play$fx('yes');
+                if (typeof play$fx === 'function') {
+                  play$fx('yes');
                 }
               },
             },

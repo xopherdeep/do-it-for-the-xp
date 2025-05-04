@@ -9,11 +9,40 @@ export interface XpDialogInterface {
   handleClick: () => void;
 }
 
-export function useDialog() {
+export interface DialogOptions {
+  speed?: number;
+  soundTheme?: any;
+  soundType?: string;
+  showIndicator?: boolean;
+  styleClass?: string;
+}
+
+/**
+ * Base dialog hook for handling dialog interactions
+ * Provides common dialog functionality that can be extended for specific needs
+ */
+export function useDialog(defaultOptions: DialogOptions = {}) {
+  // Reference to dialog component
   const dialogRef = ref<ComponentPublicInstance & XpDialogInterface | null>(null);
   
-  // Function to show the dialog using the ref
-  const showDialog = (soundEffect = 'select') => {
+  // Dialog state
+  const isVisible = ref(false);
+  const dialogText = ref('');
+  const options = ref<DialogOptions>({
+    speed: 25,
+    soundTheme: null,
+    soundType: 'text',
+    showIndicator: true,
+    styleClass: '',
+    ...defaultOptions
+  });
+  
+  /**
+   * Show dialog with given type
+   */
+  const showDialog = (_type: string = 'text', soundEffect = 'select') => {
+    isVisible.value = true;
+    debug.log(`Showing dialog of type: ${_type}`);
     // Play a sound effect for immersion
     try {
       // This assumes you have access to play$fx from your component
@@ -31,6 +60,20 @@ export function useDialog() {
     }
   };
   
+  /**
+   * Hide dialog
+   */
+  const hideDialog = () => {
+    isVisible.value = false;
+  };
+  
+  /**
+   * Set dialog reference
+   */
+  const setDialogRef = (el: any) => {
+    dialogRef.value = el;
+  };
+  
   // Function to handle dialog completion
   const onDialogComplete = (callback: () => void) => {
     callback();
@@ -45,8 +88,16 @@ export function useDialog() {
   };
   
   return {
+    // State
     dialogRef,
+    isVisible,
+    dialogText,
+    options,
+    
+    // Methods
     showDialog,
+    hideDialog,
+    setDialogRef,
     onDialogComplete,
     onBlockComplete
   };

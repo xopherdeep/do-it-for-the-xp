@@ -20,6 +20,7 @@ import {
 import { Swiper, SwiperSlide } from "swiper/vue";
 // Import Swiper styles
 import "swiper/css";
+import type { Swiper as SwiperType } from 'swiper';
 
 /* eslint-disable */
 // eslint-disable-next-line to
@@ -36,6 +37,28 @@ import AnimatedNumber from "@/components/AnimatedNumber.vue";
 import { mapActions } from "vuex";
 import { useRouter } from "vue-router";
 import { Controller, Navigation } from "swiper";
+
+// Define interfaces for the app
+interface Item {
+  label: string;
+  quantity: number;
+}
+
+interface ToastParams {
+  header: any;
+  message: any;
+  icon?: any;
+  duration?: number;
+}
+
+interface UserCardRef {
+  beginCounter: () => void;
+}
+
+interface SlidesRef {
+  slideTo: (index: number) => Promise<void>;
+  getActiveIndex: () => Promise<number>;
+}
 
 export default defineComponent({
   props: ["taskId", "item"],
@@ -69,8 +92,8 @@ export default defineComponent({
           label: "Potion",
           quantity: 2,
         },
-      ],
-      itemsLooted: [],
+      ] as Item[],
+      itemsLooted: [] as Item[],
       segment: 0,
       request: {
         type: "xp_achievement",
@@ -172,18 +195,18 @@ export default defineComponent({
     clickLoot() {
       this.$fx.ui[this.$fx.theme.ui].select.play();
       this.$fx.rpg[this.$fx.theme.rpg].loot.play();
-      this.controlledSwiper.slideNext();
+      this.controlledSwiper?.slideNext();
     },
 
     async segmentChanged(ev) {
       // console.log(ev);
       this.segment = ev.detail.value;
 
-      await this.$refs.slides.slideTo(this.segment);
+      await (this.$refs.slides as SlidesRef).slideTo(this.segment);
     },
 
     async slideChanged() {
-      this.segment = await this.$refs.slides.getActiveIndex();
+      this.segment = await (this.$refs.slides as SlidesRef).getActiveIndex();
     },
     getUserAvatar(user) {
       if (user.avatar) {
@@ -230,7 +253,8 @@ export default defineComponent({
               this.createToast({
                 header: `${this.user.name.nick} uses a spell...`,
                 message: "Ha! Take that",
-                // icon: wandMagic,
+                icon: null,
+                duration: 1750,
               });
             },
           },
@@ -274,7 +298,8 @@ export default defineComponent({
               this.createToast({
                 header: `${this.user.name.nick} took out something from their bag...`,
                 message: "...nothing happened.",
-                // icon: sack,
+                icon: null,
+                duration: 1750,
               });
             },
           },
@@ -305,7 +330,7 @@ export default defineComponent({
                 header: `${this.user.name.nick}:`,
                 message: `"I'll come back to that later..."`,
                 duration: 1800,
-                // icon: comment,
+                icon: null,
               });
             },
           },
@@ -314,12 +339,14 @@ export default defineComponent({
             handler: () => {
               this.$fx.ui[this.$fx.theme.ui].yes.play();
               // console.log(slides);
-              controlledSwiper.slideNext();
+              if (controlledSwiper) {
+                controlledSwiper.slideNext();
+              }
               this.createToast({
                 header: `${this.user.name.nick} tamed ${this.item.title.rendered}!`,
                 message: `Gained 2AP`,
                 duration: 1800,
-                // icon: comment,
+                icon: null,
               });
               setTimeout(
                 () =>
@@ -327,7 +354,7 @@ export default defineComponent({
                     header: `Do-it-for-the-XP!`,
                     message: `${this.user.name.nick} Gained 200XP`,
                     duration: 1800,
-                    // icon: comment,
+                    icon: null,
                   }),
                 2500
               );
@@ -398,7 +425,7 @@ export default defineComponent({
     async closeModal() {
       await modalController.dismiss();
     },
-    async createToast({ header, message, icon, duration }) {
+    async createToast({ header, message, icon, duration }: ToastParams) {
       const toast = await toastController.create({
         header,
         cssClass: this.$fx.theme.rpg,
@@ -434,7 +461,7 @@ export default defineComponent({
           break;
         case 1:
           this.$fx.rpg[this.$fx.theme.rpg].fillPoints.play();
-          if (this.$refs.userCard) this.$refs.userCard.beginCounter();
+          if (this.$refs.userCard) (this.$refs.userCard as UserCardRef).beginCounter();
           this.startCounting();
           this.$fx.rpg[this.$fx.theme.rpg].gainXP.play();
           // setTimeout(()=>this.$refs.slides.slideNext(), 5000)
@@ -452,8 +479,8 @@ export default defineComponent({
   mixins: [fetchItems, ionic],
   setup() {
     const router = useRouter();
-    const controlledSwiper = ref(null);
-    const setControlledSwiper = (swiper) => {
+    const controlledSwiper = ref<SwiperType | null>(null);
+    const setControlledSwiper = (swiper: SwiperType) => {
       controlledSwiper.value = swiper;
     };
     return {

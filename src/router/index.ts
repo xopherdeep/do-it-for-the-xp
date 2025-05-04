@@ -22,6 +22,7 @@ const routes: Array<RouteRecordRaw> = [
   ...HometownRoutes,
   ...SupportRoutes,
   ...MyPortalRoutes,
+
   ...GameMasterRoutes,
   ...SettingsRoutes,
   ...DevRoutes,
@@ -58,7 +59,7 @@ const routes: Array<RouteRecordRaw> = [
       faIcon: "dungeon",
     },
     component: () =>
-      import("@/views/Console/Battle/BattleGround"),
+      import("@/views/Console/Battlefield/BattleGround"),
     props: true,
   },
 ];
