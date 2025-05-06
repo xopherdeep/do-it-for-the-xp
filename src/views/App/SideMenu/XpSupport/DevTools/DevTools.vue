@@ -9,7 +9,7 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content>
+    <ion-content class="bg-slide">
       <ion-router-outlet ref="outlet"></ion-router-outlet>
       <div class="container">
         <ion-card class="intro-card">
@@ -228,28 +228,22 @@
   import { defineComponent, ref } from 'vue';
   import { useRouter } from 'vue-router';
   import {
-    IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonCard,
-    IonCardHeader, IonCardTitle, IonCardContent, IonList, IonItem,
-    IonItemDivider, IonLabel, IonButtons, IonBackButton, IonIcon, IonButton
-  } from '@ionic/vue';
-  import {
     cloudOutline, flashOutline, cubeOutline, chatboxOutline, keypadOutline,
     imageOutline, colorWandOutline, volumeHighOutline, globeOutline, gridOutline
   } from 'ionicons/icons';
   import { isPlatform } from '@ionic/vue';
   import { useToast } from '@/hooks/useToast';
 
+  import packageJson from '@/../package.json'; 
+  import Ionic from '@/mixins/ionic';
+
   export default defineComponent({
     name: 'DevTools',
-    components: {
-      IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonCard,
-      IonCardHeader, IonCardTitle, IonCardContent, IonList, IonItem,
-      IonItemDivider, IonLabel, IonButtons, IonBackButton, IonIcon, IonButton
-    },
+    mixins: [ Ionic ],
     setup() {
       const router = useRouter();
       const { showToast } = useToast();
-      const appVersion = ref('1.0.0');
+      const appVersion = ref(packageJson.version || '0.0.0');
       const environment = ref(process.env.NODE_ENV || 'development');
       const platform = ref(isPlatform('ios') ? 'iOS' : isPlatform('android') ? 'Android' : 'Web');
       const buildDate = ref(new Date().toLocaleDateString());
