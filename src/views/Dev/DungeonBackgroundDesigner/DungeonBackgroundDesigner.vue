@@ -624,7 +624,7 @@
         if (!templeData.value[selectedTemple.value]) {
           try {
             // Dynamic import based on selected temple
-            const templeModule = await import(`@/views/Console/MyPortal/HomeTown/TempleGrounds/temples/${selectedTemple.value}`);
+            const templeModule = await import(`@/lib/engine/temples/${selectedTemple.value}`);
             templeData.value[selectedTemple.value] = templeModule.default as Temple;
           } catch (error) {
             debug.error(`Failed to load temple: ${selectedTemple.value}`, error);
