@@ -33,7 +33,7 @@ const supportRoutes: Array<RouteRecordRaw> = [
   },
   {
     path: '/support/dev-tools',
-    name: 'support-dev-tools',
+    name: 'dev-tools',
     component: () => import('@/views/App/SideMenu/XpSupport/DevTools/DevTools.vue')
   }
 ];
