@@ -103,7 +103,7 @@
 import { defineComponent, ref } from "vue";
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonItem, IonLabel, IonRange, IonToggle, IonButton } from "@ionic/vue";
 import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
-import ionic from "@/mixins/ionic";
+import Ionic from "@/mixins/ionic";
 
 // Define type for XpTypingText instance that includes exposed methods
 interface XpTypingTextInstance {
@@ -135,7 +135,7 @@ export default defineComponent({
     IonButton,
     XpTypingText
   },
-  mixins: [ionic],
+  mixins: [Ionic],
   setup() {
     const demoText1Complete = ref(false);
     const demoText2Complete = ref(false);
