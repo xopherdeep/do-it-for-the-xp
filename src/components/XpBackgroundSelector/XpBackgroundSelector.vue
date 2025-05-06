@@ -407,6 +407,7 @@ import { defineComponent, ref, onMounted, watch, PropType } from 'vue';
 import { toastController, alertController } from '@ionic/vue';
 import { closeOutline, imageOutline, chevronBackOutline, chevronForwardOutline, trashOutline } from 'ionicons/icons';
 import ionic from "@/mixins/ionic";
+import debug from '@/lib/utils/debug';
 
 // Define interface for background presets
 interface BackgroundPreset {
@@ -469,7 +470,7 @@ export default defineComponent({
           customPresets.value = JSON.parse(savedPresets);
         }
       } catch (e) {
-        console.error('Failed to load custom background presets:', e);
+        debug.error('Failed to load custom background presets:', e);
       }
     };
 
@@ -478,7 +479,7 @@ export default defineComponent({
       try {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(customPresets.value));
       } catch (e) {
-        console.error('Failed to save custom background presets:', e);
+        debug.error('Failed to save custom background presets:', e);
       }
     };
 

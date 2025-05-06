@@ -1,3 +1,4 @@
+import debug from "@/lib/utils/debug";
 import { BackgroundLayer, Engine } from "earthbound-battle-backgrounds";
 
 // Define constants for valid background range
@@ -50,7 +51,7 @@ class BackgroundManager {
       return index;
     }
     
-    console.warn(`Invalid background index: ${index}, using default: ${defaultValue}`);
+    debug.warn(`Invalid background index: ${index}, using default: ${defaultValue}`);
     return defaultValue;
   }
 
@@ -90,7 +91,7 @@ class BackgroundManager {
 
     // Exit if we don't have a valid canvas
     if (!this.canvasElement) {
-      console.error("BackgroundManager: No canvas element found");
+      debug.error("BackgroundManager: No canvas element found");
       return false;
     }
 
@@ -125,7 +126,7 @@ class BackgroundManager {
 
       return true;
     } catch (error) {
-      console.error("BackgroundManager: Error initializing background:", error);
+      debug.error("BackgroundManager: Error initializing background:", error);
       // Fall back to known good background indices if initialization fails
       this.bg1 = DEFAULT_BG1;
       this.bg2 = DEFAULT_BG2;
@@ -148,7 +149,7 @@ class BackgroundManager {
         
         return true;
       } catch (fallbackError) {
-        console.error("BackgroundManager: Critical error, even fallback backgrounds failed:", fallbackError);
+        debug.error("BackgroundManager: Critical error, even fallback backgrounds failed:", fallbackError);
         return false;
       }
     }

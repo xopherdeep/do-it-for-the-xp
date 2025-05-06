@@ -3,6 +3,7 @@ import { Store } from 'vuex';
 import { alertController } from '@ionic/vue';
 import { RootState } from '@/lib/types/store.types';
 import { changeBGM } from '@/lib/engine/audio/routeMusic'; // Import our updated adapter
+import debug from '@/lib/utils/debug';
 
 /**
  * Creates a logout confirmation alert
@@ -94,7 +95,7 @@ export function useRouterGuards(router: Router, store: Store<RootState>) {
 
     if (!BGM) {
       // If BGM data is missing, we'll try to fall back to a default track if needed
-      console.warn('BGM data is missing, some music features may not work.');
+      debug.warn('BGM data is missing, some music features may not work.');
       // Continue with navigation
     } else {
       switch (to.name) {

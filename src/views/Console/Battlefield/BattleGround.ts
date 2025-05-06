@@ -54,6 +54,7 @@ import {
 import { Swiper, SwiperSlide } from "swiper/vue";
 import "swiper/css";
 import XpHpMpHud from "@/views/Console/Battlefield/XpHpMpHud/XpHpMpHud.vue";
+import debug from "@/lib/utils/debug";
 
 const requireAvatar = require.context("@/assets/images/avatars/");
 
@@ -222,7 +223,7 @@ export default defineComponent({
     async loadBeastById(beastId: string) {
       try {
         if (!this.bestiaryService) {
-          console.error('Bestiary service not initialized');
+          debug.error('Bestiary service not initialized');
           return;
         }
         
@@ -238,7 +239,7 @@ export default defineComponent({
           }, 1000);
         }
       } catch (error) {
-        console.error('Error loading beast:', error);
+        debug.error('Error loading beast:', error);
       }
     },
     
@@ -347,7 +348,7 @@ export default defineComponent({
         }
       } else {
         // Fallback to original implementation if service not available
-        console.warn('Battle service not initialized, using legacy battle handler');
+        debug.warn('Battle service not initialized, using legacy battle handler');
         this.handleBattleActionLegacy(action);
       }
     },
@@ -355,7 +356,7 @@ export default defineComponent({
     // Legacy battle action handler (fallback if service not available)
     handleBattleActionLegacy(action) {
       // Original battle action handling code...
-      console.warn(`Using legacy battle handling for action: ${action}`);
+      debug.warn(`Using legacy battle handling for action: ${action}`);
       
       // Only process actions if it's the player's turn
       if (!this.isPlayerTurn) {
@@ -387,7 +388,7 @@ export default defineComponent({
           this.endPlayerTurn();
           break;
         default:
-          console.warn(`Unhandled battle action in legacy mode: ${action}`);
+          debug.warn(`Unhandled battle action in legacy mode: ${action}`);
       }
     },
     
@@ -443,7 +444,7 @@ export default defineComponent({
     async loadSampleBeast() {
       try {
         if (!this.bestiaryService) {
-          console.error('Bestiary service not initialized');
+          debug.error('Bestiary service not initialized');
           return;
         }
         
@@ -464,7 +465,7 @@ export default defineComponent({
           this.createSampleEnemy();
         }
       } catch (error) {
-        console.error('Error loading beasts:', error);
+        debug.error('Error loading beasts:', error);
         // Fallback to sample enemy
         this.createSampleEnemy();
       }
@@ -855,7 +856,7 @@ export default defineComponent({
       
       // Check if we're even able to set bg styles
       if (!this.$refs.page && !document.querySelector('.battle-bg')) {
-        console.warn('No suitable element found to set background styles');
+        debug.warn('No suitable element found to set background styles');
         this.enterBattle(); // Just try to enter battle directly
         return;
       }
@@ -944,7 +945,7 @@ export default defineComponent({
     },
     
     segmentChanged() {
-      // console.log("Segment changed", ev);
+      // debug.log("Segment changed", ev);
     },
 
     async openToast() {
@@ -1197,7 +1198,7 @@ export default defineComponent({
             }, 500);
           })
           .catch(error => {
-            console.error("Error during victory animation:", error);
+            debug.error("Error during victory animation:", error);
             
             // Fallback in case of error
             this.battleMessage = `Victory! ${this.currentEnemy?.name || 'Enemy'} was defeated!`;

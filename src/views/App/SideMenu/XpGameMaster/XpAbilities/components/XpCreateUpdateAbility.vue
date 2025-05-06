@@ -255,6 +255,7 @@
     TimePeriod,
     ABILITY_CLASSES
   } from '@/lib/types/abilities';
+import debug from '@/lib/utils/debug';
 
   export default defineComponent({
     name: "XpCreateUpdateAbility",
@@ -479,7 +480,7 @@
           // Navigate back
           goBack();
         } catch (error) {
-          console.error('Error saving ability:', error);
+          debug.error('Error saving ability:', error);
           
           // Show error toast
           const toast = await toastController.create({
