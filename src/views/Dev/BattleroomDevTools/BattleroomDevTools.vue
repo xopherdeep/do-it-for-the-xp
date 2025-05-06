@@ -1230,6 +1230,7 @@ export default defineComponent({
           });
           toast.present();
         } else {
+          debug.warn('defeatEnemy method or currentEnemy not available');
           
           const toast = await toastController.create({
             message: 'Victory animation not available',

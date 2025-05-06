@@ -1,5 +1,6 @@
 import BestiaryDb, { beastStorage } from "@/lib/databases/BestiaryDb";
 import { Enemy } from './BattleService';
+import debug from "@/lib/utils/debug";
 
 /**
  * BestiaryService - Service for loading and managing enemies from the bestiary
@@ -25,7 +26,7 @@ export class BestiaryService {
       const pad = id.toString().padStart(3, '0');
       return require(`@/assets/images/beasts/${pad}.png`);
     } catch (error) {
-      console.error('Error loading beast avatar:', error);
+      debug.error('Error loading beast avatar:', error);
       return '';
     }
   }
@@ -42,7 +43,7 @@ export class BestiaryService {
       
       return this.convertBeastToEnemy(beast);
     } catch (error) {
-      console.error('Error loading beast:', error);
+      debug.error('Error loading beast:', error);
       return null;
     }
   }
@@ -62,7 +63,7 @@ export class BestiaryService {
       
       return this.convertBeastToEnemy(beast);
     } catch (error) {
-      console.error('Error loading random beast:', error);
+      debug.error('Error loading random beast:', error);
       return null;
     }
   }

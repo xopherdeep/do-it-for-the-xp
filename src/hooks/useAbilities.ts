@@ -1,12 +1,13 @@
 import { ref } from 'vue';
 import { useAbilitySystem } from '@/hooks/useAbilitySystem';
+import debug from '@/lib/utils/debug';
 
 /**
  * Hook to interact with abilities 
  * @deprecated Use useAbilitySystem() from hooks/useAbilitySystem.ts instead
  */
 export function useAbilities(page?: number, params?: any, updateTotals?: (arg: any) => any) {
-  console.warn('DEPRECATED: useAbilities() is deprecated, please use useAbilitySystem() instead');
+  debug.warn('DEPRECATED: useAbilities() is deprecated, please use useAbilitySystem() instead');
   
   // If page, params, and updateTotals are provided, this is being used as a data fetching hook
   // so we need to provide a compatible API
