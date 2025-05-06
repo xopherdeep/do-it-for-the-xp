@@ -1,3 +1,4 @@
+import debug from '@/lib/utils/debug';
 import { ref, computed, reactive, inject } from 'vue';
 import { useRouter } from 'vue-router';
 import { useStore } from 'vuex';
@@ -151,109 +152,124 @@ export function useBattleEngine() {
   // Battle Dialog System - Fix type issues by initializing with proper types
   const dialogQueueInitial: Array<string | (() => void)> = [];
   
-  const battleDialog = reactive<BattleDialog>({
-    dialogText: '',
-    showDialog: false,
-    dialogQueue: dialogQueueInitial,
-    hasMoreDialog: false,
-    isDialogTyping: false,
-    isVictoryMessage: false,
-    
-    queueDialog(messages: Array<string | (() => void)>) {
-      // Add messages to the queue
-      this.dialogQueue = [...this.dialogQueue, ...messages];
+  // Create the dialog object with methods that preserve 'this' context
+  const createBattleDialog = (): BattleDialog => {
+    const dialog: BattleDialog = {
+      dialogText: '',
+      showDialog: false,
+      dialogQueue: [...dialogQueueInitial],
+      hasMoreDialog: false,
+      isDialogTyping: false,
+      isVictoryMessage: false,
       
-      // If no dialog is currently displaying, show the first message
-      if (!this.isDialogTyping && !this.showDialog) {
-        this.showNextDialog();
-      }
-    },
-    
-    showNextDialog() {
-      if (this.dialogQueue.length === 0) {
-        // No more messages to show
-        this.dialogText = '';
-        this.showDialog = false;
-        this.hasMoreDialog = false;
+      queueDialog(messages: Array<string | (() => void)>) {
+        // Add messages to the queue
+        this.dialogQueue = [...this.dialogQueue, ...messages];
         
-        // If we were in an enemy turn, proceed to player turn
-        if (!state.isPlayerTurn) {
-          startPlayerTurn();
-        }
-        return;
-      }
-      
-      // Get the next message or function from the queue
-      const next = this.dialogQueue.shift();
-      
-      // Check if it's a function and execute it
-      if (typeof next === 'function') {
-        next();
-        // Process the next item in the queue
-        this.showNextDialog();
-        return;
-      }
-      
-      // It's a string message, so display it
-      this.dialogText = next || '';
-      this.isDialogTyping = true;
-      this.hasMoreDialog = this.dialogQueue.length > 0;
-      this.showDialog = true;
-      
-      // Play typing sound
-      playSound('text');
-    },
-    
-    onDialogComplete() {
-      this.isDialogTyping = false;
-      
-      // Add a short pause before showing the next message
-      setTimeout(() => {
-        // If there are more messages, show the next one
-        if (this.dialogQueue.length > 0) {
+        // If no dialog is currently displaying, show the first message
+        if (!this.isDialogTyping && !this.showDialog) {
           this.showNextDialog();
-        } else {
+        }
+      },
+      
+      showNextDialog() {
+        if (this.dialogQueue.length === 0) {
+          // No more messages to show
+          this.dialogText = '';
+          this.showDialog = false;
           this.hasMoreDialog = false;
           
-          // If this was enemy dialog, proceed to player turn after a delay
+          // If we were in an enemy turn, proceed to player turn
           if (!state.isPlayerTurn) {
-            setTimeout(() => {
-              startPlayerTurn();
-            }, 1000);
+            startPlayerTurn();
           }
-        }
-      }, 1500);
-    },
-    
-    advanceDialog() {
-      if (this.isDialogTyping) {
-        // Complete the current text immediately
-        this.isDialogTyping = false;
-        // Would trigger any complete typing mechanism in the UI component
-      } else if (this.dialogQueue.length > 0) {
-        // Show next message
-        this.showNextDialog();
-      } else {
-        // If we were in enemy turn, proceed to player turn
-        if (!state.isPlayerTurn) {
-          startPlayerTurn();
+          return;
         }
         
-        // Clear the dialog
+        // Get the next message or function from the queue
+        const next = this.dialogQueue.shift();
+        
+        // Check if it's a function and execute it
+        if (typeof next === 'function') {
+          next();
+          // Process the next item in the queue
+          this.showNextDialog();
+          return;
+        }
+        
+        // It's a string message, so display it
+        this.dialogText = next || '';
+        this.isDialogTyping = true;
+        this.hasMoreDialog = this.dialogQueue.length > 0;
+        this.showDialog = true;
+        
+        // Play typing sound
+        playSound('text');
+      },
+      
+      onDialogComplete() {
+        this.isDialogTyping = false;
+        
+        // Add a short pause before showing the next message
+        setTimeout(() => {
+          // If there are more messages, show the next one
+          if (this.dialogQueue.length > 0) {
+            this.showNextDialog();
+          } else {
+            this.hasMoreDialog = false;
+            
+            // If this was enemy dialog, proceed to player turn after a delay
+            if (!state.isPlayerTurn) {
+              setTimeout(() => {
+                startPlayerTurn();
+              }, 1000);
+            }
+          }
+        }, 1500);
+      },
+      
+      advanceDialog() {
+        if (this.isDialogTyping) {
+          // Complete the current text immediately
+          this.isDialogTyping = false;
+          // Would trigger any complete typing mechanism in the UI component
+        } else if (this.dialogQueue.length > 0) {
+          // Show next message
+          this.showNextDialog();
+        } else {
+          // If we were in enemy turn, proceed to player turn
+          if (!state.isPlayerTurn) {
+            startPlayerTurn();
+          }
+          
+          // Clear the dialog
+          this.dialogText = '';
+          this.showDialog = false;
+        }
+      },
+      
+      clearDialog() {
         this.dialogText = '';
         this.showDialog = false;
+        this.dialogQueue = [];
+        this.hasMoreDialog = false;
+        this.isDialogTyping = false;
+        this.isVictoryMessage = false;
       }
-    },
+    };
     
-    clearDialog() {
-      this.dialogText = '';
-      this.showDialog = false;
-      this.dialogQueue = [];
-      this.hasMoreDialog = false;
-      this.isDialogTyping = false;
-      this.isVictoryMessage = false;
-    }
-  });
+    // Bind all methods to ensure 'this' context is preserved
+    dialog.queueDialog = dialog.queueDialog.bind(dialog);
+    dialog.showNextDialog = dialog.showNextDialog.bind(dialog);
+    dialog.onDialogComplete = dialog.onDialogComplete.bind(dialog);
+    dialog.advanceDialog = dialog.advanceDialog.bind(dialog);
+    dialog.clearDialog = dialog.clearDialog.bind(dialog);
+    
+    return dialog;
+  };
+  
+  // Create the battle dialog with bound methods
+  const battleDialog = reactive<BattleDialog>(createBattleDialog());
   
   // Audio Utilities
   const playSound = (type: string) => {
@@ -320,7 +336,7 @@ export function useBattleEngine() {
       setEnemy(enemy);
       return enemy;
     } catch (error) {
-      console.error('Error loading beast:', error);
+      debug.error('Error loading beast:', error);
       return null;
     }
   };
@@ -334,7 +350,7 @@ export function useBattleEngine() {
       const sampleEnemy = createSampleEnemy();
       return sampleEnemy;
     } catch (error) {
-      console.error('Error loading sample beast:', error);
+      debug.error('Error loading sample beast:', error);
       return null;
     }
   };
@@ -400,7 +416,7 @@ export function useBattleEngine() {
    */
   const initBattle = () => {
     if (!currentEnemy.value) {
-      console.warn('Attempting to initialize battle with no enemy');
+      debug.warn('Attempting to initialize battle with no enemy');
       return;
     }
     
@@ -607,7 +623,7 @@ export function useBattleEngine() {
       }
       
       default:
-        console.warn(`Unknown battle action: ${actionType}`);
+        debug.warn(`Unknown battle action: ${actionType}`);
     }
     
     // Return success for action handling (used by dev tools)

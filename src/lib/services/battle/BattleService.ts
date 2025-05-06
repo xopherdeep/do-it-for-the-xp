@@ -1,5 +1,6 @@
 import { Store } from 'vuex';
 import { RootState } from '@/lib/types/store';
+import debug from '@/lib/utils/debug';
 
 // Define interfaces for the battle system
 export interface Enemy {
@@ -12,6 +13,25 @@ export interface Enemy {
   avatar?: number;
   imageUrl?: string;
   emoji?: string;
+  attack: number;
+  defense: number;
+  speed: number;
+}
+
+export interface User {
+  id: string;
+  name: string;
+  avatar?: string;
+  stats: {
+    level: number;
+    hp: number;
+    maxHp: number;
+    mp: number;
+    maxMp: number;
+    strength: number;
+    defense: number;
+    speed: number;
+  }
 }
 
 export interface CompletedTask {
@@ -35,6 +55,12 @@ export interface BattleState {
   currentEnemy: Enemy | null;
   enemyHealthColor: string;
   battleMessage: string;
+  participants: {
+    enemies: Enemy[];
+    users: User[];
+    activeEnemyIndex: number;
+    activeUserIndex: number;
+  };
 }
 
 export interface BattleResult {
@@ -52,6 +78,7 @@ export interface BattleResult {
 export class BattleService {
   private store: Store<RootState>;
   private state: BattleState;
+  private devMode: boolean;
   private battleCallbacks: {
     onDialogMessage?: (messages: string[]) => void;
     onBattleMessageChange?: (message: string) => void;
@@ -61,8 +88,9 @@ export class BattleService {
     onEnemyDefeated?: (enemy: Enemy) => void;
   };
 
-  constructor(store: Store<RootState>) {
+  constructor(store: Store<RootState>, devMode: boolean = false) {
     this.store = store;
+    this.devMode = devMode;
     this.state = {
       battleStarted: false,
       isPlayerTurn: false,
@@ -72,8 +100,18 @@ export class BattleService {
       currentEnemy: null,
       enemyHealthColor: '#2dd36f',
       battleMessage: '',
+      participants: {
+        enemies: [],
+        users: [],
+        activeEnemyIndex: 0,
+        activeUserIndex: 0
+      }
     };
     this.battleCallbacks = {};
+    
+    if (this.devMode) {
+      debug.log('Battle service initialized in dev mode');
+    }
   }
 
   /**
@@ -94,6 +132,18 @@ export class BattleService {
     this.state.battleStarted = true;
     this.state.isPlayerTurn = false;
     this.state.turnCounter = 1;
+    
+    // Add enemy to participants array
+    this.state.participants.enemies = [enemy];
+    this.state.participants.activeEnemyIndex = 0;
+    
+    // Get current user from store and add to participants
+    const currentUser = this.getCurrentUserFromStore();
+    if (currentUser) {
+      this.state.participants.users = [currentUser];
+      this.state.participants.activeUserIndex = 0;
+    }
+    
     this.updateEnemyHealthColor();
     
     // Queue encounter message
@@ -101,6 +151,115 @@ export class BattleService {
     this.queueDialogMessages([
       `${playerName} encountered ${enemy.name}!`
     ]);
+    
+    if (this.devMode) {
+      debug.log('Battle initialized with enemy:', enemy);
+    }
+  }
+
+  /**
+   * Initialize a battle with multiple enemies and users
+   * @param enemies Array of enemies to battle
+   * @param userIds Array of user IDs to participate in battle (defaults to current user)
+   */
+  public initMultiBattle(enemies: Enemy[], userIds?: string[]): void {
+    if (enemies.length === 0) {
+      debug.error('Cannot initialize battle with no enemies');
+      return;
+    }
+    
+    this.state.battleStarted = true;
+    this.state.isPlayerTurn = false;
+    this.state.turnCounter = 1;
+    
+    // Store enemies in participants array
+    this.state.participants.enemies = enemies;
+    this.state.participants.activeEnemyIndex = 0;
+    
+    // Set current enemy to first enemy
+    this.state.currentEnemy = enemies[0];
+    
+    // Get users from store and add to participants
+    this.state.participants.users = [];
+    this.state.participants.activeUserIndex = 0;
+    
+    if (userIds && userIds.length > 0) {
+      // Add multiple users from IDs
+      userIds.forEach(id => {
+        const user = this.getUserById(id);
+        if (user) {
+          this.state.participants.users.push(user);
+        }
+      });
+    } else {
+      // Add current user from store
+      const currentUser = this.getCurrentUserFromStore();
+      if (currentUser) {
+        this.state.participants.users.push(currentUser);
+      }
+    }
+    
+    // Update enemy health color
+    this.updateEnemyHealthColor();
+    
+    // Queue encounter message
+    let encounterMessage: string;
+    if (enemies.length === 1) {
+      encounterMessage = `${this.getPlayerName()} encountered ${enemies[0].name}!`;
+    } else {
+      const enemyNames = enemies.map(e => e.name).join(' and ');
+      encounterMessage = `${this.getPlayerName()} encountered ${enemyNames}!`;
+    }
+    
+    this.queueDialogMessages([encounterMessage]);
+    
+    if (this.devMode) {
+      debug.log('Multi-battle initialized with enemies:', enemies);
+      debug.log('Multi-battle participants:', this.state.participants);
+    }
+  }
+
+  /**
+   * Add an enemy to the current battle
+   * @param enemy The enemy to add
+   */
+  public addEnemy(enemy: Enemy): void {
+    if (!this.state.battleStarted) {
+      this.initBattle(enemy);
+      return;
+    }
+    
+    this.state.participants.enemies.push(enemy);
+    this.queueDialogMessages([
+      `${enemy.name} has joined the battle!`
+    ]);
+    
+    if (this.devMode) {
+      debug.log('Enemy added to battle:', enemy);
+    }
+  }
+
+  /**
+   * Add a user to the current battle
+   * @param userId The user ID to add
+   * @returns Boolean indicating if the user was successfully added
+   */
+  public addUser(userId: string): boolean {
+    const user = this.getUserById(userId);
+    if (!user) {
+      return false;
+    }
+    
+    this.state.participants.users.push(user);
+    this.queueDialogMessages([
+      `${user.name} has joined the battle!`
+    ]);
+    
+    if (this.devMode) {
+      debug.log('User added to battle:', user);
+    }
+    
+    return true;
   }
 
   /**
@@ -154,19 +313,39 @@ export class BattleService {
       };
     }
 
+    // Get active user
+    const activeUser = this.getActiveUser();
+    if (!activeUser) {
+      this.queueDialogMessages(["No active user to attack with!"]);
+      return {
+        success: false,
+        message: "No active user"
+      };
+    }
+
     // Queue attack messages
     this.queueDialogMessages([
-      `${this.getPlayerName()} attacks!`,
+      `${activeUser.name} attacks!`,
     ]);
     
-    // Calculate damage based on player level
-    const userLevel = this.getPlayerLevel();
+    // Calculate damage based on player stats and enemy defense
+    const attackStat = activeUser.stats.strength;
+    const defenseStat = this.state.currentEnemy.defense;
     const baseDamage = 10 + Math.floor(Math.random() * 20);
-    const damage = Math.floor(baseDamage * (1 + userLevel / 20));
+    
+    // Apply attack and defense modifiers
+    let damage = Math.floor(baseDamage * (1 + attackStat / 20));
+    
+    // Reduce damage based on enemy defense 
+    damage = Math.max(1, Math.floor(damage * (1 - defenseStat / 100)));
     
     // Apply damage
     this.state.currentEnemy.health = Math.max(0, this.state.currentEnemy.health - damage);
     this.updateEnemyHealthColor();
+    
+    // Update the active enemy in participants array
+    const activeEnemyIndex = this.state.participants.activeEnemyIndex;
+    this.state.participants.enemies[activeEnemyIndex] = this.state.currentEnemy;
     
     // Queue damage message
     this.queueDialogMessages([
@@ -176,15 +355,46 @@ export class BattleService {
     // Check if enemy is defeated
     if (this.state.currentEnemy.health <= 0) {
       this.queueDialogMessages([
-        `${this.state.currentEnemy.name} was defeated!`,
+        `${this.state.currentEnemy.name} was defeated!`
+      ]);
+      
+      // Store defeated enemy for callback
+      const defeatedEnemy = { ...this.state.currentEnemy };
+      
+      // Check if there are more enemies
+      if (this.state.participants.enemies.length > 1) {
+        // Remove the defeated enemy
+        this.state.participants.enemies.splice(activeEnemyIndex, 1);
+        
+        // Check if there are more enemies left
+        if (this.state.participants.enemies.length > 0) {
+          // Set next enemy as active
+          this.state.participants.activeEnemyIndex = 0;
+          this.state.currentEnemy = this.state.participants.enemies[0];
+          
+          this.queueDialogMessages([
+            `${this.state.currentEnemy.name} steps forward!`
+          ]);
+          
+          // End player turn to continue battle
+          this.endPlayerTurn();
+          
+          return { 
+            success: true, 
+            message: "Enemy defeated, battle continues" 
+          };
+        }
+      }
+      
+      // All enemies defeated
+      this.queueDialogMessages([
         "You've won the battle!"
       ]);
       
-      // Handle enemy defeat
-      const defeatedEnemy = { ...this.state.currentEnemy };
+      // Handle enemy defeat with callback
       if (this.battleCallbacks.onEnemyDefeated) {
         setTimeout(() => {
-          if (this.battleCallbacks.onEnemyDefeated && this.state.currentEnemy) {
+          if (this.battleCallbacks.onEnemyDefeated) {
             this.battleCallbacks.onEnemyDefeated(defeatedEnemy);
           }
         }, 2000);
@@ -192,9 +402,9 @@ export class BattleService {
       
       return { 
         success: true, 
-        message: "Enemy defeated",
+        message: "All enemies defeated",
         dialogMessages: [
-          `${this.state.currentEnemy.name} was defeated!`,
+          `${defeatedEnemy.name} was defeated!`,
           "You've won the battle!"
         ]
       };
@@ -243,8 +453,19 @@ export class BattleService {
    * @returns Result of the run action
    */
   private handleRun(): BattleResult {
-    // 75% chance of successfully running away
-    if (Math.random() < 0.75) {
+    // Calculate escape chance based on enemy type
+    // Boss battles have lower escape chance
+    let escapeChance = 0.75; // Default 75% chance
+    
+    // Check if enemy is a boss
+    if (this.state.currentEnemy?.isBoss) {
+      escapeChance = 0.25; // Only 25% chance to escape from bosses
+    } else if (this.state.currentEnemy?.type === 'miniboss') {
+      escapeChance = 0.5; // 50% chance to escape from minibosses
+    }
+    
+    // Calculate if escape is successful
+    if (Math.random() < escapeChance) {
       this.queueDialogMessages([
         "Running away...",
         "Got away safely!"
@@ -281,11 +502,19 @@ export class BattleService {
       return;
     }
     
+    // Get active user name
+    const activeUser = this.getActiveUser();
+    const playerName = activeUser?.name || this.getPlayerName();
+    
     // For subsequent turns, show the turn announcements
     this.queueDialogMessages([
-      `Turn ${this.state.turnCounter} - ${this.getPlayerName()}'s turn!`,
+      `Turn ${this.state.turnCounter} - ${playerName}'s turn!`,
       "What will you do?"
     ]);
+    
+    if (this.devMode) {
+      debug.log(`Starting player turn ${this.state.turnCounter}`);
+    }
   }
 
   /**
@@ -305,6 +534,10 @@ export class BattleService {
         this.startPlayerTurn();
       }
     }, 1000);
+    
+    if (this.devMode) {
+      debug.log(`Ending player turn ${this.state.turnCounter}`);
+    }
   }
 
   /**
@@ -313,32 +546,46 @@ export class BattleService {
   private performEnemyTurn(): void {
     if (!this.state.currentEnemy) return;
     
+    // Get active enemy
+    const activeEnemy = this.state.currentEnemy;
+    
+    // Get active user
+    const activeUser = this.getActiveUser();
+    if (!activeUser) {
+      debug.error('No active user for enemy to target');
+      // Just go back to player turn
+      this.state.turnCounter++;
+      this.startPlayerTurn();
+      return;
+    }
+    
     // Queue enemy turn messages
     this.queueDialogMessages([
-      `${this.state.currentEnemy.name}'s turn!`
+      `${activeEnemy.name}'s turn!`
     ]);
     
     // Pick a random enemy action
     const actions = ['attack', 'defend', 'special'];
     const enemyAction = actions[Math.floor(Math.random() * actions.length)];
     
-    // Variables for damage calculation
-    const userLevel = this.getPlayerLevel();
-    const baseDamage = 5 + Math.floor(Math.random() * 10);
-    const damageTaken = Math.max(1, Math.floor(baseDamage * (1 + userLevel / 10)));
-    const currentHP = this.getPlayerHP();
-    
     switch (enemyAction) {
       case 'attack':
         // Enemy attacks
         this.queueDialogMessages([
-          `${this.state.currentEnemy.name} attacks!`,
+          `${activeEnemy.name} attacks!`,
         ]);
         
         // Apply damage after a delay
         setTimeout(() => {
-          // Calculate base damage
-          let finalDamage = damageTaken;
+          // Calculate damage based on enemy attack and player defense
+          const attackStat = activeEnemy.attack;
+          const defenseStat = activeUser.stats.defense;
+          
+          const baseDamage = 5 + Math.floor(Math.random() * 10);
+          let finalDamage = Math.floor(baseDamage * (1 + attackStat / 20));
+          
+          // Reduce damage based on player defense
+          finalDamage = Math.max(1, Math.floor(finalDamage * (1 - defenseStat / 100)));
           
           // Apply defense reduction if player is defending
           if (this.state.isDefending) {
@@ -347,22 +594,25 @@ export class BattleService {
             
             // Show defense message
             this.queueDialogMessages([
-              `${this.getPlayerName()}'s defense reduces the damage!`,
+              `${activeUser.name}'s defense reduces the damage!`,
             ]);
           }
+          
+          // Get current HP
+          const currentHP = activeUser.stats.hp;
           
           // Reduce player HP (in a real game, this would dispatch to the store)
           const newHP = Math.max(0, currentHP - finalDamage);
           
           // Show damage message
           this.queueDialogMessages([
-            `${this.getPlayerName()} takes ${finalDamage} damage!`
+            `${activeUser.name} takes ${finalDamage} damage!`
           ]);
           
           // Check if player is defeated
           if (newHP <= 0) {
             this.queueDialogMessages([
-              `${this.getPlayerName()} is defeated!`,
+              `${activeUser.name} is defeated!`,
               "Game Over"
             ]);
           } else {
@@ -379,7 +629,7 @@ export class BattleService {
       case 'defend':
         // Enemy defends
         this.queueDialogMessages([
-          `${this.state.currentEnemy.name} takes a defensive stance!`
+          `${activeEnemy.name} takes a defensive stance!`
         ]);
         
         // Proceed to next turn after a delay
@@ -392,7 +642,7 @@ export class BattleService {
       case 'special':
         // Enemy uses special ability
         this.queueDialogMessages([
-          `${this.state.currentEnemy.name} is charging power!`,
+          `${activeEnemy.name} is charging power!`,
           "It seems to be preparing for something..."
         ]);
         
@@ -402,6 +652,10 @@ export class BattleService {
           // Next turn will start after dialog completes
         }, 1000);
         break;
+    }
+    
+    if (this.devMode) {
+      debug.log(`Enemy performed action: ${enemyAction}`);
     }
   }
 
@@ -433,6 +687,10 @@ export class BattleService {
   private queueDialogMessages(messages: string[]): void {
     if (this.battleCallbacks.onDialogMessage) {
       this.battleCallbacks.onDialogMessage(messages);
+    }
+    
+    if (this.devMode) {
+      debug.log('Dialog messages:', messages);
     }
   }
 
@@ -477,17 +735,47 @@ export class BattleService {
   }
 
   /**
-   * Get player level from store
+   * Get active user from participants
    */
-  private getPlayerLevel(): number {
-    return this.store.getters.getUserById(this.store.state.user?.id)?.stats?.level || 1;
+  private getActiveUser(): User | null {
+    const { users, activeUserIndex } = this.state.participants;
+    if (users.length === 0 || activeUserIndex >= users.length) {
+      return null;
+    }
+    return users[activeUserIndex];
   }
 
   /**
-   * Get player HP from store
+   * Get user by ID from store
    */
-  private getPlayerHP(): number {
-    return this.store.getters.getUserById(this.store.state.user?.id)?.stats?.hp || 100;
+  private getUserById(userId: string): User | null {
+    const storeUser = this.store.getters.getUserById(userId);
+    if (!storeUser) return null;
+    
+    // Convert store user to battle user interface
+    return {
+      id: userId,
+      name: storeUser.name?.nick || 'Player',
+      avatar: storeUser.avatar,
+      stats: {
+        level: storeUser.stats?.level || 1,
+        hp: storeUser.stats?.hp || 100,
+        maxHp: storeUser.stats?.maxHp || 100,
+        mp: storeUser.stats?.mp || 100,
+        maxMp: storeUser.stats?.maxMp || 100,
+        strength: storeUser.stats?.strength || 10,
+        defense: storeUser.stats?.defense || 10,
+        speed: storeUser.stats?.speed || 10,
+      }
+    };
+  }
+
+  /**
+   * Get current user from store
+   */
+  private getCurrentUserFromStore(): User | null {
+    if (!this.store.state.user?.id) return null;
+    return this.getUserById(this.store.state.user.id);
   }
 
   /**
@@ -495,6 +783,20 @@ export class BattleService {
    */
   public getCurrentEnemy(): Enemy | null {
     return this.state.currentEnemy;
+  }
+
+  /**
+   * Get all enemies in battle
+   */
+  public getAllEnemies(): Enemy[] {
+    return [...this.state.participants.enemies];
+  }
+
+  /**
+   * Get all users in battle
+   */
+  public getAllUsers(): User[] {
+    return [...this.state.participants.users];
   }
 
   /**
@@ -538,4 +840,105 @@ export class BattleService {
   public getTurnCounter(): number {
     return this.state.turnCounter;
   }
+
+  /**
+   * Get whether service is in dev mode
+   */
+  public isDevMode(): boolean {
+    return this.devMode;
+  }
+
+  /**
+   * Set dev mode
+   * @param devMode Whether to enable dev mode
+   */
+  public setDevMode(devMode: boolean): void {
+    this.devMode = devMode;
+    debug.log(`Battle service dev mode ${devMode ? 'enabled' : 'disabled'}`);
+  }
+  
+  /**
+   * Developer tool: Damage enemy (only available in dev mode)
+   * @param damage Amount of damage to inflict
+   * @returns Whether the damage was applied
+   */
+  public devDamageEnemy(damage: number): boolean {
+    if (!this.devMode) return false;
+    if (!this.state.currentEnemy) return false;
+    
+    // Apply damage to enemy
+    this.state.currentEnemy.health = Math.max(0, this.state.currentEnemy.health - damage);
+    this.updateEnemyHealthColor();
+    
+    // Update the active enemy in participants array
+    const activeEnemyIndex = this.state.participants.activeEnemyIndex;
+    this.state.participants.enemies[activeEnemyIndex] = this.state.currentEnemy;
+    
+    // Check if enemy is defeated
+    if (this.state.currentEnemy.health <= 0) {
+      // Store defeated enemy for callback
+      const defeatedEnemy = { ...this.state.currentEnemy };
+      
+      // Handle enemy defeat with callback
+      if (this.battleCallbacks.onEnemyDefeated) {
+        setTimeout(() => {
+          if (this.battleCallbacks.onEnemyDefeated) {
+            this.battleCallbacks.onEnemyDefeated(defeatedEnemy);
+          }
+        }, 500);
+      }
+    }
+    
+    return true;
+  }
+  
+  /**
+   * Developer tool: Heal enemy (only available in dev mode)
+   * @param healing Amount of healing to apply
+   * @returns Whether the healing was applied
+   */
+  public devHealEnemy(healing: number): boolean {
+    if (!this.devMode) return false;
+    if (!this.state.currentEnemy) return false;
+    
+    // Apply healing to enemy
+    this.state.currentEnemy.health = Math.min(
+      this.state.currentEnemy.maxHealth, 
+      this.state.currentEnemy.health + healing
+    );
+    this.updateEnemyHealthColor();
+    
+    // Update the active enemy in participants array
+    const activeEnemyIndex = this.state.participants.activeEnemyIndex;
+    this.state.participants.enemies[activeEnemyIndex] = this.state.currentEnemy;
+    
+    return true;
+  }
+  
+  /**
+   * Developer tool: Skip turn (only available in dev mode)
+   * @returns Whether the turn was skipped
+   */
+  public devSkipTurn(): boolean {
+    if (!this.devMode) return false;
+    
+    if (this.state.isPlayerTurn) {
+      this.endPlayerTurn();
+    } else {
+      this.state.turnCounter++;
+      this.startPlayerTurn();
+    }
+    
+    return true;
+  }
+}
+
+/**
+ * Factory function to create a battle service
+ * @param store Vuex store
+ * @param devMode Whether to enable dev mode
+ * @returns A new battle service instance
+ */
+export function createBattleService(store: Store<RootState>, devMode: boolean = false): BattleService {
+  return new BattleService(store, devMode);
 }

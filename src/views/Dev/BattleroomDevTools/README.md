@@ -119,7 +119,7 @@ The battle system is a core feature of the "Do It for the XP" project, represent
 
 ### Key Components
 
-1.  **BattleGround Component**: The main UI component for rendering battles. It displays the environment, enemies, player actions, and dialog.
+1.  **BattleField Component**: The main UI component for rendering battles. It displays the environment, enemies, player actions, and dialog.
 2.  **BattleService**: A service that encapsulates the battle logic, managing turns, actions, and enemy behavior.
 3.  **BattleroomDevTools**: A set of tools for testing and debugging the battle system in isolation.
 4.  **Vuex Store**: Manages the global battle state, including active battles, enemy data, and battle counters.
@@ -153,7 +153,7 @@ The battle system is a core feature of the "Do It for the XP" project, represent
 
 ### Workflow
 
-1.  **Initialization**: The `BattleGround` component initializes the battle by loading the enemy and setting up the environment.
+1.  **Initialization**: The `BattleField` component initializes the battle by loading the enemy and setting up the environment.
 2.  **Turn Cycle**: The battle proceeds in turns, with the player and enemy taking actions.
 3.  **Action Handling**: The `BattleService` handles player actions, updating the battle state and triggering animations.
 4.  **Enemy Turn**: The `BattleService` determines the enemy's action and applies its effects.

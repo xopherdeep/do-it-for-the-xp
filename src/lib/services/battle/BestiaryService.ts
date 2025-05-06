@@ -69,8 +69,7 @@ export class BestiaryService {
   }
 
   /**
-   * Create a sample enemy for testing/fallback
-   * @returns A sample enemy
+   * Creates a sample enemy for demos or when no beasts are available
    */
   public createSampleEnemy(): Enemy {
     return {
@@ -80,7 +79,10 @@ export class BestiaryService {
       isBoss: false,
       health: 500,
       maxHealth: 500,
-      emoji: '👾' // Fallback emoji if no image available
+      emoji: '👾', // Default emoji
+      attack: 10,    // Added missing required property
+      defense: 5,    // Added missing required property
+      speed: 8       // Added missing required property
     };
   }
 
@@ -95,11 +97,14 @@ export class BestiaryService {
       name: beast.name,
       type: 'beast', // Generic type for custom beasts
       isBoss: false, // Could be determined by beast properties if needed
-      health: 500, // Default values or could be based on beast properties
-      maxHealth: 500,
+      health: beast.health || 100,
+      maxHealth: beast.maxHealth || 100,
       avatar: beast.avatar, // Store the avatar ID for image loading
-      imageUrl: beast.avatar ? this.getAvatar(beast.avatar) : undefined,
-      emoji: '👾' // Fallback emoji if image fails to load
+      imageUrl: beast.imageUrl,
+      emoji: beast.emoji || '👹',
+      attack: beast.attack || 10,    // Added missing required property
+      defense: beast.defense || 5,    // Added missing required property
+      speed: beast.speed || 8         // Added missing required property
     };
   }
 

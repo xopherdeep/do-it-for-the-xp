@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { createStore } from 'vuex';
-import BattleGround from '../BattleField.vue';
+import BattleField from '../BattleField.vue';
 import { createBattleroomTestUtils } from '@/lib/utils/battleroom';
 
 // Mock store for testing
@@ -65,7 +65,7 @@ const createMockStore = () => {
   });
 };
 
-describe('BattleGround.vue', () => {
+describe('BattleField.vue', () => {
   let store;
   let battleUtils;
   
@@ -75,7 +75,7 @@ describe('BattleGround.vue', () => {
   });
   
   test('renders correctly', () => {
-    const wrapper = mount(BattleGround, {
+    const wrapper = mount(BattleField, {
       global: {
         plugins: [store],
         mocks: {
@@ -100,7 +100,7 @@ describe('BattleGround.vue', () => {
       { label: 'Defend', click: jest.fn() }
     ];
     
-    const wrapper = mount(BattleGround, {
+    const wrapper = mount(BattleField, {
       global: {
         plugins: [store],
         mocks: {

@@ -312,6 +312,10 @@ h1 {
   }
 }
 
+ion-content{
+  --background: #020410;
+}
+
 // Make sure Ion content doesn't scroll
 ion-content::part(scroll) {
   overflow-y: hidden !important;

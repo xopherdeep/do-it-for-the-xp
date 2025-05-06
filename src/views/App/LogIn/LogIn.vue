@@ -1,6 +1,7 @@
 <template>
   <ion-page
     ref="page"
+    :class="$options.name"
     @click="play$fx('noSelect')"
   >
     <ion-content

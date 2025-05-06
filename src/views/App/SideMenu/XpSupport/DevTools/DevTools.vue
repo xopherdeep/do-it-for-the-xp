@@ -236,6 +236,7 @@
 
   import packageJson from '@/../package.json'; 
   import Ionic from '@/mixins/ionic';
+import debug from '@/lib/utils/debug';
 
   export default defineComponent({
     name: 'DevTools',
@@ -279,7 +280,7 @@
 
           showToast(`${taskName} task completed successfully`);
         } catch (error) {
-          console.error(`Failed to run ${taskName} task:`, error);
+          debug.error(`Failed to run ${taskName} task:`, error);
           showToast(`Error running ${taskName} task. Check console for details.`);
         } finally {
           isTaskRunning.value = false;

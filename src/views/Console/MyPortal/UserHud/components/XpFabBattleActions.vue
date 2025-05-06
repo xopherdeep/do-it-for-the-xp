@@ -5,15 +5,13 @@
     horizontal="center"
     class="fab-battle battle-actions icon-colors"
     :class="$options.name"
-    v-if="user && $attrs.isBattleFabOn"
   >
-          <ion-fab-button
-            color="primary"
-            @click="openActionSheet"
-          >
-            <i class="fad fa-sword fa-2x"></i>
-          </ion-fab-button>
-
+    <ion-fab-button
+      color="primary"
+      @click="openActionSheet"
+    >
+      <i class="fad fa-sword fa-2x"></i>
+    </ion-fab-button>
   </ion-fab>
 </template>
 
@@ -58,9 +56,18 @@ export default defineComponent({
     actions: {
       type: Array as PropType<UserAction[]>,
       default: () => []
+    },
+    // Add missing props that are being passed from BattleField component
+    getIcon: {
+      type: Function as PropType<(label: string) => string>,
+      default: null
+    },
+    getColor: {
+      type: Function as PropType<(label: string) => string>,
+      default: null
     }
   },
-  emits: ["battle-action"],
+  emits: ["action", "battle-action"],  // Support both event names for backward compatibility
   setup(props, { emit }) {
     const userId = computed(() => props.user.id);
     
@@ -78,6 +85,7 @@ export default defineComponent({
               duration: 2000,
             });
             toast.then(t => t.present());
+            emit("action", { action: "attack", event: $ev });
             emit("battle-action", { action: "attack", event: $ev });
           }
         },
@@ -85,6 +93,7 @@ export default defineComponent({
           label: "Abilities",
           faIcon: "hand-holding-magic",
           click($ev) {
+            emit("action", { action: "abilities", event: $ev });
             emit("battle-action", { action: "abilities", event: $ev });
           }
         },
@@ -92,6 +101,7 @@ export default defineComponent({
           label: "Goods",
           faIcon: "backpack",
           click($ev) {
+            emit("action", { action: "goods", event: $ev });
             emit("battle-action", { action: "goods", event: $ev });
           }
         },
@@ -99,8 +109,9 @@ export default defineComponent({
           label: "Defend",
           faIcon: "shield",
           click($ev) {
-            // Remove the toast as we now handle this in the BattleGround component
+            // Remove the toast as we now handle this in the BattleField component
             // with the dialog system for more consistency
+            emit("action", { action: "defend", event: $ev });
             emit("battle-action", { action: "defend", event: $ev });
           }
         },
@@ -114,6 +125,7 @@ export default defineComponent({
               duration: 1500,
             });
             toast.then(t => t.present());
+            emit("action", { action: "run", event: $ev });
             emit("battle-action", { action: "run", event: $ev });
           }
         },
@@ -127,6 +139,12 @@ export default defineComponent({
     });
 
     const getBattleActionColor = (label: string): string => {
+      // Use the provided color function if available
+      if (props.getColor) {
+        return props.getColor(label);
+      }
+      
+      // Otherwise use the default implementation
       switch(label.toLowerCase()) {
         case 'attack': return 'danger';
         case 'roll': return 'danger';
@@ -137,20 +155,41 @@ export default defineComponent({
         default: return 'primary';
       }
     };
+    
+    const getBattleActionIcon = (label: string): string => {
+      // Use the provided icon function if available
+      if (props.getIcon) {
+        return props.getIcon(label);
+      }
+      
+      // Default icon mapping if no function was provided
+      switch(label.toLowerCase()) {
+        case 'attack': return 'sword';
+        case 'goods': return 'backpack';
+        case 'abilities': return 'hand-holding-magic';
+        case 'defend': return 'shield';
+        case 'run': return 'running';
+        default: return 'question';
+      }
+    };
 
     // New action sheet presentation function
     const openActionSheet = async (): Promise<void> => {
-      const buttons: ActionSheetButton[] = displayActions.value.map(action => ({
-        text: action.label,
-        icon: `fas:${action.faIcon}`,
-        cssClass: `action-${action.label.toLowerCase()}`,
-        handler: () => {
-          if (action.click) {
-            action.click();
+      const buttons: ActionSheetButton[] = displayActions.value.map(action => {
+        // Use the icon from props if available
+        const iconName = action.faIcon || getBattleActionIcon(action.label);
+        return {
+          text: action.label,
+          icon: `fas:${iconName}`,
+          cssClass: `action-${action.label.toLowerCase()}`,
+          handler: () => {
+            if (action.click) {
+              action.click();
+            }
+            return true;
           }
-          return true;
-        }
-      }));
+        };
+      });
 
       // Add cancel button
       buttons.push({
@@ -173,6 +212,7 @@ export default defineComponent({
       userId,
       displayActions,
       getBattleActionColor,
+      getBattleActionIcon,
       openActionSheet
     };
   }

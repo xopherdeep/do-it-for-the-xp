@@ -53,7 +53,7 @@ import {
 
 import { Swiper, SwiperSlide } from "swiper/vue";
 import "swiper/css";
-import XpHpMpHud from "@/views/Console/BattleField/HUD/XpHpMpHud";
+import XpHpMpHud from "@/views/Console/BattleField/hud/XpHpMpHud";
 
 const requireAvatar = require.context("@/assets/images/avatars/");
 
@@ -497,6 +497,9 @@ export default defineComponent({
           isBoss: false,
           health: 500,
           maxHealth: 500,
+          attack: 10,    // Added missing required property
+          defense: 5,    // Added missing required property
+          speed: 8,      // Added missing required property
           emoji: '👾' // Fallback emoji if no image available
         };
         

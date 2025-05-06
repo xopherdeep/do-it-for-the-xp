@@ -3,7 +3,7 @@
     <ion-content>
       <!-- Battle Room Preview -->
       <div class="battleroom-container">
-        <BattleGround 
+        <BattleField 
           class="battleground-component"
           ref="battlegroundRef"
           :taskId="0"
@@ -281,7 +281,7 @@
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
-import BattleGround from '@/views/Console/BattleField/BattleField.vue';
+import BattleField from '@/views/Console/BattleField/BattleField.vue';
 import { toastController } from '@ionic/vue';
 import { 
   skull,
@@ -310,8 +310,8 @@ import DevToolsFab from '@/views/Console/BattleField/HUD/dev/DevToolsFab.vue';
 import BattleActionsFab from '@/views/Console/BattleField/HUD/dev/DevBattleActionsFab.vue';
 import debug from '@/lib/utils/debug';
 
-// Define an interface for the BattleGround component
-interface BattleGroundInstance {
+// Define an interface for the BattleField component
+interface BattleFieldInstance {
   initBackground?: () => void;
   enterBattle?: () => void;
   loadBeastById?: (id: string) => void;
@@ -321,7 +321,7 @@ interface BattleGroundInstance {
   aspectRatio?: number;
   bg1?: number;
   bg2?: number;
-  // Add the actual methods that exist in BattleGround component
+  // Add the actual methods that exist in BattleField component
   handleBattleAction?: (action: { action: string }) => void;
   defeatEnemy?: (enemy?: any) => void;
   currentEnemy?: any;
@@ -353,14 +353,14 @@ export default defineComponent({
   name: 'BattleroomDevTools',
   mixins: [Ionic],
   components: {
-    BattleGround,
+    BattleField,
     DevToolsFab,
     BattleActionsFab,
   },
   setup() {
     const store = useStore();
-    // Properly type the battleground ref with the BattleGroundInstance interface
-    const battlegroundRef = ref<BattleGroundInstance | null>(null);
+    // Properly type the battleground ref with the BattleFieldInstance interface
+    const battlegroundRef = ref<BattleFieldInstance | null>(null);
     const controlsModal = ref(null);
     const isControlsModalOpen = ref(false);
     const customBg1 = ref(0);
@@ -602,7 +602,7 @@ export default defineComponent({
         selectedAspectRatio.value = bgData.aspectRatio;
       }
       
-      // Update the bg1, bg2, and aspectRatio properties on the BattleGround component
+      // Update the bg1, bg2, and aspectRatio properties on the BattleField component
       if (battlegroundRef.value) {
         // Update the properties directly
         battlegroundRef.value.bg1 = customBg1.value;

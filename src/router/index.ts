@@ -52,14 +52,23 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import("@/views/App/XpDemo/XpDemo.vue"),
   },
 
+  // Battle Field Routes
   {
     path: "/battle-field/:userId?",
     name: "battle-field",
     meta: {
       faIcon: "dungeon",
     },
-    component: () =>
-      import("@/views/Console/BattleField/BattleField"),
+    component: () => import("@/views/Console/BattleField/BattleField.vue"),
+    props: true,
+  },
+  {
+    path: "/battle-field/:beastIds/:userIds?",
+    name: "battle-field-with-participants",
+    meta: {
+      faIcon: "dungeon",
+    },
+    component: () => import("@/views/Console/BattleField/BattleField.vue"),
     props: true,
   },
 ];
