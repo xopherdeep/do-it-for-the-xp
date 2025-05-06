@@ -66,6 +66,25 @@
         :get-color="getBattleActionColor"
       />
       
+      <!-- Dev Tools FAB - only visible in dev mode -->
+      <DevToolsFab 
+        v-if="devMode" 
+        @open-profile-selector="openProfileSelector"
+        @open-beast-selector="openBeastSelector"
+        @open-controls-modal="openControlsModal"
+      />
+      
+      <!-- Dev Battle Actions FAB - only visible in dev mode -->
+      <DevBattleActionsFab
+        v-if="devMode"
+        @attack-animation="triggerAttackAnimation"
+        @enemy-hit="triggerEnemyHit"
+        @player-hit="triggerPlayerHit"
+        @victory-animation="triggerVictoryAnimation"
+        @defeat-animation="triggerDefeatAnimation"
+        @reset-battle="resetBattle"
+      />
+      
       <!-- Dev mode controls -->
       <div v-if="devMode" class="dev-controls">
         <ion-fab vertical="top" horizontal="end" slot="fixed">

@@ -11,6 +11,8 @@ import userActions from "@/mixins/userActions";
 import XpFabBattleActions from "@/views/Console/MyPortal/UserHud/components/XpFabBattleActions.vue";
 import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
 import XpHpMpHud from "@/views/Console/BattleField/hud/XpHpMpHud/XpHpMpHud.vue";
+import DevToolsFab from "@/views/Console/BattleField/hud/dev/DevToolsFab.vue";
+import DevBattleActionsFab from "@/views/Console/BattleField/hud/dev/DevBattleActionsFab.vue";
 import { modalController, toastController } from '@ionic/vue';
 
 // Import battle services
@@ -79,6 +81,8 @@ export default defineComponent({
     XpHpMpHud,
     XpFabBattleActions,
     XpTypingText,
+    DevToolsFab,
+    DevBattleActionsFab,
   },
   setup(props) {
     // Component state
@@ -858,6 +862,133 @@ export default defineComponent({
         battleService.value.devSkipTurn();
       }
     };
+
+    // Dev tools methods
+    const openProfileSelector = async () => {
+      if (!props.devMode) return;
+      
+      // Show toast message
+      const toast = await toastController.create({
+        message: 'Profile selector feature activated',
+        duration: 2000,
+        position: 'top'
+      });
+      await toast.present();
+      
+      // Here you would typically implement the actual profile selector logic
+      debug.log('Dev Tools: Open profile selector');
+    };
+    
+    const openBeastSelector = async () => {
+      if (!props.devMode) return;
+      
+      const toast = await toastController.create({
+        message: 'Beast selector feature activated',
+        duration: 2000,
+        position: 'top'
+      });
+      await toast.present();
+      
+      // Here you would typically implement the actual beast selector logic
+      debug.log('Dev Tools: Open beast selector');
+    };
+    
+    const openControlsModal = async () => {
+      if (!props.devMode) return;
+      
+      const toast = await toastController.create({
+        message: 'Battle controls modal activated',
+        duration: 2000,
+        position: 'top'
+      });
+      await toast.present();
+      
+      // Here you would typically implement the actual controls modal logic
+      debug.log('Dev Tools: Open battle controls modal');
+    };
+    
+    // Battle actions methods (for DevBattleActionsFab)
+    const triggerAttackAnimation = () => {
+      if (!props.devMode) return;
+      debug.log('Dev Tools: Triggering attack animation');
+      
+      // Add attack animation class to the enemy
+      enemyAnimationClass.value = 'attack';
+      setTimeout(() => {
+        enemyAnimationClass.value = '';
+      }, 500);
+    };
+    
+    const triggerEnemyHit = () => {
+      if (!props.devMode) return;
+      debug.log('Dev Tools: Triggering enemy hit animation');
+      
+      // Add damaged animation class to the enemy
+      enemyAnimationClass.value = 'damaged';
+      setTimeout(() => {
+        enemyAnimationClass.value = '';
+      }, 500);
+      
+      // Apply damage to the enemy
+      if (battleService.value && currentEnemy.value) {
+        battleService.value.devDamageEnemy(50);
+      }
+    };
+    
+    const triggerPlayerHit = () => {
+      if (!props.devMode) return;
+      debug.log('Dev Tools: Triggering player hit animation');
+      
+      // Show message
+      battleMessage.value = 'Player takes damage!';
+      setTimeout(() => {
+        battleMessage.value = '';
+      }, 2000);
+      
+      // Here you would apply damage to the player through battle service if implemented
+    };
+    
+    const triggerVictoryAnimation = () => {
+      if (!props.devMode) return;
+      debug.log('Dev Tools: Triggering victory animation');
+      
+      // Trigger the victory animation
+      victoryAnimation();
+    };
+    
+    const triggerDefeatAnimation = () => {
+      if (!props.devMode) return;
+      debug.log('Dev Tools: Triggering defeat animation');
+      
+      // Show defeat message
+      battleMessage.value = 'You were defeated!';
+      
+      // Apply defeat animation to player sprite (if you have one)
+      // For this example, we'll just set a timeout to clear the message
+      setTimeout(() => {
+        battleMessage.value = '';
+      }, 3000);
+    };
+    
+    const resetBattle = () => {
+      if (!props.devMode) return;
+      debug.log('Dev Tools: Resetting battle');
+      
+      // Reset enemy health if there is a current enemy
+      if (battleService.value && currentEnemy.value) {
+        battleService.value.resetBattle();
+      } else {
+        // If there's no current enemy, load a sample one
+        loadSampleBeast();
+      }
+      
+      // Clear any messages
+      battleMessage.value = '';
+      battleDialogText.value = '';
+      
+      // Reset animation classes
+      enemyAnimationClass.value = 'appear';
+    };
     
     // Watch for route params changes to update battle participants
     watch(
@@ -997,6 +1128,19 @@ export default defineComponent({
       devDamageEnemy,
       devHealEnemy,
       devSkipTurn,
+
+      // Dev tools methods
+      openProfileSelector,
+      openBeastSelector,
+      openControlsModal,
+      
+      // Battle actions methods (for DevBattleActionsFab)
+      triggerAttackAnimation,
+      triggerEnemyHit,
+      triggerPlayerHit,
+      triggerVictoryAnimation,
+      triggerDefeatAnimation,
+      resetBattle,
       
       // Icons
       closeCircle,

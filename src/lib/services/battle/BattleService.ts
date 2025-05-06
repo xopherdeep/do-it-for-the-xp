@@ -779,6 +779,42 @@ export class BattleService {
   }
 
   /**
+   * Reset the battle state
+   * This resets the battle to initial state but keeps the enemy
+   */
+  public resetBattle(): void {
+    if (this.state.currentEnemy) {
+      // Reset enemy health to max
+      this.state.currentEnemy.health = this.state.currentEnemy.maxHealth;
+      
+      // Update the enemy in participants array
+      const activeEnemyIndex = this.state.participants.activeEnemyIndex;
+      if (this.state.participants.enemies[activeEnemyIndex]) {
+        this.state.participants.enemies[activeEnemyIndex].health = this.state.participants.enemies[activeEnemyIndex].maxHealth;
+      }
+      
+      // Update health color
+      this.updateEnemyHealthColor();
+    }
+    
+    // Reset battle state
+    this.state.isPlayerTurn = false;
+    this.state.turnCounter = 1;
+    this.state.isDefending = false;
+    this.setBattleMessage('');
+    
+    // Queue reset message
+    this.queueDialogMessages([
+      "The battle has been reset!",
+      "Get ready to fight again!"
+    ]);
+    
+    if (this.devMode) {
+      debug.log("Battle has been reset");
+    }
+  }
+
+  /**
    * Get current enemy
    */
   public getCurrentEnemy(): Enemy | null {

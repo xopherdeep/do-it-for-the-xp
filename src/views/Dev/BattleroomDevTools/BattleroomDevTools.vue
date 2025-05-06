@@ -306,8 +306,8 @@ import { profileStorage } from '@/views/App/SideMenu/SwitchProfile/SwitchProfile
 import { modalController, actionSheetController } from '@ionic/vue';
 import AddProfile from '@/views/App/SideMenu/SwitchProfile/AddProfile/AddProfile.vue';
 // Import our new FAB components
-import DevToolsFab from '@/views/Console/BattleField/HUD/dev/DevToolsFab.vue';
-import BattleActionsFab from '@/views/Console/BattleField/HUD/dev/DevBattleActionsFab.vue';
+import DevToolsFab from '@/views/Console/BattleField/hud/dev/DevToolsFab.vue';
+import BattleActionsFab from '@/views/Console/BattleField/hud/dev/DevBattleActionsFab.vue';
 import debug from '@/lib/utils/debug';
 
 // Define an interface for the BattleField component
