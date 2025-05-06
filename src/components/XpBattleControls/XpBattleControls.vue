@@ -41,11 +41,11 @@
 import { defineComponent } from 'vue';
 import { useBattleEngine } from '@/views/Console/BattleField/hooks/useBattleEngine';
 import {
-  swordOutline,
-  shieldOutline,
-  colorWandOutline,
-  bagOutline,
-  walkOutline
+  flash as swordOutline,
+  shield as shieldOutline,
+  colorWand as colorWandOutline,
+  bag as bagOutline,
+  walk as walkOutline
 } from 'ionicons/icons';
 
 export default defineComponent({

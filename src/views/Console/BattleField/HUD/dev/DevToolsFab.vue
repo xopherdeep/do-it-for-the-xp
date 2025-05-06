@@ -7,7 +7,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue';
+import { defineComponent } from 'vue';
 import { actionSheetController } from '@ionic/vue';
 import {
   personOutline,
@@ -23,7 +23,7 @@ export default defineComponent({
     // Action sheet for dev tools
     const openDevToolsActionSheet = async () => {
       const actionSheet = await actionSheetController.create({
-        header: 'Battleroom Dev Tools',
+        header: 'Battle field Dev Tools',
         mode: 'ios',
         buttons: [
           {

@@ -148,11 +148,13 @@ export function useBattleEngine() {
     return '#eb445a'; // Red
   });
   
-  // Battle Dialog System
-  const battleDialog: BattleDialog = reactive({
+  // Battle Dialog System - Fix type issues by initializing with proper types
+  const dialogQueueInitial: Array<string | (() => void)> = [];
+  
+  const battleDialog = reactive<BattleDialog>({
     dialogText: '',
     showDialog: false,
-    dialogQueue: [],
+    dialogQueue: dialogQueueInitial,
     hasMoreDialog: false,
     isDialogTyping: false,
     isVictoryMessage: false,
@@ -267,11 +269,13 @@ export function useBattleEngine() {
   /**
    * Register callbacks for battle events
    */
-  const registerCallbacks = (newCallbacks: BattleCallbacks) => {
+  const registerCallbacks = (newCallbacks: Partial<BattleCallbacks>) => {
     // Update each callback if provided
     Object.keys(newCallbacks).forEach(key => {
-      if (newCallbacks[key as keyof BattleCallbacks]) {
-        callbacks[key as keyof BattleCallbacks] = newCallbacks[key as keyof BattleCallbacks];
+      const callbackKey = key as keyof BattleCallbacks;
+      if (newCallbacks[callbackKey]) {
+        // Need to use type assertion here to resolve the type conflict
+        callbacks[callbackKey] = newCallbacks[callbackKey] as any;
       }
     });
   };
@@ -462,7 +466,7 @@ export function useBattleEngine() {
     
     // Handle different action types
     switch(actionType) {
-      case 'attack':
+      case 'attack': {
         // Handle attack
         const playerName = store.state.user?.name?.nick || 'Player';
         battleDialog.queueDialog([`${playerName} attacks!`]);
@@ -505,8 +509,9 @@ export function useBattleEngine() {
           }
         }
         break;
-        
-      case 'defend':
+      }
+      
+      case 'defend': {
         // Handle defend action
         const defenderName = store.state.user?.name?.nick || 'Player';
         battleDialog.queueDialog([
@@ -526,7 +531,8 @@ export function useBattleEngine() {
         // End player turn
         endPlayerTurn();
         break;
-        
+      }
+      
       case 'goods':
         // Open inventory
         battleDialog.queueDialog([
@@ -565,7 +571,7 @@ export function useBattleEngine() {
         }, 2000);
         break;
         
-      case 'run':
+      case 'run': {
         // Handle run action
         const runnerName = store.state.user?.name?.nick || 'Player';
         
@@ -598,7 +604,8 @@ export function useBattleEngine() {
           endPlayerTurn();
         }
         break;
-        
+      }
+      
       default:
         console.warn(`Unknown battle action: ${actionType}`);
     }
@@ -646,10 +653,9 @@ export function useBattleEngine() {
     
     // Cache current user stats
     const currentHP = store.state.user?.stats?.hp || 100;
-    const maxHP = store.state.user?.stats?.maxHp || 100;
     
     switch (enemyAction) {
-      case 'attack':
+      case 'attack': {
         // Enemy attacks
         state.enemyAnimationClass = 'attacking';
         
@@ -712,7 +718,8 @@ export function useBattleEngine() {
           }
         }, 1000);
         break;
-        
+      }
+      
       case 'defend':
         // Enemy defends
         battleDialog.queueDialog([

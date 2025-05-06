@@ -328,6 +328,7 @@ interface BattleGroundInstance {
   enemyAnimationClass?: string;
   performEnemyTurn?: () => void;
   endPlayerTurn?: () => void;
+  victoryAnimation?: () => void; // Add the missing method
 }
 
 // Define an interface for the Profile data

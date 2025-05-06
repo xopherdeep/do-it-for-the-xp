@@ -1,17 +1,17 @@
-import { defineComponent, ref, onMounted, onUnmounted } from "vue";
-import { mapState } from "vuex";
+import { defineComponent, ref, onMounted, onUnmounted, inject, computed } from "vue";
+import { useStore } from "vuex";
 import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
 import backgrounds from "@/assets/images/backgrounds/parallax/index";
 import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
 import fetchItems from "@/mixins/fetchItems";
 import ionic from "@/mixins/ionic";
 import MyTask from "@/views/Console/MyPortal/UserHud/MyTask/MyTask.vue";
-import users from "@/lib/api/users.api";
 import userActions from "@/mixins/userActions";
 import XpFabBattleActions from "@/views/Console/MyPortal/UserHud/components/XpFabBattleActions.vue";
 import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
 import XpHpMpHud from "@/views/Console/BattleField/HUD/XpHpMpHud/XpHpMpHud.vue";
 import { useBattleEngine, Enemy, CompletedTask } from '@/views/Console/BattleField/hooks/useBattleEngine';
+import { modalController, toastController } from '@ionic/vue';
 
 // Import icons
 import {
@@ -65,11 +65,18 @@ export default defineComponent({
     const page = ref(null);
     const battleBackground = ref<HTMLCanvasElement | null>(null);
     
+    // Get store and injected services using composition API
+    const store = useStore();
+    const $fx = inject('$fx') as any;
+    
     // Background configuration
     const bg1 = ref(1);
     const bg2 = ref(1);
     const showRewardsModal = ref(false);
     const completedTask = ref<CompletedTask | null>(null);
+    
+    // Get user from store
+    const user = computed(() => store.state.user);
     
     // Methods for background management
     const changeBg = () => {
@@ -79,17 +86,16 @@ export default defineComponent({
       }
       
       // Check if we're even able to set bg styles
-      const pageElement = page.value?.$el as HTMLElement | undefined;
-      if (!pageElement && !document.querySelector('.battle-bg')) {
+      const pageElement = document.querySelector('.battle-bg') as HTMLElement | null;
+      if (!pageElement) {
         console.warn('No suitable element found to set background styles');
         enterBattle(); // Just try to enter battle directly
         return;
       }
       
       const setBGStyle = (key: string, value: string) => {
-        const element = pageElement || document.querySelector('.battle-bg') as HTMLElement;
-        if (element) {
-          element.style[key as any] = value;
+        if (pageElement) {
+          pageElement.style[key as any] = value;
         }
       };
       
@@ -240,6 +246,31 @@ export default defineComponent({
       }, 500);
     };
     
+    // UI interaction methods
+    const clickUserChip = async (userData: any) => {
+      const modal = await modalController.create({
+        component: CardUserStats,
+        initialBreakpoint: 0.55,
+        componentProps: { userId: userData.id },
+      });
+      await modal.present();
+    };
+    
+    const getUserAvatar = (userData: any) => {
+      const avatar = `./${userData.avatar}.svg`;
+      return requireAvatar(avatar);
+    };
+    
+    const openToast = async () => {
+      const toast = await toastController.create({
+        message: `${user.value?.name?.nick || 'Player'} has entered the battle!`,
+        cssClass: $fx?.theme?.rpg || '',
+        position: "top",
+        duration: 2800,
+      });
+      return toast.present();
+    };
+    
     // Register callbacks with battle engine for UI updates
     battleEngine.registerCallbacks({
       onVictory: victoryAnimation,
@@ -304,6 +335,7 @@ export default defineComponent({
       bg2,
       showRewardsModal,
       completedTask,
+      user,
       
       // Methods
       changeBg,
@@ -314,6 +346,9 @@ export default defineComponent({
       initBattle,
       victoryAnimation,
       closeRewardsModal,
+      clickUserChip,
+      getUserAvatar,
+      openToast,
       
       // Helper for avatars
       getAvatar: battleEngine.getAvatar,
@@ -327,49 +362,5 @@ export default defineComponent({
       cashOutline,
       giftOutline
     };
-  },
-  computed: {
-    ...mapState(["xp_achievement"]),
-    
-    // Computed properties from store
-    user() {
-      return this.$store.state.user;
-    }
-  },
-  methods: {
-    // UI interaction methods
-    clickUserChip(user) {
-      this.$modal.create({
-        component: CardUserStats,
-        initialBreakpoint: 0.55,
-        componentProps: { userId: user.id },
-      });
-    },
-    
-    getUserAvatar(user) {
-      const avatar = `./${user.avatar}.svg`;
-      return requireAvatar(avatar);
-    },
-    
-    // Pass key methods to the vue template
-    getAvatar(id) {
-      return this.battleEngine.getAvatar(id);
-    },
-    
-    // Other UI methods
-    segmentChanged() {
-      // Handle segment changes
-    },
-    
-    openToast() {
-      const { user } = this;
-      const toast = this.$ionic.toastController.create({
-        message: `${user?.name?.nick} has entered the battle!`,
-        cssClass: this.$fx.theme.rpg,
-        position: "top",
-        duration: 2800,
-      });
-      return toast.then(toast => toast.present());
-    }
   }
 });
