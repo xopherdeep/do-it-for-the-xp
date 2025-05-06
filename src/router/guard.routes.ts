@@ -318,7 +318,7 @@ export function useRouterGuards(router: Router, store: Store<RootState>) {
           break;
       
         case 'battleroom-dev':
-        case 'battle-ground':
+        case 'battle-field':
           // Ensure BGM.battle is an array and state.battle exists
           if (BGM?.battle && Array.isArray(BGM.battle) && BGM.battle.length > 0 && state.battle) {
             bgmPayload = {

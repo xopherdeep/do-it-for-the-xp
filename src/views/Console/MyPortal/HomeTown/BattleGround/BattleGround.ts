@@ -15,7 +15,7 @@ import XpTypingText from "@/components/XpTypingText";
 import { createBattleService, createBestiaryService, BattleService, BestiaryService, Enemy, CompletedTask } from '@/lib/services/battle';
 
 // Define a unique ID for this page for background management
-const PAGE_ID = 'battle-ground';
+const PAGE_ID = 'battle-field';
 
 import { toastController, modalController } from "@ionic/vue";
 import {
@@ -53,12 +53,12 @@ import {
 
 import { Swiper, SwiperSlide } from "swiper/vue";
 import "swiper/css";
-import XpHpMpHud from "@/views/Console/Battlefield/XpHpMpHud";
+import XpHpMpHud from "@/views/Console/BattleField/HUD/XpHpMpHud";
 
 const requireAvatar = require.context("@/assets/images/avatars/");
 
 export default defineComponent({
-  name: "battle-ground",
+  name: "battle-field",
   props: {
     userId: String,
     userName: {

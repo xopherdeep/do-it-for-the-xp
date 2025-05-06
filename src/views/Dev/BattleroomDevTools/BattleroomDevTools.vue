@@ -62,18 +62,21 @@
     </div>
 
     <!-- Configuration Toolbox FAB -->
-    <ion-fab vertical="bottom" horizontal="start" slot="fixed">
-      <ion-fab-button color="danger" @click="openDevToolsActionSheet">
-        <i class="fad fa-wrench fa-2x"></i>
-      </ion-fab-button>
-    </ion-fab>
+    <DevToolsFab 
+      @open-profile-selector="openProfileSelector" 
+      @open-beast-selector="openBeastSelector" 
+      @open-controls-modal="openControlsModal" 
+    />
     
     <!-- Battle Actions FAB -->
-    <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-      <ion-fab-button color="primary" @click="openBattleActionsSheet">
-        <i class="fad fa-bolt fa-2x"></i>
-      </ion-fab-button>
-    </ion-fab>
+    <BattleActionsFab
+      @attack-animation="triggerAttackAnimation"
+      @enemy-hit="triggerEnemyHit"
+      @player-hit="triggerPlayerHit"
+      @victory-animation="triggerVictoryAnimation"
+      @defeat-animation="triggerDefeatAnimation"
+      @reset-battle="resetBattle"
+    />
     
     <!-- Dev Controls Modal -->
     <ion-modal ref="controlsModal" :is-open="isControlsModalOpen" @didDismiss="isControlsModalOpen = false">
@@ -278,7 +281,7 @@
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, watch } from 'vue';
 import { useStore } from 'vuex';
-import BattleGround from '@/views/Console/Battlefield/BattleGround.vue';
+import BattleGround from '@/views/Console/BattleField/BattleField.vue';
 import { toastController } from '@ionic/vue';
 import { 
   skull,
@@ -302,6 +305,10 @@ import ProfileDb from '@/lib/databases/ProfileDb';
 import { profileStorage } from '@/views/App/SideMenu/SwitchProfile/SwitchProfile.vue';
 import { modalController, actionSheetController } from '@ionic/vue';
 import AddProfile from '@/views/App/SideMenu/SwitchProfile/AddProfile/AddProfile.vue';
+// Import our new FAB components
+import DevToolsFab from '@/views/Console/BattleField/HUD/dev/DevToolsFab.vue';
+import BattleActionsFab from '@/views/Console/BattleField/HUD/dev/DevBattleActionsFab.vue';
+import debug from '@/lib/utils/debug';
 
 // Define an interface for the BattleGround component
 interface BattleGroundInstance {
@@ -346,6 +353,8 @@ export default defineComponent({
   mixins: [Ionic],
   components: {
     BattleGround,
+    DevToolsFab,
+    BattleActionsFab,
   },
   setup() {
     const store = useStore();
@@ -369,16 +378,16 @@ export default defineComponent({
     const loadBeasts = async () => {
       try {
         // Debug the storage environment
-        console.log('Current localStorage keys:', Object.keys(localStorage));
+        debug.log('Current localStorage keys:', Object.keys(localStorage));
         
         // Try to get beasts from normal environment
         beasts.value = await bestiary.getBeasts();
-        console.log(`Loaded ${beasts.value.length} beasts from BestiaryDb`);
-        console.log('Beast data:', JSON.stringify(beasts.value, null, 2));
+        debug.log(`Loaded ${beasts.value.length} beasts from BestiaryDb`);
+        debug.log('Beast data:', JSON.stringify(beasts.value, null, 2));
         
         // If no beasts found and we're in battleroom environment, try to load from main app storage
         if (beasts.value.length === 0 && window.location.href.includes('battleroom')) {
-          console.log('No beasts found in battleroom environment. Trying to load from main app storage...');
+          debug.log('No beasts found in battleroom environment. Trying to load from main app storage...');
           
           // Check if there's a beast data in the main app storage
           const mainStorageKey = 'xp-bestiary'; // This is likely the key used in main app
@@ -388,7 +397,7 @@ export default defineComponent({
             try {
               const parsedData = JSON.parse(mainBeastsData);
               if (Array.isArray(parsedData) && parsedData.length > 0) {
-                console.log('Found beasts in main app storage:', parsedData.length);
+                debug.log('Found beasts in main app storage:', parsedData.length);
                 beasts.value = parsedData;
                 
                 // Save each beast to the current environment's storage for future use
@@ -397,12 +406,12 @@ export default defineComponent({
                 }
               }
             } catch (parseError) {
-              console.error('Error parsing main app beast data:', parseError);
+              debug.error('Error parsing main app beast data:', parseError);
             }
           }
         }
       } catch (error) {
-        console.error('Error loading beasts:', error);
+        debug.error('Error loading beasts:', error);
         
         // Show error toast
         const toast = await toastController.create({
@@ -611,7 +620,7 @@ export default defineComponent({
               }
             }, 300);
           } else {
-            console.warn('battlegroundRef or enterBattle method not available');
+            debug.warn('battlegroundRef or enterBattle method not available');
           }
         }, 100);
       }
@@ -768,7 +777,7 @@ export default defineComponent({
           toast.present();
         }
       } catch (error) {
-        console.error('Error loading profiles:', error);
+        debug.error('Error loading profiles:', error);
         
         // Show error toast
         const toast = await toastController.create({
@@ -813,7 +822,7 @@ export default defineComponent({
         isCreateProfileModalOpen.value = false;
         await createNewProfile();
       } catch (error) {
-        console.error('Error when opening profile creation modal:', error);
+        debug.error('Error when opening profile creation modal:', error);
         
         // Show error toast
         const toast = await toastController.create({
@@ -953,7 +962,7 @@ export default defineComponent({
           });
           toast.present();
         } else {
-          console.warn('handleBattleAction method not available');
+          debug.warn('handleBattleAction method not available');
           
           const toast = await toastController.create({
             message: 'Attack animation not available',
@@ -1120,7 +1129,7 @@ export default defineComponent({
           });
           toast.present();
         } else {
-          console.warn('enemyAnimationClass property not available');
+          debug.warn('enemyAnimationClass property not available');
           
           // Try fallback - handle battle action which should animate enemy hit
           if (battlegroundRef.value.handleBattleAction) {
@@ -1209,9 +1218,9 @@ export default defineComponent({
     
     const triggerVictoryAnimation = async () => {
       if (battlegroundRef.value) {
-        // Try to use defeatEnemy which handles victory animations
-        if (battlegroundRef.value.defeatEnemy && battlegroundRef.value.currentEnemy) {
-          battlegroundRef.value.defeatEnemy();
+        // Try to handle a "victory" battle event
+        if (battlegroundRef.value.victoryAnimation) {
+          battlegroundRef.value.victoryAnimation();
           
           const toast = await toastController.create({
             message: 'Victory animation triggered',
@@ -1221,7 +1230,6 @@ export default defineComponent({
           });
           toast.present();
         } else {
-          console.warn('defeatEnemy method or currentEnemy not available');
           
           const toast = await toastController.create({
             message: 'Victory animation not available',
@@ -1248,7 +1256,7 @@ export default defineComponent({
           });
           toast.present();
         } else {
-          console.warn('handleBattleAction method not available');
+          debug.warn('handleBattleAction method not available');
           
           const toast = await toastController.create({
             message: 'Defeat animation not available',

@@ -200,7 +200,7 @@ export default defineComponent({
       //   this.play$fx("enterBattle");
       //   router
       //     .push({
-      //       name: "battle-ground",
+      //       name: "battle-field",
       //       params: { userId },
       //     })
       //     .then(stopBattleTimer)

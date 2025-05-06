@@ -1,6 +1,6 @@
 import { mount } from '@vue/test-utils';
 import { createStore } from 'vuex';
-import BattleGround from '../BattleGround.vue';
+import BattleGround from '../BattleField.vue';
 import { createBattleroomTestUtils } from '@/lib/utils/battleroom';
 
 // Mock store for testing

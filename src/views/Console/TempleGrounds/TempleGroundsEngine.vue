@@ -575,7 +575,7 @@
               role: 'fight',
               handler: () => {
                 router.push({
-                  name: 'battle-ground',
+                  name: 'battle-field',
                   params: { userId: props.userId }
                 });
               }

@@ -53,13 +53,13 @@ const routes: Array<RouteRecordRaw> = [
   },
 
   {
-    path: "/battle-ground/:userId?",
-    name: "battle-ground",
+    path: "/battle-field/:userId?",
+    name: "battle-field",
     meta: {
       faIcon: "dungeon",
     },
     component: () =>
-      import("@/views/Console/Battlefield/BattleGround"),
+      import("@/views/Console/BattleField/BattleField"),
     props: true,
   },
 ];

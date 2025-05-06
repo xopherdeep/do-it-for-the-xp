@@ -125,7 +125,7 @@ export default defineComponent({
               handler: () => {
                 const { userId } = this;
                 this.$router.push({
-                  name: "battle-ground",
+                  name: "battle-field",
                   params: {
                     userId,
                   },
