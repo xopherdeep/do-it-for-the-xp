@@ -16,7 +16,7 @@
           <ion-select 
             :value="selectedTemple" 
             @ionChange="templeChanged($event)"
-            interface="popover"
+            interface="alert"
           >
             <ion-select-option value="wind-temple">Wind Temple</ion-select-option>
             <ion-select-option value="fire-temple">Fire Temple</ion-select-option>
@@ -31,7 +31,7 @@
           <ion-select 
             :value="styles.selectedEraStyle" 
             @ionChange="styleChanged($event, 'era')"
-            interface="popover"
+            interface="alert"
           >
             <ion-select-option 
               v-for="style in styles.visualEraStyles" 
@@ -49,7 +49,7 @@
           <ion-select 
             :value="styles.floorStyle" 
             @ionChange="styleChanged($event, 'floor')"
-            interface="popover"
+            interface="alert"
           >
             <ion-select-option value="stone">Stone</ion-select-option>
             <ion-select-option value="wood">Wood</ion-select-option>
@@ -66,7 +66,7 @@
           <ion-select 
             :value="styles.floorPatternType" 
             @ionChange="styleChanged($event, 'floorPattern')"
-            interface="popover"
+            interface="alert"
           >
             <ion-select-option 
               v-for="pattern in styles.floorPatterns" 
@@ -84,7 +84,7 @@
           <ion-select 
             :value="styles.wallStyle" 
             @ionChange="styleChanged($event, 'wall')"
-            interface="popover"
+            interface="alert"
           >
             <ion-select-option value="brick">Brick</ion-select-option>
             <ion-select-option value="stone">Stone</ion-select-option>
@@ -102,7 +102,7 @@
           <ion-select 
             :value="styles.wallPatternType" 
             @ionChange="styleChanged($event, 'wallPattern')"
-            interface="popover"
+            interface="alert"
           >
             <ion-select-option 
               v-for="pattern in styles.wallPatterns" 

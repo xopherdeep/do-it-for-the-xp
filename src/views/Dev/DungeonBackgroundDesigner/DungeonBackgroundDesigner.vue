@@ -152,6 +152,7 @@ const styleConfig = useStyleConfig();
 // This maintains reactivity of all the ref values
 const styles = styleConfig;
 
+// Extract all needed canvas variables and functions
 const {
   dungeonCanvas,
   canvasWidth,
@@ -161,6 +162,38 @@ const {
   initCanvasResizeHandling,
   resizeCanvas
 } = useCanvasRenderer();
+
+// Redraw the current room
+const redrawRoom = (styleChange?: { type: string; value: string }) => {
+  const ctx = dungeonCanvas.value?.getContext('2d');
+  if (!ctx) return;
+
+  // If a style change was provided, update the appropriate style value
+  if (styleChange) {
+    switch (styleChange.type) {
+      case 'era':
+        styleConfig.selectedEraStyle.value = styleChange.value;
+        break;
+      case 'floor':
+        styleConfig.floorStyle.value = styleChange.value;
+        break;
+      case 'floorPattern':
+        styleConfig.floorPatternType.value = styleChange.value;
+        break;
+      case 'wall':
+        styleConfig.wallStyle.value = styleChange.value;
+        break;
+      case 'wallPattern':
+        styleConfig.wallPatternType.value = styleChange.value;
+        break;
+    }
+  }
+
+  const temple = templeData.value[selectedTemple.value];
+  const room = getCurrentRoom();
+  
+  drawRoom(ctx, temple, currentPosition.value, room, isDoorLocked);
+};
 
 // Get appropriate header for each room type
 const getRoomTypeHeader = (roomType: string): string => {
@@ -174,17 +207,6 @@ const getRoomTypeHeader = (roomType: string): string => {
     case 'teleport': return 'You found a teleport!';
     default: return `${roomType.charAt(0).toUpperCase() + roomType.slice(1)} Room`;
   }
-};
-
-// Redraw the current room
-const redrawRoom = () => {
-  const ctx = dungeonCanvas.value?.getContext('2d');
-  if (!ctx) return;
-
-  const temple = templeData.value[selectedTemple.value];
-  const room = getCurrentRoom();
-  
-  drawRoom(ctx, temple, currentPosition.value, room, isDoorLocked);
 };
 
 // Get room icon based on its type
