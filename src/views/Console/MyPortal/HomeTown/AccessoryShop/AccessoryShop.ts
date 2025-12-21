@@ -203,14 +203,14 @@ export default defineComponent({
     selectShelf($ev) {
       this.shelves = $ev.detail.value;
     },
-    closeModal(itemId) {
-      debug.log("Closing modal with itemId:", itemId);
+    closeModal(_itemId) {
+      debug.log("Closing modal with itemId:", _itemId);
       return modalController.dismiss(null, 'cancel');
       // this.$refs[`modal-${itemId}`].$el.dismiss(null, 'cancel');
     },
-    buyItem(itemId) {
+    buyItem(_itemId) {
       this.setThankYouOpen(true);
-      debug.log("Buying item with itemId:", itemId);
+      debug.log("Buying item with itemId:", _itemId);
       return modalController.dismiss(null, 'confirm');
       // this.$refs[`modal-${itemId}`].$el.dismiss(null, 'cancel');
     }

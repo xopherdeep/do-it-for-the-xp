@@ -3,6 +3,6 @@
 // ATMModal component declaration
 declare module '*/ATMModal.vue' {
   import { DefineComponent } from 'vue'
-  const ATMModal: DefineComponent<{}, {}, any>
+  const ATMModal: DefineComponent<Record<string, unknown>, Record<string, unknown>, unknown>
   export default ATMModal
 }

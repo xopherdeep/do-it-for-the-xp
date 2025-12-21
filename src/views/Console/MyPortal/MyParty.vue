@@ -83,9 +83,9 @@
 </template>
 
 <script lang="ts">
+  import { defineComponent } from "vue";
   import { useUserStore } from "@/lib/store/stores/user";
-import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
-
+  import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
 import {
   arrowBack,
   bagOutline,
@@ -94,35 +94,29 @@ import {
   sparklesOutline,
   keyOutline,
 } from "ionicons/icons";
-import userActions from "@/mixins/userActions";
+  import userActions from "@/mixins/userActions";
+  import ionic from "@/mixins/ionic";
 
-import ionic from "@/mixins/ionic";
-export default {
-  mixins: [userActions, ionic],
-  ionViewDidEnter() {
-    this.setUserActions(this.userActions);
-  },
+  export default defineComponent({
+    name: "my-party",
+    mixins: [userActions as any, ionic as any],
   components: {
     CardUserStats,
-    // IonButtons,
-    // IonMenuButton,
-
-    // IonButton,
+    },
+    ionViewDidEnter() {
+      (this as any).setUserActions((this as any).userActions);
   },
     computed: {
     users() {
-        return (this as any).userStore.usersAz;
+      return (this as any).userStore.usersAz;
     },
-  },
-  mounted() {
-    // this.$fx.ui[this.$fx.theme.ui].user.play()
-  },
+    },
   methods: {
-    getUserAvatar(user) {
+    getUserAvatar(user: any) {
       const avatar = `./${user.avatar}.svg`;
-      return this.$requireAvatar(avatar);
+      return (this as any).$requireAvatar(avatar);
     },
-    segmentChanged($event) {
+    segmentChanged($event: any) {
       $event.preventDefault();
     },
   },
@@ -161,7 +155,7 @@ export default {
       ],
     };
   },
-};
+});
 </script>
 
 <style scoped lang="scss">
