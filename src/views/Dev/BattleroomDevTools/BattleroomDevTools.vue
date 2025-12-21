@@ -4,7 +4,6 @@
       <!-- Battle Room Preview -->
       <div class="battleroom-container">
         <BattleField 
-          class="battleground-component"
           ref="battlegroundRef"
           :taskId="0"
           :enemyType="selectedEnemyType"
@@ -12,6 +11,7 @@
           :userName="selectedProfile?.name || 'Developer'"
           :beastAvatar="selectedBeast?.avatar || null"
           :showEnemyInfo="false"
+          class="battleground-component"
         />
       </div>
     </ion-content>

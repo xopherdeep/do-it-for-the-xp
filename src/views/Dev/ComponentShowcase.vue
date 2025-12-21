@@ -242,7 +242,7 @@
               <ion-label position="stacked">Custom Text</ion-label>
               <ion-textarea 
                 v-model="customText" 
-                rows="3" 
+                :rows="3" 
                 placeholder="Enter text to animate"
               ></ion-textarea>
             </ion-item>
@@ -384,7 +384,7 @@
 
 <script setup lang="ts">
 import {
-  // alertController, // Removed - No longer used directly on this page
+  alertController, // Re-added for Alert example
   modalController, // Replaced alertController
   toastController, // Added for Toast example
   IonButton,       // Added
@@ -432,9 +432,11 @@ const initialDelay = ref(300);
 const latestEvent = ref("No events yet");
 
 // XpTypingText Demo Methods
+import { getCurrentInstance } from 'vue';
+
 const restartTypingDemo = (refName: string) => {
   if (refName && typeof refName === 'string') {
-    const demoRef = ref.value as any; // Get the component instance
+    const demoRef = (getCurrentInstance()?.proxy?.$refs as any)[refName];
     if (demoRef && demoRef.resetTyping && demoRef.startTyping) {
       demoRef.resetTyping();
       demoRef.startTyping();
@@ -444,7 +446,7 @@ const restartTypingDemo = (refName: string) => {
 
 const skipTypingDemo = (refName: string) => {
   if (refName && typeof refName === 'string') {
-    const demoRef = ref.value as any; // Get the component instance
+    const demoRef = (getCurrentInstance()?.proxy?.$refs as any)[refName];
     if (demoRef && demoRef.completeTyping) {
       demoRef.completeTyping();
     }
@@ -813,64 +815,60 @@ const presentToast = async (position: 'top' | 'middle' | 'bottom') => {
   await toast.present();
 };
 
-// Alert Logic (Keep for example trigger, but ensure alertController is imported if needed)
-// const presentAlert = async () => {
-//   // Ensure alertController is imported from '@ionic/vue' if you uncomment this
-//   const alert = await alertController.create({
-//     header: 'Alert',
-//     subHeader: 'Important message',
-//     message: 'This is an alert!',
-//     buttons: ['OK'],
-//   });
-//   await alert.present();
-// };
-// NOTE: The button still exists, but clicking it will now cause an error unless
-//       alertController is re-imported and this function uncommented.
-//       Alternatively, remove the Alert section entirely if not needed.
+// Alert Logic (for example trigger)
+const presentAlert = async () => {
+  const alert = await alertController.create({
+    header: 'Alert',
+    subHeader: 'Important message',
+    message: 'This is an alert!',
+    buttons: ['OK'],
+  });
+  await alert.present();
+};
 
 // Show Code Logic using Modal
+// Define the modal component outside the function
+import { defineComponent } from 'vue';
+
+const CodeModal = defineComponent({
+  name: 'CodeModal',
+  props: {
+    codeToShow: { type: String, required: true }
+  },
+  setup(props) {
+    const closeModal = () => modalController.dismiss();
+    const formattedCode = escapeHtml(props.codeToShow);
+    return { closeModal, formattedCode };
+  },
+  components: {
+    IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent, IonCard, IonCardContent
+  },
+  template: `
+    <ion-header>
+      <ion-toolbar>
+        <ion-title>Component Code</ion-title>
+        <ion-buttons slot="end">
+          <ion-button @click="closeModal">Close</ion-button>
+        </ion-buttons>
+      </ion-toolbar>
+    </ion-header>
+    <ion-content class="ion-padding">
+      <ion-card>
+        <ion-card-content>
+          <pre><code>{{ formattedCode }}</code></pre>
+        </ion-card-content>
+      </ion-card>
+    </ion-content>
+  `
+});
+
 const showCode = async (code: string) => {
   const modal = await modalController.create({
-    component: {
-      // Define an inline component for the modal content
-      props: { // Define props for the inline component
-        codeToShow: { type: String, required: true }
-      },
-      setup(props) { // Accept props here
-        const closeModal = () => modalController.dismiss();
-        // Calculate formattedCode based on the passed prop
-        const formattedCode = escapeHtml(props.codeToShow);
-        return { closeModal, formattedCode };
-      },
-      template: `
-        <ion-header>
-          <ion-toolbar>
-            <ion-title>Component Code</ion-title>
-            <ion-buttons slot="end">
-              <ion-button @click="closeModal">Close</ion-button>
-            </ion-buttons>
-          </ion-toolbar>
-        </ion-header>
-        <ion-content class="ion-padding">
-          <ion-card>
-            <ion-card-content>
-              <pre><code>{{ formattedCode }}</code></pre>
-            </ion-card-content>
-          </ion-card>
-        </ion-content>
-      `,
-      components: { // Register necessary Ionic components locally for the modal
-          IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent, IonCard, IonCardContent
-      }
-    },
-    componentProps: { // Pass the code string as a prop
+    component: CodeModal,
+    componentProps: {
       codeToShow: code
     },
-    // Use CSS variables for auto height and potentially width
-    cssClass: 'code-modal', // Add a class for styling
-    // Optional: Set breakpoints for sheet-like behavior on smaller screens
-    // breakpoints: [0, 0.5, 0.8],
-    // initialBreakpoint: 0.8,
+    cssClass: 'code-modal',
   });
   await modal.present();
 };

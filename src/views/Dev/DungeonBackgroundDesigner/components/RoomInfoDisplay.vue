@@ -1,7 +1,7 @@
 <template>
   <div class="room-info">
     <div class="room-type">{{ formattedRoomType }}</div>
-    <div class="position">Position: [{{ position[0] }}, {{ position[1] }}]</div>
+    <div class="position">Position: [{{ position[1] + 1 }}, {{ position[0] + 1 }}]</div>
   </div>
 </template>
 

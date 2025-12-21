@@ -32,7 +32,7 @@
           <ion-card-content>
             <ion-item>
               <ion-label>Text Speed (ms)</ion-label>
-              <ion-range v-model="textSpeed" min="10" max="200" step="10" pin>
+              <ion-range v-model="textSpeed" :min="10" :max="200" :step="10" pin>
                 <ion-label slot="start">10</ion-label>
                 <ion-label slot="end">200</ion-label>
               </ion-range>
@@ -40,7 +40,7 @@
             
             <ion-item>
               <ion-label>Default Duration (ms)</ion-label>
-              <ion-range v-model="defaultDuration" min="1000" max="6000" step="500" pin>
+              <ion-range v-model="defaultDuration" :min="1000" :max="6000" :step="500" pin>
                 <ion-label slot="start">1s</ion-label>
                 <ion-label slot="end">6s</ion-label>
               </ion-range>
@@ -48,7 +48,7 @@
             
             <ion-item>
               <ion-label>Transition Duration (ms)</ion-label>
-              <ion-range v-model="transitionDuration" min="200" max="2000" step="100" pin>
+              <ion-range v-model="transitionDuration" :min="200" :max="2000" :step="100" pin>
                 <ion-label slot="start">200</ion-label>
                 <ion-label slot="end">2000</ion-label>
               </ion-range>

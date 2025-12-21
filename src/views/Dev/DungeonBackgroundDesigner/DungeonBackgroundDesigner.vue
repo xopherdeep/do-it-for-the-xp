@@ -192,7 +192,7 @@ const redrawRoom = (styleChange?: { type: string; value: string }) => {
   const temple = templeData.value[selectedTemple.value];
   const room = getCurrentRoom();
   
-  drawRoom(ctx, temple, currentPosition.value, room, isDoorLocked);
+  drawRoom(ctx, temple, currentPosition.value, room || undefined, isDoorLocked);
 };
 
 // Get appropriate header for each room type
@@ -250,7 +250,7 @@ const showChestContentsDialog = async (room: RoomDefinition) => {
     header: 'Chest Contents',
     inputs: chestContents.map(item => ({
       name: item.name,
-      type: 'checkbox',
+      type: item.type as any,
       label: item.label,
       value: item.value,
       checked: true

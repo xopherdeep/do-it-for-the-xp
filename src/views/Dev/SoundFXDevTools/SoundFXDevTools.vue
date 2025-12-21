@@ -53,14 +53,26 @@
         <ion-card-content>
           <ion-item>
             <ion-label>Music Volume</ion-label>
-            <ion-range min="0" max="100" :value="musicVolume" @ionChange="changeMusicVolume" color="primary">
+            <ion-range
+              :min="0"
+              :max="100"
+              :value="musicVolume"
+              @ionChange="changeMusicVolume"
+              color="primary"
+            >
               <ion-icon slot="start" :icon="volumeLow"></ion-icon>
               <ion-icon slot="end" :icon="volumeHigh"></ion-icon>
             </ion-range>
           </ion-item>
           <ion-item>
             <ion-label>Sound FX Volume</ion-label>
-            <ion-range min="0" max="100" :value="fxVolume" @ionChange="changeFXVolume" color="primary">
+            <ion-range
+              :min="0"
+              :max="100"
+              :value="fxVolume"
+              @ionChange="changeFXVolume"
+              color="primary"
+            >
               <ion-icon slot="start" :icon="volumeLow"></ion-icon>
               <ion-icon slot="end" :icon="volumeHigh"></ion-icon>
             </ion-range>
@@ -134,7 +146,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue';
-import { useStore } from 'vuex';
+  import { useGameStore } from '@/lib/store/stores/game';
 import { 
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent, 
   IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,
@@ -174,7 +186,7 @@ export default defineComponent({
     IonBackButton, IonButtons, IonIcon
   },
   setup() {
-    const store = useStore();
+    const gameStore = useGameStore();
     const selectedUITheme = ref('nintendo');
     const selectedRPGTheme = ref('earthbound');
     const musicVolume = ref(80);
@@ -311,7 +323,7 @@ export default defineComponent({
         const fx = window.$fx as unknown as FXObject;
         fx.theme.ui = selectedUITheme.value;
         
-        store.dispatch('changeSoundFX', {
+        gameStore.changeSoundFX({
           ui: selectedUITheme.value,
           rpg: selectedRPGTheme.value
         });
@@ -325,7 +337,7 @@ export default defineComponent({
         const fx = window.$fx as unknown as FXObject;
         fx.theme.rpg = selectedRPGTheme.value;
         
-        store.dispatch('changeSoundFX', {
+        gameStore.changeSoundFX({
           ui: selectedUITheme.value,
           rpg: selectedRPGTheme.value
         });
