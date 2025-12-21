@@ -2,21 +2,43 @@ import {
   Ability,
   AbilityStatus,
   AbilityType,
-  TimePeriod
+  TimePeriod,
+  AbilityPreset
 } from '@/lib/types/abilities';
 import AbilitiesDb from '@/lib/databases/AbilitiesDb';
 import { v4 as uuidv4 } from 'uuid';
-import { migrateLocalStorageAbilities } from './AbilityMigration.legacy';
+import { migrateLocalStorageAbilities } from './AbilitiesMigration.legacy';
+import {
+  REAL_LIFE_PRESETS,
+  TIME_MAGE_PRESETS,
+  TECH_MAGE_PRESETS,
+  HYBRID_PRESETS
+} from './AbilityPresets';
 
 /**
  * Service for handling abilities and their effects
  */
 export class AbilityService {
+  private static instance: AbilityService;
   private db: AbilitiesDb;
 
-  constructor(db: AbilitiesDb) {
+  private constructor(db: AbilitiesDb) {
     this.db = db;
     this.migrateLegacyData();
+  }
+
+  public static initialize(db: AbilitiesDb): AbilityService {
+    if (!AbilityService.instance) {
+      AbilityService.instance = new AbilityService(db);
+    }
+    return AbilityService.instance;
+  }
+
+  public static getInstance(): AbilityService {
+    if (!AbilityService.instance) {
+      throw new Error("AbilityService not initialized. Call initialize() first.");
+    }
+    return AbilityService.instance;
   }
 
   /**
@@ -340,6 +362,50 @@ export class AbilityService {
       mpCost: ability.mpCost 
     };
   }
+  /**
+   * Load ability presets by type
+   */
+  public loadPresetsByType(presetType: string): AbilityPreset[] {
+    switch (presetType) {
+      case 'real-life':
+        return REAL_LIFE_PRESETS;
+      case 'time-mage':
+        return TIME_MAGE_PRESETS;
+      case 'tech-mage':
+        return TECH_MAGE_PRESETS;
+      case 'hybrid':
+        return HYBRID_PRESETS;
+      default:
+        return [];
+    }
+  }
+
+  /**
+   * Apply a preset to the user's abilities
+   */
+  public async applyPreset(presetId: string, presetType: string): Promise<boolean> {
+    const presets = this.loadPresetsByType(presetType);
+    const preset = presets.find(p => p.id === presetId);
+    
+    if (preset) {
+      // Cast preset to Ability (it overlaps significantly) and ensure it's not marked as preset
+      const ability: Ability = {
+        ...preset,
+        isPreset: false,
+        id: uuidv4() // Generate new ID for the user's copy
+      } as Ability;
+      
+      await this.saveAbility(ability);
+      return true;
+    }
+    return false;
+  }
 }
+
+
+// Export a convenience function to get the AbilityService instance
+export const getAbilityService = (): AbilityService => {
+  return AbilityService.getInstance();
+};
 
 export default AbilityService;
