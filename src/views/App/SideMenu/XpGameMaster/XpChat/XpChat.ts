@@ -69,13 +69,16 @@ export default defineComponent({
     const sendMessage = () => {
       if (!newMessage.value.trim()) return;
       
+      // Get full user data with all properties
+      const fullUser = currentUser.value?.id ? userStore.getUserById(currentUser.value.id) : null;
+      
       // Create new message
       const message: Message = {
         id: Date.now().toString(),
-        sender: currentUser.value?.name?.nick || 'You',
+        sender: fullUser?.name?.nick || 'You',
         text: newMessage.value,
         timestamp: new Date(),
-        avatar: currentUser.value?.avatar ? require(`@/assets/images/avatars/${currentUser.value.avatar}`) : undefined,
+        avatar: fullUser?.avatar ? require(`@/assets/images/avatars/${fullUser.avatar}`) : undefined,
         isOwnMessage: true
       };
       
