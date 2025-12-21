@@ -83,90 +83,6 @@
       </ion-card>
       <i class="fad fa-hand-holding-usd fa-8x text-center mt-8 mx-auto"></i>
 
-      <!-- Alerts with triggers -->
-      <ion-alert
-        trigger="deposit-trigger"
-        header="Deposit to Savings"
-        :buttons="[
-          {
-            text: 'Cancel',
-            role: 'cancel'
-          },
-          {
-            text: 'Deposit',
-            handler: handleDeposit
-          }
-        ]"
-        :inputs="[
-          {
-            type: 'number',
-            placeholder: 'Enter GP amount',
-            min: 1,
-            max: user?.stats?.gp?.wallet || 0
-          }
-        ]"
-      ></ion-alert>
-
-      <ion-alert
-        trigger="withdraw-trigger"
-        header="Withdraw from Savings"
-        :buttons="[
-          {
-            text: 'Cancel',
-            role: 'cancel'
-          },
-          {
-            text: 'Withdraw',
-            handler: handleWithdraw
-          }
-        ]"
-        :inputs="[
-          {
-            type: 'number',
-            placeholder: 'Enter GP amount',
-            min: 1,
-            max: Math.min(user?.stats?.gp?.savings || 0, (user?.stats?.gp?.limit || 0) - (user?.stats?.gp?.wallet || 0))
-          }
-        ]"
-      ></ion-alert>
-
-      <ion-alert
-        trigger="pay-debt-trigger"
-        header="Pay Down Debt"
-        :buttons="[
-          {
-            text: 'Cancel',
-            role: 'cancel'
-          },
-          {
-            text: 'Pay',
-            handler: handlePayDebt
-          }
-        ]"
-        :inputs="[
-          {
-            type: 'number',
-            placeholder: 'Enter GP amount',
-            min: 1,
-            max: Math.min(user?.stats?.gp?.wallet || 0, user?.stats?.gp?.debt || 0)
-          }
-        ]"
-      ></ion-alert>
-
-      <!-- Hidden buttons for triggers -->
-      <ion-button
-        id="deposit-trigger"
-        class="hidden-trigger"
-      ></ion-button>
-      <ion-button
-        id="withdraw-trigger"
-        class="hidden-trigger"
-      ></ion-button>
-      <ion-button
-        id="pay-debt-trigger"
-        class="hidden-trigger"
-      ></ion-button>
-
       <!-- FAB to show action sheet -->
       <ion-fab
         vertical="bottom"
@@ -185,7 +101,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType, onMounted, watch } from 'vue';
+  import { defineComponent, PropType, onMounted, watch, ref } from 'vue';
 import {
   closeOutline,
   cashOutline,
@@ -196,7 +112,7 @@ import {
   cardOutline,
   logOutOutline
 } from 'ionicons/icons';
-import { actionSheetController } from '@ionic/vue';
+  import { actionSheetController, alertController } from '@ionic/vue';
 import Ionic from '@/mixins/ionic';
 
 export default defineComponent({
@@ -223,8 +139,122 @@ export default defineComponent({
       // Any cleanup needed
     };
 
+    const handleDeposit = (data: any) => {
+      const amount = Number(data.gp); // Ensure it's a number
+      if (amount && amount > 0) {
+        emit('deposit', { gp: amount });
+      }
+    };
+
+    const handleWithdraw = (data: any) => {
+      const amount = Number(data.gp); // Ensure it's a number
+      if (amount && amount > 0) {
+        emit('withdraw', { gp: amount });
+      }
+    };
+
+    const handlePayDebt = (data: any) => {
+      const amount = Number(data.gp); // Ensure it's a number
+      if (amount && amount > 0) {
+        emit('payDebt', { gp: amount });
+      }
+    };
+
+    const presentDepositAlert = async () => {
+      const alert = await alertController.create({
+        header: 'Deposit to Savings',
+        inputs: [
+          {
+            name: 'gp',
+            type: 'number',
+            placeholder: 'Enter GP amount',
+            min: 1,
+            max: props.user?.stats?.gp?.wallet || 0
+          }
+        ],
+        buttons: [
+          {
+            text: 'Cancel',
+            role: 'cancel'
+          },
+          {
+            text: 'Deposit',
+            handler: (data) => handleDeposit(data)
+          }
+        ]
+      });
+      await alert.present();
+    };
+
+    const presentWithdrawAlert = async () => {
+      const savings = props.user?.stats?.gp?.savings || 0;
+      const wallet = props.user?.stats?.gp?.wallet || 0;
+      const limit = props.user?.stats?.gp?.limit || 0;
+      const maxWithdraw = Math.min(savings, limit - wallet); // Can't withdraw more than fits in wallet limit
+
+      const alert = await alertController.create({
+        header: 'Withdraw from Savings',
+        inputs: [
+          {
+            name: 'gp',
+            type: 'number',
+            placeholder: 'Enter GP amount',
+            min: 1,
+            max: maxWithdraw
+          }
+        ],
+        buttons: [
+          {
+            text: 'Cancel',
+            role: 'cancel'
+          },
+          {
+            text: 'Withdraw',
+            handler: (data) => handleWithdraw(data)
+          }
+        ]
+      });
+      await alert.present();
+    };
+
+    const presentPayDebtAlert = async () => {
+      const wallet = props.user?.stats?.gp?.wallet || 0;
+      const debt = props.user?.stats?.gp?.debt || 0;
+      const maxPay = Math.min(wallet, debt);
+
+      const alert = await alertController.create({
+        header: 'Pay Down Debt',
+        inputs: [
+          {
+            name: 'gp',
+            type: 'number',
+            placeholder: 'Enter GP amount',
+            min: 1,
+            max: maxPay
+          }
+        ],
+        buttons: [
+          {
+            text: 'Cancel',
+            role: 'cancel'
+          },
+          {
+            text: 'Pay',
+            handler: (data) => handlePayDebt(data)
+          }
+        ]
+      });
+      await alert.present();
+    };
+
+    // Flag to prevent double-opening of the Action Sheet
+    const isMenuOpen = ref(false);
+
     // Show action sheet with banking options
     const showActions = async () => {
+      if (isMenuOpen.value) return;
+      isMenuOpen.value = true;
+
       const actionSheet = await actionSheetController.create({
         header: 'ATM Options',
         cssClass: 'atm-action-sheet',
@@ -234,21 +264,22 @@ export default defineComponent({
             text: 'Deposit to Savings',
             icon: arrowUpCircleOutline,
             handler: () => {
-              document.getElementById('deposit-trigger')?.click();
+              // Action sheet auto-dismisses
+              setTimeout(() => presentDepositAlert(), 100);
             }
           },
           {
             text: 'Withdraw from Savings',
             icon: arrowDownCircleOutline,
             handler: () => {
-              document.getElementById('withdraw-trigger')?.click();
+              setTimeout(() => presentWithdrawAlert(), 100);
             }
           },
           {
             text: 'Pay Down Debt',
             icon: cardOutline,
             handler: () => {
-              document.getElementById('pay-debt-trigger')?.click();
+              setTimeout(() => presentPayDebtAlert(), 100);
             }
           },
           {
@@ -267,28 +298,10 @@ export default defineComponent({
       });
 
       await actionSheet.present();
-    };
-    
-    // Alert handlers
-    const handleDeposit = (data: any) => {
-      const amount = data[0].value;
-      if (amount && amount > 0) {
-        emit('deposit', { gp: amount });
-      }
-    };
-    
-    const handleWithdraw = (data: any) => {
-      const amount = data[0].value;
-      if (amount && amount > 0) {
-        emit('withdraw', { gp: amount });
-      }
-    };
-    
-    const handlePayDebt = (data: any) => {
-      const amount = data[0].value;
-      if (amount && amount > 0) {
-        emit('payDebt', { gp: amount });
-      }
+
+      // Reset guard when sheet closes
+      await actionSheet.onDidDismiss();
+      isMenuOpen.value = false;
     };
 
     // Present action sheet on modal open
@@ -313,9 +326,6 @@ export default defineComponent({
       dismiss,
       onDismiss,
       showActions,
-      handleDeposit,
-      handleWithdraw,
-      handlePayDebt,
       closeOutline,
       cashOutline,
       walletOutline,
@@ -336,15 +346,7 @@ ion-card {
   animation: slideIn 0.3s ease-out;
 }
 
-.hidden-trigger {
-  display: none;
-  visibility: hidden;
-  position: absolute;
-  width: 0;
-  height: 0;
-  opacity: 0;
-}
-
+ 
 @keyframes slideIn {
   from {
     opacity: 0;

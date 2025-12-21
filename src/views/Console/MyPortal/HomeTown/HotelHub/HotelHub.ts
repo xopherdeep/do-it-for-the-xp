@@ -34,12 +34,11 @@ import fetchItems from "@/mixins/fetchItems"
 import { actionSheetController } from "@ionic/vue";
 import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
 import debug from "@/lib/utils/debug";
-import { useStore } from "vuex";
-import { computed } from "vue";
+import { useUserStore } from "@/lib/store/stores/user";
 // Import the ATM Modal component
 import ATMModal from "@/views/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
 // Import our new GPSystem
-import { getGPSystem } from "@/lib/engine/core/GPSystem";
+import { getGPService } from '@/lib/services/gp';
 
 // Define the interface for XpTypingText instance methods
 interface XpTypingTextInstance {
@@ -83,8 +82,8 @@ export default defineComponent({
   },
   computed: {
     user() {
-      const store = useStore();
-      return computed(() => store.getters.getUserById(this.userId)).value;
+      const userStore = useUserStore();
+      return userStore.getUserById(this.userId);
     },
     dialogBlocks() {
       return [
@@ -152,7 +151,7 @@ export default defineComponent({
       // Use new GPSystem to handle deposits
       const amount = Number(data.gp);
       if (amount && amount > 0) {
-        getGPSystem()
+        getGPService()
           .depositToSavings(this.userId, amount)
           .then(() => {
             this.play$fx("coins");
@@ -168,7 +167,7 @@ export default defineComponent({
       // Use new GPSystem to handle withdrawals
       const amount = Number(data.gp);
       if (amount && amount > 0) {
-        getGPSystem()
+        getGPService()
           .withdrawFromSavings(this.userId, amount)
           .then(() => {
             this.play$fx("coins");
@@ -184,7 +183,7 @@ export default defineComponent({
       // Use new GPSystem to handle debt payments
       const amount = Number(data.gp);
       if (amount && amount > 0) {
-        getGPSystem()
+        getGPService()
           .payDebtFromWallet(this.userId, amount)
           .then(() => {
             this.play$fx("success");

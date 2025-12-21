@@ -70,7 +70,7 @@
             size-md="6"
           >
             <card-user-stats
-              :id="user?.id"
+              :user="user"
               :hide-menu="true"
             />
           </ion-col>
@@ -82,8 +82,8 @@
   </ion-page>
 </template>
 
-<script>
-import { mapGetters } from "vuex";
+<script lang="ts">
+  import { useUserStore } from "@/lib/store/stores/user";
 import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
 
 import {
@@ -109,10 +109,9 @@ export default {
 
     // IonButton,
   },
-  computed: {
-    ...mapGetters(["usersAz"]),
+    computed: {
     users() {
-      return this.usersAz;
+        return (this as any).userStore.usersAz;
     },
   },
   mounted() {
@@ -128,6 +127,7 @@ export default {
     },
   },
   setup() {
+    const userStore = useUserStore();
     return {
       keyOutline,
       arrowBack,
@@ -136,6 +136,7 @@ export default {
       colorWandOutline,
       sparklesOutline,
 
+      userStore,
       userActions: [
         {
           label: "My Guilds",

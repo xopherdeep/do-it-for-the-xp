@@ -1,14 +1,18 @@
 import { defineComponent } from "vue";
-import { computed } from "vue";
+import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { mapActions, useStore } from "vuex";
+import { useUserStore } from "@/lib/store/stores/user";
 import userActions from "@/mixins/userActions";
 import ionic from "@/mixins/ionic";
 import { modalController, toastController } from "@ionic/vue";
 import { arrowBack } from "ionicons/icons";
+import SaveAndQuitModal from "@/components/modals/SaveAndQuitModal.vue";
 
 export default defineComponent({
   name: "my-home",
+  components: {
+    SaveAndQuitModal,
+  },
   mixins: [ionic, userActions],
   data() {
     return {
@@ -23,7 +27,6 @@ export default defineComponent({
   },
 
   methods: {
-    ...mapActions(["setUserActions"]),
     async presentToast() {
       const {  user: { name: { first } } } = this
       const toast = await toastController.create({
@@ -56,12 +59,28 @@ export default defineComponent({
   setup() {
     const route = useRoute();
     const router = useRouter()
-    const store = useStore();
+    const userStore = useUserStore();
 
     const { userId } = route.params;
-    const user = computed(() => store.getters.getUserById(userId));
+    const user = computed(() => userStore.getUserById(userId as string));
+    const showSaveQuitModal = ref(false);
+    
     const closeModal = () => modalController.dismiss()
     const clickSave = () => router.push({ name: 'xp-profile' }).then(closeModal)
+    
+    const closeSaveQuitModal = () => {
+      showSaveQuitModal.value = false;
+    };
+    
+    const confirmSaveQuit = () => {
+      router.push({ name: 'xp-profile' });
+      closeSaveQuitModal();
+    };
+    
+    const openSaveQuitModal = () => {
+      showSaveQuitModal.value = true;
+    };
+    
     return {
       closeModal,
       clickSave,
@@ -69,6 +88,10 @@ export default defineComponent({
       userId,
       arrowBack,
       router,
+      showSaveQuitModal,
+      closeSaveQuitModal,
+      confirmSaveQuit,
+      openSaveQuitModal,
 
       userActions: [
         {

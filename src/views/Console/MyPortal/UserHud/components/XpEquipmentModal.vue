@@ -35,7 +35,7 @@
               :info-item="info"  
               :left-hand-items="equipmentOnLeft"
               :right-hand-items="equipmentOnRight"
-              @equip="handleEquip"      
+              @equip="handleEquipRequest"      
               @select-item="displayInfo"
               class="ion-flex-grow-1"  
             />
@@ -74,7 +74,7 @@ export default defineComponent({
       required: true
     },
     equipment: {
-      type: Array,
+      type: Array as () => EquipmentItem[],
       required: true
     }
   },

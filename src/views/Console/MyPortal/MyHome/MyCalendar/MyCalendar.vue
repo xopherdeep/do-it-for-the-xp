@@ -96,6 +96,7 @@
     watch,
     onMounted,
     defineComponent,
+    toRef      
   } from "vue";
   import {
     IonPage,
@@ -135,9 +136,11 @@
   });
 
   // Props - correct implementation of defineProps
-  // const props = defineProps<{
-  //   userId: string | number;
-  // }>();
+  // eslint-disable-next-line no-undef, vue/valid-define-props
+  const props = defineProps<{
+    userId: string | number;
+  }>();
+  const userId = toRef(props, 'userId');
 
   // Data
   const today = new Date();

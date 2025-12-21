@@ -1,4 +1,4 @@
-import { computed, defineComponent } from "vue";
+import { defineComponent } from "vue";
 import ionic from "@/mixins/ionic"
 
 import {
@@ -22,7 +22,7 @@ import {
 
   bagOutline
 } from "ionicons/icons";
-import { mapGetters, useStore } from "vuex";
+import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
 
 export default defineComponent({
@@ -30,19 +30,18 @@ export default defineComponent({
   name: "my-inventory",
   mixins: [ionic],
   computed: {
-    ...mapGetters(["getUserById"]),
+    userStore() { return useUserStore() },
+    user() {
+      return (this as any).userStore.getUserById(this.userId);
+    },
   },
   methods: {
     segmentChanged(ev) {
       debug.log("Segment changed", ev);
     },
   },
-  setup(props) {
-    const store = useStore()
-    const user = computed(() => store.getters.getUserById(props.userId));
-
+  setup() {
     return {
-      user,
       chevronBack,
       chevronForward,
       stop,

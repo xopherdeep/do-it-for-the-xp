@@ -32,7 +32,7 @@ import debug from "@/lib/utils/debug";
 // Import ATM Modal component
 import ATMModal from "@/views/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
 // Import the GPSystem
-import { getGPSystem } from "@/lib/engine/core/GPSystem";
+import { getGPService } from '@/lib/services/gp';
 import { mapGetters } from "vuex";
 
 export default defineComponent({
@@ -161,7 +161,7 @@ export default defineComponent({
     clickDeposit(data) {
       const amount = Number(data.gp);
       if (amount && amount > 0) {
-        getGPSystem()
+        getGPService()
           .depositToSavings(this.userId, amount)
           .then(() => {
             this.play$fx("coins");
@@ -175,7 +175,7 @@ export default defineComponent({
     clickWithdraw(data) {
       const amount = Number(data.gp);
       if (amount && amount > 0) {
-        getGPSystem()
+        getGPService()
           .withdrawFromSavings(this.userId, amount)
           .then(() => {
             this.play$fx("coins");
@@ -189,7 +189,7 @@ export default defineComponent({
     clickPayDebt(data) {
       const amount = Number(data.gp);
       if (amount && amount > 0) {
-        getGPSystem()
+        getGPService()
           .payDebtFromWallet(this.userId, amount)
           .then(() => {
             this.play$fx("success");

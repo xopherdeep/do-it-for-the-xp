@@ -36,7 +36,8 @@ import {
   lockOpenOutline,
   accessibilityOutline,
 } from "ionicons/icons";
-import { mapState, useStore } from "vuex";
+import { useUserStore } from "@/lib/store/stores/user";
+import { useGameStore } from "@/lib/store/stores/game";
 
 import fetchItems from "@/mixins/fetchItems"
 import useAbilities from "@/hooks/useAbilities";
@@ -86,7 +87,8 @@ export default defineComponent({
     };
   },
   computed: {
-    ...mapState(["xp_ability"]),
+    userStore() { return useUserStore() },
+    gameStore() { return useGameStore() },
     pageNumbers() {
       const { params: { page, per_page }, nTotal } = this
       const max = Number(page) * Number(per_page)
@@ -122,8 +124,8 @@ export default defineComponent({
     }
   },
   setup(props) {
-    const store = useStore();
-    const user = computed(() => store.getters.getUserById(props.userId));
+    useUserStore();
+    useGameStore();
     const queryClient = useQueryClient();
     const nTotal = ref(0);
     const nTotalPages = ref(0);
@@ -205,7 +207,6 @@ export default defineComponent({
       pause,
       play,
       stop,
-      user,
       setControlledSwiper,
       navigateToAbilityDetail,
       clearAbilitiesCache

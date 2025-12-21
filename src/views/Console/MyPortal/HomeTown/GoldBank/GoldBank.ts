@@ -1,5 +1,5 @@
 import { defineComponent } from "vue";
-import { mapActions, mapGetters } from "vuex";
+import { useUserStore } from "@/lib/store/stores/user";
 import ionic from "@/mixins/ionic";
 
 import {
@@ -59,7 +59,9 @@ export default defineComponent({
     };
   },
   computed: {
-    ...mapGetters(["getUserById"]),
+    getUserById() {
+      return (id: string) => (this as any).userStore.getUserById(id);
+    },
     user() {
       return this.getUserById(this.userId)
     },
@@ -117,7 +119,7 @@ export default defineComponent({
     this.currentDialogText = this.dialogBlocks[0];
   },
   methods: {
-    ...mapActions(["loadUsers"]),
+    loadUsers() { return (this as any).userStore.loadUsers() },
     
     // Open ATM Modal
     openATM() {
@@ -468,10 +470,12 @@ export default defineComponent({
     },
   },
   setup() {
+    const userStore = useUserStore();
     const profileDb = new ProfileDb(profileStorage)
 
     return {
       profileDb,
+      userStore,
       // Icons for use in template
       walletOutline,
       removeCircleOutline,

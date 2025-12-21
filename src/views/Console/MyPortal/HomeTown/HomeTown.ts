@@ -3,7 +3,7 @@ import ionic from "@/mixins/ionic";
 import { arrowBack } from "ionicons/icons";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { useStore } from "vuex";
+import { useUserStore } from "@/lib/store/stores/user";
 import userActions from "@/mixins/userActions";
 import type { DefineUserActionComponent } from "@/mixins/userActions";
 
@@ -14,11 +14,11 @@ export default defineComponent<DefineUserActionComponent>({
     this.setUserActions(this.userActions)
   },
   setup() {
+    const userStore = useUserStore();
     const router = useRouter();
     const route = useRoute();
-    const store = useStore();
     const { userId } = route.params;
-    const user = computed(() => store.getters.getUserById(userId));
+    const user = computed(() => userStore.getUserById(userId as string));
 
     const userActions = [
       {

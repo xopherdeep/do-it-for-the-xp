@@ -34,7 +34,10 @@ import { NativeAudio } from "@awesome-cordova-plugins/native-audio";
 import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
 import fetchItems from "@/mixins/fetchItems";
 import AnimatedNumber from "@/components/AnimatedNumber.vue";
-import { mapActions } from "vuex";
+import { useUserStore } from "@/lib/store/stores/user";
+import { useGameStore } from "@/lib/store/stores/game";
+import { useBattleStore } from "@/lib/store/stores/battle";
+import { useAudioStore } from "@/lib/store/stores/audio";
 import { useRouter } from "vue-router";
 import { Controller, Navigation } from "swiper";
 
@@ -113,7 +116,7 @@ export default defineComponent({
     };
   },
   created() {
-    this.temp.gp.wallet = this.user.stats.gp.wallet;
+    this.temp.gp.wallet = (this as any).user?.stats?.gp?.wallet || 0;
   },
   computed: {
     // item(){
@@ -121,14 +124,20 @@ export default defineComponent({
     //   return this.singleById({ type: "xp_achievement", id })
     // }
     gpBar() {
-      const { gp } = this.user.stats;
-      return this.temp.gp.wallet / gp.limit;
+      const stats = (this as any).user?.stats;
+      if (!stats) return 0;
+      return this.temp.gp.wallet / stats.gp.limit;
+    },
+    user() {
+      return (this as any).userStore.getUserById(this.userId);
+    },
+    router() {
+      return (this as any).$router;
     },
   },
   methods: {
-    ...mapActions(["leaveBattle"]),
     addUpGP() {
-      this.temp.gp.wallet = this.user.stats.gp.wallet;
+      this.temp.gp.wallet = (this as any).user.stats.gp.wallet;
       this.$fx.rpg[this.$fx.theme.rpg].countCoins.play();
       setTimeout(() => {
         this.$fx.rpg[this.$fx.theme.rpg].countCoins.pause();
@@ -148,9 +157,11 @@ export default defineComponent({
     },
     finishedCounting() {
       // alert()
-      this.$fx.rpg[this.$fx.theme.rpg].countCoins.pause();
-      this.$fx.rpg[this.$fx.theme.rpg].fillPoints.pause();
-      this.$fx.rpg[this.$fx.theme.rpg].fillPoints.currentTime = 0;
+      const $fx = (this as any).$fx;
+      const theme = $fx.theme;
+      $fx.rpg[theme.rpg].countCoins.pause();
+      $fx.rpg[theme.rpg].fillPoints.pause();
+      $fx.rpg[theme.rpg].fillPoints.currentTime = 0;
     },
     didPresent() {
       setTimeout(() => (this.userMenuActive = true), 500);
@@ -195,7 +206,7 @@ export default defineComponent({
     clickLoot() {
       this.$fx.ui[this.$fx.theme.ui].select.play();
       this.$fx.rpg[this.$fx.theme.rpg].loot.play();
-      this.controlledSwiper?.slideNext();
+      (this as any).controlledSwiper?.slideNext();
     },
 
     async segmentChanged(ev) {
@@ -251,7 +262,7 @@ export default defineComponent({
               // console.log(value);
 
               this.createToast({
-                header: `${this.user.name.nick} uses a spell...`,
+                header: `${(this as any).user.name.nick} uses a spell...`,
                 message: "Ha! Take that",
                 icon: null,
                 duration: 1750,
@@ -296,7 +307,7 @@ export default defineComponent({
               this.$fx.rpg[this.$fx.theme.rpg].useItem.play();
               // console.log("Confirm Ok");
               this.createToast({
-                header: `${this.user.name.nick} took out something from their bag...`,
+                header: `${(this as any).user.name.nick} took out something from their bag...`,
                 message: "...nothing happened.",
                 icon: null,
                 duration: 1750,
@@ -312,7 +323,7 @@ export default defineComponent({
       return alert.present();
     },
     async clickClaim() {
-      const { controlledSwiper } = this;
+      const { controlledSwiper } = this as any;
       const { slides } = this.$refs;
       const alert = await alertController.create({
         cssClass: "my-custom-class",
@@ -327,7 +338,7 @@ export default defineComponent({
             handler: () => {
               this.$fx.ui[this.$fx.theme.ui].no.play();
               this.createToast({
-                header: `${this.user.name.nick}:`,
+                header: `${(this as any).user.name.nick}:`,
                 message: `"I'll come back to that later..."`,
                 duration: 1800,
                 icon: null,
@@ -338,12 +349,11 @@ export default defineComponent({
             text: "Yes",
             handler: () => {
               this.$fx.ui[this.$fx.theme.ui].yes.play();
-              // console.log(slides);
               if (controlledSwiper) {
                 controlledSwiper.slideNext();
               }
               this.createToast({
-                header: `${this.user.name.nick} tamed ${this.item.title.rendered}!`,
+                header: `${(this as any).user.name.nick} tamed ${this.item.title.rendered}!`,
                 message: `Gained 2AP`,
                 duration: 1800,
                 icon: null,
@@ -385,10 +395,11 @@ export default defineComponent({
           {
             text: "Roll",
             handler: () => {
-              const { $fx, closeModal, leaveBattle, router, user } = this;
+              const { $fx, closeModal, router, user, battleStore } = this as any;
 
               const roll = Math.floor(Math.random() * 7) + 1;
-              leaveBattle().then(afterLeaveBattle);
+              battleStore.deactivateBattle();
+              afterLeaveBattle();
 
               function afterLeaveBattle() {
                 router
@@ -428,7 +439,7 @@ export default defineComponent({
     async createToast({ header, message, icon, duration }: ToastParams) {
       const toast = await toastController.create({
         header,
-        cssClass: this.$fx.theme.rpg,
+        cssClass: (this as any).$fx.theme.rpg,
         message,
         icon,
         duration: duration ? duration : 1750,
@@ -478,12 +489,20 @@ export default defineComponent({
 
   mixins: [fetchItems, ionic],
   setup() {
+    const userStore = useUserStore();
+    const gameStore = useGameStore();
+    const battleStore = useBattleStore();
+    const audioStore = useAudioStore();
     const router = useRouter();
     const controlledSwiper = ref<SwiperType | null>(null);
     const setControlledSwiper = (swiper: SwiperType) => {
       controlledSwiper.value = swiper;
     };
     return {
+      userStore,
+      gameStore,
+      battleStore,
+      audioStore,
       controlledSwiper,
       setControlledSwiper,
       modules: [IonicSlides, Navigation, Controller],

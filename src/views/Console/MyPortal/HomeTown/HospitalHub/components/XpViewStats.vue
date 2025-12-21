@@ -78,30 +78,30 @@
               <ion-card-header>
                 <ion-card-title class="flex items-center gap-2">
                   <xp-icon 
-                    :icon="getAreaIcon(key)"
+                    :icon="getAreaIcon(key.toString())"
                     :primary="area.color"
                     :secondary="getLighterColor(area.color)"
                   />
-                  {{ key.charAt(0).toUpperCase() + key.slice(1) }}
+                  {{ key.toString().charAt(0).toUpperCase() + key.toString().slice(1) }}
                   <div class="total-score">
-                    {{ getAreaTotal(key) }}
+                    {{ getAreaTotal(key.toString()) }}
                   </div>
                 </ion-card-title>
               </ion-card-header>
               
               <ion-card-content>
                 <ion-list>
-                  <ion-item v-for="(desc, stat) in area.stats" :key="stat">
+                  <ion-item v-for="(desc, statKey) in area.stats" :key="statKey">
                     <ion-label>
-                      <h3>{{ stat.charAt(0).toUpperCase() + stat.slice(1) }}</h3>
+                      <h3>{{ statKey.toString().charAt(0).toUpperCase() + statKey.toString().slice(1) }}</h3>
                       <p>{{ desc }}</p>
                     </ion-label>
                     <ion-badge 
                       slot="end" 
                       :color="area.color"
-                      :class="{ 'stat-badge updated': changedStats.has(stat) }"
+                      :class="{ 'stat-badge updated': changedStats.has(statKey.toString()) }"
                     >
-                      {{ getStat(stat) }}
+                      {{ getStat(statKey.toString()) }}
                     </ion-badge>
                   </ion-item>
                 </ion-list>
@@ -179,6 +179,51 @@ export default defineComponent({
     const prevMp = ref(0);
     const changedStats = ref<Set<string>>(new Set());
 
+    // Helper to get icon for each area
+    const getAreaIcon = (key: string) => {
+      switch (key) {
+        case "physical":
+          return "dumbbell";
+        case "mental":
+          return "brain";
+        case "social":
+          return "users";
+        case "misc":
+          return "star";
+        default:
+          return "question";
+      }
+    };
+
+    // Optionally, helper to get lighter color (stub)
+    const getLighterColor = (color: string) => {
+      // You can expand this mapping as needed
+      switch (color) {
+        case "danger":
+          return "light";
+        case "tertiary":
+          return "medium";
+        case "warning":
+          return "light";
+        case "success":
+          return "light";
+        default:
+          return "light";
+      }
+    };
+
+    // Optionally, helper to get area total (stub)
+    const getAreaTotal = (key: string) => {
+      // Implement your logic here, or return 0 as a placeholder
+      return key;
+    };
+
+    // Optionally, helper to get stat value (stub)
+    const getStat = (stat: string) => {
+      // Implement your logic here, or return 0 as a placeholder
+      return stat;
+    };
+
     // Track HP/MP changes and trigger animations
     watch(
       () => user.value?.stats?.hp?.now,
@@ -229,7 +274,11 @@ export default defineComponent({
       isHpChanged,
       isMpChanged,
       changedStats,
-      user
+      user,
+      getAreaIcon,
+      getLighterColor,
+      getAreaTotal,
+      getStat
     };
   }
 });

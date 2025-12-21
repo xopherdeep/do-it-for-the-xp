@@ -26,7 +26,7 @@ import {
   bagOutline,
   checkmarkDone,
 } from "ionicons/icons";
-import { mapActions, mapState } from "vuex";
+import { useGameStore } from "@/lib/store/stores/game";
 
 import fetchItems from "@/mixins/fetchItems";
 
@@ -62,7 +62,7 @@ export default defineComponent({
     // this.nativeAudio.preloadSimple('openTask', '../src/assets/audio/click.mp3').then(onSuccess, onError)
   },
   computed: {
-    ...mapState(["xp_achievement"]),
+    xp_achievement() { return (this as any).gameStore.xp_achievement },
     isPrevDisabled() {
       return this.currentSlide == 0;
     },
@@ -95,7 +95,7 @@ export default defineComponent({
     },
   },
   methods: {
-    ...mapActions(["fetchWPItems"]),
+    fetchWPItems(payload: any) { return (this as any).gameStore.fetchWPItems(payload.type, payload.params) },
     clickBack() {
       const hasHistory = this.$historyCount - window.history.length;
       // console.log("hashistory", hasHistory);
@@ -153,8 +153,8 @@ export default defineComponent({
           title: img.title.rendered,
         };
     },
-    getSingleMediaById(id) {
-      return this.singleById({ type: "media", id });
+    getSingleMediaById(id: string) {
+      return (this as any).gameStore.getSingleById("media", id);
     },
     searchChanged() {
       // Using type assertion to fix the TypeScript error
@@ -192,6 +192,7 @@ export default defineComponent({
     },
   },
   setup() {
+    const gameStore = useGameStore();
     const queryClient = useQueryClient();
     const nTotalTasks = ref(0);
     const nTotalPages = ref(0);
@@ -246,6 +247,7 @@ export default defineComponent({
     // });
 
     return {
+      gameStore,
       useTasks,
       params,
       tasks,

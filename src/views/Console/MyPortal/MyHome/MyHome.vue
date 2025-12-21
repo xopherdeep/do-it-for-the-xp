@@ -135,40 +135,12 @@
           <ion-card-header> </ion-card-header>
         </ion-card>
       </ion-modal>
-      <ion-modal
-        trigger="save-quit"
-        :breakpoints="[0.9]"
-        :initialBreakpoint="0.9"
-        @ionModalDidDismiss="closeModal"
-      >
-        <ion-card>
-          <ion-card-header>
-            <ion-card-title>
-              <i class="fad fa-save fa-2x ion-float-right"></i>
-              Save & Quit
-            </ion-card-title>
-            <ion-card-subtitle>
-              Would you like to save current progress and quit for now?
-            </ion-card-subtitle>
-          </ion-card-header>
-          <ion-card-content>
-            <ion-grid>
-              <ion-row>
-                <ion-col>
-                  <ion-button color="success" expand="block" @click="clickSave">
-                    Yes.
-                  </ion-button>
-                </ion-col>
-                <ion-col>
-                  <ion-button color="danger" expand="block" @click="closeModal">
-                    No.
-                  </ion-button>
-                </ion-col>
-              </ion-row>
-            </ion-grid>
-          </ion-card-content>
-        </ion-card>
-      </ion-modal>
+      <!-- Save & Quit Modal -->
+      <save-and-quit-modal
+        :is-open="showSaveQuitModal"
+        @close="closeSaveQuitModal"
+        @confirm="confirmSaveQuit"
+      />
     </ion-content>
   </ion-page>
 </template>

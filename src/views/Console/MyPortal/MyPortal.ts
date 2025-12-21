@@ -26,7 +26,6 @@ import {
   chatbox,
   wallet,
   personCircle,
-  // const route = useRoute()
   fitnessOutline,
   storefrontOutline,
   medkitOutline,
@@ -36,8 +35,11 @@ import {
   walletOutline,
 } from "ionicons/icons";
 
-import { mapActions, mapGetters, mapMutations, mapState, useStore } from "vuex";
 import { useRoute, useRouter } from "vue-router";
+import { useAudioStore } from "@/lib/store/stores/audio";
+import { useUserStore } from "@/lib/store/stores/user";
+import { useGameStore } from "@/lib/store/stores/game";
+import { useBattleStore } from "@/lib/store/stores/battle";
 
 export default defineComponent({
   components: { ...components }, // No UserProfileModal for now
@@ -59,8 +61,15 @@ export default defineComponent({
   },
 
   computed: {
-    ...mapGetters(["battleState", "getUserById"]),
-    ...mapState(["theme", "bgm", "actions"]),
+    battleState() {
+      return (key: string) => (this as any).battleStore[key];
+    },
+    getUserById() {
+      return (id: string) => (this as any).userStore.getUserById(id);
+    },
+    theme() { return (this as any).gameStore.theme },
+    bgm() { return (this as any).audioStore.bgm },
+    actions() { return (this as any).gameStore.userActions },
     battleCounter() {
       return this.battleState("steps").counter;
     },
@@ -78,8 +87,10 @@ export default defineComponent({
     },
   },
   methods: {
-    ...mapActions(["resetBattleTimer", "stopBattleTimer", "loginUser"]),
-    ...mapMutations(["ACTIVATE_BATTLE"]),
+    resetBattleTimer() { return (this as any).battleStore.resetBattleTimer() },
+    stopBattleTimer() { return (this as any).battleStore.stopBattleTimer() },
+    loginUser(user: any) { return (this as any).userStore.loginUser(user) },
+    ACTIVATE_BATTLE() { return (this as any).battleStore.setActive(true) },
     getUserAvatar(user) {
       // console.log(user.avatar);
       const avatar = `./${user.avatar}.svg`;
@@ -210,11 +221,15 @@ export default defineComponent({
     },
   },
   setup() {
-    const store = useStore();
     const router = useRouter();
     const route = useRoute();
+    const audioStore = useAudioStore();
+    const userStore = useUserStore();
+    const gameStore = useGameStore();
+    const battleStore = useBattleStore();
+
     const { userId } = route.params;
-    const user = computed(() => store.getters.getUserById(userId));
+    const user = computed(() => userStore.getUserById(userId as string));
     const equipment = ref<EquipmentItem[]>([]); // Use the defined interface
     const clickItem = (item: EquipmentItem | null, hand: string, index = 0) => {
       // If we're removing an item from a specific slot
@@ -286,6 +301,10 @@ export default defineComponent({
       // requireImg,
       route,
       router,
+      audioStore,
+      userStore,
+      gameStore,
+      battleStore,
       sparklesOutline,
       storefrontOutline,
       user,

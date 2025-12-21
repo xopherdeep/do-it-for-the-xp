@@ -6,7 +6,16 @@
   >
     <ion-content
       class="bg-transparent icon-colors"
-      v-if="user"
+      v-if="!user"
+    >
+      <div class="h-full w-full flex items-center justify-center">
+        <ion-spinner name="crescent"></ion-spinner>
+      </div>
+    </ion-content>
+
+    <ion-content
+      class="bg-transparent icon-colors"
+      v-else
     >
       <xp-fab-user-hud
         :user="user"
