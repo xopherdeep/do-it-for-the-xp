@@ -14,11 +14,17 @@
           XP Family Dashboard
         </ion-title>
         <ion-buttons slot="end">
-          <ion-button @click="openSettings" color="rpg">
+          <ion-button
+            @click="openSettings"
+            color="rpg"
+          >
             <i class="fad fa-toggle-on fa-lg" />
           </ion-button>
 
-          <ion-button @click="refreshData" color="rpg">
+          <ion-button
+            @click="refreshData"
+            color="rpg"
+          >
             <i class="fad fa-sync-alt fa-lg" />
           </ion-button>
         </ion-buttons>
@@ -229,7 +235,7 @@
         <ion-fab-button color="warning">
           <i class="fad fa-hand-holding fa-2x"></i>
         </ion-fab-button>
-        <ion-fab-list side="start">
+        <ion-fab-list side="top">
           <ion-fab-button
             color="success"
             @click="openBonus()"
@@ -237,7 +243,7 @@
             <i class="fad fa-thumbs-up fa-lg"></i>
           </ion-fab-button>
         </ion-fab-list>
-        <ion-fab-list side="end">
+        <ion-fab-list side="bottom">
           <ion-fab-button
             color="danger"
             @click="openPenalty()"
@@ -282,12 +288,12 @@
 
 <script lang="ts">
   import ionic from "@/mixins/ionic";
-  import { useStore } from 'vuex';
+  import { useUserStore } from "@/lib/store/stores/user";
   import XpBonus from "./components/XpBonus.vue";
   import AddProfile from "../../SwitchProfile/AddProfile/AddProfile.vue";
-  import { mapGetters } from "vuex";
   import AchievementDb, { achievementStorage } from "@/lib/databases/AchievementDb";
   import BestiaryDb, { beastStorage } from "@/lib/databases/BestiaryDb";
+  import AbilitiesDb, { abilitiesStorage } from "@/lib/databases/AbilitiesDb";
   import DosDontsDb from "@/lib/databases/DosDontsDb";
   import { toastController, modalController, actionSheetController } from "@ionic/vue";
   import { RecycleScroller } from 'vue-virtual-scroller';
@@ -308,9 +314,9 @@
       RecycleScroller,
     },
     computed: {
-      ...mapGetters(["usersAz"]),
+      usersAz() { return (this as any).userStore.usersAz },
       users() {
-        return this.usersAz;
+        return (this as any).usersAz;
       },
       allProfileItems() {
         // Map all users to profile items
@@ -418,9 +424,9 @@
           })
           .then((toast) => toast.present());
       },
-      async impersonateUser(user) {
+      async impersonateUser(user: any) {
         try {
-          await this.store.dispatch('impersonateUser', user.id);
+          await (this as any).userStore.impersonateUser(user.id);
           this.showSuccessToast(`Now viewing as ${user.name.nick}`);
           // Navigate to user's portal after successful impersonation
           await this.$router.push(`/my-portal/${user.id}/my-home`);
@@ -502,9 +508,10 @@
       },
     },
     setup() {
-      const store = useStore();
+      const userStore = useUserStore();
       const achievementDb = new AchievementDb(achievementStorage);
       const bestiaryDb = new BestiaryDb(beastStorage);
+      const abilitiesDb = new AbilitiesDb(abilitiesStorage);
       const dosDontsDb = new DosDontsDb();
       const requireAvatar = require.context("@/assets/images/avatars", false, /\.svg$/);
 
@@ -536,7 +543,7 @@
         cashed: 0,
         total: 0,
       });
-      
+
       // Add abilities ref with explicit typing to fix the TypeScript error
       const abilities = ref<any[]>([]);
 
@@ -552,12 +559,10 @@
         const allDosDonts = await dosDontsDb.getAll();
         stats.value.dos = allDosDonts.filter(item => item.type === 'do').length;
         stats.value.donts = allDosDonts.filter(item => item.type === 'dont').length;
-        
-        // Load abilities data - assuming there's a similar method to get abilities
-        // If there's no specific method, you might need to adapt this based on your app's structure
+
+        // Load abilities data
         try {
-          // You might need to modify this to match how abilities are actually loaded in your app
-          const abilitiesData = await store.dispatch('getAbilities');
+          const abilitiesData = await abilitiesDb.getAbilities();
           abilities.value = Array.isArray(abilitiesData) ? abilitiesData : [];
         } catch (error) {
           debug.error('Failed to load abilities:', error);
@@ -566,13 +571,14 @@
       });
 
       return {
-        store,
+        userStore,
         stats,
         approvals,
         rewards,
         achievementDb,
         bestiaryDb,
         dosDontsDb,
+        abilitiesDb,
         getUserAvatar,
         abilities, // Return the abilities ref
       };

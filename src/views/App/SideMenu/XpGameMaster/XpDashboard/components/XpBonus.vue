@@ -294,7 +294,7 @@
 <script lang="ts">
 import { modalController } from '@ionic/vue';
 import { defineComponent } from 'vue';
-import { mapGetters } from 'vuex';
+  import { useUserStore } from '@/lib/store/stores/user';
 
 import ionic from '@/mixins/ionic';
 import { ProfileDb } from '@/lib/databases';
@@ -310,7 +310,8 @@ export default defineComponent({
 
   mixins: [ionic],
   computed: {
-    ...mapGetters(["users", "usersAz"]),
+    users() { return (this as any).userStore.users },
+    usersAz() { return (this as any).userStore.usersAz },
   },
   data() {
     return {
@@ -322,6 +323,12 @@ export default defineComponent({
       activePointType: 'gp',
       activeTab: 'members',
       profileDb: new ProfileDb(profileStorage)
+    }
+  },
+  setup() {
+    const userStore = useUserStore();
+    return {
+      userStore
     }
   },
   methods: {

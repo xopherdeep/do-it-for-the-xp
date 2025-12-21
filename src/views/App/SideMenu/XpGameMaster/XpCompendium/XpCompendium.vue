@@ -8,7 +8,7 @@
           <ion-tab-button
             tab="abilities"
             href="/game-master/compendium/abilities"
-            :selected="$route.path.includes('/game-master/compendium/abilities')"
+            :selected="route.path.includes('/game-master/compendium/abilities')"
           >
             <i class="fad fa-hand-holding-magic fa-2x" />
             Abilities 
@@ -17,7 +17,7 @@
           <ion-tab-button
             tab="bestiary"
             href="/game-master/compendium/bestiary"
-            :selected="$route.path.includes('/game-master/compendium/bestiary')"
+            :selected="route.path.includes('/game-master/compendium/bestiary')"
           >
             <i class="fad fa-hand-holding-heart fa-2x" />
             Beasts
@@ -26,7 +26,7 @@
           <ion-tab-button
             tab="achievements"
             href="/game-master/compendium/achievements"
-            :selected="$route.path.includes('/game-master/compendium/achievements')"
+            :selected="route.path.includes('/game-master/compendium/achievements')"
           >
             <i class="fad fa-hand-holding-seedling quest fa-2x" />
             Quests
@@ -35,7 +35,7 @@
           <ion-tab-button
             tab="temples"
             href="/game-master/compendium/temples"
-            :selected="$route.path.includes('/game-master/compendium/temples')"
+            :selected="route.path.includes('/game-master/compendium/temples')"
           >
             <i class="fad fa-hand-holding-water fa-2x" />
             Temples
@@ -43,7 +43,7 @@
           <ion-tab-button
             tab="accessories"
             href="/game-master/compendium/accessories"
-            :selected="$route.path.includes('/game-master/compendium/accessories')"
+            :selected="route.path.includes('/game-master/compendium/accessories')"
           >
             <i class="fad fa-hand-holding-usd fa-2x" />
             Shops

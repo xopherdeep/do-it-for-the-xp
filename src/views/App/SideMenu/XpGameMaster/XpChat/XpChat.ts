@@ -1,6 +1,6 @@
 import { computed, defineComponent, ref } from "vue";
 import ionic from "@/mixins/ionic";
-import { useStore } from "vuex";
+import { useUserStore } from "@/lib/store/stores/user";
 import { useRouter } from "vue-router";
 
 // Define message interface
@@ -17,14 +17,14 @@ export default defineComponent({
   name: "xp-chat",
   mixins: [ionic],
   setup() {
-    const store = useStore();
+    const userStore = useUserStore();
     const router = useRouter();
     
-    // Get users from store (assuming you have a users getter)
-    const users = computed(() => store.getters.usersAz || []);
+    // Get users from Pinia store
+    const users = computed(() => userStore.usersAz || []);
     
     // Current user - for determining if message is from current user
-    const currentUser = computed(() => store.getters.currentUser);
+    const currentUser = computed(() => userStore.currentUser);
     
     // Messages state
     const messages = ref<Message[]>([

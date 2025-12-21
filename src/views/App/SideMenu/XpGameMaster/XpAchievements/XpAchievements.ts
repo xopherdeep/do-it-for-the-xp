@@ -1,5 +1,5 @@
 import { defineComponent, ref, watch } from "vue";
-import { mapGetters } from "vuex";
+import { useUserStore } from "@/lib/store/stores/user";
 import { alertController, actionSheetController } from "@ionic/vue";
 import ionic from "@/mixins/ionic";
 import { useRoute } from "vue-router";
@@ -30,46 +30,46 @@ export default defineComponent({
   mixins: [ionic],
   components: { XpAchievementItem },
   computed: {
-    ...mapGetters(["usersAz"]),
+    usersAz() { return (this as any).userStore.usersAz },
     users() {
-      return this.usersAz;
+      return (this as any).usersAz;
     },
 
     hasAchievements() {
       return this.groupedAchievements?.length > 0;
     },
     filteredAchievements() {
-      return this.achievements?.filter(this.filterAchievement);
+      return (this as any).achievements?.filter((this as any).filterAchievement);
     },
     expiredAchievements() {
       const now = new Date();
-      return this.filteredAchievements?.filter(
-        (achievement) => new Date(achievement.endsOn) < now
+      return (this as any).filteredAchievements?.filter(
+        (achievement: any) => new Date(achievement.endsOn) < now
       );
     },
 
     asNeededAchievements() {
-      return this.filteredAchievements?.filter(
-        (achievement) => achievement.type === "asNeeded"
+      return (this as any).filteredAchievements?.filter(
+        (achievement: any) => achievement.type === "asNeeded"
       );
     },
 
     groupedAchievements() {
-      const groupAchievements = (grouped, achievement) => {
+      const groupAchievements = (grouped: any, achievement: any) => {
         const category = grouped.find(
-          (group) => group.categoryId === achievement.categoryId
+          (group: any) => group.categoryId === achievement.categoryId
         );
         // TODO: do the same for assignee, but its an array of ids
-        const assignee = grouped.find((group) =>
+        const assignee = grouped.find((group: any) =>
           achievement.assignee.includes(group.assignee)
         );
 
-        switch (this.groupBy) {
+        switch ((this as any).groupBy) {
           case "assignee":
             if (assignee) {
               assignee.achievements.push(achievement);
             } else if (achievement.assignee) {
-              achievement.assignee.forEach((assignee) => {
+              achievement.assignee.forEach((assignee: any) => {
                 grouped.push({ assignee, achievements: [achievement] });
               });
             }
@@ -91,7 +91,7 @@ export default defineComponent({
         return grouped;
       };
 
-      return this.filteredAchievements?.reduce(groupAchievements, []);
+      return (this as any).filteredAchievements?.reduce(groupAchievements, []);
     },
   },
 
@@ -116,7 +116,7 @@ export default defineComponent({
           break;
       }
 
-      this.loadAchievements().then(groupAchievements);
+      this.loadAchievements().then(groupAchievements as any);
     },
   },
 
@@ -154,11 +154,11 @@ export default defineComponent({
       });
     },
     clickCloneAchievement(task: Achievement) {
-      const { achievementDb, loadAchievements } = this;
+      const { achievementDb, loadAchievements } = this as any;
       achievementDb.cloneTask(task).then(loadAchievements);
     },
     deleteTask(task: Achievement) {
-      const { achievementDb, loadAchievements } = this;
+      const { achievementDb, loadAchievements } = this as any;
       achievementDb.deleteTask(task).then(loadAchievements);
     },
     async clickDeleteAchievement(task: Achievement) {
@@ -187,7 +187,7 @@ export default defineComponent({
       await alert.present();
     },
     filterAchievement(achievement: Achievement) {
-      const { searchText } = this;
+      const { searchText } = this as any;
       const { achievementName } = achievement;
       if (!searchText) return true;
 
@@ -199,18 +199,18 @@ export default defineComponent({
     },
 
     async loadCategories() {
-      const categories = await this.categoryDb.getAll();
-      this.categories = categories.sort(this.sortCategoryByName);
+      const categories = await (this as any).categoryDb.getAll();
+      (this as any).categories = categories.sort((this as any).sortCategoryByName);
     },
 
     getCategoryById(id: string) {
-      const findCatById = (cat) => cat.id === id;
-      return this.categories.find(findCatById);
+      const findCatById = (cat: any) => cat.id === id;
+      return (this as any).categories.find(findCatById);
     },
 
     getAssigneeById(id: string) {
-      const findUserById = (user) => user.id === id;
-      return this.users.find(findUserById);
+      const findUserById = (user: any) => user.id === id;
+      return (this as any).users.find(findUserById);
     },
     async presentActionSheet() {
       const actionSheet = await actionSheetController.create({
@@ -255,6 +255,7 @@ export default defineComponent({
     // this.loadAchievements();
   },
   setup() {
+    const userStore = useUserStore();
     const achievements = ref();
     const searchText = ref("");
     const showFilters = ref(false);
@@ -294,6 +295,7 @@ export default defineComponent({
     );
 
     return {
+      userStore,
       achievementDb,
       achievements,
       addOutline,

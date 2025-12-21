@@ -31,7 +31,8 @@ import {
   bagOutline,
   checkmarkDone,
 } from "ionicons/icons";
-import { mapActions, mapState } from "vuex";
+
+import { useGameStore } from "@/lib/store/stores/game";
 
 import fetchItems from "@/mixins/fetchItems";
 
@@ -105,7 +106,7 @@ export const XpDiscoverAchievements = defineComponent({
     this.$fx.ui[this.$fx.theme.ui].openPage.play();
   },
   computed: {
-    ...mapState(["xp_achievement"]),
+    xp_achievement() { return (this as any).gameStore.xp_achievement },
     isPrevDisabled() {
       return this.currentSlide == 0;
     },
@@ -136,7 +137,7 @@ export const XpDiscoverAchievements = defineComponent({
     },
   },
   methods: {
-    ...mapActions(["fetchWPItems"]),
+    fetchWPItems(request: any) { return (this as any).gameStore.fetchWPItems(request.type, request.params) },
     // Add the missing play$fx method
     play$fx(soundType) {
       if (this.$fx?.rpg && this.$fx?.theme?.rpg) {
@@ -224,8 +225,8 @@ export const XpDiscoverAchievements = defineComponent({
           title: img.title.rendered,
         };
     },
-    getSingleMediaById(id) {
-      return this.singleById({ type: "media", id });
+    getSingleMediaById(id: string) {
+      return (this as any).gameStore.getSingleById("media", id);
     },
     searchChanged() {
       // this.$refs?.slides.slideTo(0);
@@ -262,6 +263,7 @@ export const XpDiscoverAchievements = defineComponent({
     },
   },
   setup() {
+    const gameStore = useGameStore();
     const params = reactive({
       page: 1,
       search: "",
@@ -309,6 +311,7 @@ export const XpDiscoverAchievements = defineComponent({
 
     const achievementDb = new AchievementDb(achievementStorage)
     return {
+      gameStore,
       achievementDb,
       fetchNextPage,
       useTasks,

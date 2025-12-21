@@ -219,7 +219,7 @@
           <ion-textarea
             v-model="temple.customDescription"
             placeholder="Enter a custom description for this temple"
-            rows="3"
+            :rows="3"
           ></ion-textarea>
         </ion-item>
       </ion-list>

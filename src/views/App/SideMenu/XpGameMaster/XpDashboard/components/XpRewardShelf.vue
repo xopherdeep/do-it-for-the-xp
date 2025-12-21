@@ -46,7 +46,7 @@
       </ion-label>
       <ion-note slot="end" color="medium">
         <i class="fad fa-clock mr-1"></i>
-        Updated {{ lastUpdated }}
+        Updated {{ new Date().toLocaleDateString() }}
       </ion-note>
     </ion-item>
   </ion-item-sliding>

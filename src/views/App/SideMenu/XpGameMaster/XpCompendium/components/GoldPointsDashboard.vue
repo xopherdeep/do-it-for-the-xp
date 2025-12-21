@@ -32,7 +32,7 @@
 import Ionic from '@/mixins/ionic';
 import { defineComponent } from 'vue';
 import XpStatBox from '@/components/XpStatBox/XpStatBox.vue';
-// import { getGPSystem } from '@/lib/engine/core/GPSystem';
+  // import { GPService } from '@/lib/services/gp';
 
 export default defineComponent({
   name: 'GoldPointsDashboard',
@@ -52,16 +52,16 @@ export default defineComponent({
       totalMonthly: 0 // Total GP earned this month
     
     };
-  }
-  // TODO: Implement methods to fetch real data from the GPSystem
+  },
+  // TODO: Implement methods to fetch real data from the GPService
   // These methods would replace the mock data above
   /*
   created() {
-    const gpSystem = getGPSystem();
+    const gpService = GPService.getInstance();
     // Example of how we might implement this with real data:
-    // this.totalSavings = gpSystem.getTotalSavingsInSystem();
-    // this.bankBalance = gpSystem.getBankBalance();
-    // this.totalRewarded = gpSystem.getTotalGPRewarded();
+    // this.totalSavings = gpService.getTotalSavingsInSystem();
+    // this.bankBalance = gpService.getBankBalance();
+    // this.totalRewarded = gpService.getTotalGPRewarded();
   }
   */
 });

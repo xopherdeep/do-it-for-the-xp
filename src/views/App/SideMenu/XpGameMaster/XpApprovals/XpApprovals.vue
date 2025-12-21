@@ -107,103 +107,22 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref } from "vue";
+  import { defineComponent, ref, computed } from "vue";
   import ionic from "@/mixins/ionic";
-  import { mapGetters } from "vuex";
+  import { useUserStore } from "@/lib/store/stores/user";
   import { alertController, toastController } from "@ionic/vue";
   import { format } from "date-fns";
-import debug from "@/lib/utils/debug";
+  import debug from "@/lib/utils/debug";
 
   export default defineComponent({
     name: "xp-approvals",
     mixins: [ionic],
-    computed: {
-      ...mapGetters(["usersAz"]),
-      users() {
-        return this.usersAz;
-      },
-    },
-    methods: {
-      getUserName(userId) {
-        const user = this.users.find((u) => u.id === userId);
-        return user ? user.name.full : "Unknown User";
-      },
-      formatDate(dateString) {
-        if (!dateString) return "";
-        return format(new Date(dateString), "MMM d, yyyy");
-      },
-      async approveItem(item) {
-        const alert = await alertController.create({
-          header: "Approve Item",
-          message: `Are you sure you want to approve ${
-            item.achievementName || item.name
-          }?`,
-          buttons: [
-            {
-              text: "Cancel",
-              role: "cancel",
-            },
-            {
-              text: "Approve",
-              handler: () => {
-                // Logic to approve the item
-                this.showSuccessToast("Item approved successfully!");
-                this.refreshApprovals();
-              },
-            },
-          ],
-        });
-        await alert.present();
-      },
-      async rejectItem(item) {
-        const alert = await alertController.create({
-          header: "Reject Item",
-          message: `Are you sure you want to reject ${
-            item.achievementName || item.name
-          }?`,
-          inputs: [
-            {
-              name: "reason",
-              type: "textarea",
-              placeholder: "Reason for rejection (optional)",
-            },
-          ],
-          buttons: [
-            {
-              text: "Cancel",
-              role: "cancel",
-            },
-            {
-              text: "Reject",
-              handler: (data) => {
-                // Logic to reject the item with reason
-                this.showSuccessToast("Item rejected");
-                this.refreshApprovals();
-
-                debug.log(data.reason);
-              },
-            },
-          ],
-        });
-        await alert.present();
-      },
-      refreshApprovals() {
-        // Logic to refresh approvals data
-        this.showSuccessToast("Approvals refreshed!");
-      },
-      showSuccessToast(message) {
-        toastController
-          .create({
-            message: message,
-            duration: 2000,
-            position: "bottom",
-            color: "success",
-          })
-          .then((toast) => toast.present());
-      },
-    },
     setup() {
+      const userStore = useUserStore();
       const activeSegment = ref("achievements");
+
+      // Get users from Pinia store
+      const users = computed(() => userStore.usersAz);
 
       // Mock data for pending achievements
       const pendingAchievements = ref([
@@ -245,10 +164,96 @@ import debug from "@/lib/utils/debug";
         },
       ]);
 
+      // Helper functions
+      const getUserName = (userId: string) => {
+        const user = users.value.find((u: any) => u.id === userId);
+        return user ? user.name.full : "Unknown User";
+      };
+
+      const formatDate = (dateString: string) => {
+        if (!dateString) return "";
+        return format(new Date(dateString), "MMM d, yyyy");
+      };
+
+      const showSuccessToast = async (message: string) => {
+        const toast = await toastController.create({
+          message: message,
+          duration: 2000,
+          position: "bottom",
+          color: "success",
+        });
+        await toast.present();
+      };
+
+      const refreshApprovals = () => {
+        showSuccessToast("Approvals refreshed!");
+      };
+
+      const approveItem = async (item: any) => {
+        const alert = await alertController.create({
+          header: "Approve Item",
+          message: `Are you sure you want to approve ${
+            item.achievementName || item.name
+          }?`,
+          buttons: [
+            {
+              text: "Cancel",
+              role: "cancel",
+            },
+            {
+              text: "Approve",
+              handler: () => {
+                showSuccessToast("Item approved successfully!");
+                refreshApprovals();
+              },
+            },
+          ],
+        });
+        await alert.present();
+      };
+
+      const rejectItem = async (item: any) => {
+        const alert = await alertController.create({
+          header: "Reject Item",
+          message: `Are you sure you want to reject ${
+            item.achievementName || item.name
+          }?`,
+          inputs: [
+            {
+              name: "reason",
+              type: "textarea",
+              placeholder: "Reason for rejection (optional)",
+            },
+          ],
+          buttons: [
+            {
+              text: "Cancel",
+              role: "cancel",
+            },
+            {
+              text: "Reject",
+              handler: (data) => {
+                showSuccessToast("Item rejected");
+                refreshApprovals();
+                debug.log(data.reason);
+              },
+            },
+          ],
+        });
+        await alert.present();
+      };
+
       return {
         activeSegment,
+        users,
         pendingAchievements,
         pendingAccessories,
+        getUserName,
+        formatDate,
+        approveItem,
+        rejectItem,
+        refreshApprovals,
+        showSuccessToast,
       };
     },
   });

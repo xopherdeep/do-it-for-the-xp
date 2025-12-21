@@ -21,7 +21,7 @@
         @ionItemReorder="handleReorder($event)"
       >
         <XpAchievementItem
-          v-for="achievement in achievements"
+          v-for="achievement in achievements as Achievement[]"
           :achievement="achievement"
           :key="achievement.id"
         >

@@ -221,6 +221,7 @@
         description: '',
         basePrice: 0,
         url: '',
+        imageUrl: '', // Added imageUrl property
         availableToMembers: [''],
         requiresApproval: false,
         isLayaway: false,
@@ -233,7 +234,15 @@
           reserved: 0
         },
         tags: [] as string[],
-        bonusStats: {}
+        bonusStats: {
+          hp: 0,
+          mp: 0,
+          attack: 0,
+          defense: 0,
+          speed: 0
+        },
+        expiryDate: '', // Added expiryDate property
+        purchaseHistory: [] as Array<{ userId: string; purchaseDate: string; amount: number }>
       })
       const isPenalty = ref(false)
       const tagsInput = ref('')

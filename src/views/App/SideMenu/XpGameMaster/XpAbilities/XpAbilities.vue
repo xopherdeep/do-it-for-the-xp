@@ -260,7 +260,7 @@
     REAL_LIFE_PRESETS,
     TIME_MAGE_PRESETS,
     TECH_MAGE_PRESETS
-  } from '@/lib/engine/core/abilities/AbilityPresets'
+  } from '@/lib/services/abilities/AbilityPresets'
   import { useRouter } from 'vue-router'
 
   export default defineComponent({
@@ -331,10 +331,10 @@
       });
 
       // Preset abilities references
-      const timeMagePresets = TIME_MAGE_PRESETS;
-      const techMagePresets = TECH_MAGE_PRESETS;
-      const realLifePresets = REAL_LIFE_PRESETS;
-      const hybridPresets = [];
+      const timeMagePresets: Ability[] = TIME_MAGE_PRESETS;
+      const techMagePresets: Ability[] = TECH_MAGE_PRESETS;
+      const realLifePresets: Ability[] = REAL_LIFE_PRESETS;
+      const hybridPresets: Ability[] = [];
 
       // Methods
       const toggleViewMode = () => {

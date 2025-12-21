@@ -74,14 +74,20 @@
 <script lang="ts">
   import { defineComponent } from 'vue'
   import ionic from '@/mixins/ionic'
-  import { mapGetters } from "vuex";
+  import { useUserStore } from '@/lib/store/stores/user';
   export default defineComponent({
     name: 'xp-impersonate-profile',
     mixins: [ionic],
 
     computed: {
-      ...mapGetters(["usersAz"]),
-      users() { return this.usersAz }
+      usersAz() { return (this as any).userStore.usersAz },
+      users() { return (this as any).usersAz }
+    },
+    setup() {
+      const userStore = useUserStore();
+      return {
+        userStore
+      }
     },
     methods: {
       mimicUser(user) {
