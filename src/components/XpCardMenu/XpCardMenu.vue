@@ -34,12 +34,28 @@ export default defineComponent({
   },
   props: {
     actions: {
-      type: Array,
+      type: Array as () => Array<{
+        id: string | number;
+        icon: string;
+        label: string;
+        primary?: string;
+        secondary?: string;
+        click?: () => void;
+      }>,
       required: true
     }
   },
   setup(props, { emit }) {
-    const handleAction = (action: any) => {
+    type Action = {
+      id: string | number;
+      icon: string;
+      label: string;
+      primary?: string;
+      secondary?: string;
+      click?: () => void;
+    };
+
+    const handleAction = (action: Action) => {
       if (action.click) {
         action.click();
       }

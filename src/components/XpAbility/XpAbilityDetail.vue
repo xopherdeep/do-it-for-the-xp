@@ -285,15 +285,15 @@ export default defineComponent({
       }
     };
     
-    const formatClassName = (className: string) => {
-      return className.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+    const formatClassName = (className: string | number) => {
+      return className.toString().replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
     };
     
     const formatAttribute = (attribute: string) => {
       return attribute.replace(/\b\w/g, l => l.toUpperCase());
     };
     
-    const formatDate = (date: Date) => {
+    const formatDate = (date: string | Date) => {
       if (!date) return '';
       return new Date(date).toLocaleDateString();
     };
