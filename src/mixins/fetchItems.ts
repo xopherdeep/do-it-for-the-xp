@@ -17,7 +17,9 @@ import '@ionic/vue/css/ionic-swiper.css';
 import { defineComponent } from "vue";
 
 import { Swiper, SwiperSlide } from 'swiper/vue';
-import { mapActions, mapGetters } from "vuex";
+import { useGameStore } from "@/lib/store/stores/game";
+import { useUserStore } from "@/lib/store/stores/user";
+import { mapStores } from "pinia";
 import XpLoading from "@/components/XpLoading/XpLoading.vue";
 
 export default defineComponent({
@@ -54,32 +56,24 @@ export default defineComponent({
     };
   },
   computed: {
-    ...mapGetters([
-      "requestedItems",
-      "getUserById",
-      "singleById",
-      "totalPages",
-      "totalItems",
-    ]),
+    ...mapStores(useGameStore, useUserStore),
     user() {
-      return this.getUserById(this.userId);
+      return (this as any).userStore.getUserById(this.userId);
     },
     items() {
-      return this.requestedItems(this.request);
+      return (this as any).gameStore.getRequestedItems(this.request.type, this.request.params);
     },
     images() {
-      return this.items.map((t) => t.featured_media);
+      return (this as any).items.map((t: any) => t.featured_media);
     },
     hasNextPage() {
-      return this.page < this.nTotalPages
+      return (this as any).page < (this as any).nTotalPages
     },
     nTotalPages() {
-      const { totalPages, request } = this;
-      return parseInt(totalPages(request));
+      return parseInt((this as any).gameStore.getTotalPages((this as any).request.type, (this as any).request.params));
     },
     nTotalItems() {
-      const { totalItems, request } = this;
-      return parseInt(totalItems(request));
+      return parseInt((this as any).gameStore.getTotalItems((this as any).request.type, (this as any).request.params));
     },
     slides() {
       return this.$refs.slides
@@ -103,28 +97,21 @@ export default defineComponent({
   },
   methods: {
 
-    getImages(page) {
-      return this.requestedItems({
-        ...this.request,
-        params: {
-          ...this.request.params,
-          page
-        }
-      }).map((t) => t.featured_media);
+    getImages(page: number) {
+      return (this as any).gameStore.getRequestedItems((this as any).request.type, {
+        ...(this as any).request.params,
+        page
+      }).map((t: any) => t.featured_media);
     },
-    getSlideItems(page) {
-      return this.requestedItems({
-        ...this.request,
-        params: {
-          ...this.request.params,
-          page
-        }
+    getSlideItems(page: number) {
+      return (this as any).gameStore.getRequestedItems((this as any).request.type, {
+        ...(this as any).request.params,
+        page
       });
     },
     isModalOpen(id) {
       return this.activeModal == id
     },
-    ...mapActions(["fetchWPItems"]),
     async getItems(page = 1) {
       this.showLoading();
       return await this.fetchItems(page).then(this.hideLoading);
@@ -135,25 +122,19 @@ export default defineComponent({
     hideLoading() {
       this.isLoading = false;
     },
-    fetchItems(page = 1) {
-      return this.fetchWPItems({
-        ...this.request,
-        params: {
-          ...this.request.params,
-          page
-        }
-      }).then(() => this.fetchImages(page));
+    async fetchItems(page = 1) {
+      return (this as any).gameStore.fetchWPItems((this as any).request.type, {
+        ...(this as any).request.params,
+        page
+      }).then(() => (this as any).fetchImages(page));
     },
-    fetchImages(page) {
-      const { getImages, fetchWPItems } = this;
-      return fetchWPItems({
-        type: "media",
-        params: {
-          include: getImages(page).join(","),
-        },
+    fetchImages(page: number) {
+      const { getImages } = this as any;
+      return (this as any).gameStore.fetchWPItems("media", {
+        include: getImages(page).join(","),
       });
     },
-    getImgObj(id) {
+    getImgObj(id: string) {
       const img = this.getSingleMediaById(id);
       if (img)
         return {
@@ -162,8 +143,8 @@ export default defineComponent({
           title: img.title.rendered,
         };
     },
-    getSingleMediaById(id) {
-      return this.singleById({ type: "media", id });
+    getSingleMediaById(id: string) {
+      return (this as any).gameStore.getSingleById("media", id);
     },
   },
   watch: {

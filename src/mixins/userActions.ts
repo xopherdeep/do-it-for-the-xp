@@ -1,9 +1,10 @@
-import { computed, defineComponent } from "vue";
-import { mapActions, mapGetters, useStore } from "vuex";
+import { defineComponent } from "vue";
 import { IonPage } from '@ionic/vue';
-import { useRoute, useRouter } from "vue-router";
 import travelingMerchant from "./travelingMerchant"
 import type { ComponentPublicInstance } from 'vue';
+import { useGameStore } from "@/lib/store/stores/game";
+import { useUserStore } from "@/lib/store/stores/user";
+import { mapStores } from "pinia";
 
 export interface UserActionsMixin {
   setUserActions(action: any): void;
@@ -14,14 +15,25 @@ export interface UserActionsMixin {
 
 export type DefineUserActionComponent = ComponentPublicInstance & UserActionsMixin;
 
-export default defineComponent<DefineUserActionComponent>({
+export default defineComponent({
   components: { IonPage },
   mixins: [travelingMerchant],
   computed: {
-    ...mapGetters(["userActions"]),
+    ...mapStores(useGameStore, useUserStore),
+    userActions(): any {
+      return (this as any).gameStore.userActions;
+    },
+    userId() {
+      return (this as any).$route.params.userId;
+    },
+    user() {
+      return (this as any).userStore.getUserById(this.userId as string);
+    },
   },
   methods: {
-    ...mapActions(["setUserActions"]),
+    setUserActions(actions: any) {
+      return (this as any).gameStore.setUserActions(actions);
+    },
     setActions(area) {
       const {
         userActions,
@@ -31,21 +43,6 @@ export default defineComponent<DefineUserActionComponent>({
       const actions = [...userActions]
       maybeAddMerchantToActionsIfInArea({ actions, area })
       setUserActions(actions);
-    }
-  },
-  setup() {
-    // let user = new User({})
-    const route = useRoute();
-    const router = useRouter()
-    const store = useStore();
-    const { userId } = route.params;
-    const user = computed(() => store.getters.getUserById(userId));
-    return {
-      route,
-      router,
-      store,
-      userId,
-      user
     }
   },
 })
