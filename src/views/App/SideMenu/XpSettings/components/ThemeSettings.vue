@@ -89,7 +89,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, computed } from 'vue'
+  import { defineComponent, ref } from 'vue'
   import { useGameStore } from '@/lib/store/stores/game'
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,

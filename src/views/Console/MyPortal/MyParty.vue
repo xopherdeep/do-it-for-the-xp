@@ -83,9 +83,9 @@
 </template>
 
 <script lang="ts">
+  import { defineComponent } from "vue";
   import { useUserStore } from "@/lib/store/stores/user";
-import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
-
+  import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
 import {
   arrowBack,
   bagOutline,
@@ -95,10 +95,11 @@ import {
   keyOutline,
 } from "ionicons/icons";
 import userActions from "@/mixins/userActions";
-
+  import type { DefineUserActionComponent } from "@/mixins/userActions";
 import ionic from "@/mixins/ionic";
-export default {
-  mixins: [userActions, ionic],
+
+  export default defineComponent<DefineUserActionComponent>({
+    mixins: [userActions as any, ionic as any],
   ionViewDidEnter() {
     this.setUserActions(this.userActions);
   },
@@ -118,9 +119,9 @@ export default {
     // this.$fx.ui[this.$fx.theme.ui].user.play()
   },
   methods: {
-    getUserAvatar(user) {
+    getUserAvatar(user: any) {
       const avatar = `./${user.avatar}.svg`;
-      return this.$requireAvatar(avatar);
+      return (this as any).$requireAvatar(avatar);
     },
     segmentChanged($event) {
       $event.preventDefault();
@@ -161,7 +162,7 @@ export default {
       ],
     };
   },
-};
+});
 </script>
 
 <style scoped lang="scss">
