@@ -179,9 +179,6 @@ export default defineComponent({
       changeSoundFX(newFx).then(() => ($fx.theme = newFx));
     },
 
-    computed: {
-      ...mapState(["theme", "bgm"]),
-    },
 
     changeRPGSound(ev) {
       const { ui } = this.theme;

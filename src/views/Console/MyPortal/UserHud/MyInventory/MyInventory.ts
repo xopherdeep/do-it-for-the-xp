@@ -1,4 +1,4 @@
-import { computed, defineComponent } from "vue";
+import { defineComponent } from "vue";
 import ionic from "@/mixins/ionic"
 
 import {
@@ -40,12 +40,8 @@ export default defineComponent({
       debug.log("Segment changed", ev);
     },
   },
-  setup(props) {
-    const store = useStore()
-    const user = computed(() => store.getters.getUserById(props.userId));
-
+  setup() {
     return {
-      user,
       chevronBack,
       chevronForward,
       stop,
