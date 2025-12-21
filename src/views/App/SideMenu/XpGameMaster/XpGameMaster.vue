@@ -29,6 +29,15 @@
             <i class="fad fa-comments fa-2x" />
             Chat
           </ion-tab-button>
+          <ion-tab-button
+            tab="bestiary"
+            href="/game-master/bestiary"
+            :selected="$route.path === '/game-master/bestiary'"
+          >
+            <i class="fad fa-dragon fa-2x" />
+            Bestiary
+          </ion-tab-button>
+
         </ion-tab-bar>
       </ion-tabs>
     </ion-content>

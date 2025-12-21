@@ -150,25 +150,30 @@
                 color="light"
                 expand="block"
               >
-                <ion-icon :icon="chevronBack" slot="icon-only" />
+                <ion-icon
+                  :icon="chevronBack"
+                  slot="icon-only"
+                />
               </ion-button>
             </ion-col>
-            <ion-col>
-              <ion-button
-                @click="request.params.page++"
-                :disabled="!hasNextPage"
-                color="light"
-                expand="block"
-              >
-                <ion-icon :icon="chevronForward" slot="icon-only" />
-              </ion-button>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-      </ion-toolbar>
-    </ion-footer>
-  </ion-page>
-</template>
+          <ion-col>
+            <ion-button
+              @click="request.params.page++"
+              :disabled="!hasNextPage"
+              color="light"
+              expand="block"
+            >
+              <ion-icon
+                :icon="chevronForward"
+                slot="icon-only"
+              />
+            </ion-button>
+          </ion-col>
+        </ion-row>
+      </ion-grid>
+    </ion-toolbar>
+  </ion-footer>
+</ion-page></template>
 
 <script src="./MyCrafts" />
 <style lang="scss" src="./_MyCrafts.scss" scoped />

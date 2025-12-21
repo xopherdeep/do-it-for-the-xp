@@ -13,7 +13,7 @@ export default defineComponent<DefineUserActionComponent>({
   mixins: [ionic, userActions],
 
   ionViewDidEnter() {
-    this.setActions( this.$options.name )
+    this.setActions(this.$options.name)
   },
   setup() {
     const route = useRoute();
