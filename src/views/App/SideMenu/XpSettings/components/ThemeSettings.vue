@@ -89,8 +89,8 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue'
-import { mapState, mapActions } from 'vuex'
+  import { defineComponent, ref, computed } from 'vue'
+  import { useGameStore } from '@/lib/store/stores/game'
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonList, IonItem, IonLabel, IonToggle, IonCard,
@@ -109,9 +109,13 @@ export default defineComponent({
   },
   mixins: [ionic],
   computed: {
-    ...mapState(['theme'])
+    theme() {
+      return this.gameStore.theme
+    }
   },
   setup() {
+    const gameStore = useGameStore()
+
     const themeSettings = ref({
       darkMode: false,
       colorTheme: 'default'
@@ -126,11 +130,14 @@ export default defineComponent({
     }
 
     return {
-      themeSettings
+      themeSettings,
+      gameStore
     }
   },
   methods: {
-    ...mapActions(['changeSoundFX']),
+    changeSoundFX(payload: { ui: string, rpg: string }) {
+      return Promise.resolve(this.gameStore.changeSoundFX(payload))
+    },
 
     async showToast(message: string) {
       const toast = await toastController.create({

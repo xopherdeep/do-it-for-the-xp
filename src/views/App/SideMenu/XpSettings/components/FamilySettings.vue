@@ -92,7 +92,7 @@ import User from "@/lib/utils/User";
 import { alertController, modalController } from "@ionic/vue";
 import XpProfileItem from "./ProfileItem.vue";
 import AddProfile from "../../SwitchProfile/AddProfile/AddProfile.vue";
-import { useStore } from "vuex";
+  import { useUserStore } from "@/lib/store/stores/user";
 
 export default defineComponent({
   name: "xp-settings-family",
@@ -102,23 +102,23 @@ export default defineComponent({
     const lockFamily = ref(false);
     const toppings = [];
     const toggleFamily = () => (lockFamily.value = !lockFamily.value);
-    const store = useStore();
+    const userStore = useUserStore();
     const profileDb = new ProfileDb(profileStorage);
     const requireAvatar = require.context("@/assets/images/avatars/");
 
-    // Get profiles from Vuex store
-    const profiles = computed(() => store.getters.usersAz);
+    // Get profiles from Pinia store
+    const profiles = computed(() => userStore.usersAz);
 
     // Methods
     const loadProfiles = async () => {
-      await store.dispatch("loadUsers");
+      await userStore.loadUsers();
     };
 
     // Load profiles when component mounts
     loadProfiles();
 
     return {
-      store,
+      userStore,
       requireAvatar,
       profiles,
       profileDb,

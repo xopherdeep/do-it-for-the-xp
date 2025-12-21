@@ -188,13 +188,12 @@
         </ion-fab-button>
       </ion-fab>
 
-      <!-- Loading indicator for profile selection -->
-      <ion-loading
+      <!-- Stylized loading modal for profile selection -->
+      <ProfileLoadingModal
         :is-open="isProfileLoading"
-        message="Loading Profile..."
-        :duration="0"
-      >
-      </ion-loading>
+        :user-name="selectedUserName"
+        @close="isProfileLoading = false"
+      />
 
       <!-- Toast for restore success -->
       <ion-toast
@@ -211,15 +210,15 @@
 
 <script lang="ts">
 import {
-  toastController,
-  IonLoading,
+    toastController,
   useIonRouter,
   onIonViewWillEnter,
   onIonViewDidLeave,
   alertController,
   actionSheetController,
 } from "@ionic/vue";
-import { useStore } from "vuex";
+  import { useUserStore } from "@/lib/store/stores/user";
+  import { useAudioStore } from "@/lib/store/stores/audio";
 import { computed, defineComponent, ref, onUnmounted } from "vue";
 import {
   peopleCircleSharp,
@@ -235,6 +234,7 @@ import { Drivers, Storage } from "@ionic/storage";
 import { modalController } from "@ionic/vue";
 import { ProfileDb } from "@/lib/databases";
 import AddProfile from "./AddProfile/AddProfile.vue";
+  import ProfileLoadingModal from "./ProfileLoadingModal.vue";
 import XpGp from "@/components/XpGp/XpGp.vue";
 import DialPad from "./DialPad.vue";
 import ionic from "@/mixins/ionic";
@@ -252,15 +252,16 @@ export const profileStorage = new Storage({
 export default defineComponent({
   name: "switch-profile",
   components: {
-    IonLoading,
     XpGp,
+    ProfileLoadingModal,
   },
   mixins: [ionic],
   setup() {
     // State management
     const isLoading = ref(false); // For initial list loading
     const isProfileLoading = ref(false); // For selected profile loading
-    const store = useStore();
+    const userStore = useUserStore();
+    const audioStore = useAudioStore();
     const ionRouter = useIonRouter();
     const storage = new ProfileDb(profileStorage);
 
@@ -269,10 +270,11 @@ export default defineComponent({
     const restoreMessage = ref('');
     const restoreSuccess = ref(false);
     const isRestoringProfiles = ref(false);
+    const selectedUserName = ref('');
 
     // Computed properties
-    const users = computed(() => store.getters.usersAz);
-    const bgm = computed(() => store.state.bgm);
+    const users = computed(() => userStore.usersAz);
+    const bgm = computed(() => audioStore.bgm);
 
     // Data loading function
     const loadProfiles = async () => {
@@ -297,7 +299,7 @@ export default defineComponent({
           }
         }
 
-        await store.dispatch("loadUsers");
+        await userStore.loadUsers();
       } catch (error) {
         debug.error("Failed to load profiles:", error);
         // You could add a toast or alert here to notify user of the error
@@ -354,7 +356,7 @@ export default defineComponent({
                 const success = await storage.importProfiles(content);
 
                 if (success) {
-                  await store.dispatch("loadUsers");
+                  await userStore.loadUsers();
                   const toast = await toastController.create({
                     message: 'Profiles imported successfully',
                     duration: 3000,
@@ -429,7 +431,7 @@ export default defineComponent({
                         const restored = await storage.restoreProfiles();
 
                         if (restored) {
-                          await store.dispatch("loadUsers");
+                          await userStore.loadUsers();
                           restoreSuccess.value = true;
                           restoreMessage.value = 'Successfully restored your profiles!';
                         } else {
@@ -469,7 +471,7 @@ export default defineComponent({
         isProfileLoading.value = true; // Start loading indicator
 
         // Login the user first and wait for it to complete
-        await store.dispatch("loginUser", profile);
+        await userStore.loginUser(profile);
 
         // Then navigate to their home page
         await ionRouter.navigate(
@@ -518,6 +520,7 @@ export default defineComponent({
     };
 
     const selectProfile = async (profile: User) => {
+      selectedUserName.value = profile.name.nick;
       if (profile.passcode) {
         openPasscodeModal(profile);
       } else {
@@ -592,6 +595,7 @@ export default defineComponent({
       restoreSuccess,
       showRestoreToast,
       openBackupOptionsModal,
+      selectedUserName,
     };
   },
 });

@@ -1,5 +1,5 @@
 import { defineComponent, ref, computed } from "vue";
-import { useStore } from "vuex";
+import { useUserStore } from "@/lib/store/stores/user";
 import {
   IonPage,
   IonHeader,
@@ -49,7 +49,7 @@ export default defineComponent({
   },
   mixins: [ionic],
   setup() {
-    const store = useStore();
+    const userStore = useUserStore();
     const router = useRouter()
 
     // Initialize settings with defaults or load from storage
@@ -72,8 +72,8 @@ export default defineComponent({
       savedSettings ? JSON.parse(savedSettings) : defaultSettings
     );
 
-    // Get all users from store
-    const users = computed(() => store.getters.usersAz || []);
+    // Get all users from Pinia store
+    const users = computed(() => userStore.usersAz || []);
 
     // Filter for parent users
     const parentUsers = computed(() => users.value.filter((u) => u.isAdult));

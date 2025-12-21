@@ -116,7 +116,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed } from 'vue'
-import { useStore } from 'vuex'
+  import { useUserStore } from '@/lib/store/stores/user'
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonList, IonItem, IonLabel, IonToggle, IonCard,
@@ -134,7 +134,7 @@ export default defineComponent({
   },
   mixins: [ionic],
   setup() {
-    const store = useStore()
+    const userStore = useUserStore()
     const settings = ref({
       notifyParentsOnDue: true,
       notifyOnComplete: true
@@ -142,8 +142,8 @@ export default defineComponent({
 
     const notifiedKids = ref({})
 
-    // Get all users sorted A-Z from Vuex store
-    const users = computed(() => store.getters.usersAz)
+    // Get all users sorted A-Z from Pinia store
+    const users = computed(() => userStore.usersAz)
 
     // Filter for adult users
     const adultUsers = computed(() => users.value.filter(u => u.isAdult))

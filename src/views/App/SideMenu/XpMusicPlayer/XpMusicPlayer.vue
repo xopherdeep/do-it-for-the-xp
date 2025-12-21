@@ -37,11 +37,11 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
-import { mapState } from 'vuex';
+  import { defineComponent } from 'vue';
 import ionic from '@/mixins/ionic';
 import debug from '@/lib/utils/debug';
 import { useAudio } from '@/hooks/useAudio';
+  import { useAudioStore } from '@/lib/store/stores/audio';
 import { 
   playSkipBackSharp, 
   playBackSharp,
@@ -113,10 +113,12 @@ export default defineComponent({
   
   setup() {
     // Initialize the audio hook
-    const audio = useAudio();
+    const audioHook = useAudio();
+    const audioStore = useAudioStore();
     
     return {
-      audio
+      audioHook,
+      audioStore
     };
   },
   
@@ -141,7 +143,9 @@ export default defineComponent({
   },
   
   computed: {
-    ...mapState(['bgm']),
+    bgm(): any {
+      return this.audioStore.bgm;
+    },
     
     isPlaying(): boolean {
       return this.bgm.is_on;
@@ -183,19 +187,19 @@ export default defineComponent({
     prevTrack() {
       this.$emit('changeBGM', -1);
       // Use AudioEngine for UI sounds instead of direct $fx access
-      this.audio.playUISound('select');
+      this.audioHook.playUISound('select');
       this.resetProgress();
     },
     
     nextTrack() {
       this.$emit('changeBGM', 1);
-      this.audio.playUISound('select');
+      this.audioHook.playUISound('select');
       this.resetProgress();
     },
     
     togglePlayPause() {
       this.$emit('toggleMusic', { detail: { checked: !this.isPlaying } });
-      this.audio.playUISound('select');
+      this.audioHook.playUISound('select');
       this.simulateProgressUpdate();
     },
     
@@ -203,7 +207,7 @@ export default defineComponent({
       if (this.audioElement && this.audioElement.currentTime) {
         // Rewind by seekAmount seconds, but don't go below 0
         this.audioElement.currentTime = Math.max(0, this.audioElement.currentTime - this.seekAmount);
-        this.audio.playUISound('select');
+        this.audioHook.playUISound('select');
         
         // Update progress percentage based on current time
         if (this.audioElement.duration) {
@@ -221,7 +225,7 @@ export default defineComponent({
         } else {
           this.audioElement.currentTime = newTime;
         }
-        this.audio.playUISound('select');
+        this.audioHook.playUISound('select');
         
         // Update progress percentage based on current time
         if (this.audioElement.duration) {

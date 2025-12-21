@@ -14,15 +14,27 @@
           Life's Level Up & Reward System
         </ion-note>
         <ion-note class="w-full flex flex-row">
-          <ion-chip color="success" @click="navigateToXpPage" class="cursor-pointer">
+          <ion-chip
+            color="success"
+            @click="navigateToXpPage"
+            class="cursor-pointer"
+          >
             <i class="fad fa-hand-holding-seedling mr-2"></i>
             XP
           </ion-chip>
-          <ion-chip color="warning" @click="navigateToGpPage" class="cursor-pointer">
+          <ion-chip
+            color="warning"
+            @click="navigateToGpPage"
+            class="cursor-pointer"
+          >
             <i class="fad fa-hand-holding-usd mr-2"></i>
             GP
           </ion-chip>
-          <ion-chip color="danger" @click="navigateToApPage" class="cursor-pointer">
+          <ion-chip
+            color="danger"
+            @click="navigateToApPage"
+            class="cursor-pointer"
+          >
             <i class="fad fa-hand-holding-magic mr-2"></i>
             AP
           </ion-chip>
@@ -73,7 +85,7 @@
         <ion-item
           @click="
             setMenuItem(-1);
-            $fx.ui[$fx.theme.ui].select.play();
+          $fx.ui[$fx.theme.ui].select.play();
           "
           router-direction="root"
           router-link="/log-out"
@@ -97,256 +109,275 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent } from "vue";
-import { mapActions, mapState, useStore } from "vuex";
-import ionic from "@/mixins/ionic";
-import { useRoute } from "vue-router";
-import {
-  logInOutline,
-  logInSharp,
-  lockClosedOutline,
-  lockClosedSharp,
-  fitnessOutline,
-  fitnessSharp,
-  fingerPrintOutline,
-  fingerPrintSharp,
-  helpOutline,
-  helpSharp,
-  informationOutline,
-  informationSharp,
-  infiniteOutline,
-  infiniteSharp,
-  moonOutline,
-  moonSharp,
-  pizzaOutline,
-  pizzaSharp,
-  sunnyOutline,
-  sunnySharp,
-} from "ionicons/icons";
-import XpMusicPlayer from "./XpMusicPlayer/XpMusicPlayer.vue";
+  import { computed, defineComponent } from "vue";
+  import ionic from "@/mixins/ionic";
+  import { useUserStore } from "@/lib/store/stores/user";
+  import { useAudioStore } from "@/lib/store/stores/audio";
+  import { useGameStore } from "@/lib/store/stores/game";
+  import { useRoute } from "vue-router";
+  import {
+    logInOutline,
+    logInSharp,
+    lockClosedOutline,
+    lockClosedSharp,
+    fitnessOutline,
+    fitnessSharp,
+    fingerPrintOutline,
+    fingerPrintSharp,
+    helpOutline,
+    helpSharp,
+    informationOutline,
+    informationSharp,
+    infiniteOutline,
+    infiniteSharp,
+    moonOutline,
+    moonSharp,
+    pizzaOutline,
+    pizzaSharp,
+    sunnyOutline,
+    sunnySharp,
+  } from "ionicons/icons";
+  import XpMusicPlayer from "./XpMusicPlayer/XpMusicPlayer.vue";
 
-export default defineComponent({
-  name: "side-menu",
-  mixins: [ionic],
-  components: {
-    XpMusicPlayer
-  },
+  export default defineComponent({
+    name: "side-menu",
+    mixins: [ionic],
+    components: {
+      XpMusicPlayer
+    },
 
-  data() {
-    return {
-      isAnnual: true,
-      activeMenuItem: 0,  // Changed back to number
-      icons: {
-        lockClosedOutline,
-        lockClosedSharp
+    data() {
+      return {
+        isAnnual: true,
+        activeMenuItem: 0,  // Changed back to number
+        icons: {
+          lockClosedOutline,
+          lockClosedSharp
+        },
+        appPagesAnon: [
+          {
+            title: "Log In",
+            url: "/log-in",
+            iosIcon: logInOutline,
+            mdIcon: logInSharp,
+            lines: "none",
+          },
+        ],
+        appPages: [
+
+          {
+            title: "Select Profile",
+            url: "/xp-profile/",
+
+            iosIcon: fingerPrintOutline,
+            mdIcon: fingerPrintSharp,
+            lines: "none",
+          },
+          {
+            title: "",
+          },
+          // {
+          //   title: "About XP",
+          //   url: "/about-xp",
+          //   iosIcon: informationOutline,
+          //   mdIcon: informationSharp,
+          //   lines: "none",
+          // },
+
+
+          {
+            title: "Compendium",
+            url: "/game-master",
+            iosIcon: fitnessOutline,
+            mdIcon: fitnessSharp,
+            lines: "none",
+          },
+          {
+            title: "Settings",
+            url: "/xp-settings/",
+            iosIcon: pizzaOutline,
+            mdIcon: pizzaSharp,
+            lines: "none",
+          },
+
+          {
+            title: "",
+          },
+          {
+            title: "Membership",
+            url: "/xp-membership",
+            // iosIcon: fitnessOutline,
+            // mdIcon: fitnessSharp,
+            // moon if monthly or sun if yearly
+            iosIcon: this.isAnnual ? moonOutline : sunnyOutline,
+            mdIcon: this.isAnnual ? moonSharp : sunnySharp,
+
+            lines: "none",
+          },
+
+          {
+            title: "Party Invites",
+            url: "/tell-a-friend",
+            iosIcon: infiniteOutline,
+            mdIcon: infiniteSharp,
+            lines: "none",
+          },
+          {
+            title: "",
+          },
+
+
+          {
+            title: "About XP",
+            url: "/xp-intro",
+            iosIcon: informationOutline,
+            mdIcon: informationSharp,
+            lines: "none",
+          },
+          {
+            title: "Help Desk",
+            url: "/xp-support",
+            // iosIcon: helpBuoyOutline,
+            // mdIcon: helpBuoySharp,
+            iosIcon: helpOutline,
+            mdIcon: helpSharp,
+            lines: "none",
+          },
+        ],
+      };
+    },
+    computed: {
+      theme() { return (this as any).gameStore.theme },
+      bgm() { return (this as any).audioStore.bgm },
+      logoutMenuItem() {
+        const { appPages } = this;
+        return appPages.find((item) => item.title === "Log Out");
       },
-      appPagesAnon: [
-        {
-          title: "Log In",
-          url: "/log-in",
-          iosIcon: logInOutline,
-          mdIcon: logInSharp,
-          lines: "none",
-        },
-      ],
-      appPages: [
-        // {
-        //   title: "About XP",
-        //   url: "/about-xp",
-        //   iosIcon: informationOutline,
-        //   mdIcon: informationSharp,
-        //   lines: "none",
-        // },
-        {
-          title: "Membership",
-          url: "/xp-membership",
-          // iosIcon: fitnessOutline,
-          // mdIcon: fitnessSharp,
-          // moon if monthly or sun if yearly
-          iosIcon: this.isAnnual ? moonOutline : sunnyOutline,
-          mdIcon: this.isAnnual ? moonSharp : sunnySharp,
-
-          lines: "none",
-        },
-        {
-          title: "Tell a Friend",
-          url: "/tell-a-friend",
-          iosIcon: infiniteOutline,
-          mdIcon: infiniteSharp,
-          lines: "none",
-        },
-        {
-          title: "Play Intro",
-          url: "/xp-intro",
-          iosIcon: informationOutline,
-          mdIcon: informationSharp,
-          lines: "none",
-        },
-        {
-          title: "Help Desk",
-          url: "/xp-support",
-          // iosIcon: helpBuoyOutline,
-          // mdIcon: helpBuoySharp,
-          iosIcon: helpOutline,
-          mdIcon: helpSharp,
-          lines: "none",
-        },
-        {
-          title: "",
-        },
-
-        {
-          title: "Settings",
-          url: "/xp-settings/",
-          iosIcon: pizzaOutline,
-          mdIcon: pizzaSharp,
-          lines: "none",
-        },
-
-        {
-          title: "Compendium",
-          url: "/game-master",
-          iosIcon: fitnessOutline,
-          mdIcon: fitnessSharp,
-          lines: "none",
-        },
-
-        {
-          title: "",
-        },
-        {
-          title: "Select Profile",
-          url: "/xp-profile/",
-
-          iosIcon: fingerPrintOutline,
-          mdIcon: fingerPrintSharp,
-          lines: "none",
-        },
-      ],
-    };
-  },
-  computed: {
-    ...mapState(["theme", "bgm"]),
-    logoutMenuItem() {
-      const { appPages } = this;
-      return appPages.find((item) => item.title === "Log Out");
     },
-  },
-  methods: {
-    setMenuItem(index) {
-      this.activeMenuItem = index;
-    },
-    initialIndex(): number {
-      const pathname = window.location.pathname;
-      const menu = this.getCurrentMenu();
+    methods: {
+      setMenuItem(index) {
+        this.activeMenuItem = index;
+      },
+      initialIndex(): number {
+        const pathname = window.location.pathname;
+        const menu = this.getCurrentMenu();
 
-      // Find the menu item whose URL matches the current path
-      const index = menu.findIndex(
-        (page) => page.url && pathname.startsWith(page.url)
-      );
+        // Find the menu item whose URL matches the current path
+        const index = menu.findIndex(
+          (page) => page.url && pathname.startsWith(page.url)
+        );
 
-      // Return the found index or 0 if no match
-      return index >= 0 ? index : 0;
-    },
-    ...mapActions(["changeBGM", "turnMusicOnOff", "changeSoundFX"]),
-    getCurrentMenu() {
-      const { appPages, appPagesAnon, isLoggedIn } = this;
-      return isLoggedIn ? appPages : appPagesAnon;
-    },
-    bgmToggle($event) {
-      // Call the store action directly instead of just emitting
-      this.turnMusicOnOff($event.detail.checked);
-      // Still emit the event for any parent components that might be listening
-      this.$emit("toggleBGM", $event);
-    },
+        // Return the found index or 0 if no match
+        return index >= 0 ? index : 0;
+      },
+      ...{
+        changeBGM(payload: any) { return (this as any).audioStore.changeBGM(payload) },
+        turnMusicOnOff(payload: any) { return (this as any).audioStore.turnMusicOnOff(payload) },
+        changeSoundFX(payload: any) { return (this as any).gameStore.changeSoundFX(payload) },
+      },
+      getCurrentMenu() {
+        const { appPages, appPagesAnon, isLoggedIn } = this;
+        return isLoggedIn ? appPages : appPagesAnon;
+      },
+      bgmToggle($event) {
+        // Call the store action directly instead of just emitting
+        this.turnMusicOnOff($event.detail.checked);
+        // Still emit the event for any parent components that might be listening
+        this.$emit("toggleBGM", $event);
+      },
 
-    bgmNext() {
-      this.changeBGM(1);
-      this.$emit("changeBGM", 1);
-    },
+      bgmNext() {
+        this.changeBGM(1);
+        this.$emit("changeBGM", 1);
+      },
 
-    bgmPrev() {
-      this.changeBGM(-1);
-      this.$emit("changeBGM", -1);
-    },
+      bgmPrev() {
+        this.changeBGM(-1);
+        this.$emit("changeBGM", -1);
+      },
 
-    handleChangeBGM(direction) {
-      // Call the store action directly
-      this.changeBGM(direction);
-      // Still emit the event for any parent components
-      this.$emit("changeBGM", direction);
+      handleChangeBGM(direction) {
+        // Call the store action directly
+        this.changeBGM(direction);
+        // Still emit the event for any parent components
+        this.$emit("changeBGM", direction);
+      },
+      navigateToGpPage() {
+        this.$fx.ui[this.$fx.theme.ui].select.play();
+        this.$router.push("/about-xp/gp");
+      },
+      navigateToXpPage() {
+        this.$fx.ui[this.$fx.theme.ui].select.play();
+        this.$router.push("/about-xp/xp");
+      },
+      navigateToApPage() {
+        this.$fx.ui[this.$fx.theme.ui].select.play();
+        this.$router.push("/about-xp/ap");
+      },
     },
-    navigateToGpPage() {
-      this.$fx.ui[this.$fx.theme.ui].select.play();
-      this.$router.push("/about-xp/gp");
-    },
-    navigateToXpPage() {
-      this.$fx.ui[this.$fx.theme.ui].select.play();
-      this.$router.push("/about-xp/xp");
-    },
-    navigateToApPage() {
-      this.$fx.ui[this.$fx.theme.ui].select.play();
-      this.$router.push("/about-xp/ap");
-    },
-  },
-  setup() {
-    const store = useStore();
-    const route = useRoute();
+    setup() {
+      const userStore = useUserStore();
+      const audioStore = useAudioStore();
+      const gameStore = useGameStore();
+      const route = useRoute();
 
-    return {
-      isLoggedIn: computed(() => store.getters.isLoggedIn),
-      route,
-    };
-  },
-  mounted() {
-    // Set the active menu item based on the current URL when component mounts
-    this.activeMenuItem = this.initialIndex();
-  },
-  watch: {
-    // Update active menu item when route changes
-    $route() {
+      return {
+        isLoggedIn: computed(() => userStore.currentUser.isAuthenticated),
+        route,
+        userStore,
+        audioStore,
+        gameStore
+      };
+    },
+    mounted() {
+      // Set the active menu item based on the current URL when component mounts
       this.activeMenuItem = this.initialIndex();
     },
-  },
-});
+    watch: {
+      // Update active menu item when route changes
+      $route() {
+        this.activeMenuItem = this.initialIndex();
+      },
+    },
+  });
 </script>
 
 <style lang="scss">
-.menu-spacer {
-  flex: 1;
-  min-height: 20px;
-}
+  .menu-spacer {
+    flex: 1;
+    min-height: 20px;
+  }
 
 
-ion-content {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-
-  ::v-deep(.inner-scroll) {
+  ion-content {
     display: flex;
     flex-direction: column;
+    height: 100%;
+
+    ::v-deep(.inner-scroll) {
+      display: flex;
+      flex-direction: column;
+    }
+
   }
 
-}
+  .logout-section {
+    margin-top: auto;
+    padding-bottom: 20px;
+  }
 
-.logout-section {
-  margin-top: auto;
-  padding-bottom: 20px;
-}
+  /* Music player specific styling */
+  ion-footer {
+    ion-menu-toggle {
+      display: block;
 
-/* Music player specific styling */
-ion-footer {
-  ion-menu-toggle {
-    display: block;
-
-    .xp-music-player {
-      padding: 8px 12px;
-      margin-bottom: 10px;
-      border-top: 1px solid rgba(var(--ion-color-primary-rgb), 0.2);
-      border-bottom: 1px solid rgba(var(--ion-color-primary-rgb), 0.2);
-      background-color: rgba(var(--ion-color-primary-rgb), 0.05);
+      .xp-music-player {
+        padding: 8px 12px;
+        margin-bottom: 10px;
+        border-top: 1px solid rgba(var(--ion-color-primary-rgb), 0.2);
+        border-bottom: 1px solid rgba(var(--ion-color-primary-rgb), 0.2);
+        background-color: rgba(var(--ion-color-primary-rgb), 0.05);
+      }
     }
   }
-}
 </style>

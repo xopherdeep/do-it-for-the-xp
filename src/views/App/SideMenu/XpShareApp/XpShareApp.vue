@@ -11,7 +11,7 @@
           />
         </ion-buttons>
         <ion-title>
-          Tell A Friend
+          Invite Your Friends
         </ion-title>
       </ion-toolbar>
     </ion-header>
@@ -57,7 +57,7 @@
                   <ion-icon
                     :icon="sparklesOutline"
                     slot="start"
-                    color="warning"
+                    color="success"
                   ></ion-icon>
                   <ion-label>
                     <h2>+50 XP</h2>
@@ -68,7 +68,7 @@
                   <ion-icon
                     :icon="cashOutline"
                     slot="start"
-                    color="success"
+                    color="warning"
                   ></ion-icon>
                   <ion-label>
                     <h2>+100 GP</h2>
@@ -79,7 +79,7 @@
                   <ion-icon
                     :icon="cubeOutline"
                     slot="start"
-                    color="secondary"
+                    color="danger"
                   ></ion-icon>
                   <ion-label>
                     <h2>Mystery Item</h2>

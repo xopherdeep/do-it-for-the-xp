@@ -1,6 +1,6 @@
 import { defineComponent } from 'vue'
 import { useRouter } from 'vue-router'
-import { useStore } from 'vuex'
+import { useGameStore } from '@/lib/store/stores/game'
 import { alertController, toastController } from '@ionic/vue'
 import debug from '@/lib/utils/debug'
 
@@ -65,16 +65,6 @@ export default defineComponent({
       }
     ];
 
-    // Only show dev tools when dev mode is explicitly enabled, regardless of environment
-    if (this.$store.state.devMode) {
-      tiles.push({
-        src: '/support/dev-tools',
-        title: 'Developer Tools',
-        desc: 'Access developer tools and demos for testing.',
-        icon: 'fa-construction'
-      });
-    }
-
     return {
       tiles,
       helpIconClicks: 0
@@ -99,50 +89,58 @@ export default defineComponent({
   },
   setup() {
     const router = useRouter();
-    const store = useStore();
-    
+    const gameStore = useGameStore();
+
     const navigateTo = (path: string) => {
       debug.log('Navigating to:', path);
       router.push(path);
     };
-    
+
     return {
       navigateTo,
       helpOutline,
       helpSharp,
-      store
+      gameStore
     }
   },
   mounted() {
     // Check if dev mode was previously enabled
     const savedDevMode = localStorage.getItem('xp-dev-mode') === 'true';
-    if (savedDevMode && !this.$store.state.devMode) {
-      this.$store.commit('SET_DEV_MODE', true);
+    if (savedDevMode && !this.gameStore.devMode) {
+      this.gameStore.setDevMode(true);
+    }
+    
+    // Add dev tools tile if dev mode is enabled
+    if (this.gameStore.devMode) {
+      this.tiles.push({
+        src: '/support/dev-tools',
+        title: 'Developer Tools',
+        desc: 'Access developer tools and demos for testing.',
+        icon: 'fa-construction'
+      });
     }
   },
   methods: {
     onHelpIconClick() {
       this.helpIconClicks++;
-      
+
       // Play a subtle sound effect on each click
-      if (this.$fx && this.$fx.ui && this.$fx.theme && this.$fx.theme.ui) {
-        this.$fx.ui[this.$fx.theme.ui].select.play();
-      }
-      
+      this.play$fx("select");
+
       // After 7 clicks, show the dev mode confirmation
       if (this.helpIconClicks === 7) {
         this.showDevModeConfirmation();
         this.helpIconClicks = 0; // Reset counter
       }
     },
-    
+
     async showDevModeConfirmation() {
-      const isDevMode = this.$store.state.devMode;
-      
+      const isDevMode = this.gameStore.devMode;
+
       const alert = await alertController.create({
         backdropDismiss: false,
         header: isDevMode ? 'Disable Developer Mode?' : 'Enable Developer Mode?',
-        message: isDevMode 
+        message: isDevMode
           ? 'Are you sure you want to disable developer tools?'
           : 'This enables additional developer features for advanced users.',
         buttons: [
@@ -154,9 +152,9 @@ export default defineComponent({
             text: isDevMode ? 'Disable' : 'Enable',
             handler: () => {
               const newMode = !isDevMode;
-              this.$store.commit('SET_DEV_MODE', newMode);
+              this.gameStore.setDevMode(newMode);
               localStorage.setItem('xp-dev-mode', newMode.toString());
-              
+
               // If enabling dev mode, refresh tiles to show dev tools option
               if (newMode) {
                 this.tiles = [...this.tiles, {
@@ -169,17 +167,17 @@ export default defineComponent({
                 // If disabling, remove the dev tools option
                 this.tiles = this.tiles.filter(tile => tile.src !== '/support/dev-tools');
               }
-              
+
               // Show toast notification
               this.showDevModeToast(newMode);
             }
           }
         ]
       });
-      
+
       await alert.present();
     },
-    
+
     async showDevModeToast(isEnabled: boolean) {
       const toast = await toastController.create({
         message: isEnabled ? '🛠️ Developer Mode Enabled' : '🔒 Developer Mode Disabled',
@@ -193,7 +191,7 @@ export default defineComponent({
           }
         ]
       });
-      
+
       await toast.present();
     }
   }

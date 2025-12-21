@@ -158,7 +158,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed } from 'vue'
-import { useStore } from 'vuex'
+  import { useUserStore } from '@/lib/store/stores/user'
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
   IonList, IonItem, IonLabel, IonToggle, IonCard,
@@ -178,7 +178,7 @@ export default defineComponent({
   },
   mixins: [ionic],
   setup() {
-    const store = useStore()
+    const userStore = useUserStore()
     const settings = ref({
       lockFamily: false,
       allowPartyCreation: true,
@@ -189,8 +189,8 @@ export default defineComponent({
       permissions: {} as Record<string, { canPost: boolean, canView: boolean }>
     })
 
-    // Get all users from Vuex store
-    const users = computed(() => store.getters.usersAz)
+    // Get all users from Pinia store
+    const users = computed(() => userStore.usersAz)
 
     // Initialize permissions for all users
     users.value.forEach(user => {

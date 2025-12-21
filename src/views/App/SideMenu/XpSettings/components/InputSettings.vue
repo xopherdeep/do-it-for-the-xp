@@ -140,7 +140,7 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, ref } from "vue";
+  import { defineComponent, ref } from "vue";
 
 import {
   toastController,
@@ -150,18 +150,22 @@ import Ionic from "@/mixins/ionic";
 
 
 import { volumeHigh, volumeLow } from "ionicons/icons";
-import { mapActions, mapState, useStore } from "vuex";
+  import { useAudioStore } from "@/lib/store/stores/audio";
+  import { useGameStore } from "@/lib/store/stores/game";
 
 export default defineComponent({
   name: "input-settings",
   mixins: [Ionic],
 
   computed: {
-    ...mapState(["theme", "bgm"]),
+    theme() { return (this as any).gameStore.theme },
+    bgm() { return (this as any).audioStore.bgm },
   },
 
   methods: {
-    ...mapActions(["changeBGM", "turnMusicOnOff", "changeSoundFX"]),
+    changeBGM(payload: any) { return (this as any).audioStore.changeBGM(payload) },
+    turnMusicOnOff() { return (this as any).audioStore.turnMusicOnOff() },
+    changeSoundFX(payload: any) { return (this as any).gameStore.changeSoundFX(payload) },
     changeBGMToggle($ev) {
       const is_on = $ev.detail.checked;
       const { play$fx, changeBGM, turnMusicOnOff } = this;
@@ -252,7 +256,8 @@ export default defineComponent({
   },
 
   setup() {
-    const store = useStore();
+    const audioStore = useAudioStore();
+    const gameStore = useGameStore();
     const musicVolume = ref(80);
     const effectsVolume = ref(70);
     const soundEffectsEnabled = ref(true);
@@ -260,8 +265,8 @@ export default defineComponent({
     const volumeToastTimeout = ref<ReturnType<typeof setTimeout> | null>(null);
 
     return {
-      bgm: computed(() => store.state.bgm),
-      theme: computed(() => store.state.theme),
+      audioStore,
+      gameStore,
       musicVolume,
       effectsVolume,
       soundEffectsEnabled,

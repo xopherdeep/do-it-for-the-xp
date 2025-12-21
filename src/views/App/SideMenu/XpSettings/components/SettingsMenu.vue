@@ -104,7 +104,7 @@
     mixins: [ionic],
     props: {
       menuItems: {
-        type: Array,
+        type: Array as () => Array<{ route: string; icon: any; title: string }>,
         required: true,
       },
     },

@@ -17,11 +17,11 @@ import Stats from "@/lib/utils/User/stats";
 export const AddProfile = defineComponent({
   props: ["id", "profile", "showIsAdult"],
   mixins: [ionic],
-  components: { 
-    InputSettings, 
-    XpGp, 
+  components: {
+    InputSettings,
+    XpGp,
     GamerCard,
-    AvatarSelector 
+    AvatarSelector
   },
   methods: {
     async loadProfile() {
@@ -48,7 +48,7 @@ export const AddProfile = defineComponent({
 
       // Show success splash
       this.showSuccessSplash = true;
-        
+
       // Play fanfare sound using the mixin method
       this.play$fx('levelUp');
 
@@ -203,6 +203,7 @@ export const AddProfile = defineComponent({
       profileAdded,
       isAvatarSelectorOpen,
       showSuccessSplash,
+      $requireAvatar,
     };
   },
 });
