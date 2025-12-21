@@ -20,88 +20,201 @@
       v-if="user && user.stats"
       class="ion-padding rpg-box bg-slide"
     >
-      <ion-grid>
-        <ion-row>
-          <ion-col size="12" size-md="6">
-            <ion-card>
-              <ion-card-header>
-                <ion-avatar class="mx-auto">
-                  <ion-img :src="$requireAvatar(`./${user.avatar}.svg`)" />
+      <!-- Single Consolidated Card -->
+      <ion-card class="profile-card">
+        <!-- Hero Section -->
+        <ion-card-header class="hero-section">
+          <div class="hero-container">
+            <!-- Left Side: Avatar -->
+            <div class="hero-avatar-side">
+              <div class="hero-avatar-wrapper">
+                <ion-avatar class="hero-avatar">
+                  <ion-img :src="$requireAvatar(`./${user.avatar || '001-gamer'}.svg`)" />
                 </ion-avatar>
-                <ion-card-title class="text-center mt-2">{{ user.name?.nick }}</ion-card-title>
-                <ion-card-subtitle class="text-center">{{ user.jobClass || 'Adventurer' }}</ion-card-subtitle>
-              </ion-card-header>
-              <ion-card-content>
-                <ion-list>
-                  <ion-item>
-                    <ion-label>Level</ion-label>
-                    <ion-badge color="success">{{ user.stats?.level || 1 }}</ion-badge>
-                  </ion-item>
-                  <ion-item>
-                    <ion-label>HP</ion-label>
-                    <ion-note slot="end" color="danger">{{ user.stats?.hp?.now || 0 }}/{{ user.stats?.hp?.max || 0 }}</ion-note>
-                  </ion-item>
-                  <ion-item>
-                    <ion-label>MP</ion-label>
-                    <ion-note slot="end" color="tertiary">{{ user.stats?.mp?.now || 0 }}/{{ user.stats?.mp?.max || 0 }}</ion-note>
-                  </ion-item>
-                  <ion-item>
-                    <ion-label>GP</ion-label>
-                    <ion-note slot="end" color="warning">{{ user.stats?.gp?.wallet || 0 }}</ion-note>
-                  </ion-item>
-                </ion-list>
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-          
-          <ion-col
-            v-for="(area, category) in areas"
-            :key="category"
-            size="12"
-            size-md="6"
-          >
-            <ion-card>
-              <ion-accordion-group>
-                <ion-accordion :value="category">
-                  <ion-item slot="header">
-                    <ion-note slot="start">
-                      <ion-icon
-                        size="large"
-                        :color="area.color"
-                        :icon="area.icon"
-                      ></ion-icon>
-                    </ion-note>
-                    <ion-label :color="area.color">
-                      <strong>{{ category }}</strong>
-                    </ion-label>
-                  </ion-item>
-                  <ion-list slot="content">
-                    <ion-item
-                      v-for="(desc, stat) in area.stats"
-                      :key="stat"
-                    >
-                      <ion-label :color="area.color">
-                        <strong>
-                          {{ stat }}
-                        </strong>
-                        <p>
-                          {{ desc }}
-                        </p>
-                      </ion-label>
-                      <ion-note
-                        slot="end"
-                        :color="area.color"
-                      >
-                        {{ user.stats[stat] || 0 }}
-                      </ion-note>
-                    </ion-item>
-                  </ion-list>
-                </ion-accordion>
-              </ion-accordion-group>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
+                <div class="level-badge">
+                  <ion-badge color="success">Lv.{{ user.stats?.level || 1 }}</ion-badge>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right Side: Info -->
+            <div class="hero-info-side">
+              <ion-card-title class="profile-name">{{ user.name?.nick }}</ion-card-title>
+
+              <!-- XP Bar Section -->
+              <div class="xp-section">
+                <div class="xp-header">
+                  <span class="xp-label">XP</span>
+                  <span class="xp-percent">{{ Math.round(xpProgress * 100) }}%</span>
+                </div>
+                <ion-progress-bar
+                  color="success"
+                  :value="xpProgress"
+                  class="xp-bar"
+                ></ion-progress-bar>
+              </div>
+
+              <!-- Class & Food Row -->
+              <div class="hero-stats-row">
+                <div class="hero-stat-item">
+                  <div class="stat-icon-wrapper class-color">
+                    <i :class="`fad ${getClassIcon(user.jobClass)} fa-2x`"></i>
+                  </div>
+                  <div class="stat-text">
+                    <span class="stat-label">CLASS</span>
+                    <span class="stat-value">{{ user.jobClass || 'Adventurer' }}</span>
+                  </div>
+                </div>
+                <div
+                  v-if="user.favoriteFood"
+                  class="hero-stat-item"
+                >
+                  <div class="stat-icon-wrapper food-color">
+                    <i :class="`fad ${getFoodIcon(user.favoriteFood)} fa-2x`"></i>
+                  </div>
+                  <div class="stat-text">
+                    <span class="stat-label">FAVORITE FOOD</span>
+                    <span class="stat-value">{{ user.favoriteFood }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Current Activity & Race (Smaller) -->
+          <div class="hero-footer-row">
+            <ion-chip
+              v-if="user.race"
+              color="tertiary"
+              outline
+              size="small"
+            >
+              <i class="fad fa-dna"></i>
+              <ion-label>{{ user.race }}</ion-label>
+            </ion-chip>
+            <div
+              v-if="user.currentActivity"
+              class="activity-status"
+            >
+              <ion-badge
+                color="success"
+                class="status-pulse"
+              >
+                <i class="fad fa-running mr-1"></i>
+                {{ user.currentActivity }}
+              </ion-badge>
+            </div>
+          </div>
+        </ion-card-header>
+
+        <ion-card-content class="stats-content">
+          <!-- Vitals Row -->
+          <div class="vitals-grid">
+            <div class="vital-item vital-hp">
+              <div class="vital-icon">
+                <i class="fad fa-heart fa-lg"></i>
+              </div>
+              <div class="vital-info">
+                <span class="vital-label">HP</span>
+                <ion-progress-bar
+                  color="danger"
+                  :value="(user.stats?.hp?.now || 0) / (user.stats?.hp?.max || 1)"
+                ></ion-progress-bar>
+                <span class="vital-value">{{ user.stats?.hp?.now || 0 }}/{{ user.stats?.hp?.max || 0 }}</span>
+              </div>
+            </div>
+            <div class="vital-item vital-mp">
+              <div class="vital-icon">
+                <i class="fad fa-sparkles fa-lg"></i>
+              </div>
+              <div class="vital-info">
+                <span class="vital-label">MP</span>
+                <ion-progress-bar
+                  color="tertiary"
+                  :value="(user.stats?.mp?.now || 0) / (user.stats?.mp?.max || 1)"
+                ></ion-progress-bar>
+                <span class="vital-value">{{ user.stats?.mp?.now || 0 }}/{{ user.stats?.mp?.max || 0 }}</span>
+              </div>
+            </div>
+            <div class="vital-item vital-gp">
+              <div class="vital-icon">
+                <i class="fad fa-coins fa-lg"></i>
+              </div>
+              <div class="vital-info">
+                <span class="vital-label">GP</span>
+                <span class="vital-value large">{{ user.stats?.gp?.wallet || 0 }}</span>
+              </div>
+            </div>
+            <div class="vital-item vital-ap">
+              <div class="vital-icon">
+                <i class="fad fa-hand-holding-magic fa-lg"></i>
+              </div>
+              <div class="vital-info">
+                <span class="vital-label">AP</span>
+                <span class="vital-value large">
+                  {{ (typeof user.stats?.ap === 'object' ? user.stats?.ap?.total : user.stats?.ap) || 0 }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stacked Accordions for Stats -->
+          <ion-accordion-group class="stats-accordions">
+            <ion-accordion
+              v-for="(area, category) in areas"
+              :key="category"
+              :value="category"
+            >
+              <ion-item
+                slot="header"
+                class="stat-header"
+              >
+                <i
+                  slot="start"
+                  class="fad fa-lg stat-icon"
+                  :class="getAreaFaIcon(category)"
+                  :style="{ color: `var(--ion-color-${area.color})` }"
+                ></i>
+                <ion-label :color="area.color">
+                  <strong class="capitalize">{{ category }}</strong>
+                </ion-label>
+                <ion-note
+                  slot="end"
+                  :color="area.color"
+                >
+                  {{ getAreaTotal(area, user.stats) }}
+                </ion-note>
+              </ion-item>
+              <ion-list
+                slot="content"
+                class="stat-list"
+              >
+                <ion-item
+                  v-for="(desc, stat) in area.stats"
+                  :key="stat"
+                  lines="none"
+                  class="stat-item"
+                >
+                  <ion-label>
+                    <h3
+                      class="capitalize"
+                      :style="{ color: `var(--ion-color-${area.color})` }"
+                    >{{ stat }}</h3>
+                    <p class="stat-desc">{{ desc }}</p>
+                  </ion-label>
+                  <ion-badge
+                    slot="end"
+                    :color="area.color"
+                    class="stat-badge"
+                  >
+                    {{ user.stats[stat] || 0 }}
+                  </ion-badge>
+                </ion-item>
+              </ion-list>
+            </ion-accordion>
+          </ion-accordion-group>
+        </ion-card-content>
+      </ion-card>
     </ion-content>
   </ion-page>
 </template>
