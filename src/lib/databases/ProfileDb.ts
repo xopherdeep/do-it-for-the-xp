@@ -1,7 +1,7 @@
 import Stats from '@/lib/utils/User/stats';
 import DbStorageApi from './DbStorageApi';
 import User from '@/lib/utils/User';
-import PersistentStorageService from '@/lib/utils/PersistentStorageService';
+import StorageService from '@/lib/services/core/StorageService';
 
 import { Entry, SpecialStats } from '@/lib/utils/User/stats';
 import debug from '@/lib/utils/debug';
@@ -102,7 +102,7 @@ export class ProfileDb extends DbStorageApi {
   public async backupProfiles() {
     try {
       const profiles = await this.getAll()
-      await PersistentStorageService.saveProfiles(profiles)
+      await StorageService.saveProfiles(profiles)
     } catch (error) {
       debug.error('Failed to backup profiles:', error)
     }
@@ -115,7 +115,7 @@ export class ProfileDb extends DbStorageApi {
   public async restoreProfiles(): Promise<boolean> {
     try {
       // Get profiles from persistent storage
-      const profiles = await PersistentStorageService.getProfiles()
+      const profiles = await StorageService.getProfiles()
       
       if (!profiles || profiles.length === 0) {
         debug.log('No profiles found in persistent storage')
@@ -145,7 +145,7 @@ export class ProfileDb extends DbStorageApi {
    */
   public async exportProfiles(): Promise<string> {
     const profiles = await this.getAll()
-    return PersistentStorageService.exportProfilesToFile(profiles)
+    return StorageService.exportProfilesToFile(profiles)
   }
   
   /**
@@ -153,7 +153,7 @@ export class ProfileDb extends DbStorageApi {
    */
   public async importProfiles(fileContent: string): Promise<boolean> {
     try {
-      const profiles = await PersistentStorageService.importProfilesFromJson(fileContent)
+      const profiles = await StorageService.importProfilesFromJson(fileContent)
       
       // Add each profile
       for (const profile of profiles) {

@@ -2,6 +2,7 @@ import Api from "@/lib/api";
 import XpApi from "@/lib/api/doit.forthexp.com.api";
 import { AudioEngine } from '@/lib/engine/audio/AudioEngine';
 import debug from '@/lib/utils/debug';
+import { getGPService } from '@/lib/services/gp/GPService';
 
 export default {
   getSingleById({ getters, commit }, request) {
@@ -255,4 +256,15 @@ export default {
   setArea({ commit }, area) {
     commit("SET_AREA", area);
   },
+
+  /**
+   * Update User GP
+   * Updates wallet, savings, and debt for a user
+   */
+  updateUserGP({ commit }, { userId, wallet, savings, debt }) {
+    commit("UPDATE_USER_GP", { userId, wallet, savings, debt });
+
+    // Persist to backend (or local storage)
+    return getGPService().syncGP(userId);
+  }
 };

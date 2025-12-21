@@ -86,5 +86,25 @@ export default {
   },
   SET_AREA(state, area) {
     state.area = area
+  },
+  UPDATE_USER_GP(state, { userId, wallet, savings, debt }) {
+    if (state.users[userId]) {
+      const userStats = state.users[userId].stats || { gp: { wallet: 0, savings: 0, debt: 0, limit: 1000 } };
+      
+      // Initialize stats if missing
+      if (!userStats.gp) userStats.gp = { wallet: 0, savings: 0, debt: 0, limit: 1000 };
+      
+      if (wallet !== undefined) userStats.gp.wallet = (userStats.gp.wallet || 0) + wallet;
+      if (savings !== undefined) userStats.gp.savings = (userStats.gp.savings || 0) + savings;
+      if (debt !== undefined) userStats.gp.debt = (userStats.gp.debt || 0) + debt;
+      
+      // Update state
+      state.users[userId].stats = userStats;
+      
+      // Also update currently logged in user if it matches
+      if (state.user.id === userId) {
+        state.user.stats = userStats;
+      }
+    }
   }
 };
