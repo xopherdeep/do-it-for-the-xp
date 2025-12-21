@@ -29,6 +29,7 @@
 
     "tests/**/*.ts",
     "tests/**/*.js",
+    "src/views/Console/TempleGrounds/TempleGrounds.vue",
   ],
   "exclude": [
     "node_modules",

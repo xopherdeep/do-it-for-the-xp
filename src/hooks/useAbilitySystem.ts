@@ -1,65 +1,89 @@
-import { ref, computed, onMounted, watch } from 'vue';
-import { abilitySystem } from '@/lib/engine/core/abilities/abilities';
+import { ref, computed, onMounted } from 'vue';
+import { getAbilityService } from '@/lib/services/abilities';
 import type { Ability, AbilityType } from '@/lib/types/abilities';
+import debug from '@/lib/utils/debug';
 
 /**
- * Hook that provides access to the AbilitySystem
+ * Hook that provides access to the AbilityService
  * Makes it easy to manage abilities in Vue components
  */
 export function useAbilitySystem() {
-  const isInitialized = ref(abilitySystem.state.initialized);
-  const abilities = computed(() => abilitySystem.getAbilities());
-  const activePresetType = computed(() => abilitySystem.state.activePresetType);
-  
+  const isInitialized = ref(false);
+  const abilities = ref<Ability[]>([]);
+  const activePresetType = ref<string | null>(null);
+  const isLoading = ref(false);
+  const service = getAbilityService();
+
+  const fetchAbilities = async () => {
+    isLoading.value = true;
+    try {
+      abilities.value = await service.getAllAbilities();
+    } catch (error) {
+      debug.error('Failed to fetch abilities', error);
+    } finally {
+      isLoading.value = false;
+    }
+  };
+
   // Initialize if not already done
-  onMounted(() => {
+  onMounted(async () => {
     if (!isInitialized.value) {
-      abilitySystem.initialize();
+      await fetchAbilities();
       isInitialized.value = true;
     }
   });
-  
-  // Watch initialization state
-  watch(() => abilitySystem.state.initialized, (newValue) => {
-    isInitialized.value = newValue;
-  });
-  
+
   // Function to get abilities by type
   const getAbilitiesByType = (type: AbilityType) => {
-    return abilitySystem.getAbilitiesByType(type);
+    return abilities.value.filter(ability => ability.type === type);
   };
   
   // Function to add a new ability
-  const addAbility = (ability: Ability) => {
-    abilitySystem.addAbility(ability);
+  const addAbility = async (ability: Ability) => {
+    await service.saveAbility(ability);
+    await fetchAbilities(); // Refresh list
   };
   
   // Function to update an existing ability
-  const updateAbility = (ability: Ability) => {
-    return abilitySystem.updateAbility(ability);
+  const updateAbility = async (ability: Ability) => {
+    await service.saveAbility(ability);
+    await fetchAbilities(); // Refresh list
+    return true;
   };
   
   // Function to delete an ability
-  const deleteAbility = (abilityId: string) => {
-    return abilitySystem.deleteAbility(abilityId);
+  const deleteAbility = async (abilityId: string) => {
+    // We need the full object to delete in current DB implementation
+    const ability = abilities.value.find(a => a.id === abilityId);
+    if (ability) {
+      await service.deleteAbility(ability);
+      await fetchAbilities();
+      return true;
+    }
+    return false;
   };
   
   // Function to load presets by type
   const loadPresetsByType = (presetType: string) => {
-    return abilitySystem.loadPresetsByType(presetType);
+    return service.loadPresetsByType(presetType);
   };
   
   // Function to apply a preset
-  const applyPreset = (presetId: string, presetType: string) => {
-    return abilitySystem.applyPreset(presetId, presetType);
+  const applyPreset = async (presetId: string, presetType: string) => {
+    const result = await service.applyPreset(presetId, presetType);
+    if (result) {
+      await fetchAbilities();
+    }
+    return result;
   };
   
   // Return everything needed by components
   return {
     // State
     isInitialized,
-    abilities,
+    abilities: computed(() => abilities.value), // Read-only access
     activePresetType,
+    isLoading,
     
     // Methods
     getAbilitiesByType,
@@ -67,6 +91,7 @@ export function useAbilitySystem() {
     updateAbility,
     deleteAbility,
     loadPresetsByType,
-    applyPreset
+    applyPreset,
+    refresh: fetchAbilities
   };
 }
