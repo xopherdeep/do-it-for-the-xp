@@ -94,36 +94,29 @@ import {
   sparklesOutline,
   keyOutline,
 } from "ionicons/icons";
-import userActions from "@/mixins/userActions";
-  import type { DefineUserActionComponent } from "@/mixins/userActions";
-import ionic from "@/mixins/ionic";
+  import userActions from "@/mixins/userActions";
+  import ionic from "@/mixins/ionic";
 
-  export default defineComponent<DefineUserActionComponent>({
+  export default defineComponent({
+    name: "my-party",
     mixins: [userActions as any, ionic as any],
-  ionViewDidEnter() {
-    this.setUserActions(this.userActions);
-  },
   components: {
     CardUserStats,
-    // IonButtons,
-    // IonMenuButton,
-
-    // IonButton,
+    },
+    ionViewDidEnter() {
+      (this as any).setUserActions((this as any).userActions);
   },
     computed: {
     users() {
-        return (this as any).userStore.usersAz;
+      return (this as any).userStore.usersAz;
     },
-  },
-  mounted() {
-    // this.$fx.ui[this.$fx.theme.ui].user.play()
-  },
+    },
   methods: {
     getUserAvatar(user: any) {
       const avatar = `./${user.avatar}.svg`;
       return (this as any).$requireAvatar(avatar);
     },
-    segmentChanged($event) {
+    segmentChanged($event: any) {
       $event.preventDefault();
     },
   },
