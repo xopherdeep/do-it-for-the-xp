@@ -1097,7 +1097,7 @@ export default defineComponent({
       isVictoryMessage,
       battleDialogRef,
       
-      // Methods for battle dialog
+      // Methods for battle dialog,
       queueBattleDialog,
       showNextBattleDialog,
       onBattleDialogComplete,

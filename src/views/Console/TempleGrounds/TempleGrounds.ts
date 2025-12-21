@@ -1,619 +1,474 @@
-import { defineComponent, ref } from "vue";
-import ionic from "@/mixins/ionic";
-import { alertController, toastController } from "@ionic/vue";
-import debug from "@/lib/utils/debug";
-
-import { ROOM_ICONS } from "@/lib/engine/dungeons/roomTypes";
-import { actionSheetController } from "@ionic/vue";
-import { mapGetters } from "vuex";
-
-import temples from "../../../lib/engine/temples";
-import { useRouter } from "vue-router";
+import { defineComponent, onMounted, computed, ref } from 'vue';
+import ionic from '@/mixins/ionic';
+import { actionSheetController, alertController } from '@ionic/vue';
+import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
+import { useRouter } from 'vue-router';
+import { useTemple } from '@/hooks/useTemple';
+import { registerAllTemples, registerCustomTemples } from '@/lib/engine/core/dungeons/TempleAdapter';
+import { importAllTempleLayouts } from '@/lib/engine/core/dungeons/importAllTemples';
+import temples from '../../../lib/engine/temples';
+import XpFabUserHud from '../MyPortal/UserHud/components/XpFabUserHud.vue';
+import XpUserPointsHud from '../MyPortal/UserHud/components/XpUserPointsHud.vue';
+import debug from '@/lib/utils/debug';
+import { useUserStore } from '@/lib/store/stores/user';
+import { play$fx } from "@/assets/fx"
 
 export default defineComponent({
-  props: ["userId", "temple", "x", "y"],
-  name: "temple-grounds",
+  props: ['userId', 'temple', 'x', 'y'],
+  name: 'temple-grounds-engine',
   mixins: [ionic],
-  data() {
-    return {
-      playerKeys: 0,
-      hasMap: false,
-      hasCompass: false,
-      isMapOpen: false,
-      rooms: {},
-      ROOM_ICONS,
-    };
+  components: {
+    XpFabUserHud,
+    XpUserPointsHud,
   },
-  computed: {
-    ...mapGetters(["getUserById"]),
-    user() {
-      return this.getUserById(this.userId);
-    },
-    templeBgImage() {
-      const [row, col] = this.currentPosition;
-      return (
-        require(`@/assets/images/backgrounds/${this.temple}/[${row},${col}].jpg`) ||
-        ""
-      );
-    },
-    chestContents() {
-      const { content } = this.currentRoom;
-      if (content && typeof content.chest !== "undefined") {
-        switch (content.chest) {
-          case "loot":
-            return content.items.map((item) => ({
-              name: item,
-              type: "checkbox",
-              label: item,
-              value: item,
-              checked: false,
-            }));
-            break;
-          case "dungeon":
-            return [
-              {
-                name: content.dungeon,
-                type: "checkbox",
-                label: content.dungeon,
-                value: content.dungeon,
-                checked: false,
-              },
-            ];
-            break;
-          default:
-            return [
-              {
-                name: "empty",
-                type: "checkbox",
-                label: "empty",
-                disabled: true,
-                checked: false,
-              },
-            ];
-        }
-      }
-      return {};
-    },
-    actionColor() {
-      switch (this.currentRoom.type) {
-        case "boss":
-        case "monster":
-          return "danger";
-        case "loot":
-          return this.currentRoom.content ? "warning" : "none";
-        case "entrance":
-        case "shop":
-        case "teleport":
-          return "success";
-        default:
-          return "primary";
-      }
-    },
-    roomActions() {
-      const { currentRoom, alertChestContents, alertEmptyChest } = this;
+  setup(props) {
+    const userStore = useUserStore();
+    
+    // Ensure users are loaded
+    if (Object.keys(userStore.users).length === 0) {
+      userStore.loadUsers();
+    }
 
-      const actions = {
-        header: "What would you like to do?",
-        buttons: [
-          {
-            text: "Leave Temple",
-            role: "cancel",
-            handler: () => {
-              //
-            },
-          },
-        ],
+    const user = computed(() => {
+      return userStore.getUserById(props.userId);
+    });
+
+    // Register predefined temples with the engine
+    registerAllTemples(temples);
+
+    // Import all temple layouts into the database
+    importAllTempleLayouts()
+      .then(() => debug.log('All temple layouts imported into TempleDb'))
+      .catch(err => debug.error('Failed to import temple layouts:', err));
+
+    // Register custom temples from the TempleDb
+    registerCustomTemples().catch(err => debug.error('Failed to register custom temples:', err));
+
+    // Get temple features from the composable
+    const {
+      currentPosition,
+      hasMap,
+      hasCompass,
+      playerKeys,
+      isMapOpen,
+      currentRoom,
+      maze,
+      rooms,
+      actionColor,
+      currentMessage,
+      showMessage,
+      canMoveUp,
+      canMoveDown,
+      canMoveLeft,
+      canMoveRight,
+      move,
+      isDoorLocked,
+      unlockDoor,
+      processChestItems,
+      handleTeleport,
+      toggleMap,
+      displayMessage,
+      chestContents,
+      isChestEmpty,
+      openMap,
+      closeMap,
+      // Map and compass utilities
+      showRoomDetails,
+      getRoomVisibility,
+      isCurrentRoom,
+      getRoomIcon,
+      getMapTileClass,
+      isRoomVisited
+    } = useTemple(props.temple, props.x && props.y ? [Number(props.y), Number(props.x)] : undefined);
+
+    const router = useRouter();
+
+    // Background position state for CSS transforms - initialize with default values
+    const backgroundPosition = ref({ x: 0, y: 0 });
+
+    // Tile dimensions for the background grid
+    const tileWidth = ref(window.innerWidth);
+    const tileHeight = ref(window.innerHeight - 140);
+
+    // Update tile dimensions when window resizes
+    onMounted(() => {
+      const updateDimensions = () => {
+        tileWidth.value = window.innerWidth;
+        tileHeight.value = window.innerHeight - 140;
+        const [row, col] = currentPosition.value;
+        updateBg(col, row);
       };
-      switch (currentRoom.type) {
-        case "loot":
-          actions.buttons = [
-            {
-              text: "Open Chest",
-              role: "open",
-              handler: currentRoom.content
-                ? alertChestContents
-                : alertEmptyChest,
-            },
-          ];
-          break;
-        case "monster":
-          actions.header = "A Monster approaches!";
-          actions.buttons = [
-            {
-              text: "Fight",
-              role: "fight",
-              handler: () => {
-                const { userId } = this;
-                this.$router.push({
-                  name: "battle-field",
-                  params: {
-                    userId,
-                  },
-                });
-              },
-            },
-          ];
-          break;
-        case "shop":
-          actions.header = "Can I interest you in my wares?";
-          actions.buttons = [
-            {
-              text: "View Wares",
-              role: "view",
-              handler: () => {
-                // handle shop
-              },
-            },
-          ];
-          break;
-        case "teleport":
-          actions.header = "You found a teleport!";
-          actions.buttons = [
-            {
-              text: "Teleport",
-              role: "teleport",
-              handler: () => {
-                this.handleTeleport();
-              },
-            },
-          ];
-          break;
-      }
 
-      actions.buttons.push({
-        text: "Cancel",
-        role: "cancel",
-        handler: () => {
-          //do nothing
-        },
-      });
+      window.addEventListener('resize', updateDimensions);
+      updateDimensions(); // Initial setup
+    });
 
-      return actions;
-    },
-    currentRoom() {
-      const [row, col] = this.currentPosition;
-      const roomKey = this.maze[row][col];
-      return this.rooms[roomKey] || null;
-    },
-    canMoveUp() {
-      const [row, col] = this.currentPosition;
-      if (row <= 0) return false;
-      return this.rooms[this.maze[row - 1][col]].type !== "wall";
-    },
-    canMoveDown() {
-      const [row, col] = this.currentPosition;
-      if (row >= this.maze.length - 1) return false;
-      return this.rooms[this.maze[row + 1][col]].type !== "wall";
-    },
-    canMoveLeft() {
-      const [row, col] = this.currentPosition;
-      if (col <= 0) return false;
-      return this.rooms[this.maze[row][col - 1]].type !== "wall";
-    },
-    canMoveRight() {
-      const [row, col] = this.currentPosition;
-      if (col >= this.maze[0].length - 1) return false;
-      return this.rooms[this.maze[row][col + 1]].type !== "wall";
-    },
-    validRoomCoords() {
-      const validCoords = [] as string[];
-      for (let row = 0; row < this.maze.length; row++) {
-        for (let col = 0; col < this.maze[row].length; col++) {
-          if (this.rooms[this.maze[row][col]].type !== "wall") {
-            validCoords.push(`[${row},${col}]`);
+    // Format the temple name for display
+    const templeName = computed(() => {
+      return props.temple.replace(/-/g, ' ');
+    });
+
+    // Calculate valid room coordinates for background images
+    const validRoomCoords = computed(() => {
+      const coords: string[] = [];
+
+      for (let row = 0; row < maze.value.length; row++) {
+        for (let col = 0; col < maze.value[row].length; col++) {
+          const roomKey = maze.value[row][col];
+          if (rooms.value[roomKey]?.type !== 'wall') {
+            coords.push(`[${row},${col}]`);
           } else {
-            validCoords.push(`[0,0]`);
+            coords.push(`[0,0]`);
           }
         }
       }
-      return validCoords;
-    },
-  },
 
-  methods: {
-    getBgImage(xy) {
-      return require(`@/assets/images/backgrounds/${this.temple}/${xy}.jpg`);
-    },
-    clickMap() {
-      this.play$fx("map");
-      this.isMapOpen = true;
-    },
-    dismissMap() {
-      this.isMapOpen = false;
-    },
-    // is row cell current room
-    isCurrentRoom(row, col) {
-      return this.currentPosition[0] === row && this.currentPosition[1] === col;
-    },
+      return coords;
+    });
 
-    async alertChestContents() {
-      const { chestContents: inputs, play$fx } = this;
-      play$fx("openChest");
-      const alert = await alertController.create({
-        header: "Chest Contents",
-        inputs,
-        buttons: [
-          {
-            text: "Leave",
-            role: "cancel",
-          },
-          {
-            text: "Loot",
-            handler: (selectedItems) => {
-              play$fx("yes");
-              this.handleLoot(selectedItems);
-            },
-          },
-        ],
-      });
-      alert.present();
-    },
-
-    async alertEmptyChest() {
-      const { play$fx } = this;
-      play$fx("openChest");
-
-      const dialog = await alertController.create({
-        header: "Chest is empty!",
-        buttons: [
-          {
-            text: "Ok okkk",
-            role: "cancel",
-            handler: () => {
-              play$fx("yes");
-            },
-          },
-        ],
-      });
-      dialog.present();
-    },
-    async handleLoot(selectedItems) {
-      // Make sure we have a valid currentRoom with content
-      if (!this.currentRoom || !this.currentRoom.content) {
-        this.showToast({
-          message: `Error: Chest appears to be empty`,
-          duration: 2000,
-        });
-        return;
+    // Helper to get background images
+    const getBgImage = (xy: string) => {
+      try {
+        return require(`@/assets/images/backgrounds/${props.temple}/${xy}.jpg`);
+      } catch {
+        return '';
       }
-      
-      selectedItems.forEach((item) => {
-        if (item === "key") {
-          this.playerKeys += 1;
-          this.play$fx("key");
-        } else if (this.currentRoom.content && this.currentRoom.content.dungeon === "map") {
-          this.hasMap = true;
-          this.play$fx("newItem");
-        } else if (this.currentRoom.content && this.currentRoom.content.dungeon === "compass") {
-          this.hasCompass = true;
-          this.play$fx("newItem");
-        }
-        
-        // Make sure content still exists (it might have been deleted in a previous iteration)
-        if (!this.currentRoom.content) return;
-        
-        // remove the item from the room's content items
-        if (this.currentRoom.content.items) {
-          this.currentRoom.content.items =
-            this.currentRoom.content.items.filter((i) => i !== item);
-          
-          // If all items are taken, mark the chest as empty
-          if (this.currentRoom.content.items.length === 0) {
-            this.currentRoom.isEmpty = true;
-          }
-        } else if (this.currentRoom.content.dungeon) {
-          delete this.currentRoom.content;
-          this.currentRoom.isEmpty = true;
-        }
-      });
+    };
 
-      // Force update of the room's state in the UI
-      const [row, col] = this.currentPosition;
-      const roomKey = this.maze[row][col];
-      this.rooms = { ...this.rooms, [roomKey]: { ...this.currentRoom } };
-      
-      this.showToast({
-        message: `Nice, you picked up ${selectedItems}!`,
-        duration: 2000,
-      });
-    },
-    clickFight() {
-      //
-    },
-    async showRoomActions() {
-      if (this.roomActions) {
-        this.play$fx("yes");
-        const actions = await actionSheetController.create(this.roomActions);
-        actions.present();
-      }
-    },
-    getRoomClass(cell, visited) {
-      if (!visited) {
-        return "fa-question"; // icon for unvisited rooms
-      }
-
-      const room = this.rooms[cell];
-      if (!room) return "empty";
-      
-      // For chest/loot rooms, check if they're empty
-      if (room.type.toLowerCase() === "loot" && room.isEmpty) {
-        return "empty-chest"; // This will be used for the fal (light) icon version
-      }
-      
-      return room.type.toLowerCase() || "empty";
-    },
-    async move(direction: "north" | "south" | "west" | "east") {
-      const { userId, temple } = this;
-      debug.log(`Player ${userId} moving ${direction} in ${temple} temple`);
-      
-      const [row, col] = this.currentPosition;
-      let newRow = row,
-        newCol = col;
-      const currentRoom = this.rooms[this.maze[row][col]];
-
-      switch (direction) {
-        case "north":
-          if (row > 0 && !currentRoom.locked?.north) newRow = row - 1;
-          else if (currentRoom.locked?.north)
-            await this.showUnlockDoorAlert(direction);
-          break;
-        case "south":
-          if (row < this.maze.length - 1 && !currentRoom.locked?.south)
-            newRow = row + 1;
-          break;
-        case "west":
-          if (col > 0 && !currentRoom.locked?.west) newCol = col - 1;
-          break;
-        case "east":
-          if (col < this.maze[0].length - 1 && !currentRoom.locked?.east)
-            newCol = col + 1;
-          break;
-      }
-
-      // Update background position
-      this.updateBg(newCol, newRow);
-
-      const newRoomKey = this.maze[newRow][newCol];
-      const newRoom = this.rooms[newRoomKey];
-
-      if (newRoom.type !== "wall") {
-        if (this.isDoorLocked(newRow, newCol)) {
-          await this.showUnlockDoorAlert(direction);
-        } else {
-          this.currentPosition = [newRow, newCol];
-
-          // Mark the room as visited
-          newRoom.visited = true;
-
-          // ... handle other room logic like picking up keys, etc.
-          // this.$router.replace({
-          //   // name: 'temple',
-          //   params: {
-          //     // userId,
-          //     x: newCol,
-          //     y: newRow,
-          //     // temple
-          //   }
-          // })
-        }
-      }
-    },
-    updateBg(x, y) {
+    // Update the background position visually
+    const updateBg = (x: number, y: number) => {
       // Get dimensions of a single image tile
-      const tileWidth = window.innerWidth; // Assuming full viewport width
-      const tileHeight = window.innerHeight - 140; // Assuming full viewport height
+      const tileWidth = window.innerWidth; // Full viewport width
+      const tileHeight = window.innerHeight - 140; // Account for header/footer
 
-      // Calculate translate values
+      // Calculate translate values - invert for proper positioning
       const translateX = -x * tileWidth;
       const translateY = -y * tileHeight;
 
-      // Update background position
-      const backgroundContainer = document.getElementById(
-        "background-container"
-      );
-      if (backgroundContainer)
-        backgroundContainer.style.transform = `translate(${translateX}px, ${translateY}px)`;
-    },
+      // Update the background position directly in our reactive state
+      backgroundPosition.value = { x: translateX, y: translateY };
+    };
 
-    async showUnlockDoorAlert(direction: "north" | "south" | "east" | "west") {
-      this.play$fx("error");
-      const buttons = this.playerKeys
+    // Show the unlock door alert
+    const showUnlockDoorAlert = async (direction: 'north' | 'south' | 'east' | 'west') => {
+      const buttons = playerKeys.value
         ? [
-            {
-              text: "Cancel",
-              role: "cancel",
-            },
-            {
-              text: "Unlock (-1 Key)",
-              handler: () => {
-                if (this.playerKeys > 0) {
-                  this.unlockDoor(direction);
-                }
-              },
-              // disabled: this.playerKeys <= 0
-            },
-          ]
-        : [
-            {
-              text: "Ok",
-              role: "cancel",
-            },
-          ];
+          { text: 'Cancel', role: 'cancel' },
+          {
+            text: 'Unlock (-1 Key)',
+            handler: () => {
+              if (playerKeys.value > 0) {
+                unlockDoor(direction);
+                displayMessage('Door unlocked!');
+              }
+            }
+          }
+        ]
+        : [{ text: 'Ok', role: 'cancel' }];
+
       const alert = await alertController.create({
-        header: "Locked Door",
+        header: 'Locked Door',
         message:
-          this.playerKeys > 0
-            ? "Would you like to use a key to unlock this door?"
-            : "You need a key to unlock this door!",
-        buttons,
+          playerKeys.value > 0
+            ? 'Would you like to use a key to unlock this door?'
+            : 'You need a key to unlock this door!',
+        buttons
       });
 
       await alert.present();
-    },
+    };
 
-    isDoorLocked(newRow, newCol) {
-      if (!this.currentPosition) return false;
-      const currentRoom =
-        this.rooms[this.maze[this.currentPosition[0]][this.currentPosition[1]]];
-      const direction = this.getDirection(newRow, newCol); // Assume you have a function to determine the direction ('north', 'south', etc.)
+    // Handle showing room actions
+    const showRoomActions = async () => {
+      if (!currentRoom.value) return;
 
-      // Check if the door in this direction is locked
-      return currentRoom.locked && currentRoom.locked[direction];
-    },
-    unlockDoor(direction: "north" | "south" | "east" | "west") {
-      const [row, col] = this.currentPosition;
-      const roomKey = this.maze[row][col];
-      const currentRoom = this.rooms[roomKey];
+      const actions = {
+        header: 'What would you like to do?',
+        buttons: [{ text: 'Cancel', role: 'cancel' } as any]
+      };
 
-      if (currentRoom.locked && currentRoom.locked[direction]) {
-        // Unlock the door if you have a key
-        if (this.playerKeys > 0) {
-          // Create a new copy of the locked object with the direction unlocked
-          const newLocked = { ...currentRoom.locked, [direction]: false };
-          
-          // Update the room with the new locked state
-          this.rooms = { 
-            ...this.rooms, 
-            [roomKey]: { 
-              ...currentRoom, 
-              locked: newLocked 
-            } 
-          };
-          
-          this.playerKeys -= 1; // subtract a key
-          this.play$fx("useKey");
-          this.play$fx("openDoor");
-          this.showToast({
-            message: "Door Unlocked",
-            duration: 2000,
-          });
-        }
-      }
-    },
-    async showToast(toastObj: any) {
-      const toast = await toastController.create({
-        ...toastObj,
-        position: "middle",
-      });
-      toast.present();
-    },
-    getDirection(newRow, newCol) {
-      const [currentRow, currentCol] = this.currentPosition;
+      switch (currentRoom.value.type) {
+        case 'entrance':
+          actions.header = 'Temple Entrance';
+          actions.buttons.unshift({
+            text: 'Leave Temple',
+            role: 'leave',
+            handler: () => {
+              // Get the world location for this temple
+              const templeWorldMap = getTempleWorldLocation(props.temple);
 
-      if (newRow < currentRow) return "north";
-      if (newRow > currentRow) return "south";
-      if (newCol < currentCol) return "west";
-      if (newCol > currentCol) return "east";
-      return null; // shouldn't happen, or you could throw an error
-    },
-    // Find the other teleport room coordinates in the temple
-    findOtherTeleport() {
-      const [currentRow, currentCol] = this.currentPosition;
-      
-      // Loop through all rooms to find other teleport rooms
-      for (let row = 0; row < this.maze.length; row++) {
-        for (let col = 0; col < this.maze[row].length; col++) {
-          // Skip the current room
-          if (row === currentRow && col === currentCol) continue;
-          
-          const roomKey = this.maze[row][col];
-          const room = this.rooms[roomKey];
-          
-          // If we found another teleport room, return its coordinates
-          if (room.type === "teleport") {
-            return [row, col];
+              // Navigate to the appropriate world map location
+              router.push({
+                name: templeWorldMap.route,
+                params: { userId: props.userId }
+              });
+            }
+          } as any);
+          break;
+        case 'loot':
+          // Check the chest state using our improved isChestEmpty computed property
+          if (isChestEmpty.value) {
+            actions.buttons.unshift({
+              text: 'Inspect Empty Chest',
+              role: 'open',
+              handler: () => {
+                showEmptyChestAlert();
+              }
+            } as any);
+          } else {
+            actions.buttons.unshift({
+              text: 'Open Chest',
+              role: 'open',
+              handler: () => {
+                showChestContentsDialog();
+              }
+            } as any);
           }
-        }
+          break;
+        case 'monster':
+          actions.header = 'A Monster approaches!';
+          actions.buttons.unshift({
+            text: 'Fight',
+            role: 'fight',
+            handler: () => {
+              router.push({
+                name: 'battle-field',
+                params: { userId: props.userId }
+              });
+            }
+          } as any);
+          break;
+        case 'shop':
+          actions.header = 'Can I interest you in my wares?';
+          actions.buttons.unshift({
+            text: 'View Wares',
+            role: 'view',
+            handler: () => {
+              // handle shop
+            }
+          } as any);
+          break;
+        case 'teleport':
+          actions.header = 'You found a teleport!';
+          actions.buttons.unshift({
+            text: 'Teleport',
+            role: 'teleport',
+            handler: () => {
+              if (handleTeleport()) {
+                // Update UI after teleport
+                setTimeout(() => {
+                  updateBg(currentPosition.value[1], currentPosition.value[0]);
+                }, 100);
+              }
+            }
+          } as any);
+          break;
       }
-      
-      // If no other teleport found, return current position (fallback)
-      return [currentRow, currentCol];
-    },
-    
-    // Handle teleport action
-    handleTeleport() {
-      this.play$fx("teleport");
-      
-      // Get the destination coordinates
-      const [destRow, destCol] = this.findOtherTeleport();
-      
-      // Update the background and position
-      this.updateBg(destCol, destRow);
-      this.currentPosition = [destRow, destCol];
-      
-      // Mark the destination room as visited
-      const destRoomKey = this.maze[destRow][destCol];
-      this.rooms[destRoomKey].visited = true;
-      
-      this.showToast({
-        message: "Teleported!",
-        duration: 2000,
-      });
-    },
-    async resetTemple() {
-      // Show confirmation dialog before resetting
+
+      const actionSheet = await actionSheetController.create(actions);
+      actionSheet.present();
+    };
+
+    // Get the appropriate world location for a temple
+    const getTempleWorldLocation = (templeId: string) => {
+      // Map temples to their world locations and route names
+      const templeWorldMap: Record<string, { world: string, route: string }> = {
+        'wind-temple': { world: 'plains', route: 'world-plains' },
+        'water-temple': { world: 'islands', route: 'world-islands' },
+        'earth-temple': { world: 'forest', route: 'world-forest' },
+        'fire-temple': { world: 'mountains', route: 'world-mountains' },
+        'ice-temple': { world: 'ice', route: 'world-ice' },
+        'light-temple': { world: 'desert', route: 'world-desert' },
+        'shadow-temple': { world: 'moon', route: 'world-moon' },
+        'lightning-temple': { world: 'clouds', route: 'world-clouds' }
+      };
+
+      // Return the world location or default to home-town if not found
+      return templeWorldMap[templeId] || { world: 'plains', route: 'home-town' };
+    };
+
+    // Handle movement with UI updates
+    const moveWithUpdate = (direction: 'north' | 'south' | 'east' | 'west') => {
+      const [row, col] = currentPosition.value;
+      let newRow = row;
+      let newCol = col;
+
+      switch (direction) {
+        case 'north':
+          newRow = row - 1;
+          break;
+        case 'south':
+          newRow = row + 1;
+          break;
+        case 'west':
+          newCol = col - 1;
+          break;
+        case 'east':
+          newCol = col + 1;
+          break;
+      }
+
+      // Check if door is locked
+      if (isDoorLocked(newRow, newCol)) {
+        showUnlockDoorAlert(direction);
+        return;
+      }
+
+      // Update the background FIRST to create the immediate visual feedback
+      // This makes the transition feel responsive right away
+      updateBg(newCol, newRow);
+
+      // THEN attempt to move in the game state
+      const result = move(direction);
+
+      // If movement failed for some reason, revert the background position
+      if (!result) {
+        updateBg(col, row);
+      }
+    };
+
+    // Show a dialog with chest contents
+    const showChestContentsDialog = async () => {
+      // Play chest opening sound effect
+      if (typeof play$fx === 'function') {
+        play$fx('openChest');
+      }
+
+      const inputs = chestContents.value;
+
+      if (inputs.length === 0) {
+        showEmptyChestAlert();
+        return;
+      }
+
       const alert = await alertController.create({
-        header: 'Reset Temple',
-        message: 'Are you sure you want to reset the temple? All progress will be lost.',
+        header: 'Chest Contents',
+        inputs,
         buttons: [
           {
-            text: 'Cancel',
+            text: 'Leave',
             role: 'cancel',
-            handler: () => {
-              this.play$fx('no');
-            },
           },
           {
-            text: 'Reset',
-            handler: () => {
-              this.play$fx('teleport');
-              
-              // Reset player state
-              this.playerKeys = 0;
-              this.hasMap = false;
-              this.hasCompass = false;
-              
-              // Reset all rooms to original state
-              const temple = temples[this.temple];
-              this.rooms = JSON.parse(JSON.stringify(temple.rooms));
-              
-              // Return to temple entrance
-              this.currentPosition = temple.entrance;
-              const [y, x] = this.currentPosition;
-              this.updateBg(x, y);
-              
-              // Show confirmation toast
-              this.showToast({
-                message: 'Temple has been reset!',
-                duration: 2000,
-              });
+            text: 'Loot',
+            handler: (selectedItems) => {
+              if (typeof play$fx === 'function') {
+                play$fx('yes');
+              }
+              if (selectedItems && selectedItems.length > 0) {
+                processChestItems(selectedItems);
+              }
             },
           },
         ],
       });
-      
+
       await alert.present();
-    },
-  },
+    };
 
-  mounted() {
-    const [y, x] = this.currentPosition;
-    this.updateBg(x, y);
-  },
-  setup(props) {
-    const router = useRouter();
-    const temple = temples[props.temple];
 
-    if (!temple) router.go(-1);
+    // Show an alert for an empty chest
+    const showEmptyChestAlert = async () => {
+      // Play chest opening sound effect
+      play$fx('openChest');
 
-    debug.log("temple", temple);
 
-    const currentPosition = ref(temple.entrance);
-    // [row, column] - default to entrance
+      const alert = await alertController.create({
+        header: 'Chest is empty!',
+        buttons: [
+          {
+            text: 'Ok',
+            role: 'cancel',
+            handler: () => {
+              if (typeof play$fx === 'function') {
+                play$fx('yes');
+              }
+            },
+          },
+        ],
+      });
+
+      await alert.present();
+    };
+
+    // Set up initial background position
+    onMounted(() => {
+      const [row, col] = currentPosition.value;
+      updateBg(col, row);
+    });
+
+    // Computed properties for equipped items
+    const leftHandItem = computed(() => {
+      const currentUser = user.value;
+      if (!currentUser?.equipment?.leftHand) return null;
+      return currentUser.equipment.leftHand[0] || null;
+    });
+
+    const rightHandItem = computed(() => {
+      const currentUser = user.value;
+      if (!currentUser?.equipment?.rightHand) return null;
+      return currentUser.equipment.rightHand[0] || null;
+    });
+
 
     return {
-      ...temple,
+      // From useTemple
       currentPosition,
+      hasMap,
+      hasCompass,
+      playerKeys,
+      isMapOpen,
+      currentRoom,
+      maze,
+      rooms,
+      actionColor,
+      currentMessage,
+      showMessage,
+      canMoveUp,
+      canMoveDown,
+      canMoveLeft,
+      canMoveRight,
+      toggleMap,
+      isCurrentRoom,
+
+      // Map and compass utilities
+      showRoomDetails,
+      getRoomVisibility,
+      getRoomIcon,
+      getMapTileClass,
+      isRoomVisited,
+
+      // Local functions
+      moveWithUpdate,
+      isDoorLocked,
+      showRoomActions,
+      getBgImage,
+      validRoomCoords,
+      templeName,
+      backgroundPosition,
+      updateBg,
+
+      // Tile dimensions for grid
+      tileWidth,
+      tileHeight,
+
+      // Constants
+      ROOM_ICONS,
+      openMap,
+      closeMap,
+      user,
+      leftHandItem,
+      rightHandItem
     };
   },
+  computed: {
+    currentBgImage() {
+      const [row, col] = this.currentPosition;
+      try {
+        return require(`@/assets/images/backgrounds/${this.temple}/[${row},${col}].jpg`);
+      } catch {
+        return '';
+      }
+    }
+  }
 });

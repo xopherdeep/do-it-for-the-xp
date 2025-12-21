@@ -3,7 +3,7 @@ import ionic from "@/mixins/ionic";
 import { arrowBack } from "ionicons/icons";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { useStore } from "vuex";
+import { useUserStore } from "@/lib/store/stores/user";
 import userActions from "@/mixins/userActions";
 import type { DefineUserActionComponent } from "@/mixins/userActions";
 import debug from "@/lib/utils/debug";
@@ -22,9 +22,9 @@ export default defineComponent<DefineUserActionComponent>({
   setup() {
     const route = useRoute();
     const router = useRouter();
-    const store = useStore();
+    const userStore = useUserStore();
     const { userId } = route.params;
-    const user = computed(() => store.getters.getUserById(userId));
+    const user = computed(() => userStore.getUserById(userId as string));
     
     const oceanAudio = ref<HTMLAudioElement | null>(null);
     const seagullInterval = ref<number | null>(null);
