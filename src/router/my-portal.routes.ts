@@ -47,15 +47,6 @@ const MyPortalRoutes = [{
     component: () => import("@/views/Console/WorldMap/WorldMap.vue"),
   },
   {
-    path: "old-my-profile",
-    // name: "my-profile",
-    meta: {
-      faIcon: "user-circle",
-      hideUserFab: true,
-    },
-    component: () => import("@/views/Console/MyPortal/MyProfile/MyProfile.vue"),
-  },
-  {
     path: 'my-profile',
     name: 'my-profile',
     meta: {
