@@ -283,6 +283,16 @@
         </ion-fab-button>
       </ion-fab>
     </ion-content>
+    <ion-fab
+      vertical="bottom"
+      horizontal="center"
+    >
+      <ion-fab-button>
+        <i class="fad fa-shield fa-2x"></i>
+      </ion-fab-button>
+      Badges
+
+    </ion-fab>
   </ion-page>
 </template>
 

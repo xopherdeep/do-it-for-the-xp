@@ -1,6 +1,6 @@
 <template>
   <ion-page :class="$options.name">
-    <ion-header>
+    <ion-header class="rpg-box">
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
           <ion-back-button :default-href="`/game-master/achievements`"></ion-back-button>
@@ -33,6 +33,17 @@
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
+
+      <ion-segment v-model="activeSegment">
+        <ion-segment-button
+          v-for="segment in segments"
+          :key="segment.name"
+          :value="segment.name.toLowerCase()"
+        >
+          {{ segment.name }}
+          <i class="fad fa-lg mt-1" :class="segment.icon"></i>
+        </ion-segment-button>
+      </ion-segment>
     </ion-header>
 
     <ion-content class="rpg-box">
