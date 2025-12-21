@@ -1,0 +1,15 @@
+:root{
+  --color-light: var(--ion-color-primary-tint);
+  --color-medium: var(--ion-color-primary-shade);
+  --color-dark: var(--ion-color-primary);
+  --color-darkest: var(--ion-color-primary-shade);
+  --animation-speed: 4s;
+  --animation-loop: infinite;
+}
+
+// Add any specific styles for v-calendar if needed
+// .vc-container {
+//   border-color: var(--ion-color-medium);
+// }
+
+// Remove old accessory-shop styles

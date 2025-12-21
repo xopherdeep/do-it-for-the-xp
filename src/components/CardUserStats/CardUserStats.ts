@@ -2,8 +2,7 @@ import { actionSheetController } from "@ionic/vue";
 import { defineComponent } from "vue";
 import { close, heart } from "ionicons/icons";
 
-import users from "@/api/users.api";
-const requireAvatar = require.context("@/assets/images/avatars/");
+import users from "@/lib/api/users.api";
 import { useRouter } from "vue-router";
 
 import {
@@ -31,7 +30,6 @@ import ionic from "@/mixins/ionic";
 
 import { mapGetters } from "vuex";
 import Vue3Autocounter from 'vue3-autocounter';
-
 
 
 export default defineComponent({
@@ -115,8 +113,8 @@ export default defineComponent({
   methods: {
     clickAction(action) {
       const user = this.user;
-      this.$fx.ui[this.$fx.theme.ui].openPage.play();
-      this.router.push(`/${action}/${user.id}/`);
+      (this as any).$fx.ui[(this as any).$fx.theme.ui].openPage.play();
+      this.$router.push(`/${action}/${user.id}/`);
     },
     getCounterXPCurrentAmount() {
       const XpTotal = this.$refs.countXPTotal as typeof Vue3Autocounter

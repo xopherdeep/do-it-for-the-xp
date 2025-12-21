@@ -1,0 +1,219 @@
+@mixin profile-icons {
+  // Job Class Icons
+  &swords {
+    --fa-primary-color: var(--xp-color-gray);
+    --fa-secondary-color: var(--xp-color-red);
+    --fa-secondary-opacity: 0.9;
+  }
+  
+  &hat-wizard {
+    --fa-primary-color: var(--xp-color-blue);
+    --fa-secondary-color: var(--xp-color-lightBlue);
+    --fa-secondary-opacity: 0.8;
+  }
+  
+  &user-secret {
+    --fa-primary-color: var(--xp-color-black);
+    --fa-secondary-color: var(--xp-color-white);
+    --fa-secondary-opacity: 0.9;
+  }
+  
+  &fist-raised {
+    --fa-primary-color: var(--xp-color-brown);
+    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-secondary-opacity: 0.8;
+  }
+
+  // Food Icons
+  &apple-alt {
+    --fa-primary-color: var(--xp-color-red);
+    --fa-secondary-color: var(--xp-color-green);
+    --fa-secondary-opacity: 0.8;
+  }
+
+  &bacon {
+    --fa-primary-color: var(--xp-color-brown);
+    --fa-secondary-color: var(--xp-color-red);
+    --fa-secondary-opacity: 0.7;
+  }
+
+  &bread-slice {
+    --fa-primary-color: var(--xp-color-yellow);
+    --fa-secondary-color: var(--xp-color-brown);
+    --fa-secondary-opacity: 0.8;
+  }
+
+  &hamburger {
+    --fa-primary-color: var(--xp-color-brown);
+    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-secondary-opacity: 0.9;
+  }
+
+  &burrito {
+    --fa-primary-color: var(--xp-color-yellow);
+    --fa-secondary-color: var(--xp-color-brown);
+    --fa-secondary-opacity: 0.8;
+  }
+
+  &birthday-cake {
+    --fa-primary-color: var(--xp-color-pink);
+    --fa-secondary-color: var(--xp-color-white);
+    --fa-secondary-opacity: 0.9;
+  }
+
+  &candy-cane {
+    --fa-primary-color: var(--xp-color-white);
+    --fa-secondary-color: var(--xp-color-red);
+    --fa-secondary-opacity: 0.9;
+  }
+
+  &candy-corn {
+    --fa-primary-color: var(--xp-color-white);
+    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-secondary-opacity: 0.8;
+  }
+
+  &carrot {
+    --fa-primary-color: var(--xp-color-green);
+    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-secondary-opacity: 1;
+  }
+
+  &cheese {
+    --fa-primary-color: var(--xp-color-yellow);
+    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-secondary-opacity: .90;
+  }
+
+  &cheeseburger {
+    --fa-primary-color: var(--xp-color-brown);
+    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-secondary-opacity: 0.9;
+  }
+
+  &coffee {
+    --fa-primary-color: var(--xp-color-brown);
+    --fa-secondary-color: var(--xp-color-white);
+    --fa-secondary-opacity: 0.8;
+  }
+
+  &cookie {
+    --fa-primary-color: var(--xp-color-black);
+    --fa-secondary-color: var(--xp-color-brown);
+    --fa-secondary-opacity: 0.7;
+  }
+
+  &corn {
+    --fa-primary-color: var(--xp-color-green);
+    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-secondary-opacity: 0.8;
+  }
+
+  &croissant {
+    --fa-primary-color: var(--xp-color-yellow);
+    --fa-secondary-color: var(--xp-color-brown);
+    --fa-secondary-opacity: 0.7;
+  }
+
+  &drumstick-bite {
+    --fa-primary-color: var(--xp-color-brown);
+    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-secondary-opacity: 0.8;
+  }
+
+  &egg, &egg-fried {
+    --fa-primary-color: var(--xp-color-yellow);
+    --fa-secondary-color: var(--xp-color-white);
+    --fa-secondary-opacity: 1;
+  }
+
+  &fish {
+    --fa-primary-color: var(--xp-color-gray);
+    --fa-secondary-color: var(--xp-color-lightBlue);
+    --fa-secondary-opacity: 0.8;
+  }
+
+  &french-fries {
+    --fa-primary-color: var(--xp-color-red);
+    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-secondary-opacity: 1;
+  }
+
+  &hotdog {
+    --fa-primary-color: var(--xp-color-yellow);
+    --fa-secondary-color: var(--xp-color-brown);
+    --fa-secondary-opacity: 0.8;
+  }
+
+  &ice-cream {
+    --fa-primary-color: var(--xp-color-brown);
+    --fa-secondary-color: var(--xp-color-pink);
+    --fa-secondary-opacity: 1;
+  }
+
+  &lemon {
+    --fa-primary-color: var(--xp-color-green);
+    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-secondary-opacity: 1;
+  }
+
+  &pepper-hot {
+    --fa-primary-color: var(--xp-color-green);
+    --fa-secondary-color: var(--xp-color-green);
+    --fa-secondary-opacity: 0.7;
+  }
+
+  &pie {
+    --fa-primary-color: var(--xp-color-brown);
+    --fa-secondary-color: var(--xp-color-white);
+    --fa-secondary-opacity: 0.7;
+  }
+
+  &pizza-slice {
+    --fa-primary-color: var(--xp-color-brown);
+    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-secondary-opacity: 1;
+  }
+
+  &popcorn {
+    --fa-primary-color: var(--xp-color-red);
+    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-secondary-opacity: 1;
+  }
+
+  &salad {
+    --fa-primary-color: var(--xp-color-white);
+    --fa-secondary-color: var(--xp-color-green);
+    --fa-primary-opacity: 0.8;
+  }
+
+  &sandwich {
+    --fa-primary-color: var(--xp-color-yellow);
+    --fa-secondary-color: var(--xp-color-brown);
+    --fa-secondary-opacity: 0.8;
+  }
+
+  &sausage {
+    --fa-primary-color: var(--xp-color-brown);
+    --fa-secondary-color: var(--xp-color-red);
+    --fa-secondary-opacity: 0.8;
+  }
+
+  &smoothie {
+    --fa-primary-color: var(--xp-color-pink);
+    --fa-secondary-color: var(--xp-color-red);
+    --fa-secondary-opacity: 0.7;
+  }
+
+  &meat {
+    --fa-primary-color: var(--xp-color-red);
+    --fa-secondary-color: var(--xp-color-brown);
+    --fa-secondary-opacity: 0.8;
+  }
+
+  &taco {
+    --fa-primary-color: var(--xp-color-green);
+    --fa-secondary-color: var(--xp-color-yellow);
+    --fa-secondary-opacity: 0.9;
+  }
+}

@@ -48,7 +48,7 @@
 </template>
 
 <script lang="ts">
-  import User from "@/utils/User";
+  import User from "@/lib/utils/User";
   import { defineComponent } from "vue";
 
   import ionic from "@/mixins/ionic";

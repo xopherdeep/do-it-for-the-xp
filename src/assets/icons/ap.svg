@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="200px" height="150px" viewBox="0 0 200 150" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>Ability Points</title>
+    <g stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <circle cx="100" cy="75" r="50" fill="#7B1FA2" stroke="#4A148C" stroke-width="4"/>
+        <text x="100" y="85" font-family="Arial" font-size="36" font-weight="bold" fill="white" text-anchor="middle">AP</text>
+        <path d="M60,40 L85,40 L85,35 L95,50 L85,65 L85,60 L60,60 Z" fill="#CE93D8" stroke="#4A148C" stroke-width="2"/>
+        <path d="M140,110 L115,110 L115,115 L105,100 L115,85 L115,90 L140,90 Z" fill="#CE93D8" stroke="#4A148C" stroke-width="2"/>
+    </g>
+</svg>

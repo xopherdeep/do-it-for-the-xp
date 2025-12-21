@@ -63,7 +63,9 @@
     font-size: 25pt;
     line-height: 25pt;
     p {
-      font-size: 27pt;
+      // font-size: 27pt;
+      font-size: smaller;
+      line-height: 20pt 
     }
     ion-card-subtitle {
       font-size: 27pt;

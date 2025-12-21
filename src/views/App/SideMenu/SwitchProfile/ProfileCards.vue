@@ -31,8 +31,8 @@
 
 <script lang="ts">
 
-  import User from "@/utils/User";
-  import Stats from "@/utils/User/stats";
+  import User from "@/lib/utils/User";
+  import Stats from "@/lib/utils/User/stats";
   import { defineComponent } from "vue";
 
 

@@ -1,22 +1,28 @@
 import { computed, ref, defineComponent } from "vue";
 import { modalController } from "@ionic/vue";
-import { arrowBack, arrowForward } from "ionicons/icons";
+import { arrowBack, arrowForward, closeOutline } from "ionicons/icons";
 import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
 
-import { ProfileDb } from "@/databases";
+import { ProfileDb } from "@/lib/databases";
 import { profileStorage } from "../SwitchProfile.vue";
 import InputSettings from "../../XpSettings/components/InputSettings.vue";
+import AvatarSelector from "./components/AvatarSelector.vue";
 
 import ionic from "@/mixins/ionic";
 
 import XpGp from "@/components/XpGp/XpGp.vue";
 import GamerCard from "./GamerCard.vue"
-import Stats from "@/utils/User/stats";
+import Stats from "@/lib/utils/User/stats";
 
 export const AddProfile = defineComponent({
   props: ["id", "profile", "showIsAdult"],
   mixins: [ionic],
-  components: { InputSettings, XpGp, GamerCard },
+  components: {
+    InputSettings,
+    XpGp,
+    GamerCard,
+    AvatarSelector
+  },
   methods: {
     async loadProfile() {
       this.storage.get(this.$props.id).then(this.setProfile);
@@ -27,6 +33,30 @@ export const AddProfile = defineComponent({
       if (target.value.length === 1 && el && typeof el.focus === 'function') {
         el.focus();
       }
+    },
+    getAvatarSrc(index: number) {
+      const paddedIdx = index.toString().padStart(3, "0");
+      return this.$requireAvatar(`./${paddedIdx}-gamer.svg`);
+    },
+    selectAvatar(index: number) {
+      this.avatarIndex = index;
+      this.isAvatarSelectorOpen = false; // Close the modal after selecting
+    },
+    async clickSaveProfile() {
+      const profile = this.storage.newProfile(this.newProfile);
+      await this.storage.setProfile(profile);
+
+      // Show success splash
+      this.showSuccessSplash = true;
+
+      // Play fanfare sound using the mixin method
+      this.play$fx('levelUp');
+
+      // Hide splash after 3 seconds
+      setTimeout(() => {
+        this.showSuccessSplash = false;
+        modalController.dismiss({ profileAdded: true });
+      }, 3000);
     }
   },
 
@@ -54,6 +84,8 @@ export const AddProfile = defineComponent({
     const jobClass = ref("");
     const jobClassOptions = ref(JOB_CLASS_OPTIONS);
     const maxAvatarIndex = $requireAvatar.keys().length;
+    const isAvatarSelectorOpen = ref(false);
+    const showSuccessSplash = ref(false);
 
     const paddedIndex = computed(() =>
       avatarIndex.value.toString().padStart(3, "0")
@@ -62,12 +94,6 @@ export const AddProfile = defineComponent({
     const currentAvatar = computed(() =>
       $requireAvatar(`./${paddedIndex.value}-gamer.svg`)
     );
-
-    const clickSaveProfile = () => {
-      const profile = storage.newProfile(newProfile.value);
-      storage.setProfile(profile).then(profileAdded);
-      closeModal();
-    };
 
     const closeModal = () => {
       modalController.dismiss();
@@ -83,6 +109,8 @@ export const AddProfile = defineComponent({
       favoriteFood.value = "";
       jobClass.value = "";
       avatarIndex.value = 1;
+      email.value = "";
+      passcode.value = "";
     };
 
     const previousAvatar = () => {
@@ -99,7 +127,7 @@ export const AddProfile = defineComponent({
 
     const setProfile = (profile) => {
       if (!profile.name) return;
-      passcode.value = profile.passcode;
+      passcode.value = profile.passcode || '';
       email.value = profile.email;
       fullName.value = profile.name.full;
       favoriteThing.value = profile.favoriteThing;
@@ -148,8 +176,8 @@ export const AddProfile = defineComponent({
       activeSegment,
       arrowBack,
       arrowForward,
+      closeOutline,
       avatarIndex,
-      clickSaveProfile,
       closeModal,
       currentAvatar,
       email,
@@ -172,6 +200,10 @@ export const AddProfile = defineComponent({
       toggleCommunity,
       toggleGoal,
       toggleReward,
+      profileAdded,
+      isAvatarSelectorOpen,
+      showSuccessSplash,
+      $requireAvatar,
     };
   },
 });

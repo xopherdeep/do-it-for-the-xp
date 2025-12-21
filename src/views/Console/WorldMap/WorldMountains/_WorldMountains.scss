@@ -1,0 +1,315 @@
+.world-mountains{
+  ion-content{
+    --background: url("@/assets/images/backgrounds/world-mountains.jpg") center center/cover no-repeat;
+  }
+
+  // Fire container
+  .fire-container {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  // Base fire effect along the bottom of the page
+  .fire-base {
+    position: absolute;
+    bottom: -20px;
+    left: 0;
+    width: 100%;
+    height: 120px;
+    background: linear-gradient(to top, 
+      rgba(255, 30, 0, 0.9) 0%, 
+      rgba(255, 90, 0, 0.8) 30%, 
+      rgba(255, 150, 0, 0.5) 60%, 
+      rgba(255, 200, 0, 0.3) 80%, 
+      rgba(255, 220, 0, 0) 100%);
+    filter: blur(15px);
+    z-index: 2;
+    animation: fire-base-flicker 4s ease-in-out infinite;
+    
+    &:before {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 60px;
+      background: linear-gradient(to top, 
+        rgba(255, 0, 0, 0.8) 0%, 
+        rgba(255, 50, 0, 0.7) 50%, 
+        rgba(255, 100, 0, 0) 100%);
+      filter: blur(5px);
+      animation: fire-base-pulse 3s ease-in-out infinite;
+      animation-delay: 0.5s;
+    }
+  }
+
+  @keyframes fire-base-flicker {
+    0%, 100% {
+      opacity: 0.9;
+      height: 120px;
+    }
+    50% {
+      opacity: 1;
+      height: 140px;
+    }
+  }
+
+  @keyframes fire-base-pulse {
+    0%, 100% {
+      opacity: 0.8;
+    }
+    50% {
+      opacity: 1;
+    }
+  }
+
+  // Ember field covering the entire page
+  .embers-field {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 4;
+  }
+
+  // Individual field embers that float across the page
+  .field-ember {
+    position: absolute;
+    bottom: 0;
+    border-radius: 50%;
+    background-color: rgba(255, 180, 0, 0.9);
+    filter: blur(1px);
+    box-shadow: 0 0 10px 2px rgba(255, 120, 0, 0.7);
+    opacity: 0;
+    z-index: 4;
+    animation: field-ember-float linear infinite;
+    
+    @for $i from 1 through 80 {
+      &:nth-child(#{$i}) {
+        $size: random(4) + 1 + px;
+        $left-pos: random(100) * 1%;
+        $duration: random(8) + 6 + s;
+        $delay: random(15) * 0.5s;
+        
+        width: $size;
+        height: $size;
+        left: $left-pos;
+        animation-duration: $duration;
+        animation-delay: $delay;
+        
+        @if random(10) > 5 {
+          background-color: rgba(255, 220, 0, 0.9);
+          box-shadow: 0 0 8px 2px rgba(255, 180, 0, 0.7);
+        } @else if random(10) > 7 {
+          background-color: rgba(255, 100, 0, 0.9);
+          box-shadow: 0 0 12px 3px rgba(255, 50, 0, 0.8);
+        }
+      }
+    }
+  }
+
+  @keyframes field-ember-float {
+    0% {
+      opacity: 0;
+      transform: translateY(0) translateX(0) scale(0.8);
+    }
+    5% {
+      opacity: 0.9;
+      transform: translateY(-50px) translateX(random(20) - 10 + px) scale(1);
+    }
+    80% {
+      opacity: 0.7;
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(calc(-100vh + 100px)) translateX(random(100) - 50 + px) scale(0.5);
+    }
+  }
+
+  // Flames wrapper
+  .flames-wrapper {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    z-index: 3;
+  }
+
+  // Flame clusters
+  .flame-cluster {
+    position: absolute;
+    z-index: 3;
+    
+    &.flame-cluster1 {
+      bottom: 0;
+      left: 15%;
+      transform: scale(1.4);
+    }
+    
+    &.flame-cluster2 {
+      bottom: 0;
+      right: 20%;
+      transform: scale(1.2);
+    }
+    
+    &.flame-cluster3 {
+      bottom: 0;
+      left: 60%;
+      transform: scale(1.6);
+    }
+  }
+
+  // Individual flames
+  .flame {
+    position: absolute;
+    bottom: 0;
+    border-radius: 50% 0 50% 50%;
+    transform: scale(0.8, 1) rotate(-45deg);
+    z-index: 3;
+    filter: blur(8px);
+    animation: flicker ease-in-out infinite, glow 2s ease-in-out infinite;
+    
+    &.flame-large {
+      width: 80px;
+      height: 120px;
+      background: linear-gradient(to bottom, rgba(255, 145, 0, 0.8) 0%, rgba(255, 65, 0, 0.9) 60%, rgba(255, 0, 0, 1) 100%);
+      animation-duration: 3s, 2s;
+      animation-delay: 0.1s, 0.2s;
+      left: -10px;
+      z-index: 1;
+      opacity: 0.9;
+    }
+    
+    &.flame-medium {
+      width: 60px;
+      height: 90px;
+      background: linear-gradient(to bottom, rgba(255, 200, 0, 0.8) 0%, rgba(255, 120, 0, 0.9) 60%, rgba(255, 40, 0, 1) 100%);
+      animation-duration: 2.5s, 2.2s;
+      animation-delay: 0.2s, 0.3s;
+      left: 20px;
+      z-index: 2;
+      opacity: 0.9;
+    }
+    
+    &.flame-small {
+      width: 40px;
+      height: 70px;
+      background: linear-gradient(to bottom, rgba(255, 230, 0, 0.8) 0%, rgba(255, 175, 0, 0.9) 60%, rgba(255, 100, 0, 1) 100%);
+      animation-duration: 2s, 2.4s;
+      animation-delay: 0.3s, 0.1s;
+      left: 40px;
+      z-index: 3;
+      opacity: 0.9;
+    }
+  }
+
+  // Ember container
+  .ember-container {
+    position: absolute;
+    bottom: 70px;
+    left: 20px;
+    width: 40px;
+    height: 40px;
+    z-index: 3;
+  }
+
+  // Individual embers
+  .ember {
+    position: absolute;
+    bottom: 0;
+    left: 15px;
+    width: 3px;
+    height: 3px;
+    background-color: rgba(255, 180, 0, 0.9);
+    border-radius: 50%;
+    filter: blur(1px);
+    box-shadow: 0 0 8px 2px rgba(255, 160, 0, 0.6);
+    z-index: 4;
+    opacity: 0;
+    animation: ember-float linear infinite;
+    
+    @for $i from 1 through 15 {
+      &:nth-child(#{$i}) {
+        $delay: random(5) * 0.5s;
+        $duration: random(3) + 2 + s;
+        $left-offset: random(30) - 15 + px;
+        
+        animation-delay: $delay;
+        animation-duration: $duration;
+        left: $left-offset;
+      }
+    }
+  }
+
+  // Fire glow for the entire scene
+  .fire-glow {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(
+      ellipse at center bottom,
+      rgba(255, 80, 0, 0.2) 0%,
+      rgba(255, 80, 0, 0.1) 30%,
+      rgba(255, 80, 0, 0.05) 60%,
+      rgba(255, 80, 0, 0) 80%
+    );
+    z-index: 1;
+    animation: glow-pulse 4s ease-in-out infinite;
+    pointer-events: none;
+  }
+
+  // Animation keyframes
+  @keyframes flicker {
+    0%, 100% {
+      transform: scale(0.8, 1) rotate(-45deg);
+    }
+    25% {
+      transform: scale(0.7, 0.9) rotate(-40deg);
+    }
+    50% {
+      transform: scale(0.85, 1.1) rotate(-50deg);
+    }
+    75% {
+      transform: scale(0.75, 0.95) rotate(-42deg);
+    }
+  }
+
+  @keyframes glow {
+    0%, 100% {
+      filter: blur(8px) brightness(1);
+    }
+    50% {
+      filter: blur(8px) brightness(1.15);
+    }
+  }
+
+  @keyframes ember-float {
+    0% {
+      opacity: 0;
+      transform: translateY(0) translateX(0);
+    }
+    10% {
+      opacity: 0.9;
+    }
+    70% {
+      opacity: 0.7;
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-100px) translateX(random(30) - 15 + px);
+    }
+  }
+
+  @keyframes glow-pulse {
+    0%, 100% {
+      opacity: 0.6;
+    }
+    50% {
+      opacity: 0.8;
+    }
+  }
+}

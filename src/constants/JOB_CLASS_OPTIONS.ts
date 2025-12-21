@@ -1,17 +1,22 @@
-
 export const JOB_CLASS_OPTIONS = [
-
+  // Base Classes (Tier 1) - Currently Active
   {
     name: "Warrior",
     icon: "fa-swords",
+    tier: 1,
+    description: "Specializes in strength, protection, and overcoming physical challenges"
   },
   {
     name: "Mage",
     icon: "fa-hat-wizard",
+    tier: 1,
+    description: "Masters knowledge, planning, and the management of household systems"
   },
   {
     name: "Thief",
     icon: "fa-user-secret",
+    tier: 1,
+    description: "Excels in resource acquisition, efficiency, and stealth task completion"
   },
   {
     name: "Monk",

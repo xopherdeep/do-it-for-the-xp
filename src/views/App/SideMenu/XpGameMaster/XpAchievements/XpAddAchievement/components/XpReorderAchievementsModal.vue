@@ -21,7 +21,7 @@
         @ionItemReorder="handleReorder($event)"
       >
         <XpAchievementItem
-          v-for="achievement in achievements"
+          v-for="achievement in achievements as Achievement[]"
           :achievement="achievement"
           :key="achievement.id"
         >
@@ -38,7 +38,8 @@
   import ionic from '@/mixins/ionic';
   import XpAchievementItem from './XpAchievementItem.vue';
   import { modalController } from '@ionic/vue';
-  import { Achievement } from '@/databases/AchievementDb';
+  import { Achievement } from '@/lib/databases/AchievementDb';
+  import debug from '@/lib/utils/debug';
 
   export default defineComponent({
     props: {
@@ -59,7 +60,7 @@
         const reorderedAchievementIds = reorderedAchievements.value.map(
           (achievement: any) => achievement.id
         );
-        console.log(" REORDER ", reorderedAchievementIds);
+        debug.log(" REORDER ", reorderedAchievementIds);
 
         modalController.dismiss(reorderedAchievementIds);
       };

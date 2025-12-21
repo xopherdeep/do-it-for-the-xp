@@ -1,8 +1,8 @@
 import { defineComponent, ref, watch } from "vue";
-import { mapGetters } from "vuex";
-import { alertController } from "@ionic/vue";
+import { useUserStore } from "@/lib/store/stores/user";
+import { alertController, actionSheetController } from "@ionic/vue";
 import ionic from "@/mixins/ionic";
-import { useRouter, useRoute } from 'vue-router';
+import { useRoute } from "vue-router";
 
 import {
   addOutline,
@@ -11,6 +11,8 @@ import {
   searchSharp,
   thumbsUpOutline,
   thumbsUpSharp,
+  createOutline,
+  compassOutline
 } from "ionicons/icons";
 
 import AchievementDb, {
@@ -18,8 +20,8 @@ import AchievementDb, {
   achievementCategoryStorage,
   Achievement,
   AchievementCategoryDb,
-  AchievementCategoryInterface
-} from "@/databases/AchievementDb"
+  AchievementCategoryInterface,
+} from "@/lib/databases/AchievementDb";
 
 import XpAchievementItem from "./XpAddAchievement/components/XpAchievementItem.vue";
 
@@ -28,63 +30,76 @@ export default defineComponent({
   mixins: [ionic],
   components: { XpAchievementItem },
   computed: {
-    ...mapGetters(["usersAz"]),
-    users() { return this.usersAz },
+    usersAz() { return (this as any).userStore.usersAz },
+    users() {
+      return (this as any).usersAz;
+    },
 
     hasAchievements() {
       return this.groupedAchievements?.length > 0;
     },
     filteredAchievements() {
-      return this.achievements?.filter(this.filterAchievement);
+      return (this as any).achievements?.filter((this as any).filterAchievement);
     },
     expiredAchievements() {
       const now = new Date();
-      return this.filteredAchievements?.filter(achievement => new Date(achievement.endsOn) < now);
+      return (this as any).filteredAchievements?.filter(
+        (achievement: any) => new Date(achievement.endsOn) < now
+      );
     },
 
     asNeededAchievements() {
-      return this.filteredAchievements?.filter(achievement => achievement.type === "asNeeded");
+      return (this as any).filteredAchievements?.filter(
+        (achievement: any) => achievement.type === "asNeeded"
+      );
     },
 
     groupedAchievements() {
-      const groupAchievements = (grouped, achievement) => {
-        const category = grouped.find(group => group.categoryId === achievement.categoryId);
+      const groupAchievements = (grouped: any, achievement: any) => {
+        const category = grouped.find(
+          (group: any) => group.categoryId === achievement.categoryId
+        );
         // TODO: do the same for assignee, but its an array of ids
-        const assignee = grouped.find(group => achievement.assignee.includes(group.assignee));
+        const assignee = grouped.find((group: any) =>
+          achievement.assignee.includes(group.assignee)
+        );
 
-        switch (this.groupBy) {
+        switch ((this as any).groupBy) {
           case "assignee":
             if (assignee) {
               assignee.achievements.push(achievement);
             } else if (achievement.assignee) {
-              achievement.assignee.forEach(assignee => {
+              achievement.assignee.forEach((assignee: any) => {
                 grouped.push({ assignee, achievements: [achievement] });
               });
             }
             break;
 
           default:
-
             if (category) {
               category.achievements.push(achievement);
             } else {
-              grouped.push({ categoryId: achievement.categoryId, achievements: [achievement] });
+              grouped.push({
+                categoryId: achievement.categoryId,
+                achievements: [achievement],
+              });
             }
 
             break;
         }
 
         return grouped;
-      }
+      };
 
-      return this.filteredAchievements?.reduce(groupAchievements, []);
-
+      return (this as any).filteredAchievements?.reduce(groupAchievements, []);
     },
   },
 
   watch: {
     groupBy(group) {
-      let groupAchievements = () => { /** Do nothing */ };
+      let groupAchievements = () => {
+        /** Do nothing */
+      };
 
       switch (group) {
         case "category":
@@ -92,18 +107,26 @@ export default defineComponent({
           // No specific grouping logic for these cases, so just load achievements.
           break;
         case "asNeeded":
-          groupAchievements = () => this.setAchievements(this.asNeededAchievements);
+          groupAchievements = () =>
+            this.setAchievements(this.asNeededAchievements);
           break;
         case "expired":
-          groupAchievements = () => this.setAchievements(this.expiredAchievements);
+          groupAchievements = () =>
+            this.setAchievements(this.expiredAchievements);
           break;
       }
 
-      this.loadAchievements().then(groupAchievements);
+      this.loadAchievements().then(groupAchievements as any);
     },
   },
 
   methods: {
+
+    clickSettings(){
+      this.$router.push({name: "xp-settings-chore"});
+    },
+
+
     async loadAchievements() {
       this.isLoading = true;
       const achievements = await this.achievementDb.getTasks();
@@ -116,13 +139,13 @@ export default defineComponent({
     },
 
     clickFilter() {
-      this.showFilters = !this.showFilters
+      this.showFilters = !this.showFilters;
     },
     clickAdd() {
-      this.$router.push("/add-achievement");
+      this.$router.push("/game-master/add-achievement");
     },
     clickDiscover() {
-      this.$router.push("/discover-achievements");
+      this.$router.push("/game-master/discover-achievements");
     },
     clickEdit(id) {
       this.$router.push({
@@ -131,11 +154,11 @@ export default defineComponent({
       });
     },
     clickCloneAchievement(task: Achievement) {
-      const { achievementDb, loadAchievements } = this;
+      const { achievementDb, loadAchievements } = this as any;
       achievementDb.cloneTask(task).then(loadAchievements);
     },
     deleteTask(task: Achievement) {
-      const { achievementDb, loadAchievements } = this;
+      const { achievementDb, loadAchievements } = this as any;
       achievementDb.deleteTask(task).then(loadAchievements);
     },
     async clickDeleteAchievement(task: Achievement) {
@@ -164,7 +187,7 @@ export default defineComponent({
       await alert.present();
     },
     filterAchievement(achievement: Achievement) {
-      const { searchText } = this;
+      const { searchText } = this as any;
       const { achievementName } = achievement;
       if (!searchText) return true;
 
@@ -176,20 +199,53 @@ export default defineComponent({
     },
 
     async loadCategories() {
-      const categories = await this.categoryDb.getAll();
-      this.categories = categories.sort(this.sortCategoryByName);
+      const categories = await (this as any).categoryDb.getAll();
+      (this as any).categories = categories.sort((this as any).sortCategoryByName);
     },
 
     getCategoryById(id: string) {
-      const findCatById = cat => cat.id === id;
-      return this.categories.find(findCatById);
+      const findCatById = (cat: any) => cat.id === id;
+      return (this as any).categories.find(findCatById);
     },
 
     getAssigneeById(id: string) {
-      const findUserById = user => user.id === id
-      return this.users.find(findUserById);
+      const findUserById = (user: any) => user.id === id;
+      return (this as any).users.find(findUserById);
     },
-
+    async presentActionSheet() {
+      const actionSheet = await actionSheetController.create({
+        header: 'Quest Actions',
+        cssClass: 'achievements-action-sheet',
+        mode: 'ios',
+        buttons: [
+          {
+            text: 'Create New Quest',
+            icon: createOutline,
+            cssClass: 'action-create',
+            handler: () => {
+              this.clickAdd();
+            }
+          },
+          {
+            text: 'Discover Quests',
+            icon: compassOutline,
+            cssClass: 'action-discover',
+            handler: () => {
+              this.clickDiscover();
+            }
+          },
+          {
+            text: 'Cancel',
+            role: 'cancel',
+            cssClass: 'action-cancel',
+            handler: () => {
+              // Just close the action sheet
+            }
+          },
+        ],
+      });
+      await actionSheet.present();
+    },
   },
   mounted() {
     this.loadAchievements();
@@ -199,12 +255,13 @@ export default defineComponent({
     // this.loadAchievements();
   },
   setup() {
+    const userStore = useUserStore();
     const achievements = ref();
     const searchText = ref("");
-    const showFilters = ref(false)
+    const showFilters = ref(false);
     const groupBy = ref("category");
     const achievementDb = new AchievementDb(achievementStorage);
-    const categoryDb = new AchievementCategoryDb(achievementCategoryStorage)
+    const categoryDb = new AchievementCategoryDb(achievementCategoryStorage);
     const categories = ref([] as AchievementCategoryInterface[]);
 
     const sortCategoryByName = (a, b) => {
@@ -220,11 +277,10 @@ export default defineComponent({
       }
 
       return 0;
-    }
+    };
 
-    const showPoints = ref(true)
-    const isLoading = ref(true)
-
+    const showPoints = ref(true);
+    const isLoading = ref(true);
 
     const route = useRoute();
     watch(
@@ -235,10 +291,11 @@ export default defineComponent({
           achievements.value = await achievementDb.getAll();
         }
       },
-      { immediate: true }  // Fetch data immediately when the component is created
+      { immediate: true } // Fetch data immediately when the component is created
     );
 
     return {
+      userStore,
       achievementDb,
       achievements,
       addOutline,

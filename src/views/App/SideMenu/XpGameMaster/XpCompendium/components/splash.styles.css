@@ -1,0 +1,77 @@
+/* Base slide styles */
+.slide-content {
+  max-width: 500px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2rem;
+  padding: 2rem;
+}
+
+/* Point system slides */
+.point-system-slide {
+  --background: #ffffff;
+}
+
+.point-icon-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  margin-bottom: 1rem;
+  background: var(--ion-color-light);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.xp-color { color: var(--ion-color-success); }
+.ap-color { color: var(--ion-color-tertiary); }
+.gp-color { color: var(--ion-color-warning); }
+
+/* Typography */
+h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+h2 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  text-align: center;
+  color: var(--ion-color-dark);
+}
+
+p {
+  font-size: 1.1rem;
+  line-height: 1.6;
+  text-align: center;
+  color: var(--ion-color-medium-shade);
+  max-width: 400px;
+}
+
+/* Swiper overrides */
+:deep(.swiper-button-prev),
+:deep(.swiper-button-next) {
+  color: var(--ion-color-dark);
+}
+
+:deep(.swiper-pagination-bullet-active) {
+  background: var(--ion-color-primary);
+}
+
+/* Simple fade transition */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}

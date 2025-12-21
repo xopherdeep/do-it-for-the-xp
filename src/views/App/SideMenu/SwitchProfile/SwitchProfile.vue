@@ -1,315 +1,851 @@
 <template>
   <ion-page :class="$options.name">
     <ion-header :translucent="true">
-      <ion-toolbar class="rpg-box">
+      <ion-toolbar
+        class="rpg-box"
+        mode="ios"
+      >
         <ion-buttons slot="start">
-          <ion-menu-button
-            color="primary"
-            @click="$fx.ui[$fx.theme.ui].select.play()"
-          ></ion-menu-button>
-          <ion-button class="m-8">
+          <ion-menu-button @click="$fx.ui[$fx.theme.ui].select.play()" />
+
+          <ion-icon
+            :ios="fingerPrintOutline"
+            :md="fingerPrintSharp"
+            class="fa-2x ml-2"
+          />
+        </ion-buttons>
+        <ion-title> Choose A Profile </ion-title>
+
+        <!-- Add backup/restore buttons -->
+        <ion-buttons slot="end">
+          <ion-button @click="openBackupOptionsModal">
             <ion-icon
-              :ios="peopleCircleOutline"
-              :md="peopleCircleSharp"
-            />
+              :icon="cloudDownloadOutline"
+              slot="icon-only"
+            ></ion-icon>
           </ion-button>
         </ion-buttons>
-        <ion-title> Choose Profile Save </ion-title>
       </ion-toolbar>
     </ion-header>
     <ion-content
       :fullscreen="true"
       id="container"
-      class="ion-padding"
+      class="ion-padding rpg-box"
     >
-      <ion-card v-if="!loading">
-        <ion-list>
-          <ion-item
-            detail
-            button
-            @click="openModal"
-          >
-            <ion-label>
-              New Profile
-              <p>
-                New players Start Here.
+      <ion-refresher
+        slot="fixed"
+        @ionRefresh="handleRefresh($event)"
+      >
+        <ion-refresher-content></ion-refresher-content>
+      </ion-refresher>
+      <div
+        v-show="isLoading"
+        class="flex justify-center items-center h-full"
+      >
+        <ion-spinner name="circles"></ion-spinner>
+      </div>
 
-              </p>
-            </ion-label>
-          </ion-item>
-          <ion-item
-            v-for="(profile, key) in users"
+      <ion-grid v-show="!isLoading">
+        <ion-row class="md:hidden">
+          <ion-col
+            v-for="(user, key) in users"
             :key="key"
-            @click="clickProfile(profile)"
-            button
-            detail
+            size="6"
+            size-sm="4"
+            size-md="3"
+            size-xl="2"
+            class="ion-no-padding"
           >
-            <ion-label>
-              {{ profile.name.nick }}
-              <p>
-                <small>
-                  {{ profile.name.full }}
-                </small>
-              </p>
-            </ion-label>
-            <ion-avatar slot="end">
-              <ion-img :src="$getUserAvatar(profile)" />
-            </ion-avatar>
-            <ion-label
-              slot="end"
-              class="w-20 ml-2"
+            <ion-card
+              class="ion-no-margin"
+              button
+              @click="selectProfile(user)"
             >
-              Level: {{ profile?.stats?.level }}
-              <p>
-                <xp-gp :gp="profile?.stats?.gp.wallet" />
-              </p>
-            </ion-label>
-          </ion-item>
-        </ion-list>
-      </ion-card>
+              <ion-card-header class="ion-text-center">
+                <ion-card-title>
+                  {{ user.name.nick }}
+                </ion-card-title>
+                <ion-avatar class="mx-auto mt-2 w-[75px]">
+                  <img :src="getUserAvatar(user)" />
+                </ion-avatar>
+              </ion-card-header>
+              <ion-card-content>
+                <ion-card-subtitle>
+                {{ user.name.full}}
+                  <!-- <xp-gp :gp="user?.stats?.gp.wallet" /> -->
+                </ion-card-subtitle>
+                <!-- <xp-gp :gp="user?.stats?.gp.wallet" /> -->
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+          <ion-col
+            size="6"
+            size-sm="4"
+            size-md="3"
+            size-xl="2"
+            class="hidden"
+          >
+            <ion-card
+              class="ion-no-margin"
+              button
+                @click="openNewProfileModal"
+            >
+              <ion-card-header class="ion-text-center">
+                <ion-card-title>
+                  New
+                </ion-card-title>
+                <ion-avatar class="mx-auto mt-2 flex flex-col items-center justify-center icon-colors">
+                  <i class="fad fa-heartbeat fa-3x"></i>
+                </ion-avatar>
+              </ion-card-header>
+              <ion-card-content>
+                Start Here
+                <!-- <xp-gp :gp="user?.stats?.gp.wallet" /> -->
+              </ion-card-content>
+            </ion-card>
+          </ion-col>
+        </ion-row>
+        <ion-row class="ion-no-padding hidden md:block">
+          <ion-card
+            v-show="!isLoading"
+            class="max-w-4xl "
+          >
+            <ion-list>
+              <ion-item
+                detail
+                button
+                @click="openNewProfileModal"
+              >
+                <ion-buttons
+                  slot="start"
+                  class="icon-colors"
+                >
+                  <i class="fad fa-heartbeat fa-3x"></i>
+                </ion-buttons>
+                <ion-label class="py-4">
+                  New Profile
+                  <p>New players Start Here.</p>
+                </ion-label>
+              </ion-item>
+              <ion-item
+                v-for="user in users"
+                :key="user.id"
+                @click="selectProfile(user)"
+                button
+                detail
+                class="profile-item rpg-box"
+              >
+                <div
+                  slot="start"
+                  class="profile-info stats-container py-4"
+                >
+                  <div class="level">
+                    <span class="label">LVL</span>
+                    <span class="value">{{ user?.stats?.level || 1 }}</span>
+                  </div>
+                  <div class="avatar-container">
+                    <ion-avatar>
+                      <ion-img :src="getUserAvatar(user)" />
+                    </ion-avatar>
+                    <div class="role-icons icon-colors">
+                      <i :class="`fad fa-${getJobClassIcon(user)}`"></i>
+                      <i :class="`fad fa-${getFoodIcon(user)}`"></i>
+                    </div>
+                  </div>
+                  <ion-label class="name-container">
+                    <h1>{{ user.name.nick }}</h1>
+                    <p>{{ user.name.full }}</p>
+                  </ion-label>
+                </div>
+
+                <div
+                  slot="end"
+                  class="stats-container"
+                >
+                  <ion-chip
+                    class="wallet"
+                    color="warning"
+                  >
+                    <xp-gp :gp="user?.stats?.gp.wallet" />
+                  </ion-chip>
+                </div>
+              </ion-item>
+            </ion-list>
+          </ion-card>
+        </ion-row>
+      </ion-grid>
+
+      <ion-fab
+        vertical="bottom"
+        horizontal="center"
+        slot="fixed"
+        @click="openNewProfileModal"
+        class="ion-no-border md:hidden"
+      >
+        <ion-fab-button color="danger" >
+          <i class="fad fa-plus fa-2x"></i>
+          <!-- <i class="fad fa-heartbeat fa-stack-1x" /> -->
+        </ion-fab-button>
+      </ion-fab>
+
+      <!-- Stylized loading modal for profile selection -->
+      <ProfileLoadingModal
+        :is-open="isProfileLoading"
+        :user-name="selectedUserName"
+        @close="isProfileLoading = false"
+      />
+
+      <!-- Toast for restore success -->
+      <ion-toast
+        :is-open="showRestoreToast"
+        :message="restoreMessage"
+        :duration="3000"
+        :color="restoreSuccess ? 'success' : 'warning'"
+        position="top"
+        @didDismiss="showRestoreToast = false"
+      ></ion-toast>
     </ion-content>
   </ion-page>
 </template>
 
 <script lang="ts">
-  import { useIonRouter } from "@ionic/vue";
-  import { mapActions, useStore, mapGetters } from "vuex";
-  import { computed, defineComponent, ref } from "@vue/runtime-core";
-  import ionic from "@/mixins/ionic";
-  import { add, peopleCircleSharp, peopleCircleOutline } from "ionicons/icons";
-  import User from "@/utils/User";
-  import { Drivers, Storage } from "@ionic/storage";
+import {
+    toastController,
+  useIonRouter,
+  onIonViewWillEnter,
+  onIonViewDidLeave,
+  alertController,
+  actionSheetController,
+} from "@ionic/vue";
+  import { useUserStore } from "@/lib/store/stores/user";
+  import { useAudioStore } from "@/lib/store/stores/audio";
+import { computed, defineComponent, ref, onUnmounted } from "vue";
+import {
+  peopleCircleSharp,
+  peopleCircleOutline,
+  fingerPrintOutline,
+  fingerPrintSharp,
+  cloudDownloadOutline,
+  cloudUploadOutline,
+  saveOutline
+} from "ionicons/icons";
+import User from "@/lib/utils/User";
+import { Drivers, Storage } from "@ionic/storage";
+import { modalController } from "@ionic/vue";
+import { ProfileDb } from "@/lib/databases";
+import AddProfile from "./AddProfile/AddProfile.vue";
+  import ProfileLoadingModal from "./ProfileLoadingModal.vue";
+import XpGp from "@/components/XpGp/XpGp.vue";
+import DialPad from "./DialPad.vue";
+import ionic from "@/mixins/ionic";
+import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
+import debug from "@/lib/utils/debug";
+import { fixPageTransitions } from "@/lib/utils/ionicPageFix";
 
-  import { modalController } from "@ionic/vue";
-  import { ProfileDb } from "@/databases";
+const requireAvatar = require.context("@/assets/images/avatars/");
 
-  import AddProfile from "./AddProfile/AddProfile.vue";
-  import XpGp from "@/components/XpGp/XpGp.vue";
+export const profileStorage = new Storage({
+  name: "__profiles",
+  driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
+});
 
-  import DialPad from "./DialPad.vue"
+export default defineComponent({
+  name: "switch-profile",
+  components: {
+    XpGp,
+    ProfileLoadingModal,
+  },
+  mixins: [ionic],
+  setup() {
+    // State management
+    const isLoading = ref(false); // For initial list loading
+    const isProfileLoading = ref(false); // For selected profile loading
+    const userStore = useUserStore();
+    const audioStore = useAudioStore();
+    const ionRouter = useIonRouter();
+    const storage = new ProfileDb(profileStorage);
 
-  const requireAvatar = require.context("@/assets/images/avatars/");
+    // Restore notification state
+    const showRestoreToast = ref(false);
+    const restoreMessage = ref('');
+    const restoreSuccess = ref(false);
+    const isRestoringProfiles = ref(false);
+    const selectedUserName = ref('');
 
-  export const profileStorage = new Storage({
-    name: "__profiles",
-    driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
-  });
+    // Computed properties
+    const users = computed(() => userStore.usersAz);
+    const bgm = computed(() => audioStore.bgm);
 
-  export default defineComponent({
-    name: "switch-profile",
-    mixins: [ionic],
-    components: { XpGp },
-    computed: {
-      ...mapGetters(["usersAz"]),
-      users() { return this.usersAz },
-    },
-    methods: {
-      ...mapActions(["loginUser"]),
+    // Data loading function
+    const loadProfiles = async () => {
+      isLoading.value = true;
 
-      clickAddProfile() {
-        this.ionRouter.navigate(`/new-profile`, "forward");
-      },
+      try {
+        await storage.init();
 
-      getUserAvatar(user) {
-        const { avatar } = user;
-        if (avatar) {
-          return requireAvatar(`./${user.avatar}.svg`);
-        }
-      },
+        // Check if we have profiles, if not try to restore from persistent storage
+        const existingProfiles = await storage.getProfiles();
 
-      clickProfile(profile: User) {
-        const { passcode } = profile
-        if (passcode)
-          this.showKeyPad(profile)
-        else {
-          this.openProfile(profile)
-        }
-      },
-
-      openProfile(profile: User) {
-        this.loginUser(profile);
-        this.ionRouter.navigate(`/my-portal/${profile.id}`, "forward");
-      },
-
-      async showKeyPad(profile: User) {
-        const modal = await modalController.create({
-          component: DialPad,
-          componentProps: {
-            profile
+        if (!existingProfiles || existingProfiles.length === 0) {
+          if (!isRestoringProfiles.value) {
+            isRestoringProfiles.value = true;
+            const restored = await storage.restoreProfiles();
+            if (restored) {
+              restoreSuccess.value = true;
+              restoreMessage.value = 'Successfully restored your profiles!';
+              showRestoreToast.value = true;
+            }
+            isRestoringProfiles.value = false;
           }
-        })
-        modal.present();
-        modal.onDidDismiss().then(this.passcodeVerified)
-      },
-
-      passcodeVerified(dismiss: any) {
-        if (dismiss.data) {
-          this.showLoader()
-          this.openProfile(dismiss.data)
         }
-      },
-      showLoader() {
-        this.loading = true
-        setTimeout(() => this.loading = false, 5000)
-      },
 
-      setProfiles(profiles: User[]) {
-        this.loadUsers()
-        this.profiles = profiles.sort((a, b) => {
-          const nameA = a.name.full.toLowerCase();
-          const nameB = b.name.full.toLowerCase();
-          if (nameA < nameB) {
-            return -1;
-          }
-          if (nameA > nameB) {
-            return 1;
-          }
-          return 0;
+        await userStore.loadUsers();
+      } catch (error) {
+        debug.error("Failed to load profiles:", error);
+        // You could add a toast or alert here to notify user of the error
+      } finally {
+        isLoading.value = false;
+      }
+    };
+
+    // Pull-to-refresh handler
+    const handleRefresh = async (event: any) => {
+      try {
+        await loadProfiles();
+      } finally {
+        event.target.complete();
+      }
+    };
+
+    // Backup and restore functions
+    const exportProfiles = async () => {
+      try {
+        const fileName = await storage.exportProfiles();
+        const toast = await toastController.create({
+          message: `Profiles exported to ${fileName}`,
+          duration: 3000,
+          color: 'success',
+          position: 'top'
         });
-
-      },
-
-      async loadProfiles() {
-        // this.setProfiles(this.users)
-        return await this.storage.getAll().then(this.setProfiles);
-      },
-
-      async openModal() {
-        const modal = await modalController.create({
-          component: AddProfile,
+        await toast.present();
+      } catch (error: any) {
+        const toast = await toastController.create({
+          message: `Failed to export profiles: ${error.message || error}`,
+          duration: 3000,
+          color: 'danger',
+          position: 'top'
         });
-        modal.onDidDismiss()
-          .then(this.loadUsers)
-          .then(this.loadProfiles)
-        modal.present();
-      },
-    },
-    setup() {
-      const loading = ref(false);
-      const refresh = ref(false);
-      const store = useStore();
-      const bgm = computed(() => store.state.bgm);
-      const ionRouter = useIonRouter();
+        await toast.present();
+      }
+    };
 
-      const storage = new ProfileDb(profileStorage);
-      const profiles = computed({
-        get: () => store.state.users,
-        set: (users) => store.state.users = users
+    const importProfiles = async () => {
+      // Create a file input element
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'application/json';
+
+      fileInput.addEventListener('change', async (event: any) => {
+        const file = event.target.files[0];
+        if (file) {
+          try {
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+              try {
+                const content = e.target?.result as string;
+                const success = await storage.importProfiles(content);
+
+                if (success) {
+                  await userStore.loadUsers();
+                  const toast = await toastController.create({
+                    message: 'Profiles imported successfully',
+                    duration: 3000,
+                    color: 'success',
+                    position: 'top'
+                  });
+                  await toast.present();
+                }
+              } catch (err: any) {
+                const toast = await toastController.create({
+                  message: `Failed to import profiles: ${err.message || err}`,
+                  duration: 3000,
+                  color: 'danger',
+                  position: 'top'
+                });
+                await toast.present();
+              }
+            };
+            reader.readAsText(file);
+          } catch (error: any) {
+            const toast = await toastController.create({
+              message: `Failed to read file: ${error.message || error}`,
+              duration: 3000,
+              color: 'danger',
+              position: 'top'
+            });
+            await toast.present();
+          }
+        }
       });
 
-      const loadUsers = () => store.dispatch("loadUsers")
+      fileInput.click();
+    };
 
-      return {
-        loading,
-        loadUsers,
-        storage,
-        bgm,
-        add,
-        peopleCircleSharp,
-        peopleCircleOutline,
-        ionRouter,
-        profiles,
-        refresh,
-      };
-    },
-  });
+    // Options modal
+    const openBackupOptionsModal = async () => {
+      const actionSheet = await actionSheetController.create({
+        header: 'Profile Backup Options',
+        mode: 'ios',
+        buttons: [
+          {
+            text: 'Export Profiles',
+            icon: saveOutline,
+            handler: () => {
+              exportProfiles();
+            }
+          },
+          {
+            text: 'Import Profiles',
+            icon: cloudUploadOutline,
+            handler: () => {
+              importProfiles();
+            }
+          },
+          {
+            text: 'Restore From Backup',
+            icon: cloudDownloadOutline,
+            handler: async () => {
+              const alert = await alertController.create({
+                header: 'Restore Profiles',
+                message: 'This will replace all current profiles with those from your last backup. Continue?',
+                buttons: [
+                  {
+                    text: 'Cancel',
+                    role: 'cancel'
+                  },
+                  {
+                    text: 'Restore',
+                    handler: async () => {
+                      try {
+                        isRestoringProfiles.value = true;
+                        const restored = await storage.restoreProfiles();
+
+                        if (restored) {
+                          await userStore.loadUsers();
+                          restoreSuccess.value = true;
+                          restoreMessage.value = 'Successfully restored your profiles!';
+                        } else {
+                          restoreSuccess.value = false;
+                          restoreMessage.value = 'No backup found to restore.';
+                        }
+
+                        showRestoreToast.value = true;
+                      } catch (error: any) {
+                        restoreSuccess.value = false;
+                        restoreMessage.value = `Restore failed: ${error.message || error}`;
+                        showRestoreToast.value = true;
+                      } finally {
+                        isRestoringProfiles.value = false;
+                      }
+                    }
+                  }
+                ]
+              });
+
+              await alert.present();
+            }
+          },
+          {
+            text: 'Cancel',
+            role: 'cancel'
+          }
+        ]
+      });
+
+      await actionSheet.present();
+    };
+
+    // Navigation functions
+    const navigateToUserPortal = async (profile: User) => {
+      try {
+        isProfileLoading.value = true; // Start loading indicator
+
+        // Login the user first and wait for it to complete
+        await userStore.loginUser(profile);
+
+        // Then navigate to their home page
+        await ionRouter.navigate(
+          `/my-portal/${profile.id}/my-home`,
+          "forward"
+        );
+      } catch (error: any) {
+        debug.error("Login/Navigation error:", error);
+        const toast = await toastController.create({
+          message: `Failed to load profile: ${error.message || error}`,
+          duration: 3000,
+          color: 'danger',
+          position: 'top'
+        });
+        await toast.present();
+      } finally {
+        // Add a slight delay before hiding the loading indicator
+        await new Promise(resolve => setTimeout(resolve, 500)).then(fixPageTransitions);
+        setTimeout(() => {
+          isProfileLoading.value = false;
+        }, 450);
+        
+      }
+    };
+
+    // Profile functions
+    const getUserAvatar = (user: User) => {
+      if (user?.avatar) {
+        return requireAvatar(`./${user.avatar}.svg`);
+      }
+      return ""; // Return empty string or default avatar path
+    };
+
+    const getJobClassIcon = (profile: User) => {
+      const findJobClass = (job) => job?.name === profile?.jobClass;
+      const selectedJob = JOB_CLASS_OPTIONS.find(findJobClass);
+      // Remove fa- prefix since it's added in the template
+      return selectedJob ? selectedJob.icon.replace('fa-', '') : 'question';
+    };
+
+    const getFoodIcon = (profile: User) => {
+      const findFavoriteFood = (food) => food.value === profile?.favoriteFood;
+      const selectedFood = FOOD_OPTIONS.find(findFavoriteFood);
+      // Remove fa- prefix since it's added in the template
+      return selectedFood ? selectedFood.icon.replace('fa-', '') : 'utensils';
+    };
+
+    const selectProfile = async (profile: User) => {
+      selectedUserName.value = profile.name.nick;
+      if (profile.passcode) {
+        openPasscodeModal(profile);
+      } else {
+        navigateToUserPortal(profile);
+      }
+    };
+
+    // Modal management
+    const openPasscodeModal = async (profile: User) => {
+      const modal = await modalController.create({
+        component: DialPad,
+        cssClass: "fullscreen",
+        componentProps: { profile },
+      });
+
+      await modal.present();
+
+      const { data } = await modal.onDidDismiss();
+      if (data) {
+        navigateToUserPortal(profile);
+      }
+    };
+
+    const openNewProfileModal = async () => {
+      const modal = await modalController.create({
+        component: AddProfile,
+        cssClass: "fullscreen",
+      });
+
+      await modal.present();
+
+      const { data } = await modal.onDidDismiss();
+      if (data) {
+        // If profile was created successfully
+        loadProfiles();
+      }
+    };
+
+    // Lifecycle hooks
+    onIonViewWillEnter(async () => {
+      // Load profiles when entering the view
+      await loadProfiles();
+    });
+
+    onIonViewDidLeave(() => {
+      // Reset loading states when leaving the view
+      isLoading.value = false;
+      isProfileLoading.value = false;
+    });
+
+    onUnmounted(() => {
+      // Additional cleanup if needed
+    });
+
+    return {
+      isLoading,
+      users,
+      bgm,
+      peopleCircleSharp,
+      peopleCircleOutline,
+      getUserAvatar,
+      getJobClassIcon,
+      getFoodIcon,
+      selectProfile,
+      openNewProfileModal,
+      handleRefresh,
+      isProfileLoading,
+      fingerPrintOutline,
+      fingerPrintSharp,
+      cloudDownloadOutline,
+      restoreMessage,
+      restoreSuccess,
+      showRestoreToast,
+      openBackupOptionsModal,
+      selectedUserName,
+    };
+  },
+});
 </script>
 <style scoped lang="scss">
-  ion-content {
-    --background: transparent;
+ion-content {
+  --background: transparent;
+}
 
-    &#container {
-      height: 100vh;
-      background-color: #68a8d8;
-      background-image: linear-gradient(45deg,
-          #80d890 25%,
-          transparent 25%,
-          transparent 75%,
-          #80d890 75%),
-        linear-gradient(45deg,
-          #80d890 25%,
-          transparent 25%,
-          transparent 75%,
-          #80d890 75%);
-      background-size: 60px 60px;
-      background-position: 0 0, 30px 30px;
-      animation: slide 4s infinite linear;
+.switch-profile {
+  ion-card {
+    text-align: center;
+    /* width: calc(100% - 35px); */
+    // min-width: calc(15vw)
+  }
+
+  // #container {
+  //   text-align: center;
+  //   position: absolute;
+  //   left: 0;
+  //   right: 0;
+  //   top: 50%;
+  //   transform: translateY(-50%);
+  // }
+
+  #container strong {
+    font-size: 20px;
+    line-height: 26px;
+  }
+
+  #container p {
+    font-size: 16px;
+    line-height: 22px;
+    color: #8c8c8c;
+    /* margin: 0; */
+  }
+
+  #container a {
+    text-decoration: none;
+  }
+
+  &#container {
+    height: 100vh;
+    background-color: #68a8d8;
+    background-image: linear-gradient(45deg,
+        #80d890 25%,
+        transparent 25%,
+        transparent 75%,
+        #80d890 75%),
+      linear-gradient(45deg,
+        #80d890 25%,
+        transparent 25%,
+        transparent 75%,
+        #80d890 75%);
+    background-size: 60px 60px;
+    background-position: 0 0, 30px 30px;
+    animation: slide 4s infinite linear;
+  }
+}
+
+.switch-profile {
+  ion-card {
+    text-align: center;
+    /* width: calc(100% - 35px); */
+    // min-width: calc(15vw)
+  }
+
+  // #container {
+  //   text-align: center;
+  //   position: absolute;
+  //   left: 0;
+  //   right: 0;
+  //   top: 50%;
+  //   transform: translateY(-50%);
+  // }
+
+  #container strong {
+    font-size: 20px;
+    line-height: 26px;
+  }
+
+  #container p {
+    font-size: 16px;
+    line-height: 22px;
+    color: #8c8c8c;
+    /* margin: 0; */
+  }
+
+  #container a {
+    text-decoration: none;
+  }
+
+  ion-badge {
+    padding: 6px 8px;
+    border-radius: 12px;
+    font-weight: 500;
+    min-width: 60px;
+    text-align: center;
+
+    &[color="tertiary"] {
+      --ion-color-base: var(--ion-color-tertiary);
+    }
+
+    &[color="warning"] {
+      --ion-color-base: var(--ion-color-warning);
+    }
+  }
+}
+
+ion-modal {
+  .img-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    flex-grow: 1;
+    margin: 1em;
+  }
+
+  ion-input {
+    text-align: right;
+  }
+}
+
+.avatar-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  .profile-icons {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    i {
+      font-size: 1.2em;
+    }
+  }
+}
+
+@keyframes slide {
+  from {
+    background-position: 0 0, 30px 30px;
+  }
+
+  to {
+    background-position: 0 0, -30px -30px;
+  }
+}
+
+.profile-item {
+  --padding-start: 1rem;
+  --inner-padding-end: 1rem;
+  margin-bottom: 0.5rem;
+
+  &::part(native) {
+    align-items: center;
+  }
+}
+
+.profile-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.avatar-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  ion-avatar {
+    width: 50px;
+    height: 50px;
+  }
+
+  .role-icons {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: 0.75rem;
+
+    i {
+      font-size: 1.5rem;
+
+      // Set default duotone colors if not overridden
+      /* --fa-primary-color: var(--ion-color-primary);
+      --fa-secondary-color: var(--ion-color-primary-shade); */
+      /* --fa-secondary-opacity: 0.6; */
+
+      &:last-child {
+        /* --fa-primary-color: var(--ion-color-success);
+        --fa-secondary-color: var(--ion-color-success-shade); */
+      }
+    }
+  }
+}
+
+.name-container {
+  h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--ion-color-dark);
+  }
+
+  p {
+    font-size: 0.85rem;
+    margin: 0.25rem 0 0;
+    color: var(--ion-color-medium);
+  }
+}
+
+.stats-container {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+
+  .level {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    /* background: var(--ion-color-tertiary-dark); */
+    padding: 0.25rem 0.75rem;
+    border-radius: 8px;
+    min-width: 3rem;
+
+    .label {
+      font-size: 0.9rem;
+      color: var(--ion-color-tertiary);
+      font-weight: 600;
+      /* text-transform: uppercase; */
+    }
+
+    .value {
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--ion-color-tertiary);
     }
   }
 
-  .switch-profile {
-    ion-card {
-      text-align: center;
-      width: calc(100% - 35px);
-      // min-width: calc(15vw)
-    }
-
-    ion-avatar {
-      margin: auto;
-    }
-
-    // #container {
-    //   text-align: center;
-    //   position: absolute;
-    //   left: 0;
-    //   right: 0;
-    //   top: 50%;
-    //   transform: translateY(-50%);
-    // }
-
-    #container strong {
-      font-size: 20px;
-      line-height: 26px;
-    }
-
-    #container p {
-      font-size: 16px;
-      line-height: 22px;
-      color: #8c8c8c;
-      margin: 0;
-    }
-
-    #container a {
-      text-decoration: none;
-    }
+  .wallet {
+    /* background: var(--ion-color-warning-tint); */
+    padding: 0.25rem 0.75rem;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    color: var(--ion-color-warning);
+    font-size: 1.4rem;
+    font-weight: 700;
+    font-family: "Twoson";
   }
-
-  ion-modal {
-    .img-avatar {
-      width: 100px;
-      height: 100px;
-      border-radius: 50%;
-      flex-grow: 1;
-      margin: 1em;
-    }
-
-    ion-input {
-      text-align: right;
-    }
-  }
-
-  ion-modal.auto-height {
-    --height: auto;
-  }
-
-  ion-modal.auto-height .ion-page {
-    position: relative;
-    display: block;
-    contain: content;
-  }
-
-  ion-modal.auto-height .ion-page .inner-content {
-    max-height: 80vh;
-    overflow: auto;
-  }
-
-  @keyframes slide {
-    from {
-      background-position: 0 0, 30px 30px;
-    }
-
-    to {
-      background-position: 0 0, -30px -30px;
-    }
-  }
+}
 </style>

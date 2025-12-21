@@ -94,18 +94,18 @@
         @swiper="setControlledSwiper"
       >
         <swiper-slide
-          v-for="page in nTotalPages"
+          v-for="(page, pageIndex) in pages"
           pager="true"
-          :key="page"
-          :data-page="page"
+          :key="pageIndex"
+          :data-page="pageIndex"
         >
           <ion-grid>
             <ion-row>
               <ion-col
                 size="6"
                 size-md="3"
-                v-for="item in pages"
-                :key="`${page}-${item.id}`"
+                v-for="item in page"
+                :key="`${pageIndex}-${item.id}`"
                 class="ion-no-padding"
               >
 

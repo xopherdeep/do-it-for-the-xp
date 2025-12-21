@@ -2,6 +2,7 @@
   <ion-item
     v-for="user in users"
     :key="user.id"
+    @click="mimicUser(user)"
     button
     detail
   >
@@ -73,22 +74,31 @@
 <script lang="ts">
   import { defineComponent } from 'vue'
   import ionic from '@/mixins/ionic'
-  import { mapGetters } from "vuex";
+  import { useUserStore } from '@/lib/store/stores/user';
   export default defineComponent({
     name: 'xp-impersonate-profile',
     mixins: [ionic],
 
     computed: {
-      ...mapGetters(["usersAz"]),
-      users() { return this.usersAz }
+      usersAz() { return (this as any).userStore.usersAz },
+      users() { return (this as any).usersAz }
+    },
+    setup() {
+      const userStore = useUserStore();
+      return {
+        userStore
+      }
     },
     methods: {
-      getUserAvatar(user) {
-        const { avatar } = user;
-        if (avatar) {
-          return this.$requireAvatar(`./${user.avatar}.svg`);
-        }
-      },
+      mimicUser(user) {
+        const { id: userId } = user
+        this.$router.push({
+          name: 'my-home',
+          params: {
+            userId
+          }
+        })
+      }
     }
   })
 </script>

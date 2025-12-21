@@ -1,43 +1,33 @@
 <template>
-  <ion-page
-    :class="$options.name"
-    class="rpg-box"
-  >
+  <ion-page :class="$options.name" class="rpg-box">
     <ion-content>
       <ion-tabs>
         <ion-router-outlet ref="outlet"></ion-router-outlet>
-        <ion-tab-bar slot="bottom">
+        <ion-tab-bar slot="bottom" class="icon-colors">
           <ion-tab-button
-            tab="abilities"
-            href="/game-master/abilities"
-            :selected="$route.path === '/game-master/abilities'"
+            tab="compendium"
+            href="/game-master/compendium/splash"
+            :selected="$route.path.indexOf('game-master/compendium/') >= 0"
           >
-            <i class="fad fa-magic fa-2x" />
-            Abilities
-          </ion-tab-button>
-          <ion-tab-button
-            tab="accessories"
-            href="/game-master/accessories"
-            :selected="$route.path === '/game-master/accessories'"
-          >
-            <i class="fad fa-hand-holding-box fa-2x" />
-            Accessories
+            <i class="fad fa-game-console-handheld fa-2x" />
+            Setup XP
+            
           </ion-tab-button>
           <ion-tab-button
             tab="dashboard"
-            href="/game-master"
+            href="/game-master/dashboard"
             :selected="$route.path === '/game-master/dashboard'"
           >
-            <i class="fad fa-tachometer-alt fa-2x" />
-            Dashboard
+            <i class="fad fa-heart fa-2x" />
+            Family 
           </ion-tab-button>
           <ion-tab-button
-            tab="achievements"
-            href="/game-master/achievements"
-            :selected="$route.path === '/game-master/achievements'"
+            tab="chat"
+            href="/game-master/chat"
+            :selected="$route.path === '/game-master/chat'"
           >
-            <i class="fad fa-trophy fa-2x" />
-            Achievements
+            <i class="fad fa-comments fa-2x" />
+            Chat
           </ion-tab-button>
           <ion-tab-button
             tab="bestiary"

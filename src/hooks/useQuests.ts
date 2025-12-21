@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery } from "vue-query";
-import XpApi from "@/api/doit.forthexp.com.api";
+import XpApi from "@/lib/api/doit.forthexp.com.api";
 
 function useQuests(page, params, callback) {
   const fetchAchievements = async () => await XpApi
@@ -12,6 +12,8 @@ function useQuests(page, params, callback) {
   });
 
 }
+
+
 
 export function useInfiniteQuests(page, params, callback, getNextFn) {
   const fetchAchievements = async () => await XpApi

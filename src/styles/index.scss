@@ -1,10 +1,13 @@
-@import "mixins";
-@import "fonts";
-@import "ionic";
-@import "menu";
-@import "card";
+@use "mixins";
+@use "fonts";
+@use "ionic";
+@use "menu";
+@use "card";
 
 // Themes
-@import "./themes/earthbound.scss";
-@import "./themes/finalfantasy.scss";
-@import "./themes/chronoTrigger.scss";
+@use "icons";
+@use "themes";
+
+  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+
+

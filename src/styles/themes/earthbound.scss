@@ -1,12 +1,145 @@
+// Earthbound Theme Variables
+
+// Fonts
+$eb-font-primary: "Apple Kid"; // Main body text, list items, toasts
+$eb-font-title: "Twoson"; // Page titles (ion-title)
+$eb-font-status: "StatusPlz"; // Card titles, status elements
+
+// Colors
+$eb-color-dark-purple: #280828;
+$eb-color-medium-purple: #383050;
+$eb-color-slate: #3d3c55;
+$eb-color-sky-blue: #68a8d8;
+$eb-color-mint-green: #80d890;
+$eb-color-minty-blue: #68d0b8;
+$eb-color-cream: #e7e6b3;
+$eb-color-pale-yellow: #f7e8a8;
+$eb-color-white: #ffffff;
+
+:root {
+	--ion-color-rpg: #f7e8a8;
+	--ion-color-rpg-rgb: 247,232,168;
+	--ion-color-rpg-contrast: #280828;
+	--ion-color-rpg-contrast-rgb: 40,8,40;
+	--ion-color-rpg-shade: #383050;
+	--ion-color-rpg-tint: #68a8d8;
+}
+
+.ion-color-rpg {
+	--ion-color-base: var(--ion-color-rpg);
+	--ion-color-base-rgb: var(--ion-color-rpg-rgb);
+	--ion-color-contrast: var(--ion-color-rpg-contrast);
+	--ion-color-contrast-rgb: var(--ion-color-rpg-contrast-rgb);
+	--ion-color-shade: var(--ion-color-rpg-shade);
+	--ion-color-tint: var(--ion-color-rpg-tint);
+}
+
+// Mixins
+@mixin eb-box() {
+  border-radius: 1px;
+  box-shadow: 0 0 0 5px $eb-color-medium-purple, 0 0 0 10px $eb-color-minty-blue,
+    0 0 0 12px $eb-color-pale-yellow, 0 0 0 16px $eb-color-slate;
+  background-color: $eb-color-dark-purple;
+  color: $eb-color-cream;
+}
+
+@mixin eb-checkerboard-bg {
+  background-color: $eb-color-sky-blue;
+  background-image: linear-gradient(
+      45deg,
+      $eb-color-mint-green 25%,
+      transparent 25%,
+      transparent 75%,
+      $eb-color-mint-green 75%
+    ),
+    linear-gradient(
+      45deg,
+      $eb-color-mint-green 25%,
+      transparent 25%,
+      transparent 75%,
+      $eb-color-mint-green 75%
+    );
+  background-size: 60px 60px;
+  background-position: 0 0, 30px 30px;
+  animation: slide 4s infinite linear;
+}
+
+@keyframes slide {
+  0% {
+    background-position: 0 0, 30px 30px;
+  }
+  100% {
+    background-position: 60px 60px, 90px 90px;
+  }
+}
+
+// Earthbound Theme
 ion-app {
   &#earthbound {
-    font-family: "Apple Kid";
+    ion-router-outlet {
+      * {
+        font-family: inherit, $eb-font-status;
+      }
+    }
+    font-family: $eb-font-primary;
 
+    // not .my-portal
+
+    // Content areas
+    ion-content {
+      &#container,
+      &.bg-slide {
+        --background: transparent;
+        @include eb-checkerboard-bg();
+      }
+    }
+
+    // Typography
+    ion-title {
+      font-family: $eb-font-title;
+    }
+
+    ion-card-title {
+      font-family: $eb-font-status;
+      font-weight: normal;
+      font-size: 15pt;
+      text-transform: capitalize;
+    }
+
+    // List styling
     ion-list {
       list-style-type: circle;
     }
+
+    ion-fab-list {
+      // margin: 60px 0 0 0;
+
+      ion-card {
+        ion-button {
+          font-family: $eb-font-status;
+          text-transform: none;
+          i {
+            @apply mr-3 w-[20px];
+          }
+          font-size: 16px;
+        }
+
+        ion-grid {
+          padding: 0;
+          margin: 0;
+          ion-col {
+            padding: 0;
+            margin: 0;
+          }
+          ion-button {
+            color: $eb-color-cream;
+          }
+        }
+      }
+    }
+
     ion-item {
-      font-family: "Apple Kid";
+      font-family: $eb-font-primary;
       font-size: 100%;
 
       &::before {
@@ -18,67 +151,59 @@ ion-app {
         height: 0;
         border-top: 0.3rem solid transparent;
         border-bottom: 0.3rem solid transparent;
-        border-left: 0.3rem solid #e7e6b3;
+        border-left: 0.3rem solid $eb-color-cream;
       }
     }
 
-    ion-title {
-      font-family: Twoson;
-    }
-
-    ion-content {
-      // --background: transparent;
-
-      &#container,
-      &.bg-slide {
-        // height: 100vh;
-        background-color: #68a8d8;
-        background-image: linear-gradient(
-            45deg,
-            #80d890 25%,
-            transparent 25%,
-            transparent 75%,
-            #80d890 75%
-          ),
-          linear-gradient(
-            45deg,
-            #80d890 25%,
-            transparent 25%,
-            transparent 75%,
-            #80d890 75%
-          );
-        background-size: 60px 60px;
-        background-position: 0 0, 30px 30px;
-        animation: slide 4s infinite linear;
-      }
-    }
-
-    ion-card-title {
-      font-family: "StatusPlz";
-      font-weight: normal;
-      // font-style: italic;
-      font-size: 15pt;
-      text-transform: capitalize;
-    }
-
+    // Toolbar styling
     ion-toolbar {
       &.rpg-box {
         margin-bottom: 1em;
-        // --background: #280828;
-        --background: #3d3c55;
-
-        @include earthboundBox();
+        --background: $eb-color-slate;
+        @include eb-box();
       }
     }
 
+    // Card styling
     ion-card {
-      @include earthboundBox();
-      margin: 1.25em;
+      @include eb-box();
+      margin: 1.5em auto;
       width: calc(100% - 2.5em);
-      // min-width: 5em;
-      display: inline-block;
+      display: block;
       position: relative;
       vertical-align: top;
+      overflow: visible;
+
+      ion-card-title {
+        padding: 1px 5px;
+        font-size: 20px;
+        background-color: $eb-color-dark-purple;
+        color: $eb-color-pale-yellow;
+      }
+
+      ion-list {
+        background: $eb-color-dark-purple;
+      }
+
+      ion-item {
+        font-family: $eb-font-primary;
+        background: $eb-color-dark-purple;
+        --background: $eb-color-dark-purple;
+        font-size: 100%;
+
+        ion-label {
+          font-family: $eb-font-title;
+
+          h1 {
+            font-family: $eb-font-title;
+            font-size: 19px;
+          }
+          p {
+            font-family: $eb-font-status;
+            font-size: 14px;
+          }
+        }
+      }
 
       ion-thumbnail {
         max-width: 100%;
@@ -93,48 +218,27 @@ ion-app {
         --background-rgb: 255, 255, 255;
       }
 
-      overflow: visible;
-      ion-card-title {
-        // text-transform: uppercase;
-        // position: absolute;
-        // top: -15px;
-        color: var(--ion-color-primary);
-        padding: 1px 5px;
-        font-size: 20px;
-        background-color: #383050;
-        // #280828;
+      ion-textarea {
+        font-family: $eb-font-status;
+        border: none;
       }
     }
 
+    // Modal styling
     ion-modal {
       --background: transparent;
       --box-shadow: none;
 
+      ion-content {
+        // --background: transparent;
+      }
+
       &.user-profile {
         font-size: 1.2rem;
         padding: 2em;
-        // font-family: sans-serif;
-        background-color: #68a8d8;
-        background-image: linear-gradient(
-            45deg,
-            #80d890 25%,
-            transparent 25%,
-            transparent 75%,
-            #80d890 75%
-          ),
-          linear-gradient(
-            45deg,
-            #80d890 25%,
-            transparent 25%,
-            transparent 75%,
-            #80d890 75%
-          );
-        background-size: 60px 60px;
-        background-position: 0 0, 30px 30px;
-        animation: slide 4s infinite linear;
+        @include eb-checkerboard-bg();
 
         ion-content {
-          --background: transparent;
           padding: 10px;
 
           ion-col {
@@ -142,7 +246,7 @@ ion-app {
               float: right;
               width: 32px;
               height: 48px;
-              margin-right: 1.5em;
+              margin-right: 2em;
               display: inline-block;
               background-size: auto;
               background-blend-mode: multiply;
@@ -165,27 +269,34 @@ ion-app {
           }
         }
       }
+    }
 
-      ion-content {
-        --background: transparent;
+    ion-segment {
+      font-family: $eb-font-title;
+      ion-segment-button {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        flex-direction: column;
+
+        ion-label {
+          font-family: $eb-font-title;
+          font-size: 1.2rem;
+        }
       }
     }
 
+    // Toast notifications
     ion-toast {
+      // @include eb-box(); // Apply the standard box styling
+
+      // Toast-specific overrides and properties
       --ion-safe-area-top: 100px;
-      --background: #280828;
-      // background-color: #280828;
-      --color: #e7e6b3;
       --padding: 5px 3px;
-      --border-radius: 1px;
       --transform: translateY(0);
       --transition: transform linear 150ms;
-      // --height: 35px;
-      --box-shadow: 0 0 0 5px #383050, /* dark grey */ 0 0 0 10px #68d0b8,
-        /* minty blue */ 0 0 0 12px #f7e8a8, /* white */ 0 0 0 16px #3d3c55;
-      /* black */
       --width: 90%;
-      --button-color: #e7e6b3;
+      --button-color: $eb-color-cream; // Keep button color if needed specifically
 
       &::part(header) {
         font-weight: 800;
@@ -195,12 +306,68 @@ ion-app {
 
       &::part(header),
       &::part(message) {
-        font-family: "Apple Kid";
+        font-family: $eb-font-primary;
         font-size: x-large;
 
         &::before {
           content: "\2022";
           margin-right: 0.35em;
+        }
+      }
+    }
+
+    // Action Sheet Styling
+    .action-sheet-wrapper {
+      &.sc-ion-action-sheet-ios {
+        .action-sheet-container {
+          @include eb-box();
+          max-width: 90%;
+          width: 360px;
+          margin: 0 auto;
+          border-radius: 4px;
+          
+          .action-sheet-group {
+            background: $eb-color-dark-purple;
+            color: $eb-color-cream;
+            border-radius: 0;
+            
+            .action-sheet-title {
+              font-family: $eb-font-title;
+              color: $eb-color-pale-yellow;
+              font-size: 20px;
+              padding: 10px;
+              border-bottom: 2px solid $eb-color-minty-blue;
+            }
+            
+            .action-sheet-button {
+              font-family: $eb-font-status;
+              color: $eb-color-cream;
+              font-size: 16px;
+              
+              &:hover {
+                background: $eb-color-medium-purple;
+              }
+              
+              &.action-sheet-cancel {
+                background: transparent;
+                color: var(--ion-color-danger);
+                
+                &:hover {
+                  background: darken($eb-color-slate, 5%);
+                }
+              }
+              
+              .action-sheet-button-inner {
+                justify-content: space-between;
+                
+                .action-sheet-icon {
+                  color: $eb-color-sky-blue;
+                  margin-left: 10px;
+                  order: 1;
+                }
+              }
+            }
+          }
         }
       }
     }

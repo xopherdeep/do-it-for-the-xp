@@ -1,8 +1,13 @@
-import WorldMapRoutes from "./world-map.routes";
+import WorldMapRoutes from './world-map.routes';
 
-const MyPortalRoutes = [
-  {
+const MyPortalRoutes = [{
+  path: '/my-portal/:userId',
+  name: 'my-portal',
+  component: () => import('@/views/Console/MyPortal/MyPortal.vue'),
+  props: true,
+  children: [{
     path: "",
+    name: "my-home-redirect",
     redirect: (to) => ({
       name: "my-home",
       params: { userId: to.params.userId },
@@ -14,7 +19,7 @@ const MyPortalRoutes = [
     meta: {
       faIcon: "house-user",
     },
-    component: () => import("@/views/MyPortal/MyHome/MyHome.vue"),
+    component: () => import("@/views/Console/MyPortal/MyHome/MyHome.vue"),
     children: [],
   },
   {
@@ -23,7 +28,7 @@ const MyPortalRoutes = [
       faIcon: "fort-awesome",
       hideUserFab: true,
     },
-    component: () => import("@/views/MyPortal/MyParty.vue"),
+    component: () => import("@/views/Console/MyPortal/MyParty.vue"),
   },
   {
     path: "home-town",
@@ -31,7 +36,7 @@ const MyPortalRoutes = [
     meta: {
       faIcon: "archway",
     },
-    component: () => import("@/views/MyPortal/HomeTown/HomeTown.vue"),
+    component: () => import("@/views/Console/MyPortal/HomeTown/HomeTown.vue"),
   },
   {
     path: "world-map",
@@ -39,18 +44,20 @@ const MyPortalRoutes = [
     meta: {
       faIcon: "pegasus",
     },
-    component: () => import("@/views/MyPortal/WorldMap/WorldMap.vue"),
+    component: () => import("@/views/Console/WorldMap/WorldMap.vue"),
   },
   {
-    path: "my-profile",
-    name: "my-profile",
+    path: 'my-profile',
+    name: 'my-profile',
     meta: {
       faIcon: "user-circle",
       hideUserFab: true,
     },
-    component: () => import("@/views/MyPortal/MyProfile/MyProfile.vue"),
+    component: () => import('@/views/Console/MyPortal/UserProfile/UserProfile.vue'),
+    props: true
   },
   ...WorldMapRoutes
-];
+  ],
+}];
 
 export default MyPortalRoutes;

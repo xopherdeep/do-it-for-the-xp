@@ -278,10 +278,10 @@
   import { modalController } from "@ionic/vue";
   import ionic from "@/mixins/ionic";
 
-  import DosDontsDb, { DosDont, dosDontsStorage } from "@/databases/DosDontsDb";
+  import DosDontsDb, { DosDont } from "@/lib/databases/DosDontsDb";
   import EFFORTS from "@/constants/EFFORTS";
 
-  const dosDontsDb = new DosDontsDb(dosDontsStorage);
+  const dosDontsDb = new DosDontsDb();
 
   export default defineComponent({
     name: "XpAddDoDont",

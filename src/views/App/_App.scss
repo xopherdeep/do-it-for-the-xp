@@ -1,5 +1,4 @@
-@import "@/styles";
-@import "@/theme";
+@use "@/styles";
 
 // .ion-app moved to @/styles/_app.scss
 @keyframes slide {
@@ -81,12 +80,13 @@ ion-item.selected {
   ion-select,
   ion-searchbar,
   ion-content,
+  ion-menu-button,
   ion-footer {
-    --background: #3d3c55 !important;
+    // --background: transparent !important;
     --color: #e7e6b3 !important;
     --placeholder-color: #e7e6b3 !important;
     --icon-color: var(--ion-color-contrast) !important;
-    background: #3d3c55 !important;
+    // background: transparent !important;
     color: #e7e6b3 !important;
   }
 
@@ -103,9 +103,9 @@ ion-item.selected {
     overflow: visible;
 
     ion-card-title {
-      text-transform: uppercase;
-      position: absolute;
-      top: -15px;
+      // text-transform: uppercase;
+      // position: absolute;
+      // top: -15px;
       color: var(--ion-color-primary);
       padding: 1px 5px;
       font-size: 15px;

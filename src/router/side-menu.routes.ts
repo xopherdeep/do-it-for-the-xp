@@ -1,140 +1,69 @@
-const SideMenu = [
+import { RouteRecordRaw } from "vue-router";
+
+export const SideMenuRoutes: Array<RouteRecordRaw> = [
   {
-    path: '/',
-    redirect: '/log-in',
+    path: "/",
+    redirect: "/xp-intro",
     // component: () => import ('@/views/StartScreen/StartScreen.vue'),
     meta: {
-      title: "Do it for the XP"
-    }
+      title: "Do it for the XP",
+    },
   },
 
-  // Game Master
   // Switch Profile
   {
-    path: '/switch-profile',
-    name: 'switch-profile',
-    component: () => import('@/views/App/SideMenu/SwitchProfile/SwitchProfile.vue'),
+    path: "/xp-profile", // Changed path
+    name: "xp-profile",
+    component: () =>
+      import("@/views/App/SideMenu/SwitchProfile/SwitchProfile.vue"),
     meta: {
-      requiresAuth: false
-    }
+      // requiresAuth: false
+    },
+  },
+  // Game Master route - imported from separate file
+  {
+    path: "/xp-membership",
+    component: () =>
+      import("@/views/App/SideMenu/XpMembership/XpMembership.vue"),
   },
   {
-    path: '/game-master',
-    name: 'game-master',
-    component: () => import('@/views/App/SideMenu/XpGameMaster/XpGameMaster.vue'),
-    children: [
-      {
-        path: '',
-        redirect: '/game-master/dashboard',
-      },
-      {
-        path: 'dashboard',
-        name: 'xp-dashboard',
-        component: () => import("../views/App/SideMenu/XpGameMaster/XpDashboard/XpDashboard.vue"),
-      },
-      {
-        path: 'achievements',
-        name: 'xp-achievements',
-        component: () => import('@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAchievements.vue'),
-      },
-      {
-        path: 'bestiary',
-        name: 'xp-bestiary',
-        component: () => import('@/views/App/SideMenu/XpGameMaster/XpBestiary/XpBestiary.vue'),
-      },
-      {
-        path: 'do-this-not-that/:id?',
-        name: 'xp-do-this-not-that',
-        component: () => import('@/views/App/SideMenu/XpGameMaster/XpDoThisNotThat/XpDoThisNotThat.vue'),
-        props: true
-      },
-      {
-        path: 'accessories',
-        name: 'xp-accessories',
-        component: () => import('@/views/App/SideMenu/XpGameMaster/XpAccessories/XpAccessories.vue'),
-      },
-      {
-        path: 'abilities',
-        name: 'xp-abilities',
-        component: () => import('@/views/App/SideMenu/XpGameMaster/XpAbilities/XpAbilities.vue'),
-        children: [
-          {
-            path: 'create-update/:id?',
-            name: 'xp-create-update-ability',
-            component: () => import('@/views/App/SideMenu/XpGameMaster/XpAbilities/components/XpCreateUpdateAbility.vue'),
-          },
-        ],
-      },
-    ],
+    path: "/support",
+    name: "support",
+    component: () => import("@/views/App/SideMenu/XpSupport/XpSupport.vue"),
   },
   {
-    path: '/add-achievement/:id?',
-    name: 'xp-add-achievement',
-    component: () => import('@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAddAchievement/XpAddAchievement.vue'),
-    props: true
+    path: "/tell-a-friend",
+    component: () => import("@/views/App/SideMenu/XpShareApp/XpShareApp.vue"),
   },
   {
-    path: '/discover-achievements',
-    name: 'xp-discover-achievements',
-    component: () => import('@/views/App/SideMenu/XpGameMaster/XpAchievements/XpDiscoverAchievements/XpDiscoverAchievements.vue'),
+    path: "/about-xp",
+    component: () => import("@/views/App/SideMenu/XpAbout/XpAbout.vue"),
   },
   {
-    path: '/xp-membership',
-    component: () => import('@/views/App/SideMenu/XpMembership/XpMembership.vue'),
+    path: "/about-xp/gp",
+    name: "about-xp-gp",
+    component: () => import("@/views/App/SideMenu/XpAbout/XpAboutGp.vue"),
   },
   {
-    path: '/xp-settings',
-    name: 'xp-settings',
-    component: () => import('@/views/App/SideMenu/XpSettings/XpSettings.vue'),
-    children: [
-      {
-        path: '',
-        name: 'xp-settings-home',
-        component: () => import('@/views/App/SideMenu/XpSettingsHome/XpSettingsHome.vue'),
-      },
-      {
-        path: 'general',
-        name: 'xp-settings-general',
-        component: () => import('@/views/App/SideMenu/XpSettings/components/GeneralSettings.vue'),
-      },
-      {
-        path: 'family',
-        name: 'xp-settings-family',
-        component: () => import('@/views/App/SideMenu/XpSettings/components/FamilySettings.vue'),
-      },
-      {
-        path: 'sound',
-        name: 'xp-settings-sound',
-        component: () => import('@/views/App/SideMenu/XpSettings/components/SoundSettings.vue'),
-      },
-    ],
+    path: "/about-xp/xp",
+    name: "about-xp-xp",
+    component: () => import("@/views/App/SideMenu/XpAbout/XpAboutXp.vue"),
   },
   {
-    path: '/xp-support',
-    component: () => import('@/views/App/SideMenu/XpSupport/XpSupport.vue'),
+    path: "/about-xp/ap",
+    name: "about-xp-ap",
+    component: () => import("@/views/App/SideMenu/XpAbout/XpAboutAp.vue"),
   },
   {
-    path: '/tell-a-friend',
-    component: () => import('@/views/App/SideMenu/XpShareApp/XpShareApp.vue'),
+    path: "/rpg-text-demo",
+    name: "rpg-text-demo",
+    component: () => import("@/views/App/SideMenu/XpAbout/RpgTextDemo.vue"),
   },
   {
-    path: '/about-xp',
-    component: () => import('@/views/App/SideMenu/XpAbout/XpAbout.vue'),
+    path: "/log-out",
+    name: "log-out",
+    component: () => null // Caught by router guard
   },
-  {
-    path: '/log-out',
-    name: 'log-out',
-    component: () => import('@/views/App/SideMenu/LogOut/LogOut.vue'),
-  },
-  {
-    name: 'log-in',
-    path: '/log-in',
-    component: () => import('@/views/App/SideMenu/LogIn/LogIn.vue'),
-    meta: {
-      requiresAuth: false,
-      title: "Do it for the XP"
-    }
-  },
-]
+];
 
-export default SideMenu
+export default SideMenuRoutes;

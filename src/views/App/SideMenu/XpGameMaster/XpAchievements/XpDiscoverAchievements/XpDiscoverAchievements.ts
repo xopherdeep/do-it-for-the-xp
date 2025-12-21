@@ -1,15 +1,12 @@
-import { v4 as uuidv4 } from 'uuid'
-import useQuests, { useInfiniteQuests } from "@/hooks/useQuests";
+import { useInfiniteQuests } from "@/hooks/useQuests";
 import { computed, defineComponent, reactive, ref } from "vue";
 import { useQueryClient } from "vue-query";
 import { useRouter } from "vue-router";
-import XpApi from "@/api/doit.forthexp.com.api";
+import XpApi from "@/lib/api/doit.forthexp.com.api";
 import ionic from "@/mixins/ionic";
 import {
   IonBackButton,
   alertController,
-  IonSlides,
-  IonSlide,
   IonicSlides,
   InfiniteScrollCustomEvent,
   modalController,
@@ -34,20 +31,55 @@ import {
   bagOutline,
   checkmarkDone,
 } from "ionicons/icons";
-import { mapActions, mapState } from "vuex";
+
+import { useGameStore } from "@/lib/store/stores/game";
 
 import fetchItems from "@/mixins/fetchItems";
 
-import MyTask from "@/views/MyDialogBox/MyTask/MyTask.vue";
+import MyTask from "@/views/Console/MyPortal/UserHud/MyTask/MyTask.vue";
 // import { useSwiper } from "swiper/vue";
 import Swiper, { Controller, Navigation } from "swiper";
 import { useQuery } from "vue-query";
 
 import XpAchievementDetails from "./XpAchievementDetails.vue"
-import { AchievementDb } from "@/databases";
+import { AchievementDb } from "@/lib/databases";
 import { Storage, Drivers } from "@ionic/storage";
-import { Achievement } from '@/databases/AchievementDb';
 
+// Define interfaces for sound effects system
+interface SoundEffect {
+  play: () => void;
+  pause: () => void;
+  currentTime: number;
+}
+
+interface ThemeUI {
+  ui: string;
+  rpg: string;
+}
+
+interface FXSystem {
+  ui: {
+    [key: string]: {
+      openPage: SoundEffect;
+      [key: string]: SoundEffect;
+    }
+  };
+  rpg: {
+    [key: string]: {
+      text: SoundEffect;
+      [key: string]: SoundEffect;
+    }
+  };
+  theme: ThemeUI;
+}
+
+// Augment the Vue instance type
+declare module 'vue' {
+  interface ComponentCustomProperties {
+    $fx: FXSystem;
+    $historyCount: number;
+  }
+}
 
 const achievementStorage = new Storage({
   name: "__achievements",
@@ -59,9 +91,7 @@ export const XpDiscoverAchievements = defineComponent({
   mixins: [fetchItems, ionic],
   components: {
     IonBackButton,
-    MyTask,
-    IonSlides,
-    IonSlide,
+    MyTask, 
   },
   data() {
     return {
@@ -76,7 +106,7 @@ export const XpDiscoverAchievements = defineComponent({
     this.$fx.ui[this.$fx.theme.ui].openPage.play();
   },
   computed: {
-    ...mapState(["xp_achievement"]),
+    xp_achievement() { return (this as any).gameStore.xp_achievement },
     isPrevDisabled() {
       return this.currentSlide == 0;
     },
@@ -107,7 +137,14 @@ export const XpDiscoverAchievements = defineComponent({
     },
   },
   methods: {
-    ...mapActions(["fetchWPItems"]),
+    fetchWPItems(request: any) { return (this as any).gameStore.fetchWPItems(request.type, request.params) },
+    // Add the missing play$fx method
+    play$fx(soundType) {
+      if (this.$fx?.rpg && this.$fx?.theme?.rpg) {
+        const sound = this.$fx.rpg[this.$fx.theme.rpg][soundType];
+        if (sound) sound.play();
+      }
+    },
     async selectTask(task) {
       const modal = await modalController.create({
         component: XpAchievementDetails,
@@ -188,8 +225,8 @@ export const XpDiscoverAchievements = defineComponent({
           title: img.title.rendered,
         };
     },
-    getSingleMediaById(id) {
-      return this.singleById({ type: "media", id });
+    getSingleMediaById(id: string) {
+      return (this as any).gameStore.getSingleById("media", id);
     },
     searchChanged() {
       // this.$refs?.slides.slideTo(0);
@@ -205,7 +242,7 @@ export const XpDiscoverAchievements = defineComponent({
       this.$fx.rpg[this.$fx.theme.rpg].text.play();
     },
 
-    segmentChanged($ev) {
+    async segmentChanged() {
       // console.log("Segment changed", $ev);
     },
   },
@@ -225,7 +262,8 @@ export const XpDiscoverAchievements = defineComponent({
       },
     },
   },
-  setup(props, ctx) {
+  setup() {
+    const gameStore = useGameStore();
     const params = reactive({
       page: 1,
       search: "",
@@ -273,6 +311,7 @@ export const XpDiscoverAchievements = defineComponent({
 
     const achievementDb = new AchievementDb(achievementStorage)
     return {
+      gameStore,
       achievementDb,
       fetchNextPage,
       useTasks,

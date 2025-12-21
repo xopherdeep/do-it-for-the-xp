@@ -1,9 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
-import { defineComponent, ref, watch } from 'vue';
-import { useRouter, useRoute } from 'vue-router';
-import { modalController } from '@ionic/vue';
-
-import { IonModal } from '@ionic/vue';
+import { defineComponent, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import { modalController, alertController } from '@ionic/vue';
 
 import AchievementDb, {
   Achievement,
@@ -11,12 +9,12 @@ import AchievementDb, {
   achievementCategoryStorage,
   AchievementCategoryDb,
   AchievementCategoryInterface
-} from "@/databases/AchievementDb"
+} from "@/lib/databases/AchievementDb"
 
-import ProfileDb from '@/databases/ProfileDb';
+import ProfileDb from '@/lib/databases/ProfileDb';
 import { profileStorage } from '../../../SwitchProfile/SwitchProfile.vue';
 
-import User from '@/utils/User';
+import User from '@/lib/utils/User';
 
 import XpAddCategoryModal from "./components/XpAddCategoryModal.vue";
 
@@ -27,8 +25,20 @@ import XpAchievementItem from './components/XpAchievementItem.vue';
 import XpReorderAchievementsModal from './components/XpReorderAchievementsModal.vue';
 import { DIFFICULTY_ICONS, ACHIEVEMENT_TYPE_ICONS, BASIC_SCHEDULE_ICONS } from "@/constants"
 
-import BestiaryDb, { Beast, beastStorage } from '@/databases/BestiaryDb';
+import BestiaryDb, { Beast, beastStorage } from '@/lib/databases/BestiaryDb';
 import EFFORTS from '@/constants/EFFORTS';
+
+export const sortCategoryByName = (a, b) => {
+  const nameA = a.name.toLowerCase();
+  const nameB = b.name.toLowerCase();
+  if (nameA < nameB) {
+    return -1;
+  }
+  if (nameA > nameB) {
+    return 1;
+  }
+  return 0;
+}
 
 export default defineComponent({
   name: 'xp-add-achievement',
@@ -40,43 +50,84 @@ export default defineComponent({
   },
   data() {
     return {
-      fibonacciArray: [1, 2, 3, 5, 8, 13],
+      fibonacciArray: [1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144],
+      fibonacciDescriptions: [
+        "Trivial",
+        "Simple",
+        "Easy",
+        "Moderate",
+        "Challenging",
+        "Difficult",
+        "Very Difficult",
+        "Extremely Difficult",
+        "Insane",
+        "Legendary",
+        "Mythical",
+      ],
+      fibonacciIndex: 0, // Index in the fibonacci array (for the range component)
+      difficultyValue: null as number | null,
       efforts: EFFORTS,
       prev1: 1,
       prev2: 1,
-      segments: [{
-        name: "Adventure",
-        icon: "fa-map-signs"
-      }, {
-        name: "Treasure",
-        icon: "fa-treasure-chest"
-      }, {
-        name: "Heros",
-        icon: "fa-user-shield"
-      }, {
-        name: "Timer",
-        icon: "fa-hourglass"
-      }],
-      adventureTypes: [{
-        segment: "simple",
-        text: `Simple adventures are the quests of everyday life. They may not have beasts to slay or treasure to find, but they are essential steps in your journey.`
-      }, {
-        segment: "beast",
-        text: `Challenging tasks deserve formidable foes. Choose a beast from your Bestiary to face off against and elevate your quest to the next level.`
-      }, {
-        segment: "quest",
-        text: `Some adventures are too grand to stand alone. Assemble a series of challenges that lead you toward an ultimate goal. These quests are perfect for epic undertakings that require multiple steps to complete.`
-      }],
+      segments: [
+        {
+          name: "Heros",
+          icon: "fa-users",
+        },
+        {
+          name: "When",
+          icon: "fa-calendar",
+        },
+
+        {
+          name: "Quest",
+          icon: "fa-seedling",
+        },
+        {
+          name: "Points",
+          icon: "fa-hand-holding-medical",
+        },
+      ],
+      adventureTypes: [
+        {
+          segment: "simple",
+          text: `A straightforward quest that tests a single skill or accomplishment. Perfect for daily tasks and building consistent habits. These are the building blocks of greater adventures.`,
+        },
+        {
+          segment: "beast",
+          text: `Face off against a mighty beast! These challenging quests pit heroes against formidable foes, requiring strategy and determination to overcome. Choose your beast wisely, for its strength determines the rewards.`,
+        },
+        {
+          segment: "quest",
+          text: `Embark on an epic journey! Chain multiple achievements together to create a grand adventure with multiple milestones. Perfect for complex projects or long-term goals that require multiple steps to complete.`,
+        },
+      ],
       achievementTypeIcons: ACHIEVEMENT_TYPE_ICONS,
       basicScheduleIcons: BASIC_SCHEDULE_ICONS,
-      difficultyIcons: DIFFICULTY_ICONS
-
-    }
+      difficultyIcons: DIFFICULTY_ICONS,
+      messages: [] as string[],
+    };
   },
 
   computed: {
+    activeSegmentIcon() {
+      // Return the appropriate icon based on active segment
+      switch (this.activeSegment) {
+        case 'quest':
+          return 'fa-seedling fa-3x';
+        case 'heros':
+          return 'fa-users fa-3x ';
+        case 'when':
+          return 'fa-calendar fa-3x';
+        case 'points':
+          return 'fa-hand-holding fa-3x';
+        default:
+          return 'fa-seedling fa-3x';
+      }
+    },
+    
     achievementExpired() {
-      if(!this.achievement.endsOn) return false
+      if (!this.achievement.endsOn) return false
       return new Date(this.achievement.endsOn) < new Date()
     },
     achievementChain() {
@@ -106,14 +157,15 @@ export default defineComponent({
       return adventureTypes.find(bySegment) || firstType;
     },
 
-
     difficultyIcon() {
       const icon = this.difficultyIcons[this.achievement.difficulty]
       return icon || 'fa-dice'
     },
+
     isFibonacci() {
       return this.fibonacciArray.includes(this.achievement.difficulty)
     },
+
     assignedTo() {
 
       // get the list of users that are assigned to the achievement
@@ -173,10 +225,39 @@ export default defineComponent({
           text: lastSegment.name,
           icon: lastSegment.icon,
         }
+    },
+    isValidAdventure() {
+      const { achievement, adventureType } = this;
+      
+      // Basic validation
+      if (!achievement.achievementName?.trim()) return false;
+      if (!achievement.categoryId) return false;
+      if (!achievement.difficulty) return false;
+      
+      // Type-specific validation
+      switch (adventureType) {
+        case 'beast':
+          return !!achievement.beastId;
+        case 'quest':
+          return achievement.subAchievementIds.length > 0;
+        case 'simple':
+          return true;
+        default:
+          return false;
+      }
+    },
+
+    saveBtnDisabled() {
+      return !this.isValidAdventure;
     }
   },
 
   methods: {
+    displayFibonacciValue(index) {
+      // Convert the range index to the actual Fibonacci value
+      const value = this.fibonacciArray[index];
+      return value ? value.toString() : '0';
+    },
 
     async clickReorder() {
       const { achievementChain } = this
@@ -194,10 +275,20 @@ export default defineComponent({
 
       modal.present()
     },
+    handleDifficultyChange(event) {
+      // Convert the slider index to the actual Fibonacci number
+      const index = event.detail.value;
+      if (index >= 0 && index < this.fibonacciArray.length) {
+        this.achievement.difficulty = this.fibonacciArray[index];
+        this.difficultyValue = this.fibonacciArray[index];
+        this.updatePoints();
+      }
+    },
     increaseDifficulty() {
       const currentIndex = this.fibonacciArray.indexOf(this.achievement.difficulty);
       if (currentIndex < this.fibonacciArray.length - 1) {
         this.achievement.difficulty = this.fibonacciArray[currentIndex + 1];
+        this.updatePoints();
       }
     },
     decreaseDifficulty() {
@@ -206,13 +297,20 @@ export default defineComponent({
         this.achievement.difficulty = this.fibonacciArray[currentIndex - 1];
       }
     },
+    setFibonacciDifficulty() {
+      // This method is called when selecting a value from the Fibonacci dropdown
+      if (this.difficultyValue) {
+        this.achievement.difficulty = this.difficultyValue;
+        this.updatePoints();
+      }
+    },
     async loadAchievement() {
       if (this.id) {
         const task = await this.achievementDb.getTaskById(this.id);
         this.achievement = { ...this.achievement, ...task };
 
-        const hasBeast = task.beastId != ''
-        const hasSubAchievement = task.subAchievementIds.length > 0
+        // const hasBeast = task.beastId != ''
+        // const hasSubAchievement = task.subAchievementIds.length > 0
 
         this.adventureType = this.typeOfAdventure
       }
@@ -236,17 +334,85 @@ export default defineComponent({
       this.users = users;
     },
     updatePoints() {
-      const { difficulty } = this.achievement
-      const multiplier = 200;
+      const { difficulty } = this.achievement;
+      // Find closest Fibonacci number
+      const closestFib = this.fibonacciArray.reduce((prev, curr) => 
+        Math.abs(curr - difficulty) < Math.abs(prev - difficulty) ? curr : prev
+      );
+      
+      // Adjust difficulty to closest Fibonacci number
+      this.achievement.difficulty = closestFib;
+      
+      // Calculate rewards based on difficulty
+      const baseXP = 100;
+      const baseGP = 10;
+      const baseAP = 1;
+      
       this.achievement = {
         ...this.achievement,
-        xp: difficulty * multiplier,
-        gp: difficulty * (multiplier / 10),
-        ap: difficulty * (multiplier / 100)
-      }
+        xp: closestFib * baseXP,
+        gp: closestFib * baseGP,
+        ap: closestFib * baseAP
+      };
     },
     dismissModal() {
       modalController.dismiss()
+    },
+    saveAchievement() {
+      if (!this.isValidAdventure) {
+        this.showValidationError();
+        return;
+      }
+
+      const goBack = () => this.$router.go(-1);
+      const showToast = () => this.achievementDb.showSuccessToast("Achievement Added!");
+      
+      this.achievementDb
+        .setTask(this.achievement)
+        .then(goBack)
+        .then(showToast);
+    },
+
+    async showValidationError() {
+      const alert = await alertController.create({
+        header: 'Incomplete Adventure',
+        subHeader: 'Some required fields are missing',
+        message: this.getValidationMessage(),
+        buttons: ['OK'],
+        mode: 'ios'
+      });
+
+      await alert.present();
+    },
+
+    getValidationMessage() {
+      const { achievement, adventureType } = this;
+      const messages: string[] = [];
+
+      if (!achievement.achievementName?.trim()) {
+        messages.push('• Name your achievement');
+      }
+      if (!achievement.categoryId) {
+        messages.push('• Select a category');
+      }
+      if (!achievement.difficulty) {
+        messages.push('• Set the difficulty level');
+      }
+      
+      switch (adventureType) {
+        case 'beast':
+          if (!achievement.beastId) {
+            messages.push('• Choose a beast to challenge');
+          }
+          break;
+        case 'quest':
+          if (!achievement.subAchievementIds.length) {
+            messages.push('• Add achievements to your quest chain');
+          }
+          break;
+      }
+
+      return messages.join('\n');
     }
   },
 
@@ -258,9 +424,58 @@ export default defineComponent({
       .then(this.loadUsers)
   },
 
-  setup() {
+  watch: {
+    // Watch for changes in beastId to update the imageUrl with beast's avatar
+    'achievement.beastId': {
+      async handler(newBeastId) {
+        if (newBeastId) {
+          const beast = await this.bestiaryDb.getBeastById(newBeastId);
+          if (beast && beast.avatar) {
+            // Use the beast's avatar for the achievement image
+            const pad = beast.avatar.toString().padStart(3, '0');
+            this.achievement.imageUrl = require(`@/assets/images/beasts/${pad}.png`);
+          } else if (beast) {
+            // If beast exists but has no avatar, clear the imageUrl
+            this.achievement.imageUrl = '';
+          }
+        } else {
+          // If beastId is removed, clear the imageUrl
+          this.achievement.imageUrl = '';
+        }
+      },
+      immediate: true
+    },
+    
+    // Sync difficulty with fibonacciIndex
+    'achievement.difficulty': {
+      handler(newDifficulty) {
+        if (newDifficulty) {
+          // Find the closest Fibonacci number index
+          const index = this.fibonacciArray.indexOf(newDifficulty);
+          if (index !== -1) {
+            this.fibonacciIndex = index;
+          } else {
+            // If not found, find the closest value
+            const closestFib = this.fibonacciArray.reduce((prev, curr) => 
+              Math.abs(curr - newDifficulty) < Math.abs(prev - newDifficulty) ? curr : prev
+            );
+            this.fibonacciIndex = this.fibonacciArray.indexOf(closestFib);
+          }
+        }
+      },
+      immediate: true
+    },
+    
+    // Sync fibonacciIndex with difficulty
+    fibonacciIndex(newIndex) {
+      if (newIndex >= 0 && newIndex < this.fibonacciArray.length) {
+        this.achievement.difficulty = this.fibonacciArray[newIndex];
+        this.updatePoints();
+      }
+    }
+  },
 
-    const route = useRoute();
+  setup() {
     const router = useRouter();
     const id = router.currentRoute.value.params.id
     const profilesDb = new ProfileDb(profileStorage);
@@ -273,7 +488,7 @@ export default defineComponent({
       id: id ? id : uuidv4(),
       achievementName: '',
       beastId: '',
-      subAchievementIds: [''],
+      subAchievementIds: [],
       categoryId: '',
       requiresApproval: false,
       points: '',
@@ -299,32 +514,7 @@ export default defineComponent({
 
     const beasts = ref([] as Beast[])
 
-    const ends = ref({} as typeof IonModal);
-
-    const endsIsOpen = ref(false)
-
-    const showEndsModal = () => endsIsOpen.value = true
-
-    const sortCategoryByName = (a, b) => {
-      const nameA = a.name.toLowerCase();
-      const nameB = b.name.toLowerCase();
-      if (nameA < nameB) {
-        return -1;
-      }
-      if (nameA > nameB) {
-        return 1;
-      }
-      return 0;
-    }
-
-    const saveAchievement = () => {
-      const goBack = () => router.go(-1)
-      const showToast = () => achievementDb.showSuccessToast("Achievement Added!")
-      achievementDb
-        .setTask(achievement.value)
-        .then(goBack)
-        .then(showToast)
-    };
+    // const endsIsOpen = ref(false)
 
     // create refs for form fields
     const achievementName = ref('');
@@ -362,13 +552,15 @@ export default defineComponent({
         .then(syncCategories)
     }
 
-    const activeSegment = ref('adventure')
+    const activeSegment = ref('heros')
 
-    const adventureType = ref('beast')
+    const adventureType = ref('simple')
 
+    const endsModalOpen = ref(false)
 
     // Watch for changes in route
     return {
+      endsModalOpen,
       achievements,
       beasts,
       adventureType,
@@ -387,11 +579,9 @@ export default defineComponent({
       addCategory,
       addCategoryModalOpen,
       categories,
-      // category,
       checkmarkOutline,
       checkmarkSharp,
-      openAddCategoryModal,
-      saveAchievement,
+      openAddCategoryModal
     };
   },
 });

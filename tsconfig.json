@@ -12,18 +12,27 @@
     "paths": {
       "@/*": ["src/*"]
     },
+    "resolveJsonModule": true,
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
     "target": "esnext",
-    "types": ["webpack-env", "jest", "node"]
+    "types": ["webpack-env", "jest", "node", "vue"]
   },
   "include": [
     "src/**/*.js",
     "src/**/*.ts",
+    "src/**/*.tsx",
     "src/**/*.vue",
+    "src/**/*.d.ts",
+    "src/lib/types/**/*.d.ts",
+
     "tests/**/*.ts",
-    "tests/**/*.js"
+    "tests/**/*.js",
+    "src/views/Console/TempleGrounds/TempleGrounds.vue",
   ],
-  "exclude": ["node_modules"]
+  "exclude": [
+    "node_modules",
+    "src/assets/fonts/"
+  ]
 }
