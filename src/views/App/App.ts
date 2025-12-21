@@ -37,12 +37,16 @@ import {
   warningOutline,
   warningSharp,
 } from "ionicons/icons";
-import { mapActions, mapGetters, mapState, useStore } from "vuex";
+import { useStore } from "vuex";
 
 import { useQueryProvider } from "vue-query";
 
 import XpSideMenu from "@/views/App/SideMenu/SideMenu.vue";
 import debug from "@/lib/utils/debug";
+import { useAudioStore } from "@/lib/store/stores/audio";
+import { useUserStore } from "@/lib/store/stores/user";
+import { useGameStore } from "@/lib/store/stores/game";
+import { useBattleStore } from "@/lib/store/stores/battle";
 
 export default defineComponent({
   name: "App",
@@ -68,15 +72,19 @@ export default defineComponent({
     return {
       isBMGOn: false,
       bgmBookmark: {
-        track: null,
+        track: null as number | null,
         currentTime: 0
       },
       currentTime: 0
     };
   },
   computed: {
-    ...mapState(["users", "user", "theme", "bgm"]),
-    ...mapGetters(["battleState"]),
+    users() { return this.userStore.users },
+    user() { return this.userStore.currentUser },
+    theme() { return this.gameStore.theme },
+    battleState() {
+      return (key: string) => (this.battleStore as any)[key];
+    },
     bgmTrack() {
       return this.bgm.track;
     },
@@ -86,37 +94,34 @@ export default defineComponent({
     },
 
     uiTheme() {
-      const {
-        theme: { ui },
-      } = this;
-      return ui;
+      return this.theme.ui;
     },
     rpgTheme() {
-      const {
-        theme: { rpg },
-      } = this;
-      return rpg;
+      return this.theme.rpg;
     },
   },
   mounted() {
     // Cast this to any as a workaround for TS2339
-    const { $fx, changeBGM, loadBGM } = (this as any);
-    changeBGM({ tracks: $fx.rpg[$fx.theme.rpg].BGM.startScreen }).then(loadBGM as any)
+    const { audioStore, gameStore, loadBGM } = (this as any);
+    const $fx = audioStore.bgm.$fx;
+    const theme = gameStore.theme.rpg;
+    this.audioStore.changeBGM({ tracks: $fx.rpg[theme].BGM.startScreen }).then(loadBGM as any)
   },
   methods: {
-    ...mapActions(["toggleBGM", "changeBGM", "turnMusicOnOff"]),
+    toggleBGM() { return this.audioStore.toggleBGM() },
+    changeBGM(payload: any) { return this.audioStore.changeBGM(payload) },
+    turnMusicOnOff() { return this.audioStore.turnMusicOnOff() },
     clickSound() {
       // Cast this to any as a workaround for TS2339
-      (this as any).$fx.ui[(this as any).$fx.theme.ui].select.play();
+      (this as any).audioStore.bgm.$fx.ui[(this as any).gameStore.theme.ui].select.play();
     },
     getAudioPlayer() {
       return this.bgm.audio;
     },
     getCurrentTheme() {
       // Cast this to any as a workaround for TS2339
-      return (this as any).$fx.theme.rpg;
+      return (this as any).gameStore.theme.rpg;
     },
-    ...mapActions(["loadUsers"]),
     async presentAlertConfirm() {
       const alert = await alertController.create({
         cssClass: "my-custom-class",
@@ -158,7 +163,7 @@ export default defineComponent({
 
       const time = isTimeToPlayBookmark ? bgmBookmark.currentTime : 0
       const playTrack = isTimeToPlayBookmark ? bgmBookmark.track : bgmTrack
-      const audio = new Audio(bgm.tracks[playTrack])
+      const audio = new Audio(bgm.tracks[playTrack as number] as any)
       audio.currentTime = time
       // Set time to bookmarked audio 
 
@@ -215,20 +220,28 @@ export default defineComponent({
     },
     tracks: {
       handler() {
-        const { changeBGM, playAudio, bgm: { audio, track, is_on, startDelay, saveBookmark } } = this
-        if (audio)
-          audio.pause()
+        const self = this as any;
+        const { is_on, startDelay, saveBookmark, track, audio } = self.bgm;
 
-        this.bgmBookmark.track = saveBookmark ? track : null
+        if (audio) {
+          audio.pause();
+        }
 
-        const startAudio = () => is_on ? setTimeout(playAudio, startDelay) : 0
-        changeBGM({ is_on }).then(startAudio)
+        self.bgmBookmark.track = saveBookmark ? track : null;
+
+        const startAudio = () => is_on ? setTimeout(self.playAudio, startDelay) : 0;
+        self.changeBGM({ is_on }).then(startAudio);
       },
     },
   },
 
   setup() {
     const store = useStore();
+    const audioStore = useAudioStore();
+    const userStore = useUserStore();
+    const gameStore = useGameStore();
+    const battleStore = useBattleStore();
+    
     useQueryProvider();
 
     const labels = [
@@ -240,12 +253,16 @@ export default defineComponent({
       "Reminders",
     ];
 
-    store.dispatch("loadUsers");
+    userStore.loadUsers();
 
-    const bgm = computed(() => store.state.bgm);
+    const bgm = computed(() => audioStore.bgm);
 
     return {
       store,
+      audioStore,
+      userStore,
+      gameStore,
+      battleStore,
       archiveOutline,
       archiveSharp,
       bgm,
@@ -253,7 +270,7 @@ export default defineComponent({
       bookmarkSharp,
       heartOutline,
       heartSharp,
-      isLoggedIn: computed(() => store.getters.isLoggedIn),
+      isLoggedIn: computed(() => userStore.currentUser.isAuthenticated),
       labels,
       mailOutline,
       mailSharp,

@@ -10,10 +10,10 @@ import SuccessfulLoginModal from "./SuccessfulLoginModal.vue";
 
 import { modalController } from "@ionic/vue";
 
-import { mapActions, useStore } from "vuex";
 import { useRouter, useRoute } from "vue-router";
+import { useUserStore } from "@/lib/store/stores/user";
+import { useAudioStore } from "@/lib/store/stores/audio";
 import ionic from "@/mixins/ionic";
-import { RootState } from "@/lib/types/store";
 import debug from "@/lib/utils/debug";
 
 interface BackgroundPair {
@@ -105,7 +105,8 @@ export default defineComponent({
   },
 
   methods: {
-    ...mapActions(["loginUser", "changeBGM"]),
+    loginUser(user: any) { return (this as any).userStore.loginUser(user) },
+    changeBGM(payload: any) { return (this as any).audioStore.changeBGM(payload) },
     
     // Helper method to clear the inactivity timer
     clearInactivityTimer(): void {
@@ -286,14 +287,15 @@ export default defineComponent({
       // Use data parameter to log user information 
       debug.log("User data retrieved:", data ? `User ID: ${data.id}` : "No data available");
       
-      this.loginUser();
+      this.loginUser(data);
       (this as any).showSuccessModal = true;
       this.error = false;
     },
   },
   setup() {
-    const store = useStore<RootState>();
-    const bgm = computed(() => store.state.bgm);
+    const userStore = useUserStore();
+    const audioStore = useAudioStore();
+    const bgm = computed(() => audioStore.bgm);
     const router = useRouter();
     const route = useRoute();
     const showSuccessModal: Ref<boolean> = ref(false);
@@ -313,6 +315,8 @@ export default defineComponent({
       bgm,
       requireImg,
       route,
+      userStore,
+      audioStore
     };
   },
 });

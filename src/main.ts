@@ -24,13 +24,21 @@ import store from './lib/store';
 import { AudioEnginePlugin } from './lib/engine/audio/plugin';
 
 // GP System
-import { GPSystem } from './lib/engine/core/GPSystem';
+import { GPService } from './lib/services/gp';
 
 // Ability System
-import { initializeAbilitySystem } from './lib/engine/core/abilities/abilities';
+import { AbilityService } from '@/lib/services/abilities';
+import { AbilitiesDb, abilitiesStorage } from '@/lib/databases/AbilitiesDb';
 
 // Accessibility fixes
 import { fixAriaHiddenFocusIssues, preventIOSZoom } from '@/lib/utils/a11yUtils';
+
+// Pinia
+import { createPinia } from 'pinia';
+
+// Title
+const TITLE = 'Do it for the XP';
+document.title = TITLE;
 
 // Set up user interaction detection for audio playback
 document.addEventListener('click', () => {
@@ -68,18 +76,20 @@ function readyRouterMountApp() {
       // routerAnimation: undefined,
     })
     .use(store)
+    .use(createPinia())
     .use(router)
     .use(AudioEnginePlugin);
 
   router.afterEach((to) => {
-    document.title = (to.meta?.title as string) || 'Do it for the XP';
+    document.title = (to.meta?.title as string) || TITLE;
   });
 
-  // Initialize the GPSystem with the Vuex store
-  GPSystem.initialize(store);
+  // Initialize the GPSystem// Initialize Services
+  GPService.initialize();
   
   // Initialize the AbilitySystem
-  initializeAbilitySystem();
+  const abilitiesDb = new AbilitiesDb(abilitiesStorage);
+  AbilityService.initialize(abilitiesDb);
 
   Object.assign(app.config.globalProperties, appConfig);
 
@@ -87,5 +97,4 @@ function readyRouterMountApp() {
   router.isReady().then(mountApp);
 }
 
-document.title = 'Do it for the XP';
 readyRouterMountApp()
