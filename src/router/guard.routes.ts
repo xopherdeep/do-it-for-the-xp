@@ -1,9 +1,11 @@
 import { Router, NavigationGuardNext, RouteLocationNormalized } from 'vue-router';
-import { Store } from 'vuex';
 import { alertController } from '@ionic/vue';
-import { RootState } from '@/lib/types/store.types';
 import { changeBGM } from '@/lib/engine/audio/routeMusic'; // Import our updated adapter
 import debug from '@/lib/utils/debug';
+import { useAudioStore } from '@/lib/store/stores/audio';
+import { useUserStore } from '@/lib/store/stores/user';
+import { useGameStore } from '@/lib/store/stores/game';
+import { useBattleStore } from '@/lib/store/stores/battle';
 
 /**
  * Creates a logout confirmation alert
@@ -33,16 +35,21 @@ async function logoutAlert(onConfirm: () => void, onCancel?: (() => void) | unde
 
 /**
  * Applies all router guards to the provided router instance
+ * Note: The store parameter is kept for backward compatibility but Pinia stores are used internally
  */
-// Type the store parameter
-export function useRouterGuards(router: Router, store: Store<RootState>) {
+export function useRouterGuards(router: Router) {
   // Type the navigation guard parameters
   router.beforeEach((to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+    // Get Pinia stores
+    const audioStore = useAudioStore();
+    const userStore = useUserStore();
+    const gameStore = useGameStore();
+    const battleStore = useBattleStore();
     
     // log-out safe guard
     if (to.name === 'log-out' && !to.params.confirm) {
       const onConfirm = () => {
-        // store.dispatch('logOutUser'); // Consider adding type safety for action names later
+        userStore.logoutUser();
         // Ensure 'confirm' param is expected as number or string based on usage
         router.push({ name: 'log-in', params: { confirm: '1' } }); // Use string '1' for consistency if param is string
       };
@@ -50,36 +57,42 @@ export function useRouterGuards(router: Router, store: Store<RootState>) {
       return next(false); // Explicitly return false
     }
 
-    // Accessing state - RootState needs definition for theme, bgm
-    const state = store.state as any;
-    const theme = state.theme;
-    const bgm = state.bgm;
+    // Get audio state from Pinia store
+    const bgm = audioStore.bgm;
+    const theme = gameStore.theme;
 
     // Check if objects exist before destructuring
     const fx = bgm?.$fx;
     const rpgTheme = theme?.rpg;
     const BGM = fx?.rpg?.[rpgTheme]?.BGM;
 
-    // Battle safe guard
+    // Battle safe guard - use Pinia battle store
     switch (to.name) {
       case 'home-town':
       case 'world-map':
-        store.dispatch('startBattleTimer')
+        battleStore.startBattleTimer({ 
+          onEncounter: () => {
+            // Random encounter logic - could navigate to battle
+            if (battleStore.randomEncounter()) {
+              debug.log('Random encounter triggered!');
+            }
+          }
+        });
         break;
 
       default:
-        store.dispatch('stopBattleTimer')
+        battleStore.stopBattleTimer();
         break;
     }
 
-    // Use getters with type safety (requires typed getters later)
-    if (store.getters.battleState('active')) { // Assuming battleState getter exists and returns boolean
+    // Check battle state using Pinia store
+    if (battleStore.active) {
       next(false);
     } else if (to.name === 'log-in') {
       next();
     } else if (to.meta && to.meta.requiresAuth === false) {
       next();
-    } else if (store.getters.isLoggedIn) { // Assuming isLoggedIn getter exists and returns boolean
+    } else if (userStore.currentUser.isAuthenticated) {
       next();
     } else {
       next({ name: 'log-in' });
@@ -320,12 +333,12 @@ export function useRouterGuards(router: Router, store: Store<RootState>) {
       
         case 'battleroom-dev':
         case 'battle-field':
-          // Ensure BGM.battle is an array and state.battle exists
-          if (BGM?.battle && Array.isArray(BGM.battle) && BGM.battle.length > 0 && state.battle) {
+          // Use Pinia battle store for battle state
+          if (BGM?.battle && Array.isArray(BGM.battle) && BGM.battle.length > 0) {
             bgmPayload = {
               tracks: BGM.battle,
               track: Math.floor(Math.random() * BGM.battle.length),
-              startDelay: state.battle.bgmWaitToStart || startDelay, // Fallback to default delay
+              startDelay: battleStore.bgmWaitToStart || startDelay, // Use Pinia store
               saveBookmark: true
             };
           }
@@ -350,7 +363,8 @@ export function useRouterGuards(router: Router, store: Store<RootState>) {
     // Dispatch only if a payload was determined
     if (bgmPayload && bgmPayload.tracks && bgmPayload.tracks.length > 0) {
       // Always set to use the new AudioEngine (true) to prevent double playback
-      changeBGM(store, bgmPayload, true);
+      // Pass the Pinia audio store instead of Vuex store
+      changeBGM(audioStore, bgmPayload, true);
     }
   });
  

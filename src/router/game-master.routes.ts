@@ -57,6 +57,14 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
             ),
         },
         {
+          path: "bestiary/select",
+          name: "xp-bestiary-select",
+          component: () =>
+            import(
+              "@/views/App/SideMenu/XpGameMaster/XpBestiary/XpBeastSelectionPage.vue"
+            ),
+        },
+        {
           path: "bestiary/create-update/:id?",
           name: "xp-create-update-beast",
           component: () =>
@@ -114,11 +122,20 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
           props: true,
         },
         {
-          path: "temple/:templeId/creator",
+          path: "temples/creator/:templeId?",
           name: "xp-temple-creator",
           component: () =>
             import(
               "@/views/App/SideMenu/XpGameMaster/XpTemples/components/XpTempleCreator/XpTempleCreator.vue"
+            ),
+          props: true,
+        },
+        {
+          path: "temples/creator/:templeId/room/:row/:col",
+          name: "xp-room-editor",
+          component: () =>
+            import(
+              "@/views/App/SideMenu/XpGameMaster/XpTemples/components/XpTempleCreator/XpRoomEditorPage.vue"
             ),
           props: true,
         },

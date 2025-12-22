@@ -74,7 +74,7 @@ const routes: Array<RouteRecordRaw> = [
 ];
 
 // Create and export router factory function
-export const createAppRouter = (store) => {
+export const createAppRouter = () => {
   // Use hash mode for production builds and Capacitor apps
   // This helps with navigation in production builds
   const isNative = Capacitor.isNativePlatform();
@@ -88,7 +88,7 @@ export const createAppRouter = (store) => {
   });
   
   // Apply router guards
-  useRouterGuards(router, store);
+  useRouterGuards(router);
   
   return router;
 };
