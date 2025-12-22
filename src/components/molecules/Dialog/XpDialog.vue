@@ -21,7 +21,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, PropType, watch } from 'vue';
-import XpTypingText from '@/components/XpTypingText/XpTypingText.vue';
+import XpTypingText from '@/components/atoms/TypingText/XpTypingText.vue';
 import debug from '@/lib/utils/debug';
 import Ionic from '@/mixins/ionic';
 

@@ -150,7 +150,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import XpIcon from '@/components/XpIcon';
+import XpIcon from '@/components/atoms/Icon/XpIcon.vue';
 
 export default defineComponent({
   name: 'card-user-stats',

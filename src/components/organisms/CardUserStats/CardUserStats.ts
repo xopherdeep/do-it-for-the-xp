@@ -28,7 +28,7 @@ import {
 
 import ionic from "@/mixins/ionic";
 
-import { mapGetters } from "vuex";
+import { useUserStore } from "@/lib/store/stores/user";
 import Vue3Autocounter from 'vue3-autocounter';
 
 
@@ -81,18 +81,13 @@ export default defineComponent({
       personCircle,
       beforeTabChange,
       afterTabChange,
+      userStore: useUserStore()
     };
   },
 
   computed: {
-    ...mapGetters(["getUserById"]),
-
-    user_id() {
-      return this.id;
-    },
-
     user() {
-      return this.getUserById(this.id);
+      return this.userStore.getUserById(this.id);
     },
 
     xpBar() {
