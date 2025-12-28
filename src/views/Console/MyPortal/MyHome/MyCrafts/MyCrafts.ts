@@ -1,5 +1,35 @@
-import { defineComponent } from "vue";
-import ionic from "@/mixins/ionic";
+import { defineComponent as dC, ref, computed } from "vue";
+import {
+  IonPage,
+  IonContent,
+  IonButton,
+  IonIcon,
+  IonHeader,
+  IonToolbar,
+  IonButtons,
+  IonTitle,
+  IonBackButton,
+  IonSegment,
+  IonSegmentButton,
+  IonGrid,
+  IonRow,
+  IonCol,
+  IonCard,
+  IonCardHeader,
+  IonCardSubtitle,
+  IonImg,
+  IonCardContent,
+  IonFab,
+  IonFabButton,
+  IonActionSheet,
+  IonFooter,
+  IonSearchbar
+
+} from "@ionic/vue";
+import { useRouter } from "vue-router";
+import { useUserStore } from "@/lib/store/stores/user";
+import { useItemFetcher } from "@/hooks/useItemFetcher";
+import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 
 import {
   calendarOutline,
@@ -33,48 +63,68 @@ import {
   videocamOutline,
   appsOutline,
   bedOutline
-
 } from "ionicons/icons";
-import fetchItems from "@/mixins/fetchItems"
 
-export default defineComponent({
-  props: ["userId"],
+export default dC({
   name: "my-foods",
-  mixins: [ionic, fetchItems],
-  data() {
-    return {
-      isLoading: false,
-      actionSheetOpen: false,
-      shelves: ['affordable'],
-      request: {
-        type: "xp_accessory",
-        params: {
-          page: 1,
-          search: "",
-          per_page: 4,
-        },
-      },
-    };
+  props: ["userId"],
+  components: {
+    XpLoading,
+    IonPage,
+    IonContent,
+    IonButton,
+    IonIcon,
+    IonHeader,
+    IonToolbar,
+    IonButtons,
+    IonTitle,
+    IonBackButton,
+    IonSegment,
+    IonSegmentButton,
+    IonGrid,
+    IonRow,
+    IonCol,
+    IonCard,
+    IonCardHeader,
+    IonCardSubtitle,
+    IonImg,
+    IonCardContent,
+    IonFab,
+    IonFabButton,
+    IonActionSheet,
+    IonFooter,
+    IonSearchbar
   },
-  methods: {
-    segmentChanged() {
+  setup(props) {
+    const router = useRouter();
+    const userStore = useUserStore();
+    const user = computed(() => userStore.getUserById(props.userId));
+
+    // Initialize Fetcher with default params from original data
+    const fetcher = useItemFetcher("xp_accessory", {
+      page: 1,
+      search: "",
+      per_page: 4,
+    });
+
+    const isLoading = fetcher.isLoading;
+    const request = fetcher.request;
+    const actionSheetOpen = ref(false);
+    const shelves = ref(['affordable']);
+
+    const segmentChanged = () => {
       // console.log("Segment changed", ev);
-    },
-    handleInventoryClick() {
-      // Navigate to Materials Inventory or execute related function
-      // console.log('Materials Inventory clicked')
-      this.$router.push({
+    };
+
+    const handleInventoryClick = () => {
+      router.push({
         name: 'my-inventory',
         params: {
-          userId: this.user.id
+          userId: props.userId
         }
       })
-    },
-  },
-  mounted() {
-    // this.$fx.ui[this.$fx.theme.ui].openShop.play()
-  },
-  setup() {
+    };
+
     const customAlertOptions = {
       header: 'View Quests',
       subHeader: 'Select what quests to view',
@@ -83,8 +133,21 @@ export default defineComponent({
     };
 
     return {
-      calendarOutline,
+      // Fetcher
+      ...fetcher,
+      isLoading,
+      request,
+
+      // Local State
+      user,
+      actionSheetOpen,
+      shelves,
+      segmentChanged,
+      handleInventoryClick,
       customAlertOptions,
+
+      // Icons
+      calendarOutline,
       storefrontOutline,
       banOutline,
       chevronBack,
