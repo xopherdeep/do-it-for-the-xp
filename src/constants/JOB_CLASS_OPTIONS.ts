@@ -23,7 +23,7 @@ export const JOB_CLASS_OPTIONS: JobClass[] = [
     name: "Warrior",
     icon: "fa-swords",
     tier: 1,
-    description: "Specializes in strength, protection, and overcoming physical challenges",
+    description: "Built for the physical grind. Enhances Body (HP) through brute force and Legend (XP) through sheer guts. Ideal for those who thrive on physical challenges.",
     primaryPillar: 'physical',     // HP: strength, endurance
     secondaryPillar: 'eternal',    // XP: guts
     tertiaryPillar: 'relational',  // GP: presence
@@ -38,7 +38,7 @@ export const JOB_CLASS_OPTIONS: JobClass[] = [
     name: "Mage",
     icon: "fa-hat-wizard",
     tier: 1,
-    description: "Masters knowledge, planning, and the management of household systems",
+    description: "A path of the Mind. Sharpens focus for Spirit (AP) and mastery for Legend (XP). Best for those who use intelligence to optimize their everyday routines.",
     primaryPillar: 'mental',       // MP: intelligence, wisdom
     secondaryPillar: 'eternal',    // XP: mastery
     tertiaryPillar: 'vibrational', // AP: focus
@@ -53,7 +53,7 @@ export const JOB_CLASS_OPTIONS: JobClass[] = [
     name: "Thief",
     icon: "fa-user-secret",
     tier: 1,
-    description: "Excels in resource acquisition, efficiency, and stealth task completion",
+    description: "The agile resource gatherer. Maximizes Spirit (AP) flow and Heart (GP) through charisma. Perfect for efficient scavengers who value luck and social grace.",
     primaryPillar: 'vibrational',  // AP: agility, flow
     secondaryPillar: 'relational', // GP: charisma
     tertiaryPillar: 'eternal',     // XP: luck
@@ -68,7 +68,7 @@ export const JOB_CLASS_OPTIONS: JobClass[] = [
     name: "Monk",
     icon: "fa-fist-raised",
     tier: 1,
-    description: "Balances physical discipline with mental focus and inner mastery",
+    description: "The balanced ascetic. Harmonizes Body (HP) with Mind (MP) while maintaining intense Spirit (AP) focus. A versatile choice for those seeking total self-mastery.",
     primaryPillar: 'physical',     // HP: endurance
     secondaryPillar: 'mental',     // MP: wisdom, perception
     tertiaryPillar: 'vibrational', // AP: focus

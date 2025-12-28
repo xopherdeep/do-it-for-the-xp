@@ -121,7 +121,7 @@ export default defineComponent({
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 3px;
     padding: 16px 8px;
     border-radius: 16px;
     background: rgba(255, 255, 255, 0.05);
