@@ -1,7 +1,7 @@
 <template>
   <ion-card
     class="xp-profile-card"
-    :class="{ selected }"
+    :class="{ selected, 'is-large': isLarge }"
     button
     @click="$emit('select', user)"
   >
@@ -18,10 +18,6 @@
     </ion-card-header>
 
     <ion-card-content>
-      <p class="profile-fullname">
-        {{ user.name.full }}
-      </p>
-
       <!-- Stats Row: Level + GP -->
       <div class="stats-row">
         <div class="level-box">
@@ -51,6 +47,10 @@ export default defineComponent({
       required: true,
     },
     selected: {
+      type: Boolean,
+      default: false,
+    },
+    isLarge: {
       type: Boolean,
       default: false,
     },
@@ -89,11 +89,52 @@ export default defineComponent({
 
   .xp-profile-card {
     position: relative;
-    height: 220px;
+    min-height: 180px;
+    height: 100%;
+    margin: 0;
     display: flex;
     flex-direction: column;
     transition: all 0.25s ease;
     overflow: visible;
+    border-radius: 12px;
+
+    &.is-large {
+      min-height: 320px;
+      padding: 1rem;
+
+      .profile-nickname {
+        font-size: 2rem !important;
+        margin-bottom: 1.5rem;
+      }
+
+      .profile-avatar {
+        width: 140px;
+        height: 140px;
+        border-width: 5px;
+      }
+
+      .stats-row {
+        margin-top: 1rem;
+        gap: 1rem;
+      }
+
+      .level-box,
+      .gp-box {
+        padding: 0.75rem;
+
+        .stat-value {
+          font-size: 1.4rem;
+        }
+
+        .stat-label {
+          font-size: 0.75rem;
+        }
+
+        i {
+          font-size: 1.4rem;
+        }
+      }
+    }
 
     // Hover glow effect
     &:hover {
@@ -126,11 +167,14 @@ export default defineComponent({
   }
 
   .profile-nickname {
-    font-size: 1rem !important;
+    font-size: 1.1rem !important;
+    font-weight: 700;
     margin-bottom: 0.5rem;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
+    letter-spacing: 0.75px;
   }
 
   .profile-avatar {
@@ -156,30 +200,18 @@ export default defineComponent({
     flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    padding-top: 0.5rem;
+    justify-content: flex-end;
+    padding-top: 0;
+    padding-bottom: 0.75rem;
   }
 
-  .profile-fullname {
-    font-size: 0.75rem;
-    color: eb.$eb-color-cream;
-    text-align: center;
-    margin: 0;
-    // Truncate long names to 2 lines
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    line-height: 1.3;
-    min-height: 2.6em;
-  }
+
 
   // Stats Row: Level + GP on same line
   .stats-row {
     display: flex;
     gap: 0.5rem;
-    margin-top: 0.5rem;
+    margin-top: 0;
   }
 
   .level-box {

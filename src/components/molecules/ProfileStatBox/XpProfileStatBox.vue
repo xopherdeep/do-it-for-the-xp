@@ -1,36 +1,50 @@
 <template>
-  <div 
-    class="profile-stat-box" 
+  <div
+    class="profile-stat-box"
     :class="[`${type}-box`, boxClass]"
     @click="handleClick"
   >
-    <div class="stat-icon" :class="iconAnimationClass">
+    <div
+      class="stat-icon"
+      :class="iconAnimationClass"
+    >
       <i :class="`fad ${icon} fa-2x`"></i>
     </div>
-    <div class="stat-details">
-      <span class="stat-label">{{ label }}</span>
-      <div class="progress-track">
-        <div 
-          class="progress-fill"
-          :class="type"
-          :style="{ width: (progress * 100) + '%' }"
-        >
-          <div class="progress-shine"></div>
-        </div>
+
+    <xp-label variant="stat">{{ label }}</xp-label>
+
+    <div class="progress-track">
+      <div
+        class="progress-fill"
+        :class="type"
+        :style="{ width: (progress * 100) + '%' }"
+      >
+        <div class="progress-shine"></div>
       </div>
     </div>
-    <span class="stat-value">
-      <template v-if="isPercentage">{{ current }}%</template>
-      <template v-else>{{ current }} / {{ max }}</template>
-    </span>
+
+    <xp-text
+      variant="value"
+      class="stat-value"
+    >
+      <template v-if="isPercentage">{{ displayCurrent }}%</template>
+      <template v-else>{{ displayCurrent }}/{{ displayMax }}</template>
+    </xp-text>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, computed } from 'vue';
+import { abbreviateNumber } from '@/lib/utils/format';
+import XpLabel from '@/components/atoms/Label/XpLabel.vue';
+import XpText from '@/components/atoms/Text/XpText.vue';
 
 export default defineComponent({
   name: 'XpProfileStatBox',
+  components: {
+    XpLabel,
+    XpText
+  },
   props: {
     type: {
       type: String,
@@ -82,7 +96,16 @@ export default defineComponent({
       return animationMap[props.type] || '';
     });
 
-    return { iconAnimationClass };
+    const displayCurrent = computed(() => {
+      if (props.isPercentage) return props.current;
+      return abbreviateNumber(Number(props.current), 1);
+    });
+
+    const displayMax = computed(() => {
+      return abbreviateNumber(Number(props.max), 1);
+    });
+
+    return { iconAnimationClass, displayCurrent, displayMax };
   },
   methods: {
     handleClick() {
@@ -95,9 +118,11 @@ export default defineComponent({
 <style lang="scss" scoped>
   .profile-stat-box {
     display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
+    justify-content: center;
+    gap: 8px;
+    padding: 16px 8px;
     border-radius: 16px;
     background: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(8px);
@@ -107,6 +132,7 @@ export default defineComponent({
     height: 100%;
     cursor: pointer;
     overflow: hidden;
+    text-align: center;
 
     &:hover {
       transform: translateY(-2px);
@@ -124,45 +150,29 @@ export default defineComponent({
       align-items: center;
       justify-content: center;
       width: 40px;
-      
+      height: 40px;
+      margin-bottom: 4px;
+
       i {
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
-      }
-    }
-
-    .stat-details {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      min-width: 0;
-
-      .stat-label {
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        color: rgba(255, 255, 255, 0.8);
-        font-family: var(--font-header, "Trajan Pro", serif);
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
       }
     }
 
     .stat-value {
-      font-family: "Apple Kid", sans-serif;
-      font-size: 1.1rem;
-      font-weight: 800;
-      color: #fff;
-      margin-left: 8px;
+      font-size: 0.5rem !important;
+      margin-top: 4px;
     }
 
     .progress-track {
-      flex: none; /* Override flex: 1 from previous styling if needed, but flex:1 in column is usually 100% width */
+      flex: none;
+      /* Override flex: 1 from previous styling if needed, but flex:1 in column is usually 100% width */
       width: 100%;
       height: 8px;
       background: rgba(0, 0, 0, 0.4);
       border-radius: 4px;
       overflow: hidden;
       position: relative;
-      border: 1px solid rgba(255,255,255,0.05);
+      border: 1px solid rgba(255, 255, 255, 0.05);
     }
 
     .progress-fill {
@@ -175,13 +185,14 @@ export default defineComponent({
       &::after {
         content: '';
         position: absolute;
-        top: 0; left: 0; right: 0; bottom: 0;
-        background: linear-gradient(
-          90deg,
-          transparent,
-          rgba(255, 255, 255, 0.35),
-          transparent
-        );
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: linear-gradient(90deg,
+            transparent,
+            rgba(255, 255, 255, 0.35),
+            transparent);
         animation: progress-shine-flow 2.5s linear infinite;
       }
 
@@ -189,15 +200,19 @@ export default defineComponent({
       &.hp {
         background: linear-gradient(90deg, #8b0000, #ff4444);
       }
+
       &.mp {
         background: linear-gradient(90deg, #1a3a6e, #6699ff);
       }
+
       &.gp {
         background: linear-gradient(90deg, #8b6914, #ffcc00);
       }
+
       &.xp {
         background: linear-gradient(90deg, #1a6e2e, #44ff66);
       }
+
       &.ap {
         background: linear-gradient(90deg, #4a1a6e, #aa66ff);
       }
@@ -205,7 +220,10 @@ export default defineComponent({
 
     .progress-shine {
       position: absolute;
-      top: 0; left: 0; width: 100%; height: 50%;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 50%;
       background: rgba(255, 255, 255, 0.2);
       pointer-events: none;
     }
@@ -230,29 +248,66 @@ export default defineComponent({
   }
 
   @keyframes progress-shine-flow {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
+    0% {
+      transform: translateX(-100%);
+    }
+
+    100% {
+      transform: translateX(100%);
+    }
   }
 
   @keyframes icon-pulse {
-    0%, 100% { transform: scale(1); filter: drop-shadow(0 0 0px currentColor); }
-    50% { transform: scale(1.15); filter: drop-shadow(0 0 6px currentColor); }
+
+    0%,
+    100% {
+      transform: scale(1);
+      filter: drop-shadow(0 0 0px currentColor);
+    }
+
+    50% {
+      transform: scale(1.15);
+      filter: drop-shadow(0 0 6px currentColor);
+    }
   }
 
   @keyframes icon-sparkle {
-    0%, 100% { filter: brightness(1); }
-    50% { filter: brightness(1.3); }
+
+    0%,
+    100% {
+      filter: brightness(1);
+    }
+
+    50% {
+      filter: brightness(1.3);
+    }
   }
 
   @keyframes icon-tilt {
-    0%, 100% { transform: rotate(0deg); }
-    25% { transform: rotate(8deg); }
-    75% { transform: rotate(-8deg); }
+
+    0%,
+    100% {
+      transform: rotate(0deg);
+    }
+
+    25% {
+      transform: rotate(8deg);
+    }
+
+    75% {
+      transform: rotate(-8deg);
+    }
   }
 
   @keyframes icon-grow {
-    0%, 100% { transform: scale(0.65); }
-    50% { transform: scale(1.45); }
+
+    0%,
+    100% {
+      transform: scale(0.65);
+    }
+
+    50% {
+      transform: scale(1.45);
+    }
   }
 </style>
-
