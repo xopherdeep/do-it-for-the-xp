@@ -1,31 +1,42 @@
 <template>
   <ion-page class="xp-temple-splash">
-    <ion-content class="transparent-content" :fullscreen="true">
+    <ion-content
+      class="transparent-content"
+      :fullscreen="true"
+    >
       <!-- Loading State -->
-      <div v-if="isLoading" class="loading-wrapper">
+      <div
+        v-if="isLoading"
+        class="loading-wrapper"
+      >
         <XpLoading />
       </div>
 
       <!-- Content (shown when loaded) -->
-      <div v-if="!isLoading" class="content-wrapper">
+      <div
+        v-if="!isLoading"
+        class="content-wrapper"
+      >
         <!-- Header Section -->
-        <div class="temple-header">
-          <div class="temple-icon-wrapper">
-            <i :class="['fad', templeIcon, 'fa-4x']"></i>
-          </div>
-          <h1 class="temple-name">{{ templeName }}</h1>
-          <p class="temple-description">{{ templeDescription }}</p>
-        </div>
+        <XpTempleTitle :temple-id="templeId" />
 
         <!-- Stats and Map Row -->
         <div class="stats-map-row">
           <!-- Mini Map Preview (Left) -->
-          <div class="mini-map-wrapper" v-if="previewMaze && previewMaze.length" @click="goToLayout">
+          <div
+            class="mini-map-wrapper"
+            v-if="previewMaze && previewMaze.length"
+            @click="goToLayout"
+          >
             <div class="mini-map">
-              <div v-for="(row, y) in previewMaze" :key="y" class="map-row">
-                <div 
-                  v-for="(cell, x) in row" 
-                  :key="x" 
+              <div
+                v-for="(row, y) in previewMaze"
+                :key="y"
+                class="map-row"
+              >
+                <div
+                  v-for="(cell, x) in row"
+                  :key="x"
                   class="map-cell"
                   :class="{ 'is-room': isRoom(cell) }"
                 ></div>
@@ -35,28 +46,40 @@
 
           <!-- Stats Grid (Right) -->
           <div class="temple-stats">
-            <div class="stat-card" @click="goToTab('rooms')">
+            <div
+              class="stat-card"
+              @click="goToTab('rooms')"
+            >
               <i class="fad fa-door-open fa-2x text-primary"></i>
               <div class="stat-info">
                 <span class="stat-value">{{ roomCount }}</span>
                 <span class="stat-label">Rooms</span>
               </div>
             </div>
-            <div class="stat-card" @click="goToTab('beasts')">
+            <div
+              class="stat-card"
+              @click="goToTab('beasts')"
+            >
               <i class="fad fa-dragon fa-2x text-danger"></i>
               <div class="stat-info">
                 <span class="stat-value">{{ beastCount }}</span>
                 <span class="stat-label">Beasts</span>
               </div>
             </div>
-            <div class="stat-card" @click="goToTab('layout')">
+            <div
+              class="stat-card"
+              @click="goToTab('layout')"
+            >
               <i class="fad fa-layer-group fa-2x text-warning"></i>
               <div class="stat-info">
                 <span class="stat-value">{{ floorCount }}</span>
                 <span class="stat-label">Floors</span>
               </div>
             </div>
-            <div class="stat-card" @click="goToTab('attributes/general')">
+            <div
+              class="stat-card"
+              @click="goToTab('attributes/general')"
+            >
               <i class="fad fa-mountain fa-2x text-success"></i>
               <div class="stat-info">
                 <span class="stat-value text-capitalize">{{ templeMetadata.world }}</span>
@@ -66,8 +89,8 @@
           </div>
         </div>
 
-        <ion-button 
-          expand="block" 
+        <ion-button
+          expand="block"
           class="enter-button"
           @click="goToLayout"
         >
@@ -85,6 +108,7 @@ import { useRouter } from "vue-router";
 import { IonPage, IonContent, IonButton } from "@ionic/vue";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 
+import XpTempleTitle from "../XpTempleCreator/XpTempleTitle.vue";
 import { TEMPLE_METADATA } from "@/lib/engine/temples/templeRegistry";
 import { TempleDataInjectionKey } from "../../composables/useTempleData";
 import { inject } from "vue";
@@ -95,7 +119,8 @@ export default defineComponent({
     IonPage,
     IonContent,
     IonButton,
-    XpLoading
+    XpLoading,
+    XpTempleTitle
   },
   props: {
     templeId: {
@@ -184,219 +209,201 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-.transparent-content {
-  --background: transparent;
-}
-
-.loading-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 100%;
-  padding: 24px;
-}
-
-.loading-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  
-  .loading-text {
-    font-family: "Apple Kid", sans-serif;
-    font-size: 1rem;
-    color: rgba(255, 255, 255, 0.7);
-    margin: 0;
-  }
-}
-
-.content-wrapper {
-  padding: 24px 16px 40px;
-  max-width: 900px;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.temple-header {
-  text-align: center;
-  padding-top: 1rem;
-
-  .temple-icon-wrapper {
-    margin-bottom: 0.5rem;
-    i {
-      color: var(--ion-color-primary);
-      filter: drop-shadow(0 0 20px rgba(var(--ion-color-primary-rgb), 0.5));
-    }
+  .transparent-content {
+    --background: transparent;
   }
 
-  .temple-name {
-    font-family: "Twoson", serif;
-    font-size: 2.2rem;
-    color: #fff;
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.8);
-    margin: 0 0 0.5rem;
+  .loading-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100%;
+    padding: 24px;
   }
 
-  .temple-description {
-    font-family: "Apple Kid", sans-serif;
-    font-size: 1.1rem;
-    color: rgba(255, 255, 255, 0.7);
-    margin: 0;
-    line-height: 1.4;
-    max-width: 600px;
-    margin: 0 auto;
-  }
-}
-
-/* Stats and Map Row - Refined 2 Column Layout */
-.stats-map-row {
-  display: grid;
-  grid-template-columns: 1.3fr 0.7fr;
-  gap: 24px;
-  align-items: stretch;
-
-  @media (max-width: 700px) {
-    grid-template-columns: 1fr;
-  }
-}
-
-.temple-stats {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  justify-content: center;
-}
-
-.stat-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 16px 20px;
-  background: rgba(25, 27, 46, 0.6);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &:hover {
-    transform: translateY(-4px) scale(1.02);
-    background: rgba(var(--ion-color-primary-rgb), 0.1);
-    border-color: rgba(var(--ion-color-primary-rgb), 0.3);
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
-    
-    i {
-      transform: scale(1.1);
-    }
-  }
-
-  &:active {
-    transform: translateY(-2px) scale(0.98);
-    background: rgba(var(--ion-color-primary-rgb), 0.2);
-  }
-
-  i {
-    width: 32px;
-    text-align: center;
-    margin-bottom: 0;
-    transition: transform 0.3s ease;
-  }
-
-  .stat-info {
+  .loading-content {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-  }
+    align-items: center;
+    gap: 16px;
 
-  .stat-value {
-    font-family: "StatusPlz", monospace;
-    font-size: 1.4rem;
-    color: #fff;
-    margin-bottom: 0;
-  }
-
-  .stat-label {
-    font-family: "Apple Kid", sans-serif;
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.5);
-    text-transform: uppercase;
-    letter-spacing: 1px;
-  }
-}
-
-.mini-map-wrapper {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 32px;
-  background: rgba(25, 27, 46, 0.6);
-  backdrop-filter: blur(12px);
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  min-height: 350px;
-  cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &:hover {
-    transform: scale(1.02);
-    background: rgba(var(--ion-color-tertiary-rgb), 0.05);
-    border-color: rgba(var(--ion-color-tertiary-rgb), 0.3);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-    
-    .map-cell.is-room {
-      transform: scale(1.1);
-      box-shadow: 0 0 15px rgba(var(--ion-color-tertiary-rgb), 0.8);
+    .loading-text {
+      font-family: "Apple Kid", sans-serif;
+      font-size: 1rem;
+      color: rgba(255, 255, 255, 0.7);
+      margin: 0;
     }
   }
 
-  &:active {
-    transform: scale(0.98);
-  }
-}
-
-.mini-map {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-
-  .map-row {
+  .content-wrapper {
+    padding: 24px 16px 40px;
+    max-width: 900px;
+    margin: 0 auto;
     display: flex;
-    gap: 6px;
+    flex-direction: column;
+    gap: 24px;
   }
 
-  .map-cell {
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
-    background: rgba(255, 255, 255, 0.05);
-    transition: all 0.3s ease;
 
-    &.is-room {
-      background: var(--ion-color-tertiary);
-      box-shadow: 0 0 12px rgba(var(--ion-color-tertiary-rgb), 0.6);
+  /* Stats and Map Row - Refined 2 Column Layout */
+  .stats-map-row {
+    display: grid;
+    grid-template-columns: 1.3fr 0.7fr;
+    gap: 24px;
+    align-items: stretch;
+
+    @media (max-width: 400px) {
+      grid-template-columns: 1fr;
     }
   }
-}
 
-.enter-button {
-  --background: var(--ion-color-primary);
-  --border-radius: 12px;
-  font-family: "Twoson", serif;
-  font-size: 1.2rem;
-  letter-spacing: 2px;
-  height: 60px;
-  margin-top: 12px;
-  --box-shadow: 0 10px 20px rgba(var(--ion-color-primary-rgb), 0.4);
-}
+  .temple-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    justify-content: center;
+  }
 
-/* Utility classes */
-.text-primary { color: var(--ion-color-primary); }
-.text-danger { color: var(--ion-color-danger); }
-.text-warning { color: var(--ion-color-warning); }
-.text-success { color: var(--ion-color-success); }
-.text-capitalize { text-transform: capitalize; }
+  .stat-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    background: rgba(25, 27, 46, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      transform: translateY(-4px) scale(1.02);
+      background: rgba(var(--ion-color-primary-rgb), 0.1);
+      border-color: rgba(var(--ion-color-primary-rgb), 0.3);
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
+
+      i {
+        transform: scale(1.1);
+      }
+    }
+
+    &:active {
+      transform: translateY(-2px) scale(0.98);
+      background: rgba(var(--ion-color-primary-rgb), 0.2);
+    }
+
+    i {
+      width: 32px;
+      text-align: center;
+      margin-bottom: 0;
+      transition: transform 0.3s ease;
+    }
+
+    .stat-info {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .stat-value {
+      font-family: "StatusPlz", monospace;
+      font-size: 1.4rem;
+      color: #fff;
+      margin-bottom: 0;
+    }
+
+    .stat-label {
+      font-family: "Apple Kid", sans-serif;
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.5);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+  }
+
+  .mini-map-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 32px;
+    background: rgba(25, 27, 46, 0.6);
+    backdrop-filter: blur(12px);
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    min-height: 350px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      transform: scale(1.02);
+      background: rgba(var(--ion-color-tertiary-rgb), 0.05);
+      border-color: rgba(var(--ion-color-tertiary-rgb), 0.3);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+
+      .map-cell.is-room {
+        transform: scale(1.1);
+        box-shadow: 0 0 15px rgba(var(--ion-color-tertiary-rgb), 0.8);
+      }
+    }
+
+    &:active {
+      transform: scale(0.98);
+    }
+  }
+
+  .mini-map {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    .map-row {
+      display: flex;
+      gap: 6px;
+    }
+
+    .map-cell {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      background: rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+
+      &.is-room {
+        background: var(--ion-color-tertiary);
+        box-shadow: 0 0 12px rgba(var(--ion-color-tertiary-rgb), 0.6);
+      }
+    }
+  }
+
+  .enter-button {
+    --background: var(--ion-color-primary);
+    --border-radius: 12px;
+    font-family: "Twoson", serif;
+    font-size: 1.2rem;
+    letter-spacing: 2px;
+    height: 60px;
+    margin-top: 12px;
+    --box-shadow: 0 10px 20px rgba(var(--ion-color-primary-rgb), 0.4);
+  }
+
+  /* Utility classes */
+  .text-primary {
+    color: var(--ion-color-primary);
+  }
+
+  .text-danger {
+    color: var(--ion-color-danger);
+  }
+
+  .text-warning {
+    color: var(--ion-color-warning);
+  }
+
+  .text-success {
+    color: var(--ion-color-success);
+  }
+
+  .text-capitalize {
+    text-transform: capitalize;
+  }
 </style>
