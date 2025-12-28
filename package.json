@@ -1,8 +1,8 @@
 {
   "name": "@xopherdeep/do-it-for-the-xp",
   "description": "Do it for the XP",
-  "version": "0.2.0",
-  "license": "UNLICENSED",
+  "version": "0.3.0",
+  "license": "Proprietary",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/xopherdeep/do-it-for-the-xp.git"
@@ -10,7 +10,7 @@
   "publishConfig": {
     "@xopherdeep:registry": "https://registry.npmjs.org/"
   },
-  "private": false,
+  "private": true,
   "scripts": {
     "dev": "ionic cap run -l --external ",
     "serve": "ionic serve --external",

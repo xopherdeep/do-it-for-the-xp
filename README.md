@@ -107,15 +107,19 @@ For a deep dive, check out the [Codebase Structure](docs/Codebase-Structure.md) 
 
 ---
 
+---
+
+## 📄 License
+
+This project is **Proprietary**. All rights reserved. See the [LICENSE](file:///home/xopher/www/x/xp/do-it-for-the-xp/LICENSE) file for more details.
+
 ## 🤝 Contributing
 
-We welcome fellow adventurers to join the party! If you have ideas for new quests (features) or want to slay some bugs:
+While the project is proprietary, we welcome feedback and bug reports. If you'd like to contribute code, please contact the XP Team first. All contributions will be subject to the terms of the proprietary license.
 
-1.  Fork the Project
-2.  Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3.  Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4.  Push to the Branch (`git push origin feature/AmazingFeature`)
-5.  Open a Pull Request
+1.  Contact the XP Team regarding your interest.
+2.  Follow the guidance provided for contribution.
+3.  Open a Pull Request (if authorized).
 
 ---
 
