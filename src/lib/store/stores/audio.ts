@@ -9,7 +9,7 @@ export const useAudioStore = defineStore('audio', () => {
   const bgm = reactive({
     audio: new Audio(),
     saveBookmark: false,
-    is_on: false,
+    is_on: true,
     startDelay: 0,
     src: null as string | null,
     track: 0,
@@ -53,12 +53,19 @@ export const useAudioStore = defineStore('audio', () => {
    * Turn music on or off based on state
    */
   function turnMusicOnOff() {
+    const engine = AudioEngine.getInstance();
+    
     if (bgm.audio) {
       if (bgm.is_on) {
         bgm.audio.play().catch(err => debug.warn('BGM play failed:', err));
       } else {
         bgm.audio.pause();
       }
+    }
+    
+    // Sync with AudioEngine - ensure BGM is stopped if toggled off
+    if (!bgm.is_on) {
+      engine.stopMusic(500);
     }
   }
 

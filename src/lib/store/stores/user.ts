@@ -3,6 +3,9 @@ import { reactive, computed } from 'vue';
 import Api from "@/lib/api";
 import { getGPService } from '@/lib/services/gp/GPService';
 
+// LocalStorage key for persisting current user ID
+const CURRENT_USER_KEY = 'xp_current_user_id';
+
 export const useUserStore = defineStore('user', () => {
   // --- State ---
   const currentUser = reactive({
@@ -21,15 +24,39 @@ export const useUserStore = defineStore('user', () => {
     });
   });
 
+  // --- Helper Functions ---
+  
+  /**
+   * Save current user ID to localStorage
+   */
+  function saveCurrentUserId(userId: string | null) {
+    if (userId) {
+      localStorage.setItem(CURRENT_USER_KEY, userId);
+    } else {
+      localStorage.removeItem(CURRENT_USER_KEY);
+    }
+  }
+
+  /**
+   * Get saved user ID from localStorage
+   */
+  function getSavedUserId(): string | null {
+    return localStorage.getItem(CURRENT_USER_KEY);
+  }
+
   // --- Actions ---
 
   function loginUser(userData: any) {
     Object.assign(currentUser, userData);
     currentUser.isAuthenticated = true;
+    // Persist the login
+    saveCurrentUserId(userData.id);
   }
 
   function logoutUser() {
     currentUser.isAuthenticated = false;
+    currentUser.id = null;
+    saveCurrentUserId(null);
   }
 
   async function loadUsers() {
@@ -43,12 +70,17 @@ export const useUserStore = defineStore('user', () => {
           users[user.id] = user;
         });
 
-        // Set default currentUser if not set
-        if (!currentUser.id && users["1"]) {
+        // Check localStorage for a previously saved user ID first
+        const savedUserId = getSavedUserId();
+        if (savedUserId && users[savedUserId]) {
+          loginUser(users[savedUserId]);
+        } else if (!currentUser.id && users["1"]) {
+          // Fallback to default user
           loginUser(users["1"]);
         }
       }
     } catch (error) {
+      // eslint-disable-next-line no-console
       console.error("Failed to load users", error);
     }
   }
@@ -94,11 +126,114 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  /**
+   * Update User HP (for battle damage/healing)
+   * Returns true if player is still alive, false if defeated
+   */
+  function updateUserHP(payload: { userId: string, amount: number }): boolean {
+    const { userId, amount } = payload;
+    
+    if (users[userId]) {
+      const userStats = users[userId].stats || { hp: 100, maxHp: 100 };
+      
+      // Initialize hp if missing
+      if (userStats.hp === undefined) userStats.hp = 100;
+      if (userStats.maxHp === undefined) userStats.maxHp = 100;
+      
+      // Apply damage (negative amount) or healing (positive amount)
+      userStats.hp = Math.max(0, Math.min(userStats.maxHp, userStats.hp + amount));
+      
+      // Update state
+      users[userId].stats = userStats;
+      
+      // Update current user if matches
+      if (currentUser.id === userId) {
+        currentUser.stats = userStats;
+      }
+      
+      // Return whether player is still alive
+      return userStats.hp > 0;
+    }
+    return true; // Default to alive if user not found
+  }
+
+  /**
+   * Unlock a specific Pegasus for a user
+   */
+  function unlockPegasus(userId: string, pegasusIndex: number) {
+    if (users[userId]) {
+      const userStats = users[userId].stats || {};
+      
+      // Initialize pegasi array if missing (9 slots for 9 worlds)
+      if (!userStats.pegasi) userStats.pegasi = Array(9).fill(false);
+      
+      // Unlock
+      if (pegasusIndex >= 0 && pegasusIndex < userStats.pegasi.length) {
+        userStats.pegasi[pegasusIndex] = true;
+      }
+      
+      // Update state
+      users[userId].stats = userStats;
+      
+      // Update current user if matches
+      if (currentUser.id === userId) {
+        currentUser.stats = userStats;
+      }
+      
+      // Persist (Implied via existing mechanisms or add specific sync if needed)
+      // For now, in-memory/local updates are sufficient for the session
+    }
+  }
+
+  /**
+   * Impersonate a user - sets them as the current user and persists to localStorage
+   */
   function impersonateUser(userId: string) {
     if (users[userId]) {
       Object.assign(currentUser, users[userId]);
       currentUser.id = userId;
       currentUser.isAuthenticated = true;
+      // Persist the selection to localStorage
+      saveCurrentUserId(userId);
+    }
+  }
+
+  /**
+   * Restore the current user from localStorage if available
+   * Call this on app initialization
+   */
+  function restoreCurrentUser() {
+    const savedUserId = getSavedUserId();
+    if (savedUserId && users[savedUserId]) {
+      impersonateUser(savedUserId);
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Unlock an additional Quick Draw shortcut slot for a user
+   * Default: 1 slot, First unlock: 2 slots, Second unlock: 3 slots (max)
+   */
+  function unlockQuickDrawSlot(userId: string) {
+    if (users[userId]) {
+      const userStats = users[userId].stats || {};
+      
+      // Initialize quickDrawSlots if missing (default 1)
+      userStats.quickDrawSlots = userStats.quickDrawSlots ?? 1;
+      
+      // Max 3 slots
+      if (userStats.quickDrawSlots < 3) {
+        userStats.quickDrawSlots++;
+      }
+      
+      // Update state
+      users[userId].stats = userStats;
+      
+      // Update current user if matches
+      if (currentUser.id === userId) {
+        currentUser.stats = userStats;
+      }
     }
   }
 
@@ -111,7 +246,11 @@ export const useUserStore = defineStore('user', () => {
     loadUsers,
     addUser,
     updateUserGP,
+    updateUserHP,
+    unlockPegasus,
+    unlockQuickDrawSlot,
     impersonateUser,
+    restoreCurrentUser,
     usersAz
   };
 });

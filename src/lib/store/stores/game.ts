@@ -11,6 +11,11 @@ export const useGameStore = defineStore('game', () => {
     rpg: 'earthbound'
   });
   const userActions = ref<any[]>([]);
+  
+  // FAB Style: 'retro' (centered menu) or 'modern' (radial shortcuts)
+  const fabStyle = ref<'retro' | 'modern'>(
+    (localStorage.getItem('fabStyle') as 'retro' | 'modern') || 'retro'
+  );
 
   // --- Entity Collections (Caching) ---
   const abilities = reactive<Record<string, any>>({});
@@ -37,6 +42,12 @@ export const useGameStore = defineStore('game', () => {
 
   function setUserActions(actions: any[]) {
     userActions.value = actions;
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  function setFabStyle(style: 'retro' | 'modern') {
+    fabStyle.value = style;
+    localStorage.setItem('fabStyle', style);
   }
 
   function addEntity(type: string, item: any) {
@@ -160,6 +171,7 @@ export const useGameStore = defineStore('game', () => {
     area,
     theme,
     userActions,
+    fabStyle,
     abilities,
     accessories,
     achievements,
@@ -170,6 +182,7 @@ export const useGameStore = defineStore('game', () => {
     setDevMode,
     setArea,
     setUserActions,
+    setFabStyle,
     addEntity,
     addRequest,
     changeSoundFX,

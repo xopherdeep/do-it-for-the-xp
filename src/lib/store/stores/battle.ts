@@ -22,6 +22,12 @@ export const useBattleStore = defineStore('battle', () => {
     counter: 155
   });
 
+  const currentEncounter = ref<{
+    beastIds: string[];
+    userIds: string[];
+    bgConfig?: { bg1?: number; bg2?: number };
+  } | null>(null);
+
   // --- Actions ---
 
   function deactivateBattle() {
@@ -76,6 +82,18 @@ export const useBattleStore = defineStore('battle', () => {
     Object.assign(terrain, newTerrain);
   }
 
+  function setEncounter(encounter: { beastIds: string[]; userIds?: string[]; bgConfig?: { bg1?: number; bg2?: number } }) {
+    currentEncounter.value = {
+      beastIds: encounter.beastIds,
+      userIds: encounter.userIds || [],
+      bgConfig: encounter.bgConfig
+    };
+  }
+
+  function clearEncounter() {
+    currentEncounter.value = null;
+  }
+
   return {
     // State
     active,
@@ -93,6 +111,9 @@ export const useBattleStore = defineStore('battle', () => {
     stopBattleTimer,
     resetBattleTimer,
     randomEncounter,
-    setTerrain
+    setTerrain,
+    currentEncounter,
+    setEncounter,
+    clearEncounter
   };
 });
