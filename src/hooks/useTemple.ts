@@ -21,6 +21,7 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
   const hasMap = ref(false);
   const hasCompass = ref(false);
   const playerKeys = ref(0);
+  const currentLevel = ref("1F");
   const isMapOpen = ref(false);
   const currentMessage = ref('');
   const showMessage = ref(false);
@@ -43,6 +44,7 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
         hasMap.value = state.hasMap;
         hasCompass.value = state.hasCompass;
         playerKeys.value = state.playerKeys;
+        currentLevel.value = state.currentLevel;
       }
     }
   });
@@ -61,6 +63,7 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
         hasMap.value = newState.hasMap;
         hasCompass.value = newState.hasCompass;
         playerKeys.value = newState.playerKeys;
+        currentLevel.value = newState.currentLevel;
       }
     },
     { deep: true }
@@ -71,10 +74,9 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
     return templeSystem.getCurrentRoom(templeId);
   });
   
-  // Get the maze for the current temple
+  // Get the maze for the current temple (normalized for current level)
   const maze = computed(() => {
-    const temple = dungeonManager.getDungeon(templeId);
-    return temple?.maze || [];
+    return dungeonManager.getMazeGrid(templeId, currentLevel.value);
   });
   
   // Get all rooms in the temple
@@ -159,7 +161,8 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
   });
   
   const canMoveDown = computed(() => {
-    if (!currentPosition.value || currentPosition.value[0] >= maze.value.length - 1) return false;
+    const mazeData = maze.value;
+    if (!currentPosition.value || currentPosition.value[0] >= mazeData.length - 1) return false;
     const [row, col] = currentPosition.value;
     const roomKey = maze.value[row + 1]?.[col];
     if (!roomKey) return false;
@@ -211,9 +214,11 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
       case 'north':
         if (row > 0) newRow = row - 1;
         break;
-      case 'south':
-        if (row < maze.value.length - 1) newRow = row + 1;
+      case 'south': {
+        const mazeData = maze.value;
+        if (row < mazeData.length - 1) newRow = row + 1;
         break;
+      }
       case 'west':
         if (col > 0) newCol = col - 1;
         break;
@@ -486,6 +491,7 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
     hasMap,
     hasCompass,
     playerKeys,
+    currentLevel,
     isMapOpen,
     currentRoom,
     maze,
