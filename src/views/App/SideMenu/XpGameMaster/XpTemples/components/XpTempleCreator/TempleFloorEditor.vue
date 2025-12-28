@@ -4,8 +4,6 @@
       v-model:gridSize="gridSize"
       v-model:currentLevelId="currentLevelId"
       :temple-id="templeId"
-      :temple-name="templeName"
-      :temple-icon="templeIcon"
       :entrance-display="entranceDisplay"
       :show-preview="showPreview"
       :floors="floors"
@@ -19,7 +17,10 @@
 
     <ion-content class="transparent-content">
       <!-- Preview Mode -->
-      <div v-if="showPreview" class="tab-content">
+      <div
+        v-if="showPreview"
+        class="tab-content"
+      >
         <ion-card>
           <ion-card-header>
             <ion-card-title>Temple Preview</ion-card-title>
@@ -29,7 +30,10 @@
             <div class="preview-container">
               <pre class="code-preview">{{ templeCodePreview }}</pre>
             </div>
-            <ion-button expand="block" @click="copyToClipboard">
+            <ion-button
+              expand="block"
+              @click="copyToClipboard"
+            >
               <i class="fas fa-copy"></i>
               Copy Code
             </ion-button>
@@ -38,36 +42,53 @@
       </div>
 
       <!-- Unified Editor Mode -->
-      <div v-else class="editor-content">
-        <ion-grid class="editor-grid">
-          <ion-row class="ion-justify-content-center ion-align-items-center">
-            <ion-col size="auto" class="layout-column">
-              <xp-temple-creator-grid
-                :maze="currentMazeSlice"
-                :rooms-data="roomsData"
-                :room-icons="dynamicRoomIcons"
-                :side-type-info="SIDE_TYPE_INFO"
-                :selected-cell="selectedCell"
-                :entrance-position="entrancePosition"
-                :current-level-id="currentLevelId"
-                @cell-click="onCellClick"
-                @cell-contextmenu="({ row, col, event }) => showQuickEditPopover(event, row, col)"
-              />
-            </ion-col>
-          </ion-row>
-        </ion-grid>
+      <div
+        v-else
+        class="editor-content"
+      >
+        <!-- Temple Header above the grid -->
+        <div class="temple-header">
+          <i :class="[templeIcon, 'temple-header-icon']"></i>
+          <span class="temple-header-name">{{ templeName }}</span>
+        </div>
+
+        <!-- Centered Grid Container -->
+        <div class="grid-wrapper">
+          <xp-temple-creator-grid
+            :maze="currentMazeSlice"
+            :rooms-data="roomsData"
+            :room-icons="dynamicRoomIcons"
+            :side-type-info="SIDE_TYPE_INFO"
+            :selected-cell="selectedCell"
+            :entrance-position="entrancePosition"
+            :current-level-id="currentLevelId"
+            @cell-click="onCellClick"
+            @cell-contextmenu="({ row, col, event }) => showQuickEditPopover(event, row, col)"
+          />
+        </div>
       </div>
 
       <!-- Action FABs -->
-      <ion-fab vertical="bottom" horizontal="start" slot="fixed">
-        <ion-fab-button color="danger" @click="resetFloor">
+      <ion-fab
+        vertical="bottom"
+        horizontal="start"
+        slot="fixed"
+      >
+        <ion-fab-button
+          color="danger"
+          @click="resetFloor"
+        >
           <i class="fal fa-trash-alt"></i>
         </ion-fab-button>
       </ion-fab>
 
-      <ion-fab vertical="bottom" horizontal="center" slot="fixed">
-        <ion-fab-button 
-          :color="hasUnsavedChanges ? 'success' : 'medium'" 
+      <ion-fab
+        vertical="bottom"
+        horizontal="center"
+        slot="fixed"
+      >
+        <ion-fab-button
+          :color="hasUnsavedChanges ? 'success' : 'medium'"
           @click="saveTemple"
           :class="{ 'faded-fab': !hasUnsavedChanges }"
         >
@@ -76,16 +97,27 @@
       </ion-fab>
 
       <!-- Floating Floor Switcher & Actions -->
-      <ion-fab vertical="bottom" horizontal="end" slot="fixed" v-if="floors.length > 0">
-        <ion-fab-button color="rpg" class="floor-fab-trigger">
+      <ion-fab
+        vertical="bottom"
+        horizontal="end"
+        slot="fixed"
+        v-if="floors.length > 0"
+      >
+        <ion-fab-button
+          color="rpg"
+          class="floor-fab-trigger"
+        >
           <span class="floor-label">{{ currentLevelId }}</span>
         </ion-fab-button>
-        
+
         <!-- Floor Selection List (Up) -->
-        <ion-fab-list side="top" v-if="floors.length > 1">
-          <ion-fab-button 
-            v-for="floor in floors" 
-            :key="floor" 
+        <ion-fab-list
+          side="top"
+          v-if="floors.length > 1"
+        >
+          <ion-fab-button
+            v-for="floor in floors"
+            :key="floor"
             @click="setLevel(floor)"
             class="floor-fab-option"
             :color="currentLevelId === floor ? 'primary' : 'light'"
@@ -96,7 +128,10 @@
 
         <!-- Add Floor Action (Left) -->
         <ion-fab-list side="start">
-          <ion-fab-button color="success" @click="promptAddFloor">
+          <ion-fab-button
+            color="success"
+            @click="promptAddFloor"
+          >
             <i class="fal fa-plus"></i>
           </ion-fab-button>
         </ion-fab-list>
@@ -104,48 +139,64 @@
     </ion-content>
 
     <!-- Add Floor Modal -->
-    <ion-modal :is-open="showAddFloorModal" class="add-floor-modal" @didDismiss="showAddFloorModal = false">
+    <ion-modal
+      :is-open="showAddFloorModal"
+      class="add-floor-modal"
+      @didDismiss="showAddFloorModal = false"
+    >
       <div class="modal-content">
         <div class="modal-header">
-           <h2>Expand Temple</h2>
-           <ion-button fill="clear" @click="showAddFloorModal = false"><i class="fas fa-times"></i></ion-button>
+          <h2>Expand Temple</h2>
+          <ion-button
+            fill="clear"
+            @click="showAddFloorModal = false"
+          ><i class="fas fa-times"></i></ion-button>
         </div>
-        
-        <div class="level-choice-container">
-           <!-- Go Closer to Surface (e.g. 2F) -->
-           <div class="level-choice-card surface" @click="confirmAddFloor(nextFloorOptions.surface)">
-              <div class="icon-box">
-                <i class="fad fa-clouds"></i>
-              </div>
-              <div class="choice-info">
-                <div class="choice-title">Build Up</div>
-              </div>
-              <div class="action-group">
-                <span class="floor-name">{{ nextFloorOptions.surface }}</span>
-                <i class="fas fa-arrow-up action-icon"></i>
-              </div>
-           </div>
-           
-           <!-- Divider -->
-           <div class="choice-divider">or</div>
 
-           <!-- Go Deeper (e.g. B1) -->
-           <div class="level-choice-card basement" @click="confirmAddFloor(nextFloorOptions.basement)">
-              <div class="icon-box">
-                <i class="fad fa-dungeon"></i>
-              </div>
-              <div class="choice-info">
-                 <div class="choice-title">Dig Down</div>
-              </div>
-              <div class="action-group">
-                <span class="floor-name">{{ nextFloorOptions.basement }}</span>
-                <i class="fas fa-arrow-down action-icon"></i>
-              </div>
-           </div>
+        <div class="level-choice-container">
+          <!-- Go Closer to Surface (e.g. 2F) -->
+          <div
+            class="level-choice-card surface"
+            @click="confirmAddFloor(nextFloorOptions.surface)"
+          >
+            <div class="icon-box">
+              <i class="fad fa-clouds"></i>
+            </div>
+            <div class="choice-info">
+              <div class="choice-title">Build Up</div>
+            </div>
+            <div class="action-group">
+              <span class="floor-name">{{ nextFloorOptions.surface }}</span>
+              <i class="fas fa-arrow-up action-icon"></i>
+            </div>
+          </div>
+
+          <!-- Divider -->
+          <div class="choice-divider">or</div>
+
+          <!-- Go Deeper (e.g. B1) -->
+          <div
+            class="level-choice-card basement"
+            @click="confirmAddFloor(nextFloorOptions.basement)"
+          >
+            <div class="icon-box">
+              <i class="fad fa-dungeon"></i>
+            </div>
+            <div class="choice-info">
+              <div class="choice-title">Dig Down</div>
+            </div>
+            <div class="action-group">
+              <span class="floor-name">{{ nextFloorOptions.basement }}</span>
+              <i class="fas fa-arrow-down action-icon"></i>
+            </div>
+          </div>
         </div>
-        
-        <div class="custom-name-trigger" @click="promptCustomFloorName">
-           <span>Use a custom name instead...</span>
+
+        <div
+          class="custom-name-trigger"
+          @click="promptCustomFloorName"
+        >
+          <span>Use a custom name instead...</span>
         </div>
       </div>
     </ion-modal>
@@ -268,228 +319,262 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-.xp-temple-creator {
-  --background: transparent;
-}
-
-.tab-content {
-  padding: 16px;
-}
-
-.preview-container {
-  background: #1a1a2e;
-  border-radius: 8px;
-  padding: 16px;
-  margin-bottom: 16px;
-  overflow-x: auto;
-}
-
-.code-preview {
-  font-family: 'Consolas', 'Monaco', monospace;
-  font-size: 0.75rem;
-  color: #a9dc76;
-  margin: 0;
-  white-space: pre;
-}
-
-.editor-content {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-}
-
-.editor-grid {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-}
-
-.layout-column {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Floor FAB Styling */
-.floor-fab-trigger {
-  --background: var(--ion-color-rpg);
-  --color: #fff;
-  
-  .floor-label {
-    font-family: "Press Start 2P";
-    font-size: 0.7rem;
-    letter-spacing: 1px;
+  .xp-temple-creator {
+    --background: transparent;
   }
-}
 
-.floor-fab-option {
-  .floor-label-small {
-    font-family: "StatusPlz";
-    font-size: 0.8rem;
-    font-weight: bold;
+  .tab-content {
+    padding: 16px;
   }
-}
 
-/* Add Floor Modal */
-.add-floor-modal {
-  --width: 90%;
-  --max-width: 400px;
-  --height: auto;
-  --border-radius: 24px;
-  --background: transparent;
-  
-  &::part(content) {
-    background: transparent;
+  .preview-container {
+    background: #1a1a2e;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    overflow-x: auto;
   }
-}
 
-.modal-content {
-  background: rgba(20, 20, 30, 0.95);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 24px;
-  padding: 24px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
-}
-
-.modal-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 24px;
-  
-  h2 {
-    font-family: "Press Start 2P";
-    font-size: 0.8rem;
-    color: #fff;
+  .code-preview {
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.75rem;
+    color: #a9dc76;
     margin: 0;
+    white-space: pre;
   }
-  
-  ion-button {
-    --color: rgba(255, 255, 255, 0.5);
-    margin: 0;
-  }
-}
 
-.level-choice-container {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
+  .editor-content {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    overflow: auto;
+  }
 
-.level-choice-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  padding: 20px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  
-  &:hover {
-    transform: scale(1.02);
-    background: rgba(255, 255, 255, 0.1);
-  }
-  
-  &.surface {
-    border-color: rgba(64, 196, 255, 0.3);
-    
-    &:hover {
-      border-color: #40c4ff;
-      box-shadow: 0 0 20px rgba(64, 196, 255, 0.3);
-    }
-    
-    .icon-box {
-      background: rgba(64, 196, 255, 0.15);
-      i { color: #40c4ff; }
-    }
-    
-    .action-icon { color: #40c4ff; }
-  }
-  
-  &.basement {
-    border-color: rgba(179, 136, 255, 0.3);
-    
-    &:hover {
-      border-color: #b388ff;
-      box-shadow: 0 0 20px rgba(179, 136, 255, 0.3);
-    }
-    
-    .icon-box {
-      background: rgba(179, 136, 255, 0.15);
-      i { color: #b388ff; }
-    }
-    
-    .action-icon { color: #b388ff; }
-  }
-  
-  .icon-box {
-    width: 48px;
-    height: 48px;
+  .grid-wrapper {
+    flex: 1;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 12px;
-    
-    i { font-size: 1.5rem; }
+    padding: 16px;
+    min-height: 0;
+    /* Allow shrinking for scroll */
   }
-  
-  .choice-info {
-    flex: 1;
-    
-    .choice-title {
-      font-family: "Press Start 2P";
-      font-size: 0.6rem;
-      color: #fff;
-      text-transform: uppercase;
-    }
-  }
-  
-  .action-group {
+
+  /* Temple Header above grid */
+  .temple-header {
     display: flex;
     align-items: center;
-    gap: 8px;
-    
-    .floor-name {
-      font-family: "StatusPlz";
-      font-size: 1.2rem;
-      font-weight: bold;
-      color: #fff;
+    justify-content: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background: rgba(0, 0, 0, 0.3);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+    .temple-header-icon {
+      font-size: 1.4rem;
+      color: var(--ion-color-primary);
+      text-shadow: 0 0 8px var(--ion-color-primary-shade);
     }
-    
-    .action-icon {
-      font-size: 1rem;
+
+    .temple-header-name {
+      font-family: "Press Start 2P";
+      font-size: 0.75rem;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
   }
-}
 
-.choice-divider {
-  text-align: center;
-  font-family: "StatusPlz";
-  font-size: 0.9rem;
-  color: rgba(255, 255, 255, 0.3);
-  padding: 8px 0;
-}
+  /* Floor FAB Styling */
+  .floor-fab-trigger {
+    --background: var(--ion-color-rpg);
+    --color: #fff;
 
-.custom-name-trigger {
-  text-align: center;
-  padding: 16px;
-  cursor: pointer;
-  
-  span {
+    .floor-label {
+      font-family: "Press Start 2P";
+      font-size: 0.7rem;
+      letter-spacing: 1px;
+    }
+  }
+
+  .floor-fab-option {
+    .floor-label-small {
+      font-family: "StatusPlz";
+      font-size: 0.8rem;
+      font-weight: bold;
+    }
+  }
+
+  /* Add Floor Modal */
+  .add-floor-modal {
+    --width: 90%;
+    --max-width: 400px;
+    --height: auto;
+    --border-radius: 24px;
+    --background: transparent;
+
+    &::part(content) {
+      background: transparent;
+    }
+  }
+
+  .modal-content {
+    background: rgba(20, 20, 30, 0.95);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 24px;
+    padding: 24px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+
+    h2 {
+      font-family: "Press Start 2P";
+      font-size: 0.8rem;
+      color: #fff;
+      margin: 0;
+    }
+
+    ion-button {
+      --color: rgba(255, 255, 255, 0.5);
+      margin: 0;
+    }
+  }
+
+  .level-choice-container {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .level-choice-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: scale(1.02);
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    &.surface {
+      border-color: rgba(64, 196, 255, 0.3);
+
+      &:hover {
+        border-color: #40c4ff;
+        box-shadow: 0 0 20px rgba(64, 196, 255, 0.3);
+      }
+
+      .icon-box {
+        background: rgba(64, 196, 255, 0.15);
+
+        i {
+          color: #40c4ff;
+        }
+      }
+
+      .action-icon {
+        color: #40c4ff;
+      }
+    }
+
+    &.basement {
+      border-color: rgba(179, 136, 255, 0.3);
+
+      &:hover {
+        border-color: #b388ff;
+        box-shadow: 0 0 20px rgba(179, 136, 255, 0.3);
+      }
+
+      .icon-box {
+        background: rgba(179, 136, 255, 0.15);
+
+        i {
+          color: #b388ff;
+        }
+      }
+
+      .action-icon {
+        color: #b388ff;
+      }
+    }
+
+    .icon-box {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+
+      i {
+        font-size: 1.5rem;
+      }
+    }
+
+    .choice-info {
+      flex: 1;
+
+      .choice-title {
+        font-family: "Press Start 2P";
+        font-size: 0.6rem;
+        color: #fff;
+        text-transform: uppercase;
+      }
+    }
+
+    .action-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      .floor-name {
+        font-family: "StatusPlz";
+        font-size: 1.2rem;
+        font-weight: bold;
+        color: #fff;
+      }
+
+      .action-icon {
+        font-size: 1rem;
+      }
+    }
+  }
+
+  .choice-divider {
+    text-align: center;
     font-family: "StatusPlz";
     font-size: 0.9rem;
-    color: rgba(255, 255, 255, 0.4);
-    text-decoration: underline;
-    transition: color 0.2s;
+    color: rgba(255, 255, 255, 0.3);
+    padding: 8px 0;
   }
-  
-  &:hover span {
-    color: var(--ion-color-primary);
+
+  .custom-name-trigger {
+    text-align: center;
+    padding: 16px;
+    cursor: pointer;
+
+    span {
+      font-family: "StatusPlz";
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.4);
+      text-decoration: underline;
+      transition: color 0.2s;
+    }
+
+    &:hover span {
+      color: var(--ion-color-primary);
+    }
   }
-}
 </style>

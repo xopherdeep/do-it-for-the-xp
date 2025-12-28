@@ -22,7 +22,7 @@ const shopsStorage = new Storage({
 });
 import debug from '@/lib/utils/debug';
 import { ____, _00_, ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
-import { getTempleIcon } from '@/lib/engine/dungeons/templeIcons';
+import { getTempleIconClass } from '../../../composables/useTempleIcon';
 import { getNarrativeItems, getPegasusItems } from '@/lib/engine/core/items/itemRegistry';
 
 // Room types organized by category
@@ -140,6 +140,9 @@ export interface UseTempleRoomEditorReturn {
   // Shops
   allShops: Ref<{ id: string; name: string; icon?: string; items?: unknown[] }[]>;
   
+  // Maze
+  maze: ComputedRef<string[][]>;
+
   // Methods
   loadRoomData: () => Promise<void>;
   loadShops: () => Promise<void>;
@@ -234,7 +237,13 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
   });
 
   const loadBestiary = async () => {
-    allBeasts.value = await bestiary.getBeasts();
+    if (store.cachedBestiary.length > 0) {
+      allBeasts.value = store.cachedBestiary;
+      return;
+    }
+    const beasts = await bestiary.getBeasts();
+    store.cachedBestiary = beasts;
+    allBeasts.value = beasts;
   };
 
   // Shop integration
@@ -242,7 +251,13 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
   const allShops = ref<{ id: string; name: string; icon?: string; items?: unknown[] }[]>([]);
 
   const loadShops = async () => {
-    allShops.value = await shopsDb.getShops();
+    if (store.cachedShops.length > 0) {
+      allShops.value = store.cachedShops;
+      return;
+    }
+    const shops = await shopsDb.getShops();
+    store.cachedShops = shops;
+    allShops.value = shops;
   };
 
   const selectShop = (shopId: string) => {
@@ -267,6 +282,13 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
       keys = Object.keys(maze);
     }
     return keys.sort((a, b) => getFloorValue(a) - getFloorValue(b));
+  });
+
+  const maze = computed(() => {
+    const allMaze = store.templeMaze;
+    return Array.isArray(allMaze) 
+      ? allMaze 
+      : (allMaze as Record<string, string[][]>)[store.currentLevelId] || [];
   });
 
   const getEntranceFloor = (floorList: string[]): string => {
@@ -791,12 +813,15 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
 
   const dynamicRoomIcons = computed(() => {
     const icons = { ...ROOM_ICONS };
-    const templeIconClass = getTempleIcon(props.templeId);
-    icons.wall = templeIconClass.replace('fad ', '').replace('fas ', '').replace('fal ', '');
+    // Use getTempleIconClass which returns icon from TEMPLE_METADATA (e.g., "fa-wind")
+    icons.wall = getTempleIconClass(props.templeId);
     return icons;
   });
 
   return {
+    dynamicRoomIcons,
+    maze,
+    
     // State
     roomData,
     store,
@@ -822,7 +847,6 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     isShopRoom,
     floors,
     modalTitle,
-    dynamicRoomIcons,
     
     // Constants
     roomCategories: ROOM_CATEGORIES,

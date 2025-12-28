@@ -2,9 +2,9 @@
 <template>
   <div class="grid-container icon-colors">
     <div class="temple-grid">
-      <div 
-        v-for="(row, rowIndex) in maze" 
-        :key="rowIndex" 
+      <div
+        v-for="(row, rowIndex) in maze"
+        :key="rowIndex"
         class="maze-row"
       >
         <div
@@ -26,7 +26,10 @@
           <span class="cell-coords">{{rowIndex}},{{colIndex}}</span>
 
           <!-- Side Configuration Indicators -->
-          <template v-for="dir in directions" :key="dir">
+          <template
+            v-for="dir in directions"
+            :key="dir"
+          >
             <!-- Only show indicators if there is a valid connection in that direction -->
             <template v-if="hasValidNeighbor(rowIndex, colIndex, dir)">
               <!-- Trapped State (Either room is boss/miniboss/lockOnEnter) -->
@@ -41,7 +44,8 @@
                 v-else-if="getEffectiveEdge(rowIndex, colIndex, dir) !== 'door'"
                 :class="['side-indicator', dir, `indicator-${getEffectiveEdge(rowIndex, colIndex, dir)}`, 'icon-colors']"
               >
-                <i :class="[sideTypeInfo[getEffectiveEdge(rowIndex, colIndex, dir)].icon === 'DYNAMIC_WALL' ? roomIcons.wall : sideTypeInfo[getEffectiveEdge(rowIndex, colIndex, dir)].icon]"></i>
+                <i
+                  :class="[sideTypeInfo[getEffectiveEdge(rowIndex, colIndex, dir)].icon === 'DYNAMIC_WALL' ? roomIcons.wall : sideTypeInfo[getEffectiveEdge(rowIndex, colIndex, dir)].icon]"></i>
               </div>
               <!-- Open Passage (door state) - green tombstone -->
               <div
@@ -210,161 +214,182 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-.grid-container {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 10px;
-  width: 100%;
-}
-
-.temple-grid {
-  display: inline-block;
-  background: #1a1a1a;
-  padding: 10px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-}
-
-.maze-row {
-  display: flex;
-}
-
-.maze-cell {
-  width: 50px;
-  height: 50px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  background: #2a2a2a;
-  cursor: pointer;
-  margin: 1px;
-  border-radius: 4px;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-
-  &:hover {
-    background: #3a3a3a;
-    transform: scale(1.08);
-    z-index: 5;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.6);
+  .grid-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    width: 100%;
   }
 
-  i {
-    font-size: 1.5rem;
-    z-index: 2;
-    transition: transform 0.15s ease;
+  .temple-grid {
+    display: inline-block;
+    background: #1a1a1a;
+    padding: 10px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   }
 
-  &:hover i {
-    transform: scale(1.1);
+  .maze-row {
+    display: flex;
   }
 
-  .cell-coords {
-    position: absolute;
-    bottom: 2px;
-    right: 2px;
-    font-size: 0.55rem;
-    opacity: 0.5;
-    color: #888;
-  }
-  
-  .side-indicator {
-    position: absolute;
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
+  .maze-cell {
+    width: 50px;
+    height: 50px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 3;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(2px);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    position: relative;
+    background: #2a2a2a;
+    cursor: pointer;
+    margin: 1px;
+    border-radius: 4px;
+    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+    &:hover {
+      background: #3a3a3a;
+      transform: scale(1.08);
+      z-index: 5;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+    }
 
     i {
-      font-size: 0.85rem;
-      // Default color if NOT using fad/icon-colors
-      color: #ccc;
-    }
-    
-    &.indicator-locked { 
-      background: rgba(var(--ion-color-warning-rgb), 0.25);
-      i { color: var(--ion-color-warning); }
+      font-size: 1.5rem;
+      z-index: 2;
+      transition: transform 0.15s ease;
     }
 
-    &.indicator-trapped { 
-      background: rgba(0, 0, 0, 0.4); 
-      border: 1.5px solid #8B0000;
+    &:hover i {
+      transform: scale(1.1);
+    }
+
+    &:hover .cell-coords {
+      opacity: 0.7;
+    }
+
+    .cell-coords {
+      position: absolute;
+      bottom: 2px;
+      right: 2px;
+      font-size: 0.55rem;
+      opacity: 0;
+      color: #888;
+      transition: opacity 0.2s ease;
+    }
+
+    .side-indicator {
+      position: absolute;
       width: 20px;
       height: 20px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 3;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(2px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4);
 
       i {
-        font-size: 0.95rem;
-        color: #ff4b2b;
+        font-size: 0.85rem;
+        // Default color if NOT using fad/icon-colors
+        color: #ccc;
+      }
+
+      &.indicator-locked {
+        background: rgba(var(--ion-color-warning-rgb), 0.25);
+
+        i {
+          color: var(--ion-color-warning);
+        }
+      }
+
+      &.indicator-trapped {
+        background: rgba(0, 0, 0, 0.4);
+        border: 1.5px solid #8B0000;
+        width: 20px;
+        height: 20px;
+
+        i {
+          font-size: 0.95rem;
+          color: #ff4b2b;
+        }
+      }
+
+      &.indicator-wall {
+        background: rgba(0, 0, 0, 0.6);
+        border: 1px solid #555;
+
+        i {
+          color: #888;
+        }
+      }
+
+      &.indicator-bombable {
+        background: rgba(var(--ion-color-secondary-rgb), 0.25);
+
+        i {
+          color: var(--ion-color-secondary-tint);
+        }
+      }
+
+      &.indicator-door {
+        background: transparent;
+        border: none;
+        box-shadow: none;
+
+        i {
+          color: var(--ion-color-success);
+        }
+      }
+
+      &.north {
+        top: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      &.east {
+        right: -10px;
+        top: 50%;
+        transform: translateY(-50%);
+      }
+
+      &.south {
+        bottom: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+      }
+
+      &.west {
+        left: -10px;
+        top: 50%;
+        transform: translateY(-50%);
       }
     }
-    
-    &.indicator-wall { 
-      background: rgba(0, 0, 0, 0.6);
-      border: 1px solid #555;
-      i { color: #888; }
+
+    &.selected-cell {
+      border: 3px solid #00c3ff !important;
+      box-shadow: 0 0 8px #00c3ff;
+      z-index: 4;
     }
 
-    &.indicator-bombable { 
-      background: rgba(var(--ion-color-secondary-rgb), 0.25);
-      i { color: var(--ion-color-secondary-tint); }
+    // Wall style - subtle and faded
+    &.cell-wall {
+      background: #1e1e1e;
+
+      i {
+        opacity: 0.25;
+      }
     }
 
-    &.indicator-door { 
-      background: transparent;
-      border: none;
-      box-shadow: none;
-      i { color: var(--ion-color-success); }
-    }
-
-    &.north {
-      top: -10px;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-    &.east {
-      right: -10px;
-      top: 50%;
-      transform: translateY(-50%);
-    }
-    &.south {
-      bottom: -10px;
-      left: 50%;
-      transform: translateX(-50%);
-    }
-    &.west {
-      left: -10px;
-      top: 50%;
-      transform: translateY(-50%);
+    // Entrance marker
+    &.entrance-position {
+      border: 2px solid rgba(255, 255, 255, 0.7);
+      box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.15);
     }
   }
-  
-  &.selected-cell {
-    border: 3px solid #00c3ff !important;
-    box-shadow: 0 0 8px #00c3ff;
-    z-index: 4;
-  }
-
-  // Wall style - subtle and faded
-  &.cell-wall {
-    background: #1e1e1e;
-    i { 
-      opacity: 0.25;
-    }
-  }
-  
-  // Entrance marker
-  &.entrance-position { 
-    border: 2px solid rgba(255, 255, 255, 0.7);
-    box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.15);
-  }
-}
 </style>

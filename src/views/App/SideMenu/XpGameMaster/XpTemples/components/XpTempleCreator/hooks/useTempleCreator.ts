@@ -12,6 +12,7 @@ import { TempleDb, templeStorage } from '@/lib/databases/TempleDb';
 import { useTempleCreatorStore } from '@/lib/store/stores/temple-creator';
 import { useBestiarySelectionStore } from '@/lib/store/stores/bestiary-selection';
 import { getTempleIcon } from '@/lib/engine/dungeons/templeIcons';
+import { getTempleIconClass } from '../../../composables/useTempleIcon';
 import debug from '@/lib/utils/debug';
 
 import { getDungeonItems } from '@/lib/engine/core/items/itemRegistry';
@@ -252,12 +253,16 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
     return floorList[0] || '1F';
   };
 
-  // Dynamic temple icon
-  const templeIcon = computed(() => getTempleIcon(props.templeId));
+  // Dynamic temple icon - uses store (from DB), falls back to static map
+  const templeIcon = computed({
+    get: () => store.templeIcon || getTempleIcon(props.templeId),
+    set: (val) => store.templeIcon = val
+  });
 
   const dynamicRoomIcons = computed(() => {
     const icons = { ...ROOM_ICONS };
-    icons.wall = templeIcon.value;
+    // Use getTempleIconClass which returns icon from TEMPLE_METADATA (e.g., "fa-wind")
+    icons.wall = getTempleIconClass(props.templeId);
     return icons;
   });
 
@@ -650,7 +655,7 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
   // --- Navigation ---
   const navigateToRoomEditor = (row: number, col: number) => {
     ionRouter.push(
-      `/game-master/compendium/setup/temples/${props.templeId}/room/${row}/${col}`,
+      `/game-master/compendium/setup/temples/${props.templeId}/rooms/${row}/${col}`,
       noAnimation
     );
   };
@@ -837,6 +842,16 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
       
       if (existingTemple?.dungeonLayout) {
         const layout = existingTemple.dungeonLayout;
+        
+        // Load temple name and icon from DB
+        if (existingTemple.customName) {
+          templeName.value = existingTemple.customName;
+        } else if (existingTemple.name) {
+          templeName.value = existingTemple.name;
+        }
+        if (existingTemple.customIcon) {
+          templeIcon.value = existingTemple.customIcon;
+        }
         
         // Load properties
         if (layout.entrance) {

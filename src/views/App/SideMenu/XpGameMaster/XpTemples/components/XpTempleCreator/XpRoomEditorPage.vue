@@ -3,26 +3,40 @@
     <ion-header>
       <ion-toolbar class="rpg-box icon-colors transparent-header">
         <ion-buttons slot="start">
-          <ion-button @click="goBack" class="back-btn">
+          <ion-button
+            @click="goBack"
+            class="back-btn"
+          >
             <i class="fas fa-chevron-left fa-lg"></i>
           </ion-button>
         </ion-buttons>
         <div class="header-content">
-          <div class="room-icon-wrapper" :class="'type-' + roomData?.type">
+          <div
+            class="room-icon-wrapper"
+            :class="'type-' + roomData?.type"
+          >
             <i :class="['fad', dynamicRoomIcons[roomData?.type || 'empty']]"></i>
           </div>
           <div class="room-info">
             <div class="room-name">{{ capitalizedType }}</div>
             <div class="room-nav">
-              <i class="fas fa-caret-left nav-arrow" :class="{ disabled: !canNavigate('prev') }" @click.stop="navigateRoom('prev')"></i>
+              <i
+                class="fas fa-caret-left nav-arrow"
+                :class="{ disabled: !canNavigate('prev') }"
+                @click.stop="navigateRoom('prev')"
+              ></i>
               <span class="room-coords">{{ row }}x {{ col }}y</span>
-              <i class="fas fa-caret-right nav-arrow" :class="{ disabled: !canNavigate('next') }" @click.stop="navigateRoom('next')"></i>
+              <i
+                class="fas fa-caret-right nav-arrow"
+                :class="{ disabled: !canNavigate('next') }"
+                @click.stop="navigateRoom('next')"
+              ></i>
             </div>
           </div>
         </div>
         <ion-buttons slot="end">
-          <ion-button 
-            @click="testFight" 
+          <ion-button
+            @click="testFight"
             class="test-fight-header-btn"
             title="Test Fight"
           >
@@ -33,7 +47,10 @@
     </ion-header>
 
     <ion-content class="ion-padding transparent-content">
-      <div v-if="roomData" class="editor-container">
+      <div
+        v-if="roomData"
+        class="editor-container"
+      >
         <!-- Cardinal Layout Section -->
         <RoomCardinalLayout
           :room-data="roomData"
@@ -50,7 +67,10 @@
           @door-toggle="toggleLock"
         />
       </div>
-      <div v-else class="loading-container">
+      <div
+        v-else
+        class="loading-container"
+      >
         <XpLoading />
         <p>Loading Room Data...</p>
       </div>
@@ -123,16 +143,39 @@
 
 
 
+      <div
+        slot="fixed"
+        class="map-fixed-wrapper"
+      >
+        <RoomEditorMiniMap
+          v-if="maze"
+          :maze="maze"
+          :current-row="rowIdx"
+          :current-col="colIdx"
+        />
+      </div>
+
       <!-- Floating Action Buttons -->
-      <ion-fab vertical="bottom" horizontal="start" slot="fixed">
-        <ion-fab-button color="danger" @click="resetRoom">
+      <ion-fab
+        vertical="bottom"
+        horizontal="start"
+        slot="fixed"
+      >
+        <ion-fab-button
+          color="danger"
+          @click="resetRoom"
+        >
           <i class="fas fa-trash-alt"></i>
         </ion-fab-button>
       </ion-fab>
 
-      <ion-fab vertical="bottom" horizontal="center" slot="fixed">
-        <ion-fab-button 
-          :color="hasChanges ? 'success' : 'medium'" 
+      <ion-fab
+        vertical="bottom"
+        horizontal="center"
+        slot="fixed"
+      >
+        <ion-fab-button
+          :color="hasChanges ? 'success' : 'medium'"
           @click="saveAndGoBack"
           :class="{ 'faded-fab': !hasChanges }"
         >
@@ -144,7 +187,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted } from 'vue';
+import { defineComponent, onMounted, watch } from 'vue';
 import { 
   IonPage, IonHeader, IonToolbar, IonButtons, IonButton, 
   IonContent, onIonViewWillEnter,
@@ -162,7 +205,8 @@ import {
   RoomMonsterConfig, 
   RoomLootConfig, 
   RoomTravelConfig,
-  RoomShopConfig
+  RoomShopConfig,
+  RoomEditorMiniMap 
 } from './components';
 
 export default defineComponent({
@@ -171,7 +215,8 @@ export default defineComponent({
     IonPage, IonHeader, IonToolbar, IonButtons, IonButton, 
     IonContent, IonFab, IonFabButton,
     RoomCardinalLayout, RoomTypeModal, RoomMonsterConfig, RoomLootConfig, RoomTravelConfig, RoomShopConfig,
-    XpLoading
+    XpLoading,
+    RoomEditorMiniMap
   },
   props: {
     templeId: { type: String, required: true },
@@ -217,6 +262,14 @@ export default defineComponent({
       }
     });
 
+    // Watch for coordinate changes (in-page navigation) and recalculate adjacency
+    watch(
+      [() => editor.rowIdx.value, () => editor.colIdx.value],
+      () => {
+        navigation.calculateAdjacency();
+      }
+    );
+
     return {
       // Constants
       dynamicRoomIcons: editor.dynamicRoomIcons,
@@ -224,6 +277,9 @@ export default defineComponent({
       // From Editor Hook
       roomData: editor.roomData,
       store: editor.store,
+      maze: editor.maze,
+      rowIdx: editor.rowIdx,
+      colIdx: editor.colIdx,
       showTypeModal: editor.showTypeModal,
       modalStep: editor.modalStep,
       selectedCategory: editor.selectedCategory,
@@ -299,186 +355,241 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-.xp-room-editor-page {
-  --background: transparent;
-
-  .transparent-header {
+  .xp-room-editor-page {
     --background: transparent;
-    --border-color: transparent;
-  }
 
-  .header-content {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    margin-left: 8px;
+    .transparent-header {
+      --background: transparent;
+      --border-color: transparent;
+    }
 
-    .room-icon-wrapper {
-      width: 48px;
-      height: 48px;
+    .transparent-content {
+      --background: transparent;
+    }
+
+    .header-content {
       display: flex;
       align-items: center;
-      justify-content: center;
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(5px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 12px;
-      font-size: 1.6rem;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      gap: 16px;
+      margin-left: 8px;
 
-      &.type-monster, &.type-boss, &.type-miniboss { color: #ff5252; background: rgba(255, 82, 82, 0.2); border-color: rgba(255, 82, 82, 0.4); }
-      &.type-loot { color: #ffd740; background: rgba(255, 215, 64, 0.2); border-color: rgba(255, 215, 64, 0.4); }
-      &.type-shop { color: #69f0ae; background: rgba(105, 240, 174, 0.2); border-color: rgba(105, 240, 174, 0.4); }
-      &.type-teleport { color: #40c4ff; background: rgba(64, 196, 255, 0.2); border-color: rgba(64, 196, 255, 0.4); }
-    }
+      .room-icon-wrapper {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(5px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 12px;
+        font-size: 1.6rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
 
-    .room-info {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
+        &.type-monster,
+        &.type-boss,
+        &.type-miniboss {
+          color: #ff5252;
+          background: rgba(255, 82, 82, 0.2);
+          border-color: rgba(255, 82, 82, 0.4);
+        }
 
-      .room-name {
-        font-family: "Press Start 2P";
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        color: #fff;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        &.type-loot {
+          color: #ffd740;
+          background: rgba(255, 215, 64, 0.2);
+          border-color: rgba(255, 215, 64, 0.4);
+        }
+
+        &.type-shop {
+          color: #69f0ae;
+          background: rgba(105, 240, 174, 0.2);
+          border-color: rgba(105, 240, 174, 0.4);
+        }
+
+        &.type-teleport {
+          color: #40c4ff;
+          background: rgba(64, 196, 255, 0.2);
+          border-color: rgba(64, 196, 255, 0.4);
+        }
       }
 
-      .room-coords {
-        font-family: "StatusPlz";
-        font-size: 0.9rem;
-        color: var(--ion-color-primary);
-        font-weight: bold;
-        letter-spacing: 1px;
+      .room-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+
+        .room-name {
+          font-family: "Press Start 2P";
+          font-size: 0.7rem;
+          text-transform: uppercase;
+          color: #fff;
+          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .room-coords {
+          font-family: "StatusPlz";
+          font-size: 0.9rem;
+          color: var(--ion-color-primary);
+          font-weight: bold;
+          letter-spacing: 1px;
+        }
       }
     }
-  }
 
-  .back-btn { --color: #fff; }
-  
-  .reset-btn {
-    --color: rgba(255, 255, 255, 0.4);
-    transition: all 0.2s;
-    &:hover {
+    .back-btn {
+      --color: #fff;
+    }
+
+    .reset-btn {
+      --color: rgba(255, 255, 255, 0.4);
+      transition: all 0.2s;
+
+      &:hover {
+        --color: var(--ion-color-danger);
+        transform: scale(1.1);
+      }
+    }
+
+    .test-fight-header-btn {
       --color: var(--ion-color-danger);
-      transform: scale(1.1);
+      transition: all 0.2s;
+
+      i {
+        font-size: 1.3rem;
+      }
+
+      &:hover {
+        --color: #ff416c;
+        transform: scale(1.1);
+      }
     }
   }
-  
-  .test-fight-header-btn {
-    --color: var(--ion-color-danger);
-    transition: all 0.2s;
-    
-    i { font-size: 1.3rem; }
-    
-    &:hover {
-      --color: #ff416c;
-      transform: scale(1.1);
+
+  .editor-container {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding-bottom: 20px;
+  }
+
+  /* Header Navigation & Lock Toggle */
+  .room-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    .nav-arrow {
+      font-size: 1.2rem;
+      color: var(--ion-color-primary);
+      cursor: pointer;
+      padding: 4px;
+      transition: all 0.2s;
+
+      &:hover:not(.disabled) {
+        transform: scale(1.2);
+        color: var(--ion-color-primary-shade);
+      }
+
+      &.disabled {
+        opacity: 0.2;
+        cursor: not-allowed;
+      }
     }
   }
-}
 
-.editor-container {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding-bottom: 20px;
-}
-
-/* Header Navigation & Lock Toggle */
-.room-nav {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  .nav-arrow {
-    font-size: 1.2rem;
-    color: var(--ion-color-primary);
+  .header-trap-toggle {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
     cursor: pointer;
-    padding: 4px;
     transition: all 0.2s;
-    
-    &:hover:not(.disabled) {
-      transform: scale(1.2);
-      color: var(--ion-color-primary-shade);
-    }
-    
-    &.disabled {
-      opacity: 0.2;
-      cursor: not-allowed;
-    }
-  }
-}
+    margin-left: 8px;
 
-.header-trap-toggle {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-left: 8px;
-  
-  i {
-    font-size: 1.1rem;
-    color: var(--ion-color-success);
-    transition: all 0.2s;
-  }
-  
-  span { display: none; }
-  
-  &.active {
-    background: rgba(var(--ion-color-danger-rgb), 0.2);
-    border-color: rgba(var(--ion-color-danger-rgb), 0.5);
-    animation: pulse-danger 2s infinite;
-    
-    i { color: var(--ion-color-danger); }
-  }
-  
-  &.mimic-trap {
-    i { color: #ffd740; }
-    
+    i {
+      font-size: 1.1rem;
+      color: var(--ion-color-success);
+      transition: all 0.2s;
+    }
+
+    span {
+      display: none;
+    }
+
     &.active {
-      background: rgba(255, 82, 82, 0.2);
-      border-color: rgba(255, 82, 82, 0.5);
-      
-      i { color: #ff5252; }
+      background: rgba(var(--ion-color-danger-rgb), 0.2);
+      border-color: rgba(var(--ion-color-danger-rgb), 0.5);
+      animation: pulse-danger 2s infinite;
+
+      i {
+        color: var(--ion-color-danger);
+      }
+    }
+
+    &.mimic-trap {
+      i {
+        color: #ffd740;
+      }
+
+      &.active {
+        background: rgba(255, 82, 82, 0.2);
+        border-color: rgba(255, 82, 82, 0.5);
+
+        i {
+          color: #ff5252;
+        }
+      }
+    }
+
+    &:hover {
+      transform: scale(1.05);
     }
   }
-  
-  &:hover {
-    transform: scale(1.05);
+
+  .faded-fab {
+    opacity: 0.5;
+    filter: grayscale(1);
   }
-}
 
-.faded-fab {
-  opacity: 0.5;
-  filter: grayscale(1);
-}
+  @keyframes pulse-danger {
+    0% {
+      transform: scale(1);
+      opacity: 1;
+    }
 
-@keyframes pulse-danger {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.05); opacity: 0.8; }
-  100% { transform: scale(1); opacity: 1; }
-}
+    50% {
+      transform: scale(1.05);
+      opacity: 0.8;
+    }
 
-.loading-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 80%;
-  gap: 25px;
-  p { font-family: "Press Start 2P"; font-size: 0.7rem; color: rgba(255,255,255,0.5); letter-spacing: 1px; }
-}
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+
+  .loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 80%;
+    gap: 25px;
+
+    p {
+      font-family: "Press Start 2P";
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.5);
+      letter-spacing: 1px;
+    }
+  }
 
 
 </style>

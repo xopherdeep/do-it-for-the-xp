@@ -188,7 +188,7 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     // Navigate to adjacent room
     const coords = getRelativeRoom(dir);
     if (coords) {
-      ionRouter.replace(`/game-master/compendium/setup/temples/creator/${props.templeId}/room/${coords.row}/${coords.col}`, noAnimation);
+      ionRouter.replace(`/game-master/compendium/setup/temples/${props.templeId}/rooms/${coords.row}/${coords.col}`, noAnimation);
     }
   };
 
@@ -278,7 +278,7 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
   // Get door CSS class based on state
   const getDoorClass = (dir: string): string => {
     const hasAccess = adjacentRooms.value[dir as keyof typeof adjacentRooms.value];
-    if (!hasAccess) return 'state-wall';
+    if (!hasAccess) return 'state-wall state-banned';
     
     const state = getSideState(dir, props.roomData.value);
     
@@ -334,7 +334,7 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     const target = coords[targetIdx];
     
     if (target) {
-      ionRouter.replace(`/game-master/compendium/setup/temples/creator/${props.templeId}/room/${target.row}/${target.col}`, noAnimation);
+      ionRouter.replace(`/game-master/compendium/setup/temples/${props.templeId}/rooms/${target.row}/${target.col}`, noAnimation);
     }
   };
 
