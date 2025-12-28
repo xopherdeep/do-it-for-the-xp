@@ -320,7 +320,14 @@ export default defineComponent({
     };
 
     const navigateToRoom = (entry: TempleBeast) => {
-      ionRouter.push(`/game-master/compendium/setup/temples/${templeId}/rooms/${entry.row}/${entry.col}`);
+      ionRouter.push({
+        name: 'xp-temple-room-editor',
+        params: {
+          templeId,
+          row: entry.row.toString(),
+          col: entry.col.toString()
+        }
+      });
     };
 
     // Auto-scroll logic when returning to the tab
@@ -441,7 +448,7 @@ export default defineComponent({
         }
       );
       
-      ionRouter.push('/game-master/compendium/bestiary/select');
+      ionRouter.push({ name: 'xp-bestiary-select' });
     };
 
     return {

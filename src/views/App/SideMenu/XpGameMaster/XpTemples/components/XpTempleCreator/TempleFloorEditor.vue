@@ -70,21 +70,23 @@
 
       <!-- Action FABs -->
       <ion-fab
-        vertical="bottom"
-        horizontal="start"
+        vertical="top"
+        horizontal="end"
         slot="fixed"
+        class="mt-4"
       >
         <ion-fab-button
           color="danger"
           @click="resetFloor"
+          size="small"
         >
           <i class="fal fa-trash-alt"></i>
         </ion-fab-button>
       </ion-fab>
 
       <ion-fab
-        vertical="bottom"
-        horizontal="center"
+        vertical="center"
+        horizontal="end"
         slot="fixed"
       >
         <ion-fab-button

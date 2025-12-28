@@ -378,7 +378,13 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
 
   const setLevel = (levelId: string) => {
     ionRouter.replace(
-      `/game-master/compendium/setup/temples/creator/${props.templeId}/floor/${levelId}`,
+      {
+        name: 'xp-temple-creator',
+        params: {
+          templeId: props.templeId,
+          floorId: levelId
+        }
+      },
       noAnimation
     );
     currentLevelId.value = levelId;
@@ -649,13 +655,20 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
         quickEditState.value.isOpen = true;
       }
     );
-    ionRouter.push('/game-master/compendium/bestiary/select');
+    ionRouter.push({ name: 'xp-bestiary-select' });
   };
 
   // --- Navigation ---
   const navigateToRoomEditor = (row: number, col: number) => {
     ionRouter.push(
-      `/game-master/compendium/setup/temples/${props.templeId}/rooms/${row}/${col}`,
+      {
+        name: 'xp-room-editor',
+        params: {
+          templeId: props.templeId,
+          row: row.toString(),
+          col: col.toString()
+        }
+      },
       noAnimation
     );
   };

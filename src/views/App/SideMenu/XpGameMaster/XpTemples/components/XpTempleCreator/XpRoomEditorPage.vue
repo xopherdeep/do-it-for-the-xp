@@ -157,21 +157,23 @@
 
       <!-- Floating Action Buttons -->
       <ion-fab
-        vertical="bottom"
-        horizontal="start"
+        vertical="top"
+        horizontal="end"
         slot="fixed"
+        class="mt-4"
       >
         <ion-fab-button
           color="danger"
           @click="resetRoom"
+          size="small"
         >
-          <i class="fas fa-trash-alt"></i>
+          <i class="fal fa-trash-alt"></i>
         </ion-fab-button>
       </ion-fab>
 
       <ion-fab
-        vertical="bottom"
-        horizontal="center"
+        vertical="center"
+        horizontal="end"
         slot="fixed"
       >
         <ion-fab-button
@@ -179,7 +181,7 @@
           @click="saveAndGoBack"
           :class="{ 'faded-fab': !hasChanges }"
         >
-          <i class="fas fa-save"></i>
+          <i class="fal fa-save"></i>
         </ion-fab-button>
       </ion-fab>
     </ion-content>
