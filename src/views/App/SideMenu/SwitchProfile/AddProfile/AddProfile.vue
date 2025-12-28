@@ -145,109 +145,58 @@
                 />
               </div>
               <div class="flex-1">
-                <ion-label class="font-medium mb-2">Choose Avatar
-                  <p>Click the avatar to select from all available options</p>
+                <ion-label
+                  class="font-bold mb-2 earthbound-title"
+                  style="letter-spacing: 1px;"
+                >
+                  CHOOSE AVATAR
+                  <p
+                    class="helper-text mt-1"
+                    style="font-family: inherit; letter-spacing: 0; text-transform: none;"
+                  >Click the avatar to select from all available options</p>
                 </ion-label>
-
               </div>
             </div>
           </ion-item>
 
-          <!-- Form Fields in 2 Columns -->
+          <!-- Form Fields -->
           <ion-grid>
             <ion-row>
-              <!-- Left Column -->
+              <!-- Form Column -->
               <ion-col size="12">
-                <ion-item class="py-1">
+                <ion-item class="py-2">
                   <div class="w-full">
-                    <ion-label class="font-medium block mb-1">
-                      <!-- Full Name -->
-                      <p class="text-sm text-gray-500">First M. Last aka Nickname</p>
+                    <ion-label
+                      position="stacked"
+                      class="font-bold mb-2 earthbound-title"
+                      style="letter-spacing: 1px; font-size: 1.1rem;"
+                    >
+                      FULL NAME
                     </ion-label>
                     <ion-input
                       v-model="fullName"
-                      class="bg-gray-50 rounded-lg mt-1"
-                      placeholder="Enter your full name"
+                      class="rpg-input mt-1"
+                      placeholder="First M. Last (e.g. Master Chief)"
                     ></ion-input>
+                    <p class="helper-text ml-2 mt-1">First M. Last aka Nickname</p>
                   </div>
                 </ion-item>
 
-                <ion-item class="py-1">
+                <ion-item class="py-2">
                   <div class="w-full">
-                    <ion-label class="font-medium block mb-1">
-                      <!-- Favorite Thing -->
-                      <p>What's your most favorite thing?</p>
+                    <ion-label
+                      position="stacked"
+                      class="font-bold mb-2 earthbound-title"
+                      style="letter-spacing: 1px; font-size: 1.1rem;"
+                    >
+                      FAVORITE THING
                     </ion-label>
                     <ion-input
                       v-model="favoriteThing"
-                      class="bg-gray-50 rounded-lg mt-1"
-                      placeholder="Enter your favorite thing"
+                      class="rpg-input mt-1"
+                      placeholder="e.g. Pizza, Video Games, Space"
                     ></ion-input>
-                  </div>
-                </ion-item>
-              </ion-col>
-
-              <!-- Right Column -->
-              <ion-col
-                size="12"
-                size-md="6"
-              >
-                <ion-item class="py-1">
-                  <div class="w-full">
-                    <ion-label class="font-medium block mb-1">
-                      <!-- Job Class -->
-                      <p class="text-sm text-gray-500">Pick a starter job class</p>
-                    </ion-label>
-                    <ion-select
-                      v-model="jobClass"
-                      placeholder="Select starter class..."
-                      class=" w-full"
-                      interface="action-sheet"
-                      expand="block"
-                      :interface-options="{
-                        header: 'Choose Your Job Class',
-                        subHeader: 'Select your starting role'
-                      }"
-                    >
-                      <ion-select-option
-                        v-for="(job, index) in jobClassOptions"
-                        :key="index"
-                        :value="job.name"
-                        class="w-full"
-                      >
-                        <i :class="`fad ${job.icon} mr-2`"></i>
-                        {{ job.name }}
-                      </ion-select-option>
-                    </ion-select>
-                  </div>
-                </ion-item>
-
-                <ion-item class="py-1 w-full">
-                  <div class="w-full">
-                    <ion-label class="font-medium block mb-1">
-                      <!-- Favorite Food -->
-                      <p class="text-sm text-gray-500">Favorite food from the bunch</p>
-                    </ion-label>
-                    <ion-select
-                      v-model="favoriteFood"
-                      placeholder="Select favorite food..."
-                      class="mt-1 w-full"
-                      interface="action-sheet"
-                      expand="full"
-                      :interface-options="{
-                        header: 'Choose Your Favorite Food',
-                        subHeader: 'What do you enjoy eating most?'
-                      }"
-                    >
-                      <ion-select-option
-                        v-for="food in foodOptions"
-                        :key="food.value"
-                        :value="food.value"
-                      >
-                        <i :class="`fad ${food.icon} mr-2`"></i>
-                        {{ food.value }}
-                      </ion-select-option>
-                    </ion-select>
+                    <p class="helper-text ml-2 mt-1">What's your most favorite thing?</p>
                   </div>
                 </ion-item>
               </ion-col>
@@ -305,7 +254,7 @@
           </ion-item>
 
           <ion-item>
-            <ion-label >
+            <ion-label>
               Show Passcode
               <p>Toggle to reveal or hide your passcode</p>
             </ion-label>
@@ -393,44 +342,44 @@
       <InputSettings v-if="activeSegment === 'preferences'" />
     </ion-grid>
   </ion-content>
-<ion-footer>
+  <ion-footer>
 
-      <ion-toolbar class="rpg-box">
-        <ion-segment
-          v-model="activeSegment"
-          class="overflow-visible p-2 mx-2"
+    <ion-toolbar class="rpg-box">
+      <ion-segment
+        v-model="activeSegment"
+        class="overflow-visible p-2 mx-2"
+      >
+        <ion-segment-button
+          value="info"
+          class="segment-button-custom overflow-visible"
+          color="rpg"
         >
-          <ion-segment-button
-            value="info"
-            class="segment-button-custom overflow-visible"
-            color="rpg"
-          >
-            <div class="flex flex-col items-center gap-1 overflow-visible">
-              <i class="fad fa-user fa-2x"></i>
-              <span class="text-xs">Who</span>
-            </div>
-          </ion-segment-button>
-          <ion-segment-button
-            value="account"
-            class="segment-button-custom overflow-visible"
-            color="rpg"
-          >
-            <div class="flex flex-col items-center gap-1 overflow-visible">
-              <i class="fad fa-fingerprint fa-2x"></i>
-              <span class="text-xs">Pin</span>
-            </div>
-          </ion-segment-button>
-          <ion-segment-button
-            value="features"
-            class="segment-button-custom"
-            color="rpg"
-          >
-            <div class="flex flex-col items-center gap-1">
-              <i class="fad fa-gamepad fa-2x text-primary"></i>
-              <span class="text-xs">On/Off</span>
-            </div>
-          </ion-segment-button>
-          <!-- <ion-segment-button
+          <div class="flex flex-col items-center gap-1 overflow-visible">
+            <i class="fad fa-user fa-2x"></i>
+            <span class="text-xs">Who</span>
+          </div>
+        </ion-segment-button>
+        <ion-segment-button
+          value="account"
+          class="segment-button-custom overflow-visible"
+          color="rpg"
+        >
+          <div class="flex flex-col items-center gap-1 overflow-visible">
+            <i class="fad fa-fingerprint fa-2x"></i>
+            <span class="text-xs">Pin</span>
+          </div>
+        </ion-segment-button>
+        <ion-segment-button
+          value="features"
+          class="segment-button-custom"
+          color="rpg"
+        >
+          <div class="flex flex-col items-center gap-1">
+            <i class="fad fa-gamepad fa-2x text-primary"></i>
+            <span class="text-xs">On/Off</span>
+          </div>
+        </ion-segment-button>
+        <!-- <ion-segment-button
             value="preferences"
             class="segment-button-custom flex-shrink"
             color="rpg"
@@ -440,274 +389,317 @@
               <span class="text-xs">Preferences</span>
             </div>
           </ion-segment-button> -->
-        </ion-segment>
-      </ion-toolbar>
-</ion-footer>
+      </ion-segment>
+    </ion-toolbar>
+  </ion-footer>
 </template>
 <script lang="ts" src="./AddProfile.ts"></script>
 <style scoped>
-.segment-button-custom {
-  --indicator-color: white;
-  --color-checked: white;
-  --background-hover: white;
+  .segment-button-custom {
+    --indicator-color: white;
+    --color-checked: white;
+    --background-hover: white;
 
-  transition: all 0.3s ease;
-}
+    transition: all 0.3s ease;
+  }
 
 
-.segment-button-custom:hover i {
-  transform: scale(1.1);
-}
+  .segment-button-custom:hover i {
+    transform: scale(1.1);
+  }
 
-.avatar-preview {
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  transition: transform 0.3s ease;
-}
+  .avatar-preview {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: transform 0.3s ease;
+  }
 
-.avatar-preview:hover {
-  transform: scale(1.05);
-}
+  .avatar-preview:hover {
+    transform: scale(1.05);
+  }
 
-ion-card {
-  border-radius: 1rem;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-}
+  ion-card {
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+  }
 
-ion-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-}
+  ion-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  }
 
-ion-item {
-  --padding-start: 1rem;
-  --inner-padding-end: 1rem;
-  --background-hover: var(--ion-color-light-tint);
-  transition: background-color 0.2s ease;
-}
+  ion-item {
+    --padding-start: 1rem;
+    --inner-padding-end: 1rem;
+    --background-hover: var(--ion-color-light-tint);
+    transition: background-color 0.2s ease;
+  }
 
-ion-button {
-  --box-shadow: none;
-  transition: transform 0.2s ease;
-}
+  ion-button {
+    --box-shadow: none;
+    transition: transform 0.2s ease;
+  }
 
-ion-button:not([disabled]):hover {
-  transform: translateY(-1px);
-}
+  ion-button:not([disabled]):hover {
+    transform: translateY(-1px);
+  }
 
-.rpg-box {
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-}
+  .rpg-box {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+  }
 
-/* Add slide transition for segments */
-ion-content {
-  --background: linear-gradient(135deg, var(--ion-color-light) 0%, var(--ion-color-light-shade) 100%);
-}
+  /* Add slide transition for segments */
+  ion-content {
+    --background: linear-gradient(135deg, var(--ion-color-light) 0%, var(--ion-color-light-shade) 100%);
+  }
 
-ion-card {
-  animation: slideIn 0.3s ease-out;
-}
+  ion-card {
+    animation: slideIn 0.3s ease-out;
+  }
 
-@keyframes slideIn {
-  from {
+  @keyframes slideIn {
+    from {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* Custom toggle styling */
+  ion-toggle {
+    --background: var(--ion-color-medium);
+    --background-checked: var(--ion-color-primary);
+    --handle-background: var(--ion-color-light);
+    --handle-background-checked: var(--ion-color-light);
+  }
+
+  .fullscreen-modal {
+    --width: 100%;
+    --height: 100%;
+    --border-radius: 0;
+  }
+
+  .avatar-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  .avatar-item {
+    cursor: pointer;
+    border-radius: 50%;
+    overflow: hidden;
+    aspect-ratio: 1;
+    transition: transform 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .avatar-item:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .avatar-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Success Splash Styles */
+  .success-splash-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: fadeIn 0.5s ease-out;
+  }
+
+  .success-splash-content {
+    background: white;
+    padding: 2rem;
+    border-radius: 1rem;
+    text-align: center;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    position: relative;
+    width: 80%;
+    max-width: 400px;
+    animation: scaleIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  }
+
+  .success-icon {
+    animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+  }
+
+  /* Confetti animations */
+  .confetti-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .confetti-piece {
+    position: absolute;
+    width: 10px;
+    height: 20px;
+    background: linear-gradient(138deg, #f0cb35 0%, #c02425 100%);
+    top: -10px;
+    left: calc(50% - 5px);
     opacity: 0;
-    transform: translateY(20px);
+    animation: confetti-fall 3s ease-in-out forwards var(--delay);
+    transform: rotate(var(--rotation));
   }
 
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Custom toggle styling */
-ion-toggle {
-  --background: var(--ion-color-medium);
-  --background-checked: var(--ion-color-primary);
-  --handle-background: var(--ion-color-light);
-  --handle-background-checked: var(--ion-color-light);
-}
-
-.fullscreen-modal {
-  --width: 100%;
-  --height: 100%;
-  --border-radius: 0;
-}
-
-.avatar-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
-  gap: 1rem;
-  padding: 1rem;
-}
-
-.avatar-item {
-  cursor: pointer;
-  border-radius: 50%;
-  overflow: hidden;
-  aspect-ratio: 1;
-  transition: transform 0.2s ease;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-}
-
-.avatar-item:hover {
-  transform: scale(1.05);
-  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
-}
-
-.avatar-image {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-}
-
-/* Success Splash Styles */
-.success-splash-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  animation: fadeIn 0.5s ease-out;
-}
-
-.success-splash-content {
-  background: white;
-  padding: 2rem;
-  border-radius: 1rem;
-  text-align: center;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-  position: relative;
-  width: 80%;
-  max-width: 400px;
-  animation: scaleIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-
-.success-icon {
-  animation: bounceIn 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-}
-
-/* Confetti animations */
-.confetti-container {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  pointer-events: none;
-}
-
-.confetti-piece {
-  position: absolute;
-  width: 10px;
-  height: 20px;
-  background: linear-gradient(138deg, #f0cb35 0%, #c02425 100%);
-  top: -10px;
-  left: calc(50% - 5px);
-  opacity: 0;
-  animation: confetti-fall 3s ease-in-out forwards var(--delay);
-  transform: rotate(var(--rotation));
-}
-
-.confetti-piece:nth-child(2n) {
-  background: linear-gradient(138deg, #43cea2 0%, #185a9d 100%);
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-}
-
-.confetti-piece:nth-child(3n) {
-  background: linear-gradient(138deg, #ff512f 0%, #dd2476 100%);
-  width: 15px;
-  height: 8px;
-}
-
-.confetti-piece:nth-child(4n) {
-  background: linear-gradient(138deg, #3494e6 0%, #ec6ead 100%);
-  width: 8px;
-  height: 15px;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
+  .confetti-piece:nth-child(2n) {
+    background: linear-gradient(138deg, #43cea2 0%, #185a9d 100%);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
   }
 
-  to {
-    opacity: 1;
-  }
-}
-
-@keyframes scaleIn {
-  from {
-    transform: scale(0.8);
-    opacity: 0;
+  .confetti-piece:nth-child(3n) {
+    background: linear-gradient(138deg, #ff512f 0%, #dd2476 100%);
+    width: 15px;
+    height: 8px;
   }
 
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
-@keyframes bounceIn {
-  0% {
-    transform: scale(0);
-    opacity: 0;
+  .confetti-piece:nth-child(4n) {
+    background: linear-gradient(138deg, #3494e6 0%, #ec6ead 100%);
+    width: 8px;
+    height: 15px;
   }
 
-  60% {
-    transform: scale(1.2);
-    opacity: 1;
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
   }
 
-  100% {
-    transform: scale(1);
+  @keyframes scaleIn {
+    from {
+      transform: scale(0.8);
+      opacity: 0;
+    }
+
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
   }
-}
 
-@keyframes confetti-fall {
-  0% {
-    transform: translateY(0) rotate(var(--rotation));
-    opacity: 1;
+  @keyframes bounceIn {
+    0% {
+      transform: scale(0);
+      opacity: 0;
+    }
+
+    60% {
+      transform: scale(1.2);
+      opacity: 1;
+    }
+
+    100% {
+      transform: scale(1);
+    }
   }
 
-  100% {
-    transform: translateY(calc(100vh)) rotate(calc(var(--rotation) + 360deg));
-    opacity: 0;
+  @keyframes confetti-fall {
+    0% {
+      transform: translateY(0) rotate(var(--rotation));
+      opacity: 1;
+    }
+
+    100% {
+      transform: translateY(calc(100vh)) rotate(calc(var(--rotation) + 360deg));
+      opacity: 0;
+    }
   }
-}
 
-.pin-input {
-  --background: #f9fafb;
-  --padding-start: 0;
-  --padding-end: 0;
-  --padding-top: 8px;
-  --padding-bottom: 8px;
-  --placeholder-color: transparent;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  height: 48px;
-  font-weight: bold;
-  font-size: 24px;
-}
+  .pin-input {
+    --background: rgba(40, 8, 40, 0.4);
+    --padding-start: 12px;
+    --padding-end: 12px;
+    --padding-top: 12px;
+    --padding-bottom: 12px;
+    --placeholder-color: rgba(231, 230, 179, 0.2);
+    border: 2px solid rgba(231, 230, 179, 0.2);
+    border-radius: 12px;
+    height: 64px;
+    font-weight: 900;
+    font-size: 32px;
+    color: eb.$eb-color-pale-yellow;
+    box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s ease;
+  }
 
-/* Style specifically for the PIN number container */
-.pin-input::part(native) {
-  text-align: center;
-  padding: 0;
-}
+  /* Style specifically for the PIN number container */
+  .pin-input::part(native) {
+    text-align: center;
+    padding: 0;
+  }
 
-/* Add visual feedback when focused */
-.pin-input:focus-within {
-  border: 2px solid var(--ion-color-primary);
-  box-shadow: 0 0 0 3px rgba(var(--ion-color-primary-rgb), 0.2);
-}
+  /* Add visual feedback when focused */
+  .pin-input:focus-within {
+    border-color: eb.$eb-color-pale-yellow;
+    background: rgba(40, 8, 40, 0.6);
+    box-shadow: 0 0 15px rgba(247, 232, 168, 0.2), inset 0 4px 12px rgba(0, 0, 0, 0.5);
+    transform: translateY(-1px);
+  }
+
+  .rpg-input {
+    --background: rgba(0, 0, 0, 0.3);
+    --padding-start: 1rem;
+    --padding-end: 1rem;
+    --padding-top: 14px;
+    --padding-bottom: 14px;
+    --placeholder-color: rgba(231, 230, 179, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 1.25rem;
+    color: eb.$eb-color-cream;
+    margin-bottom: 0.5rem;
+    box-shadow: inset 0 4px 10px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(4px);
+    transition: all 0.3s ease;
+
+    &::part(native) {
+      letter-spacing: 1px;
+    }
+  }
+
+  .rpg-input:focus-within {
+    border-color: eb.$eb-color-minty-blue;
+    background: rgba(0, 0, 0, 0.4);
+    box-shadow: 0 0 12px rgba(104, 208, 184, 0.2), inset 0 4px 10px rgba(0, 0, 0, 0.4);
+    transform: translateY(-1px);
+  }
+
+  .helper-text {
+    font-size: 0.8rem;
+    color: eb.$eb-color-cream;
+    opacity: 0.5;
+    font-style: italic;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+  }
 </style>
