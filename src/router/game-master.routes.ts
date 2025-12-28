@@ -298,7 +298,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
               props: true,
             },
             {
-              path: "temples/creator/:templeId/room/:row/:col",
+              path: "temples/creator/:templeId/rooms/:row/:col",
               name: "xp-room-editor",
               component: () =>
                 import(
@@ -398,7 +398,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
                   ]
                 },
                 {
-                  path: "room/:row/:col",
+                  path: "rooms/:row/:col",
                   name: "xp-temple-room-editor",
                   component: () =>
                     import(
