@@ -3,9 +3,19 @@ import { computed, defineComponent, reactive, ref } from "vue";
 import { useQueryClient } from "vue-query";
 import { useRouter } from "vue-router";
 import XpApi from "@/lib/api/doit.forthexp.com.api";
-import ionic from "@/mixins/ionic";
+// import ionic from "@/mixins/ionic";
+import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import {
   IonBackButton,
+  IonButton,
+  IonButtons,
+  IonCol,
+  IonContent,
+  IonGrid,
+  IonModal,
+  IonRow,
+  IonSearchbar,
+  IonToolbar,
   alertController,
   IonicSlides,
   InfiniteScrollCustomEvent,
@@ -33,8 +43,10 @@ import {
 } from "ionicons/icons";
 
 import { useGameStore } from "@/lib/store/stores/game";
+import { useUserStore } from "@/lib/store/stores/user";
+import { mapStores } from "pinia";
 
-import fetchItems from "@/mixins/fetchItems";
+// import fetchItems from "@/mixins/fetchItems";
 
 import MyTask from "@/views/Console/MyPortal/UserHud/MyTask/MyTask.vue";
 // import { useSwiper } from "swiper/vue";
@@ -88,10 +100,21 @@ const achievementStorage = new Storage({
 
 export const XpDiscoverAchievements = defineComponent({
   name: 'xp-discover-achievements',
-  mixins: [fetchItems, ionic],
+  mixins: [],
+  props: ["userId"], // Added missing prop
   components: {
     IonBackButton,
-    MyTask, 
+    IonButton,
+    IonButtons,
+    IonCol,
+    IonContent,
+    IonGrid,
+    IonModal,
+    IonRow,
+    IonSearchbar,
+    IonToolbar,
+    XpLoading,
+    MyTask,
   },
   data() {
     return {
@@ -106,6 +129,10 @@ export const XpDiscoverAchievements = defineComponent({
     this.$fx.ui[this.$fx.theme.ui].openPage.play();
   },
   computed: {
+    ...mapStores(useUserStore),
+    user() {
+      return this.userStore.getUserById(this.userId);
+    },
     xp_achievement() { return (this as any).gameStore.xp_achievement },
     isPrevDisabled() {
       return this.currentSlide == 0;
