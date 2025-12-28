@@ -6,6 +6,7 @@ import { Room } from "@/lib/engine/core/dungeons/types";
 export const useTempleCreatorStore = defineStore('temple-creator', () => {
   const templeId = ref<string | null>(null);
   const templeName = ref("Temple");
+  const templeIcon = ref("fad fa-place-of-worship");
   const gridSize = ref("6x6");
   const entrancePosition = ref("5,2");
   const templeMaze = ref<string[][] | Record<string, string[][]>>([]);
@@ -20,6 +21,9 @@ export const useTempleCreatorStore = defineStore('temple-creator', () => {
 
   const symbolCounter = ref(0);
   const usedSymbols = ref<Set<string>>(new Set([____, _00_]));
+
+  const cachedBestiary = ref<any[]>([]);
+  const cachedShops = ref<any[]>([]);
 
   // Two-layered save approach: Track which temple is loaded from DB
   // This prevents reloading from DB when navigating back from room editor
@@ -39,6 +43,7 @@ export const useTempleCreatorStore = defineStore('temple-creator', () => {
   function reset() {
     templeId.value = null;
     templeName.value = "Temple";
+    templeIcon.value = "fad fa-place-of-worship";
     gridSize.value = "6x6";
     entrancePosition.value = "5,2";
     templeMaze.value = [];
@@ -51,6 +56,8 @@ export const useTempleCreatorStore = defineStore('temple-creator', () => {
     roomEditorOpen.value = false;
     symbolCounter.value = 0;
     usedSymbols.value = new Set([____, _00_]);
+    cachedBestiary.value = [];
+    cachedShops.value = [];
     loadedTempleId.value = null;
   }
 
@@ -67,6 +74,7 @@ export const useTempleCreatorStore = defineStore('temple-creator', () => {
   return {
     templeId,
     templeName,
+    templeIcon,
     gridSize,
     entrancePosition,
     templeMaze,
@@ -76,6 +84,8 @@ export const useTempleCreatorStore = defineStore('temple-creator', () => {
     symbolCounter,
     usedSymbols,
     currentLevelId,
+    cachedBestiary,
+    cachedShops,
     loadedTempleId,
     pendingScrollId,
     reset,

@@ -11,6 +11,7 @@ export interface TempleInterface {
   id: string;
   name?: string;
   customName?: string;
+  customIcon?: string;
   customDescription?: string;
   categoryIds: string[];
   memberCount?: number;
