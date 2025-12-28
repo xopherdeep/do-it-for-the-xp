@@ -69,18 +69,20 @@
         <ion-row
           v-else-if="!isRetroView"
           class="md:hidden profile-grid"
+          :class="{ 'justify-content-center items-center': users.length === 1 }"
         >
           <ion-col
             v-for="(user, key) in users"
             :key="key"
-            size="6"
-            size-sm="4"
-            size-md="3"
-            size-xl="2"
+            :size="users.length === 1 ? '12' : '6'"
+            :size-sm="users.length === 1 ? '10' : '4'"
+            :size-md="users.length === 1 ? '8' : '3'"
+            :size-xl="users.length === 1 ? '6' : '2'"
             class="profile-card-col"
           >
             <XpProfileCard
               :user="user"
+              :is-large="users.length === 1"
               @select="selectProfile"
             />
           </ion-col>
@@ -767,12 +769,15 @@ export default defineComponent({
   // Profile card column - adds spacing between cards
   .profile-card-col {
     padding: 8px !important;
+    display: flex;
+    flex-direction: column;
   }
 
   // FAB pulse animation
   .fab-pulse {
     ion-fab-button {
       animation: fab-pulse 2s infinite;
+      border-radius: 50%;
     }
   }
 

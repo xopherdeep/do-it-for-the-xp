@@ -78,7 +78,7 @@
     </audio>
 
     <!-- v-if="activeSegment === 'info'" -->
-    <ion-grid class="md:max-w-[60vw] mb-7 mx-auto flex flex-col items-center justify-center">
+    <ion-grid class="md:max-w-[60vw] mb-7 mx-auto flex flex-col items-center justify-center gap-6">
       <gamer-card
         :profile="newProfile"
         class="w-full"

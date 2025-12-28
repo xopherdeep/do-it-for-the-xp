@@ -60,27 +60,45 @@
 
             <div class="pillar-boosts-container">
               <div class="pillars-grid">
-                <div class="pillar-item primary">
+                <div
+                  class="pillar-item primary"
+                  :style="{ borderLeftColor: `var(--ion-color-${getAreaColor(selectedJob.primaryPillar)})` }"
+                >
                   <div class="pillar-icon">
-                    <i :class="getAreaFaIcon(selectedJob.primaryPillar)"></i>
+                    <i
+                      :class="getAreaFaIcon(selectedJob.primaryPillar)"
+                      :style="{ color: `var(--ion-color-${getAreaColor(selectedJob.primaryPillar)})` }"
+                    ></i>
                   </div>
                   <div class="pillar-info">
                     <span class="pillar-rank">Primary</span>
                     <span class="pillar-name">{{ getAreaLabel(selectedJob.primaryPillar) }}</span>
                   </div>
                 </div>
-                <div class="pillar-item secondary">
+                <div
+                  class="pillar-item secondary"
+                  :style="{ borderLeftColor: `var(--ion-color-${getAreaColor(selectedJob.secondaryPillar)})` }"
+                >
                   <div class="pillar-icon">
-                    <i :class="getAreaFaIcon(selectedJob.secondaryPillar)"></i>
+                    <i
+                      :class="getAreaFaIcon(selectedJob.secondaryPillar)"
+                      :style="{ color: `var(--ion-color-${getAreaColor(selectedJob.secondaryPillar)})` }"
+                    ></i>
                   </div>
                   <div class="pillar-info">
                     <span class="pillar-rank">Secondary</span>
                     <span class="pillar-name">{{ getAreaLabel(selectedJob.secondaryPillar) }}</span>
                   </div>
                 </div>
-                <div class="pillar-item tertiary">
+                <div
+                  class="pillar-item tertiary"
+                  :style="{ borderLeftColor: `var(--ion-color-${getAreaColor(selectedJob.tertiaryPillar)})` }"
+                >
                   <div class="pillar-icon">
-                    <i :class="getAreaFaIcon(selectedJob.tertiaryPillar)"></i>
+                    <i
+                      :class="getAreaFaIcon(selectedJob.tertiaryPillar)"
+                      :style="{ color: `var(--ion-color-${getAreaColor(selectedJob.tertiaryPillar)})` }"
+                    ></i>
                   </div>
                   <div class="pillar-info">
                     <span class="pillar-rank">Tertiary</span>
@@ -159,6 +177,17 @@ export default defineComponent({
       };
       return iconMap[pillar] || 'fad fa-chart-bar';
     };
+
+    const getAreaColor = (pillar: string) => {
+      const colorMap: Record<string, string> = {
+        physical: 'danger',
+        mental: 'tertiary',
+        vibrational: 'secondary',
+        relational: 'warning',
+        eternal: 'success'
+      };
+      return colorMap[pillar] || 'primary';
+    };
     
     // Get the icon for the selected class
     const getSelectedClassIcon = () => {
@@ -177,6 +206,7 @@ export default defineComponent({
       selectedJob,
       getAreaLabel,
       getAreaFaIcon,
+      getAreaColor,
       closeOutline,
       getSelectedClassIcon,
       selectClass
@@ -245,12 +275,11 @@ export default defineComponent({
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
-    flex-grow: 1;
-    gap: 1rem;
+    gap: 0.75rem;
     background: rgba(25, 25, 35, 0.4);
-    // padding: 1.5rem;
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0.1rem;
   }
 
   .pillar-item {
@@ -263,30 +292,13 @@ export default defineComponent({
     border-left: 4px solid transparent;
     transition: all 0.3s ease;
 
-    flex: 1;
-
     &.primary {
-      border-left-color: #ff5252;
-
-      .pillar-icon i {
-        color: #ff5252;
-      }
+      flex: 1 1 100%;
     }
 
-    &.secondary {
-      border-left-color: #40c4ff;
-
-      .pillar-icon i {
-        color: #40c4ff;
-      }
-    }
-
+    &.secondary,
     &.tertiary {
-      border-left-color: #69f0ae;
-
-      .pillar-icon i {
-        color: #69f0ae;
-      }
+      flex: 1 1 calc(50% - 0.4rem);
     }
 
     .pillar-icon {
