@@ -1,7 +1,7 @@
 <template>
   <!-- WORLD MAP MODAL -->
-  <xp-world-map-modal 
-    :is-open="worldMapActive" 
+  <xp-world-map-modal
+    :is-open="worldMapActive"
     @close="closeWorldMap"
   />
 
@@ -14,11 +14,17 @@
   >
     <!-- CENTER: Class Icon -->
     <ion-fab-button color="light">
-      <i class="fad fa-2x" :class="userClassIcon"></i>
+      <i
+        class="fad fa-2x"
+        :class="userClassIcon"
+      ></i>
     </ion-fab-button>
 
     <!-- TOP: Static Shortcuts (Equipment, Wind Whistle, Menu) -->
-    <ion-fab-list side="top" class="static-top">
+    <ion-fab-list
+      side="top"
+      class="static-top"
+    >
       <ion-fab-button
         color="light"
         @click="$emit('openHud')"
@@ -40,7 +46,11 @@
     </ion-fab-list>
 
     <!-- BOTTOM: Static Slot (Pegasus Boots) -->
-    <ion-fab-list side="bottom" class="static-bottom" v-if="hasPegasusBoots">
+    <ion-fab-list
+      side="bottom"
+      class="static-bottom"
+      v-if="hasPegasusBoots"
+    >
       <ion-fab-button
         color="light"
         @click="toggleMenuStyle"
@@ -51,7 +61,10 @@
     </ion-fab-list>
 
     <!-- START (Left): Customizable Shortcuts -->
-    <ion-fab-list side="start" class="customizable-slots">
+    <ion-fab-list
+      side="start"
+      class="customizable-slots"
+    >
       <ion-fab-button
         v-for="(item, index) in leftSlots"
         :key="'left-' + index"
@@ -59,17 +72,23 @@
         @click="handleItemClick(item)"
         :class="{ 'slot-locked': !item }"
       >
-        <i 
-          v-if="item" 
-          class="fad fa-2x" 
+        <i
+          v-if="item"
+          class="fad fa-2x"
           :class="`fa-${item.faIcon}`"
         ></i>
-        <i v-else class="fad fa-plus fa-lg slot-empty"></i>
+        <i
+          v-else
+          class="fad fa-plus fa-lg slot-empty"
+        ></i>
       </ion-fab-button>
     </ion-fab-list>
 
     <!-- END (Right): Customizable Shortcuts -->
-    <ion-fab-list side="end" class="customizable-slots icon-colors">
+    <ion-fab-list
+      side="end"
+      class="customizable-slots icon-colors"
+    >
       <ion-fab-button
         v-for="(item, index) in rightSlots"
         :key="'right-' + index"
@@ -77,27 +96,34 @@
         @click="handleItemClick(item)"
         :class="{ 'slot-locked': !item }"
       >
-        <i 
-          v-if="item" 
-          class="fad fa-2x" 
+        <i
+          v-if="item"
+          class="fad fa-2x"
           :class="`fa-${item.faIcon}`"
         ></i>
-        <i v-else class="fad fa-plus fa-lg slot-empty"></i>
+        <i
+          v-else
+          class="fad fa-plus fa-lg slot-empty"
+        ></i>
       </ion-fab-button>
     </ion-fab-list>
   </ion-fab>
 </template>
 
 <style lang="scss" scoped>
-.quick-draw-fab {
-  .slot-empty {
-    opacity: 0.3;
+  .quick-draw-fab {
+    // Raise the fab so bottom fab-list stays within viewport
+    transform: translateY(-7px);
+
+    .slot-empty {
+      opacity: 0.3;
+    }
+
+    .slot-locked {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
   }
-  .slot-locked {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-}
 </style>
 
 <script>
@@ -192,8 +218,8 @@
     methods: {
       handleItemClick(item) {
         if (!item) {
-          // Empty slot - could open slot configuration
-          this.play$fx('denied');
+          // Empty slot - open equipment menu to let user equip something
+          this.$emit('openHud');
           return;
         }
         
@@ -206,4 +232,3 @@
     },
   });
 </script>
-
