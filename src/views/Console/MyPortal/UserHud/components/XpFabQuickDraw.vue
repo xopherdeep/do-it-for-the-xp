@@ -1,4 +1,11 @@
 <template>
+  <!-- BLUR BACKDROP -->
+  <xp-blur-backdrop
+    :show="fabOpen"
+    :z-index="1999"
+    @close="closeFab"
+  />
+
   <!-- WORLD MAP MODAL -->
   <xp-world-map-modal
     :is-open="worldMapActive"
@@ -7,10 +14,12 @@
 
   <!-- QUICK DRAW FAB MENU -->
   <ion-fab
+    ref="quickDrawFab"
     vertical="bottom"
     horizontal="center"
     v-if="user.stats"
     class="icon-colors quick-draw-fab"
+    @ionFabActivated="onFabActivated"
   >
     <!-- CENTER: Class Icon -->
     <ion-fab-button color="light">
@@ -114,6 +123,8 @@
   .quick-draw-fab {
     // Raise the fab so bottom fab-list stays within viewport
     transform: translateY(-7px);
+    // Keep FAB above blur backdrop
+    z-index: 2100;
 
     .slot-empty {
       opacity: 0.3;
@@ -126,11 +137,12 @@
   }
 </style>
 
-<script>
+<script lang="ts">
   import { defineComponent, ref } from "vue";
   import ionic from "@/mixins/ionic";
   import { JOB_CLASS_OPTIONS } from "@/constants";
   import XpWorldMapModal from "./XpWorldMapModal.vue";
+  import XpBlurBackdrop from "@/components/atoms/Overlay/XpBlurBackdrop.vue";
   import { useGameStore } from "@/lib/store/stores/game";
 
   export default defineComponent({
@@ -138,7 +150,8 @@
     props: ["user", "equipment"],
     mixins: [ionic],
     components: {
-      XpWorldMapModal
+      XpWorldMapModal,
+      XpBlurBackdrop
     },
     computed: {
       // Check if user has unlocked Pegasus items
@@ -163,7 +176,7 @@
 
       // Left side customizable slots
       leftSlots() {
-        const slots = [];
+        const slots: any[] = [];
         const leftEquipped = this.equipment.filter(item => item.hand === 'left');
         
         for (let i = 0; i < this.unlockedSlotCount; i++) {
@@ -174,7 +187,7 @@
 
       // Right side customizable slots
       rightSlots() {
-        const slots = [];
+        const slots: any[] = [];
         const rightEquipped = this.equipment.filter(item => item.hand === 'right');
         
         for (let i = 0; i < this.unlockedSlotCount; i++) {
@@ -193,6 +206,25 @@
     setup() {
       const gameStore = useGameStore();
       const worldMapActive = ref(false);
+      const fabOpen = ref(false);
+
+      const quickDrawFab = ref(null);
+
+      const toggleFab = () => {
+        fabOpen.value = !fabOpen.value;
+      };
+
+      const closeFab = () => {
+        fabOpen.value = false;
+        // Imperatively close the Ionic FAB
+        const fabEl = (quickDrawFab.value as any)?.$el;
+        if (fabEl) fabEl.activated = false;
+      };
+
+      const onFabActivated = (event: CustomEvent) => {
+        // Sync with Ionic's internal activated state
+        fabOpen.value = event.detail;
+      };
 
       const toggleWorldMap = () => {
         worldMapActive.value = !worldMapActive.value;
@@ -212,7 +244,12 @@
         toggleWorldMap,
         closeWorldMap,
         toggleMenuStyle,
-        gameStore
+        gameStore,
+        fabOpen,
+        toggleFab,
+        closeFab,
+        onFabActivated,
+        quickDrawFab
       };
     },
     methods: {
