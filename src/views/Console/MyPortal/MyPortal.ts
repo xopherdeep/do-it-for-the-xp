@@ -3,6 +3,7 @@ import { computed, defineComponent, reactive, ref } from "vue";
 import fetchItems from "@/mixins/fetchItems";
 import ionic from "@/mixins/ionic";
 import components from "./UserHud/components";
+import XpPortalPage from "@/components/organisms/Page/XpPortalPage.vue";
 import userActions from "@/mixins/userActions";
 import "swiper/css";
 import { modalController } from "@ionic/vue";
@@ -42,7 +43,7 @@ import { useGameStore } from "@/lib/store/stores/game";
 import { useBattleStore } from "@/lib/store/stores/battle";
 
 export default defineComponent({
-  components: { ...components }, // No UserProfileModal for now
+  components: { ...components, XpPortalPage },
   mixins: [fetchItems, ionic, userActions],
   name: "my-portal",
   data() {

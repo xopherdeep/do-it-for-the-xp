@@ -1,25 +1,12 @@
 <template>
-  <ion-page
-    class="ion-page"
-    :class="$options.name"
-    v-cloak
+  <xp-portal-page
+    :loading="!user"
+    page-class="my-portal"
   >
-    <ion-content
-      class="bg-transparent icon-colors"
-      v-if="!user"
-    >
-      <div class="h-full w-full flex items-center justify-center">
-        <ion-spinner name="crescent"></ion-spinner>
-      </div>
-    </ion-content>
-
-    <ion-content
-      class="bg-transparent icon-colors"
-      v-else
-    >
-      <!-- Symmetric Main HUD Organism -->
+    <!-- HUD Overlay (stats, avatar) -->
+    <template #hud>
       <xp-main-hud
-        v-if="isUserFabOn && user.stats"
+        v-if="isUserFabOn && user?.stats"
         :stats="user.stats"
       >
         <template #avatar>
@@ -30,7 +17,10 @@
           />
         </template>
       </xp-main-hud>
-      <!-- <xp-fab-gold-points :user="user" :isUserFabOn="isUserFabOn" /> -->
+    </template>
+
+    <!-- FABs (quick draw, page menu, shortcuts) -->
+    <template #fabs>
       <xp-fab-quick-draw
         v-if="isUserFabOn"
         :user="user"
@@ -47,28 +37,34 @@
         :page-name="compass.name"
         :key="`menu-${route.path}`"
       />
-      
+
       <!-- Modern FAB (Radial Shortcuts) -->
       <xp-fab-page-shortcuts
         v-if="isUserFabOn && fabStyle === 'modern'"
         :shortcuts="userActions"
         :key="`shortcuts-${route.path}`"
       />
+    </template>
 
+    <!-- Tabs with router outlet -->
+    <template #tabs>
       <ion-tabs v-if="user && user.stats">
         <ion-router-outlet
           ref="outlet"
           :userId="user.id"
         ></ion-router-outlet>
-        
+
         <!-- Docked XP Bar -->
-        <div 
-          class="tab-docked-xp" 
+        <div
+          class="tab-docked-xp"
           v-if="user.stats && !battleState('active')"
           slot="bottom"
         >
           <xp-gp-bar :stats="user.stats" />
-          <xp-xp-bar :stats="user.stats" :hairline="true" />
+          <xp-xp-bar
+            :stats="user.stats"
+            :hairline="true"
+          />
         </div>
 
         <ion-tab-bar
@@ -80,13 +76,10 @@
             tab="my-profile"
             @click.prevent="openUserProfileModal"
           >
-            <i
-              class="fad fa-2x fa-hand-holding-seedling"
-            ></i>
+            <i class="fad fa-2x fa-hand-holding-seedling"></i>
             <ion-label v-if="user.name">
               {{ user.name.nick }}
             </ion-label>
-            <!-- <ion-badge color="danger"> {{ user.stats.hp.now }} HP </ion-badge> -->
           </ion-tab-button>
           <ion-tab-button
             tab="my-home"
@@ -107,59 +100,36 @@
             <i class="fab fa-fort-awesome fa-2x"></i>
             <ion-label>Party</ion-label>
           </ion-tab-button>
-          <!-- 
-          To favor immersion, we're taking these out
-          <ion-tab-button
-            tab="home-town"
-            :href="`/my-portal/${userId}/home-town`"
-          >
-            <i class="fad fa-archway fa-2x"></i>
-            <i class="fal fa-city fa-2x"></i>
-            <ion-label>Town</ion-label>
-          </ion-tab-button> -->
-          <!-- <ion-tab-button
-            tab="world-map"
-            :disabled="false"
-            :href="`/my-portal/${userId}/world-map`"
-          >
-            <i class="fal fa-globe fa-2x"></i>
-            <ion-label>World</ion-label>
-          </ion-tab-button> -->
-          <!-- <ion-tab-button tab="shop" :href="`/my-portal/${userId}/shop`">
-            <ion-icon :icon="storefrontOutline" color="secondary"></ion-icon>
-            <ion-label>Shop</ion-label>
-            <ion-badge color="warning"
-              >¤{{ user.stats.gp.wallet }} GP</ion-badge
-            >
-          </ion-tab-button> 
-          -->
         </ion-tab-bar>
       </ion-tabs>
-    </ion-content>
+    </template>
 
-    <!-- EQUIPMENT MODAL -->
-    <xp-equipment-modal
-      :isOpen="isRPGBoxOpen"
-      :equipment="equipment"
-      :user="user"
-      @equip-item="clickItem"
-      @close="closeModal"
-      @open-pegasus-modal="openPegasusModal"
-    />
+    <!-- Modals (outside content for proper stacking) -->
+    <template #modals>
+      <!-- EQUIPMENT MODAL -->
+      <xp-equipment-modal
+        :isOpen="isRPGBoxOpen"
+        :equipment="equipment"
+        :user="user"
+        @equip-item="clickItem"
+        @close="closeModal"
+        @open-pegasus-modal="openPegasusModal"
+      />
 
-    <!-- USER PROFILE MODAL -->
-    <user-profile-modal
-      :is-open="isUserProfileModalOpen"
-      :user="user"
-      @close="closeUserProfileModal"
-    />
+      <!-- USER PROFILE MODAL -->
+      <user-profile-modal
+        :is-open="isUserProfileModalOpen"
+        :user="user"
+        @close="closeUserProfileModal"
+      />
 
-    <!-- PEGASUS WORLD MAP MODAL (Wind Whistle) -->
-    <xp-world-map-modal 
-      :is-open="isPegasusModalOpen" 
-      @close="closePegasusModal"
-    />
-  </ion-page>
+      <!-- PEGASUS WORLD MAP MODAL (Wind Whistle) -->
+      <xp-world-map-modal
+        :is-open="isPegasusModalOpen"
+        @close="closePegasusModal"
+      />
+    </template>
+  </xp-portal-page>
 </template>
 
 <script src="./MyPortal"></script>
