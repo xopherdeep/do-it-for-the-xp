@@ -102,9 +102,17 @@ export class BestiaryService {
       avatar: beast.avatar, // Store the avatar ID for image loading
       imageUrl: beast.imageUrl,
       emoji: beast.emoji || '👹',
-      attack: beast.attack || 10,    // Added missing required property
-      defense: beast.defense || 5,    // Added missing required property
-      speed: beast.speed || 8         // Added missing required property
+      attack: beast.attack || 10,
+      defense: beast.defense || 5,
+      speed: beast.speed || 8,
+      bg1: beast.bg1,
+      bg2: beast.bg2,
+      aspectRatio: beast.aspectRatio,
+      tasks: beast.checklist ? beast.checklist.map((name: string, index: number) => ({
+        id: `task-${index}`,
+        name: name,
+        isCompleted: false
+      })) : []
     };
   }
 

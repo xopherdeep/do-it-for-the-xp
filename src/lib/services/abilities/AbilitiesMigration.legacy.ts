@@ -11,6 +11,7 @@ import {
   isAbility
 } from '@/lib/types/abilities';
 import { v4 as uuidv4 } from 'uuid';
+import debug from "@/lib/utils/debug";
 
 // Legacy ability format (based on inference from existing code)
 interface LegacyAbility {
@@ -147,7 +148,7 @@ export function migrateLocalStorageAbilities(): void {
     // Check if we have abilities in localStorage
     const storageData = localStorage.getItem(STORAGE_KEY);
     if (!storageData) {
-      console.log('No abilities found in localStorage to migrate');
+      debug.log('No abilities found in localStorage to migrate');
       return;
     }
 
@@ -166,7 +167,7 @@ export function migrateLocalStorageAbilities(): void {
 
       // If it doesn't match our new ability structure, migrate it
       if (!isAbility(item)) {
-        console.log(`Migrating ability: ${item.name || key}`);
+        debug.log(`Migrating ability: ${item.name || key}`);
         migratedMap[key] = convertLegacyAbility(item as LegacyAbility);
         migrated = true;
       } else {
@@ -177,13 +178,13 @@ export function migrateLocalStorageAbilities(): void {
 
     // Only save back to localStorage if we actually migrated something
     if (migrated) {
-      console.log('Saving migrated abilities to localStorage');
+      debug.log('Saving migrated abilities to localStorage');
       localStorage.setItem(STORAGE_KEY, JSON.stringify(migratedMap));
     } else {
-      console.log('All abilities are already in the new format');
+      debug.log('All abilities are already in the new format');
     }
   } catch (error) {
-    console.error('Error during ability migration:', error);
+    debug.error('Error during ability migration:', error);
   }
 }
 

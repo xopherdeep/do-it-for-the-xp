@@ -1,6 +1,6 @@
-import { Store } from 'vuex';
-import { RootState } from '@/lib/types/store';
+import { useUserStore } from '@/lib/store/stores/user';
 import debug from '@/lib/utils/debug';
+import { reactive } from 'vue';
 
 // Define interfaces for the battle system
 export interface Enemy {
@@ -16,6 +16,18 @@ export interface Enemy {
   attack: number;
   defense: number;
   speed: number;
+  bg1?: number;
+  bg2?: number;
+  aspectRatio?: number;
+  attackTimer?: number;
+  attackCooldown?: number;
+  tasks?: CombatTask[];
+}
+
+export interface CombatTask {
+  id: string;
+  name: string;
+  isCompleted: boolean;
 }
 
 export interface User {
@@ -61,6 +73,8 @@ export interface BattleState {
     activeEnemyIndex: number;
     activeUserIndex: number;
   };
+  enemyAttackTimer: number; // 0 to 100
+  combatTasks: CombatTask[];
 }
 
 export interface BattleResult {
@@ -74,9 +88,11 @@ export interface BattleResult {
  * 
  * This service encapsulates the battle logic and state management,
  * decoupling it from the UI component for better maintainability.
+ * 
+ * Updated to use Pinia stores instead of Vuex.
  */
 export class BattleService {
-  private store: Store<RootState>;
+  private userStore: ReturnType<typeof useUserStore>;
   private state: BattleState;
   private devMode: boolean;
   private battleCallbacks: {
@@ -86,12 +102,15 @@ export class BattleService {
     onDefendStateChange?: (isDefending: boolean) => void;
     onPlayerTurnChange?: (isPlayerTurn: boolean) => void;
     onEnemyDefeated?: (enemy: Enemy) => void;
+    onCombatTasksChange?: (tasks: CombatTask[]) => void;
+    onPlayerDefeated?: () => void;
   };
+  private attackTimerInterval: any = null;
 
-  constructor(store: Store<RootState>, devMode: boolean = false) {
-    this.store = store;
+  constructor(devMode: boolean = false) {
+    this.userStore = useUserStore();
     this.devMode = devMode;
-    this.state = {
+    this.state = reactive({
       battleStarted: false,
       isPlayerTurn: false,
       turnCounter: 0,
@@ -105,8 +124,10 @@ export class BattleService {
         users: [],
         activeEnemyIndex: 0,
         activeUserIndex: 0
-      }
-    };
+      },
+      enemyAttackTimer: 100,
+      combatTasks: []
+    });
     this.battleCallbacks = {};
     
     if (this.devMode) {
@@ -123,6 +144,18 @@ export class BattleService {
   }
 
   /**
+   * Handles the defeat of an enemy.
+   * @param enemy The enemy that was defeated.
+   */
+  private defeatEnemy(enemy: Enemy): void {
+    this.stopAttackTimer();
+    debug.log(`Challenge '${enemy.name}' completed!`);
+    if (this.battleCallbacks.onEnemyDefeated) {
+      this.battleCallbacks.onEnemyDefeated(enemy);
+    }
+  }
+
+  /**
    * Initialize a battle with an enemy
    * @param enemy The enemy to battle
    */
@@ -130,14 +163,29 @@ export class BattleService {
     // Set initial battle state
     this.state.currentEnemy = enemy;
     this.state.battleStarted = true;
-    this.state.isPlayerTurn = false;
+    this.state.isPlayerTurn = true; // For Task-ATB, player is usually "always ready"
     this.state.turnCounter = 1;
+    
+    // Initialize tasks from enemy checklist
+    if (enemy.tasks) {
+      this.state.combatTasks = [...enemy.tasks];
+    } else {
+      // Fallback/Default tasks if none defined
+      this.state.combatTasks = [
+        { id: '1', name: 'Investigate', isCompleted: false },
+        { id: '2', name: 'Observe patterns', isCompleted: false }
+      ];
+    }
+    
+    if (this.battleCallbacks.onCombatTasksChange) {
+      this.battleCallbacks.onCombatTasksChange(this.state.combatTasks);
+    }
     
     // Add enemy to participants array
     this.state.participants.enemies = [enemy];
     this.state.participants.activeEnemyIndex = 0;
     
-    // Get current user from store and add to participants
+    // Get current user from Pinia store and add to participants
     const currentUser = this.getCurrentUserFromStore();
     if (currentUser) {
       this.state.participants.users = [currentUser];
@@ -146,11 +194,13 @@ export class BattleService {
     
     this.updateEnemyHealthColor();
     
-    // Queue encounter message
-    const playerName = this.getPlayerName();
+    // Encounter message handled by UI component for better choreography
+    /*
     this.queueDialogMessages([
       `${playerName} encountered ${enemy.name}!`
     ]);
+    */
+
     
     if (this.devMode) {
       debug.log('Battle initialized with enemy:', enemy);
@@ -202,16 +252,11 @@ export class BattleService {
     // Update enemy health color
     this.updateEnemyHealthColor();
     
-    // Queue encounter message
-    let encounterMessage: string;
-    if (enemies.length === 1) {
-      encounterMessage = `${this.getPlayerName()} encountered ${enemies[0].name}!`;
-    } else {
-      const enemyNames = enemies.map(e => e.name).join(' and ');
-      encounterMessage = `${this.getPlayerName()} encountered ${enemyNames}!`;
-    }
-    
+    // Encounter message handled by UI component for better choreography
+    /*
     this.queueDialogMessages([encounterMessage]);
+    */
+
     
     if (this.devMode) {
       debug.log('Multi-battle initialized with enemies:', enemies);
@@ -466,6 +511,7 @@ export class BattleService {
     
     // Calculate if escape is successful
     if (Math.random() < escapeChance) {
+      this.stopAttackTimer();
       this.queueDialogMessages([
         "Running away...",
         "Got away safely!"
@@ -538,6 +584,88 @@ export class BattleService {
     if (this.devMode) {
       debug.log(`Ending player turn ${this.state.turnCounter}`);
     }
+
+    // Task-ATB note: player turn doesn't strictly "end" until all tasks done,
+    // but we can use this to toggle visibility if needed.
+    // For now, let's just keep the flow active.
+  }
+
+  /**
+   * Completes a task and damages the enemy
+   * @param taskId The ID of the task completed
+   */
+  public finishCombatTask(taskId: string): void {
+    const task = this.state.combatTasks.find(t => t.id === taskId);
+    if (!task || task.isCompleted) return;
+
+    task.isCompleted = true;
+    
+    if (this.state.currentEnemy) {
+      // Calculate damage based on number of tasks
+      // Completing all tasks should defeat the enemy
+      const damage = Math.ceil(this.state.currentEnemy.maxHealth / this.state.combatTasks.length);
+      
+      this.state.currentEnemy.health = Math.max(0, this.state.currentEnemy.health - damage);
+      this.updateEnemyHealthColor();
+      
+      // Feedback
+      this.queueDialogMessages([`Completed: ${task.name}!`, `The monster is weakened!`]);
+      
+      if (this.state.currentEnemy.health <= 0) {
+        this.defeatEnemy(this.state.currentEnemy);
+      }
+    }
+
+    if (this.battleCallbacks.onCombatTasksChange) {
+      this.battleCallbacks.onCombatTasksChange(this.state.combatTasks);
+    }
+  }
+
+  /**
+   * Get the current combat tasks
+   */
+  public getCombatTasks(): CombatTask[] {
+    return this.state.combatTasks;
+  }
+
+  /**
+   * Start the enemy's attack timer (Active Time Battle style)
+   */
+  public startAttackTimer(): void {
+    if (this.attackTimerInterval) clearInterval(this.attackTimerInterval);
+    
+    this.state.enemyAttackTimer = 100;
+    const tickRate = 50; // ms
+    const duration = 2000; // 2 seconds to "charge"
+    const decrement = (100 / (duration / tickRate));
+
+    this.attackTimerInterval = setInterval(() => {
+      this.state.enemyAttackTimer = Math.max(0, this.state.enemyAttackTimer - decrement);
+      
+      if (this.state.enemyAttackTimer <= 0) {
+        this.stopAttackTimer();
+        if (this.state.currentEnemy) {
+          this.performEnemyTurn();
+        }
+      }
+    }, tickRate);
+  }
+
+  /**
+   * Stop the enemy's attack timer
+   */
+  public stopAttackTimer(): void {
+    if (this.attackTimerInterval) {
+      clearInterval(this.attackTimerInterval);
+      this.attackTimerInterval = null;
+    }
+  }
+
+  /**
+   * Get the current value of the enemy attack timer (0 to 100)
+   */
+  public getEnemyAttackTimer(): number {
+    return this.state.enemyAttackTimer;
   }
 
   /**
@@ -564,98 +692,54 @@ export class BattleService {
       `${activeEnemy.name}'s turn!`
     ]);
     
-    // Pick a random enemy action
-    const actions = ['attack', 'defend', 'special'];
-    const enemyAction = actions[Math.floor(Math.random() * actions.length)];
+    // Enemy attacks the player - this creates urgency to complete tasks!
+    const baseDamage = 5 + Math.floor(Math.random() * 10);
+    const attackStat = activeEnemy.attack || 10;
+    const defenseStat = activeUser.stats?.defense || 5;
     
-    switch (enemyAction) {
-      case 'attack':
-        // Enemy attacks
-        this.queueDialogMessages([
-          `${activeEnemy.name} attacks!`,
-        ]);
-        
-        // Apply damage after a delay
-        setTimeout(() => {
-          // Calculate damage based on enemy attack and player defense
-          const attackStat = activeEnemy.attack;
-          const defenseStat = activeUser.stats.defense;
-          
-          const baseDamage = 5 + Math.floor(Math.random() * 10);
-          let finalDamage = Math.floor(baseDamage * (1 + attackStat / 20));
-          
-          // Reduce damage based on player defense
-          finalDamage = Math.max(1, Math.floor(finalDamage * (1 - defenseStat / 100)));
-          
-          // Apply defense reduction if player is defending
-          if (this.state.isDefending) {
-            // Apply defense multiplier (reducing damage by 50%)
-            finalDamage = Math.floor(finalDamage * this.state.defenseMultiplier);
-            
-            // Show defense message
-            this.queueDialogMessages([
-              `${activeUser.name}'s defense reduces the damage!`,
-            ]);
-          }
-          
-          // Get current HP
-          const currentHP = activeUser.stats.hp;
-          
-          // Reduce player HP (in a real game, this would dispatch to the store)
-          const newHP = Math.max(0, currentHP - finalDamage);
-          
-          // Show damage message
-          this.queueDialogMessages([
-            `${activeUser.name} takes ${finalDamage} damage!`
-          ]);
-          
-          // Check if player is defeated
-          if (newHP <= 0) {
-            this.queueDialogMessages([
-              `${activeUser.name} is defeated!`,
-              "Game Over"
-            ]);
-          } else {
-            // Reset defending flag at end of enemy turn
-            this.setDefendingState(false);
-            
-            // Proceed to next turn
-            this.state.turnCounter++;
-            // Next turn will start after dialog completes
-          }
-        }, 1000);
-        break;
-        
-      case 'defend':
-        // Enemy defends
-        this.queueDialogMessages([
-          `${activeEnemy.name} takes a defensive stance!`
-        ]);
-        
-        // Proceed to next turn after a delay
-        setTimeout(() => {
-          this.state.turnCounter++;
-          // Next turn will start after dialog completes
-        }, 1000);
-        break;
-        
-      case 'special':
-        // Enemy uses special ability
-        this.queueDialogMessages([
-          `${activeEnemy.name} is charging power!`,
-          "It seems to be preparing for something..."
-        ]);
-        
-        // Proceed to next turn after a delay
-        setTimeout(() => {
-          this.state.turnCounter++;
-          // Next turn will start after dialog completes
-        }, 1000);
-        break;
+    let finalDamage = Math.floor(baseDamage * (1 + attackStat / 20));
+    finalDamage = Math.max(1, Math.floor(finalDamage * (1 - defenseStat / 100)));
+    
+    // Apply defense reduction if player is defending
+    if (this.state.isDefending) {
+      finalDamage = Math.floor(finalDamage * this.state.defenseMultiplier);
+      this.queueDialogMessages([`${activeUser.name}'s defense reduces the damage!`]);
     }
     
+    this.queueDialogMessages([
+      `${activeEnemy.name} attacks!`,
+      `You take ${finalDamage} damage!`
+    ]);
+    
+    // Apply damage to player HP via the store
+    const isAlive = this.userStore.updateUserHP({
+      userId: activeUser.id,
+      amount: -finalDamage
+    });
+    
+    // Reset defending state
+    this.setDefendingState(false);
+    
+    setTimeout(() => {
+      if (!isAlive) {
+        // Player defeated - will be handled by callback
+        this.queueDialogMessages([
+          `${activeUser.name} has fallen!`,
+          'You blacked out...'
+        ]);
+        
+        if (this.battleCallbacks.onPlayerDefeated) {
+          this.battleCallbacks.onPlayerDefeated();
+        }
+      } else {
+        // Proceed to next turn, restart ATB
+        this.state.turnCounter++;
+        this.startAttackTimer();
+      }
+    }, 1000);
+
     if (this.devMode) {
-      debug.log(`Enemy performed action: ${enemyAction}`);
+      debug.log(`Enemy attacked for ${finalDamage} damage`);
     }
   }
 
@@ -728,10 +812,15 @@ export class BattleService {
   }
 
   /**
-   * Get player name from store
+   * Get player name from Pinia store
    */
   private getPlayerName(): string {
-    return this.store.getters.getUserById(this.store.state.user?.id)?.name?.nick || 'Player';
+    const currentUser = this.userStore.currentUser;
+    if (currentUser?.id) {
+      const user = this.userStore.getUserById(currentUser.id);
+      return user?.name?.nick || 'Player';
+    }
+    return 'Player';
   }
 
   /**
@@ -746,10 +835,10 @@ export class BattleService {
   }
 
   /**
-   * Get user by ID from store
+   * Get user by ID from Pinia store
    */
   private getUserById(userId: string): User | null {
-    const storeUser = this.store.getters.getUserById(userId);
+    const storeUser = this.userStore.getUserById(userId);
     if (!storeUser) return null;
     
     // Convert store user to battle user interface
@@ -771,11 +860,12 @@ export class BattleService {
   }
 
   /**
-   * Get current user from store
+   * Get current user from Pinia store
    */
   private getCurrentUserFromStore(): User | null {
-    if (!this.store.state.user?.id) return null;
-    return this.getUserById(this.store.state.user.id);
+    const currentUser = this.userStore.currentUser;
+    if (!currentUser?.id) return null;
+    return this.getUserById(currentUser.id);
   }
 
   /**
@@ -784,6 +874,8 @@ export class BattleService {
    */
   public resetBattle(): void {
     if (this.state.currentEnemy) {
+      this.stopAttackTimer();
+      this.state.enemyAttackTimer = 100;
       // Reset enemy health to max
       this.state.currentEnemy.health = this.state.currentEnemy.maxHealth;
       
@@ -971,10 +1063,9 @@ export class BattleService {
 
 /**
  * Factory function to create a battle service
- * @param store Vuex store
  * @param devMode Whether to enable dev mode
  * @returns A new battle service instance
  */
-export function createBattleService(store: Store<RootState>, devMode: boolean = false): BattleService {
-  return new BattleService(store, devMode);
+export function createBattleService(devMode: boolean = false): BattleService {
+  return new BattleService(devMode);
 }
