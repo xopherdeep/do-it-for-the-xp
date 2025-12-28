@@ -1,29 +1,27 @@
-import { defineComponent } from "vue";
-import ionic from "@/mixins/ionic";
+import { defineComponent as dC } from "vue";
 import { arrowBack } from "ionicons/icons";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
-import userActions from "@/mixins/userActions";
-import type { DefineUserActionComponent } from "@/mixins/userActions";
+import { useUserActions } from "@/hooks/useUserActions";
 import debug from "@/lib/utils/debug";
+import { IonPage, IonContent, onIonViewDidEnter } from "@ionic/vue";
 
-export default defineComponent<DefineUserActionComponent>({
+export default dC({
   name: "world-mountains",
-  mixins: [ionic, userActions],
+  components: { IonPage, IonContent },
 
-  ionViewDidEnter() {
-    this.setActions( this.$options.name )
-  },
   setup() {
     const route = useRoute();
     const router = useRouter();
     const userStore = useUserStore();
+    const { setActions } = useUserActions();
+
     const { userId } = route.params;
     const user = computed(() => userStore.getUserById(userId as string));
-    
+
     const fireAudio = ref<HTMLAudioElement | null>(null);
-    
+
     // Initialize fire crackling sound
     onMounted(() => {
       // Create fire audio element
@@ -31,13 +29,13 @@ export default defineComponent<DefineUserActionComponent>({
       fireAudio.value.src = "https://freesound.org/data/previews/390/390421_7143452-lq.mp3";
       fireAudio.value.volume = 0.4;
       fireAudio.value.loop = true;
-      
+
       // Start playing fire sound
       fireAudio.value.play().catch(error => {
         debug.log("Failed to play fire crackling audio:", error);
       });
     });
-    
+
     // Clean up when component is unmounted
     onUnmounted(() => {
       if (fireAudio.value) {
@@ -53,7 +51,7 @@ export default defineComponent<DefineUserActionComponent>({
         side: "start",
         click() {
           const merchant = "crystal-caverns"
-          router.push({ name: "shop", params: { merchant }})
+          router.push({ name: "shop", params: { merchant } })
         },
       },
       {
@@ -75,6 +73,11 @@ export default defineComponent<DefineUserActionComponent>({
         },
       },
     ];
+
+    onIonViewDidEnter(() => {
+      setActions("world-mountains", userActions);
+    })
+
     return {
       userActions,
       user,

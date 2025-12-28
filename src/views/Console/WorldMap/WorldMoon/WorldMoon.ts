@@ -1,23 +1,21 @@
-import { defineComponent } from "vue";
-import ionic from "@/mixins/ionic";
+import { defineComponent as dC } from "vue";
 import { arrowBack } from "ionicons/icons";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
-import userActions from "@/mixins/userActions";
-import type { DefineUserActionComponent } from "@/mixins/userActions";
+import { useUserActions } from "@/hooks/useUserActions";
+import { IonPage, IonContent, onIonViewDidEnter } from "@ionic/vue";
 
-export default defineComponent<DefineUserActionComponent>({
+export default dC({
   name: "world-moon",
-  mixins: [ionic, userActions],
+  components: { IonPage, IonContent },
 
-  ionViewDidEnter() {
-    this.setActions( this.$options.name )
-  },
   setup() {
     const route = useRoute();
     const router = useRouter();
     const userStore = useUserStore();
+    const { setActions } = useUserActions();
+
     const { userId } = route.params;
     const user = computed(() => userStore.getUserById(userId as string));
 
@@ -28,7 +26,7 @@ export default defineComponent<DefineUserActionComponent>({
         side: "start",
         click() {
           const merchant = "theia-city"
-          router.push({ name: "shop", params: { merchant }})
+          router.push({ name: "shop", params: { merchant } })
         },
       },
       {
@@ -45,17 +43,22 @@ export default defineComponent<DefineUserActionComponent>({
         faIcon: "place-of-worship",
         side: "end",
         click() {
-          const temple = 'moon-temple' 
-          router.push({ 
-            name: "temple", 
-            params: { 
-              userId, 
+          const temple = 'moon-temple'
+          router.push({
+            name: "temple",
+            params: {
+              userId,
               temple
-            } 
+            }
           });
         },
       },
     ];
+
+    onIonViewDidEnter(() => {
+      setActions("world-moon", userActions);
+    })
+
     return {
       userActions,
       user,

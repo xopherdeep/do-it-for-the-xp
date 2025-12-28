@@ -1,31 +1,29 @@
-import { defineComponent } from "vue";
-import ionic from "@/mixins/ionic";
+import { defineComponent as dC } from "vue";
 import { arrowBack } from "ionicons/icons";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
-import userActions from "@/mixins/userActions";
-import type { DefineUserActionComponent } from "@/mixins/userActions";
+import { useUserActions } from "@/hooks/useUserActions";
 import debug from "@/lib/utils/debug";
+import { IonPage, IonContent, onIonViewDidEnter } from "@ionic/vue";
 
-export default defineComponent<DefineUserActionComponent>({
+export default dC({
   name: "world-plains",
-  mixins: [ionic, userActions],
+  components: { IonPage, IonContent },
 
-  ionViewDidEnter() {
-    this.setActions(this.$options.name)
-  },
   setup() {
     const route = useRoute();
     const router = useRouter();
     const userStore = useUserStore();
+    const { setActions } = useUserActions();
+
     const { userId } = route.params;
     const user = computed(() => userStore.getUserById(userId as string));
-    
+
     // Audio references
     const windAudio = ref<HTMLAudioElement | null>(null);
     const grasshopperInterval = ref<number | null>(null);
-    
+
     // Initialize plains ambient sounds
     onMounted(() => {
       // Create gentle wind audio element for plains
@@ -33,10 +31,10 @@ export default defineComponent<DefineUserActionComponent>({
       windAudio.value.src = "https://freesound.org/data/previews/346/346170_5121236-lq.mp3"; // Gentle wind sound
       windAudio.value.volume = 0.3;
       windAudio.value.loop = true;
-      
+
       // Start playing wind sounds
       windAudio.value.play().catch(e => { debug.warn("Error playing wind sound:", e); });
-      
+
       // Occasionally play grasshopper/cricket sounds
       grasshopperInterval.value = window.setInterval(() => {
         if (Math.random() > 0.7) {
@@ -47,14 +45,14 @@ export default defineComponent<DefineUserActionComponent>({
         }
       }, 8000);
     });
-    
+
     // Clean up when component is unmounted
     onUnmounted(() => {
       if (windAudio.value) {
         windAudio.value.pause();
         windAudio.value = null;
       }
-      
+
       if (grasshopperInterval.value) {
         clearInterval(grasshopperInterval.value);
         grasshopperInterval.value = null;
@@ -96,15 +94,22 @@ export default defineComponent<DefineUserActionComponent>({
         side: "end",
         click() {
           const temple = "wind-temple"
-          router.push({ name: "temple", params: { 
-            userId, 
-            temple,
-            x: 2, 
-            y: 5 
-        } });
+          router.push({
+            name: "temple", params: {
+              userId,
+              temple,
+              x: 2,
+              y: 5
+            }
+          });
         },
       },
     ];
+
+    onIonViewDidEnter(() => {
+      setActions("world-plains", userActions);
+    });
+
     return {
       userActions,
       user,
