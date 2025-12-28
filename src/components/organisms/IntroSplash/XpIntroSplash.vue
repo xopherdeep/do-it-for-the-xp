@@ -1,18 +1,30 @@
 <template>
-  <div class="xp-intro-splash" :class="{ 'active': isActive }">
+  <div
+    class="xp-intro-splash"
+    :class="{ 'active': isActive }"
+  >
     <!-- Main splash image with background transition -->
-    <div class="splash-container" :class="{ 'fade-in': fadeIn, 'fade-out': fadeOut }">
+    <div
+      class="splash-container"
+      :class="{ 'fade-in': fadeIn, 'fade-out': fadeOut }"
+    >
       <!-- Main splash image -->
-      <div v-if="currentSplash" class="splash-image">
-        <img 
-          :src="currentSplash.image" 
+      <div
+        v-if="currentSplash"
+        class="splash-image"
+      >
+        <img
+          :src="currentSplash.image"
           :alt="currentSplash.alt || 'Splash image'"
           :class="{ 'pixel-art': usePixelArtScaling }"
         >
       </div>
 
       <!-- Text overlay with RPG style typing -->
-      <div v-if="showText && currentSplash?.text" class="splash-text rpg-box">
+      <div
+        v-if="showText && currentSplash?.text"
+        class="splash-text rpg-box"
+      >
         <xp-typing-text
           ref="typingText"
           :text="currentSplash.text"
@@ -25,15 +37,19 @@
       </div>
 
       <!-- Skip button -->
-      <div v-if="showSkipButton" class="skip-button" @click.stop="skipIntro">
-        Press any key to skip
+      <div
+        v-if="showSkipButton"
+        class="skip-button"
+        @click.stop="skipIntro"
+      >
+        Press to skip intro
       </div>
-      
+
       <!-- Hidden image preloader -->
       <div class="preload-container">
-        <img 
-          v-for="(splash, i) in splashScreens" 
-          :key="i" 
+        <img
+          v-for="(splash, i) in splashScreens"
+          :key="i"
           :src="splash.image"
           @load="onImagePreloaded()"
           @error="onImagePreloaded()"
@@ -355,121 +371,139 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-.xp-intro-splash {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: black;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.5s ease;
-  
-  &.active {
-    opacity: 1;
-    pointer-events: all;
-  }
-  
-  .splash-container {
-    position: relative;
+  .xp-intro-splash {
+    position: fixed;
+    top: 0;
+    left: 0;
     width: 100%;
     height: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: start;
-    
-    &.fade-in {
-      animation: fadeIn 0.8s ease forwards;
-    }
-    
-    &.fade-out {
-      animation: fadeOut 0.8s ease forwards;
-    }
-  }
-  
-  .splash-image {
-    max-width: 100%;
-    max-height: 100%;
+    background-color: black;
     display: flex;
     justify-content: center;
     align-items: center;
-    
-    img {
+    z-index: 1000;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.5s ease;
+
+    &.active {
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .splash-container {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: start;
+
+      &.fade-in {
+        animation: fadeIn 0.8s ease forwards;
+      }
+
+      &.fade-out {
+        animation: fadeOut 0.8s ease forwards;
+      }
+    }
+
+    .splash-image {
       max-width: 100%;
       max-height: 100%;
-      object-fit: contain;
-      
-      &.pixel-art {
-        image-rendering: pixelated;
-        image-rendering: -moz-crisp-edges;
-        image-rendering: crisp-edges;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+
+      img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+
+        &.pixel-art {
+          image-rendering: pixelated;
+          image-rendering: -moz-crisp-edges;
+          image-rendering: crisp-edges;
+        }
+      }
+    }
+
+    .splash-text {
+      position: absolute;
+      width: 95%;
+      bottom: 10%;
+      min-height: 160px;
+      max-width: 90%;
+      background-color: rgba(0, 0, 0, 0.8);
+      padding: 15px;
+      border-radius: 5px;
+      color: white;
+      border: 2px solid #444;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+      z-index: 2;
+      letter-spacing: 1.25px;
+    }
+
+    .skip-button {
+      position: absolute;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+
+      background-color: rgba(0, 0, 0, 0.5);
+      padding: 8px 16px;
+      color: white;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      animation: blink 1.5s infinite;
+    }
+
+    .preload-container {
+      position: absolute;
+      width: 0;
+      height: 0;
+      overflow: hidden;
+      opacity: 0;
+
+      .preload-image {
+        width: 1px;
+        height: 1px;
       }
     }
   }
-  
-  .splash-text {
-    position: absolute;
-    width: 95%;
-    bottom: 10%;
-    min-height: 160px;
-    max-width: 90%;
-    background-color: rgba(0, 0, 0, 0.8);
-    padding: 15px;
-    border-radius: 5px;
-    color: white;
-    border: 2px solid #444;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-    z-index: 2;
-    letter-spacing: 1.25px;
-  }
-  
-  .skip-button {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
 
-    background-color: rgba(0, 0, 0, 0.5);
-    padding: 8px 16px;
-    color: white;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 0.8rem;
-    animation: blink 1.5s infinite;
-  }
-  
-  .preload-container {
-    position: absolute;
-    width: 0;
-    height: 0;
-    overflow: hidden;
-    opacity: 0;
-    
-    .preload-image {
-      width: 1px;
-      height: 1px;
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
     }
   }
-}
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
+  @keyframes fadeOut {
+    from {
+      opacity: 1;
+    }
 
-@keyframes fadeOut {
-  from { opacity: 1; }
-  to { opacity: 0; }
-}
+    to {
+      opacity: 0;
+    }
+  }
 
-@keyframes blink {
-  0% { opacity: 0.4; }
-  50% { opacity: 1; }
-  100% { opacity: 0.4; }
-}
+  @keyframes blink {
+    0% {
+      opacity: 0.4;
+    }
+
+    50% {
+      opacity: 1;
+    }
+
+    100% {
+      opacity: 0.4;
+    }
+  }
 </style>
