@@ -1,11 +1,17 @@
 <template>
-  <ion-page :class="$options.name" class="icon-colors bg-slide bg-slide-dark">
+  <ion-page
+    :class="$options.name"
+    class="icon-colors bg-slide bg-slide-dark"
+  >
     <ion-tabs class="icon-colors">
-      <ion-router-outlet :key="route.path.split('/')[4] || 'splash'" ref="outlet"></ion-router-outlet>
+      <ion-router-outlet
+        :key="route.path.split('/')[4] || 'splash'"
+        ref="outlet"
+      ></ion-router-outlet>
       <ion-tab-bar slot="bottom">
         <ion-tab-button
           tab="bestiary"
-          href="/game-master/compendium/setup/bestiary"
+          :href="router.resolve({ name: 'xp-bestiary' }).href"
           :selected="route.path.includes('/game-master/compendium/setup/bestiary')"
         >
           <i class="fad fa-hand-holding-heart fa-2x" />
@@ -15,7 +21,7 @@
 
         <ion-tab-button
           tab="abilities"
-          href="/game-master/compendium/setup/abilities"
+          :href="router.resolve({ name: 'xp-abilities' }).href"
           :selected="route.path.includes('/game-master/compendium/setup/abilities')"
         >
           <i class="fad fa-hand-holding-magic fa-2x" />
@@ -24,7 +30,7 @@
         </ion-tab-button>
         <ion-tab-button
           tab="temples"
-          href="/game-master/compendium/setup/temples"
+          :href="router.resolve({ name: 'xp-compendium-temples' }).href"
           :selected="route.path.includes('/game-master/compendium/setup/temples')"
         >
           <i class="fad fa-hand-holding-water fa-2x" />
@@ -33,7 +39,7 @@
 
         <ion-tab-button
           tab="economy"
-          href="/game-master/compendium/setup/economy"
+          :href="router.resolve({ name: 'xp-economy-dashboard-root' }).href"
           :selected="route.path.includes('/game-master/compendium/setup/economy')"
         >
           <i class="fad fa-hand-holding-box fa-2x" />
@@ -42,7 +48,7 @@
         </ion-tab-button>
         <ion-tab-button
           tab="achievements"
-          href="/game-master/compendium/setup/achievements"
+          :href="router.resolve({ name: 'xp-achievements' }).href"
           :selected="route.path.includes('/game-master/compendium/setup/achievements')"
         >
           <i class="fad fa-hand-holding-seedling quest fa-2x" />
@@ -50,7 +56,7 @@
           <!-- (XP) -->
         </ion-tab-button>
 
-        
+
       </ion-tab-bar>
     </ion-tabs>
   </ion-page>
@@ -74,7 +80,7 @@
       // If we're at the exact compendium route without a sub-route,
       // redirect to the setup page
       if (this.route.path === '/game-master/compendium') {
-        this.router.replace('/game-master/compendium/setup');
+        this.router.replace({ name: 'xp-compendium-setup' });
       }
     }
   });

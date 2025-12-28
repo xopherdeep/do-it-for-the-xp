@@ -156,7 +156,10 @@
           await (this as any).userStore.impersonateUser(user.id);
           this.showSuccessToast(`Now viewing as ${user.name.nick}`);
           // Navigate to user's portal after successful impersonation
-          await this.$router.push(`/my-portal/${user.id}/my-home`);
+          await this.$router.push({
+            name: 'my-portal-home',
+            params: { userId: user.id }
+          });
         } catch (error) {
           debug.error('Failed to impersonate user:', error);
           this.showErrorToast('Failed to switch profile');

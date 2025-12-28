@@ -662,7 +662,7 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
   const navigateToRoomEditor = (row: number, col: number) => {
     ionRouter.push(
       {
-        name: 'xp-room-editor',
+        name: 'xp-temple-room-editor',
         params: {
           templeId: props.templeId,
           row: row.toString(),

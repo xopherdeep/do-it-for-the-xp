@@ -758,7 +758,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
         }
       }
     );
-    ionRouter.push('/game-master/compendium/bestiary/select');
+    ionRouter.push({ name: 'xp-bestiary-select' });
   };
 
   const openMimicBeastSelector = () => {
@@ -777,7 +777,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
         }
       }
     );
-    ionRouter.push('/game-master/compendium/bestiary/select');
+    ionRouter.push({ name: 'xp-bestiary-select' });
   };
 
   const removeBeast = (id: string) => {

@@ -188,7 +188,17 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     // Navigate to adjacent room
     const coords = getRelativeRoom(dir);
     if (coords) {
-      ionRouter.replace(`/game-master/compendium/setup/temples/${props.templeId}/rooms/${coords.row}/${coords.col}`, noAnimation);
+      ionRouter.replace(
+        {
+          name: 'xp-temple-room-editor',
+          params: {
+            templeId: props.templeId,
+            row: coords.row.toString(),
+            col: coords.col.toString()
+          }
+        },
+        noAnimation
+      );
     }
   };
 
@@ -334,7 +344,17 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     const target = coords[targetIdx];
     
     if (target) {
-      ionRouter.replace(`/game-master/compendium/setup/temples/${props.templeId}/rooms/${target.row}/${target.col}`, noAnimation);
+      ionRouter.replace(
+        {
+          name: 'xp-temple-room-editor',
+          params: {
+            templeId: props.templeId,
+            row: target.row.toString(),
+            col: target.col.toString()
+          }
+        },
+        noAnimation
+      );
     }
   };
 

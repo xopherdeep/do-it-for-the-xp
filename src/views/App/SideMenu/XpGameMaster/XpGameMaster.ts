@@ -1,6 +1,6 @@
 import { defineComponent } from 'vue'
 import ionic from "@/mixins/ionic";
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 
 import {
   arrowBack,
@@ -17,8 +17,10 @@ export default defineComponent({
   mixins: [ionic],
   setup() {
     const route = useRoute()
+    const router = useRouter()
     return {
       route,
+      router,
       arrowBack,
       speedometerOutline,
       speedometerSharp,

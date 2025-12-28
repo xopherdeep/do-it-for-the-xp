@@ -1,5 +1,8 @@
 <template>
-  <ion-page :class="$options.name" style="background: transparent">
+  <ion-page
+    :class="$options.name"
+    style="background: transparent"
+  >
     <ion-header>
       <ion-toolbar class="rpg-box icon-colors">
         <ion-buttons slot="start">
@@ -16,20 +19,29 @@
         <!-- Removed import/export buttons from here -->
       </ion-toolbar>
     </ion-header>
-    <ion-content class="relative transparent-content" style="--background: transparent">
-      <div v-if="isLoading" class="loading-wrapper-centered">
+    <ion-content
+      class="relative transparent-content"
+      style="--background: transparent"
+    >
+      <div
+        v-if="isLoading"
+        class="loading-wrapper-centered"
+      >
         <XpLoading />
       </div>
-      
-      <div v-else class="bestiary-container">
+
+      <div
+        v-else
+        class="bestiary-container"
+      >
         <!-- Search Area -->
         <div class="search-container">
           <div class="search-box">
             <i class="fas fa-search"></i>
-            <input 
-              type="text" 
-              v-model="searchQuery" 
-              placeholder="Search bestiary..." 
+            <input
+              type="text"
+              v-model="searchQuery"
+              placeholder="Search bestiary..."
               class="beast-search-input"
             />
           </div>
@@ -43,12 +55,12 @@
           <ion-grid>
             <ion-row>
               <!-- Add New Card -->
-              <ion-col 
-                size="4" 
+              <ion-col
+                size="4"
                 size-md="3"
                 size-lg="2"
               >
-                <XpBeastSelectorItem 
+                <XpBeastSelectorItem
                   id="__add_new__"
                   name="Add New"
                   icon="fa-paw-claws"
@@ -59,14 +71,14 @@
                 />
               </ion-col>
 
-              <ion-col 
-                size="4" 
+              <ion-col
+                size="4"
                 size-md="3"
                 size-lg="2"
-                v-for="beast in filteredBeasts" 
+                v-for="beast in filteredBeasts"
                 :key="beast.id"
               >
-                <XpBeastSelectorItem 
+                <XpBeastSelectorItem
                   :id="beast.id"
                   :name="beast.name"
                   :avatar="beast.avatar"
@@ -78,7 +90,10 @@
             </ion-row>
           </ion-grid>
 
-          <div v-if="filteredBeasts.length === 0" class="no-results">
+          <div
+            v-if="filteredBeasts.length === 0"
+            class="no-results"
+          >
             <i class="fad fa-ghost fa-3x"></i>
             <p>No beasts found in the bestiary...</p>
           </div>
@@ -90,8 +105,11 @@
         vertical="bottom"
         horizontal="center"
       >
-        <ion-fab-button @click="presentActionSheet" color="rpg">
-          <i class="fad fa-hand-holding-heart fa-2x"/>
+        <ion-fab-button
+          @click="presentActionSheet"
+          color="rpg"
+        >
+          <i class="fad fa-hand-holding-heart fa-2x" />
         </ion-fab-button>
       </ion-fab>
     </ion-content>
@@ -194,9 +212,12 @@ export default defineComponent({
     },
     async clickAddBeast(beast?: Beast) {
       if (beast) {
-        this.router.push(`/game-master/compendium/bestiary/create-update/${beast.id}`);
+        this.router.push({
+          name: 'xp-create-update-beast',
+          params: { id: beast.id }
+        });
       } else {
-        this.router.push('/game-master/compendium/bestiary/create-update');
+        this.router.push({ name: 'xp-create-update-beast' });
       }
     },
 
@@ -359,10 +380,10 @@ export default defineComponent({
 <style lang="scss" scoped>
   /* @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap'); */
 
-  
+
   p {
     font-family: "StatusPlz" !important;
-  font-size: .75em;
+    font-size: .75em;
   }
 
   h2 {
@@ -464,7 +485,7 @@ export default defineComponent({
     .add-new-card {
       --card-border: 2px dashed rgba(0, 0, 0, 0.4);
       --card-bg: rgba(0, 0, 0, 0.2);
-      
+
       &:hover {
         --card-border: 2px dashed var(--ion-color-primary);
       }
@@ -473,5 +494,5 @@ export default defineComponent({
 </style>
 
 <style lang="scss">
-/* Global styles for action sheet are now handled in earthbound.scss */
+  /* Global styles for action sheet are now handled in earthbound.scss */
 </style>
