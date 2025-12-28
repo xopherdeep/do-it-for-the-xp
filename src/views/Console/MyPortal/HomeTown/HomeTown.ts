@@ -1,22 +1,21 @@
-import { defineComponent } from "vue";
-import ionic from "@/mixins/ionic";
+import { defineComponent as dC } from "vue";
 import { arrowBack } from "ionicons/icons";
 import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
-import userActions from "@/mixins/userActions";
-import type { DefineUserActionComponent } from "@/mixins/userActions";
+import { useUserActions } from "@/hooks/useUserActions";
+import { IonPage, IonContent, onIonViewDidEnter } from "@ionic/vue";
 
-export default defineComponent<DefineUserActionComponent>({
+export default dC({
   name: "home-town",
-  mixins: [ionic, userActions],
-  ionViewDidEnter() {
-    this.setUserActions(this.userActions)
-  },
+  components: { IonPage, IonContent },
+
   setup() {
     const userStore = useUserStore();
     const router = useRouter();
     const route = useRoute();
+    const { setActions } = useUserActions();
+
     const { userId } = route.params;
     const user = computed(() => userStore.getUserById(userId as string));
 
@@ -89,6 +88,11 @@ export default defineComponent<DefineUserActionComponent>({
         },
       },
     ];
+
+    onIonViewDidEnter(() => {
+      setActions("home-town", userActions);
+    })
+
     return {
       user,
       userId,
@@ -97,3 +101,4 @@ export default defineComponent<DefineUserActionComponent>({
     };
   },
 });
+
