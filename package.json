@@ -12,7 +12,7 @@
   },
   "private": false,
   "scripts": {
-    "dev": "ionic cap run -l --external",
+    "dev": "ionic cap run -l --external ",
     "serve": "ionic serve --external",
     "ui": "vue ui",
     "vue-serve": "vue-cli-service serve",
@@ -61,8 +61,7 @@
     "vue-router": "^4.5.0",
     "vue-virtual-scroller": "^2.0.0-beta.8",
     "vue3-autocounter": "^1.0.8",
-    "vue3-flip-countdown": "^0.1.6",
-    "vuex": "^4.1.0"
+    "vue3-flip-countdown": "^0.1.6"
   },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5",
@@ -95,7 +94,7 @@
     "jest": "^27.5.1",
     "postcss": "^8.5.3",
     "sass": "^1.86.3",
-    "sass-loader": "^10.5.2",
+    "sass-loader": "^16.0.6",
     "typescript": "^5.8.3",
     "url-loader": "^4.1.1",
     "vue-eslint-parser": "^8.3.0"
