@@ -22,7 +22,11 @@
                 :src="userAvatar"
               ></ion-img>
             </ion-fab-button>
-            <ion-badge color="secondary" class="avatar-badge" v-if="apPercent !== null">
+            <ion-badge
+              color="secondary"
+              class="avatar-badge"
+              v-if="apPercent !== null"
+            >
               AP {{ apPercent }}%
             </ion-badge>
           </div>
@@ -46,11 +50,18 @@
           <div class="header-content">
             <div class="title-group">
               <span class="menu-title">{{ user.name.nick }}</span>
-              <div class="level-badge-pill" v-if="user.stats">
+              <div
+                class="level-badge-pill"
+                v-if="user.stats"
+              >
                 <small>LVL</small>{{ user.stats.level }}
               </div>
             </div>
-            <div v-if="walletHtml" class="menu-subtitle" v-html="walletHtml"></div>
+            <div
+              v-if="walletHtml"
+              class="menu-subtitle"
+              v-html="walletHtml"
+            ></div>
           </div>
         </template>
       </xp-rpg-menu>
@@ -80,9 +91,9 @@
   import { computed, defineComponent, ref, PropType } from "vue";
   import { walletOutline, colorWand, fitnessOutline } from "ionicons/icons";
   import { useRouter } from "vue-router";
-  import ionic from "@/mixins/ionic";
-  import userActions from "@/mixins/userActions";
-  import { modalController } from "@ionic/vue";
+  // import ionic from "@/mixins/ionic"; // Removed legacy mixin
+  // import userActions from "@/mixins/userActions"; // Removed legacy mixin
+  import { modalController, IonFab, IonGrid, IonRow, IonCol, IonFabButton, IonImg, IonBadge, IonFabList } from "@ionic/vue"; // Added explicit imports
   import XpChat from "@/views/App/SideMenu/XpGameMaster/XpChat/XpChat.vue";
   import XpNotifications from "./XpNotifications/XpNotifications.vue";
   import SaveAndQuitModal from "@/components/molecules/Modals/SaveAndQuitModal.vue";
@@ -93,8 +104,9 @@
     components: {
       SaveAndQuitModal,
       XpRpgMenu,
+      IonFab, IonGrid, IonRow, IonCol, IonFabButton, IonImg, IonBadge, IonFabList
     },
-    mixins: [userActions, ionic],
+    mixins: [],
     props: {
       user: {
         type: Object as PropType<any>,
@@ -314,7 +326,7 @@
       .avatar-wrapper {
         position: relative;
         display: inline-block;
-        
+
         .avatar-button {
           --border-radius: 50%;
           --padding-start: 0;
@@ -353,7 +365,7 @@
           padding: 3px 8px;
           border-radius: 10px;
           border: 1px solid rgba(255, 255, 255, 0.2);
-          box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
           pointer-events: none;
         }
 
