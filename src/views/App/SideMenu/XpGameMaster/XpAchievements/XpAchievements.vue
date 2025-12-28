@@ -1,5 +1,5 @@
 <template>
-  <ion-page :class="$options.name">
+  <ion-page :class="$options.name" style="background: transparent">
     <ion-header>
       <ion-toolbar class="icon-colors rpg-box">
         <ion-buttons slot="start">
@@ -134,7 +134,7 @@
       </ion-segment>
     </ion-header>
 
-    <ion-content class="bg-slide">
+    <ion-content class="transparent-content" style="--background: transparent">
       <xp-loading v-if="isLoading" />
       <ion-list v-else>
         <ion-item-group
@@ -213,3 +213,9 @@
 
 <script src="./XpAchievements" lang="ts" />
 <style src="./_XpAchievements.scss" lang="scss" scoped />
+<style lang="scss" scoped>
+.transparent-content {
+  --background: transparent;
+  background: transparent;
+}
+</style>

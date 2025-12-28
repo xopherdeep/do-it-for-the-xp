@@ -23,24 +23,27 @@ export default defineComponent<DefineUserActionComponent>({
 
     const userActions = [
       {
-        // label: "Theia Tower",
         label: "Theia City",
-        // label: "Theia's Market",
-        // label: "Theia Trinkets",
-        // label: "Moon Light Markert",
-        // label: "Moon Light Gateway",
         faIcon: "chess-rook",
-        side: "top",
+        side: "start",
         click() {
           const merchant = "theia-city"
           router.push({ name: "shop", params: { merchant }})
         },
       },
       {
+        label: "Travel World",
+        faIcon: "pegasus",
+        side: "top",
+        click() {
+          router.push({ name: "world-map", params: { userId } });
+        },
+      },
+      {
         label: "Moon Temple",
         id: "moon-temple",
         faIcon: "place-of-worship",
-        side: "bottom",
+        side: "end",
         click() {
           const temple = 'moon-temple' 
           router.push({ 
@@ -50,14 +53,6 @@ export default defineComponent<DefineUserActionComponent>({
               temple
             } 
           });
-        },
-      },
-      {
-        label: "Travel World",
-        faIcon: "pegasus",
-        side: "start",
-        click() {
-          router.push({ name: "world-map", params: { userId } });
         },
       },
     ];

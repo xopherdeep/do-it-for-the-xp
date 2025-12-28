@@ -10,7 +10,7 @@ import AvatarSelector from "./components/AvatarSelector.vue";
 
 import ionic from "@/mixins/ionic";
 
-import XpGp from "@/components/XpGp/XpGp.vue";
+import XpGp from "@/components/atoms/Currency/XpGp.vue";
 import GamerCard from "./GamerCard.vue"
 import Stats from "@/lib/utils/User/stats";
 

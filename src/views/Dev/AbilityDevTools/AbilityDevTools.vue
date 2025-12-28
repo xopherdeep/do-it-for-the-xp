@@ -135,7 +135,7 @@ import {
   gridOutline, 
   closeOutline 
 } from 'ionicons/icons';
-import XpAbilityManager from '@/components/XpAbility/XpAbilityManager.vue';
+import XpAbilityManager from '@/components/molecules/Ability/XpAbilityManager.vue';
 import { Ability, AbilityType, AbilityStatus, TimePeriod } from '@/lib/types/abilities';
 
 // Sample ability names and descriptions

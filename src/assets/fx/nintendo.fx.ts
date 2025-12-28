@@ -30,4 +30,5 @@ export default {
   TrunOn    : require('@/assets/audio/nintendo/switch/Turn On.wav'),
   TurnOff   : require('@/assets/audio/nintendo/switch/Turn Off.wav'),
   User      : require('@/assets/audio/nintendo/switch/User.wav'),
+  GameBoy   : require('@/assets/audio/nintendo/nintendo-game-boy-startup.mp3'),
 }

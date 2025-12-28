@@ -1,6 +1,13 @@
 .icon-colors {
   i {
     &.fa- {
+
+      &triangle {
+        --fa-primary-color: gold;
+        --fa-secondary-color: var(--xp-color-yellow);;
+        --fa-secondary-opacity: 1;
+      }
+
       &paw-claws {
         --fa-primary-color: var(--xp-color-gray);
         --fa-secondary-color: var(--xp-color-brown);
@@ -15,7 +22,20 @@
 
       &dungeon {
         --fa-primary-color: var(--xp-color-gray);
-        --fa-secondary-color: var(--xp-color-red);
+        --fa-secondary-color: var(--xp-color-brown);
+        --fa-secondary-opacity: 1;
+
+        &.trap-variant,
+        &.danger-variant {
+          --fa-primary-color: var(--xp-color-red);
+          --fa-secondary-color: var(--xp-color-gray);
+          --fa-secondary-opacity: 0.8;
+        }
+      }
+
+      &eye-evil {
+        --fa-primary-color: var(--xp-color-red);
+        --fa-secondary-color: var(--xp-color-pink);
         --fa-secondary-opacity: 0.8;
       }
 
@@ -47,7 +67,8 @@
       &tint {
         --fa-primary-color: var(--xp-color-lightBlue);
         --fa-secondary-color: var(--xp-color-blue);
-        --fa-secondary-opacity: 1 --fa-primary-opacity:.9
+        --fa-secondary-opacity: 1;
+        --fa-primary-opacity: .9;
       }
 
       &whistle {
@@ -56,7 +77,326 @@
         --fa-secondary-opacity: 1
       }
 
+      &bat {
+        --fa-primary-color: var(--xp-color-red);
+        --fa-secondary-color: var(--xp-color-pink);
+        --fa-secondary-opacity: 0.7;
+      }
+
+      &dragon {
+        --fa-primary-color: var(--xp-color-red);
+        --fa-secondary-color: var(--xp-color-orange);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &skull {
+        --fa-primary-color: var(--xp-color-gray);
+        --fa-secondary-color: var(--xp-color-red);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &treasure-chest {
+        --fa-primary-color: var(--xp-color-brown);
+        --fa-secondary-color: var(--xp-color-yellow);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &pegasus, &egg {
+        &.ventus {
+          --fa-primary-color: #f1f2f6; --fa-secondary-color: #2f3542; --fa-secondary-opacity: 1;
+        }
+        &.ignis {
+          --fa-primary-color: #ff4757; --fa-secondary-color: #f1c40f; --fa-secondary-opacity: 1;
+        }
+        &.sol {
+          --fa-primary-color: #ffa502; --fa-secondary-color: #ff6b81; --fa-secondary-opacity: 1;
+        }
+        &.aura {
+          --fa-primary-color: #badc58; --fa-secondary-color: #ffffff; --fa-secondary-opacity: 1;
+        }
+        &.terra {
+          --fa-primary-color: #2ed573; --fa-secondary-color: #2f3542; --fa-secondary-opacity: 1;
+        }
+        &.glacie {
+          --fa-primary-color: #00d2d3; --fa-secondary-color: #5352ed; --fa-secondary-opacity: 1;
+        }
+        &.aqua {
+          --fa-primary-color: #3742fa; --fa-secondary-color: #7bed9f; --fa-secondary-opacity: 1;
+        }
+        &.venenum {
+          --fa-primary-color: #8e44ad; --fa-secondary-color: #badc58; --fa-secondary-opacity: 1;
+        }
+        &.umbra {
+          --fa-primary-color: #130f40; --fa-secondary-color: #ffffff; --fa-secondary-opacity: 1;
+        }
+      }
+
+      &heart {
+        --fa-primary-color: var(--xp-color-hp);
+        --fa-secondary-color: var(--xp-color-pink);
+      }
+
+      &key {
+        --fa-primary-color: var(--xp-color-yellow);
+        --fa-secondary-color: var(--xp-color-orange);
+      }
+
+      &helmet-battle {
+        --fa-primary-color: var(--xp-color-purple);
+        --fa-secondary-color: var(--xp-color-pink);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &flask-potion {
+        --fa-primary-color: var(--xp-color-blue);
+        --fa-secondary-color: var(--xp-color-lightBlue);
+        --fa-secondary-opacity: 0.9;
+      }
+
+      &crown {
+        --fa-primary-color: var(--xp-color-yellow);
+        --fa-secondary-color: var(--xp-color-white);
+        --fa-secondary-opacity: 0.9;
+      }
+
+      &puzzle-piece {
+        --fa-primary-color: var(--xp-color-purple);
+        --fa-secondary-color: var(--xp-color-blue);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &mask {
+        --fa-primary-color: var(--xp-color-gray);
+        --fa-secondary-color: var(--xp-color-blueLight);
+        --fa-secondary-opacity: 0.7;
+      }
+
+      &transporter {
+        --fa-primary-color: var(--xp-color-lightBlue);
+        --fa-secondary-color: var(--xp-color-white);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &monument {
+        --fa-primary-color: var(--xp-color-gray);
+        --fa-secondary-color: var(--xp-color-white);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &door-closed {
+        --fa-primary-color: var(--xp-color-brown);
+        --fa-secondary-color: var(--xp-color-gray);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &door-open {
+        --fa-primary-color: var(--xp-color-blue);
+        --fa-secondary-color: var(--xp-color-lightBlue);
+        --fa-secondary-opacity: 0.9;
+      }
+
+      &sliders-h, &sliders {
+        --fa-primary-color: var(--xp-color-gray);
+        --fa-secondary-color: var(--xp-color-lightBlue);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &hole {
+        --fa-primary-color: var(--xp-color-black);
+        --fa-secondary-color: var(--xp-color-gray);
+        --fa-secondary-opacity: 0.6;
+      }
+
+      &eclipse {
+        --fa-primary-color: var(--xp-color-black);
+        --fa-secondary-color: var(--xp-color-purple);
+        --fa-secondary-opacity: 0.7;
+      }
+
+      &stairs, &stairs-down {
+        --fa-primary-color: var(--xp-color-gray);
+        --fa-secondary-color: #777;
+        --fa-secondary-opacity: 0.9;
+      }
+
+      &campfire {
+        --fa-primary-color: var(--xp-color-brown);
+        --fa-secondary-color: var(--xp-color-yellow);
+        --fa-secondary-opacity: 0.9;
+      }
+
+      &th {
+        --fa-primary-color: var(--xp-color-gray);
+        --fa-secondary-color: #666;
+        --fa-primary-opacity: 0.4;
+      }
+
+      &wind {
+        --fa-primary-color: var(--xp-color-gray);
+        --fa-secondary-color: #555;
+        --fa-primary-opacity: 0.3;
+      }
+
+      &fist-raised {
+        --fa-primary-color: var(--xp-color-ap);
+        --fa-secondary-color: var(--xp-color-blue);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &comet {
+        --fa-primary-color: var(--xp-color-blue);
+        --fa-secondary-color: var(--xp-color-lightBlue);
+        --fa-secondary-opacity: 1;
+      }
+
+      &backpack {
+        --fa-primary-color: var(--xp-color-brown);
+        --fa-secondary-color: var(--xp-color-yellow);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &shield-alt {
+        --fa-primary-color: var(--xp-color-gray);
+        --fa-secondary-color: var(--xp-color-white);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &running {
+        --fa-primary-color: var(--xp-color-white);
+        --fa-secondary-color: var(--xp-color-gray);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &comment {
+        --fa-primary-color: var(--xp-color-green);
+        --fa-secondary-color: var(--xp-color-lightBlue);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &bell-exclamation {
+        --fa-primary-color: var(--xp-color-red);
+        --fa-secondary-color: var(--xp-color-yellow);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &book-spells {
+        --fa-primary-color: var(--xp-color-mp);
+        --fa-secondary-color: var(--xp-color-pink);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &medal {
+        --fa-primary-color: var(--xp-color-yellow);
+        --fa-secondary-color: var(--xp-color-white);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &hand-holding-seedling {
+        --fa-primary-color: var(--xp-color-brown);
+        --fa-secondary-color: var(--xp-color-green);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &hand-holding-magic {
+        --fa-primary-color: var(--xp-color-brown);
+        --fa-secondary-color: var(--xp-color-red);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &hand-holding-water {
+        --fa-primary-color: var(--xp-color-brown);
+        --fa-secondary-color: var(--xp-color-blue);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &hand-holding-heart {
+        --fa-primary-color: var(--xp-color-brown);
+        --fa-secondary-color: var(--xp-color-red);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &hand-holding-box {
+        --fa-primary-color: var(--xp-color-brown);
+        --fa-secondary-color: var(--xp-color-blueLight);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &hand-holding-usd {
+        --fa-primary-color: var(--xp-color-brown);
+        --fa-secondary-color: var(--xp-color-yellow);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &wallet {
+        --fa-primary-color: var(--xp-color-brown);
+        --fa-secondary-color: var(--xp-color-gp);
+        --fa-secondary-opacity: 0.9;
+      }
+
+      &sign-out {
+        --fa-primary-color: var(--xp-color-red);
+        --fa-secondary-color: var(--xp-color-gray);
+        --fa-secondary-opacity: 0.7;
+      }
+
+      &bars {
+        --fa-primary-color: var(--xp-color-white);
+        --fa-secondary-color: var(--xp-color-gray);
+        --fa-secondary-opacity: 0.7;
+      }
+
+      &police-box {
+        --fa-primary-color: var(--xp-color-blue);
+        --fa-secondary-color: var(--xp-color-lightBlue);
+        --fa-secondary-opacity: 0.9;
+      }
+
+      &coin {
+        --fa-primary-color: var(--xp-color-gp);
+        --fa-secondary-color: var(--xp-color-brown);
+        --fa-secondary-opacity: 1;
+      }
+
+      &atom {
+        --fa-primary-color: var(--xp-color-green);
+        --fa-secondary-color: var(--xp-color-lightBlue);
+        --fa-secondary-opacity: 0.9;
+      }
+
+      &spa {
+        --fa-primary-color: var(--ion-color-tertiary);
+        --fa-secondary-color: var(--xp-color-lightBlue);
+        --fa-secondary-opacity: 0.8;
+      }
+
+      &dumbbell {
+        --fa-primary-color: #888;
+        --fa-secondary-color: #444;
+        --fa-primary-opacity: 1;
+        --fa-secondary-opacity: 1;
+      }
+      &question-square {
+        --fa-primary-color:  var(--xp-color-white); 
+        --fa-secondary-color: var(--xp-color-yellow);
+        --fa-secondary-opacity: 0.9;
+      }
+
+      &star {
+        --fa-primary-color: var(--xp-color-xp);
+        --fa-secondary-color: var(--xp-color-yellow);
+        --fa-secondary-opacity: 0.8;
+      }
     }
+  }
+  
+  // High-Specificity Overrides for Neutral/Preview States
+  i.neutral,
+  .adjacent-room i,
+  .adjacent-room.icon-colors i {
+    --fa-primary-color: rgba(255, 255, 255, 0.6) !important;
+    --fa-secondary-color: rgba(255, 255, 255, 0.4) !important;
+    --fa-secondary-opacity: 0.5 !important;
+    color: rgba(255, 255, 255, 0.6) !important;
   }
 }
 

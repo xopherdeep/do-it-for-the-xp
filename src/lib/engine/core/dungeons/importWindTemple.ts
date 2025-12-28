@@ -3,6 +3,7 @@
  */
 import { TempleDb, templeStorage, TempleInterface } from '@/lib/databases/TempleDb';
 import windTemple from '@/lib/engine/temples/wind-temple';
+import { Room } from './types';
 import debug from '@/lib/utils/debug';
 
 /**
@@ -25,9 +26,9 @@ export async function importWindTempleToDb(): Promise<void> {
       categoryIds: ['dungeon', 'wind'],
       level: 3,
       dungeonLayout: {
-        entrance: windTemple.entrance,
-        maze: windTemple.maze,
-        rooms: windTemple.rooms
+        entrance: (windTemple as any).entrance,
+        maze: (windTemple as any).maze as string[][] | Record<string, string[][]>,
+        rooms: (windTemple as any).rooms as Record<string, Room>
       }
     };
     

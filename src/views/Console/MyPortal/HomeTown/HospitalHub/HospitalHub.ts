@@ -1,9 +1,9 @@
 import { defineComponent } from "vue";
 import ionic from "@/mixins/ionic";
 import { actionSheetController, alertController } from "@ionic/vue";
-import XpIcon from "@/components/XpIcon";
-import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
-import { mapGetters } from "vuex";
+import XpIcon from "@/components/atoms/Icon/XpIcon.vue";
+import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
+import { useUserStore } from "@/lib/store/stores/user";
 import { close, heart, infinite, logOut, people, statsChart } from "ionicons/icons";
 import debug from "@/lib/utils/debug";
 
@@ -27,9 +27,9 @@ export default defineComponent({
     };
   },
   computed: {
-    ...mapGetters({
-      users: "usersAz"
-    }),
+    users() {
+      return this.userStore.usersAz;
+    },
     actionButtons() {
       return [
         {
@@ -143,6 +143,16 @@ export default defineComponent({
       this.isModalOpen = false;
     },
     
+    dismissPatientsModal() {
+      this.play$fx("no");
+      const modal = this.$refs.patientsModal as any;
+      if (modal?.$el) {
+        modal.$el.dismiss();
+      } else {
+        this.closePatientsModal();
+      }
+    },
+    
     async showActionSheet() {
       const action = await actionSheetController.create({
         header: "How can we assist you today?",
@@ -237,5 +247,9 @@ export default defineComponent({
 
       await alert.present();
     }
+  },
+  setup() {
+    const userStore = useUserStore();
+    return { userStore };
   }
 });

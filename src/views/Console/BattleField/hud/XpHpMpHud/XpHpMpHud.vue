@@ -1,89 +1,88 @@
 <template>
   <ion-card class="cbox cbox-shadow absolute">
     <div class="cbox-inner-four">
-      <div class="cbox-row">
-        <div class="cbox-name m-3">
-          {{ user?.name?.nick || 'Player' }}
+      <!-- Loading state -->
+      <template v-if="isLoading">
+        <div class="cbox-row">
+          <div class="cbox-name m-3">Loading...</div>
         </div>
-      </div>
-      <div class="cbox-row">
-        <label class="cbox-health-label"> hp </label>
-        <div class="cbox-health-value">
-          <div class="cbox-health-thou cbox-digit">
-            {{ hp.thou }}
-          </div>
-          <div class="cbox-health-hun cbox-digit">
-            {{ hp.hun }}
-          </div>
-          <div class="cbox-health-ten cbox-digit">
-            {{ hp.ten }}
+      </template>
+      
+      <!-- Loaded state -->
+      <template v-else>
+        <div class="cbox-row">
+          <div class="cbox-name m-3">
+            {{ playerName }}
           </div>
         </div>
-      </div>
-      <div class="cbox-row">
-        <label class="cbox-health-label"> MP </label>
-        <div class="cbox-health-value">
-          <div class="cbox-health-thou cbox-digit">
-            {{ mp.thou }}
-          </div>
-          <div class="cbox-health-hun cbox-digit">
-            {{ mp.hun }}
-          </div>
-          <div class="cbox-health-ten cbox-digit">
-            {{ mp.ten }}
+        <div class="cbox-row">
+          <label class="cbox-health-label"> hp </label>
+          <div class="cbox-health-value">
+            <div class="cbox-health-thou cbox-digit">
+              {{ formattedHp.thou }}
+            </div>
+            <div class="cbox-health-hun cbox-digit">
+              {{ formattedHp.hun }}
+            </div>
+            <div class="cbox-health-ten cbox-digit">
+              {{ formattedHp.ten }}
+            </div>
           </div>
         </div>
-      </div>
+        <div class="cbox-row">
+          <label class="cbox-health-label"> MP </label>
+          <div class="cbox-health-value">
+            <div class="cbox-health-thou cbox-digit">
+              {{ formattedMp.thou }}
+            </div>
+            <div class="cbox-health-hun cbox-digit">
+              {{ formattedMp.hun }}
+            </div>
+            <div class="cbox-health-ten cbox-digit">
+              {{ formattedMp.ten }}
+            </div>
+          </div>
+        </div>
+      </template>
     </div>
   </ion-card>
 </template>
+
 <script lang="ts">
   import Ionic from "@/mixins/ionic";
   import { defineComponent } from "vue";
+  import { useBattlePlayer } from "../../hooks/useBattlePlayer";
 
   export default defineComponent({
-    props: {
-      user: {
-        type: Object,
-        default: () => ({
-          name: { nick: 'Player' },
-          stats: {
-            hp: { now: 100, max: 100 },
-            mp: { now: 50, max: 100 }
-          }
-        })
-      }
-    },
     mixins: [Ionic],
     name: "XpHpMpHud",
-    computed: {
-      hp() {
-        // Add safety check to prevent null pointer exceptions
-        const hp = this.user?.stats?.hp?.now || 0;
-        const [thou, hun, ten] = String(hp).padStart(3, "0");
+    setup() {
+      // Use the battle player hook to load and manage player data
+      const {
+        player,
+        isLoading,
+        playerName,
+        formattedHp,
+        formattedMp,
+        hpPercentage,
+        mpPercentage,
+        loadPlayer
+      } = useBattlePlayer();
 
-        return {
-          thou: thou == "0" ? "" : thou,
-          hun: hun == "0" ? "" : hun,
-          ten,
-          hp,
-        };
-      },
-      mp() {
-        // Add safety check to prevent null pointer exceptions
-        const mp = this.user?.stats?.mp?.now || 0;
-        const [thou, hun, ten] = String(mp).padStart(3, "0");
-
-        return {
-          thou: thou == "0" ? "" : thou,
-          hun: hun == "0" ? "" : hun,
-          ten,
-          mp,
-        };
-      },
-    },
+      return {
+        player,
+        isLoading,
+        playerName,
+        formattedHp,
+        formattedMp,
+        hpPercentage,
+        mpPercentage,
+        loadPlayer
+      };
+    }
   });
 </script>
+
 <style lang="scss">
   .cbox {
     max-width: 245px;
@@ -91,17 +90,15 @@
     /* height: 264px; */
     // border: 4px solid #101010;
     border-radius: 4px;
-    position: absolute !important;
+    // Removed absolute positioning - now flows in flexbox
     margin: 0 auto;
-    left: 50%;
-    transform: translate(-50%, -10%);
-    bottom: 0%;
     /* display: inline-block; */
     font-size: 55px;
     text-align: center;
     box-shadow: 0 0 0 8px #98a080, 0 0 0 16px #f0f0f0, 0 0 0 24px #98a080,
       0 0 0 27px #101010, 0 0 15px 25px #101010 !important;
   }
+
 
   /* The Frame */
   .cbox-inner-four {
@@ -212,3 +209,4 @@
     border-right-width: 2px;
   }
 </style>
+

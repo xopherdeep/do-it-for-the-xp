@@ -1,76 +1,123 @@
-import { v4 as uuidv4 } from 'uuid'
 import DbStorageApi from './DbStorageApi';
-import AbilitiesDb, { abilitiesStorage } from './AbilitiesDb';
-import AccessoriesDb, { accessoriesStorage } from './AccessoriesDb';
+import { Drivers, Storage } from "@ionic/storage";
+import { v4 as uuidv4 } from 'uuid'
+import { getAllShops } from '@/lib/engine/core/shopRegistry';
 
-const abilitiesDb = new AbilitiesDb(abilitiesStorage);
-const accessoriesDb = new AccessoriesDb(accessoriesStorage);
+export const shopStorage = new Storage({
+  name: "__shops",
+  driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
+});
 
-enum ItemType {
+export enum ShopItemType {
   Ability,
   Accessory,
 }
 
-interface ShopItem {
+export interface ShopItem {
   itemId: string;
-  type: ItemType;
+  type: ShopItemType;
+  price?: number; // Override price
+  availableDays?: number[]; // 0-6, null/empty = always
 }
 
-interface Shop {
-  id?: any
+export interface ShopInterface {
+  id: string;
   name: string;
   description: string;
-  items: ShopItem[];
+  world: string; // Used for BG image
   icon: string;
+  clerkName?: string;
+  items: ShopItem[];
 }
 
 export class ShopsDb extends DbStorageApi {
-  private createShop(): Shop {
-    return {
-      id: uuidv4(),
-      name: '',
-      description: '',
-      items: [],
-      icon: ''
+  
+  public async setShop(shop: ShopInterface) {
+    if (!shop.id) {
+        shop.id =  uuidv4();
     }
+    await this.set(shop.id, shop);
   }
 
-  public async setShop(shop: Shop) {
-    const id = shop.id ? shop.id : uuidv4();
-    const items = shop.items.map(item => ({ itemId: item.itemId, type: item.type }));
-    await this.set(id, {
-      ...this.createShop(),
-      ...shop,
-      items,
-      id
-    });
+  public async getShopById(id: string): Promise<ShopInterface | null> {
+    return await this.get(id) || null;
   }
-
-  public async deleteShop(shop: Shop) {
-    this.remove(shop.id)
-    return await this.getShops()
-  }
-
-  public async getShopById(id) {
-    const shops = await this.getShops();
-    const shop = shops.find(shop => shop.id === id);
-    if (!shop) {
-      return this.createShop();
-    }
-    const items = await Promise.all(shop.items.map(async (item) => {
-      if (item.type === ItemType.Ability) {
-        return await abilitiesDb.getAbilityById(item.itemId);
-      } else if (item.type === ItemType.Accessory) {
-        return await accessoriesDb.getAccessoryById(item.itemId);
+  
+  public async getShops(): Promise<ShopInterface[]> {
+    const keys = await this.keys();
+    const shops: ShopInterface[] = [];
+    for (const key of keys) {
+      const shop = await this.get(key);
+      if (shop) {
+        shops.push(shop);
       }
-    }));
-    return { ...shop, items };
+    }
+    return shops;
   }
 
-  public async getShops() {
-    const shops = await this.getAll()
-    return shops
+  /**
+   * Seeds the database with shop data from the centralized shopRegistry.
+   * This ensures consistent shop data across the application.
+   */
+  public async seedDefaults() {
+    const existing = await this.getShops();
+    if (existing.length > 0) return;
+
+    // Get all shops from the centralized registry
+    const registryShops = getAllShops();
+    
+    for (const meta of registryShops) {
+      const shop: ShopInterface = {
+        id: meta.id,
+        name: meta.name,
+        description: meta.description,
+        world: meta.world,
+        icon: `fad fa-${meta.icon}`,
+        clerkName: meta.clerkName,
+        items: []
+      };
+      await this.setShop(shop);
+    }
+  }
+
+  /**
+   * Syncs the database with the registry, adding any new shops
+   * and updating metadata for existing ones (while preserving user items).
+   */
+  public async syncWithRegistry() {
+    const registryShops = getAllShops();
+    const existingShops = await this.getShops();
+    const existingIds = new Set(existingShops.map(s => s.id));
+
+    for (const meta of registryShops) {
+      if (!existingIds.has(meta.id)) {
+        // New shop from registry - add it
+        const shop: ShopInterface = {
+          id: meta.id,
+          name: meta.name,
+          description: meta.description,
+          world: meta.world,
+          icon: `fad fa-${meta.icon}`,
+          clerkName: meta.clerkName,
+          items: []
+        };
+        await this.setShop(shop);
+      } else {
+        // Existing shop - update metadata but preserve items
+        const existing = await this.getShopById(meta.id);
+        if (existing) {
+          existing.name = meta.name;
+          existing.description = meta.description;
+          existing.world = meta.world;
+          existing.icon = `fad fa-${meta.icon}`;
+          existing.clerkName = meta.clerkName;
+          // Items are preserved
+          await this.setShop(existing);
+        }
+      }
+    }
   }
 }
 
-export default ShopsDb
+const shopsDb = new ShopsDb(shopStorage);
+export default shopsDb;

@@ -6,7 +6,9 @@ import userActions from "@/mixins/userActions";
 import ionic from "@/mixins/ionic";
 import { modalController, toastController } from "@ionic/vue";
 import { arrowBack } from "ionicons/icons";
-import SaveAndQuitModal from "@/components/modals/SaveAndQuitModal.vue";
+import SaveAndQuitModal from "@/components/molecules/Modals/SaveAndQuitModal.vue";
+
+const requireAvatar = require.context("@/assets/images/avatars/");
 
 export default defineComponent({
   name: "my-home",
@@ -81,7 +83,12 @@ export default defineComponent({
       showSaveQuitModal.value = true;
     };
     
+    const userAvatar = computed(() => {
+      return (user.value?.avatar) ? requireAvatar(`./${user.value.avatar}.svg`) : '';
+    });
+    
     return {
+      userAvatar,
       closeModal,
       clickSave,
       user,
@@ -94,23 +101,24 @@ export default defineComponent({
       openSaveQuitModal,
 
       userActions: [
-        {
-          label: "My Calendar",
-          id: 'adventure-time',
-          faIcon: "clock",
-          side: "bottom",
-          click() {
-            router.push({ name: 'calendar', params: { userId } })
-          }
-        },
+
         {
           label: "My Storage",
           // id: 'storage',
           faIcon: "treasure-chest",
-          side: "bottom",
+          side: "top",
           // link: 'storage',
           click() {
             router.push({ name: 'storage', params: { userId } })
+          }
+        },
+        {
+          label: "My Calendar",
+          id: 'adventure-time',
+          faIcon: "clock",
+          side: "top",
+          click() {
+            router.push({ name: 'calendar', params: { userId } })
           }
         },
         // {
@@ -122,7 +130,7 @@ export default defineComponent({
           label: "My Workbench",
           id: 'craft',
           faIcon: "tools",
-          side: "top",
+          side: "start",
           click() {
             router.push({ name: 'craft-item', params: { userId } })
           }
@@ -131,7 +139,7 @@ export default defineComponent({
           label: "My Kitchen",
           id: 'cook',
           faIcon: "hat-chef",
-          side: "top",
+          side: "end",
           click() {
             router.push({ name: 'cook-food', params: { userId } })
           }
@@ -140,7 +148,7 @@ export default defineComponent({
           label: "Go Outside",
           id: 'home-town',
           faIcon: "door-open",
-          side: "start",
+          side: "bottom",
           click() {
             router.push({ name: 'home-town', params: { userId } })
             // console.log($ev.preventDefault());

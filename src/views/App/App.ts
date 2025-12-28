@@ -37,16 +37,20 @@ import {
   warningOutline,
   warningSharp,
 } from "ionicons/icons";
-import { useStore } from "vuex";
+
 
 import { useQueryProvider } from "vue-query";
 
 import XpSideMenu from "@/views/App/SideMenu/SideMenu.vue";
+import XpAudioPermissionModal from "@/components/molecules/Modals/XpAudioPermissionModal.vue";
+// import XpGlobalDialog from "../../components/molecules/Dialog/XpGlobalDialog.vue";
+import XpGlobalDialog from "@/components/molecules/Dialog/XpGlobalDialog.vue";
 import debug from "@/lib/utils/debug";
 import { useAudioStore } from "@/lib/store/stores/audio";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useGameStore } from "@/lib/store/stores/game";
 import { useBattleStore } from "@/lib/store/stores/battle";
+import { changeBGM as changeBGMAdapter } from '@/lib/engine/audio/routeMusic';
 
 export default defineComponent({
   name: "App",
@@ -67,6 +71,8 @@ export default defineComponent({
     IonRouterOutlet,
     IonSplitPane,
     XpSideMenu,
+    XpAudioPermissionModal,
+    XpGlobalDialog,
   },
   data() {
     return {
@@ -102,10 +108,16 @@ export default defineComponent({
   },
   mounted() {
     // Cast this to any as a workaround for TS2339
-    const { audioStore, gameStore, loadBGM } = (this as any);
+    const { audioStore, gameStore } = (this as any);
     const $fx = audioStore.bgm.$fx;
     const theme = gameStore.theme.rpg;
-    this.audioStore.changeBGM({ tracks: $fx.rpg[theme].BGM.startScreen }).then(loadBGM as any)
+    
+    // Use the new AudioEngine for the initial BGM
+    changeBGMAdapter(audioStore, { 
+      tracks: $fx.rpg[theme].BGM.startScreen,
+      track: 0,
+      saveBookmark: false
+    }, true);
   },
   methods: {
     toggleBGM() { return this.audioStore.toggleBGM() },
@@ -221,7 +233,15 @@ export default defineComponent({
     tracks: {
       handler() {
         const self = this as any;
-        const { is_on, startDelay, saveBookmark, track, audio } = self.bgm;
+        const { is_on, startDelay, saveBookmark, track, audio, _usingNewAudioEngine } = self.bgm;
+
+        // If we are using the new AudioEngine, we should NOT use the legacy audio element
+        if (_usingNewAudioEngine) {
+          if (audio) {
+            audio.pause();
+          }
+          return;
+        }
 
         if (audio) {
           audio.pause();
@@ -236,7 +256,7 @@ export default defineComponent({
   },
 
   setup() {
-    const store = useStore();
+
     const audioStore = useAudioStore();
     const userStore = useUserStore();
     const gameStore = useGameStore();
@@ -258,7 +278,6 @@ export default defineComponent({
     const bgm = computed(() => audioStore.bgm);
 
     return {
-      store,
       audioStore,
       userStore,
       gameStore,

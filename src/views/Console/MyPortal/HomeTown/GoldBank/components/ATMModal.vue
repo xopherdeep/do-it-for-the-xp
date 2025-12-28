@@ -10,6 +10,7 @@
 -->
 <template>
   <ion-modal
+    ref="modal"
     :is-open="isOpen"
     @didDismiss="onDismiss"
     class="atm-modal fullscreen"
@@ -17,7 +18,7 @@
     <ion-header>
       <ion-toolbar color="warning">
         <ion-buttons slot="start">
-          <ion-button @click="dismiss" color="rpg">
+          <ion-button @click.stop="dismiss" color="rpg">
             <ion-icon
               slot="icon-only"
               :icon="closeOutline"
@@ -113,7 +114,8 @@ import {
   logOutOutline
 } from 'ionicons/icons';
   import { actionSheetController, alertController } from '@ionic/vue';
-import Ionic from '@/mixins/ionic';
+  import Ionic from '@/mixins/ionic';
+import { play$fx } from '@/assets/fx';
 
 export default defineComponent({
   name: 'ATMModal',
@@ -130,13 +132,16 @@ export default defineComponent({
   },
   emits: ['update:isOpen', 'deposit', 'withdraw', 'payDebt'],
   setup(props, { emit }) {
+    const modal = ref<any>(null);
+
     // Dismiss the modal
-    const dismiss = () => {
-      emit('update:isOpen', false);
+    const dismiss = async () => {
+      play$fx('no');
+      await modal.value?.$el?.dismiss();
     };
 
     const onDismiss = () => {
-      // Any cleanup needed
+      emit('update:isOpen', false);
     };
 
     const handleDeposit = (data: any) => {
@@ -333,7 +338,8 @@ export default defineComponent({
       arrowUpCircleOutline,
       arrowDownCircleOutline,
       cardOutline,
-      logOutOutline
+      logOutOutline,
+      modal
     };
   }
 });

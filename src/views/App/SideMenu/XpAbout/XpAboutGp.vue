@@ -55,7 +55,7 @@
 import { defineComponent } from 'vue';
 import ionic from '@/mixins/ionic';
 import { actionSheetController } from '@ionic/vue';
-import XpTypingText from '@/components/XpTypingText/XpTypingText.vue';
+import XpTypingText from '@/components/atoms/TypingText/XpTypingText.vue';
 import { medalOutline, cartOutline, bulbOutline } from 'ionicons/icons';
 import debug from '@/lib/utils/debug';
 

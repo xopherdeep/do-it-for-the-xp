@@ -1,5 +1,5 @@
 <template>
-  <ion-page :class="$options.name">
+  <ion-page :class="$options.name" style="background: transparent">
     <ion-header>
       <ion-toolbar class="icon-colors rpg-box">
         <ion-buttons slot="start">
@@ -56,9 +56,15 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="bg-slide">
+    <ion-content class="transparent-content" style="--background: transparent">
+      <!-- Loading State -->
+      <div v-if="isLoading" class="loading-wrapper-centered">
+        <XpLoading />
+      </div>
+
       <!-- Enhanced Ability Manager Component -->
       <XpAbilityManager
+        v-else
         :abilities="filteredAbilities"
         :view-mode="viewMode"
         :ability-statuses="abilityStatuses"
@@ -247,8 +253,9 @@
   import { v4 as uuidv4 } from 'uuid'
   import { alertController, actionSheetController } from '@ionic/vue'
   import AbilitiesDb, { abilitiesStorage } from '@/lib/databases/AbilitiesDb'
-  import XpAbilityManager from '@/components/XpAbility/XpAbilityManager.vue'
-  import XpIconPicker from '@/components/XpIcon/XpIconPicker.vue'
+  import XpAbilityManager from '@/components/molecules/Ability/XpAbilityManager.vue'
+  import XpIconPicker from '@/components/atoms/Icon/XpIconPicker.vue'
+  import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
   import {
     Ability,
     AbilityType,
@@ -267,7 +274,8 @@
     name: 'XpAbilities',
     components: {
       XpAbilityManager,
-      XpIconPicker
+      XpIconPicker,
+      XpLoading
     },
     mixins: [ionic],
     setup() {
@@ -283,6 +291,7 @@
       const viewMode = ref('list') // 'list' or 'grid'
       const currentFilter = ref('all')
       const classFilter = ref('all')
+      const isLoading = ref(true);
       const abilityStatuses = ref<{ [abilityId: string]: AbilityStatus }>({})
       const unlockStatuses = ref<{ [abilityId: string]: boolean }>({})
       const router = useRouter();
@@ -798,19 +807,22 @@
         unlockStatuses.value = unlocks;
       };
 
-      const loadAbilities = async () => {
-        const loadedAbilities = await abilitiesDb.getAbilities();
-        abilities.value = loadedAbilities;
-        calculateAbilityStatuses();
-      };
+
+
+      // Initialize
+      onMounted(async () => {
+        isLoading.value = true;
+        try {
+          const loadedAbilities = await abilitiesDb.getAbilities();
+          abilities.value = loadedAbilities;
+          calculateAbilityStatuses();
+        } finally {
+          isLoading.value = false;
+        }
+      });
 
       // Watch for changes in abilities to recalculate statuses
       watch(abilities, calculateAbilityStatuses, { deep: true });
-
-      // Initialize
-      onMounted(() => {
-        loadAbilities();
-      });
 
       // Action sheet handler
       const presentActionSheet = async () => {
@@ -900,6 +912,7 @@
         formatFrequency,
         formatPeriod,
         presentActionSheet,
+        isLoading, // Added isLoading to return
 
         // Constants
         AbilityType,
@@ -974,5 +987,10 @@
     --width: 90%;
     --max-width: 700px;
     --border-radius: 16px;
+  }
+
+  .transparent-content {
+    --background: transparent;
+    background: transparent;
   }
 </style>

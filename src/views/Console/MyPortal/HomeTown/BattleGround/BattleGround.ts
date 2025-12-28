@@ -1,8 +1,8 @@
 import { defineComponent } from "vue";
-import { mapState } from "vuex";
+import { useGameStore } from "@/lib/store/stores/game";
 import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
 import backgrounds from "@/assets/images/backgrounds/parallax/index";
-import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
+import CardUserStats from "@/components/organisms/CardUserStats/CardUserStats.vue";
 import fetchItems from "@/mixins/fetchItems";
 import ionic from "@/mixins/ionic";
 import MyTask from "../../UserHud/MyTask/MyTask";
@@ -10,7 +10,7 @@ import MyTask from "../../UserHud/MyTask/MyTask";
 import users from "@/lib/api/users.api";
 import userActions from "@/mixins/userActions";
 import XpFabBattleActions from "@/views/Console/MyPortal/UserHud/components/XpFabBattleActions.vue";
-import XpTypingText from "@/components/XpTypingText";
+import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
 // Import the new battle services
 import { createBattleService, createBestiaryService, BattleService, BestiaryService, Enemy, CompletedTask } from '@/lib/services/battle';
 
@@ -204,7 +204,9 @@ export default defineComponent({
     };
   },
   computed: {
-    ...mapState(["xp_achievement"]),
+    xp_achievement() {
+      return this.gameStore.achievements;
+    },
   },
   methods: {
     // Get beast avatar image from the beast ID - using bestiary service
@@ -332,7 +334,7 @@ export default defineComponent({
           // Return to hometown after a delay
           setTimeout(() => {
             this.$router.push({
-              name: "hometown",
+              name: "home-town",
               params: { userId: this.userId },
             });
           }, 3000);
@@ -792,7 +794,7 @@ export default defineComponent({
               // Handle game over after dialog completes
               setTimeout(() => {
                 this.$router.push({
-                  name: "hometown",
+                  name: "home-town",
                   params: { userId: this.userId },
                 });
               }, 5000);
@@ -1029,7 +1031,7 @@ export default defineComponent({
     // Initialize battle services
     initBattleServices() {
       // Create the battle service instances
-      this.battleService = createBattleService(this.$store);
+      this.battleService = createBattleService();
       this.bestiaryService = createBestiaryService();
       
       // Register callbacks for the battle service
@@ -1279,7 +1281,7 @@ export default defineComponent({
         // In a real game, we would handle defeat properly
         // For now just redirect to hometown
         this.$router.push({
-          name: "hometown",
+          name: "home-town",
           params: { userId: this.userId },
         });
       }, 3000);
@@ -1307,4 +1309,8 @@ export default defineComponent({
     backgroundManager.cleanupBackground();
   },
   // ... rest of the component ...
+  setup() {
+    const gameStore = useGameStore();
+    return { gameStore };
+  }
 });

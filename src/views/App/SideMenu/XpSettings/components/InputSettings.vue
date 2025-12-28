@@ -188,6 +188,14 @@ export default defineComponent({
       });
     },
 
+    changeUISound(ev) {
+      const { rpg } = this.theme;
+      this.update$fx({
+        rpg,
+        ui: ev.detail.value,
+      });
+    },
+
     changeMusicVolume(ev) {
       this.musicVolume = ev.detail.value;
       // In a real app, this would update the actual volume

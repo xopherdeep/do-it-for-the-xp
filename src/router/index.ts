@@ -71,6 +71,28 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import("@/views/Console/BattleField/BattleField.vue"),
     props: true,
   },
+  // Temple Room Battle - /battle-field/temple/:templeId/:level/:x/:y
+  {
+    path: "/battle-field/temple/:templeId/:level/:x/:y",
+    name: "battle-field-temple",
+    meta: {
+      faIcon: "dungeon",
+      battleType: "temple" // Metadata to identify the battle context
+    },
+    component: () => import("@/views/Console/BattleField/BattleField.vue"),
+    props: true,
+  },
+  // Quest Battle - /battle-field/quest/:questId
+  {
+    path: "/battle-field/quest/:questId",
+    name: "battle-field-quest",
+    meta: {
+      faIcon: "dungeon",
+      battleType: "quest"
+    },
+    component: () => import("@/views/Console/BattleField/BattleField.vue"),
+    props: true,
+  },
 ];
 
 // Create and export router factory function

@@ -7,6 +7,7 @@ declare global {
 
 import loadingMP3 from "@/assets/audio/loading.mp3";
 import debug from "@/lib/utils/debug";
+import { AudioEngine } from "@/lib/engine/audio/AudioEngine";
 
 import nintendo from "./nintendo.fx";
 import earthbound from "./earthbound.fx";
@@ -72,23 +73,28 @@ const $fx = {
   ui: {
     nintendo: {
       loading: new Audio(nintendo.EshopIntro),
-      start: new Audio(nintendo.Popup),
+      intro: new Audio(nintendo.EshopIntro),
+      setup: new Audio(nintendo.Settings),
+      start: new Audio(nintendo.EnterBack),
       select: new Audio(nintendo.Select),
       noSelect: new Audio(nintendo.Border),
       yes: new Audio(nintendo.Tick),
       no: new Audio(nintendo.Standby),
       alert: new Audio(nintendo.Bing),
       // error: new Audio(nintendo.),
-      options: new Audio(nintendo.Settings),
+      options: new Audio(earthbound.okdesuka),
       openTask: new Audio(nintendo.News),
       closeTask: new Audio(nintendo.Home),
       openPage: new Audio(nintendo.Album),
-      closePage: new Audio(nintendo.Tick),
+      closePage: new Audio(earthbound.okdesuka),
       chooseUser: new Audio(nintendo.User),
       openShop: new Audio(nintendo.Eshop),
+      GameBoy: new Audio(nintendo.GameBoy),
     },
     sony: {
       loading: new Audio(nintendo.EshopIntro),
+      intro: new Audio(nintendo.EshopIntro),
+      setup: new Audio(sony.NavigationEnter),
       start: new Audio(sony.NavigationEnter),
       select: new Audio(sony.Navigation),
       yes: new Audio(sony.PromptEnter),
@@ -538,37 +544,57 @@ const $fx = {
 
 export const play$fx = (fx = 'select') => {
   const { ui, rpg, theme: { ui: themeUi, rpg: themeRpg } } = $fx
-  let soundFx = ui[themeUi][fx]
+  
+  // Logic to determine if we should use 'setup' instead of 'loading'
+  // When in the "backend" (GameMaster/Compendium Setup), we use the setup sound
+  let targetFx = fx;
+  if (fx === 'loading' && typeof window !== 'undefined' && window.location.pathname.includes('/game-master/compendium/setup')) {
+    targetFx = 'setup';
+  }
+
+  let soundFx = ui[themeUi][targetFx]
   
   // Only play sound if user has interacted with the page
-  if (soundFx && document.documentElement.hasAttribute('data-user-interacted')) {
-    try {
-      soundFx.play().catch(err => {
-        debug.log('Sound playback was prevented:', err);
-        // Store that we attempted to play a sound, for future reference
-        window._pendingAudioPlay = true;
-      });
-    } catch (err) {
-      debug.log('Sound playback error:', err);
-    }
-  } else if (soundFx) {
-    // Store that we attempted to play a sound, for future reference
-    window._pendingAudioPlay = true;
-  } else {
-    soundFx = rpg[themeRpg][fx]
-    if (soundFx && document.documentElement.hasAttribute('data-user-interacted')) {
-      try {
-        soundFx.play().catch(err => {
-          debug.log('Sound playback was prevented:', err);
-          window._pendingAudioPlay = true;
+  // Check with AudioEngine first
+  const audioEngine = AudioEngine.getInstance();
+  const shouldTryPlay = audioEngine.state.audioPermissionGranted || (typeof document !== 'undefined' && document.documentElement.hasAttribute('data-user-interacted'));
+  
+  if (soundFx) {
+    if (shouldTryPlay) {
+        soundFx.volume = audioEngine.state.muted ? 0 : audioEngine.state.uiVolume * audioEngine.state.masterVolume;
+        soundFx.currentTime = 0; // Reset to start
+        soundFx.play().catch((err: any) => {
+            debug.warn('UI Sound playback was prevented:', err);
+            // Only trigger modal if it's a permission/interaction issue
+            if (err.name === 'NotAllowedError' || err.message?.includes('interact') || err.message?.includes('user activation')) {
+                 audioEngine.state.audioPermissionGranted = false;
+            }
         });
-      } catch (err) {
-        debug.log('Sound playback error:', err);
-      }
-    } else if (soundFx) {
-      window._pendingAudioPlay = true;
+    } else {
+        // We know it will fail, so don't try, but do trigger modal if we haven't already
+        // But only if we actually wanted to play something
+        debug.log('Skipping UI sound playback due to lack of permission');
+    }
+  } else {
+    soundFx = rpg[themeRpg][targetFx]
+    if (soundFx) {
+        if (shouldTryPlay) {
+            soundFx.volume = audioEngine.state.muted ? 0 : audioEngine.state.sfxVolume * audioEngine.state.masterVolume;
+            soundFx.currentTime = 0;
+            soundFx.play().catch((err: any) => {
+               debug.warn('RPG Sound playback was prevented:', err);
+               if (err.name === 'NotAllowedError' || err.message?.includes('interact') || err.message?.includes('user activation')) {
+                   audioEngine.state.audioPermissionGranted = false;
+               }
+            });
+        }
     }
   }
+}
+
+// Attach to window for global access (legacy support)
+if (typeof window !== 'undefined') {
+  (window as any).play$fx = play$fx;
 }
 
 export default $fx;

@@ -26,27 +26,27 @@ export default defineComponent<DefineUserActionComponent>({
       {
         label: "Witch's Hut",
         faIcon: "cauldron",
-        side: "top",
+        side: "start",
         click() {
           const merchant = "witchs-hut"
           router.push({ name: "shop", params: { merchant }})
         },
       },
       {
-        label: "Moon Temple",
-        id: "moon-temple",
-        faIcon: "place-of-worship",
-        side: "bottom",
+        label: "Travel World",
+        faIcon: "pegasus",
+        side: "top",
         click() {
-          router.push({ name: "temple", params: { userId, temple: 'moon-temple' } });
+          router.push({ name: "world-map", params: { userId } });
         },
       },
       {
-        label: "Travel World",
-        faIcon: "pegasus",
-        side: "start",
+        label: "Moon Temple",
+        id: "moon-temple",
+        faIcon: "place-of-worship",
+        side: "end",
         click() {
-          router.push({ name: "world-map", params: { userId } });
+          router.push({ name: "temple", params: { userId, temple: 'moon-temple' } });
         },
       },
     ];

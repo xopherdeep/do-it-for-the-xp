@@ -173,7 +173,7 @@
   } from "@ionic/vue";
   import ionic from "@/mixins/ionic";
   import GamerCard from "./AddProfile/GamerCard.vue";
-  import XpIcon from "@/components/XpIcon";
+  import XpIcon from "@/components/atoms/Icon/XpIcon.vue";
   import { defineComponent, onUnmounted } from "vue";
 import debug from "@/lib/utils/debug";
 

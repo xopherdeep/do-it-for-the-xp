@@ -3,6 +3,7 @@
  */
 import { TempleDb, templeStorage, TempleInterface } from '@/lib/databases/TempleDb';
 import temples from '@/lib/engine/temples';
+import { Room } from './types';
 import debug from '@/lib/utils/debug';
 
 /**
@@ -19,33 +20,40 @@ export async function importAllTempleLayouts(): Promise<void> {
     
     // Get temple display names
     const templeNames = {
-      "wind-temple": "Temple of Zephyr",
-      "earth-temple": "Gaia Sanctuary",
-      "water-temple": "Aqua Haven",
-      "fire-temple": "Inferno Citadel",
-      "ice-temple": "Frost Keep",
-      "light-temple": "Solar Sanctum",
-      "shadow-temple": "Lunar Shrine",
-      "storm-temple": "Storm Spire",
-      "moon-temple": "Lunar Shrine"
+      "wind-temple":    "Wind Temple",
+      "earth-temple":   "Earth Temple",
+      "water-temple":   "Water Temple",
+      "fire-temple":    "Fire Temple",
+      "ice-temple":     "Ice Temple",
+      "light-temple":   "Light Temple",
+      "shadow-temple":  "Shadow Temple",
+      "storm-temple":   "Storm Temple",
+      "moon-temple":    "Moon Temple"
     };
 
     // Get temple descriptions
     const templeDescriptions = {
-      "wind-temple": "Masters of aerial magic and swift techniques",
-      "earth-temple": "Guardians of nature and earthen powers",
-      "water-temple": "Wielders of healing and fluid combat",
-      "fire-temple": "Home to powerful offensive spells",
-      "ice-temple": "Specialists in ice magic and defense",
-      "light-temple": "Light magic and restoration abilities",
-      "shadow-temple": "Dark magic and mysterious arts",
-      "storm-temple": "Masters of lightning and thunder",
-      "moon-temple": "Mysterious powers of the night sky"
+      "wind-temple":    "Masters of aerial magic and swift techniques",
+      "earth-temple":   "Guardians of nature and earthen powers",
+      "water-temple":   "Wielders of healing and fluid combat",
+      "fire-temple":    "Home to powerful offensive spells",
+      "ice-temple":     "Specialists in ice magic and defense",
+      "light-temple":   "Light magic and restoration abilities",
+      "shadow-temple":  "Dark magic and mysterious arts",
+      "storm-temple":   "Masters of lightning and thunder",
+      "moon-temple":    "Mysterious powers of the night sky"
     };
     
     // Import each temple layout
     for (const [templeId, templeData] of Object.entries(temples)) {
-      debug.log(`Importing ${templeId} layout to TempleDb...`);
+      // CHECK IF EXISTS FIRST
+      const existing = await templeDb.getTempleById(templeId);
+      if (existing) {
+        debug.log(`Temple ${templeId} already exists in DB, skipping import to preserve user changes.`);
+        continue;
+      }
+
+      debug.log(`Importing ${templeId} layout to TempleDb for the first time...`);
       
       // Convert the temple to the TempleInterface format
       const templeToSave: TempleInterface = {
@@ -55,9 +63,9 @@ export async function importAllTempleLayouts(): Promise<void> {
         categoryIds: ['dungeon', templeId.split('-')[0]],
         level: getTempleLevel(templeId),
         dungeonLayout: {
-          entrance: templeData.entrance,
-          maze: templeData.maze,
-          rooms: templeData.rooms
+          entrance: templeData.entrance as number[],
+          maze: templeData.maze as string[][] | Record<string, string[][]>,
+          rooms: templeData.rooms as Record<string, Room>
         }
       };
       

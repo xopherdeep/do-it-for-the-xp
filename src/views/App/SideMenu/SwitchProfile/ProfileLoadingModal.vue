@@ -15,8 +15,10 @@
               <p v-else>Preparing your journey...</p>
               
               <div class="loading-animation">
-                <!-- <ion-spinner name="bubbles" color="primary"></ion-spinner> -->
-                 <i class="fad fa-user-astronaut fa-3x fa-bounce text-primary"></i>
+                <div v-if="userAvatar" class="avatar-container">
+                  <img :src="userAvatar" class="profile-avatar" />
+                </div>
+                <i v-else class="fad fa-user-astronaut fa-3x fa-bounce text-primary"></i>
               </div>
 
               <div class="progress-bar">
@@ -33,7 +35,6 @@
 <script lang="ts">
 import { defineComponent } from 'vue'
 import ionic from '@/mixins/ionic'
-
 export default defineComponent({
   name: 'ProfileLoadingModal',
   mixins: [ionic],
@@ -43,6 +44,10 @@ export default defineComponent({
       default: false
     },
     userName: {
+      type: String,
+      default: ''
+    },
+    userAvatar: {
       type: String,
       default: ''
     }
@@ -118,6 +123,31 @@ export default defineComponent({
     i {
       filter: drop-shadow(0 0 10px rgba(var(--ion-color-primary-rgb), 0.4));
     }
+
+    .avatar-container {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      background: white;
+      padding: 10px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      border: 3px solid var(--ion-color-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: bounce 2s infinite ease-in-out;
+
+      .profile-avatar {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+    }
+  }
+
+  @keyframes bounce {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
   }
 
   .progress-bar {

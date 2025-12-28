@@ -100,9 +100,9 @@ import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
          IonRange, IonButtons, IonBackButton, IonSelect, 
          IonSelectOption, IonCard, IonCardHeader, 
          IonCardTitle, IonCardContent, IonText } from '@ionic/vue';
-import WeatherFX from '@/components/WeatherFX/WeatherFX.vue';
-import { useWeatherFX } from '@/components/WeatherFX';
-import { WeatherType } from '@/components/WeatherFX/types';
+import WeatherFX from '@/components/organisms/WeatherFX/WeatherFX.vue';
+import { useWeatherFX } from '@/components/organisms/WeatherFX';
+import { WeatherType } from '@/components/organisms/WeatherFX/types';
 
 export default defineComponent({
   name: 'weather-fx-dev-tools',

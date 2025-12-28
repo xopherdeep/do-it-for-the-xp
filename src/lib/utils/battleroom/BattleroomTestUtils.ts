@@ -2,22 +2,26 @@
  * BattleroomTestUtils provides utilities for testing and debugging 
  * the battleroom component in development environments.
  */
-import { Store } from 'vuex';
-import { RootState } from '@/lib/types/store';
+import { useBattleStore } from '@/lib/store/stores/battle';
 import debug from '@/lib/utils/debug';
 
 export class BattleroomTestUtils {
-  private store: Store<RootState>;
+  private battleStore: ReturnType<typeof useBattleStore>;
 
-  constructor(store: Store<RootState>) {
-    this.store = store;
+  constructor() {
+    this.battleStore = useBattleStore();
   }
 
   /**
    * Gets the current battle state from the store
    */
   getBattleState() {
-    return this.store.getters.battleState;
+    return {
+      active: this.battleStore.active,
+      timer: this.battleStore.timer,
+      steps: this.battleStore.steps,
+      terrain: this.battleStore.terrain
+    };
   }
 
   /**
@@ -25,14 +29,14 @@ export class BattleroomTestUtils {
    */
   triggerBattle(options: { enemyType?: string; bgIndex?: number } = {}) {
     // Activate battle in store
-    this.store.commit('ACTIVATE_BATTLE');
+    this.battleStore.activateBattle();
     
     // Set terrain type if specified
     if (options.bgIndex !== undefined) {
       const terrainTypes = ['plains', 'forest', 'mountain', 'swamp', 'island'];
       const terrain = terrainTypes[options.bgIndex % terrainTypes.length];
       
-      const terrainSettings = {
+      const terrainSettings: Record<string, number> = {
         plains: 0,
         forest: 0,
         mountain: 0,
@@ -40,12 +44,14 @@ export class BattleroomTestUtils {
         island: 0
       };
       
-      terrainSettings[terrain] = 1;
-      this.store.commit('SET_BATTLE_TERRAIN', terrainSettings);
+      if (terrain) {
+        terrainSettings[terrain] = 1;
+      }
+      this.battleStore.setTerrain(terrainSettings);
     }
     
     // Enter battle mode
-    this.store.dispatch('enterBattle');
+    this.battleStore.enterBattle();
     
     return this.getBattleState();
   }
@@ -54,7 +60,7 @@ export class BattleroomTestUtils {
    * Ends the current battle
    */
   endBattle() {
-    this.store.dispatch('leaveBattle');
+    this.battleStore.deactivateBattle();
     return this.getBattleState();
   }
 
@@ -71,7 +77,7 @@ export class BattleroomTestUtils {
    * Resets the battle counter/timer
    */
   resetBattleTimer() {
-    this.store.dispatch('resetBattleTimer');
+    this.battleStore.resetBattleTimer();
   }
 
   /**
@@ -80,13 +86,15 @@ export class BattleroomTestUtils {
    */
   simulateSteps(steps: number) {
     // Get current counter value
-    const currentCounter = this.store.getters.battleState('steps').counter;
+    const currentCounter = this.battleStore.steps.counter;
     
     // Reduce counter by specified number of steps
-    this.store.commit('SET_BATTLE_COUNTER', currentCounter - steps);
+    // Pinia store state is reactive, but better to use an action if available, 
+    // or direct modification if no specific setter exists
+    this.battleStore.steps.counter = currentCounter - steps;
     
     // Check if battle should trigger
-    this.store.dispatch('randomEncounter');
+    this.battleStore.randomEncounter();
     
     return this.getBattleState();
   }

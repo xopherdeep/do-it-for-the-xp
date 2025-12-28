@@ -51,7 +51,8 @@ export default defineComponent({
       now: new Date(),
       battleInterval: null,
       isRPGBoxOpen: false,
-      isUserProfileModalOpen: false, // Add state for the new modal
+      isUserProfileModalOpen: false,
+      isPegasusModalOpen: false,  // Wind Whistle modal
       currentTerrain: "plains",
       request: {
         type: "xp_achievement",
@@ -113,8 +114,15 @@ export default defineComponent({
     openUserProfileModal() { // Method to open the modal
       this.isUserProfileModalOpen = true;
     },
-    closeUserProfileModal() { // Method to close the modal
+    closeUserProfileModal() {
       this.isUserProfileModalOpen = false;
+    },
+    openPegasusModal() {
+      this.isPegasusModalOpen = true;
+      this.play$fx('openMenu');
+    },
+    closePegasusModal() {
+      this.isPegasusModalOpen = false;
     },
     updateCompass(name) {
       const { userId } = this;
@@ -281,12 +289,14 @@ export default defineComponent({
     });
 
     const pageIcon = computed(() => route.meta.faIcon);
+    const fabStyle = computed(() => gameStore.fabStyle);
 
     return {
       userId,
       clickItem,
       compass,
       pageIcon,
+      fabStyle,
       accessibilityOutline,
       calendar,
       chatbox,

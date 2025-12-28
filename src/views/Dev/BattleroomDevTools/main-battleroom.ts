@@ -7,148 +7,72 @@
  */
 import { createApp } from 'vue';
 import { IonicVue } from '@ionic/vue';
-import { createStore } from 'vuex';
-import BattleroomDevTools from './BattleroomDevTools.vue';
+import { createPinia } from 'pinia';
+import { useBattleStore } from '@/lib/store/stores/battle';
+import { useUserStore } from '@/lib/store/stores/user';
+import { useGameStore } from '@/lib/store/stores/game';
 import { FXSystem } from '@/lib/types/fx';
-
-// Import global styles
-import '@ionic/vue/css/core.css';
-import '@ionic/vue/css/normalize.css';
-import '@ionic/vue/css/structure.css';
-import '@ionic/vue/css/typography.css';
-import '@ionic/vue/css/padding.css';
-import '@ionic/vue/css/float-elements.css';
-import '@ionic/vue/css/text-alignment.css';
-import '@ionic/vue/css/text-transformation.css';
-import '@ionic/vue/css/flex-utils.css';
-import '@ionic/vue/css/display.css';
-
-// Import your theme css
-import '@/styles/index.scss';
 import debug from '@/lib/utils/debug';
+import BattleroomDevTools from './BattleroomDevTools.vue';
 
-// Create a simplified version of the store with just battle-related features
-const store = createStore({
-  state: {
-    battle: {
-      active: false,
-      interval: null,
-      bgmWaitToStart: 500,
-      steps: {
-        counter: 100,
-        max: 100,
-        min: 50,
-        timer: 500,
-      },
-      terrain: {
-        plains: 1,
-        forest: 0,
-        mountain: 0,
-        swamp: 0,
-        island: 0,
-      },
-    },
-    theme: "default",
-    bgm: {
-      is_on: false,
-      bookmark: 0,
-      playlist: [],
-    },
-    userActions: [
-      { label: "Attack", click: () => debug.log("Attack clicked") },
-      { label: "Magic", click: () => debug.log("Magic clicked") },
-      { label: "Item", click: () => debug.log("Item clicked") },
-      { label: "Run", click: () => debug.log("Run clicked") },
-    ],
-    // Add mock user data for development
-    users: {
-      1: {
-        id: 1,
-        name: {
-          nick: "Dev User",
-          first: "Dev",
-          last: "User"
-        },
-        avatar: "default",
-        stats: {
-          hp: 100,
-          maxHp: 100,
-          mp: 50,
-          maxMp: 50,
-          xp: 120,
-          level: 5
-        }
-      }
-    },
-    // Add mock achievement data
-    xp_achievement: {}
-  },
-  getters: {
-    battleState: (state) => (key) => {
-      if (key) return state.battle[key];
-      return state.battle;
-    },
-    // Add the missing getUserById getter
-    getUserById: (state) => (userId) => {
-      return state.users[userId] || {
-        id: userId,
-        name: { nick: "Test User", first: "Test", last: "User" },
-        avatar: "default",
-        stats: { hp: 100, maxHp: 100, mp: 50, maxMp: 50, xp: 0, level: 1 }
-      };
-    }
-  },
-  mutations: {
-    ACTIVATE_BATTLE(state) {
-      state.battle.active = true;
-    },
-    DEACTIVATE_BATTLE(state) {
-      state.battle.active = false;
-    },
-    SET_BATTLE_COUNTER(state, counter) {
-      state.battle.steps.counter = counter;
-    },
-    SET_BATTLE_INTERVAL(state, interval) {
-      if (!interval && state.battle.interval) {
-        clearInterval(state.battle.interval as unknown as number);
-      }
-      state.battle.interval = interval;
-    },
-    SET_BATTLE_TERRAIN(state, terrain) {
-      state.battle.terrain = {
-        ...state.battle.terrain,
-        ...terrain,
-      };
-    },
-    SET_USER_ACTIONS(state, userActions) {
-      state.userActions = userActions;
-    },
-  },
-  actions: {
-    enterBattle({ commit }) {
-      commit("ACTIVATE_BATTLE");
-      debug.log("Battle started");
-    },
-    leaveBattle({ commit }) {
-      commit("DEACTIVATE_BATTLE");
-      debug.log("Battle ended");
-    },
-    resetBattleTimer({ commit, state }) {
-      commit("SET_BATTLE_COUNTER", state.battle.steps.max);
-    },
-    randomEncounter({ state, commit }) {
-      const currentStep = state.battle.steps.counter;
-      if (currentStep <= 0) {
-        commit("ACTIVATE_BATTLE");
-      }
-    },
-  },
-});
+// Initialize Pinia
+const pinia = createPinia();
+
+// Add hydration logic after app mount or use a plugin to hydrate
+// Since we can't easily access stores before app.use(pinia), we'll do it after app creation
+// but before mount, or let the component handle default states.
+// However, the original code had explicit mock data. Let's try to set it up.
+
 
 // Create the Vue application
 const app = createApp(BattleroomDevTools)
   .use(IonicVue)
-  .use(store);
+  .use(pinia);
+
+// Hydrate Pinia stores with mock data
+const userStore = useUserStore();
+const battleStore = useBattleStore();
+const gameStore = useGameStore();
+
+// Set up mock user
+userStore.users = {
+  1: {
+    id: '1', // Ensure ID matches expected type (string)
+    name: {
+      nick: "Dev User",
+      first: "Dev",
+      last: "User"
+    },
+    avatar: "default",
+    stats: {
+      hp: 100,
+      maxHp: 100,
+      mp: 50,
+      maxMp: 50,
+      xp: 120,
+      level: 5,
+      gp: { wallet: 100, savings: 0, debt: 0 } // Add missing GP
+    }
+  }
+} as any; 
+
+// Set user 1 as current
+// userStore.currentUser = userStore.users[1];
+
+// Hydrate battle store
+battleStore.steps = {
+  counter: 100,
+  max: 100,
+  min: 50
+};
+
+// Mock game state
+gameStore.userActions = [
+  { label: "Attack", click: () => debug.log("Attack clicked") },
+  { label: "Magic", click: () => debug.log("Magic clicked") },
+  { label: "Item", click: () => debug.log("Item clicked") },
+  { label: "Run", click: () => debug.log("Run clicked") },
+] as any;
 
 // Global properties for the battle dev environment
 const fxSystem: Partial<FXSystem> = {

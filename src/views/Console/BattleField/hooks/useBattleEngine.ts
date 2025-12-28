@@ -1,7 +1,8 @@
 import debug from '@/lib/utils/debug';
-import { ref, computed, reactive, inject } from 'vue';
+import { ref, computed, reactive } from 'vue';
 import { useRouter } from 'vue-router';
-import { useStore } from 'vuex';
+import { useUserStore } from '@/lib/store/stores/user';
+import $fx from '@/assets/fx';
 
 // Types
 export interface Enemy {
@@ -92,11 +93,11 @@ export interface BattleDialog {
 export function useBattleEngine() {
   // Get Vue router for navigation
   const router = useRouter();
-  // Get Vuex store for state management
-  const store = useStore();
+  // Get Pinia user store for state management
+  const userStore = useUserStore();
   
-  // Inject FX from Vue app
-  const fx = inject('$fx') as any;
+  // Use the imported FX as 'fx'
+  const fx = $fx as any;
   
   // Enemy state
   const currentEnemy = ref<Enemy | null>(null);
@@ -404,7 +405,9 @@ export function useBattleEngine() {
     }
     
     // For subsequent turns, show the turn announcements
-    const playerName = store.state.user?.name?.nick || 'Player';
+    const currentUser = userStore.currentUser;
+    const userData = currentUser?.id ? userStore.getUserById(currentUser.id) : null;
+    const playerName = userData?.name?.nick || 'Player';
     battleDialog.queueDialog([
       `Turn - ${playerName}'s turn!`,
       "What will you do?"
@@ -430,10 +433,11 @@ export function useBattleEngine() {
     state.battleMessage = '';
     
     // Show encounter message
-    const playerName = store.state.user?.name?.nick || 'Player';
+    const currentUser = userStore.currentUser;
+    const userData = currentUser?.id ? userStore.getUserById(currentUser.id) : null;
+    const playerName = userData?.name?.nick || 'Player';
     battleDialog.queueDialog([
-      `${playerName} encountered ${currentEnemy.value.name}!`,
-      `Get ready for battle!`
+      `${playerName} encountered ${currentEnemy.value.name}!`
     ]);
     
     // Start player's turn after dialog completes
@@ -460,7 +464,9 @@ export function useBattleEngine() {
     
     // Helpers to calculate damage based on stats
     const getPlayerDamage = () => {
-      const baseAttack = store.state.user?.stats?.intelligence || 10;
+      const currentUser = userStore.currentUser;
+      const userData = currentUser?.id ? userStore.getUserById(currentUser.id) : null;
+      const baseAttack = userData?.stats?.intelligence || 10;
       const baseValue = baseAttack + Math.floor(Math.random() * 15);
       return Math.max(5, baseValue);
     };
@@ -484,7 +490,9 @@ export function useBattleEngine() {
     switch(actionType) {
       case 'attack': {
         // Handle attack
-        const playerName = store.state.user?.name?.nick || 'Player';
+        const currentUser = userStore.currentUser;
+        const userData = currentUser?.id ? userStore.getUserById(currentUser.id) : null;
+        const playerName = userData?.name?.nick || 'Player';
         battleDialog.queueDialog([`${playerName} attacks!`]);
         
         // Apply attack animation to enemy
@@ -529,7 +537,9 @@ export function useBattleEngine() {
       
       case 'defend': {
         // Handle defend action
-        const defenderName = store.state.user?.name?.nick || 'Player';
+        const currentUser = userStore.currentUser;
+        const userData = currentUser?.id ? userStore.getUserById(currentUser.id) : null;
+        const defenderName = userData?.name?.nick || 'Player';
         battleDialog.queueDialog([
           `${defenderName} takes a defensive stance!`,
           "Defense increased for this turn."
@@ -549,16 +559,16 @@ export function useBattleEngine() {
         break;
       }
       
-      case 'goods':
-        // Open inventory
+      case 'goods': {
+        const currentUser = userStore.currentUser;
+        const userData = currentUser?.id ? userStore.getUserById(currentUser.id) : null;
         battleDialog.queueDialog([
-          `${store.state.user?.name?.nick || 'Player'} checks their inventory.`,
+          `${userData?.name?.nick || 'Player'} checks their inventory.`,
           "Opening inventory..."
         ]);
         
-        // Navigate to inventory after dialog
         setTimeout(() => {
-          const userId = store.state.user?.id;
+          const userId = userStore.currentUser?.id;
           if (userId) {
             router.push({
               name: "my-inventory",
@@ -567,17 +577,19 @@ export function useBattleEngine() {
           }
         }, 2000);
         break;
+      }
         
-      case 'ability':
+      case 'ability': {
         // Open abilities
+        const currentUser = userStore.currentUser;
+        const userData = currentUser?.id ? userStore.getUserById(currentUser.id) : null;
         battleDialog.queueDialog([
-          `${store.state.user?.name?.nick || 'Player'} prepares to use an ability.`,
+          `${userData?.name?.nick || 'Player'} prepares to use an ability.`,
           "Opening abilities..."
         ]);
         
-        // Navigate to abilities after dialog
         setTimeout(() => {
-          const userId = store.state.user?.id;
+          const userId = userStore.currentUser?.id;
           if (userId) {
             router.push({
               name: "my-abilities",
@@ -586,10 +598,13 @@ export function useBattleEngine() {
           }
         }, 2000);
         break;
+      }
         
       case 'run': {
         // Handle run action
-        const runnerName = store.state.user?.name?.nick || 'Player';
+        const currentUser = userStore.currentUser;
+        const userData = currentUser?.id ? userStore.getUserById(currentUser.id) : null;
+        const runnerName = userData?.name?.nick || 'Player';
         
         // 70% chance to escape
         const escapeChance = Math.random();
@@ -663,12 +678,14 @@ export function useBattleEngine() {
     const enemyAction = actions[Math.floor(Math.random() * actions.length)];
     
     // Variables for damage calculation
-    const userLevel = store.state.user?.stats?.level || 1;
+    const currentUser = userStore.currentUser;
+    const userData = currentUser?.id ? userStore.getUserById(currentUser.id) : null;
+    const userLevel = userData?.stats?.level || 1;
     const baseDamage = 5 + Math.floor(Math.random() * 10);
     const damageTaken = Math.max(1, Math.floor(baseDamage * (1 + userLevel / 10)));
     
     // Cache current user stats
-    const currentHP = store.state.user?.stats?.hp || 100;
+    const currentHP = userData?.stats?.hp || 100;
     
     switch (enemyAction) {
       case 'attack': {
@@ -696,7 +713,7 @@ export function useBattleEngine() {
             
             // Show defense message
             battleDialog.queueDialog([
-              `${store.state.user?.name?.nick || 'Player'}'s defense reduces the damage!`,
+              `${userData?.name?.nick || 'Player'}'s defense reduces the damage!`,
             ]);
           }
           
@@ -707,7 +724,7 @@ export function useBattleEngine() {
           state.battleMessage = `-${finalDamage} HP`;
           
           // Show damage message and animate screen shake
-          const playerName = store.state.user?.name?.nick || 'Player';
+          const playerName = userData?.name?.nick || 'Player';
           battleDialog.queueDialog([
             `${playerName} takes ${finalDamage} damage!`
           ]);
@@ -838,13 +855,13 @@ export function useBattleEngine() {
     
     // Use callback to return to hometown if provided
     if (callbacks.onReturnToHometown) {
-      callbacks.onReturnToHometown(store.state.user?.id);
+      callbacks.onReturnToHometown(userStore.currentUser?.id || undefined);
     } else {
       // Default navigation
-      const userId = store.state.user?.id;
+      const userId = userStore.currentUser?.id;
       if (userId) {
         router.push({
-          name: "hometown",
+          name: "home-town",
           params: { userId }
         });
       }
@@ -859,8 +876,8 @@ export function useBattleEngine() {
       callbacks.onReturnToHometown(userId);
     } else {
       router.push({
-        name: "hometown",
-        params: { userId: userId || store.state.user?.id }
+        name: "home-town",
+        params: { userId: userId || userStore.currentUser?.id }
       });
     }
   };

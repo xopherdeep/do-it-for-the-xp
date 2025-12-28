@@ -1,3 +1,4 @@
+@use "sass:math";
 .world-ice{
   ion-content{
     --background: url("@/assets/images/backgrounds/world-ice.jpg") center center/cover no-repeat;
@@ -24,15 +25,15 @@
     
     @for $i from 1 through 20 {
       &:nth-child(#{$i}) {
-        $size: random(6) + 2px;
-        $left: random(100) * 1%;
-        $fallDuration: #{random(10) + 10}s;
-        $fallDelay: #{random(10)}s;
+        $size: math.random(6) + 2px;
+        $left: math.random(100) * 1%;
+        $fallDuration: #{math.random(10) + 10}s;
+        $fallDelay: #{math.random(10)}s;
         
         left: $left;
         width: $size;
         height: $size;
-        opacity: random(10) * 0.1;
+        opacity: math.random(10) * 0.1;
         animation-duration: $fallDuration;
         animation-delay: $fallDelay;
         animation-name: snowfall;

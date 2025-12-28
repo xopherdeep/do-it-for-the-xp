@@ -8,7 +8,7 @@ import userActions from "@/mixins/userActions";
 import type { DefineUserActionComponent } from "@/mixins/userActions";
 import debug from "@/lib/utils/debug";
 
-import WeatherFX from '@/components/WeatherFX/WeatherFX.vue';
+import WeatherFX from '@/components/organisms/WeatherFX/WeatherFX.vue';
 
 export default defineComponent<DefineUserActionComponent>({
   name: "world-islands",
@@ -194,28 +194,28 @@ export default defineComponent<DefineUserActionComponent>({
       {
         label: "Wrecked Ship",
         faIcon: "ship",
-        side: "top",
+        side: "start",
         click() {
           const merchant = "wrecked-ship"
           router.push({ name: "shop", params: { merchant }})
         },
       },
       {
-        label: "Water Temple",
-        id: "water-temple",
-        faIcon: "place-of-worship",
-        side: "bottom",
+        label: "Travel World",
+        faIcon: "pegasus",
+        side: "top",
         click() {
-          const temple = 'water-temple'
-          router.push({ name: "temple", params: { userId, temple } });
+          router.push({ name: "world-map", params: { userId } });
         },
       },
       {
-        label: "Travel World",
-        faIcon: "pegasus",
-        side: "start",
+        label: "Water Temple",
+        id: "water-temple",
+        faIcon: "place-of-worship",
+        side: "end",
         click() {
-          router.push({ name: "world-map", params: { userId } });
+          const temple = 'water-temple'
+          router.push({ name: "temple", params: { userId, temple } });
         },
       },
     ];

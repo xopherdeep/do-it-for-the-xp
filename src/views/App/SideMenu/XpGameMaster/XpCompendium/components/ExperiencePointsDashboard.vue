@@ -1,31 +1,55 @@
 <template>
-  <ion-grid class="icon-colors">
-    <ion-row>
-      <!-- Total XP Earned -->
-      <ion-col size="6">
-        <XpStatBox :value="1234567" label="XP Sown" iconName="fa-tree-alt" iconColor="success" />
-      </ion-col>
-      <!-- Active Streak -->
-      <ion-col size="6">
-        <XpStatBox :value="5678" label="Avg XP per Quest" iconName="fa-hand-holding-seedling"  />
-      </ion-col>
-      <!-- Tasks Completed Today -->
-      <ion-col >
-        <XpStatBox :value="75" label="XP Today" iconName="fa-calendar-day" iconColor="primary" />
-      </ion-col>
-      <ion-col >
-        <XpStatBox :value="123" label="XP This Week" iconName="fa-calendar-week" iconColor="warning" />
-      </ion-col>
-      <ion-col >
-        <XpStatBox :value="456" label="XP This Month" iconName="fa-calendar-alt" iconColor="tertiary" />
-      </ion-col>
-    </ion-row>
-  </ion-grid>
+  <XpDashboardGrid :cols="2">
+    <XpDashboardTile>
+      <XpNavTile 
+        label="Deploy Quests" 
+        iconName="fa-hand-holding-seedling" 
+        color="success"
+        @click="goToQuests" 
+      />
+    </XpDashboardTile>
+    <!-- Total XP Earned -->
+    <XpDashboardTile>
+      <XpStatBox 
+        :value="1234567" 
+        label="XP Sown" 
+        iconName="fa-tree-alt" 
+        iconColor="success" 
+        :isActive="isActive"
+        :animationKey="animationKey"
+      />
+    </XpDashboardTile>
+    <!-- Active Streak -->
+    <XpDashboardTile>
+      <XpStatBox 
+        :value="5678" 
+        label="Avg XP/Quest" 
+        iconName="fa-seedling" 
+        iconColor="success" 
+        :isActive="isActive"
+        :animationKey="animationKey"
+      />
+    </XpDashboardTile>
+    <XpDashboardTile>
+      <XpStatBox 
+        :value="1250" 
+        label="Avg XP/User" 
+        iconName="fa-user-visor" 
+        iconColor="warning" 
+        :isActive="isActive"
+        :animationKey="animationKey"
+      />
+    </XpDashboardTile>
+  </XpDashboardGrid>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import XpStatBox from '@/components/XpStatBox/XpStatBox.vue';
+import { useRouter } from 'vue-router';
+import XpStatBox from '@/components/molecules/StatBox/XpStatBox.vue';
+import XpNavTile from '@/components/molecules/StatGrid/XpNavTile.vue';
+import XpDashboardGrid from '@/components/molecules/StatGrid/XpDashboardGrid.vue';
+import XpDashboardTile from '@/components/molecules/StatGrid/XpDashboardTile.vue';
 import Ionic from '@/mixins/ionic';
 
 export default defineComponent({
@@ -33,7 +57,27 @@ export default defineComponent({
 
   mixins: [Ionic],
   components: {
-    XpStatBox
+    XpStatBox,
+    XpNavTile,
+    XpDashboardGrid,
+    XpDashboardTile
+  },
+  props: {
+    isActive: {
+      type: Boolean,
+      default: false
+    },
+    animationKey: {
+      type: [Number, String],
+      default: 0
+    }
+  },
+  setup() {
+    const router = useRouter();
+    const goToQuests = () => {
+      router.push({ name: 'xp-achievements' });
+    };
+    return { goToQuests };
   }
 });
 </script>

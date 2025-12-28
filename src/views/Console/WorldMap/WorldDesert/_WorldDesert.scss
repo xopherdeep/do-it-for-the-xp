@@ -1,3 +1,4 @@
+@use "sass:math";
 .world-desert{
   ion-content{
     --background: url("@/assets/images/backgrounds/world-desert.jpg") center center/cover no-repeat;
@@ -50,17 +51,17 @@
     
     @for $i from 1 through 30 {
       &:nth-child(#{$i}) {
-        $size: random(4) + 1 + px;
-        $top: random(100) * 1%;
+        $size: math.random(4) + 1 + px;
+        $top: math.random(100) * 1%;
         $left: -10px;
-        $duration: random(6) + 4 + s;
-        $delay: random(10) * 0.5s;
+        $duration: math.random(6) + 4 + s;
+        $delay: math.random(10) * 0.5s;
         
         width: $size;
         height: $size;
         top: $top;
         left: $left;
-        opacity: random(6) * 0.1 + 0.4;
+        opacity: math.random(6) * 0.1 + 0.4;
         animation-duration: $duration;
         animation-delay: $delay;
       }

@@ -233,35 +233,5 @@ ion-fab {
 </style>
 
 <style lang="scss">
-/* Global styles for action sheet - not scoped */
-.battle-action-sheet {
-  --background: rgba(var(--ion-background-color-rgb), 0.9);
-  --backdrop-opacity: 0.6;
-  --button-background-selected: rgba(var(--ion-color-primary-rgb), 0.1);
-
-  .action-attack::part(icon) {
-    color: var(--ion-color-danger);
-    opacity: 1;
-  }
-
-  .action-defend::part(icon) {
-    color: var(--ion-color-warning);
-    opacity: 1;
-  }
-
-  .action-run::part(icon) {
-    color: var(--ion-color-medium);
-    opacity: 1;
-  }
-
-  .action-goods::part(icon) {
-    color: var(--ion-color-success);
-    opacity: 1;
-  }
-
-  .action-abilities::part(icon) {
-    color: var(--ion-color-tertiary);
-    opacity: 1;
-  }
-}
+/* Global styles for battle action sheet are now handled in earthbound.scss */
 </style>

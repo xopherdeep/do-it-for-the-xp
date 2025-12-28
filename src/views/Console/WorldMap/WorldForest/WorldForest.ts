@@ -50,17 +50,25 @@ export default defineComponent<DefineUserActionComponent>({
       {
         label: "Hermit's Tent",
         faIcon: "campground",
-        side: "top",
+        side: "start",
         click() {
           const merchant = "hermits-tent"
           router.push({ name: "shop", params: { merchant }})
         },
       },
       {
+        label: "Travel World",
+        faIcon: "pegasus",
+        side: "top",
+        click() {
+          router.push({ name: "world-map", params: { userId } });
+        },
+      },
+      {
         label: "Forest Temple",
         id: "forest-temple",
         faIcon: "place-of-worship",
-        side: "bottom",
+        side: "end",
         click() {
           const temple = "forest-temple"
           router.push({ 
@@ -70,14 +78,6 @@ export default defineComponent<DefineUserActionComponent>({
               temple 
             } 
           });
-        },
-      },
-      {
-        label: "Travel World",
-        faIcon: "pegasus",
-        side: "start",
-        click() {
-          router.push({ name: "world-map", params: { userId } });
         },
       },
     ];

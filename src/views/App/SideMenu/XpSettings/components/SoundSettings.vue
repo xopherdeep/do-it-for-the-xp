@@ -28,7 +28,7 @@
 import { defineComponent } from "vue";
 
 import ionic from "@/mixins/ionic";
-import AudioSettings from "@/components/AudioSettings/AudioSettings.vue";
+import AudioSettings from "@/components/organisms/AudioSettings/AudioSettings.vue";
 
 import { arrowBack } from "ionicons/icons";
 

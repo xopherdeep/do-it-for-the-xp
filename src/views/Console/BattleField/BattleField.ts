@@ -1,22 +1,38 @@
-import { defineComponent, ref, onMounted, onUnmounted, inject, computed, watch } from "vue";
-import { useStore } from "vuex";
+import { defineComponent, ref, onMounted, onUnmounted, computed, watch } from "vue";
+import { useUserStore } from "@/lib/store/stores/user";
 import { useRouter, useRoute } from "vue-router";
 import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
 import backgrounds from "@/assets/images/backgrounds/parallax/index";
-import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
-import fetchItems from "@/mixins/fetchItems";
-import ionic from "@/mixins/ionic";
-import MyTask from "@/views/Console/MyPortal/UserHud/MyTask/MyTask.vue";
-import userActions from "@/mixins/userActions";
-import XpFabBattleActions from "@/views/Console/MyPortal/UserHud/components/XpFabBattleActions.vue";
-import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
+import CardUserStats from "@/components/organisms/CardUserStats/CardUserStats.vue";
+import { useBattleStore } from "@/lib/store/stores/battle";
+import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
+import XpRpgMenu from "@/components/molecules/RpgMenu/XpRpgMenu.vue";
 import XpHpMpHud from "@/views/Console/BattleField/hud/XpHpMpHud/XpHpMpHud.vue";
+import { useAudioStore } from "@/lib/store/stores/audio";
+import $fx from "@/assets/fx";
 import DevToolsFab from "@/views/Console/BattleField/hud/dev/DevToolsFab.vue";
 import DevBattleActionsFab from "@/views/Console/BattleField/hud/dev/DevBattleActionsFab.vue";
-import { modalController, toastController } from '@ionic/vue';
+import { 
+  modalController, 
+  toastController,
+  IonPage,
+  IonContent,
+  IonHeader,
+  IonToolbar,
+  IonTitle,
+  IonButtons,
+  IonButton,
+  IonIcon,
+  IonFab,
+  IonFabButton,
+  IonFabList,
+  IonModal,
+  onIonViewWillEnter,
+  onIonViewDidEnter
+} from '@ionic/vue';
 
 // Import battle services
-import { createBattleService, createBestiaryService, BattleService, BestiaryService, Enemy, CompletedTask } from '@/lib/services/battle';
+import { createBattleService, createBestiaryService, BattleService, BestiaryService, Enemy, CompletedTask, CombatTask } from '@/lib/services/battle';
 
 // Import icons
 import {
@@ -37,6 +53,7 @@ import {
   time
 } from "ionicons/icons";
 import debug from "@/lib/utils/debug";
+import templeDb from "@/lib/databases/TempleDb";
 
 // Define a unique ID for this page for background management
 const PAGE_ID = 'battle-field';
@@ -72,21 +89,39 @@ export default defineComponent({
       default: false
     },
     beastIds: String,
-    userIds: String
+    userIds: String,
+    // Temple battle props
+    templeId: String,
+    level: String,
+    x: String,
+    y: String,
+    // Quest battle props
+    questId: String
   },
-  mixins: [fetchItems, ionic, userActions],
+
   components: {
     CardUserStats,
-    MyTask,
     XpHpMpHud,
-    XpFabBattleActions,
+    XpRpgMenu,
     XpTypingText,
     DevToolsFab,
     DevBattleActionsFab,
+    IonPage,
+    IonContent,
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    IonButtons,
+    IonButton,
+    IonIcon,
+    IonFab,
+    IonFabButton,
+    IonFabList,
+    IonModal
   },
   setup(props) {
     // Component state
-    const page = ref(null);
+    const pageRef = ref(null);
     const battleBackground = ref<HTMLCanvasElement | null>(null);
     const battleDialogText = ref('');
     const battleStarted = ref(false);
@@ -97,39 +132,105 @@ export default defineComponent({
     const battleMessage = ref('');
     const showRewardsModal = ref(false);
     const completedTask = ref<CompletedTask | null>(null);
+    const combatTasks = ref<CombatTask[]>([]);
     const hasMoreBattleDialog = ref(false);
     const isBattleDialogTyping = ref(false);
     const isVictoryMessage = ref(false);
     const battleDialogQueue = ref<Array<string | (() => void)>>([]);
     const battleDialogRef = ref<any>(null);
+    const showEnemyHp = ref(false);
+    const showEnemy = ref(false);
+    const isBackgroundActive = ref(false);
     
     // Services
     const battleService = ref<BattleService | null>(null);
     const bestiaryService = ref<BestiaryService | null>(null);
     
-    // Get store, router and injected services using composition API
-    const store = useStore();
+    // Get Pinia stores and router using composition API
+    const userStore = useUserStore();
+    const battleStore = useBattleStore();
+    const audioStore = useAudioStore();
     const router = useRouter();
     const route = useRoute();
-    const $fx = inject('$fx') as any;
     
     // Background configuration
-    const bg1 = ref(1);
-    const bg2 = ref(1);
+    const bg1 = ref(219); // Default bg1
+    const bg2 = ref(218); // Default bg2
+    const urlBgConfig = ref<{bg1?: number, bg2?: number}>({});
     
-    // Get user from store
-    const user = computed(() => store.state.user);
+    // Get user from Pinia store - fetch full user object by ID
+    const user = computed(() => {
+      const current = userStore.currentUser;
+      if (current && current.id) {
+        return userStore.getUserById(current.id);
+      }
+      return null;
+    });
 
-    // Get battle participants from URL params
+    // Calculate enemy progress percentage (remaining health = progress towards defeat)
+    const enemyProgressPercent = computed(() => {
+      if (!currentEnemy.value) return 0;
+      // HP Percentage (100% -> 0%)
+      const healthPercent = (currentEnemy.value.health / currentEnemy.value.maxHealth) * 100;
+      return Math.max(0, Math.min(100, healthPercent));
+    });
+
+    debug.log('enemyProgressPercent initialized:', enemyProgressPercent.value);
+
+    // Calculate enemy attack timer percentage
+    const enemyAttackTimerPercent = computed(() => {
+      if (!battleService.value) return 100;
+      return battleService.value.getEnemyAttackTimer();
+    });
+
+    // Enemy size class based on type
+    const enemySizeClass = computed(() => {
+        if (!currentEnemy.value) return 'monster';
+        if (currentEnemy.value.isBoss) return 'boss';
+        if (currentEnemy.value.type === 'miniboss') return 'miniboss';
+        return 'monster';
+    });
+
+    // Get battle participants from URL params or Store
     const getBattleParticipants = () => {
+      debug.log('BattleField: getBattleParticipants called');
       const { beastIds: beastIdsParam, userIds: userIdsParam } = route.params;
+      const { beastIds: beastIdsQuery } = route.query;
+      
+      debug.log('BattleField: Route Params', { beastIdsParam, userIdsParam });
+      debug.log('BattleField: Route Query', { beastIdsQuery });
       
       let parsedBeastIds: string[] = [];
       let parsedUserIds: string[] = [];
       
-      // Parse beast IDs from route params
+      // Check Store first for encounter
+      if (battleStore.currentEncounter) {
+        debug.log('BattleField: Found encounter in store', battleStore.currentEncounter);
+        if (battleStore.currentEncounter.beastIds && battleStore.currentEncounter.beastIds.length > 0) {
+          parsedBeastIds = [...battleStore.currentEncounter.beastIds];
+        }
+        if (battleStore.currentEncounter.userIds && battleStore.currentEncounter.userIds.length > 0) {
+          parsedUserIds = [...battleStore.currentEncounter.userIds];
+        }
+      } else {
+        debug.log('BattleField: No encounter in store');
+      }
+
+      // Parse beast IDs from route params (Override store if present, or add to it? Override usually)
       if (beastIdsParam && typeof beastIdsParam === 'string') {
-        parsedBeastIds = beastIdsParam.split(',').filter(id => id.trim() !== '');
+        const params = beastIdsParam.split(',').filter(id => id.trim() !== '');
+        if (params.length > 0) parsedBeastIds = params;
+      }
+      
+      // Also check route.query (used by Temple Grounds)
+      if (beastIdsQuery && typeof beastIdsQuery === 'string') {
+        const queryBeastIds = beastIdsQuery.split(',').filter(id => id.trim() !== '');
+        // If we have query params, they might be additional or primary
+        queryBeastIds.forEach(id => {
+          if (!parsedBeastIds.includes(id)) {
+            parsedBeastIds.push(id);
+          }
+        });
       }
       
       // If beastIds is provided via props, use that too
@@ -145,7 +246,8 @@ export default defineComponent({
       
       // Parse user IDs from route params
       if (userIdsParam && typeof userIdsParam === 'string') {
-        parsedUserIds = userIdsParam.split(',').filter(id => id.trim() !== '');
+        const params = userIdsParam.split(',').filter(id => id.trim() !== '');
+        if (params.length > 0) parsedUserIds = params;
       }
       
       // If userIds is provided via props, use that too
@@ -165,6 +267,155 @@ export default defineComponent({
       }
       
       return { beastIds: parsedBeastIds, userIds: parsedUserIds };
+    };
+
+    // Get battle type from route meta
+    const getBattleType = (): 'temple' | 'quest' | 'standard' => {
+      const battleType = route.meta?.battleType as string | undefined;
+      
+      if (battleType === 'temple' && props.templeId) {
+        debug.log('BattleField: Temple battle detected', {
+          templeId: props.templeId,
+          level: props.level,
+          x: props.x,
+          y: props.y
+        });
+        return 'temple';
+      }
+      
+      if (battleType === 'quest' && props.questId) {
+        debug.log('BattleField: Quest battle detected', { questId: props.questId });
+        return 'quest';
+      }
+      
+      return 'standard';
+    };
+
+    // Load room data from a temple and start the battle
+    const loadTempleRoomBattle = async (templeId: string, level: string, x: number, y: number) => {
+      debug.log('BattleField: Loading temple room battle', { templeId, level, x, y });
+      
+      try {
+        // Fetch temple data from TempleDb
+        const temple = await templeDb.getTempleById(templeId);
+        
+        if (!temple) {
+          debug.warn('BattleField: Temple not found', templeId);
+          loadSampleBeast();
+          return;
+        }
+        
+        // Get maze from dungeonLayout (preferred) or top-level (backwards compatibility)
+        const maze = temple.dungeonLayout?.maze || temple.maze;
+        
+        if (!maze) {
+          debug.warn('BattleField: Temple has no maze data', templeId);
+          loadSampleBeast();
+          return;
+        }
+        
+        // Get the maze grid for the specified level
+        let levelMaze: string[][] | undefined;
+        
+        if (Array.isArray(maze)) {
+          // Single level maze
+          levelMaze = maze;
+        } else if (typeof maze === 'object') {
+          // Multi-level maze
+          levelMaze = maze[level] as string[][];
+        }
+        
+        if (!levelMaze || !levelMaze[y] || !levelMaze[y][x]) {
+          debug.warn('BattleField: Room not found at coordinates', { level, x, y });
+          loadSampleBeast();
+          return;
+        }
+        
+        // Get the room key at this position
+        const roomKey = levelMaze[y][x];
+        
+        // Get rooms from dungeonLayout (preferred) or top-level (backwards compatibility)
+        const rooms = temple.dungeonLayout?.rooms || temple.rooms;
+        const room = rooms?.[roomKey];
+        
+        if (!room) {
+          debug.warn('BattleField: Room configuration not found', roomKey);
+          loadSampleBeast();
+          return;
+        }
+        
+        debug.log('BattleField: Found room', { roomKey, room });
+        
+        // Extract beast IDs from room content
+        const roomContent = room.content || {};
+        const beastIds = roomContent.beasts || [];
+        
+        // Set up background configuration from room
+        if (roomContent.bg1 !== undefined) {
+          bg1.value = roomContent.bg1;
+        }
+        if (roomContent.bg2 !== undefined) {
+          bg2.value = roomContent.bg2;
+        }
+        
+        // Start battle with the beasts
+        if (beastIds.length > 0) {
+          if (beastIds.length === 1) {
+            loadBeastById(beastIds[0]);
+          } else {
+            loadMultipleBeasts(beastIds);
+          }
+        } else if (room.type === 'monster' || room.type === 'miniboss' || room.type === 'boss') {
+          // Room is a combat room but no specific beasts configured
+          // Could generate random beasts based on room type/temple theme
+          debug.log('BattleField: Combat room without configured beasts, loading sample');
+          loadSampleBeast();
+        } else {
+          debug.warn('BattleField: Room is not a combat room', room.type);
+          loadSampleBeast();
+        }
+      } catch (error) {
+        debug.error('BattleField: Error loading temple room', error);
+        loadSampleBeast();
+      }
+    };
+
+    // Parse battle configuration from URL or Store
+    const setupBattleConfiguration = () => {
+      const query = route.query;
+      let configFound = false;
+      
+      // Check Store first
+      if (battleStore.currentEncounter?.bgConfig) {
+        if (battleStore.currentEncounter.bgConfig.bg1 !== undefined) {
+           urlBgConfig.value.bg1 = battleStore.currentEncounter.bgConfig.bg1;
+           bg1.value = urlBgConfig.value.bg1;
+           configFound = true;
+        }
+        if (battleStore.currentEncounter.bgConfig.bg2 !== undefined) {
+           urlBgConfig.value.bg2 = battleStore.currentEncounter.bgConfig.bg2;
+           bg2.value = urlBgConfig.value.bg2;
+           configFound = true;
+        }
+      }
+
+      // URL Query params override store
+      if (query.bg1) {
+        urlBgConfig.value.bg1 = parseInt(query.bg1 as string, 10);
+        bg1.value = urlBgConfig.value.bg1;
+        configFound = true;
+      }
+      
+      if (query.bg2) {
+        urlBgConfig.value.bg2 = parseInt(query.bg2 as string, 10);
+        bg2.value = urlBgConfig.value.bg2;
+        configFound = true;
+      }
+      
+      // Auto-start battle visuals if configured
+      if (configFound) {
+        debug.log('BattleField: Background configuration detected, awaiting intro to start animation');
+      }
     };
     
     // Methods for background management
@@ -262,7 +513,7 @@ export default defineComponent({
     
     // Initialize battle services
     const initServices = () => {
-      battleService.value = createBattleService(store);
+      battleService.value = createBattleService();
       bestiaryService.value = createBestiaryService();
       
       // Register callbacks for the battle service
@@ -272,9 +523,17 @@ export default defineComponent({
             queueBattleDialog(messages);
           },
           onBattleMessageChange: (message) => { 
-            battleMessage.value = message;
+            // Route all messages to dialog queue instead of using the overlay
+            if (message) queueBattleDialog([message]);
+          },
+          onCombatTasksChange: (tasks: CombatTask[]) => {
+            combatTasks.value = tasks;
           },
           onEnemyHealthChange: () => {
+             showEnemyHp.value = true;
+             setTimeout(() => {
+                 showEnemyHp.value = false;
+             }, 3000); // reduced from 2000 to be snappy but visible
             updateEnemyHealthColor();
           },
           onDefendStateChange: () => {
@@ -285,8 +544,24 @@ export default defineComponent({
           },
           onEnemyDefeated: (enemy) => {
             defeatEnemy(enemy);
+          },
+          onPlayerDefeated: () => {
+            // Stop the battle and navigate to hospital
+            battleService.value?.stopAttackTimer();
+            battleStarted.value = false;
+            
+            // Navigate to hospital after a short delay
+            setTimeout(() => {
+              router.push({ name: 'hospital' });
+            }, 2000);
           }
         });
+      }
+    };
+
+    const finishCombatTask = (taskId: string) => {
+      if (battleService.value) {
+        battleService.value.finishCombatTask(taskId);
       }
     };
     
@@ -309,7 +584,7 @@ export default defineComponent({
     };
     
     // Queue multiple dialog messages
-    const queueBattleDialog = (messages: string[]) => {
+    const queueBattleDialog = (messages: (string | (() => void))[]) => {
       // Add messages to the queue
       battleDialogQueue.value = [...battleDialogQueue.value, ...messages];
       
@@ -357,22 +632,12 @@ export default defineComponent({
     const onBattleDialogComplete = () => {
       isBattleDialogTyping.value = false;
       
-      // Add a short pause before showing the next message
+      // Add a standard pause before showing the next message
       setTimeout(() => {
-        // If there are more messages, show the next one
         if (battleDialogQueue.value.length > 0) {
           showNextBattleDialog();
         } else {
           hasMoreBattleDialog.value = false;
-          // If this was enemy dialog, proceed to player turn after a delay
-          if (!isPlayerTurn.value) {
-            setTimeout(() => {
-              if (battleService.value) {
-                // Use battle service to start player turn
-                battleService.value.startPlayerTurn();
-              }
-            }, 1000);
-          }
         }
       }, 1500);
     };
@@ -419,20 +684,44 @@ export default defineComponent({
         
         const enemy = await bestiaryService.value.loadBeastById(beastId);
         if (enemy) {
-          // Set current enemy
           currentEnemy.value = enemy;
           updateEnemyHealthColor();
-          
-          // Start battle after a short delay
-          setTimeout(() => {
-            initBattle();
-          }, 1000);
+          initBattle(); // Direct call, no timeout
         }
       } catch (error) {
         debug.error('Error loading beast:', error);
       }
     };
     
+    // Unified function to handle Battle Intro choreography
+    const startBattleIntro = (enemyName: string) => {
+      // 2. Hide common elements for intro
+      showEnemy.value = false;
+      isVictoryMessage.value = false;
+
+      // 3. Inject the intro choreography into the queue
+      // (Service encounter messages have been removed to avoid duplication)
+
+      queueBattleDialog([
+        () => {
+           // Dramatically show the beast and start the background swirling
+           showEnemy.value = true;
+           enterBattle();
+           playSound("enterbattle");
+
+           // Play battle music!
+           const tracks = $fx.rpg.earthbound.BGM.battle;
+           const randomTrack = tracks[Math.floor(Math.random() * tracks.length)];
+           audioStore.changeBGM({
+              tracks: [randomTrack],
+              track: 0,
+              is_on: true
+           });
+        },
+        `From the dark forces of chaos comes ${enemyName}!!!`
+      ]);
+    };
+
     // Load multiple beasts for a battle with multiple enemies
     const loadMultipleBeasts = async (beastIds: string[]) => {
       try {
@@ -463,6 +752,10 @@ export default defineComponent({
           currentEnemy.value = enemies[0];
           updateEnemyHealthColor();
           battleStarted.value = true;
+          
+          // Trigger intro choreography
+          const enemyName = enemies.length > 1 ? `${enemies.length} enemies` : enemies[0].name;
+          startBattleIntro(enemyName);
         }
       } catch (error) {
         debug.error('Error loading beasts:', error);
@@ -481,18 +774,8 @@ export default defineComponent({
         if (enemy) {
           currentEnemy.value = enemy;
           updateEnemyHealthColor();
-          
-          // Apply appear animation
-          setTimeout(() => {
-            enemyAnimationClass.value = 'appear';
-          }, 100);
-          
-          // Start battle after a short delay
-          setTimeout(() => {
-            initBattle();
-          }, 1000);
+          initBattle(); // Direct call
         } else {
-          // If no beasts are found, create a sample enemy
           createSampleEnemy();
         }
       } catch (error) {
@@ -510,16 +793,7 @@ export default defineComponent({
       if (bestiaryService.value) {
         currentEnemy.value = bestiaryService.value.createSampleEnemy();
         updateEnemyHealthColor();
-        
-        // Add appear animation after a short delay 
-        setTimeout(() => {
-          enemyAnimationClass.value = 'appear';
-        }, 100);
-        
-        // Start battle after a short delay
-        setTimeout(() => {
-          initBattle();
-        }, 1000);
+        initBattle(); // Direct call
       } else {
         // Fallback to direct creation
         currentEnemy.value = {
@@ -532,20 +806,10 @@ export default defineComponent({
           attack: 10,
           defense: 5,
           speed: 8,
-          emoji: '👾' // Fallback emoji if no image available
+          emoji: '👾'
         };
-        
         updateEnemyHealthColor();
-        
-        // Add appear animation after a short delay
-        setTimeout(() => {
-          enemyAnimationClass.value = 'appear';
-        }, 100);
-        
-        // Start battle after a short delay
-        setTimeout(() => {
-          initBattle();
-        }, 1000);
+        initBattle(); // Direct call
       }
     };
     
@@ -555,12 +819,21 @@ export default defineComponent({
       if (!enemyAnimationClass.value || 
           enemyAnimationClass.value === 'victory-fadeout' || 
           enemyAnimationClass.value === 'victory-strobe') {
-        enemyAnimationClass.value = 'appear';
+        enemyAnimationClass.value = '';
       }
       
+      // Reset HP bar visibility
+      showEnemyHp.value = false;
+      
       if (battleService.value && currentEnemy.value) {
+        const enemyName = currentEnemy.value.name || 'Unknown Enemy';
+        
+        // 1. Initialize logic
         battleService.value.initBattle(currentEnemy.value);
         battleStarted.value = true;
+        
+        // 2. Start intro choreography
+        startBattleIntro(enemyName);
       }
     };
     
@@ -617,8 +890,8 @@ export default defineComponent({
         }
         
         // Handle combat actions through battle service
-        const result = battleService.value.handleBattleAction(action.action);
-        
+         const result = battleService.value.handleBattleAction(action.action);
+    
         // Apply visual effects based on action result
         if (action.action === 'attack' && result.success) {
           enemyAnimationClass.value = 'damaged';
@@ -640,8 +913,10 @@ export default defineComponent({
       }
     };
     
-    // Defeat the current enemy and show rewards
-    const defeatEnemy = (enemy?: Enemy) => {
+    // Handle enemy defeat
+    const defeatEnemy = (enemy: Enemy) => {
+      debug.log('Enemy defeated:', enemy.name);
+      isVictoryMessage.value = true;
       // Use the provided enemy or the current enemy
       const defeatedEnemy = enemy || currentEnemy.value;
       if (!defeatedEnemy) return;
@@ -655,9 +930,9 @@ export default defineComponent({
       };
       
       // Show victory message
-      battleMessage.value = `${defeatedEnemy.name} was defeated!`;
-      
-      // Trigger victory animation
+  // battleMessage.value = `${defeatedEnemy.name} was defeated!`; // Moved to dialog
+  
+  // Trigger victory animation
       victoryAnimation();
       
       // Clear current enemy
@@ -735,7 +1010,7 @@ export default defineComponent({
       const userId = props.userId || user.value?.id;
       if (userId) {
         router.push({
-          name: "hometown",
+          name: "home-town",
           params: { userId },
         });
       }
@@ -771,7 +1046,7 @@ export default defineComponent({
           .catch(error => {
             debug.error("Error during victory animation:", error);
             // Fallback in case of error
-            battleMessage.value = `Victory! ${currentEnemy.value?.name || 'Enemy'} was defeated!`;
+             queueBattleDialog([`Victory! ${currentEnemy.value?.name || 'Enemy'} was defeated!`]);
           });
       }, 1000);
     };
@@ -844,10 +1119,16 @@ export default defineComponent({
     const devDamageEnemy = (damage: number) => {
       if (props.devMode && battleService.value) {
         battleService.value.devDamageEnemy(damage);
-        enemyAnimationClass.value = 'damaged';
+    enemyAnimationClass.value = 'damaged';
+    setTimeout(() => {
+      enemyAnimationClass.value = '';
+    }, 500);
+    
+        // Trigger HP bar
+        showEnemyHp.value = true;
         setTimeout(() => {
-          enemyAnimationClass.value = '';
-        }, 500);
+          showEnemyHp.value = false;
+        }, 2000);
       }
     };
     
@@ -932,6 +1213,11 @@ export default defineComponent({
       // Apply damage to the enemy
       if (battleService.value && currentEnemy.value) {
         battleService.value.devDamageEnemy(50);
+        // Trigger HP bar
+        showEnemyHp.value = true;
+        setTimeout(() => {
+          showEnemyHp.value = false;
+        }, 2000);
       }
     };
     
@@ -940,12 +1226,9 @@ export default defineComponent({
       debug.log('Dev Tools: Triggering player hit animation');
       
       // Show message
-      battleMessage.value = 'Player takes damage!';
-      setTimeout(() => {
-        battleMessage.value = '';
-      }, 2000);
-      
-      // Here you would apply damage to the player through battle service if implemented
+       queueBattleDialog(['Player takes damage!']);
+  
+  // Here you would apply damage to the player through battle service if implemented
     };
     
     const triggerVictoryAnimation = () => {
@@ -961,13 +1244,7 @@ export default defineComponent({
       debug.log('Dev Tools: Triggering defeat animation');
       
       // Show defeat message
-      battleMessage.value = 'You were defeated!';
-      
-      // Apply defeat animation to player sprite (if you have one)
-      // For this example, we'll just set a timeout to clear the message
-      setTimeout(() => {
-        battleMessage.value = '';
-      }, 3000);
+  queueBattleDialog(['You were defeated!']);
     };
     
     const resetBattle = () => {
@@ -1007,26 +1284,115 @@ export default defineComponent({
       },
       { immediate: false }
     );
+
+    // Watch for currentEnemy changes to update background
+    watch(
+      currentEnemy,
+      (newEnemy) => {
+        if (newEnemy) {
+          let bgUpdated = false;
+          
+          // Update BGs if not overridden by URL and enemy has config
+          if (newEnemy.bg1 !== undefined && urlBgConfig.value.bg1 === undefined) {
+            bg1.value = newEnemy.bg1;
+            bgUpdated = true;
+          }
+          
+          if (newEnemy.bg2 !== undefined && urlBgConfig.value.bg2 === undefined) {
+            bg2.value = newEnemy.bg2;
+            bgUpdated = true;
+          }
+          
+          // Trigger background update if changed or if we need to ensure it's active
+          if (bgUpdated || backgroundManager.getBackgroundSettings().isActive) {
+            // Small delay to ensure DOM is ready if it's the first load
+            setTimeout(() => enterBattle(), 50);
+          }
+        }
+      }
+    );
     
     // Lifecycle hooks
+    // Use onMounted for minimal initialization only - services setup
     onMounted(() => {
-      // Initialize battle services
+      // Initialize services synchronously - these don't depend on DOM
       initServices();
       
-      // Set up background
-      changeBg();
-      enterBattle();
-      
-      // Show welcome toast
-      openToast();
+      // Debug message if in dev mode
+      if (props.devMode) {
+        debug.log('BattleField component initialized in dev mode');
+      }
+    });
+    
+    // Use Ionic's lifecycle hook for battle initialization
+    // This fires AFTER the page transition is complete and the page is properly registered
+    onIonViewWillEnter(() => {
+      // Parse battle configuration from URL - safe to call here
+      setupBattleConfiguration();
+    });
+    
+    // Use onIonViewDidEnter for anything that needs the page to be fully visible
+    onIonViewDidEnter(() => {
+      // Check battle type first
+      const battleType = getBattleType();
       
       // Get battle participants from URL params
-      const { beastIds } = getBattleParticipants();
+      const participants = getBattleParticipants();
       
-      // Load a beast based on props, URL params, or use a sample beast
+      // Handle temple battles - look up room data for beast configuration
+      if (battleType === 'temple') {
+        debug.log('BattleField: Setting up temple battle', {
+          templeId: props.templeId,
+          level: props.level,
+          x: props.x,
+          y: props.y
+        });
+        
+        // First check if we have beast IDs from the store (set by TempleGrounds navigation)
+        if (participants.beastIds.length > 0) {
+          if (participants.beastIds.length === 1) {
+            loadBeastById(participants.beastIds[0]);
+          } else {
+            loadMultipleBeasts(participants.beastIds);
+          }
+        } else if (props.templeId && props.level && props.x && props.y) {
+          // No pre-configured beasts, but we have temple coordinates - look up the room
+          loadTempleRoomBattle(
+            props.templeId,
+            props.level,
+            parseInt(props.x, 10),
+            parseInt(props.y, 10)
+          );
+        } else {
+          // Fallback for temple battles without coordinates
+          debug.warn('BattleField: Temple battle without coordinates or configured beasts');
+          loadSampleBeast();
+        }
+        return;
+      }
+      
+      // Handle quest battles
+      if (battleType === 'quest') {
+        debug.log('BattleField: Setting up quest battle', { questId: props.questId });
+        // Quest battles would look up quest configuration from store/db
+        // For now, check participants first, then fallback
+        if (participants.beastIds.length > 0) {
+          if (participants.beastIds.length === 1) {
+            loadBeastById(participants.beastIds[0]);
+          } else {
+            loadMultipleBeasts(participants.beastIds);
+          }
+        } else {
+          // TODO: Load quest-specific beasts based on questId
+          loadSampleBeast();
+        }
+        return;
+      }
+      
+      // Standard battle handling
+      // Check if we have a specific beast avatar provided via props (legacy/direct support)
       if (props.beastAvatar) {
-        // If we have a beast avatar from props, use it
-        const enemy: Enemy = {
+         const enemy: Enemy = {
           id: 'custom',
           name: props.enemyType === 'boss' ? 'Boss Monster' :
                 props.enemyType === 'miniboss' ? 'Mini Boss' : 'Monster',
@@ -1047,38 +1413,69 @@ export default defineComponent({
         
         currentEnemy.value = enemy;
         updateEnemyHealthColor();
-        
-        // Initialize the battle after a short delay
-        setTimeout(() => {
-          initBattle();
-        }, 1000);
-      } else if (beastIds.length > 0) {
+        initBattle(); // Direct call
+      } else if (participants.beastIds.length > 0) {
         // If we have beast IDs from parameters, load them
-        if (beastIds.length === 1) {
-          loadBeastById(beastIds[0]);
+        if (participants.beastIds.length === 1) {
+          loadBeastById(participants.beastIds[0]);
         } else {
-          loadMultipleBeasts(beastIds);
+          loadMultipleBeasts(participants.beastIds);
         }
+      } else if (props.taskId) {
+         // Load task beast... logic to be implemented
+        // For now fallback to sample
+        loadSampleBeast();
       } else {
-        // Load a sample beast
-        setTimeout(() => {
-          loadSampleBeast();
-        }, 1000);
-      }
-      
-      // Debug message if in dev mode
-      if (props.devMode) {
-        debug.log('BattleField component initialized in dev mode');
+        // Default behavior
+        loadSampleBeast();
       }
     });
     
     onUnmounted(() => {
+      if (battleService.value) {
+        battleService.value.stopAttackTimer();
+      }
       backgroundManager.cleanupBackground();
     });
-    
+
+    // Battle Menu Actions for XpCardMenu
+    const battleMenuActions = computed(() => [
+      {
+        id: 'attack',
+        label: 'Bash',
+        faIcon: 'fist-raised',
+        click: () => handleBattleAction({ action: 'attack' })
+      },
+      {
+        id: 'abilities',
+        label: 'Abilities',
+        faIcon: 'comet',
+        click: () => handleBattleAction({ action: 'abilities' })
+      },
+      {
+        id: 'goods',
+        label: 'Goods',
+        faIcon: 'backpack',
+        click: () => handleBattleAction({ action: 'goods' })
+      },
+      {
+        id: 'defend',
+        label: 'Defend',
+        faIcon: 'shield-alt',
+        click: () => handleBattleAction({ action: 'defend' })
+      },
+
+      {
+        id: 'run',
+        label: 'Run Away',
+        faIcon: 'running',
+        click: () => handleBattleAction({ action: 'run' })
+      }
+    ]);
+
     return {
       // State refs
-      page,
+      pageRef,
       battleBackground,
       battleDialogText,
       battleStarted,
@@ -1086,9 +1483,13 @@ export default defineComponent({
       currentEnemy,
       enemyAnimationClass,
       enemyHealthColor,
+      enemyProgressPercent,
+      enemyAttackTimerPercent,
+      combatTasks,
       battleMessage,
       showRewardsModal,
       completedTask,
+      finishCombatTask,
       bg1,
       bg2,
       user,
@@ -1096,8 +1497,13 @@ export default defineComponent({
       isBattleDialogTyping,
       isVictoryMessage,
       battleDialogRef,
+      showEnemyHp,
+      enemySizeClass,
+      battleMenuActions,
+      showEnemy,
+      isBackgroundActive,
       
-      // Methods for battle dialog,
+      // Methods for battle dialog
       queueBattleDialog,
       showNextBattleDialog,
       onBattleDialogComplete,

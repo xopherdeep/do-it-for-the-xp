@@ -1,3 +1,4 @@
+@use "sass:math";
 .world-swamps {
   ion-content {
     --background: url("@/assets/images/backgrounds/world-swamps.jpg") center center/cover no-repeat;
@@ -65,13 +66,13 @@
     // Heavy sideways rain - distribute drops across screen
     @for $i from 1 through 150 {
       &:nth-child(#{$i}) {
-        left: random(100) * 1%;
-        top: random(100) * 1%;
-        width: 1px + random(3) * 1px;
-        height: 10px + random(20) * 1px;
-        opacity: 0.2 + (random(8) * 0.1);
-        transform: rotate(15deg + random(15) * 1deg);
-        animation-delay: random(4000) * -1ms;
+        left: math.random(100) * 1%;
+        top: math.random(100) * 1%;
+        width: 1px + math.random(3) * 1px;
+        height: 10px + math.random(20) * 1px;
+        opacity: 0.2 + (math.random(8) * 0.1);
+        transform: rotate(15deg + math.random(15) * 1deg);
+        animation-delay: math.random(4000) * -1ms;
       }
     }
   }
@@ -92,11 +93,11 @@
       // Create random puddles
       @for $i from 1 through 20 {
         &:nth-child(#{$i}) {
-          left: random(100) * 1%;
-          bottom: random(20) * 1%;
-          width: 20px + random(60) * 1px;
-          height: 6px + random(10) * 1px;
-          animation-delay: random(2000) * -1ms;
+          left: math.random(100) * 1%;
+          bottom: math.random(20) * 1%;
+          width: 20px + math.random(60) * 1px;
+          height: 6px + math.random(10) * 1px;
+          animation-delay: math.random(2000) * -1ms;
         }
       }
     }
@@ -120,12 +121,12 @@
     
     @for $i from 1 through 8 {
       &:nth-child(#{$i}) {
-        left: random(100) * 1%;
-        bottom: random(30) * 1%;
-        width: 100px + random(200) * 1px;
-        height: 30px + random(20) * 1px;
-        opacity: 0.1 + (random(6) * 0.05);
-        animation-delay: random(15000) * -1ms;
+        left: math.random(100) * 1%;
+        bottom: math.random(30) * 1%;
+        width: 100px + math.random(200) * 1px;
+        height: 30px + math.random(20) * 1px;
+        opacity: 0.1 + (math.random(6) * 0.05);
+        animation-delay: math.random(15000) * -1ms;
       }
     }
   }

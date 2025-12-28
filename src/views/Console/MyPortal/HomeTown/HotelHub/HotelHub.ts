@@ -32,7 +32,7 @@ import {
 } from "ionicons/icons";
 import fetchItems from "@/mixins/fetchItems"
 import { actionSheetController } from "@ionic/vue";
-import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
+import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
 import debug from "@/lib/utils/debug";
 import { useUserStore } from "@/lib/store/stores/user";
 // Import the ATM Modal component

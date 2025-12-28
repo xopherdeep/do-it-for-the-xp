@@ -102,7 +102,7 @@
 <script lang="ts">
 import { defineComponent, ref } from "vue";
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonButtons, IonBackButton, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonItem, IonLabel, IonRange, IonToggle, IonButton } from "@ionic/vue";
-import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
+import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
 import Ionic from "@/mixins/ionic";
 
 // Define type for XpTypingText instance that includes exposed methods

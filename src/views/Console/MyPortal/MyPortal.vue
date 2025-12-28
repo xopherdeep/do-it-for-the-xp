@@ -17,15 +17,19 @@
       class="bg-transparent icon-colors"
       v-else
     >
-      <xp-fab-user-hud
-        :user="user"
-        :isUserFabOn="isUserFabOn"
-        @open-profile="openUserProfileModal"
-      />
-      <xp-user-points-hud
-        v-if="isUserFabOn"
+      <!-- Symmetric Main HUD Organism -->
+      <xp-main-hud
+        v-if="isUserFabOn && user.stats"
         :stats="user.stats"
-      />
+      >
+        <template #avatar>
+          <xp-fab-user-hud
+            :user="user"
+            :isUserFabOn="isUserFabOn"
+            @open-profile="openUserProfileModal"
+          />
+        </template>
+      </xp-main-hud>
       <!-- <xp-fab-gold-points :user="user" :isUserFabOn="isUserFabOn" /> -->
       <xp-fab-quick-draw
         v-if="isUserFabOn"
@@ -36,14 +40,19 @@
           play$fx('openMenu');
         "
       />
+      <!-- Retro FAB (Centered Menu) -->
       <xp-fab-page-menu
-        v-if="isUserFabOn"
+        v-if="isUserFabOn && fabStyle === 'retro'"
         :user="user"
         :page-name="compass.name"
+        :key="`menu-${route.path}`"
       />
+      
+      <!-- Modern FAB (Radial Shortcuts) -->
       <xp-fab-page-shortcuts
-        v-if="isUserFabOn"
+        v-if="isUserFabOn && fabStyle === 'modern'"
         :shortcuts="userActions"
+        :key="`shortcuts-${route.path}`"
       />
 
       <ion-tabs v-if="user && user.stats">
@@ -51,6 +60,17 @@
           ref="outlet"
           :userId="user.id"
         ></ion-router-outlet>
+        
+        <!-- Docked XP Bar -->
+        <div 
+          class="tab-docked-xp" 
+          v-if="user.stats && !battleState('active')"
+          slot="bottom"
+        >
+          <xp-gp-bar :stats="user.stats" />
+          <xp-xp-bar :stats="user.stats" :hairline="true" />
+        </div>
+
         <ion-tab-bar
           slot="bottom"
           v-if="user.stats && !battleState('active')"
@@ -58,16 +78,15 @@
           <ion-tab-button
             color="success"
             tab="my-profile"
-            :href="`/my-portal/${userId}/my-profile`"
+            @click.prevent="openUserProfileModal"
           >
-            <ion-icon
-              :icon="personCircle"
-              color="success"
-            ></ion-icon>
+            <i
+              class="fad fa-2x fa-hand-holding-seedling"
+            ></i>
             <ion-label v-if="user.name">
               {{ user.name.nick }}
             </ion-label>
-            <ion-badge color="danger"> {{ user.stats.hp.now }} HP </ion-badge>
+            <!-- <ion-badge color="danger"> {{ user.stats.hp.now }} HP </ion-badge> -->
           </ion-tab-button>
           <ion-tab-button
             tab="my-home"
@@ -122,8 +141,10 @@
     <xp-equipment-modal
       :isOpen="isRPGBoxOpen"
       :equipment="equipment"
+      :user="user"
       @equip-item="clickItem"
       @close="closeModal"
+      @open-pegasus-modal="openPegasusModal"
     />
 
     <!-- USER PROFILE MODAL -->
@@ -131,6 +152,12 @@
       :is-open="isUserProfileModalOpen"
       :user="user"
       @close="closeUserProfileModal"
+    />
+
+    <!-- PEGASUS WORLD MAP MODAL (Wind Whistle) -->
+    <xp-world-map-modal 
+      :is-open="isPegasusModalOpen" 
+      @close="closePegasusModal"
     />
   </ion-page>
 </template>

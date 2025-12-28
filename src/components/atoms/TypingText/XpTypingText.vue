@@ -204,7 +204,8 @@ export default defineComponent({
   display: inline-block;
   cursor: pointer;
   position: relative;
-  
+  padding: 0;
+  text-align: left;
   &.rpg-text {
     font-family: 'StatusPlz', monospace;
     line-height: 1.5;

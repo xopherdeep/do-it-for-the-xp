@@ -22,10 +22,10 @@ import {
   bagOutline,
   cartOutline
 } from "ionicons/icons";
-import { mapActions, mapGetters, useStore } from "vuex";
+import { useUserStore } from "@/lib/store/stores/user";
 import ionic from "@/mixins/ionic"
 
-import XpGp from "@/components/XpGp/XpGp.vue";
+import XpGp from "@/components/atoms/Currency/XpGp.vue";
 import { alertController, modalController } from "@ionic/vue";
 import XpSendRequest from "./SendRequest.vue"
 import { ProfileDb } from "@/lib/databases";
@@ -46,10 +46,14 @@ export default defineComponent({
     XpGp
   },
   computed: {
-    ...mapGetters(["getUserById"]),
+    getUserById() {
+      return (id: string) => this.userStore.getUserById(id);
+    }
   },
   methods: {
-    ...mapActions(["loadUsers"]),
+    loadUsers() {
+      return this.userStore.loadUsers();
+    },
     segmentChanged() {
       // console.warn("Segment changed", ev);
     },
@@ -165,7 +169,7 @@ export default defineComponent({
     }
   },
   setup(props) {
-    const store = useStore()
+    const userStore = useUserStore();
     const profileDb = new ProfileDb(profileStorage)
     const customAlertOptions = {
       header: 'Choose Date Range',
@@ -187,9 +191,10 @@ export default defineComponent({
 
     const walletSegment = ref("wallet");
 
-    const user = computed(() => store.getters.getUserById(props.userId));
+    const user = computed(() => userStore.getUserById(props.userId));
     return {
       user,
+      userStore,
       // date: computed(() => localStorage.getItem("date")),
       profileDb,
       walletSegment,

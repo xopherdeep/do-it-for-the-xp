@@ -29,7 +29,11 @@
       </ion-segment>
     </ion-header>
     <ion-content>
-      <ion-list v-if="activeSegment === 'achievements'">
+      <div v-if="isLoading" class="loading-wrapper-centered">
+        <XpLoading />
+      </div>
+      <template v-else>
+        <ion-list v-if="activeSegment === 'achievements'">
         <ion-item-sliding v-for="item in pendingAchievements" :key="item.id">
           <ion-item>
             <ion-avatar slot="start">
@@ -102,6 +106,7 @@
           </ion-label>
         </ion-item>
       </ion-list>
+      </template>
     </ion-content>
   </ion-page>
 </template>
@@ -112,14 +117,19 @@
   import { useUserStore } from "@/lib/store/stores/user";
   import { alertController, toastController } from "@ionic/vue";
   import { format } from "date-fns";
+  import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
   import debug from "@/lib/utils/debug";
 
   export default defineComponent({
     name: "xp-approvals",
     mixins: [ionic],
+    components: {
+      XpLoading
+    },
     setup() {
       const userStore = useUserStore();
       const activeSegment = ref("achievements");
+      const isLoading = ref(true);
 
       // Get users from Pinia store
       const users = computed(() => userStore.usersAz);
@@ -185,9 +195,21 @@
         await toast.present();
       };
 
-      const refreshApprovals = () => {
-        showSuccessToast("Approvals refreshed!");
+      const refreshApprovals = async () => {
+        isLoading.value = true;
+        try {
+          // Simulate loading
+          await new Promise(resolve => setTimeout(resolve, 800));
+          showSuccessToast("Approvals refreshed!");
+        } finally {
+          isLoading.value = false;
+        }
       };
+
+      // Initial load
+      setTimeout(() => {
+        isLoading.value = false;
+      }, 1000);
 
       const approveItem = async (item: any) => {
         const alert = await alertController.create({
@@ -254,6 +276,7 @@
         rejectItem,
         refreshApprovals,
         showSuccessToast,
+        isLoading,
       };
     },
   });

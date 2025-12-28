@@ -425,6 +425,7 @@ export default defineComponent({
     border: 2px solid #444;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     z-index: 2;
+    letter-spacing: 1.25px;
   }
   
   .skip-button {

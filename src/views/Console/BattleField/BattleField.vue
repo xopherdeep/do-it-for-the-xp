@@ -1,70 +1,78 @@
 <template>
-  <ion-page ref="page" class="battlefield">
+  <ion-page ref="pageRef" class="battlefield">
     <!-- Canvas background for battle scene -->
     <canvas ref="battleBackground" class="battle-bg"></canvas>
 
-    <!-- Battle UI container -->
+    <!-- Battle UI container - Fluid Flexbox Layout -->
     <div class="battle-ui-container">
-      <!-- Enemy display section -->
-      <div class="enemy-container">
-        <div class="enemy-stats" v-if="currentEnemy && showEnemyInfo">
-          <div class="enemy-name">{{ currentEnemy.name }}</div>
-          <div class="enemy-health-bar">
-            <div
-              class="enemy-health"
-              :style="{
-                width: `${
-                  (currentEnemy.health / currentEnemy.maxHealth) * 100
-                }%`,
-                backgroundColor: enemyHealthColor,
-              }"
-            ></div>
+      
+      <!-- TOP ZONE: Battle dialog/menu -->
+      <div class="battle-zone battle-zone--top">
+        <!-- Battle dialog box -->
+        <div class="battle-dialog rpg-box icon-colors" v-if="battleDialogText || isPlayerTurn">
+          <div class="dialog-content" v-if="battleDialogText" @click="advanceBattleDialog">
+            <XpTypingText
+              ref="battleDialogRef"
+              :text="battleDialogText"
+              :is-victory="isVictoryMessage"
+              @typing-complete="onBattleDialogComplete"
+            />
+            <div v-if="hasMoreBattleDialog" class="dialog-more-indicator">▼</div>
           </div>
-          <div class="enemy-health-text">
-            {{ currentEnemy.health }} / {{ currentEnemy.maxHealth }}
+          
+          <!-- Battle Menu (Replacing FAB) -->
+          <div class="dialog-menu" v-else-if="isPlayerTurn">
+              <XpRpgMenu :actions="battleMenuActions" borderless />
           </div>
-        </div>
-        
-        <div class="enemy-sprite-container" :class="enemyAnimationClass">
-          <img
-            v-if="currentEnemy && currentEnemy.avatar"
-            :src="getAvatar(currentEnemy.avatar)"
-            class="enemy-sprite"
-            alt="Enemy"
-          />
-          <div v-else-if="currentEnemy && currentEnemy.emoji" class="enemy-emoji">
-            {{ currentEnemy.emoji }}
-          </div>
-          <div v-else class="enemy-placeholder">?</div>
-        </div>
-        
-        <!-- Battle message overlay -->
-        <div v-if="battleMessage" class="battle-message">
-          {{ battleMessage }}
         </div>
       </div>
-
-      <!-- Player HUD component -->
-      <XpHpMpHud />
       
-      <!-- Battle dialog box -->
-      <div v-if="battleDialogText" class="battle-dialog" @click="advanceBattleDialog">
-        <XpTypingText
-          ref="battleDialogText"
-          :text="battleDialogText"
-          :is-victory="isVictoryMessage"
-          @typing-complete="onBattleDialogComplete"
-        />
-        <div v-if="hasMoreBattleDialog" class="dialog-more-indicator">▼</div>
+      <!-- MIDDLE ZONE: Enemy display (flexible height) -->
+      <div class="battle-zone battle-zone--middle">
+        <div class="enemy-container" v-show="showEnemy">
+          <div class="enemy-sprite-container" :class="[enemyAnimationClass, enemySizeClass]">
+            <img
+              v-if="currentEnemy && currentEnemy.avatar"
+              :src="getAvatar(currentEnemy.avatar)"
+              class="enemy-sprite"
+              alt="Enemy"
+            />
+            <div v-else-if="currentEnemy && currentEnemy.emoji" class="enemy-emoji">
+              {{ currentEnemy.emoji }}
+            </div>
+            <div v-else class="enemy-placeholder">?</div>
+          </div>
+          
+          <!-- Simple progress bar (task completion %) -->
+          <div v-if="currentEnemy" class="enemy-bars">
+            <div v-if="showEnemyHp" class="enemy-progress-bar hp">
+              <div 
+                class="enemy-progress-fill hp" 
+                :style="{ width: enemyProgressPercent + '%' }"
+              >
+                <span class="progress-label">PROGRESS</span>
+              </div>
+            </div>
+            
+            <!-- Attack Timer Bar -->
+            <div class="enemy-progress-bar-container attack-timer" v-if="!isPlayerTurn && battleStarted">
+              <i class="fad fa-claw-marks attack-icon"></i>
+              <div class="enemy-progress-bar attack-timer">
+                <div 
+                  class="enemy-progress-fill attack" 
+                  :style="{ width: enemyAttackTimerPercent + '%' }"
+                ></div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       
-      <!-- Battle actions FAB -->
-      <XpFabBattleActions
-        v-if="isPlayerTurn && !battleDialogText"
-        @action="handleBattleAction"
-        :get-icon="getBattleActionIcon"
-        :get-color="getBattleActionColor"
-      />
+      <!-- BOTTOM ZONE: Player HUD -->
+      <div class="battle-zone battle-zone--bottom">
+        <XpHpMpHud />
+      
+      </div>
       
       <!-- Dev Tools FAB - only visible in dev mode -->
       <DevToolsFab 
@@ -108,6 +116,15 @@
         </ion-fab>
       </div>
       
+      <!-- Player Actions (Tasks) -->
+      <transition name="fade">
+        <xp-combat-tasks 
+          v-if="battleStarted && !showRewardsModal"
+          :tasks="combatTasks"
+          @task-complete="finishCombatTask"
+        />
+      </transition>
+
       <!-- Rewards Modal -->
       <ion-modal :is-open="showRewardsModal" class="rewards-modal">
         <ion-header>
@@ -150,7 +167,7 @@
   </ion-page>
 </template>
 
-<script src="./BattleField.ts"></script>
+<script lang="ts" src="./BattleField.ts"></script>
 
 <style lang="scss" scoped>
 .battlefield {
@@ -160,6 +177,7 @@
   height: 100%;
   position: relative;
   overflow: hidden;
+  background-color: #000;
   
   .battle-bg {
     position: absolute;
@@ -171,6 +189,11 @@
     z-index: 0;
   }
   
+  // ============================================
+  // FLUID FLEXBOX LAYOUT SYSTEM
+  // Three zones: Top (dialog) | Middle (enemy) | Bottom (player HUD)
+  // ============================================
+  
   .battle-ui-container {
     position: relative;
     z-index: 1;
@@ -178,56 +201,74 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    padding: 10px;
+    padding: 8px;
+    gap: 8px;
   }
   
+  // Battle Zone System - no overlap, fluid layout
+  .battle-zone {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+    // TOP ZONE: Dialog/Menu (auto height based on content)
+    &--top {
+      flex-shrink: 0;
+      min-height: 80px;
+      z-index: 100;
+    }
+    
+    // MIDDLE ZONE: Enemy display (flexible - takes remaining space)
+    &--middle {
+      flex: 1;
+      min-height: 150px;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    // BOTTOM ZONE: Player HUD (fixed height)
+    &--bottom {
+      flex-shrink: 0;
+      min-height: 120px;
+      padding-bottom: env(safe-area-inset-bottom, 0);
+      z-index: 50;
+    }
+  }
+  
+  // Enemy container - now relative within the middle zone
   .enemy-container {
     display: flex;
     flex-direction: column;
     align-items: center;
-    padding-top: 40px;
-    position: relative;
-    
-    .enemy-stats {
-      background-color: rgba(0, 0, 0, 0.7);
-      border-radius: 10px;
-      padding: 5px 10px;
-      margin-bottom: 10px;
-      width: 80%;
-      max-width: 300px;
-      
-      .enemy-name {
-        font-weight: bold;
-        margin-bottom: 5px;
-      }
-      
-      .enemy-health-bar {
-        height: 10px;
-        background-color: #333;
-        border-radius: 5px;
-        overflow: hidden;
-        
-        .enemy-health {
-          height: 100%;
-          transition: width 0.3s, background-color 0.3s;
-        }
-      }
-      
-      .enemy-health-text {
-        font-size: 0.8rem;
-        text-align: right;
-        margin-top: 2px;
-      }
-    }
+    justify-content: center;
+    width: 100%;
+    height: 100%;
     
     .enemy-sprite-container {
-      width: 150px;
-      height: 150px;
       display: flex;
       justify-content: center;
       align-items: center;
+      transition: all 0.3s ease;
       
+      // Default size (monster) - use max dimensions to fit in zone
+      width: 55%;
+      max-width: 400px;
+      max-height: 60%;
+      
+      &.monster {
+        width: 55%;
+      }
+      
+      &.miniboss {
+        width: 75%;
+      }
+      
+      &.boss {
+        width: 90%;
+        max-width: 500px;
+      }
+
       &.appear {
         animation: enemy-appear 0.5s ease-out;
       }
@@ -249,13 +290,15 @@
       }
       
       .enemy-sprite {
-        max-width: 100%;
+        width: 100%;
+        height: auto;
         max-height: 100%;
         object-fit: contain;
+        filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5));
       }
       
       .enemy-emoji {
-        font-size: 80px;
+        font-size: clamp(48px, 15vw, 100px);
       }
       
       .enemy-placeholder {
@@ -270,38 +313,121 @@
         color: white;
       }
     }
+    
+    // Simple progress bar below enemy
+    .enemy-bars {
+      width: 80%;
+      max-width: 300px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 15px;
+      flex-shrink: 0;
+    }
+
+    .enemy-progress-bar-container {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      
+      .attack-icon {
+        font-size: 32px; // Large enough to see clearly
+        color: #ff9900;
+        filter: drop-shadow(0 0 8px rgba(255, 153, 0, 0.6));
+        flex-shrink: 0;
+      }
+    }
+
+    .enemy-progress-bar {
+      width: 100%;
+      height: 16px;
+      background-color: rgba(0, 0, 0, 0.8);
+      border: 2px solid rgba(255, 255, 255, 0.5);
+      border-radius: 8px;
+      overflow: hidden;
+      position: relative;
+      flex: 1;
+      
+      &.hp {
+        height: 16px;
+      }
+
+      &.attack-timer {
+        height: 14px; // Slightly thinner than HP for hierarchy
+        background-color: rgba(0, 0, 0, 0.6);
+        border-color: rgba(255, 200, 0, 0.4);
+        box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+      }
+
+      .enemy-progress-fill {
+        height: 100%;
+        transition: width 0.3s ease-out;
+
+        &.hp {
+          background: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%);
+          box-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+
+          .progress-label {
+            font-family: 'StatusPlz', sans-serif;
+            font-size: 10px;
+            color: white;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+            letter-spacing: 1px;
+          }
+        }
+
+        &.attack {
+          background: linear-gradient(90deg, #ffcc00 0%, #ff6600 100%);
+          box-shadow: 0 0 10px rgba(255, 153, 0, 0.7);
+          transition: width 0.1s linear; // Smoother for a timer
+        }
+      }
+    }
   }
   
   .battle-message {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(0, 0, 0, 0.7);
-    color: white;
-    padding: 10px 20px;
-    border-radius: 5px;
-    font-size: 1.5rem;
-    font-weight: bold;
-    text-align: center;
-    z-index: 10;
-    animation: message-pulse 1s infinite alternate;
+    display: none;
   }
   
   .battle-dialog {
-    position: absolute;
-    bottom: 100px;
-    left: 10px;
-    right: 10px;
-    background-color: rgba(0, 0, 0, 0.8);
-    border: 2px solid #666;
-    border-radius: 10px;
-    padding: 15px;
-    min-height: 80px;
+    width: calc(100% - 40px);
+    max-width: 700px;
+    margin: 18px 20px; 
+     padding: 5px 0 0;
+ 
+    min-height: 70px;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    z-index: 10;
+    position: relative; // for the more indicator
+    
+    // Override primary color to theme all inner Ionic components (like ion-button)
+    // using clear background and RPG yellow text
+    --ion-color-primary: transparent;
+    --ion-color-primary-rgb: var(--ion-color-rpg-rgb);
+    --ion-color-primary-contrast: var(--ion-color-rpg);
+    --ion-color-primary-shade: transparent;
+    --ion-color-primary-tint: rgba(255, 255, 255, 0.1);
+    
+    // Earthbound RPG Box styling
+    border-radius: 1px;
+    box-shadow: 
+      0 0 0 5px #383050,      // medium purple
+      0 0 0 10px #68d0b8,     // minty blue
+      0 0 0 12px #f7e8a8,     // pale yellow
+      0 0 0 16px #3d3c55;     // slate
+    background-color: #280828; // dark purple
+    color: var(--ion-color-rpg);  // rpg yellow text
+    
+    .dialog-content {
+      font-family: inherit;
+      font-size: 1.2rem;
+      line-height: 1.4;
+    }
     
     .dialog-more-indicator {
       position: absolute;
@@ -309,6 +435,7 @@
       right: 15px;
       font-size: 20px;
       animation: bounce 0.5s infinite alternate;
+      color: var(--ion-color-rpg);
     }
   }
   
@@ -452,5 +579,10 @@
   40%, 80% {
     transform: translateX(5px);
   }
+}
+
+.battle-dialog {
+  // Override XpCardMenu styling within battle dialog
+  // The dialog box itself uses rpg-box (eb-box), so inner cards should be flat
 }
 </style>

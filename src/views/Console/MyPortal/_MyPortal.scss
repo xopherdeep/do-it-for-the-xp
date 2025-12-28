@@ -91,6 +91,11 @@
     }
   }
 
+  .tab-docked-xp {
+    position: relative;
+    z-index: 1000;
+  }
+
   ion-tab-bar{
     --background: #000000;
     --color-selected: #fff;

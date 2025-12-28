@@ -1,3 +1,4 @@
+@use "sass:color";
 // Adventure Pass Theme Variables
 $ap-primary-color: #4a90e2; // A friendly blue
 $ap-secondary-color: #f5a623; // A vibrant orange/gold
@@ -19,7 +20,7 @@ $ap-font-family: "Nunito", sans-serif; // A rounded, friendly font
     --background: linear-gradient(
       135deg,
       $ap-primary-color,
-      darken($ap-primary-color, 10%)
+      color.adjust($ap-primary-color, $lightness: -10%)
     );
     --color: $ap-light-text-color;
     font-weight: bold;
@@ -96,7 +97,7 @@ $ap-font-family: "Nunito", sans-serif; // A rounded, friendly font
     }
 
     ion-card-subtitle {
-      color: darken($ap-text-color, 15%);
+      color: color.adjust($ap-text-color, $lightness: -15%);
       font-weight: 600;
     }
   }
@@ -228,7 +229,7 @@ $ap-font-family: "Nunito", sans-serif; // A rounded, friendly font
   .cancel-modal {
     ion-toolbar {
       --background: $ap-warning-color;
-      --color: darken($ap-warning-color, 40%);
+      --color: color.adjust($ap-warning-color, $lightness: -40%);
     }
     ion-content {
       --background: #fff;
@@ -245,7 +246,7 @@ $ap-font-family: "Nunito", sans-serif; // A rounded, friendly font
     }
     p {
       text-align: center;
-      color: darken($ap-text-color, 20%);
+      color: color.adjust($ap-text-color, $lightness: -20%);
       margin-bottom: 1.5rem;
     }
     ion-list {

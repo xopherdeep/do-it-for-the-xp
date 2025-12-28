@@ -29,9 +29,19 @@ export const SHOP = 'P';  // Shop Room - for buying items
 // Hazards and Challenges
 export const _XX_ = 'T';  // Trap Room - For achievements worth 1
 export const PUZL = 'Z';  // Puzzle Room - Solve puzzle for to unlock room type 
+export const PIT_ = 'v';  // Pit Room - Hazard that drops player to floor below
+export const VOID = '.';  // Void Room - Bottomless pit or space you can't cross
+
+// Level Navigation
+export const ST_U = 'U';  // Stairs Up - Move to floor above
+export const ST_D = 'D';  // Stairs Down - Move to floor below
+export const SCRT = '?';  // Secret Room - Hidden until discovered
+
+// Special Recovery
+export const CAMP = 'C';  // Camp Room - Restores health and mana
 
 export const ROOM_ICONS = {
-  entrance: 'fa-door-open',      // Entrance
+  entrance: 'fa-dungeon',          // Entrance (dungeon door)
   empty: 'fa-th',                // Empty Room
   wall: 'fa-wind',               // Wall
 
@@ -45,11 +55,19 @@ export const ROOM_ICONS = {
   key: 'fa-key',                 // Key Room
   health: 'fa-heart',            // Healing Room
   mana: 'fa-flask-potion',       // Mana Room
-  master: 'fa-crown',            // Master Room
+  master: 'fa-triangle',            // Master Room
   puzzle: 'fa-puzzle-piece',     // Puzzle Room
   secret: 'fa-mask',             // Secret Room
   teleport: 'fa-transporter',
   shop: 'fa-store',
-
+  save: 'fa-monument',           // Save Point
+  gate: 'fa-door-closed',        // Exit Gate
+  
+  pit: 'fa-hole',                // Pit Hazard
+  void: 'fa-eclipse',            // Void Space
+  
+  'stairs-up': 'fa-stairs',      // Stairs Up
+  'stairs-down': 'fa-stairs-down', // Stairs Down
+  camp: 'fa-campfire',           // Camp Room
   lock: 'fa-lock',               // Locked Chest 
 };

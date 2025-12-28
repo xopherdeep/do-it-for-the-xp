@@ -31,9 +31,9 @@ import type { Swiper as SwiperType } from 'swiper';
 // import sack from "@/assets/fonts/font-awesome/svgs/duotone/sack.svg";
 
 import { NativeAudio } from "@awesome-cordova-plugins/native-audio";
-import CardUserStats from "@/components/CardUserStats/CardUserStats.vue";
+import CardUserStats from "@/components/organisms/CardUserStats/CardUserStats.vue";
 import fetchItems from "@/mixins/fetchItems";
-import AnimatedNumber from "@/components/AnimatedNumber.vue";
+import AnimatedNumber from "@/components/atoms/AnimatedNumber/XpAnimatedNumber.vue";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useGameStore } from "@/lib/store/stores/game";
 import { useBattleStore } from "@/lib/store/stores/battle";

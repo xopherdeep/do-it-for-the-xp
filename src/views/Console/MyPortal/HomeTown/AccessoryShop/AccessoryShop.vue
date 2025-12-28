@@ -125,7 +125,7 @@
                   <ion-row>
                     <ion-col>
                       <ion-button
-                        @click="buyItem(item.id)"
+                        @click.stop="buyItem(item.id)"
                         color="success"
                         expand="block"
                       >
@@ -135,7 +135,7 @@
                     </ion-col>
                     <ion-col>
                       <ion-button
-                        @click="closeModal(item.id)"
+                        @click.stop="closeModal(item.id)"
                         color="danger"
                         expand="block"
                       >

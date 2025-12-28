@@ -50,28 +50,28 @@ export default defineComponent<DefineUserActionComponent>({
       {
         label: "Crystal Caverns",
         faIcon: "dungeon",
-        side: "top",
+        side: "start",
         click() {
           const merchant = "crystal-caverns"
           router.push({ name: "shop", params: { merchant }})
         },
       },
       {
-        label: "Fire Fortress",
-        id: "fire-temple",
-        faIcon: "place-of-worship",
-        side: "bottom",
+        label: "Travel World",
+        faIcon: "pegasus",
+        side: "top",
         click() {
-          const temple = 'fire-temple'
-          router.push({ name: "temple", params: { userId, temple } });
+          router.push({ name: "world-map", params: { userId } });
         },
       },
       {
-        label: "Travel World",
-        faIcon: "pegasus",
-        side: "start",
+        label: "Fire Fortress",
+        id: "fire-temple",
+        faIcon: "place-of-worship",
+        side: "end",
         click() {
-          router.push({ name: "world-map", params: { userId } });
+          const temple = 'fire-temple'
+          router.push({ name: "temple", params: { userId, temple } });
         },
       },
     ];

@@ -1,36 +1,81 @@
 <template>
-  <ion-grid class="icon-colors w-full ion-no-margin">
-    <ion-row>
-      <ion-col size="6">
-        <XpStatBox :value="totalAwarded" label="AP Unlocked" iconName="fa-hand-holding-magic" iconColor="primary" />
-      </ion-col>
-      <ion-col size="6">
-        <XpStatBox :value="avgPerQuest" label="Avg AP per Q" iconName="fa-hand-holding-seedling" iconColor="tertiary" />
-      </ion-col>
-      
-      <ion-col size="4">
-        <XpStatBox :value="dailyStreaks" label="AP Today" iconName="fa-calendar-day" iconColor="primary" />
-      </ion-col>
-      <ion-col size="4">
-        <XpStatBox :value="weeklyAchievements" label="AP This Week" iconName="fa-calendar-week" iconColor="warning" />
-      </ion-col>
-      <ion-col size="4">
-        <XpStatBox :value="monthlyMilestones" label="AP This Month" iconName="fa-calendar-alt" iconColor="danger" />
-      </ion-col>
-    </ion-row>
-  </ion-grid>
+  <XpDashboardGrid :cols="2">
+    <XpDashboardTile>
+      <XpNavTile 
+        label="Control Powers" 
+        iconName="fa-hand-holding-magic" 
+        color="tertiary"
+        @click="goToAbilities" 
+      />
+    </XpDashboardTile>
+    <XpDashboardTile>
+      <XpStatBox 
+        :value="totalAwarded" 
+        label="AP Unlocked" 
+        iconName="fa-atom" 
+        iconColor="primary" 
+        :isActive="isActive"
+        :animationKey="animationKey"
+      />
+    </XpDashboardTile>
+    <XpDashboardTile>
+      <XpStatBox 
+        :value="avgPerQuest" 
+        label="Avg AP/Quest" 
+        iconName="fa-atom-alt" 
+        iconColor="danger" 
+        :isActive="isActive"
+        :animationKey="animationKey"
+      />
+    </XpDashboardTile>
+    <XpDashboardTile>
+      <XpStatBox 
+        :value="75" 
+        label="Avg AP/User" 
+        iconName="fa-user-visor" 
+        iconColor="warning" 
+        :isActive="isActive"
+        :animationKey="animationKey"
+      />
+    </XpDashboardTile>
+
+  </XpDashboardGrid>
 </template>
 
 <script lang="ts">
 import Ionic from '@/mixins/ionic';
 import { defineComponent } from 'vue';
-import XpStatBox from '@/components/XpStatBox/XpStatBox.vue';
+import { useRouter } from 'vue-router';
+import XpStatBox from '@/components/molecules/StatBox/XpStatBox.vue';
+import XpNavTile from '@/components/molecules/StatGrid/XpNavTile.vue';
+import XpDashboardGrid from '@/components/molecules/StatGrid/XpDashboardGrid.vue';
+import XpDashboardTile from '@/components/molecules/StatGrid/XpDashboardTile.vue';
 
 export default defineComponent({
   name: 'AbilityPointsDashboard',
   mixins: [Ionic],
   components: {
-    XpStatBox
+    XpStatBox,
+    XpNavTile,
+    XpDashboardGrid,
+    XpDashboardTile
+  },
+  props: {
+    isActive: {
+      type: Boolean,
+      default: false
+    },
+    animationKey: {
+      type: [Number, String],
+      default: 0
+    }
+  },
+  setup() {
+    const router = useRouter();
+    const goToAbilities = () => {
+      router.push({ name: 'xp-abilities' });
+    };
+    return { goToAbilities };
   },
   data() {
     return {

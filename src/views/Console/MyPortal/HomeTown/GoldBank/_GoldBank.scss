@@ -80,18 +80,7 @@
   line-height: 1.5;
 }
 
-// Global ATM action sheet styling
-:global(.atm-action-sheet) {
-  --backdrop-opacity: 0.4;
-  
-  .action-sheet-title {
-    color: #8b4513;
-  }
-  
-  .action-sheet-button {
-    color: #555;
-  }
-}
+// ATM action sheet styling is now handled globally via .atm-action-sheet in earthbound.scss
 
 .blink {
   animation: blink-animation 1.2s infinite;

@@ -44,7 +44,7 @@
 
 <script lang="ts">
 import { defineComponent, ref } from 'vue';
-import XpDialog from '@/components/XpDialog/XpDialog.vue';
+import XpDialog from '@/components/molecules/Dialog/XpDialog.vue';
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonButton, IonButtons, IonBackButton } from '@ionic/vue';
 import debug from '@/lib/utils/debug';
 

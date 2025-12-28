@@ -63,12 +63,29 @@ export default defineComponent<DefineUserActionComponent>({
 
     const userActions = [
       {
+        label: "Pegasus Ranch",
+        id: "pegasus-ranch",
+        faIcon: "farm",
+        side: "start",
+        click() {
+          const merchant = "pegasus-ranch"
+          router.push({ name: "shop", params: { merchant } })
+        },
+      },
+      {
+        label: "Travel World",
+        faIcon: "pegasus",
+        side: "top",
+        click() {
+          router.push({ name: "world-map", params: { userId } });
+        },
+      },
+      {
         label: " Hometown",
         id: 'home-town',
         faIcon: "archway",
-        side: "start",
-        click($ev) {
-          $ev.preventDefault()
+        side: "bottom",
+        click() {
           router.push({ name: 'home-town', params: { userId } })
         }
       },
@@ -76,7 +93,7 @@ export default defineComponent<DefineUserActionComponent>({
         label: "Wind Temple",
         id: "wind-temple",
         faIcon: "place-of-worship",
-        side: "bottom",
+        side: "end",
         click() {
           const temple = "wind-temple"
           router.push({ name: "temple", params: { 
@@ -85,25 +102,6 @@ export default defineComponent<DefineUserActionComponent>({
             x: 2, 
             y: 5 
         } });
-        },
-      },
-      {
-        label: "Travel World",
-        faIcon: "pegasus",
-        side: "start",
-        click() {
-          router.push({ name: "world-map", params: { userId } });
-        },
-      },
-      {
-        label: "Pegasus Ranch",
-        // label: "Zodiac Ranch",
-        id: "pegasus-ranch",
-        faIcon: "farm",
-        side: "top",
-        click() {
-          const merchant = "pegasus-ranch"
-          router.push({ name: "shop", params: { merchant } })
         },
       },
     ];

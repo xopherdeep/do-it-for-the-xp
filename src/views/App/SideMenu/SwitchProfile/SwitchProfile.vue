@@ -192,6 +192,7 @@
       <ProfileLoadingModal
         :is-open="isProfileLoading"
         :user-name="selectedUserName"
+        :user-avatar="selectedUserAvatar"
         @close="isProfileLoading = false"
       />
 
@@ -234,8 +235,8 @@ import { Drivers, Storage } from "@ionic/storage";
 import { modalController } from "@ionic/vue";
 import { ProfileDb } from "@/lib/databases";
 import AddProfile from "./AddProfile/AddProfile.vue";
-  import ProfileLoadingModal from "./ProfileLoadingModal.vue";
-import XpGp from "@/components/XpGp/XpGp.vue";
+import ProfileLoadingModal from "./ProfileLoadingModal.vue";
+import XpGp from "@/components/atoms/Currency/XpGp.vue";
 import DialPad from "./DialPad.vue";
 import ionic from "@/mixins/ionic";
 import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
@@ -271,6 +272,7 @@ export default defineComponent({
     const restoreSuccess = ref(false);
     const isRestoringProfiles = ref(false);
     const selectedUserName = ref('');
+    const selectedUserAvatar = ref('');
 
     // Computed properties
     const users = computed(() => userStore.usersAz);
@@ -521,6 +523,7 @@ export default defineComponent({
 
     const selectProfile = async (profile: User) => {
       selectedUserName.value = profile.name.nick;
+      selectedUserAvatar.value = getUserAvatar(profile);
       if (profile.passcode) {
         openPasscodeModal(profile);
       } else {
@@ -596,6 +599,7 @@ export default defineComponent({
       showRestoreToast,
       openBackupOptionsModal,
       selectedUserName,
+      selectedUserAvatar,
     };
   },
 });

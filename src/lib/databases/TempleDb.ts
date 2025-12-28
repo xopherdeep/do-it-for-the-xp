@@ -1,5 +1,6 @@
 import DbStorageApi from './DbStorageApi';
 import { Drivers, Storage } from "@ionic/storage";
+import { Room } from '@/lib/engine/core/dungeons/types';
 
 export const templeStorage = new Storage({
   name: "__temples",
@@ -17,10 +18,15 @@ export interface TempleInterface {
   taskCount?: number;
   dungeonLayout?: {
     entrance: number[];
-    maze: string[][];
-    rooms: Record<string, any>;
+    maze: string[][] | Record<string, string[][]>;
+    rooms: Record<string, Room>;
   };
+  // Top-level properties for backwards compatibility
+  entrance?: number[];
+  maze?: string[][] | Record<string, string[][]>;
+  rooms?: Record<string, Room>;
 }
+
 
 export class TempleDb extends DbStorageApi {
   public async setTemple(temple: TempleInterface) {

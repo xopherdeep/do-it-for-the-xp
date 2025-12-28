@@ -8,7 +8,8 @@ import { registerAllTemples, registerCustomTemples } from '@/lib/engine/core/dun
 import { importAllTempleLayouts } from '@/lib/engine/core/dungeons/importAllTemples';
 import temples from '../../../lib/engine/temples';
 import XpFabUserHud from '../MyPortal/UserHud/components/XpFabUserHud.vue';
-import XpUserPointsHud from '../MyPortal/UserHud/components/XpUserPointsHud.vue';
+import XpXpBar from '../MyPortal/UserHud/components/XpXpBar.vue';
+import XpMainHud from '../MyPortal/UserHud/components/XpMainHud.vue';
 import debug from '@/lib/utils/debug';
 import { useUserStore } from '@/lib/store/stores/user';
 import { play$fx } from "@/assets/fx"
@@ -19,7 +20,8 @@ export default defineComponent({
   mixins: [ionic],
   components: {
     XpFabUserHud,
-    XpUserPointsHud,
+    XpXpBar,
+    XpMainHud
   },
   setup(props) {
     const userStore = useUserStore();
@@ -33,20 +35,21 @@ export default defineComponent({
       return userStore.getUserById(props.userId);
     });
 
-    // Register predefined temples with the engine
+    // Register predefined temples with the engine (for gameplay, not editing)
     registerAllTemples(temples);
 
-    // Import all temple layouts into the database
+    // Import all temple layouts into the database if they don't exist
     importAllTempleLayouts()
-      .then(() => debug.log('All temple layouts imported into TempleDb'))
-      .catch(err => debug.error('Failed to import temple layouts:', err));
+      .then(() => debug.log('Temple layouts checked/syncing with TempleDb'))
+      .catch(err => debug.error('Failed to sync temple layouts:', err));
 
-    // Register custom temples from the TempleDb
+    // Register custom temples from the TempleDb (user-created content)
     registerCustomTemples().catch(err => debug.error('Failed to register custom temples:', err));
 
     // Get temple features from the composable
     const {
       currentPosition,
+      currentLevel,
       hasMap,
       hasCompass,
       playerKeys,
@@ -112,9 +115,10 @@ export default defineComponent({
     const validRoomCoords = computed(() => {
       const coords: string[] = [];
 
-      for (let row = 0; row < maze.value.length; row++) {
-        for (let col = 0; col < maze.value[row].length; col++) {
-          const roomKey = maze.value[row][col];
+      const mazeData = maze.value;
+      for (let row = 0; row < mazeData.length; row++) {
+        for (let col = 0; col < mazeData[row].length; col++) {
+          const roomKey = mazeData[row][col];
           if (rooms.value[roomKey]?.type !== 'wall') {
             coords.push(`[${row},${col}]`);
           } else {
@@ -226,14 +230,27 @@ export default defineComponent({
           }
           break;
         case 'monster':
-          actions.header = 'A Monster approaches!';
+        case 'miniboss':
+        case 'boss':
+          actions.header = currentRoom.value.type === 'boss' 
+            ? 'A Powerful Boss appears!' 
+            : 'A Monster approaches!';
           actions.buttons.unshift({
             text: 'Fight',
             role: 'fight',
             handler: () => {
+              // Navigate using URL path format - BattleField will look up the room data
+              const [row, col] = currentPosition.value;
+              const level = currentLevel.value;
+              
               router.push({
-                name: 'battle-field',
-                params: { userId: props.userId }
+                name: 'battle-field-temple',
+                params: {
+                  templeId: props.temple,
+                  level: level,
+                  x: col.toString(),
+                  y: row.toString()
+                }
               });
             }
           } as any);

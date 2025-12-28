@@ -3,7 +3,7 @@ import ionic from "@/mixins/ionic";
 import { arrowBack } from "ionicons/icons";
 import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import { useStore } from "vuex";
+import { useUserStore } from "@/lib/store/stores/user";
 import userActions from "@/mixins/userActions";
 import type { DefineUserActionComponent } from "@/mixins/userActions";
 import debug from "@/lib/utils/debug";
@@ -17,9 +17,9 @@ export default defineComponent<DefineUserActionComponent>({
   setup() {
     const route = useRoute();
     const router = useRouter();
-    const store = useStore();
+    const userStore = useUserStore();
     const { userId } = route.params;
-    const user = computed(() => store.getters.getUserById(userId));
+    const user = computed(() => userStore.getUserById(userId as string));
     
     const windInterval = ref<number | null>(null);
     const windAudio = ref<HTMLAudioElement | null>(null);
@@ -71,20 +71,27 @@ export default defineComponent<DefineUserActionComponent>({
 
     const userActions = [
       {
-        // label: "Oasis",
         label: "Pond of Life",
         faIcon: "island-tropical",
-        side: "top",
+        side: "start",
         click() {
           const merchant = "pond-of-life"
           router.push({ name: "shop", params: { merchant }})
         },
       },
       {
+        label: "Travel World",
+        faIcon: "pegasus",
+        side: "top",
+        click() {
+          router.push({ name: "world-map", params: { userId } });
+        },
+      },
+      {
         label: "Sun Pyramid",
         id: "sun-temple",
         faIcon: "place-of-worship",
-        side: "bottom",
+        side: "end",
         click() {
           const temple = 'sun-temple'
           router.push({ 
@@ -93,21 +100,6 @@ export default defineComponent<DefineUserActionComponent>({
               userId,
               temple
             } 
-          });
-        },
-      },
-      {
-        label: "Travel World",
-        faIcon: "pegasus",
-        side: "start",
-        click() {
-          const temple = 'sun-temple'
-          router.push({ 
-            name: "world-map", 
-            params: { 
-              userId, 
-              temple
-             } 
           });
         },
       },

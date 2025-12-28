@@ -5,8 +5,8 @@ import { IonicVue } from '@ionic/vue';
 // PLUGINS
 import Vue3AutoCounter from 'vue3-autocounter';
 import Countdown from 'vue3-flip-countdown'
-import XpGp from './components/XpGp'
-import XpLoading from './components/XpLoading'
+import XpGp from './components/atoms/Currency/XpGp.vue'
+import XpLoading from './components/molecules/Loading'
 
 // Virtual Scroller
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
@@ -18,7 +18,6 @@ import appConfig from "./app.config"
 
 // ROUTER & STORE
 import useRouter from './router/router';
-import store from './lib/store';
 
 // Audio Engine
 import { AudioEnginePlugin } from './lib/engine/audio/plugin';
@@ -59,7 +58,7 @@ preventIOSZoom();
 
 
 function readyRouterMountApp() {
-  const router = useRouter(store);
+  const router = useRouter();
   const app = createApp(App)
     .component('vue3-autocounter', Vue3AutoCounter)
     .component('xp-loading', XpLoading)
@@ -75,7 +74,6 @@ function readyRouterMountApp() {
       // backButtonIcon: 'chevron-back',
       // routerAnimation: undefined,
     })
-    .use(store)
     .use(createPinia())
     .use(router)
     .use(AudioEnginePlugin);
@@ -96,5 +94,27 @@ function readyRouterMountApp() {
   const mountApp = () => app.mount('#app');
   router.isReady().then(mountApp);
 }
+
+// Global Console Helper for Testing
+import { useUserStore } from './lib/store/stores/user';
+// Extend window interface
+declare global {
+  interface Window {
+    unlockPegasus: (index: number) => void;
+  }
+}
+
+// Add function to window
+window.unlockPegasus = (index: number) => {
+  const store = useUserStore();
+  if (store.currentUser.id) {
+    store.unlockPegasus(store.currentUser.id, index);
+    // eslint-disable-next-line no-console
+    console.log(`%c 🦄 Pegasus #${index + 1} Unlocked!`, 'color: #ff00ff; font-weight: bold; font-size: 14px;');
+  } else {
+    // eslint-disable-next-line no-console
+    console.warn("No user logged in.");
+  }
+};
 
 readyRouterMountApp()

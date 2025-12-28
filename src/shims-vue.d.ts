@@ -21,7 +21,6 @@ declare module 'vue' {
     $requireImg: any;
     $requireIcon: any;
     $router: any;
-    $store: any;
     play$fx: (fx?: string) => void;
     $historyCount: number;
     $getUserAvatar: (user: User) => string | undefined;
@@ -36,7 +35,6 @@ declare module '@vue/runtime-core' {
     $requireImg: any;
     $requireIcon: any;
     $router: any;
-    $store: any;
     play$fx: (fx?: string) => void;
     $historyCount: number;
     $getUserAvatar: (user: User) => string | undefined;

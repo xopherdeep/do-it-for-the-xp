@@ -159,10 +159,10 @@
   </ion-page>
 </template>
 <script lang="ts">
-  import { defineComponent, ref } from 'vue';
+  import { defineComponent, ref, computed } from 'vue';
   import { modalController } from '@ionic/vue';
   import ionic from "@/mixins/ionic";
-  import { mapGetters } from "vuex";
+  import { useUserStore } from '@/lib/store/stores/user';
   import debug from '@/lib/utils/debug';
 
   import AccessoriesDb, {  accessoriesStorage, Rarity, AccessoryType } from '@/lib/databases/AccessoriesDb';
@@ -187,7 +187,6 @@
       }
     },
     computed: {
-      ...mapGetters(['usersAz']),
     },
     methods: {
       async dismiss() {
@@ -215,6 +214,7 @@
         this.loadAccessoryById(this.id)
     },
     setup() {
+      const userStore = useUserStore();
       const accessoryDb = new AccessoriesDb(accessoriesStorage);
       const updateAccessory = ref({
         name: '',
@@ -293,7 +293,8 @@
         formatDate,
         getUserName,
         AccessoryType,
-        Rarity
+        Rarity,
+        usersAz: computed(() => userStore.usersAz)
       }
     }
   })

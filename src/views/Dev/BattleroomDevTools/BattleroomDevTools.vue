@@ -9,7 +9,7 @@
           :enemyType="selectedEnemyType"
           :userId="String(selectedProfile?.userData?.id || 1)"
           :userName="selectedProfile?.name || 'Developer'"
-          :beastAvatar="selectedBeast?.avatar || null"
+          :beastAvatar="selectedBeast?.avatar || undefined"
           :showEnemyInfo="false"
           class="battleground-component"
         />
@@ -280,7 +280,8 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, watch } from 'vue';
-import { useStore } from 'vuex';
+import { useBattleStore } from '@/lib/store/stores/battle';
+import { useUserStore } from '@/lib/store/stores/user';
 import BattleField from '@/views/Console/BattleField/BattleField.vue';
 import { toastController } from '@ionic/vue';
 import { 
@@ -358,7 +359,7 @@ export default defineComponent({
     BattleActionsFab,
   },
   setup() {
-    const store = useStore();
+    const battleStore = useBattleStore();
     // Properly type the battleground ref with the BattleFieldInstance interface
     const battlegroundRef = ref<BattleFieldInstance | null>(null);
     const controlsModal = ref(null);
@@ -543,7 +544,12 @@ export default defineComponent({
     const maxTaskHealth = ref(100);
     const taskProgressStep = ref(20);
 
-    const battleState = computed(() => store.getters.battleState);
+    const battleState = computed(() => ({
+      active: battleStore.active,
+      timer: battleStore.timer,
+      steps: battleStore.steps,
+      terrain: battleStore.terrain
+    }));
     const battleStateJson = computed(() => JSON.stringify(battleState.value, null, 2));
 
     // Task-Enemy computed properties
@@ -644,12 +650,7 @@ export default defineComponent({
       taskHealth.value = maxTaskHealth.value;
       
       // Update enemy in store if needed
-      // store.dispatch('updateTaskEnemy', { 
-      //   type: selectedTaskType.value,
-      //   difficulty: taskDifficulty.value,
-      //   health: taskHealth.value,
-      //   maxHealth: maxTaskHealth.value
-      // });
+      // store.dispatch('updateTaskEnemy', { ... }); -- Legacy Vuex dispatch removed
     };
 
     // Simulate progress on the current task
@@ -692,16 +693,16 @@ export default defineComponent({
     // Toggle battle state
     const toggleBattleState = () => {
       if (battleActive.value) {
-        store.dispatch('enterBattle');
+        battleStore.enterBattle();
       } else {
-        store.dispatch('leaveBattle');
+        battleStore.deactivateBattle();
       }
     };
 
     // Trigger a battle
     const triggerBattle = () => {
-      store.commit('ACTIVATE_BATTLE');
-      store.dispatch('enterBattle');
+      battleStore.activateBattle();
+      battleStore.enterBattle();
       battleActive.value = true;
       // Close the modal after triggering a battle
       isControlsModalOpen.value = false;

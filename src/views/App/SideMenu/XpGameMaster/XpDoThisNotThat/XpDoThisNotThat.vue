@@ -21,7 +21,10 @@
       </ion-segment>
     </ion-header>
     <ion-content>
-      <ion-list>
+      <div v-if="isLoading" class="loading-wrapper-centered">
+        <XpLoading />
+      </div>
+      <ion-list v-else>
         <ion-item-sliding
           v-for="(task, index) in dosDontsBySegment"
           :key="index"
@@ -110,11 +113,15 @@
   import XpAddDoDont from "./components/XpAddDoDont.vue";
   import { useRoute } from "vue-router";
   import DosDontsDb, { DosDont } from "@/lib/databases/DosDontsDb";
+  import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 
   import ionic from "@/mixins/ionic";
   export default defineComponent({
     name: "XpDoThisNotThat",
     mixins: [ionic],
+    components: {
+      XpLoading
+    },
 
     computed: {
       dosDontsBySegment() {
@@ -188,11 +195,17 @@
       // const activeSegment = ref("do");
       const doDontDb = new DosDontsDb();
       const doDonts = ref([] as DosDont[]);
+      const isLoading = ref(true);
 
       const loadDoDonts = async () => {
-        const all = await doDontDb.getAll();
-        //sort them a-z
-        doDonts.value = all.sort((a, b) => a.whatFor.localeCompare(b.whatFor));
+        isLoading.value = true;
+        try {
+          const all = await doDontDb.getAll();
+          //sort them a-z
+          doDonts.value = all.sort((a, b) => a.whatFor.localeCompare(b.whatFor));
+        } finally {
+          isLoading.value = false;
+        }
       };
       watch(
         () => route.path,
@@ -206,6 +219,7 @@
         doDontDb,
         doDonts,
         loadDoDonts,
+        isLoading,
       };
     },
 

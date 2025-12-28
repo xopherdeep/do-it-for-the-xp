@@ -543,6 +543,7 @@
 <script lang="ts">
   import { defineComponent, ref, computed } from "vue";
   import { useUserStore } from "@/lib/store/stores/user";
+  import debug from "@/lib/utils/debug";
   import { useRouter } from 'vue-router';
   import { toastController } from '@ionic/vue';
 import {
@@ -643,24 +644,28 @@ import {
     const availableSynergies = ref<Synergy[]>([
       {
         name: 'Balanced Party',
+        description: 'A well-rounded team ready for anything',
         requirement: '1 Tank + 1 Healer + 1 DPS',
         bonus: '+15% XP',
         icon: 'fad fa-users-class',
       },
       {
         name: 'Warrior\'s Bond',
+        description: 'Strength in numbers',
         requirement: '2+ Warriors in party',
         bonus: '+20% STR',
         icon: 'fad fa-swords',
       },
       {
         name: 'Mage Circle',
+        description: 'Arcane resonance',
         requirement: '2+ Mages in party',
         bonus: '+30% MP Regen',
         icon: 'fad fa-hat-wizard',
       },
       {
         name: 'Full House',
+        description: 'Maximum party size bonus',
         requirement: '4+ members active',
         bonus: '+25% All',
         icon: 'fad fa-home-heart',
@@ -723,7 +728,7 @@ import {
     };
 
     const openMemberProfile = (member: PartyMember) => {
-      console.log('Open profile for', member.name.nick);
+      debug.log('Open profile for', member.name.nick);
     };
 
     const openPartySettings = () => {

@@ -166,7 +166,7 @@ import {
   businessOutline, newspaperOutline, calendarOutline, megaphoneOutline,
   addOutline, bugOutline, bulbOutline, arrowForwardOutline,
 } from 'ionicons/icons';
-import XpLoading from '@/components/XpLoading/XpLoading.vue';
+import XpLoading from '@/components/molecules/Loading/XpLoading.vue';
 import debug from '@/lib/utils/debug';
 import Ionic from '@/mixins/ionic';
 

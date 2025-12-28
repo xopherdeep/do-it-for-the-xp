@@ -112,8 +112,8 @@ import { defineComponent, reactive, onMounted, ref, watch } from "vue";
 import { modalController, toastController } from "@ionic/vue";
 import { useRouter, useRoute } from 'vue-router';
 import BestiaryDb, { beastStorage, Beast } from "@/lib/databases/BestiaryDb";
-import AvatarSelect from "@/components/AvatarSelect";
-import XpBackgroundSelector from "@/components/XpBackgroundSelector/XpBackgroundSelector.vue";
+import AvatarSelect from "@/components/molecules/AvatarSelect";
+import XpBackgroundSelector from "@/components/molecules/BackgroundSelector/XpBackgroundSelector.vue";
 import BeastDetailsModal from "./BeastDetailsModal.vue";
 import ionic from "@/mixins/ionic";
 // Import the background manager instead of direct library imports

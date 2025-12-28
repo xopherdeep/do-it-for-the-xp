@@ -12,7 +12,7 @@ const TravelingMerchant = defineComponent({
         // label: "Dr. Who",
         // label: "Francis",
         faIcon: "wagon-covered",
-        side: "start",
+        side: "bottom",
         travels : {
           sunday: 'world-plains',
           monday: 'world-islands',

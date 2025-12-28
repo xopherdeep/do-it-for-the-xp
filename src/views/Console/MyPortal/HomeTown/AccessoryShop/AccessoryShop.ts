@@ -33,7 +33,7 @@ import debug from "@/lib/utils/debug";
 import ATMModal from "@/views/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
 // Import the GPSystem
 import { getGPService } from '@/lib/services/gp';
-import { mapGetters } from "vuex";
+import { useUserStore } from "@/lib/store/stores/user";
 
 export default defineComponent({
   props: ["userId", "merchant"],
@@ -146,9 +146,8 @@ export default defineComponent({
         backgroundRepeat: 'no-repeat'
       };
     },
-    ...mapGetters(["getUserById"]),
     user() {
-      return this.getUserById(this.userId);
+      return this.userStore.getUserById(this.userId);
     }
   },
   methods: {
@@ -219,6 +218,7 @@ export default defineComponent({
     this.$fx.ui[this.$fx.theme.ui].openShop.play();
   },
   setup() {
+    const userStore = useUserStore();
     const customAlertOptions = {
       header: "Shelves",
       subHeader: "Select which shelves to see",
@@ -255,6 +255,7 @@ export default defineComponent({
       starSharp,
       // Add cashOutline for ATM button
       cashOutline,
+      userStore
     };
   },
 });

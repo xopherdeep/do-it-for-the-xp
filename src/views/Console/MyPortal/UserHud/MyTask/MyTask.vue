@@ -469,7 +469,7 @@
         </ion-grid>
         <!-- fab placed to the (vertical) center and start -->
         <ion-fab vertical="bottom" horizontal="center" slot="fixed">
-          <ion-fab-button color="light" @click="closeModal">
+          <ion-fab-button color="light" @click.stop="closeModal">
             <i class="fad fa-times fa-4x"></i>
           </ion-fab-button>
         </ion-fab>

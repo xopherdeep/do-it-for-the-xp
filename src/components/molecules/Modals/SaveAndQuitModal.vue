@@ -1,5 +1,6 @@
 <template>
   <ion-modal
+    ref="modal"
     :is-open="isOpen"
     class="save-quit-modal"
     :backdrop-dismiss="true"
@@ -8,12 +9,15 @@
     <ion-card class="animated-card">
       <ion-card-header>
         <ion-icon
-          @click="close"
+          @click.stop="dismiss"
           name="close"
           class="close-icon"
         />
         <div class="header-icon">
-          <i class="fad fa-user-astronaut"></i>
+          <div v-if="userAvatar" class="avatar-container">
+            <img :src="userAvatar" class="profile-avatar" />
+          </div>
+          <i v-else class="fad fa-user-astronaut"></i>
         </div>
         <ion-card-title class="card-title">
           Save & Quit
@@ -30,7 +34,7 @@
 
         <div class="button-group">
           <ion-button
-            @click="close"
+            @click.stop="dismiss"
             class="cancel-button"
           >
             Cancel
@@ -59,6 +63,7 @@
     IonButton,
     IonIcon,
   } from "@ionic/vue";
+  import { play$fx } from "@/assets/fx";
 
   export default defineComponent({
     name: "save-and-quit-modal",
@@ -76,6 +81,10 @@
         type: Boolean,
         default: false,
       },
+      userAvatar: {
+        type: String,
+        default: '',
+      },
     },
     emits: ["close", "confirm"],
     methods: {
@@ -84,6 +93,15 @@
       },
       close() {
         this.$emit("close");
+      },
+      dismiss() {
+        play$fx("no");
+        const modal = this.$refs.modal as any;
+        if (modal?.$el) {
+          modal.$el.dismiss();
+        } else {
+          this.close();
+        }
       },
       confirmSaveQuit() {
         this.$emit("confirm");
@@ -141,6 +159,25 @@
     i {
       font-size: 3rem;
       color: rgba(255, 255, 255, 0.85);
+    }
+
+    .avatar-container {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: white;
+      padding: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      border: 2px solid var(--ion-color-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      .profile-avatar {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
     }
   }
 

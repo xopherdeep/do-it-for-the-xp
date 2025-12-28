@@ -23,7 +23,7 @@ export default defineComponent<DefineUserActionComponent>({
     const userActions = [
       {
         label: "Home",
-        side: "start",
+        side: "bottom",
         faIcon: "house-user",
         click() {
           router.push({ name: "my-home", params: { userId } });
@@ -31,26 +31,26 @@ export default defineComponent<DefineUserActionComponent>({
       },
       {
         label: "Shop",
-        side: "top",
+        side: "start",
         faIcon: "store",
         click() {
           router.push({ name: "shop", params: { userId } });
         },
       },
       {
-        label: "Hotel",
-        faIcon: "hotel",
-        side: "bottom",
+        label: "Hospital",
+        faIcon: "hospital-alt",
+        side: "end",
         click() {
-          router.push({ name: "hotel", params: { userId } });
+          router.push({ name: "hospital", params: { userId } });
         },
       },
       {
-        label: "Hospital",
-        faIcon: "hospital-alt",
-        side: "bottom",
+        label: "Hotel",
+        faIcon: "hotel",
+        side: "end",
         click() {
-          router.push({ name: "hospital", params: { userId } });
+          router.push({ name: "hotel", params: { userId } });
         },
       },
       // TODO: Uncomment when temple is implemented
@@ -73,8 +73,8 @@ export default defineComponent<DefineUserActionComponent>({
       {
         label: "Town Hall",
         id: "town-hall",
-        faIcon: "university",
-        side: "top",
+        faIcon: "podium",
+        side: "start",
         click() {
           router.push({ name: "town-hall", params: { userId } });
           // console.log($ev.preventDefault());
@@ -83,7 +83,7 @@ export default defineComponent<DefineUserActionComponent>({
       {
         label: "The Plains",
         faIcon: "tornado",
-        side: "start",
+        side: "top",
         click() {
           router.push({ name: "world-plains", params: { userId } });
         },

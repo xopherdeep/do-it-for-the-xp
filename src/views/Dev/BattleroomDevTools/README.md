@@ -68,16 +68,21 @@ A utility class with methods for testing and debugging battleroom functionality 
 ```typescript
 // Import the utility
 import { createBattleroomTestUtils } from '@/lib/utils/battleroom';
-import { useStore } from 'vuex';
+import { useBattleStore } from '@/lib/store/stores/battle';
 
 // In your component or test file
-const store = useStore();
-const battleUtils = createBattleroomTestUtils(store);
+export default {
+  setup() {
+    const battleStore = useBattleStore(); // Use Pinia store
+    const battleUtils = createBattleroomTestUtils(battleStore);
 
-// Use the utilities
-battleUtils.triggerBattle({ bgIndex: 2 });
-battleUtils.logBattleState();
-battleUtils.endBattle();
+    // Use the utilities
+    battleUtils.triggerBattle({ bgIndex: 2 });
+    battleUtils.logBattleState();
+    battleUtils.endBattle();
+    // ...
+  }
+}
 ```
 
 #### 3. Test Framework

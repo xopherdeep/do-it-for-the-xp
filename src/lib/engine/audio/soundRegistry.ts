@@ -69,7 +69,7 @@ export const soundEffects: Record<string, Record<string, Record<string, SoundEff
       },
       popup: {
         id: 'nintendo_popup',
-        src: nintendoPopup,
+        src: sonyPopup,
         category: 'ui'
       }
     },
@@ -97,7 +97,7 @@ export const soundEffects: Record<string, Record<string, Record<string, SoundEff
       },
       popup: {
         id: 'sony_popup',
-        src: sonyPopup,
+        src: nintendoPopup,
         category: 'ui'
       }
     }

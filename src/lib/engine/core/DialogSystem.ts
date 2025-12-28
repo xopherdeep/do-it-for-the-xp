@@ -9,12 +9,13 @@
 import debug from '@/lib/utils/debug';
 
 // Define types for message display methods
-export type MessageDisplayFn = (message: string, options?: DialogOptions) => void;
+export type MessageDisplayFn = (message: string | string[], options?: DialogOptions) => void;
 export type DialogOptions = {
   duration?: number;
   type?: 'info' | 'success' | 'warning' | 'error'; 
   sound?: string;
   autoDismiss?: boolean;
+  onDismiss?: () => void;
 };
 
 /**
@@ -69,11 +70,11 @@ export class DialogSystem {
   
   /**
    * Show a message using the appropriate display function
-   * @param message - The message to display
+   * @param message - The message or array of messages to display
    * @param context - Optional context to use a specific display function
    * @param options - Display options
    */
-  public showMessage(message: string, context?: string, options: DialogOptions = {}): void {
+  public showMessage(message: string | string[], context?: string, options: DialogOptions = {}): void {
     // Set default options
     const defaultOptions: DialogOptions = {
       duration: 2000,

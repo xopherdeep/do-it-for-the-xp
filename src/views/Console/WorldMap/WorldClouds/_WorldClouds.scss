@@ -1,3 +1,4 @@
+@use "sass:math";
 .world-clouds {
   ion-content {
     --background: url("@/assets/images/backgrounds/world-clouds.jpg") center
@@ -224,13 +225,13 @@
     // Generate 100 unique raindrops with different properties
     @for $i from 1 through 100 {
       &:nth-child(#{$i}) {
-        $left: random(100) * 1%;
-        $fallDuration: random(10) * 0.1 + 0.6 + s;
-        $height: random(50) + 20 + px;
-        $width: random(2) * 0.5 + 0.5 + px;
-        $opacity: random(5) * 0.1 + 0.5;
-        $delay: random(10) * 0.5 + s;
-        $angle: random(20) - 10 + deg;
+        $left: math.random(100) * 1%;
+        $fallDuration: math.random(10) * 0.1 + 0.6 + s;
+        $height: math.random(50) + 20 + px;
+        $width: math.random(2) * 0.5 + 0.5 + px;
+        $opacity: math.random(5) * 0.1 + 0.5;
+        $delay: math.random(10) * 0.5 + s;
+        $angle: math.random(20) - 10 + deg;
         
         left: $left;
         height: $height;
@@ -240,8 +241,8 @@
         animation-delay: $delay;
         transform: rotate($angle);
         // Add a slight blur to some raindrops for depth
-        @if random(5) > 3 {
-          filter: blur(#{random(2) * 0.5}px);
+        @if math.random(5) > 3 {
+          filter: blur(#{math.random(2) * 0.5}px);
         }
       }
     }

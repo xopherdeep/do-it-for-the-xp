@@ -31,7 +31,7 @@
         Level {{ profile.stats.level }}
       </ion-badge>
       <h2>
-        {{ profile.name.full }}
+        {{ profile.name.nick }}
       </h2>
       <p>
         <ion-badge
@@ -41,7 +41,7 @@
         >
           ₲{{ profile.stats.gp.wallet }}<small>.00</small>
         </ion-badge>
-        {{ profile.name.nick }}
+        {{ profile.name.full }}
       </p>
     </ion-label>
   </ion-item>

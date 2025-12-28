@@ -126,7 +126,7 @@ import 'swiper/css/navigation';
 import '@ionic/vue/css/ionic-swiper.css';
 
 // Import our typing text component
-import XpTypingText from "@/components/XpTypingText/XpTypingText.vue";
+import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
 
 
 import { arrowBack, informationOutline, informationSharp } from "ionicons/icons";

@@ -260,15 +260,17 @@
         </ion-fab-button>
       </ion-fab>
 
-      <XpFabUserHud
-        v-if="user"
-        :user="user"
-        :isUserFabOn="true"
-      />
-      <XpUserPointsHud
+      <XpMainHud
         v-if="user && user.stats"
         :stats="user.stats"
-      />
+      >
+        <template #avatar>
+          <XpFabUserHud
+            :user="user"
+            :isUserFabOn="true"
+          />
+        </template>
+      </XpMainHud>
       <ion-fab
         v-if="canMoveUp"
         vertical="top"
@@ -300,6 +302,10 @@
       ></ion-toast>
     </ion-content>
     <ion-footer>
+      <!-- Docked XP Bar above toolbar -->
+      <div class="footer-docked-xp" v-if="user && user.stats">
+        <XpXpBar :stats="user.stats" :hairline="true" />
+      </div>
       <ion-toolbar>
         <ion-item-sliding>
           <ion-item-options side="start">

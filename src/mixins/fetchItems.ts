@@ -20,7 +20,7 @@ import { Swiper, SwiperSlide } from 'swiper/vue';
 import { useGameStore } from "@/lib/store/stores/game";
 import { useUserStore } from "@/lib/store/stores/user";
 import { mapStores } from "pinia";
-import XpLoading from "@/components/XpLoading/XpLoading.vue";
+import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 
 export default defineComponent({
   props: ["userId"],

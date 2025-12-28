@@ -10,24 +10,39 @@
 </template>
 
 <script setup lang="ts">
-import { onMounted, onUnmounted, getCurrentInstance } from 'vue';
+import { onMounted, onUnmounted, getCurrentInstance, computed } from 'vue';
+import { useRoute } from 'vue-router';
 
 // Access global properties like $fx via getCurrentInstance
 const instance = getCurrentInstance();
 const fx = instance?.appContext.config.globalProperties.$fx;
+const route = useRoute();
+
+// Determine which sound to play based on current route
+const activeSoundId = computed(() => {
+  // If we are in the "backend" (GameMaster setup), use the setup sound
+  if (route?.path?.includes('/game-master/compendium/setup')) {
+    return 'setup';
+  }
+  return 'loading';
+});
 
 onMounted(() => {
-  if (fx && fx.ui && fx.theme && fx.ui[fx.theme.ui]?.loading) {
-    fx.ui[fx.theme.ui].loading.play();
+  if (fx && fx.ui && fx.theme) {
+    const sound = fx.ui[fx.theme.ui]?.[activeSoundId.value];
+    if (sound) {
+      sound.play();
+    }
   }
-  // Silent loading error to comply with ESLint rules
 });
 
 onUnmounted(() => {
-  if (fx && fx.ui && fx.theme && fx.ui[fx.theme.ui]?.loading) {
-    const loadingSound = fx.ui[fx.theme.ui].loading;
-    loadingSound.pause();
-    loadingSound.currentTime = 0;
+  if (fx && fx.ui && fx.theme) {
+    const sound = fx.ui[fx.theme.ui]?.[activeSoundId.value];
+    if (sound) {
+      sound.pause();
+      sound.currentTime = 0;
+    }
   }
 });
 </script>

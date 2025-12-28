@@ -1,3 +1,4 @@
+@use "sass:math";
 .world-forest{
   ion-content{
     --background: url("@/assets/images/backgrounds/world-forest.jpg") center center/cover no-repeat;
@@ -33,12 +34,12 @@
     
     @for $i from 1 through 30 {
       &:nth-child(#{$i}) {
-        $size: random(3) + 2 + px;
-        $top: random(80) + 10 + %;
-        $left: random(90) + 5 + %;
-        $float-duration: random(10) + 15 + s;
-        $glow-duration: random(3) + 2 + s;
-        $delay: random(15) * 1s;
+        $size: math.random(3) + 2 + px;
+        $top: math.random(80) + 10 + %;
+        $left: math.random(90) + 5 + %;
+        $float-duration: math.random(10) + 15 + s;
+        $glow-duration: math.random(3) + 2 + s;
+        $delay: math.random(15) * 1s;
         
         width: $size;
         height: $size;
@@ -93,25 +94,25 @@
     
     @for $i from 1 through 25 {
       &:nth-child(#{$i}) {
-        $size: random(3) + 1 + px;
-        $top: random(90) + 5 + %;
-        $left: random(90) + 5 + %;
-        $float-duration: random(15) + 20 + s;
-        $fade-duration: random(5) + 8 + s;
-        $delay: random(20) * 1s;
+        $size: math.random(3) + 1 + px;
+        $top: math.random(90) + 5 + %;
+        $left: math.random(90) + 5 + %;
+        $float-duration: math.random(15) + 20 + s;
+        $fade-duration: math.random(5) + 8 + s;
+        $delay: math.random(20) * 1s;
         
         width: $size;
         height: $size;
         top: $top;
         left: $left;
-        opacity: random(4) * 0.1 + 0.2;
+        opacity: math.random(4) * 0.1 + 0.2;
         animation-duration: $float-duration, $fade-duration;
         animation-delay: $delay, $delay;
         
-        @if random(10) > 7 {
+        @if math.random(10) > 7 {
           background-color: rgba(150, 255, 150, 0.8);
           box-shadow: 0 0 8px 1px rgba(150, 255, 150, 0.6);
-        } @else if random(10) > 5 {
+        } @else if math.random(10) > 5 {
           background-color: rgba(180, 255, 220, 0.8);
           box-shadow: 0 0 8px 1px rgba(180, 255, 220, 0.6);
         } @else {

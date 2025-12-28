@@ -1,3 +1,4 @@
+@use "sass:math";
 .world-mountains{
   ion-content{
     --background: url("@/assets/images/backgrounds/world-mountains.jpg") center center/cover no-repeat;
@@ -91,10 +92,10 @@
     
     @for $i from 1 through 80 {
       &:nth-child(#{$i}) {
-        $size: random(4) + 1 + px;
-        $left-pos: random(100) * 1%;
-        $duration: random(8) + 6 + s;
-        $delay: random(15) * 0.5s;
+        $size: math.random(4) + 1 + px;
+        $left-pos: math.random(100) * 1%;
+        $duration: math.random(8) + 6 + s;
+        $delay: math.random(15) * 0.5s;
         
         width: $size;
         height: $size;
@@ -102,10 +103,10 @@
         animation-duration: $duration;
         animation-delay: $delay;
         
-        @if random(10) > 5 {
+        @if math.random(10) > 5 {
           background-color: rgba(255, 220, 0, 0.9);
           box-shadow: 0 0 8px 2px rgba(255, 180, 0, 0.7);
-        } @else if random(10) > 7 {
+        } @else if math.random(10) > 7 {
           background-color: rgba(255, 100, 0, 0.9);
           box-shadow: 0 0 12px 3px rgba(255, 50, 0, 0.8);
         }
@@ -120,14 +121,14 @@
     }
     5% {
       opacity: 0.9;
-      transform: translateY(-50px) translateX(random(20) - 10 + px) scale(1);
+      transform: translateY(-50px) translateX(math.random(20) - 10 + px) scale(1);
     }
     80% {
       opacity: 0.7;
     }
     100% {
       opacity: 0;
-      transform: translateY(calc(-100vh + 100px)) translateX(random(100) - 50 + px) scale(0.5);
+      transform: translateY(calc(-100vh + 100px)) translateX(math.random(100) - 50 + px) scale(0.5);
     }
   }
 
@@ -234,9 +235,9 @@
     
     @for $i from 1 through 15 {
       &:nth-child(#{$i}) {
-        $delay: random(5) * 0.5s;
-        $duration: random(3) + 2 + s;
-        $left-offset: random(30) - 15 + px;
+        $delay: math.random(5) * 0.5s;
+        $duration: math.random(3) + 2 + s;
+        $left-offset: math.random(30) - 15 + px;
         
         animation-delay: $delay;
         animation-duration: $duration;
@@ -300,7 +301,7 @@
     }
     100% {
       opacity: 0;
-      transform: translateY(-100px) translateX(random(30) - 15 + px);
+      transform: translateY(-100px) translateX(math.random(30) - 15 + px);
     }
   }
 

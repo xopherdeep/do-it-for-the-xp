@@ -10,7 +10,7 @@ export const DIFFICULTY_ICONS = {
   34: "fa-dragon",
   55: "fa-cat-space",
   89: "fa-narwhal",
-  144: "fa-pegasus",
+  144: "fa-poo-storm",
 };
 
 export default DIFFICULTY_ICONS

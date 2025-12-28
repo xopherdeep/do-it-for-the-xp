@@ -417,7 +417,7 @@ import {
   IonToolbar,
 } from '@ionic/vue';
 import { ref } from 'vue'; // Removed unused computed
-import XpTypingText from '@/components/XpTypingText/XpTypingText.vue'; // Import our custom typing text component
+import XpTypingText from '@/components/atoms/TypingText/XpTypingText.vue'; // Import our custom typing text component
 
 // --- Script Logic ---
 

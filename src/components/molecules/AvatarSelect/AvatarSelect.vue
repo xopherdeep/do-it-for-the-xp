@@ -77,7 +77,7 @@
       }
     },
     setup(props: { avatar: number, bg1: number, bg2: number }) {
-      const nAvatars = 72;
+      const nAvatars = 73;
       const selectedAvatar = ref(props.avatar || 0);
       const backgroundInitialized = ref(false);
 

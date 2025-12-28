@@ -1,66 +1,129 @@
 <template>
-  <ion-grid class="icon-colors w-full">
-    <ion-row>
-      <ion-col>
-        <XpStatBox
-          :value="stats?.abilities || 0"
-          label="Abilities"
-          iconName="fa-hand-holding-magic"
-        />
-      </ion-col>
-      <ion-col>
-        <XpStatBox
-          :value="stats?.achievements || 0"
-          label="Quests"
-          iconName="fa-hand-holding-seedling"
-        />
-      </ion-col>
-      <ion-col>
-        <XpStatBox
-          :value="stats?.items || 0"
-          label="Items"
-          iconName="fa-hand-holding-usd"
-        />
-      </ion-col>
-      <ion-col size="6">
-        <XpStatBox
-          :value="stats?.beasts || 0"
-          label="Beasts"
-          iconName="fa-hand-holding-heart"
-        />
-      </ion-col>
-      <ion-col>
-        <XpStatBox
-          :value="stats?.temples || 0"
-          label="Temples"
-          iconName="fa-hand-holding-water"
-        />
-      </ion-col>
-    </ion-row>
-  </ion-grid>
+  <XpDashboardGrid :cols="3">
+    <!-- Row 1: Welcome, Bestiary, Vitals -->
+    <XpDashboardTile>
+      <XpNavTile
+        label="Welcome"
+        iconName="fa-question-square"
+        color="medium"
+        @click="$emit('reset')"
+      />
+    </XpDashboardTile>
+    <XpDashboardTile>
+      <XpNavTile
+        label="Bestiary"
+        iconName="fa-hand-holding-heart"
+        color="danger"
+        @click="$emit('navigate', 1)"
+      />
+    </XpDashboardTile>
+    <XpDashboardTile>
+      <XpNavTile
+        label="Vitals"
+        iconName="fa-heartbeat"
+        color="primary"
+        @click="$emit('navigate', 2)"
+      />
+    </XpDashboardTile>
+
+    <!-- Row 2: Powers, Economy, Quests -->
+    <XpDashboardTile>
+      <XpNavTile
+        label="Powers"
+        iconName="fa-hand-holding-magic"
+        color="tertiary"
+        @click="$emit('navigate', 3)"
+      />
+    </XpDashboardTile>
+    <XpDashboardTile>
+      <XpNavTile
+        label="Economy"
+        iconName="fa-hand-holding-box"
+        color="warning"
+        @click="$emit('navigate', 5)"
+      />
+    </XpDashboardTile>
+    <XpDashboardTile>
+      <XpNavTile
+        label="Quests"
+        iconName="fa-hand-holding-seedling"
+        color="success"
+        @click="$emit('navigate', 6)"
+      />
+    </XpDashboardTile>
+
+    <!-- Row 3: Doctor, Temples, Chat -->
+    <XpDashboardTile>
+      <XpNavTile
+        label="Doctor"
+        iconName="fa-police-box"
+        color="tardis"
+        @click="navigateTo('xp-do-this-not-that')"
+      />
+    </XpDashboardTile>
+    <XpDashboardTile>
+      <XpNavTile
+        label="Temples"
+        iconName="fa-hand-holding-water"
+        color="secondary"
+        @click="$emit('navigate', 4)"
+      />
+    </XpDashboardTile>
+    <XpDashboardTile>
+      <XpNavTile
+        label="Chat"
+        iconName="fa-comments-alt"
+        color="tertiary"
+        @click="navigateTo('xp-chat')"
+      />
+    </XpDashboardTile>
+
+  </XpDashboardGrid>
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType } from 'vue';
-import XpStatBox from '@/components/XpStatBox/XpStatBox.vue';
+import { defineComponent } from 'vue';
+import { useRouter } from 'vue-router';
+import XpNavTile from '@/components/molecules/StatGrid/XpNavTile.vue';
+import XpDashboardGrid from '@/components/molecules/StatGrid/XpDashboardGrid.vue';
+import XpDashboardTile from '@/components/molecules/StatGrid/XpDashboardTile.vue';
 import Ionic from '@/mixins/ionic';
+// import { useDialogSystem } from "@/lib/engine/core/DialogSystem";
 
 export default defineComponent({
   name: 'WelcomeDashboard',
   mixins: [Ionic],
-  components: { XpStatBox },
+  components: { 
+    XpNavTile,
+    XpDashboardGrid,
+    XpDashboardTile
+  },
   props: {
+    // Stats prop can be removed or kept optional if parent still passes it
     stats: {
-      type: Object as PropType<{
-        abilities?: number;
-        beasts?: number;
-        achievements?: number;
-        temples?: number;
-        items?: number;
-      }>,
-      required: true,
+      type: Object,
       default: () => ({})
+    },
+    isActive: {
+      type: Boolean,
+      default: true
+    },
+    animationKey: {
+      type: [Number, String],
+      default: 0
     }
+  },
+  emits: ['navigate', 'reset'],
+  setup() {
+    const router = useRouter();
+
+    const navigateTo = (routeName: string) => {
+      router.push({ name: routeName });
+    };
+
+    return {
+      navigateTo
+    };
   }
 });
 </script>

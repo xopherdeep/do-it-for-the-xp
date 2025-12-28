@@ -1,5 +1,6 @@
 import { defineComponent } from 'vue'
 import ionic from "@/mixins/ionic";
+import { useRoute } from 'vue-router'
 
 import {
   arrowBack,
@@ -15,8 +16,9 @@ export default defineComponent({
   name: "xp-game-master",
   mixins: [ionic],
   setup() {
-    // code
+    const route = useRoute()
     return {
+      route,
       arrowBack,
       speedometerOutline,
       speedometerSharp,

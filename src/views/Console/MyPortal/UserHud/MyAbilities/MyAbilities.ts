@@ -44,7 +44,7 @@ import useAbilities from "@/hooks/useAbilities";
 import { useQueryClient } from "vue-query";
 import { useRouter } from "vue-router";
 
-import XpSwiperGallery from "@/components/XpSwiperGallery/XpSwiperGallery.vue";
+import XpSwiperGallery from "@/components/organisms/SwiperGallery/XpSwiperGallery.vue";
 import debug from "@/lib/utils/debug";
 
 export default defineComponent({

@@ -1,37 +1,85 @@
 <template>
-  <ion-grid class="icon-colors">
-    <ion-row>
-      <ion-col size="6">
-        <XpStatBox :value="totalHPLost" label="Total HP Lost" iconName="fa-heart-broken" iconColor="danger" />
-      </ion-col>
-      
-      <ion-col size="6">
-        <XpStatBox :value="avgHPLostPerQuest" label="Avg HP/Quest" iconName="fa-hand-holding-medical" iconColor="warning" />
-      </ion-col>
-      
-      <ion-col size="4">
-        <XpStatBox :value="hpLostToday" label="HP Lost Today" iconName="fa-calendar-day" iconColor="primary" />
-      </ion-col>
-      <ion-col size="4">
-        <XpStatBox :value="hpLostThisWeek" label="This Week" iconName="fa-calendar-week" iconColor="warning" />
-      </ion-col>
-      <ion-col size="4">
-        <XpStatBox :value="hpLostThisMonth" label="This Month" iconName="fa-calendar-alt" iconColor="tertiary" />
-      </ion-col>
-    </ion-row>
-  </ion-grid>
+  <XpDashboardGrid :cols="2">
+    <XpDashboardTile>
+      <XpStatBox 
+        :value="85" 
+        label="Avg HP/Users" 
+        iconName="fa-heartbeat" 
+        iconColor="danger" 
+        :progress="0.85"
+        :forecast="0.60"
+        direction="rtl"
+        :isActive="isActive"
+        :animationKey="animationKey"
+      />
+    </XpDashboardTile>
+    
+    <XpDashboardTile>
+      <XpStatBox 
+        :value="70" 
+        label="Avg MP/Users" 
+        iconName="fa-spa" 
+        iconColor="tertiary" 
+        :progress="0.70"
+        :forecast="0.90"
+        :isActive="isActive"
+        :animationKey="animationKey"
+      />
+    </XpDashboardTile>
+
+    <XpDashboardTile>
+      <XpStatBox 
+        :value="12" 
+        label="HP Drop Rate" 
+        ribbon="To 0: 5h 30m"
+        ribbonColor="danger"
+        iconName="fa-heart-rate" 
+        iconColor="warning" 
+        :isActive="isActive"
+        :animationKey="animationKey"
+      />
+    </XpDashboardTile>
+    <XpDashboardTile>
+      <XpStatBox 
+        :value="8" 
+        label="MP Regen Rate" 
+        ribbon="To Max: 2h 15m"
+        ribbonColor="success"
+        iconName="fa-cauldron" 
+        iconColor="secondary" 
+        :isActive="isActive"
+        :animationKey="animationKey"
+      />
+    </XpDashboardTile>
+    
+
+  </XpDashboardGrid>
 </template>
 
 <script lang="ts">
 import Ionic from '@/mixins/ionic';
 import { defineComponent } from 'vue';
-import XpStatBox from '@/components/XpStatBox/XpStatBox.vue';
+import XpStatBox from '@/components/molecules/StatBox/XpStatBox.vue';
+import XpDashboardGrid from '@/components/molecules/StatGrid/XpDashboardGrid.vue';
+import XpDashboardTile from '@/components/molecules/StatGrid/XpDashboardTile.vue';
 
 export default defineComponent({
   name: 'CharacterStatsDashboard',
   mixins: [Ionic],
   components: {
-    XpStatBox
+    XpStatBox,
+    XpDashboardGrid,
+    XpDashboardTile
+  },
+  props: {
+    isActive: {
+      type: Boolean,
+      default: false
+    },
+    animationKey: {
+      type: [Number, String],
+      default: 0
+    }
   },
   data() {
     return {

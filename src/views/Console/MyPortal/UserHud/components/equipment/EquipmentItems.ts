@@ -1,4 +1,5 @@
 import { useRouter, useRoute } from "vue-router";
+import { useGameStore } from "@/lib/store/stores/game";
 
 export interface EquipmentItem {
   faIcon: string;
@@ -8,24 +9,41 @@ export interface EquipmentItem {
   mpCost?: number;
   rechargeTime?: string;
   click?: () => void;
+  isPegasusItem?: boolean;  // Marks items unlocked via Pegasus liberation
 }
 
-export function useEquipmentItems() {
+export function useEquipmentItems(callbacks?: { onOpenPegasusModal?: () => void }) {
   const router = useRouter();
   const route = useRoute();
+  const gameStore = useGameStore();
   const { userId } = route.params;
 
   const specialItems: EquipmentItem[] = [
+    // =============================================
+    // PEGASUS ITEMS (Liberation Rewards)
+    // =============================================
     {
-      name: "Portal Home",
-      faIcon: "portal-enter",
-      desc: "10MP | Open a magical portal to instantly return home from anywhere. Takes 15min to recharge.",
-      mpCost: 10,
-      rechargeTime: "15min",
+      faIcon: "boot",
+      name: "Pegasus Boots",
+      desc: "Magical boots gifted by Aura. Toggle between Retro and Modern Area Menu styles!",
+      isPegasusItem: true,
       click() {
-        router.push({ name: "my-home", params: { userId } });
-      },
+        const newStyle = gameStore.fabStyle === 'retro' ? 'modern' : 'retro';
+        gameStore.setFabStyle(newStyle);
+      }
     },
+    {
+      faIcon: "whistle",
+      name: "Wind Whistle",
+      desc: "A mystical whistle gifted by Ventus. Summon the Sacred Pegasi for fast travel!",
+      isPegasusItem: true,
+      click() {
+        callbacks?.onOpenPegasusModal?.();
+      }
+    },
+    // =============================================
+    // CORE ITEMS
+    // =============================================
     {
       faIcon: "staff quest",
       name: "My Quests",
@@ -129,13 +147,13 @@ export function useEquipmentItems() {
       mpCost: 300,
       rechargeTime: "7 days"
     },
-    {
-      faIcon: "shield-virus",
-      name: "Yve's Shield",
-      desc: "300MP | Create a magical barrier that protects against all negative effects for 24 hours. Takes 2 days to recharge.",
-      mpCost: 300,
-      rechargeTime: "2 days"
-    },
+    // {
+    //   faIcon: "shield-virus",
+    //   name: "Yve's Shield",
+    //   desc: "300MP | Create a magical barrier that protects against all negative effects for 24 hours. Takes 2 days to recharge.",
+    //   mpCost: 300,
+    //   rechargeTime: "2 days"
+    // },
     {
       faIcon: "hat-wizard",
       name: "X's Invisibility",
@@ -165,6 +183,16 @@ export function useEquipmentItems() {
       faIcon: "flask-potion",
       name: "Bottles",
       desc: "Store and access your potions and ethers. Health potions restore 50HP, while ethers restore 30MP each.",
+    },
+    {
+      name: "Portal Home",
+      faIcon: "portal-enter",
+      desc: "10MP | Open a magical portal to instantly return home from anywhere. Takes 15min to recharge.",
+      mpCost: 10,
+      rechargeTime: "15min",
+      click() {
+        router.push({ name: "my-home", params: { userId } });
+      },
     },
   ];
 

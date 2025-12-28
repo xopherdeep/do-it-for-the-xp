@@ -24,6 +24,7 @@ export interface AudioState {
   currentTheme: AudioTheme;
   audioReady: boolean;
   audioPermissionGranted: boolean;
+  pendingMusicId?: string | null;
 }
 
 export interface AudioTrack {
@@ -82,7 +83,8 @@ export class AudioEngine {
       rpg: 'earthbound'
     },
     audioReady: false,
-    audioPermissionGranted: false
+    audioPermissionGranted: false,
+    pendingMusicId: null
   });
   
   // Private constructor for singleton pattern
@@ -243,6 +245,38 @@ export class AudioEngine {
       }, { once: true });
     });
   }
+
+  /**
+   * Manually resume the audio context
+   * Call this from a user interaction event (click handler)
+   */
+  public async resumeContext(): Promise<void> {
+    debug.log('Manual resumeContext called');
+    if (!this.audioContext) {
+      this.initializeAudioContext();
+    }
+    
+    if (this.audioContext && this.audioContext.state === 'suspended') {
+      try {
+        await this.audioContext.resume();
+        this.state.audioPermissionGranted = true;
+        this.state.audioReady = true;
+        debug.log('AudioContext resumed successfully');
+        
+        // Check for pending music to play
+        if (this.state.pendingMusicId) {
+            debug.log(`Resuming pending music: ${this.state.pendingMusicId}`);
+            const pendingId = this.state.pendingMusicId;
+            this.state.pendingMusicId = null; // Clear first to avoid loops
+            this.playMusic(pendingId);
+        }
+      } catch (err) {
+        debug.error('Failed to resume AudioContext manually', err);
+      }
+    } else if (this.audioContext && this.audioContext.state === 'running') {
+      this.state.audioPermissionGranted = true;
+    }
+  }
   
   /**
    * Preload commonly used sound effects
@@ -375,6 +409,14 @@ export class AudioEngine {
    * @param metadata Additional track metadata
    */
   public loadMusic(id: string, url: string, metadata: Partial<MusicTrack> = {}): void {
+    // Check if track already exists and stop it to prevent orphaned audio streams
+    const existingTrack = this._musicTracks.get(id);
+    if (existingTrack) {
+      existingTrack.pause();
+      existingTrack.src = '';
+      existingTrack.load(); // Helps with cleanup
+    }
+
     // Create audio element for music (HTML5 Audio is better for streaming)
     const audio = new Audio(url);
     audio.volume = this.state.muted ? 0 : this.state.musicVolume * this.state.masterVolume;
@@ -429,12 +471,14 @@ export class AudioEngine {
    * Stop all currently playing music tracks
    * This ensures only one BGM track plays at a time
    */
-  public stopAllMusic(fadeOutTime = 1000): void {
+  public stopAllMusic(fadeOutTime = 1000, excludeId?: string): void {
     // Get all loaded music tracks
     const trackIds = Array.from(this._musicTracks.keys());
     
     // Stop each track
     trackIds.forEach(id => {
+      if (id === excludeId) return; // Skip the excluded track
+
       const track = this._musicTracks.get(id);
       if (track && !track.paused) {
         const startVolume = track.volume;
@@ -462,8 +506,10 @@ export class AudioEngine {
         }
       }
     });
-    
-    this.state.currentMusic = null;
+
+    if (!excludeId) {
+      this.state.currentMusic = null;
+    }
   }
   
   /**
@@ -472,6 +518,15 @@ export class AudioEngine {
    * @param fadeInTime Time in ms to fade in (default: 1000)
    */
   public playMusic(id: string, fadeInTime = 1000): void {
+    // If this track is already playing, don't restart it
+    if (this.state.currentMusic === id) {
+      const track = this._musicTracks.get(id);
+      if (track && !track.paused) {
+        debug.log(`Music track ${id} is already playing.`);
+        return;
+      }
+    }
+
     const track = this._musicTracks.get(id);
     if (!track) {
       debug.warn(`Music track not loaded: ${id}`);
@@ -479,28 +534,54 @@ export class AudioEngine {
     }
     
     // Stop all other music with fade out - ensures only one track plays at a time
-    this.stopAllMusic(fadeInTime);
+    this.stopAllMusic(fadeInTime, id);
     
     // Set new current music
     this.state.currentMusic = id;
+    this.state.pendingMusicId = null; // Clear pending since we are trying to play now
     
-    // Start with volume 0 and fade in
-    track.volume = 0;
-    track.play().catch(error => {
-      debug.error("Couldn't play music:", error);
-    });
+    // If it's already playing but volume is just being managed, don't reset currentTime
+    const targetVolume = this.state.muted ? 0 : this.state.musicVolume * this.state.masterVolume;
+    
+    if (track.paused) {
+        // Start with volume 0 and fade in
+        track.volume = 0;
+        
+        const playPromise = track.play();
+        
+        if (playPromise !== undefined) {
+            playPromise.catch(error => {
+                debug.error("Couldn't play music:", error);
+                
+                // Check if error is related to user interaction policy
+                if (error.name === 'NotAllowedError' || error.message.includes('interact') || error.message.includes('user activation')) {
+                    debug.warn('Autoplay prevented. Queuing track and requesting permission.');
+                    this.state.audioPermissionGranted = false; // This triggers the modal
+                    this.state.pendingMusicId = id; // Queue this track
+                }
+            });
+        }
+    } else {
+        // Track is already playing (likely due to seamless transition), only update volume if needed
+        if (Math.abs(track.volume - targetVolume) < 0.01) {
+            // Already at target volume, nothing to do
+            return;
+        }
+    }
     
     const startTime = Date.now();
-    const targetVolume = this.state.muted ? 0 : this.state.musicVolume * this.state.masterVolume;
+    const startVolume = track.volume;
     
     const fadeIn = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(1, elapsed / fadeInTime);
       
-      track.volume = progress * targetVolume;
+      track.volume = startVolume + (progress * (targetVolume - startVolume));
       
       if (progress < 1) {
         requestAnimationFrame(fadeIn);
+      } else {
+          track.volume = targetVolume;
       }
     };
     

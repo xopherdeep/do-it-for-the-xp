@@ -1,7 +1,7 @@
-@import "dark-variables";
-@import "variables";
+@use "dark-variables";
+@use "variables";
 
 
-@import "earthbound";
-@import "finalfantasy";
-@import "chronoTrigger";
+@use "earthbound";
+@use "finalfantasy";
+@use "chronoTrigger";

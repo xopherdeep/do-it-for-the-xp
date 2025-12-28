@@ -8,7 +8,8 @@
  */
 
 import { reactive } from 'vue';
-import { DungeonManager, Room } from './DungeonManager';
+import { DungeonManager } from './DungeonManager';
+import { Room } from './types';
 import { ChestSystem } from './ChestSystem';
 import debug from '@/lib/utils/debug';
 
@@ -18,6 +19,7 @@ export interface TempleState {
   hasCompass: boolean;
   playerKeys: number;
   currentPosition: [number, number];
+  currentLevel: string;
   visitedRooms: Set<string>;
 }
 
@@ -58,14 +60,31 @@ export class TempleSystem {
   /**
    * Initialize a temple
    * @param templeId The ID of the temple to initialize
-   * @param startPosition Starting position [row, col]
+   * @param startPosition Starting position [row, col] or [floorIndex, row, col]
    */
-  public initTemple(templeId: string, startPosition: [number, number] = [0, 0]): boolean {
+  public initTemple(templeId: string, startPosition?: number[]): boolean {
     // Check if the dungeon exists
     const temple = this.dungeonManager.getDungeon(templeId);
     if (!temple) {
       debug.error(`Temple ${templeId} not found`);
       return false;
+    }
+
+    // Determine starting position and level
+    let finalPos: [number, number] = [0, 0];
+    let finalLevel = "1F";
+
+    const entrance = startPosition || temple.entrance || [0, 0];
+    
+    if (entrance.length === 3) {
+      // If we have 3 coordinates, assume [floorIndex, row, col]
+      // where floorIndex is an index into the keys of the maze object
+      const maze = temple.maze;
+      const floors = Array.isArray(maze) ? ["1F"] : Object.keys(maze);
+      finalLevel = floors[entrance[0]] || floors[0];
+      finalPos = [entrance[1], entrance[2]];
+    } else {
+      finalPos = [entrance[0], entrance[1]];
     }
     
     // Create temple state if it doesn't exist
@@ -74,16 +93,17 @@ export class TempleSystem {
         hasMap: false,
         hasCompass: false,
         playerKeys: 0,
-        currentPosition: startPosition,
+        currentPosition: finalPos,
+        currentLevel: finalLevel,
         visitedRooms: new Set<string>()
       });
     }
     
-    // Migrate any previously visited rooms (from old system) to the new coordinate-based system
+    // Migrate any previously visited rooms
     this.migrateVisitedRooms(templeId);
     
     // Mark the starting room as visited
-    this.visitRoom(templeId, startPosition);
+    this.visitRoom(templeId, finalPos);
     return true;
   }
   
@@ -97,28 +117,33 @@ export class TempleSystem {
     if (!temple) return;
     
     // Scan the entire maze
-    for (let row = 0; row < temple.maze.length; row++) {
-      for (let col = 0; col < temple.maze[row].length; col++) {
-        const roomKey = temple.maze[row][col];
-        const room = temple.rooms[roomKey];
+    const maze = temple.maze;
+    const floors = Array.isArray(maze) ? { "1F": maze } : maze;
+
+    Object.entries(floors).forEach(([floorId, grid]) => {
+      for (let row = 0; row < grid.length; row++) {
+        for (let col = 0; col < grid[row].length; col++) {
+          const roomKey = grid[row][col];
+          const room = temple.rooms[roomKey];
         
         // Skip walls and non-existent rooms
         if (!room || room.type === 'wall') continue;
         
-        // Check if this room was marked as visited in the old system
-        if ((room as any).visited === true) {
-          // Mark it as visited in the new coordinate-based system
-          const posKey = `${row},${col}`;
-          temple.visitedPositions.add(posKey);
-          
-          // Also add it to TempleState's visitedRooms for complete consistency
-          const templeState = this.templeStates[templeId];
-          if (templeState) {
-            templeState.visitedRooms.add(posKey);
+          // Check if this room was marked as visited in the old system
+          if ((room as any).visited === true) {
+            // Mark it as visited in the new coordinate-based system
+            const posKey = `${floorId}:${row},${col}`;
+            temple.visitedPositions.add(posKey);
+            
+            // Also add it to TempleState's visitedRooms for complete consistency
+            const templeState = this.templeStates[templeId];
+            if (templeState) {
+              templeState.visitedRooms.add(posKey);
+            }
           }
         }
       }
-    }
+    });
   }
   
   /**
@@ -142,6 +167,8 @@ export class TempleSystem {
     
     if (!temple || !templeState) return false;
     
+    const level = templeState.currentLevel;
+    
     // Get current room and check if the door is locked
     const currentRoom = this.getCurrentRoom(templeId);
     if (!currentRoom) return false;
@@ -152,12 +179,29 @@ export class TempleSystem {
     }
     
     // Check if the destination is a wall
-    const destRoom = this.dungeonManager.getRoom(templeId, newPosition);
+    const destRoom = this.dungeonManager.getRoom(templeId, newPosition, level);
     if (!destRoom || destRoom.type === 'wall') return false;
     
     // Move to the new position
     templeState.currentPosition = [...newPosition];
     
+    // Check for lockOnEnter (combat rooms that lock doors on entry)
+    // Only lock if the room hasn't been visited yet (to avoid re-locking on re-entry if cleared)
+    if (destRoom.content?.lockOnEnter && !this.hasVisited(templeId, newPosition)) {
+      // Initialize locked state if it doesn't exist
+      if (!destRoom.locked) {
+        destRoom.locked = {};
+      }
+      
+      // Lock all 4 directions
+      destRoom.locked.north = true;
+      destRoom.locked.south = true;
+      destRoom.locked.east = true;
+      destRoom.locked.west = true;
+      
+      debug.log(`Room at ${newPosition} locked on enter!`);
+    }
+
     // Mark the new room as visited
     this.visitRoom(templeId, newPosition);
     
@@ -171,7 +215,7 @@ export class TempleSystem {
     const templeState = this.templeStates[templeId];
     if (!templeState) return undefined;
     
-    return this.dungeonManager.getRoom(templeId, templeState.currentPosition);
+    return this.dungeonManager.getRoom(templeId, templeState.currentPosition, templeState.currentLevel);
   }
   
   /**
@@ -182,7 +226,7 @@ export class TempleSystem {
     if (!templeState) return;
     
     // Add to the set of visited rooms
-    templeState.visitedRooms.add(`${position[0]},${position[1]}`);
+    templeState.visitedRooms.add(`${templeState.currentLevel}:${position[0]},${position[1]}`);
     
     // Also mark it as visited in the dungeon manager
     this.dungeonManager.visitRoom(templeId, position);
@@ -201,7 +245,7 @@ export class TempleSystem {
     }
     
     // Fall back to the TempleState's visitedRooms set (for backward compatibility)
-    return templeState.visitedRooms.has(`${position[0]},${position[1]}`);
+    return templeState.visitedRooms.has(`${templeState.currentLevel}:${position[0]},${position[1]}`);
   }
   
   /**
@@ -216,7 +260,7 @@ export class TempleSystem {
     const templeState = this.templeStates[templeId];
     if (!templeState || templeState.playerKeys <= 0) return false;
     
-    const room = this.dungeonManager.getRoom(templeId, position);
+    const room = this.dungeonManager.getRoom(templeId, position, templeState.currentLevel);
     if (!room || !room.locked?.[direction]) return false;
     
     // Create a new locked state with the specific direction unlocked
@@ -307,7 +351,9 @@ export class TempleSystem {
    * Check if a room is a specific type
    */
   public isRoomType(templeId: string, position: [number, number], type: string): boolean {
-    const room = this.dungeonManager.getRoom(templeId, position);
+    const templeState = this.templeStates[templeId];
+    const level = templeState?.currentLevel || "1F";
+    const room = this.dungeonManager.getRoom(templeId, position, level);
     return room?.type === type;
   }
   
@@ -329,19 +375,26 @@ export class TempleSystem {
     let destPosition: [number, number] | undefined;
     
     // Search for other teleport rooms
-    for (let row = 0; row < temple.maze.length; row++) {
-      for (let col = 0; col < temple.maze[row].length; col++) {
-        // Skip the current room
-        if (row === currentRow && col === currentCol) continue;
-        
-        const roomKey = temple.maze[row][col];
-        const room = temple.rooms[roomKey];
-        
-        // If we find another teleport room, use it as destination
-        if (room && room.type === 'teleport') {
-          destPosition = [row, col];
-          break;
+    const mazeData = temple.maze;
+    const floors = Array.isArray(mazeData) ? { "1F": mazeData } : mazeData;
+
+    for (const [floorId, grid] of Object.entries(floors)) {
+      for (let row = 0; row < grid.length; row++) {
+        for (let col = 0; col < grid[row].length; col++) {
+          // Skip the current room
+          if (floorId === templeState.currentLevel && row === currentRow && col === currentCol) continue;
+          
+          const roomKey = grid[row][col];
+          const room = temple.rooms[roomKey];
+          
+          // If we find another teleport room, use it as destination
+          if (room && room.type === 'teleport') {
+            destPosition = [row, col];
+            templeState.currentLevel = floorId;
+            break;
+          }
         }
+        if (destPosition) break;
       }
       if (destPosition) break;
     }
@@ -370,7 +423,7 @@ export class TempleSystem {
     if (!templeState.hasMap) return MapVisibility.NONE;
     
     // Get the room to check if it's a wall
-    const room = this.dungeonManager.getRoom(templeId, position);
+    const room = this.dungeonManager.getRoom(templeId, position, templeState.currentLevel);
     
     // Always show walls when the player has the map (even if not visited)
     if (room?.type === 'wall') {
@@ -420,9 +473,7 @@ export class TempleSystem {
   }
   
   /**
-   * Get appropriate room icon based on room type and visibility state
-   * Takes into account map, compass, and visited status
-   * @param templeId The temple ID
+   * Get appropriate icon for a room based on its type and visibility state
    * @param position Position [row, col] of the room
    * @param iconMap Map of room types to icon classes
    * @returns Icon class to use for this room

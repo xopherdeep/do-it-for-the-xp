@@ -6,31 +6,12 @@
  */
 
 import { ChestSystem, ChestContent } from './ChestSystem';
+import { Room, Dungeon } from './types';
 import { reactive } from 'vue';
 import debug from '@/lib/utils/debug';
 
 // Type definitions
-export interface Room {
-  type: string;
-  content?: any;
-  locked?: {
-    north?: boolean;
-    south?: boolean;
-    east?: boolean;
-    west?: boolean;
-    [key: string]: boolean | undefined;
-  };
-  isEmpty?: boolean;
-}
 
-export interface Dungeon {
-  id: string;
-  name: string;
-  maze: string[][];
-  rooms: Record<string, Room>;
-  // Add visitedPositions to track which coordinates have been visited
-  visitedPositions: Set<string>;
-}
 
 export class DungeonManager {
   private static instance: DungeonManager;
@@ -76,54 +57,75 @@ export class DungeonManager {
     if (!dungeon) return;
     
     // Scan the maze to find chest locations
-    for (let row = 0; row < dungeon.maze.length; row++) {
-      for (let col = 0; col < dungeon.maze[row]?.length || 0; col++) {
-        const roomKey = dungeon.maze[row][col];
-        const room = dungeon.rooms[roomKey];
+    const maze = dungeon.maze;
+    const floors = Array.isArray(maze) ? { "1F": maze } : maze;
+
+    Object.entries(floors).forEach(([floorId, grid]) => {
+      for (let row = 0; row < grid.length; row++) {
+        for (let col = 0; col < grid[row]?.length || 0; col++) {
+          const roomKey = grid[row][col];
+          const room = dungeon.rooms[roomKey];
         
-        // If this room has a chest, create a chest in the chest system
-        if (room && room.type === 'loot' && room.content) {
-          const chestContent: ChestContent = {};
-          
-          // Map room content to chest content
-          if (room.content.chest === 'loot' && room.content.items) {
-            chestContent.items = room.content.items;
-          } else if (room.content.chest === 'dungeon' && room.content.dungeon) {
-            chestContent.dungeon = room.content.dungeon;
+          // If this room has a chest, create a chest in the chest system
+          if (room && room.type === 'loot' && room.content) {
+            const chestContent: ChestContent = {};
+            
+            // Map room content to chest content
+            if (room.content.chest === 'loot' && room.content.items) {
+              chestContent.items = room.content.items;
+            } else if (room.content.chest === 'dungeon' && room.content.dungeon) {
+              chestContent.dungeon = room.content.dungeon;
+            }
+            
+            // Create a chest with position information
+            const chestId = `${dungeonId}:chest:${floorId}:${row}:${col}`;
+            const isLocked = !!room.content.locked;
+            const requiresKey = room.content.requiresKey || undefined;
+            
+            this.chestSystem.createChest(
+              chestId,
+              room.content.rarity || 'common',
+              chestContent,
+              [row, col],
+              isLocked,
+              requiresKey
+            );
+            
+            // Link the chest ID back to the room content for reference
+            room.content.chestId = chestId;
           }
-          
-          // Create a chest with position information
-          const chestId = `${dungeonId}:chest:${row}:${col}`;
-          const isLocked = !!room.content.locked;
-          const requiresKey = room.content.requiresKey || undefined;
-          
-          this.chestSystem.createChest(
-            chestId,
-            room.content.rarity || 'common',
-            chestContent,
-            [row, col],
-            isLocked,
-            requiresKey
-          );
-          
-          // Link the chest ID back to the room content for reference
-          room.content.chestId = chestId;
         }
       }
+    });
+  }
+  
+  /**
+   * Helper to get a normalized 2D grid for a specific level
+   */
+  public getMazeGrid(dungeonId: string, level: string = "1F"): string[][] {
+    const dungeon = this.dungeons[dungeonId];
+    if (!dungeon) return [];
+    
+    if (Array.isArray(dungeon.maze)) {
+      return dungeon.maze;
     }
+    
+    return dungeon.maze[level] || [];
   }
   
   /**
    * Get a room at a specific position in a dungeon
    */
-  public getRoom(dungeonId: string, position: [number, number]): Room | undefined {
+  public getRoom(dungeonId: string, position: [number, number], level: string = "1F"): Room | undefined {
     const dungeon = this.dungeons[dungeonId];
     if (!dungeon) return undefined;
     
     const [row, col] = position;
-    if (!dungeon.maze[row] || !dungeon.maze[row][col]) return undefined;
+    const grid = this.getMazeGrid(dungeonId, level);
     
-    const roomKey = dungeon.maze[row][col];
+    if (!grid[row] || !grid[row][col]) return undefined;
+    
+    const roomKey = grid[row][col];
     return dungeon.rooms[roomKey];
   }
   
@@ -201,9 +203,9 @@ export class DungeonManager {
    * @param updates The updated room data (can be a Partial<Room> or any other properties)
    * @returns Whether the room was successfully updated
    */
-  public updateRoom(dungeonId: string, position: [number, number], updates: Partial<Room> | any): boolean {
+  public updateRoom(dungeonId: string, position: [number, number], updates: Partial<Room> | any, level: string = "1F"): boolean {
     // Method 1: Direct room reference approach
-    const room = this.getRoom(dungeonId, position);
+    const room = this.getRoom(dungeonId, position, level);
     if (room) {
       // Apply updates to the room
       Object.assign(room, updates);
@@ -221,13 +223,14 @@ export class DungeonManager {
     if (!dungeon) return false;
     
     // Get the room key for this position
-    const roomKey = dungeon.maze[position[0]]?.[position[1]];
+    const grid = this.getMazeGrid(dungeonId, level);
+    const roomKey = grid[position[0]]?.[position[1]];
     if (!roomKey || !dungeon.rooms[roomKey]) return false;
     
     // Update the room with the new data
     dungeon.rooms[roomKey] = { ...dungeon.rooms[roomKey], ...updates };
     
-    debug.log(`Room at [${position}] in dungeon ${dungeonId} updated:`, dungeon.rooms[roomKey]);
+    debug.log(`Room at [${position}] in level ${level} of dungeon ${dungeonId} updated:`, dungeon.rooms[roomKey]);
     return true;
   }
 }

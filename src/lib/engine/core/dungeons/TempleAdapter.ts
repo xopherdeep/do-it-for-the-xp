@@ -2,7 +2,7 @@
  * Temple Adapter - Converts temple data from the legacy format to the engine format
  */
 
-import { Dungeon } from './DungeonManager';
+import { Dungeon, Room } from './types';
 import { DungeonManager } from './DungeonManager';
 import { TempleDb, templeStorage } from '@/lib/databases/TempleDb';
 import debug from '@/lib/utils/debug';
@@ -25,7 +25,7 @@ export function registerTemple(templeId: string, templeData: any): Dungeon {
   // Convert rooms
   if (templeData.rooms) {
     for (const [key, room] of Object.entries(templeData.rooms)) {
-      const engineRoom = {
+      const engineRoom: Room = {
         type: (room as any).type || 'empty',
         content: (room as any).content || undefined,
         visited: (room as any).visited || false,

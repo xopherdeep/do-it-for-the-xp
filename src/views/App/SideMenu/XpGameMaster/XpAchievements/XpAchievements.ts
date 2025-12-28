@@ -142,14 +142,14 @@ export default defineComponent({
       this.showFilters = !this.showFilters;
     },
     clickAdd() {
-      this.$router.push("/game-master/add-achievement");
+      this.$router.push({ name: "xp-achievement-config-splash", params: { id: "new" } });
     },
     clickDiscover() {
       this.$router.push("/game-master/discover-achievements");
     },
     clickEdit(id) {
       this.$router.push({
-        name: "xp-add-achievement",
+        name: "xp-achievement-config-splash",
         params: { id },
       });
     },

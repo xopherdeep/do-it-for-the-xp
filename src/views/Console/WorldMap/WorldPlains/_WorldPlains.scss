@@ -1,3 +1,4 @@
+@use "sass:math";
 .world-plains {
   ion-content {
     --background: url("@/assets/images/backgrounds/world-plains.jpg") center
@@ -89,11 +90,11 @@
     
     @for $i from 1 through 60 {
       &:nth-child(#{$i}) {
-        $height: random(30) + 20px;
-        $left: random(100) * 1%;
-        $waveSpeed: random(8) + 4 + s;
-        $waveDelay: random(5) * 0.5s;
-        $waveAmount: random(15) + 5 + deg;
+        $height: math.random(30) + 20px;
+        $left: math.random(100) * 1%;
+        $waveSpeed: math.random(8) + 4 + s;
+        $waveDelay: math.random(5) * 0.5s;
+        $waveAmount: math.random(15) + 5 + deg;
         
         height: $height;
         left: $left;

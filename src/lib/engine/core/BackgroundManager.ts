@@ -22,6 +22,9 @@ class BackgroundManager {
   private aspectRatio: number = 0; // Default aspect ratio (full screen)
   private resizeListener: (() => void) | null = null;
   private activePage: string | null = null; // Track which page/component is using the background
+  private lastTick: number = 0; // Preserve animation state for seamless resuming
+  private enginePool: Map<string, Engine> = new Map();
+  private stateRegistry: Map<string, { tick: number, bg1?: number, bg2?: number }> = new Map();
 
   /**
    * Private constructor to enforce singleton pattern
@@ -116,6 +119,12 @@ class BackgroundManager {
         canvas: this.canvasElement,
       });
 
+      // Restore tick state if we have a preserved one and we're likely using the same/similar background
+      // Note: We might want to check if bg1/bg2 changed significantly, but usually continuing is smoother.
+      if (this.lastTick > 0) {
+        (this.backgroundEngine as any).tick = this.lastTick;
+      }
+
       // Start the animation
       this.backgroundEngine.animate();
 
@@ -161,6 +170,9 @@ class BackgroundManager {
   public cleanupBackground(): void {
     // Stop the animation engine if it exists
     if (this.backgroundEngine) {
+      // Capture current tick before stopping/destroying
+      this.lastTick = (this.backgroundEngine as any).tick || 0;
+      
       if (typeof this.backgroundEngine.stop === 'function') {
         this.backgroundEngine.stop();
       }
@@ -346,6 +358,90 @@ class BackgroundManager {
       bg1: Math.floor(Math.random() * (MAX_BG_INDEX + 1)),
       bg2: Math.floor(Math.random() * (MAX_BG_INDEX + 1)),
     };
+  }
+
+  /**
+   * Save the state (tick and optionally layout) for a specific ID
+   */
+  public saveState(id: string, state: { tick: number, bg1?: number, bg2?: number }): void {
+    if (!id) return;
+    const existing = this.stateRegistry.get(id) || { tick: 0 };
+    this.stateRegistry.set(id, { ...existing, ...state });
+  }
+
+  /**
+   * Get the saved state for a specific ID
+   */
+  public getState(id: string): { tick: number, bg1?: number, bg2?: number } | undefined {
+    return this.stateRegistry.get(id);
+  }
+
+  /**
+   * Clear state for a specific ID
+   */
+  public clearState(id: string): void {
+    this.stateRegistry.delete(id);
+    const pooledEngine = this.enginePool.get(id);
+    if (pooledEngine && typeof pooledEngine.stop === 'function') {
+      pooledEngine.stop();
+    }
+    this.enginePool.delete(id);
+  }
+
+  /**
+   * Get or create a pooled engine for a specific component
+   */
+  public getOrCreateEngine(id: string, layers: any[], options: any): Engine {
+    let engine = this.enginePool.get(id);
+    
+    if (!engine) {
+      engine = new Engine(layers, options);
+      this.enginePool.set(id, engine);
+    } else {
+      // Update canvas and other properties if they differ
+      if (options.canvas && (engine as any).canvas !== options.canvas) {
+        (engine as any).canvas = options.canvas;
+      }
+      if (options.aspectRatio !== undefined) {
+        (engine as any).aspectRatio = options.aspectRatio;
+      }
+    }
+    
+    return engine;
+  }
+
+  /**
+   * Synchronously render a single frame into a canvas
+   */
+  public renderFrame(id: string, canvas: HTMLCanvasElement | null): void {
+    if (!canvas) return;
+    const engine = this.enginePool.get(id) as any;
+    if (!engine) return;
+
+    try {
+      const layers = engine.layers;
+      const pixels = engine.pixels;
+      const tick = engine.tick;
+      const context = canvas.getContext('2d');
+      if (!context) return;
+
+      // Force a single frame calculation
+      engine.overlayFrame(pixels, layers, tick, 1, true);
+      
+      // Draw to canvas immediately
+      // Use ImageData to transfer pixels. The typed array conversion 
+      // is for safety across different build versions of the library.
+      let imageData;
+      try {
+        imageData = new ImageData(pixels, 256, 256);
+      } catch {
+        const clamped = new Uint8ClampedArray(pixels.buffer, pixels.byteOffset, pixels.byteLength);
+        imageData = new ImageData(clamped, 256, 256);
+      }
+      context.putImageData(imageData, 0, 0);
+    } catch (err) {
+      debug.error(`BackgroundManager: Failed to render sync frame for ${id}:`, err);
+    }
   }
 }
 

@@ -111,6 +111,18 @@ export function useRouterGuards(router: Router) {
       debug.warn('BGM data is missing, some music features may not work.');
       // Continue with navigation
     } else {
+      // Check for area-based BGM first (e.g., entire Game Master area)
+      if (to.path.startsWith('/game-master')) {
+        if (BGM?.chooseFile && Array.isArray(BGM.chooseFile) && BGM.chooseFile.length > 0) {
+          bgmPayload = {
+            tracks: BGM.chooseFile,
+            track,
+            startDelay,
+            saveBookmark: false
+          };
+        }
+      }
+
       switch (to.name) {
         case 'xp-intro':
           // Use optional chaining to prevent errors when BGM.intro might be undefined
@@ -148,8 +160,8 @@ export function useRouterGuards(router: Router) {
             };
           }
           break;
-        case 'game-master/dashboard':
         case 'xp-profile':
+        case 'my-portal':
           if (BGM?.chooseFile && Array.isArray(BGM.chooseFile) && BGM.chooseFile.length > 0) {
             bgmPayload = {
               tracks: BGM.chooseFile,
@@ -333,6 +345,9 @@ export function useRouterGuards(router: Router) {
       
         case 'battleroom-dev':
         case 'battle-field':
+        case 'battle-field-with-participants':
+        case 'battle-field-temple':
+        case 'battle-field-quest':
           // Use Pinia battle store for battle state
           if (BGM?.battle && Array.isArray(BGM.battle) && BGM.battle.length > 0) {
             bgmPayload = {

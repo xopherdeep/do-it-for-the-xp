@@ -2,11 +2,11 @@
   <ion-page :class="$options.name" class="rpg-box">
     <ion-content>
       <ion-tabs>
-        <ion-router-outlet ref="outlet"></ion-router-outlet>
+        <ion-router-outlet :key="route.path.split('/')[2] || 'dashboard'" ref="outlet"></ion-router-outlet>
         <ion-tab-bar slot="bottom" class="icon-colors">
           <ion-tab-button
             tab="compendium"
-            href="/game-master/compendium/splash"
+            href="/game-master/compendium/setup"
             :selected="$route.path.indexOf('game-master/compendium/') >= 0"
           >
             <i class="fad fa-game-console-handheld fa-2x" />
@@ -18,8 +18,8 @@
             href="/game-master/dashboard"
             :selected="$route.path === '/game-master/dashboard'"
           >
-            <i class="fad fa-heart fa-2x" />
-            Family 
+            <i class="fad fa-heartbeat fa-2x" />
+            Compendium
           </ion-tab-button>
           <ion-tab-button
             tab="chat"
@@ -29,15 +29,6 @@
             <i class="fad fa-comments fa-2x" />
             Chat
           </ion-tab-button>
-          <ion-tab-button
-            tab="bestiary"
-            href="/game-master/bestiary"
-            :selected="$route.path === '/game-master/bestiary'"
-          >
-            <i class="fad fa-dragon fa-2x" />
-            Bestiary
-          </ion-tab-button>
-
         </ion-tab-bar>
       </ion-tabs>
     </ion-content>

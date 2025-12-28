@@ -1,4 +1,4 @@
-@use "@/styles";
+@use "../../styles";
 
 // .ion-app moved to @/styles/_app.scss
 @keyframes slide {
@@ -69,8 +69,7 @@ ion-item.selected {
 
 .rpg-box {
   ion-toolbar {
-    --background: #3d3c55;
-    // background-color: #280828;
+    --background: transparent;
   }
 
   .searchbar-input,

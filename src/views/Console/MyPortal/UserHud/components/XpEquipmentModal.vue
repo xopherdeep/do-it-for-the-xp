@@ -1,72 +1,104 @@
 <template>
   <ion-modal
-    @willDismiss="close"
-    class="fullscreen"
-    :class="$options.name"
+    ref="modal"
     :is-open="isOpen"
-    :breakpoints="[1]"
+    @didDismiss="close"
+    class="user-profile-modal xp-equipment-modal"
+    :breakpoints="[0, 1]"
     :initialBreakpoint="1"
-    :fullscreen="true"
+    :handle="false"
   >
     <ion-header>
-      <ion-buttons class="ion-no-padding toolbar">
-        <ion-button class="ion-float-right" size="large" @click="close">
-          <i class="fad fa-times fa-2x"></i>
-        </ion-button>
-      </ion-buttons>
+      <ion-toolbar>
+        <ion-title>
+          <div class="header-title-wrapper icon-colors">
+            <i class="fad fa-dumbbell mr-2"></i>
+            Equipment
+          </div>
+        </ion-title>
+        <ion-buttons slot="end">
+          <ion-button @click.stop="dismiss">
+            <i class="fal fa-times-square fa-2x"></i>
+          </ion-button>
+        </ion-buttons>
+      </ion-toolbar>
     </ion-header>
-    <ion-content class="icon-colors">
-      <!-- Removed inline style -->
-      <ion-grid>
-        <ion-row class="ion-align-items-stretch"> <!-- Ensure row stretches vertically -->
-          <ion-col size="7" class="ion-flex ion-flex-column"> <!-- Make column flex container -->
+    
+    <!-- <ion-content class="icon-colors bg-slide bg-slide-modal"> -->
+    <ion-content class="icon-colors bg-slide bg-slide-dark">
+      <ion-grid >
+        <ion-row>
+          <ion-col size="12" class="ion-flex ion-flex-column">
             <equipment-grid
               :items="specialItems" 
-              @display-info="displayInfo" 
+              :equipped-items="equippedItemsArray"
+              @display-info="openItemInfo" 
               @equip-item="equipItem"
-              class="ion-flex-grow-1" 
             />
-            <status-card /> <!-- Status card remains below -->
-          </ion-col>
-          <ion-col size="5" class="ion-flex ion-flex-column"> <!-- Make column flex container -->
-            <!-- Removed ItemInfoCard -->
-            <equipped-items-card 
-              :equipment="equipment" 
-              :info-item="info"  
-              :left-hand-items="equipmentOnLeft"
-              :right-hand-items="equipmentOnRight"
-              @equip="handleEquipRequest"      
-              @select-item="displayInfo"
-              class="ion-flex-grow-1"  
-            />
-            <achievements-card @change-bg="changeBG" />
           </ion-col>
         </ion-row>
       </ion-grid>
     </ion-content>
-    <ion-toolbar class="rpg-box"></ion-toolbar>
+
+    <div class="equipment-dock icon-colors">
+      <equipped-items-card 
+        :equipment="equipment" 
+        :left-hand-items="equipmentOnLeft"
+        :right-hand-items="equipmentOnRight"
+        :job-class="user?.jobClass"
+        @equip="handleEquipRequest"      
+        @select-item="openItemInfo"
+        @change-class="openClassSelector"
+      />
+    </div>
+
+    <!-- Item Info Modal - only mount when needed -->
+    <item-info-modal
+      v-if="selectedItem"
+      :is-open="itemInfoOpen"
+      :item="selectedItem"
+      :is-equipped="isSelectedItemEquipped"
+      :left-hand-slots="leftHandSlots"
+      :right-hand-slots="rightHandSlots"
+      @close="closeItemInfo"
+      @equip="handleEquipFromModal"
+      @unequip="handleUnequipFromModal"
+    />
+
+    <!-- Class Selector Modal -->
+    <xp-stat-selector-modal
+      :is-open="classSelectorOpen"
+      title="Choose Your Class"
+      :options="classOptions"
+      :columns="2"
+      :fullscreen="false"
+      height="55vh"
+      :selected-value="user?.jobClass || 'Adventurer'"
+      @close="classSelectorOpen = false"
+      @select="onClassSelect"
+    />
   </ion-modal>
 </template>
 
 <script lang="ts">
-import { defineComponent } from "vue";
+import { defineComponent, ref, computed } from "vue";
 import ionic from "@/mixins/ionic";
 import { useEquipmentItems, EquipmentItem } from "./equipment/EquipmentItems";
 import EquipmentGrid from "./equipment/EquipmentGrid.vue";
-import StatusCard from "./equipment/StatusCard.vue";
-// import ItemInfoCard from "./equipment/ItemInfoCard.vue"; // Removed ItemInfoCard import
 import EquippedItemsCard from "./equipment/EquippedItemsCard.vue";
-import AchievementsCard from "./equipment/AchievementsCard.vue";
+import ItemInfoModal from "./equipment/ItemInfoModal.vue";
+import XpStatSelectorModal from "./XpStatSelectorModal.vue";
 import { toastController } from "@ionic/vue";
+import { JOB_CLASS_OPTIONS } from "@/constants";
+import { useUserStore } from "@/lib/store/stores/user";
 
 export default defineComponent({
   name: "xp-equipment-modal",
   components: {
     EquipmentGrid,
-    StatusCard,
-    // ItemInfoCard, // Removed ItemInfoCard component
     EquippedItemsCard,
-    AchievementsCard
+    ItemInfoModal,
+    XpStatSelectorModal
   },
   props: {
     isOpen: {
@@ -76,206 +108,232 @@ export default defineComponent({
     equipment: {
       type: Array as () => EquipmentItem[],
       required: true
+    },
+    user: {
+      type: Object,
+      default: () => ({})
     }
   },
-  emits: ["close", "equip-item"],
+  emits: ["close", "equip-item", "open-pegasus-modal"],
   mixins: [ionic],
-  data() {
-    return {
-      info: null as EquipmentItem | null, // Initialize info as null
-      leftHandSlots: [null, null, null, null, null, null] as (EquipmentItem | null)[],
-      rightHandSlots: [null, null, null, null, null, null] as (EquipmentItem | null)[],
-      equippedItems: new Set<string>() // Track equipped items by faIcon
-    };
-  },
-  computed: {
-    equipmentOnLeft() {
-      return this.leftHandSlots.filter(item => item !== null) as EquipmentItem[];
-    },
-    equipmentOnRight() {
-      return this.rightHandSlots.filter(item => item !== null) as EquipmentItem[];
-    },
-    specialItems() {
-      return this.equipmentItems.specialItems;
-    }
-  },
-  methods: {
-    displayInfo(item: EquipmentItem) {
-      this.info = item;
-    },
+  setup(props, { emit }) {
+    const equipmentItems = useEquipmentItems({
+      onOpenPegasusModal: () => emit('open-pegasus-modal')
+    });
+    const userStore = useUserStore();
+    const modal = ref<any>(null);
     
-    // Renamed handleEquip to handleEquipRequest to avoid naming conflict
-    // This now handles requests from EquippedItemsCard (drag/drop or icon click)
-    async handleEquipRequest(item: EquipmentItem | null, hand?: string, index?: number) {
-      // If item is null, it's an unequip request from the info section click
-      if (item === null && !hand) { 
-         const itemToUnequip = this.info; // Get the item from the info display
-         if (!itemToUnequip) return;
+    // Class selector state
+    const classSelectorOpen = ref(false);
+    const classOptions = JOB_CLASS_OPTIONS;
+    
+    // Item Info Modal state
+    const itemInfoOpen = ref(false);
+    const selectedItem = ref<EquipmentItem | null>(null);
+    
+    // Equipment slots
+    const leftHandSlots = ref<(EquipmentItem | null)[]>([null, null]);
+    const rightHandSlots = ref<(EquipmentItem | null)[]>([null, null]);
+    const equippedItems = ref(new Set<string>());
 
-         const leftIndex = this.leftHandSlots.findIndex(slot => slot?.faIcon === itemToUnequip.faIcon);
-         const rightIndex = this.rightHandSlots.findIndex(slot => slot?.faIcon === itemToUnequip.faIcon);
+    const equipmentOnLeft = computed(() => 
+      leftHandSlots.value.filter(item => item !== null) as EquipmentItem[]
+    );
+    
+    const equipmentOnRight = computed(() => 
+      rightHandSlots.value.filter(item => item !== null) as EquipmentItem[]
+    );
 
-         if (leftIndex !== -1) {
-           this.performUnequip('left', leftIndex);
-         } else if (rightIndex !== -1) {
-           this.performUnequip('right', rightIndex);
-         }
-         this.info = null; // Clear info after unequipping
-         return;
-      }
+    const specialItems = computed(() => equipmentItems.specialItems);
+
+    const equippedItemsArray = computed(() => Array.from(equippedItems.value));
+
+    const isSelectedItemEquipped = computed(() => {
+      if (!selectedItem.value) return false;
+      return equippedItems.value.has(selectedItem.value.faIcon);
+    });
+
+    const openItemInfo = (item: EquipmentItem) => {
+      selectedItem.value = item;
+      itemInfoOpen.value = true;
+    };
+
+    const closeItemInfo = () => {
+      itemInfoOpen.value = false;
+    };
+
+    const handleEquipFromModal = async (item: EquipmentItem, hand: string, index: number) => {
+      await performEquip(item, hand, index);
+    };
+
+    const handleUnequipFromModal = async (item: EquipmentItem, hand: string, index: number) => {
+      await performUnequip(hand, index);
+    };
+
+    const handleEquipRequest = async (item: EquipmentItem | null, hand?: string, index?: number) => {
+      if (item === null && !hand) return;
       
-      // If item is provided, it's an equip request (from grid click, drag/drop, or info click)
       if (item) {
-         // Check if already equipped (handles clicking equipped item in info section)
-         if (this.equippedItems.has(item.faIcon)) {
-           // Find where it's equipped and unequip it
-           const leftIndex = this.leftHandSlots.findIndex(slot => slot?.faIcon === item.faIcon);
-           const rightIndex = this.rightHandSlots.findIndex(slot => slot?.faIcon === item.faIcon);
-           if (leftIndex !== -1) this.performUnequip('left', leftIndex);
-           if (rightIndex !== -1) this.performUnequip('right', rightIndex);
-           // Don't clear info here, as we just unequipped the selected item
-           return; 
-         }
-
-         // --- Equip Logic ---
-         // Prioritize hand/index if provided (drag/drop)
-         if (hand !== undefined && index !== undefined) {
-            if (index === 0) { // Only allow equipping to index 0 for now
-               this.performEquip(item, hand, index);
-            } else {
-               // Show locked slot toast (or handle differently)
-               const toast = await toastController.create({ /* ... locked slot message ... */ });
-               await toast.present();
-            }
-         } else {
-            // No hand/index provided (grid click or info click) - find first available slot
-            if (this.leftHandSlots[0] === null) {
-               this.performEquip(item, 'left', 0);
-            } else if (this.rightHandSlots[0] === null) {
-               this.performEquip(item, 'right', 0);
-            } else {
-               // Both slots full, replace left hand
-               this.performEquip(item, 'left', 0); // performEquip handles replacement
-            }
-         }
-      } 
-      // If item is null AND hand/index are provided, it's an unequip from slot interaction (future use?)
-      // else if (item === null && hand && index !== undefined) {
-      //    this.performUnequip(hand, index);
-      // }
-    },
-
-    // Extracted equip logic
-    async performEquip(item: EquipmentItem, hand: string, index: number) {
-        const targetSlots = hand === 'left' ? this.leftHandSlots : this.rightHandSlots;
-        let replacedItemName: string | null = null;
-
-        // Check if already equipped elsewhere (and remove if necessary)
-        const isAlreadyEquipped = this.equippedItems.has(item.faIcon);
-        if (isAlreadyEquipped) {
-            const otherHand = hand === 'left' ? 'right' : 'left';
-            const otherSlots = hand === 'left' ? this.rightHandSlots : this.leftHandSlots;
-            const otherIndex = otherSlots.findIndex(slot => slot?.faIcon === item.faIcon);
-            if (otherIndex !== -1) {
-                this.performUnequip(otherHand, otherIndex, false); // Unequip without toast
-            }
+        if (equippedItems.value.has(item.faIcon)) {
+          // Already equipped - unequip it
+          const leftIndex = leftHandSlots.value.findIndex(slot => slot?.faIcon === item.faIcon);
+          const rightIndex = rightHandSlots.value.findIndex(slot => slot?.faIcon === item.faIcon);
+          if (leftIndex !== -1) await performUnequip('left', leftIndex);
+          if (rightIndex !== -1) await performUnequip('right', rightIndex);
+          return;
         }
 
-        // Check if replacing an item in the target slot
-        const currentItemInSlot = targetSlots[index];
-        if (currentItemInSlot) {
-            replacedItemName = currentItemInSlot.name;
-            this.equippedItems.delete(currentItemInSlot.faIcon);
+        if (hand !== undefined && index !== undefined) {
+          if (index === 0) {
+            await performEquip(item, hand, index);
+          }
+        } else {
+          // Auto-equip logic: find first available primary slot
+          if (leftHandSlots.value[0] === null) {
+            await performEquip(item, 'left', 0);
+          } else if (rightHandSlots.value[0] === null) {
+            await performEquip(item, 'right', 0);
+          } else {
+            await performEquip(item, 'left', 0); // Replace left by default
+          }
         }
+      }
+    };
 
-        // Equip the new item
-        targetSlots[index] = { ...item }; // Use spread to avoid reactivity issues if needed
-        this.equippedItems.add(item.faIcon);
-        this.$emit("equip-item", targetSlots[index], hand, index); // Notify parent if necessary
+    const performEquip = async (item: EquipmentItem, hand: string, index: number) => {
+      const targetSlots = hand === 'left' ? leftHandSlots : rightHandSlots;
+      let replacedItemName: string | null = null;
 
-        // Show toast
-        const message = replacedItemName 
-            ? `${replacedItemName} replaced with ${item.name}` 
-            : `${item.name} equipped to ${hand} hand`;
-        const color = replacedItemName ? 'warning' : 'success';
-        const toast = await toastController.create({ message, duration: 2000, position: 'bottom', color, cssClass: 'rpg-toast' });
-        await toast.present();
-    },
-
-    // Extracted unequip logic
-    async performUnequip(hand: string, index: number, showToast = true) {
-        const targetSlots = hand === 'left' ? this.leftHandSlots : this.rightHandSlots;
-        const itemToUnequip = targetSlots[index];
-
-        if (itemToUnequip) {
-            targetSlots[index] = null;
-            this.equippedItems.delete(itemToUnequip.faIcon);
-            this.$emit("equip-item", null, hand, index); // Notify parent
-
-            if (showToast) {
-              const toast = await toastController.create({
-                message: `${itemToUnequip.name} unequipped`,
-                duration: 2000,
-                position: 'bottom',
-                color: 'medium',
-                cssClass: 'rpg-toast'
-              });
-              await toast.present();
-            }
-            
-            // If the unequipped item was the one displayed in info, clear info
-            if (this.info?.faIcon === itemToUnequip.faIcon) {
-                this.info = null;
-            }
+      // Check if already equipped elsewhere
+      if (equippedItems.value.has(item.faIcon)) {
+        const otherHand = hand === 'left' ? 'right' : 'left';
+        const otherSlots = hand === 'left' ? rightHandSlots : leftHandSlots;
+        const otherIndex = otherSlots.value.findIndex(slot => slot?.faIcon === item.faIcon);
+        if (otherIndex !== -1) {
+          await performUnequip(otherHand, otherIndex, false);
         }
-    },
+      }
 
-    changeBG() {
-      // Placeholder for future implementation
-    },
+      // Check if replacing
+      const currentItemInSlot = targetSlots.value[index];
+      if (currentItemInSlot) {
+        replacedItemName = currentItemInSlot.name;
+        equippedItems.value.delete(currentItemInSlot.faIcon);
+      }
 
-    close() {
-      this.$emit("close");
-    },
+      // Equip
+      targetSlots.value[index] = { ...item };
+      equippedItems.value.add(item.faIcon);
+      emit("equip-item", targetSlots.value[index], hand, index);
 
-    // Keep original equipItem method name for the grid's @equip-item event
-    equipItem(item: EquipmentItem) {
-      this.handleEquipRequest(item); // Delegate to the new handler
-    }
-  },
-  setup() {
-    const equipmentItems = useEquipmentItems();
-    return { equipmentItems };
+      const message = replacedItemName 
+        ? `${replacedItemName} replaced with ${item.name}` 
+        : `${item.name} equipped to ${hand} hand`;
+      const color = replacedItemName ? 'warning' : 'success';
+      const toast = await toastController.create({ message, duration: 2000, position: 'bottom', color, cssClass: 'rpg-toast' });
+      await toast.present();
+    };
+
+    const performUnequip = async (hand: string, index: number, showToast = true) => {
+      const targetSlots = hand === 'left' ? leftHandSlots : rightHandSlots;
+      const itemToUnequip = targetSlots.value[index];
+
+      if (itemToUnequip) {
+        targetSlots.value[index] = null;
+        equippedItems.value.delete(itemToUnequip.faIcon);
+        emit("equip-item", null, hand, index);
+
+        if (showToast) {
+          const toast = await toastController.create({
+            message: `${itemToUnequip.name} unequipped`,
+            duration: 2000,
+            position: 'bottom',
+            color: 'medium',
+            cssClass: 'rpg-toast'
+          });
+          await toast.present();
+        }
+      }
+    };
+
+    const equipItem = (item: EquipmentItem) => {
+      handleEquipRequest(item);
+    };
+
+    const close = () => {
+      emit("close");
+    };
+
+    const dismiss = async () => {
+      await modal.value?.$el?.dismiss();
+    };
+
+    const openClassSelector = () => {
+      classSelectorOpen.value = true;
+    };
+
+    const onClassSelect = (val: string) => {
+      if (props.user?.id && userStore.users[props.user.id]) {
+        userStore.users[props.user.id].jobClass = val;
+      }
+      classSelectorOpen.value = false;
+    };
+
+    return {
+      equipmentItems,
+      equipmentOnLeft,
+      equipmentOnRight,
+      specialItems,
+      itemInfoOpen,
+      selectedItem,
+      equippedItemsArray,
+      isSelectedItemEquipped,
+      leftHandSlots,
+      rightHandSlots,
+      openItemInfo,
+      closeItemInfo,
+      handleEquipFromModal,
+      handleUnequipFromModal,
+      handleEquipRequest,
+      equipItem,
+      close,
+      classSelectorOpen,
+      classOptions,
+      openClassSelector,
+      onClassSelect,
+      modal,
+      dismiss
+    };
   }
 });
 </script>
 
 <style lang="scss" scoped>
 .xp-equipment-modal {
-  background: transparent;
+  ion-content {
+    --background: transparent;
+    overflow: visible;
 
-  .toolbar {
-    height: 5vh;
+    ion-grid {
+      padding: 2.5%;
+      padding-bottom: 120px; // Space for the dock
+    }
   }
 
-  ion-content {
-    background: transparent;
 
-    ion-grid, ion-row { // Ensure grid and row take full height
-      height: 100%;
-    }
-
-    // .h-100 { // No longer needed if using flex correctly
-    //   height: 100%;
-    // }
-
-    .mb-4 { // Adjust margin as needed, maybe use gap in flex column
-      margin-bottom: 1rem !important; // Example using rem
-    }
-
-    &.bg-transparent {
-      background: transparent !important;
-    }
+  .equipment-dock {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0, 0, 0, 0.05);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+    padding: 0.25rem 1rem;
+    z-index: 100;
   }
 }
 </style>
+

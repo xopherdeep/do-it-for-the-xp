@@ -1,5 +1,9 @@
 <template>
-  <div class="xp-dialog-container" :class="{ 'active': isVisible }">
+  <div 
+    class="xp-dialog-container" 
+    :class="{ 'active': isVisible }"
+    @click="handleClick"
+  >
     <ion-card class="xp-dialog-box rpg-box">
       <div class="dialog-content">
         <xp-typing-text
@@ -7,13 +11,15 @@
           :text="currentText"
           :speed="textSpeed"
           :is-rpg-styled="true"
+          :has-more-text="hasMoreText"
           :sound-theme="$fx.theme.rpg"
           sound-type="text"
           @typing-complete="onTypingComplete"
         />
       </div>
-      <div v-if="hasMoreText" class="dialog-indicator">
-        <i class="fad fa-chevron-down blink"></i>
+      <div v-if="!isTyping" class="dialog-indicator">
+        <i v-if="hasMoreText" class="fad fa-chevron-down blink"></i>
+        <i v-else class="fad fa-caret-right blink"></i>
       </div>
     </ion-card>
   </div>
@@ -48,14 +54,17 @@ export default defineComponent({
     const currentBlockIndex = ref(0);
     const typingText = ref<InstanceType<typeof XpTypingText> | null>(null);
     const currentText = ref('');
+    const isTyping = ref(false);
     const hasMoreText = ref(false);
 
     // Update the text based on current index
     const updateCurrentText = () => {
       if (props.textBlocks.length > 0 && currentBlockIndex.value < props.textBlocks.length) {
         currentText.value = props.textBlocks[currentBlockIndex.value];
+        isTyping.value = true;
       } else {
         currentText.value = '';
+        isTyping.value = false;
       }
       hasMoreText.value = currentBlockIndex.value < props.textBlocks.length - 1;
     };
@@ -115,6 +124,7 @@ export default defineComponent({
 
     return {
       isVisible,
+      isTyping,
       currentText,
       hasMoreText,
       typingText,
@@ -133,12 +143,12 @@ export default defineComponent({
   bottom: 0;
   left: 0;
   right: 0;
-  z-index: 1000;
+  z-index: 9999;
   padding: 1rem;
   pointer-events: none;
   opacity: 0;
-  transform: translateY(100%);
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  transform: translateY(20px);
+  transition: all 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
 
   &.active {
     opacity: 1;
@@ -148,34 +158,38 @@ export default defineComponent({
 }
 
 .xp-dialog-box {
-  background: rgba(0, 0, 0, 0.9);
-  border: 2px solid var(--ion-color-light);
-  border-radius: 8px;
-  padding: 1rem;
-  min-height: 100px;
+  background: rgba(13, 13, 25, 0.95);
+  border: 2px solid var(--ion-color-primary);
+  border-radius: 12px;
+  padding: 1.25rem;
+  min-height: 120px;
   position: relative;
   cursor: pointer;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 20px rgba(var(--ion-color-primary-rgb), 0.1);
+  backdrop-filter: blur(8px);
 
   .dialog-content {
-    font-size: 1.1em;
-    line-height: 1.5;
-   
+    color: #fff;
+    font-size: 1.15rem;
+    line-height: 1.6;
+    text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
   }
 
   .dialog-indicator {
     position: absolute;
-    bottom: 0.5rem;
-    right: 0.5rem;
-    color: var(--ion-color-light);
+    bottom: 0.75rem;
+    right: 1rem;
+    color: var(--ion-color-primary);
+    font-size: 1.2rem;
     
     .blink {
-      animation: blink 1s infinite;
+      animation: blink 0.8s infinite;
     }
   }
 }
 
 @keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.3; transform: scale(0.9); }
 }
 </style>

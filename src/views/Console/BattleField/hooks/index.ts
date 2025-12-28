@@ -11,5 +11,4 @@ export {
   type BattleAction, 
   type BattleState 
 } from './useBattleEngine';
-
-// Add other battle-related hooks here in the future
+export { useBattlePlayer, type BattlePlayer } from './useBattlePlayer';

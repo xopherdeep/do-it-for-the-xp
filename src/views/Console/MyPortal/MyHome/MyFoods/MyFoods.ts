@@ -1,5 +1,5 @@
 import { defineComponent } from 'vue';
-import { useStore } from 'vuex'; // Removed unused mapGetters
+import { useUserStore } from '@/lib/store/stores/user';
 import ionic from '@/mixins/ionic';
 
 // Only import the icons that are actually used
@@ -47,14 +47,14 @@ export default defineComponent({
         { id: '6', name: 'Pasta', description: 'Italian pasta dish', imageUrl: '/assets/mock/pasta.jpg', category: 'meal' },
         { id: '7', name: 'Cookies', description: 'Chocolate chip cookies', imageUrl: '/assets/mock/cookies.jpg', category: 'snack' },
       ] as FoodItem[],
-      store: useStore(), // Add store reference to use in computed properties
+      userStore: useUserStore(), // Use Pinia store
     };
   },
   computed: {
     // Get the user profile based on the userId prop using the getUserById getter
     currentUserProfileData(): any { // Use 'any' or a more specific Profile type if available
       // Ensure userId is treated as a string or number as expected by the getter
-      return this.store.getters.getUserById(this.userId);
+      return this.userStore.getUserById(this.userId);
     },
 
     userFavoriteFood(): string | null {

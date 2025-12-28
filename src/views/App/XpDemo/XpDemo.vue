@@ -26,8 +26,8 @@
   import { defineComponent, ref } from 'vue';
   import { useRouter } from 'vue-router';
   import { IonPage, IonContent } from '@ionic/vue';
-  import { XpIntroSplash } from '@/components/XpIntroSplash';
-  import type { SplashScreen } from '@/components/XpIntroSplash';
+  import { XpIntroSplash } from '@/components/organisms/IntroSplash';
+  import type { SplashScreen } from '@/components/organisms/IntroSplash';
   import debug from '@/lib/utils/debug';
 
   // Extended splash screen interface that includes our custom properties

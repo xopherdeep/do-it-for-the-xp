@@ -26,21 +26,25 @@ export interface Achievement {
   subAchievementIds?: string[];
   // assignment
   type: string;
-  assignee: never[];
+  assignee: string[];
   // schedule
   basicSchedule: string;
+  scheduleType: string;
   customFrequency: number;
   customPeriodType: string;
+  customPeriodNumber: number;
   dueByTime: string;
   endsOn: string;
   startsOn: string;
-  repeatOnDays: never[],
+  repeatOnDays: string[],
   showDailyUntilComplete: boolean;
   // stats
   difficulty: number;
   xp: number;
   gp: number;
   ap: number;
+  // meta
+  adventureType: string;
 }
 
 export interface AchievementCategoryInterface {
@@ -60,7 +64,7 @@ export class AchievementCategoryDb extends DbStorageApi {
 
 
 export class AchievementDb extends DbStorageApi {
-  private createAchievement(): Achievement {
+  public static getDefault(): Achievement {
     return {
       id: uuidv4(),
       achievementName: '',
@@ -72,24 +76,27 @@ export class AchievementDb extends DbStorageApi {
       type: 'individual',
       bonusAchievement: false,
       startsOn: new Date().toISOString(),
-      endsOn: new Date().toISOString(),
+      endsOn: '',
       dueByTime: '',
       basicSchedule: 'once',
+      scheduleType: 'basic',
       showDailyUntilComplete: false,
-      customFrequency: 0,
-      customPeriodType: '',
+      customFrequency: 1,
+      customPeriodType: 'day',
+      customPeriodNumber: 1,
       repeatOnDays: [],
       difficulty: 1,
       xp: 200,
       gp: 20,
-      ap: 2
+      ap: 2,
+      adventureType: 'simple'
     }
   }
 
   public async setTask(task: Achievement) {
     const id = task.id ? task.id : uuidv4()
     await this.set(id, {
-      ...this.createAchievement(),
+      ...AchievementDb.getDefault(),
       ...task,
       id
     })
@@ -116,15 +123,14 @@ export class AchievementDb extends DbStorageApi {
   }
 
 
-  public async getTaskById(id) {
+  public async getTaskById(id: string): Promise<Achievement | null> {
     const tasks = await this.getTasks();
-    const task = tasks.find((task) => task.id === id);
-    return task || this.createAchievement()
+    return tasks.find((task) => task.id === id) || null;
   }
 
-  public async getTasks() {
+  public async getTasks(): Promise<Achievement[]> {
     const tasks = await this.getAll()
-    return tasks
+    return tasks as Achievement[]
   }
 }
 

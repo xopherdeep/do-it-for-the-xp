@@ -55,12 +55,12 @@
     </div>
 
     <!-- Patient Modal -->
-    <ion-modal :is-open="isModalOpen" @did-dismiss="closePatientsModal">
+    <ion-modal ref="patientsModal" :is-open="isModalOpen" @did-dismiss="closePatientsModal">
       <ion-header>
         <ion-toolbar color="secondary">
           <ion-title>Hospital Patients</ion-title>
           <ion-buttons slot="end">
-            <ion-button @click="closePatientsModal">Close</ion-button>
+            <ion-button @click.stop="dismissPatientsModal">Close</ion-button>
           </ion-buttons>
         </ion-toolbar>
       </ion-header>

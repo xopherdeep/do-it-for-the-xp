@@ -10,6 +10,7 @@ http://ionicframework.com/docs/theming/ */
   --xp-color-blue: #4870d0;
   --xp-color-blueLight: #4a90e2;
   --xp-color-purple: #6f2c91;
+  --xp-color-indigo: #5260ff;
   --xp-color-green: #1fa627;
   --xp-color-brown: #be5c00;
   --xp-color-yellow: #de9a00;
@@ -17,6 +18,13 @@ http://ionicframework.com/docs/theming/ */
   --xp-color-gray: #a8a8a8;
   --xp-color-pink: #ffc0cb;
   --xp-color-lightBlue: skyblue;
+  
+  /** Point System Colors **/
+  --xp-color-xp: var(--xp-color-green);
+  --xp-color-gp: var(--xp-color-yellow);
+  --xp-color-ap: var(--xp-color-lightBlue);
+  --xp-color-hp: var(--xp-color-red);
+  --xp-color-mp: var(--xp-color-purple);
 
   /** Ionic CSS Variables **/
   /** primary **/

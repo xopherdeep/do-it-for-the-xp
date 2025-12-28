@@ -25,8 +25,8 @@
 import { defineComponent, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import {  IonPage, IonContent } from '@ionic/vue';
-import { XpIntroSplash } from '@/components/XpIntroSplash';
-import type { SplashScreen } from '@/components/XpIntroSplash';
+import { XpIntroSplash } from '@/components/organisms/IntroSplash';
+import type { SplashScreen } from '@/components/organisms/IntroSplash';
 import Ionic from '@/mixins/ionic';
 
 export default defineComponent({

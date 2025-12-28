@@ -1,42 +1,78 @@
 <template>
-  <ion-grid class="icon-colors">
-    <ion-row>
-      <ion-col size="4">
-        <XpStatBox :value="beastCount" label="Total Beasts" iconName="fa-paw-claws" iconColor="primary" />
-      </ion-col>
-      <ion-col size="4">
-        <XpStatBox :value="avgChecklistLength" label="Avg Tasks" iconName="fa-check" iconColor="tertiary" />
-      </ion-col>
-      <ion-col size="4">
-        <XpStatBox :value="attachedAchievements" label="Linked Quests" iconName="fa-hand-holding-seedling" iconColor="warning" />
-      </ion-col>
-      
-      <ion-col size="4">
-        <XpStatBox :value="tamedToday" label="Tamed Today" iconName="fa-calendar-day" iconColor="primary" />
-      </ion-col>
-      <ion-col size="4">
-        <XpStatBox :value="tamedThisWeek" label="This Week" iconName="fa-calendar-week" iconColor="warning" />
-      </ion-col>
-      <ion-col size="4">
-        <XpStatBox :value="tamedThisMonth" label="This Month" iconName="fa-calendar-alt" iconColor="danger" />
-      </ion-col>
-    </ion-row>
-  </ion-grid>
+  <XpDashboardGrid :cols="2">
+    <XpDashboardTile>
+      <XpNavTile 
+        label="View Bestiary" 
+        iconName="fa-hand-holding-heart" 
+        color="primary"
+        @click="goToBestiary" 
+      />
+    </XpDashboardTile>
+    <XpDashboardTile>
+      <XpStatBox 
+        :value="beastCount" 
+        label="Total Beasts" 
+        iconName="fa-dragon" 
+        iconColor="primary" 
+        :isActive="isActive"
+        :animationKey="animationKey"
+      />
+    </XpDashboardTile>
+    <XpDashboardTile>
+      <XpStatBox 
+        :value="avgChecklistLength" 
+        label="Avg Tasks" 
+        iconName="fa-claw-marks" 
+        iconColor="danger" 
+        :isActive="isActive"
+        :animationKey="animationKey"
+      />
+    </XpDashboardTile>
+    <XpDashboardTile>
+      <XpStatBox 
+        :value="attachedAchievements" 
+        label="Linked Quests" 
+        iconName="fa-link" 
+        iconColor="primary" 
+        :isActive="isActive"
+        :animationKey="animationKey"
+      />
+    </XpDashboardTile>
+  </XpDashboardGrid>
+
 </template>
 
 <script lang="ts">
 import Ionic from '@/mixins/ionic';
 import { defineComponent, ref, onMounted, computed } from 'vue';
-import XpStatBox from '@/components/XpStatBox/XpStatBox.vue';
+import { useRouter } from 'vue-router';
+import XpStatBox from '@/components/molecules/StatBox/XpStatBox.vue';
+import XpNavTile from '@/components/molecules/StatGrid/XpNavTile.vue';
+import XpDashboardGrid from '@/components/molecules/StatGrid/XpDashboardGrid.vue';
+import XpDashboardTile from '@/components/molecules/StatGrid/XpDashboardTile.vue';
 import BestiaryDb, { Beast, beastStorage } from '@/lib/databases/BestiaryDb';
 
 export default defineComponent({
   name: 'BeastsChallengesDashboard',
   mixins: [Ionic],
   components: {
-    XpStatBox
+    XpStatBox,
+    XpNavTile,
+    XpDashboardGrid,
+    XpDashboardTile
+  },
+  props: {
+    isActive: {
+      type: Boolean,
+      default: false
+    },
+    animationKey: {
+      type: [Number, String],
+      default: 0
+    }
   },
   setup() {
+    const router = useRouter();
     const beasts = ref<Beast[]>([]);
     const bestiary = new BestiaryDb(beastStorage);
 
@@ -72,13 +108,18 @@ export default defineComponent({
       return beasts.value.reduce((sum, beast) => sum + (beast.achievementIds?.length || 0), 0);
     });
 
+    const goToBestiary = () => {
+      router.push({ name: 'xp-bestiary' });
+    };
+
     return {
       beastCount,
       avgChecklistLength,
       attachedAchievements,
       tamedToday,
       tamedThisWeek,
-      tamedThisMonth
+      tamedThisMonth,
+      goToBestiary
     };
   }
 });

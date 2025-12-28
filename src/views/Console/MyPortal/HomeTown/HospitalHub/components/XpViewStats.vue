@@ -116,9 +116,9 @@
 
 <script lang="ts">
 import { defineComponent, computed, ref, watch } from "vue";
-import { useStore } from "vuex";
+import { useUserStore } from "@/lib/store/stores/user";
 import ionic from "@/mixins/ionic";
-import XpIcon from "@/components/XpIcon";
+import XpIcon from "@/components/atoms/Icon/XpIcon.vue";
 import type {  StatAreas } from '../types';
 
 export default defineComponent({
@@ -133,10 +133,10 @@ export default defineComponent({
   },
   
   setup(props) {
-    const store = useStore();
+    const userStore = useUserStore();
 
     // Get user from props via getUserById
-    const user = computed(() => store.getters['getUserById'](props.userId));
+    const user = computed(() => userStore.getUserById(props.userId));
 
     const areas: StatAreas = {
       physical: {

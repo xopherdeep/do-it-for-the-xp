@@ -1,44 +1,82 @@
 <template>
-  <ion-grid class="icon-colors w-full ion-no-margin ">
-    <ion-row>
-      <ion-col size="4">
-        <XpStatBox :value="totalRewarded" label="GP Paid" iconName="fa-trophy" iconColor="warning" />
-      </ion-col>
-      <!-- <ion-col size="4">
-        <XpStatBox :value="totalSavings" label="Total Savings" iconName="fa-piggy-bank" iconColor="success" />
-      </ion-col> -->
-      <ion-col size="4">
-        <XpStatBox :value="bankBalance" label="Bank Balance" iconName="fa-hand-holding-usd" iconColor="success" />
-      </ion-col>
-      <ion-col size="4">
-        <XpStatBox :value="avgPerQuest" label="Avg GP per Q" iconName="fa-hand-holding-seedling" iconColor="tertiary" />
-      </ion-col>
-      <!-- Day, Week, Month -->
-    
-      <ion-col size="3">
-        <XpStatBox :value="totalDaily" label="GP Today" iconName="fa-calendar-day" iconColor="primary" />
-      </ion-col>
-      <ion-col size="4">
-        <XpStatBox :value="totalWeekly" label="GP This Week" iconName="fa-calendar-week" iconColor="warning" />
-      </ion-col>
-      <ion-col size="5">
-        <XpStatBox :value="totalMonthly" label="GP This Month" iconName="fa-calendar-alt" iconColor="tertiary" />
-      </ion-col>
-    </ion-row>
-  </ion-grid>
+  <XpDashboardGrid :cols="2">
+    <XpDashboardTile>
+      <XpNavTile 
+        label="Stock Shops" 
+        iconName="fa-hand-holding-box" 
+        color="warning"
+        @click="goToShops" 
+      />
+    </XpDashboardTile>
+    <XpDashboardTile>
+      <XpStatBox 
+        :value="3300"
+        label="World Treasury" 
+        ribbon="Circulating: 1.7k"
+        ribbonColor="danger"
+        iconName="fa-piggy-bank" 
+        iconColor="success" 
+        :isActive="isActive"
+        :animationKey="animationKey"
+      />
+    </XpDashboardTile>
+    <XpDashboardTile>
+      <XpStatBox 
+        :value="avgPerQuest" 
+        label="Avg GP/Quest" 
+        iconName="fa-coin" 
+        iconColor="warning" 
+        :isActive="isActive"
+        :animationKey="animationKey"
+      />
+    </XpDashboardTile>
+    <XpDashboardTile>
+      <XpStatBox 
+        :value="250" 
+        label="Avg GP/User" 
+        iconName="fa-sack-dollar" 
+        iconColor="warning" 
+        :isActive="isActive"
+        :animationKey="animationKey"
+      />
+    </XpDashboardTile>
+  </XpDashboardGrid>
 </template>
 
 <script lang="ts">
 import Ionic from '@/mixins/ionic';
 import { defineComponent } from 'vue';
-import XpStatBox from '@/components/XpStatBox/XpStatBox.vue';
-  // import { GPService } from '@/lib/services/gp';
+import { useRouter } from 'vue-router';
+import XpStatBox from '@/components/molecules/StatBox/XpStatBox.vue';
+import XpNavTile from '@/components/molecules/StatGrid/XpNavTile.vue';
+import XpDashboardGrid from '@/components/molecules/StatGrid/XpDashboardGrid.vue';
+import XpDashboardTile from '@/components/molecules/StatGrid/XpDashboardTile.vue';
 
 export default defineComponent({
   name: 'GoldPointsDashboard',
   mixins: [Ionic],
   components: {
-    XpStatBox
+    XpStatBox,
+    XpNavTile,
+    XpDashboardGrid,
+    XpDashboardTile
+  },
+  props: {
+    isActive: {
+      type: Boolean,
+      default: false
+    },
+    animationKey: {
+      type: [Number, String],
+      default: 0
+    }
+  },
+  setup() {
+    const router = useRouter();
+    const goToShops = () => {
+      router.push({ name: 'xp-economy-dashboard-root' });
+    };
+    return { goToShops };
   },
   data() {
     return {
@@ -50,20 +88,8 @@ export default defineComponent({
       totalDaily: 0, // Total GP earned today
       totalWeekly: 0, // Total GP earned this week
       totalMonthly: 0 // Total GP earned this month
-    
     };
-  },
-  // TODO: Implement methods to fetch real data from the GPService
-  // These methods would replace the mock data above
-  /*
-  created() {
-    const gpService = GPService.getInstance();
-    // Example of how we might implement this with real data:
-    // this.totalSavings = gpService.getTotalSavingsInSystem();
-    // this.bankBalance = gpService.getBankBalance();
-    // this.totalRewarded = gpService.getTotalGPRewarded();
   }
-  */
 });
 </script>
 

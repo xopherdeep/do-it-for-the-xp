@@ -183,3 +183,1111 @@ ion-item-group {
   --border-color: var(--ion-color-danger);
   --highlight-color: var(--ion-color-danger);
 }
+
+// Extracted styles from SFC
+.xp-add-achievement {
+
+  // Type selector boxes
+  .type-selector {
+    width: 100%;
+    padding: 0.5rem;
+  }
+
+  .type-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 0.5rem;
+    margin: 0.25rem;
+    border-radius: 12px;
+    background: var(--ion-color-step-50);
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    
+    &:hover {
+      background: var(--ion-color-step-100);
+    }
+    
+    &--selected {
+      border-color: var(--ion-color-rpg);
+      background: rgba(var(--ion-color-rpg-rgb), 0.1);
+      
+      i {
+        color: var(--ion-color-rpg);
+      }
+    }
+    
+    &__name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      margin-bottom: 0.25rem;
+    }
+    
+    &__radio {
+      display: none;
+    }
+    
+    i {
+      color: var(--ion-color-medium);
+      transition: color 0.2s ease;
+    }
+  }
+
+  // Type Card (for consistent selection styling with green checks)
+  .type-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 0.5rem;
+    margin: 0.25rem;
+    border-radius: 12px;
+    background: var(--ion-color-step-50);
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    
+    &:hover {
+      background: var(--ion-color-step-100);
+      transform: scale(1.02);
+    }
+    
+    &--selected {
+      border-color: var(--ion-color-success);
+      background: rgba(var(--ion-color-success-rgb), 0.1);
+      
+      .type-card__icon {
+        color: var(--ion-color-success);
+      }
+      
+      .type-card__name {
+        color: var(--ion-color-success);
+      }
+    }
+    
+    &--compact {
+      padding: 0.75rem 0.5rem;
+      
+      .type-card__icon {
+        font-size: 1.25rem;
+      }
+      
+      .type-card__name {
+        font-size: 0.75rem;
+      }
+    }
+    
+    &__check {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      color: var(--ion-color-success);
+      font-size: 1rem;
+    }
+    
+    &__icon {
+      color: var(--ion-color-medium);
+      transition: color 0.2s ease;
+    }
+    
+    &__name {
+      font-weight: 600;
+      font-size: 0.9rem;
+      transition: color 0.2s ease;
+    }
+    
+    &__radio {
+      display: none;
+    }
+  }
+
+  // Type description with example
+  .type-description {
+    --padding-start: 1rem;
+    --padding-end: 1rem;
+    
+    p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: var(--ion-color-medium);
+    }
+    
+    .type-example {
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+      font-style: italic;
+      color: var(--ion-color-step-550);
+      
+      i {
+        color: var(--ion-color-warning);
+      }
+    }
+  }
+
+  // Hero avatar grid
+  .hero-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    padding: 1rem;
+    justify-content: center;
+  }
+
+  .hero-avatar {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.5rem;
+    border-radius: 12px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+    
+    ion-avatar {
+      width: 56px;
+      height: 56px;
+      border: 3px solid transparent;
+      transition: border-color 0.2s ease;
+    }
+    
+    &__name {
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      color: var(--ion-color-medium);
+    }
+    
+    &__check {
+      position: absolute;
+      top: 0;
+      right: 0;
+      color: var(--ion-color-success);
+      font-size: 1.25rem;
+    }
+    
+    &:hover {
+      background: var(--ion-color-step-50);
+    }
+    
+    &--selected {
+      ion-avatar {
+        border-color: var(--ion-color-rpg);
+      }
+      
+      .hero-avatar__name {
+        color: var(--ion-color-rpg);
+        font-weight: 600;
+      }
+    }
+  }
+
+  // Assignment type boxes
+  .assignment-type-grid {
+    padding: 0.5rem;
+  }
+
+  .assignment-box {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem 0.5rem;
+    margin: 0.25rem;
+    border-radius: 12px;
+    background: var(--ion-color-step-50);
+    border: 2px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-height: 100px;
+    text-align: center;
+    
+    &:hover {
+      background: var(--ion-color-step-100);
+    }
+    
+    &--selected {
+      border-color: var(--ion-color-rpg);
+      background: rgba(var(--ion-color-rpg-rgb), 0.1);
+      
+      i {
+        color: var(--ion-color-rpg);
+      }
+    }
+    
+    &__name {
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+    
+    &__desc {
+      font-size: 0.7rem;
+      color: var(--ion-color-medium);
+      margin: 0.25rem 0 0;
+    }
+    
+    &__radio {
+      display: none;
+    }
+    
+    i {
+      color: var(--ion-color-medium);
+      transition: color 0.2s ease;
+    }
+  }
+
+  // RPG Party Layout
+  .rpg-party-layout {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem;
+    align-items: flex-start;
+  }
+
+  .rpg-type-box {
+    flex: 0 0 33%;
+    min-width: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem 1rem;
+    border-radius: 16px;
+    background: linear-gradient(135deg, var(--ion-color-step-50), var(--ion-color-step-100));
+    border: 2px solid var(--ion-color-rpg);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    
+    i {
+      color: var(--ion-color-rpg);
+    }
+    
+    &__name {
+      font-weight: 700;
+      font-size: 0.9rem;
+      margin-top: 0.5rem;
+      text-align: center;
+      color: var(--ion-color-rpg);
+    }
+    
+    &__select {
+      position: absolute;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+    
+    &:hover {
+      transform: scale(1.02);
+      box-shadow: 0 4px 12px rgba(var(--ion-color-rpg-rgb), 0.3);
+    }
+  }
+
+  .rpg-hero-list {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    overflow-y: auto;
+  }
+
+  .rpg-hero-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    ion-avatar {
+      width: 40px;
+      height: 40px;
+      border: 2px solid transparent;
+      transition: all 0.3s ease;
+    }
+    
+    &__name {
+      font-weight: 500;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+    }
+    
+    &--active {
+      background: rgba(var(--ion-color-rpg-rgb), 0.15);
+      
+      ion-avatar {
+        border-color: var(--ion-color-rpg);
+        transform: scale(1.1);
+      }
+      
+      .rpg-hero-row__name {
+        color: var(--ion-color-rpg);
+        font-weight: 600;
+      }
+    }
+    
+    &--inactive {
+      opacity: 0.5;
+      filter: grayscale(70%);
+      
+      &:hover {
+        opacity: 0.9;
+        filter: grayscale(20%);
+        transform: scale(1.02);
+      }
+    }
+    
+    &:hover {
+      background: var(--ion-color-step-50);
+    }
+  }
+
+  .rpg-explanation {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    
+    strong {
+      color: var(--ion-color-rpg);
+    }
+  }
+
+  // Hero Party Grid
+  .hero-party-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 0.75rem;
+    padding: 1rem;
+  }
+
+  .hero-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: 12px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+    background: var(--ion-color-step-50);
+    border: 2px solid transparent;
+    
+    ion-avatar {
+      width: 48px;
+      height: 48px;
+      transition: all 0.2s ease;
+    }
+    
+    &__name {
+      font-size: 0.75rem;
+      margin-top: 0.5rem;
+      text-align: center;
+      color: var(--ion-color-medium);
+      transition: all 0.2s ease;
+    }
+    
+    &__badge {
+      position: absolute;
+      top: 4px;
+      right: 4px;
+      color: var(--ion-color-success);
+      font-size: 1rem;
+    }
+    
+    &:hover {
+      background: var(--ion-color-step-100);
+      transform: scale(1.05);
+    }
+    
+    &--active {
+      border-color: var(--ion-color-rpg);
+      background: rgba(var(--ion-color-rpg-rgb), 0.15);
+      
+      ion-avatar {
+        transform: scale(1.1);
+      }
+      
+      .hero-card__name {
+        color: var(--ion-color-rpg);
+        font-weight: 600;
+      }
+    }
+  }
+
+  // Smaller type boxes for assignment type row
+  .type-box--small {
+    padding: 0.75rem 0.5rem;
+    
+    i {
+      font-size: 1.25rem;
+    }
+    
+    .type-box__name {
+      font-size: 0.75rem;
+    }
+  }
+  // Type Tab Content Styling
+  .type-tab-content {
+    padding: 1rem 0;
+    width: 95%;
+    margin: 0 auto;
+  }
+
+  .type-selection-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 20px;
+    width: 100%;
+  }
+
+  // Lore Combo Card - The Prominent Third Box
+  .lore-combo-card {
+    margin: 0 0 1rem;
+    padding: 1.5rem;
+    background: linear-gradient(135deg, 
+      rgba(var(--ion-color-rpg-rgb), 0.2), 
+      rgba(var(--ion-color-rpg-rgb), 0.05));
+    border: 2px solid var(--ion-color-rpg);
+    border-radius: 20px;
+    text-align: center;
+    position: relative;
+    box-shadow: 0 8px 32px rgba(var(--ion-color-rpg-rgb), 0.3);
+    animation: pulse-glow 3s ease-in-out infinite;
+    
+    &.clickable {
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+      &:hover {
+        transform: scale(1.02) translateY(-4px);
+        background: linear-gradient(135deg, 
+          rgba(var(--ion-color-rpg-rgb), 0.3), 
+          rgba(var(--ion-color-rpg-rgb), 0.1));
+        border-color: #fff;
+      }
+      
+      &:active {
+        transform: scale(0.98);
+      }
+    }
+    
+    .lore-combo-config-indicator {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      background: rgba(0, 0, 0, 0.4);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      
+      i {
+        font-size: 0.8rem;
+        &.fa-check-circle { color: var(--ion-color-success); }
+        &.fa-exclamation-circle { color: var(--ion-color-warning); }
+      }
+      
+      span {
+        font-size: 0.6rem;
+        font-family: "Press Start 2P";
+        color: #fff;
+        text-transform: uppercase;
+      }
+    }
+
+    .lore-combo-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 2rem;
+      text-align: left;
+      width: 100%;
+
+      .lore-combo-name {
+        flex: 1;
+        font-family: "Press Start 2P";
+        font-size: 1rem;
+        color: #fff;
+        margin: 0;
+        text-shadow: 0 0 20px rgba(var(--ion-color-rpg-rgb), 0.5);
+        line-height: 1.4;
+      }
+
+      .lore-combo-config-indicator {
+        position: static; // Override absolute
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 10px;
+        background: rgba(0, 0, 0, 0.4);
+        border-radius: 12px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        
+        i {
+          font-size: 0.8rem;
+          &.fa-check-circle { color: var(--ion-color-success); }
+          &.fa-exclamation-circle { color: var(--ion-color-warning); }
+        }
+        
+        span {
+          font-size: 0.6rem;
+          font-family: "Press Start 2P";
+          color: #fff;
+          text-transform: uppercase;
+        }
+      }
+    }
+  }
+
+  // ============================================
+  // QUEST CARD - Premium RPG Trading Card Style
+  // ============================================
+  .quest-card {
+    position: relative;
+    background: linear-gradient(145deg, 
+      rgba(20, 20, 30, 0.95) 0%, 
+      rgba(10, 10, 20, 0.98) 100%);
+    border-radius: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.08);
+    overflow: hidden;
+    cursor: pointer;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    
+    &:hover {
+      transform: translateY(-4px);
+      border-color: rgba(var(--ion-color-rpg-rgb), 0.4);
+      
+      .quest-card-glow {
+        opacity: 1;
+      }
+      
+      .quest-card-prompt {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    &.is-ready {
+      border-color: rgba(var(--ion-color-success-rgb), 0.4);
+      
+      .quest-card-glow {
+        background: radial-gradient(ellipse at center, 
+          rgba(var(--ion-color-success-rgb), 0.15) 0%, 
+          transparent 70%);
+      }
+    }
+    
+    &.is-draft {
+      .quest-card-glow {
+        background: radial-gradient(ellipse at center, 
+          rgba(var(--ion-color-warning-rgb), 0.1) 0%, 
+          transparent 70%);
+      }
+    }
+    .quest-card-glow {
+      position: absolute;
+      inset: 0;
+      opacity: 0.6;
+      transition: opacity 0.4s;
+      pointer-events: none;
+      background: radial-gradient(ellipse at center, 
+        rgba(var(--ion-color-rpg-rgb), 0.15) 0%, 
+        transparent 70%);
+    }
+
+    .status-ribbon {
+      position: absolute;
+      top: 12px;
+      right: -32px;
+      padding: 6px 40px;
+      font-family: "Press Start 2P";
+      font-size: 0.5rem;
+      text-transform: uppercase;
+      transform: rotate(45deg);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 2;
+      
+      &.ready {
+        background: linear-gradient(90deg, var(--ion-color-success), var(--ion-color-success-shade));
+        color: #fff;
+        box-shadow: 0 2px 12px rgba(var(--ion-color-success-rgb), 0.4);
+      }
+      
+      &.draft {
+        background: linear-gradient(90deg, var(--ion-color-warning), var(--ion-color-warning-shade));
+        color: #000;
+        box-shadow: 0 2px 12px rgba(var(--ion-color-warning-rgb), 0.4);
+      }
+      
+      i { font-size: 0.6rem; }
+    }
+  }
+
+
+
+  .quest-card-title {
+    padding: 1rem;
+    text-align: center;
+    background: rgba(var(--ion-color-rpg-rgb), 0.03);
+    
+    h2 {
+      font-family: "Press Start 2P";
+      font-size: 0.85rem;
+      color: #fff;
+      margin: 0 0 8px;
+      line-height: 1.4;
+      text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+    }
+    
+    .quest-tagline {
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.5);
+      font-style: italic;
+      margin: 0;
+    }
+  }
+
+  .quest-stats-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+
+    .stats-row {
+      display: flex;
+      justify-content: center;
+      gap: 0.75rem;
+      width: 100%;
+    }
+    
+    .stat-block {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 0.75rem 0.5rem;
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      min-width: 0; // Allow shrinking
+      transition: all 0.3s;
+      opacity: 0.5;
+      
+      &.is-set {
+        opacity: 1;
+        
+        &.xp {
+          border-color: rgba(var(--ion-color-success-rgb), 0.3);
+          background: rgba(var(--ion-color-success-rgb), 0.1);
+          .stat-icon i { color: var(--ion-color-success); }
+          .stat-value { color: var(--ion-color-success); }
+        }
+        
+        &.gp {
+          border-color: rgba(var(--ion-color-warning-rgb), 0.3);
+          background: rgba(var(--ion-color-warning-rgb), 0.1);
+          .stat-icon i { color: var(--ion-color-warning); }
+          .stat-value { color: var(--ion-color-warning); }
+        }
+        
+        &.ap {
+          border-color: rgba(var(--ion-color-danger-rgb), 0.3);
+          background: rgba(var(--ion-color-danger-rgb), 0.1);
+          .stat-icon i { color: var(--ion-color-danger); }
+          .stat-value { color: var(--ion-color-danger); }
+        }
+
+        &.combo {
+          border-color: rgba(99, 102, 241, 0.3);
+          background: rgba(99, 102, 241, 0.1);
+          .stat-icon i { 
+            color: #818cf8; 
+            filter: drop-shadow(0 0 8px rgba(99, 102, 241, 0.5));
+          }
+          .stat-label { 
+            color: rgba(255, 255, 255, 0.5); 
+            font-size: 0.45rem; 
+            text-align: center;
+            width: 100%;
+          }
+        }
+
+        &.party {
+          border-color: rgba(var(--ion-color-secondary-rgb), 0.3);
+          background: rgba(var(--ion-color-secondary-rgb), 0.1);
+          .stat-icon i { color: var(--ion-color-secondary); }
+          .stat-value { color: var(--ion-color-secondary); }
+        }
+
+        &.when {
+          border-color: rgba(var(--ion-color-tertiary-rgb), 0.3);
+          background: rgba(var(--ion-color-tertiary-rgb), 0.1);
+          .stat-icon i { color: var(--ion-color-tertiary); }
+          .stat-value { 
+            color: var(--ion-color-tertiary);
+            font-size: 0.55rem;
+            line-height: 1.2;
+            text-align: center;
+          }
+        }
+
+      }
+      
+      .stat-icon {
+        margin-bottom: 8px;
+        i { font-size: 2rem; color: rgba(255, 255, 255, 0.3); }
+      }
+      
+      .stat-label {
+        font-family: "Press Start 2P";
+        font-size: 0.45rem;
+        color: rgba(255, 255, 255, 0.5);
+        text-transform: uppercase;
+        margin-bottom: 6px;
+      }
+      
+      .stat-value {
+        font-family: "Press Start 2P";
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.5);
+      }
+
+    }
+  }
+
+
+  .quest-card-prompt {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 0.75rem;
+    background: rgba(var(--ion-color-rpg-rgb), 0.1);
+    border-top: 1px solid rgba(var(--ion-color-rpg-rgb), 0.2);
+    opacity: 0.6;
+    transform: translateY(4px);
+    transition: all 0.3s;
+    
+    i {
+      font-size: 0.9rem;
+      color: var(--ion-color-rpg);
+      animation: pulse-pointer 1.5s infinite;
+    }
+    
+    span {
+      font-family: "Press Start 2P";
+      font-size: 0.45rem;
+      color: rgba(255, 255, 255, 0.7);
+      text-transform: uppercase;
+    }
+  }
+
+  @keyframes pulse-pointer {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  // Keep old styles for backward compatibility but hide them
+  .lore-combo-card { display: none; }
+
+  .lore-combo-divider {
+    height: 1px;
+    background: linear-gradient(to right, 
+      transparent, 
+      rgba(var(--ion-color-rpg-rgb), 0.3), 
+      transparent);
+    margin: 1.5rem 0;
+  }
+
+  // Old lore-combo styles removed - now using quest-card
+
+  .lore-combo-footer-grid {
+    display: none; // Hidden - replaced by quest-card
+  }
+
+  .lore-combo-footer {
+    display: none; // Hidden - replaced by quest-card
+  }
+
+  .summary-item {
+    display: none; // Hidden - replaced by quest-card
+  }
+
+  .mini-hero-list {
+    display: none; // Hidden - replaced by quest-card
+  }
+
+  .lore-combo-label.incomplete,
+  .formula-item.incomplete {
+    display: none; // Hidden - replaced by quest-card
+  }
+
+  .lore-combo-content {
+    display: none; // Hidden - replaced by quest-card
+  }
+
+  .quest-summary-details {
+    display: none; // Hidden - replaced by quest-card
+  }
+
+  .lore-combo-formula {
+    display: none; // Hidden - replaced by quest-card
+  }
+
+
+  .setup-strategy-btn {
+    --border-radius: 16px;
+    font-family: "Press Start 2P";
+    font-size: 0.7rem;
+    height: 48px;
+    margin-top: 0;
+    
+    &::part(native) {
+      border-width: 2px;
+    }
+  }
+
+  @keyframes pulse-glow {
+    0%, 100% { 
+      box-shadow: 0 8px 32px rgba(var(--ion-color-rpg-rgb), 0.3); 
+    }
+    50% { 
+      box-shadow: 0 8px 48px rgba(var(--ion-color-rpg-rgb), 0.5); 
+    }
+  }
+
+  .type-mini-selector {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    // min-height: 120px;
+
+    &:hover {
+      background: rgba(var(--ion-color-rpg-rgb), 0.1);
+      border-color: var(--ion-color-rpg);
+      transform: translateY(-4px);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+
+      .type-mini-icon i {
+        transform: scale(1.1);
+        color: var(--ion-color-rpg);
+      }
+    }
+
+    &.is-incomplete {
+      opacity: 0.65;
+      border: 2px dashed rgba(255, 255, 255, 0.15);
+      background: rgba(0, 0, 0, 0.1);
+      
+      .type-mini-icon i {
+        color: rgba(255, 255, 255, 0.2);
+        filter: grayscale(1);
+      }
+    }
+
+    .type-mini-strip {
+      width: 100%;
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      padding: 12px 0;
+      background: linear-gradient(90deg, 
+        transparent 0%, 
+        rgba(var(--ion-color-rpg-rgb), 0.15) 20%, 
+        rgba(var(--ion-color-rpg-rgb), 0.15) 80%, 
+        transparent 100%);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .type-mini-icon {
+      width: 48px;
+      height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      i {
+        font-size: 2.2rem;
+        color: rgba(255, 255, 255, 0.8);
+        transition: all 0.3s;
+        filter: drop-shadow(0 0 10px rgba(var(--ion-color-rpg-rgb), 0.2));
+      }
+
+      .selector-beast-avatar {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        filter: drop-shadow(0 0 12px rgba(var(--ion-color-rpg-rgb), 0.3));
+      }
+    }
+
+    .type-mini-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+    }
+
+    .type-mini-label {
+      font-family: "Press Start 2P";
+      font-size: 0.35rem;
+      text-transform: uppercase;
+      color: var(--ion-color-medium);
+      letter-spacing: 2px;
+      opacity: 0.7;
+    }
+
+    .type-mini-value {
+      font-family: "Press Start 2P";
+      font-size: 0.45rem;
+      color: #fff;
+      text-transform: uppercase;
+    }
+  }
+
+
+  .selection-summary-card {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 16px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+
+    .summary-section {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-start;
+
+      i {
+        font-size: 1.25rem;
+        color: var(--ion-color-rpg);
+        margin-top: 2px;
+      }
+
+      .summary-text {
+        font-size: 0.95rem;
+        line-height: 1.4;
+        color: rgba(255, 255, 255, 0.7);
+
+        strong {
+          color: #fff;
+          margin-right: 4px;
+        }
+      }
+    }
+
+    .summary-divider {
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+      margin: 0.5rem 0;
+    }
+  }
+
+
+
+  .type-tab-content {
+    width: 95%;
+    margin: 0 auto;
+  }
+
+  .splash-header {
+    padding: 3rem 1rem 1rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .splash-icon {
+    font-size: 4rem;
+    color: var(--ion-color-light); // Or use specific gradient text?
+    margin-bottom: 1rem;
+    filter: drop-shadow(0 0 20px rgba(var(--ion-color-primary-rgb), 0.5));
+  }
+
+  .splash-title-input {
+    width: 100%;
+    background: transparent;
+    border: none;
+    font-family: "Press Start 2P";
+    font-size: 1.2rem;
+    color: #fff;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+    outline: none;
+    text-shadow: 0 4px 12px rgba(0, 0, 0, 0.8);
+    
+    &::placeholder {
+      color: rgba(255, 255, 255, 0.3);
+    }
+  }
+
+  .splash-tagline {
+    font-size: 0.8rem;
+    color: rgba(255, 255, 255, 0.6);
+    font-style: italic;
+    margin-top: 0.5rem;
+  }
+
+  .stat-block.type {
+    &.is-set {
+      border-color: rgba(157, 78, 221, 0.4);
+      background: linear-gradient(135deg, rgba(157, 78, 221, 0.1), rgba(157, 78, 221, 0.2));
+      .stat-icon i { color: #9d4edd; }
+      .stat-value { color: #e0aaff; }
+    }
+  }
+
+  .stat-block.party {
+    &.is-set {
+      border-color: rgba(72, 149, 239, 0.4);
+      background: linear-gradient(135deg, rgba(72, 149, 239, 0.1), rgba(72, 149, 239, 0.2));
+      .stat-icon i { color: #4895ef; }
+      .stat-value { color: #ade8f4; }
+    }
+  }
+
+  .stat-block.when {
+     &.is-set {
+          border-color: rgba(var(--ion-color-tertiary-rgb), 0.3);
+          background: rgba(var(--ion-color-tertiary-rgb), 0.1);
+          .stat-icon i { color: var(--ion-color-tertiary); }
+          .stat-value { 
+            color: var(--ion-color-tertiary);
+            font-size: 0.55rem;
+            line-height: 1.2;
+            text-align: center;
+          }
+     }
+  }
+
+  .quest-title-input {
+    // Removed, redundant with splash-title-input
+    display: none;
+  }
+}

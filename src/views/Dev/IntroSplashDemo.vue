@@ -110,8 +110,8 @@ import {
   IonCardTitle, IonCardContent, IonButton, IonItem, 
   IonLabel, IonRange, IonToggle, toastController
 } from '@ionic/vue';
-import { XpIntroSplash } from '@/components/XpIntroSplash';
-import type { SplashScreen } from '@/components/XpIntroSplash';
+import { XpIntroSplash } from '@/components/organisms/IntroSplash';
+import type { SplashScreen } from '@/components/organisms/IntroSplash';
 import debug from '@/lib/utils/debug';
 
 export default defineComponent({

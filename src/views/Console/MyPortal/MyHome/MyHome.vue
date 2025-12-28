@@ -138,6 +138,7 @@
       <!-- Save & Quit Modal -->
       <save-and-quit-modal
         :is-open="showSaveQuitModal"
+        :user-avatar="userAvatar"
         @close="closeSaveQuitModal"
         @confirm="confirmSaveQuit"
       />

@@ -273,9 +273,7 @@ ion-action-sheet {
 
 // Enhanced Action Sheet Custom Styling
 .hospital-action-sheet {
-  --background: rgba(var(--ion-background-color-rgb), 0.9);
-  --backdrop-opacity: 0.6;
-  
+  // Colors for specific icons
   .action-heal::part(icon) {
     color: var(--ion-color-success);
     opacity: 1;
@@ -328,25 +326,6 @@ ion-action-sheet {
     i {
       color: var(--ion-color-danger);
     }
-  }
-  
-  // Add RPG-style border to the action sheet
-  .action-sheet-container {
-    border: 2px solid var(--ion-color-light);
-    border-radius: 8px;
-  }
-  
-  // Style the sheet header
-  .action-sheet-title {
-    font-family: 'StatusPlz', monospace;
-    font-size: 1.2rem;
-    border-bottom: 1px solid var(--ion-color-light);
-    padding-bottom: 12px;
-  }
-  
-  // Make button text more RPG-like
-  .action-sheet-button {
-    font-family: 'StatusPlz', monospace;
   }
 }
 

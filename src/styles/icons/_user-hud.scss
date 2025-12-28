@@ -60,7 +60,7 @@
   }
 
   &hand-holding-heart {
-    --fa-primary-color: var(--xp-color-red);
+    --fa-primary-color: var(--xp-color-purple);
     --fa-secondary-color: var(--xp-color-brown);
     --fa-secondary-opacity: 0.9;
   }
@@ -79,11 +79,16 @@
   }
 
   &hand-holding-magic{
-    --fa-primary-color: var(--xp-color-blue);
+    --fa-primary-color: var(--xp-color-red);
     --fa-secondary-color: var(--xp-color-brown);
     --fa-secondary-opacity: 0.9;
   }
-  
+
+  &hand-holding-box {
+    --fa-primary-color: var(--xp-color-yellow);
+    --fa-secondary-color: var(--xp-color-brown);
+    --fa-secondary-opacity: 0.9;
+  }
   &hand-holding-usd {
     --fa-primary-color: var(--xp-color-yellow);
     --fa-secondary-color: var(--xp-color-brown);

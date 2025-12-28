@@ -25,12 +25,20 @@ export default defineComponent({
         {
           label: "Plains",
           faIcon: "tornado",
-          side: "start",
+          side: "bottom",
           click(){
             router.push({ name:'world-plains', params: {userId} })
           }
-        },
-        {
+      },
+      {
+        label: "Forests",
+        faIcon: "trees",
+        side: "start",
+        click() {
+          router.push({ name: 'world-forest', params: { userId } })
+        }
+      },
+      {
           label: "Islands",
           faIcon: "island-tropical",
           side: "start",
@@ -39,17 +47,9 @@ export default defineComponent({
           }
         },
         {
-          label: "Forests",
-          faIcon: "trees",
-          side: "top",
-          click(){
-            router.push({ name:'world-forest', params: {userId} })
-          }
-        },
-        {
           label: "Swamps",
           faIcon: "skull-crossbones",
-          side: "start",
+          side: "bottom",
           click(){
             router.push({ name:'world-swamps', params: {userId} })
           }
@@ -57,7 +57,7 @@ export default defineComponent({
         {
           label: "Mountains",
           faIcon: "mountains",
-          side: "bottom",
+          side: "top",
           click(){
             router.push({ name:'world-mountains', params: {userId} })
           }
@@ -65,7 +65,7 @@ export default defineComponent({
         {
           label: "Sands",
           faIcon: "cactus",
-          side: "bottom",
+          side: "end",
           click(){
             router.push({ name:'world-sands', params: {userId} })
           }
@@ -73,7 +73,7 @@ export default defineComponent({
         {
           label: "Tundras",
           faIcon: "igloo",
-          side: "bottom",
+          side: "end",
           click(){
             router.push({ name:'world-ice', params: {userId} })
           }

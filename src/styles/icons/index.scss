@@ -1,11 +1,11 @@
-@import "equipment";
-@import "home-town";
-@import "icon-colors";
-@import "my-home";
-@import "user-hud";
-@import "world-map";
-@import "dungeon";
-@import "profile-icons";
+@use "equipment" as *;
+@use "home-town" as *;
+@use "icon-colors";
+@use "my-home" as *;
+@use "user-hud" as *;
+@use "world-map" as *;
+@use "dungeon" as *;
+@use "profile-icons" as *;
 
 .icon-colors {
   i {

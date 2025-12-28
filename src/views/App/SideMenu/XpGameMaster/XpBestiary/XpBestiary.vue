@@ -1,5 +1,5 @@
 <template>
-  <ion-page :class="$options.name">
+  <ion-page :class="$options.name" style="background: transparent">
     <ion-header>
       <ion-toolbar class="rpg-box icon-colors">
         <ion-buttons slot="start">
@@ -16,58 +16,75 @@
         <!-- Removed import/export buttons from here -->
       </ion-toolbar>
     </ion-header>
-    <ion-content class="relative">
-      <canvas class="beasts-bg" />
-      <ion-list class="bg-transparent">
-        <ion-item-sliding
-          v-for="beast in beasts"
-          :key="beast.id"
-        >
-          <ion-item>
-            <ion-thumbnail
-              slot="start"
-              class="cursor-pointer"
-              id="beast-avatar"
-            >
-              <ion-img
-                v-if="beast?.avatar"
-                :src="getAvatar(beast.avatar)"
-                class="w-full p-0 m-0"
-              />
-              <ion-skeleton-text v-else />
-            </ion-thumbnail>
-            <ion-label>
-              <h2>{{ beast.name }}</h2>
-              <p>
-                {{ beast.checklist.length }} Checks found on
-                {{ beast.achievementIds?.length }} Achievements
-              </p>
-            </ion-label>
-            <ion-buttons slot="end">
-              <ion-button
-                @click="clickAddBeast(beast)"
-                color="rpg"
+    <ion-content class="relative transparent-content" style="--background: transparent">
+      <div v-if="isLoading" class="loading-wrapper-centered">
+        <XpLoading />
+      </div>
+      
+      <div v-else class="bestiary-container">
+        <!-- Search Area -->
+        <div class="search-container">
+          <div class="search-box">
+            <i class="fas fa-search"></i>
+            <input 
+              type="text" 
+              v-model="searchQuery" 
+              placeholder="Search bestiary..." 
+              class="beast-search-input"
+            />
+          </div>
+          <div class="beast-count">
+            {{ filteredBeasts.length }} Beasts
+          </div>
+        </div>
+
+        <!-- Grid Area -->
+        <div class="beast-grid">
+          <ion-grid>
+            <ion-row>
+              <!-- Add New Card -->
+              <ion-col 
+                size="4" 
+                size-md="3"
+                size-lg="2"
               >
-                <i class="fad fa-paw-claws fa-lg" />
-              </ion-button>
-              <ion-button
-                @click="clickAttachBeast(beast)"
-                color="rpg"
+                <XpBeastSelectorItem 
+                  id="__add_new__"
+                  name="Add New"
+                  icon="fa-paw-claws"
+                  :bg1="addNewBg1"
+                  :bg2="addNewBg2"
+                  class="add-new-card"
+                  @click="clickAddBeast()"
+                />
+              </ion-col>
+
+              <ion-col 
+                size="4" 
+                size-md="3"
+                size-lg="2"
+                v-for="beast in filteredBeasts" 
+                :key="beast.id"
               >
-                <i class="fad fa-paperclip fa-lg" />
-              </ion-button>
-            </ion-buttons>
-          </ion-item>
-          <ion-item-options side="start">
-            <ion-item-option
-              color="danger"
-              @click="clickDeleteBeast(beast)"
-            >
-              <i class="fad fa-trash fa-lg mr-2" />
-            </ion-item-option>
-          </ion-item-options>
-        </ion-item-sliding>
-      </ion-list>
+                <XpBeastSelectorItem 
+                  :id="beast.id"
+                  :name="beast.name"
+                  :avatar="beast.avatar"
+                  :bg1="beast.bg1"
+                  :bg2="beast.bg2"
+                  @click="presentBeastOptions(beast)"
+                />
+              </ion-col>
+            </ion-row>
+          </ion-grid>
+
+          <div v-if="filteredBeasts.length === 0" class="no-results">
+            <i class="fad fa-ghost fa-3x"></i>
+            <p>No beasts found in the bestiary...</p>
+          </div>
+        </div>
+      </div>
+
       <ion-fab
         slot="fixed"
         vertical="bottom"
@@ -77,45 +94,77 @@
           <i class="fad fa-hand-holding-heart fa-2x"/>
         </ion-fab-button>
       </ion-fab>
-
     </ion-content>
   </ion-page>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from "vue";
+import { defineComponent, ref, computed } from "vue";
 import ionic from "@/mixins/ionic";
-import { actionSheetController, alertController, modalController } from "@ionic/vue";
-import { createOutline, saveOutline } from 'ionicons/icons';
+import { actionSheetController, alertController, modalController, IonGrid, IonRow, IonCol } from "@ionic/vue";
+import { createOutline, saveOutline, trashOutline, attachOutline, createSharp } from 'ionicons/icons';
 import { useRouter } from 'vue-router';
 import XpAttachBeast from "./components/XpAttachBeast.vue";
-import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
+import XpBeastSelectorItem from "./components/XpBeastSelectorItem.vue";
 
 import BestiaryDb, { 
   beastStorage, 
   Beast, 
-  BESTIARY_BG_SETTINGS_KEY, 
-  BgSettings 
 } from "@/lib/databases/BestiaryDb";
+import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
+import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import debug from "@/lib/utils/debug";
 
-// Define a unique ID for this page for background management
-const PAGE_ID = 'xp-bestiary';
 
 export default defineComponent({
   name: "XpBestiary",
   mixins: [ionic],
+  components: {
+    IonGrid, IonRow, IonCol,
+    XpBeastSelectorItem,
+    XpLoading
+  },
   data() {
     return {
-      // Background state with default values
-      bgSettings: {
-        bg1: 0,
-        bg2: 0,
-        aspectRatio: 0  // Set a default value (changed from 0 to a useful default)
-      } as BgSettings
     };
   },
   methods: {
+    async presentBeastOptions(beast: Beast) {
+      const actionSheet = await actionSheetController.create({
+        header: beast.name,
+        subHeader: `${beast.checklist?.length || 0} Checks | ${beast.achievementIds?.length || 0} Achievements`,
+        mode: 'ios',
+        buttons: [
+          {
+            text: 'Edit Beast',
+            icon: createSharp,
+            handler: () => {
+              this.clickAddBeast(beast);
+            }
+          },
+          {
+            text: 'Attach to Achievements',
+            icon: attachOutline,
+            handler: () => {
+              this.clickAttachBeast(beast);
+            }
+          },
+          {
+            text: 'Delete Beast',
+            role: 'destructive',
+            icon: trashOutline,
+            handler: () => {
+              this.clickDeleteBeast(beast);
+            }
+          },
+          {
+            text: 'Cancel',
+            role: 'cancel'
+          }
+        ]
+      });
+      await actionSheet.present();
+    },
     async clickDeleteBeast(beast: Beast) {
       const alert = await alertController.create({
         header: "Delete Beast",
@@ -180,116 +229,15 @@ export default defineComponent({
     },
 
     async loadBeasts() {
-      await this.bestiary.getBeasts().then(this.setBeasts);
+      this.isLoading = true;
+      try {
+        await this.bestiary.getBeasts().then(this.setBeasts);
+      } finally {
+        this.isLoading = false;
+      }
     },
     setBeasts(beasts: Beast[]) {
       this.beasts = beasts;
-    },
-    
-    // Initialize background with random settings
-    initBackground() {
-      debug.log('Initializing bestiary background');
-      // Always get a random background
-      const randomBg = backgroundManager.getRandomBackground();
-      this.bgSettings.bg1 = randomBg.bg1;
-      this.bgSettings.bg2 = randomBg.bg2;
-      
-      // Initialize the background
-      backgroundManager.initBackground({
-        canvasSelector: "canvas.beasts-bg",
-        bg1: this.bgSettings.bg1,
-        bg2: this.bgSettings.bg2,
-        aspectRatio: 0,
-        handleResize: true,
-        page: PAGE_ID
-      });
-    },
-    
-    // Force reinitialize the background
-    reInitBackground() {
-      debug.log('Force reinitializing bestiary background');
-      // Cleanup first if active
-      if (backgroundManager.isActiveFor(PAGE_ID)) {
-        backgroundManager.cleanupBackground();
-      }
-      
-      // Then initialize with saved settings or new random ones
-      this.loadSavedBackgroundSettings();
-      this.initBackground();
-    },
-    
-    // Load saved background settings from localStorage
-    loadSavedBackgroundSettings() {
-      try {
-        const savedBgSettings = localStorage.getItem(BESTIARY_BG_SETTINGS_KEY);
-        if (savedBgSettings) {
-          const settings = JSON.parse(savedBgSettings) as BgSettings;
-          
-          // Ensure aspectRatio has a value even if it was undefined in storage
-          this.bgSettings = {
-            bg1: settings.bg1,
-            bg2: settings.bg2,
-            // aspectRatio: settings.aspectRatio ?? 48 // Use nullish coalescing to provide default
-          };
-          
-          // Apply saved settings to the background
-          backgroundManager.updateBackground({
-            bg1: settings.bg1,
-            bg2: settings.bg2,
-            // aspectRatio: settings.aspectRatio ?? 0
-          });
-          
-          debug.log('Loaded saved background settings:', this.bgSettings);
-        }
-      } catch (e) {
-        debug.error('Error loading saved background settings:', e);
-      }
-    },
-    
-    // Save background settings to localStorage - now using BestiaryDb method
-    saveBgSettings() {
-      this.bestiary.saveBgSettings(this.bgSettings);
-    },
-    
-    async saveCurrentBackgroundAsPreset() {
-      // Get the current background settings from the background manager
-      const bgSettings = backgroundManager.getBackgroundSettings();
-      
-      // Update our local settings from the manager
-      this.bgSettings.bg1 = bgSettings.bg1;
-      this.bgSettings.bg2 = bgSettings.bg2;
-      this.bgSettings.aspectRatio = bgSettings.aspectRatio;
-      
-      // Save to localStorage for persistence
-      this.saveBgSettings();
-      
-      // Create a dialog to name the preset
-      const alert = await alertController.create({
-        header: 'Save Background Preset',
-        inputs: [
-          {
-            name: 'name',
-            type: 'text',
-            placeholder: `Background (${bgSettings.bg1}/${bgSettings.bg2})`,
-            value: `Background (${bgSettings.bg1}/${bgSettings.bg2})`
-          }
-        ],
-        buttons: [
-          {
-            text: 'Cancel',
-            role: 'cancel'
-          },
-          {
-            text: 'Save',
-            handler: (data) => {
-              const presetName = data.name || `Background (${bgSettings.bg1}/${bgSettings.bg2})`;
-              this.bestiary.saveBackgroundPreset(presetName, bgSettings);
-            }
-          }
-        ]
-      });
-      
-      await alert.present();
     },
     
     async presentActionSheet() {
@@ -330,7 +278,9 @@ export default defineComponent({
               icon: saveOutline,
               cssClass: 'action-save',
               handler: () => {
-                this.saveCurrentBackgroundAsPreset();
+                // Background presets are currently tied to the EB engine
+                // which is disabled for the index page. 
+                this.bestiary.showWarningToast("Presets only available for beast backgrounds.");
               }
             },
             {
@@ -350,57 +300,56 @@ export default defineComponent({
     // Ionic specific lifecycle hooks - moved inside methods object
     ionViewWillEnter() {
       debug.log('ionViewWillEnter - XpBestiary');
-      this.reInitBackground();
     },
     
     ionViewDidEnter() {
       debug.log('ionViewDidEnter - XpBestiary');
-      // Ensure background is properly initialized
-      if (!backgroundManager.isActiveFor(PAGE_ID)) {
-        this.reInitBackground();
-      }
     }
   },
   
   mounted() {
     debug.log('mounted - XpBestiary');
     this.loadBeasts();
-    this.initBackground();
-    this.loadSavedBackgroundSettings();
-  },
-  
-  activated() {
-    debug.log('activated - XpBestiary');
-    // Always reinitialize on activation regardless of current state
-    if (this.reInitBackground) {
-      this.reInitBackground();
-    } else {
-      debug.log('forceReinitBackground not available in activated hook');
-      // Fallback initialization
-      if (backgroundManager.isActiveFor(PAGE_ID)) {
-        backgroundManager.cleanupBackground();
-      }
-      this.initBackground();
-    }
   },
   
   unmounted() {
     debug.log('unmounted - XpBestiary');
-    // Only clean up if this component was the last one to initialize the background
-    if (backgroundManager.isActiveFor(PAGE_ID)) {
-      backgroundManager.cleanupBackground();
-    }
   },
   
   setup() {
     const bestiary = new BestiaryDb(beastStorage);
     const beasts = ref([] as Beast[]);
     const router = useRouter();
+    const searchQuery = ref('');
+    const isLoading = ref(true);
+
+    const filteredBeasts = computed(() => {
+      if (!searchQuery.value) return beasts.value;
+      const query = searchQuery.value.toLowerCase();
+      return beasts.value.filter(beast => 
+        beast.name.toLowerCase().includes(query)
+      );
+    });
+
+    // Check registry for existing "Add New" pattern to keep it stable
+    const savedAddNew = backgroundManager.getState('__add_new__');
+    const addNewBg1 = savedAddNew?.bg1 !== undefined ? savedAddNew.bg1 : Math.floor(Math.random() * 325);
+    const addNewBg2 = savedAddNew?.bg2 !== undefined ? savedAddNew.bg2 : Math.floor(Math.random() * 325);
+
+    // Save it back to ensure it stays consistent
+    if (!savedAddNew) {
+      backgroundManager.saveState('__add_new__', { tick: 0, bg1: addNewBg1, bg2: addNewBg2 });
+    }
 
     return {
       beasts,
       bestiary,
       router,
+      searchQuery,
+      filteredBeasts,
+      addNewBg1,
+      addNewBg2,
+      isLoading,
       add: 'add-outline'
     };
   },
@@ -425,62 +374,104 @@ export default defineComponent({
   ion-content {
     position: relative;
 
-
-    .beasts-bg {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
+    .bestiary-container {
+      display: flex;
+      flex-direction: column;
       height: 100%;
-      z-index: -1;
-      pointer-events: none;
+      background: transparent;
     }
 
-    ion-list {
-      background: transparent !important;
+    .search-container {
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(8px);
+      border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
 
-      ion-item {
-        --background: transparent;
-        font-family: "Press Start 2P";
+    .search-box {
+      flex: 1;
+      position: relative;
+      display: flex;
+      align-items: center;
 
-
+      i {
+        position: absolute;
+        left: 12px;
+        color: rgba(255, 255, 255, 0.5);
       }
 
+      .beast-search-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.05);
+        border: 2px solid rgba(255, 255, 255, 0.1);
+        border-radius: 30px;
+        padding: 10px 16px 10px 40px;
+        color: #fff;
+        font-family: "StatusPlz";
+        font-size: 1rem;
+        outline: none;
+        transition: all 0.2s ease;
 
+        &:focus {
+          background: rgba(255, 255, 255, 0.1);
+          border-color: var(--ion-color-primary);
+          box-shadow: 0 0 10px rgba(var(--ion-color-primary-rgb), 0.3);
+        }
+      }
+    }
+
+    .beast-count {
+      font-family: "Press Start 2P";
+      font-size: 0.6rem;
+      color: var(--ion-color-primary);
+      background: rgba(var(--ion-color-primary-rgb), 0.1);
+      padding: 8px 12px;
+      border-radius: 20px;
+      border: 1px solid rgba(var(--ion-color-primary-rgb), 0.2);
+    }
+
+    .beast-grid {
+      flex: 1;
+      padding: 10px;
+    }
+
+    .no-results {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 60px 20px;
+      color: rgba(255, 255, 255, 0.3);
+      text-align: center;
+
+      i {
+        margin-bottom: 16px;
+      }
+
+      p {
+        font-family: "Press Start 2P";
+        font-size: 0.8rem;
+      }
+    }
+
+    .add-new-card {
+      --card-border: 2px dashed rgba(0, 0, 0, 0.4);
+      --card-bg: rgba(0, 0, 0, 0.2);
+      
+      &:hover {
+        --card-border: 2px dashed var(--ion-color-primary);
+      }
     }
   }
 </style>
 
 <style lang="scss">
-/* Global styles for action sheet - not scoped */
-.bestiary-action-sheet {
-  --background: rgba(var(--ion-background-color-rgb), 0.9);
-  --backdrop-opacity: 0.6;
-  --button-background-selected: rgba(var(--ion-color-primary-rgb), 0.1);
-
-  .action-create::part(icon) {
-    color: var(--ion-color-success);
-    opacity: 1;
-  }
-
-  .action-import::part(icon) {
-    color: var(--ion-color-primary);
-    opacity: 1;
-  }
-
-  .action-export::part(icon) {
-    color: var(--ion-color-secondary);
-    opacity: 1;
-  }
-
-  .action-save::part(icon) {
-    color: var(--ion-color-warning);
-    opacity: 1;
-  }
-
-  .action-cancel::part(icon) {
-    color: var(--ion-color-danger);
-    opacity: 1;
-  }
-}
+/* Global styles for action sheet are now handled in earthbound.scss */
 </style>
