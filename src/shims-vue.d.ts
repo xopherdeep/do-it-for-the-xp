@@ -1,20 +1,20 @@
 /* eslint-disable */
-import { DefineComponent } from 'vue'
-import User from '@/lib/utils/User/user'; // Import the User type
-import { FXSystem } from '@/lib/types/fx'; // Import our FXSystem interface
-
-declare module '*.vue' {
-  const component: DefineComponent<{}, {}, any>
-  export default component
-}
+import { DefineComponent } from "vue";
+import { FXSystem } from "@/lib/types/fx"; // Import our FXSystem interface
+import User from "@/lib/utils/User/user"; // Import the User type
 
 // Add global window declaration for $fx
 interface Window {
   $fx: FXSystem;
 }
 
+declare module "*.vue" {
+  const component: DefineComponent<{}, {}, any>;
+  export default component;
+}
+
 // Augmenting both to be safe
-declare module 'vue' {
+declare module "vue" {
   interface ComponentCustomProperties {
     $fx: FXSystem;
     $requireAvatar: any;
@@ -27,7 +27,7 @@ declare module 'vue' {
   }
 }
 
-declare module '@vue/runtime-core' {
+declare module "@vue/runtime-core" {
   // Global properties for Vue component instances
   interface ComponentCustomProperties {
     $fx: FXSystem;
@@ -41,4 +41,4 @@ declare module '@vue/runtime-core' {
   }
 }
 
-export { }  // Important! See note.
+export {}; // Important! dont remove this.
