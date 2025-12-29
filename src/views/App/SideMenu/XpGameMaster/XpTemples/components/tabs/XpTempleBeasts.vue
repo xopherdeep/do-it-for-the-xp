@@ -89,12 +89,13 @@
                         <i class="fad fa-crown fa-3x"></i>
                         <span class="beast-name">Boss Room</span>
                       </div>
-                      <div
-                        class="room-badge"
-                        @click.stop="navigateToRoom(entry)"
-                      >
-                        <i class="fas fa-map-marker-alt"></i>
-                        {{ entry.floor }} {{ entry.roomCoords }}
+                      <div class="room-info-overlay">
+                        <div class="config-token-badge">{{ entry.roomSymbol }}</div>
+                        <XpCoordBadge
+                          :x="entry.col"
+                          :y="entry.row"
+                          @click.stop="navigateToRoom(entry)"
+                        />
                       </div>
                     </div>
                   </ion-col>
@@ -156,12 +157,13 @@
                         <i class="fad fa-helmet-battle fa-3x"></i>
                         <span class="beast-name">Miniboss</span>
                       </div>
-                      <div
-                        class="room-badge"
-                        @click.stop="navigateToRoom(entry)"
-                      >
-                        <i class="fas fa-map-marker-alt"></i>
-                        {{ entry.floor }} {{ entry.roomCoords }}
+                      <div class="room-info-overlay">
+                        <div class="config-token-badge">{{ entry.roomSymbol }}</div>
+                        <XpCoordBadge
+                          :x="entry.col"
+                          :y="entry.row"
+                          @click.stop="navigateToRoom(entry)"
+                        />
                       </div>
                     </div>
                   </ion-col>
@@ -223,12 +225,14 @@
                         <i class="fad fa-skull fa-2x"></i>
                         <span class="beast-name">Monster</span>
                       </div>
-                      <div
-                        class="room-badge small"
-                        @click.stop="navigateToRoom(entry)"
-                      >
-                        <i class="fas fa-map-marker-alt"></i>
-                        {{ entry.roomCoords }}
+                      <div class="room-info-overlay small">
+                        <div class="config-token-badge small">{{ entry.roomSymbol }}</div>
+                        <XpCoordBadge
+                          size="small"
+                          :x="entry.col"
+                          :y="entry.row"
+                          @click.stop="navigateToRoom(entry)"
+                        />
                       </div>
                     </div>
                   </ion-col>
@@ -264,11 +268,12 @@ import {
   onIonViewDidEnter
 } from "@ionic/vue";
 import { skullOutline } from 'ionicons/icons';
-import { TempleBeast } from "../../composables/useTempleData";
+import { TempleBeast } from "../../hooks/useTempleData";
 import XpBeastSelectorItem from "@/views/App/SideMenu/XpGameMaster/XpBestiary/components/XpBeastSelectorItem.vue";
+import XpCoordBadge from "@/components/atoms/Coord/XpCoordBadge.vue";
 import { useBestiarySelectionStore } from "@/lib/store/stores/bestiary-selection";
 import { useTempleCreatorStore } from "@/lib/store/stores/temple-creator";
-import { TempleDataInjectionKey } from "../../composables/useTempleData";
+import { TempleDataInjectionKey } from "../../hooks/useTempleData";
 import { inject, onMounted } from "vue";
 
 export default defineComponent({
@@ -276,7 +281,7 @@ export default defineComponent({
   components: { 
     IonPage, IonContent, IonIcon, IonGrid, IonRow, IonCol,
     IonAccordionGroup, IonAccordion, IonItem, IonLabel,
-    XpBeastSelectorItem
+    XpBeastSelectorItem, XpCoordBadge
   },
   setup() {
     const route = useRoute();
@@ -640,37 +645,30 @@ export default defineComponent({
     }
   }
 
-  .room-badge {
+  .room-info-overlay {
     position: absolute;
     top: 6px;
     right: 6px;
-    background: rgba(var(--ion-color-tertiary-rgb), 0.2);
-    backdrop-filter: blur(12px);
-    padding: 6px 12px;
-    border-radius: 20px;
-    font-size: 0.8rem;
-    font-family: "StatusPlz";
-    color: white;
-    white-space: nowrap;
-    border: 1px solid rgba(var(--ion-color-tertiary-rgb), 0.4);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
     z-index: 10;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-    transition: all 0.2s ease;
+  }
 
-    &:hover {
-      background: rgba(var(--ion-color-tertiary-rgb), 0.4);
-      transform: translateY(-2px);
-      border-color: var(--ion-color-tertiary);
-    }
-
-    i {
-      margin-right: 4px;
-      color: var(--ion-color-tertiary);
-    }
+  .config-token-badge {
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(8px);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-family: "Press Start 2P";
+    font-size: 0.5rem;
+    color: rgba(255, 255, 255, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 
     &.small {
-      padding: 4px 8px;
-      font-size: 0.7rem;
+      padding: 1px 4px;
+      font-size: 0.4rem;
     }
   }
 

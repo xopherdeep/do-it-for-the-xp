@@ -23,7 +23,7 @@
 
 <script lang="ts">
 import { defineComponent, PropType } from 'vue';
-import { ____ } from '@/lib/engine/dungeons/roomTypes';
+import { isWallToken } from '@/lib/engine/dungeons/SpatialPalette';
 
 export default defineComponent({
   name: 'RoomEditorMiniMap',
@@ -46,7 +46,7 @@ export default defineComponent({
     // Helper to check if a cell is a room (not a wall)
     const isRoom = (symbol: string) => {
       if (!symbol) return false;
-      return symbol !== ____ && symbol !== 'wall';
+      return !isWallToken(symbol);
     };
 
     // Handle cell click - navigate to clicked cell

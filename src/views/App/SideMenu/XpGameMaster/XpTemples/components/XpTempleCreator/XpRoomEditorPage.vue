@@ -36,6 +36,13 @@
         </div>
         <ion-buttons slot="end">
           <ion-button
+            @click="showLegendModal = true"
+            class="help-btn"
+            title="Room Legend"
+          >
+            <i class="fas fa-question-circle fa-lg"></i>
+          </ion-button>
+          <ion-button
             @click="testFight"
             class="test-fight-header-btn"
             title="Test Fight"
@@ -45,12 +52,11 @@
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-
-    <ion-content class="ion-padding transparent-content">
-      <div
-        v-if="roomData"
-        class="editor-container"
-      >
+    <ion-content
+      class="ion-padding transparent-content"
+      v-if="roomData"
+    >
+      <div class="editor-container">
         <!-- Cardinal Layout Section -->
         <RoomCardinalLayout
           :room-data="roomData"
@@ -66,13 +72,6 @@
           @room-click="handleDoorClick"
           @door-toggle="toggleLock"
         />
-      </div>
-      <div
-        v-else
-        class="loading-container"
-      >
-        <XpLoading />
-        <p>Loading Room Data...</p>
       </div>
 
       <!-- Room Type Selection Modal -->
@@ -170,6 +169,11 @@
         />
       </div>
 
+      <RoomLegendModal
+        :is-open="showLegendModal"
+        @close="showLegendModal = false"
+      />
+
       <!-- Floating Action Buttons -->
       <ion-fab
         vertical="top"
@@ -200,11 +204,13 @@
         </ion-fab-button>
       </ion-fab>
     </ion-content>
+
+    <XpLoading v-else />
   </ion-page>
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, watch } from 'vue';
+import { defineComponent, onMounted, watch, ref } from 'vue';
 import { 
   IonPage, IonHeader, IonToolbar, IonButtons, IonButton, 
   IonContent, onIonViewWillEnter,
@@ -224,7 +230,8 @@ import {
   RoomLootConfig, 
   RoomTravelConfig,
   RoomShopConfig,
-  RoomEditorMiniMap 
+  RoomEditorMiniMap,
+  RoomLegendModal
 } from './components';
 
 export default defineComponent({
@@ -234,7 +241,8 @@ export default defineComponent({
     IonContent, IonFab, IonFabButton,
     RoomCardinalLayout, RoomTypeModal, RoomMonsterConfig, RoomMonsterConfigSelector, RoomLootConfig, RoomTravelConfig, RoomShopConfig,
     XpLoading,
-    RoomEditorMiniMap
+    RoomEditorMiniMap,
+    RoomLegendModal
   },
   props: {
     templeId: { type: String, required: true },
@@ -248,6 +256,8 @@ export default defineComponent({
       row: props.row,
       col: props.col
     });
+
+    const showLegendModal = ref(false);
 
     // Room Navigation Hook
     const navigation = useTempleRoomNavigation({
@@ -378,7 +388,9 @@ export default defineComponent({
         editor.saveToStore();
         // Use navigation hook's navigateRoom pattern with noAnimation
         navigation.goToCell(row, col);
-      }
+      },
+
+      showLegendModal
     };
   }
 });
@@ -490,6 +502,16 @@ export default defineComponent({
 
       &:hover {
         --color: #ff416c;
+        transform: scale(1.1);
+      }
+    }
+
+    .help-btn {
+      --color: rgba(255, 255, 255, 0.6);
+      transition: all 0.2s;
+
+      &:hover {
+        --color: var(--ion-color-secondary);
         transform: scale(1.1);
       }
     }
@@ -620,6 +642,4 @@ export default defineComponent({
       letter-spacing: 1px;
     }
   }
-
-
 </style>

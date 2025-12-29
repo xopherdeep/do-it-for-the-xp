@@ -1,8 +1,14 @@
 <template>
-  <ion-page :class="$options.name" class="rpg-box bg-slide bg-slide-dark">
+  <ion-page
+    :class="$options.name"
+    class="rpg-box bg-slide bg-slide-dark"
+  >
     <ion-tabs>
       <ion-router-outlet ref="outlet"></ion-router-outlet>
-      <ion-tab-bar slot="bottom" class="icon-colors">
+      <ion-tab-bar
+        slot="bottom"
+        class="icon-colors"
+      >
 
         <ion-tab-button
           tab="attributes"
@@ -12,23 +18,7 @@
           <i class="fad fa-sliders-h fa-2x" />
           Config
         </ion-tab-button>
-        
-        <ion-tab-button
-          tab="layout"
-          :href="`/game-master/compendium/setup/temples/${templeId}/layout`"
-          :selected="route.path.includes('/layout')"
-        >
-          <i class="fad fa-dungeon fa-2x" />
-          Layout
-        </ion-tab-button>
-        <ion-tab-button
-          tab="splash"
-          :href="`/game-master/compendium/setup/temples/${templeId}/splash`"
-          :selected="route.path.includes('/splash')"
-        >
-          <i :class="['fad', templeIcon, 'fa-2x']" />
-          Temple
-        </ion-tab-button>
+
         <ion-tab-button
           tab="beasts"
           :href="`/game-master/compendium/setup/temples/${templeId}/beasts`"
@@ -36,6 +26,22 @@
         >
           <i class="fad fa-dragon fa-2x" />
           Beasts
+        </ion-tab-button>
+        <ion-tab-button
+          tab="splash"
+          :href="`/game-master/compendium/setup/temples/${templeId}/dashboard`"
+          :selected="route.path.includes('/dashboard')"
+        >
+          <i :class="['fad', templeIcon, 'fa-2x']" />
+          Temple
+        </ion-tab-button>
+        <ion-tab-button
+          tab="layout"
+          :href="`/game-master/compendium/setup/temples/${templeId}/layout`"
+          :selected="route.path.includes('/layout')"
+        >
+          <i class="fad fa-dungeon fa-2x" />
+          Layout
         </ion-tab-button>
         <ion-tab-button
           tab="rooms"
@@ -60,7 +66,7 @@ import {
   IonTabBar,
   IonTabButton
 } from "@ionic/vue";
-import { useTempleData, TempleDataInjectionKey } from "../composables/useTempleData";
+import { useTempleData, TempleDataInjectionKey } from "../hooks/useTempleData";
 import { provide } from "vue";
 
 export default defineComponent({
@@ -103,15 +109,15 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-.xp-temple-settings {
-  // :deep(ion-tab-bar) {
-  //   --background: var(--ion-color-dark);
-  //   background: var(--ion-color-dark);
-  // }
+  .xp-temple-settings {
+    // :deep(ion-tab-bar) {
+    //   --background: var(--ion-color-dark);
+    //   background: var(--ion-color-dark);
+    // }
 
-  // ion-tab-bar {
-  //   --background: var(--ion-color-dark);
-  //   background: var(--ion-color-dark);
-  // }
-}
+    // ion-tab-bar {
+    //   --background: var(--ion-color-dark);
+    //   background: var(--ion-color-dark);
+    // }
+  }
 </style>

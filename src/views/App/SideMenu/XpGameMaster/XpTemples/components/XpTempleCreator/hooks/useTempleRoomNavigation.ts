@@ -9,6 +9,7 @@ import { useTempleCreatorStore } from '@/lib/store/stores/temple-creator';
 import { ROOM_ICONS, ____ } from '@/lib/engine/dungeons/roomTypes';
 import { Room } from '@/lib/engine/core/dungeons/types';
 import { getSideState } from '@/lib/engine/dungeons/roomIcons';
+import { isWallToken } from '@/lib/engine/dungeons/SpatialPalette';
 
 // No-op animation for instant navigation
 const noAnimation = () => createAnimation();
@@ -140,6 +141,8 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     const symbol = maze[coords.row]?.[coords.col];
     if (!symbol) return ROOM_ICONS.empty;
     
+    if (isWallToken(symbol)) return 'DYNAMIC_WALL';
+
     const roomType = store.roomsData[symbol]?.type || 'empty';
     if (roomType === 'wall') return 'DYNAMIC_WALL';
     return ROOM_ICONS[roomType as keyof typeof ROOM_ICONS] || ROOM_ICONS.empty;
@@ -156,9 +159,11 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     const maze = getMaze();
     const symbol = maze[coords.row]?.[coords.col];
     if (!symbol) return 'Empty';
+
+    if (isWallToken(symbol)) return 'Wall';
     
     const roomType = store.roomsData[symbol]?.type || 'empty';
-    if (roomType === 'wall') return '';
+    if (roomType === 'wall') return 'Wall';
     return roomType.charAt(0).toUpperCase() + roomType.slice(1);
   };
 
@@ -171,6 +176,8 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     const symbol = maze[coords.row]?.[coords.col];
     if (!symbol) return 'empty';
     
+    if (isWallToken(symbol)) return 'wall';
+
     return store.roomsData[symbol]?.type || 'empty';
   };
 

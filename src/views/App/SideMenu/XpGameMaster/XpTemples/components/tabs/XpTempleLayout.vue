@@ -9,8 +9,76 @@
         v-if="hasLayout && !isLoading"
         class="editor-wrapper"
       >
-        <XpTempleTitle :temple-id="templeId" />
+        <!-- Temple Header with Controls -->
+        <xp-temple-creator-header
+          v-if="!showPreview"
+          v-model:gridSize="gridSize"
+          v-model:currentLevelId="currentLevelId"
+          :temple-id="templeId"
+          :temple-name="templeName"
+          :temple-icon="templeIcon"
+          :entrance-display="entranceDisplay"
+          :show-preview="showPreview"
+          :floors="floors"
+          @resize="resizeGrid"
+          @toggle-preview="showPreview = !showPreview"
+          @save="saveTemple"
+          @floor-change="setLevel"
+          @add-floor="addFloor"
+          @remove-floor="removeFloor"
+        />
+
+        <!-- Preview Mode -->
+        <div
+          v-if="showPreview"
+          class="tab-content w-full max-w-4xl"
+        >
+          <ion-card>
+            <ion-card-header>
+              <div class="flex justify-between items-center">
+                <div>
+                  <ion-card-title>Temple Preview</ion-card-title>
+                  <ion-card-subtitle>See how your temple will look in-game</ion-card-subtitle>
+                </div>
+                <ion-button
+                  fill="clear"
+                  @click="showPreview = false"
+                >
+                  <i class="fas fa-times"></i>
+                  Close
+                </ion-button>
+              </div>
+            </ion-card-header>
+            <ion-card-content>
+              <div class="preview-container">
+                <pre class="code-preview">{{ templeCodePreview }}</pre>
+              </div>
+              <div class="flex gap-2 mt-4">
+                <ion-button
+                  expand="block"
+                  class="flex-1"
+                  @click="copyToClipboard"
+                >
+                  <i class="fas fa-copy mr-2"></i>
+                  Copy Code
+                </ion-button>
+                <ion-button
+                  expand="block"
+                  class="flex-1"
+                  color="medium"
+                  @click="showPreview = false"
+                >
+                  <i class="fas fa-edit mr-2"></i>
+                  Return to Editor
+                </ion-button>
+              </div>
+            </ion-card-content>
+          </ion-card>
+        </div>
+
+        <!-- Grid Editor -->
         <xp-temple-creator-grid
+          v-else
           :maze="currentMazeSlice"
           :rooms-data="roomsData"
           :room-icons="dynamicRoomIcons"
@@ -19,7 +87,7 @@
           :entrance-position="entrancePosition"
           :current-level-id="currentLevelId"
           @cell-click="onCellClick"
-          @cell-contextmenu="showQuickEditPopover"
+          @cell-contextmenu="({ row, col, event }) => showQuickEditPopover(event, row, col)"
         />
       </div>
 
@@ -128,6 +196,32 @@
           </ion-fab-button>
         </ion-fab-list>
       </ion-fab>
+      <!-- JSON Editor FAB -->
+      <ion-fab
+        v-if="hasLayout && !isLoading"
+        vertical="bottom"
+        horizontal="start"
+        slot="fixed"
+        class="mb-4"
+      >
+        <ion-fab-button
+          color="primary"
+          @click="isJsonEditorOpen = true"
+          size="small"
+        >
+          <i class="fad fa-brackets-curly"></i>
+        </ion-fab-button>
+      </ion-fab>
+
+      <!-- JSON Editor Modal -->
+      <XpJsonEditorModal
+        v-if="templeData"
+        :is-open="isJsonEditorOpen"
+        :initial-data="templeData.temple.value"
+        @close="isJsonEditorOpen = false"
+        @apply="handleJsonApply"
+      />
+
     </ion-content>
 
     <!-- Add Floor Modal -->
@@ -203,29 +297,33 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, onMounted, watch } from "vue";
+import { defineComponent, computed, onMounted, watch, ref, inject } from "vue";
 import { useRoute } from "vue-router";
 import { 
   IonPage, IonContent, IonButton, IonIcon, 
   IonFab, IonFabButton, IonFabList, IonModal,
-  onIonViewWillEnter 
+  onIonViewWillEnter, IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent
 } from "@ionic/vue";
 import { gridOutline } from 'ionicons/icons';
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import XpTempleCreatorGrid from "../XpTempleCreator/XpTempleCreatorGrid.vue";
 import XpTempleCreatorPopovers from "../XpTempleCreator/XpTempleCreatorPopovers.vue";
 import { useTempleCreator } from "../XpTempleCreator/hooks";
-import XpTempleTitle from "../XpTempleCreator/XpTempleTitle.vue";
+import XpTempleCreatorHeader from "../XpTempleCreator/XpTempleCreatorHeader.vue";
+import XpJsonEditorModal from "@/components/organisms/XpJsonEditor/XpJsonEditorModal.vue";
+import { TempleDataInjectionKey } from "../../hooks/useTempleData";
 
 export default defineComponent({
   name: "xp-temple-layout",
   components: { 
     IonPage, IonContent, IonButton, IonIcon,
     IonFab, IonFabButton, IonFabList, IonModal,
+    IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,
     XpTempleCreatorGrid,
     XpTempleCreatorPopovers,
     XpLoading,
-    XpTempleTitle
+    XpTempleCreatorHeader,
+    XpJsonEditorModal
   },
   setup() {
     const route = useRoute();
@@ -233,6 +331,10 @@ export default defineComponent({
     
     // Use the temple creator hook for full editing capabilities
     const creator = useTempleCreator({ templeId });
+    
+    // Inject templeData for JSON editor
+    const templeData = inject(TempleDataInjectionKey, null);
+    const isJsonEditorOpen = ref(false);
 
     // Initialize on mount
     onMounted(() => {
@@ -264,8 +366,20 @@ export default defineComponent({
     };
 
     // Handle quick edit popover from context menu
-    const showQuickEditPopover = (payload: { row: number; col: number; event: Event }) => {
-      creator.showQuickEditPopover(payload.event, payload.row, payload.col);
+    const showQuickEditPopover = (event: Event, row: number, col: number) => {
+      creator.showQuickEditPopover(event, row, col);
+    };
+    
+    // JSON Editor logic
+    const handleJsonApply = async (jsonStr: string) => {
+      if (templeData) {
+        const result = await templeData.applyRawJson(jsonStr);
+        if (result.success) {
+          isJsonEditorOpen.value = false;
+          // Trigger a reload of the layout in the creator hook
+          creator.loadTempleLayout();
+        }
+      }
     };
 
     return {
@@ -287,6 +401,14 @@ export default defineComponent({
       currentLevelId: creator.currentLevelId,
       floors: creator.floors,
       
+      // Header & Preview Props
+      gridSize: creator.gridSize,
+      templeName: creator.templeName,
+      showPreview: creator.showPreview,
+      entranceDisplay: creator.entranceDisplay,
+      templeIcon: creator.templeIcon,
+      templeCodePreview: creator.templeCodePreview,
+      
       // Constants
       ROOM_ICONS: creator.ROOM_ICONS,
       SIDE_TYPE_INFO: creator.SIDE_TYPE_INFO,
@@ -295,7 +417,12 @@ export default defineComponent({
       promptAddFloor: creator.promptAddFloor,
       confirmAddFloor: creator.confirmAddFloor,
       promptCustomFloorName: creator.promptCustomFloorName,
+      addFloor: creator.addFloor,
+      removeFloor: creator.removeFloor,
       setLevel: creator.setLevel,
+      
+      // Grid management
+      resizeGrid: creator.resizeGrid,
       
       // Cell/Room actions
       onCellClick: creator.onCellClick,
@@ -305,8 +432,14 @@ export default defineComponent({
       
       // Save/Load
       saveTemple: creator.saveTemple,
+      copyToClipboard: creator.copyToClipboard,
       resetFloor: creator.resetFloor,
       initializeNewLayout,
+      
+      // JSON Editor
+      templeData,
+      isJsonEditorOpen,
+      handleJsonApply,
       
       // Icons
       gridOutline

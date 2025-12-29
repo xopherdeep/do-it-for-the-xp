@@ -1,7 +1,9 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { ref, computed, onMounted, watch, InjectionKey } from "vue";
 // ... imports ...
 
-export const TempleDataInjectionKey: InjectionKey<ReturnType<typeof useTempleData>> = Symbol('TempleData');
+// Exported at end of file to ensure ReturnType inference works
+
 import {
   AchievementCategoryInterface,
   AchievementCategoryDb,
@@ -13,7 +15,8 @@ import { sortCategoryByName } from "@/views/App/SideMenu/XpGameMaster/XpAchievem
 import { TempleSystem } from "@/lib/engine/core/dungeons/TempleSystem";
 import { ROOM_ICONS } from "@/lib/engine/dungeons/roomTypes";
 import debug from "@/lib/utils/debug";
-import { ____ as ROOM_WALL, VOID as ROOM_VOID } from "@/lib/engine/dungeons/roomTypes";
+import { VOID as ROOM_VOID } from "@/lib/engine/dungeons/roomTypes";
+import { isWallToken } from "@/lib/engine/dungeons/SpatialPalette";
 import { toastController } from "@ionic/vue";
 import { saveOutline } from 'ionicons/icons';
 import { useTempleCreatorStore } from "@/lib/store/stores/temple-creator";
@@ -43,7 +46,6 @@ export interface TempleBeast {
   beastId: string;
   tier: 'boss' | 'miniboss' | 'monster';
   roomSymbol: string;
-  roomCoords: string;
   floor: string;
   row: number;
   col: number;
@@ -103,7 +105,7 @@ export function useTempleData(templeId: string) {
   });
 
   const isRoom = (cell: string) => {
-    return cell && cell !== ROOM_WALL && cell !== ROOM_VOID;
+    return cell && !isWallToken(cell) && cell !== ROOM_VOID;
   };
 
   // Sync dungeonLayout with creatorStore when it changes
@@ -182,7 +184,7 @@ export function useTempleData(templeId: string) {
     allFloors.forEach(floor => {
       floor.forEach(row => {
         row.forEach(cellCode => {
-          if (!cellCode || cellCode === ROOM_WALL) return;
+          if (!cellCode || isWallToken(cellCode)) return;
 
           const roomDef = (roomDefs as any)[cellCode];
           if (!roomDef) return;
@@ -356,7 +358,13 @@ export function useTempleData(templeId: string) {
         // Sync to creator store (Layer 2)
         if (templeData.dungeonLayout) {
           creatorStore.templeMaze = JSON.parse(JSON.stringify(templeData.dungeonLayout.maze));
-          creatorStore.roomsData = JSON.parse(JSON.stringify(templeData.dungeonLayout.rooms));
+          
+          if (templeData.dungeonLayout.rooms) {
+             if (templeData.dungeonLayout.rooms['____']) {
+                templeData.dungeonLayout.rooms['____'] = { type: 'wall' };
+             }
+             creatorStore.roomsData = JSON.parse(JSON.stringify(templeData.dungeonLayout.rooms));
+          }
           creatorStore.markAsLoaded(id);
         }
         
@@ -397,6 +405,91 @@ export function useTempleData(templeId: string) {
     
     // Recalculate stats after save
     calculateDungeonStats();
+  };
+
+  const applyRawJson = async (jsonStr: string) => {
+    try {
+      const parsedData = JSON.parse(jsonStr);
+      
+      // Basic validation
+      if (!parsedData.id) throw new Error('Invalid JSON: templeId is required');
+
+      // Normalization: Enforce 4-character tokens for maze layout
+      const normalizeToken = (token: string): string => {
+        // Regex matchers for dynamic tokens
+        // Loot: $000-$999 (Legacy: $, $XP$, $GP$, ITEM, O -> $001)
+        if (/^\$\d{3}$/.test(token)) return token; // Valid $XXX
+        if (['$', '$GP$', '$XP$', 'ITEM', 'O'].includes(token)) return '$001';
+
+        // Monsters: M000-M999 (Legacy: M, S, s -> M001/M002)
+        if (/^M\d{3}$/.test(token)) return token; // Valid MXXX
+        if (token === 'M' || token === 'S') return 'M001';
+        if (token === 's') return 'M002'; // Historically hard/med
+
+        // Keys: K000-K999 (Legacy: k -> K001)
+        if (/^K\d{3}$/.test(token)) return token; // Valid KXXX
+        if (token === 'k') return 'K001';
+
+        // Teleporters: T000-T999 (Legacy: Y -> T001)
+        if (/^T\d{3}$/.test(token)) return token; // Valid TXXX
+        if (token === 'Y') return 'T001';
+
+        // Legacy & Static Mapping
+        const mapping: Record<string, string> = {
+          '_': '____', 'WALL': '____', 'E': 'EXIT', 'B': 'BOSS', 'b': 'MINI',
+          'H': 'HEAL', 'M': 'MANA', 'V': 'SAVE', 
+          'K': 'MKEY', 'MSTK': 'MKEY',
+          'P': 'SHOP', 'T': 'TRAP', 
+          'Z': 'PUZL', 'v': 'PIT_', '.': 'R000', 'U': 'ST_U', 'D': 'ST_D',
+          '?': 'SCRT', 'C': 'CAMP', '0': 'R000',
+          'COMP': 'COMP', '$MAP': '$MAP'
+        };
+        
+        return mapping[token] || (
+          // Last resort: If 4 chars, keep it. If 1 char, map to Wall (____)
+          // Also handle existing valid tokens like R000, EXIT, etc.
+          token.length === 4 ? token : '____'
+        );
+      };
+
+      if (parsedData.dungeonLayout?.maze) {
+        const maze = parsedData.dungeonLayout.maze;
+        if (Array.isArray(maze)) {
+          // Single floor maze
+          parsedData.dungeonLayout.maze = maze.map((row: string[]) => row.map(normalizeToken));
+        } else {
+          // Multi-floor maze
+          Object.keys(maze).forEach(floorId => {
+            maze[floorId] = maze[floorId].map((row: string[]) => row.map(normalizeToken));
+          });
+        }
+      }
+
+      // Update local state
+      temple.value = { ...temple.value, ...parsedData };
+
+      // Sync to creator store
+      if (parsedData.dungeonLayout) {
+        if (parsedData.dungeonLayout.maze) {
+          creatorStore.templeMaze = JSON.parse(JSON.stringify(parsedData.dungeonLayout.maze));
+        }
+        if (parsedData.dungeonLayout.rooms) {
+          // Sanitize wall token definition if present
+          if (parsedData.dungeonLayout.rooms['____']) {
+            parsedData.dungeonLayout.rooms['____'] = { type: 'wall' };
+          }
+          creatorStore.roomsData = JSON.parse(JSON.stringify(parsedData.dungeonLayout.rooms));
+        }
+      }
+
+      // Save to database
+      await saveTemple();
+      
+      return { success: true };
+    } catch (err: any) {
+      debug.error('applyRawJson failed', err);
+      return { success: false, error: err.message };
+    }
   };
 
   const calculatePowerRating = () => {
@@ -464,7 +557,7 @@ export function useTempleData(templeId: string) {
     const processFloor = (grid: string[][], floorId: string) => {
       grid.forEach((row, rowIndex) => {
         row.forEach((cellSymbol, colIndex) => {
-          if (!cellSymbol || cellSymbol === ROOM_WALL || cellSymbol === ROOM_VOID) return;
+          if (!cellSymbol || isWallToken(cellSymbol) || cellSymbol === ROOM_VOID) return;
           
           const roomData = (roomDefs as any)[cellSymbol];
           if (!roomData) return;
@@ -488,7 +581,6 @@ export function useTempleData(templeId: string) {
               beastId,
               tier,
               roomSymbol: cellSymbol,
-              roomCoords: `${colIndex + 1}x ${rowIndex + 1}y`,
               floor: floorId,
               row: rowIndex,
               col: colIndex
@@ -502,7 +594,6 @@ export function useTempleData(templeId: string) {
               beastId: '',
               tier,
               roomSymbol: cellSymbol,
-              roomCoords: `${colIndex + 1}x ${rowIndex + 1}y`,
               floor: floorId,
               row: rowIndex,
               col: colIndex
@@ -586,7 +677,7 @@ export function useTempleData(templeId: string) {
 
       const processGrid = (grid: string[][]) => {
         return grid.map((row) => row.map((cellSymbol) => {
-          if (!cellSymbol || cellSymbol === ROOM_WALL || cellSymbol === ROOM_VOID) {
+          if (!cellSymbol || isWallToken(cellSymbol) || cellSymbol === ROOM_VOID) {
             return { isRoom: false };
           }
           
@@ -645,6 +736,9 @@ export function useTempleData(templeId: string) {
     getItemIcon: getItemIcon,
     dungeonAudit: dungeonAudit,
     itemMapData: itemMapData,
-    isLoading: isLoading
+    isLoading: isLoading,
+    applyRawJson: applyRawJson
   };
 }
+
+export const TempleDataInjectionKey: InjectionKey<ReturnType<typeof useTempleData>> = Symbol('TempleData');

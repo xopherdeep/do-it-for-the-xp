@@ -12,7 +12,7 @@ import { TempleDb, templeStorage } from '@/lib/databases/TempleDb';
 import { useTempleCreatorStore } from '@/lib/store/stores/temple-creator';
 import { useBestiarySelectionStore } from '@/lib/store/stores/bestiary-selection';
 import { getTempleIcon } from '@/lib/engine/dungeons/templeIcons';
-import { getTempleIconClass } from '../../../composables/useTempleIcon';
+import { getTempleIconClass } from '../../../hooks/useTempleIcon';
 import debug from '@/lib/utils/debug';
 
 import { getDungeonItems } from '@/lib/engine/core/items/itemRegistry';

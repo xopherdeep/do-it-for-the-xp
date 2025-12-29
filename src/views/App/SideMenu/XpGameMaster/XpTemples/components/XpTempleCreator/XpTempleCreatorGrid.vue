@@ -65,6 +65,7 @@
 <script lang="ts">
 import { defineComponent, PropType } from 'vue';
 import { getSideState } from '@/lib/engine/dungeons/roomIcons';
+import { isWallToken } from '@/lib/engine/dungeons/SpatialPalette';
 
 type Direction = 'north' | 'east' | 'south' | 'west';
 
@@ -107,6 +108,7 @@ export default defineComponent({
     const directions: Direction[] = ['east', 'south'];
 
     const getCellType = (cellSymbol: string): string => {
+      if (isWallToken(cellSymbol)) return "wall";
       const roomData = props.roomsData[cellSymbol];
       return roomData?.type || "wall";
     };

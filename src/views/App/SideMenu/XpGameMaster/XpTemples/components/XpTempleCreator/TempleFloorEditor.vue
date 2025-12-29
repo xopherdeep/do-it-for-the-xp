@@ -68,7 +68,6 @@
         </div>
       </div>
 
-      <!-- Action FABs -->
       <ion-fab
         vertical="top"
         horizontal="end"
@@ -81,6 +80,21 @@
           size="small"
         >
           <i class="fal fa-trash-alt"></i>
+        </ion-fab-button>
+      </ion-fab>
+
+      <ion-fab
+        vertical="bottom"
+        horizontal="start"
+        slot="fixed"
+        class="mb-4"
+      >
+        <ion-fab-button
+          color="primary"
+          @click="isJsonEditorOpen = true"
+          size="small"
+        >
+          <i class="fad fa-brackets-curly"></i>
         </ion-fab-button>
       </ion-fab>
 
@@ -203,7 +217,6 @@
       </div>
     </ion-modal>
 
-    <!-- Quick Edit Popover (Reimagined Context Menu) -->
     <xp-temple-creator-popovers
       v-model="quickEditState"
       :room-icons="ROOM_ICONS"
@@ -211,6 +224,15 @@
       @apply-type="applyQuickType"
       @apply-content="({ roomType, content, sides }) => applyRoomChanges(roomType, content, sides)"
       @clear="clearCellFromQuickEdit"
+    />
+
+    <!-- Raw JSON Editor Modal -->
+    <XpJsonEditorModal
+      v-if="templeData"
+      :is-open="isJsonEditorOpen"
+      :initial-data="templeData.temple.value"
+      @close="isJsonEditorOpen = false"
+      @apply="handleJsonApply"
     />
   </ion-page>
 </template>
@@ -222,7 +244,10 @@ import ionic from "@/mixins/ionic";
 import XpTempleCreatorHeader from "./XpTempleCreatorHeader.vue";
 import XpTempleCreatorGrid from "./XpTempleCreatorGrid.vue";
 import XpTempleCreatorPopovers from "./XpTempleCreatorPopovers.vue";
+import XpJsonEditorModal from "@/components/organisms/XpJsonEditor/XpJsonEditorModal.vue";
 import { useTempleCreator } from "./hooks";
+import { inject, ref } from "vue";
+import { TempleDataInjectionKey } from "../../hooks/useTempleData";
 
 export default defineComponent({
   props: ["templeId"],
@@ -231,14 +256,30 @@ export default defineComponent({
   components: {
     XpTempleCreatorHeader,
     XpTempleCreatorGrid,
-    XpTempleCreatorPopovers
+    XpTempleCreatorPopovers,
+    XpJsonEditorModal
   },
 
   setup(props) {
     // Use the temple creator hook
+    const templeData = inject(TempleDataInjectionKey, null);
+    const isJsonEditorOpen = ref(false);
+
+    // Use the temple creator hook
     const creator = useTempleCreator({
       templeId: props.templeId
     });
+
+    const handleJsonApply = async (jsonStr: string) => {
+      if (templeData) {
+        const result = await templeData.applyRawJson(jsonStr);
+        if (result.success) {
+          isJsonEditorOpen.value = false;
+          // Trigger a reload of the layout in the creator hook
+          creator.loadTempleLayout();
+        }
+      }
+    };
 
     // Initialize on mount
     onMounted(() => {
@@ -314,7 +355,12 @@ export default defineComponent({
       saveTemple: creator.saveTemple,
       copyToClipboard: creator.copyToClipboard,
       resetFloor: creator.resetFloor,
-      dungeonItems: creator.dungeonItems
+      dungeonItems: creator.dungeonItems,
+      
+      // JSON Editor
+      templeData,
+      isJsonEditorOpen,
+      handleJsonApply
     };
   }
 });

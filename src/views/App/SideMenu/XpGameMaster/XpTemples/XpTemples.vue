@@ -1,5 +1,8 @@
 <template>
-  <ion-page :class="$options.name" style="background: transparent">
+  <ion-page
+    :class="$options.name"
+    style="background: transparent"
+  >
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
@@ -23,9 +26,15 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="ion-padding" style="--background: transparent">
+    <ion-content
+      class="ion-padding"
+      style="--background: transparent"
+    >
       <!-- Loading State -->
-      <div v-if="isLoading" class="loading-wrapper">
+      <div
+        v-if="isLoading"
+        class="loading-wrapper"
+      >
         <XpLoading />
       </div>
 
@@ -35,7 +44,7 @@
             size="6"
             size-lg="4"
             size-xl="3"
-            v-for="temple in temples"
+            v-for="temple in processedTemples"
             :key="temple.id"
           >
             <ion-card
@@ -45,14 +54,12 @@
               @mouseenter="hoveredTempleId = temple.id"
               @mouseleave="hoveredTempleId = null"
             >
-              <ion-img
-                :src="getBgImage(temple.world)"
-                class="temple-bg-image"
-                alt="Temple background"
-              ></ion-img>
-
-              <div class="card-overlay">
-                <div class="world-label">{{ temple.world }}</div>
+              <div class="img-wrapper">
+                <ion-img
+                  :src="temple.bgImage"
+                  class="temple-bg-image"
+                  alt="Temple background"
+                ></ion-img>
               </div>
             </ion-card>
           </ion-col>
@@ -68,7 +75,7 @@
           @click="presentActionSheet"
           color="rpg"
         >
-          <i class="fad fa-hand-holding-water fa-2x"/>
+          <ion-icon :icon="createOutline"></ion-icon>
         </ion-fab-button>
       </ion-fab>
 
@@ -77,7 +84,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, onMounted } from "vue";
+  import { defineComponent, ref, onMounted, computed } from "vue";
   import Ionic from "@/mixins/ionic";
   import { useRouter } from "vue-router";
   import { TempleDb, TempleInterface, templeStorage } from "@/lib/databases/TempleDb";
@@ -85,10 +92,8 @@
   import { actionSheetController } from "@ionic/vue";
   
   import { 
-    waterOutline, musicalNotesOutline, colorPaletteOutline, 
-    peopleOutline, starOutline, add, createOutline, cloudDownloadOutline
+    createOutline, cloudDownloadOutline
   } from 'ionicons/icons';
-  import { getTempleIcon } from "@/lib/engine/dungeons/templeIcons";
   import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 
   const requireBg = require.context("@/assets/images/backgrounds/");
@@ -107,7 +112,7 @@
       const templeData = ref({} as Record<string, TempleInterface>);
       
       // Map with explicit connection between display names and temple IDs
-      const temples = ref([
+      const temples = [
         {
           id: "wind-temple",
           world: "plains",
@@ -155,18 +160,24 @@
           world: "moon",
           level: 9,
         },
-      ]);
+      ];
 
       // Load temple data from storage
       const loadTempleData = async () => {
         isLoading.value = true;
         try {
-          for (const temple of temples.value) {
-            const data = await templeDb.getTempleById(temple.id);
+          const promises = temples.map(async (temple) => {
+             const data = await templeDb.getTempleById(temple.id);
+             return { id: temple.id, data };
+          });
+          
+          const results = await Promise.all(promises);
+          
+          results.forEach(({ id, data }) => {
             if (data) {
-              templeData.value[temple.id] = data;
+              templeData.value[id] = data;
             }
-          }
+          });
         } finally {
           isLoading.value = false;
         }
@@ -177,128 +188,44 @@
         loadTempleData();
       });
 
-      // For ionic image components
-      const getBgImage = (world: string) => {
+      // Internal helper for background images
+      const _getBgImage = (world: string) => {
         try {
           return requireBg(`./world-${world}.jpg`);
         } catch (error) {
-          // Try to use world-map as fallback instead of world-default
           debug.warn(`Could not load world-${world}.jpg:`, error);
           try {
             return requireBg('./world-map.jpg');
           } catch (error) {
-            // If world-map doesn't exist, try other fallbacks in order
             debug.warn('Could not load world-map.jpg fallback:', error);
             try {
               return requireBg('./hometown.jpg');
-            } catch (error) {
+            } catch {
               // If all fallbacks fail, return a blank transparent image
-              debug.error('All background image fallbacks failed:', error);
               return 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
             }
           }
         }
       };
 
-      // For custom styles - kept for backward compatibility
-      const getBgUrl = (world: string) => {
-        try {
-          const img = requireBg(`./world-${world}.jpg`);
-          return `url(${img})`;
-        } catch (error) {
-          // Try to use world-map as fallback
-          debug.warn(`Could not load world-${world}.jpg for URL:`, error);
-          try {
-            const img = requireBg('./world-map.jpg');
-            return `url(${img})`;
-          } catch (error) {
-            // If world-map doesn't exist, try hometown
-            debug.warn('Could not load world-map.jpg URL fallback:', error);
-            try {
-              const img = requireBg('./hometown.jpg');
-              return `url(${img})`;
-            } catch (error) {
-              // If all fallbacks fail, return a gradient background
-              debug.error('All background image URL fallbacks failed:', error);
-              return 'linear-gradient(135deg, #2c3e50, #4a69bd)';
-            }
-          }
-        }
-      };
-
-      // Temple icon name for Ionicons
-      const getTempleIconName = (templeId: string) => {
-        const icons = {
-          "wind-temple": "fad fa-wind",
-          "earth-temple": "leaf-outline",
-          "water-temple": "water-outline",
-          "fire-temple": "flame-outline",
-          "ice-temple": "snow-outline",
-          "light-temple": "sunny-outline",
-          "shadow-temple": "moon-outline",
-        };
-        return icons[templeId] || "home-outline";
-      };
-
-      // Temple color for ion-chip
-      const getTempleColor = (templeId: string) => {
-        const colors = {
-          "wind-temple": "medium",
-          "earth-temple": "success",
-          "water-temple": "primary",
-          "fire-temple": "danger",
-          "ice-temple": "light",
-          "light-temple": "warning",
-          "shadow-temple": "dark",
-        };
-        return colors[templeId] || "medium";
-      };
-
-      const getTempleIconLocal = (templeId: string) => {
-        return getTempleIcon(templeId);
-      };
-
-      const getTempleName = (templeId: string) => {
-        // First check if there's a custom name in the temple data
-        if (templeData.value[templeId]?.customName) {
-          return templeData.value[templeId].customName;
-        }
-
-        // Fall back to default names - ensure these match what's shown in the UI
-        const names = {
-          "wind-temple": "Temple of Zephyr",
-          "earth-temple": "Gaia Sanctuary",
-          "water-temple": "Aqua Haven",
-          "fire-temple": "Inferno Citadel",
-          "ice-temple": "Frost Keep",
-          "light-temple": "Solar Sanctum",
-          "shadow-temple": "Lunar Shrine",
-        };
-        return names[templeId] || templeId;
-      };
-
-      const getTempleDescription = (templeId: string) => {
-        // First check if there's a custom description in the temple data
-        if (templeData.value[templeId]?.customDescription) {
-          return templeData.value[templeId].customDescription;
-        }
-
-        // Fall back to default descriptions
-        const descriptions = {
-          "wind-temple": "Masters of aerial magic and swift techniques",
-          "earth-temple": "Guardians of nature and earthen powers",
-          "water-temple": "Wielders of healing and fluid combat",
-          "fire-temple": "Home to powerful offensive spells",
-          "ice-temple": "Specialists in ice magic and defense",
-          "light-temple": "Light magic and restoration abilities",
-          "shadow-temple": "Dark magic and mysterious arts",
-        };
-        return descriptions[templeId] || "";
-      };
+      // Computed property to prepare all view data at once
+      // This allows the template to be very dumb and fast
+      const processedTemples = computed(() => {
+        return temples.map(temple => {
+          const data = templeData.value[temple.id];
+          return {
+            ...data,
+            ...temple,
+            bgImage: _getBgImage(temple.world),
+            // We can add other computed properties here if we need to restore UI later
+            // Currently purely focused on the cards functionality
+          };
+        });
+      });
 
       const clickTemple = (templeId: string) => {
         $router.push({
-          name: "xp-temple-splash",
+          name: "xp-temple-dashboard",
           params: {
             templeId,
           },
@@ -308,7 +235,7 @@
       const goToTempleCreator = (templeId: string) => {
         // Navigate to the creator page, passing 'new' or an existing templeId
         $router.push({
-          name: 'xp-temple-creator', // Ensure your route name matches
+          name: 'xp-temple-creator',
           params: {
             templeId
           }
@@ -335,7 +262,6 @@
               cssClass: 'action-import',
               handler: () => {
                 // Import temple functionality would go here
-                // This is a placeholder for future implementation
               }
             },
             {
@@ -352,24 +278,11 @@
       };
 
       return {
-        getBgUrl,
-        getBgImage,
+        processedTemples,
         clickTemple,
-        getTempleIcon: getTempleIconLocal,
-        getTempleIconName,
-        getTempleColor,
-        getTempleName,
-        getTempleDescription,
-        temples,
         goToTempleCreator,
         presentActionSheet,
-        // Ionicons
-        waterOutline,
-        musicalNotesOutline,
-        colorPaletteOutline,
-        peopleOutline,
-        starOutline,
-        add,
+        createOutline,
         clickSoundSettings() {
           $router.push({ name: "xp-settings-sound" });
         },
@@ -386,8 +299,6 @@
 <style lang="scss" scoped>
   .xp-temples {
 
-
-
     // Global page styles
     ion-toolbar {
       ion-title {
@@ -395,179 +306,55 @@
         font-size: 1.5rem;
       }
     }
-    
-    ion-content {
-      // --background: var(--ion-background-color);
-    }
-    
+
     // Card styles
     .temple-card {
-      margin: 4px;
-      border-radius: 16px;
+      margin: 8px;
+      border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      // Loading placeholder - dark background so it has 'weight' before image loads
+      background: #1a1a2e;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
       position: relative;
-      border: 1px solid rgba(255, 255, 255, 0.05);
+      border: 2px solid rgba(255, 255, 255, 0.05);
 
       &.portrait-card {
-        aspect-ratio: 1 / 1.4;
+        aspect-ratio: 1 / 1.3;
         display: flex;
         flex-direction: column;
-        justify-content: flex-end;
       }
-      
+
       &:hover {
-        transform: translateY(-8px) scale(1.02);
-        box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
-        
-        .temple-bg-image {
-          transform: scale(1.1);
-          opacity: 0.9;
-        }
+        transform: translateY(-5px);
+        box-shadow: 0 12px 20px rgba(0, 0, 0, 0.5);
+        border-color: rgba(255, 255, 255, 0.3);
 
-        .card-overlay {
-          background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.4) 100%);
+        .temple-bg-image {
+          transform: scale(1.05);
+          opacity: 1;
         }
       }
 
-      .card-overlay {
-        position: relative;
-        z-index: 2;
-        background: linear-gradient(to right, rgba(0, 0, 0, 0.4) 0%, rgba(0, 0, 0, 0.2) 60%, rgba(0, 0, 0, 0) 100%);
+      .img-wrapper {
         width: 100%;
         height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: background 0.3s ease;
-      }
-
-      .card-weather-fx {
-        z-index: 1.5;
-        opacity: 0.8;
-      }
-
-      .info-block {
-        width: 100%;
-        padding: 20px;
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        text-align: left;
-      }
-
-      .world-label {
-        position: absolute;
-        top: 60%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-family: var(--xp-font-fantasy, 'Fantasy');
-        font-size: 2.2rem;
-        opacity: 0.15;
-        color: white;
-        text-transform: uppercase;
-        letter-spacing: 4px;
-        pointer-events: none;
-        white-space: nowrap;
-        z-index: 1;
-        width: 100%;
-        text-align: center;
-      }
-      
-      ion-card-header {
-        padding: 8px 12px;
-        background: transparent !important;
+        overflow: hidden;
         position: relative;
-        z-index: 3;
-        
-        .level-badge {
-          margin-bottom: 6px;
-          display: flex;
-          justify-content: flex-start;
-          
-          ion-chip {
-            height: 22px;
-            margin: 0;
-            padding: 0 10px;
-            --background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(4px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-
-            i { 
-              font-size: 0.8rem;
-              margin-right: 6px;
-              color: var(--ion-color-primary);
-            }
-            ion-label {
-              font-size: 0.65rem;
-              font-weight: 800;
-              letter-spacing: 0.5px;
-              color: white;
-            }
-          }
-        }
-
-        ion-card-title.title-block {
-          font-family: var(--xp-font-fantasy, 'Fantasy'), serif;
-          color: white;
-          font-size: 1.1rem;
-          line-height: 1.2;
-          background: rgba(30, 0, 45, 0.8); // Slightly more transparent RPG purple
-          padding: 6px 12px;
-          margin: 4px 0;
-          display: inline-block; // Don't force full width
-          box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
-        }
       }
-      
-      ion-card-content {
-        padding: 0px 4px 0px 0px; // Minimal padding since overlay has its own
-        color: rgba(255, 255, 255, 0.8);
-        position: relative;
-        z-index: 3;
-        text-align: left;
-        
-        p {
-          margin: 0;
-          font-size: 0.75rem;
-          line-height: 1.4;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
-        }
-      }
-      
+
       .temple-bg-image {
-        position: absolute;
-        top: 0;
-        left: 0;
         width: 100%;
         height: 100%;
         object-fit: cover;
-        object-position: center center;
-        opacity: 1;
-        z-index: 1;
-        transition: transform 0.6s ease;
+        opacity: 0.9;
+        transition: transform 0.5s ease, opacity 0.3s ease;
       }
     }
-    
+
     // Floating button
     ion-fab-button {
       --box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-    }
-    
-    // Responsive adjustments
-    @media (max-width: 768px) {
-      ion-card-title {
-        font-size: 1.2rem;
-      }
-      
-      ion-card-content p {
-        font-size: 0.8rem;
-      }
     }
   }
 </style>

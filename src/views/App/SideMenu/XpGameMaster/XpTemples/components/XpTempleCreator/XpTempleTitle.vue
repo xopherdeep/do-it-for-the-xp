@@ -1,17 +1,20 @@
 <template>
   <div class="temple-title">
-    <i :class="['fad', iconClass, 'temple-icon']"></i>
-    <h1 class="temple-name">{{ displayName }}</h1>
+    <div class="title-main">
+      <i :class="['fad', iconClass, 'temple-icon']"></i>
+      <h1 class="temple-name">{{ displayName }}</h1>
+    </div>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, computed, inject } from 'vue';
 import { TEMPLE_METADATA } from '@/lib/engine/temples/templeRegistry';
-import { TempleDataInjectionKey } from '../../composables/useTempleData';
+import { TempleDataInjectionKey } from '../../hooks/useTempleData';
 
 export default defineComponent({
   name: 'XpTempleTitle',
+  components: { },
   props: {
     templeId: { type: String, required: true }
   },
@@ -54,8 +57,37 @@ export default defineComponent({
 
 <style lang="scss" scoped>
   .temple-title {
+    position: relative;
     text-align: center;
     padding: 1rem 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+
+    .title-main {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .title-actions {
+      display: flex;
+      gap: 12px;
+
+      ion-button {
+        --padding-start: 12px;
+        --padding-end: 12px;
+        color: rgba(255, 255, 255, 0.3);
+        font-size: 1.1rem;
+        transition: all 0.2s;
+
+        &:hover {
+          color: var(--ion-color-primary);
+          transform: scale(1.1);
+        }
+      }
+    }
 
     .temple-icon {
       font-size: 3rem;

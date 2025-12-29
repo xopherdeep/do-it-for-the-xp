@@ -1,5 +1,5 @@
 <template>
-  <ion-page class="xp-temple-splash">
+  <ion-page class="xp-temple-dashboard">
     <ion-content
       class="transparent-content"
       :fullscreen="true"
@@ -110,11 +110,11 @@ import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 
 import XpTempleTitle from "../XpTempleCreator/XpTempleTitle.vue";
 import { TEMPLE_METADATA } from "@/lib/engine/temples/templeRegistry";
-import { TempleDataInjectionKey } from "../../composables/useTempleData";
+import { TempleDataInjectionKey } from "../../hooks/useTempleData";
 import { inject } from "vue";
 
 export default defineComponent({
-  name: "XpTempleSplash",
+  name: "XpTempleDashboard",
   components: {
     IonPage,
     IonContent,

@@ -22,7 +22,7 @@ const shopsStorage = new Storage({
 });
 import debug from '@/lib/utils/debug';
 import { ____, _00_, ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
-import { getTempleIconClass } from '../../../composables/useTempleIcon';
+import { getTempleIconClass } from '../../../hooks/useTempleIcon';
 import { getNarrativeItems, getPegasusItems } from '@/lib/engine/core/items/itemRegistry';
 
 // Room types organized by category
@@ -457,8 +457,14 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     const symbol = maze[r]?.[c];
     
     if (symbol) {
-      const currentRoom = store.roomsData[symbol];
-      if (!currentRoom) return;
+      let currentRoom = store.roomsData[symbol];
+      
+      // Fallback: If room exists in maze but not in data, create it
+      if (!currentRoom) {
+        debug.warn(`Room data missing for symbol ${symbol}, creating default empty room.`);
+        currentRoom = { type: 'empty', content: {} };
+        store.roomsData[symbol] = currentRoom;
+      }
 
       if (!currentRoom.content) currentRoom.content = {} as RoomContent;
       

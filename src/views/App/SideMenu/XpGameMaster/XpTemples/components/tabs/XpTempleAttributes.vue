@@ -179,7 +179,7 @@ import {
   checkmarkCircle, closeCircle, warningOutline, informationCircleOutline
 } from 'ionicons/icons';
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
-import { TempleDataInjectionKey } from "../../composables/useTempleData";
+import { TempleDataInjectionKey } from "../../hooks/useTempleData";
 import { inject } from "vue";
 
 export default defineComponent({

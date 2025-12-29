@@ -92,7 +92,12 @@
                 <div class="room-info">
                   <div class="room-title">
                     <span class="room-type">{{ formatRoomType(room.type) }}</span>
-                    <span class="room-coords">{{ room.coords }}</span>
+                    <XpCoordBadge
+                      plain
+                      :x="room.col"
+                      :y="room.row"
+                      class="room-coords"
+                    />
                   </div>
                   <div class="room-details">
                     <span
@@ -147,9 +152,11 @@ import { useRoute } from "vue-router";
 import { IonPage, IonContent, IonIcon, IonAccordionGroup, IonAccordion, IonItem, IonLabel, useIonRouter } from "@ionic/vue";
 import { homeOutline } from 'ionicons/icons';
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
-import { TempleDataInjectionKey } from "../../composables/useTempleData";
+import XpCoordBadge from "@/components/atoms/Coord/XpCoordBadge.vue";
+import { TempleDataInjectionKey } from "../../hooks/useTempleData";
 import { inject } from "vue";
-import { ____ as ROOM_WALL, VOID as ROOM_VOID } from "@/lib/engine/dungeons/roomTypes";
+import { VOID as ROOM_VOID } from "@/lib/engine/dungeons/roomTypes";
+import { isWallToken } from "@/lib/engine/dungeons/SpatialPalette";
 
 interface RoomListItem {
   symbol: string;
@@ -166,7 +173,7 @@ interface RoomListItem {
 
 export default defineComponent({
   name: "xp-temple-rooms",
-  components: { IonPage, IonContent, IonIcon, IonAccordionGroup, IonAccordion, IonItem, IonLabel, XpLoading },
+  components: { IonPage, IonContent, IonIcon, IonAccordionGroup, IonAccordion, IonItem, IonLabel, XpLoading, XpCoordBadge },
   setup() {
     const route = useRoute();
     const ionRouter = useIonRouter();
@@ -201,7 +208,7 @@ export default defineComponent({
       const processFloor = (grid: string[][], floorId: string) => {
         grid.forEach((row, rowIndex) => {
           row.forEach((cellSymbol, colIndex) => {
-            if (!cellSymbol || cellSymbol === ROOM_WALL || cellSymbol === ROOM_VOID) return;
+            if (!cellSymbol || isWallToken(cellSymbol) || cellSymbol === ROOM_VOID) return;
             
             const roomData = roomDefs[cellSymbol];
             if (!roomData || roomData.type === 'wall' || roomData.type === 'empty') return;
