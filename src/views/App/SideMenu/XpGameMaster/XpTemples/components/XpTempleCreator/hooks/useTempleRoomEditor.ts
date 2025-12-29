@@ -126,6 +126,7 @@ export interface UseTempleRoomEditorReturn {
   isLootRoom: ComputedRef<boolean>;
   isTravelRoom: ComputedRef<boolean>;
   isShopRoom: ComputedRef<boolean>;
+  isEggRoom: ComputedRef<boolean>;
   floors: ComputedRef<string[]>;
   modalTitle: ComputedRef<string>;
   dynamicRoomIcons: ComputedRef<Record<string, string>>;
@@ -172,6 +173,7 @@ export interface UseTempleRoomEditorReturn {
   removeBeast: (id: string) => void;
   resetRoom: () => Promise<void>;
   selectShop: (shopId: string) => void;
+  selectEggPegasus: (pegasusId: string) => void;
 }
 
 export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleRoomEditorReturn {
@@ -264,6 +266,12 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     if (!roomData.value) return;
     if (!roomData.value.content) roomData.value.content = {} as RoomContent;
     roomData.value.content.shopId = shopId;
+  };
+
+  const selectEggPegasus = (pegasusId: string) => {
+    if (!roomData.value) return;
+    if (!roomData.value.content) roomData.value.content = {} as RoomContent;
+    roomData.value.content.dungeon = pegasusId;
   };
 
   // Helper for floor value sorting
@@ -547,6 +555,8 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
   });
 
   const isShopRoom = computed(() => roomData.value?.type === 'shop');
+
+  const isEggRoom = computed(() => roomData.value?.type === 'dragon-egg');
 
   const modalTitle = computed(() => {
     if (modalStep.value === 1) return 'Select Category';
@@ -845,6 +855,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     isLootRoom,
     isTravelRoom,
     isShopRoom,
+    isEggRoom,
     floors,
     modalTitle,
     
@@ -886,6 +897,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     
     // Shop Methods
     allShops,
-    selectShop
+    selectShop,
+    selectEggPegasus
   };
 }

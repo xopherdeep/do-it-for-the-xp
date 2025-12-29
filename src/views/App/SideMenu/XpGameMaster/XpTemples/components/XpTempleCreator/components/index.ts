@@ -8,7 +8,7 @@ export { default as RoomCardinalLayout } from './RoomCardinalLayout.vue';
 export { default as RoomTypeModal } from './RoomTypeModal.vue';
 export { default as RoomMonsterConfig } from './RoomMonsterConfig.vue';
 export { default as RoomLootConfig } from './RoomLootConfig.vue';
+export { default as RoomEggConfig } from './RoomEggConfig.vue';
 export { default as RoomTravelConfig } from './RoomTravelConfig.vue';
 export { default as RoomShopConfig } from './RoomShopConfig.vue';
 export { default as RoomEditorMiniMap } from './RoomEditorMiniMap.vue';
-

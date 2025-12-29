@@ -119,6 +119,13 @@
             @open-mimic-selector="openMimicBeastSelector"
           />
 
+          <!-- Dragon Egg Configuration -->
+          <RoomEggConfig
+            v-if="isEggRoom"
+            :selected-pegasus-id="roomData?.content?.dungeon || ''"
+            @select-pegasus="selectEggPegasus"
+          />
+
           <!-- Travel Configuration -->
           <RoomTravelConfig
             v-if="isTravelRoom"
@@ -292,6 +299,7 @@ export default defineComponent({
       isLootRoom: editor.isLootRoom,
       isTravelRoom: editor.isTravelRoom,
       isShopRoom: editor.isShopRoom,
+      isEggRoom: editor.isEggRoom, // NEW
       floors: editor.floors,
       selectedBeastsData: editor.selectedBeastsData,
       mimicBeastData: editor.mimicBeastData,
@@ -299,6 +307,7 @@ export default defineComponent({
       selectShop: editor.selectShop,
       
       // Editor Methods
+      selectEggPegasus: editor.selectEggPegasus, // NEW
       openTypeModal: editor.openTypeModal,
       closeTypeModal: editor.closeTypeModal,
       goToTypes: editor.goToTypes,
