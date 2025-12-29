@@ -1,111 +1,119 @@
 <template>
-  <div class="xp-economy-items transparent-content">
-    <div
-      v-if="isLoading"
-      class="loading-wrapper-centered"
+  <ion-page class="xp-economy-items">
+    <ion-content
+      class="transparent-content"
+      :fullscreen="true"
     >
-      <XpLoading />
-    </div>
-    <div v-else>
-      <!-- Filter/Sort Toolbar (Inline) -->
-      <ion-toolbar
-        class="transparent-toolbar"
-        style="--background: transparent; --min-height: 40px; padding: 0;"
-      >
-        <ion-buttons slot="end">
-          <ion-button @click="toggleFilter">
-            <ion-icon
-              :icon="filterIcon"
-              :color="showFilter ? 'primary' : 'medium'"
-            />
-          </ion-button>
-          <ion-button @click="toggleSort">
-            <ion-icon
-              :icon="sortIcon"
-              :color="showSort ? 'primary' : 'medium'"
-            />
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-
       <div
-        v-if="showFilter"
-        class="p-2"
+        v-if="isLoading"
+        class="loading-wrapper-centered"
       >
-        <ion-segment
-          v-model="filterType"
-          mode="ios"
-        >
-          <ion-segment-button value="all">All</ion-segment-button>
-          <ion-segment-button value="real">Real Life</ion-segment-button>
-          <ion-segment-button value="virtual">In-Game</ion-segment-button>
-        </ion-segment>
+        <XpLoading />
       </div>
+      <div v-else>
+        <!-- Filter/Sort Toolbar (Inline) -->
+        <ion-toolbar
+          class="transparent-toolbar"
+          style="--background: transparent; --min-height: 40px; padding: 0;"
+        >
+          <ion-buttons slot="end">
+            <ion-button @click="toggleFilter">
+              <ion-icon
+                :icon="filterIcon"
+                :color="showFilter ? 'primary' : 'medium'"
+              />
+            </ion-button>
+            <ion-button @click="toggleSort">
+              <ion-icon
+                :icon="sortIcon"
+                :color="showSort ? 'primary' : 'medium'"
+              />
+            </ion-button>
+          </ion-buttons>
+        </ion-toolbar>
 
-      <div
-        v-if="showSort"
-        class="p-2"
-      >
-        <ion-segment
-          v-model="sortType"
-          mode="ios"
+        <div
+          v-if="showFilter"
+          class="p-2"
         >
-          <ion-segment-button value="name">Name</ion-segment-button>
-          <ion-segment-button value="price">Price</ion-segment-button>
-          <ion-segment-button value="rarity">Rarity</ion-segment-button>
-        </ion-segment>
-        <ion-button
-          fill="clear"
-          size="small"
-          @click="toggleSortDirection"
-          class="w-full"
+          <ion-segment
+            v-model="filterType"
+            mode="ios"
+          >
+            <ion-segment-button value="all">All</ion-segment-button>
+            <ion-segment-button value="real">Real Life</ion-segment-button>
+            <ion-segment-button value="virtual">In-Game</ion-segment-button>
+          </ion-segment>
+        </div>
+
+        <div
+          v-if="showSort"
+          class="p-2"
         >
-          <ion-icon
-            :icon="sortDirection === 'asc' ? arrowUp : arrowDown"
-            slot="start"
-          />
-          {{ sortDirection === 'asc' ? 'Ascending' : 'Descending' }}
-        </ion-button>
+          <ion-segment
+            v-model="sortType"
+            mode="ios"
+          >
+            <ion-segment-button value="name">Name</ion-segment-button>
+            <ion-segment-button value="price">Price</ion-segment-button>
+            <ion-segment-button value="rarity">Rarity</ion-segment-button>
+          </ion-segment>
+          <ion-button
+            fill="clear"
+            size="small"
+            @click="toggleSortDirection"
+            class="w-full"
+          >
+            <ion-icon
+              :icon="sortDirection === 'asc' ? arrowUp : arrowDown"
+              slot="start"
+            />
+            {{ sortDirection === 'asc' ? 'Ascending' : 'Descending' }}
+          </ion-button>
+        </div>
+
+        <ion-list
+          class="transparent-list"
+          style="background: transparent;"
+        >
+          <ion-item
+            v-for="accessory in filteredAccessories"
+            :key="accessory.id"
+            button
+            @click="clickAccessory(accessory)"
+            class="item-card"
+            style="--background: rgba(30, 30, 40, 0.6); margin-bottom: 8px; border-radius: 8px;"
+            lines="none"
+          >
+            <ion-label>
+              <h2>{{ accessory.name }}</h2>
+              <p>
+                <ion-badge
+                  :color="getTypeColor(accessory.type)"
+                  class="mr-2"
+                >{{ accessory.type || 'Unknown' }}</ion-badge>
+                <ion-badge
+                  color="medium"
+                  v-if="accessory.rarity"
+                >{{ getRarityLabel(accessory.rarity) }}</ion-badge>
+              </p>
+            </ion-label>
+            <xp-gp
+              :gp="accessory.basePrice"
+              slot="end"
+            />
+          </ion-item>
+        </ion-list>
       </div>
-
-      <ion-list
-        class="transparent-list"
-        style="background: transparent;"
-      >
-        <ion-item
-          v-for="accessory in filteredAccessories"
-          :key="accessory.id"
-          button
-          @click="clickAccessory(accessory)"
-          class="item-card"
-          style="--background: rgba(30, 30, 40, 0.6); margin-bottom: 8px; border-radius: 8px;"
-          lines="none"
-        >
-          <ion-label>
-            <h2>{{ accessory.name }}</h2>
-            <p>
-              <ion-badge
-                :color="getTypeColor(accessory.type)"
-                class="mr-2"
-              >{{ accessory.type || 'Unknown' }}</ion-badge>
-              <ion-badge
-                color="medium"
-                v-if="accessory.rarity"
-              >{{ getRarityLabel(accessory.rarity) }}</ion-badge>
-            </p>
-          </ion-label>
-          <xp-gp
-            :gp="accessory.basePrice"
-            slot="end"
-          />
-        </ion-item>
-      </ion-list>
-    </div>
-  </div>
+    </ion-content>
+  </ion-page>
 </template>
+
 <script lang="ts">
   import { defineComponent, ref, computed, onMounted } from 'vue'
   import {
+    IonPage,
+    IonContent,
     IonToolbar,
     IonButtons,
     IonButton,
@@ -130,6 +138,8 @@
   export default defineComponent({
     name: 'XpEconomyItems',
     components: {
+      IonPage,
+      IonContent,
       XpLoading,
       XpGp,
       IonToolbar,

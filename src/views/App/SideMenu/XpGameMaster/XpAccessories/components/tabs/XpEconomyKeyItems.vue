@@ -1,52 +1,78 @@
 <template>
-  <div class="xp-economy-key-items">
-    <div class="p-4">
-      <ion-searchbar v-model="searchQuery" placeholder="Search Key Items..." animated class="mb-2"></ion-searchbar>
-      
-      <div v-for="(categoryItems, category) in groupedItems" :key="category" class="mb-6">
-          <h3 class="text-xl font-bold ml-2 mb-2 capitalize text-white opacity-90">{{ category }} Items</h3>
-          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <div 
-                  v-for="item in categoryItems" 
-                  :key="item.id"
-                  class="key-item-card p-3 flex items-start rounded-lg bg-gray-800 bg-opacity-60 border border-gray-700"
-              >
-                  <div class="item-icon-wrapper p-3 rounded-lg mr-3 flex-shrink-0" :class="`type-${category}`">
-                       <i :class="`fad fa-${item.icon} fa-2x`"></i>
-                  </div>
-                  <div class="flex-grow">
-                      <div class="font-bold text-lg text-white">{{ item.name }}</div>
-                      <div class="text-sm text-gray-300 mb-1 leading-snug">{{ item.description }}</div>
-                      
-                      <div class="mt-2 text-xs flex flex-wrap gap-1">
-                          <span class="px-2 py-0.5 rounded bg-gray-700 text-gray-400">
-                             <i class="fas fa-lock-open mr-1"></i> {{ item.unlockEvent }}
-                          </span>
-                      </div>
-                  </div>
-                  <!-- Assign Button -->
-                   <ion-button fill="clear" size="small" color="light" @click.stop="assignItem(item)" class="assign-btn">
-                      <i class="fas fa-store mr-2"></i> Assign
-                  </ion-button>
-                  <!-- <ion-button fill="clear" size="small" color="light">
-                      <i class="fas fa-ellipsis-v"></i>
-                  </ion-button> -->
-              </div>
-          </div>
-      </div>
-    </div>
-  </div>
+    <ion-page class="xp-economy-key-items">
+        <ion-content
+            class="transparent-content"
+            :fullscreen="true"
+        >
+            <div class="p-4">
+                <ion-searchbar
+                    v-model="searchQuery"
+                    placeholder="Search Key Items..."
+                    animated
+                    class="mb-2"
+                ></ion-searchbar>
+
+                <div
+                    v-for="(categoryItems, category) in groupedItems"
+                    :key="category"
+                    class="mb-6"
+                >
+                    <h3 class="text-xl font-bold ml-2 mb-2 capitalize text-white opacity-90">{{ category }} Items</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div
+                            v-for="item in categoryItems"
+                            :key="item.id"
+                            class="key-item-card p-3 flex items-start rounded-lg bg-gray-800 bg-opacity-60 border border-gray-700"
+                        >
+                            <div
+                                class="item-icon-wrapper p-3 rounded-lg mr-3 flex-shrink-0"
+                                :class="`type-${category}`"
+                            >
+                                <i :class="`fad fa-${item.icon} fa-2x`"></i>
+                            </div>
+                            <div class="flex-grow">
+                                <div class="font-bold text-lg text-white">{{ item.name }}</div>
+                                <div class="text-sm text-gray-300 mb-1 leading-snug">{{ item.description }}</div>
+
+                                <div class="mt-2 text-xs flex flex-wrap gap-1">
+                                    <span class="px-2 py-0.5 rounded bg-gray-700 text-gray-400">
+                                        <i class="fas fa-lock-open mr-1"></i> {{ item.unlockEvent }}
+                                    </span>
+                                </div>
+                            </div>
+                            <!-- Assign Button -->
+                            <ion-button
+                                fill="clear"
+                                size="small"
+                                color="light"
+                                @click.stop="assignItem(item)"
+                                class="assign-btn"
+                            >
+                                <i class="fas fa-store mr-2"></i> Assign
+                            </ion-button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </ion-content>
+    </ion-page>
 </template>
 
 <script lang="ts">
 import { defineComponent, ref, computed } from "vue";
-import { alertController, toastController } from "@ionic/vue";
+import { alertController, toastController, IonPage, IonContent, IonSearchbar, IonButton } from "@ionic/vue";
 import { getAllItems } from "@/lib/engine/core/items/itemRegistry";
 import { ItemMetadata } from "@/lib/engine/core/items/itemTypes";
 import shopsDb from "@/lib/databases/ShopsDb";
 
 export default defineComponent({
   name: "XpEconomyKeyItems",
+  components: {
+    IonPage,
+    IonContent,
+    IonSearchbar,
+    IonButton
+  },
   setup() {
     const searchQuery = ref("");
     const allItems = getAllItems();
@@ -158,29 +184,41 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-.key-item-card {
-    transition: all 0.2s ease;
-    position: relative;
-    padding-right: 80px; /* Space for button */
+    .key-item-card {
+        transition: all 0.2s ease;
+        position: relative;
+        padding-right: 80px;
+        /* Space for button */
 
-    &:hover {
-        background: rgba(50, 50, 60, 0.8);
-        transform: translateY(-2px);
+        &:hover {
+            background: rgba(50, 50, 60, 0.8);
+            transform: translateY(-2px);
+        }
+
+        .assign-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+        }
     }
 
-    .assign-btn {
-        position: absolute;
-        top: 8px;
-        right: 8px;
-    }
-}
+    .item-icon-wrapper {
+        background: rgba(255, 255, 255, 0.05);
 
-.item-icon-wrapper {
-    background: rgba(255,255,255,0.05);
-    
-    &.type-narrative { color: var(--ion-color-tertiary); }
-    &.type-pegasus { color: var(--ion-color-secondary); }
-    &.type-dungeon { color: var(--ion-color-danger); }
-    &.type-consumable { color: var(--ion-color-warning); }
-}
+        &.type-narrative {
+            color: var(--ion-color-tertiary);
+        }
+
+        &.type-pegasus {
+            color: var(--ion-color-secondary);
+        }
+
+        &.type-dungeon {
+            color: var(--ion-color-danger);
+        }
+
+        &.type-consumable {
+            color: var(--ion-color-warning);
+        }
+    }
 </style>

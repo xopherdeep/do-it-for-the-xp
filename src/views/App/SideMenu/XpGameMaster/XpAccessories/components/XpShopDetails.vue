@@ -44,7 +44,7 @@ import { defineComponent, computed, provide, toRef } from 'vue';
 import Ionic from '@/mixins/ionic';
 import { bookOutline, shirtOutline, timeOutline, brushOutline, personOutline } from 'ionicons/icons';
 import XpPage from "@/components/organisms/Page/XpPage.vue";
-import { useShopData } from '../composables/useShopData';
+import { useShopData } from '../hooks/useShopData';
 
 export default defineComponent({
   name: 'XpShopDetails',

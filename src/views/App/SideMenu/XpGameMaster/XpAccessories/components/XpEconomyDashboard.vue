@@ -1,31 +1,44 @@
 <template>
-  <XpPage 
-    title="Economy & Rewards" 
-    headerIcon="fa-coins" 
+  <XpPage
+    title="Economy & Rewards"
+    headerIcon="fa-coins"
+    :hideHeader="true"
     bgClass="bg-slide-dark"
     backButtonHref="/game-master/compendium/setup"
     class="xp-economy-dashboard"
   >
     <ion-tabs>
       <ion-router-outlet></ion-router-outlet>
-      
+
       <ion-tab-bar slot="bottom">
-        <ion-tab-button tab="splash" href="/game-master/compendium/setup/economy/splash">
+        <ion-tab-button
+          tab="splash"
+          href="/game-master/compendium/setup/economy/dashboard"
+        >
           <ion-icon :icon="homeOutline" />
           <ion-label>Home</ion-label>
         </ion-tab-button>
 
-        <ion-tab-button tab="shops" href="/game-master/compendium/setup/economy/shops">
+        <ion-tab-button
+          tab="shops"
+          href="/game-master/compendium/setup/economy/shops"
+        >
           <ion-icon :icon="storefrontOutline" />
           <ion-label>Shops</ion-label>
         </ion-tab-button>
 
-        <ion-tab-button tab="items" href="/game-master/compendium/setup/economy/items">
+        <ion-tab-button
+          tab="items"
+          href="/game-master/compendium/setup/economy/items"
+        >
           <ion-icon :icon="shirtOutline" />
           <ion-label>Items</ion-label>
         </ion-tab-button>
 
-        <ion-tab-button tab="key-items" href="/game-master/compendium/setup/economy/key-items">
+        <ion-tab-button
+          tab="key-items"
+          href="/game-master/compendium/setup/economy/key-items"
+        >
           <ion-icon :icon="keyOutline" />
           <ion-label>Key Items</ion-label>
         </ion-tab-button>
@@ -111,7 +124,8 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-.economy-fab {
-  margin-bottom: 70px; /* Position above the bottom bar */
-}
+  .economy-fab {
+    margin-bottom: 70px;
+    /* Position above the bottom bar */
+  }
 </style>
