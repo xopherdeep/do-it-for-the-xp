@@ -1,11 +1,15 @@
 // Import modules
-import { createRouter, createWebHistory, createWebHashHistory } from '@ionic/vue-router';
-import { RouteRecordRaw } from 'vue-router';
-import { useRouterGuards } from './guard.routes';
-import { Capacitor } from '@capacitor/core';
+import {
+  createRouter,
+  createWebHistory,
+  createWebHashHistory,
+} from "@ionic/vue-router";
+import { RouteRecordRaw } from "vue-router";
+import { useRouterGuards } from "./_Guards";
+import { Capacitor } from "@capacitor/core";
 
 // Admin / Game Master
-import { GameMasterRoutes } from './Admin';
+import { GameMasterRoutes } from "./Admin";
 
 // Console
 import {
@@ -14,17 +18,13 @@ import {
   MyPortalRoutes,
   UserHudRoutes,
   WorldMapRoutes,
-} from './Console';
+} from "./Console";
 
 // SideMenu
-import { 
-  SideMenuRoutes, 
-  SettingsRoutes, 
-  SupportRoutes 
-} from './SideMenu';
+import { SideMenuRoutes, SettingsRoutes, SupportRoutes } from "./SideMenu";
 
 // Dev
-import DevRoutes from './Dev/dev.routes';
+import DevRoutes from "./Dev/dev.routes";
 
 // Combine all routes
 const routes: Array<RouteRecordRaw> = [
@@ -96,7 +96,7 @@ const routes: Array<RouteRecordRaw> = [
     name: "battle-field-temple",
     meta: {
       faIcon: "dungeon",
-      battleType: "temple" // Metadata to identify the battle context
+      battleType: "temple", // Metadata to identify the battle context
     },
     component: () => import("@/app/Console/BattleField/BattleField.vue"),
     props: true,
@@ -107,7 +107,7 @@ const routes: Array<RouteRecordRaw> = [
     name: "battle-field-quest",
     meta: {
       faIcon: "dungeon",
-      battleType: "quest"
+      battleType: "quest",
     },
     component: () => import("@/app/Console/BattleField/BattleField.vue"),
     props: true,
@@ -119,13 +119,14 @@ export const createAppRouter = () => {
   // Use hash mode for production builds and Capacitor apps
   // This helps with navigation in production builds
   const isNative = Capacitor.isNativePlatform();
-  const isProduction = process.env.NODE_ENV === 'production';
+  const isProduction = process.env.NODE_ENV === "production";
 
   const router = createRouter({
-    history: (isNative || isProduction)
-      ? createWebHashHistory(process.env.BASE_URL)
-      : createWebHistory(process.env.BASE_URL),
-    routes
+    history:
+      isNative || isProduction
+        ? createWebHashHistory(process.env.BASE_URL)
+        : createWebHistory(process.env.BASE_URL),
+    routes,
   });
 
   // Apply router guards
@@ -145,5 +146,5 @@ export {
   WorldMapRoutes,
   DevRoutes,
   GameMasterRoutes,
-  SettingsRoutes
+  SettingsRoutes,
 };
