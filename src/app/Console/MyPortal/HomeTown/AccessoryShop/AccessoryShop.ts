@@ -30,7 +30,7 @@ import fetchItems from "@/mixins/fetchItems";
 import { modalController } from "@ionic/vue";
 import debug from "@/lib/utils/debug";
 // Import ATM Modal component
-import ATMModal from "@/views/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
+import ATMModal from "@/app/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
 // Import the GPSystem
 import { getGPService } from '@/lib/services/gp';
 import { useUserStore } from "@/lib/store/stores/user";

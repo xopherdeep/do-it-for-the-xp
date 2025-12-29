@@ -48,7 +48,7 @@ const DevRoutes: Array<RouteRecordRaw> = [
   {
     path: "/dev/battle-field",
     name: "battle-field-dev",
-    component: () => import("@/views/Console/BattleField/BattleField.vue"),
+    component: () => import("@/app/Console/BattleField/BattleField.vue"),
     props: {
       devMode: true
     }
@@ -56,7 +56,7 @@ const DevRoutes: Array<RouteRecordRaw> = [
   {
     path: "/dev/battle-field/:beastIds/:userIds?",
     name: "battle-field-dev-with-params",
-    component: () => import("@/views/Console/BattleField/BattleField.vue"),
+    component: () => import("@/app/Console/BattleField/BattleField.vue"),
     props: (route) => ({
       devMode: true,
       beastIds: route.params.beastIds,

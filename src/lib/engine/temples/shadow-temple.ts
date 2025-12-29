@@ -1,4 +1,4 @@
-// filepath: /Users/xopher/www/x/do-it-for-the-xp/src/views/Console/MyPortal/HomeTown/TempleGrounds/temples/shadow-temple.ts
+// filepath: /Users/xopher/www/x/do-it-for-the-xp/src/app/Console/MyPortal/HomeTown/TempleGrounds/temples/shadow-temple.ts
 import {
   _00_,
   O__O,

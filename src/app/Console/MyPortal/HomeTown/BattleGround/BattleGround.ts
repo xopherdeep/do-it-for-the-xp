@@ -10,7 +10,7 @@ import { useUserActions } from "@/hooks/useUserActions";
 import { useItemFetcher } from "@/hooks/useItemFetcher";
 import { useUserStore } from "@/lib/store/stores/user";
 import { mapStores } from "pinia";
-import XpFabBattleActions from "@/views/Console/MyPortal/UserHud/components/XpFabBattleActions.vue";
+import XpFabBattleActions from "@/app/Console/MyPortal/UserHud/components/XpFabBattleActions.vue";
 import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
 // Import the new battle services
 import { createBattleService, createBestiaryService, BattleService, BestiaryService, Enemy, CompletedTask } from '@/lib/services/battle';

@@ -7,11 +7,11 @@ import CardUserStats from "@/components/organisms/CardUserStats/CardUserStats.vu
 import { useBattleStore } from "@/lib/store/stores/battle";
 import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
 import XpRpgMenu from "@/components/molecules/RpgMenu/XpRpgMenu.vue";
-import XpHpMpHud from "@/views/Console/BattleField/hud/XpHpMpHud/XpHpMpHud.vue";
+import XpHpMpHud from "@/app/Console/BattleField/hud/XpHpMpHud/XpHpMpHud.vue";
 import { useAudioStore } from "@/lib/store/stores/audio";
 import $fx from "@/assets/fx";
-import DevToolsFab from "@/views/Console/BattleField/hud/dev/DevToolsFab.vue";
-import DevBattleActionsFab from "@/views/Console/BattleField/hud/dev/DevBattleActionsFab.vue";
+import DevToolsFab from "@/app/Console/BattleField/hud/dev/DevToolsFab.vue";
+import DevBattleActionsFab from "@/app/Console/BattleField/hud/dev/DevBattleActionsFab.vue";
 import { 
   modalController, 
   toastController,

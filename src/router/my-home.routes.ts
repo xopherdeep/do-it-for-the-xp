@@ -5,24 +5,24 @@ const MyHomeRoutes: Array<RouteRecordRaw> = [
   {
     path: '/cook-food',
     name: 'cook-food',
-    component: () => import ('@/views/Console/MyPortal/MyHome/MyFoods/MyFoods.vue'),
+    component: () => import ('@/app/Console/MyPortal/MyHome/MyFoods/MyFoods.vue'),
   },
   {
     path: '/craft-item',
     name: 'craft-item',
-    component: () => import ('@/views/Console/MyPortal/MyHome/MyCrafts/MyCrafts.vue'),
+    component: () => import ('@/app/Console/MyPortal/MyHome/MyCrafts/MyCrafts.vue'),
   },
 
   {
     path: '/storage',
     name: 'storage',
-    component: () => import ('@/views/Console/MyPortal/MyHome/MyStorage/MyStorage.vue'),
+    component: () => import ('@/app/Console/MyPortal/MyHome/MyStorage/MyStorage.vue'),
   },
 
   {
     path: '/calendar',
     name: 'calendar',
-    component: () => import ('@/views/Console/MyPortal/MyHome/MyCalendar/MyCalendar.vue'),
+    component: () => import ('@/app/Console/MyPortal/MyHome/MyCalendar/MyCalendar.vue'),
   },
   // END HOME
 ]

@@ -388,7 +388,7 @@
 <script lang="ts">
   import { defineComponent, ref, computed, onMounted, watch } from 'vue';
   import { useBattleStore } from '@/lib/store/stores/battle';
-  import BattleField from '@/views/Console/BattleField/BattleField.vue';
+  import BattleField from '@/app/Console/BattleField/BattleField.vue';
   import { toastController } from '@ionic/vue';
   import {
     skull,
@@ -413,8 +413,8 @@
   import { modalController, actionSheetController } from '@ionic/vue';
   import AddProfile from '@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue';
   // Import our new FAB components
-  import DevToolsFab from '@/views/Console/BattleField/hud/dev/DevToolsFab.vue';
-  import BattleActionsFab from '@/views/Console/BattleField/hud/dev/DevBattleActionsFab.vue';
+  import DevToolsFab from '@/app/Console/BattleField/hud/dev/DevToolsFab.vue';
+  import BattleActionsFab from '@/app/Console/BattleField/hud/dev/DevBattleActionsFab.vue';
   import debug from '@/lib/utils/debug';
 
   // Define an interface for the BattleField component

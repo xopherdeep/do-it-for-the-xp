@@ -36,7 +36,7 @@ import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
 import debug from "@/lib/utils/debug";
 import { useUserStore } from "@/lib/store/stores/user";
 // Import the ATM Modal component
-import ATMModal from "@/views/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
+import ATMModal from "@/app/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
 // Import our new GPSystem
 import { getGPService } from '@/lib/services/gp';
 

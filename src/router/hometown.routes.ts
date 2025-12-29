@@ -9,7 +9,7 @@ export const HometownRoutes: Array<RouteRecordRaw> = [
       faIcon: "store",
     },
     component: () =>
-      import("@/views/Console/MyPortal/HomeTown/AccessoryShop/AccessoryShop.vue"),
+      import("@/app/Console/MyPortal/HomeTown/AccessoryShop/AccessoryShop.vue"),
     props: true,
   },
   {
@@ -18,20 +18,20 @@ export const HometownRoutes: Array<RouteRecordRaw> = [
     meta: {
       faIcon: "piggy-bank",
     },
-    component: () => import("@/views/Console/MyPortal/HomeTown/GoldBank/GoldBank.vue"),
+    component: () => import("@/app/Console/MyPortal/HomeTown/GoldBank/GoldBank.vue"),
     props: true,
   },
   {
     path: "/hospital/:userId?/",
     name: "hospital",
     component: () =>
-      import("@/views/Console/MyPortal/HomeTown/HospitalHub/HospitalHub.vue"),
+      import("@/app/Console/MyPortal/HomeTown/HospitalHub/HospitalHub.vue"),
     props: true,
   },
   {
     path: "/town-hall/:userId?/",
     name: "town-hall",
-    component: () => import("@/views/Console/MyPortal/HomeTown/TownHall/TownHall.vue"),
+    component: () => import("@/app/Console/MyPortal/HomeTown/TownHall/TownHall.vue"),
     meta: {
       faIcon: "landmark",
     },
@@ -42,7 +42,7 @@ export const HometownRoutes: Array<RouteRecordRaw> = [
     name: "view-stats",
     component: () =>
       import(
-        "@/views/Console/MyPortal/HomeTown/HospitalHub/components/XpViewStats.vue"
+        "@/app/Console/MyPortal/HomeTown/HospitalHub/components/XpViewStats.vue"
       ),
     props: true,
   },
@@ -50,14 +50,14 @@ export const HometownRoutes: Array<RouteRecordRaw> = [
     path: "/temple/:temple/:userId?/:x?/:y?",
     name: "temple",
     component: () =>
-      import("@/views/Console/TempleGrounds/TempleGrounds.vue"),
+      import("@/app/Console/TempleGrounds/TempleGrounds.vue"),
     props: true,
   },
 
   {
     path: "/hotel/:userId?/",
     name: "hotel",
-    component: () => import("@/views/Console/MyPortal/HomeTown/HotelHub/HotelHub.vue"),
+    component: () => import("@/app/Console/MyPortal/HomeTown/HotelHub/HotelHub.vue"),
     props: true,
   },
   // END TOWN

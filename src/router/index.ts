@@ -59,7 +59,7 @@ const routes: Array<RouteRecordRaw> = [
     meta: {
       faIcon: "dungeon",
     },
-    component: () => import("@/views/Console/BattleField/BattleField.vue"),
+    component: () => import("@/app/Console/BattleField/BattleField.vue"),
     props: true,
   },
   {
@@ -68,7 +68,7 @@ const routes: Array<RouteRecordRaw> = [
     meta: {
       faIcon: "dungeon",
     },
-    component: () => import("@/views/Console/BattleField/BattleField.vue"),
+    component: () => import("@/app/Console/BattleField/BattleField.vue"),
     props: true,
   },
   // Temple Room Battle - /battle-field/temple/:templeId/:level/:x/:y
@@ -79,7 +79,7 @@ const routes: Array<RouteRecordRaw> = [
       faIcon: "dungeon",
       battleType: "temple" // Metadata to identify the battle context
     },
-    component: () => import("@/views/Console/BattleField/BattleField.vue"),
+    component: () => import("@/app/Console/BattleField/BattleField.vue"),
     props: true,
   },
   // Quest Battle - /battle-field/quest/:questId
@@ -90,7 +90,7 @@ const routes: Array<RouteRecordRaw> = [
       faIcon: "dungeon",
       battleType: "quest"
     },
-    component: () => import("@/views/Console/BattleField/BattleField.vue"),
+    component: () => import("@/app/Console/BattleField/BattleField.vue"),
     props: true,
   },
 ];
