@@ -55,7 +55,7 @@
     <!-- Row 3: Doctor, Temples, Chat -->
     <XpDashboardTile>
       <XpNavTile
-        label="Doctor"
+        label="Police Box"
         iconName="fa-police-box"
         color="tardis"
         @click="navigateTo('xp-do-this-not-that')"
@@ -129,5 +129,5 @@ export default defineComponent({
 </script>
 
 <style scoped>
-/* Add any specific styles for the WelcomeDashboard here */
+  /* Add any specific styles for the WelcomeDashboard here */
 </style>

@@ -87,6 +87,13 @@
         @select-type="selectType"
         @confirm="confirmConfig"
       >
+        <template #config-selector>
+          <!-- Monster Config Selector -->
+          <RoomMonsterConfigSelector
+            :existing-configs="availableMonsterConfigs"
+            @select="selectMonsterConfig"
+          />
+        </template>
         <template #config>
           <!-- Monster Configuration -->
           <RoomMonsterConfig
@@ -159,6 +166,7 @@
           :maze="maze"
           :current-row="rowIdx"
           :current-col="colIdx"
+          @cell-click="navigateToCell"
         />
       </div>
 
@@ -212,6 +220,7 @@ import {
   RoomCardinalLayout, 
   RoomTypeModal, 
   RoomMonsterConfig, 
+  RoomMonsterConfigSelector,
   RoomLootConfig, 
   RoomTravelConfig,
   RoomShopConfig,
@@ -223,7 +232,7 @@ export default defineComponent({
   components: {
     IonPage, IonHeader, IonToolbar, IonButtons, IonButton, 
     IonContent, IonFab, IonFabButton,
-    RoomCardinalLayout, RoomTypeModal, RoomMonsterConfig, RoomLootConfig, RoomTravelConfig, RoomShopConfig,
+    RoomCardinalLayout, RoomTypeModal, RoomMonsterConfig, RoomMonsterConfigSelector, RoomLootConfig, RoomTravelConfig, RoomShopConfig,
     XpLoading,
     RoomEditorMiniMap
   },
@@ -312,6 +321,8 @@ export default defineComponent({
       closeTypeModal: editor.closeTypeModal,
       goToTypes: editor.goToTypes,
       selectType: editor.selectType,
+      selectMonsterConfig: editor.selectMonsterConfig,
+      availableMonsterConfigs: editor.availableMonsterConfigs,
       backModalStep: editor.backModalStep,
       confirmConfig: editor.confirmConfig,
       toggleAutoLock: editor.toggleAutoLock,
@@ -359,6 +370,14 @@ export default defineComponent({
       saveAndGoBack: async () => {
         await editor.saveToStore();
         navigation.goBack();
+      },
+      
+      // Mini-map navigation
+      navigateToCell: ({ row, col }: { row: number; col: number }) => {
+        // Save current room first, then navigate
+        editor.saveToStore();
+        // Use navigation hook's navigateRoom pattern with noAnimation
+        navigation.goToCell(row, col);
       }
     };
   }

@@ -148,15 +148,6 @@
             </XpDashboardTile>
             <XpDashboardTile>
               <XpStatBox
-                :value="abilities?.length || 0"
-                label="Powers"
-                iconName="fa-book-spells"
-                :onClick="() => navigateTo({ name: 'xp-abilities' })"
-              />
-            </XpDashboardTile>
-
-            <XpDashboardTile>
-              <XpStatBox
                 :value="stats.beasts || 0"
                 label="Beasts"
                 iconName="fa-hand-holding-heart"
@@ -165,9 +156,18 @@
             </XpDashboardTile>
             <XpDashboardTile>
               <XpStatBox
+                :value="abilities?.length || 0"
+                label="Powers"
+                iconName="fa-hand-holding-magic"
+                :onClick="() => navigateTo({ name: 'xp-abilities' })"
+              />
+            </XpDashboardTile>
+
+            <XpDashboardTile>
+              <XpStatBox
                 :value="stats.achievements || 0"
                 label="Quests"
-                iconName="fa-book-dead"
+                iconName="fa-hand-holding-seedling"
                 :onClick="() => navigateTo({ name: 'xp-achievements' })"
               />
             </XpDashboardTile>
@@ -175,7 +175,7 @@
               <XpStatBox
                 :value="rewards?.active || 80"
                 label="Items"
-                iconName="fa-hand-holding-usd"
+                iconName="fa-hand-holding-box"
                 :onClick="() => navigateTo({ name: 'xp-economy-dashboard-root' })"
               />
             </XpDashboardTile>

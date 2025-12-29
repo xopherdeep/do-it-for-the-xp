@@ -10,18 +10,13 @@
           Do This, Not That!
         </ion-title>
       </ion-toolbar>
-      <ion-segment v-model="activeSegment">
-        <ion-segment-button value="do">
-          {{ dos.length }} Do's
-        </ion-segment-button>
-        <ion-segment-button value="dont">
-          {{ donts.length }} Don'ts
-        </ion-segment-button>
-        <ion-segment-button value="history"> History </ion-segment-button>
-      </ion-segment>
+
     </ion-header>
-    <ion-content>
-      <div v-if="isLoading" class="loading-wrapper-centered">
+    <ion-content class="bg-slide bg-slide-modal">
+      <div
+        v-if="isLoading"
+        class="loading-wrapper-centered"
+      >
         <XpLoading />
       </div>
       <ion-list v-else>
@@ -30,12 +25,18 @@
           :key="index"
         >
           <ion-item-options side="start">
-            <ion-item-option color="danger" @click="clickDeleteDoDont(task)">
-              <i class="fad fa-trash fa-lg mx-2 my-1" slot="top" />
+            <ion-item-option
+              color="danger"
+              @click="clickDeleteDoDont(task)"
+            >
+              <i
+                class="fad fa-trash fa-lg mx-2 my-1"
+                slot="top"
+              />
               Remove
             </ion-item-option>
           </ion-item-options>
-          <ion-item>
+          <ion-item lines="inset">
             <ion-avatar slot="start">
               <ion-skeleton-text></ion-skeleton-text>
             </ion-avatar>
@@ -72,7 +73,10 @@
                 </ion-badge>
               </p>
             </ion-label>
-            <ion-buttons slot="end" class="m-0">
+            <ion-buttons
+              slot="end"
+              class="m-0"
+            >
               <ion-button @click="clickAdd(task)">
                 <i
                   class="fad fa-2x"
@@ -84,26 +88,58 @@
                 />
               </ion-button>
             </ion-buttons>
-            <i class="fad fa-grip-vertical ml-1" slot="end" />
+            <i
+              class="fad fa-grip-vertical ml-1"
+              slot="end"
+            />
           </ion-item>
           <ion-item-options side="end">
-            <ion-item-option color="primary" @click="clickAdd(task)">
-              <i class="fad fa-edit fa-lg mx-2 my-1" slot="top" />
+            <ion-item-option
+              color="primary"
+              @click="clickAdd(task)"
+            >
+              <i
+                class="fad fa-edit fa-lg mx-2 my-1"
+                slot="top"
+              />
               Edit
             </ion-item-option>
-            <ion-item-option color="primary" @click="clickCloneDoDont(task)">
+            <ion-item-option
+              color="primary"
+              @click="clickCloneDoDont(task)"
+            >
               Clone
-              <i class="fad fa-clone fa-lg mx-2 my-1" slot="top" />
+              <i
+                class="fad fa-clone fa-lg mx-2 my-1"
+                slot="top"
+              />
             </ion-item-option>
           </ion-item-options>
         </ion-item-sliding>
       </ion-list>
     </ion-content>
-    <ion-fab vertical="bottom" horizontal="end">
-      <ion-fab-button @click="clickAdd()">
+    <ion-fab
+      vertical="bottom"
+      horizontal="center"
+    >
+      <ion-fab-button
+        @click="clickAdd()"
+        color="light"
+      >
         <ion-icon :icon="add" />
       </ion-fab-button>
     </ion-fab>
+    <ion-footer>
+      <ion-segment v-model="activeSegment">
+        <ion-segment-button value="do">
+          {{ dos.length }} Do's
+        </ion-segment-button>
+        <ion-segment-button value="dont">
+          {{ donts.length }} Don'ts
+        </ion-segment-button>
+        <ion-segment-button value="history"> History </ion-segment-button>
+      </ion-segment>
+    </ion-footer>
   </ion-page>
 </template>
 <script lang="ts">

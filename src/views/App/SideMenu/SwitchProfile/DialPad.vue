@@ -55,8 +55,8 @@
               class="dot"
               :class="{ filled: inputCode.length >= i, error: hasError }"
             >
-              <template v-if="showPass && inputCode.length >= i">
-                {{ inputCode[i - 1] }}
+              <template v-if="inputCode.length >= i">
+                {{ showPass ? inputCode[i - 1] : '*' }}
               </template>
             </span>
           </div>
@@ -73,7 +73,7 @@
                 fill="clear"
                 class="dial-button"
                 :disabled="inputCode.length >= 4"
-                @click="appendToCode(n)"
+                @pointerdown="appendToCode(n)"
               >
                 {{ n }}
               </ion-button>
@@ -89,7 +89,7 @@
                 fill="clear"
                 class="dial-button"
                 :disabled="inputCode.length >= 4"
-                @click="appendToCode(n)"
+                @pointerdown="appendToCode(n)"
               >
                 {{ n }}
               </ion-button>
@@ -105,7 +105,7 @@
                 fill="clear"
                 class="dial-button"
                 :disabled="inputCode.length >= 4"
-                @click="appendToCode(n)"
+                @pointerdown="appendToCode(n)"
               >
                 {{ n }}
               </ion-button>
@@ -117,7 +117,7 @@
                 expand="block"
                 fill="clear"
                 class="dial-button action-button"
-                @click="removeLastDigit()"
+                @pointerdown="removeLastDigit()"
               >
                 <xp-icon icon="backspace" />
               </ion-button>
@@ -128,7 +128,7 @@
                 fill="clear"
                 class="dial-button"
                 :disabled="inputCode.length >= 4"
-                @click="appendToCode(0)"
+                @pointerdown="appendToCode(0)"
               >
                 0
               </ion-button>
@@ -138,7 +138,7 @@
                 expand="block"
                 fill="clear"
                 class="dial-button action-button"
-                @click="clearCode()"
+                @pointerdown="clearCode()"
               >
                 <xp-icon icon="trash" />
               </ion-button>
@@ -493,17 +493,8 @@
     border: 1px solid rgba(255, 255, 255, 0.15);
     background: rgba(255, 255, 255, 0.05);
     color: #fff;
-    transition: all 0.15s ease;
-
-    &:hover:not(:disabled) {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: rgba(255, 255, 255, 0.25);
-    }
-
-    &:active:not(:disabled) {
-      transform: scale(0.95);
-      background: rgba(255, 255, 255, 0.15);
-    }
+    // Let Ionic's native ripple handle touch feedback - no custom animations
+    touch-action: manipulation;
 
     &.action-button {
       font-size: 1.25rem;

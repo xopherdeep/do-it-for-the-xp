@@ -14,6 +14,7 @@
             'is-room': isRoom(cell),
             'current-room': rIndex === currentRow && cIndex === currentCol
           }"
+          @click="handleCellClick(rIndex, cIndex, cell)"
         ></div>
       </div>
     </div>
@@ -40,15 +41,25 @@ export default defineComponent({
       required: true
     }
   },
-  setup() {
+  emits: ['cell-click'],
+  setup(props, { emit }) {
     // Helper to check if a cell is a room (not a wall)
     const isRoom = (symbol: string) => {
       if (!symbol) return false;
       return symbol !== ____ && symbol !== 'wall';
     };
 
+    // Handle cell click - navigate to clicked cell
+    const handleCellClick = (row: number, col: number, cell: string) => {
+      // Only navigate if it's a room (not a wall)
+      if (isRoom(cell)) {
+        emit('cell-click', { row, col });
+      }
+    };
+
     return {
-      isRoom
+      isRoom,
+      handleCellClick
     };
   }
 });
@@ -60,18 +71,18 @@ export default defineComponent({
     top: 16px;
     left: 16px;
     z-index: 100;
-    pointer-events: none; // Let clicks pass through if needed, though it's visual reference
     opacity: 0.8;
+    transition: opacity 0.2s;
 
-    // Mobile adjustment: move down a bit if header is tall, or keep it top-left
-    // Ion-content handles scrolling, so absolute here is relative to content scroll
-    // We might want fixed position so it stays on screen
+    &:hover {
+      opacity: 1;
+    }
   }
 
   .mini-map-grid {
     display: flex;
     flex-direction: column;
-    gap: 2px;
+    gap: 3px;
     background: rgba(0, 0, 0, 0.5);
     padding: 4px;
     border-radius: 4px;
@@ -80,23 +91,34 @@ export default defineComponent({
 
   .map-row {
     display: flex;
-    gap: 2px;
+    gap: 3px;
   }
 
   .map-cell {
-    width: 8px;
-    height: 8px;
-    border-radius: 1px;
-    background: rgba(255, 255, 255, 0.05); // Wall color
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    background: rgba(255, 255, 255, 0.05);
+    transition: transform 0.15s, background 0.15s;
 
     &.is-room {
-      background: var(--ion-color-primary); // Room color
+      background: var(--ion-color-primary);
+      cursor: pointer;
+
+      &:hover {
+        transform: scale(1.3);
+        background: var(--ion-color-primary-tint);
+      }
     }
 
     &.current-room {
       background: #fff;
       box-shadow: 0 0 4px #fff;
       animation: blink-animation 1s infinite;
+
+      &:hover {
+        transform: none;
+      }
     }
   }
 

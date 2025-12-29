@@ -50,6 +50,7 @@ export interface UseTempleRoomNavigationReturn {
   getAdjacentRoomLabel: (dir: string) => string;
   getAdjacentRoomType: (dir: string) => string;
   goBack: () => void;
+  goToCell: (row: number, col: number) => void;
   apply: () => void;
 }
 
@@ -367,6 +368,21 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     ionRouter.back();
   };
 
+  // Navigate to specific cell coordinates (for mini-map)
+  const goToCell = (row: number, col: number) => {
+    ionRouter.replace(
+      {
+        name: 'xp-room-editor',
+        params: {
+          templeId: props.templeId,
+          row: row.toString(),
+          col: col.toString()
+        }
+      },
+      noAnimation
+    );
+  };
+
   return {
     // State
     adjacentRooms,
@@ -387,6 +403,7 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     getAdjacentRoomLabel,
     getAdjacentRoomType,
     goBack,
+    goToCell,
     apply
   };
 }

@@ -86,15 +86,28 @@ export const KEY_ITEMS = [
   ...getPegasusItems()
 ].map(item => ({
   id: item.id,
-  // Map registry icon to FontAwesome if needed, or assume 'fa-' prefix logic in component
-  // Registry icons are just names like 'backpack', component adds 'fa-' usually?
-  // Let's check itemRegistry.ts again. It uses simple names 'backpack', 'wallet'.
-  // CONSTANTS in this file use 'fa-key', 'fa-map'.
-  // We need to adapt.
   icon: item.icon, 
   label: item.name,
   description: item.description
 }));
+
+// Monster config tokens (M001-M009) - shared configs that can be reused across rooms
+export const MONSTER_CONFIG_TOKENS = [
+  'M001', 'M002', 'M003', 'M004', 'M005', 'M006', 'M007', 'M008', 'M009'
+];
+
+// Miniboss config tokens (MINI, MIN1-MIN3) - for different miniboss configurations
+export const MINIBOSS_CONFIG_TOKENS = [
+  'MINI', 'MIN1', 'MIN2', 'MIN3'
+];
+
+// Interface for monster config options in the selector
+export interface MonsterConfigOption {
+  token: string;
+  name: string;
+  hasBeasts: boolean;
+  count: number;
+}
 
 export interface UseTempleRoomEditorProps {
   templeId: string;
@@ -111,6 +124,11 @@ export interface UseTempleRoomEditorReturn {
   selectedCategory: Ref<{ name: string; icon: string; types: string[] } | null>;
   isReturningFromSelection: Ref<boolean>;
   hasChanges: ComputedRef<boolean>;
+  pendingMonsterType: Ref<string | null>;
+  
+  // Monster Config
+  availableMonsterConfigs: ComputedRef<MonsterConfigOption[]>;
+  monsterConfigTokens: typeof MONSTER_CONFIG_TOKENS;
   
   // Bestiary
   allBeasts: Ref<Beast[]>;
@@ -153,6 +171,7 @@ export interface UseTempleRoomEditorReturn {
   closeTypeModal: () => void;
   goToTypes: (category: { name: string; icon: string; types: string[] }) => void;
   selectType: (type: string) => Promise<void>;
+  selectMonsterConfig: (token: string) => void;
   backModalStep: () => void;
   confirmConfig: () => void;
   getCategoryColorClass: (categoryName: string) => string;
@@ -193,9 +212,80 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     return JSON.stringify(roomData.value) !== lastSavedData.value;
   });
   const showTypeModal = ref(false);
-  const modalStep = ref(1); // 1: Category, 2: Type, 3: Config
+  const modalStep = ref(1); // 1: Category, 2: Type, 2.5: Monster Config, 3: Config
   const isReturningFromSelection = ref(false);
   const selectedCategory = ref<{ name: string; icon: string; types: string[] } | null>(null);
+  const pendingMonsterType = ref<string | null>(null); // Tracks monster type awaiting config selection
+
+  // Computed: Get available monster/miniboss configs in the current temple
+  const availableMonsterConfigs = computed((): MonsterConfigOption[] => {
+    const configs: MonsterConfigOption[] = [];
+    const maze = store.templeMaze;
+    const roomsData = store.roomsData;
+    
+    // Determine which tokens to show based on pending type
+    const tokenSet = pendingMonsterType.value === 'miniboss' 
+      ? MINIBOSS_CONFIG_TOKENS 
+      : MONSTER_CONFIG_TOKENS;
+    
+    // Count how many times each token appears in the maze
+    const tokenCounts: Record<string, number> = {};
+    
+    const countInMaze = (grid: string[][]) => {
+      for (const row of grid) {
+        for (const cell of row) {
+          if (tokenSet.includes(cell)) {
+            tokenCounts[cell] = (tokenCounts[cell] || 0) + 1;
+          }
+        }
+      }
+    };
+    
+    if (Array.isArray(maze)) {
+      countInMaze(maze);
+    } else {
+      Object.values(maze).forEach(floor => countInMaze(floor as string[][]));
+    }
+    
+    // Build config options for tokens that are in use or have room data
+    for (const token of tokenSet) {
+      const roomConfig = roomsData[token];
+      const count = tokenCounts[token] || 0;
+      const beasts = roomConfig?.content?.beasts || [];
+      const hasBeasts = beasts.length > 0;
+      
+      // Only show if it's in use OR has been configured
+      if (count > 0 || hasBeasts || roomConfig) {
+        // Determine display name based on configuration state
+        let displayName = 'Empty';
+        if (hasBeasts) {
+          displayName = `${beasts.length} beast${beasts.length > 1 ? 's' : ''}`;
+        } else if (count > 0) {
+          displayName = `${count} room${count > 1 ? 's' : ''}`;
+        }
+        
+        configs.push({
+          token,
+          name: displayName,
+          hasBeasts,
+          count
+        });
+      }
+    }
+    
+    // Also show unused tokens (up to 3 that aren't in use)
+    const unusedTokens = tokenSet.filter(t => !configs.find(c => c.token === t));
+    for (let i = 0; i < Math.min(3, unusedTokens.length); i++) {
+      configs.push({
+        token: unusedTokens[i],
+        name: 'New shared config',
+        hasBeasts: false,
+        count: 0
+      });
+    }
+    
+    return configs;
+  });
 
   const resetRoom = async () => {
     const alert = await import('@ionic/vue').then(m => m.alertController).then(ctrl => 
@@ -615,8 +705,47 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
 
     roomData.value.type = type;
     
-    // If the type has configuration, move to step 3
-    if (['monster', 'miniboss', 'boss', 'loot', 'shop', 'stairs-up', 'stairs-down', 'pit', 'void', 'teleport'].includes(type)) {
+    // Monster rooms go to config selector first (step 2.5) - choose M001-M009
+    if (type === 'monster') {
+      pendingMonsterType.value = type;
+      if (!roomData.value.content) roomData.value.content = {} as RoomContent;
+      modalStep.value = 2.5;
+      return;
+    }
+    
+    // Miniboss rooms go to config selector (step 2.5) - choose MINI/MIN1-MIN3
+    if (type === 'miniboss') {
+      pendingMonsterType.value = type;
+      if (!roomData.value.content) roomData.value.content = {} as RoomContent;
+      modalStep.value = 2.5;
+      return;
+    }
+    
+    // Boss rooms go directly to config (typically one BOSS per dungeon)
+    if (type === 'boss') {
+      if (!roomData.value.content) roomData.value.content = {} as RoomContent;
+      // Assign BOSS token directly
+      const allMaze = store.templeMaze;
+      const isArrayMaze = Array.isArray(allMaze);
+      const r = rowIdx.value;
+      const c = colIdx.value;
+      
+      if (isArrayMaze) {
+        (allMaze as string[][])[r][c] = 'BOSS';
+      } else {
+        (allMaze as Record<string, string[][]>)[store.currentLevelId][r][c] = 'BOSS';
+      }
+      
+      if (!store.roomsData['BOSS']) {
+        store.roomsData['BOSS'] = { type: 'boss', content: { lockOnEnter: true } as RoomContent };
+      }
+      roomData.value = JSON.parse(JSON.stringify(store.roomsData['BOSS']));
+      modalStep.value = 3;
+      return;
+    }
+    
+    // Other types with configuration move to step 3
+    if (['loot', 'shop', 'stairs-up', 'stairs-down', 'pit', 'void', 'teleport'].includes(type)) {
       if (!roomData.value.content) roomData.value.content = {} as RoomContent;
       if (['stairs-up', 'stairs-down', 'pit', 'void', 'teleport'].includes(type)) {
         if (!roomData.value.content.targetLevel) roomData.value.content.targetLevel = store.currentLevelId;
@@ -628,8 +757,71 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     }
   };
 
+  // Handle monster config selection (M001, M002, etc. or NEW for unique)
+  const selectMonsterConfig = (token: string) => {
+    if (!roomData.value) return;
+    
+    const allMaze = store.templeMaze;
+    const isArrayMaze = Array.isArray(allMaze);
+    const r = rowIdx.value;
+    const c = colIdx.value;
+    
+    if (token === 'NEW') {
+      // Generate a unique symbol for this room
+      const newSymbol = store.generateUniqueSymbol();
+      
+      // Update the maze grid
+      if (isArrayMaze) {
+        (allMaze as string[][])[r][c] = newSymbol;
+      } else {
+        (allMaze as Record<string, string[][]>)[store.currentLevelId][r][c] = newSymbol;
+      }
+      
+      // Initialize room data with the pending type
+      store.roomsData[newSymbol] = {
+        type: pendingMonsterType.value || 'monster',
+        content: {} as RoomContent
+      };
+      roomData.value = JSON.parse(JSON.stringify(store.roomsData[newSymbol]));
+    } else {
+      // Use the selected M-token (shared config)
+      if (isArrayMaze) {
+        (allMaze as string[][])[r][c] = token;
+      } else {
+        (allMaze as Record<string, string[][]>)[store.currentLevelId][r][c] = token;
+      }
+      
+      // Initialize or get existing room data for this token
+      if (!store.roomsData[token]) {
+        store.roomsData[token] = {
+          type: pendingMonsterType.value || 'monster',
+          content: {} as RoomContent
+        };
+      } else {
+        // Update the type if different (e.g., switching from monster to boss)
+        store.roomsData[token].type = pendingMonsterType.value || 'monster';
+      }
+      roomData.value = JSON.parse(JSON.stringify(store.roomsData[token]));
+    }
+    
+    pendingMonsterType.value = null;
+    modalStep.value = 3; // Move to config step
+  };
+
   const backModalStep = () => {
     if (modalStep.value > 1) {
+      // Handle step 2.5 (monster config) - go back to step 2
+      if (modalStep.value === 2.5) {
+        modalStep.value = 2;
+        pendingMonsterType.value = null;
+        return;
+      }
+      // Handle step 3 - if it was a monster room, go back to 2.5
+      if (modalStep.value === 3 && ['monster', 'miniboss', 'boss'].includes(roomData.value?.type || '')) {
+        modalStep.value = 2.5;
+        pendingMonsterType.value = roomData.value?.type || 'monster';
+        return;
+      }
       modalStep.value--;
       if (modalStep.value === 1) {
         selectedCategory.value = null;
@@ -840,6 +1032,11 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     selectedCategory,
     isReturningFromSelection,
     hasChanges,
+    pendingMonsterType,
+    
+    // Monster Config
+    availableMonsterConfigs,
+    monsterConfigTokens: MONSTER_CONFIG_TOKENS,
     
     // Bestiary
     allBeasts,
@@ -875,6 +1072,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     closeTypeModal,
     goToTypes,
     selectType,
+    selectMonsterConfig,
     backModalStep,
     confirmConfig,
     getCategoryColorClass,
