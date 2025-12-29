@@ -1,5 +1,5 @@
 // Impordules
-import SideMenuRoutes  from './side-menu.routes';
+import SideMenuRoutes from './side-menu.routes';
 import UserHudRoutes from './user-hud.routes';
 import MyHomeRoutes from './my-home.routes';
 import MyPortalRoutes from './my-portal.routes';
@@ -31,14 +31,14 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/xp-intro",
     name: "xp-intro",
-    component: () => import("@/views/App/XpIntro/XpIntro.vue"),
+    component: () => import("@/views/XpIntro/XpIntro.vue"),
   },
 
   // Start Screen / Login
   {
     name: "log-in",
     path: "/log-in",
-    component: () => import("@/views/App/LogIn/LogIn.vue"),
+    component: () => import("@/views/LogIn/LogIn.vue"),
     meta: {
       requiresAuth: false,
       title: "Do it for the XP",
@@ -49,7 +49,7 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: "/xp-demo",
     name: "xp-demo",
-    component: () => import("@/views/App/XpDemo/XpDemo.vue"),
+    component: () => import("@/views/XpDemo/XpDemo.vue"),
   },
 
   // Battle Field Routes
@@ -101,17 +101,17 @@ export const createAppRouter = () => {
   // This helps with navigation in production builds
   const isNative = Capacitor.isNativePlatform();
   const isProduction = process.env.NODE_ENV === 'production';
-  
+
   const router = createRouter({
-    history: (isNative || isProduction) 
+    history: (isNative || isProduction)
       ? createWebHashHistory(process.env.BASE_URL)
       : createWebHistory(process.env.BASE_URL),
     routes
   });
-  
+
   // Apply router guards
   useRouterGuards(router);
-  
+
   return router;
 };
 

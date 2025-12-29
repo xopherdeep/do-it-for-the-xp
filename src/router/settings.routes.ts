@@ -3,14 +3,14 @@ import { RouteRecordRaw } from "vue-router";
 export const SettingsRoutes: RouteRecordRaw[] = [{
   path: "/xp-settings",
   name: "xp-settings",
-  component: () => import("@/views/App/SideMenu/XpSettings/XpSettings.vue"),
+  component: () => import("@/app/SideMenu/XpSettings/XpSettings.vue"),
   children: [
     {
       path: "",
       name: "xp-settings-home",
       component: () =>
         import(
-          "@/views/App/SideMenu/XpSettings/components/XpSettingsHome/XpSettingsHome.vue"
+          "@/app/SideMenu/XpSettings/components/XpSettingsHome/XpSettingsHome.vue"
         ),
     },
     {
@@ -18,7 +18,7 @@ export const SettingsRoutes: RouteRecordRaw[] = [{
       name: "xp-settings-general",
       component: () =>
         import(
-          "@/views/App/SideMenu/XpSettings/components/GeneralSettings.vue"
+          "@/app/SideMenu/XpSettings/components/GeneralSettings.vue"
         ),
     },
     {
@@ -26,7 +26,7 @@ export const SettingsRoutes: RouteRecordRaw[] = [{
       name: "xp-settings-family",
       component: () =>
         import(
-          "@/views/App/SideMenu/XpSettings/components/FamilySettings.vue"
+          "@/app/SideMenu/XpSettings/components/FamilySettings.vue"
         ),
     },
     {
@@ -34,7 +34,7 @@ export const SettingsRoutes: RouteRecordRaw[] = [{
       name: "xp-settings-sound",
       component: () =>
         import(
-          "@/views/App/SideMenu/XpSettings/components/SoundSettings.vue"
+          "@/app/SideMenu/XpSettings/components/SoundSettings.vue"
         ),
     },
     {
@@ -42,7 +42,7 @@ export const SettingsRoutes: RouteRecordRaw[] = [{
       name: "xp-settings-notifications",
       component: () =>
         import(
-          "@/views/App/SideMenu/XpSettings/components/NotificationSettings.vue"
+          "@/app/SideMenu/XpSettings/components/NotificationSettings.vue"
         ),
     },
     {
@@ -50,7 +50,7 @@ export const SettingsRoutes: RouteRecordRaw[] = [{
       name: "xp-settings-reward",
       component: () =>
         import(
-          "@/views/App/SideMenu/XpSettings/components/RewardSettings.vue"
+          "@/app/SideMenu/XpSettings/components/RewardSettings.vue"
         ),
     },
     {
@@ -58,7 +58,7 @@ export const SettingsRoutes: RouteRecordRaw[] = [{
       name: "xp-settings-party",
       component: () =>
         import(
-          "@/views/App/SideMenu/XpSettings/components/PartySettings.vue"
+          "@/app/SideMenu/XpSettings/components/PartySettings.vue"
         ),
     },
     {
@@ -66,7 +66,7 @@ export const SettingsRoutes: RouteRecordRaw[] = [{
       name: "xp-settings-theme",
       component: () =>
         import(
-          "@/views/App/SideMenu/XpSettings/components/ThemeSettings.vue"
+          "@/app/SideMenu/XpSettings/components/ThemeSettings.vue"
         ),
     },
     {
@@ -74,7 +74,7 @@ export const SettingsRoutes: RouteRecordRaw[] = [{
       name: "xp-settings-chore",
       component: () =>
         import(
-          "@/views/App/SideMenu/XpSettings/components/XpChoreSettings/ChoreSettings.vue"
+          "@/app/SideMenu/XpSettings/components/XpChoreSettings/ChoreSettings.vue"
         ),
     },
   ],

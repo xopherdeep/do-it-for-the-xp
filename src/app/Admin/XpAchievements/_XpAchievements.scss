@@ -1,0 +1,235 @@
+/* View Toggle Toolbar */
+.view-toggle-toolbar {
+  --background: transparent;
+  --border-width: 0;
+  --min-height: 36px;
+}
+
+/* Empty State */
+.empty-state-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 50vh;
+  padding: 24px;
+}
+
+.glass-card {
+  background: rgba(25, 27, 46, 0.6);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 40px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+
+  &.empty-state {
+    text-align: center;
+    max-width: 400px;
+
+    .empty-icon {
+      color: rgba(255, 255, 255, 0.3);
+      margin-bottom: 16px;
+    }
+
+    h2 {
+      font-family: var(--xp-font-heading);
+      font-size: 1.2rem;
+      color: white;
+      margin: 0 0 8px;
+    }
+
+    p {
+      margin: 0 0 20px;
+      color: rgba(255, 255, 255, 0.5);
+      line-height: 1.5;
+    }
+  }
+}
+
+/* Quest Grid */
+.quest-grid {
+  padding: 12px;
+  padding-bottom: 100px;
+}
+
+.quest-card {
+  cursor: pointer;
+  padding: 16px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 160px;
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  }
+
+  &.is-expired {
+    opacity: 0.5;
+    filter: grayscale(0.5);
+  }
+
+  .quest-card-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.05);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+
+    ion-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .fallback-icon {
+      color: rgba(255, 255, 255, 0.4);
+    }
+  }
+
+  .quest-card-content {
+    flex: 1;
+
+    h3 {
+      font-family: var(--xp-font-heading);
+      font-size: 0.85rem;
+      color: white;
+      margin: 0 0 4px;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .category-label {
+      font-size: 0.7rem;
+      color: rgba(255, 255, 255, 0.5);
+      margin: 0;
+    }
+  }
+
+  .quest-card-rewards {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+
+    ion-badge {
+      font-size: 0.65rem;
+      padding: 4px 8px;
+    }
+  }
+}
+
+/* Quest List Wrapper */
+.quest-list-wrapper {
+  padding-bottom: 100px;
+}
+
+/* Assignee Accordions */
+.assignee-accordion {
+  margin-bottom: 12px;
+  border-radius: 16px;
+  overflow: hidden;
+  background: transparent;
+
+  &::part(header) {
+    background: rgba(25, 27, 46, 0.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 16px;
+  }
+
+  &::part(content) {
+    background: transparent;
+    padding: 0;
+  }
+
+  &.accordion-expanded::part(header) {
+    border-radius: 16px 16px 0 0;
+  }
+}
+
+.assignee-header {
+  --background: transparent;
+  --color: white;
+  --padding-start: 16px;
+  --inner-padding-end: 16px;
+
+  .assignee-avatar {
+    width: 40px;
+    height: 40px;
+    margin-right: 14px;
+  }
+
+  ion-label {
+    h2 {
+      font-family: var(--xp-font-heading);
+      font-size: 1rem;
+      color: white;
+      margin: 0 0 2px;
+    }
+
+    p {
+      font-size: 0.8rem;
+      color: rgba(255, 255, 255, 0.5);
+      margin: 0;
+    }
+  }
+}
+
+.accordion-content {
+  background: rgba(15, 17, 30, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: none;
+  border-radius: 0 0 16px 16px;
+  padding: 8px;
+  
+  ion-list {
+    background: transparent;
+  }
+}
+
+/* Quest Footer */
+.quest-footer {
+  background: rgba(25, 27, 46, 0.8);
+  backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 8px 16px;
+  
+  ion-segment {
+    --background: rgba(0, 0, 0, 0.2);
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    padding: 2px;
+  }
+}
+
+/* FAB Buttons */
+ion-fab-list {
+  ion-fab-button {
+    &::before {
+      position: absolute;
+      right: 53px;
+      top: 12px;
+      cursor: pointer;
+    }
+
+    &:nth-child(1)::before {
+      content: "Create your Own ";
+    }
+
+    &:nth-child(2)::before {
+      content: "Add from Discover";
+    }
+
+    &:nth-child(3)::before {
+      content: "Add from Recommended";
+    }
+  }
+}
+

@@ -4,45 +4,45 @@ const DevRoutes: Array<RouteRecordRaw> = [
   {
     path: "/dev/",
     name: "dev-dashboard",
-    redirect: { name: "dev-tools" }, 
+    redirect: { name: "dev-tools" },
   },
   {
     path: "/dev/component-showcase",
     name: "component-showcase",
-    component: () => import("@/views/Dev/ComponentShowcase.vue"),
+    component: () => import("@/app/Dev/ComponentShowcase.vue"),
   },
   {
     path: "/dev/dialog-demo",
     name: "dialog-demo",
-    component: () => import("@/views/Dev/DialogDemo.vue"),
+    component: () => import("@/app/Dev/DialogDemo.vue"),
   },
   {
     path: "/dev/weatherfx",
     name: "weatherfx-dev",
     component: () =>
-      import("@/views/Dev/WeatherFXDevTools/WeatherFXDevTools.vue"),
+      import("@/app/Dev/WeatherFXDevTools/WeatherFXDevTools.vue"),
   },
   {
     path: "/dev/abilities",
     name: "abilities-dev",
-    component: () => import("@/views/Dev/AbilityDevTools/AbilityDevTools.vue"),
+    component: () => import("@/app/Dev/AbilityDevTools/AbilityDevTools.vue"),
   },
   {
     path: "/dev/soundfx",
     name: "soundfx-dev",
-    component: () => import("@/views/Dev/SoundFXDevTools/SoundFXDevTools.vue"),
+    component: () => import("@/app/Dev/SoundFXDevTools/SoundFXDevTools.vue"),
   },
   {
     path: "/dev/intro-splash",
     name: "intro-splash-demo",
-    component: () => import("@/views/Dev/IntroSplashDemo.vue"),
+    component: () => import("@/app/Dev/IntroSplashDemo.vue"),
   },
   {
     path: "/dev/dungeon-background",
     name: "dungeon-background-designer",
     component: () =>
       import(
-        "@/views/Dev/DungeonBackgroundDesigner/DungeonBackgroundDesigner.vue"
+        "@/app/Dev/DungeonBackgroundDesigner/DungeonBackgroundDesigner.vue"
       ),
   },
   {

@@ -1,13 +1,12 @@
 <template>
   <div class="battle-controls">
-    <div
-      v-if="battleEngine.currentEnemy"
-      class="enemy-status"
-    >
+    <div v-if="battleEngine.currentEnemy" class="enemy-status">
       <div class="enemy-name">{{ battleEngine.currentEnemy.value?.name }}</div>
       <div class="enemy-health">
-        <div class="health-label">HP: {{ battleEngine.currentEnemy.value?.health }} / {{
-          battleEngine.currentEnemy.value?.maxHealth }}</div>
+        <div class="health-label">
+          HP: {{ battleEngine.currentEnemy.value?.health }} /
+          {{ battleEngine.currentEnemy.value?.maxHealth }}
+        </div>
         <div class="health-bar-container">
           <div
             class="health-bar"
@@ -22,10 +21,14 @@
 
     <div
       class="battle-actions"
-      v-if="battleEngine.state.isPlayerTurn && !battleEngine.battleDialog.showDialog"
+      v-if="
+        battleEngine.state.isPlayerTurn && !battleEngine.battleDialog.showDialog
+      "
     >
       <ion-button
-        v-for="action in Array.isArray(battleEngine.userActions) ? battleEngine.userActions : []"
+        v-for="action in Array.isArray(battleEngine.userActions)
+          ? battleEngine.userActions
+          : []"
         :key="action.id"
         @click="handleAction(action.id)"
         :color="getActionColor(action.type)"
@@ -45,18 +48,18 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent } from 'vue';
-  import { useBattleEngine } from '@/views/Console/BattleField/hooks/useBattleEngine';
+  import { defineComponent } from "vue";
+  import { useBattleEngine } from "@/app/Console/BattleField/hooks/useBattleEngine";
   import {
     flash as swordOutline,
     shield as shieldOutline,
     colorWand as colorWandOutline,
     bag as bagOutline,
-    walk as walkOutline
-  } from 'ionicons/icons';
+    walk as walkOutline,
+  } from "ionicons/icons";
 
   export default defineComponent({
-    name: 'XpBattleControls',
+    name: "XpBattleControls",
     setup() {
       // Use the battle engine hook directly - this works from any component
       const battleEngine = useBattleEngine();
@@ -69,11 +72,11 @@
       // Helper function to get icon by name
       const getIconByName = (iconName: string) => {
         const iconMap: Record<string, any> = {
-          'sword-outline': swordOutline,
-          'shield-outline': shieldOutline,
-          'color-wand-outline': colorWandOutline,
-          'bag-outline': bagOutline,
-          'walk-outline': walkOutline
+          "sword-outline": swordOutline,
+          "shield-outline": shieldOutline,
+          "color-wand-outline": colorWandOutline,
+          "bag-outline": bagOutline,
+          "walk-outline": walkOutline,
         };
 
         return iconMap[iconName] || null;
@@ -82,23 +85,23 @@
       // Helper function to set button colors based on action type
       const getActionColor = (actionType: string) => {
         const colorMap: Record<string, string> = {
-          'attack': 'danger',
-          'defend': 'warning',
-          'special': 'tertiary',
-          'item': 'success',
-          'escape': 'medium'
+          attack: "danger",
+          defend: "warning",
+          special: "tertiary",
+          item: "success",
+          escape: "medium",
         };
 
-        return colorMap[actionType] || 'primary';
+        return colorMap[actionType] || "primary";
       };
 
       return {
         battleEngine,
         handleAction,
         getIconByName,
-        getActionColor
+        getActionColor,
       };
-    }
+    },
   });
 </script>
 

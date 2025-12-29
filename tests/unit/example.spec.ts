@@ -1,4 +1,4 @@
-import MyPortal from '@/views/Console/MyPortal/MyPortal'
+import MyPortal from '@/app/Console/MyPortal/MyPortal'
 import { mount } from '@vue/test-utils'
 // import FolderPage from '@/views/FolderPage.vue'
 

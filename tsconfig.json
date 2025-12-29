@@ -5,19 +5,46 @@
     "esModuleInterop": true,
     "importHelpers": true,
     "jsx": "preserve",
-    "lib": ["esnext", "dom", "dom.iterable", "scripthost"],
+    "lib": [
+      "esnext",
+      "dom",
+      "dom.iterable",
+      "scripthost"
+    ],
     "module": "esnext",
     "moduleResolution": "node",
     "noImplicitAny": false,
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": [
+        "src/*"
+      ],
+      "@lib/*": [
+        "src/lib/*"
+      ],
+      "@views/*": [
+        "src/views/*"
+      ],
+      "@app/*": [
+        "src/app/*"
+      ],
+      "@components/*": [
+        "src/components/*"
+      ],
+      "@styles/*": [
+        "src/styles/*"
+      ]
     },
     "resolveJsonModule": true,
     "skipLibCheck": true,
     "sourceMap": true,
     "strict": true,
     "target": "esnext",
-    "types": ["webpack-env", "jest", "node", "vue"]
+    "types": [
+      "webpack-env",
+      "jest",
+      "node",
+      "vue"
+    ]
   },
   "include": [
     "src/**/*.js",
@@ -26,10 +53,9 @@
     "src/**/*.vue",
     "src/**/*.d.ts",
     "src/lib/types/**/*.d.ts",
-
     "tests/**/*.ts",
     "tests/**/*.js",
-    "src/views/Console/TempleGrounds/TempleGrounds.vue",
+    "src/app/Console/TempleGrounds/TempleGrounds.vue",
   ],
   "exclude": [
     "node_modules",

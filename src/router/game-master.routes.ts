@@ -4,8 +4,8 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
   path: "/game-master",
   name: "game-master",
   component: () =>
-    import("@/views/App/SideMenu/XpGameMaster/XpGameMaster.vue"),
-    children: [
+    import("@/app/Admin/XpGameMaster.vue"),
+  children: [
     {
       path: "",
       name: "dashboard",
@@ -16,7 +16,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
       name: "xp-dashboard",
       component: () =>
         import(
-          "../views/App/SideMenu/XpGameMaster/XpDashboard/XpDashboard.vue"
+          "../app/Admin/XpDashboard/XpDashboard.vue"
         ),
     },
     {
@@ -24,7 +24,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
       name: "xp-compendium",
       component: () =>
         import(
-          "../views/App/SideMenu/XpGameMaster/XpCompendium/CompendiumRoot.vue"
+          "../app/Admin/XpCompendium/CompendiumRoot.vue"
         ),
       children: [
         {
@@ -36,7 +36,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
           name: "xp-compendium-setup",
           component: () =>
             import(
-              "../views/App/SideMenu/XpGameMaster/XpCompendium/XpCompendium.vue"
+              "../app/Admin/XpCompendium/XpCompendium.vue"
             ),
           children: [
             {
@@ -48,7 +48,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
               name: "xp-compendium-dashboard",
               component: () =>
                 import(
-                  "../views/App/SideMenu/XpGameMaster/XpCompendium/CompendiumDashboard.vue"
+                  "../app/Admin/XpCompendium/CompendiumDashboard.vue"
                 ),
             },
             {
@@ -56,7 +56,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
               name: "xp-achievements",
               component: () =>
                 import(
-                  "@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAchievements.vue"
+                  "@/app/Admin/XpAchievements/XpAchievements.vue"
                 ),
             },
             {
@@ -68,7 +68,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
               name: "xp-achievement-config",
               component: () =>
                 import(
-                  "@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAddAchievement/XpAddAchievement.vue"
+                  "@/app/Admin/XpAchievements/XpConfigAchievement/XpConfigAchievement.vue"
                 ),
               props: true,
               children: [
@@ -79,31 +79,31 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
                 {
                   path: "dashboard",
                   name: "xp-achievement-config-dashboard",
-                  component: () => import("@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAddAchievement/components/tabs/QuestDashboardTab.vue"),
+                  component: () => import("@/app/Admin/XpAchievements/XpConfigAchievement/components/tabs/QuestDashboardTab.vue"),
                   props: true,
                 },
                 {
                   path: "heros",
                   name: "xp-achievement-config-heros",
-                  component: () => import("@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAddAchievement/components/tabs/QuestHerosTab.vue"),
+                  component: () => import("@/app/Admin/XpAchievements/XpConfigAchievement/components/tabs/QuestHerosTab.vue"),
                   props: true,
                 },
                 {
                   path: "when",
                   name: "xp-achievement-config-when",
-                  component: () => import("@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAddAchievement/components/tabs/QuestScheduleTab.vue"),
+                  component: () => import("@/app/Admin/XpAchievements/XpConfigAchievement/components/tabs/QuestScheduleTab.vue"),
                   props: true,
                 },
                 {
                   path: "points",
                   name: "xp-achievement-config-points",
-                  component: () => import("@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAddAchievement/components/tabs/QuestRewardsTab.vue"),
+                  component: () => import("@/app/Admin/XpAchievements/XpConfigAchievement/components/tabs/QuestRewardsTab.vue"),
                   props: true,
                 },
                 {
                   path: "quest-type",
                   name: "xp-achievement-config-type",
-                  component: () => import("@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAddAchievement/components/tabs/QuestTypeTab.vue"),
+                  component: () => import("@/app/Admin/XpAchievements/XpConfigAchievement/components/tabs/QuestTypeTab.vue"),
                   props: true,
                 },
               ]
@@ -113,7 +113,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
               name: "xp-bestiary",
               component: () =>
                 import(
-                  "@/views/App/SideMenu/XpGameMaster/XpBestiary/XpBestiary.vue"
+                  "@/app/Admin/XpBestiary/XpBestiary.vue"
                 ),
             },
             {
@@ -121,7 +121,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
               name: "xp-bestiary-select",
               component: () =>
                 import(
-                  "@/views/App/SideMenu/XpGameMaster/XpBestiary/XpBeastSelectionPage.vue"
+                  "@/app/Admin/XpBestiary/XpBeastSelectionPage.vue"
                 ),
             },
             {
@@ -129,7 +129,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
               name: "xp-create-update-beast",
               component: () =>
                 import(
-                  "@/views/App/SideMenu/XpGameMaster/XpBestiary/components/XpAddBeast.vue"
+                  "@/app/Admin/XpBestiary/components/XpAddBeast.vue"
                 ),
               props: true,
             },
@@ -138,7 +138,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
               name: "xp-economy-dashboard-root",
               component: () =>
                 import(
-                  "@/views/App/SideMenu/XpGameMaster/XpAccessories/components/XpEconomyDashboard.vue"
+                  "@/app/Admin/XpAccessories/components/XpEconomyDashboard.vue"
                 ),
               children: [
                 {
@@ -150,7 +150,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
                   name: "xp-economy-dashboard",
                   component: () =>
                     import(
-                      "@/views/App/SideMenu/XpGameMaster/XpAccessories/components/tabs/XpEconomySplashTab.vue"
+                      "@/app/Admin/XpAccessories/components/tabs/XpEconomySplashTab.vue"
                     ),
                 },
                 {
@@ -158,7 +158,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
                   name: "xp-economy-shops",
                   component: () =>
                     import(
-                      "@/views/App/SideMenu/XpGameMaster/XpAccessories/components/tabs/XpEconomyShops.vue"
+                      "@/app/Admin/XpAccessories/components/tabs/XpEconomyShops.vue"
                     ),
                 },
                 {
@@ -166,7 +166,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
                   name: "xp-economy-items",
                   component: () =>
                     import(
-                      "@/views/App/SideMenu/XpGameMaster/XpAccessories/components/tabs/XpEconomyItems.vue"
+                      "@/app/Admin/XpAccessories/components/tabs/XpEconomyItems.vue"
                     ),
                 },
                 {
@@ -174,7 +174,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
                   name: "xp-economy-key-items",
                   component: () =>
                     import(
-                      "@/views/App/SideMenu/XpGameMaster/XpAccessories/components/tabs/XpEconomyKeyItems.vue"
+                      "@/app/Admin/XpAccessories/components/tabs/XpEconomyKeyItems.vue"
                     ),
                 },
               ],
@@ -184,7 +184,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
               name: "xp-economy-global",
               component: () =>
                 import(
-                  "@/views/App/SideMenu/XpGameMaster/XpAccessories/components/XpAccessoriesGlobalList.vue"
+                  "@/app/Admin/XpAccessories/components/XpAccessoriesGlobalList.vue"
                 ),
             },
             {
@@ -192,7 +192,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
               name: "xp-shop-details",
               component: () =>
                 import(
-                  "@/views/App/SideMenu/XpGameMaster/XpAccessories/components/XpShopDetails.vue"
+                  "@/app/Admin/XpAccessories/components/XpShopDetails.vue"
                 ),
               props: true,
               children: [
@@ -206,7 +206,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
                   name: "xp-shop-dashboard",
                   component: () =>
                     import(
-                      "../views/App/SideMenu/XpGameMaster/XpAccessories/components/tabs/XpShopDashboardTab.vue"
+                      "../app/Admin/XpAccessories/components/tabs/XpShopDashboardTab.vue"
                     ),
                   props: true,
                 },
@@ -215,7 +215,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
                   name: "xp-shop-items",
                   component: () =>
                     import(
-                      "@/views/App/SideMenu/XpGameMaster/XpAccessories/components/tabs/XpShopItemsTab.vue"
+                      "@/app/Admin/XpAccessories/components/tabs/XpShopItemsTab.vue"
                     ),
                   props: true,
                 },
@@ -224,7 +224,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
                   name: "xp-shop-hours",
                   component: () =>
                     import(
-                      "@/views/App/SideMenu/XpGameMaster/XpAccessories/components/tabs/XpShopHoursTab.vue"
+                      "@/app/Admin/XpAccessories/components/tabs/XpShopHoursTab.vue"
                     ),
                   props: true,
                 },
@@ -233,7 +233,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
                   name: "xp-shop-decorate",
                   component: () =>
                     import(
-                      "@/views/App/SideMenu/XpGameMaster/XpAccessories/components/tabs/XpShopDecorateTab.vue"
+                      "@/app/Admin/XpAccessories/components/tabs/XpShopDecorateTab.vue"
                     ),
                   props: true,
                 },
@@ -242,7 +242,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
                   name: "xp-shop-clerk",
                   component: () =>
                     import(
-                      "@/views/App/SideMenu/XpGameMaster/XpAccessories/components/tabs/XpShopClerkTab.vue"
+                      "@/app/Admin/XpAccessories/components/tabs/XpShopClerkTab.vue"
                     ),
                   props: true,
                 },
@@ -253,7 +253,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
               name: "xp-create-update-shop",
               component: () =>
                 import(
-                  "@/views/App/SideMenu/XpGameMaster/XpAccessories/components/XpCreateUpdateShop.vue"
+                  "@/app/Admin/XpAccessories/components/XpCreateUpdateShop.vue"
                 ),
               props: true,
             },
@@ -262,7 +262,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
               name: "xp-create-update-accessory",
               component: () =>
                 import(
-                  "@/views/App/SideMenu/XpGameMaster/XpAccessories/components/XpCreateUpdateAccessory.vue"
+                  "@/app/Admin/XpAccessories/components/XpCreateUpdateAccessory.vue"
                 ),
             },
             {
@@ -270,7 +270,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
               name: "xp-abilities",
               component: () =>
                 import(
-                  "@/views/App/SideMenu/XpGameMaster/XpAbilities/XpAbilities.vue"
+                  "@/app/Admin/XpAbilities/XpAbilities.vue"
                 ),
             },
             {
@@ -278,7 +278,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
               name: "xp-create-update-ability",
               component: () =>
                 import(
-                  "@/views/App/SideMenu/XpGameMaster/XpAbilities/components/XpCreateUpdateAbility.vue"
+                  "@/app/Admin/XpAbilities/components/XpCreateUpdateAbility.vue"
                 ),
               props: true,
             },
@@ -286,7 +286,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
               path: "temples",
               name: "xp-compendium-temples",
               component: () =>
-                import("@/views/App/SideMenu/XpGameMaster/XpTemples"),
+                import("@/app/Admin/XpTemples"),
             },
 
 
@@ -295,7 +295,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
               name: "xp-room-editor",
               component: () =>
                 import(
-                  "@/views/App/SideMenu/XpGameMaster/XpTemples/components/XpTempleCreator/XpRoomEditorPage.vue"
+                  "@/app/Admin/XpTemples/components/XpTempleCreator/XpRoomEditorPage.vue"
                 ),
               props: true,
             },
@@ -304,7 +304,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
               name: "xp-temple-settings",
               component: () =>
                 import(
-                  "@/views/App/SideMenu/XpGameMaster/XpTemples/components/XpTempleSettings.vue"
+                  "@/app/Admin/XpTemples/components/XpTempleSettings.vue"
                 ),
               props: true,
               children: [
@@ -317,7 +317,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
                   name: "xp-temple-dashboard",
                   component: () =>
                     import(
-                      "../views/App/SideMenu/XpGameMaster/XpTemples/components/tabs/XpTempleDashboard.vue"
+                      "../app/Admin/XpTemples/components/tabs/XpTempleDashboard.vue"
                     ),
                   props: true,
                 },
@@ -326,7 +326,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
                   name: "xp-temple-layout",
                   component: () =>
                     import(
-                      "@/views/App/SideMenu/XpGameMaster/XpTemples/components/tabs/XpTempleLayout.vue"
+                      "@/app/Admin/XpTemples/components/tabs/XpTempleLayout.vue"
                     ),
                   props: true,
                 },
@@ -335,7 +335,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
                   name: "xp-temple-rooms",
                   component: () =>
                     import(
-                      "@/views/App/SideMenu/XpGameMaster/XpTemples/components/tabs/XpTempleRooms.vue"
+                      "@/app/Admin/XpTemples/components/tabs/XpTempleRooms.vue"
                     ),
                   props: true,
                 },
@@ -344,7 +344,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
                   name: "xp-temple-beasts",
                   component: () =>
                     import(
-                      "@/views/App/SideMenu/XpGameMaster/XpTemples/components/tabs/XpTempleBeasts.vue"
+                      "@/app/Admin/XpTemples/components/tabs/XpTempleBeasts.vue"
                     ),
                   props: true,
                 },
@@ -353,7 +353,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
                   name: "xp-temple-attributes",
                   component: () =>
                     import(
-                      "@/views/App/SideMenu/XpGameMaster/XpTemples/components/tabs/XpTempleConfig.vue"
+                      "@/app/Admin/XpTemples/components/tabs/XpTempleConfig.vue"
                     ),
                   props: true,
                   children: [
@@ -366,7 +366,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
                       name: "xp-temple-attributes-general",
                       component: () =>
                         import(
-                          "@/views/App/SideMenu/XpGameMaster/XpTemples/components/tabs/XpTempleAttributes.vue"
+                          "@/app/Admin/XpTemples/components/tabs/XpTempleAttributes.vue"
                         ),
                       props: (route) => ({ templeId: route.params.templeId, tab: 'general' }),
                     },
@@ -375,7 +375,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
                       name: "xp-temple-attributes-audit",
                       component: () =>
                         import(
-                          "@/views/App/SideMenu/XpGameMaster/XpTemples/components/tabs/XpTempleAttributes.vue"
+                          "@/app/Admin/XpTemples/components/tabs/XpTempleAttributes.vue"
                         ),
                       props: (route) => ({ templeId: route.params.templeId, tab: 'audit' }),
                     },
@@ -384,7 +384,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
                       name: "xp-temple-attributes-navigator",
                       component: () =>
                         import(
-                          "@/views/App/SideMenu/XpGameMaster/XpTemples/components/tabs/XpTempleAttributes.vue"
+                          "@/app/Admin/XpTemples/components/tabs/XpTempleAttributes.vue"
                         ),
                       props: (route) => ({ templeId: route.params.templeId, tab: 'navigator' }),
                     },
@@ -395,7 +395,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
                   name: "xp-temple-room-editor",
                   component: () =>
                     import(
-                      "@/views/App/SideMenu/XpGameMaster/XpTemples/components/XpTempleCreator/XpRoomEditorPage.vue"
+                      "@/app/Admin/XpTemples/components/XpTempleCreator/XpRoomEditorPage.vue"
                     ),
                   props: true,
                 },
@@ -409,14 +409,14 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
       path: "chat",
       name: "xp-chat",
       component: () =>
-        import("../views/App/SideMenu/XpGameMaster/XpChat/XpChat.vue"),
+        import("../app/Admin/XpChat/XpChat.vue"),
     },
     {
       path: "do-this-not-that/:id?",
       name: "xp-do-this-not-that",
       component: () =>
         import(
-          "@/views/App/SideMenu/XpGameMaster/XpDoThisNotThat/XpDoThisNotThat.vue"
+          "@/app/Admin/XpDoThisNotThat/XpDoThisNotThat.vue"
         ),
       props: true,
     },
@@ -426,7 +426,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
       name: "xp-add-beast",
       component: () =>
         import(
-          "@/views/App/SideMenu/XpGameMaster/XpBestiary/components/XpAddBeast.vue"
+          "@/app/Admin/XpBestiary/components/XpAddBeast.vue"
         ),
       props: true,
     },
@@ -435,7 +435,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
       name: "xp-add-ability",
       component: () =>
         import(
-          "@/views/App/SideMenu/XpGameMaster/XpAbilities/components/XpCreateUpdateAbility.vue"
+          "@/app/Admin/XpAbilities/components/XpCreateUpdateAbility.vue"
         ),
       props: true,
     },
@@ -444,7 +444,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
       name: "xp-discover-achievements",
       component: () =>
         import(
-          "@/views/App/SideMenu/XpGameMaster/XpAchievements/XpDiscoverAchievements/XpDiscoverAchievements.vue"
+          "@/app/Admin/XpAchievements/XpDiscoverAchievements/XpDiscoverAchievements.vue"
         ),
     },
   ],

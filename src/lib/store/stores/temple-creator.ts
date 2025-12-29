@@ -5,6 +5,10 @@ import { Room } from "@/lib/engine/core/dungeons/types";
 import defaultTemples from '@/lib/engine/temples';
 import debug from '@/lib/utils/debug';
 
+// Visual tokens for JSON readability (5 characters to match X0000 format)
+const WALL_TOKEN = '_____';
+const ENTRANCE_TOKEN = '_00__';
+
 export const useTempleCreatorStore = defineStore('temple-creator', () => {
   const templeId = ref<string | null>(null);
   const templeName = ref("Temple");
@@ -33,15 +37,15 @@ export const useTempleCreatorStore = defineStore('temple-creator', () => {
   };
 
   const roomsData = ref<Record<string, Room>>({
-    [____]: { type: "wall" },
-    [_00_]: { type: "entrance", visited: true }
+    [WALL_TOKEN]: { type: "wall" },
+    [ENTRANCE_TOKEN]: { type: "entrance", visited: true }
   });
   
   const selectedCell = ref<{row: number, col: number} | null>(null);
   const roomEditorOpen = ref(false);
 
   const symbolCounter = ref(0);
-  const usedSymbols = ref<Set<string>>(new Set([____, _00_]));
+  const usedSymbols = ref<Set<string>>(new Set([WALL_TOKEN, ENTRANCE_TOKEN]));
 
   const cachedBestiary = ref<any[]>([]);
   const cachedShops = ref<any[]>([]);
@@ -70,13 +74,13 @@ export const useTempleCreatorStore = defineStore('temple-creator', () => {
     templeMaze.value = [];
     currentLevelId.value = "1F";
     roomsData.value = {
-      [____]: { type: "wall" },
-      [_00_]: { type: "entrance", visited: true }
+      [WALL_TOKEN]: { type: "wall" },
+      [ENTRANCE_TOKEN]: { type: "entrance", visited: true }
     };
     selectedCell.value = null;
     roomEditorOpen.value = false;
     symbolCounter.value = 0;
-    usedSymbols.value = new Set([____, _00_]);
+    usedSymbols.value = new Set([WALL_TOKEN, ENTRANCE_TOKEN]);
     cachedBestiary.value = [];
     cachedShops.value = [];
     loadedTempleId.value = null;
@@ -154,19 +158,31 @@ export const useTempleCreatorStore = defineStore('temple-creator', () => {
     debug.log("Starting token migration to coordinate-based system...");
     
     const newRoomsData: Record<string, Room> = {
-      [____]: roomsData.value[____] || { type: "wall" },
-      [_00_]: roomsData.value[_00_] || { type: "entrance", visited: true }
+      [WALL_TOKEN]: roomsData.value[WALL_TOKEN] || roomsData.value[____] || { type: "wall" },
+      [ENTRANCE_TOKEN]: roomsData.value[ENTRANCE_TOKEN] || roomsData.value[_00_] || { type: "entrance", visited: true }
     };
     
     const tokenMap = new Map<string, string>();
-    tokenMap.set(____, ____);
-    tokenMap.set(_00_, _00_);
+    tokenMap.set(WALL_TOKEN, WALL_TOKEN);
+    tokenMap.set(____, WALL_TOKEN); // Legacy support
+    tokenMap.set(ENTRANCE_TOKEN, ENTRANCE_TOKEN);
+    tokenMap.set(_00_, ENTRANCE_TOKEN); // Legacy support
 
     const processedMaze = JSON.parse(JSON.stringify(templeMaze.value));
 
     const processMazeGrid = (grid: string[][]) => {
       return grid.map((row, rIdx) => row.map((cell, cIdx) => {
-        if (cell === ____ || cell === _00_) return cell;
+        // Normalize legacy tokens to 4-char versions
+        if (cell === ____ || cell === WALL_TOKEN) return WALL_TOKEN;
+        if (cell === _00_ || cell === ENTRANCE_TOKEN) return ENTRANCE_TOKEN;
+        
+        // WALL NORMALIZATION: If this cell's room has type 'wall', replace with WALL_TOKEN
+        const existingRoom = roomsData.value[cell];
+        if (existingRoom?.type === 'wall') {
+          // Delete the spurious wall entry from roomsData (we'll use shared WALL_TOKEN)
+          delete roomsData.value[cell];
+          return WALL_TOKEN;
+        }
         
         // Match both 5-char (TXXYY) and potential future 6-char variants
         const isCoordToken = /^[A-Za-z]\d{4}$/.test(cell);

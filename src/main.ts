@@ -13,7 +13,7 @@ import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
 import VueVirtualScroller from 'vue-virtual-scroller';
 
 // XP APP
-import App from './views/App/App.vue'
+import App from './app/App.vue'
 import appConfig from "./app.config"
 
 // ROUTER & STORE
@@ -42,7 +42,7 @@ document.title = TITLE;
 // Set up user interaction detection for audio playback
 document.addEventListener('click', () => {
   document.documentElement.setAttribute('data-user-interacted', 'true');
-  
+
   // Play any pending audio that was attempted before user interaction
   if (window._pendingAudioPlay) {
     // Clear the flag
@@ -66,7 +66,7 @@ function readyRouterMountApp() {
     // .component('RecycleScroller', RecycleScroller)
     .use(VueVirtualScroller)
     .use(Countdown)
-    .use(IonicVue,{
+    .use(IonicVue, {
       mode: 'md',
       // animated: true,
       swipeBackEnabled: false,
@@ -84,7 +84,7 @@ function readyRouterMountApp() {
 
   // Initialize the GPSystem// Initialize Services
   GPService.initialize();
-  
+
   // Initialize the AbilitySystem
   const abilitiesDb = new AbilitiesDb(abilitiesStorage);
   AbilityService.initialize(abilitiesDb);
