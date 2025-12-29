@@ -1,10 +1,10 @@
 <template>
   <ion-page>
     <ion-header>
-      <ion-toolbar color="danger">
+      <ion-toolbar color="tertiary">
         <ion-buttons slot="start">
           <ion-back-button default-href="/about-xp" />
-          <i class="fad fa-hand-holding-magic fa-lg mr-2" style="color: lightcoral"></i>
+          <i class="fad fa-hand-holding-magic fa-lg mr-2"></i>
         </ion-buttons>
         <ion-title>About Ability Points</ion-title>
       </ion-toolbar>
@@ -15,8 +15,15 @@
       <div class="ap-theme-background h-full flex items-center justify-center">
         <i class="fad fa-hand-holding-magic fa-10x"></i> AP
         <!-- FAB button to trigger the dialog -->
-        <ion-fab vertical="bottom" horizontal="center" slot="fixed">
-          <ion-fab-button color="danger" @click="showApDialog">
+        <ion-fab
+          vertical="bottom"
+          horizontal="center"
+          slot="fixed"
+        >
+          <ion-fab-button
+            color="tertiary"
+            @click="showApDialog"
+          >
             <i class="fad fa-hand-holding-magic fa-lg"></i>
           </ion-fab-button>
         </ion-fab>
@@ -24,7 +31,11 @@
     </ion-content>
 
     <!-- Custom AP Dialog (RPG style) -->
-    <div class="ap-dialog-overlay" v-if="isDialogVisible" @click="advanceDialog">
+    <div
+      class="ap-dialog-overlay"
+      v-if="isDialogVisible"
+      @click="advanceDialog"
+    >
       <ion-card class="ap-dialog-box rpg-box">
         <ion-card-title class="dialog-header">
           <i class="fad fa-hand-holding-magic fa-lg mr-2"></i>
@@ -43,7 +54,10 @@
             :has-more-text="hasMoreDialog"
           />
         </div>
-        <div v-if="hasMoreDialog" class="dialog-indicator">
+        <div
+          v-if="hasMoreDialog"
+          class="dialog-indicator"
+        >
           <i class="fad fa-chevron-down blink"></i>
         </div>
       </ion-card>
@@ -235,65 +249,72 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-.ap-theme-background {
-  background: linear-gradient(135deg, var(--ion-color-danger-shade) 0%, var(--ion-color-danger) 100%);
-  background-size: cover;
-  min-height: 100%;
-}
+  .ap-theme-background {
+    background: linear-gradient(135deg, var(--xp-color-blue) 0%, var(--xp-color-ap) 100%);
+    background-size: cover;
+    min-height: 100%;
+  }
 
-.ap-dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  padding: 1rem;
-  z-index: 1000;
-}
-
-.ap-dialog-box {
-  width: 100%;
-  max-width: 600px;
-  background-color: rgba(0, 0, 0, 0.9);
-  border: 2px solid lightcoral;
-  color: white;
-  
-  .dialog-header {
-    background-color: var(--ion-color-danger);
-    color: white;
-    padding: 0.5rem 1rem;
-    font-weight: bold;
+  .ap-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
     display: flex;
-    align-items: center;
-  }
-  
-  .dialog-content {
+    align-items: flex-end;
+    justify-content: center;
     padding: 1rem;
-    min-height: 100px;
+    z-index: 1000;
   }
-  
-  .dialog-indicator {
-    position: absolute;
-    bottom: 0.5rem;
-    right: 0.5rem;
-    color: lightcoral;
-    
-    .blink {
-      animation: blink 1s infinite;
+
+  .ap-dialog-box {
+    width: 100%;
+    max-width: 600px;
+    background-color: rgba(0, 0, 0, 0.9);
+    border: 2px solid var(--xp-color-ap);
+    color: white;
+
+    .dialog-header {
+      background-color: var(--ion-color-tertiary);
+      color: white;
+      padding: 0.5rem 1rem;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+    }
+
+    .dialog-content {
+      padding: 1rem;
+      min-height: 100px;
+    }
+
+    .dialog-indicator {
+      position: absolute;
+      bottom: 0.5rem;
+      right: 0.5rem;
+      color: var(--xp-color-ap);
+
+      .blink {
+        animation: blink 1s infinite;
+      }
     }
   }
-}
 
-.ap-text {
-  font-size: 1.1rem;
-}
+  .ap-text {
+    font-size: 1.1rem;
+  }
 
-@keyframes blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
+  @keyframes blink {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0;
+    }
+  }
 </style>

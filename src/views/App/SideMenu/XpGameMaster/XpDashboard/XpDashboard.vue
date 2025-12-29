@@ -149,8 +149,8 @@
             <XpDashboardTile>
               <XpStatBox
                 :value="abilities?.length || 0"
-                label="Abilities"
-                iconName="fa-hand-holding-magic"
+                label="Powers"
+                iconName="fa-book-spells"
                 :onClick="() => navigateTo({ name: 'xp-abilities' })"
               />
             </XpDashboardTile>
@@ -167,7 +167,7 @@
               <XpStatBox
                 :value="stats.achievements || 0"
                 label="Quests"
-                iconName="fa-hand-holding-seedling"
+                iconName="fa-book-dead"
                 :onClick="() => navigateTo({ name: 'xp-achievements' })"
               />
             </XpDashboardTile>
@@ -189,7 +189,7 @@
           slot="fixed"
           class="icon-colors"
         >
-          <ion-fab-button>
+          <ion-fab-button color="light">
             <i class="fad fa-police-box fa-2x"></i>
           </ion-fab-button>
           <ion-fab-list side="top">

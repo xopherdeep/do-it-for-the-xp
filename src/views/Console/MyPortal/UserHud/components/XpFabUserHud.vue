@@ -93,11 +93,12 @@
   import { useRouter } from "vue-router";
   // import ionic from "@/mixins/ionic"; // Removed legacy mixin
   // import userActions from "@/mixins/userActions"; // Removed legacy mixin
-  import { modalController, IonFab, IonGrid, IonRow, IonCol, IonFabButton, IonImg, IonBadge, IonFabList } from "@ionic/vue"; // Added explicit imports
+  import { menuController, modalController, IonFab, IonGrid, IonRow, IonCol, IonFabButton, IonImg, IonBadge, IonFabList } from "@ionic/vue"; // Added explicit imports
   import XpChat from "@/views/App/SideMenu/XpGameMaster/XpChat/XpChat.vue";
   import XpNotifications from "./XpNotifications/XpNotifications.vue";
   import SaveAndQuitModal from "@/components/molecules/Modals/SaveAndQuitModal.vue";
   import XpRpgMenu from "@/components/molecules/RpgMenu/XpRpgMenu.vue";
+  import { USER_MENU_CONFIG } from "@/constants";
 
   export default defineComponent({
     name: "xp-fab-user-hud",
@@ -156,10 +157,8 @@
           {
             label: "Menu",
             faIcon: "bars",
-            click: () => {
-              // Menu toggle is usually handled by ion-menu-toggle automatically if inside,
-              // but here we might need manual trigger if we replaced the toggle.
-              // For simplicity, we can just trigger the menu controller if needed.
+            click: async () => {
+              await menuController.toggle();
             }
           }
         ];
@@ -185,17 +184,16 @@
         fabActive.value = false; // Close the fab list regardless
         if (action.action === "openProfile") {
           emit("open-profile"); // Emit event for the parent
-        } else if (action.click) {
-          action.click(); // Execute the original click handler if it exists
         }
         // If it's just a trigger like 'talk-to', the button's `id` handles it.
+        // action.click() is now handled internally by XpRpgMenu
       };
 
       const staticActions = [
         {
-          label: "Talk",
-          id: "talk-to",
-          faIcon: "comment",
+          label: USER_MENU_CONFIG.talk.label,
+          id: USER_MENU_CONFIG.talk.id,
+          faIcon: USER_MENU_CONFIG.talk.icon,
           async click() {
             // Create and present the chat modal using modalController
             const modal = await modalController.create({
@@ -210,9 +208,28 @@
           }
         },
         {
-          label: "Notifications",
-          id: "notifications",
-          faIcon: "bell-exclamation",
+          label: USER_MENU_CONFIG.funds.label,
+          id: USER_MENU_CONFIG.funds.id,
+          faIcon: USER_MENU_CONFIG.funds.icon,
+          click() {
+            router.push({
+              name: "my-gold-points",
+              params: { userId: userId.value },
+            });
+          },
+        },
+        {
+          label: USER_MENU_CONFIG.quests.label,
+          id: USER_MENU_CONFIG.quests.id,
+          faIcon: USER_MENU_CONFIG.quests.icon,
+          click() {
+            router.push({ name: "my-tasks", params: { userId: userId.value } });
+          },
+        },
+        {
+          label: USER_MENU_CONFIG.notifications.label,
+          id: USER_MENU_CONFIG.notifications.id,
+          faIcon: USER_MENU_CONFIG.notifications.icon,
           async click() {
             // Create and present the notifications modal
             const modal = await modalController.create({
@@ -226,9 +243,9 @@
           },
         },
         {
-          id: "abilities",
-          label: "Abilities",
-          faIcon: "book-spells",
+          id: USER_MENU_CONFIG.powers.id,
+          label: USER_MENU_CONFIG.powers.label,
+          faIcon: USER_MENU_CONFIG.powers.icon,
           click() {
             router.push({
               name: "my-abilities",
@@ -237,17 +254,14 @@
           },
         },
         {
-          label: "Quests",
-          id: "staff",
-          faIcon: "medal",
-          click() {
-            router.push({ name: "my-tasks", params: { userId: userId.value } });
-          },
+          label: USER_MENU_CONFIG.stats.label,
+          action: USER_MENU_CONFIG.stats.action,
+          faIcon: USER_MENU_CONFIG.stats.icon,
         },
         {
-          label: "Goods",
-          id: "my-inventory",
-          faIcon: "backpack",
+          label: USER_MENU_CONFIG.goods.label,
+          id: USER_MENU_CONFIG.goods.id,
+          faIcon: USER_MENU_CONFIG.goods.icon,
           click() {
             router.push({
               name: "my-inventory",
@@ -256,25 +270,9 @@
           },
         },
         {
-          label: "Stats",
-          action: "openProfile",
-          faIcon: "hand-holding-seedling",
-        },
-        {
-          label: "Wallet",
-          id: "wallet",
-          faIcon: "wallet",
-          click() {
-            router.push({
-              name: "my-gold-points",
-              params: { userId: userId.value },
-            });
-          },
-        },
-        {
-          label: "Save & Quit",
-          id: "save-quit",
-          faIcon: "sign-out",
+          label: USER_MENU_CONFIG.saveQuit.label,
+          id: USER_MENU_CONFIG.saveQuit.id,
+          faIcon: USER_MENU_CONFIG.saveQuit.icon,
           click() {
             showSaveQuitModal.value = true;
           },
@@ -428,7 +426,7 @@
 
       .wallet {
         float: right;
-        letter-spacing: 3px;
+        letter-spacing: 1px;
       }
     }
   }

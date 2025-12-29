@@ -13,15 +13,18 @@
         <ion-title>
           <div class="header-title-wrapper">
             {{ user?.name?.nick || 'Profile' }}
-            <div class="level-badge-pill" v-if="user?.stats">
+            <div
+              class="level-badge-pill"
+              v-if="user?.stats"
+            >
               <small>LVL</small>{{ user.stats.level }}
             </div>
           </div>
         </ion-title>
         <ion-buttons slot="end">
           <ion-label class="toggle-hint">{{ fabStyle === 'modern' ? 'Modern' : 'Retro' }}</ion-label>
-          <ion-toggle 
-            :checked="fabStyle === 'modern'" 
+          <ion-toggle
+            :checked="fabStyle === 'modern'"
             @ionChange="onFabStyleToggle($event)"
             class="fab-style-toggle-switch"
           ></ion-toggle>
@@ -34,13 +37,19 @@
 
     <ion-content class="icon-colors bg-slide bg-slide-dark">
       <!-- Profile Card Content -->
-      <div v-if="user && user.stats" class="profile-content">
-        
+      <div
+        v-if="user && user.stats"
+        class="profile-content"
+      >
+
         <!-- Stats Flex Layout -->
         <div class="stats-flex">
           <!-- Row 1: Avatar | Class | Food -->
           <div class="stats-row">
-            <div class="stat-box avatar-box" @click="openAvatarSelector">
+            <div
+              class="stat-box avatar-box"
+              @click="openAvatarSelector"
+            >
               <div class="avatar-container">
                 <ion-avatar class="hero-avatar">
                   <ion-img :src="$requireAvatar(`./${user.avatar || '001-gamer'}.svg`)" />
@@ -51,17 +60,23 @@
               </div>
             </div>
 
-            <div class="stat-box class-box" @click="openClassSelector">
+            <div
+              class="stat-box class-box"
+              @click="openClassSelector"
+            >
               <div class="stat-icon">
                 <i :class="`fad ${getClassIcon(user.jobClass)} fa-3x`"></i>
               </div>
               <div class="stat-details">
-                <span class="stat-label">CLASS</span>
+                <span class="stat-label">CLASS LVL {{ getClassLevel(user.jobClass) }}</span>
                 <span class="stat-value large">{{ user.jobClass || 'Adventurer' }}</span>
               </div>
             </div>
 
-            <div class="stat-box food-box" @click="openFoodSelector">
+            <div
+              class="stat-box food-box"
+              @click="openFoodSelector"
+            >
               <span class="stat-label">FOOD</span>
               <div class="stat-icon">
                 <i :class="`fad ${getFoodIcon(user.favoriteFood)} fa-2x`"></i>
@@ -128,11 +143,11 @@
               @click="openAccordion('eternal')"
             />
           </div>
-          
+
           <!-- Row 3: Mastery Dice (Fibonacci Unlocks) -->
           <div class="stats-row mastery-dice-row">
-            <div 
-              v-for="die in dice" 
+            <div
+              v-for="die in dice"
               :key="die.limit"
               class="dice-item"
               :class="[die.color, { 'is-locked': !isDieUnlocked(die.limit) }]"
@@ -140,20 +155,29 @@
             >
               <div class="dice-inner">
                 <i :class="['fad', die.icon]"></i>
-                <div v-if="!isDieUnlocked(die.limit)" class="lock-overlay">
+                <div
+                  v-if="!isDieUnlocked(die.limit)"
+                  class="lock-overlay"
+                >
                   <i class="fas fa-lock-alt"></i>
                 </div>
               </div>
               <span class="dice-label">
                 <span v-if="isDieUnlocked(die.limit)">{{ die.label }}</span>
-                <span v-else class="lock-label">LVL {{ die.limit }}</span>
+                <span
+                  v-else
+                  class="lock-label"
+                >LVL {{ die.limit }}</span>
               </span>
             </div>
           </div>
         </div>
 
         <!-- Race & Activity Footer -->
-        <div class="hero-footer-row" v-if="user.race || user.currentActivity">
+        <div
+          class="hero-footer-row"
+          v-if="user.race || user.currentActivity"
+        >
           <ion-chip
             v-if="user.race"
             color="tertiary"
@@ -179,18 +203,22 @@
 
         <!-- Five Pillars Explanation - shows when no accordion is open -->
         <Transition name="pillars-fade">
-          <div v-if="!activeAccordion" class="pillars-explanation">
+          <div
+            v-if="!activeAccordion"
+            class="pillars-explanation"
+          >
             <h3 class="pillars-title">The Five Pillars of Heroism</h3>
             <p class="pillars-text">
-              A true hero balances Body, Mind, Spirit, Heart, and Legend. Tap a pillar to see how your training shapes your destiny.
+              A true hero balances Body, Mind, Spirit, Heart, and Legend. Tap a pillar to see how your training shapes
+              your destiny.
             </p>
           </div>
         </Transition>
 
         <!-- Stacked Accordions for Stats -->
-        <ion-accordion-group 
-          class="stats-accordions" 
-          ref="accordionGroup" 
+        <ion-accordion-group
+          class="stats-accordions"
+          ref="accordionGroup"
           :value="activeAccordion"
           @ionChange="activeAccordion = $event.detail.value"
         >
@@ -222,7 +250,10 @@
                 :color="area.color"
                 class="pillar-total"
               >
-                <span v-if="isPillarBoosted(category)" class="boost-indicator">+</span>
+                <span
+                  v-if="isPillarBoosted(category)"
+                  class="boost-indicator"
+                >+</span>
                 {{ getAreaTotal(area, user.stats) }}
               </ion-note>
             </ion-item>
@@ -244,9 +275,12 @@
                   >{{ stat }}</h3>
                   <p class="stat-desc">{{ desc }}</p>
                 </ion-label>
-                <div slot="end" class="stat-value-wrapper">
-                  <i 
-                    v-if="isStatBoosted(stat)" 
+                <div
+                  slot="end"
+                  class="stat-value-wrapper"
+                >
+                  <i
+                    v-if="isStatBoosted(stat)"
                     class="fad fa-chevron-double-up stat-boost-arrow"
                     :style="{ color: `var(--ion-color-${area.color})` }"
                   ></i>
@@ -264,7 +298,10 @@
       </div>
 
       <!-- Loading State -->
-      <div v-else class="loading-state">
+      <div
+        v-else
+        class="loading-state"
+      >
         <ion-spinner name="crescent"></ion-spinner>
       </div>
     </ion-content>
@@ -547,6 +584,12 @@ export default defineComponent({
       return food?.icon || 'fa-utensils';
     };
 
+    // Helper to get Class Level
+    const getClassLevel = (className: string) => {
+      if (!className || !props.user?.stats?.classes) return 1;
+      return props.user.stats.classes[className]?.level || 1;
+    };
+
     // Helper to get area icon (Font Awesome class)
     const getAreaFaIcon = (category: string) => {
       const iconMap: Record<string, string> = {
@@ -736,6 +779,7 @@ export default defineComponent({
       openClassSelector,
       openFoodSelector,
       getClassIcon,
+      getClassLevel,
       getFoodIcon,
       getAreaFaIcon,
       getAreaTotal,
@@ -759,13 +803,14 @@ export default defineComponent({
 </script>
 
 <style lang="scss">
-// Styles are in earthbound.scss for the .user-profile-modal class
+
+  // Styles are in earthbound.scss for the .user-profile-modal class
   .user-profile-modal {
     .mastery-dice-row {
       display: flex !important;
       justify-content: space-between;
       gap: 0.5rem;
-      
+
       .dice-item {
         flex: 1;
         display: flex;
@@ -784,12 +829,29 @@ export default defineComponent({
         overflow: hidden;
 
         // Colors
-        &.red i { color: #ff5252; }
-        &.orange i { color: #ffa726; }
-        &.yellow i { color: #ffd740; }
-        &.green i { color: #69f0ae; }
-        &.blue i { color: #40c4ff; }
-        &.purple i { color: #b388ff; }
+        &.red i {
+          color: #ff5252;
+        }
+
+        &.orange i {
+          color: #ffa726;
+        }
+
+        &.yellow i {
+          color: #ffd740;
+        }
+
+        &.green i {
+          color: #69f0ae;
+        }
+
+        &.blue i {
+          color: #40c4ff;
+        }
+
+        &.purple i {
+          color: #b388ff;
+        }
 
         .dice-inner {
           position: relative;
@@ -813,7 +875,7 @@ export default defineComponent({
             color: rgba(255, 255, 255, 0.8);
             font-size: 1rem;
             z-index: 2;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
           }
         }
 
@@ -837,7 +899,7 @@ export default defineComponent({
           background: rgba(0, 0, 0, 0.2);
           border-style: dashed;
           opacity: 0.7;
-          
+
           i {
             color: #555 !important; // Grayscale base
             filter: grayscale(100%) !important;

@@ -594,10 +594,8 @@ export default defineComponent({
       return actions;
     });
 
-    const handleRetroAction = (action: any) => {
-      if (action.click) {
-        action.click();
-      }
+    const handleRetroAction = () => {
+      // action.click() is now handled internally by XpRpgMenu
     };
 
     return {

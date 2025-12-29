@@ -5,7 +5,7 @@
         <ion-buttons slot="start">
           <ion-back-button :default-href="`/my-portal/${userId}`">
           </ion-back-button>
-          <i class="fad fa-medal fa-2x"></i>
+          <i class="fad fa-book-dead fa-2x"></i>
           <!-- <ion-icon :icon="medalOutline" size="large" /> -->
         </ion-buttons>
         <ion-title> My Quests </ion-title>
@@ -18,7 +18,7 @@
           value="all"
         >
           <ion-segment-button value="all">
-            <i class="fal fa-medal fa-2x"></i>
+            <i class="fal fa-book-dead fa-2x"></i>
             <!-- <ion-icon :icon="medalOutline"></ion-icon> -->
             All
           </ion-segment-button>
@@ -218,37 +218,37 @@
               ></ion-skeleton-text>
             </ion-col>
             <ion-col
-            class="total-pages"
-            v-else
-          >
-            <ion-text class="ion-text-align-center">
-              Viewing Quests: {{ pageNumbers.min }} - {{ pageNumbers.max }} of {{ nTotalTasks }}
-            </ion-text>
-            <ion-text>
-              <small>
-                Page: {{ page }} of
-                {{nTotalPages}}
-              </small>
-            </ion-text>
-          </ion-col>
-          <ion-col>
-            <ion-button
-              id="swiper-forward"
-              :disabled="!hasNextPage"
-              color="dark"
-              expand="block"
+              class="total-pages"
+              v-else
             >
-              <ion-icon
-                :icon="chevronForward"
-                slot="icon-only"
-              />
-            </ion-button>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-    </ion-toolbar>
-  </ion-footer>
-</ion-page></template>
+              <ion-text class="ion-text-align-center">
+                Viewing Quests: {{ pageNumbers.min }} - {{ pageNumbers.max }} of {{ nTotalTasks }}
+              </ion-text>
+              <ion-text>
+                <small>
+                  Page: {{ page }} of
+                  {{nTotalPages}}
+                </small>
+              </ion-text>
+            </ion-col>
+            <ion-col>
+              <ion-button
+                id="swiper-forward"
+                :disabled="!hasNextPage"
+                color="dark"
+                expand="block"
+              >
+                <ion-icon
+                  :icon="chevronForward"
+                  slot="icon-only"
+                />
+              </ion-button>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+      </ion-toolbar>
+    </ion-footer>
+  </ion-page></template>
 
 <script src="./MyQuests" />
 <style lang="scss" src="./_MyQuests.scss" scoped />

@@ -11,7 +11,7 @@
           <i class="fad fa-wallet fa-2x"></i>
         </ion-buttons>
 
-        <ion-title> My Wallet </ion-title>
+        <ion-title> My Funds </ion-title>
       </ion-toolbar>
       <ion-item v-if="walletSegment === 'activity'">
         <ion-label>Date Range</ion-label>
@@ -412,5 +412,5 @@
   </ion-page>
 </template>
 
-<script src="./MyGoldPoints" lang="ts"/>
+<script src="./MyGoldPoints" lang="ts" />
 <style lang="scss" src="./_MyGoldPoints.scss" scoped />

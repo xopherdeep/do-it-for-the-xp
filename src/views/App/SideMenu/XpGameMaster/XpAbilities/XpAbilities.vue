@@ -1,5 +1,8 @@
 <template>
-  <ion-page :class="$options.name" style="background: transparent">
+  <ion-page
+    :class="$options.name"
+    style="background: transparent"
+  >
     <ion-header>
       <ion-toolbar class="icon-colors rpg-box">
         <ion-buttons slot="start">
@@ -7,10 +10,10 @@
         </ion-buttons>
         <i
           slot="start"
-          class="fad fa-hand-holding-magic fa-2x"
+          class="fad fa-book-spells fa-2x"
         />
         <ion-title>
-          Abilities
+          Powers
         </ion-title>
         <ion-buttons slot="end">
           <ion-button @click="toggleViewMode">
@@ -56,9 +59,15 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="transparent-content" style="--background: transparent">
+    <ion-content
+      class="transparent-content"
+      style="--background: transparent"
+    >
       <!-- Loading State -->
-      <div v-if="isLoading" class="loading-wrapper-centered">
+      <div
+        v-if="isLoading"
+        class="loading-wrapper-centered"
+      >
         <XpLoading />
       </div>
 
@@ -227,8 +236,11 @@
         vertical="bottom"
         horizontal="center"
       >
-        <ion-fab-button @click="presentActionSheet" color="rpg">
-          <i class="fad fa-hand-holding-magic fa-2x"/>
+        <ion-fab-button
+          @click="presentActionSheet"
+          color="rpg"
+        >
+          <i class="fad fa-book-spells fa-2x" />
         </ion-fab-button>
       </ion-fab>
 

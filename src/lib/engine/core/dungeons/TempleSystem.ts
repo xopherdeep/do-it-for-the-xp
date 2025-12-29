@@ -11,6 +11,7 @@ import { reactive } from 'vue';
 import { DungeonManager } from './DungeonManager';
 import { Room } from './types';
 import { ChestSystem } from './ChestSystem';
+import { TempleHydrator } from './TempleHydrator';
 import debug from '@/lib/utils/debug';
 
 // Types
@@ -55,6 +56,20 @@ export class TempleSystem {
       TempleSystem.instance = new TempleSystem();
     }
     return TempleSystem.instance;
+  }
+  
+  /**
+   * Register a dungeon from a DSL blueprint
+   */
+  public registerDungeonFromDSL(blueprint: string, dungeonId: string, dungeonName: string): boolean {
+    try {
+      const dungeon = TempleHydrator.hydrate(blueprint, dungeonId, dungeonName);
+      this.dungeonManager.registerDungeon(dungeon);
+      return true;
+    } catch (error) {
+      debug.error(`Failed to register dungeon from DSL: ${error}`);
+      return false;
+    }
   }
   
   /**

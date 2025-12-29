@@ -5,6 +5,7 @@
 import { Dungeon, Room } from './types';
 import { DungeonManager } from './DungeonManager';
 import { TempleDb, templeStorage } from '@/lib/databases/TempleDb';
+import { TempleHydrator } from './TempleHydrator';
 import debug from '@/lib/utils/debug';
 
 /**
@@ -102,4 +103,23 @@ export function getRoomInfo(roomKey: string): { type: string; content?: any } {
   };
   
   return specialRooms[roomKey] || { type: 'empty' };
+}
+/**
+ * Register a temple using the DSL format
+ */
+export function registerTempleFromDSL(templeId: string, dungeonName: string, blueprint: string): Dungeon {
+  const dungeon = TempleHydrator.hydrate(blueprint, templeId, dungeonName);
+  const dungeonManager = DungeonManager.getInstance();
+  dungeonManager.registerDungeon(dungeon);
+  return dungeon;
+}
+
+/**
+ * Register a multi-floor temple using the DSL format
+ */
+export function registerMultiFloorTempleFromDSL(templeId: string, dungeonName: string, blueprints: Record<string, string>): Dungeon {
+  const dungeon = TempleHydrator.hydrateMultiFloor(blueprints, templeId, dungeonName);
+  const dungeonManager = DungeonManager.getInstance();
+  dungeonManager.registerDungeon(dungeon);
+  return dungeon;
 }

@@ -303,8 +303,14 @@
     </ion-content>
     <ion-footer>
       <!-- Docked XP Bar above toolbar -->
-      <div class="footer-docked-xp" v-if="user && user.stats">
-        <XpXpBar :stats="user.stats" :hairline="true" />
+      <div
+        class="footer-docked-xp"
+        v-if="user && user.stats"
+      >
+        <XpXpBar
+          :stats="user.stats"
+          :hairline="true"
+        />
       </div>
       <ion-toolbar>
         <ion-item-sliding>
@@ -328,16 +334,16 @@
           <ion-item lines="none">
             <div class="flex justify-center w-full icon-colors h-16 items-center gap-10">
               <i
-                class="fad fa-book-spells fa-2x cursor-pointer"
-                @click="$router.push(`/my-abilities/${userId}`)"
+                class="fad fa-book-dead fa-2x cursor-pointer"
+                @click="$router.push(`/my-tasks/${userId}`)"
               />
               <i
                 class="fad fa-backpack fa-2x cursor-pointer"
                 @click="$router.push(`/my-inventory/${userId}`)"
               />
               <i
-                class="fad fa-medal fa-2x cursor-pointer"
-                @click="$router.push(`/my-tasks/${userId}`)"
+                class="fad fa-book-spells fa-2x cursor-pointer"
+                @click="$router.push(`/my-abilities/${userId}`)"
               />
             </div>
           </ion-item>

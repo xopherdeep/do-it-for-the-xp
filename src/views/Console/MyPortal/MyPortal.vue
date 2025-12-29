@@ -76,7 +76,7 @@
             tab="my-profile"
             @click.prevent="openUserProfileModal"
           >
-            <i class="fad fa-2x fa-hand-holding-seedling"></i>
+            <i class="fad fa-2x fa-seedling"></i>
             <ion-label v-if="user.name">
               {{ user.name.nick }}
             </ion-label>

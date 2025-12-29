@@ -85,12 +85,18 @@ export function useBattlePlayer() {
     const currentHp = stats.hp?.now;
     const currentMp = stats.mp?.now;
     
+    // Get Class Level
+    const classes = stats.classes || {};
+    const currentClassData = classes[jobClass] || { level: 1 };
+    const classLevel = currentClassData.level || 1;
+    
     const calculatedStats = calculatePlayerStats(
       level,
       jobClass,
       specialStats,
       currentHp,
-      currentMp
+      currentMp,
+      classLevel
     );
     
     debug.log('BattlePlayer: Calculated stats', {

@@ -2,6 +2,10 @@ import { defineStore } from 'pinia';
 import { reactive, computed } from 'vue';
 import Api from "@/lib/api";
 import { getGPService } from '@/lib/services/gp/GPService';
+import { 
+  JOB_UNLOCK_REQUIREMENTS, 
+  getLevelFromXp 
+} from '@/lib/services/stats/PlayerStatsService';
 
 // LocalStorage key for persisting current user ID
 const CURRENT_USER_KEY = 'xp_current_user_id';
@@ -237,6 +241,118 @@ export const useUserStore = defineStore('user', () => {
     }
   }
 
+  /**
+   * Unlock a specific class for a user
+   */
+  function unlockClass(userId: string, jobClassId: string) {
+    if (users[userId]) {
+      const userStats = users[userId].stats || {};
+      
+      // Initialize classes if missing
+      if (!userStats.classes) userStats.classes = {};
+      
+      // Initialize class entry if missing
+      if (!userStats.classes[jobClassId]) {
+        userStats.classes[jobClassId] = {
+          level: 1,
+          xp: 0,
+          unlocked: false
+        };
+      }
+      
+      // Unlock
+      if (!userStats.classes[jobClassId].unlocked) {
+        userStats.classes[jobClassId].unlocked = true;
+        // Optionally add notification here
+      }
+      
+      // Update state
+      users[userId].stats = userStats;
+      
+      // Update current user if matches
+      if (currentUser.id === userId) {
+        currentUser.stats = userStats;
+      }
+    }
+  }
+
+  /**
+   * Check if any locked classes should be unlocked based on current class levels
+   */
+  function checkClassUnlocks(userId: string) {
+    if (!users[userId]) return;
+    
+    const userStats = users[userId].stats || {};
+    const classes = userStats.classes || {};
+    
+    // Iterate over all available job classes in requirements
+    Object.entries(JOB_UNLOCK_REQUIREMENTS).forEach(([jobClassId, requirements]) => {
+      // If already unlocked, skip
+      if (classes[jobClassId]?.unlocked) return;
+      
+      // Check if all requirements are met
+      let allMet = true;
+      for (const [reqClass, reqLevel] of Object.entries(requirements)) {
+        const currentClassLevel = classes[reqClass]?.level || 0;
+        if (currentClassLevel < reqLevel) {
+          allMet = false;
+          break;
+        }
+      }
+      
+      // Unlock if met
+      if (allMet) {
+        unlockClass(userId, jobClassId);
+      }
+    });
+  }
+
+  /**
+   * Grant XP to a specific class and handle leveling
+   */
+  function updateClassXp(userId: string, jobClassId: string, amount: number) {
+    if (users[userId]) {
+      const userStats = users[userId].stats || {};
+      
+      // Initialize classes if missing
+      if (!userStats.classes) userStats.classes = {};
+      
+      // Initialize specific class if missing (standard default is unlocked)
+      if (!userStats.classes[jobClassId]) {
+        userStats.classes[jobClassId] = {
+          level: 1,
+          xp: 0,
+          // Base classes are always unlocked, advanced classes need unlocking
+          // For safety, if we are adding XP, we assume it's unlocked or being unlocked
+          unlocked: true 
+        };
+      }
+      
+      const classProgress = userStats.classes[jobClassId];
+      
+      // Add XP
+      classProgress.xp += amount;
+      
+      // Recalculate level
+      const newLevel = getLevelFromXp(classProgress.xp);
+      
+      // Check for level up
+      if (newLevel > classProgress.level) {
+        classProgress.level = newLevel;
+        // Trigger checks for other unlocks
+        checkClassUnlocks(userId);
+      }
+      
+      // Update state
+      users[userId].stats = userStats;
+      
+      // Update current user if matches
+      if (currentUser.id === userId) {
+        currentUser.stats = userStats;
+      }
+    }
+  }
+
   return {
     currentUser,
     users,
@@ -249,6 +365,9 @@ export const useUserStore = defineStore('user', () => {
     updateUserHP,
     unlockPegasus,
     unlockQuickDrawSlot,
+    unlockClass,
+    checkClassUnlocks,
+    updateClassXp,
     impersonateUser,
     restoreCurrentUser,
     usersAz

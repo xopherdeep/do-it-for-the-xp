@@ -13,7 +13,7 @@
           <!-- <ion-icon :icon="colorWand" size="large" /> -->
           <i class="fad fa-book-spells fa-lg" />
         </ion-buttons>
-        <ion-title> My Abilities </ion-title>
+        <ion-title> My Powers </ion-title>
       </ion-toolbar>
       <ion-toolbar>
         <ion-segment

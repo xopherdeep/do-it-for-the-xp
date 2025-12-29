@@ -37,8 +37,8 @@
 
   &book-spells {
     --fa-primary-color: var(--xp-color-blue);
-    --fa-secondary-color: var(--xp-color-white);
-    --fa-secondary-opacity: 1;
+    --fa-secondary-color: var(--xp-color-blue);
+    --fa-secondary-opacity: 0.8;
   }
 
   &medal {
@@ -78,11 +78,11 @@
     --fa-secondary-opacity: 0.9;
   }
 
-  &hand-holding-magic{
-    --fa-primary-color: var(--xp-color-red);
-    --fa-secondary-color: var(--xp-color-brown);
-    --fa-secondary-opacity: 0.9;
-  }
+  // &hand-holding-magic{
+  //   --fa-primary-color: var(--xp-color-red);
+  //   --fa-secondary-color: var(--xp-color-brown);
+  //   --fa-secondary-opacity: 0.9;
+  // }
 
   &hand-holding-box {
     --fa-primary-color: var(--xp-color-yellow);
