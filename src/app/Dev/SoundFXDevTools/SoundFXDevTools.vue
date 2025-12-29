@@ -158,7 +158,7 @@ import {
   volumeHighOutline, volumeLowOutline, playOutline, 
   musicalNoteOutline, playCircleOutline, stopCircleOutline 
 } from 'ionicons/icons';
-import { SoundEffect } from '@/lib/types/fx';
+import { SoundEffect } from '@/types/fx';
 import debug from '@/lib/utils/debug';
 
 // Define types for our component's internal use without modifying global declarations

@@ -1,4 +1,7 @@
-// FX System type definitions
+/**
+ * FX System type definitions
+ */
+
 export interface SoundEffect {
   play: () => void;
   pause: () => void;
@@ -15,13 +18,13 @@ export interface FXSystem {
     [key: string]: {
       openPage: SoundEffect;
       [key: string]: SoundEffect;
-    }
+    };
   };
   rpg: {
     [key: string]: {
       text: SoundEffect;
       [key: string]: SoundEffect;
-    }
+    };
   };
   theme: ThemeUI;
   play$fx: (sound: string) => void;

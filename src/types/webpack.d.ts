@@ -1,3 +1,6 @@
+/**
+ * Webpack-specific type augmentations
+ */
 declare interface NodeRequire {
   context(
     directory: string,

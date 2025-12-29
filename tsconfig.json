@@ -58,10 +58,8 @@
     "src/**/*.tsx",
     "src/**/*.vue",
     "src/**/*.d.ts",
-    "src/lib/types/**/*.d.ts",
     "tests/**/*.ts",
     "tests/**/*.js",
-    "src/app/Console/TempleGrounds/TempleGrounds.vue",
   ],
   "exclude": [
     "node_modules",

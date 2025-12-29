@@ -1,19 +1,19 @@
 /**
  * Battleroom Development Entry Point
- * 
+ *
  * This is a specialized entry point used when running the application in
  * battleroom development mode. It provides direct access to the battleroom
  * components and tools without loading the entire application.
  */
-import { createApp } from 'vue';
-import { IonicVue } from '@ionic/vue';
-import { createPinia } from 'pinia';
-import { useBattleStore } from '@/lib/store/stores/battle';
-import { useUserStore } from '@/lib/store/stores/user';
-import { useGameStore } from '@/lib/store/stores/game';
-import { FXSystem } from '@/lib/types/fx';
-import debug from '@/lib/utils/debug';
-import BattleroomDevTools from './BattleroomDevTools.vue';
+import { createApp } from "vue";
+import { IonicVue } from "@ionic/vue";
+import { createPinia } from "pinia";
+import { useBattleStore } from "@/lib/store/stores/battle";
+import { useUserStore } from "@/lib/store/stores/user";
+import { useGameStore } from "@/lib/store/stores/game";
+import { FXSystem } from "@/types/fx";
+import debug from "@/lib/utils/debug";
+import BattleroomDevTools from "./BattleroomDevTools.vue";
 
 // Initialize Pinia
 const pinia = createPinia();
@@ -23,11 +23,8 @@ const pinia = createPinia();
 // but before mount, or let the component handle default states.
 // However, the original code had explicit mock data. Let's try to set it up.
 
-
 // Create the Vue application
-const app = createApp(BattleroomDevTools)
-  .use(IonicVue)
-  .use(pinia);
+const app = createApp(BattleroomDevTools).use(IonicVue).use(pinia);
 
 // Hydrate Pinia stores with mock data
 const userStore = useUserStore();
@@ -37,11 +34,11 @@ const gameStore = useGameStore();
 // Set up mock user
 userStore.users = {
   1: {
-    id: '1', // Ensure ID matches expected type (string)
+    id: "1", // Ensure ID matches expected type (string)
     name: {
       nick: "Dev User",
       first: "Dev",
-      last: "User"
+      last: "User",
     },
     avatar: "default",
     stats: {
@@ -51,10 +48,10 @@ userStore.users = {
       maxMp: 50,
       xp: 120,
       level: 5,
-      gp: { wallet: 100, savings: 0, debt: 0 } // Add missing GP
-    }
-  }
-} as any; 
+      gp: { wallet: 100, savings: 0, debt: 0 }, // Add missing GP
+    },
+  },
+} as any;
 
 // Set user 1 as current
 // userStore.currentUser = userStore.users[1];
@@ -63,7 +60,7 @@ userStore.users = {
 battleStore.steps = {
   counter: 100,
   max: 100,
-  min: 50
+  min: 50,
 };
 
 // Mock game state
@@ -77,30 +74,30 @@ gameStore.userActions = [
 // Global properties for the battle dev environment
 const fxSystem: Partial<FXSystem> = {
   theme: {
-    rpg: 'rpg-theme',
-    ui: 'default-ui'
+    rpg: "rpg-theme",
+    ui: "default-ui",
   },
   ui: {
-    'default-ui': {
+    "default-ui": {
       // Create mock audio objects for development
       chooseUser: {
-        play: () => debug.log('Playing chooseUser sound'),
-        pause: () => debug.log('Pausing chooseUser sound'),
-        currentTime: 0
+        play: () => debug.log("Playing chooseUser sound"),
+        pause: () => debug.log("Pausing chooseUser sound"),
+        currentTime: 0,
       },
       openPage: {
-        play: () => debug.log('Playing openPage sound'),
-        pause: () => debug.log('Pausing openPage sound'),
-        currentTime: 0
-      }
-    }
+        play: () => debug.log("Playing openPage sound"),
+        pause: () => debug.log("Pausing openPage sound"),
+        currentTime: 0,
+      },
+    },
   },
-  play$fx: (sound) => debug.log(`Playing sound: ${sound}`)
+  play$fx: (sound) => debug.log(`Playing sound: ${sound}`),
 };
 
 app.config.globalProperties.$fx = fxSystem as FXSystem;
 
-app.config.globalProperties.$getUserAvatar = () => 'https://placehold.co/100';
+app.config.globalProperties.$getUserAvatar = () => "https://placehold.co/100";
 
 // Mount the app
-app.mount('#app');
+app.mount("#app");
