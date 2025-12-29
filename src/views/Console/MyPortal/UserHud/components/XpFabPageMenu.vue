@@ -11,12 +11,12 @@
     v-if="fabActive"
     class="centered-menu-wrapper"
   >
-    <button
+    <xp-close-button
+      size="lg"
+      color="danger"
       class="close-menu-btn"
       @click="closeMenu"
-    >
-      <i class="fad fa-times-square"></i>
-    </button>
+    />
     <xp-card-menu
       :cardTitle="pageName"
       :actions="userActions"
@@ -66,8 +66,8 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 92vw;
-    max-width: 420px;
+    width: 95vw;
+    max-width: 500px;
     z-index: 2500;
     display: flex;
     flex-direction: column;
@@ -97,10 +97,11 @@
   import { IonFab, IonFabButton } from "@ionic/vue";
   import { useUserActions } from "@/hooks/useUserActions";
   import XpCardMenu from "./XpCardMenu.vue"
+  import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue"
 
   export default defineComponent({
     name: "xp-fab-page-menu",
-    components: { XpCardMenu, IonFab, IonFabButton },
+    components: { XpCardMenu, XpCloseButton, IonFab, IonFabButton },
     props: ["pageName", "user"],
     setup() {
       const route = useRoute();

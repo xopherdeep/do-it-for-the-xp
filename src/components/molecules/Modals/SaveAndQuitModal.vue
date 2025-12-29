@@ -8,22 +8,33 @@
   >
     <ion-card class="animated-card">
       <ion-card-header>
-        <ion-icon
-          @click.stop="dismiss"
-          name="close"
+        <xp-close-button
+          size="md"
+          color="light"
           class="close-icon"
+          @click="dismiss"
+          :play-sound="false"
         />
         <div class="header-icon">
-          <div v-if="userAvatar" class="avatar-container">
-            <img :src="userAvatar" class="profile-avatar" />
+          <div
+            v-if="userAvatar"
+            class="avatar-container"
+          >
+            <img
+              :src="userAvatar"
+              class="profile-avatar"
+            />
           </div>
-          <i v-else class="fad fa-user-astronaut"></i>
+          <i
+            v-else
+            class="fad fa-user-astronaut"
+          ></i>
         </div>
         <ion-card-title class="card-title">
           Save & Quit
         </ion-card-title>
       </ion-card-header>
-      
+
       <ion-card-content>
         <p class="logout-info">
           Are you sure you want to save your progress and log out?
@@ -43,7 +54,10 @@
             @click="confirmSaveQuit"
             class="confirm-button"
           >
-            <i class="fad fa-sign-out-alt" style="margin-right: 8px;"></i>
+            <i
+              class="fad fa-sign-out-alt"
+              style="margin-right: 8px;"
+            ></i>
             Save & Quit
           </ion-button>
         </div>
@@ -61,9 +75,9 @@
     IonCardTitle,
     IonCardContent,
     IonButton,
-    IonIcon,
   } from "@ionic/vue";
   import { play$fx } from "@/assets/fx";
+  import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue";
 
   export default defineComponent({
     name: "save-and-quit-modal",
@@ -74,7 +88,7 @@
       IonCardTitle,
       IonCardContent,
       IonButton,
-      IonIcon,
+      XpCloseButton,
     },
     props: {
       isOpen: {
@@ -111,6 +125,7 @@
 </script>
 
 <style lang="scss">
+
   // Global styles for ion-modal (unscoped to target shadow DOM)
   ion-modal.save-quit-modal {
     --backdrop-opacity: 0.3;
@@ -120,7 +135,7 @@
     --min-width: 320px;
     --border-radius: 16px;
     --box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5),
-                  0 0 0 1px rgba(255, 255, 255, 0.1);
+      0 0 0 1px rgba(255, 255, 255, 0.1);
   }
 </style>
 
@@ -251,6 +266,7 @@
       opacity: 0;
       transform: scale(0.95);
     }
+
     to {
       opacity: 1;
       transform: scale(1);

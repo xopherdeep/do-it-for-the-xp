@@ -17,22 +17,27 @@
           </div>
         </ion-title>
         <ion-buttons slot="end">
-          <ion-button @click.stop="dismiss">
-            <i class="fal fa-times-square fa-2x"></i>
-          </ion-button>
+          <xp-close-button
+            size="lg"
+            color="light"
+            @click="dismiss"
+          />
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-    
+
     <!-- <ion-content class="icon-colors bg-slide bg-slide-modal"> -->
     <ion-content class="icon-colors bg-slide bg-slide-dark">
-      <ion-grid >
+      <ion-grid>
         <ion-row>
-          <ion-col size="12" class="ion-flex ion-flex-column">
+          <ion-col
+            size="12"
+            class="ion-flex ion-flex-column"
+          >
             <equipment-grid
-              :items="specialItems" 
+              :items="specialItems"
               :equipped-items="equippedItemsArray"
-              @display-info="openItemInfo" 
+              @display-info="openItemInfo"
               @equip-item="equipItem"
             />
           </ion-col>
@@ -41,12 +46,12 @@
     </ion-content>
 
     <div class="equipment-dock icon-colors">
-      <equipped-items-card 
-        :equipment="equipment" 
+      <equipped-items-card
+        :equipment="equipment"
         :left-hand-items="equipmentOnLeft"
         :right-hand-items="equipmentOnRight"
         :job-class="user?.jobClass"
-        @equip="handleEquipRequest"      
+        @equip="handleEquipRequest"
         @select-item="openItemInfo"
         @change-class="openClassSelector"
       />
@@ -89,6 +94,7 @@ import EquippedItemsCard from "./equipment/EquippedItemsCard.vue";
 import ItemInfoModal from "./equipment/ItemInfoModal.vue";
 import XpStatSelectorModal from "./XpStatSelectorModal.vue";
 import { toastController } from "@ionic/vue";
+import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue";
 import { JOB_CLASS_OPTIONS } from "@/constants";
 import { useUserStore } from "@/lib/store/stores/user";
 
@@ -98,7 +104,8 @@ export default defineComponent({
     EquipmentGrid,
     EquippedItemsCard,
     ItemInfoModal,
-    XpStatSelectorModal
+    XpStatSelectorModal,
+    XpCloseButton
   },
   props: {
     isOpen: {
@@ -309,31 +316,30 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-.xp-equipment-modal {
-  ion-content {
-    --background: transparent;
-    overflow: visible;
+  .xp-equipment-modal {
+    ion-content {
+      --background: transparent;
+      overflow: visible;
 
-    ion-grid {
-      padding: 2.5%;
-      padding-bottom: 120px; // Space for the dock
+      ion-grid {
+        padding: 2.5%;
+        padding-bottom: 120px; // Space for the dock
+      }
+    }
+
+
+    .equipment-dock {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(0, 0, 0, 0.05);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
+      padding: 0.25rem 1rem;
+      z-index: 100;
     }
   }
-
-
-  .equipment-dock {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(0, 0, 0, 0.05);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.3);
-    padding: 0.25rem 1rem;
-    z-index: 100;
-  }
-}
 </style>
-

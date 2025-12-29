@@ -28,9 +28,11 @@
             @ionChange="onFabStyleToggle($event)"
             class="fab-style-toggle-switch"
           ></ion-toggle>
-          <ion-button @click.stop="dismiss">
-            <i class="fal fa-times-square fa-2x"></i>
-          </ion-button>
+          <xp-close-button
+            size="lg"
+            color="light"
+            @click="dismiss"
+          />
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
@@ -339,7 +341,6 @@ import {
   IonToolbar,
   IonTitle,
   IonButtons,
-  IonButton,
   IonContent,
   IonAvatar,
   IonImg,
@@ -359,6 +360,7 @@ import { JOB_CLASS_OPTIONS, FOOD_OPTIONS, POINT_ICONS } from "@/constants";
 import AvatarSelector from "@/views/App/SideMenu/SwitchProfile/AddProfile/components/AvatarSelector.vue";
 import XpStatSelectorModal from "./XpStatSelectorModal.vue";
 import XpProfileStatBox from "@/components/molecules/ProfileStatBox/XpProfileStatBox.vue";
+import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useGameStore } from "@/lib/store/stores/game";
 import { play$fx } from "@/assets/fx";
@@ -374,7 +376,6 @@ export default defineComponent({
     IonToolbar,
     IonTitle,
     IonButtons,
-    IonButton,
     IonContent,
     IonAvatar,
     IonImg,
@@ -390,7 +391,8 @@ export default defineComponent({
     IonToggle,
     AvatarSelector,
     XpStatSelectorModal,
-    XpProfileStatBox
+    XpProfileStatBox,
+    XpCloseButton
   },
   props: {
     isOpen: {
