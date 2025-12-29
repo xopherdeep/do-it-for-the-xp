@@ -1,12 +1,13 @@
 import { computed, defineComponent, reactive, ref } from "vue";
 // import requireImg from "@/assets/js/requireImg";
-import fetchItems from "@/mixins/fetchItems";
 import ionic from "@/mixins/ionic";
 import components from "./UserHud/components";
-import XpPortalPage from "@/components/organisms/Page/XpPortalPage.vue";
-import userActions from "@/mixins/userActions";
+import XpPortalPage from "@/components/templates/pages/XpPortalPage.vue";
 import "swiper/css";
 import { modalController } from "@ionic/vue";
+
+import { useItemFetcher } from "@/hooks/useItemFetcher";
+import { useUserActions } from "@/hooks/useUserActions";
 
 // Define interface for equipment items
 interface EquipmentItem {
@@ -44,7 +45,7 @@ import { useBattleStore } from "@/lib/store/stores/battle";
 
 export default defineComponent({
   components: { ...components, XpPortalPage },
-  mixins: [fetchItems, ionic, userActions],
+  mixins: [ionic],
   name: "my-portal",
   data() {
     return {
@@ -55,10 +56,6 @@ export default defineComponent({
       isUserProfileModalOpen: false,
       isPegasusModalOpen: false,  // Wind Whistle modal
       currentTerrain: "plains",
-      request: {
-        type: "xp_achievement",
-        per_page: 8,
-      },
     };
   },
 
@@ -71,7 +68,6 @@ export default defineComponent({
     },
     theme() { return (this as any).gameStore.theme },
     bgm() { return (this as any).audioStore.bgm },
-    actions() { return (this as any).gameStore.userActions },
     battleCounter() {
       return this.battleState("steps").counter;
     },
@@ -238,6 +234,20 @@ export default defineComponent({
     const battleStore = useBattleStore();
 
     const { userId } = route.params;
+    const {
+      request,
+      items,
+      getItems,
+      nTotalPages,
+      getImgObj
+    } = useItemFetcher("xp_achievement", { per_page: 8 });
+
+    const {
+      userActions: actions,
+      setUserActions,
+      setActions
+    } = useUserActions();
+
     const user = computed(() => userStore.getUserById(userId as string));
     const equipment = ref<EquipmentItem[]>([]); // Use the defined interface
     const clickItem = (item: EquipmentItem | null, hand: string, index = 0) => {
@@ -321,6 +331,14 @@ export default defineComponent({
       user,
       wallet,
       walletOutline,
+      request,
+      items,
+      getItems,
+      nTotalPages,
+      getImgObj,
+      actions,
+      setUserActions,
+      setActions,
     };
   },
 });

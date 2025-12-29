@@ -17,7 +17,7 @@ import App from './app/App.vue'
 import appConfig from "./app.config"
 
 // ROUTER & STORE
-import useRouter from './router/router';
+import { createAppRouter as useRouter } from './router';
 
 // Audio Engine
 import { AudioEnginePlugin } from './lib/engine/audio/plugin';

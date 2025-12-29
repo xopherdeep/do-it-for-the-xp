@@ -1,8 +1,10 @@
 import { ref, reactive, computed } from 'vue'
 import { useGameStore } from "@/lib/store/stores/game"
+import { useUserStore } from "@/lib/store/stores/user"
 
-export const useItemFetcher = (initialType: string = "", initialParams: any = {}) => {
+export const useItemFetcher = (initialType: string = "", initialParams: any = {}, userId?: string) => {
   const gameStore = useGameStore()
+  const userStore = useUserStore()
   const isLoading = ref(false)
   const activeModal = ref(0)
 
@@ -20,42 +22,58 @@ export const useItemFetcher = (initialType: string = "", initialParams: any = {}
   })
 
   // Computed
+  const user = computed(() => {
+    return userId ? userStore.getUserById(userId) : null
+  })
+
   const items = computed(() => {
     return gameStore.getRequestedItems(request.type, request.params)
   })
 
+  const images = computed(() => {
+    return items.value?.map((t: any) => t.featured_media) || []
+  })
+
   const nTotalPages = computed(() => {
-    return parseInt(gameStore.getTotalPages(request.type, request.params) || '0')
+    const total = gameStore.getTotalPages(request.type, request.params)
+    return total ? parseInt(total) : 0
   })
 
   const nTotalItems = computed(() => {
-    return parseInt(gameStore.getTotalItems(request.type, request.params) || '0')
+    const total = gameStore.getTotalItems(request.type, request.params)
+    return total ? parseInt(total) : 0
   })
 
   const hasNextPage = computed(() => {
     return request.params.page < nTotalPages.value
   })
 
+  const currentPage = computed(() => request.params.page)
+
   // Actions
+  const getImages = (page: number) => {
+    return gameStore.getRequestedItems(request.type, {
+      ...request.params,
+      page
+    }).map((t: any) => t.featured_media)
+  }
+
+  const getSlideItems = (page: number) => {
+    return gameStore.getRequestedItems(request.type, {
+      ...request.params,
+      page
+    })
+  }
+
   const fetchImages = async (page: number) => {
-    // Get items for *this specific page request*
-    const itemsForPage = gameStore.getRequestedItems(request.type, { ...request.params, page })
-    if (!itemsForPage || itemsForPage.length === 0) return
-
-    const mediaIds = itemsForPage
-      .map((t: any) => t.featured_media)
-      .filter((id: number) => id) // strict filter
-      .join(",")
-
+    const mediaIds = getImages(page).filter(id => id).join(",")
     if (mediaIds) {
       return gameStore.fetchWPItems("media", { include: mediaIds })
     }
   }
 
   const fetchItems = async (page = 1) => {
-    // Update the page in params
     request.params.page = page
-
     return gameStore.fetchWPItems(request.type, { ...request.params, page })
       .then(() => fetchImages(page))
   }
@@ -69,8 +87,12 @@ export const useItemFetcher = (initialType: string = "", initialParams: any = {}
     }
   }
 
+  const getSingleMediaById = (id: string) => {
+    return gameStore.getSingleById("media", id)
+  }
+
   const getImgObj = (id: string) => {
-    const img = gameStore.getSingleById("media", id)
+    const img = getSingleMediaById(id)
     if (img && img.source_url) {
       return {
         src: img.source_url,
@@ -87,12 +109,19 @@ export const useItemFetcher = (initialType: string = "", initialParams: any = {}
     isLoading,
     activeModal,
     request,
+    user,
     items,
+    images,
     nTotalPages,
     nTotalItems,
     hasNextPage,
+    currentPage,
     getItems,
     fetchItems,
+    fetchImages,
+    getImages,
+    getSlideItems,
+    getSingleMediaById,
     getImgObj,
     isModalOpen
   }

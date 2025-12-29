@@ -46,8 +46,6 @@ import { useGameStore } from "@/lib/store/stores/game";
 import { useUserStore } from "@/lib/store/stores/user";
 import { mapStores } from "pinia";
 
-// import fetchItems from "@/mixins/fetchItems";
-
 import MyTask from "@/app/Console/MyPortal/UserHud/MyTask/MyTask.vue";
 // import { useSwiper } from "swiper/vue";
 import Swiper, { Controller, Navigation } from "swiper";
@@ -57,41 +55,6 @@ import XpAchievementDetails from "./XpAchievementDetails.vue"
 import { AchievementDb } from "@/lib/databases";
 import { Storage, Drivers } from "@ionic/storage";
 
-// Define interfaces for sound effects system
-interface SoundEffect {
-  play: () => void;
-  pause: () => void;
-  currentTime: number;
-}
-
-interface ThemeUI {
-  ui: string;
-  rpg: string;
-}
-
-interface FXSystem {
-  ui: {
-    [key: string]: {
-      openPage: SoundEffect;
-      [key: string]: SoundEffect;
-    }
-  };
-  rpg: {
-    [key: string]: {
-      text: SoundEffect;
-      [key: string]: SoundEffect;
-    }
-  };
-  theme: ThemeUI;
-}
-
-// Augment the Vue instance type
-declare module 'vue' {
-  interface ComponentCustomProperties {
-    $fx: FXSystem;
-    $historyCount: number;
-  }
-}
 
 const achievementStorage = new Storage({
   name: "__achievements",

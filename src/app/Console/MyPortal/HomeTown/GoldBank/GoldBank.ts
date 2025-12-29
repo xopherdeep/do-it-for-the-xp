@@ -10,8 +10,8 @@ import {
   handLeftOutline,
   calculatorOutline
 } from "ionicons/icons";
-import fetchItems from "@/mixins/fetchItems"
 import { actionSheetController, alertController, toastController } from "@ionic/vue";
+import { useItemFetcher } from "@/hooks/useItemFetcher";
 import Stats from "@/lib/utils/User/stats";
 import { ProfileDb } from "@/lib/databases";
 import { profileStorage } from "@/app/SideMenu/SwitchProfile/SwitchProfile.vue";
@@ -32,7 +32,7 @@ interface XpTypingTextInstance {
 export default defineComponent({
   props: ["userId"],
   name: "gold-bank",
-  mixins: [ionic, fetchItems],
+  mixins: [ionic],
   components: {
     XpTypingText,
     ATMModal
@@ -41,14 +41,6 @@ export default defineComponent({
     return {
       isLoading: false,
       shelves: ['affordable'],
-      request: {
-        type: "xp_accessory",
-        params: {
-          page: 1,
-          search: "",
-          per_page: 4,
-        },
-      },
       // Dialog state properties
       isDialogVisible: false,
       currentDialogIndex: 0,
@@ -469,7 +461,15 @@ export default defineComponent({
       }
     },
   },
-  setup() {
+  setup(props) {
+    const { 
+      request, 
+      items, 
+      getItems, 
+      getImgObj,
+      nTotalPages
+    } = useItemFetcher("xp_accessory", { per_page: 4 }, props.userId);
+
     const userStore = useUserStore();
     const profileDb = new ProfileDb(profileStorage)
 
@@ -482,7 +482,12 @@ export default defineComponent({
       addCircleOutline,
       close,
       handLeftOutline,
-      calculatorOutline
+      calculatorOutline,
+      request,
+      items,
+      getItems,
+      getImgObj,
+      nTotalPages
     }
   },
 });

@@ -2,7 +2,7 @@ import { defineComponent } from "vue";
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
-import userActions from "@/mixins/userActions";
+import { useUserActions } from "@/hooks/useUserActions";
 import ionic from "@/mixins/ionic";
 import { modalController, toastController } from "@ionic/vue";
 import { arrowBack } from "ionicons/icons";
@@ -15,7 +15,7 @@ export default defineComponent({
   components: {
     SaveAndQuitModal,
   },
-  mixins: [ionic, userActions],
+  mixins: [ionic],
   data() {
     return {
       handlerMessage: '',
@@ -24,8 +24,7 @@ export default defineComponent({
   },
 
   ionViewDidEnter() {
-    this.setUserActions(this.userActions)
-    // this.presentToast()
+    (this as any).setUserActions((this as any).userActions)
   },
 
   methods: {
@@ -62,6 +61,11 @@ export default defineComponent({
     const route = useRoute();
     const router = useRouter()
     const userStore = useUserStore();
+    const { 
+      setUserActions, 
+      setActions,
+      userActions: storeUserActions
+    } = useUserActions();
 
     const { userId } = route.params;
     const user = computed(() => userStore.getUserById(userId as string));
@@ -99,6 +103,9 @@ export default defineComponent({
       closeSaveQuitModal,
       confirmSaveQuit,
       openSaveQuitModal,
+      setUserActions,
+      setActions,
+      storeUserActions,
 
       userActions: [
 

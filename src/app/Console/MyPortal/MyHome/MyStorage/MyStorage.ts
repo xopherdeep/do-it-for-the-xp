@@ -29,13 +29,13 @@ import {
   banOutline,
   bagOutline,
 } from "ionicons/icons";
-import fetchItems from "@/mixins/fetchItems"
+import { useItemFetcher } from "@/hooks/useItemFetcher";
 import { actionSheetController } from "@ionic/vue";
 
 export default defineComponent({
   props: ["userId"],
   name: "my-storage",
-  mixins: [ionic, fetchItems],
+  mixins: [ionic],
   data() {
     return {
       isLoading: false,
@@ -45,14 +45,6 @@ export default defineComponent({
         'misc-items',
         'key-items'
       ],
-      request: {
-        type: "xp_accessory",
-        params: {
-          page: 1,
-          search: "",
-          per_page: 4,
-        },
-      },
     };
   },
   methods: {
@@ -118,7 +110,15 @@ export default defineComponent({
   mounted() {
     // this.$fx.ui[this.$fx.theme.ui].openShop.play()
   },
-  setup() {
+  setup(props) {
+    const { 
+      request, 
+      items, 
+      getItems, 
+      getImgObj,
+      nTotalPages
+    } = useItemFetcher("xp_accessory", { per_page: 4 }, props.userId);
+
     const customAlertOptions = {
       header: 'Storage Categories',
       subHeader: 'Categorized by type',
@@ -149,6 +149,11 @@ export default defineComponent({
       keyOutline,
       cartOutline,
       starSharp,
+      request,
+      items,
+      getItems,
+      getImgObj,
+      nTotalPages
     };
   },
 });

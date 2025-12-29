@@ -25,24 +25,15 @@ import {
   banOutline,
   bagOutline,
 } from "ionicons/icons";
-import fetchItems from "@/mixins/fetchItems"
+import { useItemFetcher } from "@/hooks/useItemFetcher";
 
 export default defineComponent({
   props: ["userId"],
   name: "accessory-shop",
-  mixins: [ionic,fetchItems],
+  mixins: [ionic],
   data() {
     return {
-      isLoading: false,
       shelves: ['affordable'], 
-      request: {
-        type: "xp_accessory",
-        params: {
-          page: 1,
-          search: "",
-          per_page: 4,
-        },
-      },
     };
   },
   methods: {
@@ -53,8 +44,16 @@ export default defineComponent({
   mounted() {
     // this.$fx.ui[this.$fx.theme.ui].openShop.play()
   },
-  setup() {
-const customAlertOptions = {
+  setup(props) {
+    const { 
+      request, 
+      items, 
+      getItems, 
+      getImgObj,
+      nTotalPages
+    } = useItemFetcher("xp_accessory", { per_page: 4 }, props.userId);
+
+    const customAlertOptions = {
       header: 'Pizza Toppings',
       subHeader: 'Select your toppings',
       message: '$1.00 per topping',
@@ -84,6 +83,11 @@ const customAlertOptions = {
       keyOutline,
       cartOutline,
       starSharp,
+      request,
+      items,
+      getItems,
+      getImgObj,
+      nTotalPages
     };
   },
 });

@@ -7,8 +7,9 @@
     @slideNextTransitionStart="next"
     @swiper="setControlledSwiper"
   >
-    <swiper-slide 
-      v-for="page in nTotalPages" pager="true" 
+    <swiper-slide
+      v-for="page in nTotalPages"
+      pager="true"
       :key="page"
       :data-page="page"
     >
@@ -29,7 +30,10 @@
             >
               <!-- :router-link="`/my-tasks/${userId}/task/${item.id}`" -->
               <ion-card-title v-if="isFetching">
-                <ion-skeleton-text :animated="true" style="width: 100px;"></ion-skeleton-text>
+                <ion-skeleton-text
+                  :animated="true"
+                  style="width: 100px;"
+                ></ion-skeleton-text>
               </ion-card-title>
               <ion-card-title
                 v-else
@@ -37,9 +41,15 @@
               ></ion-card-title>
 
               <ion-thumbnail v-if="isFetching">
-                <ion-skeleton-text :animated="true" style="width: 100%;"></ion-skeleton-text>
+                <ion-skeleton-text
+                  :animated="true"
+                  style="width: 100%;"
+                ></ion-skeleton-text>
               </ion-thumbnail>
-              <ion-img v-else-if="item._embedded" v-bind="getFeaturedImg(item._embedded)"/>
+              <ion-img
+                v-else-if="item._embedded"
+                v-bind="getFeaturedImg(item._embedded)"
+              />
 
               <!-- <ion-button v-if="isFetching" expand="block">
                 <ion-skeleton-text :animated="true" style="width: 100%;"></ion-skeleton-text>
@@ -84,12 +94,12 @@
   import { defineComponent } from 'vue'
   import { Controller, Navigation } from "swiper";
   import { IonicSlides } from '@ionic/vue';
-  import fetchItems from '@/mixins/fetchItems';
+  import { useItemFetcher } from '@/hooks/useItemFetcher';
   import ionic from "@/mixins/ionic"
 
   export default defineComponent({
     props: ["items", "nTotalPages", "nTotal", "isFetching", "params"],
-    mixins: [fetchItems, ionic],
+    mixins: [ionic],
     data(){
       return{
         activeModal: 0,
@@ -149,6 +159,8 @@
       },
     },
     setup() {
+      const { getSingleMediaById } = useItemFetcher();
+      
       // Fix 'setControlledSwiper' is not defined error by defining it
       const setControlledSwiper = () => {
         // No-op implementation to fix the ESLint error
@@ -157,6 +169,7 @@
       
       return {
         setControlledSwiper,
+        getSingleMediaById,
         modules: [IonicSlides, Navigation, Controller],
       }
     },

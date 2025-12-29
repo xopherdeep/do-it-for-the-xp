@@ -1,30 +1,49 @@
-// Impordules
-import SideMenuRoutes from './side-menu.routes';
-import UserHudRoutes from './user-hud.routes';
-import MyHomeRoutes from './my-home.routes';
-import MyPortalRoutes from './my-portal.routes';
-import HometownRoutes from './hometown.routes';
-import SupportRoutes from './support.routes';
-import WorldMapRoutes from './world-map.routes';
-import DevRoutes from './dev.routes';
-import GameMasterRoutes from './game-master.routes';
-import SettingsRoutes from './settings.routes';
+// Import modules
 import { createRouter, createWebHistory, createWebHashHistory } from '@ionic/vue-router';
 import { RouteRecordRaw } from 'vue-router';
 import { useRouterGuards } from './guard.routes';
 import { Capacitor } from '@capacitor/core';
 
+// Admin / Game Master
+import { GameMasterRoutes } from './Admin';
+
+// Console
+import {
+  HometownRoutes,
+  MyHomeRoutes,
+  MyPortalRoutes,
+  UserHudRoutes,
+  WorldMapRoutes,
+} from './Console';
+
+// SideMenu
+import { 
+  SideMenuRoutes, 
+  SettingsRoutes, 
+  SupportRoutes 
+} from './SideMenu';
+
+// Dev
+import DevRoutes from './Dev/dev.routes';
+
 // Combine all routes
 const routes: Array<RouteRecordRaw> = [
-  ...SideMenuRoutes,
-  ...UserHudRoutes,
-  ...MyHomeRoutes,
-  ...HometownRoutes,
-  ...SupportRoutes,
-  ...MyPortalRoutes,
-
+  // Admin / Game Master Routes
   ...GameMasterRoutes,
+
+  // Console
+  ...HometownRoutes,
+  ...MyHomeRoutes,
+  ...MyPortalRoutes,
+  ...UserHudRoutes,
+  // ...WorldMapRoutes, already added in my portal
+
+  // SideMenu Routes
   ...SettingsRoutes,
+  ...SideMenuRoutes,
+  ...SupportRoutes,
+
+  // Dev Routes
   ...DevRoutes,
 
   // XP Intro Page

@@ -17,7 +17,10 @@
               v-if="user.avatar"
               class="avatar-button"
             >
-              <ion-img class="ion-no-padding" :src="userAvatar"></ion-img>
+              <ion-img
+                class="ion-no-padding"
+                :src="userAvatar"
+              ></ion-img>
             </ion-fab-button>
             <ion-badge
               color="secondary"
@@ -34,13 +37,23 @@
         </ion-col>
       </ion-row>
     </ion-grid>
-    <ion-fab-list class="fab-user" side="bottom" ref="userFab">
-      <xp-rpg-menu :actions="allUserActions" @action-click="clickAction">
+    <ion-fab-list
+      class="fab-user"
+      side="bottom"
+      ref="userFab"
+    >
+      <xp-rpg-menu
+        :actions="allUserActions"
+        @action-click="clickAction"
+      >
         <template #header>
           <div class="header-content">
             <div class="title-group">
               <span class="menu-title">{{ user.name.nick }}</span>
-              <div class="level-badge-pill" v-if="user.stats">
+              <div
+                class="level-badge-pill"
+                v-if="user.stats"
+              >
                 <small>LVL</small>{{ user.stats.level }}
               </div>
             </div>
@@ -78,8 +91,6 @@
   import { computed, defineComponent, ref, PropType } from "vue";
   import { walletOutline, colorWand, fitnessOutline } from "ionicons/icons";
   import { useRouter } from "vue-router";
-  // import ionic from "@/mixins/ionic"; // Removed legacy mixin
-  // import userActions from "@/mixins/userActions"; // Removed legacy mixin
   import {
     menuController,
     modalController,
@@ -347,9 +358,7 @@
             width: 100%;
             height: 100%;
             object-fit: cover;
-            transform: scale(
-              1.1
-            ); // Scale up to ensure it covers the original button area
+            transform: scale(1.1); // Scale up to ensure it covers the original button area
           }
 
           &:hover {

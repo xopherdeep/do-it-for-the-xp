@@ -26,7 +26,7 @@ import {
   bagOutline,
   cashOutline
 } from "ionicons/icons";
-import fetchItems from "@/mixins/fetchItems";
+import { useItemFetcher } from "@/hooks/useItemFetcher";
 import { modalController } from "@ionic/vue";
 import debug from "@/lib/utils/debug";
 // Import ATM Modal component
@@ -41,20 +41,11 @@ export default defineComponent({
   components: {
     ATMModal
   },
-  mixins: [ionic, fetchItems],
+  mixins: [ionic],
   data() {
     return {
       isLoading: false,
       shelves: ["affordable", "out-of-budget"],
-      request: {
-        type: "xp_accessory",
-        params: {
-          page: 1,
-          search: "",
-          per_page: 4,
-        },
-      },
-      // ATM modal state
       showAtm: false,
       // Map shop IDs to background image paths
       shopBackgrounds: {
@@ -217,7 +208,15 @@ export default defineComponent({
   mounted() {
     this.$fx.ui[this.$fx.theme.ui].openShop.play();
   },
-  setup() {
+  setup(props) {
+    const { 
+      request, 
+      items, 
+      getItems, 
+      getImgObj,
+      nTotalPages
+    } = useItemFetcher("xp_accessory", { per_page: 4 }, props.userId);
+
     const userStore = useUserStore();
     const customAlertOptions = {
       header: "Shelves",
@@ -255,7 +254,12 @@ export default defineComponent({
       starSharp,
       // Add cashOutline for ATM button
       cashOutline,
-      userStore
+      userStore,
+      request,
+      items,
+      getItems,
+      getImgObj,
+      nTotalPages
     };
   },
 });

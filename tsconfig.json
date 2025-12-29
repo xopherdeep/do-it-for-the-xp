@@ -32,6 +32,12 @@
       ],
       "@styles/*": [
         "src/styles/*"
+      ],
+      "@hometown/*": [
+        "src/app/Console/MyPortal/HomeTown/*"
+      ],
+      "@home/*": [
+        "src/app/Console/MyPortal/MyHome/*"
       ]
     },
     "resolveJsonModule": true,

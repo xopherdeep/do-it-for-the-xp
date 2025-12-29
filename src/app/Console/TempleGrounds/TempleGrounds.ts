@@ -3,7 +3,7 @@ import ionic from '@/mixins/ionic';
 import { actionSheetController, alertController } from '@ionic/vue';
 import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
 import { useRouter } from 'vue-router';
-import { useTemple } from '@/hooks/useTemple';
+import { useTemple } from '@/hooks/temples/useTemple';
 import { registerAllTemples, registerCustomTemples } from '@/lib/engine/core/dungeons/TempleAdapter';
 import { importAllTempleLayouts } from '@/lib/engine/core/dungeons/importAllTemples';
 import temples from '../../../lib/engine/temples';

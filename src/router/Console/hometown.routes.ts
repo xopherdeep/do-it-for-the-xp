@@ -41,9 +41,7 @@ export const HometownRoutes: Array<RouteRecordRaw> = [
     path: "/user-stats/:userId?/",
     name: "view-stats",
     component: () =>
-      import(
-        "@/app/Console/MyPortal/HomeTown/HospitalHub/components/XpViewStats.vue"
-      ),
+      import("@/app/Console/MyPortal/HomeTown/HospitalHub/components/XpViewStats.vue"),
     props: true,
   },
   {

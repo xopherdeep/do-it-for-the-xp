@@ -32,7 +32,7 @@ import type { Swiper as SwiperType } from 'swiper';
 
 import { NativeAudio } from "@awesome-cordova-plugins/native-audio";
 import CardUserStats from "@/components/organisms/CardUserStats/CardUserStats.vue";
-import fetchItems from "@/mixins/fetchItems";
+import { useItemFetcher } from "@/hooks/useItemFetcher";
 import AnimatedNumber from "@/components/atoms/AnimatedNumber/XpAnimatedNumber.vue";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useGameStore } from "@/lib/store/stores/game";
@@ -64,7 +64,7 @@ interface SlidesRef {
 }
 
 export default defineComponent({
-  props: ["taskId", "item"],
+  props: ["taskId", "item", "userId"],
   name: "my-task",
   components: {
     alertController,
@@ -98,14 +98,6 @@ export default defineComponent({
       ] as Item[],
       itemsLooted: [] as Item[],
       segment: 0,
-      request: {
-        type: "xp_achievement",
-        params: {
-          page: 1,
-          search: "",
-          per_page: 4,
-        },
-      },
 
       temp: {
         gp: {
@@ -487,8 +479,16 @@ export default defineComponent({
     },
   },
 
-  mixins: [fetchItems, ionic],
-  setup() {
+  mixins: [ionic],
+  setup(props) {
+    const { 
+      request, 
+      items, 
+      getItems, 
+      getImgObj,
+      nTotalPages
+    } = useItemFetcher("xp_achievement", { per_page: 4 }, (props as any).userId);
+
     const userStore = useUserStore();
     const gameStore = useGameStore();
     const battleStore = useBattleStore();
@@ -507,6 +507,11 @@ export default defineComponent({
       setControlledSwiper,
       modules: [IonicSlides, Navigation, Controller],
       router,
+      request,
+      items,
+      getItems,
+      getImgObj,
+      nTotalPages
     };
   },
 });

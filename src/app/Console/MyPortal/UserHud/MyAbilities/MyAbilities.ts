@@ -39,8 +39,7 @@ import {
 import { useUserStore } from "@/lib/store/stores/user";
 import { useGameStore } from "@/lib/store/stores/game";
 
-import fetchItems from "@/mixins/fetchItems"
-import useAbilities from "@/hooks/useAbilities";
+import useAbilities from "@/hooks/abilities/useAbilities";
 import { useQueryClient } from "vue-query";
 import { useRouter } from "vue-router";
 
@@ -73,33 +72,13 @@ export default defineComponent({
     IonPage,
     XpSwiperGallery
   },
-  mixins: [fetchItems, ionic],
+  mixins: [ionic],
   data() {
-    return {
-      request: {
-        type: "xp_ability",
-        params: {
-          page: 1,
-          search: "",
-          per_page: 4,
-        },
-      },
-    };
+    return {};
   },
   computed: {
     userStore() { return useUserStore() },
     gameStore() { return useGameStore() },
-    pageNumbers() {
-      const { params: { page, per_page }, nTotal } = this
-      const max = Number(page) * Number(per_page)
-
-      return {
-        min: max - (per_page - 1),
-        max: max < nTotal
-          ? max
-          : nTotal
-      }
-    },
   },
 
   methods: {
@@ -110,7 +89,7 @@ export default defineComponent({
       // You can use the event data to filter abilities by category if needed
       if ($ev.detail && $ev.detail.value) {
         // Example: Update search parameters based on selected segment
-        this.request.params.search = $ev.detail.value;
+        (this as any).params.search = $ev.detail.value;
       }
     },
     slidePrev() {

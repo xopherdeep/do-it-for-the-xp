@@ -1,5 +1,5 @@
 import { ref } from 'vue';
-import { useAbilitySystem } from '@/hooks/useAbilitySystem';
+import { useAbilitySystem } from '@/hooks/abilities/useAbilitySystem';
 import debug from '@/lib/utils/debug';
 
 /**

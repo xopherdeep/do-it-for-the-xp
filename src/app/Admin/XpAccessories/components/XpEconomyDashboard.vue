@@ -51,76 +51,76 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from "vue";
-import { useRouter } from "vue-router";
-import { actionSheetController, IonRouterOutlet } from "@ionic/vue";
-import { 
-  storefrontOutline, 
-  shirtOutline, 
-  keyOutline,
-  closeOutline,
-  homeOutline 
-} from "ionicons/icons";
-import Ionic from "@/mixins/ionic";
-import XpPage from "@/components/organisms/Page/XpPage.vue";
+  import { defineComponent } from "vue";
+  import { useRouter } from "vue-router";
+  import { actionSheetController, IonRouterOutlet } from "@ionic/vue";
+  import {
+    storefrontOutline,
+    shirtOutline,
+    keyOutline,
+    closeOutline,
+    homeOutline,
+  } from "ionicons/icons";
+  import Ionic from "@/mixins/ionic";
+  import XpPage from "@/components/templates/pages/XpPage.vue";
 
-export default defineComponent({
-  name: "XpEconomyDashboard",
-  mixins: [Ionic],
-  components: {
-    IonRouterOutlet,
-    XpPage
-  },
-  setup() {
-    const router = useRouter();
+  export default defineComponent({
+    name: "XpEconomyDashboard",
+    mixins: [Ionic],
+    components: {
+      IonRouterOutlet,
+      XpPage,
+    },
+    setup() {
+      const router = useRouter();
 
-    const presentActionSheet = async () => {
-      const actionSheet = await actionSheetController.create({
-        header: 'Economy Actions',
-        cssClass: 'rpg-action-sheet',
-        buttons: [
-          {
-            text: 'New Shop',
-            icon: storefrontOutline,
-            handler: () => {
-              router.push({ name: 'xp-create-update-shop' }); 
-            }
-          },
-          {
-            text: 'New Item',
-            icon: shirtOutline,
-            handler: () => {
-              router.push({ name: 'xp-create-update-accessory' });
-            }
-          },
-          {
-            text: 'Assign Key Item',
-            icon: keyOutline,
-            handler: () => {
-               // Navigation to key items tab is now handled by the tab bar,
-               // but we can still navigate via router if needed.
-               router.push({ name: 'xp-economy-key-items' });
-            }
-          },
-          {
-            text: 'Cancel',
-            role: 'cancel',
-            icon: closeOutline
-          }
-        ]
-      });
-      await actionSheet.present();
-    };
+      const presentActionSheet = async () => {
+        const actionSheet = await actionSheetController.create({
+          header: "Economy Actions",
+          cssClass: "rpg-action-sheet",
+          buttons: [
+            {
+              text: "New Shop",
+              icon: storefrontOutline,
+              handler: () => {
+                router.push({ name: "xp-create-update-shop" });
+              },
+            },
+            {
+              text: "New Item",
+              icon: shirtOutline,
+              handler: () => {
+                router.push({ name: "xp-create-update-accessory" });
+              },
+            },
+            {
+              text: "Assign Key Item",
+              icon: keyOutline,
+              handler: () => {
+                // Navigation to key items tab is now handled by the tab bar,
+                // but we can still navigate via router if needed.
+                router.push({ name: "xp-economy-key-items" });
+              },
+            },
+            {
+              text: "Cancel",
+              role: "cancel",
+              icon: closeOutline,
+            },
+          ],
+        });
+        await actionSheet.present();
+      };
 
-    return {
-      presentActionSheet,
-      storefrontOutline,
-      shirtOutline, 
-      keyOutline,
-      homeOutline
-    };
-  }
-});
+      return {
+        presentActionSheet,
+        storefrontOutline,
+        shirtOutline,
+        keyOutline,
+        homeOutline,
+      };
+    },
+  });
 </script>
 
 <style lang="scss" scoped>

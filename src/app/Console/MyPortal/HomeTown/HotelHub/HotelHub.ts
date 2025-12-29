@@ -30,8 +30,8 @@ import {
   bagOutline,
   logOut,
 } from "ionicons/icons";
-import fetchItems from "@/mixins/fetchItems"
 import { actionSheetController } from "@ionic/vue";
+import { useItemFetcher } from "@/hooks/useItemFetcher";
 import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
 import debug from "@/lib/utils/debug";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -53,7 +53,7 @@ interface XpTypingTextInstance {
 export default defineComponent({
   props: ["userId"],
   name: "hotel-hub",
-  mixins: [ionic, fetchItems],
+  mixins: [ionic],
   components: {
     XpTypingText,
     ATMModal
@@ -62,14 +62,6 @@ export default defineComponent({
     return {
       isLoading: false,
       shelves: ['affordable'],
-      request: {
-        type: "xp_accessory",
-        params: {
-          page: 1,
-          search: "",
-          per_page: 4,
-        },
-      },
       // Dialog state properties
       isDialogVisible: false,
       currentDialogIndex: 0,
@@ -260,7 +252,15 @@ export default defineComponent({
       await actionSheet.onDidDismiss();
     },
   },
-  setup() {
+  setup(props) {
+    const { 
+      request, 
+      items, 
+      getItems, 
+      getImgObj,
+      nTotalPages
+    } = useItemFetcher("xp_accessory", { per_page: 4 }, props.userId);
+
     const customAlertOptions = {
       header: 'Pizza Toppings',
       subHeader: 'Select your toppings',
@@ -293,6 +293,11 @@ export default defineComponent({
       cartOutline,
       starSharp,
       bedOutline,
+      request,
+      items,
+      getItems,
+      getImgObj,
+      nTotalPages
     };
   },
 });

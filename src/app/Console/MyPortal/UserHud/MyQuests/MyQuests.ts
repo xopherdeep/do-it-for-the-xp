@@ -28,7 +28,6 @@ import {
 } from "ionicons/icons";
 import { useGameStore } from "@/lib/store/stores/game";
 
-import fetchItems from "@/mixins/fetchItems";
 
 import MyTask from "../MyTask/MyTask.vue";
 import { useRouter } from "vue-router";
@@ -54,7 +53,7 @@ export default defineComponent({
       },
     };
   },
-  mixins: [fetchItems, ionic],
+  mixins: [ionic],
   activated() {
     this.$fx.ui[this.$fx.theme.ui].openPage.play();
     // const mp3 = this.$requireAudio('./take_item.mp3')
@@ -69,9 +68,6 @@ export default defineComponent({
     currentSlide() {
       return this.controlledSwiper?.activeIndex;
     },
-    hasNextPage() {
-      return this.page < this.nTotalPages;
-    },
     searchText: {
       get() {
         return this.params.search;
@@ -81,21 +77,8 @@ export default defineComponent({
         this.params.page = 1;
       },
     },
-    pageNumbers() {
-      const {
-        params: { page, per_page },
-        nTotalTasks,
-      } = this;
-      const max = Number(page) * Number(per_page);
-
-      return {
-        min: max - (per_page - 1),
-        max: max < nTotalTasks ? max : nTotalTasks,
-      };
-    },
   },
   methods: {
-    fetchWPItems(payload: any) { return (this as any).gameStore.fetchWPItems(payload.type, payload.params) },
     clickBack() {
       const hasHistory = this.$historyCount - window.history.length;
       // console.log("hashistory", hasHistory);
@@ -127,15 +110,6 @@ export default defineComponent({
         buttons: ["Collect Loot"],
       });
       return alert.present();
-    },
-    // showLoading() {
-    //   this.isLoading = true;
-    // },
-    // hideLoading() {
-    //   this.isLoading = false;
-    // },
-    fetchTasks() {
-      // return this.fetchWPItems(this.params).then(this.fetchImages);
     },
     getFeaturedImg(embedded) {
       const [img] = embedded["wp:featuredmedia"] || [{}];
