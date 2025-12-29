@@ -104,7 +104,7 @@ export default defineComponent({
       
       // Safety redirect if landing on parent route without child
       if (route.name === 'xp-achievement-config') {
-        router.replace({ name: 'xp-achievement-config-splash', params: { id: id.value || idToLoad || 'new' } });
+        router.replace({ name: 'xp-achievement-config-dashboard', params: { id: id.value || idToLoad || 'new' } });
         return;
       }
 
