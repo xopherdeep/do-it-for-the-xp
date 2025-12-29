@@ -1,9 +1,9 @@
 import { computed, defineComponent, reactive, ref } from "vue";
 import XpApi from "@/lib/api/doit.forthexp.com.api";
-import ionic from "@/mixins/ionic";
+import ionic from "@/lib/mixins/ionic";
 import {
   IonBackButton,
-  alertController, 
+  alertController,
   IonicSlides,
 } from "@ionic/vue";
 import {
@@ -42,7 +42,7 @@ export default defineComponent({
   name: "my-quests",
   components: {
     IonBackButton,
-    MyTask, 
+    MyTask,
   },
   data() {
     return {

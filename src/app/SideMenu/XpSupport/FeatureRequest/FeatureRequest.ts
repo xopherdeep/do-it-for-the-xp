@@ -1,6 +1,6 @@
 import { defineComponent, ref } from 'vue'
 
-import Ionic from '@/mixins/ionic';
+import Ionic from '@/lib/mixins/ionic';
 
 interface FeatureRequest {
   title: string;
@@ -19,7 +19,7 @@ interface PopularFeature {
 export default defineComponent({
   name: 'feature-request',
   mixins: [Ionic],
-  
+
   setup() {
     const showToast = ref(false);
     const toastMessage = ref('');

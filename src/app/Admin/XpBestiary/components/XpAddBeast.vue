@@ -1,13 +1,16 @@
 <template>
   <ion-page ref="beastPage">
-
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button defaultHref="/game-master/compendium/bestiary"></ion-back-button>
+          <ion-back-button
+            defaultHref="/game-master/compendium/bestiary"
+          ></ion-back-button>
         </ion-buttons>
 
-        <ion-title> {{ updateBeast.id ? 'Edit Beast' : 'Add Beast' }} </ion-title>
+        <ion-title>
+          {{ updateBeast.id ? "Edit Beast" : "Add Beast" }}
+        </ion-title>
 
         <ion-buttons slot="end">
           <ion-button @click="openDetailsModal" color="rpg">
@@ -38,10 +41,7 @@
               :src="getAvatar(updateBeast.avatar)"
               class="w-full p-0 m-0"
             />
-            <div
-              v-else
-              class="default-avatar flex items-center justify-center"
-            >
+            <div v-else class="default-avatar flex items-center justify-center">
               <i class="fad fa-camera fa-2x"></i>
             </div>
             <div class="avatar-overlay">
@@ -51,22 +51,20 @@
         </div>
 
         <!-- Beast name display (simplified view when modal is closed) -->
-        <div
-          class="beast-name-display text-center"
-          v-if="updateBeast.name"
-        >
-          <h2 class="text-2xl font-bold text-white text-shadow-lg">{{ updateBeast.name }}</h2>
+        <div class="beast-name-display text-center" v-if="updateBeast.name">
+          <h2 class="text-2xl font-bold text-white text-shadow-lg">
+            {{ updateBeast.name }}
+          </h2>
           <div
             class="checklist-preview"
             v-if="updateBeast.checklist.length > 0"
           >
-            <p class="text-white text-shadow-md">{{ updateBeast.checklist.length }} tasks defined</p>
+            <p class="text-white text-shadow-md">
+              {{ updateBeast.checklist.length }} tasks defined
+            </p>
           </div>
         </div>
-        <div
-          class="text-center mt-4"
-          v-else
-        >
+        <div class="text-center mt-4" v-else>
           <ion-button @click="openDetailsModal">
             <i class="fad fa-plus-circle mr-1"></i>
             Define Your Beast
@@ -90,16 +88,9 @@
             :strong="true"
             color="rpg"
           >
-            <ion-spinner
-              v-if="isSaving"
-              name="dots"
-              class="mr-1"
-            ></ion-spinner>
+            <ion-spinner v-if="isSaving" name="dots" class="mr-1"></ion-spinner>
             <span v-else>Save</span>
-            <i
-              class="fad fa-save fa-lg ml-2"
-              v-if="!isSaving"
-            />
+            <i class="fad fa-save fa-lg ml-2" v-if="!isSaving" />
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
@@ -108,420 +99,454 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, onMounted, ref, watch } from "vue";
-import { modalController, toastController } from "@ionic/vue";
-import { useRouter, useRoute } from 'vue-router';
-import BestiaryDb, { beastStorage, Beast } from "@/lib/databases/BestiaryDb";
-import AvatarSelect from "@/components/molecules/AvatarSelect";
-import XpBackgroundSelector from "@/components/molecules/BackgroundSelector/XpBackgroundSelector.vue";
-import BeastDetailsModal from "./BeastDetailsModal.vue";
-import ionic from "@/mixins/ionic";
-// Import the background manager instead of direct library imports
-import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
-// Import debug utility
-import debug from "@/lib/utils/debug";
+  import { defineComponent, reactive, onMounted, ref, watch } from "vue";
+  import { modalController, toastController } from "@ionic/vue";
+  import { useRouter, useRoute } from "vue-router";
+  import BestiaryDb, { beastStorage, Beast } from "@/lib/databases/BestiaryDb";
+  import AvatarSelect from "@/components/molecules/AvatarSelect";
+  import XpBackgroundSelector from "@/components/molecules/BackgroundSelector/XpBackgroundSelector.vue";
+  import BeastDetailsModal from "./BeastDetailsModal.vue";
+  import ionic from "@/lib/mixins/ionic";
+  // Import the background manager instead of direct library imports
+  import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
+  // Import debug utility
+  import debug from "@/lib/utils/debug";
 
-// Define a type for ion input elements
-type IonInputElement = HTMLElement & { setFocus: () => Promise<void> };
+  // Define a type for ion input elements
+  type IonInputElement = HTMLElement & { setFocus: () => Promise<void> };
 
-// Define a type for Ionic modal elements
-type IonModalElement = HTMLElement & {
-  present: () => Promise<void>;
-  dismiss: () => Promise<boolean>;
-  onDidDismiss: () => Promise<any>;
-  onWillDismiss: () => Promise<any>;
-};
+  // Define a type for Ionic modal elements
+  type IonModalElement = HTMLElement & {
+    present: () => Promise<void>;
+    dismiss: () => Promise<boolean>;
+    onDidDismiss: () => Promise<any>;
+    onWillDismiss: () => Promise<any>;
+  };
 
-// Define interface for the battle background
-interface BeastPageInstance {
-  bg1: number;
-  bg2: number;
-  aspectRatio?: number;
-  enterBattle?: () => void;
-}
+  // Define interface for the battle background
+  interface BeastPageInstance {
+    bg1: number;
+    bg2: number;
+    aspectRatio?: number;
+    enterBattle?: () => void;
+  }
 
-// Interface definition for our beast to ensure type safety
-interface BeastData {
-  id?: string;
-  name: string;
-  checklist: string[];
-  avatar: number;
-  bg1?: number;
-  bg2?: number;
-  aspectRatio: number;
-}
+  // Interface definition for our beast to ensure type safety
+  interface BeastData {
+    id?: string;
+    name: string;
+    checklist: string[];
+    avatar: number;
+    bg1?: number;
+    bg2?: number;
+    aspectRatio: number;
+  }
 
-// Define a unique page identifier for this component
-const PAGE_ID = 'beast-editor';
+  // Define a unique page identifier for this component
+  const PAGE_ID = "beast-editor";
 
-export default defineComponent({
-  props: {
-    id: {
-      type: String,
-      default: undefined
-    }
-  },
-  name: "XpAddBeast",
-  components: {
-    XpBackgroundSelector
-  },
-  mixins: [ionic],
-  data() {
-    return {
-      nAvatars: 40,
-      isSaving: false,
-      showErrors: false,
-      inputRefs: {} as Record<number, IonInputElement>,
-      aspectRatio: 64,
-      detailsModal: null as IonModalElement | null, // Reference to the details modal
-      resizeTimeout: null as ReturnType<typeof setTimeout> | null, // For debouncing resize events
-      backgroundInitialized: false, // Track if background has been initialized
-    };
-  },
-  computed: {
-    bg1() {
-      return this.updateBeast.bg1 ?? (this.beastId ? 0 : Math.floor(Math.random() * 328));
+  export default defineComponent({
+    props: {
+      id: {
+        type: String,
+        default: undefined,
+      },
     },
-    bg2() {
-      return this.updateBeast.bg2 ?? (this.beastId ? 0 : Math.floor(Math.random() * 328));
+    name: "XpAddBeast",
+    components: {
+      XpBackgroundSelector,
     },
-    isNameValid() {
-      return Boolean(this.updateBeast.name && this.updateBeast.name.trim().length > 0);
-    },
-    isChecklistValid() {
-      return Array.isArray(this.updateBeast.checklist) && 
-        this.updateBeast.checklist.some(item => item && item.trim().length > 0);
-    },
-    isFormValid() {
-      return this.isNameValid && this.isChecklistValid && (this.updateBeast.avatar > 0);
-    },
-    beastPageRef(): BeastPageInstance {
+    mixins: [ionic],
+    data() {
       return {
-        bg1: this.bg1,
-        bg2: this.bg2,
-        aspectRatio: this.aspectRatio,
-        enterBattle: this.initBackground
+        nAvatars: 40,
+        isSaving: false,
+        showErrors: false,
+        inputRefs: {} as Record<number, IonInputElement>,
+        aspectRatio: 64,
+        detailsModal: null as IonModalElement | null, // Reference to the details modal
+        resizeTimeout: null as ReturnType<typeof setTimeout> | null, // For debouncing resize events
+        backgroundInitialized: false, // Track if background has been initialized
       };
-    }
-  },
-  mounted() {
-    // Initialize the battle background when component mounts
-    this.$nextTick(() => {
-      // Using nextTick ensures the DOM is ready
-      this.initBackground();
-      this.backgroundInitialized = true;
-    });
-  },
-  unmounted() {
-    // Only clean up if this component was the last one to initialize the background
-    if (backgroundManager.isActiveFor(PAGE_ID)) {
-      backgroundManager.cleanupBackground();
-    }
-  },
-  deactivated() {
-    // No need to cleanup on deactivate if we're using keep-alive
-    // Just mark our background as not initialized so we can check on activation
-    this.backgroundInitialized = false;
-  },
-  activated() {
-    // Only initialize if our background isn't active anymore
-    if (!backgroundManager.isActiveFor(PAGE_ID)) {
+    },
+    computed: {
+      bg1() {
+        return (
+          this.updateBeast.bg1 ??
+          (this.beastId ? 0 : Math.floor(Math.random() * 328))
+        );
+      },
+      bg2() {
+        return (
+          this.updateBeast.bg2 ??
+          (this.beastId ? 0 : Math.floor(Math.random() * 328))
+        );
+      },
+      isNameValid() {
+        return Boolean(
+          this.updateBeast.name && this.updateBeast.name.trim().length > 0
+        );
+      },
+      isChecklistValid() {
+        return (
+          Array.isArray(this.updateBeast.checklist) &&
+          this.updateBeast.checklist.some(
+            (item) => item && item.trim().length > 0
+          )
+        );
+      },
+      isFormValid() {
+        return (
+          this.isNameValid &&
+          this.isChecklistValid &&
+          this.updateBeast.avatar > 0
+        );
+      },
+      beastPageRef(): BeastPageInstance {
+        return {
+          bg1: this.bg1,
+          bg2: this.bg2,
+          aspectRatio: this.aspectRatio,
+          enterBattle: this.initBackground,
+        };
+      },
+    },
+    mounted() {
+      // Initialize the battle background when component mounts
       this.$nextTick(() => {
+        // Using nextTick ensures the DOM is ready
         this.initBackground();
         this.backgroundInitialized = true;
       });
-    }
-  },
-  methods: {
-    getAvatar(id: number) {
-      const pad = id.toString().padStart(3, '0')
-      return require(`@/assets/images/beasts/${pad}.png`);
     },
-    async dismiss() {
-      // Navigate back instead of dismissing modal
-      this.router.push('/game-master/compendium/bestiary');
+    unmounted() {
+      // Only clean up if this component was the last one to initialize the background
+      if (backgroundManager.isActiveFor(PAGE_ID)) {
+        backgroundManager.cleanupBackground();
+      }
     },
-    clickAddItem() {
-      const index = this.updateBeast.checklist.length;
-      this.updateBeast.checklist.push("");
-      
-      // Focus the new input after it's rendered
-      this.$nextTick(() => {
-        const inputEl = this.inputRefs[index];
-        if (inputEl && typeof inputEl.focus === 'function') {
-          inputEl.focus();
-        }
-      });
+    deactivated() {
+      // No need to cleanup on deactivate if we're using keep-alive
+      // Just mark our background as not initialized so we can check on activation
+      this.backgroundInitialized = false;
     },
-    async validateAndSave() {
-      this.showErrors = true;
-      
-      if (!this.isFormValid) {
-        // Show validation error toast
-        await this.presentToast({
-          message: 'Please fix the errors in your form',
-          color: 'danger',
-          duration: 2000,
-          position: 'top'
+    activated() {
+      // Only initialize if our background isn't active anymore
+      if (!backgroundManager.isActiveFor(PAGE_ID)) {
+        this.$nextTick(() => {
+          this.initBackground();
+          this.backgroundInitialized = true;
         });
-        
-        // If avatar is missing, show prompt
-        if (!this.updateBeast.avatar || this.updateBeast.avatar <= 0) {
+      }
+    },
+    methods: {
+      getAvatar(id: number) {
+        const pad = id.toString().padStart(3, "0");
+        return require(`@/assets/images/beasts/${pad}.png`);
+      },
+      async dismiss() {
+        // Navigate back instead of dismissing modal
+        this.router.push("/game-master/compendium/bestiary");
+      },
+      clickAddItem() {
+        const index = this.updateBeast.checklist.length;
+        this.updateBeast.checklist.push("");
+
+        // Focus the new input after it's rendered
+        this.$nextTick(() => {
+          const inputEl = this.inputRefs[index];
+          if (inputEl && typeof inputEl.focus === "function") {
+            inputEl.focus();
+          }
+        });
+      },
+      async validateAndSave() {
+        this.showErrors = true;
+
+        if (!this.isFormValid) {
+          // Show validation error toast
           await this.presentToast({
-            message: 'Please select an avatar for your beast',
-            color: 'warning',
+            message: "Please fix the errors in your form",
+            color: "danger",
             duration: 2000,
-            position: 'top'
+            position: "top",
           });
+
+          // If avatar is missing, show prompt
+          if (!this.updateBeast.avatar || this.updateBeast.avatar <= 0) {
+            await this.presentToast({
+              message: "Please select an avatar for your beast",
+              color: "warning",
+              duration: 2000,
+              position: "top",
+            });
+          }
+
+          return;
         }
-        
-        return;
-      }
-      
-      // Clean up empty checklist items
-      this.updateBeast.checklist = this.updateBeast.checklist.filter(item => item && item.trim().length > 0);
-      
-      // Always update the beast with current background settings before saving
-      this.updateBeast.bg1 = this.bg1;
-      this.updateBeast.bg2 = this.bg2;
-      this.updateBeast.aspectRatio = this.aspectRatio;
-      
-      this.isSaving = true;
-      try {
-        // Create a clean beast object that satisfies the Beast type
-        const beastToSave: Beast = {
-          id: this.updateBeast.id || '',
-          name: this.updateBeast.name,
-          checklist: this.updateBeast.checklist,
-          avatar: this.updateBeast.avatar,
-          bg1: this.updateBeast.bg1,
-          bg2: this.updateBeast.bg2,
-          aspectRatio: this.updateBeast.aspectRatio
-        };
-        
-        // Save the properly typed beast
-        await this.bestiary.setBeast(beastToSave);
-        await this.showToast();
-        // Navigate back to bestiary after saving
-        this.router.push('/game-master/compendium/bestiary');
-      } catch (error) {
-        // Replace the eslint-disable comment and console.error with debug.error
-        debug.error('Error saving beast:', error);
-        await this.presentToast({
-          message: 'There was a problem saving your beast',
-          color: 'danger',
-          duration: 3000,
-          position: 'top'
+
+        // Clean up empty checklist items
+        this.updateBeast.checklist = this.updateBeast.checklist.filter(
+          (item) => item && item.trim().length > 0
+        );
+
+        // Always update the beast with current background settings before saving
+        this.updateBeast.bg1 = this.bg1;
+        this.updateBeast.bg2 = this.bg2;
+        this.updateBeast.aspectRatio = this.aspectRatio;
+
+        this.isSaving = true;
+        try {
+          // Create a clean beast object that satisfies the Beast type
+          const beastToSave: Beast = {
+            id: this.updateBeast.id || "",
+            name: this.updateBeast.name,
+            checklist: this.updateBeast.checklist,
+            avatar: this.updateBeast.avatar,
+            bg1: this.updateBeast.bg1,
+            bg2: this.updateBeast.bg2,
+            aspectRatio: this.updateBeast.aspectRatio,
+          };
+
+          // Save the properly typed beast
+          await this.bestiary.setBeast(beastToSave);
+          await this.showToast();
+          // Navigate back to bestiary after saving
+          this.router.push("/game-master/compendium/bestiary");
+        } catch (error) {
+          // Replace the eslint-disable comment and console.error with debug.error
+          debug.error("Error saving beast:", error);
+          await this.presentToast({
+            message: "There was a problem saving your beast",
+            color: "danger",
+            duration: 3000,
+            position: "top",
+          });
+        } finally {
+          this.isSaving = false;
+        }
+      },
+      clickTrash(index: number) {
+        if (Array.isArray(this.updateBeast.checklist)) {
+          this.updateBeast.checklist.splice(index, 1);
+        }
+      },
+      async showToast() {
+        await this.bestiary.showSuccessToast(
+          `Beast ${this.updateBeast.id ? "Updated" : "Created"} Successfully`
+        );
+      },
+      handleReorder(event: CustomEvent) {
+        if (!Array.isArray(this.updateBeast.checklist)) return;
+
+        // Create a safe copy of the checklist
+        const items = [...this.updateBeast.checklist];
+        const movedItem = items[event.detail.from];
+        items.splice(event.detail.from, 1);
+        items.splice(event.detail.to, 0, movedItem);
+
+        // Update the checklist with the reordered items
+        this.updateBeast.checklist = items;
+
+        // Finish the reorder animation
+        event.detail.complete();
+      },
+      presentToast(options: any) {
+        return toastController.create(options).then((toast) => toast.present());
+      },
+      openAvatarSelector() {
+        this.presentAvatarSelect();
+      },
+      async presentAvatarSelect() {
+        const modal = await modalController.create({
+          component: AvatarSelect,
+          componentProps: {
+            avatar: this.updateBeast.avatar,
+            bg1: this.bg1,
+            bg2: this.bg2,
+          },
+
+          cssClass: "avatar-select-modal",
+          // Remove the presentingElement to ensure it takes up the full screen
         });
-      } finally {
-        this.isSaving = false;
-      }
-    },
-    clickTrash(index: number) {
-      if (Array.isArray(this.updateBeast.checklist)) {
-        this.updateBeast.checklist.splice(index, 1);
-      }
-    },
-    async showToast() {
-      await this.bestiary.showSuccessToast(`Beast ${this.updateBeast.id ? 'Updated' : 'Created'} Successfully`);
-    },
-    handleReorder(event: CustomEvent) {
-      if (!Array.isArray(this.updateBeast.checklist)) return;
-      
-      // Create a safe copy of the checklist
-      const items = [...this.updateBeast.checklist];
-      const movedItem = items[event.detail.from];
-      items.splice(event.detail.from, 1);
-      items.splice(event.detail.to, 0, movedItem);
-      
-      // Update the checklist with the reordered items
-      this.updateBeast.checklist = items;
-      
-      // Finish the reorder animation
-      event.detail.complete();
-    },
-    presentToast(options: any) {
-      return toastController.create(options).then(toast => toast.present());
-    },
-    openAvatarSelector() {
-      this.presentAvatarSelect();
-    },
-    async presentAvatarSelect() {
-      const modal = await modalController.create({
-        component: AvatarSelect,
-        componentProps: {
-          avatar: this.updateBeast.avatar,
-          bg1: this.bg1,
-          bg2: this.bg2,
-        },
-        
-        cssClass: 'avatar-select-modal',
-        // Remove the presentingElement to ensure it takes up the full screen
-      });
 
-      modal.onDidDismiss().then(({ data }) => {
-        if (data) {
-          this.updateBeast.avatar = data;
-          this.initBackground()
-        }
-      });
-
-      return modal.present();
-    },
-    // Open modal with beast details
-    async openDetailsModal() {
-      const modal = await modalController.create({
-        component: BeastDetailsModal,
-        componentProps: {
-          beast: this.updateBeast,
-          isChecklistValid: this.isChecklistValid,
-          isNameValid: this.isNameValid,
-          showErrors: this.showErrors,
-        },
-        cssClass: 'beast-details-modal',
-        breakpoints: [0, 0.5, 1], // Makes it act like a bottom sheet
-        initialBreakpoint: 1, // Start at 80% of the screen height
-        backdropDismiss: true,
-        showBackdrop: true,
-      });
-
-      // Listen for events from the modal
-      modal.onWillDismiss().then((result) => {
-        if (result.data) {
-          // Handle any data updates from the modal
-          if (result.data.beast) {
-            // Update the beast with changes from the modal
-            Object.assign(this.updateBeast, result.data.beast);
+        modal.onDidDismiss().then(({ data }) => {
+          if (data) {
+            this.updateBeast.avatar = data;
+            this.initBackground();
           }
-          
-          if (result.data.showErrors !== undefined) {
-            this.showErrors = result.data.showErrors;
-          }
-        }
-      });
+        });
 
-      this.detailsModal = modal;
-      return modal.present();
-    },
-    
-    // Initialize the battle background using our centralized background manager
-    initBackground() {
-      // Use the current component values which are already set correctly based on
-      // whether we're editing an existing beast or creating a new one
-      backgroundManager.initBackground({
+        return modal.present();
+      },
+      // Open modal with beast details
+      async openDetailsModal() {
+        const modal = await modalController.create({
+          component: BeastDetailsModal,
+          componentProps: {
+            beast: this.updateBeast,
+            isChecklistValid: this.isChecklistValid,
+            isNameValid: this.isNameValid,
+            showErrors: this.showErrors,
+          },
+          cssClass: "beast-details-modal",
+          breakpoints: [0, 0.5, 1], // Makes it act like a bottom sheet
+          initialBreakpoint: 1, // Start at 80% of the screen height
+          backdropDismiss: true,
+          showBackdrop: true,
+        });
+
+        // Listen for events from the modal
+        modal.onWillDismiss().then((result) => {
+          if (result.data) {
+            // Handle any data updates from the modal
+            if (result.data.beast) {
+              // Update the beast with changes from the modal
+              Object.assign(this.updateBeast, result.data.beast);
+            }
+
+            if (result.data.showErrors !== undefined) {
+              this.showErrors = result.data.showErrors;
+            }
+          }
+        });
+
+        this.detailsModal = modal;
+        return modal.present();
+      },
+
+      // Initialize the battle background using our centralized background manager
+      initBackground() {
+        // Use the current component values which are already set correctly based on
+        // whether we're editing an existing beast or creating a new one
+        backgroundManager.initBackground({
           canvasSelector: "canvas.battle-bg",
           bg1: this.bg1,
           bg2: this.bg2,
           aspectRatio: this.aspectRatio,
           handleResize: true,
-          page: PAGE_ID
-      });
-    },
-    
-    onBackgroundChanged(bgData: { bg1: number, bg2: number, aspectRatio?: number }) {
-      backgroundManager.updateBackground({
-        bg1: bgData.bg1,
-        bg2: bgData.bg2,
-        aspectRatio: bgData.aspectRatio ?? this.aspectRatio,
-        page: PAGE_ID
-      });
-      
-      // Update the beast object with the new background settings
-      this.updateBeast.bg1 = bgData.bg1;
-      this.updateBeast.bg2 = bgData.bg2;
-      if (bgData.aspectRatio !== undefined) {
-        this.updateBeast.aspectRatio = bgData.aspectRatio;
-        this.aspectRatio = bgData.aspectRatio;
-      }
-    }
-  },
-  setup(props) {
-    const bestiary = new BestiaryDb(beastStorage);
-    const router = useRouter();
-    const route = useRoute();
-    const beastId = props.id || route.params.id;
-    const beastPage = ref<HTMLElement | null>(null);
-    
-    // Create a properly typed reactive beast object with all required fields initialized
-    const updateBeast = reactive<BeastData>({
-      id: "",
-      name: "",
-      checklist: [],
-      avatar: 0,
-      bg1: undefined,
-      bg2: undefined,
-      aspectRatio: 64
-    });
+          page: PAGE_ID,
+        });
+      },
 
-    onMounted(async () => {
-      if (beastId) {
-        try {
-          const existingBeast = await bestiary.getBeastById(beastId as string);
-          if (existingBeast) {
-            // Copy all properties from existingBeast to updateBeast
-            if (existingBeast.name) updateBeast.name = existingBeast.name;
-            if (existingBeast.avatar) updateBeast.avatar = existingBeast.avatar;
-            if (existingBeast.id) updateBeast.id = existingBeast.id;
-            
-            // Ensure checklist is always an array
-            updateBeast.checklist = Array.isArray(existingBeast.checklist) ? 
-              [...existingBeast.checklist] : [];
-            
-            // Set background properties
-            updateBeast.bg1 = existingBeast.bg1;
-            updateBeast.bg2 = existingBeast.bg2;
-            updateBeast.aspectRatio = existingBeast.aspectRatio ?? 64;
-          }
-        } catch (error) {
-          debug.error('Error loading beast data:', error);
+      onBackgroundChanged(bgData: {
+        bg1: number;
+        bg2: number;
+        aspectRatio?: number;
+      }) {
+        backgroundManager.updateBackground({
+          bg1: bgData.bg1,
+          bg2: bgData.bg2,
+          aspectRatio: bgData.aspectRatio ?? this.aspectRatio,
+          page: PAGE_ID,
+        });
+
+        // Update the beast object with the new background settings
+        this.updateBeast.bg1 = bgData.bg1;
+        this.updateBeast.bg2 = bgData.bg2;
+        if (bgData.aspectRatio !== undefined) {
+          this.updateBeast.aspectRatio = bgData.aspectRatio;
+          this.aspectRatio = bgData.aspectRatio;
         }
-      } else {
-        // For new beasts, generate random backgrounds
-        updateBeast.bg1 = Math.floor(Math.random() * 328);
-        updateBeast.bg2 = Math.floor(Math.random() * 328);
-      }
-      
-      // Add a default checklist item if empty
-      if (!updateBeast.checklist || updateBeast.checklist.length === 0) {
-        updateBeast.checklist = [""];
-      }
-    });
+      },
+    },
+    setup(props) {
+      const bestiary = new BestiaryDb(beastStorage);
+      const router = useRouter();
+      const route = useRoute();
+      const beastId = props.id || route.params.id;
+      const beastPage = ref<HTMLElement | null>(null);
 
-    watch(() => updateBeast.bg1, () => {
-      if (backgroundManager.isActiveFor(PAGE_ID)) {
-        backgroundManager.updateBackground({
-          bg1: updateBeast.bg1,
-          bg2: updateBeast.bg2,
-          aspectRatio: updateBeast.aspectRatio,
-          page: PAGE_ID
-        });
-      }
-    });
+      // Create a properly typed reactive beast object with all required fields initialized
+      const updateBeast = reactive<BeastData>({
+        id: "",
+        name: "",
+        checklist: [],
+        avatar: 0,
+        bg1: undefined,
+        bg2: undefined,
+        aspectRatio: 64,
+      });
 
-    watch(() => updateBeast.bg2, () => {
-      if (backgroundManager.isActiveFor(PAGE_ID)) {
-        backgroundManager.updateBackground({
-          bg1: updateBeast.bg1,
-          bg2: updateBeast.bg2,
-          aspectRatio: updateBeast.aspectRatio,
-          page: PAGE_ID
-        });
-      }
-    });
+      onMounted(async () => {
+        if (beastId) {
+          try {
+            const existingBeast = await bestiary.getBeastById(
+              beastId as string
+            );
+            if (existingBeast) {
+              // Copy all properties from existingBeast to updateBeast
+              if (existingBeast.name) updateBeast.name = existingBeast.name;
+              if (existingBeast.avatar)
+                updateBeast.avatar = existingBeast.avatar;
+              if (existingBeast.id) updateBeast.id = existingBeast.id;
 
-    return {
-      bestiary,
-      updateBeast,
-      beastPage,
-      router,
-      beastId
-    };
-  }
-});
+              // Ensure checklist is always an array
+              updateBeast.checklist = Array.isArray(existingBeast.checklist)
+                ? [...existingBeast.checklist]
+                : [];
+
+              // Set background properties
+              updateBeast.bg1 = existingBeast.bg1;
+              updateBeast.bg2 = existingBeast.bg2;
+              updateBeast.aspectRatio = existingBeast.aspectRatio ?? 64;
+            }
+          } catch (error) {
+            debug.error("Error loading beast data:", error);
+          }
+        } else {
+          // For new beasts, generate random backgrounds
+          updateBeast.bg1 = Math.floor(Math.random() * 328);
+          updateBeast.bg2 = Math.floor(Math.random() * 328);
+        }
+
+        // Add a default checklist item if empty
+        if (!updateBeast.checklist || updateBeast.checklist.length === 0) {
+          updateBeast.checklist = [""];
+        }
+      });
+
+      watch(
+        () => updateBeast.bg1,
+        () => {
+          if (backgroundManager.isActiveFor(PAGE_ID)) {
+            backgroundManager.updateBackground({
+              bg1: updateBeast.bg1,
+              bg2: updateBeast.bg2,
+              aspectRatio: updateBeast.aspectRatio,
+              page: PAGE_ID,
+            });
+          }
+        }
+      );
+
+      watch(
+        () => updateBeast.bg2,
+        () => {
+          if (backgroundManager.isActiveFor(PAGE_ID)) {
+            backgroundManager.updateBackground({
+              bg1: updateBeast.bg1,
+              bg2: updateBeast.bg2,
+              aspectRatio: updateBeast.aspectRatio,
+              page: PAGE_ID,
+            });
+          }
+        }
+      );
+
+      return {
+        bestiary,
+        updateBeast,
+        beastPage,
+        router,
+        beastId,
+      };
+    },
+  });
 </script>
 
 <style lang="scss" scoped>
-  @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+  @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
 
   .fade-in {
     animation: fadeIn 1s ease-in-out;
@@ -534,7 +559,6 @@ export default defineComponent({
       opacity: 1;
     }
   }
-  
 
   .battle-bg {
     position: fixed;
@@ -571,8 +595,7 @@ export default defineComponent({
 
   .beast-name-display {
     margin: 20px 0;
-    font-family: 'Press Start 2P', cursive;
-    
+    font-family: "Press Start 2P", cursive;
   }
 
   .text-shadow-lg {

@@ -1,6 +1,6 @@
 import { computed, defineComponent, reactive, ref } from "vue";
 // import requireImg from "@/assets/js/requireImg";
-import ionic from "@/mixins/ionic";
+import ionic from "@/lib/mixins/ionic";
 import components from "./UserHud/components";
 import XpPortalPage from "@/components/templates/pages/XpPortalPage.vue";
 import "swiper/css";

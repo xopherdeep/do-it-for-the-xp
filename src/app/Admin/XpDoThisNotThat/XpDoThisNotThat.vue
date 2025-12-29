@@ -10,13 +10,9 @@
           Do This, Not That!
         </ion-title>
       </ion-toolbar>
-
     </ion-header>
     <ion-content class="bg-slide bg-slide-modal">
-      <div
-        v-if="isLoading"
-        class="loading-wrapper-centered"
-      >
+      <div v-if="isLoading" class="loading-wrapper-centered">
         <XpLoading />
       </div>
       <ion-list v-else>
@@ -25,14 +21,8 @@
           :key="index"
         >
           <ion-item-options side="start">
-            <ion-item-option
-              color="danger"
-              @click="clickDeleteDoDont(task)"
-            >
-              <i
-                class="fad fa-trash fa-lg mx-2 my-1"
-                slot="top"
-              />
+            <ion-item-option color="danger" @click="clickDeleteDoDont(task)">
+              <i class="fad fa-trash fa-lg mx-2 my-1" slot="top" />
               Remove
             </ion-item-option>
           </ion-item-options>
@@ -73,10 +63,7 @@
                 </ion-badge>
               </p>
             </ion-label>
-            <ion-buttons
-              slot="end"
-              class="m-0"
-            >
+            <ion-buttons slot="end" class="m-0">
               <ion-button @click="clickAdd(task)">
                 <i
                   class="fad fa-2x"
@@ -88,44 +75,23 @@
                 />
               </ion-button>
             </ion-buttons>
-            <i
-              class="fad fa-grip-vertical ml-1"
-              slot="end"
-            />
+            <i class="fad fa-grip-vertical ml-1" slot="end" />
           </ion-item>
           <ion-item-options side="end">
-            <ion-item-option
-              color="primary"
-              @click="clickAdd(task)"
-            >
-              <i
-                class="fad fa-edit fa-lg mx-2 my-1"
-                slot="top"
-              />
+            <ion-item-option color="primary" @click="clickAdd(task)">
+              <i class="fad fa-edit fa-lg mx-2 my-1" slot="top" />
               Edit
             </ion-item-option>
-            <ion-item-option
-              color="primary"
-              @click="clickCloneDoDont(task)"
-            >
+            <ion-item-option color="primary" @click="clickCloneDoDont(task)">
               Clone
-              <i
-                class="fad fa-clone fa-lg mx-2 my-1"
-                slot="top"
-              />
+              <i class="fad fa-clone fa-lg mx-2 my-1" slot="top" />
             </ion-item-option>
           </ion-item-options>
         </ion-item-sliding>
       </ion-list>
     </ion-content>
-    <ion-fab
-      vertical="bottom"
-      horizontal="center"
-    >
-      <ion-fab-button
-        @click="clickAdd()"
-        color="light"
-      >
+    <ion-fab vertical="bottom" horizontal="center">
+      <ion-fab-button @click="clickAdd()" color="light">
         <ion-icon :icon="add" />
       </ion-fab-button>
     </ion-fab>
@@ -151,12 +117,12 @@
   import DosDontsDb, { DosDont } from "@/lib/databases/DosDontsDb";
   import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 
-  import ionic from "@/mixins/ionic";
+  import ionic from "@/lib/mixins/ionic";
   export default defineComponent({
     name: "XpDoThisNotThat",
     mixins: [ionic],
     components: {
-      XpLoading
+      XpLoading,
     },
 
     computed: {
@@ -238,7 +204,9 @@
         try {
           const all = await doDontDb.getAll();
           //sort them a-z
-          doDonts.value = all.sort((a, b) => a.whatFor.localeCompare(b.whatFor));
+          doDonts.value = all.sort((a, b) =>
+            a.whatFor.localeCompare(b.whatFor)
+          );
         } finally {
           isLoading.value = false;
         }

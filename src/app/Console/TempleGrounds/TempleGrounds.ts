@@ -1,5 +1,5 @@
 import { defineComponent, onMounted, computed, ref } from 'vue';
-import ionic from '@/mixins/ionic';
+import ionic from '@/lib/mixins/ionic';
 import { actionSheetController, alertController } from '@ionic/vue';
 import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
 import { useRouter } from 'vue-router';
@@ -25,7 +25,7 @@ export default defineComponent({
   },
   setup(props) {
     const userStore = useUserStore();
-    
+
     // Ensure users are loaded
     if (Object.keys(userStore.users).length === 0) {
       userStore.loadUsers();
@@ -232,8 +232,8 @@ export default defineComponent({
         case 'monster':
         case 'miniboss':
         case 'boss':
-          actions.header = currentRoom.value.type === 'boss' 
-            ? 'A Powerful Boss appears!' 
+          actions.header = currentRoom.value.type === 'boss'
+            ? 'A Powerful Boss appears!'
             : 'A Monster approaches!';
           actions.buttons.unshift({
             text: 'Fight',
@@ -242,7 +242,7 @@ export default defineComponent({
               // Navigate using URL path format - BattleField will look up the room data
               const [row, col] = currentPosition.value;
               const level = currentLevel.value;
-              
+
               router.push({
                 name: 'battle-field-temple',
                 params: {

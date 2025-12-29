@@ -8,7 +8,7 @@ import { profileStorage } from "../SwitchProfile.vue";
 import InputSettings from "../../XpSettings/components/InputSettings.vue";
 import AvatarSelector from "./components/AvatarSelector.vue";
 
-import ionic from "@/mixins/ionic";
+import ionic from "@/lib/mixins/ionic";
 
 import XpGp from "@/components/atoms/Currency/XpGp.vue";
 import GamerCard from "./GamerCard.vue"

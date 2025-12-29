@@ -1,10 +1,8 @@
 <template>
-  <div
-    button
-    class="stat-box clickable text-center"
-    @click="handleClick"
-  >
-    <i :class="`fad ${iconName} fa-2x ${iconColor ? 'text-' + iconColor : ''}`"></i>
+  <div button class="stat-box clickable text-center" @click="handleClick">
+    <i
+      :class="`fad ${iconName} fa-2x ${iconColor ? 'text-' + iconColor : ''}`"
+    ></i>
     <xp-text variant="value" class="stat-value">
       <span v-if="isNaNValue">{{ value }}</span>
       <vue3-autocounter
@@ -21,22 +19,24 @@
     <!-- Progress / Forecast Bar -->
     <div v-if="progress >= 0" class="mini-progress-track" :class="direction">
       <!-- Faded Bar (Max Extent) -->
-      <div 
-        class="mini-progress-fill faded" 
+      <div
+        class="mini-progress-fill faded"
         :class="iconColor ? `bg-${iconColor}` : 'bg-primary'"
-        :style="{ 
+        :style="{
           width: `${Math.max(progress, forecast !== -1 ? forecast : 0) * 100}%`,
-          [direction === 'rtl' ? 'right' : 'left']: 0
+          [direction === 'rtl' ? 'right' : 'left']: 0,
         }"
       ></div>
-      
+
       <!-- Solid Bar (Min Extent / Current) -->
-      <div 
-        class="mini-progress-fill solid" 
+      <div
+        class="mini-progress-fill solid"
         :class="iconColor ? `bg-${iconColor}` : 'bg-primary'"
-        :style="{ 
-          width: `${(forecast !== -1 ? Math.min(progress, forecast) : progress) * 100}%`,
-          [direction === 'rtl' ? 'right' : 'left']: 0
+        :style="{
+          width: `${
+            (forecast !== -1 ? Math.min(progress, forecast) : progress) * 100
+          }%`,
+          [direction === 'rtl' ? 'right' : 'left']: 0,
         }"
       ></div>
     </div>
@@ -49,9 +49,9 @@
 </template>
 
 <script lang="ts">
-  import Ionic from "@/mixins/ionic";
+  import Ionic from "@/lib/mixins/ionic";
   import { defineComponent, watch, ref, onMounted } from "vue";
-  import Vue3Autocounter from 'vue3-autocounter';
+  import Vue3Autocounter from "vue3-autocounter";
   import XpLabel from "@/components/atoms/Label/XpLabel.vue";
   import XpText from "@/components/atoms/Text/XpText.vue";
 
@@ -59,71 +59,71 @@
     name: "XpStatBox",
     mixins: [Ionic],
     components: {
-      'vue3-autocounter': Vue3Autocounter,
+      "vue3-autocounter": Vue3Autocounter,
       XpLabel,
-      XpText
+      XpText,
     },
     props: {
       value: {
         type: [Number, String],
-        default: 0
+        default: 0,
       },
       label: {
         type: String,
-        required: true
+        required: true,
       },
       iconName: {
         type: String,
-        required: true
+        required: true,
       },
       iconColor: {
         type: String,
-        default: ""
+        default: "",
       },
       onClick: {
         type: Function,
-        default: () => { }
+        default: () => {},
       },
       // Delay before starting counter (ms)
       animationDelay: {
         type: Number,
-        default: 600
+        default: 600,
       },
       progress: {
         type: Number,
-        default: -1 // -1 means no progress bar
+        default: -1, // -1 means no progress bar
       },
       forecast: {
         type: Number,
-        default: -1 // -1 means no forecast (snapshot)
+        default: -1, // -1 means no forecast (snapshot)
       },
       direction: {
         type: String,
-        default: 'ltr', // 'ltr' (Default) or 'rtl'
-        validator: (val: string) => ['ltr', 'rtl'].includes(val)
+        default: "ltr", // 'ltr' (Default) or 'rtl'
+        validator: (val: string) => ["ltr", "rtl"].includes(val),
       },
       ribbon: {
         type: String,
-        default: ""
+        default: "",
       },
       ribbonColor: {
         type: String,
-        default: "danger"
+        default: "danger",
       },
       // Watch this to restart animation (use slide index)
       animationKey: {
         type: [Number, String],
-        default: 0
+        default: 0,
       },
       // Is this slide currently active?
       isActive: {
         type: Boolean,
-        default: true
-      }
+        default: true,
+      },
     },
     setup(props) {
       const counter = ref<any>(null);
-      
+
       const startCounter = () => {
         if (counter.value && props.isActive) {
           // Reset and start after delay
@@ -143,25 +143,31 @@
       });
 
       // Restart when animationKey changes (slide change)
-      watch(() => props.animationKey, () => {
-        if (props.isActive) {
-          // Reset counter first if possible
-          if (counter.value?.reset) {
-            counter.value.reset();
+      watch(
+        () => props.animationKey,
+        () => {
+          if (props.isActive) {
+            // Reset counter first if possible
+            if (counter.value?.reset) {
+              counter.value.reset();
+            }
+            startCounter();
           }
-          startCounter();
         }
-      });
+      );
 
       // Also watch isActive
-      watch(() => props.isActive, (active) => {
-        if (active) {
-          if (counter.value?.reset) {
-            counter.value.reset();
+      watch(
+        () => props.isActive,
+        (active) => {
+          if (active) {
+            if (counter.value?.reset) {
+              counter.value.reset();
+            }
+            startCounter();
           }
-          startCounter();
         }
-      });
+      );
 
       return { counter };
     },
@@ -171,13 +177,13 @@
       },
       numericValue(): number {
         return Number(this.value) || 0;
-      }
+      },
     },
     methods: {
       handleClick() {
         this.onClick();
-      }
-    }
+      },
+    },
   });
 </script>
 
@@ -209,11 +215,11 @@
       font-weight: 800;
       text-transform: uppercase;
       color: #fff;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
       z-index: 10;
       letter-spacing: 2.5px;
       white-space: nowrap;
-      border: 1px solid rgba(255,255,255,0.2);
+      border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
     .stat-value {
@@ -228,7 +234,7 @@
       border-radius: 4px;
       overflow: hidden;
       margin: 4px 0 8px 0;
-      border: 1px solid rgba(255,255,255,0.1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       position: relative; /* Context for absolute bars */
 
       .mini-progress-fill {
@@ -236,9 +242,9 @@
         border-radius: 4px;
         transition: width 1s cubic-bezier(0.4, 0, 0.2, 1);
         position: absolute;
-        top: 0; 
+        top: 0;
         /* Left/Right controlled by inline style */
-        
+
         &.faded {
           opacity: 0.3;
           z-index: 1;
@@ -248,16 +254,34 @@
           opacity: 1;
           z-index: 2;
         }
-        
-        &.bg-primary { background: var(--ion-color-primary); }
-        &.bg-secondary { background: var(--ion-color-secondary); }
-        &.bg-tertiary { background: var(--ion-color-tertiary); }
-        &.bg-success { background: var(--ion-color-success); }
-        &.bg-warning { background: var(--ion-color-warning); }
-        &.bg-danger { background: var(--ion-color-danger); }
-        &.bg-medium { background: var(--ion-color-medium); }
-        &.bg-light { background: var(--ion-color-light); }
-        &.bg-dark { background: var(--ion-color-dark); }
+
+        &.bg-primary {
+          background: var(--ion-color-primary);
+        }
+        &.bg-secondary {
+          background: var(--ion-color-secondary);
+        }
+        &.bg-tertiary {
+          background: var(--ion-color-tertiary);
+        }
+        &.bg-success {
+          background: var(--ion-color-success);
+        }
+        &.bg-warning {
+          background: var(--ion-color-warning);
+        }
+        &.bg-danger {
+          background: var(--ion-color-danger);
+        }
+        &.bg-medium {
+          background: var(--ion-color-medium);
+        }
+        &.bg-light {
+          background: var(--ion-color-light);
+        }
+        &.bg-dark {
+          background: var(--ion-color-dark);
+        }
       }
     }
 
@@ -267,7 +291,7 @@
 
     i {
       margin: 0;
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
     }
   }
 

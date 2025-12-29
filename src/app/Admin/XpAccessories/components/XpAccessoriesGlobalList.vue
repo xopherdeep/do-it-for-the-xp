@@ -5,13 +5,8 @@
         <ion-buttons slot="start">
           <ion-back-button defaultHref="/game-master" />
         </ion-buttons>
-        <i
-          slot="start"
-          class="fad fa-hand-holding-usd fa-2x"
-        />
-        <ion-title>
-          Shops & Accessories
-        </ion-title>
+        <i slot="start" class="fad fa-hand-holding-usd fa-2x" />
+        <ion-title> Shops & Accessories </ion-title>
         <ion-buttons slot="end">
           <ion-button @click="openSettings">
             <i class="fad fa-cog fa-2x" />
@@ -28,7 +23,6 @@
           <ion-segment-button value="virtual">In-Game</ion-segment-button>
         </ion-segment>
         <ion-buttons slot="end">
-
           <ion-button @click="toggleSort">
             <ion-icon :icon="sortIcon" />
           </ion-button>
@@ -57,7 +51,11 @@
           :key="accessory.id"
           button
           @click="handleAccessoryClick(accessory)"
-          :color="isSelectionMode && selectedIds.includes(accessory.id) ? 'light' : undefined"
+          :color="
+            isSelectionMode && selectedIds.includes(accessory.id)
+              ? 'light'
+              : undefined
+          "
         >
           <ion-checkbox
             v-if="isSelectionMode"
@@ -69,20 +67,18 @@
           <ion-label>
             {{ accessory.name }}
             <p>
-              <ion-badge :color="getTypeColor(accessory.type)">{{ accessory.type || 'Unknown' }}</ion-badge>
-              <ion-badge
-                color="medium"
-                v-if="accessory.rarity"
-              >{{ getRarityLabel(accessory.rarity) }}</ion-badge>
+              <ion-badge :color="getTypeColor(accessory.type)">{{
+                accessory.type || "Unknown"
+              }}</ion-badge>
+              <ion-badge color="medium" v-if="accessory.rarity">{{
+                getRarityLabel(accessory.rarity)
+              }}</ion-badge>
             </p>
           </ion-label>
-          <xp-gp
-            :gp="accessory.basePrice"
-            slot="end"
-          />
+          <xp-gp :gp="accessory.basePrice" slot="end" />
         </ion-item>
       </ion-list>
-      
+
       <!-- Selection Mode FAB -->
       <ion-fab
         v-if="isSelectionMode"
@@ -91,40 +87,36 @@
         slot="fixed"
       >
         <ion-fab-button @click="confirmSelection" color="success">
-          <i class="fas fa-check fa-2x"/>
+          <i class="fas fa-check fa-2x" />
         </ion-fab-button>
       </ion-fab>
-      
+
       <!-- Normal Mode FAB -->
-      <ion-fab
-        v-else
-        vertical="bottom"
-        horizontal="center"
-      >
+      <ion-fab v-else vertical="bottom" horizontal="center">
         <ion-fab-button @click="presentActionSheet" color="rpg">
-          <i class="fad fa-hand-holding-usd fa-2x"/>
+          <i class="fad fa-hand-holding-usd fa-2x" />
         </ion-fab-button>
       </ion-fab>
 
       <!-- Cancel Selection FAB -->
-       <ion-fab
+      <ion-fab
         v-if="isSelectionMode"
         vertical="bottom"
         horizontal="start"
         slot="fixed"
       >
         <ion-fab-button @click="cancelSelection" color="danger">
-          <i class="fas fa-times fa-2x"/>
+          <i class="fas fa-times fa-2x" />
         </ion-fab-button>
       </ion-fab>
     </ion-content>
   </ion-page>
 </template>
 <script lang="ts">
-  import { defineComponent, ref, computed } from 'vue'
-  import ionic from '@/mixins/ionic'
-  import { loadingController, actionSheetController } from '@ionic/vue'
-  import { useItemSelectionStore } from '@/lib/store/stores/item-selection';
+  import { defineComponent, ref, computed } from "vue";
+  import ionic from "@/lib/mixins/ionic";
+  import { loadingController, actionSheetController } from "@ionic/vue";
+  import { useItemSelectionStore } from "@/lib/store/stores/item-selection";
 
   import {
     addSharp,
@@ -137,46 +129,52 @@
     arrowDown,
     add,
     createOutline,
-    cloudDownloadOutline
-  } from 'ionicons/icons'
-import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
+    cloudDownloadOutline,
+  } from "ionicons/icons";
+  import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 
-  import { useRouter } from 'vue-router'
+  import { useRouter } from "vue-router";
 
-  import AccessoriesDb, { Accessory, accessoriesStorage, Rarity } from '@/lib/databases/AccessoriesDb';
+  import AccessoriesDb, {
+    Accessory,
+    accessoriesStorage,
+    Rarity,
+  } from "@/lib/databases/AccessoriesDb";
 
   export default defineComponent({
-    name: 'xp-accessories-global-list',
+    name: "xp-accessories-global-list",
     mixins: [ionic],
     components: {
-      XpLoading
+      XpLoading,
     },
     data() {
       return {
         // data properties go here
-      }
+      };
     },
     methods: {
       openSettings() {
         this.$router.push({
-          name: 'xp-settings-reward'
-        })
+          name: "xp-settings-reward",
+        });
       },
       async clickDiscover() {
         // Use the directly imported loadingController
-        loadingController.create({
-          message: 'Discovering accessories...',
-          duration: 1500
-        }).then(loading => {
-          loading.present();
-          
-          // After loading finishes, navigate to discover page
-          setTimeout(() => {
-            this.$router.push({
-              name: 'xp-discover-accessories'
-            });
-          }, 1600);
-        });
+        loadingController
+          .create({
+            message: "Discovering accessories...",
+            duration: 1500,
+          })
+          .then((loading) => {
+            loading.present();
+
+            // After loading finishes, navigate to discover page
+            setTimeout(() => {
+              this.$router.push({
+                name: "xp-discover-accessories",
+              });
+            }, 1600);
+          });
       },
       async loadAccessories() {
         this.isLoading = true;
@@ -189,44 +187,44 @@ import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
       },
       clickAccessory(accessory: Accessory) {
         this.$router.push({
-          name: 'xp-create-update-accessory',
+          name: "xp-create-update-accessory",
           params: {
-            id: accessory.id
-          }
-        })
+            id: accessory.id,
+          },
+        });
       },
       getTypeColor(type: string) {
         // Handle case where type is undefined by providing a default color
-        if (!type) return 'medium';
-        return type.toLowerCase() === 'real' ? 'success' : 'tertiary';
+        if (!type) return "medium";
+        return type.toLowerCase() === "real" ? "success" : "tertiary";
       },
       getRarityLabel(rarity: Rarity) {
         const rarityMap = {
-          [Rarity.Common]: 'Common',
-          [Rarity.Uncommon]: 'Uncommon',
-          [Rarity.Rare]: 'Rare',
-          [Rarity.Epic]: 'Epic',
-          [Rarity.Legendary]: 'Legendary'
+          [Rarity.Common]: "Common",
+          [Rarity.Uncommon]: "Uncommon",
+          [Rarity.Rare]: "Rare",
+          [Rarity.Epic]: "Epic",
+          [Rarity.Legendary]: "Legendary",
         };
-        return rarityMap[rarity] || 'Unknown';
-      }
+        return rarityMap[rarity] || "Unknown";
+      },
     },
     mounted() {
-      this.loadAccessories()
+      this.loadAccessories();
     },
     setup() {
       const accessories = ref([] as Accessory[]);
       const router = useRouter();
       const accessoryDb = new AccessoriesDb(accessoriesStorage);
       const showFilter = ref(false);
-      const filterType = ref('all');
+      const filterType = ref("all");
       const showSort = ref(false);
-      const sortType = ref('name');
-      const sortDirection = ref('asc');
+      const sortType = ref("name");
+      const sortDirection = ref("asc");
       const isLoading = ref(true);
 
       const itemSelectionStore = useItemSelectionStore();
-      
+
       const isSelectionMode = computed(() => !!itemSelectionStore.callback);
       const selectedIds = computed(() => itemSelectionStore.selectedItemIds);
 
@@ -253,7 +251,7 @@ import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
         itemSelectionStore.confirmSelection();
         router.back();
       };
-      
+
       const cancelSelection = () => {
         itemSelectionStore.clear();
         router.back();
@@ -261,33 +259,35 @@ import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 
       const filteredAccessories = computed(() => {
         let filtered = accessories.value;
-        if (filterType.value !== 'all') {
-          filtered = filtered.filter(item => {
-            const isRealLife = item.type?.toLowerCase() === 'real';
-            return (filterType.value === 'real' && isRealLife) || 
-                   (filterType.value === 'virtual' && !isRealLife);
+        if (filterType.value !== "all") {
+          filtered = filtered.filter((item) => {
+            const isRealLife = item.type?.toLowerCase() === "real";
+            return (
+              (filterType.value === "real" && isRealLife) ||
+              (filterType.value === "virtual" && !isRealLife)
+            );
           });
         }
         return filtered.sort((a, b) => {
           let comparison = 0;
-          if (sortType.value === 'name') {
+          if (sortType.value === "name") {
             comparison = a.name.localeCompare(b.name);
-          } else if (sortType.value === 'price') {
+          } else if (sortType.value === "price") {
             comparison = a.basePrice - b.basePrice;
-          } else if (sortType.value === 'rarity') {
+          } else if (sortType.value === "rarity") {
             comparison = a.rarity - b.rarity;
           }
-          return sortDirection.value === 'asc' ? comparison : -comparison;
+          return sortDirection.value === "asc" ? comparison : -comparison;
         });
       });
 
       const clickAccessory = (accessory: Accessory) => {
         router.push({
-          name: 'xp-create-update-accessory',
+          name: "xp-create-update-accessory",
           params: {
-            id: accessory.id
-          }
-        })
+            id: accessory.id,
+          },
+        });
       };
 
       const toggleFilter = () => {
@@ -299,14 +299,14 @@ import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
       };
 
       const toggleSortDirection = () => {
-        sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
+        sortDirection.value = sortDirection.value === "asc" ? "desc" : "asc";
       };
 
       const clickAdd = () => {
         router.push({
-          name: 'xp-create-update-accessory'
-        })
-      }
+          name: "xp-create-update-accessory",
+        });
+      };
 
       return {
         isSelectionMode,
@@ -314,7 +314,7 @@ import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
         handleAccessoryClick,
         confirmSelection,
         cancelSelection,
-        
+
         clickAdd,
         accessories,
         accessoryDb,
@@ -340,85 +340,85 @@ import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
         isLoading,
         presentActionSheet: async () => {
           const actionSheet = await actionSheetController.create({
-            header: 'Accessory Actions',
-            cssClass: 'accessories-action-sheet',
-            mode: 'ios',
+            header: "Accessory Actions",
+            cssClass: "accessories-action-sheet",
+            mode: "ios",
             buttons: [
               {
-                text: 'Create New Accessory',
+                text: "Create New Accessory",
                 icon: createOutline,
-                cssClass: 'action-create',
+                cssClass: "action-create",
                 handler: () => {
                   clickAdd();
-                }
+                },
               },
               {
-                text: 'Discover Accessories',
+                text: "Discover Accessories",
                 icon: searchOutline,
-                cssClass: 'action-discover',
+                cssClass: "action-discover",
                 handler: () => {
                   router.push({
-                    name: 'xp-discover-accessories'
+                    name: "xp-discover-accessories",
                   });
-                }
+                },
               },
               {
-                text: 'Import Accessories',
+                text: "Import Accessories",
                 icon: cloudDownloadOutline,
-                cssClass: 'action-import',
+                cssClass: "action-import",
                 handler: () => {
                   // Import functionality would go here
                   // This is a placeholder for future implementation
-                }
+                },
               },
               {
-                text: 'Cancel',
-                role: 'cancel',
-                cssClass: 'action-cancel'
-              }
+                text: "Cancel",
+                role: "cancel",
+                cssClass: "action-cancel",
+              },
             ],
           });
           await actionSheet.present();
+        },
+      };
+    },
+  });
+</script>
+<style lang="scss" scoped>
+  .xp-accessories {
+    ion-fab-list {
+      ion-fab-button {
+        &::before {
+          position: absolute;
+          right: 53px;
+          top: 12px;
+          cursor: pointer;
+        }
+
+        &:nth-child(1)::before {
+          content: "Create your Own ";
+        }
+
+        &:nth-child(2)::before {
+          content: "Add from Discover";
+        }
+
+        &:nth-child(3)::before {
+          content: "Add from Recommended";
         }
       }
     }
-  })
-</script>
-<style lang="scss" scoped>
-.xp-accessories {
-  ion-fab-list {
-    ion-fab-button {
-      &::before {
-        position: absolute;
-        right: 53px;
-        top: 12px;
-        cursor: pointer;
-      }
 
-      &:nth-child(1)::before {
-        content: "Create your Own ";
-      }
+    ion-badge {
+      margin-right: 5px;
+    }
 
-      &:nth-child(2)::before {
-        content: "Add from Discover";
-      }
-
-      &:nth-child(3)::before {
-        content: "Add from Recommended";
-      }
+    ion-segment {
+      padding: 5px;
     }
   }
-
-  ion-badge {
-    margin-right: 5px;
+  .transparent-content {
+    --background: transparent;
+    background: transparent;
   }
-
-  ion-segment {
-    padding: 5px;
-  }
-}
-.transparent-content {
-  --background: transparent;
-  background: transparent;
-}
 </style>

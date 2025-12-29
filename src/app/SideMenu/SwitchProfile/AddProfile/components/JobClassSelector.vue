@@ -27,13 +27,10 @@
               v-for="job in jobClassOptions"
               :key="job.name"
               class="class-option"
-              :class="{ 'selected': job.name === modelValue }"
+              :class="{ selected: job.name === modelValue }"
               @click="selectClass(job.name)"
             >
-              <div
-                class="class-icon-container"
-                :class="job.name.toLowerCase()"
-              >
+              <div class="class-icon-container" :class="job.name.toLowerCase()">
                 <i :class="`fad ${job.icon} fa-2x`"></i>
               </div>
               <div class="class-name">{{ job.name }}</div>
@@ -49,10 +46,7 @@
         </div>
 
         <!-- 2. Selected Class Detail View (Bottom) -->
-        <div
-          class="character-preview"
-          v-if="selectedJob"
-        >
+        <div class="character-preview" v-if="selectedJob">
           <div class="class-details">
             <div class="class-description">
               {{ selectedJob.description }}
@@ -62,47 +56,77 @@
               <div class="pillars-grid">
                 <div
                   class="pillar-item primary"
-                  :style="{ borderLeftColor: `var(--ion-color-${getAreaColor(selectedJob.primaryPillar)})` }"
+                  :style="{
+                    borderLeftColor: `var(--ion-color-${getAreaColor(
+                      selectedJob.primaryPillar
+                    )})`,
+                  }"
                 >
                   <div class="pillar-icon">
                     <i
                       :class="getAreaFaIcon(selectedJob.primaryPillar)"
-                      :style="{ color: `var(--ion-color-${getAreaColor(selectedJob.primaryPillar)})` }"
+                      :style="{
+                        color: `var(--ion-color-${getAreaColor(
+                          selectedJob.primaryPillar
+                        )})`,
+                      }"
                     ></i>
                   </div>
                   <div class="pillar-info">
                     <span class="pillar-rank">Primary</span>
-                    <span class="pillar-name">{{ getAreaLabel(selectedJob.primaryPillar) }}</span>
+                    <span class="pillar-name">{{
+                      getAreaLabel(selectedJob.primaryPillar)
+                    }}</span>
                   </div>
                 </div>
                 <div
                   class="pillar-item secondary"
-                  :style="{ borderLeftColor: `var(--ion-color-${getAreaColor(selectedJob.secondaryPillar)})` }"
+                  :style="{
+                    borderLeftColor: `var(--ion-color-${getAreaColor(
+                      selectedJob.secondaryPillar
+                    )})`,
+                  }"
                 >
                   <div class="pillar-icon">
                     <i
                       :class="getAreaFaIcon(selectedJob.secondaryPillar)"
-                      :style="{ color: `var(--ion-color-${getAreaColor(selectedJob.secondaryPillar)})` }"
+                      :style="{
+                        color: `var(--ion-color-${getAreaColor(
+                          selectedJob.secondaryPillar
+                        )})`,
+                      }"
                     ></i>
                   </div>
                   <div class="pillar-info">
                     <span class="pillar-rank">Secondary</span>
-                    <span class="pillar-name">{{ getAreaLabel(selectedJob.secondaryPillar) }}</span>
+                    <span class="pillar-name">{{
+                      getAreaLabel(selectedJob.secondaryPillar)
+                    }}</span>
                   </div>
                 </div>
                 <div
                   class="pillar-item tertiary"
-                  :style="{ borderLeftColor: `var(--ion-color-${getAreaColor(selectedJob.tertiaryPillar)})` }"
+                  :style="{
+                    borderLeftColor: `var(--ion-color-${getAreaColor(
+                      selectedJob.tertiaryPillar
+                    )})`,
+                  }"
                 >
                   <div class="pillar-icon">
                     <i
                       :class="getAreaFaIcon(selectedJob.tertiaryPillar)"
-                      :style="{ color: `var(--ion-color-${getAreaColor(selectedJob.tertiaryPillar)})` }"
+                      :style="{
+                        color: `var(--ion-color-${getAreaColor(
+                          selectedJob.tertiaryPillar
+                        )})`,
+                      }"
                     ></i>
                   </div>
                   <div class="pillar-info">
                     <span class="pillar-rank">Tertiary</span>
-                    <span class="pillar-name">{{ getAreaLabel(selectedJob.tertiaryPillar) }}</span>
+                    <span class="pillar-name">{{
+                      getAreaLabel(selectedJob.tertiaryPillar)
+                    }}</span>
                   </div>
                 </div>
               </div>
@@ -129,90 +153,92 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed } from 'vue';
-import { JOB_CLASS_OPTIONS } from "@/constants";
-import { closeOutline } from 'ionicons/icons';
-import Ionic from '@/mixins/ionic';
+  import { defineComponent, ref, computed } from "vue";
+  import { JOB_CLASS_OPTIONS } from "@/constants";
+  import { closeOutline } from "ionicons/icons";
+  import Ionic from "@/lib/mixins/ionic";
 
-export default defineComponent({
-  name: 'JobClassSelector',
-  mixins: [Ionic],
-  props: {
-    isOpen: {
-      type: Boolean,
-      required: true
+  export default defineComponent({
+    name: "JobClassSelector",
+    mixins: [Ionic],
+    props: {
+      isOpen: {
+        type: Boolean,
+        required: true,
+      },
+      modelValue: {
+        type: String,
+        required: true,
+      },
     },
-    modelValue: {
-      type: String,
-      required: true
-    }
-  },
-  emits: ['update:modelValue', 'close'],
-  setup(props, { emit }) {
-    const jobClassOptions = ref(JOB_CLASS_OPTIONS);
-    
-    const selectedJob = computed(() => 
-      jobClassOptions.value.find(job => job.name === props.modelValue)
-    );
+    emits: ["update:modelValue", "close"],
+    setup(props, { emit }) {
+      const jobClassOptions = ref(JOB_CLASS_OPTIONS);
 
-    // Pillar helpers matching UserProfileModal
-    const getAreaLabel = (pillar: string) => {
-      const labels: Record<string, string> = {
-        physical: 'Body',
-        mental: 'Mind',
-        vibrational: 'Spirit',
-        relational: 'Heart',
-        eternal: 'Legend'
-      };
-      return labels[pillar] || pillar;
-    };
+      const selectedJob = computed(() =>
+        jobClassOptions.value.find((job) => job.name === props.modelValue)
+      );
 
-    const getAreaFaIcon = (pillar: string) => {
-      const iconMap: Record<string, string> = {
-        physical: 'fad fa-heartbeat',
-        mental: 'fad fa-brain',
-        vibrational: 'fad fa-waveform',
-        eternal: 'fad fa-atom',
-        relational: 'fad fa-handshake-alt'
+      // Pillar helpers matching UserProfileModal
+      const getAreaLabel = (pillar: string) => {
+        const labels: Record<string, string> = {
+          physical: "Body",
+          mental: "Mind",
+          vibrational: "Spirit",
+          relational: "Heart",
+          eternal: "Legend",
+        };
+        return labels[pillar] || pillar;
       };
-      return iconMap[pillar] || 'fad fa-chart-bar';
-    };
 
-    const getAreaColor = (pillar: string) => {
-      const colorMap: Record<string, string> = {
-        physical: 'danger',
-        mental: 'tertiary',
-        vibrational: 'secondary',
-        relational: 'warning',
-        eternal: 'success'
+      const getAreaFaIcon = (pillar: string) => {
+        const iconMap: Record<string, string> = {
+          physical: "fad fa-heartbeat",
+          mental: "fad fa-brain",
+          vibrational: "fad fa-waveform",
+          eternal: "fad fa-atom",
+          relational: "fad fa-handshake-alt",
+        };
+        return iconMap[pillar] || "fad fa-chart-bar";
       };
-      return colorMap[pillar] || 'primary';
-    };
-    
-    // Get the icon for the selected class
-    const getSelectedClassIcon = () => {
-      if (!props.modelValue) return '';
-      const selectedClass = jobClassOptions.value.find(job => job.name === props.modelValue);
-      return selectedClass ? selectedClass.icon : '';
-    };
-    
-    // Select a class
-    const selectClass = (className: string) => {
-      emit('update:modelValue', className);
-    };
-    
-    return {
-      jobClassOptions,
-      selectedJob,
-      getAreaLabel,
-      getAreaFaIcon,
-      getAreaColor,
-      closeOutline,
-      getSelectedClassIcon,
-      selectClass
-    };
-  }
-});
+
+      const getAreaColor = (pillar: string) => {
+        const colorMap: Record<string, string> = {
+          physical: "danger",
+          mental: "tertiary",
+          vibrational: "secondary",
+          relational: "warning",
+          eternal: "success",
+        };
+        return colorMap[pillar] || "primary";
+      };
+
+      // Get the icon for the selected class
+      const getSelectedClassIcon = () => {
+        if (!props.modelValue) return "";
+        const selectedClass = jobClassOptions.value.find(
+          (job) => job.name === props.modelValue
+        );
+        return selectedClass ? selectedClass.icon : "";
+      };
+
+      // Select a class
+      const selectClass = (className: string) => {
+        emit("update:modelValue", className);
+      };
+
+      return {
+        jobClassOptions,
+        selectedJob,
+        getAreaLabel,
+        getAreaFaIcon,
+        getAreaColor,
+        closeOutline,
+        getSelectedClassIcon,
+        selectClass,
+      };
+    },
+  });
 </script>
 
 <style lang="scss" scoped>
@@ -222,11 +248,12 @@ export default defineComponent({
     --width: 100%;
     --height: 100%;
     --border-radius: 0;
-    font-family: 'Cinzel', serif;
+    font-family: "Cinzel", serif;
   }
 
   .class-selector-content {
-    --background: url('/src/assets/images/backgrounds/my-home.jpg') no-repeat center center / cover;
+    --background: url("/src/assets/images/backgrounds/my-home.jpg") no-repeat
+      center center / cover;
   }
 
   .selection-container {
@@ -240,8 +267,6 @@ export default defineComponent({
     padding: 0.5rem;
     margin-bottom: 1.5rem;
   }
-
-
 
   .class-details {
     width: 100%;
@@ -331,8 +356,6 @@ export default defineComponent({
     }
   }
 
-
-
   .confirm-button {
     --border-radius: 8px;
     text-transform: uppercase;
@@ -368,12 +391,6 @@ export default defineComponent({
     // padding: 0.5rem;
     perspective: 1000px;
   }
-
-
-
-
-
-
 
   .class-option {
     background: rgba(30, 30, 45, 0.4);
@@ -499,8 +516,6 @@ export default defineComponent({
     }
   }
 
-
-
   /* Animations */
   @keyframes pulse {
     0% {
@@ -563,7 +578,6 @@ export default defineComponent({
     .class-icon-container {
       width: 80px;
       height: 80px;
-
     }
   }
 </style>

@@ -1,16 +1,9 @@
 <template>
   <!-- BLUR BACKDROP -->
-  <xp-blur-backdrop
-    :show="fabOpen"
-    :z-index="1999"
-    @close="closeFab"
-  />
+  <xp-blur-backdrop :show="fabOpen" :z-index="1999" @close="closeFab" />
 
   <!-- WORLD MAP MODAL -->
-  <xp-world-map-modal
-    :is-open="worldMapActive"
-    @close="closeWorldMap"
-  />
+  <xp-world-map-modal :is-open="worldMapActive" @close="closeWorldMap" />
 
   <!-- QUICK DRAW FAB MENU -->
   <ion-fab
@@ -23,22 +16,12 @@
   >
     <!-- CENTER: Class Icon -->
     <ion-fab-button color="light">
-      <i
-        class="fad fa-2x"
-        :class="userClassIcon"
-      ></i>
+      <i class="fad fa-2x" :class="userClassIcon"></i>
     </ion-fab-button>
 
     <!-- TOP: Static Shortcuts (Equipment, Wind Whistle, Menu) -->
-    <ion-fab-list
-      side="top"
-      class="static-top"
-    >
-      <ion-fab-button
-        color="light"
-        @click="$emit('openHud')"
-        title="Equipment"
-      >
+    <ion-fab-list side="top" class="static-top">
+      <ion-fab-button color="light" @click="$emit('openHud')" title="Equipment">
         <i class="fad fa-dumbbell fa-lg"></i>
       </ion-fab-button>
       <ion-fab-button
@@ -55,11 +38,7 @@
     </ion-fab-list>
 
     <!-- BOTTOM: Static Slot (Pegasus Boots) -->
-    <ion-fab-list
-      side="bottom"
-      class="static-bottom"
-      v-if="hasPegasusBoots"
-    >
+    <ion-fab-list side="bottom" class="static-bottom" v-if="hasPegasusBoots">
       <ion-fab-button
         color="light"
         @click="toggleMenuStyle"
@@ -70,10 +49,7 @@
     </ion-fab-list>
 
     <!-- START (Left): Customizable Shortcuts -->
-    <ion-fab-list
-      side="start"
-      class="customizable-slots"
-    >
+    <ion-fab-list side="start" class="customizable-slots">
       <ion-fab-button
         v-for="(item, index) in leftSlots"
         :key="'left-' + index"
@@ -81,23 +57,13 @@
         @click="handleItemClick(item)"
         :class="{ 'slot-locked': !item }"
       >
-        <i
-          v-if="item"
-          class="fad fa-2x"
-          :class="`fa-${item.faIcon}`"
-        ></i>
-        <i
-          v-else
-          class="fad fa-plus fa-lg slot-empty"
-        ></i>
+        <i v-if="item" class="fad fa-2x" :class="`fa-${item.faIcon}`"></i>
+        <i v-else class="fad fa-plus fa-lg slot-empty"></i>
       </ion-fab-button>
     </ion-fab-list>
 
     <!-- END (Right): Customizable Shortcuts -->
-    <ion-fab-list
-      side="end"
-      class="customizable-slots icon-colors"
-    >
+    <ion-fab-list side="end" class="customizable-slots icon-colors">
       <ion-fab-button
         v-for="(item, index) in rightSlots"
         :key="'right-' + index"
@@ -105,15 +71,8 @@
         @click="handleItemClick(item)"
         :class="{ 'slot-locked': !item }"
       >
-        <i
-          v-if="item"
-          class="fad fa-2x"
-          :class="`fa-${item.faIcon}`"
-        ></i>
-        <i
-          v-else
-          class="fad fa-plus fa-lg slot-empty"
-        ></i>
+        <i v-if="item" class="fad fa-2x" :class="`fa-${item.faIcon}`"></i>
+        <i v-else class="fad fa-plus fa-lg slot-empty"></i>
       </ion-fab-button>
     </ion-fab-list>
   </ion-fab>
@@ -139,7 +98,7 @@
 
 <script lang="ts">
   import { defineComponent, ref } from "vue";
-  import ionic from "@/mixins/ionic";
+  import ionic from "@/lib/mixins/ionic";
   import { JOB_CLASS_OPTIONS } from "@/constants";
   import XpWorldMapModal from "./XpWorldMapModal.vue";
   import XpBlurBackdrop from "@/components/atoms/Overlay/XpBlurBackdrop.vue";
@@ -151,7 +110,7 @@
     mixins: [ionic],
     components: {
       XpWorldMapModal,
-      XpBlurBackdrop
+      XpBlurBackdrop,
     },
     computed: {
       // Check if user has unlocked Pegasus items
@@ -177,8 +136,10 @@
       // Left side customizable slots
       leftSlots() {
         const slots: any[] = [];
-        const leftEquipped = this.equipment.filter(item => item.hand === 'left');
-        
+        const leftEquipped = this.equipment.filter(
+          (item) => item.hand === "left"
+        );
+
         for (let i = 0; i < this.unlockedSlotCount; i++) {
           slots.push(leftEquipped[i] || null);
         }
@@ -188,8 +149,10 @@
       // Right side customizable slots
       rightSlots() {
         const slots: any[] = [];
-        const rightEquipped = this.equipment.filter(item => item.hand === 'right');
-        
+        const rightEquipped = this.equipment.filter(
+          (item) => item.hand === "right"
+        );
+
         for (let i = 0; i < this.unlockedSlotCount; i++) {
           slots.push(rightEquipped[i] || null);
         }
@@ -235,7 +198,7 @@
       };
 
       const toggleMenuStyle = () => {
-        const newStyle = gameStore.fabStyle === 'retro' ? 'modern' : 'retro';
+        const newStyle = gameStore.fabStyle === "retro" ? "modern" : "retro";
         gameStore.setFabStyle(newStyle);
       };
 
@@ -249,23 +212,23 @@
         toggleFab,
         closeFab,
         onFabActivated,
-        quickDrawFab
+        quickDrawFab,
       };
     },
     methods: {
       handleItemClick(item) {
         if (!item) {
           // Empty slot - open equipment menu to let user equip something
-          this.$emit('openHud');
+          this.$emit("openHud");
           return;
         }
-        
-        if (item.click && typeof item.click === 'function') {
+
+        if (item.click && typeof item.click === "function") {
           item.click();
         } else if (item.mpCost) {
-          this.play$fx('spell');
+          this.play$fx("spell");
         }
-      }
+      },
     },
   });
 </script>

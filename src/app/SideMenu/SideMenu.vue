@@ -1,18 +1,9 @@
 <template>
-  <ion-menu
-    content-id="main-content"
-    type="overlay"
-    class="overflow-hidden"
-  >
+  <ion-menu content-id="main-content" type="overlay" class="overflow-hidden">
     <ion-content class="overflow-hidden">
-      <ion-list
-        id="inbox-list"
-        class="border-none ion-no-padding"
-      >
+      <ion-list id="inbox-list" class="border-none ion-no-padding">
         <ion-list-header>Do it for the XP</ion-list-header>
-        <ion-note class="mb-0">
-          Life's Level Up & Reward System
-        </ion-note>
+        <ion-note class="mb-0"> Life's Level Up & Reward System </ion-note>
         <ion-note class="w-full flex flex-row">
           <ion-chip
             color="success"
@@ -48,7 +39,7 @@
             v-if="menuItem.title"
             @click="
               setMenuItem(i);
-            $fx.ui[$fx.theme.ui].select.play();
+              $fx.ui[$fx.theme.ui].select.play();
             "
             router-direction="root"
             :router-link="menuItem.url"
@@ -85,7 +76,7 @@
         <ion-item
           @click="
             setMenuItem(-1);
-          $fx.ui[$fx.theme.ui].select.play();
+            $fx.ui[$fx.theme.ui].select.play();
           "
           router-direction="root"
           router-link="/log-out"
@@ -103,14 +94,13 @@
         </ion-item>
       </ion-menu-toggle>
       <!-- copyright -->
-
     </ion-footer>
   </ion-menu>
 </template>
 
 <script lang="ts">
   import { computed, defineComponent } from "vue";
-  import ionic from "@/mixins/ionic";
+  import ionic from "@/lib/mixins/ionic";
   import { useUserStore } from "@/lib/store/stores/user";
   import { useAudioStore } from "@/lib/store/stores/audio";
   import { useGameStore } from "@/lib/store/stores/game";
@@ -143,16 +133,16 @@
     name: "side-menu",
     mixins: [ionic],
     components: {
-      XpMusicPlayer
+      XpMusicPlayer,
     },
 
     data() {
       return {
         isAnnual: true,
-        activeMenuItem: 0,  // Changed back to number
+        activeMenuItem: 0, // Changed back to number
         icons: {
           lockClosedOutline,
-          lockClosedSharp
+          lockClosedSharp,
         },
         appPagesAnon: [
           {
@@ -164,7 +154,6 @@
           },
         ],
         appPages: [
-
           {
             title: "Select Profile",
             url: "/xp-profile/",
@@ -183,7 +172,6 @@
           //   mdIcon: informationSharp,
           //   lines: "none",
           // },
-
 
           {
             title: "Compendium",
@@ -226,7 +214,6 @@
             title: "",
           },
 
-
           {
             title: "About XP",
             url: "/xp-intro",
@@ -247,8 +234,12 @@
       };
     },
     computed: {
-      theme() { return (this as any).gameStore.theme },
-      bgm() { return (this as any).audioStore.bgm },
+      theme() {
+        return (this as any).gameStore.theme;
+      },
+      bgm() {
+        return (this as any).audioStore.bgm;
+      },
       logoutMenuItem() {
         const { appPages } = this;
         return appPages.find((item) => item.title === "Log Out");
@@ -271,9 +262,15 @@
         return index >= 0 ? index : 0;
       },
       ...{
-        changeBGM(payload: any) { return (this as any).audioStore.changeBGM(payload) },
-        turnMusicOnOff(payload: any) { return (this as any).audioStore.turnMusicOnOff(payload) },
-        changeSoundFX(payload: any) { return (this as any).gameStore.changeSoundFX(payload) },
+        changeBGM(payload: any) {
+          return (this as any).audioStore.changeBGM(payload);
+        },
+        turnMusicOnOff(payload: any) {
+          return (this as any).audioStore.turnMusicOnOff(payload);
+        },
+        changeSoundFX(payload: any) {
+          return (this as any).gameStore.changeSoundFX(payload);
+        },
       },
       getCurrentMenu() {
         const { appPages, appPagesAnon, isLoggedIn } = this;
@@ -326,7 +323,7 @@
         route,
         userStore,
         audioStore,
-        gameStore
+        gameStore,
       };
     },
     mounted() {
@@ -348,7 +345,6 @@
     min-height: 20px;
   }
 
-
   ion-content {
     display: flex;
     flex-direction: column;
@@ -358,7 +354,6 @@
       display: flex;
       flex-direction: column;
     }
-
   }
 
   .logout-section {

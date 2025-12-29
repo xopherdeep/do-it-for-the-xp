@@ -1,7 +1,7 @@
 import { defineComponent, ref, watch } from "vue";
 import { useUserStore } from "@/lib/store/stores/user";
 import { alertController, actionSheetController } from "@ionic/vue";
-import ionic from "@/mixins/ionic";
+import ionic from "@/lib/mixins/ionic";
 import { useRoute } from "vue-router";
 
 import {

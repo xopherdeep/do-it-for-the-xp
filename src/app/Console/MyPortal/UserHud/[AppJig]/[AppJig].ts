@@ -1,5 +1,5 @@
 import { defineComponent } from "vue";
-import ionic from "@/mixins/ionic";
+import ionic from "@/lib/mixins/ionic";
 
 import {
   arrowBack,
@@ -33,7 +33,7 @@ export default defineComponent({
   mixins: [ionic],
   data() {
     return {
-      shelves: ['affordable'], 
+      shelves: ['affordable'],
     };
   },
   methods: {
@@ -45,10 +45,10 @@ export default defineComponent({
     // this.$fx.ui[this.$fx.theme.ui].openShop.play()
   },
   setup(props) {
-    const { 
-      request, 
-      items, 
-      getItems, 
+    const {
+      request,
+      items,
+      getItems,
       getImgObj,
       nTotalPages
     } = useItemFetcher("xp_accessory", { per_page: 4 }, props.userId);

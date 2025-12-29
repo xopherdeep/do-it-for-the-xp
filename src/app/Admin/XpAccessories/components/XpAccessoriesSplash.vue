@@ -1,40 +1,23 @@
 <template>
-  <ion-page
-    class="xp-accessories-splash"
-    style="background: transparent"
-  >
+  <ion-page class="xp-accessories-splash" style="background: transparent">
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
           <ion-back-button default-href="/game-master" />
         </ion-buttons>
-        <i
-          class="fad fa-2x fa-shopping-basket"
-          slot="start"
-        />
-        <ion-title>
-          Shops & Accessories
-        </ion-title>
+        <i class="fad fa-2x fa-shopping-basket" slot="start" />
+        <ion-title> Shops & Accessories </ion-title>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content
-      class="ion-padding"
-      style="--background: transparent"
-    >
-      <div
-        v-if="isLoading"
-        class="flex justify-center items-center h-full"
-      >
+    <ion-content class="ion-padding" style="--background: transparent">
+      <div v-if="isLoading" class="flex justify-center items-center h-full">
         <XpLoading />
       </div>
       <ion-grid v-else>
         <ion-row>
           <!-- Global Database Card -->
-          <ion-col
-            size="12"
-            size-md="6"
-          >
+          <ion-col size="12" size-md="6">
             <ion-card
               button
               @click="goToGlobalList"
@@ -48,7 +31,9 @@
                 <ion-card-subtitle>Manage All Accessories</ion-card-subtitle>
               </ion-card-header>
               <ion-card-content>
-                <p>View, edit, and create new items for the entire game world.</p>
+                <p>
+                  View, edit, and create new items for the entire game world.
+                </p>
               </ion-card-content>
             </ion-card>
           </ion-col>
@@ -87,76 +72,76 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted } from "vue";
-import { useRouter } from "vue-router";
-import Ionic from "@/mixins/ionic";
-import debug from "@/lib/utils/debug";
-import shopsDb, { ShopInterface } from "@/lib/databases/ShopsDb";
-import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
+  import { defineComponent, ref, onMounted } from "vue";
+  import { useRouter } from "vue-router";
+  import Ionic from "@/lib/mixins/ionic";
+  import debug from "@/lib/utils/debug";
+  import shopsDb, { ShopInterface } from "@/lib/databases/ShopsDb";
+  import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 
-const requireBg = require.context("@/assets/images/backgrounds/");
+  const requireBg = require.context("@/assets/images/backgrounds/");
 
-export default defineComponent({
-  name: "XpAccessoriesSplash",
-  mixins: [Ionic],
-  components: {
-      XpLoading
-  },
-  setup() {
-    const router = useRouter();
-    const shops = ref<ShopInterface[]>([]);
-    const isLoading = ref(true);
+  export default defineComponent({
+    name: "XpAccessoriesSplash",
+    mixins: [Ionic],
+    components: {
+      XpLoading,
+    },
+    setup() {
+      const router = useRouter();
+      const shops = ref<ShopInterface[]>([]);
+      const isLoading = ref(true);
 
-    const loadShops = async () => {
+      const loadShops = async () => {
         isLoading.value = true;
         try {
-            await shopsDb.seedDefaults();
-            shops.value = await shopsDb.getShops();
+          await shopsDb.seedDefaults();
+          shops.value = await shopsDb.getShops();
         } catch (error) {
-            debug.error("Failed to load shops", error);
+          debug.error("Failed to load shops", error);
         } finally {
-            isLoading.value = false;
+          isLoading.value = false;
         }
-    };
+      };
 
-    onMounted(() => {
+      onMounted(() => {
         loadShops();
-    });
-
-    const getBgImage = (world: string) => {
-      try {
-        return requireBg(`./world-${world}.jpg`);
-      } catch (error) {
-        debug.warn(`Could not load world-${world}.jpg`, error);
-        try {
-          return requireBg('./world-map.jpg');
-        } catch (error) {
-           debug.warn('Could not load world-map.jpg fallback', error);
-           return requireBg('./hometown.jpg');
-        }
-      }
-    };
-
-    const clickShop = (shopId: string) => {
-      router.push({
-        name: "xp-shop-dashboard",
-        params: { shopId },
       });
-    };
 
-    const goToGlobalList = () => {
-      router.push({ name: "xp-economy-global" });
-    };
+      const getBgImage = (world: string) => {
+        try {
+          return requireBg(`./world-${world}.jpg`);
+        } catch (error) {
+          debug.warn(`Could not load world-${world}.jpg`, error);
+          try {
+            return requireBg("./world-map.jpg");
+          } catch (error) {
+            debug.warn("Could not load world-map.jpg fallback", error);
+            return requireBg("./hometown.jpg");
+          }
+        }
+      };
 
-    return {
-      shops,
-      isLoading,
-      getBgImage,
-      clickShop,
-      goToGlobalList,
-    };
-  },
-});
+      const clickShop = (shopId: string) => {
+        router.push({
+          name: "xp-shop-dashboard",
+          params: { shopId },
+        });
+      };
+
+      const goToGlobalList = () => {
+        router.push({ name: "xp-economy-global" });
+      };
+
+      return {
+        shops,
+        isLoading,
+        getBgImage,
+        clickShop,
+        goToGlobalList,
+      };
+    },
+  });
 </script>
 
 <style lang="scss" scoped>
@@ -209,14 +194,22 @@ export default defineComponent({
       }
 
       .card-overlay {
-        background: linear-gradient(to top, rgba(0, 0, 0, 0.95) 0%, rgba(0, 0, 0, 0.4) 100%);
+        background: linear-gradient(
+          to top,
+          rgba(0, 0, 0, 0.95) 0%,
+          rgba(0, 0, 0, 0.4) 100%
+        );
       }
     }
 
     .card-overlay {
       position: relative;
       z-index: 2;
-      background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0.1) 100%);
+      background: linear-gradient(
+        to top,
+        rgba(0, 0, 0, 0.8) 0%,
+        rgba(0, 0, 0, 0.1) 100%
+      );
       width: 100%;
       height: 100%;
       display: flex;
@@ -234,7 +227,7 @@ export default defineComponent({
     }
 
     .world-label {
-      font-family: var(--xp-font-fantasy, 'Fantasy');
+      font-family: var(--xp-font-fantasy, "Fantasy");
       font-size: 1.4rem;
       color: white;
       text-transform: uppercase;

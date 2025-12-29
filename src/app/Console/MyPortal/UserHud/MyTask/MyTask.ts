@@ -1,5 +1,5 @@
 import { defineComponent, ref } from "vue";
-import ionic from "@/mixins/ionic";
+import ionic from "@/lib/mixins/ionic";
 import { IonicSlides, modalController } from "@ionic/vue";
 import {
   IonPage,
@@ -481,10 +481,10 @@ export default defineComponent({
 
   mixins: [ionic],
   setup(props) {
-    const { 
-      request, 
-      items, 
-      getItems, 
+    const {
+      request,
+      items,
+      getItems,
       getImgObj,
       nTotalPages
     } = useItemFetcher("xp_achievement", { per_page: 4 }, (props as any).userId);

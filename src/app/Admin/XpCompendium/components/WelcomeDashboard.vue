@@ -77,55 +77,54 @@
         @click="navigateTo('xp-chat')"
       />
     </XpDashboardTile>
-
   </XpDashboardGrid>
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
-import { useRouter } from 'vue-router';
-import XpNavTile from '@/components/molecules/StatGrid/XpNavTile.vue';
-import XpDashboardGrid from '@/components/molecules/StatGrid/XpDashboardGrid.vue';
-import XpDashboardTile from '@/components/molecules/StatGrid/XpDashboardTile.vue';
-import Ionic from '@/mixins/ionic';
-// import { useDialogSystem } from "@/lib/engine/core/DialogSystem";
+  import { defineComponent } from "vue";
+  import { useRouter } from "vue-router";
+  import XpNavTile from "@/components/molecules/StatGrid/XpNavTile.vue";
+  import XpDashboardGrid from "@/components/molecules/StatGrid/XpDashboardGrid.vue";
+  import XpDashboardTile from "@/components/molecules/StatGrid/XpDashboardTile.vue";
+  import Ionic from "@/lib/mixins/ionic";
+  // import { useDialogSystem } from "@/lib/engine/core/DialogSystem";
 
-export default defineComponent({
-  name: 'WelcomeDashboard',
-  mixins: [Ionic],
-  components: { 
-    XpNavTile,
-    XpDashboardGrid,
-    XpDashboardTile
-  },
-  props: {
-    // Stats prop can be removed or kept optional if parent still passes it
-    stats: {
-      type: Object,
-      default: () => ({})
+  export default defineComponent({
+    name: "WelcomeDashboard",
+    mixins: [Ionic],
+    components: {
+      XpNavTile,
+      XpDashboardGrid,
+      XpDashboardTile,
     },
-    isActive: {
-      type: Boolean,
-      default: true
+    props: {
+      // Stats prop can be removed or kept optional if parent still passes it
+      stats: {
+        type: Object,
+        default: () => ({}),
+      },
+      isActive: {
+        type: Boolean,
+        default: true,
+      },
+      animationKey: {
+        type: [Number, String],
+        default: 0,
+      },
     },
-    animationKey: {
-      type: [Number, String],
-      default: 0
-    }
-  },
-  emits: ['navigate', 'reset'],
-  setup() {
-    const router = useRouter();
+    emits: ["navigate", "reset"],
+    setup() {
+      const router = useRouter();
 
-    const navigateTo = (routeName: string) => {
-      router.push({ name: routeName });
-    };
+      const navigateTo = (routeName: string) => {
+        router.push({ name: routeName });
+      };
 
-    return {
-      navigateTo
-    };
-  }
-});
+      return {
+        navigateTo,
+      };
+    },
+  });
 </script>
 
 <style scoped>

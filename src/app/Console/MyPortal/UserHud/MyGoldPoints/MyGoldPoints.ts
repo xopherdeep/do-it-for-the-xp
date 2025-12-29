@@ -23,7 +23,7 @@ import {
   cartOutline
 } from "ionicons/icons";
 import { useUserStore } from "@/lib/store/stores/user";
-import ionic from "@/mixins/ionic"
+import ionic from "@/lib/mixins/ionic"
 
 import XpGp from "@/components/atoms/Currency/XpGp.vue";
 import { alertController, modalController } from "@ionic/vue";

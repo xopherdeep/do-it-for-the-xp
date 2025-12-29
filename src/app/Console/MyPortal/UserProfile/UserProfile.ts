@@ -33,7 +33,7 @@ import {
   modalController
 } from "@ionic/vue";
 
-import { 
+import {
   chevronBack,
   fitnessOutline,
   colorWand,
@@ -41,7 +41,7 @@ import {
   serverOutline,
   arrowBack
 } from "ionicons/icons";
-import Ionic from "@/mixins/ionic";
+import Ionic from "@/lib/mixins/ionic";
 
 // Define interfaces for type safety
 interface StatInfo {

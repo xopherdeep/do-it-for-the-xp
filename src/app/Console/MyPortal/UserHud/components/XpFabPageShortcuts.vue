@@ -1,22 +1,22 @@
 <template>
   <!-- BACKDROP TO CLOSE ON CLICK OUTSIDE -->
-  <div 
-    v-if="fabActive" 
-    class="menu-backdrop-overlay" 
+  <div
+    v-if="fabActive"
+    class="menu-backdrop-overlay"
     @click="closeAndDeactivate"
   ></div>
 
-  <ion-fab 
+  <ion-fab
     ref="fabContainer"
-    vertical="center" 
-    horizontal="center" 
+    vertical="center"
+    horizontal="center"
     class="icon-colors fab-page-shortcuts"
   >
     <ion-fab-button expand="block" color="light" @click="syncToggle">
       <i :class="`fad fa-${pageIcon} fa-2x`"></i>
     </ion-fab-button>
     <ion-fab-list v-for="side in sides" :key="side" :side="side">
-      <ion-fab-button 
+      <ion-fab-button
         v-for="(button, index) in filterShortcutsBySide(side)"
         :key="index"
         @click="handleButtonClick(button)"
@@ -29,26 +29,26 @@
 </template>
 
 <style lang="scss" scoped>
-.menu-backdrop-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  background: rgba(0, 0, 0, 0.2);
-  backdrop-filter: blur(8px);
-  z-index: 2000;
-}
+  .menu-backdrop-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(8px);
+    z-index: 2000;
+  }
 
-.fab-page-shortcuts {
-  z-index: 2500;
-}
+  .fab-page-shortcuts {
+    z-index: 2500;
+  }
 </style>
 
 <script lang="ts">
-  import { computed, defineComponent, ref } from 'vue'
+  import { computed, defineComponent, ref } from "vue";
   import { useRoute } from "vue-router";
-  import ionic from "@/mixins/ionic";
+  import ionic from "@/lib/mixins/ionic";
 
   export default defineComponent({
     props: ["shortcuts"],
@@ -58,8 +58,9 @@
       const fabContainer = ref(null);
       const fabActive = ref(false);
 
-      const filterShortcutsBySide = (side: string) => props.shortcuts.filter( s => s.side == side )
-      const pageIcon = computed( () => route.meta.faIcon )
+      const filterShortcutsBySide = (side: string) =>
+        props.shortcuts.filter((s) => s.side == side);
+      const pageIcon = computed(() => route.meta.faIcon);
 
       const syncToggle = () => {
         // Toggle the blur. Ionic handles the FAB list internally.
@@ -86,8 +87,8 @@
         syncToggle,
         closeAndDeactivate,
         handleButtonClick,
-        sides: ["top", "start", "end", "bottom"]
-      }
+        sides: ["top", "start", "end", "bottom"],
+      };
     },
-  })
+  });
 </script>

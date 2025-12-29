@@ -5,11 +5,15 @@
         <ion-buttons slot="start">
           <ion-back-button defaultHref="/game-master/accessories" />
         </ion-buttons>
-        <ion-title>{{ id ? 'Update' : 'Create' }} Accessory</ion-title>
+        <ion-title>{{ id ? "Update" : "Create" }} Accessory</ion-title>
       </ion-toolbar>
       <ion-toolbar>
         <ion-segment v-model="activeSegment">
-          <ion-segment-button v-for="segment in segments" :key="segment.name" :value="segment.name">
+          <ion-segment-button
+            v-for="segment in segments"
+            :key="segment.name"
+            :value="segment.name"
+          >
             <i :class="segment.icon" />
             {{ segment.name }}
           </ion-segment-button>
@@ -21,8 +25,12 @@
         <ion-item>
           <ion-label position="stacked">Type</ion-label>
           <ion-select v-model="updateAccessory.type">
-            <ion-select-option :value="AccessoryType.RealLife">Real Life</ion-select-option>
-            <ion-select-option :value="AccessoryType.Virtual">Virtual (In-Game)</ion-select-option>
+            <ion-select-option :value="AccessoryType.RealLife"
+              >Real Life</ion-select-option
+            >
+            <ion-select-option :value="AccessoryType.Virtual"
+              >Virtual (In-Game)</ion-select-option
+            >
           </ion-select>
         </ion-item>
         <ion-item>
@@ -49,17 +57,31 @@
           <ion-label position="stacked">Rarity</ion-label>
           <ion-select v-model="updateAccessory.rarity">
             <ion-select-option :value="Rarity.Common">Common</ion-select-option>
-            <ion-select-option :value="Rarity.Uncommon">Uncommon</ion-select-option>
+            <ion-select-option :value="Rarity.Uncommon"
+              >Uncommon</ion-select-option
+            >
             <ion-select-option :value="Rarity.Rare">Rare</ion-select-option>
-            <ion-select-option :value="Rarity.Legendary">Legendary</ion-select-option>
+            <ion-select-option :value="Rarity.Legendary"
+              >Legendary</ion-select-option
+            >
           </ion-select>
         </ion-item>
         <ion-item>
           <ion-label position="stacked">Tags (comma separated)</ion-label>
-          <ion-input v-model="tagsInput" @ionChange="updateTags" placeholder="e.g. clothing, book, digital" />
+          <ion-input
+            v-model="tagsInput"
+            @ionChange="updateTags"
+            placeholder="e.g. clothing, book, digital"
+          />
         </ion-item>
-        <ion-item v-if="updateAccessory.tags && updateAccessory.tags.length > 0">
-          <ion-chip v-for="tag in updateAccessory.tags" :key="tag" @click="removeTag(tag)">
+        <ion-item
+          v-if="updateAccessory.tags && updateAccessory.tags.length > 0"
+        >
+          <ion-chip
+            v-for="tag in updateAccessory.tags"
+            :key="tag"
+            @click="removeTag(tag)"
+          >
             <ion-label>{{ tag }}</ion-label>
             <ion-icon name="close-circle"></ion-icon>
           </ion-chip>
@@ -73,27 +95,42 @@
         </ion-item>
         <ion-item>
           <ion-label position="stacked">Available Inventory</ion-label>
-          <ion-input type="number" v-model="updateAccessory.inventory.available" />
+          <ion-input
+            type="number"
+            v-model="updateAccessory.inventory.available"
+          />
         </ion-item>
         <ion-item>
           <ion-label position="stacked">Reserved Inventory</ion-label>
-          <ion-input type="number" v-model="updateAccessory.inventory.reserved" />
+          <ion-input
+            type="number"
+            v-model="updateAccessory.inventory.reserved"
+          />
         </ion-item>
         <ion-item>
           <ion-label position="stacked">Expiry Date (if applicable)</ion-label>
-          <ion-datetime v-model="updateAccessory.expiryDate" display-format="MMM DD, YYYY"></ion-datetime>
+          <ion-datetime
+            v-model="updateAccessory.expiryDate"
+            display-format="MMM DD, YYYY"
+          ></ion-datetime>
         </ion-item>
       </ion-list>
 
       <ion-list v-if="activeSegment === 'Sale'">
         <ion-item>
-          <ion-checkbox v-model="updateAccessory.isLayaway">Layaway Option</ion-checkbox>
+          <ion-checkbox v-model="updateAccessory.isLayaway"
+            >Layaway Option</ion-checkbox
+          >
         </ion-item>
         <ion-item>
-          <ion-checkbox v-model="updateAccessory.requiresApproval">Requires Approval</ion-checkbox>
+          <ion-checkbox v-model="updateAccessory.requiresApproval"
+            >Requires Approval</ion-checkbox
+          >
         </ion-item>
         <ion-item v-if="updateAccessory.type === AccessoryType.Virtual">
-          <ion-label position="stacked">Bonus Stats (for Virtual Items)</ion-label>
+          <ion-label position="stacked"
+            >Bonus Stats (for Virtual Items)</ion-label
+          >
         </ion-item>
         <ion-item v-if="updateAccessory.type === AccessoryType.Virtual">
           <ion-label position="fixed">HP</ion-label>
@@ -105,11 +142,17 @@
         </ion-item>
         <ion-item v-if="updateAccessory.type === AccessoryType.Virtual">
           <ion-label position="fixed">Attack</ion-label>
-          <ion-input type="number" v-model="updateAccessory.bonusStats.attack" />
+          <ion-input
+            type="number"
+            v-model="updateAccessory.bonusStats.attack"
+          />
         </ion-item>
         <ion-item v-if="updateAccessory.type === AccessoryType.Virtual">
           <ion-label position="fixed">Defense</ion-label>
-          <ion-input type="number" v-model="updateAccessory.bonusStats.defense" />
+          <ion-input
+            type="number"
+            v-model="updateAccessory.bonusStats.defense"
+          />
         </ion-item>
         <ion-item v-if="updateAccessory.type === AccessoryType.Virtual">
           <ion-label position="fixed">Speed</ion-label>
@@ -120,22 +163,39 @@
       <ion-list v-if="activeSegment === 'Heros'">
         <ion-list-header>Available to these members</ion-list-header>
         <ion-item v-for="user in usersAz" :key="user.id">
-          <ion-checkbox slot="start" :checked="updateAccessory.availableToMembers.includes(user.id)"
-            @click="toggleMember(user.id)" />
+          <ion-checkbox
+            slot="start"
+            :checked="updateAccessory.availableToMembers.includes(user.id)"
+            @click="toggleMember(user.id)"
+          />
           <ion-label>{{ user.displayName }}</ion-label>
         </ion-item>
       </ion-list>
 
-      <ion-list v-if="activeSegment === 'Purchase History'" v-show="updateAccessory.purchaseHistory && updateAccessory.purchaseHistory.length > 0">
+      <ion-list
+        v-if="activeSegment === 'Purchase History'"
+        v-show="
+          updateAccessory.purchaseHistory &&
+          updateAccessory.purchaseHistory.length > 0
+        "
+      >
         <ion-list-header>Purchase History</ion-list-header>
-        <ion-item v-for="(purchase, index) in updateAccessory.purchaseHistory" :key="index">
+        <ion-item
+          v-for="(purchase, index) in updateAccessory.purchaseHistory"
+          :key="index"
+        >
           <ion-label>
             <h2>{{ getUserName(purchase.userId) }}</h2>
             <p>Date: {{ formatDate(purchase.purchaseDate) }}</p>
             <p>Quantity: {{ purchase.amount }}</p>
           </ion-label>
         </ion-item>
-        <ion-item v-if="!updateAccessory.purchaseHistory || updateAccessory.purchaseHistory.length === 0">
+        <ion-item
+          v-if="
+            !updateAccessory.purchaseHistory ||
+            updateAccessory.purchaseHistory.length === 0
+          "
+        >
           <ion-label>No purchase history yet</ion-label>
         </ion-item>
       </ion-list>
@@ -159,13 +219,17 @@
   </ion-page>
 </template>
 <script lang="ts">
-  import { defineComponent, ref, computed } from 'vue';
-  import { modalController } from '@ionic/vue';
-  import ionic from "@/mixins/ionic";
-  import { useUserStore } from '@/lib/store/stores/user';
-  import debug from '@/lib/utils/debug';
+  import { defineComponent, ref, computed } from "vue";
+  import { modalController } from "@ionic/vue";
+  import ionic from "@/lib/mixins/ionic";
+  import { useUserStore } from "@/lib/store/stores/user";
+  import debug from "@/lib/utils/debug";
 
-  import AccessoriesDb, {  accessoriesStorage, Rarity, AccessoryType } from '@/lib/databases/AccessoriesDb';
+  import AccessoriesDb, {
+    accessoriesStorage,
+    Rarity,
+    AccessoryType,
+  } from "@/lib/databases/AccessoriesDb";
 
   export default defineComponent({
     props: ["id"],
@@ -173,21 +237,23 @@
     mixins: [ionic],
     data() {
       return {
-        segments: [{
-          name: 'label',
-          icon: 'fad fa-tag',
-
-        }, {
-          name: 'Sale',
-          icon: 'fad fa-store',
-        }, {
-          name: 'Heros',
-          icon: 'fad fa-user-shield',
-        }]
-      }
+        segments: [
+          {
+            name: "label",
+            icon: "fad fa-tag",
+          },
+          {
+            name: "Sale",
+            icon: "fad fa-store",
+          },
+          {
+            name: "Heros",
+            icon: "fad fa-user-shield",
+          },
+        ],
+      };
     },
-    computed: {
-    },
+    computed: {},
     methods: {
       async dismiss() {
         await modalController.dismiss();
@@ -198,31 +264,28 @@
           .then(() => this.$router.go(-1));
       },
       getNumber(number) {
-        return this.isPenalty
-          ? number * -1
-          : number
+        return this.isPenalty ? number * -1 : number;
       },
       async loadAccessoryById(id: number) {
         const accessory = await this.accessoryDb.getAccessoryById(id);
         debug.log(accessory);
 
-        this.updateAccessory = accessory
-      }
+        this.updateAccessory = accessory;
+      },
     },
     mounted() {
-      if (this.id)
-        this.loadAccessoryById(this.id)
+      if (this.id) this.loadAccessoryById(this.id);
     },
     setup() {
       const userStore = useUserStore();
       const accessoryDb = new AccessoriesDb(accessoriesStorage);
       const updateAccessory = ref({
-        name: '',
-        description: '',
+        name: "",
+        description: "",
         basePrice: 0,
-        url: '',
-        imageUrl: '', // Added imageUrl property
-        availableToMembers: [''],
+        url: "",
+        imageUrl: "", // Added imageUrl property
+        availableToMembers: [""],
         requiresApproval: false,
         isLayaway: false,
         rewardCount: 0,
@@ -231,7 +294,7 @@
         inventory: {
           total: 0,
           available: 0,
-          reserved: 0
+          reserved: 0,
         },
         tags: [] as string[],
         bonusStats: {
@@ -239,47 +302,58 @@
           mp: 0,
           attack: 0,
           defense: 0,
-          speed: 0
+          speed: 0,
         },
-        expiryDate: '', // Added expiryDate property
-        purchaseHistory: [] as Array<{ userId: string; purchaseDate: string; amount: number }>
-      })
-      const isPenalty = ref(false)
-      const tagsInput = ref('')
+        expiryDate: "", // Added expiryDate property
+        purchaseHistory: [] as Array<{
+          userId: string;
+          purchaseDate: string;
+          amount: number;
+        }>,
+      });
+      const isPenalty = ref(false);
+      const tagsInput = ref("");
 
       const toggleMember = (userId) => {
         if (updateAccessory.value.availableToMembers.includes(userId)) {
-          updateAccessory.value.availableToMembers = updateAccessory.value.availableToMembers
-            .filter(id => id !== userId)
+          updateAccessory.value.availableToMembers =
+            updateAccessory.value.availableToMembers.filter(
+              (id) => id !== userId
+            );
         } else {
-          updateAccessory.value.availableToMembers.push(userId)
+          updateAccessory.value.availableToMembers.push(userId);
         }
-      }
+      };
 
       const updateTags = () => {
         if (tagsInput.value) {
-          const tags = tagsInput.value.split(',').map(tag => tag.trim()).filter(tag => tag !== '');
+          const tags = tagsInput.value
+            .split(",")
+            .map((tag) => tag.trim())
+            .filter((tag) => tag !== "");
           updateAccessory.value.tags = tags;
         }
-      }
+      };
 
       const removeTag = (tagToRemove) => {
-        updateAccessory.value.tags = updateAccessory.value.tags.filter(tag => tag !== tagToRemove);
+        updateAccessory.value.tags = updateAccessory.value.tags.filter(
+          (tag) => tag !== tagToRemove
+        );
         // Update the tags input field to match
-        tagsInput.value = updateAccessory.value.tags.join(', ');
-      }
+        tagsInput.value = updateAccessory.value.tags.join(", ");
+      };
 
       const formatDate = (dateString) => {
-        if (!dateString) return 'N/A';
+        if (!dateString) return "N/A";
         return new Date(dateString).toLocaleDateString();
-      }
+      };
 
       const getUserName = (userId) => {
         // This would normally pull from your user store
-        return userId || 'Unknown User';
-      }
+        return userId || "Unknown User";
+      };
 
-      const activeSegment = ref('label')
+      const activeSegment = ref("label");
 
       return {
         accessoryDb,
@@ -294,8 +368,8 @@
         getUserName,
         AccessoryType,
         Rarity,
-        usersAz: computed(() => userStore.usersAz)
-      }
-    }
-  })
+        usersAz: computed(() => userStore.usersAz),
+      };
+    },
+  });
 </script>

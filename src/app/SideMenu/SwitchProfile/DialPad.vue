@@ -13,9 +13,7 @@
           class="fa-2x ml-2"
         />
       </ion-buttons>
-      <ion-title class="earthbound-title">
-
-        Enter Your Passcode </ion-title>
+      <ion-title class="earthbound-title"> Enter Your Passcode </ion-title>
     </ion-toolbar>
   </ion-header>
 
@@ -24,17 +22,13 @@
       <!-- Profile Card -->
       <div class="profile-card rpg-box">
         <ion-avatar class="profile-avatar">
-          <ion-img
-            v-if="profile?.avatar"
-            :src="currentAvatar"
-          />
+          <ion-img v-if="profile?.avatar" :src="currentAvatar" />
         </ion-avatar>
         <div class="profile-info">
-          <h2 class="profile-name earthbound-text">{{ profile?.name?.full }}</h2>
-          <p
-            class="profile-aka"
-            v-if="profile?.name?.nick"
-          >
+          <h2 class="profile-name earthbound-text">
+            {{ profile?.name?.full }}
+          </h2>
+          <p class="profile-aka" v-if="profile?.name?.nick">
             aka {{ profile?.name?.nick }}
           </p>
         </div>
@@ -56,7 +50,7 @@
               :class="{ filled: inputCode.length >= i, error: hasError }"
             >
               <template v-if="inputCode.length >= i">
-                {{ showPass ? inputCode[i - 1] : '*' }}
+                {{ showPass ? inputCode[i - 1] : "*" }}
               </template>
             </span>
           </div>
@@ -64,10 +58,7 @@
 
         <ion-grid>
           <ion-row>
-            <ion-col
-              v-for="n in [1, 2, 3]"
-              :key="n"
-            >
+            <ion-col v-for="n in [1, 2, 3]" :key="n">
               <ion-button
                 expand="block"
                 fill="clear"
@@ -80,10 +71,7 @@
             </ion-col>
           </ion-row>
           <ion-row>
-            <ion-col
-              v-for="n in [4, 5, 6]"
-              :key="n"
-            >
+            <ion-col v-for="n in [4, 5, 6]" :key="n">
               <ion-button
                 expand="block"
                 fill="clear"
@@ -96,10 +84,7 @@
             </ion-col>
           </ion-row>
           <ion-row>
-            <ion-col
-              v-for="n in [7, 8, 9]"
-              :key="n"
-            >
+            <ion-col v-for="n in [7, 8, 9]" :key="n">
               <ion-button
                 expand="block"
                 fill="clear"
@@ -154,10 +139,7 @@
                 class="dial-button action-button"
                 @click="toggleShowPass"
               >
-                <i
-                  class="fad fa-lg"
-                  :class="hideIcon"
-                />
+                <i class="fad fa-lg" :class="hideIcon" />
               </ion-button>
             </ion-col>
             <ion-col size="8">
@@ -187,15 +169,18 @@
     toastController,
     IonBackButton,
   } from "@ionic/vue";
-  import ionic from "@/mixins/ionic";
+  import ionic from "@/lib/mixins/ionic";
   import XpIcon from "@/components/atoms/Icon/XpIcon.vue";
   import { defineComponent, onUnmounted, computed, ref } from "vue";
   import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
   import debug from "@/lib/utils/debug";
   import { fingerPrintOutline, fingerPrintSharp } from "ionicons/icons";
 
-
-  const $requireAvatar = require.context("@/assets/images/avatars", false, /\.svg$/);
+  const $requireAvatar = require.context(
+    "@/assets/images/avatars",
+    false,
+    /\.svg$/
+  );
 
   const KeyPad = defineComponent({
     props: ["profile"],
@@ -205,7 +190,10 @@
       IonBackButton,
     },
     setup(props) {
-      debug.log("Setting up DialPad for profile:", props.profile?.username || "Unknown user");
+      debug.log(
+        "Setting up DialPad for profile:",
+        props.profile?.username || "Unknown user"
+      );
 
       const inputCode = ref("");
       const showPass = ref(false);
@@ -223,13 +211,15 @@
 
       // Icons
       const selectedFoodIcon = computed(() => {
-        const findFavoriteFood = (food: any) => food.value === props.profile?.favoriteFood;
+        const findFavoriteFood = (food: any) =>
+          food.value === props.profile?.favoriteFood;
         const selectedFood = FOOD_OPTIONS.find(findFavoriteFood);
         return selectedFood ? selectedFood.icon : "fa-utensils";
       });
 
       const selectedJobIcon = computed(() => {
-        const findJobClass = (job: any) => job?.name === props.profile?.jobClass;
+        const findJobClass = (job: any) =>
+          job?.name === props.profile?.jobClass;
         const selectedJob = JOB_CLASS_OPTIONS.find(findJobClass);
         return selectedJob ? selectedJob.icon : "fa-shield-alt";
       });
@@ -251,7 +241,9 @@
       });
 
       const passwordProxy = computed(() => {
-        return showPass.value ? inputCode.value : inputCode.value.replace(/./g, "●");
+        return showPass.value
+          ? inputCode.value
+          : inputCode.value.replace(/./g, "●");
       });
 
       const isPasscodeValid = computed(() => {
@@ -263,7 +255,12 @@
       };
 
       const clickUnlock = async () => {
-        debug.log(`Attempting to unlock profile with code: ${inputCode.value.replace(/./g, '*')}`);
+        debug.log(
+          `Attempting to unlock profile with code: ${inputCode.value.replace(
+            /./g,
+            "*"
+          )}`
+        );
 
         if (inputCode.value !== props.profile.passcode) {
           hasError.value = true;
@@ -466,7 +463,6 @@
   }
 
   @keyframes shake {
-
     0%,
     100% {
       transform: translateX(0);

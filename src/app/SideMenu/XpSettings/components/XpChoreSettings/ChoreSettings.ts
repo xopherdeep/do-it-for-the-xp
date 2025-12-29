@@ -20,7 +20,7 @@ import {
   IonAvatar,
   toastController,
 } from "@ionic/vue";
-import ionic from "@/mixins/ionic";
+import ionic from "@/lib/mixins/ionic";
 import { arrowBack } from "ionicons/icons";
 
 import appConfig from "@/app.config";
@@ -127,7 +127,7 @@ export default defineComponent({
       saveChoreSettings,
       arrowBack,
       appConfig,
-      clickSettings(){
+      clickSettings() {
         router.push({
           name: "xp-settings-notifications",
         });

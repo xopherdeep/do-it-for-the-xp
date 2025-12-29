@@ -1,6 +1,6 @@
 import { defineComponent } from 'vue';
 import { useUserStore } from '@/lib/store/stores/user';
-import ionic from '@/mixins/ionic';
+import ionic from '@/lib/mixins/ionic';
 
 // Only import the icons that are actually used
 import {
@@ -58,8 +58,8 @@ export default defineComponent({
     },
 
     userFavoriteFood(): string | null {
-       // Access favoriteFood from the fetched profile data
-       return this.currentUserProfileData?.favoriteFood || null;
+      // Access favoriteFood from the fetched profile data
+      return this.currentUserProfileData?.favoriteFood || null;
     },
 
     filteredFoods(): FoodItem[] {
@@ -68,10 +68,10 @@ export default defineComponent({
       // Filter by Category
       if (this.selectedCategory === 'favorites') {
         if (this.userFavoriteFood) {
-           const favFood = this.userFavoriteFood; // Store in a local const to avoid null check warnings
-           foods = foods.filter(food => food.name.toLowerCase() === favFood.toLowerCase());
+          const favFood = this.userFavoriteFood; // Store in a local const to avoid null check warnings
+          foods = foods.filter(food => food.name.toLowerCase() === favFood.toLowerCase());
         } else {
-            foods = []; // No favorite food set or found
+          foods = []; // No favorite food set or found
         }
       } else if (this.selectedCategory !== 'all') {
         foods = foods.filter(food => food.category === this.selectedCategory);
@@ -96,46 +96,46 @@ export default defineComponent({
     async presentActionSheet() {
       // Example action sheet for food items
       const actionSheet = await actionSheetController.create({
-          header: 'Kitchen Actions',
-          cssClass: 'my-custom-class', // Optional custom styling
-          buttons: [
-            {
-              text: 'Cook Something',
-              icon: restaurantOutline, // Use a relevant icon
-              handler: () => {
-                // Implement cooking logic
-              },
+        header: 'Kitchen Actions',
+        cssClass: 'my-custom-class', // Optional custom styling
+        buttons: [
+          {
+            text: 'Cook Something',
+            icon: restaurantOutline, // Use a relevant icon
+            handler: () => {
+              // Implement cooking logic
             },
-            {
-              text: 'Add New Recipe',
-              icon: addCircleOutline,
-              handler: () => {
-                // Implement recipe addition logic
-              },
+          },
+          {
+            text: 'Add New Recipe',
+            icon: addCircleOutline,
+            handler: () => {
+              // Implement recipe addition logic
             },
-             {
-              text: 'View Grocery List',
-              icon: cartOutline,
-              handler: () => {
-                // Implement grocery list navigation
-              },
+          },
+          {
+            text: 'View Grocery List',
+            icon: cartOutline,
+            handler: () => {
+              // Implement grocery list navigation
             },
-            {
-              text: 'Cancel',
-              icon: close,
-              role: 'cancel',
-              handler: () => {
-                // Just close the action sheet
-              },
+          },
+          {
+            text: 'Cancel',
+            icon: close,
+            role: 'cancel',
+            handler: () => {
+              // Just close the action sheet
             },
-          ],
-        });
+          },
+        ],
+      });
       await actionSheet.present();
     },
-     // Helper to get image source, handling potential missing images
+    // Helper to get image source, handling potential missing images
     getFoodImageUrl(imageUrl: string): string {
-        // Basic check, replace with actual placeholder logic if needed
-        return imageUrl || '/assets/placeholder-food.png';
+      // Basic check, replace with actual placeholder logic if needed
+      return imageUrl || '/assets/placeholder-food.png';
     }
   },
   mounted() {

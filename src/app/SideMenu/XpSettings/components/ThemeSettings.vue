@@ -9,10 +9,7 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content
-      :fullscreen="true"
-      class="rpg-box bg-slide"
-    >
+    <ion-content :fullscreen="true" class="rpg-box bg-slide">
       <ion-card class="max-w-2xl">
         <ion-list>
           <ion-item-group>
@@ -28,7 +25,9 @@
                 @ionChange="changeUISound"
               >
                 <ion-select-option value="nintendo">Nintendo</ion-select-option>
-                <ion-select-option value="playstation">PlayStation</ion-select-option>
+                <ion-select-option value="playstation"
+                  >PlayStation</ion-select-option
+                >
                 <ion-select-option value="xbox">Xbox</ion-select-option>
               </ion-select>
             </ion-item>
@@ -46,9 +45,15 @@
                 interface="action-sheet"
                 @ionChange="changeRPGSound"
               >
-                <ion-select-option value="chronoTrigger">Chrono Trigger</ion-select-option>
-                <ion-select-option value="finalFantasy">Final Fantasy</ion-select-option>
-                <ion-select-option value="zelda">Legend of Zelda</ion-select-option>
+                <ion-select-option value="chronoTrigger"
+                  >Chrono Trigger</ion-select-option
+                >
+                <ion-select-option value="finalFantasy"
+                  >Final Fantasy</ion-select-option
+                >
+                <ion-select-option value="zelda"
+                  >Legend of Zelda</ion-select-option
+                >
               </ion-select>
             </ion-item>
           </ion-item-group>
@@ -78,7 +83,9 @@
               >
                 <ion-select-option value="default">Default</ion-select-option>
                 <ion-select-option value="fantasy">Fantasy</ion-select-option>
-                <ion-select-option value="retro">Retro Gaming</ion-select-option>
+                <ion-select-option value="retro"
+                  >Retro Gaming</ion-select-option
+                >
               </ion-select>
             </ion-item>
           </ion-item-group>
@@ -89,102 +96,134 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref } from 'vue'
-  import { useGameStore } from '@/lib/store/stores/game'
-import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
-  IonList, IonItem, IonLabel, IonToggle, IonCard,
-  IonBackButton, IonButtons, IonSelect, IonSelectOption,
-  IonItemGroup, IonItemDivider, toastController
-} from '@ionic/vue'
-import ionic from "@/mixins/ionic"
+  import { defineComponent, ref } from "vue";
+  import { useGameStore } from "@/lib/store/stores/game";
+  import {
+    IonPage,
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    IonContent,
+    IonList,
+    IonItem,
+    IonLabel,
+    IonToggle,
+    IonCard,
+    IonBackButton,
+    IonButtons,
+    IonSelect,
+    IonSelectOption,
+    IonItemGroup,
+    IonItemDivider,
+    toastController,
+  } from "@ionic/vue";
+  import ionic from "@/lib/mixins/ionic";
 
-export default defineComponent({
-  name: 'ThemeSettings',
-  components: {
-    IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
-    IonList, IonItem, IonLabel, IonToggle, IonCard,
-    IonBackButton, IonButtons, IonSelect, IonSelectOption,
-    IonItemGroup, IonItemDivider
-  },
-  mixins: [ionic],
-  computed: {
-    theme() {
-      return this.gameStore.theme
-    }
-  },
-  setup() {
-    const gameStore = useGameStore()
-
-    const themeSettings = ref({
-      darkMode: false,
-      colorTheme: 'default'
-    })
-
-    // Load saved settings
-    const savedSettings = localStorage.getItem('themeSettings')
-    if (savedSettings) {
-      themeSettings.value = JSON.parse(savedSettings)
-      // Apply saved dark mode
-      document.body.classList.toggle('dark', themeSettings.value.darkMode)
-    }
-
-    return {
-      themeSettings,
-      gameStore
-    }
-  },
-  methods: {
-    changeSoundFX(payload: { ui: string, rpg: string }) {
-      return Promise.resolve(this.gameStore.changeSoundFX(payload))
+  export default defineComponent({
+    name: "ThemeSettings",
+    components: {
+      IonPage,
+      IonHeader,
+      IonToolbar,
+      IonTitle,
+      IonContent,
+      IonList,
+      IonItem,
+      IonLabel,
+      IonToggle,
+      IonCard,
+      IonBackButton,
+      IonButtons,
+      IonSelect,
+      IonSelectOption,
+      IonItemGroup,
+      IonItemDivider,
     },
-
-    async showToast(message: string) {
-      const toast = await toastController.create({
-        message,
-        duration: 2000,
-        position: 'bottom'
-      })
-      await toast.present()
+    mixins: [ionic],
+    computed: {
+      theme() {
+        return this.gameStore.theme;
+      },
     },
+    setup() {
+      const gameStore = useGameStore();
 
-    update$fx({ rpg, ui }) {
-      const { $fx, changeSoundFX } = this
-      const newFx = { ...$fx.theme, rpg, ui }
-      this.play$fx()
-      changeSoundFX(newFx).then(() => ($fx.theme = newFx))
+      const themeSettings = ref({
+        darkMode: false,
+        colorTheme: "default",
+      });
+
+      // Load saved settings
+      const savedSettings = localStorage.getItem("themeSettings");
+      if (savedSettings) {
+        themeSettings.value = JSON.parse(savedSettings);
+        // Apply saved dark mode
+        document.body.classList.toggle("dark", themeSettings.value.darkMode);
+      }
+
+      return {
+        themeSettings,
+        gameStore,
+      };
     },
+    methods: {
+      changeSoundFX(payload: { ui: string; rpg: string }) {
+        return Promise.resolve(this.gameStore.changeSoundFX(payload));
+      },
 
-    changeUISound(ev) {
-      const { rpg } = this.theme
-      this.update$fx({
-        ui: ev.detail.value,
-        rpg
-      })
+      async showToast(message: string) {
+        const toast = await toastController.create({
+          message,
+          duration: 2000,
+          position: "bottom",
+        });
+        await toast.present();
+      },
+
+      update$fx({ rpg, ui }) {
+        const { $fx, changeSoundFX } = this;
+        const newFx = { ...$fx.theme, rpg, ui };
+        this.play$fx();
+        changeSoundFX(newFx).then(() => ($fx.theme = newFx));
+      },
+
+      changeUISound(ev) {
+        const { rpg } = this.theme;
+        this.update$fx({
+          ui: ev.detail.value,
+          rpg,
+        });
+      },
+
+      changeRPGSound(ev) {
+        const { ui } = this.theme;
+        this.update$fx({
+          rpg: ev.detail.value,
+          ui,
+        });
+      },
+
+      toggleDarkMode() {
+        document.body.classList.toggle("dark", this.themeSettings.darkMode);
+        this.saveSettings();
+        this.showToast(
+          `Dark mode ${this.themeSettings.darkMode ? "enabled" : "disabled"}`
+        );
+      },
+
+      updateColorTheme() {
+        this.saveSettings();
+        this.showToast(
+          `Color theme changed to ${this.themeSettings.colorTheme}`
+        );
+      },
+
+      saveSettings() {
+        localStorage.setItem(
+          "themeSettings",
+          JSON.stringify(this.themeSettings)
+        );
+      },
     },
-
-    changeRPGSound(ev) {
-      const { ui } = this.theme
-      this.update$fx({
-        rpg: ev.detail.value,
-        ui
-      })
-    },
-
-    toggleDarkMode() {
-      document.body.classList.toggle('dark', this.themeSettings.darkMode)
-      this.saveSettings()
-      this.showToast(`Dark mode ${this.themeSettings.darkMode ? 'enabled' : 'disabled'}`)
-    },
-
-    updateColorTheme() {
-      this.saveSettings()
-      this.showToast(`Color theme changed to ${this.themeSettings.colorTheme}`)
-    },
-
-    saveSettings() {
-      localStorage.setItem('themeSettings', JSON.stringify(this.themeSettings))
-    }
-  }
-})
+  });
 </script>

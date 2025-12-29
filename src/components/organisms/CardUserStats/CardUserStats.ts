@@ -26,7 +26,7 @@ import {
 } from "ionicons/icons";
 
 
-import ionic from "@/mixins/ionic";
+import ionic from "@/lib/mixins/ionic";
 
 import { useUserStore } from "@/lib/store/stores/user";
 import Vue3Autocounter from 'vue3-autocounter';

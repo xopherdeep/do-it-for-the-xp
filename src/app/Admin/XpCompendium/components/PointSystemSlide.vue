@@ -15,21 +15,21 @@
 </template>
 
 <script lang="ts">
-import Ionic from '@/mixins/ionic';
-import { defineComponent } from 'vue';
+  import Ionic from "@/lib/mixins/ionic";
+  import { defineComponent } from "vue";
 
-export default defineComponent({
-  name: 'PointSystemSlide',
+  export default defineComponent({
+    name: "PointSystemSlide",
 
-  mixins: [Ionic],
-  props: {
-    title: { type: String, required: true },
-    description: { type: String, required: true },
-    icon: { type: String, required: true },
-    colorClass: { type: String, required: true },
-    buttonText: { type: String, required: true },
-    route: { type: String, required: true }
-  },
-  emits: ['navigate']
-});
+    mixins: [Ionic],
+    props: {
+      title: { type: String, required: true },
+      description: { type: String, required: true },
+      icon: { type: String, required: true },
+      colorClass: { type: String, required: true },
+      buttonText: { type: String, required: true },
+      route: { type: String, required: true },
+    },
+    emits: ["navigate"],
+  });
 </script>

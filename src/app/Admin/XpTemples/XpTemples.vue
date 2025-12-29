@@ -1,20 +1,12 @@
 <template>
-  <ion-page
-    :class="$options.name"
-    style="background: transparent"
-  >
+  <ion-page :class="$options.name" style="background: transparent">
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
           <ion-back-button default-href="/game-master" />
         </ion-buttons>
-        <i
-          class="fad fa-2x fa-hand-holding-water"
-          slot="start"
-        />
-        <ion-title>
-          Temples
-        </ion-title>
+        <i class="fad fa-2x fa-hand-holding-water" slot="start" />
+        <ion-title> Temples </ion-title>
         <ion-buttons slot="end">
           <ion-button @click="clickSoundSettings">
             <i class="fad fa-volume-up fa-2x"></i>
@@ -26,15 +18,9 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content
-      class="ion-padding"
-      style="--background: transparent"
-    >
+    <ion-content class="ion-padding" style="--background: transparent">
       <!-- Loading State -->
-      <div
-        v-if="isLoading"
-        class="loading-wrapper"
-      >
+      <div v-if="isLoading" class="loading-wrapper">
         <XpLoading />
       </div>
 
@@ -66,34 +52,28 @@
         </ion-row>
       </ion-grid>
       <!-- Temple Creator Floating Action Button -->
-      <ion-fab
-        vertical="bottom"
-        horizontal="center"
-        slot="fixed"
-      >
-        <ion-fab-button
-          @click="presentActionSheet"
-          color="rpg"
-        >
+      <ion-fab vertical="bottom" horizontal="center" slot="fixed">
+        <ion-fab-button @click="presentActionSheet" color="rpg">
           <i class="fad fa-hand-holding-water fa-2x"></i>
         </ion-fab-button>
       </ion-fab>
-
     </ion-content>
   </ion-page>
 </template>
 
 <script lang="ts">
   import { defineComponent, ref, onMounted, computed } from "vue";
-  import Ionic from "@/mixins/ionic";
+  import Ionic from "@/lib/mixins/ionic";
   import { useRouter } from "vue-router";
-  import { TempleDb, TempleInterface, templeStorage } from "@/lib/databases/TempleDb";
+  import {
+    TempleDb,
+    TempleInterface,
+    templeStorage,
+  } from "@/lib/databases/TempleDb";
   import debug from "@/lib/utils/debug";
   import { actionSheetController } from "@ionic/vue";
-  
-  import { 
-    createOutline, cloudDownloadOutline
-  } from 'ionicons/icons';
+
+  import { createOutline, cloudDownloadOutline } from "ionicons/icons";
   import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 
   const requireBg = require.context("@/assets/images/backgrounds/");
@@ -102,7 +82,7 @@
     name: "xp-temples",
     mixins: [Ionic],
     components: {
-      XpLoading
+      XpLoading,
     },
     setup() {
       const isLoading = ref(true);
@@ -110,7 +90,7 @@
       const $router = useRouter();
       const templeDb = new TempleDb(templeStorage);
       const templeData = ref({} as Record<string, TempleInterface>);
-      
+
       // Map with explicit connection between display names and temple IDs
       const temples = [
         {
@@ -136,7 +116,7 @@
         {
           id: "fire-temple",
           world: "mountains",
-          level: 5
+          level: 5,
         },
 
         {
@@ -167,12 +147,12 @@
         isLoading.value = true;
         try {
           const promises = temples.map(async (temple) => {
-             const data = await templeDb.getTempleById(temple.id);
-             return { id: temple.id, data };
+            const data = await templeDb.getTempleById(temple.id);
+            return { id: temple.id, data };
           });
-          
+
           const results = await Promise.all(promises);
-          
+
           results.forEach(({ id, data }) => {
             if (data) {
               templeData.value[id] = data;
@@ -195,14 +175,14 @@
         } catch (error) {
           debug.warn(`Could not load world-${world}.jpg:`, error);
           try {
-            return requireBg('./world-map.jpg');
+            return requireBg("./world-map.jpg");
           } catch (error) {
-            debug.warn('Could not load world-map.jpg fallback:', error);
+            debug.warn("Could not load world-map.jpg fallback:", error);
             try {
-              return requireBg('./hometown.jpg');
+              return requireBg("./hometown.jpg");
             } catch {
               // If all fallbacks fail, return a blank transparent image
-              return 'data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==';
+              return "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";
             }
           }
         }
@@ -211,7 +191,7 @@
       // Computed property to prepare all view data at once
       // This allows the template to be very dumb and fast
       const processedTemples = computed(() => {
-        return temples.map(temple => {
+        return temples.map((temple) => {
           const data = templeData.value[temple.id];
           return {
             ...data,
@@ -235,42 +215,42 @@
       const goToTempleCreator = (templeId: string) => {
         // Navigate to the creator page, passing 'new' or an existing templeId
         $router.push({
-          name: 'xp-temple-creator',
+          name: "xp-temple-creator",
           params: {
-            templeId
-          }
+            templeId,
+          },
         });
       };
 
       const presentActionSheet = async () => {
         const actionSheet = await actionSheetController.create({
-          header: 'Temple Actions',
-          cssClass: 'temple-action-sheet',
-          mode: 'ios',
+          header: "Temple Actions",
+          cssClass: "temple-action-sheet",
+          mode: "ios",
           buttons: [
             {
-              text: 'Create New Temple',
+              text: "Create New Temple",
               icon: createOutline,
-              cssClass: 'action-create',
+              cssClass: "action-create",
               handler: () => {
-                goToTempleCreator('new');
-              }
+                goToTempleCreator("new");
+              },
             },
             {
-              text: 'Import Temple',
+              text: "Import Temple",
               icon: cloudDownloadOutline,
-              cssClass: 'action-import',
+              cssClass: "action-import",
               handler: () => {
                 // Import temple functionality would go here
-              }
+              },
             },
             {
-              text: 'Cancel',
-              role: 'cancel',
-              cssClass: 'action-cancel',
+              text: "Cancel",
+              role: "cancel",
+              cssClass: "action-cancel",
               handler: () => {
                 // Just close the action sheet
-              }
+              },
             },
           ],
         });
@@ -290,7 +270,7 @@
           $router.push({ name: "xp-settings-theme" });
         },
         hoveredTempleId,
-        isLoading
+        isLoading,
       };
     },
   });
@@ -298,11 +278,10 @@
 
 <style lang="scss" scoped>
   .xp-temples {
-
     // Global page styles
     ion-toolbar {
       ion-title {
-        font-family: var(--xp-font-fantasy, 'Fantasy');
+        font-family: var(--xp-font-fantasy, "Fantasy");
         font-size: 1.5rem;
       }
     }

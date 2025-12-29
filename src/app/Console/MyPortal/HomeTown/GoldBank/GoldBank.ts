@@ -1,6 +1,6 @@
 import { defineComponent } from "vue";
 import { useUserStore } from "@/lib/store/stores/user";
-import ionic from "@/mixins/ionic";
+import ionic from "@/lib/mixins/ionic";
 
 import {
   walletOutline,
@@ -462,10 +462,10 @@ export default defineComponent({
     },
   },
   setup(props) {
-    const { 
-      request, 
-      items, 
-      getItems, 
+    const {
+      request,
+      items,
+      getItems,
       getImgObj,
       nTotalPages
     } = useItemFetcher("xp_accessory", { per_page: 4 }, props.userId);

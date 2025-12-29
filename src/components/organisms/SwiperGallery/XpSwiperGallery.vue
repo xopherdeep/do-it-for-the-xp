@@ -32,7 +32,7 @@
               <ion-card-title v-if="isFetching">
                 <ion-skeleton-text
                   :animated="true"
-                  style="width: 100px;"
+                  style="width: 100px"
                 ></ion-skeleton-text>
               </ion-card-title>
               <ion-card-title
@@ -43,7 +43,7 @@
               <ion-thumbnail v-if="isFetching">
                 <ion-skeleton-text
                   :animated="true"
-                  style="width: 100%;"
+                  style="width: 100%"
                 ></ion-skeleton-text>
               </ion-thumbnail>
               <ion-img
@@ -89,36 +89,35 @@
   </swiper>
 </template>
 
-
 <script lang="ts">
-  import { defineComponent } from 'vue'
+  import { defineComponent } from "vue";
   import { Controller, Navigation } from "swiper";
-  import { IonicSlides } from '@ionic/vue';
-  import { useItemFetcher } from '@/hooks/useItemFetcher';
-  import ionic from "@/mixins/ionic"
+  import { IonicSlides } from "@ionic/vue";
+  import { useItemFetcher } from "@/hooks/useItemFetcher";
+  import ionic from "@/lib/mixins/ionic";
 
   export default defineComponent({
     props: ["items", "nTotalPages", "nTotal", "isFetching", "params"],
     mixins: [ionic],
-    data(){
-      return{
+    data() {
+      return {
         activeModal: 0,
         swiperNavigation: {
           nextEl: "#swiper-forward",
           prevEl: "#swiper-back",
         },
-      }
+      };
     },
 
     computed: {
       page: {
-        get(){
-          return this.$props.params.page
+        get() {
+          return this.$props.params.page;
         },
-        set(page){
-          this.$emit("update:changePage", page)
-        } 
-      }
+        set(page) {
+          this.$emit("update:changePage", page);
+        },
+      },
     },
     methods: {
       // searchChanged() {
@@ -127,10 +126,10 @@
       //   this.params.page = 1;
       // },
       prev() {
-        this.$emit('prev')
+        this.$emit("prev");
       },
       next() {
-        this.$emit('next')
+        this.$emit("next");
       },
 
       clickItem(item) {
@@ -141,8 +140,8 @@
         return this.activeModal == id;
       },
 
-      getFeaturedImg(embedded){
-        const [ img ] = embedded["wp:featuredmedia"] || [{}] 
+      getFeaturedImg(embedded) {
+        const [img] = embedded["wp:featuredmedia"] || [{}];
         return {
           src: img?.source_url,
           alt: img?.alt_text,
@@ -160,18 +159,18 @@
     },
     setup() {
       const { getSingleMediaById } = useItemFetcher();
-      
+
       // Fix 'setControlledSwiper' is not defined error by defining it
       const setControlledSwiper = () => {
         // No-op implementation to fix the ESLint error
         // This function is called from the template but doesn't need to do anything
       };
-      
+
       return {
         setControlledSwiper,
         getSingleMediaById,
         modules: [IonicSlides, Navigation, Controller],
-      }
+      };
     },
-  })
+  });
 </script>

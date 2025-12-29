@@ -11,14 +11,14 @@
 </template>
 
 <script lang="ts">
-import { defineComponent } from "vue";
-import Ionic from "@/mixins/ionic";
+  import { defineComponent } from "vue";
+  import Ionic from "@/lib/mixins/ionic";
 
-export default defineComponent({
-  name: "XpShopDecorateTab",
-  mixins: [Ionic],
-  props: {
-    shopId: { type: String, required: true }
-  }
-});
+  export default defineComponent({
+    name: "XpShopDecorateTab",
+    mixins: [Ionic],
+    props: {
+      shopId: { type: String, required: true },
+    },
+  });
 </script>

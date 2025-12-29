@@ -1,8 +1,5 @@
 <template>
-  <ion-modal
-    :is-open="isOpen"
-    @didDismiss="didDismiss"
-  >
+  <ion-modal :is-open="isOpen" @didDismiss="didDismiss">
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
@@ -26,16 +23,12 @@
       </ion-toolbar>
     </ion-header>
     <ion-content class="bg-slide">
-
       <ion-grid class="ion-no-padding">
         <ion-row>
           <ion-col>
             <ion-list>
               <ion-item>
-                <ion-avatar
-                  @click="openActionSheet"
-                  slot="start"
-                >
+                <ion-avatar @click="openActionSheet" slot="start">
                   <ion-skeleton-text></ion-skeleton-text>
                 </ion-avatar>
                 <ion-input
@@ -50,31 +43,21 @@
                 v-if="categoriesNotAdded.length > 0"
                 @ionChange="setPredefinedCategory"
               >
-                <ion-item
-                  size="4"
-                  v-for=" cat  in  categoriesNotAdded "
-                  :key="cat"
-                >
+                <ion-item size="4" v-for="cat in categoriesNotAdded" :key="cat">
                   <ion-avatar slot="start">
                     <ion-skeleton-text />
                   </ion-avatar>
                   <ion-label>
                     {{ cat }}
                   </ion-label>
-                  <ion-radio
-                    name="category"
-                    :value="cat"
-                  ></ion-radio>
+                  <ion-radio name="category" :value="cat"></ion-radio>
                 </ion-item>
               </ion-radio-group>
               <ion-item v-else>
                 <ion-label>
                   You're using all our predefined categories - Way to go!
                 </ion-label>
-                <i
-                  class="fad fa-ban ion-float-right"
-                  slot="end"
-                ></i>
+                <i class="fad fa-ban ion-float-right" slot="end"></i>
               </ion-item>
             </ion-list>
           </ion-col>
@@ -82,48 +65,34 @@
       </ion-grid>
 
       <ion-list>
-        <ion-list-header>
-          Categories
-        </ion-list-header>
-        <ion-item
-          v-for="category in categories"
-          :key="category.id"
-        >
+        <ion-list-header> Categories </ion-list-header>
+        <ion-item v-for="category in categories" :key="category.id">
           <ion-avatar slot="start">
-            <ion-skeleton-text/>
+            <ion-skeleton-text />
           </ion-avatar>
-          <ion-input :value="category.name">
-
-          </ion-input>
+          <ion-input :value="category.name"> </ion-input>
           <!-- {{ category.name }} -->
           <ion-buttons slot="end">
-            <ion-button
-              @click="deleteCategory(category)"
-              color="danger"
-            >
+            <ion-button @click="deleteCategory(category)" color="danger">
               <i class="fad fa-trash fa-lg"></i>
             </ion-button>
           </ion-buttons>
         </ion-item>
       </ion-list>
-
     </ion-content>
     <ion-footer>
       <ion-toolbar>
-        <ion-button @click="didDismiss">
-          Cancel
-        </ion-button>
+        <ion-button @click="didDismiss"> Cancel </ion-button>
       </ion-toolbar>
     </ion-footer>
     <ion-action-sheet
       :is-open="actionSheetOpen"
       :header="'Choose an option'"
       :buttons="[
-        { text: 'Take Picture', icon: cameraOutline, handler: () => { } },
-        { text: 'Choose from Gallery', icon: imagesOutline, handler: () => { } },
+        { text: 'Take Picture', icon: cameraOutline, handler: () => {} },
+        { text: 'Choose from Gallery', icon: imagesOutline, handler: () => {} },
         { text: 'Cancel', role: 'cancel' },
-      ]
-        "
+      ]"
       @didDismiss="actionSheetOpen = false"
     />
   </ion-modal>
@@ -131,7 +100,7 @@
 
 <script lang="ts">
   import { defineComponent, ref } from "vue";
-  import ionic from "@/mixins/ionic";
+  import ionic from "@/lib/mixins/ionic";
   import { alertController } from "@ionic/vue";
   import { cameraOutline, imagesOutline } from "ionicons/icons";
   import { v4 as uuid4 } from "uuid";
@@ -149,10 +118,11 @@
       categoriesNotAdded() {
         // return a list of predefined categoreis that aren't found in categories.
         return this.predefinedCategories.filter((predefinedCat) => {
-          return !this.categories.some((category) => category.name === predefinedCat);
+          return !this.categories.some(
+            (category) => category.name === predefinedCat
+          );
         });
       },
-
     },
     methods: {
       didDismiss() {
@@ -174,25 +144,24 @@
               text: "Delete",
               handler: () => {
                 this.$emit("delete-category", category);
-              }
-            }
-          ]
-        })
+              },
+            },
+          ],
+        });
         alert.present();
       },
       addNewCategory() {
         // emit event with new category name
         this.$emit("add-category", {
           id: uuid4(),
-          name: this.newCategoryName
+          name: this.newCategoryName,
         });
         this.newCategoryName = "";
         this.$emit("dismiss");
       },
       setPredefinedCategory($event) {
         this.newCategoryName = $event.detail.value;
-
-      }
+      },
     },
     setup() {
       const actionSheetOpen = ref(false);

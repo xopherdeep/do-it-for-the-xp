@@ -9,15 +9,11 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content
-      :fullscreen="true"
-      class="rpg-box bg-slide ion-padding"
-    >
+    <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
       <ion-card class="max-w-2xl">
         <ion-grid>
           <ion-row>
             <ion-col>
-
               <ion-card-title> Your Family </ion-card-title>
               <ion-card-header>
                 <h1>McJudyPollard</h1>
@@ -84,7 +80,7 @@
 
 <script lang="ts">
   import { defineComponent, ref, computed } from "vue";
-  import ionic from "@/mixins/ionic";
+  import ionic from "@/lib/mixins/ionic";
   import { arrowBack } from "ionicons/icons";
   import { profileStorage } from "../../SwitchProfile/SwitchProfile.vue";
   import { ProfileDb } from "@/lib/databases";
@@ -126,14 +122,14 @@
         toggleFamily,
         toppings,
         arrowBack,
-        loadProfiles
+        loadProfiles,
       };
     },
     methods: {
       async clickEditProfile(profile: User) {
         await this.openModal({
           profile,
-          showIsAdult: true
+          showIsAdult: true,
         });
       },
       async openModal(componentProps?: any) {
@@ -180,8 +176,8 @@
         if (avatar) {
           return this.requireAvatar(`./${user.avatar}.svg`);
         }
-      }
-    }
+      },
+    },
   });
 </script>
 

@@ -34,78 +34,78 @@
       </div>
       <template v-else>
         <ion-list v-if="activeSegment === 'achievements'">
-        <ion-item-sliding v-for="item in pendingAchievements" :key="item.id">
-          <ion-item>
-            <ion-avatar slot="start">
-              <ion-img v-if="item.imageUrl" :src="item.imageUrl" />
-              <ion-skeleton-text v-else />
-            </ion-avatar>
-            <ion-label>
-              {{ item.achievementName }}
-              <p>
-                Submitted by: {{ getUserName(item.userId) }}
-                <ion-note>{{ formatDate(item.submittedDate) }}</ion-note>
-              </p>
+          <ion-item-sliding v-for="item in pendingAchievements" :key="item.id">
+            <ion-item>
+              <ion-avatar slot="start">
+                <ion-img v-if="item.imageUrl" :src="item.imageUrl" />
+                <ion-skeleton-text v-else />
+              </ion-avatar>
+              <ion-label>
+                {{ item.achievementName }}
+                <p>
+                  Submitted by: {{ getUserName(item.userId) }}
+                  <ion-note>{{ formatDate(item.submittedDate) }}</ion-note>
+                </p>
+              </ion-label>
+              <ion-badge color="warning" slot="end">
+                <xp-gp :gp="item.gp" />
+              </ion-badge>
+            </ion-item>
+            <ion-item-options side="end">
+              <ion-item-option color="success" @click="approveItem(item)">
+                <i class="fad fa-check fa-lg"></i>
+                Approve
+              </ion-item-option>
+              <ion-item-option color="danger" @click="rejectItem(item)">
+                <i class="fad fa-times fa-lg"></i>
+                Reject
+              </ion-item-option>
+            </ion-item-options>
+          </ion-item-sliding>
+          <ion-item v-if="pendingAchievements.length === 0">
+            <ion-label class="ion-text-center">
+              <i class="fad fa-check-circle fa-3x text-success"></i>
+              <p>No pending achievement approvals</p>
             </ion-label>
-            <ion-badge color="warning" slot="end">
-              <xp-gp :gp="item.gp" />
-            </ion-badge>
           </ion-item>
-          <ion-item-options side="end">
-            <ion-item-option color="success" @click="approveItem(item)">
-              <i class="fad fa-check fa-lg"></i>
-              Approve
-            </ion-item-option>
-            <ion-item-option color="danger" @click="rejectItem(item)">
-              <i class="fad fa-times fa-lg"></i>
-              Reject
-            </ion-item-option>
-          </ion-item-options>
-        </ion-item-sliding>
-        <ion-item v-if="pendingAchievements.length === 0">
-          <ion-label class="ion-text-center">
-            <i class="fad fa-check-circle fa-3x text-success"></i>
-            <p>No pending achievement approvals</p>
-          </ion-label>
-        </ion-item>
-      </ion-list>
+        </ion-list>
 
-      <ion-list v-if="activeSegment === 'accessories'">
-        <ion-item-sliding v-for="item in pendingAccessories" :key="item.id">
-          <ion-item>
-            <ion-avatar slot="start">
-              <ion-img v-if="item.icon" :src="item.icon" />
-              <ion-skeleton-text v-else />
-            </ion-avatar>
-            <ion-label>
-              {{ item.name }}
-              <p>
-                Requested by: {{ getUserName(item.userId) }}
-                <ion-note>{{ formatDate(item.requestDate) }}</ion-note>
-              </p>
+        <ion-list v-if="activeSegment === 'accessories'">
+          <ion-item-sliding v-for="item in pendingAccessories" :key="item.id">
+            <ion-item>
+              <ion-avatar slot="start">
+                <ion-img v-if="item.icon" :src="item.icon" />
+                <ion-skeleton-text v-else />
+              </ion-avatar>
+              <ion-label>
+                {{ item.name }}
+                <p>
+                  Requested by: {{ getUserName(item.userId) }}
+                  <ion-note>{{ formatDate(item.requestDate) }}</ion-note>
+                </p>
+              </ion-label>
+              <ion-badge color="warning" slot="end">
+                <xp-gp :gp="item.basePrice" />
+              </ion-badge>
+            </ion-item>
+            <ion-item-options side="end">
+              <ion-item-option color="success" @click="approveItem(item)">
+                <i class="fad fa-check fa-lg"></i>
+                Approve
+              </ion-item-option>
+              <ion-item-option color="danger" @click="rejectItem(item)">
+                <i class="fad fa-times fa-lg"></i>
+                Reject
+              </ion-item-option>
+            </ion-item-options>
+          </ion-item-sliding>
+          <ion-item v-if="pendingAccessories.length === 0">
+            <ion-label class="ion-text-center">
+              <i class="fad fa-check-circle fa-3x text-success"></i>
+              <p>No pending accessory approvals</p>
             </ion-label>
-            <ion-badge color="warning" slot="end">
-              <xp-gp :gp="item.basePrice" />
-            </ion-badge>
           </ion-item>
-          <ion-item-options side="end">
-            <ion-item-option color="success" @click="approveItem(item)">
-              <i class="fad fa-check fa-lg"></i>
-              Approve
-            </ion-item-option>
-            <ion-item-option color="danger" @click="rejectItem(item)">
-              <i class="fad fa-times fa-lg"></i>
-              Reject
-            </ion-item-option>
-          </ion-item-options>
-        </ion-item-sliding>
-        <ion-item v-if="pendingAccessories.length === 0">
-          <ion-label class="ion-text-center">
-            <i class="fad fa-check-circle fa-3x text-success"></i>
-            <p>No pending accessory approvals</p>
-          </ion-label>
-        </ion-item>
-      </ion-list>
+        </ion-list>
       </template>
     </ion-content>
   </ion-page>
@@ -113,7 +113,7 @@
 
 <script lang="ts">
   import { defineComponent, ref, computed } from "vue";
-  import ionic from "@/mixins/ionic";
+  import ionic from "@/lib/mixins/ionic";
   import { useUserStore } from "@/lib/store/stores/user";
   import { alertController, toastController } from "@ionic/vue";
   import { format } from "date-fns";
@@ -124,7 +124,7 @@
     name: "xp-approvals",
     mixins: [ionic],
     components: {
-      XpLoading
+      XpLoading,
     },
     setup() {
       const userStore = useUserStore();
@@ -199,7 +199,7 @@
         isLoading.value = true;
         try {
           // Simulate loading
-          await new Promise(resolve => setTimeout(resolve, 800));
+          await new Promise((resolve) => setTimeout(resolve, 800));
           showSuccessToast("Approvals refreshed!");
         } finally {
           isLoading.value = false;

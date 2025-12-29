@@ -4,7 +4,7 @@
       <i :class="`fad fa-${pageIcon} fa-2x`"></i>
     </ion-fab-button>
     <ion-fab-list v-for="side in sides" :key="side" :side="side">
-      <ion-fab-button 
+      <ion-fab-button
         v-for="(button, index) in filterShortcutsBySide(side)"
         :key="index"
         @click="button.click"
@@ -17,23 +17,24 @@
 </template>
 
 <script lang="ts">
-  import { computed, defineComponent } from 'vue'
+  import { computed, defineComponent } from "vue";
   import { useRoute } from "vue-router";
-  import ionic from "@/mixins/ionic";
+  import ionic from "@/lib/mixins/ionic";
 
   export default defineComponent({
     props: ["shortcuts"],
     mixins: [ionic],
     setup(props) {
       const route = useRoute();
-      const filterShortcutsBySide = side => props.shortcuts.filter( s => s.side == side )
-      const pageIcon = computed( () => route.meta.faIcon )
+      const filterShortcutsBySide = (side) =>
+        props.shortcuts.filter((s) => s.side == side);
+      const pageIcon = computed(() => route.meta.faIcon);
 
       return {
         pageIcon,
         filterShortcutsBySide,
-        sides: ["top", "start", "end", "bottom"]
-      }
+        sides: ["top", "start", "end", "bottom"],
+      };
     },
-  })
+  });
 </script>

@@ -18,16 +18,28 @@
           </ion-item-divider>
           <ion-item>
             <ion-label position="stacked">Email Address</ion-label>
-            <ion-input v-model="accountInfo.email" type="email" placeholder="your@email.com"></ion-input>
+            <ion-input
+              v-model="accountInfo.email"
+              type="email"
+              placeholder="your@email.com"
+            ></ion-input>
           </ion-item>
           <ion-item>
             <ion-label position="stacked">Username</ion-label>
-            <ion-input v-model="accountInfo.username" type="text" placeholder="Choose a username"></ion-input>
+            <ion-input
+              v-model="accountInfo.username"
+              type="text"
+              placeholder="Choose a username"
+            ></ion-input>
           </ion-item>
           <ion-item lines="none">
-             <ion-button expand="block" @click="saveAccountInfo" class="ion-margin-top">
-               Save Account Info
-             </ion-button>
+            <ion-button
+              expand="block"
+              @click="saveAccountInfo"
+              class="ion-margin-top"
+            >
+              Save Account Info
+            </ion-button>
           </ion-item>
         </ion-item-group>
 
@@ -38,20 +50,36 @@
           </ion-item-divider>
           <ion-item>
             <ion-label position="stacked">Current Password</ion-label>
-            <ion-input v-model="passwordChange.current" type="password" placeholder="Enter current password"></ion-input>
+            <ion-input
+              v-model="passwordChange.current"
+              type="password"
+              placeholder="Enter current password"
+            ></ion-input>
           </ion-item>
           <ion-item>
             <ion-label position="stacked">New Password</ion-label>
-            <ion-input v-model="passwordChange.new" type="password" placeholder="Enter new password"></ion-input>
+            <ion-input
+              v-model="passwordChange.new"
+              type="password"
+              placeholder="Enter new password"
+            ></ion-input>
           </ion-item>
           <ion-item>
             <ion-label position="stacked">Confirm New Password</ion-label>
-            <ion-input v-model="passwordChange.confirm" type="password" placeholder="Confirm new password"></ion-input>
+            <ion-input
+              v-model="passwordChange.confirm"
+              type="password"
+              placeholder="Confirm new password"
+            ></ion-input>
           </ion-item>
-           <ion-item lines="none">
-             <ion-button expand="block" @click="changePassword" class="ion-margin-top">
-               Update Password
-             </ion-button>
+          <ion-item lines="none">
+            <ion-button
+              expand="block"
+              @click="changePassword"
+              class="ion-margin-top"
+            >
+              Update Password
+            </ion-button>
           </ion-item>
         </ion-item-group>
 
@@ -70,7 +98,12 @@
             </ion-badge>
           </ion-item>
           <ion-item lines="none">
-            <ion-button expand="block" color="primary" @click="managePlan" class="ion-margin-top">
+            <ion-button
+              expand="block"
+              color="primary"
+              @click="managePlan"
+              class="ion-margin-top"
+            >
               Manage Subscription
             </ion-button>
           </ion-item>
@@ -88,19 +121,30 @@
               <p v-if="linkedAccounts.google">Connected</p>
               <p v-else>Not connected</p>
             </ion-label>
-            <ion-button slot="end" fill="outline" size="small" @click="toggleAccountLink('google')">
-              {{ linkedAccounts.google ? 'Disconnect' : 'Connect' }}
+            <ion-button
+              slot="end"
+              fill="outline"
+              size="small"
+              @click="toggleAccountLink('google')"
+            >
+              {{ linkedAccounts.google ? "Disconnect" : "Connect" }}
             </ion-button>
           </ion-item>
           <ion-item>
-            <ion-icon name="logo-apple" slot="start"></ion-icon> <!-- Default Apple logo color -->
+            <ion-icon name="logo-apple" slot="start"></ion-icon>
+            <!-- Default Apple logo color -->
             <ion-label>
               <h2>Apple</h2>
               <p v-if="linkedAccounts.apple">Connected</p>
               <p v-else>Not connected</p>
             </ion-label>
-            <ion-button slot="end" fill="outline" size="small" @click="toggleAccountLink('apple')">
-              {{ linkedAccounts.apple ? 'Disconnect' : 'Connect' }}
+            <ion-button
+              slot="end"
+              fill="outline"
+              size="small"
+              @click="toggleAccountLink('apple')"
+            >
+              {{ linkedAccounts.apple ? "Disconnect" : "Connect" }}
             </ion-button>
           </ion-item>
         </ion-item-group>
@@ -110,32 +154,9 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue';
-import ionic from "@/mixins/ionic";
-import { 
-  IonPage, 
-  IonHeader, 
-  IonToolbar, 
-  IonButtons, 
-  IonBackButton,
-  IonTitle,
-  IonContent,
-  IonList,        // Added
-  IonItemGroup,   // Added
-  IonItemDivider, // Added
-  IonItem,
-  IonLabel,
-  IonInput,
-  IonButton,
-  IonIcon,
-  IonBadge,
-  toastController,
-  alertController
-} from '@ionic/vue';
-
-export default defineComponent({
-  name: 'account-settings',
-  components: {
+  import { defineComponent, ref } from "vue";
+  import ionic from "@/lib/mixins/ionic";
+  import {
     IonPage,
     IonHeader,
     IonToolbar,
@@ -143,129 +164,165 @@ export default defineComponent({
     IonBackButton,
     IonTitle,
     IonContent,
-    IonList,        // Added
-    IonItemGroup,   // Added
+    IonList, // Added
+    IonItemGroup, // Added
     IonItemDivider, // Added
     IonItem,
     IonLabel,
     IonInput,
     IonButton,
     IonIcon,
-    IonBadge
-  },
-  mixins: [ionic],
-  methods: {
-    async saveAccountInfo() {
-      // Validate email
-      if (!this.validateEmail(this.accountInfo.email)) {
-        this.showToast('Please enter a valid email address', 'danger');
-        return;
-      }
-      
-      // In a real app, this would save to a database
-      this.showToast('Account information updated successfully');
+    IonBadge,
+    toastController,
+    alertController,
+  } from "@ionic/vue";
+
+  export default defineComponent({
+    name: "account-settings",
+    components: {
+      IonPage,
+      IonHeader,
+      IonToolbar,
+      IonButtons,
+      IonBackButton,
+      IonTitle,
+      IonContent,
+      IonList, // Added
+      IonItemGroup, // Added
+      IonItemDivider, // Added
+      IonItem,
+      IonLabel,
+      IonInput,
+      IonButton,
+      IonIcon,
+      IonBadge,
     },
-    
-    validateEmail(email: string) {
-      const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      return re.test(email);
+    mixins: [ionic],
+    methods: {
+      async saveAccountInfo() {
+        // Validate email
+        if (!this.validateEmail(this.accountInfo.email)) {
+          this.showToast("Please enter a valid email address", "danger");
+          return;
+        }
+
+        // In a real app, this would save to a database
+        this.showToast("Account information updated successfully");
+      },
+
+      validateEmail(email: string) {
+        const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return re.test(email);
+      },
+
+      async changePassword() {
+        // Simple validation
+        if (
+          !this.passwordChange.current ||
+          !this.passwordChange.new ||
+          !this.passwordChange.confirm
+        ) {
+          this.showToast("Please fill in all password fields", "danger");
+          return;
+        }
+
+        if (this.passwordChange.new !== this.passwordChange.confirm) {
+          this.showToast("New passwords do not match", "danger");
+          return;
+        }
+
+        if (this.passwordChange.new.length < 8) {
+          this.showToast("Password must be at least 8 characters", "danger");
+          return;
+        }
+
+        // In a real app, this would verify the current password and update to the new one
+        this.showToast("Password updated successfully");
+        this.passwordChange.current = "";
+        this.passwordChange.new = "";
+        this.passwordChange.confirm = "";
+      },
+
+      async managePlan() {
+        const alert = await alertController.create({
+          header: "Manage Subscription",
+          message:
+            "You will be redirected to the subscription management page.",
+          buttons: [
+            {
+              text: "Cancel",
+              role: "cancel",
+            },
+            {
+              text: "Continue",
+              handler: () => {
+                // In a real app, this would redirect to a subscription management page
+                this.showToast("Subscription management page would open here");
+              },
+            },
+          ],
+        });
+        await alert.present();
+      },
+
+      async toggleAccountLink(account: string) {
+        if (this.linkedAccounts[account]) {
+          // Disconnect account
+          this.linkedAccounts[account] = false;
+          this.showToast(
+            `${
+              account.charAt(0).toUpperCase() + account.slice(1)
+            } account disconnected`
+          );
+        } else {
+          // Connect account - in a real app this would open OAuth flow
+          this.linkedAccounts[account] = true;
+          this.showToast(
+            `${
+              account.charAt(0).toUpperCase() + account.slice(1)
+            } account connected`
+          );
+        }
+      },
+
+      async showToast(message: string, color = "success") {
+        const toast = await toastController.create({
+          message,
+          duration: 2000,
+          position: "bottom",
+          color,
+        });
+        await toast.present();
+      },
     },
-    
-    async changePassword() {
-      // Simple validation
-      if (!this.passwordChange.current || !this.passwordChange.new || !this.passwordChange.confirm) {
-        this.showToast('Please fill in all password fields', 'danger');
-        return;
-      }
-      
-      if (this.passwordChange.new !== this.passwordChange.confirm) {
-        this.showToast('New passwords do not match', 'danger');
-        return;
-      }
-      
-      if (this.passwordChange.new.length < 8) {
-        this.showToast('Password must be at least 8 characters', 'danger');
-        return;
-      }
-      
-      // In a real app, this would verify the current password and update to the new one
-      this.showToast('Password updated successfully');
-      this.passwordChange.current = '';
-      this.passwordChange.new = '';
-      this.passwordChange.confirm = '';
-    },
-    
-    async managePlan() {
-      const alert = await alertController.create({
-        header: 'Manage Subscription',
-        message: 'You will be redirected to the subscription management page.',
-        buttons: [
-          {
-            text: 'Cancel',
-            role: 'cancel'
-          },
-          {
-            text: 'Continue',
-            handler: () => {
-              // In a real app, this would redirect to a subscription management page
-              this.showToast('Subscription management page would open here');
-            }
-          }
-        ]
+    setup() {
+      const accountInfo = ref({
+        email: "user@example.com",
+        username: "XpHero123",
       });
-      await alert.present();
-    },
-    
-    async toggleAccountLink(account: string) {
-      if (this.linkedAccounts[account]) {
-        // Disconnect account
-        this.linkedAccounts[account] = false;
-        this.showToast(`${account.charAt(0).toUpperCase() + account.slice(1)} account disconnected`);
-      } else {
-        // Connect account - in a real app this would open OAuth flow
-        this.linkedAccounts[account] = true;
-        this.showToast(`${account.charAt(0).toUpperCase() + account.slice(1)} account connected`);
-      }
-    },
-    
-    async showToast(message: string, color = 'success') {
-      const toast = await toastController.create({
-        message,
-        duration: 2000,
-        position: 'bottom',
-        color
+
+      const passwordChange = ref({
+        current: "",
+        new: "",
+        confirm: "",
       });
-      await toast.present();
-    }
-  },
-  setup() {
-    const accountInfo = ref({
-      email: 'user@example.com',
-      username: 'XpHero123'
-    });
-    
-    const passwordChange = ref({
-      current: '',
-      new: '',
-      confirm: ''
-    });
-    
-    const subscriptionInfo = ref({
-      plan: 'Family Premium',
-      renewalDate: 'May 15, 2025'
-    });
-    
-    const linkedAccounts = ref({
-      google: true,
-      apple: false
-    });
-    
-    return {
-      accountInfo,
-      passwordChange,
-      subscriptionInfo,
-      linkedAccounts
-    };
-  }
-});
+
+      const subscriptionInfo = ref({
+        plan: "Family Premium",
+        renewalDate: "May 15, 2025",
+      });
+
+      const linkedAccounts = ref({
+        google: true,
+        apple: false,
+      });
+
+      return {
+        accountInfo,
+        passwordChange,
+        subscriptionInfo,
+        linkedAccounts,
+      };
+    },
+  });
 </script>

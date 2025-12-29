@@ -4,43 +4,36 @@
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
           <ion-button :router-link="`/xp-settings/`">
-            <ion-icon
-              :icon="arrowBack"
-              slot="icon-only"
-            />
+            <ion-icon :icon="arrowBack" slot="icon-only" />
           </ion-button>
         </ion-buttons>
         <ion-title> Sound Settings </ion-title>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content
-      :fullscreen="true"
-      id="container"
-      class="bg-slide rpg-box"
-    >
+    <ion-content :fullscreen="true" id="container" class="bg-slide rpg-box">
       <AudioSettings />
     </ion-content>
   </ion-page>
 </template>
 
 <script lang="ts">
-import { defineComponent } from "vue";
+  import { defineComponent } from "vue";
 
-import ionic from "@/mixins/ionic";
-import AudioSettings from "@/components/organisms/AudioSettings/AudioSettings.vue";
+  import ionic from "@/lib/mixins/ionic";
+  import AudioSettings from "@/components/organisms/AudioSettings/AudioSettings.vue";
 
-import { arrowBack } from "ionicons/icons";
+  import { arrowBack } from "ionicons/icons";
 
-export default defineComponent({
-  components: {
-    AudioSettings,
-  },
-  mixins: [ionic],
-  setup() {
-    return {
-      arrowBack,
-    };
-  },
-});
+  export default defineComponent({
+    components: {
+      AudioSettings,
+    },
+    mixins: [ionic],
+    setup() {
+      return {
+        arrowBack,
+      };
+    },
+  });
 </script>

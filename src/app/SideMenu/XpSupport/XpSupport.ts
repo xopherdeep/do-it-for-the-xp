@@ -26,7 +26,7 @@ import {
   helpOutline,
   helpSharp
 } from 'ionicons/icons'
-import Ionic from '@/mixins/ionic'
+import Ionic from '@/lib/mixins/ionic'
 
 export default defineComponent({
   name: 'xp-support',
@@ -109,7 +109,7 @@ export default defineComponent({
     if (savedDevMode && !this.gameStore.devMode) {
       this.gameStore.setDevMode(true);
     }
-    
+
     // Add dev tools tile if dev mode is enabled
     if (this.gameStore.devMode) {
       this.tiles.push({

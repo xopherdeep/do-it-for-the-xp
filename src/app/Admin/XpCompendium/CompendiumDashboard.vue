@@ -158,7 +158,7 @@
   import BeastsChallengesDashboard from "@/app/Admin/XpCompendium/components/BeastsChallengesDashboard.vue";
   import TemplesTrainingDashboard from "@/app/Admin/XpCompendium/components/TemplesTrainingDashboard.vue";
   import debug from "@/lib/utils/debug";
-  import Ionic from "@/mixins/ionic";
+  import Ionic from "@/lib/mixins/ionic";
   import { useDialogSystem } from "@/lib/engine/core/DialogSystem";
 
   // Define required classes for database operations

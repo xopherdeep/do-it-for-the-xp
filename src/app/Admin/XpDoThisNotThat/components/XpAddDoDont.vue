@@ -276,7 +276,7 @@
 <script lang="ts">
   import { defineComponent } from "vue";
   import { modalController } from "@ionic/vue";
-  import ionic from "@/mixins/ionic";
+  import ionic from "@/lib/mixins/ionic";
 
   import DosDontsDb, { DosDont } from "@/lib/databases/DosDontsDb";
   import EFFORTS from "@/constants/EFFORTS";

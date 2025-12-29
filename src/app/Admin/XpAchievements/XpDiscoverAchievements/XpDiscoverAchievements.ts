@@ -3,7 +3,7 @@ import { computed, defineComponent, reactive, ref } from "vue";
 import { useQueryClient } from "vue-query";
 import { useRouter } from "vue-router";
 import XpApi from "@/lib/api/doit.forthexp.com.api";
-// import ionic from "@/mixins/ionic";
+// import ionic from "@/lib/mixins/ionic";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import {
   IonBackButton,

@@ -1,26 +1,12 @@
 <template>
   <ion-item-sliding>
     <ion-item-options side="start">
-      <ion-item-option
-        color="success"
-        expand="block"
-        @click="openBonus"
-      >
-        <i
-          class="fad fa-sack-dollar fa-lg my-2"
-          slot="bottom"
-        ></i>
+      <ion-item-option color="success" expand="block" @click="openBonus">
+        <i class="fad fa-sack-dollar fa-lg my-2" slot="bottom"></i>
         Bonus
       </ion-item-option>
-      <ion-item-option
-        color="danger"
-        expand="block"
-        @click="openPenalty"
-      >
-        <i
-          class="fad fa-minus-circle fa-lg my-2"
-          slot="bottom"
-        ></i>
+      <ion-item-option color="danger" expand="block" @click="openPenalty">
+        <i class="fad fa-minus-circle fa-lg my-2" slot="bottom"></i>
         Penalty
       </ion-item-option>
     </ion-item-options>
@@ -30,18 +16,14 @@
       detail
       class="do-dont-item"
     >
-      <i
-        slot="start"
-        class="fad fa-grip-vertical fa-lg mr-4"
-      ></i>
-      <i
-        slot="start"
-        class="fad fa-rainbow fa-2x mr-2"
-      ></i>
+      <i slot="start" class="fad fa-grip-vertical fa-lg mr-4"></i>
+      <i slot="start" class="fad fa-rainbow fa-2x mr-2"></i>
       <ion-label>
         <div class="do-dont-header">
           <span>Do this, Not that</span>
-          <ion-badge color="tertiary">{{ dos.length + donts.length }} Total</ion-badge>
+          <ion-badge color="tertiary"
+            >{{ dos.length + donts.length }} Total</ion-badge
+          >
         </div>
         <p>Reward or penalize player's GP</p>
       </ion-label>
@@ -50,7 +32,11 @@
           {{ dos.length }}
           <i class="fad fa-thumbs-up fa-lg ml-1"></i>
         </ion-badge>
-        <ion-badge color="danger" class="dont-badge" @click.stop="clickDoThisNotThat(false)">
+        <ion-badge
+          color="danger"
+          class="dont-badge"
+          @click.stop="clickDoThisNotThat(false)"
+        >
           {{ donts.length }}
           <i class="fad fa-thumbs-down fa-lg ml-1"></i>
         </ion-badge>
@@ -61,7 +47,7 @@
 
 <script lang="ts">
   import { defineComponent, ref, onMounted, computed } from "vue";
-  import ionic from "@/mixins/ionic";
+  import ionic from "@/lib/mixins/ionic";
   import { modalController } from "@ionic/vue";
   import XpBonus from "./XpBonus.vue";
   import DosDontsDb, { DosDont } from "@/lib/databases/DosDontsDb";
@@ -94,26 +80,26 @@
       const dosDonts = ref([] as DosDont[]);
 
       const loadDoDonts = async () => {
-      dosDonts.value = await dosDontsDb.getAll();
-    };
+        dosDonts.value = await dosDontsDb.getAll();
+      };
 
-    const isDo = (doDont) => doDont.type === "do";
-    const isDont = (doDont) => doDont.type === "dont";
+      const isDo = (doDont) => doDont.type === "do";
+      const isDont = (doDont) => doDont.type === "dont";
 
-    const dos = computed(() => dosDonts.value.filter(isDo));
-    const donts = computed(() => dosDonts.value.filter(isDont));
+      const dos = computed(() => dosDonts.value.filter(isDo));
+      const donts = computed(() => dosDonts.value.filter(isDont));
 
-    onMounted(loadDoDonts);
+      onMounted(loadDoDonts);
 
-    return {
-      dos,
-      donts,
-      dosDontsDb,
-      loadDoDonts,
-      dosDonts,
-    };
-  },
-});
+      return {
+        dos,
+        donts,
+        dosDontsDb,
+        loadDoDonts,
+        dosDonts,
+      };
+    },
+  });
 </script>
 
 <style lang="scss" scoped>
@@ -122,22 +108,23 @@
     margin-bottom: 8px;
     border-radius: 8px;
   }
-  
+
   .do-dont-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    
+
     ion-badge {
       margin-left: 8px;
     }
   }
-  
+
   .do-dont-buttons {
     display: flex;
     align-items: center;
-    
-    .do-badge, .dont-badge {
+
+    .do-badge,
+    .dont-badge {
       display: flex;
       align-items: center;
       padding: 6px 10px;

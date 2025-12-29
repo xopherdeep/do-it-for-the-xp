@@ -61,7 +61,7 @@
 
 <script lang="ts">
   import { defineComponent, computed, provide, toRef } from "vue";
-  import Ionic from "@/mixins/ionic";
+  import Ionic from "@/lib/mixins/ionic";
   import {
     bookOutline,
     shirtOutline,

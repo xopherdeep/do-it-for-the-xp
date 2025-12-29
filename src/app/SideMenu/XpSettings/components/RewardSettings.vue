@@ -9,10 +9,7 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content
-      :fullscreen="true"
-      class="rpg-box bg-slide"
-    >
+    <ion-content :fullscreen="true" class="rpg-box bg-slide">
       <ion-card class="max-w-2xl">
         <ion-list>
           <!-- Cash-Out Points Toggle -->
@@ -31,10 +28,7 @@
               <p>Visible only for selected kids</p>
             </ion-label>
           </ion-item>
-          <ion-item
-            v-if="settings.enableCashOut"
-            lines="none"
-          >
+          <ion-item v-if="settings.enableCashOut" lines="none">
             <div class="avatar-group">
               <div
                 v-for="user in kidUsers"
@@ -45,7 +39,7 @@
                   <img
                     :src="appConfig.$getUserAvatar(user)"
                     :alt="user.name.full"
-                  >
+                  />
                   <i
                     class="fad fa-check-circle status-icon"
                     v-if="settings.cashoutKids[user.id]"
@@ -63,15 +57,9 @@
               <p>Conversion rate for GP to Cash</p>
             </ion-label>
           </ion-item>
-          <ion-item
-            v-if="settings.enableCashOut"
-            lines="none"
-          >
+          <ion-item v-if="settings.enableCashOut" lines="none">
             <div class="coin-grid">
-              <div
-                class="coin-option custom"
-                @click="selectRate('custom')"
-              >
+              <div class="coin-option custom" @click="selectRate('custom')">
                 <div class="coin-circle">
                   <i class="fad fa-plus"></i>
                 </div>
@@ -106,158 +94,178 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed } from 'vue'
-  import { useUserStore } from '@/lib/store/stores/user'
-import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
-  IonList, IonItem, IonLabel, IonToggle, IonCard,
-  IonBackButton, IonButtons, IonAvatar
-} from '@ionic/vue'
-import appConfig from '@/app.config'
-import ionic from "@/mixins/ionic"
+  import { defineComponent, ref, computed } from "vue";
+  import { useUserStore } from "@/lib/store/stores/user";
+  import {
+    IonPage,
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    IonContent,
+    IonList,
+    IonItem,
+    IonLabel,
+    IonToggle,
+    IonCard,
+    IonBackButton,
+    IonButtons,
+    IonAvatar,
+  } from "@ionic/vue";
+  import appConfig from "@/app.config";
+  import ionic from "@/lib/mixins/ionic";
 
-export default defineComponent({
-  name: 'RewardSettings',
-  components: {
-    IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
-    IonList, IonItem, IonLabel, IonToggle, IonCard,
-    IonBackButton, IonButtons, IonAvatar
-  },
-  mixins: [ionic],
-  setup() {
-    const userStore = useUserStore()
-    const settings = ref({
-      enableCashOut: true,
-      requireApproval: true,
-      conversionRate: 10,
-      cashoutKids: {} as Record<string, boolean>
-    })
+  export default defineComponent({
+    name: "RewardSettings",
+    components: {
+      IonPage,
+      IonHeader,
+      IonToolbar,
+      IonTitle,
+      IonContent,
+      IonList,
+      IonItem,
+      IonLabel,
+      IonToggle,
+      IonCard,
+      IonBackButton,
+      IonButtons,
+      IonAvatar,
+    },
+    mixins: [ionic],
+    setup() {
+      const userStore = useUserStore();
+      const settings = ref({
+        enableCashOut: true,
+        requireApproval: true,
+        conversionRate: 10,
+        cashoutKids: {} as Record<string, boolean>,
+      });
 
-    // Get all users sorted A-Z from Pinia store
-    const users = computed(() => userStore.usersAz)
+      // Get all users sorted A-Z from Pinia store
+      const users = computed(() => userStore.usersAz);
 
-    // Filter for kid users
-    const kidUsers = computed(() => users.value.filter(u => !u.isAdult))
+      // Filter for kid users
+      const kidUsers = computed(() => users.value.filter((u) => !u.isAdult));
 
-    // Initialize cashoutKids with default values (all true)
-    kidUsers.value.forEach(kid => {
-      settings.value.cashoutKids[kid.id] = true
-    })
+      // Initialize cashoutKids with default values (all true)
+      kidUsers.value.forEach((kid) => {
+        settings.value.cashoutKids[kid.id] = true;
+      });
 
-    const toggleKidCashout = (kidId: string) => {
-      settings.value.cashoutKids[kidId] = !settings.value.cashoutKids[kidId]
-    }
+      const toggleKidCashout = (kidId: string) => {
+        settings.value.cashoutKids[kidId] = !settings.value.cashoutKids[kidId];
+      };
 
-    const selectRate = (rate: number | 'custom') => {
-      if (rate === 'custom') {
-        // TODO: Show custom rate input dialog
-        return
-      }
-      settings.value.conversionRate = rate
-    }
+      const selectRate = (rate: number | "custom") => {
+        if (rate === "custom") {
+          // TODO: Show custom rate input dialog
+          return;
+        }
+        settings.value.conversionRate = rate;
+      };
 
-    return {
-      settings,
-      kidUsers,
-      toggleKidCashout,
-      selectRate,
-      appConfig
-    }
-  }
-})
+      return {
+        settings,
+        kidUsers,
+        toggleKidCashout,
+        selectRate,
+        appConfig,
+      };
+    },
+  });
 </script>
 
 <style lang="scss" scoped>
-.avatar-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  padding: 0.5rem;
-
-  .avatar-wrapper {
-    position: relative;
+  .avatar-group {
     display: flex;
-    flex-direction: column;
-    align-items: center;
-    cursor: pointer;
-  }
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    padding: 0.5rem;
 
-  ion-avatar {
-    width: 60px;
-    height: 60px;
-    position: relative;
-
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      border-radius: 50%;
-      aspect-ratio: 1;
+    .avatar-wrapper {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      cursor: pointer;
     }
 
-    .status-icon {
-      position: absolute;
-      bottom: -5px;
-      right: -5px;
-      font-size: 1.2rem;
-      color: var(--ion-color-success);
-      background: var(--ion-background-color);
-      border-radius: 50%;
-    }
-  }
-
-  .avatar-name {
-    font-size: 0.8rem;
-    margin-top: 0.25rem;
-    text-align: center;
-  }
-}
-
-.coin-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
-  gap: 1rem;
-  padding: 1rem;
-  width: 100%;
-
-  .coin-option {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.5rem;
-    cursor: pointer;
-
-    &.active .coin-circle {
-      background: var(--ion-color-success);
-      color: white;
-    }
-
-    .coin-circle {
+    ion-avatar {
       width: 60px;
       height: 60px;
-      border-radius: 50%;
-      background: var(--ion-color-light);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.2rem;
-      font-weight: bold;
-      transition: all 0.2s ease;
+      position: relative;
 
-      &:hover {
-        transform: scale(1.05);
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+        aspect-ratio: 1;
+      }
+
+      .status-icon {
+        position: absolute;
+        bottom: -5px;
+        right: -5px;
+        font-size: 1.2rem;
+        color: var(--ion-color-success);
+        background: var(--ion-background-color);
+        border-radius: 50%;
       }
     }
 
-    &.custom .coin-circle {
-      background: var(--ion-color-medium);
-      color: white;
-    }
-
-    span {
-      font-size: 0.9rem;
-      color: var(--ion-color-medium);
+    .avatar-name {
+      font-size: 0.8rem;
+      margin-top: 0.25rem;
+      text-align: center;
     }
   }
-}
+
+  .coin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+    width: 100%;
+
+    .coin-option {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.5rem;
+      cursor: pointer;
+
+      &.active .coin-circle {
+        background: var(--ion-color-success);
+        color: white;
+      }
+
+      .coin-circle {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        background: var(--ion-color-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        font-weight: bold;
+        transition: all 0.2s ease;
+
+        &:hover {
+          transform: scale(1.05);
+        }
+      }
+
+      &.custom .coin-circle {
+        background: var(--ion-color-medium);
+        color: white;
+      }
+
+      span {
+        font-size: 0.9rem;
+        color: var(--ion-color-medium);
+      }
+    }
+  }
 </style>

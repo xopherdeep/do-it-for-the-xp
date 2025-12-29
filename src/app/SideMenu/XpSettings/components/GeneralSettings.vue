@@ -9,13 +9,8 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content
-      :fullscreen="true"
-      class="rpg-box bg-slide ion-padding"
-    >
-
-      <ion-card class="settings-card max-w-2xl ">
-
+    <ion-content :fullscreen="true" class="rpg-box bg-slide ion-padding">
+      <ion-card class="settings-card max-w-2xl">
         <!-- <ion-card-content class="p-0"> -->
         <ion-list>
           <ion-item-group>
@@ -53,11 +48,19 @@
                 interface="popover"
                 @ionChange="saveGeneralSettings"
               >
-                <ion-select-option value="community">Community</ion-select-option>
-                <ion-select-option value="party">Family Party</ion-select-option>
+                <ion-select-option value="community"
+                  >Community</ion-select-option
+                >
+                <ion-select-option value="party"
+                  >Family Party</ion-select-option
+                >
                 <ion-select-option value="quests">Quests Tab</ion-select-option>
-                <ion-select-option value="merchant">Merchant Tab</ion-select-option>
-                <ion-select-option value="worldMap">World Map</ion-select-option>
+                <ion-select-option value="merchant"
+                  >Merchant Tab</ion-select-option
+                >
+                <ion-select-option value="worldMap"
+                  >World Map</ion-select-option
+                >
               </ion-select>
             </ion-item>
 
@@ -120,15 +123,14 @@
             <ion-item>
               <ion-label>
                 <h2>Community</h2>
-                <ion-badge
-                  color="warning"
-                  size="small"
-                  class="premium-badge"
-                >
+                <ion-badge color="warning" size="small" class="premium-badge">
                   <i class="fa fa-crown"></i>
                   Premium
                 </ion-badge>
-                <p>For premium users only, turn off community by disabling this switch.</p>
+                <p>
+                  For premium users only, turn off community by disabling this
+                  switch.
+                </p>
               </ion-label>
               <ion-toggle
                 v-model="generalSettings.community"
@@ -140,11 +142,7 @@
             <ion-item>
               <ion-label>
                 <h2>Custom Themes</h2>
-                <ion-badge
-                  color="warning"
-                  size="small"
-                  class="premium-badge"
-                >
+                <ion-badge color="warning" size="small" class="premium-badge">
                   <i class="fa fa-crown"></i>
                   Premium
                 </ion-badge>
@@ -157,12 +155,7 @@
               ></ion-toggle>
             </ion-item>
           </ion-item-group>
-
-
-
-
         </ion-list>
-
 
         <!-- </ion-card-content> -->
       </ion-card>
@@ -171,84 +164,93 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from "vue";
-import ionic from "@/mixins/ionic";
-import { arrowBack } from "ionicons/icons";
-import {
-  toastController
-} from '@ionic/vue';
+  import { defineComponent, ref } from "vue";
+  import ionic from "@/lib/mixins/ionic";
+  import { arrowBack } from "ionicons/icons";
+  import { toastController } from "@ionic/vue";
 
-export default defineComponent({
-  name: 'general-settings',
+  export default defineComponent({
+    name: "general-settings",
 
-  mixins: [ionic],
-  methods: {
-    saveGeneralSettings() {
-      // In a real app, this would save to a database or local storage
-      localStorage.setItem('generalSettings', JSON.stringify(this.generalSettings));
-      this.showToast('Settings saved');
+    mixins: [ionic],
+    methods: {
+      saveGeneralSettings() {
+        // In a real app, this would save to a database or local storage
+        localStorage.setItem(
+          "generalSettings",
+          JSON.stringify(this.generalSettings)
+        );
+        this.showToast("Settings saved");
+      },
+
+      toggleDarkMode() {
+        // Toggle dark mode class on document
+        document.body.classList.toggle("dark", this.generalSettings.darkMode);
+        this.saveGeneralSettings();
+        this.showToast(
+          `Dark mode ${this.generalSettings.darkMode ? "enabled" : "disabled"}`
+        );
+      },
+
+      changeLanguage() {
+        // In a real app, this would change the app's language
+        this.saveGeneralSettings();
+        this.showToast(
+          `Language changed to ${this.getLanguageName(
+            this.generalSettings.language
+          )}`
+        );
+      },
+
+      getLanguageName(code: string) {
+        const languages = {
+          en: "English",
+          es: "Spanish",
+          fr: "French",
+          de: "German",
+          ja: "Japanese",
+        };
+        return languages[code] || code;
+      },
+
+      async showToast(message: string) {
+        const toast = await toastController.create({
+          message,
+          duration: 2000,
+          position: "bottom",
+        });
+        await toast.present();
+      },
     },
-
-    toggleDarkMode() {
-      // Toggle dark mode class on document
-      document.body.classList.toggle('dark', this.generalSettings.darkMode);
-      this.saveGeneralSettings();
-      this.showToast(`Dark mode ${this.generalSettings.darkMode ? 'enabled' : 'disabled'}`);
-    },
-
-    changeLanguage() {
-      // In a real app, this would change the app's language
-      this.saveGeneralSettings();
-      this.showToast(`Language changed to ${this.getLanguageName(this.generalSettings.language)}`);
-    },
-
-    getLanguageName(code: string) {
-      const languages = {
-        en: 'English',
-        es: 'Spanish',
-        fr: 'French',
-        de: 'German',
-        ja: 'Japanese'
+    setup() {
+      // Load saved settings or use defaults
+      let savedSettings = localStorage.getItem("generalSettings");
+      const defaultSettings = {
+        landingPage: "worldMap",
+        startWeekOnSunday: false,
+        darkMode: false,
+        lockFamily: false,
+        enableOverview: true,
+        community: true,
+        customThemes: false,
+        language: "en",
       };
-      return languages[code] || code;
+
+      const generalSettings = ref(
+        savedSettings ? JSON.parse(savedSettings) : defaultSettings
+      );
+      const isPremiumUser = ref(true); // In a real app, this would be determined by user's subscription
+
+      // Initialize dark mode on component mount
+      if (generalSettings.value.darkMode) {
+        document.body.classList.add("dark");
+      }
+
+      return {
+        generalSettings,
+        isPremiumUser,
+        arrowBack,
+      };
     },
-
-    async showToast(message: string) {
-      const toast = await toastController.create({
-        message,
-        duration: 2000,
-        position: 'bottom'
-      });
-      await toast.present();
-    }
-  },
-  setup() {
-    // Load saved settings or use defaults
-    let savedSettings = localStorage.getItem('generalSettings');
-    const defaultSettings = {
-      landingPage: 'worldMap',
-      startWeekOnSunday: false,
-      darkMode: false,
-      lockFamily: false,
-      enableOverview: true,
-      community: true,
-      customThemes: false,
-      language: 'en'
-    };
-
-    const generalSettings = ref(savedSettings ? JSON.parse(savedSettings) : defaultSettings);
-    const isPremiumUser = ref(true); // In a real app, this would be determined by user's subscription
-
-    // Initialize dark mode on component mount
-    if (generalSettings.value.darkMode) {
-      document.body.classList.add('dark');
-    }
-
-    return {
-      generalSettings,
-      isPremiumUser,
-      arrowBack
-    };
-  },
-});
+  });
 </script>

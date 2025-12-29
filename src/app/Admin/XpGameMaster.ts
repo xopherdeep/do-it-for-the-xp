@@ -1,5 +1,5 @@
 import { defineComponent } from 'vue'
-import ionic from "@/mixins/ionic";
+import ionic from "@/lib/mixins/ionic";
 import { useRoute, useRouter } from 'vue-router'
 
 import {

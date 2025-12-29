@@ -1,5 +1,5 @@
 import { defineComponent, ref } from "vue";
-import ionic from "@/mixins/ionic";
+import ionic from "@/lib/mixins/ionic";
 
 import {
   arrowBack,
@@ -147,7 +147,7 @@ export default defineComponent({
       this.play$fx("select");
       this.showAtm = true;
     },
-    
+
     clickDeposit(data) {
       const amount = Number(data.gp);
       if (amount && amount > 0) {
@@ -161,7 +161,7 @@ export default defineComponent({
           });
       }
     },
-    
+
     clickWithdraw(data) {
       const amount = Number(data.gp);
       if (amount && amount > 0) {
@@ -175,7 +175,7 @@ export default defineComponent({
           });
       }
     },
-    
+
     clickPayDebt(data) {
       const amount = Number(data.gp);
       if (amount && amount > 0) {
@@ -189,7 +189,7 @@ export default defineComponent({
           });
       }
     },
-    
+
     selectShelf($ev) {
       this.shelves = $ev.detail.value;
     },
@@ -209,10 +209,10 @@ export default defineComponent({
     this.$fx.ui[this.$fx.theme.ui].openShop.play();
   },
   setup(props) {
-    const { 
-      request, 
-      items, 
-      getItems, 
+    const {
+      request,
+      items,
+      getItems,
       getImgObj,
       nTotalPages
     } = useItemFetcher("xp_accessory", { per_page: 4 }, props.userId);

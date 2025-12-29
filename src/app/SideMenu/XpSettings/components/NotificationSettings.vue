@@ -9,10 +9,7 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content
-      :fullscreen="true"
-      class="rpg-box bg-slide"
-    >
+    <ion-content :fullscreen="true" class="rpg-box bg-slide">
       <ion-card class="max-w-2xl">
         <ion-list>
           <!-- Chore Due Notifications -->
@@ -27,19 +24,13 @@
           <ion-item v-if="settings.notifyParentsOnDue">
             <ion-label>Parents to notify:</ion-label>
           </ion-item>
-          <ion-item
-            v-if="settings.notifyParentsOnDue"
-            lines="none"
-          >
+          <ion-item v-if="settings.notifyParentsOnDue" lines="none">
             <div class="avatar-group">
-              <ion-avatar
-                v-for="user in adultUsers"
-                :key="user.id"
-              >
+              <ion-avatar v-for="user in adultUsers" :key="user.id">
                 <img
                   :src="appConfig.$getUserAvatar(user)"
                   :alt="user.name.full"
-                >
+                />
                 <span class="avatar-name">{{ user.name.nick }}</span>
               </ion-avatar>
             </div>
@@ -61,19 +52,13 @@
               <p>A reminder will be sent to parents</p>
             </ion-label>
           </ion-item>
-          <ion-item
-            v-if="settings.notifyOnComplete"
-            lines="none"
-          >
+          <ion-item v-if="settings.notifyOnComplete" lines="none">
             <div class="avatar-group">
-              <ion-avatar
-                v-for="user in adultUsers"
-                :key="user.id"
-              >
+              <ion-avatar v-for="user in adultUsers" :key="user.id">
                 <img
                   :src="appConfig.$getUserAvatar(user)"
                   :alt="user.name.full"
-                >
+                />
                 <span class="avatar-name">{{ user.name.nick }}</span>
               </ion-avatar>
             </div>
@@ -86,22 +71,20 @@
               <p>By default, no kids will be notified</p>
             </ion-label>
           </ion-item>
-          <ion-item
-            v-if="settings.notifyOnComplete"
-            lines="none"
-          >
+          <ion-item v-if="settings.notifyOnComplete" lines="none">
             <div class="avatar-group">
-              <ion-avatar
-                v-for="user in kidUsers"
-                :key="user.id"
-              >
+              <ion-avatar v-for="user in kidUsers" :key="user.id">
                 <img
                   :src="appConfig.$getUserAvatar(user)"
                   :alt="user.name.full"
-                >
+                />
                 <span class="avatar-name">{{ user.name.nick }}</span>
                 <i
-                  :class="notifiedKids[user.id] ? 'fad fa-check-circle' : 'fad fa-circle'"
+                  :class="
+                    notifiedKids[user.id]
+                      ? 'fad fa-check-circle'
+                      : 'fad fa-circle'
+                  "
                   class="notification-status"
                   @click="toggleKidNotification(user.id)"
                 ></i>
@@ -115,101 +98,121 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed } from 'vue'
-  import { useUserStore } from '@/lib/store/stores/user'
-import {
-  IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
-  IonList, IonItem, IonLabel, IonToggle, IonCard,
-  IonBackButton, IonButtons, IonAvatar
-} from '@ionic/vue'
-import appConfig from '@/app.config'
-import ionic from "@/mixins/ionic"
+  import { defineComponent, ref, computed } from "vue";
+  import { useUserStore } from "@/lib/store/stores/user";
+  import {
+    IonPage,
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    IonContent,
+    IonList,
+    IonItem,
+    IonLabel,
+    IonToggle,
+    IonCard,
+    IonBackButton,
+    IonButtons,
+    IonAvatar,
+  } from "@ionic/vue";
+  import appConfig from "@/app.config";
+  import ionic from "@/lib/mixins/ionic";
 
-export default defineComponent({
-  name: 'NotificationSettings',
-  components: {
-    IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
-    IonList, IonItem, IonLabel, IonToggle, IonCard,
-    IonBackButton, IonButtons, IonAvatar
-  },
-  mixins: [ionic],
-  setup() {
-    const userStore = useUserStore()
-    const settings = ref({
-      notifyParentsOnDue: true,
-      notifyOnComplete: true
-    })
+  export default defineComponent({
+    name: "NotificationSettings",
+    components: {
+      IonPage,
+      IonHeader,
+      IonToolbar,
+      IonTitle,
+      IonContent,
+      IonList,
+      IonItem,
+      IonLabel,
+      IonToggle,
+      IonCard,
+      IonBackButton,
+      IonButtons,
+      IonAvatar,
+    },
+    mixins: [ionic],
+    setup() {
+      const userStore = useUserStore();
+      const settings = ref({
+        notifyParentsOnDue: true,
+        notifyOnComplete: true,
+      });
 
-    const notifiedKids = ref({})
+      const notifiedKids = ref({});
 
-    // Get all users sorted A-Z from Pinia store
-    const users = computed(() => userStore.usersAz)
+      // Get all users sorted A-Z from Pinia store
+      const users = computed(() => userStore.usersAz);
 
-    // Filter for adult users
-    const adultUsers = computed(() => users.value.filter(u => u.isAdult))
+      // Filter for adult users
+      const adultUsers = computed(() => users.value.filter((u) => u.isAdult));
 
-    // Filter for kid users
-    const kidUsers = computed(() => users.value.filter(u => !u.isAdult))
+      // Filter for kid users
+      const kidUsers = computed(() => users.value.filter((u) => !u.isAdult));
 
-    // Initialize notifiedKids with default values
-    kidUsers.value.forEach(kid => {
-      notifiedKids.value[kid.id] = true
-    })
+      // Initialize notifiedKids with default values
+      kidUsers.value.forEach((kid) => {
+        notifiedKids.value[kid.id] = true;
+      });
 
-    const toggleKidNotification = (kidId: string) => {
-      notifiedKids.value[kidId] = !notifiedKids.value[kidId]
-    }
+      const toggleKidNotification = (kidId: string) => {
+        notifiedKids.value[kidId] = !notifiedKids.value[kidId];
+      };
 
-    return {
-      settings,
-      adultUsers,
-      kidUsers,
-      notifiedKids,
-      toggleKidNotification,
-      appConfig
-    }
-  }
-})
+      return {
+        settings,
+        adultUsers,
+        kidUsers,
+        notifiedKids,
+        toggleKidNotification,
+        appConfig,
+      };
+    },
+  });
 </script>
 
 <style lang="scss" scoped>
-.avatar-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  padding: 0.5rem;
-
-  ion-avatar {
-    width: 60px;
-    height: 60px;
-    position: relative;
+  .avatar-group {
     display: flex;
-    flex-direction: column;
-    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 0.5rem;
 
-    img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      border-radius: 50%;
-      aspect-ratio: 1;
-    }
+    ion-avatar {
+      width: 60px;
+      height: 60px;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
 
-    .avatar-name {
-      font-size: 0.8rem;
-      margin-top: 0.25rem;
-      text-align: center;
-    }
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 50%;
+        aspect-ratio: 1;
+      }
 
-    .notification-status {
-      position: absolute;
-      bottom: 20px;
-      right: -5px;
-      font-size: 1.2rem;
-      background: var(--ion-background-color);
-      border-radius: 50%;
-      cursor: pointer;
+      .avatar-name {
+        font-size: 0.8rem;
+        margin-top: 0.25rem;
+        text-align: center;
+      }
+
+      .notification-status {
+        position: absolute;
+        bottom: 20px;
+        right: -5px;
+        font-size: 1.2rem;
+        background: var(--ion-background-color);
+        border-radius: 50%;
+        cursor: pointer;
+      }
     }
   }
-}
 </style>

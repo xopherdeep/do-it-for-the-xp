@@ -59,7 +59,7 @@
 
 <script lang="ts">
   import { defineComponent } from "vue";
-  import ionic from "@/mixins/ionic";
+  import ionic from "@/lib/mixins/ionic";
   import {
     IonPage,
     IonHeader,

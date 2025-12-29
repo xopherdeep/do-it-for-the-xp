@@ -6,16 +6,13 @@
           <i class="fad fa-arrow-left fa-2x"></i>
         </ion-button>
       </ion-buttons>
-      <ion-title>
-        Copy Achievement Details?
-      </ion-title>
+      <ion-title> Copy Achievement Details? </ion-title>
     </ion-toolbar>
   </ion-header>
   <ion-content class="bg-slide">
     <ion-grid>
       <ion-row>
         <ion-col>
-
           <ion-card>
             <ion-card-header>
               <ion-thumbnail>
@@ -30,9 +27,7 @@
         </ion-col>
       </ion-row>
       <ion-row>
-
         <ion-col>
-
           <ion-card>
             <ion-card-header>
               <ion-card-title>XP {{ achievement.xp || "?" }}</ion-card-title>
@@ -86,9 +81,9 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent } from 'vue';
-  import ionic from "@/mixins/ionic";
-  import { modalController } from '@ionic/vue';
+  import { defineComponent } from "vue";
+  import ionic from "@/lib/mixins/ionic";
+  import { modalController } from "@ionic/vue";
 
   export default defineComponent({
     props: ["achievement"],
@@ -97,27 +92,27 @@
       //
 
       const getFeaturedImg = (embedded) => {
-        const [img] = embedded["wp:featuredmedia"] || [{}]
+        const [img] = embedded["wp:featuredmedia"] || [{}];
         return {
           src: img?.source_url,
           alt: img?.alt_text,
         };
-      }
+      };
 
-      const featuredImg = getFeaturedImg(props.achievement._embedded)
+      const featuredImg = getFeaturedImg(props.achievement._embedded);
 
-      const closeAchievement = modalController.dismiss
-      const saveAchievement = () => closeAchievement({
-        achievementName: props.achievement.title.rendered,
-        imageUrl: featuredImg.src,
-      })
+      const closeAchievement = modalController.dismiss;
+      const saveAchievement = () =>
+        closeAchievement({
+          achievementName: props.achievement.title.rendered,
+          imageUrl: featuredImg.src,
+        });
 
       return {
         closeAchievement,
         saveAchievement,
-        getFeaturedImg
-      }
-    }
-
-  })
+        getFeaturedImg,
+      };
+    },
+  });
 </script>

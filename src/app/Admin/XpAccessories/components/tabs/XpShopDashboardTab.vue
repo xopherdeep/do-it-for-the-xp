@@ -1,20 +1,11 @@
 <template>
   <ion-page class="xp-shop-dashboard-tab">
-    <ion-content
-      class="ion-padding transparent-content"
-      :fullscreen="true"
-    >
-      <div
-        v-if="isLoading"
-        class="loading-wrapper-centered"
-      >
+    <ion-content class="ion-padding transparent-content" :fullscreen="true">
+      <div v-if="isLoading" class="loading-wrapper-centered">
         <XpLoading />
       </div>
 
-      <div
-        v-else-if="shop"
-        class="content-wrapper"
-      >
+      <div v-else-if="shop" class="content-wrapper">
         <div class="shop-header">
           <div class="shop-icon-wrapper">
             <i class="fad fa-store fa-4x"></i>
@@ -27,7 +18,9 @@
           <div class="stat-card">
             <i class="fad fa-globe-americas fa-2x text-primary"></i>
             <div class="stat-info">
-              <span class="stat-value text-capitalize">{{ shop.world || 'Unknown' }}</span>
+              <span class="stat-value text-capitalize">{{
+                shop.world || "Unknown"
+              }}</span>
               <span class="stat-label">World</span>
             </div>
           </div>
@@ -46,27 +39,27 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, inject, Ref } from "vue";
-import Ionic from "@/mixins/ionic";
-import { ShopInterface } from "@/lib/databases/ShopsDb";
-import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
+  import { defineComponent, inject, Ref } from "vue";
+  import Ionic from "@/lib/mixins/ionic";
+  import { ShopInterface } from "@/lib/databases/ShopsDb";
+  import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 
-export default defineComponent({
-  name: "XpShopDashboardTab",
-  mixins: [Ionic],
-  components: {
-    XpLoading
-  },
-  setup() {
-    const shop = inject<Ref<ShopInterface | null>>('shop');
-    const isLoading = inject<Ref<boolean>>('isLoading');
+  export default defineComponent({
+    name: "XpShopDashboardTab",
+    mixins: [Ionic],
+    components: {
+      XpLoading,
+    },
+    setup() {
+      const shop = inject<Ref<ShopInterface | null>>("shop");
+      const isLoading = inject<Ref<boolean>>("isLoading");
 
-    return {
-      shop,
-      isLoading
-    };
-  }
-});
+      return {
+        shop,
+        isLoading,
+      };
+    },
+  });
 </script>
 
 <style lang="scss" scoped>

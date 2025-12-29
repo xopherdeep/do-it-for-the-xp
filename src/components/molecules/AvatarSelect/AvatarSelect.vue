@@ -11,7 +11,8 @@
             :strong="true"
             @click="confirm"
             :disabled="!selectedAvatar"
-          >Confirm</ion-button>
+            >Confirm</ion-button
+          >
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
@@ -21,10 +22,7 @@
           v-show="selectedAvatar"
           class="sticky top-0 z-10 bg-white ion-padding selected-avatar-container p-0"
         >
-          <ion-col
-            size="12"
-            class="text-center relative"
-          >
+          <ion-col size="12" class="text-center relative">
             <canvas class="avatar-bg" />
             <ion-img
               v-if="selectedAvatar"
@@ -46,10 +44,7 @@
               class="avatar-item"
               :class="{ 'selected-item': selectedAvatar === i }"
             >
-              <ion-img
-                :src="getAvatarImage(i)"
-                class="avatar-option"
-              />
+              <ion-img :src="getAvatarImage(i)" class="avatar-option" />
             </div>
           </ion-col>
         </ion-row>
@@ -59,30 +54,30 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, onMounted, onUnmounted } from 'vue';
-  import { modalController } from '@ionic/vue';
-  import Ionic from '@/mixins/ionic';
-  import { backgroundManager } from '@/lib/engine/core/BackgroundManager';
+  import { defineComponent, ref, onMounted, onUnmounted } from "vue";
+  import { modalController } from "@ionic/vue";
+  import Ionic from "@/lib/mixins/ionic";
+  import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
 
   // Unique page ID for this component
-  const PAGE_ID = 'avatar-select';
+  const PAGE_ID = "avatar-select";
 
   export default defineComponent({
-    name: 'AvatarSelect',
+    name: "AvatarSelect",
     mixins: [Ionic],
     props: {
       avatar: {
         type: Number,
-        default: 0
-      }
+        default: 0,
+      },
     },
-    setup(props: { avatar: number, bg1: number, bg2: number }) {
+    setup(props: { avatar: number; bg1: number; bg2: number }) {
       const nAvatars = 73;
       const selectedAvatar = ref(props.avatar || 0);
       const backgroundInitialized = ref(false);
 
       const getAvatarImage = (id: number) => {
-        const pad = id.toString().padStart(3, '0')
+        const pad = id.toString().padStart(3, "0");
         return require(`@/assets/images/beasts/${pad}.png`);
       };
 
@@ -110,9 +105,9 @@
           canvasSelector: "canvas.avatar-bg",
           bg1: props.bg1,
           bg2: props.bg2,
-          aspectRatio: 25,  // Full screen
+          aspectRatio: 25, // Full screen
           handleResize: true,
-          page: PAGE_ID
+          page: PAGE_ID,
         });
 
         backgroundInitialized.value = true;
@@ -136,9 +131,9 @@
         getAvatarImage,
         selectAvatar,
         cancel,
-        confirm
+        confirm,
       };
-    }
+    },
   });
 </script>
 

@@ -6,16 +6,14 @@
         @click="dismiss"
         defaultHref="/game-master"
       />
-      <ion-title>
-        Attach Beast to Achievement(s)
-      </ion-title>
+      <ion-title> Attach Beast to Achievement(s) </ion-title>
     </ion-toolbar>
   </ion-header>
   <ion-content class="bg-slide">
     <ion-card>
       <ion-card-content>
-        ∙ An Achievement, can have only one beast attached to it, however,
-        a beast can be reused on multiple achievements.
+        ∙ An Achievement, can have only one beast attached to it, however, a
+        beast can be reused on multiple achievements.
       </ion-card-content>
     </ion-card>
 
@@ -34,7 +32,6 @@
         </template>
       </XpAchievementItem>
     </ion-list>
-
   </ion-content>
   <ion-footer>
     <ion-toolbar>
@@ -51,22 +48,24 @@
         </ion-button>
       </ion-buttons>
     </ion-toolbar>
-
   </ion-footer>
 </template>
 <script lang="ts">
-  import { AchievementDb } from '@/lib/databases';
-  import { Achievement, achievementStorage } from '@/lib/databases/AchievementDb';
-  import { modalController } from '@ionic/vue';
-  import { defineComponent, ref } from 'vue';
-  import ionic from '@/mixins/ionic';
-  import XpAchievementItem from '../../XpAchievements/XpConfigAchievement/components/XpAchievementItem.vue'
+  import { AchievementDb } from "@/lib/databases";
+  import {
+    Achievement,
+    achievementStorage,
+  } from "@/lib/databases/AchievementDb";
+  import { modalController } from "@ionic/vue";
+  import { defineComponent, ref } from "vue";
+  import ionic from "@/lib/mixins/ionic";
+  import XpAchievementItem from "../../XpAchievements/XpConfigAchievement/components/XpAchievementItem.vue";
 
   export default defineComponent({
     props: ["beast"],
-    name: 'xp-attach-beast',
+    name: "xp-attach-beast",
     components: {
-      XpAchievementItem
+      XpAchievementItem,
     },
 
     mixins: [ionic],
@@ -74,36 +73,41 @@
       return {
         achievements: [] as Achievement[],
         achievementsDb: new AchievementDb(achievementStorage),
-      }
+      };
     },
     computed: {
-
       beastlessAchievements() {
         const { id } = this.beast;
-        return this.achievements.filter(({ beastId }) => !beastId || beastId == '' || beastId === id);
-      }
-
+        return this.achievements.filter(
+          ({ beastId }) => !beastId || beastId == "" || beastId === id
+        );
+      },
     },
     methods: {
       toggleAttachment(id) {
         if (this.attached?.includes(id)) {
-          this.attached.splice(this.attached.indexOf(id), 1)
+          this.attached.splice(this.attached.indexOf(id), 1);
         } else {
-          this.attached.push(id)
+          this.attached.push(id);
         }
       },
 
       async clickSave() {
-        const { achievementsDb, attached, beast: { id: beastId } } = this
+        const {
+          achievementsDb,
+          attached,
+          beast: { id: beastId },
+        } = this;
         // we need to remove the beastId from any achievement that has this beast.id
-        const byBeastId = (achievement: Achievement) => achievement.beastId === beastId;
-        const beastAchievements = this.achievements.filter(byBeastId)
+        const byBeastId = (achievement: Achievement) =>
+          achievement.beastId === beastId;
+        const beastAchievements = this.achievements.filter(byBeastId);
 
         // Reset any achievements that have the beast in it
         for (const achievement of beastAchievements)
           await achievementsDb.setTask({
             ...achievement,
-            beastId: ''
+            beastId: "",
           });
 
         // loop through attached, for each id in list, update that achievement by adding the beast
@@ -113,7 +117,7 @@
           if (achievement) {
             await achievementsDb.setTask({
               ...achievement,
-              beastId
+              beastId,
             });
           } else {
             // remove it from attached
@@ -122,11 +126,11 @@
           }
         }
 
-        modalController.dismiss(attached)
+        modalController.dismiss(attached);
       },
 
       dismiss() {
-        modalController.dismiss()
+        modalController.dismiss();
       },
 
       async loadAchievements() {
@@ -138,13 +142,13 @@
       },
     },
     mounted() {
-      this.loadAchievements()
+      this.loadAchievements();
     },
     setup(props) {
-      const attached = ref(props.beast.achievementIds || [])
+      const attached = ref(props.beast.achievementIds || []);
       return {
-        attached
-      }
-    }
-  })
+        attached,
+      };
+    },
+  });
 </script>

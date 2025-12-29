@@ -18,7 +18,7 @@ import {
   skullOutline,
   refreshOutline
 } from 'ionicons/icons';
-import Ionic from '@/mixins/ionic';
+import Ionic from '@/lib/mixins/ionic';
 import BestiaryDb, { Beast, beastStorage } from '@/lib/databases/BestiaryDb';
 import ProfileDb from '@/lib/databases/ProfileDb';
 import { profileStorage } from '@/app/SideMenu/SwitchProfile/SwitchProfile.vue';

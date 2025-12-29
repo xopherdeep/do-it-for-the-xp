@@ -1,5 +1,5 @@
 import { defineComponent } from "vue";
-import ionic from "@/mixins/ionic";
+import ionic from "@/lib/mixins/ionic";
 
 import {
   close,
@@ -111,10 +111,10 @@ export default defineComponent({
     // this.$fx.ui[this.$fx.theme.ui].openShop.play()
   },
   setup(props) {
-    const { 
-      request, 
-      items, 
-      getItems, 
+    const {
+      request,
+      items,
+      getItems,
       getImgObj,
       nTotalPages
     } = useItemFetcher("xp_accessory", { per_page: 4 }, props.userId);

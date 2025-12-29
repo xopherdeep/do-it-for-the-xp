@@ -61,7 +61,7 @@
     closeOutline,
     homeOutline,
   } from "ionicons/icons";
-  import Ionic from "@/mixins/ionic";
+  import Ionic from "@/lib/mixins/ionic";
   import XpPage from "@/components/templates/pages/XpPage.vue";
 
   export default defineComponent({

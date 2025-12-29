@@ -1,5 +1,5 @@
 import { defineComponent } from "vue";
-import ionic from "@/mixins/ionic";
+import ionic from "@/lib/mixins/ionic";
 
 import {
   arrowBack,
@@ -138,7 +138,7 @@ export default defineComponent({
       this.play$fx("select");
       this.showAtm = true;
     },
-    
+
     clickDeposit(data) {
       // Use new GPSystem to handle deposits
       const amount = Number(data.gp);
@@ -154,7 +154,7 @@ export default defineComponent({
           });
       }
     },
-    
+
     clickWithdraw(data) {
       // Use new GPSystem to handle withdrawals
       const amount = Number(data.gp);
@@ -170,7 +170,7 @@ export default defineComponent({
           });
       }
     },
-    
+
     clickPayDebt(data) {
       // Use new GPSystem to handle debt payments
       const amount = Number(data.gp);
@@ -194,7 +194,7 @@ export default defineComponent({
     showHotelDialog() {
       // Play a sound effect for immersion
       this.play$fx("select");
-      
+
       // Reset and show the dialog
       this.currentDialogIndex = 0;
       this.currentDialogText = this.dialogBlocks[0];
@@ -202,7 +202,7 @@ export default defineComponent({
       this.isDialogVisible = true;
       this.isTyping = true;
     },
-    
+
     advanceDialog() {
       // If typing is in progress, complete the current text immediately
       if (this.isTyping) {
@@ -214,7 +214,7 @@ export default defineComponent({
         }
         return;
       }
-      
+
       // If not typing, advance to next dialog block
       if (this.currentDialogIndex < this.dialogBlocks.length - 1) {
         this.currentDialogIndex++;
@@ -227,12 +227,12 @@ export default defineComponent({
         this.presentActionSheet();
       }
     },
-    
+
     onTypingComplete() {
       // The current text block has finished typing
       debug.log(`Dialog block ${this.currentDialogIndex} completed`);
       this.isTyping = false;
-      
+
       // Play subtle sound effect between blocks if there are more blocks
       if (this.currentDialogIndex < this.dialogBlocks.length - 1) {
         this.play$fx("text");
@@ -253,10 +253,10 @@ export default defineComponent({
     },
   },
   setup(props) {
-    const { 
-      request, 
-      items, 
-      getItems, 
+    const {
+      request,
+      items,
+      getItems,
       getImgObj,
       nTotalPages
     } = useItemFetcher("xp_accessory", { per_page: 4 }, props.userId);
@@ -267,7 +267,7 @@ export default defineComponent({
       message: '$1.00 per topping',
       translucent: true
     };
-    
+
     return {
       customAlertOptions,
       storefrontOutline,

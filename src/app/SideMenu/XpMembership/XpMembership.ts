@@ -21,7 +21,7 @@ import {
   moonSharp,
   moonOutline,
 } from "ionicons/icons";
-import Ionic from "@/mixins/ionic";
+import Ionic from "@/lib/mixins/ionic";
 
 interface Plan {
   id: string;

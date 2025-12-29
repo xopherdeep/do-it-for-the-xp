@@ -18,22 +18,18 @@
     <!-- Name Section: Clear Typography Hierarchy -->
     <div class="name-section">
       <h1 class="profile-name earthbound-title">
-        {{ profile?.name.full || 'Your Name' }}
+        {{ profile?.name.full || "Your Name" }}
       </h1>
       <p
         class="profile-subtitle earthbound-title"
         v-if="profile?.favoriteFood && profile?.jobClass"
       >
         "the {{ profile.favoriteFood }} {{ profile.jobClass }}"
-        <span
-          class="loves-text"
-          v-if="profile?.favoriteThing"
-        >who loves {{ profile.favoriteThing }}</span>
+        <span class="loves-text" v-if="profile?.favoriteThing"
+          >who loves {{ profile.favoriteThing }}</span
+        >
       </p>
-      <p
-        class="favorite-thing"
-        v-if="profile?.favoriteThing"
-      >
+      <p class="favorite-thing" v-if="profile?.favoriteThing">
         <i class="fad fa-star mr-1"></i>
         {{ profile?.favoriteThing }}
       </p>
@@ -50,7 +46,9 @@
           <i :class="`fad ${selectedFoodIcon} fa-3x`" />
         </div>
         <span class="selector-label">Favorite Food</span>
-        <span class="selector-value">{{ profile?.favoriteFood || 'Choose' }}</span>
+        <span class="selector-value">{{
+          profile?.favoriteFood || "Choose"
+        }}</span>
       </div>
 
       <div
@@ -62,7 +60,7 @@
           <i :class="`fad ${selectedJobIcon} fa-3x`" />
         </div>
         <span class="selector-label">Class</span>
-        <span class="selector-value">{{ profile?.jobClass || 'Choose' }}</span>
+        <span class="selector-value">{{ profile?.jobClass || "Choose" }}</span>
       </div>
     </div>
 
@@ -94,83 +92,90 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, ref } from "vue";
-import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
-import ionic from "@/mixins/ionic";
-import AvatarSelector from "./components/AvatarSelector.vue";
-import JobClassSelector from "./components/JobClassSelector.vue";
-import FoodSelector from "./components/FoodSelector.vue";
+  import { defineComponent, computed, ref } from "vue";
+  import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
+  import ionic from "@/lib/mixins/ionic";
+  import AvatarSelector from "./components/AvatarSelector.vue";
+  import JobClassSelector from "./components/JobClassSelector.vue";
+  import FoodSelector from "./components/FoodSelector.vue";
 
-export default defineComponent({
-  components: {
-    AvatarSelector,
-    JobClassSelector,
-    FoodSelector
-  },
-  props: {
-    profile: {
-      type: Object,
-      required: true
-    }
-  },
-  name: "GamerCard",
-  mixins: [ionic],
-  setup(props, { emit }) {
-    const $requireAvatar = require.context("@/assets/images/avatars", false, /\.svg$/);
-    const maxAvatarIndex = $requireAvatar.keys().length;
+  export default defineComponent({
+    components: {
+      AvatarSelector,
+      JobClassSelector,
+      FoodSelector,
+    },
+    props: {
+      profile: {
+        type: Object,
+        required: true,
+      },
+    },
+    name: "GamerCard",
+    mixins: [ionic],
+    setup(props, { emit }) {
+      const $requireAvatar = require.context(
+        "@/assets/images/avatars",
+        false,
+        /\.svg$/
+      );
+      const maxAvatarIndex = $requireAvatar.keys().length;
 
-    // Popover states
-    const isAvatarSelectorOpen = ref(false);
-    const isJobClassSelectorOpen = ref(false);
-    const isFoodSelectorOpen = ref(false);
+      // Popover states
+      const isAvatarSelectorOpen = ref(false);
+      const isJobClassSelectorOpen = ref(false);
+      const isFoodSelectorOpen = ref(false);
 
-    // Form values that will be v-modeled from parent
-    const avatarIndex = computed({
-      get: () => parseInt(props.profile.avatar?.split("-")[0] || "1"),
-      set: (value) => emit('update:avatarIndex', value)
-    });
+      // Form values that will be v-modeled from parent
+      const avatarIndex = computed({
+        get: () => parseInt(props.profile.avatar?.split("-")[0] || "1"),
+        set: (value) => emit("update:avatarIndex", value),
+      });
 
-    const jobClass = computed({
-      get: () => props.profile.jobClass,
-      set: (value) => emit('update:jobClass', value)
-    });
+      const jobClass = computed({
+        get: () => props.profile.jobClass,
+        set: (value) => emit("update:jobClass", value),
+      });
 
-    const favoriteFood = computed({
-      get: () => props.profile.favoriteFood,
-      set: (value) => emit('update:favoriteFood', value)
-    });
+      const favoriteFood = computed({
+        get: () => props.profile.favoriteFood,
+        set: (value) => emit("update:favoriteFood", value),
+      });
 
-    // Icon computations
-    const currentAvatar = computed(() => 
-      $requireAvatar(`./${avatarIndex.value.toString().padStart(3, "0")}-gamer.svg`)
-    );
+      // Icon computations
+      const currentAvatar = computed(() =>
+        $requireAvatar(
+          `./${avatarIndex.value.toString().padStart(3, "0")}-gamer.svg`
+        )
+      );
 
-    const selectedFoodIcon = computed(() => {
-      const findFavoriteFood = (food) => food.value === props.profile?.favoriteFood;
-      const selectedFood = FOOD_OPTIONS.find(findFavoriteFood);
-      return selectedFood ? selectedFood.icon : "fad fa-utensils";
-    });
+      const selectedFoodIcon = computed(() => {
+        const findFavoriteFood = (food) =>
+          food.value === props.profile?.favoriteFood;
+        const selectedFood = FOOD_OPTIONS.find(findFavoriteFood);
+        return selectedFood ? selectedFood.icon : "fad fa-utensils";
+      });
 
-    const selectedJobIcon = computed(() => {
-      const findJobClass = (job) => job?.name === props.profile?.jobClass;
-      const selectedJob = JOB_CLASS_OPTIONS.find(findJobClass);
-      return selectedJob ? selectedJob.icon : "fad fa-question";
-    });
+      const selectedJobIcon = computed(() => {
+        const findJobClass = (job) => job?.name === props.profile?.jobClass;
+        const selectedJob = JOB_CLASS_OPTIONS.find(findJobClass);
+        return selectedJob ? selectedJob.icon : "fad fa-question";
+      });
 
-    return {
-      maxAvatarIndex,
-      currentAvatar,
-      selectedJobIcon,
-      selectedFoodIcon,
-      isAvatarSelectorOpen,
-      isJobClassSelectorOpen,
-      isFoodSelectorOpen,
-      avatarIndex,
-      jobClass,
-      favoriteFood
-    };
-  },
-});
+      return {
+        maxAvatarIndex,
+        currentAvatar,
+        selectedJobIcon,
+        selectedFoodIcon,
+        isAvatarSelectorOpen,
+        isJobClassSelectorOpen,
+        isFoodSelectorOpen,
+        avatarIndex,
+        jobClass,
+        favoriteFood,
+      };
+    },
+  });
 </script>
 
 <style lang="scss" scoped>

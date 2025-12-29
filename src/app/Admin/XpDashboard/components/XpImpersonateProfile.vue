@@ -7,10 +7,7 @@
     detail
   >
     <ion-avatar slot="start">
-      <ion-img
-        :src="$getUserAvatar(user)"
-        class="mb-1"
-      />
+      <ion-img :src="$getUserAvatar(user)" class="mb-1" />
       <ion-progress-bar
         class="my-1"
         color="danger"
@@ -30,12 +27,7 @@
         {{ user.name.first }}
       </p>
     </ion-label>
-    <ion-badge
-      slot="end"
-      color="none"
-      fill="outline"
-    >
-    </ion-badge>
+    <ion-badge slot="end" color="none" fill="outline"> </ion-badge>
 
     <ion-label slot="end">
       <xp-gp :gp="user?.stats?.gp.wallet" />
@@ -72,35 +64,39 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent } from 'vue'
-  import ionic from '@/mixins/ionic'
-  import { useUserStore } from '@/lib/store/stores/user';
+  import { defineComponent } from "vue";
+  import ionic from "@/lib/mixins/ionic";
+  import { useUserStore } from "@/lib/store/stores/user";
   export default defineComponent({
-    name: 'xp-impersonate-profile',
+    name: "xp-impersonate-profile",
     mixins: [ionic],
 
     computed: {
-      usersAz() { return (this as any).userStore.usersAz },
-      users() { return (this as any).usersAz }
+      usersAz() {
+        return (this as any).userStore.usersAz;
+      },
+      users() {
+        return (this as any).usersAz;
+      },
     },
     setup() {
       const userStore = useUserStore();
       return {
-        userStore
-      }
+        userStore,
+      };
     },
     methods: {
       mimicUser(user) {
-        const { id: userId } = user
+        const { id: userId } = user;
         this.$router.push({
-          name: 'my-home',
+          name: "my-home",
           params: {
-            userId
-          }
-        })
-      }
-    }
-  })
+            userId,
+          },
+        });
+      },
+    },
+  });
 </script>
 
 <style></style>

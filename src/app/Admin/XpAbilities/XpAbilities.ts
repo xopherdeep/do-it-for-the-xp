@@ -1,5 +1,5 @@
 import { defineComponent, ref, computed, onMounted, watch } from 'vue'
-import ionic from '@/mixins/ionic'
+import ionic from '@/lib/mixins/ionic'
 import {
   add,
   listOutline,

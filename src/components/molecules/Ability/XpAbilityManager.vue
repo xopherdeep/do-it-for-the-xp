@@ -32,46 +32,32 @@
               <h2>{{ ability.name }}</h2>
               <p>{{ ability.description }}</p>
             </ion-label>
-            <ion-badge
-              slot="end"
-              color="warning"
-            >{{ ability.apRequirement.amount }} AP</ion-badge>
-            <ion-badge
-              slot="end"
-              color="tertiary"
-              v-if="ability.mpCost"
-            >{{ ability.mpCost }} MP</ion-badge>
+            <ion-badge slot="end" color="warning"
+              >{{ ability.apRequirement.amount }} AP</ion-badge
+            >
+            <ion-badge slot="end" color="tertiary" v-if="ability.mpCost"
+              >{{ ability.mpCost }} MP</ion-badge
+            >
             <ion-badge
               slot="end"
               :color="getStatusColor(getAbilityStatus(ability.id))"
-            >{{ formatStatus(getAbilityStatus(ability.id)) }}</ion-badge>
+              >{{ formatStatus(getAbilityStatus(ability.id)) }}</ion-badge
+            >
           </ion-item>
         </ion-item-group>
       </ion-list>
     </div>
 
     <!-- Grid View (FFX-inspired) of Abilities -->
-    <div
-      v-else
-      class="ability-grid-container"
-    >
+    <div v-else class="ability-grid-container">
       <div class="grid-controls">
-        <ion-button
-          fill="clear"
-          @click="zoomIn"
-        >
+        <ion-button fill="clear" @click="zoomIn">
           <ion-icon :icon="addCircleOutline"></ion-icon>
         </ion-button>
-        <ion-button
-          fill="clear"
-          @click="zoomOut"
-        >
+        <ion-button fill="clear" @click="zoomOut">
           <ion-icon :icon="removeCircleOutline"></ion-icon>
         </ion-button>
-        <ion-button
-          fill="clear"
-          @click="resetView"
-        >
+        <ion-button fill="clear" @click="resetView">
           <ion-icon :icon="refreshOutline"></ion-icon>
         </ion-button>
       </div>
@@ -86,13 +72,10 @@
         @wheel="handleZoom"
         :style="{
           transform: `scale(${zoom}) translate(${panOffset.x}px, ${panOffset.y}px)`,
-          cursor: isPanning ? 'grabbing' : 'grab'
+          cursor: isPanning ? 'grabbing' : 'grab',
         }"
       >
-        <svg
-          class="ability-paths"
-          ref="abilitySvg"
-        >
+        <svg class="ability-paths" ref="abilitySvg">
           <defs>
             <marker
               id="arrowhead"
@@ -102,10 +85,7 @@
               refY="3.5"
               orient="auto"
             >
-              <polygon
-                points="0 0, 10 3.5, 0 7"
-                fill="#2ecc71"
-              />
+              <polygon points="0 0, 10 3.5, 0 7" fill="#2ecc71" />
             </marker>
             <marker
               id="locked-arrowhead"
@@ -115,10 +95,7 @@
               refY="3.5"
               orient="auto"
             >
-              <polygon
-                points="0 0, 10 3.5, 0 7"
-                fill="#7f8c8d"
-              />
+              <polygon points="0 0, 10 3.5, 0 7" fill="#7f8c8d" />
             </marker>
           </defs>
           <g>
@@ -127,7 +104,11 @@
               :key="connection.id"
               :d="connection.path"
               :class="connection.status"
-              :marker-end="connection.status === 'unlocked' ? 'url(#arrowhead)' : 'url(#locked-arrowhead)'"
+              :marker-end="
+                connection.status === 'unlocked'
+                  ? 'url(#arrowhead)'
+                  : 'url(#locked-arrowhead)'
+              "
             />
           </g>
         </svg>
@@ -139,8 +120,8 @@
           :class="[
             ability.type,
             getClassNameFromAbility(ability),
-            { 'connected': hasConnections(ability) },
-            getNodeStatusClass(ability.id)
+            { connected: hasConnections(ability) },
+            getNodeStatusClass(ability.id),
           ]"
           :style="getNodeStyle(ability)"
           @click="editAbility(ability)"
@@ -150,17 +131,11 @@
               v-if="!ability.iconPrefix"
               :icon="getAbilityIcon(ability)"
             />
-            <i
-              v-else
-              :class="getIconClass(ability)"
-            ></i>
+            <i v-else :class="getIconClass(ability)"></i>
           </div>
           <div class="node-tooltip">
             <div class="tooltip-title">{{ ability.name }}</div>
-            <div
-              class="tooltip-class"
-              v-if="getClassNameFromAbility(ability)"
-            >
+            <div class="tooltip-class" v-if="getClassNameFromAbility(ability)">
               {{ formatClassName(getClassNameFromAbility(ability)) }}
             </div>
             <div class="tooltip-description">{{ ability.description }}</div>
@@ -168,10 +143,7 @@
               <span>{{ ability.apRequirement.amount }} AP</span>
               <span v-if="ability.mpCost">{{ ability.mpCost }} MP</span>
             </div>
-            <div
-              class="tooltip-frequency"
-              v-if="ability.frequency"
-            >
+            <div class="tooltip-frequency" v-if="ability.frequency">
               {{ formatFrequency(ability.frequency) }}
             </div>
             <div class="tooltip-status">
@@ -182,20 +154,19 @@
       </div>
 
       <div class="mini-map">
-        <div
-          class="mini-map-content"
-          :style="getMiniMapStyle()"
-        >
+        <div class="mini-map-content" :style="getMiniMapStyle()">
           <div
             v-for="ability in abilities"
             :key="`mini-${ability.id}`"
-            :class="['mini-node', ability.type, getClassNameFromAbility(ability), getNodeStatusClass(ability.id)]"
+            :class="[
+              'mini-node',
+              ability.type,
+              getClassNameFromAbility(ability),
+              getNodeStatusClass(ability.id),
+            ]"
             :style="getMiniNodeStyle(ability)"
           ></div>
-          <div
-            class="view-rectangle"
-            :style="getViewRectStyle()"
-          ></div>
+          <div class="view-rectangle" :style="getViewRectStyle()"></div>
         </div>
       </div>
     </div>
@@ -212,21 +183,21 @@
         Abilities are special skills or privileges you can use in your game.
         Start by adding your first ability using the + button below
       </ion-card-content>
-      <ion-icon
-        :icon="colorWandOutline"
-        size="large"
-      ></ion-icon>
+      <ion-icon :icon="colorWandOutline" size="large"></ion-icon>
     </ion-card>
   </div>
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, computed, PropType, onMounted, watch } from 'vue';
   import {
-    Ability,
-    AbilityStatus,
-    TimePeriod
-  } from '@/lib/types/abilities';
+    defineComponent,
+    ref,
+    computed,
+    PropType,
+    onMounted,
+    watch,
+  } from "vue";
+  import { Ability, AbilityStatus, TimePeriod } from "@/lib/types/abilities";
   import {
     addCircleOutline,
     removeCircleOutline,
@@ -248,32 +219,32 @@
     planetOutline,
     giftOutline,
     appsOutline,
-    helpOutline
-  } from 'ionicons/icons';
-  import Ionic from '@/mixins/ionic';
+    helpOutline,
+  } from "ionicons/icons";
+  import Ionic from "@/lib/mixins/ionic";
 
   export default defineComponent({
-    name: 'XpAbilityManager',
+    name: "XpAbilityManager",
     mixins: [Ionic],
     props: {
       abilities: {
         type: Array as PropType<Ability[]>,
-        required: true
+        required: true,
       },
       viewMode: {
         type: String,
-        default: 'list'
+        default: "list",
       },
       abilityStatuses: {
         type: Object as PropType<{ [abilityId: string]: AbilityStatus }>,
-        default: () => ({})
+        default: () => ({}),
       },
       unlockStatuses: {
         type: Object as PropType<{ [abilityId: string]: boolean }>,
-        default: () => ({})
-      }
+        default: () => ({}),
+      },
     },
-    emits: ['edit-ability', 'view-mode-change'],
+    emits: ["edit-ability", "view-mode-change"],
     setup(props, { emit }) {
       // Reactive State
       const zoom = ref(1);
@@ -281,35 +252,41 @@
       const isPanning = ref(false);
       const startPanPosition = ref({ x: 0, y: 0 });
       const startPanOffset = ref({ x: 0, y: 0 });
-      const abilityConnections = ref<Array<{
-        id: string;
-        startX: number;
-        startY: number;
-        endX: number;
-        endY: number;
-        status: string;
-        path: string;
-      }>>([]);
+      const abilityConnections = ref<
+        Array<{
+          id: string;
+          startX: number;
+          startY: number;
+          endX: number;
+          endY: number;
+          status: string;
+          path: string;
+        }>
+      >([]);
 
       // Computed properties
       const abilitiesByFrequency = computed(() => {
-        return (Object.values(TimePeriod) as TimePeriod[]).map(period => ({
-          period,
-          abilities: props.abilities.filter(ability => ability.frequency === period)
-        })).filter(group => group.abilities.length > 0);
+        return (Object.values(TimePeriod) as TimePeriod[])
+          .map((period) => ({
+            period,
+            abilities: props.abilities.filter(
+              (ability) => ability.frequency === period
+            ),
+          }))
+          .filter((group) => group.abilities.length > 0);
       });
 
       // Methods
       const toggleViewMode = () => {
-        const newMode = props.viewMode === 'list' ? 'grid' : 'list';
-        emit('view-mode-change', newMode);
-        if (newMode === 'grid') {
+        const newMode = props.viewMode === "list" ? "grid" : "list";
+        emit("view-mode-change", newMode);
+        if (newMode === "grid") {
           calculateConnections();
         }
       };
 
       const editAbility = (ability: Ability) => {
-        emit('edit-ability', ability);
+        emit("edit-ability", ability);
       };
 
       const getAbilityStatus = (abilityId: string): AbilityStatus => {
@@ -323,53 +300,53 @@
       const getStatusColor = (status: AbilityStatus): string => {
         switch (status) {
           case AbilityStatus.Available:
-            return 'success';
+            return "success";
           case AbilityStatus.Unlocked:
-            return 'warning';
+            return "warning";
           case AbilityStatus.Used:
           case AbilityStatus.Cooling:
-            return 'medium';
+            return "medium";
           case AbilityStatus.Locked:
           default:
-            return 'danger';
+            return "danger";
         }
       };
 
       const formatStatus = (status: AbilityStatus): string => {
         switch (status) {
           case AbilityStatus.Available:
-            return 'Available';
+            return "Available";
           case AbilityStatus.Unlocked:
-            return 'Unlocked';
+            return "Unlocked";
           case AbilityStatus.Used:
-            return 'Used';
+            return "Used";
           case AbilityStatus.Cooling:
-            return 'Cooling';
+            return "Cooling";
           case AbilityStatus.Locked:
           default:
-            return 'Locked';
+            return "Locked";
         }
       };
 
       const formatFrequency = (frequency: TimePeriod): string => {
         switch (frequency) {
           case TimePeriod.Hourly:
-            return 'Hourly';
+            return "Hourly";
           case TimePeriod.Daily:
-            return 'Daily';
+            return "Daily";
           case TimePeriod.Weekly:
-            return 'Weekly';
+            return "Weekly";
           case TimePeriod.Monthly:
-            return 'Monthly';
+            return "Monthly";
           case TimePeriod.Quarterly:
-            return 'Quarterly';
+            return "Quarterly";
           case TimePeriod.BiAnnual:
-            return 'Bi-Annual';
+            return "Bi-Annual";
           case TimePeriod.Yearly:
-            return 'Yearly';
+            return "Yearly";
           case TimePeriod.Flat:
           default:
-            return 'One-time';
+            return "One-time";
         }
       };
 
@@ -393,7 +370,7 @@
           planetOutline,
           giftOutline,
           appsOutline,
-          helpOutline
+          helpOutline,
         };
 
         return iconMap[ability.icon] || colorWandOutline;
@@ -401,16 +378,16 @@
 
       const getIconClass = (ability: Ability) => {
         // If the ability has a specific iconPrefix, use it, otherwise default to solid
-        const prefix = ability.iconPrefix || 'fas';
+        const prefix = ability.iconPrefix || "fas";
         return `${prefix} fa-${ability.icon}`;
       };
 
       const getClassNameFromAbility = (ability: Ability): string => {
         if (ability.characterRequirement?.class) {
-          // Return the first class requirement 
-          return Object.keys(ability.characterRequirement.class)[0] || '';
+          // Return the first class requirement
+          return Object.keys(ability.characterRequirement.class)[0] || "";
         }
-        return '';
+        return "";
       };
 
       const hasConnections = (ability: Ability): boolean => {
@@ -425,13 +402,13 @@
         if (!ability.position) {
           ability.position = {
             x: Math.floor(Math.random() * 800),
-            y: Math.floor(Math.random() * 600)
+            y: Math.floor(Math.random() * 600),
           };
         }
 
         return {
           left: `${ability.position.x}px`,
-          top: `${ability.position.y}px`
+          top: `${ability.position.y}px`,
         };
       };
 
@@ -439,15 +416,15 @@
         const status = getAbilityStatus(abilityId);
         switch (status) {
           case AbilityStatus.Available:
-            return 'status-available';
+            return "status-available";
           case AbilityStatus.Unlocked:
-            return 'status-unlocked';
+            return "status-unlocked";
           case AbilityStatus.Used:
-            return 'status-used';
+            return "status-used";
           case AbilityStatus.Cooling:
-            return 'status-cooling';
+            return "status-cooling";
           default:
-            return 'status-locked';
+            return "status-locked";
         }
       };
 
@@ -463,24 +440,24 @@
           path: string;
         }> = [];
 
-        props.abilities.forEach(ability => {
+        props.abilities.forEach((ability) => {
           // Initialize position if it doesn't exist
           if (!ability.position) {
             ability.position = {
               x: Math.floor(Math.random() * 800),
-              y: Math.floor(Math.random() * 600)
+              y: Math.floor(Math.random() * 600),
             };
           }
 
           if (ability.prerequisites && ability.prerequisites.length > 0) {
-            ability.prerequisites.forEach(prereqId => {
-              const prereq = props.abilities.find(a => a.id === prereqId);
+            ability.prerequisites.forEach((prereqId) => {
+              const prereq = props.abilities.find((a) => a.id === prereqId);
               if (prereq) {
                 // Initialize position for prereq if it doesn't exist
                 if (!prereq.position) {
                   prereq.position = {
                     x: Math.floor(Math.random() * 800),
-                    y: Math.floor(Math.random() * 600)
+                    y: Math.floor(Math.random() * 600),
                   };
                 }
 
@@ -495,7 +472,7 @@
                 const path = `M${startX},${startY} L${endX},${endY}`;
 
                 // Determine connection status based on prereq being unlocked
-                const status = isUnlocked(prereqId) ? 'unlocked' : 'locked';
+                const status = isUnlocked(prereqId) ? "unlocked" : "locked";
 
                 connections.push({
                   id: `${prereqId}-${ability.id}`,
@@ -504,7 +481,7 @@
                   endX,
                   endY,
                   status,
-                  path
+                  path,
                 });
               }
             });
@@ -515,7 +492,9 @@
       };
 
       const formatClassName = (className: string): string => {
-        return className.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+        return className
+          .replace("-", " ")
+          .replace(/\b\w/g, (l) => l.toUpperCase());
       };
 
       const zoomIn = () => {
@@ -543,7 +522,7 @@
           const deltaY = event.clientY - startPanPosition.value.y;
           panOffset.value = {
             x: startPanOffset.value.x + deltaX / zoom.value,
-            y: startPanOffset.value.y + deltaY / zoom.value
+            y: startPanOffset.value.y + deltaY / zoom.value,
           };
         }
       };
@@ -563,7 +542,8 @@
 
       const getMiniMapStyle = () => {
         return {
-          transform: `scale(${1 / zoom.value}) translate(${-panOffset.value.x}px, ${-panOffset.value.y}px)`
+          transform: `scale(${1 / zoom.value}) translate(${-panOffset.value
+            .x}px, ${-panOffset.value.y}px)`,
         };
       };
 
@@ -572,13 +552,13 @@
         if (!ability.position) {
           ability.position = {
             x: Math.floor(Math.random() * 800),
-            y: Math.floor(Math.random() * 600)
+            y: Math.floor(Math.random() * 600),
           };
         }
 
         return {
           left: `${ability.position.x / 10}px`,
-          top: `${ability.position.y / 10}px`
+          top: `${ability.position.y / 10}px`,
         };
       };
 
@@ -586,28 +566,38 @@
         return {
           width: `${1000 / zoom.value}px`,
           height: `${800 / zoom.value}px`,
-          transform: `translate(${panOffset.value.x / 10}px, ${panOffset.value.y / 10}px)`
+          transform: `translate(${panOffset.value.x / 10}px, ${
+            panOffset.value.y / 10
+          }px)`,
         };
       };
 
       // Effects
       onMounted(() => {
-        if (props.viewMode === 'grid') {
+        if (props.viewMode === "grid") {
           calculateConnections();
         }
       });
 
-      watch(() => props.abilities, () => {
-        if (props.viewMode === 'grid') {
-          calculateConnections();
-        }
-      }, { deep: true });
+      watch(
+        () => props.abilities,
+        () => {
+          if (props.viewMode === "grid") {
+            calculateConnections();
+          }
+        },
+        { deep: true }
+      );
 
-      watch(() => props.unlockStatuses, () => {
-        if (props.viewMode === 'grid') {
-          calculateConnections();
-        }
-      }, { deep: true });
+      watch(
+        () => props.unlockStatuses,
+        () => {
+          if (props.viewMode === "grid") {
+            calculateConnections();
+          }
+        },
+        { deep: true }
+      );
 
       return {
         // State
@@ -648,9 +638,9 @@
         addCircleOutline,
         removeCircleOutline,
         refreshOutline,
-        colorWandOutline
+        colorWandOutline,
       };
-    }
+    },
   });
 </script>
 

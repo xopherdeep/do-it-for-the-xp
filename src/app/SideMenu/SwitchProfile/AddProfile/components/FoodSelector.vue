@@ -33,10 +33,7 @@
             <i :class="`fad ${food.icon} fa-3x`"></i>
           </div>
           <span class="food-name">{{ food.value }}</span>
-          <div
-            v-if="food.value === modelValue"
-            class="active-badge"
-          >
+          <div v-if="food.value === modelValue" class="active-badge">
             <i class="fas fa-check"></i>
           </div>
         </div>
@@ -64,43 +61,43 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue';
-import { FOOD_OPTIONS } from "@/constants";
-import { closeOutline } from 'ionicons/icons';
-import ionic from "@/mixins/ionic";
+  import { defineComponent, ref } from "vue";
+  import { FOOD_OPTIONS } from "@/constants";
+  import { closeOutline } from "ionicons/icons";
+  import ionic from "@/lib/mixins/ionic";
 
-export default defineComponent({
-  name: 'FoodSelector',
-  mixins: [ionic],
-  props: {
-    isOpen: {
-      type: Boolean,
-      required: true
+  export default defineComponent({
+    name: "FoodSelector",
+    mixins: [ionic],
+    props: {
+      isOpen: {
+        type: Boolean,
+        required: true,
+      },
+      modelValue: {
+        type: String,
+        required: true,
+      },
     },
-    modelValue: {
-      type: String,
-      required: true
-    }
-  },
-  emits: ['update:modelValue', 'close'],
-  setup(props, { emit }) {
-    const foodOptions = ref(FOOD_OPTIONS);
+    emits: ["update:modelValue", "close"],
+    setup(props, { emit }) {
+      const foodOptions = ref(FOOD_OPTIONS);
 
-    const selectFood = (foodValue: string) => {
-      emit('update:modelValue', foodValue);
-      // Small delay for visual feedback before auto-closing
-      setTimeout(() => {
-        emit('close');
-      }, 200);
-    };
+      const selectFood = (foodValue: string) => {
+        emit("update:modelValue", foodValue);
+        // Small delay for visual feedback before auto-closing
+        setTimeout(() => {
+          emit("close");
+        }, 200);
+      };
 
-    return {
-      foodOptions,
-      closeOutline,
-      selectFood
-    };
-  }
-});
+      return {
+        foodOptions,
+        closeOutline,
+        selectFood,
+      };
+    },
+  });
 </script>
 
 <style lang="scss" scoped>

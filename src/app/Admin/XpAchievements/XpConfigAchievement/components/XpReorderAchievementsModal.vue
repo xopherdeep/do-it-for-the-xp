@@ -1,18 +1,14 @@
 <template>
   <ion-header>
     <ion-toolbar class="rpg-box">
-      <ion-title>
-        Reorder Achievements
-      </ion-title>
+      <ion-title> Reorder Achievements </ion-title>
       <ion-buttons slot="end">
         <ion-button @click="clickSave">
           Save Order
           <i class="fad fa-save fa-lg"></i>
         </ion-button>
       </ion-buttons>
-
     </ion-toolbar>
-
   </ion-header>
   <ion-content>
     <ion-list>
@@ -34,19 +30,19 @@
   </ion-content>
 </template>
 <script lang="ts">
-  import { defineComponent, ref, toRefs } from 'vue';
-  import ionic from '@/mixins/ionic';
-  import XpAchievementItem from './XpAchievementItem.vue';
-  import { modalController } from '@ionic/vue';
-  import { Achievement } from '@/lib/databases/AchievementDb';
-  import debug from '@/lib/utils/debug';
+  import { defineComponent, ref, toRefs } from "vue";
+  import ionic from "@/lib/mixins/ionic";
+  import XpAchievementItem from "./XpAchievementItem.vue";
+  import { modalController } from "@ionic/vue";
+  import { Achievement } from "@/lib/databases/AchievementDb";
+  import debug from "@/lib/utils/debug";
 
   export default defineComponent({
     props: {
       achievements: {
         type: Array,
-        default: [] as Achievement[]
-      }
+        default: [] as Achievement[],
+      },
     },
     mixins: [ionic],
     components: {
@@ -79,5 +75,4 @@
       };
     },
   });
-
 </script>

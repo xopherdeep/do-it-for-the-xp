@@ -1,17 +1,10 @@
 <template>
   <ion-header>
     <ion-toolbar class="rpg-box">
-      <ion-title v-if="isPenalty">
-        Take away Points
-      </ion-title>
-      <ion-title v-else>
-        Add Bonus
-      </ion-title>
+      <ion-title v-if="isPenalty"> Take away Points </ion-title>
+      <ion-title v-else> Add Bonus </ion-title>
       <ion-buttons slot="start">
-        <ion-back-button
-          default-href="/xp-dashboard"
-          @click="dismiss"
-        />
+        <ion-back-button default-href="/xp-dashboard" @click="dismiss" />
 
         <!-- <ion-button @click="dismiss">
           <i class="fad fa-arrow-left fa-3x"></i>
@@ -29,7 +22,10 @@
         <ion-button
           v-else
           @click="clickAward"
-          :disabled="members.length === 0 || (gPoints === 0 && xpPoints === 0 && apPoints === 0)"
+          :disabled="
+            members.length === 0 ||
+            (gPoints === 0 && xpPoints === 0 && apPoints === 0)
+          "
         >
           <i class="fad fa-gift fa-2x mr-2"></i>
           Award Points
@@ -78,10 +74,7 @@
               <!-- Members Tab Content -->
               <div v-show="activeTab === 'members'">
                 <ion-list>
-                  <ion-item
-                    v-for="user in usersAz"
-                    :key="user.id"
-                  >
+                  <ion-item v-for="user in usersAz" :key="user.id">
                     <ion-avatar slot="start">
                       <ion-img :src="$getUserAvatar(user)" />
                     </ion-avatar>
@@ -110,26 +103,17 @@
                   class="ion-padding icon-colors"
                 >
                   <ion-segment-button value="gp">
-
                     <ion-label class="overflow-visible">
                       <i class="fad fa-hand-holding-usd" />
                       ₲P
                     </ion-label>
                   </ion-segment-button>
-                  <ion-segment-button
-                    v-if="!isPenalty"
-                    value="xp"
-                  >
-
-
+                  <ion-segment-button v-if="!isPenalty" value="xp">
                     <ion-label>
                       <i class="fad fa-hand-holding-seedling" /> XP
                     </ion-label>
                   </ion-segment-button>
-                  <ion-segment-button
-                    v-if="!isPenalty"
-                    value="ap"
-                  >
+                  <ion-segment-button v-if="!isPenalty" value="ap">
                     <ion-label>
                       <i class="fad fa-hand-holding-magic" />
                       AP
@@ -141,9 +125,7 @@
                 <div v-show="activePointType === 'gp'">
                   <ion-list>
                     <ion-item lines="none">
-                      <ion-label position="floating">
-                        ₲P
-                      </ion-label>
+                      <ion-label position="floating"> ₲P </ion-label>
                       <ion-input
                         v-if="isPenalty"
                         v-model="gPoints"
@@ -158,13 +140,8 @@
                       />
                     </ion-item>
                   </ion-list>
-                  <ion-segment
-                    v-model="gPoints"
-                    mode="ios"
-                  >
-                    <ion-segment-button value="0">
-                      Custom
-                    </ion-segment-button>
+                  <ion-segment v-model="gPoints" mode="ios">
+                    <ion-segment-button value="0"> Custom </ion-segment-button>
                     <ion-segment-button :value="getNumber(1)">
                       <xp-gp :gp="getNumber(1)" />
                     </ion-segment-button>
@@ -184,35 +161,16 @@
                 <div v-show="activePointType === 'xp' && !isPenalty">
                   <ion-list>
                     <ion-item lines="none">
-                      <ion-label position="floating">
-                        XP
-                      </ion-label>
-                      <ion-input
-                        v-model="xpPoints"
-                        type="number"
-                        :min="0"
-                      />
+                      <ion-label position="floating"> XP </ion-label>
+                      <ion-input v-model="xpPoints" type="number" :min="0" />
                     </ion-item>
                   </ion-list>
-                  <ion-segment
-                    v-model="xpPoints"
-                    mode="ios"
-                  >
-                    <ion-segment-button value="0">
-                      Custom
-                    </ion-segment-button>
-                    <ion-segment-button :value="1">
-                      1 XP
-                    </ion-segment-button>
-                    <ion-segment-button :value="5">
-                      5 XP
-                    </ion-segment-button>
-                    <ion-segment-button :value="10">
-                      10 XP
-                    </ion-segment-button>
-                    <ion-segment-button :value="20">
-                      20 XP
-                    </ion-segment-button>
+                  <ion-segment v-model="xpPoints" mode="ios">
+                    <ion-segment-button value="0"> Custom </ion-segment-button>
+                    <ion-segment-button :value="1"> 1 XP </ion-segment-button>
+                    <ion-segment-button :value="5"> 5 XP </ion-segment-button>
+                    <ion-segment-button :value="10"> 10 XP </ion-segment-button>
+                    <ion-segment-button :value="20"> 20 XP </ion-segment-button>
                   </ion-segment>
                 </div>
 
@@ -220,35 +178,16 @@
                 <div v-show="activePointType === 'ap' && !isPenalty">
                   <ion-list>
                     <ion-item lines="none">
-                      <ion-label position="floating">
-                        AP
-                      </ion-label>
-                      <ion-input
-                        v-model="apPoints"
-                        type="number"
-                        :min="0"
-                      />
+                      <ion-label position="floating"> AP </ion-label>
+                      <ion-input v-model="apPoints" type="number" :min="0" />
                     </ion-item>
                   </ion-list>
-                  <ion-segment
-                    v-model="apPoints"
-                    mode="ios"
-                  >
-                    <ion-segment-button value="0">
-                      Custom
-                    </ion-segment-button>
-                    <ion-segment-button :value="1">
-                      1 AP
-                    </ion-segment-button>
-                    <ion-segment-button :value="2">
-                      2 AP
-                    </ion-segment-button>
-                    <ion-segment-button :value="5">
-                      5 AP
-                    </ion-segment-button>
-                    <ion-segment-button :value="10">
-                      10 AP
-                    </ion-segment-button>
+                  <ion-segment v-model="apPoints" mode="ios">
+                    <ion-segment-button value="0"> Custom </ion-segment-button>
+                    <ion-segment-button :value="1"> 1 AP </ion-segment-button>
+                    <ion-segment-button :value="2"> 2 AP </ion-segment-button>
+                    <ion-segment-button :value="5"> 5 AP </ion-segment-button>
+                    <ion-segment-button :value="10"> 10 AP </ion-segment-button>
                   </ion-segment>
                 </div>
               </div>
@@ -279,7 +218,10 @@
                 expand="block"
                 v-else
                 @click="clickAward"
-                :disabled="members.length === 0 || (gPoints === 0 && xpPoints === 0 && apPoints === 0)"
+                :disabled="
+                  members.length === 0 ||
+                  (gPoints === 0 && xpPoints === 0 && apPoints === 0)
+                "
               >
                 <i class="fad fa-gift mr-2"></i>
                 Award Points
@@ -292,26 +234,30 @@
   </ion-content>
 </template>
 <script lang="ts">
-  import { modalController } from '@ionic/vue';
-  import { defineComponent } from 'vue';
-  import { useUserStore } from '@/lib/store/stores/user';
+  import { modalController } from "@ionic/vue";
+  import { defineComponent } from "vue";
+  import { useUserStore } from "@/lib/store/stores/user";
 
-  import ionic from '@/mixins/ionic';
-  import { ProfileDb } from '@/lib/databases';
-  import { profileStorage } from '@/app/SideMenu/SwitchProfile/SwitchProfile.vue';
+  import ionic from "@/lib/mixins/ionic";
+  import { ProfileDb } from "@/lib/databases";
+  import { profileStorage } from "@/app/SideMenu/SwitchProfile/SwitchProfile.vue";
 
   export default defineComponent({
     props: {
       isPenalty: {
         type: Boolean,
-        default: false
-      }
+        default: false,
+      },
     },
 
     mixins: [ionic],
     computed: {
-      users() { return (this as any).userStore.users },
-      usersAz() { return (this as any).userStore.usersAz },
+      users() {
+        return (this as any).userStore.users;
+      },
+      usersAz() {
+        return (this as any).userStore.usersAz;
+      },
     },
     data() {
       return {
@@ -319,17 +265,17 @@
         xpPoints: 0,
         apPoints: 0,
         members: [] as string[],
-        notes: '',
-        activePointType: 'gp',
-        activeTab: 'members',
-        profileDb: new ProfileDb(profileStorage)
-      }
+        notes: "",
+        activePointType: "gp",
+        activeTab: "members",
+        profileDb: new ProfileDb(profileStorage),
+      };
     },
     setup() {
       const userStore = useUserStore();
       return {
-        userStore
-      }
+        userStore,
+      };
     },
     methods: {
       clickAward() {
@@ -338,25 +284,33 @@
 
           // Update GP for both bonus and penalty
           const { wallet } = profile.stats.gp;
-          profile.stats.gp.wallet = Math.round(Number(wallet) + Number(this.gPoints));
+          profile.stats.gp.wallet = Math.round(
+            Number(wallet) + Number(this.gPoints)
+          );
 
           // Only update XP and AP in bonus mode (not penalty)
           if (!this.isPenalty) {
             // Update XP if any awarded
             if (Number(this.xpPoints) > 0) {
               const { total } = profile.stats.xp;
-              profile.stats.xp.total = Math.round(Number(total) + Number(this.xpPoints));
+              profile.stats.xp.total = Math.round(
+                Number(total) + Number(this.xpPoints)
+              );
             }
 
             // Update AP if any awarded
             if (Number(this.apPoints) > 0) {
               const { total } = profile.stats.ap;
-              profile.stats.ap.total = Math.round(Number(total) + Number(this.apPoints));
+              profile.stats.ap.total = Math.round(
+                Number(total) + Number(this.apPoints)
+              );
             }
           }
 
           await this.profileDb.setProfile(profile).then(() => {
-            const message = this.isPenalty ? "Points Subtracted" : "Bonus Awarded";
+            const message = this.isPenalty
+              ? "Points Subtracted"
+              : "Bonus Awarded";
             this.profileDb.showSuccessToast(message);
             this.dismiss();
           });
@@ -369,20 +323,18 @@
         return this.$requireAvatar(`./${user.avatar}.svg`);
       },
       getNumber(number: number) {
-        return this.isPenalty
-          ? number * -1
-          : number;
+        return this.isPenalty ? number * -1 : number;
       },
       toggleMember(userId: string) {
         if (this.members.includes(userId)) {
-          this.members = this.members.filter(id => id !== userId);
+          this.members = this.members.filter((id) => id !== userId);
         } else {
           this.members.push(userId);
         }
       },
       dismiss() {
         modalController.dismiss();
-      }
-    }
+      },
+    },
   });
 </script>

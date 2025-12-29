@@ -1,5 +1,5 @@
 import { defineComponent } from 'vue'
-import ionic from "@/mixins/ionic";
+import ionic from "@/lib/mixins/ionic";
 const requireIconImg = require.context("@/assets/icons/");
 
 import {
@@ -21,7 +21,7 @@ export default defineComponent({
   mixins: [ionic],
   setup() {
     // code
-    
+
     const settingsItems: SettingsItem[] = [
       {
         id: 'general',
@@ -80,7 +80,7 @@ export default defineComponent({
         route: '/xp-settings/theme'
       }
     ];
-    
+
     return {
       arrowBack,
       requireIconImg,

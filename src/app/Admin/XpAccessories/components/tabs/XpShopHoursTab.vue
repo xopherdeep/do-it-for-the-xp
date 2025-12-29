@@ -4,21 +4,23 @@
       <div class="flex flex-col items-center justify-center h-full">
         <i class="fad fa-clock fa-4x mb-4 text-danger"></i>
         <h2 class="text-xl font-bold">Shop Hours</h2>
-        <p class="text-medium">Set opening and closing times for {{ shopId }}.</p>
+        <p class="text-medium">
+          Set opening and closing times for {{ shopId }}.
+        </p>
       </div>
     </ion-content>
   </ion-page>
 </template>
 
 <script lang="ts">
-import { defineComponent } from "vue";
-import Ionic from "@/mixins/ionic";
+  import { defineComponent } from "vue";
+  import Ionic from "@/lib/mixins/ionic";
 
-export default defineComponent({
-  name: "XpShopHoursTab",
-  mixins: [Ionic],
-  props: {
-    shopId: { type: String, required: true }
-  }
-});
+  export default defineComponent({
+    name: "XpShopHoursTab",
+    mixins: [Ionic],
+    props: {
+      shopId: { type: String, required: true },
+    },
+  });
 </script>

@@ -1,6 +1,6 @@
 import { defineComponent, ref, computed } from 'vue';
 import { format } from 'date-fns';
-import ionic from "@/mixins/ionic";
+import ionic from "@/lib/mixins/ionic";
 import { toastController } from '@ionic/vue';
 
 // Define the Notification interface
@@ -22,7 +22,7 @@ export default defineComponent({
   setup() {
     const showFilters = ref(true);
     const currentFilter = ref('all');
-    
+
     // Setup require.context for avatar images, following app pattern
     const requireAvatar = require.context("@/assets/images/avatars", false, /\.svg$/);
 

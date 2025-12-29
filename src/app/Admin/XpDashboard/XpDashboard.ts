@@ -1,5 +1,5 @@
 
-import ionic from "@/mixins/ionic";
+import ionic from "@/lib/mixins/ionic";
 import { useUserStore } from "@/lib/store/stores/user";
 import XpBonus from "./components/XpBonus.vue";
 import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";

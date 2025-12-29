@@ -1,10 +1,7 @@
 <template>
   <ion-page :class="$options.name">
     <ion-header :translucent="true">
-      <ion-toolbar
-        class="rpg-box"
-        mode="ios"
-      >
+      <ion-toolbar class="rpg-box" mode="ios">
         <ion-buttons slot="start">
           <ion-menu-button @click="$fx.ui[$fx.theme.ui].select.play()" />
 
@@ -28,38 +25,22 @@
             ></ion-icon>
           </ion-button>
           <ion-button @click="openBackupOptionsModal">
-            <ion-icon
-              :icon="cloudDownloadOutline"
-              slot="icon-only"
-            ></ion-icon>
+            <ion-icon :icon="cloudDownloadOutline" slot="icon-only"></ion-icon>
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
-    <ion-content
-      :fullscreen="true"
-      id="container"
-      class="ion-padding rpg-box"
-    >
-      <ion-refresher
-        slot="fixed"
-        @ionRefresh="handleRefresh($event)"
-      >
+    <ion-content :fullscreen="true" id="container" class="ion-padding rpg-box">
+      <ion-refresher slot="fixed" @ionRefresh="handleRefresh($event)">
         <ion-refresher-content></ion-refresher-content>
       </ion-refresher>
-      <div
-        v-show="isLoading"
-        class="flex justify-center items-center h-full"
-      >
+      <div v-show="isLoading" class="flex justify-center items-center h-full">
         <ion-spinner name="circles"></ion-spinner>
       </div>
 
       <ion-grid v-show="!isLoading">
         <!-- Empty State -->
-        <div
-          v-if="users.length === 0"
-          class="empty-state"
-        >
+        <div v-if="users.length === 0" class="empty-state">
           <i class="fad fa-users-slash fa-4x" />
           <h2 class="earthbound-title">No Adventurers Yet!</h2>
           <p>Tap the + button below to create your first profile.</p>
@@ -89,10 +70,7 @@
         </ion-row>
 
         <!-- Retro View (RPG Save Slots) -->
-        <div
-          v-else
-          class="retro-view md:hidden"
-        >
+        <div v-else class="retro-view md:hidden">
           <XpRpgMenu
             :actions="retroMenuActions"
             :columns="1"
@@ -100,20 +78,10 @@
           />
         </div>
         <ion-row class="ion-no-padding hidden md:block">
-          <ion-card
-            v-show="!isLoading"
-            class="max-w-4xl "
-          >
+          <ion-card v-show="!isLoading" class="max-w-4xl">
             <ion-list>
-              <ion-item
-                detail
-                button
-                @click="openNewProfileModal"
-              >
-                <ion-buttons
-                  slot="start"
-                  class="icon-colors"
-                >
+              <ion-item detail button @click="openNewProfileModal">
+                <ion-buttons slot="start" class="icon-colors">
                   <i class="fad fa-heartbeat fa-3x"></i>
                 </ion-buttons>
                 <ion-label class="py-4">
@@ -129,10 +97,7 @@
                 detail
                 class="profile-item rpg-box"
               >
-                <div
-                  slot="start"
-                  class="profile-info stats-container py-4"
-                >
+                <div slot="start" class="profile-info stats-container py-4">
                   <div class="level">
                     <span class="label">LVL</span>
                     <span class="value">{{ user?.stats?.level || 1 }}</span>
@@ -152,14 +117,8 @@
                   </ion-label>
                 </div>
 
-                <div
-                  slot="end"
-                  class="stats-container"
-                >
-                  <ion-chip
-                    class="wallet"
-                    color="warning"
-                  >
+                <div slot="end" class="stats-container">
+                  <ion-chip class="wallet" color="warning">
                     <xp-gp :gp="user?.stats?.gp.wallet" />
                   </ion-chip>
                 </div>
@@ -203,431 +162,439 @@
 </template>
 
 <script lang="ts">
-import {
+  import {
     toastController,
-  useIonRouter,
-  onIonViewWillEnter,
-  onIonViewDidLeave,
-  alertController,
-  actionSheetController,
-} from "@ionic/vue";
+    useIonRouter,
+    onIonViewWillEnter,
+    onIonViewDidLeave,
+    alertController,
+    actionSheetController,
+  } from "@ionic/vue";
   import { useUserStore } from "@/lib/store/stores/user";
   import { useAudioStore } from "@/lib/store/stores/audio";
-import { computed, defineComponent, ref, onUnmounted } from "vue";
-import {
-  peopleCircleSharp,
-  peopleCircleOutline,
-  fingerPrintOutline,
-  fingerPrintSharp,
-  cloudDownloadOutline,
-  cloudUploadOutline,
-  saveOutline,
-  gridOutline,
-  listOutline
-} from "ionicons/icons";
-import User from "@/lib/utils/User";
-import { Drivers, Storage } from "@ionic/storage";
-import { modalController } from "@ionic/vue";
-import { ProfileDb } from "@/lib/databases";
-import AddProfile from "./AddProfile/AddProfile.vue";
-import ProfileLoadingModal from "./ProfileLoadingModal.vue";
-import XpGp from "@/components/atoms/Currency/XpGp.vue";
-import XpProfileCard from "@/components/molecules/XpProfileCard/XpProfileCard.vue";
-import XpRpgMenu from "@/components/molecules/RpgMenu/XpRpgMenu.vue";
-import DialPad from "./DialPad.vue";
-import ionic from "@/mixins/ionic";
-import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
-import debug from "@/lib/utils/debug";
-import { fixPageTransitions } from "@/lib/utils/ionicPageFix";
+  import { computed, defineComponent, ref, onUnmounted } from "vue";
+  import {
+    peopleCircleSharp,
+    peopleCircleOutline,
+    fingerPrintOutline,
+    fingerPrintSharp,
+    cloudDownloadOutline,
+    cloudUploadOutline,
+    saveOutline,
+    gridOutline,
+    listOutline,
+  } from "ionicons/icons";
+  import User from "@/lib/utils/User";
+  import { Drivers, Storage } from "@ionic/storage";
+  import { modalController } from "@ionic/vue";
+  import { ProfileDb } from "@/lib/databases";
+  import AddProfile from "./AddProfile/AddProfile.vue";
+  import ProfileLoadingModal from "./ProfileLoadingModal.vue";
+  import XpGp from "@/components/atoms/Currency/XpGp.vue";
+  import XpProfileCard from "@/components/molecules/XpProfileCard/XpProfileCard.vue";
+  import XpRpgMenu from "@/components/molecules/RpgMenu/XpRpgMenu.vue";
+  import DialPad from "./DialPad.vue";
+  import ionic from "@/lib/mixins/ionic";
+  import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
+  import debug from "@/lib/utils/debug";
+  import { fixPageTransitions } from "@/lib/utils/ionicPageFix";
 
-const requireAvatar = require.context("@/assets/images/avatars/");
+  const requireAvatar = require.context("@/assets/images/avatars/");
 
-export const profileStorage = new Storage({
-  name: "__profiles",
-  driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
-});
+  export const profileStorage = new Storage({
+    name: "__profiles",
+    driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
+  });
 
-export default defineComponent({
-  name: "switch-profile",
-  components: {
-    XpGp,
-    ProfileLoadingModal,
-    XpProfileCard,
-    XpRpgMenu,
-  },
-  mixins: [ionic],
-  setup() {
-    // State management
-    const isLoading = ref(false); // For initial list loading
-    const isProfileLoading = ref(false); // For selected profile loading
-    const userStore = useUserStore();
-    const audioStore = useAudioStore();
-    const ionRouter = useIonRouter();
-    const storage = new ProfileDb(profileStorage);
+  export default defineComponent({
+    name: "switch-profile",
+    components: {
+      XpGp,
+      ProfileLoadingModal,
+      XpProfileCard,
+      XpRpgMenu,
+    },
+    mixins: [ionic],
+    setup() {
+      // State management
+      const isLoading = ref(false); // For initial list loading
+      const isProfileLoading = ref(false); // For selected profile loading
+      const userStore = useUserStore();
+      const audioStore = useAudioStore();
+      const ionRouter = useIonRouter();
+      const storage = new ProfileDb(profileStorage);
 
-    // Restore notification state
-    const showRestoreToast = ref(false);
-    const restoreMessage = ref('');
-    const restoreSuccess = ref(false);
-    const isRestoringProfiles = ref(false);
-    const selectedUserName = ref('');
-    const selectedUserAvatar = ref('');
-    const isRetroView = ref(false);
+      // Restore notification state
+      const showRestoreToast = ref(false);
+      const restoreMessage = ref("");
+      const restoreSuccess = ref(false);
+      const isRestoringProfiles = ref(false);
+      const selectedUserName = ref("");
+      const selectedUserAvatar = ref("");
+      const isRetroView = ref(false);
 
-    // Computed properties
-    const users = computed(() => userStore.usersAz);
-    const bgm = computed(() => audioStore.bgm);
+      // Computed properties
+      const users = computed(() => userStore.usersAz);
+      const bgm = computed(() => audioStore.bgm);
 
-    // Data loading function
-    const loadProfiles = async () => {
-      isLoading.value = true;
+      // Data loading function
+      const loadProfiles = async () => {
+        isLoading.value = true;
 
-      try {
-        await storage.init();
+        try {
+          await storage.init();
 
-        // Check if we have profiles, if not try to restore from persistent storage
-        const existingProfiles = await storage.getProfiles();
+          // Check if we have profiles, if not try to restore from persistent storage
+          const existingProfiles = await storage.getProfiles();
 
-        if (!existingProfiles || existingProfiles.length === 0) {
-          if (!isRestoringProfiles.value) {
-            isRestoringProfiles.value = true;
-            const restored = await storage.restoreProfiles();
-            if (restored) {
-              restoreSuccess.value = true;
-              restoreMessage.value = 'Successfully restored your profiles!';
-              showRestoreToast.value = true;
+          if (!existingProfiles || existingProfiles.length === 0) {
+            if (!isRestoringProfiles.value) {
+              isRestoringProfiles.value = true;
+              const restored = await storage.restoreProfiles();
+              if (restored) {
+                restoreSuccess.value = true;
+                restoreMessage.value = "Successfully restored your profiles!";
+                showRestoreToast.value = true;
+              }
+              isRestoringProfiles.value = false;
             }
-            isRestoringProfiles.value = false;
           }
+
+          await userStore.loadUsers();
+        } catch (error) {
+          debug.error("Failed to load profiles:", error);
+          // You could add a toast or alert here to notify user of the error
+        } finally {
+          isLoading.value = false;
         }
+      };
 
-        await userStore.loadUsers();
-      } catch (error) {
-        debug.error("Failed to load profiles:", error);
-        // You could add a toast or alert here to notify user of the error
-      } finally {
-        isLoading.value = false;
-      }
-    };
+      // Pull-to-refresh handler
+      const handleRefresh = async (event: any) => {
+        try {
+          await loadProfiles();
+        } finally {
+          event.target.complete();
+        }
+      };
 
-    // Pull-to-refresh handler
-    const handleRefresh = async (event: any) => {
-      try {
-        await loadProfiles();
-      } finally {
-        event.target.complete();
-      }
-    };
+      // Backup and restore functions
+      const exportProfiles = async () => {
+        try {
+          const fileName = await storage.exportProfiles();
+          const toast = await toastController.create({
+            message: `Profiles exported to ${fileName}`,
+            duration: 3000,
+            color: "success",
+            position: "top",
+          });
+          await toast.present();
+        } catch (error: any) {
+          const toast = await toastController.create({
+            message: `Failed to export profiles: ${error.message || error}`,
+            duration: 3000,
+            color: "danger",
+            position: "top",
+          });
+          await toast.present();
+        }
+      };
 
-    // Backup and restore functions
-    const exportProfiles = async () => {
-      try {
-        const fileName = await storage.exportProfiles();
-        const toast = await toastController.create({
-          message: `Profiles exported to ${fileName}`,
-          duration: 3000,
-          color: 'success',
-          position: 'top'
-        });
-        await toast.present();
-      } catch (error: any) {
-        const toast = await toastController.create({
-          message: `Failed to export profiles: ${error.message || error}`,
-          duration: 3000,
-          color: 'danger',
-          position: 'top'
-        });
-        await toast.present();
-      }
-    };
+      const importProfiles = async () => {
+        // Create a file input element
+        const fileInput = document.createElement("input");
+        fileInput.type = "file";
+        fileInput.accept = "application/json";
 
-    const importProfiles = async () => {
-      // Create a file input element
-      const fileInput = document.createElement('input');
-      fileInput.type = 'file';
-      fileInput.accept = 'application/json';
+        fileInput.addEventListener("change", async (event: any) => {
+          const file = event.target.files[0];
+          if (file) {
+            try {
+              const reader = new FileReader();
+              reader.onload = async (e) => {
+                try {
+                  const content = e.target?.result as string;
+                  const success = await storage.importProfiles(content);
 
-      fileInput.addEventListener('change', async (event: any) => {
-        const file = event.target.files[0];
-        if (file) {
-          try {
-            const reader = new FileReader();
-            reader.onload = async (e) => {
-              try {
-                const content = e.target?.result as string;
-                const success = await storage.importProfiles(content);
-
-                if (success) {
-                  await userStore.loadUsers();
+                  if (success) {
+                    await userStore.loadUsers();
+                    const toast = await toastController.create({
+                      message: "Profiles imported successfully",
+                      duration: 3000,
+                      color: "success",
+                      position: "top",
+                    });
+                    await toast.present();
+                  }
+                } catch (err: any) {
                   const toast = await toastController.create({
-                    message: 'Profiles imported successfully',
+                    message: `Failed to import profiles: ${err.message || err}`,
                     duration: 3000,
-                    color: 'success',
-                    position: 'top'
+                    color: "danger",
+                    position: "top",
                   });
                   await toast.present();
                 }
-              } catch (err: any) {
-                const toast = await toastController.create({
-                  message: `Failed to import profiles: ${err.message || err}`,
-                  duration: 3000,
-                  color: 'danger',
-                  position: 'top'
-                });
-                await toast.present();
-              }
-            };
-            reader.readAsText(file);
-          } catch (error: any) {
-            const toast = await toastController.create({
-              message: `Failed to read file: ${error.message || error}`,
-              duration: 3000,
-              color: 'danger',
-              position: 'top'
-            });
-            await toast.present();
-          }
-        }
-      });
-
-      fileInput.click();
-    };
-
-    // Options modal
-    const openBackupOptionsModal = async () => {
-      const actionSheet = await actionSheetController.create({
-        header: 'Profile Backup Options',
-        mode: 'ios',
-        buttons: [
-          {
-            text: 'Export Profiles',
-            icon: saveOutline,
-            handler: () => {
-              exportProfiles();
-            }
-          },
-          {
-            text: 'Import Profiles',
-            icon: cloudUploadOutline,
-            handler: () => {
-              importProfiles();
-            }
-          },
-          {
-            text: 'Restore From Backup',
-            icon: cloudDownloadOutline,
-            handler: async () => {
-              const alert = await alertController.create({
-                header: 'Restore Profiles',
-                message: 'This will replace all current profiles with those from your last backup. Continue?',
-                buttons: [
-                  {
-                    text: 'Cancel',
-                    role: 'cancel'
-                  },
-                  {
-                    text: 'Restore',
-                    handler: async () => {
-                      try {
-                        isRestoringProfiles.value = true;
-                        const restored = await storage.restoreProfiles();
-
-                        if (restored) {
-                          await userStore.loadUsers();
-                          restoreSuccess.value = true;
-                          restoreMessage.value = 'Successfully restored your profiles!';
-                        } else {
-                          restoreSuccess.value = false;
-                          restoreMessage.value = 'No backup found to restore.';
-                        }
-
-                        showRestoreToast.value = true;
-                      } catch (error: any) {
-                        restoreSuccess.value = false;
-                        restoreMessage.value = `Restore failed: ${error.message || error}`;
-                        showRestoreToast.value = true;
-                      } finally {
-                        isRestoringProfiles.value = false;
-                      }
-                    }
-                  }
-                ]
+              };
+              reader.readAsText(file);
+            } catch (error: any) {
+              const toast = await toastController.create({
+                message: `Failed to read file: ${error.message || error}`,
+                duration: 3000,
+                color: "danger",
+                position: "top",
               });
-
-              await alert.present();
+              await toast.present();
             }
-          },
-          {
-            text: 'Cancel',
-            role: 'cancel'
           }
-        ]
-      });
-
-      await actionSheet.present();
-    };
-
-    // Navigation functions
-    const navigateToUserPortal = async (profile: User) => {
-      try {
-        isProfileLoading.value = true; // Start loading indicator
-
-        // Login the user first and wait for it to complete
-        await userStore.loginUser(profile);
-
-        // Then navigate to their home page
-        await ionRouter.navigate(
-          `/my-portal/${profile.id}/my-home`,
-          "forward"
-        );
-      } catch (error: any) {
-        debug.error("Login/Navigation error:", error);
-        const toast = await toastController.create({
-          message: `Failed to load profile: ${error.message || error}`,
-          duration: 3000,
-          color: 'danger',
-          position: 'top'
         });
-        await toast.present();
-      } finally {
-        // Add a slight delay before hiding the loading indicator
-        await new Promise(resolve => setTimeout(resolve, 500)).then(fixPageTransitions);
-        setTimeout(() => {
-          isProfileLoading.value = false;
-        }, 450);
-        
-      }
-    };
 
-    // Profile functions
-    const getUserAvatar = (user: User) => {
-      if (user?.avatar) {
-        return requireAvatar(`./${user.avatar}.svg`);
-      }
-      return ""; // Return empty string or default avatar path
-    };
+        fileInput.click();
+      };
 
-    const getJobClassIcon = (profile: User) => {
-      const findJobClass = (job) => job?.name === profile?.jobClass;
-      const selectedJob = JOB_CLASS_OPTIONS.find(findJobClass);
-      // Remove fa- prefix since it's added in the template
-      return selectedJob ? selectedJob.icon.replace('fa-', '') : 'question';
-    };
+      // Options modal
+      const openBackupOptionsModal = async () => {
+        const actionSheet = await actionSheetController.create({
+          header: "Profile Backup Options",
+          mode: "ios",
+          buttons: [
+            {
+              text: "Export Profiles",
+              icon: saveOutline,
+              handler: () => {
+                exportProfiles();
+              },
+            },
+            {
+              text: "Import Profiles",
+              icon: cloudUploadOutline,
+              handler: () => {
+                importProfiles();
+              },
+            },
+            {
+              text: "Restore From Backup",
+              icon: cloudDownloadOutline,
+              handler: async () => {
+                const alert = await alertController.create({
+                  header: "Restore Profiles",
+                  message:
+                    "This will replace all current profiles with those from your last backup. Continue?",
+                  buttons: [
+                    {
+                      text: "Cancel",
+                      role: "cancel",
+                    },
+                    {
+                      text: "Restore",
+                      handler: async () => {
+                        try {
+                          isRestoringProfiles.value = true;
+                          const restored = await storage.restoreProfiles();
 
-    const getFoodIcon = (profile: User) => {
-      const findFavoriteFood = (food) => food.value === profile?.favoriteFood;
-      const selectedFood = FOOD_OPTIONS.find(findFavoriteFood);
-      // Remove fa- prefix since it's added in the template
-      return selectedFood ? selectedFood.icon.replace('fa-', '') : 'utensils';
-    };
+                          if (restored) {
+                            await userStore.loadUsers();
+                            restoreSuccess.value = true;
+                            restoreMessage.value =
+                              "Successfully restored your profiles!";
+                          } else {
+                            restoreSuccess.value = false;
+                            restoreMessage.value =
+                              "No backup found to restore.";
+                          }
 
-    const selectProfile = async (profile: User) => {
-      selectedUserName.value = profile.name.nick;
-      selectedUserAvatar.value = getUserAvatar(profile);
-      if (profile.passcode) {
-        openPasscodeModal(profile);
-      } else {
-        navigateToUserPortal(profile);
-      }
-    };
+                          showRestoreToast.value = true;
+                        } catch (error: any) {
+                          restoreSuccess.value = false;
+                          restoreMessage.value = `Restore failed: ${
+                            error.message || error
+                          }`;
+                          showRestoreToast.value = true;
+                        } finally {
+                          isRestoringProfiles.value = false;
+                        }
+                      },
+                    },
+                  ],
+                });
 
-    // Modal management
-    const openPasscodeModal = async (profile: User) => {
-      const modal = await modalController.create({
-        component: DialPad,
-        cssClass: "fullscreen",
-        componentProps: { profile },
+                await alert.present();
+              },
+            },
+            {
+              text: "Cancel",
+              role: "cancel",
+            },
+          ],
+        });
+
+        await actionSheet.present();
+      };
+
+      // Navigation functions
+      const navigateToUserPortal = async (profile: User) => {
+        try {
+          isProfileLoading.value = true; // Start loading indicator
+
+          // Login the user first and wait for it to complete
+          await userStore.loginUser(profile);
+
+          // Then navigate to their home page
+          await ionRouter.navigate(
+            `/my-portal/${profile.id}/my-home`,
+            "forward"
+          );
+        } catch (error: any) {
+          debug.error("Login/Navigation error:", error);
+          const toast = await toastController.create({
+            message: `Failed to load profile: ${error.message || error}`,
+            duration: 3000,
+            color: "danger",
+            position: "top",
+          });
+          await toast.present();
+        } finally {
+          // Add a slight delay before hiding the loading indicator
+          await new Promise((resolve) => setTimeout(resolve, 500)).then(
+            fixPageTransitions
+          );
+          setTimeout(() => {
+            isProfileLoading.value = false;
+          }, 450);
+        }
+      };
+
+      // Profile functions
+      const getUserAvatar = (user: User) => {
+        if (user?.avatar) {
+          return requireAvatar(`./${user.avatar}.svg`);
+        }
+        return ""; // Return empty string or default avatar path
+      };
+
+      const getJobClassIcon = (profile: User) => {
+        const findJobClass = (job) => job?.name === profile?.jobClass;
+        const selectedJob = JOB_CLASS_OPTIONS.find(findJobClass);
+        // Remove fa- prefix since it's added in the template
+        return selectedJob ? selectedJob.icon.replace("fa-", "") : "question";
+      };
+
+      const getFoodIcon = (profile: User) => {
+        const findFavoriteFood = (food) => food.value === profile?.favoriteFood;
+        const selectedFood = FOOD_OPTIONS.find(findFavoriteFood);
+        // Remove fa- prefix since it's added in the template
+        return selectedFood ? selectedFood.icon.replace("fa-", "") : "utensils";
+      };
+
+      const selectProfile = async (profile: User) => {
+        selectedUserName.value = profile.name.nick;
+        selectedUserAvatar.value = getUserAvatar(profile);
+        if (profile.passcode) {
+          openPasscodeModal(profile);
+        } else {
+          navigateToUserPortal(profile);
+        }
+      };
+
+      // Modal management
+      const openPasscodeModal = async (profile: User) => {
+        const modal = await modalController.create({
+          component: DialPad,
+          cssClass: "fullscreen",
+          componentProps: { profile },
+        });
+
+        await modal.present();
+
+        const { data } = await modal.onDidDismiss();
+        if (data) {
+          navigateToUserPortal(profile);
+        }
+      };
+
+      const openNewProfileModal = async () => {
+        const modal = await modalController.create({
+          component: AddProfile,
+          cssClass: "fullscreen",
+        });
+
+        await modal.present();
+
+        const { data } = await modal.onDidDismiss();
+        if (data) {
+          // If profile was created successfully
+          loadProfiles();
+        }
+      };
+
+      // Lifecycle hooks
+      onIonViewWillEnter(async () => {
+        // Load profiles when entering the view
+        await loadProfiles();
       });
 
-      await modal.present();
-
-      const { data } = await modal.onDidDismiss();
-      if (data) {
-        navigateToUserPortal(profile);
-      }
-    };
-
-    const openNewProfileModal = async () => {
-      const modal = await modalController.create({
-        component: AddProfile,
-        cssClass: "fullscreen",
+      onIonViewDidLeave(() => {
+        // Reset loading states when leaving the view
+        isLoading.value = false;
+        isProfileLoading.value = false;
       });
 
-      await modal.present();
-
-      const { data } = await modal.onDidDismiss();
-      if (data) {
-        // If profile was created successfully
-        loadProfiles();
-      }
-    };
-
-    // Lifecycle hooks
-    onIonViewWillEnter(async () => {
-      // Load profiles when entering the view
-      await loadProfiles();
-    });
-
-    onIonViewDidLeave(() => {
-      // Reset loading states when leaving the view
-      isLoading.value = false;
-      isProfileLoading.value = false;
-    });
-
-    onUnmounted(() => {
-      // Additional cleanup if needed
-    });
-
-    // Retro view computed: transform users into RPG menu actions
-    const retroMenuActions = computed(() => {
-      const actions = users.value.map((user, index) => ({
-        id: user.id,
-        label: `${index + 1}: ${user.name.nick || user.name.full} - LVL ${user?.stats?.level || 1}`,
-        click: () => selectProfile(user),
-      }));
-      // Add "Start New Game" option
-      actions.push({
-        id: 'new-game',
-        label: 'Start New Game',
-        click: () => openNewProfileModal(),
+      onUnmounted(() => {
+        // Additional cleanup if needed
       });
-      return actions;
-    });
 
-    const handleRetroAction = () => {
-      // action.click() is now handled internally by XpRpgMenu
-    };
+      // Retro view computed: transform users into RPG menu actions
+      const retroMenuActions = computed(() => {
+        const actions = users.value.map((user, index) => ({
+          id: user.id,
+          label: `${index + 1}: ${user.name.nick || user.name.full} - LVL ${
+            user?.stats?.level || 1
+          }`,
+          click: () => selectProfile(user),
+        }));
+        // Add "Start New Game" option
+        actions.push({
+          id: "new-game",
+          label: "Start New Game",
+          click: () => openNewProfileModal(),
+        });
+        return actions;
+      });
 
-    return {
-      isLoading,
-      users,
-      bgm,
-      peopleCircleSharp,
-      peopleCircleOutline,
-      getUserAvatar,
-      getJobClassIcon,
-      getFoodIcon,
-      selectProfile,
-      openNewProfileModal,
-      handleRefresh,
-      isProfileLoading,
-      fingerPrintOutline,
-      fingerPrintSharp,
-      cloudDownloadOutline,
-      restoreMessage,
-      restoreSuccess,
-      showRestoreToast,
-      openBackupOptionsModal,
-      selectedUserName,
-      selectedUserAvatar,
-      isRetroView,
-      gridOutline,
-      listOutline,
-      retroMenuActions,
-      handleRetroAction,
-    };
-  },
-});
+      const handleRetroAction = () => {
+        // action.click() is now handled internally by XpRpgMenu
+      };
+
+      return {
+        isLoading,
+        users,
+        bgm,
+        peopleCircleSharp,
+        peopleCircleOutline,
+        getUserAvatar,
+        getJobClassIcon,
+        getFoodIcon,
+        selectProfile,
+        openNewProfileModal,
+        handleRefresh,
+        isProfileLoading,
+        fingerPrintOutline,
+        fingerPrintSharp,
+        cloudDownloadOutline,
+        restoreMessage,
+        restoreSuccess,
+        showRestoreToast,
+        openBackupOptionsModal,
+        selectedUserName,
+        selectedUserAvatar,
+        isRetroView,
+        gridOutline,
+        listOutline,
+        retroMenuActions,
+        handleRetroAction,
+      };
+    },
+  });
 </script>
 <style scoped lang="scss">
   ion-content {
@@ -669,16 +636,20 @@ export default defineComponent({
     &#container {
       height: 100vh;
       background-color: #68a8d8;
-      background-image: linear-gradient(45deg,
+      background-image: linear-gradient(
+          45deg,
           #80d890 25%,
           transparent 25%,
           transparent 75%,
-          #80d890 75%),
-        linear-gradient(45deg,
+          #80d890 75%
+        ),
+        linear-gradient(
+          45deg,
           #80d890 25%,
           transparent 25%,
           transparent 75%,
-          #80d890 75%);
+          #80d890 75%
+        );
       background-size: 60px 60px;
       background-position: 0 0, 30px 30px;
       animation: slide 4s infinite linear;
@@ -780,7 +751,6 @@ export default defineComponent({
   }
 
   @keyframes fab-pulse {
-
     0%,
     100% {
       box-shadow: 0 0 0 0 rgba(var(--ion-color-danger-rgb), 0.6);

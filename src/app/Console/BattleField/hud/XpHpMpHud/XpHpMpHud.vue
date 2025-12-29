@@ -7,7 +7,7 @@
           <div class="cbox-name m-3">Loading...</div>
         </div>
       </template>
-      
+
       <!-- Loaded state -->
       <template v-else>
         <div class="cbox-row">
@@ -49,7 +49,7 @@
 </template>
 
 <script lang="ts">
-  import Ionic from "@/mixins/ionic";
+  import Ionic from "@/lib/mixins/ionic";
   import { defineComponent } from "vue";
   import { useBattlePlayer } from "../../hooks/useBattlePlayer";
 
@@ -66,7 +66,7 @@
         formattedMp,
         hpPercentage,
         mpPercentage,
-        loadPlayer
+        loadPlayer,
       } = useBattlePlayer();
 
       return {
@@ -77,9 +77,9 @@
         formattedMp,
         hpPercentage,
         mpPercentage,
-        loadPlayer
+        loadPlayer,
       };
-    }
+    },
   });
 </script>
 
@@ -99,25 +99,28 @@
       0 0 0 27px #101010, 0 0 15px 25px #101010 !important;
   }
 
-
   /* The Frame */
   .cbox-inner-four {
     border-radius: 4px;
     border: 1px solid #101010;
     /* Thanks to Lea Verou's super helpful collection at: http://lea.verou.me/css3patterns/ */
     background-color: #9090e8;
-    background-image: linear-gradient(45deg,
+    background-image: linear-gradient(
+        45deg,
         #9080a8 25%,
         transparent 25%,
         transparent 75%,
         #9080a8 75%,
-        #9080a8),
-      linear-gradient(45deg,
+        #9080a8
+      ),
+      linear-gradient(
+        45deg,
         #9080a8 25%,
         transparent 25%,
         transparent 75%,
         #9080a8 75%,
-        #9080a8);
+        #9080a8
+      );
     background-size: 60px 60px;
     background-position: 0 0, 30px 30px;
   }
@@ -169,9 +172,11 @@
     width: 100%;
     // height: 67px;
     background: #ddd;
-    background: radial-gradient(ellipse at 60% 45%,
-        rgba(255, 255, 255, 1) 45%,
-        rgba(155, 155, 155, 1) 80%);
+    background: radial-gradient(
+      ellipse at 60% 45%,
+      rgba(255, 255, 255, 1) 45%,
+      rgba(155, 155, 155, 1) 80%
+    );
     color: #000;
 
     border: 5px solid #000;
@@ -209,4 +214,3 @@
     border-right-width: 2px;
   }
 </style>
-
