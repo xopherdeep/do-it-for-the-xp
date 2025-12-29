@@ -15,16 +15,15 @@
         >
           <ion-tab-button
             tab="compendium"
-            :href="router.resolve({ name: 'xp-compendium-setup' }).href"
+            href="/game-master/compendium/setup"
             :selected="$route.path.indexOf('game-master/compendium/') >= 0"
           >
             <i class="fad fa-game-console-handheld fa-2x" />
             Setup XP
-
           </ion-tab-button>
           <ion-tab-button
             tab="dashboard"
-            :href="router.resolve({ name: 'xp-dashboard' }).href"
+            href="/game-master/dashboard"
             :selected="$route.path === '/game-master/dashboard'"
           >
             <i class="fad fa-heartbeat fa-2x" />
@@ -32,7 +31,7 @@
           </ion-tab-button>
           <ion-tab-button
             tab="chat"
-            :href="router.resolve({ name: 'xp-chat' }).href"
+            href="/game-master/chat"
             :selected="$route.path === '/game-master/chat'"
           >
             <i class="fad fa-comments fa-2x" />
@@ -46,3 +45,4 @@
 
 <script src="./XpGameMaster" />
 <style lang="scss" src="./_XpGameMaster.scss" scoped />
+

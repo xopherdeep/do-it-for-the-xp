@@ -41,14 +41,14 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
           children: [
             {
               path: "",
-              redirect: "/game-master/compendium/setup/splash",
+              redirect: "/game-master/compendium/setup/dashboard",
             },
             {
-              path: "splash",
-              name: "xp-compendium-splash",
+              path: "dashboard",
+              name: "xp-compendium-dashboard",
               component: () =>
                 import(
-                  "@/views/App/SideMenu/XpGameMaster/XpCompendium/CompendiumSplash.vue"
+                  "../views/App/SideMenu/XpGameMaster/XpCompendium/CompendiumDashboard.vue"
                 ),
             },
             {
@@ -61,7 +61,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
             },
             {
               path: "achievements/config",
-              redirect: "/game-master/compendium/setup/achievements/config/new/splash",
+              redirect: "/game-master/compendium/setup/achievements/config/new/dashboard",
             },
             {
               path: "achievements/config/:id",
@@ -74,12 +74,12 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
               children: [
                 {
                   path: "",
-                  redirect: (to: any) => `/game-master/compendium/setup/achievements/config/${to.params.id || 'new'}/splash`,
+                  redirect: (to: any) => `/game-master/compendium/setup/achievements/config/${to.params.id || 'new'}/dashboard`,
                 },
                 {
-                  path: "splash",
-                  name: "xp-achievement-config-splash",
-                  component: () => import("@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAddAchievement/components/tabs/QuestSplashTab.vue"),
+                  path: "dashboard",
+                  name: "xp-achievement-config-dashboard",
+                  component: () => import("@/views/App/SideMenu/XpGameMaster/XpAchievements/XpAddAchievement/components/tabs/QuestDashboardTab.vue"),
                   props: true,
                 },
                 {
@@ -143,14 +143,14 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
               children: [
                 {
                   path: "",
-                  redirect: "/game-master/compendium/setup/economy/splash",
+                  redirect: "/game-master/compendium/setup/economy/dashboard",
                 },
                 {
-                  path: "splash",
-                  name: "xp-economy-splash",
+                  path: "dashboard",
+                  name: "xp-economy-dashboard",
                   component: () =>
                     import(
-                      "@/views/App/SideMenu/XpGameMaster/XpAccessories/components/tabs/XpEconomySplash.vue"
+                      "@/views/App/SideMenu/XpGameMaster/XpAccessories/components/tabs/XpEconomySplashTab.vue"
                     ),
                 },
                 {
@@ -199,14 +199,14 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
                 {
                   path: "",
                   redirect: (to) =>
-                    `/game-master/compendium/setup/economy/shops/${to.params.shopId}/splash`,
+                    `/game-master/compendium/setup/economy/shops/${to.params.shopId}/dashboard`,
                 },
                 {
-                  path: "splash",
-                  name: "xp-shop-splash",
+                  path: "dashboard",
+                  name: "xp-shop-dashboard",
                   component: () =>
                     import(
-                      "@/views/App/SideMenu/XpGameMaster/XpAccessories/components/tabs/XpShopSplashTab.vue"
+                      "../views/App/SideMenu/XpGameMaster/XpAccessories/components/tabs/XpShopDashboardTab.vue"
                     ),
                   props: true,
                 },
@@ -286,17 +286,10 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
               path: "temples",
               name: "xp-compendium-temples",
               component: () =>
-                import("../views/App/SideMenu/XpGameMaster/XpTemples"),
+                import("@/views/App/SideMenu/XpGameMaster/XpTemples"),
             },
-            {
-              path: "temples/creator/:templeId?",
-              name: "xp-temple-creator",
-              component: () =>
-                import(
-                  "@/views/App/SideMenu/XpGameMaster/XpTemples/components/XpTempleCreator/TempleFloorEditor.vue"
-                ),
-              props: true,
-            },
+
+
             {
               path: "temples/creator/:templeId/rooms/:row/:col",
               name: "xp-room-editor",
@@ -317,14 +310,14 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
               children: [
                 {
                   path: "",
-                  redirect: (to) => `/game-master/compendium/setup/temples/${to.params.templeId}/splash`,
+                  redirect: (to) => `/game-master/compendium/setup/temples/${to.params.templeId}/dashboard`,
                 },
                 {
-                  path: "splash",
-                  name: "xp-temple-splash",
+                  path: "dashboard",
+                  name: "xp-temple-dashboard",
                   component: () =>
                     import(
-                      "@/views/App/SideMenu/XpGameMaster/XpTemples/components/tabs/XpTempleSplash.vue"
+                      "../views/App/SideMenu/XpGameMaster/XpTemples/components/tabs/XpTempleDashboard.vue"
                     ),
                   props: true,
                 },

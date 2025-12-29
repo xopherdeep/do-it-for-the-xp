@@ -111,9 +111,13 @@ export interface UseTempleCreatorReturn {
   // Methods - Save/Load
   saveTemple: () => Promise<void>;
   resetFloor: () => Promise<void>;
+  resetTempleToDefault: () => Promise<void>;
   loadTempleLayout: () => Promise<void>;
   copyToClipboard: () => Promise<void>;
   showToast: (message: string) => Promise<void>;
+  
+  // Unique rooms for config view
+  uniqueRooms: ComputedRef<any[]>;
   
   // Dungeon Items
   dungeonItems: ComputedRef<ReturnType<typeof getDungeonItems>>;
@@ -379,7 +383,7 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
   const setLevel = (levelId: string) => {
     ionRouter.replace(
       {
-        name: 'xp-temple-creator',
+        name: 'xp-temple-layout',
         params: {
           templeId: props.templeId,
           floorId: levelId
@@ -527,19 +531,28 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
 
     let symbolToUse = currentSymbol;
 
-    if (newType !== currentType || currentSymbol === ____) {
-      if (newType === 'wall') {
-        symbolToUse = ____;
-      } else if (newType === 'entrance') {
-        symbolToUse = _00_;
-      } else if (currentSymbol === ____ || currentSymbol === _00_ || !currentSymbol.startsWith('R')) {
-        symbolToUse = generateUniqueSymbol();
-      } else {
-        symbolToUse = generateUniqueSymbol();
-      }
-    }
+    // ALWAYS generate a new symbol when:
+    // 1. Converting FROM a wall or entrance to something else
+    // 2. Changing room types (even between non-wall types)
+    // NEVER modify the `____` or `_00_` roomData - they are global!
     
-    if (symbolToUse !== currentSymbol && currentSymbol.startsWith('R')) {
+    if (newType === 'wall') {
+      // Converting TO a wall - use the shared wall symbol
+      symbolToUse = ____;
+    } else if (newType === 'entrance') {
+      // Converting TO entrance - use the shared entrance symbol
+      symbolToUse = _00_;
+    } else if (currentSymbol === ____ || currentSymbol === _00_) {
+      // Converting FROM wall/entrance to a room - MUST generate new symbol
+      symbolToUse = store.generateUniqueSymbol(row, col, newType);
+    } else if (newType !== currentType) {
+      // Changing room types (e.g., monster to loot) - generate new symbol with correct prefix
+      symbolToUse = store.generateUniqueSymbol(row, col, newType);
+    }
+    // else: Same type, keep the existing symbol (just update its config)
+    
+    // Clean up old symbol from roomsData if we're switching away from a unique room
+    if (symbolToUse !== currentSymbol && currentSymbol !== ____ && currentSymbol !== _00_) {
       delete roomsData.value[currentSymbol];
       usedSymbols.value.delete(currentSymbol);
     }
@@ -634,7 +647,7 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
     currentSlice[row][col] = ____;
     currentMazeSlice.value = currentSlice;
     
-    if (cellSymbol.startsWith('R')) {
+    if (cellSymbol.startsWith('R') || /^[A-Za-z]\d{4}$/.test(cellSymbol)) {
       delete roomsData.value[cellSymbol];
       usedSymbols.value.delete(cellSymbol);
     }
@@ -735,12 +748,64 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
     }
   };
 
+  const resetTempleToDefault = async () => {
+    const confirm = await alertController.create({
+      header: 'Reset to Default?',
+      message: 'This will PERMANENTLY overwrite your manual changes with the factory default layout. Are you sure?',
+      buttons: [
+        { text: 'Cancel', role: 'cancel' },
+        { 
+          text: 'Reset Everything', 
+          role: 'destructive',
+          handler: async () => {
+            const success = store.resetToDefault(props.templeId);
+            if (success) {
+              await saveTemple(); // Persist the reset
+              showToast('Temple restored to factory defaults');
+              // Force a reload of the current level to update UI
+              setLevel(currentLevelId.value);
+            } else {
+              showToast('Failed to find default data for this temple.');
+            }
+          }
+        }
+      ]
+    });
+    await confirm.present();
+  };
+
+  const uniqueRooms = computed(() => {
+    const maze = templeMaze.value;
+    const rooms = roomsData.value;
+    const uniqueKeys = new Set<string>();
+    
+    if (Array.isArray(maze)) {
+      maze.forEach(row => row.forEach(cell => {
+        if (cell !== ____ && cell !== _00_) uniqueKeys.add(cell);
+      }));
+    } else {
+      Object.values(maze).forEach(floor => {
+        floor.forEach(row => row.forEach(cell => {
+          if (cell !== ____ && cell !== _00_) uniqueKeys.add(cell);
+        }));
+      });
+    }
+    
+    return Array.from(uniqueKeys).map(key => ({
+      key,
+      ...rooms[key]
+    })).sort((a, b) => a.key.localeCompare(b.key));
+  });
+
   const saveTemple = async () => {
     try {
       debug.log('Saving temple to database...', props.templeId);
       const parts = entrancePosition.value.split(',').map(Number);
       
-      // Get current data from store (Layer 1)
+      // Standardize tokens on save (TXXYY format)
+      store.migrateTokens();
+      
+      // Get current data from store (Layer 1) after migration
       const layoutToSave = {
         entrance: parts.length === 2 ? parts : (parts.length === 3 ? [parts[1], parts[2]] : [0,0]),
         maze: JSON.parse(JSON.stringify(store.templeMaze)), // Deep clone to be safe
@@ -993,9 +1058,13 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
     // Save/Reset
     saveTemple,
     resetFloor,
+    resetTempleToDefault,
     loadTempleLayout,
     copyToClipboard,
     showToast,
+    
+    // Unique rooms for config view
+    uniqueRooms,
     
     // Dungeon items
     dungeonItems

@@ -3,7 +3,7 @@
     <ion-content>
       <!-- Battle Room Preview -->
       <div class="battleroom-container">
-        <BattleField 
+        <BattleField
           ref="battlegroundRef"
           :taskId="0"
           :enemyType="selectedEnemyType"
@@ -17,7 +17,11 @@
     </ion-content>
 
     <!-- Battle Dialog Box (Earthbound-style) -->
-    <div class="battle-dialog-overlay" v-if="showBattleDialog" @click="advanceBattleDialog">
+    <div
+      class="battle-dialog-overlay"
+      v-if="showBattleDialog"
+      @click="advanceBattleDialog"
+    >
       <div class="battle-dialog-box rpg-box">
         <div class="dialog-content">
           <xp-typing-text
@@ -32,16 +36,26 @@
             :has-more-text="hasMoreBattleDialog"
           />
         </div>
-        <div v-if="hasMoreBattleDialog" class="dialog-indicator">
+        <div
+          v-if="hasMoreBattleDialog"
+          class="dialog-indicator"
+        >
           <i class="fad fa-chevron-down blink"></i>
         </div>
       </div>
     </div>
 
     <!-- Victory Dialog Box (Special styling for victory messages) -->
-    <div class="victory-dialog-overlay" v-if="showVictoryDialog" @click="advanceVictoryDialog">
+    <div
+      class="victory-dialog-overlay"
+      v-if="showVictoryDialog"
+      @click="advanceVictoryDialog"
+    >
       <div class="victory-dialog-box rpg-box">
-        <div class="victory-title" v-if="isShowingVictoryTitle">You Won!</div>
+        <div
+          class="victory-title"
+          v-if="isShowingVictoryTitle"
+        >You Won!</div>
         <div class="dialog-content">
           <xp-typing-text
             ref="victoryDialogText"
@@ -55,19 +69,22 @@
             :has-more-text="hasMoreVictoryDialog"
           />
         </div>
-        <div v-if="hasMoreVictoryDialog" class="dialog-indicator">
+        <div
+          v-if="hasMoreVictoryDialog"
+          class="dialog-indicator"
+        >
           <i class="fad fa-chevron-down blink"></i>
         </div>
       </div>
     </div>
 
     <!-- Configuration Toolbox FAB -->
-    <DevToolsFab 
-      @open-profile-selector="openProfileSelector" 
-      @open-beast-selector="openBeastSelector" 
-      @open-controls-modal="openControlsModal" 
+    <DevToolsFab
+      @open-profile-selector="openProfileSelector"
+      @open-beast-selector="openBeastSelector"
+      @open-controls-modal="openControlsModal"
     />
-    
+
     <!-- Battle Actions FAB -->
     <BattleActionsFab
       @attack-animation="triggerAttackAnimation"
@@ -77,15 +94,22 @@
       @defeat-animation="triggerDefeatAnimation"
       @reset-battle="resetBattle"
     />
-    
+
     <!-- Dev Controls Modal -->
-    <ion-modal ref="controlsModal" :is-open="isControlsModalOpen" @didDismiss="isControlsModalOpen = false">
+    <ion-modal
+      ref="controlsModal"
+      :is-open="isControlsModalOpen"
+      @didDismiss="isControlsModalOpen = false"
+    >
       <ion-header>
         <ion-toolbar>
           <ion-title>Development Controls</ion-title>
           <ion-buttons slot="end">
             <ion-button @click="isControlsModalOpen = false">
-              <ion-icon :icon="closeOutline" slot="icon-only"></ion-icon>
+              <ion-icon
+                :icon="closeOutline"
+                slot="icon-only"
+              ></ion-icon>
             </ion-button>
           </ion-buttons>
         </ion-toolbar>
@@ -99,7 +123,10 @@
 
           <ion-item>
             <ion-label>Task Type</ion-label>
-            <ion-select v-model="selectedTaskType" @ionChange="changeTaskType">
+            <ion-select
+              v-model="selectedTaskType"
+              @ionChange="changeTaskType"
+            >
               <ion-select-option value="daily">Daily Chore</ion-select-option>
               <ion-select-option value="weekly">Weekly Task</ion-select-option>
               <ion-select-option value="project">Project Milestone</ion-select-option>
@@ -108,23 +135,43 @@
 
           <ion-item>
             <ion-label>Task Difficulty</ion-label>
-            <ion-range :min="1" :max="5" :step="1" v-model="taskDifficultyValue" @ionChange="onDifficultyChange" snaps>
-              <ion-icon slot="start" size="small" :icon="easyIcon"></ion-icon>
-              <ion-icon slot="end" :icon="hardIcon"></ion-icon>
+            <ion-range
+              :min="1"
+              :max="5"
+              :step="1"
+              v-model="taskDifficultyValue"
+              @ionChange="onDifficultyChange"
+              snaps
+            >
+              <ion-icon
+                slot="start"
+                size="small"
+                :icon="easyIcon"
+              ></ion-icon>
+              <ion-icon
+                slot="end"
+                :icon="hardIcon"
+              ></ion-icon>
             </ion-range>
           </ion-item>
 
           <ion-item>
             <ion-label>Enemy Health</ion-label>
-            <ion-progress-bar :value="taskDifficulty / 5" :color="healthBarColor"></ion-progress-bar>
+            <ion-progress-bar
+              :value="taskDifficulty / 5"
+              :color="healthBarColor"
+            ></ion-progress-bar>
           </ion-item>
 
           <ion-item>
-            <ion-button expand="block" @click="simulateTaskProgress">
+            <ion-button
+              expand="block"
+              @click="simulateTaskProgress"
+            >
               Simulate Task Progress
             </ion-button>
           </ion-item>
-          
+
           <ion-item-divider>
             <ion-label>Battle Environment</ion-label>
           </ion-item-divider>
@@ -132,25 +179,34 @@
           <!-- Existing controls -->
           <ion-item>
             <ion-label>Enemy Type</ion-label>
-            <ion-select v-model="selectedEnemyType" @ionChange="changeEnemyType">
+            <ion-select
+              v-model="selectedEnemyType"
+              @ionChange="changeEnemyType"
+            >
               <ion-select-option value="basic">Basic</ion-select-option>
               <ion-select-option value="miniboss">Mini Boss</ion-select-option>
               <ion-select-option value="boss">Boss</ion-select-option>
             </ion-select>
           </ion-item>
-          
+
           <ion-item>
             <ion-label>Battle State</ion-label>
-            <ion-toggle v-model="battleActive" @ionChange="toggleBattleState"></ion-toggle>
+            <ion-toggle
+              v-model="battleActive"
+              @ionChange="toggleBattleState"
+            ></ion-toggle>
           </ion-item>
 
           <ion-item>
-            <ion-button expand="block" @click="triggerBattle">
+            <ion-button
+              expand="block"
+              @click="triggerBattle"
+            >
               Trigger Battle
             </ion-button>
           </ion-item>
         </ion-list>
-        
+
         <!-- Task Enemy Preview -->
         <ion-card>
           <ion-card-header>
@@ -161,7 +217,10 @@
               <h3>{{ currentTaskName }}</h3>
               <div class="enemy-health">
                 <span>HP: {{ taskHealth }} / {{ maxTaskHealth }}</span>
-                <ion-progress-bar :value="taskHealth / maxTaskHealth" :color="healthBarColor"></ion-progress-bar>
+                <ion-progress-bar
+                  :value="taskHealth / maxTaskHealth"
+                  :color="healthBarColor"
+                ></ion-progress-bar>
               </div>
               <div class="enemy-status">
                 <p><strong>Type:</strong> {{ taskTypeDisplay }}</p>
@@ -171,7 +230,7 @@
             </div>
           </ion-card-content>
         </ion-card>
-        
+
         <!-- Battle State Info -->
         <ion-card>
           <ion-card-header>
@@ -185,13 +244,20 @@
     </ion-modal>
 
     <!-- Beast Selector Modal -->
-    <ion-modal ref="beastSelectorModal" :is-open="isBeastModalOpen" @didDismiss="isBeastModalOpen = false">
+    <ion-modal
+      ref="beastSelectorModal"
+      :is-open="isBeastModalOpen"
+      @didDismiss="isBeastModalOpen = false"
+    >
       <ion-header>
         <ion-toolbar>
           <ion-title>Beast Selector</ion-title>
           <ion-buttons slot="end">
             <ion-button @click="isBeastModalOpen = false">
-              <ion-icon :icon="closeOutline" slot="icon-only"></ion-icon>
+              <ion-icon
+                :icon="closeOutline"
+                slot="icon-only"
+              ></ion-icon>
             </ion-button>
           </ion-buttons>
         </ion-toolbar>
@@ -201,15 +267,26 @@
           <ion-item-divider>
             <ion-label>Select Beast</ion-label>
           </ion-item-divider>
-          
-          <ion-item button v-for="beast in beasts" :key="beast.id" @click="selectBeast(beast)">
-            <ion-thumbnail slot="start" class="cursor-pointer">
+
+          <ion-item
+            button
+            v-for="beast in beasts"
+            :key="beast.id"
+            @click="selectBeast(beast)"
+          >
+            <ion-thumbnail
+              slot="start"
+              class="cursor-pointer"
+            >
               <ion-img
                 v-if="beast?.avatar"
                 :src="getAvatar(beast.avatar)"
                 class="w-full p-0 m-0"
               />
-              <ion-skeleton-text v-else animated />
+              <ion-skeleton-text
+                v-else
+                animated
+              />
             </ion-thumbnail>
             <ion-label>
               <h2>{{ beast.name }}</h2>
@@ -227,13 +304,20 @@
     </ion-modal>
 
     <!-- Profile Selector Modal -->
-    <ion-modal ref="profileSelectorModal" :is-open="isProfileModalOpen" @didDismiss="isProfileModalOpen = false">
+    <ion-modal
+      ref="profileSelectorModal"
+      :is-open="isProfileModalOpen"
+      @didDismiss="isProfileModalOpen = false"
+    >
       <ion-header>
         <ion-toolbar>
           <ion-title>Profile Selector</ion-title>
           <ion-buttons slot="end">
             <ion-button @click="isProfileModalOpen = false">
-              <ion-icon :icon="closeOutline" slot="icon-only"></ion-icon>
+              <ion-icon
+                :icon="closeOutline"
+                slot="icon-only"
+              ></ion-icon>
             </ion-button>
           </ion-buttons>
         </ion-toolbar>
@@ -243,21 +327,37 @@
           <ion-item-divider>
             <ion-label>Select Profile</ion-label>
           </ion-item-divider>
-          
-          <ion-item button v-for="profile in profiles" :key="profile.id" @click="selectProfile(profile)">
-            <ion-avatar slot="start" class="cursor-pointer">
+
+          <ion-item
+            button
+            v-for="profile in profiles"
+            :key="profile.id"
+            @click="selectProfile(profile)"
+          >
+            <ion-avatar
+              slot="start"
+              class="cursor-pointer"
+            >
               <ion-img
                 v-if="profile?.avatar"
                 :src="profile.avatar"
                 class="w-full p-0 m-0"
               />
-              <ion-icon v-else :icon="personOutline" class="w-full p-2 text-gray-500" />
+              <ion-icon
+                v-else
+                :icon="personOutline"
+                class="w-full p-2 text-gray-500"
+              />
             </ion-avatar>
             <ion-label>
               <h2>{{ profile.name }}</h2>
               <p>{{ profile.role || 'User' }} - Level {{ profile.level || 1 }}</p>
             </ion-label>
-            <ion-badge v-if="profile.id === selectedProfile?.id" color="primary" slot="end">Selected</ion-badge>
+            <ion-badge
+              v-if="profile.id === selectedProfile?.id"
+              color="primary"
+              slot="end"
+            >Selected</ion-badge>
           </ion-item>
 
           <ion-item v-if="profiles.length === 0">
@@ -267,8 +367,15 @@
           </ion-item>
 
           <ion-item>
-            <ion-button expand="block" fill="outline" @click="createNewProfile">
-              <ion-icon :icon="addOutline" slot="start"></ion-icon>
+            <ion-button
+              expand="block"
+              fill="outline"
+              @click="createNewProfile"
+            >
+              <ion-icon
+                :icon="addOutline"
+                slot="start"
+              ></ion-icon>
               Create New Profile
             </ion-button>
           </ion-item>
@@ -281,7 +388,6 @@
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted, watch } from 'vue';
 import { useBattleStore } from '@/lib/store/stores/battle';
-import { useUserStore } from '@/lib/store/stores/user';
 import BattleField from '@/views/Console/BattleField/BattleField.vue';
 import { toastController } from '@ionic/vue';
 import { 
@@ -1405,207 +1511,253 @@ export default defineComponent({
 </script>
 
 <style scoped>
-ion-page{
-  max-height: 50vh;
-  overflow: hidden;
-} 
-.battleroom-container {
-  width: 100%;
-  /* height: 100vh; */
-  position: relative;
-  overflow: hidden;
-}
-
-pre {
-  white-space: pre-wrap;
-  word-break: break-all;
-  font-size: 12px;
-  max-height: 150px;
-  overflow-y: auto;
-}
-
-.task-enemy-preview {
-  padding: 10px;
-  border: 1px solid var(--ion-color-medium);
-  border-radius: 8px;
-  background: rgba(var(--ion-background-color-rgb), 0.6);
-}
-
-.enemy-health {
-  margin: 10px 0;
-}
-
-.enemy-status {
-  font-size: 0.9em;
-}
-
-.enemy-status p {
-  margin: 5px 0;
-}
-
-/* Screen shake animation for player hit effects */
-@keyframes screenShake {
-  0% { transform: translate(0, 0) rotate(0); }
-  10% { transform: translate(-5px, -5px) rotate(-1deg); }
-  20% { transform: translate(5px, -5px) rotate(1deg); }
-  30% { transform: translate(-5px, 5px) rotate(0); }
-  40% { transform: translate(5px, 5px) rotate(1deg); }
-  50% { transform: translate(-5px, -5px) rotate(-1deg); }
-  60% { transform: translate(5px, 0) rotate(0); }
-  70% { transform: translate(-5px, 0) rotate(-1deg); }
-  80% { transform: translate(0, 5px) rotate(1deg); }
-  90% { transform: translate(0, -5px) rotate(0); }
-  100% { transform: translate(0, 0) rotate(0); }
-}
-
-.screen-shake {
-  animation: screenShake 0.5s cubic-bezier(.36,.07,.19,.97) both;
-  transform-origin: center center;
-}
-
-/* Fix any background rendering issues */
-.battleground-component {
-  width: 100%;
-  height: 100%;
-}
-
-.toolbox-fab {
-  margin-top: 10px;
-  margin-right: 10px;
-  z-index: 100;
-}
-
-.toolbox-fab ion-fab-button {
-  --box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-  transition: transform 0.2s ease;
-}
-
-.toolbox-fab ion-fab-button:hover {
-  transform: scale(1.05);
-}
-
-.toolbox-fab i {
-  color: white;
-  font-size: 20px;
-}
-
-/* Make sure the battleground takes up full screen space */
-.battleroom-container {
-  width: 100%;
-  height: 100vh;
-  position: relative;
-  overflow: hidden;
-}
-
-/* Battle Dialog Styling */
-.battle-dialog-overlay {
-  position: fixed;
-  bottom: 20px;
-  left: 0;
-  right: 0;
-  z-index: 1000;
-  display: flex;
-  justify-content: center;
-  align-items: flex-end;
-  pointer-events: none;
-}
-
-.battle-dialog-box {
-  width: 90%;
-  max-width: 500px;
-  background-color: rgba(0, 0, 0, 0.8);
-  border: 2px solid white;
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 10px;
-  pointer-events: auto;
-  cursor: pointer;
-}
-
-.battle-text {
-  color: white;
-  font-size: 1.1rem;
-  line-height: 1.4;
-  min-height: 3rem;
-}
-
-/* Victory Dialog Styling */
-.victory-dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 1500;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  background-color: rgba(0, 0, 0, 0.5);
-  pointer-events: auto;
-}
-
-.victory-dialog-box {
-  width: 90%;
-  max-width: 500px;
-  background-color: rgba(0, 0, 0, 0.9);
-  border: 3px solid gold;
-  border-radius: 8px;
-  padding: 20px;
-  text-align: center;
-}
-
-.victory-title {
-  color: gold;
-  font-size: 3rem;
-  font-weight: bold;
-  margin-bottom: 15px;
-  text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
-  animation: victoryPulse 1.5s infinite;
-}
-
-.victory-text {
-  color: white;
-  font-size: 1.2rem;
-  line-height: 1.5;
-  min-height: 3rem;
-}
-
-.dialog-indicator {
-  text-align: center;
-  margin-top: 10px;
-}
-
-.dialog-indicator i {
-  color: white;
-  font-size: 1.2rem;
-}
-
-/* Animation for the victory title */
-@keyframes victoryPulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
-
-/* Animation for screen collapse effect */
-@keyframes screenCollapse {
-  0% { transform: scaleY(1); }
-  100% { transform: scaleY(0); }
-}
-
-.screen-collapse {
-  animation: screenCollapse 1s ease-in forwards;
-}
-
-/* Blinking indicator animation */
-.blink {
-  animation: blink-animation 1s steps(5, start) infinite;
-}
-
-@keyframes blink-animation {
-  to {
-    visibility: hidden;
+  ion-page {
+    max-height: 50vh;
+    overflow: hidden;
   }
-}
+
+  .battleroom-container {
+    width: 100%;
+    /* height: 100vh; */
+    position: relative;
+    overflow: hidden;
+  }
+
+  pre {
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-size: 12px;
+    max-height: 150px;
+    overflow-y: auto;
+  }
+
+  .task-enemy-preview {
+    padding: 10px;
+    border: 1px solid var(--ion-color-medium);
+    border-radius: 8px;
+    background: rgba(var(--ion-background-color-rgb), 0.6);
+  }
+
+  .enemy-health {
+    margin: 10px 0;
+  }
+
+  .enemy-status {
+    font-size: 0.9em;
+  }
+
+  .enemy-status p {
+    margin: 5px 0;
+  }
+
+  /* Screen shake animation for player hit effects */
+  @keyframes screenShake {
+    0% {
+      transform: translate(0, 0) rotate(0);
+    }
+
+    10% {
+      transform: translate(-5px, -5px) rotate(-1deg);
+    }
+
+    20% {
+      transform: translate(5px, -5px) rotate(1deg);
+    }
+
+    30% {
+      transform: translate(-5px, 5px) rotate(0);
+    }
+
+    40% {
+      transform: translate(5px, 5px) rotate(1deg);
+    }
+
+    50% {
+      transform: translate(-5px, -5px) rotate(-1deg);
+    }
+
+    60% {
+      transform: translate(5px, 0) rotate(0);
+    }
+
+    70% {
+      transform: translate(-5px, 0) rotate(-1deg);
+    }
+
+    80% {
+      transform: translate(0, 5px) rotate(1deg);
+    }
+
+    90% {
+      transform: translate(0, -5px) rotate(0);
+    }
+
+    100% {
+      transform: translate(0, 0) rotate(0);
+    }
+  }
+
+  .screen-shake {
+    animation: screenShake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+    transform-origin: center center;
+  }
+
+  /* Fix any background rendering issues */
+  .battleground-component {
+    width: 100%;
+    height: 100%;
+  }
+
+  .toolbox-fab {
+    margin-top: 10px;
+    margin-right: 10px;
+    z-index: 100;
+  }
+
+  .toolbox-fab ion-fab-button {
+    --box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    transition: transform 0.2s ease;
+  }
+
+  .toolbox-fab ion-fab-button:hover {
+    transform: scale(1.05);
+  }
+
+  .toolbox-fab i {
+    color: white;
+    font-size: 20px;
+  }
+
+  /* Make sure the battleground takes up full screen space */
+  .battleroom-container {
+    width: 100%;
+    height: 100vh;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Battle Dialog Styling */
+  .battle-dialog-overlay {
+    position: fixed;
+    bottom: 20px;
+    left: 0;
+    right: 0;
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    pointer-events: none;
+  }
+
+  .battle-dialog-box {
+    width: 90%;
+    max-width: 500px;
+    background-color: rgba(0, 0, 0, 0.8);
+    border: 2px solid white;
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 10px;
+    pointer-events: auto;
+    cursor: pointer;
+  }
+
+  .battle-text {
+    color: white;
+    font-size: 1.1rem;
+    line-height: 1.4;
+    min-height: 3rem;
+  }
+
+  /* Victory Dialog Styling */
+  .victory-dialog-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1500;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    background-color: rgba(0, 0, 0, 0.5);
+    pointer-events: auto;
+  }
+
+  .victory-dialog-box {
+    width: 90%;
+    max-width: 500px;
+    background-color: rgba(0, 0, 0, 0.9);
+    border: 3px solid gold;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+  }
+
+  .victory-title {
+    color: gold;
+    font-size: 3rem;
+    font-weight: bold;
+    margin-bottom: 15px;
+    text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+    animation: victoryPulse 1.5s infinite;
+  }
+
+  .victory-text {
+    color: white;
+    font-size: 1.2rem;
+    line-height: 1.5;
+    min-height: 3rem;
+  }
+
+  .dialog-indicator {
+    text-align: center;
+    margin-top: 10px;
+  }
+
+  .dialog-indicator i {
+    color: white;
+    font-size: 1.2rem;
+  }
+
+  /* Animation for the victory title */
+  @keyframes victoryPulse {
+    0% {
+      transform: scale(1);
+    }
+
+    50% {
+      transform: scale(1.05);
+    }
+
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  /* Animation for screen collapse effect */
+  @keyframes screenCollapse {
+    0% {
+      transform: scaleY(1);
+    }
+
+    100% {
+      transform: scaleY(0);
+    }
+  }
+
+  .screen-collapse {
+    animation: screenCollapse 1s ease-in forwards;
+  }
+
+  /* Blinking indicator animation */
+  .blink {
+    animation: blink-animation 1s steps(5, start) infinite;
+  }
+
+  @keyframes blink-animation {
+    to {
+      visibility: hidden;
+    }
+  }
 </style>

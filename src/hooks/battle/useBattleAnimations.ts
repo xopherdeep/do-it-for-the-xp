@@ -219,7 +219,6 @@ export function useBattleAnimations(
             }, 500);
           })
           .catch(error => {
-            console.error("Error during victory animation:", error);
             reject(error);
           });
       }, 1000); // Let the strobe effect run for 1 second before starting the aspect ratio animation

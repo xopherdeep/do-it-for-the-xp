@@ -13,7 +13,10 @@
           ></i>
         </ion-buttons>
         <ion-title>
-          <xp-title variant="page" class="text-center">Setup XP</xp-title>
+          <xp-title
+            variant="page"
+            class="text-center"
+          >Setup XP</xp-title>
         </ion-title>
         <!-- Help button removed, now in Welcome Dashboard -->
       </ion-toolbar>
@@ -24,22 +27,53 @@
       style="--background: transparent"
     >
       <!-- Native Navigation FABs in fixed slot -->
-      <ion-fab slot="fixed" vertical="bottom" horizontal="start" class="nav-fab-container" v-if="activeSlideIndex > 0">
-        <ion-fab-button color="light" @click.stop="swiperInstance?.slidePrev()" class="rpg-box">
+      <ion-fab
+        slot="fixed"
+        vertical="bottom"
+        horizontal="start"
+        class="nav-fab-container"
+        v-if="activeSlideIndex > 0"
+      >
+        <ion-fab-button
+          color="light"
+          @click.stop="swiperInstance?.slidePrev()"
+          class="rpg-box"
+        >
           <i class="fad fa-chevron-left"></i>
         </ion-fab-button>
       </ion-fab>
 
-      <ion-fab slot="fixed" vertical="bottom" horizontal="end" class="nav-fab-container" v-if="activeSlideIndex < slides.length - 1">
-        <ion-fab-button color="light" @click.stop="swiperInstance?.slideNext()" class="rpg-box">
+      <ion-fab
+        slot="fixed"
+        vertical="bottom"
+        horizontal="end"
+        class="nav-fab-container"
+        v-if="activeSlideIndex < slides.length - 1"
+      >
+        <ion-fab-button
+          color="light"
+          @click.stop="swiperInstance?.slideNext()"
+          class="rpg-box"
+        >
           <i class="fad fa-chevron-right"></i>
         </ion-fab-button>
       </ion-fab>
 
       <!-- Home FAB -->
-      <ion-fab slot="fixed" vertical="bottom" horizontal="center" class="home-fab-container" v-if="activeSlideIndex > 0">
-        <ion-fab-button color="light" @click.stop="goToSlide(0)" class="rpg-box" size="large">
-          <i class="fad fa-game-console-handheld fa-2x" ></i>
+      <ion-fab
+        slot="fixed"
+        vertical="bottom"
+        horizontal="center"
+        class="home-fab-container"
+        v-if="activeSlideIndex > 0"
+      >
+        <ion-fab-button
+          color="light"
+          @click.stop="goToSlide(0)"
+          class="rpg-box"
+          size="large"
+        >
+          <i class="fad fa-game-console-handheld fa-2x"></i>
         </ion-fab-button>
       </ion-fab>
 
@@ -60,26 +94,32 @@
             class="flex flex-col items-center justify-center"
           >
             <!-- Premium Glassmorphic Hero Card -->
-            <div class="hero-card-container" :class="{ 'animate-in': activeSlideIndex === index }">
+            <div
+              class="hero-card-container"
+              :class="{ 'animate-in': activeSlideIndex === index }"
+            >
               <div class="hero-content text-center flex flex-col items-center">
                 <div class="flex flex-row justify-center items-center gap-4">
                   <div class="icon-wrapper">
                     <i :class="`fad ${slide.icon} fa-3x ${slide.iconClass}`"></i>
                   </div>
-                  <xp-title 
+                  <xp-title
                     variant="section"
                     :class="{ 'gamemaster-title-animate': activeSlideIndex === index && index === 0 }"
                   >
                     {{ slide.title }}
                   </xp-title>
                 </div>
-                
+
                 <!-- Final slide button removed -->
               </div>
             </div>
 
             <!-- Dashboard Component -->
-            <div class="dashboard-container w-full" :class="{ 'animate-up': activeSlideIndex === index }">
+            <div
+              class="dashboard-container w-full"
+              :class="{ 'animate-up': activeSlideIndex === index }"
+            >
               <component
                 :is="getDashboardComponent(index)"
                 :stats="stats"
@@ -183,7 +223,7 @@
   }
 
   export default defineComponent({
-    name: 'CompendiumSplash',
+    name: 'CompendiumDashboard',
     mixins: [Ionic],
     components: {
       Swiper,
@@ -603,7 +643,7 @@
 <style lang="scss" scoped>
   .ion-page {
     transition: all 0.5s ease;
-    
+
     ion-content {
       .slideshow-container {
         position: relative;
@@ -631,14 +671,15 @@
         margin-bottom: 60px;
         z-index: 1000;
         --color: var(--eb-color-pale-yellow);
-        
+
         &[horizontal="start"] {
           margin-left: 16px;
         }
+
         &[horizontal="end"] {
           margin-right: 16px;
         }
-        
+
         ion-fab-button {
           --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
           --border-color: rgba(255, 255, 255, 0.2);
@@ -668,7 +709,7 @@
         gap: 12px;
         width: 100%;
         pointer-events: auto;
-        
+
         :deep(.swiper-pagination-bullet) {
           width: 10px;
           height: 10px;
@@ -685,7 +726,7 @@
           background: var(--eb-color-pale-yellow);
           transform: rotate(45deg) scale(1.6);
           border-radius: 1px;
-          box-shadow: 
+          box-shadow:
             0 0 15px var(--eb-color-pale-yellow),
             0 0 5px rgba(255, 255, 255, 0.8);
           border-color: #fff;
@@ -703,12 +744,12 @@
   }
 
   .icon-wrapper {
-    background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, transparent 70%);
     padding: 16px;
     border-radius: 50%;
-    
+
     i {
-      filter: drop-shadow(0 0 12px rgba(255,255,255,0.25));
+      filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.25));
     }
   }
 
@@ -722,7 +763,7 @@
     height: 50px;
     width: 80%;
     box-shadow: 0 4px 15px rgba(var(--ion-color-success-rgb), 0.3);
-    
+
     &:hover {
       --box-shadow: 0 6px 20px rgba(var(--ion-color-success-rgb), 0.4);
     }
@@ -734,7 +775,7 @@
     opacity: 0;
     transform: scale(0.9) translateY(20px);
     transition: all 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-    
+
     &.animate-in {
       opacity: 1;
       transform: scale(1) translateY(0);
@@ -747,19 +788,41 @@
     transition: all 0.6s ease-out;
     transition-delay: 0.2s;
     display: flex;
+
     &.animate-up {
       opacity: 1;
       transform: translateY(0);
     }
   }
 
-  .xp-icon { color: var(--ion-color-success); }
-  .gp-icon { color: var(--ion-color-warning); }
-  .ap-icon { color: var(--ion-color-tertiary); }
-  .character-stats-icon { color: var(--ion-color-danger); }
-  .beast-icon { color: var(--ion-color-danger-shade); }
-  .temple-icon { color: var(--ion-color-secondary); }
-  .shop-icon { color: #e599f7; text-shadow: 0 0 10px rgba(190, 75, 219, 0.6); }
+  .xp-icon {
+    color: var(--ion-color-success);
+  }
+
+  .gp-icon {
+    color: var(--ion-color-warning);
+  }
+
+  .ap-icon {
+    color: var(--ion-color-tertiary);
+  }
+
+  .character-stats-icon {
+    color: var(--ion-color-danger);
+  }
+
+  .beast-icon {
+    color: var(--ion-color-danger-shade);
+  }
+
+  .temple-icon {
+    color: var(--ion-color-secondary);
+  }
+
+  .shop-icon {
+    color: #e599f7;
+    text-shadow: 0 0 10px rgba(190, 75, 219, 0.6);
+  }
 
   /* GameMaster Title Specific Animation */
   .gamemaster-title-animate {
@@ -772,6 +835,7 @@
       transform: translateY(-200px);
       opacity: 0;
     }
+
     100% {
       transform: translateY(0);
       opacity: 1;

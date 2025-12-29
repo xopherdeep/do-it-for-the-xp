@@ -29,7 +29,6 @@ import {
   IonRow,
   IonSearchbar,
   IonToolbar,
-  IonicSlides
 } from "@ionic/vue";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import {
@@ -260,7 +259,6 @@ export default defineComponent({
     async loadBeastById(beastId: string) {
       try {
         if (!this.bestiaryService) {
-          console.error('Bestiary service not initialized');
           return;
         }
 
@@ -275,8 +273,8 @@ export default defineComponent({
             this.initBattle();
           }, 1000);
         }
-      } catch (error) {
-        console.error('Error loading beast:', error);
+      } catch {
+        // Error loading beast
       }
     },
 
@@ -385,7 +383,6 @@ export default defineComponent({
         }
       } else {
         // Fallback to original implementation if service not available
-        console.warn('Battle service not initialized, using legacy battle handler');
         this.handleBattleActionLegacy(action);
       }
     },
@@ -393,7 +390,6 @@ export default defineComponent({
     // Legacy battle action handler (fallback if service not available)
     handleBattleActionLegacy(action) {
       // Original battle action handling code...
-      console.warn(`Using legacy battle handling for action: ${action}`);
 
       // Only process actions if it's the player's turn
       if (!this.isPlayerTurn) {
@@ -425,7 +421,7 @@ export default defineComponent({
           this.endPlayerTurn();
           break;
         default:
-          console.warn(`Unhandled battle action in legacy mode: ${action}`);
+          // Unhandled action
       }
     },
 
@@ -481,7 +477,6 @@ export default defineComponent({
     async loadSampleBeast() {
       try {
         if (!this.bestiaryService) {
-          console.error('Bestiary service not initialized');
           return;
         }
 
@@ -501,8 +496,7 @@ export default defineComponent({
           // If no beasts are found, create a sample enemy
           this.createSampleEnemy();
         }
-      } catch (error) {
-        console.error('Error loading beasts:', error);
+      } catch {
         // Fallback to sample enemy
         this.createSampleEnemy();
       }
@@ -896,7 +890,6 @@ export default defineComponent({
 
       // Check if we're even able to set bg styles
       if (!this.$refs.page && !document.querySelector('.battle-bg')) {
-        console.warn('No suitable element found to set background styles');
         this.enterBattle(); // Just try to enter battle directly
         return;
       }
@@ -1052,17 +1045,6 @@ export default defineComponent({
       }
     },
 
-    getImgObj(media_id) {
-      if (media_id) {
-        return {
-          src: `//${window.location.host}/temp/placeholder.png`
-        }
-      }
-
-      return {
-        src: `//${window.location.host}/temp/placeholder.png`
-      };
-    },
 
     // Initialize battle services
     initBattleServices() {
@@ -1237,9 +1219,7 @@ export default defineComponent({
               });
             }, 500);
           })
-          .catch(error => {
-            console.error("Error during victory animation:", error);
-
+          .catch(() => {
             // Fallback in case of error
             this.battleMessage = `Victory! ${this.currentEnemy?.name || 'Enemy'} was defeated!`;
 

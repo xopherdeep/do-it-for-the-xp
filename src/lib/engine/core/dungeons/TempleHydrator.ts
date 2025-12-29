@@ -48,6 +48,15 @@ export class TempleHydrator {
                 lockOnEnter: isHard
               } 
             };
+          } else if (/^[A-Za-z]\d{4}$/.test(token)) {
+            // Coordinate-based token (TXXYY)
+            const prefix = token.charAt(0);
+            const prefixMap: Record<string, string> = {
+              'M': 'monster', 'B': 'boss', 'm': 'miniboss', 'L': 'loot', '$': 'loot',
+              'S': 'shop', 'H': 'health', 'A': 'mana', 'K': 'key', 'T': 'teleport',
+              'P': 'puzzle', 'X': 'trap', 'V': 'savepoint', 'U': 'stairs_up', 'D': 'stairs_down'
+            };
+            config = { type: prefixMap[prefix] || 'empty' };
           } else if (isLockedDoorToken(token)) {
             // D[KeyID][Direction] e.g. D1_N
             const keyIdNum = token.substring(1, 2);

@@ -16,7 +16,7 @@ import { TempleSystem } from "@/lib/engine/core/dungeons/TempleSystem";
 import { ROOM_ICONS } from "@/lib/engine/dungeons/roomTypes";
 import debug from "@/lib/utils/debug";
 import { VOID as ROOM_VOID } from "@/lib/engine/dungeons/roomTypes";
-import { isWallToken } from "@/lib/engine/dungeons/SpatialPalette";
+import { isWallToken, isMonsterToken, isLootToken, isTeleportToken, isKeyToken } from "@/lib/engine/dungeons/SpatialPalette";
 import { toastController } from "@ionic/vue";
 import { saveOutline } from 'ionicons/icons';
 import { useTempleCreatorStore } from "@/lib/store/stores/temple-creator";
@@ -105,7 +105,15 @@ export function useTempleData(templeId: string) {
   });
 
   const isRoom = (cell: string) => {
-    return cell && !isWallToken(cell) && cell !== ROOM_VOID;
+    if (!cell || isWallToken(cell) || cell === ROOM_VOID) return false;
+    // Entrance is always a room
+    if (cell === '_00_' || cell === 'EXIT') return true;
+    // Match any 5-character coordinate token (TXXYY format) or legacy R000
+    return /^[A-Za-z]\d{4}$/.test(cell) || /^[R]\d{3}$/.test(cell) || 
+           isMonsterToken(cell) || 
+           isLootToken(cell) || 
+           isTeleportToken(cell) ||
+           isKeyToken(cell);
   };
 
   // Sync dungeonLayout with creatorStore when it changes
@@ -414,55 +422,107 @@ export function useTempleData(templeId: string) {
       // Basic validation
       if (!parsedData.id) throw new Error('Invalid JSON: templeId is required');
 
-      // Normalization: Enforce 4-character tokens for maze layout
-      const normalizeToken = (token: string): string => {
-        // Regex matchers for dynamic tokens
-        // Loot: $000-$999 (Legacy: $, $XP$, $GP$, ITEM, O -> $001)
-        if (/^\$\d{3}$/.test(token)) return token; // Valid $XXX
-        if (['$', '$GP$', '$XP$', 'ITEM', 'O'].includes(token)) return '$001';
+      // Normalization: Enforce coordinate-based or standard tokens for maze layout
+      const tokenMapping = new Map<string, string>();
+      const normalizeToken = (token: string, rowIdx?: number, colIdx?: number): string => {
+        // 1. Preserve specialized tokens that already match the 5-char coordinate format
+        if (/^[A-Za-z]\d{4}$/.test(token)) return token;
 
-        // Monsters: M000-M999 (Legacy: M, S, s -> M001/M002)
-        if (/^M\d{3}$/.test(token)) return token; // Valid MXXX
-        if (token === 'M' || token === 'S') return 'M001';
-        if (token === 's') return 'M002'; // Historically hard/med
+        let result = token;
 
-        // Keys: K000-K999 (Legacy: k -> K001)
-        if (/^K\d{3}$/.test(token)) return token; // Valid KXXX
-        if (token === 'k') return 'K001';
+        // 2. Map legacy/short tokens to standard formats
+        if (['____', '_', 'WALL'].includes(token)) {
+          result = '____';
+        } else if (token === '_00_' || token === 'EXIT') {
+          result = '_00_';
+        } else if (/^[L$]\d{2,4}$/.test(token)) {
+          // Loot
+          result = token.startsWith('$') ? token.replace('$', 'L') : token;
+        } else if (/^[MmB]\d{2,4}$/.test(token)) {
+          // Monsters
+          result = token;
+        } else if (/^K\d{2,4}$/.test(token)) {
+          // Keys
+          result = token;
+        } else if (/^T\d{2,4}$/.test(token)) {
+          // Teleporters
+          result = token;
+        } else if (/^[HVAPXUDS]\d{4}$/.test(token)) {
+          // Other 5-char dynamic tokens
+          result = token;
+        } else {
+          // 3. Static Mapping for single characters
+          const mapping: Record<string, string> = {
+            'H': 'HEAL', 'M': 'MANA', 'V': 'SAVE', 
+            'K': 'MKEY', 'MSTK': 'MKEY',
+            'P': 'SHOP', 'T': 'TRAP', 
+            'Z': 'PUZL', 'v': 'PIT_', '.': 'R000', 'U': 'ST_U', 'D': 'ST_D',
+            '?': 'SCRT', 'C': 'CAMP', '0': 'R000',
+            'COMP': 'COMP', '$MAP': '$MAP'
+          };
+          result = mapping[token] || (
+            // Last resort: If 4 or 5 chars, keep it. Otherwise map to Wall (____)
+            (token.length === 4 || token.length === 5) ? token : '____'
+          );
+        }
 
-        // Teleporters: T000-T999 (Legacy: Y -> T001)
-        if (/^T\d{3}$/.test(token)) return token; // Valid TXXX
-        if (token === 'Y') return 'T001';
+        // 4. Force migrate R-style or legacy tokens to coordinate format if possible (Standardization)
+        // This ensures the current maze matches the TXXYY format we are moving towards.
+        if ((result.startsWith('R') || result.length === 4) && rowIdx !== undefined && colIdx !== undefined && result !== '____' && result !== '_00_') {
+          const type = parsedData.dungeonLayout?.rooms?.[result]?.type || 'empty';
+          const typePrefixes: Record<string, string> = {
+            monster: 'M', boss: 'B', miniboss: 'm', loot: 'L', shop: 'S',
+            health: 'H', mana: 'A', key: 'K', teleport: 'T', puzzle: 'P',
+            trap: 'X', savepoint: 'V', stairs_up: 'U', stairs_down: 'D', empty: 'R'
+          };
+          const prefix = typePrefixes[type] || 'R';
+          const xx = colIdx.toString().padStart(2, '0');
+          const yy = rowIdx.toString().padStart(2, '0');
+          const coordToken = prefix + xx + yy;
+          
+          if (coordToken !== result) {
+            tokenMapping.set(result, coordToken);
+            result = coordToken;
+          }
+        }
 
-        // Legacy & Static Mapping
-        const mapping: Record<string, string> = {
-          '_': '____', 'WALL': '____', 'E': 'EXIT', 'B': 'BOSS', 'b': 'MINI',
-          'H': 'HEAL', 'M': 'MANA', 'V': 'SAVE', 
-          'K': 'MKEY', 'MSTK': 'MKEY',
-          'P': 'SHOP', 'T': 'TRAP', 
-          'Z': 'PUZL', 'v': 'PIT_', '.': 'R000', 'U': 'ST_U', 'D': 'ST_D',
-          '?': 'SCRT', 'C': 'CAMP', '0': 'R000',
-          'COMP': 'COMP', '$MAP': '$MAP'
-        };
-        
-        return mapping[token] || (
-          // Last resort: If 4 chars, keep it. If 1 char, map to Wall (____)
-          // Also handle existing valid tokens like R000, EXIT, etc.
-          token.length === 4 ? token : '____'
-        );
+        return result;
       };
 
       if (parsedData.dungeonLayout?.maze) {
         const maze = parsedData.dungeonLayout.maze;
         if (Array.isArray(maze)) {
           // Single floor maze
-          parsedData.dungeonLayout.maze = maze.map((row: string[]) => row.map(normalizeToken));
+          parsedData.dungeonLayout.maze = maze.map((row: string[], rIdx: number) => 
+            row.map((token: string, cIdx: number) => normalizeToken(token, rIdx, cIdx))
+          );
         } else {
           // Multi-floor maze
           Object.keys(maze).forEach(floorId => {
-            maze[floorId] = maze[floorId].map((row: string[]) => row.map(normalizeToken));
+            maze[floorId] = maze[floorId].map((row: string[], rIdx: number) => 
+              row.map((token: string, cIdx: number) => normalizeToken(token, rIdx, cIdx))
+            );
           });
         }
+      }
+
+      // 5. IMPORTANT: Synchronize the rooms object keys with the new maze tokens
+      if (parsedData.dungeonLayout?.rooms && tokenMapping.size > 0) {
+        const oldRooms = parsedData.dungeonLayout.rooms;
+        const newRooms: Record<string, any> = {};
+        
+        // Transfer all room definitions, renaming those redirected by normalizeToken
+        Object.entries(oldRooms).forEach(([key, room]) => {
+          const newKey = tokenMapping.get(key) || key;
+          // If multiple old keys map to the same new key (unlikely but possible), 
+          // we keep the first one or merge. Usually it's unique.
+          if (!newRooms[newKey]) {
+            newRooms[newKey] = room;
+          }
+        });
+        
+        parsedData.dungeonLayout.rooms = newRooms;
+        debug.log(`Normalized ${tokenMapping.size} room tokens in layout import.`);
       }
 
       // Update local state

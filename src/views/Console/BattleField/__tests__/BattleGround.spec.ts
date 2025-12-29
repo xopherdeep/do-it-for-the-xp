@@ -4,7 +4,6 @@ import BattleField from '../BattleField.vue';
 import { createBattleroomTestUtils } from '@/lib/utils/battleroom';
 import { useBattleStore } from '@/lib/store/stores/battle';
 import { useGameStore } from '@/lib/store/stores/game';
-import { useUserStore } from '@/lib/store/stores/user';
 
 describe('BattleField.vue', () => {
   let pinia;

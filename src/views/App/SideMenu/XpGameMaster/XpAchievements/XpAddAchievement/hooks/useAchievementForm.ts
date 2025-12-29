@@ -478,8 +478,8 @@ export function useAchievementForm() {
       await achievementDb.setTask(achievement.value);
       lastSavedState.value = currentState;
       // Optional: show subtle indicator
-    } catch (e) {
-      console.error("Autosave failed", e);
+    } catch {
+      // Autosave failed - silently ignore or handle error
     } finally {
       saving.value = false;
     }

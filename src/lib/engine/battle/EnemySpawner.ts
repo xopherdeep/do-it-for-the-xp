@@ -113,7 +113,7 @@ function checkAndSpawn(beasts: Beast[]): SpawnedEnemy[] {
       const spawned: SpawnedEnemy = {
         beast,
         spawnedAt: now,
-        dueAt: calculateDueTime(now, beast.spawn),
+        dueAt: calculateDueTime(now),
         isOverdue: false,
         hasAttackedPlayer: false,
       };
@@ -129,7 +129,7 @@ function checkAndSpawn(beasts: Beast[]): SpawnedEnemy[] {
 /**
  * Calculate when the enemy becomes overdue
  */
-function calculateDueTime(spawnTime: Date, schedule: SpawnSchedule): Date {
+function calculateDueTime(spawnTime: Date): Date {
   const due = new Date(spawnTime);
   
   // Default: 2 hours to complete

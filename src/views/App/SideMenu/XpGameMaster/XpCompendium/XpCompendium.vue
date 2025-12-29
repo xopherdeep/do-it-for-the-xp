@@ -11,52 +11,44 @@
       <ion-tab-bar slot="bottom">
         <ion-tab-button
           tab="bestiary"
-          :href="router.resolve({ name: 'xp-bestiary' }).href"
+          href="/game-master/compendium/setup/bestiary"
           :selected="route.path.includes('/game-master/compendium/setup/bestiary')"
         >
           <i class="fad fa-hand-holding-heart fa-2x" />
           Bestiary
-          <!-- (HP) -->
         </ion-tab-button>
-
         <ion-tab-button
           tab="abilities"
-          :href="router.resolve({ name: 'xp-abilities' }).href"
+          href="/game-master/compendium/setup/abilities"
           :selected="route.path.includes('/game-master/compendium/setup/abilities')"
         >
           <i class="fad fa-hand-holding-magic fa-2x" />
           Powers
-          <!-- (AP) -->
         </ion-tab-button>
         <ion-tab-button
           tab="temples"
-          :href="router.resolve({ name: 'xp-compendium-temples' }).href"
+          href="/game-master/compendium/setup/temples"
           :selected="route.path.includes('/game-master/compendium/setup/temples')"
         >
           <i class="fad fa-hand-holding-water fa-2x" />
           Temples
         </ion-tab-button>
-
         <ion-tab-button
           tab="economy"
-          :href="router.resolve({ name: 'xp-economy-dashboard-root' }).href"
+          href="/game-master/compendium/setup/economy"
           :selected="route.path.includes('/game-master/compendium/setup/economy')"
         >
           <i class="fad fa-hand-holding-box fa-2x" />
           Economy
-          <!-- (GP) -->
         </ion-tab-button>
         <ion-tab-button
           tab="achievements"
-          :href="router.resolve({ name: 'xp-achievements' }).href"
+          href="/game-master/compendium/setup/achievements"
           :selected="route.path.includes('/game-master/compendium/setup/achievements')"
         >
           <i class="fad fa-hand-holding-seedling quest fa-2x" />
           Quests
-          <!-- (XP) -->
         </ion-tab-button>
-
-
       </ion-tab-bar>
     </ion-tabs>
   </ion-page>
@@ -73,12 +65,9 @@
     setup() {
       const route = useRoute();
       const router = useRouter();
-      
       return { route, router };
     },
     mounted() {
-      // If we're at the exact compendium route without a sub-route,
-      // redirect to the setup page
       if (this.route.path === '/game-master/compendium') {
         this.router.replace({ name: 'xp-compendium-setup' });
       }

@@ -10,7 +10,6 @@
 import { reactive, computed, ref } from 'vue';
 import type { 
   BattleState, 
-  BattlePhase, 
   ActiveEnemy, 
   Beast,
   PlayerStats,
@@ -226,12 +225,6 @@ function triggerEnemyTurn(): void {
   }, 1500);
 }
 
-/**
- * Calculate enemy damage
- */
-function calculateEnemyDamage(enemy: ActiveEnemy): number {
-  return enemy.beast.attackPower || 5;
-}
 
 /**
  * Complete a checklist item (Attack action)

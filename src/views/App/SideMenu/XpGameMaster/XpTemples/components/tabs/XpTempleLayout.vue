@@ -1,5 +1,23 @@
 <template>
   <ion-page class="xp-temple-layout">
+    <!-- Temple Header with Controls -->
+    <xp-temple-creator-header
+      v-if="!showPreview"
+      v-model:gridSize="gridSize"
+      v-model:currentLevelId="currentLevelId"
+      :temple-id="templeId"
+      :temple-name="templeName"
+      :temple-icon="templeIcon"
+      :entrance-display="entranceDisplay"
+      :show-preview="showPreview"
+      :floors="floors"
+      @resize="resizeGrid"
+      @toggle-preview="showPreview = !showPreview"
+      @save="saveTemple"
+      @floor-change="setLevel"
+      @add-floor="addFloor"
+      @remove-floor="removeFloor"
+    />
     <ion-content
       class="transparent-content"
       :fullscreen="true"
@@ -9,24 +27,7 @@
         v-if="hasLayout && !isLoading"
         class="editor-wrapper"
       >
-        <!-- Temple Header with Controls -->
-        <xp-temple-creator-header
-          v-if="!showPreview"
-          v-model:gridSize="gridSize"
-          v-model:currentLevelId="currentLevelId"
-          :temple-id="templeId"
-          :temple-name="templeName"
-          :temple-icon="templeIcon"
-          :entrance-display="entranceDisplay"
-          :show-preview="showPreview"
-          :floors="floors"
-          @resize="resizeGrid"
-          @toggle-preview="showPreview = !showPreview"
-          @save="saveTemple"
-          @floor-change="setLevel"
-          @add-floor="addFloor"
-          @remove-floor="removeFloor"
-        />
+
 
         <!-- Preview Mode -->
         <div
@@ -76,19 +77,77 @@
           </ion-card>
         </div>
 
+        <!-- Maze Configuration View -->
+        <div
+          v-if="showMazeConfig"
+          class="tab-content w-full max-w-4xl"
+        >
+          <ion-card class="maze-config-card">
+            <ion-card-header>
+              <div class="flex justify-between items-center">
+                <div>
+                  <ion-card-title>Maze Configuration</ion-card-title>
+                  <ion-card-subtitle>Active room tokens and their definitions</ion-card-subtitle>
+                </div>
+                <ion-button
+                  fill="clear"
+                  @click="showMazeConfig = false"
+                >
+                  <i class="fas fa-times"></i>
+                  Close
+                </ion-button>
+              </div>
+            </ion-card-header>
+            <ion-card-content>
+              <div class="config-grid">
+                <div
+                  v-for="room in uniqueRooms"
+                  :key="room.key"
+                  class="config-item glass-panel"
+                  @click="focusRoom(room.key)"
+                >
+                  <div class="token-badge">{{ room.key }}</div>
+                  <div class="room-info">
+                    <div class="type-row">
+                      <i :class="['fas', getRoomTypeIcon(room.type), 'mr-2']"></i>
+                      <span class="capitalize">{{ room.type }}</span>
+                    </div>
+                    <div class="content-preview text-xs opacity-60">
+                      {{ formatRoomContent(room) }}
+                    </div>
+                  </div>
+                  <div class="action-arrow">
+                    <i class="fas fa-chevron-right"></i>
+                  </div>
+                </div>
+              </div>
+              <div
+                v-if="uniqueRooms.length === 0"
+                class="empty-config p-8 text-center opacity-50"
+              >
+                No active rooms configured in this maze yet.
+              </div>
+            </ion-card-content>
+          </ion-card>
+        </div>
+
         <!-- Grid Editor -->
-        <xp-temple-creator-grid
+        <div
           v-else
-          :maze="currentMazeSlice"
-          :rooms-data="roomsData"
-          :room-icons="dynamicRoomIcons"
-          :side-type-info="SIDE_TYPE_INFO"
-          :selected-cell="selectedCell"
-          :entrance-position="entrancePosition"
-          :current-level-id="currentLevelId"
-          @cell-click="onCellClick"
-          @cell-contextmenu="({ row, col, event }) => showQuickEditPopover(event, row, col)"
-        />
+          class="grid-wrapper"
+        >
+          <xp-temple-creator-grid
+            :maze="currentMazeSlice"
+            :rooms-data="roomsData"
+            :room-icons="dynamicRoomIcons"
+            :side-type-info="SIDE_TYPE_INFO"
+            :selected-cell="selectedCell"
+            :entrance-position="entrancePosition"
+            :current-level-id="currentLevelId"
+            @cell-click="onCellClick"
+            @cell-contextmenu="({ row, col, event }) => showQuickEditPopover(event, row, col)"
+          />
+        </div>
       </div>
 
       <!-- Empty State: Show when no layout exists -->
@@ -136,8 +195,18 @@
           color="danger"
           @click="resetFloor"
           size="small"
+          title="Clear Current Floor"
         >
           <i class="fal fa-trash-alt"></i>
+        </ion-fab-button>
+        <ion-fab-button
+          color="warning"
+          @click="resetTempleToDefault"
+          size="small"
+          class="mt-2"
+          title="Reset Temple to Factory Defaults"
+        >
+          <i class="fal fa-history"></i>
         </ion-fab-button>
       </ion-fab>
 
@@ -210,6 +279,23 @@
           size="small"
         >
           <i class="fad fa-brackets-curly"></i>
+        </ion-fab-button>
+      </ion-fab>
+
+      <!-- Maze Config Trigger FAB -->
+      <ion-fab
+        v-if="hasLayout && !isLoading"
+        vertical="bottom"
+        horizontal="start"
+        slot="fixed"
+        class="ml-12 mb-4"
+      >
+        <ion-fab-button
+          color="secondary"
+          @click="showMazeConfig = !showMazeConfig"
+          size="small"
+        >
+          <i class="fad fa-list-ul"></i>
         </ion-fab-button>
       </ion-fab>
 
@@ -290,7 +376,9 @@
     <xp-temple-creator-popovers
       v-model="quickEditState"
       :room-icons="ROOM_ICONS"
+      :dungeon-items="dungeonItems"
       @apply-type="applyQuickType"
+      @apply-content="({ roomType, content, sides }) => applyRoomChanges(roomType, content, sides)"
       @clear="clearCellFromQuickEdit"
     />
   </ion-page>
@@ -335,6 +423,7 @@ export default defineComponent({
     // Inject templeData for JSON editor
     const templeData = inject(TempleDataInjectionKey, null);
     const isJsonEditorOpen = ref(false);
+    const showMazeConfig = ref(false);
 
     // Initialize on mount
     onMounted(() => {
@@ -380,6 +469,21 @@ export default defineComponent({
           creator.loadTempleLayout();
         }
       }
+    };
+
+    const formatRoomContent = (room: any) => {
+      if (!room.content) return 'Standard room';
+      if (room.type === 'monster') return `${room.content.difficulty || 'Normal'} difficulty`;
+      if (room.type === 'loot') return room.content.chest === 'treasure' ? 'Treasure Chest' : 'Gold/Items';
+      if (room.type === 'shop') return 'Active Shop';
+      return 'Custom config';
+    };
+
+    const focusRoom = (token: string) => {
+      // Find where this token exists in the maze and navigate to it?
+      // For now, just close the config view and tell user we focused it
+      showMazeConfig.value = false;
+      creator.showToast(`Selected room ${token}`);
     };
 
     return {
@@ -428,18 +532,26 @@ export default defineComponent({
       onCellClick: creator.onCellClick,
       showQuickEditPopover,
       applyQuickType: creator.applyQuickType,
+      applyRoomChanges: creator.applyRoomChanges,
       clearCellFromQuickEdit: creator.clearCellFromQuickEdit,
+      getRoomTypeIcon: (type: string) => (creator.ROOM_ICONS as any)[type] || 'fa-square',
       
       // Save/Load
       saveTemple: creator.saveTemple,
       copyToClipboard: creator.copyToClipboard,
       resetFloor: creator.resetFloor,
+      resetTempleToDefault: creator.resetTempleToDefault,
       initializeNewLayout,
+      dungeonItems: creator.dungeonItems,
       
       // JSON Editor
       templeData,
       isJsonEditorOpen,
       handleJsonApply,
+      showMazeConfig,
+      formatRoomContent,
+      focusRoom,
+      uniqueRooms: creator.uniqueRooms,
       
       // Icons
       gridOutline
@@ -460,10 +572,18 @@ export default defineComponent({
   .editor-wrapper {
     display: flex;
     flex-direction: column;
-    align-items: center;
+    height: 100%;
     min-height: 100%;
+  }
+
+  .grid-wrapper {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     padding: 16px;
     padding-bottom: 120px; // Space for FABs
+    min-height: 0;
   }
 
   .loading-overlay {
@@ -729,5 +849,78 @@ export default defineComponent({
     &:hover span {
       color: var(--ion-color-primary);
     }
+  }
+
+  /* Maze Config Styles */
+  .maze-config-card {
+    background: rgba(25, 27, 46, 0.85);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    margin: 16px;
+
+    ion-card-title {
+      font-family: var(--xp-font-heading);
+      font-size: 1.4rem;
+      color: #fff;
+    }
+  }
+
+  .config-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 12px;
+    margin-top: 16px;
+  }
+
+  .config-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+
+    &:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-2px);
+      border-color: var(--ion-color-secondary);
+    }
+
+    .token-badge {
+      font-family: "StatusPlz";
+      font-size: 0.75rem;
+      background: var(--ion-color-secondary);
+      color: #000;
+      padding: 4px 8px;
+      border-radius: 6px;
+      min-width: 50px;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .room-info {
+      flex: 1;
+
+      .type-row {
+        display: flex;
+        align-items: center;
+        font-family: var(--xp-font-heading);
+        font-size: 0.9rem;
+        color: rgba(255, 255, 255, 0.9);
+      }
+    }
+
+    .action-arrow {
+      opacity: 0.3;
+      font-size: 0.8rem;
+    }
+  }
+
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 12px;
+    backdrop-filter: blur(5px);
   }
 </style>
