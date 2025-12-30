@@ -13,9 +13,10 @@ import {
   thumbsUpSharp,
   createOutline,
   compassOutline,
+  listOutline,
 } from "ionicons/icons";
 
-import { ACHIEVEMENT_TYPE_ICONS } from "@/constants";
+import { ACHIEVEMENT_TYPE_ICONS, LORE_COMBO_MATRIX } from "@/constants";
 
 import AchievementDb, {
   achievementStorage,
@@ -24,6 +25,7 @@ import AchievementDb, {
   AchievementCategoryDb,
   AchievementCategoryInterface,
 } from "@/lib/databases/AchievementDb";
+import BestiaryDb, { beastStorage, Beast } from "@/lib/databases/BestiaryDb";
 
 import XpAchievementItem from "./XpConfigAchievement/components/XpAchievementItem.vue";
 import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
@@ -178,8 +180,12 @@ export default defineComponent({
 
     async loadAchievements() {
       this.isLoading = true;
-      const achievements = await this.achievementDb.getTasks();
+      const [achievements, beasts] = await Promise.all([
+        this.achievementDb.getTasks(),
+        this.bestiaryDb.getAll(),
+      ]);
       this.setAchievements(achievements);
+      (this as any).beasts = beasts;
     },
 
     setAchievements(achievements: Achievement[]) {
@@ -289,6 +295,14 @@ export default defineComponent({
             },
           },
           {
+            text: "Bulk Import",
+            icon: listOutline,
+            cssClass: "action-bulk-import",
+            handler: () => {
+              this.clickBulkImport();
+            },
+          },
+          {
             text: "Cancel",
             role: "cancel",
             cssClass: "action-cancel",
@@ -301,10 +315,106 @@ export default defineComponent({
       await actionSheet.present();
     },
 
-    getAchievementTypeIcon(type: string) {
-      const icon =
-        ACHIEVEMENT_TYPE_ICONS[type as keyof typeof ACHIEVEMENT_TYPE_ICONS];
-      return `fad ${icon || "fa-scroll"} fa-3x`;
+    getAchievementTypeIcon(achievement: Achievement) {
+      const assignment = achievement.type || "asNeeded";
+      const depth = achievement.adventureType || "simple";
+      const combo = LORE_COMBO_MATRIX[assignment]?.[depth] || {
+        icon: "fa-scroll",
+      };
+      return `fad ${combo.icon} fa-3x`;
+    },
+
+    getBeastAvatar(achievement: Achievement) {
+      const beast = (this as any).beasts?.find(
+        (b) => b.id === achievement.beastId
+      );
+      if (!beast) return null;
+      if (beast.imageUrl) return beast.imageUrl;
+      if (beast.localImage) return beast.localImage;
+      if (beast.avatar) {
+        try {
+          const pad = beast.avatar.toString().padStart(3, "0");
+          return new URL(`/src/assets/images/beasts/${pad}.png`, import.meta.url)
+            .href;
+        } catch {
+          return null;
+        }
+      }
+      return null;
+    },
+
+    async clickBulkImport() {
+      const alert = await alertController.create({
+        header: "Bulk Import Quests",
+        subHeader: "Enter one quest title per line",
+        message: "Each line will be imported as a basic quest with default settings.",
+        mode: "ios",
+        cssClass: "bulk-import-alert",
+        inputs: [
+          {
+            name: "questList",
+            type: "textarea",
+            placeholder: `Clean the kitchen
+Take out trash
+Wash dishes
+Vacuum living room
+Feed the pets`,
+            attributes: {
+              rows: 10,
+            },
+          },
+        ],
+        buttons: [
+          {
+            text: "Cancel",
+            role: "cancel",
+          },
+          {
+            text: "Import",
+            handler: async (data) => {
+              await this.processBulkImport(data.questList);
+            },
+          },
+        ],
+      });
+      await alert.present();
+    },
+
+    async processBulkImport(questList: string) {
+      if (!questList || !questList.trim()) {
+        return;
+      }
+
+      const lines = questList
+        .split("\n")
+        .map((line) => line.trim())
+        .filter((line) => line.length > 0);
+
+      if (lines.length === 0) {
+        return;
+      }
+
+      const { achievementDb, loadAchievements } = this as any;
+
+      for (const questTitle of lines) {
+        const newQuest = {
+          ...AchievementDb.getDefault(),
+          achievementName: questTitle,
+        };
+        await achievementDb.setTask(newQuest);
+      }
+
+      // Reload the achievements list
+      await loadAchievements();
+
+      // Show success toast
+      const successAlert = await alertController.create({
+        header: "Import Complete!",
+        message: `Successfully imported ${lines.length} quest${lines.length !== 1 ? "s" : ""}.`,
+        mode: "ios",
+        buttons: ["OK"],
+      });
+      await successAlert.present();
     },
   },
   mounted() {
@@ -322,7 +432,9 @@ export default defineComponent({
     const groupBy = ref("category");
     const achievementDb = new AchievementDb(achievementStorage);
     const categoryDb = new AchievementCategoryDb(achievementCategoryStorage);
+    const bestiaryDb = new BestiaryDb(beastStorage);
     const categories = ref([] as AchievementCategoryInterface[]);
+    const beasts = ref([] as Beast[]);
 
     const sortCategoryByName = (a, b) => {
       const nameA = a.name.toLowerCase();
@@ -372,6 +484,8 @@ export default defineComponent({
       sortCategoryByName,
       thumbsUpOutline,
       thumbsUpSharp,
+      bestiaryDb,
+      beasts,
     };
   },
 });

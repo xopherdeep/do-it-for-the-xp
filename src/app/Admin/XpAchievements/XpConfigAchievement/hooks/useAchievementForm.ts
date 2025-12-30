@@ -21,6 +21,7 @@ import {
   DIFFICULTY_ICONS,
   ACHIEVEMENT_TYPE_ICONS,
   BASIC_SCHEDULE_ICONS,
+  LORE_COMBO_MATRIX,
 } from "@/constants";
 import XpReorderAchievementsModal from "../components/XpReorderAchievementsModal.vue";
 
@@ -179,103 +180,12 @@ export function useAchievementForm() {
     },
   ];
 
-  // Lore Combo Matrix - combines Assignment + Depth into thematic quest names
-  const loreComboMatrix: Record<
-    string,
-    Record<string, { name: string; icon: string; tagline: string }>
-  > = {
-    asNeeded: {
-      simple: {
-        name: "Public Bounty",
-        icon: "fa-scroll",
-        tagline: "A simple favor for the local townsfolk",
-      },
-      beast: {
-        name: "Monster Hunt",
-        icon: "fa-skull-crossbones",
-        tagline: "The cryptid is back! Wanted: Dead not Alive",
-      },
-      chain: {
-        name: "Guild Campaign",
-        icon: "fa-map-marked-alt",
-        tagline: "A multi-stage expedition for the guild",
-      },
-    },
-    individual: {
-      simple: {
-        name: "Han Solo",
-        icon: "fa-user-astronaut",
-        tagline: "A lone hero on a simple errand",
-      },
-      beast: {
-        name: "Vendetta",
-        icon: "fa-swords",
-        tagline: "Face the beast alone in single combat",
-      },
-      chain: {
-        name: "Personal Saga",
-        icon: "fa-route",
-        tagline: "An epic personal journey across the realms",
-      },
-    },
-    collaborate: {
-      simple: {
-        name: "Party Event",
-        icon: "fa-users",
-        tagline: "The whole party helps a neighbor",
-      },
-      beast: {
-        name: "Boss Raid",
-        icon: "fa-dragon",
-        tagline: "Unite the guild to slay the behemoth!",
-      },
-      chain: {
-        name: "Epic Saga",
-        icon: "fa-dungeon",
-        tagline: "A legendary multi-chapter tale for the party",
-      },
-    },
-    rotate: {
-      simple: {
-        name: "Shift Duty",
-        icon: "fa-sync",
-        tagline: "A cycle of mundane civic duties",
-      },
-      beast: {
-        name: "Rotating Challenge",
-        icon: "fa-crosshairs",
-        tagline: "The monster returns... who is next to fight?",
-      },
-      chain: {
-        name: "Seasonal Arc",
-        icon: "fa-calendar-alt",
-        tagline: "A recurring adventure for the rotating heroes",
-      },
-    },
-    compete: {
-      simple: {
-        name: "Time Trial",
-        icon: "fa-rabbit-fast",
-        tagline: "Race to finish the NPC errand first!",
-      },
-      beast: {
-        name: "Arena Battle",
-        icon: "fa-trophy",
-        tagline: "Last hero standing against the beast wins",
-      },
-      chain: {
-        name: "Tournament",
-        icon: "fa-crown",
-        tagline: "A multi-round champion of champions challenge",
-      },
-    },
-  };
 
   const activeLoreCombo = computed(() => {
     const assignment = achievement.value.type || "asNeeded";
     const depth = achievement.value.adventureType || "";
     return (
-      loreComboMatrix[assignment]?.[depth] || {
+      LORE_COMBO_MATRIX[assignment]?.[depth] || {
         name: "Quest",
         icon: "fa-scroll",
         tagline: "An adventure awaits",
@@ -338,9 +248,8 @@ export function useAchievementForm() {
       return `Weekly\n${activeDays}`;
     }
     if (a.basicSchedule === "custom" || a.scheduleType === "custom") {
-      return `${a.customFrequency}x Every ${a.customPeriodNumber} ${
-        a.customPeriodType
-      }${a.customPeriodNumber > 1 ? "s" : ""}`;
+      return `${a.customFrequency}x Every ${a.customPeriodNumber} ${a.customPeriodType
+        }${a.customPeriodNumber > 1 ? "s" : ""}`;
     }
     return a.basicSchedule
       ? a.basicSchedule.charAt(0).toUpperCase() + a.basicSchedule.slice(1)
@@ -557,8 +466,8 @@ export function useAchievementForm() {
             achievement.value.adventureType = hasBeast
               ? "beast"
               : hasSub
-              ? "chain"
-              : "simple";
+                ? "chain"
+                : "simple";
           }
 
           // Set fib index
@@ -702,16 +611,27 @@ export function useAchievementForm() {
     isAssignmentSelected,
     isDepthSelected,
     activeAdventureType: computed(() => {
-      const type = achievement.value.adventureType;
-      return (
-        achievementTypes.find((t) => t.value === type) || {
-          name: "Select",
-          value: "",
-          icon: "fa-question-circle",
-          text: "Choose a quest type",
-          example: "",
-        }
-      );
+      const depth = achievement.value.adventureType;
+      const assignment = achievement.value.type || "asNeeded";
+      const combo = LORE_COMBO_MATRIX[assignment]?.[depth];
+
+      const base = achievementTypes.find((t) => t.value === depth) || {
+        name: "Select",
+        value: "",
+        icon: "fa-question-circle",
+        text: "Choose a quest type",
+        example: "",
+      };
+
+      if (combo) {
+        return {
+          ...base,
+          icon: combo.icon,
+          name: combo.name,
+        };
+      }
+
+      return base;
     }),
     activePartyType: computed(() => {
       return (
