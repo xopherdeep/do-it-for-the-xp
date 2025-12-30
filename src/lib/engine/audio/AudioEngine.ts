@@ -3,7 +3,7 @@ import debug from '@/lib/utils/debug';
 import { getCurrentInstance, reactive } from 'vue';
 import { loadAudioSettings, loadAudioTheme, saveAudioSettings, saveAudioTheme } from './storage';
 import { MediaSessionHandler } from './mediaControls';
-  import { play$fx } from "@/assets/fx"
+import { play$fx } from "@/assets/fx"
 // Import types directly instead of from module
 export type AudioCategory = 'ui' | 'music' | 'sfx' | 'ambient';
 export type ThemeType = 'ui' | 'rpg';
@@ -68,7 +68,7 @@ export class AudioEngine {
   // Keep track of the current track sequence for auto-advancing tracks
   private _currentTrackSequence: string[] = [];
   private _currentTrackIndex = 0;
-  
+
   // Reactive state for the audio system
   public state = reactive<AudioState>({
     masterVolume: 0.8,
@@ -86,16 +86,16 @@ export class AudioEngine {
     audioPermissionGranted: false,
     pendingMusicId: null
   });
-  
+
   // Private constructor for singleton pattern
   private constructor() {
     // Initialize with saved settings if available
     this.loadUserPreferences();
-    
+
     // Log that engine was created
     debug.log('AudioEngine instance created');
   }
-  
+
   /**
    * Get the singleton instance of AudioEngine
    */
@@ -106,7 +106,7 @@ export class AudioEngine {
     }
     return AudioEngine.instance;
   }
-  
+
   /**
    * Load user preferences from storage
    */
@@ -114,12 +114,12 @@ export class AudioEngine {
     // Load audio settings
     const savedSettings = loadAudioSettings();
     Object.assign(this.state, savedSettings);
-    
+
     // Load theme settings
     const savedTheme = loadAudioTheme();
     this.state.currentTheme = savedTheme;
   }
-  
+
   /**
    * Save current settings to storage
    */
@@ -133,11 +133,11 @@ export class AudioEngine {
       ambientVolume: this.state.ambientVolume,
       muted: this.state.muted
     });
-    
+
     // Save theme settings
     saveAudioTheme(this.state.currentTheme);
   }
-  
+
   /**
    * Initialize the audio engine
    * Creates AudioContext and sets up event listeners
@@ -149,17 +149,17 @@ export class AudioEngine {
     } catch (error) {
       debug.warn('Audio context initialization deferred: user interaction required', error);
     }
-    
+
     // Set up event listeners for user interaction to initialize audio
     this.setupAudioContextInitializationEvents();
-    
+
     // Initialize media session handler
     this.mediaSession = new MediaSessionHandler(this);
-    
+
     // Listen for media session events
     this.setupMediaSessionEventListeners();
   }
-  
+
   /**
    * Set up listeners for media session events
    */
@@ -168,53 +168,53 @@ export class AudioEngine {
       // Find previous track in current sequence or emit event for app to handle
       this.$emit('previousTrack');
     });
-    
+
     document.addEventListener('media-session-next-track', () => {
       // Find next track in current sequence or emit event for app to handle
       this.$emit('nextTrack');
     });
-    
+
     document.addEventListener('media-session-seek-backward', (e: Event) => {
       const customEvent = e as CustomEvent;
       const seekOffset = customEvent.detail || 10;
       this.$emit('seekBackward', seekOffset);
     });
-    
+
     document.addEventListener('media-session-seek-forward', (e: Event) => {
       const customEvent = e as CustomEvent;
       const seekOffset = customEvent.detail || 10;
       this.$emit('seekForward', seekOffset);
     });
   }
-  
+
   /**
    * Event emitter helper
    */
   private $emit(event: string, payload?: any): void {
-    document.dispatchEvent(new CustomEvent(`audio-engine:${event}`, { 
+    document.dispatchEvent(new CustomEvent(`audio-engine:${event}`, {
       detail: payload,
-      bubbles: true 
+      bubbles: true
     }));
   }
-  
+
   /**
    * Initialize the AudioContext
    * May fail if called before user interaction
    */
   private initializeAudioContext(): void {
     if (this.audioContext) return;
-    
+
     this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
     this.state.audioReady = true;
     this.state.audioPermissionGranted = this.audioContext.state !== 'suspended';
-    
+
     if (this.audioContext.state === 'suspended') {
-      debug.warn('AudioContext is suspended. Audio will not play until user interaction.');
+      // debug.warn('AudioContext is suspended. Audio will not play until user interaction.');
     } else {
       this.preloadCommonSounds();
     }
   }
-  
+
   /**
    * Set up event listeners to initialize AudioContext on user interaction
    */
@@ -223,7 +223,7 @@ export class AudioEngine {
       try {
         this.initializeAudioContext();
         this.state.audioPermissionGranted = true;
-        
+
         // Resume AudioContext if it was suspended
         if (this.audioContext && this.audioContext.state === 'suspended') {
           this.audioContext.resume().catch(err => {
@@ -234,7 +234,7 @@ export class AudioEngine {
         debug.error('Error initializing audio context:', error);
       }
     };
-    
+
     // Add event listeners for common user interactions
     const events = ['click', 'touchend', 'keydown'];
     events.forEach(eventType => {
@@ -255,20 +255,20 @@ export class AudioEngine {
     if (!this.audioContext) {
       this.initializeAudioContext();
     }
-    
+
     if (this.audioContext && this.audioContext.state === 'suspended') {
       try {
         await this.audioContext.resume();
         this.state.audioPermissionGranted = true;
         this.state.audioReady = true;
         debug.log('AudioContext resumed successfully');
-        
+
         // Check for pending music to play
         if (this.state.pendingMusicId) {
-            debug.log(`Resuming pending music: ${this.state.pendingMusicId}`);
-            const pendingId = this.state.pendingMusicId;
-            this.state.pendingMusicId = null; // Clear first to avoid loops
-            this.playMusic(pendingId);
+          debug.log(`Resuming pending music: ${this.state.pendingMusicId}`);
+          const pendingId = this.state.pendingMusicId;
+          this.state.pendingMusicId = null; // Clear first to avoid loops
+          this.playMusic(pendingId);
         }
       } catch (err) {
         debug.error('Failed to resume AudioContext manually', err);
@@ -277,7 +277,7 @@ export class AudioEngine {
       this.state.audioPermissionGranted = true;
     }
   }
-  
+
   /**
    * Preload commonly used sound effects
    */
@@ -285,7 +285,7 @@ export class AudioEngine {
     // This would be filled with common sounds from your game
     // Example: this.loadSound('click', 'path/to/click-sound.wav');
   }
-  
+
   /**
    * Load a sound effect into the cache
    * @param id Unique identifier for the sound
@@ -295,7 +295,7 @@ export class AudioEngine {
     if (this.soundCache.has(id)) {
       return this.soundCache.get(id)!;
     }
-    
+
     if (!this.audioContext) {
       try {
         this.initializeAudioContext();
@@ -304,12 +304,12 @@ export class AudioEngine {
         throw new Error('Audio context not initialized: user interaction required');
       }
     }
-    
+
     try {
       const response = await fetch(url);
       const arrayBuffer = await response.arrayBuffer();
       const audioBuffer = await this.audioContext!.decodeAudioData(arrayBuffer);
-      
+
       this.soundCache.set(id, audioBuffer);
       return audioBuffer;
     } catch (error) {
@@ -317,7 +317,7 @@ export class AudioEngine {
       throw error;
     }
   }
-  
+
   /**
    * Play a sound effect
    * @param id Sound identifier
@@ -329,51 +329,51 @@ export class AudioEngine {
       debug.warn('Audio context not ready. Sound will not play:', id);
       return '';
     }
-    
+
     const soundBuffer = this.soundCache.get(id);
     if (!soundBuffer) {
       debug.warn(`Sound not loaded: ${id}`);
       return '';
     }
-    
+
     // Calculate effective volume based on category and master volume
-    const volume = (options.volume ?? 1) * 
-                   (this.state.muted ? 0 : this.state.sfxVolume * this.state.masterVolume);
-    
+    const volume = (options.volume ?? 1) *
+      (this.state.muted ? 0 : this.state.sfxVolume * this.state.masterVolume);
+
     // Create audio nodes
     const sourceNode = this.audioContext.createBufferSource();
     const gainNode = this.audioContext.createGain();
-    
+
     // Configure nodes
     sourceNode.buffer = soundBuffer;
     sourceNode.loop = options.loop || false;
     gainNode.gain.value = volume;
-    
+
     // Connect nodes
     sourceNode.connect(gainNode);
     gainNode.connect(this.audioContext.destination);
-    
+
     // Generate unique instance ID for this playback
     const instanceId = `${id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    
+
     // Store active sound for later control
     this.activeSounds.set(instanceId, { source: sourceNode, gain: gainNode });
-    
+
     // Clean up when playback ends
     sourceNode.onended = () => {
       this.activeSounds.delete(instanceId);
     };
-    
+
     // Start playback
     sourceNode.start(0);
-    
+
     return instanceId;
   }
 
   public playSoundFx(fx: string): void {
     play$fx(fx);
   }
-  
+
   /**
    * Play a UI sound effect (uses UI volume level)
    * @param id Sound identifier
@@ -383,7 +383,7 @@ export class AudioEngine {
     const volume = this.state.uiVolume / this.state.sfxVolume;
     return this.playSound(id, { volume });
   }
-  
+
   /**
    * Stop a playing sound
    * @param instanceId The sound instance ID returned by playSound
@@ -391,17 +391,17 @@ export class AudioEngine {
   public stopSound(instanceId: string): void {
     const sound = this.activeSounds.get(instanceId);
     if (!sound) return;
-    
+
     try {
       sound.source.stop();
     } catch (error) {
       // Source might have already ended
       debug.log(`Could not stop sound ${instanceId}, it might have already ended`, error);
     }
-    
+
     this.activeSounds.delete(instanceId);
   }
-  
+
   /**
    * Load a music track
    * @param id Unique identifier for the track
@@ -421,23 +421,23 @@ export class AudioEngine {
     const audio = new Audio(url);
     audio.volume = this.state.muted ? 0 : this.state.musicVolume * this.state.masterVolume;
     audio.loop = metadata.loop !== false; // Default to looping if not specified
-    
+
     // Set up event listener for non-looping tracks to handle track completion
     if (!audio.loop) {
       audio.addEventListener('ended', () => {
         this.handleTrackEnded(id);
       });
     }
-    
+
     // Store the music track
     this._musicTracks.set(id, audio);
-    
+
     // Register track with media session handler
     if (this.mediaSession) {
       this.mediaSession.registerTrack(id, metadata);
     }
   }
-  
+
   /**
    * Handle when a non-looping track ends
    * @param id The track ID that just ended
@@ -445,8 +445,8 @@ export class AudioEngine {
   private handleTrackEnded(id: string): void {
     debug.log(`Track ended: ${id}`);
     // If we're playing a sequence of tracks, advance to the next one
-    if (this._currentTrackSequence.length > 0 && 
-        this._currentTrackIndex < this._currentTrackSequence.length - 1) {
+    if (this._currentTrackSequence.length > 0 &&
+      this._currentTrackIndex < this._currentTrackSequence.length - 1) {
       // Advance to next track
       this._currentTrackIndex++;
       const nextTrackId = this._currentTrackSequence[this._currentTrackIndex];
@@ -457,7 +457,7 @@ export class AudioEngine {
       this.state.currentMusic = null;
     }
   }
-  
+
   /**
    * Set the current track sequence for auto-advancing when non-looping tracks end
    * @param trackIds Array of track IDs to play in sequence
@@ -466,7 +466,7 @@ export class AudioEngine {
     this._currentTrackSequence = [...trackIds];
     this._currentTrackIndex = 0;
   }
-  
+
   /**
    * Stop all currently playing music tracks
    * This ensures only one BGM track plays at a time
@@ -474,7 +474,7 @@ export class AudioEngine {
   public stopAllMusic(fadeOutTime = 1000, excludeId?: string): void {
     // Get all loaded music tracks
     const trackIds = Array.from(this._musicTracks.keys());
-    
+
     // Stop each track
     trackIds.forEach(id => {
       if (id === excludeId) return; // Skip the excluded track
@@ -483,13 +483,13 @@ export class AudioEngine {
       if (track && !track.paused) {
         const startVolume = track.volume;
         const startTime = Date.now();
-        
+
         const fadeOut = () => {
           const elapsed = Date.now() - startTime;
           const progress = Math.min(1, elapsed / fadeOutTime);
-          
+
           track.volume = startVolume * (1 - progress);
-          
+
           if (progress < 1) {
             requestAnimationFrame(fadeOut);
           } else {
@@ -497,7 +497,7 @@ export class AudioEngine {
             track.currentTime = 0;
           }
         };
-        
+
         if (fadeOutTime <= 0) {
           track.pause();
           track.currentTime = 0;
@@ -511,7 +511,7 @@ export class AudioEngine {
       this.state.currentMusic = null;
     }
   }
-  
+
   /**
    * Play a music track
    * @param id Track identifier
@@ -532,68 +532,68 @@ export class AudioEngine {
       debug.warn(`Music track not loaded: ${id}`);
       return;
     }
-    
+
     // Stop all other music with fade out - ensures only one track plays at a time
     this.stopAllMusic(fadeInTime, id);
-    
+
     // Set new current music
     this.state.currentMusic = id;
     this.state.pendingMusicId = null; // Clear pending since we are trying to play now
-    
+
     // If it's already playing but volume is just being managed, don't reset currentTime
     const targetVolume = this.state.muted ? 0 : this.state.musicVolume * this.state.masterVolume;
-    
+
     if (track.paused) {
-        // Start with volume 0 and fade in
-        track.volume = 0;
-        
-        const playPromise = track.play();
-        
-        if (playPromise !== undefined) {
-            playPromise.catch(error => {
-                debug.error("Couldn't play music:", error);
-                
-                // Check if error is related to user interaction policy
-                if (error.name === 'NotAllowedError' || error.message.includes('interact') || error.message.includes('user activation')) {
-                    debug.warn('Autoplay prevented. Queuing track and requesting permission.');
-                    this.state.audioPermissionGranted = false; // This triggers the modal
-                    this.state.pendingMusicId = id; // Queue this track
-                }
-            });
-        }
+      // Start with volume 0 and fade in
+      track.volume = 0;
+
+      const playPromise = track.play();
+
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          debug.error("Couldn't play music:", error);
+
+          // Check if error is related to user interaction policy
+          if (error.name === 'NotAllowedError' || error.message.includes('interact') || error.message.includes('user activation')) {
+            debug.warn('Autoplay prevented. Queuing track and requesting permission.');
+            this.state.audioPermissionGranted = false; // This triggers the modal
+            this.state.pendingMusicId = id; // Queue this track
+          }
+        });
+      }
     } else {
-        // Track is already playing (likely due to seamless transition), only update volume if needed
-        if (Math.abs(track.volume - targetVolume) < 0.01) {
-            // Already at target volume, nothing to do
-            return;
-        }
+      // Track is already playing (likely due to seamless transition), only update volume if needed
+      if (Math.abs(track.volume - targetVolume) < 0.01) {
+        // Already at target volume, nothing to do
+        return;
+      }
     }
-    
+
     const startTime = Date.now();
     const startVolume = track.volume;
-    
+
     const fadeIn = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(1, elapsed / fadeInTime);
-      
+
       track.volume = startVolume + (progress * (targetVolume - startVolume));
-      
+
       if (progress < 1) {
         requestAnimationFrame(fadeIn);
       } else {
-          track.volume = targetVolume;
+        track.volume = targetVolume;
       }
     };
-    
+
     requestAnimationFrame(fadeIn);
-    
+
     // Update media session metadata and state
     if (this.mediaSession) {
       this.mediaSession.updateMetadata(id);
       this.mediaSession.updatePlaybackState('playing');
     }
   }
-  
+
   /**
    * Stop the current music track
    * @param fadeOutTime Time in ms to fade out (default: 1000)
@@ -601,56 +601,56 @@ export class AudioEngine {
   public stopMusic(fadeOutTime = 1000): void {
     const currentId = this.state.currentMusic;
     if (!currentId) return;
-    
+
     const currentTrack = this._musicTracks.get(currentId);
     if (!currentTrack) return;
-    
+
     const startVolume = currentTrack.volume;
     const startTime = Date.now();
-    
+
     // Clear the track sequence when explicitly stopping music
     this._currentTrackSequence = [];
     this._currentTrackIndex = 0;
-    
+
     const fadeOut = () => {
       const elapsed = Date.now() - startTime;
       const progress = Math.min(1, elapsed / fadeOutTime);
-      
+
       currentTrack.volume = startVolume * (1 - progress);
-      
+
       if (progress < 1) {
         requestAnimationFrame(fadeOut);
       } else {
         currentTrack.pause();
         currentTrack.currentTime = 0;
         this.state.currentMusic = null;
-        
+
         // Update media session state
         if (this.mediaSession) {
           this.mediaSession.updatePlaybackState('paused');
         }
       }
     };
-    
+
     if (fadeOutTime <= 0) {
       currentTrack.pause();
       currentTrack.currentTime = 0;
       this.state.currentMusic = null;
-      
+
       // Update media session state
       if (this.mediaSession) {
         this.mediaSession.updatePlaybackState('paused');
       }
     } else {
       requestAnimationFrame(fadeOut);
-      
+
       // Update media session state immediately
       if (this.mediaSession) {
         this.mediaSession.updatePlaybackState('paused');
       }
     }
   }
-  
+
   /**
    * Set the volume level for a specific category
    * @param category Audio category
@@ -658,7 +658,7 @@ export class AudioEngine {
    */
   public setVolume(category: 'master' | AudioCategory, volume: number): void {
     const clampedVolume = Math.max(0, Math.min(1, volume));
-    
+
     switch (category) {
       case 'master':
         this.state.masterVolume = clampedVolume;
@@ -678,46 +678,46 @@ export class AudioEngine {
         this.state.ambientVolume = clampedVolume;
         break;
     }
-    
+
     // Save settings after each change
     this.saveUserPreferences();
   }
-  
+
   /**
    * Update all active sound volumes
    */
   private updateAllVolumes(): void {
     // Update music volume
     this.updateMusicVolume();
-    
+
     // Update active sound effects
     this.activeSounds.forEach((sound, id) => {
       // Determine category from ID (this is just an example)
       const isUI = id.includes('ui-');
       const category = isUI ? 'ui' : 'sfx';
       const categoryVolume = isUI ? this.state.uiVolume : this.state.sfxVolume;
-      
+
       // Log volume adjustment for debugging
       debug.log(`Adjusting ${category} sound ${id} volume to ${categoryVolume * this.state.masterVolume}`);
-      
+
       // Set volume based on category and master volume
       sound.gain.gain.value = categoryVolume * this.state.masterVolume * (this.state.muted ? 0 : 1);
     });
   }
-  
+
   /**
    * Update music volume specifically
    */
   private updateMusicVolume(): void {
     const currentId = this.state.currentMusic;
     if (!currentId) return;
-    
+
     const track = this._musicTracks.get(currentId);
     if (!track) return;
-    
+
     track.volume = this.state.musicVolume * this.state.masterVolume * (this.state.muted ? 0 : 1);
   }
-  
+
   /**
    * Toggle mute state
    */
@@ -727,7 +727,7 @@ export class AudioEngine {
     this.saveUserPreferences();
     return this.state.muted;
   }
-  
+
   /**
    * Mute all audio
    */
@@ -736,7 +736,7 @@ export class AudioEngine {
     this.updateAllVolumes();
     this.saveUserPreferences();
   }
-  
+
   /**
    * Unmute all audio
    */
@@ -745,7 +745,7 @@ export class AudioEngine {
     this.updateAllVolumes();
     this.saveUserPreferences();
   }
-  
+
   /**
    * Set the audio theme
    * @param type Theme type (ui or rpg)
@@ -755,7 +755,7 @@ export class AudioEngine {
     this.state.currentTheme[type] = theme;
     this.saveUserPreferences();
   }
-  
+
   /**
    * Preload a list of sounds
    * @param ids Array of sound IDs to preload
@@ -773,17 +773,17 @@ export class AudioEngine {
         debug.error(`Failed to preload sound: ${id}`, err);
       });
     });
-    
+
     await Promise.all(loadPromises);
   }
-  
+
   /**
    * Check if a music track is loaded
    */
   public hasMusicTrack(id: string): boolean {
     return this._musicTracks.has(id);
   }
-  
+
   /**
    * Update loop setting for a specific track or all tracks
    * @param loop Whether the track(s) should loop
