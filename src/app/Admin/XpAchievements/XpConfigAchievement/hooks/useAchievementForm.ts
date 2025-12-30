@@ -24,6 +24,7 @@ import {
   LORE_COMBO_MATRIX,
 } from "@/constants";
 import XpReorderAchievementsModal from "../components/XpReorderAchievementsModal.vue";
+import { formatQuestName } from "@/lib/utils/format";
 
 export const sortCategoryByName = (a: any, b: any) => {
   const nameA = a.name.toLowerCase();
@@ -180,7 +181,6 @@ export function useAchievementForm() {
     },
   ];
 
-
   const activeLoreCombo = computed(() => {
     const assignment = achievement.value.type || "asNeeded";
     const depth = achievement.value.adventureType || "";
@@ -248,8 +248,9 @@ export function useAchievementForm() {
       return `Weekly\n${activeDays}`;
     }
     if (a.basicSchedule === "custom" || a.scheduleType === "custom") {
-      return `${a.customFrequency}x Every ${a.customPeriodNumber} ${a.customPeriodType
-        }${a.customPeriodNumber > 1 ? "s" : ""}`;
+      return `${a.customFrequency}x Every ${a.customPeriodNumber} ${
+        a.customPeriodType
+      }${a.customPeriodNumber > 1 ? "s" : ""}`;
     }
     return a.basicSchedule
       ? a.basicSchedule.charAt(0).toUpperCase() + a.basicSchedule.slice(1)
@@ -466,8 +467,8 @@ export function useAchievementForm() {
             achievement.value.adventureType = hasBeast
               ? "beast"
               : hasSub
-                ? "chain"
-                : "simple";
+              ? "chain"
+              : "simple";
           }
 
           // Set fib index
@@ -506,6 +507,9 @@ export function useAchievementForm() {
 
     saving.value = true;
     try {
+      achievement.value.achievementName = formatQuestName(
+        achievement.value.achievementName
+      );
       await achievementDb.setTask(achievement.value);
       lastSavedState.value = currentState;
       // Optional: show subtle indicator
@@ -527,6 +531,9 @@ export function useAchievementForm() {
       return;
     }
 
+    achievement.value.achievementName = formatQuestName(
+      achievement.value.achievementName
+    );
     await achievementDb.setTask(achievement.value);
     const toast = await toastController.create({
       message: "Achievement Saved!",

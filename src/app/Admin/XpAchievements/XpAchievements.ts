@@ -16,7 +16,8 @@ import {
   listOutline,
 } from "ionicons/icons";
 
-import { ACHIEVEMENT_TYPE_ICONS, LORE_COMBO_MATRIX } from "@/constants";
+import { LORE_COMBO_MATRIX } from "@/constants";
+import { formatQuestName } from "@/lib/utils/format";
 
 import AchievementDb, {
   achievementStorage,
@@ -334,8 +335,10 @@ export default defineComponent({
       if (beast.avatar) {
         try {
           const pad = beast.avatar.toString().padStart(3, "0");
-          return new URL(`/src/assets/images/beasts/${pad}.png`, import.meta.url)
-            .href;
+          return new URL(
+            `/src/assets/images/beasts/${pad}.png`,
+            import.meta.url
+          ).href;
         } catch {
           return null;
         }
@@ -347,7 +350,8 @@ export default defineComponent({
       const alert = await alertController.create({
         header: "Bulk Import Quests",
         subHeader: "Enter one quest title per line",
-        message: "Each line will be imported as a basic quest with default settings.",
+        message:
+          "Each line will be imported as a basic quest with default settings.",
         mode: "ios",
         cssClass: "bulk-import-alert",
         inputs: [
@@ -410,7 +414,9 @@ Feed the pets`,
       // Show success toast
       const successAlert = await alertController.create({
         header: "Import Complete!",
-        message: `Successfully imported ${lines.length} quest${lines.length !== 1 ? "s" : ""}.`,
+        message: `Successfully imported ${lines.length} quest${
+          lines.length !== 1 ? "s" : ""
+        }.`,
         mode: "ios",
         buttons: ["OK"],
       });
@@ -486,6 +492,7 @@ Feed the pets`,
       thumbsUpSharp,
       bestiaryDb,
       beasts,
+      formatQuestName,
     };
   },
 });
