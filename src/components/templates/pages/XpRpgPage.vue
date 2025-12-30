@@ -11,8 +11,8 @@
       <!-- Primary Toolbar -->
       <ion-toolbar :class="['icon-colors', headerClass]">
         <ion-buttons slot="start">
-          <ion-back-button :default-href="backButtonHref" />
-
+          <ion-back-button v-if="backButtonHref" :default-href="backButtonHref" />
+          <slot name="icon" />
           <slot name="start-actions" />
         </ion-buttons>
         <i
@@ -20,6 +20,7 @@
           slot="start"
           :class="['fad fa-2x', headerIcon]"
         />
+
         <ion-title>{{ title }}</ion-title>
 
 

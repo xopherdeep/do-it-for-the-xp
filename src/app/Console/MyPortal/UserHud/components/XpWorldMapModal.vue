@@ -158,11 +158,12 @@
 <script lang="ts">
 import { defineComponent } from "vue";
 import { useUserStore } from "@/lib/store/stores/user";
+import { IonCard, IonCardContent } from "@ionic/vue";
 import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue";
 
 export default defineComponent({
   name: "xp-world-map-modal",
-  components: { XpCloseButton },
+  components: { XpCloseButton, IonCard, IonCardContent },
   props: {
     isOpen: {
       type: Boolean,

@@ -1,4 +1,4 @@
-import { computed, defineComponent, reactive, ref } from "vue";
+import { computed, defineComponent, reactive, ref, onBeforeMount } from "vue";
 // import requireImg from "@/assets/js/requireImg";
 import ionic from "@/lib/mixins/ionic";
 import components from "./UserHud/components";
@@ -249,6 +249,16 @@ export default defineComponent({
     } = useUserActions();
 
     const user = computed(() => userStore.getUserById(userId as string));
+
+    onBeforeMount(async () => {
+      console.log('MyPortal: Checking user hydration...');
+      if (!user.value) {
+        await userStore.loadUsers();
+        if (!user.value) {
+          router.push('/switch-profile');
+        }
+      }
+    });
     const equipment = ref<EquipmentItem[]>([]); // Use the defined interface
     const clickItem = (item: EquipmentItem | null, hand: string, index = 0) => {
       // If we're removing an item from a specific slot

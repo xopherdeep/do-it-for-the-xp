@@ -614,7 +614,7 @@
       };
 
       return {
-        $requireIcon: require.context("@/assets/icons/"),
+        requireIcon: require.context("@/assets/icons/"),
         modules: [Pagination, Navigation],
         activeSlideIndex,
         slidesViewed,

@@ -1,48 +1,39 @@
 <template>
-  <ion-page
-    class="xp-portal-page"
-    :class="pageClass"
-  >
+  <xp-page class="xp-portal-page" :class="pageClass" :hide-header="true">
     <!-- Loading State -->
-    <ion-content
-      class="bg-transparent icon-colors"
-      v-if="loading"
-    >
+    <!-- <ion-content class="bg-transparent icon-colors" v-if="loading">
       <div class="h-full w-full flex items-center justify-center">
         <ion-spinner name="crescent"></ion-spinner>
       </div>
-    </ion-content>
+    </ion-content> -->
 
     <!-- Main Portal Content -->
-    <ion-content
-      class="bg-transparent icon-colors"
-      v-else
-    >
-      <!-- HUD Overlay (stats, avatar) -->
-      <slot name="hud" />
+    <!-- <ion-content class="bg-transparent icon-colors" v-else>
+    </ion-content> -->
 
-      <!-- FABs (quick draw, page menu, shortcuts) -->
-      <slot name="fabs" />
+    <!-- Tabs with router outlet -->
+    <slot name="tabs" />
 
-      <!-- Tabs with router outlet -->
-      <slot name="tabs" />
-    </ion-content>
+    <!-- HUD Overlay (stats, avatar) -->
+    <slot name="hud" />
+
+    <!-- FABs (quick draw, page menu, shortcuts) -->
+    <slot name="fabs" />
 
     <!-- Modals (outside content for proper stacking) -->
     <slot name="modals" />
-  </ion-page>
+    <slot />
+  </xp-page>
 </template>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
-import { IonPage, IonContent, IonSpinner } from '@ionic/vue';
+import XpPage from './XpPage.vue';
 
 export default defineComponent({
   name: 'XpPortalPage',
   components: {
-    IonPage,
-    IonContent,
-    IonSpinner
+    XpPage
   },
   props: {
     loading: {
@@ -58,7 +49,7 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-  .xp-portal-page {
-    // Inherit portal styling - let parent define specifics
-  }
+.xp-portal-page {
+  // Inherit portal styling - let parent define specifics
+}
 </style>

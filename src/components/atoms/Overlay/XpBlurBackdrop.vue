@@ -1,14 +1,7 @@
 <template>
-  <Teleport to="body">
-    <Transition name="backdrop-fade">
-      <div
-        v-if="show"
-        class="xp-blur-backdrop"
-        :style="backdropStyle"
-        @click="$emit('close')"
-      />
-    </Transition>
-  </Teleport>
+  <Transition name="backdrop-fade">
+    <div v-if="show" class="xp-blur-backdrop" :style="backdropStyle" @click="$emit('close')" />
+  </Transition>
 </template>
 
 <script lang="ts">
@@ -49,23 +42,23 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-  .xp-blur-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100vw;
-    height: 100vh;
-    cursor: pointer;
-  }
+.xp-blur-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  cursor: pointer;
+}
 
-  // Fade transition
-  .backdrop-fade-enter-active,
-  .backdrop-fade-leave-active {
-    transition: opacity 0.2s ease;
-  }
+// Fade transition
+.backdrop-fade-enter-active,
+.backdrop-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
 
-  .backdrop-fade-enter-from,
-  .backdrop-fade-leave-to {
-    opacity: 0;
-  }
+.backdrop-fade-enter-from,
+.backdrop-fade-leave-to {
+  opacity: 0;
+}
 </style>

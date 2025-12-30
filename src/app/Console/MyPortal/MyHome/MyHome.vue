@@ -7,14 +7,14 @@
             <ion-icon :icon="arrowBack" slot="icon-only"/>
           </ion-button>
         </ion-buttons>
-        <ion-title> 
+        <ion-title>
         </ion-title>
       </ion-toolbar>
     </ion-header> -->
 
     <ion-content :fullscreen="true" class="my-home-bg">
-      <!-- <IonRouterOutlet /> -->
-      <ion-router-outlet></ion-router-outlet>
+      <IonRouterOutlet />
+      <!-- <ion-router-outlet></ion-router-outlet> -->
       <!-- <ion-grid>
 
         <ion-row>
@@ -124,10 +124,7 @@
           </ion-card-header>
         </ion-card>
       </ion-modal> -->
-      <ion-modal
-        :breakpoints="[0.9]"
-        :initialBreakpoint="0.9"
-      >
+      <ion-modal :breakpoints="[0.9]" :initialBreakpoint="0.9">
         <ion-card>
           <ion-card-title> World Map </ion-card-title>
           <i class="fad fa-globe fa-3x ion-float-right"></i>
@@ -135,12 +132,8 @@
         </ion-card>
       </ion-modal>
       <!-- Save & Quit Modal -->
-      <save-and-quit-modal
-        :is-open="showSaveQuitModal"
-        :user-avatar="userAvatar"
-        @close="closeSaveQuitModal"
-        @confirm="confirmSaveQuit"
-      />
+      <save-and-quit-modal :is-open="showSaveQuitModal" :user-avatar="userAvatar" @close="closeSaveQuitModal"
+        @confirm="confirmSaveQuit" />
     </ion-content>
   </ion-page>
 </template>

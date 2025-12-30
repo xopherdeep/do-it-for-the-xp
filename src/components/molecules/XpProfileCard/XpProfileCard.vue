@@ -35,12 +35,20 @@
 
 <script lang="ts">
 import { computed, defineComponent, PropType } from "vue";
+import { IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonAvatar } from "@ionic/vue";
 import User from "@/lib/utils/User";
 
 const requireAvatar = require.context("@/assets/images/avatars/");
 
 export default defineComponent({
   name: "XpProfileCard",
+  components: {
+    IonCard,
+    IonCardHeader,
+    IonCardTitle,
+    IonCardContent,
+    IonAvatar,
+  },
   props: {
     user: {
       type: Object as PropType<User>,

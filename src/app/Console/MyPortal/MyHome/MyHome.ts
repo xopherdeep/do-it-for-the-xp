@@ -74,13 +74,19 @@ export default defineComponent({
     const closeModal = () => modalController.dismiss()
     const clickSave = () => router.push({ name: 'xp-profile' }).then(closeModal)
 
+    const shouldNavigateToProfile = ref(false);
+
     const closeSaveQuitModal = () => {
       showSaveQuitModal.value = false;
+      if (shouldNavigateToProfile.value) {
+        shouldNavigateToProfile.value = false;
+        router.replace({ name: 'xp-profile' });
+      }
     };
 
     const confirmSaveQuit = () => {
-      router.push({ name: 'xp-profile' });
-      closeSaveQuitModal();
+      shouldNavigateToProfile.value = true;
+      showSaveQuitModal.value = false;
     };
 
     const openSaveQuitModal = () => {
