@@ -136,7 +136,7 @@ import {
   closeOutline 
 } from 'ionicons/icons';
 import XpAbilityManager from '@/components/molecules/Ability/XpAbilityManager.vue';
-import { Ability, AbilityType, AbilityStatus, TimePeriod } from '@/lib/types/abilities';
+import { Ability, AbilityType, AbilityStatus, TimePeriod } from '@/hooks/abilities/abilityConstants';
 
 // Sample ability names and descriptions
 const abilityNamePrefixes = ['Arcane', 'Dark', 'Light', 'Elemental', 'Divine', 'Toxic', 'Mighty', 'Swift', 'Healing', 'Defensive'];

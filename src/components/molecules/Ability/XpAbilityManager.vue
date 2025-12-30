@@ -197,7 +197,7 @@
     onMounted,
     watch,
   } from "vue";
-  import { Ability, AbilityStatus, TimePeriod } from "@/lib/types/abilities";
+  import { Ability, AbilityStatus, TimePeriod } from "@/hooks/abilities/abilityConstants";
   import {
     addCircleOutline,
     removeCircleOutline,

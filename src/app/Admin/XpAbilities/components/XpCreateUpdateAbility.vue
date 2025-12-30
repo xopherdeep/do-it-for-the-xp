@@ -306,7 +306,7 @@
     AbilityType,
     TimePeriod,
     ABILITY_CLASSES,
-  } from "@/lib/types/abilities";
+  } from "@/hooks/abilities/abilityConstants";
   import debug from "@/lib/utils/debug";
 
   export default defineComponent({

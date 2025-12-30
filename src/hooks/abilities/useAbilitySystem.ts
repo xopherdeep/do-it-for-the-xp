@@ -1,6 +1,6 @@
 import { ref, computed, onMounted } from 'vue';
 import { getAbilityService } from '@/lib/services/abilities';
-import type { Ability, AbilityType } from '@/lib/types/abilities';
+import type { Ability, AbilityType } from '@/hooks/abilities/abilityConstants';
 import debug from '@/lib/utils/debug';
 
 /**

@@ -9,7 +9,7 @@ import {
   AbilityType, 
   TimePeriod,
   isAbility
-} from '@/lib/types/abilities';
+} from '@/hooks/abilities/abilityConstants';
 import { v4 as uuidv4 } from 'uuid';
 import debug from "@/lib/utils/debug";
 

@@ -108,7 +108,7 @@ import {
   AbilityType, 
   AbilityStatus, 
   TimePeriod 
-} from '@/lib/types/abilities';
+} from '@/hooks/abilities/abilityConstants';
 import {
   starOutline,
   flameOutline,

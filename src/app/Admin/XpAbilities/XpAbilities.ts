@@ -23,7 +23,7 @@ import {
   AbilityStatus,
   TimePeriod,
   ABILITY_CLASSES
-} from '@/lib/types/abilities'
+} from '@/hooks/abilities/abilityConstants'
 import {
   REAL_LIFE_PRESETS,
   TIME_MAGE_PRESETS,
