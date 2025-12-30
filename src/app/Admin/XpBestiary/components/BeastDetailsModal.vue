@@ -32,18 +32,23 @@
           <ion-label position="stacked" class="font-bold">
             Beast Name <span class="text-danger">*</span>
           </ion-label>
-          <ion-input
-            v-model="localBeast.name"
-            placeholder="Enter a memorable name"
-            :class="{
+          <div class="name-input-row">
+            <ion-input v-model="localBeast.name" placeholder="Enter a memorable name" :class="{
               'ion-invalid': localShowErrors && !isNameValid,
               'ion-valid': isNameValid,
-            }"
-            required
-          />
-          <ion-note slot="error" v-if="localShowErrors && !isNameValid"
-            >Please enter a name for your beast</ion-note
-          >
+            }" required />
+            <ion-button size="small" color="tertiary" class="generate-btn"
+              :disabled="isGenerating || !hasChecklistItems" @click="generateMonsterName">
+              <i v-if="isGenerating" class="fad fa-spinner-third fa-spin mr-1"></i>
+              <i v-else class="fad fa-sparkles mr-1"></i>
+              <span v-if="!isGenerating">AI Name</span>
+              <span v-else>...</span>
+            </ion-button>
+          </div>
+          <ion-note slot="helper" v-if="!hasChecklistItems && isGeminiConfigured" class="ai-hint">
+            <i class="fad fa-lightbulb-on"></i> Add checklist items first, then use AI to generate a name!
+          </ion-note>
+          <ion-note slot="error" v-if="localShowErrors && !isNameValid">Please enter a name for your beast</ion-note>
         </ion-item>
 
         <!-- Checklist Section -->
@@ -55,43 +60,31 @@
               "Fold laundry").
             </p>
           </ion-label>
-          <ion-button
-            size="small"
-            shape="round"
-            class="add-item-btn"
-            @click="clickAddItem"
-          >
-            <i class="fad fa-plus-circle mr-1"></i>
-            Add Item
-          </ion-button>
+          <div class="checklist-actions">
+            <ion-button size="small" shape="round" class="add-item-btn" @click="clickAddItem">
+              <i class="fad fa-plus-circle mr-1"></i>
+              Add Item
+            </ion-button>
+            <ion-button size="small" shape="round" color="tertiary" :disabled="isGeneratingChecklist || !isNameValid"
+              @click="generateChecklist">
+              <i v-if="isGeneratingChecklist" class="fad fa-spinner-third fa-spin mr-1"></i>
+              <i v-else class="fad fa-sparkles mr-1"></i>
+              AI Tasks
+            </ion-button>
+          </div>
         </div>
 
-        <div
-          class="checklist-container my-2"
-          :class="{ 'ion-invalid': localShowErrors && !isChecklistValid }"
-        >
-          <ion-reorder-group
-            @ionItemReorder="handleReorder($event)"
-            disabled="false"
-          >
-            <ion-item-sliding
-              v-for="(item, index) in localBeast.checklist"
-              :key="index"
-            >
+        <div class="checklist-container my-2" :class="{ 'ion-invalid': localShowErrors && !isChecklistValid }">
+          <ion-reorder-group @ionItemReorder="handleReorder($event)" disabled="false">
+            <ion-item-sliding v-for="(item, index) in localBeast.checklist" :key="index">
               <ion-item class="checklist-item">
                 <i class="fad fa-paw-claws" slot="start"></i>
 
-                <ion-input
-                  v-model="localBeast.checklist[index]"
-                  @keyup.enter="clickAddItem"
-                  placeholder="Describe task to complete"
-                  :ref="
-                    (el) => {
-                      if (el) inputRefs[index] = el;
-                    }
-                  "
-                  class="checklist-input"
-                />
+                <ion-input v-model="localBeast.checklist[index]" @keyup.enter="clickAddItem"
+                  placeholder="Describe task to complete" :ref="(el) => {
+                    if (el) inputRefs[index] = el;
+                  }
+                    " class="checklist-input" />
                 <ion-buttons slot="end">
                   <ion-button @click="clickTrash(index)" color="danger">
                     <i class="fad fa-trash fa-lg"></i>
@@ -105,19 +98,12 @@
             </ion-item-sliding>
           </ion-reorder-group>
 
-          <ion-note
-            slot="error"
-            class="ion-padding-start"
-            v-if="localShowErrors && !isChecklistValid"
-          >
+          <ion-note slot="error" class="ion-padding-start" v-if="localShowErrors && !isChecklistValid">
             Please add at least one task
           </ion-note>
         </div>
 
-        <div
-          class="empty-checklist text-center py-4"
-          v-if="localBeast.checklist.length === 0"
-        >
+        <div class="empty-checklist text-center py-4" v-if="localBeast.checklist.length === 0">
           <i class="fad fa-clipboard-list fa-2x text-gray-400 mb-2"></i>
           <p class="text-gray-500">No tasks added yet</p>
           <ion-button size="small" class="mt-2" @click="clickAddItem">
@@ -147,153 +133,322 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, PropType, ref, reactive, computed } from "vue";
-  import { modalController } from "@ionic/vue";
-  import { close } from "ionicons/icons";
-  import { Beast } from "@/lib/databases/BestiaryDb";
-  import Ionic from "@/lib/mixins/ionic";
+import { defineComponent, PropType, ref, reactive, computed, nextTick } from "vue";
+import { modalController, toastController } from "@ionic/vue";
+import { close } from "ionicons/icons";
+import { Beast } from "@/lib/databases/BestiaryDb";
+import Ionic from "@/lib/mixins/ionic";
+import { generateMonsterName, generateChecklistFromName, isGeminiConfigured } from "@/lib/services/ai/GeminiService";
 
-  // Type for ion input refs
-  type IonInputElement = HTMLElement & { setFocus: () => Promise<void> };
+// Type for ion input refs
+type IonInputElement = HTMLElement & { setFocus: () => Promise<void> };
 
-  export default defineComponent({
-    name: "BeastDetailsModal",
-    mixins: [Ionic],
-    props: {
-      beast: {
-        type: Object as PropType<Beast>,
-        required: true,
-      },
-      showErrors: {
-        type: Boolean,
-        default: false,
-      },
+export default defineComponent({
+  name: "BeastDetailsModal",
+  mixins: [Ionic],
+  props: {
+    beast: {
+      type: Object as PropType<Beast>,
+      required: true,
     },
-    setup(props) {
-      const inputRefs = ref<Record<number, IonInputElement>>({});
+    showErrors: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  setup(props) {
+    const inputRefs = ref<Record<number, IonInputElement>>({});
 
-      // Create a local copy of the beast to work with
-      const localBeast = reactive<Beast>({
-        ...props.beast,
-        checklist: [...props.beast.checklist],
-      });
+    // Create a local copy of the beast to work with
+    const localBeast = reactive<Beast>({
+      ...props.beast,
+      checklist: [...props.beast.checklist],
+    });
 
-      // Track errors locally
-      const localShowErrors = ref(props.showErrors);
+    // Track errors locally
+    const localShowErrors = ref(props.showErrors);
 
-      // Computed properties for validation - names need to be unique to avoid conflicts
-      const isNameValid = computed(() => {
-        return localBeast.name?.trim().length > 0;
-      });
+    // AI generation state
+    const isGenerating = ref(false);
+    const isGeneratingChecklist = ref(false);
 
-      const isChecklistValid = computed(() => {
-        return localBeast.checklist.some((item) => item.trim().length > 0);
-      });
+    // Computed properties for validation - names need to be unique to avoid conflicts
+    const isNameValid = computed(() => {
+      return localBeast.name?.trim().length > 0;
+    });
 
-      const clickAddItem = () => {
-        const index = localBeast.checklist.length;
-        localBeast.checklist.push("");
+    const isChecklistValid = computed(() => {
+      return localBeast.checklist.some((item) => item.trim().length > 0);
+    });
 
-        // Focus the new input after it's rendered
+    // Check if we have valid checklist items for AI generation
+    const hasChecklistItems = computed(() => {
+      return localBeast.checklist.some((item) => item.trim().length > 0);
+    });
+
+    const clickAddItem = () => {
+      const index = localBeast.checklist.length;
+      localBeast.checklist.push("");
+
+      // Focus the new input after it's rendered
+      // Use nextTick + setTimeout for Ionic component hydration
+      nextTick(() => {
         setTimeout(() => {
           const inputEl = inputRefs.value[index];
           if (inputEl && typeof inputEl.setFocus === "function") {
             inputEl.setFocus();
+          } else {
+            // Retry once more after additional delay for slow renders
+            setTimeout(() => {
+              const retryEl = inputRefs.value[index];
+              if (retryEl && typeof retryEl.setFocus === "function") {
+                retryEl.setFocus();
+              }
+            }, 150);
           }
-        }, 100);
-      };
+        }, 50);
+      });
+    };
 
-      const clickTrash = (index: number) => {
-        localBeast.checklist.splice(index, 1);
-      };
+    const clickTrash = (index: number) => {
+      localBeast.checklist.splice(index, 1);
+    };
 
-      const handleReorder = (event: CustomEvent) => {
-        // Complete the reorder and position the item at its new location
-        const items = [...localBeast.checklist];
-        const movedItem = items[event.detail.from];
-        items.splice(event.detail.from, 1);
-        items.splice(event.detail.to, 0, movedItem);
+    const handleReorder = (event: CustomEvent) => {
+      // Complete the reorder and position the item at its new location
+      const items = [...localBeast.checklist];
+      const movedItem = items[event.detail.from];
+      items.splice(event.detail.from, 1);
+      items.splice(event.detail.to, 0, movedItem);
 
-        // Update the checklist with the reordered items
-        localBeast.checklist = items;
+      // Update the checklist with the reordered items
+      localBeast.checklist = items;
 
-        // Finish the reorder animation
-        event.detail.complete();
-      };
+      // Finish the reorder animation
+      event.detail.complete();
+    };
 
-      const dismissModal = () => {
-        return modalController.dismiss();
-      };
+    const dismissModal = () => {
+      return modalController.dismiss();
+    };
 
-      const saveChanges = () => {
-        // Validate form first
-        localShowErrors.value = true;
+    const saveChanges = () => {
+      // Validate form first
+      localShowErrors.value = true;
 
-        if (!isNameValid.value || !isChecklistValid.value) {
-          // You could show a toast here if needed
-          return;
-        }
+      if (!isNameValid.value || !isChecklistValid.value) {
+        // You could show a toast here if needed
+        return;
+      }
 
-        // Clean up empty checklist items
-        localBeast.checklist = localBeast.checklist.filter(
-          (item) => item.trim().length > 0
-        );
+      // Clean up empty checklist items
+      localBeast.checklist = localBeast.checklist.filter(
+        (item) => item.trim().length > 0
+      );
 
-        // Return the updated beast and state via the dismiss method
-        return modalController.dismiss({
-          beast: localBeast,
-          showErrors: localShowErrors.value,
+      // Return the updated beast and state via the dismiss method
+      return modalController.dismiss({
+        beast: localBeast,
+        showErrors: localShowErrors.value,
+      });
+    };
+
+    // AI-powered monster name generation
+    const clickGenerateMonsterName = async () => {
+      if (!hasChecklistItems.value) {
+        const toast = await toastController.create({
+          message: 'Add some checklist items first!',
+          duration: 2000,
+          color: 'warning',
+          position: 'top',
         });
-      };
+        await toast.present();
+        return;
+      }
 
-      return {
-        inputRefs,
-        localBeast,
-        localShowErrors,
-        // Use our computed properties instead of props
-        isNameValid,
-        isChecklistValid,
-        clickAddItem,
-        clickTrash,
-        handleReorder,
-        dismissModal,
-        saveChanges,
-        close, // Icon for close button
-      };
-    },
-  });
+      isGenerating.value = true;
+
+      try {
+        // Filter out empty checklist items
+        const validItems = localBeast.checklist.filter(item => item.trim().length > 0);
+
+        const result = await generateMonsterName({ checklistItems: validItems });
+
+        if (result.success && result.name) {
+          localBeast.name = result.name;
+
+          const toast = await toastController.create({
+            message: `✨ Generated: ${result.name}`,
+            duration: 2000,
+            color: 'success',
+            position: 'top',
+          });
+          await toast.present();
+        } else {
+          const toast = await toastController.create({
+            message: result.error || 'Failed to generate name',
+            duration: 3000,
+            color: 'danger',
+            position: 'top',
+          });
+          await toast.present();
+        }
+      } catch (error) {
+        console.error('Error generating monster name:', error);
+        const toast = await toastController.create({
+          message: 'Something went wrong. Please try again.',
+          duration: 3000,
+          color: 'danger',
+          position: 'top',
+        });
+        await toast.present();
+      } finally {
+        isGenerating.value = false;
+      }
+    };
+
+    // AI-powered checklist generation from monster name
+    const clickGenerateChecklist = async () => {
+      if (!isNameValid.value) {
+        const toast = await toastController.create({
+          message: 'Enter a monster name first!',
+          duration: 2000,
+          color: 'warning',
+          position: 'top',
+        });
+        await toast.present();
+        return;
+      }
+
+      isGeneratingChecklist.value = true;
+
+      try {
+        const result = await generateChecklistFromName({ monsterName: localBeast.name });
+
+        if (result.success && result.checklist) {
+          // Replace or append to existing checklist
+          localBeast.checklist = result.checklist;
+
+          const toast = await toastController.create({
+            message: `✨ Generated ${result.checklist.length} tasks!`,
+            duration: 2000,
+            color: 'success',
+            position: 'top',
+          });
+          await toast.present();
+        } else {
+          const toast = await toastController.create({
+            message: result.error || 'Failed to generate checklist',
+            duration: 3000,
+            color: 'danger',
+            position: 'top',
+          });
+          await toast.present();
+        }
+      } catch (error) {
+        console.error('Error generating checklist:', error);
+        const toast = await toastController.create({
+          message: 'Something went wrong. Please try again.',
+          duration: 3000,
+          color: 'danger',
+          position: 'top',
+        });
+        await toast.present();
+      } finally {
+        isGeneratingChecklist.value = false;
+      }
+    };
+
+    return {
+      inputRefs,
+      localBeast,
+      localShowErrors,
+      // Use our computed properties instead of props
+      isNameValid,
+      isChecklistValid,
+      hasChecklistItems,
+      isGenerating,
+      isGeneratingChecklist,
+      isGeminiConfigured: isGeminiConfigured(),
+      clickAddItem,
+      clickTrash,
+      handleReorder,
+      dismissModal,
+      saveChanges,
+      generateMonsterName: clickGenerateMonsterName,
+      generateChecklist: clickGenerateChecklist,
+      close, // Icon for close button
+    };
+  },
+});
 </script>
 
 <style lang="scss" scoped>
-  .checklist-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    margin-bottom: 8px;
+.checklist-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 8px;
+}
+
+.checklist-item {
+  --padding-start: 0;
+  margin-bottom: 5px;
+}
+
+.text-danger {
+  color: var(--ion-color-danger);
+}
+
+.empty-checklist {
+  border: 2px dashed #ddd;
+  border-radius: 8px;
+  margin: 10px 0;
+}
+
+.add-item-btn {
+  margin-top: 0;
+}
+
+ion-card {
+  --background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(5px);
+  margin: 0;
+}
+
+.name-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+
+  ion-input {
+    flex: 1;
   }
 
-  .checklist-item {
-    --padding-start: 0;
-    margin-bottom: 5px;
-  }
-
-  .text-danger {
-    color: var(--ion-color-danger);
-  }
-
-  .empty-checklist {
-    border: 2px dashed #ddd;
-    border-radius: 8px;
-    margin: 10px 0;
-  }
-
-  .add-item-btn {
-    margin-top: 0;
-  }
-
-  ion-card {
-    --background: rgba(255, 255, 255, 0.9);
-    backdrop-filter: blur(5px);
+  .generate-btn {
+    flex-shrink: 0;
+    --padding-start: 12px;
+    --padding-end: 12px;
     margin: 0;
   }
+}
+
+.ai-hint {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.85em;
+  color: var(--ion-color-tertiary);
+
+  i {
+    color: var(--ion-color-warning);
+  }
+}
+
+.checklist-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
 </style>
