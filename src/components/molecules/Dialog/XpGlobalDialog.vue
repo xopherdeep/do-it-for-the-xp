@@ -207,8 +207,8 @@ export default defineComponent({
 
       .dialog-close {
         position: absolute;
-        top: 10px;
-        right: 15px;
+        top: 0px;
+        right: 0px;
         color: rgba(255, 255, 255, 0.3);
         cursor: pointer;
         z-index: 10;

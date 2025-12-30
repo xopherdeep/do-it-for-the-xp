@@ -366,7 +366,7 @@
           dialogContent: [
             "Chores become Beasts that attack when it's time to do them.",
             "The Beast hits constantly, draining HP until the task is DONE.",
-            "They can 'Run Away'... but the Beast chases them.",
+            "Players can 'Run Away'... but the Beast chases them.",
             "Next time they open the app? SNEAK ATTACK for massive damage!",
           ],
         },
