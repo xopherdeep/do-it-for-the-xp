@@ -125,7 +125,6 @@
         </ion-card>
       </ion-modal> -->
       <ion-modal
-        trigger="world-map"
         :breakpoints="[0.9]"
         :initialBreakpoint="0.9"
       >
