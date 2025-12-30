@@ -87,7 +87,7 @@
                   </ion-card-title>
                   <ion-card-title
                     v-else
-                    v-html="item.title.rendered"
+                    v-html="formatQuestName(item.title.rendered)"
                   ></ion-card-title>
 
                   <ion-thumbnail v-if="isFetching">

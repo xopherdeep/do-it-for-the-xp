@@ -1,11 +1,7 @@
 import { computed, defineComponent, reactive, ref } from "vue";
 import XpApi from "@/lib/api/doit.forthexp.com.api";
 import ionic from "@/lib/mixins/ionic";
-import {
-  IonBackButton,
-  alertController,
-  IonicSlides,
-} from "@ionic/vue";
+import { IonBackButton, alertController, IonicSlides } from "@ionic/vue";
 import {
   ribbonOutline,
   arrowBack,
@@ -28,7 +24,6 @@ import {
 } from "ionicons/icons";
 import { useGameStore } from "@/lib/store/stores/game";
 
-
 import MyTask from "../MyTask/MyTask.vue";
 import { useRouter } from "vue-router";
 // import { useSwiper } from "swiper/vue";
@@ -36,6 +31,7 @@ import { Controller, Navigation, Swiper as SwiperClass } from "swiper";
 import { useQuery, useQueryClient } from "vue-query";
 import useQuests from "@/hooks/useQuests";
 import debug from "@/lib/utils/debug";
+import { formatQuestName } from "@/lib/utils/format";
 
 export default defineComponent({
   props: ["userId"],
@@ -61,7 +57,9 @@ export default defineComponent({
     // this.nativeAudio.preloadSimple('openTask', '../src/assets/audio/click.mp3').then(onSuccess, onError)
   },
   computed: {
-    xp_achievement() { return (this as any).gameStore.xp_achievement },
+    xp_achievement() {
+      return (this as any).gameStore.xp_achievement;
+    },
     isPrevDisabled() {
       return this.currentSlide == 0;
     },
@@ -258,6 +256,7 @@ export default defineComponent({
       medalOutline,
       ribbonOutline,
       checkmarkDone,
+      formatQuestName,
     };
 
     function useTasks(page, params) {
