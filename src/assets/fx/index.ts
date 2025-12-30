@@ -542,9 +542,9 @@ const $fx = {
   },
 };
 
-export const play$fx = (fx = 'select') => {
+export const play$fx = (fx = 'select', options?: { loop?: boolean, stop?: boolean }) => {
   const { ui, rpg, theme: { ui: themeUi, rpg: themeRpg } } = $fx
-  
+
   // Logic to determine if we should use 'setup' instead of 'loading'
   // When in the "backend" (GameMaster/Compendium Setup), we use the setup sound
   let targetFx = fx;
@@ -553,46 +553,69 @@ export const play$fx = (fx = 'select') => {
   }
 
   let soundFx = ui[themeUi][targetFx]
-  
+
   // Only play sound if user has interacted with the page
   // Check with AudioEngine first
   const audioEngine = AudioEngine.getInstance();
   const shouldTryPlay = audioEngine.state.audioPermissionGranted || (typeof document !== 'undefined' && document.documentElement.hasAttribute('data-user-interacted'));
-  
+
   if (soundFx) {
     if (shouldTryPlay) {
-        soundFx.volume = audioEngine.state.muted ? 0 : audioEngine.state.uiVolume * audioEngine.state.masterVolume;
-        soundFx.currentTime = 0; // Reset to start
-        soundFx.play().catch((err: any) => {
-            debug.warn('UI Sound playback was prevented:', err);
-            // Only trigger modal if it's a permission/interaction issue
-            if (err.name === 'NotAllowedError' || err.message?.includes('interact') || err.message?.includes('user activation')) {
-                 audioEngine.state.audioPermissionGranted = false;
-            }
-        });
+      soundFx.volume = audioEngine.state.muted ? 0 : audioEngine.state.uiVolume * audioEngine.state.masterVolume;
+      soundFx.currentTime = 0; // Reset to start
+      soundFx.play().catch((err: any) => {
+        debug.warn('UI Sound playback was prevented:', err);
+        // Only trigger modal if it's a permission/interaction issue
+        if (err.name === 'NotAllowedError' || err.message?.includes('interact') || err.message?.includes('user activation')) {
+          audioEngine.state.audioPermissionGranted = false;
+        }
+      });
     } else {
-        // We know it will fail, so don't try, but do trigger modal if we haven't already
-        // But only if we actually wanted to play something
-        debug.log('Skipping UI sound playback due to lack of permission');
+      // We know it will fail, so don't try, but do trigger modal if we haven't already
+      // But only if we actually wanted to play something
+      debug.log('Skipping UI sound playback due to lack of permission');
     }
   } else {
     soundFx = rpg[themeRpg][targetFx]
     if (soundFx) {
-        if (shouldTryPlay) {
-            soundFx.volume = audioEngine.state.muted ? 0 : audioEngine.state.sfxVolume * audioEngine.state.masterVolume;
-            soundFx.currentTime = 0;
-            soundFx.play().catch((err: any) => {
-               debug.warn('RPG Sound playback was prevented:', err);
-               if (err.name === 'NotAllowedError' || err.message?.includes('interact') || err.message?.includes('user activation')) {
-                   audioEngine.state.audioPermissionGranted = false;
-               }
-            });
+      if (shouldTryPlay) {
+        soundFx.volume = audioEngine.state.muted ? 0 : audioEngine.state.sfxVolume * audioEngine.state.masterVolume;
+
+        // Handle stop action
+        if (options?.stop) {
+          soundFx.pause();
+          soundFx.currentTime = 0;
+          soundFx.loop = false;
+          return;
         }
+
+        // Handle loop action
+        if (options?.loop) {
+          soundFx.loop = true;
+          // Only play if not already playing to avoid stutter
+          if (soundFx.paused) {
+            soundFx.play().catch((err: any) => {
+              debug.warn('RPG Sound loop playback was prevented:', err);
+            });
+          }
+          return;
+        }
+
+        soundFx.currentTime = 0;
+        soundFx.loop = false;
+
+        // Monophonic playback for others
+        soundFx.play().catch((err: any) => {
+          debug.warn('RPG Sound playback was prevented:', err);
+          if (err.name === 'NotAllowedError' || err.message?.includes('interact') || err.message?.includes('user activation')) {
+            audioEngine.state.audioPermissionGranted = false;
+          }
+        });
+      }
     }
   }
 }
 
-// Attach to window for global access (legacy support)
 if (typeof window !== 'undefined') {
   (window as any).play$fx = play$fx;
 }

@@ -56,11 +56,7 @@ export default defineComponent({
       default: false
     }
   },
-  methods: {
-    async playTextSound(){
-      await this.play$fx("text")
-    },
-  },
+
   emits: ['typing-complete', 'typing-start', 'typing-char'],
   setup(props, { emit }) {
     const displayedText = ref('');
@@ -89,10 +85,7 @@ export default defineComponent({
 
       if (accumulatedTime >= props.speed) {
         // How many characters to type in this frame (handle lag spikes)
-        // For typing effect, usually 1 is best to avoid clumps, but we can consume time
-        // We will type one char, and subtract speed. If we are REALLY behind, we might loop,
-        // but for typing text, visual pacing is more important than catching up instantly.
-        // Let's type as many as "fit" but cap it to avoid freezing on massive lag.
+        // With looping sound, we can type as fast as needed without audio issues
         let charsToType = Math.floor(accumulatedTime / props.speed);
         
         // Cap catch-up to 5 chars per frame to prevent freezing/massive jumps
@@ -103,17 +96,19 @@ export default defineComponent({
             const char = props.text[charIndex.value];
             displayedText.value += char;
             
-            // Sound logic: only play on the first character of the batch to avoid machine gun sound
-            // or play every time. Let's play once per frame if typing happens.
-            if (charsToType === Math.floor(accumulatedTime / props.speed) && props.playSound && char !== ' ' && char !== ',' && char !== '.') {
-               play$fx("text");
-            }
+            // Per-character sound removed in favor of looping background sound
             
             charIndex.value++;
             emit('typing-char', charIndex.value, char);
             charsToType--;
           } else {
              isTyping.value = false;
+             
+             // Stop looping sound when finished
+             if (props.playSound) {
+                play$fx(props.soundType, { stop: true });
+             }
+             
              emit('typing-complete');
              break;
           }
@@ -138,6 +133,11 @@ export default defineComponent({
       charIndex.value = 0;
       displayedText.value = '';
       emit('typing-start');
+      
+      // Start looping sound
+      if (props.playSound) {
+         play$fx(props.soundType, { loop: true });
+      }
       
       startDelayTimeout.value = window.setTimeout(() => {
         lastFrameTime = 0;
@@ -165,6 +165,11 @@ export default defineComponent({
       isPaused.value = false;
       displayedText.value = '';
       charIndex.value = 0;
+      
+      // Stop sound if resetting
+      if (props.playSound) {
+         play$fx(props.soundType, { stop: true });
+      }
     };
 
 
@@ -176,16 +181,32 @@ export default defineComponent({
       displayedText.value = props.text;
       charIndex.value = props.text.length;
       isTyping.value = false;
+      
+      // Stop sound
+      if (props.playSound) {
+         play$fx(props.soundType, { stop: true });
+      }
+      
       emit('typing-complete');
     };
 
     const pauseTyping = () => {
       isPaused.value = true;
+      // Stop sound when paused
+      if (props.playSound) {
+         play$fx(props.soundType, { stop: true });
+      }
     };
 
     const resumeTyping = () => {
       isPaused.value = false;
       lastFrameTime = 0; // Reset frame time so we don't jump
+      
+      // Resume sound if we are still typing
+      if (isTyping.value && props.playSound) {
+         play$fx(props.soundType, { loop: true });
+      }
+      
       if (isTyping.value && !animationFrameId) {
          animationFrameId = window.requestAnimationFrame(typeNextChar);
       }
