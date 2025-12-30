@@ -85,6 +85,17 @@
                 @ionChange="toggleDarkMode"
               ></ion-toggle>
             </ion-item>
+
+            <ion-item>
+              <ion-label>
+                <h2>Show Helper Dialogs</h2>
+                <p>Enable in-app guides and walkthroughs</p>
+              </ion-label>
+              <ion-toggle
+                v-model="generalSettings.showHelperDialogs"
+                @ionChange="saveGeneralSettings"
+              ></ion-toggle>
+            </ion-item>
           </ion-item-group>
 
           <ion-item-group>
@@ -234,6 +245,7 @@
         community: true,
         customThemes: false,
         language: "en",
+        showHelperDialogs: true,
       };
 
       const generalSettings = ref(

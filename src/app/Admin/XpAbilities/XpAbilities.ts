@@ -1,5 +1,5 @@
-import { defineComponent, ref, computed, onMounted, watch } from 'vue'
-import ionic from '@/lib/mixins/ionic'
+import { defineComponent, ref, computed, onMounted, watch } from "vue";
+import ionic from "@/lib/mixins/ionic";
 import {
   add,
   listOutline,
@@ -9,34 +9,36 @@ import {
   gameControllerOutline,
   starOutline,
   closeOutline,
-  colorWandOutline
-} from 'ionicons/icons'
-import { v4 as uuidv4 } from 'uuid'
-import { alertController, actionSheetController } from '@ionic/vue'
-import AbilitiesDb, { abilitiesStorage } from '@/lib/databases/AbilitiesDb'
-import XpAbilityManager from '@/components/molecules/Ability/XpAbilityManager.vue'
-import XpIconPicker from '@/components/atoms/Icon/XpIconPicker.vue'
+  colorWandOutline,
+} from "ionicons/icons";
+import { v4 as uuidv4 } from "uuid";
+import { alertController, actionSheetController } from "@ionic/vue";
+import AbilitiesDb, { abilitiesStorage } from "@/lib/databases/AbilitiesDb";
+import XpAbilityManager from "@/components/molecules/Ability/XpAbilityManager.vue";
+import XpIconPicker from "@/components/atoms/Icon/XpIconPicker.vue";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import {
   Ability,
   AbilityType,
   AbilityStatus,
   TimePeriod,
-  ABILITY_CLASSES
-} from '@/hooks/abilities/abilityConstants'
+  ABILITY_CLASSES,
+} from "@/hooks/abilities/abilityConstants";
 import {
   REAL_LIFE_PRESETS,
   TIME_MAGE_PRESETS,
-  TECH_MAGE_PRESETS
-} from '@/lib/services/abilities/AbilityPresets'
-import { useRouter } from 'vue-router'
+  TECH_MAGE_PRESETS,
+} from "@/lib/services/abilities/AbilityPresets";
+import { useRouter } from "vue-router";
+import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
 
 export default defineComponent({
-  name: 'XpAbilities',
+  name: "XpAbilities",
   components: {
     XpAbilityManager,
     XpIconPicker,
-    XpLoading
+    XpLoading,
+    XpRpgPage,
   },
   mixins: [ionic],
   setup() {
@@ -44,46 +46,48 @@ export default defineComponent({
     const abilitiesDb = new AbilitiesDb(abilitiesStorage);
 
     // State
-    const abilities = ref<Ability[]>([])
-    const showAbilityModal = ref(false)
-    const showPresetModal = ref(false)
-    const showIconPicker = ref(false)
-    const editingAbility = ref<Ability>({} as Ability)
-    const viewMode = ref('list') // 'list' or 'grid'
-    const currentFilter = ref('all')
-    const classFilter = ref('all')
+    const abilities = ref<Ability[]>([]);
+    const showAbilityModal = ref(false);
+    const showPresetModal = ref(false);
+    const showIconPicker = ref(false);
+    const editingAbility = ref<Ability>({} as Ability);
+    const viewMode = ref("list"); // 'list' or 'grid'
+    const currentFilter = ref("all");
+    const classFilter = ref("all");
     const isLoading = ref(true);
-    const abilityStatuses = ref<{ [abilityId: string]: AbilityStatus }>({})
-    const unlockStatuses = ref<{ [abilityId: string]: boolean }>({})
+    const abilityStatuses = ref<{ [abilityId: string]: AbilityStatus }>({});
+    const unlockStatuses = ref<{ [abilityId: string]: boolean }>({});
     const router = useRouter();
-    const selectedIconName = ref('');
+    const selectedIconName = ref("");
 
     // Form field refs
-    const apCost = ref(0)
-    const selectedClass = ref('none')
-    const selectedClassLevel = ref(1)
-    const characterLevelRequired = ref('none')
-    const scalingAttribute = ref('none')
-    const scalingRate = ref(0.1) // 10% by default
+    const apCost = ref(0);
+    const selectedClass = ref("none");
+    const selectedClassLevel = ref(1);
+    const characterLevelRequired = ref("none");
+    const scalingAttribute = ref("none");
+    const scalingRate = ref(0.1); // 10% by default
 
     // Computed properties
     const filteredAbilities = computed(() => {
       let filtered = abilities.value;
 
       // Apply type filter
-      if (currentFilter.value !== 'all') {
-        if (currentFilter.value === 'presets') {
-          filtered = filtered.filter(a => a.isPreset);
+      if (currentFilter.value !== "all") {
+        if (currentFilter.value === "presets") {
+          filtered = filtered.filter((a) => a.isPreset);
         } else {
-          filtered = filtered.filter(a => a.type === currentFilter.value);
+          filtered = filtered.filter((a) => a.type === currentFilter.value);
         }
       }
 
       // Apply class filter for in-game abilities
-      if (currentFilter.value === 'in-game' && classFilter.value !== 'all') {
-        filtered = filtered.filter(a => {
+      if (currentFilter.value === "in-game" && classFilter.value !== "all") {
+        filtered = filtered.filter((a) => {
           if (a.characterRequirement?.class) {
-            return Object.keys(a.characterRequirement.class).includes(classFilter.value);
+            return Object.keys(a.characterRequirement.class).includes(
+              classFilter.value
+            );
           }
           return false;
         });
@@ -95,7 +99,7 @@ export default defineComponent({
     const prerequisites = computed(() => {
       if (editingAbility.value.id) {
         // Don't show current ability in prerequisites to avoid circular references
-        return abilities.value.filter(a => a.id !== editingAbility.value.id);
+        return abilities.value.filter((a) => a.id !== editingAbility.value.id);
       }
       return abilities.value;
     });
@@ -108,13 +112,13 @@ export default defineComponent({
 
     // Methods
     const toggleViewMode = () => {
-      viewMode.value = viewMode.value === 'list' ? 'grid' : 'list';
+      viewMode.value = viewMode.value === "list" ? "grid" : "list";
     };
 
     const filterAbilities = () => {
       // Reset class filter when switching tabs
-      if (currentFilter.value !== 'in-game') {
-        classFilter.value = 'all';
+      if (currentFilter.value !== "in-game") {
+        classFilter.value = "all";
       }
     };
 
@@ -124,11 +128,13 @@ export default defineComponent({
     };
 
     const navigateToEditAbility = (ability: Ability) => {
-      router.push(`/game-master/compendium/abilities/create-update/${ability.id}`);
+      router.push(
+        `/game-master/compendium/abilities/create-update/${ability.id}`
+      );
     };
 
     const navigateToCreateAbility = () => {
-      router.push('/game-master/compendium/abilities/create-update');
+      router.push("/game-master/compendium/abilities/create-update");
     };
 
     const openAbilityModal = (ability: Ability | null = null) => {
@@ -143,55 +149,56 @@ export default defineComponent({
           const className = Object.keys(ability.characterRequirement.class)[0];
           if (className) {
             selectedClass.value = className;
-            selectedClassLevel.value = ability.characterRequirement.class[className];
+            selectedClassLevel.value =
+              ability.characterRequirement.class[className];
           } else {
-            selectedClass.value = 'none';
+            selectedClass.value = "none";
           }
         } else {
-          selectedClass.value = 'none';
+          selectedClass.value = "none";
         }
 
         // Set character level requirement
         characterLevelRequired.value = ability.characterRequirement?.level
           ? ability.characterRequirement.level.toString()
-          : 'none';
+          : "none";
 
         // Set scaling fields
         if (ability.scaling) {
           scalingAttribute.value = ability.scaling.attribute;
           scalingRate.value = ability.scaling.rate;
         } else {
-          scalingAttribute.value = 'none';
+          scalingAttribute.value = "none";
           scalingRate.value = 0.1;
         }
       } else {
         // Create new ability with defaults
         const newAbility = {
-          id: '',
-          name: '',
-          description: '',
+          id: "",
+          name: "",
+          description: "",
           type: AbilityType.RealLife,
           frequency: TimePeriod.Daily,
           mpCost: 0,
           apRequirement: {
             amount: 0,
-            period: TimePeriod.Daily
+            period: TimePeriod.Daily,
           },
           prerequisites: [],
-          icon: 'colorWandOutline',
+          icon: "colorWandOutline",
           isPreset: false,
           position: {
             x: Math.floor(Math.random() * 800),
-            y: Math.floor(Math.random() * 600)
-          }
+            y: Math.floor(Math.random() * 600),
+          },
         };
 
         editingAbility.value = newAbility as Ability;
         apCost.value = 0;
-        selectedClass.value = 'none';
+        selectedClass.value = "none";
         selectedClassLevel.value = 1;
-        characterLevelRequired.value = 'none';
-        scalingAttribute.value = 'none';
+        characterLevelRequired.value = "none";
+        scalingAttribute.value = "none";
         scalingRate.value = 0.1;
       }
       showAbilityModal.value = true;
@@ -201,7 +208,7 @@ export default defineComponent({
       showAbilityModal.value = false;
       // Initialize with a valid default structure to prevent undefined errors
       editingAbility.value = {
-        apRequirement: { amount: 0, period: TimePeriod.Daily }
+        apRequirement: { amount: 0, period: TimePeriod.Daily },
       } as Ability;
     };
 
@@ -230,7 +237,7 @@ export default defineComponent({
 
     const getIconClass = (iconName: string) => {
       // If the ability has a specific iconPrefix, use it, otherwise default to solid
-      const prefix = editingAbility.value.iconPrefix || 'fas';
+      const prefix = editingAbility.value.iconPrefix || "fas";
       return `${prefix} fa-${iconName}`;
     };
 
@@ -239,7 +246,7 @@ export default defineComponent({
     };
 
     const updateClassRequirement = () => {
-      if (selectedClass.value === 'none') {
+      if (selectedClass.value === "none") {
         if (editingAbility.value.characterRequirement) {
           delete editingAbility.value.characterRequirement.class;
 
@@ -254,13 +261,13 @@ export default defineComponent({
         }
 
         editingAbility.value.characterRequirement.class = {
-          [selectedClass.value]: selectedClassLevel.value
+          [selectedClass.value]: selectedClassLevel.value,
         };
       }
     };
 
     const updateCharacterLevelRequirement = () => {
-      if (characterLevelRequired.value === 'none') {
+      if (characterLevelRequired.value === "none") {
         if (editingAbility.value.characterRequirement) {
           delete editingAbility.value.characterRequirement.level;
 
@@ -274,17 +281,19 @@ export default defineComponent({
           editingAbility.value.characterRequirement = {};
         }
 
-        editingAbility.value.characterRequirement.level = parseInt(characterLevelRequired.value);
+        editingAbility.value.characterRequirement.level = parseInt(
+          characterLevelRequired.value
+        );
       }
     };
 
     const updateScalingAttribute = () => {
-      if (scalingAttribute.value === 'none') {
+      if (scalingAttribute.value === "none") {
         delete editingAbility.value.scaling;
       } else {
         editingAbility.value.scaling = {
           attribute: scalingAttribute.value,
-          rate: scalingRate.value
+          rate: scalingRate.value,
         };
       }
     };
@@ -315,7 +324,9 @@ export default defineComponent({
         abilitiesDb.setAbility(abilityToSave);
 
         // Update in local array
-        const index = abilities.value.findIndex(a => a.id === abilityToSave.id);
+        const index = abilities.value.findIndex(
+          (a) => a.id === abilityToSave.id
+        );
         if (index !== -1) {
           abilities.value[index] = abilityToSave;
         }
@@ -326,19 +337,19 @@ export default defineComponent({
 
     const confirmDeleteAbility = async () => {
       const alert = await alertController.create({
-        header: 'Confirm Delete',
+        header: "Confirm Delete",
         message: `Are you sure you want to delete the ability "${editingAbility.value.name}"?`,
         buttons: [
           {
-            text: 'Cancel',
-            role: 'cancel'
+            text: "Cancel",
+            role: "cancel",
           },
           {
-            text: 'Delete',
-            role: 'destructive',
-            handler: () => deleteAbility()
-          }
-        ]
+            text: "Delete",
+            role: "destructive",
+            handler: () => deleteAbility(),
+          },
+        ],
       });
       alert.present();
     };
@@ -349,12 +360,19 @@ export default defineComponent({
         abilitiesDb.deleteAbility(editingAbility.value);
 
         // Remove from local array
-        abilities.value = abilities.value.filter(a => a.id !== editingAbility.value.id);
+        abilities.value = abilities.value.filter(
+          (a) => a.id !== editingAbility.value.id
+        );
 
         // Also remove this ability from prerequisites of other abilities
-        abilities.value.forEach(ability => {
-          if (ability.prerequisites && ability.prerequisites.includes(editingAbility.value.id)) {
-            ability.prerequisites = ability.prerequisites.filter(p => p !== editingAbility.value.id);
+        abilities.value.forEach((ability) => {
+          if (
+            ability.prerequisites &&
+            ability.prerequisites.includes(editingAbility.value.id)
+          ) {
+            ability.prerequisites = ability.prerequisites.filter(
+              (p) => p !== editingAbility.value.id
+            );
             abilitiesDb.setAbility(ability);
           }
         });
@@ -365,12 +383,12 @@ export default defineComponent({
 
     const addPreset = (preset: Ability) => {
       // Check if preset already exists
-      const existingPreset = abilities.value.find(a => a.id === preset.id);
+      const existingPreset = abilities.value.find((a) => a.id === preset.id);
 
       if (existingPreset) {
         // Remove preset if it exists
         abilitiesDb.deleteAbility(existingPreset);
-        abilities.value = abilities.value.filter(a => a.id !== preset.id);
+        abilities.value = abilities.value.filter((a) => a.id !== preset.id);
       } else {
         // Add preset
         const presetToAdd = { ...preset };
@@ -380,13 +398,16 @@ export default defineComponent({
     };
 
     const isPresetAdded = (presetId: string) => {
-      return abilities.value.some(a => a.id === presetId);
+      return abilities.value.some((a) => a.id === presetId);
     };
 
     const getAbilityIcon = (ability: Ability) => {
       // If the ability has iconPrefix, it's a Font Awesome icon, so we should display it differently
       if (ability.iconPrefix) {
-        return { component: 'i', class: `${ability.iconPrefix} fa-${ability.icon} fa-lg` };
+        return {
+          component: "i",
+          class: `${ability.iconPrefix} fa-${ability.icon} fa-lg`,
+        };
       }
 
       // Otherwise use the old ionic icon mapping
@@ -401,41 +422,43 @@ export default defineComponent({
         homeOutline,
         tvOutline: homeOutline,
         gameControllerOutline,
-        peopleOutline: homeOutline
+        peopleOutline: homeOutline,
       };
 
       return iconMap[ability.icon] || colorWandOutline;
     };
 
     const formatClassName = (className: string): string => {
-      return className.replace('-', ' ').replace(/\b\w/g, l => l.toUpperCase());
+      return className
+        .replace("-", " ")
+        .replace(/\b\w/g, (l) => l.toUpperCase());
     };
 
     const formatFrequency = (frequency: TimePeriod): string => {
       switch (frequency) {
         case TimePeriod.Hourly:
-          return 'Hourly';
+          return "Hourly";
         case TimePeriod.Daily:
-          return 'Daily';
+          return "Daily";
         case TimePeriod.Weekly:
-          return 'Weekly';
+          return "Weekly";
         case TimePeriod.Monthly:
-          return 'Monthly';
+          return "Monthly";
         case TimePeriod.Quarterly:
-          return 'Quarterly';
+          return "Quarterly";
         case TimePeriod.BiAnnual:
-          return 'Bi-Annual';
+          return "Bi-Annual";
         case TimePeriod.Yearly:
-          return 'Yearly';
+          return "Yearly";
         case TimePeriod.Flat:
         default:
-          return 'One-time';
+          return "One-time";
       }
     };
 
     const formatPeriod = (period: TimePeriod): string => {
       if (period === TimePeriod.Flat) {
-        return 'Total (one-time)';
+        return "Total (one-time)";
       }
       return formatFrequency(period);
     };
@@ -447,9 +470,9 @@ export default defineComponent({
       const mockUserStats = {
         level: 5,
         classes: {
-          'time-mage': 3,
-          'technician': 2,
-          'black-mage': 1
+          "time-mage": 3,
+          technician: 2,
+          "black-mage": 1,
         } as any,
         attributes: {
           strength: 8,
@@ -457,15 +480,15 @@ export default defineComponent({
           constitution: 9,
           intelligence: 12,
           wisdom: 10,
-          charisma: 11
+          charisma: 11,
         },
         ap: {
           total: 1000,
           daily: 50,
           weekly: 200,
-          monthly: 500
+          monthly: 500,
         },
-        mp: 30
+        mp: 30,
       };
 
       // Reset statuses
@@ -473,7 +496,7 @@ export default defineComponent({
       const unlocks: { [id: string]: boolean } = {};
 
       // Process abilities
-      abilities.value.forEach(ability => {
+      abilities.value.forEach((ability) => {
         // Check if ability is unlocked
         let isUnlocked = false;
 
@@ -482,22 +505,29 @@ export default defineComponent({
 
         switch (ability.apRequirement.period) {
           case TimePeriod.Daily:
-            hasEnoughAp = mockUserStats.ap.daily >= ability.apRequirement.amount;
+            hasEnoughAp =
+              mockUserStats.ap.daily >= ability.apRequirement.amount;
             break;
           case TimePeriod.Weekly:
-            hasEnoughAp = mockUserStats.ap.weekly >= ability.apRequirement.amount;
+            hasEnoughAp =
+              mockUserStats.ap.weekly >= ability.apRequirement.amount;
             break;
           case TimePeriod.Monthly:
-            hasEnoughAp = mockUserStats.ap.monthly >= ability.apRequirement.amount;
+            hasEnoughAp =
+              mockUserStats.ap.monthly >= ability.apRequirement.amount;
             break;
           default:
-            hasEnoughAp = mockUserStats.ap.total >= ability.apRequirement.amount;
+            hasEnoughAp =
+              mockUserStats.ap.total >= ability.apRequirement.amount;
         }
 
         if (hasEnoughAp) {
           // Check character level requirement
           if (ability.characterRequirement?.level) {
-            if (mockUserStats.level >= (ability.characterRequirement.level as number)) {
+            if (
+              mockUserStats.level >=
+              (ability.characterRequirement.level as number)
+            ) {
               isUnlocked = true;
             }
           } else {
@@ -506,7 +536,9 @@ export default defineComponent({
 
           // Check class requirements
           if (isUnlocked && ability.characterRequirement?.class) {
-            for (const [className, requiredLevel] of Object.entries(ability.characterRequirement.class)) {
+            for (const [className, requiredLevel] of Object.entries(
+              ability.characterRequirement.class
+            )) {
               const userClassLevel = mockUserStats.classes[className] || 0;
               if (userClassLevel < (requiredLevel as number)) {
                 isUnlocked = false;
@@ -516,7 +548,11 @@ export default defineComponent({
           }
 
           // Check prerequisites
-          if (isUnlocked && ability.prerequisites && ability.prerequisites.length > 0) {
+          if (
+            isUnlocked &&
+            ability.prerequisites &&
+            ability.prerequisites.length > 0
+          ) {
             for (const prereqId of ability.prerequisites) {
               if (!unlocks[prereqId]) {
                 isUnlocked = false;
@@ -549,16 +585,22 @@ export default defineComponent({
               cooldownExpired = dayDiff >= 1;
               break;
             case TimePeriod.Weekly:
-              weekDiff = Math.floor((now.getTime() - lastUsed.getTime()) / (7 * 24 * 60 * 60 * 1000));
+              weekDiff = Math.floor(
+                (now.getTime() - lastUsed.getTime()) / (7 * 24 * 60 * 60 * 1000)
+              );
               cooldownExpired = weekDiff >= 1;
               break;
             case TimePeriod.Monthly:
-              monthDiff = (now.getFullYear() - lastUsed.getFullYear()) * 12 + (now.getMonth() - lastUsed.getMonth());
+              monthDiff =
+                (now.getFullYear() - lastUsed.getFullYear()) * 12 +
+                (now.getMonth() - lastUsed.getMonth());
               cooldownExpired = monthDiff >= 1;
               break;
           }
 
-          statuses[ability.id] = cooldownExpired ? AbilityStatus.Available : AbilityStatus.Cooling;
+          statuses[ability.id] = cooldownExpired
+            ? AbilityStatus.Available
+            : AbilityStatus.Cooling;
         } else {
           statuses[ability.id] = AbilityStatus.Available;
         }
@@ -567,8 +609,6 @@ export default defineComponent({
       abilityStatuses.value = statuses;
       unlockStatuses.value = unlocks;
     };
-
-
 
     // Initialize
     onMounted(async () => {
@@ -588,31 +628,31 @@ export default defineComponent({
     // Action sheet handler
     const presentActionSheet = async () => {
       const actionSheet = await actionSheetController.create({
-        header: 'Ability Actions',
-        cssClass: 'abilities-action-sheet',
-        mode: 'ios',
+        header: "Ability Actions",
+        cssClass: "abilities-action-sheet",
+        mode: "ios",
         buttons: [
           {
-            text: 'Create New Ability',
-            cssClass: 'action-create',
+            text: "Create New Ability",
+            cssClass: "action-create",
             handler: () => {
               navigateToCreateAbility();
-            }
+            },
           },
           {
-            text: 'Add from Presets',
-            cssClass: 'action-preset',
+            text: "Add from Presets",
+            cssClass: "action-preset",
             handler: () => {
               openPresetModal();
-            }
+            },
           },
           {
-            text: 'Cancel',
-            role: 'cancel',
-            cssClass: 'action-cancel',
+            text: "Cancel",
+            role: "cancel",
+            cssClass: "action-cancel",
             handler: () => {
               // Just close the action sheet
-            }
+            },
           },
         ],
       });
@@ -695,5 +735,5 @@ export default defineComponent({
       navigateToEditAbility,
       navigateToCreateAbility,
     };
-  }
+  },
 });

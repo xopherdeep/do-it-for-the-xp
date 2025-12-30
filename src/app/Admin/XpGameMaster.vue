@@ -3,7 +3,7 @@
     :class="$options.name"
     class="rpg-box"
   >
-    <ion-content>
+    <ion-content class="bg-slide bg-slide-dark">
       <ion-tabs>
         <ion-router-outlet
           :key="route.path.split('/')[2] || 'dashboard'"
@@ -45,4 +45,3 @@
 
 <script src="./XpGameMaster" />
 <style lang="scss" src="./_XpGameMaster.scss" scoped />
-

@@ -1,64 +1,60 @@
 <template>
-  <ion-page :class="$options.name" style="background: transparent">
-    <ion-header>
-      <ion-toolbar class="rpg-box">
-        <ion-buttons slot="start">
-          <ion-back-button default-href="/game-master" />
-        </ion-buttons>
-        <i class="fad fa-2x fa-hand-holding-water" slot="start" />
-        <ion-title> Temples </ion-title>
-        <ion-buttons slot="end">
-          <ion-button @click="clickSoundSettings">
-            <i class="fad fa-volume-up fa-2x"></i>
-          </ion-button>
-          <ion-button @click="clickThemeSettings">
-            <i class="fad fa-palette fa-2x"></i>
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-    </ion-header>
+  <xp-rpg-page
+    :loading="isLoading"
+    title="Temples"
+    header-icon="fa-hand-holding-water"
+  >
+    <template #actions>
+      <ion-button @click="clickSoundSettings">
+        <i class="fad fa-volume-up fa-2x"></i>
+      </ion-button>
+      <ion-button @click="clickThemeSettings">
+        <i class="fad fa-palette fa-2x"></i>
+      </ion-button>
+    </template>
 
-    <ion-content class="ion-padding" style="--background: transparent">
-      <!-- Loading State -->
-      <div v-if="isLoading" class="loading-wrapper">
-        <XpLoading />
-      </div>
-
-      <ion-grid v-else>
-        <ion-row>
-          <ion-col
-            size="6"
-            size-lg="4"
-            size-xl="3"
-            v-for="temple in processedTemples"
-            :key="temple.id"
+    <ion-grid>
+      <ion-row>
+        <ion-col
+          size="6"
+          size-lg="4"
+          size-xl="3"
+          v-for="temple in processedTemples"
+          :key="temple.id"
+        >
+          <ion-card
+            button
+            @click="clickTemple(temple.id)"
+            class="temple-card portrait-card"
+            @mouseenter="hoveredTempleId = temple.id"
+            @mouseleave="hoveredTempleId = null"
           >
-            <ion-card
-              button
-              @click="clickTemple(temple.id)"
-              class="temple-card portrait-card"
-              @mouseenter="hoveredTempleId = temple.id"
-              @mouseleave="hoveredTempleId = null"
-            >
-              <div class="img-wrapper">
-                <ion-img
-                  :src="temple.bgImage"
-                  class="temple-bg-image"
-                  alt="Temple background"
-                ></ion-img>
-              </div>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-      <!-- Temple Creator Floating Action Button -->
-      <ion-fab vertical="bottom" horizontal="center" slot="fixed">
-        <ion-fab-button @click="presentActionSheet" color="rpg">
-          <i class="fad fa-hand-holding-water fa-2x"></i>
-        </ion-fab-button>
-      </ion-fab>
-    </ion-content>
-  </ion-page>
+            <div class="img-wrapper">
+              <ion-img
+                :src="temple.bgImage"
+                class="temple-bg-image"
+                alt="Temple background"
+              ></ion-img>
+            </div>
+          </ion-card>
+        </ion-col>
+      </ion-row>
+    </ion-grid>
+
+    <!-- Temple Creator Floating Action Button -->
+    <ion-fab
+      vertical="bottom"
+      horizontal="center"
+      slot="fixed"
+    >
+      <ion-fab-button
+        @click="presentActionSheet"
+        color="rpg"
+      >
+        <i class="fad fa-hand-holding-water fa-2x"></i>
+      </ion-fab-button>
+    </ion-fab>
+  </xp-rpg-page>
 </template>
 
 <script lang="ts">
@@ -74,15 +70,15 @@
   import { actionSheetController } from "@ionic/vue";
 
   import { createOutline, cloudDownloadOutline } from "ionicons/icons";
-  import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
+  import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
 
   const requireBg = require.context("@/assets/images/backgrounds/");
 
   export default defineComponent({
     name: "xp-temples",
     mixins: [Ionic],
-    components: {
-      XpLoading,
+    components: { 
+      XpRpgPage
     },
     setup() {
       const isLoading = ref(true);
@@ -278,6 +274,7 @@
 
 <style lang="scss" scoped>
   .xp-temples {
+
     // Global page styles
     ion-toolbar {
       ion-title {

@@ -1,23 +1,27 @@
-import { ref, computed, watch, InjectionKey } from 'vue';
-import { useRouter } from 'vue-router';
-import { alertController, toastController, modalController } from '@ionic/vue';
-import { debounce } from 'lodash';
+import { ref, computed, watch, InjectionKey } from "vue";
+import { useRouter } from "vue-router";
+import { alertController, toastController, modalController } from "@ionic/vue";
+import { debounce } from "lodash";
 
 import AchievementDb, {
   Achievement,
   achievementStorage,
   achievementCategoryStorage,
   AchievementCategoryDb,
-  AchievementCategoryInterface
+  AchievementCategoryInterface,
 } from "@/lib/databases/AchievementDb";
 
-import BestiaryDb, { Beast, beastStorage } from '@/lib/databases/BestiaryDb';
-import ProfileDb from '@/lib/databases/ProfileDb';
-import User from '@/lib/utils/User';
-import { profileStorage } from '@/app/SideMenu/SwitchProfile/SwitchProfile.vue';
-import { useBestiarySelectionStore } from '@/lib/store/stores/bestiary-selection';
-import appConfig from '@/app.config';
-import { DIFFICULTY_ICONS, ACHIEVEMENT_TYPE_ICONS, BASIC_SCHEDULE_ICONS } from "@/constants";
+import BestiaryDb, { Beast, beastStorage } from "@/lib/databases/BestiaryDb";
+import ProfileDb from "@/lib/databases/ProfileDb";
+import User from "@/lib/utils/User";
+import { profileStorage } from "@/app/SideMenu/SwitchProfile/SwitchProfile.vue";
+import { useBestiarySelectionStore } from "@/lib/store/stores/bestiary-selection";
+import appConfig from "@/app.config";
+import {
+  DIFFICULTY_ICONS,
+  ACHIEVEMENT_TYPE_ICONS,
+  BASIC_SCHEDULE_ICONS,
+} from "@/constants";
 import XpReorderAchievementsModal from "../components/XpReorderAchievementsModal.vue";
 
 export const sortCategoryByName = (a: any, b: any) => {
@@ -28,14 +32,15 @@ export const sortCategoryByName = (a: any, b: any) => {
   return 0;
 };
 
-
-export const AchievementFormInjectionKey: InjectionKey<ReturnType<typeof useAchievementForm>> = Symbol('AchievementForm');
+export const AchievementFormInjectionKey: InjectionKey<
+  ReturnType<typeof useAchievementForm>
+> = Symbol("AchievementForm");
 
 export function useAchievementForm() {
   const router = useRouter();
 
   // State
-  const id = ref<string>('');
+  const id = ref<string>("");
 
   // Databases
   const achievementDb = new AchievementDb(achievementStorage);
@@ -54,10 +59,10 @@ export function useAchievementForm() {
 
   const loading = ref(false);
   const saving = ref(false);
-  const lastSavedState = ref('');
+  const lastSavedState = ref("");
 
   // UI State
-  const activeSegment = ref('splash');
+  const activeSegment = ref("dashboard");
   const addCategoryModalOpen = ref(false);
   const endsModalOpen = ref(false);
   const startsModalOpen = ref(false);
@@ -73,29 +78,37 @@ export function useAchievementForm() {
   // Constants
   const fibonacciArray = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144];
   const fibonacciDescriptions = [
-    "Trivial", "Simple", "Easy", "Moderate", "Challenging",
-    "Difficult", "Very Difficult", "Extremely Difficult", "Insane",
-    "Legendary", "Mythical"
+    "Trivial",
+    "Simple",
+    "Easy",
+    "Moderate",
+    "Challenging",
+    "Difficult",
+    "Very Difficult",
+    "Extremely Difficult",
+    "Insane",
+    "Legendary",
+    "Mythical",
   ];
   const fibonacciIndex = ref(0);
 
   const segments = computed(() => {
     const type = achievement.value.adventureType;
-    let typeName = 'Type';
-    let typeIcon = 'fa-shapes'; // valid fad icon? yes.
+    let typeName = "Type";
+    let typeIcon = "fa-shapes"; // valid fad icon? yes.
 
-    if (type === 'beast') {
-      typeName = 'Beast';
-      typeIcon = 'fa-dragon';
-    } else if (type === 'chain') {
-      typeName = 'Chain';
-      typeIcon = 'fa-link';
+    if (type === "beast") {
+      typeName = "Beast";
+      typeIcon = "fa-dragon";
+    } else if (type === "chain") {
+      typeName = "Chain";
+      typeIcon = "fa-link";
     }
 
     return [
       { name: "Points", icon: "fa-hand-holding-medical", path: "points" },
       { name: "Heros", icon: "fa-users", path: "heros" },
-      { name: "Quest", icon: "fa-cubes", path: "splash" },
+      { name: "Quest", icon: "fa-cubes", path: "dashboard" },
       { name: typeName, icon: typeIcon, path: "quest-type" },
       { name: "When", icon: "fa-calendar", path: "when" },
     ];
@@ -129,76 +142,145 @@ export function useAchievementForm() {
   // Assignment types for Heros tab
   const assignmentTypes = [
     {
-      value: 'asNeeded',
-      name: 'Open Bounty',
-      shortDesc: 'Public Bounty.',
-      icon: 'fa-user-cowboy',
-      example: 'Common area chores or "extra credit" tasks posted for the whole party.'
+      value: "asNeeded",
+      name: "Open Bounty",
+      shortDesc: "Public Bounty.",
+      icon: "fa-user-cowboy",
+      example:
+        'Common area chores or "extra credit" tasks posted for the whole party.',
     },
     {
-      value: 'individual',
-      name: 'Solo Mission',
-      shortDesc: 'Solo Objective.',
-      icon: 'fa-user-ninja',
-      example: 'Personal homework, hygiene, or individual training.'
+      value: "individual",
+      name: "Solo Mission",
+      shortDesc: "Solo Objective.",
+      icon: "fa-user-ninja",
+      example: "Personal homework, hygiene, or individual training.",
     },
     {
-      value: 'collaborate',
-      name: 'Team Effort',
-      shortDesc: 'Group Raid.',
-      icon: 'fa-user-headset',
-      example: 'Cleaning the garage, family projects, or big assemblies.'
+      value: "collaborate",
+      name: "Team Effort",
+      shortDesc: "Group Raid.",
+      icon: "fa-user-headset",
+      example: "Cleaning the garage, family projects, or big assemblies.",
     },
     {
-      value: 'rotate',
-      name: 'Rotate Out',
-      shortDesc: 'Fair Rotations.',
-      icon: 'fa-user-injured',
-      example: 'Weekly chores, pet feeding, or recurring shifts.'
+      value: "rotate",
+      name: "Rotate Out",
+      shortDesc: "Fair Rotations.",
+      icon: "fa-user-injured",
+      example: "Weekly chores, pet feeding, or recurring shifts.",
     },
     {
-      value: 'compete',
-      name: 'Rat Race',
-      shortDesc: 'Speed Run.',
-      icon: 'fa-user-crown',
-      example: 'Reading contest, fastest cleanup, or most points earned.'
+      value: "compete",
+      name: "Rat Race",
+      shortDesc: "Speed Run.",
+      icon: "fa-user-crown",
+      example: "Reading contest, fastest cleanup, or most points earned.",
     },
   ];
 
   // Lore Combo Matrix - combines Assignment + Depth into thematic quest names
-  const loreComboMatrix: Record<string, Record<string, { name: string; icon: string; tagline: string }>> = {
+  const loreComboMatrix: Record<
+    string,
+    Record<string, { name: string; icon: string; tagline: string }>
+  > = {
     asNeeded: {
-      simple: { name: 'Public Bounty', icon: 'fa-scroll', tagline: 'A simple favor for the local townsfolk' },
-      beast: { name: 'Monster Hunt', icon: 'fa-skull-crossbones', tagline: 'The cryptid is back! Wanted: Dead not Alive' },
-      chain: { name: 'Guild Campaign', icon: 'fa-map-marked-alt', tagline: 'A multi-stage expedition for the guild' }
+      simple: {
+        name: "Public Bounty",
+        icon: "fa-scroll",
+        tagline: "A simple favor for the local townsfolk",
+      },
+      beast: {
+        name: "Monster Hunt",
+        icon: "fa-skull-crossbones",
+        tagline: "The cryptid is back! Wanted: Dead not Alive",
+      },
+      chain: {
+        name: "Guild Campaign",
+        icon: "fa-map-marked-alt",
+        tagline: "A multi-stage expedition for the guild",
+      },
     },
     individual: {
-      simple: { name: 'Han Solo', icon: 'fa-user-astronaut', tagline: 'A lone hero on a simple errand' },
-      beast: { name: 'Vendetta', icon: 'fa-swords', tagline: 'Face the beast alone in single combat' },
-      chain: { name: 'Personal Saga', icon: 'fa-route', tagline: 'An epic personal journey across the realms' }
+      simple: {
+        name: "Han Solo",
+        icon: "fa-user-astronaut",
+        tagline: "A lone hero on a simple errand",
+      },
+      beast: {
+        name: "Vendetta",
+        icon: "fa-swords",
+        tagline: "Face the beast alone in single combat",
+      },
+      chain: {
+        name: "Personal Saga",
+        icon: "fa-route",
+        tagline: "An epic personal journey across the realms",
+      },
     },
     collaborate: {
-      simple: { name: 'Party Event', icon: 'fa-users', tagline: 'The whole party helps a neighbor' },
-      beast: { name: 'Boss Raid', icon: 'fa-dragon', tagline: 'Unite the guild to slay the behemoth!' },
-      chain: { name: 'Epic Saga', icon: 'fa-dungeon', tagline: 'A legendary multi-chapter tale for the party' }
+      simple: {
+        name: "Party Event",
+        icon: "fa-users",
+        tagline: "The whole party helps a neighbor",
+      },
+      beast: {
+        name: "Boss Raid",
+        icon: "fa-dragon",
+        tagline: "Unite the guild to slay the behemoth!",
+      },
+      chain: {
+        name: "Epic Saga",
+        icon: "fa-dungeon",
+        tagline: "A legendary multi-chapter tale for the party",
+      },
     },
     rotate: {
-      simple: { name: 'Shift Duty', icon: 'fa-sync', tagline: 'A cycle of mundane civic duties' },
-      beast: { name: 'Rotating Challenge', icon: 'fa-crosshairs', tagline: 'The monster returns... who is next to fight?' },
-      chain: { name: 'Seasonal Arc', icon: 'fa-calendar-alt', tagline: 'A recurring adventure for the rotating heroes' }
+      simple: {
+        name: "Shift Duty",
+        icon: "fa-sync",
+        tagline: "A cycle of mundane civic duties",
+      },
+      beast: {
+        name: "Rotating Challenge",
+        icon: "fa-crosshairs",
+        tagline: "The monster returns... who is next to fight?",
+      },
+      chain: {
+        name: "Seasonal Arc",
+        icon: "fa-calendar-alt",
+        tagline: "A recurring adventure for the rotating heroes",
+      },
     },
     compete: {
-      simple: { name: 'Time Trial', icon: 'fa-rabbit-fast', tagline: 'Race to finish the NPC errand first!' },
-      beast: { name: 'Arena Battle', icon: 'fa-trophy', tagline: 'Last hero standing against the beast wins' },
-      chain: { name: 'Tournament', icon: 'fa-crown', tagline: 'A multi-round champion of champions challenge' }
-    }
+      simple: {
+        name: "Time Trial",
+        icon: "fa-rabbit-fast",
+        tagline: "Race to finish the NPC errand first!",
+      },
+      beast: {
+        name: "Arena Battle",
+        icon: "fa-trophy",
+        tagline: "Last hero standing against the beast wins",
+      },
+      chain: {
+        name: "Tournament",
+        icon: "fa-crown",
+        tagline: "A multi-round champion of champions challenge",
+      },
+    },
   };
 
   const activeLoreCombo = computed(() => {
-    const assignment = achievement.value.type || 'asNeeded';
-    const depth = achievement.value.adventureType || '';
-    return loreComboMatrix[assignment]?.[depth] ||
-      { name: 'Quest', icon: 'fa-scroll', tagline: 'An adventure awaits' };
+    const assignment = achievement.value.type || "asNeeded";
+    const depth = achievement.value.adventureType || "";
+    return (
+      loreComboMatrix[assignment]?.[depth] || {
+        name: "Quest",
+        icon: "fa-scroll",
+        tagline: "An adventure awaits",
+      }
+    );
   });
 
   const isAssignmentSelected = computed(() => !!achievement.value.type);
@@ -206,14 +288,15 @@ export function useAchievementForm() {
 
   const activeBeast = computed(() => {
     if (!achievement.value.beastId) return null;
-    return beasts.value.find(b => b.id === achievement.value.beastId);
+    return beasts.value.find((b) => b.id === achievement.value.beastId);
   });
 
   const beastAvatarUrl = computed(() => {
     if (!activeBeast.value?.avatar) return null;
     try {
-      const pad = activeBeast.value.avatar.toString().padStart(3, '0');
-      return new URL(`/src/assets/images/beasts/${pad}.png`, import.meta.url).href;
+      const pad = activeBeast.value.avatar.toString().padStart(3, "0");
+      return new URL(`/src/assets/images/beasts/${pad}.png`, import.meta.url)
+        .href;
     } catch {
       return null;
     }
@@ -222,61 +305,71 @@ export function useAchievementForm() {
   const subAchievements = computed(() => {
     if (!achievement.value.subAchievementIds?.length) return [];
     return achievement.value.subAchievementIds
-      .map((id: string) => achievements.value.find(a => a.id === id))
+      .map((id: string) => achievements.value.find((a) => a.id === id))
       .filter(Boolean);
   });
 
   const assignedHeroes = computed(() => {
-    return users.value.filter(u => achievement.value.assignee?.includes(u.id));
+    return users.value.filter((u) =>
+      achievement.value.assignee?.includes(u.id)
+    );
   });
 
   const scheduleSummary = computed(() => {
     const a = achievement.value;
-    if (a.basicSchedule === 'once') return 'One-time';
-    if (a.basicSchedule === 'daily') return 'Daily';
-    if (a.basicSchedule === 'weekly') {
+    if (a.basicSchedule === "once") return "One-time";
+    if (a.basicSchedule === "daily") return "Daily";
+    if (a.basicSchedule === "weekly") {
       const days = a.repeatOnDays || [];
-      if (days.length === 0) return 'Weekly';
+      if (days.length === 0) return "Weekly";
 
       const getLocalAbbreviation = (dayValue: string) => {
-        const days = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+        const days = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
         const date = new Date(2025, 0, 5 + days.indexOf(dayValue));
-        return date.toLocaleDateString(undefined, { weekday: 'narrow' });
+        return date.toLocaleDateString(undefined, { weekday: "narrow" });
       };
 
-      const order = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+      const order = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];
       const activeDays = order
-        .filter(d => days.includes(d))
-        .map(d => getLocalAbbreviation(d))
-        .join(' ');
+        .filter((d) => days.includes(d))
+        .map((d) => getLocalAbbreviation(d))
+        .join(" ");
 
       return `Weekly\n${activeDays}`;
     }
-    if (a.basicSchedule === 'custom' || a.scheduleType === 'custom') {
-      return `${a.customFrequency}x Every ${a.customPeriodNumber} ${a.customPeriodType}${a.customPeriodNumber > 1 ? 's' : ''}`;
+    if (a.basicSchedule === "custom" || a.scheduleType === "custom") {
+      return `${a.customFrequency}x Every ${a.customPeriodNumber} ${
+        a.customPeriodType
+      }${a.customPeriodNumber > 1 ? "s" : ""}`;
     }
-    return a.basicSchedule ? (a.basicSchedule.charAt(0).toUpperCase() + a.basicSchedule.slice(1)) : 'One-time';
+    return a.basicSchedule
+      ? a.basicSchedule.charAt(0).toUpperCase() + a.basicSchedule.slice(1)
+      : "One-time";
   });
 
   const activeScheduleIcon = computed(() => {
-    const schedule = achievement.value.basicSchedule as keyof typeof BASIC_SCHEDULE_ICONS;
-    return BASIC_SCHEDULE_ICONS[schedule] || 'fa-calendar';
+    const schedule = achievement.value
+      .basicSchedule as keyof typeof BASIC_SCHEDULE_ICONS;
+    return BASIC_SCHEDULE_ICONS[schedule] || "fa-calendar";
   });
 
   const scheduleTagline = computed(() => {
-    if (achievement.value.basicSchedule === 'once') return 'A one-time adventure.';
-    return 'The quest board refreshes on this rotation.';
+    if (achievement.value.basicSchedule === "once")
+      return "A one-time adventure.";
+    return "The quest board refreshes on this rotation.";
   });
 
   // Toggle hero function
   const toggleHero = (userId: string) => {
-    if (achievement.value.type === 'asNeeded') return;
+    if (achievement.value.type === "asNeeded") return;
 
     const assignees = achievement.value.assignee || [];
     const index = assignees.indexOf(userId);
 
     if (index > -1) {
-      achievement.value.assignee = assignees.filter((id: string) => id !== userId);
+      achievement.value.assignee = assignees.filter(
+        (id: string) => id !== userId
+      );
     } else {
       achievement.value.assignee = [...assignees, userId];
     }
@@ -295,19 +388,22 @@ export function useAchievementForm() {
   });
 
   // Clear assignees when switching to 'As Needed' type
-  watch(() => achievement.value.type, (newType) => {
-    if (newType === 'asNeeded') {
-      achievement.value.assignee = [];
-      // If currently on Heros tab, switch to Quest tab
-      if (activeSegment.value === 'heros') {
-        activeSegment.value = 'splash';
+  watch(
+    () => achievement.value.type,
+    (newType) => {
+      if (newType === "asNeeded") {
+        achievement.value.assignee = [];
+        // If currently on Heros tab, switch to Quest tab
+        if (activeSegment.value === "heros") {
+          activeSegment.value = "dashboard";
+        }
       }
     }
-  });
+  );
 
   const displayFibonacciValue = (index: number) => {
     const value = fibonacciArray[index];
-    return value ? value.toString() : '0';
+    return value ? value.toString() : "0";
   };
 
   const updatePoints = () => {
@@ -321,12 +417,12 @@ export function useAchievementForm() {
       difficulty: closestFib,
       xp: closestFib * 100,
       gp: closestFib * 10,
-      ap: closestFib * 1
+      ap: closestFib * 1,
     };
   };
 
   const difficultyIcon = computed(() => {
-    return DIFFICULTY_ICONS[achievement.value.difficulty] || 'fa-question';
+    return DIFFICULTY_ICONS[achievement.value.difficulty] || "fa-question";
   });
 
   const isFibonacci = computed(() => {
@@ -334,7 +430,11 @@ export function useAchievementForm() {
   });
 
   const saveBtnDisabled = computed(() => {
-    return !achievement.value.achievementName?.trim() || !achievement.value.categoryId || saving.value;
+    return (
+      !achievement.value.achievementName?.trim() ||
+      !achievement.value.categoryId ||
+      saving.value
+    );
   });
 
   const increaseDifficulty = () => {
@@ -356,23 +456,31 @@ export function useAchievementForm() {
   // Section Completeness
   const isStrategyComplete = computed(() => {
     const type = achievement.value.adventureType;
-    if (type === 'simple') return true;
-    if (type === 'beast') return !!achievement.value.beastId;
-    if (type === 'chain') return (achievement.value.subAchievementIds?.length || 0) > 0;
+    if (type === "simple") return true;
+    if (type === "beast") return !!achievement.value.beastId;
+    if (type === "chain")
+      return (achievement.value.subAchievementIds?.length || 0) > 0;
     return false;
   });
 
   const isPartyComplete = computed(() => {
-    if (achievement.value.type === 'asNeeded') return true;
+    if (achievement.value.type === "asNeeded") return true;
     return (achievement.value.assignee?.length || 0) > 0;
   });
 
   const isRewardsComplete = computed(() => {
-    return (achievement.value.xp || 0) > 0 || (achievement.value.gp || 0) > 0 || (achievement.value.ap || 0) > 0;
+    return (
+      (achievement.value.xp || 0) > 0 ||
+      (achievement.value.gp || 0) > 0 ||
+      (achievement.value.ap || 0) > 0
+    );
   });
 
   const isTimingComplete = computed(() => {
-    return !!achievement.value.basicSchedule || achievement.value.scheduleType === 'custom';
+    return (
+      !!achievement.value.basicSchedule ||
+      achievement.value.scheduleType === "custom"
+    );
   });
 
   // Validation
@@ -387,17 +495,25 @@ export function useAchievementForm() {
 
   const getValidationMessage = () => {
     const messages: string[] = [];
-    if (!achievement.value.achievementName?.trim()) messages.push('• Name your achievement');
-    if (!achievement.value.categoryId) messages.push('• Select a category');
-    if (!achievement.value.difficulty) messages.push('• Set the difficulty level');
+    if (!achievement.value.achievementName?.trim())
+      messages.push("• Name your achievement");
+    if (!achievement.value.categoryId) messages.push("• Select a category");
+    if (!achievement.value.difficulty)
+      messages.push("• Set the difficulty level");
 
-    if (achievement.value.adventureType === 'beast' && !achievement.value.beastId) {
-      messages.push('• Choose a beast to challenge');
+    if (
+      achievement.value.adventureType === "beast" &&
+      !achievement.value.beastId
+    ) {
+      messages.push("• Choose a beast to challenge");
     }
-    if (achievement.value.adventureType === 'chain' && !achievement.value.subAchievementIds?.length) {
-      messages.push('• Add achievements to your quest chain');
+    if (
+      achievement.value.adventureType === "chain" &&
+      !achievement.value.subAchievementIds?.length
+    ) {
+      messages.push("• Add achievements to your quest chain");
     }
-    return messages.join('\n');
+    return messages.join("\n");
   };
 
   // Actions
@@ -410,24 +526,25 @@ export function useAchievementForm() {
       } else {
         // Fallback to route param if not set (legacy support)
         const paramId = router.currentRoute.value.params.id as string;
-        if (paramId && paramId !== 'new') {
+        if (paramId && paramId !== "new") {
           id.value = paramId;
         }
       }
 
-      const [allAchievements, allBeasts, allCategories, allUsers] = await Promise.all([
-        achievementDb.getAll(),
-        bestiaryDb.getAll(),
-        categoryDb.getAll(),
-        profilesDb.getAll()
-      ]);
+      const [allAchievements, allBeasts, allCategories, allUsers] =
+        await Promise.all([
+          achievementDb.getAll(),
+          bestiaryDb.getAll(),
+          categoryDb.getAll(),
+          profilesDb.getAll(),
+        ]);
 
       achievements.value = allAchievements;
       beasts.value = allBeasts;
       categories.value = allCategories.sort(sortCategoryByName);
       users.value = allUsers;
 
-      if (id.value && id.value !== 'new') {
+      if (id.value && id.value !== "new") {
         const task = await achievementDb.getTaskById(id.value);
         if (task) {
           achievement.value = { ...achievement.value, ...task };
@@ -435,8 +552,13 @@ export function useAchievementForm() {
           // Honor stored adventureType, or infer if legacy
           if (!task.adventureType) {
             const hasBeast = !!task.beastId;
-            const hasSub = task.subAchievementIds && task.subAchievementIds.length > 0;
-            achievement.value.adventureType = hasBeast ? 'beast' : (hasSub ? 'chain' : 'simple');
+            const hasSub =
+              task.subAchievementIds && task.subAchievementIds.length > 0;
+            achievement.value.adventureType = hasBeast
+              ? "beast"
+              : hasSub
+              ? "chain"
+              : "simple";
           }
 
           // Set fib index
@@ -453,7 +575,7 @@ export function useAchievementForm() {
         fibonacciIndex.value = 0;
         updatePoints();
         // Ensure ID is set on the object
-        if (id.value && id.value !== 'new') achievement.value.id = id.value;
+        if (id.value && id.value !== "new") achievement.value.id = id.value;
       }
 
       // Store initial state for change detection
@@ -469,8 +591,8 @@ export function useAchievementForm() {
     if (currentState === lastSavedState.value) return;
 
     // Auto-save regardless of validity? Or only valid?
-    // Let's save as draft if we can, but since DB structure is simple, 
-    // maybe we just save it. 
+    // Let's save as draft if we can, but since DB structure is simple,
+    // maybe we just save it.
     // User requested "form needs to be saved or autosave".
 
     saving.value = true;
@@ -488,9 +610,9 @@ export function useAchievementForm() {
   const saveManual = async () => {
     if (!isValidAdventure.value) {
       const alert = await alertController.create({
-        header: 'Incomplete Adventure',
+        header: "Incomplete Adventure",
         message: getValidationMessage(),
-        buttons: ['OK']
+        buttons: ["OK"],
       });
       await alert.present();
       return;
@@ -498,18 +620,22 @@ export function useAchievementForm() {
 
     await achievementDb.setTask(achievement.value);
     const toast = await toastController.create({
-      message: 'Achievement Saved!',
+      message: "Achievement Saved!",
       duration: 2000,
-      color: 'success'
+      color: "success",
     });
     await toast.present();
     router.go(-1);
   };
 
   // Watchers
-  watch(achievement, () => {
-    autosave();
-  }, { deep: true });
+  watch(
+    achievement,
+    () => {
+      autosave();
+    },
+    { deep: true }
+  );
 
   watch(fibonacciIndex, (newIndex) => {
     if (newIndex >= 0 && newIndex < fibonacciArray.length) {
@@ -547,7 +673,7 @@ export function useAchievementForm() {
     activeSegment,
     adventureType: computed({
       get: () => achievement.value.adventureType,
-      set: (val) => achievement.value.adventureType = val
+      set: (val) => (achievement.value.adventureType = val),
     }),
     addCategoryModalOpen,
     endsModalOpen,
@@ -577,16 +703,21 @@ export function useAchievementForm() {
     isDepthSelected,
     activeAdventureType: computed(() => {
       const type = achievement.value.adventureType;
-      return achievementTypes.find(t => t.value === type) || {
-        name: 'Select',
-        value: '',
-        icon: 'fa-question-circle',
-        text: 'Choose a quest type',
-        example: ''
-      };
+      return (
+        achievementTypes.find((t) => t.value === type) || {
+          name: "Select",
+          value: "",
+          icon: "fa-question-circle",
+          text: "Choose a quest type",
+          example: "",
+        }
+      );
     }),
     activePartyType: computed(() => {
-      return assignmentTypes.find(t => t.value === achievement.value.type) || assignmentTypes[0];
+      return (
+        assignmentTypes.find((t) => t.value === achievement.value.type) ||
+        assignmentTypes[0]
+      );
     }),
     activeLoreCombo,
     activeScheduleIcon,
@@ -616,22 +747,22 @@ export function useAchievementForm() {
       // Flush autosave to ensure current state is persisted before navigation
       autosave.flush();
 
-      if (achievement.value.adventureType === 'beast') {
+      if (achievement.value.adventureType === "beast") {
         const selectionStore = useBestiarySelectionStore();
         selectionStore.startSelection(
           achievement.value.beastId ? [achievement.value.beastId] : [],
-          'xp-achievement-config',
+          "xp-achievement-config",
           (ids) => {
-            achievement.value.beastId = ids[0] || '';
+            achievement.value.beastId = ids[0] || "";
             // Immediately save when a beast is selected to prevent loss during route transitions
             achievementDb.setTask(achievement.value);
           }
         );
-        router.push({ name: 'xp-bestiary-select' });
-      } else if (achievement.value.adventureType === 'chain') {
+        router.push({ name: "xp-bestiary-select" });
+      } else if (achievement.value.adventureType === "chain") {
         // For chains, we still use the reorder modal or a similar mechanism
         // But the user might want a separate selection flow later.
-        // For now, let's just trigger the reorder if they have items, 
+        // For now, let's just trigger the reorder if they have items,
         // or we could show an achievement selector.
         // Since there's no "Achievement Selection Page" yet, we stick to inline or modal.
         // But the user said "configuration... in its own modal" before.
@@ -676,15 +807,15 @@ export function useAchievementForm() {
       modalController.dismiss();
     },
     clickReorder: async () => {
-      const achievementChain = (achievement.value.subAchievementIds || []).map(
-        (id: string) => achievements.value.find(a => a.id === id)
-      ).filter(Boolean);
+      const achievementChain = (achievement.value.subAchievementIds || [])
+        .map((id: string) => achievements.value.find((a) => a.id === id))
+        .filter(Boolean);
 
       const modal = await modalController.create({
         component: XpReorderAchievementsModal,
         componentProps: {
-          achievements: achievementChain
-        }
+          achievements: achievementChain,
+        },
       });
 
       modal.onDidDismiss().then(({ data }) => {
@@ -692,6 +823,6 @@ export function useAchievementForm() {
       });
 
       await modal.present();
-    }
+    },
   };
 }

@@ -1,11 +1,10 @@
 <template>
-  <XpPage
-    title="Economy & Rewards"
-    headerIcon="fa-coins"
-    :hideHeader="true"
-    bgClass="bg-slide-dark"
+  <xp-rpg-page
+    title="Economy"
+    headerIcon="fa-hand-holding-box"
     backButtonHref="/game-master/compendium/setup"
     class="xp-economy-dashboard"
+    :hideHeader="true"
   >
     <ion-tabs>
       <ion-router-outlet></ion-router-outlet>
@@ -15,7 +14,7 @@
           tab="splash"
           href="/game-master/compendium/setup/economy/dashboard"
         >
-          <ion-icon :icon="homeOutline" />
+          <i class="fad fa-home fa-2x"></i>
           <ion-label>Home</ion-label>
         </ion-tab-button>
 
@@ -23,7 +22,7 @@
           tab="shops"
           href="/game-master/compendium/setup/economy/shops"
         >
-          <ion-icon :icon="storefrontOutline" />
+          <i class="fad fa-store fa-2x"></i>
           <ion-label>Shops</ion-label>
         </ion-tab-button>
 
@@ -31,7 +30,7 @@
           tab="items"
           href="/game-master/compendium/setup/economy/items"
         >
-          <ion-icon :icon="shirtOutline" />
+          <i class="fad fa-box fa-2x"></i>
           <ion-label>Items</ion-label>
         </ion-tab-button>
 
@@ -39,15 +38,12 @@
           tab="key-items"
           href="/game-master/compendium/setup/economy/key-items"
         >
-          <ion-icon :icon="keyOutline" />
+          <i class="fad fa-key fa-2x"></i>
           <ion-label>Key Items</ion-label>
         </ion-tab-button>
       </ion-tab-bar>
     </ion-tabs>
-
-    <!-- Slotting the action sheet if we wanted to keep it, but it was just a function before. -->
-    <!-- Keeping the function based approach in setup, XpPage doesn't restrict that. -->
-  </XpPage>
+  </xp-rpg-page>
 </template>
 
 <script lang="ts">
@@ -62,14 +58,14 @@
     homeOutline,
   } from "ionicons/icons";
   import Ionic from "@/lib/mixins/ionic";
-  import XpPage from "@/components/templates/pages/XpPage.vue";
+  import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
 
   export default defineComponent({
     name: "XpEconomyDashboard",
     mixins: [Ionic],
     components: {
       IonRouterOutlet,
-      XpPage,
+      XpRpgPage
     },
     setup() {
       const router = useRouter();

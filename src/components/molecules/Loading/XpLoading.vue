@@ -11,19 +11,19 @@
 
 <script setup lang="ts">
 import { onMounted, onUnmounted, getCurrentInstance, computed } from 'vue';
-import { useRoute } from 'vue-router';
+// import { useRoute } from 'vue-router';
 
 // Access global properties like $fx via getCurrentInstance
 const instance = getCurrentInstance();
 const fx = instance?.appContext.config.globalProperties.$fx;
-const route = useRoute();
+// const route = useRoute();
 
 // Determine which sound to play based on current route
 const activeSoundId = computed(() => {
   // If we are in the "backend" (GameMaster setup), use the setup sound
-  if (route?.path?.includes('/game-master/compendium/setup')) {
-    return 'setup';
-  }
+  // if (route?.path?.includes('/game-master/compendium/setup')) {
+  //   return 'setup';
+  // }
   return 'loading';
 });
 

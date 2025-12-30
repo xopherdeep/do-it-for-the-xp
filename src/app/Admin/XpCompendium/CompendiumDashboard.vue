@@ -1,142 +1,123 @@
 <template>
-  <ion-page :class="['icon-colors', 'bg-slide', getBgClass(activeSlideIndex)]">
-    <ion-header>
-      <ion-toolbar class="rpg-box">
-        <ion-buttons slot="start">
-          <ion-menu-button
-            color="primary"
-            @click="$fx.ui[$fx.theme.ui].select.play()"
-          ></ion-menu-button>
-          <i class="fad fa-game-console-handheld fa-2x ml-2" slot="start"></i>
-        </ion-buttons>
-        <ion-title>
-          <xp-title variant="page" class="text-center">Setup XP</xp-title>
-        </ion-title>
-        <!-- Help button removed, now in Welcome Dashboard -->
-      </ion-toolbar>
-    </ion-header>
-    <ion-content
-      :fullscreen="true"
-      class="ion-padding transparent-content"
-      style="--background: transparent"
+  <xp-rpg-page
+    title="Setup XP"
+    :headerIcon="slides[activeSlideIndex].icon"
+    :class="['bg-slide',getBgClass(activeSlideIndex)]"
+  >
+    <!-- Native Navigation FABs in fixed slot -->
+    <ion-fab
+      slot="fixed"
+      vertical="bottom"
+      horizontal="start"
+      class="nav-fab-container"
+      v-if="activeSlideIndex > 0"
     >
-      <!-- Native Navigation FABs in fixed slot -->
-      <ion-fab
-        slot="fixed"
-        vertical="bottom"
-        horizontal="start"
-        class="nav-fab-container"
-        v-if="activeSlideIndex > 0"
+      <ion-fab-button
+        color="light"
+        @click.stop="swiperInstance?.slidePrev()"
+        class="rpg-box"
       >
-        <ion-fab-button
-          color="light"
-          @click.stop="swiperInstance?.slidePrev()"
-          class="rpg-box"
-        >
-          <i class="fad fa-chevron-left"></i>
-        </ion-fab-button>
-      </ion-fab>
+        <i class="fad fa-chevron-left"></i>
+      </ion-fab-button>
+    </ion-fab>
 
-      <ion-fab
-        slot="fixed"
-        vertical="bottom"
-        horizontal="end"
-        class="nav-fab-container"
-        v-if="activeSlideIndex < slides.length - 1"
+    <ion-fab
+      slot="fixed"
+      vertical="bottom"
+      horizontal="end"
+      class="nav-fab-container"
+      v-if="activeSlideIndex < slides.length - 1"
+    >
+      <ion-fab-button
+        color="light"
+        @click.stop="swiperInstance?.slideNext()"
+        class="rpg-box"
       >
-        <ion-fab-button
-          color="light"
-          @click.stop="swiperInstance?.slideNext()"
-          class="rpg-box"
-        >
-          <i class="fad fa-chevron-right"></i>
-        </ion-fab-button>
-      </ion-fab>
+        <i class="fad fa-chevron-right"></i>
+      </ion-fab-button>
+    </ion-fab>
 
-      <!-- Home FAB -->
-      <ion-fab
-        slot="fixed"
-        vertical="bottom"
-        horizontal="center"
-        class="home-fab-container"
-        v-if="activeSlideIndex > 0"
+    <!-- Home FAB -->
+    <ion-fab
+      slot="fixed"
+      vertical="bottom"
+      horizontal="center"
+      class="home-fab-container"
+      v-if="activeSlideIndex > 0"
+    >
+      <ion-fab-button
+        color="light"
+        @click.stop="goToSlide(0)"
+        class="rpg-box"
+        size="large"
       >
-        <ion-fab-button
-          color="light"
-          @click.stop="goToSlide(0)"
-          class="rpg-box"
-          size="large"
-        >
-          <i class="fad fa-game-console-handheld fa-2x"></i>
-        </ion-fab-button>
-      </ion-fab>
+        <i class="fad fa-game-console-handheld fa-2x"></i>
+      </ion-fab-button>
+    </ion-fab>
 
-      <div class="slideshow-container">
-        <swiper
-          :modules="modules"
-          :pagination="{
+    <div class="slideshow-container ion-padding">
+      <swiper
+        :modules="modules"
+        :pagination="{
             el: '.swiper-pagination-custom',
             clickable: true,
           }"
-          @swiper="setSwiperInstance"
-          @slideChange="handleSlideChange"
-          class="main-slideshow"
+        @swiper="setSwiperInstance"
+        @slideChange="handleSlideChange"
+        class="main-slideshow"
+      >
+        <swiper-slide
+          v-for="(slide, index) in slides"
+          :key="index"
+          class="flex flex-col items-center justify-center"
         >
-          <swiper-slide
-            v-for="(slide, index) in slides"
-            :key="index"
-            class="flex flex-col items-center justify-center"
+          <!-- Premium Glassmorphic Hero Card -->
+          <div
+            class="hero-card-container"
+            :class="{ 'animate-in': activeSlideIndex === index }"
           >
-            <!-- Premium Glassmorphic Hero Card -->
-            <div
-              class="hero-card-container"
-              :class="{ 'animate-in': activeSlideIndex === index }"
-            >
-              <div class="hero-content text-center flex flex-col items-center">
-                <div class="flex flex-row justify-center items-center gap-4">
-                  <div class="icon-wrapper">
-                    <i
-                      :class="`fad ${slide.icon} fa-3x ${slide.iconClass}`"
-                    ></i>
-                  </div>
-                  <xp-title
-                    variant="section"
-                    :class="{
+            <div class="hero-content text-center flex flex-col items-center">
+              <div class="flex flex-row justify-center items-center gap-4">
+                <div class="icon-wrapper">
+                  <i :class="`fad ${slide.icon} fa-3x ${slide.iconClass}`"></i>
+                </div>
+                <xp-title
+                  variant="section"
+                  :class="{
                       'gamemaster-title-animate':
                         activeSlideIndex === index && index === 0,
                     }"
-                  >
-                    {{ slide.title }}
-                  </xp-title>
-                </div>
-
-                <!-- Final slide button removed -->
+                >
+                  {{ slide.title }}
+                </xp-title>
               </div>
-            </div>
 
-            <!-- Dashboard Component -->
-            <div
-              class="dashboard-container w-full"
-              :class="{ 'animate-up': activeSlideIndex === index }"
-            >
-              <component
-                :is="getDashboardComponent(index)"
-                :stats="stats"
-                :isActive="activeSlideIndex === index"
-                :animationKey="`${activeSlideIndex}-${index}`"
-                @navigate="goToSlide"
-                @reset="resetTutorial"
-              />
+              <!-- Final slide button removed -->
             </div>
-          </swiper-slide>
-        </swiper>
+          </div>
 
-        <div class="nav-pagination-container">
-          <div class="swiper-pagination-custom"></div>
-        </div>
+          <!-- Dashboard Component -->
+          <div
+            class="dashboard-container w-full"
+            :class="{ 'animate-up': activeSlideIndex === index }"
+          >
+            <component
+              :is="getDashboardComponent(index)"
+              :stats="stats"
+              :isActive="activeSlideIndex === index"
+              :animationKey="`${activeSlideIndex}-${index}`"
+              @navigate="goToSlide"
+              @reset="resetTutorial"
+            />
+          </div>
+        </swiper-slide>
+      </swiper>
+
+      <div class="nav-pagination-container">
+        <div class="swiper-pagination-custom"></div>
       </div>
-    </ion-content>
-  </ion-page>
+    </div>
+  </xp-rpg-page>
 </template>
 
 <script lang="ts">
@@ -160,6 +141,7 @@
   import debug from "@/lib/utils/debug";
   import Ionic from "@/lib/mixins/ionic";
   import { useDialogSystem } from "@/lib/engine/core/DialogSystem";
+  import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
 
   // Define required classes for database operations
   class AchievementDb {
@@ -237,6 +219,7 @@
       CharacterStatsDashboard,
       BeastsChallengesDashboard,
       TemplesTrainingDashboard,
+      XpRpgPage
     },
     setup() {
       const router = useRouter();
@@ -717,8 +700,8 @@
         position: relative;
         display: flex;
         justify-content: center;
-        gap: 12px;
-        width: 100%;
+        gap: 25px;
+        width: auto;
         pointer-events: auto;
 
         :deep(.swiper-pagination-bullet) {
@@ -754,11 +737,9 @@
   }
 
   .icon-wrapper {
-    background: radial-gradient(
-      circle,
-      rgba(255, 255, 255, 0.08) 0%,
-      transparent 70%
-    );
+    background: radial-gradient(circle,
+        rgba(255, 255, 255, 0.08) 0%,
+        transparent 70%);
     padding: 16px;
     border-radius: 50%;
 
@@ -769,11 +750,9 @@
 
   .get-started-btn {
     --border-radius: 8px;
-    --background: linear-gradient(
-      135deg,
-      var(--ion-color-success),
-      var(--ion-color-success-shade)
-    );
+    --background: linear-gradient(135deg,
+        var(--ion-color-success),
+        var(--ion-color-success-shade));
     font-weight: 700;
     font-size: 1rem;
     height: 50px;

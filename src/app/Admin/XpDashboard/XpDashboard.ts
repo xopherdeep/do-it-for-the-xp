@@ -1,14 +1,19 @@
-
 import ionic from "@/lib/mixins/ionic";
 import { useUserStore } from "@/lib/store/stores/user";
 import XpBonus from "./components/XpBonus.vue";
 import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
-import AchievementDb, { achievementStorage } from "@/lib/databases/AchievementDb";
+import AchievementDb, {
+  achievementStorage,
+} from "@/lib/databases/AchievementDb";
 import BestiaryDb, { beastStorage } from "@/lib/databases/BestiaryDb";
 import AbilitiesDb, { abilitiesStorage } from "@/lib/databases/AbilitiesDb";
 import DosDontsDb from "@/lib/databases/DosDontsDb";
-import { toastController, modalController, actionSheetController } from "@ionic/vue";
-import { RecycleScroller } from 'vue-virtual-scroller';
+import {
+  toastController,
+  modalController,
+  actionSheetController,
+} from "@ionic/vue";
+import { RecycleScroller } from "vue-virtual-scroller";
 import debug from "@/lib/utils/debug";
 import XpStatBox from "@/components/molecules/StatBox/XpStatBox.vue";
 
@@ -25,42 +30,47 @@ export default defineComponent({
     // XpTemples,
     XpStatBox,
     RecycleScroller,
-    XpDashboardGrid: require("@/components/molecules/StatGrid/XpDashboardGrid.vue").default,
-    XpDashboardTile: require("@/components/molecules/StatGrid/XpDashboardTile.vue").default,
+    XpDashboardGrid:
+      require("@/components/molecules/StatGrid/XpDashboardGrid.vue").default,
+    XpDashboardTile:
+      require("@/components/molecules/StatGrid/XpDashboardTile.vue").default,
+    XpRpgPage: require("@/components/templates/pages/XpRpgPage.vue").default,
   },
   computed: {
-    usersAz() { return (this as any).userStore.usersAz },
+    usersAz() {
+      return (this as any).userStore.usersAz;
+    },
     users() {
       return (this as any).usersAz;
     },
     allProfileItems() {
       const items: any[] = [
-        { id: 'masquerade', type: 'masquerade' } // Masquerade toggle button
+        { id: "masquerade", type: "masquerade" }, // Masquerade toggle button
       ];
 
       // Map all users to profile items if masquerade is active
       if (this.showMasquerade) {
-        const userItems = this.usersAz.map(user => ({
+        const userItems = this.usersAz.map((user) => ({
           id: `user-${user.id}`,
-          type: 'user',
-          data: user
+          type: "user",
+          data: user,
         }));
         items.push(...userItems);
       }
 
       // Add special items
       items.push(
-        { id: 'add-profile', type: 'add' },    // Add Profile button
-        { id: 'family', type: 'family' }  // Family settings button
+        { id: "add-profile", type: "add" }, // Add Profile button
+        { id: "family", type: "family" } // Family settings button
       );
 
       return items;
-    }
+    },
   },
   methods: {
     toggleMasquerade() {
       this.showMasquerade = !this.showMasquerade;
-      this.play$fx('select');
+      this.play$fx("select");
     },
     navigateTo(pathOrRouteObj) {
       this.$router.push(pathOrRouteObj);
@@ -72,9 +82,9 @@ export default defineComponent({
       const modal = await modalController.create({
         component: XpBonus,
         componentProps: {
-          isPenalty: false
+          isPenalty: false,
         },
-        cssClass: "fullscreen"
+        cssClass: "fullscreen",
       });
       await modal.present();
 
@@ -88,9 +98,9 @@ export default defineComponent({
       const modal = await modalController.create({
         component: XpBonus,
         componentProps: {
-          isPenalty: true
+          isPenalty: true,
         },
-        cssClass: "fullscreen"
+        cssClass: "fullscreen",
       });
       await modal.present();
 
@@ -118,8 +128,10 @@ export default defineComponent({
 
       // Load dos and donts counts
       const allDosDonts = await this.dosDontsDb.getAll();
-      this.stats.dos = allDosDonts.filter(item => item.type === 'do').length;
-      this.stats.donts = allDosDonts.filter(item => item.type === 'dont').length;
+      this.stats.dos = allDosDonts.filter((item) => item.type === "do").length;
+      this.stats.donts = allDosDonts.filter(
+        (item) => item.type === "dont"
+      ).length;
 
       // Get approvals data from XpActionItems
       this.approvals = {
@@ -157,73 +169,75 @@ export default defineComponent({
         this.showSuccessToast(`Now viewing as ${user.name.nick}`);
         // Navigate to user's portal after successful impersonation
         await this.$router.push({
-          name: 'my-portal-home',
-          params: { userId: user.id }
+          name: "my-portal-home",
+          params: { userId: user.id },
         });
       } catch (error) {
-        debug.error('Failed to impersonate user:', error);
-        this.showErrorToast('Failed to switch profile');
+        debug.error("Failed to impersonate user:", error);
+        this.showErrorToast("Failed to switch profile");
       }
     },
 
     showErrorToast(message) {
-      toastController.create({
-        message,
-        duration: 2000,
-        position: 'bottom',
-        color: 'danger'
-      }).then(toast => toast.present());
+      toastController
+        .create({
+          message,
+          duration: 2000,
+          position: "bottom",
+          color: "danger",
+        })
+        .then((toast) => toast.present());
     },
 
     async presentActionSheet() {
       const actionSheet = await actionSheetController.create({
-        header: 'Create New...',
-        cssClass: 'dashboard-action-sheet',
-        mode: 'ios',
+        header: "Create New...",
+        cssClass: "dashboard-action-sheet",
+        mode: "ios",
         buttons: [
           {
-            text: 'New Profile',
-            cssClass: 'action-profile',
+            text: "New Profile",
+            cssClass: "action-profile",
             handler: () => {
               this.openNewProfileModal();
-            }
+            },
           },
           {
-            text: 'New Ability',
-            cssClass: 'action-ability',
+            text: "New Ability",
+            cssClass: "action-ability",
             handler: () => {
-              this.navigateTo({ name: 'xp-add-ability' });
-            }
+              this.navigateTo({ name: "xp-add-ability" });
+            },
           },
           {
-            text: 'New Beast',
-            cssClass: 'action-beast',
+            text: "New Beast",
+            cssClass: "action-beast",
             handler: () => {
-              this.navigateTo({ name: 'xp-add-beast' });
-            }
+              this.navigateTo({ name: "xp-add-beast" });
+            },
           },
           {
-            text: 'New Quest',
-            cssClass: 'action-quest',
+            text: "New Quest",
+            cssClass: "action-quest",
             handler: () => {
-              this.navigateTo({ name: 'xp-achievement-config' });
-            }
+              this.navigateTo({ name: "xp-achievement-config" });
+            },
           },
           {
-            text: 'New Temple',
-            cssClass: 'action-temple',
+            text: "New Temple",
+            cssClass: "action-temple",
             handler: () => {
               this.navigateTo({
-                name: 'xp-temple-creator',
-                params: { templeId: 'new' }
+                name: "xp-temple-creator",
+                params: { templeId: "new" },
               });
-            }
+            },
           },
           {
-            text: 'Cancel',
-            role: 'cancel',
-            cssClass: 'action-cancel'
-          }
+            text: "Cancel",
+            role: "cancel",
+            cssClass: "action-cancel",
+          },
         ],
       });
       await actionSheet.present();
@@ -232,7 +246,7 @@ export default defineComponent({
     async openNewProfileModal() {
       const modal = await modalController.create({
         component: AddProfile,
-        cssClass: "fullscreen"
+        cssClass: "fullscreen",
       });
 
       await modal.present();
@@ -250,7 +264,11 @@ export default defineComponent({
     const bestiaryDb = new BestiaryDb(beastStorage);
     const abilitiesDb = new AbilitiesDb(abilitiesStorage);
     const dosDontsDb = new DosDontsDb();
-    const requireAvatar = require.context("@/assets/images/avatars", false, /\.svg$/);
+    const requireAvatar = require.context(
+      "@/assets/images/avatars",
+      false,
+      /\.svg$/
+    );
     const isLoading = ref(true);
     const showMasquerade = ref(false);
 
@@ -298,15 +316,19 @@ export default defineComponent({
 
         // Get all dos/donts and filter
         const allDosDonts = await dosDontsDb.getAll();
-        stats.value.dos = allDosDonts.filter(item => item.type === 'do').length;
-        stats.value.donts = allDosDonts.filter(item => item.type === 'dont').length;
+        stats.value.dos = allDosDonts.filter(
+          (item) => item.type === "do"
+        ).length;
+        stats.value.donts = allDosDonts.filter(
+          (item) => item.type === "dont"
+        ).length;
 
         // Load abilities data
         try {
           const abilitiesData = await abilitiesDb.getAbilities();
           abilities.value = Array.isArray(abilitiesData) ? abilitiesData : [];
         } catch (error) {
-          debug.error('Failed to load abilities:', error);
+          debug.error("Failed to load abilities:", error);
           abilities.value = [];
         }
       } finally {

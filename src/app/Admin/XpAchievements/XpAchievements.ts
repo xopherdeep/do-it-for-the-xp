@@ -12,7 +12,7 @@ import {
   thumbsUpOutline,
   thumbsUpSharp,
   createOutline,
-  compassOutline
+  compassOutline,
 } from "ionicons/icons";
 
 import { ACHIEVEMENT_TYPE_ICONS } from "@/constants";
@@ -26,18 +26,21 @@ import AchievementDb, {
 } from "@/lib/databases/AchievementDb";
 
 import XpAchievementItem from "./XpConfigAchievement/components/XpAchievementItem.vue";
+import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
 
 export default defineComponent({
   name: "xp-achievements",
   mixins: [ionic],
-  components: { XpAchievementItem },
+  components: { XpRpgPage, XpAchievementItem },
   data() {
     return {
-      viewMode: 'list' as 'list' | 'grid'
+      viewMode: "list" as "list" | "grid",
     };
   },
   computed: {
-    usersAz() { return (this as any).userStore.usersAz },
+    usersAz() {
+      return (this as any).userStore.usersAz;
+    },
     users() {
       return (this as any).usersAz;
     },
@@ -52,36 +55,38 @@ export default defineComponent({
 
     emptyStateIcon() {
       const icons: Record<string, string> = {
-        category: 'fad fa-hand-holding-seedling fa-4x',
-        assignee: 'fad fa-users fa-4x',
-        asNeeded: 'fad fa-scroll-old fa-4x',
-        expired: 'fad fa-check-circle fa-4x'
+        category: "fad fa-hand-holding-seedling fa-4x",
+        assignee: "fad fa-users fa-4x",
+        asNeeded: "fad fa-scroll-old fa-4x",
+        expired: "fad fa-check-circle fa-4x",
       };
       return icons[(this as any).groupBy] || icons.category;
     },
 
     emptyStateTitle() {
       const titles: Record<string, string> = {
-        category: 'No Quests Yet',
-        assignee: 'No Assigned Quests',
-        asNeeded: 'No Bounty Quests',
-        expired: 'All Caught Up!'
+        category: "No Quests Yet",
+        assignee: "No Assigned Quests",
+        asNeeded: "No Bounty Quests",
+        expired: "All Caught Up!",
       };
       return titles[(this as any).groupBy] || titles.category;
     },
 
     emptyStateMessage() {
       const messages: Record<string, string> = {
-        category: 'Create your first quest to get started!',
-        assignee: 'Assign heroes to quests to see them here.',
-        asNeeded: 'Bounties are available anytime for heroes to claim!',
-        expired: 'No expired quests. Great job keeping up!'
+        category: "Create your first quest to get started!",
+        assignee: "Assign heroes to quests to see them here.",
+        asNeeded: "Bounties are available anytime for heroes to claim!",
+        expired: "No expired quests. Great job keeping up!",
       };
       return messages[(this as any).groupBy] || messages.category;
     },
 
     filteredAchievements() {
-      return (this as any).achievements?.filter((this as any).filterAchievement);
+      return (this as any).achievements?.filter(
+        (this as any).filterAchievement
+      );
     },
     expiredAchievements() {
       const now = new Date();
@@ -163,15 +168,13 @@ export default defineComponent({
   },
 
   methods: {
-
     clickSettings() {
       this.$router.push({ name: "xp-settings-chore" });
     },
 
-    setViewMode(mode: 'list' | 'grid') {
+    setViewMode(mode: "list" | "grid") {
       this.viewMode = mode;
     },
-
 
     async loadAchievements() {
       this.isLoading = true;
@@ -188,7 +191,10 @@ export default defineComponent({
       this.showFilters = !this.showFilters;
     },
     clickAdd() {
-      this.$router.push({ name: "xp-achievement-config-dashboard", params: { id: "new" } });
+      this.$router.push({
+        name: "xp-achievement-config-dashboard",
+        params: { id: "new" },
+      });
     },
     clickDiscover() {
       this.$router.push("/game-master/discover-achievements");
@@ -246,7 +252,9 @@ export default defineComponent({
 
     async loadCategories() {
       const categories = await (this as any).categoryDb.getAll();
-      (this as any).categories = categories.sort((this as any).sortCategoryByName);
+      (this as any).categories = categories.sort(
+        (this as any).sortCategoryByName
+      );
     },
 
     getCategoryById(id: string) {
@@ -260,33 +268,33 @@ export default defineComponent({
     },
     async presentActionSheet() {
       const actionSheet = await actionSheetController.create({
-        header: 'Quest Actions',
-        cssClass: 'achievements-action-sheet',
-        mode: 'ios',
+        header: "Quest Actions",
+        cssClass: "achievements-action-sheet",
+        mode: "ios",
         buttons: [
           {
-            text: 'Create New Quest',
+            text: "Create New Quest",
             icon: createOutline,
-            cssClass: 'action-create',
+            cssClass: "action-create",
             handler: () => {
               this.clickAdd();
-            }
+            },
           },
           {
-            text: 'Discover Quests',
+            text: "Discover Quests",
             icon: compassOutline,
-            cssClass: 'action-discover',
+            cssClass: "action-discover",
             handler: () => {
               this.clickDiscover();
-            }
+            },
           },
           {
-            text: 'Cancel',
-            role: 'cancel',
-            cssClass: 'action-cancel',
+            text: "Cancel",
+            role: "cancel",
+            cssClass: "action-cancel",
             handler: () => {
               // Just close the action sheet
-            }
+            },
           },
         ],
       });
@@ -294,8 +302,9 @@ export default defineComponent({
     },
 
     getAchievementTypeIcon(type: string) {
-      const icon = ACHIEVEMENT_TYPE_ICONS[type as keyof typeof ACHIEVEMENT_TYPE_ICONS];
-      return `fad ${icon || 'fa-scroll'} fa-3x`;
+      const icon =
+        ACHIEVEMENT_TYPE_ICONS[type as keyof typeof ACHIEVEMENT_TYPE_ICONS];
+      return `fad ${icon || "fa-scroll"} fa-3x`;
     },
   },
   mounted() {

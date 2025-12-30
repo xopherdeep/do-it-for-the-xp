@@ -1,90 +1,87 @@
 <template>
-  <ion-page :class="$options.name" style="background: transparent">
-    <ion-header>
-      <ion-toolbar class="rpg-box icon-colors">
-        <ion-buttons slot="start">
-          <ion-back-button defaultHref="/game-master" />
-        </ion-buttons>
+  <xp-rpg-page
+    title="Bestiary"
+    header-icon="fa-hand-holding-heart"
+    :loading="isLoading"
+    back-button-href="/game-master"
+  >
 
-        <i slot="start" class="fad fa-hand-holding-heart fa-2x" />
-        <ion-title> Bestiary </ion-title>
-
-        <!-- Removed import/export buttons from here -->
-      </ion-toolbar>
-    </ion-header>
-    <ion-content
-      class="relative transparent-content"
-      style="--background: transparent"
-    >
-      <div v-if="isLoading" class="loading-wrapper-centered">
-        <XpLoading />
+    <!-- Search Area -->
+    <div class="search-container">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input
+          type="text"
+          v-model="searchQuery"
+          placeholder="Search bestiary..."
+          class="beast-search-input"
+        />
       </div>
+      <div class="beast-count">{{ filteredBeasts.length }} Beasts</div>
+    </div>
 
-      <div v-else class="bestiary-container">
-        <!-- Search Area -->
-        <div class="search-container">
-          <div class="search-box">
-            <i class="fas fa-search"></i>
-            <input
-              type="text"
-              v-model="searchQuery"
-              placeholder="Search bestiary..."
-              class="beast-search-input"
+    <!-- Grid Area -->
+    <div class="beast-grid">
+      <ion-grid>
+        <ion-row>
+          <!-- Add New Card -->
+          <ion-col
+            size="4"
+            size-md="3"
+            size-lg="2"
+          >
+            <XpBeastSelectorItem
+              id="__add_new__"
+              name="Add New"
+              icon="fa-paw-claws"
+              :bg1="addNewBg1"
+              :bg2="addNewBg2"
+              class="add-new-card"
+              @click="clickAddBeast()"
             />
-          </div>
-          <div class="beast-count">{{ filteredBeasts.length }} Beasts</div>
-        </div>
+          </ion-col>
 
-        <!-- Grid Area -->
-        <div class="beast-grid">
-          <ion-grid>
-            <ion-row>
-              <!-- Add New Card -->
-              <ion-col size="4" size-md="3" size-lg="2">
-                <XpBeastSelectorItem
-                  id="__add_new__"
-                  name="Add New"
-                  icon="fa-paw-claws"
-                  :bg1="addNewBg1"
-                  :bg2="addNewBg2"
-                  class="add-new-card"
-                  @click="clickAddBeast()"
-                />
-              </ion-col>
+          <ion-col
+            size="4"
+            size-md="3"
+            size-lg="2"
+            v-for="beast in filteredBeasts"
+            :key="beast.id"
+          >
+            <XpBeastSelectorItem
+              :id="beast.id"
+              :name="beast.name"
+              :avatar="beast.avatar"
+              :bg1="beast.bg1"
+              :bg2="beast.bg2"
+              @click="presentBeastOptions(beast)"
+            />
+          </ion-col>
+        </ion-row>
+      </ion-grid>
 
-              <ion-col
-                size="4"
-                size-md="3"
-                size-lg="2"
-                v-for="beast in filteredBeasts"
-                :key="beast.id"
-              >
-                <XpBeastSelectorItem
-                  :id="beast.id"
-                  :name="beast.name"
-                  :avatar="beast.avatar"
-                  :bg1="beast.bg1"
-                  :bg2="beast.bg2"
-                  @click="presentBeastOptions(beast)"
-                />
-              </ion-col>
-            </ion-row>
-          </ion-grid>
-
-          <div v-if="filteredBeasts.length === 0" class="no-results">
-            <i class="fad fa-ghost fa-3x"></i>
-            <p>No beasts found in the bestiary...</p>
-          </div>
-        </div>
+      <div
+        v-if="filteredBeasts.length === 0"
+        class="no-results"
+      >
+        <i class="fad fa-ghost fa-3x"></i>
+        <p>No beasts found in the bestiary...</p>
       </div>
+    </div>
 
-      <ion-fab slot="fixed" vertical="bottom" horizontal="center">
-        <ion-fab-button @click="presentActionSheet" color="rpg">
-          <i class="fad fa-hand-holding-heart fa-2x" />
-        </ion-fab-button>
-      </ion-fab>
-    </ion-content>
-  </ion-page>
+    <ion-fab
+      slot="fixed"
+      vertical="bottom"
+      horizontal="center"
+    >
+      <ion-fab-button
+        @click="presentActionSheet"
+        color="rpg"
+      >
+        <i class="fad fa-hand-holding-heart fa-2x" />
+      </ion-fab-button>
+    </ion-fab>
+  </xp-rpg-page>
 </template>
 
 <script lang="ts">
@@ -111,8 +108,8 @@
 
   import BestiaryDb, { beastStorage, Beast } from "@/lib/databases/BestiaryDb";
   import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
-  import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
   import debug from "@/lib/utils/debug";
+  import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
 
   export default defineComponent({
     name: "XpBestiary",
@@ -122,7 +119,7 @@
       IonRow,
       IonCol,
       XpBeastSelectorItem,
-      XpLoading,
+      XpRpgPage,
     },
     data() {
       return {};

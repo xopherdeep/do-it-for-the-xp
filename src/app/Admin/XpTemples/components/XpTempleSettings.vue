@@ -28,7 +28,7 @@
           Beasts
         </ion-tab-button>
         <ion-tab-button
-          tab="splash"
+          tab="dashboard"
           :href="`/game-master/compendium/setup/temples/${templeId}/dashboard`"
           :selected="route.path.includes('/dashboard')"
         >

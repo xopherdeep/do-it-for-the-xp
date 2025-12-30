@@ -1,8 +1,8 @@
 <template>
-  <ion-page :class="$options.name" class="icon-colors bg-slide bg-slide-dark">
+  <xp-page :hide-header="true">
     <ion-tabs class="icon-colors">
       <ion-router-outlet
-        :key="route.path.split('/')[4] || 'splash'"
+        :key="route.path.split('/')[4] || 'dashboard'"
         ref="outlet"
       ></ion-router-outlet>
       <ion-tab-bar slot="bottom">
@@ -58,17 +58,19 @@
         </ion-tab-button>
       </ion-tab-bar>
     </ion-tabs>
-  </ion-page>
+  </xp-page>
 </template>
 
 <script lang="ts">
   import { defineComponent } from "vue";
   import ionic from "@/lib/mixins/ionic";
   import { useRoute, useRouter } from "vue-router";
+import XpPage from "@/components/templates/pages/XpPage.vue";
 
   export default defineComponent({
     name: "xp-compendium",
     mixins: [ionic],
+    components: {XpPage},
     setup() {
       const route = useRoute();
       const router = useRouter();
