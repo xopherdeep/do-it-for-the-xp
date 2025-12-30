@@ -3,7 +3,6 @@ import { RouteRecordRaw } from "vue-router";
 export const EconomyRoutes: RouteRecordRaw[] = [
   {
     path: "economy",
-    name: "xp-economy-dashboard-root",
     component: () =>
       import(
         "@/app/Admin/XpAccessories/components/XpEconomyDashboard.vue"
@@ -11,6 +10,7 @@ export const EconomyRoutes: RouteRecordRaw[] = [
     children: [
       {
         path: "",
+        name: "xp-economy-dashboard-root",
         redirect: "/game-master/compendium/setup/economy/dashboard",
       },
       {
@@ -57,7 +57,6 @@ export const EconomyRoutes: RouteRecordRaw[] = [
   },
   {
     path: "economy/shops/:shopId",
-    name: "xp-shop-details",
     component: () =>
       import(
         "@/app/Admin/XpAccessories/components/XpShopDetails.vue"
@@ -66,6 +65,7 @@ export const EconomyRoutes: RouteRecordRaw[] = [
     children: [
       {
         path: "",
+        name: "xp-shop-details",
         redirect: (to) =>
           `/game-master/compendium/setup/economy/shops/${to.params.shopId}/dashboard`,
       },

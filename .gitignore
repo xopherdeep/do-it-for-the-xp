@@ -31,3 +31,9 @@ npm-debug.log*
 /plugins
 /www
 .aider*
+
+
+src/assets/images/backgrounds/ai/*
+src/assets/images/backgrounds/old/*
+src/assets/images/backgrounds/gaia/*
+.env

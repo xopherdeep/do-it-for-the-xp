@@ -97,6 +97,9 @@ export default defineComponent({
   // Clear timer when component is unmounted (destroyed)
   unmounted(): void {
     this.clearInactivityTimer();
+    if ((this as any).stopAnimation) {
+      (this as any).stopAnimation();
+    }
   },
 
   // Also clear when user navigates away (route change)
@@ -186,9 +189,13 @@ export default defineComponent({
     animateLogo(): void {
       //DRY code, shoutout to Venkat Subramaniam
       const start = document.querySelector("#brand") as HTMLElement;
+      if (!start) return;
+
       const ex = 10;
-      function swing(element: HTMLElement) {
-        function update(time: number) {
+      let animationFrameId: number;
+
+      const swing = (element: HTMLElement) => {
+        const update = (time: number) => {
           const x = Math.sin(time / 1231) * ex;
           const y = Math.sin(time / 1458) * ex;
 
@@ -197,36 +204,24 @@ export default defineComponent({
             `rotateY(${y}deg)`,
           ].join(" ");
 
-          requestAnimationFrame(update);
+          animationFrameId = requestAnimationFrame(update);
         }
-        update(0); //love your nested functions
+        update(0);
       }
 
       swing(start);
 
       const start_button = start.querySelector("ion-button") as HTMLElement;
-      start_button.style.borderRadius = "10px";
+      if (start_button) {
+        start_button.style.borderRadius = "10px";
+      }
 
-      // let inter: ReturnType<typeof setInterval> = 0 as unknown as ReturnType<typeof setInterval>;
-
-      // start.addEventListener("mouseover", (e) => {
-      //   ex = 20;
-      //   inter = setInterval(() => {
-      //     start_button.style.backgroundColor =
-      //       "#" + Math.floor(Math.random() * 16777215).toString(16);
-      //   }, 1000); //too clever? might change it
-      // });
-
-      // inter = setInterval(() => {
-      //   start_button.style.backgroundColor =
-      //     "#" + Math.floor(Math.random() * 16777215).toString(16);
-      // }, 1000); //too clever? might change it
-
-      // start.addEventListener("mouseout", (e) => {
-      //   ex = 10;
-      //   // clearInterval(inter);
-      //   // start_button.style['--background'] = og_color;
-      // });
+      // Store the cleanup function
+      (this as any).stopAnimation = () => {
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+        }
+      };
     },
 
     async getAccessToken(): Promise<any> {

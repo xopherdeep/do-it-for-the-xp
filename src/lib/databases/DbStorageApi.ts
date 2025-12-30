@@ -42,7 +42,7 @@ export class DbStorageApi {
 
   public async showSuccessToast(message?: string) {
     const toast = await toastController.create({
-      message: message || `Save Succesfull!`,
+      message: message || `Save Successful!`,
       duration: 2500,
       position: 'top',
       buttons: [
@@ -58,7 +58,7 @@ export class DbStorageApi {
 
   public async showDeleteToast() {
     const toast = await toastController.create({
-      message: `Delete Succesfull!`,
+      message: `Delete Successful!`,
       duration: 2500,
       position: 'top',
       buttons: [

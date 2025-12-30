@@ -18,7 +18,6 @@ export const TempleRoutes: RouteRecordRaw[] = [
   },
   {
     path: "temples/:templeId",
-    name: "xp-temple-settings",
     component: () =>
       import(
         "@/app/Admin/XpTemples/components/XpTempleSettings.vue"
@@ -27,6 +26,7 @@ export const TempleRoutes: RouteRecordRaw[] = [
     children: [
       {
         path: "",
+        name: "xp-temple-settings",
         redirect: (to) => `/game-master/compendium/setup/temples/${to.params.templeId}/dashboard`,
       },
       {
@@ -67,7 +67,6 @@ export const TempleRoutes: RouteRecordRaw[] = [
       },
       {
         path: "attributes",
-        name: "xp-temple-attributes",
         component: () =>
           import(
             "@/app/Admin/XpTemples/components/tabs/XpTempleConfig.vue"
@@ -76,6 +75,7 @@ export const TempleRoutes: RouteRecordRaw[] = [
         children: [
           {
             path: "",
+            name: "xp-temple-attributes",
             redirect: (to) => `/game-master/compendium/setup/temples/${to.params.templeId}/attributes/general`,
           },
           {

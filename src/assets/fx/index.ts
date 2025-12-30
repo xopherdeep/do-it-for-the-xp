@@ -595,6 +595,7 @@ export const play$fx = (fx = 'select', options?: { loop?: boolean, stop?: boolea
           // Only play if not already playing to avoid stutter
           if (soundFx.paused) {
             soundFx.play().catch((err: any) => {
+              if (err.name === 'NotSupportedError') return; // Suppress
               debug.warn('RPG Sound loop playback was prevented:', err);
             });
           }
@@ -607,6 +608,10 @@ export const play$fx = (fx = 'select', options?: { loop?: boolean, stop?: boolea
         // Monophonic playback for others
         soundFx.play().catch((err: any) => {
           debug.warn('RPG Sound playback was prevented:', err);
+          if (err.name === 'NotSupportedError') {
+            // Suppress NotSupportedError (no supported sources)
+            return;
+          }
           if (err.name === 'NotAllowedError' || err.message?.includes('interact') || err.message?.includes('user activation')) {
             audioEngine.state.audioPermissionGranted = false;
           }

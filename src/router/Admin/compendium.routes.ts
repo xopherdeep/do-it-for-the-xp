@@ -8,7 +8,6 @@ import TempleRoutes from "./temples.routes";
 export const CompendiumRoutes: RouteRecordRaw[] = [
   {
     path: "compendium",
-    name: "xp-compendium",
     component: () =>
       import(
         "@/app/Admin/XpCompendium/CompendiumRoot.vue"
@@ -16,11 +15,11 @@ export const CompendiumRoutes: RouteRecordRaw[] = [
     children: [
       {
         path: "",
+        name: "xp-compendium",
         redirect: "/game-master/compendium/setup",
       },
       {
         path: "setup",
-        name: "xp-compendium-setup",
         component: () =>
           import(
             "@/app/Admin/XpCompendium/XpCompendium.vue"
@@ -28,6 +27,7 @@ export const CompendiumRoutes: RouteRecordRaw[] = [
         children: [
           {
             path: "",
+            name: "xp-compendium-setup",
             redirect: "/game-master/compendium/setup/dashboard",
           },
           {

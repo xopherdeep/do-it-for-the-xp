@@ -10,12 +10,7 @@ export const AchievementRoutes: RouteRecordRaw[] = [
       ),
   },
   {
-    path: "achievements/config",
-    redirect: "/game-master/compendium/setup/achievements/config/new/dashboard",
-  },
-  {
     path: "achievements/config/:id",
-    name: "xp-achievement-config",
     component: () =>
       import(
         "@/app/Admin/XpAchievements/XpConfigAchievement/XpConfigAchievement.vue"
@@ -24,6 +19,7 @@ export const AchievementRoutes: RouteRecordRaw[] = [
     children: [
       {
         path: "",
+        name: "xp-achievement-config",
         redirect: (to: any) => `/game-master/compendium/setup/achievements/config/${to.params.id || 'new'}/dashboard`,
       },
       {
