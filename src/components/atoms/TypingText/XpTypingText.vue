@@ -69,71 +69,114 @@ export default defineComponent({
     const textContainer = ref<HTMLElement | null>(null);
     const charIndex = ref(0);
     const showSlot = ref(false);
-    let typingInterval: number | null = null;
+    let animationFrameId: number | null = null;
+    let lastFrameTime: number = 0;
+    let accumulatedTime: number = 0;
+    const startDelayTimeout = ref<number | null>(null);
 
-    const typeNextChar = () => {
-      if (isPaused.value || !isTyping.value) return;
+    const typeNextChar = (timestamp: number) => {
+      if (!isTyping.value || isPaused.value) {
+        lastFrameTime = timestamp;
+        animationFrameId = window.requestAnimationFrame(typeNextChar);
+        return;
+      }
+
+      if (!lastFrameTime) lastFrameTime = timestamp;
+      const deltaTime = timestamp - lastFrameTime;
+      lastFrameTime = timestamp;
+
+      accumulatedTime += deltaTime;
+
+      if (accumulatedTime >= props.speed) {
+        // How many characters to type in this frame (handle lag spikes)
+        // For typing effect, usually 1 is best to avoid clumps, but we can consume time
+        // We will type one char, and subtract speed. If we are REALLY behind, we might loop,
+        // but for typing text, visual pacing is more important than catching up instantly.
+        // Let's type as many as "fit" but cap it to avoid freezing on massive lag.
+        let charsToType = Math.floor(accumulatedTime / props.speed);
+        
+        // Cap catch-up to 5 chars per frame to prevent freezing/massive jumps
+        if (charsToType > 5) charsToType = 5; 
+        
+        while (charsToType > 0 && isTyping.value) {
+           if (charIndex.value < props.text.length) {
+            const char = props.text[charIndex.value];
+            displayedText.value += char;
+            
+            // Sound logic: only play on the first character of the batch to avoid machine gun sound
+            // or play every time. Let's play once per frame if typing happens.
+            if (charsToType === Math.floor(accumulatedTime / props.speed) && props.playSound && char !== ' ' && char !== ',' && char !== '.') {
+               play$fx("text");
+            }
+            
+            charIndex.value++;
+            emit('typing-char', charIndex.value, char);
+            charsToType--;
+          } else {
+             isTyping.value = false;
+             emit('typing-complete');
+             break;
+          }
+        }
+         // Keep remainder
+         accumulatedTime %= props.speed;
+      }
       
-      if (charIndex.value < props.text.length) {
-        const char = props.text[charIndex.value];
-        displayedText.value += char;
-        
-        // Don't play sound for spaces and some punctuation
-        if (props.playSound && char !== ' ' && char !== ',' && char !== '.') {
-          play$fx("text");
-        }
-        
-        charIndex.value++;
-        emit('typing-char', charIndex.value, char);
+      if (isTyping.value) {
+        animationFrameId = window.requestAnimationFrame(typeNextChar);
       } else {
-        isTyping.value = false;
-        if (typingInterval !== null) {
-          clearInterval(typingInterval);
-          typingInterval = null;
-        }
-        emit('typing-complete');
+        animationFrameId = null;
       }
     };
 
     const startTyping = () => {
       if (isTyping.value) return;
       
+      resetTypingState();
+      
       isTyping.value = true;
       charIndex.value = 0;
       displayedText.value = '';
       emit('typing-start');
       
-      if (typingInterval) {
-        clearInterval(typingInterval);
-      }
-      
-      setTimeout(() => {
-        typingInterval = window.setInterval(typeNextChar, props.speed);
+      startDelayTimeout.value = window.setTimeout(() => {
+        lastFrameTime = 0;
+        accumulatedTime = 0;
+        animationFrameId = window.requestAnimationFrame(typeNextChar);
+        startDelayTimeout.value = null;
       }, props.delay);
     };
 
-    const completeTyping = () => {
-      if (!isTyping.value) return;
-      
-      if (typingInterval !== null) {
-        clearInterval(typingInterval);
+    const resetTypingState = () => {
+      if (animationFrameId) {
+        window.cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
       }
-      displayedText.value = props.text;
-      charIndex.value = props.text.length;
-      isTyping.value = false;
-      emit('typing-complete');
+      if (startDelayTimeout.value) {
+        clearTimeout(startDelayTimeout.value);
+        startDelayTimeout.value = null;
+      }
     };
 
     const resetTyping = () => {
-      if (typingInterval) {
-        clearInterval(typingInterval);
-        typingInterval = null;
-      }
+      resetTypingState();
       
       isTyping.value = false;
       isPaused.value = false;
       displayedText.value = '';
       charIndex.value = 0;
+    };
+
+
+    const completeTyping = () => {
+      if (!isTyping.value) return;
+      
+      resetTypingState(); // Cancel any pending frames
+      
+      displayedText.value = props.text;
+      charIndex.value = props.text.length;
+      isTyping.value = false;
+      emit('typing-complete');
     };
 
     const pauseTyping = () => {
@@ -142,6 +185,10 @@ export default defineComponent({
 
     const resumeTyping = () => {
       isPaused.value = false;
+      lastFrameTime = 0; // Reset frame time so we don't jump
+      if (isTyping.value && !animationFrameId) {
+         animationFrameId = window.requestAnimationFrame(typeNextChar);
+      }
     };
 
     // Click handler to skip or complete the animation
@@ -174,14 +221,13 @@ export default defineComponent({
 
     // Clean up on unmount
     onBeforeUnmount(() => {
-      if (typingInterval) {
-        clearInterval(typingInterval);
-      }
+       resetTypingState();
       
       if (textContainer.value) {
         textContainer.value.removeEventListener('click', handleClick);
       }
     });
+
 
     return {
       displayedText,
