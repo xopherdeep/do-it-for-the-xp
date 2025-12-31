@@ -355,7 +355,7 @@ export default defineComponent({
       getItems,
       nTotalPages,
       getImgObj,
-      actions,
+      userActions: actions,
       setUserActions,
       setActions,
     };

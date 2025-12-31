@@ -35,7 +35,7 @@
     <ion-fab-list side="start" class="customizable-slots">
       <ion-fab-button v-for="(item, index) in leftSlots" :key="'left-' + index" color="light"
         @click="handleItemClick(item)" :class="{ 'slot-locked': !item }">
-        <i v-if="item" class="fad fa-2x" :class="`fa-${item.faIcon}`"></i>
+        <i v-if="item" class="fad fa-lg" :class="`fa-${item.faIcon}`"></i>
         <i v-else class="fad fa-plus fa-lg slot-empty"></i>
       </ion-fab-button>
     </ion-fab-list>
@@ -44,7 +44,7 @@
     <ion-fab-list side="end" class="customizable-slots icon-colors">
       <ion-fab-button v-for="(item, index) in rightSlots" :key="'right-' + index" color="light"
         @click="handleItemClick(item)" :class="{ 'slot-locked': !item }">
-        <i v-if="item" class="fad fa-2x" :class="`fa-${item.faIcon}`"></i>
+        <i v-if="item" class="fad fa-lg" :class="`fa-${item.faIcon}`"></i>
         <i v-else class="fad fa-plus fa-lg slot-empty"></i>
       </ion-fab-button>
     </ion-fab-list>
