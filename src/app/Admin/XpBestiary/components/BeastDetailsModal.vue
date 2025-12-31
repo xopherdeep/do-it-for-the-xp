@@ -8,209 +8,201 @@
           class="fad fa-paw-claws fa-lg ml-2"
         ></i>
 
-        <ion-title>Beast Details</ion-title>
+        <ion-title>{{ localBeast.name || "New Beast" }}</ion-title>
       </ion-buttons>
 
       <ion-buttons slot="end">
+        <XpCloseButton @click="dismissModal" />
+      </ion-buttons>
+    </ion-toolbar>
+    <!-- Secondary toolbar with task actions -->
+    <ion-toolbar class="secondary-toolbar">
+      <ion-buttons slot="start">
         <ion-button
-          @click="dismissModal"
-          color="rpg"
+          size="small"
+          color="tertiary"
+          :disabled="isGeneratingChecklist || !isNameValid"
+          @click="generateChecklist"
         >
-          <ion-icon :icon="close"></ion-icon>
+          <i
+            v-if="isGeneratingChecklist"
+            class="fad fa-spinner-third fa-spin mr-1"
+          ></i>
+          <i
+            v-else
+            class="fad fa-sparkles mr-1"
+          ></i>
+          AI Tasks
+        </ion-button>
+        <ion-button
+          size="small"
+          color="tertiary"
+          :disabled="isGenerating || !hasChecklistItems"
+          @click="generateMonsterName"
+        >
+          <i
+            v-if="isGenerating"
+            class="fad fa-spinner-third fa-spin mr-1"
+          ></i>
+          <i
+            v-else
+            class="fad fa-sparkles mr-1"
+          ></i>
+          AI Name
+        </ion-button>
+      </ion-buttons>
+      <ion-buttons slot="end">
+        <ion-button
+          size="small"
+          color="primary"
+          @click="clickAddItem"
+        >
+          <i class="fad fa-plus-circle mr-1"></i>
+          Add Task
         </ion-button>
       </ion-buttons>
     </ion-toolbar>
   </ion-header>
 
-  <ion-content class="ion-padding beast-modal-content">
+  <ion-content
+    class="ion-padding beast-modal-content text-center"
+    :scroll-y="false"
+  >
     <canvas
       ref="bgCanvas"
       class="modal-battle-bg"
     ></canvas>
-    <ion-card>
-      <div class="flex mb-4">
-        <div class="text-center w-full">
-          <h2 class="text-xl mb-2">
-            Beasts are enemies you defeat by completing tasks!
-          </h2>
-          <p class="text-sm text-light">
-            Give your beast a creative name like "Kitchen Dragon" or "Laundry
-            Kraken", then list the tasks that must be completed to defeat it.
-          </p>
-        </div>
-      </div>
-
-      <ion-list
-        lines="full"
-        class="ion-no-margin"
-      >
-        <!-- Beast Name Section -->
-        <ion-item class="mb-3">
-          <ion-label
-            position="stacked"
-            class="font-bold"
-          >
-            Beast Name <span class="text-danger">*</span>
-          </ion-label>
-          <div class="name-input-row">
-            <ion-input
-              v-model="localBeast.name"
-              placeholder="Enter a memorable name"
-              :class="{
-              'ion-invalid': localShowErrors && !isNameValid,
-              'ion-valid': isNameValid,
-            }"
-              required
-            />
-            <ion-button
-              size="small"
-              color="tertiary"
-              class="generate-btn"
-              :disabled="isGenerating || !hasChecklistItems"
-              @click="generateMonsterName"
+    <div class="modal-centering-container text-left">
+      <ion-card class="beast-card">
+        <ion-list
+          lines="full"
+          class="ion-no-margin"
+        >
+          <!-- Beast Name Section -->
+          <ion-item class="mb-3 beast-name-section">
+            <ion-label
+              position="stacked"
+              class="font-bold"
             >
-              <i
-                v-if="isGenerating"
-                class="fad fa-spinner-third fa-spin mr-1"
-              ></i>
-              <i
-                v-else
-                class="fad fa-sparkles mr-1"
-              ></i>
-              <span v-if="!isGenerating">AI Name</span>
-              <span v-else>...</span>
-            </ion-button>
-          </div>
-          <ion-note
-            slot="helper"
-            v-if="!hasChecklistItems && isGeminiConfigured"
-            class="ai-hint"
-          >
-            <i class="fad fa-lightbulb-on"></i> Add checklist items first, then use AI to generate a name!
-          </ion-note>
-          <ion-note
-            slot="error"
-            v-if="localShowErrors && !isNameValid"
-          >Please enter a name for your beast</ion-note>
-        </ion-item>
+              Name <span class="text-danger">*</span>
+            </ion-label>
+            <div class="name-input-row">
+              <ion-input
+                v-model="localBeast.name"
+                placeholder="e.g. Kitchen Dragon"
+                class="beast-name-input"
+                :class="{
+                  'ion-invalid': localShowErrors && !isNameValid,
+                  'ion-valid': isNameValid,
+                }"
+                required
+              />
+            </div>
+            <ion-note
+              slot="error"
+              v-if="localShowErrors && !isNameValid"
+            >Please enter a name</ion-note>
+          </ion-item>
 
-        <!-- Checklist Section -->
-        <div class="checklist-header ion-padding-top">
-          <ion-label class="font-bold mb-2 block">
-            Battle Tasks <span class="text-danger">*</span>
-            <p class="text-sm text-light font-normal">
-              Each task is a hit against the beast. Complete them all to win!
+          <!-- Tip explaining tasks -->
+          <div class="ion-padding-horizontal py-2">
+            <p class="beast-hint">
+              <i class="fad fa-lightbulb-on mr-1"></i>
+              Add the tasks that must be completed to defeat this beast.
             </p>
-          </ion-label>
-          <div class="checklist-actions">
+          </div>
+
+          <!-- Checklist Header -->
+          <div class="checklist-header">
+            <ion-label class="font-bold mb-2 block">
+              Tasks <span class="text-danger">*</span>
+            </ion-label>
+          </div>
+
+          <!-- Checklist Container -->
+          <div
+            class="checklist-container my-2"
+            :class="{ 'ion-invalid': localShowErrors && !isChecklistValid }"
+          >
+            <ion-reorder-group
+              @ionItemReorder="handleReorder($event)"
+              :disabled="false"
+            >
+              <ion-item-sliding
+                v-for="(item, index) in localBeast.checklist"
+                :key="index"
+              >
+                <ion-item-options side="start">
+                  <ion-item-option
+                    color="danger"
+                    @click="clickTrash(index)"
+                  >
+                    <i class="fad fa-trash-alt fa-lg mx-1"></i>
+                    Remove
+                  </ion-item-option>
+                </ion-item-options>
+
+                <ion-item class="checklist-item">
+                  <i
+                    class="fad fa-grip-lines-vertical slide-hint"
+                    slot="start"
+                  ></i>
+
+                  <i
+                    class="ml-2 fad fa-shield-check task-icon"
+                    slot="start"
+                  ></i>
+
+                  <ion-textarea
+                    v-model="localBeast.checklist[index]"
+                    @keyup.enter="clickAddItem"
+                    placeholder="Describe task to complete"
+                    :ref="(el) => {
+                        if (el) inputRefs[index] = el;
+                      }
+                        "
+                    class="checklist-input"
+                    :auto-grow="true"
+                    :rows="1"
+                  />
+
+                  <ion-reorder
+                    slot="end"
+                    class="reorder-handle"
+                  >
+                    <i class="fad fa-grip-lines"></i>
+                  </ion-reorder>
+                </ion-item>
+              </ion-item-sliding>
+            </ion-reorder-group>
+
+            <ion-note
+              slot="error"
+              class="ion-padding-start"
+              v-if="localShowErrors && !isChecklistValid"
+            >
+              Please add at least one task
+            </ion-note>
+          </div>
+
+          <!-- Empty State -->
+          <div
+            class="empty-checklist text-center py-4"
+            v-if="localBeast.checklist.length === 0"
+          >
+            <i class="fad fa-clipboard-list fa-2x text-gray-400 mb-2"></i>
+            <p class="text-gray-500">No tasks added yet</p>
             <ion-button
               size="small"
-              shape="round"
-              class="add-item-btn"
+              class="mt-2"
               @click="clickAddItem"
             >
-              <i class="fad fa-plus-circle mr-1"></i>
-              Add Task
-            </ion-button>
-            <ion-button
-              size="small"
-              shape="round"
-              color="tertiary"
-              :disabled="isGeneratingChecklist || !isNameValid"
-              @click="generateChecklist"
-            >
-              <i
-                v-if="isGeneratingChecklist"
-                class="fad fa-spinner-third fa-spin mr-1"
-              ></i>
-              <i
-                v-else
-                class="fad fa-sparkles mr-1"
-              ></i>
-              AI Tasks
+              <i class="fad fa-plus-circle mr-1"></i> Add First Task
             </ion-button>
           </div>
-        </div>
-
-        <div
-          class="checklist-container my-2"
-          :class="{ 'ion-invalid': localShowErrors && !isChecklistValid }"
-        >
-          <ion-reorder-group
-            @ionItemReorder="handleReorder($event)"
-            :disabled="false"
-          >
-            <ion-item-sliding
-              v-for="(item, index) in localBeast.checklist"
-              :key="index"
-            >
-              <ion-item-options side="start">
-                <ion-item-option
-                  color="danger"
-                  @click="clickTrash(index)"
-                >
-                  <i class="fad fa-trash-alt fa-lg mx-1"></i>
-                  Remove
-                </ion-item-option>
-              </ion-item-options>
-
-              <ion-item class="checklist-item">
-                <i
-                  class="fad fa-grip-lines-vertical slide-hint"
-                  slot="start"
-                ></i>
-
-                <i
-                  class="ml-2 fad fa-shield-check task-icon"
-                  slot="start"
-                ></i>
-
-                <ion-input
-                  v-model="localBeast.checklist[index]"
-                  @keyup.enter="clickAddItem"
-                  placeholder="Describe task to complete"
-                  :ref="(el) => {
-                    if (el) inputRefs[index] = el;
-                  }
-                    "
-                  class="checklist-input"
-                />
-
-                <ion-reorder
-                  slot="end"
-                  class="reorder-handle"
-                >
-                  <i class="fad fa-grip-lines"></i>
-                </ion-reorder>
-              </ion-item>
-            </ion-item-sliding>
-          </ion-reorder-group>
-
-          <ion-note
-            slot="error"
-            class="ion-padding-start"
-            v-if="localShowErrors && !isChecklistValid"
-          >
-            Please add at least one task
-          </ion-note>
-        </div>
-
-        <div
-          class="empty-checklist text-center py-4"
-          v-if="localBeast.checklist.length === 0"
-        >
-          <i class="fad fa-clipboard-list fa-2x text-gray-400 mb-2"></i>
-          <p class="text-gray-500">No tasks added yet</p>
-          <ion-button
-            size="small"
-            class="mt-2"
-            @click="clickAddItem"
-          >
-            <i class="fad fa-plus-circle mr-1"></i> Add First Task
-          </ion-button>
-        </div>
-      </ion-list>
-    </ion-card>
+        </ion-list>
+      </ion-card>
+    </div>
   </ion-content>
 
   <ion-footer>
@@ -240,12 +232,13 @@
 
 <script lang="ts">
 import { defineComponent, PropType, ref, reactive, computed, nextTick, onMounted, onUnmounted } from "vue";
-import { modalController, toastController } from "@ionic/vue";
+import { modalController, toastController, alertController } from "@ionic/vue";
 import { close } from "ionicons/icons";
 import { Beast } from "@/lib/databases/BestiaryDb";
 import Ionic from "@/lib/mixins/ionic";
 import { generateMonsterName, generateChecklistFromName, isGeminiConfigured } from "@/lib/services/ai/GeminiService";
 import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
+import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue";
 
 const PAGE_ID = "beast-details-modal";
 
@@ -255,6 +248,9 @@ type IonInputElement = HTMLElement & { setFocus: () => Promise<void> };
 export default defineComponent({
   name: "BeastDetailsModal",
   mixins: [Ionic],
+  components: {
+    XpCloseButton,
+  },
   props: {
     beast: {
       type: Object as PropType<Beast>,
@@ -390,110 +386,138 @@ export default defineComponent({
       });
     };
 
-    // AI-powered monster name generation
+    // AI-powered monster name generation based on checklist
     const clickGenerateMonsterName = async () => {
       if (!hasChecklistItems.value) {
         const toast = await toastController.create({
-          message: 'Add some checklist items first!',
+          message: "Add some checklist items first!",
           duration: 2000,
-          color: 'warning',
-          position: 'top',
+          color: "warning",
+          position: "top",
         });
         await toast.present();
         return;
       }
 
-      isGenerating.value = true;
+      // Confirmation prompt
+      const alert = await alertController.create({
+        header: "Generate Name?",
+        message: "This will replace the current name with an AI-generated one.",
+        buttons: [
+          { text: "Cancel", role: "cancel" },
+          {
+            text: "Generate",
+            handler: async () => {
+              isGenerating.value = true;
+              try {
+                // Filter out empty checklist items
+                const validItems = localBeast.checklist.filter((item) => item.trim().length > 0);
 
-      try {
-        // Filter out empty checklist items
-        const validItems = localBeast.checklist.filter(item => item.trim().length > 0);
+                const result = await generateMonsterName({ checklistItems: validItems });
 
-        const result = await generateMonsterName({ checklistItems: validItems });
+                if (result.success && result.name) {
+                  localBeast.name = result.name;
 
-        if (result.success && result.name) {
-          localBeast.name = result.name;
+                  const toast = await toastController.create({
+                    message: `✨ Generated: ${result.name}`,
+                    duration: 2000,
+                    color: "success",
+                    position: "top",
+                  });
+                  await toast.present();
+                } else {
+                  const toast = await toastController.create({
+                    message: result.error || "Failed to generate name",
+                    duration: 3000,
+                    color: "danger",
+                    position: "top",
+                  });
+                  await toast.present();
+                }
+              } catch (error) {
+                console.error("Error generating monster name:", error);
+                const toast = await toastController.create({
+                  message: "Something went wrong. Please try again.",
+                  duration: 3000,
+                  color: "danger",
+                  position: "top",
+                });
+                await toast.present();
+              } finally {
+                isGenerating.value = false;
+              }
+            },
+          },
+        ],
+      });
 
-          const toast = await toastController.create({
-            message: `✨ Generated: ${result.name}`,
-            duration: 2000,
-            color: 'success',
-            position: 'top',
-          });
-          await toast.present();
-        } else {
-          const toast = await toastController.create({
-            message: result.error || 'Failed to generate name',
-            duration: 3000,
-            color: 'danger',
-            position: 'top',
-          });
-          await toast.present();
-        }
-      } catch (error) {
-        console.error('Error generating monster name:', error);
-        const toast = await toastController.create({
-          message: 'Something went wrong. Please try again.',
-          duration: 3000,
-          color: 'danger',
-          position: 'top',
-        });
-        await toast.present();
-      } finally {
-        isGenerating.value = false;
-      }
+      await alert.present();
     };
 
     // AI-powered checklist generation from monster name
     const clickGenerateChecklist = async () => {
       if (!isNameValid.value) {
         const toast = await toastController.create({
-          message: 'Enter a monster name first!',
+          message: "Enter a monster name first!",
           duration: 2000,
-          color: 'warning',
-          position: 'top',
+          color: "warning",
+          position: "top",
         });
         await toast.present();
         return;
       }
 
-      isGeneratingChecklist.value = true;
+      // Confirmation prompt
+      const alert = await alertController.create({
+        header: "Generate Tasks?",
+        message: "This will replace the current task list with AI-generated tasks.",
+        buttons: [
+          { text: "Cancel", role: "cancel" },
+          {
+            text: "Generate",
+            handler: async () => {
+              isGeneratingChecklist.value = true;
+              try {
+                const result = await generateChecklistFromName({ monsterName: localBeast.name });
 
-      try {
-        const result = await generateChecklistFromName({ monsterName: localBeast.name });
+                if (result.success && result.checklist) {
+                  // Replace or append to existing checklist
+                  localBeast.checklist = result.checklist;
 
-        if (result.success && result.checklist) {
-          // Replace or append to existing checklist
-          localBeast.checklist = result.checklist;
+                  const toast = await toastController.create({
+                    message: `✨ Generated ${result.checklist.length} tasks!`,
+                    duration: 2000,
+                    color: "success",
+                    position: "top",
+                  });
+                  await toast.present();
+                } else {
+                  const toast = await toastController.create({
+                    message: result.error || "Failed to generate checklist",
+                    duration: 3000,
+                    color: "danger",
+                    position: "top",
+                  });
+                  await toast.present();
+                }
+              } catch (error) {
+                console.error("Error generating checklist:", error);
+                const toast = await toastController.create({
+                  message: "Something went wrong. Please try again.",
+                  duration: 3000,
+                  color: "danger",
+                  position: "top",
+                });
+                await toast.present();
+              } finally {
+                isGeneratingChecklist.value = false;
+              }
+            },
+          },
+        ],
+      });
 
-          const toast = await toastController.create({
-            message: `✨ Generated ${result.checklist.length} tasks!`,
-            duration: 2000,
-            color: 'success',
-            position: 'top',
-          });
-          await toast.present();
-        } else {
-          const toast = await toastController.create({
-            message: result.error || 'Failed to generate checklist',
-            duration: 3000,
-            color: 'danger',
-            position: 'top',
-          });
-          await toast.present();
-        }
-      } catch (error) {
-        console.error('Error generating checklist:', error);
-        const toast = await toastController.create({
-          message: 'Something went wrong. Please try again.',
-          duration: 3000,
-          color: 'danger',
-          position: 'top',
-        });
-        await toast.present();
-      } finally {
-        isGeneratingChecklist.value = false;
-      }
+      await alert.present();
     };
 
     return {
@@ -522,11 +546,62 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
+  .secondary-toolbar {
+    --background: rgba(0, 0, 0, 0.3);
+    --padding-start: 8px;
+    --padding-end: 8px;
+  }
+
+  .beast-hint {
+    font-size: 1rem;
+    color: white;
+    margin: 0;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+    font-family: "Apple Kid", sans-serif;
+
+    i {
+      color: var(--ion-color-warning);
+    }
+  }
+
   .checklist-header {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px;
     margin-bottom: 8px;
+    padding-left: 16px;
+    padding-right: 16px;
+
+    ion-label {
+      font-family: "StatusPlz", sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+  }
+
+  // Game fonts for labels
+  ion-label {
+    font-family: "StatusPlz", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 1.2rem;
+  }
+
+  ion-title,
+  ion-button {
+    font-family: "StatusPlz", sans-serif;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.85rem;
+  }
+
+  // Game font for inputs
+  ion-input,
+  ion-textarea {
+    font-family: "Apple Kid", sans-serif;
+    font-size: .85rem;
+    letter-spacing: 1.5px;
+    // line-height: 2;
   }
 
   .text-danger {
@@ -545,6 +620,22 @@ export default defineComponent({
 
   .beast-modal-content {
     --background: transparent;
+
+    &::part(scroll) {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+  }
+
+  .modal-centering-container {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100%;
+    padding: 20px 0;
   }
 
   .modal-battle-bg {
@@ -558,15 +649,46 @@ export default defineComponent({
     background: black;
   }
 
-  ion-card {
+  .beast-card {
     --background: rgba(30, 20, 40, 0.95);
     backdrop-filter: blur(12px);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 16px;
     max-width: 600px;
+    width: 95%;
     margin: 0 auto;
     position: relative;
     z-index: 1;
+    display: block; // Simplified display
+    max-height: 65vh;
+    overflow-y: auto !important; // Scroll the entire card
+    -webkit-overflow-scrolling: touch;
+
+    /* Custom scrollbar */
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.1);
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: var(--ion-color-primary);
+      border-radius: 3px;
+    }
+  }
+
+  .scrollable-list {
+    background: transparent !important;
+  }
+
+  .checklist-container {
+    padding-bottom: 20px;
+  }
+
+  .beast-name-section {
+    --background: transparent;
   }
 
   .name-input-row {
@@ -577,6 +699,14 @@ export default defineComponent({
 
     ion-input {
       flex: 1;
+    }
+
+    .beast-name-input {
+      font-size: 2.2rem;
+      font-weight: bold;
+      letter-spacing: 2px;
+      // --padding-top: 8px;
+      // --padding-bottom: 8px;
     }
 
     .generate-btn {
@@ -611,10 +741,11 @@ export default defineComponent({
   }
 
   .checklist-item {
-    --min-height: 52px;
+    --min-height: auto;
     --padding-start: 0;
     --inner-padding-end: 0;
     margin-bottom: 0;
+    min-height: 52px;
 
     // Slide hint - grip lines to indicate swipe action
     .slide-hint {
@@ -638,6 +769,13 @@ export default defineComponent({
       font-size: 1.25rem;
       color: var(--ion-color-warning);
       margin-right: 12px;
+    }
+
+    // Task input styling for text wrapping
+    .checklist-input {
+      white-space: normal;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
     }
   }
 

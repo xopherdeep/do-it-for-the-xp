@@ -11,11 +11,19 @@
         </ion-title>
 
         <ion-buttons slot="end">
-          <ion-button @click="openDetailsModal" color="rpg">
+          <ion-button
+            @click="openDetailsModal"
+            color="rpg"
+          >
             <i class="fad fa-paw-claws fa-2x"></i>
           </ion-button>
-          <XpBackgroundSelector :target-ref="beastPageRef" :initial-bg1="bg1" :initial-bg2="bg2"
-            :aspect-ratio="aspectRatio" @background-changed="onBackgroundChanged" />
+          <XpBackgroundSelector
+            :target-ref="beastPageRef"
+            :initial-bg1="bg1"
+            :initial-bg2="bg2"
+            :aspect-ratio="aspectRatio"
+            @background-changed="onBackgroundChanged"
+          />
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
@@ -25,10 +33,19 @@
       <div class="flex flex-col items-center justify-center h-full w-full p-4">
         <!-- Beast Avatar Display - Position above the card to simulate battle view -->
         <div class="beast-avatar-battle-preview">
-          <ion-thumbnail class="cursor-pointer beast-avatar-selector beast-large-avatar rounded"
-            @click="openAvatarSelector">
-            <ion-img v-if="updateBeast.avatar" :src="getAvatar(updateBeast.avatar)" class="w-full p-0 m-0" />
-            <div v-else class="default-avatar flex items-center justify-center">
+          <ion-thumbnail
+            class="cursor-pointer beast-avatar-selector beast-large-avatar rounded"
+            @click="openAvatarSelector"
+          >
+            <ion-img
+              v-if="updateBeast.avatar"
+              :src="getAvatar(updateBeast.avatar)"
+              class="w-full p-0 m-0"
+            />
+            <div
+              v-else
+              class="default-avatar flex items-center justify-center"
+            >
               <i class="fad fa-camera fa-2x"></i>
             </div>
             <div class="avatar-overlay">
@@ -38,17 +55,26 @@
         </div>
 
         <!-- Beast name display (simplified view when modal is closed) -->
-        <div class="beast-name-display text-center" v-if="updateBeast.name">
+        <div
+          class="beast-name-display text-center"
+          v-if="updateBeast.name"
+        >
           <h2 class="text-2xl font-bold text-white text-shadow-lg">
             {{ updateBeast.name }}
           </h2>
-          <div class="checklist-preview" v-if="updateBeast.checklist.length > 0">
+          <div
+            class="checklist-preview"
+            v-if="updateBeast.checklist.length > 0"
+          >
             <p class="text-white text-shadow-md">
               {{ updateBeast.checklist.length }} tasks defined
             </p>
           </div>
         </div>
-        <div class="text-center mt-4" v-else>
+        <div
+          class="text-center mt-4"
+          v-else
+        >
           <ion-button @click="openDetailsModal">
             <i class="fad fa-plus-circle mr-1"></i>
             Define Your Beast
@@ -60,16 +86,31 @@
     <ion-footer>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-button @click="dismiss" color="rpg">
+          <ion-button
+            @click="dismiss"
+            color="rpg"
+          >
             <i class="fad fa-times fa-lg mr-2" />
             Cancel
           </ion-button>
         </ion-buttons>
         <ion-buttons slot="end">
-          <ion-button @click="validateAndSave" :disabled="isSaving" :strong="true" color="rpg">
-            <ion-spinner v-if="isSaving" name="dots" class="mr-1"></ion-spinner>
+          <ion-button
+            @click="validateAndSave"
+            :disabled="isSaving"
+            :strong="true"
+            color="rpg"
+          >
+            <ion-spinner
+              v-if="isSaving"
+              name="dots"
+              class="mr-1"
+            ></ion-spinner>
             <span v-else>Save</span>
-            <i class="fad fa-save fa-lg ml-2" v-if="!isSaving" />
+            <i
+              class="fad fa-save fa-lg ml-2"
+              v-if="!isSaving"
+            />
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
@@ -369,8 +410,6 @@ export default defineComponent({
           showErrors: this.showErrors,
         },
         cssClass: "beast-details-modal",
-        breakpoints: [0, 0.5, 1], // Makes it act like a bottom sheet
-        initialBreakpoint: 1, // Start at 80% of the screen height
         backdropDismiss: true,
         showBackdrop: true,
       });
@@ -532,158 +571,158 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
-@import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
+  @import url("https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap");
 
-.fade-in {
-  animation: fadeIn 1s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from {
-    opacity: 0;
+  .fade-in {
+    animation: fadeIn 1s ease-in-out;
   }
 
-  to {
-    opacity: 1;
-  }
-}
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
 
-.battle-bg {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1;
-  pointer-events: none;
-  background: black;
-}
-
-.beast-avatar-battle-preview {
-  display: flex;
-  justify-content: center;
-  margin-bottom: 20px;
-  position: relative;
-  z-index: 1;
-}
-
-.beast-large-avatar {
-  --size: 120px;
-  width: var(--size);
-  height: var(--size);
-  margin: 0 auto;
-  border-radius: 50%;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  transition: all 0.3s ease;
-
-  &:hover {
-    transform: scale(1.05);
-  }
-}
-
-.beast-name-display {
-  margin: 20px 0;
-  font-family: "Press Start 2P", cursive;
-}
-
-.text-shadow-lg {
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
-}
-
-.text-shadow-md {
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-.beast-avatar-selector {
-  position: relative;
-  border: 2px dashed #ccc;
-  min-height: 80px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: var(--ion-color-primary);
-
-    .avatar-overlay {
+    to {
       opacity: 1;
     }
   }
 
-  .default-avatar {
-    height: 100%;
-    width: 100%;
-    background-color: rgba(0, 0, 0, 0.1);
-    color: #666;
-  }
-
-  .avatar-overlay {
-    position: absolute;
+  .battle-bg {
+    position: fixed;
     top: 0;
     left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.5);
+    width: 100%;
+    height: 100%;
+    z-index: -1;
+    pointer-events: none;
+    background: black;
+  }
+
+  .beast-avatar-battle-preview {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .beast-large-avatar {
+    --size: 120px;
+    width: var(--size);
+    height: var(--size);
+    margin: 0 auto;
+    border-radius: 50%;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    transition: all 0.3s ease;
+
+    &:hover {
+      transform: scale(1.05);
+    }
+  }
+
+  .beast-name-display {
+    margin: 20px 0;
+    font-family: "Press Start 2P", cursive;
+  }
+
+  .text-shadow-lg {
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+  }
+
+  .text-shadow-md {
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  }
+
+  .beast-avatar-selector {
+    position: relative;
+    border: 2px dashed #ccc;
+    min-height: 80px;
     display: flex;
     align-items: center;
     justify-content: center;
-    opacity: 0;
-    transition: opacity 0.2s ease;
-    color: white;
-    border-radius: 200px;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: var(--ion-color-primary);
+
+      .avatar-overlay {
+        opacity: 1;
+      }
+    }
+
+    .default-avatar {
+      height: 100%;
+      width: 100%;
+      background-color: rgba(0, 0, 0, 0.1);
+      color: #666;
+    }
+
+    .avatar-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      color: white;
+      border-radius: 200px;
+    }
   }
-}
 
-ion-content {
-  --background: transparent;
-}
+  ion-content {
+    --background: transparent;
+  }
 
-ion-card {
-  --background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(5px);
-}
+  ion-card {
+    --background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(5px);
+  }
 
-.checklist-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 8px;
-}
+  .checklist-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
 
-.checklist-item {
-  --padding-start: 0;
-  margin-bottom: 5px;
-}
+  .checklist-item {
+    --padding-start: 0;
+    margin-bottom: 5px;
+  }
 
-.avatar-item {
-  --padding-start: 0;
-  --padding-end: 0;
-  --inner-padding-end: 0;
+  .avatar-item {
+    --padding-start: 0;
+    --padding-end: 0;
+    --inner-padding-end: 0;
 
-  &.selected-item {
-    --background: rgba(var(--ion-color-primary-rgb), 0.1);
-    border: 2px solid var(--ion-color-primary);
+    &.selected-item {
+      --background: rgba(var(--ion-color-primary-rgb), 0.1);
+      border: 2px solid var(--ion-color-primary);
+      border-radius: 8px;
+    }
+
+    .avatar-option {
+      border-radius: 8px;
+      overflow: hidden;
+    }
+  }
+
+  .text-danger {
+    color: var(--ion-color-danger);
+  }
+
+  .empty-checklist {
+    border: 2px dashed #ddd;
     border-radius: 8px;
+    margin: 10px 0;
   }
 
-  .avatar-option {
-    border-radius: 8px;
-    overflow: hidden;
+  .add-item-btn {
+    margin-top: 0;
   }
-}
-
-.text-danger {
-  color: var(--ion-color-danger);
-}
-
-.empty-checklist {
-  border: 2px dashed #ddd;
-  border-radius: 8px;
-  margin: 10px 0;
-}
-
-.add-item-btn {
-  margin-top: 0;
-}
 </style>
