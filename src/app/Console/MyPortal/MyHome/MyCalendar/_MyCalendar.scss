@@ -1,15 +1,70 @@
-:root{
-  --color-light: var(--ion-color-primary-tint);
-  --color-medium: var(--ion-color-primary-shade);
-  --color-dark: var(--ion-color-primary);
-  --color-darkest: var(--ion-color-primary-shade);
-  --animation-speed: 4s;
-  --animation-loop: infinite;
+.my-calendar {
+  --background: var(--ion-background-color);
+
+  .quest-list {
+    padding: 10px;
+
+    .item {
+      margin-bottom: 12px;
+      border: 1px solid rgba(var(--ion-color-success-rgb), 0.2);
+      background: rgba(var(--ion-color-light-rgb), 0.1);
+      border-radius: 12px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+
+      ion-card-title {
+        font-family: "Press Start 2P", cursive;
+        font-size: 0.9rem;
+        color: var(--ion-color-success);
+      }
+
+      ion-card-subtitle {
+        font-size: 0.8rem;
+        color: var(--ion-color-medium);
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+    }
+
+    .quest-rewards {
+      display: flex;
+      gap: 10px;
+      margin-top: 5px;
+
+      ion-badge {
+        font-size: 0.7rem;
+        padding: 5px 8px;
+        border-radius: 5px;
+      }
+    }
+  }
+
+  .no-quests {
+    margin-top: 50px;
+    color: var(--ion-color-medium);
+
+    i {
+      margin-bottom: 20px;
+      opacity: 0.5;
+    }
+
+    p {
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+  }
 }
 
-// Add any specific styles for v-calendar if needed
-// .vc-container {
-//   border-color: var(--ion-color-medium);
-// }
+ion-segment {
+  --background: var(--ion-toolbar-background, var(--ion-color-step-50));
 
-// Remove old accessory-shop styles
+  ion-segment-button {
+    --color: var(--ion-color-medium);
+    --color-checked: var(--ion-color-success);
+
+    i {
+      display: block;
+      margin-bottom: 5px;
+    }
+  }
+}

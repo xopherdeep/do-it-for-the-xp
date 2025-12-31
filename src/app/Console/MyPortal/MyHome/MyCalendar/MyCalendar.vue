@@ -3,52 +3,79 @@
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button
-            :default-href="`/my-portal/${userId}/my-home`"
-          ></ion-back-button>
+          <ion-back-button :default-href="`/my-portal/${userId}/my-home`"></ion-back-button>
           <ion-icon :icon="calendarOutline" slot="icon-only" />
-          <!-- <i class="fad fa-calendar" /> -->
         </ion-buttons>
         <ion-title>
           {{ calendarTitle }}
-          <!-- Dynamic Title -->
         </ion-title>
         <ion-buttons slot="end">
-          <ion-button
-            @click="handleDayClick"
-            color="light"
-            fill="clear"
-            slot="icon-only"
-          >
+          <ion-button @click="openAddQuest" color="light" fill="clear" slot="icon-only">
             <ion-icon :icon="addCircleOutline" />
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
+      <ion-toolbar>
+        <ion-segment v-model="activeSegment" color="success" scrollable>
+          <ion-segment-button value="all">
+            <i class="fal fa-calendar-alt fa-2x"></i>
+            All
+          </ion-segment-button>
+          <ion-segment-button value="morning">
+            <i class="fal fa-sun fa-2x"></i>
+            Morn
+          </ion-segment-button>
+          <ion-segment-button value="noon">
+            <i class="fal fa-cloud-sun fa-2x"></i>
+            Noon
+          </ion-segment-button>
+          <ion-segment-button value="evening">
+            <i class="fal fa-cloud-moon fa-2x"></i>
+            Eve
+          </ion-segment-button>
+          <ion-segment-button value="night">
+            <i class="fal fa-moon-stars fa-2x"></i>
+            Night
+          </ion-segment-button>
+        </ion-segment>
+      </ion-toolbar>
     </ion-header>
 
     <ion-content class="my-calendar" :fullscreen="true">
-      <ion-refresher slot="fixed" @ionRefresh="handleUpdatePage"></ion-refresher>
+      <ion-refresher slot="fixed" @ionRefresh="loadLocalQuests"></ion-refresher>
       <xp-loading v-if="isLoading" />
-      <!-- v-calendar Integration -->
-      <!-- <v-calendar
-        is-expanded
-        :attributes="attributes"
-        :model-config="{
-          type: 'month',
-          month: calendarPage.month,
-          year: calendarPage.year,
-        }"
-        @update:model-config="handleUpdatePage"
-        @dayclick="handleDayClick"
-        class="ion-padding"
-      /> -->
-      <!-- fab placed to the bottom and start and on the bottom edge of the content overlapping footer with a list to the right -->
-      <ion-fab
-        vertical="bottom"
-        horizontal="center"
-        slot="fixed"
-        @click.stop="presentActionSheet"
-      >
+
+      <div v-else class="quest-list">
+        <ion-grid v-if="filteredQuests.length > 0">
+          <ion-row>
+            <ion-col size="12" v-for="item in filteredQuests" :key="item.id" class="ion-no-padding">
+              <ion-card @click="activeModal = item.id" button class="item">
+                <ion-card-header>
+                  <ion-card-title v-html="formatQuestName(item.achievementName || 'Untitled Quest')"></ion-card-title>
+                  <ion-card-subtitle v-if="item.dueByTime">
+                    <i class="fal fa-clock"></i> {{ item.dueByTime }}
+                  </ion-card-subtitle>
+                </ion-card-header>
+                <ion-card-content>
+                  <div class="quest-rewards">
+                    <ion-badge color="success" v-if="item.xp">{{ item.xp }} XP</ion-badge>
+                    <ion-badge color="warning" v-if="item.gp">{{ item.gp }} GP</ion-badge>
+                    <ion-badge color="tertiary" v-if="item.ap">{{ item.ap }} AP</ion-badge>
+                  </div>
+                </ion-card-content>
+              </ion-card>
+
+              <MyTask @didDismiss="activeModal = 0" :item="item" :userId="userId" v-if="activeModal == item.id" />
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+        <div v-else class="no-quests ion-text-center ion-padding">
+          <i class="fad fa-scroll-old fa-3x"></i>
+          <p>No quests scheduled for this time.</p>
+        </div>
+      </div>
+
+      <ion-fab vertical="bottom" horizontal="center" slot="fixed" @click.stop="presentActionSheet">
         <ion-fab-button>
           <ion-icon :icon="calendarOutline"></ion-icon>
         </ion-fab-button>
@@ -59,26 +86,18 @@
         <ion-grid>
           <ion-row>
             <ion-col class="ion-no-padding">
-              <!-- Updated search bar model and event -->
-              <ion-searchbar
-                color="light"
-                :debounce="500"
-                @ionChange="searchEvents"
-                v-model="searchQuery"
-                placeholder="Search Quests..."
-              ></ion-searchbar>
+              <ion-searchbar color="light" :debounce="500" @ionChange="filterQuests" v-model="searchQuery"
+                placeholder="Search Daily Quests..."></ion-searchbar>
             </ion-col>
           </ion-row>
           <ion-row>
             <ion-col>
-              <!-- Previous Month Button -->
-              <ion-button @click="prevMonth" color="light" expand="block">
+              <ion-button @click="prevDay" color="light" expand="block">
                 <ion-icon :icon="chevronBack" slot="icon-only" />
               </ion-button>
             </ion-col>
             <ion-col>
-              <!-- Next Month Button -->
-              <ion-button @click="nextMonth" color="light" expand="block">
+              <ion-button @click="nextDay" color="light" expand="block">
                 <ion-icon :icon="chevronForward" slot="icon-only" />
               </ion-button>
             </ion-col>
@@ -90,219 +109,150 @@
 </template>
 
 <script setup lang="ts">
-  import {
-    ref,
-    computed,
-    watch,
-    onMounted,
-    defineComponent,
-    toRef      
-  } from "vue";
-  import {
-    IonPage,
-    IonHeader,
-    IonToolbar,
-    IonButtons,
-    IonBackButton,
-    IonIcon,
-    IonTitle,
-    IonContent,
-    IonFab,
-    IonFabButton,
-    IonFooter,
-    IonGrid,
-    IonRow,
-    IonCol,
-    IonSearchbar,
-    IonButton,
-    actionSheetController,
-  } from "@ionic/vue";
-  // import { Calendar as VCalendar } from "v-calendar";
-  import {
-    calendarOutline,
-    addCircleOutline,
-    removeCircleOutline,
-    close,
-    chevronBack,
-    chevronForward,
-  } from "ionicons/icons";
+import {
+  ref,
+  computed,
+  onMounted,
+  defineComponent,
+  toRef
+} from "vue";
+import {
+  IonPage,
+  IonHeader,
+  IonToolbar,
+  IonButtons,
+  IonBackButton,
+  IonIcon,
+  IonTitle,
+  IonContent,
+  IonFab,
+  IonFabButton,
+  IonFooter,
+  IonGrid,
+  IonRow,
+  IonCol,
+  IonSearchbar,
+  IonButton,
+  IonSegment,
+  IonSegmentButton,
+  IonCard,
+  IonCardHeader,
+  IonCardTitle,
+  IonCardSubtitle,
+  IonCardContent,
+  IonBadge,
+  IonRefresher,
+  actionSheetController,
+} from "@ionic/vue";
+import {
+  calendarOutline,
+  addCircleOutline,
+  removeCircleOutline,
+  close,
+  chevronBack,
+  chevronForward,
+} from "ionicons/icons";
+import AchievementDb, { achievementStorage } from "@/lib/databases/AchievementDb";
+import MyTask from "../../UserHud/MyTask/MyTask.vue";
+import { formatQuestName } from "@/lib/utils/format";
+import { getQuestEngine } from "@/lib/engine/quests/QuestEngine";
 
-  // Define the component (required for script setup)
-  defineComponent({
-    name: "MyCalendar",
-    // components: {
-    //   "v-calendar": VCalendar,
-    // },
+defineComponent({
+  name: "MyCalendar",
+  components: {
+    MyTask
+  }
+});
+
+const props = defineProps<{
+  userId: string | number;
+}>();
+const userId = toRef(props, 'userId');
+
+// State
+const selectedDate = ref(new Date());
+const isLoading = ref(false);
+const searchQuery = ref("");
+const activeSegment = ref("all");
+const allQuests = ref<any[]>([]);
+const activeModal = ref<any>(0);
+const achievementDb = new AchievementDb(achievementStorage);
+
+// Computed
+const calendarTitle = computed(() => {
+  return selectedDate.value.toLocaleDateString("default", {
+    weekday: "long",
+    month: "short",
+    day: "numeric"
   });
+});
 
-  // Props - correct implementation of defineProps
-  // eslint-disable-next-line no-undef, vue/valid-define-props
-  const props = defineProps<{
-    userId: string | number;
-  }>();
-  const userId = toRef(props, 'userId');
-
-  // Data
-  const today = new Date();
-  const isLoading = ref(false);
-  const calendarPage = ref({
-    month: today.getMonth() + 1,
-    year: today.getFullYear(),
+const filteredQuests = computed(() => {
+  const questEngine = getQuestEngine();
+  return questEngine.filterQuests(allQuests.value, {
+    userId: userId.value,
+    search: searchQuery.value,
+    segment: activeSegment.value as any
   });
-  const searchQuery = ref("");
+});
 
-  // Define a proper type for calendar attributes to fix the type error
-  type CalendarAttribute = {
-    key: string;
-    highlight?: { color: string; fillMode: string };
-    dot?: string;
-    dates: Date;
-    popover?: { label: string };
-  };
+// Methods
+const loadLocalQuests = async (event?: any) => {
+  isLoading.value = true;
+  try {
+    allQuests.value = await achievementDb.getTasks();
+  } finally {
+    isLoading.value = false;
+    if (event) event.target.complete();
+  }
+};
 
-  const attributes = ref<CalendarAttribute[]>([
-    {
-      key: "today",
-      highlight: {
-        color: "purple",
-        fillMode: "light",
+const nextDay = () => {
+  const next = new Date(selectedDate.value);
+  next.setDate(next.getDate() + 1);
+  selectedDate.value = next;
+};
+
+const prevDay = () => {
+  const prev = new Date(selectedDate.value);
+  prev.setDate(prev.getDate() - 1);
+  selectedDate.value = prev;
+};
+
+const filterQuests = () => {
+  // Computed property handles this automatically
+};
+
+const openAddQuest = () => {
+  // Logic to open admin/create quest
+};
+
+const presentActionSheet = async () => {
+  const actionSheet = await actionSheetController.create({
+    header: "Daily Agenda Actions",
+    buttons: [
+      {
+        text: "Add New Quest",
+        icon: addCircleOutline,
+        handler: openAddQuest,
       },
-      dates: new Date(),
-    },
-  ]);
-
-  // Computed
-  const calendarTitle = computed(() => {
-    const date = new Date(
-      calendarPage.value.year,
-      calendarPage.value.month - 1
-    );
-    return date.toLocaleString("default", { month: "long", year: "numeric" });
+      {
+        text: "Request Time Off",
+        icon: removeCircleOutline,
+        handler: () => { },
+      },
+      {
+        text: "Cancel",
+        icon: close,
+        role: "cancel",
+      },
+    ],
   });
+  await actionSheet.present();
+};
 
-  // Methods
-  // These functions are not used now but will be needed when v-calendar is uncommented
-  const handleDayClick = (day: any) => {
-    // Show selected date's events in a modal or action sheet
-    const date = new Date(day.year, day.month - 1, day.day);
-    const eventsForDay = attributes.value.filter(
-      (attr) =>
-        attr.dates instanceof Date && attr.dates.getTime() === date.getTime()
-    );
-
-    if (eventsForDay.length > 0) {
-      // If there are events, show them
-      presentActionSheet();
-    }
-  };
-  //
-  const handleUpdatePage = (page: any) => {
-    if (page?.month && page?.year) {
-      calendarPage.value = { month: page.month, year: page.year };
-      fetchEventsForMonth(page.year, page.month);
-    }
-  };
-
-  const prevMonth = () => {
-    const currentMonth = calendarPage.value.month;
-    const currentYear = calendarPage.value.year;
-    const newMonth = currentMonth === 1 ? 12 : currentMonth - 1;
-    const newYear = currentMonth === 1 ? currentYear - 1 : currentYear;
-    calendarPage.value = { month: newMonth, year: newYear };
-  };
-
-  const nextMonth = () => {
-    const currentMonth = calendarPage.value.month;
-    const currentYear = calendarPage.value.year;
-    const newMonth = currentMonth === 12 ? 1 : currentMonth + 1;
-    const newYear = currentMonth === 12 ? currentYear + 1 : currentYear;
-    calendarPage.value = { month: newMonth, year: newYear };
-  };
-
-  const searchEvents = () => {
-    fetchEventsForMonth(calendarPage.value.year, calendarPage.value.month);
-  };
-
-  const presentActionSheet = async () => {
-    const actionSheet = await actionSheetController.create({
-      header: "Look at the time!",
-      cssClass: "my-custom-class",
-      buttons: [
-        {
-          text: "Add Quest",
-          icon: addCircleOutline,
-          data: "Data value",
-          handler: () => {
-            // Add quest logic here
-          },
-        },
-        {
-          text: "Request Time Off",
-          icon: removeCircleOutline,
-          data: 10,
-          handler: () => {
-            // Request time off logic here
-          },
-        },
-        {
-          text: "Some other action...",
-          icon: calendarOutline,
-          handler: () => {
-            // Other action logic here
-          },
-        },
-        {
-          text: "Cancel",
-          icon: close,
-          role: "cancel",
-          handler: () => {
-            // Cancel logic here
-          },
-        },
-      ],
-    });
-    await actionSheet.present();
-  };
-
-  // Placeholder for fetching actual event data
-  const fetchEventsForMonth = (year: number, month: number) => {
-    isLoading.value = true;
-    setTimeout(() => {
-      const dummyEventDate = new Date(year, month - 1, 15);
-      attributes.value = [
-        ...attributes.value.filter((attr) => attr.key !== "dummy"),
-        {
-          key: "dummy",
-          dot: "red",
-          dates: dummyEventDate,
-          popover: { label: `Quest available ${month}/${year}` },
-        },
-      ];
-      isLoading.value = false;
-    }, 1000);
-  };
-
-  // Watchers
-  watch(
-    calendarPage,
-    (newPage) => {
-      if (newPage?.year && newPage?.month) {
-        fetchEventsForMonth(newPage.year, newPage.month);
-      }
-    },
-    { immediate: false }
-  );
-
-  watch(searchQuery, () => {
-    fetchEventsForMonth(calendarPage.value.year, calendarPage.value.month);
-  });
-
-  // Lifecycle Hooks
-  onMounted(() => {
-    fetchEventsForMonth(calendarPage.value.year, calendarPage.value.month);
-  });
+// Lifecycle
+onMounted(loadLocalQuests);
 </script>
 
-<style lang="scss" src="./_MyCalendar.scss" scoped>
-  // v-calendar styles are now imported globally in main.ts
-</style>
+<style lang="scss" src="./_MyCalendar.scss" scoped></style>

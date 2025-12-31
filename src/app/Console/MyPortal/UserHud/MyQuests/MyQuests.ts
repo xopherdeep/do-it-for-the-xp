@@ -1,7 +1,11 @@
-import { computed, defineComponent, reactive, ref } from "vue";
-import XpApi from "@/lib/api/doit.forthexp.com.api";
+import { defineComponent, onMounted, reactive, ref } from "vue";
 import ionic from "@/lib/mixins/ionic";
-import { IonBackButton, alertController, IonicSlides } from "@ionic/vue";
+import {
+  IonBackButton,
+  alertController,
+  IonicSlides,
+} from "@ionic/vue";
+import { getQuestEngine } from "@/lib/engine/quests/QuestEngine";
 import {
   ribbonOutline,
   arrowBack,
@@ -28,9 +32,7 @@ import MyTask from "../MyTask/MyTask.vue";
 import { useRouter } from "vue-router";
 // import { useSwiper } from "swiper/vue";
 import { Controller, Navigation, Swiper as SwiperClass } from "swiper";
-import { useQuery, useQueryClient } from "vue-query";
-import useQuests from "@/hooks/useQuests";
-import debug from "@/lib/utils/debug";
+import AchievementDb, { achievementStorage } from "@/lib/databases/AchievementDb";
 import { formatQuestName } from "@/lib/utils/format";
 
 export default defineComponent({
@@ -60,12 +62,6 @@ export default defineComponent({
     xp_achievement() {
       return (this as any).gameStore.xp_achievement;
     },
-    isPrevDisabled() {
-      return this.currentSlide == 0;
-    },
-    currentSlide() {
-      return this.controlledSwiper?.activeIndex;
-    },
     searchText: {
       get() {
         return this.params.search;
@@ -75,18 +71,50 @@ export default defineComponent({
         this.params.page = 1;
       },
     },
+    // Filtered tasks based on search and user assignment
+    filteredTasks() {
+      const questEngine = getQuestEngine();
+      return questEngine.filterQuests(this.allTasks || [], {
+        userId: this.userId,
+        search: this.params.search
+      });
+    },
+    // Paginated tasks for the swiper
+    tasks() {
+      const start = (this.params.page - 1) * this.params.per_page;
+      const end = start + this.params.per_page;
+      return this.filteredTasks.slice(start, end);
+    },
+    nTotalTasks() {
+      return this.filteredTasks.length;
+    },
+    nTotalPages() {
+      return Math.ceil(this.nTotalTasks / this.params.per_page) || 1;
+    },
+    hasNextPage() {
+      return this.params.page < this.nTotalPages;
+    },
+    pageNumbers() {
+      const min = (this.params.page - 1) * this.params.per_page + 1;
+      const max = Math.min(this.params.page * this.params.per_page, this.nTotalTasks);
+      return { min: this.nTotalTasks === 0 ? 0 : min, max };
+    },
+    // Alias for page to use in template
+    page() {
+      return this.params.page;
+    }
   },
   methods: {
     clickBack() {
-      const hasHistory = this.$historyCount - window.history.length;
+      const hasHistory = (this as any).$historyCount - window.history.length;
       // console.log("hashistory", hasHistory);
-      if (hasHistory) this.router.go(-1);
-      else this.router.push(`/my-portal/${this.userId}`);
+      if (hasHistory) (this as any).router.go(-1);
+      else (this as any).router.push(`/my-portal/${this.userId}`);
     },
-    clickItem(item) {
+    clickItem(item: any) {
       this.activeModal = item.id;
     },
-    isModalOpen(id) {
+    isModalOpen(id: any) {
       return this.activeModal == id;
     },
     clickComplete() {
@@ -94,10 +122,16 @@ export default defineComponent({
       this.presentAlertMultipleButtons();
     },
     slidePrev() {
-      this.page--;
+      if (this.params.page > 1) this.params.page--;
     },
     slideNext() {
-      this.page++;
+      if (this.params.page < this.nTotalPages) this.params.page++;
+    },
+    // Get tasks for a specific page number (for swiper slides)
+    getTasksForPage(pageNum: number) {
+      const start = (pageNum - 1) * this.params.per_page;
+      const end = start + this.params.per_page;
+      return this.filteredTasks.slice(start, end);
     },
     async presentAlertMultipleButtons() {
       const alert = await alertController.create({
@@ -109,29 +143,22 @@ export default defineComponent({
       });
       return alert.present();
     },
-    getFeaturedImg(embedded) {
-      const [img] = embedded["wp:featuredmedia"] || [{}];
+    getFeaturedImg(item: any) {
+      if (item.localImage || item.imageUrl) {
+        return {
+          src: item.localImage || item.imageUrl,
+          alt: item.achievementName,
+        };
+      }
       return {
-        src: img?.source_url,
-        alt: img?.alt_text,
+        src: "",
+        alt: item.achievementName,
       };
     },
-    getImgObj(id) {
-      const img = this.getSingleMediaById(id);
-      if (img)
-        return {
-          src: img.source_url,
-          alt: img.alt_text,
-          title: img.title.rendered,
-        };
-    },
-    getSingleMediaById(id: string) {
-      return (this as any).gameStore.getSingleById("media", id);
-    },
     searchChanged() {
-      // Using type assertion to fix the TypeScript error
-      (this.$refs.slides as { slideTo: (index: number) => void }).slideTo(0);
-      this.currentSlide = 0;
+      if (this.controlledSwiper) {
+        this.controlledSwiper.slideTo(0);
+      }
       this.params.page = 1;
     },
     resetTextSound() {
@@ -143,97 +170,44 @@ export default defineComponent({
       this.$fx.rpg[this.$fx.theme.rpg].text.play();
     },
 
-    segmentChanged($ev) {
-      debug.log("Segment changed", $ev);
-    },
-  },
-  watch: {
-    params: {
-      deep: true,
-      handler() {
-        this.play$fx("text");
-        // const { $fx: { rpg, theme } } = this
-        // const { text } = rpg[theme.rpg]
-
-        // // if(text) text.play();
-
-        // console.log("WAATCH", rpg, theme);
-        // console.log("text", text);
-        // this.$fx.rpg[this.$fx.theme.rpg].text.play();
-      },
+    segmentChanged() {
+      // debug.log("Segment changed");
     },
   },
   setup() {
     const gameStore = useGameStore();
-    const queryClient = useQueryClient();
-    const nTotalTasks = ref(0);
-    const nTotalPages = ref(0);
     const router = useRouter();
     const controlledSwiper = ref<SwiperClass | null>(null);
     const setControlledSwiper = (swiper: SwiperClass) => {
       controlledSwiper.value = swiper;
     };
 
+    const achievementDb = new AchievementDb(achievementStorage);
+    const allTasks = ref<any[]>([]);
+    const isLoading = ref(true);
+
     const params = reactive({
       page: 1,
       search: "",
       per_page: 4,
-      _embed: true,
     });
 
-    const page = computed({
-      get: () => params.page,
-      set: (page) => (params.page = page),
-    });
-
-    const updateTotals = ({ data, headers }) => {
-      nTotalTasks.value = Number(headers.get("x-wp-total"));
-      nTotalPages.value = Number(headers.get("x-wp-totalpages"));
-      return data;
+    const loadLocalTasks = async () => {
+      isLoading.value = true;
+      try {
+        allTasks.value = await achievementDb.getTasks();
+      } finally {
+        isLoading.value = false;
+      }
     };
 
-    const {
-      isLoading,
-      isError,
-      data: tasks,
-      error,
-      isFetching,
-    } = useQuests(page.value, params, updateTotals);
-
-    const getSlideItems = (p) =>
-      queryClient.getQueryData(["tasks", p, params]) || [];
-
-    const slideItems = computed(() => {
-      return queryClient.getQueryData(["tasks", page.value, params]) || [];
-    });
-
-    // const featuredMedia = computed({
-    //   get() {
-    //     return slideItems.value.map((t) => t.featured_media).join(",");
-    //   },
-    // });
-
-    // const { data: images } = useImages({
-    //   type: "media",
-    //   include: featuredMedia.value,
-    // });
+    onMounted(loadLocalTasks);
 
     return {
       gameStore,
-      useTasks,
       params,
-      tasks,
-      // images,
-      // featuredMedia,
-      page,
-      getSlideItems,
-      slideItems,
-      nTotalTasks,
-      nTotalPages,
+      allTasks,
       isLoading,
-      isError,
-      error,
-      isFetching,
       controlledSwiper,
       setControlledSwiper,
       modules: [IonicSlides, Navigation, Controller],
@@ -258,36 +232,5 @@ export default defineComponent({
       checkmarkDone,
       formatQuestName,
     };
-
-    function useTasks(page, params) {
-      return useQuery(["tasks", page, params], fetchAchievements, {
-        refetchOnWindowFocus: false,
-        keepPreviousData: true,
-      });
-
-      async function fetchAchievements() {
-        await XpApi.get("xp_achievement", params).then(updateTotals);
-      }
-
-      function updateTotals({ data, headers }) {
-        nTotalTasks.value = Number(headers.get("x-wp-total"));
-        nTotalPages.value = Number(headers.get("x-wp-totalpages"));
-        return data;
-      }
-    }
-
-    // function useImages({ type, include }) {
-    //   const params = { include };
-    //   const options = {
-    //     keepPreviousData: true,
-    //     refetchOnWindowFocus: false,
-    //     enabled: !!include.length,
-    //   };
-
-    //   const fetchImages = async () => await XpApi
-    //     .get(type, params).then(({ data }) => data);
-
-    //   return useQuery(["images", page.value, include], fetchImages, options);
-    // }
   },
 });

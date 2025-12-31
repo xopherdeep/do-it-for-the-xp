@@ -40,6 +40,7 @@ import { useBattleStore } from "@/lib/store/stores/battle";
 import { useAudioStore } from "@/lib/store/stores/audio";
 import { useRouter } from "vue-router";
 import { Controller, Navigation } from "swiper";
+import { formatQuestName } from "@/lib/utils/format";
 
 // Define interfaces for the app
 interface Item {
@@ -126,6 +127,17 @@ export default defineComponent({
     router() {
       return (this as any).$router;
     },
+    deadline() {
+      // Dummy deadline: Today at 7pm (as mentioned in template subtitle)
+      const d = new Date();
+      if (d.getHours() >= 19) {
+        d.setDate(d.getDate() + 1);
+      }
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd} 19:00:00`;
+    }
   },
   methods: {
     addUpGP() {
@@ -345,7 +357,7 @@ export default defineComponent({
                 controlledSwiper.slideNext();
               }
               this.createToast({
-                header: `${(this as any).user.name.nick} tamed ${this.item.title.rendered}!`,
+                header: `${(this as any).user.name.nick} tamed ${this.item.achievementName || this.item.title?.rendered || 'the quest'}!`,
                 message: `Gained 2AP`,
                 duration: 1800,
                 icon: null,
@@ -511,7 +523,8 @@ export default defineComponent({
       items,
       getItems,
       getImgObj,
-      nTotalPages
+      nTotalPages,
+      formatQuestName
     };
   },
 });

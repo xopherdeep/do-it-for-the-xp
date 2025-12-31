@@ -1,14 +1,6 @@
 <template>
-  <ion-modal
-    ref="modal"
-    :is-open="true"
-    :class="$options.name"
-    :backdropDismiss="false"
-    @willPresent="willPresent"
-    @willDismiss="willDismiss"
-    @didPresent="didPresent"
-    @didDismiss="$emit('didDismiss')"
-  >
+  <ion-modal ref="modal" :is-open="true" :class="$options.name" :backdropDismiss="false" @willPresent="willPresent"
+    @willDismiss="willDismiss" @didPresent="didPresent" @didDismiss="$emit('didDismiss')">
     <!-- <ion-header v-if="item">
       <ion-toolbar>
         <ion-buttons slot="end">
@@ -20,11 +12,7 @@
     <transition name="fade">
       <ion-header v-if="debug">
         <ion-toolbar>
-          <ion-segment
-            color="success"
-            @ionChange="segmentChanged"
-            :value="segment"
-          >
+          <ion-segment color="success" @ionChange="segmentChanged" :value="segment">
             <ion-segment-button value="0" color="danger">
               <ion-label v-if="item.title">
                 <i class="fad fa-medal fa-3x"></i>
@@ -46,26 +34,16 @@
       </ion-header>
     </transition>
 
-    <swiper
-      @ionSlideDidChange="slideChanged"
-      ref="slides"
-      class="swiper-no-swiping"
-      :modules="modules"
-      @swiper="setControlledSwiper"
-    >
+    <swiper v-if="user" @ionSlideDidChange="slideChanged" ref="slides" class="swiper-no-swiping" :modules="modules"
+      @swiper="setControlledSwiper">
       <swiper-slide class="task">
         <ion-card color="success">
-          <ion-card-title
-            v-if="item.title"
-            v-html="item.title.rendered"
-          ></ion-card-title>
+          <ion-card-title v-if="item"
+            v-html="formatQuestName(item.achievementName || item.title?.rendered || 'Untitled Quest')"></ion-card-title>
           <ion-grid>
             <ion-row>
               <ion-col>
-                <ion-chip
-                  color="tertiary"
-                  class="ion-float-right ion-no-margin"
-                >
+                <ion-chip color="tertiary" class="ion-float-right ion-no-margin">
                   <ion-text class="ion-float-right">
                     <strong>
                       +2 AP Text
@@ -81,11 +59,8 @@
               </ion-col>
               <ion-col size="7">
                 <ion-card-content>
-                  <vue3-flip-countdown
-                    labelColor="#e7e6b3"
-                    mainColor="#e7e6b3"
-                    :showDays="false"
-                  />
+                  <vue3-flip-countdown v-if="deadline" :deadline="deadline" labelColor="#e7e6b3" mainColor="#e7e6b3"
+                    :showDays="false" />
                   Lorem ipsum dolor sit amet, consectetur adipiscing elit.
                   Aenean dapibus nisl vel turpis aliquet, id volutpat urna
                   molestie. Etiam auctor libero et lorem malesuada congue.
@@ -157,18 +132,9 @@
           </ion-toolbar>
         </ion-card>
 
-        <ion-fab
-          :activated="userMenuActive"
-          vertical="bottom"
-          horizontal="center"
-          slot="fixed"
-          @click="focusUserMenu"
-        >
+        <ion-fab :activated="userMenuActive" vertical="bottom" horizontal="center" slot="fixed" @click="focusUserMenu">
           <ion-fab-button color="light">
-            <ion-img
-              class="ion-no-padding"
-              :src="$getUserAvatar(user)"
-            ></ion-img>
+            <ion-img class="ion-no-padding" :src="$getUserAvatar(user)"></ion-img>
           </ion-fab-button>
           <ion-fab-list side="top"> </ion-fab-list>
           <ion-fab-list side="bottom"> </ion-fab-list>
@@ -201,24 +167,15 @@
               <ion-card color="primary">
                 <ion-card-header>
                   <ion-card-title color="success">
-                    <i
-                      class="fad fa-2x fa-hand-holding-medical ion-float-right"
-                    ></i>
+                    <i class="fad fa-2x fa-hand-holding-medical ion-float-right"></i>
                     Ability Points
                   </ion-card-title>
                 </ion-card-header>
                 <ion-chip color="light">
                   <i class="fad fa-angle-up fa-2x"></i>
                   <h4>
-                    <vue3-autocounter
-                      ref="countAPGained"
-                      :startAmount="0"
-                      :endAmount="3"
-                      :duration="4"
-                      suffix="AP"
-                      separator=","
-                      :autoinit="false"
-                    />
+                    <vue3-autocounter ref="countAPGained" :startAmount="0" :endAmount="3" :duration="4" suffix="AP"
+                      separator="," :autoinit="false" />
                   </h4>
                 </ion-chip>
               </ion-card>
@@ -227,9 +184,7 @@
               <ion-card color="success">
                 <ion-card-header>
                   <ion-card-title color="primary">
-                    <i
-                      class="fad fa-2x fa-hand-holding-seedling ion-float-right"
-                    ></i>
+                    <i class="fad fa-2x fa-hand-holding-seedling ion-float-right"></i>
                     Experience Points
                   </ion-card-title>
                 </ion-card-header>
@@ -237,16 +192,8 @@
                   <i class="fad fa-2x fa-angle-double-up"></i>
                   &nbsp;
                   <h4 class="ion-float-right">
-                    <vue3-autocounter
-                      ref="countXPGained"
-                      :startAmount="0"
-                      :endAmount="100"
-                      :duration="3.9"
-                      suffix="XP"
-                      separator=","
-                      :autoinit="false"
-                      @finished="finishedCounting"
-                    />
+                    <vue3-autocounter ref="countXPGained" :startAmount="0" :endAmount="100" :duration="3.9" suffix="XP"
+                      separator="," :autoinit="false" @finished="finishedCounting" />
                   </h4>
                 </ion-chip>
               </ion-card>
@@ -264,13 +211,7 @@
             </ion-col>
           </ion-row> -->
         </ion-grid>
-        <ion-fab
-          class="click-loot"
-          vertical="bottom"
-          horizontal="center"
-          slot="fixed"
-          @click="clickLoot"
-        >
+        <ion-fab class="click-loot" vertical="bottom" horizontal="center" slot="fixed" @click="clickLoot">
           <ion-fab-button color="light">
             <i class="fad fa-treasure-chest fa-4x"></i>
           </ion-fab-button>
@@ -283,9 +224,7 @@
               <ion-card color="gold">
                 <ion-card-header>
                   <ion-card-title color="gold">
-                    <i
-                      class="fad fa-2x fa-hand-holding-usd ion-float-right"
-                    ></i>
+                    <i class="fad fa-2x fa-hand-holding-usd ion-float-right"></i>
                     Gold Points
                   </ion-card-title>
                 </ion-card-header>
@@ -298,22 +237,12 @@
                                 :number="temp.gp.gained"
                               /> -->
                     &nbsp;
-                    <vue3-autocounter
-                      ref="countGPGained"
-                      :startAmount="0"
-                      :endAmount="20"
-                      :duration="3.9"
-                      suffix="GP"
-                      separator=","
-                      :autoinit="false"
-                    />
+                    <vue3-autocounter ref="countGPGained" :startAmount="0" :endAmount="20" :duration="3.9" suffix="GP"
+                      separator="," :autoinit="false" />
                   </h4>
                 </ion-chip>
                 <ion-chip color="gold">
-                  <ion-progress-bar
-                    color="gold"
-                    :value="gpBar"
-                  ></ion-progress-bar>
+                  <ion-progress-bar color="gold" :value="gpBar"></ion-progress-bar>
                   <ion-label class="ion-float-right">
                     <br />
                     <i class="fa fa-equals"></i>
@@ -321,16 +250,9 @@
                     <i class="fad fa-coins"></i>
                     &nbsp;
                     <strong>
-                      <vue3-autocounter
-                        ref="countWallet"
-                        :startAmount="user.stats.gp.wallet"
-                        :endAmount="user.stats.gp.wallet + 100"
-                        :duration="3.9"
-                        prefix="¤"
-                        suffix="GP"
-                        separator=","
-                        :autoinit="false"
-                      />
+                      <vue3-autocounter ref="countWallet" :startAmount="user.stats.gp.wallet"
+                        :endAmount="user.stats.gp.wallet + 100" :duration="3.9" prefix="¤" suffix="GP" separator=","
+                        :autoinit="false" />
                     </strong>
                     /
                     <i class="fad fa-wallet"></i>
@@ -390,18 +312,12 @@
                     <ion-row>
                       <ion-col size="6">
                         <ion-list>
-                          <ion-item-sliding
-                            v-for="item in itemsDropped"
-                            :key="item.id"
-                          >
+                          <ion-item-sliding v-for="item in itemsDropped" :key="item.id">
                             <ion-item color="light">
                               <ion-label v-html="getItemLabel(item)" />
                             </ion-item>
                             <ion-item-options side="end">
-                              <ion-item-option
-                                @click="slideLootItem(item)"
-                                color="danger"
-                              >
+                              <ion-item-option @click="slideLootItem(item)" color="danger">
                                 &nbsp; Loot &nbsp;
                                 <i class="fad fa-hand-holding-box"></i>
                               </ion-item-option>
@@ -411,18 +327,12 @@
                       </ion-col>
                       <ion-col size="6">
                         <ion-list>
-                          <ion-item-sliding
-                            v-for="item in itemsLooted"
-                            :key="item.id"
-                          >
+                          <ion-item-sliding v-for="item in itemsLooted" :key="item.id">
                             <ion-item color="danger">
                               <ion-label v-html="getItemLabel(item)" />
                             </ion-item>
                             <ion-item-options side="end">
-                              <ion-item-option
-                                @click="slideDropItem(item)"
-                                color="light"
-                              >
+                              <ion-item-option @click="slideDropItem(item)" color="light">
                                 &nbsp; Drop &nbsp;
                                 <i class="fad fa-hand-holding"></i>
                               </ion-item-option>
@@ -437,24 +347,16 @@
                   <ion-grid>
                     <ion-row>
                       <ion-col size="6" class="ion-padding">
-                        <ion-button
-                          :disabled="itemsDropped.length < 1"
-                          @click="clickLootAll"
-                          color="danger"
-                          expand="block"
-                        >
+                        <ion-button :disabled="itemsDropped.length < 1" @click="clickLootAll" color="danger"
+                          expand="block">
                           <i class="fad fa-hand-holding-box"></i>
                           &nbsp; Loot All &nbsp;
                           <i class="fad fa-arrow-right ion-float-right"></i>
                         </ion-button>
                       </ion-col>
                       <ion-col size="6" class="ion-padding">
-                        <ion-button
-                          :disabled="itemsLooted.length < 1"
-                          @click="clickDropAll"
-                          color="light"
-                          expand="block"
-                        >
+                        <ion-button :disabled="itemsLooted.length < 1" @click="clickDropAll" color="light"
+                          expand="block">
                           <i class="fad fa-arrow-left"></i>
                           &nbsp; Drop All &nbsp;
                           <i class="fad fa-hand-holding"></i>

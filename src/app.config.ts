@@ -9,11 +9,13 @@ const appConfig = {
   $requireIcon: require.context("@/assets/icons/"),
   $historyCount: window.history.length,
 
-  $getUserAvatar(user) {
+  $getUserAvatar(user: any) {
+    if (!user) return "";
     const { avatar } = user;
     if (avatar) {
-      return this.$requireAvatar(`./${user.avatar}.svg`);
+      return this.$requireAvatar(`./${avatar}.svg`);
     }
+    return "";
   },
 }
 
