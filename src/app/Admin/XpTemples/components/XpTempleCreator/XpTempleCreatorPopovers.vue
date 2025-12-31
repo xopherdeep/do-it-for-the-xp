@@ -1,13 +1,8 @@
 <template>
   <div v-if="modelValue">
     <!-- Reimagined Quick Edit Popover -->
-    <ion-popover
-      :is-open="modelValue.isOpen"
-      :event="modelValue.event"
-      @didDismiss="$emit('update:modelValue', { ...modelValue, isOpen: false })"
-      class="quick-edit-popover"
-      mode="ios"
-    >
+    <ion-popover :is-open="modelValue.isOpen" :event="modelValue.event"
+      @didDismiss="$emit('update:modelValue', { ...modelValue, isOpen: false })" class="quick-edit-popover" mode="ios">
       <div class="popover-inner">
         <div class="popover-header">
           <span class="header-title">Quick Action</span>
@@ -15,13 +10,8 @@
         </div>
 
         <div class="type-grid" v-if="!showItems">
-          <button
-            v-for="type in types"
-            :key="type"
-            class="type-btn"
-            :class="[type, { 'is-active': modelValue.roomType === type }]"
-            @click="handleTypeClick(type)"
-          >
+          <button v-for="type in types" :key="type" class="type-btn"
+            :class="[type, { 'is-active': modelValue.roomType === type }]" @click="handleTypeClick(type)">
             <div class="icon-orb">
               <i :class="['fad', roomIcons[type]]"></i>
             </div>
@@ -37,27 +27,18 @@
             </button>
             <span>Select Loot</span>
           </div>
-          
+
           <div class="item-grid">
-            <button
-              v-for="item in dungeonItems"
-              :key="item.id"
-              class="item-btn"
-              :class="{ 'is-active': modelValue.content?.item === item.id }"
-              @click="selectItem(item)"
-            >
+            <button v-for="item in dungeonItems" :key="item.id" class="item-btn"
+              :class="{ 'is-active': modelValue.content?.item === item.id }" @click="selectItem(item)">
               <div class="icon-orb">
                 <i :class="['fad', 'fa-' + item.icon]"></i>
               </div>
               <span class="item-label">{{ item.name }}</span>
             </button>
             <!-- Empty Chest Option -->
-            <button
-              class="item-btn"
-              :class="{ 'is-active': !modelValue.content?.item }"
-              @click="selectItem(null)"
-            >
-               <div class="icon-orb empty">
+            <button class="item-btn" :class="{ 'is-active': !modelValue.content?.item }" @click="selectItem(null)">
+              <div class="icon-orb empty">
                 <i class="fad fa-treasure-chest"></i>
               </div>
               <span class="item-label">Empty</span>
@@ -72,7 +53,7 @@
             <i class="fas fa-eraser"></i>
             <span>Clear Cell</span>
           </button>
-          
+
           <button class="action-btn cancel-btn" @click="$emit('update:modelValue', { ...modelValue, isOpen: false })">
             <span>Cancel</span>
           </button>
@@ -83,7 +64,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType, ref, watch } from 'vue';
+import { defineComponent, PropType, ref, watch, computed } from 'vue';
 import { IonPopover } from '@ionic/vue';
 
 export default defineComponent({
@@ -103,12 +84,26 @@ export default defineComponent({
     dungeonItems: {
       type: Array as PropType<any[]>,
       default: () => []
+    },
+    hasEntrance: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ['update:modelValue', 'apply-type', 'apply-content', 'clear'],
   setup(props, { emit }) {
-    // Primary types only for quick selection
-    const types = ['monster', 'loot', 'boss', 'shop', 'health', 'teleport', 'entrance', 'wall'];
+    // Primary types - dynamic based on whether entrance exists
+    const types = computed(() => {
+      const baseTypes = ['monster', 'loot', 'boss', 'shop', 'health', 'teleport'];
+      // If entrance already exists, show 'empty' instead; otherwise show 'entrance'
+      if (props.hasEntrance) {
+        baseTypes.push('empty');
+      } else {
+        baseTypes.push('entrance');
+      }
+      baseTypes.push('wall');
+      return baseTypes;
+    });
     const showItems = ref(false);
 
     watch(() => props.modelValue.isOpen, (isOpen) => {
@@ -129,7 +124,7 @@ export default defineComponent({
       if (type === 'loot') {
         showItems.value = true;
         // Apply the type change immediately so parent knows it's loot
-        emit('apply-type', 'loot'); 
+        emit('apply-type', 'loot');
       } else {
         emit('apply-type', type);
       }
@@ -221,7 +216,7 @@ export default defineComponent({
   align-items: center;
   gap: 12px;
   margin-bottom: 16px;
-  
+
   span {
     font-family: "Press Start 2P";
     font-size: 0.6rem;
@@ -235,8 +230,10 @@ export default defineComponent({
   color: rgba(255, 255, 255, 0.5);
   cursor: pointer;
   padding: 4px;
-  
-  &:hover { color: #fff; }
+
+  &:hover {
+    color: #fff;
+  }
 }
 
 .item-grid {
@@ -250,29 +247,35 @@ export default defineComponent({
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px; /* Spacing between icon and label */
+  gap: 8px;
+  /* Spacing between icon and label */
   background: rgba(255, 255, 255, 0.03);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 12px;
   cursor: pointer;
   min-height: 90px;
-  
+
   &:hover {
     background: rgba(255, 255, 255, 0.08);
-    .icon-orb { transform: scale(1.1); }
+
+    .icon-orb {
+      transform: scale(1.1);
+    }
   }
-  
+
   &.is-active {
     background: rgba(var(--ion-color-secondary-rgb), 0.15);
     border-color: var(--ion-color-secondary);
-    
-    .item-label { color: #fff; }
+
+    .item-label {
+      color: #fff;
+    }
   }
-  
+
   .icon-orb {
-    width: 40px; 
-    height: 40px; 
+    width: 40px;
+    height: 40px;
     /* ... inherit other orb styles via class or duplicate base ... 
        Wait, I should check if .icon-orb is globally scoped or repeated. 
        It is repeated in .type-btn but not root. Let's make sure it works.
@@ -282,10 +285,12 @@ export default defineComponent({
     justify-content: center;
     font-size: 1.5rem;
     transition: transform 0.2s;
-    
-    &.empty { color: rgba(255,255,255,0.3); }
+
+    &.empty {
+      color: rgba(255, 255, 255, 0.3);
+    }
   }
-  
+
   .item-label {
     font-family: "StatusPlz";
     font-size: 0.65rem;
@@ -306,9 +311,10 @@ export default defineComponent({
   padding: 0;
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  
+
   &:hover {
     transform: translateY(-4px);
+
     .icon-orb {
       box-shadow: 0 8px 20px rgba(var(--orb-color-rgb, 0, 0, 0), 0.5);
       border-color: rgba(255, 255, 255, 0.3);
@@ -324,6 +330,7 @@ export default defineComponent({
       border-color: #fff;
       box-shadow: 0 0 15px rgba(var(--orb-color-rgb, 255, 255, 255), 0.4);
     }
+
     .type-label {
       color: #fff;
       font-weight: 600;
@@ -340,10 +347,10 @@ export default defineComponent({
     justify-content: center;
     border: 1px solid rgba(255, 255, 255, 0.1);
     transition: all 0.3s ease;
-    
+
     i {
       font-size: 1.3rem;
-      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+      filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
     }
   }
 
@@ -355,14 +362,50 @@ export default defineComponent({
   }
 
   /* Thematic Gradients */
-  &.monster { --orb-bg: linear-gradient(135deg, #ff416c, #ff4b2b); --orb-color-rgb: 255, 75, 43; }
-  &.boss { --orb-bg: linear-gradient(135deg, #667eea, #764ba2); --orb-color-rgb: 118, 75, 162; }
-  &.loot { --orb-bg: linear-gradient(135deg, #f6d365, #fda085); --orb-color-rgb: 253, 160, 133; }
-  &.shop { --orb-bg: linear-gradient(135deg, #fa709a, #fee140); --orb-color-rgb: 250, 112, 154; }
-  &.health { --orb-bg: linear-gradient(135deg, #30cfd0, #330867); --orb-color-rgb: 48, 207, 208; }
-  &.teleport { --orb-bg: linear-gradient(135deg, #a8edea, #fed6e3); --orb-color-rgb: 168, 237, 234; }
-  &.entrance { --orb-bg: linear-gradient(135deg, #43e97b, #38f9d7); --orb-color-rgb: 56, 249, 215; }
-  &.wall { --orb-bg: linear-gradient(135deg, #2c3e50, #000000); --orb-color-rgb: 0, 0, 0; }
+  &.monster {
+    --orb-bg: linear-gradient(135deg, #ff416c, #ff4b2b);
+    --orb-color-rgb: 255, 75, 43;
+  }
+
+  &.boss {
+    --orb-bg: linear-gradient(135deg, #667eea, #764ba2);
+    --orb-color-rgb: 118, 75, 162;
+  }
+
+  &.loot {
+    --orb-bg: linear-gradient(135deg, #f6d365, #fda085);
+    --orb-color-rgb: 253, 160, 133;
+  }
+
+  &.shop {
+    --orb-bg: linear-gradient(135deg, #fa709a, #fee140);
+    --orb-color-rgb: 250, 112, 154;
+  }
+
+  &.health {
+    --orb-bg: linear-gradient(135deg, #30cfd0, #330867);
+    --orb-color-rgb: 48, 207, 208;
+  }
+
+  &.teleport {
+    --orb-bg: linear-gradient(135deg, #a8edea, #fed6e3);
+    --orb-color-rgb: 168, 237, 234;
+  }
+
+  &.entrance {
+    --orb-bg: linear-gradient(135deg, #43e97b, #38f9d7);
+    --orb-color-rgb: 56, 249, 215;
+  }
+
+  &.empty {
+    --orb-bg: linear-gradient(135deg, #667eea, #764ba2);
+    --orb-color-rgb: 102, 126, 234;
+  }
+
+  &.wall {
+    --orb-bg: linear-gradient(135deg, #2c3e50, #000000);
+    --orb-color-rgb: 0, 0, 0;
+  }
 }
 
 .popover-divider {
@@ -396,7 +439,7 @@ export default defineComponent({
     background: rgba(var(--ion-color-danger-rgb), 0.15);
     color: var(--ion-color-danger);
     border: 1px solid rgba(var(--ion-color-danger-rgb), 0.3);
-    
+
     &:hover {
       background: var(--ion-color-danger);
       color: #fff;
@@ -406,7 +449,7 @@ export default defineComponent({
   &.cancel-btn {
     background: transparent;
     color: rgba(255, 255, 255, 0.4);
-    
+
     &:hover {
       color: #fff;
     }

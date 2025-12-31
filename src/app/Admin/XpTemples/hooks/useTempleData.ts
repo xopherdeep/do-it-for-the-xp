@@ -106,14 +106,9 @@ export function useTempleData(templeId: string) {
 
   const isRoom = (cell: string) => {
     if (!cell || isWallToken(cell) || cell === ROOM_VOID) return false;
-    // Entrance is always a room
-    if (cell === '_00_' || cell === 'EXIT') return true;
-    // Match any 5-character coordinate token (TXXYY format) or legacy R000
-    return /^[A-Za-z]\d{4}$/.test(cell) || /^[R]\d{3}$/.test(cell) ||
-      isMonsterToken(cell) ||
-      isLootToken(cell) ||
-      isTeleportToken(cell) ||
-      isKeyToken(cell);
+    // Anything that's not a wall or void is a room
+    // This supports legacy single-char tokens (s, k, O, B, E, etc.)
+    return true;
   };
 
   // Sync dungeonLayout with creatorStore when it changes
