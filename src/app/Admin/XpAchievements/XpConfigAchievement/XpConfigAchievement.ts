@@ -1,16 +1,28 @@
-import { defineComponent, provide, computed } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { v4 as uuidv4 } from 'uuid';
-import { 
-  IonPage, IonButtons, 
-  IonButton, IonLabel, IonList, IonItem, 
-  IonItemSliding, IonItemOptions, IonItemOption,
-  IonSelect, IonSelectOption,
-  IonCard, IonBadge, IonModal, IonDatetime, 
-  IonDatetimeButton, IonTabBar, IonTabButton,
-  IonTabs, IonRouterOutlet,
-  onIonViewWillEnter
-} from '@ionic/vue';
+import { defineComponent, provide, computed } from "vue";
+import { useRoute, useRouter } from "vue-router";
+import { v4 as uuidv4 } from "uuid";
+import {
+  IonPage,
+  IonButtons,
+  IonButton,
+  IonLabel,
+  IonList,
+  IonItem,
+  IonItemSliding,
+  IonItemOptions,
+  IonItemOption,
+  IonSelect,
+  IonSelectOption,
+  IonCard,
+  IonBadge,
+  IonModal,
+  IonDatetime,
+  IonTabBar,
+  IonTabButton,
+  IonTabs,
+  IonRouterOutlet,
+  onIonViewWillEnter,
+} from "@ionic/vue";
 
 import XpAddCategoryModal from "./components/XpAddCategoryModal.vue";
 import XpAchievementItem from "./components/XpAchievementItem.vue";
@@ -18,25 +30,42 @@ import XpTypeSelectorModal from "./components/XpTypeSelectorModal.vue";
 
 import XpInfoToggleModal from "./components/XpInfoToggleModal.vue";
 import XpWizardCoach from "./components/XpWizardCoach.vue";
-import { useAchievementForm, AchievementFormInjectionKey } from './hooks/useAchievementForm';
+import {
+  useAchievementForm,
+  AchievementFormInjectionKey,
+} from "./hooks/useAchievementForm";
 
 export default defineComponent({
-  name: 'xp-add-achievement',
+  name: "xp-add-achievement",
   components: {
-    IonPage, IonButtons, IonButton, IonLabel, IonList, IonItem, 
-    IonItemSliding, IonItemOptions, IonItemOption,
-    IonSelect, IonSelectOption,
-    IonCard, IonBadge, IonModal, IonDatetime, 
-    IonDatetimeButton, IonTabBar, IonTabButton,
-    IonTabs, IonRouterOutlet,
+    IonPage,
+    IonButtons,
+    IonButton,
+    IonLabel,
+    IonList,
+    IonItem,
+    IonItemSliding,
+    IonItemOptions,
+    IonItemOption,
+    IonSelect,
+    IonSelectOption,
+    IonCard,
+    IonBadge,
+    IonModal,
+    IonDatetime,
+
+    IonTabBar,
+    IonTabButton,
+    IonTabs,
+    IonRouterOutlet,
     XpAddCategoryModal,
     XpAchievementItem,
     XpTypeSelectorModal,
 
     XpInfoToggleModal,
-    XpWizardCoach
+    XpWizardCoach,
   },
-  props: ['id'],
+  props: ["id"],
   setup(props) {
     const route = useRoute();
     const router = useRouter();
@@ -54,30 +83,31 @@ export default defineComponent({
       beasts,
       categories,
       users,
-      
+
       // UI
       adventureType,
       addCategoryModalOpen,
       endsModalOpen,
       startsModalOpen,
       dueModalOpen,
+
       segments,
       achievementTypes,
-      
+
       // Constants
       activePartyType,
       activeLoreCombo,
       activeScheduleIcon,
 
       assignmentTypes,
-      
+
       // Selectors
       showQuestTypeSelector,
       showPartyTypeSelector,
       showTypeConfigModal,
       showApprovalModal,
       showBonusModal,
-      
+
       // Actions
       loadData,
       addCategory,
@@ -85,26 +115,31 @@ export default defineComponent({
       deleteCategory,
       toggleApproval,
       toggleBonus,
-      
+
       // Modal handlers
-      dismissModal
+      dismissModal,
     } = form;
 
     // Lifecycle
     onIonViewWillEnter(() => {
       const idToLoad = props.id;
-      
-      if (!idToLoad || idToLoad === 'new') {
+
+      if (!idToLoad || idToLoad === "new") {
         const newId = uuidv4();
         // Load data immediately with the new ID to ensure state is ready
         loadData(newId);
-        router.replace(`/game-master/compendium/setup/achievements/config/${newId}/dashboard`);
+        router.replace(
+          `/game-master/compendium/setup/achievements/config/${newId}/dashboard`
+        );
         return;
       }
-      
+
       // Safety redirect if landing on parent route without child
-      if (route.name === 'xp-achievement-config') {
-        router.replace({ name: 'xp-achievement-config-dashboard', params: { id: id.value || idToLoad || 'new' } });
+      if (route.name === "xp-achievement-config") {
+        router.replace({
+          name: "xp-achievement-config-dashboard",
+          params: { id: id.value || idToLoad || "new" },
+        });
         return;
       }
 
@@ -113,12 +148,11 @@ export default defineComponent({
 
     // Helper for UI (template uses this)
     const setNever = () => {
-      achievement.value.endsOn = '';
-      endsModalOpen.value = false;
+      achievement.value.endsOn = "";
     };
 
     const activeTab = computed(() => {
-      const pathParts = route.path.split('/');
+      const pathParts = route.path.split("/");
       return pathParts[pathParts.length - 1];
     });
 
@@ -130,29 +164,30 @@ export default defineComponent({
       beasts,
       categories,
       users,
-      
+
       // Form UI
       adventureType,
       addCategoryModalOpen,
       endsModalOpen,
       startsModalOpen,
       dueModalOpen,
+
       segments,
       achievementTypes,
-      
+
       // Form Constants
       activePartyType,
       activeLoreCombo,
       activeScheduleIcon,
       assignmentTypes,
-      
+
       // Form Selectors
       showQuestTypeSelector,
       showPartyTypeSelector,
       showTypeConfigModal,
       showApprovalModal,
       showBonusModal,
-      
+
       // Form Actions
       addCategory,
       editCategories,
@@ -163,7 +198,7 @@ export default defineComponent({
 
       // Local Actions/State
       setNever,
-      activeTab
+      activeTab,
     };
-  }
+  },
 });

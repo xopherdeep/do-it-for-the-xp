@@ -52,57 +52,79 @@
       :is-open="dueModalOpen"
       @didDismiss="dueModalOpen = false"
       :keep-contents-mounted="true"
-      mode="ios"
+      class="date-picker-modal"
     >
       <ion-datetime
         id="due-by"
         v-model="achievement.dueByTime"
         presentation="time"
-      />
-      <ion-button
-        @click="dueModalOpen = false"
-        expand="full"
-      >OK</ion-button>
+        :show-default-buttons="true"
+      >
+        <div
+          slot="buttons"
+          style="display: flex; width: 100%; justify-content: flex-end;"
+        >
+          <ion-button
+            fill="clear"
+            @click="dueModalOpen = false"
+          >Done</ion-button>
+        </div>
+      </ion-datetime>
     </ion-modal>
 
     <ion-modal
       :is-open="startsModalOpen"
       @didDismiss="startsModalOpen = false"
-      ref="starts"
       :keep-contents-mounted="true"
-      mode="ios"
+      class="date-picker-modal"
     >
       <ion-datetime
-        v-model="achievement.startsOn"
         id="starts-on"
+        v-model="achievement.startsOn"
         presentation="date"
-      />
-      <ion-button
-        @click="startsModalOpen = false"
-        expand="full"
-      >OK</ion-button>
+        :show-default-buttons="true"
+      >
+        <div
+          slot="buttons"
+          style="display: flex; width: 100%; justify-content: flex-end;"
+        >
+          <ion-button
+            fill="clear"
+            @click="startsModalOpen = false"
+          >Done</ion-button>
+        </div>
+      </ion-datetime>
     </ion-modal>
 
     <ion-modal
-      ref="ends"
-      :keep-contents-mounted="true"
-      mode="ios"
       :is-open="endsModalOpen"
       @didDismiss="endsModalOpen = false"
+      :keep-contents-mounted="true"
+      class="date-picker-modal"
     >
       <ion-datetime
         id="ends-on"
         v-model="achievement.endsOn"
         presentation="date"
-      />
-      <ion-button
-        @click="setNever"
-        expand="full"
-      >Never</ion-button>
-      <ion-button
-        @click="endsModalOpen = false"
-        expand="full"
-      >OK</ion-button>
+      >
+        <div
+          slot="buttons"
+          style="display: flex; width: 100%; justify-content: space-between; padding: 0 16px;"
+        >
+          <ion-button
+            color="danger"
+            fill="clear"
+            @click="setNever"
+          >Never</ion-button>
+          <div style="display: flex; gap: 8px;">
+            <ion-button
+              color="primary"
+              fill="clear"
+              @click="endsModalOpen = false"
+            >Done</ion-button>
+          </div>
+        </div>
+      </ion-datetime>
     </ion-modal>
 
     <!-- Type Selector Modals -->
@@ -293,3 +315,25 @@
 <script lang="ts" src="./XpConfigAchievement.ts"></script>
 
 <style lang="scss" scoped src="./_XpConfigAchievement.scss"></style>
+
+<style lang="scss">
+  ion-modal.date-picker-modal {
+    --height: auto;
+    --width: 100%;
+    --max-width: 350px;
+    --border-radius: 16px;
+    --backdrop-opacity: 0.6;
+    
+    align-items: center;
+    justify-content: center;
+
+    &::part(content) {
+      position: relative;
+      width: 100%;
+      margin: auto;
+      border-radius: 16px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+    }
+  }
+</style>
