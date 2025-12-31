@@ -61,6 +61,7 @@ export function useAchievementForm() {
 
   const loading = ref(false);
   const saving = ref(false);
+  const isGeneratingSchedule = ref(false);
   const lastSavedState = ref("");
 
   // UI State
@@ -96,23 +97,22 @@ export function useAchievementForm() {
 
   const segments = computed(() => {
     const type = achievement.value.adventureType;
-    let typeName = "Type";
     let typeIcon = "fa-shapes"; // valid fad icon? yes.
 
     if (type === "beast") {
-      typeName = "Beast";
-      typeIcon = "fa-dragon";
+      typeIcon = "fa-paw-claws";
     } else if (type === "chain") {
-      typeName = "Chain";
       typeIcon = "fa-link";
     }
 
     return [
-      { name: "Points", icon: "fa-hand-holding-medical", path: "points" },
-      { name: "Heros", icon: "fa-users", path: "heros" },
-      { name: "Quest", icon: "fa-cubes", path: "dashboard" },
-      { name: typeName, icon: typeIcon, path: "quest-type" },
+      { name: "How", icon: typeIcon, path: "quest-type" },
+      { name: "Who", icon: "fa-users", path: "heros" },
+      { name: "What", icon: "fa-cubes", path: "dashboard" },
+
       { name: "When", icon: "fa-calendar", path: "when" },
+
+      { name: "Why", icon: "fa-hand-holding-medical", path: "points" },
     ];
   });
 
@@ -750,6 +750,120 @@ export function useAchievementForm() {
       });
 
       await modal.present();
+    },
+
+    // AI Scheduler
+    isGeneratingSchedule,
+    generateScheduleWithAI: async () => {
+      // Lazy import to avoid circular dependency issues if any, or just standard import usage
+      const { generateSchedule, isGeminiConfigured } = await import(
+        "@/lib/services/ai/GeminiService"
+      );
+
+      if (!isGeminiConfigured()) {
+        const toast = await toastController.create({
+          message:
+            "AI not configured. Add VUE_APP_GEMINI_API_KEY to your .env file.",
+          duration: 3000,
+          color: "warning",
+          position: "top",
+        });
+        await toast.present();
+        return;
+      }
+
+      if (!achievement.value.achievementName) {
+        const toast = await toastController.create({
+          message: "Please name your quest first!",
+          duration: 2000,
+          color: "warning",
+          position: "top",
+        });
+        await toast.present();
+        return;
+      }
+
+      // Gather Context
+      let beastName;
+      let checklist: string[] = [];
+
+      // If Beast
+      if (achievement.value.adventureType === "beast" && activeBeast.value) {
+        beastName = activeBeast.value.name;
+        checklist = activeBeast.value.checklist || [];
+      }
+
+      // If Chain
+      else if (achievement.value.adventureType === "chain") {
+        checklist = subAchievements.value
+          .map((s) => s?.achievementName) // Safe access
+          .filter((name): name is string => !!name);
+      }
+
+      isGeneratingSchedule.value = true;
+      try {
+        const result = await generateSchedule({
+          taskName: achievement.value.achievementName,
+          beastName,
+          checklist,
+        });
+
+        if (result.success && result.scheduleType) {
+          // Reset relevant fields
+          achievement.value.customFrequency = 1;
+          achievement.value.customPeriodNumber = 1;
+
+          if (result.scheduleType === "custom") {
+            achievement.value.basicSchedule = "custom";
+            achievement.value.scheduleType = "custom";
+            achievement.value.customFrequency = result.frequency || 1;
+            achievement.value.customPeriodNumber = result.periodNumber || 1;
+            achievement.value.customPeriodType = result.periodType || "week";
+          } else {
+            // Basic types (daily, weekly, once)
+            achievement.value.basicSchedule = result.scheduleType;
+            achievement.value.scheduleType = "basic";
+
+            // Map frequency if provided (e.g. 2 times daily)
+            if (result.frequency && result.frequency > 1) {
+              achievement.value.customFrequency = result.frequency;
+            }
+
+            // Map days for weekly
+            if (
+              result.scheduleType === "weekly" &&
+              result.days &&
+              result.days.length > 0
+            ) {
+              achievement.value.repeatOnDays = result.days;
+            }
+          }
+
+          const toast = await toastController.create({
+            message: `Oracle Suggestion: ${
+              result.reasoning || "Schedule Updated!"
+            }`,
+            duration: 4000,
+            color: "tertiary",
+            position: "top",
+            icon: "star",
+          });
+          await toast.present();
+        } else {
+          throw new Error(result.error || "Failed to generate schedule");
+        }
+      } catch (error) {
+        console.error("AI Schedule Error", error);
+        const toast = await toastController.create({
+          message: "The Oracle is silent right now. Try again later.",
+          duration: 3000,
+          color: "danger",
+          position: "top",
+        });
+        await toast.present();
+      } finally {
+        isGeneratingSchedule.value = false;
+      }
     },
   };
 }

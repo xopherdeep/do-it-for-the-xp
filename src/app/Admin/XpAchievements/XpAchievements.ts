@@ -14,6 +14,10 @@ import {
   createOutline,
   compassOutline,
   listOutline,
+  cloudUploadOutline,
+  shareOutline,
+  trashOutline,
+  copyOutline,
 } from "ionicons/icons";
 
 import { LORE_COMBO_MATRIX } from "@/constants";
@@ -206,6 +210,43 @@ export default defineComponent({
     clickDiscover() {
       this.$router.push("/game-master/discover-achievements");
     },
+    async presentQuestOptions(achievement: Achievement) {
+      const actionSheet = await actionSheetController.create({
+        header: achievement.achievementName,
+        subHeader:
+          this.getCategoryById(achievement.categoryId)?.name || "Uncategorized",
+        mode: "ios",
+        buttons: [
+          {
+            text: "Edit Quest",
+            icon: createOutline,
+            handler: () => {
+              this.clickEdit(achievement.id);
+            },
+          },
+          {
+            text: "Copy Quest",
+            icon: copyOutline,
+            handler: () => {
+              this.clickCloneAchievement(achievement);
+            },
+          },
+          {
+            text: "Delete Quest",
+            role: "destructive",
+            icon: trashOutline,
+            handler: () => {
+              this.clickDeleteAchievement(achievement);
+            },
+          },
+          {
+            text: "Cancel",
+            role: "cancel",
+          },
+        ],
+      });
+      await actionSheet.present();
+    },
     clickEdit(id) {
       this.$router.push({
         name: "xp-achievement-config-dashboard",
@@ -282,7 +323,7 @@ export default defineComponent({
           {
             text: "Create New Quest",
             icon: createOutline,
-            cssClass: "action-create",
+            cssClass: "action-create rpg-box",
             handler: () => {
               this.clickAdd();
             },
@@ -296,7 +337,25 @@ export default defineComponent({
             },
           },
           {
-            text: "Bulk Import",
+            text: "Import Quests",
+            icon: cloudUploadOutline,
+            cssClass: "action-import",
+            handler: () => {
+              this.achievementDb.importAchievements(() =>
+                this.loadAchievements()
+              );
+            },
+          },
+          {
+            text: "Export Quests",
+            icon: shareOutline,
+            cssClass: "action-export",
+            handler: () => {
+              this.achievementDb.exportAchievements();
+            },
+          },
+          {
+            text: "Bulk Import (Text)",
             icon: listOutline,
             cssClass: "action-bulk-import",
             handler: () => {

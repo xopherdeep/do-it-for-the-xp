@@ -62,7 +62,7 @@
                   <ion-row>
                     <!-- Generate Beast Card (AI) -->
                     <ion-col
-                      size="6"
+                      size="4"
                       size-md="4"
                     >
                       <div class="beast-column-content">
@@ -90,7 +90,7 @@
                     </ion-col>
                     <!-- Existing Beasts -->
                     <ion-col
-                      size="6"
+                      size="4"
                       size-md="4"
                       v-for="beast in beasts"
                       :key="beast.id"

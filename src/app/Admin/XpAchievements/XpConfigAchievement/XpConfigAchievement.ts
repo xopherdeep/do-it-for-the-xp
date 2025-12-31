@@ -151,6 +151,14 @@ export default defineComponent({
       achievement.value.endsOn = "";
     };
 
+    const minEndDate = computed(() => {
+      // Use startsOn if available, otherwise today
+      if (achievement.value.startsOn) {
+        return achievement.value.startsOn;
+      }
+      return new Date().toISOString();
+    });
+
     const activeTab = computed(() => {
       const pathParts = route.path.split("/");
       return pathParts[pathParts.length - 1];
@@ -160,6 +168,7 @@ export default defineComponent({
       // Form State
       achievement,
       // id, // Removed to avoid vue/no-dupe-keys with props.id
+      minEndDate,
       achievements,
       beasts,
       categories,

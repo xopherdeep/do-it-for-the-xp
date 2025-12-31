@@ -162,7 +162,7 @@
             <div
               class="quest-card glass-card"
               :class="{ 'is-expired': new Date(achievement.endsOn) < new Date() }"
-              @click="clickEdit(achievement.id)"
+              @click="presentQuestOptions(achievement)"
             >
               <div class="quest-card-avatar">
                 <!-- Beast Preview -->
@@ -264,6 +264,7 @@
                   :beasts="beasts"
                   :show-points="showPoints"
                   :disabled="new Date(achievement.endsOn) < new Date()"
+                  @click="presentQuestOptions(achievement)"
                 />
                 <ion-item-options side="start">
                   <ion-item-option
@@ -311,6 +312,7 @@
               :beasts="beasts"
               :show-points="showPoints"
               :disabled="new Date(achievement.endsOn) < new Date()"
+              @click="presentQuestOptions(achievement)"
             />
             <ion-item-options side="start">
               <ion-item-option

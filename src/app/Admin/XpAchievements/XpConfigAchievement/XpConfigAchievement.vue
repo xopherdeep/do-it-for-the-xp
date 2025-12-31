@@ -20,12 +20,12 @@
           :selected="activeTab === segment.path"
         >
           <i
-            v-if="segment.name === 'Quest'"
+            v-if="segment.name === 'What'"
             :class="activeLoreCombo.icon"
             class="fad fa-2x mb-1"
           />
           <i
-            v-else-if="segment.name === 'Heros'"
+            v-else-if="segment.name === 'Who'"
             :class="activePartyType.icon"
             class="fad fa-2x mb-1"
           />
@@ -106,6 +106,7 @@
         id="ends-on"
         v-model="achievement.endsOn"
         presentation="date"
+        :min="minEndDate"
       >
         <div
           slot="buttons"
@@ -323,7 +324,7 @@
     --max-width: 350px;
     --border-radius: 16px;
     --backdrop-opacity: 0.6;
-    
+
     align-items: center;
     justify-content: center;
 

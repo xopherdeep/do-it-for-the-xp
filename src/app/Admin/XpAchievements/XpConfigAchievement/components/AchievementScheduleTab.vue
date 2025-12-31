@@ -2,8 +2,27 @@
   <div class="achievement-schedule-tab">
     <div class="schedule-section">
       <div class="section-header">
-        <i class="fad fa-hourglass-start mr-2"></i>
-        <span>Time Oracle</span>
+        <div class="header-start">
+          <i class="fad fa-hourglass-start mr-2"></i>
+          <span>Time Oracle</span>
+        </div>
+        <ion-button
+          class="ai-oracle-btn"
+          fill="clear"
+          size="small"
+          @click="generateScheduleWithAI"
+          :disabled="isGeneratingSchedule"
+        >
+          <i
+            v-if="isGeneratingSchedule"
+            class="fad fa-spinner-third fa-spin mr-1"
+          ></i>
+          <i
+            v-else
+            class="fad fa-sparkles mr-1"
+          ></i>
+          {{ isGeneratingSchedule ? 'Consulting...' : 'Ask Oracle' }}
+        </ion-button>
       </div>
 
       <div class="date-grid ion-padding-bottom">
@@ -110,6 +129,29 @@
           </div>
         </div>
 
+        <!-- Daily Details -->
+        <div
+          v-if="achievement.basicSchedule === 'daily'"
+          class="config-card"
+        >
+          <div class="config-card__content">
+            <div class="custom-layout">
+              <div class="custom-field">
+                <span class="custom-label">Times Per Day</span>
+                <div class="custom-input-group">
+                  <input
+                    type="number"
+                    :value="achievement.customFrequency"
+                    @input="updateField('customFrequency', parseInt(($event.target as HTMLInputElement).value))"
+                    min="1"
+                  />
+                  <span class="unit">Time(s)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Weekly Details -->
         <div
           v-if="achievement.basicSchedule === 'weekly'"
@@ -184,6 +226,14 @@
                 </div>
               </div>
             </div>
+
+            <div
+              class="schedule-summary mt-4"
+              v-if="scheduleSummary"
+            >
+              <i class="fad fa-info-circle mr-2"></i>
+              {{ scheduleSummary }}
+            </div>
           </div>
         </div>
       </div>
@@ -192,11 +242,12 @@
 </template>
 
 <script setup lang="ts">
-import { inject } from 'vue';
+import { inject, computed } from 'vue';
 import {
   IonCheckbox,
   IonSelect,
   IonSelectOption,
+  IonButton,
 } from '@ionic/vue';
 import { BASIC_SCHEDULE_ICONS } from "@/constants";
 import XpGlassCard from "@/components/atoms/XpGlassCard.vue";
@@ -206,7 +257,9 @@ const {
   achievement,
   startsModalOpen,
   endsModalOpen,
-  dueModalOpen
+  dueModalOpen,
+  generateScheduleWithAI,
+  isGeneratingSchedule
 } = inject(AchievementFormInjectionKey) as any;
 
 const formatDate = (dateStr?: string) => {
@@ -278,6 +331,20 @@ const toggleDay = (day: string) => {
   }
   achievement.value.repeatOnDays = next;
 };
+
+const scheduleSummary = computed(() => {
+  const { customFrequency, customPeriodNumber, customPeriodType, basicSchedule } = achievement.value;
+  
+  if (basicSchedule !== 'custom') return '';
+
+  const freq = customFrequency || 1;
+  const period = customPeriodNumber || 1;
+  const type = customPeriodType || 'day';
+  
+  const typeStr = period === 1 ? type : type + 's';
+  
+  return `Repeat ${freq} time${freq > 1 ? 's' : ''} every ${period} ${typeStr}.`;
+});
 </script>
 
 <style lang="scss" scoped>
@@ -298,12 +365,26 @@ const toggleDay = (day: string) => {
     margin-bottom: 1rem;
     display: flex;
     align-items: center;
+    justify-content: space-between;
     text-transform: uppercase;
     letter-spacing: 1px;
+
+    .header-start {
+      display: flex;
+      align-items: center;
+    }
 
     i {
       color: var(--ion-color-rpg);
     }
+  }
+
+  .ai-oracle-btn {
+    --color: var(--ion-color-tertiary);
+    font-family: "Press Start 2P";
+    font-size: 0.6rem;
+    height: 24px;
+    margin: 0;
   }
 
   .date-grid {
@@ -650,5 +731,23 @@ const toggleDay = (day: string) => {
 
   .mr-2 {
     margin-right: 0.5rem;
+  }
+
+  .schedule-summary {
+    background: rgba(var(--ion-color-primary-rgb), 0.1);
+    border: 1px solid rgba(var(--ion-color-primary-rgb), 0.2);
+    border-radius: 12px;
+    padding: 1rem;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--ion-color-light);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 500;
+
+    i {
+      color: var(--ion-color-primary);
+    }
   }
 </style>
