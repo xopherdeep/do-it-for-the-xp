@@ -350,7 +350,7 @@
     flex-direction: column;
     height: 100%;
 
-    ::v-deep(.inner-scroll) {
+    :deep(.inner-scroll) {
       display: flex;
       flex-direction: column;
     }

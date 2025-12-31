@@ -29,7 +29,7 @@ class BackgroundManager {
   /**
    * Private constructor to enforce singleton pattern
    */
-  private constructor() {}
+  private constructor() { }
 
   /**
    * Get the singleton instance
@@ -49,11 +49,11 @@ class BackgroundManager {
    */
   private validateBackgroundIndex(index: number | undefined, defaultValue: number): number {
     // Check if index is a number and within valid range
-    if (typeof index === 'number' && !isNaN(index) && 
-        index >= MIN_BG_INDEX && index <= MAX_BG_INDEX) {
+    if (typeof index === 'number' && !isNaN(index) &&
+      index >= MIN_BG_INDEX && index <= MAX_BG_INDEX) {
       return index;
     }
-    
+
     debug.warn(`Invalid background index: ${index}, using default: ${defaultValue}`);
     return defaultValue;
   }
@@ -139,23 +139,23 @@ class BackgroundManager {
       // Fall back to known good background indices if initialization fails
       this.bg1 = DEFAULT_BG1;
       this.bg2 = DEFAULT_BG2;
-      
+
       try {
         // Attempt again with the default values
         const layer1 = new BackgroundLayer(this.bg1);
         const layer2 = new BackgroundLayer(this.bg2);
-        
+
         this.backgroundEngine = new Engine([layer1, layer2], {
           aspectRatio: this.aspectRatio,
           canvas: this.canvasElement,
         });
-        
+
         this.backgroundEngine.animate();
-        
+
         if (options.handleResize) {
           this.setupResizeHandler();
         }
-        
+
         return true;
       } catch (fallbackError) {
         debug.error("BackgroundManager: Critical error, even fallback backgrounds failed:", fallbackError);
@@ -172,7 +172,7 @@ class BackgroundManager {
     if (this.backgroundEngine) {
       // Capture current tick before stopping/destroying
       this.lastTick = (this.backgroundEngine as any).tick || 0;
-      
+
       if (typeof this.backgroundEngine.stop === 'function') {
         this.backgroundEngine.stop();
       }
@@ -187,7 +187,7 @@ class BackgroundManager {
 
     // Clear canvas reference
     this.canvasElement = null;
-    
+
     // Clear active page reference
     this.activePage = null;
   }
@@ -222,7 +222,7 @@ class BackgroundManager {
         page: this.activePage || undefined
       });
     }
-    
+
     return false;
   }
 
@@ -277,25 +277,25 @@ class BackgroundManager {
       const startValue = this.aspectRatio;
       const startTime = performance.now();
       const change = targetAspectRatio - startValue;
-      
+
       // Easing function for smooth animation (easeInOutQuad)
       const easeInOutQuad = (t: number): number => {
         return t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
       };
-      
+
       // Animation frame function
       const animate = (currentTime: number) => {
         const elapsed = currentTime - startTime;
         const progress = Math.min(elapsed / duration, 1);
         const easedProgress = easeInOutQuad(progress);
-        
+
         // Calculate current value based on progress
         const currentValue = startValue + change * easedProgress;
-        
+
         // Set the new aspect ratio
         this.aspectRatio = currentValue;
-        this.backgroundEngine.aspectRatio = currentValue; 
-        
+        this.backgroundEngine.aspectRatio = currentValue;
+
         // Continue animation if not complete
         if (progress < 1) {
           requestAnimationFrame(animate);
@@ -305,7 +305,7 @@ class BackgroundManager {
           resolve();
         }
       };
-      
+
       // Start the animation
       requestAnimationFrame(animate);
     });
@@ -334,7 +334,7 @@ class BackgroundManager {
       if (timeout) {
         clearTimeout(timeout);
       }
-      
+
       timeout = setTimeout(() => {
         if (this.canvasElement && this.backgroundEngine) {
           // Update canvas dimensions
@@ -393,7 +393,7 @@ class BackgroundManager {
    */
   public getOrCreateEngine(id: string, layers: any[], options: any): Engine {
     let engine = this.enginePool.get(id);
-    
+
     if (!engine) {
       engine = new Engine(layers, options);
       this.enginePool.set(id, engine);
@@ -406,7 +406,7 @@ class BackgroundManager {
         (engine as any).aspectRatio = options.aspectRatio;
       }
     }
-    
+
     return engine;
   }
 
@@ -422,12 +422,12 @@ class BackgroundManager {
       const layers = engine.layers;
       const pixels = engine.pixels;
       const tick = engine.tick;
-      const context = canvas.getContext('2d');
+      const context = canvas.getContext('2d', { willReadFrequently: true });
       if (!context) return;
 
       // Force a single frame calculation
       engine.overlayFrame(pixels, layers, tick, 1, true);
-      
+
       // Draw to canvas immediately
       // Use ImageData to transfer pixels. The typed array conversion 
       // is for safety across different build versions of the library.

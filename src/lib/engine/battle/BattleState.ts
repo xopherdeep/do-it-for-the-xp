@@ -8,12 +8,13 @@
  */
 
 import { reactive, computed, ref } from 'vue';
-import type { 
-  BattleState, 
-  ActiveEnemy, 
+import type {
+  BattleState,
+  ActiveEnemy,
   Beast,
   PlayerStats,
   CombatConfig,
+  ActionResult,
 } from './types';
 import { DEFAULT_COMBAT_CONFIG } from './types';
 
@@ -50,18 +51,18 @@ const config = ref<CombatConfig>(DEFAULT_COMBAT_CONFIG);
 
 const isPlayerTurn = computed(() => state.phase === 'player_turn');
 const isEnemyTurn = computed(() => state.phase === 'enemy_turn');
-const isBattleOver = computed(() => 
-  state.phase === 'victory' || 
-  state.phase === 'defeat' || 
+const isBattleOver = computed(() =>
+  state.phase === 'victory' ||
+  state.phase === 'defeat' ||
   state.phase === 'fled'
 );
-const activeEnemies = computed(() => 
+const activeEnemies = computed(() =>
   state.enemies.filter(e => !e.isDefeated)
 );
-const allEnemiesDefeated = computed(() => 
+const allEnemiesDefeated = computed(() =>
   state.enemies.length > 0 && activeEnemies.value.length === 0
 );
-const playerHPPercent = computed(() => 
+const playerHPPercent = computed(() =>
   Math.round((state.playerHP / state.playerMaxHP) * 100)
 );
 
@@ -75,12 +76,12 @@ const playerHPPercent = computed(() =>
 function startBattle(beasts: Beast[], stats: PlayerStats): void {
   // Reset state
   Object.assign(state, createDefaultState());
-  
+
   // Set player stats
   playerStats.value = stats;
   state.playerHP = stats.hp;
   state.playerMaxHP = stats.maxHp;
-  
+
   // Convert beasts to active enemies with attack timers
   state.enemies = beasts.map(beast => ({
     beast,
@@ -90,10 +91,10 @@ function startBattle(beasts: Beast[], stats: PlayerStats): void {
     nextAttackIn: getAttackInterval(beast),
     attackCount: 0,
   }));
-  
+
   state.isActive = true;
   state.phase = 'intro';
-  
+
   // After intro, start battle loop
   setTimeout(() => {
     state.phase = 'player_turn';
@@ -106,7 +107,7 @@ function startBattle(beasts: Beast[], stats: PlayerStats): void {
  */
 function getAttackInterval(beast: Beast): number {
   if (beast.attackInterval) return beast.attackInterval;
-  
+
   // Default based on difficulty
   switch (beast.difficulty) {
     case 'easy': return 45;
@@ -134,17 +135,17 @@ function startBattleLoop(): void {
   if (battleInterval.value) {
     clearInterval(battleInterval.value);
   }
-  
+
   battleInterval.value = setInterval(() => {
     if (!state.isActive || isBattleOver.value) {
       stopBattleLoop();
       return;
     }
-    
+
     // Tick each enemy's attack timer
     for (const enemy of activeEnemies.value) {
       enemy.nextAttackIn--;
-      
+
       // Time to attack!
       if (enemy.nextAttackIn <= 0) {
         enemyAttacks(enemy);
@@ -170,26 +171,26 @@ function stopBattleLoop(): void {
  */
 function enemyAttacks(enemy: ActiveEnemy): void {
   const baseDamage = enemy.beast.attackPower || 5;
-  
+
   // Apply player defense
   const defense = playerStats.value?.defense || 0;
   const armorBonus = playerStats.value?.equipment?.armorBonus || 0;
   const totalDefense = defense + armorBonus;
-  
+
   // Damage formula: baseDamage - (totalDefense * 0.5), minimum 1
   let damage = Math.max(1, Math.floor(baseDamage - (totalDefense * 0.5)));
-  
+
   // Apply defend reduction if active
   if (state.isDefending) {
     damage = Math.floor(damage * config.value.defendReduction);
   }
-  
+
   // Apply damage variance (±20%)
   const variance = 1 + (Math.random() * 2 - 1) * config.value.damageVariance;
   damage = Math.max(1, Math.floor(damage * variance));
-  
+
   state.playerHP = Math.max(0, state.playerHP - damage);
-  
+
   // Check for defeat
   if (state.playerHP <= 0) {
     state.phase = 'defeat';
@@ -202,23 +203,23 @@ function enemyAttacks(enemy: ActiveEnemy): void {
  */
 function triggerEnemyTurn(): void {
   state.phase = 'enemy_turn';
-  
+
   // Each active enemy attacks
   for (const enemy of activeEnemies.value) {
     enemyAttacks(enemy);
   }
-  
+
   // Reset defending
   state.isDefending = false;
   state.turnCount++;
-  
+
   // Check for defeat
   if (state.playerHP <= 0) {
     state.phase = 'defeat';
     stopBattleLoop();
     return;
   }
-  
+
   // Back to player turn
   setTimeout(() => {
     state.phase = 'player_turn';
@@ -229,34 +230,52 @@ function triggerEnemyTurn(): void {
 /**
  * Complete a checklist item (Attack action)
  */
-function completeChecklistItem(enemyIndex: number, itemId: string): boolean {
+function completeChecklistItem(enemyIndex: number, itemId: string): ActionResult {
   const enemy = state.enemies[enemyIndex];
-  if (!enemy || enemy.isDefeated) return false;
-  
+
+  const failureResult: ActionResult = {
+    action: 'attack',
+    success: false,
+    message: 'Action failed',
+    damage: 0
+  };
+
+  if (!enemy || enemy.isDefeated) return { ...failureResult, message: 'Enemy already defeated' };
+
   const item = enemy.beast.checklist.find(c => c.id === itemId);
-  if (!item || item.completed) return false;
-  
+  if (!item) return { ...failureResult, message: 'Task not found' };
+  if (item.completed) return { ...failureResult, message: 'Task already completed' };
+
   // Mark as completed
   item.completed = true;
-  
+
   // Deal damage (based on checklist proportion)
   const damagePerItem = Math.ceil(enemy.maxHP / enemy.beast.checklist.length);
   enemy.currentHP = Math.max(0, enemy.currentHP - damagePerItem);
-  
+
+  const result: ActionResult = {
+    action: 'attack',
+    success: true,
+    damage: damagePerItem,
+    message: `Completed ${item.label}`,
+    checklistItemCompleted: itemId
+  };
+
   // Check if defeated
   if (enemy.currentHP <= 0 || enemy.beast.checklist.every(c => c.completed)) {
     enemy.isDefeated = true;
     state.xpEarned += enemy.beast.xpReward || 10;
     state.gpEarned += enemy.beast.gpReward || 5;
+    result.message += ` - ${enemy.beast.name} Defeated!`;
   }
-  
+
   // Check for victory
   if (allEnemiesDefeated.value) {
     state.phase = 'victory';
     stopBattleLoop();
   }
-  
-  return true;
+
+  return result;
 }
 
 /**
@@ -286,10 +305,10 @@ function endBattle(): { xp: number; gp: number; fled: boolean } {
     gp: state.gpEarned,
     fled: state.phase === 'fled',
   };
-  
+
   stopBattleLoop();
   Object.assign(state, createDefaultState());
-  
+
   return result;
 }
 
@@ -301,7 +320,7 @@ export function useBattleState() {
   return {
     // State
     state,
-    
+
     // Computed
     isPlayerTurn,
     isEnemyTurn,
@@ -309,7 +328,7 @@ export function useBattleState() {
     activeEnemies,
     allEnemiesDefeated,
     playerHPPercent,
-    
+
     // Actions
     startBattle,
     completeChecklistItem,

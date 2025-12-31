@@ -4,11 +4,11 @@ import { computed } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useUserActions } from "@/hooks/useUserActions";
-import { IonPage, IonContent, onIonViewDidEnter } from "@ionic/vue";
+import { IonPage, IonContent, IonCard, IonCardHeader, IonCardTitle, IonModal, onIonViewDidEnter } from "@ionic/vue";
 
 export default dC({
   name: "home-town",
-  components: { IonPage, IonContent },
+  components: { IonPage, IonContent, IonCard, IonCardHeader, IonCardTitle, IonModal },
 
   setup() {
     const userStore = useUserStore();

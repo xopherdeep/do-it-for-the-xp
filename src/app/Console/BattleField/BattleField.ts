@@ -7,13 +7,15 @@ import CardUserStats from "@/components/organisms/CardUserStats/CardUserStats.vu
 import { useBattleStore } from "@/lib/store/stores/battle";
 import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
 import XpRpgMenu from "@/components/molecules/RpgMenu/XpRpgMenu.vue";
+import XpBattleTaskMenu from "@/app/Console/BattleField/components/XpBattleTaskMenu.vue";
+import XpCombatTasks from "@/app/Console/BattleField/components/XpCombatTasks.vue";
 import XpHpMpHud from "@/app/Console/BattleField/hud/XpHpMpHud/XpHpMpHud.vue";
 import { useAudioStore } from "@/lib/store/stores/audio";
 import $fx from "@/assets/fx";
 import DevToolsFab from "@/app/Console/BattleField/hud/dev/DevToolsFab.vue";
 import DevBattleActionsFab from "@/app/Console/BattleField/hud/dev/DevBattleActionsFab.vue";
-import { 
-  modalController, 
+import {
+  modalController,
   toastController,
   IonPage,
   IonContent,
@@ -103,6 +105,8 @@ export default defineComponent({
     CardUserStats,
     XpHpMpHud,
     XpRpgMenu,
+    XpBattleTaskMenu,
+    XpCombatTasks,
     XpTypingText,
     DevToolsFab,
     DevBattleActionsFab,
@@ -140,24 +144,25 @@ export default defineComponent({
     const battleDialogRef = ref<any>(null);
     const showEnemyHp = ref(false);
     const showEnemy = ref(false);
+    const showTaskMenu = ref(false);
     const isBackgroundActive = ref(false);
-    
+
     // Services
     const battleService = ref<BattleService | null>(null);
     const bestiaryService = ref<BestiaryService | null>(null);
-    
+
     // Get Pinia stores and router using composition API
     const userStore = useUserStore();
     const battleStore = useBattleStore();
     const audioStore = useAudioStore();
     const router = useRouter();
     const route = useRoute();
-    
+
     // Background configuration
     const bg1 = ref(219); // Default bg1
     const bg2 = ref(218); // Default bg2
-    const urlBgConfig = ref<{bg1?: number, bg2?: number}>({});
-    
+    const urlBgConfig = ref<{ bg1?: number, bg2?: number }>({});
+
     // Get user from Pinia store - fetch full user object by ID
     const user = computed(() => {
       const current = userStore.currentUser;
@@ -167,12 +172,13 @@ export default defineComponent({
       return null;
     });
 
-    // Calculate enemy progress percentage (remaining health = progress towards defeat)
+    // Calculate enemy progress percentage based on remaining tasks
     const enemyProgressPercent = computed(() => {
-      if (!currentEnemy.value) return 0;
-      // HP Percentage (100% -> 0%)
-      const healthPercent = (currentEnemy.value.health / currentEnemy.value.maxHealth) * 100;
-      return Math.max(0, Math.min(100, healthPercent));
+      if (!combatTasks.value || combatTasks.value.length === 0) return 100;
+      const totalTasks = combatTasks.value.length;
+      const completedTasks = combatTasks.value.filter(t => t.isCompleted).length;
+      const remainingPercent = ((totalTasks - completedTasks) / totalTasks) * 100;
+      return Math.max(0, Math.min(100, remainingPercent));
     });
 
     debug.log('enemyProgressPercent initialized:', enemyProgressPercent.value);
@@ -183,12 +189,14 @@ export default defineComponent({
       return battleService.value.getEnemyAttackTimer();
     });
 
+
+
     // Enemy size class based on type
     const enemySizeClass = computed(() => {
-        if (!currentEnemy.value) return 'monster';
-        if (currentEnemy.value.isBoss) return 'boss';
-        if (currentEnemy.value.type === 'miniboss') return 'miniboss';
-        return 'monster';
+      if (!currentEnemy.value) return 'monster';
+      if (currentEnemy.value.isBoss) return 'boss';
+      if (currentEnemy.value.type === 'miniboss') return 'miniboss';
+      return 'monster';
     });
 
     // Get battle participants from URL params or Store
@@ -196,13 +204,13 @@ export default defineComponent({
       debug.log('BattleField: getBattleParticipants called');
       const { beastIds: beastIdsParam, userIds: userIdsParam } = route.params;
       const { beastIds: beastIdsQuery } = route.query;
-      
+
       debug.log('BattleField: Route Params', { beastIdsParam, userIdsParam });
       debug.log('BattleField: Route Query', { beastIdsQuery });
-      
+
       let parsedBeastIds: string[] = [];
       let parsedUserIds: string[] = [];
-      
+
       // Check Store first for encounter
       if (battleStore.currentEncounter) {
         debug.log('BattleField: Found encounter in store', battleStore.currentEncounter);
@@ -221,7 +229,7 @@ export default defineComponent({
         const params = beastIdsParam.split(',').filter(id => id.trim() !== '');
         if (params.length > 0) parsedBeastIds = params;
       }
-      
+
       // Also check route.query (used by Temple Grounds)
       if (beastIdsQuery && typeof beastIdsQuery === 'string') {
         const queryBeastIds = beastIdsQuery.split(',').filter(id => id.trim() !== '');
@@ -232,7 +240,7 @@ export default defineComponent({
           }
         });
       }
-      
+
       // If beastIds is provided via props, use that too
       if (props.beastIds && typeof props.beastIds === 'string') {
         const propBeastIds = props.beastIds.split(',').filter(id => id.trim() !== '');
@@ -243,13 +251,13 @@ export default defineComponent({
           }
         });
       }
-      
+
       // Parse user IDs from route params
       if (userIdsParam && typeof userIdsParam === 'string') {
         const params = userIdsParam.split(',').filter(id => id.trim() !== '');
         if (params.length > 0) parsedUserIds = params;
       }
-      
+
       // If userIds is provided via props, use that too
       if (props.userIds && typeof props.userIds === 'string') {
         const propUserIds = props.userIds.split(',').filter(id => id.trim() !== '');
@@ -260,19 +268,19 @@ export default defineComponent({
           }
         });
       }
-      
+
       // If we have a userId from props but not from route, use it
       if (parsedUserIds.length === 0 && props.userId) {
         parsedUserIds.push(props.userId);
       }
-      
+
       return { beastIds: parsedBeastIds, userIds: parsedUserIds };
     };
 
     // Get battle type from route meta
     const getBattleType = (): 'temple' | 'quest' | 'standard' => {
       const battleType = route.meta?.battleType as string | undefined;
-      
+
       if (battleType === 'temple' && props.templeId) {
         debug.log('BattleField: Temple battle detected', {
           templeId: props.templeId,
@@ -282,41 +290,41 @@ export default defineComponent({
         });
         return 'temple';
       }
-      
+
       if (battleType === 'quest' && props.questId) {
         debug.log('BattleField: Quest battle detected', { questId: props.questId });
         return 'quest';
       }
-      
+
       return 'standard';
     };
 
     // Load room data from a temple and start the battle
     const loadTempleRoomBattle = async (templeId: string, level: string, x: number, y: number) => {
       debug.log('BattleField: Loading temple room battle', { templeId, level, x, y });
-      
+
       try {
         // Fetch temple data from TempleDb
         const temple = await templeDb.getTempleById(templeId);
-        
+
         if (!temple) {
           debug.warn('BattleField: Temple not found', templeId);
           loadSampleBeast();
           return;
         }
-        
+
         // Get maze from dungeonLayout (preferred) or top-level (backwards compatibility)
         const maze = temple.dungeonLayout?.maze || temple.maze;
-        
+
         if (!maze) {
           debug.warn('BattleField: Temple has no maze data', templeId);
           loadSampleBeast();
           return;
         }
-        
+
         // Get the maze grid for the specified level
         let levelMaze: string[][] | undefined;
-        
+
         if (Array.isArray(maze)) {
           // Single level maze
           levelMaze = maze;
@@ -324,32 +332,32 @@ export default defineComponent({
           // Multi-level maze
           levelMaze = maze[level] as string[][];
         }
-        
+
         if (!levelMaze || !levelMaze[y] || !levelMaze[y][x]) {
           debug.warn('BattleField: Room not found at coordinates', { level, x, y });
           loadSampleBeast();
           return;
         }
-        
+
         // Get the room key at this position
         const roomKey = levelMaze[y][x];
-        
+
         // Get rooms from dungeonLayout (preferred) or top-level (backwards compatibility)
         const rooms = temple.dungeonLayout?.rooms || temple.rooms;
         const room = rooms?.[roomKey];
-        
+
         if (!room) {
           debug.warn('BattleField: Room configuration not found', roomKey);
           loadSampleBeast();
           return;
         }
-        
+
         debug.log('BattleField: Found room', { roomKey, room });
-        
+
         // Extract beast IDs from room content
         const roomContent = room.content || {};
         const beastIds = roomContent.beasts || [];
-        
+
         // Set up background configuration from room
         if (roomContent.bg1 !== undefined) {
           bg1.value = roomContent.bg1;
@@ -357,7 +365,7 @@ export default defineComponent({
         if (roomContent.bg2 !== undefined) {
           bg2.value = roomContent.bg2;
         }
-        
+
         // Start battle with the beasts
         if (beastIds.length > 0) {
           if (beastIds.length === 1) {
@@ -384,18 +392,18 @@ export default defineComponent({
     const setupBattleConfiguration = () => {
       const query = route.query;
       let configFound = false;
-      
+
       // Check Store first
       if (battleStore.currentEncounter?.bgConfig) {
         if (battleStore.currentEncounter.bgConfig.bg1 !== undefined) {
-           urlBgConfig.value.bg1 = battleStore.currentEncounter.bgConfig.bg1;
-           bg1.value = urlBgConfig.value.bg1;
-           configFound = true;
+          urlBgConfig.value.bg1 = battleStore.currentEncounter.bgConfig.bg1;
+          bg1.value = urlBgConfig.value.bg1;
+          configFound = true;
         }
         if (battleStore.currentEncounter.bgConfig.bg2 !== undefined) {
-           urlBgConfig.value.bg2 = battleStore.currentEncounter.bgConfig.bg2;
-           bg2.value = urlBgConfig.value.bg2;
-           configFound = true;
+          urlBgConfig.value.bg2 = battleStore.currentEncounter.bgConfig.bg2;
+          bg2.value = urlBgConfig.value.bg2;
+          configFound = true;
         }
       }
 
@@ -405,26 +413,26 @@ export default defineComponent({
         bg1.value = urlBgConfig.value.bg1;
         configFound = true;
       }
-      
+
       if (query.bg2) {
         urlBgConfig.value.bg2 = parseInt(query.bg2 as string, 10);
         bg2.value = urlBgConfig.value.bg2;
         configFound = true;
       }
-      
+
       // Auto-start battle visuals if configured
       if (configFound) {
         debug.log('BattleField: Background configuration detected, awaiting intro to start animation');
       }
     };
-    
+
     // Methods for background management
     const changeBg = () => {
       if ($fx?.theme?.rpg === "earthbound") {
         enterBattle();
         return false;
       }
-      
+
       // Check if we're even able to set bg styles
       const pageElement = document.querySelector('.battle-bg') as HTMLElement | null;
       if (!pageElement) {
@@ -432,13 +440,13 @@ export default defineComponent({
         enterBattle(); // Just try to enter battle directly
         return;
       }
-      
+
       const setBGStyle = (key: string, value: string) => {
         if (pageElement) {
           pageElement.style[key as any] = value;
         }
       };
-      
+
       // Set background styles
       const values = Object.values(backgrounds);
       let prop = {};
@@ -447,11 +455,11 @@ export default defineComponent({
         const rand = Math.floor(Math.random() * values.length);
         prop = prop == currentBg ? {} : values[rand] || {};
       }
-      
+
       // Apply styles
       setBGStyle("backdropFilter", "blur(5px)");
       setBGStyle(
-        "background", 
+        "background",
         `linear-gradient(0deg, rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(${prop})`
       );
       setBGStyle("backgroundSize", "cover");
@@ -465,7 +473,7 @@ export default defineComponent({
 
       setTimeout(() => setBGStyle("backdropFilter", "blur(0px)"), 3000);
     };
-    
+
     const enterBattle = () => {
       // Clean up previous background if active
       if (backgroundManager.isActiveFor(PAGE_ID)) {
@@ -474,11 +482,11 @@ export default defineComponent({
 
       // Get the canvas element using the ref
       const canvasElement = battleBackground.value;
-      
+
       if (!canvasElement) {
         // Try with querySelector as fallback
         const canvasSelector = "canvas.battle-bg";
-        
+
         backgroundManager.initBackground({
           canvasSelector,
           bg1: bg1.value,
@@ -492,16 +500,16 @@ export default defineComponent({
         backgroundManager.initBackground({
           canvasElement,
           bg1: bg1.value,
-          bg2: bg2.value, 
+          bg2: bg2.value,
           aspectRatio: 48, // Common aspect ratio value
           handleResize: true,
           page: PAGE_ID
         });
       }
-      
+
       return true;
     };
-    
+
     // Play sound effects
     const playSound = (type: string) => {
       if ($fx?.ui && $fx?.theme?.ui) {
@@ -510,30 +518,31 @@ export default defineComponent({
         }
       }
     };
-    
+
     // Initialize battle services
     const initServices = () => {
       battleService.value = createBattleService();
       bestiaryService.value = createBestiaryService();
-      
+
       // Register callbacks for the battle service
       if (battleService.value) {
         battleService.value.registerCallbacks({
           onDialogMessage: (messages) => {
             queueBattleDialog(messages);
           },
-          onBattleMessageChange: (message) => { 
+          onBattleMessageChange: (message) => {
             // Route all messages to dialog queue instead of using the overlay
             if (message) queueBattleDialog([message]);
           },
           onCombatTasksChange: (tasks: CombatTask[]) => {
+            debug.log('BattleField: Reacting to combat tasks change', tasks);
             combatTasks.value = tasks;
           },
           onEnemyHealthChange: () => {
-             showEnemyHp.value = true;
-             setTimeout(() => {
-                 showEnemyHp.value = false;
-             }, 3000); // reduced from 2000 to be snappy but visible
+            showEnemyHp.value = true;
+            setTimeout(() => {
+              showEnemyHp.value = false;
+            }, 3000); // reduced from 2000 to be snappy but visible
             updateEnemyHealthColor();
           },
           onDefendStateChange: () => {
@@ -549,7 +558,7 @@ export default defineComponent({
             // Stop the battle and navigate to hospital
             battleService.value?.stopAttackTimer();
             battleStarted.value = false;
-            
+
             // Navigate to hospital after a short delay
             setTimeout(() => {
               router.push({ name: 'hospital' });
@@ -564,7 +573,7 @@ export default defineComponent({
         battleService.value.finishCombatTask(taskId);
       }
     };
-    
+
     // Update enemy health color based on the battle service data
     const updateEnemyHealthColor = () => {
       if (battleService.value) {
@@ -572,7 +581,7 @@ export default defineComponent({
       } else if (currentEnemy.value) {
         // Fallback to calculating it manually
         const healthPercentage = currentEnemy.value.health / currentEnemy.value.maxHealth;
-        
+
         if (healthPercentage > 0.6) {
           enemyHealthColor.value = '#2dd36f'; // green
         } else if (healthPercentage > 0.3) {
@@ -582,12 +591,12 @@ export default defineComponent({
         }
       }
     };
-    
+
     // Queue multiple dialog messages
     const queueBattleDialog = (messages: (string | (() => void))[]) => {
       // Add messages to the queue
       battleDialogQueue.value = [...battleDialogQueue.value, ...messages];
-      
+
       // If no dialog is currently displaying, show the first message
       if (!isBattleDialogTyping.value && battleDialogText.value === '') {
         showNextBattleDialog();
@@ -600,17 +609,17 @@ export default defineComponent({
         // No more messages to show
         battleDialogText.value = '';
         hasMoreBattleDialog.value = false;
-        
+
         // If we were in an enemy turn, proceed to player turn
         if (!isPlayerTurn.value && battleService.value) {
           battleService.value.startPlayerTurn();
         }
         return;
       }
-      
+
       // Get the next message or function from the queue
       const next = battleDialogQueue.value.shift();
-      
+
       // Check if it's a function and execute it
       if (typeof next === 'function') {
         next();
@@ -618,20 +627,20 @@ export default defineComponent({
         showNextBattleDialog();
         return;
       }
-      
+
       // It's a string message, so display it
       battleDialogText.value = next || '';
       isBattleDialogTyping.value = true;
       hasMoreBattleDialog.value = battleDialogQueue.value.length > 0;
-      
+
       // Play typing sound
       playSound("text");
     };
-    
+
     // Called when a battle dialog text finishes typing
     const onBattleDialogComplete = () => {
       isBattleDialogTyping.value = false;
-      
+
       // Add a standard pause before showing the next message
       setTimeout(() => {
         if (battleDialogQueue.value.length > 0) {
@@ -641,7 +650,7 @@ export default defineComponent({
         }
       }, 1500);
     };
-    
+
     // Called when the battle dialog is clicked
     const advanceBattleDialog = () => {
       if (isBattleDialogTyping.value) {
@@ -673,7 +682,7 @@ export default defineComponent({
         }
       }
     };
-    
+
     // Load beast by ID
     const loadBeastById = async (beastId: string) => {
       try {
@@ -681,7 +690,7 @@ export default defineComponent({
           debug.error('Bestiary service not initialized');
           return;
         }
-        
+
         const enemy = await bestiaryService.value.loadBeastById(beastId);
         if (enemy) {
           currentEnemy.value = enemy;
@@ -692,7 +701,7 @@ export default defineComponent({
         debug.error('Error loading beast:', error);
       }
     };
-    
+
     // Unified function to handle Battle Intro choreography
     const startBattleIntro = (enemyName: string) => {
       // 2. Hide common elements for intro
@@ -704,19 +713,19 @@ export default defineComponent({
 
       queueBattleDialog([
         () => {
-           // Dramatically show the beast and start the background swirling
-           showEnemy.value = true;
-           enterBattle();
-           playSound("enterbattle");
+          // Dramatically show the beast and start the background swirling
+          showEnemy.value = true;
+          enterBattle();
+          playSound("enterbattle");
 
-           // Play battle music!
-           const tracks = $fx.rpg.earthbound.BGM.battle;
-           const randomTrack = tracks[Math.floor(Math.random() * tracks.length)];
-           audioStore.changeBGM({
-              tracks: [randomTrack],
-              track: 0,
-              is_on: true
-           });
+          // Play battle music!
+          const tracks = $fx.rpg.earthbound.BGM.battle;
+          const randomTrack = tracks[Math.floor(Math.random() * tracks.length)];
+          audioStore.changeBGM({
+            tracks: [randomTrack],
+            track: 0,
+            is_on: true
+          });
         },
         `From the dark forces of chaos comes ${enemyName}!!!`
       ]);
@@ -729,9 +738,9 @@ export default defineComponent({
           debug.error('Services not initialized');
           return;
         }
-        
+
         const enemies: Enemy[] = [];
-        
+
         // Load each beast
         for (const beastId of beastIds) {
           const enemy = await bestiaryService.value.loadBeastById(beastId);
@@ -739,20 +748,20 @@ export default defineComponent({
             enemies.push(enemy);
           }
         }
-        
+
         // If we loaded at least one enemy, initiate battle
         if (enemies.length > 0) {
           // Get user IDs from the battle participants
           const { userIds } = getBattleParticipants();
-          
+
           // Initialize multi battle with enemies and user IDs
           battleService.value.initMultiBattle(enemies, userIds);
-          
+
           // Set the first enemy as the current enemy
           currentEnemy.value = enemies[0];
           updateEnemyHealthColor();
           battleStarted.value = true;
-          
+
           // Trigger intro choreography
           const enemyName = enemies.length > 1 ? `${enemies.length} enemies` : enemies[0].name;
           startBattleIntro(enemyName);
@@ -761,7 +770,7 @@ export default defineComponent({
         debug.error('Error loading beasts:', error);
       }
     };
-    
+
     // Load a sample beast
     const loadSampleBeast = async () => {
       try {
@@ -769,7 +778,7 @@ export default defineComponent({
           debug.error('Bestiary service not initialized');
           return;
         }
-        
+
         const enemy = await bestiaryService.value.loadRandomBeast();
         if (enemy) {
           currentEnemy.value = enemy;
@@ -784,12 +793,12 @@ export default defineComponent({
         createSampleEnemy();
       }
     };
-    
+
     // Create a sample enemy for demonstration
     const createSampleEnemy = () => {
       // Reset any animation classes first
       enemyAnimationClass.value = '';
-      
+
       if (bestiaryService.value) {
         currentEnemy.value = bestiaryService.value.createSampleEnemy();
         updateEnemyHealthColor();
@@ -812,31 +821,31 @@ export default defineComponent({
         initBattle(); // Direct call
       }
     };
-    
+
     // Initialize the battle
     const initBattle = () => {
       // Make sure the enemy is visible with proper animation
-      if (!enemyAnimationClass.value || 
-          enemyAnimationClass.value === 'victory-fadeout' || 
-          enemyAnimationClass.value === 'victory-strobe') {
+      if (!enemyAnimationClass.value ||
+        enemyAnimationClass.value === 'victory-fadeout' ||
+        enemyAnimationClass.value === 'victory-strobe') {
         enemyAnimationClass.value = '';
       }
-      
+
       // Reset HP bar visibility
       showEnemyHp.value = false;
-      
+
       if (battleService.value && currentEnemy.value) {
         const enemyName = currentEnemy.value.name || 'Unknown Enemy';
-        
+
         // 1. Initialize logic
         battleService.value.initBattle(currentEnemy.value);
         battleStarted.value = true;
-        
+
         // 2. Start intro choreography
         startBattleIntro(enemyName);
       }
     };
-    
+
     // Handle battle actions (attack, defend, etc.)
     const handleBattleAction = (action: { action: string }) => {
       // If no battle started, load a sample beast
@@ -844,11 +853,11 @@ export default defineComponent({
         loadSampleBeast();
         return;
       }
-      
+
       // Use the battle service to handle the action
       if (battleService.value) {
         // Play appropriate sound effect based on action
-        switch(action.action) {
+        switch (action.action) {
           case 'attack':
           case 'defend':
             playSound("confirm");
@@ -861,12 +870,12 @@ export default defineComponent({
             playSound("cancel");
             break;
         }
-        
+
         // Special handling for navigation actions
         if (action.action === 'goods') {
           // Show dialog message
           battleMessage.value = "Opening inventory...";
-          
+
           setTimeout(() => {
             router.push({
               name: "my-inventory",
@@ -875,11 +884,11 @@ export default defineComponent({
           }, 2000);
           return;
         }
-        
+
         if (action.action === 'abilities') {
           // Show dialog message
           battleMessage.value = "Opening abilities...";
-          
+
           setTimeout(() => {
             router.push({
               name: "my-abilities",
@@ -888,10 +897,10 @@ export default defineComponent({
           }, 2000);
           return;
         }
-        
+
         // Handle combat actions through battle service
-         const result = battleService.value.handleBattleAction(action.action);
-    
+        const result = battleService.value.handleBattleAction(action.action);
+
         // Apply visual effects based on action result
         if (action.action === 'attack' && result.success) {
           enemyAnimationClass.value = 'damaged';
@@ -899,12 +908,12 @@ export default defineComponent({
             enemyAnimationClass.value = '';
           }, 500);
         }
-        
+
         // Handle running away
         if (action.action === 'run' && result.success) {
           // Fade out enemy
           enemyAnimationClass.value = 'fadeout';
-          
+
           // Return to hometown after a delay
           setTimeout(() => {
             returnToHometown();
@@ -912,7 +921,7 @@ export default defineComponent({
         }
       }
     };
-    
+
     // Handle enemy defeat
     const defeatEnemy = (enemy: Enemy) => {
       debug.log('Enemy defeated:', enemy.name);
@@ -920,7 +929,7 @@ export default defineComponent({
       // Use the provided enemy or the current enemy
       const defeatedEnemy = enemy || currentEnemy.value;
       if (!defeatedEnemy) return;
-      
+
       // Store defeated enemy info for rewards modal
       completedTask.value = {
         name: defeatedEnemy.name,
@@ -928,83 +937,83 @@ export default defineComponent({
         gpReward: calculateGPReward(),
         itemReward: Math.random() > 0.7 ? getRandomRewardItem() : null
       };
-      
+
       // Show victory message
-  // battleMessage.value = `${defeatedEnemy.name} was defeated!`; // Moved to dialog
-  
-  // Trigger victory animation
+      // battleMessage.value = `${defeatedEnemy.name} was defeated!`; // Moved to dialog
+
+      // Trigger victory animation
       victoryAnimation();
-      
+
       // Clear current enemy
       currentEnemy.value = null;
-      
+
       // Show rewards modal after a delay
       setTimeout(() => {
         battleMessage.value = '';
         showRewardsModal.value = true;
       }, 3000);
     };
-    
+
     // Calculate XP reward based on enemy difficulty
     const calculateXPReward = () => {
       if (!currentEnemy.value) return 0;
-      
+
       // Base XP on enemy type and health
       let baseXP = currentEnemy.value.maxHealth / 2;
-      
+
       // Bonus for boss types
       if (currentEnemy.value.isBoss) {
         baseXP *= 1.5;
       } else if (currentEnemy.value.type === 'miniboss') {
         baseXP *= 1.25;
       }
-      
+
       // Round to nearest integer
       return Math.round(baseXP);
     };
-    
+
     // Calculate GP reward based on enemy difficulty
     const calculateGPReward = () => {
       if (!currentEnemy.value) return 0;
-      
+
       // Base GP on enemy type and health
       let baseGP = currentEnemy.value.maxHealth / 4;
-      
+
       // Bonus for boss types
       if (currentEnemy.value.isBoss) {
         baseGP *= 1.5;
       } else if (currentEnemy.value.type === 'miniboss') {
         baseGP *= 1.25;
       }
-      
+
       // Round to nearest integer
       return Math.round(baseGP);
     };
-    
+
     // Get random reward item name
     const getRandomRewardItem = () => {
       const items = [
-        'Small Health Potion', 
-        'Magic Dust', 
-        'Beast Fang', 
-        'Copper Coin', 
+        'Small Health Potion',
+        'Magic Dust',
+        'Beast Fang',
+        'Copper Coin',
         'Leather Scraps',
         'Shiny Pebble'
       ];
       return items[Math.floor(Math.random() * items.length)];
     };
-    
+
     // Close rewards modal
     const closeRewardsModal = () => {
       showRewardsModal.value = false;
       completedTask.value = null;
-      
+
       // Return to hometown
       setTimeout(() => {
         returnToHometown();
       }, 500);
     };
-    
+
     // Return to hometown
     const returnToHometown = () => {
       const userId = props.userId || user.value?.id;
@@ -1015,15 +1024,15 @@ export default defineComponent({
         });
       }
     };
-    
+
     // Victory animation that coordinates with background manager
     const victoryAnimation = () => {
       // Apply victory strobe effect to the enemy sprite
       enemyAnimationClass.value = 'victory-strobe';
-      
+
       // Play victory sound
       playSound("confirm");
-      
+
       // Start the aspect ratio animation after a short delay for the strobe effect
       setTimeout(() => {
         // Use the smooth aspect ratio animation - first collapse to 0 height
@@ -1031,13 +1040,13 @@ export default defineComponent({
           .then(() => {
             // Change enemy animation to fadeout when aspect ratio animation completes
             enemyAnimationClass.value = 'victory-fadeout';
-            
+
             // Set victory message flag for styling
             isVictoryMessage.value = true;
-            
+
             // Queue victory dialog messages
             queueBattleDialog([
-              'You Won!', 
+              'You Won!',
               `${currentEnemy.value?.name || 'Enemy'} was defeated!`,
               `You gained ${calculateXPReward()} XP!`,
               `You earned ${calculateGPReward()} GP!`
@@ -1046,25 +1055,25 @@ export default defineComponent({
           .catch(error => {
             debug.error("Error during victory animation:", error);
             // Fallback in case of error
-             queueBattleDialog([`Victory! ${currentEnemy.value?.name || 'Enemy'} was defeated!`]);
+            queueBattleDialog([`Victory! ${currentEnemy.value?.name || 'Enemy'} was defeated!`]);
           });
       }, 1000);
     };
-    
+
     // Get beast avatar image
     const getAvatar = (id?: number) => {
       if (!id && currentEnemy.value?.avatar) {
         id = currentEnemy.value.avatar;
       }
-      
+
       if (id && bestiaryService.value) {
         return bestiaryService.value.getAvatar(id);
       }
-      
+
       // Fallback to default avatar if no ID provided or service not available
       return require('@/assets/images/beasts/001.png');
     };
-    
+
     // UI interaction methods
     const clickUserChip = async (userData: any) => {
       const modal = await modalController.create({
@@ -1074,12 +1083,12 @@ export default defineComponent({
       });
       await modal.present();
     };
-    
+
     const getUserAvatar = (userData: any) => {
       const avatar = `./${userData.avatar}.svg`;
       return requireAvatar(avatar);
     };
-    
+
     const openToast = async () => {
       const toast = await toastController.create({
         message: `${user.value?.name?.nick || 'Player'} has entered the battle!`,
@@ -1092,7 +1101,7 @@ export default defineComponent({
 
     // Get icon for battle actions
     const getBattleActionIcon = (label: string) => {
-      switch(label.toLowerCase()) {
+      switch (label.toLowerCase()) {
         case 'roll': return diceOutline;
         case 'attack': return 'sword-outline';
         case 'goods': return bagOutline;
@@ -1105,7 +1114,7 @@ export default defineComponent({
 
     // Get color for battle actions
     const getBattleActionColor = (label: string) => {
-      switch(label.toLowerCase()) {
+      switch (label.toLowerCase()) {
         case 'roll': return 'primary';
         case 'goods': return 'success';
         case 'abilities': return 'tertiary';
@@ -1114,16 +1123,16 @@ export default defineComponent({
         default: return 'medium';
       }
     };
-    
+
     // Dev mode battle service methods
     const devDamageEnemy = (damage: number) => {
       if (props.devMode && battleService.value) {
         battleService.value.devDamageEnemy(damage);
-    enemyAnimationClass.value = 'damaged';
-    setTimeout(() => {
-      enemyAnimationClass.value = '';
-    }, 500);
-    
+        enemyAnimationClass.value = 'damaged';
+        setTimeout(() => {
+          enemyAnimationClass.value = '';
+        }, 500);
+
         // Trigger HP bar
         showEnemyHp.value = true;
         setTimeout(() => {
@@ -1131,13 +1140,13 @@ export default defineComponent({
         }, 2000);
       }
     };
-    
+
     const devHealEnemy = (healing: number) => {
       if (props.devMode && battleService.value) {
         battleService.value.devHealEnemy(healing);
       }
     };
-    
+
     const devSkipTurn = () => {
       if (props.devMode && battleService.value) {
         battleService.value.devSkipTurn();
@@ -1147,7 +1156,7 @@ export default defineComponent({
     // Dev tools methods
     const openProfileSelector = async () => {
       if (!props.devMode) return;
-      
+
       // Show toast message
       const toast = await toastController.create({
         message: 'Profile selector feature activated',
@@ -1155,61 +1164,61 @@ export default defineComponent({
         position: 'top'
       });
       await toast.present();
-      
+
       // Here you would typically implement the actual profile selector logic
       debug.log('Dev Tools: Open profile selector');
     };
-    
+
     const openBeastSelector = async () => {
       if (!props.devMode) return;
-      
+
       const toast = await toastController.create({
         message: 'Beast selector feature activated',
         duration: 2000,
         position: 'top'
       });
       await toast.present();
-      
+
       // Here you would typically implement the actual beast selector logic
       debug.log('Dev Tools: Open beast selector');
     };
-    
+
     const openControlsModal = async () => {
       if (!props.devMode) return;
-      
+
       const toast = await toastController.create({
         message: 'Battle controls modal activated',
         duration: 2000,
         position: 'top'
       });
       await toast.present();
-      
+
       // Here you would typically implement the actual controls modal logic
       debug.log('Dev Tools: Open battle controls modal');
     };
-    
+
     // Battle actions methods (for DevBattleActionsFab)
     const triggerAttackAnimation = () => {
       if (!props.devMode) return;
       debug.log('Dev Tools: Triggering attack animation');
-      
+
       // Add attack animation class to the enemy
       enemyAnimationClass.value = 'attack';
       setTimeout(() => {
         enemyAnimationClass.value = '';
       }, 500);
     };
-    
+
     const triggerEnemyHit = () => {
       if (!props.devMode) return;
       debug.log('Dev Tools: Triggering enemy hit animation');
-      
+
       // Add damaged animation class to the enemy
       enemyAnimationClass.value = 'damaged';
       setTimeout(() => {
         enemyAnimationClass.value = '';
       }, 500);
-      
+
       // Apply damage to the enemy
       if (battleService.value && currentEnemy.value) {
         battleService.value.devDamageEnemy(50);
@@ -1220,37 +1229,37 @@ export default defineComponent({
         }, 2000);
       }
     };
-    
+
     const triggerPlayerHit = () => {
       if (!props.devMode) return;
       debug.log('Dev Tools: Triggering player hit animation');
-      
+
       // Show message
-       queueBattleDialog(['Player takes damage!']);
-  
-  // Here you would apply damage to the player through battle service if implemented
+      queueBattleDialog(['Player takes damage!']);
+
+      // Here you would apply damage to the player through battle service if implemented
     };
-    
+
     const triggerVictoryAnimation = () => {
       if (!props.devMode) return;
       debug.log('Dev Tools: Triggering victory animation');
-      
+
       // Trigger the victory animation
       victoryAnimation();
     };
-    
+
     const triggerDefeatAnimation = () => {
       if (!props.devMode) return;
       debug.log('Dev Tools: Triggering defeat animation');
-      
+
       // Show defeat message
-  queueBattleDialog(['You were defeated!']);
+      queueBattleDialog(['You were defeated!']);
     };
-    
+
     const resetBattle = () => {
       if (!props.devMode) return;
       debug.log('Dev Tools: Resetting battle');
-      
+
       // Reset enemy health if there is a current enemy
       if (battleService.value && currentEnemy.value) {
         battleService.value.resetBattle();
@@ -1258,21 +1267,21 @@ export default defineComponent({
         // If there's no current enemy, load a sample one
         loadSampleBeast();
       }
-      
+
       // Clear any messages
       battleMessage.value = '';
       battleDialogText.value = '';
-      
+
       // Reset animation classes
       enemyAnimationClass.value = 'appear';
     };
-    
+
     // Watch for route params changes to update battle participants
     watch(
       () => route.params,
       () => {
         const { beastIds } = getBattleParticipants();
-        
+
         // If beast IDs are provided, load them
         if (beastIds.length > 0) {
           if (beastIds.length === 1) {
@@ -1291,18 +1300,18 @@ export default defineComponent({
       (newEnemy) => {
         if (newEnemy) {
           let bgUpdated = false;
-          
+
           // Update BGs if not overridden by URL and enemy has config
           if (newEnemy.bg1 !== undefined && urlBgConfig.value.bg1 === undefined) {
             bg1.value = newEnemy.bg1;
             bgUpdated = true;
           }
-          
+
           if (newEnemy.bg2 !== undefined && urlBgConfig.value.bg2 === undefined) {
             bg2.value = newEnemy.bg2;
             bgUpdated = true;
           }
-          
+
           // Trigger background update if changed or if we need to ensure it's active
           if (bgUpdated || backgroundManager.getBackgroundSettings().isActive) {
             // Small delay to ensure DOM is ready if it's the first load
@@ -1311,34 +1320,34 @@ export default defineComponent({
         }
       }
     );
-    
+
     // Lifecycle hooks
     // Use onMounted for minimal initialization only - services setup
     onMounted(() => {
       // Initialize services synchronously - these don't depend on DOM
       initServices();
-      
+
       // Debug message if in dev mode
       if (props.devMode) {
         debug.log('BattleField component initialized in dev mode');
       }
     });
-    
+
     // Use Ionic's lifecycle hook for battle initialization
     // This fires AFTER the page transition is complete and the page is properly registered
     onIonViewWillEnter(() => {
       // Parse battle configuration from URL - safe to call here
       setupBattleConfiguration();
     });
-    
+
     // Use onIonViewDidEnter for anything that needs the page to be fully visible
     onIonViewDidEnter(() => {
       // Check battle type first
       const battleType = getBattleType();
-      
+
       // Get battle participants from URL params
       const participants = getBattleParticipants();
-      
+
       // Handle temple battles - look up room data for beast configuration
       if (battleType === 'temple') {
         debug.log('BattleField: Setting up temple battle', {
@@ -1347,7 +1356,7 @@ export default defineComponent({
           x: props.x,
           y: props.y
         });
-        
+
         // First check if we have beast IDs from the store (set by TempleGrounds navigation)
         if (participants.beastIds.length > 0) {
           if (participants.beastIds.length === 1) {
@@ -1370,7 +1379,7 @@ export default defineComponent({
         }
         return;
       }
-      
+
       // Handle quest battles
       if (battleType === 'quest') {
         debug.log('BattleField: Setting up quest battle', { questId: props.questId });
@@ -1388,29 +1397,29 @@ export default defineComponent({
         }
         return;
       }
-      
+
       // Standard battle handling
       // Check if we have a specific beast avatar provided via props (legacy/direct support)
       if (props.beastAvatar) {
-         const enemy: Enemy = {
+        const enemy: Enemy = {
           id: 'custom',
           name: props.enemyType === 'boss' ? 'Boss Monster' :
-                props.enemyType === 'miniboss' ? 'Mini Boss' : 'Monster',
+            props.enemyType === 'miniboss' ? 'Mini Boss' : 'Monster',
           type: props.enemyType,
-          health: props.enemyType === 'boss' ? 500 : 
-                 props.enemyType === 'miniboss' ? 300 : 150,
-          maxHealth: props.enemyType === 'boss' ? 500 : 
-                    props.enemyType === 'miniboss' ? 300 : 150,
+          health: props.enemyType === 'boss' ? 500 :
+            props.enemyType === 'miniboss' ? 300 : 150,
+          maxHealth: props.enemyType === 'boss' ? 500 :
+            props.enemyType === 'miniboss' ? 300 : 150,
           avatar: props.beastAvatar,
-          attack: props.enemyType === 'boss' ? 25 : 
-                 props.enemyType === 'miniboss' ? 15 : 10,
+          attack: props.enemyType === 'boss' ? 25 :
+            props.enemyType === 'miniboss' ? 15 : 10,
           defense: props.enemyType === 'boss' ? 15 :
-                  props.enemyType === 'miniboss' ? 10 : 5,
+            props.enemyType === 'miniboss' ? 10 : 5,
           speed: props.enemyType === 'boss' ? 5 :
-                 props.enemyType === 'miniboss' ? 8 : 10,
+            props.enemyType === 'miniboss' ? 8 : 10,
           isBoss: props.enemyType === 'boss'
         };
-        
+
         currentEnemy.value = enemy;
         updateEnemyHealthColor();
         initBattle(); // Direct call
@@ -1422,7 +1431,7 @@ export default defineComponent({
           loadMultipleBeasts(participants.beastIds);
         }
       } else if (props.taskId) {
-         // Load task beast... logic to be implemented
+        // Load task beast... logic to be implemented
         // For now fallback to sample
         loadSampleBeast();
       } else {
@@ -1430,7 +1439,7 @@ export default defineComponent({
         loadSampleBeast();
       }
     });
-    
+
     onUnmounted(() => {
       if (battleService.value) {
         battleService.value.stopAttackTimer();
@@ -1438,13 +1447,56 @@ export default defineComponent({
       backgroundManager.cleanupBackground();
     });
 
+    const closeTaskMenu = () => {
+      showTaskMenu.value = false;
+      playSound("cancel");
+    };
+
+    const handleTaskAttackResult = (result: any) => {
+      // Close menu
+      showTaskMenu.value = false;
+
+      if (result.success) {
+        // Log for debugging
+        debug.log("Task executed successfully", result);
+
+        // Show the progress bar
+        showEnemyHp.value = true;
+
+        // Trigger hit animation on enemy sprite
+        enemyAnimationClass.value = 'damaged';
+        setTimeout(() => {
+          enemyAnimationClass.value = '';
+        }, 500);
+
+        // Hide progress bar after a delay
+        setTimeout(() => {
+          showEnemyHp.value = false;
+        }, 2000);
+
+        // Check for victory - all tasks completed
+        const allTasksComplete = combatTasks.value.every(t => t.isCompleted);
+        if (allTasksComplete && currentEnemy.value) {
+          debug.log("All tasks complete - enemy defeated!");
+          if (battleService.value) {
+            // Trigger defeat logic
+            battleService.value.devDamageEnemy(currentEnemy.value.health); // Reduce to 0
+          }
+        }
+      }
+    };
+
     // Battle Menu Actions for XpCardMenu
     const battleMenuActions = computed(() => [
       {
         id: 'attack',
-        label: 'Bash',
+        label: 'Attack',
         faIcon: 'fist-raised',
-        click: () => handleBattleAction({ action: 'attack' })
+        click: () => {
+          // Open the task menu
+          showTaskMenu.value = true;
+          playSound("confirm");
+        }
       },
       {
         id: 'abilities',
@@ -1501,14 +1553,19 @@ export default defineComponent({
       enemySizeClass,
       battleMenuActions,
       showEnemy,
+      showTaskMenu,
       isBackgroundActive,
-      
+
+      // Task Menu Methods
+      closeTaskMenu,
+      handleTaskAttackResult,
+
       // Methods for battle dialog
       queueBattleDialog,
       showNextBattleDialog,
       onBattleDialogComplete,
       advanceBattleDialog,
-      
+
       // Methods for battle mechanics
       changeBg,
       enterBattle,
@@ -1519,17 +1576,17 @@ export default defineComponent({
       handleBattleAction,
       victoryAnimation,
       closeRewardsModal,
-      
+
       // UI Helper methods
       clickUserChip,
       getUserAvatar,
       openToast,
       getBattleActionIcon,
       getBattleActionColor,
-      
+
       // Helper for avatars
       getAvatar,
-      
+
       // Dev mode methods
       devDamageEnemy,
       devHealEnemy,
@@ -1539,7 +1596,7 @@ export default defineComponent({
       openProfileSelector,
       openBeastSelector,
       openControlsModal,
-      
+
       // Battle actions methods (for DevBattleActionsFab)
       triggerAttackAnimation,
       triggerEnemyHit,
@@ -1547,7 +1604,7 @@ export default defineComponent({
       triggerVictoryAnimation,
       triggerDefeatAnimation,
       resetBattle,
-      
+
       // Icons
       closeCircle,
       medalOutline,

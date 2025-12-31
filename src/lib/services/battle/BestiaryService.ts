@@ -40,7 +40,7 @@ export class BestiaryService {
     try {
       const beast = await this.bestiary.getBeastById(beastId);
       if (!beast) return null;
-      
+
       return this.convertBeastToEnemy(beast);
     } catch (error) {
       debug.error('Error loading beast:', error);
@@ -56,11 +56,11 @@ export class BestiaryService {
     try {
       const beasts = await this.bestiary.getBeasts();
       if (!beasts || beasts.length === 0) return null;
-      
+
       // Pick a random beast
       const randomIndex = Math.floor(Math.random() * beasts.length);
       const beast = beasts[randomIndex];
-      
+
       return this.convertBeastToEnemy(beast);
     } catch (error) {
       debug.error('Error loading random beast:', error);
@@ -82,7 +82,11 @@ export class BestiaryService {
       emoji: '👾', // Default emoji
       attack: 10,    // Added missing required property
       defense: 5,    // Added missing required property
-      speed: 8       // Added missing required property
+      speed: 8,
+      tasks: [
+        { id: 's1', name: 'Hit it', isCompleted: false },
+        { id: 's2', name: 'Bop it', isCompleted: false }
+      ]
     };
   }
 
@@ -108,10 +112,10 @@ export class BestiaryService {
       bg1: beast.bg1,
       bg2: beast.bg2,
       aspectRatio: beast.aspectRatio,
-      tasks: beast.checklist ? beast.checklist.map((name: string, index: number) => ({
-        id: `task-${index}`,
-        name: name,
-        isCompleted: false
+      tasks: beast.checklist ? beast.checklist.map((item: any, index: number) => ({
+        id: item.id || `task-${index}`, // Use existing ID if available
+        name: typeof item === 'string' ? item : (item.label || item.name || 'Unknown Task'),
+        isCompleted: item.completed || false
       })) : []
     };
   }
@@ -123,7 +127,7 @@ export class BestiaryService {
    */
   public getBeastBackgroundSettings(beast: any): { bg1: number, bg2: number, aspectRatio?: number } | null {
     if (!beast || beast.bg1 === undefined || beast.bg2 === undefined) return null;
-    
+
     return {
       bg1: beast.bg1,
       bg2: beast.bg2,
