@@ -390,8 +390,12 @@ const scheduleSummary = computed(() => {
   .date-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
-    justify-items: center;
+    gap: 10px;
+    justify-items: stretch;
+
+    :deep(.xp-glass-card) {
+      min-height: 90px;
+    }
   }
 
   .date-input-group {
@@ -428,6 +432,23 @@ const scheduleSummary = computed(() => {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 10px;
+
+    :deep(.xp-glass-card) {
+      min-height: 90px;
+    }
+
+    // Selected state styling for icons and labels inside frequency cards
+    :deep(.xp-glass-card--selected) {
+      .frequency-card__icon {
+        color: var(--ion-color-rpg);
+        opacity: 1;
+        filter: drop-shadow(0 0 6px rgba(var(--ion-color-rpg-rgb), 0.5));
+      }
+
+      .frequency-card__name {
+        color: var(--ion-color-light);
+      }
+    }
   }
 
   .frequency-card__icon {
@@ -435,13 +456,14 @@ const scheduleSummary = computed(() => {
     color: var(--ion-color-light);
     margin-bottom: 0.75rem;
     transition: all 0.3s ease;
-    opacity: 0.8;
+    opacity: 0.5;
   }
 
   .frequency-card__name {
     font-size: 0.8rem;
     color: var(--ion-color-medium);
     font-weight: 500;
+    transition: color 0.3s ease;
   }
 
 
