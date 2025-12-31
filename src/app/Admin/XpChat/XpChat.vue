@@ -12,7 +12,7 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content scroll-y="false" class="bg-slide bg-slide-dark">
+    <ion-content scroll-y="false" class="bg-slide bg-slide-beast">
       <div class="chat-container">
         <xp-chat-list :messages="messages" :can-load-more="canLoadMore" :is-loading="isLoading"
           @load-more="onLoadMore" />

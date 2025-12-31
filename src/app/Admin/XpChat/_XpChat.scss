@@ -1,12 +1,12 @@
 .xp-chat {
-  --background: transparent;
+  // --background: transparent;
   height: 100%;
 
   .chat-container {
     display: flex;
     flex-direction: column;
     height: 100%;
-    background: linear-gradient(135deg, rgba(20, 20, 30, 0.8) 0%, rgba(40, 40, 60, 0.8) 100%);
+    background: transparent;
   }
 
   .luxe-toolbar {

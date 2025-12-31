@@ -102,7 +102,7 @@ export default defineComponent({
     padding: 1rem;
     display: flex;
     flex-direction: column;
-    background: rgba(0, 0, 0, 0.2);
+    // background: rgba(0, 0, 0, 0.2);
 
     .load-more-container {
         display: flex;
