@@ -8,6 +8,7 @@ import AchievementDb, {
 import BestiaryDb, { beastStorage } from "@/lib/databases/BestiaryDb";
 import AbilitiesDb, { abilitiesStorage } from "@/lib/databases/AbilitiesDb";
 import DosDontsDb from "@/lib/databases/DosDontsDb";
+import { getEngineStatsService } from "@/lib/services/stats/EngineStatsService";
 import {
   toastController,
   modalController,
@@ -115,23 +116,15 @@ export default defineComponent({
       this.showSuccessToast("Dashboard refreshed!");
     },
     async loadStats() {
-      // Load achievements count
-      const achievements = await this.achievementDb.getTasks();
-      this.stats.achievements = achievements.length;
+      // Use the centralized EngineStatsService
+      const statsService = getEngineStatsService();
+      const systemStats = await statsService.getSystemStats();
 
-      // Load beasts count
-      const beasts = await this.bestiaryDb.getBeasts();
-      this.stats.beasts = beasts.length;
-
-      // Load users count from Vuex
-      this.stats.users = this.users.length;
-
-      // Load dos and donts counts
-      const allDosDonts = await this.dosDontsDb.getAll();
-      this.stats.dos = allDosDonts.filter((item) => item.type === "do").length;
-      this.stats.donts = allDosDonts.filter(
-        (item) => item.type === "dont"
-      ).length;
+      this.stats.achievements = systemStats.achievements;
+      this.stats.beasts = systemStats.beasts;
+      this.stats.users = systemStats.users;
+      this.stats.dos = systemStats.dos;
+      this.stats.donts = systemStats.donts;
 
       // Get approvals data from XpActionItems
       this.approvals = {
@@ -307,21 +300,15 @@ export default defineComponent({
     const loadDashboardData = async () => {
       isLoading.value = true;
       try {
-        // Initial data load
-        const achievements = await achievementDb.getTasks();
-        stats.value.achievements = achievements.length;
+        // Initial data load via centralized service
+        const statsService = getEngineStatsService();
+        const systemStats = await statsService.getSystemStats();
 
-        const beasts = await bestiaryDb.getBeasts();
-        stats.value.beasts = beasts.length;
-
-        // Get all dos/donts and filter
-        const allDosDonts = await dosDontsDb.getAll();
-        stats.value.dos = allDosDonts.filter(
-          (item) => item.type === "do"
-        ).length;
-        stats.value.donts = allDosDonts.filter(
-          (item) => item.type === "dont"
-        ).length;
+        stats.value.achievements = systemStats.achievements;
+        stats.value.beasts = systemStats.beasts;
+        stats.value.dos = systemStats.dos;
+        stats.value.donts = systemStats.donts;
+        stats.value.users = systemStats.users;
 
         // Load abilities data
         try {

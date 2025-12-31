@@ -1,10 +1,7 @@
 <template>
-  <ion-grid class="icon-colors w-full p-0">
-    <ion-row 
-      class="flex flex-wrap space-between justify-center gap-[10px] w-full"
-      :class="{ 'use-grid': cols > 0 }"
-      :style="cols > 0 ? { display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '10px', width: '100%' } : {}"
-    >
+  <ion-grid class="icon-colors w-full p-4">
+    <ion-row class="flex flex-wrap space-between justify-center gap-[10px] w-full" :class="{ 'use-grid': cols > 0 }"
+      :style="cols > 0 ? { display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gap: '10px', width: '100%' } : {}">
       <slot></slot>
     </ion-row>
   </ion-grid>
