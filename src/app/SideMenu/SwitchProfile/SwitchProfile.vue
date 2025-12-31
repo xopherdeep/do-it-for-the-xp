@@ -1,48 +1,101 @@
 <template>
-  <xp-rpg-page title="Choose A Profile" :loading="isLoading" bg-class="bg-slide">
+  <xp-rpg-page
+    title="Choose A Profile"
+    :loading="isLoading"
+    bg-class="bg-slide"
+  >
     <template #start-actions>
       <ion-menu-button @click="$fx.ui[$fx.theme.ui].select.play()" />
-      <ion-icon :ios="fingerPrintOutline" :md="fingerPrintSharp" class="fa-2x ml-2" />
+      <ion-icon
+        :ios="fingerPrintOutline"
+        :md="fingerPrintSharp"
+        class="fa-2x ml-2"
+      />
     </template>
     <template #actions>
-      <ion-button @click="isRetroView = !isRetroView" class="view-toggle-btn">
-        <ion-icon :icon="isRetroView ? gridOutline : listOutline" slot="icon-only"></ion-icon>
+      <ion-button
+        @click="isRetroView = !isRetroView"
+        class="view-toggle-btn"
+      >
+        <ion-icon
+          :icon="isRetroView ? gridOutline : listOutline"
+          slot="icon-only"
+        ></ion-icon>
       </ion-button>
       <ion-button @click="openBackupOptionsModal">
-        <ion-icon :icon="cloudDownloadOutline" slot="icon-only"></ion-icon>
+        <ion-icon
+          :icon="cloudDownloadOutline"
+          slot="icon-only"
+        ></ion-icon>
       </ion-button>
     </template>
-    <ion-refresher slot="fixed" @ionRefresh="handleRefresh($event)">
+    <ion-refresher
+      slot="fixed"
+      @ionRefresh="handleRefresh($event)"
+    >
       <ion-refresher-content></ion-refresher-content>
     </ion-refresher>
 
     <ion-grid>
       <!-- Empty State -->
-      <div v-if="users.length === 0" class="empty-state">
+      <div
+        v-if="users.length === 0"
+        class="empty-state"
+      >
         <i class="fad fa-users-slash fa-4x" />
         <h2 class="earthbound-title">No Adventurers Yet!</h2>
         <p>Tap the + button below to create your first profile.</p>
       </div>
 
       <!-- Card View (Default) -->
-      <ion-row v-else-if="!isRetroView" class="md:hidden profile-grid"
-        :class="{ 'justify-content-center items-center': users.length === 1 }">
-        <ion-col v-for="(user, key) in users" :key="key" :size="users.length === 1 ? '12' : '6'"
-          :size-sm="users.length === 1 ? '10' : '4'" :size-md="users.length === 1 ? '8' : '3'"
-          :size-xl="users.length === 1 ? '6' : '2'" class="profile-card-col">
-          <XpProfileCard :user="user" :is-large="users.length === 1" @select="selectProfile" />
+      <ion-row
+        v-else-if="!isRetroView"
+        class="md:hidden profile-grid"
+        :class="{ 'justify-content-center items-center': users.length === 1 }"
+      >
+        <ion-col
+          v-for="(user, key) in users"
+          :key="key"
+          :size="users.length === 1 ? '12' : '6'"
+          :size-sm="users.length === 1 ? '10' : '4'"
+          :size-md="users.length === 1 ? '8' : '3'"
+          :size-xl="users.length === 1 ? '6' : '2'"
+          class="profile-card-col"
+        >
+          <XpProfileCard
+            :user="user"
+            :is-large="users.length === 1"
+            @select="selectProfile"
+          />
         </ion-col>
       </ion-row>
 
       <!-- Retro View (RPG Save Slots) -->
-      <div v-else class="retro-view md:hidden">
-        <XpRpgMenu :actions="retroMenuActions" :columns="1" @action-click="handleRetroAction" />
+      <div
+        v-else
+        class="retro-view md:hidden"
+      >
+        <XpRpgMenu
+          :actions="retroMenuActions"
+          :columns="1"
+          @action-click="handleRetroAction"
+        />
       </div>
       <ion-row class="ion-no-padding hidden md:block">
-        <ion-card v-show="!isLoading" class="max-w-4xl">
+        <ion-card
+          v-show="!isLoading"
+          class="max-w-4xl"
+        >
           <ion-list>
-            <ion-item detail button @click="openNewProfileModal">
-              <ion-buttons slot="start" class="icon-colors">
+            <ion-item
+              detail
+              button
+              @click="openNewProfileModal"
+            >
+              <ion-buttons
+                slot="start"
+                class="icon-colors"
+              >
                 <i class="fad fa-heartbeat fa-3x"></i>
               </ion-buttons>
               <ion-label class="py-4">
@@ -50,9 +103,18 @@
                 <p>New players Start Here.</p>
               </ion-label>
             </ion-item>
-            <ion-item v-for="user in users" :key="user.id" @click="selectProfile(user)" button detail
-              class="profile-item rpg-box">
-              <div slot="start" class="profile-info stats-container py-4">
+            <ion-item
+              v-for="user in users"
+              :key="user.id"
+              @click="selectProfile(user)"
+              button
+              detail
+              class="profile-item rpg-box"
+            >
+              <div
+                slot="start"
+                class="profile-info stats-container py-4"
+              >
                 <div class="level">
                   <span class="label">LVL</span>
                   <span class="value">{{ user?.stats?.level || 1 }}</span>
@@ -72,8 +134,14 @@
                 </ion-label>
               </div>
 
-              <div slot="end" class="stats-container">
-                <ion-chip class="wallet" color="warning">
+              <div
+                slot="end"
+                class="stats-container"
+              >
+                <ion-chip
+                  class="wallet"
+                  color="warning"
+                >
                   <xp-gp :gp="user?.stats?.gp.wallet" />
                 </ion-chip>
               </div>
@@ -83,20 +151,27 @@
       </ion-row>
     </ion-grid>
 
-    <ion-fab vertical="bottom" horizontal="center" slot="fixed" @click="openNewProfileModal"
-      class="ion-no-border md:hidden fab-pulse">
+    <ion-fab
+      vertical="bottom"
+      horizontal="center"
+      slot="fixed"
+      @click="openNewProfileModal"
+      class="ion-no-border md:hidden fab-pulse"
+    >
       <ion-fab-button color="danger">
         <i class="fad fa-plus fa-2x"></i>
       </ion-fab-button>
     </ion-fab>
 
-    <!-- Stylized loading modal for profile selection -->
-    <ProfileLoadingModal :is-open="isProfileLoading" :user-name="selectedUserName" :user-avatar="selectedUserAvatar"
-      @close="isProfileLoading = false" />
-
     <!-- Toast for restore success -->
-    <ion-toast :is-open="showRestoreToast" :message="restoreMessage" :duration="3000"
-      :color="restoreSuccess ? 'success' : 'warning'" position="top" @didDismiss="showRestoreToast = false"></ion-toast>
+    <ion-toast
+      :is-open="showRestoreToast"
+      :message="restoreMessage"
+      :duration="3000"
+      :color="restoreSuccess ? 'success' : 'warning'"
+      position="top"
+      @didDismiss="showRestoreToast = false"
+    ></ion-toast>
   </xp-rpg-page>
 </template>
 
@@ -149,7 +224,6 @@ export default defineComponent({
   name: "switch-profile",
   components: {
     XpGp,
-    ProfileLoadingModal,
     XpProfileCard,
     XpRpgMenu,
     XpRpgPage
@@ -157,20 +231,19 @@ export default defineComponent({
   mixins: [ionic],
   setup() {
     // State management
+    // State management
     const isLoading = ref(false); // For initial list loading
-    const isProfileLoading = ref(false); // For selected profile loading
     const userStore = useUserStore();
     const audioStore = useAudioStore();
     const ionRouter = useIonRouter();
     const storage = new ProfileDb(profileStorage);
 
     // Restore notification state
+    // Restore notification state
     const showRestoreToast = ref(false);
     const restoreMessage = ref("");
     const restoreSuccess = ref(false);
     const isRestoringProfiles = ref(false);
-    const selectedUserName = ref("");
-    const selectedUserAvatar = ref("");
     const isRetroView = ref(false);
 
     // Computed properties
@@ -372,16 +445,27 @@ export default defineComponent({
 
     // Navigation functions
     const navigateToUserPortal = async (profile: User) => {
-      try {
-        isProfileLoading.value = true; // Start loading indicator
+      // Create and present the loading modal
+      const loadingModal = await modalController.create({
+        component: ProfileLoadingModal,
+        componentProps: {
+            userName: profile.name.nick,
+            userAvatar: getUserAvatar(profile)
+        },
+        cssClass: 'profile-loading-modal',
+        backdropDismiss: false
+      });
 
+      await loadingModal.present();
+
+      try {
         // Login the user first and wait for it to complete
         await userStore.loginUser(profile);
 
         // Then navigate to their home page
         await ionRouter.navigate(
           `/my-portal/${profile.id}/my-home`,
-          "forward"
+          "root"
         );
       } catch (error: any) {
         debug.error("Login/Navigation error:", error);
@@ -393,9 +477,10 @@ export default defineComponent({
         });
         await toast.present();
       } finally {
-        setTimeout(() => {
-          isProfileLoading.value = false;
-        }, 450);
+        // Dismiss the modal after a short delay to ensure smooth transition
+        setTimeout(async () => {
+          await loadingModal.dismiss();
+        }, 500);
       }
     };
 
@@ -422,8 +507,6 @@ export default defineComponent({
     };
 
     const selectProfile = async (profile: User) => {
-      selectedUserName.value = profile.name.nick;
-      selectedUserAvatar.value = getUserAvatar(profile);
       if (profile.passcode) {
         openPasscodeModal(profile);
       } else {
@@ -457,7 +540,7 @@ export default defineComponent({
 
       const { data } = await modal.onDidDismiss();
       if (data) {
-        // If profile was created successfully
+        // If profile created successfully
         loadProfiles();
       }
     };
@@ -471,7 +554,6 @@ export default defineComponent({
     onIonViewDidLeave(() => {
       // Reset loading states when leaving the view
       isLoading.value = false;
-      isProfileLoading.value = false;
     });
 
     onUnmounted(() => {
@@ -511,7 +593,6 @@ export default defineComponent({
       selectProfile,
       openNewProfileModal,
       handleRefresh,
-      isProfileLoading,
       fingerPrintOutline,
       fingerPrintSharp,
       cloudDownloadOutline,
@@ -519,8 +600,6 @@ export default defineComponent({
       restoreSuccess,
       showRestoreToast,
       openBackupOptionsModal,
-      selectedUserName,
-      selectedUserAvatar,
       isRetroView,
       gridOutline,
       listOutline,
@@ -531,308 +610,308 @@ export default defineComponent({
 });
 </script>
 <style scoped lang="scss">
-ion-content {
-  --background: transparent;
-}
-
-.switch-profile {
-  ion-card {
-    text-align: center;
-    /* width: calc(100% - 35px); */
-    // min-width: calc(15vw)
+  ion-content {
+    --background: transparent;
   }
 
-  // #container {
-  //   text-align: center;
-  //   position: absolute;
-  //   left: 0;
-  //   right: 0;
-  //   top: 50%;
-  //   transform: translateY(-50%);
-  // }
-
-  #container strong {
-    font-size: 20px;
-    line-height: 26px;
-  }
-
-  #container p {
-    font-size: 16px;
-    line-height: 22px;
-    color: #8c8c8c;
-    /* margin: 0; */
-  }
-
-  #container a {
-    text-decoration: none;
-  }
-
-  &#container {
-    height: 100vh;
-    background-color: #68a8d8;
-    background-image: linear-gradient(45deg,
-        #80d890 25%,
-        transparent 25%,
-        transparent 75%,
-        #80d890 75%),
-      linear-gradient(45deg,
-        #80d890 25%,
-        transparent 25%,
-        transparent 75%,
-        #80d890 75%);
-    background-size: 60px 60px;
-    background-position: 0 0, 30px 30px;
-    animation: slide 4s infinite linear;
-  }
-}
-
-.switch-profile {
-  ion-card {
-    text-align: center;
-  }
-
-  #container strong {
-    font-size: 20px;
-    line-height: 26px;
-  }
-
-  #container p {
-    font-size: 16px;
-    line-height: 22px;
-    color: #8c8c8c;
-  }
-
-  #container a {
-    text-decoration: none;
-  }
-
-  ion-badge {
-    padding: 6px 8px;
-    border-radius: 12px;
-    font-weight: 500;
-    min-width: 60px;
-    text-align: center;
-
-    &[color="tertiary"] {
-      --ion-color-base: var(--ion-color-tertiary);
+  .switch-profile {
+    ion-card {
+      text-align: center;
+      /* width: calc(100% - 35px); */
+      // min-width: calc(15vw)
     }
 
-    &[color="warning"] {
-      --ion-color-base: var(--ion-color-warning);
+    // #container {
+    //   text-align: center;
+    //   position: absolute;
+    //   left: 0;
+    //   right: 0;
+    //   top: 50%;
+    //   transform: translateY(-50%);
+    // }
+
+    #container strong {
+      font-size: 20px;
+      line-height: 26px;
+    }
+
+    #container p {
+      font-size: 16px;
+      line-height: 22px;
+      color: #8c8c8c;
+      /* margin: 0; */
+    }
+
+    #container a {
+      text-decoration: none;
+    }
+
+    &#container {
+      height: 100vh;
+      background-color: #68a8d8;
+      background-image: linear-gradient(45deg,
+          #80d890 25%,
+          transparent 25%,
+          transparent 75%,
+          #80d890 75%),
+        linear-gradient(45deg,
+          #80d890 25%,
+          transparent 25%,
+          transparent 75%,
+          #80d890 75%);
+      background-size: 60px 60px;
+      background-position: 0 0, 30px 30px;
+      animation: slide 4s infinite linear;
     }
   }
-}
 
-// Empty state styles
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 3rem 1.5rem;
-  gap: 1rem;
-
-  i {
-    color: rgba(255, 255, 255, 0.4);
-  }
-
-  h2 {
-    margin: 0;
-    color: #f7e8a8;
-    font-size: 1.5rem;
-  }
-
-  p {
-    margin: 0;
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 1rem;
-  }
-}
-
-// Retro view - centered on screen
-.retro-view {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  min-height: 60vh;
-  // padding-bottom: 80px; // Space for FAB
-}
-
-// Profile grid spacing
-.profile-grid {
-  padding-bottom: 80px; // Space for FAB
-}
-
-// Profile card column - adds spacing between cards
-.profile-card-col {
-  padding: 8px !important;
-  display: flex;
-  flex-direction: column;
-}
-
-// FAB pulse animation
-.fab-pulse {
-  ion-fab-button {
-    animation: fab-pulse 2s infinite;
-    border-radius: 50%;
-  }
-}
-
-@keyframes fab-pulse {
-
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 rgba(var(--ion-color-danger-rgb), 0.6);
-  }
-
-  50% {
-    box-shadow: 0 0 0 12px rgba(var(--ion-color-danger-rgb), 0);
-  }
-}
-
-ion-modal {
-  .img-avatar {
-    width: 100px;
-    height: 100px;
-    border-radius: 50%;
-    flex-grow: 1;
-    margin: 1em;
-  }
-
-  ion-input {
-    text-align: right;
-  }
-}
-
-.avatar-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-
-  .profile-icons {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-
-    i {
-      font-size: 1.2em;
+  .switch-profile {
+    ion-card {
+      text-align: center;
     }
-  }
-}
 
-@keyframes slide {
-  from {
-    background-position: 0 0, 30px 30px;
-  }
+    #container strong {
+      font-size: 20px;
+      line-height: 26px;
+    }
 
-  to {
-    background-position: 0 0, -30px -30px;
-  }
-}
+    #container p {
+      font-size: 16px;
+      line-height: 22px;
+      color: #8c8c8c;
+    }
 
-.profile-item {
-  --padding-start: 1rem;
-  --inner-padding-end: 1rem;
-  margin-bottom: 0.5rem;
+    #container a {
+      text-decoration: none;
+    }
 
-  &::part(native) {
-    align-items: center;
-  }
-}
+    ion-badge {
+      padding: 6px 8px;
+      border-radius: 12px;
+      font-weight: 500;
+      min-width: 60px;
+      text-align: center;
 
-.profile-info {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-}
+      &[color="tertiary"] {
+        --ion-color-base: var(--ion-color-tertiary);
+      }
 
-.avatar-container {
-  position: relative;
-  display: flex;
-  align-items: center;
-
-  ion-avatar {
-    width: 50px;
-    height: 50px;
-  }
-
-  .role-icons {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    margin-left: 0.75rem;
-
-    i {
-      font-size: 1.5rem;
-
-      // Set default duotone colors if not overridden
-      /* --fa-primary-color: var(--ion-color-primary);
-      --fa-secondary-color: var(--ion-color-primary-shade); */
-      /* --fa-secondary-opacity: 0.6; */
-
-      &:last-child {
-        /* --fa-primary-color: var(--ion-color-success);
-        --fa-secondary-color: var(--ion-color-success-shade); */
+      &[color="warning"] {
+        --ion-color-base: var(--ion-color-warning);
       }
     }
   }
-}
 
-.name-container {
-  h2 {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin: 0;
-    color: var(--ion-color-dark);
-  }
-
-  p {
-    font-size: 0.85rem;
-    margin: 0.25rem 0 0;
-    color: var(--ion-color-medium);
-  }
-}
-
-.stats-container {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-
-  .level {
+  // Empty state styles
+  .empty-state {
     display: flex;
     flex-direction: column;
     align-items: center;
-    /* background: var(--ion-color-tertiary-dark); */
-    padding: 0.25rem 0.75rem;
-    border-radius: 8px;
-    min-width: 3rem;
+    justify-content: center;
+    text-align: center;
+    padding: 3rem 1.5rem;
+    gap: 1rem;
 
-    .label {
-      font-size: 0.9rem;
-      color: var(--ion-color-tertiary);
-      font-weight: 600;
-      /* text-transform: uppercase; */
+    i {
+      color: rgba(255, 255, 255, 0.4);
     }
 
-    .value {
-      font-size: 1.3rem;
-      font-weight: 700;
-      color: var(--ion-color-tertiary);
+    h2 {
+      margin: 0;
+      color: #f7e8a8;
+      font-size: 1.5rem;
+    }
+
+    p {
+      margin: 0;
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 1rem;
     }
   }
 
-  .wallet {
-    /* background: var(--ion-color-warning-tint); */
-    padding: 0.25rem 0.75rem;
-    border-radius: 8px;
+  // Retro view - centered on screen
+  .retro-view {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+    // padding-bottom: 80px; // Space for FAB
+  }
+
+  // Profile grid spacing
+  .profile-grid {
+    padding-bottom: 80px; // Space for FAB
+  }
+
+  // Profile card column - adds spacing between cards
+  .profile-card-col {
+    padding: 8px !important;
+    display: flex;
+    flex-direction: column;
+  }
+
+  // FAB pulse animation
+  .fab-pulse {
+    ion-fab-button {
+      animation: fab-pulse 2s infinite;
+      border-radius: 50%;
+    }
+  }
+
+  @keyframes fab-pulse {
+
+    0%,
+    100% {
+      box-shadow: 0 0 0 0 rgba(var(--ion-color-danger-rgb), 0.6);
+    }
+
+    50% {
+      box-shadow: 0 0 0 12px rgba(var(--ion-color-danger-rgb), 0);
+    }
+  }
+
+  ion-modal {
+    .img-avatar {
+      width: 100px;
+      height: 100px;
+      border-radius: 50%;
+      flex-grow: 1;
+      margin: 1em;
+    }
+
+    ion-input {
+      text-align: right;
+    }
+  }
+
+  .avatar-group {
     display: flex;
     align-items: center;
-    color: var(--ion-color-warning);
-    font-size: 1.4rem;
-    font-weight: 700;
-    font-family: "Twoson";
+    gap: 8px;
+
+    .profile-icons {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+
+      i {
+        font-size: 1.2em;
+      }
+    }
   }
-}
+
+  @keyframes slide {
+    from {
+      background-position: 0 0, 30px 30px;
+    }
+
+    to {
+      background-position: 0 0, -30px -30px;
+    }
+  }
+
+  .profile-item {
+    --padding-start: 1rem;
+    --inner-padding-end: 1rem;
+    margin-bottom: 0.5rem;
+
+    &::part(native) {
+      align-items: center;
+    }
+  }
+
+  .profile-info {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .avatar-container {
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    ion-avatar {
+      width: 50px;
+      height: 50px;
+    }
+
+    .role-icons {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-left: 0.75rem;
+
+      i {
+        font-size: 1.5rem;
+
+        // Set default duotone colors if not overridden
+        /* --fa-primary-color: var(--ion-color-primary);
+      --fa-secondary-color: var(--ion-color-primary-shade); */
+        /* --fa-secondary-opacity: 0.6; */
+
+        &:last-child {
+          /* --fa-primary-color: var(--ion-color-success);
+        --fa-secondary-color: var(--ion-color-success-shade); */
+        }
+      }
+    }
+  }
+
+  .name-container {
+    h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin: 0;
+      color: var(--ion-color-dark);
+    }
+
+    p {
+      font-size: 0.85rem;
+      margin: 0.25rem 0 0;
+      color: var(--ion-color-medium);
+    }
+  }
+
+  .stats-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+
+    .level {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      /* background: var(--ion-color-tertiary-dark); */
+      padding: 0.25rem 0.75rem;
+      border-radius: 8px;
+      min-width: 3rem;
+
+      .label {
+        font-size: 0.9rem;
+        color: var(--ion-color-tertiary);
+        font-weight: 600;
+        /* text-transform: uppercase; */
+      }
+
+      .value {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: var(--ion-color-tertiary);
+      }
+    }
+
+    .wallet {
+      /* background: var(--ion-color-warning-tint); */
+      padding: 0.25rem 0.75rem;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      color: var(--ion-color-warning);
+      font-size: 1.4rem;
+      font-weight: 700;
+      font-family: "Twoson";
+    }
+  }
 </style>
