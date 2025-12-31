@@ -41,40 +41,46 @@ export default defineComponent({
     emits: ['loadMore'],
     setup(props) {
         const scrollContainer = ref<HTMLElement | null>(null);
-        let isInternalUpdate = false;
-
-        const scrollToBottom = async (force = false) => {
-            if (isInternalUpdate && !force) return;
+        const scrollToBottom = async (forceAuto = false) => {
             await nextTick();
             if (scrollContainer.value) {
+                // Ensure the scroll height is fully updated
+                await nextTick();
+
                 scrollContainer.value.scrollTo({
                     top: scrollContainer.value.scrollHeight,
-                    behavior: force ? 'auto' : 'smooth'
+                    behavior: forceAuto ? 'auto' : 'smooth'
                 });
             }
         };
 
+        const lastProcessedId = ref<string | null>(null);
+
         // Watch for new messages
-        watch(() => props.messages, (newVal, oldVal) => {
-            if (!newVal.length) return;
-
-            // If the last message ID changed, it's likely a new message at the bottom
-            const newLastId = newVal[newVal.length - 1]?.id;
-            const oldLastId = oldVal && oldVal.length ? oldVal[oldVal.length - 1]?.id : null;
-
-            if (newLastId !== oldLastId) {
-                scrollToBottom();
+        watch(() => props.messages, (newVal) => {
+            if (!newVal || !newVal.length) {
+                lastProcessedId.value = null;
+                return;
             }
-        }, { deep: false });
+
+            const newLastId = newVal[newVal.length - 1]?.id;
+            const isInitialLoad = lastProcessedId.value === null;
+
+            if (newLastId !== lastProcessedId.value) {
+                scrollToBottom(isInitialLoad);
+                lastProcessedId.value = newLastId;
+            }
+        }, { deep: true, immediate: true });
 
         onMounted(() => {
-            scrollToBottom();
+            // Initial scroll (redundant with immediate watch but safe)
+            scrollToBottom(true);
 
             // Re-scroll on any image load inside the container
             if (scrollContainer.value) {
                 scrollContainer.value.addEventListener('load', (e) => {
                     if ((e.target as HTMLElement).tagName === 'IMG') {
-                        scrollToBottom();
+                        scrollToBottom(false);
                     }
                 }, true);
             }
