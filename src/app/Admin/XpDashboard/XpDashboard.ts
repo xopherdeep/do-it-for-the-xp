@@ -157,17 +157,36 @@ export default defineComponent({
         .then((toast) => toast.present());
     },
     async impersonateUser(user: any) {
+      const loadingModal = await modalController.create({
+        component: require("@/components/templates/modals/ProfileLoadingModal.vue")
+          .default,
+        componentProps: {
+          userName: user.name.nick,
+          userAvatar: this.getUserAvatar(user),
+        },
+        cssClass: "profile-loading-modal",
+        backdropDismiss: false,
+      });
+
+      await loadingModal.present();
+
       try {
         await (this as any).userStore.impersonateUser(user.id);
+
         this.showSuccessToast(`Now viewing as ${user.name.nick}`);
+
         // Navigate to user's portal after successful impersonation
         await this.$router.push({
-          name: "my-portal-home",
+          name: "my-home",
           params: { userId: user.id },
         });
       } catch (error) {
         debug.error("Failed to impersonate user:", error);
         this.showErrorToast("Failed to switch profile");
+      } finally {
+        setTimeout(async () => {
+          await loadingModal.dismiss();
+        }, 500);
       }
     },
 

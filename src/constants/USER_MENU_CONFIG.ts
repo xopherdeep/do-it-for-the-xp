@@ -1,7 +1,7 @@
 export const USER_MENU_CONFIG = {
   talk: {
-    label: "Talk",
-    icon: "fa-comment",
+    label: "Chat",
+    icon: "fa-comments",
     id: "talk-to"
   },
   funds: {

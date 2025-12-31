@@ -11,22 +11,13 @@
         </ion-button> -->
       </ion-buttons>
       <ion-buttons slot="end">
-        <ion-button
-          v-if="isPenalty"
-          @click="clickAward"
-          :disabled="members.length === 0 || gPoints === 0"
-        >
+        <ion-button v-if="isPenalty" @click="clickAward" :disabled="members.length === 0 || gPoints === 0">
           <i class="fad fa-minus-circle fa-2x mr-2"></i>
           Subtract Points
         </ion-button>
-        <ion-button
-          v-else
-          @click="clickAward"
-          :disabled="
-            members.length === 0 ||
-            (gPoints === 0 && xpPoints === 0 && apPoints === 0)
-          "
-        >
+        <ion-button v-else @click="clickAward" :disabled="members.length === 0 ||
+          (gPoints === 0 && xpPoints === 0 && apPoints === 0)
+          ">
           <i class="fad fa-gift fa-2x mr-2"></i>
           Award Points
         </ion-button>
@@ -51,17 +42,13 @@
             </ion-card-header> -->
 
             <!-- Main Tab Navigation -->
-            <ion-segment
-              v-model="activeTab"
-              mode="ios"
-              class="ion-padding icon-colors"
-            >
+            <ion-segment v-model="activeTab" mode="ios" class="ion-padding icon-colors">
               <ion-segment-button value="members">
                 <i class="fad fa-users fa-3x" />
                 <ion-label>Who</ion-label>
               </ion-segment-button>
               <ion-segment-button value="points">
-                <i class="fad fa-hand-holding fa-3x" />
+                <i class="fad fa-hand-holding-medical fa-3x" />
                 <ion-label>Points</ion-label>
               </ion-segment-button>
               <ion-segment-button value="notes">
@@ -84,11 +71,7 @@
                         {{ user.name.first }}
                       </p>
                     </ion-label>
-                    <ion-checkbox
-                      slot="end"
-                      :checked="members.includes(user.id)"
-                      @ionChange="toggleMember(user.id)"
-                    >
+                    <ion-checkbox slot="end" :checked="members.includes(user.id)" @ionChange="toggleMember(user.id)">
                     </ion-checkbox>
                   </ion-item>
                 </ion-list>
@@ -97,11 +80,7 @@
               <!-- Points Tab Content -->
               <div v-show="activeTab === 'points'">
                 <!-- Point Type Tabs -->
-                <ion-segment
-                  v-model="activePointType"
-                  mode="ios"
-                  class="ion-padding icon-colors"
-                >
+                <ion-segment v-model="activePointType" mode="ios" class="ion-padding icon-colors">
                   <ion-segment-button value="gp">
                     <ion-label class="overflow-visible">
                       <i class="fad fa-hand-holding-usd" />
@@ -126,18 +105,8 @@
                   <ion-list>
                     <ion-item lines="none">
                       <ion-label position="floating"> ₲P </ion-label>
-                      <ion-input
-                        v-if="isPenalty"
-                        v-model="gPoints"
-                        type="number"
-                        :max="0"
-                      />
-                      <ion-input
-                        v-else
-                        v-model="gPoints"
-                        type="number"
-                        :min="0"
-                      />
+                      <ion-input v-if="isPenalty" v-model="gPoints" type="number" :max="0" />
+                      <ion-input v-else v-model="gPoints" type="number" :min="0" />
                     </ion-item>
                   </ion-list>
                   <ion-segment v-model="gPoints" mode="ios">
@@ -194,35 +163,21 @@
 
               <!-- Notes Tab Content -->
               <div v-show="activeTab === 'notes'">
-                <ion-textarea
-                  class="border border-dashed rounded"
-                  rows="10"
-                  v-model="notes"
-                  placeholder="Enter optional note here..."
-                >
+                <ion-textarea class="border border-dashed rounded" rows="10" v-model="notes"
+                  placeholder="Enter optional note here...">
                 </ion-textarea>
               </div>
             </ion-card-content>
 
             <ion-footer class="ion-padding">
-              <ion-button
-                expand="block"
-                v-if="isPenalty"
-                @click="clickAward"
-                :disabled="members.length === 0 || gPoints === 0"
-              >
+              <ion-button expand="block" v-if="isPenalty" @click="clickAward"
+                :disabled="members.length === 0 || gPoints === 0">
                 <i class="fad fa-minus-circle mr-2"></i>
                 Subtract Points
               </ion-button>
-              <ion-button
-                expand="block"
-                v-else
-                @click="clickAward"
-                :disabled="
-                  members.length === 0 ||
-                  (gPoints === 0 && xpPoints === 0 && apPoints === 0)
-                "
-              >
+              <ion-button expand="block" v-else @click="clickAward" :disabled="members.length === 0 ||
+                (gPoints === 0 && xpPoints === 0 && apPoints === 0)
+                ">
                 <i class="fad fa-gift mr-2"></i>
                 Award Points
               </ion-button>
@@ -234,107 +189,107 @@
   </ion-content>
 </template>
 <script lang="ts">
-  import { modalController } from "@ionic/vue";
-  import { defineComponent } from "vue";
-  import { useUserStore } from "@/lib/store/stores/user";
+import { modalController } from "@ionic/vue";
+import { defineComponent } from "vue";
+import { useUserStore } from "@/lib/store/stores/user";
 
-  import ionic from "@/lib/mixins/ionic";
-  import { ProfileDb } from "@/lib/databases";
-  import { profileStorage } from "@/app/SideMenu/SwitchProfile/SwitchProfile.vue";
+import ionic from "@/lib/mixins/ionic";
+import { ProfileDb } from "@/lib/databases";
+import { profileStorage } from "@/app/SideMenu/SwitchProfile/SwitchProfile.vue";
 
-  export default defineComponent({
-    props: {
-      isPenalty: {
-        type: Boolean,
-        default: false,
-      },
+export default defineComponent({
+  props: {
+    isPenalty: {
+      type: Boolean,
+      default: false,
     },
+  },
 
-    mixins: [ionic],
-    computed: {
-      users() {
-        return (this as any).userStore.users;
-      },
-      usersAz() {
-        return (this as any).userStore.usersAz;
-      },
+  mixins: [ionic],
+  computed: {
+    users() {
+      return (this as any).userStore.users;
     },
-    data() {
-      return {
-        gPoints: 0,
-        xpPoints: 0,
-        apPoints: 0,
-        members: [] as string[],
-        notes: "",
-        activePointType: "gp",
-        activeTab: "members",
-        profileDb: new ProfileDb(profileStorage),
-      };
+    usersAz() {
+      return (this as any).userStore.usersAz;
     },
-    setup() {
-      const userStore = useUserStore();
-      return {
-        userStore,
-      };
-    },
-    methods: {
-      clickAward() {
-        this.members.forEach(async (id: any) => {
-          const profile = this.users[id];
+  },
+  data() {
+    return {
+      gPoints: 0,
+      xpPoints: 0,
+      apPoints: 0,
+      members: [] as string[],
+      notes: "",
+      activePointType: "gp",
+      activeTab: "members",
+      profileDb: new ProfileDb(profileStorage),
+    };
+  },
+  setup() {
+    const userStore = useUserStore();
+    return {
+      userStore,
+    };
+  },
+  methods: {
+    clickAward() {
+      this.members.forEach(async (id: any) => {
+        const profile = this.users[id];
 
-          // Update GP for both bonus and penalty
-          const { wallet } = profile.stats.gp;
-          profile.stats.gp.wallet = Math.round(
-            Number(wallet) + Number(this.gPoints)
-          );
+        // Update GP for both bonus and penalty
+        const { wallet } = profile.stats.gp;
+        profile.stats.gp.wallet = Math.round(
+          Number(wallet) + Number(this.gPoints)
+        );
 
-          // Only update XP and AP in bonus mode (not penalty)
-          if (!this.isPenalty) {
-            // Update XP if any awarded
-            if (Number(this.xpPoints) > 0) {
-              const { total } = profile.stats.xp;
-              profile.stats.xp.total = Math.round(
-                Number(total) + Number(this.xpPoints)
-              );
-            }
-
-            // Update AP if any awarded
-            if (Number(this.apPoints) > 0) {
-              const { total } = profile.stats.ap;
-              profile.stats.ap.total = Math.round(
-                Number(total) + Number(this.apPoints)
-              );
-            }
+        // Only update XP and AP in bonus mode (not penalty)
+        if (!this.isPenalty) {
+          // Update XP if any awarded
+          if (Number(this.xpPoints) > 0) {
+            const { total } = profile.stats.xp;
+            profile.stats.xp.total = Math.round(
+              Number(total) + Number(this.xpPoints)
+            );
           }
 
-          await this.profileDb.setProfile(profile).then(() => {
-            const message = this.isPenalty
-              ? "Points Subtracted"
-              : "Bonus Awarded";
-            this.profileDb.showSuccessToast(message);
-            this.dismiss();
-          });
-        });
-      },
-      onRadioChange() {
-        // console.log("onRadioChange", val);
-      },
-      getUserAvatar(user: any) {
-        return this.$requireAvatar(`./${user.avatar}.svg`);
-      },
-      getNumber(number: number) {
-        return this.isPenalty ? number * -1 : number;
-      },
-      toggleMember(userId: string) {
-        if (this.members.includes(userId)) {
-          this.members = this.members.filter((id) => id !== userId);
-        } else {
-          this.members.push(userId);
+          // Update AP if any awarded
+          if (Number(this.apPoints) > 0) {
+            const { total } = profile.stats.ap;
+            profile.stats.ap.total = Math.round(
+              Number(total) + Number(this.apPoints)
+            );
+          }
         }
-      },
-      dismiss() {
-        modalController.dismiss();
-      },
+
+        await this.profileDb.setProfile(profile).then(() => {
+          const message = this.isPenalty
+            ? "Points Subtracted"
+            : "Bonus Awarded";
+          this.profileDb.showSuccessToast(message);
+          this.dismiss();
+        });
+      });
     },
-  });
+    onRadioChange() {
+      // console.log("onRadioChange", val);
+    },
+    getUserAvatar(user: any) {
+      return this.$requireAvatar(`./${user.avatar}.svg`);
+    },
+    getNumber(number: number) {
+      return this.isPenalty ? number * -1 : number;
+    },
+    toggleMember(userId: string) {
+      if (this.members.includes(userId)) {
+        this.members = this.members.filter((id) => id !== userId);
+      } else {
+        this.members.push(userId);
+      }
+    },
+    dismiss() {
+      modalController.dismiss();
+    },
+  },
+});
 </script>

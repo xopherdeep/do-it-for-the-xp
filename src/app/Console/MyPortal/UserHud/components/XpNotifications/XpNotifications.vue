@@ -5,13 +5,16 @@
         <ion-buttons slot="start">
 
           <i class="fad fa-bell fa-2x ml-2" />
-          </ion-buttons>
+        </ion-buttons>
         <ion-title>Notifications</ion-title>
         <ion-buttons slot="end">
           <ion-button @click="toggleSettings">
             <i class="fad fa-filter fa-2x" />
           </ion-button>
-
+          <ion-button router-link="/side-menu/settings/notifications">
+            <i class="fad fa-cog fa-2x" />
+          </ion-button>
+          <xp-close-button @click="handleClose" color="light" size="sm" />
         </ion-buttons>
       </ion-toolbar>
       <ion-toolbar v-if="showFilters">

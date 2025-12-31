@@ -2,9 +2,9 @@ import { defineStore } from 'pinia';
 import { reactive, computed } from 'vue';
 import Api from "@/lib/api";
 import { getGPService } from '@/lib/services/gp/GPService';
-import { 
-  JOB_UNLOCK_REQUIREMENTS, 
-  getLevelFromXp 
+import {
+  JOB_UNLOCK_REQUIREMENTS,
+  getLevelFromXp
 } from '@/lib/services/stats/PlayerStatsService';
 
 // LocalStorage key for persisting current user ID
@@ -15,7 +15,8 @@ export const useUserStore = defineStore('user', () => {
   const currentUser = reactive({
     id: null as string | null,
     isAuthenticated: true, // Defaulting to true as per legacy index.ts
-    stats: null as any
+    stats: null as any,
+    isImpersonating: false
   });
 
   const users = reactive<Record<string, any>>({});
@@ -29,7 +30,7 @@ export const useUserStore = defineStore('user', () => {
   });
 
   // --- Helper Functions ---
-  
+
   /**
    * Save current user ID to localStorage
    */
@@ -68,7 +69,7 @@ export const useUserStore = defineStore('user', () => {
       const response = await Api.get("users");
       // Handle both raw array and axios-like response { data: [] }
       const usersList = Array.isArray(response) ? response : response.data;
-      
+
       if (Array.isArray(usersList)) {
         usersList.forEach(user => {
           users[user.id] = user;
@@ -106,20 +107,20 @@ export const useUserStore = defineStore('user', () => {
    */
   async function updateUserGP(payload: { userId: string, wallet?: number, savings?: number, debt?: number }) {
     const { userId, wallet, savings, debt } = payload;
-    
+
     if (users[userId]) {
       const userStats = users[userId].stats || { gp: { wallet: 0, savings: 0, debt: 0, limit: 1000 } };
-      
+
       // Initialize stats if missing
       if (!userStats.gp) userStats.gp = { wallet: 0, savings: 0, debt: 0, limit: 1000 };
-      
+
       if (wallet !== undefined) userStats.gp.wallet = (userStats.gp.wallet || 0) + wallet;
       if (savings !== undefined) userStats.gp.savings = (userStats.gp.savings || 0) + savings;
       if (debt !== undefined) userStats.gp.debt = (userStats.gp.debt || 0) + debt;
-      
+
       // Update state
       users[userId].stats = userStats;
-      
+
       // Update current user if matches
       if (currentUser.id === userId) {
         currentUser.stats = userStats;
@@ -136,25 +137,25 @@ export const useUserStore = defineStore('user', () => {
    */
   function updateUserHP(payload: { userId: string, amount: number }): boolean {
     const { userId, amount } = payload;
-    
+
     if (users[userId]) {
       const userStats = users[userId].stats || { hp: 100, maxHp: 100 };
-      
+
       // Initialize hp if missing
       if (userStats.hp === undefined) userStats.hp = 100;
       if (userStats.maxHp === undefined) userStats.maxHp = 100;
-      
+
       // Apply damage (negative amount) or healing (positive amount)
       userStats.hp = Math.max(0, Math.min(userStats.maxHp, userStats.hp + amount));
-      
+
       // Update state
       users[userId].stats = userStats;
-      
+
       // Update current user if matches
       if (currentUser.id === userId) {
         currentUser.stats = userStats;
       }
-      
+
       // Return whether player is still alive
       return userStats.hp > 0;
     }
@@ -167,23 +168,23 @@ export const useUserStore = defineStore('user', () => {
   function unlockPegasus(userId: string, pegasusIndex: number) {
     if (users[userId]) {
       const userStats = users[userId].stats || {};
-      
+
       // Initialize pegasi array if missing (9 slots for 9 worlds)
       if (!userStats.pegasi) userStats.pegasi = Array(9).fill(false);
-      
+
       // Unlock
       if (pegasusIndex >= 0 && pegasusIndex < userStats.pegasi.length) {
         userStats.pegasi[pegasusIndex] = true;
       }
-      
+
       // Update state
       users[userId].stats = userStats;
-      
+
       // Update current user if matches
       if (currentUser.id === userId) {
         currentUser.stats = userStats;
       }
-      
+
       // Persist (Implied via existing mechanisms or add specific sync if needed)
       // For now, in-memory/local updates are sufficient for the session
     }
@@ -197,8 +198,19 @@ export const useUserStore = defineStore('user', () => {
       Object.assign(currentUser, users[userId]);
       currentUser.id = userId;
       currentUser.isAuthenticated = true;
+      currentUser.isImpersonating = true;
       // Persist the selection to localStorage
       saveCurrentUserId(userId);
+      localStorage.setItem('xp_is_impersonating', 'true');
+    }
+  }
+
+  function stopImpersonating() {
+    currentUser.isImpersonating = false;
+    localStorage.removeItem('xp_is_impersonating');
+    // Usually we return to the main admin user, which is ID 1
+    if (users["1"]) {
+      loginUser(users["1"]);
     }
   }
 
@@ -208,8 +220,10 @@ export const useUserStore = defineStore('user', () => {
    */
   function restoreCurrentUser() {
     const savedUserId = getSavedUserId();
+    const wasImpersonating = localStorage.getItem('xp_is_impersonating') === 'true';
     if (savedUserId && users[savedUserId]) {
       impersonateUser(savedUserId);
+      currentUser.isImpersonating = wasImpersonating;
       return true;
     }
     return false;
@@ -222,18 +236,18 @@ export const useUserStore = defineStore('user', () => {
   function unlockQuickDrawSlot(userId: string) {
     if (users[userId]) {
       const userStats = users[userId].stats || {};
-      
+
       // Initialize quickDrawSlots if missing (default 1)
       userStats.quickDrawSlots = userStats.quickDrawSlots ?? 1;
-      
+
       // Max 3 slots
       if (userStats.quickDrawSlots < 3) {
         userStats.quickDrawSlots++;
       }
-      
+
       // Update state
       users[userId].stats = userStats;
-      
+
       // Update current user if matches
       if (currentUser.id === userId) {
         currentUser.stats = userStats;
@@ -247,10 +261,10 @@ export const useUserStore = defineStore('user', () => {
   function unlockClass(userId: string, jobClassId: string) {
     if (users[userId]) {
       const userStats = users[userId].stats || {};
-      
+
       // Initialize classes if missing
       if (!userStats.classes) userStats.classes = {};
-      
+
       // Initialize class entry if missing
       if (!userStats.classes[jobClassId]) {
         userStats.classes[jobClassId] = {
@@ -259,16 +273,16 @@ export const useUserStore = defineStore('user', () => {
           unlocked: false
         };
       }
-      
+
       // Unlock
       if (!userStats.classes[jobClassId].unlocked) {
         userStats.classes[jobClassId].unlocked = true;
         // Optionally add notification here
       }
-      
+
       // Update state
       users[userId].stats = userStats;
-      
+
       // Update current user if matches
       if (currentUser.id === userId) {
         currentUser.stats = userStats;
@@ -281,15 +295,15 @@ export const useUserStore = defineStore('user', () => {
    */
   function checkClassUnlocks(userId: string) {
     if (!users[userId]) return;
-    
+
     const userStats = users[userId].stats || {};
     const classes = userStats.classes || {};
-    
+
     // Iterate over all available job classes in requirements
     Object.entries(JOB_UNLOCK_REQUIREMENTS).forEach(([jobClassId, requirements]) => {
       // If already unlocked, skip
       if (classes[jobClassId]?.unlocked) return;
-      
+
       // Check if all requirements are met
       let allMet = true;
       for (const [reqClass, reqLevel] of Object.entries(requirements)) {
@@ -299,7 +313,7 @@ export const useUserStore = defineStore('user', () => {
           break;
         }
       }
-      
+
       // Unlock if met
       if (allMet) {
         unlockClass(userId, jobClassId);
@@ -313,10 +327,10 @@ export const useUserStore = defineStore('user', () => {
   function updateClassXp(userId: string, jobClassId: string, amount: number) {
     if (users[userId]) {
       const userStats = users[userId].stats || {};
-      
+
       // Initialize classes if missing
       if (!userStats.classes) userStats.classes = {};
-      
+
       // Initialize specific class if missing (standard default is unlocked)
       if (!userStats.classes[jobClassId]) {
         userStats.classes[jobClassId] = {
@@ -324,28 +338,28 @@ export const useUserStore = defineStore('user', () => {
           xp: 0,
           // Base classes are always unlocked, advanced classes need unlocking
           // For safety, if we are adding XP, we assume it's unlocked or being unlocked
-          unlocked: true 
+          unlocked: true
         };
       }
-      
+
       const classProgress = userStats.classes[jobClassId];
-      
+
       // Add XP
       classProgress.xp += amount;
-      
+
       // Recalculate level
       const newLevel = getLevelFromXp(classProgress.xp);
-      
+
       // Check for level up
       if (newLevel > classProgress.level) {
         classProgress.level = newLevel;
         // Trigger checks for other unlocks
         checkClassUnlocks(userId);
       }
-      
+
       // Update state
       users[userId].stats = userStats;
-      
+
       // Update current user if matches
       if (currentUser.id === userId) {
         currentUser.stats = userStats;
@@ -369,6 +383,7 @@ export const useUserStore = defineStore('user', () => {
     checkClassUnlocks,
     updateClassXp,
     impersonateUser,
+    stopImpersonating,
     restoreCurrentUser,
     usersAz
   };

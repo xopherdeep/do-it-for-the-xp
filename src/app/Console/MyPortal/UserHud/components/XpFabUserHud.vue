@@ -6,8 +6,9 @@
       <ion-row>
         <ion-col class="ion-no-padding">
           <div class="avatar-wrapper">
-            <ion-fab-button color="light" v-if="user.avatar" class="avatar-button">
-              <ion-img class="ion-no-padding" :src="userAvatar"></ion-img>
+            <ion-fab-button color="light" class="avatar-button">
+              <i v-if="isImpersonating" class="fad fa-mask fa-2x text-danger"></i>
+              <ion-img v-else-if="user.avatar" class="ion-no-padding" :src="userAvatar"></ion-img>
             </ion-fab-button>
             <ion-badge color="secondary" class="avatar-badge" v-if="apPercent !== null">
               AP {{ apPercent }}%
@@ -46,6 +47,8 @@
 import { computed, defineComponent, ref, PropType } from "vue";
 import { walletOutline, colorWand, fitnessOutline } from "ionicons/icons";
 import { useRouter } from "vue-router";
+import { useUserStore } from "@/lib/store/stores/user";
+import { play$fx } from "@/assets/fx";
 import {
   menuController,
   modalController,
@@ -61,7 +64,7 @@ import {
 import XpChat from "@/app/Admin/XpChat/XpChat.vue";
 import XpNotifications from "./XpNotifications/XpNotifications.vue";
 import SaveAndQuitModal from "@/components/molecules/Modals/SaveAndQuitModal.vue";
-import XpRpgMenu from "@/components/molecules/RpgMenu/XpRpgMenu.vue";
+import XpRpgMenu, { RpgMenuAction } from "@/components/molecules/RpgMenu/XpRpgMenu.vue";
 import { USER_MENU_CONFIG } from "@/constants";
 
 export default defineComponent({
@@ -122,21 +125,40 @@ export default defineComponent({
       }
       return Number(ap) || 0;
     },
-    allUserActions() {
-      return [
-        ...this.staticActions,
-        {
-          label: "Menu",
-          faIcon: "bars",
-          click: async () => {
-            await menuController.toggle();
-          },
+    isImpersonating() {
+      return (this as any).userStore.currentUser.isImpersonating;
+    },
+    allUserActions(): RpgMenuAction[] {
+      // Use a broad RpgMenuAction type to allow any labels/icons
+      const actions: RpgMenuAction[] = [...this.staticActions];
+
+      actions.push({
+        label: "Menu",
+        faIcon: "bars",
+        click: async () => {
+          await menuController.toggle();
         },
-      ];
+      });
+
+      if (this.isImpersonating) {
+        actions.push({
+          label: "End Masquerade",
+          faIcon: "mask",
+          iconClass: "text-danger",
+          click: () => {
+            (this as any).userStore.stopImpersonating();
+            play$fx("start");
+            this.$router.push({ name: "xp-dashboard" });
+          },
+        });
+      }
+
+      return actions;
     },
   },
   setup(props, { emit }) {
     const router = useRouter();
+    const userStore = useUserStore();
     const userId = computed(() => props.user.id);
     const fabActive = ref(false);
     const showSaveQuitModal = ref(false);
@@ -179,7 +201,7 @@ export default defineComponent({
       }
     };
 
-    const staticActions = [
+    const staticActions: RpgMenuAction[] = [
       {
         label: USER_MENU_CONFIG.talk.label,
         id: USER_MENU_CONFIG.talk.id,
@@ -276,6 +298,7 @@ export default defineComponent({
       userFab,
       fabActive,
       userId,
+      userStore,
       walletOutline,
       colorWand,
       fitnessOutline,

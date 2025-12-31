@@ -1,7 +1,7 @@
 import { defineComponent, ref, computed } from 'vue';
 import { format } from 'date-fns';
 import ionic from "@/lib/mixins/ionic";
-import { toastController } from '@ionic/vue';
+import { toastController, modalController } from '@ionic/vue';
 
 // Define the Notification interface
 interface Notification {
@@ -16,9 +16,14 @@ interface Notification {
   pointAmount?: number;
 }
 
+import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue";
+
 export default defineComponent({
   name: 'xp-notifications',
   mixins: [ionic],
+  components: {
+    XpCloseButton
+  },
   setup() {
     const showFilters = ref(true);
     const currentFilter = ref('all');
@@ -135,6 +140,10 @@ export default defineComponent({
       toast.present();
     };
 
+    const handleClose = async () => {
+      await modalController.dismiss();
+    };
+
     // Get avatar src from avatar name
     const getAvatarSrc = (avatar?: string) => {
       if (avatar) {
@@ -155,7 +164,8 @@ export default defineComponent({
       deleteNotification,
       markAllAsRead,
       deleteAllNotifications,
-      getAvatarSrc
+      getAvatarSrc,
+      handleClose
     };
   }
 });

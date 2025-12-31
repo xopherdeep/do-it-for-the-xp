@@ -83,6 +83,9 @@ export default defineComponent({
     routeName() {
       return this.route.name;
     },
+    isImpersonating() {
+      return (this as any).userStore.currentUser.isImpersonating;
+    },
   },
   methods: {
     resetBattleTimer() { return (this as any).battleStore.resetBattleTimer() },
@@ -187,6 +190,12 @@ export default defineComponent({
       };
       const world = worlds[name];
       if (world) this.compass = world;
+    },
+
+    stopImpersonating() {
+      (this as any).userStore.stopImpersonating();
+      this.play$fx("start");
+      this.router.push({ name: "xp-dashboard" });
     },
   },
   created() {

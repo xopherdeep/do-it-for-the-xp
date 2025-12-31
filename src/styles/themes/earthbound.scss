@@ -5,6 +5,7 @@
 $eb-font-primary: "Apple Kid"; // Main body text, list items, toasts
 $eb-font-title: "Twoson"; // Page titles (ion-title)
 $eb-font-status: "StatusPlz"; // Card titles, status elements
+$eb-font-199x: "199X";
 
 // Colors
 $eb-color-dark-purple: #280828;
@@ -18,21 +19,21 @@ $eb-color-pale-yellow: #f7e8a8;
 $eb-color-white: #ffffff;
 
 :root {
-	--ion-color-rpg: #f7e8a8;
-	--ion-color-rpg-rgb: 247,232,168;
-	--ion-color-rpg-contrast: #280828;
-	--ion-color-rpg-contrast-rgb: 40,8,40;
-	--ion-color-rpg-shade: #383050;
-	--ion-color-rpg-tint: #68a8d8;
+  --ion-color-rpg: #f7e8a8;
+  --ion-color-rpg-rgb: 247, 232, 168;
+  --ion-color-rpg-contrast: #280828;
+  --ion-color-rpg-contrast-rgb: 40, 8, 40;
+  --ion-color-rpg-shade: #383050;
+  --ion-color-rpg-tint: #68a8d8;
 }
 
 .ion-color-rpg {
-	--ion-color-base: var(--ion-color-rpg);
-	--ion-color-base-rgb: var(--ion-color-rpg-rgb);
-	--ion-color-contrast: var(--ion-color-rpg-contrast);
-	--ion-color-contrast-rgb: var(--ion-color-rpg-contrast-rgb);
-	--ion-color-shade: var(--ion-color-rpg-shade);
-	--ion-color-tint: var(--ion-color-rpg-tint);
+  --ion-color-base: var(--ion-color-rpg);
+  --ion-color-base-rgb: var(--ion-color-rpg-rgb);
+  --ion-color-contrast: var(--ion-color-rpg-contrast);
+  --ion-color-contrast-rgb: var(--ion-color-rpg-contrast-rgb);
+  --ion-color-shade: var(--ion-color-rpg-shade);
+  --ion-color-tint: var(--ion-color-rpg-tint);
 }
 
 // Mixins
@@ -46,20 +47,16 @@ $eb-color-white: #ffffff;
 
 @mixin eb-checkerboard-config($bg-color, $pattern-color) {
   background-color: $bg-color;
-  background-image: linear-gradient(
-      45deg,
+  background-image: linear-gradient(45deg,
       $pattern-color 25%,
       transparent 25%,
       transparent 75%,
-      $pattern-color 75%
-    ),
-    linear-gradient(
-      45deg,
+      $pattern-color 75%),
+    linear-gradient(45deg,
       $pattern-color 25%,
       transparent 25%,
       transparent 75%,
-      $pattern-color 75%
-    );
+      $pattern-color 75%);
   background-size: 60px 60px;
   background-position: 0 0, 30px 30px;
   animation: slide 4s infinite linear;
@@ -81,6 +78,7 @@ $eb-color-white: #ffffff;
   0% {
     background-position: 0 0, 30px 30px;
   }
+
   100% {
     background-position: 60px 60px, 90px 90px;
   }
@@ -90,21 +88,21 @@ $eb-color-white: #ffffff;
 @mixin eb-scrollbar() {
   scrollbar-width: thin;
   scrollbar-color: $eb-color-cream $eb-color-medium-purple;
-  
+
   &::-webkit-scrollbar {
     width: 8px;
   }
-  
+
   &::-webkit-scrollbar-track {
     background: $eb-color-medium-purple;
     border-radius: 4px;
   }
-  
+
   &::-webkit-scrollbar-thumb {
     background: linear-gradient(180deg, $eb-color-cream, $eb-color-pale-yellow);
     border-radius: 4px;
     border: 1px solid $eb-color-dark-purple;
-    
+
     &:hover {
       background: linear-gradient(180deg, $eb-color-pale-yellow, $eb-color-cream);
     }
@@ -114,16 +112,18 @@ $eb-color-white: #ffffff;
 // Earthbound Theme
 ion-app {
   &#earthbound {
+
     // Global scrollbar styling
     * {
       @include eb-scrollbar();
     }
-    
+
     ion-router-outlet {
       * {
         font-family: inherit, $eb-font-status;
       }
     }
+
     font-family: $eb-font-primary;
 
     // not .my-portal
@@ -134,7 +134,7 @@ ion-app {
         // Default to Standard Earthbound Colors
         --bg-slide-base: #{$eb-color-sky-blue};
         --bg-slide-pattern: #{$eb-color-mint-green};
-        
+
         --background: transparent;
         @include eb-checkerboard-config(var(--bg-slide-base), var(--bg-slide-pattern));
       }
@@ -145,7 +145,7 @@ ion-app {
       // Default to Standard Earthbound Colors
       --bg-slide-base: #{$eb-color-sky-blue};
       --bg-slide-pattern: #{$eb-color-mint-green};
-      
+
       --background: transparent;
       @include eb-checkerboard-config(var(--bg-slide-base), var(--bg-slide-pattern));
 
@@ -154,46 +154,57 @@ ion-app {
         --bg-slide-base: #232323;
         --bg-slide-pattern: #272727;
       }
+
       &.bg-slide-blue {
         --bg-slide-base: #050784;
         --bg-slide-pattern: #052789;
       }
-      &.bg-slide-light{
+
+      &.bg-slide-light {
         --bg-slide-base: #eee;
         --bg-slide-pattern: #fff;
       }
+
       &.bg-slide-modal {
         --bg-slide-base: #383838;
         --bg-slide-pattern: #424242;
       }
+
       &.bg-slide-gb {
         --bg-slide-base: #9bbc0f;
         --bg-slide-pattern: #8bac0f;
       }
+
       &.bg-slide-xp {
         --bg-slide-base: #2e4a3e;
         --bg-slide-pattern: #3a5d4d;
       }
+
       &.bg-slide-gp {
         --bg-slide-base: #5a4a2e;
         --bg-slide-pattern: #6b5a3a;
       }
+
       &.bg-slide-ap {
         --bg-slide-base: #2e3a5a;
         --bg-slide-pattern: #3a4a6b;
       }
+
       &.bg-slide-hp {
         --bg-slide-base: #5a2e2e;
         --bg-slide-pattern: #6b3a3a;
       }
+
       &.bg-slide-beast {
         --bg-slide-base: #3e2e5a;
         --bg-slide-pattern: #4d3a6b;
       }
+
       &.bg-slide-temple {
         --bg-slide-base: #2e5a5a;
         --bg-slide-pattern: #3a6b6b;
       }
+
       &.bg-slide-shop {
         --bg-slide-base: #5a5a2e;
         --bg-slide-pattern: #6b6b3a;
@@ -224,19 +235,23 @@ ion-app {
         ion-button {
           font-family: $eb-font-status;
           text-transform: none;
+
           i {
             @apply mr-3 w-[20px];
           }
+
           font-size: 16px;
         }
 
         ion-grid {
           padding: 0;
           margin: 0;
+
           ion-col {
             padding: 0;
             margin: 0;
           }
+
           ion-button {
             color: $eb-color-cream;
           }
@@ -305,6 +320,7 @@ ion-app {
             font-family: $eb-font-title;
             font-size: 19px;
           }
+
           p {
             font-family: $eb-font-status;
             font-size: 14px;
@@ -346,7 +362,7 @@ ion-app {
         --height: 99%;
         --width: 98%;
         --border-radius: 8px 8px 0 0;
-        
+
         &::part(content) {
           @include eb-box();
           margin: 0 auto;
@@ -360,7 +376,7 @@ ion-app {
           width: 100% !important;
           border: none !important;
         }
-        
+
         &::part(handle) {
           background: $eb-color-cream;
           width: 60px;
@@ -372,7 +388,7 @@ ion-app {
           ion-toolbar {
             --background: #{$eb-color-dark-purple};
             --color: #{$eb-color-cream};
-            
+
             ion-title {
               font-family: $eb-font-title;
               color: $eb-color-pale-yellow;
@@ -404,13 +420,13 @@ ion-app {
                 }
               }
             }
-            
+
             // FAB Style toggle in header (right side)
             ion-buttons[slot="end"] {
               display: flex;
               align-items: center;
               gap: 8px;
-              
+
               .toggle-hint {
                 font-size: 0.75rem;
                 font-family: $eb-font-primary;
@@ -419,7 +435,7 @@ ion-app {
                 text-transform: uppercase;
                 margin-right: 4px;
               }
-              
+
               .fab-style-toggle-switch {
                 --background: #{$eb-color-medium-purple};
                 --background-checked: #{$eb-color-medium-purple};
@@ -428,87 +444,87 @@ ion-app {
                 margin-right: 8px;
               }
             }
-            
+
             ion-button {
               --color: #{$eb-color-pale-yellow};
               opacity: 0.8;
               transition: all 0.2s;
-              
+
               &:hover {
                 --color: var(--ion-color-danger);
                 opacity: 1;
               }
-              
+
               i {
                 // Size handled by fa-2x
               }
             }
           }
         }
-        
+
         ion-footer {
           --background: transparent;
           background: transparent !important;
         }
-        
+
         ion-content {
           --background: transparent;
           --color: #{$eb-color-cream};
-          
+
           // Custom RPG-styled scrollbar
           &::part(scroll) {
             scrollbar-width: thin;
             scrollbar-color: $eb-color-minty-blue $eb-color-medium-purple;
-            
+
             &::-webkit-scrollbar {
               width: 8px;
             }
-            
+
             &::-webkit-scrollbar-track {
               background: $eb-color-medium-purple;
               border-radius: 4px;
             }
-            
+
             &::-webkit-scrollbar-thumb {
               background: linear-gradient(180deg, $eb-color-minty-blue, $eb-color-sky-blue);
               border-radius: 4px;
               border: 1px solid $eb-color-dark-purple;
-              
+
               &:hover {
                 background: linear-gradient(180deg, $eb-color-sky-blue, $eb-color-minty-blue);
               }
             }
           }
-          
+
           .profile-content {
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
             padding: 0.5rem;
           }
-          
+
           // Flexbox Stats Layout
           .stats-flex {
             display: flex;
             flex-direction: column;
             gap: 0.5rem;
-            
+
             width: 100%;
           }
-          
+
           .stats-row {
             display: grid;
             grid-template-columns: repeat(20, 1fr);
             gap: 0.5rem;
             width: 100%;
           }
-          
+
           // Stat box grid placement (styles now in XpProfileStatBox.vue molecule)
           .stat-box,
           .profile-stat-box {
             grid-column: span 4;
           }
-          
+
           // Base styling for ALL stat boxes in the profile modal
           .profile-stat-box,
           .avatar-box,
@@ -525,24 +541,24 @@ ion-app {
             min-height: 100px;
             transition: all 0.2s ease;
             cursor: pointer;
-            
+
             &:hover {
               background: rgba(255, 255, 255, 0.08);
               border-color: rgba(255, 255, 255, 0.15);
             }
-            
+
             .stat-icon {
               margin-bottom: 0.25rem;
               flex-shrink: 0;
               display: flex;
               align-items: center;
               justify-content: center;
-              
-              i { 
+
+              i {
                 font-size: 1.8rem;
               }
             }
-            
+
             .stat-details {
               display: flex;
               flex-direction: row;
@@ -552,7 +568,7 @@ ion-app {
               line-height: 1;
               margin-bottom: 0.4rem;
             }
-            
+
             .stat-label {
               font-size: 0.6rem;
               font-weight: 700;
@@ -561,18 +577,18 @@ ion-app {
               opacity: 0.5;
               flex-shrink: 0;
             }
-            
+
             .stat-value {
               font-size: 0.75rem;
               font-weight: 800;
               color: #fff;
               text-align: center;
-              
+
               &.large {
                 font-size: 1rem;
               }
             }
-            
+
             .stat-bar {
               flex: 1;
               height: 5px;
@@ -580,20 +596,20 @@ ion-app {
               margin: 0;
             }
           }
-          
+
           // Avatar Box - specific overrides
           .avatar-box {
             grid-column: span 5;
             justify-content: center;
             padding: 0.75rem;
             position: relative;
-            
+
             .avatar-container {
               position: relative;
               display: flex;
               align-items: center;
               justify-content: center;
-              
+
               .hero-avatar {
                 width: 75px;
                 height: 75px;
@@ -603,7 +619,7 @@ ion-app {
                 transition: all 0.3s ease;
                 box-shadow: 0 0 15px rgba(var(--ion-color-primary-rgb), 0.2);
               }
-              
+
               .edit-overlay {
                 position: absolute;
                 bottom: 2px;
@@ -616,16 +632,16 @@ ion-app {
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+                box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
                 z-index: 2;
-                
+
                 i {
                   font-size: 0.8rem;
                   color: $eb-color-cream;
                 }
               }
             }
-            
+
             &:hover {
               .hero-avatar {
                 border-color: $eb-color-pale-yellow;
@@ -634,16 +650,28 @@ ion-app {
               }
             }
           }
-          
+
           // Colored stat icons (allowing icon-colors to handle duotone specifically if defined)
-          .hp-box .stat-icon i { color: var(--ion-color-danger); }
-          .mp-box .stat-icon i { 
+          .hp-box .stat-icon i {
+            color: var(--ion-color-danger);
+          }
+
+          .mp-box .stat-icon i {
             // Color handled by icon-colors if hand-holding-magic class is present
           }
-          .gp-box .stat-icon i { color: var(--ion-color-warning); }
-          .ap-box .stat-icon i { color: var(--ion-color-secondary); }
-          .level-box .stat-icon i { color: var(--ion-color-success); }
-          
+
+          .gp-box .stat-icon i {
+            color: var(--ion-color-warning);
+          }
+
+          .ap-box .stat-icon i {
+            color: var(--ion-color-secondary);
+          }
+
+          .level-box .stat-icon i {
+            color: var(--ion-color-success);
+          }
+
           // Class Box (50% width - Hero focal point)
           .class-box {
             grid-column: span 10;
@@ -653,18 +681,19 @@ ion-app {
             padding: 0.5rem 1rem;
             gap: 0;
             cursor: pointer;
-            
+
             .stat-icon {
               width: 50%;
               display: flex;
               justify-content: center;
               margin-bottom: 0;
-              i { 
+
+              i {
                 font-size: 3.5rem;
                 // color handled by icon-colors per class
               }
             }
-            
+
             .stat-details {
               width: 50%;
               display: flex;
@@ -672,13 +701,13 @@ ion-app {
               align-items: flex-start;
               justify-content: center;
               gap: 0.15rem;
-              
+
               .stat-value.large {
                 font-size: 1.35rem;
                 text-align: left;
               }
             }
-            
+
             &:hover {
               background: rgba(var(--ion-color-primary-rgb), 0.15);
             }
@@ -694,10 +723,11 @@ ion-app {
             cursor: pointer;
             position: relative;
             z-index: 1;
-            
+
             .stat-icon {
               margin: 0.25rem 0;
-              i { 
+
+              i {
                 font-size: 2.5rem;
                 color: var(--ion-color-warning);
               }
@@ -708,12 +738,12 @@ ion-app {
               font-size: 0.6rem;
               font-weight: 800;
             }
-            
+
             &:hover {
               background: rgba(var(--ion-color-primary-rgb), 0.15);
             }
           }
-          
+
           // Hero footer
           .hero-footer-row {
             display: flex;
@@ -726,7 +756,7 @@ ion-app {
             background: rgba(0, 0, 0, 0.2);
             border-radius: 8px;
           }
-          
+
           // FAB Style Toggle
           .fab-style-toggle {
             display: flex;
@@ -737,7 +767,7 @@ ion-app {
             padding: 0.75rem;
             background: rgba(0, 0, 0, 0.2);
             border-radius: 8px;
-            
+
             .toggle-label {
               font-family: $eb-font-title;
               font-size: 0.9rem;
@@ -745,22 +775,22 @@ ion-app {
               text-transform: uppercase;
               letter-spacing: 2px;
             }
-            
+
             ion-segment {
               --background: rgba(255, 255, 255, 0.05);
               border-radius: 8px;
-              
+
               ion-segment-button {
                 --indicator-color: #{$eb-color-minty-blue};
                 --color: #{$eb-color-cream};
                 --color-checked: #{$eb-color-dark-purple};
                 font-family: $eb-font-primary;
-                
+
                 ion-label {
                   font-size: 0.9rem;
                   margin-bottom: 2px;
                 }
-                
+
                 i {
                   font-size: 1.2rem;
                   margin-top: 4px;
@@ -768,20 +798,20 @@ ion-app {
               }
             }
           }
-          
+
           // Status pulse animation
           .status-pulse {
             animation: status-pulse-animation 2s infinite;
           }
-          
-          
+
+
           // Five Pillars Explanation
           .pillars-explanation {
             padding: 1rem 0.75rem;
             background: rgba(255, 255, 255, 0.03);
             border-radius: 12px;
             border: 1px solid rgba(255, 255, 255, 0.08);
-            
+
             .pillars-title {
               font-family: $eb-font-title;
               font-size: 1.2rem;
@@ -789,51 +819,51 @@ ion-app {
               margin: 0 0 0.5rem 0;
               text-align: center;
             }
-            
+
             .pillars-text {
               font-size: 0.85rem;
               opacity: 0.8;
               text-align: center;
               line-height: 1.4;
             }
-            
+
             .pillars-list {
               display: flex;
               flex-direction: column;
               gap: 0.5rem;
             }
-            
+
             .pillar-item {
               display: flex;
               align-items: center;
               gap: 0.75rem;
               font-size: 0.9rem;
-              
+
               i {
                 width: 24px;
                 text-align: center;
               }
-              
+
               strong {
                 min-width: 80px;
               }
             }
           }
-          
+
           // Pillars fade transition
           .pillars-fade-enter-active,
           .pillars-fade-leave-active {
             transition: all 0.3s ease;
             overflow: hidden;
           }
-          
+
           .pillars-fade-enter-from,
           .pillars-fade-leave-to {
             opacity: 0;
             transform: translateY(-10px);
             margin-bottom: -110px;
           }
-          
+
           // Stats Accordions
           .stats-accordions {
             ion-accordion {
@@ -843,58 +873,77 @@ ion-app {
               overflow: hidden;
               border: 1px solid rgba(255, 255, 255, 0.07);
               transition: all 0.3s ease;
-              
+
               // Base class-boosted styling (will be overridden by color-specific)
               &.class-boosted {
                 animation: class-boost-pulse 3s ease-in-out infinite;
-                
+
                 .stat-header {
                   background: rgba(255, 255, 255, 0.05);
                 }
               }
-              
+
               // Color-specific boosted styling
               &.boosted-danger {
                 border-color: rgba(var(--ion-color-danger-rgb), 0.6);
                 box-shadow: 0 0 10px rgba(var(--ion-color-danger-rgb), 0.3);
-                .stat-header { background: rgba(var(--ion-color-danger-rgb), 0.1); }
+
+                .stat-header {
+                  background: rgba(var(--ion-color-danger-rgb), 0.1);
+                }
               }
+
               &.boosted-tertiary {
                 border-color: rgba(var(--ion-color-tertiary-rgb), 0.6);
                 box-shadow: 0 0 10px rgba(var(--ion-color-tertiary-rgb), 0.3);
-                .stat-header { background: rgba(var(--ion-color-tertiary-rgb), 0.1); }
+
+                .stat-header {
+                  background: rgba(var(--ion-color-tertiary-rgb), 0.1);
+                }
               }
+
               &.boosted-secondary {
                 border-color: rgba(var(--ion-color-secondary-rgb), 0.6);
                 box-shadow: 0 0 10px rgba(var(--ion-color-secondary-rgb), 0.3);
-                .stat-header { background: rgba(var(--ion-color-secondary-rgb), 0.1); }
+
+                .stat-header {
+                  background: rgba(var(--ion-color-secondary-rgb), 0.1);
+                }
               }
+
               &.boosted-warning {
                 border-color: rgba(var(--ion-color-warning-rgb), 0.6);
                 box-shadow: 0 0 10px rgba(var(--ion-color-warning-rgb), 0.3);
-                .stat-header { background: rgba(var(--ion-color-warning-rgb), 0.1); }
+
+                .stat-header {
+                  background: rgba(var(--ion-color-warning-rgb), 0.1);
+                }
               }
+
               &.boosted-success {
                 border-color: rgba(var(--ion-color-success-rgb), 0.6);
                 box-shadow: 0 0 10px rgba(var(--ion-color-success-rgb), 0.3);
-                .stat-header { background: rgba(var(--ion-color-success-rgb), 0.1); }
+
+                .stat-header {
+                  background: rgba(var(--ion-color-success-rgb), 0.1);
+                }
               }
             }
           }
-          
+
           // Boost indicator (+) in pillar total
           .pillar-total {
             display: flex;
             align-items: center;
             gap: 2px;
-            
+
             .boost-indicator {
               font-weight: 900;
               font-size: 1.1em;
               animation: boost-pulse 1.5s ease-in-out infinite;
             }
           }
-          
+
           // Stat boost arrow (positioned outside badge)
           .stat-boost-arrow {
             font-size: 1.1rem;
@@ -902,55 +951,78 @@ ion-app {
             animation: arrow-bounce 1s ease-in-out infinite;
             filter: drop-shadow(0 0 3px currentColor);
           }
-          
+
           // Wrapper for arrow + badge to keep them together
           .stat-value-wrapper {
             display: flex;
             align-items: center;
             gap: 4px;
           }
-          
+
           // Stat badge styling
           .stat-badge {
             display: flex;
             align-items: center;
             gap: 4px;
           }
-          
+
           // Boosted stat item styling
           .stat-item.stat-boosted {
             background: rgba(255, 255, 255, 0.03);
             border-radius: 6px;
           }
-          
+
           @keyframes class-boost-pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.85; }
+
+            0%,
+            100% {
+              opacity: 1;
+            }
+
+            50% {
+              opacity: 0.85;
+            }
           }
-          
+
           @keyframes boost-pulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.8; transform: scale(1.1); }
+
+            0%,
+            100% {
+              opacity: 1;
+              transform: scale(1);
+            }
+
+            50% {
+              opacity: 0.8;
+              transform: scale(1.1);
+            }
           }
-          
+
           @keyframes arrow-bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-2px); }
+
+            0%,
+            100% {
+              transform: translateY(0);
+            }
+
+            50% {
+              transform: translateY(-2px);
+            }
           }
-          
+
           .stat-header {
             --background: transparent;
-            
+
             .stat-icon {
               margin-right: 0.75rem;
               font-size: 1.2rem;
             }
-            
+
             span.capitalize {
               font-size: 1rem;
               font-weight: 600;
             }
-            
+
             .pillar-desc {
               font-size: 0.75rem;
               opacity: 0.7;
@@ -958,30 +1030,30 @@ ion-app {
               font-weight: 400;
             }
           }
-          
+
           .stat-list {
             background: rgba(0, 0, 0, 0.3);
             padding: 0.5rem;
           }
-          
+
           .stat-item {
             --background: transparent;
             margin-bottom: 4px;
             border-radius: 8px;
-            
+
             h3 {
               font-size: 0.9rem;
               font-weight: 700;
               margin: 0 0 2px 0;
             }
-            
+
             .stat-desc {
               font-size: 0.75rem;
               opacity: 0.7;
               margin: 0;
             }
           }
-          
+
           .stat-badge {
             font-size: 1rem;
             font-weight: 800;
@@ -992,14 +1064,19 @@ ion-app {
             justify-content: center;
             border-radius: 6px;
           }
-          
-          .capitalize { text-transform: capitalize; }
-          .mr-1 { margin-right: 0.25rem; }
-          
+
+          .capitalize {
+            text-transform: capitalize;
+          }
+
+          .mr-1 {
+            margin-right: 0.25rem;
+          }
+
           .status-pulse {
             animation: status-pulse-animation 2s infinite;
           }
-          
+
           .loading-state {
             display: flex;
             align-items: center;
@@ -1012,6 +1089,7 @@ ion-app {
 
     ion-segment {
       font-family: $eb-font-title;
+
       ion-segment-button {
         display: flex;
         justify-content: center;
@@ -1057,9 +1135,10 @@ ion-app {
 
     // Action Sheet Styling
     .action-sheet-wrapper {
+
       // Apply RPG style to anything with -action-sheet in its class list
-      &.xp-action-sheet, 
-      &.ap-action-sheet, 
+      &.xp-action-sheet,
+      &.ap-action-sheet,
       &.gp-action-sheet,
       &.hospital-action-sheet,
       &.hotel-action-sheet,
@@ -1082,12 +1161,12 @@ ion-app {
           // Important: the eb-box has a 16px outer shadow (slate)
           // We need to ensure the container doesn't overlap its own shadow
           // or that the wrapper has enough overflow/padding.
-          
+
           .action-sheet-group {
             background: transparent !important;
             color: $eb-color-cream;
             border-radius: 0;
-            
+
             .action-sheet-title {
               font-family: $eb-font-title;
               color: $eb-color-pale-yellow;
@@ -1095,29 +1174,30 @@ ion-app {
               padding: 10px;
               border-bottom: 2px solid $eb-color-minty-blue;
             }
-            
+
             .action-sheet-button {
               font-family: $eb-font-status;
               color: $eb-color-cream;
               font-size: 16px;
-              
-              &:hover, &.activated {
+
+              &:hover,
+              &.activated {
                 background: $eb-color-medium-purple;
               }
-              
+
               &.action-sheet-cancel {
                 background: transparent;
                 color: var(--ion-color-danger);
                 font-family: $eb-font-primary;
-                
+
                 &:hover {
                   background: color.adjust($eb-color-slate, $lightness: -5%);
                 }
               }
-              
+
               .action-sheet-button-inner {
                 justify-content: flex-start;
-                
+
                 .action-sheet-icon {
                   color: $eb-color-sky-blue;
                   margin-right: 15px;
@@ -1125,7 +1205,7 @@ ion-app {
                   font-family: "Font Awesome 5 Duotone";
                   font-weight: 900;
                   font-size: 1.25rem;
-                  
+
                   // Make the icon element display properly for FA
                   &::before {
                     font-family: "Font Awesome 5 Duotone";
@@ -1135,28 +1215,65 @@ ion-app {
               }
 
               // Generic Action Icon Colors
-              &.action-create, &.action-add, &.action-heal, &.action-goods, &.action-success {
-                .action-sheet-icon { color: var(--ion-color-success); }
+              &.action-create,
+              &.action-add,
+              &.action-heal,
+              &.action-goods,
+              &.action-success {
+                .action-sheet-icon {
+                  color: var(--ion-color-success);
+                }
               }
-              &.action-delete, &.action-destructive, &.action-cancel, &.action-attack, &.action-danger {
-                .action-sheet-icon { color: var(--ion-color-danger); }
+
+              &.action-delete,
+              &.action-destructive,
+              &.action-cancel,
+              &.action-attack,
+              &.action-danger {
+                .action-sheet-icon {
+                  color: var(--ion-color-danger);
+                }
               }
-              &.action-edit, &.action-update, &.action-import, &.action-stats, &.action-primary {
-                .action-sheet-icon { color: var(--ion-color-primary); }
+
+              &.action-edit,
+              &.action-update,
+              &.action-import,
+              &.action-stats,
+              &.action-primary {
+                .action-sheet-icon {
+                  color: var(--ion-color-primary);
+                }
               }
-              &.action-save, &.action-revive, &.action-export, &.action-defend, &.action-warning {
-                .action-sheet-icon { color: var(--ion-color-warning); }
+
+              &.action-save,
+              &.action-revive,
+              &.action-export,
+              &.action-defend,
+              &.action-warning {
+                .action-sheet-icon {
+                  color: var(--ion-color-warning);
+                }
               }
-              &.action-share, &.action-patients, &.action-run, &.action-medium {
-                .action-sheet-icon { color: var(--ion-color-medium); }
+
+              &.action-share,
+              &.action-patients,
+              &.action-run,
+              &.action-medium {
+                .action-sheet-icon {
+                  color: var(--ion-color-medium);
+                }
               }
-              &.action-abilities, &.action-tertiary {
-                .action-sheet-icon { color: var(--ion-color-tertiary); }
+
+              &.action-abilities,
+              &.action-tertiary {
+                .action-sheet-icon {
+                  color: var(--ion-color-tertiary);
+                }
               }
+            }
           }
         }
       }
     }
   }
-}
 }
