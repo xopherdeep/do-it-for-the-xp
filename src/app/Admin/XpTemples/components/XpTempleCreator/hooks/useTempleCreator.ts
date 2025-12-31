@@ -63,6 +63,8 @@ export interface UseTempleCreatorReturn {
   selectedCell: ComputedRef<{ row: number; col: number } | null>;
   currentLevelId: ComputedRef<string> & { value: string };
   floors: ComputedRef<string[]>;
+  aboveFloors: ComputedRef<string[]>;
+  belowFloors: ComputedRef<string[]>;
   currentMazeSlice: ComputedRef<string[][]>;
 
   // Dynamic computeds
@@ -249,6 +251,20 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
       keys = Object.keys(templeMaze.value);
     }
     return keys.sort((a, b) => getFloorValue(a) - getFloorValue(b));
+  });
+
+  const aboveFloors = computed(() => {
+    const currentVal = getFloorValue(currentLevelId.value);
+    return floors.value
+      .filter(f => getFloorValue(f) > currentVal)
+      .sort((a, b) => getFloorValue(a) - getFloorValue(b));
+  });
+
+  const belowFloors = computed(() => {
+    const currentVal = getFloorValue(currentLevelId.value);
+    return floors.value
+      .filter(f => getFloorValue(f) < currentVal)
+      .sort((a, b) => getFloorValue(b) - getFloorValue(a));
   });
 
   const getEntranceFloor = (floorList: string[]): string => {
@@ -1025,6 +1041,8 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
     selectedCell,
     currentLevelId: currentLevelId as ComputedRef<string> & { value: string },
     floors,
+    aboveFloors,
+    belowFloors,
     currentMazeSlice,
 
     // Dynamic computeds

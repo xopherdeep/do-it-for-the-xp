@@ -114,57 +114,76 @@
         </div>
       </div>
 
-      <!-- Action FABs -->
-      <ion-fab v-if="hasLayout && !isLoading" vertical="top" horizontal="end" slot="fixed" class="mt-4">
-        <ion-fab-button color="danger" @click="resetFloor" size="small" title="Clear Current Floor">
-          <i class="fal fa-trash-alt"></i>
-        </ion-fab-button>
-        <ion-fab-button color="warning" @click="resetTempleToDefault" size="small" class="mt-2"
-          title="Reset Temple to Factory Defaults">
-          <i class="fal fa-history"></i>
+      <!-- Save FAB -->
+      <ion-fab v-if="hasLayout && !isLoading" vertical="bottom" horizontal="center" slot="fixed">
+        <ion-fab-button :color="hasUnsavedChanges ? 'success' : 'medium'" @click="saveTemple"
+          :class="{ 'faded-fab': !hasUnsavedChanges }">
+          <i class="fad fa-save fa-lg"></i>
         </ion-fab-button>
       </ion-fab>
 
+      <!-- Consolidated Management FAB -->
       <ion-fab v-if="hasLayout && !isLoading" vertical="center" horizontal="end" slot="fixed">
-        <ion-fab-button :color="hasUnsavedChanges ? 'success' : 'medium'" @click="saveTemple"
-          :class="{ 'faded-fab': !hasUnsavedChanges }">
-          <i class="fal fa-save"></i>
+        <ion-fab-button color="medium">
+          <i class="fad fa-shovel fa-2x"></i>
         </ion-fab-button>
+
+        <!-- Top List: Utility Actions -->
+        <ion-fab-list side="top">
+          <!-- Maze Config Trigger -->
+          <ion-fab-button color="secondary" @click="showMazeConfig = !showMazeConfig" title="Maze Configuration">
+            <i class="fad fa-list-ul"></i>
+          </ion-fab-button>
+
+          <!-- JSON Editor -->
+          <ion-fab-button color="primary" @click="isJsonEditorOpen = true" title="Raw JSON Editor">
+            <i class="fad fa-brackets-curly"></i>
+          </ion-fab-button>
+        </ion-fab-list>
+
+        <!-- Bottom List: Destructive/Reset Actions -->
+        <ion-fab-list side="bottom">
+          <!-- Reset Temple -->
+          <ion-fab-button color="warning" @click="resetTempleToDefault" title="Reset Temple to Factory Defaults">
+            <i class="fal fa-history"></i>
+          </ion-fab-button>
+
+          <!-- Reset Floor -->
+          <ion-fab-button color="danger" @click="resetFloor" title="Clear Current Floor">
+            <i class="fal fa-trash-alt"></i>
+          </ion-fab-button>
+        </ion-fab-list>
       </ion-fab>
 
       <!-- Floor Switcher FAB -->
-      <ion-fab v-if="hasLayout && floors.length > 0 && !isLoading" vertical="bottom" horizontal="end" slot="fixed">
+      <ion-fab v-if="hasLayout && floors.length > 0 && !isLoading" vertical="center" horizontal="start" slot="fixed"
+        class="floor-fab-container">
         <ion-fab-button color="rpg" class="floor-fab-trigger">
           <span class="floor-label">{{ currentLevelId }}</span>
         </ion-fab-button>
 
-        <!-- Floor Selection List -->
-        <ion-fab-list side="top" v-if="floors.length > 1">
-          <ion-fab-button v-for="floor in floors" :key="floor" @click="setLevel(floor)" class="floor-fab-option"
+        <!-- Floors Above -->
+        <ion-fab-list side="top" v-if="aboveFloors.length > 0">
+          <ion-fab-button v-for="floor in aboveFloors" :key="floor" @click="setLevel(floor)" class="floor-fab-option"
             :color="currentLevelId === floor ? 'primary' : 'light'">
             <span class="floor-label-small">{{ floor }}</span>
           </ion-fab-button>
         </ion-fab-list>
 
-        <!-- Add Floor Action -->
-        <ion-fab-list side="start">
+        <!-- Floors Below -->
+        <ion-fab-list side="bottom" v-if="belowFloors.length > 0">
+          <ion-fab-button v-for="floor in belowFloors" :key="floor" @click="setLevel(floor)" class="floor-fab-option"
+            :color="currentLevelId === floor ? 'primary' : 'light'">
+            <span class="floor-label-small">{{ floor }}</span>
+          </ion-fab-button>
+        </ion-fab-list>
+
+        <!-- Add Floor Action (At the end/right) -->
+        <ion-fab-list side="end">
           <ion-fab-button color="success" @click="promptAddFloor">
             <i class="fal fa-plus"></i>
           </ion-fab-button>
         </ion-fab-list>
-      </ion-fab>
-      <!-- JSON Editor FAB -->
-      <ion-fab v-if="hasLayout && !isLoading" vertical="bottom" horizontal="start" slot="fixed" class="mb-4">
-        <ion-fab-button color="primary" @click="isJsonEditorOpen = true" size="small">
-          <i class="fad fa-brackets-curly"></i>
-        </ion-fab-button>
-      </ion-fab>
-
-      <!-- Maze Config Trigger FAB -->
-      <ion-fab v-if="hasLayout && !isLoading" vertical="bottom" horizontal="start" slot="fixed" class="ml-12 mb-4">
-        <ion-fab-button color="secondary" @click="showMazeConfig = !showMazeConfig" size="small">
-          <i class="fad fa-list-ul"></i>
-        </ion-fab-button>
       </ion-fab>
 
       <!-- JSON Editor Modal -->
@@ -347,6 +366,8 @@ export default defineComponent({
       entrancePosition: creator.entrancePosition,
       currentLevelId: creator.currentLevelId,
       floors: creator.floors,
+      aboveFloors: creator.aboveFloors,
+      belowFloors: creator.belowFloors,
 
       // Header & Preview Props
       gridSize: creator.gridSize,
@@ -499,6 +520,11 @@ export default defineComponent({
 }
 
 /* Floor FAB Styling */
+.floor-fab-container {
+  margin-left: 10px;
+  z-index: 1000;
+}
+
 .floor-fab-trigger {
   --background: var(--ion-color-rpg);
   --color: #fff;
