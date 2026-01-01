@@ -14,6 +14,7 @@ export interface JobClass {
   primaryPillar: PillarType;
   secondaryPillar: PillarType;
   tertiaryPillar: PillarType;
+  baseStats?: Record<string, number>; // Base stats at level 1
   statBoosts: ClassStatBoost[];
 }
 
@@ -27,6 +28,23 @@ export const JOB_CLASS_OPTIONS: JobClass[] = [
     primaryPillar: 'physical',     // HP: strength, endurance
     secondaryPillar: 'eternal',    // XP: guts
     tertiaryPillar: 'relational',  // GP: presence
+    baseStats: {
+      strength: 12,
+      endurance: 10,
+      defense: 8,
+      guts: 8,
+      presence: 5,
+      agility: 4,
+      flow: 3,
+      focus: 4,
+      intelligence: 2,
+      wisdom: 2,
+      perception: 3,
+      awareness: 4,
+      charisma: 4,
+      luck: 3,
+      mastery: 2
+    },
     statBoosts: [
       { stat: 'strength', amount: 2 },
       { stat: 'endurance', amount: 1 },
@@ -42,6 +60,23 @@ export const JOB_CLASS_OPTIONS: JobClass[] = [
     primaryPillar: 'mental',       // MP: intelligence, wisdom
     secondaryPillar: 'eternal',    // XP: mastery
     tertiaryPillar: 'vibrational', // AP: focus
+    baseStats: {
+      intelligence: 12,
+      wisdom: 10,
+      perception: 8,
+      mastery: 8,
+      focus: 6,
+      strength: 2,
+      endurance: 3,
+      defense: 2,
+      agility: 4,
+      flow: 5,
+      guts: 3,
+      presence: 3,
+      awareness: 5,
+      charisma: 4,
+      luck: 4
+    },
     statBoosts: [
       { stat: 'intelligence', amount: 2 },
       { stat: 'wisdom', amount: 1 },
@@ -57,6 +92,23 @@ export const JOB_CLASS_OPTIONS: JobClass[] = [
     primaryPillar: 'vibrational',  // AP: agility, flow
     secondaryPillar: 'relational', // GP: charisma
     tertiaryPillar: 'eternal',     // XP: luck
+    baseStats: {
+      agility: 12,
+      flow: 10,
+      luck: 10,
+      charisma: 8,
+      awareness: 8,
+      strength: 4,
+      endurance: 4,
+      defense: 3,
+      intelligence: 4,
+      wisdom: 3,
+      perception: 5,
+      guts: 4,
+      presence: 6,
+      mastery: 3,
+      focus: 5
+    },
     statBoosts: [
       { stat: 'agility', amount: 2 },
       { stat: 'flow', amount: 1 },
@@ -72,6 +124,23 @@ export const JOB_CLASS_OPTIONS: JobClass[] = [
     primaryPillar: 'physical',     // HP: endurance
     secondaryPillar: 'mental',     // MP: wisdom, perception
     tertiaryPillar: 'vibrational', // AP: focus
+    baseStats: {
+      endurance: 10,
+      strength: 8,
+      defense: 8,
+      focus: 10,
+      wisdom: 8,
+      perception: 6,
+      intelligence: 4,
+      agility: 6,
+      flow: 6,
+      guts: 6,
+      presence: 4,
+      awareness: 6,
+      charisma: 3,
+      luck: 4,
+      mastery: 5
+    },
     statBoosts: [
       { stat: 'endurance', amount: 1 },
       { stat: 'wisdom', amount: 1 },

@@ -154,7 +154,7 @@
                   <i v-if="isStatBoosted(stat)" class="fad fa-chevron-double-up stat-boost-arrow"
                     :style="{ color: `var(--ion-color-${area.color})` }"></i>
                   <ion-badge :color="area.color" class="stat-badge">
-                    {{ user.stats[stat] || 0 }}
+                    {{ getStatTotal(stat) }}
                   </ion-badge>
                 </div>
               </ion-item>
@@ -259,6 +259,9 @@ export default defineComponent({
     const gameStore = useGameStore();
     const modal = ref<any>(null);
     const maxAvatarIndex = $requireAvatar.keys().length;
+
+    console.log('UserProfileModal setup running');
+
 
     // Avatar selector state
     const isAvatarSelectorOpen = ref(false);
@@ -554,6 +557,23 @@ export default defineComponent({
       return jobClass.statBoosts.some(boost => boost.stat === statName);
     };
 
+    // Calculate total stat value (Base + Bonus)
+    const getStatTotal = (statName: string): number => {
+      // 1. Get Base Stat for Class
+      // Default to Adventurer or generic fallback if class not found
+      const jobClassName = props.user?.jobClass || 'Adventurer';
+      const jobClass = JOB_CLASS_OPTIONS.find(j => j.name === jobClassName);
+
+      // Default base stat if not defined is 5
+      const base = jobClass?.baseStats?.[statName] || 5;
+
+      // 2. Get Special Stat Bonus (Level Ups)
+      // user.stats.special might be undefined
+      const special = props.user?.stats?.special?.[statName] || 0;
+
+      return base + special;
+    };
+
     // Mastery Dice Configuration (Fibonacci Levels)
     const dice = [
       {
@@ -653,6 +673,7 @@ export default defineComponent({
       getAreaTotal,
       isPillarBoosted,
       isStatBoosted,
+      getStatTotal,
       onFabStyleToggle,
       dice,
       isDieUnlocked,
