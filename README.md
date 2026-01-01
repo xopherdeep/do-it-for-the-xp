@@ -1,11 +1,14 @@
 <div align="center">
 
+<img src="src/assets/images/readme-hero.png" width="600" alt="Do It For The XP Hero Banner" />
+
 # ⚔️ Do It For The XP ⚔️
 
-**Turn mundane chores into epic quests. Level up your life!**
+**Transform mundane chores into epic quests. Level up your life!**
 
-[![Vue.js](https://img.shields.io/badge/Vue.js-3.x-4FC08D?style=for-the-badge&logo=vue.js)](https://vuejs.org/)
+[![Vue.js](https://img.shields.io/badge/Vue.js-3.5+-4FC08D?style=for-the-badge&logo=vue.js)](https://vuejs.org/)
 [![Ionic](https://img.shields.io/badge/Ionic-7.x-3880FF?style=for-the-badge&logo=ionic)](https://ionicframework.com/)
+[![Pinia](https://img.shields.io/badge/Pinia-3.x-FFEE66?style=for-the-badge&logo=pinia&logoColor=black)](https://pinia.vuejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.x-3178C6?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.x-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
 [![Capacitor](https://img.shields.io/badge/Capacitor-6.x-1199ED?style=for-the-badge&logo=capacitor)](https://capacitorjs.com/)
@@ -14,117 +17,122 @@
 
 ---
 
-## 📖 About The Project
+## 📖 The Philosophy
 
-**Do It For The XP** is a gamified task management application that transforms everyday responsibilities into an exciting Role-Playing Game (RPG). Built with **Vue 3, Ionic, and Capacitor**, it brings the fantasy world into your daily routine, whether you're on the web, Android, or iOS.
+**Do It For The XP** is more than just a task manager; it's a gamified productivity engine that treats real-world responsibilities as RPG-style quests. Inspired by classic SNES-era RPGs like *Earthbound*, it brings flavor, humor, and a sense of progression to the daily grind.
 
-In this world, **Parents represent the Game Masters (GM)**, guiding the adventure, while children (and the young at heart) become **Bounty Hunters**, completing tasks to earn rewards, level up, and unlock new abilities.
-
-### 🌟 The "Lore" & Features
-
-*   **Quest System**: Chores aren't just work; they are Quests! Complete them to earn **XP** (Experience Points) and **AP** (Ability Points).
-*   **Class System**: Choose your Job Class! As you gain levels, you unlock specific **Abilities**, **Spells**, and **Badges**.
-*   **Hometown Hub**: Visit your personal hometown to manage your resources:
-    *   🏪 **Store**: Spend your hard-earned **GP** (Gold Points) on items and accessories.
-    *   🏥 **Hospital**: Restore **HP** (Health Points) and manage your wellness.
-    *   🏦 **Bank**: Save and invest your GP.
-    *   🏛️ **Temple**: Train your mind and abilities.
-*   **Battle System**: Engage in battles representing tasks and achievements within the **Battleground**.
-*   **Cross-Platform**: Play on your phone, tablet, or desktop.
-
-## 📊 The Point System
-
-Understanding your stats is key to survival:
-
-| Symbol | Type | Description |
-| :---: | --- | --- |
-| ⚔️ | **XP (Experience)** | Used to level up your character and job class. |
-| 🔮 | **AP (Ability)** | Unlocks special skills and magic. |
-| 💰 | **GP (Gold)** | Currency for buying items, gear, and real-world rewards. |
-| ❤️ | **HP (Health)** | Represents your physical well-being. Keep it high! |
-| ✨ | **MP (Magic)** | Fuel for using your special abilities. |
+In this ecosystem:
+- 🛡️ **Parents / Managers** act as **Game Masters (GM)**, designing the world, setting bounties, and curating the treasury.
+- 🤺 **Children / Users** become **Bounty Hunters**, embarking on quests to earn XP, gold, and prestigious titles.
 
 ---
 
-## 🛠️ Tech Stack
+## 🏛️ The Three Pillars
 
-This project works on a modern stack designed for performance and cross-platform compatibility:
+The application is architected around three core domains:
 
-*   **Framework**: [Vue 3](https://vuejs.org/) (Composition API)
-*   **UI Library**: [Ionic 7](https://ionicframework.com/)
-*   **Styling**: [TailwindCSS](https://tailwindcss.com/) & SCSS
-*   **Mobile Engine**: [Capacitor](https://capacitorjs.com/)
-*   **State Management**: [Vuex 4](https://vuex.vuejs.org/) & [Vue Query](https://tanstack.com/query/latest)
-*   **Testing**: [Jest](https://jestjs.io/) & [Cypress](https://www.cypress.io/)
+### 1. 🛡️ The Game Master Console
+*Found in `src/app/Admin/`*
+Manage the game world through a specialized suite of tools:
+- **Compendium**: The central database for Achievements (Quests), the Bestiary (Enemies), Abilities, and Loot.
+- **Temple Creator**: A sophisticated "Dungeon Maker" style interface to build training grounds and challenges.
+- **Dashboard**: High-level telemetry on player progress and world state.
+
+### 2. ⚔️ The Player Portal
+*Found in `src/app/Console/MyPortal/`*
+The "Home" of the adventurer:
+- **My Home**: Manage your calendar, cook meals for buffs, and track personal growth.
+- **Hometown**: Visit the Bank to invest gold, the Hospital for healing, and the Shop for legendary gear.
+- **World Map**: Navigate between regions and discover new content.
+
+### 3. ⚙️ Core Game Engine
+*Found in `src/lib/engine/`*
+The logic that powers the experience:
+- **Active Time Battle (ATB)**: A real-time combat system where tasks represent enemy encounters.
+- **Economy System**: Complex logic for XP, GP, and AP scaling.
+- **Temple Engine**: Spatial logic for dungeon exploration and room-based events.
+
+---
+
+## 📊 The Point System
+
+Every action has a reaction. Master these stats to survive:
+
+| Symbol | Stat | Description |
+| :---: | --- | --- |
+| ⚔️ | **XP** | **Experience Points**. Gain enough to level up your character and unlock power. |
+| 🔮 | **AP** | **Ability Points**. Spent on specialized class skills and arcane magic. |
+| 💰 | **GP** | **Gold Points**. The lifeblood of the economy. Spend at the Store or save at the Bank. |
+| ❤️ | **HP** | **Health Points**. Your stamina. Depleted by failed "Trap" tasks or monster attacks. |
+| ✨ | **MP** | **Magic Points**. The energy required to cast spells and use active equipment. |
+
+---
+
+## 🛠️ Modern Tech Stack
+
+Built for performance, modularity, and cross-platform reliability:
+
+- **Logic**: [Vue 3](https://vuejs.org/) (Composition API) with [TypeScript 5](https://www.typescriptlang.org/).
+- **State**: [Pinia](https://pinia.vuejs.org/) (Replacing legacy Vuex for typed, modular state).
+- **UI**: [Ionic 7](https://ionicframework.com/) for mobile-native feel + [TailwindCSS](https://tailwindcss.com/) for precision styling.
+- **Animation**: [SCSS](https://sass-lang.com/) for retro-style animations and [Earthbound-battle-backgrounds](https://github.com/shakyShane/earthbound-battle-backgrounds).
+- **Persistence**: [Capacitor 6](https://capacitorjs.com/) with LocalStorage and Query caching.
 
 ---
 
 ## 🚀 Getting Started
 
-Ready to start your adventure? Follow these steps to set up the local development environment.
-
 ### Prerequisites
-
-*   Node.js (>= 16.x)
-*   Yarn (Recommended)
+- **Node.js**: >= 16.x
+- **Package Manager**: Yarn (recommended) or NPM
 
 ### Installation
+```bash
+# 1. Clone & Enter
+git clone https://github.com/xopherdeep/do-it-for-the-xp.git
+cd do-it-for-the-xp
 
-1.  **Clone the repository**
-    ```bash
-    git clone https://github.com/xopherdeep/do-it-for-the-xp.git
-    cd do-it-for-the-xp
-    ```
+# 2. Install
+yarn install
+```
 
-2.  **Install dependencies**
-    ```bash
-    yarn install
-    ```
-
-### Development Commands
-
-| Command | Description |
+### Development Quests
+| Command | Result |
 | --- | --- |
-| `yarn dev` | Run the Ionic development server (Live Reload) |
-| `yarn serve` | Serve the application (Web view) |
-| `yarn build` | Build the application for production |
-| `yarn test:unit` | Run unit tests with Jest |
-| `yarn test:e2e` | Run end-to-end tests with Cypress |
+| `yarn dev` | Start the Ionic Dev Server (Live Reload) |
+| `yarn serve` | Run the application in the browser |
+| `yarn build` | Compile the production-ready build |
+| `yarn test:unit` | Execute Jest unit tests |
+| `yarn lint` | Sanitize and check code style |
 
 ---
 
-## 📂 Project Structure
+## 📂 The Library of Knowledge
 
-A quick map of the territory:
+The project is extensively documented. For deep dives into specific systems, consult the `docs/` folder:
 
-*   `src/views/App` - Core application views.
-*   `src/views/Console` - Admin and Game Master consoles.
-*   `src/lib/services/battle` - Where the battle logic lives.
-*   `src/lib/services/gp` - Economy and Gold Point management.
-*   `docs/` - Detailed documentation on game mechanics and architecture.
-
-For a deep dive, check out the [Codebase Structure](docs/Codebase-Structure.md) or our [Roadmap](docs/Roadmap.md).
-
----
+| Documentation | Focus |
+| --- | --- |
+| 🗺️ [Project Roadmap](docs/Roadmap.md) | Current phase and future frontiers. |
+| 🏗️ [Architecture](docs/Architecture.md) | Technical overview and pattern definitions. |
+| 🏰 [Temple System](docs/Temple-System.md) | How the dungeon crawler engine works. |
+| ⚔️ [Battle System](docs/Battle-System-Engine.md) | Combat mechanics and task-to-battle logic. |
+| 📈 [Leveling Formulae](docs/Player-Stats-Leveling.md) | HP/MP/XP scaling math. |
 
 ---
 
-## 📄 License
+## 📄 License & Sovereignty
 
-This project is **Proprietary**. All rights reserved. See the [LICENSE](file:///home/xopher/www/x/xp/do-it-for-the-xp/LICENSE) file for more details.
+This project is **Proprietary**. All rights reserved. 
+See the [LICENSE](LICENSE) file for more details.
 
-## 🤝 Contributing
-
-While the project is proprietary, we welcome feedback and bug reports. If you'd like to contribute code, please contact the XP Team first. All contributions will be subject to the terms of the proprietary license.
-
-1.  Contact the XP Team regarding your interest.
-2.  Follow the guidance provided for contribution.
-3.  Open a Pull Request (if authorized).
+### 🤝 Contributing
+Feedback and detailed bug reports are always welcome. While the core codebase is proprietary, we value community input for the "Bounty Board". Please contact the XP Team before opening Pull Requests.
 
 ---
 
 <div align="center">
 
-*Made with ❤️ and plenty of XP by the XP Team.*
+*Forged with ❤️ and infinite XP by the XP Team.*
 
 </div>
