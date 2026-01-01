@@ -6,7 +6,7 @@ export const AbilityRoutes: RouteRecordRaw[] = [
     name: "xp-abilities",
     component: () =>
       import(
-        "@/app/Admin/XpAbilities/XpAbilities.vue"
+        "@/app/Admin/XpCompendium/views/XpAbilities/XpAbilities.vue"
       ),
   },
   {
@@ -14,7 +14,7 @@ export const AbilityRoutes: RouteRecordRaw[] = [
     name: "xp-create-update-ability",
     component: () =>
       import(
-        "@/app/Admin/XpAbilities/components/XpCreateUpdateAbility.vue"
+        "@/app/Admin/XpCompendium/views/XpAbilities/components/XpCreateUpdateAbility.vue"
       ),
     props: true,
   },

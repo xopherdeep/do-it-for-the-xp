@@ -5,14 +5,14 @@ export const TempleRoutes: RouteRecordRaw[] = [
     path: "temples",
     name: "xp-compendium-temples",
     component: () =>
-      import("@/app/Admin/XpTemples"),
+      import("@/app/Admin/XpCompendium/views/XpTemples"),
   },
   {
     path: "temples/creator/:templeId/rooms/:row/:col",
     name: "xp-room-editor",
     component: () =>
       import(
-        "@/app/Admin/XpTemples/components/XpTempleCreator/XpRoomEditorPage.vue"
+        "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/XpRoomEditorPage.vue"
       ),
     props: true,
   },
@@ -20,7 +20,7 @@ export const TempleRoutes: RouteRecordRaw[] = [
     path: "temples/:templeId",
     component: () =>
       import(
-        "@/app/Admin/XpTemples/components/XpTempleSettings.vue"
+        "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleSettings.vue"
       ),
     props: true,
     children: [
@@ -34,7 +34,7 @@ export const TempleRoutes: RouteRecordRaw[] = [
         name: "xp-temple-dashboard",
         component: () =>
           import(
-            "@/app/Admin/XpTemples/components/tabs/XpTempleDashboard.vue"
+            "@/app/Admin/XpCompendium/views/XpTemples/components/tabs/XpTempleDashboard.vue"
           ),
         props: true,
       },
@@ -43,7 +43,7 @@ export const TempleRoutes: RouteRecordRaw[] = [
         name: "xp-temple-layout",
         component: () =>
           import(
-            "@/app/Admin/XpTemples/components/tabs/XpTempleLayout.vue"
+            "@/app/Admin/XpCompendium/views/XpTemples/components/tabs/XpTempleLayout.vue"
           ),
         props: true,
       },
@@ -52,7 +52,7 @@ export const TempleRoutes: RouteRecordRaw[] = [
         name: "xp-temple-rooms",
         component: () =>
           import(
-            "@/app/Admin/XpTemples/components/tabs/XpTempleRooms.vue"
+            "@/app/Admin/XpCompendium/views/XpTemples/components/tabs/XpTempleRooms.vue"
           ),
         props: true,
       },
@@ -61,7 +61,7 @@ export const TempleRoutes: RouteRecordRaw[] = [
         name: "xp-temple-beasts",
         component: () =>
           import(
-            "@/app/Admin/XpTemples/components/tabs/XpTempleBeasts.vue"
+            "@/app/Admin/XpCompendium/views/XpTemples/components/tabs/XpTempleBeasts.vue"
           ),
         props: true,
       },
@@ -69,7 +69,7 @@ export const TempleRoutes: RouteRecordRaw[] = [
         path: "attributes",
         component: () =>
           import(
-            "@/app/Admin/XpTemples/components/tabs/XpTempleConfig.vue"
+            "@/app/Admin/XpCompendium/views/XpTemples/components/tabs/XpTempleConfig.vue"
           ),
         props: true,
         children: [
@@ -83,7 +83,7 @@ export const TempleRoutes: RouteRecordRaw[] = [
             name: "xp-temple-attributes-general",
             component: () =>
               import(
-                "@/app/Admin/XpTemples/components/tabs/XpTempleAttributes.vue"
+                "@/app/Admin/XpCompendium/views/XpTemples/components/tabs/XpTempleAttributes.vue"
               ),
             props: (route) => ({ templeId: route.params.templeId, tab: 'general' }),
           },
@@ -92,7 +92,7 @@ export const TempleRoutes: RouteRecordRaw[] = [
             name: "xp-temple-attributes-audit",
             component: () =>
               import(
-                "@/app/Admin/XpTemples/components/tabs/XpTempleAttributes.vue"
+                "@/app/Admin/XpCompendium/views/XpTemples/components/tabs/XpTempleAttributes.vue"
               ),
             props: (route) => ({ templeId: route.params.templeId, tab: 'audit' }),
           },
@@ -101,7 +101,7 @@ export const TempleRoutes: RouteRecordRaw[] = [
             name: "xp-temple-attributes-navigator",
             component: () =>
               import(
-                "@/app/Admin/XpTemples/components/tabs/XpTempleAttributes.vue"
+                "@/app/Admin/XpCompendium/views/XpTemples/components/tabs/XpTempleAttributes.vue"
               ),
             props: (route) => ({ templeId: route.params.templeId, tab: 'navigator' }),
           },
@@ -112,7 +112,7 @@ export const TempleRoutes: RouteRecordRaw[] = [
         name: "xp-temple-room-editor",
         component: () =>
           import(
-            "@/app/Admin/XpTemples/components/XpTempleCreator/XpRoomEditorPage.vue"
+            "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/XpRoomEditorPage.vue"
           ),
         props: true,
       },

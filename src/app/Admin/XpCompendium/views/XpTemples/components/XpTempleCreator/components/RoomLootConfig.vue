@@ -30,8 +30,8 @@
           :title="item.description">
           <!-- Handle both font-awesome classes and simple icon names -->
           <i :class="item.icon.startsWith('fa')
-              ? ['fad', item.icon]
-              : ['fad', 'fa-' + item.icon]
+            ? ['fad', item.icon]
+            : ['fad', 'fa-' + item.icon]
             "></i>
           <span>{{ item.label }}</span>
         </div>
@@ -109,7 +109,7 @@
 <script lang="ts">
 import { defineComponent, PropType } from "vue";
 import { IonRange, IonToggle } from "@ionic/vue";
-import XpBeastSelectorItem from "@/app/Admin/XpBestiary/components/XpBeastSelectorItem.vue";
+import XpBeastSelectorItem from "@/app/Admin/XpCompendium/views/XpBestiary/components/XpBeastSelectorItem.vue";
 import { Beast } from "@/lib/databases/BestiaryDb";
 import {
   CHEST_TYPES,

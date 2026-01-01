@@ -19,7 +19,7 @@ export const CompendiumRoutes: RouteRecordRaw[] = [
         path: "dashboard",
         name: "xp-compendium-dashboard",
         component: () =>
-          import("@/app/Admin/XpCompendium/CompendiumDashboard.vue"),
+          import("@/app/Admin/XpCompendium/XpCompendiumDashboard.vue"),
       },
       ...AchievementRoutes,
       ...BestiaryRoutes,

@@ -5,7 +5,7 @@ export const EconomyRoutes: RouteRecordRaw[] = [
     path: "economy",
     component: () =>
       import(
-        "@/app/Admin/XpAccessories/components/XpEconomyDashboard.vue"
+        "@/app/Admin/XpCompendium/views/XpAccessories/components/XpEconomyDashboard.vue"
       ),
     children: [
       {
@@ -18,7 +18,7 @@ export const EconomyRoutes: RouteRecordRaw[] = [
         name: "xp-economy-dashboard",
         component: () =>
           import(
-            "@/app/Admin/XpAccessories/components/tabs/XpEconomySplashTab.vue"
+            "@/app/Admin/XpCompendium/views/XpAccessories/components/tabs/XpEconomySplashTab.vue"
           ),
       },
       {
@@ -26,7 +26,7 @@ export const EconomyRoutes: RouteRecordRaw[] = [
         name: "xp-economy-shops",
         component: () =>
           import(
-            "@/app/Admin/XpAccessories/components/tabs/XpEconomyShops.vue"
+            "@/app/Admin/XpCompendium/views/XpAccessories/components/tabs/XpEconomyShops.vue"
           ),
       },
       {
@@ -34,7 +34,7 @@ export const EconomyRoutes: RouteRecordRaw[] = [
         name: "xp-economy-items",
         component: () =>
           import(
-            "@/app/Admin/XpAccessories/components/tabs/XpEconomyItems.vue"
+            "@/app/Admin/XpCompendium/views/XpAccessories/components/tabs/XpEconomyItems.vue"
           ),
       },
       {
@@ -42,7 +42,7 @@ export const EconomyRoutes: RouteRecordRaw[] = [
         name: "xp-economy-key-items",
         component: () =>
           import(
-            "@/app/Admin/XpAccessories/components/tabs/XpEconomyKeyItems.vue"
+            "@/app/Admin/XpCompendium/views/XpAccessories/components/tabs/XpEconomyKeyItems.vue"
           ),
       },
     ],
@@ -52,14 +52,14 @@ export const EconomyRoutes: RouteRecordRaw[] = [
     name: "xp-economy-global",
     component: () =>
       import(
-        "@/app/Admin/XpAccessories/components/XpAccessoriesGlobalList.vue"
+        "@/app/Admin/XpCompendium/views/XpAccessories/components/XpAccessoriesGlobalList.vue"
       ),
   },
   {
     path: "economy/shops/:shopId",
     component: () =>
       import(
-        "@/app/Admin/XpAccessories/components/XpShopDetails.vue"
+        "@/app/Admin/XpCompendium/views/XpAccessories/components/XpShopDetails.vue"
       ),
     props: true,
     children: [
@@ -74,7 +74,7 @@ export const EconomyRoutes: RouteRecordRaw[] = [
         name: "xp-shop-dashboard",
         component: () =>
           import(
-            "@/app/Admin/XpAccessories/components/tabs/XpShopDashboardTab.vue"
+            "@/app/Admin/XpCompendium/views/XpAccessories/components/tabs/XpShopDashboardTab.vue"
           ),
         props: true,
       },
@@ -83,7 +83,7 @@ export const EconomyRoutes: RouteRecordRaw[] = [
         name: "xp-shop-items",
         component: () =>
           import(
-            "@/app/Admin/XpAccessories/components/tabs/XpShopItemsTab.vue"
+            "@/app/Admin/XpCompendium/views/XpAccessories/components/tabs/XpShopItemsTab.vue"
           ),
         props: true,
       },
@@ -92,7 +92,7 @@ export const EconomyRoutes: RouteRecordRaw[] = [
         name: "xp-shop-hours",
         component: () =>
           import(
-            "@/app/Admin/XpAccessories/components/tabs/XpShopHoursTab.vue"
+            "@/app/Admin/XpCompendium/views/XpAccessories/components/tabs/XpShopHoursTab.vue"
           ),
         props: true,
       },
@@ -101,7 +101,7 @@ export const EconomyRoutes: RouteRecordRaw[] = [
         name: "xp-shop-decorate",
         component: () =>
           import(
-            "@/app/Admin/XpAccessories/components/tabs/XpShopDecorateTab.vue"
+            "@/app/Admin/XpCompendium/views/XpAccessories/components/tabs/XpShopDecorateTab.vue"
           ),
         props: true,
       },
@@ -110,7 +110,7 @@ export const EconomyRoutes: RouteRecordRaw[] = [
         name: "xp-shop-clerk",
         component: () =>
           import(
-            "@/app/Admin/XpAccessories/components/tabs/XpShopClerkTab.vue"
+            "@/app/Admin/XpCompendium/views/XpAccessories/components/tabs/XpShopClerkTab.vue"
           ),
         props: true,
       },
@@ -121,7 +121,7 @@ export const EconomyRoutes: RouteRecordRaw[] = [
     name: "xp-create-update-shop",
     component: () =>
       import(
-        "@/app/Admin/XpAccessories/components/XpCreateUpdateShop.vue"
+        "@/app/Admin/XpCompendium/views/XpAccessories/components/XpCreateUpdateShop.vue"
       ),
     props: true,
   },
@@ -130,7 +130,7 @@ export const EconomyRoutes: RouteRecordRaw[] = [
     name: "xp-create-update-accessory",
     component: () =>
       import(
-        "@/app/Admin/XpAccessories/components/XpCreateUpdateAccessory.vue"
+        "@/app/Admin/XpCompendium/views/XpAccessories/components/XpCreateUpdateAccessory.vue"
       ),
   },
 ];

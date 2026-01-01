@@ -6,14 +6,14 @@ export const AchievementRoutes: RouteRecordRaw[] = [
     name: "xp-achievements",
     component: () =>
       import(
-        "@/app/Admin/XpAchievements/XpAchievements.vue"
+        "@/app/Admin/XpCompendium/views/XpAchievements/XpAchievements.vue"
       ),
   },
   {
     path: "achievements/config/:id",
     component: () =>
       import(
-        "@/app/Admin/XpAchievements/XpConfigAchievement/XpConfigAchievement.vue"
+        "@/app/Admin/XpCompendium/views/XpAchievements/XpConfigAchievement/XpConfigAchievement.vue"
       ),
     props: true,
     children: [
@@ -25,31 +25,31 @@ export const AchievementRoutes: RouteRecordRaw[] = [
       {
         path: "dashboard",
         name: "xp-achievement-config-dashboard",
-        component: () => import("@/app/Admin/XpAchievements/XpConfigAchievement/components/tabs/QuestDashboardTab.vue"),
+        component: () => import("@/app/Admin/XpCompendium/views/XpAchievements/XpConfigAchievement/components/tabs/QuestDashboardTab.vue"),
         props: true,
       },
       {
         path: "heros",
         name: "xp-achievement-config-heros",
-        component: () => import("@/app/Admin/XpAchievements/XpConfigAchievement/components/tabs/QuestHerosTab.vue"),
+        component: () => import("@/app/Admin/XpCompendium/views/XpAchievements/XpConfigAchievement/components/tabs/QuestHerosTab.vue"),
         props: true,
       },
       {
         path: "when",
         name: "xp-achievement-config-when",
-        component: () => import("@/app/Admin/XpAchievements/XpConfigAchievement/components/tabs/QuestScheduleTab.vue"),
+        component: () => import("@/app/Admin/XpCompendium/views/XpAchievements/XpConfigAchievement/components/tabs/QuestScheduleTab.vue"),
         props: true,
       },
       {
         path: "points",
         name: "xp-achievement-config-points",
-        component: () => import("@/app/Admin/XpAchievements/XpConfigAchievement/components/tabs/QuestRewardsTab.vue"),
+        component: () => import("@/app/Admin/XpCompendium/views/XpAchievements/XpConfigAchievement/components/tabs/QuestRewardsTab.vue"),
         props: true,
       },
       {
         path: "quest-type",
         name: "xp-achievement-config-type",
-        component: () => import("@/app/Admin/XpAchievements/XpConfigAchievement/components/tabs/QuestTypeTab.vue"),
+        component: () => import("@/app/Admin/XpCompendium/views/XpAchievements/XpConfigAchievement/components/tabs/QuestTypeTab.vue"),
         props: true,
       },
     ]

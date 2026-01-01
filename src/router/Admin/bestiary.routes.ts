@@ -6,7 +6,7 @@ export const BestiaryRoutes: RouteRecordRaw[] = [
     name: "xp-bestiary",
     component: () =>
       import(
-        "@/app/Admin/XpBestiary/XpBestiary.vue"
+        "@/app/Admin/XpCompendium/views/XpBestiary/XpBestiary.vue"
       ),
   },
   {
@@ -14,7 +14,7 @@ export const BestiaryRoutes: RouteRecordRaw[] = [
     name: "xp-bestiary-select",
     component: () =>
       import(
-        "@/app/Admin/XpBestiary/XpBeastSelectionPage.vue"
+        "@/app/Admin/XpCompendium/views/XpBestiary/XpBeastSelectionPage.vue"
       ),
   },
   {
@@ -22,7 +22,7 @@ export const BestiaryRoutes: RouteRecordRaw[] = [
     name: "xp-create-update-beast",
     component: () =>
       import(
-        "@/app/Admin/XpBestiary/components/XpAddBeast.vue"
+        "@/app/Admin/XpCompendium/views/XpBestiary/components/XpAddBeast.vue"
       ),
     props: true,
   },

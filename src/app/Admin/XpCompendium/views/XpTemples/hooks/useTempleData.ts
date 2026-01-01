@@ -11,7 +11,7 @@ import {
 } from "@/lib/databases/AchievementDb";
 import { TempleDb, TempleInterface, templeStorage } from "@/lib/databases/TempleDb";
 import BestiaryDb, { Beast, beastStorage } from "@/lib/databases/BestiaryDb";
-import { sortCategoryByName } from "@/app/Admin/XpAchievements/XpConfigAchievement/hooks/useAchievementForm";
+import { sortCategoryByName } from "@/app/Admin/XpCompendium/views/XpAchievements//XpConfigAchievement/hooks/useAchievementForm";
 import { TempleSystem } from "@/lib/engine/core/dungeons/TempleSystem";
 import { ROOM_ICONS } from "@/lib/engine/dungeons/roomTypes";
 import debug from "@/lib/utils/debug";

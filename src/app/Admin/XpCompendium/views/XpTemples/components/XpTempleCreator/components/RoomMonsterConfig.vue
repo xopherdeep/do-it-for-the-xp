@@ -87,7 +87,7 @@
 <script lang="ts">
 import { defineComponent, PropType } from "vue";
 import { IonGrid, IonRow, IonCol, IonButton, IonToggle } from "@ionic/vue";
-import XpBeastSelectorItem from "@/app/Admin/XpBestiary/components/XpBeastSelectorItem.vue";
+import XpBeastSelectorItem from "@/app/Admin/XpCompendium/views/XpBestiary/components/XpBeastSelectorItem.vue";
 import { XpPointSlider } from "@/components/atoms/PointSlider";
 import { Beast } from "@/lib/databases/BestiaryDb";
 

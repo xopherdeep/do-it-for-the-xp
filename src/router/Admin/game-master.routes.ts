@@ -42,7 +42,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
       name: "xp-add-beast",
       component: () =>
         import(
-          "@/app/Admin/XpBestiary/components/XpAddBeast.vue"
+          "@/app/Admin/XpCompendium/views/XpBestiary/components/XpAddBeast.vue"
         ),
       props: true,
     },
@@ -51,7 +51,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
       name: "xp-add-ability",
       component: () =>
         import(
-          "@/app/Admin/XpAbilities/components/XpCreateUpdateAbility.vue"
+          "@/app/Admin/XpCompendium/views/XpAbilities/components/XpCreateUpdateAbility.vue"
         ),
       props: true,
     },
@@ -60,7 +60,7 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
       name: "xp-discover-achievements",
       component: () =>
         import(
-          "@/app/Admin/XpAchievements/XpDiscoverAchievements/XpDiscoverAchievements.vue"
+          "@/app/Admin/XpCompendium/views/XpAchievements/XpDiscoverAchievements/XpDiscoverAchievements.vue"
         ),
     },
   ],
