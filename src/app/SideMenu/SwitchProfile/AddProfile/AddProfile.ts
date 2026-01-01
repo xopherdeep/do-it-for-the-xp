@@ -1,4 +1,5 @@
-import { computed, ref, defineComponent, onMounted, onUnmounted } from "vue";
+import { computed, ref, watch, defineComponent, onMounted, onUnmounted } from "vue";
+import { play$fx } from "@/assets/fx";
 import { modalController } from "@ionic/vue";
 import { useRoute } from "vue-router";
 import { arrowBack, arrowForward, closeOutline } from "ionicons/icons";
@@ -157,6 +158,11 @@ export const AddProfile = defineComponent({
     };
 
     const activeSegment = ref("info")
+
+    // Play sound when switching tabs
+    watch(activeSegment, () => {
+      play$fx('okdesuka');
+    });
 
     const features = ref({
       rewards: true,

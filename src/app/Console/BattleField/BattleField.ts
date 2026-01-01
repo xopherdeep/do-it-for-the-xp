@@ -145,6 +145,7 @@ export default defineComponent({
     const showEnemy = ref(false);
     const showTaskMenu = ref(false);
     const isBackgroundActive = ref(false);
+    const currentRoomContent = ref<{ xp?: number; gp?: number; ap?: number } | null>(null);
 
     // Services
     const battleService = ref<BattleService | null>(null);
@@ -425,6 +426,13 @@ export default defineComponent({
         if (roomContent.bg2 !== undefined) {
           bg2.value = roomContent.bg2;
         }
+
+        // Store room content for reward calculations
+        currentRoomContent.value = {
+          xp: roomContent.xp,
+          gp: roomContent.gp,
+          ap: roomContent.ap
+        };
 
         // Start battle with the beasts
         if (beastIds.length > 0) {
@@ -1033,39 +1041,39 @@ export default defineComponent({
       currentEnemy.value = null;
     };
 
-    // Calculate XP reward based on enemy difficulty
+    // Calculate XP reward based on room content or enemy difficulty
     const calculateXPReward = () => {
+      // Priority 1: Room-defined XP (dungeon room battles)
+      if (currentRoomContent.value?.xp !== undefined) {
+        return currentRoomContent.value.xp;
+      }
+
+      // Priority 2: Formula fallback (for legacy or quest battles)
       if (!currentEnemy.value) return 0;
-
-      // Base XP on enemy type and health
       let baseXP = currentEnemy.value.maxHealth / 2;
-
-      // Bonus for boss types
       if (currentEnemy.value.isBoss) {
         baseXP *= 1.5;
       } else if (currentEnemy.value.type === 'miniboss') {
         baseXP *= 1.25;
       }
-
-      // Round to nearest integer
       return Math.round(baseXP);
     };
 
-    // Calculate GP reward based on enemy difficulty
+    // Calculate GP reward based on room content or enemy difficulty
     const calculateGPReward = () => {
+      // Priority 1: Room-defined GP (dungeon room battles)
+      if (currentRoomContent.value?.gp !== undefined) {
+        return currentRoomContent.value.gp;
+      }
+
+      // Priority 2: Formula fallback (for legacy or quest battles)
       if (!currentEnemy.value) return 0;
-
-      // Base GP on enemy type and health
       let baseGP = currentEnemy.value.maxHealth / 4;
-
-      // Bonus for boss types
       if (currentEnemy.value.isBoss) {
         baseGP *= 1.5;
       } else if (currentEnemy.value.type === 'miniboss') {
         baseGP *= 1.25;
       }
-
-      // Round to nearest integer
       return Math.round(baseGP);
     };
 

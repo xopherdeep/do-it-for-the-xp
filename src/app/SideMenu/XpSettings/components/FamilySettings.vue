@@ -33,44 +33,24 @@
           <ion-item-group>
             <ion-item-divider>
               <ion-label>Adults</ion-label>
-              <ion-button
-                slot="end"
-                v-if="!lockFamily"
-                @click="openModal({ showIsAdult: true })"
-              >
+              <ion-button slot="end" v-if="!lockFamily" @click="openModal({ showIsAdult: true })">
                 Add Adult
               </ion-button>
             </ion-item-divider>
-            <xp-profile-item
-              v-for="profile in profiles.filter((p) => p.isAdult)"
-              :key="profile.id"
-              :profile="profile"
-              :isLocked="lockFamily"
-              @clickAddProfile="clickEditProfile"
-              @clickDeleteProfile="clickDeleteProfile"
-            />
+            <xp-profile-item v-for="profile in profiles.filter((p) => p.isAdult)" :key="profile.id" :profile="profile"
+              :isLocked="lockFamily" @clickAddProfile="clickEditProfile" @clickDeleteProfile="clickDeleteProfile" />
           </ion-item-group>
 
           <ion-item-group>
             <ion-item-divider>
               <ion-label>Kids</ion-label>
-              <ion-button
-                slot="end"
-                v-if="!lockFamily"
-                @click="openModal({ showIsAdult: true })"
-              >
+              <ion-button slot="end" v-if="!lockFamily" @click="openModal({ showIsAdult: true })">
                 Add Kid
               </ion-button>
             </ion-item-divider>
 
-            <xp-profile-item
-              v-for="profile in profiles.filter((p) => !p.isAdult)"
-              :key="profile.id"
-              :profile="profile"
-              :isLocked="lockFamily"
-              @clickAddProfile="clickEditProfile"
-              @clickDeleteProfile="clickDeleteProfile"
-            />
+            <xp-profile-item v-for="profile in profiles.filter((p) => !p.isAdult)" :key="profile.id" :profile="profile"
+              :isLocked="lockFamily" @clickAddProfile="clickEditProfile" @clickDeleteProfile="clickDeleteProfile" />
           </ion-item-group>
         </ion-list>
       </ion-card>
@@ -79,106 +59,106 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, computed } from "vue";
-  import ionic from "@/lib/mixins/ionic";
-  import { arrowBack } from "ionicons/icons";
-  import { profileStorage } from "../../SwitchProfile/SwitchProfile.vue";
-  import { ProfileDb } from "@/lib/databases";
-  import User from "@/lib/utils/User";
-  import { alertController, modalController } from "@ionic/vue";
-  import XpProfileItem from "./ProfileItem.vue";
-  import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
-  import { useUserStore } from "@/lib/store/stores/user";
+import { defineComponent, ref, computed } from "vue";
+import ionic from "@/lib/mixins/ionic";
+import { arrowBack } from "ionicons/icons";
+import { profileStorage } from "../../SwitchProfile/SwitchProfile.vue";
+import { ProfileDb } from "@/lib/databases";
+import User from "@/lib/utils/User";
+import { alertController, modalController } from "@ionic/vue";
+import XpProfileItem from "./ProfileItem.vue";
+import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
+import { useUserStore } from "@/lib/store/stores/user";
 
-  export default defineComponent({
-    name: "xp-settings-family",
-    mixins: [ionic],
-    components: { XpProfileItem },
-    setup() {
-      const lockFamily = ref(false);
-      const toppings = [];
-      const toggleFamily = () => (lockFamily.value = !lockFamily.value);
-      const userStore = useUserStore();
-      const profileDb = new ProfileDb(profileStorage);
-      const requireAvatar = require.context("@/assets/images/avatars/");
+export default defineComponent({
+  name: "xp-settings-family",
+  mixins: [ionic],
+  components: { XpProfileItem },
+  setup() {
+    const lockFamily = ref(false);
+    const toppings = [];
+    const toggleFamily = () => (lockFamily.value = !lockFamily.value);
+    const userStore = useUserStore();
+    const profileDb = new ProfileDb(profileStorage);
+    const requireAvatar = require.context("@/assets/images/avatars/");
 
-      // Get profiles from Pinia store
-      const profiles = computed(() => userStore.usersAz);
+    // Get profiles from Pinia store
+    const profiles = computed(() => userStore.usersAz);
 
-      // Methods
-      const loadProfiles = async () => {
-        await userStore.loadUsers();
-      };
+    // Methods
+    const loadProfiles = async () => {
+      await userStore.loadUsers();
+    };
 
-      // Load profiles when component mounts
-      loadProfiles();
+    // Load profiles when component mounts
+    loadProfiles();
 
-      return {
-        userStore,
-        requireAvatar,
-        profiles,
-        profileDb,
-        lockFamily,
-        toggleFamily,
-        toppings,
-        arrowBack,
-        loadProfiles,
-      };
+    return {
+      userStore,
+      requireAvatar,
+      profiles,
+      profileDb,
+      lockFamily,
+      toggleFamily,
+      toppings,
+      arrowBack,
+      loadProfiles,
+    };
+  },
+  methods: {
+    async clickEditProfile(profile: User) {
+      await this.openModal({
+        profile,
+        showIsAdult: true,
+      });
     },
-    methods: {
-      async clickEditProfile(profile: User) {
-        await this.openModal({
-          profile,
-          showIsAdult: true,
-        });
-      },
-      async openModal(componentProps?: any) {
-        const modal = await modalController.create({
-          component: AddProfile,
-          cssClass: "fullscreen",
-          componentProps,
-        });
-        modal.onDidDismiss().then(this.loadProfiles);
-        modal.present();
-      },
-      async deleteProfile(profile: User) {
-        const { profileDb, loadProfiles } = this;
-        await profileDb
-          .remove(profile.id)
-          .then(loadProfiles)
-          .then(profileDb.showDeleteToast);
-      },
-      async clickDeleteProfile(profile: User) {
-        const alert = await alertController.create({
-          header: "Delete " + profile.name.full + "?",
-          subHeader: "Are you sure you want to delete this profile?",
-          message: "This action cannot be undone.",
-          mode: "ios",
-          buttons: [
-            {
-              text: "Cancel",
-              role: "cancel",
-              handler: () => {
-                // handlerMessage.value = "Alert canceled";
-              },
-            },
-            {
-              text: "OK",
-              role: "confirm",
-              handler: () => this.deleteProfile(profile),
-            },
-          ],
-        });
-        await alert.present();
-      },
-      getUserAvatar(user) {
-        const { avatar } = user;
-        if (avatar) {
-          return this.requireAvatar(`./${user.avatar}.svg`);
-        }
-      },
+    async openModal(componentProps?: any) {
+      const modal = await modalController.create({
+        component: AddProfile,
+        cssClass: "fullscreen",
+        componentProps,
+      });
+      modal.onDidDismiss().then(this.loadProfiles);
+      modal.present();
     },
-  });
+    async deleteProfile(profile: User) {
+      const { profileDb, loadProfiles } = this;
+      await profileDb
+        .removeProfile(profile.id)
+        .then(loadProfiles)
+        .then(profileDb.showDeleteToast);
+    },
+    async clickDeleteProfile(profile: User) {
+      const alert = await alertController.create({
+        header: "Delete " + profile.name.full + "?",
+        subHeader: "Are you sure you want to delete this profile?",
+        message: "This action cannot be undone.",
+        mode: "ios",
+        buttons: [
+          {
+            text: "Cancel",
+            role: "cancel",
+            handler: () => {
+              // handlerMessage.value = "Alert canceled";
+            },
+          },
+          {
+            text: "OK",
+            role: "confirm",
+            handler: () => this.deleteProfile(profile),
+          },
+        ],
+      });
+      await alert.present();
+    },
+    getUserAvatar(user) {
+      const { avatar } = user;
+      if (avatar) {
+        return this.requireAvatar(`./${user.avatar}.svg`);
+      }
+    },
+  },
+});
 </script>
 
 <style lang="scss"></style>

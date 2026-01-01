@@ -74,18 +74,26 @@
         Boss encounters always lock doors upon entry. Prepare for battle!
       </p>
     </div>
+
+    <!-- Rewards Configuration -->
+    <div class="rewards-config mt-20" v-if="selectedBeasts.length">
+      <div class="config-label">Encounter Rewards</div>
+      <XpPointSlider :model-value="rewardIndex" label="Victory Rewards" :show-points-display="true"
+        @update:model-value="$emit('update:rewardIndex', $event)" @update:rewards="$emit('update:rewards', $event)" />
+    </div>
   </div>
 </template>
 
 <script lang="ts">
 import { defineComponent, PropType } from "vue";
-import { IonGrid, IonRow, IonCol, IonButton } from "@ionic/vue";
+import { IonGrid, IonRow, IonCol, IonButton, IonToggle } from "@ionic/vue";
 import XpBeastSelectorItem from "@/app/Admin/XpBestiary/components/XpBeastSelectorItem.vue";
+import { XpPointSlider } from "@/components/atoms/PointSlider";
 import { Beast } from "@/lib/databases/BestiaryDb";
 
 export default defineComponent({
   name: "RoomMonsterConfig",
-  components: { IonGrid, IonRow, IonCol, IonButton, XpBeastSelectorItem },
+  components: { IonGrid, IonRow, IonCol, IonButton, IonToggle, XpBeastSelectorItem, XpPointSlider },
   props: {
     selectedBeasts: {
       type: Array as PropType<Beast[]>,
@@ -99,8 +107,12 @@ export default defineComponent({
       type: Boolean,
       default: false,
     },
+    rewardIndex: {
+      type: Number,
+      default: 3, // Default to 'Moderate' (index 3 = difficulty 5)
+    },
   },
-  emits: ["open-beast-selector", "remove-beast", "toggle-auto-lock"],
+  emits: ["open-beast-selector", "remove-beast", "toggle-auto-lock", "update:rewardIndex", "update:rewards"],
 });
 </script>
 

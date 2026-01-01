@@ -89,6 +89,7 @@ const $fx = {
       closePage: new Audio(earthbound.okdesuka),
       chooseUser: new Audio(nintendo.User),
       openShop: new Audio(nintendo.Eshop),
+      okdesuka: new Audio(earthbound.okdesuka),
       GameBoy: new Audio(nintendo.GameBoy),
     },
     sony: {
@@ -453,6 +454,7 @@ const $fx = {
       text: new Audio(earthbound.text),
       cursorHoriz: new Audio(earthbound.curshoriz),
       cursorVerti: new Audio(earthbound.cursverti),
+      okdesuka: new Audio(earthbound.okdesuka),
       key: new Audio(key),
       useKey: new Audio(useKey),
       map: new Audio(map),

@@ -54,8 +54,9 @@
         <template #config>
           <!-- Monster Configuration -->
           <RoomMonsterConfig v-if="isMonsterRoom" :selected-beasts="selectedBeastsData"
-            :lock-on-enter="roomData?.content?.lockOnEnter || false" :is-boss="isBossRoom"
-            @open-beast-selector="openBeastSelector" @remove-beast="removeBeast" @toggle-auto-lock="toggleAutoLock" />
+            :lock-on-enter="roomData?.content?.lockOnEnter || false" :is-boss="isBossRoom" :reward-index="rewardIndex"
+            @open-beast-selector="openBeastSelector" @remove-beast="removeBeast" @toggle-auto-lock="toggleAutoLock"
+            @update:reward-index="handleRewardIndexChange" @update:rewards="handleRewardsUpdate" />
 
           <!-- Loot Configuration -->
           <RoomLootConfig v-if="isLootRoom" :selected-chest-type="roomData?.content?.chest || ''"
@@ -113,7 +114,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, onMounted, watch, ref } from 'vue';
+import { defineComponent, onMounted, watch, ref, computed } from 'vue';
 import {
   IonPage, IonHeader, IonToolbar, IonButtons, IonButton,
   IonContent, onIonViewWillEnter,
@@ -255,6 +256,26 @@ export default defineComponent({
       openMimicBeastSelector: editor.openMimicBeastSelector,
       removeBeast: editor.removeBeast,
       resetRoom: editor.resetRoom,
+
+      // Reward handling for monster rooms
+      rewardIndex: computed(() => {
+        // Convert room.content.xp back to fibonacci index
+        const fibonacciArray = [1, 2, 3, 5, 8, 13, 21, 34, 55, 89, 144];
+        const xp = editor.roomData.value?.content?.xp || 0;
+        const difficulty = Math.round(xp / 100) || 5; // Default to 5 (moderate)
+        const index = fibonacciArray.indexOf(difficulty);
+        return index >= 0 ? index : 3; // Default to index 3 (difficulty 5)
+      }),
+      handleRewardIndexChange: (_index: number) => {
+        // This is handled via update:rewards, but we can store the index if needed
+      },
+      handleRewardsUpdate: (rewards: { xp: number; gp: number; ap: number; difficulty: number }) => {
+        if (editor.roomData.value?.content) {
+          editor.roomData.value.content.xp = rewards.xp;
+          editor.roomData.value.content.gp = rewards.gp;
+          editor.roomData.value.content.ap = rewards.ap;
+        }
+      },
 
       // Test Fight - Navigate to battle with configured beasts
       testFight: () => {

@@ -71,9 +71,16 @@ export const useUserStore = defineStore('user', () => {
       const usersList = Array.isArray(response) ? response : response.data;
 
       if (Array.isArray(usersList)) {
-        // Clear existing users to reflect deletions
-        Object.keys(users).forEach(key => delete users[key]);
+        const userIds = usersList.map(u => u.id);
 
+        // Remove users that are no longer in the list
+        Object.keys(users).forEach(id => {
+          if (!userIds.includes(id)) {
+            delete users[id];
+          }
+        });
+
+        // Update/Add users from the list
         usersList.forEach(user => {
           users[user.id] = user;
         });
