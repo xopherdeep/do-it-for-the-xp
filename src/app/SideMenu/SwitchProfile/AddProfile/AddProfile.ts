@@ -55,6 +55,19 @@ export const AddProfile = defineComponent({
       // Show success splash
       this.showSuccessSplash = true;
 
+      // Play Now, Let's Go! BGM
+      const rpgTheme = this.gameStore.theme?.rpg || 'earthbound';
+      const BGM = this.audioStore.bgm?.$fx?.rpg?.[rpgTheme]?.BGM;
+      if (BGM && BGM.nowLetsGo) {
+        changeBGM(this.audioStore, {
+          tracks: BGM.nowLetsGo,
+          track: 0,
+          startDelay: 0,
+          repeat: false,
+          saveBookmark: false
+        });
+      }
+
       // Play fanfare sound using the mixin method
       this.play$fx('levelUp');
 
@@ -238,6 +251,8 @@ export const AddProfile = defineComponent({
       isAvatarSelectorOpen,
       showSuccessSplash,
       requireAvatar,
+      audioStore,
+      gameStore
     };
   },
 });

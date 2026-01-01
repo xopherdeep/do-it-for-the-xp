@@ -126,8 +126,14 @@ const $fx = {
         chooseFile: [
           "https://starmen.net/mother2/music/006- Earthbound - Choose a File.mp3",
         ],
+        nowLetsGo: [
+          "https://starmen.net/mother2/music/008-%20Earthbound%20-%20Now,%20Let_s%20Go!.mp3",
+        ],
         createProfile: [
           "https://starmen.net/mother2/music/007- Earthbound - Your Name, Please.mp3",
+        ],
+        oneFatefulNight: [
+          "https://starmen.net/mother2/music/009-%20Earthbound%20-%20One%20Fateful%20Night___.mp3",
         ],
         home: [
           "https://starmen.net/mother2/music/023- Earthbound - Home Sweet Home.mp3",
