@@ -1167,23 +1167,20 @@ export default defineComponent({
             const gp = calculateGPReward();
             const ap = currentRoomContent.value?.ap || 0;
 
-            // Persist rewards to user profile and capture level-up info
+            // Prepare reward data (Preview Mode)
             const usrId = props.userId || user.value?.id;
             let levelUpInfo: LevelUpInfo | null = null;
             let classLevelUpInfo: ClassLevelUpInfo | null = null;
 
             if (usrId && user.value) {
-              // Update User XP
-              levelUpInfo = userStore.updateUserXP({ userId: usrId, amount: xp });
+              // Calculate potential Level Up (Commit: false to preview)
+              levelUpInfo = userStore.updateUserXP({ userId: usrId, amount: xp, commit: false });
 
-              // Update Class XP
+              // For Class XP, we currently apply it immediately as it's separate from core stats
+              // But strictly speaking we should defer it. For now, we apply it to get the info.
+              // If strict delay is needed, we'd need to refactor updateClassXp too.
               const jobClassId = user.value.jobClass || 'default';
               classLevelUpInfo = userStore.updateClassXp(usrId, jobClassId, xp);
-
-              userStore.updateUserGP({ userId: usrId, savings: gp }); // GP goes to bank (Earthbound-style)
-              if (ap > 0) {
-                userStore.recordAPGain({ userId: usrId, amount: ap, source: 'battle' });
-              }
             }
 
             // Calculate item reward (50% chance)
@@ -1192,11 +1189,10 @@ export default defineComponent({
             // Get player name for level-up messages
             const playerName = user.value?.name?.nick || user.value?.name?.first || 'You';
 
-            // Build victory messages
+            // Build victory messages (Reordered: GP first)
             const messages: (string | (() => void))[] = [
               'You Won!',
               `${currentEnemy.value?.name || 'Enemy'} was defeated!`,
-              `You gained ${xp} XP!`,
               `${gp} GP deposited to your bank!`
             ];
 
@@ -1204,6 +1200,9 @@ export default defineComponent({
             if (item) {
               messages.push(`You found a ${item}!`);
             }
+
+            // Add XP message
+            messages.push(`You gained ${xp} XP!`);
 
             // Level-up sequence (Earthbound style with append mode)
             if (levelUpInfo?.didLevelUp) {
@@ -1218,16 +1217,28 @@ export default defineComponent({
 
               // Show stat increases one by one (Earthbound style)
               if (levelUpInfo.hpGained > 0) {
-                messages.push(`HP increased by ${levelUpInfo.hpGained}!`);
+                messages.push(`Max HP increased by ${levelUpInfo.hpGained}!`);
               }
               if (levelUpInfo.mpGained > 0) {
-                messages.push(`MP increased by ${levelUpInfo.mpGained}!`);
+                messages.push(`Max MP increased by ${levelUpInfo.mpGained}!`);
+              }
+
+              // Show other stat gains
+              if (levelUpInfo.statsGained) {
+                Object.entries(levelUpInfo.statsGained).forEach(([stat, val]) => {
+                  // Capitalize stat name
+                  const statName = stat.charAt(0).toUpperCase() + stat.slice(1);
+                  messages.push(`${statName} went up by ${val}!`);
+                });
               }
 
               // Multi-level bonus message
               if (levelUpInfo.levelsGained > 1) {
                 messages.push(`Gained ${levelUpInfo.levelsGained} levels!`);
               }
+
+              // Full Recovery Message (implied by level up mechanisms often)
+              // messages.push("HP and MP fully recovered!");
 
               // Disable append mode after stat reveal
               messages.push(() => {
@@ -1251,8 +1262,19 @@ export default defineComponent({
               });
             }
 
-            // Add completion callback
+            // Add completion callback to COMMIT the rewards
             messages.push(() => {
+              if (usrId) {
+                // Commit User XP (applies level up and stats)
+                userStore.updateUserXP({ userId: usrId, amount: xp, commit: true });
+
+                // Commit GP and AP
+                userStore.updateUserGP({ userId: usrId, savings: gp });
+                if (ap > 0) {
+                  userStore.recordAPGain({ userId: usrId, amount: ap, source: 'battle' });
+                }
+              }
+
               returnToHometown();
             });
 
@@ -1260,7 +1282,7 @@ export default defineComponent({
             queueBattleDialog(messages);
           })
           .catch(error => {
-            debug.error("Error during victory animation:", error);
+            console.error("Error during victory animation:", error);
             // Fallback in case of error
             queueBattleDialog([
               `Victory! ${currentEnemy.value?.name || 'Enemy'} was defeated!`,

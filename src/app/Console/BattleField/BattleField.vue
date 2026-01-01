@@ -415,7 +415,6 @@
           margin-bottom: 8px;
 
           .accumulated-line {
-            opacity: 0.9;
             animation: fadeInLine 0.3s ease-out forwards;
             margin-bottom: 4px;
 

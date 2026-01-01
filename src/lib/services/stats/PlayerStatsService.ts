@@ -8,64 +8,9 @@
 import { SpecialStats } from '@/lib/utils/User/stats';
 import { JOB_CLASS_OPTIONS } from '@/constants/JOB_CLASS_OPTIONS';
 
-// ... (BASE STATS section remains same)
-
-// ...
-
-export interface LevelUpResult {
-  newLevel: number;
-  hpGained: number;
-  mpGained: number;
-  newMaxHp: number;
-  newMaxMp: number;
-  statsGained: Record<string, number>;
-}
-
-/**
- * Calculate the result of leveling up
- */
-export function calculateLevelUp(
-  currentLevel: number,
-  targetLevel: number,
-  jobClass: string,
-  specialStats?: Partial<SpecialStats>
-): LevelUpResult {
-  const oldMaxHp = calculateMaxHp(currentLevel, jobClass, specialStats);
-  const oldMaxMp = calculateMaxMp(currentLevel, jobClass, specialStats);
-
-  const newMaxHp = calculateMaxHp(targetLevel, jobClass, specialStats);
-  const newMaxMp = calculateMaxMp(targetLevel, jobClass, specialStats);
-
-  // Calculate Stat Boosts based on Class
-  const statsGained: Record<string, number> = {};
-  const levelsGained = Math.max(0, targetLevel - currentLevel);
-
-  if (levelsGained > 0) {
-    const jobClassData = JOB_CLASS_OPTIONS.find(j => j.name === jobClass);
-
-    if (jobClassData?.statBoosts) {
-      jobClassData.statBoosts.forEach(boost => {
-        // Linear gain based on defined boosts
-        const gain = boost.amount * levelsGained;
-        if (gain > 0) {
-          statsGained[boost.stat] = (statsGained[boost.stat] || 0) + gain;
-        }
-      });
-    }
-
-    // Potential place for random extra boosts or universal small gains
-    // For now, we rely on the class configuration
-  }
-
-  return {
-    newLevel: targetLevel,
-    hpGained: newMaxHp - oldMaxHp,
-    mpGained: newMaxMp - oldMaxMp,
-    newMaxHp,
-    newMaxMp,
-    statsGained
-  };
-}
+// ============================================
+// BASE STATS BY JOB CLASS
+// ============================================
 
 export interface JobClassBaseStats {
   hp: number;        // Base HP at level 1
@@ -346,6 +291,7 @@ export interface LevelUpResult {
   mpGained: number;
   newMaxHp: number;
   newMaxMp: number;
+  statsGained: Record<string, number>;
 }
 
 /**
@@ -363,12 +309,31 @@ export function calculateLevelUp(
   const newMaxHp = calculateMaxHp(targetLevel, jobClass, specialStats);
   const newMaxMp = calculateMaxMp(targetLevel, jobClass, specialStats);
 
+  // Calculate Stat Boosts based on Class
+  const statsGained: Record<string, number> = {};
+  const levelsGained = Math.max(0, targetLevel - currentLevel);
+
+  if (levelsGained > 0) {
+    const jobClassData = JOB_CLASS_OPTIONS.find(j => j.name === jobClass);
+
+    if (jobClassData?.statBoosts) {
+      jobClassData.statBoosts.forEach(boost => {
+        // Linear gain based on defined boosts
+        const gain = boost.amount * levelsGained;
+        if (gain > 0) {
+          statsGained[boost.stat] = (statsGained[boost.stat] || 0) + gain;
+        }
+      });
+    }
+  }
+
   return {
     newLevel: targetLevel,
     hpGained: newMaxHp - oldMaxHp,
     mpGained: newMaxMp - oldMaxMp,
     newMaxHp,
     newMaxMp,
+    statsGained
   };
 }
 

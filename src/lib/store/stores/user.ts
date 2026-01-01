@@ -6,7 +6,7 @@ import {
   JOB_UNLOCK_REQUIREMENTS,
   getLevelFromXp,
   calculateLevelUp,
-  getXpToNextLevel
+  getXpForLevel
 } from '@/lib/services/stats/PlayerStatsService';
 
 // LocalStorage key for persisting current user ID
@@ -24,7 +24,12 @@ export interface LevelUpInfo {
   mpGained: number;
   newMaxHp: number;
   newMaxMp: number;
+  statsGained?: Record<string, number>;
 }
+
+// ...
+
+
 
 /**
  * Class Level-up information returned from updateClassXp
@@ -451,8 +456,9 @@ export const useUserStore = defineStore('user', () => {
    * Update User XP and handle level-ups
    * Returns detailed level-up information for battle victory sequences
    */
-  function updateUserXP(payload: { userId: string, amount: number }): LevelUpInfo {
+  function updateUserXP(payload: { userId: string, amount: number, commit?: boolean }): LevelUpInfo {
     const { userId, amount } = payload;
+    const commit = payload.commit !== false;
 
     // Default result (no level up)
     const result: LevelUpInfo = {
@@ -463,12 +469,24 @@ export const useUserStore = defineStore('user', () => {
       hpGained: 0,
       mpGained: 0,
       newMaxHp: 0,
-      newMaxMp: 0
+      newMaxMp: 0,
+      statsGained: {}
     };
 
     if (users[userId]) {
-      const userStats = users[userId].stats || {};
       const userData = users[userId];
+      // Work on a clone if not committing, otherwise reference the reactive store object so mutations stick
+      // However, userData.stats IS the reactive object. If we clone it, we are safe. 
+      // If we reference it, we mutate the state.
+      const userStats = (!commit)
+        ? JSON.parse(JSON.stringify(userData.stats || {}))
+        : (userData.stats || {});
+
+      // Ensure we have an object to work with
+      if (!userData.stats && commit) {
+        userData.stats = userStats;
+      }
+
       const jobClass = userData.jobClass || 'default';
       const specialStats = userStats.special || {};
 
@@ -484,42 +502,71 @@ export const useUserStore = defineStore('user', () => {
       // Add XP
       userStats.xp.now = (userStats.xp.now || 0) + amount;
 
-      // Check for level up using PlayerStatsService
-      const newLevel = getLevelFromXp(userStats.xp.now);
+      // Recalculate level
+      const totalXp = userStats.xp.now;
+      const newLevel = getLevelFromXp(totalXp);
 
+      // Update stats with new level
+      userStats.level = newLevel;
+
+      // Update next level requirement
+      // Using cumulative target XP 
+      userStats.xp.next_level = getXpForLevel(newLevel + 1);
+
+      // Check for level up
       if (newLevel > oldLevel) {
-        userStats.level = newLevel;
         result.didLevelUp = true;
         result.newLevel = newLevel;
         result.levelsGained = newLevel - oldLevel;
 
-        // Calculate stat gains using PlayerStatsService
-        const levelUpResult = calculateLevelUp(oldLevel, newLevel, jobClass, specialStats);
-        result.hpGained = levelUpResult.hpGained;
-        result.mpGained = levelUpResult.mpGained;
-        result.newMaxHp = levelUpResult.newMaxHp;
-        result.newMaxMp = levelUpResult.newMaxMp;
+        // Calculate stats with potential level ups
+        // Use updated calculateLevelUp which returns statsGained
+        const levelUpDetails = calculateLevelUp(oldLevel, result.newLevel, jobClass, specialStats);
 
-        // Update HP/MP to new max (full heal on level up, Earthbound style)
+        result.hpGained = levelUpDetails.hpGained;
+        result.mpGained = levelUpDetails.mpGained;
+        result.newMaxHp = levelUpDetails.newMaxHp;
+        result.newMaxMp = levelUpDetails.newMaxMp;
+        result.statsGained = levelUpDetails.statsGained;
+
+        // Apply stat gains to user profile
+        if (result.statsGained) {
+          if (!userStats.special) userStats.special = {};
+          Object.entries(result.statsGained).forEach(([stat, val]) => {
+            userStats.special[stat] = (userStats.special[stat] || 0) + val;
+          });
+        }
+
+        // Restore HP/MP to full on level up
         if (!userStats.hp) userStats.hp = { now: 0, max: 0 };
         if (!userStats.mp) userStats.mp = { now: 0, max: 0 };
-        userStats.hp.max = levelUpResult.newMaxHp;
-        userStats.hp.now = levelUpResult.newMaxHp; // Full HP restore
-        userStats.mp.max = levelUpResult.newMaxMp;
-        userStats.mp.now = levelUpResult.newMaxMp; // Full MP restore
+
+        userStats.hp.max = result.newMaxHp;
+        userStats.mp.max = result.newMaxMp;
+
+        // Only heal if committing? Or keep it consistent
+        userStats.hp.now = result.newMaxHp;
+        userStats.mp.now = result.newMaxMp;
       } else {
         result.newLevel = oldLevel;
       }
 
-      // Update next_level threshold
-      userStats.xp.next_level = getXpToNextLevel(userStats.level || 1);
+      // Update state if committing
+      if (commit) {
+        // userStats is the reactive object if commit is true (except if it was null initially)
 
-      // Update state
-      users[userId].stats = userStats;
+        if (!userData.stats) {
+          users[userId].stats = userStats;
+        } else {
+          // We modified userStats in place if commit is true
+        }
 
-      // Update current user if matches
-      if (currentUser.id === userId) {
-        currentUser.stats = userStats;
+        // Update current user if matches
+        if (currentUser.id === userId) {
+          currentUser.stats = userStats;
+        }
+
+        // Persist to be handled by app-wide saver or auto-save mechanisms
       }
     }
 
