@@ -6,10 +6,66 @@
  */
 
 import { SpecialStats } from '@/lib/utils/User/stats';
+import { JOB_CLASS_OPTIONS } from '@/constants/JOB_CLASS_OPTIONS';
 
-// ============================================
-// BASE STATS BY JOB CLASS
-// ============================================
+// ... (BASE STATS section remains same)
+
+// ...
+
+export interface LevelUpResult {
+  newLevel: number;
+  hpGained: number;
+  mpGained: number;
+  newMaxHp: number;
+  newMaxMp: number;
+  statsGained: Record<string, number>;
+}
+
+/**
+ * Calculate the result of leveling up
+ */
+export function calculateLevelUp(
+  currentLevel: number,
+  targetLevel: number,
+  jobClass: string,
+  specialStats?: Partial<SpecialStats>
+): LevelUpResult {
+  const oldMaxHp = calculateMaxHp(currentLevel, jobClass, specialStats);
+  const oldMaxMp = calculateMaxMp(currentLevel, jobClass, specialStats);
+
+  const newMaxHp = calculateMaxHp(targetLevel, jobClass, specialStats);
+  const newMaxMp = calculateMaxMp(targetLevel, jobClass, specialStats);
+
+  // Calculate Stat Boosts based on Class
+  const statsGained: Record<string, number> = {};
+  const levelsGained = Math.max(0, targetLevel - currentLevel);
+
+  if (levelsGained > 0) {
+    const jobClassData = JOB_CLASS_OPTIONS.find(j => j.name === jobClass);
+
+    if (jobClassData?.statBoosts) {
+      jobClassData.statBoosts.forEach(boost => {
+        // Linear gain based on defined boosts
+        const gain = boost.amount * levelsGained;
+        if (gain > 0) {
+          statsGained[boost.stat] = (statsGained[boost.stat] || 0) + gain;
+        }
+      });
+    }
+
+    // Potential place for random extra boosts or universal small gains
+    // For now, we rely on the class configuration
+  }
+
+  return {
+    newLevel: targetLevel,
+    hpGained: newMaxHp - oldMaxHp,
+    mpGained: newMaxMp - oldMaxMp,
+    newMaxHp,
+    newMaxMp,
+    statsGained
+  };
+}
 
 export interface JobClassBaseStats {
   hp: number;        // Base HP at level 1
@@ -149,13 +205,13 @@ export function getTotalXpForLevel(level: number): number {
 export function getLevelFromXp(totalXp: number): number {
   let level = 1;
   let xpNeeded = 0;
-  
+
   while (xpNeeded <= totalXp) {
     level++;
     xpNeeded = getXpForLevel(level);
     if (level > 100) break; // Cap at level 100
   }
-  
+
   return Math.max(1, level - 1);
 }
 
@@ -186,19 +242,19 @@ export function calculateMaxHp(
   classLevel: number = 0 // Default to 0 bonus if not provided
 ): number {
   const baseStats = JOB_CLASS_BASE_STATS[jobClass] || JOB_CLASS_BASE_STATS.default;
-  
+
   // 1. Base HP at level 1
   let maxHp = baseStats.hp;
-  
+
   // 2. Add HP growth for each USER level above 1
   if (userLevel > 1) {
     maxHp += baseStats.hpGrowth * (userLevel - 1);
   }
-  
+
   // 3. Add contribution from endurance stat
   const endurance = specialStats?.endurance || 0;
   maxHp += Math.floor(endurance * baseStats.enduranceMultiplier);
-  
+
   // 4. Add contribution from guts stat
   const guts = specialStats?.guts || 0;
   maxHp += Math.floor(guts * 0.5);
@@ -208,7 +264,7 @@ export function calculateMaxHp(
     const classBonus = getClassStatBonus(jobClass, classLevel);
     maxHp += classBonus.hp;
   }
-  
+
   return Math.max(1, Math.floor(maxHp));
 }
 
@@ -222,19 +278,19 @@ export function calculateMaxMp(
   classLevel: number = 0 // Default to 0 bonus if not provided
 ): number {
   const baseStats = JOB_CLASS_BASE_STATS[jobClass] || JOB_CLASS_BASE_STATS.default;
-  
+
   // 1. Base MP at user level 1
   let maxMp = baseStats.mp;
-  
+
   // 2. Add MP growth for each USER level above 1
   if (userLevel > 1) {
     maxMp += baseStats.mpGrowth * (userLevel - 1);
   }
-  
+
   // 3. Add contribution from intelligence stat
   const intelligence = specialStats?.intelligence || 0;
   maxMp += Math.floor(intelligence * baseStats.intelligenceMultiplier);
-  
+
   // 4. Add contribution from wisdom stat
   const wisdom = specialStats?.wisdom || 0;
   maxMp += Math.floor(wisdom * baseStats.wisdomMultiplier);
@@ -244,7 +300,7 @@ export function calculateMaxMp(
     const classBonus = getClassStatBonus(jobClass, classLevel);
     maxMp += classBonus.mp;
   }
-  
+
   return Math.max(0, Math.floor(maxMp));
 }
 
@@ -261,7 +317,7 @@ export function calculatePlayerStats(
 ): CalculatedStats {
   const maxHp = calculateMaxHp(userLevel, jobClass, specialStats, classLevel);
   const maxMp = calculateMaxMp(userLevel, jobClass, specialStats, classLevel);
-  
+
   return {
     hp: {
       // If currentHp is provided and valid, use it (capped at max)
@@ -303,10 +359,10 @@ export function calculateLevelUp(
 ): LevelUpResult {
   const oldMaxHp = calculateMaxHp(currentLevel, jobClass, specialStats);
   const oldMaxMp = calculateMaxMp(currentLevel, jobClass, specialStats);
-  
+
   const newMaxHp = calculateMaxHp(targetLevel, jobClass, specialStats);
   const newMaxMp = calculateMaxMp(targetLevel, jobClass, specialStats);
-  
+
   return {
     newLevel: targetLevel,
     hpGained: newMaxHp - oldMaxHp,
@@ -340,7 +396,7 @@ export function getJobClassPreview(jobClass: string): {
   description: string;
 } {
   const stats = JOB_CLASS_BASE_STATS[jobClass] || JOB_CLASS_BASE_STATS.default;
-  
+
   const descriptions: Record<string, string> = {
     Warrior: "High HP, low MP. Best for physical challenges.",
     Mage: "Low HP, high MP. Masters of abilities and knowledge.",
@@ -348,7 +404,7 @@ export function getJobClassPreview(jobClass: string): {
     Monk: "Good HP and MP. Balanced physical and mental prowess.",
     default: "A balanced adventurer with no specialization.",
   };
-  
+
   return {
     hp: stats.hp,
     mp: stats.mp,

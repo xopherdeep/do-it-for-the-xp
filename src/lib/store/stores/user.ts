@@ -4,11 +4,38 @@ import Api from "@/lib/api";
 import { getGPService } from '@/lib/services/gp/GPService';
 import {
   JOB_UNLOCK_REQUIREMENTS,
-  getLevelFromXp
+  getLevelFromXp,
+  calculateLevelUp,
+  getXpToNextLevel
 } from '@/lib/services/stats/PlayerStatsService';
 
 // LocalStorage key for persisting current user ID
 const CURRENT_USER_KEY = 'xp_current_user_id';
+
+/**
+ * Level-up information returned from updateUserXP
+ */
+export interface LevelUpInfo {
+  didLevelUp: boolean;
+  oldLevel: number;
+  newLevel: number;
+  levelsGained: number;
+  hpGained: number;
+  mpGained: number;
+  newMaxHp: number;
+  newMaxMp: number;
+}
+
+/**
+ * Class Level-up information returned from updateClassXp
+ */
+export interface ClassLevelUpInfo {
+  didLevelUp: boolean;
+  oldLevel: number;
+  newLevel: number;
+  levelsGained: number;
+  jobClassId: string;
+}
 
 export const useUserStore = defineStore('user', () => {
   // --- State ---
@@ -127,6 +154,14 @@ export const useUserStore = defineStore('user', () => {
       if (wallet !== undefined) userStats.gp.wallet = (userStats.gp.wallet || 0) + wallet;
       if (savings !== undefined) userStats.gp.savings = (userStats.gp.savings || 0) + savings;
       if (debt !== undefined) userStats.gp.debt = (userStats.gp.debt || 0) + debt;
+
+      // Wallet overflow protection: excess goes to savings (Earthbound-style ATM)
+      const walletLimit = userStats.gp.limit || 1000;
+      if (userStats.gp.wallet > walletLimit) {
+        const overflow = userStats.gp.wallet - walletLimit;
+        userStats.gp.wallet = walletLimit;
+        userStats.gp.savings = (userStats.gp.savings || 0) + overflow;
+      }
 
       // Update state
       users[userId].stats = userStats;
@@ -348,8 +383,18 @@ export const useUserStore = defineStore('user', () => {
 
   /**
    * Grant XP to a specific class and handle leveling
+   * Returns class level-up information
    */
-  function updateClassXp(userId: string, jobClassId: string, amount: number) {
+  function updateClassXp(userId: string, jobClassId: string, amount: number): ClassLevelUpInfo {
+    // Default result
+    const result: ClassLevelUpInfo = {
+      didLevelUp: false,
+      oldLevel: 1,
+      newLevel: 1,
+      levelsGained: 0,
+      jobClassId
+    };
+
     if (users[userId]) {
       const userStats = users[userId].stats || {};
 
@@ -368,6 +413,8 @@ export const useUserStore = defineStore('user', () => {
       }
 
       const classProgress = userStats.classes[jobClassId];
+      const oldLevel = classProgress.level || 1;
+      result.oldLevel = oldLevel;
 
       // Add XP
       classProgress.xp += amount;
@@ -376,10 +423,16 @@ export const useUserStore = defineStore('user', () => {
       const newLevel = getLevelFromXp(classProgress.xp);
 
       // Check for level up
-      if (newLevel > classProgress.level) {
+      if (newLevel > oldLevel) {
         classProgress.level = newLevel;
+        result.didLevelUp = true;
+        result.newLevel = newLevel;
+        result.levelsGained = newLevel - oldLevel;
+
         // Trigger checks for other unlocks
         checkClassUnlocks(userId);
+      } else {
+        result.newLevel = oldLevel;
       }
 
       // Update state
@@ -390,6 +443,143 @@ export const useUserStore = defineStore('user', () => {
         currentUser.stats = userStats;
       }
     }
+
+    return result;
+  }
+
+  /**
+   * Update User XP and handle level-ups
+   * Returns detailed level-up information for battle victory sequences
+   */
+  function updateUserXP(payload: { userId: string, amount: number }): LevelUpInfo {
+    const { userId, amount } = payload;
+
+    // Default result (no level up)
+    const result: LevelUpInfo = {
+      didLevelUp: false,
+      oldLevel: 1,
+      newLevel: 1,
+      levelsGained: 0,
+      hpGained: 0,
+      mpGained: 0,
+      newMaxHp: 0,
+      newMaxMp: 0
+    };
+
+    if (users[userId]) {
+      const userStats = users[userId].stats || {};
+      const userData = users[userId];
+      const jobClass = userData.jobClass || 'default';
+      const specialStats = userStats.special || {};
+
+      // Initialize xp structure if missing
+      if (!userStats.xp) {
+        userStats.xp = { now: 0, next_level: 100 };
+      }
+
+      // Store old level before adding XP
+      const oldLevel = userStats.level || 1;
+      result.oldLevel = oldLevel;
+
+      // Add XP
+      userStats.xp.now = (userStats.xp.now || 0) + amount;
+
+      // Check for level up using PlayerStatsService
+      const newLevel = getLevelFromXp(userStats.xp.now);
+
+      if (newLevel > oldLevel) {
+        userStats.level = newLevel;
+        result.didLevelUp = true;
+        result.newLevel = newLevel;
+        result.levelsGained = newLevel - oldLevel;
+
+        // Calculate stat gains using PlayerStatsService
+        const levelUpResult = calculateLevelUp(oldLevel, newLevel, jobClass, specialStats);
+        result.hpGained = levelUpResult.hpGained;
+        result.mpGained = levelUpResult.mpGained;
+        result.newMaxHp = levelUpResult.newMaxHp;
+        result.newMaxMp = levelUpResult.newMaxMp;
+
+        // Update HP/MP to new max (full heal on level up, Earthbound style)
+        if (!userStats.hp) userStats.hp = { now: 0, max: 0 };
+        if (!userStats.mp) userStats.mp = { now: 0, max: 0 };
+        userStats.hp.max = levelUpResult.newMaxHp;
+        userStats.hp.now = levelUpResult.newMaxHp; // Full HP restore
+        userStats.mp.max = levelUpResult.newMaxMp;
+        userStats.mp.now = levelUpResult.newMaxMp; // Full MP restore
+      } else {
+        result.newLevel = oldLevel;
+      }
+
+      // Update next_level threshold
+      userStats.xp.next_level = getXpToNextLevel(userStats.level || 1);
+
+      // Update state
+      users[userId].stats = userStats;
+
+      // Update current user if matches
+      if (currentUser.id === userId) {
+        currentUser.stats = userStats;
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Record AP gain with timestamp for time-based tracking
+   */
+  function recordAPGain(payload: { userId: string, amount: number, source: string }) {
+    const { userId, amount, source } = payload;
+
+    if (users[userId] && amount > 0) {
+      const userStats = users[userId].stats || {};
+
+      // Initialize ap structure if missing
+      if (!userStats.ap) {
+        userStats.ap = { total: 0, history: [] };
+      }
+
+      // Add to total
+      userStats.ap.total = (userStats.ap.total || 0) + amount;
+
+      // Add timestamped record
+      userStats.ap.history = userStats.ap.history || [];
+      userStats.ap.history.push({
+        amount,
+        timestamp: new Date().toISOString(),
+        source
+      });
+
+      // Update state
+      users[userId].stats = userStats;
+
+      // Update current user if matches
+      if (currentUser.id === userId) {
+        currentUser.stats = userStats;
+      }
+    }
+  }
+
+  /**
+   * Get AP gained in the last N days
+   */
+  function getAPInTimeRange(userId: string, days: number): { total: number, records: any[] } {
+    if (!users[userId]) return { total: 0, records: [] };
+
+    const userStats = users[userId].stats || {};
+    const history = userStats.ap?.history || [];
+
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+
+    const filteredRecords = history.filter((r: any) => {
+      return new Date(r.timestamp) >= cutoff;
+    });
+
+    const total = filteredRecords.reduce((sum: number, r: any) => sum + r.amount, 0);
+
+    return { total, records: filteredRecords };
   }
 
   return {
@@ -407,6 +597,9 @@ export const useUserStore = defineStore('user', () => {
     unlockClass,
     checkClassUnlocks,
     updateClassXp,
+    updateUserXP,
+    recordAPGain,
+    getAPInTimeRange,
     impersonateUser,
     stopImpersonating,
     restoreCurrentUser,

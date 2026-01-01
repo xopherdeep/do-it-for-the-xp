@@ -35,11 +35,11 @@ export type DialogQueueItem = string | (() => void);
  * @param options - Configuration and callbacks
  */
 export function useBattleDialogs(options: BattleDialogOptions = {}) {
-  const { 
-    onDialogComplete, 
+  const {
+    onDialogComplete,
     onTypingStart,
     typingComponentRef,
-    messageDelay = 1500 
+    messageDelay = 1500
   } = options;
 
   // Dialog state
@@ -48,9 +48,13 @@ export function useBattleDialogs(options: BattleDialogOptions = {}) {
   const isTyping = ref(false);
   const isVictoryMessage = ref(false);
 
+  // Append mode state (Earthbound-style text accumulation)
+  const isAppendMode = ref(false);
+  const accumulatedLines = ref<string[]>([]);
+
   // Computed
   const hasMoreDialog = computed(() => dialogQueue.value.length > 0);
-  const isDialogVisible = computed(() => currentDialogText.value !== '' || isTyping.value);
+  const isDialogVisible = computed(() => currentDialogText.value !== '' || isTyping.value || accumulatedLines.value.length > 0);
 
   /**
    * Queue multiple dialog messages
@@ -59,7 +63,7 @@ export function useBattleDialogs(options: BattleDialogOptions = {}) {
   function queue(messages: DialogQueueItem[]) {
     // Add messages to the queue
     dialogQueue.value = [...dialogQueue.value, ...messages];
-    
+
     // If no dialog is currently displaying, show the first message
     if (!isTyping.value && currentDialogText.value === '') {
       showNext();
@@ -81,15 +85,15 @@ export function useBattleDialogs(options: BattleDialogOptions = {}) {
       // No more messages to show
       currentDialogText.value = '';
       isTyping.value = false;
-      
+
       // Notify that dialog is complete
       onDialogComplete?.();
       return;
     }
-    
+
     // Get the next message or function from the queue
     const next = dialogQueue.value.shift();
-    
+
     // Check if it's a function and execute it
     if (typeof next === 'function') {
       next();
@@ -97,11 +101,11 @@ export function useBattleDialogs(options: BattleDialogOptions = {}) {
       showNext();
       return;
     }
-    
+
     // It's a string message, so display it
     currentDialogText.value = next || '';
     isTyping.value = true;
-    
+
     // Play typing sound
     onTypingStart?.();
   }
@@ -111,7 +115,13 @@ export function useBattleDialogs(options: BattleDialogOptions = {}) {
    */
   function onTypingComplete() {
     isTyping.value = false;
-    
+
+    // In append mode, add the completed line to accumulated lines
+    if (isAppendMode.value && currentDialogText.value) {
+      accumulatedLines.value.push(currentDialogText.value);
+      currentDialogText.value = ''; // Clear for next line
+    }
+
     // Add a standard pause before showing the next message
     setTimeout(() => {
       if (dialogQueue.value.length > 0) {
@@ -152,12 +162,12 @@ export function useBattleDialogs(options: BattleDialogOptions = {}) {
         item();
       }
     });
-    
+
     // Clear the queue
     dialogQueue.value = [];
     currentDialogText.value = '';
     isTyping.value = false;
-    
+
     onDialogComplete?.();
   }
 
@@ -169,6 +179,8 @@ export function useBattleDialogs(options: BattleDialogOptions = {}) {
     currentDialogText.value = '';
     isTyping.value = false;
     isVictoryMessage.value = false;
+    isAppendMode.value = false;
+    accumulatedLines.value = [];
   }
 
   /**
@@ -176,6 +188,24 @@ export function useBattleDialogs(options: BattleDialogOptions = {}) {
    */
   function setVictoryMode(enabled: boolean) {
     isVictoryMessage.value = enabled;
+  }
+
+  /**
+   * Enable append mode - new lines accumulate instead of replacing
+   * Used for Earthbound-style level-up sequences
+   */
+  function enableAppendMode() {
+    isAppendMode.value = true;
+    accumulatedLines.value = [];
+  }
+
+  /**
+   * Disable append mode and clear accumulated lines
+   */
+  function disableAppendMode() {
+    isAppendMode.value = false;
+    accumulatedLines.value = [];
+    currentDialogText.value = '';
   }
 
   return {
@@ -186,7 +216,11 @@ export function useBattleDialogs(options: BattleDialogOptions = {}) {
     hasMoreDialog,
     isDialogVisible,
     isVictoryMessage,
-    
+
+    // Append mode state
+    isAppendMode,
+    accumulatedLines,
+
     // Actions
     queue,
     queueSingle,
@@ -196,5 +230,7 @@ export function useBattleDialogs(options: BattleDialogOptions = {}) {
     skipAll,
     clear,
     setVictoryMode,
+    enableAppendMode,
+    disableAppendMode,
   };
 }

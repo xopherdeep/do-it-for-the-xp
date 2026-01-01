@@ -1,5 +1,5 @@
 import { defineComponent, ref, onMounted, onUnmounted, computed, watch } from "vue";
-import { useUserStore } from "@/lib/store/stores/user";
+import { useUserStore, type LevelUpInfo, type ClassLevelUpInfo } from "@/lib/store/stores/user";
 import { useRouter, useRoute } from "vue-router";
 import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
 import backgrounds from "@/assets/images/backgrounds/parallax/index";
@@ -141,6 +141,10 @@ export default defineComponent({
     const isVictoryMessage = ref(false);
     const battleDialogQueue = ref<Array<string | (() => void)>>([]);
     const battleDialogRef = ref<any>(null);
+
+    // Append mode state (Earthbound-style text accumulation for level-up)
+    const isAppendMode = ref(false);
+    const accumulatedDialogLines = ref<string[]>([]);
     const showEnemyHp = ref(false);
     const showEnemy = ref(false);
     const showTaskMenu = ref(false);
@@ -732,6 +736,12 @@ export default defineComponent({
     const onBattleDialogComplete = () => {
       isBattleDialogTyping.value = false;
 
+      // In append mode, accumulate the finished text line
+      if (isAppendMode.value && battleDialogText.value) {
+        accumulatedDialogLines.value.push(battleDialogText.value);
+        battleDialogText.value = ''; // Clear for next line
+      }
+
       // Do NOT auto-advance; wait for user input
       // Just check if we have more dialog to show the "more" indicator
       if (battleDialogQueue.value.length > 0) {
@@ -783,6 +793,19 @@ export default defineComponent({
           battleDialogText.value = '';
         }
       }
+    };
+
+    // Enable append mode for Earthbound-style text accumulation (level-up sequences)
+    const enableAppendMode = () => {
+      isAppendMode.value = true;
+      accumulatedDialogLines.value = [];
+    };
+
+    // Disable append mode and clear accumulated lines
+    const disableAppendMode = () => {
+      isAppendMode.value = false;
+      accumulatedDialogLines.value = [];
+      battleDialogText.value = '';
     };
 
     // Load beast by ID
@@ -1142,15 +1165,39 @@ export default defineComponent({
 
             const xp = calculateXPReward();
             const gp = calculateGPReward();
+            const ap = currentRoomContent.value?.ap || 0;
+
+            // Persist rewards to user profile and capture level-up info
+            const usrId = props.userId || user.value?.id;
+            let levelUpInfo: LevelUpInfo | null = null;
+            let classLevelUpInfo: ClassLevelUpInfo | null = null;
+
+            if (usrId && user.value) {
+              // Update User XP
+              levelUpInfo = userStore.updateUserXP({ userId: usrId, amount: xp });
+
+              // Update Class XP
+              const jobClassId = user.value.jobClass || 'default';
+              classLevelUpInfo = userStore.updateClassXp(usrId, jobClassId, xp);
+
+              userStore.updateUserGP({ userId: usrId, savings: gp }); // GP goes to bank (Earthbound-style)
+              if (ap > 0) {
+                userStore.recordAPGain({ userId: usrId, amount: ap, source: 'battle' });
+              }
+            }
+
             // Calculate item reward (50% chance)
             const item = Math.random() > 0.5 ? getRandomRewardItem() : null;
+
+            // Get player name for level-up messages
+            const playerName = user.value?.name?.nick || user.value?.name?.first || 'You';
 
             // Build victory messages
             const messages: (string | (() => void))[] = [
               'You Won!',
               `${currentEnemy.value?.name || 'Enemy'} was defeated!`,
               `You gained ${xp} XP!`,
-              `You got ${gp} GP!` // Changed 'earned' to 'got' to match Earthbound style more closely
+              `${gp} GP deposited to your bank!`
             ];
 
             // Add item message if applicable
@@ -1158,7 +1205,51 @@ export default defineComponent({
               messages.push(`You found a ${item}!`);
             }
 
-            // specific item check logic (like for the 'Cup of Lifenoodles') could go here
+            // Level-up sequence (Earthbound style with append mode)
+            if (levelUpInfo?.didLevelUp) {
+              // Enable append mode for the level-up stat reveal
+              messages.push(() => {
+                enableAppendMode();
+                playSound("levelUp");
+              });
+
+              // Level-up announcement
+              messages.push(`${playerName} grew to Level ${levelUpInfo.newLevel}!`);
+
+              // Show stat increases one by one (Earthbound style)
+              if (levelUpInfo.hpGained > 0) {
+                messages.push(`HP increased by ${levelUpInfo.hpGained}!`);
+              }
+              if (levelUpInfo.mpGained > 0) {
+                messages.push(`MP increased by ${levelUpInfo.mpGained}!`);
+              }
+
+              // Multi-level bonus message
+              if (levelUpInfo.levelsGained > 1) {
+                messages.push(`Gained ${levelUpInfo.levelsGained} levels!`);
+              }
+
+              // Disable append mode after stat reveal
+              messages.push(() => {
+                disableAppendMode();
+              });
+            }
+
+            // Class Level-up sequence
+            if (classLevelUpInfo?.didLevelUp) {
+              messages.push(() => {
+                enableAppendMode();
+                // Play a different sound or the same level up sound
+                playSound("levelUp");
+              });
+
+              const className = (user.value?.jobClass || 'Class').toUpperCase();
+              messages.push(`${className} skill increased to Level ${classLevelUpInfo.newLevel}!`);
+
+              messages.push(() => {
+                disableAppendMode();
+              });
+            }
 
             // Add completion callback
             messages.push(() => {
@@ -1686,6 +1777,12 @@ export default defineComponent({
       showNextBattleDialog,
       onBattleDialogComplete,
       advanceBattleDialog,
+
+      // Append mode for level-up sequences
+      isAppendMode,
+      accumulatedDialogLines,
+      enableAppendMode,
+      disableAppendMode,
 
       // Methods for battle mechanics
       changeBg,

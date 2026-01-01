@@ -9,10 +9,19 @@
       <!-- TOP ZONE: Battle dialog/menu -->
       <div class="battle-zone battle-zone--top">
         <!-- Battle dialog box -->
-        <div class="battle-dialog rpg-box icon-colors" v-if="battleDialogText || isPlayerTurn">
-          <div class="dialog-content" v-if="battleDialogText" @click="advanceBattleDialog">
-            <XpTypingText ref="battleDialogRef" :text="battleDialogText" :is-victory="isVictoryMessage"
-              @typing-complete="onBattleDialogComplete" />
+        <div class="battle-dialog rpg-box icon-colors"
+          v-if="battleDialogText || isPlayerTurn || accumulatedDialogLines.length">
+          <div class="dialog-content" v-if="battleDialogText || accumulatedDialogLines.length"
+            @click="advanceBattleDialog">
+            <!-- Accumulated lines (Earthbound-style level-up text) -->
+            <div v-if="isAppendMode && accumulatedDialogLines.length" class="accumulated-lines">
+              <div v-for="(line, index) in accumulatedDialogLines" :key="index" class="accumulated-line">
+                {{ line }}
+              </div>
+            </div>
+            <!-- Current typing line -->
+            <XpTypingText v-if="battleDialogText" ref="battleDialogRef" :text="battleDialogText"
+              :is-victory="isVictoryMessage" @typing-complete="onBattleDialogComplete" />
             <div v-if="hasMoreBattleDialog" class="dialog-more-indicator">▼</div>
           </div>
 
@@ -35,11 +44,14 @@
             <div v-else class="enemy-placeholder">?</div>
           </div>
 
-          <!-- Simple progress bar (task completion %) -->
+          <!-- Enemy HP/Progress bar (task completion %) -->
           <div v-if="currentEnemy" class="enemy-bars">
-            <div v-if="showEnemyHp" class="enemy-progress-bar hp">
-              <div class="enemy-progress-fill hp" :style="{ width: enemyProgressPercent + '%' }"></div>
-              <span class="progress-label">PROGRESS</span>
+            <div v-if="showEnemyHp" class="enemy-progress-bar-container hp">
+              <i class="fad fa-skull hp-icon"></i>
+              <div class="enemy-progress-bar hp">
+                <div class="enemy-progress-fill hp" :style="{ width: enemyProgressPercent + '%' }"></div>
+                <span class="progress-label">{{ Math.round(enemyProgressPercent) }}%</span>
+              </div>
             </div>
 
             <!-- Attack Timer Bar (ATB) -->
@@ -275,6 +287,17 @@
           filter: drop-shadow(0 0 8px rgba(255, 153, 0, 0.6));
           flex-shrink: 0;
         }
+
+        .hp-icon {
+          font-size: 28px;
+          color: #ff4444;
+          filter: drop-shadow(0 0 8px rgba(255, 68, 68, 0.7));
+          flex-shrink: 0;
+        }
+
+        &.hp {
+          margin-bottom: 4px;
+        }
       }
 
       .enemy-progress-bar {
@@ -288,7 +311,10 @@
         flex: 1;
 
         &.hp {
-          height: 16px;
+          height: 20px;
+          background-color: rgba(0, 0, 0, 0.7);
+          border-color: rgba(255, 68, 68, 0.5);
+          box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
         }
 
         &.attack-timer {
@@ -303,8 +329,8 @@
           transition: width 0.3s ease-out;
 
           &.hp {
-            background: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%);
-            box-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+            background: linear-gradient(90deg, #ff4444 0%, #ff8888 100%);
+            box-shadow: 0 0 12px rgba(255, 68, 68, 0.6);
           }
 
           &.attack {
@@ -325,14 +351,17 @@
         .progress-label {
           position: absolute;
           width: 100%;
-          text-align: center;
+          height: 100%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           left: 0;
           top: 0;
-          line-height: 14px;
           font-family: 'StatusPlz', sans-serif;
-          font-size: 10px;
+          font-size: 11px;
+          font-weight: bold;
           color: white;
-          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
           letter-spacing: 1px;
           pointer-events: none;
           z-index: 10;
@@ -378,6 +407,25 @@
         font-family: inherit;
         font-size: 1.2rem;
         line-height: 1.4;
+        max-height: 200px;
+        overflow-y: auto;
+
+        // Accumulated lines for level-up (Earthbound style)
+        .accumulated-lines {
+          margin-bottom: 8px;
+
+          .accumulated-line {
+            opacity: 0.9;
+            animation: fadeInLine 0.3s ease-out forwards;
+            margin-bottom: 4px;
+
+            &:last-child {
+              margin-bottom: 8px;
+              border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+              padding-bottom: 8px;
+            }
+          }
+        }
       }
 
       .dialog-more-indicator {
@@ -521,6 +569,18 @@
 
   100% {
     filter: brightness(1.5);
+  }
+}
+
+@keyframes fadeInLine {
+  0% {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+
+  100% {
+    opacity: 0.9;
+    transform: translateY(0);
   }
 }
 </style>
