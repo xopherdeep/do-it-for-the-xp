@@ -71,6 +71,9 @@ export const useUserStore = defineStore('user', () => {
       const usersList = Array.isArray(response) ? response : response.data;
 
       if (Array.isArray(usersList)) {
+        // Clear existing users to reflect deletions
+        Object.keys(users).forEach(key => delete users[key]);
+
         usersList.forEach(user => {
           users[user.id] = user;
         });
