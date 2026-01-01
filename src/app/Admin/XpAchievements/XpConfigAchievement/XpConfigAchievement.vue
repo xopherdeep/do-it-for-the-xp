@@ -16,7 +16,7 @@
           v-for="segment in segments"
           :key="segment.name"
           :tab="segment.path"
-          :href="`/game-master/compendium/setup/achievements/config/${achievement.id}/${segment.path}`"
+          :href="`/game-master/compendium/achievements/config/${achievement.id}/${segment.path}`"
           :selected="activeTab === segment.path"
         >
           <i

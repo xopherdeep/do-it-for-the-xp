@@ -97,7 +97,7 @@ const itemCount = ref(0);
 const keyItemCount = ref(0);
 
 const goToTab = (tabPath: string) => {
-  router.push(`/game-master/compendium/setup/economy/${tabPath}`);
+  router.push(`/game-master/compendium/economy/${tabPath}`);
 };
 </script>
 

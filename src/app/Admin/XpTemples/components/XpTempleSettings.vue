@@ -4,28 +4,28 @@
       <ion-router-outlet ref="outlet"></ion-router-outlet>
       <ion-tab-bar slot="bottom" class="icon-colors">
 
-        <ion-tab-button tab="attributes" :href="`/game-master/compendium/setup/temples/${templeId}/attributes/general`"
+        <ion-tab-button tab="attributes" :href="`/game-master/compendium/temples/${templeId}/attributes/general`"
           :selected="route.path.includes('/attributes')">
           <i class="fad fa-sliders-h fa-2x" />
           Config
         </ion-tab-button>
 
-        <ion-tab-button tab="beasts" :href="`/game-master/compendium/setup/temples/${templeId}/beasts`"
+        <ion-tab-button tab="beasts" :href="`/game-master/compendium/temples/${templeId}/beasts`"
           :selected="route.path.includes('/beasts')">
           <i class="fad fa-paw-claws fa-2x" />
           Beasts
         </ion-tab-button>
-        <ion-tab-button tab="dashboard" :href="`/game-master/compendium/setup/temples/${templeId}/dashboard`"
+        <ion-tab-button tab="dashboard" :href="`/game-master/compendium/temples/${templeId}/dashboard`"
           :selected="route.path.includes('/dashboard')">
           <i :class="['fad', templeIcon, 'fa-2x']" />
           Temple
         </ion-tab-button>
-        <ion-tab-button tab="layout" :href="`/game-master/compendium/setup/temples/${templeId}/layout`"
+        <ion-tab-button tab="layout" :href="`/game-master/compendium/temples/${templeId}/layout`"
           :selected="route.path.includes('/layout')">
           <i class="fad fa-dungeon fa-2x" />
           Layout
         </ion-tab-button>
-        <ion-tab-button tab="rooms" :href="`/game-master/compendium/setup/temples/${templeId}/rooms`"
+        <ion-tab-button tab="rooms" :href="`/game-master/compendium/temples/${templeId}/rooms`"
           :selected="route.path.includes('/rooms')">
           <i class="fad fa-door-open fa-2x" />
           Rooms

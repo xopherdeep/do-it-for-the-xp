@@ -5,7 +5,7 @@
       <ion-tab-bar slot="bottom" class="icon-colors">
         <ion-tab-button
           tab="general"
-          :href="`/game-master/compendium/setup/temples/${templeId}/attributes/general`"
+          :href="`/game-master/compendium/temples/${templeId}/attributes/general`"
           :selected="route.path.includes('/general')"
         >
           <i class="fad fa-cog fa-2x" />
@@ -13,7 +13,7 @@
         </ion-tab-button>
         <ion-tab-button
           tab="audit"
-          :href="`/game-master/compendium/setup/temples/${templeId}/attributes/audit`"
+          :href="`/game-master/compendium/temples/${templeId}/attributes/audit`"
           :selected="route.path.includes('/audit')"
         >
           <i class="fad fa-clipboard-list fa-2x" />
@@ -21,7 +21,7 @@
         </ion-tab-button>
         <ion-tab-button
           tab="navigator"
-          :href="`/game-master/compendium/setup/temples/${templeId}/attributes/navigator`"
+          :href="`/game-master/compendium/temples/${templeId}/attributes/navigator`"
           :selected="route.path.includes('/navigator')"
         >
           <i class="fad fa-map-marked-alt fa-2x" />

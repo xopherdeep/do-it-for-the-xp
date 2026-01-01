@@ -15,7 +15,7 @@
       >
         <ion-tab-button
           tab="splash"
-          :href="`/game-master/compendium/setup/economy/shops/${shopId}/splash`"
+          :href="`/game-master/compendium/economy/shops/${shopId}/splash`"
         >
           <ion-icon :icon="bookOutline" />
           <ion-label>Info</ion-label>
@@ -23,7 +23,7 @@
 
         <ion-tab-button
           tab="items"
-          :href="`/game-master/compendium/setup/economy/shops/${shopId}/items`"
+          :href="`/game-master/compendium/economy/shops/${shopId}/items`"
         >
           <ion-icon :icon="shirtOutline" />
           <ion-label>Items</ion-label>
@@ -31,7 +31,7 @@
 
         <ion-tab-button
           tab="hours"
-          :href="`/game-master/compendium/setup/economy/shops/${shopId}/hours`"
+          :href="`/game-master/compendium/economy/shops/${shopId}/hours`"
         >
           <ion-icon :icon="timeOutline" />
           <ion-label>Hours</ion-label>
@@ -39,7 +39,7 @@
 
         <ion-tab-button
           tab="decorate"
-          :href="`/game-master/compendium/setup/economy/shops/${shopId}/decorate`"
+          :href="`/game-master/compendium/economy/shops/${shopId}/decorate`"
         >
           <ion-icon :icon="brushOutline" />
           <ion-label>Shop</ion-label>
@@ -47,7 +47,7 @@
 
         <ion-tab-button
           tab="clerk"
-          :href="`/game-master/compendium/setup/economy/shops/${shopId}/clerk`"
+          :href="`/game-master/compendium/economy/shops/${shopId}/clerk`"
         >
           <ion-icon :icon="personOutline" />
           <ion-label>Clerk</ion-label>

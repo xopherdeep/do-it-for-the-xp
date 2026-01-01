@@ -11,7 +11,7 @@ export const EconomyRoutes: RouteRecordRaw[] = [
       {
         path: "",
         name: "xp-economy-dashboard-root",
-        redirect: "/game-master/compendium/setup/economy/dashboard",
+        redirect: "/game-master/compendium/economy/dashboard",
       },
       {
         path: "dashboard",
@@ -67,7 +67,7 @@ export const EconomyRoutes: RouteRecordRaw[] = [
         path: "",
         name: "xp-shop-details",
         redirect: (to) =>
-          `/game-master/compendium/setup/economy/shops/${to.params.shopId}/dashboard`,
+          `/game-master/compendium/economy/shops/${to.params.shopId}/dashboard`,
       },
       {
         path: "dashboard",

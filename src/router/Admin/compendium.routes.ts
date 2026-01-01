@@ -8,43 +8,24 @@ import TempleRoutes from "./temples.routes";
 export const CompendiumRoutes: RouteRecordRaw[] = [
   {
     path: "compendium",
-    component: () =>
-      import(
-        "@/app/Admin/XpCompendium/CompendiumRoot.vue"
-      ),
+    component: () => import("@/app/Admin/XpCompendium/XpCompendium.vue"),
     children: [
       {
         path: "",
         name: "xp-compendium",
-        redirect: "/game-master/compendium/setup",
+        redirect: "/game-master/compendium/dashboard",
       },
       {
-        path: "setup",
+        path: "dashboard",
+        name: "xp-compendium-dashboard",
         component: () =>
-          import(
-            "@/app/Admin/XpCompendium/XpCompendium.vue"
-          ),
-        children: [
-          {
-            path: "",
-            name: "xp-compendium-setup",
-            redirect: "/game-master/compendium/setup/dashboard",
-          },
-          {
-            path: "dashboard",
-            name: "xp-compendium-dashboard",
-            component: () =>
-              import(
-                "@/app/Admin/XpCompendium/CompendiumDashboard.vue"
-              ),
-          },
-          ...AchievementRoutes,
-          ...BestiaryRoutes,
-          ...EconomyRoutes,
-          ...AbilityRoutes,
-          ...TempleRoutes,
-        ],
+          import("@/app/Admin/XpCompendium/CompendiumDashboard.vue"),
       },
+      ...AchievementRoutes,
+      ...BestiaryRoutes,
+      ...EconomyRoutes,
+      ...AbilityRoutes,
+      ...TempleRoutes,
     ],
   },
 ];

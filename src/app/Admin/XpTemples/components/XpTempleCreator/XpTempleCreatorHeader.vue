@@ -89,7 +89,7 @@ export default defineComponent({
     gridSize: { type: String, default: '6x6' },
     entranceDisplay: { type: String, default: '1x 1y' },
     showPreview: { type: Boolean, default: false },
-    backHref: { type: String, default: '/game-master/compendium/setup/temples' },
+    backHref: { type: String, default: '/game-master/compendium/temples' },
     currentLevelId: { type: String, default: '1F' },
     floors: { type: Array as () => string[], default: () => ['1F'] }
   },

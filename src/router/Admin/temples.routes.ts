@@ -27,7 +27,7 @@ export const TempleRoutes: RouteRecordRaw[] = [
       {
         path: "",
         name: "xp-temple-settings",
-        redirect: (to) => `/game-master/compendium/setup/temples/${to.params.templeId}/dashboard`,
+        redirect: (to) => `/game-master/compendium/temples/${to.params.templeId}/dashboard`,
       },
       {
         path: "dashboard",
@@ -76,7 +76,7 @@ export const TempleRoutes: RouteRecordRaw[] = [
           {
             path: "",
             name: "xp-temple-attributes",
-            redirect: (to) => `/game-master/compendium/setup/temples/${to.params.templeId}/attributes/general`,
+            redirect: (to) => `/game-master/compendium/temples/${to.params.templeId}/attributes/general`,
           },
           {
             path: "general",

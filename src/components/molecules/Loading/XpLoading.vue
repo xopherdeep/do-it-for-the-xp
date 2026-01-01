@@ -21,7 +21,7 @@ const fx = instance?.appContext.config.globalProperties.$fx;
 // Determine which sound to play based on current route
 const activeSoundId = computed(() => {
   // If we are in the "backend" (GameMaster setup), use the setup sound
-  // if (route?.path?.includes('/game-master/compendium/setup')) {
+  // if (route?.path?.includes('/game-master/compendium')) {
   //   return 'setup';
   // }
   return 'loading';

@@ -129,7 +129,7 @@ export default defineComponent({
         // Load data immediately with the new ID to ensure state is ready
         loadData(newId);
         router.replace(
-          `/game-master/compendium/setup/achievements/config/${newId}/dashboard`
+          `/game-master/compendium/achievements/config/${newId}/dashboard`
         );
         return;
       }

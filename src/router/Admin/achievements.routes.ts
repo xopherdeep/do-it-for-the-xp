@@ -20,7 +20,7 @@ export const AchievementRoutes: RouteRecordRaw[] = [
       {
         path: "",
         name: "xp-achievement-config",
-        redirect: (to: any) => `/game-master/compendium/setup/achievements/config/${to.params.id || 'new'}/dashboard`,
+        redirect: (to: any) => `/game-master/compendium/achievements/config/${to.params.id || 'new'}/dashboard`,
       },
       {
         path: "dashboard",

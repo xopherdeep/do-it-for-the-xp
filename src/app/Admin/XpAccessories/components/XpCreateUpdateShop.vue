@@ -4,7 +4,7 @@
       <ion-toolbar>
         <ion-buttons slot="start">
           <ion-back-button
-            defaultHref="/game-master/compendium/setup/economy"
+            defaultHref="/game-master/compendium/economy"
           />
         </ion-buttons>
         <ion-title>{{ id ? "Update" : "Create" }} Shop</ion-title>

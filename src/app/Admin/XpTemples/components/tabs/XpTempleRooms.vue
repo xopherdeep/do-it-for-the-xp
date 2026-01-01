@@ -332,7 +332,7 @@ export default defineComponent({
     };
 
     const navigateToRoom = (room: RoomListItem) => {
-      ionRouter.push(`/game-master/compendium/setup/temples/${templeId}/rooms/${room.row}/${room.col}`);
+      ionRouter.push(`/game-master/compendium/temples/${templeId}/rooms/${room.row}/${room.col}`);
     };
 
     return {

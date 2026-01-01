@@ -183,7 +183,7 @@ export default defineComponent({
     });
 
     const goToTab = (tabPath: string) => {
-      router.push(`/game-master/compendium/setup/temples/${props.templeId}/${tabPath}`);
+      router.push(`/game-master/compendium/temples/${props.templeId}/${tabPath}`);
     };
 
     const goToLayout = () => {

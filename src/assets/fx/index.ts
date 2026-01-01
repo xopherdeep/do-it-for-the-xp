@@ -569,7 +569,7 @@ export const play$fx = (fx = 'select', options?: { loop?: boolean, stop?: boolea
   // Logic to determine if we should use 'setup' instead of 'loading'
   // When in the "backend" (GameMaster/Compendium Setup), we use the setup sound
   let targetFx = fx;
-  if (fx === 'loading' && typeof window !== 'undefined' && window.location.pathname.includes('/game-master/compendium/setup')) {
+  if (fx === 'loading' && typeof window !== 'undefined' && window.location.pathname.includes('/game-master/compendium')) {
     targetFx = 'setup';
   }
 
