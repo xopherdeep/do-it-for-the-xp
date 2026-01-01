@@ -10,7 +10,7 @@
     </template>
 
     <!-- FABs (quick draw, page menu, shortcuts) -->
-    <template #fabs>
+    <template #fabs v-if="user">
       <xp-fab-quick-draw v-if="isUserFabOn" :user="user" :equipment="equipment" @openHud="
         isRPGBoxOpen = true;
       play$fx('openMenu');

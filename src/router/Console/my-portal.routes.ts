@@ -1,10 +1,31 @@
 import WorldMapRoutes from './world-map.routes';
+import { useUserStore } from '@/lib/store/stores/user';
 
 const MyPortalRoutes = [{
   path: '/my-portal/:userId',
   name: 'my-portal',
   component: () => import('@/app/Console/MyPortal/MyPortal.vue'),
   props: true,
+  beforeEnter: async (to, from, next) => {
+    const userStore = useUserStore();
+    const userId = to.params.userId as string;
+
+    // Check if user is already loaded
+    if (userStore.getUserById(userId)) {
+      next();
+      return;
+    }
+
+    // Try to load users if not found (e.g. hard refresh)
+    await userStore.loadUsers();
+
+    if (userStore.getUserById(userId)) {
+      next();
+    } else {
+      // If still not found, redirect to profile selection
+      next({ name: 'xp-profile' });
+    }
+  },
   children: [{
     path: "",
     name: "my-home-redirect",

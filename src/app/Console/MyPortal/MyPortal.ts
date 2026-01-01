@@ -264,7 +264,7 @@ export default defineComponent({
       if (!user.value) {
         await userStore.loadUsers();
         if (!user.value) {
-          router.push('/switch-profile');
+          router.push({ name: 'xp-profile' });
         }
       }
     });
