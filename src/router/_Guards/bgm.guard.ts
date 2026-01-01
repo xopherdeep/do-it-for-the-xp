@@ -89,6 +89,7 @@ const SIMPLE_BGM_ROUTES: Record<string, SimpleBgmRouteConfig> = {
     options: { track: "random", saveBookmark: false },
   },
   shop: { key: "shop", options: { saveBookmark: false } },
+  "game-over": { key: "gameover", options: { saveBookmark: false } },
 };
 
 /** Terrain-to-world route mapping */

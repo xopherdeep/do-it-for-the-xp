@@ -1,6 +1,11 @@
-import { computed, ref, defineComponent } from "vue";
+import { computed, ref, defineComponent, onMounted, onUnmounted } from "vue";
 import { modalController } from "@ionic/vue";
+import { useRoute } from "vue-router";
 import { arrowBack, arrowForward, closeOutline } from "ionicons/icons";
+import { useAudioStore } from "@/lib/store/stores/audio";
+import { useGameStore } from "@/lib/store/stores/game";
+import { changeBGM } from "@/lib/engine/audio/routeMusic";
+import { handleBgmGuard } from "@/router/_Guards/bgm.guard";
 import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
 
 import { ProfileDb } from "@/lib/databases";
@@ -13,6 +18,7 @@ import ionic from "@/lib/mixins/ionic";
 import XpGp from "@/components/atoms/Currency/XpGp.vue";
 import GamerCard from "./GamerCard.vue"
 import Stats from "@/lib/utils/User/stats";
+import debug from "@/lib/utils/debug";
 
 export const AddProfile = defineComponent({
   props: ["id", "profile", "showIsAdult"],
@@ -36,7 +42,7 @@ export const AddProfile = defineComponent({
     },
     getAvatarSrc(index: number) {
       const paddedIdx = index.toString().padStart(3, "0");
-      return this.$requireAvatar(`./${paddedIdx}-gamer.svg`);
+      return this.requireAvatar(`./${paddedIdx}-gamer.svg`);
     },
     selectAvatar(index: number) {
       this.avatarIndex = index;
@@ -66,7 +72,7 @@ export const AddProfile = defineComponent({
     if (profile) this.setProfile(profile);
   },
   setup(props) {
-    const $requireAvatar = require.context(
+    const requireAvatar = require.context(
       "@/assets/images/avatars",
       false,
       /\.svg$/
@@ -83,7 +89,7 @@ export const AddProfile = defineComponent({
     const foodOptions = ref(FOOD_OPTIONS);
     const jobClass = ref("");
     const jobClassOptions = ref(JOB_CLASS_OPTIONS);
-    const maxAvatarIndex = $requireAvatar.keys().length;
+    const maxAvatarIndex = requireAvatar.keys().length;
     const isAvatarSelectorOpen = ref(false);
     const showSuccessSplash = ref(false);
 
@@ -92,7 +98,7 @@ export const AddProfile = defineComponent({
     );
 
     const currentAvatar = computed(() =>
-      $requireAvatar(`./${paddedIndex.value}-gamer.svg`)
+      requireAvatar(`./${paddedIndex.value}-gamer.svg`)
     );
 
     const closeModal = () => {
@@ -165,9 +171,37 @@ export const AddProfile = defineComponent({
       favoriteThing: favoriteThing.value,
       favoriteFood: favoriteFood.value,
       jobClass: jobClass.value,
-      isAdult: isAdult?.value,
+      isAdult: isAdult.value,
       stats: props.profile?.stats || new Stats(),
     }))
+
+    const audioStore = useAudioStore();
+    const gameStore = useGameStore();
+    const route = useRoute();
+
+    onMounted(() => {
+      // If creating a new profile (no id or profile prop)
+      if (!props.id && !props.profile) {
+        const rpgTheme = gameStore.theme?.rpg || 'earthbound';
+        const BGM = audioStore.bgm?.$fx?.rpg?.[rpgTheme]?.BGM;
+        if (BGM && BGM.createProfile) {
+          debug.log('Playing createProfile music');
+          changeBGM(audioStore, {
+            tracks: BGM.createProfile,
+            track: 0,
+            startDelay: 0,
+            repeat: true,
+            saveBookmark: true
+          });
+        }
+      }
+    });
+
+    onUnmounted(() => {
+      // Restore previous music based on current route
+      debug.log('Restoring music from route:', route.name);
+      handleBgmGuard(route);
+    });
 
     return {
       // profile,
@@ -203,9 +237,10 @@ export const AddProfile = defineComponent({
       profileAdded,
       isAvatarSelectorOpen,
       showSuccessSplash,
-      $requireAvatar,
+      requireAvatar,
     };
   },
 });
 
 export default AddProfile;
+

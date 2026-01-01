@@ -70,6 +70,12 @@ const routes: Array<RouteRecordRaw> = [
     name: "xp-demo",
     component: () => import("@/views/XpDemo/XpDemo.vue"),
   },
+  // Game Over Page
+  {
+    path: "/game-over",
+    name: "game-over",
+    component: () => import("@/views/XpGameOver/XpGameOver.vue"),
+  },
 
   // Battle Field Routes
   {

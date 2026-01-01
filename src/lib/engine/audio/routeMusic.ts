@@ -33,7 +33,7 @@ export function playRouteMusic(payload: BGMPayload): void {
 
   const engine = AudioEngine.getInstance();
   const audioStore = useAudioStore();
-  
+
   // If BGM is toggled off in settings, stop current music and don't start new music
   if (audioStore.bgm && audioStore.bgm.is_on === false) {
     debug.log('BGM is toggled off, stopping playback');
@@ -48,11 +48,11 @@ export function playRouteMusic(payload: BGMPayload): void {
 
   // First, prepare all tracks in the sequence
   const trackIds: string[] = [];
-  
+
   // Process each track in the array
   for (let i = 0; i < payload.tracks.length; i++) {
     const trackInfo = payload.tracks[i];
-    
+
     // Get track information
     let trackSrc: string;
     let trackTitle: string | undefined;
@@ -64,7 +64,7 @@ export function playRouteMusic(payload: BGMPayload): void {
       // Create a unique ID based on the track source
       const uniquePart = trackSrc.split('/').pop() || '';
       // DON'T include the index in the ID if we want seamless transitions between different routes using the same file
-      trackId = `route-music-${uniquePart}`; 
+      trackId = `route-music-${uniquePart}`;
       trackTitle = uniquePart.replace(/\..+$/, '').replace(/[-_]/g, ' ');
     } else {
       // If it's an object with src and title
@@ -77,19 +77,19 @@ export function playRouteMusic(payload: BGMPayload): void {
 
     // Add to our track ID list
     trackIds.push(trackId);
-    
+
     // Only load if not already present to preserve playback state
     if (!engine.hasMusicTrack(trackId)) {
-        engine.loadMusic(trackId, trackSrc, {
-          category: 'music',
-          id: trackId,
-          src: trackSrc,
-          title: trackTitle,
-          loop: shouldRepeat // Set loop based on the repeat flag
-        });
+      engine.loadMusic(trackId, trackSrc, {
+        category: 'music',
+        id: trackId,
+        src: trackSrc,
+        title: trackTitle,
+        loop: shouldRepeat // Set loop based on the repeat flag
+      });
     } else {
-        // Just update the loop option
-        engine.setLoopOption(shouldRepeat, trackId);
+      // Just update the loop option
+      engine.setLoopOption(shouldRepeat, trackId);
     }
   }
 
@@ -99,17 +99,17 @@ export function playRouteMusic(payload: BGMPayload): void {
   }
 
   const currentTrackId = trackIds[trackIndex];
-  
+
   // Play the track with delay
   if (delay > 0) {
     setTimeout(() => {
       // Check again after delay to ensure BGM wasn't toggled off
       if (audioStore.bgm && audioStore.bgm.is_on !== false) {
-          engine.playMusic(currentTrackId);
+        engine.playMusic(currentTrackId, 1000, payload.saveBookmark);
       }
     }, delay);
   } else {
-    engine.playMusic(currentTrackId);
+    engine.playMusic(currentTrackId, 1000, payload.saveBookmark);
   }
 }
 
@@ -123,7 +123,7 @@ export function changeBGM(audioStore: ReturnType<typeof useAudioStore> | null, p
   if (useNewEngine) {
     // Use the new audio engine
     playRouteMusic(payload);
-    
+
     // Add a special flag to the payload so the store action knows
     // that the audio is already being handled by our new engine
     // This prevents double-playback
@@ -131,7 +131,7 @@ export function changeBGM(audioStore: ReturnType<typeof useAudioStore> | null, p
       ...payload,
       _usingNewAudioEngine: true
     };
-    
+
     // Update the Pinia store state (but it won't play audio again due to the flag)
     if (audioStore) {
       audioStore.changeBGM(payloadWithFlag);

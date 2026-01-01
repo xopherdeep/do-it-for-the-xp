@@ -1,4 +1,4 @@
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useUserStore } from '@/lib/store/stores/user';
 import { calculatePlayerStats, getXpToNextLevel } from '@/lib/services/stats/PlayerStatsService';
 import debug from '@/lib/utils/debug';
@@ -41,14 +41,23 @@ export interface BattlePlayer {
  */
 export function useBattlePlayer() {
   const userStore = useUserStore();
-  
+
   // Loading state
   const isLoading = ref(true);
   const error = ref<string | null>(null);
-  
+
   // Player data
   const player = ref<BattlePlayer | null>(null);
-  
+
+  // Previous values for rolldown animation
+  const previousHp = ref(0);
+  const previousMp = ref(0);
+
+  // Display values that animate toward actual values (Earthbound-style rolling)
+  const displayHp = ref(0);
+  const displayMp = ref(0);
+  let hpAnimationFrame: number | null = null;
+
   /**
    * Get the current player from the user store
    */
@@ -59,7 +68,7 @@ export function useBattlePlayer() {
     }
     return null;
   });
-  
+
   /**
    * Extract battle-relevant player data from user profile
    * Uses PlayerStatsService for proper HP/MP calculation
@@ -68,28 +77,28 @@ export function useBattlePlayer() {
     if (!userData || !userData.id) {
       return null;
     }
-    
+
     // Extract base info
     const stats = userData.stats || {};
     const specialStats = stats.special || {};
     const level = stats.level || 1;
     const jobClass = userData.jobClass || 'default';
-    
+
     // Get XP info
     const xpStats = stats.xp || {};
     const currentXp = xpStats.now || 0;
     const xpToNextLevel = getXpToNextLevel(level);
-    
+
     // Calculate proper HP/MP using the stats service
     // Pass current HP/MP if available (to preserve damage taken)
     const currentHp = stats.hp?.now;
     const currentMp = stats.mp?.now;
-    
+
     // Get Class Level
     const classes = stats.classes || {};
     const currentClassData = classes[jobClass] || { level: 1 };
     const classLevel = currentClassData.level || 1;
-    
+
     const calculatedStats = calculatePlayerStats(
       level,
       jobClass,
@@ -98,14 +107,14 @@ export function useBattlePlayer() {
       currentMp,
       classLevel
     );
-    
+
     debug.log('BattlePlayer: Calculated stats', {
       level,
       jobClass,
       specialStats,
       calculatedStats
     });
-    
+
     return {
       id: userData.id,
       name: userData.name?.full || userData.name?.first || 'Player',
@@ -133,21 +142,21 @@ export function useBattlePlayer() {
       jobClass
     };
   };
-  
+
   /**
    * Load the player data
    */
   const loadPlayer = async () => {
     isLoading.value = true;
     error.value = null;
-    
+
     try {
       // Ensure users are loaded
       await userStore.loadUsers();
-      
+
       // Get current player data
       const userData = currentPlayer.value;
-      
+
       if (userData) {
         player.value = extractPlayerData(userData);
         debug.log('BattlePlayer: Loaded player data', player.value);
@@ -162,7 +171,7 @@ export function useBattlePlayer() {
       isLoading.value = false;
     }
   };
-  
+
   /**
    * Refresh player data from store
    */
@@ -172,44 +181,46 @@ export function useBattlePlayer() {
       player.value = extractPlayerData(userData);
     }
   };
-  
+
   /**
    * Get formatted HP for display (thou, hun, ten digits)
+   * Uses displayHp which animates toward actual HP (Earthbound-style rolling)
    */
   const formattedHp = computed(() => {
-    const hp = player.value?.hp.current || 0;
+    const hp = Math.floor(displayHp.value);
     const [thou, hun, ten] = String(hp).padStart(3, '0');
-    
+
     return {
       thou: thou === '0' ? '' : thou,
-      hun: hun === '0' ? '' : hun,
+      hun: hun === '0' && thou === '0' ? '' : hun,
       ten,
       value: hp
     };
   });
-  
+
   /**
    * Get formatted MP for display (thou, hun, ten digits)
+   * Uses displayMp which animates toward actual MP
    */
   const formattedMp = computed(() => {
-    const mp = player.value?.mp.current || 0;
+    const mp = Math.floor(displayMp.value);
     const [thou, hun, ten] = String(mp).padStart(3, '0');
-    
+
     return {
       thou: thou === '0' ? '' : thou,
-      hun: hun === '0' ? '' : hun,
+      hun: hun === '0' && thou === '0' ? '' : hun,
       ten,
       value: mp
     };
   });
-  
+
   /**
    * Get player name for display
    */
   const playerName = computed(() => {
     return player.value?.nickname || 'Player';
   });
-  
+
   /**
    * Get HP percentage for health bar
    */
@@ -217,7 +228,7 @@ export function useBattlePlayer() {
     if (!player.value) return 100;
     return (player.value.hp.current / player.value.hp.max) * 100;
   });
-  
+
   /**
    * Get MP percentage for mana bar
    */
@@ -226,36 +237,86 @@ export function useBattlePlayer() {
     if (player.value.mp.max === 0) return 100; // Avoid division by zero
     return (player.value.mp.current / player.value.mp.max) * 100;
   });
-  
+
   // Watch for changes in the current user
   watch(currentPlayer, (newUser) => {
     if (newUser) {
+      // Store previous values before update (for rolldown animation)
+      if (player.value) {
+        previousHp.value = player.value.hp.current;
+        previousMp.value = player.value.mp.current;
+      }
       player.value = extractPlayerData(newUser);
     }
   }, { deep: true });
-  
+
+  /**
+   * Animate display HP toward actual HP (Earthbound-style rolling)
+   * Rolls approximately 1 HP every 50ms
+   */
+  const animateHp = () => {
+    const actualHp = player.value?.hp.current ?? 0;
+
+    if (displayHp.value !== actualHp) {
+      // Roll toward target at ~1 HP per 50ms
+      if (displayHp.value > actualHp) {
+        displayHp.value = Math.max(actualHp, displayHp.value - 1);
+      } else {
+        displayHp.value = Math.min(actualHp, displayHp.value + 1);
+      }
+      hpAnimationFrame = requestAnimationFrame(() => {
+        setTimeout(animateHp, 50);
+      });
+    } else {
+      hpAnimationFrame = null;
+    }
+  };
+
+  // Watch for HP changes and start rolling animation
+  watch(() => player.value?.hp.current, (newHp) => {
+    if (newHp !== undefined && hpAnimationFrame === null) {
+      animateHp();
+    }
+  });
+
   // Load player on mount
   onMounted(() => {
     loadPlayer();
+    // Initialize display values after loading
+    setTimeout(() => {
+      if (player.value) {
+        displayHp.value = player.value.hp.current;
+        displayMp.value = player.value.mp.current;
+      }
+    }, 100);
   });
-  
+
+  // Cleanup animation frames
+  onUnmounted(() => {
+    if (hpAnimationFrame) cancelAnimationFrame(hpAnimationFrame);
+  });
+
   return {
     // State
     player,
     isLoading,
     error,
-    
+
+    // Previous values for rolldown animation
+    previousHp,
+    previousMp,
+
     // Computed for HUD display
     playerName,
     formattedHp,
     formattedMp,
     hpPercentage,
     mpPercentage,
-    
+
     // Actions
     loadPlayer,
     refreshPlayer,
-    
+
     // Raw access to current player from store
     currentPlayer
   };

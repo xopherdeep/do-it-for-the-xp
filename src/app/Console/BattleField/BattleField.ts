@@ -11,7 +11,7 @@ import XpBattleTaskMenu from "@/app/Console/BattleField/components/XpBattleTaskM
 import XpCombatTasks from "@/app/Console/BattleField/components/XpCombatTasks.vue";
 import XpHpMpHud from "@/app/Console/BattleField/hud/XpHpMpHud/XpHpMpHud.vue";
 import { useAudioStore } from "@/lib/store/stores/audio";
-import $fx from "@/assets/fx";
+import $fx, { play$fx } from "@/assets/fx";
 import DevToolsFab from "@/app/Console/BattleField/hud/dev/DevToolsFab.vue";
 import DevBattleActionsFab from "@/app/Console/BattleField/hud/dev/DevBattleActionsFab.vue";
 import {
@@ -34,7 +34,7 @@ import {
 } from '@ionic/vue';
 
 // Import battle services
-import { createBattleService, createBestiaryService, BattleService, BestiaryService, Enemy, CompletedTask, CombatTask } from '@/lib/services/battle';
+import { createBattleService, createBestiaryService, BattleService, BestiaryService, Enemy, CombatTask } from '@/lib/services/battle';
 
 // Import icons
 import {
@@ -134,8 +134,7 @@ export default defineComponent({
     const enemyAnimationClass = ref('');
     const enemyHealthColor = ref('#2dd36f');
     const battleMessage = ref('');
-    const showRewardsModal = ref(false);
-    const completedTask = ref<CompletedTask | null>(null);
+
     const combatTasks = ref<CombatTask[]>([]);
     const hasMoreBattleDialog = ref(false);
     const isBattleDialogTyping = ref(false);
@@ -187,6 +186,67 @@ export default defineComponent({
     const enemyAttackTimerPercent = computed(() => {
       if (!battleService.value) return 100;
       return battleService.value.getEnemyAttackTimer();
+    });
+
+    // Calculate time remaining formatted string
+    const atbTimeRemaining = computed(() => {
+      if (!battleService.value) return '';
+      const ms = battleService.value.getTimeRemaining();
+      if (ms <= 0) return '';
+
+      const totalSeconds = Math.ceil(ms / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    });
+
+    // Dynamic ATB bar style with gradient color transition (green -> yellow -> red)
+    const atbBarStyle = computed(() => {
+      const percent = enemyAttackTimerPercent.value;
+
+      // Calculate color based on percentage (100% = green, 50% = yellow, 0% = red)
+      let r, g, b;
+      if (percent > 50) {
+        // Green to yellow (100% -> 50%)
+        const ratio = (percent - 50) / 50;
+        r = Math.round(255 * (1 - ratio));
+        g = 200;
+        b = 0;
+      } else {
+        // Yellow to red (50% -> 0%)
+        const ratio = percent / 50;
+        r = 255;
+        g = Math.round(200 * ratio);
+        b = 0;
+      }
+
+      const color = `rgb(${r}, ${g}, ${b})`;
+      const lighterColor = `rgb(${Math.min(255, r + 50)}, ${Math.min(255, g + 50)}, ${b})`;
+
+      return {
+        width: `${percent}%`,
+        background: `linear-gradient(90deg, ${color} 0%, ${lighterColor} 100%)`,
+        boxShadow: `0 0 10px rgba(${r}, ${g}, 0, 0.7)`
+      };
+    });
+
+    // Dynamic ATB icon color (matches bar color)
+    const atbIconColor = computed(() => {
+      const percent = enemyAttackTimerPercent.value;
+
+      let r, g;
+      if (percent > 50) {
+        const ratio = (percent - 50) / 50;
+        r = Math.round(255 * (1 - ratio));
+        g = 200;
+      } else {
+        const ratio = percent / 50;
+        r = 255;
+        g = Math.round(200 * ratio);
+      }
+
+      return `rgb(${r}, ${g}, 0)`;
     });
 
 
@@ -512,11 +572,7 @@ export default defineComponent({
 
     // Play sound effects
     const playSound = (type: string) => {
-      if ($fx?.ui && $fx?.theme?.ui) {
-        if ($fx.ui[$fx.theme.ui][type]) {
-          $fx.ui[$fx.theme.ui][type].play();
-        }
-      }
+      play$fx(type);
     };
 
     // Initialize battle services
@@ -553,16 +609,43 @@ export default defineComponent({
           },
           onEnemyDefeated: (enemy) => {
             defeatEnemy(enemy);
+            playSound("enemyDie");
           },
           onPlayerDefeated: () => {
-            // Stop the battle and navigate to hospital
+            // Play death sound
+            playSound("die");
+
+            // Stop the battle and navigate to game over after dialog
             battleService.value?.stopAttackTimer();
             battleStarted.value = false;
 
-            // Navigate to hospital after a short delay
-            setTimeout(() => {
-              router.push({ name: 'hospital' });
-            }, 2000);
+            // Use queueBattleDialog to ensure this happens AFTER "You blacked out..."
+            queueBattleDialog([
+              () => {
+                debug.log('BattleField: Player defeated, navigating to Game Over');
+                router.push({ name: 'game-over' });
+              }
+            ]);
+          },
+          onAttack: (attacker) => {
+            if (attacker === 'player') {
+              playSound("attack");
+            } else {
+              playSound("preAttack");
+            }
+          },
+          onDamage: (target) => {
+            if (target === 'player') {
+              playSound("damage");
+              // Shake screen
+              const container = document.querySelector('.battle-ui-container');
+              if (container) {
+                container.classList.add('screen-shake');
+                setTimeout(() => container.classList.remove('screen-shake'), 500);
+              }
+            } else {
+              playSound("enemyDamage");
+            }
           }
         });
       }
@@ -641,14 +724,16 @@ export default defineComponent({
     const onBattleDialogComplete = () => {
       isBattleDialogTyping.value = false;
 
-      // Add a standard pause before showing the next message
-      setTimeout(() => {
-        if (battleDialogQueue.value.length > 0) {
-          showNextBattleDialog();
-        } else {
-          hasMoreBattleDialog.value = false;
-        }
-      }, 1500);
+      // Do NOT auto-advance; wait for user input
+      // Just check if we have more dialog to show the "more" indicator
+      if (battleDialogQueue.value.length > 0) {
+        hasMoreBattleDialog.value = true;
+      } else {
+        hasMoreBattleDialog.value = false;
+
+        // If we are in victory sequence, we might want to auto-close or wait for user to click one last time?
+        // Let's stick to manual. The 'advanceBattleDialog' will handle the final close.
+      }
     };
 
     // Called when the battle dialog is clicked
@@ -664,13 +749,22 @@ export default defineComponent({
         // Show next message
         showNextBattleDialog();
       } else if (!isPlayerTurn.value && battleDialogText.value) {
+        // Check if there's pending damage to apply (Earthbound-style delayed damage)
+        if (battleService.value?.hasPendingDamage()) {
+          battleService.value.applyPendingDamage();
+        }
         // This is the dialog-complete click after the encounter message
         // Clear the dialog text which will hide the dialog box and immediately start the player's turn
         battleDialogText.value = '';
         if (battleService.value) {
           battleService.value.startPlayerTurn();
+          battleService.value.startAttackTimer();
         }
       } else {
+        // Check for pending damage here too (safety)
+        if (battleService.value?.hasPendingDamage()) {
+          battleService.value.applyPendingDamage();
+        }
         // If we were in enemy turn, proceed to player turn
         if (!isPlayerTurn.value) {
           if (battleService.value) {
@@ -715,8 +809,10 @@ export default defineComponent({
         () => {
           // Dramatically show the beast and start the background swirling
           showEnemy.value = true;
+          // Dramatically show the beast and start the background swirling
+          showEnemy.value = true;
           enterBattle();
-          playSound("enterbattle");
+          playSound("startBattle");
 
           // Play battle music!
           const tracks = $fx.rpg.earthbound.BGM.battle;
@@ -930,28 +1026,11 @@ export default defineComponent({
       const defeatedEnemy = enemy || currentEnemy.value;
       if (!defeatedEnemy) return;
 
-      // Store defeated enemy info for rewards modal
-      completedTask.value = {
-        name: defeatedEnemy.name,
-        xpReward: calculateXPReward(),
-        gpReward: calculateGPReward(),
-        itemReward: Math.random() > 0.7 ? getRandomRewardItem() : null
-      };
-
-      // Show victory message
-      // battleMessage.value = `${defeatedEnemy.name} was defeated!`; // Moved to dialog
-
       // Trigger victory animation
       victoryAnimation();
 
       // Clear current enemy
       currentEnemy.value = null;
-
-      // Show rewards modal after a delay
-      setTimeout(() => {
-        battleMessage.value = '';
-        showRewardsModal.value = true;
-      }, 3000);
     };
 
     // Calculate XP reward based on enemy difficulty
@@ -1003,16 +1082,7 @@ export default defineComponent({
       return items[Math.floor(Math.random() * items.length)];
     };
 
-    // Close rewards modal
-    const closeRewardsModal = () => {
-      showRewardsModal.value = false;
-      completedTask.value = null;
 
-      // Return to hometown
-      setTimeout(() => {
-        returnToHometown();
-      }, 500);
-    };
 
     // Return to hometown
     const returnToHometown = () => {
@@ -1030,8 +1100,26 @@ export default defineComponent({
       // Apply victory strobe effect to the enemy sprite
       enemyAnimationClass.value = 'victory-strobe';
 
-      // Play victory sound
-      playSound("confirm");
+      // Play victory sound effect (the short jingle)
+      playSound("win");
+
+      // Play victory music
+      if (currentEnemy.value?.isBoss) {
+        // play$fx('eb_winboss'); // If using sound effect system for music
+        const tracks = $fx.rpg.earthbound.BGM.winboss || $fx.rpg.earthbound.BGM.win; // Fallback
+        audioStore.changeBGM({
+          tracks: tracks,
+          track: 0,
+          is_on: true
+        });
+      } else {
+        const tracks = $fx.rpg.earthbound.BGM.win;
+        audioStore.changeBGM({
+          tracks: tracks,
+          track: 0,
+          is_on: true
+        });
+      }
 
       // Start the aspect ratio animation after a short delay for the strobe effect
       setTimeout(() => {
@@ -1044,18 +1132,41 @@ export default defineComponent({
             // Set victory message flag for styling
             isVictoryMessage.value = true;
 
-            // Queue victory dialog messages
-            queueBattleDialog([
+            const xp = calculateXPReward();
+            const gp = calculateGPReward();
+            // Calculate item reward (50% chance)
+            const item = Math.random() > 0.5 ? getRandomRewardItem() : null;
+
+            // Build victory messages
+            const messages: (string | (() => void))[] = [
               'You Won!',
               `${currentEnemy.value?.name || 'Enemy'} was defeated!`,
-              `You gained ${calculateXPReward()} XP!`,
-              `You earned ${calculateGPReward()} GP!`
-            ]);
+              `You gained ${xp} XP!`,
+              `You got ${gp} GP!` // Changed 'earned' to 'got' to match Earthbound style more closely
+            ];
+
+            // Add item message if applicable
+            if (item) {
+              messages.push(`You found a ${item}!`);
+            }
+
+            // specific item check logic (like for the 'Cup of Lifenoodles') could go here
+
+            // Add completion callback
+            messages.push(() => {
+              returnToHometown();
+            });
+
+            // Queue victory dialog messages
+            queueBattleDialog(messages);
           })
           .catch(error => {
             debug.error("Error during victory animation:", error);
             // Fallback in case of error
-            queueBattleDialog([`Victory! ${currentEnemy.value?.name || 'Enemy'} was defeated!`]);
+            queueBattleDialog([
+              `Victory! ${currentEnemy.value?.name || 'Enemy'} was defeated!`,
+              () => returnToHometown()
+            ]);
           });
       }, 1000);
     };
@@ -1537,10 +1648,12 @@ export default defineComponent({
       enemyHealthColor,
       enemyProgressPercent,
       enemyAttackTimerPercent,
+      atbTimeRemaining,
+      atbBarStyle,
+      atbIconColor,
       combatTasks,
       battleMessage,
-      showRewardsModal,
-      completedTask,
+
       finishCombatTask,
       bg1,
       bg2,
@@ -1575,7 +1688,7 @@ export default defineComponent({
       initBattle,
       handleBattleAction,
       victoryAnimation,
-      closeRewardsModal,
+
 
       // UI Helper methods
       clickUserChip,

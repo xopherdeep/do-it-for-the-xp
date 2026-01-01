@@ -38,16 +38,16 @@
           <!-- Simple progress bar (task completion %) -->
           <div v-if="currentEnemy" class="enemy-bars">
             <div v-if="showEnemyHp" class="enemy-progress-bar hp">
-              <div class="enemy-progress-fill hp" :style="{ width: enemyProgressPercent + '%' }">
-                <span class="progress-label">PROGRESS</span>
-              </div>
+              <div class="enemy-progress-fill hp" :style="{ width: enemyProgressPercent + '%' }"></div>
+              <span class="progress-label">PROGRESS</span>
             </div>
 
-            <!-- Attack Timer Bar -->
-            <div class="enemy-progress-bar-container attack-timer" v-if="!isPlayerTurn && battleStarted">
-              <i class="fad fa-claw-marks attack-icon"></i>
+            <!-- Attack Timer Bar (ATB) -->
+            <div class="enemy-progress-bar-container attack-timer" v-if="battleStarted && currentEnemy">
+              <i class="fad fa-claw-marks attack-icon" :style="{ color: atbIconColor }"></i>
               <div class="enemy-progress-bar attack-timer">
-                <div class="enemy-progress-fill attack" :style="{ width: enemyAttackTimerPercent + '%' }"></div>
+                <div class="enemy-progress-fill attack" :style="atbBarStyle"></div>
+                <span class="progress-label" v-if="atbTimeRemaining">{{ atbTimeRemaining }}</span>
               </div>
             </div>
           </div>
@@ -101,44 +101,7 @@
 
       <!-- XpCombatTasks removed - functionality consolidated into XpBattleTaskMenu -->
 
-      <!-- Rewards Modal -->
-      <ion-modal :is-open="showRewardsModal" class="rewards-modal">
-        <ion-header>
-          <ion-toolbar>
-            <ion-title>Victory!</ion-title>
-            <ion-buttons slot="end">
-              <ion-button @click="closeRewardsModal">
-                <ion-icon :icon="closeCircle"></ion-icon>
-              </ion-button>
-            </ion-buttons>
-          </ion-toolbar>
-        </ion-header>
 
-        <ion-content class="ion-padding">
-          <div class="rewards-container" v-if="completedTask">
-            <h2>{{ completedTask.name }} Defeated!</h2>
-
-            <div class="reward-item">
-              <ion-icon :icon="medalOutline" class="reward-icon"></ion-icon>
-              <div class="reward-text">{{ completedTask.xpReward }} XP</div>
-            </div>
-
-            <div class="reward-item">
-              <ion-icon :icon="cashOutline" class="reward-icon"></ion-icon>
-              <div class="reward-text">{{ completedTask.gpReward }} GP</div>
-            </div>
-
-            <div class="reward-item" v-if="completedTask.itemReward">
-              <ion-icon :icon="giftOutline" class="reward-icon"></ion-icon>
-              <div class="reward-text">{{ completedTask.itemReward }}</div>
-            </div>
-
-            <ion-button expand="block" @click="closeRewardsModal">
-              Continue
-            </ion-button>
-          </div>
-        </ion-content>
-      </ion-modal>
     </div>
   </ion-page>
 </template>
@@ -179,286 +142,265 @@
     flex-direction: column;
     padding: 8px;
     gap: 8px;
-  }
 
-  // Battle Zone System - no overlap, fluid layout
-  .battle-zone {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    // TOP ZONE: Dialog/Menu (auto height based on content)
-    &--top {
-      flex-shrink: 0;
-      min-height: 80px;
-      z-index: 100;
-    }
-
-    // MIDDLE ZONE: Enemy display (flexible - takes remaining space)
-    &--middle {
-      flex: 1;
-      min-height: 150px;
-      position: relative;
-      overflow: hidden;
-    }
-
-    // BOTTOM ZONE: Player HUD (fixed height)
-    &--bottom {
-      flex-shrink: 0;
-      min-height: 120px;
-      padding-bottom: env(safe-area-inset-bottom, 0);
-      z-index: 50;
-    }
-  }
-
-  // Enemy container - now relative within the middle zone
-  .enemy-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    height: 100%;
-
-    .enemy-sprite-container {
+    // Battle Zone System - no overlap, fluid layout
+    .battle-zone {
+      width: 100%;
       display: flex;
       justify-content: center;
       align-items: center;
-      transition: all 0.3s ease;
 
-      // Default size (monster) - use max dimensions to fit in zone
-      width: 55%;
-      max-width: 400px;
-      max-height: 60%;
-
-      &.monster {
-        width: 55%;
+      // TOP ZONE: Dialog/Menu (auto height based on content)
+      &--top {
+        flex-shrink: 0;
+        min-height: 80px;
+        z-index: 100;
       }
 
-      &.miniboss {
-        width: 75%;
+      // MIDDLE ZONE: Enemy display (flexible - takes remaining space)
+      &--middle {
+        flex: 1;
+        min-height: 150px;
+        position: relative;
+        overflow: hidden;
       }
 
-      &.boss {
-        width: 90%;
-        max-width: 500px;
+      // BOTTOM ZONE: Player HUD (fixed height)
+      &--bottom {
+        flex-shrink: 0;
+        min-height: 120px;
+        padding-bottom: env(safe-area-inset-bottom, 0);
+        z-index: 50;
       }
+    }
 
-      &.appear {
-        animation: enemy-appear 0.5s ease-out;
-      }
+    // Enemy container - now relative within the middle zone
+    .enemy-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
 
-      &.damaged {
-        animation: enemy-damaged 0.3s ease-in-out;
-      }
-
-      &.fadeout {
-        animation: enemy-fadeout 1s ease-in forwards;
-      }
-
-      &.victory-strobe {
-        animation: victory-strobe 0.2s infinite alternate;
-      }
-
-      &.victory-fadeout {
-        animation: victory-fadeout 1s ease-in forwards;
-      }
-
-      .enemy-sprite {
-        width: 100%;
-        height: auto;
-        max-height: 100%;
-        object-fit: contain;
-        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
-      }
-
-      .enemy-emoji {
-        font-size: clamp(48px, 15vw, 100px);
-      }
-
-      .enemy-placeholder {
-        width: 100px;
-        height: 100px;
-        background-color: rgba(0, 0, 0, 0.5);
-        border-radius: 50%;
+      .enemy-sprite-container {
         display: flex;
         justify-content: center;
         align-items: center;
-        font-size: 40px;
-        color: white;
+        transition: all 0.3s ease;
+
+        // Default size (monster) - use max dimensions to fit in zone
+        width: 55%;
+        max-width: 400px;
+        max-height: 60%;
+
+        &.monster {
+          width: 55%;
+        }
+
+        &.miniboss {
+          width: 75%;
+        }
+
+        &.boss {
+          width: 90%;
+          max-width: 500px;
+        }
+
+        &.appear {
+          animation: enemy-appear 0.5s ease-out;
+        }
+
+        &.damaged {
+          animation: enemy-damaged 0.3s ease-in-out;
+        }
+
+        &.fadeout {
+          animation: enemy-fadeout 1s ease-in forwards;
+        }
+
+        &.victory-strobe {
+          animation: victory-strobe 0.2s infinite alternate;
+        }
+
+        &.victory-fadeout {
+          animation: victory-fadeout 1s ease-in forwards;
+        }
+
+        .enemy-sprite {
+          width: 100%;
+          height: auto;
+          max-height: 100%;
+          object-fit: contain;
+          filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
+        }
+
+        .enemy-emoji {
+          font-size: clamp(48px, 15vw, 100px);
+        }
+
+        .enemy-placeholder {
+          width: 100px;
+          height: 100px;
+          background-color: rgba(0, 0, 0, 0.5);
+          border-radius: 50%;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          font-size: 40px;
+          color: white;
+        }
       }
-    }
 
-    // Simple progress bar below enemy
-    .enemy-bars {
-      width: 80%;
-      max-width: 300px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-      margin-top: 15px;
-      flex-shrink: 0;
-    }
-
-    .enemy-progress-bar-container {
-      width: 100%;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-
-      .attack-icon {
-        font-size: 32px; // Large enough to see clearly
-        color: #ff9900;
-        filter: drop-shadow(0 0 8px rgba(255, 153, 0, 0.6));
+      // Simple progress bar below enemy
+      .enemy-bars {
+        width: 80%;
+        max-width: 300px;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-top: 15px;
         flex-shrink: 0;
       }
-    }
 
-    .enemy-progress-bar {
-      width: 100%;
-      height: 16px;
-      background-color: rgba(0, 0, 0, 0.8);
-      border: 2px solid rgba(255, 255, 255, 0.5);
-      border-radius: 8px;
-      overflow: hidden;
-      position: relative;
-      flex: 1;
+      .enemy-progress-bar-container {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 12px;
 
-      &.hp {
+        .attack-icon {
+          font-size: 32px; // Large enough to see clearly
+          color: #ff9900;
+          filter: drop-shadow(0 0 8px rgba(255, 153, 0, 0.6));
+          flex-shrink: 0;
+        }
+      }
+
+      .enemy-progress-bar {
+        width: 100%;
         height: 16px;
-      }
-
-      &.attack-timer {
-        height: 14px; // Slightly thinner than HP for hierarchy
-        background-color: rgba(0, 0, 0, 0.6);
-        border-color: rgba(255, 200, 0, 0.4);
-        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
-      }
-
-      .enemy-progress-fill {
-        height: 100%;
-        transition: width 0.3s ease-out;
+        background-color: rgba(0, 0, 0, 0.8);
+        border: 2px solid rgba(255, 255, 255, 0.5);
+        border-radius: 8px;
+        overflow: hidden;
+        position: relative;
+        flex: 1;
 
         &.hp {
-          background: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%);
-          box-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
+          height: 16px;
+        }
 
-          .progress-label {
-            font-family: 'StatusPlz', sans-serif;
-            font-size: 10px;
-            color: white;
-            text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
-            letter-spacing: 1px;
+        &.attack-timer {
+          height: 18px; // Slightly thinner than HP for hierarchy
+          background-color: rgba(0, 0, 0, 0.6);
+          border-color: rgba(255, 200, 0, 0.4);
+          box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
+        }
+
+        .enemy-progress-fill {
+          height: 100%;
+          transition: width 0.3s ease-out;
+
+          &.hp {
+            background: linear-gradient(90deg, #00d2ff 0%, #3a7bd5 100%);
+            box-shadow: 0 0 10px rgba(0, 210, 255, 0.5);
+          }
+
+          &.attack {
+            background: linear-gradient(90deg, #ffcc00 0%, #ff6600 100%);
+            box-shadow: 0 0 10px rgba(255, 153, 0, 0.7);
+            transition: width 0.1s linear; // Smoother for a timer
+
+            // Add a pulse when nearly empty (less than 30%)
+            &[style*="width: 1"],
+            &[style*="width: 2"],
+            &[style*="width: 0"] {
+              filter: brightness(1.2);
+              animation: timer-pulse 0.5s infinite alternate;
+            }
           }
         }
 
-        &.attack {
-          background: linear-gradient(90deg, #ffcc00 0%, #ff6600 100%);
-          box-shadow: 0 0 10px rgba(255, 153, 0, 0.7);
-          transition: width 0.1s linear; // Smoother for a timer
+        .progress-label {
+          position: absolute;
+          width: 100%;
+          text-align: center;
+          left: 0;
+          top: 0;
+          line-height: 14px;
+          font-family: 'StatusPlz', sans-serif;
+          font-size: 10px;
+          color: white;
+          text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+          letter-spacing: 1px;
+          pointer-events: none;
+          z-index: 10;
         }
       }
     }
-  }
 
-  .battle-message {
-    display: none;
-  }
-
-  .battle-dialog {
-    width: calc(100% - 40px);
-    max-width: 700px;
-    margin: 18px 20px;
-    padding: 5px 0 0;
-
-    min-height: 70px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    position: relative; // for the more indicator
-
-    // Override primary color to theme all inner Ionic components (like ion-button)
-    // using clear background and RPG yellow text
-    --ion-color-primary: transparent;
-    --ion-color-primary-rgb: var(--ion-color-rpg-rgb);
-    --ion-color-primary-contrast: var(--ion-color-rpg);
-    --ion-color-primary-shade: transparent;
-    --ion-color-primary-tint: rgba(255, 255, 255, 0.1);
-
-    // Earthbound RPG Box styling
-    border-radius: 1px;
-    box-shadow:
-      0 0 0 5px #383050, // medium purple
-      0 0 0 10px #68d0b8, // minty blue
-      0 0 0 12px #f7e8a8, // pale yellow
-      0 0 0 16px #3d3c55; // slate
-    background-color: #280828; // dark purple
-    color: var(--ion-color-rpg); // rpg yellow text
-
-    .dialog-content {
-      font-family: inherit;
-      font-size: 1.2rem;
-      line-height: 1.4;
+    .battle-message {
+      display: none;
     }
 
-    .dialog-more-indicator {
-      position: absolute;
-      bottom: 5px;
-      right: 15px;
-      font-size: 20px;
-      animation: bounce 0.5s infinite alternate;
-      color: var(--ion-color-rpg);
-    }
-  }
+    .battle-dialog {
+      width: calc(100% - 40px);
+      max-width: 700px;
+      margin: 18px 20px;
+      padding: 5px 0 0;
 
-  .dev-controls {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    z-index: 20;
-  }
-
-  .rewards-modal {
-    --border-radius: 10px;
-    --width: 90%;
-    --max-width: 400px;
-
-    .rewards-container {
+      min-height: 70px;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      padding: 20px 0;
+      justify-content: center;
+      position: relative; // for the more indicator
 
-      h2 {
-        margin-bottom: 20px;
-        text-align: center;
+      // Override primary color to theme all inner Ionic components (like ion-button)
+      // using clear background and RPG yellow text
+      --ion-color-primary: transparent;
+      --ion-color-primary-rgb: var(--ion-color-rpg-rgb);
+      --ion-color-primary-contrast: var(--ion-color-rpg);
+      --ion-color-primary-shade: transparent;
+      --ion-color-primary-tint: rgba(255, 255, 255, 0.1);
+
+      // Earthbound RPG Box styling
+      border-radius: 1px;
+      box-shadow:
+        0 0 0 5px #383050, // medium purple
+        0 0 0 10px #68d0b8, // minty blue
+        0 0 0 12px #f7e8a8, // pale yellow
+        0 0 0 16px #3d3c55; // slate
+      background-color: #280828; // dark purple
+      color: var(--ion-color-rpg); // rpg yellow text
+
+      .dialog-content {
+        font-family: inherit;
+        font-size: 1.2rem;
+        line-height: 1.4;
       }
 
-      .reward-item {
-        display: flex;
-        align-items: center;
-        margin-bottom: 15px;
-
-        .reward-icon {
-          font-size: 24px;
-          margin-right: 10px;
-        }
-
-        .reward-text {
-          font-size: 18px;
-          font-weight: bold;
-        }
+      .dialog-more-indicator {
+        position: absolute;
+        bottom: 5px;
+        right: 15px;
+        font-size: 20px;
+        animation: bounce 0.5s infinite alternate;
+        color: var(--ion-color-rpg);
       }
     }
-  }
 
-  // Screen shake animation for player hit
-  &.screen-shake {
-    animation: screen-shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+    .dev-controls {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 20;
+    }
+
+    // Screen shake animation for player hit
+    &.screen-shake {
+      animation: screen-shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+    }
   }
 }
 
@@ -572,8 +514,13 @@
   }
 }
 
-.battle-dialog {
-  // Override XpCardMenu styling within battle dialog
-  // The dialog box itself uses rpg-box (eb-box), so inner cards should be flat
+@keyframes timer-pulse {
+  0% {
+    filter: brightness(1);
+  }
+
+  100% {
+    filter: brightness(1.5);
+  }
 }
 </style>

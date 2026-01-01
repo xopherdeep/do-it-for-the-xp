@@ -125,6 +125,8 @@ const $fx = {
         ],
         chooseFile: [
           "https://starmen.net/mother2/music/006- Earthbound - Choose a File.mp3",
+        ],
+        createProfile: [
           "https://starmen.net/mother2/music/007- Earthbound - Your Name, Please.mp3",
         ],
         home: [
@@ -155,6 +157,9 @@ const $fx = {
           "https://starmen.net/mother2/music/035- Earthbound - You Win!.mp3",
           "https://starmen.net/mother2/music/036- Earthbound - That Was Easy!.mp3",
           "https://starmen.net/mother2/music/037- Earthbound - You Gained a Level!.mp3",
+        ],
+        winboss: [
+          "https://starmen.net/mother2/music/035- Earthbound - You Win!.mp3",
         ],
         world: [
           "https://starmen.net/mother2/music/092-%20Earthbound%20-%20Get%20on%20the%20Bus.mp3",
@@ -408,10 +413,18 @@ const $fx = {
       message: message,
       error: new Audio(earthbound.error),
       enterBattle: new Audio(earthbound.enterbattle),
+      startBattle: new Audio(earthbound.enterbattle),
       attack: new Audio(earthbound.attack1),
+      preAttack: new Audio(earthbound.ambush),
+      damage: new Audio(earthbound.smash),
+      enemyDamage: new Audio(earthbound.enemyhit),
       runAway: new Audio(),
       learn: new Audio(earthbound.psilearn),
       levelUp: new Audio(earthbound.eb_fanfare),
+      win: new Audio(earthbound.eb_win),
+      die: new Audio(earthbound.die),
+      enemyDie: new Audio(earthbound.enemydie),
+      defeat: new Audio(earthbound.die),
       gainXP: new Audio(earthbound.eb_win),
       gainGP: new Audio(purchaseWAV),
       fillPoints: new Audio(pointsMP3),

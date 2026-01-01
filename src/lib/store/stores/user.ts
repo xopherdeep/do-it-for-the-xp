@@ -139,14 +139,29 @@ export const useUserStore = defineStore('user', () => {
     const { userId, amount } = payload;
 
     if (users[userId]) {
-      const userStats = users[userId].stats || { hp: 100, maxHp: 100 };
+      const userStats = users[userId].stats || {};
 
-      // Initialize hp if missing
-      if (userStats.hp === undefined) userStats.hp = 100;
-      if (userStats.maxHp === undefined) userStats.maxHp = 100;
+      // Initialize/Standardize hp structure if missing or primitive
+      if (typeof userStats.hp !== 'object' || userStats.hp === null) {
+        const currentHp = typeof userStats.hp === 'number' ? userStats.hp : 100;
+        const maxHp = typeof userStats.maxHp === 'number' ? userStats.maxHp : 100;
+        userStats.hp = { now: currentHp, max: maxHp };
+      }
+
+      // Ensure maxHp is synced if it exists as a top-level property
+      if (typeof userStats.maxHp === 'number') {
+        userStats.hp.max = userStats.maxHp;
+      }
 
       // Apply damage (negative amount) or healing (positive amount)
-      userStats.hp = Math.max(0, Math.min(userStats.maxHp, userStats.hp + amount));
+      userStats.hp.now = Math.max(0, Math.min(userStats.hp.max, userStats.hp.now + amount));
+
+      // Standardize mp structure while we're here
+      if (typeof userStats.mp !== 'object' || userStats.mp === null) {
+        const currentMp = typeof userStats.mp === 'number' ? userStats.mp : 100;
+        const maxMp = typeof userStats.maxMp === 'number' ? userStats.maxMp : 100;
+        userStats.mp = { now: currentMp, max: maxMp };
+      }
 
       // Update state
       users[userId].stats = userStats;
@@ -157,7 +172,7 @@ export const useUserStore = defineStore('user', () => {
       }
 
       // Return whether player is still alive
-      return userStats.hp > 0;
+      return userStats.hp.now > 0;
     }
     return true; // Default to alive if user not found
   }

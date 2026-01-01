@@ -1,11 +1,6 @@
 <template>
     <div class="xp-battle-task-menu">
         <div class="menu-container rpg-box">
-            <div class="menu-header">
-                <i class="fad fa-swords header-icon"></i>
-                <span class="header-text">SELECT ATTACK</span>
-            </div>
-
             <div class="menu-content">
                 <div v-if="!activeTasks.length" class="empty-state">
                     No available attacks!
@@ -14,7 +9,7 @@
                 <div v-for="task in activeTasks" :key="task.id" class="battle-task-item"
                     :class="{ 'is-disabled': task.completed || task.isCompleted }" @click="handleTaskClick(task)">
                     <div class="task-icon-wrapper">
-                        <i class="fad fa-bolt" v-if="!task.completed && !task.isCompleted"></i>
+                        <i class="fad fa-claw-marks" v-if="!task.completed && !task.isCompleted"></i>
                         <i class="fad fa-check" v-else></i>
                     </div>
                     <div class="task-info">
@@ -114,34 +109,12 @@ export default defineComponent({
 
 .menu-container {
     @include eb-box();
-    background: rgba(0, 0, 0, 0.9);
-    border-radius: 8px;
+    // border-radius: 8px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
 }
 
-.menu-header {
-    padding: 12px;
-    background: var(--ion-color-danger);
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    border-bottom: 2px solid rgba(255, 255, 255, 0.2);
-
-    .header-icon {
-        color: white;
-        font-size: 1.2rem;
-    }
-
-    .header-text {
-        font-family: 'StatusPlz', sans-serif;
-        color: white;
-        font-size: 1.2rem;
-        letter-spacing: 1px;
-        text-transform: uppercase;
-    }
-}
 
 .menu-content {
     padding: 10px;
@@ -182,12 +155,11 @@ export default defineComponent({
         display: flex;
         align-items: center;
         justify-content: center;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: 50%;
-        margin-right: 12px;
+        margin-right: 8px;
 
         i {
-            color: var(--ion-color-warning);
+            color: var(--ion-color-rpg);
+            font-size: 1.4rem;
         }
     }
 
@@ -199,14 +171,17 @@ export default defineComponent({
 
         .task-name {
             font-family: 'Apple Kid', sans-serif;
-            font-size: 1rem;
-            color: white;
+            font-size: 1.5rem;
+            color: var(--ion-color-rpg);
+            letter-spacing: 1px;
         }
 
         .task-cost {
-            font-size: 0.8rem;
-            color: var(--ion-color-medium);
-            font-family: 'StatusPlz', sans-serif;
+            font-size: 1.5rem;
+            color: var(--ion-color-rpg);
+            font-family: 'Apple Kid', sans-serif;
+            letter-spacing: 1px;
+            opacity: 0.8;
         }
     }
 }

@@ -74,7 +74,9 @@ export interface BattleState {
     activeUserIndex: number;
   };
   enemyAttackTimer: number; // 0 to 100
+  timeRemaining: number; // ms remaining
   combatTasks: CombatTask[];
+  pendingPlayerDamage: number; // Damage waiting to be applied after dialog
 }
 
 export interface BattleResult {
@@ -104,6 +106,8 @@ export class BattleService {
     onEnemyDefeated?: (enemy: Enemy) => void;
     onCombatTasksChange?: (tasks: CombatTask[]) => void;
     onPlayerDefeated?: () => void;
+    onAttack?: (attacker: 'player' | 'enemy') => void;
+    onDamage?: (target: 'player' | 'enemy', amount: number) => void;
   };
   private attackTimerInterval: any = null;
 
@@ -126,7 +130,9 @@ export class BattleService {
         activeUserIndex: 0
       },
       enemyAttackTimer: 100,
-      combatTasks: []
+      timeRemaining: 0,
+      combatTasks: [],
+      pendingPlayerDamage: 0
     });
     this.battleCallbacks = {};
 
@@ -375,6 +381,13 @@ export class BattleService {
       `${activeUser.name} attacks!`,
     ]);
 
+    // Trigger attack animation via message (animation handled by UI)
+    /*
+    if (this.battleCallbacks.onAttack) {
+      this.battleCallbacks.onAttack('player');
+    }
+    */
+
     // Calculate damage based on player stats and enemy defense
     const attackStat = activeUser.stats.strength;
     const defenseStat = this.state.currentEnemy.defense;
@@ -398,6 +411,11 @@ export class BattleService {
     this.queueDialogMessages([
       `${this.state.currentEnemy.name} takes ${damage} damage!`
     ]);
+
+    // Trigger damage sound
+    if (this.battleCallbacks.onDamage) {
+      this.battleCallbacks.onDamage('enemy', damage);
+    }
 
     // Check if enemy is defeated
     if (this.state.currentEnemy.health <= 0) {
@@ -610,8 +628,14 @@ export class BattleService {
       this.state.currentEnemy.health = Math.max(0, this.state.currentEnemy.health - damage);
       this.updateEnemyHealthColor();
 
-      // Feedback
-      this.queueDialogMessages([`Completed: ${task.name}!`, `The monster is weakened!`]);
+      // Feedback - use enemy name and mention attack interrupt
+      const enemyName = this.state.currentEnemy.name;
+      this.queueDialogMessages([`Completed: ${task.name}!`, `${enemyName}'s attack was interrupted!`]);
+
+      // Trigger damage sound (task completion simulates damage)
+      if (this.battleCallbacks.onDamage) {
+        this.battleCallbacks.onDamage('enemy', damage);
+      }
 
       if (this.state.currentEnemy.health <= 0) {
         this.defeatEnemy(this.state.currentEnemy);
@@ -620,6 +644,12 @@ export class BattleService {
 
     if (this.battleCallbacks.onCombatTasksChange) {
       this.battleCallbacks.onCombatTasksChange(this.state.combatTasks);
+    }
+
+    // Reset the ATB gauge when a task is completed - player earns more time!
+    if (this.state.currentEnemy && this.state.currentEnemy.health > 0) {
+      this.stopAttackTimer();
+      this.startAttackTimer();
     }
   }
 
@@ -638,13 +668,32 @@ export class BattleService {
 
     this.state.enemyAttackTimer = 100;
     const tickRate = 50; // ms
-    const duration = 2000; // 2 seconds to "charge"
+
+    // Calculate duration based on number of incomplete combat tasks
+    // Each incomplete task gives 1 minute of time (60,000ms)
+    // Minimum of 1 minute even with no tasks
+    const incompleteTasks = this.state.combatTasks.filter(t => !t.isCompleted).length;
+    const minutesPerTask = 60000; // 1 minute in ms
+    const duration = Math.max(minutesPerTask, incompleteTasks * minutesPerTask);
     const decrement = (100 / (duration / tickRate));
+
+    // Initialize time remaining
+    this.state.timeRemaining = duration;
+
+    // debug.log(`ATB Timer: ${incompleteTasks} tasks = ${duration / 1000}s duration`);
+    // Debugging the 4 mins issue
+    console.warn('ATB START DEBUG:', {
+      tasks: this.state.combatTasks.length,
+      incomplete: incompleteTasks,
+      titles: this.state.combatTasks.map(t => t.name),
+      duration: duration
+    });
 
     this.attackTimerInterval = setInterval(() => {
       this.state.enemyAttackTimer = Math.max(0, this.state.enemyAttackTimer - decrement);
+      this.state.timeRemaining = Math.max(0, this.state.timeRemaining - tickRate);
 
-      if (this.state.enemyAttackTimer <= 0) {
+      if (this.state.enemyAttackTimer <= 0 || this.state.timeRemaining <= 0) {
         this.stopAttackTimer();
         if (this.state.currentEnemy) {
           this.performEnemyTurn();
@@ -671,6 +720,13 @@ export class BattleService {
   }
 
   /**
+   * Get the current time remaining in ms
+   */
+  public getTimeRemaining(): number {
+    return this.state.timeRemaining;
+  }
+
+  /**
    * Perform enemy's turn
    */
   private performEnemyTurn(): void {
@@ -694,6 +750,11 @@ export class BattleService {
       `${activeEnemy.name}'s turn!`
     ]);
 
+    // Trigger enemy pre-attack sound (ambush/charge)
+    if (this.battleCallbacks.onAttack) {
+      this.battleCallbacks.onAttack('enemy');
+    }
+
     // Enemy attacks the player - this creates urgency to complete tasks!
     const baseDamage = 5 + Math.floor(Math.random() * 10);
     const attackStat = activeEnemy.attack || 10;
@@ -713,36 +774,98 @@ export class BattleService {
       `You take ${finalDamage} damage!`
     ]);
 
+    // Trigger player damage sound - Moved to applyPendingDamage (Earthbound style)
+    /*
+    if (this.battleCallbacks.onDamage) {
+      this.battleCallbacks.onDamage('player', finalDamage);
+    }
+    */
+
+    // Store pending damage - will be applied when dialog is dismissed (Earthbound style!)
+    this.state.pendingPlayerDamage = finalDamage;
+
+    // Reset defending state after attack resolves
+    this.setDefendingState(false);
+
+    // Note: Damage is NOT applied here. It will be applied via applyPendingDamage()
+    // which should be called when the attack dialog is dismissed by the player.
+    // The ATB timer will restart after damage is applied.
+
+    if (this.devMode) {
+      debug.log(`Pending damage stored: ${finalDamage}. Awaiting dialog dismiss.`);
+    }
+  }
+
+  /**
+   * Apply pending damage to the player (called when attack dialog is dismissed)
+   * This creates the Earthbound-style "rolling HP" effect
+   */
+  public applyPendingDamage(): void {
+    if (this.state.pendingPlayerDamage <= 0) {
+      // No pending damage, just restart the timer
+      this.state.turnCounter++;
+      this.startAttackTimer();
+      return;
+    }
+
+    const damage = this.state.pendingPlayerDamage;
+    this.state.pendingPlayerDamage = 0;
+
+    const activeUser = this.getActiveUser();
+    if (!activeUser) {
+      debug.error('No active user to apply damage to');
+      this.state.turnCounter++;
+      this.startAttackTimer();
+      return;
+    }
+
     // Apply damage to player HP via the store
     const isAlive = this.userStore.updateUserHP({
       userId: activeUser.id,
-      amount: -finalDamage
+      amount: -damage
     });
 
-    // Reset defending state
-    this.setDefendingState(false);
+    // Trigger player damage sound and animations now that damage is applied
+    if (this.battleCallbacks.onDamage) {
+      this.battleCallbacks.onDamage('player', damage);
+    }
 
-    setTimeout(() => {
-      if (!isAlive) {
-        // Player defeated - will be handled by callback
-        this.queueDialogMessages([
-          `${activeUser.name} has fallen!`,
-          'You blacked out...'
-        ]);
-
-        if (this.battleCallbacks.onPlayerDefeated) {
-          this.battleCallbacks.onPlayerDefeated();
-        }
-      } else {
-        // Proceed to next turn, restart ATB
-        this.state.turnCounter++;
-        this.startAttackTimer();
-      }
-    }, 1000);
+    // Update the local participant's HP as well
+    activeUser.stats.hp = Math.max(0, activeUser.stats.hp - damage);
 
     if (this.devMode) {
-      debug.log(`Enemy attacked for ${finalDamage} damage`);
+      debug.log(`Applied ${damage} pending damage. Player alive: ${isAlive}`);
     }
+
+    if (!isAlive) {
+      // Player defeated
+      this.queueDialogMessages([
+        `${activeUser.name} has fallen!`,
+        'You blacked out...'
+      ]);
+
+      if (this.battleCallbacks.onPlayerDefeated) {
+        this.battleCallbacks.onPlayerDefeated();
+      }
+    } else {
+      // Proceed to next turn, restart ATB
+      this.state.turnCounter++;
+      this.startAttackTimer();
+    }
+  }
+
+  /**
+   * Check if there is pending damage awaiting application
+   */
+  public hasPendingDamage(): boolean {
+    return this.state.pendingPlayerDamage > 0;
+  }
+
+  /**
+   * Get the pending damage amount
+   */
+  public getPendingDamage(): number {
+    return this.state.pendingPlayerDamage;
   }
 
   /**
@@ -843,20 +966,28 @@ export class BattleService {
     const storeUser = this.userStore.getUserById(userId);
     if (!storeUser) return null;
 
+    const stats = storeUser.stats || {};
+
+    // Extract HP/MP from either primitive or object structure { now, max }
+    const hp = typeof stats.hp === 'object' ? stats.hp?.now : stats.hp;
+    const maxHp = typeof stats.hp === 'object' ? stats.hp?.max : (stats.maxHp || 100);
+    const mp = typeof stats.mp === 'object' ? stats.mp?.now : stats.mp;
+    const maxMp = typeof stats.mp === 'object' ? stats.mp?.max : (stats.maxMp || 100);
+
     // Convert store user to battle user interface
     return {
       id: userId,
       name: storeUser.name?.nick || 'Player',
       avatar: storeUser.avatar,
       stats: {
-        level: storeUser.stats?.level || 1,
-        hp: storeUser.stats?.hp || 100,
-        maxHp: storeUser.stats?.maxHp || 100,
-        mp: storeUser.stats?.mp || 100,
-        maxMp: storeUser.stats?.maxMp || 100,
-        strength: storeUser.stats?.strength || 10,
-        defense: storeUser.stats?.defense || 10,
-        speed: storeUser.stats?.speed || 10,
+        level: stats.level || 1,
+        hp: typeof hp === 'number' ? hp : 100,
+        maxHp: typeof maxHp === 'number' ? maxHp : 100,
+        mp: typeof mp === 'number' ? mp : 100,
+        maxMp: typeof maxMp === 'number' ? maxMp : 100,
+        strength: stats.strength || 10,
+        defense: stats.defense || 10,
+        speed: stats.speed || 10,
       }
     };
   }
