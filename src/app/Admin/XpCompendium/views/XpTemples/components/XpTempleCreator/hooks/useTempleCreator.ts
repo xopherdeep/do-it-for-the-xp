@@ -1,44 +1,58 @@
 /**
  * useTempleCreator Hook
- * 
+ *
  * Extracts temple creation logic from XpTempleCreator.vue for better
  * separation of concerns and potential reuse.
  */
-import { ref, computed, watch, ComputedRef, Ref } from 'vue';
-import { useRoute } from 'vue-router';
-import { toastController, createAnimation, useIonRouter, alertController } from '@ionic/vue';
-import { ROOM_ICONS, _00_, ____, TELE, SHOP } from '@/lib/engine/dungeons/roomTypes';
-import { isEntranceToken } from '@/lib/engine/dungeons/SpatialPalette';
-import { TempleDb, templeStorage } from '@/lib/databases/TempleDb';
-import { useTempleCreatorStore } from '@/lib/store/stores/temple-creator';
-import { useBestiarySelectionStore } from '@/lib/store/stores/bestiary-selection';
-import { getTempleIcon } from '@/lib/engine/dungeons/templeIcons';
-import { getTempleIconClass } from '../../../hooks/useTempleIcon';
-import debug from '@/lib/utils/debug';
+import { ref, computed, watch, ComputedRef, Ref } from "vue";
+import { useRoute } from "vue-router";
+import {
+  toastController,
+  createAnimation,
+  useIonRouter,
+  alertController,
+} from "@ionic/vue";
+import {
+  ROOM_ICONS,
+  _00_,
+  ____,
+  TELE,
+  SHOP,
+} from "@/lib/engine/dungeons/roomTypes";
+import { isEntranceToken } from "@/lib/engine/dungeons/SpatialPalette";
+import { TempleDb, templeStorage } from "@/lib/databases/TempleDb";
+import { useTempleCreatorStore } from "@/lib/store/stores/temple-creator";
+import { useBestiarySelectionStore } from "@/lib/store/stores/bestiary-selection";
+import { getTempleIcon } from "@/lib/engine/dungeons/templeIcons";
+import { getTempleIconClass } from "../../../hooks/useTempleIcon";
+import debug from "@/lib/utils/debug";
 
-import { getDungeonItems } from '@/lib/engine/core/items/itemRegistry';
+import { getDungeonItems } from "@/lib/engine/core/items/itemRegistry";
 
 // Side type information for UI
-export const SIDE_TYPE_INFO: Record<string, { icon: string; label: string; color: string }> = {
-  door: { icon: 'fal fa-tombstone-alt', label: 'Door', color: 'success' },
-  wall: { icon: 'DYNAMIC_WALL', label: 'Wall', color: 'medium' },
-  locked: { icon: 'fas fa-lock', label: 'Locked', color: 'warning' },
-  masterlocked: { icon: 'fas fa-skull', label: 'Boss Lock', color: 'danger' },
-  bombable: { icon: 'fal fa-bomb', label: 'Bombable', color: 'secondary' }
+export const SIDE_TYPE_INFO: Record<
+  string,
+  { icon: string; label: string; color: string }
+> = {
+  door: { icon: "fal fa-tombstone-alt", label: "Door", color: "success" },
+  wall: { icon: "DYNAMIC_WALL", label: "Wall", color: "medium" },
+  locked: { icon: "fas fa-lock", label: "Locked", color: "warning" },
+  masterlocked: { icon: "fas fa-skull", label: "Boss Lock", color: "danger" },
+  bombable: { icon: "fal fa-bomb", label: "Bombable", color: "secondary" },
 };
 
 // Room symbols mapping
 const roomSymbols: Record<string, string> = {
   wall: ____,
   entrance: _00_,
-  empty: 'O__O',
-  monster: 'q__q',
-  loot: '$__$',
-  boss: 'X__X',
-  miniboss: 'x__x',
+  empty: "O__O",
+  monster: "q__q",
+  loot: "$__$",
+  boss: "X__X",
+  miniboss: "x__x",
   teleport: TELE,
   shop: SHOP,
-  health: 'H__P'
+  health: "H__P",
 };
 
 export interface UseTempleCreatorProps {
@@ -98,7 +112,10 @@ export interface UseTempleCreatorReturn {
   selectCell: (row: number, col: number) => void;
   applyRoomChanges: (roomType: string, contentData: any, sideData: any) => void;
   getCellType: (cellSymbol: string) => string;
-  getSideConfiguration: (cellSymbol: string, direction: 'north' | 'south' | 'east' | 'west') => string;
+  getSideConfiguration: (
+    cellSymbol: string,
+    direction: "north" | "south" | "east" | "west"
+  ) => string;
   isEntrancePosition: (row: number, col: number) => boolean;
 
   // Methods - Quick Edit
@@ -141,7 +158,9 @@ interface QuickEditState {
 // No-op animation for instant navigation
 const noAnimation = () => createAnimation();
 
-export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreatorReturn {
+export function useTempleCreator(
+  props: UseTempleCreatorProps
+): UseTempleCreatorReturn {
   const templeDb = new TempleDb(templeStorage);
   const store = useTempleCreatorStore();
   const selectionStore = useBestiarySelectionStore();
@@ -152,18 +171,22 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
   const showPreview = ref(false);
   const showAddFloorModal = ref(false);
   const isLoading = ref(false);
-  const nextFloorOptions = ref({ surface: '2F', basement: 'B1' });
+  const nextFloorOptions = ref({ surface: "2F", basement: "B1" });
 
   // State for change detection
-  const lastSavedState = ref<string>('');
   const hasUnsavedChanges = computed(() => {
-    const currentState = {
+    // If we have no DB snapshot, we assume no changes OR everything is new.
+    // Usually if loaded from DB, snapshot is set.
+    if (store.dbStateSnapshot === null) return false;
+
+    const currentState = JSON.stringify({
       maze: store.templeMaze,
       rooms: store.roomsData,
       gridSize: store.gridSize,
-      entrance: store.entrancePosition
-    };
-    return JSON.stringify(currentState) !== lastSavedState.value;
+      entrance: store.entrancePosition,
+    });
+
+    return currentState !== store.dbStateSnapshot;
   });
 
   // Quick Edit State
@@ -172,81 +195,92 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
     event: null,
     row: 0,
     col: 0,
-    cellSymbol: '',
-    roomType: 'wall',
-    tab: 'type',
+    cellSymbol: "",
+    roomType: "wall",
+    tab: "type",
     content: {},
-    sides: { north: 'door', east: 'door', south: 'door', west: 'door' }
+    sides: { north: "door", east: "door", south: "door", west: "door" },
   });
 
   // Watch for route param changes
-  watch(() => route.params.floorId, (newFloorId) => {
-    if (newFloorId && typeof newFloorId === 'string' && store.currentLevelId !== newFloorId) {
-      store.currentLevelId = newFloorId;
-    }
-  });
-
-  watch(() => props.templeId, (newId) => {
-    if (newId && store.templeId !== newId) {
-      store.templeId = newId;
-    }
-    if (route.params.floorId && typeof route.params.floorId === 'string') {
-      const fId = route.params.floorId;
-      if (store.currentLevelId !== fId) {
-        store.currentLevelId = fId;
+  watch(
+    () => route.params.floorId,
+    (newFloorId) => {
+      if (
+        newFloorId &&
+        typeof newFloorId === "string" &&
+        store.currentLevelId !== newFloorId
+      ) {
+        store.currentLevelId = newFloorId;
       }
     }
-  }, { immediate: true });
+  );
+
+  watch(
+    () => props.templeId,
+    (newId) => {
+      if (newId && store.templeId !== newId) {
+        store.templeId = newId;
+      }
+      if (route.params.floorId && typeof route.params.floorId === "string") {
+        const fId = route.params.floorId;
+        if (store.currentLevelId !== fId) {
+          store.currentLevelId = fId;
+        }
+      }
+    },
+    { immediate: true }
+  );
 
   // Proxy store refs for easier template access
   const gridSize = computed({
     get: () => store.gridSize,
-    set: (val) => store.gridSize = val
+    set: (val) => (store.gridSize = val),
   });
   const templeName = computed({
     get: () => store.templeName,
-    set: (val) => store.templeName = val
+    set: (val) => (store.templeName = val),
   });
   const entrancePosition = computed({
     get: () => store.entrancePosition,
-    set: (val) => store.entrancePosition = val
+    set: (val) => (store.entrancePosition = val),
   });
   const templeMaze = computed({
     get: () => store.templeMaze,
-    set: (val) => store.templeMaze = val
+    set: (val) => (store.templeMaze = val),
   });
   const roomsData = computed({
     get: () => store.roomsData,
-    set: (val) => store.roomsData = val
+    set: (val) => (store.roomsData = val),
   });
   const selectedCell = computed({
     get: () => store.selectedCell,
-    set: (val) => store.selectedCell = val
+    set: (val) => (store.selectedCell = val),
   });
   const symbolCounter = computed({
     get: () => store.symbolCounter,
-    set: (val) => store.symbolCounter = val
+    set: (val) => (store.symbolCounter = val),
   });
   const usedSymbols = computed({
     get: () => store.usedSymbols,
-    set: (val) => store.usedSymbols = val
+    set: (val) => (store.usedSymbols = val),
   });
   const currentLevelId = computed({
     get: () => store.currentLevelId,
-    set: (val) => store.currentLevelId = val
+    set: (val) => (store.currentLevelId = val),
   });
 
   // Helper functions
   const getFloorValue = (f: string): number => {
-    if (f.endsWith('F')) return parseInt(f);
-    if (f.startsWith('B')) return -parseInt(f.replace('B', ''));
+    if (f.endsWith("F")) return parseInt(f);
+    if (f.startsWith("B")) return -parseInt(f.replace("B", ""));
     return 0;
   };
 
   const floors = computed(() => {
     let keys: string[] = [];
     if (Array.isArray(templeMaze.value)) {
-      keys = ['1F'];
+      keys = ["1F"];
     } else {
       keys = Object.keys(templeMaze.value);
     }
@@ -256,29 +290,33 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
   const aboveFloors = computed(() => {
     const currentVal = getFloorValue(currentLevelId.value);
     return floors.value
-      .filter(f => getFloorValue(f) > currentVal)
+      .filter((f) => getFloorValue(f) > currentVal)
       .sort((a, b) => getFloorValue(a) - getFloorValue(b));
   });
 
   const belowFloors = computed(() => {
     const currentVal = getFloorValue(currentLevelId.value);
     return floors.value
-      .filter(f => getFloorValue(f) < currentVal)
+      .filter((f) => getFloorValue(f) < currentVal)
       .sort((a, b) => getFloorValue(b) - getFloorValue(a));
   });
 
   const getEntranceFloor = (floorList: string[]): string => {
-    const fFloors = floorList.filter(f => f.endsWith('F')).sort((a, b) => getFloorValue(a) - getFloorValue(b));
+    const fFloors = floorList
+      .filter((f) => f.endsWith("F"))
+      .sort((a, b) => getFloorValue(a) - getFloorValue(b));
     if (fFloors.length > 0) return fFloors[0];
-    const bFloors = floorList.filter(f => f.startsWith('B')).sort((a, b) => getFloorValue(b) - getFloorValue(a));
+    const bFloors = floorList
+      .filter((f) => f.startsWith("B"))
+      .sort((a, b) => getFloorValue(b) - getFloorValue(a));
     if (bFloors.length > 0) return bFloors[0];
-    return floorList[0] || '1F';
+    return floorList[0] || "1F";
   };
 
   // Dynamic temple icon - uses store (from DB), falls back to static map
   const templeIcon = computed({
     get: () => store.templeIcon || getTempleIcon(props.templeId),
-    set: (val) => store.templeIcon = val
+    set: (val) => (store.templeIcon = val),
   });
 
   const dynamicRoomIcons = computed(() => {
@@ -289,13 +327,13 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
   });
 
   const entranceDisplay = computed(() => {
-    const parts = entrancePosition.value.split(',');
+    const parts = entrancePosition.value.split(",");
     if (parts.length === 3) {
       const [z, y, x] = parts.map(Number);
       const mazeObj = templeMaze.value;
-      let floorName = '';
+      let floorName = "";
       if (Array.isArray(mazeObj)) {
-        floorName = '1F';
+        floorName = "1F";
       } else {
         const keys = Object.keys(mazeObj);
         floorName = keys[z] || `Floor ${z}`;
@@ -310,13 +348,15 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
   const hasEntrance = computed(() => {
     const maze = templeMaze.value;
     const checkForEntrance = (grid: string[][]): boolean => {
-      return grid.some(row => row.some(cell => isEntranceToken(cell)));
+      return grid.some((row) => row.some((cell) => isEntranceToken(cell)));
     };
 
     if (Array.isArray(maze)) {
       return checkForEntrance(maze);
     } else {
-      return Object.values(maze).some(floor => checkForEntrance(floor as string[][]));
+      return Object.values(maze).some((floor) =>
+        checkForEntrance(floor as string[][])
+      );
     }
   });
 
@@ -325,15 +365,20 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
       if (Array.isArray(templeMaze.value)) {
         return templeMaze.value;
       }
-      return (templeMaze.value as Record<string, string[][]>)[currentLevelId.value] || [];
+      return (
+        (templeMaze.value as Record<string, string[][]>)[
+          currentLevelId.value
+        ] || []
+      );
     },
     set: (newSlice: string[][]) => {
       if (Array.isArray(templeMaze.value)) {
         templeMaze.value = newSlice;
       } else {
-        (templeMaze.value as Record<string, string[][]>)[currentLevelId.value] = newSlice;
+        (templeMaze.value as Record<string, string[][]>)[currentLevelId.value] =
+          newSlice;
       }
-    }
+    },
   });
 
   // --- Floor Management ---
@@ -342,19 +387,19 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
     let nextSurface = 2;
     let nextBasement = 1;
 
-    existingFloors.forEach(f => {
-      if (f.endsWith('F')) {
+    existingFloors.forEach((f) => {
+      if (f.endsWith("F")) {
         const n = parseInt(f);
         if (n >= nextSurface) nextSurface = n + 1;
-      } else if (f.startsWith('B')) {
-        const n = parseInt(f.replace('B', ''));
+      } else if (f.startsWith("B")) {
+        const n = parseInt(f.replace("B", ""));
         if (n >= nextBasement) nextBasement = n + 1;
       }
     });
 
     nextFloorOptions.value = {
       surface: `${nextSurface}F`,
-      basement: `B${nextBasement}`
+      basement: `B${nextBasement}`,
     };
   };
 
@@ -371,12 +416,17 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
   const promptCustomFloorName = async () => {
     showAddFloorModal.value = false;
     const customAlert = await alertController.create({
-      header: 'Custom Floor Name',
-      inputs: [{ name: 'floorName', type: 'text', placeholder: 'e.g. Attic, Roof' }],
+      header: "Custom Floor Name",
+      inputs: [
+        { name: "floorName", type: "text", placeholder: "e.g. Attic, Roof" },
+      ],
       buttons: [
-        { text: 'Cancel', role: 'cancel' },
-        { text: 'Create', handler: (d) => d.floorName && addFloor(d.floorName) }
-      ]
+        { text: "Cancel", role: "cancel" },
+        {
+          text: "Create",
+          handler: (d) => d.floorName && addFloor(d.floorName),
+        },
+      ],
     });
     await customAlert.present();
   };
@@ -384,11 +434,11 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
   const addFloor = (levelId: string) => {
     if (Array.isArray(templeMaze.value)) {
       const firstFloor = JSON.parse(JSON.stringify(templeMaze.value));
-      templeMaze.value = { '1F': firstFloor };
+      templeMaze.value = { "1F": firstFloor };
     }
 
     if (!(templeMaze.value as Record<string, string[][]>)[levelId]) {
-      const [rows, cols] = gridSize.value.split('x').map(Number);
+      const [rows, cols] = gridSize.value.split("x").map(Number);
       const newLayer: string[][] = [];
       for (let i = 0; i < rows; i++) {
         newLayer.push(new Array(cols).fill(____));
@@ -399,7 +449,7 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
   };
 
   const removeFloor = (levelId: string) => {
-    if (levelId === '1F') return; // Absolute protection
+    if (levelId === "1F") return; // Absolute protection
     if (Array.isArray(templeMaze.value)) return;
 
     const mazeMap = templeMaze.value as Record<string, string[][]>;
@@ -408,24 +458,27 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
     delete mazeMap[levelId];
 
     // Fallback to the first available floor
-    const nextFloor = Object.keys(mazeMap)[0] || '1F';
+    const nextFloor = Object.keys(mazeMap)[0] || "1F";
     setLevel(nextFloor);
   };
 
   const setLevel = (levelId: string) => {
     ionRouter.replace(
       {
-        name: 'xp-temple-layout',
+        name: "xp-temple-layout",
         params: {
           templeId: props.templeId,
-          floorId: levelId
-        }
+          floorId: levelId,
+        },
       },
       noAnimation
     );
     currentLevelId.value = levelId;
-    if (!Array.isArray(templeMaze.value) && !(templeMaze.value as Record<string, string[][]>)[levelId]) {
-      const [rows, cols] = gridSize.value.split('x').map(Number);
+    if (
+      !Array.isArray(templeMaze.value) &&
+      !(templeMaze.value as Record<string, string[][]>)[levelId]
+    ) {
+      const [rows, cols] = gridSize.value.split("x").map(Number);
       const newLayer: string[][] = [];
       for (let i = 0; i < rows; i++) {
         newLayer.push(new Array(cols).fill(____));
@@ -436,14 +489,14 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
 
   // --- Grid Management ---
   const initializeGrid = () => {
-    const [rows, cols] = gridSize.value.split('x').map(Number);
+    const [rows, cols] = gridSize.value.split("x").map(Number);
     const newGrid: string[][] = [];
 
     for (let i = 0; i < rows; i++) {
       newGrid.push(new Array(cols).fill(____));
     }
 
-    const parts = entrancePosition.value.split(',').map(Number);
+    const parts = entrancePosition.value.split(",").map(Number);
     if (parts.length === 2) {
       const [eRow, eCol] = parts;
       if (eRow >= 0 && eRow < rows && eCol >= 0 && eCol < cols) {
@@ -451,9 +504,14 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
       }
     } else if (parts.length === 3) {
       const mazeObj = templeMaze.value;
-      const floorKeys = Array.isArray(mazeObj) ? ['1F'] : Object.keys(mazeObj);
+      const floorKeys = Array.isArray(mazeObj) ? ["1F"] : Object.keys(mazeObj);
       if (floorKeys[parts[0]] === currentLevelId.value) {
-        if (parts[1] >= 0 && parts[1] < rows && parts[2] >= 0 && parts[2] < cols) {
+        if (
+          parts[1] >= 0 &&
+          parts[1] < rows &&
+          parts[2] >= 0 &&
+          parts[2] < cols
+        ) {
           newGrid[parts[1]][parts[2]] = _00_;
         }
       }
@@ -463,10 +521,10 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
   };
 
   const generateUniqueSymbol = (): string => {
-    let newSymbol = '';
+    let newSymbol = "";
     do {
       symbolCounter.value++;
-      newSymbol = `R${symbolCounter.value.toString().padStart(3, '0')}`;
+      newSymbol = `R${symbolCounter.value.toString().padStart(3, "0")}`;
     } while (usedSymbols.value.has(newSymbol));
     usedSymbols.value.add(newSymbol);
     return newSymbol;
@@ -478,7 +536,7 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
     const oldRows = oldMaze.length;
     const oldCols = oldMaze[0]?.length || 0;
 
-    const [newRows, newCols] = gridSize.value.split('x').map(Number);
+    const [newRows, newCols] = gridSize.value.split("x").map(Number);
     const newMaze: string[][] = [];
 
     for (let i = 0; i < newRows; i++) {
@@ -496,20 +554,31 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
           if (oldSymbol !== _00_) {
             newMaze[i][j] = oldSymbol;
           } else {
-            const [entranceRow, entranceCol] = entrancePosition.value.split(',').map(Number);
+            const [entranceRow, entranceCol] = entrancePosition.value
+              .split(",")
+              .map(Number);
             if (i !== entranceRow || j !== entranceCol) {
-              newMaze[i][j] = roomSymbols['empty'];
+              newMaze[i][j] = roomSymbols["empty"];
             }
           }
         }
       }
     }
 
-    const [entranceRow, entranceCol] = entrancePosition.value.split(',').map(Number);
-    if (entranceRow >= 0 && entranceRow < newRows && entranceCol >= 0 && entranceCol < newCols) {
+    const [entranceRow, entranceCol] = entrancePosition.value
+      .split(",")
+      .map(Number);
+    if (
+      entranceRow >= 0 &&
+      entranceRow < newRows &&
+      entranceCol >= 0 &&
+      entranceCol < newCols
+    ) {
       newMaze[entranceRow][entranceCol] = _00_;
     } else {
-      debug.warn('Entrance position is outside the new grid bounds! Resetting to 0,0');
+      debug.warn(
+        "Entrance position is outside the new grid bounds! Resetting to 0,0"
+      );
       newMaze[0][0] = _00_;
       entrancePosition.value = `0,0`;
     }
@@ -520,19 +589,22 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
   // --- Cell/Room Management ---
   const getCellType = (cellSymbol: string): string => {
     const roomData = roomsData.value[cellSymbol];
-    return roomData?.type || 'wall';
+    return roomData?.type || "wall";
   };
 
-  const getSideConfiguration = (cellSymbol: string, direction: 'north' | 'south' | 'east' | 'west'): string => {
+  const getSideConfiguration = (
+    cellSymbol: string,
+    direction: "north" | "south" | "east" | "west"
+  ): string => {
     const roomData = roomsData.value[cellSymbol];
-    return roomData?.sides?.[direction] || 'door';
+    return roomData?.sides?.[direction] || "door";
   };
 
   const isEntrancePosition = (row: number, col: number) => {
-    const parts = entrancePosition.value.split(',').map(Number);
+    const parts = entrancePosition.value.split(",").map(Number);
     if (parts.length === 3) {
       const mazeObj = templeMaze.value;
-      const floorKeys = Array.isArray(mazeObj) ? ['1F'] : Object.keys(mazeObj);
+      const floorKeys = Array.isArray(mazeObj) ? ["1F"] : Object.keys(mazeObj);
       const zIndex = floorKeys.indexOf(currentLevelId.value);
       return parts[0] === zIndex && parts[1] === row && parts[2] === col;
     }
@@ -543,15 +615,21 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
     selectedCell.value = { row, col };
   };
 
-  const applyRoomChanges = (roomType: string, contentData: any, sideData: any) => {
+  const applyRoomChanges = (
+    roomType: string,
+    contentData: any,
+    sideData: any
+  ) => {
     if (!selectedCell.value) return;
 
     const { row, col } = selectedCell.value;
 
-    if (roomType === 'entrance') {
+    if (roomType === "entrance") {
       const validEntranceFloor = getEntranceFloor(floors.value);
       if (currentLevelId.value !== validEntranceFloor) {
-        showToast(`Entrances can only be placed on the lowest surface floor (${validEntranceFloor}).`);
+        showToast(
+          `Entrances can only be placed on the lowest surface floor (${validEntranceFloor}).`
+        );
         return;
       }
     }
@@ -568,10 +646,10 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
     // 2. Changing room types (even between non-wall types)
     // NEVER modify the `____` or `_00_` roomData - they are global!
 
-    if (newType === 'wall') {
+    if (newType === "wall") {
       // Converting TO a wall - use the shared wall symbol
       symbolToUse = ____;
-    } else if (newType === 'entrance') {
+    } else if (newType === "entrance") {
       // Converting TO entrance - use the shared entrance symbol
       symbolToUse = _00_;
     } else if (currentSymbol === ____ || currentSymbol === _00_) {
@@ -584,7 +662,11 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
     // else: Same type, keep the existing symbol (just update its config)
 
     // Clean up old symbol from roomsData if we're switching away from a unique room
-    if (symbolToUse !== currentSymbol && currentSymbol !== ____ && currentSymbol !== _00_) {
+    if (
+      symbolToUse !== currentSymbol &&
+      currentSymbol !== ____ &&
+      currentSymbol !== _00_
+    ) {
       delete roomsData.value[currentSymbol];
       usedSymbols.value.delete(currentSymbol);
     }
@@ -595,14 +677,14 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
     const roomData: any = { type: newType };
 
     // Auto-lock boss room
-    if (newType === 'boss') {
+    if (newType === "boss") {
       const currentSides = sideData;
       const newSides = { ...currentSides };
 
       // Lock all non-wall sides with master key
-      Object.keys(newSides).forEach(dir => {
-        if (newSides[dir] === 'door' || newSides[dir] === 'locked') {
-          newSides[dir] = 'masterlocked';
+      Object.keys(newSides).forEach((dir) => {
+        if (newSides[dir] === "door" || newSides[dir] === "locked") {
+          newSides[dir] = "masterlocked";
         }
       });
 
@@ -610,12 +692,12 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
       sideData = newSides;
 
       // Also update the roomData object we're about to write
-      if (Object.values(newSides).some(type => type !== 'door')) {
+      if (Object.values(newSides).some((type) => type !== "door")) {
         roomData.sides = newSides;
       }
     }
 
-    if (Object.values(sideData).some(type => type !== 'door')) {
+    if (Object.values(sideData).some((type) => type !== "door")) {
       roomData.sides = sideData;
     }
 
@@ -627,7 +709,7 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
       roomsData.value[symbolToUse] = roomData;
     }
 
-    showToast('Room updated');
+    showToast("Room updated");
   };
 
   const dungeonItems = computed(() => getDungeonItems());
@@ -637,7 +719,7 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
     selectCell(row, col);
     const currentSlice = currentMazeSlice.value;
     const cellSymbol = currentSlice[row]?.[col] || ____;
-    const roomData = roomsData.value[cellSymbol] || { type: 'wall' };
+    const roomData = roomsData.value[cellSymbol] || { type: "wall" };
 
     quickEditState.value = {
       isOpen: true,
@@ -645,12 +727,12 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
       row,
       col,
       cellSymbol,
-      roomType: roomData.type || 'wall',
-      tab: 'type',
+      roomType: roomData.type || "wall",
+      tab: "type",
       content: roomData.content ? { ...roomData.content } : {},
       sides: roomData.sides
         ? { ...roomData.sides }
-        : { north: 'door', east: 'door', south: 'door', west: 'door' }
+        : { north: "door", east: "door", south: "door", west: "door" },
     };
   };
 
@@ -666,7 +748,12 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
     selectCell(s.row, s.col);
 
     // Default content/sides for quick type switching
-    const defaultSides = { north: 'door', east: 'door', south: 'door', west: 'door' };
+    const defaultSides = {
+      north: "door",
+      east: "door",
+      south: "door",
+      west: "door",
+    };
     applyRoomChanges(type, {}, defaultSides);
     quickEditState.value.isOpen = false;
   };
@@ -679,13 +766,13 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
     currentSlice[row][col] = ____;
     currentMazeSlice.value = currentSlice;
 
-    if (cellSymbol.startsWith('R') || /^[A-Za-z]\d{4}$/.test(cellSymbol)) {
+    if (cellSymbol.startsWith("R") || /^[A-Za-z]\d{4}$/.test(cellSymbol)) {
       delete roomsData.value[cellSymbol];
       usedSymbols.value.delete(cellSymbol);
     }
 
     quickEditState.value.isOpen = false;
-    showToast('Cell cleared');
+    showToast("Cell cleared");
   };
 
   const openBeastSelectorForQuickEdit = () => {
@@ -694,25 +781,25 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
 
     selectionStore.startSelection(
       beasts,
-      'temple-creator-quick-edit',
+      "temple-creator-quick-edit",
       (ids) => {
         quickEditState.value.content.beasts = ids;
         quickEditState.value.isOpen = true;
       }
     );
-    ionRouter.push({ name: 'xp-bestiary-select' });
+    ionRouter.push({ name: "xp-bestiary-select" });
   };
 
   // --- Navigation ---
   const navigateToRoomEditor = (row: number, col: number) => {
     ionRouter.push(
       {
-        name: 'xp-temple-room-editor',
+        name: "xp-temple-room-editor",
         params: {
           templeId: props.templeId,
           row: row.toString(),
-          col: col.toString()
-        }
+          col: col.toString(),
+        },
       },
       noAnimation
     );
@@ -727,22 +814,22 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
     const toast = await toastController.create({
       message,
       duration: 2000,
-      position: 'bottom'
+      position: "bottom",
     });
     toast.present();
   };
 
   const templeCodePreview = computed(() => {
-    const parts = entrancePosition.value.split(',').map(Number);
+    const parts = entrancePosition.value.split(",").map(Number);
 
-    let code = `const ${props.templeId.replace(/-/g, '')} = {\n`;
-    code += `  entrance: [${parts.join(', ')}],\n`;
+    let code = `const ${props.templeId.replace(/-/g, "")} = {\n`;
+    code += `  entrance: [${parts.join(", ")}],\n`;
 
     const mazeData = templeMaze.value;
     if (Array.isArray(mazeData)) {
       code += `  maze: [\n`;
       mazeData.forEach((row, rowIndex) => {
-        code += `    [${row.join(', ')}], // y: ${rowIndex}\n`;
+        code += `    [${row.join(", ")}], // y: ${rowIndex}\n`;
       });
       code += `  ],\n`;
     } else {
@@ -750,7 +837,7 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
       Object.entries(mazeData).forEach(([levelId, grid]) => {
         code += `    "${levelId}": [\n`;
         (grid as string[][]).forEach((row, rowIndex) => {
-          code += `      [${row.join(', ')}], // y: ${rowIndex}\n`;
+          code += `      [${row.join(", ")}], // y: ${rowIndex}\n`;
         });
         code += `    ],\n`;
       });
@@ -762,11 +849,11 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
       const isLast = index === array.length - 1;
       code += `    [${symbol}]: `;
       code += JSON.stringify(data);
-      code += isLast ? '\n' : ',\n';
+      code += isLast ? "\n" : ",\n";
     });
     code += `  },\n`;
     code += `}\n\n`;
-    code += `export default ${props.templeId.replace(/-/g, '')}`;
+    code += `export default ${props.templeId.replace(/-/g, "")}`;
 
     return code;
   });
@@ -774,34 +861,35 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(templeCodePreview.value);
-      showToast('Code copied to clipboard');
+      showToast("Code copied to clipboard");
     } catch (err) {
-      showToast('Failed to copy: ' + err);
+      showToast("Failed to copy: " + err);
     }
   };
 
   const resetTempleToDefault = async () => {
     const confirm = await alertController.create({
-      header: 'Reset to Default?',
-      message: 'This will PERMANENTLY overwrite your manual changes with the factory default layout. Are you sure?',
+      header: "Reset to Default?",
+      message:
+        "This will PERMANENTLY overwrite your manual changes with the factory default layout. Are you sure?",
       buttons: [
-        { text: 'Cancel', role: 'cancel' },
+        { text: "Cancel", role: "cancel" },
         {
-          text: 'Reset Everything',
-          role: 'destructive',
+          text: "Reset Everything",
+          role: "destructive",
           handler: async () => {
             const success = store.resetToDefault(props.templeId);
             if (success) {
               await saveTemple(); // Persist the reset
-              showToast('Temple restored to factory defaults');
+              showToast("Temple restored to factory defaults");
               // Force a reload of the current level to update UI
               setLevel(currentLevelId.value);
             } else {
-              showToast('Failed to find default data for this temple.');
+              showToast("Failed to find default data for this temple.");
             }
-          }
-        }
-      ]
+          },
+        },
+      ],
     });
     await confirm.present();
   };
@@ -812,107 +900,120 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
     const uniqueKeys = new Set<string>();
 
     if (Array.isArray(maze)) {
-      maze.forEach(row => row.forEach(cell => {
-        if (cell !== ____ && cell !== _00_) uniqueKeys.add(cell);
-      }));
-    } else {
-      Object.values(maze).forEach(floor => {
-        floor.forEach(row => row.forEach(cell => {
+      maze.forEach((row) =>
+        row.forEach((cell) => {
           if (cell !== ____ && cell !== _00_) uniqueKeys.add(cell);
-        }));
+        })
+      );
+    } else {
+      Object.values(maze).forEach((floor) => {
+        (floor as string[][]).forEach((row: string[]) =>
+          row.forEach((cell: string) => {
+            if (cell !== ____ && cell !== _00_) uniqueKeys.add(cell);
+          })
+        );
       });
     }
 
-    return Array.from(uniqueKeys).map(key => ({
-      key,
-      ...rooms[key]
-    })).sort((a, b) => a.key.localeCompare(b.key));
+    return Array.from(uniqueKeys)
+      .map((key) => ({
+        key,
+        ...rooms[key],
+      }))
+      .sort((a, b) => a.key.localeCompare(b.key));
   });
 
   const saveTemple = async () => {
     try {
-      debug.log('Saving temple to database...', props.templeId);
-      const parts = entrancePosition.value.split(',').map(Number);
+      debug.log("Saving temple to database...", props.templeId);
+      const parts = entrancePosition.value.split(",").map(Number);
 
       // Standardize tokens on save (TXXYY format)
       store.migrateTokens();
 
       // Get current data from store (Layer 1) after migration
       const layoutToSave = {
-        entrance: parts.length === 2 ? parts : (parts.length === 3 ? [parts[1], parts[2]] : [0, 0]),
+        entrance:
+          parts.length === 2
+            ? parts
+            : parts.length === 3
+            ? [parts[1], parts[2]]
+            : [0, 0],
         maze: JSON.parse(JSON.stringify(store.templeMaze)), // Deep clone to be safe
-        rooms: JSON.parse(JSON.stringify(store.roomsData))
+        rooms: JSON.parse(JSON.stringify(store.roomsData)),
       };
 
       const existingTemple = await templeDb.getTempleById(props.templeId);
 
-      const templeToSave: any = existingTemple ? {
-        ...existingTemple,
-        dungeonLayout: layoutToSave
-      } : {
-        id: props.templeId,
-        name: store.templeName || 'New Temple',
-        customName: store.templeName || 'New Temple',
-        categoryIds: ['dungeon'],
-        dungeonLayout: layoutToSave
-      };
+      const templeToSave: any = existingTemple
+        ? {
+            ...existingTemple,
+            dungeonLayout: layoutToSave,
+          }
+        : {
+            id: props.templeId,
+            name: store.templeName || "New Temple",
+            customName: store.templeName || "New Temple",
+            categoryIds: ["dungeon"],
+            dungeonLayout: layoutToSave,
+          };
 
       await templeDb.setTemple(templeToSave);
 
       // Update the snapshot after successful save
-      lastSavedState.value = JSON.stringify({
-        maze: store.templeMaze,
-        rooms: store.roomsData,
-        gridSize: store.gridSize,
-        entrance: store.entrancePosition
-      });
+      await templeDb.setTemple(templeToSave);
+
+      // Update the snapshot after successful save
+      store.updateDbSnapshot();
 
       // Sync the loaded state
       store.markAsLoaded(props.templeId);
 
-      showToast('Temple persists successfully!');
-      debug.log('Temple saved to DB successfully');
+      showToast("Temple persists successfully!");
+      debug.log("Temple saved to DB successfully");
     } catch (err: any) {
-      debug.error('Error saving temple:', err);
-      showToast('Error saving temple: ' + err.message);
+      debug.error("Error saving temple:", err);
+      showToast("Error saving temple: " + err.message);
     }
   };
 
   const resetFloor = async () => {
-    const isPrimaryFloor = store.currentLevelId === '1F';
-    const header = isPrimaryFloor ? 'Clear 1F?' : 'Trash Floor?';
+    const isPrimaryFloor = store.currentLevelId === "1F";
+    const header = isPrimaryFloor ? "Clear 1F?" : "Trash Floor?";
     const message = isPrimaryFloor
-      ? 'This will clear all room entries for 1F. This cannot be undone.'
+      ? "This will clear all room entries for 1F. This cannot be undone."
       : `This will PERMANENTLY DELETE the entire floor (${store.currentLevelId}). This cannot be undone.`;
 
     const alert = await alertController.create({
       header,
       message,
       buttons: [
-        { text: 'Cancel', role: 'cancel' },
+        { text: "Cancel", role: "cancel" },
         {
-          text: isPrimaryFloor ? 'Clear' : 'Trash It',
-          role: 'destructive',
+          text: isPrimaryFloor ? "Clear" : "Trash It",
+          role: "destructive",
           handler: () => {
             if (isPrimaryFloor) {
               // Just clear the 1F grid
-              const [rows, cols] = gridSize.value.split('x').map(Number);
-              const newSlice = Array(rows).fill(null).map(() => Array(cols).fill(____));
+              const [rows, cols] = gridSize.value.split("x").map(Number);
+              const newSlice = Array(rows)
+                .fill(null)
+                .map(() => Array(cols).fill(____));
               if (Array.isArray(store.templeMaze)) {
                 store.templeMaze = newSlice;
               } else {
-                store.templeMaze['1F'] = newSlice;
+                store.templeMaze["1F"] = newSlice;
               }
-              showToast('1F cleared');
+              showToast("1F cleared");
             } else {
               // Delete the whole floor and switch back
               const floorToDelete = store.currentLevelId;
               removeFloor(floorToDelete);
               showToast(`Floor ${floorToDelete} trashed`);
             }
-          }
-        }
-      ]
+          },
+        },
+      ],
     });
     await alert.present();
   };
@@ -924,30 +1025,30 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
     // If already loading, don't start again
     if (isLoading.value) return;
 
-    debug.log('useTempleCreator: Starting loadTempleLayout for', props.templeId);
+    debug.log(
+      "useTempleCreator: Starting loadTempleLayout for",
+      props.templeId
+    );
     isLoading.value = true;
 
     try {
       // TWO-LAYERED APPROACH:
       // If this temple is already loaded in the store, don't reload from DB.
       if (store.isLoaded(props.templeId)) {
-        debug.log('useTempleCreator: Temple already loaded in store, preserving temp data');
+        debug.log(
+          "useTempleCreator: Temple already loaded in store, preserving temp data"
+        );
         store.templeId = props.templeId;
 
         // Snapshot current state for change detection if not already set
-        if (!lastSavedState.value) {
-          lastSavedState.value = JSON.stringify({
-            maze: store.templeMaze,
-            rooms: store.roomsData,
-            gridSize: store.gridSize,
-            entrance: store.entrancePosition
-          });
+        if (!store.dbStateSnapshot) {
+          store.updateDbSnapshot();
         }
         isLoading.value = false;
         return;
       }
 
-      debug.log('useTempleCreator: Loading temple from DB:', props.templeId);
+      debug.log("useTempleCreator: Loading temple from DB:", props.templeId);
       const existingTemple = await templeDb.getTempleById(props.templeId);
 
       if (existingTemple?.dungeonLayout) {
@@ -965,7 +1066,7 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
 
         // Load properties
         if (layout.entrance) {
-          entrancePosition.value = layout.entrance.join(',');
+          entrancePosition.value = layout.entrance.join(",");
         }
 
         store.templeId = props.templeId;
@@ -978,7 +1079,7 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
           // Calculate grid size from maze
           const firstLevel = Array.isArray(templeMaze.value)
             ? templeMaze.value
-            : Object.values(templeMaze.value)[0];
+            : (Object.values(templeMaze.value)[0] as string[][]);
           if (firstLevel && firstLevel.length > 0) {
             gridSize.value = `${firstLevel.length}x${firstLevel[0].length}`;
           }
@@ -991,35 +1092,37 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
 
         // Correct level ID
         if (Array.isArray(templeMaze.value)) {
-          currentLevelId.value = '1F';
+          currentLevelId.value = "1F";
         } else {
           const dungeonFloors = Object.keys(templeMaze.value);
-          if (dungeonFloors.length > 0 && !dungeonFloors.includes(currentLevelId.value)) {
-            currentLevelId.value = dungeonFloors.includes('1F') ? '1F' : dungeonFloors[0];
+          if (
+            dungeonFloors.length > 0 &&
+            !dungeonFloors.includes(currentLevelId.value)
+          ) {
+            currentLevelId.value = dungeonFloors.includes("1F")
+              ? "1F"
+              : dungeonFloors[0];
           }
         }
       } else {
-        debug.log('useTempleCreator: New temple or no layout found, creating defaults');
+        debug.log(
+          "useTempleCreator: New temple or no layout found, creating defaults"
+        );
         // New temple or no layout - force defaults
-        gridSize.value = '10x10';
-        entrancePosition.value = '5,5';
+        gridSize.value = "10x10";
+        entrancePosition.value = "5,5";
         store.reset();
         store.templeId = props.templeId;
         store.markAsLoaded(props.templeId);
       }
 
       // Snapshot for dirty checking
-      lastSavedState.value = JSON.stringify({
-        maze: store.templeMaze,
-        rooms: store.roomsData,
-        gridSize: store.gridSize,
-        entrance: store.entrancePosition
-      });
+      store.updateDbSnapshot();
     } catch (err) {
-      debug.error('useTempleCreator: Failed to load temple layout:', err);
+      debug.error("useTempleCreator: Failed to load temple layout:", err);
     } finally {
       isLoading.value = false;
-      debug.log('useTempleCreator: Load complete, isLoading set to false');
+      debug.log("useTempleCreator: Load complete, isLoading set to false");
     }
   };
 
@@ -1035,7 +1138,9 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
     // Computed proxies
     gridSize: gridSize as ComputedRef<string> & { value: string },
     templeName: templeName as ComputedRef<string> & { value: string },
-    entrancePosition: entrancePosition as ComputedRef<string> & { value: string },
+    entrancePosition: entrancePosition as ComputedRef<string> & {
+      value: string;
+    },
     templeMaze,
     roomsData,
     selectedCell,
@@ -1102,6 +1207,6 @@ export function useTempleCreator(props: UseTempleCreatorProps): UseTempleCreator
     uniqueRooms,
 
     // Dungeon items
-    dungeonItems
+    dungeonItems,
   };
 }
