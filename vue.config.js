@@ -1,26 +1,33 @@
 /**
  * Vue CLI Configuration
  * 
- * This configuration file includes special settings for battleroom development
- * when running with the BATTLEROOM_DEV environment variable.
+ * Build and dev-server settings for the Ionic app.
  */
-
-// Import the battleroom-specific configuration when in development mode
-const battleroomConfig = process.env.BATTLEROOM_DEV 
-  ? require('./battleroom.config')
-  : {};
 
 module.exports = {
   // Configure for Ionic
   publicPath: process.env.NODE_ENV === 'production' ? './' : '/',
-  
-  // Merge with battleroom config when in battleroom development mode
-  ...battleroomConfig,
-  
+
+  // Keep superseded art out of the bundle. TempleGrounds.ts requires
+  // `@/assets/images/backgrounds/${temple}/${xy}.jpg`, which webpack turns into an implicit,
+  // recursive context over the whole backgrounds folder, so it would also emit the `ai/` and
+  // `old/` drafts (.gitignore marks backgrounds/ai, backgrounds/old and backgrounds/gaia as
+  // local-only) and wind-temple/old/. No code requests those keys, so drop them from every context.
+  configureWebpack: {
+    plugins: [
+      {
+        apply(compiler) {
+          new compiler.webpack.IgnorePlugin({
+            resourceRegExp: /^\.\/(?:.+\/)?(?:ai|old|gaia)\//,
+            contextRegExp: /assets[\\/]images[\\/]backgrounds[\\/]?$/
+          }).apply(compiler);
+        }
+      }
+    ]
+  },
+
   // Proxy API requests in development
   devServer: {
-    // Merge battleroom devServer settings if in battleroom dev mode
-    ...(battleroomConfig.devServer || {}),
     hot: true,
     liveReload: true,
     

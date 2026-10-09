@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia';
 import { reactive, computed } from 'vue';
 import Api from "@/lib/api";
+import { ProfileDb } from '@/lib/databases/ProfileDb';
+import { profileStorage } from '@/lib/databases/profileStorage';
 import { getGPService } from '@/lib/services/gp/GPService';
 import {
   JOB_UNLOCK_REQUIREMENTS,
@@ -11,6 +13,13 @@ import {
 
 // LocalStorage key for persisting current user ID
 const CURRENT_USER_KEY = 'xp_current_user_id';
+/**
+ * LocalStorage key for the Game Master who started a masquerade (impersonation).
+ * Exported so the Game Master guard reads the key this store writes, not a copy of the string.
+ */
+export const IMPERSONATOR_KEY = 'xp_impersonator_id';
+// LocalStorage flag that says a masquerade is running
+const IMPERSONATING_FLAG_KEY = 'xp_is_impersonating';
 
 /**
  * Level-up information returned from updateUserXP
@@ -81,16 +90,76 @@ export const useUserStore = defineStore('user', () => {
     return localStorage.getItem(CURRENT_USER_KEY);
   }
 
+  // --- Persistence ---
+  // ProfileDb (`__profiles`) is the only thing loadUsers reads back, so every stat mutation
+  // below must end with persistUser(); otherwise rewards vanish on the next reload.
+  let profileDb: ProfileDb | null = null;
+  const pendingPersist = new Set<string>();
+  let persistScheduled = false;
+
+  async function flushPersist() {
+    persistScheduled = false;
+    const userIds = Array.from(pendingPersist);
+    pendingPersist.clear();
+    if (!profileDb) profileDb = new ProfileDb(profileStorage);
+    for (const userId of userIds) {
+      if (!users[userId]) continue;
+      try {
+        await profileDb.setProfile(JSON.parse(JSON.stringify(users[userId])));
+      } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(`Failed to persist profile ${userId}`, error);
+      }
+    }
+  }
+
+  /**
+   * Write a user's in-memory profile back to ProfileDb.
+   * Calls made in the same tick (e.g. XP + GP + AP on a battle victory) are coalesced into one write.
+   */
+  function persistUser(userId: string) {
+    if (!userId || !users[userId]) return;
+    pendingPersist.add(userId);
+    if (persistScheduled) return;
+    persistScheduled = true;
+    queueMicrotask(flushPersist);
+  }
+
   // --- Actions ---
 
-  function loginUser(userData: any) {
+  /**
+   * End any masquerade: the in-memory flag first (that alone drops the borrowed Game Master
+   * access), then the storage keys, so a stale impersonator id cannot outlive the masquerade.
+   */
+  function clearMasquerade() {
+    currentUser.isImpersonating = false;
+    try {
+      localStorage.removeItem(IMPERSONATING_FLAG_KEY);
+      localStorage.removeItem(IMPERSONATOR_KEY);
+    } catch {
+      // storage blocked (private mode): nothing was stored, nothing to clear
+    }
+  }
+
+  /** Copy a profile onto currentUser. Leaves a masquerade in progress alone. */
+  function syncCurrentUser(userData: any) {
     Object.assign(currentUser, userData);
     currentUser.isAuthenticated = true;
+  }
+
+  /**
+   * Sign in as `userData`. Signing in is a profile switch, so it ends any masquerade: the new
+   * profile never inherits the Game Master access of the person who was impersonating.
+   */
+  function loginUser(userData: any) {
+    clearMasquerade();
+    syncCurrentUser(userData);
     // Persist the login
     saveCurrentUserId(userData.id);
   }
 
   function logoutUser() {
+    clearMasquerade();
     currentUser.isAuthenticated = false;
     currentUser.id = null;
     saveCurrentUserId(null);
@@ -117,13 +186,14 @@ export const useUserStore = defineStore('user', () => {
           users[user.id] = user;
         });
 
-        // Check localStorage for a previously saved user ID first
+        // Restore the previously saved user, if any. Nobody is signed in on a first run: there is
+        // no default profile to fall back to.
         const savedUserId = getSavedUserId();
         if (savedUserId && users[savedUserId]) {
-          loginUser(users[savedUserId]);
-        } else if (!currentUser.id && users["1"]) {
-          // Fallback to default user
-          loginUser(users["1"]);
+          // loadUsers runs after every deposit, battle and page entry, so refreshing the profile
+          // that is already signed in must not end a masquerade; only a different profile does.
+          if (currentUser.id === savedUserId) syncCurrentUser(users[savedUserId]);
+          else loginUser(users[savedUserId]);
         }
       }
     } catch (error) {
@@ -137,12 +207,11 @@ export const useUserStore = defineStore('user', () => {
   }
 
   /**
-   * Getter for matching Vuex behavior
+   * The profile with this id, or undefined when there is none. There is deliberately no fallback
+   * to another profile (the Vuex getter used to return profile 1), which showed and charged the
+   * wrong hero; callers handle undefined.
    */
-  const getUserById = (id: string | number) => {
-    const user = users[id];
-    return user || users[1]; // Fallback to id 1 as in legacy getters.js
-  };
+  const getUserById = (id: string | number) => users[id];
 
   /**
    * Update User GP and persist to local storage
@@ -178,6 +247,7 @@ export const useUserStore = defineStore('user', () => {
 
       // Persist via Service
       await getGPService().syncGP(userId);
+      persistUser(userId);
     }
   }
 
@@ -221,6 +291,8 @@ export const useUserStore = defineStore('user', () => {
         currentUser.stats = userStats;
       }
 
+      persistUser(userId);
+
       // Return whether player is still alive
       return userStats.hp.now > 0;
     }
@@ -250,8 +322,7 @@ export const useUserStore = defineStore('user', () => {
         currentUser.stats = userStats;
       }
 
-      // Persist (Implied via existing mechanisms or add specific sync if needed)
-      // For now, in-memory/local updates are sufficient for the session
+      persistUser(userId);
     }
   }
 
@@ -260,38 +331,28 @@ export const useUserStore = defineStore('user', () => {
    */
   function impersonateUser(userId: string) {
     if (users[userId]) {
+      // Remember who is masquerading so stopImpersonating can hand control back to them
+      if (!currentUser.isImpersonating && currentUser.id && currentUser.id !== userId) {
+        localStorage.setItem(IMPERSONATOR_KEY, currentUser.id);
+      }
       Object.assign(currentUser, users[userId]);
       currentUser.id = userId;
       currentUser.isAuthenticated = true;
       currentUser.isImpersonating = true;
       // Persist the selection to localStorage
       saveCurrentUserId(userId);
-      localStorage.setItem('xp_is_impersonating', 'true');
+      localStorage.setItem(IMPERSONATING_FLAG_KEY, 'true');
     }
   }
 
+  /** End the masquerade and hand control back to the Game Master who started it, if they still exist. */
   function stopImpersonating() {
-    currentUser.isImpersonating = false;
-    localStorage.removeItem('xp_is_impersonating');
-    // Usually we return to the main admin user, which is ID 1
-    if (users["1"]) {
-      loginUser(users["1"]);
+    // Read the Game Master before clearMasquerade removes the key
+    const returnTo = localStorage.getItem(IMPERSONATOR_KEY);
+    clearMasquerade();
+    if (returnTo && users[returnTo]) {
+      loginUser(users[returnTo]);
     }
-  }
-
-  /**
-   * Restore the current user from localStorage if available
-   * Call this on app initialization
-   */
-  function restoreCurrentUser() {
-    const savedUserId = getSavedUserId();
-    const wasImpersonating = localStorage.getItem('xp_is_impersonating') === 'true';
-    if (savedUserId && users[savedUserId]) {
-      impersonateUser(savedUserId);
-      currentUser.isImpersonating = wasImpersonating;
-      return true;
-    }
-    return false;
   }
 
   /**
@@ -317,6 +378,8 @@ export const useUserStore = defineStore('user', () => {
       if (currentUser.id === userId) {
         currentUser.stats = userStats;
       }
+
+      persistUser(userId);
     }
   }
 
@@ -352,6 +415,8 @@ export const useUserStore = defineStore('user', () => {
       if (currentUser.id === userId) {
         currentUser.stats = userStats;
       }
+
+      persistUser(userId);
     }
   }
 
@@ -447,6 +512,8 @@ export const useUserStore = defineStore('user', () => {
       if (currentUser.id === userId) {
         currentUser.stats = userStats;
       }
+
+      persistUser(userId);
     }
 
     return result;
@@ -566,7 +633,7 @@ export const useUserStore = defineStore('user', () => {
           currentUser.stats = userStats;
         }
 
-        // Persist to be handled by app-wide saver or auto-save mechanisms
+        persistUser(userId);
       }
     }
 
@@ -605,6 +672,8 @@ export const useUserStore = defineStore('user', () => {
       if (currentUser.id === userId) {
         currentUser.stats = userStats;
       }
+
+      persistUser(userId);
     }
   }
 
@@ -646,10 +715,10 @@ export const useUserStore = defineStore('user', () => {
     updateClassXp,
     updateUserXP,
     recordAPGain,
+    persistUser,
     getAPInTimeRange,
     impersonateUser,
     stopImpersonating,
-    restoreCurrentUser,
     usersAz
   };
 });

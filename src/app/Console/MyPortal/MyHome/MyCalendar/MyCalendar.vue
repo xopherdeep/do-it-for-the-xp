@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button :default-href="`/my-portal/${userId}/my-home`"></ion-back-button>
+          <ion-back-button :default-href="`/my-portal/${heroId}/my-home`"></ion-back-button>
           <ion-icon :icon="calendarOutline" slot="icon-only" />
         </ion-buttons>
         <ion-title>
@@ -48,8 +48,10 @@
       <div v-else class="quest-list">
         <ion-grid v-if="filteredQuests.length > 0">
           <ion-row>
-            <ion-col size="12" v-for="item in filteredQuests" :key="item.id" class="ion-no-padding">
-              <ion-card @click="activeModal = item.id" button class="item">
+            <ion-col size="12" v-for="{ quest: item, status, pending } in filteredQuests" :key="item.id"
+              class="ion-no-padding">
+              <ion-card @click="activeModal = item.id" button class="item"
+                :class="{ 'is-tamed': status === 'done' && !pending, 'is-pending': status === 'done' && pending }">
                 <ion-card-header>
                   <ion-card-title v-html="formatQuestName(item.achievementName || 'Untitled Quest')"></ion-card-title>
                   <ion-card-subtitle v-if="item.dueByTime">
@@ -58,6 +60,13 @@
                 </ion-card-header>
                 <ion-card-content>
                   <div class="quest-rewards">
+                    <!-- A used-up quest whose claim still waits for the Game Master is Pending, not Tamed -->
+                    <ion-badge color="warning" class="pending-badge" v-if="status === 'done' && pending">
+                      <ion-icon :icon="hourglassOutline" /> Pending
+                    </ion-badge>
+                    <ion-badge color="success" class="tamed-badge" v-else-if="status === 'done'">
+                      <ion-icon :icon="checkmarkDone" /> Tamed
+                    </ion-badge>
                     <ion-badge color="success" v-if="item.xp">{{ item.xp }} XP</ion-badge>
                     <ion-badge color="warning" v-if="item.gp">{{ item.gp }} GP</ion-badge>
                     <ion-badge color="tertiary" v-if="item.ap">{{ item.ap }} AP</ion-badge>
@@ -65,7 +74,8 @@
                 </ion-card-content>
               </ion-card>
 
-              <MyTask @didDismiss="activeModal = 0" :item="item" :userId="userId" v-if="activeModal == item.id" />
+              <MyTask @didDismiss="onTaskDismissed" :item="item" :boardStatus="claimStatus(status)" :pending="pending"
+                :userId="heroId" v-if="activeModal == item.id" />
             </ion-col>
           </ion-row>
         </ion-grid>
@@ -114,7 +124,7 @@ import {
   computed,
   onMounted,
   defineComponent,
-  toRef
+  watch
 } from "vue";
 import {
   IonPage,
@@ -151,11 +161,15 @@ import {
   close,
   chevronBack,
   chevronForward,
+  checkmarkDone,
+  hourglassOutline,
 } from "ionicons/icons";
-import AchievementDb, { achievementStorage } from "@/lib/databases/AchievementDb";
+import { isToday } from "date-fns";
 import MyTask from "../../UserHud/MyTask/MyTask.vue";
 import { formatQuestName } from "@/lib/utils/format";
 import { getQuestEngine } from "@/lib/engine/quests/QuestEngine";
+import type { QuestBoardItem, QuestBoardStatus } from "@/lib/engine/quests/QuestEngine";
+import { useUserStore } from "@/lib/store/stores/user";
 
 defineComponent({
   name: "MyCalendar",
@@ -165,18 +179,19 @@ defineComponent({
 });
 
 const props = defineProps<{
-  userId: string | number;
+  userId?: string | number;
 }>();
-const userId = toRef(props, 'userId');
+const userStore = useUserStore();
+// /calendar/:userId? may be opened without an id (the router hands over "" for it), so fall back to the active profile
+const heroId = computed(() => String(props.userId || userStore.currentUser.id || ""));
 
 // State
 const selectedDate = ref(new Date());
 const isLoading = ref(false);
 const searchQuery = ref("");
 const activeSegment = ref("all");
-const allQuests = ref<any[]>([]);
+const board = ref<QuestBoardItem[]>([]);
 const activeModal = ref<any>(0);
-const achievementDb = new AchievementDb(achievementStorage);
 
 // Computed
 const calendarTitle = computed(() => {
@@ -187,25 +202,50 @@ const calendarTitle = computed(() => {
   });
 });
 
+// Search and segment narrow the board; quests not due that day are hidden and tamed ones sink to the end
 const filteredQuests = computed(() => {
-  const questEngine = getQuestEngine();
-  return questEngine.filterQuests(allQuests.value, {
-    userId: userId.value,
-    search: searchQuery.value,
-    segment: activeSegment.value as any
-  });
+  const matches = new Set(
+    getQuestEngine().filterQuests(board.value.map(({ quest }) => quest), {
+      search: searchQuery.value,
+      segment: activeSegment.value as any
+    })
+  );
+  const shown = board.value.filter(({ quest, status }) => status !== "notDue" && matches.has(quest));
+  return [
+    ...shown.filter(({ status }) => status === "open"),
+    ...shown.filter(({ status }) => status === "done")
+  ];
 });
 
 // Methods
+const fetchBoard = async () => {
+  const date = selectedDate.value;
+  const items = await getQuestEngine().getQuestBoardForUser(heroId.value, date);
+  // Ignore the answer if the hero has already moved on to another day
+  if (date === selectedDate.value) board.value = items;
+};
+
 const loadLocalQuests = async (event?: any) => {
   isLoading.value = true;
   try {
-    allQuests.value = await achievementDb.getTasks();
+    await fetchBoard();
   } finally {
     isLoading.value = false;
     if (event) event.target.complete();
   }
 };
+
+// Claiming stamps the quest done right now, so on any other day it can only be viewed
+const claimStatus = (status: QuestBoardStatus): QuestBoardStatus =>
+  status === "open" && !isToday(selectedDate.value) ? "notDue" : status;
+
+// A claim made in the modal changes the board, so reload it once the modal closes
+const onTaskDismissed = () => {
+  activeModal.value = 0;
+  void fetchBoard();
+};
+
+watch([selectedDate, heroId], fetchBoard);
 
 const nextDay = () => {
   const next = new Date(selectedDate.value);
@@ -256,3 +296,11 @@ onMounted(loadLocalQuests);
 </script>
 
 <style lang="scss" src="./_MyCalendar.scss" scoped></style>
+<style scoped>
+.item.is-tamed ion-card-header,
+.item.is-tamed .quest-rewards ion-badge:not(.tamed-badge),
+.item.is-pending ion-card-header,
+.item.is-pending .quest-rewards ion-badge:not(.pending-badge) {
+  opacity: 0.55;
+}
+</style>

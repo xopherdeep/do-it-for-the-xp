@@ -148,5 +148,5 @@
   </ion-page>
 </template>
 
-<script src="./GoldBank.ts" />
+<script lang="ts" src="./GoldBank.ts" />
 <style lang="scss" src="./_GoldBank.scss" scoped />

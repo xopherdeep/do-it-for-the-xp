@@ -71,5 +71,5 @@
   </xp-portal-page>
 </template>
 
-<script src="./MyPortal"></script>
+<script lang="ts" src="./MyPortal.ts"></script>
 <style lang="scss" src="./_MyPortal.scss"></style>

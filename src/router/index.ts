@@ -43,14 +43,17 @@ const routes: Array<RouteRecordRaw> = [
   ...SideMenuRoutes,
   ...SupportRoutes,
 
-  // Dev Routes
-  ...DevRoutes,
+  // Dev Routes (non-production builds only)
+  ...(process.env.NODE_ENV !== "production" ? DevRoutes : []),
 
   // XP Intro Page
   {
     path: "/xp-intro",
     name: "xp-intro",
     component: () => import("@/views/XpIntro/XpIntro.vue"),
+    meta: {
+      requiresAuth: false,
+    },
   },
 
   // Start Screen / Login
@@ -69,6 +72,9 @@ const routes: Array<RouteRecordRaw> = [
     path: "/xp-demo",
     name: "xp-demo",
     component: () => import("@/views/XpDemo/XpDemo.vue"),
+    meta: {
+      requiresAuth: false,
+    },
   },
   // Game Over Page
   {
@@ -77,46 +83,25 @@ const routes: Array<RouteRecordRaw> = [
     component: () => import("@/views/XpGameOver/XpGameOver.vue"),
   },
 
-  // Battle Field Routes
+  // Battle routes: every battle names its hero, and the kind decides where it returns to.
+  // Build links with the helpers in @/app/Console/BattleField/battle/battleContext.
   {
-    path: "/battle-field/:userId?",
-    name: "battle-field",
-    meta: {
-      faIcon: "dungeon",
-    },
+    path: "/battle/:userId/quest/:questId",
+    name: "battle-quest",
+    meta: { faIcon: "dungeon", battleKind: "quest" },
     component: () => import("@/app/Console/BattleField/BattleField.vue"),
-    props: true,
   },
   {
-    path: "/battle-field/:beastIds/:userIds?",
-    name: "battle-field-with-participants",
-    meta: {
-      faIcon: "dungeon",
-    },
+    path: "/battle/:userId/temple/:templeId/:level/:x/:y",
+    name: "battle-temple",
+    meta: { faIcon: "dungeon", battleKind: "temple" },
     component: () => import("@/app/Console/BattleField/BattleField.vue"),
-    props: true,
   },
-  // Temple Room Battle - /battle-field/temple/:templeId/:level/:x/:y
   {
-    path: "/battle-field/temple/:templeId/:level/:x/:y",
-    name: "battle-field-temple",
-    meta: {
-      faIcon: "dungeon",
-      battleType: "temple", // Metadata to identify the battle context
-    },
+    path: "/battle/:userId/free/:beastIds?",
+    name: "battle-free",
+    meta: { faIcon: "dungeon", battleKind: "free" },
     component: () => import("@/app/Console/BattleField/BattleField.vue"),
-    props: true,
-  },
-  // Quest Battle - /battle-field/quest/:questId
-  {
-    path: "/battle-field/quest/:questId",
-    name: "battle-field-quest",
-    meta: {
-      faIcon: "dungeon",
-      battleType: "quest",
-    },
-    component: () => import("@/app/Console/BattleField/BattleField.vue"),
-    props: true,
   },
 ];
 

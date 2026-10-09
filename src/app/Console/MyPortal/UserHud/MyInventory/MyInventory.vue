@@ -144,5 +144,5 @@
   </ion-footer>
 </ion-page></template>
 
-<script src="./MyInventory" />
+<script lang="ts" src="./MyInventory.ts" />
 <style lang="scss" src="./_MyInventory.scss" scoped />

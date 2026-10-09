@@ -38,4 +38,7 @@ const supportRoutes: Array<RouteRecordRaw> = [
   }
 ];
 
-export default supportRoutes;
+// Dev Tools is only registered outside production builds
+export default process.env.NODE_ENV === 'production'
+  ? supportRoutes.filter(route => route.name !== 'dev-tools')
+  : supportRoutes;

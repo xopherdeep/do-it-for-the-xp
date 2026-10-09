@@ -88,11 +88,11 @@ export default dC({
       },
       {
         label: "Sun Pyramid",
-        id: "sun-temple",
+        id: "light-temple",
         faIcon: "place-of-worship",
         side: "end",
         click() {
-          const temple = 'sun-temple'
+          const temple = 'light-temple'
           router.push({
             name: "temple",
             params: {

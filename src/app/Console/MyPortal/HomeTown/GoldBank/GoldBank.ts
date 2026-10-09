@@ -14,7 +14,7 @@ import { actionSheetController, alertController, toastController } from "@ionic/
 import { useItemFetcher } from "@/hooks/useItemFetcher";
 import Stats from "@/lib/utils/User/stats";
 import { ProfileDb } from "@/lib/databases";
-import { profileStorage } from "@/app/SideMenu/SwitchProfile/SwitchProfile.vue";
+import { profileStorage } from "@/lib/databases/profileStorage";
 import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
 import ATMModal from "./components/ATMModal.vue";
 import debug from "@/lib/utils/debug";

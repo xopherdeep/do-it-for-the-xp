@@ -195,7 +195,7 @@ import { useUserStore } from "@/lib/store/stores/user";
 
 import ionic from "@/lib/mixins/ionic";
 import { ProfileDb } from "@/lib/databases";
-import { profileStorage } from "@/app/SideMenu/SwitchProfile/SwitchProfile.vue";
+import { profileStorage } from "@/lib/databases/profileStorage";
 
 export default defineComponent({
   props: {
@@ -233,43 +233,22 @@ export default defineComponent({
     };
   },
   methods: {
-    clickAward() {
-      this.members.forEach(async (id: any) => {
-        const profile = this.users[id];
+    async clickAward() {
+      const rawGp = Math.round(Number(this.gPoints) || 0);
+      const gp = this.isPenalty ? -Math.abs(rawGp) : rawGp;
+      const xp = this.isPenalty ? 0 : Math.round(Number(this.xpPoints) || 0);
+      const ap = this.isPenalty ? 0 : Math.round(Number(this.apPoints) || 0);
 
-        // Update GP for both bonus and penalty
-        const { wallet } = profile.stats.gp;
-        profile.stats.gp.wallet = Math.round(
-          Number(wallet) + Number(this.gPoints)
-        );
+      // Go through the store so level-ups, AP history and ProfileDb persistence happen in one place
+      for (const id of this.members as string[]) {
+        if (gp !== 0) await this.userStore.updateUserGP({ userId: id, wallet: gp });
+        if (xp > 0) this.userStore.updateUserXP({ userId: id, amount: xp, commit: true });
+        if (ap > 0) this.userStore.recordAPGain({ userId: id, amount: ap, source: "gm-bonus" });
+      }
 
-        // Only update XP and AP in bonus mode (not penalty)
-        if (!this.isPenalty) {
-          // Update XP if any awarded
-          if (Number(this.xpPoints) > 0) {
-            const { total } = profile.stats.xp;
-            profile.stats.xp.total = Math.round(
-              Number(total) + Number(this.xpPoints)
-            );
-          }
-
-          // Update AP if any awarded
-          if (Number(this.apPoints) > 0) {
-            const { total } = profile.stats.ap;
-            profile.stats.ap.total = Math.round(
-              Number(total) + Number(this.apPoints)
-            );
-          }
-        }
-
-        await this.profileDb.setProfile(profile).then(() => {
-          const message = this.isPenalty
-            ? "Points Subtracted"
-            : "Bonus Awarded";
-          this.profileDb.showSuccessToast(message);
-          this.dismiss();
-        });
-      });
+      const message = this.isPenalty ? "Points Subtracted" : "Bonus Awarded";
+      this.profileDb.showSuccessToast(message);
+      this.dismiss();
     },
     onRadioChange() {
       // console.log("onRadioChange", val);

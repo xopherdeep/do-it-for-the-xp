@@ -1,5 +1,5 @@
 import { computed, defineComponent, ref, Ref } from "vue";
-const requireImg = require.context("@/assets/icons/");
+const requireImg = require.context("@/assets/icons/", false, /\.svg$/);
 import backgrounds from "@/assets/images/backgrounds/parallax/index.js";
 
 // Import package.json for version information

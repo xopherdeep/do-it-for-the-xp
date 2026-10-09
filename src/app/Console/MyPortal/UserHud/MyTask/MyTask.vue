@@ -34,7 +34,7 @@
       </ion-header>
     </transition>
 
-    <swiper v-if="user" @ionSlideDidChange="slideChanged" ref="slides" class="swiper-no-swiping" :modules="modules"
+    <swiper v-if="user" @slideChange="slideChanged" ref="slides" class="swiper-no-swiping" :modules="modules"
       @swiper="setControlledSwiper">
       <swiper-slide class="task">
         <ion-card color="success">
@@ -43,10 +43,10 @@
           <ion-grid>
             <ion-row>
               <ion-col>
-                <ion-chip color="tertiary" class="ion-float-right ion-no-margin">
+                <ion-chip v-if="rewards.ap" color="tertiary" class="ion-float-right ion-no-margin">
                   <ion-text class="ion-float-right">
                     <strong>
-                      +2 AP Text
+                      +{{ rewards.ap }} AP
                       <i class="fad fa-hand-holding-medical fa-lg" />
                     </strong>
                   </ion-text>
@@ -54,45 +54,30 @@
               </ion-col>
             </ion-row>
             <ion-row>
-              <ion-col size="5">
-                <ion-img v-bind="getImgObj(item.featured_media)"></ion-img>
+              <ion-col size="5" v-if="questImage">
+                <ion-img v-bind="questImage"></ion-img>
               </ion-col>
-              <ion-col size="7">
+              <ion-col :size="questImage ? 7 : 12">
                 <ion-card-content>
                   <vue3-flip-countdown v-if="deadline" :deadline="deadline" labelColor="#e7e6b3" mainColor="#e7e6b3"
                     :showDays="false" />
-                  Lorem ipsum dolor sit amet, consectetur adipiscing elit.
-                  Aenean dapibus nisl vel turpis aliquet, id volutpat urna
-                  molestie. Etiam auctor libero et lorem malesuada congue.
+                  <p v-if="isPending">
+                    <i class="fad fa-hourglass-half" /> Your claim is waiting for the Game Master. The rewards arrive once it is approved.
+                  </p>
+                  <p v-else-if="item?.requiresApproval">
+                    <i class="fad fa-user-shield" /> The Game Master approves this one before you get your rewards.
+                  </p>
                 </ion-card-content>
               </ion-col>
             </ion-row>
-            <ion-row>
+            <ion-row v-if="dueLabel">
               <ion-col>
-                <ion-card-subtitle> Due @ 7:00p </ion-card-subtitle>
+                <ion-card-subtitle> Due @ {{ dueLabel }} </ion-card-subtitle>
               </ion-col>
             </ion-row>
-            <ion-row class="week">
-              <ion-col>
-                <ion-chip class=" " color="light"> S </ion-chip>
-              </ion-col>
-              <ion-col>
-                <ion-chip class=" " color="light"> F </ion-chip>
-              </ion-col>
-              <ion-col>
-                <ion-chip class=" " color="light"> T </ion-chip>
-              </ion-col>
-              <ion-col>
-                <ion-chip class=" " color="light"> W </ion-chip>
-              </ion-col>
-              <ion-col>
-                <ion-chip class=" " color="light"> T </ion-chip>
-              </ion-col>
-              <ion-col>
-                <ion-chip class=" " color="light"> M </ion-chip>
-              </ion-col>
-              <ion-col>
-                <ion-chip class=" " color="light"> S </ion-chip>
+            <ion-row class="week" v-if="weekDays.length">
+              <ion-col v-for="(day, index) in weekDays" :key="index">
+                <ion-chip color="light" :class="{ off: !day.active }"> {{ day.letter }} </ion-chip>
               </ion-col>
             </ion-row>
           </ion-grid>
@@ -100,29 +85,29 @@
             <ion-grid class="ion-no-padding">
               <ion-row>
                 <ion-col>
-                  <ion-chip color="success">
+                  <ion-chip v-if="rewards.xp" color="success">
                     <ion-text>
                       <strong>
-                        +200 XP
+                        +{{ rewards.xp }} XP
                         <i class="fad fa-hand-holding-seedling fa-lg" />
                       </strong>
                     </ion-text>
                   </ion-chip>
-                  <ion-chip color="warning">
+                  <ion-chip v-if="rewards.gp" color="warning">
                     <ion-text class="ion-float-right">
                       <strong>
-                        +20 GP
+                        +{{ rewards.gp }} GP
                         <i class="fad fa-hand-holding-usd fa-lg" />
                       </strong>
                     </ion-text>
                   </ion-chip>
                 </ion-col>
-                <ion-col size="5" size-sm="4">
+                <ion-col v-if="difficultyLabel" size="auto">
                   <ion-chip color="danger" class="ion-float-right">
                     <ion-text>
                       <strong>
-                        <i class="fad fa-portal-enter fa-lg" />
-                        -1d8<i class="fad fa-dice-d8 fa-lg" />HP
+                        <i class="fad fa-dice-d8 fa-lg" />
+                        {{ difficultyLabel }}
                       </strong>
                     </ion-text>
                   </ion-chip>
@@ -143,9 +128,9 @@
               <i class="fad fa-hand-holding-magic fa-lg" />
               Magic
             </ion-button>
-            <ion-button color="success" size="" @click="clickClaim">
-              <i class="fa fa-hand-holding-medical fa-lg" />
-              Claim
+            <ion-button :color="isPending ? 'warning' : 'success'" size="" :disabled="!canClaim" @click="clickClaim">
+              <i :class="primaryIcon" />
+              {{ primaryLabel }}
             </ion-button>
           </ion-fab-list>
           <ion-fab-list side="end">
@@ -163,7 +148,21 @@
       <swiper-slide class="complete">
         <ion-grid>
           <ion-row class="points">
-            <ion-col size="12" size-sm="6">
+            <ion-col v-if="awaitingApproval" size="12">
+              <ion-card color="warning" class="claim-pending">
+                <ion-card-header>
+                  <ion-card-title>
+                    <i class="fad fa-2x fa-hourglass-half ion-float-right"></i>
+                    Waiting for the Game Master
+                  </ion-card-title>
+                  <ion-card-subtitle>Your claim has been sent for approval</ion-card-subtitle>
+                </ion-card-header>
+                <ion-card-content>
+                  You will receive +{{ rewards.xp }} XP, +{{ rewards.gp }} GP and +{{ rewards.ap }} AP once it is approved.
+                </ion-card-content>
+              </ion-card>
+            </ion-col>
+            <ion-col v-if="!awaitingApproval" size="12" size-sm="6">
               <ion-card color="primary">
                 <ion-card-header>
                   <ion-card-title color="success">
@@ -174,13 +173,13 @@
                 <ion-chip color="light">
                   <i class="fad fa-angle-up fa-2x"></i>
                   <h4>
-                    <vue3-autocounter ref="countAPGained" :startAmount="0" :endAmount="3" :duration="4" suffix="AP"
+                    <vue3-autocounter ref="countAPGained" :startAmount="0" :endAmount="rewards.ap" :duration="4" suffix="AP"
                       separator="," :autoinit="false" />
                   </h4>
                 </ion-chip>
               </ion-card>
             </ion-col>
-            <ion-col>
+            <ion-col v-if="!awaitingApproval">
               <ion-card color="success">
                 <ion-card-header>
                   <ion-card-title color="primary">
@@ -192,7 +191,7 @@
                   <i class="fad fa-2x fa-angle-double-up"></i>
                   &nbsp;
                   <h4 class="ion-float-right">
-                    <vue3-autocounter ref="countXPGained" :startAmount="0" :endAmount="100" :duration="3.9" suffix="XP"
+                    <vue3-autocounter ref="countXPGained" :startAmount="0" :endAmount="rewards.xp" :duration="3.9" suffix="XP"
                       separator="," :autoinit="false" @finished="finishedCounting" />
                   </h4>
                 </ion-chip>
@@ -211,7 +210,12 @@
             </ion-col>
           </ion-row> -->
         </ion-grid>
-        <ion-fab class="click-loot" vertical="bottom" horizontal="center" slot="fixed" @click="clickLoot">
+        <ion-fab v-if="awaitingApproval" vertical="bottom" horizontal="center" slot="fixed">
+          <ion-fab-button color="light" @click.stop="closeModal">
+            <i class="fad fa-times fa-4x"></i>
+          </ion-fab-button>
+        </ion-fab>
+        <ion-fab v-else class="click-loot" vertical="bottom" horizontal="center" slot="fixed" @click="clickLoot">
           <ion-fab-button color="light">
             <i class="fad fa-treasure-chest fa-4x"></i>
           </ion-fab-button>
@@ -237,7 +241,7 @@
                                 :number="temp.gp.gained"
                               /> -->
                     &nbsp;
-                    <vue3-autocounter ref="countGPGained" :startAmount="0" :endAmount="20" :duration="3.9" suffix="GP"
+                    <vue3-autocounter ref="countGPGained" :startAmount="0" :endAmount="rewards.gp" :duration="3.9" suffix="GP"
                       separator="," :autoinit="false" />
                   </h4>
                 </ion-chip>
@@ -250,8 +254,8 @@
                     <i class="fad fa-coins"></i>
                     &nbsp;
                     <strong>
-                      <vue3-autocounter ref="countWallet" :startAmount="user.stats.gp.wallet"
-                        :endAmount="user.stats.gp.wallet + 100" :duration="3.9" prefix="¤" suffix="GP" separator=","
+                      <vue3-autocounter ref="countWallet" :startAmount="walletBefore"
+                        :endAmount="user.stats.gp.wallet" :duration="3.9" prefix="¤" suffix="GP" separator=","
                         :autoinit="false" />
                     </strong>
                     /
@@ -259,41 +263,6 @@
                     <strong> ¤{{ user.stats.gp.limit }}GP </strong>
                   </ion-label>
                 </ion-chip>
-                <!-- <ion-toolbar>
-                  <ion-grid class="ion-no-margin ion-no-padding">
-                    <ion-row>
-                      <ion-col>
-                        <ion-chip color="warning">
-                          <ion-label class="ion-float-right">
-                            <i class="fa fa-equals"></i>
-                            &nbsp;
-                            <i class="fad fa-coins"></i>
-                            &nbsp;
-                            <strong> 
-                              <vue3-autocounter
-                                ref="countWallet"
-                                :startAmount="user.stats.gp.wallet"
-                                :endAmount="user.stats.gp.wallet + 100"
-                                :duration="3.9"
-                                prefix="¤"
-                                suffix="GP"
-                                separator=","
-                                :autoinit="false"
-                              />
-                              </strong>
-                            /
-                            <i class="fad fa-wallet"></i>
-                            <strong> ¤{{ user.stats.gp.limit }}GP </strong>
-                          </ion-label>
-                          <ion-progress-bar
-                            color="warning"
-                            :value="gpBar"
-                          ></ion-progress-bar>
-                        </ion-chip>
-                      </ion-col>
-                    </ion-row>
-                  </ion-grid>
-                </ion-toolbar> -->
               </ion-card>
             </ion-col>
             <ion-col size="12" class="ion-no-padding">
@@ -387,5 +356,5 @@
   </ion-modal>
 </template>
 
-<script src="./MyTask" />
+<script lang="ts" src="./MyTask.ts" />
 <style lang="scss" src="./_MyTask.scss" scoped />

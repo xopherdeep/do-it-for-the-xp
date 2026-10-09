@@ -67,7 +67,7 @@ export default defineComponent({
   },
   methods: {
     async mimicUser(user: any) {
-      const { id: userId, name } = user;
+      const { id: userId } = user;
 
       const loadingModal = await modalController.create({
         component: require("@/components/templates/modals/ProfileLoadingModal.vue")

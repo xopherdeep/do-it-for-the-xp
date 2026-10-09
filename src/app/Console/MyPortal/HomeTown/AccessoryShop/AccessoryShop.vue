@@ -27,15 +27,13 @@
           <ion-card-title>
             {{ shopkeeper }}
           </ion-card-title>
-          <ion-toast
-            :is-open="isThankYouOpenRef"
-            @didDismiss="setThankYouOpen(false)"
-            message="Thank you for your purchase!"
-            :duration="1500"
-          ></ion-toast>
           <ion-card-content class="rpg-box">
             <!-- Welcome! What shelves can I interest you looking at today? -->
             {{ shopGreeting }}
+            <p class="shop-wallet">
+              <i class="fa fa-coins" />
+              Your wallet: <xp-gp :gp="wallet" />
+            </p>
             <!-- Filters -->
             <ion-item>
               <ion-label> Shelves </ion-label>
@@ -72,12 +70,23 @@
             </ion-item>
           </ion-card-content>
         </ion-card>
+        <!-- Nothing to show -->
+        <ion-card v-if="pagedItems.length === 0" class="shop-empty-shelf">
+          <ion-card-content class="rpg-box">
+            <template v-if="shelf.length === 0">
+              The shelves are bare right now. Ask the Game Master to stock this shop!
+            </template>
+            <template v-else>
+              Nothing on the shelves matches. Try another search or shelf.
+            </template>
+          </ion-card-content>
+        </ion-card>
         <!-- Hero -->
         <ion-row>
           <ion-col
             size-md="3"
             size="6"
-            v-for="item in items"
+            v-for="item in pagedItems"
             :key="`${shopIcon}-${item.id}`"
             class="ion-no-padding"
           >
@@ -86,25 +95,21 @@
               :trigger="`${shopIcon}-${item.id}`"
             >
               <ion-card>
-                <ion-card-title
-                  v-if="item.title"
-                  v-html="item.title.rendered"
-                ></ion-card-title>
+                <ion-card-title>{{ item.name }}</ion-card-title>
                 <ion-grid>
                   <ion-row>
                     <ion-col size="6">
                       <ion-img
-                        v-bind="getImgObj(item.featured_media)"
+                        v-if="item.image"
+                        :src="item.image"
+                        :alt="item.name"
                         class="featured-media"
                       ></ion-img>
+                      <i v-else class="fad fa-gift fa-5x shop-item-placeholder" />
                     </ion-col>
                     <ion-col>
                       <ion-card-content>
-                        {{ item.content.rendered }}
-                        Lorem ipsum dolor sit amet, persequeris mediocritatem vel ut. Qui et officiis salutandi
-                        sadipscing. At placerat invidunt duo, vis quem sale adipisci an, impetus electram incorrupte vix
-                        ne. Ad ipsum inani accommodare cum, adhuc timeam et cum. Consequat intellegebat ius ea. In eam
-                        utamur malorum maluisset.
+                        {{ item.description || "A fine find, if you can afford it." }}
                       </ion-card-content>
                     </ion-col>
                   </ion-row>
@@ -115,17 +120,21 @@
                         Would you like to buy this?
                         <ion-badge color="warning">
                           <i class="fa fa-coins" />
-                          {{ item.meta._xp_achievement_gp }}
-                          100
+                          {{ item.price }}
                           <strong>GP</strong>
                         </ion-badge>
                       </ion-card-title>
+                      <p v-if="!canAfford(item.price)" class="shop-short-on-gp">
+                        Not enough GP! You have {{ wallet }} and need
+                        {{ item.price - wallet }} more.
+                      </p>
                     </ion-col>
                   </ion-row>
                   <ion-row>
                     <ion-col>
                       <ion-button
-                        @click.stop="buyItem(item.id)"
+                        @click.stop="buyItem(item)"
+                        :disabled="isBuying"
                         color="success"
                         expand="block"
                       >
@@ -151,15 +160,15 @@
               class="item ion-no-padding"
               :id="`${shopIcon}-${item.id}`"
             >
-              <ion-card-title
-                v-if="item.title"
-                v-html="item.title.rendered"
-              ></ion-card-title>
+              <ion-card-title>{{ item.name }}</ion-card-title>
               <ion-card-content class="ion-no-margin ion-no-padding">
                 <ion-img
-                  v-bind="getImgObj(item.featured_media)"
+                  v-if="item.image"
+                  :src="item.image"
+                  :alt="item.name"
                   class="featured-media"
                 ></ion-img>
+                <i v-else class="fad fa-gift fa-5x shop-item-placeholder" />
               </ion-card-content>
               <ion-button
                 size="large"
@@ -168,10 +177,9 @@
                 <i class="fa fa-lg fa-eye" />
                 &nbsp; Look Closer
               </ion-button>
-              <ion-badge color="warning">
+              <ion-badge :color="canAfford(item.price) ? 'warning' : 'medium'">
                 <i class="fa fa-coins" />
-                {{ item.meta._xp_achievement_gp }}
-                100
+                {{ item.price }}
                 <strong>GP</strong>
               </ion-badge>
             </ion-card>
@@ -197,16 +205,15 @@
             <ion-col class="ion-no-padding">
               <ion-searchbar
                 color="dark"
-                @ionChange="request.params.page = 1"
-                v-model="request.params.search"
+                v-model="search"
               ></ion-searchbar>
             </ion-col>
           </ion-row>
           <ion-row>
             <ion-col>
               <ion-button
-                @click="request.params.page--"
-                :disabled="request.params.page == 1"
+                @click="prevPage"
+                :disabled="page == 1"
                 color="dark"
                 expand="block"
               >
@@ -218,7 +225,7 @@
             </ion-col>
             <ion-col>
               <ion-button
-                @click="request.params.page++"
+                @click="nextPage"
                 :disabled="!hasNextPage"
                 color="dark"
                 expand="block"
@@ -236,5 +243,5 @@
   </ion-page>
 </template>
 
-<script src="./AccessoryShop.ts" />
+<script lang="ts" src="./AccessoryShop.ts" />
 <style lang="scss" src="./_AccessoryShop.scss" />

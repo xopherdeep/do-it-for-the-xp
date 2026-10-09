@@ -67,7 +67,11 @@
                   </div>
                 </div>
                 <ion-label class="name-container">
-                  <h1>{{ user.name.nick }}</h1>
+                  <h1>
+                    {{ user.name.nick }}
+                    <span v-if="user.isAdult" class="gm-badge" role="img" aria-label="Game Master"
+                      title="Game Master"><i class="fad fa-crown" aria-hidden="true" />GM</span>
+                  </h1>
                   <p>{{ user.name.full }}</p>
                 </ion-label>
               </div>
@@ -120,7 +124,7 @@ import {
   listOutline,
 } from "ionicons/icons";
 import User from "@/lib/utils/User";
-import { Drivers, Storage } from "@ionic/storage";
+import { profileStorage } from "@/lib/databases/profileStorage";
 import { modalController } from "@ionic/vue";
 import { ProfileDb } from "@/lib/databases";
 import AddProfile from "./AddProfile/AddProfile.vue";
@@ -134,12 +138,10 @@ import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
 import debug from "@/lib/utils/debug";
 import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
 
-const requireAvatar = require.context("@/assets/images/avatars/");
+const requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
 
-export const profileStorage = new Storage({
-  name: "__profiles",
-  driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
-});
+// Re-exported for backwards compatibility; the instance now lives in lib/databases/profileStorage.ts
+export { profileStorage };
 
 export default defineComponent({
   name: "switch-profile",
@@ -485,7 +487,7 @@ export default defineComponent({
     const retroMenuActions = computed(() => {
       const actions = users.value.map((user, index) => ({
         id: user.id,
-        label: `${index + 1}: ${user.name.nick || user.name.full} - LVL ${user?.stats?.level || 1
+        label: `${index + 1}: ${user.name.nick || user.name.full}${user.isAdult ? " [GM]" : ""} - LVL ${user?.stats?.level || 1
           }`,
         click: () => selectProfile(user),
       }));
@@ -777,6 +779,31 @@ ion-modal {
         --fa-secondary-color: var(--ion-color-success-shade); */
       }
     }
+  }
+}
+
+// Game Master (parent) badge next to the name in the list view; colors match XpProfileCard's
+// (earthbound pale-yellow, medium-purple and slate)
+.gm-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.5rem;
+  border: 2px solid #383050;
+  border-radius: 999px;
+  background: #f7e8a8;
+  color: #3d3c55;
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1.2;
+  vertical-align: middle;
+
+  i {
+    font-size: 0.8em;
+    --fa-primary-color: #3d3c55;
+    --fa-secondary-color: #383050;
   }
 }
 

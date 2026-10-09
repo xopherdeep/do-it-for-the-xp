@@ -1,0 +1,9 @@
+allowBuilds:
+  '@apollo/protobufjs': true
+  '@parcel/watcher': true
+  core-js: true
+  cypress: true
+  sharp: true
+  swiper: true
+  vue-demi: true
+  yorkie: true

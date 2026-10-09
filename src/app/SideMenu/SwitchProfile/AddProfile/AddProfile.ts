@@ -1,16 +1,18 @@
 import { computed, ref, watch, defineComponent, onMounted, onUnmounted } from "vue";
 import { play$fx } from "@/assets/fx";
-import { modalController } from "@ionic/vue";
+import { modalController, toastController } from "@ionic/vue";
 import { useRoute } from "vue-router";
 import { arrowBack, arrowForward, closeOutline } from "ionicons/icons";
 import { useAudioStore } from "@/lib/store/stores/audio";
 import { useGameStore } from "@/lib/store/stores/game";
+import { useUserStore } from "@/lib/store/stores/user";
 import { changeBGM } from "@/lib/engine/audio/routeMusic";
 import { handleBgmGuard } from "@/router/_Guards/bgm.guard";
+import { canSetGameMaster, passcodeProblem } from "@/router/_Guards/gm.guard";
 import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
 
 import { ProfileDb } from "@/lib/databases";
-import { profileStorage } from "../SwitchProfile.vue";
+import { profileStorage } from "@/lib/databases/profileStorage";
 import InputSettings from "../../XpSettings/components/InputSettings.vue";
 import AvatarSelector from "./components/AvatarSelector.vue";
 
@@ -22,7 +24,9 @@ import Stats from "@/lib/utils/User/stats";
 import debug from "@/lib/utils/debug";
 
 export const AddProfile = defineComponent({
-  props: ["id", "profile", "showIsAdult"],
+  // presetGameMaster (new profiles only): true starts the Game Master toggle on ("Add Adult"),
+  // false starts it off ("Add Kid"), undefined keeps the default.
+  props: ["id", "profile", "presetGameMaster"],
   mixins: [ionic],
   components: {
     InputSettings,
@@ -50,6 +54,22 @@ export const AddProfile = defineComponent({
       this.isAvatarSelectorOpen = false; // Close the modal after selecting
     },
     async clickSaveProfile() {
+      // A Game Master's profile is only saved by a Game Master (Save is disabled otherwise)
+      if (this.gameMasterEditLocked) return;
+
+      // Validate before saving: a Game Master needs a 4-digit passcode, so send them to the Pin tab
+      if (this.passcodeError) {
+        this.activeSegment = "account";
+        const toast = await toastController.create({
+          message: this.passcodeError,
+          duration: 2500,
+          position: "top",
+          color: "warning",
+        });
+        await toast.present();
+        return;
+      }
+
       const profile = this.storage.newProfile(this.newProfile);
       await this.storage.setProfile(profile);
 
@@ -93,9 +113,37 @@ export const AddProfile = defineComponent({
     );
 
     const storage = new ProfileDb(profileStorage);
+    const userStore = useUserStore();
     const email = ref("");
     const passcode = ref("");
+    // What the Game Master toggle is set to. Off unless someone turns it on, except for the first
+    // profile on a device and the "Add Adult" preset. Read isGameMaster for what the form really holds.
     const isAdult = ref(false);
+    // Set once the person touches the toggle (or a preset picks a side), so the first-profile
+    // default never overrides the choice
+    const gameMasterChosen = ref(false);
+    // The profile being edited already is a Game Master
+    const wasGameMaster = ref(false);
+    // True once the device's profiles are known; until then the toggle stays locked, so a slow
+    // load can never leave it open by accident
+    const profilesLoaded = ref(false);
+    // Only a Game Master may switch the flag (anybody may while the device has no Game Master yet)
+    const canSetFlag = computed(() => profilesLoaded.value && canSetGameMaster(userStore));
+    // What the form really holds. Without permission the flag stays as the profile already had it
+    // (off for a new profile), whatever the toggle says, so a preset cannot be a back door.
+    const isGameMaster = computed(() => (canSetFlag.value ? isAdult.value : wasGameMaster.value));
+    // A Game Master's profile, and above all its PIN, is only editable by a Game Master
+    const gameMasterEditLocked = computed(() => wasGameMaster.value && !canSetFlag.value);
+    // Why the passcode cannot be saved yet, or null: a Game Master must have a 4-digit PIN
+    const passcodeError = computed(() => passcodeProblem(passcode.value, isGameMaster.value));
+    // "Add Adult" / "Add Kid" pick the toggle's starting side for a new profile (isGameMaster still
+    // holds it off when the person has no say). Applied once, before the first render.
+    const applyPresetGameMaster = () => {
+      if (props.id || props.profile || typeof props.presetGameMaster !== "boolean") return;
+      isAdult.value = props.presetGameMaster;
+      gameMasterChosen.value = true;
+    };
+    applyPresetGameMaster();
     const avatarIndex = ref(1);
     const fullName = ref("");
     const favoriteFood = ref("");
@@ -153,8 +201,41 @@ export const AddProfile = defineComponent({
       favoriteThing.value = profile.favoriteThing;
       favoriteFood.value = profile.favoriteFood;
       jobClass.value = profile.jobClass;
-      isAdult.value = profile.isAdult;
+      isAdult.value = profile.isAdult === true;
+      wasGameMaster.value = profile.isAdult === true;
       avatarIndex.value = parseInt(profile.avatar.split("-")[0]);
+    };
+
+    const setGameMaster = (event: CustomEvent<{ checked: boolean }>) => {
+      // Backstop: the toggle is disabled for anyone without a say, but never trust the UI alone
+      if (!canSetFlag.value) return;
+      gameMasterChosen.value = true;
+      isAdult.value = event.detail.checked === true;
+    };
+
+    // The toggle unlocks only once the device's profiles are known (the store may not have
+    // caught up yet), the same load the Game Master route guard does before it decides.
+    const loadProfilesForGameMasterCheck = async () => {
+      try {
+        if (Object.keys(userStore.users).length === 0) await userStore.loadUsers();
+        profilesLoaded.value = true;
+      } catch (error) {
+        // Could not tell who is a Game Master, so the toggle stays locked
+        debug.error("Could not load the profiles to check Game Master access", error);
+      }
+    };
+
+    // There must be a parent: the first profile created on a device starts as a Game Master.
+    // Anyone else, and anyone being edited, is left exactly as they are.
+    const defaultFirstProfileToGameMaster = async () => {
+      if (props.id || props.profile) return;
+      try {
+        const profiles = await storage.getProfiles();
+        if (profiles.length === 0 && !gameMasterChosen.value) isAdult.value = true;
+      } catch (error) {
+        // Could not tell, so stay off: a kid must never become a Game Master by accident
+        debug.error("Could not check for existing profiles", error);
+      }
     };
 
     const activeSegment = ref("info")
@@ -190,7 +271,7 @@ export const AddProfile = defineComponent({
       favoriteThing: favoriteThing.value,
       favoriteFood: favoriteFood.value,
       jobClass: jobClass.value,
-      isAdult: isAdult.value,
+      isAdult: isGameMaster.value,
       stats: props.profile?.stats || new Stats(),
     }))
 
@@ -199,8 +280,10 @@ export const AddProfile = defineComponent({
     const route = useRoute();
 
     onMounted(() => {
+      loadProfilesForGameMasterCheck();
       // If creating a new profile (no id or profile prop)
       if (!props.id && !props.profile) {
+        defaultFirstProfileToGameMaster();
         const rpgTheme = gameStore.theme?.rpg || 'earthbound';
         const BGM = audioStore.bgm?.$fx?.rpg?.[rpgTheme]?.BGM;
         if (BGM && BGM.createProfile) {
@@ -240,13 +323,18 @@ export const AddProfile = defineComponent({
       foodOptions,
       fullName,
       hidePasscode,
-      isAdult,
+      isGameMaster,
+      canSetFlag,
+      profilesLoaded,
+      gameMasterEditLocked,
+      passcodeError,
       jobClass,
       jobClassOptions,
       maxAvatarIndex,
       nextAvatar,
       passcodeType,
       previousAvatar,
+      setGameMaster,
       setProfile,
       storage,
       toggleBattles,

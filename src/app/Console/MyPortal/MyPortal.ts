@@ -88,20 +88,12 @@ export default defineComponent({
     },
   },
   methods: {
-    resetBattleTimer() { return (this as any).battleStore.resetBattleTimer() },
-    stopBattleTimer() { return (this as any).battleStore.stopBattleTimer() },
     loginUser(user: any) { return (this as any).userStore.loginUser(user) },
-    ACTIVATE_BATTLE() { return (this as any).battleStore.setActive(true) },
     getUserAvatar(user) {
       // console.log(user.avatar);
       const avatar = `./${user.avatar}.svg`;
       // console.log(avatar);
       return this.$requireAvatar(avatar);
-    },
-    enterBattle() {
-      // Type assertion for outlet ref
-      const outlet = this.$refs?.outlet as { enterBattle: () => void } | undefined;
-      outlet?.enterBattle();
     },
     async dismissRPGBox() {
       this.isRPGBoxOpen = false;
@@ -204,34 +196,6 @@ export default defineComponent({
   watch: {
     routeName(name) {
       this.updateCompass(name);
-    },
-    battleCounter(
-      /* eslint-disable-next-line @typescript-eslint/no-unused-vars */
-      counter
-    ) {
-      /* eslint-disable @typescript-eslint/no-unused-vars */
-      const {
-        router,
-        userId,
-        ACTIVATE_BATTLE,
-        stopBattleTimer,
-        resetBattleTimer
-      } = this;
-      /* eslint-enable @typescript-eslint/no-unused-vars */
-
-      // UNCOMMENT TO TURN ON BATTLES
-      // if (counter <= 0) {
-      //   // return false;
-      //   this.play$fx("enterBattle");
-      //   router
-      //     .push({
-      //       name: "battle-field",
-      //       params: { userId },
-      //     })
-      //     .then(stopBattleTimer)
-      //     .then(resetBattleTimer)
-      //     .then(ACTIVATE_BATTLE);
-      // }
     },
   },
   setup() {

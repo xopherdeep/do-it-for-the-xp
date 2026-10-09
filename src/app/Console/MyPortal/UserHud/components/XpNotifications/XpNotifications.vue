@@ -11,7 +11,7 @@
           <ion-button @click="toggleSettings">
             <i class="fad fa-filter fa-2x" />
           </ion-button>
-          <ion-button router-link="/side-menu/settings/notifications">
+          <ion-button router-link="/xp-settings/notifications">
             <i class="fad fa-cog fa-2x" />
           </ion-button>
           <xp-close-button @click="handleClose" color="light" size="sm" />
@@ -123,5 +123,5 @@
   </ion-page>
 </template>
 
-<script src="./XpNotifications" />
+<script lang="ts" src="./XpNotifications.ts" />
 <style lang="scss" src="./_XpNotifications.scss" scoped />

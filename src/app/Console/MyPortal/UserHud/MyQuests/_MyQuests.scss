@@ -33,6 +33,49 @@
   }
 }
 
+// Quest cards: reward badges plus the "Tamed" / "Pending" states for quests already claimed
+ion-card.item {
+  .quest-rewards {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+
+    ion-badge {
+      margin: 4px 0;
+    }
+  }
+
+  .tamed-ribbon,
+  .pending-ribbon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 2px 0;
+    font-size: 0.75rem;
+    font-weight: bold;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .tamed-ribbon {
+    background: var(--ion-color-success);
+    color: var(--ion-color-success-contrast);
+  }
+
+  // Claimed, but the Game Master has not approved it yet
+  .pending-ribbon {
+    background: var(--ion-color-warning);
+    color: var(--ion-color-warning-contrast);
+  }
+
+  &.is-tamed > :not(.tamed-ribbon),
+  &.is-pending > :not(.pending-ribbon) {
+    opacity: 0.55;
+  }
+}
+
 .total-pages{
   display: flex;
   flex-direction: column;

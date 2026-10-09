@@ -30,7 +30,7 @@ import { alertController, modalController } from "@ionic/vue";
 import XpSendRequest from "./SendRequest.vue"
 import { ProfileDb } from "@/lib/databases";
 
-import { profileStorage } from "@/app/SideMenu/SwitchProfile/SwitchProfile.vue"
+import { profileStorage } from "@/lib/databases/profileStorage"
 import Stats from "@/lib/utils/User/stats";
 
 export default defineComponent({

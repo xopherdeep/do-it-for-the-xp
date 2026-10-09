@@ -9,12 +9,27 @@
       <ion-card-title class="earthbound-title profile-nickname">
         {{ user.name.nick }}
       </ion-card-title>
-      <ion-avatar class="profile-avatar">
-        <img
-          :src="avatarSrc"
-          alt="Avatar"
-        />
-      </ion-avatar>
+      <div class="avatar-wrap">
+        <ion-avatar class="profile-avatar">
+          <img
+            :src="avatarSrc"
+            alt="Avatar"
+          />
+        </ion-avatar>
+        <!-- Game Master (parent) badge: isAdult profiles can open the Compendium and masquerade -->
+        <span
+          v-if="user.isAdult"
+          class="gm-badge"
+          role="img"
+          aria-label="Game Master"
+          title="Game Master"
+        >
+          <i
+            class="fad fa-crown"
+            aria-hidden="true"
+          />GM
+        </span>
+      </div>
     </ion-card-header>
 
     <ion-card-content>
@@ -38,7 +53,7 @@ import { computed, defineComponent, PropType } from "vue";
 import { IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonAvatar } from "@ionic/vue";
 import User from "@/lib/utils/User";
 
-const requireAvatar = require.context("@/assets/images/avatars/");
+const requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
 
 export default defineComponent({
   name: "XpProfileCard",
@@ -110,6 +125,12 @@ export default defineComponent({
       min-height: 320px;
       padding: 1rem;
 
+      .gm-badge {
+        right: -1.1rem;
+        padding: 0.2rem 0.7rem;
+        font-size: 0.9rem;
+      }
+
       .profile-nickname {
         font-size: 2rem !important;
         margin-bottom: 1.5rem;
@@ -166,6 +187,42 @@ export default defineComponent({
         0 0 0 12px eb.$eb-color-pale-yellow,
         0 0 0 16px eb.$eb-color-slate,
         0 0 20px rgba(var(--ion-color-success-rgb), 0.5);
+    }
+  }
+
+  // Wraps the avatar so the Game Master badge can hang off its corner. It stays inside the card
+  // because ion-card is `contain: content`, which clips anything poking out of the card itself.
+  .avatar-wrap {
+    position: relative;
+    width: fit-content;
+    margin: 0 auto;
+  }
+
+  // Game Master (parent) badge, pinned to the avatar's bottom-right corner
+  .gm-badge {
+    position: absolute;
+    bottom: -0.35rem;
+    right: -0.7rem;
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.1rem 0.5rem;
+    border: 2px solid eb.$eb-color-medium-purple;
+    border-radius: 999px;
+    background: eb.$eb-color-pale-yellow;
+    color: eb.$eb-color-slate;
+    font-size: 0.65rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    line-height: 1.2;
+    text-transform: uppercase;
+    pointer-events: none;
+
+    i {
+      font-size: 0.8em;
+      --fa-primary-color: #{eb.$eb-color-slate};
+      --fa-secondary-color: #{eb.$eb-color-medium-purple};
     }
   }
 

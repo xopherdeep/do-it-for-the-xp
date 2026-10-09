@@ -112,11 +112,9 @@ const TERRAIN_BGM_ROUTES: Record<string, string> = {
 
 /** Battle-related routes */
 const BATTLE_BGM_ROUTES = [
-  "battleroom-dev",
-  "battle-field",
-  "battle-field-with-participants",
-  "battle-field-temple",
-  "battle-field-quest",
+  "battle-quest",
+  "battle-temple",
+  "battle-free",
 ] as const;
 
 // ============================================================================

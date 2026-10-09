@@ -51,7 +51,7 @@
   </ion-page>
 </template>
 
-<script src="./WorldClouds" />
+<script lang="ts" src="./WorldClouds.ts" />
 <style lang="scss" src="./_WorldClouds.scss" scoped />
 <style lang="scss">
   #sky-temple{

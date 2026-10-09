@@ -118,9 +118,11 @@ import { defineComponent, onMounted, watch, ref, computed } from 'vue';
 import {
   IonPage, IonHeader, IonToolbar, IonButtons, IonButton,
   IonContent, onIonViewWillEnter,
-  IonFab, IonFabButton, useIonRouter
+  IonFab, IonFabButton, useIonRouter, toastController
 } from '@ionic/vue';
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
+import { useUserStore } from '@/lib/store/stores/user';
+import { freeBattleRoute } from '@/app/Console/BattleField/battle/battleContext';
 
 // Import hooks
 import { useTempleRoomEditor, useTempleRoomNavigation } from './hooks';
@@ -154,6 +156,10 @@ export default defineComponent({
     col: { type: String, required: true }
   },
   setup(props) {
+    // Injected from the router, so it has to be taken here and not inside a click handler
+    const ionRouter = useIonRouter();
+    const userStore = useUserStore();
+
     // Room Editor Hook
     const editor = useTempleRoomEditor({
       templeId: props.templeId,
@@ -278,13 +284,24 @@ export default defineComponent({
       },
 
       // Test Fight - Navigate to battle with configured beasts
-      testFight: () => {
+      testFight: async () => {
         const beastIds = editor.roomData.value?.content?.beasts || [];
         if (beastIds.length === 0) return;
 
-        const ionRouter = useIonRouter();
-        // Navigate to battle field with the configured beasts
-        ionRouter.push(`/battle-field?type=test&beastIds=${beastIds.join(',')}`);
+        // The battle belongs to a hero (rewards and the HUD read it), so a profile must be chosen
+        const heroId = userStore.currentUser.id;
+        if (!heroId) {
+          const toast = await toastController.create({
+            message: 'Choose a profile first',
+            duration: 2000,
+            position: 'top',
+            color: 'warning'
+          });
+          await toast.present();
+          return;
+        }
+
+        ionRouter.push(freeBattleRoute(heroId, beastIds));
       },
 
       // From Navigation Hook

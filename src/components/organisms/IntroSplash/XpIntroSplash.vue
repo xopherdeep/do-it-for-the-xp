@@ -33,14 +33,8 @@ import { defineComponent, ref, PropType, onMounted, onUnmounted, watch } from 'v
 import XpTypingText from '@/components/atoms/TypingText/XpTypingText.vue';
 import debug from '@/lib/utils/debug';
 
-// Define the structure of a splash screen
-export interface SplashScreen {
-  image: string;        // Path to image
-  text?: string;        // Optional text to display
-  alt?: string;         // Alt text for image
-  duration?: number;    // How long to display this splash
-  soundEffect?: string; // Optional sound effect to play
-}
+import type { SplashScreen } from './types';
+export type { SplashScreen };
 
 export default defineComponent({
   name: 'XpIntroSplash',

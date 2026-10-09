@@ -175,5 +175,5 @@
   </ion-footer>
 </ion-page></template>
 
-<script src="./MyCrafts" />
+<script lang="ts" src="./MyCrafts.ts" />
 <style lang="scss" src="./_MyCrafts.scss" scoped />

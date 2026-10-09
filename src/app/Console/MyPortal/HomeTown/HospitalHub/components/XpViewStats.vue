@@ -19,7 +19,7 @@
       <ion-grid>
         <ion-row>
           <ion-col size="12">
-            <ion-card class="stats-overview">
+            <ion-card v-if="user" class="stats-overview">
               <ion-card-header>
                 <ion-card-title class="flex items-center gap-2">
                   <xp-icon icon="heartbeat" primary="red" secondary="pink" />

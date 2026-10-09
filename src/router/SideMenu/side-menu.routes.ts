@@ -17,7 +17,8 @@ export const SideMenuRoutes: Array<RouteRecordRaw> = [
     component: () =>
       import("@/app/SideMenu/SwitchProfile/SwitchProfile.vue"),
     meta: {
-      // requiresAuth: false
+      // The profile chooser is the way back in after Log Out, so it must not require auth
+      requiresAuth: false,
     },
   },
   // Game Master route - imported from separate file

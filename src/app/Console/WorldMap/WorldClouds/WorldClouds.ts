@@ -146,11 +146,11 @@ export default dC({
       },
       {
         label: "Sky Temple",
-        id: "sky-temple",
+        id: "storm-temple",
         faIcon: "place-of-worship",
         side: "end",
         click() {
-          const temple = "sky-temple";
+          const temple = "storm-temple";
           router.push({
             name: "temple",
             params: {

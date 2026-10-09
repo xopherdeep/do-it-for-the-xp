@@ -1,7 +1,7 @@
 import { defineComponent } from 'vue'
 import InputSettings from "./components/InputSettings.vue"
 import SettingsMenu from "./components/SettingsMenu.vue"
-const requireIconImg = require.context("@/assets/icons/");
+const requireIconImg = require.context("@/assets/icons/", false, /\.svg$/);
 
 import {
   IonPage,

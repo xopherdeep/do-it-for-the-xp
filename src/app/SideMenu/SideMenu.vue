@@ -105,6 +105,7 @@
   import { useAudioStore } from "@/lib/store/stores/audio";
   import { useGameStore } from "@/lib/store/stores/game";
   import { useRoute } from "vue-router";
+  import { GM_PATH, canAccessGameMaster } from "@/router/_Guards/gm.guard";
   import {
     logInOutline,
     logInSharp,
@@ -273,8 +274,13 @@
         },
       },
       getCurrentMenu() {
-        const { appPages, appPagesAnon, isLoggedIn } = this;
-        return isLoggedIn ? appPages : appPagesAnon;
+        const { appPages, appPagesAnon, isLoggedIn, canOpenGameMaster } = this;
+        if (!isLoggedIn) return appPagesAnon;
+        // The Compendium (/game-master) is for Game Masters; everyone else never sees the entry.
+        // The router guard enforces it, hiding it just keeps the door out of sight.
+        return canOpenGameMaster
+          ? appPages
+          : appPages.filter((page) => page.url !== GM_PATH);
       },
       bgmToggle($event) {
         // Call the store action directly instead of just emitting
@@ -320,6 +326,8 @@
 
       return {
         isLoggedIn: computed(() => userStore.currentUser.isAuthenticated),
+        // Same rule as the /game-master router guard, so the menu never offers a door that is locked
+        canOpenGameMaster: computed(() => canAccessGameMaster(userStore)),
         route,
         userStore,
         audioStore,
@@ -333,6 +341,11 @@
     watch: {
       // Update active menu item when route changes
       $route() {
+        this.activeMenuItem = this.initialIndex();
+      },
+      // Compendium appears or disappears (profiles finish loading, someone switches profile),
+      // which shifts every index after it, so find the highlighted row again
+      canOpenGameMaster() {
         this.activeMenuItem = this.initialIndex();
       },
     },

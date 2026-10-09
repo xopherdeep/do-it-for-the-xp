@@ -33,7 +33,7 @@
           <ion-item-group>
             <ion-item-divider>
               <ion-label>Adults</ion-label>
-              <ion-button slot="end" v-if="!lockFamily" @click="openModal({ showIsAdult: true })">
+              <ion-button slot="end" v-if="!lockFamily" @click="openModal({ presetGameMaster: true })">
                 Add Adult
               </ion-button>
             </ion-item-divider>
@@ -44,7 +44,7 @@
           <ion-item-group>
             <ion-item-divider>
               <ion-label>Kids</ion-label>
-              <ion-button slot="end" v-if="!lockFamily" @click="openModal({ showIsAdult: true })">
+              <ion-button slot="end" v-if="!lockFamily" @click="openModal({ presetGameMaster: false })">
                 Add Kid
               </ion-button>
             </ion-item-divider>
@@ -62,7 +62,7 @@
 import { defineComponent, ref, computed } from "vue";
 import ionic from "@/lib/mixins/ionic";
 import { arrowBack } from "ionicons/icons";
-import { profileStorage } from "../../SwitchProfile/SwitchProfile.vue";
+import { profileStorage } from "@/lib/databases/profileStorage";
 import { ProfileDb } from "@/lib/databases";
 import User from "@/lib/utils/User";
 import { alertController, modalController } from "@ionic/vue";
@@ -80,7 +80,7 @@ export default defineComponent({
     const toggleFamily = () => (lockFamily.value = !lockFamily.value);
     const userStore = useUserStore();
     const profileDb = new ProfileDb(profileStorage);
-    const requireAvatar = require.context("@/assets/images/avatars/");
+    const requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
 
     // Get profiles from Pinia store
     const profiles = computed(() => userStore.usersAz);
@@ -107,10 +107,7 @@ export default defineComponent({
   },
   methods: {
     async clickEditProfile(profile: User) {
-      await this.openModal({
-        profile,
-        showIsAdult: true,
-      });
+      await this.openModal({ profile });
     },
     async openModal(componentProps?: any) {
       const modal = await modalController.create({

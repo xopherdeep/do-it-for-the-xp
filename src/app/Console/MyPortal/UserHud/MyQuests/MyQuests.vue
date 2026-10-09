@@ -19,48 +19,59 @@
         <swiper-slide v-for="page in nTotalPages" pager="true" :key="page" :data-page="page">
           <ion-grid>
             <ion-row>
-              <ion-col size="6" size-md="3" v-for="item in getTasksForPage(page)" :key="`${page}-${item.id}`"
-                class="ion-no-padding">
-                <ion-card @click="clickItem(item)" button class="item ion-no-padding" :id="item.id">
+              <ion-col size="6" size-md="3" v-for="{ quest: item, status, pending } in getTasksForPage(page)"
+                :key="`${page}-${item.id}`" class="ion-no-padding">
+                <ion-card @click="clickItem(item)" button class="item ion-no-padding"
+                  :class="{ 'is-tamed': status === 'done' && !pending, 'is-pending': status === 'done' && pending }"
+                  :id="item.id">
                   <!-- :router-link="`/my-tasks/${userId}/task/${item.id}`" -->
-                  <ion-card-title v-if="isFetching">
+                  <!-- A used-up quest whose claim still waits for the Game Master is Pending, not Tamed -->
+                  <div v-if="status === 'done' && pending" class="pending-ribbon">
+                    <ion-icon :icon="hourglassOutline" /> Pending
+                  </div>
+                  <div v-else-if="status === 'done'" class="tamed-ribbon">
+                    <ion-icon :icon="checkmarkDone" /> Tamed
+                  </div>
+                  <ion-card-title v-if="isLoading">
                     <ion-skeleton-text :animated="true" style="width: 100px;"></ion-skeleton-text>
                   </ion-card-title>
                   <ion-card-title v-else
                     v-html="formatQuestName(item.achievementName || item.title?.rendered || 'Untitled Quest')"></ion-card-title>
 
-                  <ion-thumbnail v-if="isFetching">
+                  <ion-thumbnail v-if="isLoading">
                     <ion-skeleton-text :animated="true" style="width: 100%;"></ion-skeleton-text>
                   </ion-thumbnail>
-                  <ion-img v-else-if="item._embedded" v-bind="getFeaturedImg(item._embedded)" />
+                  <ion-img v-else-if="item.localImage || item.imageUrl" v-bind="getFeaturedImg(item)" />
 
-                  <ion-button v-if="isFetching" expand="block">
+                  <ion-button v-if="isLoading" expand="block">
                     <ion-skeleton-text :animated="true" style="width: 100%;"></ion-skeleton-text>
                   </ion-button>
 
-                  <ion-button v-else color="primary">
-                    View Quest
+                  <ion-button v-else-if="status === 'done' && pending" color="warning">Pending</ion-button>
+                  <ion-button v-else :color="status === 'done' ? 'medium' : 'primary'">
+                    {{ status === 'done' ? 'Tamed' : 'View Quest' }}
                   </ion-button>
 
-                  <ion-card-content class="ion-no-margin ion-no-padding">
-                    <!-- <ion-badge color="warning">
-                      {{item.meta._xp_achievement_gp}}
+                  <ion-card-content class="quest-rewards ion-no-margin ion-no-padding">
+                    <ion-badge v-if="item.xp" color="success">
+                      {{ item.xp }}
+                      &nbsp;
+                      <strong>XP</strong>
+                    </ion-badge>
+                    <ion-badge v-if="item.gp" color="warning">
+                      {{ item.gp }}
                       &nbsp;
                       <strong>GP</strong>
                     </ion-badge>
-                    <ion-badge color="tertiary">
-                      {{item.meta._xp_achievement_ap}}
+                    <ion-badge v-if="item.ap" color="tertiary">
+                      {{ item.ap }}
                       &nbsp;
                       <strong>AP</strong>
                     </ion-badge>
-                    <ion-badge color="success">
-                      {{item.meta._xp_achievement_xp}}
-                      &nbsp;
-                      <strong>XP</strong>
-                    </ion-badge> -->
                   </ion-card-content>
                 </ion-card>
-                <MyTask @didDismiss="activeModal = 0" :item="item" :userId="userId" v-if="activeModal == item.id" />
+                <MyTask @didDismiss="onTaskDismissed" :item="item" :boardStatus="status" :pending="pending"
+                  :userId="userId" v-if="activeModal == item.id" />
               </ion-col>
             </ion-row>
           </ion-grid>
@@ -136,5 +147,5 @@
     </ion-footer>
   </ion-page></template>
 
-<script src="./MyQuests" />
+<script lang="ts" src="./MyQuests.ts" />
 <style lang="scss" src="./_MyQuests.scss" scoped />

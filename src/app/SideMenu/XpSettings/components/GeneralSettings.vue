@@ -128,6 +128,38 @@
 
           <ion-item-group>
             <ion-item-divider>
+              <ion-label>Backup &amp; Restore</ion-label>
+            </ion-item-divider>
+
+            <ion-item
+              button
+              :detail="false"
+              :disabled="isBackupBusy"
+              @click="confirmBackup"
+            >
+              <ion-icon slot="start" :icon="cloudDownloadOutline"></ion-icon>
+              <ion-label>
+                <h2>Back up everything</h2>
+                <p>Download one file with all of your family's data</p>
+              </ion-label>
+            </ion-item>
+
+            <ion-item
+              button
+              :detail="false"
+              :disabled="isBackupBusy"
+              @click="chooseRestoreFile"
+            >
+              <ion-icon slot="start" :icon="cloudUploadOutline"></ion-icon>
+              <ion-label>
+                <h2>Restore from backup</h2>
+                <p>Replace what the app holds with the contents of a backup file</p>
+              </ion-label>
+            </ion-item>
+          </ion-item-group>
+
+          <ion-item-group>
+            <ion-item-divider>
               <ion-label>Premium Features</ion-label>
             </ion-item-divider>
 
@@ -177,8 +209,31 @@
 <script lang="ts">
   import { defineComponent, ref } from "vue";
   import ionic from "@/lib/mixins/ionic";
-  import { arrowBack } from "ionicons/icons";
-  import { toastController } from "@ionic/vue";
+  import { arrowBack, cloudDownloadOutline, cloudUploadOutline } from "ionicons/icons";
+  import { alertController, loadingController, toastController } from "@ionic/vue";
+  import backupService, { BackupFormatError } from "@/lib/services/core/BackupService";
+  import type { BackupFile, BackupSummary, RestoreResult } from "@/lib/services/core/BackupService";
+
+  type AlertButton = string | { text: string; role?: string; handler?: () => void };
+
+  const errorMessage = (error: unknown): string =>
+    error instanceof Error ? error.message : String(error);
+
+  const readFileAsText = (file: File): Promise<string> =>
+    new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () =>
+        reject(reader.error ?? new Error("The file could not be read."));
+      reader.readAsText(file);
+    });
+
+  const formatBackupDate = (iso: string): string => {
+    const date = new Date(iso);
+    return Number.isNaN(date.getTime())
+      ? "on an unknown date"
+      : `on ${date.toLocaleString()}`;
+  };
 
   export default defineComponent({
     name: "general-settings",
@@ -224,13 +279,173 @@
         return languages[code] || code;
       },
 
-      async showToast(message: string) {
+      async showToast(message: string, color?: string, duration = 2000) {
         const toast = await toastController.create({
           message,
-          duration: 2000,
+          duration,
           position: "bottom",
+          color,
         });
         await toast.present();
+      },
+
+      async showAlert(
+        header: string,
+        message: string,
+        buttons: AlertButton[] = ["OK"]
+      ) {
+        const alert = await alertController.create({ header, message, buttons });
+        await alert.present();
+      },
+
+      /** Keeps the two backup actions from overlapping and shows a spinner while one runs */
+      async withLoading<T>(message: string, task: () => Promise<T>): Promise<T> {
+        this.isBackupBusy = true;
+        let loading: Awaited<ReturnType<typeof loadingController.create>> | undefined;
+        try {
+          loading = await loadingController.create({ message });
+          await loading.present();
+          return await task();
+        } finally {
+          this.isBackupBusy = false;
+          await loading?.dismiss();
+        }
+      },
+
+      async confirmBackup() {
+        const alert = await alertController.create({
+          header: "Back up everything",
+          message:
+            "This downloads one file with profiles (passcodes included), quests, beasts, abilities, accessories, shops, temples and the progress through them, Dos and Don'ts, the quest and purchase logs, and chat. Keep the file somewhere safe.",
+          buttons: [
+            { text: "Cancel", role: "cancel" },
+            {
+              text: "Download backup",
+              handler: () => {
+                this.runBackup();
+              },
+            },
+          ],
+        });
+        await alert.present();
+      },
+
+      async runBackup() {
+        try {
+          const { fileName, summary } = await this.withLoading(
+            "Packing your backup...",
+            () => backupService.exportAll()
+          );
+          await this.showToast(
+            `Backup saved as ${fileName} (${summary.total} entries)`,
+            "success",
+            5000
+          );
+        } catch (error) {
+          await this.showToast(
+            `Backup failed: ${errorMessage(error)}`,
+            "danger",
+            6000
+          );
+        }
+      },
+
+      /** Pick the file first: a bad file is turned away before anyone is asked to confirm a restore */
+      chooseRestoreFile() {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "application/json,.json";
+        input.addEventListener("change", () => {
+          const file = input.files?.[0];
+          if (file) this.checkRestoreFile(file);
+        });
+        input.click();
+      },
+
+      async checkRestoreFile(file: File) {
+        let backup: BackupFile;
+        try {
+          backup = backupService.parseBackup(await readFileAsText(file));
+        } catch (error) {
+          await this.showAlert(
+            "That is not a usable backup",
+            error instanceof BackupFormatError
+              ? `${error.message} Nothing was changed.`
+              : `The file could not be read: ${errorMessage(error)} Nothing was changed.`
+          );
+          return;
+        }
+        await this.confirmRestore(backup, backupService.summarizeBackup(backup));
+      },
+
+      async confirmRestore(backup: BackupFile, summary: BackupSummary) {
+        const contents = summary.stores
+          .map(({ label, count }) => `${label} ${count}`)
+          .join(", ");
+        const alert = await alertController.create({
+          header: "Replace everything?",
+          subHeader: `Backup made ${formatBackupDate(summary.exportedAt)}`,
+          message: `This replaces what the app holds now with the backup's contents: ${contents} (${summary.total} entries in all). Anything not listed stays as it is. This cannot be undone.`,
+          buttons: [
+            { text: "Cancel", role: "cancel" },
+            {
+              text: "Replace everything",
+              role: "destructive",
+              handler: () => {
+                this.runRestore(backup);
+              },
+            },
+          ],
+        });
+        await alert.present();
+      },
+
+      async runRestore(backup: BackupFile) {
+        try {
+          const result = await this.withLoading(
+            "Restoring your data...",
+            () => backupService.restoreBackup(backup)
+          );
+          await this.showRestoreDone(result);
+        } catch (error) {
+          await this.showAlert("Restore failed", errorMessage(error));
+        }
+      },
+
+      /** Caches and open screens still hold the old data, so the only button reloads the app */
+      async showRestoreDone(result: RestoreResult) {
+        const notes = [
+          `Restored ${result.total} entries from the backup made ${formatBackupDate(result.exportedAt)}.`,
+        ];
+        if (result.untouched.length) {
+          notes.push(
+            `Not in that backup, so left as they were: ${result.untouched.join(", ")}.`
+          );
+        }
+        if (result.ignored.length) {
+          notes.push(
+            `Skipped, because this version of the app does not have them: ${result.ignored.join(", ")}.`
+          );
+        }
+        if (!result.usersReloaded) {
+          notes.push("The profile list could not be refreshed.");
+        }
+        notes.push("Reload the app so every screen shows the restored data.");
+
+        const alert = await alertController.create({
+          header: "Restore complete",
+          message: notes.join(" "),
+          backdropDismiss: false,
+          buttons: [
+            {
+              text: "Reload app",
+              handler: () => {
+                window.location.reload();
+              },
+            },
+          ],
+        });
+        await alert.present();
       },
     },
     setup() {
@@ -252,6 +467,7 @@
         savedSettings ? JSON.parse(savedSettings) : defaultSettings
       );
       const isPremiumUser = ref(true); // In a real app, this would be determined by user's subscription
+      const isBackupBusy = ref(false); // A backup or restore is running
 
       // Initialize dark mode on component mount
       if (generalSettings.value.darkMode) {
@@ -261,7 +477,10 @@
       return {
         generalSettings,
         isPremiumUser,
+        isBackupBusy,
         arrowBack,
+        cloudDownloadOutline,
+        cloudUploadOutline,
       };
     },
   });

@@ -1,8 +1,8 @@
-import { defineComponent, onMounted, computed, ref } from 'vue';
+import { defineComponent, onMounted, computed, ref, watch } from 'vue';
 import ionic from '@/lib/mixins/ionic';
 import { actionSheetController, alertController } from '@ionic/vue';
 import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useTemple } from '@/hooks/temples/useTemple';
 import { registerAllTemples, registerCustomTemples } from '@/lib/engine/core/dungeons/TempleAdapter';
 import { importAllTempleLayouts } from '@/lib/engine/core/dungeons/importAllTemples';
@@ -12,7 +12,25 @@ import XpXpBar from '../MyPortal/UserHud/components/XpXpBar.vue';
 import XpMainHud from '../MyPortal/UserHud/components/XpMainHud.vue';
 import debug from '@/lib/utils/debug';
 import { useUserStore } from '@/lib/store/stores/user';
+import { templeBattleRoute } from '@/app/Console/BattleField/battle/battleContext';
 import { play$fx } from "@/assets/fx"
+
+const COMBAT_ROOM_TYPES = ['monster', 'miniboss', 'boss'];
+
+// Route params arrive as strings ("0" included). Only a complete, numeric x/y pair is a start position.
+const toStartPosition = (x: unknown, y: unknown): [number, number] | undefined => {
+  if (x === undefined || x === null || x === '' || y === undefined || y === null || y === '') return undefined;
+  const col = Number(x);
+  const row = Number(y);
+  return Number.isInteger(col) && Number.isInteger(row) && col >= 0 && row >= 0 ? [row, col] : undefined;
+};
+
+// The temple route has no :level segment: a battle returns with ?level=2F. A floor only means something
+// next to the start position it qualifies, and the temple ignores floors it does not have.
+const toStartLevel = (level: unknown, startPosition: [number, number] | undefined): string | undefined => {
+  const raw = Array.isArray(level) ? level[0] : level;
+  return startPosition && typeof raw === 'string' && raw !== '' ? raw : undefined;
+};
 
 export default defineComponent({
   props: ['userId', 'temple', 'x', 'y'],
@@ -46,6 +64,15 @@ export default defineComponent({
     // Register custom temples from the TempleDb (user-created content)
     registerCustomTemples().catch(err => debug.error('Failed to register custom temples:', err));
 
+    // Where the hero starts: the room (and floor) a battle returns to, if the route names one.
+    // A hero with a saved run in this temple resumes it instead, wherever it stopped.
+    const route = useRoute();
+    const startPosition = toStartPosition(props.x, props.y);
+    const startLevel = toStartLevel(route.query.level, startPosition);
+
+    // The hero whose progress in this temple is kept: the one the route names, else the signed-in one
+    const progressHeroId: string | undefined = props.userId || userStore.currentUser.id || undefined;
+
     // Get temple features from the composable
     const {
       currentPosition,
@@ -73,6 +100,7 @@ export default defineComponent({
       displayMessage,
       chestContents,
       isChestEmpty,
+      isCurrentRoomCleared,
       openMap,
       closeMap,
       // Map and compass utilities
@@ -82,9 +110,25 @@ export default defineComponent({
       getRoomIcon,
       getMapTileClass,
       isRoomVisited
-    } = useTemple(props.temple, props.x && props.y ? [Number(props.y), Number(props.x)] : undefined);
+    } = useTemple(props.temple, startPosition, startLevel, progressHeroId);
 
     const router = useRouter();
+
+    // A combat room whose beasts are already beaten: no second fight, and the room shows a mark
+    const isCombatRoomCleared = computed(
+      () => !!currentRoom.value && COMBAT_ROOM_TYPES.includes(currentRoom.value.type) && isCurrentRoomCleared.value
+    );
+
+    // Hand the hero to the battle screen for the combat room they stand in
+    const startFight = () => {
+      const heroId = props.userId || userStore.currentUser.id;
+      if (!heroId) {
+        displayMessage('Choose a profile first');
+        return;
+      }
+      const [row, col] = currentPosition.value;
+      router.push(templeBattleRoute(String(heroId), props.temple, currentLevel.value, col, row));
+    };
 
     // Background position state for CSS transforms - initialize with default values
     const backgroundPosition = ref({ x: 0, y: 0 });
@@ -232,27 +276,17 @@ export default defineComponent({
         case 'monster':
         case 'miniboss':
         case 'boss':
+          if (isCombatRoomCleared.value) {
+            actions.header = 'The beast here has already been defeated.';
+            break;
+          }
           actions.header = currentRoom.value.type === 'boss'
             ? 'A Powerful Boss appears!'
             : 'A Monster approaches!';
           actions.buttons.unshift({
             text: 'Fight',
             role: 'fight',
-            handler: () => {
-              // Navigate using URL path format - BattleField will look up the room data
-              const [row, col] = currentPosition.value;
-              const level = currentLevel.value;
-
-              router.push({
-                name: 'battle-field-temple',
-                params: {
-                  templeId: props.temple,
-                  level: level,
-                  x: col.toString(),
-                  y: row.toString()
-                }
-              });
-            }
+            handler: startFight
           } as any);
           break;
         case 'shop':
@@ -295,9 +329,10 @@ export default defineComponent({
         'earth-temple': { world: 'forest', route: 'world-forest' },
         'fire-temple': { world: 'mountains', route: 'world-mountains' },
         'ice-temple': { world: 'ice', route: 'world-ice' },
-        'light-temple': { world: 'desert', route: 'world-desert' },
-        'shadow-temple': { world: 'moon', route: 'world-moon' },
-        'lightning-temple': { world: 'clouds', route: 'world-clouds' }
+        'light-temple': { world: 'sands', route: 'world-sands' },
+        'shadow-temple': { world: 'swamps', route: 'world-swamps' },
+        'moon-temple': { world: 'the-moon', route: 'the-moon' },
+        'storm-temple': { world: 'clouds', route: 'world-clouds' }
       };
 
       // Return the world location or default to home-town if not found
@@ -414,6 +449,9 @@ export default defineComponent({
       updateBg(col, row);
     });
 
+    // A saved run puts the hero back where it stopped once it has been read, which can be after the mount
+    watch(currentPosition, ([row, col]) => updateBg(col, row));
+
     // Computed properties for equipped items
     const leftHandItem = computed(() => {
       const currentUser = user.value;
@@ -436,6 +474,7 @@ export default defineComponent({
       playerKeys,
       isMapOpen,
       currentRoom,
+      isCombatRoomCleared,
       maze,
       rooms,
       actionColor,

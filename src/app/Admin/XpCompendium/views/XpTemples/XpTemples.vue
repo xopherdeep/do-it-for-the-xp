@@ -72,7 +72,8 @@
   import { createOutline, cloudDownloadOutline } from "ionicons/icons";
   import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
 
-  const requireBg = require.context("@/assets/images/backgrounds/");
+  // Only world-*.jpg / hometown.jpg are looked up by key; keep the filter (a bare context bundles all 90 MB)
+  const requireBg = require.context("@/assets/images/backgrounds/", false, /^\.\/(world-[a-z-]+|hometown)\.jpg$/);
 
   export default defineComponent({
     name: "xp-temples",
@@ -211,7 +212,7 @@
       const goToTempleCreator = (templeId: string) => {
         // Navigate to the creator page, passing 'new' or an existing templeId
         $router.push({
-          name: "xp-temple-creator",
+          name: "xp-temple-settings",
           params: {
             templeId,
           },

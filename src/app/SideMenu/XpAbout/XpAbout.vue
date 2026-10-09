@@ -99,7 +99,7 @@
 <script>
   import { defineComponent, ref } from "vue";
   // import requireImg from "@/assets/js/requireImg.js";
-  const requireImg = require.context("@/assets/icons/");
+  const requireImg = require.context("@/assets/icons/", false, /\.svg$/);
   import { useRouter } from "vue-router";
   import { Swiper, SwiperSlide } from "swiper/vue";
   // Correct import for Swiper modules (v7+)

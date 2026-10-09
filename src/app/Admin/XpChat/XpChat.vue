@@ -22,5 +22,5 @@
   </ion-page>
 </template>
 
-<script src="./XpChat" />
+<script lang="ts" src="./XpChat.ts" />
 <style lang="scss" src="./_XpChat.scss" scoped />

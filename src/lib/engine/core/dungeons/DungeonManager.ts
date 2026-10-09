@@ -10,26 +10,44 @@ import { Room, Dungeon } from './types';
 import { reactive } from 'vue';
 import debug from '@/lib/utils/debug';
 
-// Type definitions
+/**
+ * Key of one room of a dungeon. The floor comes first, so the room at [0, 1] on 1F and the one
+ * at [0, 1] on 2F are two different rooms (visited, cleared, ...).
+ */
+export const roomPositionKey = (level: string, position: readonly number[]): string =>
+  `${level}:${position[0]},${position[1]}`;
 
+/** A dungeon as its layout made it: nothing visited, no chest touched, no door opened or sealed. */
+const copyLayout = (dungeon: Dungeon): Dungeon => {
+  const copy: Dungeon = {
+    ...dungeon,
+    maze: JSON.parse(JSON.stringify(dungeon.maze)),
+    rooms: JSON.parse(JSON.stringify(dungeon.rooms)),
+    visitedPositions: new Set<string>()
+  };
+  if (dungeon.entrance) copy.entrance = [...dungeon.entrance];
+  return copy;
+};
 
 export class DungeonManager {
   private static instance: DungeonManager;
   private dungeons: Record<string, Dungeon> = reactive({});
+  // Each registered dungeon as it was handed in, for resetDungeon
+  private layouts = new Map<string, Dungeon>();
   private chestSystem: ChestSystem;
-  
+
   private constructor() {
     this.chestSystem = ChestSystem.getInstance();
     debug.log('DungeonManager initialized');
   }
-  
+
   public static getInstance(): DungeonManager {
     if (!DungeonManager.instance) {
       DungeonManager.instance = new DungeonManager();
     }
     return DungeonManager.instance;
   }
-  
+
   /**
    * Register a dungeon with the manager
    */
@@ -38,8 +56,23 @@ export class DungeonManager {
     if (!dungeon.visitedPositions) {
       dungeon.visitedPositions = new Set<string>();
     }
+    // Copied before initializeChests writes chest ids into the rooms and before anyone plays in them
+    this.layouts.set(dungeon.id, copyLayout(dungeon));
     this.dungeons[dungeon.id] = reactive(dungeon);
     this.initializeChests(dungeon.id);
+  }
+
+  /**
+   * Put a registered dungeon back the way it was registered: chests full again, doors as the layout
+   * made them, nothing visited. Used when another hero takes over a temple.
+   * @returns False when no such dungeon is registered
+   */
+  public resetDungeon(dungeonId: string): boolean {
+    const layout = this.layouts.get(dungeonId);
+    if (!layout) return false;
+
+    this.registerDungeon(copyLayout(layout));
+    return true;
   }
   
   /**
@@ -131,59 +164,57 @@ export class DungeonManager {
   
   /**
    * Open a chest in a room
+   * @param level Floor the room is on
    * @returns The chest contents or undefined if no chest exists or it's empty
    */
-  public openChestInRoom(dungeonId: string, position: [number, number]): ChestContent | undefined {
-    const chest = this.chestSystem.getChestByPosition(position, dungeonId);
-    if (!chest) return undefined;
-    
-    // Update the room to show the chest has been opened
-    const room = this.getRoom(dungeonId, position);
+  public openChestInRoom(dungeonId: string, position: [number, number], level: string = "1F"): ChestContent | undefined {
+    // The room knows its chest: looking one up by [row, col] alone would find the chest of another floor
+    const room = this.getRoom(dungeonId, position, level);
     if (room?.content?.chestId) {
       return this.chestSystem.openChest(room.content.chestId);
     }
-    
+
     return undefined;
   }
-  
+
   /**
    * Remove items from a chest in a room
    */
-  public removeItemsFromRoomChest(dungeonId: string, position: [number, number], items: string[]): void {
-    const room = this.getRoom(dungeonId, position);
+  public removeItemsFromRoomChest(dungeonId: string, position: [number, number], items: string[], level: string = "1F"): void {
+    const room = this.getRoom(dungeonId, position, level);
     if (room?.content?.chestId) {
       this.chestSystem.removeItemsFromChest(room.content.chestId, items);
     }
   }
-  
+
   /**
    * Mark a room as visited
+   * @param level Floor the room is on: a visit on 1F says nothing about the same coordinates on 2F
    */
-  public visitRoom(dungeonId: string, position: [number, number]): void {
+  public visitRoom(dungeonId: string, position: [number, number], level: string = "1F"): void {
     const dungeon = this.dungeons[dungeonId];
     if (!dungeon) return;
-    
+
     // Add the position to the visited positions set
-    const posKey = `${position[0]},${position[1]}`;
-    dungeon.visitedPositions.add(posKey);
+    dungeon.visitedPositions.add(roomPositionKey(level, position));
   }
-  
+
   /**
    * Check if a room has been visited
+   * @param level Floor the room is on
    */
-  public hasVisited(dungeonId: string, position: [number, number]): boolean {
+  public hasVisited(dungeonId: string, position: [number, number], level: string = "1F"): boolean {
     const dungeon = this.dungeons[dungeonId];
     if (!dungeon) return false;
-    
-    const posKey = `${position[0]},${position[1]}`;
-    return dungeon.visitedPositions.has(posKey);
+
+    return dungeon.visitedPositions.has(roomPositionKey(level, position));
   }
-  
+
   /**
    * Check if a room has a chest that contains a specific item
    */
-  public roomHasItem(dungeonId: string, position: [number, number], itemId: string): boolean {
-    const room = this.getRoom(dungeonId, position);
+  public roomHasItem(dungeonId: string, position: [number, number], itemId: string, level: string = "1F"): boolean {
+    const room = this.getRoom(dungeonId, position, level);
     if (!room?.content?.chestId) return false;
     
     const chest = this.chestSystem.getChest(room.content.chestId);

@@ -219,5 +219,5 @@
   </ion-page>
 </template>
 
-<script src="./UserProfile.ts" />
+<script lang="ts" src="./UserProfile.ts" />
 <style lang="scss" src="./_UserProfile.scss" scoped />

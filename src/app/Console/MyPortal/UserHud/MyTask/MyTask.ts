@@ -41,6 +41,12 @@ import { useAudioStore } from "@/lib/store/stores/audio";
 import { useRouter } from "vue-router";
 import { Controller, Navigation } from "swiper";
 import { formatQuestName } from "@/lib/utils/format";
+import { format, set } from "date-fns";
+import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
+import { DAY_TOKENS, getQuestProgressFor, hasPendingClaimFor } from "@/lib/engine/quests/QuestSchedule";
+import { completeQuest, questRewards } from "@/lib/services/quests/QuestCompletionService";
+import type { CompletionResult } from "@/lib/services/quests/QuestCompletionService";
+import { questBattleRoute } from "@/app/Console/BattleField/battle/battleContext";
 
 // Define interfaces for the app
 interface Item {
@@ -64,8 +70,28 @@ interface SlidesRef {
   getActiveIndex: () => Promise<number>;
 }
 
+// Names for the Fibonacci effort scale the Game Master picks a quest's difficulty from
+const DIFFICULTY_LABELS: Record<number, string> = {
+  1: "Trivial", 2: "Simple", 3: "Easy", 5: "Moderate", 8: "Challenging", 13: "Difficult",
+  21: "Very Difficult", 34: "Extremely Difficult", 55: "Insane", 89: "Legendary", 144: "Mythical",
+};
+
+// Today at the quest's due time. The time picker stores a bare "HH:mm" or a full ISO stamp; only the clock matters.
+const dueTimeToday = (dueByTime = ""): Date | null => {
+  const clock = /^(\d{1,2}):(\d{2})/.exec(dueByTime);
+  const stamp = !clock && /[T-]/.test(dueByTime) ? new Date(dueByTime) : null;
+  const hours = clock ? Number(clock[1]) : stamp?.getHours();
+  const minutes = clock ? Number(clock[2]) : stamp?.getMinutes();
+  // Unset, unreadable (NaN) and out-of-range times all fail this check
+  if (hours === undefined || minutes === undefined || !(hours < 24 && minutes < 60)) return null;
+  return set(new Date(), { hours, minutes, seconds: 0, milliseconds: 0 });
+};
+
 export default defineComponent({
-  props: ["taskId", "item", "userId"],
+  // boardStatus: 'open' | 'done' | 'notDue' as seen on the quest board the modal was opened from
+  // pending: a claim in the current window is still waiting for the Game Master (a done quest then reads Pending, not Tamed)
+  props: ["taskId", "item", "userId", "boardStatus", "pending"],
+  emits: ["didDismiss"],
   name: "my-task",
   components: {
     alertController,
@@ -99,6 +125,10 @@ export default defineComponent({
       ] as Item[],
       itemsLooted: [] as Item[],
       segment: 0,
+      claimed: false, // set once the hero claims the quest from this modal
+      claiming: false, // a claim is being recorded
+      awaitingApproval: false,
+      walletBefore: 0, // wallet when the modal opened, so the GP counter can climb to the credited total
 
       temp: {
         gp: {
@@ -110,6 +140,7 @@ export default defineComponent({
   },
   created() {
     this.temp.gp.wallet = (this as any).user?.stats?.gp?.wallet || 0;
+    this.walletBefore = this.temp.gp.wallet;
   },
   computed: {
     // item(){
@@ -127,37 +158,82 @@ export default defineComponent({
     router() {
       return (this as any).$router;
     },
+    rewards() {
+      return questRewards(this.item || {});
+    },
+    questImage() {
+      const src = this.item?.localImage || this.item?.imageUrl;
+      return src ? { src, alt: this.item.achievementName } : null;
+    },
+    // The quest's window is used up (per the board the modal opened from, or claimed just now)
+    isDone() {
+      return this.boardStatus === "done" || this.claimed;
+    },
+    // Done, but the Game Master has not approved the claim yet, so the rewards are still held
+    isPending() {
+      return this.isDone && (this.claimed ? this.awaitingApproval : Boolean(this.pending));
+    },
+    // Done for good: approved, or paid out at once
+    isTamed() {
+      return this.isDone && !this.isPending;
+    },
+    canClaim() {
+      return !this.isDone && this.boardStatus !== "notDue";
+    },
+    // A beast quest is won in the arena (the battle records the completion) instead of claimed from the log
+    isBeastQuest() {
+      return this.item?.adventureType === "beast" || Boolean(this.item?.beastId);
+    },
+    // Label of the primary button in the fab menu
+    primaryLabel() {
+      if (this.isPending) return "Pending";
+      if (this.isTamed) return "Tamed";
+      return this.isBeastQuest ? "Fight!" : "Claim";
+    },
+    primaryIcon() {
+      if (this.isPending) return "fad fa-hourglass-half fa-lg";
+      return this.isBeastQuest && !this.isDone ? "fad fa-swords fa-lg" : "fa fa-hand-holding-medical fa-lg";
+    },
+    dueTime() {
+      return dueTimeToday(this.item?.dueByTime);
+    },
+    dueLabel() {
+      return this.dueTime ? format(this.dueTime, "h:mma") : null;
+    },
+    // Flip-clock target: only while the quest is still open and today's due time is ahead
     deadline() {
-      // Dummy deadline: Today at 7pm (as mentioned in template subtitle)
-      const d = new Date();
-      if (d.getHours() >= 19) {
-        d.setDate(d.getDate() + 1);
-      }
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      return `${yyyy}-${mm}-${dd} 19:00:00`;
-    }
+      if (this.isDone || !this.dueTime || this.dueTime <= new Date()) return null;
+      return format(this.dueTime, "yyyy-MM-dd HH:mm:ss");
+    },
+    difficultyLabel() {
+      const difficulty = Number(this.item?.difficulty);
+      return difficulty ? DIFFICULTY_LABELS[difficulty] || `Level ${difficulty}` : null;
+    },
+    // Weekday chips for daily and weekly quests, lit on the days the quest repeats
+    weekDays() {
+      const { basicSchedule, repeatOnDays = [] } = this.item || {};
+      if (basicSchedule !== "daily" && basicSchedule !== "weekly") return [];
+      return DAY_TOKENS.map((token) => ({
+        letter: token[0].toUpperCase(),
+        active: basicSchedule === "daily" || repeatOnDays.includes(token),
+      }));
+    },
   },
   methods: {
+    // The claim already credited the wallet; fill the bar and counters up to the new total
     addUpGP() {
-      this.temp.gp.wallet = (this as any).user.stats.gp.wallet;
+      if (!this.rewards.gp) return;
       this.$fx.rpg[this.$fx.theme.rpg].countCoins.play();
       setTimeout(() => {
         this.$fx.rpg[this.$fx.theme.rpg].countCoins.pause();
       }, 4000);
       this.startCounting();
-      this.temp.gp.wallet += 100;
-      this.temp.gp.gained = this.temp.gp.wallet;
-      // this.$store.dispatch("addToWallet", 100 )
+      this.temp.gp.wallet = (this as any).user.stats.gp.wallet;
+      this.temp.gp.gained = this.rewards.gp;
     },
     startCounting() {
-      if (this.$refs.length) {
-        // this.$refs.countXPGained.start();
-        // this.$refs.countAPGained.start();
-        // this.$refs.countGPGained.start();
-        // this.$refs.countWallet.start();
-      }
+      const counters = ["countAPGained", "countXPGained", "countGPGained", "countWallet"];
+      counters.forEach((name) => (this.$refs[name] as { start?: () => void } | undefined)?.start?.());
     },
     finishedCounting() {
       // alert()
@@ -220,8 +296,9 @@ export default defineComponent({
       await (this.$refs.slides as SlidesRef).slideTo(this.segment);
     },
 
-    async slideChanged() {
-      this.segment = await (this.$refs.slides as SlidesRef).getActiveIndex();
+    // Keep `segment` in step with the swiper so each slide's reward effects play when it appears
+    slideChanged(swiper: SwiperType) {
+      this.segment = swiper.activeIndex;
     },
     getUserAvatar(user) {
       if (user.avatar) {
@@ -326,9 +403,16 @@ export default defineComponent({
       });
       return alert.present();
     },
+    // Take the quest into battle. Nothing is claimed here: the battle credits the rewards and logs the win.
+    clickFight() {
+      if (!this.canClaim) return;
+      this.$fx.ui[this.$fx.theme.ui].yes.play();
+      this.$emit("didDismiss");
+      this.router.push(questBattleRoute(String(this.userId), String(this.item.id)));
+    },
     async clickClaim() {
-      const { controlledSwiper } = this as any;
-      const { slides } = this.$refs;
+      if (!this.canClaim) return;
+      if (this.isBeastQuest) return this.clickFight();
       const alert = await alertController.create({
         cssClass: "my-custom-class",
         header: "Claim Achievement?",
@@ -351,33 +435,68 @@ export default defineComponent({
           },
           {
             text: "Yes",
-            handler: () => {
+            // Ionic keeps the alert up until the claim is recorded
+            handler: async () => {
               this.$fx.ui[this.$fx.theme.ui].yes.play();
-              if (controlledSwiper) {
-                controlledSwiper.slideNext();
-              }
-              this.createToast({
-                header: `${(this as any).user.name.nick} tamed ${this.item.achievementName || this.item.title?.rendered || 'the quest'}!`,
-                message: `Gained 2AP`,
-                duration: 1800,
-                icon: null,
-              });
-              setTimeout(
-                () =>
-                  this.createToast({
-                    header: `Do-it-for-the-XP!`,
-                    message: `${this.user.name.nick} Gained 200XP`,
-                    duration: 1800,
-                    icon: null,
-                  }),
-                2500
-              );
+              await this.submitClaim();
             },
           },
         ],
       });
       this.$fx.ui[this.$fx.theme.ui].alert.play();
       return alert.present();
+    },
+    // Hero-voiced toast, like the other quest prompts
+    say(message: string, header?: string, duration = 1800) {
+      return this.createToast({ header: header ?? `${this.user.name.nick}:`, message, duration, icon: null });
+    },
+    // Record the claim, pay the rewards (or hold them for the Game Master) and show the result
+    async submitClaim() {
+      if (this.claiming) return; // "Yes" tapped again before the first claim was recorded
+      this.claiming = true;
+      const heroId = String(this.userId);
+      try {
+        // The quest log is the source of truth, so a stale modal can never pay out twice
+        const entries = await getQuestLogDb().getEntriesForUser(heroId);
+        const progress = getQuestProgressFor(this.item, entries, heroId);
+        if (!progress?.isOpen) {
+          // The log says the window is used up already; show it the way the board would
+          this.claimed = Boolean(progress);
+          this.awaitingApproval = this.claimed && hasPendingClaimFor(this.item, entries, heroId);
+          this.say(
+            !progress
+              ? "This quest is not due right now."
+              : this.awaitingApproval
+                ? "Your claim is waiting for the Game Master."
+                : "You already tamed this quest."
+          );
+          return;
+        }
+        const result = await completeQuest(this.item, heroId, "claim");
+        this.claimed = true;
+        this.awaitingApproval = result.awaitingApproval;
+        this.announceClaim(result);
+        (this as any).controlledSwiper?.slideNext();
+      } catch {
+        this.say("The quest log did not respond. Try again.", undefined, 2200);
+      } finally {
+        this.claiming = false;
+      }
+    },
+    announceClaim({ awaitingApproval, levelUp }: CompletionResult) {
+      const nick = this.user.name.nick;
+      if (awaitingApproval) {
+        this.say("Sent to the Game Master for approval", nick, 2200);
+        return;
+      }
+      const { xp, gp, ap } = this.rewards;
+      this.say(`+${xp} XP · +${gp} GP · +${ap} AP`, `${nick} tamed ${this.item.achievementName || "the quest"}!`);
+      if (!levelUp?.didLevelUp) return;
+      const { newLevel } = levelUp;
+      setTimeout(() => {
+        this.$fx.rpg[this.$fx.theme.rpg].levelUp.play();
+        this.say(`LEVEL UP! Now level ${newLevel}`, nick, 2400);
+      }, 2000); // let the rewards toast clear first
     },
     async clickRun() {
       const alert = await alertController.create({
@@ -475,9 +594,11 @@ export default defineComponent({
           this.$fx.ui[this.$fx.theme.ui].openTask.play();
           break;
         case 1:
+          // Nothing is paid out while the claim waits for the Game Master
+          if (this.awaitingApproval) break;
+          this.startCounting();
           this.$fx.rpg[this.$fx.theme.rpg].fillPoints.play();
           if (this.$refs.userCard) (this.$refs.userCard as UserCardRef).beginCounter();
-          this.startCounting();
           this.$fx.rpg[this.$fx.theme.rpg].gainXP.play();
           // setTimeout(()=>this.$refs.slides.slideNext(), 5000)
           break;

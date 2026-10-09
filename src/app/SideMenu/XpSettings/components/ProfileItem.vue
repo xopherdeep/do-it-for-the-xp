@@ -36,7 +36,7 @@
   import ionic from "@/lib/mixins/ionic";
 
   function setup() {
-    const requireAvatar = require.context("@/assets/images/avatars/");
+    const requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
 
     return {
       requireAvatar,

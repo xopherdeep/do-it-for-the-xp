@@ -39,11 +39,11 @@ export default dC({
       },
       {
         label: "Frozen Fortress",
-        id: "frozen-fortress",
+        id: "ice-temple",
         faIcon: "place-of-worship",
         side: "end",
         click() {
-          router.push({ name: "temple", params: { userId, temple: 'frozen-fortress' } });
+          router.push({ name: "temple", params: { userId, temple: 'ice-temple' } });
         },
       },
     ];

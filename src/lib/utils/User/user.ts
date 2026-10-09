@@ -46,33 +46,19 @@ export default class User {
   setName({ full, first, last, middle, nick, preferred }: any) {
     const name = { full, first, last, middle, nick, preferred }
     if (full) {
-      const parts = full.split(" ")
-      const numParts = parts.length;
-
-      switch (numParts) {
-        case 2:
-          name.first = parts[0]
-          name.first = parts[1]
-          break;
-        case 3:
-          name.first = parts[0]
-          name.middle = parts[1]
-          name.last = parts[3]
-          break;
-        case 5:
-          name.first = parts[0]
-          name.middle = parts[1]
-          name.last = parts[2]
-          name.nick = parts[4]
-          break;
-        case 6:
-          name.first = parts[0]
-          name.middle = parts[1]
-          name.last = parts[2]
-          name.nick = `${parts[4]} ${parts[5]}`
-          break;
+      // Accepts "First Last", "First Middle Last" (any number of middle names)
+      // and an optional nickname after "aka", e.g. "Sam Jo Smith aka Sammy".
+      const [realName, akaNick] = String(full).split(/\s+aka\s+/i)
+      const parts = realName.trim().split(/\s+/).filter(Boolean)
+      if (parts.length) {
+        name.first = name.first || parts[0]
+        name.last = name.last || (parts.length > 1 ? parts[parts.length - 1] : "")
+        name.middle = name.middle || parts.slice(1, -1).join(" ")
       }
+      if (akaNick) name.nick = name.nick || akaNick.trim()
     }
+    // Every hero needs something to be called by; fall back to the first name
+    if (!name.nick) name.nick = name.first || name.full
     return name
   }
 }

@@ -13,7 +13,7 @@
       <ion-title class="text-xl font-bold">New Profile</ion-title>
       <ion-buttons slot="end">
         <ion-button
-          :disabled="!favoriteFood || !favoriteThing || !jobClass || !fullName"
+          :disabled="!favoriteFood || !favoriteThing || !jobClass || !fullName || gameMasterEditLocked"
           @click="clickSaveProfile"
           class="font-medium"
           color="rpg"
@@ -22,18 +22,6 @@
           <i class="fad fa-save text-xl ml-2"></i>
         </ion-button>
       </ion-buttons>
-      <ion-item
-        lines="none"
-        slot="secondary"
-        v-if="$props.showIsAdult"
-      >
-        <ion-label class="font-medium"> Adult </ion-label>
-        <ion-checkbox
-          readonly
-          v-model="isAdult"
-          slot="end"
-        > </ion-checkbox>
-      </ion-item>
     </ion-toolbar>
   </ion-header>
   <ion-content class="bg-slide rpg-box ion-padding">
@@ -202,6 +190,38 @@
               </ion-col>
             </ion-row>
           </ion-grid>
+
+          <!-- Game Master (parent): sets isAdult, which unlocks the Compendium and masquerade.
+               Only a Game Master can switch it (anybody can while the device has none yet). -->
+          <ion-item class="py-2 gm-toggle-row">
+            <ion-label
+              class="font-bold earthbound-title"
+              style="letter-spacing: 1px; font-size: 1.1rem;"
+            >
+              GAME MASTER (PARENT)
+              <p
+                class="helper-text mt-1"
+                style="font-family: inherit; letter-spacing: 0; text-transform: none;"
+              >Game Masters run the game: they open the Compendium, approve quests, and play as any hero.</p>
+              <p
+                v-if="profilesLoaded && !canSetFlag"
+                class="helper-text mt-1 text-danger"
+                style="font-family: inherit; letter-spacing: 0; text-transform: none;"
+              >Ask a Game Master</p>
+              <p
+                v-else-if="isGameMaster"
+                class="helper-text mt-1"
+                style="font-family: inherit; letter-spacing: 0; text-transform: none;"
+              >Game Masters need a 4-digit passcode. Set it on the Pin tab.</p>
+            </ion-label>
+            <ion-toggle
+              :checked="isGameMaster"
+              :disabled="!canSetFlag"
+              @ionChange="setGameMaster($event)"
+              color="rpg"
+              slot="end"
+            ></ion-toggle>
+          </ion-item>
         </ion-list>
       </ion-card>
 
@@ -233,38 +253,54 @@
             </div>
           </ion-item> -->
 
-          <ion-item class="pt-2">
-            <div class="w-full">
-              <ion-label class="font-medium block mb-1">
-                Passcode Protection
-                <p class="text-sm text-gray-500">4-digit PIN to secure your profile</p>
-              </ion-label>
-              <div class="mt-2">
-                <ion-input
-                  inputmode="numeric"
-                  maxlength="4"
-                  class="pin-input text-center"
-                  v-model="passcode"
-                  :type="passcodeType"
-                  placeholder="• • • •"
-                  clearOnEdit="false"
-                ></ion-input>
-              </div>
-            </div>
+          <!-- A Game Master's PIN is neither shown to nor editable by anybody who is not a Game Master -->
+          <ion-item v-if="gameMasterEditLocked">
+            <ion-label>
+              Passcode Protection
+              <p class="text-sm text-gray-500">Ask a Game Master</p>
+            </ion-label>
           </ion-item>
 
-          <ion-item>
-            <ion-label>
-              Show Passcode
-              <p>Toggle to reveal or hide your passcode</p>
-            </ion-label>
-            <ion-toggle
-              :checked="!hidePasscode"
-              @ionChange="hidePasscode = !$event.detail.checked"
-              color="rpg"
-              slot="end"
-            ></ion-toggle>
-          </ion-item>
+          <template v-else>
+            <ion-item class="pt-2">
+              <div class="w-full">
+                <ion-label class="font-medium block mb-1">
+                  Passcode Protection
+                  <p class="text-sm text-gray-500">
+                    {{ isGameMaster ? "Required for Game Masters: a 4-digit PIN" : "4-digit PIN to secure your profile" }}
+                  </p>
+                </ion-label>
+                <div class="mt-2">
+                  <ion-input
+                    inputmode="numeric"
+                    maxlength="4"
+                    class="pin-input text-center"
+                    v-model="passcode"
+                    :type="passcodeType"
+                    placeholder="• • • •"
+                    clearOnEdit="false"
+                  ></ion-input>
+                </div>
+                <p
+                  v-if="passcodeError"
+                  class="helper-text ml-2 mt-1 text-danger"
+                >{{ passcodeError }}</p>
+              </div>
+            </ion-item>
+
+            <ion-item>
+              <ion-label>
+                Show Passcode
+                <p>Toggle to reveal or hide your passcode</p>
+              </ion-label>
+              <ion-toggle
+                :checked="!hidePasscode"
+                @ionChange="hidePasscode = !$event.detail.checked"
+                color="rpg"
+                slot="end"
+              ></ion-toggle>
+            </ion-item>
+          </template>
         </ion-list>
       </ion-card>
 
@@ -366,7 +402,7 @@
         >
           <div class="flex flex-col items-center gap-1 overflow-visible">
             <i class="fad fa-fingerprint fa-2x"></i>
-            <span class="text-xs">Pin</span>
+            <span class="text-xs">Pin<span v-if="isGameMaster" class="text-danger"> *</span></span>
           </div>
         </ion-segment-button>
         <ion-segment-button
@@ -701,5 +737,12 @@
     font-style: italic;
     letter-spacing: 0.5px;
     margin-top: 4px;
+  }
+
+  /* What blocks a save (locked Game Master toggle, missing PIN) must read as a warning, not a whisper */
+  .helper-text.text-danger {
+    color: var(--ion-color-danger);
+    opacity: 1;
+    font-style: normal;
   }
 </style>

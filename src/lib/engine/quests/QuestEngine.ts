@@ -1,4 +1,6 @@
 import AchievementDb, { Achievement, achievementStorage } from "@/lib/databases/AchievementDb";
+import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
+import { getQuestProgressFor, hasPendingClaimFor, QuestProgress } from "@/lib/engine/quests/QuestSchedule";
 
 export interface QuestFilter {
     userId?: string | number;
@@ -103,6 +105,41 @@ class QuestEngine {
         const allQuests = await this.getAllQuests();
         return this.filterQuests(allQuests, { userId, ...filter });
     }
+
+    /**
+     * Every quest visible to the hero, tagged with today's completion state:
+     * open (can still be done), done (window used up), notDue (not scheduled for this day).
+     * `pending` is set when a claim in the current window still waits for the Game Master; it counts
+     * toward the allowance, so a done quest with `pending` is awaiting approval rather than tamed.
+     */
+    async getQuestBoardForUser(userId: string, date: Date = new Date(), filter?: Partial<QuestFilter>): Promise<QuestBoardItem[]> {
+        const [quests, entries] = await Promise.all([
+            this.getQuestsForUser(userId, filter),
+            getQuestLogDb().getEntriesForUser(userId),
+        ]);
+        return quests.map((quest) => {
+            const progress = getQuestProgressFor(quest, entries, userId, date);
+            const status: QuestBoardStatus = !progress ? 'notDue' : progress.isOpen ? 'open' : 'done';
+            const pending = hasPendingClaimFor(quest, entries, userId, date);
+            return { quest, status, progress, pending };
+        });
+    }
+
+    /** Only the quests the hero can still complete on `date`. */
+    async getOpenQuestsForUser(userId: string, date: Date = new Date(), filter?: Partial<QuestFilter>): Promise<QuestBoardItem[]> {
+        const board = await this.getQuestBoardForUser(userId, date, filter);
+        return board.filter((item) => item.status === 'open');
+    }
+}
+
+export type QuestBoardStatus = 'open' | 'done' | 'notDue';
+
+export interface QuestBoardItem {
+    quest: Achievement;
+    status: QuestBoardStatus;
+    progress: QuestProgress | null;
+    /** The hero has a claim in the current window that the Game Master has not approved or rejected yet */
+    pending: boolean;
 }
 
 // Singleton instance

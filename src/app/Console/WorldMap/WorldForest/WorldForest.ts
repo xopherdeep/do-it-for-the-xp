@@ -64,11 +64,11 @@ export default dC({
       },
       {
         label: "Forest Temple",
-        id: "forest-temple",
+        id: "earth-temple",
         faIcon: "place-of-worship",
         side: "end",
         click() {
-          const temple = "forest-temple"
+          const temple = "earth-temple"
           router.push({
             name: "temple",
             params: {

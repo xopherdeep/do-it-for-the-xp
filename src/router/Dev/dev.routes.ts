@@ -45,24 +45,6 @@ const DevRoutes: Array<RouteRecordRaw> = [
         "@/app/Dev/DungeonBackgroundDesigner/DungeonBackgroundDesigner.vue"
       ),
   },
-  {
-    path: "/dev/battle-field",
-    name: "battle-field-dev",
-    component: () => import("@/app/Console/BattleField/BattleField.vue"),
-    props: {
-      devMode: true
-    }
-  },
-  {
-    path: "/dev/battle-field/:beastIds/:userIds?",
-    name: "battle-field-dev-with-params",
-    component: () => import("@/app/Console/BattleField/BattleField.vue"),
-    props: (route) => ({
-      devMode: true,
-      beastIds: route.params.beastIds,
-      userIds: route.params.userIds
-    })
-  },
 ];
 
 export default DevRoutes;

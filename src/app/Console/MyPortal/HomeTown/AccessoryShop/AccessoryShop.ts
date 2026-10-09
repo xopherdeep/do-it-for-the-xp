@@ -1,4 +1,4 @@
-import { defineComponent, ref } from "vue";
+import { computed, defineComponent, onMounted, ref, watch } from "vue";
 import ionic from "@/lib/mixins/ionic";
 
 import {
@@ -26,14 +26,25 @@ import {
   bagOutline,
   cashOutline
 } from "ionicons/icons";
-import { useItemFetcher } from "@/hooks/useItemFetcher";
-import { modalController } from "@ionic/vue";
+import { modalController, onIonViewWillEnter, toastController } from "@ionic/vue";
 import debug from "@/lib/utils/debug";
 // Import ATM Modal component
 import ATMModal from "@/app/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
 // Import the GPSystem
 import { getGPService } from '@/lib/services/gp';
 import { useUserStore } from "@/lib/store/stores/user";
+import shopsDb from "@/lib/databases/ShopsDb";
+import AccessoriesDb, { accessoriesStorage } from "@/lib/databases/AccessoriesDb";
+import {
+  buyItem as purchaseItem,
+  InsufficientFundsError,
+  stockShelf,
+} from "@/lib/services/shop/PurchaseService";
+import type { ShelfItem } from "@/lib/services/shop/PurchaseService";
+
+// The general store you reach from Home Town; also where an unknown shop id ends up.
+const DEFAULT_SHOP_ID = "hometown-market";
+const ITEMS_PER_PAGE = 4;
 
 export default defineComponent({
   props: ["userId", "merchant"],
@@ -44,8 +55,6 @@ export default defineComponent({
   mixins: [ionic],
   data() {
     return {
-      isLoading: false,
-      shelves: ["affordable", "out-of-budget"],
       showAtm: false,
       // Map shop IDs to background image paths
       shopBackgrounds: {
@@ -138,7 +147,7 @@ export default defineComponent({
       };
     },
     user() {
-      return this.userStore.getUserById(this.userId);
+      return this.userStore.getUserById(this.heroId);
     }
   },
   methods: {
@@ -152,7 +161,7 @@ export default defineComponent({
       const amount = Number(data.gp);
       if (amount && amount > 0) {
         getGPService()
-          .depositToSavings(this.userId, amount)
+          .depositToSavings(this.heroId, amount)
           .then(() => {
             this.play$fx("coins");
           })
@@ -166,7 +175,7 @@ export default defineComponent({
       const amount = Number(data.gp);
       if (amount && amount > 0) {
         getGPService()
-          .withdrawFromSavings(this.userId, amount)
+          .withdrawFromSavings(this.heroId, amount)
           .then(() => {
             this.play$fx("coins");
           })
@@ -180,7 +189,7 @@ export default defineComponent({
       const amount = Number(data.gp);
       if (amount && amount > 0) {
         getGPService()
-          .payDebtFromWallet(this.userId, amount)
+          .payDebtFromWallet(this.heroId, amount)
           .then(() => {
             this.play$fx("success");
           })
@@ -191,44 +200,131 @@ export default defineComponent({
     },
 
     selectShelf($ev) {
-      this.shelves = $ev.detail.value;
+      this.shelves = $ev.detail.value || [];
     },
     closeModal(_itemId) {
       debug.log("Closing modal with itemId:", _itemId);
       return modalController.dismiss(null, 'cancel');
       // this.$refs[`modal-${itemId}`].$el.dismiss(null, 'cancel');
     },
-    buyItem(_itemId) {
-      this.setThankYouOpen(true);
-      debug.log("Buying item with itemId:", _itemId);
-      return modalController.dismiss(null, 'confirm');
-      // this.$refs[`modal-${itemId}`].$el.dismiss(null, 'cancel');
+    async showToast(message: string, color: "success" | "danger" = "success") {
+      const toast = await toastController.create({
+        message,
+        duration: 3000,
+        position: "top",
+        color,
+      });
+      await toast.present();
+    },
+    failureMessage(error: unknown, item: ShelfItem): string {
+      if (error instanceof InsufficientFundsError) {
+        return `Not enough GP! You need ${error.shortBy} more to buy ${item.name}.`;
+      }
+      debug.error("Purchase failed:", error);
+      return "Something went wrong, so nothing was bought. Please try again.";
+    },
+    // The GP leaves the wallet now; the Game Master hands the real thing over later
+    // (it shows up under Approvals > Accessories until they do).
+    async buyItem(item: ShelfItem) {
+      if (this.isBuying) return;
+      this.isBuying = true;
+      try {
+        await purchaseItem(this.heroId, item);
+      } catch (error) {
+        this.isBuying = false;
+        this.play$fx("error");
+        void this.showToast(this.failureMessage(error, item), "danger");
+        return;
+      }
+
+      try {
+        this.play$fx("buyItem");
+        void this.showToast("Bought! The Game Master will deliver it.");
+        await modalController.dismiss(null, "confirm").catch(() => false);
+      } finally {
+        this.isBuying = false;
+      }
     }
   },
   mounted() {
     this.$fx.ui[this.$fx.theme.ui].openShop.play();
   },
   setup(props) {
-    const {
-      request,
-      items,
-      getItems,
-      getImgObj,
-      nTotalPages
-    } = useItemFetcher("xp_accessory", { per_page: 4 }, props.userId);
-
     const userStore = useUserStore();
+    const accessoriesDb = new AccessoriesDb(accessoriesStorage);
+
+    // Shops reached from the world map are opened without a hero id, so fall back to whoever is playing.
+    const heroId = computed(() => String(props.userId || userStore.currentUser.id || ""));
+    const wallet = computed(() => Number(userStore.users[heroId.value]?.stats?.gp?.wallet) || 0);
+    const canAfford = (price: number) => wallet.value >= price;
+
+    const shelf = ref<ShelfItem[]>([]);
+    const isLoading = ref(true);
+    const isBuying = ref(false);
+    const search = ref("");
+    const page = ref(1);
+    const shelves = ref<string[]>(["affordable", "out-of-budget"]);
+
+    // What the Game Master stocked in this shop (Compendium > Accessories > Shops).
+    // Only the newest load may write the shelf, so a slow earlier read can't overwrite a fresh one.
+    let latestLoad = 0;
+    const loadShelf = async () => {
+      const thisLoad = ++latestLoad;
+      try {
+        const requested = props.merchant ? await shopsDb.getShopById(props.merchant) : null;
+        const shop = requested || (await shopsDb.getShopById(DEFAULT_SHOP_ID));
+        const accessories = await accessoriesDb.getAccessories();
+        if (thisLoad === latestLoad) {
+          shelf.value = stockShelf(shop?.items ?? [], accessories, heroId.value);
+        }
+      } catch (error) {
+        debug.error("Failed to stock the shelves:", error);
+        if (thisLoad === latestLoad) shelf.value = [];
+      } finally {
+        if (thisLoad === latestLoad) isLoading.value = false;
+      }
+    };
+    onMounted(loadShelf);
+    onIonViewWillEnter(loadShelf);
+    watch([() => props.merchant, heroId], () => {
+      isLoading.value = true;
+      void loadShelf();
+    });
+
+    const visibleItems = computed(() => {
+      const term = search.value.trim().toLowerCase();
+      return shelf.value.filter((item) => {
+        if (term && !item.name.toLowerCase().includes(term)) return false;
+        return shelves.value.includes(canAfford(item.price) ? "affordable" : "out-of-budget");
+      });
+    });
+    const totalPages = computed(() => Math.max(1, Math.ceil(visibleItems.value.length / ITEMS_PER_PAGE)));
+    const hasNextPage = computed(() => page.value < totalPages.value);
+    const pagedItems = computed(() =>
+      visibleItems.value.slice((page.value - 1) * ITEMS_PER_PAGE, page.value * ITEMS_PER_PAGE)
+    );
+    const prevPage = () => {
+      if (page.value > 1) page.value--;
+    };
+    const nextPage = () => {
+      if (hasNextPage.value) page.value++;
+    };
+    // A new search or shelf filter starts from page 1; a shrinking list can't leave you on a missing page.
+    watch([search, shelves], () => {
+      page.value = 1;
+    });
+    watch(totalPages, (pages) => {
+      if (page.value > pages) page.value = pages;
+    });
+
     const customAlertOptions = {
       header: "Shelves",
       subHeader: "Select which shelves to see",
       message: "What can I show you...?",
       translucent: true,
     };
-    const isThankYouOpenRef = ref(false);
-    const setThankYouOpen = (state) => isThankYouOpenRef.value = state;
 
     return {
-      isThankYouOpenRef, setThankYouOpen,
       customAlertOptions,
       storefrontOutline,
       banOutline,
@@ -255,11 +351,19 @@ export default defineComponent({
       // Add cashOutline for ATM button
       cashOutline,
       userStore,
-      request,
-      items,
-      getItems,
-      getImgObj,
-      nTotalPages
+      heroId,
+      wallet,
+      canAfford,
+      shelf,
+      shelves,
+      isLoading,
+      isBuying,
+      search,
+      page,
+      pagedItems,
+      hasNextPage,
+      prevPage,
+      nextPage,
     };
   },
 });

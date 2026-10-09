@@ -1,6 +1,6 @@
 import { defineComponent } from 'vue'
 import ionic from "@/lib/mixins/ionic";
-const requireIconImg = require.context("@/assets/icons/");
+const requireIconImg = require.context("@/assets/icons/", false, /\.svg$/);
 
 import {
   arrowBack,

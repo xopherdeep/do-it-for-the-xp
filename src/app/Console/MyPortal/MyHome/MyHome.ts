@@ -8,7 +8,7 @@ import { modalController, toastController } from "@ionic/vue";
 import { arrowBack } from "ionicons/icons";
 import SaveAndQuitModal from "@/components/molecules/Modals/SaveAndQuitModal.vue";
 
-const requireAvatar = require.context("@/assets/images/avatars/");
+const requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
 
 export default defineComponent({
   name: "my-home",

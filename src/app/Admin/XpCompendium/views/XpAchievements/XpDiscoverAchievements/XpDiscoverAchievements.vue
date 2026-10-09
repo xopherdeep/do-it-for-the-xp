@@ -201,4 +201,4 @@
     </ion-footer>
   </ion-page>
 </template>
-<script lang="ts" src="./XpDiscoverAchievements" />
+<script lang="ts" src="./XpDiscoverAchievements.ts" />

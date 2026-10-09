@@ -113,18 +113,6 @@
               <p>View a showcase of all game worlds</p>
             </ion-label>
           </ion-item>
-
-          <ion-item-divider>
-            <ion-label>Battle System Tools</ion-label>
-          </ion-item-divider>
-
-          <ion-item button detail @click="navigateTo('/dev/battleroom')">
-            <ion-icon :icon="flashOutline" slot="start"></ion-icon>
-            <ion-label>
-              <h2>Battleroom Dev Tools</h2>
-              <p>Test battle interactions, animations and systems</p>
-            </ion-label>
-          </ion-item>
         </ion-list>
 
         <ion-card>
@@ -143,18 +131,6 @@
                   >Run Build</ion-button
                 >
               </p>
-              <p>
-                <strong>Battleroom:</strong>
-                <ion-button size="small" @click="runBattleroomServe"
-                  >Serve</ion-button
-                >
-                <ion-button size="small" @click="runBattleroomBuild"
-                  >Build</ion-button
-                >
-                <ion-button size="small" @click="runBattleroomTest"
-                  >Test</ion-button
-                >
-              </p>
             </div>
           </ion-card-content>
         </ion-card>
@@ -168,7 +144,6 @@
   import { useRouter } from "vue-router";
   import {
     cloudOutline,
-    flashOutline,
     cubeOutline,
     chatboxOutline,
     keypadOutline,
@@ -240,12 +215,6 @@
 
       // VS Code task runners
       const runBuild = () => runVsCodeTask("shell: build", "Build");
-      const runBattleroomServe = () =>
-        runVsCodeTask("shell: battleroom:serve", "Battleroom Serve");
-      const runBattleroomBuild = () =>
-        runVsCodeTask("shell: battleroom:build", "Battleroom Build");
-      const runBattleroomTest = () =>
-        runVsCodeTask("shell: battleroom:test", "Battleroom Test");
 
       return {
         navigateTo,
@@ -254,7 +223,6 @@
         platform,
         buildDate,
         cloudOutline,
-        flashOutline,
         cubeOutline,
         chatboxOutline,
         keypadOutline,
@@ -264,9 +232,6 @@
         globeOutline,
         gridOutline,
         runBuild,
-        runBattleroomServe,
-        runBattleroomBuild,
-        runBattleroomTest,
         isTaskRunning,
       };
     },

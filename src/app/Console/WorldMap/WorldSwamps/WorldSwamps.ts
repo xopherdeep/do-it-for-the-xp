@@ -39,11 +39,11 @@ export default dC({
       },
       {
         label: "Moon Temple",
-        id: "moon-temple",
+        id: "shadow-temple",
         faIcon: "place-of-worship",
         side: "end",
         click() {
-          router.push({ name: "temple", params: { userId, temple: 'moon-temple' } });
+          router.push({ name: "temple", params: { userId, temple: 'shadow-temple' } });
         },
       },
     ];

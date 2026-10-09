@@ -1,0 +1,103 @@
+import { Drivers, Storage } from "@ionic/storage";
+import DbStorageApi from "./DbStorageApi";
+
+/**
+ * Temple progress: one record per hero per temple, so a reload picks a run up where it stopped.
+ * It holds what the hero did (rooms visited and won, keys, map, compass, where they stand).
+ * What the temple is made of (chests, doors, fights) belongs to the layout in TempleDb.
+ */
+export const templeProgressStorage = new Storage({
+  name: "__templeProgress",
+  driverOrder: [Drivers.IndexedDB, Drivers.LocalStorage],
+});
+
+export interface TempleProgressEntry {
+  userId: string;
+  templeId: string;
+  /** Floor the hero stands on, e.g. "1F" */
+  currentLevel: string;
+  /** [row, col] of the room the hero stands in, on currentLevel */
+  currentPosition: [number, number];
+  hasMap: boolean;
+  hasCompass: boolean;
+  playerKeys: number;
+  /** Rooms the hero has been in, as `${level}:${row},${col}` */
+  visitedRooms: string[];
+  /** Combat rooms the hero has won, as `${level}:${row},${col}` */
+  clearedRooms: string[];
+  /** ISO timestamp of the last save */
+  updatedAt: string;
+}
+
+/** What a save needs from the caller: the entry without its timestamp, which the save stamps. */
+export type NewTempleProgress = Omit<TempleProgressEntry, "updatedAt">;
+
+/** Storage key of a hero's progress in one temple. */
+export const templeProgressKey = (userId: string, templeId: string): string => `${userId}:${templeId}`;
+
+const toCoordinate = (value: unknown): number =>
+  typeof value === "number" && Number.isInteger(value) && value >= 0 ? value : 0;
+
+const toStringList = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+
+/**
+ * Read a stored record as an entry. Anything missing or malformed falls back to a fresh run's value
+ * instead of throwing, so one damaged field cannot lock a hero out of a temple.
+ * @returns null when the record is not a progress entry at all
+ */
+export const toTempleProgress = (raw: unknown): TempleProgressEntry | null => {
+  if (!raw || typeof raw !== "object") return null;
+  const data = raw as Record<string, unknown>;
+  if (typeof data.userId !== "string" || typeof data.templeId !== "string") return null;
+
+  const position = Array.isArray(data.currentPosition) ? data.currentPosition : [];
+  const keys = typeof data.playerKeys === "number" && Number.isFinite(data.playerKeys) ? data.playerKeys : 0;
+
+  return {
+    userId: data.userId,
+    templeId: data.templeId,
+    currentLevel: typeof data.currentLevel === "string" && data.currentLevel ? data.currentLevel : "1F",
+    currentPosition: [toCoordinate(position[0]), toCoordinate(position[1])],
+    hasMap: data.hasMap === true,
+    hasCompass: data.hasCompass === true,
+    playerKeys: Math.max(0, Math.floor(keys)),
+    visitedRooms: toStringList(data.visitedRooms),
+    clearedRooms: toStringList(data.clearedRooms),
+    updatedAt: typeof data.updatedAt === "string" ? data.updatedAt : new Date(0).toISOString(),
+  };
+};
+
+export class TempleProgressDb extends DbStorageApi {
+  /** Write a hero's progress in a temple, replacing the previous record, and stamp it. */
+  public async saveProgress(progress: NewTempleProgress): Promise<TempleProgressEntry> {
+    const entry = toTempleProgress({ ...progress, updatedAt: new Date().toISOString() });
+    if (!entry) throw new Error("A temple progress record needs a userId and a templeId");
+    await this.set(templeProgressKey(entry.userId, entry.templeId), entry);
+    return entry;
+  }
+
+  public async getProgress(userId: string, templeId: string): Promise<TempleProgressEntry | null> {
+    const entry = toTempleProgress(await this.get(templeProgressKey(userId, templeId)));
+    return entry && entry.userId === userId && entry.templeId === templeId ? entry : null;
+  }
+
+  public async getProgressForUser(userId: string): Promise<TempleProgressEntry[]> {
+    const entries = (await this.getAll()).map(toTempleProgress);
+    return entries.filter((entry): entry is TempleProgressEntry => entry !== null && entry.userId === userId);
+  }
+
+  /** Forget a hero's run through a temple, so the next visit starts from the entrance. */
+  public async clearProgress(userId: string, templeId: string): Promise<void> {
+    await this.remove(templeProgressKey(userId, templeId));
+  }
+}
+
+let templeProgressDb: TempleProgressDb | null = null;
+
+export const getTempleProgressDb = (): TempleProgressDb => {
+  if (!templeProgressDb) templeProgressDb = new TempleProgressDb(templeProgressStorage);
+  return templeProgressDb;
+};
+
+export default TempleProgressDb;

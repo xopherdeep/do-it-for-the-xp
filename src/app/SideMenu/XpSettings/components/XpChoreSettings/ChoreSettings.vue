@@ -183,5 +183,5 @@
   </ion-page>
 </template>
 
-<script lang="ts" src="./ChoreSettings" />
+<script lang="ts" src="./ChoreSettings.ts" />
 <style lang="scss" src="./_ChoreSettings.scss" scoped />

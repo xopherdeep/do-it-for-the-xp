@@ -6,7 +6,7 @@
   </ion-page>
 </template>
 
-<script src="./WorldIslands.ts" ></script>
+<script lang="ts" src="./WorldIslands.ts" ></script>
 <style lang="scss" src="./_WorldIslands.scss"/>
 <style lang="scss">
   #water-temple{

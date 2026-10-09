@@ -220,5 +220,5 @@
   </ion-page>
 </template>
 
-<script src="./MyAbilities" />
+<script lang="ts" src="./MyAbilities.ts" />
 <style lang="scss" src="./_MyAbilities.scss" scoped />

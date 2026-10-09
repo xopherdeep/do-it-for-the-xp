@@ -103,6 +103,12 @@
             :class="currentRoom ? ROOM_ICONS[currentRoom.type] : ''"
           />
         </ion-fab-button>
+        <!-- The beasts in this room have been beaten -->
+        <i
+          v-if="isCombatRoomCleared"
+          class="fas fa-check-circle cleared-mark"
+          title="Cleared"
+        />
       </ion-fab>
 
       <!-- Navigation buttons and other UI components -->

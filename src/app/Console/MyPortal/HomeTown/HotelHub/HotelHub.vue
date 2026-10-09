@@ -95,5 +95,5 @@
   </ion-page>
 </template>
 
-<script src="./HotelHub" />
+<script lang="ts" src="./HotelHub.ts" />
 <style lang="scss" src="./_HotelHub.scss" />

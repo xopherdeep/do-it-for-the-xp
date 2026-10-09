@@ -4,7 +4,7 @@ describe('TempleHydrator', () => {
   const testBlueprint = `
     EXIT  ____  M01_
     ____  BOSS  ____
-    $GP$  ____  EXIT
+    $001  ____  EXIT
   `;
 
   it('should hydrate a valid dungeon from a DSL string with EXIT as entrance/exit', () => {

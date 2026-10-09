@@ -85,3 +85,27 @@
     }
   }
 }
+
+// Rendered inside the shop page and inside its item modals, so these aren't nested under .accessory-shop
+.shop-wallet {
+  margin: 0.75em 0 0;
+  font-weight: bold;
+}
+
+.shop-short-on-gp {
+  margin: 0.5em 0 0;
+  text-align: center;
+  font-weight: bold;
+  color: var(--ion-color-danger);
+}
+
+.shop-empty-shelf ion-card-content {
+  text-align: center;
+}
+
+.shop-item-placeholder {
+  display: block;
+  margin: 0.5em auto;
+  text-align: center;
+  opacity: 0.6;
+}

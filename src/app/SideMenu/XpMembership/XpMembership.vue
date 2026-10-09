@@ -280,5 +280,5 @@
   </ion-page>
 </template>
 
-<script src="./XpMembership.ts"></script>
+<script lang="ts" src="./XpMembership.ts"></script>
 <style lang="scss" src="./_XpMembership.scss" scoped></style>

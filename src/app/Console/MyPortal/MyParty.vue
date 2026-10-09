@@ -627,7 +627,7 @@
       };
 
       const openPartySettings = () => {
-        router.push("/xp-settings/party-settings");
+        router.push("/xp-settings/party");
       };
 
       const startRaid = (type: string) => {

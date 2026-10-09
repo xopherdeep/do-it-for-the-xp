@@ -49,7 +49,7 @@
   </ion-page>
 </template>
 
-<script src="./WorldSwamps" />
+<script lang="ts" src="./WorldSwamps.ts" />
 <style lang="scss" src="./_WorldSwamps.scss" scoped />
 <style lang="scss">
   #moon-temple{

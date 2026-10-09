@@ -12,7 +12,13 @@ import debug from '@/lib/utils/debug';
 // Define a message display function type that can be provided by the component using this hook
 export type MessageDisplayFn = (message: string, duration?: number) => void;
 
-export function useTemple(templeId: string, startPosition?: [number, number]) {
+/**
+ * @param startPosition [row, col] to start in, e.g. the room a battle returns to
+ * @param startLevel floor that position is on ("2F"); without it the hero starts on the temple's default floor
+ * @param userId the hero playing: their saved run in this temple is resumed (it wins over the start position)
+ *               and kept up to date. Without one the run lives in memory only.
+ */
+export function useTemple(templeId: string, startPosition?: [number, number], startLevel?: string, userId?: string) {
   const templeSystem = TempleSystem.getInstance();
   const dungeonManager = DungeonManager.getInstance();
 
@@ -35,7 +41,7 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
     const temple = dungeonManager.getDungeon(templeId);
     if (temple) {
       const entrance = startPosition || (temple as any).entrance || [0, 0];
-      templeSystem.initTemple(templeId, entrance);
+      templeSystem.initTemple(templeId, entrance, startLevel, userId);
       
       // Sync local state with temple state
       const state = templeSystem.getTempleState(templeId);
@@ -73,6 +79,11 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
   const currentRoom = computed(() => {
     return templeSystem.getCurrentRoom(templeId);
   });
+
+  // True once the beasts in the room the hero stands in have been beaten (the battle screen records the win)
+  const isCurrentRoomCleared = computed(() =>
+    templeSystem.isRoomCleared(templeId, currentLevel.value, currentPosition.value)
+  );
   
   // Get the maze for the current temple (normalized for current level)
   const maze = computed(() => {
@@ -138,7 +149,9 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
     switch (currentRoom.value.type) {
       case 'boss':
       case 'monster':
-        return 'danger';
+        return isCurrentRoomCleared.value ? 'medium' : 'danger';
+      case 'miniboss':
+        return isCurrentRoomCleared.value ? 'medium' : 'primary';
       case 'loot':
         // Always check the isChestEmpty computed property instead of just the room's isEmpty flag
         return isChestEmpty.value ? 'medium' : 'warning';
@@ -319,12 +332,15 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
       }
       // Other items would be added to inventory
     });
+
+    // The state above was changed directly, so it has to be asked to save
+    templeSystem.saveProgress(templeId);
     
     // Get chest ID if available
     const chestId = currentRoom.value.content?.chestId;
     
     // Remove the items from the chest in both systems
-    dungeonManager.removeItemsFromRoomChest(templeId, currentPosition.value, selectedItems);
+    dungeonManager.removeItemsFromRoomChest(templeId, currentPosition.value, selectedItems, currentLevel.value);
     
     // If we have a chest ID, also update it in the ChestSystem
     if (chestId) {
@@ -338,7 +354,7 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
         dungeonManager.updateRoom(templeId, currentPosition.value, {
           ...currentRoom.value,
           isEmpty: true
-        });
+        }, currentLevel.value);
       }
     } else {
       // For chests without a chestId, check if all items have been collected
@@ -350,7 +366,7 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
         dungeonManager.updateRoom(templeId, currentPosition.value, {
           ...currentRoom.value,
           isEmpty: true
-        });
+        }, currentLevel.value);
       }
     }
     
@@ -472,6 +488,7 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
       // Add room-specific classes
       if (templeSystem.hasVisited(templeId, [row, col])) classes.push('visited-cell');
       if (room.type) classes.push(`room-type-${room.type}`);
+      if (templeSystem.isRoomCleared(templeId, currentLevel.value, [row, col])) classes.push('cleared-cell');
     } else {
       // Just layout without details
       classes.push('layout-only-cell');
@@ -501,6 +518,7 @@ export function useTemple(templeId: string, startPosition?: [number, number]) {
     showMessage,
     chestContents,
     isChestEmpty,
+    isCurrentRoomCleared,
     
     // Movement capabilities
     canMoveUp,

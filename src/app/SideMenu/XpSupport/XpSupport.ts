@@ -28,6 +28,9 @@ import {
 } from 'ionicons/icons'
 import Ionic from '@/lib/mixins/ionic'
 
+// Developer tools are only available outside production builds
+const devToolsAvailable = process.env.NODE_ENV !== 'production';
+
 export default defineComponent({
   name: 'xp-support',
   mixins: [Ionic],
@@ -106,12 +109,12 @@ export default defineComponent({
   mounted() {
     // Check if dev mode was previously enabled
     const savedDevMode = localStorage.getItem('xp-dev-mode') === 'true';
-    if (savedDevMode && !this.gameStore.devMode) {
+    if (devToolsAvailable && savedDevMode && !this.gameStore.devMode) {
       this.gameStore.setDevMode(true);
     }
 
     // Add dev tools tile if dev mode is enabled
-    if (this.gameStore.devMode) {
+    if (devToolsAvailable && this.gameStore.devMode) {
       this.tiles.push({
         src: '/support/dev-tools',
         title: 'Developer Tools',
@@ -135,6 +138,8 @@ export default defineComponent({
     },
 
     async showDevModeConfirmation() {
+      if (!devToolsAvailable) return;
+
       const isDevMode = this.gameStore.devMode;
 
       const alert = await alertController.create({

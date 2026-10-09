@@ -179,5 +179,5 @@
   </ion-footer>
 </ion-page></template>
 
-<script src="./MyStorage" />
+<script lang="ts" src="./MyStorage.ts" />
 <style lang="scss" src="./_MyStorage.scss" />

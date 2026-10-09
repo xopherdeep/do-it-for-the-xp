@@ -363,7 +363,7 @@
   </xp-rpg-page>
 </template>
 
-<script src="./XpAchievements" lang="ts" />
+<script src="./XpAchievements.ts" lang="ts" />
 <style src="./_XpAchievements.scss" lang="scss" scoped />
 <style lang="scss" scoped>
   .transparent-content {

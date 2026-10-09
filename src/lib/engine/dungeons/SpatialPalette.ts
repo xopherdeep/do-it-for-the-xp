@@ -73,7 +73,7 @@ export const SPATIAL_PALETTE: Record<string, Partial<Room>> = {
 /**
  * Helper to identify if a token is a monster room starting with M (M000-M999)
  */
-export const isMonsterToken = (token: string) => /^[MmB]\d{3,4}$/.test(token);
+export const isMonsterToken = (token: string) => /^[MmB](\d{3,4}|\d{2}[_!])$/.test(token);
 
 /**
  * Helper to identify if a token is a key room starting with K (K000-K999)

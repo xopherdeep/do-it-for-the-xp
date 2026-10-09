@@ -104,17 +104,19 @@ declare global {
   }
 }
 
-// Add function to window
-window.unlockPegasus = (index: number) => {
-  const store = useUserStore();
-  if (store.currentUser.id) {
-    store.unlockPegasus(store.currentUser.id, index);
-    // eslint-disable-next-line no-console
-    console.log(`%c 🦄 Pegasus #${index + 1} Unlocked!`, 'color: #ff00ff; font-weight: bold; font-size: 14px;');
-  } else {
-    // eslint-disable-next-line no-console
-    console.warn("No user logged in.");
-  }
-};
+// Console cheat for development builds only
+if (process.env.NODE_ENV !== 'production') {
+  window.unlockPegasus = (index: number) => {
+    const store = useUserStore();
+    if (store.currentUser.id) {
+      store.unlockPegasus(store.currentUser.id, index);
+      // eslint-disable-next-line no-console
+      console.log(`%c 🦄 Pegasus #${index + 1} Unlocked!`, 'color: #ff00ff; font-weight: bold; font-size: 14px;');
+    } else {
+      // eslint-disable-next-line no-console
+      console.warn("No user logged in.");
+    }
+  };
+}
 
 readyRouterMountApp()

@@ -8,6 +8,8 @@ import AchievementDb, {
 import BestiaryDb, { beastStorage } from "@/lib/databases/BestiaryDb";
 import AbilitiesDb, { abilitiesStorage } from "@/lib/databases/AbilitiesDb";
 import DosDontsDb from "@/lib/databases/DosDontsDb";
+import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
+import { getPurchaseLogDb } from "@/lib/databases/PurchaseLogDb";
 import { getEngineStatsService } from "@/lib/services/stats/EngineStatsService";
 import {
   toastController,
@@ -126,13 +128,6 @@ export default defineComponent({
       this.stats.dos = systemStats.dos;
       this.stats.donts = systemStats.donts;
 
-      // Get approvals data from XpActionItems
-      this.approvals = {
-        chores: 10, // This would come from actual data
-        rewards: 5, // This would come from actual data
-        total: 15, // This would come from actual data
-      };
-
       // Get rewards data from XpRewardShelf
       this.rewards = {
         active: 10, // This would come from actual data
@@ -141,6 +136,8 @@ export default defineComponent({
         cashed: 0, // This would come from actual data
         total: 15, // This would come from actual data
       };
+
+      await this.loadPendingApprovals();
     },
     openFamilySettings() {
       this.$router.push({ name: "xp-settings-family" });
@@ -240,7 +237,7 @@ export default defineComponent({
             cssClass: "action-temple",
             handler: () => {
               this.navigateTo({
-                name: "xp-temple-creator",
+                name: "xp-temple-settings",
                 params: { templeId: "new" },
               });
             },
@@ -316,6 +313,25 @@ export default defineComponent({
     // Add abilities ref with explicit typing to fix the TypeScript error
     const abilities = ref<any[]>([]);
 
+    // Everything waiting on the Game Master: quest completions (Quest Log entries still
+    // "pending") and shop purchases to deliver (Purchase Log entries still "pending")
+    const loadPendingApprovals = async () => {
+      // Count each log on its own so one unreadable store can't zero the other's number.
+      const countPending = async (read: () => Promise<unknown[]>, what: string) => {
+        try {
+          return (await read()).length;
+        } catch (error) {
+          debug.error(`Failed to load pending ${what}:`, error);
+          return 0;
+        }
+      };
+      const [chores, rewards] = await Promise.all([
+        countPending(() => getQuestLogDb().getPending(), "quest approvals"),
+        countPending(() => getPurchaseLogDb().getPending(), "accessory purchases"),
+      ]);
+      approvals.value = { chores, rewards, total: chores + rewards };
+    };
+
     const loadDashboardData = async () => {
       isLoading.value = true;
       try {
@@ -328,6 +344,8 @@ export default defineComponent({
         stats.value.dos = systemStats.dos;
         stats.value.donts = systemStats.donts;
         stats.value.users = systemStats.users;
+
+        await loadPendingApprovals();
 
         // Load abilities data
         try {
@@ -349,6 +367,7 @@ export default defineComponent({
       userStore,
       stats,
       approvals,
+      loadPendingApprovals,
       rewards,
       achievementDb,
       bestiaryDb,

@@ -35,7 +35,7 @@
   </ion-page>
 </template>
 
-<script src="./WorldForest" />
+<script lang="ts" src="./WorldForest.ts" />
 <style lang="scss" src="./_WorldForest.scss" />
 <style lang="scss">
   .fa- {

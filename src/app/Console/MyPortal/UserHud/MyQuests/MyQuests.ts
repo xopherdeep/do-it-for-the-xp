@@ -1,4 +1,4 @@
-import { defineComponent, onMounted, reactive, ref } from "vue";
+import { defineComponent, onMounted, reactive, ref, watch } from "vue";
 import ionic from "@/lib/mixins/ionic";
 import {
   IonBackButton,
@@ -6,6 +6,7 @@ import {
   IonicSlides,
 } from "@ionic/vue";
 import { getQuestEngine } from "@/lib/engine/quests/QuestEngine";
+import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import {
   ribbonOutline,
   arrowBack,
@@ -25,6 +26,7 @@ import {
   medalOutline,
   bagOutline,
   checkmarkDone,
+  hourglassOutline,
 } from "ionicons/icons";
 import { useGameStore } from "@/lib/store/stores/game";
 
@@ -32,7 +34,6 @@ import MyTask from "../MyTask/MyTask.vue";
 import { useRouter } from "vue-router";
 // import { useSwiper } from "swiper/vue";
 import { Controller, Navigation, Swiper as SwiperClass } from "swiper";
-import AchievementDb, { achievementStorage } from "@/lib/databases/AchievementDb";
 import { formatQuestName } from "@/lib/utils/format";
 
 export default defineComponent({
@@ -71,13 +72,13 @@ export default defineComponent({
         this.params.page = 1;
       },
     },
-    // Filtered tasks based on search and user assignment
-    filteredTasks() {
-      const questEngine = getQuestEngine();
-      return questEngine.filterQuests(this.allTasks || [], {
-        userId: this.userId,
-        search: this.params.search
-      });
+    // Open quests first, then the ones already tamed; quests that are not due stay hidden
+    filteredTasks(): QuestBoardItem[] {
+      const shown = this.board.filter(({ status }) => status !== "notDue");
+      return [
+        ...shown.filter(({ status }) => status === "open"),
+        ...shown.filter(({ status }) => status === "done"),
+      ];
     },
     // Paginated tasks for the swiper
     tasks() {
@@ -113,6 +114,11 @@ export default defineComponent({
     },
     clickItem(item: any) {
       this.activeModal = item.id;
+    },
+    // A claim made in the modal changes today's board, so reload it once the modal closes
+    onTaskDismissed() {
+      this.activeModal = 0;
+      void this.loadBoard();
     },
     isModalOpen(id: any) {
       return this.activeModal == id;
@@ -174,7 +180,7 @@ export default defineComponent({
       // debug.log("Segment changed");
     },
   },
-  setup() {
+  setup(props) {
     const gameStore = useGameStore();
     const router = useRouter();
     const controlledSwiper = ref<SwiperClass | null>(null);
@@ -182,8 +188,7 @@ export default defineComponent({
       controlledSwiper.value = swiper;
     };
 
-    const achievementDb = new AchievementDb(achievementStorage);
-    const allTasks = ref<any[]>([]);
+    const board = ref<QuestBoardItem[]>([]);
     const isLoading = ref(true);
 
     const params = reactive({
@@ -192,21 +197,28 @@ export default defineComponent({
       per_page: 4,
     });
 
-    const loadLocalTasks = async () => {
-      isLoading.value = true;
+    // Only the newest request may update the board, so a slow reload can't overwrite a fresher one
+    let latestRequest = 0;
+    const loadBoard = async () => {
+      const request = ++latestRequest;
       try {
-        allTasks.value = await achievementDb.getTasks();
+        const items = await getQuestEngine().getQuestBoardForUser(props.userId, new Date(), {
+          search: params.search,
+        });
+        if (request === latestRequest) board.value = items;
       } finally {
-        isLoading.value = false;
+        if (request === latestRequest) isLoading.value = false;
       }
     };
 
-    onMounted(loadLocalTasks);
+    onMounted(loadBoard);
+    watch(() => params.search, loadBoard);
 
     return {
       gameStore,
       params,
-      allTasks,
+      board,
+      loadBoard,
       isLoading,
       controlledSwiper,
       setControlledSwiper,
@@ -230,6 +242,7 @@ export default defineComponent({
       medalOutline,
       ribbonOutline,
       checkmarkDone,
+      hourglassOutline,
       formatQuestName,
     };
   },

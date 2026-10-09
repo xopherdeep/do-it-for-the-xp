@@ -20,6 +20,12 @@ export const GameMasterRoutes: RouteRecordRaw[] = [{
           "@/app/Admin/XpDashboard/XpDashboard.vue"
         ),
     },
+    {
+      path: "approvals",
+      name: "xp-approvals",
+      component: () =>
+        import("@/app/Admin/XpApprovals/XpApprovals.vue"),
+    },
     ...CompendiumRoutes,
     {
       path: "chat",

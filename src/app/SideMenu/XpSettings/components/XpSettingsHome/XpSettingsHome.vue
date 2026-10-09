@@ -52,5 +52,5 @@
   </ion-page>
 </template>
 
-<script src="./XpSettingsHome" />
+<script lang="ts" src="./XpSettingsHome.ts" />
 <style lang="scss" src="./_XpSettingsHome.scss" scoped />

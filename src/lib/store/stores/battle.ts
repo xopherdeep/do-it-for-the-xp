@@ -1,11 +1,22 @@
 import { defineStore } from 'pinia';
 import { ref, reactive } from 'vue';
 
+/**
+ * Random-encounter pacing. One step is one second of walking on plains (see randomEncounter),
+ * so this window is also the wait between two encounters: 2 to 4 minutes, rolled again after each.
+ */
+const ENCOUNTER_STEPS_MIN = 120;
+const ENCOUNTER_STEPS_MAX = 240;
+
+/** A fresh random wait, in steps, anywhere inside [min, max]. */
+const rollSteps = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
+
 export const useBattleStore = defineStore('battle', () => {
   // --- State ---
   const active = ref(false);
   const interval = ref<number | null>(null);
-  const timer = ref(500);
+  // Length of one exploration tick in ms: one tick, one step on plains, one second.
+  const timer = ref(1000);
   const bgmWaitToStart = ref(4200);
 
   const terrain = reactive({
@@ -16,17 +27,12 @@ export const useBattleStore = defineStore('battle', () => {
     island: 0
   });
 
+  // counter = steps left until the next encounter; it starts on a roll inside the min..max window.
   const steps = reactive({
-    min: 64,
-    max: 255,
-    counter: 155
+    min: ENCOUNTER_STEPS_MIN,
+    max: ENCOUNTER_STEPS_MAX,
+    counter: rollSteps(ENCOUNTER_STEPS_MIN, ENCOUNTER_STEPS_MAX)
   });
-
-  const currentEncounter = ref<{
-    beastIds: string[];
-    userIds: string[];
-    bgConfig?: { bg1?: number; bg2?: number };
-  } | null>(null);
 
   // --- Actions ---
 
@@ -34,20 +40,9 @@ export const useBattleStore = defineStore('battle', () => {
     active.value = false;
   }
 
-  function activateBattle() {
-    active.value = true;
-  }
-
-  function enterBattle() {
-    // Note: This formerly dispatched to audio actions. 
-    // In Pinia, we can import useAudioStore() here if multi-store interaction is needed,
-    // or keep it simple for now.
-    activateBattle();
-  }
-
   function startBattleTimer(options: { onEncounter: () => void } ) {
     if (steps.counter <= 0) {
-      steps.counter = Math.floor(Math.random() * (steps.max - steps.min + 1) + steps.min);
+      steps.counter = rollSteps(steps.min, steps.max);
     }
 
     if (!interval.value) {
@@ -62,36 +57,23 @@ export const useBattleStore = defineStore('battle', () => {
     }
   }
 
+  /** Re-arm after an encounter: a new random wait inside the steps.min..steps.max window. */
   function resetBattleTimer() {
-    steps.counter = steps.max;
+    steps.counter = rollSteps(steps.min, steps.max);
   }
 
   function randomEncounter() {
-    const minus = terrain.plains * 4 + (terrain.swamp + terrain.forest + terrain.mountain + terrain.island) * 8;
+    // Steps walked this tick. Plains (the default terrain) is the baseline, 1 step a tick;
+    // every other terrain counts double, so the next encounter comes in half the time.
+    const minus = terrain.plains + (terrain.swamp + terrain.forest + terrain.mountain + terrain.island) * 2;
     steps.counter -= minus;
 
-    const isBattleTimerUp = steps.counter < 0;
+    const isBattleTimerUp = steps.counter <= 0;
     if (isBattleTimerUp && !active.value) {
-      // Logic for triggering battle would go here or be handled by the caller
-      return true; // Indicate encounter triggered
+      // The caller (battle.guard) sends the hero into the fight and re-arms the counter.
+      return true;
     }
     return false;
-  }
-
-  function setTerrain(newTerrain: Partial<typeof terrain>) {
-    Object.assign(terrain, newTerrain);
-  }
-
-  function setEncounter(encounter: { beastIds: string[]; userIds?: string[]; bgConfig?: { bg1?: number; bg2?: number } }) {
-    currentEncounter.value = {
-      beastIds: encounter.beastIds,
-      userIds: encounter.userIds || [],
-      bgConfig: encounter.bgConfig
-    };
-  }
-
-  function clearEncounter() {
-    currentEncounter.value = null;
   }
 
   return {
@@ -104,16 +86,10 @@ export const useBattleStore = defineStore('battle', () => {
     steps,
     
     // Actions
-    activateBattle,
     deactivateBattle,
-    enterBattle,
     startBattleTimer,
     stopBattleTimer,
     resetBattleTimer,
-    randomEncounter,
-    setTerrain,
-    currentEncounter,
-    setEncounter,
-    clearEncounter
+    randomEncounter
   };
 });

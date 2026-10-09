@@ -21,7 +21,8 @@ import { toastController } from "@ionic/vue";
 import { saveOutline } from 'ionicons/icons';
 import { useTempleCreatorStore } from "@/lib/store/stores/temple-creator";
 
-const requireBg = require.context("@/assets/images/backgrounds/");
+// Only world-*.jpg / hometown.jpg are looked up by key; keep the filter (a bare context bundles all 90 MB)
+const requireBg = require.context("@/assets/images/backgrounds/", false, /^\.\/(world-[a-z-]+|hometown)\.jpg$/);
 
 export interface ExtendedTempleInterface extends TempleInterface {
   smallMonsters?: number;

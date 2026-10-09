@@ -53,7 +53,8 @@ import debug from "@/lib/utils/debug";
 import shopsDb, { ShopInterface } from "@/lib/databases/ShopsDb";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 
-const requireBg = require.context("@/assets/images/backgrounds/");
+// Only world-*.jpg / hometown.jpg are looked up by key; keep the filter (a bare context bundles all 90 MB)
+const requireBg = require.context("@/assets/images/backgrounds/", false, /^\.\/(world-[a-z-]+|hometown)\.jpg$/);
 
 export default defineComponent({
   name: "XpEconomyShops",

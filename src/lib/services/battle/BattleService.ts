@@ -104,6 +104,7 @@ export class BattleService {
     onDefendStateChange?: (isDefending: boolean) => void;
     onPlayerTurnChange?: (isPlayerTurn: boolean) => void;
     onEnemyDefeated?: (enemy: Enemy) => void;
+    onEnemyChange?: (enemy: Enemy) => void;
     onCombatTasksChange?: (tasks: CombatTask[]) => void;
     onPlayerDefeated?: () => void;
     onAttack?: (attacker: 'player' | 'enemy') => void;
@@ -156,8 +157,41 @@ export class BattleService {
   private defeatEnemy(enemy: Enemy): void {
     this.stopAttackTimer();
     debug.log(`Challenge '${enemy.name}' completed!`);
+
+    // In a multi-beast fight the next living beast steps forward with its own chores.
+    const next = this.state.participants.enemies.find((candidate) => candidate !== enemy && candidate.health > 0);
+    if (next) {
+      this.state.participants.activeEnemyIndex = this.state.participants.enemies.indexOf(next);
+      this.state.currentEnemy = next;
+      this.loadCombatTasks(next);
+      this.updateEnemyHealthColor();
+      this.queueDialogMessages([`${enemy.name} was defeated!`, `${next.name} steps forward!`]);
+      if (this.battleCallbacks.onEnemyChange) {
+        this.battleCallbacks.onEnemyChange(next);
+      }
+      this.startAttackTimer();
+      return;
+    }
+
     if (this.battleCallbacks.onEnemyDefeated) {
       this.battleCallbacks.onEnemyDefeated(enemy);
+    }
+  }
+
+  /** The beast's checklist becomes the player's attacks. */
+  private loadCombatTasks(enemy: Enemy): void {
+    if (enemy.tasks && enemy.tasks.length > 0) {
+      this.state.combatTasks = enemy.tasks.map((task) => ({ ...task }));
+    } else {
+      debug.warn('BattleService: No tasks found on enemy, using defaults', enemy);
+      this.state.combatTasks = [
+        { id: '1', name: 'Investigate', isCompleted: false },
+        { id: '2', name: 'Observe patterns', isCompleted: false }
+      ];
+    }
+
+    if (this.battleCallbacks.onCombatTasksChange) {
+      this.battleCallbacks.onCombatTasksChange(this.state.combatTasks);
     }
   }
 
@@ -172,22 +206,7 @@ export class BattleService {
     this.state.isPlayerTurn = true; // For Task-ATB, player is usually "always ready"
     this.state.turnCounter = 1;
 
-    // Initialize tasks from enemy checklist
-    if (enemy.tasks && enemy.tasks.length > 0) {
-      debug.log('BattleService: Initializing combat tasks from enemy', enemy.tasks);
-      this.state.combatTasks = [...enemy.tasks];
-    } else {
-      debug.warn('BattleService: No tasks found on enemy, using defaults', enemy);
-      // Fallback/Default tasks if none defined
-      this.state.combatTasks = [
-        { id: '1', name: 'Investigate', isCompleted: false },
-        { id: '2', name: 'Observe patterns', isCompleted: false }
-      ];
-    }
-
-    if (this.battleCallbacks.onCombatTasksChange) {
-      this.battleCallbacks.onCombatTasksChange(this.state.combatTasks);
-    }
+    this.loadCombatTasks(enemy);
 
     // Add enemy to participants array
     this.state.participants.enemies = [enemy];
@@ -227,15 +246,16 @@ export class BattleService {
     }
 
     this.state.battleStarted = true;
-    this.state.isPlayerTurn = false;
+    this.state.isPlayerTurn = true; // Task-ATB: the player is always ready to act
     this.state.turnCounter = 1;
 
     // Store enemies in participants array
     this.state.participants.enemies = enemies;
     this.state.participants.activeEnemyIndex = 0;
 
-    // Set current enemy to first enemy
+    // Set current enemy to first enemy and arm its chores as attacks
     this.state.currentEnemy = enemies[0];
+    this.loadCombatTasks(enemies[0]);
 
     // Get users from store and add to participants
     this.state.participants.users = [];
@@ -679,15 +699,6 @@ export class BattleService {
 
     // Initialize time remaining
     this.state.timeRemaining = duration;
-
-    // debug.log(`ATB Timer: ${incompleteTasks} tasks = ${duration / 1000}s duration`);
-    // Debugging the 4 mins issue
-    console.warn('ATB START DEBUG:', {
-      tasks: this.state.combatTasks.length,
-      incomplete: incompleteTasks,
-      titles: this.state.combatTasks.map(t => t.name),
-      duration: duration
-    });
 
     this.attackTimerInterval = setInterval(() => {
       this.state.enemyAttackTimer = Math.max(0, this.state.enemyAttackTimer - decrement);

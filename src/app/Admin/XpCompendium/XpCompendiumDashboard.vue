@@ -498,7 +498,7 @@ export default defineComponent({
     };
 
     return {
-      requireIcon: require.context("@/assets/icons/"),
+      requireIcon: require.context("@/assets/icons/", false, /\.svg$/),
       modules: [Pagination, Navigation],
       activeSlideIndex,
       slidesViewed,

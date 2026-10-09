@@ -14,7 +14,7 @@ import AchievementDb, {
 import BestiaryDb, { Beast, beastStorage } from "@/lib/databases/BestiaryDb";
 import ProfileDb from "@/lib/databases/ProfileDb";
 import User from "@/lib/utils/User";
-import { profileStorage } from "@/app/SideMenu/SwitchProfile/SwitchProfile.vue";
+import { profileStorage } from "@/lib/databases/profileStorage";
 import { useBestiarySelectionStore } from "@/lib/store/stores/bestiary-selection";
 import appConfig from "@/app.config";
 import {

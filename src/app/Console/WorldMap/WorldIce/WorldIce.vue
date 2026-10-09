@@ -39,7 +39,7 @@
   </ion-page>
 </template>
 
-<script src="./WorldIce" />
+<script lang="ts" src="./WorldIce.ts" />
 <style lang="scss" src="./_WorldIce.scss" scoped />
 <style lang="scss">
   #frozen-fortress{
