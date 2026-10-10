@@ -57,14 +57,11 @@ def noise(n):
     return _rng.uniform(-1, 1, n)
 
 def lowpass(x, cutoff):
-    """One-pole lowpass."""
-    a = math.exp(-2 * math.pi * cutoff / SR)
-    y = np.empty_like(x); acc = 0.0
-    b = 1 - a
-    for i in range(len(x)):
-        acc = a * acc + b * x[i]
-        y[i] = acc
-    return y
+    """Windowed moving-average lowpass (vectorised); cutoff is approximate."""
+    taps = max(3, int(SR / max(200.0, float(cutoff))) | 1)
+    kernel = np.hanning(taps + 2)[1:-1]
+    kernel /= kernel.sum()
+    return np.convolve(x, kernel, mode="same")
 
 def env_adsr(n, a=0.002, d=0.12, s=0.6, r=0.02):
     e = np.ones(n)
@@ -94,7 +91,7 @@ class Song:
         self.mix[start:end, 0] += seg * l
         self.mix[start:end, 1] += seg * r
 
-    def pulse_track(self, lines, duty=0.25, gain=0.22, pan=0.0, vib=0.25, legato=0.9, echo=0.0, slide=False, octave=0, duties=None, decay=0.1, sustain=0.65):
+    def pulse_track(self, lines, duty=0.25, gain=0.22, pan=0.0, vib=0.25, legato=0.9, echo=0.0, slide=False, octave=0, duties=None, decay=0.1, sustain=0.65, inst=None):
         t = 0.0; prev = None; k = 0
         for line in lines:
             for m, dur in parse(line):
@@ -106,26 +103,32 @@ class Song:
                     d = duties[k % len(duties)] if duties else duty
                     k += 1
                     sf = hz(prev) if (slide and prev is not None and abs(prev - m) <= 3) else None
-                    wave = pulse_vib(f, n, d, vib_depth=vib, slide_from=sf) * env_adsr(n, d=decay, s=sustain, r=0.03)
+                    if inst:
+                        wave = snes.VOICES[inst](f, n)
+                    else:
+                        wave = pulse_vib(f, n, d, vib_depth=vib, slide_from=sf) * env_adsr(n, d=decay, s=sustain, r=0.03)
                     self.place(wave, t, gain, pan)
                     if echo:
                         self.place(wave, t + self.sixteenth * 2, gain * echo, -pan * 0.5 + 0.35)
                     prev = m
                 t += secs
 
-    def arp_track(self, chords, gain=0.13, pan=-0.35, duty=0.5, pattern=(0, 1, 2, 3)):
-        """chords: list of (bars, [notes]) -> 16th-note arpeggios."""
+    def arp_track(self, chords, gain=0.13, pan=-0.35, duty=0.5, pattern=(0, 1, 2, 3), inst=None, ring=1.0):
+        """chords: list of (bars, [notes]) -> 16th-note arpeggios. `ring` > 1 lets plucked notes overlap."""
         t = 0.0
         for bars, notes in chords:
             steps = int(bars * 16)
             for i in range(steps):
                 m = midi(notes[pattern[i % len(pattern)] % len(notes)])
-                n = int(self.sixteenth * 0.95 * SR)
-                wave = pulse(hz(m), n, duty) * env_adsr(n, d=0.05, s=0.5, r=0.01)
+                n = int(self.sixteenth * 0.95 * ring * SR)
+                if inst:
+                    wave = snes.VOICES[inst](hz(m), n)
+                else:
+                    wave = pulse(hz(m), n, duty) * env_adsr(n, d=0.05, s=0.5, r=0.01)
                 self.place(wave, t, gain, pan)
                 t += self.sixteenth
 
-    def bass_track(self, lines, gain=0.42, pluck=0.0, legato=0.92, slide=False):
+    def bass_track(self, lines, gain=0.42, pluck=0.0, legato=0.92, slide=False, inst=None):
         t = 0.0; prev = None
         for line in lines:
             for m, dur in parse(line):
@@ -140,19 +143,23 @@ class Song:
                         tri = np.round((4 * np.abs(ph - 0.5) - 1 + 1) * 7.5) / 7.5 - 1
                     else:
                         tri = triangle(f, n)
-                    wave = tri * env_adsr(n, a=0.001, d=0.02, s=0.9, r=0.015)
+                    wave = snes.VOICES[inst](f, n) if inst else tri * env_adsr(n, a=0.001, d=0.02, s=0.9, r=0.015)
                     if pluck:
                         wave = wave + pulse(f * 2, n, 0.125) * env_adsr(n, a=0.001, d=0.04, s=0.0, r=0.01) * pluck
                     self.place(wave, t, gain)
                     prev = m
                 t += secs
 
-    def drum_track(self, pattern_lines, gain=0.5):
-        """Each char is a 16th: K kick, S snare, h hat, H open hat, . rest"""
+    def drum_track(self, pattern_lines, gain=0.5, kit="snes"):
+        """Each char is a 16th: K kick, S snare, h hat, H open hat, T tom, P timpani, . rest"""
         t = 0.0
         for line in pattern_lines:
             for c in line.replace(" ", ""):
-                if c == "K":
+                if kit == "snes" and c in "KShHTP":
+                    hit = {"K": snes.kick, "S": snes.snare, "h": lambda: snes.hat(False), "H": lambda: snes.hat(True), "T": snes.tom, "P": snes.timpani}[c]()
+                    level = {"K": 1.0, "S": 0.8, "h": 0.3, "H": 0.3, "T": 0.8, "P": 0.9}[c]
+                    self.place(hit, t, gain * level, {"h": 0.3, "H": 0.3, "T": -0.2}.get(c, 0.0))
+                elif c == "K":
                     n = int(0.12 * SR); tt = np.arange(n) / SR
                     body = np.sin(2 * np.pi * (150 * np.exp(-tt * 18) + 40) * tt) * np.exp(-tt * 22)
                     click = lowpass(noise(n), 1200) * np.exp(-tt * 90) * 0.8
@@ -171,10 +178,11 @@ class Song:
                     self.place(w, t, gain * 0.25)
                 t += self.sixteenth
 
-    def render(self, path, peak=0.89, loop=True):
-        x = self.mix[: self.length].copy()
+    def render(self, path, peak=0.89, loop=True, echo=0.28):
+        full = snes.snes_echo(self.mix, wet=echo) if echo else self.mix
+        x = full[: self.length].copy()
         if loop:
-            spill = self.mix[self.length :]
+            spill = full[self.length :]
             x[: len(spill)] += spill            # the tail lands under the first beat: no seam
 
         x = np.tanh(x * 1.15) / math.tanh(1.15)        # gentle soft clip
@@ -190,3 +198,6 @@ if __name__ == "__main__":
     mod = importlib.import_module(sys.argv[1])
     song = mod.build()
     song.render(sys.argv[2])
+
+# SNES voices import the helpers above, so they load last
+import snes  # noqa: E402

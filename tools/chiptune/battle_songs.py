@@ -26,7 +26,7 @@ def _():
     s.bass_track(bass_lines, gain=0.44, pluck=0.35, legato=0.8, slide=True)
     # Off-beat horn stabs: 50% pulse, short
     stabs = {"E7": "-:2 E5:1 -:1 -:2 G#5:1 -:1 -:2 D6:1 -:1 -:2 E5:1 -:1", "A7": "-:2 A5:1 -:1 -:2 C#6:1 -:1 -:2 G5:1 -:1 -:2 A5:1 -:1", "B7": "-:2 B5:1 -:1 -:2 D#6:1 -:1 -:2 A5:1 -:1 -:2 B5:1 -:1"}
-    s.pulse_track([stabs[x] for x in c], duty=0.5, gain=0.12, vib=0.0, legato=0.5, pan=0.4, decay=0.03, sustain=0.4)
+    s.pulse_track([stabs[x] for x in c], gain=0.16, legato=0.5, pan=0.4, inst="brass")
     # The weird lead: blue notes, slides, a different duty every note (wah)
     lead = [
         "-:8 E5:2 G5:2 A5:1 A#5:1 B5:2", "D6:3 B5:1 G5:2 E5:2 -:2 G5:1 G#5:1 E5:4",
@@ -38,7 +38,7 @@ def _():
         "-:4 E5:1 E5:1 G5:2 A5:2 A#5:2 B5:4", "D6:2 E6:2 G6:2 E6:2 D6:2 B5:2 A5:4",
         "C6:2 C#6:2 E6:4 G6:2 E6:2 C#6:4", "B5:2 A5:2 F#5:2 D#5:2 B4:4 -:4",
     ]
-    s.pulse_track(lead, gain=0.2, vib=0.35, slide=True, echo=0.22, legato=0.85, duties=(0.125, 0.25, 0.5, 0.25))
+    s.pulse_track(lead, gain=0.22, vib=0.35, slide=True, echo=0.22, legato=0.85, inst="brass")
     s.drum_track([FUNK, FUNK, FUNK, FUNK2] * 4, gain=0.48)
     return s
 
@@ -51,10 +51,10 @@ def _():
     B = ["A5:3 G5:1 E5:2 C5:2 A4:4 C5:2 E5:2", "G5:3 F#5:1 E5:2 B4:2 G4:4 B4:2 E5:2",
          "C5:2 E5:2 G5:2 C6:2 B5:3 G5:1 E5:4", "D#5:2 F#5:2 B5:2 D#6:2 B5:2 F#5:2 D#5:2 B4:2"]
     END = A[:2] + ["A4:2 C5:2 E5:2 A5:2 G5:2 F#5:2 E5:2 D5:2", "D#5:1 E5:1 F#5:1 G5:1 A5:1 B5:1 C6:1 D#6:1 E6:4 -:2 B5:1 -:1"]
-    s.pulse_track(A + A2 + B + END, duty=0.25, gain=0.21, vib=0.3, slide=True, echo=0.28)
+    s.pulse_track(A + A2 + B + END, inst="brass", gain=0.21, vib=0.3, slide=True, echo=0.28)
     c = ["Em", "C", "D", "Bm"] * 2 + ["Am", "Em", "C", "B7", "Em", "C", "Am", "B7"]
     chords_arp(s, c, gain=0.12, pan=-0.4, duty=0.5, pattern=(0, 1, 2, 3, 2, 1, 0, 1))
-    s.bass_track([bass_line(x, 2, "drive") for x in c], gain=0.4, pluck=0.2)
+    s.bass_track([bass_line(x, 2, "drive") for x in c], gain=0.4, inst="synthbass")
     s.drum_track([ROCK] * 3 + [ROCK_FILL] + [ROCK] * 3 + [ROCK_FILL] + [ROCK] * 3 + [ROCK_FILL] + [ROCK] * 3 + ["K.h.S.h.K.SSS.H."], gain=0.48)
     return s
 
@@ -73,7 +73,7 @@ def _():
             "C6:1 -:1 C6:1 -:1 E6:2 G#6:2 F#6:4 E6:4", "A#5:2 C6:2 D6:2 E6:2 F#6:8",
             "C5:2 D5:2 E5:2 F#5:2 G#5:3 F#5:1 E5:4", "-:4 A#5:2 G#5:2 F#5:1 E5:1 D5:2 C5:4",
             "D6:2 C6:2 A#5:2 G#5:2 F#5:2 E5:2 D5:2 C5:2", "F#5:2 A#5:2 D6:4 -:8"]
-    s.pulse_track(lead, gain=0.2, vib=0.55, slide=True, echo=0.3, legato=0.8, duties=(0.5, 0.125))
+    s.pulse_track(lead, gain=0.2, vib=0.55, slide=True, echo=0.3, legato=0.8, inst="epiano")
     chords_arp(s, c, gain=0.09, pan=0.4, duty=0.25, pattern=(0, 2, 1, 2, 3, 2, 1, 2))
     s.drum_track([WEIRD, WEIRD, WEIRD, "K..hS.K.h.KhSSSS"] * 4, gain=0.46)
     return s
@@ -86,9 +86,9 @@ def _():
             "A5:2 C6:2 E6:4 D6:2 C6:2 B5:4", "A5:2 -:2 A5:2 B5:2 C6:8", "D6:2 F6:2 A6:4 G6:2 F6:2 D6:4", "E6:4 G#5:4 E5:8",
             "F5:4 A5:4 C6:8", "G5:4 B5:4 D6:8", "E6:4 C6:4 A5:8", "G#5:4 B5:4 E5:8",
             "F5:2 A5:2 C6:4 F6:4 E6:4", "D6:2 F6:2 A6:4 F6:2 D6:2 A5:4", "G#5:4 B5:4 D6:4 F6:4", "E6:4 C6:4 A5:8"]
-    s.pulse_track(lead, duty=0.25, gain=0.19, vib=0.3, echo=0.35)
+    s.pulse_track(lead, inst="brass", gain=0.19, vib=0.3, echo=0.35)
     chords_arp(s, c, gain=0.09, duty=0.25, pattern=(0, 0, 1, 2, 3, 2, 1, 0))
-    s.bass_track([bass_line(x, 2, "drive") for x in c], gain=0.38)
+    s.bass_track([bass_line(x, 2, "drive") for x in c], gain=0.38, inst="synthbass")
     s.drum_track([ROCK] * 7 + [ROCK_FILL] + [ROCK] * 7 + [ROCK_FILL], gain=0.44)
     return s
 
@@ -100,8 +100,8 @@ def _():
             "D6:4 A5:4 F5:4 D5:4", "Bb5:4 D6:2 F6:2 D6:8", "G5:4 Bb5:4 D6:4 G6:4", "E6:4 C#6:4 A5:8",
             "F5:2 A5:2 C6:4 A5:2 F5:2 C5:4", "E5:2 G5:2 C6:4 G5:2 E5:2 C5:4", "D5:2 F5:2 A5:4 D6:8", "C#6:4 A5:4 E5:8",
             "Bb5:4 D6:4 F6:8", "G5:4 Bb5:4 D6:8", "A5:4 C#6:4 E6:4 G6:4", "F6:4 D6:4 A5:8"]
-    s.pulse_track(lead, duty=0.125, gain=0.17, vib=0.4, echo=0.5, legato=0.9)
-    s.arp_track([(1, chord(x, 4)) for x in c], gain=0.08, pan=-0.35, duty=0.5, pattern=(0, 2, 1, 3, 2, 1))
-    s.bass_track([bass_line(x, 2, "half") for x in c], gain=0.34)
+    s.pulse_track(lead, inst="bell", gain=0.17, vib=0.4, echo=0.5, legato=0.9)
+    s.arp_track([(1, chord(x, 4)) for x in c], gain=0.12, pan=-0.35, pattern=(0, 2, 1, 3, 2, 1), inst="epiano", ring=2.0)
+    s.bass_track([bass_line(x, 2, "half") for x in c], gain=0.34, inst="synthbass")
     s.drum_track(["K...h.S...h.K.h.", "K...h.S...h...hh"] * 8, gain=0.34)
     return s

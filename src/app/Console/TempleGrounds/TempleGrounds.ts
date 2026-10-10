@@ -355,7 +355,8 @@ export default defineComponent({
       swipeStart = null;
       if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_MIN_PX) return;
       const horizontal = Math.abs(dx) > Math.abs(dy);
-      const direction = horizontal ? (dx > 0 ? 'east' : 'west') : dy > 0 ? 'south' : 'north';
+      // Dragging the world: a swipe to the right pulls the room on the left into view (west), and so on
+      const direction = horizontal ? (dx > 0 ? 'west' : 'east') : dy > 0 ? 'north' : 'south';
       const allowed = { north: canMoveUp, south: canMoveDown, west: canMoveLeft, east: canMoveRight }[direction];
       if (!allowed.value) return;
       moveWithUpdate(direction);
