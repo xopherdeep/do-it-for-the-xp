@@ -25,6 +25,8 @@ import { type BankAction, bankReceipt, bankRefusal, gold } from "@/lib/services/
 import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
 import ATMModal from "./components/ATMModal.vue";
 import debug from "@/lib/utils/debug";
+import { walletLimitOf } from "@/lib/services/gp/wallet";
+import { shopHintFor } from "@/lib/services/gp/walletShops";
 
 // Define the interface for XpTypingText instance methods
 interface XpTypingTextInstance {
@@ -73,6 +75,8 @@ export default defineComponent({
       return [
         "Welcome to the Gold Bank! I'm the bank manager. How can I assist you with your finances today?",
         "We offer several banking services including deposits, withdrawals, and debt management.",
+        // The bank does not sell wallets: it tells the hero how big theirs is and where a bigger one is sold
+        `Your wallet holds ₲${walletLimitOf(this.user?.stats?.gp)}. ${shopHintFor(this.user?.stats?.gp)}`,
         "Our secure ATM is also available if you need to access your accounts or perform transactions."
       ];
     }
