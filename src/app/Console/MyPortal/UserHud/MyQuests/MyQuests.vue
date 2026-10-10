@@ -10,11 +10,77 @@
         </ion-buttons>
         <ion-title> Quest Log </ion-title>
       </ion-toolbar>
+      <!-- Two faces of the log: the card board, and the plain to-do list with assignee, due time and status -->
+      <ion-toolbar color="success" class="view-toolbar">
+        <ion-segment :value="view" color="dark" @ionChange="viewChanged">
+          <ion-segment-button value="board">
+            <i class="fad fa-th-large" />
+            Board
+          </ion-segment-button>
+          <ion-segment-button value="list">
+            <i class="fad fa-tasks" />
+            List
+            <ion-badge v-if="todoCount" class="tab-count" color="dark">{{ todoCount }}</ion-badge>
+          </ion-segment-button>
+        </ion-segment>
+      </ion-toolbar>
     </ion-header>
 
-    <ion-content class="my-tasks">
+    <ion-content class="my-tasks" :class="`view-${view}`">
       <XpLoading v-if="isLoading" />
-      <swiper :navigation="swiperNavigation" :modules="modules" ref="slides" @slidePrevTransitionStart="slidePrev"
+
+      <!-- The List: every quest for the hero as one row, overdue first, tamed last -->
+      <template v-if="view === 'list'">
+        <ion-list v-if="listRows.length" class="quest-list" lines="none">
+          <ion-item v-for="row in listRows" :key="row.id" class="quest-row" :data-status="row.status" button
+            :detail="false" :disabled="finishing === row.id" @click="tapRow(row)">
+            <span slot="start" class="quest-row-icon icon-colors">
+              <i :class="rowIcon(row)" />
+            </span>
+            <ion-label>
+              <h2 class="quest-row-name" v-html="formatQuestName(row.title)"></h2>
+              <p class="quest-row-meta">
+                <img v-if="avatarFor(row.assigneeId)" :src="avatarFor(row.assigneeId)" class="quest-row-avatar"
+                  :alt="row.assigneeName" />
+                <span class="quest-row-who">{{ row.assigneeName }}</span>
+                <span class="quest-row-due">
+                  <ion-icon :icon="hourglassOutline" /> {{ row.dueLabel }}
+                </span>
+                <ion-icon v-if="row.requiresApproval" :icon="shieldCheckmarkOutline" class="quest-row-approval"
+                  title="The Game Master approves this one" />
+              </p>
+              <p v-if="row.status === 'pending'" class="quest-row-state">Pending the Game Master</p>
+              <p v-else class="quest-row-rewards">
+                <span v-if="row.rewards.xp">{{ row.rewards.xp }} XP</span>
+                <span v-if="row.rewards.gp">{{ row.rewards.gp }} GP</span>
+                <span v-if="row.rewards.ap">{{ row.rewards.ap }} AP</span>
+              </p>
+            </ion-label>
+            <ion-button v-if="row.status === 'open' || row.status === 'overdue'" slot="end" class="quest-row-done"
+              size="small" :color="rowColor(row)" @click.stop="confirmDone(row)">
+              <ion-icon slot="start" :icon="checkmarkDone" />
+              Done
+            </ion-button>
+            <ion-badge v-else slot="end" class="quest-row-status" :color="rowColor(row)">
+              {{ row.status === 'pending' ? 'Pending' : row.statusLabel }}
+            </ion-badge>
+          </ion-item>
+        </ion-list>
+        <div v-else-if="!isLoading" class="quest-list-empty">
+          <i class="fad fa-scroll-old fa-3x" />
+          <p>{{ listEmptyLine }}</p>
+        </div>
+
+        <ion-fab slot="fixed" vertical="bottom" horizontal="end">
+          <ion-fab-button color="success" aria-label="Add task" @click="openAddTask">
+            <ion-icon :icon="add" />
+          </ion-fab-button>
+        </ion-fab>
+        <XpQuickTaskModal v-if="addOpen" :userId="String(userId)" :users="userStore.users" @saved="onTaskSaved"
+          @didDismiss="addOpen = false" />
+      </template>
+
+      <swiper v-show="view === 'board'" :navigation="swiperNavigation" :modules="modules" ref="slides" @slidePrevTransitionStart="slidePrev"
         @slideNextTransitionStart="slideNext" @swiper="setControlledSwiper">
         <swiper-slide v-for="page in nTotalPages" pager="true" :key="page" :data-page="page">
           <ion-grid>
@@ -115,7 +181,16 @@
                 v-model="searchText"></ion-searchbar>
             </ion-col>
           </ion-row>
-          <ion-row>
+          <ion-row v-if="view === 'list'">
+            <ion-col class="total-pages">
+              <ion-text class="ion-text-align-center">
+                To do: {{ todoCount }}
+                <span v-if="listCounts.overdue"> ({{ listCounts.overdue }} overdue)</span>
+                · Pending: {{ listCounts.pending }} · Tamed: {{ listCounts.done }}
+              </ion-text>
+            </ion-col>
+          </ion-row>
+          <ion-row v-show="view === 'board'">
             <ion-col>
               <ion-button id="swiper-back" :disabled="page == 1" color="dark" expand="block">
                 <ion-icon :icon="chevronBack" slot="icon-only" />

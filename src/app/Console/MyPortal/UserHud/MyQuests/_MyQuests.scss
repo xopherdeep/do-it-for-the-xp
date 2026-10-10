@@ -93,3 +93,183 @@ ion-modal{
     // height: 35vh;
   }
 }
+// The view switch in the header: Board | List, with the count of what still needs doing
+.view-toolbar {
+  ion-segment-button {
+    position: relative;
+    font-family: "StatusPlz", monospace;
+    letter-spacing: 0.04em;
+
+    i {
+      margin-right: 0.4em;
+    }
+
+    .tab-count {
+      position: absolute;
+      top: 2px;
+      right: 4px;
+      font-size: 0.6rem;
+      padding: 2px 5px;
+      border-radius: 0;
+    }
+  }
+}
+
+// The List view: one boxed RPG row per quest, in the style of My Goods
+.my-tasks.view-list {
+  --padding-top: 0.5rem;
+  --padding-bottom: 5rem; // room for the Add task button
+}
+
+.quest-list {
+  background: transparent;
+  padding: 0 0.5rem;
+}
+
+.quest-row {
+  --background: rgba(var(--ion-color-rpg-contrast-rgb), 0.85);
+  --color: var(--ion-color-rpg);
+  --padding-start: 0.75rem;
+  --inner-padding-end: 0.75rem;
+  --min-height: 3.5rem;
+  margin-bottom: 0.5rem;
+  border: 3px solid var(--ion-color-rpg);
+  border-radius: 0;
+  box-shadow: inset 0 0 0 2px var(--ion-color-rpg-contrast), 4px 4px 0 rgba(0, 0, 0, 0.5);
+
+  .quest-row-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    margin-right: 0.75rem;
+    border: 2px solid var(--ion-color-rpg);
+    background: rgba(var(--ion-color-rpg-rgb), 0.08);
+  }
+
+  .quest-row-name {
+    font-family: "StatusPlz", monospace;
+    font-size: 1rem;
+    letter-spacing: 0.02em;
+    margin: 0;
+    white-space: normal;
+  }
+
+  // Assignee (avatar and nick), due time, and the approval shield
+  .quest-row-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+    margin: 0.2rem 0 0;
+    font-size: 0.8rem;
+    opacity: 0.9;
+    white-space: normal;
+
+    ion-icon {
+      vertical-align: middle;
+    }
+  }
+
+  .quest-row-avatar {
+    width: 1.25rem;
+    height: 1.25rem;
+    object-fit: cover;
+    border: 1px solid var(--ion-color-rpg);
+    background: rgba(var(--ion-color-rpg-rgb), 0.15);
+  }
+
+  .quest-row-who {
+    font-weight: bold;
+  }
+
+  .quest-row-due {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+  }
+
+  .quest-row-approval {
+    color: var(--ion-color-warning);
+  }
+
+  .quest-row-rewards,
+  .quest-row-state {
+    margin: 0.15rem 0 0;
+    font-size: 0.75rem;
+    opacity: 0.8;
+    white-space: normal;
+
+    span + span::before {
+      content: " · ";
+    }
+  }
+
+  .quest-row-state {
+    color: var(--ion-color-warning);
+    font-weight: bold;
+    opacity: 1;
+  }
+
+  .quest-row-done {
+    --border-radius: 0;
+    font-family: "StatusPlz", monospace;
+    margin: 0;
+  }
+
+  .quest-row-status {
+    font-family: "StatusPlz", monospace;
+    font-size: 0.75rem;
+    padding: 0.3rem 0.5rem;
+    border-radius: 0;
+    border: 2px solid var(--ion-color-rpg);
+  }
+
+  &[data-status="overdue"] {
+    border-color: var(--ion-color-danger);
+
+    .quest-row-icon,
+    .quest-row-due {
+      color: var(--ion-color-danger);
+    }
+  }
+
+  &[data-status="open"] .quest-row-icon { color: var(--ion-color-success); }
+  &[data-status="later"] .quest-row-icon { color: var(--ion-color-tertiary); }
+  &[data-status="pending"] .quest-row-icon { color: var(--ion-color-warning); }
+
+  &[data-status="done"] {
+    .quest-row-icon { color: var(--ion-color-medium); }
+
+    .quest-row-name,
+    .quest-row-meta,
+    .quest-row-rewards {
+      opacity: 0.55;
+    }
+
+    .quest-row-name {
+      text-decoration: line-through;
+    }
+  }
+}
+
+.quest-list-empty {
+  margin: 3rem 1.5rem;
+  padding: 1.5rem 1rem;
+  text-align: center;
+  border: 3px solid var(--ion-color-rpg);
+  background: rgba(var(--ion-color-rpg-contrast-rgb), 0.85);
+  color: var(--ion-color-rpg);
+  box-shadow: inset 0 0 0 2px var(--ion-color-rpg-contrast), 4px 4px 0 rgba(0, 0, 0, 0.5);
+
+  i {
+    opacity: 0.6;
+  }
+
+  p {
+    font-family: "StatusPlz", monospace;
+    margin: 1rem 0 0;
+    line-height: 1.5;
+  }
+}
