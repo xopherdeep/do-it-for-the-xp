@@ -15,7 +15,7 @@
             :key="ability.id"
             button
             @click="editAbility(ability)"
-            :class="{ 'ability-unlocked': isUnlocked(ability.id) }"
+            :class="{ 'ability-unlocked': showStatus && isUnlocked(ability.id) }"
           >
             <ion-icon
               :icon="getAbilityIcon(ability)"
@@ -28,21 +28,20 @@
               slot="start"
               class="fa-lg mr-2"
             ></i>
-            <ion-label>
+            <ion-label class="ion-text-wrap">
               <h2>{{ ability.name }}</h2>
               <p>{{ ability.description }}</p>
+              <!-- Under the text, not beside it: at phone width three end badges squeezed the name to a sliver -->
+              <div class="ability-badges">
+                <ion-badge color="warning">{{ ability.apRequirement.amount }} AP</ion-badge>
+                <ion-badge color="tertiary" v-if="ability.mpCost">{{ ability.mpCost }} MP</ion-badge>
+                <ion-badge
+                  v-if="showStatus"
+                  :color="getStatusColor(getAbilityStatus(ability.id))"
+                  >{{ formatStatus(getAbilityStatus(ability.id)) }}</ion-badge
+                >
+              </div>
             </ion-label>
-            <ion-badge slot="end" color="warning"
-              >{{ ability.apRequirement.amount }} AP</ion-badge
-            >
-            <ion-badge slot="end" color="tertiary" v-if="ability.mpCost"
-              >{{ ability.mpCost }} MP</ion-badge
-            >
-            <ion-badge
-              slot="end"
-              :color="getStatusColor(getAbilityStatus(ability.id))"
-              >{{ formatStatus(getAbilityStatus(ability.id)) }}</ion-badge
-            >
           </ion-item>
         </ion-item-group>
       </ion-list>
@@ -146,7 +145,7 @@
             <div class="tooltip-frequency" v-if="ability.frequency">
               {{ formatFrequency(ability.frequency) }}
             </div>
-            <div class="tooltip-status">
+            <div class="tooltip-status" v-if="showStatus">
               {{ formatStatus(getAbilityStatus(ability.id)) }}
             </div>
           </div>
@@ -174,14 +173,14 @@
     <!-- Empty State -->
     <ion-card
       v-if="abilities.length === 0"
-      class="empty-state max-w-[80%] mx-auto my-4 h-auto max-h-[200px] text-center"
+      class="empty-state max-w-[80%] mx-auto my-4 h-auto text-center"
     >
       <ion-card-title class="flex flex-row gap-2 items-center justify-center">
-        <h2>No Abilities Created Yet</h2>
+        <h2>{{ emptyTitle }}</h2>
       </ion-card-title>
       <ion-card-content>
-        Abilities are special skills or privileges you can use in your game.
-        Start by adding your first ability using the + button below
+        {{ emptyHint }}
+        <slot name="empty-actions" />
       </ion-card-content>
       <ion-icon :icon="colorWandOutline" size="large"></ion-icon>
     </ion-card>
@@ -243,6 +242,20 @@
         type: Object as PropType<{ [abilityId: string]: boolean }>,
         default: () => ({}),
       },
+      // False when there is no hero to judge the abilities for: no lock, cooldown or unlocked marks at all
+      showStatus: {
+        type: Boolean,
+        default: true,
+      },
+      emptyTitle: {
+        type: String,
+        default: "No Abilities Created Yet",
+      },
+      emptyHint: {
+        type: String,
+        default:
+          "Abilities are special skills or privileges you can use in your game. Start by adding your first ability using the + button below",
+      },
     },
     emits: ["edit-ability", "view-mode-change"],
     setup(props, { emit }) {
@@ -265,6 +278,7 @@
       >([]);
 
       // Computed properties
+      const hidesStatus = computed(() => !props.showStatus);
       const abilitiesByFrequency = computed(() => {
         return (Object.values(TimePeriod) as TimePeriod[])
           .map((period) => ({
@@ -412,7 +426,14 @@
         };
       };
 
+      // A line between two nodes: green once its prerequisite is unlocked, grey dashes while locked, plain grey with no hero
+      const getConnectionStatus = (prereqId: string): string => {
+        if (hidesStatus.value) return "neutral";
+        return isUnlocked(prereqId) ? "unlocked" : "locked";
+      };
+
       const getNodeStatusClass = (abilityId: string): string => {
+        if (hidesStatus.value) return "";
         const status = getAbilityStatus(abilityId);
         switch (status) {
           case AbilityStatus.Available:
@@ -472,7 +493,7 @@
                 const path = `M${startX},${startY} L${endX},${endY}`;
 
                 // Determine connection status based on prereq being unlocked
-                const status = isUnlocked(prereqId) ? "unlocked" : "locked";
+                const status = getConnectionStatus(prereqId);
 
                 connections.push({
                   id: `${prereqId}-${ability.id}`,
@@ -651,6 +672,13 @@
 
   .ability-unlocked {
     --ion-item-background: rgba(0, 255, 0, 0.1);
+  }
+
+  .ability-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
   }
 
   .ability-grid-container {
@@ -848,6 +876,10 @@
         stroke: #2ecc71;
       }
 
+      &.neutral {
+        stroke: #7f8c8d;
+      }
+
       &.active {
         stroke: #f1c40f;
         animation: pulse 2s infinite;
@@ -948,7 +980,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    height: 100%;
+    height: auto; // the card holds its text and the preset button; 100% stretched it over whatever sits below
     color: var(--ion-color-medium);
 
     ion-icon {

@@ -1,4 +1,4 @@
-import { defineComponent, ref, computed, onMounted, watch } from "vue";
+import { defineComponent, ref, computed, onMounted } from "vue";
 import ionic from "@/lib/mixins/ionic";
 import {
   add,
@@ -12,7 +12,11 @@ import {
   colorWandOutline,
 } from "ionicons/icons";
 import { v4 as uuidv4 } from "uuid";
-import { alertController, actionSheetController } from "@ionic/vue";
+import {
+  alertController,
+  actionSheetController,
+  toastController,
+} from "@ionic/vue";
 import AbilitiesDb, { abilitiesStorage } from "@/lib/databases/AbilitiesDb";
 import XpAbilityManager from "@/components/molecules/Ability/XpAbilityManager.vue";
 import XpIconPicker from "@/components/atoms/Icon/XpIconPicker.vue";
@@ -20,7 +24,6 @@ import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import {
   Ability,
   AbilityType,
-  AbilityStatus,
   TimePeriod,
   ABILITY_CLASSES,
 } from "@/hooks/abilities/abilityConstants";
@@ -29,6 +32,13 @@ import {
   TIME_MAGE_PRESETS,
   TECH_MAGE_PRESETS,
 } from "@/lib/services/abilities/AbilityPresets";
+import {
+  computeHeroAbilityStatuses,
+  heroAbilitySnapshot,
+} from "@/lib/services/abilities/heroAbilityStatus";
+import { useUserStore } from "@/lib/store/stores/user";
+import { play$fx } from "@/assets/fx";
+import debug from "@/lib/utils/debug";
 import { useRouter } from "vue-router";
 import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
 
@@ -55,9 +65,8 @@ export default defineComponent({
     const currentFilter = ref("all");
     const classFilter = ref("all");
     const isLoading = ref(true);
-    const abilityStatuses = ref<{ [abilityId: string]: AbilityStatus }>({});
-    const unlockStatuses = ref<{ [abilityId: string]: boolean }>({});
     const router = useRouter();
+    const userStore = useUserStore();
     const selectedIconName = ref("");
 
     // Form field refs
@@ -401,6 +410,92 @@ export default defineComponent({
       return abilities.value.some((a) => a.id === presetId);
     };
 
+    // The preset catalogue by group, as the preset modal and the Presets segment list it
+    const presetGroups = [
+      { key: "time-mage", label: "Time Mage Abilities", presets: timeMagePresets },
+      { key: "technician", label: "Technician Abilities", presets: techMagePresets },
+      { key: "real-life", label: "Real Life Rewards", presets: realLifePresets },
+      { key: "hybrid", label: "Multi-Class Abilities", presets: hybridPresets },
+    ].filter((group) => group.presets.length > 0);
+    const allPresets = presetGroups.flatMap((group) => group.presets);
+
+    // What is still on offer: the catalogue minus the presets already in the Compendium
+    const unaddedPresetGroups = computed(() =>
+      presetGroups
+        .map((group) => ({
+          ...group,
+          presets: group.presets.filter((preset) => !isPresetAdded(preset.id)),
+        }))
+        .filter((group) => group.presets.length > 0)
+    );
+
+    // Names of the prerequisite presets this one still waits on, so a GM sees why it will show Locked
+    const presetNeeds = (preset: Ability): string[] =>
+      (preset.prerequisites ?? [])
+        .filter((id) => !isPresetAdded(id))
+        .map((id) => allPresets.find((p) => p.id === id)?.name ?? id);
+
+    // One tap on the catalogue adds the preset (the modal's checkbox list toggles, so it stays the way to remove one)
+    const addPresetFromCatalogue = async (preset: Ability) => {
+      if (isPresetAdded(preset.id)) return;
+      addPreset(preset);
+      play$fx("select");
+      const toast = await toastController.create({
+        message: `${preset.name} added to the Compendium`,
+        duration: 1500,
+        position: "top",
+        cssClass: "rpg-toast",
+      });
+      await toast.present();
+    };
+
+    // Preview as: the Powers are judged for one real hero, never an invented one
+    const heroes = computed(() =>
+      userStore.usersAz.filter((hero: any) => hero.isAdult !== true)
+    );
+    const previewHeroId = ref("");
+    const previewHero = computed(
+      () =>
+        heroes.value.find((hero: any) => String(hero.id) === previewHeroId.value) ??
+        heroes.value[0] ??
+        null
+    );
+    const hasPreviewHero = computed(() => previewHero.value !== null);
+    const heroName = (hero: any): string =>
+      hero?.name?.nick || hero?.name?.first || String(hero?.id);
+    const selectPreviewHero = (hero: any) => {
+      previewHeroId.value = String(hero.id);
+      play$fx("cursor");
+    };
+
+    // Judged against every ability, not only the filtered ones, so prerequisites resolve
+    const heroStatuses = computed(() =>
+      previewHero.value
+        ? computeHeroAbilityStatuses(abilities.value, previewHero.value)
+        : { statuses: {}, unlocks: {} }
+    );
+    const abilityStatuses = computed(() => heroStatuses.value.statuses);
+    const unlockStatuses = computed(() => heroStatuses.value.unlocks);
+    const previewSnapshot = computed(() =>
+      previewHero.value ? heroAbilitySnapshot(previewHero.value) : null
+    );
+
+    // Empty-state copy: names the real control (the spellbook button opens Create New Ability / Add from Presets)
+    const FILTER_LABELS: { [filter: string]: string } = {
+      "real-life": "Real Life",
+      "in-game": "Game",
+    };
+    const emptyTitle = computed(() => {
+      if (currentFilter.value === "presets") return "No Presets Added Yet";
+      if (abilities.value.length === 0) return "No Abilities Created Yet";
+      return `No ${FILTER_LABELS[currentFilter.value] ?? ""} Abilities Here Yet`;
+    });
+    const emptyHint = computed(() =>
+      currentFilter.value === "presets"
+        ? "Presets are ready-made abilities. Pick the ones you want from the list below, one tap each."
+        : "Abilities are special skills or privileges for your heroes. Tap the spellbook button below to write your own with Create New Ability, or choose Add from Presets: ready-made abilities are one tap away."
+    );
+
     const getAbilityIcon = (ability: Ability) => {
       // If the ability has iconPrefix, it's a Font Awesome icon, so we should display it differently
       if (ability.iconPrefix) {
@@ -463,167 +558,20 @@ export default defineComponent({
       return formatFrequency(period);
     };
 
-    const calculateAbilityStatuses = () => {
-      // Mock function to simulate ability statuses
-      // In a real app, this would check against user progress and stats
-
-      const mockUserStats = {
-        level: 5,
-        classes: {
-          "time-mage": 3,
-          technician: 2,
-          "black-mage": 1,
-        } as any,
-        attributes: {
-          strength: 8,
-          dexterity: 10,
-          constitution: 9,
-          intelligence: 12,
-          wisdom: 10,
-          charisma: 11,
-        },
-        ap: {
-          total: 1000,
-          daily: 50,
-          weekly: 200,
-          monthly: 500,
-        },
-        mp: 30,
-      };
-
-      // Reset statuses
-      const statuses: { [id: string]: AbilityStatus } = {};
-      const unlocks: { [id: string]: boolean } = {};
-
-      // Process abilities
-      abilities.value.forEach((ability) => {
-        // Check if ability is unlocked
-        let isUnlocked = false;
-
-        // Check AP requirements
-        let hasEnoughAp = false;
-
-        switch (ability.apRequirement.period) {
-          case TimePeriod.Daily:
-            hasEnoughAp =
-              mockUserStats.ap.daily >= ability.apRequirement.amount;
-            break;
-          case TimePeriod.Weekly:
-            hasEnoughAp =
-              mockUserStats.ap.weekly >= ability.apRequirement.amount;
-            break;
-          case TimePeriod.Monthly:
-            hasEnoughAp =
-              mockUserStats.ap.monthly >= ability.apRequirement.amount;
-            break;
-          default:
-            hasEnoughAp =
-              mockUserStats.ap.total >= ability.apRequirement.amount;
-        }
-
-        if (hasEnoughAp) {
-          // Check character level requirement
-          if (ability.characterRequirement?.level) {
-            if (
-              mockUserStats.level >=
-              (ability.characterRequirement.level as number)
-            ) {
-              isUnlocked = true;
-            }
-          } else {
-            isUnlocked = true;
-          }
-
-          // Check class requirements
-          if (isUnlocked && ability.characterRequirement?.class) {
-            for (const [className, requiredLevel] of Object.entries(
-              ability.characterRequirement.class
-            )) {
-              const userClassLevel = mockUserStats.classes[className] || 0;
-              if (userClassLevel < (requiredLevel as number)) {
-                isUnlocked = false;
-                break;
-              }
-            }
-          }
-
-          // Check prerequisites
-          if (
-            isUnlocked &&
-            ability.prerequisites &&
-            ability.prerequisites.length > 0
-          ) {
-            for (const prereqId of ability.prerequisites) {
-              if (!unlocks[prereqId]) {
-                isUnlocked = false;
-                break;
-              }
-            }
-          }
-        }
-
-        // Store unlock status
-        unlocks[ability.id] = isUnlocked;
-
-        // Determine ability status
-        if (!isUnlocked) {
-          statuses[ability.id] = AbilityStatus.Locked;
-        } else if (mockUserStats.mp < ability.mpCost) {
-          statuses[ability.id] = AbilityStatus.Unlocked;
-        } else if (ability.lastUsed) {
-          // Check if the ability is in cooldown based on frequency
-          const now = new Date();
-          const lastUsed = new Date(ability.lastUsed);
-          let cooldownExpired = true;
-          let dayDiff = 0;
-          let weekDiff = 0;
-          let monthDiff = 0;
-
-          switch (ability.frequency) {
-            case TimePeriod.Daily:
-              dayDiff = now.getDate() - lastUsed.getDate();
-              cooldownExpired = dayDiff >= 1;
-              break;
-            case TimePeriod.Weekly:
-              weekDiff = Math.floor(
-                (now.getTime() - lastUsed.getTime()) / (7 * 24 * 60 * 60 * 1000)
-              );
-              cooldownExpired = weekDiff >= 1;
-              break;
-            case TimePeriod.Monthly:
-              monthDiff =
-                (now.getFullYear() - lastUsed.getFullYear()) * 12 +
-                (now.getMonth() - lastUsed.getMonth());
-              cooldownExpired = monthDiff >= 1;
-              break;
-          }
-
-          statuses[ability.id] = cooldownExpired
-            ? AbilityStatus.Available
-            : AbilityStatus.Cooling;
-        } else {
-          statuses[ability.id] = AbilityStatus.Available;
-        }
-      });
-
-      abilityStatuses.value = statuses;
-      unlockStatuses.value = unlocks;
-    };
-
     // Initialize
     onMounted(async () => {
       isLoading.value = true;
       try {
-        const loadedAbilities = await abilitiesDb.getAbilities();
-        abilities.value = loadedAbilities;
-        calculateAbilityStatuses();
+        abilities.value = await abilitiesDb.getAbilities();
+        // App.ts loads the heroes at start-up; this only covers a page opened before that finished
+        const noHeroesLoaded = Object.keys(userStore.users).length === 0;
+        if (noHeroesLoaded) await userStore.loadUsers();
+      } catch (error) {
+        debug.error("Powers: could not load abilities or heroes", error);
       } finally {
         isLoading.value = false;
       }
     });
-
-    // Watch for changes in abilities to recalculate statuses
-    watch(abilities, calculateAbilityStatuses, { deep: true });
 
     // Action sheet handler
     const presentActionSheet = async () => {
@@ -662,6 +610,18 @@ export default defineComponent({
     return {
       abilities,
       filteredAbilities,
+      heroes,
+      previewHero,
+      hasPreviewHero,
+      previewSnapshot,
+      heroName,
+      selectPreviewHero,
+      presetGroups,
+      unaddedPresetGroups,
+      presetNeeds,
+      addPresetFromCatalogue,
+      emptyTitle,
+      emptyHint,
       showAbilityModal,
       showPresetModal,
       showIconPicker,
