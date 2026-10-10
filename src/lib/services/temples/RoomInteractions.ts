@@ -396,7 +396,14 @@ export const buyWare = (room: Room, ctx: RoomContext, wareId: string): RoomOutco
 
   const special = ware.id.slice('special:'.length);
   void store.updateUserGP({ userId: ctx.userId, wallet: -ware.price });
-  store.addInventoryItem(ctx.userId, { name: special, source: ctx.templeId });
+  const consumable = /(potion|ether)$/i.test(ware.name) || /elixir/i.test(ware.name);
+  store.addInventoryItem(ctx.userId, {
+    name: special,
+    source: ctx.templeId,
+    type: consumable ? 'consumable' : 'material',
+    faIcon: consumable ? 'flask-potion' : 'gem',
+    ...(ware.blurb ? { description: ware.blurb } : {}),
+  });
   rememberOnce(roomKey(ctx, `bought:${special}`));
   return { message: `${ware.name} is in your bag.`, sound: SFX.buy };
 };

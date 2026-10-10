@@ -351,6 +351,9 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
         // Update the temple system state directly
         const state = templeSystem.getTempleState(templeId);
         if (state) state.hasCompass = true;
+      } else if (userId && /^(potion|ether)$|elixir/i.test(item)) {
+        // Restoratives go in the bag as consumables, so My Goods files them under Consumables
+        useUserStore().addInventoryItem(userId, { name: item, type: 'consumable', faIcon: 'flask-potion', qty: 1 });
       } else {
         // The Pegasus chest behind the boss: the world's Pegasus is free and the temple is cleared
         if (content?.pegasus === true && item === content.dungeon) freed = freeTemplePegasus(templeId, userId).message;
