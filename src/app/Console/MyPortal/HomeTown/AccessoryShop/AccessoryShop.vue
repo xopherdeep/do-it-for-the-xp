@@ -70,6 +70,32 @@
             </ion-item>
           </ion-card-content>
         </ion-card>
+        <!-- The shop's own ware: the next wallet size, Majora's Mask style. Not on the Game Master's shelf. -->
+        <ion-card
+          v-if="walletWare"
+          class="shop-wallet-ware rpg-box"
+          :class="`is-${walletWare.status}`"
+          button
+          :disabled="isBuying"
+          @click="buyWallet"
+        >
+          <ion-card-title>
+            <i class="fad fa-wallet" />
+            {{ walletWare.name }}
+          </ion-card-title>
+          <ion-card-content>
+            <p class="shop-wallet-ware__blurb">{{ walletWare.blurb }}</p>
+            <ion-badge :color="walletWare.status === 'for-sale' ? 'warning' : 'medium'">
+              <i class="fa fa-coins" />
+              {{ walletWare.price }}
+              <strong>GP</strong>
+            </ion-badge>
+            <p class="shop-wallet-ware__note">
+              <i v-if="walletWare.status === 'locked'" class="fa fa-lock" />
+              {{ walletWare.note }}
+            </p>
+          </ion-card-content>
+        </ion-card>
         <!-- Nothing to show -->
         <ion-card v-if="pagedItems.length === 0" class="shop-empty-shelf">
           <ion-card-content class="rpg-box">

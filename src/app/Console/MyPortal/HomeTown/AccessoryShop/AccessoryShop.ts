@@ -26,7 +26,7 @@ import {
   bagOutline,
   cashOutline
 } from "ionicons/icons";
-import { modalController, onIonViewWillEnter, toastController } from "@ionic/vue";
+import { alertController, modalController, onIonViewWillEnter, toastController } from "@ionic/vue";
 import debug from "@/lib/utils/debug";
 // Import ATM Modal component
 import ATMModal from "@/app/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
@@ -41,6 +41,9 @@ import {
   stockShelf,
 } from "@/lib/services/shop/PurchaseService";
 import type { ShelfItem } from "@/lib/services/shop/PurchaseService";
+// Bigger wallets, Majora's Mask style: each region shop sells one tier, and only as the hero's next one.
+import { buyWalletUpgrade } from "@/lib/services/gp/wallet";
+import { gold, walletOfferAt } from "@/lib/services/gp/walletShops";
 
 // The general store you reach from Home Town; also where an unknown shop id ends up.
 const DEFAULT_SHOP_ID = "hometown-market";
@@ -223,6 +226,54 @@ export default defineComponent({
       debug.error("Purchase failed:", error);
       return "Something went wrong, so nothing was bought. Please try again.";
     },
+    async rpgToast(message: string) {
+      const toast = await toastController.create({ message, duration: 3000, position: "top", cssClass: "rpg-toast" });
+      await toast.present();
+    },
+    // The shop's own ware, not something the Game Master stocked: the next wallet size, sold here and only here.
+    // Pays out of savings first, then the wallet, and the new limit takes effect at once (no delivery to wait on).
+    async buyWallet() {
+      const ware = this.walletWare;
+      if (!ware || this.isBuying) return;
+      if (!ware.offer) {
+        this.play$fx("no");
+        void this.rpgToast(ware.status === "owned" ? `${ware.note} ${ware.hint}` : ware.note);
+        return;
+      }
+      if (ware.status === "locked") {
+        this.play$fx("no");
+        void this.rpgToast(`${this.shopkeeper}: "Come back at level ${ware.offer.minLevel}, kid."`);
+        return;
+      }
+      const alert = await alertController.create({
+        header: ware.name,
+        message: `${this.shopkeeper}: "Holds ${gold(ware.offer.limit)}. That'll be ${gold(ware.offer.price)}, out of your savings first."`,
+        buttons: [
+          { text: "No thanks", role: "cancel" },
+          { text: `Buy for ${gold(ware.offer.price)}`, role: "confirm" },
+        ],
+      });
+      await alert.present();
+      const { role } = await alert.onDidDismiss();
+      if (role !== "confirm") return;
+
+      const hero = this.userStore.users[this.heroId];
+      const result = buyWalletUpgrade(hero?.stats?.gp, Number(hero?.stats?.level) || 1);
+      if (!result.ok) {
+        this.play$fx("no");
+        const why =
+          result.reason === "poor"
+            ? `Not enough GP! You are ${gold(result.short)} short, savings and all.`
+            : result.reason === "locked"
+              ? `LVL ${result.offer?.minLevel} needed.`
+              : "You already carry the biggest wallet there is.";
+        void this.rpgToast(why);
+        return;
+      }
+      this.userStore.setWallet(this.heroId, result.gp);
+      this.play$fx("levelUp");
+      void this.rpgToast(`Your wallet now holds ${gold(result.offer.limit)}!`);
+    },
     // The GP leaves the wallet now; the Game Master hands the real thing over later
     // (it shows up under Approvals > Accessories until they do).
     async buyItem(item: ShelfItem) {
@@ -257,6 +308,11 @@ export default defineComponent({
     const heroId = computed(() => String(props.userId || userStore.currentUser.id || ""));
     const wallet = computed(() => Number(userStore.users[heroId.value]?.stats?.gp?.wallet) || 0);
     const canAfford = (price: number) => wallet.value >= price;
+    // Null at shops that sell no wallet (Home Town, the Swamps, the Tundra, the Clouds)
+    const walletWare = computed(() => {
+      const stats = userStore.users[heroId.value]?.stats;
+      return walletOfferAt(props.merchant, stats?.gp, Number(stats?.level) || 1);
+    });
 
     const shelf = ref<ShelfItem[]>([]);
     const isLoading = ref(true);
@@ -354,6 +410,8 @@ export default defineComponent({
       heroId,
       wallet,
       canAfford,
+      walletWare,
+      gold,
       shelf,
       shelves,
       isLoading,
