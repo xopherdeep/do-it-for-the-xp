@@ -44,10 +44,11 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, ref, PropType } from "vue";
+import { computed, defineComponent, ref, watch, PropType } from "vue";
 import { walletOutline, colorWand, fitnessOutline } from "ionicons/icons";
 import { useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
+import { useNotificationsStore } from "@/lib/store/stores/notifications";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
 import { play$fx } from "@/assets/fx";
 import {
@@ -129,8 +130,11 @@ export default defineComponent({
       return (this as any).userStore.currentUser.isImpersonating;
     },
     allUserActions(): RpgMenuAction[] {
-      // Use a broad RpgMenuAction type to allow any labels/icons
-      const actions: RpgMenuAction[] = [...this.staticActions];
+      // Use a broad RpgMenuAction type to allow any labels/icons; the Notifications entry carries the unread count
+      const unread = (this as any).unreadNotifications as number;
+      const actions: RpgMenuAction[] = this.staticActions.map((action: RpgMenuAction) =>
+        action.id === USER_MENU_CONFIG.notifications.id ? { ...action, badge: unread > 99 ? "99+" : unread || undefined } : action
+      );
 
       actions.push({
         label: "Menu",
@@ -159,7 +163,17 @@ export default defineComponent({
   setup(props, { emit }) {
     const router = useRouter();
     const userStore = useUserStore();
+    const notificationsStore = useNotificationsStore();
     const userId = computed(() => props.user.id);
+    // The hero's feed is read once per hero; the badge follows the unread count
+    watch(
+      userId,
+      (id) => {
+        if (id !== undefined && id !== null && id !== 0 && id !== "") void notificationsStore.load(String(id));
+      },
+      { immediate: true }
+    );
+    const unreadNotifications = computed(() => notificationsStore.unreadCount(String(userId.value)));
     const fabActive = ref(false);
     const showSaveQuitModal = ref(false);
 
@@ -248,7 +262,7 @@ export default defineComponent({
           // Create and present the notifications modal
           const modal = await modalController.create({
             component: XpNotifications,
-            componentProps: {},
+            componentProps: { heroId: String(userId.value) },
             cssClass: "notifications-modal",
             breakpoints: [0, 0.5, 0.75, 1],
             initialBreakpoint: 1,
@@ -307,6 +321,7 @@ export default defineComponent({
       fabActive,
       userId,
       userStore,
+      unreadNotifications,
       walletOutline,
       colorWand,
       fitnessOutline,

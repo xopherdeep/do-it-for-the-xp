@@ -15,6 +15,8 @@ import { TempleHydrator } from './TempleHydrator';
 import { getTempleProgressDb } from '@/lib/databases/TempleProgressDb';
 import type { NewTempleProgress, TempleProgressEntry } from '@/lib/databases/TempleProgressDb';
 import { TEMPLE_CLEARED_KEY, isBloodMoonDue, resetTempleProgress } from './templeReset';
+import { getTempleMetadata } from '@/lib/engine/temples/templeRegistry';
+import { bloodMoon as notifyBloodMoon } from '@/lib/services/notifications/notify';
 import debug from '@/lib/utils/debug';
 
 export { TEMPLE_CLEARED_KEY };
@@ -1037,6 +1039,7 @@ export class TempleSystem {
 
     // The screen keeps its temple: the run starts over from the reset record, read back like any other
     if (open) this.openState(templeId, userId, [reset.currentPosition[0], reset.currentPosition[1]], reset.currentLevel, true);
+    notifyBloodMoon(userId, { id: templeId, name: getTempleMetadata(templeId).name });
     return entry;
   }
 
@@ -1107,6 +1110,7 @@ export class TempleSystem {
           if (isBloodMoonDue(saved)) {
             saved = resetTempleProgress(saved);
             this.risen.add(templeId);
+            notifyBloodMoon(userId, { id: templeId, name: getTempleMetadata(templeId).name });
           }
           this.applyProgress(templeId, saved, resume ? start : undefined);
         } catch (error) {

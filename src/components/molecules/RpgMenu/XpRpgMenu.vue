@@ -22,6 +22,7 @@
             <i v-if="action.faIcon || action.icon" class="fad"
               :class="[`fa-${((action.faIcon || action.icon) as string).replace('fa-', '')}`, action.iconClass]"></i>
             <span class="item-label">{{ action.label }}</span>
+            <span v-if="action.badge" class="item-badge">{{ action.badge }}</span>
           </div>
         </button>
       </div>
@@ -42,6 +43,8 @@ export interface RpgMenuAction {
   fullWidth?: boolean;
   iconClass?: string;
   action?: string;
+  /** A count shown on the entry (unread notifications); nothing when empty or 0 */
+  badge?: string | number;
 }
 
 export default defineComponent({
@@ -216,6 +219,20 @@ export default defineComponent({
       text-overflow: ellipsis;
       margin-top: 4px; // Slight adjustment for Earthbound font baseline
       letter-spacing: 2px;
+    }
+
+    .item-badge {
+      margin-left: auto;
+      min-width: 1.4rem;
+      padding: 1px 6px;
+      border-radius: 10px;
+      background: var(--ion-color-danger, #e8402a);
+      color: #fff;
+      font-family: "StatusPlz", monospace;
+      font-size: 0.75rem;
+      line-height: 1.2rem;
+      text-align: center;
+      box-shadow: 0 0 0 2px #280828;
     }
   }
 

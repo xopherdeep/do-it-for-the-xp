@@ -13,6 +13,8 @@ import {
   calculateLevelUp,
   getXpForLevel
 } from '@/lib/services/stats/PlayerStatsService';
+import { levelUpNotification } from '@/lib/services/notifications/Notifications';
+import { notify } from '@/lib/services/notifications/notify';
 
 // LocalStorage key for persisting current user ID
 const CURRENT_USER_KEY = 'xp_current_user_id';
@@ -400,8 +402,6 @@ export const useUserStore = defineStore('user', () => {
    * What the hero's items did to their quest board: extensions, snoozes, pull-ins, a pause, the cloak
    * (HeroQuestEffects). Replaces the whole record; the board reads it back.
    */
-  function setQuestEffects(userId: string, effects: object) {
-    const user = users[userId];
   /** Stamp the hero's last free nap on the Hospital bench (ISO), so the bench is once a day. */
   function setBenchRestAt(userId: string, benchRestAt: string | null) {
     const user = users[userId];
@@ -411,6 +411,8 @@ export const useUserStore = defineStore('user', () => {
     persistUser(userId);
   }
 
+  function setQuestEffects(userId: string, effects: object) {
+    const user = users[userId];
     if (!user) return;
     user.questEffects = JSON.parse(JSON.stringify(effects));
     if (currentUser.id === userId) syncCurrentUser(user);
@@ -782,6 +784,8 @@ export const useUserStore = defineStore('user', () => {
         }
 
         persistUser(userId);
+        // The hero's feed hears about the level-up (one note per level reached per day)
+        if (result.didLevelUp) notify(levelUpNotification(userId, result.newLevel, result.levelsGained));
       }
     }
 
@@ -887,11 +891,11 @@ export const useUserStore = defineStore('user', () => {
     updateUserMP,
     addInventoryItem,
     setItemCooldown,
+    setBenchRestAt,
     setQuestEffects,
     unlockItem,
     unlockPegasus,
     unlockQuickDrawSlot,
-    setBenchRestAt,
     unlockClass,
     checkClassUnlocks,
     updateClassXp,

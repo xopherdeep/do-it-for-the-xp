@@ -1,171 +1,108 @@
-import { defineComponent, ref, computed } from 'vue';
-import { format } from 'date-fns';
+import { computed, defineComponent, onMounted, ref } from "vue";
+import { useRouter } from "vue-router";
+import { modalController, toastController } from "@ionic/vue";
 import ionic from "@/lib/mixins/ionic";
-import { toastController, modalController } from '@ionic/vue';
-
-// Define the Notification interface
-interface Notification {
-  id: string;
-  title: string;
-  message: string;
-  timestamp: Date;
-  read: boolean;
-  type: 'xp' | 'ap' | 'gp' | 'system' | 'message';
-  avatar?: string;
-  actionUrl?: string;
-  pointAmount?: number;
-}
-
 import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue";
+import { play$fx } from "@/assets/fx";
+import { useUserStore } from "@/lib/store/stores/user";
+import { useNotificationsStore } from "@/lib/store/stores/notifications";
+import { iconOfKind, isUnread, whenCopy } from "@/lib/services/notifications/Notifications";
+import type { XpNotification } from "@/lib/services/notifications/Notifications";
 
+type Filter = "all" | "unread";
+
+/**
+ * The hero's notification feed, newest first: unread rows carry a dot, a tap marks the row read and follows
+ * its link (quest board, wallet), the footer marks everything read or clears the feed. Opened from the
+ * avatar menu (XpFabUserHud) with the hero's id.
+ */
 export default defineComponent({
-  name: 'xp-notifications',
+  name: "xp-notifications",
   mixins: [ionic],
   components: {
-    XpCloseButton
+    XpCloseButton,
   },
-  setup() {
-    const showFilters = ref(true);
-    const currentFilter = ref('all');
+  props: {
+    heroId: {
+      type: String,
+      default: "",
+    },
+  },
+  setup(props) {
+    const router = useRouter();
+    const userStore = useUserStore();
+    const notificationsStore = useNotificationsStore();
+    const currentFilter = ref<Filter>("all");
 
-    // Setup require.context for avatar images, following app pattern
-    const requireAvatar = require.context("@/assets/images/avatars", false, /\.svg$/);
+    const heroId = computed(() => String(props.heroId || userStore.currentUser.id || ""));
+    const notifications = computed(() => notificationsStore.forHero(heroId.value));
+    const unreadCount = computed(() => notificationsStore.unreadCount(heroId.value));
+    const filteredNotifications = computed(() =>
+      currentFilter.value === "unread" ? notifications.value.filter(isUnread) : notifications.value
+    );
 
-    // Sample notifications data - this would typically come from a store or API
-    const notifications = ref<Notification[]>([
-      {
-        id: '1',
-        title: 'GP Earned',
-        message: 'You earned 50 GP for cleaning your room!',
-        timestamp: new Date(Date.now() - 1000 * 60 * 30), // 30 minutes ago
-        read: false,
-        type: 'gp',
-        avatar: '001-gamer', // Just the base name without extension
-        pointAmount: 50
-      },
-      {
-        id: '2',
-        title: 'XP Gained',
-        message: 'You gained 100 XP for completing your homework!',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 2), // 2 hours ago
-        read: true,
-        type: 'xp',
-        avatar: '002-gamer',
-        pointAmount: 100
-      },
-      {
-        id: '3',
-        title: 'AP Awarded',
-        message: 'You received 25 AP for skill advancement.',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 12), // 12 hours ago
-        read: false,
-        type: 'ap',
-        avatar: '003-gamer',
-        pointAmount: 25
-      },
-      {
-        id: '4',
-        title: 'Request Approved',
-        message: 'Your parent approved your reward request.',
-        timestamp: new Date(Date.now() - 1000 * 60 * 60 * 24), // 1 day ago
-        read: false,
-        type: 'system',
-        avatar: '004-gamer'
-      }
-    ]);
-
-    // Filter notifications based on the selected filter
-    const filteredNotifications = computed(() => {
-      if (currentFilter.value === 'all') {
-        return notifications.value;
-      } else if (currentFilter.value === 'unread') {
-        return notifications.value.filter(notification => !notification.read);
-      } else {
-        return notifications.value.filter(notification => notification.type === currentFilter.value);
-      }
+    onMounted(() => {
+      if (heroId.value) void notificationsStore.load(heroId.value);
     });
 
-    // Format timestamp to a readable string
-    const formatTime = (timestamp: Date) => {
-      return format(new Date(timestamp), 'MMM d, h:mm a');
-    };
-
-    // Toggle settings/filters visibility
-    const toggleSettings = () => {
-      showFilters.value = !showFilters.value;
-    };
-
-    // Handle filter change
-    const filterNotifications = (event: CustomEvent) => {
-      currentFilter.value = event.detail.value;
-    };
-
-    // Mark a notification as read
-    const markAsRead = (index: number) => {
-      if (index >= 0 && index < notifications.value.length) {
-        notifications.value[index].read = true;
-        showToast('Notification marked as read');
-      }
-    };
-
-    // Delete a notification
-    const deleteNotification = (index: number) => {
-      if (index >= 0 && index < notifications.value.length) {
-        notifications.value.splice(index, 1);
-        showToast('Notification deleted');
-      }
-    };
-
-    // Mark all notifications as read
-    const markAllAsRead = () => {
-      notifications.value.forEach(notification => {
-        notification.read = true;
-      });
-      showToast('All notifications marked as read');
-    };
-
-    // Delete all notifications
-    const deleteAllNotifications = () => {
-      notifications.value = [];
-      showToast('All notifications cleared');
-    };
-
-    // Show toast message
     const showToast = async (message: string) => {
-      const toast = await toastController.create({
-        message,
-        duration: 2000,
-        position: 'bottom'
-      });
-      toast.present();
+      const toast = await toastController.create({ message, duration: 1800, position: "top", cssClass: "rpg-toast" });
+      await toast.present();
+    };
+
+    const filterNotifications = (event: CustomEvent) => {
+      const value = event.detail?.value;
+      currentFilter.value = value === "unread" ? "unread" : "all";
     };
 
     const handleClose = async () => {
       await modalController.dismiss();
     };
 
-    // Get avatar src from avatar name
-    const getAvatarSrc = (avatar?: string) => {
-      if (avatar) {
-        return requireAvatar(`./${avatar}.svg`);
-      }
-      return requireAvatar('./001-gamer.svg'); // Default avatar
+    /** Tap: mark it read, then follow its link (closing the modal first) when it has one. */
+    const openNotification = async (notification: XpNotification) => {
+      play$fx("select");
+      notificationsStore.markRead(notification.id);
+      if (!notification.link) return;
+      await handleClose();
+      await router.push(notification.link);
+    };
+
+    const markAsRead = (notification: XpNotification) => {
+      notificationsStore.markRead(notification.id);
+    };
+
+    const deleteNotification = (notification: XpNotification) => {
+      notificationsStore.remove(notification.id);
+    };
+
+    const markAllAsRead = () => {
+      const marked = notificationsStore.markAllRead(heroId.value);
+      play$fx("select");
+      void showToast(marked ? `${marked} marked as read` : "Nothing unread");
+    };
+
+    const deleteAllNotifications = () => {
+      const cleared = notificationsStore.clear(heroId.value);
+      play$fx("select");
+      void showToast(cleared ? "Notifications cleared" : "Nothing to clear");
     };
 
     return {
-      showFilters,
       currentFilter,
       notifications,
       filteredNotifications,
-      formatTime,
-      toggleSettings,
+      unreadCount,
       filterNotifications,
+      openNotification,
       markAsRead,
       deleteNotification,
       markAllAsRead,
       deleteAllNotifications,
-      getAvatarSrc,
-      handleClose
+      handleClose,
+      iconOfKind,
+      isUnread,
+      whenCopy,
     };
-  }
+  },
 });

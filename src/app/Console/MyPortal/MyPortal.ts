@@ -1,4 +1,4 @@
-import { computed, defineComponent, reactive, onBeforeMount } from "vue";
+import { computed, defineComponent, reactive, onBeforeMount, onMounted, onBeforeUnmount } from "vue";
 // import requireImg from "@/assets/js/requireImg";
 import ionic from "@/lib/mixins/ionic";
 import components from "./UserHud/components";
@@ -17,6 +17,8 @@ import { getQuestEngine } from "@/lib/engine/quests/QuestEngine";
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import { dueTimeOn, isQuestActiveOn } from "@/lib/engine/quests/QuestSchedule";
 import { applyBoardEffect, boardEffectOf } from "@/lib/services/quests/ItemEffects";
+import { startQuestWatch } from "@/lib/services/notifications/questWatch";
+import { useNotificationsStore } from "@/lib/store/stores/notifications";
 import XpBottomNav from "@/components/organisms/BottomNav/XpBottomNav.vue";
 
 // Define interface for equipment items
@@ -244,6 +246,20 @@ export default defineComponent({
           router.push({ name: 'xp-profile' });
         }
       }
+    });
+
+    // The quest watch: the hero's feed (and the device, on a phone) hears about quests due within two
+    // hours and quests overdue, once per quest per day, on mount and every five minutes while the portal is up
+    const notificationsStore = useNotificationsStore();
+    let stopQuestWatch: (() => void) | null = null;
+    onMounted(() => {
+      if (!userId) return;
+      void notificationsStore.load(String(userId));
+      stopQuestWatch = startQuestWatch(String(userId));
+    });
+    onBeforeUnmount(() => {
+      stopQuestWatch?.();
+      stopQuestWatch = null;
     });
     // The hero's hands: read from the profile, saved on every change (shared with the temples)
     const { equipment, leftHandItem, rightHandItem, clickItem } = useHeroEquipment(String(userId));

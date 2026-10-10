@@ -3,6 +3,8 @@ import type { PurchaseLogEntry } from "@/lib/databases/PurchaseLogDb";
 import type { Accessory } from "@/lib/databases/AccessoriesDb";
 import type { ShopItem } from "@/lib/databases/ShopsDb";
 import { useUserStore } from "@/lib/store/stores/user";
+import { purchaseNotification } from "@/lib/services/notifications/Notifications";
+import { notify } from "@/lib/services/notifications/notify";
 
 /**
  * The one place GP turns into a shop purchase.
@@ -185,13 +187,16 @@ const reviewEntry = async (
 
 /** The Game Master handed the item over. Returns the entry as it now stands (null if it doesn't exist). */
 export const fulfillPurchase = (entryId: string, reviewerId?: string): Promise<PurchaseLogEntry | null> =>
-  reviewEntry(entryId, (entry) =>
-    getPurchaseLogDb().updateEntry(entry.id, {
+  reviewEntry(entryId, async (entry) => {
+    const fulfilled = await getPurchaseLogDb().updateEntry(entry.id, {
       status: "fulfilled",
       reviewedAt: new Date().toISOString(),
       reviewedBy: reviewerId,
-    })
-  );
+    });
+    // The hero's feed hears the item was handed over
+    if (fulfilled?.status === "fulfilled") notify(purchaseNotification(fulfilled.userId, { ...fulfilled, status: "fulfilled" }));
+    return fulfilled;
+  });
 
 /**
  * The Game Master called the purchase off: the hero gets the GP back (into the wallet; anything
@@ -231,5 +236,6 @@ export const refundPurchase = (
       });
       throw error;
     }
+    if (refunded.status === "refunded") notify(purchaseNotification(refunded.userId, { ...refunded, status: "refunded" }));
     return refunded;
   });
