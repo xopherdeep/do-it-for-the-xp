@@ -134,3 +134,21 @@ def _():
     ], inst="softlead", gain=0.19, glass_gain=0.05, echo=0.3)
     s.drum_track(["D.......D...D...", "D.......D.....x."] * 8, gain=0.42)
     return s
+
+
+@song("temple")        # 'Lantern Hall' v3: slow, hollow, the marimba echoing down a corridor
+def _():
+    s = Song(bpm=68, bars=16)
+    c = ["Dm9", "Gm7", "Dm9", "A7sus4", "Bbmaj7", "Gm7", "Dm9", "A7"]
+    sub(s, c, gain=0.32, octave=1)
+    bed(s, c, gain=0.1, octave=2)
+    bass_walk(s, c, gain=0.46, pattern="r.......r.....5.")
+    s.arp_track([(2, chord(x, 3)) for x in c], gain=0.09, pan=-0.35, inst="marimba", ring=1.6, pattern=(0, 2, 3, 2, 1, 2, 3, 2, 0, 3, 2, 3, 1, 3, 2, 3))
+    lead(s, [
+        "-:12 A3:4", "D4:12 F4:4", "E4:8 D4:8", "C#4:12 -:4",
+        "-:8 A3:4 D4:4", "F4:8 G4:8", "E4:12 D4:4", "D4:16",
+        "-:4 F4:4 A4:4 Bb4:4", "A4:12 G4:4", "F4:8 D4:8", "E4:12 -:4",
+        "D4:4 F4:4 A4:8", "G4:8 F4:8", "E4:4 C#4:4 E4:8", "D4:16",
+    ], inst="flute", gain=0.17, glass_gain=0.05, echo=0.32)
+    s.drum_track(["D...............", "........D.....x."] * 8, gain=0.4)
+    return s

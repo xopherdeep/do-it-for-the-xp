@@ -643,6 +643,19 @@ export const useUserStore = defineStore('user', () => {
   /**
    * Record AP gain with timestamp for time-based tracking
    */
+  /**
+   * What the hero holds in each hand. Stored on the profile (and so in ProfileDb) as plain item data,
+   * so the temple footer, the quick-draw slots and the equipment screen all read the same thing.
+   */
+  function setEquipment(userId: string, equipment: { leftHand: any[]; rightHand: any[] }) {
+    const user = users[userId];
+    if (!user) return;
+    const plain = (items: any[]) => items.map((item) => JSON.parse(JSON.stringify(item)));
+    user.equipment = { ...(user.equipment || {}), leftHand: plain(equipment.leftHand), rightHand: plain(equipment.rightHand) };
+    if (currentUser.id === userId) syncCurrentUser(user);
+    persistUser(userId);
+  }
+
   function recordAPGain(payload: { userId: string, amount: number, source: string }) {
     const { userId, amount, source } = payload;
 
@@ -715,6 +728,7 @@ export const useUserStore = defineStore('user', () => {
     updateClassXp,
     updateUserXP,
     recordAPGain,
+    setEquipment,
     persistUser,
     getAPInTimeRange,
     impersonateUser,

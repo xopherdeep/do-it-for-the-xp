@@ -176,8 +176,10 @@ export function handleBgmGuard(to: RouteLocationNormalized): void {
     });
   }
 
-  // Dispatch BGM change if payload was determined
+  // Dispatch BGM change if payload was determined. The same playlist already playing (a hero
+  // stepping out to the quest log and back into the temple) keeps playing: no new random pick, no restart.
   if (payload?.tracks?.length) {
+    if (payload.tracks === bgm.tracks && bgm.is_on) return;
     changeBGM(audioStore, payload, true);
   }
 }

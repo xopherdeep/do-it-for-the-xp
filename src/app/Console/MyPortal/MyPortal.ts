@@ -1,4 +1,4 @@
-import { computed, defineComponent, reactive, ref, onBeforeMount } from "vue";
+import { watch, computed, defineComponent, reactive, ref, onBeforeMount } from "vue";
 // import requireImg from "@/assets/js/requireImg";
 import ionic from "@/lib/mixins/ionic";
 import components from "./UserHud/components";
@@ -233,12 +233,33 @@ export default defineComponent({
       }
     });
     const equipment = ref<EquipmentItem[]>([]); // Use the defined interface
+
+    // The hands live on the profile: read them when the hero is known, write them after every change
+    const loadEquipment = () => {
+      const hands = user.value?.equipment;
+      if (!hands) return;
+      const fromHand = (items: EquipmentItem[] | undefined, hand: string) =>
+        (items || []).map((item, slotIndex) => ({ ...item, hand, slotIndex: item.slotIndex ?? slotIndex }));
+      equipment.value = [...fromHand(hands.leftHand, "left"), ...fromHand(hands.rightHand, "right")];
+    };
+    const saveEquipment = () => {
+      const inHand = (hand: string) =>
+        equipment.value
+          .filter((item) => item.hand === hand)
+          .sort((a, b) => (a.slotIndex ?? 0) - (b.slotIndex ?? 0))
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
+          .map(({ click, ...plain }) => plain);
+      userStore.setEquipment(String(userId), { leftHand: inHand("left"), rightHand: inHand("right") });
+    };
+    watch(user, (hero) => hero && loadEquipment(), { immediate: true });
+
     const clickItem = (item: EquipmentItem | null, hand: string, index = 0) => {
       // If we're removing an item from a specific slot
       if (item === null && hand) {
         equipment.value = equipment.value.filter(
           (i) => !(i.hand === hand && i.slotIndex === index)
         );
+        saveEquipment();
         return;
       }
 
@@ -274,6 +295,7 @@ export default defineComponent({
 
       // Add the new item
       equipment.value.push(itemToEquip);
+      saveEquipment();
     };
 
     const compass = reactive({
