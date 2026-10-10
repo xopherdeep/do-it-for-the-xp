@@ -386,6 +386,48 @@ export const useUserStore = defineStore('user', () => {
   }
 
   /**
+   * When an equipped item is ready again on the board (ISO), or null to clear it. Kept on the profile as
+   * `itemCooldowns[name]` (see services/quests/ItemEffects.ts).
+   */
+  function setItemCooldown(userId: string, itemName: string, readyAt: string | null) {
+    const user = users[userId];
+    if (!user) return;
+    const cooldowns: Record<string, string> = { ...(user.itemCooldowns || {}) };
+    if (readyAt) cooldowns[itemName] = readyAt;
+    else delete cooldowns[itemName];
+    user.itemCooldowns = cooldowns;
+    if (currentUser.id === userId) syncCurrentUser(user);
+    persistUser(userId);
+  }
+
+  /**
+   * What the hero's items did to their quest board: extensions, snoozes, pull-ins, a pause, the cloak
+   * (HeroQuestEffects). Replaces the whole record; the board reads it back.
+   */
+  function setQuestEffects(userId: string, effects: object) {
+    const user = users[userId];
+    if (!user) return;
+    user.questEffects = JSON.parse(JSON.stringify(effects));
+    if (currentUser.id === userId) syncCurrentUser(user);
+    persistUser(userId);
+  }
+
+  /**
+   * Unlock an equipment item by name (a temple chest, a shop, a Pegasus). A profile with no `unlockedItems`
+   * list predates the locks and already holds everything, so it is left alone rather than given a list of one.
+   * Returns true when the item was newly unlocked.
+   */
+  function unlockItem(userId: string, itemName: string): boolean {
+    const user = users[userId];
+    if (!user || !Array.isArray(user.unlockedItems)) return false;
+    if (user.unlockedItems.includes(itemName)) return false;
+    user.unlockedItems = [...user.unlockedItems, itemName];
+    if (currentUser.id === userId) syncCurrentUser(user);
+    persistUser(userId);
+    return true;
+  }
+
+  /**
    * Impersonate a user - sets them as the current user and persists to localStorage
    */
   function impersonateUser(userId: string) {
@@ -796,6 +838,9 @@ export const useUserStore = defineStore('user', () => {
     updateUserHP,
     updateUserMP,
     addInventoryItem,
+    setItemCooldown,
+    setQuestEffects,
+    unlockItem,
     unlockPegasus,
     unlockQuickDrawSlot,
     unlockClass,

@@ -5,6 +5,8 @@ import {
   differenceInCalendarDays,
   differenceInCalendarMonths,
   differenceInCalendarYears,
+  format,
+  set,
   startOfDay,
 } from "date-fns";
 import type { Achievement } from "@/lib/databases/AchievementDb";
@@ -47,6 +49,86 @@ const parseDate = (value?: string): Date | null => {
   if (!value) return null;
   const parsed = new Date(value);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
+/**
+ * What a hero's equipped items did to their own schedule (see services/quests/ItemEffects.ts). Stored on the
+ * profile as `questEffects`; the Game Master's quests are never changed, only how this hero's board reads them.
+ */
+export interface HeroQuestEffects {
+  /** Ice Wand: quest id -> ISO deadline that replaces the quest's due time while it lies ahead of it */
+  extendedUntil?: Record<string, string>;
+  /** Silver Arrow: quest id -> the day (yyyy-MM-dd) the quest was snoozed on; it is not due that day */
+  snoozedOn?: Record<string, string>;
+  /** Hook Shot: quest id -> the day (yyyy-MM-dd) a quest that was not due got pulled into */
+  pulledInOn?: Record<string, string>;
+  /** Chronos' Clock: every deadline stands still between these two moments */
+  pause?: { from: string; until: string };
+  /** X's Invisibility: no random encounters until this moment */
+  noEncountersUntil?: string;
+}
+
+/** The calendar day a date falls on, the key the snooze and pull-in maps use. */
+export const dayKeyOf = (date: Date): string => format(date, "yyyy-MM-dd");
+
+/** One day's window: midnight to midnight, one completion. */
+export const dayWindowOf = (date: Date): QuestWindow => {
+  const start = startOfDay(date);
+  return { start, end: addDays(start, 1), allowance: 1 };
+};
+
+/**
+ * The quest's due time on `date`. The time picker stores a bare "HH:mm" or a full ISO stamp; only the clock
+ * matters. Unset, unreadable and out-of-range times give null: such a quest is never late.
+ */
+export const dueTimeOn = (dueByTime: string | undefined, date: Date): Date | null => {
+  const value = dueByTime || "";
+  const clock = /^(\d{1,2}):(\d{2})/.exec(value);
+  const stamp = !clock && /[T-]/.test(value) ? parseDate(value) : null;
+  const hours = clock ? Number(clock[1]) : stamp?.getHours();
+  const minutes = clock ? Number(clock[2]) : stamp?.getMinutes();
+  if (hours === undefined || minutes === undefined || !(hours < 24 && minutes < 60)) return null;
+  return set(date, { hours, minutes, seconds: 0, milliseconds: 0 });
+};
+
+/** True while Chronos' Clock holds every deadline still. */
+export const isSchedulePaused = (effects: HeroQuestEffects | undefined, now: Date): boolean => {
+  const from = parseDate(effects?.pause?.from);
+  const until = parseDate(effects?.pause?.until);
+  return Boolean(from && until && from <= now && now < until);
+};
+
+/**
+ * When the quest is late on `date`, after the hero's items: the Ice Wand's extension replaces the due time
+ * while it lies ahead of it, and a pause that began before the deadline pushes it back by the time paused.
+ * Null when the quest has no due time and no extension.
+ */
+export const effectiveDeadline = (
+  quest: Pick<Achievement, "id" | "dueByTime">,
+  effects: HeroQuestEffects | undefined,
+  date: Date
+): Date | null => {
+  let deadline = dueTimeOn(quest.dueByTime, date);
+  const extended = parseDate(effects?.extendedUntil?.[quest.id]);
+  if (extended && (!deadline || extended > deadline)) deadline = extended;
+  if (!deadline) return null;
+  const from = parseDate(effects?.pause?.from);
+  const until = parseDate(effects?.pause?.until);
+  if (from && until && until > from && from <= deadline) {
+    deadline = new Date(deadline.getTime() + (until.getTime() - from.getTime()));
+  }
+  return deadline;
+};
+
+/** True when the quest's deadline on `now`'s day has passed and the clock is not paused. */
+export const isQuestOverdue = (
+  quest: Pick<Achievement, "id" | "dueByTime">,
+  effects: HeroQuestEffects | undefined,
+  now: Date
+): boolean => {
+  if (isSchedulePaused(effects, now)) return false;
+  const deadline = effectiveDeadline(quest, effects, now);
+  return Boolean(deadline && now > deadline);
 };
 
 export const isQuestActiveOn = (quest: QuestScheduleFields, date: Date): boolean => {
@@ -125,6 +207,22 @@ export const getQuestWindow = (quest: QuestScheduleFields, date: Date): QuestWin
   }
 };
 
+/**
+ * The quest's window on `date` as this hero sees it: gone on the day it was snoozed (Silver Arrow), and a
+ * one-day window on a day it was pulled into although it was not due (Hook Shot).
+ */
+export const getEffectiveWindow = (
+  quest: QuestScheduleFields,
+  effects: HeroQuestEffects | undefined,
+  date: Date
+): QuestWindow | null => {
+  const key = dayKeyOf(date);
+  if (effects?.snoozedOn?.[quest.id] === key) return null;
+  const window = getQuestWindow(quest, date);
+  if (window) return window;
+  return effects?.pulledInOn?.[quest.id] === key && isQuestActiveOn(quest, date) ? dayWindowOf(date) : null;
+};
+
 const countsTowardAllowance = (entry: QuestLogEntry) => entry.status !== "rejected";
 
 /** The hero's log entry for this quest, completed inside the window (whatever its approval status). */
@@ -161,9 +259,10 @@ export const getQuestProgressFor = (
   quest: QuestScheduleFields,
   entries: QuestLogEntry[],
   userId: string,
-  date: Date = new Date()
+  date: Date = new Date(),
+  effects?: HeroQuestEffects
 ): QuestProgress | null => {
-  const window = getQuestWindow(quest, date);
+  const window = getEffectiveWindow(quest, effects, date);
   if (!window) return null;
   const done = countCompletionsInWindow(entries, quest.id, userId, window);
   return { done, allowance: window.allowance, isOpen: done < window.allowance };
@@ -177,9 +276,10 @@ export const hasPendingClaimFor = (
   quest: QuestScheduleFields,
   entries: QuestLogEntry[],
   userId: string,
-  date: Date = new Date()
+  date: Date = new Date(),
+  effects?: HeroQuestEffects
 ): boolean => {
-  const window = getQuestWindow(quest, date);
+  const window = getEffectiveWindow(quest, effects, date);
   return window ? countPendingInWindow(entries, quest.id, userId, window) > 0 : false;
 };
 
@@ -188,5 +288,6 @@ export const isQuestOpenFor = (
   quest: QuestScheduleFields,
   entries: QuestLogEntry[],
   userId: string,
-  date: Date = new Date()
-): boolean => getQuestProgressFor(quest, entries, userId, date)?.isOpen ?? false;
+  date: Date = new Date(),
+  effects?: HeroQuestEffects
+): boolean => getQuestProgressFor(quest, entries, userId, date, effects)?.isOpen ?? false;

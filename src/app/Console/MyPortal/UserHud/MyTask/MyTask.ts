@@ -43,7 +43,7 @@ import { Controller, Navigation } from "swiper";
 import { formatQuestName } from "@/lib/utils/format";
 import { format, set } from "date-fns";
 import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
-import { DAY_TOKENS, getQuestProgressFor, hasPendingClaimFor } from "@/lib/engine/quests/QuestSchedule";
+import { DAY_TOKENS, effectiveDeadline, getQuestProgressFor, hasPendingClaimFor } from "@/lib/engine/quests/QuestSchedule";
 import { completeQuest, questRewards } from "@/lib/services/quests/QuestCompletionService";
 import type { CompletionResult } from "@/lib/services/quests/QuestCompletionService";
 import { questBattleRoute } from "@/app/Console/BattleField/battle/battleContext";
@@ -194,8 +194,10 @@ export default defineComponent({
       if (this.isPending) return "fad fa-hourglass-half fa-lg";
       return this.isBeastQuest && !this.isDone ? "fad fa-swords fa-lg" : "fa fa-hand-holding-medical fa-lg";
     },
+    // Today's due time, after the hero's Ice Wand and Chronos' Clock
     dueTime() {
-      return dueTimeToday(this.item?.dueByTime);
+      const effects = (this as any).user?.questEffects;
+      return this.item ? effectiveDeadline(this.item, effects, new Date()) : dueTimeToday(this.item?.dueByTime);
     },
     dueLabel() {
       return this.dueTime ? format(this.dueTime, "h:mma") : null;
@@ -458,11 +460,14 @@ export default defineComponent({
       try {
         // The quest log is the source of truth, so a stale modal can never pay out twice
         const entries = await getQuestLogDb().getEntriesForUser(heroId);
-        const progress = getQuestProgressFor(this.item, entries, heroId);
+        // The hero's items (a snooze, a pull-in) count the same way the board counted them
+        const effects = (this as any).user?.questEffects;
+        const now = new Date();
+        const progress = getQuestProgressFor(this.item, entries, heroId, now, effects);
         if (!progress?.isOpen) {
           // The log says the window is used up already; show it the way the board would
           this.claimed = Boolean(progress);
-          this.awaitingApproval = this.claimed && hasPendingClaimFor(this.item, entries, heroId);
+          this.awaitingApproval = this.claimed && hasPendingClaimFor(this.item, entries, heroId, now, effects);
           this.say(
             !progress
               ? "This quest is not due right now."

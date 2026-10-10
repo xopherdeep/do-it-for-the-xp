@@ -57,6 +57,8 @@ export interface NewProfileForm {
   equipment?: Equipment;
   quests?: Quest[];
   inventory?: InventoryItem[];
+  /** Equipment items the hero has unlocked (names). Missing on profiles that predate the locks: they hold everything. */
+  unlockedItems?: string[];
 }
 
 export class ProfileDb extends DbStorageApi {

@@ -1,6 +1,12 @@
 import AchievementDb, { Achievement, achievementStorage } from "@/lib/databases/AchievementDb";
 import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
-import { getQuestProgressFor, hasPendingClaimFor, QuestProgress } from "@/lib/engine/quests/QuestSchedule";
+import {
+    getQuestProgressFor,
+    hasPendingClaimFor,
+    isQuestOverdue,
+    type HeroQuestEffects,
+    type QuestProgress,
+} from "@/lib/engine/quests/QuestSchedule";
 
 export interface QuestFilter {
     userId?: string | number;
@@ -111,23 +117,36 @@ class QuestEngine {
      * open (can still be done), done (window used up), notDue (not scheduled for this day).
      * `pending` is set when a claim in the current window still waits for the Game Master; it counts
      * toward the allowance, so a done quest with `pending` is awaiting approval rather than tamed.
+     * `effects` are the hero's own item effects (snoozes, pull-ins, extensions, a pause); `overdue` is set on an
+     * open quest whose deadline for that day has passed.
      */
-    async getQuestBoardForUser(userId: string, date: Date = new Date(), filter?: Partial<QuestFilter>): Promise<QuestBoardItem[]> {
+    async getQuestBoardForUser(
+        userId: string,
+        date: Date = new Date(),
+        filter?: Partial<QuestFilter>,
+        effects?: HeroQuestEffects
+    ): Promise<QuestBoardItem[]> {
         const [quests, entries] = await Promise.all([
             this.getQuestsForUser(userId, filter),
             getQuestLogDb().getEntriesForUser(userId),
         ]);
         return quests.map((quest) => {
-            const progress = getQuestProgressFor(quest, entries, userId, date);
+            const progress = getQuestProgressFor(quest, entries, userId, date, effects);
             const status: QuestBoardStatus = !progress ? 'notDue' : progress.isOpen ? 'open' : 'done';
-            const pending = hasPendingClaimFor(quest, entries, userId, date);
-            return { quest, status, progress, pending };
+            const pending = hasPendingClaimFor(quest, entries, userId, date, effects);
+            const overdue = status === 'open' && isQuestOverdue(quest, effects, date);
+            return { quest, status, progress, pending, overdue };
         });
     }
 
     /** Only the quests the hero can still complete on `date`. */
-    async getOpenQuestsForUser(userId: string, date: Date = new Date(), filter?: Partial<QuestFilter>): Promise<QuestBoardItem[]> {
-        const board = await this.getQuestBoardForUser(userId, date, filter);
+    async getOpenQuestsForUser(
+        userId: string,
+        date: Date = new Date(),
+        filter?: Partial<QuestFilter>,
+        effects?: HeroQuestEffects
+    ): Promise<QuestBoardItem[]> {
+        const board = await this.getQuestBoardForUser(userId, date, filter, effects);
         return board.filter((item) => item.status === 'open');
     }
 }
@@ -140,6 +159,8 @@ export interface QuestBoardItem {
     progress: QuestProgress | null;
     /** The hero has a claim in the current window that the Game Master has not approved or rejected yet */
     pending: boolean;
+    /** Open, and its deadline on this day has passed (after the hero's Ice Wand and Chronos' Clock) */
+    overdue: boolean;
 }
 
 // Singleton instance

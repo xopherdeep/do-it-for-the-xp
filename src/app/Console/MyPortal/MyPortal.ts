@@ -10,8 +10,13 @@ import { useItemFetcher } from "@/hooks/useItemFetcher";
 import { useUserActions } from "@/hooks/useUserActions";
 import { useHeroEquipment } from "@/hooks/useHeroEquipment";
 import { useEquipmentItems } from "./UserHud/components/equipment/EquipmentItems";
-import { toastController } from "@ionic/vue";
+import { actionSheetController, toastController } from "@ionic/vue";
+import { format } from "date-fns";
 import { play$fx } from "@/assets/fx";
+import { getQuestEngine } from "@/lib/engine/quests/QuestEngine";
+import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
+import { dueTimeOn, isQuestActiveOn } from "@/lib/engine/quests/QuestSchedule";
+import { applyBoardEffect, boardEffectOf } from "@/lib/services/quests/ItemEffects";
 import XpBottomNav from "@/components/organisms/BottomNav/XpBottomNav.vue";
 
 // Define interface for equipment items
@@ -243,7 +248,47 @@ export default defineComponent({
     // The hero's hands: read from the profile, saved on every change (shared with the temples)
     const { equipment, leftHandItem, rightHandItem, clickItem } = useHeroEquipment(String(userId));
 
-    // Tapping an equipped item outside a temple: navigation items navigate, the rest wait for a temple or a fight
+    const say = async (message: string, duration = 1800) => {
+      const toast = await toastController.create({ message, duration, position: "top", cssClass: "rpg-toast" });
+      await toast.present();
+    };
+
+    /** The quests a pick-quest item may target today: the open ones, or (Hook Shot) the ones not due yet. */
+    const questChoices = async (picks: "open" | "future"): Promise<QuestBoardItem[]> => {
+      const now = new Date();
+      const board = await getQuestEngine().getQuestBoardForUser(String(userId), now, undefined, user.value?.questEffects);
+      return picks === "future"
+        ? board.filter((entry) => entry.status === "notDue" && isQuestActiveOn(entry.quest, now))
+        : board.filter((entry) => entry.status === "open");
+    };
+
+    /** An action sheet of quests (title and due time); resolves with the picked quest id, or null on cancel. */
+    const pickQuest = (choices: QuestBoardItem[], header: string): Promise<string | null> =>
+      new Promise((resolve) => {
+        const now = new Date();
+        const buttons = choices.map((entry) => {
+          const due = dueTimeOn(entry.quest.dueByTime, now);
+          const when = entry.status === "notDue" ? entry.quest.basicSchedule : due ? `due ${format(due, "h:mma")}` : "";
+          return {
+            text: when ? `${entry.quest.achievementName} · ${when}` : entry.quest.achievementName,
+            handler: () => resolve(String(entry.quest.id)),
+          };
+        });
+        actionSheetController
+          .create({
+            header,
+            cssClass: "rpg-sheet",
+            buttons: [...buttons, { text: "Cancel", role: "cancel", handler: () => resolve(null) }],
+          })
+          .then((sheet) => {
+            sheet.onDidDismiss().then(() => resolve(null));
+            return sheet.present();
+          })
+          .catch(() => resolve(null));
+      });
+
+    // Tapping an equipped item outside a temple: navigation items navigate, board items act on the quest
+    // board (docs/Items-And-Classes-Contract.md section B), the rest wait for a temple or a fight
     const useHand = async (item: EquipmentItem | null) => {
       if (!item) return;
       play$fx("select");
@@ -257,13 +302,29 @@ export default defineComponent({
         live.click();
         return;
       }
-      const toast = await toastController.create({
-        message: `${item.name}: use it in a temple or a fight.`,
-        duration: 1800,
-        position: "top",
-        cssClass: "rpg-toast",
+      const name = String(item.name ?? live?.name ?? "");
+      const effect = boardEffectOf(name);
+      if (effect.kind === "none") return say(`${name}: use it in a temple or a fight.`);
+      if (effect.kind === "soon") return say(`${name}: coming soon to the quest board.`);
+
+      let questId: string | undefined;
+      if (effect.kind === "pick-quest") {
+        const choices = await questChoices(effect.picks ?? "open");
+        if (!choices.length) {
+          play$fx("no");
+          return say(effect.picks === "future" ? "No future quests to pull in." : "No open quests on the board.");
+        }
+        const picked = await pickQuest(choices, `${name}: ${effect.describe}`);
+        if (!picked) return;
+        questId = picked;
+      }
+      const result = await applyBoardEffect({ name, faIcon: item.faIcon, desc: String(item.desc ?? "") }, {
+        userId: String(userId),
+        questId,
+        now: new Date(),
       });
-      await toast.present();
+      play$fx(result.sound);
+      await say(result.line, result.ok ? 2600 : 1800);
     };
 
     const openParty = () => router.push(`/my-portal/${userId}/my-party`);

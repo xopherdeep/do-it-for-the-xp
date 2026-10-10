@@ -29,6 +29,8 @@ export default class User {
   public favoriteFood: string
   public jobClass: string
   public isAdult: boolean
+  /** A new hero starts with no items unlocked; temples, shops and the Pegasi add to this (see ItemEffects.ts) */
+  public unlockedItems: string[]
 
   constructor(defaults: NewProfileForm) {
     this.id = defaults?.id || uuidv4()
@@ -42,6 +44,7 @@ export default class User {
     this.favoriteFood = defaults.favoriteFood
     this.jobClass = defaults.jobClass
     this.isAdult = defaults.isAdult
+    this.unlockedItems = Array.isArray(defaults.unlockedItems) ? [...defaults.unlockedItems] : []
   }
   setName({ full, first, last, middle, nick, preferred }: any) {
     const name = { full, first, last, middle, nick, preferred }

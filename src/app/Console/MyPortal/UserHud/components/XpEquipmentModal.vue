@@ -30,6 +30,8 @@
             <equipment-grid
               :items="specialItems"
               :equipped-items="equippedItemsArray"
+              :locked-items="lockedItemsArray"
+              :lock-hint="lockHint"
               @display-info="openItemInfo"
               @equip-item="equipItem"
             />
@@ -90,6 +92,8 @@
   import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue";
   import { JOB_CLASS_OPTIONS } from "@/constants";
   import { useUserStore } from "@/lib/store/stores/user";
+  import { play$fx } from "@/assets/fx";
+  import { isItemUnlocked, unlockHintOf } from "@/lib/services/quests/ItemEffects";
 
   export default defineComponent({
     name: "xp-equipment-modal",
@@ -159,7 +163,32 @@
         return equippedItems.value.has(selectedItem.value.faIcon);
       });
 
+      // Items the hero has not unlocked yet (a profile without an unlockedItems list holds everything)
+      const lockedItemsArray = computed(() =>
+        specialItems.value
+          .filter((item) => !isItemUnlocked(props.user, item.name))
+          .map((item) => item.faIcon)
+      );
+      const isLocked = (item: EquipmentItem) => lockedItemsArray.value.includes(item.faIcon);
+      const lockHint = (item: EquipmentItem) => unlockHintOf(item.name);
+
+      // A locked item says how it is earned instead of opening or equipping
+      const refuseLocked = async (item: EquipmentItem) => {
+        play$fx("no");
+        const toast = await toastController.create({
+          message: lockHint(item),
+          duration: 2200,
+          position: "top",
+          cssClass: "rpg-toast",
+        });
+        await toast.present();
+      };
+
       const openItemInfo = (item: EquipmentItem) => {
+        if (isLocked(item)) {
+          void refuseLocked(item);
+          return;
+        }
         selectedItem.value = item;
         itemInfoOpen.value = true;
       };
@@ -192,6 +221,10 @@
         if (item === null && !hand) return;
 
         if (item) {
+          if (isLocked(item) && !equippedItems.value.has(item.faIcon)) {
+            await refuseLocked(item);
+            return;
+          }
           if (equippedItems.value.has(item.faIcon)) {
             // Already equipped - unequip it
             const leftIndex = leftHandSlots.value.findIndex(
@@ -325,6 +358,8 @@
         itemInfoOpen,
         selectedItem,
         equippedItemsArray,
+        lockedItemsArray,
+        lockHint,
         isSelectedItemEquipped,
         leftHandSlots,
         rightHandSlots,

@@ -29,6 +29,7 @@ import {
   hourglassOutline,
 } from "ionicons/icons";
 import { useGameStore } from "@/lib/store/stores/game";
+import { useUserStore } from "@/lib/store/stores/user";
 
 import MyTask from "../MyTask/MyTask.vue";
 import { useRouter } from "vue-router";
@@ -182,6 +183,7 @@ export default defineComponent({
   },
   setup(props) {
     const gameStore = useGameStore();
+    const userStore = useUserStore();
     const router = useRouter();
     const controlledSwiper = ref<SwiperClass | null>(null);
     const setControlledSwiper = (swiper: SwiperClass) => {
@@ -202,9 +204,11 @@ export default defineComponent({
     const loadBoard = async () => {
       const request = ++latestRequest;
       try {
+        // The hero's item effects (snoozes, pull-ins, extensions) shape their own board
+        const effects = userStore.getUserById(props.userId)?.questEffects;
         const items = await getQuestEngine().getQuestBoardForUser(props.userId, new Date(), {
           search: params.search,
-        });
+        }, effects);
         if (request === latestRequest) board.value = items;
       } finally {
         if (request === latestRequest) isLoading.value = false;

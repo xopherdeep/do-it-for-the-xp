@@ -220,7 +220,9 @@ const filteredQuests = computed(() => {
 // Methods
 const fetchBoard = async () => {
   const date = selectedDate.value;
-  const items = await getQuestEngine().getQuestBoardForUser(heroId.value, date);
+  // The hero's item effects (snoozes, pull-ins, extensions) shape their own board
+  const effects = userStore.getUserById(heroId.value)?.questEffects;
+  const items = await getQuestEngine().getQuestBoardForUser(heroId.value, date, undefined, effects);
   // Ignore the answer if the hero has already moved on to another day
   if (date === selectedDate.value) board.value = items;
 };

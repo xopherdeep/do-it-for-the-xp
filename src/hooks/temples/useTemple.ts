@@ -8,6 +8,8 @@ import { AlertInput } from '@ionic/vue';
 import { ChestSystem } from '@/lib/engine/core/dungeons/ChestSystem';
 import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
 import debug from '@/lib/utils/debug';
+import { useUserStore } from '@/lib/store/stores/user';
+import { unlocksFromChest } from '@/lib/services/quests/ItemEffects';
 
 // Define a message display function type that can be provided by the component using this hook
 export type MessageDisplayFn = (message: string, duration?: number) => void;
@@ -336,8 +338,11 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
         // Update the temple system state directly
         const state = templeSystem.getTempleState(templeId);
         if (state) state.hasCompass = true;
+      } else if (userId) {
+        // A named item (Pegasus Whistle, Frost Wand...): the hero may now equip it, and what it stands for
+        const store = useUserStore();
+        unlocksFromChest(item).forEach((name) => store.unlockItem(userId, name));
       }
-      // Other items would be added to inventory
     });
 
     // The state above was changed directly, so it has to be asked to save

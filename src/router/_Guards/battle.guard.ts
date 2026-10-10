@@ -2,6 +2,7 @@ import { RouteLocationNormalized, Router } from "vue-router";
 import { useBattleStore } from "@/lib/store/stores/battle";
 import { useUserStore } from "@/lib/store/stores/user";
 import { freeBattleRoute } from "@/app/Console/BattleField/battle/battleContext";
+import { hasNoEncounters } from "@/lib/services/quests/ItemEffects";
 import debug from "@/lib/utils/debug";
 
 /** Routes that trigger random battle encounters */
@@ -20,14 +21,17 @@ const isBattleRoute = (name: unknown): boolean =>
  *    route is still battle-free, so reading the live route also stops a second fight stacking
  *    on the first);
  *  - nobody is the current hero;
+ *  - the hero wears X's Invisibility (no random encounters until it wears off);
  *  - a battle is already active.
  */
 async function onExplorationTick(router: Router): Promise<void> {
   const battleStore = useBattleStore();
-  const heroId = useUserStore().currentUser.id;
+  const userStore = useUserStore();
+  const heroId = userStore.currentUser.id;
 
   if (isBattleRoute(router.currentRoute.value.name)) return;
   if (!heroId) return;
+  if (hasNoEncounters(userStore.users?.[heroId] ?? userStore.currentUser, new Date())) return;
   if (battleStore.active) return;
 
   if (!battleStore.randomEncounter()) return;
