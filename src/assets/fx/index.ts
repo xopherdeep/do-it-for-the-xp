@@ -13,6 +13,9 @@ const chiptune = require.context("@/assets/audio/chiptune", false, /\.(ogg|mp3)$
 const canPlayOgg =
   typeof document !== "undefined" && !!document.createElement("audio").canPlayType("audio/ogg; codecs=vorbis");
 const tune = (name: string): string => chiptune(`./${name}.${canPlayOgg ? "ogg" : "mp3"}`);
+// Short stings rendered by tools/chiptune/stings.py
+const stingFiles = require.context("@/assets/audio/chiptune/sfx", false, /\.(ogg|mp3)$/);
+const sting = (name: string): string => stingFiles(`./${name}.${canPlayOgg ? "ogg" : "mp3"}`);
 import debug from "@/lib/utils/debug";
 import { AudioEngine } from "@/lib/engine/audio/AudioEngine";
 
@@ -467,8 +470,8 @@ const $fx = {
       openDoor,
       message: message,
       error: new Audio(earthbound.error),
-      enterBattle: new Audio(earthbound.enterbattle),
-      startBattle: new Audio(earthbound.enterbattle),
+      enterBattle: new Audio(sting("encounter")),
+      startBattle: new Audio(sting("encounter")),
       attack: new Audio(earthbound.attack1),
       preAttack: new Audio(earthbound.ambush),
       damage: new Audio(earthbound.smash),

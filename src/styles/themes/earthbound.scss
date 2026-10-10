@@ -1277,3 +1277,45 @@ ion-app {
     }
   }
 }
+// ============================================================
+// Toasts: an RPG message box that drops in over the app bar (top) or the nav (bottom), never mid-screen
+// ============================================================
+ion-toast {
+  --background: #280828;
+  --color: #e7e6b3;
+  --border-radius: 2px;
+  --box-shadow: 0 0 0 3px #383050, 0 0 0 6px #68d0b8, 0 0 0 8px #f7e8a8, 0 0 0 10px #3d3c55;
+  --button-color: #f7e8a8;
+  --start: 14px;
+  --end: 14px;
+  --min-height: 52px;
+  --max-width: 520px;
+  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  font-size: 1.15rem;
+  letter-spacing: 1px;
+
+  &::part(container) {
+    padding: 2px 4px;
+  }
+
+  &::part(message) {
+    line-height: 1.25;
+  }
+
+  &::part(button) {
+    font-family: "Apple Kid", sans-serif;
+    font-size: 1.05rem;
+    letter-spacing: 1px;
+    text-transform: none;
+  }
+
+  &::part(icon) {
+    color: #f7e8a8;
+  }
+
+  // The rings need room: keep the box off the very edge of the screen
+  &.toast-top,
+  &[position="top"] {
+    --top: 14px;
+  }
+}

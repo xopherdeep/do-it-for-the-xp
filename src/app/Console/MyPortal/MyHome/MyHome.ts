@@ -33,7 +33,7 @@ export default defineComponent({
       const toast = await toastController.create({
         message: `Welcome home ${first}!`,
         duration: 50000,
-        position: 'middle',
+        position: 'top',
         cssClass: 'rpg-toast',
         buttons: [
           // {
