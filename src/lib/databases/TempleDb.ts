@@ -22,6 +22,11 @@ export interface TempleInterface {
     maze: string[][] | Record<string, string[][]>;
     rooms: Record<string, Room>;
   };
+  // A temple from the generator (src/lib/engine/dungeons/generator): its seed, theme and element
+  seed?: number | string;
+  themeId?: string;
+  element?: string;
+  generated?: boolean;
   // Top-level properties for backwards compatibility
   entrance?: number[];
   maze?: string[][] | Record<string, string[][]>;

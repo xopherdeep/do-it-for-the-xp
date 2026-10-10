@@ -5,3 +5,5 @@
 export * from "./templeGraph";
 export * from "./templeSolver";
 export * from "./templeGenerator";
+export * from "./templePreview";
+export * from "./templeRecord";

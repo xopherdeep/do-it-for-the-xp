@@ -42,6 +42,8 @@ export function registerTemple(templeId: string, templeData: any, options: Regis
     rooms: {},
     visitedPositions: new Set<string>()
   };
+  // Where the hero starts ([row, col] or [floor, row, col]); without it TempleSystem starts at [0, 0]
+  if (Array.isArray(templeData.entrance) && templeData.entrance.length) dungeon.entrance = [...templeData.entrance];
 
   // Convert rooms
   if (templeData.rooms) {
@@ -107,7 +109,8 @@ export async function registerCustomTemples(options: RegisterTempleOptions = {})
         // Convert the temple data format for the engine
         const templeData = {
           maze: temple.dungeonLayout.maze,
-          rooms: temple.dungeonLayout.rooms
+          rooms: temple.dungeonLayout.rooms,
+          entrance: temple.dungeonLayout.entrance
         };
         
         // Register the temple with the engine

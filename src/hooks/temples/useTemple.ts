@@ -4,6 +4,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { TempleSystem, MapVisibility } from '@/lib/engine/core/dungeons/TempleSystem';
 import { DungeonManager } from '@/lib/engine/core/dungeons/DungeonManager';
+import { registerCustomTemples } from '@/lib/engine/core/dungeons/TempleAdapter';
 import { AlertInput } from '@ionic/vue';
 import { ChestSystem } from '@/lib/engine/core/dungeons/ChestSystem';
 import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
@@ -41,24 +42,34 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
   // Optional function reference for external message display
   let externalDisplayMessage: MessageDisplayFn | null = null;
 
-  // Initialize temple
-  onMounted(() => {
-    // Initialize the temple if it has a defined entrance position
+  // Initialize the temple if it has a defined entrance position
+  const initTemple = (): boolean => {
     const temple = dungeonManager.getDungeon(templeId);
-    if (temple) {
-      const entrance = startPosition || (temple as any).entrance || [0, 0];
-      templeSystem.initTemple(templeId, entrance, startLevel, userId);
-      
-      // Sync local state with temple state
-      const state = templeSystem.getTempleState(templeId);
-      if (state) {
-        currentPosition.value = state.currentPosition;
-        hasMap.value = state.hasMap;
-        hasCompass.value = state.hasCompass;
-        playerKeys.value = state.playerKeys;
-        currentLevel.value = state.currentLevel;
-      }
+    if (!temple) return false;
+    const entrance = startPosition || (temple as any).entrance || [0, 0];
+    templeSystem.initTemple(templeId, entrance, startLevel, userId);
+
+    // Sync local state with temple state
+    const state = templeSystem.getTempleState(templeId);
+    if (state) {
+      currentPosition.value = state.currentPosition;
+      hasMap.value = state.hasMap;
+      hasCompass.value = state.hasCompass;
+      playerKeys.value = state.playerKeys;
+      currentLevel.value = state.currentLevel;
     }
+    return true;
+  };
+
+  // Initialize temple. A temple that only lives in TempleDb (the creator's or a generated "gen-<seed>" one) is
+  // registered asynchronously, so when it is not in the engine yet wait for that registration and init then.
+  onMounted(() => {
+    if (initTemple()) return;
+    registerCustomTemples()
+      .then(() => {
+        if (!initTemple()) debug.warn(`Temple ${templeId} is not registered and not in TempleDb`);
+      })
+      .catch((err) => debug.error('Failed to register custom temples:', err));
   });
   
   // Allow components to register their own message display function

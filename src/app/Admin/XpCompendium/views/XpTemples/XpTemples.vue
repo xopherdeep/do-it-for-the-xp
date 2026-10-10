@@ -5,6 +5,14 @@
     header-icon="fa-hand-holding-water"
   >
     <template #actions>
+      <ion-button
+        color="rpg"
+        class="generate-btn"
+        title="Generate a temple from a seed"
+        @click="openGenerator"
+      >
+        <i class="fad fa-dice-d20 fa-2x"></i>
+      </ion-button>
       <ion-button @click="clickSoundSettings">
         <i class="fad fa-volume-up fa-2x"></i>
       </ion-button>
@@ -35,11 +43,25 @@
                 class="temple-bg-image"
                 alt="Temple background"
               ></ion-img>
+              <div
+                v-if="temple.generated"
+                class="generated-banner rpg-box"
+              >
+                <i class="fad fa-dice-d20 mr-1"></i>
+                <span class="generated-name">{{ temple.customName || temple.name || temple.id }}</span>
+                <span class="generated-seed">seed {{ temple.seed }}</span>
+              </div>
             </div>
           </ion-card>
         </ion-col>
       </ion-row>
     </ion-grid>
+
+    <xp-temple-generate-modal
+      :is-open="generatorOpen"
+      @close="generatorOpen = false"
+      @saved="onGenerated"
+    />
 
     <!-- Temple Creator Floating Action Button -->
     <ion-fab
@@ -69,8 +91,11 @@
   import debug from "@/lib/utils/debug";
   import { actionSheetController } from "@ionic/vue";
 
-  import { createOutline, cloudDownloadOutline } from "ionicons/icons";
+  import { createOutline, cloudDownloadOutline, diceOutline } from "ionicons/icons";
   import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
+  import XpTempleGenerateModal from "./components/XpTempleGenerateModal.vue";
+  import { TEMPLE_METADATA } from "@/lib/engine/temples/templeRegistry";
+  import { play$fx } from "@/assets/fx";
 
   // Only world-*.jpg / hometown.jpg are looked up by key; keep the filter (a bare context bundles all 90 MB)
   const requireBg = require.context("@/assets/images/backgrounds/", false, /^\.\/(world-[a-z-]+|hometown)\.jpg$/);
@@ -78,8 +103,9 @@
   export default defineComponent({
     name: "xp-temples",
     mixins: [Ionic],
-    components: { 
-      XpRpgPage
+    components: {
+      XpRpgPage,
+      XpTempleGenerateModal,
     },
     setup() {
       const isLoading = ref(true);
@@ -87,6 +113,9 @@
       const $router = useRouter();
       const templeDb = new TempleDb(templeStorage);
       const templeData = ref({} as Record<string, TempleInterface>);
+      // Temples saved by the creator or the generator that are not one of the nine shipped ones
+      const customTemples = ref([] as TempleInterface[]);
+      const generatorOpen = ref(false);
 
       // Map with explicit connection between display names and temple IDs
       const temples = [
@@ -155,10 +184,28 @@
               templeData.value[id] = data;
             }
           });
+          await loadCustomTemples();
         } finally {
           isLoading.value = false;
         }
       };
+
+      // Every stored temple with a layout that is not one of the nine: generated ones and hand-made extras
+      const loadCustomTemples = async () => {
+        const shipped = new Set(temples.map((temple) => temple.id));
+        const keys = await templeStorage.keys();
+        const found: TempleInterface[] = [];
+        for (const key of keys) {
+          if (shipped.has(key)) continue;
+          const data = await templeDb.getTempleById(key);
+          if (data?.dungeonLayout) found.push(data);
+        }
+        customTemples.value = found.sort((a, b) => (a.customName || a.name || a.id).localeCompare(b.customName || b.name || b.id));
+      };
+
+      // A generated temple's card wears the world of its element, when an authored temple shares it
+      const worldForElement = (element?: string) =>
+        Object.values(TEMPLE_METADATA).find((meta) => meta.element === element)?.world || "plains";
 
       // Load temple data when component is mounted
       onMounted(() => {
@@ -188,17 +235,38 @@
       // Computed property to prepare all view data at once
       // This allows the template to be very dumb and fast
       const processedTemples = computed(() => {
-        return temples.map((temple) => {
+        const shipped = temples.map((temple) => {
           const data = templeData.value[temple.id];
           return {
             ...data,
             ...temple,
+            generated: false,
             bgImage: _getBgImage(temple.world),
             // We can add other computed properties here if we need to restore UI later
             // Currently purely focused on the cards functionality
           };
         });
+        const custom = customTemples.value.map((temple) => ({
+          ...temple,
+          world: worldForElement(temple.element),
+          level: temple.level ?? 1,
+          generated: true,
+          bgImage: _getBgImage(worldForElement(temple.element)),
+        }));
+        return [...shipped, ...custom];
       });
+
+      const openGenerator = () => {
+        play$fx("openMenu");
+        generatorOpen.value = true;
+      };
+
+      // The generator saved a temple: close the modal and show its card
+      const onGenerated = async (record: TempleInterface) => {
+        generatorOpen.value = false;
+        await loadCustomTemples();
+        debug.log(`Generated temple saved: ${record.id}`);
+      };
 
       const clickTemple = (templeId: string) => {
         $router.push({
@@ -231,6 +299,14 @@
               cssClass: "action-create",
               handler: () => {
                 goToTempleCreator("new");
+              },
+            },
+            {
+              text: "Generate Temple",
+              icon: diceOutline,
+              cssClass: "action-generate",
+              handler: () => {
+                openGenerator();
               },
             },
             {
@@ -268,6 +344,9 @@
         },
         hoveredTempleId,
         isLoading,
+        generatorOpen,
+        openGenerator,
+        onGenerated,
       };
     },
   });
@@ -326,6 +405,29 @@
         object-fit: cover;
         opacity: 0.9;
         transition: transform 0.5s ease, opacity 0.3s ease;
+      }
+
+      // A generated temple names itself on its card: it has no portrait of its own
+      .generated-banner {
+        position: absolute;
+        left: 6px;
+        right: 6px;
+        bottom: 6px;
+        padding: 4px 8px;
+        display: flex;
+        flex-direction: column;
+        font-size: 0.8rem;
+        line-height: 1.2;
+
+        .generated-name {
+          font-weight: bold;
+        }
+
+        .generated-seed {
+          font-family: monospace;
+          font-size: 0.7rem;
+          opacity: 0.75;
+        }
       }
     }
 
