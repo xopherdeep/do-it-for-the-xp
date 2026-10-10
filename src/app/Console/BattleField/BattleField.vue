@@ -4,23 +4,10 @@
     <canvas ref="canvasRef" class="battle-bg"></canvas>
 
     <div class="battle-ui-container" :class="{ 'screen-shake': shaking }">
-      <!-- TOP: message box with the command menu inside it -->
-      <div class="battle-zone battle-zone--top">
-        <BattleDialogBox
-          ref="typingRef"
-          :text="dialogText"
-          :accumulated-lines="dialogLines"
-          :is-append-mode="dialogIsAppendMode"
-          :is-victory="dialogIsVictory"
-          :has-more="dialogHasMore"
-          :show-menu="showMenu"
-          :menu-actions="menuActions"
-          :prompt="menuPrompt"
-          @advance="advanceDialog"
-          @typing-complete="onDialogTypingComplete"
-        />
+      <!-- TOP: the hero, out of the thumb's way -->
+      <div class="battle-zone battle-zone--hero">
+        <BattleHeroCard :user-id="heroId" :hit-signal="hitSignal" :downed="heroDowned" />
       </div>
-
       <!-- MIDDLE: the beast, its chores left and the attack clock -->
       <div class="battle-zone battle-zone--middle">
         <BattleEnemyStage
@@ -40,10 +27,23 @@
         />
       </div>
 
-      <!-- BOTTOM: the hero -->
-      <div class="battle-zone battle-zone--bottom">
-        <BattleHeroCard :user-id="heroId" :hit-signal="hitSignal" :downed="heroDowned" />
+      <!-- BOTTOM: message box with the command menu inside it, where the thumb lives -->
+      <div class="battle-zone battle-zone--actions">
+        <BattleDialogBox
+          ref="typingRef"
+          :text="dialogText"
+          :accumulated-lines="dialogLines"
+          :is-append-mode="dialogIsAppendMode"
+          :is-victory="dialogIsVictory"
+          :has-more="dialogHasMore"
+          :show-menu="showMenu"
+          :menu-actions="menuActions"
+          :prompt="menuPrompt"
+          @advance="advanceDialog"
+          @typing-complete="onDialogTypingComplete"
+        />
       </div>
+
     </div>
 
     <!-- Overlays sit beside the shaking container so they never shake with it -->

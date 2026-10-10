@@ -6,6 +6,13 @@ declare global {
 }
 
 import loadingMP3 from "@/assets/audio/loading.mp3";
+// Our own soundtrack (tools/chiptune renders it): the remote starmen.net tracks sit behind a bot
+// challenge since 2026-10, so every slot plays a local loop. OGG loops gaplessly in Chrome and
+// Android; MP3 is the fallback for Safari and iOS.
+const chiptune = require.context("@/assets/audio/chiptune", false, /\.(ogg|mp3)$/);
+const canPlayOgg =
+  typeof document !== "undefined" && !!document.createElement("audio").canPlayType("audio/ogg; codecs=vorbis");
+const tune = (name: string): string => chiptune(`./${name}.${canPlayOgg ? "ogg" : "mp3"}`);
 import debug from "@/lib/utils/debug";
 import { AudioEngine } from "@/lib/engine/audio/AudioEngine";
 
@@ -114,39 +121,49 @@ const $fx = {
   rpg: {
     earthbound: {
       BGM: {
-        intro: [
+        intro: [tune("intro")],
+        introOnline: [
           "https://starmen.net/mother2/music/018-%20Earthbound%20-%20Buzz%20Buzz_s%20Prophecy.mp3",
         ],
-        demo: [
+        demo: [tune("demo")],
+        demoOnline: [
           "https://starmen.net/mother2/music/005- Earthbound - Opening Credits.mp3",
         ],
-        startScreen: [
+        startScreen: [tune("startScreen")],
+        startScreenOnline: [
           "https://starmen.net/mother2/music/004- Earthbound - Title Screen.mp3",
           "https://starmen.net/mother2/music/005- Earthbound - Opening Credits.mp3",
         ],
-        chooseFile: [
+        chooseFile: [tune("chooseFile")],
+        chooseFileOnline: [
           "https://starmen.net/mother2/music/006- Earthbound - Choose a File.mp3",
         ],
-        nowLetsGo: [
+        nowLetsGo: [tune("nowLetsGo")],
+        nowLetsGoOnline: [
           "https://starmen.net/mother2/music/008-%20Earthbound%20-%20Now,%20Let_s%20Go!.mp3",
         ],
-        createProfile: [
+        createProfile: [tune("createProfile")],
+        createProfileOnline: [
           "https://starmen.net/mother2/music/007- Earthbound - Your Name, Please.mp3",
         ],
-        oneFatefulNight: [
+        oneFatefulNight: [tune("oneFatefulNight")],
+        oneFatefulNightOnline: [
           "https://starmen.net/mother2/music/009-%20Earthbound%20-%20One%20Fateful%20Night___.mp3",
         ],
-        home: [
+        home: [tune("home")],
+        homeOnline: [
           "https://starmen.net/mother2/music/023- Earthbound - Home Sweet Home.mp3",
           "https://starmen.net/mother2/music/151- Earthbound - Because I Love You.mp3",
           "https://starmen.net/mother2/music/131-%20Earthbound%20-%20Eight%20Melodies.mp3",
         ],
-        hometown: [
+        hometown: [tune("hometown")],
+        hometownOnline: [
           "https://starmen.net/mother2/music/021- Earthbound - Sunrise & Onett Theme.mp3",
           "https://starmen.net/mother2/music/058- Earthbound - Apple Kid_s Theme.mp3",
           "https://starmen.net/mother2/music/064- Earthbound - Dead-End Chaos Theatre.mp3",
         ],
-        battle: [
+        battle: [tune("battle"), tune("battle2"), tune("battle3")],
+        battleOnline: [
           "https://starmen.net/mother2/music/030- Earthbound - Oncoming Foe.mp3",
           "https://starmen.net/mother2/music/031- Earthbound - Ambush!.mp3",
           "https://starmen.net/mother2/music/032- Earthbound - Battle Against a Weak Opponent.mp3",
@@ -160,15 +177,18 @@ const $fx = {
           "https://starmen.net/mother2/music/109- Earthbound - Kraken of the Sea.mp3",
           "https://starmen.net/mother2/music/089- Earthbound - Battle Against Belch.mp3",
         ],
-        win: [
+        win: [tune("win")],
+        winOnline: [
           "https://starmen.net/mother2/music/035- Earthbound - You Win!.mp3",
           "https://starmen.net/mother2/music/036- Earthbound - That Was Easy!.mp3",
           "https://starmen.net/mother2/music/037- Earthbound - You Gained a Level!.mp3",
         ],
-        winboss: [
+        winboss: [tune("winboss")],
+        winbossOnline: [
           "https://starmen.net/mother2/music/035- Earthbound - You Win!.mp3",
         ],
-        world: [
+        world: [tune("world")],
+        worldOnline: [
           "https://starmen.net/mother2/music/092-%20Earthbound%20-%20Get%20on%20the%20Bus.mp3",
           "https://starmen.net/mother2/music/065-%20Earthbound%20-%20Runaway%20Five%20~%20The%20Daily%20Show.mp3",
           "https://starmen.net/mother2/music/066-%20Earthbound%20-%20Runaway%20Five_s%20Final%20Performance.mp3",
@@ -213,84 +233,104 @@ const $fx = {
             "https://starmen.net/mother2/music/133- Earthbound - Welcome Home.mp3",
           // Add terrain-based categorization
           terrains: {
-            plains: [
+            plains: [tune("plains")],
+            plainsOnline: [
               "https://starmen.net/mother2/music/021- Earthbound - Sunrise & Onett Theme.mp3",
               "https://starmen.net/mother2/music/057- Earthbound - Boy Meets Girl (Twoson).mp3",
             ],
-            snow: [
+            snow: [tune("snow")],
+            snowOnline: [
               "https://starmen.net/mother2/music/075- Earthbound - Winters White.mp3",
               "https://starmen.net/mother2/music/074- Earthbound - Snowman (Snow Wood Boarding House).mp3",
               "https://starmen.net/mother2/music/062-%20Earthbound%20-%20Happy-Happy%20is%20Blue.mp3",
             ],
-            desert: [
+            desert: [tune("desert")],
+            desertOnline: [
               "https://starmen.net/mother2/music/110- Earthbound - Bazaar.mp3",
               "https://starmen.net/mother2/music/112- Earthbound - The Unforgiving Desert.mp3",
             ],
-            sands: [
+            sands: [tune("sands")],
+            sandsOnline: [
               "https://starmen.net/mother2/music/112- Earthbound - The Unforgiving Desert.mp3",
             ],
-            swamp: [
+            swamp: [tune("swamp")],
+            swampOnline: [
               "https://starmen.net/mother2/music/069- Earthbound - Threed, Zombie Central.mp3",
               "https://starmen.net/mother2/music/062-%20Earthbound%20-%20Happy-Happy%20is%20Blue.mp3",
             ],
-            mountains: [
+            mountains: [tune("mountains")],
+            mountainsOnline: [
               "https://starmen.net/mother2/music/120- Earthbound - The Lost Underworld.mp3",
               "https://starmen.net/mother2/music/121- Earthbound - Lava Springs.mp3",
             ],
-            forest: [
+            forest: [tune("forest")],
+            forestOnline: [
               "https://starmen.net/mother2/music/087- Earthbound - Hi Hi Hi.mp3",
               "https://starmen.net/mother2/music/061- Earthbound - Peaceful Rest Valley.mp3",
             ],
-            islands: [
+            islands: [tune("islands")],
+            islandsOnline: [
               "https://starmen.net/mother2/music/102- Earthbound - Summers, Eternal Tourist Trap.mp3",
               "https://starmen.net/mother2/music/107- Earthbound - Sailing to Scaraba.mp3",
             ],
-            urban: [
+            urban: [tune("urban")],
+            urbanOnline: [
               "https://starmen.net/mother2/music/094- Earthbound - The Metropolis of Fourside.mp3",
               "https://starmen.net/mother2/music/091- Earthbound - Threed, Free at Last.mp3",
             ],
-            moon: [
+            moon: [tune("moon")],
+            moonOnline: [
               "https://starmen.net/mother2/music/133- Earthbound - Welcome Home.mp3",
               "https://starmen.net/mother2/music/099- Earthbound - Moonside Swing.mp3",
             ],
-            clouds: [
+            clouds: [tune("clouds")],
+            cloudsOnline: [
               // "https://starmen.net/mother2/music/059- Earthbound - Ness_ Bike.mp3",
 
               "https://starmen.net/mother2/music/106- Earthbound - Pink Cloud Shrine.mp3",
             ],
-            cave: [
+            cave: [tune("cave")],
+            caveOnline: [
               "https://starmen.net/mother2/music/041- Earthbound - Dangerous Caves.mp3",
               "https://starmen.net/mother2/music/079- Earthbound - Caverns of Winters.mp3",
             ],
-            dungeon: [
+            dungeon: [tune("dungeon"), tune("temple")],
+            dungeonOnline: [
               "https://starmen.net/mother2/music/088- Earthbound - Belch_s Factory.mp3",
               "https://starmen.net/mother2/music/113- Earthbound - Pyramid.mp3",
               "https://starmen.net/mother2/music/114- Earthbound - Inside the Dungeon.mp3",
             ],
           },
         },
-        hotel: [
+        hotel: [tune("hotel")],
+        hotelOnline: [
           "https://starmen.net/mother2/music/027- Earthbound - Enjoy Your Stay.mp3",
         ],
-        hospital: [
+        hospital: [tune("hospital")],
+        hospitalOnline: [
           "https://starmen.net/mother2/music/029- Earthbound - Hospital.mp3",
         ],
-        shop: [
+        shop: [tune("shop")],
+        shopOnline: [
           "https://starmen.net/mother2/music/026- Earthbound - Buy Somethin_ Will Ya!.mp3",
         ],
-        credits: [
+        credits: [tune("credits")],
+        creditsOnline: [
           "https://starmen.net/mother2/music/150- Earthbound - The Heroes Return.mp3",
           "https://starmen.net/mother2/music/153- Earthbound - Smiles and Tears.mp3",
         ],
-        bazaar: [
+        bazaar: [tune("bazaar")],
+        bazaarOnline: [
           "https://starmen.net/mother2/music/110- Earthbound - Bazaar.mp3",
         ],
-        cave: [
+        cave: [tune("cave")],
+        caveOnline: [
           "https://starmen.net/mother2/music/041- Earthbound - Dangerous Caves.mp3",
           "https://starmen.net/mother2/music/079- Earthbound - Caverns of Winters.mp3",
           "https://starmen.net/mother2/music/086- Earthbound - Saturn Valley Caverns.mp3",
         ],
-        sanctuary: [
+        sanctuary: [tune("sanctuary")],
+        sanctuaryOnline: [
           "https://starmen.net/mother2/music/047- Earthbound - Welcome to Your Sanctuary.mp3",
           "https://starmen.net/mother2/music/048- Earthbound - Your Sanctuary ~ Giant Step.mp3",
           "https://starmen.net/mother2/music/049- Earthbound - Your Sanctuary ~ Lilliput Steps.mp3",
@@ -301,7 +341,8 @@ const $fx = {
           "https://starmen.net/mother2/music/054- Earthbound - Your Sanctuary ~ Lumine Hall.mp3",
           "https://starmen.net/mother2/music/055- Earthbound - Your Sanctuary ~ Fire Spring.mp3",
         ],
-        soundstone: [
+        soundstone: [tune("soundstone")],
+        soundstoneOnline: [
           "https://starmen.net/mother2/music/122- Earthbound - Sound Stone ~ Giant Step.mp3",
           "https://starmen.net/mother2/music/123- Earthbound - Sound Stone ~ Lilliput Steps.mp3",
           "https://starmen.net/mother2/music/124- Earthbound - Sound Stone ~ Milky Well.mp3",
@@ -313,12 +354,14 @@ const $fx = {
           "https://starmen.net/mother2/music/130- Earthbound - Sound Stone ~ No Sounds.mp3",
           "https://starmen.net/mother2/music/131- Earthbound - Eight Melodies.mp3",
         ],
-        dungeon: [
+        dungeon: [tune("dungeon"), tune("temple")],
+        dungeonOnline: [
           // "https://starmen.net/mother2/music/088- Earthbound - Belch_s Factory.mp3",
           "https://starmen.net/mother2/music/113- Earthbound - Pyramid.mp3",
           "https://starmen.net/mother2/music/114- Earthbound - Inside the Dungeon.mp3",
         ],
-        boss: [
+        boss: [tune("boss")],
+        bossOnline: [
           "https://starmen.net/mother2/music/043- Earthbound - Oncoming Boss.mp3",
           "https://starmen.net/mother2/music/044- Earthbound - Sanctuary Guardian.mp3",
           "https://starmen.net/mother2/music/089- Earthbound - Battle Against Belch.mp3",
@@ -327,7 +370,8 @@ const $fx = {
           "https://starmen.net/mother2/music/144- Earthbound - Giygas Stirs.mp3",
           "https://starmen.net/mother2/music/145- Earthbound - Giygas_ Intimidation.mp3",
         ],
-        gameover: [
+        gameover: [tune("gameover")],
+        gameoverOnline: [
           "https://starmen.net/mother2/music/045- Earthbound - A Bad Dream.mp3",
         ],
         // New categories based on the complete soundtrack

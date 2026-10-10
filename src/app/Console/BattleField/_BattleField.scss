@@ -44,12 +44,11 @@
       justify-content: center;
       align-items: center;
 
-      // The box keeps its room even while empty, so the arena never jumps
-      &--top {
+      // The hero sits at the top, out of the thumb's way; the eb-box rings reach 16px outside the card
+      &--hero {
         flex-shrink: 0;
-        height: 176px;
-        align-items: flex-start;
-        z-index: 100;
+        padding: 14px 20px 8px;
+        z-index: 50;
       }
 
       &--middle {
@@ -58,11 +57,13 @@
         position: relative;
       }
 
-      // The eb-box rings reach 16px outside the card: leave them room
-      &--bottom {
+      // The message box and its menu sit at the bottom where the thumb lives; the zone keeps its
+      // room even while the box is empty, so the arena never jumps
+      &--actions {
         flex-shrink: 0;
-        padding: 20px 20px 20px;
-        z-index: 50;
+        height: 176px;
+        align-items: flex-end;
+        z-index: 100;
       }
     }
   }
@@ -89,7 +90,7 @@
   .battle-dialog {
     width: calc(100% - 40px);
     max-width: 700px;
-    margin: 18px 20px;
+    margin: 18px 20px 20px;
     padding: 5px 0 0;
     min-height: 70px;
     display: flex;

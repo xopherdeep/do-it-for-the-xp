@@ -53,6 +53,8 @@
   position: 'relative'
 }"
       id="game-area"
+      @touchstart.passive="onTouchStart"
+      @touchend.passive="onTouchEnd"
     >
       <!-- Background grid container with all rooms -->
       <div

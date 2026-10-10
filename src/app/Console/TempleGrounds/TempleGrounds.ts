@@ -339,6 +339,28 @@ export default defineComponent({
       return templeWorldMap[templeId] || { world: 'plains', route: 'home-town' };
     };
 
+    // Swipe to walk: a swipe toward an open door moves the hero, a swipe into a wall does nothing.
+    // Swipes shorter than the threshold, or more sideways than forwards, are ignored.
+    const SWIPE_MIN_PX = 40;
+    let swipeStart: { x: number; y: number } | null = null;
+    const onTouchStart = (event: TouchEvent) => {
+      const touch = event.changedTouches[0];
+      swipeStart = touch ? { x: touch.clientX, y: touch.clientY } : null;
+    };
+    const onTouchEnd = (event: TouchEvent) => {
+      const touch = event.changedTouches[0];
+      if (!swipeStart || !touch) return;
+      const dx = touch.clientX - swipeStart.x;
+      const dy = touch.clientY - swipeStart.y;
+      swipeStart = null;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_MIN_PX) return;
+      const horizontal = Math.abs(dx) > Math.abs(dy);
+      const direction = horizontal ? (dx > 0 ? 'east' : 'west') : dy > 0 ? 'south' : 'north';
+      const allowed = { north: canMoveUp, south: canMoveDown, west: canMoveLeft, east: canMoveRight }[direction];
+      if (!allowed.value) return;
+      moveWithUpdate(direction);
+    };
+
     // Handle movement with UI updates
     const moveWithUpdate = (direction: 'north' | 'south' | 'east' | 'west') => {
       const [row, col] = currentPosition.value;
@@ -496,6 +518,8 @@ export default defineComponent({
 
       // Local functions
       moveWithUpdate,
+      onTouchStart,
+      onTouchEnd,
       isDoorLocked,
       showRoomActions,
       getBgImage,

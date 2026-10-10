@@ -100,9 +100,12 @@ export default defineComponent({
            if (charIndex.value < props.text.length) {
             const char = props.text[charIndex.value];
             displayedText.value += char;
-            
-            // Per-character sound removed in favor of looping background sound
-            
+
+            // One short blip every other visible character, like the SNES text box
+            if (props.playSound && char !== ' ' && charIndex.value % 2 === 0) {
+              play$fx(props.soundType);
+            }
+
             charIndex.value++;
             emit('typing-char', charIndex.value, char);
             charsToType--;
@@ -138,11 +141,6 @@ export default defineComponent({
       charIndex.value = 0;
       displayedText.value = '';
       emit('typing-start');
-      
-      // Start looping sound
-      if (props.playSound) {
-         play$fx(props.soundType, { loop: true });
-      }
       
       startDelayTimeout.value = window.setTimeout(() => {
         lastFrameTime = 0;
@@ -206,11 +204,6 @@ export default defineComponent({
     const resumeTyping = () => {
       isPaused.value = false;
       lastFrameTime = 0; // Reset frame time so we don't jump
-      
-      // Resume sound if we are still typing
-      if (isTyping.value && props.playSound) {
-         play$fx(props.soundType, { loop: true });
-      }
       
       if (isTyping.value && !animationFrameId) {
          animationFrameId = window.requestAnimationFrame(typeNextChar);

@@ -12,44 +12,50 @@
     role="group"
     aria-label="Hero status"
   >
-    <p v-if="isLoading" class="hero-loading">Loading...</p>
+    <div class="status-box">
+      <p v-if="isLoading" class="hero-loading">Loading...</p>
 
-    <template v-else>
-      <!-- Row 1: who -->
-      <div class="hero-row hero-identity">
-        <div class="hero-avatar" aria-hidden="true">
-          <img v-if="showImage" :src="avatarSrc" alt="" draggable="false" @error="avatarBroken = true" />
-          <span v-else class="hero-initial">{{ initial }}</span>
+      <template v-else>
+        <!-- The name line, like the party boxes: name left, a tiny avatar and level tucked right -->
+        <div class="hero-identity">
+          <span class="hero-name">{{ playerName }}</span>
+          <span class="hero-level">Lv {{ level }}</span>
+          <div class="hero-avatar" aria-hidden="true">
+            <img v-if="showImage" :src="avatarSrc" alt="" draggable="false" @error="avatarBroken = true" />
+            <span v-else class="hero-initial">{{ initial }}</span>
+          </div>
         </div>
-        <span class="hero-name">{{ playerName }}</span>
-        <span class="hero-level">Lv {{ level }}</span>
-      </div>
 
-      <!-- Row 2: HP, an odometer over a bar. The tiles are for eyes; .hp-value is the same number for everything else. -->
-      <div class="hero-row hp-row" role="group" aria-label="Hit points">
-        <span class="stat-label" aria-hidden="true">HP</span>
-        <div class="hp-stack">
-          <div class="hp-digits" aria-hidden="true">
+        <!-- HP: three rolling tiles. The tiles are for eyes; .hp-value is the same number for everything else. -->
+        <div class="stat-row hp-row" role="group" aria-label="Hit points">
+          <span class="stat-label" aria-hidden="true">HP</span>
+          <div class="odometer hp-digits" aria-hidden="true">
             <span class="digit">{{ formattedHp.thou }}</span>
             <span class="digit">{{ formattedHp.hun }}</span>
             <span class="digit">{{ formattedHp.ten }}</span>
+            <div class="hp-track">
+              <div class="hp-bar" :class="hpTone" :style="{ width: barWidth(hpPercentage) }"></div>
+            </div>
           </div>
-          <div class="hp-track" aria-hidden="true">
-            <div class="hp-bar" :class="hpTone" :style="{ width: barWidth(hpPercentage) }"></div>
-          </div>
+          <span class="hp-value">{{ hpDisplay }}</span>
+          <span class="hp-max">/ {{ hpMax }}</span>
         </div>
-        <span class="hp-max">/ {{ hpMax }}</span>
-        <span class="hp-value">{{ hpDisplay }}</span>
-      </div>
 
-      <!-- Row 3: MP, small -->
-      <div class="mp-line">
-        <span class="mp-text">MP <span class="mp-value">{{ mpDisplay }}</span>/{{ mpMax }}</span>
-        <div class="mp-track" aria-hidden="true">
-          <div class="mp-bar" :style="{ width: barWidth(mpPercentage) }"></div>
+        <!-- MP: the same odometer -->
+        <div class="stat-row mp-row" role="group" aria-label="Magic points">
+          <span class="stat-label" aria-hidden="true">MP</span>
+          <div class="odometer mp-digits" aria-hidden="true">
+            <span class="digit">{{ formattedMp.thou }}</span>
+            <span class="digit">{{ formattedMp.hun }}</span>
+            <span class="digit">{{ formattedMp.ten }}</span>
+            <div class="mp-track">
+              <div class="mp-bar" :style="{ width: barWidth(mpPercentage) }"></div>
+            </div>
+          </div>
+          <span class="mp-line">MP <span class="mp-value">{{ mpDisplay }}</span>/{{ mpMax }}</span>
         </div>
-      </div>
-    </template>
+      </template>
+    </div>
 
     <span v-if="defending && !isLoading" class="defending-badge" data-cy="defending-badge">
       <svg class="badge-icon" viewBox="0 0 12 14" width="12" height="14" aria-hidden="true" focusable="false">
@@ -92,6 +98,7 @@ const {
   mpDisplay,
   mpMax,
   formattedHp,
+  formattedMp,
   hpPercentage,
   mpPercentage,
 } = useBattlePlayer(toRef(props, "userId"));
@@ -137,76 +144,98 @@ onBeforeUnmount(() => window.clearTimeout(hitTimer));
 <style lang="scss" scoped>
 @use "@/styles/themes/earthbound.scss" as *;
 
+// The Earthbound party status box: a lavender checkerboard card in a bone-and-ink frame,
+// the name on top, HP and MP as three-digit rolling odometers.
 $ink: #101010;
+$bone: #f0f0f0;
+$sage: #98a080;
+$lavender: #9090e8;
+$lavender-dark: #9080a8;
 
 .hero-card {
-  @include eb-box();
   position: relative;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  // The box's rings reach 16 px outside it and the arena clips at the screen edge: keep 20 px of air.
-  width: calc(100% - 40px);
-  max-width: 420px;
-  margin: 4px auto 20px;
-  padding: 8px 12px;
+  width: 100%;
+  max-width: 168px;
+  margin: 0 auto;
+  border-radius: 4px;
+  background: $lavender;
+  background-image:
+    linear-gradient(45deg, $lavender-dark 25%, transparent 25%, transparent 75%, $lavender-dark 75%, $lavender-dark),
+    linear-gradient(45deg, $lavender-dark 25%, transparent 25%, transparent 75%, $lavender-dark 75%, $lavender-dark);
+  background-size: 16px 16px;
+  background-position: 0 0, 8px 8px;
+  box-shadow:
+    0 0 0 2px $sage,
+    0 0 0 4px $bone,
+    0 0 0 6px $sage,
+    0 0 0 8px $ink;
+  color: $bone;
   user-select: none;
-  -webkit-user-select: none;
-  transition: filter 0.6s ease, opacity 0.6s ease;
+  transition: filter 0.4s ease, opacity 0.4s ease;
 
   &.is-hit {
-    animation: card-hit-a 400ms ease-in-out;
+    animation: card-hit-a 400ms ease-out;
+  }
 
-    &.is-hit-b {
-      animation-name: card-hit-b;
-    }
-
-    .digit {
-      color: #b3001b;
-    }
+  &.is-hit.is-hit-b {
+    animation-name: card-hit-b;
   }
 
   &.is-downed {
     filter: grayscale(1);
     opacity: 0.6;
   }
+}
 
-  &.is-loading {
-    min-height: 120px;
-    justify-content: center;
-  }
+.status-box {
+  padding: 4px 7px 6px;
 }
 
 .hero-loading {
   margin: 0;
-  text-align: center;
-  font-family: "Apple Kid", sans-serif;
+  padding: 10px 0;
+  font-family: "StatusPlz", monospace;
   font-size: 1.2rem;
+  text-align: center;
 }
 
-.hero-row {
+.hero-identity {
   display: flex;
   align-items: center;
   gap: 8px;
-  min-width: 0;
+  margin-bottom: 4px;
 }
 
-// --- row 1 ---
+.hero-name {
+  font-family: "StatusPlz", monospace;
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-shadow: 1px 1px 0 $ink;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.hero-level {
+  margin-left: auto;
+  font-family: "StatusPlz", monospace;
+  font-size: 0.65rem;
+  text-shadow: 1px 1px 0 $ink;
+  opacity: 0.9;
+}
+
 .hero-avatar {
-  flex: none;
-  box-sizing: border-box;
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  overflow: hidden;
+  background: $ink;
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
-  overflow: hidden;
-  border: 2px solid $eb-color-pale-yellow;
-  border-radius: 50%;
-  background: #6b3fa0;
 
   img {
-    display: block;
     width: 100%;
     height: 100%;
     object-fit: cover;
@@ -214,167 +243,119 @@ $ink: #101010;
 }
 
 .hero-initial {
-  font-family: "Apple Kid", sans-serif;
-  font-size: 1.3rem;
-  line-height: 1;
-  color: #fff;
+  font-family: "StatusPlz", monospace;
+  font-size: 0.8rem;
+  color: $bone;
 }
 
-.hero-name {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-family: "Apple Kid", sans-serif;
-  font-size: 1.35rem;
-  line-height: 1.1;
-  color: $eb-color-cream;
-}
-
-.hero-level {
-  flex: none;
-  padding: 4px 10px;
-  border: 2px solid $eb-color-pale-yellow;
-  border-radius: 999px;
-  font-family: "StatusPlz", sans-serif;
-  font-size: 1rem;
-  line-height: 1;
-  white-space: nowrap;
-  color: $eb-color-pale-yellow;
-}
-
-// --- row 2 ---
-.stat-label {
-  flex: none;
-  width: 34px;
-  font-family: "Fourside", sans-serif;
-  font-size: 1.5rem;
-  line-height: 1;
-  color: $eb-color-cream;
-}
-
-.hp-stack {
-  flex: none;
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.hp-digits {
-  display: flex;
-  gap: 2px;
-  padding: 2px;
-  background: $ink;
-}
-
-// Today's tile look: black digit on a white-to-gray radial gradient.
-.digit {
-  box-sizing: border-box;
+.stat-row {
   display: flex;
   align-items: center;
-  justify-content: center;
-  min-width: 40px;
-  height: 38px;
-  padding: 0 4px;
-  border: 3px solid #000;
-  background: radial-gradient(ellipse at 60% 45%, rgb(255, 255, 255) 45%, rgb(155, 155, 155) 80%);
-  font-family: "Orange Kid", sans-serif;
-  font-size: 34px;
+  gap: 6px;
+
+  & + & {
+    margin-top: 3px;
+  }
+}
+
+// Fourside gives the HP / MP captions their outlined pixel look
+.stat-label {
+  width: 30px;
+  font-family: "Fourside", "StatusPlz", monospace;
+  font-size: 1.05rem;
   line-height: 1;
-  color: #000;
-  transition: color 0.15s ease;
+  letter-spacing: -4px;
+  -webkit-text-stroke: 1px $bone;
+  text-shadow: 1px 1px 0 $ink;
 }
 
+.odometer {
+  position: relative;
+  display: flex;
+  flex: 1;
+  gap: 1px;
+  padding: 2px 2px 4px;
+  background: $ink;
+  border-radius: 2px;
+}
+
+.digit {
+  flex: 1;
+  min-width: 0;
+  height: 24px;
+  line-height: 24px;
+  font-family: "Orange Kid", "StatusPlz", monospace;
+  font-size: 20px;
+  font-weight: 600;
+  text-align: center;
+  color: $ink;
+  background: radial-gradient(ellipse at 60% 45%, rgb(255, 255, 255) 45%, rgb(165, 165, 165) 85%);
+  border: 1px solid $ink;
+  border-radius: 1px;
+}
+
+// The screen-reader number and the max: present, not drawn
+.hp-value,
+.mp-line,
 .hp-max {
-  font-family: "StatusPlz", sans-serif;
-  font-size: 1rem;
-  opacity: 0.8;
-}
-
-// The same number as the tiles, for screen readers and tests; it takes no room.
-.hp-value {
   position: absolute;
   width: 1px;
   height: 1px;
-  margin: -1px;
   overflow: hidden;
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
 
+// A hairline under the tiles that drains with the number
 .hp-track,
 .mp-track {
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 1px;
+  height: 2px;
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 2px;
   overflow: hidden;
-  border-radius: 3px;
-  background: rgba(0, 0, 0, 0.6);
-  box-shadow: inset 0 0 0 1px rgba($eb-color-cream, 0.35);
-}
-
-.hp-track {
-  height: 6px;
 }
 
 .hp-bar {
   height: 100%;
   background: var(--xp-color-hp);
-  transition: width 0.12s linear;
+  transition: width 0.3s ease-out;
 
   &.is-mid {
     background: #ffb347;
   }
 
   &.is-low {
-    animation: hp-low-pulse 0.7s ease-in-out infinite;
+    background: #ff3b3b;
+    animation: hp-low-pulse 0.8s ease-in-out infinite;
   }
-}
-
-// --- row 3 ---
-.mp-line {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: "StatusPlz", sans-serif;
-  font-size: 0.9rem;
-  line-height: 16px;
-}
-
-.mp-text {
-  flex: none;
-}
-
-.mp-track {
-  flex: 1 1 auto;
-  min-width: 40px;
-  height: 4px;
 }
 
 .mp-bar {
   height: 100%;
   background: var(--xp-color-mp);
-  transition: width 0.12s linear;
+  transition: width 0.3s ease-out;
 }
 
-// --- defending: a tab hanging on the top edge of the box ---
 .defending-badge {
   position: absolute;
   top: -14px;
-  right: 14px;
-  z-index: 1;
+  right: 10px;
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  padding: 2px 10px 2px 8px;
-  border: 2px solid $eb-color-sky-blue;
-  border-radius: 999px;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
   background: $eb-color-dark-purple;
-  box-shadow: 0 0 10px rgba($eb-color-sky-blue, 0.8);
-  font-family: "StatusPlz", sans-serif;
+  border: 2px solid $bone;
+  color: $bone;
+  font-family: "StatusPlz", monospace;
   font-size: 0.8rem;
   letter-spacing: 1px;
-  line-height: 1.2;
-  color: $eb-color-pale-yellow;
-  animation: badge-pop 250ms ease-out;
+  animation: badge-pop 0.2s ease-out;
 }
 
 @mixin shake {
