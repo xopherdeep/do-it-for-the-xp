@@ -13,6 +13,14 @@
       >
         <i class="fad fa-dice-d20 fa-2x"></i>
       </ion-button>
+      <ion-button
+        color="rpg"
+        class="blood-moon-btn"
+        title="Blood moons: each hero's progress per temple, schedule or raise a reset"
+        @click="openBloodMoons"
+      >
+        <i class="fad fa-moon fa-2x"></i>
+      </ion-button>
       <ion-button @click="clickSoundSettings">
         <i class="fad fa-volume-up fa-2x"></i>
       </ion-button>
@@ -63,6 +71,12 @@
       @saved="onGenerated"
     />
 
+    <xp-blood-moon-modal
+      :is-open="bloodMoonsOpen"
+      :temples="templeChoices"
+      @close="bloodMoonsOpen = false"
+    />
+
     <!-- Temple Creator Floating Action Button -->
     <ion-fab
       vertical="bottom"
@@ -94,6 +108,7 @@
   import { createOutline, cloudDownloadOutline, diceOutline } from "ionicons/icons";
   import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
   import XpTempleGenerateModal from "./components/XpTempleGenerateModal.vue";
+  import XpBloodMoonModal from "./components/XpBloodMoonModal.vue";
   import { TEMPLE_METADATA } from "@/lib/engine/temples/templeRegistry";
   import { play$fx } from "@/assets/fx";
 
@@ -106,6 +121,7 @@
     components: {
       XpRpgPage,
       XpTempleGenerateModal,
+      XpBloodMoonModal,
     },
     setup() {
       const isLoading = ref(true);
@@ -116,6 +132,7 @@
       // Temples saved by the creator or the generator that are not one of the nine shipped ones
       const customTemples = ref([] as TempleInterface[]);
       const generatorOpen = ref(false);
+      const bloodMoonsOpen = ref(false);
 
       // Map with explicit connection between display names and temple IDs
       const temples = [
@@ -256,6 +273,19 @@
         return [...shipped, ...custom];
       });
 
+      // The temples the blood moon panel can pick from, named as their cards are
+      const templeChoices = computed(() =>
+        processedTemples.value.map((temple) => ({
+          id: temple.id,
+          name: temple.customName || temple.name || TEMPLE_METADATA[temple.id]?.name || temple.id,
+        }))
+      );
+
+      const openBloodMoons = () => {
+        play$fx("openMenu");
+        bloodMoonsOpen.value = true;
+      };
+
       const openGenerator = () => {
         play$fx("openMenu");
         generatorOpen.value = true;
@@ -347,6 +377,9 @@
         generatorOpen,
         openGenerator,
         onGenerated,
+        bloodMoonsOpen,
+        templeChoices,
+        openBloodMoons,
       };
     },
   });

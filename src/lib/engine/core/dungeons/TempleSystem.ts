@@ -15,6 +15,8 @@ import { TempleHydrator } from './TempleHydrator';
 import { getTempleProgressDb } from '@/lib/databases/TempleProgressDb';
 import type { NewTempleProgress, TempleProgressEntry } from '@/lib/databases/TempleProgressDb';
 import { TEMPLE_CLEARED_KEY, isBloodMoonDue, resetTempleProgress } from './templeReset';
+import { nextWeekly } from './bloodMoonSchedule';
+import type { BloodMoonCadence } from './bloodMoonSchedule';
 import { getTempleMetadata } from '@/lib/engine/temples/templeRegistry';
 import { bloodMoon as notifyBloodMoon } from '@/lib/services/notifications/notify';
 import debug from '@/lib/utils/debug';
@@ -43,6 +45,8 @@ export interface TempleState {
   bloodMoons?: number;
   /** ISO time of the blood moon the Game Master scheduled next; carried so a save does not lose it */
   bloodMoonAt?: string;
+  /** The Game Master's cadence: a due moon that fires re-schedules itself a week later */
+  bloodMoonEvery?: BloodMoonCadence;
 }
 
 /** What stands between two rooms: nothing, a small lock, or the boss door (the big lock only the master key opens) */
@@ -99,8 +103,8 @@ export class TempleSystem {
   // or the fresh run standing in until the read lands would overwrite the very record that is on its way.
   private reads = new Map<string, Promise<void>>();
 
-  // Temples a blood moon reset when the hero's progress was read back, until the screen has shown it
-  private risen = new Set<string>();
+  // Temples a blood moon reset, by the hero it reset them for, until the screen has shown it to that hero
+  private risen = new Map<string, string>();
 
   // Saves waiting for the end of the tick, one per hero and temple (the newest wins), and the writes in flight
   private pendingSaves = new Map<string, NewTempleProgress>();
@@ -989,7 +993,8 @@ export class TempleSystem {
       keyItems: [...(state.keyItems ?? [])],
       timesCleared: state.timesCleared ?? 0,
       bloodMoons: state.bloodMoons ?? 0,
-      ...(state.bloodMoonAt ? { bloodMoonAt: state.bloodMoonAt } : {})
+      ...(state.bloodMoonAt ? { bloodMoonAt: state.bloodMoonAt } : {}),
+      ...(state.bloodMoonEvery ? { bloodMoonEvery: state.bloodMoonEvery } : {})
     };
   }
 
@@ -1005,6 +1010,28 @@ export class TempleSystem {
     const entry = await getTempleProgressDb().scheduleBloodMoon(userId, templeId, whenISO);
     const state = this.templeStates[templeId];
     if (entry && state && this.heroByTemple.get(templeId) === userId) state.bloodMoonAt = entry.bloodMoonAt;
+    return entry;
+  }
+
+  /**
+   * Game Master action: put the blood moon over a temple on a cadence for a hero (null takes it off). Weekly
+   * without a date in hand schedules the first moon a week from now; after that each due moon that fires
+   * re-schedules itself a week later (loadProgress), as does "rise now" (bloodMoon).
+   * @returns The progress as saved, or null when the hero has none in that temple
+   */
+  public async setBloodMoonEvery(templeId: string, userId: string, every: BloodMoonCadence | null): Promise<TempleProgressEntry | null> {
+    await this.whenProgressReady(templeId);
+    await this.flushProgress();
+
+    let entry = await getTempleProgressDb().setBloodMoonEvery(userId, templeId, every);
+    if (entry && every === 'weekly' && !entry.bloodMoonAt) {
+      entry = await getTempleProgressDb().scheduleBloodMoon(userId, templeId, nextWeekly(new Date().toISOString()));
+    }
+    const state = this.templeStates[templeId];
+    if (entry && state && this.heroByTemple.get(templeId) === userId) {
+      state.bloodMoonEvery = entry.bloodMoonEvery;
+      state.bloodMoonAt = entry.bloodMoonAt;
+    }
     return entry;
   }
 
@@ -1027,6 +1054,8 @@ export class TempleSystem {
     if (!before) return null;
 
     const reset = resetTempleProgress(before);
+    // A weekly moon keeps its cadence: the next one a week on from the one spent (or from tonight)
+    if (before.bloodMoonEvery === 'weekly') reset.bloodMoonAt = nextWeekly(before.bloodMoonAt ?? new Date().toISOString());
     if (open) this.forgetRun(templeId, true);
 
     let entry: TempleProgressEntry;
@@ -1039,12 +1068,20 @@ export class TempleSystem {
 
     // The screen keeps its temple: the run starts over from the reset record, read back like any other
     if (open) this.openState(templeId, userId, [reset.currentPosition[0], reset.currentPosition[1]], reset.currentLevel, true);
+    // The hero hears of it when they next stand in the temple (the screen reads this flag on mount)
+    this.risen.set(templeId, userId);
     notifyBloodMoon(userId, { id: templeId, name: getTempleMetadata(templeId).name });
     return entry;
   }
 
-  /** True once, after a scheduled blood moon reset the temple when the hero's progress was read back. */
+  /**
+   * True once, for the hero the temple is open for, after a blood moon reset it: a scheduled one that fired
+   * when their progress was read back, or one the Game Master raised at once. A moon raised over another
+   * hero's run is kept for that hero's next visit.
+   */
   public bloodMoonRose(templeId: string): boolean {
+    const hero = this.heroByTemple.get(templeId);
+    if (!hero || this.risen.get(templeId) !== hero) return false;
     return this.risen.delete(templeId);
   }
 
@@ -1108,8 +1145,11 @@ export class TempleSystem {
         try {
           // A blood moon the Game Master scheduled has risen since the last visit: the run starts over
           if (isBloodMoonDue(saved)) {
+            const spent = saved.bloodMoonAt;
             saved = resetTempleProgress(saved);
-            this.risen.add(templeId);
+            // A weekly moon rises again a week on from the one just spent (skipping weeks the hero was away)
+            if (saved.bloodMoonEvery === 'weekly' && spent) saved.bloodMoonAt = nextWeekly(spent);
+            this.risen.set(templeId, userId);
             notifyBloodMoon(userId, { id: templeId, name: getTempleMetadata(templeId).name });
           }
           this.applyProgress(templeId, saved, resume ? start : undefined);
@@ -1148,6 +1188,7 @@ export class TempleSystem {
     state.timesCleared = Math.max(state.timesCleared ?? 0, saved.timesCleared);
     state.bloodMoons = Math.max(state.bloodMoons ?? 0, saved.bloodMoons);
     if (saved.bloodMoonAt) state.bloodMoonAt = saved.bloodMoonAt;
+    if (saved.bloodMoonEvery) state.bloodMoonEvery = saved.bloodMoonEvery;
     if (!state.openedChests) state.openedChests = new Set<string>();
     for (const key of saved.openedChests) state.openedChests.add(key);
     if (!state.clearedRooms) state.clearedRooms = new Set<string>();

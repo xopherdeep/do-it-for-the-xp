@@ -8,6 +8,7 @@
 import { getTempleProgressDb, type TempleProgressEntry } from "@/lib/databases/TempleProgressDb";
 import { TEMPLE_CLEARED_KEY } from "@/lib/engine/core/dungeons/TempleSystem";
 import { bloodMoonLine, isBloodMoonDue, resetTempleProgress } from "@/lib/engine/core/dungeons/templeReset";
+import { nextWeekly } from "@/lib/engine/core/dungeons/bloodMoonSchedule";
 import type { Room } from "@/lib/engine/core/dungeons/types";
 import { HERO, dungeons, makeTemple, temples } from "./templeFixtures";
 
@@ -185,7 +186,24 @@ describe("TempleSystem and the blood moon", () => {
     // The beast is back in the room the hero stands in: the doors are sealed until it is beaten
     expect(dungeons.getRoom(id, [0, 2])?.locked).toEqual(SEALED);
     expect(temples.getHeroId(id)).toBe(HERO);
-    expect(temples.bloodMoonRose(id)).toBe(false); // the screen's toast is for a scheduled moon
+    // The hero hears of it when the screen next mounts for them, once
+    expect(temples.bloodMoonRose(id)).toBe(true);
+    expect(temples.bloodMoonRose(id)).toBe(false);
+  });
+
+  it("keeps the toast of a moon raised at once for the hero it reset, not for whoever enters next", async () => {
+    const id = run();
+    await playThrough(id);
+    temples.initTemple(id, [0, 0], undefined, "somebody-else"); // the hero has left; another is in the temple
+    await temples.whenProgressReady(id);
+
+    expect(await temples.bloodMoon(id, HERO)).toMatchObject({ bloodMoons: 1 });
+    expect(temples.bloodMoonRose(id)).toBe(false); // not for somebody-else
+
+    temples.initTemple(id, [0, 0], undefined, HERO);
+    await temples.whenProgressReady(id);
+    expect(temples.bloodMoonRose(id)).toBe(true);
+    expect(temples.getTempleState(id)).toMatchObject({ playerKeys: 0, bloodMoons: 1 });
   });
 
   it("does nothing for a hero without progress", async () => {
@@ -212,6 +230,49 @@ describe("TempleSystem and the blood moon", () => {
     const saved = await db.getProgress(HERO, id);
     expect(saved).toMatchObject({ playerKeys: 0, hasMasterKey: false, clearedRooms: [], bloodMoons: 1 });
     expect(saved && "bloodMoonAt" in saved).toBe(false);
+  });
+
+  it("re-schedules a weekly moon a week on from the one that fired at entry", async () => {
+    const id = run();
+    await playThrough(id);
+    await temples.scheduleBloodMoon(id, HERO, PAST);
+    expect(await temples.setBloodMoonEvery(id, HERO, "weekly")).toMatchObject({ bloodMoonAt: PAST, bloodMoonEvery: "weekly" });
+
+    temples.initTemple(id, [0, 0], undefined, "somebody-else");
+    temples.initTemple(id, [0, 0], undefined, HERO);
+    await temples.whenProgressReady(id);
+    await temples.flushProgress();
+
+    expect(temples.bloodMoonRose(id)).toBe(true);
+    const saved = await db.getProgress(HERO, id);
+    expect(saved).toMatchObject({ playerKeys: 0, bloodMoons: 1, bloodMoonEvery: "weekly", bloodMoonAt: nextWeekly(PAST) });
+    expect(Date.parse(saved!.bloodMoonAt!)).toBeGreaterThan(Date.now());
+    expect(temples.getTempleState(id)).toMatchObject({ bloodMoonEvery: "weekly", bloodMoonAt: nextWeekly(PAST) });
+  });
+
+  it("gives a weekly moon with no date its first night a week from now, and a single night takes the cadence off", async () => {
+    const id = run();
+    await playThrough(id);
+
+    const weekly = await temples.setBloodMoonEvery(id, HERO, "weekly");
+    expect(weekly?.bloodMoonEvery).toBe("weekly");
+    expect(Date.parse(weekly!.bloodMoonAt!) - Date.now()).toBeGreaterThan(6.9 * 24 * 60 * 60 * 1000);
+    expect(temples.getTempleState(id)).toMatchObject({ bloodMoonEvery: "weekly", bloodMoonAt: weekly!.bloodMoonAt });
+
+    const single = await temples.setBloodMoonEvery(id, HERO, null);
+    expect(single && "bloodMoonEvery" in single).toBe(false);
+    expect(single?.bloodMoonAt).toBe(weekly?.bloodMoonAt); // the date stays, only the cadence goes
+    expect(await temples.setBloodMoonEvery(id, "nobody", "weekly")).toBeNull();
+  });
+
+  it("raised at once over a weekly moon, the next one is a week on", async () => {
+    const id = run();
+    await playThrough(id);
+    await temples.setBloodMoonEvery(id, HERO, "weekly");
+    const first = (await db.getProgress(HERO, id))!.bloodMoonAt!;
+
+    const entry = await temples.bloodMoon(id, HERO);
+    expect(entry).toMatchObject({ bloodMoons: 1, bloodMoonEvery: "weekly", bloodMoonAt: first }); // first is still to come: kept
   });
 
   it("waits for a moon scheduled in the future, and the date survives the next save", async () => {

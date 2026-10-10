@@ -39,6 +39,8 @@ export interface TempleProgressEntry {
   bloodMoons: number;
   /** ISO time the Game Master scheduled the next blood moon for; the reset fires at the hero's first entry after it */
   bloodMoonAt?: string;
+  /** The Game Master's cadence: a due moon that fires re-schedules itself a week later (TempleSystem.loadProgress) */
+  bloodMoonEvery?: "weekly";
   /** ISO timestamp of the last save */
   updatedAt: string;
 }
@@ -58,6 +60,9 @@ const toStringList = (value: unknown): string[] =>
 const toCount = (value: unknown): number =>
   typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
 
+/** The one cadence there is, or undefined for anything else */
+const toCadence = (value: unknown): "weekly" | undefined => (value === "weekly" ? "weekly" : undefined);
+
 /** An ISO time, or undefined for anything that is not a date */
 const toIsoTime = (value: unknown): string | undefined =>
   typeof value === "string" && !Number.isNaN(Date.parse(value)) ? value : undefined;
@@ -74,6 +79,7 @@ export const toTempleProgress = (raw: unknown): TempleProgressEntry | null => {
 
   const position = Array.isArray(data.currentPosition) ? data.currentPosition : [];
   const bloodMoonAt = toIsoTime(data.bloodMoonAt);
+  const bloodMoonEvery = toCadence(data.bloodMoonEvery);
 
   return {
     userId: data.userId,
@@ -92,6 +98,7 @@ export const toTempleProgress = (raw: unknown): TempleProgressEntry | null => {
     timesCleared: toCount(data.timesCleared),
     bloodMoons: toCount(data.bloodMoons),
     ...(bloodMoonAt ? { bloodMoonAt } : {}),
+    ...(bloodMoonEvery ? { bloodMoonEvery } : {}),
     updatedAt: typeof data.updatedAt === "string" ? data.updatedAt : new Date(0).toISOString(),
   };
 };
@@ -128,6 +135,17 @@ export class TempleProgressDb extends DbStorageApi {
 
     // toTempleProgress drops an undefined bloodMoonAt, so taking the moon back leaves no field behind
     return this.saveProgress({ ...current, bloodMoonAt: whenISO === null ? undefined : new Date(whenISO).toISOString() });
+  }
+
+  /**
+   * Game Master action: put a hero's blood moon in a temple on a cadence (null takes it off). It changes
+   * nothing about the date already scheduled; TempleSystem re-schedules a week later each time a due moon fires.
+   * @returns The record as saved, or null when the hero has no progress in that temple
+   */
+  public async setBloodMoonEvery(userId: string, templeId: string, every: "weekly" | null): Promise<TempleProgressEntry | null> {
+    const current = await this.getProgress(userId, templeId);
+    if (!current) return null;
+    return this.saveProgress({ ...current, bloodMoonEvery: every === null ? undefined : every });
   }
 
   /** Forget a hero's run through a temple, so the next visit starts from the entrance. */
