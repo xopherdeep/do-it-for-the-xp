@@ -135,7 +135,6 @@
           <h2 class="reward-presets-title">Ready-made rewards</h2>
           <p class="reward-presets-hint">
             One tap adds a reward to your items. Stock it in a shop (Shops, pick a shop, Items) so heroes can buy it.
-            Each one waits for your approval when bought.
           </p>
           <ul class="reward-presets-list">
             <li
