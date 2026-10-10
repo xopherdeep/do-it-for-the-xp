@@ -139,7 +139,13 @@
             :key="preset.id"
             class="catalogue-row"
           >
+            <i
+              v-if="preset.iconPrefix"
+              :class="['catalogue-icon', preset.iconPrefix, `fa-${preset.icon}`]"
+              aria-hidden="true"
+            />
             <ion-icon
+              v-else
               :icon="getAbilityIcon(preset)"
               class="catalogue-icon"
             />
@@ -223,7 +229,14 @@
               button
               @click="addPreset(preset)"
             >
+              <i
+                v-if="preset.iconPrefix"
+                :class="[preset.iconPrefix, `fa-${preset.icon}`, 'fa-lg', 'mr-3']"
+                slot="start"
+                aria-hidden="true"
+              />
               <ion-icon
+                v-else
                 :icon="getAbilityIcon(preset)"
                 slot="start"
               />

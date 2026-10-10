@@ -212,13 +212,16 @@ export const TECH_MAGE_PRESETS: Ability[] = [
 ];
 
 /**
- * Real Life Reward Presets
+ * Real Life Privilege Presets
+ *
+ * Privileges only: freedoms a hero unlocks with AP and spends MP to use. Anything that costs the family money
+ * (a restaurant meal, a movie ticket, a toy) is a shop item bought with GP instead (src/lib/services/shops/rewardPresets.ts).
  */
 export const REAL_LIFE_PRESETS: Ability[] = [
   {
-    id: 'irl-coffee-break',
-    name: 'Coffee Break',
-    description: 'Take a short break to enjoy a cup of coffee or tea.',
+    id: 'irl-captains-seat',
+    name: "Captain's Seat",
+    description: 'Call the front seat, or any seat you like, for a whole day.',
     type: AbilityType.RealLife,
     frequency: TimePeriod.Daily,
     mpCost: 5,
@@ -226,15 +229,33 @@ export const REAL_LIFE_PRESETS: Ability[] = [
       amount: 50,
       period: TimePeriod.Daily
     },
-    icon: 'pizzaOutline',
+    icon: 'steering-wheel',
+    iconPrefix: 'fad',
     prerequisites: [],
     isPreset: true,
     position: { x: 100, y: 400 }
   },
   {
+    id: 'irl-night-owl',
+    name: 'Night Owl',
+    description: 'Stay up 30 minutes past bedtime tonight.',
+    type: AbilityType.RealLife,
+    frequency: TimePeriod.Weekly,
+    mpCost: 10,
+    apRequirement: {
+      amount: 150,
+      period: TimePeriod.Weekly
+    },
+    icon: 'moon-stars',
+    iconPrefix: 'fad',
+    prerequisites: [],
+    isPreset: true,
+    position: { x: 200, y: 400 }
+  },
+  {
     id: 'irl-gaming-hour',
-    name: 'Gaming Hour',
-    description: 'Take an hour to play your favorite game guilt-free.',
+    name: 'Portal Hour',
+    description: 'One extra hour of screen or game time, guilt-free.',
     type: AbilityType.RealLife,
     frequency: TimePeriod.Weekly,
     mpCost: 10,
@@ -242,15 +263,33 @@ export const REAL_LIFE_PRESETS: Ability[] = [
       amount: 200,
       period: TimePeriod.Weekly
     },
-    icon: 'gameControllerOutline',
+    icon: 'gamepad',
+    iconPrefix: 'fad',
     prerequisites: [],
     isPreset: true,
-    position: { x: 200, y: 400 }
+    position: { x: 300, y: 400 }
   },
   {
-    id: 'irl-movie-night',
-    name: 'Movie Night',
-    description: 'Enjoy a movie or TV show marathon as a reward.',
+    id: 'irl-bards-pick',
+    name: "Bard's Pick",
+    description: 'Choose the movie or show for family movie night at home.',
+    type: AbilityType.RealLife,
+    frequency: TimePeriod.Weekly,
+    mpCost: 10,
+    apRequirement: {
+      amount: 250,
+      period: TimePeriod.Weekly
+    },
+    icon: 'popcorn',
+    iconPrefix: 'fad',
+    prerequisites: [],
+    isPreset: true,
+    position: { x: 400, y: 400 }
+  },
+  {
+    id: 'irl-feast-decree',
+    name: 'Feast Decree',
+    description: 'Choose what the family cooks for dinner one night.',
     type: AbilityType.RealLife,
     frequency: TimePeriod.Weekly,
     mpCost: 15,
@@ -258,31 +297,33 @@ export const REAL_LIFE_PRESETS: Ability[] = [
       amount: 300,
       period: TimePeriod.Weekly
     },
-    icon: 'tvOutline',
+    icon: 'hat-chef',
+    iconPrefix: 'fad',
     prerequisites: [],
     isPreset: true,
-    position: { x: 300, y: 400 }
+    position: { x: 500, y: 400 }
   },
   {
-    id: 'irl-restaurant-meal',
-    name: 'Restaurant Meal',
-    description: 'Treat yourself to a meal at your favorite restaurant.',
+    id: 'irl-guild-gathering',
+    name: 'Guild Gathering',
+    description: 'Invite a friend over to play.',
     type: AbilityType.RealLife,
     frequency: TimePeriod.Monthly,
-    mpCost: 30,
+    mpCost: 20,
     apRequirement: {
       amount: 500,
       period: TimePeriod.Monthly
     },
-    icon: 'pizzaOutline',
-    prerequisites: [],
+    icon: 'campfire',
+    iconPrefix: 'fad',
+    prerequisites: ['irl-night-owl'],
     isPreset: true,
-    position: { x: 400, y: 400 }
+    position: { x: 300, y: 500 }
   },
   {
     id: 'irl-day-off',
-    name: 'Day Off',
-    description: 'Take a full day off to relax and recharge.',
+    name: 'Day of Rest',
+    description: 'A whole day with no chores. The Game Master picks the day.',
     type: AbilityType.RealLife,
     frequency: TimePeriod.Monthly,
     mpCost: 50,
@@ -290,8 +331,9 @@ export const REAL_LIFE_PRESETS: Ability[] = [
       amount: 1000,
       period: TimePeriod.Monthly
     },
-    icon: 'homeOutline',
-    prerequisites: ['irl-restaurant-meal'],
+    icon: 'couch',
+    iconPrefix: 'fad',
+    prerequisites: ['irl-gaming-hour'],
     isPreset: true,
     position: { x: 500, y: 500 }
   }
