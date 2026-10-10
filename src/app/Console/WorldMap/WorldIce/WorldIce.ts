@@ -5,10 +5,11 @@ import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useUserActions } from "@/hooks/useUserActions";
 import { IonPage, IonContent, onIonViewDidEnter } from "@ionic/vue";
+import WeatherFX from "@/components/organisms/WeatherFX/WeatherFX.vue";
 
 export default dC({
   name: "world-ice",
-  components: { IonPage, IonContent },
+  components: { WeatherFX, IonPage, IonContent },
 
   setup() {
     const route = useRoute();

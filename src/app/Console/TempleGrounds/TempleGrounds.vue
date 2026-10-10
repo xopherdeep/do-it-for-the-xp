@@ -56,6 +56,8 @@
       @touchstart.passive="onTouchStart"
       @touchend.passive="onTouchEnd"
     >
+      <!-- Lantern light breathing over the room, dust in the air -->
+      <weather-fx type="temple" :intensity="4" :sound-enabled="false" />
       <!-- Background grid container with all rooms -->
       <div
         id="background-container"

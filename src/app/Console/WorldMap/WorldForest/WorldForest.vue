@@ -13,17 +13,8 @@
     </ion-header> -->
 
     <ion-content :fullscreen="true">
+      <WeatherFX type="forest" :intensity="5" :sound-enabled="false" />
       <div class="enchanted-forest">
-        <!-- Fireflies container -->
-        <div class="fireflies-container">
-          <div v-for="n in 30" :key="`firefly-${n}`" class="firefly"></div>
-        </div>
-        
-        <!-- Glowing particles -->
-        <div class="particles-container">
-          <div v-for="n in 25" :key="`particle-${n}`" class="particle"></div>
-        </div>
-        
         <!-- Magical forest mist -->
         <div class="mist-container">
           <div class="mist mist-1"></div>

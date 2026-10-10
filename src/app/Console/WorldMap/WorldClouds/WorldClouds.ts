@@ -6,10 +6,11 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { useUserActions } from "@/hooks/useUserActions";
 import debug from "@/lib/utils/debug";
 import { IonPage, IonContent, onIonViewDidEnter } from "@ionic/vue";
+import WeatherFX from "@/components/organisms/WeatherFX/WeatherFX.vue";
 
 export default dC({
   name: "world-clouds",
-  components: { IonPage, IonContent },
+  components: { WeatherFX, IonPage, IonContent },
 
   setup() {
     const route = useRoute();
@@ -79,18 +80,6 @@ export default dC({
         if (Math.random() > 0.6) { // 40% chance of thunder on each interval
           const thunderIndex = Math.floor(Math.random() * thunderAudio.value.length);
           const thunder = thunderAudio.value[thunderIndex];
-
-          // Create flash effect for loud thunders
-          if (thunderIndex === 0) {
-            const flash = document.createElement('div');
-            flash.className = 'lightning-flash-overlay';
-            document.body.appendChild(flash);
-
-            // Remove flash effect after animation
-            setTimeout(() => {
-              document.body.removeChild(flash);
-            }, 1000);
-          }
 
           // Add slight volume variation
           thunder.volume = 0.5 + (Math.random() * 0.3);

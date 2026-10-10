@@ -44,3 +44,6 @@ src/assets/images/backgrounds/gaia/*
 cypress/
 tests/e2e/screenshots/
 tests/e2e/videos/
+
+__pycache__/
+*.pyc

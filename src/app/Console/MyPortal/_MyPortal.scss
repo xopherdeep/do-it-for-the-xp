@@ -94,6 +94,16 @@
   .tab-docked-xp {
     position: relative;
     z-index: 1000;
+
+    // Under the tab bar: the bar takes the safe area so the tabs can sit flush on it
+    &--under {
+      background: #000;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+  }
+
+  ion-tab-bar {
+    --ion-safe-area-bottom: 0px;
   }
 
   ion-tab-bar{

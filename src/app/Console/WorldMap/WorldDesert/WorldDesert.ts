@@ -6,10 +6,11 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { useUserActions } from "@/hooks/useUserActions";
 import debug from "@/lib/utils/debug";
 import { IonPage, IonContent, onIonViewDidEnter } from "@ionic/vue";
+import WeatherFX from "@/components/organisms/WeatherFX/WeatherFX.vue";
 
 export default dC({
   name: "world-desert",
-  components: { IonPage, IonContent },
+  components: { WeatherFX, IonPage, IonContent },
 
   setup() {
     const route = useRoute();

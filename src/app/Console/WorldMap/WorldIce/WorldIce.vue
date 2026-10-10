@@ -13,28 +13,7 @@
     </ion-header> -->
 
     <ion-content :fullscreen="true">
-      <div class="snow-container">
-        <div class="snow"></div>
-        <div class="snow"></div>
-        <div class="snow"></div>
-        <div class="snow"></div>
-        <div class="snow"></div>
-        <div class="snow"></div>
-        <div class="snow"></div>
-        <div class="snow"></div>
-        <div class="snow"></div>
-        <div class="snow"></div>
-        <div class="snow"></div>
-        <div class="snow"></div>
-        <div class="snow"></div>
-        <div class="snow"></div>
-        <div class="snow"></div>
-        <div class="snow"></div>
-        <div class="snow"></div>
-        <div class="snow"></div>
-        <div class="snow"></div>
-        <div class="snow"></div>
-      </div>
+      <WeatherFX type="snowy" :intensity="6" :sound-enabled="false" />
     </ion-content>
   </ion-page>
 </template>

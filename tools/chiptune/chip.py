@@ -74,8 +74,12 @@ def env_adsr(n, a=0.002, d=0.12, s=0.6, r=0.02):
 
 # ---------------------------------------------------------------- rendering
 
+# The owner's ear: SNES-era tempos sit lower than NES ones, so every song slows by this factor
+TEMPO_SCALE = 0.84
+
 class Song:
     def __init__(self, bpm, bars):
+        bpm = round(bpm * TEMPO_SCALE)
         self.bpm = bpm; self.bars = bars
         self.sixteenth = 60.0 / bpm / 4
         self.length = int(round(bars * 16 * self.sixteenth * SR))
@@ -109,7 +113,8 @@ class Song:
                         wave = pulse_vib(f, n, d, vib_depth=vib, slide_from=sf) * env_adsr(n, d=decay, s=sustain, r=0.03)
                     self.place(wave, t, gain, pan)
                     if echo:
-                        self.place(wave, t + self.sixteenth * 2, gain * echo, -pan * 0.5 + 0.35)
+                        self.place(wave, t + self.sixteenth * 3, gain * echo, -pan * 0.5 + 0.35)
+                        self.place(wave, t + self.sixteenth * 6, gain * echo * 0.45, pan * 0.5 - 0.35)
                     prev = m
                 t += secs
 
@@ -144,6 +149,10 @@ class Song:
                     else:
                         tri = triangle(f, n)
                     wave = snes.VOICES[inst](f, n) if inst else tri * env_adsr(n, a=0.001, d=0.02, s=0.9, r=0.015)
+                    if inst == "synthbass":
+                        wave = wave * 1.45 + np.sin(2 * np.pi * (f / 2) * np.arange(n) / SR) * env_adsr(n, a=0.004, d=0.1, s=0.8, r=0.03) * 0.55
+                    if not inst:        # NES-style triangle bass: a plain sine underneath rounds out the low end
+                        wave = wave * 1.2 + np.sin(2 * np.pi * f * np.arange(n) / SR) * env_adsr(n, a=0.003, d=0.1, s=0.8, r=0.02) * 0.9
                     if pluck:
                         wave = wave + pulse(f * 2, n, 0.125) * env_adsr(n, a=0.001, d=0.04, s=0.0, r=0.01) * pluck
                     self.place(wave, t, gain)
@@ -155,10 +164,10 @@ class Song:
         t = 0.0
         for line in pattern_lines:
             for c in line.replace(" ", ""):
-                if kit == "snes" and c in "KShHTP":
-                    hit = {"K": snes.kick, "S": snes.snare, "h": lambda: snes.hat(False), "H": lambda: snes.hat(True), "T": snes.tom, "P": snes.timpani}[c]()
-                    level = {"K": 1.0, "S": 0.8, "h": 0.3, "H": 0.3, "T": 0.8, "P": 0.9}[c]
-                    self.place(hit, t, gain * level, {"h": 0.3, "H": 0.3, "T": -0.2}.get(c, 0.0))
+                if kit == "snes" and c in "KShHTPxsD":
+                    hit = {"K": snes.kick, "S": snes.snare, "h": lambda: snes.hat(False), "H": lambda: snes.hat(True), "T": snes.tom, "P": snes.timpani, "x": snes.shaker, "s": snes.softsnare, "D": snes.deeptom}[c]()
+                    level = {"K": 1.0, "S": 0.8, "h": 0.3, "H": 0.3, "T": 0.8, "P": 0.9, "x": 0.35, "s": 0.7, "D": 0.9}[c]
+                    self.place(hit, t, gain * level, {"h": 0.3, "H": 0.3, "T": -0.2, "x": 0.35, "D": -0.25}.get(c, 0.0))
                 elif c == "K":
                     n = int(0.12 * SR); tt = np.arange(n) / SR
                     body = np.sin(2 * np.pi * (150 * np.exp(-tt * 18) + 40) * tt) * np.exp(-tt * 22)
@@ -178,8 +187,12 @@ class Song:
                     self.place(w, t, gain * 0.25)
                 t += self.sixteenth
 
-    def render(self, path, peak=0.89, loop=True, echo=0.28):
+    def render(self, path, peak=0.89, loop=True, echo=0.28, hall=0.0, shelf=0.55):
         full = snes.snes_echo(self.mix, wet=echo) if echo else self.mix
+        if hall:
+            full = snes.hall(full, wet=hall)
+        if shelf:
+            full = snes.highshelf_cut(full, amount=shelf)
         x = full[: self.length].copy()
         if loop:
             spill = full[self.length :]

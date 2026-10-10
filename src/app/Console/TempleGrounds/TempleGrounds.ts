@@ -13,6 +13,7 @@ import XpMainHud from '../MyPortal/UserHud/components/XpMainHud.vue';
 import debug from '@/lib/utils/debug';
 import { useUserStore } from '@/lib/store/stores/user';
 import { templeBattleRoute } from '@/app/Console/BattleField/battle/battleContext';
+import WeatherFX from '@/components/organisms/WeatherFX/WeatherFX.vue';
 import { play$fx } from "@/assets/fx"
 
 const COMBAT_ROOM_TYPES = ['monster', 'miniboss', 'boss'];
@@ -37,6 +38,7 @@ export default defineComponent({
   name: 'temple-grounds-engine',
   mixins: [ionic],
   components: {
+    'weather-fx': WeatherFX,
     XpFabUserHud,
     XpXpBar,
     XpMainHud

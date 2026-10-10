@@ -13,14 +13,10 @@
     </ion-header> -->
 
     <ion-content :fullscreen="true">
+      <WeatherFX type="mountains" :intensity="4" :sound-enabled="false" />
       <div class="fire-container">
         <!-- Base fire layer along the bottom -->
         <div class="fire-base"></div>
-        
-        <!-- Mass ember effect -->
-        <div class="embers-field">
-          <div v-for="n in 80" :key="`field-ember-${n}`" class="field-ember"></div>
-        </div>
         
         <!-- Original flame clusters -->
         <div class="flames-wrapper">

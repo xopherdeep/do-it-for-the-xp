@@ -13,13 +13,7 @@
     </ion-header> -->
 
     <ion-content :fullscreen="true">
-      <div class="night-sky">
-        <div class="shooting-star shooting-star1"></div>
-        <div class="shooting-star shooting-star2"></div>
-        <div class="shooting-star shooting-star3"></div>
-        <div class="shooting-star shooting-star4"></div>
-        <div class="shooting-star shooting-star5"></div>
-      </div>
+      <WeatherFX type="moon" :intensity="5" :sound-enabled="false" />
     </ion-content>
   </ion-page>
 </template>

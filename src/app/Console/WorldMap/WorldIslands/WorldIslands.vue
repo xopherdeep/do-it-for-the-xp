@@ -1,7 +1,7 @@
 <template>
   <ion-page :class="$options.name">
     <ion-content :fullscreen="true">
-      <WeatherFX effect="tropical" :intensity="7" />
+      <WeatherFX type="tropical" :intensity="7" :sound-enabled="false" />
     </ion-content>
   </ion-page>
 </template>

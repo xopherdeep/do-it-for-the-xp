@@ -13,16 +13,20 @@
       <div class="dev-container">
         <div class="preview-area" :class="sceneType">
           <div class="weather-preview">
-            <weather-fx 
+            <weather-fx
+              ref="weatherRef"
               :type="selectedWeatherType"
               :active="weatherActive"
               :intensity="intensity"
               :sound-enabled="soundEnabled"
               :sound-volume="soundVolume"
-              :custom-effect-props="customEffectProps"
               @effect-loaded="onEffectLoaded"
               @effect-changed="onEffectChanged"
             />
+          </div>
+          <div class="weather-stats" data-test="weather-stats">
+            <span>{{ fps }} FPS</span>
+            <span>budget {{ budgetLabel }}</span>
           </div>
           <div class="weather-info">
             <ion-text color="medium">
@@ -47,13 +51,11 @@
           </ion-item>
 
           <ion-item>
-            <ion-label>Scene Type</ion-label>
+            <ion-label>Scene Backdrop</ion-label>
             <ion-select v-model="sceneType" interface="popover">
-              <ion-select-option value="plains">Plains</ion-select-option>
-              <ion-select-option value="beach">Beach</ion-select-option>
-              <ion-select-option value="forest">Forest</ion-select-option>
-              <ion-select-option value="mountain">Mountain</ion-select-option>
-              <ion-select-option value="desert">Desert</ion-select-option>
+              <ion-select-option v-for="scene in sceneTypes" :key="scene" :value="scene">
+                {{ scene.charAt(0).toUpperCase() + scene.slice(1) }}
+              </ion-select-option>
             </ion-select>
           </ion-item>
 
@@ -63,7 +65,7 @@
           </ion-item>
 
           <ion-item>
-            <ion-label>Sound Enabled</ion-label>
+            <ion-label>Sound</ion-label>
             <ion-toggle v-model="soundEnabled"></ion-toggle>
           </ion-item>
 
@@ -85,7 +87,7 @@
         </div>
 
         <div class="actions-section">
-          <ion-button expand="block" @click="applyWeather">Apply Weather</ion-button>
+          <ion-button expand="block" color="danger" @click="stress">Stress (stormy, 10)</ion-button>
           <ion-button expand="block" color="secondary" @click="resetWeather">Reset</ion-button>
         </div>
       </div>
@@ -94,162 +96,153 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, 
-         IonButton, IonList, IonItem, IonLabel, IonToggle, 
-         IonRange, IonButtons, IonBackButton, IonSelect, 
-         IonSelectOption, IonCard, IonCardHeader, 
+import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue';
+import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
+         IonButton, IonList, IonItem, IonLabel, IonToggle,
+         IonRange, IonButtons, IonBackButton, IonSelect,
+         IonSelectOption, IonCard, IonCardHeader,
          IonCardTitle, IonCardContent, IonText } from '@ionic/vue';
 import WeatherFX from '@/components/organisms/WeatherFX/WeatherFX.vue';
-import { useWeatherFX } from '@/components/organisms/WeatherFX';
-import { WeatherType } from '@/components/organisms/WeatherFX/types';
+import type { WeatherType } from '@/components/organisms/WeatherFX/types';
+
+const WEATHER_TYPES: WeatherType[] = [
+  'none', 'sunny', 'tropical', 'rainy', 'stormy', 'snowy', 'cloudy', 'plains',
+  'desert', 'swamp', 'forest', 'mountains', 'moon', 'cave', 'dungeon', 'urban'
+];
+
+const SCENE_TYPES = ['plains', 'beach', 'forest', 'mountain', 'desert', 'night', 'cave'];
 
 export default defineComponent({
   name: 'weather-fx-dev-tools',
   components: {
-    IonPage, 
-    IonHeader, 
-    IonToolbar, 
-    IonTitle, 
-    IonContent, 
-    IonButton, 
-    IonList, 
-    IonItem, 
-    IonLabel, 
+    IonPage,
+    IonHeader,
+    IonToolbar,
+    IonTitle,
+    IonContent,
+    IonButton,
+    IonList,
+    IonItem,
+    IonLabel,
     IonToggle,
-    IonRange, 
-    IonButtons, 
-    IonBackButton, 
-    IonSelect, 
-    IonSelectOption, 
-    IonCard, 
+    IonRange,
+    IonButtons,
+    IonBackButton,
+    IonSelect,
+    IonSelectOption,
+    IonCard,
     IonCardHeader,
-    IonCardTitle, 
+    IonCardTitle,
     IonCardContent,
     IonText,
-    'weather-fx': WeatherFX // Register the component with kebab-case name to match template usage
+    'weather-fx': WeatherFX
   },
   setup() {
-    // Weather parameters
     const selectedWeatherType = ref<WeatherType>('tropical');
-    const weatherTypes = ['tropical', 'rainy', 'cloudy', 'sunny', 'stormy', 'snowy', 'plains', 'none'] as WeatherType[];
+    const weatherTypes = WEATHER_TYPES;
+    const sceneTypes = SCENE_TYPES;
     const weatherActive = ref(true);
     const intensity = ref(5);
-    const soundEnabled = ref(true);
+    const soundEnabled = ref(false);
     const soundVolume = ref(0.5);
     const sceneType = ref('plains');
-    const customEffectProps = ref({});
     const effectStatus = ref('');
-    
-    // Weather FX API
-    const { weatherType, updateWeather, toggleSound, setSoundVolume } = useWeatherFX();
-    
-    // Debug information
-    const debugInfo = computed(() => {
-      return {
-        type: selectedWeatherType.value,
-        active: weatherActive.value,
-        intensity: intensity.value,
-        soundEnabled: soundEnabled.value,
-        soundVolume: soundVolume.value,
-        sceneType: sceneType.value,
-        customProps: customEffectProps.value,
-        apiState: {
-          weatherType: weatherType.value
-        }
-      };
-    });
-    
-    // Event handlers
-    const onEffectLoaded = () => {
-      effectStatus.value = `${selectedWeatherType.value} effect loaded successfully`;
-      setTimeout(() => {
-        effectStatus.value = '';
-      }, 3000);
+    const weatherRef = ref<{ engine?: unknown } | null>(null);
+
+    // Live FPS (the engine's own measurement, page rAF as the fallback) and the engine's budget.
+    const fps = ref(0);
+    const budget = ref<number | null>(null);
+    let frames = 0;
+    let lastSample = 0;
+    let rafHandle: number | null = null;
+
+    type EngineStats = { budget: number; fps: number } | null;
+    const readStats = (): EngineStats => {
+      const engine = weatherRef.value?.engine as { stats?: () => EngineStats } | undefined;
+      return engine?.stats ? engine.stats() : null;
     };
-    
-    const onEffectChanged = (event: any) => {
-      effectStatus.value = `Weather effect changed: ${event.type}, active: ${event.active}`;
-      setTimeout(() => {
-        effectStatus.value = '';
-      }, 3000);
-    };
-    
-    const applyWeather = () => {
-      updateWeather(selectedWeatherType.value, intensity.value / 10); // Convert 0-10 to 0-1 range
-      toggleSound(soundEnabled.value);
-      setSoundVolume(soundVolume.value);
-      
-      // Update scene-specific customEffectProps if needed
-      switch (sceneType.value) {
-        case 'plains':
-          customEffectProps.value = { windDirection: 'horizontal', particleDensity: intensity.value / 5 };
-          break;
-        case 'beach':
-          customEffectProps.value = { waves: true, sandParticles: intensity.value > 5 };
-          break;
-        case 'forest':
-          customEffectProps.value = { leaves: true, leafDensity: intensity.value / 3 };
-          break;
-        case 'mountain':
-          customEffectProps.value = { altitude: 'high', fogDensity: intensity.value / 10 };
-          break;
-        case 'desert':
-          customEffectProps.value = { heat: true, mirageEffect: intensity.value > 7 };
-          break;
-        default:
-          customEffectProps.value = {};
+
+    const tick = (now: number) => {
+      frames += 1;
+      if (now - lastSample >= 500) {
+        const stats = readStats();
+        fps.value = stats && stats.fps > 0 ? Math.round(stats.fps) : Math.round((frames * 1000) / (now - lastSample));
+        budget.value = stats ? stats.budget : null;
+        frames = 0;
+        lastSample = now;
       }
-      
-      effectStatus.value = 'Weather updated';
-      setTimeout(() => {
-        effectStatus.value = '';
-      }, 2000);
+      rafHandle = requestAnimationFrame(tick);
     };
-    
+
+    const budgetLabel = computed(() => (budget.value === null ? 'n/a' : budget.value.toFixed(2)));
+
+    const debugInfo = computed(() => ({
+      type: selectedWeatherType.value,
+      active: weatherActive.value,
+      intensity: intensity.value,
+      soundEnabled: soundEnabled.value,
+      soundVolume: soundVolume.value,
+      scene: sceneType.value,
+      fps: fps.value,
+      budget: budget.value
+    }));
+
+    let statusTimer: ReturnType<typeof setTimeout> | null = null;
+    const flash = (message: string, ms = 3000) => {
+      effectStatus.value = message;
+      if (statusTimer) clearTimeout(statusTimer);
+      statusTimer = setTimeout(() => {
+        effectStatus.value = '';
+      }, ms);
+    };
+
+    const onEffectLoaded = () => flash(`${selectedWeatherType.value} effect running`);
+    const onEffectChanged = (event: { type: string; active: boolean }) =>
+      flash(`Weather: ${event.type}, active: ${event.active}`);
+
+    const stress = () => {
+      selectedWeatherType.value = 'stormy';
+      intensity.value = 10;
+      weatherActive.value = true;
+      flash('Stress test: stormy at intensity 10', 4000);
+    };
+
     const resetWeather = () => {
       selectedWeatherType.value = 'none';
       intensity.value = 0;
       soundEnabled.value = false;
-      updateWeather('none', 0);
-      toggleSound(false);
-      
-      effectStatus.value = 'Weather reset';
-      setTimeout(() => {
-        effectStatus.value = '';
-      }, 2000);
+      flash('Weather reset', 2000);
     };
-    
-    // Apply initial weather effects
+
     onMounted(() => {
-      applyWeather();
+      if (typeof requestAnimationFrame === 'function') {
+        lastSample = performance.now();
+        rafHandle = requestAnimationFrame(tick);
+      }
     });
-    
-    // Clean up on unmount
+
     onUnmounted(() => {
-      resetWeather();
+      if (rafHandle !== null) cancelAnimationFrame(rafHandle);
+      if (statusTimer) clearTimeout(statusTimer);
     });
-    
-    // Watch for changes and auto-apply
-    watch([selectedWeatherType, intensity, soundEnabled, soundVolume], () => {
-      // Uncomment to automatically apply changes as they happen
-      // applyWeather();
-    });
-    
+
     return {
+      weatherRef,
       selectedWeatherType,
       weatherTypes,
+      sceneTypes,
       weatherActive,
       intensity,
       soundEnabled,
       soundVolume,
       sceneType,
-      customEffectProps,
       effectStatus,
+      fps,
+      budgetLabel,
       debugInfo,
       onEffectLoaded,
       onEffectChanged,
-      applyWeather,
+      stress,
       resetWeather
     };
   }
@@ -289,6 +282,14 @@ export default defineComponent({
     &.desert {
       background-color: #e9c46a;
     }
+
+    &.night {
+      background-color: #14172e;
+    }
+
+    &.cave {
+      background-color: #2b2530;
+    }
     
     .weather-preview {
       height: 100%;
@@ -298,6 +299,21 @@ export default defineComponent({
       z-index: 1;
     }
     
+    .weather-stats {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      display: flex;
+      gap: 8px;
+      background-color: rgba(0, 0, 0, 0.55);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      font-variant-numeric: tabular-nums;
+      z-index: 2;
+    }
+
     .weather-info {
       position: absolute;
       bottom: 8px;

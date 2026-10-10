@@ -2,7 +2,7 @@
 
 ## Overview
 
-The WeatherFX Developer Tools is a specialized testing interface for developing and debugging the WeatherFX component system in the Do It for the XP application. This tool allows you to visualize and interact with all weather effects, including the newly implemented Plains weather effect.
+The WeatherFX Developer Tools is a specialized testing interface for developing and debugging the WeatherFX component system in the Do It for the XP application. This tool allows you to visualize and interact with every canvas weather effect.
 
 ## Features
 
@@ -14,7 +14,7 @@ The WeatherFX Developer Tools is a specialized testing interface for developing 
 
 ### 2. Comprehensive Controls
 
-- **Weather Type Selector**: Choose from all available weather types (tropical, rainy, cloudy, sunny, stormy, snowy, plains)
+- **Weather Type Selector**: Choose from all available weather types
 - **Intensity Adjustment**: Fine-tune the weather intensity on a scale of 0-10
 - **Sound Toggle**: Enable/disable weather sound effects
 - **Volume Control**: Adjust the volume of weather sounds
@@ -31,26 +31,17 @@ The WeatherFX Developer Tools is a specialized testing interface for developing 
 1. Navigate to `/dev/weatherfx` in the application to access the WeatherFXDevTools interface
 2. Select a weather type from the dropdown menu
 3. Adjust the intensity and other parameters as needed
-4. Click "Apply Weather" to see the changes take effect
+4. Changes apply live
 
 ## Key Components
 
-### PlainsFx Component
+### Canvas engine
 
-The newly implemented PlainsFx component provides a visual representation of plains weather conditions:
+Every weather type is drawn by one canvas and one `requestAnimationFrame` loop (`engine/`), composed from the layers in `presets.ts`. The overlay in the preview shows the page FPS and the engine's current particle `budget` (0.25-1, lowered automatically on slow devices).
 
-- Dynamically generated clouds with customizable density and opacity
-- Wind-affected grass elements that respond to intensity changes
-- Optional heat wave effects for high-intensity conditions
-- Custom sky color that adapts to intensity levels
-
-### Customization Options
-
-For the plains weather type, special customization options include:
-
-- `windDirection`: Set the direction of wind movement
-- `particleDensity`: Adjust the number of particles (clouds, grass)
-- `showHeatWaves`: Toggle heat wave effects for desert-like conditions
+- All 16 weather types are in the select: none, sunny, tropical, rainy, stormy, snowy, cloudy, plains, desert, swamp, forest, mountains, moon, cave, dungeon, urban.
+- **Stress** switches to stormy at intensity 10 so you can watch the budget fall.
+- Sound is off by default; the toggle plays the preset's ambient loop (`src/assets/audio/weather/*`).
 
 ## Best Practices
 
@@ -61,9 +52,7 @@ For the plains weather type, special customization options include:
 
 ## Implementation Details
 
-The core weather effects system consists of:
-
-1. **WeatherFX Component**: The main component that renders weather effects
-2. **Weather Type Components**: Specialized components for each weather type (e.g., PlainsFx)
-3. **useWeatherFX Composable**: Manages sound playback and weather state
-4. **Weather Type System**: Defines available weather types and their properties
+1. **WeatherFX Component**: renders the canvas and wires props to the engine and to the ambient sound.
+2. **Engine and presets**: `engine/useWeatherCanvas.ts`, `effects/*.ts`, `presets.ts`.
+3. **useWeatherFX Composable**: lazily created, looped `Audio` per sound with 600 ms fades; respects the app mute.
+4. **sounds.ts**: resolves the `.ogg`/`.mp3` files and the default volume of each loop.

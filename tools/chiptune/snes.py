@@ -150,3 +150,74 @@ def snes_echo(mix, delay_s=0.18, feedback=0.42, wet=0.28, taps=6, tone=3200):
             shifted = shifted[:, ::-1] * np.array([1.0, 0.85])
         out += shifted * wet
     return out
+
+
+# ---------------------------------------------------------------- the atmosphere set (v3)
+
+def darkpad(freq, n):
+    """Four detuned saws, very slow attack, closed filter: the floor under everything."""
+    f = _vibrato(freq, n, depth=0.08, rate=0.35, delay=0.0)
+    out = _saw(f * 0.994, n, 8) + _saw(f * 1.006, n, 8) + _saw(f * 0.5, n, 6) * 0.7 + _saw(f * 1.0, n, 8) * 0.5
+    out = lowpass(out, 900) * env_adsr(n, a=0.35, d=0.6, s=0.9, r=0.4)
+    return out / 2.9
+
+def lowstrings(freq, n):
+    f = _vibrato(freq, n, depth=0.12, rate=4.2, delay=0.3)
+    out = _saw(f, n, 10) + _saw(f * 1.003, n, 10) + _saw(f * 0.5, n, 8) * 0.6
+    out = lowpass(out, 1400) * env_adsr(n, a=0.15, d=0.3, s=0.85, r=0.25)
+    return out / 2.6
+
+def marimba(freq, n):
+    t = _t(n)
+    out = np.sin(2 * np.pi * freq * t) * np.exp(-t * 7) + 0.35 * np.sin(2 * np.pi * freq * 4 * t) * np.exp(-t * 18)
+    return out * env_adsr(n, a=0.002, d=0.05, s=1.0, r=0.02) / 1.3
+
+def softlead(freq, n):
+    """A rounded lead: sine with a soft saw halo, slow vibrato, gentle attack."""
+    f = _vibrato(freq, n, depth=0.28, rate=4.6, delay=0.25)
+    ph = _phase(f)
+    out = np.sin(2 * np.pi * ph) + 0.35 * lowpass(_saw(f, n, 6), 1800)
+    return out * env_adsr(n, a=0.05, d=0.2, s=0.8, r=0.12) / 1.35
+
+def glass(freq, n):
+    """Quiet bell doubling: pure sines an octave up, long decay."""
+    t = _t(n)
+    out = np.sin(2 * np.pi * freq * 2 * t) * np.exp(-t * 1.8) + 0.4 * np.sin(2 * np.pi * freq * 3 * t) * np.exp(-t * 3)
+    return out * env_adsr(n, a=0.003, d=0.1, s=1.0, r=0.05) / 1.4
+
+VOICES.update({"darkpad": darkpad, "lowstrings": lowstrings, "marimba": marimba, "softlead": softlead, "glass": glass})
+
+def shaker():
+    n = int(0.09 * SR); t = _t(n)
+    return (noise(n) - lowpass(noise(n), 4000)) * np.exp(-t * 45) * 0.5
+
+def deeptom(freq=80):
+    n = int(0.45 * SR); t = _t(n)
+    return np.sin(2 * np.pi * (freq * np.exp(-t * 4) + freq * 0.7) * t) * np.exp(-t * 5)
+
+def softsnare():
+    n = int(0.3 * SR); t = _t(n)
+    body = np.sin(2 * np.pi * 170 * t) * np.exp(-t * 20)
+    wires = lowpass(noise(n), 3500) * np.exp(-t * 11)
+    return np.tanh((body * 0.5 + wires * 0.8) * 1.2)
+
+def hall(mix, wet=0.3):
+    """A denser, darker reverb than the echo: eight prime-length taps with feedback."""
+    out = mix.copy()
+    taps = [0.031, 0.047, 0.067, 0.089, 0.113, 0.149, 0.191, 0.233]
+    bed = mix.copy()
+    for k, d in enumerate(taps):
+        dd = int(d * SR)
+        bed = np.stack([lowpass(bed[:, 0], 2600), lowpass(bed[:, 1], 2600)], axis=1) * 0.62
+        shifted = np.zeros_like(mix)
+        if dd < len(mix):
+            shifted[dd:] = bed[: len(mix) - dd]
+        if k % 2:
+            shifted = shifted[:, ::-1]
+        out += shifted * wet
+    return out
+
+def highshelf_cut(mix, cutoff=5200, amount=0.55):
+    """Tame the top: keep `1-amount` of what lies above the cutoff."""
+    low = np.stack([lowpass(mix[:, 0], cutoff), lowpass(mix[:, 1], cutoff)], axis=1)
+    return low + (mix - low) * (1 - amount)

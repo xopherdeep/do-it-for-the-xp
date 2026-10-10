@@ -13,6 +13,7 @@
     </ion-header> -->
 
     <ion-content :fullscreen="true">
+      <WeatherFX type="plains" :intensity="4" :sound-enabled="false" />
       <div class="plains-weather-container">
         <!-- Heat haze mirage effect -->
         <div class="heat-haze-container">

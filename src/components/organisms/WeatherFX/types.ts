@@ -1,14 +1,49 @@
-export type Timer = ReturnType<typeof setTimeout>;
+export type WeatherType =
+  | "none" | "sunny" | "tropical" | "rainy" | "stormy" | "snowy" | "cloudy" | "plains"
+  | "desert" | "swamp" | "forest" | "mountains" | "moon" | "cave" | "dungeon" | "urban" | "temple";
 
-export type WeatherType = 'tropical' | 'rainy' | 'cloudy' | 'sunny' | 'stormy' | 'snowy' | 'plains' | 'none';
+export type WeatherSoundType = "rain" | "storm" | "wind" | "ocean" | "night" | "cave";
 
-export type WeatherSoundType = 'ocean' | 'rain' | 'thunder' | 'wind' | 'ambient';
+export interface EffectFrame {
+  ctx: CanvasRenderingContext2D;
+  /** CSS pixels */
+  width: number;
+  height: number;
+  dpr: number;
+  /** 0-10 */
+  intensity: number;
+  /** seconds since the effect started */
+  time: number;
+  /** seconds since the last frame, clamped to 0.05 */
+  dt: number;
+  /** 0.25-1: particle multiplier the engine lowers on slow devices */
+  budget: number;
+  reducedMotion: boolean;
+}
 
+export interface WeatherEffect {
+  /** Called once with the first frame and again after a resize. Allocate particles here. */
+  init(frame: EffectFrame): void;
+  /** Advance state; may be skipped on dropped frames. */
+  update(frame: EffectFrame): void;
+  /** Draw this layer; the engine clears the canvas before the first layer. */
+  draw(frame: EffectFrame): void;
+  dispose?(): void;
+}
+
+export type EffectFactory = (options?: Record<string, unknown>) => WeatherEffect;
+
+export interface WeatherPreset {
+  layers: EffectFactory[];
+  sound: WeatherSoundType | null;
+}
+
+/** Kept for the old API surface of WeatherFX.vue. */
 export interface WeatherEffectProps {
   intensity: number;
   soundEnabled: boolean;
   soundVolume: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export interface WeatherState {
@@ -16,46 +51,3 @@ export interface WeatherState {
   intensity: number;
   active: boolean;
 }
-
-export interface BirdState {
-  flying: boolean;
-  landed: boolean;
-  landX: string;
-  landY: string;
-  flightDuration: number;
-  timers: Timer[];
-}
-
-export interface WeatherSound {
-  src: string;
-  defaultVolume: number;
-  loop: boolean;
-}
-
-export const soundLibrary: Record<WeatherSoundType, WeatherSound> = {
-  ocean: {
-    src: '/sounds/ocean-waves.mp3',
-    defaultVolume: 0.3,
-    loop: true
-  },
-  rain: {
-    src: '/sounds/rain.mp3',
-    defaultVolume: 0.4,
-    loop: true
-  },
-  thunder: {
-    src: '/sounds/thunder.mp3',
-    defaultVolume: 0.5,
-    loop: false
-  },
-  wind: {
-    src: '/sounds/wind.mp3',
-    defaultVolume: 0.2,
-    loop: true
-  },
-  ambient: {
-    src: '/sounds/ambient.mp3',
-    defaultVolume: 0.2,
-    loop: true
-  }
-};

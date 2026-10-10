@@ -12,8 +12,8 @@ export interface TempleMetadata {
 export const TEMPLE_METADATA: Record<string, TempleMetadata> = {
   "wind-temple": {
     id: "wind-temple",
-    name: "Temple of Zephyr",
-    description: "A soaring sanctuary built atop the highest peaks, where the wisest masters harness the power of the ever-changing winds.",
+    name: "The Howling Spire",
+    description: "A tower lashed to the top of the world, where the wind itself is the teacher. Every stair sings, every door slams, and only the steady of heart reach the open sky.",
     world: "plains",
     element: "wind",
     icon: "fa-wind",
@@ -21,8 +21,8 @@ export const TEMPLE_METADATA: Record<string, TempleMetadata> = {
   },
   "earth-temple": {
     id: "earth-temple",
-    name: "Gaia Sanctuary",
-    description: "Ancient stone halls entwined with colossal roots, protecting the deep secrets of the living earth.",
+    name: "Rootvault Hollow",
+    description: "Halls of old stone swallowed by older roots. The ground remembers every footstep here, and it has been waiting a very long time for yours.",
     world: "forest",
     element: "earth",
     icon: "fa-leaf",
@@ -30,8 +30,8 @@ export const TEMPLE_METADATA: Record<string, TempleMetadata> = {
   },
   "water-temple": {
     id: "water-temple",
-    name: "Aqua Haven",
-    description: "An ethereal palace submerged in crystal clear depths, where the flow of magic follows the rhythm of the tides.",
+    name: "Tidesong Palace",
+    description: "A sunken palace that breathes with the sea. The floors rise and fall with the tide, and the walls hum the song that keeps the deep asleep.",
     world: "islands",
     element: "water",
     icon: "fa-water",
@@ -39,8 +39,8 @@ export const TEMPLE_METADATA: Record<string, TempleMetadata> = {
   },
   "fire-temple": {
     id: "fire-temple",
-    name: "Inferno Citadel",
-    description: "A forge of legend carved into the heart of a volcano, where champions are tempered in the eternal flames.",
+    name: "Emberforge Citadel",
+    description: "A fortress hammered into the heart of a volcano. Heroes are not born here. They are forged, one glowing stair at a time.",
     world: "mountains",
     element: "fire",
     icon: "fa-flame",
@@ -48,8 +48,8 @@ export const TEMPLE_METADATA: Record<string, TempleMetadata> = {
   },
   "ice-temple": {
     id: "ice-temple",
-    name: "Frost Keep",
-    description: "A gleaming fortress of frozen glass, guarding the frozen memories of ages long past.",
+    name: "Glasswinter Keep",
+    description: "A castle of frozen glass where every memory of the old world is kept mid-breath. Walk softly: the ice is listening.",
     world: "ice",
     element: "ice",
     icon: "fa-snowflake",
@@ -57,8 +57,8 @@ export const TEMPLE_METADATA: Record<string, TempleMetadata> = {
   },
   "light-temple": {
     id: "light-temple",
-    name: "Solar Sanctum",
-    description: "A radiant cathedral bathed in perpetual sunbeams, standing as a beacon of hope against the encroaching dark.",
+    name: "Sunspire Sanctum",
+    description: "A cathedral that keeps the dawn safe at night. Its lanterns never go out, and whatever hides from light hates this place most of all.",
     world: "desert",
     element: "light",
     icon: "fa-sun",
@@ -66,8 +66,8 @@ export const TEMPLE_METADATA: Record<string, TempleMetadata> = {
   },
   "shadow-temple": {
     id: "shadow-temple",
-    name: "Lunar Shrine",
-    description: "A mysterious domain veiled in moonlit mist, where the line between reality and dream fades away.",
+    name: "The Moonveil Shrine",
+    description: "A shrine wrapped in moonlit mist where dreams wander in and not all of them wander out. Keep your lantern lit and your name in your pocket.",
     world: "moon",
     element: "shadow",
     icon: "fa-moon",

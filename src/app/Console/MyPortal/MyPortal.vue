@@ -29,10 +29,9 @@
       <ion-tabs v-if="user && user.stats">
         <ion-router-outlet ref="outlet" :userId="user.id"></ion-router-outlet>
 
-        <!-- Docked XP Bar -->
+        <!-- Docked GP bar, just above the tabs -->
         <div class="tab-docked-xp" v-if="user.stats && !battleState('active')" slot="bottom">
           <xp-gp-bar :stats="user.stats" />
-          <xp-xp-bar :stats="user.stats" :hairline="true" />
         </div>
 
         <ion-tab-bar slot="bottom" v-if="user.stats && !battleState('active')">
@@ -53,6 +52,11 @@
             <ion-label>Party</ion-label>
           </ion-tab-button>
         </ion-tab-bar>
+
+        <!-- The XP hairline sits at the very bottom, under the tabs, like a loading bar for the hero -->
+        <div class="tab-docked-xp tab-docked-xp--under" v-if="user.stats && !battleState('active')" slot="bottom">
+          <xp-xp-bar :stats="user.stats" :hairline="true" />
+        </div>
       </ion-tabs>
     </template>
 
