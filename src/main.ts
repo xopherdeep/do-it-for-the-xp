@@ -68,6 +68,8 @@ function readyRouterMountApp() {
     .use(Countdown)
     .use(IonicVue, {
       mode: 'md',
+      // Alerts and toasts carry small bits of markup (<strong>, <br>); without this Ionic prints the tags
+      innerHTMLTemplatesEnabled: true,
       // animated: true,
       swipeBackEnabled: false,
       // backButtonText: '',
@@ -133,6 +135,7 @@ if (process.env.NODE_ENV !== 'production') {
         if (user) store.loginUser(user);
         return Boolean(user);
       },
+      getUser: (userId: string) => JSON.parse(JSON.stringify(useUserStore().users[userId] ?? null)),
     };
   });
 }
