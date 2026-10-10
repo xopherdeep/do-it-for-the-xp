@@ -366,7 +366,7 @@ ion-modal.temple-map-modal .temple-map__close,
 
 
 // ============================================================
-// Dungeon footer: a labelled bar, hands at the ends, XP hairline underneath
+// Dungeon footer: the shared bottom nav, XP hairline underneath
 // ============================================================
 .temple-footer {
   background: #000;
@@ -450,7 +450,9 @@ ion-modal.temple-map-modal .temple-map__close,
   }
 
   .footer-docked-xp {
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    background: #000;
+    position: relative;
+    z-index: 1000;
   }
 }
 

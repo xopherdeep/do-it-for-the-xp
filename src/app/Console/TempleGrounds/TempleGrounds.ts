@@ -9,7 +9,13 @@ import { importAllTempleLayouts } from '@/lib/engine/core/dungeons/importAllTemp
 import temples from '../../../lib/engine/temples';
 import XpFabUserHud from '../MyPortal/UserHud/components/XpFabUserHud.vue';
 import XpXpBar from '../MyPortal/UserHud/components/XpXpBar.vue';
+import XpGpBar from '../MyPortal/UserHud/components/XpGpBar.vue';
 import XpMainHud from '../MyPortal/UserHud/components/XpMainHud.vue';
+import XpEquipmentModal from '../MyPortal/UserHud/components/XpEquipmentModal.vue';
+import XpWorldMapModal from '../MyPortal/UserHud/components/XpWorldMapModal.vue';
+import UserProfileModal from '../MyPortal/UserHud/components/UserProfileModal.vue';
+import XpBottomNav from '@/components/organisms/BottomNav/XpBottomNav.vue';
+import { useHeroEquipment } from '@/hooks/useHeroEquipment';
 import debug from '@/lib/utils/debug';
 import { useUserStore } from '@/lib/store/stores/user';
 import { templeBattleRoute } from '@/app/Console/BattleField/battle/battleContext';
@@ -32,7 +38,7 @@ import {
   type RoomOutcome,
   type Ware
 } from '@/lib/services/temples/RoomInteractions';
-import { handLabel, useItem as useEquippedItem } from '@/lib/services/temples/ItemUse';
+import { useItem as useEquippedItem } from '@/lib/services/temples/ItemUse';
 
 const COMBAT_ROOM_TYPES = ['monster', 'miniboss', 'boss'];
 
@@ -60,7 +66,12 @@ export default defineComponent({
     'temple-walls': TempleWalls,
     XpFabUserHud,
     XpXpBar,
-    XpMainHud
+    XpGpBar,
+    XpMainHud,
+    XpEquipmentModal,
+    XpWorldMapModal,
+    UserProfileModal,
+    XpBottomNav
   },
   setup(props) {
     const userStore = useUserStore();
@@ -620,22 +631,18 @@ export default defineComponent({
     // A saved run puts the hero back where it stopped once it has been read, which can be after the mount
     watch(currentPosition, ([row, col]) => updateBg(col, row));
 
-    // Computed properties for equipped items
-    const leftHandItem = computed(() => {
-      const currentUser = user.value;
-      if (!currentUser?.equipment?.leftHand) return null;
-      return currentUser.equipment.leftHand[0] || null;
-    });
+    // The hero's hands, shared with the portal; the Area tab opens the equipment to change them
+    const { equipment, leftHandItem, rightHandItem, clickItem } = useHeroEquipment(String(props.userId || userStore.currentUser.id));
+    const isEquipmentOpen = ref(false);
+    const isProfileOpen = ref(false);
+    const isPegasusOpen = ref(false);
+    const openEquipment = () => {
+      fx('openMenu');
+      isEquipmentOpen.value = true;
+    };
 
-    const rightHandItem = computed(() => {
-      const currentUser = user.value;
-      if (!currentUser?.equipment?.rightHand) return null;
-      return currentUser.equipment.rightHand[0] || null;
-    });
-
-    // The footer names what is held, or says Left / Right for an empty hand
-    const leftHandLabel = computed(() => handLabel(leftHandItem.value, 'Left'));
-    const rightHandLabel = computed(() => handLabel(rightHandItem.value, 'Right'));
+    // The Area tab names the temple without the markup of the title
+    const templeShortName = computed(() => String(templeName.value || 'Temple').replace(/<[^>]*>/g, '').trim() || 'Temple');
 
     // The live item definitions: the copy stored on the profile has no click. The composable needs the
     // router and the game store; where those are missing the navigation items simply have no click.
@@ -715,8 +722,13 @@ export default defineComponent({
       user,
       leftHandItem,
       rightHandItem,
-      leftHandLabel,
-      rightHandLabel,
+      equipment,
+      clickItem,
+      isEquipmentOpen,
+      isProfileOpen,
+      isPegasusOpen,
+      openEquipment,
+      templeShortName,
       useHand,
       isShaking
     };

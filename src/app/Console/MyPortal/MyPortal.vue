@@ -4,24 +4,18 @@
     <template #hud>
       <xp-main-hud v-if="isUserFabOn && user?.stats" :stats="user.stats">
         <template #avatar>
-          <xp-fab-user-hud :user="user" :isUserFabOn="isUserFabOn" @open-profile="openUserProfileModal" />
+          <xp-fab-user-hud :user="user" :isUserFabOn="isUserFabOn" @open-profile="openUserProfileModal" @open-pegasus="openPegasusModal" />
         </template>
       </xp-main-hud>
     </template>
 
-    <!-- FABs (quick draw, page menu, shortcuts) -->
+    <!-- FABs: the page menu (navigating the world) and the shortcuts stay. The quick-draw FAB (the arms with the
+         equipment pull-up) is retired 2026-10-10: the hands live in the bottom nav, the equipment opens from the
+         Area tab, the Pegasus map opens from the avatar menu next to Save & Quit. Kept here for a while to feel it out. -->
     <template #fabs v-if="user">
-      <xp-fab-quick-draw v-if="isUserFabOn" :user="user" :equipment="equipment" @openHud="
-        isRPGBoxOpen = true;
-      play$fx('openMenu');
-      " />
-      <!-- Retro FAB (Centered Menu) -->
-      <xp-fab-page-menu v-if="isUserFabOn && fabStyle === 'retro'" :user="user" :page-name="compass.name"
-        :key="`menu-${route.path}`" />
-
-      <!-- Modern FAB (Radial Shortcuts) -->
-      <xp-fab-page-shortcuts v-if="isUserFabOn && fabStyle === 'modern'" :shortcuts="userActions"
-        :key="`shortcuts-${route.path}`" />
+      <!-- <xp-fab-quick-draw v-if="isUserFabOn" :user="user" :equipment="equipment" @openHud="openAreaMenu" /> -->
+      <xp-fab-page-menu v-if="isUserFabOn && fabStyle === 'retro'" :user="user" :page-name="compass.name" :key="`menu-${route.path}`" />
+      <xp-fab-page-shortcuts v-if="isUserFabOn && fabStyle === 'modern'" :shortcuts="userActions" :key="`shortcuts-${route.path}`" />
     </template>
 
     <!-- Tabs with router outlet -->
@@ -29,34 +23,25 @@
       <ion-tabs v-if="user && user.stats">
         <ion-router-outlet ref="outlet" :userId="user.id"></ion-router-outlet>
 
-        <!-- Docked GP bar, just above the tabs -->
-        <div class="tab-docked-xp" v-if="user.stats && !battleState('active')" slot="bottom">
+        <!-- The purse and the XP hairline sit on a ledge just above the nav -->
+        <div class="tab-docked-xp tab-docked-xp--ledge" v-if="user.stats && !battleState('active')" slot="bottom">
           <xp-gp-bar :stats="user.stats" />
-        </div>
-
-        <ion-tab-bar slot="bottom" v-if="user.stats && !battleState('active')">
-          <ion-tab-button color="success" tab="my-profile" @click.prevent="openUserProfileModal">
-            <i class="fad fa-2x fa-seedling"></i>
-            <ion-label v-if="user.name">
-              {{ user.name.nick }}
-            </ion-label>
-          </ion-tab-button>
-          <ion-tab-button tab="my-home" :href="compass.link">
-            <i class="fad fa-2x" :class="`fa-${compass.icon}`"></i>
-            <ion-label>
-              {{ compass.name }}
-            </ion-label>
-          </ion-tab-button>
-          <ion-tab-button tab="my-party" :href="`/my-portal/${userId}/my-party`">
-            <i class="fab fa-fort-awesome fa-2x"></i>
-            <ion-label>Party</ion-label>
-          </ion-tab-button>
-        </ion-tab-bar>
-
-        <!-- The XP hairline sits at the very bottom, under the tabs, like a loading bar for the hero -->
-        <div class="tab-docked-xp tab-docked-xp--under" v-if="user.stats && !battleState('active')" slot="bottom">
           <xp-xp-bar :stats="user.stats" :hairline="true" />
         </div>
+
+        <xp-bottom-nav
+          slot="bottom"
+          v-if="user.stats && !battleState('active')"
+          :profile-label="user.name?.nick || 'Hero'"
+          :area-label="compass.name"
+          :area-icon="compass.icon"
+          :left-hand="leftHandItem"
+          :right-hand="rightHandItem"
+          @open-profile="openUserProfileModal"
+          @open-area="openAreaMenu"
+          @open-party="openParty"
+          @use-hand="useHand"
+        />
       </ion-tabs>
     </template>
 

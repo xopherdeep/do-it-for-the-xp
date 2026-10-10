@@ -95,10 +95,9 @@
     position: relative;
     z-index: 1000;
 
-    // Under the tab bar: the bar takes the safe area so the tabs can sit flush on it
-    &--under {
+    // The ledge above the nav: GP then the XP hairline, flush on the nav's top border
+    &--ledge {
       background: #000;
-      padding-bottom: env(safe-area-inset-bottom, 0px);
     }
   }
 

@@ -1,4 +1,4 @@
-import { watch, computed, defineComponent, reactive, ref, onBeforeMount } from "vue";
+import { computed, defineComponent, reactive, onBeforeMount } from "vue";
 // import requireImg from "@/assets/js/requireImg";
 import ionic from "@/lib/mixins/ionic";
 import components from "./UserHud/components";
@@ -8,6 +8,11 @@ import { modalController } from "@ionic/vue";
 
 import { useItemFetcher } from "@/hooks/useItemFetcher";
 import { useUserActions } from "@/hooks/useUserActions";
+import { useHeroEquipment } from "@/hooks/useHeroEquipment";
+import { useEquipmentItems } from "./UserHud/components/equipment/EquipmentItems";
+import { toastController } from "@ionic/vue";
+import { play$fx } from "@/assets/fx";
+import XpBottomNav from "@/components/organisms/BottomNav/XpBottomNav.vue";
 
 // Define interface for equipment items
 interface EquipmentItem {
@@ -45,7 +50,7 @@ import { useGameStore } from "@/lib/store/stores/game";
 import { useBattleStore } from "@/lib/store/stores/battle";
 
 export default defineComponent({
-  components: { ...components, XpPortalPage },
+  components: { ...components, XpPortalPage, XpBottomNav },
   mixins: [ionic],
   name: "my-portal",
   data() {
@@ -106,6 +111,11 @@ export default defineComponent({
     },
     closeUserProfileModal() {
       this.isUserProfileModalOpen = false;
+    },
+    // The Area tab opens the equipment (what used to be the quick-draw FAB)
+    openAreaMenu() {
+      this.isRPGBoxOpen = true;
+      this.play$fx('openMenu');
     },
     openPegasusModal() {
       this.isPegasusModalOpen = true;
@@ -230,71 +240,33 @@ export default defineComponent({
         }
       }
     });
-    const equipment = ref<EquipmentItem[]>([]); // Use the defined interface
+    // The hero's hands: read from the profile, saved on every change (shared with the temples)
+    const { equipment, leftHandItem, rightHandItem, clickItem } = useHeroEquipment(String(userId));
 
-    // The hands live on the profile: read them when the hero is known, write them after every change
-    const loadEquipment = () => {
-      const hands = user.value?.equipment;
-      if (!hands) return;
-      const fromHand = (items: EquipmentItem[] | undefined, hand: string) =>
-        (items || []).map((item, slotIndex) => ({ ...item, hand, slotIndex: item.slotIndex ?? slotIndex }));
-      equipment.value = [...fromHand(hands.leftHand, "left"), ...fromHand(hands.rightHand, "right")];
-    };
-    const saveEquipment = () => {
-      const inHand = (hand: string) =>
-        equipment.value
-          .filter((item) => item.hand === hand)
-          .sort((a, b) => (a.slotIndex ?? 0) - (b.slotIndex ?? 0))
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
-          .map(({ click, ...plain }) => plain);
-      userStore.setEquipment(String(userId), { leftHand: inHand("left"), rightHand: inHand("right") });
-    };
-    watch(user, (hero) => hero && loadEquipment(), { immediate: true });
-
-    const clickItem = (item: EquipmentItem | null, hand: string, index = 0) => {
-      // If we're removing an item from a specific slot
-      if (item === null && hand) {
-        equipment.value = equipment.value.filter(
-          (i) => !(i.hand === hand && i.slotIndex === index)
-        );
-        saveEquipment();
+    // Tapping an equipped item outside a temple: navigation items navigate, the rest wait for a temple or a fight
+    const useHand = async (item: EquipmentItem | null) => {
+      if (!item) return;
+      play$fx("select");
+      let live: EquipmentItem | undefined;
+      try {
+        live = useEquipmentItems().specialItems.find((candidate: EquipmentItem) => candidate.faIcon === item.faIcon);
+      } catch {
+        live = undefined;
+      }
+      if (live?.click) {
+        live.click();
         return;
       }
-
-      // Item is not null at this point, so we can safely use it
-      // First, check if this item is already equipped somewhere else
-      const alreadyEquippedIndex = equipment.value.findIndex(
-        (i) => i.faIcon === item?.faIcon
-      );
-
-      // If it's already equipped, remove it first
-      if (alreadyEquippedIndex !== -1) {
-        equipment.value.splice(alreadyEquippedIndex, 1);
-      }
-
-      // Check if there's already an item in the target slot
-      const slotOccupiedIndex = equipment.value.findIndex(
-        (i) => i.hand === hand && i.slotIndex === index
-      );
-
-      // If the slot is occupied, remove that item
-      if (slotOccupiedIndex !== -1) {
-        equipment.value.splice(slotOccupiedIndex, 1);
-      }
-
-      // Create a copy of the item with the click handler preserved
-      const itemToEquip = { ...item, hand, slotIndex: index } as EquipmentItem;
-
-      // Ensure the click handler is properly preserved
-      // Functions don't get copied with spread operator, so we need to explicitly assign it
-      if (item?.click && typeof item.click === "function") {
-        itemToEquip.click = item.click;
-      }
-
-      // Add the new item
-      equipment.value.push(itemToEquip);
-      saveEquipment();
+      const toast = await toastController.create({
+        message: `${item.name}: use it in a temple or a fight.`,
+        duration: 1800,
+        position: "top",
+        cssClass: "rpg-toast",
+      });
+      await toast.present();
     };
+
+    const openParty = () => router.push(`/my-portal/${userId}/my-party`);
 
     const compass = reactive({
       name: "Home",
@@ -308,6 +280,10 @@ export default defineComponent({
     return {
       userId,
       clickItem,
+      leftHandItem,
+      rightHandItem,
+      useHand,
+      openParty,
       compass,
       pageIcon,
       fabStyle,

@@ -273,6 +273,8 @@
           <XpFabUserHud
             :user="user"
             :isUserFabOn="true"
+            @open-profile="isProfileOpen = true"
+            @open-pegasus="isPegasusOpen = true"
           />
         </template>
       </XpMainHud>
@@ -300,58 +302,32 @@
 
     </ion-content>
     <ion-footer class="temple-footer">
-      <nav class="temple-nav icon-colors" aria-label="Temple actions">
-        <!-- Left hand: the equipped item by name (tap to use it), or an empty hand -->
-        <button
-          v-if="leftHandItem"
-          type="button"
-          class="temple-nav__hand is-equipped"
-          :aria-label="`Use ${leftHandItem.name}`"
-          @click="useHand(leftHandItem)"
-        >
-          <i :class="`fa-${leftHandItem.faIcon}`" class="fad"></i>
-          <span>{{ leftHandLabel }}</span>
-        </button>
-        <div v-else class="temple-nav__hand is-empty">
-          <i class="fad fa-hand-paper fa-flip-horizontal"></i>
-          <span>{{ leftHandLabel }}</span>
-        </div>
-
-        <button type="button" class="temple-nav__button" @click="$router.push(`/my-tasks/${userId}`)">
-          <i class="fad fa-book-dead"></i>
-          <span>Quests</span>
-        </button>
-        <button type="button" class="temple-nav__button" @click="$router.push(`/my-inventory/${userId}`)">
-          <i class="fad fa-backpack"></i>
-          <span>Bag</span>
-        </button>
-        <button type="button" class="temple-nav__button" @click="$router.push(`/my-abilities/${userId}`)">
-          <i class="fad fa-book-spells"></i>
-          <span>Spells</span>
-        </button>
-
-        <!-- Right hand -->
-        <button
-          v-if="rightHandItem"
-          type="button"
-          class="temple-nav__hand is-equipped"
-          :aria-label="`Use ${rightHandItem.name}`"
-          @click="useHand(rightHandItem)"
-        >
-          <i :class="`fa-${rightHandItem.faIcon}`" class="fad"></i>
-          <span>{{ rightHandLabel }}</span>
-        </button>
-        <div v-else class="temple-nav__hand is-empty">
-          <i class="fad fa-hand-paper"></i>
-          <span>{{ rightHandLabel }}</span>
-        </div>
-      </nav>
-
-      <!-- The XP hairline sits at the very bottom, like the portal -->
+      <!-- The purse and the XP hairline sit on a ledge just above the nav, like the portal -->
       <div class="footer-docked-xp" v-if="user && user.stats">
+        <XpGpBar :stats="user.stats" />
         <XpXpBar :stats="user.stats" :hairline="true" />
       </div>
+
+      <!-- The same nav as the portal: Profile | left hand | Area (the equipment) | right hand | Party -->
+      <xp-bottom-nav
+        :profile-label="user?.name?.nick || 'Hero'"
+        :area-label="templeShortName"
+        area-icon="place-of-worship"
+        :left-hand="leftHandItem"
+        :right-hand="rightHandItem"
+        active="area"
+        @open-profile="isProfileOpen = true"
+        @open-area="openEquipment"
+        @open-party="$router.push(`/my-portal/${userId}/my-party`)"
+        @use-hand="useHand"
+      />
     </ion-footer>
+
+    <!-- The equipment, the profile sheet and the Pegasus map, the same ones the portal shows -->
+    <xp-equipment-modal :isOpen="isEquipmentOpen" :equipment="equipment" :user="user" @equip-item="clickItem"
+      @close="isEquipmentOpen = false" @open-pegasus-modal="isPegasusOpen = true" />
+    <user-profile-modal :is-open="isProfileOpen" :user="user" @close="isProfileOpen = false" />
+    <xp-world-map-modal :is-open="isPegasusOpen" @close="isPegasusOpen = false" />
   </ion-page>
 </template>
 <script lang="ts" src="./TempleGrounds.ts" />

@@ -107,7 +107,7 @@ export default defineComponent({
       default: false,
     },
   },
-  emits: ["open-profile"],
+  emits: ["open-profile", "open-pegasus"],
   computed: {
     userAvatar() {
       return heroAvatarSrc(this.user, (key: string) => this.$requireAvatar(key));
@@ -199,6 +199,9 @@ export default defineComponent({
       if (action.action === "openProfile") {
         emit("open-profile"); // Emit event for the parent
       }
+      if (action.action === "openPegasus") {
+        emit("open-pegasus"); // The portal (or the temple) owns the world map modal
+      }
     };
 
     const staticActions: RpgMenuAction[] = [
@@ -279,6 +282,11 @@ export default defineComponent({
             params: { userId: userId.value },
           });
         },
+      },
+      {
+        label: USER_MENU_CONFIG.pegasus.label,
+        action: USER_MENU_CONFIG.pegasus.action,
+        faIcon: USER_MENU_CONFIG.pegasus.icon,
       },
       {
         label: USER_MENU_CONFIG.saveQuit.label,
