@@ -15,6 +15,7 @@ import { ChestSystem } from '@/lib/engine/core/dungeons/ChestSystem';
 import { TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
 import type { Room } from '@/lib/engine/core/dungeons/types';
 import { useUserStore } from '@/lib/store/stores/user';
+import { bonusGp } from '@/lib/services/stats/ClassPassives';
 
 export type Direction = 'north' | 'south' | 'east' | 'west';
 
@@ -170,9 +171,16 @@ export const readGold = (userId: string): number => {
   return typeof wallet === 'number' ? wallet : 0;
 };
 
-const earnGold = (userId: string, amount: number): void => {
+/**
+ * Pay the hero gold found in the temple (chests, searches, the gate) with their class loot bonus on top
+ * (Thief, Ninja +25%). Returns the coins actually paid, for the message.
+ */
+const earnGold = (userId: string, amount: number): number => {
+  const store = useUserStore();
+  const gp = bonusGp(amount, store.getUserById(userId)?.jobClass);
   // The wallet moves before updateUserGP's first await; the save is not waited for
-  void useUserStore().updateUserGP({ userId, wallet: amount });
+  if (gp > 0) void store.updateUserGP({ userId, wallet: gp });
+  return gp;
 };
 
 /** Take HP off a hero. A hero who drops to 0 is stood back up at full HP and reported defeated. */
@@ -487,8 +495,7 @@ const hunt = (
   if (!rememberOnce(roomKey(ctx, topic))) return { message: 'You already looked here.' };
   const rng = rngOf(ctx);
   if (rng() >= chance) return { message: nothing() };
-  const gp = randomInt(min, max, rng);
-  earnGold(ctx.userId, gp);
+  const gp = earnGold(ctx.userId, randomInt(min, max, rng));
   return { message: found(gp), sound: SFX.gainGP };
 };
 
@@ -664,8 +671,7 @@ export const roomActions = (room: Room | undefined, ctx: RoomContext): RoomSheet
           : [
               act('Open the chest', () => {
                 rememberOnce(roomKey(ctx, 'secret'));
-                const gp = Number(room.content?.gold) || 20;
-                earnGold(ctx.userId, gp);
+                const gp = earnGold(ctx.userId, Number(room.content?.gold) || 20);
                 return { message: `A hidden chest! +${gp} GP`, sound: SFX.secret };
               }),
             ]
@@ -709,11 +715,11 @@ const openGate = (room: Room, ctx: RoomContext): RoomOutcome => {
     levelUp = store.updateUserXP({ userId: ctx.userId, amount: reward.xp, commit: true }).didLevelUp;
     store.updateClassXp(ctx.userId, store.getUserById(ctx.userId)?.jobClass || 'default', reward.xp);
   }
-  if (reward.gp > 0) earnGold(ctx.userId, reward.gp);
+  const paidGp = reward.gp > 0 ? earnGold(ctx.userId, reward.gp) : 0;
   if (reward.ap > 0) store.recordAPGain({ userId: ctx.userId, amount: reward.ap, source: `temple:${ctx.templeId}` });
 
   return {
-    message: `The gate swings wide. Temple cleared! +${reward.xp} XP, +${reward.gp} GP, +${reward.ap} AP${levelUp ? '. Level up!' : ''}`,
+    message: `The gate swings wide. Temple cleared! +${reward.xp} XP, +${paidGp} GP, +${reward.ap} AP${levelUp ? '. Level up!' : ''}`,
     sound: SFX.secret,
     intent: 'leave',
   };

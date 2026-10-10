@@ -22,17 +22,18 @@ import {
 const LMAP = "LMAP"; // Map room
 const LCOM = "LCOM"; // Compass room
 const K001 = "K001"; // Key room
+const PEGA = "PEGA"; // The Pegasus chest, behind the boss
 
 const earthTemple = {
   entrance: [6, 3], // [row, column] - default to entrance
   maze: [
-    [____, ____, _XX_, ____, K___, ____], // y: 0
+    [____, ____, _XX_, K___, x__x, MK__], // y: 0
     [____, LMAP, q__q, q__q, $__$, ____], // y: 1
-    [____, q__q, x__x, _XX_, ____, ____], // y: 2
-    [____, PUZL, H__P, PUZL, X__X, ____], // y: 3
+    [____, q__q, q__q, _XX_, ____, ____], // y: 2
+    [____, PUZL, H__P, PUZL, X__X, PEGA], // y: 3
     [TELE, q__q, _XX_, q__q, ____, ____], // y: 4
     [____, M__P, LCOM, q__q, SHOP, ____], // y: 5
-    [____, ____, ____, _00_, MK__, TELE], // y: 6
+    [____, ____, ____, _00_, K001, TELE], // y: 6
     //x:0, x: 1, x: 2, x: 3, x: 4, x: 5
   ],
   rooms: {
@@ -42,14 +43,15 @@ const earthTemple = {
     [GATE]: { type: "gate", locked: { west: true } },
     [H__P]: { type: "health", content: { healthPoints: 15 } },
     [M__P]: { type: "mana", content: { magicPoints: 15 } },
-    [X__X]: { type: "boss", content: { monsterType: "Titan", element: "earth" } },
+    [X__X]: { type: "boss", content: { monsterType: "Titan", element: "earth", lockOnEnter: true }, locked: { master: true } },
     [q__q]: { type: "monster", content: { monsterType: "RockGolem" } },
     [_XX_]: { type: "trap", content: { trapType: "rockfall", damage: 7 } },
     [TELE]: { type: "teleport" },
     [SHOP]: { type: "shop", content: { specialItem: "EarthquakeScroll" } },
-    [x__x]: { type: "miniboss", content: { monsterType: "StoneGuardian" }, locked: { west: true } },
+    [x__x]: { type: "miniboss", content: { monsterType: "StoneGuardian", lockOnEnter: true } },
     [PUZL]: { type: "puzzle", content: { puzzleType: "stonePillars" } },
     [$__$]: { type: "loot", content: { chest: "dungeon", dungeon: "Gaia's Hammer" } },
+    [PEGA]: { type: "loot", content: { chest: "dungeon", dungeon: "Pegasus Whistle", pegasus: true } },
     [K___]: { type: "loot", content: { chest: "dungeon", dungeon: "key" } },
     [K001]: { type: "loot", content: { chest: "dungeon", dungeon: "key" } },
     [MK__]: { type: "loot", content: { chest: "dungeon", dungeon: "master-key" } },

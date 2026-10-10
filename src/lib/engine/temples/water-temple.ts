@@ -25,17 +25,18 @@ const D001 = "D001"; // Door 1 - requires Key 1
 const D002 = "D002"; // Door 2 - requires Key 2
 const D003 = "D003"; // Door 3 - requires Key 3
 const MK__ = "MK__"; // Master key room - unlocks boss room
+const PEGA = "PEGA"; // The Pegasus chest, behind the boss
 
 const waterTemple = {
   entrance: [6, 2], // [row, column] - default to entrance
   maze: [
     [____, ____, K002, ____, ____, ____], // y: 0
     [____, _XX_, q__q, _XX_, ____, ____], // y: 1
-    [____, q__q, D002, q__q, X__X, ____], // y: 2
+    [____, q__q, D002, q__q, x__x, MK__], // y: 2
     [____, PUZL, H__P, K003, D003, ____], // y: 3
-    [TELE, q__q, D001, q__q, ____, ____], // y: 4
-    [____, LMAP, LCOM, _XX_, M__P, ____], // y: 5
-    [____, K001, _00_, SHOP, MK__, TELE], // y: 6
+    [TELE, q__q, D001, q__q, ____, PEGA], // y: 4
+    [____, LMAP, LCOM, _XX_, M__P, X__X], // y: 5
+    [____, K001, _00_, SHOP, TELE, ____], // y: 6
     //x:0, x: 1, x: 2, x: 3, x: 4, x: 5
   ],
   rooms: {
@@ -44,14 +45,15 @@ const waterTemple = {
     [O__O]: { type: "empty" },
     [H__P]: { type: "health", content: { healthPoints: 15 } },
     [M__P]: { type: "mana", content: { magicPoints: 15 } },
-    [X__X]: { type: "boss", content: { monsterType: "Leviathan", element: "water" }, locked: { west: true } },
+    [X__X]: { type: "boss", content: { monsterType: "Leviathan", element: "water", lockOnEnter: true }, locked: { master: true } },
     [q__q]: { type: "monster", content: { monsterType: "WaterElemental" } },
     [_XX_]: { type: "trap", content: { trapType: "whirlpool", damage: 5 } },
     [TELE]: { type: "teleport", content: { destination: "random" } },
     [SHOP]: { type: "shop", content: { specialItem: "WaterBreathingPotion" } },
-    [x__x]: { type: "miniboss", content: { monsterType: "GiantSquid" } },
+    [x__x]: { type: "miniboss", content: { monsterType: "GiantSquid", lockOnEnter: true } },
     [PUZL]: { type: "puzzle", content: { puzzleType: "waterLevels" } },
     [$__$]: { type: "loot", content: { chest: "dungeon", dungeon: "Trident of Tides" } },
+    [PEGA]: { type: "loot", content: { chest: "dungeon", dungeon: "Pegasus Whistle", pegasus: true } },
     
     // Keys that unlock specific doors
     [K001]: { type: "key", content: { keyId: "key1", keyName: "Blue Water Key" } },
@@ -72,7 +74,7 @@ const waterTemple = {
     "The Blue Water Key unlocks the path to the upper temple",
     "Find the Coral Key in the upper level to access the middle chamber",
     "The Pearl Key is guarded by water elementals",
-    "Only with the Trident Key can you challenge Leviathan"
+    "The Giant Squid guards the Trident Key; only with it can you challenge Leviathan"
   ]
 };
 

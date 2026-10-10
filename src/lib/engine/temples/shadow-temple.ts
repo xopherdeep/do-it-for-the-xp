@@ -22,17 +22,18 @@ import {
 const LMAP = "LMAP"; // Map room
 const LCOM = "LCOM"; // Compass room
 const K001 = "K001"; // Key room
+const PEGA = "PEGA"; // The Pegasus chest, behind the boss
 
 const shadowTemple = {
   entrance: [6, 2], // [row, column] - default to entrance
   maze: [
-    [____, ____, $__$, ____, X__X, ____], // y: 0
-    [____, _XX_, q__q, _XX_, ____, ____], // y: 1
+    [____, ____, $__$, K001, X__X, PEGA], // y: 0
+    [____, _XX_, q__q, _XX_, ____, GATE], // y: 1
     [____, LMAP, q__q, q__q, ____, ____], // y: 2
-    [____, q__q, PUZL, q__q, ____, GATE], // y: 3
+    [____, q__q, PUZL, q__q, ____, ____], // y: 3
     [TELE, _XX_, q__q, _XX_, ____, ____], // y: 4
-    [____, K___, x__x, LCOM, H__P, ____], // y: 5
-    [____, ____, _00_, M__P, MK__, TELE], // y: 6
+    [____, K___, H__P, LCOM, x__x, MK__], // y: 5
+    [____, ____, _00_, M__P, TELE, ____], // y: 6
     //x:0, x: 1, x: 2, x: 3, x: 4, x: 5
   ],
   rooms: {
@@ -42,14 +43,15 @@ const shadowTemple = {
     [GATE]: { type: "gate", locked: { west: true } },
     [H__P]: { type: "health", content: { healthPoints: 15 } },
     [M__P]: { type: "mana", content: { magicPoints: 15 } },
-    [X__X]: { type: "boss", content: { monsterType: "Shadowlord", element: "shadow" } },
+    [X__X]: { type: "boss", content: { monsterType: "Shadowlord", element: "shadow", lockOnEnter: true }, locked: { master: true } },
     [q__q]: { type: "monster", content: { monsterType: "ShadowStalker" } },
     [_XX_]: { type: "trap", content: { trapType: "voidTrap", damage: 8 } },
     [TELE]: { type: "teleport" },
     [SHOP]: { type: "shop", content: { specialItem: "ShadowVeil" } },
-    [x__x]: { type: "miniboss", content: { monsterType: "DarkPhantom" }, locked: { east: true } },
+    [x__x]: { type: "miniboss", content: { monsterType: "DarkPhantom", lockOnEnter: true }, locked: { east: true } },
     [PUZL]: { type: "puzzle", content: { puzzleType: "shadowReflection" } },
     [$__$]: { type: "loot", content: { chest: "dungeon", dungeon: "Void Dagger" } },
+    [PEGA]: { type: "loot", content: { chest: "dungeon", dungeon: "Pegasus Whistle", pegasus: true } },
     [K___]: { type: "loot", content: { chest: "dungeon", dungeon: "key" } },
     [K001]: { type: "loot", content: { chest: "dungeon", dungeon: "key" } },
     [MK__]: { type: "loot", content: { chest: "dungeon", dungeon: "master-key" } },
