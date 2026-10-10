@@ -26,6 +26,7 @@ export interface Beast {
   bg1?: number;            // Background layer 1 for earthbound battle backgrounds
   bg2?: number;            // Background layer 2 for earthbound battle backgrounds
   aspectRatio?: number;    // Aspect ratio for battle background display
+  element?: string;        // Region element (worldRegistry): random encounters there prefer beasts of it
 }
 
 export interface BackgroundPreset {

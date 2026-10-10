@@ -71,6 +71,17 @@ describe("battleContext", () => {
     expect(battleReturnRoute(ctx)).toEqual({ name: "home-town", params: { userId: "hero-2" } });
   });
 
+  it("returns a region encounter to its region page", () => {
+    const ctx = resolveBattleContext(route({ params: { userId: "h" }, query: { region: "desert" } }));
+    expect(ctx.region).toBe("desert");
+    expect(battleReturnRoute(ctx)).toEqual({ name: "world-sands", params: { userId: "h" } });
+    expect(freeBattleRoute("h", [], "desert")).toEqual({
+      name: "battle-free",
+      params: { userId: "h" },
+      query: { region: "desert" },
+    });
+  });
+
   it("builds links that match the route table", () => {
     expect(questBattleRoute("h", "q")).toEqual({ name: "battle-quest", params: { userId: "h", questId: "q" } });
     expect(templeBattleRoute("h", "t", "1F", 3, 4)).toEqual({

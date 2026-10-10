@@ -44,6 +44,7 @@ const makeBattleStore = () => {
     counter: ARM_STEPS,
     startBattleTimer: jest.fn(),
     stopBattleTimer: jest.fn(),
+    setTerrainForRoute: jest.fn(),
     resetBattleTimer: jest.fn(() => {
       store.counter = ARM_STEPS;
     }),
@@ -80,7 +81,19 @@ describe("battle guard", () => {
   });
 
   describe("timer lifecycle", () => {
-    it.each(["home-town", "world-map"])("starts the encounter timer on %s", (name) => {
+    it.each([
+      "home-town",
+      "world-map",
+      "world-plains",
+      "world-islands",
+      "world-forest",
+      "world-swamps",
+      "world-mountains",
+      "world-sands",
+      "world-clouds",
+      "world-ice",
+      "the-moon",
+    ])("starts the encounter timer on %s", (name) => {
       handleBattleTimerGuard(toRoute(name), asRouter(makeRouter()));
 
       expect(mockBattleStore.startBattleTimer).toHaveBeenCalledTimes(1);
@@ -88,7 +101,7 @@ describe("battle guard", () => {
       expect(mockBattleStore.stopBattleTimer).not.toHaveBeenCalled();
     });
 
-    it.each(["my-tasks", "world-plains", "temple", "battle-free", "log-in"])(
+    it.each(["my-tasks", "temple", "battle-free", "log-in"])(
       "stops the encounter timer on %s",
       (name) => {
         handleBattleTimerGuard(toRoute(name), asRouter(makeRouter()));
@@ -160,6 +173,26 @@ describe("battle guard", () => {
     });
   });
 
+  describe("region pages", () => {
+    it("weighs the terrain of the region on entry, plains elsewhere", () => {
+      handleBattleTimerGuard(toRoute("world-forest"), asRouter(makeRouter()));
+      expect(mockBattleStore.setTerrainForRoute).toHaveBeenLastCalledWith("forest");
+      handleBattleTimerGuard(toRoute("world-plains"), asRouter(makeRouter()));
+      expect(mockBattleStore.setTerrainForRoute).toHaveBeenLastCalledWith(null);
+      handleBattleTimerGuard(toRoute("home-town"), asRouter(makeRouter()));
+      expect(mockBattleStore.setTerrainForRoute).toHaveBeenLastCalledWith(null);
+    });
+
+    it("sends the fight out with the region, so the pool and the way back follow it", async () => {
+      const router = makeRouter("world-ice");
+      const tick = enter("world-ice", router);
+      mockBattleStore.counter = 1;
+      await tick();
+
+      expect(router.push).toHaveBeenCalledWith(freeBattleRoute("hero-1", [], "ice"));
+    });
+  });
+
   describe("suppressed ticks spend no steps, so the encounter that was coming is still coming", () => {
     it.each(["battle-free", "battle-quest", "battle-temple"])(
       "never fires while the hero is on %s",
@@ -194,6 +227,28 @@ describe("battle guard", () => {
       mockUserStore.currentUser.id = "hero-1"; // a hero picks up the controller
       await tick();
       expect(router.push).toHaveBeenCalledWith(freeBattleRoute("hero-1"));
+    });
+
+    it("never fires while the tab is hidden or a modal is open", async () => {
+      const router = makeRouter();
+      const tick = enter("home-town", router);
+      mockBattleStore.counter = 1;
+
+      Object.defineProperty(document, "hidden", { configurable: true, get: () => true });
+      await tickTimes(tick, 3);
+      expect(mockBattleStore.randomEncounter).not.toHaveBeenCalled();
+      Object.defineProperty(document, "hidden", { configurable: true, get: () => false });
+
+      const modal = document.createElement("ion-modal");
+      modal.className = "show-modal";
+      document.body.appendChild(modal);
+      await tickTimes(tick, 3);
+      expect(router.push).not.toHaveBeenCalled();
+      expect(mockBattleStore.randomEncounter).not.toHaveBeenCalled();
+
+      modal.remove(); // closed: the encounter that was coming lands
+      await tick();
+      expect(router.push).toHaveBeenCalledTimes(1);
     });
 
     it("never fires while a battle is active", async () => {

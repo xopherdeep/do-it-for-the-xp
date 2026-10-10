@@ -57,6 +57,14 @@ export const useBattleStore = defineStore('battle', () => {
     }
   }
 
+  /** Weigh the terrain the hero walks on: `key` counts double, null (or an unknown key) is plains. */
+  function setTerrainForRoute(key: string | null) {
+    const walked = key && key !== 'plains' && key in terrain ? key : 'plains';
+    (Object.keys(terrain) as Array<keyof typeof terrain>).forEach((k) => {
+      terrain[k] = k === walked ? 1 : 0;
+    });
+  }
+
   /** Re-arm after an encounter: a new random wait inside the steps.min..steps.max window. */
   function resetBattleTimer() {
     steps.counter = rollSteps(steps.min, steps.max);
@@ -89,6 +97,7 @@ export const useBattleStore = defineStore('battle', () => {
     deactivateBattle,
     startBattleTimer,
     stopBattleTimer,
+    setTerrainForRoute,
     resetBattleTimer,
     randomEncounter
   };

@@ -22,7 +22,29 @@ export interface BattleContext {
   /** Row in the temple maze */
   y?: number;
   beastIds: string[];
+  /** Free fights only: the world region the hero was exploring (WORLD_REGIONS id), "" when none. */
+  region?: string;
 }
+
+/**
+ * The nine explorable region pages: route name, bestiary element (see worldRegistry) and the
+ * terrain the battle store weighs while the hero walks there (null = plains, the baseline).
+ */
+export const WORLD_REGIONS: Record<string, { routeName: string; element: string; terrain: string | null }> = {
+  plains: { routeName: "world-plains", element: "wind", terrain: null },
+  islands: { routeName: "world-islands", element: "water", terrain: "island" },
+  forest: { routeName: "world-forest", element: "earth", terrain: "forest" },
+  swamps: { routeName: "world-swamps", element: "moon", terrain: "swamp" },
+  mountains: { routeName: "world-mountains", element: "fire", terrain: "mountain" },
+  desert: { routeName: "world-sands", element: "light", terrain: null },
+  clouds: { routeName: "world-clouds", element: "lightning", terrain: null },
+  ice: { routeName: "world-ice", element: "ice", terrain: null },
+  moon: { routeName: "the-moon", element: "shadow", terrain: null },
+};
+
+/** The region id behind a region route name, or undefined for any other route. */
+export const regionForRoute = (routeName: unknown): string | undefined =>
+  Object.keys(WORLD_REGIONS).find((id) => WORLD_REGIONS[id].routeName === routeName);
 
 export const BATTLE_ROUTE_NAMES = {
   quest: "battle-quest",
@@ -70,6 +92,7 @@ export const resolveBattleContext = (
     x: toCoordinate(route.params.x),
     y: toCoordinate(route.params.y),
     beastIds: Array.from(new Set(beastIds)),
+    region: firstParam(route.query.region),
   };
 };
 
@@ -91,8 +114,11 @@ export const battleReturnRoute = (ctx: BattleContext): RouteLocationRaw => {
         // Without it a reload on the battle page would put the hero back on 1F.
         ...(ctx.level ? { query: { level: ctx.level } } : {}),
       };
-    default:
-      return { name: "home-town", params: { userId: ctx.userId } };
+    default: {
+      // A random encounter on a region page comes back to that page, anything else to the home town.
+      const region = ctx.region ? WORLD_REGIONS[ctx.region] : undefined;
+      return { name: region?.routeName || "home-town", params: { userId: ctx.userId } };
+    }
   }
 };
 
@@ -113,7 +139,8 @@ export const templeBattleRoute = (
   params: { userId, templeId, level, x: String(x), y: String(y) },
 });
 
-export const freeBattleRoute = (userId: string, beastIds: string[] = []): RouteLocationRaw => ({
+export const freeBattleRoute = (userId: string, beastIds: string[] = [], region?: string): RouteLocationRaw => ({
   name: BATTLE_ROUTE_NAMES.free,
   params: beastIds.length ? { userId, beastIds: beastIds.join(",") } : { userId },
+  ...(region ? { query: { region } } : {}),
 });

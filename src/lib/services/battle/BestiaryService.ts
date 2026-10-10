@@ -50,12 +50,15 @@ export class BestiaryService {
 
   /**
    * Load a random beast from the bestiary
+   * @param element When given, pick among the beasts tagged with it (all beasts if none are)
    * @returns A random beast converted to an Enemy object, or null if none available
    */
-  public async loadRandomBeast(): Promise<Enemy | null> {
+  public async loadRandomBeast(element?: string): Promise<Enemy | null> {
     try {
-      const beasts = await this.bestiary.getBeasts();
-      if (!beasts || beasts.length === 0) return null;
+      const all = await this.bestiary.getBeasts();
+      if (!all || all.length === 0) return null;
+      const native = element ? all.filter((b: any) => b.element === element) : [];
+      const beasts = native.length ? native : all;
 
       // Pick a random beast
       const randomIndex = Math.floor(Math.random() * beasts.length);

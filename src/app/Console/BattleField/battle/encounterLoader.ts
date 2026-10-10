@@ -6,7 +6,7 @@ import type { BestiaryService } from "@/lib/services/battle/BestiaryService";
 import type { Enemy } from "@/lib/services/battle/BattleService";
 import { questRewards } from "@/lib/services/quests/QuestCompletionService";
 import debug from "@/lib/utils/debug";
-import type { BattleContext } from "./battleContext";
+import { WORLD_REGIONS, type BattleContext } from "./battleContext";
 
 /**
  * Everything the battle page needs to start a fight, resolved from a BattleContext.
@@ -33,8 +33,8 @@ const loadBeasts = async (bestiary: BestiaryService, beastIds: string[]): Promis
   return loaded.filter((enemy): enemy is Enemy => Boolean(enemy));
 };
 
-const fallbackEnemies = async (bestiary: BestiaryService): Promise<Enemy[]> => {
-  const random = await bestiary.loadRandomBeast();
+const fallbackEnemies = async (bestiary: BestiaryService, element?: string): Promise<Enemy[]> => {
+  const random = await bestiary.loadRandomBeast(element);
   return [random || bestiary.createSampleEnemy()];
 };
 
@@ -107,7 +107,8 @@ const loadTempleEncounter = async (ctx: BattleContext, bestiary: BestiaryService
 
 const loadFreeEncounter = async (ctx: BattleContext, bestiary: BestiaryService): Promise<Encounter> => {
   const configured = await loadBeasts(bestiary, ctx.beastIds);
-  const enemies = configured.length ? configured : await fallbackEnemies(bestiary);
+  const element = ctx.region ? WORLD_REGIONS[ctx.region]?.element : undefined;
+  const enemies = configured.length ? configured : await fallbackEnemies(bestiary, element);
   return { enemies, rewards: null, label: labelFor(enemies) };
 };
 
