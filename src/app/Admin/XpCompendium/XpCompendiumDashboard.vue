@@ -121,7 +121,8 @@ export default defineComponent({
     const activeSlideIndex = ref(0);
     const slidesViewed = ref<boolean[]>([]);
     const swiperInstance = ref<SwiperClass | null>(null);
-    const autoAdvance = ref(true);
+    // The Game Master moves between slides with the arrows or a swipe; closing a dialog never jumps ahead
+    const autoAdvance = ref(false);
 
     // Access dialog system from game engine
     const dialogSystem = useDialogSystem();
@@ -135,105 +136,6 @@ export default defineComponent({
       shops: 0,
     });
 
-    // Define all slides data in a single array
-    // const slides = ref<SlideData[]>([
-    //   {
-    //     icon: "fa-game-console-handheld",
-    //     iconClass: "",
-    //     title: "Welcome to the Adventure!",
-    //     dialogContent: [
-    //       "Welcome to your gamified journey into recurring task management!",
-    //       "This tutorial will guide you through the different systems in our app.",
-    //       "You'll learn how to transform everyday tasks into exciting adventures."
-    //     ]
-    //   },
-    //   {
-    //     icon: "fa-staff " + ["quest", "fire", "ice"][Math.floor(Math.random() * 3)],
-    //     iconClass: "xp-icon",
-    //     title: "Experience Points (XP)",
-    //     dialogContent: [
-    //       "Experience Points (XP) represent time and effort spent on tasks.",
-    //       "Think of it as 10 XP is about 1 minute of good effort.",
-    //       "As you accumulate XP, you'll level up, unlocking new abilities (privileges) and increasing your maximum HP and MP."
-    //     ]
-    //   },
-    //   {
-    //     icon: "fa-hand-holding-usd",
-    //     iconClass: "gp-icon",
-    //     title: "Gold Points (GP)",
-    //     dialogContent: [
-    //       "Gold Points (GP) are the in-game currency, used for things like purchasing items and rewards.",
-    //       "GP is automatically deposited into your savings after completing tasks and battles.",
-    //       "You can make limited withdrawals from your wallet. Wallets come in a few sizes, each with a different limit."
-    //     ]
-    //   },
-    //   {
-    //     icon: "fa-hand-holding-magic",
-    //     iconClass: "ap-icon",
-    //     title: "Ability Points (AP)",
-    //     dialogContent: [
-    //       "Ability Points (AP) unlock special abilities and privileges.",
-    //       "AP is awarded for daily streaks, weekly achievements, and monthly milestones.",
-    //       "For example. There may be a ability/privilege that requires the user to have accumulated 100 AP in the last 7 days to unlock.",
-    //       "This encourages users to keep their AP streaks ",
-    //     ]
-    //   },
-    //   {
-    //     icon: "fa-heartbeat",
-    //     iconClass: "character-stats-icon",
-    //     title: "Character Stats (HP/MP)",
-    //     dialogContent: [
-    //       "Like any RPG character, you have Health Points (HP) and Mana Points (MP).",
-    //       "HP represents your physical energy and is consumed by completing tasks.",
-    //       "MP represents your mental energy, used for focus-intensive activities.",
-    //       "Both regenerate with proper rest and self-care."
-    //     ]
-    //   },
-    //   {
-    //     icon: "fa-hand-holding-heart",
-    //     iconClass: "beast-icon",
-    //     title: "Beasts & Challenges",
-    //     dialogContent: [
-    //       "Beasts represent challenges in your life.",
-    //       "From procrastination dragons to distraction demons, each has unique patterns and weaknesses.",
-    //       "Develop strategies to overcome these beasts and earn special bonuses for conquering particularly difficult challenges."
-    //     ]
-    //   },
-    //   {
-    //     // random element
-    //     icon: "fa-hand-holding-seedling",
-    //     iconClass: "quest-icon",
-    //     title: "Quests & Adventures",
-    //     dialogContent: [
-    //       "Your daily tasks become quests in this adventure!",
-    //       "Complete quests to earn XP, AP, and GP.",
-    //       "Quests can be categorized by difficulty, urgency, and type.",
-    //       "Creating balanced quest logs ensures steady progress in all areas of your life."
-    //     ]
-    //   },
-    //   {
-    //     icon: "fa-hand-holding-water",
-    //     iconClass: "temple-icon",
-    //     title: "Temples & Training",
-    //     dialogContent: [
-    //       "Temples are where you develop your skills and attributes.",
-    //       "Invest AP to gain permanent bonuses to your abilities.",
-    //       "Each temple represents an area of personal growth, such as fitness, creativity, knowledge, or social skills."
-    //     ]
-    //   },
-    //   {
-    //     icon: "fa-store",
-    //     iconClass: "shop-icon",
-    //     title: "Shops & Marketplace",
-    //     dialogContent: [
-    //       "Shops let you spend your hard-earned GP on rewards!",
-    //       "From digital items to real-world treats, shops turn your productivity into tangible benefits.",
-    //       "Shop inventories expand as you progress, offering more valuable rewards at higher levels."
-    //     ],
-    //     isFinal: true
-    //   }
-    // ]);
-
     // ---------------------------------------------------------
     // PARENT ONBOARDING: Hook → Stakes → Defense → Training → Economy → Payoff
     // ---------------------------------------------------------
@@ -244,9 +146,9 @@ export default defineComponent({
         iconClass: "",
         title: "GameMaster™",
         dialogContent: [
-          "Welcome to the ultimate parenting life-hack.",
-          "We are going to replace 'Nagging' with 'Game Mechanics'.",
-          "This system automates consequences and rewards effort.",
+          "Welcome, Game Master. This is your Compendium: the rulebook for your family's game.",
+          "Chores become quests and beasts. Heroes earn XP, Gold and Ability Points for doing them.",
+          "The game keeps score, so you don't have to nag.",
         ],
       },
       // 1: Beasts - THE HOOK
@@ -255,10 +157,10 @@ export default defineComponent({
         iconClass: "beast-icon",
         title: "Beasts & Battles",
         dialogContent: [
-          "Chores become Beasts that attack when it's time to do them.",
-          "The Beast hits constantly, draining HP until the task is DONE.",
-          "Players can 'Run Away'... but the Beast chases them.",
-          "Next time they open the app? SNEAK ATTACK for massive damage!",
+          "A Beast is a chore with a checklist. The Socktopus: sort the socks, match the pairs, put them away.",
+          "In battle every checklist item is an attack. Finish them all and the Beast is defeated.",
+          "Each Beast has a clock. Let it run out and the Beast strikes, and the hero loses HP.",
+          "Heroes can try to Run Away, but the chore stays on their quest board.",
         ],
       },
       // 2: HP/MP - THE STAKES
@@ -267,10 +169,10 @@ export default defineComponent({
         iconClass: "character-stats-icon",
         title: "Health & Mana",
         dialogContent: [
-          "HP is their 'Freedom Meter'. When it hits 0, they are 'Grounded'.",
-          "All Abilities and Privileges lock until they heal with Potions or rest.",
-          "MP is their mental energy, used to cast Abilities like Time Extensions.",
-          "The app does the nagging, so you don't have to.",
+          "HP is the hero's stamina. Beast strikes take it away, and the damage lasts after the fight.",
+          "At 0 HP the hero blacks out and wakes up at the Hospital, where healing costs Gold.",
+          "MP is the hero's focus. Using an Ability costs MP.",
+          "Potions, rest in town and the Hospital bring HP and MP back.",
         ],
       },
       // 3: Powers/AP - THE DEFENSE
@@ -279,10 +181,10 @@ export default defineComponent({
         iconClass: "ap-icon",
         title: "Abilities & Powers",
         dialogContent: [
-          "Abilities are special powers unlocked through consistency.",
-          "They can cast 'Time Spells' (ask for extensions) or 'Heal Spells' (recover HP).",
-          "But using Abilities costs MP, and MP regenerates slowly.",
-          "Ability Points (AP) measure consistency—lose the streak, lose the power.",
+          "Powers are privileges you define: real-life ones like extra screen time, or in-game spells.",
+          "Each Power unlocks with Ability Points (AP) earned in a window: today, this week or this month.",
+          "AP measures steady effort. Let it slip and the Power locks again.",
+          "Using a Power costs MP, so heroes choose when to spend it.",
         ],
       },
       // 4: Temples - THE TRAINING
@@ -291,10 +193,10 @@ export default defineComponent({
         iconClass: "temple-icon",
         title: "Temples & Dungeons",
         dialogContent: [
-          "Temples are where consistency is forged into power.",
-          "Each Temple represents an area of growth: Fitness, Creativity, Knowledge, Social Skills.",
-          "Regular training at a Temple unlocks permanent bonuses.",
-          "This is where habits become superpowers.",
+          "Every region of the world map has a Temple: a maze of rooms with beasts, locked doors and treasure.",
+          "Chests hold Gold and key items, like the wands that bend the rules of a chore.",
+          "A mini-boss guards the boss key, and a Pegasus waits past the boss.",
+          "Edit any room here, roll a new Temple from a seed, or raise a Blood Moon to reset one.",
         ],
       },
       // 5: GP/Economy - THE RESOURCES
@@ -303,10 +205,10 @@ export default defineComponent({
         iconClass: "gp-icon",
         title: "Gold & Shops",
         dialogContent: [
-          "Gold Points (GP) are earned by completing tasks.",
-          "They can spend GP at Shops on real rewards or survival items like Potions.",
-          "If they procrastinate, they'll spend fun money on Potions just to survive.",
-          "This forces smart budgeting and teaches financial responsibility.",
+          "Quests pay Gold Points (GP) into the hero's wallet. The Gold Bank keeps their savings.",
+          "Shops sell what you stock: real rewards at prices you set, potions and gear.",
+          "Healing costs Gold, so putting chores off gets expensive.",
+          "Saving up teaches budgeting without a lecture.",
         ],
       },
       // 6: XP - THE PAYOFF
@@ -315,10 +217,9 @@ export default defineComponent({
         iconClass: "xp-icon",
         title: "Experience & Leveling",
         dialogContent: [
-          "Experience Points (XP) are the permanent record of effort.",
-          "XP never decreases. Every completed task adds to their legacy.",
-          "As they Level Up, their maximum HP and MP increase—they get stronger!",
-          "Are you ready to be the GameMaster?",
+          "Experience Points (XP) are the permanent record of effort. They never go down.",
+          "Every level raises the hero's max HP and MP and grows their class.",
+          "Ready? Start with a Beast or a Quest from the tabs below.",
         ],
         isFinal: true,
       },
