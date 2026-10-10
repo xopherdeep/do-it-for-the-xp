@@ -18,12 +18,13 @@ export default defineComponent({
   setup(props) {
     const { showMessage } = useDialogSystem();
 
+    // One line per tab (the route segment), worded from the controls on that tab
     const textMap: Record<string, string> = {
-      dashboard: "Quest Setup: Give your adventure a name and choose a Stat Category (STR, INT, etc) to determine the rewards.",
-      "quest-type": "Adventure Type: Is this a simple task, a generic monster hunt, or a boss battle? This defines the complexity.",
-      heros: "Party Assignment: Assign this quest to yourself (Solo) or the whole party (Group Raid).",
-      when: "Schedule: Set a due date or make it a recurring event (Daily/Weekly).",
-      points: "Difficulty: Adjust the slider to increase the challenge and the resulting XP/GP rewards."
+      dashboard: "What: Name your quest, then file it under a category like Around the House. Approval and Priority are set here too.",
+      "quest-type": "How: Choose a Basic Task, a Beast Encounter or an Immersive Sequence (a chain of quests). A Beast Encounter also needs a beast.",
+      heros: "Who: Choose how the quest is shared (Open Bounty, Solo Mission, Team Effort, Rotate Out or Rat Race), then pick the heroes. An Open Bounty is open to every hero.",
+      when: "When: Set the start date, an optional end date and a due time, then choose how often it repeats: Once, Daily, Weekly or Custom.",
+      points: "Why: Set the difficulty with the slider. It sets how much XP, GP and AP the quest pays, and you can still adjust each amount."
     };
 
     const isHelpEnabled = () => {

@@ -53,6 +53,7 @@
 }
 
 .quest-card {
+  position: relative;
   cursor: pointer;
   padding: 16px;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -87,9 +88,31 @@
       object-fit: cover;
     }
 
+    // Beast sprites keep their shape instead of being cropped
+    .beast-img::part(image) {
+      object-fit: contain;
+    }
+
     .fallback-icon {
       color: rgba(255, 255, 255, 0.4);
     }
+  }
+
+  // A quest saved while incomplete: heroes don't see it yet
+  .draft-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    padding: 1px 6px;
+    font-family: "StatusPlz", var(--xp-font-heading);
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    line-height: 1.2;
+    text-transform: uppercase;
+    color: #280828;
+    background: #f7e8a8;
+    border: 2px solid #383050;
+    border-radius: 2px;
   }
 
   .quest-card-content {

@@ -76,7 +76,7 @@
                 slot="start"
               />
 
-              <ion-label> Bonus Chore </ion-label>
+              <ion-label> Bonus Quest </ion-label>
 
               <ion-checkbox
                 slot="end"
@@ -164,11 +164,17 @@
               :class="{ 'is-expired': new Date(achievement.endsOn) < new Date() }"
               @click="presentQuestOptions(achievement)"
             >
+              <span
+                v-if="achievement.draft"
+                class="draft-badge"
+                title="Draft: heroes don't see this quest until it is finished"
+              >Draft</span>
               <div class="quest-card-avatar">
                 <!-- Beast Preview -->
                 <template v-if="achievement.adventureType === 'beast'">
                   <ion-img
                     v-if="getBeastAvatar(achievement)"
+                    class="beast-img"
                     :src="getBeastAvatar(achievement)"
                   />
                   <i
@@ -198,20 +204,26 @@
                 <ion-badge
                   color="danger"
                   v-if="achievement.ap > 0"
+                  :title="`${formatPoints(achievement.ap)} AP`"
+                  :aria-label="`${formatPoints(achievement.ap)} AP`"
                 >
-                  <i class="fad fa-hand-holding-magic mr-1" />{{ achievement.ap }}
+                  <i class="fad fa-hand-holding-magic mr-1" />{{ formatPoints(achievement.ap) }}
                 </ion-badge>
                 <ion-badge
                   color="warning"
                   v-if="achievement.gp > 0"
+                  :title="`${formatPoints(achievement.gp)} GP`"
+                  :aria-label="`${formatPoints(achievement.gp)} GP`"
                 >
-                  <i class="fad fa-hand-holding-usd mr-1" /><xp-gp :gp="achievement.gp" />
+                  <i class="fad fa-hand-holding-usd mr-1" />{{ formatPoints(achievement.gp) }}
                 </ion-badge>
                 <ion-badge
                   color="success"
                   v-if="achievement.xp > 0"
+                  :title="`${formatPoints(achievement.xp)} XP`"
+                  :aria-label="`${formatPoints(achievement.xp)} XP`"
                 >
-                  <i class="fad fa-hand-holding-seedling mr-1" />{{ achievement.xp }}
+                  <i class="fad fa-hand-holding-seedling mr-1" />{{ formatPoints(achievement.xp) }}
                 </ion-badge>
               </div>
             </div>
@@ -262,6 +274,8 @@
                   :achievement="achievement"
                   :categories="categories"
                   :beasts="beasts"
+                  :users="users"
+                  :group-by="groupBy"
                   :show-points="showPoints"
                   :disabled="new Date(achievement.endsOn) < new Date()"
                   @click="presentQuestOptions(achievement)"
@@ -272,7 +286,7 @@
                     @click="clickDeleteAchievement(achievement)"
                   >
                     <i class="fad fa-fire fa-lg mx-1"></i>
-                    Remove
+                    Delete
                   </ion-item-option>
                 </ion-item-options>
                 <ion-item-options side="end">
@@ -310,6 +324,8 @@
               :achievement="achievement"
               :categories="categories"
               :beasts="beasts"
+              :users="users"
+              :group-by="groupBy"
               :show-points="showPoints"
               :disabled="new Date(achievement.endsOn) < new Date()"
               @click="presentQuestOptions(achievement)"
@@ -320,7 +336,7 @@
                 @click="clickDeleteAchievement(achievement)"
               >
                 <i class="fad fa-fire fa-lg mx-1"></i>
-                Remove
+                Delete
               </ion-item-option>
             </ion-item-options>
             <ion-item-options side="end">

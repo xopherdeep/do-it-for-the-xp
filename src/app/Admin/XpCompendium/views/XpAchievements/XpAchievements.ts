@@ -1,6 +1,6 @@
 import { defineComponent, ref, watch } from "vue";
 import { useUserStore } from "@/lib/store/stores/user";
-import { alertController, actionSheetController } from "@ionic/vue";
+import { alertController, actionSheetController, toastController } from "@ionic/vue";
 import ionic from "@/lib/mixins/ionic";
 import { useRoute } from "vue-router";
 
@@ -22,6 +22,7 @@ import {
 
 import { LORE_COMBO_MATRIX } from "@/constants";
 import { formatQuestName } from "@/lib/utils/format";
+import { formatPoints } from "@/lib/services/quests/QuestLabels";
 
 import AchievementDb, {
   achievementStorage,
@@ -220,6 +221,7 @@ export default defineComponent({
           {
             text: "Edit Quest",
             icon: createOutline,
+            cssClass: "action-edit",
             handler: () => {
               this.clickEdit(achievement.id);
             },
@@ -227,6 +229,7 @@ export default defineComponent({
           {
             text: "Copy Quest",
             icon: copyOutline,
+            cssClass: "action-medium",
             handler: () => {
               this.clickCloneAchievement(achievement);
             },
@@ -235,6 +238,8 @@ export default defineComponent({
             text: "Delete Quest",
             role: "destructive",
             icon: trashOutline,
+            // role destructive: the Earthbound theme paints it light red
+            cssClass: "action-delete",
             handler: () => {
               this.clickDeleteAchievement(achievement);
             },
@@ -263,22 +268,17 @@ export default defineComponent({
     },
     async clickDeleteAchievement(task: Achievement) {
       const alert = await alertController.create({
-        header: "Delete " + task.achievementName + "?",
-        subHeader: "Are you sure you want to delete this achievement?",
-        message: "This action cannot be undone.",
+        header: `Delete ${task.achievementName || "this quest"}?`,
+        message: "This can't be undone.",
         mode: "ios",
         buttons: [
           {
             text: "Cancel",
             role: "cancel",
-            handler: () => {
-              // handlerMessage.value = "Alert canceled";
-            },
           },
-
           {
-            text: "OK",
-            role: "confirm",
+            text: "Delete",
+            role: "destructive",
             handler: () => this.deleteTask(task),
           },
         ],
@@ -394,10 +394,7 @@ export default defineComponent({
       if (beast.avatar) {
         try {
           const pad = beast.avatar.toString().padStart(3, "0");
-          return new URL(
-            `/src/assets/images/beasts/${pad}.png`,
-            import.meta.url
-          ).href;
+          return require(`@/assets/images/beasts/${pad}.png`);
         } catch {
           return null;
         }
@@ -471,15 +468,13 @@ Feed the pets`,
       await loadAchievements();
 
       // Show success toast
-      const successAlert = await alertController.create({
-        header: "Import Complete!",
-        message: `Successfully imported ${lines.length} quest${
-          lines.length !== 1 ? "s" : ""
-        }.`,
-        mode: "ios",
-        buttons: ["OK"],
+      const toast = await toastController.create({
+        message: `Imported ${lines.length} quest${lines.length !== 1 ? "s" : ""}.`,
+        duration: 2500,
+        position: "top",
+        cssClass: "rpg-toast",
       });
-      await successAlert.present();
+      await toast.present();
     },
   },
   mounted() {
@@ -552,6 +547,7 @@ Feed the pets`,
       bestiaryDb,
       beasts,
       formatQuestName,
+      formatPoints,
     };
   },
 });

@@ -82,8 +82,8 @@ const goToTab = (tabRelative: string) => {
 
 const showCategoryHelp = async () => {
   const alert = await alertController.create({
-    header: 'Categories & Stats',
-    message: 'Categories determine which stats you earn:\n\n• STR: Physical Tasks\n• INT: Mental/Learning\n• CHA: Social/Networking\n• DEX: Precision/Speed\n\nChoose wisely to build the character you want to become!',
+    header: 'Categories',
+    message: 'A category files this quest under a household heading in the Quests list, like Around the House.<br><br>It does not change the stats a hero earns. Tap the Category tile to pick one or add your own.',
     buttons: ['Got it']
   });
   await alert.present();

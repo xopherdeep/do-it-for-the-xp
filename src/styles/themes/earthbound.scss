@@ -1185,13 +1185,25 @@ ion-app {
                 background: $eb-color-medium-purple;
               }
 
+              // Cancel is the safe way out: calm cream, never alarm red
               &.action-sheet-cancel {
                 background: transparent;
-                color: var(--ion-color-danger);
+                color: $eb-color-cream;
                 font-family: $eb-font-primary;
 
                 &:hover {
                   background: color.adjust($eb-color-slate, $lightness: -5%);
+                }
+              }
+
+              // A destructive choice (role: "destructive", e.g. Delete) is the red one; a light red,
+              // because the theme's danger red is too dark to read on the purple box
+              &.action-sheet-destructive {
+                color: #ff7b6b;
+
+                .action-sheet-button-inner,
+                .action-sheet-icon {
+                  color: #ff7b6b !important;
                 }
               }
 
