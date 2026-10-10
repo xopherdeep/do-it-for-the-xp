@@ -47,15 +47,28 @@
     </div>
 
     <!-- Overlays sit beside the shaking container so they never shake with it -->
-    <!-- Attack = pick a chore from the beast's checklist -->
+    <!-- Attack = pick a chore from the beast's checklist; the Silver Arrow borrows the same list to pick a chore to postpone -->
     <transition name="sheet">
       <XpBattleTaskMenu
         v-if="showTaskMenu && currentEnemy"
         :tasks="combatTasks"
         :enemy-name="currentEnemy.name"
         :damage-per-task="damagePerTask"
+        :mode="taskMenuMode"
         @cancel="closeTaskMenu"
         @task-complete="finishCombatTask"
+        @task-pick="postponeTask"
+      />
+    </transition>
+
+    <!-- Item = the two hands; using one keeps the hero's move -->
+    <transition name="sheet">
+      <BattleItemMenu
+        v-if="showItemMenu"
+        :left="itemCards.left"
+        :right="itemCards.right"
+        @cancel="closeTaskMenu"
+        @use="useItemCard"
       />
     </transition>
 

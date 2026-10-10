@@ -141,6 +141,12 @@ export class BattleService {
   private strikeTimeout: ReturnType<typeof setTimeout> | null = null;
   /** Date.now() at which the clock runs dry. */
   private attackDeadline = 0;
+  /** Date.now() until which the clock is frozen (Chronos' Clock); 0 when it is not. */
+  private frozenUntil = 0;
+  /** Strikes the beast will miss (Thor's Hammer); each one skipped restarts the clock full. */
+  private strikeSkips = 0;
+  /** Multiplies the minutes every chore earns on the clock (Fire Wand); 1 by default. */
+  private cooldownScale = 1;
 
   constructor(options: BattleServiceOptions = {}) {
     this.userStore = useUserStore();
@@ -256,6 +262,9 @@ export class BattleService {
     this.state.timeRemaining = 0;
     this.state.attackDuration = 0;
     this.state.enemyAttackTimer = 100;
+    this.frozenUntil = 0;
+    this.strikeSkips = 0;
+    this.cooldownScale = 1;
 
     // Store enemies in participants array
     this.state.participants.enemies = enemies;
@@ -465,7 +474,8 @@ export class BattleService {
     const remainingChores = this.state.combatTasks.filter(t => !t.isCompleted).length;
     const duration = Math.max(1, remainingChores) * this.minutesPerChore() * 60_000;
 
-    this.attackDeadline = Date.now() + duration;
+    // A clock started under the ice only begins to run down when the ice melts
+    this.attackDeadline = Math.max(Date.now(), this.frozenUntil) + duration;
     this.state.attackDuration = duration;
     // The bar is full the moment the clock starts, not one tick later
     this.state.timeRemaining = duration;
@@ -481,7 +491,9 @@ export class BattleService {
   public tick(): void {
     if (this.attackTimerInterval === null) return;
 
-    const remaining = Math.max(0, this.attackDeadline - Date.now());
+    // Frozen: the bar stands where the ice caught it and the beast cannot strike
+    const now = Math.max(Date.now(), this.frozenUntil);
+    const remaining = Math.max(0, this.attackDeadline - now);
     this.state.timeRemaining = remaining;
     this.state.enemyAttackTimer = this.state.attackDuration > 0 ? (remaining / this.state.attackDuration) * 100 : 0;
 
@@ -523,10 +535,116 @@ export class BattleService {
     return this.state.attackDuration;
   }
 
-  /** Minutes per remaining chore: the beast's own attackCooldown, or 3. */
+  /** Minutes per remaining chore: the beast's own attackCooldown, or 3, times the fight's cooldown scale. */
   private minutesPerChore(): number {
     const minutes = this.state.currentEnemy?.attackCooldown;
-    return typeof minutes === 'number' && Number.isFinite(minutes) && minutes > 0 ? minutes : DEFAULT_MINUTES_PER_CHORE;
+    const base = typeof minutes === 'number' && Number.isFinite(minutes) && minutes > 0 ? minutes : DEFAULT_MINUTES_PER_CHORE;
+    return base * this.cooldownScale;
+  }
+
+  // --- battle items (see docs/Items-And-Classes-Contract.md, section A) ---------------------------
+
+  /**
+   * Add `ms` to the running clock (Ice Wand). The deadline and the clock's full length both grow, so
+   * the bar fills back up instead of jumping past 100%. Returns false, and changes nothing, when no
+   * clock is running (before the intro is read, or while a strike is waiting to land).
+   */
+  public extendClock(ms: number): boolean {
+    if (this.attackTimerInterval === null || !(ms > 0)) return false;
+    this.attackDeadline += ms;
+    this.state.attackDuration += ms;
+    this.tick();
+    return true;
+  }
+
+  /**
+   * Hold the clock where it is for `ms` (Chronos' Clock): the deadline moves out by the same amount,
+   * the bar does not move, and the beast cannot strike until the ice melts. A Defend during the
+   * freeze is answered with "frozen solid" and a fresh clock instead of a hit. A second freeze adds
+   * to the first. Returns false, and changes nothing, when no clock is running.
+   */
+  public freezeClock(ms: number): boolean {
+    if (this.attackTimerInterval === null || !(ms > 0)) return false;
+    this.frozenUntil = Math.max(Date.now(), this.frozenUntil) + ms;
+    this.attackDeadline += ms;
+    this.tick();
+    return true;
+  }
+
+  /** Whether the clock is standing still under Chronos' ice right now. */
+  public isClockFrozen(): boolean {
+    return Date.now() < this.frozenUntil;
+  }
+
+  /**
+   * The beast misses its next strike (Thor's Hammer): when it would land, the hero keeps the move
+   * and the clock restarts full. Several hammers stack, one strike each.
+   */
+  public skipNextStrike(): void {
+    this.strikeSkips++;
+  }
+
+  /** Strikes the beast still owes the hammer. */
+  public getStrikeSkips(): number {
+    return this.strikeSkips;
+  }
+
+  /**
+   * Send an open chore back to the board (Silver Arrow). It leaves the fight's queue and the beast
+   * loses that chore's slice of health, so the chores that remain still end the fight exactly on the
+   * last one. The chore is never marked done: the page puts it back on the board as it was.
+   * Returns a copy of the chore, or null when it is unknown, already finished, or the last open
+   * chore (a fight needs one). Queues nothing; the clock keeps running as it was.
+   */
+  public postponeTask(taskId: string): CombatTask | null {
+    const enemy = this.state.currentEnemy;
+    const index = this.state.combatTasks.findIndex((t) => t.id === taskId);
+    const task = index === -1 ? undefined : this.state.combatTasks[index];
+    if (!enemy || !task || task.isCompleted) return null;
+    if (this.state.combatTasks.filter((t) => !t.isCompleted).length <= 1) return null;
+
+    const slice = this.choreDamage(enemy, false);
+    this.state.combatTasks.splice(index, 1);
+    enemy.health = Math.max(1, enemy.health - slice);
+
+    this.battleCallbacks.onCombatTasksChange?.(this.state.combatTasks);
+    this.notifyEnemyHealthChange();
+    return { ...task };
+  }
+
+  /**
+   * Multiply the current beast's attack for the rest of the fight (Sol's Flare at 0.5 halves every
+   * strike). A beast with no attack counts as the baseline 10 first. Returns the new attack, or 0
+   * with no beast. A strike already waiting to land keeps its damage.
+   */
+  public weakenEnemy(factor: number): number {
+    const enemy = this.state.currentEnemy;
+    if (!enemy) return 0;
+    if (!(factor > 0)) return enemy.attack;
+    enemy.attack = Math.max(1, (enemy.attack || 10) * factor);
+    return enemy.attack;
+  }
+
+  /**
+   * Scale the minutes every chore earns on the clock for the rest of the fight (Fire Wand at 1.5).
+   * Applies to every clock started from now on; the one running is left as it is. Returns the scale
+   * now in force (several wands multiply).
+   */
+  public scaleCooldown(factor: number): number {
+    if (factor > 0) this.cooldownScale *= factor;
+    return this.cooldownScale;
+  }
+
+  /**
+   * A strike that does not land (frozen or stunned beast): the brace comes down, the hero keeps the
+   * move and gets a fresh full clock. One auto line says why.
+   */
+  private skipStrike(line: string): void {
+    if (this.state.isDefending) this.setDefendingState(false);
+    this.queueDialogMessages([autoLine(line)]);
+    this.setPlayerTurnState(true);
+    this.state.turnCounter++;
+    this.startAttackTimer();
   }
 
   /**
@@ -541,6 +659,17 @@ export class BattleService {
 
     const enemy = this.state.currentEnemy;
     if (!enemy || enemy.health <= 0) return;
+
+    // Chronos' ice or Thor's hammer: the strike does not land
+    if (this.isClockFrozen()) {
+      this.skipStrike(`${enemy.name} is frozen solid and cannot strike!`);
+      return;
+    }
+    if (this.strikeSkips > 0) {
+      this.strikeSkips--;
+      this.skipStrike(`${enemy.name} is stunned and misses its strike!`);
+      return;
+    }
 
     const hero = this.getActiveUser();
     if (!hero) {

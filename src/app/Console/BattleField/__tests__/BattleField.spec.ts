@@ -158,7 +158,7 @@ describe("BattleField: a free fight", () => {
     expect(wrapper.find("[data-cy=battle-dialog]").text()).toContain(INTRO);
     expect(vm.dialogText).toBe(INTRO); // still on screen: the atom's own click no longer dismisses it
     await tap();
-    expect(wrapper.findAll(".menu-item").map((button) => button.text())).toEqual(["Attack", "Defend", "Run Away"]);
+    expect(wrapper.findAll(".menu-item").map((button) => button.text())).toEqual(["Attack", "Defend", "Item", "Run Away"]);
     expect(wrapper.find(".dialog-prompt").text()).toBe("Do its chores to win!");
     expect(chores()).toBe("2 chores left");
     expect(clock().text()).toBe("6:00"); // three minutes a chore
@@ -235,7 +235,7 @@ describe("BattleField: a free fight", () => {
     expect(wrapper.find(".dialog-prompt").text()).toBe("Run away? Your finished chores won't count.");
     expect(wrapper.findAll(".menu-item").map((button) => button.text())).toEqual(["Keep fighting", "Run"]);
     await wrapper.find("#keep-fighting").trigger("click");
-    expect(wrapper.findAll(".menu-item").map((button) => button.text())).toEqual(["Attack", "Defend", "Run Away"]);
+    expect(wrapper.findAll(".menu-item").map((button) => button.text())).toEqual(["Attack", "Defend", "Item", "Run Away"]);
 
     jest.spyOn(Math, "random").mockReturnValue(0.5);
     await wrapper.find("#defend").trigger("click");
@@ -252,6 +252,66 @@ describe("BattleField: a free fight", () => {
     await readUntilMenu();
     expect(wrapper.find(".attack-timer-label").text()).toBe("6:00");
     (Math.random as jest.Mock).mockRestore();
+  });
+
+  it("Item shows the hands; the Ice Wand buys ten minutes and the Silver Arrow sends a chore back unfinished", async () => {
+    const { wrapper, userStore, vm, tap, readUntilMenu } = await enterBattle("/battle/hero-1/free/");
+    const hero = userStore.users["hero-1"];
+    hero.stats.mp = { now: 120, max: 120 };
+    userStore.setEquipment("hero-1", {
+      leftHand: [{ name: "Ice Wand", faIcon: "wand-magic ice", desc: "50MP | Freeze distractions in their tracks." }],
+      rightHand: [{ name: "Silver Arrow", faIcon: "bow-arrow", desc: "25MP | A precise magical arrow." }],
+    });
+    await tap();
+    await tap(); // intro read: the clock is running
+    expect(wrapper.find(".attack-timer-label").text()).toBe("6:00");
+
+    // The Item sheet lists both hands with their MP and what they do here
+    await wrapper.find("#item").trigger("click");
+    const sheet = wrapper.find("[data-cy=item-sheet]");
+    expect(sheet.exists()).toBe(true);
+    expect(sheet.findAll(".item-name").map((name) => name.text())).toEqual(["Ice Wand", "Silver Arrow"]);
+    expect(sheet.findAll(".item-mp").map((mp) => mp.text())).toEqual(["50 MP", "25 MP"]);
+    expect(sheet.find("[data-cy=item-left] .item-effect").text()).toBe("+10 minutes on the clock");
+    expect(wrapper.find(".menu-item").exists()).toBe(false);
+
+    // Ice Wand: MP spent, one line, the clock is longer, and the hero keeps the move
+    await wrapper.find("[data-cy=item-left]").trigger("click");
+    await flushPromises();
+    expect(wrapper.find("[data-cy=item-sheet]").exists()).toBe(false);
+    expect(hero.stats.mp.now).toBe(70);
+    expect(vm.dialogText).toBe("Ice creeps over the clock: +10 minutes!");
+    expect(wrapper.find(".attack-timer-label").text()).toBe("16:00");
+    expect(mockPlaySound).toHaveBeenCalledWith("select");
+    await readUntilMenu();
+    expect(wrapper.findAll(".menu-item").map((button) => button.text())).toEqual(["Attack", "Defend", "Item", "Run Away"]);
+
+    // Silver Arrow: the task list opens to pick the chore, which flies back to the board unfinished
+    await wrapper.find("#item").trigger("click");
+    await wrapper.find("[data-cy=item-right]").trigger("click");
+    await flushPromises();
+    expect(wrapper.find("[data-cy=item-sheet]").exists()).toBe(false);
+    const picker = wrapper.find("[data-cy=task-sheet]");
+    expect(picker.exists()).toBe(true);
+    expect(picker.find(".sheet-title").text()).toBe("Silver Arrow");
+    const row = wrapper.findAll(".battle-task-item").find((item) => item.text().includes("Sort socks"));
+    await row?.trigger("click");
+    expect(picker.find(".confirm-question").text()).toBe("Send it back? It stays unfinished.");
+    jest.advanceTimersByTime(300);
+    await wrapper.find("[data-cy=task-confirm]").trigger("click");
+    await flushPromises();
+
+    expect(wrapper.find("[data-cy=task-sheet]").exists()).toBe(false);
+    expect(vm.dialogText).toBe("The chore flies back to the board.");
+    expect(hero.stats.mp.now).toBe(45);
+    expect(wrapper.find(".chores-left-label").text()).toBe("1 chore left");
+    expect(wrapper.find(".damage-popup").exists()).toBe(false); // not an attack
+    // Nothing was completed, so no chore is remembered as done for today
+    const progressKeys = Object.keys(localStorage).filter((key) => key.startsWith("xp_battle_progress:"));
+    expect(progressKeys).toEqual([]);
+    await readUntilMenu();
+    await wrapper.find("#attack").trigger("click");
+    expect(wrapper.findAll(".battle-task-item").map((item) => item.text())).toEqual(["Match pairs"]);
   });
 
   it("stops the beast's clock when the hero leaves the page mid-fight", async () => {

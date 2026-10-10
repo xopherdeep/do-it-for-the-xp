@@ -598,4 +598,231 @@ describe("BattleService", () => {
       expect(textOf(lines)).toEqual(["Max braces!"]);
     });
   });
+
+  describe("battle items (engine hooks)", () => {
+    const TEN_MINUTES = 10 * 60_000;
+    const FIFTEEN_MINUTES = 15 * 60_000;
+    const strikes = (lines: EngineMessage[]) => textOf(lines).filter((text) => text === "Socktopus attacks!").length;
+
+    describe("extendClock (Ice Wand)", () => {
+      it("adds the minutes to the deadline and to the bar's full length, so the bar fills back up", () => {
+        const { service: s } = fight();
+        s.startAttackTimer();
+        jest.advanceTimersByTime(60_000);
+
+        expect(s.extendClock(TEN_MINUTES)).toBe(true);
+
+        expect(s.getTimeRemaining()).toBe(2 * THREE_MINUTES - 60_000 + TEN_MINUTES);
+        expect(s.getAttackDuration()).toBe(2 * THREE_MINUTES + TEN_MINUTES);
+        expect(s.getEnemyAttackTimer()).toBeLessThanOrEqual(100);
+        // The beast strikes when the longer clock runs dry, not before
+        jest.advanceTimersByTime(2 * THREE_MINUTES - 60_000 + 500);
+        expect(s.hasPendingDamage()).toBe(false);
+        jest.advanceTimersByTime(TEN_MINUTES);
+        expect(s.hasPendingDamage()).toBe(true);
+      });
+
+      it("refuses while no clock is running or for a non-positive amount", () => {
+        const { service: s } = fight();
+        expect(s.extendClock(TEN_MINUTES)).toBe(false);
+        expect(s.getTimeRemaining()).toBe(0);
+        s.startAttackTimer();
+        expect(s.extendClock(0)).toBe(false);
+        expect(s.getAttackDuration()).toBe(2 * THREE_MINUTES);
+        jest.advanceTimersByTime(2 * THREE_MINUTES + 500); // a strike is waiting: the clock is off
+        expect(s.extendClock(TEN_MINUTES)).toBe(false);
+      });
+    });
+
+    describe("freezeClock (Chronos' Clock)", () => {
+      it("holds the bar still for the whole freeze and only then lets it run down to one strike", () => {
+        const { service: s, lines } = fight();
+        s.startAttackTimer();
+        jest.advanceTimersByTime(60_000);
+        const before = s.getTimeRemaining();
+
+        expect(s.freezeClock(FIFTEEN_MINUTES)).toBe(true);
+        expect(s.isClockFrozen()).toBe(true);
+
+        jest.advanceTimersByTime(FIFTEEN_MINUTES - 1000);
+        expect(s.getTimeRemaining()).toBe(before);
+        expect(s.hasPendingDamage()).toBe(false);
+
+        // The ice melts: the clock picks up where it stood
+        jest.advanceTimersByTime(1000 + 60_000);
+        expect(s.isClockFrozen()).toBe(false);
+        expect(s.getTimeRemaining()).toBe(before - 60_000);
+        jest.advanceTimersByTime(before);
+        expect(strikes(lines)).toBe(1);
+        expect(s.hasPendingDamage()).toBe(true);
+      });
+
+      it("a Defend under the ice is answered with a frozen beast, no hit and a fresh clock", () => {
+        const { service: s, lines, cb } = fight();
+        s.startAttackTimer();
+        s.freezeClock(FIFTEEN_MINUTES);
+        s.handleBattleAction("defend");
+        jest.advanceTimersByTime(1500);
+
+        expect(textOf(lines)).toEqual(["Max braces!", "Socktopus is frozen solid and cannot strike!"]);
+        expect(cb.onAttack).not.toHaveBeenCalled();
+        expect(s.hasPendingDamage()).toBe(false);
+        expect(s.isDefending()).toBe(false);
+        expect(s.isPlayerTurn()).toBe(true);
+        expect(s.getAttackDuration()).toBe(2 * THREE_MINUTES);
+        expect(s.getTimeRemaining()).toBe(2 * THREE_MINUTES);
+        expect(heroHp()).toBe(30);
+      });
+
+      it("a second freeze adds to the first, and nothing happens with the clock off", () => {
+        const { service: s } = fight();
+        expect(s.freezeClock(FIFTEEN_MINUTES)).toBe(false);
+        s.startAttackTimer();
+        s.freezeClock(FIFTEEN_MINUTES);
+        s.freezeClock(FIFTEEN_MINUTES);
+        jest.advanceTimersByTime(2 * FIFTEEN_MINUTES - 1000);
+        expect(s.isClockFrozen()).toBe(true);
+        expect(s.getTimeRemaining()).toBe(2 * THREE_MINUTES);
+      });
+    });
+
+    describe("skipNextStrike (Thor's Hammer)", () => {
+      it("the next strike misses: no damage waits, the hero keeps the move and the clock restarts full", () => {
+        const { service: s, lines, cb } = fight();
+        s.skipNextStrike();
+        expect(s.getStrikeSkips()).toBe(1);
+        s.startAttackTimer();
+        jest.advanceTimersByTime(2 * THREE_MINUTES + 500);
+
+        expect(strikes(lines)).toBe(0);
+        expect(textOf(lines)).toContain("Socktopus is stunned and misses its strike!");
+        expect(cb.onAttack).not.toHaveBeenCalled();
+        expect(s.hasPendingDamage()).toBe(false);
+        expect(s.isPlayerTurn()).toBe(true);
+        expect(s.getStrikeSkips()).toBe(0);
+        expect(s.getAttackDuration()).toBe(2 * THREE_MINUTES);
+        expect(s.getTimeRemaining()).toBe(2 * THREE_MINUTES - 500);
+
+        // The hammer is spent: the strike after that lands
+        jest.advanceTimersByTime(2 * THREE_MINUTES);
+        expect(strikes(lines)).toBe(1);
+        expect(s.hasPendingDamage()).toBe(true);
+      });
+
+      it("also stops the strike a Defend provokes, and lowers the brace", () => {
+        const { service: s, cb } = fight();
+        s.skipNextStrike();
+        s.handleBattleAction("defend");
+        jest.advanceTimersByTime(1500);
+        expect(cb.onAttack).not.toHaveBeenCalled();
+        expect(s.isDefending()).toBe(false);
+        expect(s.hasPendingDamage()).toBe(false);
+        expect(heroHp()).toBe(30);
+      });
+    });
+
+    describe("postponeTask (Silver Arrow)", () => {
+      it("removes the chore from the queue, takes its slice off the beast, and hands the chore back unfinished", () => {
+        const { service: s, lines, cb } = fight();
+        cb.onCombatTasksChange.mockClear();
+        cb.onEnemyHealthChange.mockClear();
+
+        const flown = s.postponeTask("t1");
+
+        expect(flown).toEqual({ id: "t1", name: "Pair the socks", isCompleted: false });
+        expect(s.getCombatTasks().map((task) => task.id)).toEqual(["t2"]);
+        expect(s.getCombatTasks().some((task) => task.isCompleted)).toBe(false);
+        expect(s.getCurrentEnemy()?.health).toBe(50);
+        expect(cb.onCombatTasksChange).toHaveBeenCalledTimes(1);
+        expect(cb.onEnemyHealthChange).toHaveBeenCalledTimes(1);
+        expect(cb.onDamage).not.toHaveBeenCalled();
+        expect(cb.onEnemyDefeated).not.toHaveBeenCalled();
+        expect(lines).toEqual([]);
+      });
+
+      it("the chores that remain still end the fight exactly on the last one", () => {
+        const tasks = Array.from({ length: 4 }, (_, i) => ({ id: `c${i}`, name: `Chore ${i}`, isCompleted: false }));
+        const { service: s, cb } = fight(makeEnemy({ tasks }));
+        expect(s.postponeTask("c1")).not.toBeNull();
+        expect(s.getCurrentEnemy()?.health).toBe(75);
+
+        s.finishCombatTask("c0");
+        s.finishCombatTask("c2");
+        expect(s.getCurrentEnemy()?.health).toBeGreaterThan(0);
+        expect(cb.onEnemyDefeated).not.toHaveBeenCalled();
+        s.finishCombatTask("c3");
+        expect(s.getCurrentEnemy()?.health).toBe(0);
+        expect(cb.onEnemyDefeated).toHaveBeenCalledTimes(1);
+      });
+
+      it("refuses an unknown chore, a finished chore and the last open chore", () => {
+        const { service: s, cb } = fight();
+        s.finishCombatTask("t1");
+        cb.onCombatTasksChange.mockClear();
+
+        expect(s.postponeTask("nope")).toBeNull();
+        expect(s.postponeTask("t1")).toBeNull();
+        expect(s.postponeTask("t2")).toBeNull(); // the fight needs one chore
+        expect(s.getCombatTasks()).toHaveLength(2);
+        expect(s.getCurrentEnemy()?.health).toBe(50);
+        expect(cb.onCombatTasksChange).not.toHaveBeenCalled();
+      });
+
+      it("leaves the running clock alone and the finished chore unaffected", () => {
+        const tasks = Array.from({ length: 3 }, (_, i) => ({ id: `c${i}`, name: `Chore ${i}`, isCompleted: false }));
+        const { service: s } = fight(makeEnemy({ tasks }));
+        s.startAttackTimer();
+        jest.advanceTimersByTime(30_000);
+        const remaining = s.getTimeRemaining();
+        s.postponeTask("c1");
+        expect(s.getTimeRemaining()).toBe(remaining);
+        expect(s.getAttackDuration()).toBe(3 * THREE_MINUTES);
+      });
+    });
+
+    describe("weakenEnemy (Sol's Flare)", () => {
+      it("halves the beast's attack, so the next strike bites half as hard", () => {
+        const { service: s } = fight();
+        jest.spyOn(Math, "random").mockReturnValue(0.5);
+        expect(s.weakenEnemy(0.5)).toBe(5);
+        expect(s.getCurrentEnemy()?.attack).toBe(5);
+        s.startAttackTimer();
+        jest.advanceTimersByTime(2 * THREE_MINUTES + 500);
+        expect(s.getPendingDamage()).toBe(strikeDamage(30, 5, false, 0.5));
+        expect(s.getPendingDamage()).toBeLessThan(strikeDamage(30, 10, false, 0.5));
+      });
+
+      it("treats a missing attack as 10, never drops below 1, and ignores a bad factor", () => {
+        const { service: s } = fight(makeEnemy({ attack: 0 }));
+        expect(s.weakenEnemy(0)).toBe(0);
+        expect(s.weakenEnemy(0.5)).toBe(5);
+        expect(s.weakenEnemy(0.01)).toBe(1);
+      });
+    });
+
+    describe("scaleCooldown (Fire Wand)", () => {
+      it("every clock from now on earns 1.5x the minutes a chore; the running one is left alone", () => {
+        const { service: s } = fight();
+        s.startAttackTimer();
+        expect(s.scaleCooldown(1.5)).toBe(1.5);
+        expect(s.getAttackDuration()).toBe(2 * THREE_MINUTES);
+
+        s.finishCombatTask("t1"); // one chore left: 1 * 4.5 min
+        expect(s.getAttackDuration()).toBe(1.5 * THREE_MINUTES);
+        expect(s.getTimeRemaining()).toBe(1.5 * THREE_MINUTES);
+      });
+
+      it("stacks, honours the beast's own cooldown, and resets for the next fight", () => {
+        const { service: s } = fight(makeEnemy({ attackCooldown: 2 }));
+        s.scaleCooldown(1.5);
+        expect(s.scaleCooldown(2)).toBe(3);
+        s.startAttackTimer();
+        expect(s.getAttackDuration()).toBe(2 * 2 * 3 * 60_000);
+
+        s.initMultiBattle([makeEnemy()], [HERO_ID]);
+        s.startAttackTimer();
+        expect(s.getAttackDuration()).toBe(2 * THREE_MINUTES);
+      });
+    });
+  });
 });

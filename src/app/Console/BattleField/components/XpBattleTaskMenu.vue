@@ -5,15 +5,15 @@
     data-cy="task-sheet"
     role="dialog"
     aria-modal="true"
-    aria-label="Attack"
+    :aria-label="copy.title"
   >
     <!-- Dims the arena behind the sheet; a tap out here closes it -->
     <div class="sheet-backdrop" aria-hidden="true" @click="back"></div>
 
     <div class="menu-container">
       <header class="sheet-header">
-        <h2 class="sheet-title"><i class="fad fa-claw-marks" aria-hidden="true"></i>Attack!</h2>
-        <p class="sheet-subtitle">Each chore hits {{ enemyName }} for {{ damagePerTask }}</p>
+        <h2 class="sheet-title"><i class="fad" :class="copy.icon" aria-hidden="true"></i>{{ copy.title }}</h2>
+        <p class="sheet-subtitle">{{ copy.subtitle }}</p>
       </header>
 
       <ul ref="listEl" class="menu-content" role="list">
@@ -29,17 +29,17 @@
             :aria-expanded="task.isCompleted ? undefined : isSelected(task)"
             @click="selectTask(task)"
           >
-            <i class="task-icon fad" :class="task.isCompleted ? 'fa-check' : 'fa-claw-marks'" aria-hidden="true"></i>
+            <i class="task-icon fad" :class="task.isCompleted ? 'fa-check' : copy.icon" aria-hidden="true"></i>
             <span class="task-name">{{ task.name }}</span>
           </button>
 
           <!-- Under the chore's name, never under the finger. A sibling of the row, because buttons cannot nest -->
           <div v-if="isSelected(task)" class="task-confirm-strip" role="group" aria-label="Confirm chore">
-            <span class="confirm-question">Did you finish it?</span>
+            <span class="confirm-question">{{ copy.question }}</span>
             <div class="confirm-actions">
-              <button type="button" class="rpg-button" data-cy="task-not-yet" @click="notYet">Not yet</button>
+              <button type="button" class="rpg-button" data-cy="task-not-yet" @click="notYet">{{ copy.no }}</button>
               <button type="button" class="rpg-button is-primary" data-cy="task-confirm" @click="confirmDone(task)">
-                Done!
+                {{ copy.yes }}
               </button>
             </div>
           </div>
@@ -60,20 +60,50 @@ import { computed, nextTick, ref } from "vue";
 import { play$fx } from "@/assets/fx";
 import type { CombatTask } from "@/lib/services/battle/BattleService";
 
-const props = defineProps<{
-  /** The beast's checklist, in the order the Game Master wrote it. */
-  tasks: CombatTask[];
-  enemyName: string;
-  /** What one finished chore takes off the beast; only shown in the header. */
-  damagePerTask: number;
-}>();
+/** Attack (the default) confirms a finished chore; postpone (the Silver Arrow) picks a chore to send back to the board. */
+type TaskSheetMode = "attack" | "postpone";
+
+const props = withDefaults(
+  defineProps<{
+    /** The beast's checklist, in the order the Game Master wrote it. */
+    tasks: CombatTask[];
+    enemyName: string;
+    /** What one finished chore takes off the beast; only shown in the header. */
+    damagePerTask: number;
+    mode?: TaskSheetMode;
+  }>(),
+  { mode: "attack" },
+);
 
 const emit = defineEmits<{
   (e: "cancel"): void;
   (e: "attack-start", task: CombatTask): void;
   (e: "task-complete", taskId: string): void;
   (e: "attack-end", payload: { success: true; taskId: string; taskName: string }): void;
+  /** Postpone mode: the chore the hero chose to send back to the board. Nothing is completed. */
+  (e: "task-pick", taskId: string): void;
 }>();
+
+/** The words on the sheet, per mode. */
+const copy = computed(() =>
+  props.mode === "postpone"
+    ? {
+        title: "Silver Arrow",
+        icon: "fa-bow-arrow",
+        subtitle: "Which chore flies back to the board?",
+        question: "Send it back? It stays unfinished.",
+        no: "Keep it",
+        yes: "Send it!",
+      }
+    : {
+        title: "Attack!",
+        icon: "fa-claw-marks",
+        subtitle: `Each chore hits ${props.enemyName} for ${props.damagePerTask}`,
+        question: "Did you finish it?",
+        no: "Not yet",
+        yes: "Done!",
+      },
+);
 
 /** A Done! tap this soon after a row opened is the second half of a double-tap, not an answer. */
 const CONFIRM_GUARD_MS = 250;
@@ -119,6 +149,10 @@ const notYet = () => {
 const confirmDone = (task: CombatTask) => {
   if (busy.value || !isSelected(task) || Date.now() - openedAt < CONFIRM_GUARD_MS) return;
   busy.value = true;
+  if (props.mode === "postpone") {
+    emit("task-pick", task.id);
+    return;
+  }
   emit("attack-start", task);
   emit("task-complete", task.id);
   emit("attack-end", { success: true, taskId: task.id, taskName: task.name });

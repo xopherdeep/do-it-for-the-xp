@@ -3,6 +3,8 @@ import { IonPage, onIonViewDidEnter, onIonViewWillLeave, useBackButton } from "@
 import { useRoute, useRouter } from "vue-router";
 import { createBattleService, createBestiaryService } from "@/lib/services/battle";
 import type { BattleService, CombatTask, Enemy } from "@/lib/services/battle/BattleService";
+import { describeBattleItem, useBattleItem, type BattleItemCard, type BattleItemLike } from "@/lib/services/battle/BattleItems";
+import { useHeroEquipment } from "@/hooks/useHeroEquipment";
 import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
 import { resolveBattleContext } from "./battle/battleContext";
@@ -20,6 +22,7 @@ import BattleDialogBox from "./components/BattleDialogBox.vue";
 import BattleEnemyStage from "./components/BattleEnemyStage.vue";
 import BattleHeroCard from "./components/BattleHeroCard.vue";
 import BattleVictoryCard from "./components/BattleVictoryCard.vue";
+import BattleItemMenu from "./components/BattleItemMenu.vue";
 import XpBattleTaskMenu from "./components/XpBattleTaskMenu.vue";
 
 const toLayer = (value: unknown): number | undefined => {
@@ -47,7 +50,7 @@ const PROMPT_RUN = "Run away? Your finished chores won't count.";
  */
 export default defineComponent({
   name: "battle-field",
-  components: { IonPage, BattleDialogBox, BattleEnemyStage, BattleHeroCard, BattleVictoryCard, XpBattleTaskMenu },
+  components: { IonPage, BattleDialogBox, BattleEnemyStage, BattleHeroCard, BattleVictoryCard, BattleItemMenu, XpBattleTaskMenu },
   setup() {
     const route = useRoute();
     const router = useRouter();
@@ -63,6 +66,13 @@ export default defineComponent({
     const battleStarted = ref(false);
     const showEnemy = ref(false);
     const showTaskMenu = ref(false);
+    /** The task sheet confirms a finished chore, or (Silver Arrow) picks one to send back to the board. */
+    const taskMenuMode = ref<"attack" | "postpone">("attack");
+    const showItemMenu = ref(false);
+    /** The Silver Arrow in hand while the hero picks the chore it will carry away. */
+    let arrowInFlight: BattleItemLike | null = null;
+    /** Once-per-fight items already used; a new fight starts with an empty set. */
+    let usedThisFight = new Set<string>();
     const enemyAnimationClass = ref<EnemyAnimation>("");
     const heroDowned = ref(false);
     const lastHit = ref<HitPopup | null>(null);
@@ -81,6 +91,7 @@ export default defineComponent({
     const audio = useBattleAudio();
     const background = useBattleBackground();
     const feedback = useBattleFeedback();
+    const hands = useHeroEquipment(ctx.userId);
 
     const stopNag = () => {
       window.clearInterval(nagTimer);
@@ -138,6 +149,7 @@ export default defineComponent({
         isPlayerTurn.value &&
         !dialog.isShowing.value &&
         !showTaskMenu.value &&
+        !showItemMenu.value &&
         !victoryCard.value
     );
     const avatarSrc = computed(() =>
@@ -159,6 +171,63 @@ export default defineComponent({
 
     const closeSheet = () => {
       showTaskMenu.value = false;
+      showItemMenu.value = false;
+      taskMenuMode.value = "attack";
+      arrowInFlight = null;
+    };
+
+    /** What the hero may use right now: the engine, the hero and this fight's spent items. */
+    const itemContext = (taskId?: string) => ({
+      userId: ctx.userId,
+      service: service.value as BattleService,
+      usedThisFight,
+      taskId,
+    });
+
+    // The Item sheet re-reads the hands and the MP every time it opens (useHeroEquipment and the store are reactive)
+    const itemCards = computed<{ left: BattleItemCard | null; right: BattleItemCard | null }>(() => {
+      if (!service.value || !showItemMenu.value) return { left: null, right: null };
+      const context = itemContext();
+      return {
+        left: describeBattleItem(hands.leftHandItem.value, context),
+        right: describeBattleItem(hands.rightHandItem.value, context),
+      };
+    });
+
+    /** The sheet's answer typed as one line that moves on by itself; the menu comes back after it. */
+    const sayItemResult = (result: { ok: boolean; line: string; sound: string }) => {
+      audio.playSound(result.sound);
+      if (result.ok) feedback.tap();
+      if (result.line) dialog.enqueue([{ text: result.line, auto: true }]);
+    };
+
+    /** An item was tapped on the Item sheet: the Silver Arrow goes on to pick a chore, everything else acts now. */
+    const useItemCard = (card: BattleItemCard) => {
+      const engine = service.value;
+      if (!engine || !battleStarted.value) return;
+      const item = [hands.leftHandItem.value, hands.rightHandItem.value].find((held) => held?.name === card.name) ?? null;
+      if (!item) return;
+
+      const result = useBattleItem(item, itemContext());
+      if (result.needsTaskPick) {
+        audio.playSound("cursor");
+        showItemMenu.value = false;
+        arrowInFlight = item;
+        taskMenuMode.value = "postpone";
+        showTaskMenu.value = true;
+        return;
+      }
+      closeSheet();
+      sayItemResult(result);
+    };
+
+    /** The hero chose the chore the Silver Arrow carries back to the board. It is postponed, never completed. */
+    const postponeTask = (taskId: string) => {
+      const engine = service.value;
+      const arrow = arrowInFlight;
+      closeSheet();
+      if (!engine || !battleStarted.value || !arrow) return;
+      sayItemResult(useBattleItem(arrow, itemContext(taskId)));
     };
 
     /** The beast wound up: the hit is waiting for a tap; remind a hero who walked away. */
@@ -270,6 +339,7 @@ export default defineComponent({
 
         const engine = createEngine();
         service.value = engine;
+        usedThisFight = new Set<string>();
         engine.initMultiBattle(loaded.enemies, [ctx.userId]);
         currentEnemy.value = loaded.enemies[0];
         await background.applyEnemy(loaded.enemies[0]);
@@ -349,7 +419,17 @@ export default defineComponent({
             act("defend");
           },
         },
-        { id: "run-away", label: "Run Away", faIcon: "running", click: openRunConfirm },
+        {
+          id: "item",
+          label: "Item",
+          faIcon: "backpack",
+          click: () => {
+            audio.playSound("cursor");
+            feedback.tap();
+            showItemMenu.value = true;
+          },
+        },
+        { id: "run-away", label: "Run Away", faIcon: "running", fullWidth: true, click: openRunConfirm },
       ];
     });
 
@@ -389,7 +469,7 @@ export default defineComponent({
         next();
         return;
       }
-      if (showTaskMenu.value) {
+      if (showTaskMenu.value || showItemMenu.value) {
         closeSheet();
         return;
       }
@@ -447,9 +527,15 @@ export default defineComponent({
       menuPrompt,
       // attacks
       showTaskMenu,
+      taskMenuMode,
       combatTasks,
       finishCombatTask,
+      postponeTask,
       closeTaskMenu,
+      // items
+      showItemMenu,
+      itemCards,
+      useItemCard,
       // victory
       victoryCard,
       continueAfterVictory,
