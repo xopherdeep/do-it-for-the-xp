@@ -11,6 +11,7 @@ import { useTempleCreatorStore } from '@/lib/store/stores/temple-creator';
 import { useBestiarySelectionStore } from '@/lib/store/stores/bestiary-selection';
 import BestiaryDb, { beastStorage, Beast } from '@/lib/databases/BestiaryDb';
 import { TempleDb, templeStorage } from '@/lib/databases/TempleDb';
+import { ensureBuiltInTemples } from '@/lib/engine/core/dungeons/importAllTemples';
 import { ShopsDb } from '@/lib/databases/ShopsDb';
 import { Drivers, Storage } from '@ionic/storage';
 import { Room, RoomContent } from '@/lib/engine/core/dungeons/types';
@@ -410,6 +411,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
       debug.log('Store empty on room page, loading temple from DB...');
       const templeDb = new TempleDb(templeStorage);
       try {
+        await ensureBuiltInTemples();
         const existingTemple = await templeDb.getTempleById(props.templeId);
         if (existingTemple?.dungeonLayout) {
           const layout = existingTemple.dungeonLayout;

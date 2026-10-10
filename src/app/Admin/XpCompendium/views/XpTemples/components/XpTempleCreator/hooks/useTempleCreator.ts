@@ -21,6 +21,7 @@ import {
 } from "@/lib/engine/dungeons/roomTypes";
 import { isEntranceToken } from "@/lib/engine/dungeons/SpatialPalette";
 import { TempleDb, templeStorage } from "@/lib/databases/TempleDb";
+import { ensureBuiltInTemples } from "@/lib/engine/core/dungeons/importAllTemples";
 import { useTempleCreatorStore } from "@/lib/store/stores/temple-creator";
 import { useBestiarySelectionStore } from "@/lib/store/stores/bestiary-selection";
 import { getTempleIcon } from "@/lib/engine/dungeons/templeIcons";
@@ -1049,6 +1050,7 @@ export function useTempleCreator(
       }
 
       debug.log("useTempleCreator: Loading temple from DB:", props.templeId);
+      await ensureBuiltInTemples();
       const existingTemple = await templeDb.getTempleById(props.templeId);
 
       if (existingTemple?.dungeonLayout) {

@@ -10,6 +10,7 @@ import {
   achievementCategoryStorage,
 } from "@/lib/databases/AchievementDb";
 import { TempleDb, TempleInterface, templeStorage } from "@/lib/databases/TempleDb";
+import { ensureBuiltInTemples } from "@/lib/engine/core/dungeons/importAllTemples";
 import BestiaryDb, { Beast, beastStorage } from "@/lib/databases/BestiaryDb";
 import { sortCategoryByName } from "@/app/Admin/XpCompendium/views/XpAchievements//XpConfigAchievement/hooks/useAchievementForm";
 import { TempleSystem } from "@/lib/engine/core/dungeons/TempleSystem";
@@ -338,6 +339,7 @@ export function useTempleData(templeId: string) {
 
     // If already loading OR already loaded in creator store (and not forced), skip
     if (isLoading.value) return;
+    await ensureBuiltInTemples();
     if (!force && creatorStore.isLoaded(id)) {
       debug.log("useTempleData: Using existing creatorStore data for", id);
       // Sync temple ref with store once

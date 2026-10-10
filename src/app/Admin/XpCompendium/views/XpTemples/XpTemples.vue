@@ -21,10 +21,18 @@
       >
         <i class="fad fa-moon fa-2x"></i>
       </ion-button>
-      <ion-button @click="clickSoundSettings">
+      <ion-button
+        title="Sound settings"
+        aria-label="Sound settings"
+        @click="clickSoundSettings"
+      >
         <i class="fad fa-volume-up fa-2x"></i>
       </ion-button>
-      <ion-button @click="clickThemeSettings">
+      <ion-button
+        title="Theme settings"
+        aria-label="Theme settings"
+        @click="clickThemeSettings"
+      >
         <i class="fad fa-palette fa-2x"></i>
       </ion-button>
     </template>
@@ -41,6 +49,7 @@
           <ion-card
             button
             @click="clickTemple(temple.id)"
+            :aria-label="templeLabel(temple)"
             class="temple-card portrait-card"
             @mouseenter="hoveredTempleId = temple.id"
             @mouseleave="hoveredTempleId = null"
@@ -49,7 +58,7 @@
               <ion-img
                 :src="temple.bgImage"
                 class="temple-bg-image"
-                alt="Temple background"
+                :alt="templeLabel(temple)"
               ></ion-img>
               <div
                 v-if="temple.generated"
@@ -110,6 +119,7 @@
   import XpTempleGenerateModal from "./components/XpTempleGenerateModal.vue";
   import XpBloodMoonModal from "./components/XpBloodMoonModal.vue";
   import { TEMPLE_METADATA } from "@/lib/engine/temples/templeRegistry";
+  import { ensureBuiltInTemples } from "@/lib/engine/core/dungeons/importAllTemples";
   import { play$fx } from "@/assets/fx";
 
   // Only world-*.jpg / hometown.jpg are looked up by key; keep the filter (a bare context bundles all 90 MB)
@@ -134,7 +144,7 @@
       const generatorOpen = ref(false);
       const bloodMoonsOpen = ref(false);
 
-      // Map with explicit connection between display names and temple IDs
+      // One card per world, in world-map order; ids and worlds match TEMPLE_METADATA and the region pages
       const temples = [
         {
           id: "wind-temple",
@@ -152,9 +162,9 @@
           level: 3,
         },
         {
-          id: "moon-temple",
+          id: "shadow-temple",
           world: "swamps",
-          level: 4,
+          level: 9,
         },
         {
           id: "fire-temple",
@@ -174,14 +184,14 @@
           level: 7,
         },
         {
-          id: "lightning-temple",
+          id: "storm-temple",
           world: "clouds",
           level: 8,
         },
         {
-          id: "shadow-temple",
+          id: "moon-temple",
           world: "moon",
-          level: 9,
+          level: 4,
         },
       ];
 
@@ -189,6 +199,7 @@
       const loadTempleData = async () => {
         isLoading.value = true;
         try {
+          await ensureBuiltInTemples();
           const promises = temples.map(async (temple) => {
             const data = await templeDb.getTempleById(temple.id);
             return { id: temple.id, data };
@@ -360,8 +371,15 @@
         await actionSheet.present();
       };
 
+      // The world's name is painted into the card art; say it for screen readers
+      const templeLabel = (temple: { id: string; world?: string; customName?: string; name?: string }) => {
+        const name = TEMPLE_METADATA[temple.id]?.name || temple.customName || temple.name || temple.id;
+        return temple.world ? `${name}, ${temple.world}` : name;
+      };
+
       return {
         processedTemples,
+        templeLabel,
         clickTemple,
         goToTempleCreator,
         presentActionSheet,

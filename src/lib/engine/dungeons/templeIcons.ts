@@ -10,6 +10,9 @@ export const TEMPLE_ICON_MAP: Record<string, string> = {
   "ice-temple": "fad fa-snowflake",
   "light-temple": "fad fa-sun",
   "shadow-temple": "fad fa-moon",
+  "moon-temple": "fad fa-moon-stars",
+  "storm-temple": "fad fa-bolt",
+  // Older saves named the clouds temple this
   "lightning-temple": "fad fa-bolt",
 };
 

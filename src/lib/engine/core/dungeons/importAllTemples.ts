@@ -46,9 +46,10 @@ export async function importAllTempleLayouts(): Promise<void> {
     
     // Import each temple layout
     for (const [templeId, templeData] of Object.entries(temples)) {
-      // CHECK IF EXISTS FIRST
+      // A stored layout is the Game Master's work: never overwrite it. A record without one (settings
+      // saved before the layout was ever imported) keeps its fields and gains the shipped layout.
       const existing = await templeDb.getTempleById(templeId);
-      if (existing) {
+      if (existing?.dungeonLayout) {
         debug.log(`Temple ${templeId} already exists in DB, skipping import to preserve user changes.`);
         continue;
       }
@@ -70,7 +71,7 @@ export async function importAllTempleLayouts(): Promise<void> {
       };
       
       // Store the temple in the database
-      await templeDb.setTemple(templeToSave);
+      await templeDb.setTemple(existing ? { ...templeToSave, ...existing, dungeonLayout: templeToSave.dungeonLayout } : templeToSave);
       debug.log(`${templeId} imported successfully to TempleDb`);
     }
     
@@ -78,6 +79,18 @@ export async function importAllTempleLayouts(): Promise<void> {
   } catch (error) {
     debug.error('Failed to import temple layouts to TempleDb:', error);
   }
+}
+
+let builtInImport: Promise<void> | null = null;
+
+/**
+ * The nine shipped temples are only copied into the TempleDb on demand. Every Compendium temple screen
+ * awaits this before reading the TempleDb, so a Game Master never sees a shipped temple as empty
+ * (and never offers to "Create Layout" over one). Runs the import once per session.
+ */
+export function ensureBuiltInTemples(): Promise<void> {
+  if (!builtInImport) builtInImport = importAllTempleLayouts();
+  return builtInImport;
 }
 
 /**
