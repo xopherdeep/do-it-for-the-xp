@@ -295,8 +295,7 @@
       <!-- The purse and the XP hairline sit on a ledge just above the nav, like the portal -->
       <div class="footer-docked-xp" v-if="user && user.stats">
         <XpVitalsBar :stats="user.stats" />
-        <XpGpBar :stats="user.stats" />
-        <XpXpBar :stats="user.stats" :hairline="true" />
+        <XpPurseBar :stats="user.stats" />
       </div>
 
       <!-- The same nav as the portal: Profile | left hand | Area (the equipment) | right hand | Party -->

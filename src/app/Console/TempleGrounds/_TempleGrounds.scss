@@ -369,6 +369,9 @@ ion-modal.temple-map-modal .temple-map__close,
 // Dungeon footer: the shared bottom nav, XP hairline underneath
 // ============================================================
 .temple-footer {
+  // Pinned above the rooms: nothing in the dungeon scrolls or slides behind it
+  position: relative;
+  z-index: 1000;
   background: #000;
 
   .temple-nav {
