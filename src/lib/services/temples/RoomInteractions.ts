@@ -15,7 +15,7 @@ import { ChestSystem } from '@/lib/engine/core/dungeons/ChestSystem';
 import { BOSS_DOOR_LINE, TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
 import type { Room } from '@/lib/engine/core/dungeons/types';
 import { useUserStore } from '@/lib/store/stores/user';
-import { bonusGp } from '@/lib/services/stats/ClassPassives';
+import { heroEffects, heroGold, luckyTop, shopPrice } from '@/lib/services/stats/StatEffects';
 
 export type Direction = 'north' | 'south' | 'east' | 'west';
 
@@ -172,12 +172,13 @@ export const readGold = (userId: string): number => {
 };
 
 /**
- * Pay the hero gold found in the temple (chests, searches, the gate) with their class loot bonus on top
- * (Thief, Ninja +25%). Returns the coins actually paid, for the message.
+ * Pay the hero gold found in the temple (chests, searches, the gate) with their class loot bonus (Thief,
+ * Ninja +25%) and trained awareness on top (docs/Stats-Contract.md). Returns the coins actually paid, for
+ * the message.
  */
 const earnGold = (userId: string, amount: number): number => {
   const store = useUserStore();
-  const gp = bonusGp(amount, store.getUserById(userId)?.jobClass);
+  const gp = heroGold(amount, store.getUserById(userId));
   // The wallet moves before updateUserGP's first await; the save is not waited for
   if (gp > 0) void store.updateUserGP({ userId, wallet: gp });
   return gp;
@@ -355,17 +356,21 @@ const POTION_PRICE = 15;
 const POTION_HEAL = 20;
 const SPECIAL_DEFAULT_PRICE = 50;
 
-/** The wares on offer in a shop room, with what the hero already bought taken off the shelf. */
+/**
+ * The wares on offer in a shop room, with what the hero already bought taken off the shelf. Prices are
+ * what this hero pays: trained charisma takes 1% off a point, up to 20% (docs/Stats-Contract.md).
+ */
 export const shopWares = (room: Room, ctx: RoomContext): Ware[] => {
+  const hero = useUserStore().getUserById(ctx.userId);
   const wares: Ware[] = [
-    { id: POTION_ID, name: 'Potion of Vigor', price: POTION_PRICE, blurb: `restore ${POTION_HEAL} HP` },
+    { id: POTION_ID, name: 'Potion of Vigor', price: shopPrice(POTION_PRICE, hero), blurb: `restore ${POTION_HEAL} HP` },
   ];
   const special = room.content?.specialItem;
   if (typeof special === 'string' && special) {
     wares.push({
       id: `special:${special}`,
       name: titleWords(special),
-      price: Number(room.content?.specialItemPrice ?? room.content?.price) || SPECIAL_DEFAULT_PRICE,
+      price: shopPrice(Number(room.content?.specialItemPrice ?? room.content?.price) || SPECIAL_DEFAULT_PRICE, hero),
       blurb: 'a rare find',
       soldOut: hasHappened(roomKey(ctx, `bought:${special}`)),
     });
@@ -508,6 +513,10 @@ const EMPTY_FLAVOUR = [
   'You find a bone. Not even a good one.',
 ];
 
+/**
+ * Look or search once: a `chance` of finding `min`..`max` GP. Trained perception adds to the chance and
+ * trained luck lifts the top of the range (docs/Stats-Contract.md); earnGold adds the class and awareness.
+ */
 const hunt = (
   ctx: RoomContext,
   topic: string,
@@ -519,8 +528,9 @@ const hunt = (
 ): RoomOutcome => {
   if (!rememberOnce(roomKey(ctx, topic))) return { message: 'You already looked here.' };
   const rng = rngOf(ctx);
-  if (rng() >= chance) return { message: nothing() };
-  const gp = earnGold(ctx.userId, randomInt(min, max, rng));
+  const hero = useUserStore().getUserById(ctx.userId);
+  if (rng() >= chance + heroEffects(hero).findChanceBonus) return { message: nothing() };
+  const gp = earnGold(ctx.userId, randomInt(min, luckyTop(max, hero), rng));
   return { message: found(gp), sound: SFX.gainGP };
 };
 
@@ -696,7 +706,9 @@ export const roomActions = (room: Room | undefined, ctx: RoomContext): RoomSheet
           : [
               act('Open the chest', () => {
                 rememberOnce(roomKey(ctx, 'secret'));
-                const gp = earnGold(ctx.userId, Number(room.content?.gold) || 20);
+                // The chest holds its gold, and trained luck can find a little more at the bottom
+                const gold = Number(room.content?.gold) || 20;
+                const gp = earnGold(ctx.userId, randomInt(gold, luckyTop(gold, useUserStore().getUserById(ctx.userId)), rngOf(ctx)));
                 return { message: `A hidden chest! +${gp} GP`, sound: SFX.secret };
               }),
             ]

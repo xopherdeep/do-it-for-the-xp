@@ -370,11 +370,11 @@ const $fx = {
           "ice-temple": [tune("temple-ice")],
           "light-temple": [tune("temple-light")],
           "shadow-temple": [tune("temple-shadow")],
+          // Own themes rendered 2026-10-10 (tools/chiptune/songs3.py)
+          "moon-temple": [tune("temple-moon")],
+          "storm-temple": [tune("temple-storm")],
         },
         dungeonOnline: [
-          // No themes rendered yet for the last two: borrow the closest (moon -> shadow, storm -> wind)
-          "moon-temple": [tune("temple-shadow")],
-          "storm-temple": [tune("temple-wind")],
           // "https://starmen.net/mother2/music/088- Earthbound - Belch_s Factory.mp3",
           "https://starmen.net/mother2/music/113- Earthbound - Pyramid.mp3",
           "https://starmen.net/mother2/music/114- Earthbound - Inside the Dungeon.mp3",
