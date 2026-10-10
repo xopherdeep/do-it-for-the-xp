@@ -23,3 +23,19 @@ Cypress.Commands.add("seedWorld", (fixtureName = "battle-backup.json", heroId = 
 Cypress.Commands.add("tapToWakeAudio", () => {
   cy.document().then((doc) => doc.documentElement.setAttribute("data-user-interacted", "true"));
 });
+
+/**
+ * Every visit skips the studio splash (src/components/organisms/Splash) so the first tap of a test
+ * reaches the page instead of dismissing the splash. The flag is read on app start, so it has to be
+ * in localStorage before the page scripts run; the caller's own onBeforeLoad still runs after it.
+ */
+Cypress.Commands.overwrite("visit", (originalFn, url, options = {}) => {
+  const callerBeforeLoad = options.onBeforeLoad;
+  return originalFn(url, {
+    ...options,
+    onBeforeLoad(win) {
+      win.localStorage.setItem("xpSkipSplash", "1");
+      if (typeof callerBeforeLoad === "function") callerBeforeLoad(win);
+    },
+  });
+});

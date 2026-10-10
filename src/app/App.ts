@@ -43,6 +43,8 @@ import { useQueryProvider } from "vue-query";
 
 import XpSideMenu from "@/app/SideMenu/SideMenu.vue";
 import XpAudioPermissionModal from "@/components/molecules/Modals/XpAudioPermissionModal.vue";
+import XpStudioSplash from "@/components/organisms/Splash/XpStudioSplash.vue";
+import { claimStudioSplash } from "@/components/organisms/Splash/splash";
 // import XpGlobalDialog from "../../components/molecules/Dialog/XpGlobalDialog.vue";
 import XpGlobalDialog from "@/components/molecules/Dialog/XpGlobalDialog.vue";
 import debug from "@/lib/utils/debug";
@@ -72,10 +74,13 @@ export default defineComponent({
     IonSplitPane,
     XpSideMenu,
     XpAudioPermissionModal,
+    XpStudioSplash,
     XpGlobalDialog,
   },
   data() {
     return {
+      // Studio splash: once per launch, skipped by ?nosplash or localStorage.xpSkipSplash = "1"
+      studioSplash: claimStudioSplash(),
       isBMGOn: false,
       bgmBookmark: {
         track: null as number | null,
