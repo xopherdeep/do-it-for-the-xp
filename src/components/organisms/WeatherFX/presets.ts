@@ -16,7 +16,7 @@ export const weatherPresets: Record<WeatherType, WeatherPreset> = {
   desert: { layers: [fx.sand, fx.heatHaze, opt(fx.sunRays, { faint: true })], sound: "wind" },
   swamp: { layers: [fx.fog, fx.fireflies], sound: "night" },
   forest: { layers: [fx.leaves, fx.fireflies, opt(fx.sunRays, { faint: true })], sound: "night" },
-  mountains: { layers: [opt(fx.clouds, { thin: true }), fx.wind, fx.birds], sound: "wind" },
+  mountains: { layers: [opt(fx.clouds, { thin: true }), fx.wind, fx.embers, fx.birds], sound: "wind" },
   moon: { layers: [fx.stars, fx.aurora], sound: "night" },
   cave: { layers: [opt(fx.fog, { dark: true }), fx.drips], sound: "cave" },
   dungeon: { layers: [fx.embers, opt(fx.fog, { dark: true }), fx.lantern], sound: "cave" },
