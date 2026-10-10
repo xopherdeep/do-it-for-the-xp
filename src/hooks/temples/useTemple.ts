@@ -310,6 +310,10 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     return result;
   };
   
+  // Whether the room's chest was already emptied: the room says so, or its chest in the ChestSystem
+  const isChestLooted = (room: { isEmpty?: boolean; content?: { chestId?: string } }) =>
+    Boolean(room.isEmpty || (room.content?.chestId && ChestSystem.getInstance().getChest(room.content.chestId)?.isEmpty));
+
   // Process selected chest items
   const processChestItems = (selectedItems: string[]) => {
     if (!currentRoom.value || !currentPosition.value) return;
@@ -319,6 +323,12 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     debug.log(`Processing chest items at position [${row}, ${col}] in temple ${templeId}`);
     const content = currentRoom.value.content;
     let freed: string | undefined;
+
+    // A chest emptied before (even in an earlier visit) hands out nothing a second time
+    if (isChestLooted(currentRoom.value)) {
+      displayMessage('The chest is empty.', 2000);
+      return;
+    }
     
     // Process each selected item
     selectedItems.forEach(item => {
@@ -387,6 +397,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
           ...currentRoom.value,
           isEmpty: true
         }, currentLevel.value);
+        templeSystem.markChestOpened(templeId, currentLevel.value, currentPosition.value);
       }
     } else {
       // For chests without a chestId, check if all items have been collected
@@ -399,6 +410,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
           ...currentRoom.value,
           isEmpty: true
         }, currentLevel.value);
+        templeSystem.markChestOpened(templeId, currentLevel.value, currentPosition.value);
       }
     }
     

@@ -469,6 +469,19 @@ export class TempleSystem {
   }
 
   /**
+   * Remember that the chest of a room was emptied, so a reload shows it empty instead of refilling it
+   * @param level Floor the chest is on
+   */
+  public markChestOpened(templeId: string, level: string, position: [number, number]): void {
+    const templeState = this.templeStates[templeId];
+    if (!templeState) return;
+
+    if (!templeState.openedChests) templeState.openedChests = new Set<string>();
+    templeState.openedChests.add(roomPositionKey(level, position));
+    this.queueSave(templeId);
+  }
+
+  /**
    * Check if a room on the floor the hero stands on has been visited
    */
   public hasVisited(templeId: string, position: [number, number]): boolean {
@@ -1201,7 +1214,15 @@ export class TempleSystem {
     if (saved.bloodMoonAt) state.bloodMoonAt = saved.bloodMoonAt;
     if (saved.bloodMoonEvery) state.bloodMoonEvery = saved.bloodMoonEvery;
     if (!state.openedChests) state.openedChests = new Set<string>();
-    for (const key of saved.openedChests) state.openedChests.add(key);
+    for (const key of saved.openedChests) {
+      state.openedChests.add(key);
+      // The chest was refilled with the layout: it is emptied again (the room and its chest)
+      const at = parseRoomKey(key);
+      if (!at) continue;
+      if (this.dungeonManager.getRoom(templeId, at.position, at.level)?.type === 'loot') {
+        this.dungeonManager.updateRoom(templeId, at.position, { isEmpty: true }, at.level);
+      }
+    }
     if (!state.clearedRooms) state.clearedRooms = new Set<string>();
     for (const key of saved.clearedRooms) state.clearedRooms.add(key);
 
