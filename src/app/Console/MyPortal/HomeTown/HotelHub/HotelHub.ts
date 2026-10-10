@@ -21,7 +21,6 @@ import {
   sparklesOutline,
   keyOutline,
   cartOutline,
-  heartHalfOutline,
   calendarOutline,
   starSharp,
   storefrontOutline,
@@ -30,7 +29,7 @@ import {
   bagOutline,
   logOut,
 } from "ionicons/icons";
-import { actionSheetController } from "@ionic/vue";
+import { actionSheetController, alertController, toastController } from "@ionic/vue";
 import { useItemFetcher } from "@/hooks/useItemFetcher";
 import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
 import debug from "@/lib/utils/debug";
@@ -39,6 +38,8 @@ import { useUserStore } from "@/lib/store/stores/user";
 import ATMModal from "@/app/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
 // Import our new GPSystem
 import { getGPService } from '@/lib/services/gp';
+import { quoteCare, ROOM_COST } from "@/lib/services/hometown/Lodging";
+import type { CareQuote } from "@/lib/services/hometown/Lodging";
 
 // Define the interface for XpTypingText instance methods
 interface XpTypingTextInstance {
@@ -74,8 +75,7 @@ export default defineComponent({
   },
   computed: {
     user() {
-      const userStore = useUserStore();
-      return userStore.getUserById(this.userId);
+      return this.userStore.getUserById(this.userId);
     },
     dialogBlocks() {
       return [
@@ -87,26 +87,17 @@ export default defineComponent({
     actionButtons() {
       return [
         {
-          text: 'Rest & Recover',
-          icon: heartHalfOutline,
-          data: 'Data value',
+          text: 'Rent a Room',
+          icon: bedOutline,
           handler: () => {
-            debug.log('Rest & Recover clicked')
+            this.handleRentRoom();
           },
         },
         {
           text: 'Community Events',
           icon: calendarOutline,
-          data: 10,
           handler: () => {
-            debug.log('Community Events clicked')
-          },
-        },
-        {
-          text: 'Rent a Room',
-          icon: bedOutline,
-          handler: () => {
-            debug.log('Rent a Room clicked')
+            this.handleCommunityEvents();
           },
         },
         {
@@ -191,6 +182,89 @@ export default defineComponent({
       this.shelves = $ev.detail.value
     },
 
+    async showToast(message: string) {
+      const toast = await toastController.create({
+        message,
+        duration: 3000,
+        position: "top",
+        cssClass: "rpg-toast",
+      });
+      await toast.present();
+    },
+
+    /** The concierge turning a guest away: the quote said why. */
+    refusalMessage(quote: CareQuote): string {
+      if (quote.reason === "healthy") {
+        return "*smiles* You look perfectly rested already! The room will be here when you need it.";
+      }
+      return `*checks the register* A room is \u20B2${quote.cost} a night, and your wallet is short. Do come back.`;
+    },
+
+    /** Rent a Room: confirm the price, then charge the wallet and sleep off the night (full HP and MP). */
+    async handleRentRoom() {
+      const quote = quoteCare("room", this.user?.stats);
+      if (!quote.canPay) {
+        this.play$fx("no");
+        await this.showToast(this.refusalMessage(quote));
+        return;
+      }
+
+      const alert = await alertController.create({
+        header: 'Rent a Room',
+        message: `A night's rest is ${ROOM_COST}GP and restores you fully. Check in?`,
+        buttons: [
+          {
+            text: 'Not tonight',
+            role: 'cancel',
+            cssClass: 'alert-cancel'
+          },
+          {
+            text: 'Pay & Rest',
+            role: 'confirm',
+            cssClass: 'alert-confirm',
+            handler: () => {
+              this.rentRoom(quote);
+            }
+          }
+        ],
+        cssClass: 'hotel-alert'
+      });
+
+      await alert.present();
+    },
+
+    async rentRoom(quote: CareQuote) {
+      this.isLoading = true;
+      try {
+        await this.userStore.updateUserGP({ userId: this.userId, wallet: -quote.cost });
+        this.userStore.updateUserHP({ userId: this.userId, amount: quote.hpGain });
+        if (quote.mpGain > 0) {
+          this.userStore.updateUserMP({ userId: this.userId, amount: quote.mpGain });
+        }
+        this.play$fx("restoreAll");
+        // a short beat so the spinner reads as a night's sleep, not a glitch
+        await new Promise(resolve => setTimeout(resolve, 900));
+      } finally {
+        this.isLoading = false;
+      }
+
+      const stats = this.user?.stats;
+      const hp = stats?.hp ? `HP ${stats.hp.now}/${stats.hp.max}` : "";
+      const mp = stats?.mp ? ` MP ${stats.mp.now}/${stats.mp.max}` : "";
+      await this.showToast(`Good morning! \u20B2${quote.cost} paid. ${hp}${mp}`.trim());
+    },
+
+    /** Community Events: the notice board lives in the Town Hall. */
+    async handleCommunityEvents() {
+      const hasTownHall = this.$router.getRoutes().some(route => route.name === "town-hall");
+      if (hasTownHall) {
+        this.play$fx("select");
+        this.$router.push({ name: "town-hall", params: { userId: this.userId } });
+        return;
+      }
+      await this.showToast("Nothing on the board tonight.");
+    },
+
     showHotelDialog() {
       // Play a sound effect for immersion
       this.play$fx("select");
@@ -253,6 +327,7 @@ export default defineComponent({
     },
   },
   setup(props) {
+    const userStore = useUserStore();
     const {
       request,
       items,
@@ -269,6 +344,7 @@ export default defineComponent({
     };
 
     return {
+      userStore,
       customAlertOptions,
       storefrontOutline,
       banOutline,

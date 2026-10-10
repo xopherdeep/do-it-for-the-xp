@@ -1,11 +1,13 @@
 import { defineComponent } from "vue";
 import ionic from "@/lib/mixins/ionic";
-import { actionSheetController, alertController } from "@ionic/vue";
+import { actionSheetController, alertController, toastController } from "@ionic/vue";
 import XpIcon from "@/components/atoms/Icon/XpIcon.vue";
 import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
 import { useUserStore } from "@/lib/store/stores/user";
 import { close, heart, infinite, logOut, people, statsChart } from "ionicons/icons";
 import debug from "@/lib/utils/debug";
+import { HEAL_COST, quoteCare, REVIVE_COST } from "@/lib/services/hometown/Lodging";
+import type { CareKind, CareQuote } from "@/lib/services/hometown/Lodging";
 
 export default defineComponent({
   props: ["userId"],
@@ -168,7 +170,7 @@ export default defineComponent({
     async handleHeal() {
       const alert = await alertController.create({
         header: 'Healing Cost',
-        message: 'The cost to heal is 50GP. Would you like to proceed?',
+        message: `The cost to heal is ${HEAL_COST}GP. Would you like to proceed?`,
         buttons: [
           {
             text: 'Cancel',
@@ -180,7 +182,7 @@ export default defineComponent({
             role: 'confirm',
             cssClass: 'alert-confirm',
             handler: () => {
-              this.payCoPay();
+              this.payCoPay("heal");
             }
           }
         ],
@@ -190,18 +192,62 @@ export default defineComponent({
       await alert.present();
     },
 
-    async payCoPay() {
-      // Add healing logic here
+    async showToast(message: string) {
+      const toast = await toastController.create({
+        message,
+        duration: 3000,
+        position: "top",
+        cssClass: "rpg-toast",
+      });
+      await toast.present();
+    },
+
+    /** Nurse Joy turning a hero away: the quote said why. */
+    refusalMessage(quote: CareQuote): string {
+      if (quote.reason === "healthy") {
+        return "*checks your chart* You're already in perfect health! Come back if that changes.";
+      }
+      return `*frowns at the ledger* I'm sorry, dear, this costs \u20B2${quote.cost} and your wallet is short. Come back when you can.`;
+    },
+
+    /**
+     * Charge the co-pay and restore. quoteCare() decides the price and the gains; if the
+     * hero cannot pay (short wallet, or nothing to heal) nothing is charged and Nurse Joy says so.
+     */
+    async payCoPay(kind: CareKind) {
+      const user = this.userStore.getUserById(this.userId);
+      const quote = quoteCare(kind, user?.stats);
+      if (!quote.canPay) {
+        this.play$fx("no");
+        await this.showToast(this.refusalMessage(quote));
+        return;
+      }
+
       this.isLoading = true;
-      setTimeout(() => {
+      try {
+        await this.userStore.updateUserGP({ userId: this.userId, wallet: -quote.cost });
+        this.userStore.updateUserHP({ userId: this.userId, amount: quote.hpGain });
+        if (quote.mpGain > 0) {
+          this.userStore.updateUserMP({ userId: this.userId, amount: quote.mpGain });
+        }
+        this.play$fx(quote.mpGain > 0 ? "restoreAll" : "restoreHP");
+        // a short beat so the spinner reads as treatment, not a glitch
+        await new Promise(resolve => setTimeout(resolve, 900));
+      } finally {
         this.isLoading = false;
-      }, 2000);
+      }
+
+      const stats = this.userStore.getUserById(this.userId)?.stats;
+      const hp = stats?.hp ? `HP ${stats.hp.now}/${stats.hp.max}` : "";
+      const mp = quote.mpGain > 0 && stats?.mp ? ` MP ${stats.mp.now}/${stats.mp.max}` : "";
+      const verb = kind === "revive" ? "Revived" : "Healed";
+      await this.showToast(`${verb}! \u20B2${quote.cost} paid. ${hp}${mp}`.trim());
     },
 
     async handleRevive() {
       const alert = await alertController.create({
         header: 'Revive Cost',
-        message: 'The cost to revive is 100GP. Would you like to proceed?',
+        message: `The cost to revive is ${REVIVE_COST}GP. Would you like to proceed?`,
         buttons: [
           {
             text: 'Cancel',
@@ -213,7 +259,7 @@ export default defineComponent({
             role: 'confirm',
             cssClass: 'alert-confirm',
             handler: () => {
-              this.payCoPay();
+              this.payCoPay("revive");
             }
           }
         ],
