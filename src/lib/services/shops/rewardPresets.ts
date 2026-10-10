@@ -4,8 +4,8 @@
  * Anything that costs the family real money is an item a hero buys with GP, never a Power: Powers are privileges
  * unlocked with AP (src/lib/services/abilities/AbilityPresets.ts). Prices climb the wallet ladder
  * (src/lib/services/gp/wallet.ts: 100 GP to start, 300 at level 3, 500 at level 5), so the big rewards mean
- * saving up and growing the wallet. Each is flagged requiresApproval, because a grown-up has to hand it over; the hero
- * shop does not hold purchases for the Game Master yet (only quests read requiresApproval today).
+ * saving up and growing the wallet. Stocking and pricing an item is the Game Master's approval, so buying one never
+ * waits for another.
  */
 import { Accessory, AccessoryType, Rarity } from "@/lib/databases/AccessoriesDb";
 
@@ -71,7 +71,7 @@ export const REAL_REWARD_PRESETS: readonly RewardPreset[] = [
   },
 ];
 
-/** The item record a preset becomes in the catalogue: a real-life reward that waits for the Game Master's approval */
+/** The item record a preset becomes in the catalogue: a real-life reward a hero may buy as soon as a shop stocks it */
 export const rewardFromPreset = (preset: RewardPreset): Accessory => ({
   id: preset.id,
   name: preset.name,
@@ -84,7 +84,7 @@ export const rewardFromPreset = (preset: RewardPreset): Accessory => ({
   isLayaway: false,
   type: AccessoryType.RealLife,
   availableToMembers: [],
-  requiresApproval: true,
+  requiresApproval: false,
   tags: ["real-life", "preset"],
 });
 

@@ -23,14 +23,14 @@ describe("real-life reward presets", () => {
     expect(REAL_REWARD_PRESETS.some((preset) => preset.basePrice <= firstWallet)).toBe(true);
   });
 
-  it("turns a preset into a real-life item that waits for the Game Master", () => {
+  it("turns a preset into a real-life item a hero can buy without a second approval", () => {
     const item = rewardFromPreset(REAL_REWARD_PRESETS[0]);
     expect(item).toMatchObject({
       id: REAL_REWARD_PRESETS[0].id,
       name: REAL_REWARD_PRESETS[0].name,
       basePrice: REAL_REWARD_PRESETS[0].basePrice,
       type: AccessoryType.RealLife,
-      requiresApproval: true,
+      requiresApproval: false,
     });
   });
 
