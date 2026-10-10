@@ -8,47 +8,56 @@
         @click="goToAbilities"
       />
     </XpDashboardTile>
-    <XpDashboardTile>
-      <XpStatBox
-        :value="totalAwarded"
-        label="AP Unlocked"
-        iconName="fa-atom"
-        iconColor="primary"
-        :isActive="isActive"
-        :animationKey="animationKey"
-      />
-    </XpDashboardTile>
-    <XpDashboardTile>
-      <XpStatBox
-        :value="avgPerQuest"
-        label="Avg AP/Quest"
-        iconName="fa-atom-alt"
-        iconColor="danger"
-        :isActive="isActive"
-        :animationKey="animationKey"
-      />
-    </XpDashboardTile>
-    <XpDashboardTile>
-      <XpStatBox
-        :value="75"
-        label="Avg AP/User"
-        iconName="fa-user-visor"
-        iconColor="warning"
-        :isActive="isActive"
-        :animationKey="animationKey"
-      />
-    </XpDashboardTile>
+    <template v-if="abilities">
+      <XpDashboardTile>
+        <XpStatBox
+          :value="abilities.totalAp"
+          label="AP Unlocked"
+          :ribbon="`Per hero: ${compact(abilities.avgPerHero)}`"
+          ribbonColor="primary"
+          iconName="fa-atom"
+          iconColor="primary"
+          :isActive="isActive"
+          :animationKey="animationKey"
+        />
+      </XpDashboardTile>
+      <XpDashboardTile>
+        <XpStatBox
+          :value="abilities.avgPerQuest"
+          label="Avg AP/Quest"
+          iconName="fa-atom-alt"
+          iconColor="danger"
+          :isActive="isActive"
+          :animationKey="animationKey"
+        />
+      </XpDashboardTile>
+      <XpDashboardTile>
+        <XpStatBox
+          :value="abilities.earned.week"
+          label="AP Earned, 7 Days"
+          :ribbon="`Month: ${compact(abilities.earned.month)}`"
+          ribbonColor="warning"
+          iconName="fa-calendar-week"
+          iconColor="warning"
+          :isActive="isActive"
+          :animationKey="animationKey"
+        />
+      </XpDashboardTile>
+    </template>
   </XpDashboardGrid>
 </template>
 
 <script lang="ts">
   import Ionic from "@/lib/mixins/ionic";
-  import { defineComponent } from "vue";
+  import { defineComponent, onMounted, ref } from "vue";
   import { useRouter } from "vue-router";
   import XpStatBox from "@/components/molecules/StatBox/XpStatBox.vue";
   import XpNavTile from "@/components/molecules/StatGrid/XpNavTile.vue";
   import XpDashboardGrid from "@/components/molecules/StatGrid/XpDashboardGrid.vue";
   import XpDashboardTile from "@/components/molecules/StatGrid/XpDashboardTile.vue";
+  import { compact, type AbilityFigures } from "@/lib/services/stats/CompendiumStats";
+  import { getEngineStatsService } from "@/lib/services/stats/EngineStatsService";
+  import debug from "@/lib/utils/debug";
 
   export default defineComponent({
     name: "AbilityPointsDashboard",
@@ -74,30 +83,19 @@
       const goToAbilities = () => {
         router.push({ name: "xp-abilities" });
       };
-      return { goToAbilities };
+
+      // The figures come from the heroes' AP and the AP history on their profiles; the boxes wait for them
+      const abilities = ref<AbilityFigures | null>(null);
+      onMounted(async () => {
+        try {
+          abilities.value = (await getEngineStatsService().getCompendiumStats()).abilities;
+        } catch (error) {
+          debug.error("Compendium ability figures failed to load", error);
+        }
+      });
+
+      return { goToAbilities, abilities, compact };
     },
-    data() {
-      return {
-        // Mock data - these would be replaced with actual values from APSystem when available
-        totalAwarded: 750, // Total AP awarded over time
-        currentBalance: 225, // Current AP balance
-        avgPerQuest: 15, // Average AP earned per quest
-        dailyStreaks: 25, // AP earned today
-        weeklyAchievements: 120, // AP earned this week
-        monthlyMilestones: 450, // AP earned this month
-      };
-    },
-    // TODO: Implement methods to fetch real data from the APSystem
-    // These methods would replace the mock data above
-    /*
-  created() {
-    const apSystem = getAPSystem();
-    // Example of how we might implement this with real data:
-    // this.totalAwarded = apSystem.getTotalAPAwarded();
-    // this.currentBalance = apSystem.getCurrentAPBalance();
-    // etc.
-  }
-  */
   });
 </script>
 

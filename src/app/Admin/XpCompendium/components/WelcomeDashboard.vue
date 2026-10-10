@@ -87,7 +87,6 @@
   import XpDashboardGrid from "@/components/molecules/StatGrid/XpDashboardGrid.vue";
   import XpDashboardTile from "@/components/molecules/StatGrid/XpDashboardTile.vue";
   import Ionic from "@/lib/mixins/ionic";
-  // import { useDialogSystem } from "@/lib/engine/core/DialogSystem";
 
   export default defineComponent({
     name: "WelcomeDashboard",
@@ -98,7 +97,7 @@
       XpDashboardTile,
     },
     props: {
-      // Stats prop can be removed or kept optional if parent still passes it
+      // The slideshow passes the system counts to every slide; this one only has doors
       stats: {
         type: Object,
         default: () => ({}),

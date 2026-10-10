@@ -8,49 +8,57 @@
         @click="goToQuests"
       />
     </XpDashboardTile>
-    <!-- Total XP Earned -->
-    <XpDashboardTile>
-      <XpStatBox
-        :value="1234567"
-        label="XP Sown"
-        iconName="fa-tree-alt"
-        iconColor="success"
-        :isActive="isActive"
-        :animationKey="animationKey"
-      />
-    </XpDashboardTile>
-    <!-- Active Streak -->
-    <XpDashboardTile>
-      <XpStatBox
-        :value="5678"
-        label="Avg XP/Quest"
-        iconName="fa-seedling"
-        iconColor="success"
-        :isActive="isActive"
-        :animationKey="animationKey"
-      />
-    </XpDashboardTile>
-    <XpDashboardTile>
-      <XpStatBox
-        :value="1250"
-        label="Avg XP/User"
-        iconName="fa-user-visor"
-        iconColor="warning"
-        :isActive="isActive"
-        :animationKey="animationKey"
-      />
-    </XpDashboardTile>
+    <template v-if="experience">
+      <!-- Total XP the heroes have gathered -->
+      <XpDashboardTile>
+        <XpStatBox
+          :value="experience.totalXp"
+          label="XP Sown"
+          :ribbon="`Per hero: ${compact(experience.avgPerHero)}`"
+          ribbonColor="success"
+          iconName="fa-tree-alt"
+          iconColor="success"
+          :isActive="isActive"
+          :animationKey="animationKey"
+        />
+      </XpDashboardTile>
+      <XpDashboardTile>
+        <XpStatBox
+          :value="experience.avgPerQuest"
+          label="Avg XP/Quest"
+          iconName="fa-seedling"
+          iconColor="success"
+          :isActive="isActive"
+          :animationKey="animationKey"
+        />
+      </XpDashboardTile>
+      <XpDashboardTile>
+        <XpStatBox
+          :value="experience.earned.week"
+          label="Quest XP, 7 Days"
+          :ribbon="`Month: ${compact(experience.earned.month)}`"
+          ribbonColor="warning"
+          iconName="fa-calendar-week"
+          iconColor="success"
+          :isActive="isActive"
+          :animationKey="animationKey"
+        />
+      </XpDashboardTile>
+    </template>
   </XpDashboardGrid>
 </template>
 
 <script lang="ts">
-  import { defineComponent } from "vue";
+  import { defineComponent, onMounted, ref } from "vue";
   import { useRouter } from "vue-router";
   import XpStatBox from "@/components/molecules/StatBox/XpStatBox.vue";
   import XpNavTile from "@/components/molecules/StatGrid/XpNavTile.vue";
   import XpDashboardGrid from "@/components/molecules/StatGrid/XpDashboardGrid.vue";
   import XpDashboardTile from "@/components/molecules/StatGrid/XpDashboardTile.vue";
   import Ionic from "@/lib/mixins/ionic";
+  import { compact, type ExperienceFigures } from "@/lib/services/stats/CompendiumStats";
+  import { getEngineStatsService } from "@/lib/services/stats/EngineStatsService";
+  import debug from "@/lib/utils/debug";
 
   export default defineComponent({
     name: "ExperiencePointsDashboard",
@@ -77,7 +85,18 @@
       const goToQuests = () => {
         router.push({ name: "xp-achievements" });
       };
-      return { goToQuests };
+
+      // The figures come from the heroes' XP and the quest log; the boxes wait for them
+      const experience = ref<ExperienceFigures | null>(null);
+      onMounted(async () => {
+        try {
+          experience.value = (await getEngineStatsService().getCompendiumStats()).experience;
+        } catch (error) {
+          debug.error("Compendium experience figures failed to load", error);
+        }
+      });
+
+      return { goToQuests, experience, compact };
     },
   });
 </script>

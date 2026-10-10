@@ -8,47 +8,52 @@
         @click="goToTemples"
       />
     </XpDashboardTile>
-    <XpDashboardTile>
-      <XpStatBox
-        :value="3"
-        label="Total Temples"
-        iconName="fa-place-of-worship"
-        iconColor="primary"
-        :isActive="isActive"
-        :animationKey="animationKey"
-      />
-    </XpDashboardTile>
-    <XpDashboardTile>
-      <XpStatBox
-        :value="12"
-        label="Avg. Beast/Temple"
-        iconName="fa-skull"
-        iconColor="danger"
-        :isActive="isActive"
-        :animationKey="animationKey"
-      />
-    </XpDashboardTile>
-    <XpDashboardTile>
-      <XpStatBox
-        :value="250"
-        label="Avg. GP/Chests"
-        iconName="fa-treasure-chest"
-        iconColor="warning"
-        :isActive="isActive"
-        :animationKey="animationKey"
-      />
-    </XpDashboardTile>
+    <template v-if="temples">
+      <XpDashboardTile>
+        <XpStatBox
+          :value="temples.total"
+          label="Total Temples"
+          iconName="fa-place-of-worship"
+          iconColor="primary"
+          :isActive="isActive"
+          :animationKey="animationKey"
+        />
+      </XpDashboardTile>
+      <XpDashboardTile>
+        <XpStatBox
+          :value="temples.avgFoes"
+          label="Avg. Foes/Temple"
+          iconName="fa-skull"
+          iconColor="danger"
+          :isActive="isActive"
+          :animationKey="animationKey"
+        />
+      </XpDashboardTile>
+      <XpDashboardTile>
+        <XpStatBox
+          :value="temples.avgTreasure"
+          label="Avg. Chests/Temple"
+          iconName="fa-treasure-chest"
+          iconColor="warning"
+          :isActive="isActive"
+          :animationKey="animationKey"
+        />
+      </XpDashboardTile>
+    </template>
   </XpDashboardGrid>
 </template>
 
 <script lang="ts">
-  import { defineComponent } from "vue";
+  import { defineComponent, onMounted, ref } from "vue";
   import { useRouter } from "vue-router";
   import XpStatBox from "@/components/molecules/StatBox/XpStatBox.vue";
   import XpNavTile from "@/components/molecules/StatGrid/XpNavTile.vue";
   import XpDashboardGrid from "@/components/molecules/StatGrid/XpDashboardGrid.vue";
   import XpDashboardTile from "@/components/molecules/StatGrid/XpDashboardTile.vue";
   import Ionic from "@/lib/mixins/ionic";
+  import type { TempleFigures } from "@/lib/services/stats/CompendiumStats";
+  import { getEngineStatsService } from "@/lib/services/stats/EngineStatsService";
+  import debug from "@/lib/utils/debug";
 
   export default defineComponent({
     name: "TemplesTrainingDashboard",
@@ -74,7 +79,18 @@
       const goToTemples = () => {
         router.push({ name: "xp-compendium-temples" });
       };
-      return { goToTemples };
+
+      // The figures come from the temples' mazes and rooms; the boxes wait for them
+      const temples = ref<TempleFigures | null>(null);
+      onMounted(async () => {
+        try {
+          temples.value = (await getEngineStatsService().getCompendiumStats()).temples;
+        } catch (error) {
+          debug.error("Compendium temple figures failed to load", error);
+        }
+      });
+
+      return { goToTemples, temples };
     },
   });
 </script>
