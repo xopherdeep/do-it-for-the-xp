@@ -5,10 +5,6 @@
         <ion-buttons slot="start">
           <ion-back-button :default-href="`/my-portal/${userId}`">
           </ion-back-button>
-          <ion-icon
-            :icon="backpack"
-            size="large"
-          />
           <i class="fad fa-backpack fa-lg" />
         </ion-buttons>
         <ion-title>
@@ -20,84 +16,73 @@
           @ionChange="segmentChanged($event)"
           color="danger"
           scrollable
-          value="all"
+          :value="tab"
         >
-          <ion-segment-button value="all">
+          <ion-segment-button
+            v-for="t in tabs"
+            :key="t.value"
+            :value="t.value"
+          >
             <ion-icon
-              :icon="bagOutline"
-              color="primary"
+              :icon="tabIcons[t.value]"
+              :color="t.color"
             ></ion-icon>
-            All
-          </ion-segment-button>
-          <ion-segment-button value="hp">
-            <ion-icon
-              :icon="fitnessOutline"
-              color="danger"
-            ></ion-icon>
-            HP
-          </ion-segment-button>
-          <ion-segment-button value="mp">
-            <ion-icon
-              :icon="colorWandOutline"
-              color="tertiary"
-            ></ion-icon>
-            MP
-          </ion-segment-button>
-          <ion-segment-button value="misc">
-            <ion-icon
-              :icon="sparklesOutline"
-              color="success"
-            ></ion-icon>
-            Misc
-          </ion-segment-button>
-          <ion-segment-button value="key">
-            <ion-icon
-              :icon="keyOutline"
-              color="gold"
-            ></ion-icon>
-            Key
+            {{ t.label }}
+            <ion-badge
+              v-if="counts[t.value]"
+              class="tab-count"
+              color="dark"
+            >{{ counts[t.value] }}</ion-badge>
           </ion-segment-button>
         </ion-segment>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="ion-padding">
-      <!-- <ion-tabs @ionTabsWillChange="beforeTabChange" @ionTabsDidChange="afterTabChange">
-        <ion-router-outlet></ion-router-outlet>
-        <ion-tab-bar slot="bottom">
-          <ion-tab-button tab="my-home" :router-link="`/my-portal/${userId}`">
-            <ion-icon :icon="chevronBack"></ion-icon>
-          </ion-tab-button>
+    <ion-content class="my-goods">
+      <ion-list
+        v-if="shown.length"
+        class="goods-list"
+        lines="none"
+      >
+        <ion-item
+          v-for="entry in shown"
+          :key="entry.id"
+          class="goods-row"
+          :data-kind="entry.kind"
+        >
+          <span
+            slot="start"
+            class="goods-icon icon-colors"
+          >
+            <i :class="iconClass(entry)" />
+          </span>
+          <ion-label>
+            <h2 class="goods-name">{{ entry.name }}</h2>
+            <p
+              v-if="entry.description"
+              class="goods-blurb"
+            >{{ entry.description }}</p>
+          </ion-label>
+          <ion-badge
+            slot="end"
+            class="goods-qty"
+            color="dark"
+          >&times;{{ entry.qty }}</ion-badge>
+        </ion-item>
+      </ion-list>
 
-          <ion-tab-button color="success" tab="speakers" :href="`/my-portal/${userId}/deeds`">
-            <ion-icon :icon="medalOutline" color="success"></ion-icon>
-            <ion-label>Advents</ion-label>
-          </ion-tab-button>
-
-          <ion-tab-button tab="my-party" :href="`/my-portal/${userId}/inventory`">
-            <ion-icon :icon="colorWandOutline" color="ternary"></ion-icon>
-          </ion-tab-button>
-
-          <ion-tab-button tab="my-party" :href="`/my-portal/${userId}/my-party`">
-            <ion-icon :icon="peopleCircle" color="ternary"></ion-icon>
-            <ion-label>Party</ion-label>
-          </ion-tab-button>
-
-          <ion-tab-button tab="my-home" :href="`/my-portal/${userId}`">
-            <ion-icon :icon="chevronForward"></ion-icon>
-          </ion-tab-button>
-
-        </ion-tab-bar>
-      </ion-tabs> -->
+      <div
+        v-else
+        class="goods-empty"
+      >
+        <i class="fad fa-backpack fa-3x" />
+        <p>{{ emptyLine }}</p>
+      </div>
     </ion-content>
+
     <ion-footer>
       <ion-toolbar color="danger">
         <ion-grid>
-          <ion-row>
-            <ion-col class="ion-no-padding">
-              <ion-searchbar color="light"></ion-searchbar>
-            </ion-col>
-          </ion-row>
           <ion-row>
             <ion-col>
               <ion-button
@@ -111,38 +96,24 @@
                 />
               </ion-button>
             </ion-col>
-            <!-- <ion-col>
-              <ion-button :router-link="`/my-portal/${userId}`" expand="block">
-                <ion-icon :icon="pause" slot="icon-only" />
+            <ion-col>
+              <ion-button
+                color="dark"
+                :router-link="`/my-portal/${userId}`"
+                expand="block"
+              >
+                <ion-icon
+                  :icon="chevronForward"
+                  slot="icon-only"
+                />
               </ion-button>
             </ion-col>
-            <ion-col>
-              <ion-button :router-link="`/my-portal/${userId}`" expand="block">
-                <ion-icon :icon="play" slot="icon-only" />
-              </ion-button>
-            </ion-col>
-            <ion-col>
-              <ion-button :router-link="`/my-portal/${userId}`" expand="block">
-                <ion-icon :icon="stop" slot="icon-only" />
-              </ion-button>
-            </ion-col> -->
-          <ion-col>
-            <ion-button
-              color="dark"
-              :router-link="`/my-portal/${userId}`"
-              expand="block"
-            >
-              <ion-icon
-                :icon="chevronForward"
-                slot="icon-only"
-              />
-            </ion-button>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-    </ion-toolbar>
-  </ion-footer>
-</ion-page></template>
+          </ion-row>
+        </ion-grid>
+      </ion-toolbar>
+    </ion-footer>
+  </ion-page>
+</template>
 
 <script lang="ts" src="./MyInventory.ts" />
 <style lang="scss" src="./_MyInventory.scss" scoped />
