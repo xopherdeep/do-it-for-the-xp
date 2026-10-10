@@ -148,6 +148,7 @@
               button
               :detail="false"
               :disabled="isBackupBusy"
+              :style="canRestore() ? undefined : { opacity: 0.5 }"
               @click="chooseRestoreFile"
             >
               <ion-icon slot="start" :icon="cloudUploadOutline"></ion-icon>
@@ -213,6 +214,7 @@
   import { alertController, loadingController, toastController } from "@ionic/vue";
   import backupService, { BackupFormatError } from "@/lib/services/core/BackupService";
   import type { BackupFile, BackupSummary, RestoreResult } from "@/lib/services/core/BackupService";
+  import { canManageFamily, RESTORE_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
 
   type AlertButton = string | { text: string; role?: string; handler?: () => void };
 
@@ -289,6 +291,17 @@
         await toast.present();
       },
 
+      /** Restore replaces everyone's data, so a hero who taps it is told to ask a Game Master */
+      async showGmOnlyToast() {
+        const toast = await toastController.create({
+          message: RESTORE_GM_ONLY_MESSAGE,
+          duration: 2500,
+          position: "top",
+          cssClass: "rpg-toast",
+        });
+        await toast.present();
+      },
+
       async showAlert(
         header: string,
         message: string,
@@ -352,6 +365,10 @@
 
       /** Pick the file first: a bad file is turned away before anyone is asked to confirm a restore */
       chooseRestoreFile() {
+        if (!canManageFamily()) {
+          this.showGmOnlyToast();
+          return;
+        }
         const input = document.createElement("input");
         input.type = "file";
         input.accept = "application/json,.json";
@@ -478,6 +495,7 @@
         generalSettings,
         isPremiumUser,
         isBackupBusy,
+        canRestore: () => canManageFamily(),
         arrowBack,
         cloudDownloadOutline,
         cloudUploadOutline,

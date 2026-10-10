@@ -115,6 +115,9 @@ export function passcodeProblem(passcode: unknown, forGameMaster: boolean): stri
 /** Toast shown when a hero taps a family-settings action only a Game Master may use. */
 export const FAMILY_GM_ONLY_MESSAGE = "Only a Game Master can change the family";
 
+/** Toast shown (and error raised) when a hero tries to restore a backup, which replaces everyone's data. */
+export const RESTORE_GM_ONLY_MESSAGE = "Only a Game Master can restore a backup.";
+
 /** Toast shown when the last Game Master profile would be deleted. */
 export const LAST_GM_MESSAGE = "The last Game Master cannot be deleted";
 

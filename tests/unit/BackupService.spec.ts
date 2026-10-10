@@ -2,12 +2,14 @@ import { Drivers, Storage } from "@ionic/storage";
 import {
   BACKUP_STORES,
   BackupFormatError,
+  BackupPermissionError,
   BackupService,
   BackupStorageError,
   backupFileName,
 } from "@/lib/services/core/BackupService";
 import type { BackupFile, BackupStorage, BackupStoreDef } from "@/lib/services/core/BackupService";
 import StorageService from "@/lib/services/core/StorageService";
+import { canManageFamily } from "@/router/_Guards/gm.guard";
 import { useUserStore } from "@/lib/store/stores/user";
 import { abilitiesStorage } from "@/lib/databases/AbilitiesDb";
 import { accessoriesStorage } from "@/lib/databases/AccessoriesDb";
@@ -48,6 +50,11 @@ jest.mock("@/lib/services/core/StorageService", () => ({
   default: { saveProfiles: jest.fn().mockResolvedValue(undefined) },
 }));
 jest.mock("@/lib/store/stores/user", () => ({ useUserStore: jest.fn() }));
+jest.mock("@/router/_Guards/gm.guard", () => ({
+  __esModule: true,
+  canManageFamily: jest.fn(() => true),
+  RESTORE_GM_ONLY_MESSAGE: "Only a Game Master can restore a backup.",
+}));
 
 type Seed = Record<string, unknown>;
 type StoreName = "__profiles" | "__beasts" | "__questLog";
@@ -657,6 +664,26 @@ describe("restoreBackup", () => {
 
       expect(result.usersReloaded).toBe(false);
       expect(fakes.__profiles.contents()).toEqual({ p1: hero("p1") });
+    });
+
+    it("refuses a restore from anyone but a Game Master, before touching a single record", async () => {
+      const { defs, fakes } = makeWorld({ __profiles: { stale: hero("stale") } });
+      const service = new BackupService(defs, jest.fn(), () => false);
+
+      const error = await service
+        .restoreBackup(backupOf({ __profiles: [["p1", hero("p1")]] }))
+        .catch((caught) => caught);
+
+      expect(error).toBeInstanceOf(BackupPermissionError);
+      expect(error.message).toBe("Only a Game Master can restore a backup.");
+      expect(fakes.__profiles.contents()).toEqual({ stale: hero("stale") });
+    });
+
+    it("asks canManageFamily by default", async () => {
+      (canManageFamily as jest.Mock).mockReturnValueOnce(false);
+      const { defs } = makeWorld();
+
+      await expect(new BackupService(defs).restoreBackup(backupOf({}))).rejects.toBeInstanceOf(BackupPermissionError);
     });
 
     it("reloads the real user store by default", async () => {

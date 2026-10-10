@@ -12,6 +12,7 @@ import { questLogStorage } from "@/lib/databases/QuestLogDb";
 import { shopStorage } from "@/lib/databases/ShopsDb";
 import { templeStorage } from "@/lib/databases/TempleDb";
 import { templeProgressStorage } from "@/lib/databases/TempleProgressDb";
+import { canManageFamily, RESTORE_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
 import StorageService from "@/lib/services/core/StorageService";
 import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
@@ -99,6 +100,15 @@ export class BackupFormatError extends Error {
   constructor(message: string) {
     super(message);
     this.name = "BackupFormatError";
+    Object.setPrototypeOf(this, new.target.prototype);
+  }
+}
+
+/** A restore was asked for by someone who is not a Game Master. Thrown before anything is touched. */
+export class BackupPermissionError extends Error {
+  constructor(message: string = RESTORE_GM_ONLY_MESSAGE) {
+    super(message);
+    this.name = "BackupPermissionError";
     Object.setPrototypeOf(this, new.target.prototype);
   }
 }
@@ -204,6 +214,8 @@ export const backupFileName = (date: Date = new Date()): string => {
   return `do-it-for-the-xp-backup-${year}-${month}-${day}.json`;
 };
 
+const mayRestore = (): boolean => canManageFamily();
+
 const reloadUserStore = async (): Promise<void> => {
   await useUserStore().loadUsers();
 };
@@ -211,7 +223,8 @@ const reloadUserStore = async (): Promise<void> => {
 export class BackupService {
   constructor(
     private readonly stores: readonly BackupStoreDef[] = BACKUP_STORES,
-    private readonly reloadUsers: () => Promise<void> = reloadUserStore
+    private readonly reloadUsers: () => Promise<void> = reloadUserStore,
+    private readonly canRestore: () => boolean = mayRestore
   ) {}
 
   /**
@@ -330,6 +343,9 @@ export class BackupService {
    * a bad file, or BackupStorageError when a store fails (the earlier stores are put back first).
    */
   async restoreBackup(input: string | BackupFile): Promise<RestoreResult> {
+    // 0. Restore replaces everyone's data: only a Game Master may run it (backing up stays open)
+    if (!this.canRestore()) throw new BackupPermissionError();
+
     // 1. Validate everything up front: a malformed file must not cost anyone a single record
     const backup = this.parseBackup(input);
     const summary = this.summarizeBackup(backup);
