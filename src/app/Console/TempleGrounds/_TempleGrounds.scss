@@ -344,3 +344,67 @@ ion-modal.temple-map-modal {
     }
   }
 }
+
+
+// ============================================================
+// Dungeon footer: a labelled bar, hands at the ends, XP hairline underneath
+// ============================================================
+.temple-footer {
+  background: #000;
+
+  .temple-nav {
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 2px;
+    padding: 4px 6px 2px;
+    background: #000;
+    border-top: 2px solid #383050;
+  }
+
+  .temple-nav__button,
+  .temple-nav__hand {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    min-height: 54px;
+    padding: 4px 2px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: #e7e6b3;
+    font-family: "StatusPlz", monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.5px;
+    -webkit-tap-highlight-color: transparent;
+
+    i {
+      font-size: 1.5rem;
+    }
+  }
+
+  .temple-nav__button {
+    cursor: pointer;
+
+    &:active {
+      background: rgba(255, 255, 255, 0.12);
+    }
+  }
+
+  .temple-nav__hand {
+    flex: 0 0 62px;
+    color: #a8a8a8;
+    border: 1px dashed rgba(255, 255, 255, 0.18);
+
+    &.is-empty i {
+      opacity: 0.35;
+    }
+  }
+
+  .footer-docked-xp {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}

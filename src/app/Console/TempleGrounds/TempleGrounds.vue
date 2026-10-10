@@ -298,71 +298,40 @@
         :duration="2000"
       ></ion-toast>
     </ion-content>
-    <ion-footer>
-      <!-- Docked XP Bar above toolbar -->
-      <div
-        class="footer-docked-xp"
-        v-if="user && user.stats"
-      >
-        <XpXpBar
-          :stats="user.stats"
-          :hairline="true"
-        />
+    <ion-footer class="temple-footer">
+      <nav class="temple-nav icon-colors" aria-label="Temple actions">
+        <!-- Left hand: what is equipped, or an empty hand -->
+        <div class="temple-nav__hand" :class="{ 'is-empty': !leftHandItem }">
+          <i v-if="leftHandItem" :class="`fa-${leftHandItem.faIcon}`" class="fad"></i>
+          <i v-else class="fad fa-hand-paper fa-flip-horizontal"></i>
+          <span>Left</span>
+        </div>
+
+        <button type="button" class="temple-nav__button" @click="$router.push(`/my-tasks/${userId}`)">
+          <i class="fad fa-book-dead"></i>
+          <span>Quests</span>
+        </button>
+        <button type="button" class="temple-nav__button" @click="$router.push(`/my-inventory/${userId}`)">
+          <i class="fad fa-backpack"></i>
+          <span>Bag</span>
+        </button>
+        <button type="button" class="temple-nav__button" @click="$router.push(`/my-abilities/${userId}`)">
+          <i class="fad fa-book-spells"></i>
+          <span>Spells</span>
+        </button>
+
+        <!-- Right hand -->
+        <div class="temple-nav__hand" :class="{ 'is-empty': !rightHandItem }">
+          <i v-if="rightHandItem" :class="`fa-${rightHandItem.faIcon}`" class="fad"></i>
+          <i v-else class="fad fa-hand-paper"></i>
+          <span>Right</span>
+        </div>
+      </nav>
+
+      <!-- The XP hairline sits at the very bottom, like the portal -->
+      <div class="footer-docked-xp" v-if="user && user.stats">
+        <XpXpBar :stats="user.stats" :hairline="true" />
       </div>
-      <ion-toolbar>
-        <ion-item-sliding>
-          <ion-item-options side="start">
-            <ion-item-option color="primary">
-              <div class="flex flex-col items-center justify-center h-full">
-                <i
-                  v-if="leftHandItem"
-                  :class="`fa-${leftHandItem.faIcon}`"
-                  class="fad fa-2x mb-1"
-                />
-                <i
-                  v-else
-                  class="fad fa-hand-paper fa-flip-horizontal fa-2x mb-1 opacity-30"
-                />
-                <span class="text-xs">Left Hand</span>
-              </div>
-            </ion-item-option>
-          </ion-item-options>
-
-          <ion-item lines="none">
-            <div class="flex justify-center w-full icon-colors h-16 items-center gap-10">
-              <i
-                class="fad fa-book-dead fa-2x cursor-pointer"
-                @click="$router.push(`/my-tasks/${userId}`)"
-              />
-              <i
-                class="fad fa-backpack fa-2x cursor-pointer"
-                @click="$router.push(`/my-inventory/${userId}`)"
-              />
-              <i
-                class="fad fa-book-spells fa-2x cursor-pointer"
-                @click="$router.push(`/my-abilities/${userId}`)"
-              />
-            </div>
-          </ion-item>
-
-          <ion-item-options side="end">
-            <ion-item-option color="primary">
-              <div class="flex flex-col items-center justify-center h-full">
-                <i
-                  v-if="rightHandItem"
-                  :class="`fa-${rightHandItem.faIcon}`"
-                  class="fad fa-2x mb-1"
-                />
-                <i
-                  v-else
-                  class="fad fa-hand-paper fa-2x mb-1 opacity-30"
-                />
-                <span class="text-xs">Right Hand</span>
-              </div>
-            </ion-item-option>
-          </ion-item-options>
-        </ion-item-sliding>
-      </ion-toolbar>
     </ion-footer>
   </ion-page>
 </template>
