@@ -65,29 +65,6 @@ export const useGameStore = defineStore('game', () => {
     }
   }
 
-  async function fetchItems(type: string, params: any) {
-    const dejaVu = findRequest(type, params);
-    
-    const runApi = async () => {
-      const response = await XpApi.get(type, params);
-      const { data } = response;
-      
-      // addRequest
-      const ids = data.results.map((i: any) => i.id);
-      addRequest(type, { params: { ...params }, ids, total: data.total, total_pages: data.total_pages });
-      
-      // addData
-      addData(type, data);
-      
-      return response;
-    };
-
-    if (dejaVu) {
-      return new Promise((resolve) => setTimeout(() => resolve(runApi()), 5000));
-    }
-    return runApi();
-  }
-
   async function fetchWPItems(type: string, params: any) {
     const dejaVu = findRequest(type, params);
     
@@ -186,7 +163,6 @@ export const useGameStore = defineStore('game', () => {
     addEntity,
     addRequest,
     changeSoundFX,
-    fetchItems,
     fetchWPItems,
     addData,
 

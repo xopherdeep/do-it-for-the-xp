@@ -46,13 +46,6 @@ export default class Api {
     return Api.getInstance().get(type, params);
   }
 
-  /**
-   * Static convenience method that delegates to the instance
-   */
-  static post(type: string, params: any) {
-    return Api.getInstance().post(type, params);
-  }
-
   get(
     type: string,
     params?:
@@ -86,21 +79,6 @@ export default class Api {
     const queryString = query.toString().replace(/%2C/g, ",");
     const uri = `${this.uri}/${type}${queryString ? `?${queryString}` : ''}`;
     const options = { method: "GET" };
-    return fetch(uri, options)
-      .then(this.responseHandler)
-      .catch(this.errorHandler);
-  }
-
-  post(type: string, params: any) {
-    const uri = `${this.uri}/${type}`;
-    const options = {
-      method: "POST",
-      headers: {
-        Accept: "application/json",
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(params),
-    };
     return fetch(uri, options)
       .then(this.responseHandler)
       .catch(this.errorHandler);
