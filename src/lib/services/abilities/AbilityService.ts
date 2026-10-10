@@ -14,6 +14,17 @@ import {
   TIME_MAGE_PRESETS,
   TECH_MAGE_PRESETS,
 } from "./AbilityPresets";
+import { useUserStore } from "@/lib/store/stores/user";
+
+/** What a cast came to: `mp` when the hero could not afford it, `unknown` when there is no such ability or hero. */
+export type UseAbilityResult = { ok: true } | { ok: false; reason: "mp" | "unknown" };
+
+/** The hero's MP right now, whether stats keep it as `{ now, max }` or a bare number. */
+const currentMp = (stats: { mp?: { now?: number } | number } | undefined): number => {
+  const mp = stats?.mp;
+  if (typeof mp === "number") return mp;
+  return typeof mp?.now === "number" ? mp.now : 0;
+};
 /**
  *
  * Service for handling abilities and their effects
@@ -340,40 +351,26 @@ export class AbilityService {
   }
 
   /**
-   * Use an ability and record its usage
+   * Cast an ability: charge its MP cost to the hero through the user store and stamp `lastUsed`.
+   * Refuses (and charges nothing) when the ability is unknown or the hero has less MP than it costs.
    */
-  async useAbility(
-    abilityId: string,
-    userId: string,
-    mpAvailable: number
-  ): Promise<{ success: boolean; message: string; mpCost: number }> {
+  async useAbility(abilityId: string, userId: string): Promise<UseAbilityResult> {
     const ability = await this.getAbilityById(abilityId);
+    if (!ability) return { ok: false, reason: "unknown" };
 
-    if (!ability) {
-      return {
-        success: false,
-        message: "Ability not found",
-        mpCost: 0,
-      };
-    }
+    const cost = Math.max(0, Number(ability.mpCost) || 0);
+    const userStore = useUserStore();
+    const hero = userStore.users[userId];
+    if (!hero) return { ok: false, reason: "unknown" };
 
-    if (mpAvailable < ability.mpCost) {
-      return {
-        success: false,
-        message: "Not enough MP",
-        mpCost: ability.mpCost,
-      };
-    }
+    if (currentMp(hero.stats) < cost) return { ok: false, reason: "mp" };
 
-    // Update ability with usage timestamp
+    if (cost > 0) userStore.updateUserMP({ userId, amount: -cost });
+
     ability.lastUsed = new Date().toISOString();
     await this.saveAbility(ability);
 
-    return {
-      success: true,
-      message: `Successfully used ${ability.name}`,
-      mpCost: ability.mpCost,
-    };
+    return { ok: true };
   }
   /**
    * Load ability presets by type

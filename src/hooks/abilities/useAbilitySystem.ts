@@ -1,5 +1,7 @@
 import { ref, computed, onMounted } from 'vue';
+import { toastController } from '@ionic/vue';
 import { getAbilityService } from '@/lib/services/abilities';
+import type { UseAbilityResult } from '@/lib/services/abilities';
 import type { Ability, AbilityType } from '@/hooks/abilities/abilityConstants';
 import debug from '@/lib/utils/debug';
 
@@ -63,6 +65,23 @@ export function useAbilitySystem() {
     return false;
   };
   
+  // Cast an ability for a hero: the service charges the MP; a refusal is told to the player as a toast
+  const useAbility = async (abilityId: string, userId: string): Promise<UseAbilityResult> => {
+    const result = await service.useAbility(abilityId, userId);
+    if (!result.ok) {
+      const toast = await toastController.create({
+        message: result.reason === 'mp' ? 'Not enough MP' : 'That ability is not available',
+        duration: 2000,
+        position: 'top',
+        cssClass: 'rpg-toast',
+      });
+      await toast.present();
+    } else {
+      await fetchAbilities(); // lastUsed changed, so the cooldown state did too
+    }
+    return result;
+  };
+
   // Function to load presets by type
   const loadPresetsByType = (presetType: string) => {
     return service.loadPresetsByType(presetType);
@@ -90,6 +109,7 @@ export function useAbilitySystem() {
     addAbility,
     updateAbility,
     deleteAbility,
+    useAbility,
     loadPresetsByType,
     applyPreset,
     refresh: fetchAbilities
