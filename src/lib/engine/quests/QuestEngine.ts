@@ -3,6 +3,7 @@ import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
 import {
     getQuestProgressFor,
     hasPendingClaimFor,
+    isDayOff,
     isQuestOverdue,
     type HeroQuestEffects,
     type QuestProgress,
@@ -130,6 +131,8 @@ class QuestEngine {
             this.getQuestsForUser(userId, filter),
             getQuestLogDb().getEntriesForUser(userId),
         ]);
+        // Gale's Wind: a day off hides every chore
+        if (isDayOff(effects, date)) return [];
         return quests.map((quest) => {
             const progress = getQuestProgressFor(quest, entries, userId, date, effects);
             const status: QuestBoardStatus = !progress ? 'notDue' : progress.isOpen ? 'open' : 'done';

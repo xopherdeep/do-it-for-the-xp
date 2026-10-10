@@ -15,6 +15,8 @@ import { ITEM_METADATA } from "@/lib/engine/core/items/itemRegistry";
 import { getQuestEngine, type QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import { dayKeyOf, effectiveDeadline, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 import { useUserStore } from "@/lib/store/stores/user";
+import { bedtimeNightOf, loadFamilySettings } from "@/lib/services/family/familySettings";
+import { notify } from "@/lib/services/notifications/notify";
 
 export type BoardEffectKind = "pick-quest" | "instant" | "soon" | "none";
 
@@ -69,11 +71,15 @@ const EFFECTS: Record<string, BoardEffect> = {
   // Needs the Game Master's quest model (child quests, notes, family settings, an order field): not yet on the board
   Bombs: { kind: "soon", cost: 40, cooldownMs: 0, describe: "Splits one quest into three smaller ones." },
   "Thor's Hammer": { kind: "soon", cost: 60, cooldownMs: 0, describe: "Marks one quest half done for the Game Master." },
-  "Tesla's Bolt": { kind: "soon", cost: 100, cooldownMs: 2 * HOUR, describe: "A trusted hour, when the Game Master allows it." },
+  "Tesla's Bolt": { kind: "instant", cost: 100, cooldownMs: 2 * HOUR, describe: "Channels lightning energy for instant focus." },
   "Gaia's Quake": { kind: "soon", cost: 100, cooldownMs: DAY, describe: "Shuffles the order of today's quests." },
-  "Night's Light": { kind: "soon", cost: 100, cooldownMs: 3 * DAY, describe: "Lifts the bedtime lock for one night." },
-  "Gale's Wind": { kind: "soon", cost: 300, cooldownMs: 7 * DAY, describe: "Hides every chore for 24 hours." },
+  "Night's Light": { kind: "instant", cost: 100, cooldownMs: 3 * DAY, describe: "Removes bedtime restrictions for one night." },
+  "Gale's Wind": { kind: "instant", cost: 300, cooldownMs: 7 * DAY, describe: "Blows away chore pressure for 24 hours." },
 };
+
+/** Items with a board effect the Game Master can unlock for a hero from the Compendium. */
+export const unlockableItemNames = (): string[] =>
+  Object.keys(EFFECTS).filter((itemName) => !ALWAYS_UNLOCKED.includes(itemName));
 
 /** What the item does on the quest board. Navigation items, Bottles and battle-only items do nothing here. */
 export const boardEffectOf = (itemName: string | undefined): BoardEffect => EFFECTS[itemName ?? ""] ?? NONE;
@@ -163,6 +169,31 @@ export const applyBoardEffect = async (
         outcome = { ok: true, line: `${title}: pulled into today.`, sound: "useMP" };
       }
     }
+  } else if (name === "Tesla's Bolt") {
+    if (!(await loadFamilySettings()).trustedHour) return refuse("The Game Master has not allowed a trusted hour.");
+    effects.trustedUntil = new Date(now.getTime() + HOUR).toISOString();
+    outcome = { ok: true, line: "Tesla's Bolt channels lightning! For 1 hour your claims need no approval.", sound: "useMP" };
+  } else if (name === "Night's Light") {
+    const family = await loadFamilySettings();
+    if (!family.bedtime.enabled) return refuse("No bedtime is set.");
+    effects.bedtimeLiftedOn = bedtimeNightOf(family, now);
+    outcome = { ok: true, line: "Night's Light shines! Bedtime restrictions removed for tonight.", sound: "useMP" };
+  } else if (name === "Gale's Wind") {
+    effects.dayOffUntil = new Date(now.getTime() + DAY).toISOString();
+    if ((await loadFamilySettings()).dayOffBroadcast) {
+      const heroName = user.name?.nick || user.name?.first || "A hero";
+      Object.values(store.users)
+        .filter((profile: any) => profile?.isAdult === true)
+        .forEach((gm: any) =>
+          notify({
+            heroId: String(gm.id),
+            kind: "system",
+            title: "A day off",
+            body: `${heroName} called Gale's Wind: no chores until ${whenLabel(new Date(now.getTime() + DAY), now)}.`,
+          })
+        );
+    }
+    outcome = { ok: true, line: "Gale's Wind blows across the land! Chores swept clear for 24 hours.", sound: "useMP" };
   } else if (name === "Chronos' Clock") {
     const until = new Date(now.getTime() + CHRONOS_PAUSE_MS);
     effects.pause = { from: now.toISOString(), until: until.toISOString() };

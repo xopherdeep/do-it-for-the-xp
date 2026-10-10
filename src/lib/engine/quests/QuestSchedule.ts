@@ -66,6 +66,12 @@ export interface HeroQuestEffects {
   pause?: { from: string; until: string };
   /** X's Invisibility: no random encounters until this moment */
   noEncountersUntil?: string;
+  /** Tesla's Bolt: claims skip the approval queue until this moment (only when the Game Master allows a trusted hour) */
+  trustedUntil?: string;
+  /** Night's Light: the bedtime night (yyyy-MM-dd it began on) that is lifted */
+  bedtimeLiftedOn?: string;
+  /** Gale's Wind: the board shows no chores until this moment */
+  dayOffUntil?: string;
 }
 
 /** The calendar day a date falls on, the key the snooze and pull-in maps use. */
@@ -89,6 +95,18 @@ export const dueTimeOn = (dueByTime: string | undefined, date: Date): Date | nul
   const minutes = clock ? Number(clock[2]) : stamp?.getMinutes();
   if (hours === undefined || minutes === undefined || !(hours < 24 && minutes < 60)) return null;
   return set(date, { hours, minutes, seconds: 0, milliseconds: 0 });
+};
+
+/** True while Tesla's Bolt keeps the trusted hour, so claims are paid without the Game Master's approval. */
+export const isTrustedHour = (effects: HeroQuestEffects | undefined, now: Date): boolean => {
+  const until = parseDate(effects?.trustedUntil);
+  return Boolean(until && now < until);
+};
+
+/** True while Gale's Wind holds the day off and the board hides every chore. */
+export const isDayOff = (effects: HeroQuestEffects | undefined, now: Date): boolean => {
+  const until = parseDate(effects?.dayOffUntil);
+  return Boolean(until && now < until);
 };
 
 /** True while Chronos' Clock holds every deadline still. */

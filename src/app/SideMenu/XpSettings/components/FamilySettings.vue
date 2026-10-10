@@ -54,6 +54,41 @@
           </ion-item-group>
         </ion-list>
       </ion-card>
+
+      <ion-card v-if="canManage" class="max-w-2xl family-items">
+        <ion-card-header>
+          <ion-card-title> Items </ion-card-title>
+        </ion-card-header>
+        <ion-list>
+          <ion-item>
+            <ion-label>
+              Trusted hour
+              <p>Tesla's Bolt lets a hero's claims skip the approval queue for 1 hour</p>
+            </ion-label>
+            <ion-toggle :checked="family.trustedHour" @ionChange="setFamily({ trustedHour: $event.detail.checked })"> </ion-toggle>
+          </ion-item>
+          <ion-item>
+            <ion-label>
+              Bedtime
+              <p>Night's Light lifts it for one night</p>
+            </ion-label>
+            <ion-toggle :checked="family.bedtime.enabled" @ionChange="setBedtime({ enabled: $event.detail.checked })"> </ion-toggle>
+          </ion-item>
+          <ion-item v-if="family.bedtime.enabled">
+            <ion-label>From</ion-label>
+            <input type="time" :value="family.bedtime.from" @change="setBedtime({ from: $event.target.value })" />
+            <ion-label class="ion-text-end">To</ion-label>
+            <input type="time" :value="family.bedtime.to" @change="setBedtime({ to: $event.target.value })" />
+          </ion-item>
+          <ion-item>
+            <ion-label>
+              Day-off broadcast
+              <p>Gale's Wind tells every Game Master</p>
+            </ion-label>
+            <ion-toggle :checked="family.dayOffBroadcast" @ionChange="setFamily({ dayOffBroadcast: $event.detail.checked })"> </ion-toggle>
+          </ion-item>
+        </ion-list>
+      </ion-card>
     </ion-content>
   </ion-page>
 </template>
@@ -71,6 +106,12 @@ import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
 import { useUserStore } from "@/lib/store/stores/user";
 import { canManageFamily, deleteProfileProblem, FAMILY_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
+import {
+  DEFAULT_FAMILY_SETTINGS,
+  loadFamilySettings,
+  saveFamilySettings,
+  type FamilySettings,
+} from "@/lib/services/family/familySettings";
 
 export default defineComponent({
   name: "xp-settings-family",
@@ -98,7 +139,23 @@ export default defineComponent({
     // Load profiles when component mounts
     loadProfiles();
 
+    // The Items card: what the Game Master allows Tesla's Bolt, Night's Light and Gale's Wind to do
+    const family = ref<FamilySettings>(JSON.parse(JSON.stringify(DEFAULT_FAMILY_SETTINGS)));
+    loadFamilySettings().then((loaded) => (family.value = loaded));
+    const setFamily = (change: Partial<FamilySettings>) => {
+      if (!canManage.value) return;
+      family.value = { ...family.value, ...change };
+      void saveFamilySettings(family.value);
+    };
+    const setBedtime = (change: Partial<FamilySettings["bedtime"]>) => {
+      if (!/^\d\d:\d\d$/.test(change.from ?? change.to ?? "00:00")) return;
+      setFamily({ bedtime: { ...family.value.bedtime, ...change } });
+    };
+
     return {
+      family,
+      setFamily,
+      setBedtime,
       userStore,
       requireAvatar,
       profiles,

@@ -1,5 +1,6 @@
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import { getQuestLogDb, QuestLogEntry, QuestLogSource, QuestRewards } from "@/lib/databases/QuestLogDb";
+import { isTrustedHour } from "@/lib/engine/quests/QuestSchedule";
 import { bonusGp } from "@/lib/services/stats/ClassPassives";
 import { useUserStore, LevelUpInfo } from "@/lib/store/stores/user";
 
@@ -61,7 +62,8 @@ export const completeQuest = async (
   source: QuestLogSource = "claim"
 ): Promise<CompletionResult> => {
   const rewards = questRewards(quest);
-  const awaitingApproval = Boolean(quest.requiresApproval);
+  const awaitingApproval =
+    Boolean(quest.requiresApproval) && !isTrustedHour(useUserStore().users[userId]?.questEffects, new Date());
   const questLogDb = getQuestLogDb();
 
   const entry = await questLogDb.logCompletion({

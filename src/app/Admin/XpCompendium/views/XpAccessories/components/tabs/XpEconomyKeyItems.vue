@@ -12,6 +12,31 @@
                     class="mb-2"
                 ></ion-searchbar>
 
+                <div class="mb-6">
+                    <h3 class="text-xl font-bold ml-2 mb-2 text-white opacity-90">Equipment</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <div
+                            v-for="name in equipmentNames"
+                            :key="name"
+                            class="key-item-card p-3 flex items-start rounded-lg bg-gray-800 bg-opacity-60 border border-gray-700"
+                        >
+                            <div class="flex-grow">
+                                <div class="font-bold text-lg text-white">{{ name }}</div>
+                                <div class="text-sm text-gray-300 mb-1 leading-snug">{{ unlockHintOf(name) }}</div>
+                            </div>
+                            <ion-button
+                                fill="clear"
+                                size="small"
+                                color="light"
+                                @click.stop="unlockForHero(name)"
+                                class="assign-btn"
+                            >
+                                <i class="fas fa-lock-open mr-2"></i> Unlock for hero
+                            </ion-button>
+                        </div>
+                    </div>
+                </div>
+
                 <div
                     v-for="(categoryItems, category) in groupedItems"
                     :key="category"
@@ -64,6 +89,8 @@ import { alertController, toastController, IonPage, IonContent, IonSearchbar, Io
 import { getAllItems } from "@/lib/engine/core/items/itemRegistry";
 import { ItemMetadata } from "@/lib/engine/core/items/itemTypes";
 import shopsDb from "@/lib/databases/ShopsDb";
+import { unlockableItemNames, unlockHintOf } from "@/lib/services/quests/ItemEffects";
+import { useUserStore } from "@/lib/store/stores/user";
 
 export default defineComponent({
   name: "XpEconomyKeyItems",
@@ -174,10 +201,49 @@ export default defineComponent({
         await alert.present();
     };
 
+    // The Game Master hands a hero an equipment item without the temple chest or the shop
+    const equipmentNames = unlockableItemNames();
+    const unlockForHero = async (itemName: string) => {
+        const userStore = useUserStore();
+        const say = async (message: string, color?: string) => {
+            const toast = await toastController.create({ message, duration: 2500, position: 'top', cssClass: 'rpg-toast', color });
+            await toast.present();
+        };
+        const heroes = userStore.usersAz.filter((hero: any) => hero.isAdult !== true);
+        if (heroes.length === 0) return say('No heroes to unlock it for.', 'warning');
+
+        const alert = await alertController.create({
+            header: `Unlock ${itemName}`,
+            subHeader: 'Select a hero',
+            inputs: heroes.map((hero: any) => ({
+                type: 'radio',
+                label: hero.name?.nick || hero.name?.first || String(hero.id),
+                value: String(hero.id)
+            })),
+            buttons: [
+                { text: 'Cancel', role: 'cancel' },
+                {
+                    text: 'Unlock',
+                    handler: (userId: string) => {
+                        if (!userId) return;
+                        const hero: any = userStore.users[userId];
+                        const who = hero?.name?.nick || hero?.name?.first || 'the hero';
+                        if (userStore.unlockItem(userId, itemName)) void say(`${itemName} unlocked for ${who}!`, 'success');
+                        else void say(`${who} already holds ${itemName}.`, 'warning');
+                    }
+                }
+            ]
+        });
+        await alert.present();
+    };
+
     return {
         searchQuery,
         groupedItems,
-        assignItem
+        assignItem,
+        equipmentNames,
+        unlockHintOf,
+        unlockForHero
     };
   },
 });
