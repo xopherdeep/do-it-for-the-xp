@@ -33,10 +33,28 @@ def load_maze(temple):
         if not line.startswith("["): continue
         cells = [c.strip() for c in line.strip("[],").split(",") if c.strip()]
         rows.append(cells)
-    types = {}
-    for m in re.finditer(r'\[(\w+)\]: \{ type: "(\w+)"', src):
+    types, locks = {}, {}
+    for m in re.finditer(r'\[(\w+)\]: \{ type: "(\w+)"([^\n]*)', src):
         types[m.group(1)] = m.group(2)
-    return rows, types
+        lock = re.search(r'locked: \{([^}]*)\}', m.group(3))
+        locks[m.group(1)] = set(re.findall(r'(north|south|east|west): true', lock.group(1))) if lock else set()
+    return rows, types, locks
+
+def exits(rows, types, locks, r, c):
+    """What each side of this room is: 'wall', 'door' or 'locked'."""
+    token = rows[r][c]
+    out = {}
+    for side, (dr, dc) in (("north", (-1, 0)), ("south", (1, 0)), ("west", (0, -1)), ("east", (0, 1))):
+        rr, cc = r + dr, c + dc
+        inside = 0 <= rr < len(rows) and 0 <= cc < len(rows[rr])
+        neighbour = types.get(rows[rr][cc], "wall") if inside else "wall"
+        if neighbour == "wall":
+            out[side] = "wall"
+        elif side in locks.get(token, set()):
+            out[side] = "locked"
+        else:
+            out[side] = "door"
+    return out
 
 def noise(shape, rng, blur=3):
     n = rng.uniform(0, 1, shape).astype(np.float32)
@@ -129,6 +147,48 @@ def frame(img, pal, rng):
     for (cx, cy) in ((inset, inset), (W - inset, inset), (inset, H - inset), (W - inset, H - inset)):
         d.ellipse([cx - 16, cy - 16, cx + 16, cy + 16], fill=m, outline=h, width=3)
         d.ellipse([cx - 6, cy - 6, cx + 6, cy + 6], fill=h)
+    return pil
+
+def doors(pil, pal, sides):
+    """Openings in the frame: a doorway where the hero can walk, a barred door where it is locked, nothing on a wall."""
+    stone, metal, hi = [tuple(int(v) for v in np.array(c)) for c in pal[5:8]]
+    d = ImageDraw.Draw(pil, "RGBA")
+    dark = (18, 12, 14)
+    DW = 120   # doorway width
+    def draw(side, kind):
+        if kind == "wall":
+            return
+        if side in ("north", "south"):
+            x0, x1 = W // 2 - DW // 2, W // 2 + DW // 2
+            y0, y1 = (0, FRAME) if side == "north" else (H - FRAME, H)
+        else:
+            y0, y1 = H // 2 - DW // 2, H // 2 + DW // 2
+            x0, x1 = (0, FRAME) if side == "west" else (W - FRAME, W)
+        # the dark opening with a lit lintel
+        d.rectangle([x0, y0, x1, y1], fill=dark)
+        d.rectangle([x0, y0, x1, y1], outline=hi, width=4)
+        # a worn threshold on the floor side
+        if side == "north":   d.rectangle([x0 + 6, y1, x1 - 6, y1 + 14], fill=(0, 0, 0, 70))
+        if side == "south":   d.rectangle([x0 + 6, y0 - 14, x1 - 6, y0], fill=(0, 0, 0, 70))
+        if side == "west":    d.rectangle([x1, y0 + 6, x1 + 14, y1 - 6], fill=(0, 0, 0, 70))
+        if side == "east":    d.rectangle([x0 - 14, y0 + 6, x0, y1 - 6], fill=(0, 0, 0, 70))
+        if kind == "locked":
+            # a barred gate with a lock plate
+            if side in ("north", "south"):
+                for x in range(x0 + 14, x1 - 6, 16):
+                    d.line([x, y0 + 6, x, y1 - 6], fill=metal, width=5)
+                cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
+            else:
+                for y in range(y0 + 14, y1 - 6, 16):
+                    d.line([x0 + 6, y, x1 - 6, y], fill=metal, width=5)
+                cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
+            d.rectangle([cx - 14, cy - 10, cx + 14, cy + 12], fill=hi, outline=dark, width=2)
+            d.ellipse([cx - 4, cy - 3, cx + 4, cy + 5], fill=dark)
+    for side, kind in sides.items():
+        draw(side, kind)
+    return pil
+
+def shade(pil):
     # an inner shadow where the floor meets the frame
     arr = np.asarray(pil).astype(np.float32)
     yy, xx = np.mgrid[0:H, 0:W]
@@ -141,7 +201,7 @@ def frame(img, pal, rng):
 def render(temple):
     element = temple.replace("-temple", "")
     pal = PALETTES[element]
-    rows, types = load_maze(temple)
+    rows, types, locks = load_maze(temple)
     out_dir = os.path.join(ROOT, "src", "assets", "images", "backgrounds", temple)
     os.makedirs(out_dir, exist_ok=True)
     count = 0
@@ -153,6 +213,9 @@ def render(temple):
             if room_type == "wall":
                 img = img * 0.35
             pil = frame(img, pal, rng)
+            if room_type != "wall":
+                pil = doors(pil, pal, exits(rows, types, locks, r, c))
+            pil = shade(pil)
             pil.save(os.path.join(out_dir, f"[{r},{c}].jpg"), quality=78, optimize=True)
             count += 1
     print(f"{temple}: {count} rooms")
