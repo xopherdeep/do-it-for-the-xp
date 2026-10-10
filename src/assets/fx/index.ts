@@ -37,6 +37,7 @@ import finishSound from "@/assets/audio/finish.mp3";
 import fairySound from "@/assets/audio/fairy.mp3";
 import item from "@/assets/audio/item.mp3";
 import chestOpen from "@/assets/audio/chest-open.mp3";
+import takeItemMP3 from "@/assets/audio/take_item.mp3";
 import doorOpen from "@/assets/audio/door-open.mp3";
 
 const coins = new Audio(Coins);
@@ -51,6 +52,8 @@ const finish = new Audio(finishSound);
 const fairy = new Audio(fairySound);
 const newItem = new Audio(item);
 const openChest = new Audio(chestOpen);
+// The Zelda "item get" sting, for the moment the loot actually lands in the bag
+const takeItem = new Audio(takeItemMP3);
 const openDoor = new Audio(doorOpen);
 
 
@@ -458,6 +461,7 @@ const $fx = {
       closeMenu,
       newItem,
       openChest,
+      takeItem,
       fairy,
       finish,
       openDoor,
@@ -519,6 +523,7 @@ const $fx = {
       closeMenu,
       newItem,
       openChest,
+      takeItem,
       fairy,
       finish,
       openDoor,
@@ -569,6 +574,7 @@ const $fx = {
       closeMenu,
       newItem,
       openChest,
+      takeItem,
       fairy,
       finish,
       openDoor,

@@ -131,9 +131,15 @@
           :isOpen="isMapOpen"
           @didDismiss="closeMap"
           backdropDismiss="true"
+          class="temple-map-modal"
         >
-          <ion-card class="maze-container icon-colors">
-            <ion-grid>
+          <ion-card class="maze-container temple-map icon-colors">
+            <div class="temple-map__title">
+              <span class="temple-map__name">{{ templeName }}</span>
+              <span class="temple-map__floor">{{ currentLevel }}</span>
+              <i class="fad fa-compass temple-map__rose" aria-hidden="true"></i>
+            </div>
+            <ion-grid class="temple-map__grid">
               <ion-row
                 v-for="(row, rowIndex) in maze"
                 :key="rowIndex"
@@ -185,30 +191,11 @@
                 </ion-col>
               </ion-row>
             </ion-grid>
-            <div class="map-legend float-right flex flex-row">
-              <ion-chip
-                class="legend-item"
-                v-if="hasMap"
-              >
-                <i class="fad fa-walking fa-lg mr-2"></i>
-                <span>You are here</span>
-              </ion-chip>
-              <ion-chip
-                class="legend-item"
-                v-if="hasCompass"
-              >
-                <i class="fad fa-compass fa-lg mr-2"></i>
-                <span>Reveals rooms</span>
-              </ion-chip>
+            <div class="temple-map__legend">
+              <span v-if="hasMap" class="legend-item"><i class="fad fa-walking"></i> You are here</span>
+              <span v-if="hasCompass" class="legend-item"><i class="fad fa-compass"></i> Compass reveals rooms</span>
             </div>
-            <ion-buttons>
-              <ion-button
-                @click="closeMap"
-                class="rounded"
-              >
-                Close Map
-              </ion-button>
-            </ion-buttons>
+            <button type="button" class="temple-map__close" @click="closeMap">Fold the map</button>
           </ion-card>
         </ion-modal>
       </ion-fab>

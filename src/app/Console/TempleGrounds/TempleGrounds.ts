@@ -429,11 +429,12 @@ export default defineComponent({
           {
             text: 'Loot',
             handler: (selectedItems) => {
-              if (typeof play$fx === 'function') {
-                play$fx('yes');
-              }
               if (selectedItems && selectedItems.length > 0) {
+                // The Zelda "item get" sting: the loot is in the bag
+                if (typeof play$fx === 'function') play$fx('takeItem');
                 processChestItems(selectedItems);
+              } else if (typeof play$fx === 'function') {
+                play$fx('yes');
               }
             },
           },

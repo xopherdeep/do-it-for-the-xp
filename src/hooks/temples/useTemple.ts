@@ -18,6 +18,10 @@ export type MessageDisplayFn = (message: string, duration?: number) => void;
  * @param userId the hero playing: their saved run in this temple is resumed (it wins over the start position)
  *               and kept up to date. Without one the run lives in memory only.
  */
+/** "golden key" -> "Golden Key": loot names are stored lowercase, the chest shows them properly. */
+const titleCase = (value: string): string =>
+  String(value).replace(/\b([a-z])/g, (letter) => letter.toUpperCase());
+
 export function useTemple(templeId: string, startPosition?: [number, number], startLevel?: string, userId?: string) {
   const templeSystem = TempleSystem.getInstance();
   const dungeonManager = DungeonManager.getInstance();
@@ -110,7 +114,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
         contents.push({
           name: item,
           type: 'checkbox',
-          label: item,
+          label: titleCase(item),
           value: item,
           checked: false
         });
@@ -122,7 +126,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
       contents.push({
         name: currentRoom.value.content.dungeon,
         type: 'checkbox',
-        label: currentRoom.value.content.dungeon,
+        label: titleCase(currentRoom.value.content.dungeon),
         value: currentRoom.value.content.dungeon,
         checked: false
       });
