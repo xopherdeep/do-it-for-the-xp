@@ -402,6 +402,15 @@ export const useUserStore = defineStore('user', () => {
    */
   function setQuestEffects(userId: string, effects: object) {
     const user = users[userId];
+  /** Stamp the hero's last free nap on the Hospital bench (ISO), so the bench is once a day. */
+  function setBenchRestAt(userId: string, benchRestAt: string | null) {
+    const user = users[userId];
+    if (!user) return;
+    user.benchRestAt = benchRestAt;
+    if (currentUser.id === userId) syncCurrentUser(user);
+    persistUser(userId);
+  }
+
     if (!user) return;
     user.questEffects = JSON.parse(JSON.stringify(effects));
     if (currentUser.id === userId) syncCurrentUser(user);
@@ -882,6 +891,7 @@ export const useUserStore = defineStore('user', () => {
     unlockItem,
     unlockPegasus,
     unlockQuickDrawSlot,
+    setBenchRestAt,
     unlockClass,
     checkClassUnlocks,
     updateClassXp,

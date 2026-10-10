@@ -1,5 +1,6 @@
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import { getQuestLogDb, QuestLogEntry, QuestLogSource, QuestRewards } from "@/lib/databases/QuestLogDb";
+import { bonusGp } from "@/lib/services/stats/ClassPassives";
 import { useUserStore, LevelUpInfo } from "@/lib/store/stores/user";
 
 /**
@@ -11,11 +12,17 @@ import { useUserStore, LevelUpInfo } from "@/lib/store/stores/user";
  *               so the quest re-opens for the hero.
  * Battle flow:  recordBattleCompletion() only writes the log entry, because BattleField
  *               already credits XP/GP/AP during its victory sequence.
+ *
+ * The log keeps the quest's own rate; what the hero is paid is paidQuestRewards(): the same
+ * XP and AP, and the GP with the class loot bonus on top (a Thief's or Ninja's +25%, see
+ * docs/Items-And-Classes-Contract.md, C). Screens print the paid line, not the board's.
  */
 export interface CompletionResult {
   entry: QuestLogEntry;
   levelUp: LevelUpInfo | null;
   awaitingApproval: boolean;
+  /** What landed in the hero's pocket; the quest's rate when the claim is held or the hero is unknown. */
+  paid: QuestRewards;
 }
 
 const toNumber = (value: unknown): number => {
@@ -29,14 +36,22 @@ export const questRewards = (quest: Pick<Achievement, "xp" | "gp" | "ap">): Ques
   ap: toNumber(quest.ap),
 });
 
-/** Credit rewards to the hero's profile (persisted by the user store). */
+/** The quest's rewards as this hero is paid them: XP and AP as posted, GP with the class loot bonus. */
+export const paidQuestRewards = (userId: string, rewards: QuestRewards): QuestRewards => {
+  const hero = useUserStore().users[userId];
+  if (!hero) return rewards;
+  return { ...rewards, gp: bonusGp(rewards.gp, hero.jobClass) };
+};
+
+/** Credit rewards to the hero's profile (persisted by the user store); the GP paid carries the class bonus. */
 export const applyQuestRewards = (userId: string, rewards: QuestRewards, source: string): LevelUpInfo | null => {
   const userStore = useUserStore();
   if (!userStore.users[userId]) return null;
 
-  const levelUp = rewards.xp > 0 ? userStore.updateUserXP({ userId, amount: rewards.xp, commit: true }) : null;
-  if (rewards.gp > 0) void userStore.updateUserGP({ userId, wallet: rewards.gp });
-  if (rewards.ap > 0) userStore.recordAPGain({ userId, amount: rewards.ap, source });
+  const paid = paidQuestRewards(userId, rewards);
+  const levelUp = paid.xp > 0 ? userStore.updateUserXP({ userId, amount: paid.xp, commit: true }) : null;
+  if (paid.gp > 0) void userStore.updateUserGP({ userId, wallet: paid.gp });
+  if (paid.ap > 0) userStore.recordAPGain({ userId, amount: paid.ap, source });
   return levelUp;
 };
 
@@ -58,11 +73,12 @@ export const completeQuest = async (
     rewards,
   });
 
-  if (awaitingApproval) return { entry, levelUp: null, awaitingApproval };
+  if (awaitingApproval) return { entry, levelUp: null, awaitingApproval, paid: rewards };
 
+  const paid = paidQuestRewards(userId, rewards);
   const levelUp = applyQuestRewards(userId, rewards, `quest:${quest.id}`);
-  const paid = await questLogDb.updateEntry(entry.id, { rewardsApplied: true });
-  return { entry: paid || entry, levelUp, awaitingApproval };
+  const settled = await questLogDb.updateEntry(entry.id, { rewardsApplied: true });
+  return { entry: settled || entry, levelUp, awaitingApproval, paid };
 };
 
 /** Battle victories already paid out; just record that the quest was finished. */

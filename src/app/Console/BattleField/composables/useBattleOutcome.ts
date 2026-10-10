@@ -39,6 +39,10 @@ export interface FightStats {
 export const VICTORY_TIMINGS = { strobe: 1000, collapse: 750, fade: 1000 } as const;
 /** The beast fades before the hero walks away from an escape. */
 export const ESCAPE_FADE_MS = 700;
+/** A fallen hero wakes with this much HP: alive enough to walk to the Hospital, never stuck at 0. */
+export const LIMP_HOME_HP = 1;
+/** What the arena says once the hero has blacked out. */
+export const LIMP_HOME_LINE = `You limp back to town with ${LIMP_HOME_HP} HP. The Hospital can patch you up.`;
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
@@ -49,7 +53,9 @@ const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slic
  * the strobe, the fanfare and the victory card that follow are purely celebration.
  * The hero's class has its say on the pay (docs/Items-And-Classes-Contract.md, C): a Thief's or
  * Ninja's +25% GP, a Monk's +1 AP, a Mage's or Sage's 10% MP back and a Paladin's 10% HP back.
- * Every fight ends with the hero at full HP: max HP is how many slow chores one fight can afford.
+ * Fights leave their damage behind: a win keeps whatever HP the beast left (plus the Paladin's
+ * heal), and a defeat sends the hero limping home with LIMP_HOME_HP so the Hospital, the Hotel
+ * and the free bench matter. Nothing here fills HP.
  */
 export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
   const userStore = useUserStore();
@@ -76,7 +82,7 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
   const rewardsForHero = (rewards: QuestRewards): QuestRewards =>
     rewardsWithPassive(rewards, classPassive(userStore.users[ctx.userId]?.jobClass));
 
-  /** A Mage or Sage gets 10% MP back on a win, a Paladin 10% HP (before the full heal every fight ends with). */
+  /** A Mage or Sage gets 10% MP back on a win, a Paladin 10% HP; nobody else heals in the arena. */
   const regenerateOnWin = () => {
     const user = userStore.users[ctx.userId];
     const stats = user?.stats;
@@ -106,10 +112,12 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     );
   };
 
-  const restoreHeroHp = () => {
+  /** A fallen hero is left at LIMP_HOME_HP, not 0: the Hospital (or a bench) does the rest. */
+  const limpHome = () => {
     const stats = userStore.users[ctx.userId]?.stats;
-    const missing = (stats?.hp?.max ?? 0) - (stats?.hp?.now ?? 0);
-    if (missing > 0) userStore.updateUserHP({ userId: ctx.userId, amount: missing });
+    if (!stats) return;
+    const now = stats.hp?.now ?? 0;
+    if (now < LIMP_HOME_HP) userStore.updateUserHP({ userId: ctx.userId, amount: LIMP_HOME_HP - now });
   };
 
   const levelUpLines = (levelUp: LevelUpInfo | null, classLevelUp: ClassLevelUpInfo | null): DialogItem[] => {
@@ -157,7 +165,6 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
       ({ levelUp, classLevelUp } = commitRewards(rewards));
       await recordOutcome(rewards);
     }
-    restoreHeroHp();
 
     // 2. The beast strobes, the arena folds away, the beast is gone.
     dialog.clear();
@@ -193,13 +200,19 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     dialog.enqueue([...lines, () => leaveBattle()]);
   };
 
-  /** The service has already queued "has fallen / blacked out"; the hospital splash narrates the rest. */
+  /**
+   * The service has already queued "has fallen / blacked out"; the hero is set on their feet with
+   * LIMP_HOME_HP at once (a reload mid-dialog must not leave them at 0), the arena says where to go,
+   * and the game-over splash walks them to the Hospital.
+   */
   const handlePlayerDefeated = () => {
     audio.stopBgm();
     audio.playSound("die");
+    limpHome();
     dialog.enqueue([
+      LIMP_HOME_LINE,
       () => {
-        restoreHeroHp();
+        limpHome();
         void deps.router.replace({ name: "game-over" });
       },
     ]);
@@ -215,5 +228,5 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     ]);
   };
 
-  return { celebrateVictory, handlePlayerDefeated, handleEscape, leaveBattle, restoreHeroHp };
+  return { celebrateVictory, handlePlayerDefeated, handleEscape, leaveBattle, limpHome };
 };

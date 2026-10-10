@@ -88,13 +88,14 @@
                       <ion-img :src="$getUserAvatar(user)"></ion-img>
                     </ion-avatar>
                     <div class="flex-grow">
-                      <h3>{{ user.name.full }}</h3>
+                      <h3>{{ user.name?.nick || user.name?.full }}</h3>
+                      <!-- the real pool: fights leave damage behind, so this is what the nurse sees -->
                       <ion-progress-bar 
                         color="danger" 
-                        :value="user.stats.hp.current / user.stats.hp.max"
+                        :value="(user.stats?.hp?.now ?? 0) / (user.stats?.hp?.max || 1)"
                       ></ion-progress-bar>
                       <div class="text-sm text-gray-600 mt-1">
-                        HP: {{ user.stats.hp.current }}/{{ user.stats.hp.max }}
+                        HP: {{ user.stats?.hp?.now ?? 0 }}/{{ user.stats?.hp?.max ?? 0 }}
                       </div>
                     </div>
                   </div>

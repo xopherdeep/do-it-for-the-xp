@@ -1,6 +1,11 @@
 import { createPinia, setActivePinia } from "pinia";
 import { ref } from "vue";
-import { useBattleOutcome, type BattleOutcomeDeps } from "@/app/Console/BattleField/composables/useBattleOutcome";
+import {
+  LIMP_HOME_HP,
+  LIMP_HOME_LINE,
+  useBattleOutcome,
+  type BattleOutcomeDeps,
+} from "@/app/Console/BattleField/composables/useBattleOutcome";
 import type { Encounter } from "@/app/Console/BattleField/battle/encounterLoader";
 import type { Enemy } from "@/lib/services/battle/BattleService";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -9,7 +14,8 @@ import { useUserStore } from "@/lib/store/stores/user";
  * The class's say on a win's pay (docs/Items-And-Classes-Contract.md, C), through useBattleOutcome's
  * celebrateVictory: the Thief's GP, the Monk's AP, the Mage's MP and the Paladin's HP. Rewards are paid the
  * moment the beast falls, so the store is checked right after the call; the celebration that follows runs on
- * timers the test never advances.
+ * timers the test never advances. Fights leave damage behind: a win does not fill HP, and a defeat leaves the
+ * hero limping home with LIMP_HOME_HP, never 0.
  */
 
 jest.mock("@/lib/databases/ProfileDb", () => {
@@ -81,7 +87,7 @@ const rig = (kind: "free" | "quest", encounter: Partial<Encounter> | null) => {
     router: { replace: jest.fn() },
     presentVictory,
   } as unknown as BattleOutcomeDeps;
-  return { outcome: useBattleOutcome(deps), presentVictory };
+  return { outcome: useBattleOutcome(deps), presentVictory, deps };
 };
 
 /** Rewards are paid before celebrateVictory's first await; a few microtasks are all the store needs. */
@@ -139,13 +145,13 @@ describe("useBattleOutcome: class passives on a win", () => {
     expect(stats().ap.total).toBe(2);
   });
 
-  it("a Mage gets 10% of max MP back on a win; a Paladin 10% HP (before the full heal every fight ends with)", async () => {
+  it("a Mage gets 10% of max MP back on a win and keeps the damage taken; a Paladin heals 10% HP", async () => {
     addHero("Mage");
     let { outcome } = rig("free", { label: "Socktopus", enemies: [beast()] });
     void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
     await flush();
     expect(stats().mp.now).toBe(18);
-    expect(stats().hp.now).toBe(100); // the hero always walks out at full HP
+    expect(stats().hp.now).toBe(20); // the fight's damage stays: the Hospital and the Hotel matter
 
     setActivePinia(createPinia());
     addHero("Paladin");
@@ -153,8 +159,20 @@ describe("useBattleOutcome: class passives on a win", () => {
     ({ outcome } = rig("free", { label: "Socktopus", enemies: [beast()] }));
     void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
     await flush();
+    expect(spy).toHaveBeenCalledTimes(1);
     expect(spy).toHaveBeenCalledWith({ userId: HERO_ID, amount: 10 });
+    expect(stats().hp.now).toBe(30); // 20 + 10% of 100, and nothing else touched HP
     expect(stats().mp.now).toBe(10);
+  });
+
+  it("a Warrior's win leaves HP exactly where the beast left it", async () => {
+    addHero("Warrior");
+    const spy = jest.spyOn(useUserStore(), "updateUserHP");
+    const { outcome } = rig("free", { label: "Socktopus", enemies: [beast()] });
+    void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+    await flush();
+    expect(spy).not.toHaveBeenCalled();
+    expect(stats().hp.now).toBe(20);
   });
 
   it("a held quest (approval needed) pays nothing now, so the class bonus waits with it", async () => {
@@ -165,5 +183,50 @@ describe("useBattleOutcome: class passives on a win", () => {
 
     expect(stats().gp.wallet).toBe(0);
     expect(stats().ap.total).toBe(0);
+  });
+});
+
+describe("useBattleOutcome: a defeat", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    setActivePinia(createPinia());
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  /** The beast's last strike has landed: the hero is at 0 HP in the store, as BattleService leaves them. */
+  const knockOut = () => {
+    useUserStore().updateUserHP({ userId: HERO_ID, amount: -1000 });
+    expect(stats().hp.now).toBe(0);
+  };
+
+  it("sets the hero on their feet with 1 HP, says where to go and walks to the game-over splash", () => {
+    addHero("Warrior");
+    knockOut();
+    const { outcome, deps } = rig("free", { label: "Socktopus", enemies: [beast()] });
+
+    outcome.handlePlayerDefeated();
+
+    expect(LIMP_HOME_HP).toBe(1);
+    expect(stats().hp.now).toBe(1); // alive at once, before the dialog is tapped through
+    expect((deps.audio.stopBgm as jest.Mock)).toHaveBeenCalled();
+    expect((deps.audio.playSound as jest.Mock)).toHaveBeenCalledWith("die");
+
+    const queued = (deps.dialog.enqueue as jest.Mock).mock.calls[0][0] as Array<string | (() => void)>;
+    expect(queued[0]).toBe("You limp back to town with 1 HP. The Hospital can patch you up.");
+    expect(queued[0]).toBe(LIMP_HOME_LINE);
+    (queued[1] as () => void)();
+    expect(stats().hp.now).toBe(1);
+    expect(stats().mp.now).toBe(10); // MP is not touched
+    expect((deps.router.replace as jest.Mock)).toHaveBeenCalledWith({ name: "game-over" });
+  });
+
+  it("never heals a hero who somehow still has HP", () => {
+    addHero("Warrior");
+    const { outcome } = rig("free", { label: "Socktopus", enemies: [beast()] });
+    outcome.handlePlayerDefeated();
+    expect(stats().hp.now).toBe(20);
   });
 });

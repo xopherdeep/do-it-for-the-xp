@@ -4,10 +4,10 @@ import { actionSheetController, alertController, toastController } from "@ionic/
 import XpIcon from "@/components/atoms/Icon/XpIcon.vue";
 import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
 import { useUserStore } from "@/lib/store/stores/user";
-import { close, heart, infinite, logOut, people, statsChart } from "ionicons/icons";
+import { bed, close, heart, infinite, logOut, people, statsChart } from "ionicons/icons";
 import debug from "@/lib/utils/debug";
-import { HEAL_COST, quoteCare, REVIVE_COST } from "@/lib/services/hometown/Lodging";
-import type { CareKind, CareQuote } from "@/lib/services/hometown/Lodging";
+import { HEAL_COST, quoteBenchRest, quoteCare, REVIVE_COST } from "@/lib/services/hometown/Lodging";
+import type { BenchQuote, CareKind, CareQuote } from "@/lib/services/hometown/Lodging";
 
 export default defineComponent({
   props: ["userId"],
@@ -47,6 +47,13 @@ export default defineComponent({
           icon: infinite,
           handler: this.handleRevive,
           cssClass: "action-revive",
+        },
+        {
+          text: "Rest on a Bench (free)",
+          role: "bench",
+          icon: bed,
+          handler: this.handleBenchRest,
+          cssClass: "action-bench",
         },
         {
           text: "Check Vital Stats",
@@ -242,6 +249,43 @@ export default defineComponent({
       const mp = quote.mpGain > 0 && stats?.mp ? ` MP ${stats.mp.now}/${stats.mp.max}` : "";
       const verb = kind === "revive" ? "Revived" : "Healed";
       await this.showToast(`${verb}! \u20B2${quote.cost} paid. ${hp}${mp}`.trim());
+    },
+
+    /** Nurse Joy turning a hero off the bench: the quote said why. */
+    benchRefusalMessage(quote: BenchQuote): string {
+      if (quote.reason === "healthy") {
+        return "*checks your chart* You're in perfect health! The bench is for the wounded, dear.";
+      }
+      return "*taps the clock* You've had your nap for today. Come back tomorrow, or see me for a proper heal.";
+    },
+
+    /**
+     * Rest on a Bench: free, a quarter of max HP, once a day. The hero who limped home from a lost
+     * fight with 1 HP and an empty wallet is never stuck: quoteBenchRest() decides, the store remembers.
+     */
+    async handleBenchRest() {
+      const user = this.userStore.getUserById(this.userId);
+      const quote = quoteBenchRest(user?.stats, user?.benchRestAt);
+      if (!quote.canRest) {
+        this.play$fx("no");
+        await this.showToast(this.benchRefusalMessage(quote));
+        return;
+      }
+
+      this.isLoading = true;
+      try {
+        this.userStore.setBenchRestAt(this.userId, new Date().toISOString());
+        this.userStore.updateUserHP({ userId: this.userId, amount: quote.hpGain });
+        this.play$fx("restoreHP");
+        // a short beat so the spinner reads as a nap, not a glitch
+        await new Promise(resolve => setTimeout(resolve, 900));
+      } finally {
+        this.isLoading = false;
+      }
+
+      const stats = this.userStore.getUserById(this.userId)?.stats;
+      const hp = stats?.hp ? ` HP ${stats.hp.now}/${stats.hp.max}` : "";
+      await this.showToast(`You doze off on the waiting-room bench... +${quote.hpGain} HP.${hp} Same time tomorrow?`);
     },
 
     async handleRevive() {

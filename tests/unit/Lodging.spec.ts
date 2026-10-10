@@ -1,6 +1,9 @@
 import {
+  BENCH_REST_SHARE,
+  benchRestedToday,
   CARE_COSTS,
   HEAL_COST,
+  quoteBenchRest,
   quoteCare,
   readPool,
   REVIVE_COST,
@@ -72,5 +75,47 @@ describe("quoteCare", () => {
     expect(quoteCare("heal", { hp: { now: 10, max: 60 } })).toMatchObject({ hpGain: 50, canPay: false, reason: "poor" });
     expect(quoteCare("room", undefined)).toMatchObject({ canPay: false, reason: "healthy" });
     expect(quoteCare("room", null)).toMatchObject({ canPay: false, reason: "healthy" });
+  });
+});
+
+describe("quoteBenchRest: the free nap on the Hospital bench", () => {
+  const noon = new Date(2026, 9, 10, 12, 0, 0);
+
+  it("restores a quarter of max HP for nothing", () => {
+    expect(BENCH_REST_SHARE).toBe(0.25);
+    expect(quoteBenchRest(hero(1, 0, 0, { hp: 100, mp: 20 }), null, noon)).toEqual({ hpGain: 25, canRest: true });
+    // a hero who limped home from a lost fight with 1 HP and 0 GP is never stuck
+    expect(quoteBenchRest(hero(1, 0, 0), undefined, noon)).toEqual({ hpGain: 11, canRest: true }); // round(42 * 0.25)
+  });
+
+  it("never heals past max and always at least 1 HP", () => {
+    expect(quoteBenchRest(hero(40, 0, 0), null, noon)).toEqual({ hpGain: 2, canRest: true });
+    expect(quoteBenchRest(hero(1, 0, 0, { hp: 2, mp: 1 }), null, noon)).toEqual({ hpGain: 1, canRest: true });
+  });
+
+  it("is refused with 'healthy' at full HP, before anything else", () => {
+    expect(quoteBenchRest(hero(42, 0, 0), noon.toISOString(), noon)).toEqual({
+      hpGain: 0, canRest: false, reason: "healthy",
+    });
+  });
+
+  it("is once a day: refused with 'rested' after a nap the same local day, open again tomorrow", () => {
+    const earlier = new Date(2026, 9, 10, 0, 30, 0).toISOString();
+    expect(quoteBenchRest(hero(1, 0, 0), earlier, noon)).toEqual({ hpGain: 11, canRest: false, reason: "rested" });
+
+    const yesterday = new Date(2026, 9, 9, 23, 59, 0).toISOString();
+    expect(quoteBenchRest(hero(1, 0, 0), yesterday, noon)).toEqual({ hpGain: 11, canRest: true });
+  });
+
+  it("treats a missing or unreadable stamp as never rested", () => {
+    expect(benchRestedToday(null, noon)).toBe(false);
+    expect(benchRestedToday("", noon)).toBe(false);
+    expect(benchRestedToday("not a date", noon)).toBe(false);
+    expect(benchRestedToday(noon.toISOString(), noon)).toBe(true);
+    expect(quoteBenchRest(hero(1, 0, 0), "not a date", noon).canRest).toBe(true);
+  });
+
+  it("reads old saves that store HP as a bare number", () => {
+    expect(quoteBenchRest({ hp: 3, maxHp: 40 }, null, noon)).toEqual({ hpGain: 10, canRest: true });
   });
 });

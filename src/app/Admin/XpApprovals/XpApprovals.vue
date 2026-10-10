@@ -166,12 +166,18 @@
   import type { PurchaseLogEntry } from "@/lib/databases/PurchaseLogDb";
   import {
     approveCompletion,
+    paidQuestRewards,
     rejectCompletion,
   } from "@/lib/services/quests/QuestCompletionService";
   import {
     fulfillPurchase,
     refundPurchase,
   } from "@/lib/services/shop/PurchaseService";
+  import {
+    approvedNotification,
+    rejectedNotification,
+  } from "@/lib/services/notifications/Notifications";
+  import { notify } from "@/lib/services/notifications/notify";
 
   const HISTORY_LIMIT = 20;
 
@@ -437,10 +443,11 @@
                       color: "warning",
                     };
                   }
+                  // The log keeps the board's rate; the toast says what was paid (class GP bonus included)
+                  const paid = rewardLine(paidQuestRewards(approved.userId, approved.rewards));
+                  notify(approvedNotification(approved.userId, approved, paid));
                   return {
-                    message: `Approved! ${hero} earned ${rewardLine(
-                      approved.rewards
-                    )}`,
+                    message: `Approved! ${hero} earned ${paid}`,
                   };
                 });
               },
@@ -483,6 +490,7 @@
                       color: "warning",
                     };
                   }
+                  notify(rejectedNotification(rejected.userId, rejected, note || undefined));
                   return {
                     message: `Rejected. "${entry.questName}" is open again for ${hero}.`,
                     color: "medium",

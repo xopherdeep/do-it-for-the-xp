@@ -249,6 +249,11 @@
   opacity: 1;
 }
 
+.action-bench::part(icon) {
+  color: var(--ion-color-primary);
+  opacity: 1;
+}
+
 .action-stats::part(icon) {
   color: var(--ion-color-tertiary);
   opacity: 1;
