@@ -25,6 +25,20 @@ export interface TempleProgressEntry {
   visitedRooms: string[];
   /** Combat rooms the hero has won, as `${level}:${row},${col}` */
   clearedRooms: string[];
+  /** The master key is in hand this run (it is not spent on the boss door; a blood moon forgets it) */
+  hasMasterKey: boolean;
+  /** Doors opened this run, as `${level}:${row},${col}>${direction}` of the room the hero stood in */
+  openedDoors: string[];
+  /** Chests of consumables emptied this run, as `${level}:${row},${col}`; a blood moon refills them */
+  openedChests: string[];
+  /** Key items the temple handed out (the temple's tool, the Pegasus); kept across blood moons */
+  keyItems: string[];
+  /** How often the hero opened the gate of this temple */
+  timesCleared: number;
+  /** How often the blood moon reset this temple for the hero */
+  bloodMoons: number;
+  /** ISO time the Game Master scheduled the next blood moon for; the reset fires at the hero's first entry after it */
+  bloodMoonAt?: string;
   /** ISO timestamp of the last save */
   updatedAt: string;
 }
@@ -41,6 +55,13 @@ const toCoordinate = (value: unknown): number =>
 const toStringList = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
 
+const toCount = (value: unknown): number =>
+  typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+
+/** An ISO time, or undefined for anything that is not a date */
+const toIsoTime = (value: unknown): string | undefined =>
+  typeof value === "string" && !Number.isNaN(Date.parse(value)) ? value : undefined;
+
 /**
  * Read a stored record as an entry. Anything missing or malformed falls back to a fresh run's value
  * instead of throwing, so one damaged field cannot lock a hero out of a temple.
@@ -52,7 +73,7 @@ export const toTempleProgress = (raw: unknown): TempleProgressEntry | null => {
   if (typeof data.userId !== "string" || typeof data.templeId !== "string") return null;
 
   const position = Array.isArray(data.currentPosition) ? data.currentPosition : [];
-  const keys = typeof data.playerKeys === "number" && Number.isFinite(data.playerKeys) ? data.playerKeys : 0;
+  const bloodMoonAt = toIsoTime(data.bloodMoonAt);
 
   return {
     userId: data.userId,
@@ -61,9 +82,16 @@ export const toTempleProgress = (raw: unknown): TempleProgressEntry | null => {
     currentPosition: [toCoordinate(position[0]), toCoordinate(position[1])],
     hasMap: data.hasMap === true,
     hasCompass: data.hasCompass === true,
-    playerKeys: Math.max(0, Math.floor(keys)),
+    playerKeys: toCount(data.playerKeys),
     visitedRooms: toStringList(data.visitedRooms),
     clearedRooms: toStringList(data.clearedRooms),
+    hasMasterKey: data.hasMasterKey === true,
+    openedDoors: toStringList(data.openedDoors),
+    openedChests: toStringList(data.openedChests),
+    keyItems: toStringList(data.keyItems),
+    timesCleared: toCount(data.timesCleared),
+    bloodMoons: toCount(data.bloodMoons),
+    ...(bloodMoonAt ? { bloodMoonAt } : {}),
     updatedAt: typeof data.updatedAt === "string" ? data.updatedAt : new Date(0).toISOString(),
   };
 };
@@ -85,6 +113,21 @@ export class TempleProgressDb extends DbStorageApi {
   public async getProgressForUser(userId: string): Promise<TempleProgressEntry[]> {
     const entries = (await this.getAll()).map(toTempleProgress);
     return entries.filter((entry): entry is TempleProgressEntry => entry !== null && entry.userId === userId);
+  }
+
+  /**
+   * Game Master action: schedule the blood moon over a temple for a hero. The reset itself fires when the
+   * hero next enters the temple after that time (TempleSystem reads the record back and resets it).
+   * @param whenISO When the moon rises; null takes a scheduled one back
+   * @returns The record as saved, or null when the hero has no progress in that temple (nothing to reset)
+   */
+  public async scheduleBloodMoon(userId: string, templeId: string, whenISO: string | null): Promise<TempleProgressEntry | null> {
+    if (whenISO !== null && toIsoTime(whenISO) === undefined) throw new Error(`Not a date: ${whenISO}`);
+    const current = await this.getProgress(userId, templeId);
+    if (!current) return null;
+
+    // toTempleProgress drops an undefined bloodMoonAt, so taking the moon back leaves no field behind
+    return this.saveProgress({ ...current, bloodMoonAt: whenISO === null ? undefined : new Date(whenISO).toISOString() });
   }
 
   /** Forget a hero's run through a temple, so the next visit starts from the entrance. */

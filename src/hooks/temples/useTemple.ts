@@ -9,7 +9,7 @@ import { ChestSystem } from '@/lib/engine/core/dungeons/ChestSystem';
 import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
 import debug from '@/lib/utils/debug';
 import { useUserStore } from '@/lib/store/stores/user';
-import { unlocksFromChest } from '@/lib/services/quests/ItemEffects';
+import { chestItemUnlocks, freeTemplePegasus } from '@/lib/services/temples/TemplePegasus';
 
 // Define a message display function type that can be provided by the component using this hook
 export type MessageDisplayFn = (message: string, duration?: number) => void;
@@ -306,6 +306,8 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     // Get the room key for the current position
     const [row, col] = currentPosition.value;
     debug.log(`Processing chest items at position [${row}, ${col}] in temple ${templeId}`);
+    const content = currentRoom.value.content;
+    let freed: string | undefined;
     
     // Process each selected item
     selectedItems.forEach(item => {
@@ -338,10 +340,14 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
         // Update the temple system state directly
         const state = templeSystem.getTempleState(templeId);
         if (state) state.hasCompass = true;
-      } else if (userId) {
-        // A named item (Pegasus Whistle, Frost Wand...): the hero may now equip it, and what it stands for
-        const store = useUserStore();
-        unlocksFromChest(item).forEach((name) => store.unlockItem(userId, name));
+      } else {
+        // The Pegasus chest behind the boss: the world's Pegasus is free and the temple is cleared
+        if (content?.pegasus === true && item === content.dungeon) freed = freeTemplePegasus(templeId, userId).message;
+        // A named item (Frost Wand, the wind temple's whistle...): the hero may now equip it, and what it stands for
+        if (userId) {
+          const store = useUserStore();
+          chestItemUnlocks(templeId, item).forEach((name) => store.unlockItem(userId, name));
+        }
       }
     });
 
@@ -382,9 +388,8 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
       }
     }
     
-    // Generate a message about what was collected
-    const message = `Collected: ${selectedItems.join(', ')}`;
-    displayMessage(message, 3000);
+    // Generate a message about what was collected; a freed Pegasus is the news
+    displayMessage(freed ?? `Collected: ${selectedItems.join(', ')}`, 3000);
   };
   
   // Check if the chest in the current room is empty

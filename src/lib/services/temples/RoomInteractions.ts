@@ -12,7 +12,7 @@
  */
 import { DungeonManager } from '@/lib/engine/core/dungeons/DungeonManager';
 import { ChestSystem } from '@/lib/engine/core/dungeons/ChestSystem';
-import { TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
+import { BOSS_DOOR_LINE, TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
 import type { Room } from '@/lib/engine/core/dungeons/types';
 import { useUserStore } from '@/lib/store/stores/user';
 import { bonusGp } from '@/lib/services/stats/ClassPassives';
@@ -229,6 +229,31 @@ export const readExits = (templeId: string, level: string, position: [number, nu
     return { position: next, room: manager.getRoom(templeId, next, level), locked: Boolean(here?.locked?.[direction]) };
   };
   return { north: exit('north'), east: exit('east'), south: exit('south'), west: exit('west') };
+};
+
+/**
+ * The sheet for a door the hero taps: a small lock asks for a key, the boss door asks for the master key and
+ * refuses everything else ("A big lock. This needs the Boss Key."), an open way has nothing to say.
+ */
+export const doorActions = (ctx: RoomContext, direction: Direction): RoomSheet => {
+  const system = temples();
+  const open = (done: string): RoomOutcome =>
+    system.unlockDoor(ctx.templeId, ctx.position, direction)
+      ? { message: done, sound: SFX.useKey }
+      : { message: system.explainDoor(ctx.templeId, ctx.position, direction) ?? 'The door will not open.', sound: SFX.error };
+
+  switch (system.doorKind(ctx.templeId, ctx.position, direction, ctx.level)) {
+    case 'master':
+      return system.hasMasterKey(ctx.templeId)
+        ? { header: 'The Boss Door', subHeader: 'The Boss Key fits the big lock.', actions: [{ label: 'Open the door', run: () => open('The big lock falls away.') }] }
+        : { header: 'The Boss Door', subHeader: BOSS_DOOR_LINE, actions: [] };
+    case 'locked':
+      return (system.getTempleState(ctx.templeId)?.playerKeys ?? 0) > 0
+        ? { header: 'Locked Door', subHeader: 'Would you like to use a key to unlock this door?', actions: [{ label: 'Unlock (-1 Key)', run: () => open('Door unlocked!') }] }
+        : { header: 'Locked Door', subHeader: 'You need a key to unlock this door!', actions: [] };
+    default:
+      return { header: 'The way is open.', actions: [] };
+  }
 };
 
 /** A chest is empty when the room says so, or its chest in the ChestSystem is. */

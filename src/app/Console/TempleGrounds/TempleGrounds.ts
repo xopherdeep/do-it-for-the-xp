@@ -23,10 +23,12 @@ import type { ExitKind, WallSide } from './templeWalls';
 import { play$fx } from "@/assets/fx"
 import { useToast } from '@/hooks/useToast';
 import { TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
+import { bloodMoonLine } from '@/lib/engine/core/dungeons/templeReset';
 import { useEquipmentItems, type EquipmentItem } from '@/app/Console/MyPortal/UserHud/components/equipment/EquipmentItems';
 import {
   answerRiddle,
   buyWare,
+  doorActions,
   onEnterRoom,
   readExits,
   roomActions,
@@ -121,7 +123,6 @@ export default defineComponent({
       canMoveRight,
       move,
       isDoorLocked,
-      unlockDoor,
       processChestItems,
       handleTeleport,
       toggleMap,
@@ -237,32 +238,17 @@ export default defineComponent({
       backgroundPosition.value = { x: translateX, y: translateY };
     };
 
-    // Show the unlock door alert
+    // The door the hero walked into: a small lock asks for a key, the boss door for the Boss Key (RoomInteractions.doorActions)
     const showUnlockDoorAlert = async (direction: 'north' | 'south' | 'east' | 'west') => {
-      const buttons = playerKeys.value
-        ? [
-          { text: 'Cancel', role: 'cancel' },
-          {
-            text: 'Unlock (-1 Key)',
-            handler: () => {
-              if (playerKeys.value > 0) {
-                unlockDoor(direction);
-                displayMessage('Door unlocked!');
-              }
-            }
-          }
-        ]
-        : [{ text: 'Ok', role: 'cancel' }];
+      const live = liveContext();
+      if (!live) return;
+      const door = doorActions(live.ctx, direction);
+      const buttons = [
+        { text: door.actions.length ? 'Cancel' : 'Ok', role: 'cancel' },
+        ...door.actions.map((action) => ({ text: action.label, handler: () => void runRoomAction(action) }))
+      ];
 
-      const alert = await alertController.create({
-        header: 'Locked Door',
-        message:
-          playerKeys.value > 0
-            ? 'Would you like to use a key to unlock this door?'
-            : 'You need a key to unlock this door!',
-        buttons
-      });
-
+      const alert = await alertController.create({ header: door.header, message: door.subHeader, buttons });
       await alert.present();
     };
 
@@ -467,6 +453,7 @@ export default defineComponent({
       const kind = (side: WallSide, r: number, c: number): ExitKind => {
         const there = roomAt(r, c);
         if (!there || there.type === 'wall') return 'wall';
+        if (templeSystem.doorKind(props.temple, [row, col], side) === 'master') return 'master';
         const lockedHere = Boolean(here?.locked?.[side]);
         const opposite = { north: 'south', south: 'north', east: 'west', west: 'east' }[side] as WallSide;
         const lockedThere = Boolean(there.locked?.[opposite]);
@@ -530,8 +517,8 @@ export default defineComponent({
           break;
       }
 
-      // Check if door is locked
-      if (isDoorLocked(newRow, newCol)) {
+      // Check if door is locked (the boss door counts, bar or no bar in front of it)
+      if (isDoorLocked(newRow, newCol) || templeSystem.doorKind(props.temple, [row, col], direction) === 'master') {
         showUnlockDoorAlert(direction);
         return;
       }
@@ -639,6 +626,15 @@ export default defineComponent({
 
     // The Area tab names the temple without the markup of the title
     const templeShortName = computed(() => String(templeName.value || 'Temple').replace(/<[^>]*>/g, '').trim() || 'Temple');
+
+    // A blood moon the Game Master scheduled has risen since the last visit: the temple starts over, and says so
+    onMounted(() => {
+      void templeSystem.whenProgressReady(props.temple).then(() => {
+        if (!templeSystem.bloodMoonRose(props.temple)) return;
+        fx('no');
+        say(bloodMoonLine(templeShortName.value.replace(/\b\w/g, (letter) => letter.toUpperCase())), 3600);
+      });
+    });
 
     // The live item definitions: the copy stored on the profile has no click. The composable needs the
     // router and the game store; where those are missing the navigation items simply have no click.

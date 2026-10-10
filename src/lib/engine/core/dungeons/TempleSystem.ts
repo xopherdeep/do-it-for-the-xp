@@ -14,7 +14,10 @@ import { ChestSystem } from './ChestSystem';
 import { TempleHydrator } from './TempleHydrator';
 import { getTempleProgressDb } from '@/lib/databases/TempleProgressDb';
 import type { NewTempleProgress, TempleProgressEntry } from '@/lib/databases/TempleProgressDb';
+import { TEMPLE_CLEARED_KEY, isBloodMoonDue, resetTempleProgress } from './templeReset';
 import debug from '@/lib/utils/debug';
+
+export { TEMPLE_CLEARED_KEY };
 
 // Types
 export interface TempleState {
@@ -26,16 +29,25 @@ export interface TempleState {
   visitedRooms: Set<string>;
   /** Combat rooms whose beasts have been beaten, keyed `${level}:${row},${col}`. Also holds TEMPLE_CLEARED_KEY once the gate was opened. */
   clearedRooms?: Set<string>;
-  /** The master key was picked up this run (kept in memory: the chests that hold it refill on a reload too) */
+  /** The master key was picked up this run. It opens the boss door without being spent; a blood moon forgets it. */
   hasMasterKey?: boolean;
+  /** Doors the hero opened (a key, the master key, a bomb, a riddle), as `${level}:${row},${col}>${direction}` of the room they stood in */
+  openedDoors?: Set<string>;
+  /** Chests of consumables emptied this run, as `${level}:${row},${col}` */
+  openedChests?: Set<string>;
+  /** Key items the temple handed out; kept across blood moons */
+  keyItems?: string[];
+  timesCleared?: number;
+  bloodMoons?: number;
+  /** ISO time of the blood moon the Game Master scheduled next; carried so a save does not lose it */
+  bloodMoonAt?: string;
 }
 
-/**
- * Stored in a hero's clearedRooms once they opened the temple's gate. It rides on the saved
- * clearedRooms list so the progress record keeps its documented fields; it is not a room, and
- * nothing parses it as one.
- */
-export const TEMPLE_CLEARED_KEY = 'temple:cleared';
+/** What stands between two rooms: nothing, a small lock, or the boss door (the big lock only the master key opens) */
+export type DoorKind = 'open' | 'locked' | 'master';
+
+/** What the temple says when a small key is tried on the boss door */
+export const BOSS_DOOR_LINE = 'A big lock. This needs the Boss Key.';
 
 export interface DoorState {
   direction: 'north' | 'south' | 'east' | 'west';
@@ -52,6 +64,12 @@ export enum MapVisibility {
 
 // Every door of a room: a lockOnEnter fight seals all of them and winning opens them again
 const DOOR_DIRECTIONS: DoorState['direction'][] = ['north', 'south', 'east', 'west'];
+
+const STEP: Record<DoorState['direction'], [number, number]> = { north: [-1, 0], south: [1, 0], east: [0, 1], west: [0, -1] };
+
+/** The room one step away */
+const stepFrom = (position: [number, number], direction: DoorState['direction']): [number, number] =>
+  [position[0] + STEP[direction][0], position[1] + STEP[direction][1]];
 
 /** A `${level}:${row},${col}` key back into its parts (a floor name may hold a colon, the coordinates never do) */
 const parseRoomKey = (key: string): { level: string; position: [number, number] } | null => {
@@ -78,6 +96,9 @@ export class TempleSystem {
   // The hero's saved progress while it is being read back. Nothing is written for the temple meanwhile,
   // or the fresh run standing in until the read lands would overwrite the very record that is on its way.
   private reads = new Map<string, Promise<void>>();
+
+  // Temples a blood moon reset when the hero's progress was read back, until the screen has shown it
+  private risen = new Set<string>();
 
   // Saves waiting for the end of the tick, one per hero and temple (the newest wins), and the writes in flight
   private pendingSaves = new Map<string, NewTempleProgress>();
@@ -128,7 +149,13 @@ export class TempleSystem {
       currentPosition: position,
       currentLevel: level,
       visitedRooms: new Set<string>(),
-      clearedRooms: new Set<string>()
+      clearedRooms: new Set<string>(),
+      hasMasterKey: false,
+      openedDoors: new Set<string>(),
+      openedChests: new Set<string>(),
+      keyItems: [],
+      timesCleared: 0,
+      bloodMoons: 0
     });
   }
 
@@ -284,6 +311,16 @@ export class TempleSystem {
   /** Put a temple's run away: the hero's last changes are queued for saving, then the state, seals and dungeon reset. */
   private releaseTemple(templeId: string): void {
     this.queueSave(templeId);
+    this.forgetRun(templeId);
+  }
+
+  /**
+   * Drop a temple's run from memory: the state, the seals and the dungeon as the hero left it.
+   * @param unsaved Also drop a save of it still waiting for the end of the tick (the blood moon writes its own)
+   */
+  private forgetRun(templeId: string, unsaved = false): void {
+    const hero = this.heroByTemple.get(templeId);
+    if (unsaved && hero) this.pendingSaves.delete(`${hero}|${templeId}`);
 
     delete this.templeStates[templeId];
     this.heroByTemple.delete(templeId);
@@ -361,8 +398,8 @@ export class TempleSystem {
     const currentRoom = this.getCurrentRoom(templeId);
     if (!currentRoom) return false;
     
-    // Check if the door is locked in the direction of movement
-    if (currentRoom.locked?.[direction]) {
+    // Check if the door is locked in the direction of movement; the boss door counts as locked until it is opened
+    if (currentRoom.locked?.[direction] || this.doorKind(templeId, templeState.currentPosition, direction) === 'master') {
       return false;
     }
     
@@ -434,9 +471,70 @@ export class TempleSystem {
     return templeState.visitedRooms.has(roomPositionKey(templeState.currentLevel, position));
   }
   
+  /** `${level}:${row},${col}>${direction}`: how an opened door is remembered, by the room the hero stood in */
+  private doorKey(level: string, position: [number, number], direction: DoorState['direction']): string {
+    return `${roomPositionKey(level, position)}>${direction}`;
+  }
+
+  /** The door into a boss room that carries `locked.master` (or whose approach does) is the boss door. */
+  private isBossDoor(here: Room, there: Room | undefined): boolean {
+    return there?.type === 'boss' && Boolean(there.locked?.master || here.locked?.master);
+  }
+
   /**
-   * Unlock a door in a specific direction
-   * @returns True if door was successfully unlocked
+   * What stands between the room at `position` and the room in `direction`: an open way, a small lock, or
+   * the boss door. A boss door stays `master` until it is opened with the master key, bar or no bar on the
+   * room in front of it; a wall or the edge of the floor is no door at all and reads as open.
+   * @param level Floor the room is on; the floor the hero stands on when left out
+   */
+  public doorKind(
+    templeId: string,
+    position: [number, number],
+    direction: DoorState['direction'],
+    level?: string
+  ): DoorKind {
+    const templeState = this.templeStates[templeId];
+    const floor = level ?? templeState?.currentLevel ?? '1F';
+    const here = this.dungeonManager.getRoom(templeId, position, floor);
+    if (!here) return 'open';
+
+    const there = this.dungeonManager.getRoom(templeId, stepFrom(position, direction), floor);
+    if (this.isBossDoor(here, there) && !templeState?.openedDoors?.has(this.doorKey(floor, position, direction))) return 'master';
+    return here.locked?.[direction] ? 'locked' : 'open';
+  }
+
+  /**
+   * Why the door in `direction` will not open for the hero right now, in the temple's voice; null when it is
+   * open or the hero has what it takes.
+   */
+  public explainDoor(templeId: string, position: [number, number], direction: DoorState['direction']): string | null {
+    switch (this.doorKind(templeId, position, direction)) {
+      case 'master':
+        return this.hasMasterKey(templeId) ? null : BOSS_DOOR_LINE;
+      case 'locked':
+        return (this.templeStates[templeId]?.playerKeys ?? 0) > 0 ? null : 'You need a key to unlock this door!';
+      default:
+        return null;
+    }
+  }
+
+  /** Open one side of a room and remember it with the hero's progress, so a reload finds it open. */
+  private openDoor(templeId: string, level: string, position: [number, number], direction: DoorState['direction']): void {
+    const room = this.dungeonManager.getRoom(templeId, position, level);
+    if (room?.locked?.[direction]) room.locked = { ...room.locked, [direction]: false };
+
+    const templeState = this.templeStates[templeId];
+    if (!templeState) return;
+    if (!templeState.openedDoors) templeState.openedDoors = new Set<string>();
+    templeState.openedDoors.add(this.doorKey(level, position, direction));
+    this.queueSave(templeId);
+  }
+
+  /**
+   * Unlock the door in `direction` of the room at `position`: a small key is spent on a small lock; the boss
+   * door opens for a hero holding the master key, which is not spent. A small key never fits the boss door
+   * (explainDoor says why in the temple's voice).
+   * @returns True if the door was locked and is open now
    */
   public unlockDoor(
     templeId: string, 
@@ -444,21 +542,21 @@ export class TempleSystem {
     direction: 'north' | 'south' | 'east' | 'west'
   ): boolean {
     const templeState = this.templeStates[templeId];
-    if (!templeState || templeState.playerKeys <= 0) return false;
-    
-    const room = this.dungeonManager.getRoom(templeId, position, templeState.currentLevel);
-    if (!room || !room.locked?.[direction]) return false;
-    
-    // Create a new locked state with the specific direction unlocked
-    const newLocked = { ...room.locked, [direction]: false };
-    
-    // Update the room's locked state
-    room.locked = newLocked;
-    
-    // Use a key
-    templeState.playerKeys -= 1;
-    this.queueSave(templeId);
+    if (!templeState) return false;
 
+    switch (this.doorKind(templeId, position, direction)) {
+      case 'master':
+        if (!templeState.hasMasterKey) return false;
+        break;
+      case 'locked':
+        if (templeState.playerKeys <= 0) return false;
+        templeState.playerKeys -= 1;
+        break;
+      default:
+        return false;
+    }
+
+    this.openDoor(templeId, templeState.currentLevel, position, direction);
     return true;
   }
   
@@ -476,10 +574,12 @@ export class TempleSystem {
     const templeState = this.templeStates[templeId];
     if (!templeState) return false;
 
-    const room = this.dungeonManager.getRoom(templeId, position, level ?? templeState.currentLevel);
-    if (!room?.locked?.[direction]) return false;
+    const floor = level ?? templeState.currentLevel;
+    const room = this.dungeonManager.getRoom(templeId, position, floor);
+    // The boss door is beyond a bomb or a riddle: only the master key opens it
+    if (!room?.locked?.[direction] || this.doorKind(templeId, position, direction, floor) === 'master') return false;
 
-    room.locked = { ...room.locked, [direction]: false };
+    this.openDoor(templeId, floor, position, direction);
     return true;
   }
 
@@ -555,11 +655,12 @@ export class TempleSystem {
     return true;
   }
 
-  /** The hero picked up the master key (it opens the gate without waking the beast that guards it). */
+  /** The hero picked up the master key: it opens the boss door and the gate without waking the beast that guards it. */
   public grantMasterKey(templeId: string): boolean {
     const templeState = this.templeStates[templeId];
     if (!templeState) return false;
     templeState.hasMasterKey = true;
+    this.queueSave(templeId);
     return true;
   }
 
@@ -573,6 +674,7 @@ export class TempleSystem {
     if (!templeState) return false;
 
     if (!templeState.clearedRooms) templeState.clearedRooms = new Set<string>();
+    if (!templeState.clearedRooms.has(TEMPLE_CLEARED_KEY)) templeState.timesCleared = (templeState.timesCleared ?? 0) + 1;
     templeState.clearedRooms.add(TEMPLE_CLEARED_KEY);
     this.queueSave(templeId);
     return true;
@@ -878,8 +980,69 @@ export class TempleSystem {
       hasCompass: state.hasCompass,
       playerKeys: state.playerKeys,
       visitedRooms: Array.from(state.visitedRooms),
-      clearedRooms: Array.from(state.clearedRooms ?? [])
+      clearedRooms: Array.from(state.clearedRooms ?? []),
+      hasMasterKey: Boolean(state.hasMasterKey),
+      openedDoors: Array.from(state.openedDoors ?? []),
+      openedChests: Array.from(state.openedChests ?? []),
+      keyItems: [...(state.keyItems ?? [])],
+      timesCleared: state.timesCleared ?? 0,
+      bloodMoons: state.bloodMoons ?? 0,
+      ...(state.bloodMoonAt ? { bloodMoonAt: state.bloodMoonAt } : {})
     };
+  }
+
+  /**
+   * Game Master action: the blood moon rises over a temple for a hero at `whenISO` (null takes it back). The
+   * reset fires when the hero next enters after that time; a run open in memory learns the date too.
+   * @returns The progress as saved, or null when the hero has none in that temple
+   */
+  public async scheduleBloodMoon(templeId: string, userId: string, whenISO: string | null): Promise<TempleProgressEntry | null> {
+    await this.whenProgressReady(templeId);
+    await this.flushProgress();
+
+    const entry = await getTempleProgressDb().scheduleBloodMoon(userId, templeId, whenISO);
+    const state = this.templeStates[templeId];
+    if (entry && state && this.heroByTemple.get(templeId) === userId) state.bloodMoonAt = entry.bloodMoonAt;
+    return entry;
+  }
+
+  /**
+   * The blood moon rises over a temple now: the hero's saved progress is reset (templeReset.ts) and saved, and
+   * a run of theirs in memory starts over from that record (beasts back, chests full, doors re-locked), with
+   * the hero where they stood. For the Game Master's "reset now"; a scheduled moon (bloodMoonAt) fires by
+   * itself when the hero next enters.
+   * @returns The progress as saved, or null when the hero has none in that temple or it could not be read
+   */
+  public async bloodMoon(templeId: string, userId: string): Promise<TempleProgressEntry | null> {
+    await this.whenProgressReady(templeId);
+    await this.flushProgress();
+
+    const saved = await this.readSavedProgress(userId, templeId);
+    if (saved === undefined) return null;
+
+    const open = this.heroByTemple.get(templeId) === userId;
+    const before = saved ?? (open ? this.progressSnapshot(templeId) : undefined);
+    if (!before) return null;
+
+    const reset = resetTempleProgress(before);
+    if (open) this.forgetRun(templeId, true);
+
+    let entry: TempleProgressEntry;
+    try {
+      entry = await getTempleProgressDb().saveProgress(reset);
+    } catch (error) {
+      debug.error(`Failed to save the blood moon of ${userId} in ${templeId}`, error);
+      return null;
+    }
+
+    // The screen keeps its temple: the run starts over from the reset record, read back like any other
+    if (open) this.openState(templeId, userId, [reset.currentPosition[0], reset.currentPosition[1]], reset.currentLevel, true);
+    return entry;
+  }
+
+  /** True once, after a scheduled blood moon reset the temple when the hero's progress was read back. */
+  public bloodMoonRose(templeId: string): boolean {
+    return this.risen.delete(templeId);
   }
 
   /**
@@ -940,6 +1103,11 @@ export class TempleSystem {
       let readable = saved !== undefined;
       if (saved) {
         try {
+          // A blood moon the Game Master scheduled has risen since the last visit: the run starts over
+          if (isBloodMoonDue(saved)) {
+            saved = resetTempleProgress(saved);
+            this.risen.add(templeId);
+          }
           this.applyProgress(templeId, saved, resume ? start : undefined);
         } catch (error) {
           debug.error(`Failed to merge temple progress of ${userId} in ${templeId}`, error);
@@ -971,8 +1139,27 @@ export class TempleSystem {
     state.hasMap = state.hasMap || saved.hasMap;
     state.hasCompass = state.hasCompass || saved.hasCompass;
     state.playerKeys = Math.max(state.playerKeys, saved.playerKeys);
+    state.hasMasterKey = Boolean(state.hasMasterKey || saved.hasMasterKey);
+    state.keyItems = Array.from(new Set([...(state.keyItems ?? []), ...saved.keyItems]));
+    state.timesCleared = Math.max(state.timesCleared ?? 0, saved.timesCleared);
+    state.bloodMoons = Math.max(state.bloodMoons ?? 0, saved.bloodMoons);
+    if (saved.bloodMoonAt) state.bloodMoonAt = saved.bloodMoonAt;
+    if (!state.openedChests) state.openedChests = new Set<string>();
+    for (const key of saved.openedChests) state.openedChests.add(key);
     if (!state.clearedRooms) state.clearedRooms = new Set<string>();
     for (const key of saved.clearedRooms) state.clearedRooms.add(key);
+
+    // Doors opened stay open: the layout was registered again locked
+    if (!state.openedDoors) state.openedDoors = new Set<string>();
+    for (const key of saved.openedDoors) {
+      state.openedDoors.add(key);
+      const split = key.lastIndexOf('>');
+      const at = parseRoomKey(key.slice(0, split));
+      const direction = key.slice(split + 1) as DoorState['direction'];
+      if (!at || !DOOR_DIRECTIONS.includes(direction)) continue;
+      const room = this.dungeonManager.getRoom(templeId, at.position, at.level);
+      if (room?.locked?.[direction]) room.locked = { ...room.locked, [direction]: false };
+    }
     for (const key of saved.visitedRooms) {
       state.visitedRooms.add(key);
       const visited = parseRoomKey(key);

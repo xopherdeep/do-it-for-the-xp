@@ -144,6 +144,12 @@ describe("TempleProgressDb", () => {
     playerKeys: 2,
     visitedRooms: ["1F:5,2", "2F:3,4"],
     clearedRooms: ["1F:4,4"],
+    hasMasterKey: false,
+    openedDoors: ["1F:5,2>east"],
+    openedChests: [],
+    keyItems: ["lantern"],
+    timesCleared: 1,
+    bloodMoons: 0,
     ...overrides,
   });
 
@@ -164,13 +170,19 @@ describe("TempleProgressDb", () => {
 
     const raw = browser().rows.get(PROGRESS)?.get(`${wanted.userId}:${wanted.templeId}`) as Record<string, unknown>;
     expect(Object.keys(raw).sort()).toEqual([
+      "bloodMoons",
       "clearedRooms",
       "currentLevel",
       "currentPosition",
       "hasCompass",
       "hasMap",
+      "hasMasterKey",
+      "keyItems",
+      "openedChests",
+      "openedDoors",
       "playerKeys",
       "templeId",
+      "timesCleared",
       "updatedAt",
       "userId",
       "visitedRooms",
@@ -238,6 +250,12 @@ describe("TempleProgressDb", () => {
       playerKeys: 0,
       visitedRooms: ["1F:0,0"],
       clearedRooms: [],
+      hasMasterKey: false,
+      openedDoors: [],
+      openedChests: [],
+      keyItems: [],
+      timesCleared: 0,
+      bloodMoons: 0,
       updatedAt: new Date(0).toISOString(),
     });
     expect(await db.getProgress("a", "not-a-record")).toBeNull();
@@ -370,6 +388,12 @@ describe("TempleSystem saves the progress of the hero it was opened for", () => 
       playerKeys: 3,
       visitedRooms: ["1F:0,0", "1F:0,1", "1F:0,2"],
       clearedRooms: [],
+      hasMasterKey: false,
+      openedDoors: [],
+      openedChests: [],
+      keyItems: [],
+      timesCleared: 0,
+      bloodMoons: 0,
     });
     const before = writesOf(HERO, id);
     let release!: () => void;

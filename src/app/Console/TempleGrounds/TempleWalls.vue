@@ -13,9 +13,9 @@
         <div class="doorway__glow"></div>
         <div class="doorway__jamb doorway__jamb--a"></div>
         <div class="doorway__jamb doorway__jamb--b"></div>
-        <template v-if="exits[side] === 'locked'">
+        <template v-if="exits[side] === 'locked' || exits[side] === 'master'">
           <div class="doorway__bars"></div>
-          <i class="fad fa-lock doorway__lock"></i>
+          <i class="fad fa-lock doorway__lock" :class="{ 'doorway__lock--master': exits[side] === 'master' }"></i>
         </template>
       </div>
     </div>
@@ -28,7 +28,7 @@ import type { ExitKind, WallSide } from "./templeWalls";
 
 withDefaults(
   defineProps<{
-    /** What each side of the room is, from the maze: a solid wall, an open door or a locked one */
+    /** What each side of the room is, from the maze: a solid wall, an open door, a locked one or the boss door */
     exits: Record<WallSide, ExitKind>;
     /** The temple's element picks the stone and metal colours */
     element?: string;
@@ -60,8 +60,8 @@ const CORNERS = ["nw", "ne", "sw", "se"];
   &--water  { --stone: #324650; --stone-dark: #1e2c34; --metal: #967d46; --metal-hi: #e6c882; --glow: #96e6f0; }
   &--earth  { --stone: #463a2c; --stone-dark: #2c2419; --metal: #8c643c; --metal-hi: #d2aa6e; --glow: #96be5a; }
   &--light  { --stone: #786446; --stone-dark: #4c3f2c; --metal: #dcb450; --metal-hi: #ffeb96; --glow: #fff0b4; }
-  &--shadow, &--moon { --stone: #282038; --stone-dark: #161020; --metal: #968caa; --metal-hi: #dcd2f0; --glow: #aa6eff; }
-  &--wind, &--storm { --stone: #5c4a5c; --stone-dark: #3a2c3a; --metal: #cd9646; --metal-hi: #fad78c; --glow: #fff2d0; }
+  &--shadow { --stone: #282038; --stone-dark: #161020; --metal: #968caa; --metal-hi: #dcd2f0; --glow: #aa6eff; }
+  &--wind   { --stone: #5c4a5c; --stone-dark: #3a2c3a; --metal: #cd9646; --metal-hi: #fad78c; --glow: #fff2d0; }
 }
 
 .wall {
@@ -201,6 +201,13 @@ const CORNERS = ["nw", "ne", "sw", "se"];
   --fa-secondary-color: var(--stone-dark);
   --fa-secondary-opacity: 1;
   filter: drop-shadow(0 1px 2px #000);
+}
+// The boss door: a bigger lock in gold, whatever the temple's metal
+.doorway__lock--master {
+  font-size: clamp(22px, 6.5vmin, 36px);
+  color: #ffd650;
+  --fa-secondary-color: #7a4a10;
+  filter: drop-shadow(0 0 6px #ffb028) drop-shadow(0 1px 2px #000);
 }
 
 @keyframes sconce-flicker {
