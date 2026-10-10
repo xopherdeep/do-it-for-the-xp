@@ -1,4 +1,4 @@
-
+import { DEFAULT_WALLET_LIMIT } from "@/lib/services/gp/wallet";
 interface XPStats {
   now: number;
   next_level: number;
@@ -99,7 +99,7 @@ export default class Stats {
       ledger: xp?.ledger,
     };
     this.gp = {
-      limit: gp?.limit || 100,
+      limit: gp?.limit || DEFAULT_WALLET_LIMIT,
       // Add calculated debt to existing debt (defaulting existing to 0 if nullish)
       debt: (Number(gp?.debt) || 0) + Number(debt),
       wallet: gp?.wallet ?? 0,

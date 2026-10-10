@@ -5,6 +5,7 @@ import { ProfileDb } from '@/lib/databases/ProfileDb';
 import { profileStorage } from '@/lib/databases/profileStorage';
 import type { HeroLook } from '@/lib/hero-look/types';
 import { getGPService } from '@/lib/services/gp/GPService';
+import { DEFAULT_WALLET_LIMIT, walletLimitOf } from '@/lib/services/gp/wallet';
 import {
   JOB_UNLOCK_REQUIREMENTS,
   getLevelFromXp,
@@ -221,17 +222,17 @@ export const useUserStore = defineStore('user', () => {
     const { userId, wallet, savings, debt } = payload;
 
     if (users[userId]) {
-      const userStats = users[userId].stats || { gp: { wallet: 0, savings: 0, debt: 0, limit: 1000 } };
+      const userStats = users[userId].stats || { gp: { wallet: 0, savings: 0, debt: 0, limit: DEFAULT_WALLET_LIMIT } };
 
       // Initialize stats if missing
-      if (!userStats.gp) userStats.gp = { wallet: 0, savings: 0, debt: 0, limit: 1000 };
+      if (!userStats.gp) userStats.gp = { wallet: 0, savings: 0, debt: 0, limit: DEFAULT_WALLET_LIMIT };
 
       if (wallet !== undefined) userStats.gp.wallet = (userStats.gp.wallet || 0) + wallet;
       if (savings !== undefined) userStats.gp.savings = (userStats.gp.savings || 0) + savings;
       if (debt !== undefined) userStats.gp.debt = (userStats.gp.debt || 0) + debt;
 
       // Wallet overflow protection: excess goes to savings (Earthbound-style ATM)
-      const walletLimit = userStats.gp.limit || 1000;
+      const walletLimit = walletLimitOf(userStats.gp);
       if (userStats.gp.wallet > walletLimit) {
         const overflow = userStats.gp.wallet - walletLimit;
         userStats.gp.wallet = walletLimit;
@@ -250,6 +251,27 @@ export const useUserStore = defineStore('user', () => {
       await getGPService().syncGP(userId);
       persistUser(userId);
     }
+  }
+
+  /**
+   * Replace the hero's purse wholesale: what a wallet upgrade from a world shop hands back
+   * (new limit, savings and wallet already charged). Persists like every other stat change.
+   */
+  function setWallet(userId: string, gp: { wallet?: number; savings?: number; debt?: number; limit?: number }) {
+    const user = users[userId];
+    if (!user) return;
+    const stats = user.stats || {};
+    const current = stats.gp || {};
+    stats.gp = {
+      ...current,
+      wallet: Number(gp.wallet ?? current.wallet) || 0,
+      savings: Number(gp.savings ?? current.savings) || 0,
+      debt: Number(gp.debt ?? current.debt) || 0,
+      limit: walletLimitOf({ limit: gp.limit ?? current.limit }),
+    };
+    user.stats = stats;
+    if (currentUser.id === userId) currentUser.stats = stats;
+    persistUser(userId);
   }
 
   /**
@@ -359,33 +381,6 @@ export const useUserStore = defineStore('user', () => {
   }
 
   /**
-   * Unlock a specific Pegasus for a user
-   */
-  function unlockPegasus(userId: string, pegasusIndex: number) {
-    if (users[userId]) {
-      const userStats = users[userId].stats || {};
-
-      // Initialize pegasi array if missing (9 slots for 9 worlds)
-      if (!userStats.pegasi) userStats.pegasi = Array(9).fill(false);
-
-      // Unlock
-      if (pegasusIndex >= 0 && pegasusIndex < userStats.pegasi.length) {
-        userStats.pegasi[pegasusIndex] = true;
-      }
-
-      // Update state
-      users[userId].stats = userStats;
-
-      // Update current user if matches
-      if (currentUser.id === userId) {
-        currentUser.stats = userStats;
-      }
-
-      persistUser(userId);
-    }
-  }
-
-  /**
    * When an equipped item is ready again on the board (ISO), or null to clear it. Kept on the profile as
    * `itemCooldowns[name]` (see services/quests/ItemEffects.ts).
    */
@@ -425,6 +420,33 @@ export const useUserStore = defineStore('user', () => {
     if (currentUser.id === userId) syncCurrentUser(user);
     persistUser(userId);
     return true;
+  }
+
+  /**
+   * Unlock a specific Pegasus for a user
+   */
+  function unlockPegasus(userId: string, pegasusIndex: number) {
+    if (users[userId]) {
+      const userStats = users[userId].stats || {};
+
+      // Initialize pegasi array if missing (9 slots for 9 worlds)
+      if (!userStats.pegasi) userStats.pegasi = Array(9).fill(false);
+
+      // Unlock
+      if (pegasusIndex >= 0 && pegasusIndex < userStats.pegasi.length) {
+        userStats.pegasi[pegasusIndex] = true;
+      }
+
+      // Update state
+      users[userId].stats = userStats;
+
+      // Update current user if matches
+      if (currentUser.id === userId) {
+        currentUser.stats = userStats;
+      }
+
+      persistUser(userId);
+    }
   }
 
   /**
@@ -835,6 +857,7 @@ export const useUserStore = defineStore('user', () => {
     loadUsers,
     addUser,
     updateUserGP,
+    setWallet,
     updateUserHP,
     updateUserMP,
     addInventoryItem,

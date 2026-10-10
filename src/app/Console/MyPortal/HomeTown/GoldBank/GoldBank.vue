@@ -58,92 +58,13 @@
       </ion-card>
     </div>
     
-    <!-- Hidden trigger buttons for alerts -->
-    <ion-button id="deposit-trigger" class="hidden-trigger"></ion-button>
-    <ion-button id="withdraw-trigger" class="hidden-trigger"></ion-button>
-    <ion-button id="pay-debt-trigger" class="hidden-trigger"></ion-button>
-    
-    <!-- Declarative Alerts -->
-    <ion-alert
-      trigger="deposit-trigger"
-      :header="`Deposit to Savings: (₲${user?.stats.gp.savings}.00)`"
-      :buttons="[
-        {
-          text: 'Cancel',
-          role: 'cancel'
-        },
-        {
-          text: 'Deposit',
-          handler: handleDeposit
-        }
-      ]"
-      :inputs="[
-        {
-          type: 'number',
-          placeholder: 'Enter GP amount',
-          min: 1,
-          max: user?.stats.gp.wallet
-        }
-      ]"
-    ></ion-alert>
-    
-    <ion-alert
-      trigger="withdraw-trigger"
-      :header="`Withdraw from Savings: (₲${user?.stats.gp.savings}.00)`"
-      :buttons="[
-        {
-          text: 'Cancel',
-          role: 'cancel'
-        },
-        {
-          text: 'Withdraw',
-          handler: handleWithdraw
-        }
-      ]"
-      :inputs="[
-        {
-          type: 'number',
-          placeholder: 'Enter GP amount',
-          min: 1,
-          max: user?.stats.gp.limit && user?.stats.gp.wallet && user?.stats.gp.savings 
-            ? Math.min(user.stats.gp.savings, user.stats.gp.limit - user.stats.gp.wallet) 
-            : 0
-        }
-      ]"
-    ></ion-alert>
-    
-    <ion-alert
-      trigger="pay-debt-trigger"
-      :header="`Pay Down Debt (₲${user?.stats.gp.debt}.00)`"
-      :buttons="[
-        {
-          text: 'Cancel',
-          role: 'cancel'
-        },
-        {
-          text: 'Pay',
-          handler: handlePayDebt
-        }
-      ]"
-      :inputs="[
-        {
-          type: 'number',
-          placeholder: 'Enter GP amount',
-          min: 1,
-          max: user?.stats.gp.wallet && user?.stats.gp.debt 
-            ? Math.min(user.stats.gp.wallet, user.stats.gp.debt)
-            : 0
-        }
-      ]"
-    ></ion-alert>
-    
     <!-- ATM Modal Component -->
     <ATMModal
       v-model:isOpen="showAtm"
       :user="user"
-      @withdraw="clickWithdraw"
-      @deposit="clickDeposit"
-      @payDebt="clickPayDebt"
+      @withdraw="withdrawSavings"
+      @deposit="depositGp"
+      @payDebt="payDebt"
     />
   </ion-page>
 </template>

@@ -12,9 +12,16 @@ import {
 } from "ionicons/icons";
 import { actionSheetController, alertController, toastController } from "@ionic/vue";
 import { useItemFetcher } from "@/hooks/useItemFetcher";
-import Stats from "@/lib/utils/User/stats";
 import { ProfileDb } from "@/lib/databases";
 import { profileStorage } from "@/lib/databases/profileStorage";
+import {
+  type BankMove,
+  type Purse,
+  depositToSavings,
+  payDownDebt,
+  withdrawFromSavings
+} from "@/lib/services/gp/wallet";
+import { type BankAction, bankReceipt, bankRefusal, gold } from "@/lib/services/gp/bankTeller";
 import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
 import ATMModal from "./components/ATMModal.vue";
 import debug from "@/lib/utils/debug";
@@ -27,6 +34,11 @@ interface XpTypingTextInstance {
   resetTyping: () => void;
   pauseTyping: () => void;
   resumeTyping: () => void;
+}
+
+/** What an alert prompt or the ATM hands back: the amount typed under the input named `gp` */
+interface GpAmount {
+  gp?: number | string;
 }
 
 export default defineComponent({
@@ -62,47 +74,6 @@ export default defineComponent({
         "Welcome to the Gold Bank! I'm the bank manager. How can I assist you with your finances today?",
         "We offer several banking services including deposits, withdrawals, and debt management.",
         "Our secure ATM is also available if you need to access your accounts or perform transactions."
-      ];
-    },
-    actionButtons() {
-      return [
-        {
-          text: 'Use ATM',
-          icon: calculatorOutline,
-          handler: () => {
-            this.openATM();
-          },
-        },
-        {
-          text: 'Withdraw from Savings',
-          icon: walletOutline,
-          handler: this.clickWithdraw,
-        },
-        {
-          text: 'Deposit to Savings',
-          icon: addCircleOutline,
-          handler: this.clickDeposit,
-        },
-        {
-          text: 'Pay down Debt',
-          icon: removeCircleOutline,
-          handler: this.clickPayDebt,
-        },
-        {
-          text: "Leave Bank",
-          icon: handLeftOutline,
-          handler: () => {
-            this.$router.go(-1)
-          }
-        },
-        {
-          text: 'Cancel',
-          icon: close,
-          role: 'cancel',
-          handler: () => {
-            // Cancel action
-          },
-        }
       ];
     }
   },
@@ -186,23 +157,17 @@ export default defineComponent({
             {
               text: 'Withdraw from Savings',
               icon: walletOutline,
-              handler: () => {
-                document.getElementById('withdraw-trigger')?.click();
-              },
+              handler: () => { this.clickWithdraw(); },
             },
             {
               text: 'Deposit to Savings',
               icon: addCircleOutline,
-              handler: () => {
-                document.getElementById('deposit-trigger')?.click();
-              },
+              handler: () => { this.clickDeposit(); },
             },
             {
               text: 'Pay down Debt',
               icon: removeCircleOutline,
-              handler: () => {
-                document.getElementById('pay-debt-trigger')?.click();
-              },
+              handler: () => { this.clickPayDebt(); },
             },
             {
               text: "Leave Bank",
@@ -224,241 +189,110 @@ export default defineComponent({
       await actionSheet.onDidDismiss();
     },
 
-    async clickPayDebt() {
-      const { wallet, debt } = this.user.stats.gp
-      const isWalletEmpty = wallet <= 0
-      if (isWalletEmpty) {
-        const alert = await alertController.create({
-          header: "Your wallet is empty!",
-          buttons: ["Ok"]
-        })
-        alert.present()
-      } else {
-        const alert = await alertController.create({
-          header: `Pay Down Debt (₲${debt}.00)`,
-          buttons: [{
-            text: "Cancel",
-            role: "cancel",
-            cssClass: "secondary",
-            handler: () => {
-              // debug.log("Confirm Cancel:", blah);
-            },
-          }, {
-            text: "Pay",
-            handler: this.payDebt,
-          }],
-          inputs: [{
-            placeholder: 'GP',
-            type: 'number',
-            name: "gp",
-            max: wallet < debt ? wallet : debt,
-            min: 0
-          }],
-        })
-        alert.present()
-      }
-    },
-
-    payDebt({ gp }: Stats) {
-      const wallet = Math.round(Number(this.user.stats.gp.wallet) - Number(gp))
-      const debt = Math.round(Number(this.user.stats.gp.debt) - Number(gp))
-      const updatedUser = {
-        ...this.user.stats,
-        gp: {
-          ...this.user.stats.gp,
-          wallet,
-          debt
-        }
-      }
-
-      const showToast = () => this.showToast(`Thank you for your payment of ${gp}. Your new balance is: ${debt}`)
-
-      this.profileDb
-        .updateStats(this.userId, updatedUser)
-        .then(this.loadUsers)
-        .then(showToast)
-
+    /** One prompt for an amount; the handler gets `{ gp }` from the input of that name. */
+    async promptAmount(header: string, confirm: string, max: number, handler: (data: GpAmount) => void) {
+      const alert = await alertController.create({
+        header,
+        buttons: [
+          { text: "Cancel", role: "cancel", cssClass: "secondary" },
+          { text: confirm, handler },
+        ],
+        inputs: [{
+          placeholder: 'GP',
+          type: 'number',
+          name: 'gp',
+          max,
+          min: 1
+        }],
+      })
+      await alert.present()
     },
 
     async clickWithdraw() {
       const { limit, wallet, savings } = this.user.stats.gp
-      const isWalletFull = wallet >= limit
-      if (isWalletFull) {
-        const alert = await alertController.create({
-          header: "Your wallet is full!",
-          buttons: ["Ok"]
-        })
-        alert.present()
-      } else {
-        const holdLimit = limit - wallet
-        const alert = await alertController.create({
-          header: `Withdraw from Savings: (₲${this.user.stats.gp.savings}.00)`,
-          buttons: [{
-            text: "Withdraw",
-            handler: this.withdrawSavings,
-          }],
-          inputs: [{
-            placeholder: 'GP',
-            type: 'number',
-            name: 'gp',
-            max: holdLimit >= savings ? savings : holdLimit,
-            min: 0
-          }],
-        })
-        alert.present()
+      const probe = withdrawFromSavings(this.user.stats.gp, savings)
+      const refusal = bankRefusal("withdraw", this.user.stats.gp, probe)
+      if (refusal) {
+        this.play$fx("no");
+        this.showToast(refusal)
+        return
       }
-
+      await this.promptAmount(
+        `Withdraw from Savings: (${gold(savings)})`,
+        "Withdraw",
+        Math.min(savings, Math.max(0, limit - wallet)),
+        this.withdrawSavings
+      )
     },
 
     async clickDeposit() {
       const { wallet, savings } = this.user.stats.gp
-      const isWalletEmpty = wallet <= 0
-      if (isWalletEmpty) {
-        const alert = await alertController.create({
-          header: "Your wallet is empty!",
-          buttons: ["Ok"]
-        })
-        alert.present()
-      } else {
-        const alert = await alertController.create({
-          header: `Deposit to Savings: (₲${savings}.00)`,
-          buttons: [{
-            text: "Deposit",
-            handler: this.depositGp,
-          }],
-          inputs: [{
-            placeholder: 'GP',
-            type: 'number',
-            name: 'gp',
-            max: wallet,
-            min: 1
-          }],
-        })
-        alert.present()
+      const probe = depositToSavings(this.user.stats.gp, wallet)
+      const refusal = bankRefusal("deposit", this.user.stats.gp, probe)
+      if (refusal) {
+        this.play$fx("no");
+        this.showToast(refusal)
+        return
       }
+      await this.promptAmount(`Deposit to Savings: (${gold(savings)})`, "Deposit", wallet, this.depositGp)
     },
 
-    withdrawSavings({ gp }: Stats) {
-      // If amount not provided (like from ATM), show dialog
-      if (!gp) {
-        this.clickWithdraw();
-        return;
+    async clickPayDebt() {
+      const { wallet, debt } = this.user.stats.gp
+      const probe = payDownDebt(this.user.stats.gp, wallet)
+      const refusal = bankRefusal("payDebt", this.user.stats.gp, probe)
+      if (refusal) {
+        this.play$fx("no");
+        this.showToast(refusal)
+        return
       }
-
-      const savings = Math.round(Number(this.user.stats.gp.savings) - Number(gp))
-      const wallet = Math.round(Number(this.user.stats.gp.wallet) + Number(gp))
-
-      const debt = savings < 0
-        ? Math.round(Number(this.user.stats.gp.debt) - Number(savings))
-        : this.user.stats.gp.debt
-
-
-      const updatedUser = {
-        ...this.user.stats,
-        gp: {
-          ...this.user.stats.gp,
-          wallet,
-          savings: savings > 0 ? savings : 0,
-          debt
-        }
-      }
-
-      const showToast = () => this.showToast(`₲${gp} GP Withdrawn. New Balance: ₲${savings}.`)
-
-      this.profileDb.updateStats(this.user.id, updatedUser)
-        .then(this.loadUsers)
-        .then(showToast)
+      await this.promptAmount(`Pay Down Debt (${gold(debt)})`, "Pay", Math.min(wallet, debt), this.payDebt)
     },
 
-    depositGp({ gp }: any) {
-      // If amount not provided (like from ATM), show dialog
-      if (!gp) {
-        this.clickDeposit();
-        return;
+    withdrawSavings({ gp }: GpAmount) {
+      this.applyMove("withdraw", withdrawFromSavings(this.user.stats.gp, Number(gp)))
+    },
+
+    depositGp({ gp }: GpAmount) {
+      this.applyMove("deposit", depositToSavings(this.user.stats.gp, Number(gp)))
+    },
+
+    payDebt({ gp }: GpAmount) {
+      this.applyMove("payDebt", payDownDebt(this.user.stats.gp, Number(gp)))
+    },
+
+    /** Every money move ends here: refuse with a reason, or save the purse the rules computed and read the receipt. */
+    applyMove(action: BankAction, move: BankMove) {
+      const before = this.user.stats.gp
+      const refusal = bankRefusal(action, before, move)
+      if (refusal) {
+        this.play$fx("no");
+        this.showToast(refusal)
+        return
       }
+      this.play$fx("select");
+      this.savePurse(move.gp, bankReceipt(action, before, move))
+    },
 
-      const wallet = Math.round(Number(this.user.stats.gp.wallet) - Number(gp))
-      const savings = Math.round(Number(this.user.stats.gp.savings) + Number(gp))
-      const debt = wallet < 0
-        ? Math.round(Number(this.user.stats.gp.debt) - Number(wallet))
-        : this.user.stats.gp.debt
-
-      const updatedUser = {
+    savePurse(purse: Purse, message: string) {
+      const updatedStats = {
         ...this.user.stats,
-        gp: {
-          ...this.user.stats.gp,
-          wallet: wallet > 0 ? wallet : 0,
-          savings,
-          debt
-        }
+        // keep the GP ledger and anything else the purse carries; the rules only speak for the four numbers
+        gp: { ...this.user.stats.gp, ...purse }
       }
-
-      const showToast = () => this.showToast(`Thank you for your deposit of ₲${gp}. Your new balance is: ₲${savings}`)
-
-      this.profileDb.updateStats(this.user.id, updatedUser)
+      return this.profileDb.updateStats(this.user.id, updatedStats)
         .then(this.loadUsers)
-        .then(showToast)
+        .then(() => this.showToast(message))
     },
 
     async showToast(message: string) {
       const toast = await toastController.create({
         message,
         duration: 3000,
-        position: 'bottom'
+        position: 'top',
+        cssClass: 'rpg-toast'
       })
       toast.present()
-    },
-
-    // Alert handlers for declarative alerts
-    handleDeposit(data: any) {
-      const amount = data[0].value;
-      if (amount && amount > 0) {
-        this.depositGp({ gp: amount });
-      }
-    },
-
-    handleWithdraw(data: any) {
-      const amount = data[0].value;
-      if (amount && amount > 0) {
-        // Create a minimal Stats object with just the gp property needed
-        const statsObj = {
-          level: 1,
-          xp: { now: 0, next_level: 100, ledger: [] },
-          gp: amount,
-          hp: { now: 0, max: 0, min: 0 },
-          mp: { now: 0, max: 0, min: 0 },
-          ap: { hour: [], day: [], week: [], month: [], year: [], total: 0, ledger: [] },
-          special: {
-            ledger: [],
-            strength: 0, defense: 0, endurance: 0, intelligence: 0, perception: 0,
-            wisdom: 0, charisma: 0, awareness: 0, presence: 0, agility: 0, guts: 0, luck: 0
-          },
-          ailments: []
-        };
-        this.withdrawSavings(statsObj);
-      }
-    },
-
-    handlePayDebt(data: any) {
-      const amount = data[0].value;
-      if (amount && amount > 0) {
-        // Create a minimal Stats object with just the gp property needed
-        const statsObj = {
-          level: 1,
-          xp: { now: 0, next_level: 100, ledger: [] },
-          gp: amount,
-          hp: { now: 0, max: 0, min: 0 },
-          mp: { now: 0, max: 0, min: 0 },
-          ap: { hour: [], day: [], week: [], month: [], year: [], total: 0, ledger: [] },
-          special: {
-            ledger: [],
-            strength: 0, defense: 0, endurance: 0, intelligence: 0, perception: 0,
-            wisdom: 0, charisma: 0, awareness: 0, presence: 0, agility: 0, guts: 0, luck: 0
-          },
-          ailments: []
-        };
-        this.payDebt(statsObj);
-      }
     },
   },
   setup(props) {
