@@ -8,21 +8,25 @@ Do It For The XP: a gamified family chore app (Vue 3 + Ionic 7 + Pinia + Capacit
 
 ## Commands
 
+**Chemical X first.** The owner's `chemx` CLI (and the `chemical-x` MCP tool) wraps every gate and read and prints only what matters. Never run `pnpm typecheck`, `pnpm lint`, `pnpm test` or `pnpm jest` raw: they flood the context. The same goes for subagents: put the chemx commands in their prompts.
+
 ```bash
+chemx verify                     # the gate: audit + typecheck + tests, one status card (run before every commit)
+chemx typecheck                  # errors only
+chemx lint                       # ESLint, grouped by file (warnings are tolerated, errors are not)
+chemx test tests/unit/Foo.spec.ts   # one spec, failures only (add -t "name" for one test)
+chemx read src/foo.ts --outline  # read by outline / symbol / lines instead of cat
+chemx q <symbol|text>            # search instead of grep
+chemx team task list|claim|done  # the board in .chemx/index.db; lock files with `chemx team lock`
 pnpm serve                       # ionic serve, dev server on :8100 (the owner usually has it running)
-pnpm typecheck                   # tsc --noEmit
-pnpm lint                        # vue-cli-service lint (warnings are tolerated, errors are not)
-pnpm test                        # jest 27 unit suite (tests/unit/*.spec.ts)
-pnpm jest tests/unit/Foo.spec.ts # one spec; add -t "name" for one test
 pnpm vue-cli-service test:e2e --headless --url http://localhost:8100 --spec tests/e2e/specs/battle.spec.js
                                  # Cypress 8 against a running server, 390x844; screenshots land in tests/e2e/screenshots
 pnpm build                       # ionic build (production uses hash routing and relative publicPath)
 python3 tools/chiptune/render_all.py [song...]   # re-render the chiptune soundtrack into src/assets/audio/chiptune
 python3 tools/art/temple_floors.py               # regenerate the procedural temple floor tiles
-chemx verify                     # the owner's wrapper that runs the gate and prints only failures
 ```
 
-Gate before every commit: typecheck, lint, jest. Commit small and push to `origin master` when the owner has asked for pushes. The `docs/` folder is a git submodule.
+Gate before every commit: `chemx verify`. Commit small and push to `origin master` when the owner has asked for pushes. The `docs/` folder is a git submodule.
 
 E2E seams: in development `window.__xp` exposes `restoreBackup`, `loginUser`, `getUser`; `cy.seedWorld()` loads `tests/e2e/fixtures/battle-backup.json` and `cy.tapToWakeAudio()` unlocks audio. `three` must be transformed for jest (`tests/jest/esm-transform.js`).
 
