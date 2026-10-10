@@ -2,15 +2,15 @@ export * from './BattleService';
 export * from './BestiaryService';
 
 // Factory functions to create service instances
-import { BattleService } from './BattleService';
+import { BattleService, type BattleServiceOptions } from './BattleService';
 import { BestiaryService } from './BestiaryService';
 
 /**
  * Create a battle service instance
- * @param devMode Whether to enable dev mode (optional)
+ * @param options `freeFight: true` for random encounters and Test Fight, where Run Away always works
  */
-export const createBattleService = (devMode: boolean = false): BattleService => {
-  return new BattleService(devMode);
+export const createBattleService = (options?: BattleServiceOptions): BattleService => {
+  return new BattleService(options);
 };
 
 /**

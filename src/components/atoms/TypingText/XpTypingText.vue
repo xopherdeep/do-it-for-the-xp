@@ -54,6 +54,11 @@ export default defineComponent({
     hasMoreText: {
       type: Boolean,
       default: false
+    },
+    /** Tapping the text finishes (or restarts) the typing. Hosts that own the tap, like the battle dialog, turn this off. */
+    interactive: {
+      type: Boolean,
+      default: true
     }
   },
 
@@ -235,15 +240,19 @@ export default defineComponent({
         startTyping();
       }
       
-      if (textContainer.value) {
+      if (props.interactive && textContainer.value) {
         textContainer.value.addEventListener('click', handleClick);
       }
     });
 
     // Clean up on unmount
     onBeforeUnmount(() => {
-       resetTypingState();
-      
+      resetTypingState();
+      // Leaving mid-line must not leave the typewriter blip looping
+      if (isTyping.value && props.playSound) {
+        play$fx(props.soundType, { stop: true });
+      }
+
       if (textContainer.value) {
         textContainer.value.removeEventListener('click', handleClick);
       }

@@ -1,0 +1,96 @@
+{
+  "version": 1,
+  "exportedAt": "2026-10-09T00:00:00.000Z",
+  "stores": {
+    "__profiles": [
+      {
+        "key": "hero-1",
+        "value": {
+          "id": "hero-1",
+          "email": "",
+          "passcode": "",
+          "name": { "full": "Max Power", "first": "Max", "last": "Power", "middle": "", "nick": "Max" },
+          "birthday": "2017-04-12",
+          "avatar": "003-gamer",
+          "favoriteThing": "dinosaurs",
+          "favoriteFood": "pizza",
+          "jobClass": "warrior",
+          "isAdult": false,
+          "stats": {
+            "level": 3,
+            "xp": { "now": 300, "next_level": 900, "ledger": [] },
+            "gp": { "limit": 100, "debt": 0, "wallet": 40, "savings": 100, "ledger": [] },
+            "hp": { "now": 42, "max": 42, "min": 0 },
+            "mp": { "now": 12, "max": 12, "min": 0 },
+            "ap": { "hour": [], "day": [], "week": [], "month": [], "year": [], "total": 4, "ledger": [] },
+            "special": { "ledger": [], "strength": 12, "defense": 8, "endurance": 9, "intelligence": 8, "perception": 7, "wisdom": 6, "charisma": 8, "awareness": 7, "presence": 6, "agility": 9, "guts": 10, "luck": 7 },
+            "ailments": []
+          }
+        }
+      }
+    ],
+    "__beasts": [
+      {
+        "key": "beast-socktopus",
+        "value": {
+          "id": "beast-socktopus",
+          "name": "Socktopus",
+          "checklist": ["Sort the socks", "Match the pairs", "Put them away"],
+          "avatar": 7,
+          "achievementIds": ["quest-socks"],
+          "bg1": 219,
+          "bg2": 218,
+          "aspectRatio": 48
+        }
+      },
+      {
+        "key": "beast-dishgoblin",
+        "value": {
+          "id": "beast-dishgoblin",
+          "name": "Dish Goblin",
+          "checklist": ["Scrape the plates", "Load the dishwasher", "Wipe the counter", "Start the cycle"],
+          "avatar": 12,
+          "achievementIds": [],
+          "bg1": 42,
+          "bg2": 118,
+          "aspectRatio": 48
+        }
+      }
+    ],
+    "__achievementCategories": [
+      { "key": "cat-home", "value": { "id": "cat-home", "name": "Around the House" } }
+    ],
+    "__achievements": [
+      {
+        "key": "quest-socks",
+        "value": {
+          "id": "quest-socks",
+          "achievementName": "Tame the Socktopus",
+          "categoryId": "cat-home",
+          "beastId": "beast-socktopus",
+          "subAchievementIds": [],
+          "requiresApproval": false,
+          "bonusAchievement": false,
+          "assignee": ["hero-1"],
+          "type": "individual",
+          "startsOn": "2026-01-01T00:00:00.000Z",
+          "endsOn": "",
+          "dueByTime": "",
+          "basicSchedule": "daily",
+          "scheduleType": "basic",
+          "showDailyUntilComplete": true,
+          "customFrequency": 1,
+          "customPeriodType": "day",
+          "customPeriodNumber": 1,
+          "repeatOnDays": [],
+          "difficulty": 2,
+          "xp": 120,
+          "gp": 30,
+          "ap": 2,
+          "adventureType": "beast"
+        }
+      }
+    ],
+    "__questLog": []
+  }
+}

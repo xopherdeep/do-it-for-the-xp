@@ -97,6 +97,13 @@ const routes: Array<RouteRecordRaw> = [
     meta: { faIcon: "dungeon", battleKind: "temple" },
     component: () => import("@/app/Console/BattleField/BattleField.vue"),
   },
+  // One-URL way to start a fight with whoever is signed in: /battle (random beast) or /battle?beastIds=a,b
+  {
+    path: "/battle",
+    name: "battle-now",
+    meta: { faIcon: "dungeon", battleKind: "free" },
+    component: () => import("@/app/Console/BattleField/BattleField.vue"),
+  },
   {
     path: "/battle/:userId/free/:beastIds?",
     name: "battle-free",

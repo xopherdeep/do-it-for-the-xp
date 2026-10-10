@@ -1,3 +1,6 @@
+// Battle Field page: the three-zone layout, the message box and the shared motion.
+// The beast, the hero card, the checklist sheet and the victory card style themselves.
+
 .battlefield {
   display: flex;
   flex-direction: column;
@@ -9,404 +12,221 @@
 
   .battle-bg {
     position: absolute;
-    top: 0;
-    left: 0;
+    inset: 0;
     width: 100%;
     height: 100%;
-    object-fit: cover;
     z-index: 0;
   }
 
   // ============================================
-  // FLUID FLEXBOX LAYOUT SYSTEM
-  // Three zones: Top (dialog) | Middle (enemy) | Bottom (player HUD)
+  // Three zones: Top (message box) | Middle (arena) | Bottom (hero)
   // ============================================
-
   .battle-ui-container {
     position: relative;
     z-index: 1;
     width: 100%;
+    max-width: 720px;
     height: 100%;
+    margin: 0 auto;
     display: flex;
     flex-direction: column;
-    padding: 8px;
+    align-items: center;
     gap: 8px;
+    padding: calc(8px + env(safe-area-inset-top, 0px)) 8px calc(8px + env(safe-area-inset-bottom, 0px));
 
-    // Battle Zone System - no overlap, fluid layout
+    &.screen-shake {
+      animation: screen-shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+
     .battle-zone {
       width: 100%;
       display: flex;
       justify-content: center;
       align-items: center;
 
-      // TOP ZONE: Dialog/Menu (auto height based on content)
+      // The box keeps its room even while empty, so the arena never jumps
       &--top {
         flex-shrink: 0;
-        min-height: 80px;
+        height: 176px;
+        align-items: flex-start;
         z-index: 100;
       }
 
-      // MIDDLE ZONE: Enemy display (flexible - takes remaining space)
       &--middle {
         flex: 1;
-        min-height: 150px;
+        min-height: 180px;
         position: relative;
-        overflow: hidden;
       }
 
-      // BOTTOM ZONE: Player HUD (fixed height)
+      // The eb-box rings reach 16px outside the card: leave them room
       &--bottom {
         flex-shrink: 0;
-        min-height: 120px;
-        padding-bottom: env(safe-area-inset-bottom, 0);
+        padding: 20px 20px 20px;
         z-index: 50;
       }
     }
+  }
 
-    // Enemy container - now relative within the middle zone
-    .enemy-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      width: 100%;
-      height: 100%;
+  // The red sting when the beast lands a hit
+  .hit-flash {
+    position: absolute;
+    inset: 0;
+    z-index: 150;
+    pointer-events: none;
+    opacity: 0;
+    background: radial-gradient(ellipse at center, rgba(255, 0, 0, 0) 35%, rgba(230, 0, 40, 0.6) 100%);
+    transition: opacity 0.15s ease-out;
 
-      .enemy-sprite-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        transition: all 0.3s ease;
+    &.is-on {
+      opacity: 1;
+      transition: none;
+    }
+  }
 
-        // Default size (monster) - use max dimensions to fit in zone
-        width: 55%;
-        max-width: 400px;
-        max-height: 60%;
+  // ============================================
+  // The Earthbound message box (BattleDialogBox)
+  // ============================================
+  .battle-dialog {
+    width: calc(100% - 40px);
+    max-width: 700px;
+    margin: 18px 20px;
+    padding: 5px 0 0;
+    min-height: 70px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    position: relative; // for the more indicator
 
-        &.monster {
-          width: 55%;
-        }
+    // Theme the inner Ionic components with a clear background and RPG yellow text
+    --ion-color-primary: transparent;
+    --ion-color-primary-rgb: var(--ion-color-rpg-rgb);
+    --ion-color-primary-contrast: var(--ion-color-rpg);
+    --ion-color-primary-shade: transparent;
+    --ion-color-primary-tint: rgba(255, 255, 255, 0.1);
 
-        &.miniboss {
-          width: 75%;
-        }
+    border-radius: 1px;
+    box-shadow:
+      0 0 0 5px #383050, // medium purple
+      0 0 0 10px #68d0b8, // minty blue
+      0 0 0 12px #f7e8a8, // pale yellow
+      0 0 0 16px #3d3c55; // slate
+    background-color: #280828; // dark purple
+    color: var(--ion-color-rpg); // rpg yellow text
 
-        &.boss {
-          width: 90%;
-          max-width: 500px;
-        }
+    .dialog-content {
+      font-family: inherit;
+      font-size: 1.2rem;
+      line-height: 1.4;
+      max-height: 200px;
+      overflow-y: auto;
+      cursor: pointer;
+      // Tapping the box never selects text or zooms
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
 
-        &.appear {
-          animation: enemy-appear 0.5s ease-out;
-        }
+      // Accumulated lines for level-up (Earthbound style)
+      .accumulated-lines {
+        margin-bottom: 8px;
 
-        &.damaged {
-          animation: enemy-damaged 0.3s ease-in-out;
-        }
-
-        &.fadeout {
-          animation: enemy-fadeout 1s ease-in forwards;
-        }
-
-        &.victory-strobe {
-          animation: victory-strobe 0.2s infinite alternate;
-        }
-
-        &.victory-fadeout {
-          animation: victory-fadeout 1s ease-in forwards;
-        }
-
-        .enemy-sprite {
-          width: 100%;
-          height: auto;
-          max-height: 100%;
-          object-fit: contain;
-          filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.5));
-        }
-
-        .enemy-emoji {
-          font-size: clamp(48px, 15vw, 100px);
-        }
-
-        .enemy-placeholder {
-          width: 100px;
-          height: 100px;
-          background-color: rgba(0, 0, 0, 0.5);
-          border-radius: 50%;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          font-size: 40px;
-          color: white;
-        }
-      }
-
-      // Simple progress bar below enemy
-      .enemy-bars {
-        width: 80%;
-        max-width: 300px;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        margin-top: 15px;
-        flex-shrink: 0;
-      }
-
-      .enemy-progress-bar-container {
-        width: 100%;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-
-        .attack-icon {
-          font-size: 32px; // Large enough to see clearly
-          color: #ff9900;
-          filter: drop-shadow(0 0 8px rgba(255, 153, 0, 0.6));
-          flex-shrink: 0;
-        }
-
-        .hp-icon {
-          font-size: 28px;
-          color: #ff4444;
-          filter: drop-shadow(0 0 8px rgba(255, 68, 68, 0.7));
-          flex-shrink: 0;
-        }
-
-        &.hp {
+        .accumulated-line {
+          animation: fadeInLine 0.3s ease-out forwards;
           margin-bottom: 4px;
-        }
-      }
 
-      .enemy-progress-bar {
-        width: 100%;
-        height: 16px;
-        background-color: rgba(0, 0, 0, 0.8);
-        border: 2px solid rgba(255, 255, 255, 0.5);
-        border-radius: 8px;
-        overflow: hidden;
-        position: relative;
-        flex: 1;
-
-        &.hp {
-          height: 20px;
-          background-color: rgba(0, 0, 0, 0.7);
-          border-color: rgba(255, 68, 68, 0.5);
-          box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
-        }
-
-        &.attack-timer {
-          height: 18px; // Slightly thinner than HP for hierarchy
-          background-color: rgba(0, 0, 0, 0.6);
-          border-color: rgba(255, 200, 0, 0.4);
-          box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
-        }
-
-        .enemy-progress-fill {
-          height: 100%;
-          transition: width 0.3s ease-out;
-
-          &.hp {
-            background: linear-gradient(90deg, #ff4444 0%, #ff8888 100%);
-            box-shadow: 0 0 12px rgba(255, 68, 68, 0.6);
+          &:last-child {
+            margin-bottom: 8px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding-bottom: 8px;
           }
-
-          &.attack {
-            background: linear-gradient(90deg, #ffcc00 0%, #ff6600 100%);
-            box-shadow: 0 0 10px rgba(255, 153, 0, 0.7);
-            transition: width 0.1s linear; // Smoother for a timer
-
-            // Add a pulse when nearly empty (less than 30%)
-            &[style*="width: 1"],
-            &[style*="width: 2"],
-            &[style*="width: 0"] {
-              filter: brightness(1.2);
-              animation: timer-pulse 0.5s infinite alternate;
-            }
-          }
-        }
-
-        .progress-label {
-          position: absolute;
-          width: 100%;
-          height: 100%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          left: 0;
-          top: 0;
-          font-family: 'StatusPlz', sans-serif;
-          font-size: 11px;
-          font-weight: bold;
-          color: white;
-          text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
-          letter-spacing: 1px;
-          pointer-events: none;
-          z-index: 10;
         }
       }
     }
 
-    .battle-message {
-      display: none;
+    &.is-victory .dialog-content {
+      color: #fff2b0;
+      text-shadow: 0 0 10px rgba(255, 220, 120, 0.45);
     }
 
-    .battle-dialog {
-      width: calc(100% - 40px);
-      max-width: 700px;
-      margin: 18px 20px;
-      padding: 5px 0 0;
-
-      min-height: 70px;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      position: relative; // for the more indicator
-
-      // Override primary color to theme all inner Ionic components (like ion-button)
-      // using clear background and RPG yellow text
-      --ion-color-primary: transparent;
-      --ion-color-primary-rgb: var(--ion-color-rpg-rgb);
-      --ion-color-primary-contrast: var(--ion-color-rpg);
-      --ion-color-primary-shade: transparent;
-      --ion-color-primary-tint: rgba(255, 255, 255, 0.1);
-
-      // Earthbound RPG Box styling
-      border-radius: 1px;
-      box-shadow:
-        0 0 0 5px #383050, // medium purple
-        0 0 0 10px #68d0b8, // minty blue
-        0 0 0 12px #f7e8a8, // pale yellow
-        0 0 0 16px #3d3c55; // slate
-      background-color: #280828; // dark purple
-      color: var(--ion-color-rpg); // rpg yellow text
-
-      .dialog-content {
-        font-family: inherit;
-        font-size: 1.2rem;
-        line-height: 1.4;
-        max-height: 200px;
-        overflow-y: auto;
-
-        // Accumulated lines for level-up (Earthbound style)
-        .accumulated-lines {
-          margin-bottom: 8px;
-
-          .accumulated-line {
-            animation: fadeInLine 0.3s ease-out forwards;
-            margin-bottom: 4px;
-
-            &:last-child {
-              margin-bottom: 8px;
-              border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-              padding-bottom: 8px;
-            }
-          }
-        }
-      }
-
-      .dialog-more-indicator {
-        position: absolute;
-        bottom: 5px;
-        right: 15px;
-        font-size: 20px;
-        animation: bounce 0.5s infinite alternate;
-        color: var(--ion-color-rpg);
-      }
-    }
-
-    .dev-controls {
+    .dialog-more-indicator {
       position: absolute;
-      top: 10px;
-      right: 10px;
-      z-index: 20;
+      bottom: 5px;
+      right: 15px;
+      font-size: 20px;
+      animation: bounce 0.5s infinite alternate;
+      color: var(--ion-color-rpg);
     }
 
-    // Screen shake animation for player hit
-    &.screen-shake {
-      animation: screen-shake 0.5s cubic-bezier(.36, .07, .19, .97) both;
+    // A hint or a question above the command menu
+    .dialog-prompt {
+      margin: 6px 16px 0;
+      font-family: "StatusPlz", monospace;
+      font-size: 0.95rem;
+      letter-spacing: 1px;
+      color: #e7e6b3;
+      opacity: 0.9;
+    }
+
+    // Thumb-sized command rows; Attack spans both columns (fullWidth)
+    .dialog-menu .menu-item {
+      min-height: 52px;
+    }
+  }
+
+  // The victory card floats over the folded arena, centered, and never shakes with the HUD
+  .victory-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 300;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    pointer-events: none;
+
+    > * {
+      pointer-events: auto;
     }
   }
 }
 
-// Animations
-@keyframes enemy-appear {
+// ============================================
+// Transitions owned by the page
+// ============================================
+// The checklist slides up from the bottom edge
+.sheet-enter-active,
+.sheet-leave-active {
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.22s ease;
+}
+
+.sheet-enter-from,
+.sheet-leave-to {
+  transform: translateY(100%);
+  opacity: 0;
+}
+
+// The victory card pops in, then fades out on the tap
+.victory-pop-enter-active {
+  animation: victory-pop 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.35);
+}
+
+.victory-pop-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.victory-pop-leave-to {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+@keyframes victory-pop {
   0% {
     opacity: 0;
-    transform: translateY(-20px);
+    transform: scale(0.6);
   }
 
   100% {
     opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes enemy-damaged {
-  0% {
-    transform: translateX(0);
-    filter: brightness(1);
-  }
-
-  33% {
-    transform: translateX(-10px);
-    filter: brightness(2) sepia(1) hue-rotate(-50deg);
-  }
-
-  66% {
-    transform: translateX(10px);
-    filter: brightness(2) sepia(1) hue-rotate(-50deg);
-  }
-
-  100% {
-    transform: translateX(0);
-    filter: brightness(1);
-  }
-}
-
-@keyframes enemy-fadeout {
-  0% {
-    opacity: 1;
-  }
-
-  100% {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-}
-
-@keyframes victory-strobe {
-  0% {
-    filter: brightness(1);
     transform: scale(1);
-  }
-
-  100% {
-    filter: brightness(2);
-    transform: scale(1.1);
-  }
-}
-
-@keyframes victory-fadeout {
-  0% {
-    opacity: 1;
-    filter: brightness(2);
-    transform: scale(1.1);
-  }
-
-  100% {
-    opacity: 0;
-    filter: brightness(0);
-    transform: scale(0.5);
-  }
-}
-
-@keyframes message-pulse {
-  0% {
-    transform: translate(-50%, -50%) scale(1);
-  }
-
-  100% {
-    transform: translate(-50%, -50%) scale(1.05);
   }
 }
 
@@ -421,7 +241,6 @@
 }
 
 @keyframes screen-shake {
-
   0%,
   100% {
     transform: translateX(0);
@@ -429,22 +248,12 @@
 
   20%,
   60% {
-    transform: translateX(-5px);
+    transform: translateX(-6px);
   }
 
   40%,
   80% {
-    transform: translateX(5px);
-  }
-}
-
-@keyframes timer-pulse {
-  0% {
-    filter: brightness(1);
-  }
-
-  100% {
-    filter: brightness(1.5);
+    transform: translateX(6px);
   }
 }
 
@@ -460,16 +269,21 @@
   }
 }
 
-// Name plate above the beast (added with the composable rebuild)
-.battlefield .enemy-container .enemy-name {
-  display: inline-block;
-  margin: 0 auto 0.5rem;
-  padding: 0.25rem 0.75rem;
-  font-family: "Press Start 2P", monospace;
-  font-size: 0.65rem;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: #fff;
-  background: rgba(0, 0, 0, 0.55);
-  border-radius: 4px;
+@media (prefers-reduced-motion: reduce) {
+  .battlefield .battle-ui-container.screen-shake,
+  .battlefield .dialog-more-indicator,
+  .victory-pop-enter-active {
+    animation: none;
+  }
+
+  .sheet-enter-active,
+  .sheet-leave-active,
+  .victory-pop-leave-active {
+    transition: opacity 0.15s ease;
+  }
+
+  .sheet-enter-from,
+  .sheet-leave-to {
+    transform: none;
+  }
 }

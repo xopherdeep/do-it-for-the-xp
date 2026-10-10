@@ -4,6 +4,9 @@ import { BackgroundLayer, Engine } from "earthbound-battle-backgrounds";
 // Define constants for valid background range
 const MIN_BG_INDEX = 0;
 const MAX_BG_INDEX = 325; // Based on the library's available backgrounds
+/** The SNES frame the earthbound-battle-backgrounds engine renders; CSS scales it to the page. */
+const ENGINE_FRAME_WIDTH = 256;
+const ENGINE_FRAME_HEIGHT = 224;
 const DEFAULT_BG1 = 219; // Default background 1 (Starman Junior)
 const DEFAULT_BG2 = 218; // Default background 2
 
@@ -337,10 +340,11 @@ class BackgroundManager {
 
       timeout = setTimeout(() => {
         if (this.canvasElement && this.backgroundEngine) {
-          // Update canvas dimensions
-          this.canvasElement.width = window.innerWidth;
-          this.canvasElement.height = window.innerHeight;
-          // The engine will adapt automatically to the new canvas size
+          // The engine paints a fixed 256x224 SNES frame and CSS stretches the canvas to the page, so
+          // the backing store must keep the engine's size. Resizing it to the window used to leave the
+          // frame in the top-left corner and the rest of the arena black after any resize event.
+          this.canvasElement.width = ENGINE_FRAME_WIDTH;
+          this.canvasElement.height = ENGINE_FRAME_HEIGHT;
         }
       }, 250);
     };

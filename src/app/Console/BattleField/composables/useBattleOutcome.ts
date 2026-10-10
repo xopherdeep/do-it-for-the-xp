@@ -3,15 +3,17 @@ import type { Router } from "vue-router";
 import { TempleSystem } from "@/lib/engine/core/dungeons/TempleSystem";
 import type { QuestRewards } from "@/lib/databases/QuestLogDb";
 import type { Enemy } from "@/lib/services/battle/BattleService";
-import { recordBattleCompletion } from "@/lib/services/quests/QuestCompletionService";
+import { completeQuest, recordBattleCompletion } from "@/lib/services/quests/QuestCompletionService";
 import { useUserStore, type ClassLevelUpInfo, type LevelUpInfo } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
 import { battleReturnRoute, type BattleContext } from "../battle/battleContext";
 import { resolveRewards } from "../battle/battleRewards";
+import type { EnemyAnimation, VictoryCardState } from "../battle/battleView";
 import type { Encounter } from "../battle/encounterLoader";
 import type { BattleAudio } from "./useBattleAudio";
 import type { BattleBackground } from "./useBattleBackground";
 import type { BattleDialog, DialogItem } from "./useBattleDialog";
+import type { BattleFeedback } from "./useBattleFeedback";
 
 export interface BattleOutcomeDeps {
   ctx: BattleContext;
@@ -19,17 +21,32 @@ export interface BattleOutcomeDeps {
   dialog: BattleDialog;
   audio: BattleAudio;
   background: BattleBackground;
-  enemyAnimationClass: Ref<string>;
+  feedback: BattleFeedback;
+  enemyAnimationClass: Ref<EnemyAnimation>;
   router: Router;
+  /** Shows the victory card and resolves once the hero taps it away. */
+  presentVictory: (card: VictoryCardState) => Promise<void>;
 }
+
+/** What the fight is remembered by on the victory card. */
+export interface FightStats {
+  choresDone: number;
+  elapsedMs: number;
+}
+
+/** The celebration beats, in ms: the beast strobes, the arena folds away, the beast fades. */
+export const VICTORY_TIMINGS = { strobe: 1000, collapse: 750, fade: 1000 } as const;
+/** The beast fades before the hero walks away from an escape. */
+export const ESCAPE_FADE_MS = 700;
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
 
 /**
- * How a battle ends. Rewards are credited and outcomes recorded the moment the
- * last beast falls, so leaving early, reloading or a crash can never lose them;
- * the victory dialog that follows is purely celebration.
+ * How a battle ends. Rewards are credited (or held for the Game Master) and outcomes recorded
+ * the moment the last beast falls, so leaving early, reloading or a crash can never lose them;
+ * the strobe, the fanfare and the victory card that follow are purely celebration.
+ * Every fight ends with the hero at full HP: max HP is how many slow chores one fight can afford.
  */
 export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
   const userStore = useUserStore();
@@ -63,16 +80,26 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     }
   };
 
+  /** The Game Master approves this quest first: log it as pending, pay nothing yet. */
+  const holdOutcome = async (quest: NonNullable<Encounter["quest"]>) => {
+    await completeQuest(quest, ctx.userId, "battle").catch((error) =>
+      debug.error("Failed to log the battle for approval", error)
+    );
+  };
+
+  const restoreHeroHp = () => {
+    const stats = userStore.users[ctx.userId]?.stats;
+    const missing = (stats?.hp?.max ?? 0) - (stats?.hp?.now ?? 0);
+    if (missing > 0) userStore.updateUserHP({ userId: ctx.userId, amount: missing });
+  };
+
   const levelUpLines = (levelUp: LevelUpInfo | null, classLevelUp: ClassLevelUpInfo | null): DialogItem[] => {
     const lines: DialogItem[] = [];
     const user = userStore.users[ctx.userId];
     const heroName = user?.name?.nick || user?.name?.first || "You";
 
     if (levelUp?.didLevelUp) {
-      lines.push(() => {
-        dialog.enableAppendMode();
-        audio.playSound("levelUp");
-      });
+      lines.push(() => dialog.enableAppendMode());
       lines.push(`${heroName} grew to Level ${levelUp.newLevel}!`);
       if (levelUp.hpGained > 0) lines.push(`Max HP increased by ${levelUp.hpGained}!`);
       if (levelUp.mpGained > 0) lines.push(`Max MP increased by ${levelUp.mpGained}!`);
@@ -93,48 +120,78 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     return lines;
   };
 
-  const celebrateVictory = async (defeated: Enemy[]) => {
+  const celebrateVictory = async (defeated: Enemy[], stats: FightStats) => {
     const encounter = deps.encounter.value;
-    const rewards = resolveRewards(encounter, defeated);
-    const anyBoss = defeated.some((enemy) => enemy.isBoss);
+    const quest = encounter?.quest;
+    const rewards = resolveRewards(encounter, defeated, ctx.kind);
+    const held = ctx.kind === "quest" && Boolean(quest?.requiresApproval);
 
+    // 1. Pay (or hold) first, celebrate after: nothing below can lose the loot.
+    let levelUp: LevelUpInfo | null = null;
+    let classLevelUp: ClassLevelUpInfo | null = null;
+    if (held && quest) {
+      await holdOutcome(quest);
+    } else {
+      ({ levelUp, classLevelUp } = commitRewards(rewards));
+      await recordOutcome(rewards);
+    }
+    restoreHeroHp();
+
+    // 2. The beast strobes, the arena folds away, the beast is gone.
+    dialog.clear();
     deps.enemyAnimationClass.value = "victory-strobe";
-    audio.playSound("win");
-    audio.playVictoryBgm(anyBoss);
-
-    const { levelUp, classLevelUp } = commitRewards(rewards);
-    await recordOutcome(rewards);
-
-    await wait(1000);
-    await deps.background.collapse(750);
+    await wait(VICTORY_TIMINGS.strobe);
+    await deps.background.collapse(VICTORY_TIMINGS.collapse);
     deps.enemyAnimationClass.value = "victory-fadeout";
+    await wait(VICTORY_TIMINGS.fade);
+
+    // 3. Fanfare, then the card counts the loot up and waits for a tap.
+    const leveled = Boolean(levelUp?.didLevelUp);
+    audio.playFanfare(leveled ? "levelUp" : "win");
+    deps.feedback.victory();
+    const label = encounter?.label || defeated[0]?.name || "The enemy";
+    await deps.presentVictory({
+      title: quest ? "QUEST TAMED!" : "VICTORY!",
+      subtitle: `${label} was defeated!`,
+      rewards,
+      questName: quest?.achievementName,
+      choresDone: stats.choresDone,
+      elapsedMs: stats.elapsedMs,
+      held,
+      levelUp: leveled && levelUp ? { from: levelUp.oldLevel, to: levelUp.newLevel } : undefined,
+    });
+
+    // 4. Level ups read like Earthbound, then the walk home.
+    const lines = held ? [] : levelUpLines(levelUp, classLevelUp);
+    if (!lines.length) {
+      leaveBattle();
+      return;
+    }
     dialog.isVictoryMessage.value = true;
-
-    const lines: DialogItem[] = ["You Won!", `${encounter?.label || defeated[0]?.name || "The enemy"} was defeated!`];
-    if (encounter?.quest) lines.push(`Quest complete: ${encounter.quest.achievementName} tamed!`);
-    if (rewards.gp > 0) lines.push(`${rewards.gp} GP added to your wallet!`);
-    if (rewards.xp > 0) lines.push(`You gained ${rewards.xp} XP!`);
-    if (rewards.ap > 0) lines.push(`You earned ${rewards.ap} AP!`);
-    lines.push(...levelUpLines(levelUp, classLevelUp));
-    lines.push(() => leaveBattle());
-    dialog.enqueue(lines);
+    dialog.enqueue([...lines, () => leaveBattle()]);
   };
 
-  /** The service has already queued "has fallen / blacked out"; we add the exit. */
+  /** The service has already queued "has fallen / blacked out"; the hospital splash narrates the rest. */
   const handlePlayerDefeated = () => {
+    audio.stopBgm();
     audio.playSound("die");
-    dialog.enqueue([() => deps.router.replace({ name: "game-over" })]);
+    dialog.enqueue([
+      () => {
+        restoreHeroHp();
+        void deps.router.replace({ name: "game-over" });
+      },
+    ]);
   };
 
-  /** The service has already queued "Got away safely!"; we add the exit. */
+  /** The service has already queued "Got away safely!"; the beast fades, then the hero leaves. */
   const handleEscape = () => {
     dialog.enqueue([
       () => {
         deps.enemyAnimationClass.value = "fadeout";
+        window.setTimeout(() => void leaveBattle(), ESCAPE_FADE_MS);
       },
-      () => leaveBattle(),
     ]);
   };
 
-  return { celebrateVictory, handlePlayerDefeated, handleEscape, leaveBattle };
+  return { celebrateVictory, handlePlayerDefeated, handleEscape, leaveBattle, restoreHeroHp };
 };

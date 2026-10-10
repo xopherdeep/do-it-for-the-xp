@@ -92,9 +92,15 @@ describe("battleRewards", () => {
   it("prefers Game-Master-authored rewards and otherwise sums every defeated beast", () => {
     const authored = { xp: 200, gp: 20, ap: 2 };
     expect(resolveRewards({ enemies: [], rewards: authored, label: "x" }, [enemy()])).toEqual(authored);
-    expect(resolveRewards({ enemies: [], rewards: null, label: "x" }, [enemy(), enemy()])).toEqual({
+    // A temple room without authored rewards sums the formula; a free fight pays AP only
+    expect(resolveRewards({ enemies: [], rewards: null, label: "x" }, [enemy(), enemy()], "temple")).toEqual({
       xp: 100,
       gp: 50,
+      ap: 2,
+    });
+    expect(resolveRewards({ enemies: [], rewards: null, label: "x" }, [enemy(), enemy()], "free")).toEqual({
+      xp: 0,
+      gp: 0,
       ap: 2,
     });
     expect(sumRewards([])).toEqual({ xp: 0, gp: 0, ap: 0 });

@@ -1,0 +1,601 @@
+import { createPinia, setActivePinia } from "pinia";
+import { BattleService, strikeDamage, type BattleCallbacks, type Enemy } from "@/lib/services/battle/BattleService";
+import { createBattleService } from "@/lib/services/battle";
+import { useUserStore } from "@/lib/store/stores/user";
+import type { EngineMessage } from "@/app/Console/BattleField/battle/battleView";
+
+// The user store persists HP changes through ProfileDb; the engine never needs the real thing.
+jest.mock("@/lib/databases/ProfileDb", () => {
+  const ProfileDb = jest.fn().mockImplementation(() => ({
+    setProfile: jest.fn().mockResolvedValue(undefined),
+    getAll: jest.fn().mockResolvedValue([]),
+  }));
+  return { __esModule: true, default: ProfileDb, ProfileDb };
+});
+jest.mock("@/lib/utils/debug", () => ({
+  __esModule: true,
+  default: { log: jest.fn(), warn: jest.fn(), error: jest.fn(), info: jest.fn() },
+}));
+
+const HERO_ID = "hero-1";
+const THREE_MINUTES = 3 * 60_000;
+
+const makeEnemy = (overrides: Partial<Enemy> = {}): Enemy => ({
+  id: "socktopus",
+  name: "Socktopus",
+  type: "monster",
+  isBoss: false,
+  health: 100,
+  maxHealth: 100,
+  attack: 10,
+  defense: 5,
+  speed: 5,
+  tasks: [
+    { id: "t1", name: "Pair the socks", isCompleted: false },
+    { id: "t2", name: "Fold the socks", isCompleted: false },
+  ],
+  ...overrides,
+});
+
+const heroHp = () => (useUserStore().getUserById(HERO_ID) as any).stats.hp.now as number;
+
+/** Every line the engine queued, flattened in order. */
+const textOf = (lines: EngineMessage[]) => lines.map((line) => (typeof line === "string" ? line : line.text));
+
+interface Rig {
+  service: BattleService;
+  lines: EngineMessage[];
+  cb: { [K in keyof BattleCallbacks]-?: jest.Mock };
+}
+
+/** A started two-chore fight against `enemy` with the hero from the store and every callback spied on. */
+const startFight = (enemy: Enemy = makeEnemy(), options?: { freeFight?: boolean }): Rig => {
+  const service = createBattleService(options);
+  const lines: EngineMessage[] = [];
+  const cb = {
+    onDialogMessage: jest.fn((messages: EngineMessage[]) => void lines.push(...messages)),
+    onEnemyHealthChange: jest.fn(),
+    onDefendStateChange: jest.fn(),
+    onPlayerTurnChange: jest.fn(),
+    onEnemyDefeated: jest.fn(),
+    onEnemyChange: jest.fn(),
+    onCombatTasksChange: jest.fn(),
+    onPlayerDefeated: jest.fn(),
+    onAttack: jest.fn(),
+    onDamage: jest.fn(),
+  };
+  service.registerCallbacks(cb);
+  service.initMultiBattle([enemy], [HERO_ID]);
+  return { service, lines, cb };
+};
+
+describe("BattleService", () => {
+  let service: BattleService | null = null;
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    setActivePinia(createPinia());
+    useUserStore().addUser({
+      id: HERO_ID,
+      name: { nick: "Max" },
+      jobClass: "warrior",
+      stats: {
+        level: 1,
+        xp: { now: 0, next_level: 283 },
+        hp: { now: 30, max: 30 },
+        mp: { now: 10, max: 10 },
+        gp: { wallet: 0, savings: 0, debt: 0, limit: 1000 },
+      },
+    });
+  });
+
+  afterEach(() => {
+    service?.dispose();
+    service = null;
+    jest.restoreAllMocks();
+    jest.useRealTimers();
+  });
+
+  const fight = (enemy?: Enemy, options?: { freeFight?: boolean }): Rig => {
+    const rig = startFight(enemy, options);
+    service = rig.service;
+    return rig;
+  };
+
+  describe("strikeDamage", () => {
+    it("costs about 12% of max HP, and half of that when braced", () => {
+      expect(strikeDamage(30, 10, false, 0.5)).toBe(4);
+      expect(strikeDamage(30, 10, true, 0.5)).toBe(2);
+    });
+
+    it("rolls +-10% around the middle", () => {
+      expect(strikeDamage(150, 10, false, 0)).toBe(16);
+      expect(strikeDamage(150, 10, false, 1)).toBe(20);
+    });
+
+    it("bites harder for a stronger beast and treats a missing attack as 10", () => {
+      expect([5, 6]).toContain(strikeDamage(30, 15, false, 0.5));
+      expect(strikeDamage(30, 0, false, 0.5)).toBe(strikeDamage(30, 10, false, 0.5));
+    });
+
+    it("never deals less than 1, braced or not", () => {
+      expect(strikeDamage(1, 10, false, 0)).toBe(1);
+      expect(strikeDamage(1, 10, true, 0)).toBe(1);
+    });
+
+    it("falls back to the default roll when none is given", () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.5);
+      expect(strikeDamage(30, 10, false)).toBe(4);
+    });
+  });
+
+  describe("setting up", () => {
+    it("starts with the hero on the move and the beast's chores armed as attacks", () => {
+      const { service: s, cb } = fight();
+      expect(s.isBattleStarted()).toBe(true);
+      expect(s.isPlayerTurn()).toBe(true);
+      expect(s.getTurnCounter()).toBe(1);
+      expect(s.getCurrentEnemy()?.name).toBe("Socktopus");
+      expect(s.getAllEnemies()).toHaveLength(1);
+      expect(s.getCombatTasks().map((task) => task.id)).toEqual(["t1", "t2"]);
+      expect(cb.onCombatTasksChange).toHaveBeenCalledTimes(1);
+      expect(s.hasPendingDamage()).toBe(false);
+    });
+
+    it("makes the beast itself the chore when it has no checklist", () => {
+      const { service: s } = fight(makeEnemy({ tasks: [] }));
+      expect(s.getCombatTasks()).toEqual([{ id: "socktopus-task", name: "Defeat Socktopus", isCompleted: false }]);
+    });
+
+    it("refuses actions before the fight has started", () => {
+      service = createBattleService();
+      expect(service.handleBattleAction("defend")).toMatchObject({ success: false, message: "Battle not started" });
+    });
+
+    it("answers an unknown action (including the old 'attack') with Unhandled action", () => {
+      const { service: s } = fight();
+      expect(s.handleBattleAction("attack")).toEqual({ success: false, message: "Unhandled action" });
+    });
+
+    it("keeps nothing from the last fight and does not run the clock until asked", () => {
+      const { service: s } = fight();
+      s.startAttackTimer();
+      s.initMultiBattle([makeEnemy()], [HERO_ID]);
+      expect(s.getTimeRemaining()).toBe(0);
+      jest.advanceTimersByTime(THREE_MINUTES * 3);
+      expect(s.hasPendingDamage()).toBe(false);
+    });
+
+    it("lets the factory create a free-fight engine", () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.99);
+      const { service: s } = fight(makeEnemy({ isBoss: true }), { freeFight: true });
+      expect(s.handleBattleAction("run").success).toBe(true);
+    });
+  });
+
+  describe("the attack clock", () => {
+    it("is one chore's worth per remaining chore, and its length is readable at once", () => {
+      const { service: s } = fight();
+      s.startAttackTimer();
+      expect(s.getAttackDuration()).toBe(2 * THREE_MINUTES);
+      expect(s.getTimeRemaining()).toBe(2 * THREE_MINUTES);
+      expect(s.getEnemyAttackTimer()).toBe(100);
+    });
+
+    it("uses the beast's own attackCooldown and never less than one chore", () => {
+      const { service: s } = fight(makeEnemy({ attackCooldown: 5 }));
+      s.startAttackTimer();
+      expect(s.getAttackDuration()).toBe(2 * 5 * 60_000);
+    });
+
+    it("drains with Date.now(): halfway through the clock the bar reads about 50", () => {
+      const { service: s } = fight();
+      s.finishCombatTask("t1"); // one chore left: a 3 minute clock
+      jest.advanceTimersByTime(90_000);
+      expect(s.getTimeRemaining()).toBe(90_000);
+      expect(s.getEnemyAttackTimer()).toBeCloseTo(50, 0);
+    });
+
+    it("tick() re-reads the clock on demand and does nothing while the clock is stopped", () => {
+      const { service: s } = fight();
+      s.tick();
+      expect(s.getTimeRemaining()).toBe(0);
+
+      s.startAttackTimer();
+      jest.setSystemTime(Date.now() + 60_000);
+      s.tick();
+      expect(s.getTimeRemaining()).toBe(2 * THREE_MINUTES - 60_000);
+    });
+
+    it("strikes exactly once when the clock runs dry", () => {
+      const { service: s, lines, cb } = fight();
+      s.startAttackTimer();
+      jest.advanceTimersByTime(2 * THREE_MINUTES + 500);
+
+      expect(textOf(lines).filter((text) => text === "Socktopus attacks!")).toHaveLength(1);
+      expect(cb.onAttack).toHaveBeenCalledTimes(1);
+      expect(cb.onAttack).toHaveBeenCalledWith("enemy");
+      expect(s.hasPendingDamage()).toBe(true);
+      expect(s.getPendingDamage()).toBeGreaterThan(0);
+      expect(s.getTimeRemaining()).toBe(0);
+
+      // The clock stays off until the hit lands
+      jest.advanceTimersByTime(THREE_MINUTES * 4);
+      expect(textOf(lines).filter((text) => text === "Socktopus attacks!")).toHaveLength(1);
+    });
+
+    it("still makes only one strike when endPlayerTurn's own timeout fires after the clock did", () => {
+      const { service: s, lines, cb } = fight();
+      s.startAttackTimer();
+      jest.advanceTimersByTime(2 * THREE_MINUTES - 500);
+      s.endPlayerTurn(); // the 1 s beat to a strike starts with the clock 0.5 s from empty...
+      jest.advanceTimersByTime(1500); // ...so the clock strikes first and the beat lands on a waiting strike
+      expect(textOf(lines).filter((text) => text === "Socktopus attacks!")).toHaveLength(1);
+      expect(cb.onAttack).toHaveBeenCalledTimes(1);
+      expect(s.hasPendingDamage()).toBe(true);
+    });
+
+    it("stopAttackTimer stops the countdown", () => {
+      const { service: s } = fight();
+      s.startAttackTimer();
+      s.stopAttackTimer();
+      jest.advanceTimersByTime(2 * THREE_MINUTES * 2);
+      expect(s.hasPendingDamage()).toBe(false);
+    });
+  });
+
+  describe("a chore", () => {
+    it("deals an equal slice, tells the page, and refills the clock", () => {
+      const { service: s, lines, cb } = fight();
+      s.startAttackTimer();
+      jest.advanceTimersByTime(60_000);
+
+      s.finishCombatTask("t1");
+
+      expect(s.getCurrentEnemy()?.health).toBe(50);
+      expect(cb.onDamage).toHaveBeenCalledWith("enemy", 50, false);
+      expect(cb.onEnemyHealthChange).toHaveBeenCalled();
+      expect(s.getCombatTasks()[0].isCompleted).toBe(true);
+      // One chore left: 1 * 3 min, with timeRemaining already there (no waiting for a tick)
+      expect(s.getAttackDuration()).toBe(THREE_MINUTES);
+      expect(s.getTimeRemaining()).toBe(THREE_MINUTES);
+      expect(s.getEnemyAttackTimer()).toBe(100);
+      expect(lines).toEqual([{ text: "Max used Pair the socks! Socktopus took 50 damage!", auto: true }]);
+    });
+
+    it("ignores a chore it does not know and a chore already done", () => {
+      const { service: s, cb } = fight();
+      s.finishCombatTask("nope");
+      s.finishCombatTask("t1");
+      s.finishCombatTask("t1");
+      expect(s.getCurrentEnemy()?.health).toBe(50);
+      expect(cb.onDamage).toHaveBeenCalledTimes(1);
+    });
+
+    it("does not restart the clock while a strike is waiting", () => {
+      const { service: s } = fight();
+      s.startAttackTimer();
+      jest.advanceTimersByTime(2 * THREE_MINUTES); // strike is now pending, clock stopped
+      expect(s.hasPendingDamage()).toBe(true);
+
+      s.finishCombatTask("t1");
+
+      expect(s.getTimeRemaining()).toBe(0);
+      jest.advanceTimersByTime(THREE_MINUTES * 3);
+      expect(s.getTimeRemaining()).toBe(0);
+      expect(s.hasPendingDamage()).toBe(true);
+    });
+
+    it("the last chore is the final blow: the beast is defeated and nothing strikes afterwards", () => {
+      const { service: s, cb } = fight();
+      s.finishCombatTask("t1");
+      s.finishCombatTask("t2");
+
+      expect(cb.onDamage).toHaveBeenLastCalledWith("enemy", 50, true);
+      expect(cb.onEnemyDefeated).toHaveBeenCalledTimes(1);
+      expect(cb.onEnemyDefeated).toHaveBeenCalledWith(s.getCurrentEnemy());
+      expect(s.getCurrentEnemy()?.health).toBe(0);
+
+      jest.advanceTimersByTime(THREE_MINUTES * 5);
+      expect(s.hasPendingDamage()).toBe(false);
+    });
+
+    it("never lets rounding finish the beast before its last chore", () => {
+      const tasks = Array.from({ length: 7 }, (_, i) => ({ id: `c${i}`, name: `Chore ${i}`, isCompleted: false }));
+      const { service: s, cb } = fight(makeEnemy({ maxHealth: 10, health: 10, tasks }));
+      tasks.slice(0, 6).forEach((task) => s.finishCombatTask(task.id));
+      expect(s.getCurrentEnemy()?.health).toBeGreaterThan(0);
+      expect(cb.onEnemyDefeated).not.toHaveBeenCalled();
+      s.finishCombatTask("c6");
+      expect(s.getCurrentEnemy()?.health).toBe(0);
+      expect(cb.onEnemyDefeated).toHaveBeenCalledTimes(1);
+    });
+
+    it("steps the next beast forward in a multi-beast fight", () => {
+      const { service: s, lines, cb } = fight();
+      const second = makeEnemy({
+        id: "b2",
+        name: "Dustbunny",
+        tasks: [{ id: "d1", name: "Sweep", isCompleted: false }],
+      });
+      s.initMultiBattle([makeEnemy(), second], [HERO_ID]);
+      lines.length = 0;
+      s.finishCombatTask("t1");
+      s.finishCombatTask("t2");
+
+      expect(cb.onEnemyDefeated).not.toHaveBeenCalled();
+      expect(cb.onEnemyChange).toHaveBeenCalledWith(second);
+      expect(s.getCurrentEnemy()?.name).toBe("Dustbunny");
+      expect(s.getCombatTasks().map((task) => task.id)).toEqual(["d1"]);
+      expect(textOf(lines)).toContain("Dustbunny steps forward!");
+      expect(s.getAttackDuration()).toBe(THREE_MINUTES);
+    });
+  });
+
+  describe("restoreCompletedTasks", () => {
+    it("marks the chore done, hurts the beast, tells the page and says nothing", () => {
+      const { service: s, lines, cb } = fight();
+      cb.onCombatTasksChange.mockClear();
+      cb.onEnemyHealthChange.mockClear();
+
+      expect(s.restoreCompletedTasks(["t1"])).toBe(1);
+
+      expect(s.getCombatTasks()[0].isCompleted).toBe(true);
+      expect(s.getCurrentEnemy()?.health).toBe(50);
+      expect(cb.onCombatTasksChange).toHaveBeenCalledTimes(1);
+      expect(cb.onEnemyHealthChange).toHaveBeenCalledTimes(1);
+      expect(cb.onDamage).not.toHaveBeenCalled();
+      expect(lines).toEqual([]);
+    });
+
+    it("returns 0 and stays quiet when nothing matches", () => {
+      const { service: s, cb } = fight();
+      cb.onCombatTasksChange.mockClear();
+      expect(s.restoreCompletedTasks(["nope"])).toBe(0);
+      expect(s.restoreCompletedTasks([])).toBe(0);
+      expect(s.getCurrentEnemy()?.health).toBe(100);
+      expect(cb.onCombatTasksChange).not.toHaveBeenCalled();
+    });
+
+    it("counts a chore once and never defeats the beast", () => {
+      const { service: s, cb } = fight();
+      expect(s.restoreCompletedTasks(["t1", "t1"])).toBe(1);
+      expect(s.restoreCompletedTasks(["t1"])).toBe(0);
+      expect(s.restoreCompletedTasks(["t2"])).toBe(0); // the last open chore stays open
+      expect(s.getCurrentEnemy()?.health).toBe(50);
+      expect(cb.onEnemyDefeated).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("Defend", () => {
+    it("braces, then takes one half-strength strike after a second", () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.5);
+      const { service: s, lines, cb } = fight();
+      s.startAttackTimer();
+
+      expect(s.handleBattleAction("defend")).toEqual({ success: true, message: "Defense activated" });
+      expect(textOf(lines)).toEqual(["Max braces!"]);
+      expect(s.isDefending()).toBe(true);
+      expect(s.isPlayerTurn()).toBe(false);
+      expect(s.hasPendingDamage()).toBe(false);
+
+      jest.advanceTimersByTime(999);
+      expect(s.hasPendingDamage()).toBe(false);
+      jest.advanceTimersByTime(1);
+
+      expect(textOf(lines)).toEqual(["Max braces!", "Socktopus attacks!"]);
+      expect(s.getPendingDamage()).toBe(2);
+      expect(cb.onAttack).toHaveBeenCalledTimes(1);
+      // The brace holds until the hit lands, and the old clock does not fire a second strike
+      expect(s.isDefending()).toBe(true);
+      jest.advanceTimersByTime(THREE_MINUTES * 4);
+      expect(textOf(lines).filter((text) => text === "Socktopus attacks!")).toHaveLength(1);
+    });
+
+    it("drops the brace when the hit lands, with a full clock and the hero on the move", () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.5);
+      const { service: s, lines, cb } = fight();
+      s.handleBattleAction("defend");
+      jest.advanceTimersByTime(1000);
+
+      s.applyPendingDamage();
+
+      expect(heroHp()).toBe(28);
+      expect(s.isDefending()).toBe(false);
+      expect(cb.onDefendStateChange).toHaveBeenLastCalledWith(false);
+      expect(s.isPlayerTurn()).toBe(true);
+      expect(textOf(lines)).toContain("Max braced: only 2 damage!");
+      expect(s.getTimeRemaining()).toBe(2 * THREE_MINUTES);
+      expect(s.getEnemyAttackTimer()).toBe(100);
+      expect(s.getTurnCounter()).toBe(2);
+    });
+
+    it("stays quiet when a strike is already waiting", () => {
+      const { service: s, lines } = fight();
+      s.startAttackTimer();
+      jest.advanceTimersByTime(2 * THREE_MINUTES);
+      lines.length = 0;
+
+      expect(s.handleBattleAction("defend")).toMatchObject({ success: false });
+      expect(lines).toEqual([]);
+      expect(s.isDefending()).toBe(false);
+    });
+
+    it("does not answer while it is not the hero's move", () => {
+      const { service: s } = fight();
+      s.handleBattleAction("defend");
+      expect(s.handleBattleAction("defend")).toMatchObject({ success: false, message: "Not player's turn" });
+    });
+  });
+
+  describe("Run Away", () => {
+    it("fails with the odds against it: exactly one free strike", () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.9);
+      const { service: s, lines, cb } = fight();
+      s.startAttackTimer();
+
+      expect(s.handleBattleAction("run")).toMatchObject({ success: false, message: "Failed to escape" });
+      expect(textOf(lines)).toEqual(["Couldn't escape!", "Socktopus blocks your path!"]);
+      expect(s.isPlayerTurn()).toBe(false);
+
+      jest.advanceTimersByTime(THREE_MINUTES * 5);
+      expect(cb.onAttack).toHaveBeenCalledTimes(1);
+      expect(textOf(lines).filter((text) => text === "Socktopus attacks!")).toHaveLength(1);
+      expect(s.hasPendingDamage()).toBe(true);
+    });
+
+    it("gets away when the dice allow it", () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.5);
+      const { service: s, lines } = fight();
+      s.startAttackTimer();
+
+      expect(s.handleBattleAction("run")).toEqual({ success: true, message: "Escaped successfully" });
+      expect(lines).toEqual([{ text: "Running away...", auto: true }, "Got away safely!"]);
+      jest.advanceTimersByTime(THREE_MINUTES * 5);
+      expect(s.hasPendingDamage()).toBe(false);
+    });
+
+    it.each([
+      ["a monster", {}, 0.74, true],
+      ["a monster", {}, 0.76, false],
+      ["a miniboss", { type: "miniboss" }, 0.49, true],
+      ["a miniboss", { type: "miniboss" }, 0.51, false],
+      ["a boss", { isBoss: true }, 0.24, true],
+      ["a boss", { isBoss: true }, 0.26, false],
+    ])("odds against %s: roll %p", (_label, overrides, roll, escapes) => {
+      jest.spyOn(Math, "random").mockReturnValue(roll);
+      const { service: s } = fight(makeEnemy(overrides as Partial<Enemy>));
+      expect(s.handleBattleAction("run").success).toBe(escapes);
+    });
+
+    it("always works in a free fight, even against a boss on a bad roll", () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.9);
+      const { service: s } = fight(makeEnemy({ isBoss: true }), { freeFight: true });
+      expect(s.handleBattleAction("run").success).toBe(true);
+    });
+
+    it("always works after setFreeFight(true)", () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.9);
+      const { service: s } = fight();
+      s.setFreeFight(true);
+      expect(s.handleBattleAction("run").success).toBe(true);
+    });
+  });
+
+  describe("applyPendingDamage", () => {
+    const pendingStrike = (rig: Rig) => {
+      rig.service.startAttackTimer();
+      jest.advanceTimersByTime(2 * THREE_MINUTES);
+      expect(rig.service.hasPendingDamage()).toBe(true);
+    };
+
+    it("lowers the store's HP, tells the page, queues the line and restarts the clock", () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.5);
+      const rig = fight();
+      pendingStrike(rig);
+      rig.lines.length = 0;
+      const { service: s, cb } = rig;
+
+      s.applyPendingDamage();
+
+      expect(heroHp()).toBe(26);
+      expect(cb.onDamage).toHaveBeenCalledWith("player", 4);
+      expect(textOf(rig.lines)).toEqual(["Max takes 4 damage!"]);
+      expect(s.hasPendingDamage()).toBe(false);
+      expect(s.isPlayerTurn()).toBe(true);
+      expect(s.getTurnCounter()).toBe(2);
+      expect(s.getTimeRemaining()).toBe(2 * THREE_MINUTES);
+      expect(cb.onPlayerDefeated).not.toHaveBeenCalled();
+    });
+
+    it("does not strike twice if called again", () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.5);
+      const rig = fight();
+      pendingStrike(rig);
+      rig.service.applyPendingDamage();
+      rig.service.applyPendingDamage();
+      expect(heroHp()).toBe(26);
+    });
+
+    it("with nothing waiting just hands the move back and starts the clock", () => {
+      const { service: s, cb } = fight();
+      s.applyPendingDamage();
+      expect(heroHp()).toBe(30);
+      expect(cb.onDamage).not.toHaveBeenCalled();
+      expect(s.isPlayerTurn()).toBe(true);
+      expect(s.getTimeRemaining()).toBe(2 * THREE_MINUTES);
+    });
+
+    it("a boss on 30 HP takes 5 or 6", () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.5);
+      const rig = fight(makeEnemy({ isBoss: true, attack: 15 }));
+      pendingStrike(rig);
+      expect([5, 6]).toContain(rig.service.getPendingDamage());
+    });
+
+    it("falls with the HP: two lines, onPlayerDefeated, and the clock stays off", () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.5);
+      const rig = fight();
+      (useUserStore().getUserById(HERO_ID) as any).stats.hp.now = 3;
+      pendingStrike(rig);
+      rig.lines.length = 0;
+
+      rig.service.applyPendingDamage();
+
+      expect(heroHp()).toBe(0);
+      expect(textOf(rig.lines)).toEqual(["Max takes 4 damage!", "Max has fallen!", "You blacked out..."]);
+      expect(rig.cb.onPlayerDefeated).toHaveBeenCalledTimes(1);
+      expect(rig.service.isPlayerTurn()).toBe(true); // unchanged: the page ends the fight
+      jest.advanceTimersByTime(THREE_MINUTES * 5);
+      expect(rig.service.hasPendingDamage()).toBe(false);
+    });
+  });
+
+  describe("turns and names", () => {
+    it("startPlayerTurn only hands the move back, with no lines", () => {
+      const { service: s, lines } = fight();
+      s.endPlayerTurn();
+      expect(s.isPlayerTurn()).toBe(false);
+      s.startPlayerTurn();
+      expect(s.isPlayerTurn()).toBe(true);
+      expect(lines).toEqual([]);
+    });
+
+    it("calls the hero You when no hero joined the fight", () => {
+      service = createBattleService();
+      const lines: EngineMessage[] = [];
+      service.registerCallbacks({ onDialogMessage: (messages) => void lines.push(...messages) });
+      service.initMultiBattle([makeEnemy()]);
+      service.handleBattleAction("defend");
+      expect(textOf(lines)).toEqual(["You braces!"]);
+    });
+
+    it("does not read the logged-in user to find the hero's name", () => {
+      (useUserStore().currentUser as any).name = { nick: "Somebody Else" };
+      const { service: s, lines } = fight();
+      s.handleBattleAction("defend");
+      expect(textOf(lines)).toEqual(["Max braces!"]);
+    });
+
+    it("uses the hero's max HP from stats.hp.max for the strike", () => {
+      jest.spyOn(Math, "random").mockReturnValue(0);
+      (useUserStore().getUserById(HERO_ID) as any).stats.hp = { now: 150, max: 150 };
+      const { service: s } = fight();
+      s.startAttackTimer();
+      jest.advanceTimersByTime(2 * THREE_MINUTES);
+      expect(s.getPendingDamage()).toBe(16);
+    });
+  });
+
+  describe("dispose", () => {
+    it("cancels the clock and a strike that is on its way", () => {
+      const { service: s, lines } = fight();
+      s.startAttackTimer();
+      s.handleBattleAction("defend");
+      s.dispose();
+      jest.advanceTimersByTime(THREE_MINUTES * 5);
+      expect(s.hasPendingDamage()).toBe(false);
+      expect(textOf(lines)).toEqual(["Max braces!"]);
+    });
+  });
+});

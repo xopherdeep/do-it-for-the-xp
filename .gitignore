@@ -39,3 +39,8 @@ src/assets/images/backgrounds/gaia/*
 .env
 # Chemical X local telemetry & audit history
 .chemx/
+
+# Cypress run artifacts
+cypress/
+tests/e2e/screenshots/
+tests/e2e/videos/

@@ -120,3 +120,19 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 readyRouterMountApp()
+
+// E2E seam, development builds only: the Cypress suite seeds every store from a backup file and
+// signs a hero in without driving the whole onboarding flow (tests/e2e/support/commands.js).
+if (process.env.NODE_ENV !== 'production') {
+  import('./lib/services/core/BackupService').then(({ backupService }) => {
+    (window as any).__xp = {
+      restoreBackup: (backup: unknown) => backupService.restoreBackup(backup as any),
+      loginUser: (userId: string) => {
+        const store = useUserStore();
+        const user = store.users[userId];
+        if (user) store.loginUser(user);
+        return Boolean(user);
+      },
+    };
+  });
+}

@@ -1,6 +1,7 @@
-import { useUserStore } from '@/lib/store/stores/user';
-import debug from '@/lib/utils/debug';
-import { reactive } from 'vue';
+import { useUserStore } from "@/lib/store/stores/user";
+import debug from "@/lib/utils/debug";
+import { reactive } from "vue";
+import type { DialogLine, EngineMessage } from "@/app/Console/BattleField/battle/battleView";
 
 // Define interfaces for the battle system
 export interface Enemy {
@@ -19,7 +20,7 @@ export interface Enemy {
   bg1?: number;
   bg2?: number;
   aspectRatio?: number;
-  attackTimer?: number;
+  /** Minutes the hero gets per remaining chore before this beast strikes. Defaults to 3. */
   attackCooldown?: number;
   tasks?: CombatTask[];
 }
@@ -46,84 +47,110 @@ export interface User {
   }
 }
 
-export interface CompletedTask {
-  name: string;
-  xpReward: number;
-  gpReward: number;
-  itemReward: string | null;
-}
-
-export interface BattleAction {
-  type: string;
-  payload?: any;
-}
-
 export interface BattleState {
   battleStarted: boolean;
   isPlayerTurn: boolean;
   turnCounter: number;
   isDefending: boolean;
-  defenseMultiplier: number;
   currentEnemy: Enemy | null;
-  enemyHealthColor: string;
-  battleMessage: string;
   participants: {
     enemies: Enemy[];
     users: User[];
     activeEnemyIndex: number;
     activeUserIndex: number;
   };
-  enemyAttackTimer: number; // 0 to 100
-  timeRemaining: number; // ms remaining
+  enemyAttackTimer: number; // 100 (full clock) down to 0 (the beast strikes)
+  timeRemaining: number; // ms left on the clock
+  attackDuration: number; // ms the current clock started with
   combatTasks: CombatTask[];
-  pendingPlayerDamage: number; // Damage waiting to be applied after dialog
+  pendingPlayerDamage: number; // Damage waiting for the hero to tap through "{Beast} attacks!"
+  pendingStrikeBraced: boolean; // The waiting strike was met with a brace
 }
 
 export interface BattleResult {
   success: boolean;
   message: string;
-  dialogMessages?: string[];
 }
 
 /**
+ * Everything the page can listen for. Lines for the message box are EngineMessages: plain strings
+ * wait for a tap, `{ text, auto: true }` lines move on by themselves once typed.
+ */
+export interface BattleCallbacks {
+  onDialogMessage?: (messages: EngineMessage[]) => void;
+  onEnemyHealthChange?: () => void;
+  onDefendStateChange?: (isDefending: boolean) => void;
+  onPlayerTurnChange?: (isPlayerTurn: boolean) => void;
+  onEnemyDefeated?: (enemy: Enemy) => void;
+  onEnemyChange?: (enemy: Enemy) => void;
+  onCombatTasksChange?: (tasks: CombatTask[]) => void;
+  onPlayerDefeated?: () => void;
+  onAttack?: (attacker: 'player' | 'enemy') => void;
+  /** `isFinalBlow` is set on the chore that finishes the beast on screen ("SMAAAASH!!"). */
+  onDamage?: (target: 'player' | 'enemy', amount: number, isFinalBlow?: boolean) => void;
+}
+
+export interface BattleServiceOptions {
+  /**
+   * A free fight (random encounter, Test Fight): there is nothing to lose by leaving, so
+   * Run Away always works.
+   */
+  freeFight?: boolean;
+}
+
+/** Minutes of clock a hero earns per remaining chore when the beast does not say otherwise. */
+const DEFAULT_MINUTES_PER_CHORE = 3;
+/** How often the clock re-reads Date.now(); the deadline, not the interval, decides when the beast strikes. */
+const CLOCK_TICK_MS = 100;
+/** The beat between "braces!" / "Couldn't escape!" and the strike. */
+const STRIKE_DELAY_MS = 1000;
+/** A strike costs about this share of the hero's max HP. */
+const STRIKE_SHARE_OF_MAX_HP = 0.12;
+
+/**
+ * What one beast strike costs the hero: about 12% of their max HP, scaled by the beast's attack
+ * (10 is the baseline, so a boss with 15 bites 1.5x as hard) and a +-10% roll. It never scales
+ * with time or chores left. A brace halves it (rounded down, never below 1).
+ */
+export function strikeDamage(maxHp: number, attack: number, braced: boolean, roll: number = Math.random()): number {
+  const raw = Math.round(maxHp * STRIKE_SHARE_OF_MAX_HP * ((attack || 10) / 10) * (0.9 + roll * 0.2));
+  const full = Number.isFinite(raw) ? Math.max(1, raw) : 1;
+  return braced ? Math.max(1, Math.floor(full / 2)) : full;
+}
+
+/** A line that types out and moves on by itself, for results the hero does not need to tap through. */
+const autoLine = (text: string): DialogLine => ({ text, auto: true });
+
+/**
  * BattleService - Core service for managing battle mechanics
- * 
- * This service encapsulates the battle logic and state management,
- * decoupling it from the UI component for better maintainability.
- * 
+ *
+ * A beast is a chore and its checklist items are the hero's attacks. Each chore the hero finishes
+ * hurts the beast and refills the attack clock; when the clock runs dry the beast strikes. The
+ * service keeps the rules; the page (BattleField) keeps the staging. It talks to the page through
+ * the callbacks and the message box through EngineMessages.
+ *
  * Updated to use Pinia stores instead of Vuex.
  */
 export class BattleService {
   private userStore: ReturnType<typeof useUserStore>;
   private state: BattleState;
-  private devMode: boolean;
-  private battleCallbacks: {
-    onDialogMessage?: (messages: string[]) => void;
-    onBattleMessageChange?: (message: string) => void;
-    onEnemyHealthChange?: () => void;
-    onDefendStateChange?: (isDefending: boolean) => void;
-    onPlayerTurnChange?: (isPlayerTurn: boolean) => void;
-    onEnemyDefeated?: (enemy: Enemy) => void;
-    onEnemyChange?: (enemy: Enemy) => void;
-    onCombatTasksChange?: (tasks: CombatTask[]) => void;
-    onPlayerDefeated?: () => void;
-    onAttack?: (attacker: 'player' | 'enemy') => void;
-    onDamage?: (target: 'player' | 'enemy', amount: number) => void;
-  };
-  private attackTimerInterval: any = null;
+  private battleCallbacks: BattleCallbacks = {};
+  private alwaysEscapes: boolean;
+  private attackTimerInterval: ReturnType<typeof setInterval> | null = null;
+  /** The beat between a Defend / failed Run and the strike it provokes. */
+  private strikeTimeout: ReturnType<typeof setTimeout> | null = null;
+  /** Date.now() at which the clock runs dry. */
+  private attackDeadline = 0;
 
-  constructor(devMode: boolean = false) {
+  constructor(options: BattleServiceOptions = {}) {
     this.userStore = useUserStore();
-    this.devMode = devMode;
+    this.alwaysEscapes = Boolean(options.freeFight);
     this.state = reactive({
       battleStarted: false,
       isPlayerTurn: false,
       turnCounter: 0,
       isDefending: false,
-      defenseMultiplier: 0.5, // Reduces damage by 50% when defending
       currentEnemy: null,
-      enemyHealthColor: '#2dd36f',
-      battleMessage: '',
       participants: {
         enemies: [],
         users: [],
@@ -132,22 +159,33 @@ export class BattleService {
       },
       enemyAttackTimer: 100,
       timeRemaining: 0,
+      attackDuration: 0,
       combatTasks: [],
-      pendingPlayerDamage: 0
+      pendingPlayerDamage: 0,
+      pendingStrikeBraced: false
     });
-    this.battleCallbacks = {};
-
-    if (this.devMode) {
-      debug.log('Battle service initialized in dev mode');
-    }
   }
 
   /**
    * Register callbacks for battle events
    * @param callbacks Object containing callback functions for different battle events
    */
-  public registerCallbacks(callbacks: Partial<typeof this.battleCallbacks>) {
+  public registerCallbacks(callbacks: BattleCallbacks): void {
     this.battleCallbacks = { ...this.battleCallbacks, ...callbacks };
+  }
+
+  /** Free fights let the hero run away every time. */
+  public setFreeFight(freeFight: boolean): void {
+    this.alwaysEscapes = freeFight;
+  }
+
+  /**
+   * Stop everything the service has scheduled: the attack clock and the beat before a strike.
+   * The page calls this when the hero leaves the fight, so a beast never strikes an empty room.
+   */
+  public dispose(): void {
+    this.stopAttackTimer();
+    this.clearStrikeTimeout();
   }
 
   /**
@@ -164,18 +202,24 @@ export class BattleService {
       this.state.participants.activeEnemyIndex = this.state.participants.enemies.indexOf(next);
       this.state.currentEnemy = next;
       this.loadCombatTasks(next);
-      this.updateEnemyHealthColor();
+      this.notifyEnemyHealthChange();
       this.queueDialogMessages([`${enemy.name} was defeated!`, `${next.name} steps forward!`]);
-      if (this.battleCallbacks.onEnemyChange) {
-        this.battleCallbacks.onEnemyChange(next);
+      this.battleCallbacks.onEnemyChange?.(next);
+      // A strike that is already waiting restarts the clock itself when it lands
+      if (this.state.pendingPlayerDamage === 0) {
+        this.startAttackTimer();
       }
-      this.startAttackTimer();
       return;
     }
 
-    if (this.battleCallbacks.onEnemyDefeated) {
-      this.battleCallbacks.onEnemyDefeated(enemy);
+    // The last beast is down: nothing may strike the hero after the win
+    this.clearStrikeTimeout();
+    this.state.pendingPlayerDamage = 0;
+    this.state.pendingStrikeBraced = false;
+    if (this.state.isDefending) {
+      this.setDefendingState(false);
     }
+    this.battleCallbacks.onEnemyDefeated?.(enemy);
   }
 
   /** The beast's checklist becomes the player's attacks. */
@@ -183,61 +227,17 @@ export class BattleService {
     if (enemy.tasks && enemy.tasks.length > 0) {
       this.state.combatTasks = enemy.tasks.map((task) => ({ ...task }));
     } else {
-      debug.warn('BattleService: No tasks found on enemy, using defaults', enemy);
-      this.state.combatTasks = [
-        { id: '1', name: 'Investigate', isCompleted: false },
-        { id: '2', name: 'Observe patterns', isCompleted: false }
-      ];
+      debug.warn('BattleService: No tasks found on enemy, the beast itself is the chore', enemy);
+      this.state.combatTasks = [{ id: `${enemy.id}-task`, name: `Defeat ${enemy.name}`, isCompleted: false }];
     }
 
-    if (this.battleCallbacks.onCombatTasksChange) {
-      this.battleCallbacks.onCombatTasksChange(this.state.combatTasks);
-    }
+    this.battleCallbacks.onCombatTasksChange?.(this.state.combatTasks);
   }
 
   /**
-   * Initialize a battle with an enemy
-   * @param enemy The enemy to battle
-   */
-  public initBattle(enemy: Enemy): void {
-    // Set initial battle state
-    this.state.currentEnemy = enemy;
-    this.state.battleStarted = true;
-    this.state.isPlayerTurn = true; // For Task-ATB, player is usually "always ready"
-    this.state.turnCounter = 1;
-
-    this.loadCombatTasks(enemy);
-
-    // Add enemy to participants array
-    this.state.participants.enemies = [enemy];
-    this.state.participants.activeEnemyIndex = 0;
-
-    // Get current user from Pinia store and add to participants
-    const currentUser = this.getCurrentUserFromStore();
-    if (currentUser) {
-      this.state.participants.users = [currentUser];
-      this.state.participants.activeUserIndex = 0;
-    }
-
-    this.updateEnemyHealthColor();
-
-    // Encounter message handled by UI component for better choreography
-    /*
-    this.queueDialogMessages([
-      `${playerName} encountered ${enemy.name}!`
-    ]);
-    */
-
-
-    if (this.devMode) {
-      debug.log('Battle initialized with enemy:', enemy);
-    }
-  }
-
-  /**
-   * Initialize a battle with multiple enemies and users
+   * Initialize a battle with one or more enemies and the hero(es) who fight them
    * @param enemies Array of enemies to battle
-   * @param userIds Array of user IDs to participate in battle (defaults to current user)
+   * @param userIds Array of user IDs to participate in battle
    */
   public initMultiBattle(enemies: Enemy[], userIds?: string[]): void {
     if (enemies.length === 0) {
@@ -245,9 +245,17 @@ export class BattleService {
       return;
     }
 
+    // A fresh fight inherits nothing from the last one
+    this.dispose();
     this.state.battleStarted = true;
     this.state.isPlayerTurn = true; // Task-ATB: the player is always ready to act
     this.state.turnCounter = 1;
+    this.state.isDefending = false;
+    this.state.pendingPlayerDamage = 0;
+    this.state.pendingStrikeBraced = false;
+    this.state.timeRemaining = 0;
+    this.state.attackDuration = 0;
+    this.state.enemyAttackTimer = 100;
 
     // Store enemies in participants array
     this.state.participants.enemies = enemies;
@@ -257,361 +265,106 @@ export class BattleService {
     this.state.currentEnemy = enemies[0];
     this.loadCombatTasks(enemies[0]);
 
-    // Get users from store and add to participants
+    // Add the heroes from the store to participants
     this.state.participants.users = [];
     this.state.participants.activeUserIndex = 0;
-
-    if (userIds && userIds.length > 0) {
-      // Add multiple users from IDs
-      userIds.forEach(id => {
-        const user = this.getUserById(id);
-        if (user) {
-          this.state.participants.users.push(user);
-        }
-      });
-    } else {
-      // Add current user from store
-      const currentUser = this.getCurrentUserFromStore();
-      if (currentUser) {
-        this.state.participants.users.push(currentUser);
+    (userIds ?? []).forEach((id) => {
+      const user = this.getUserById(id);
+      if (user) {
+        this.state.participants.users.push(user);
       }
-    }
-
-    // Update enemy health color
-    this.updateEnemyHealthColor();
-
-    // Encounter message handled by UI component for better choreography
-    /*
-    this.queueDialogMessages([encounterMessage]);
-    */
-
-
-    if (this.devMode) {
-      debug.log('Multi-battle initialized with enemies:', enemies);
-      debug.log('Multi-battle participants:', this.state.participants);
-    }
-  }
-
-  /**
-   * Add an enemy to the current battle
-   * @param enemy The enemy to add
-   */
-  public addEnemy(enemy: Enemy): void {
-    if (!this.state.battleStarted) {
-      this.initBattle(enemy);
-      return;
-    }
-
-    this.state.participants.enemies.push(enemy);
-    this.queueDialogMessages([
-      `${enemy.name} has joined the battle!`
-    ]);
-
-    if (this.devMode) {
-      debug.log('Enemy added to battle:', enemy);
-    }
-  }
-
-  /**
-   * Add a user to the current battle
-   * @param userId The user ID to add
-   * @returns Boolean indicating if the user was successfully added
-   */
-  public addUser(userId: string): boolean {
-    const user = this.getUserById(userId);
-    if (!user) {
-      return false;
-    }
-
-    this.state.participants.users.push(user);
-    this.queueDialogMessages([
-      `${user.name} has joined the battle!`
-    ]);
-
-    if (this.devMode) {
-      debug.log('User added to battle:', user);
-    }
-
-    return true;
+    });
   }
 
   /**
    * Handle a battle action from the player
-   * @param action The action type (attack, defend, etc.)
+   * @param action The action type ('defend' or 'run'; attacking is finishing a chore)
    * @returns Result of the action
    */
   public handleBattleAction(action: string): BattleResult {
-    // If battle not started or not player's turn, return error
     if (!this.state.battleStarted) {
-      return {
-        success: false,
-        message: "Battle not started"
-      };
+      return { success: false, message: "Battle not started" };
     }
 
+    // Not the hero's move (a strike is on its way): the page hides the menu, so stay quiet
     if (!this.state.isPlayerTurn) {
-      this.queueDialogMessages(["It's not your turn yet!"]);
-      return {
-        success: false,
-        message: "Not player's turn"
-      };
+      return { success: false, message: "Not player's turn" };
     }
 
-    // Handle different battle actions
     switch (action) {
-      case 'attack':
-        return this.handleAttack();
       case 'defend':
         return this.handleDefend();
       case 'run':
         return this.handleRun();
       default:
-        return {
-          success: false,
-          message: `Unhandled action: ${action}`
-        };
+        return { success: false, message: "Unhandled action" };
     }
   }
 
   /**
-   * Handle attack action
-   * @returns Result of the attack
-   */
-  private handleAttack(): BattleResult {
-    if (!this.state.currentEnemy) {
-      this.queueDialogMessages(["But there's no enemy to attack!"]);
-      return {
-        success: false,
-        message: "No enemy present"
-      };
-    }
-
-    // Get active user
-    const activeUser = this.getActiveUser();
-    if (!activeUser) {
-      this.queueDialogMessages(["No active user to attack with!"]);
-      return {
-        success: false,
-        message: "No active user"
-      };
-    }
-
-    // Queue attack messages
-    this.queueDialogMessages([
-      `${activeUser.name} attacks!`,
-    ]);
-
-    // Trigger attack animation via message (animation handled by UI)
-    /*
-    if (this.battleCallbacks.onAttack) {
-      this.battleCallbacks.onAttack('player');
-    }
-    */
-
-    // Calculate damage based on player stats and enemy defense
-    const attackStat = activeUser.stats.strength;
-    const defenseStat = this.state.currentEnemy.defense;
-    const baseDamage = 10 + Math.floor(Math.random() * 20);
-
-    // Apply attack and defense modifiers
-    let damage = Math.floor(baseDamage * (1 + attackStat / 20));
-
-    // Reduce damage based on enemy defense 
-    damage = Math.max(1, Math.floor(damage * (1 - defenseStat / 100)));
-
-    // Apply damage
-    this.state.currentEnemy.health = Math.max(0, this.state.currentEnemy.health - damage);
-    this.updateEnemyHealthColor();
-
-    // Update the active enemy in participants array
-    const activeEnemyIndex = this.state.participants.activeEnemyIndex;
-    this.state.participants.enemies[activeEnemyIndex] = this.state.currentEnemy;
-
-    // Queue damage message
-    this.queueDialogMessages([
-      `${this.state.currentEnemy.name} takes ${damage} damage!`
-    ]);
-
-    // Trigger damage sound
-    if (this.battleCallbacks.onDamage) {
-      this.battleCallbacks.onDamage('enemy', damage);
-    }
-
-    // Check if enemy is defeated
-    if (this.state.currentEnemy.health <= 0) {
-      this.queueDialogMessages([
-        `${this.state.currentEnemy.name} was defeated!`
-      ]);
-
-      // Store defeated enemy for callback
-      const defeatedEnemy = { ...this.state.currentEnemy };
-
-      // Check if there are more enemies
-      if (this.state.participants.enemies.length > 1) {
-        // Remove the defeated enemy
-        this.state.participants.enemies.splice(activeEnemyIndex, 1);
-
-        // Check if there are more enemies left
-        if (this.state.participants.enemies.length > 0) {
-          // Set next enemy as active
-          this.state.participants.activeEnemyIndex = 0;
-          this.state.currentEnemy = this.state.participants.enemies[0];
-
-          this.queueDialogMessages([
-            `${this.state.currentEnemy.name} steps forward!`
-          ]);
-
-          // End player turn to continue battle
-          this.endPlayerTurn();
-
-          return {
-            success: true,
-            message: "Enemy defeated, battle continues"
-          };
-        }
-      }
-
-      // All enemies defeated
-      this.queueDialogMessages([
-        "You've won the battle!"
-      ]);
-
-      // Handle enemy defeat with callback
-      if (this.battleCallbacks.onEnemyDefeated) {
-        setTimeout(() => {
-          if (this.battleCallbacks.onEnemyDefeated) {
-            this.battleCallbacks.onEnemyDefeated(defeatedEnemy);
-          }
-        }, 2000);
-      }
-
-      return {
-        success: true,
-        message: "All enemies defeated",
-        dialogMessages: [
-          `${defeatedEnemy.name} was defeated!`,
-          "You've won the battle!"
-        ]
-      };
-    }
-
-    // End player turn if enemy still alive
-    this.endPlayerTurn();
-    return {
-      success: true,
-      message: "Attack successful"
-    };
-  }
-
-  /**
-   * Handle defend action
-   * @returns Result of the defend action
+   * Defend: take a glancing hit now instead of waiting out the clock. The brace lasts until the
+   * hit lands, and the hero gets a fresh full clock afterwards.
    */
   private handleDefend(): BattleResult {
-    // Set the defending flag
+    if (this.state.pendingPlayerDamage > 0) {
+      return { success: false, message: "A strike is already on its way" };
+    }
+
     this.setDefendingState(true);
+    this.stopAttackTimer();
+    this.queueDialogMessages([`${this.heroName()} braces!`]);
 
-    // Queue defend messages
-    this.queueDialogMessages([
-      `${this.getPlayerName()} takes a defensive stance!`,
-      "Defense increased for this turn."
-    ]);
-
-    // Show immediate feedback message
-    this.setBattleMessage("DEFENSE UP!");
-    setTimeout(() => {
-      if (this.state.battleMessage === "DEFENSE UP!") {
-        this.setBattleMessage("");
-      }
-    }, 2000);
-
-    // End player turn
+    // The beast strikes a beat later, at half damage
     this.endPlayerTurn();
-    return {
-      success: true,
-      message: "Defense activated"
-    };
+    return { success: true, message: "Defense activated" };
   }
 
   /**
-   * Handle run action
-   * @returns Result of the run action
+   * Run away. Monsters let you go 75% of the time, minibosses 50%, bosses 25%; in a free fight
+   * the hero always gets away. A failed run costs exactly one free strike.
    */
   private handleRun(): BattleResult {
-    // Calculate escape chance based on enemy type
-    // Boss battles have lower escape chance
-    let escapeChance = 0.75; // Default 75% chance
-
-    // Check if enemy is a boss
-    if (this.state.currentEnemy?.isBoss) {
-      escapeChance = 0.25; // Only 25% chance to escape from bosses
-    } else if (this.state.currentEnemy?.type === 'miniboss') {
-      escapeChance = 0.5; // 50% chance to escape from minibosses
+    if (this.state.pendingPlayerDamage > 0) {
+      return { success: false, message: "A strike is already on its way" };
     }
 
-    // Calculate if escape is successful
-    if (Math.random() < escapeChance) {
+    const enemy = this.state.currentEnemy;
+    let escapeChance = 0.75;
+    if (enemy?.isBoss) {
+      escapeChance = 0.25;
+    } else if (enemy?.type === 'miniboss') {
+      escapeChance = 0.5;
+    }
+
+    if (this.alwaysEscapes || Math.random() < escapeChance) {
       this.stopAttackTimer();
-      this.queueDialogMessages([
-        "Running away...",
-        "Got away safely!"
-      ]);
-
-      return {
-        success: true,
-        message: "Escaped successfully"
-      };
-    } else {
-      this.queueDialogMessages([
-        "Couldn't escape!",
-        "The enemy blocks your path!"
-      ]);
-
-      // End player turn
-      this.endPlayerTurn();
-      return {
-        success: false,
-        message: "Failed to escape"
-      };
+      this.queueDialogMessages([autoLine("Running away..."), "Got away safely!"]);
+      return { success: true, message: "Escaped successfully" };
     }
+
+    this.queueDialogMessages(["Couldn't escape!", `${enemy?.name ?? 'The enemy'} blocks your path!`]);
+    this.stopAttackTimer();
+    this.endPlayerTurn();
+    return { success: false, message: "Failed to escape" };
   }
 
   /**
-   * Start player's turn
+   * Hand the move back to the hero. No lines: the menu coming back is the announcement.
    */
   public startPlayerTurn(): void {
-    // Set player turn flag
     this.setPlayerTurnState(true);
-
-    // For the very first turn, just clear dialog and don't show any message
-    if (this.state.turnCounter === 1) {
-      return;
-    }
-
-    // Get active user name
-    const activeUser = this.getActiveUser();
-    const playerName = activeUser?.name || this.getPlayerName();
-
-    // For subsequent turns, show the turn announcements
-    this.queueDialogMessages([
-      `Turn ${this.state.turnCounter} - ${playerName}'s turn!`,
-      "What will you do?"
-    ]);
-
-    if (this.devMode) {
-      debug.log(`Starting player turn ${this.state.turnCounter}`);
-    }
   }
 
   /**
-   * End player's turn and start enemy's turn
+   * End the hero's move and let the beast answer a beat later.
    */
   public endPlayerTurn(): void {
     this.setPlayerTurnState(false);
-    this.setBattleMessage('');
 
-    // Start enemy turn after a delay
-    setTimeout(() => {
+    // At most one strike is ever on its way
+    this.clearStrikeTimeout();
+    this.strikeTimeout = setTimeout(() => {
+      this.strikeTimeout = null;
       if (this.state.currentEnemy) {
         this.performEnemyTurn();
       } else {
@@ -619,15 +372,20 @@ export class BattleService {
         this.state.turnCounter++;
         this.startPlayerTurn();
       }
-    }, 1000);
+    }, STRIKE_DELAY_MS);
+  }
 
-    if (this.devMode) {
-      debug.log(`Ending player turn ${this.state.turnCounter}`);
+  /**
+   * What one chore takes off the beast: an equal slice of its health, except that the beast always
+   * survives until its last chore (so rounding can never end a fight with chores still open), and
+   * the last chore takes whatever is left.
+   */
+  private choreDamage(enemy: Enemy, isLastChore: boolean): number {
+    if (isLastChore) {
+      return Math.max(0, enemy.health);
     }
-
-    // Task-ATB note: player turn doesn't strictly "end" until all tasks done,
-    // but we can use this to toggle visibility if needed.
-    // For now, let's just keep the flow active.
+    const slice = Math.ceil(enemy.maxHealth / this.state.combatTasks.length);
+    return Math.max(0, Math.min(slice, enemy.health - 1));
   }
 
   /**
@@ -635,42 +393,58 @@ export class BattleService {
    * @param taskId The ID of the task completed
    */
   public finishCombatTask(taskId: string): void {
+    const enemy = this.state.currentEnemy;
     const task = this.state.combatTasks.find(t => t.id === taskId);
-    if (!task || task.isCompleted) return;
+    if (!enemy || !task || task.isCompleted) return;
 
     task.isCompleted = true;
 
-    if (this.state.currentEnemy) {
-      // Calculate damage based on number of tasks
-      // Completing all tasks should defeat the enemy
-      const damage = Math.ceil(this.state.currentEnemy.maxHealth / this.state.combatTasks.length);
+    // Completing all tasks defeats the enemy
+    const isFinalBlow = this.state.combatTasks.every(t => t.isCompleted);
+    const damage = this.choreDamage(enemy, isFinalBlow);
+    enemy.health = Math.max(0, enemy.health - damage);
 
-      this.state.currentEnemy.health = Math.max(0, this.state.currentEnemy.health - damage);
-      this.updateEnemyHealthColor();
+    this.battleCallbacks.onCombatTasksChange?.(this.state.combatTasks);
+    this.notifyEnemyHealthChange();
+    this.battleCallbacks.onDamage?.('enemy', damage, isFinalBlow);
+    this.queueDialogMessages([autoLine(`${this.heroName()} used ${task.name}! ${enemy.name} took ${damage} damage!`)]);
 
-      // Feedback - use enemy name and mention attack interrupt
-      const enemyName = this.state.currentEnemy.name;
-      this.queueDialogMessages([`Completed: ${task.name}!`, `${enemyName}'s attack was interrupted!`]);
-
-      // Trigger damage sound (task completion simulates damage)
-      if (this.battleCallbacks.onDamage) {
-        this.battleCallbacks.onDamage('enemy', damage);
-      }
-
-      if (this.state.currentEnemy.health <= 0) {
-        this.defeatEnemy(this.state.currentEnemy);
-      }
-    }
-
-    if (this.battleCallbacks.onCombatTasksChange) {
-      this.battleCallbacks.onCombatTasksChange(this.state.combatTasks);
-    }
-
-    // Reset the ATB gauge when a task is completed - player earns more time!
-    if (this.state.currentEnemy && this.state.currentEnemy.health > 0) {
+    if (isFinalBlow) {
+      this.defeatEnemy(enemy);
+    } else if (this.state.pendingPlayerDamage === 0) {
+      // A chore earns a fresh clock (a strike that is already waiting restarts it when it lands)
       this.stopAttackTimer();
       this.startAttackTimer();
     }
+  }
+
+  /**
+   * Put back the chores the hero already finished earlier today: they are marked done and the
+   * beast is hurt by one slice each. Queues nothing; the page decides what to say about it.
+   * The beast never dies here, and one chore always stays open so the fight can still be won.
+   * @param taskIds Ids of the finished chores
+   * @returns How many chores were restored (0 when none matched)
+   */
+  public restoreCompletedTasks(taskIds: string[]): number {
+    const enemy = this.state.currentEnemy;
+    if (!enemy || taskIds.length === 0) return 0;
+
+    const wanted = new Set(taskIds);
+    let restored = 0;
+    for (const task of this.state.combatTasks) {
+      if (!wanted.has(task.id) || task.isCompleted) continue;
+      if (this.state.combatTasks.filter(t => !t.isCompleted).length <= 1) break;
+
+      task.isCompleted = true;
+      enemy.health -= this.choreDamage(enemy, false);
+      restored++;
+    }
+
+    if (restored > 0) {
+      this.battleCallbacks.onCombatTasksChange?.(this.state.combatTasks);
+      this.notifyEnemyHealthChange();
+    }
+    return restored;
   }
 
   /**
@@ -681,43 +455,48 @@ export class BattleService {
   }
 
   /**
-   * Start the enemy's attack timer (Active Time Battle style)
+   * Start the enemy's attack clock: N minutes per remaining chore (N is the beast's
+   * attackCooldown, 3 by default), at least one chore's worth. The clock counts down to a
+   * deadline on Date.now(), so a throttled timer in a background tab cannot slow it down.
    */
   public startAttackTimer(): void {
-    if (this.attackTimerInterval) clearInterval(this.attackTimerInterval);
+    this.stopAttackTimer();
 
-    this.state.enemyAttackTimer = 100;
-    const tickRate = 50; // ms
+    const remainingChores = this.state.combatTasks.filter(t => !t.isCompleted).length;
+    const duration = Math.max(1, remainingChores) * this.minutesPerChore() * 60_000;
 
-    // Calculate duration based on number of incomplete combat tasks
-    // Each incomplete task gives 1 minute of time (60,000ms)
-    // Minimum of 1 minute even with no tasks
-    const incompleteTasks = this.state.combatTasks.filter(t => !t.isCompleted).length;
-    const minutesPerTask = 60000; // 1 minute in ms
-    const duration = Math.max(minutesPerTask, incompleteTasks * minutesPerTask);
-    const decrement = (100 / (duration / tickRate));
-
-    // Initialize time remaining
+    this.attackDeadline = Date.now() + duration;
+    this.state.attackDuration = duration;
+    // The bar is full the moment the clock starts, not one tick later
     this.state.timeRemaining = duration;
+    this.state.enemyAttackTimer = 100;
 
-    this.attackTimerInterval = setInterval(() => {
-      this.state.enemyAttackTimer = Math.max(0, this.state.enemyAttackTimer - decrement);
-      this.state.timeRemaining = Math.max(0, this.state.timeRemaining - tickRate);
-
-      if (this.state.enemyAttackTimer <= 0 || this.state.timeRemaining <= 0) {
-        this.stopAttackTimer();
-        if (this.state.currentEnemy) {
-          this.performEnemyTurn();
-        }
-      }
-    }, tickRate);
+    this.attackTimerInterval = setInterval(() => this.tick(), CLOCK_TICK_MS);
   }
 
   /**
-   * Stop the enemy's attack timer
+   * Re-read the clock. The interval calls this every 100 ms; when the deadline has passed the
+   * beast strikes. Does nothing while the clock is stopped.
+   */
+  public tick(): void {
+    if (this.attackTimerInterval === null) return;
+
+    const remaining = Math.max(0, this.attackDeadline - Date.now());
+    this.state.timeRemaining = remaining;
+    this.state.enemyAttackTimer = this.state.attackDuration > 0 ? (remaining / this.state.attackDuration) * 100 : 0;
+
+    if (remaining <= 0) {
+      this.stopAttackTimer();
+      this.performEnemyTurn();
+    }
+  }
+
+  /**
+   * Stop the enemy's attack clock. A strike that is already on its way (see endPlayerTurn) is not
+   * cancelled; dispose() does that.
    */
   public stopAttackTimer(): void {
-    if (this.attackTimerInterval) {
+    if (this.attackTimerInterval !== null) {
       clearInterval(this.attackTimerInterval);
       this.attackTimerInterval = null;
     }
@@ -738,17 +517,33 @@ export class BattleService {
   }
 
   /**
-   * Perform enemy's turn
+   * Get the length in ms of the clock that is (or was last) running
+   */
+  public getAttackDuration(): number {
+    return this.state.attackDuration;
+  }
+
+  /** Minutes per remaining chore: the beast's own attackCooldown, or 3. */
+  private minutesPerChore(): number {
+    const minutes = this.state.currentEnemy?.attackCooldown;
+    return typeof minutes === 'number' && Number.isFinite(minutes) && minutes > 0 ? minutes : DEFAULT_MINUTES_PER_CHORE;
+  }
+
+  /**
+   * Perform enemy's turn: wind up a strike. The damage waits in pendingPlayerDamage until the
+   * hero taps through "{Beast} attacks!" (the page then calls applyPendingDamage()).
    */
   private performEnemyTurn(): void {
-    if (!this.state.currentEnemy) return;
+    this.stopAttackTimer();
 
-    // Get active enemy
-    const activeEnemy = this.state.currentEnemy;
+    // A strike is already waiting for the hero: one at a time
+    if (this.state.pendingPlayerDamage > 0) return;
 
-    // Get active user
-    const activeUser = this.getActiveUser();
-    if (!activeUser) {
+    const enemy = this.state.currentEnemy;
+    if (!enemy || enemy.health <= 0) return;
+
+    const hero = this.getActiveUser();
+    if (!hero) {
       debug.error('No active user for enemy to target');
       // Just go back to player turn
       this.state.turnCounter++;
@@ -756,75 +551,39 @@ export class BattleService {
       return;
     }
 
-    // Queue enemy turn messages
-    this.queueDialogMessages([
-      `${activeEnemy.name}'s turn!`
-    ]);
+    // The brace stays up until the hit lands (applyPendingDamage lowers it)
+    const braced = this.state.isDefending;
+    this.state.pendingStrikeBraced = braced;
+    this.state.pendingPlayerDamage = strikeDamage(hero.stats.maxHp, enemy.attack, braced);
 
     // Trigger enemy pre-attack sound (ambush/charge)
-    if (this.battleCallbacks.onAttack) {
-      this.battleCallbacks.onAttack('enemy');
-    }
-
-    // Enemy attacks the player - this creates urgency to complete tasks!
-    const baseDamage = 5 + Math.floor(Math.random() * 10);
-    const attackStat = activeEnemy.attack || 10;
-    const defenseStat = activeUser.stats?.defense || 5;
-
-    let finalDamage = Math.floor(baseDamage * (1 + attackStat / 20));
-    finalDamage = Math.max(1, Math.floor(finalDamage * (1 - defenseStat / 100)));
-
-    // Apply defense reduction if player is defending
-    if (this.state.isDefending) {
-      finalDamage = Math.floor(finalDamage * this.state.defenseMultiplier);
-      this.queueDialogMessages([`${activeUser.name}'s defense reduces the damage!`]);
-    }
-
-    this.queueDialogMessages([
-      `${activeEnemy.name} attacks!`,
-      `You take ${finalDamage} damage!`
-    ]);
-
-    // Trigger player damage sound - Moved to applyPendingDamage (Earthbound style)
-    /*
-    if (this.battleCallbacks.onDamage) {
-      this.battleCallbacks.onDamage('player', finalDamage);
-    }
-    */
-
-    // Store pending damage - will be applied when dialog is dismissed (Earthbound style!)
-    this.state.pendingPlayerDamage = finalDamage;
-
-    // Reset defending state after attack resolves
-    this.setDefendingState(false);
-
-    // Note: Damage is NOT applied here. It will be applied via applyPendingDamage()
-    // which should be called when the attack dialog is dismissed by the player.
-    // The ATB timer will restart after damage is applied.
-
-    if (this.devMode) {
-      debug.log(`Pending damage stored: ${finalDamage}. Awaiting dialog dismiss.`);
-    }
+    this.battleCallbacks.onAttack?.('enemy');
+    this.queueDialogMessages([`${enemy.name} attacks!`]);
   }
 
   /**
-   * Apply pending damage to the player (called when attack dialog is dismissed)
-   * This creates the Earthbound-style "rolling HP" effect
+   * Apply pending damage to the player (called when the attack dialog is dismissed)
+   * This creates the Earthbound-style "rolling HP" effect. The hero always regains the move when
+   * the hit lands, and this is the only place the clock restarts while a strike is waiting.
    */
   public applyPendingDamage(): void {
-    if (this.state.pendingPlayerDamage <= 0) {
-      // No pending damage, just restart the timer
-      this.state.turnCounter++;
+    const damage = this.state.pendingPlayerDamage;
+    if (damage <= 0) {
+      // Nothing was waiting: give the move back and start the clock
+      this.setPlayerTurnState(true);
       this.startAttackTimer();
       return;
     }
 
-    const damage = this.state.pendingPlayerDamage;
+    const braced = this.state.pendingStrikeBraced;
     this.state.pendingPlayerDamage = 0;
+    this.state.pendingStrikeBraced = false;
 
-    const activeUser = this.getActiveUser();
-    if (!activeUser) {
+    const hero = this.getActiveUser();
+    if (!hero) {
       debug.error('No active user to apply damage to');
+      this.setDefendingState(false);
+      this.setPlayerTurnState(true);
       this.state.turnCounter++;
       this.startAttackTimer();
       return;
@@ -832,37 +591,34 @@ export class BattleService {
 
     // Apply damage to player HP via the store
     const isAlive = this.userStore.updateUserHP({
-      userId: activeUser.id,
+      userId: hero.id,
       amount: -damage
     });
 
     // Trigger player damage sound and animations now that damage is applied
-    if (this.battleCallbacks.onDamage) {
-      this.battleCallbacks.onDamage('player', damage);
-    }
+    this.battleCallbacks.onDamage?.('player', damage);
 
     // Update the local participant's HP as well
-    activeUser.stats.hp = Math.max(0, activeUser.stats.hp - damage);
+    hero.stats.hp = Math.max(0, hero.stats.hp - damage);
 
-    if (this.devMode) {
-      debug.log(`Applied ${damage} pending damage. Player alive: ${isAlive}`);
-    }
+    // The brace is spent
+    this.setDefendingState(false);
+
+    this.queueDialogMessages([
+      braced ? `${hero.name} braced: only ${damage} damage!` : `${hero.name} takes ${damage} damage!`
+    ]);
 
     if (!isAlive) {
       // Player defeated
-      this.queueDialogMessages([
-        `${activeUser.name} has fallen!`,
-        'You blacked out...'
-      ]);
-
-      if (this.battleCallbacks.onPlayerDefeated) {
-        this.battleCallbacks.onPlayerDefeated();
-      }
-    } else {
-      // Proceed to next turn, restart ATB
-      this.state.turnCounter++;
-      this.startAttackTimer();
+      this.queueDialogMessages([`${hero.name} has fallen!`, 'You blacked out...']);
+      this.battleCallbacks.onPlayerDefeated?.();
+      return;
     }
+
+    // Back to the hero, with a full clock
+    this.setPlayerTurnState(true);
+    this.state.turnCounter++;
+    this.startAttackTimer();
   }
 
   /**
@@ -880,49 +636,18 @@ export class BattleService {
   }
 
   /**
-   * Update the enemy health bar color based on remaining health
+   * Tell the page the beast's health changed
    */
-  private updateEnemyHealthColor(): void {
-    if (!this.state.currentEnemy) return;
-
-    const healthPercentage = this.state.currentEnemy.health / this.state.currentEnemy.maxHealth;
-
-    if (healthPercentage > 0.6) {
-      this.state.enemyHealthColor = '#2dd36f'; // green
-    } else if (healthPercentage > 0.3) {
-      this.state.enemyHealthColor = '#ffc409'; // yellow
-    } else {
-      this.state.enemyHealthColor = '#eb445a'; // red
-    }
-
-    if (this.battleCallbacks.onEnemyHealthChange) {
-      this.battleCallbacks.onEnemyHealthChange();
-    }
+  private notifyEnemyHealthChange(): void {
+    this.battleCallbacks.onEnemyHealthChange?.();
   }
 
   /**
    * Queue dialog messages to be shown to the player
-   * @param messages Array of messages to queue
+   * @param messages Lines to queue: strings wait for a tap, `{ text, auto: true }` lines advance on their own
    */
-  private queueDialogMessages(messages: string[]): void {
-    if (this.battleCallbacks.onDialogMessage) {
-      this.battleCallbacks.onDialogMessage(messages);
-    }
-
-    if (this.devMode) {
-      debug.log('Dialog messages:', messages);
-    }
-  }
-
-  /**
-   * Set battle message
-   * @param message The message to display
-   */
-  private setBattleMessage(message: string): void {
-    this.state.battleMessage = message;
-    if (this.battleCallbacks.onBattleMessageChange) {
-      this.battleCallbacks.onBattleMessageChange(message);
-    }
+  private queueDialogMessages(messages: EngineMessage[]): void {
+    this.battleCallbacks.onDialogMessage?.(messages);
   }
 
   /**
@@ -931,9 +656,7 @@ export class BattleService {
    */
   private setDefendingState(isDefending: boolean): void {
     this.state.isDefending = isDefending;
-    if (this.battleCallbacks.onDefendStateChange) {
-      this.battleCallbacks.onDefendStateChange(isDefending);
-    }
+    this.battleCallbacks.onDefendStateChange?.(isDefending);
   }
 
   /**
@@ -942,21 +665,22 @@ export class BattleService {
    */
   private setPlayerTurnState(isPlayerTurn: boolean): void {
     this.state.isPlayerTurn = isPlayerTurn;
-    if (this.battleCallbacks.onPlayerTurnChange) {
-      this.battleCallbacks.onPlayerTurnChange(isPlayerTurn);
+    this.battleCallbacks.onPlayerTurnChange?.(isPlayerTurn);
+  }
+
+  /** Cancel the beat before a strike, if one is on its way. */
+  private clearStrikeTimeout(): void {
+    if (this.strikeTimeout !== null) {
+      clearTimeout(this.strikeTimeout);
+      this.strikeTimeout = null;
     }
   }
 
   /**
-   * Get player name from Pinia store
+   * The name every hero line uses: the hero in this fight, or "You" when there is none
    */
-  private getPlayerName(): string {
-    const currentUser = this.userStore.currentUser;
-    if (currentUser?.id) {
-      const user = this.userStore.getUserById(currentUser.id);
-      return user?.name?.nick || 'Player';
-    }
-    return 'Player';
+  private heroName(): string {
+    return this.getActiveUser()?.name ?? 'You';
   }
 
   /**
@@ -978,6 +702,7 @@ export class BattleService {
     if (!storeUser) return null;
 
     const stats = storeUser.stats || {};
+    const special = stats.special || {};
 
     // Extract HP/MP from either primitive or object structure { now, max }
     const hp = typeof stats.hp === 'object' ? stats.hp?.now : stats.hp;
@@ -985,10 +710,16 @@ export class BattleService {
     const mp = typeof stats.mp === 'object' ? stats.mp?.now : stats.mp;
     const maxMp = typeof stats.mp === 'object' ? stats.mp?.max : (stats.maxMp || 100);
 
+    // The first real number wins; heroes saved before `special` existed keep their top-level stats
+    const statOr = (fallback: number, ...candidates: unknown[]): number => {
+      const found = candidates.find((value) => typeof value === 'number' && Number.isFinite(value));
+      return typeof found === 'number' ? found : fallback;
+    };
+
     // Convert store user to battle user interface
     return {
       id: userId,
-      name: storeUser.name?.nick || 'Player',
+      name: storeUser.name?.nick || storeUser.name?.first || 'Player',
       avatar: storeUser.avatar,
       stats: {
         level: stats.level || 1,
@@ -996,58 +727,11 @@ export class BattleService {
         maxHp: typeof maxHp === 'number' ? maxHp : 100,
         mp: typeof mp === 'number' ? mp : 100,
         maxMp: typeof maxMp === 'number' ? maxMp : 100,
-        strength: stats.strength || 10,
-        defense: stats.defense || 10,
-        speed: stats.speed || 10,
+        strength: statOr(10, special.strength, stats.strength),
+        defense: statOr(10, special.defense, stats.defense),
+        speed: statOr(10, special.speed, special.agility, stats.speed),
       }
     };
-  }
-
-  /**
-   * Get current user from Pinia store
-   */
-  private getCurrentUserFromStore(): User | null {
-    const currentUser = this.userStore.currentUser;
-    if (!currentUser?.id) return null;
-    return this.getUserById(currentUser.id);
-  }
-
-  /**
-   * Reset the battle state
-   * This resets the battle to initial state but keeps the enemy
-   */
-  public resetBattle(): void {
-    if (this.state.currentEnemy) {
-      this.stopAttackTimer();
-      this.state.enemyAttackTimer = 100;
-      // Reset enemy health to max
-      this.state.currentEnemy.health = this.state.currentEnemy.maxHealth;
-
-      // Update the enemy in participants array
-      const activeEnemyIndex = this.state.participants.activeEnemyIndex;
-      if (this.state.participants.enemies[activeEnemyIndex]) {
-        this.state.participants.enemies[activeEnemyIndex].health = this.state.participants.enemies[activeEnemyIndex].maxHealth;
-      }
-
-      // Update health color
-      this.updateEnemyHealthColor();
-    }
-
-    // Reset battle state
-    this.state.isPlayerTurn = false;
-    this.state.turnCounter = 1;
-    this.state.isDefending = false;
-    this.setBattleMessage('');
-
-    // Queue reset message
-    this.queueDialogMessages([
-      "The battle has been reset!",
-      "Get ready to fight again!"
-    ]);
-
-    if (this.devMode) {
-      debug.log("Battle has been reset");
-    }
   }
 
   /**
@@ -1072,13 +756,6 @@ export class BattleService {
   }
 
   /**
-   * Get enemy health color
-   */
-  public getEnemyHealthColor(): string {
-    return this.state.enemyHealthColor;
-  }
-
-  /**
    * Check if player is defending
    */
   public isDefending(): boolean {
@@ -1090,13 +767,6 @@ export class BattleService {
    */
   public isPlayerTurn(): boolean {
     return this.state.isPlayerTurn;
-  }
-
-  /**
-   * Get battle message
-   */
-  public getBattleMessage(): string {
-    return this.state.battleMessage;
   }
 
   /**
@@ -1112,104 +782,4 @@ export class BattleService {
   public getTurnCounter(): number {
     return this.state.turnCounter;
   }
-
-  /**
-   * Get whether service is in dev mode
-   */
-  public isDevMode(): boolean {
-    return this.devMode;
-  }
-
-  /**
-   * Set dev mode
-   * @param devMode Whether to enable dev mode
-   */
-  public setDevMode(devMode: boolean): void {
-    this.devMode = devMode;
-    debug.log(`Battle service dev mode ${devMode ? 'enabled' : 'disabled'}`);
-  }
-
-  /**
-   * Developer tool: Damage enemy (only available in dev mode)
-   * @param damage Amount of damage to inflict
-   * @returns Whether the damage was applied
-   */
-  public devDamageEnemy(damage: number): boolean {
-    if (!this.devMode) return false;
-    if (!this.state.currentEnemy) return false;
-
-    // Apply damage to enemy
-    this.state.currentEnemy.health = Math.max(0, this.state.currentEnemy.health - damage);
-    this.updateEnemyHealthColor();
-
-    // Update the active enemy in participants array
-    const activeEnemyIndex = this.state.participants.activeEnemyIndex;
-    this.state.participants.enemies[activeEnemyIndex] = this.state.currentEnemy;
-
-    // Check if enemy is defeated
-    if (this.state.currentEnemy.health <= 0) {
-      // Store defeated enemy for callback
-      const defeatedEnemy = { ...this.state.currentEnemy };
-
-      // Handle enemy defeat with callback
-      if (this.battleCallbacks.onEnemyDefeated) {
-        setTimeout(() => {
-          if (this.battleCallbacks.onEnemyDefeated) {
-            this.battleCallbacks.onEnemyDefeated(defeatedEnemy);
-          }
-        }, 500);
-      }
-    }
-
-    return true;
-  }
-
-  /**
-   * Developer tool: Heal enemy (only available in dev mode)
-   * @param healing Amount of healing to apply
-   * @returns Whether the healing was applied
-   */
-  public devHealEnemy(healing: number): boolean {
-    if (!this.devMode) return false;
-    if (!this.state.currentEnemy) return false;
-
-    // Apply healing to enemy
-    this.state.currentEnemy.health = Math.min(
-      this.state.currentEnemy.maxHealth,
-      this.state.currentEnemy.health + healing
-    );
-    this.updateEnemyHealthColor();
-
-    // Update the active enemy in participants array
-    const activeEnemyIndex = this.state.participants.activeEnemyIndex;
-    this.state.participants.enemies[activeEnemyIndex] = this.state.currentEnemy;
-
-    return true;
-  }
-
-  /**
-   * Developer tool: Skip turn (only available in dev mode)
-   * @returns Whether the turn was skipped
-   */
-  public devSkipTurn(): boolean {
-    if (!this.devMode) return false;
-
-    if (this.state.isPlayerTurn) {
-      this.endPlayerTurn();
-    } else {
-      this.state.turnCounter++;
-      this.startPlayerTurn();
-    }
-
-    return true;
-  }
-}
-
-/**
- * Factory function to create a battle service
- * @param devMode Whether to enable dev mode
- * @returns A new battle service instance
- */
-export function createBattleService(devMode: boolean = false): BattleService {
-  return new BattleService(devMode);
 }

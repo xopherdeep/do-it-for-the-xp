@@ -1,324 +1,198 @@
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { useUserStore } from '@/lib/store/stores/user';
-import { calculatePlayerStats, getXpToNextLevel } from '@/lib/services/stats/PlayerStatsService';
-import debug from '@/lib/utils/debug';
+import {
+  computed,
+  getCurrentScope,
+  onScopeDispose,
+  ref,
+  toValue,
+  watch,
+  type MaybeRefOrGetter,
+} from "vue";
+import { calculatePlayerStats } from "@/lib/services/stats/PlayerStatsService";
+import { useUserStore } from "@/lib/store/stores/user";
+import type { SpecialStats } from "@/lib/utils/User/stats";
+import { requireAvatar } from "@/lib/utils/requireImg";
 
-/**
- * Player data interface for battle context
- */
+/** One tick of the HP / MP odometer: the number on the tiles moves one step toward the real value. */
+export const ROLL_STEP_MS = 40;
+
+/** The slice of a stored hero profile that the battle screen reads (the user store keeps profiles untyped). */
 export interface BattlePlayer {
   id: string;
-  name: string;
-  nickname: string;
-  level: number;
-  hp: {
-    current: number;
-    max: number;
-  };
-  mp: {
-    current: number;
-    max: number;
-  };
-  xp: {
-    current: number;
-    toNextLevel: number;
-  };
-  stats: {
-    attack: number;
-    defense: number;
-    speed: number;
-    intelligence: number;
-  };
+  name?: { full?: string; first?: string; nick?: string };
+  /** File name of the avatar without folder or extension, e.g. "003-gamer". */
   avatar?: string;
-  jobClass: string;
+  jobClass?: string;
+  stats?: {
+    level?: number;
+    hp?: { now?: number; max?: number };
+    mp?: { now?: number; max?: number };
+    special?: Partial<SpecialStats>;
+    classes?: Record<string, { level?: number }>;
+  };
 }
 
 /**
- * Battle Player Hook
- * 
- * Handles loading and managing player data for the battle field.
- * Uses PlayerStatsService to calculate proper HP/MP based on level and job class.
+ * The tiles of one odometer, left to right (the names are the old HUD's). Leading zeros are blank strings,
+ * and a number past 999 spills into the left tile, so 1234 reads "12" "3" "4".
  */
-export function useBattlePlayer() {
-  const userStore = useUserStore();
-
-  // Loading state
-  const isLoading = ref(true);
-  const error = ref<string | null>(null);
-
-  // Player data
-  const player = ref<BattlePlayer | null>(null);
-
-  // Previous values for rolldown animation
-  const previousHp = ref(0);
-  const previousMp = ref(0);
-
-  // Display values that animate toward actual values (Earthbound-style rolling)
-  const displayHp = ref(0);
-  const displayMp = ref(0);
-  let hpAnimationFrame: number | null = null;
-
-  /**
-   * Get the current player from the user store
-   */
-  const currentPlayer = computed(() => {
-    const current = userStore.currentUser;
-    if (current && current.id) {
-      return userStore.getUserById(current.id);
-    }
-    return null;
-  });
-
-  /**
-   * Extract battle-relevant player data from user profile
-   * Uses PlayerStatsService for proper HP/MP calculation
-   */
-  const extractPlayerData = (userData: any): BattlePlayer | null => {
-    if (!userData || !userData.id) {
-      return null;
-    }
-
-    // Extract base info
-    const stats = userData.stats || {};
-    const specialStats = stats.special || {};
-    const level = stats.level || 1;
-    const jobClass = userData.jobClass || 'default';
-
-    // Get XP info
-    const xpStats = stats.xp || {};
-    const currentXp = xpStats.now || 0;
-    const xpToNextLevel = getXpToNextLevel(level);
-
-    // Calculate proper HP/MP using the stats service
-    // Pass current HP/MP if available (to preserve damage taken)
-    const currentHp = stats.hp?.now;
-    const currentMp = stats.mp?.now;
-
-    // Get Class Level
-    const classes = stats.classes || {};
-    const currentClassData = classes[jobClass] || { level: 1 };
-    const classLevel = currentClassData.level || 1;
-
-    const calculatedStats = calculatePlayerStats(
-      level,
-      jobClass,
-      specialStats,
-      currentHp,
-      currentMp,
-      classLevel
-    );
-
-    debug.log('BattlePlayer: Calculated stats', {
-      level,
-      jobClass,
-      specialStats,
-      calculatedStats
-    });
-
-    return {
-      id: userData.id,
-      name: userData.name?.full || userData.name?.first || 'Player',
-      nickname: userData.name?.nick || userData.name?.first || 'Player',
-      level,
-      hp: {
-        current: calculatedStats.hp.now,
-        max: calculatedStats.hp.max
-      },
-      mp: {
-        current: calculatedStats.mp.now,
-        max: calculatedStats.mp.max
-      },
-      xp: {
-        current: currentXp,
-        toNextLevel: xpToNextLevel
-      },
-      stats: {
-        attack: specialStats.strength || 10,
-        defense: specialStats.defense || specialStats.endurance || 5,
-        speed: specialStats.agility || 8,
-        intelligence: specialStats.intelligence || 10
-      },
-      avatar: userData.avatar,
-      jobClass
-    };
-  };
-
-  /**
-   * Load the player data
-   */
-  const loadPlayer = async () => {
-    isLoading.value = true;
-    error.value = null;
-
-    try {
-      // Ensure users are loaded
-      await userStore.loadUsers();
-
-      // Get current player data
-      const userData = currentPlayer.value;
-
-      if (userData) {
-        player.value = extractPlayerData(userData);
-        debug.log('BattlePlayer: Loaded player data', player.value);
-      } else {
-        debug.warn('BattlePlayer: No current user found');
-        error.value = 'No player profile found';
-      }
-    } catch (err) {
-      debug.error('BattlePlayer: Error loading player', err);
-      error.value = 'Failed to load player data';
-    } finally {
-      isLoading.value = false;
-    }
-  };
-
-  /**
-   * Refresh player data from store
-   */
-  const refreshPlayer = () => {
-    const userData = currentPlayer.value;
-    if (userData) {
-      player.value = extractPlayerData(userData);
-    }
-  };
-
-  /**
-   * Get formatted HP for display (thou, hun, ten digits)
-   * Uses displayHp which animates toward actual HP (Earthbound-style rolling)
-   */
-  const formattedHp = computed(() => {
-    const hp = Math.floor(displayHp.value);
-    const [thou, hun, ten] = String(hp).padStart(3, '0');
-
-    return {
-      thou: thou === '0' ? '' : thou,
-      hun: hun === '0' && thou === '0' ? '' : hun,
-      ten,
-      value: hp
-    };
-  });
-
-  /**
-   * Get formatted MP for display (thou, hun, ten digits)
-   * Uses displayMp which animates toward actual MP
-   */
-  const formattedMp = computed(() => {
-    const mp = Math.floor(displayMp.value);
-    const [thou, hun, ten] = String(mp).padStart(3, '0');
-
-    return {
-      thou: thou === '0' ? '' : thou,
-      hun: hun === '0' && thou === '0' ? '' : hun,
-      ten,
-      value: mp
-    };
-  });
-
-  /**
-   * Get player name for display
-   */
-  const playerName = computed(() => {
-    return player.value?.nickname || 'Player';
-  });
-
-  /**
-   * Get HP percentage for health bar
-   */
-  const hpPercentage = computed(() => {
-    if (!player.value) return 100;
-    return (player.value.hp.current / player.value.hp.max) * 100;
-  });
-
-  /**
-   * Get MP percentage for mana bar
-   */
-  const mpPercentage = computed(() => {
-    if (!player.value) return 100;
-    if (player.value.mp.max === 0) return 100; // Avoid division by zero
-    return (player.value.mp.current / player.value.mp.max) * 100;
-  });
-
-  // Watch for changes in the current user
-  watch(currentPlayer, (newUser) => {
-    if (newUser) {
-      // Store previous values before update (for rolldown animation)
-      if (player.value) {
-        previousHp.value = player.value.hp.current;
-        previousMp.value = player.value.mp.current;
-      }
-      player.value = extractPlayerData(newUser);
-    }
-  }, { deep: true });
-
-  /**
-   * Animate display HP toward actual HP (Earthbound-style rolling)
-   * Rolls approximately 1 HP every 50ms
-   */
-  const animateHp = () => {
-    const actualHp = player.value?.hp.current ?? 0;
-
-    if (displayHp.value !== actualHp) {
-      // Roll toward target at ~1 HP per 50ms
-      if (displayHp.value > actualHp) {
-        displayHp.value = Math.max(actualHp, displayHp.value - 1);
-      } else {
-        displayHp.value = Math.min(actualHp, displayHp.value + 1);
-      }
-      hpAnimationFrame = requestAnimationFrame(() => {
-        setTimeout(animateHp, 50);
-      });
-    } else {
-      hpAnimationFrame = null;
-    }
-  };
-
-  // Watch for HP changes and start rolling animation
-  watch(() => player.value?.hp.current, (newHp) => {
-    if (newHp !== undefined && hpAnimationFrame === null) {
-      animateHp();
-    }
-  });
-
-  // Load player on mount
-  onMounted(() => {
-    loadPlayer();
-    // Initialize display values after loading
-    setTimeout(() => {
-      if (player.value) {
-        displayHp.value = player.value.hp.current;
-        displayMp.value = player.value.mp.current;
-      }
-    }, 100);
-  });
-
-  // Cleanup animation frames
-  onUnmounted(() => {
-    if (hpAnimationFrame) cancelAnimationFrame(hpAnimationFrame);
-  });
-
-  return {
-    // State
-    player,
-    isLoading,
-    error,
-
-    // Previous values for rolldown animation
-    previousHp,
-    previousMp,
-
-    // Computed for HUD display
-    playerName,
-    formattedHp,
-    formattedMp,
-    hpPercentage,
-    mpPercentage,
-
-    // Actions
-    loadPlayer,
-    refreshPlayer,
-
-    // Raw access to current player from store
-    currentPlayer
-  };
+export interface OdometerDigits {
+  thou: string;
+  hun: string;
+  ten: string;
 }
 
+const finiteNumber = (value: unknown): number | undefined =>
+  typeof value === "number" && Number.isFinite(value) ? value : undefined;
+
+const cleanText = (value: unknown): string => (typeof value === "string" ? value.trim() : "");
+
+const toOdometer = (value: number): OdometerDigits => {
+  const whole = Math.max(0, Math.floor(value));
+  const high = Math.floor(whole / 100);
+  const tens = Math.floor(whole / 10) % 10;
+  return {
+    thou: high > 0 ? String(high) : "",
+    hun: high > 0 || tens > 0 ? String(tens) : "",
+    ten: String(whole % 10),
+  };
+};
+
+const toPercent = (value: number, max: number): number =>
+  max > 0 ? Math.min(100, Math.max(0, (value / max) * 100)) : 0;
+
+/**
+ * A whole number that counts toward `target` one step per tick, like the odometers in the original game.
+ * It starts AT the target (a card that opens on 30 HP shows 30, it does not count up from zero) and runs at
+ * most one interval, only while the shown number is away from the target.
+ */
+const useRollingNumber = (target: () => number) => {
+  const shown = ref(target());
+  let timer: number | undefined;
+
+  const stop = () => {
+    if (timer === undefined) return;
+    window.clearInterval(timer);
+    timer = undefined;
+  };
+
+  const step = () => {
+    const goal = target();
+    if (shown.value !== goal) shown.value += shown.value < goal ? 1 : -1;
+    if (shown.value === goal) stop();
+  };
+
+  // Sync flush: the first tick is scheduled in the same breath as the damage, not a microtask later.
+  watch(
+    target,
+    (goal) => {
+      if (shown.value !== goal && timer === undefined) timer = window.setInterval(step, ROLL_STEP_MS);
+    },
+    { flush: "sync" }
+  );
+
+  /** Jump to the real value without rolling. */
+  const snap = () => {
+    stop();
+    shown.value = target();
+  };
+
+  if (getCurrentScope()) onScopeDispose(stop);
+
+  return { shown, snap };
+};
+
+/**
+ * The hero on the battle screen: name, level, avatar and the rolling HP / MP odometers.
+ *
+ * Everything derives from `useUserStore().users[userId]`, so whoever changes the profile (the engine's
+ * `updateUserHP`, a level-up, a restore) moves the card without being asked. The hook never loads or writes
+ * anything: the user store must already hold the hero, and until it does `isLoading` is true.
+ *
+ * Call it from a component's `setup()`: the rolling intervals are cancelled when the component unmounts.
+ *
+ * @param userId The hero's id, as a value, ref or getter. Left out, the signed-in hero is shown.
+ */
+export function useBattlePlayer(userId?: MaybeRefOrGetter<string | null | undefined>) {
+  const userStore = useUserStore();
+
+  // Left out entirely, the signed-in hero is shown; an id that is empty or unknown is a hero who is missing.
+  const heroId = computed(() => (userId === undefined ? userStore.currentUser.id : toValue(userId)) || "");
+  const player = computed<BattlePlayer | null>(() => {
+    const stored: BattlePlayer | undefined = userStore.users[heroId.value];
+    return stored ?? null;
+  });
+  /** True only while the hero is missing from the store. */
+  const isLoading = computed(() => player.value === null);
+
+  const playerName = computed(
+    () => cleanText(player.value?.name?.nick) || cleanText(player.value?.name?.first) || "Hero"
+  );
+  const level = computed(() => Math.max(1, Math.floor(finiteNumber(player.value?.stats?.level) ?? 1)));
+
+  const avatarSrc = computed(() => {
+    const avatar = player.value?.avatar;
+    if (!avatar) return "";
+    try {
+      const src = requireAvatar(`./${avatar}.svg`);
+      return typeof src === "string" ? src : "";
+    } catch {
+      return "";
+    }
+  });
+
+  // The profile's own max is the source of truth; the class formula only fills in for a profile without one.
+  const formula = computed(() => {
+    const hero = player.value;
+    const jobClass = cleanText(hero?.jobClass) || "default";
+    const classLevel = finiteNumber(hero?.stats?.classes?.[jobClass]?.level) || 1;
+    return calculatePlayerStats(level.value, jobClass, hero?.stats?.special, undefined, undefined, classLevel);
+  });
+  const hpNow = computed(() => finiteNumber(player.value?.stats?.hp?.now) ?? 0);
+  const hpMax = computed(() => {
+    const stored = finiteNumber(player.value?.stats?.hp?.max);
+    return stored !== undefined && stored > 0 ? stored : formula.value.hp.max;
+  });
+  const mpNow = computed(() => finiteNumber(player.value?.stats?.mp?.now) ?? 0);
+  const mpMax = computed(() => {
+    const stored = finiteNumber(player.value?.stats?.mp?.max);
+    return stored !== undefined && stored >= 0 ? stored : formula.value.mp.max;
+  });
+
+  const hp = useRollingNumber(() => Math.max(0, Math.round(hpNow.value)));
+  const mp = useRollingNumber(() => Math.max(0, Math.round(mpNow.value)));
+
+  // A hero who turns up after the card did (or a different one) starts on their real numbers, not rolling from zero.
+  watch(
+    () => (player.value ? heroId.value : ""),
+    (key) => {
+      if (!key) return;
+      hp.snap();
+      mp.snap();
+    },
+    { flush: "sync" }
+  );
+
+  const hpDisplay = hp.shown;
+  const mpDisplay = mp.shown;
+
+  return {
+    player,
+    isLoading,
+    playerName,
+    level,
+    avatarSrc,
+    /** The profile's real numbers. */
+    hpNow,
+    hpMax,
+    mpNow,
+    mpMax,
+    /** What the tiles show right now: whole numbers that roll toward the real ones. */
+    hpDisplay,
+    mpDisplay,
+    formattedHp: computed(() => toOdometer(hpDisplay.value)),
+    formattedMp: computed(() => toOdometer(mpDisplay.value)),
+    /** The rolling number as a share of the max, 0 to 100, so the bars move with the tiles. */
+    hpPercentage: computed(() => toPercent(hpDisplay.value, hpMax.value)),
+    mpPercentage: computed(() => toPercent(mpDisplay.value, mpMax.value)),
+  };
+}

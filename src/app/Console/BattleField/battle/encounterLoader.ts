@@ -62,6 +62,8 @@ const loadQuestEncounter = async (ctx: BattleContext, bestiary: BestiaryService)
   }
 
   const beastEnemy = quest.beastId ? await bestiary.loadBeastById(quest.beastId) : null;
+  // A beast with an empty checklist would otherwise be beaten with made-up attacks: the chore itself is the move
+  if (beastEnemy && !beastEnemy.tasks?.length) beastEnemy.tasks = enemyFromQuest(quest).tasks;
   const enemies = [beastEnemy || enemyFromQuest(quest)];
   return { enemies, rewards: questRewards(quest), quest, label: labelFor(enemies) };
 };

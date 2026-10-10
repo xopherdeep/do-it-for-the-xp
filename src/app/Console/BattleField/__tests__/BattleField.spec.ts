@@ -1,41 +1,44 @@
 import { flushPromises, mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
-import { defineComponent } from "vue";
+import { defineComponent, nextTick } from "vue";
 import { createMemoryHistory, createRouter } from "vue-router";
 import BattleField from "../BattleField.vue";
+import { VICTORY_TIMINGS } from "../composables/useBattleOutcome";
 import { useUserStore } from "@/lib/store/stores/user";
 
 /**
- * The BattleField page in jsdom, from the beast's intro to the walk home. The page, its composables, BattleService,
- * the user store and Vue Router are all real; only what a browser provides (Ionic's router outlet and alert, the
- * canvas, audio, the bestiary) is replaced.
+ * The BattleField page in jsdom, from the beast's intro to the walk home. The page, its components, composables,
+ * BattleService, the user store and Vue Router are all real; only what a browser provides (Ionic's router outlet,
+ * the canvas, audio, haptics, the bestiary) is replaced.
  */
 
 // The page starts its fight from Ionic's view-enter hook, which only fires inside <ion-router-outlet>:
-// capture the page's hooks and fire them by hand. The "Execute Attack?" alert confirms itself when presented.
+// capture the page's hooks and fire them by hand.
 const mockViewHooks: { didEnter?: () => void; willLeave?: () => void } = {};
 jest.mock("@ionic/vue", () => ({
   ...jest.requireActual("@ionic/vue"),
   onIonViewDidEnter: (hook: () => void) => { mockViewHooks.didEnter = hook; },
   onIonViewWillLeave: (hook: () => void) => { mockViewHooks.willLeave = hook; },
-  alertController: {
-    create: async ({ buttons }: { buttons: { text: string; handler?: () => void }[] }) => ({
-      present: async () => buttons.find((button) => button.text === "ATTACK!")?.handler?.(),
-    }),
-  },
+  useBackButton: jest.fn(),
 }));
 
-// jsdom has no canvas or audio and the bestiary is empty: stub the arena background, the sound board and the beasts.
+// jsdom has no canvas, audio, vibration motor or bestiary: stub the arena background, the sound board, haptics and the beasts.
 jest.mock("@/lib/engine/core/BackgroundManager", () => ({
   backgroundManager: {
     isActiveFor: () => false, initBackground: jest.fn(), cleanupBackground: jest.fn(),
     animateAspectRatio: () => Promise.resolve(), getBackgroundSettings: () => ({ isActive: false }),
   },
 }));
+const mockPlaySound = jest.fn();
 jest.mock("@/assets/fx", () => ({
   __esModule: true,
   default: { rpg: { earthbound: { BGM: { battle: [], win: [], winboss: [] } } } },
-  play$fx: jest.fn(),
+  play$fx: (...args: unknown[]) => mockPlaySound(...args),
+}));
+jest.mock("@capacitor/haptics", () => ({
+  Haptics: { impact: jest.fn().mockResolvedValue(undefined), notification: jest.fn().mockResolvedValue(undefined) },
+  ImpactStyle: { Heavy: "HEAVY", Medium: "MEDIUM", Light: "LIGHT" },
+  NotificationType: { Success: "SUCCESS" },
 }));
 jest.mock("@/lib/services/battle/BestiaryService", () => {
   const socktopus = () => ({
@@ -57,6 +60,7 @@ jest.mock("@/lib/services/battle/BestiaryService", () => {
 jest.setTimeout(30000);
 
 const INTRO = "From the dark forces of chaos comes Socktopus!!!";
+const SHEET_LEAVE_MS = 260;
 const blank = defineComponent({ render: () => null });
 const routePaths: Record<string, string> = {
   "battle-quest": "/battle/:userId/quest/:questId",
@@ -75,6 +79,8 @@ describe("BattleField: a free fight", () => {
 
   beforeEach(() => {
     jest.useFakeTimers();
+    mockPlaySound.mockClear();
+    localStorage.clear();
     mockViewHooks.didEnter = undefined;
     mockViewHooks.willLeave = undefined;
   });
@@ -101,11 +107,11 @@ describe("BattleField: a free fight", () => {
     await router.push(path);
     await router.isReady();
 
-    // The HUD re-reads the profile database on mount, which is empty in jsdom and would drop the seeded hero.
-    const wrapper = mount(BattleField, { global: { plugins: [pinia, router], stubs: { XpHpMpHud: true } } });
+    const wrapper = mount(BattleField, { global: { plugins: [pinia, router] } });
     mounted = wrapper;
     const vm = wrapper.vm as unknown as BattleVm;
-    expect(wrapper.find(".battle-dialog").exists()).toBe(false); // nothing starts until the view is entered
+    expect(vm.dialogText).toBe(""); // nothing starts until the view is entered
+    expect(wrapper.find(".menu-item").exists()).toBe(false);
     expect(mockViewHooks.didEnter).toBeDefined();
     mockViewHooks.didEnter?.();
     await flushPromises();
@@ -114,66 +120,146 @@ describe("BattleField: a free fight", () => {
       vm.advanceDialog();
       await flushPromises();
     };
-    return { wrapper, router, userStore, vm, tap };
+    /** Reads whatever is on screen until the command menu is back. */
+    const readUntilMenu = async () => {
+      for (let taps = 0; taps < 12 && !wrapper.find(".menu-item").exists(); taps++) await tap();
+      expect(wrapper.find(".menu-item").exists()).toBe(true);
+    };
+    /** Attack: open the sheet, pick a chore, confirm it, let the sheet slide away and the blow land. */
+    const attackWith = async (chore: string) => {
+      await wrapper.find("#attack").trigger("click");
+      expect(wrapper.find("[data-cy=task-sheet]").exists()).toBe(true);
+      const row = wrapper.findAll(".battle-task-item").find((item) => item.text().includes(chore));
+      expect(row).toBeDefined();
+      await row?.trigger("click");
+      expect(row?.classes()).toContain("is-selected");
+      jest.advanceTimersByTime(300); // the double-tap guard on Done!
+      await wrapper.find("[data-cy=task-confirm]").trigger("click");
+      await flushPromises();
+      expect(wrapper.find("[data-cy=task-sheet]").exists()).toBe(false);
+      jest.advanceTimersByTime(SHEET_LEAVE_MS);
+      await flushPromises();
+    };
+    return { wrapper, router, userStore, vm, tap, readUntilMenu, attackWith };
   };
 
   it("opens on the beast, takes two chores to win and walks the hero home with the loot", async () => {
-    const { wrapper, router, userStore, vm, tap } = await enterBattle("/battle/hero-1/free/");
-    const chores = () => wrapper.find(".enemy-progress-bar.hp").text();
-    const clock = () => wrapper.find(".enemy-progress-bar.attack-timer .progress-label");
+    const { wrapper, router, userStore, vm, tap, attackWith } = await enterBattle("/battle/hero-1/free/");
+    const chores = () => wrapper.find(".chores-left-label").text();
+    const clock = () => wrapper.find(".attack-timer-label");
 
     // Intro: the beast announces itself. One tap finishes the typing, the next closes the box and starts the clock.
     expect(vm.dialogText).toBe(INTRO);
     expect(wrapper.find(".enemy-name").text()).toBe("Socktopus");
-    expect(wrapper.find(".battle-dialog").text()).not.toContain(INTRO);
+    expect(wrapper.find("[data-cy=hero-card]").text()).toContain("Max");
     expect(wrapper.findAll(".menu-item")).toHaveLength(0);
     expect(clock().exists()).toBe(false);
     await tap();
-    expect(wrapper.find(".battle-dialog").text()).toContain(INTRO);
+    expect(wrapper.find("[data-cy=battle-dialog]").text()).toContain(INTRO);
+    expect(vm.dialogText).toBe(INTRO); // still on screen: the atom's own click no longer dismisses it
     await tap();
     expect(wrapper.findAll(".menu-item").map((button) => button.text())).toEqual(["Attack", "Defend", "Run Away"]);
+    expect(wrapper.find(".dialog-prompt").text()).toBe("Do its chores to win!");
     expect(chores()).toBe("2 chores left");
-    expect(clock().text()).toBe("2:00");
+    expect(clock().text()).toBe("6:00"); // three minutes a chore
+    expect(wrapper.find("ion-alert").exists()).toBe(false);
 
-    // Attack lists the beast's chores as the hero's moves; picking one deals half the beast's health.
-    const attackWith = async (chore: string) => {
-      await wrapper.findAll(".menu-item")[0].trigger("click");
-      expect(wrapper.findAll(".task-name").map((name) => name.text())).toEqual(["Sort socks", "Match pairs"]);
-      await wrapper.findAll(".battle-task-item").find((item) => item.text().includes(chore))?.trigger("click");
-      await flushPromises();
-      expect(wrapper.find(".xp-battle-task-menu").exists()).toBe(false);
-    };
+    // Attack lists the beast's chores as the hero's moves; confirming one deals half the beast's health.
     await attackWith("Sort socks");
+    expect(wrapper.find(".damage-popup").text()).toBe("-50");
+    expect(mockPlaySound).toHaveBeenCalledWith("attack");
+    expect(mockPlaySound).toHaveBeenCalledWith("enemyDamage");
     expect(chores()).toBe("1 chore left");
-    expect(clock().text()).toBe("1:00"); // every chore earns a fresh clock
-    for (let taps = 0; taps < 10 && !wrapper.find(".menu-item").exists(); taps++) await tap(); // read the messages
+    expect(clock().text()).toBe("3:00"); // every chore earns a fresh clock
+    expect(vm.dialogText).toBe("Max used Sort socks! Socktopus took 50 damage!");
+    await tap(); // finish typing: the result line moves on by itself
+    jest.advanceTimersByTime(2000);
+    await flushPromises();
+    expect(wrapper.find(".menu-item").exists()).toBe(true);
+    expect(wrapper.find(".dialog-prompt").exists()).toBe(false); // the hint is gone after the first chore
+
+    // The last blow pays out at once, before any celebration: a free fight is worth AP only.
     await attackWith("Match pairs");
+    expect(wrapper.find(".damage-popup").text()).toBe("SMAAAASH!!");
+    expect(userStore.users["hero-1"].stats).toMatchObject({ xp: { now: 0 }, gp: { wallet: 0 }, ap: { total: 1 } });
+    expect(mockPlaySound).toHaveBeenCalledWith("enemyDie");
 
-    // The last blow pays out at once, before any victory text is read.
-    expect(userStore.users["hero-1"].stats).toMatchObject({
-      xp: { now: 50 }, gp: { wallet: 25 }, ap: { total: 1 }, classes: { warrior: { xp: 50 } },
-    });
+    // Strobe, collapse, fade, fanfare, then the card counts the loot and waits for a tap.
+    // Each beat is awaited before the next timer is set, so advance them one at a time
+    for (const beat of [VICTORY_TIMINGS.strobe, VICTORY_TIMINGS.collapse, VICTORY_TIMINGS.fade]) {
+      jest.advanceTimersByTime(beat + 10);
+      await flushPromises();
+    }
+    await nextTick();
+    expect(wrapper.find("[data-cy=victory-card]").exists()).toBe(true);
+    expect(mockPlaySound).toHaveBeenCalledWith("win");
+    jest.advanceTimersByTime(1500);
+    await flushPromises();
+    expect(wrapper.find(".reward-value[data-stat=ap]").text()).toBe("1");
+    expect(wrapper.find(".reward-value[data-stat=xp]").text()).toBe("0");
+    expect(wrapper.find(".victory-work").text()).toContain("2 chores in");
+    await wrapper.find("[data-cy=victory-card]").trigger("click");
+    await flushPromises();
+    expect(router.currentRoute.value).toMatchObject({ name: "home-town", params: { userId: "hero-1" } });
+  });
 
-    // The victory sequence waits a second and collapses the arena, then its lines end on the way home.
+  it("lets the beast strike when the clock runs out, lands the hit on dismiss, and gives the turn back", async () => {
+    const { wrapper, userStore, vm, tap, readUntilMenu } = await enterBattle("/battle/hero-1/free/");
+    jest.spyOn(Math, "random").mockReturnValue(0.5);
+    await tap();
+    await tap(); // intro read: the six-minute clock is running
+    jest.advanceTimersByTime(6 * 60 * 1000 + 200);
+    await flushPromises();
+    expect(vm.dialogText).toBe("Socktopus attacks!");
+    expect(mockPlaySound).toHaveBeenCalledWith("preAttack");
+    expect(wrapper.find(".menu-item").exists()).toBe(false);
+
+    await tap(); // finish typing
+    await tap(); // dismiss: the hit lands now
+    expect(userStore.users["hero-1"].stats.hp.now).toBe(26); // ~12% of 30 at a middling roll
+    expect(vm.dialogText).toBe("Max takes 4 damage!");
+    expect(mockPlaySound).toHaveBeenCalledWith("damage");
+    expect(wrapper.find(".battle-ui-container").classes()).toContain("screen-shake");
+    await readUntilMenu();
+    expect(vm.dialogText).toBe(""); // no "Turn 2" chatter
+    expect(wrapper.find(".attack-timer-label").text()).toBe("6:00"); // a fresh clock
+    (Math.random as jest.Mock).mockRestore();
+  });
+
+  it("asks before running away, and Defend trades a glancing hit for a fresh clock", async () => {
+    const { wrapper, userStore, vm, tap, readUntilMenu } = await enterBattle("/battle/hero-1/free/");
+    await tap();
+    await tap();
+
+    await wrapper.find("#run-away").trigger("click");
+    expect(wrapper.find(".dialog-prompt").text()).toBe("Run away? Your finished chores won't count.");
+    expect(wrapper.findAll(".menu-item").map((button) => button.text())).toEqual(["Keep fighting", "Run"]);
+    await wrapper.find("#keep-fighting").trigger("click");
+    expect(wrapper.findAll(".menu-item").map((button) => button.text())).toEqual(["Attack", "Defend", "Run Away"]);
+
+    jest.spyOn(Math, "random").mockReturnValue(0.5);
+    await wrapper.find("#defend").trigger("click");
+    expect(vm.dialogText).toBe("Max braces!");
+    await tap();
     jest.advanceTimersByTime(1000);
     await flushPromises();
-    const lines: string[] = [];
-    for (let taps = 0; taps < 60 && router.currentRoute.value.name !== "home-town"; taps++) {
-      if (vm.dialogText && vm.dialogText !== lines[lines.length - 1]) lines.push(vm.dialogText);
-      await tap();
-    }
-    expect(lines.slice(-5)).toEqual([
-      "You Won!", "Socktopus was defeated!", "25 GP added to your wallet!", "You gained 50 XP!", "You earned 1 AP!",
-    ]);
-    expect(router.currentRoute.value).toMatchObject({ name: "home-town", params: { userId: "hero-1" } });
+    for (let taps = 0; taps < 4 && vm.dialogText !== "Socktopus attacks!"; taps++) await tap();
+    expect(vm.dialogText).toBe("Socktopus attacks!");
+    await tap();
+    await tap();
+    expect(userStore.users["hero-1"].stats.hp.now).toBe(28); // half a strike
+    expect(vm.dialogText).toBe("Max braced: only 2 damage!");
+    await readUntilMenu();
+    expect(wrapper.find(".attack-timer-label").text()).toBe("6:00");
+    (Math.random as jest.Mock).mockRestore();
   });
 
   it("stops the beast's clock when the hero leaves the page mid-fight", async () => {
     const { vm, tap } = await enterBattle("/battle/hero-1/free/");
     await tap();
-    await tap(); // intro read: the two-minute clock is running
+    await tap(); // intro read: the clock is running
     mockViewHooks.willLeave?.();
-    jest.advanceTimersByTime(3 * 60 * 1000);
+    jest.advanceTimersByTime(10 * 60 * 1000);
     await flushPromises();
     expect(vm.dialogText).toBe(""); // the beast never got its turn
   });

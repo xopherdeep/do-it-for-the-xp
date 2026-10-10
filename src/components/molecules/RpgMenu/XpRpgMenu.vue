@@ -162,12 +162,26 @@ export default defineComponent({
     overflow: visible;
     transition: background 0.15s ease;
 
-    &:hover,
-    &:active {
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: 4px;
+    min-height: 48px; // a thumb-sized row on phones
+    -webkit-tap-highlight-color: transparent;
 
-      &::before {
+    @media (hover: hover) {
+      &:hover {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+      }
+    }
+
+    &:active,
+    &:focus-visible {
+      background: rgba(255, 255, 255, 0.14);
+      border-radius: 4px;
+    }
+
+    // The pointing cursor only where a pointer can hover; touch highlights the row instead
+    @media (hover: hover) {
+      &:hover::before,
+      &:active::before {
         content: "";
         position: absolute;
         left: -2px;

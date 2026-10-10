@@ -10,6 +10,16 @@
 // const webpack = require('@cypress/webpack-preprocessor')
 
 module.exports = (on, config) => {
+  // Headless Chrome opens at 1280x720 by default, which is shorter than the 390x844 phone viewport
+  // and makes Cypress scale the app down inside its runner; give the window room so viewport
+  // screenshots come out at the real phone size.
+  on('before:browser:launch', (browser = {}, launchOptions) => {
+    if (browser.family === 'chromium') {
+      launchOptions.args.push('--window-size=1000,1400', '--force-device-scale-factor=1')
+    }
+    return launchOptions
+  })
+
   // on('file:preprocessor', webpack({
   //  webpackOptions: require('@vue/cli-service/webpack.config'),
   //  watchOptions: {}
