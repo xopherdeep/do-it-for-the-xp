@@ -490,8 +490,6 @@ export default defineComponent({
       const xpForNext = getXpForLevel(level + 1);
 
       return {
-      avatarSrc,
-      openMyLook,
         // Amount of XP gained into this level
         inLevel: Math.max(0, totalXp - xpForCurrent),
         // Total XP needed for this level (delta)
@@ -662,6 +660,8 @@ export default defineComponent({
     };
 
     return {
+      avatarSrc,
+      openMyLook,
       // Constants
       POINT_ICONS,
       maxAvatarIndex,
