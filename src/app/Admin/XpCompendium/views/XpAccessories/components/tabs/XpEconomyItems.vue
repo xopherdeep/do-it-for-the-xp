@@ -104,16 +104,41 @@
             />
           </ion-item>
         </ion-list>
+
+        <!-- Empty State -->
+        <ion-card
+          v-if="filteredAccessories.length === 0"
+          class="empty-state max-w-[80%] mx-auto my-4 h-auto text-center"
+        >
+          <ion-card-title class="flex flex-row gap-2 items-center justify-center">
+            <h2>{{ accessories.length === 0 ? "No Items Yet" : "No Items Match" }}</h2>
+          </ion-card-title>
+          <ion-card-content>
+            <template v-if="accessories.length === 0">
+              Items are what heroes buy in your shops: real-life rewards or in-game gear.
+              Tap the box button below and pick New Item.
+            </template>
+            <template v-else>Try another filter.</template>
+          </ion-card-content>
+          <ion-button v-if="accessories.length === 0" color="rpg" @click="newAccessory">
+            <i class="fad fa-plus-circle mr-1" />
+            New Item
+          </ion-button>
+        </ion-card>
       </div>
     </ion-content>
   </ion-page>
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, computed, onMounted } from 'vue'
+  import { defineComponent, ref, computed } from 'vue'
   import {
+    onIonViewWillEnter,
     IonPage,
     IonContent,
+    IonCard,
+    IonCardTitle,
+    IonCardContent,
     IonToolbar,
     IonButtons,
     IonButton,
@@ -151,7 +176,10 @@
       IonList,
       IonItem,
       IonLabel,
-      IonBadge
+      IonBadge,
+      IonCard,
+      IonCardTitle,
+      IonCardContent
     },
 
     setup() {
@@ -175,9 +203,8 @@
         }
       };
 
-      onMounted(() => {
-        loadAccessories();
-      });
+      // Reload on every visit, so an item made from the New Item screen is listed on return
+      onIonViewWillEnter(loadAccessories);
 
       const filteredAccessories = computed(() => {
         let filtered = accessories.value;
@@ -188,7 +215,7 @@
               (filterType.value === 'virtual' && !isRealLife);
           });
         }
-        return filtered.sort((a, b) => {
+        return [...filtered].sort((a, b) => {
           let comparison = 0;
           if (sortType.value === 'name') {
             comparison = a.name.localeCompare(b.name);
@@ -200,6 +227,10 @@
           return sortDirection.value === 'asc' ? comparison : -comparison;
         });
       });
+
+      const newAccessory = () => {
+        router.push({ name: 'xp-create-update-accessory' });
+      };
 
       const clickAccessory = (accessory: Accessory) => {
         router.push({
@@ -257,6 +288,7 @@
         toggleSort,
         toggleSortDirection,
         clickAccessory,
+        newAccessory,
         getTypeColor,
         getRarityLabel
       }

@@ -77,7 +77,11 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useRouter } from "vue-router";
-import { IonContent, IonPage } from "@ionic/vue";
+import { IonContent, IonPage, onIonViewWillEnter } from "@ionic/vue";
+import { getEngineStatsService } from "@/lib/services/stats/EngineStatsService";
+import { getAllItems } from "@/lib/engine/core/items/itemRegistry";
+import { unlockableItemNames } from "@/lib/services/quests/ItemEffects";
+import debug from "@/lib/utils/debug";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import XpSplashHeader from "@/components/atoms/SplashHeader/XpSplashHeader.vue";
 import XpStatGrid from "@/components/molecules/StatGrid/XpStatGrid.vue";
@@ -91,10 +95,29 @@ const router = useRouter();
 const isLoading = ref(false);
 const dashboardTitle = ref("Economy & Rewards");
 
-// Placeholder counts - these could be reactive based on actual data
 const shopCount = ref(0);
 const itemCount = ref(0);
 const keyItemCount = ref(0);
+
+// The item groups the Key Items tab lists, plus its Equipment section
+const KEY_ITEM_CATEGORIES = ["narrative", "pegasus", "dungeon", "consumable"];
+
+// Recounted on every visit, so a shop or item made in another tab shows up here
+const loadCounts = async () => {
+  try {
+    // Same counts as the Compendium dashboard: shipped shops plus the Game Master's, once per id
+    const { shops, items } = await getEngineStatsService().getSystemStats();
+    shopCount.value = shops;
+    itemCount.value = items;
+    keyItemCount.value =
+      getAllItems().filter((item) => KEY_ITEM_CATEGORIES.includes(item.category)).length +
+      unlockableItemNames().length;
+  } catch (error) {
+    debug.error("Could not count the economy:", error);
+  }
+};
+
+onIonViewWillEnter(loadCounts);
 
 const goToTab = (tabPath: string) => {
   router.push(`/game-master/compendium/economy/${tabPath}`);
