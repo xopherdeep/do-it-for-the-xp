@@ -44,7 +44,7 @@ def _():
 
 @song("battle2")       # 'Chaos Theatre': fast, chromatic, the Oncoming Chores riff grown up
 def _():
-    s = Song(bpm=160, bars=16)
+    s = Song(bpm=154, bars=16)
     A = ["E5:2 -:1 B4:1 E5:2 G5:2 F#5:1 E5:1 D5:2 B4:4", "C5:2 -:1 G4:1 C5:2 E5:2 D5:1 C5:1 B4:2 G4:4",
          "D5:2 -:1 A4:1 D5:2 F#5:2 E5:1 D5:1 C5:2 A4:2 B4:2", "B4:2 D5:2 F#5:2 A5:2 G5:2 F#5:2 D#5:2 B4:2"]
     A2 = A[:3] + ["B4:1 D5:1 F#5:1 B5:1 A5:2 G5:2 F#5:2 G5:2 A5:2 B5:2"]
@@ -60,7 +60,7 @@ def _():
 
 @song("battle3")       # 'Wobble Goblin': whole-tone hiccups, noise hits, a bass that limps
 def _():
-    s = Song(bpm=138, bars=16)
+    s = Song(bpm=132, bars=16)
     c = ["Caug", "Caug", "Daug", "Daug", "Caug", "Caug", "F#aug", "F#aug", "Eaug", "Daug", "Caug", "A#aug", "Caug", "Caug", "Daug", "F#aug"]
     limp = {"Caug": "C2:3 C2:1 -:2 E2:2 C2:1 -:1 G#2:2 -:2 C3:1 C2:1", "Daug": "D2:3 D2:1 -:2 F#2:2 D2:1 -:1 A#2:2 -:2 D3:1 D2:1",
             "F#aug": "F#2:3 F#2:1 -:2 A#2:2 F#2:1 -:1 D3:2 -:2 F#3:1 F#2:1", "Eaug": "E2:3 E2:1 -:2 G#2:2 E2:1 -:1 C3:2 -:2 E3:1 E2:1", "A#aug": "A#1:3 A#1:1 -:2 D2:2 A#1:1 -:1 F#2:2 -:2 A#2:1 A#1:1"}

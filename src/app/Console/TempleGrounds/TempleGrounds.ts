@@ -7,10 +7,9 @@ import { useTemple } from '@/hooks/temples/useTemple';
 import { registerAllTemples, registerCustomTemples } from '@/lib/engine/core/dungeons/TempleAdapter';
 import { importAllTempleLayouts } from '@/lib/engine/core/dungeons/importAllTemples';
 import temples from '../../../lib/engine/temples';
-import XpFabUserHud from '../MyPortal/UserHud/components/XpFabUserHud.vue';
 import XpXpBar from '../MyPortal/UserHud/components/XpXpBar.vue';
 import XpGpBar from '../MyPortal/UserHud/components/XpGpBar.vue';
-import XpMainHud from '../MyPortal/UserHud/components/XpMainHud.vue';
+import XpVitalsBar from '../MyPortal/UserHud/components/XpVitalsBar.vue';
 import XpEquipmentModal from '../MyPortal/UserHud/components/XpEquipmentModal.vue';
 import XpWorldMapModal from '../MyPortal/UserHud/components/XpWorldMapModal.vue';
 import UserProfileModal from '../MyPortal/UserHud/components/UserProfileModal.vue';
@@ -64,10 +63,9 @@ export default defineComponent({
   components: {
     'weather-fx': WeatherFX,
     'temple-walls': TempleWalls,
-    XpFabUserHud,
     XpXpBar,
     XpGpBar,
-    XpMainHud,
+    XpVitalsBar,
     XpEquipmentModal,
     XpWorldMapModal,
     UserProfileModal,

@@ -265,19 +265,6 @@
         </ion-fab-button>
       </ion-fab>
 
-      <XpMainHud
-        v-if="user && user.stats"
-        :stats="user.stats"
-      >
-        <template #avatar>
-          <XpFabUserHud
-            :user="user"
-            :isUserFabOn="true"
-            @open-profile="isProfileOpen = true"
-            @open-pegasus="isPegasusOpen = true"
-          />
-        </template>
-      </XpMainHud>
       <ion-fab
         v-if="canMoveUp"
         vertical="top"
@@ -301,9 +288,13 @@
 
 
     </ion-content>
+
+    <!-- No HP / MP HUD in a temple: the room needs the space; the vitals ride the hairline above the nav -->
+
     <ion-footer class="temple-footer">
       <!-- The purse and the XP hairline sit on a ledge just above the nav, like the portal -->
       <div class="footer-docked-xp" v-if="user && user.stats">
+        <XpVitalsBar :stats="user.stats" />
         <XpGpBar :stats="user.stats" />
         <XpXpBar :stats="user.stats" :hairline="true" />
       </div>

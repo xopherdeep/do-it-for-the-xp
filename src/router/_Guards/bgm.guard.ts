@@ -34,6 +34,19 @@ function isValidTrackList(tracks: unknown): tracks is string[] {
   return Array.isArray(tracks) && tracks.length > 0;
 }
 
+// The last random pick per playlist, so two fights in a row never get the same song
+const lastRandomPick = new WeakMap<object, number>();
+
+/** A random track index that differs from the playlist's previous random pick (when it has more than one). */
+export function pickFreshTrack(tracks: unknown[]): number {
+  if (tracks.length < 2) return 0;
+  const last = lastRandomPick.get(tracks);
+  let index = Math.floor(Math.random() * tracks.length);
+  if (index === last) index = (index + 1 + Math.floor(Math.random() * (tracks.length - 1))) % tracks.length;
+  lastRandomPick.set(tracks, index);
+  return index;
+}
+
 function createBgmPayload(
   tracks: unknown,
   options: {
@@ -47,7 +60,7 @@ function createBgmPayload(
 
   const trackIndex =
     options.track === "random"
-      ? Math.floor(Math.random() * tracks.length)
+      ? pickFreshTrack(tracks)
       : options.track ?? 0;
 
   return {

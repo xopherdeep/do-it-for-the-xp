@@ -92,7 +92,7 @@ def _():
 
 @song("battle")        # 'Sock Drawer' v3: the funk kept, the register dropped, a floor underneath
 def _():
-    s = Song(bpm=112, bars=16)
+    s = Song(bpm=108, bars=16)
     c = ["Em9", "Em9", "Am9", "Em9", "Cmaj7", "Bm7", "Em9", "B7"]
     bed(s, c, gain=0.07, octave=2)
     riff = {
