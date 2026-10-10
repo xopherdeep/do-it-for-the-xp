@@ -73,7 +73,7 @@ export class BestiaryDb extends DbStorageApi {
   }
 
   public async deleteBeast(beast: Beast) {
-    this.remove(beast.id)
+    await this.remove(beast.id)
     return await this.getBeasts()
   }
 
@@ -82,7 +82,8 @@ export class BestiaryDb extends DbStorageApi {
       const clone = {
         ...beast,
         id: uuidv4(),
-        beastName: `${beast.name} (clone)`
+        name: `${beast.name} (clone)`,
+        achievementIds: [] // quests stay attached to the original; a clone starts unattached
       }
       const cloneToast = () => this.showSuccessToast("Clone Successful!")
       return await this.setBeast(clone).then(cloneToast)
@@ -396,6 +397,7 @@ export class BestiaryDb extends DbStorageApi {
         message: `Background preset "${name}" saved!`,
         duration: 2000,
         position: 'top',
+        cssClass: 'rpg-toast',
         color: 'success'
       }).then(toast => toast.present());
       
@@ -406,6 +408,7 @@ export class BestiaryDb extends DbStorageApi {
         message: 'Failed to save background preset',
         duration: 2000,
         position: 'top',
+        cssClass: 'rpg-toast',
         color: 'danger'
       }).then(toast => toast.present());
       

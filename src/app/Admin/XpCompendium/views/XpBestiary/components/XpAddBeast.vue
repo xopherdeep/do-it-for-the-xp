@@ -11,8 +11,8 @@
         </ion-title>
 
         <ion-buttons slot="end">
-          <ion-button @click="openDetailsModal" color="rpg">
-            <i class="fad fa-paw-claws fa-2x"></i>
+          <ion-button @click="openDetailsModal" color="rpg" title="AI name and tasks" aria-label="AI name and tasks">
+            <i class="fad fa-paw-claws fa-2x" aria-hidden="true"></i>
           </ion-button>
           <XpBackgroundSelector :target-ref="beastPageRef" :initial-bg1="bg1" :initial-bg2="bg2"
             :aspect-ratio="aspectRatio" @background-changed="onBackgroundChanged" />
@@ -21,8 +21,7 @@
     </ion-header>
     <ion-content>
       <canvas ref="battleCanvas" class="battle-bg fade-in"></canvas>
-      <!-- Main content container with flex centering -->
-      <div class="flex flex-col items-center justify-center h-full w-full p-4">
+      <div class="beast-editor">
         <!-- Beast Avatar Display - Position above the card to simulate battle view -->
         <div class="beast-avatar-battle-preview">
           <ion-thumbnail class="cursor-pointer beast-avatar-selector beast-large-avatar rounded"
@@ -37,23 +36,60 @@
           </ion-thumbnail>
         </div>
 
-        <!-- Beast name display (simplified view when modal is closed) -->
-        <div class="beast-name-display text-center" v-if="updateBeast.name">
-          <h2 class="text-2xl font-bold text-white text-shadow-lg">
-            {{ updateBeast.name }}
-          </h2>
-          <div class="checklist-preview" v-if="updateBeast.checklist.length > 0">
-            <p class="text-white text-shadow-md">
-              {{ updateBeast.checklist.length }} tasks defined
-            </p>
+        <section class="beast-form" aria-label="Beast details">
+          <label class="beast-field-label" for="beast-name-input">
+            Name <span class="beast-required" aria-hidden="true">*</span>
+          </label>
+          <ion-input id="beast-name-input" v-model="updateBeast.name" class="beast-input"
+            :class="{ 'is-invalid': showErrors && !isNameValid }" placeholder="e.g. Kitchen Dragon"
+            aria-label="Beast name" enterkeyhint="next" @keydown.enter.prevent="focusTask(0)" />
+          <p class="beast-error" role="alert" v-if="showErrors && !isNameValid">Please enter a name</p>
+
+          <div class="beast-field-head">
+            <span class="beast-field-label">
+              Tasks <span class="beast-required" aria-hidden="true">*</span>
+            </span>
+            <span class="beast-task-count">{{ filledTaskCount }} defined</span>
           </div>
-        </div>
-        <div class="text-center mt-4" v-else>
-          <ion-button @click="openDetailsModal">
-            <i class="fad fa-plus-circle mr-1"></i>
-            Define Your Beast
-          </ion-button>
-        </div>
+          <p class="beast-hint">Each task is a chore to finish to defeat this beast.</p>
+
+          <ol class="beast-tasks" :class="{ 'is-invalid': showErrors && !isChecklistValid }">
+            <li class="beast-task" v-for="(item, index) in updateBeast.checklist" :key="index">
+              <span class="beast-task-num" aria-hidden="true">{{ index + 1 }}</span>
+              <ion-textarea v-model="updateBeast.checklist[index]" class="beast-input beast-task-input"
+                :ref="(el) => setInputRef(el, index)" placeholder="Describe the task" :aria-label="`Task ${index + 1}`"
+                :auto-grow="true" :rows="1" enterkeyhint="next" @keydown.enter.exact.prevent="onTaskEnter(index)" />
+              <div class="beast-task-actions">
+                <button type="button" class="beast-icon-btn beast-move-btn" :disabled="index === 0"
+                  :aria-label="`Move task ${index + 1} up`" @click="moveItem(index, -1)">
+                  <i class="fad fa-chevron-up" aria-hidden="true"></i>
+                </button>
+                <button type="button" class="beast-icon-btn beast-move-btn"
+                  :disabled="index === updateBeast.checklist.length - 1" :aria-label="`Move task ${index + 1} down`"
+                  @click="moveItem(index, 1)">
+                  <i class="fad fa-chevron-down" aria-hidden="true"></i>
+                </button>
+              </div>
+              <button type="button" class="beast-icon-btn beast-remove-btn" :aria-label="`Remove task ${index + 1}`"
+                @click="clickTrash(index)">
+                <i class="fad fa-trash-alt" aria-hidden="true"></i>
+              </button>
+            </li>
+          </ol>
+          <p class="beast-empty" v-if="updateBeast.checklist.length === 0">No tasks yet.</p>
+          <p class="beast-error" role="alert" v-if="showErrors && !isChecklistValid">Please add at least one task</p>
+
+          <div class="beast-form-actions">
+            <ion-button size="small" color="rpg" @click="clickAddItem">
+              <i class="fad fa-plus-circle mr-1" aria-hidden="true"></i>
+              Add task
+            </ion-button>
+            <ion-button size="small" fill="outline" color="rpg" @click="openDetailsModal">
+              <i class="fad fa-sparkles mr-1" aria-hidden="true"></i>
+              AI name &amp; tasks
+            </ion-button>
+          </div>
+        </section>
       </div>
     </ion-content>
 
@@ -91,8 +127,8 @@ import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
 // Import debug utility
 import debug from "@/lib/utils/debug";
 
-// Define a type for ion input elements
-type IonInputElement = HTMLElement & { setFocus: () => Promise<void> };
+// What a task field offers for focus: the ion-textarea component has setFocus, a bare element only focus
+type TaskField = { setFocus?: () => Promise<void>; focus?: () => void };
 
 // Define a type for Ionic modal elements
 type IonModalElement = HTMLElement & {
@@ -141,7 +177,7 @@ export default defineComponent({
       nAvatars: 40,
       isSaving: false,
       showErrors: false,
-      inputRefs: {} as Record<number, IonInputElement>,
+      inputRefs: {} as Record<number, TaskField>,
       aspectRatio: 64,
       detailsModal: null as IonModalElement | null, // Reference to the details modal
       resizeTimeout: null as ReturnType<typeof setTimeout> | null, // For debouncing resize events
@@ -173,6 +209,9 @@ export default defineComponent({
           (item) => item && item.trim().length > 0
         )
       );
+    },
+    filledTaskCount(): number {
+      return this.updateBeast.checklist.filter((item) => item && item.trim().length > 0).length;
     },
     isFormValid() {
       return (
@@ -230,14 +269,36 @@ export default defineComponent({
     clickAddItem() {
       const index = this.updateBeast.checklist.length;
       this.updateBeast.checklist.push("");
-
-      // Focus the new input after it's rendered
+      this.focusTask(index);
+    },
+    // A ref on an Ionic component hands back the Vue wrapper; setFocus lives on the element it renders ($el)
+    setInputRef(el: unknown, index: number) {
+      const field = (el as { $el?: unknown } | null)?.$el ?? el;
+      if (field) this.inputRefs[index] = field as TaskField;
+      else delete this.inputRefs[index];
+    },
+    // Ionic hydrates a field a moment after Vue renders it, so wait a beat before focusing
+    focusTask(index: number) {
       this.$nextTick(() => {
-        const inputEl = this.inputRefs[index];
-        if (inputEl && typeof inputEl.focus === "function") {
-          inputEl.focus();
-        }
+        setTimeout(() => {
+          const field = this.inputRefs[index];
+          if (typeof field?.setFocus === "function") field.setFocus();
+          else if (typeof field?.focus === "function") field.focus();
+        }, 50);
       });
+    },
+    // Enter on a task moves on to the next one, or starts a new one after the last; a blank task starts nothing
+    onTaskEnter(index: number) {
+      const tasks = this.updateBeast.checklist;
+      if (!tasks[index]?.trim()) return;
+      if (index < tasks.length - 1) this.focusTask(index + 1);
+      else this.clickAddItem();
+    },
+    moveItem(index: number, step: -1 | 1) {
+      const tasks = this.updateBeast.checklist;
+      const target = index + step;
+      if (target < 0 || target >= tasks.length) return;
+      [tasks[index], tasks[target]] = [tasks[target], tasks[index]];
     },
     async validateAndSave() {
       this.showErrors = true;
@@ -331,7 +392,9 @@ export default defineComponent({
       event.detail.complete();
     },
     presentToast(options: any) {
-      return toastController.create(options).then((toast) => toast.present());
+      return toastController
+        .create({ position: "top", cssClass: "rpg-toast", ...options })
+        .then((toast) => toast.present());
     },
     openAvatarSelector() {
       this.presentAvatarSelect();
@@ -589,17 +652,187 @@ export default defineComponent({
   }
 }
 
-.beast-name-display {
-  margin: 20px 0;
-  font-family: "Press Start 2P", cursive;
+.beast-editor {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 100%;
+  padding: 16px 16px 24px;
 }
 
-.text-shadow-lg {
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+// The name and tasks sit in an Earthbound window: dark purple, cream text, a doubled border
+.beast-form {
+  position: relative;
+  z-index: 1;
+  box-sizing: border-box;
+  width: calc(100% - 12px);
+  max-width: 560px;
+  margin: 0 6px;
+  padding: 14px 12px 16px;
+  background: #280828;
+  color: #e7e6b3;
+  border: 3px solid #f7e8a8;
+  border-radius: 2px;
+  box-shadow: 0 0 0 3px #383050, 0 0 0 5px #68d0b8;
+  font-family: "Apple Kid", sans-serif;
+  font-size: 16px;
 }
 
-.text-shadow-md {
-  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+.beast-field-label {
+  display: block;
+  margin-bottom: 6px;
+  font-family: "StatusPlz", sans-serif;
+  font-size: 14px;
+  color: #f7e8a8;
+}
+
+.beast-required {
+  color: #ff9f8f;
+}
+
+.beast-field-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 18px;
+
+  .beast-field-label {
+    margin-bottom: 0;
+  }
+}
+
+.beast-task-count {
+  font-family: "StatusPlz", sans-serif;
+  font-size: 12px;
+  color: #68d0b8;
+}
+
+.beast-hint {
+  margin: 4px 0 10px;
+  font-size: 15px;
+  opacity: 0.85;
+}
+
+.beast-input {
+  --background: #1a0a1a;
+  --color: #e7e6b3;
+  --placeholder-color: #b9b88c;
+  --placeholder-opacity: 1;
+  --padding-start: 10px;
+  --padding-end: 10px;
+  --padding-top: 8px;
+  --padding-bottom: 8px;
+  box-sizing: border-box;
+  min-height: 44px;
+  border: 2px solid #3d3c55;
+  border-radius: 2px;
+  font-family: "Apple Kid", sans-serif;
+  font-size: 18px;
+
+  &:focus-within {
+    border-color: #68d0b8;
+  }
+
+  &.is-invalid {
+    border-color: #ff9f8f;
+  }
+}
+
+.beast-tasks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+
+  &.is-invalid {
+    outline: 2px solid #ff9f8f;
+    outline-offset: 4px;
+  }
+}
+
+.beast-task {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.beast-task-num {
+  flex: 0 0 22px;
+  height: 50px;
+  line-height: 50px;
+  text-align: center;
+  font-family: "StatusPlz", sans-serif;
+  font-size: 14px;
+  color: #68d0b8;
+}
+
+.beast-task-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 50px;
+}
+
+.beast-task-actions {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.beast-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 24px;
+  padding: 0;
+  background: #383050;
+  color: #f7e8a8;
+  border: 2px solid #3d3c55;
+  border-radius: 2px;
+  font-size: 12px;
+  cursor: pointer;
+
+  &:disabled {
+    opacity: 0.35;
+    cursor: default;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #68d0b8;
+    outline-offset: 1px;
+  }
+}
+
+.beast-remove-btn {
+  flex: 0 0 auto;
+  min-width: 40px;
+  height: 50px;
+  color: #ff9f8f;
+  font-size: 16px;
+}
+
+.beast-error {
+  margin: 6px 0 0;
+  color: #ff9f8f;
+}
+
+.beast-empty {
+  margin: 4px 0 8px;
+  opacity: 0.8;
+}
+
+.beast-form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+
+  ion-button {
+    margin: 0;
+  }
 }
 
 .beast-avatar-selector {

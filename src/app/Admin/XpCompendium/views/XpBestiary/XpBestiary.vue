@@ -55,6 +55,7 @@ import {
   actionSheetController,
   alertController,
   modalController,
+  toastController,
   IonGrid,
   IonRow,
   IonCol,
@@ -74,6 +75,10 @@ import XpBeastSelectorItem from "./components/XpBeastSelectorItem.vue";
 import BeastTaskListModal from "./components/BeastTaskListModal.vue";
 
 import BestiaryDb, { beastStorage, Beast } from "@/lib/databases/BestiaryDb";
+import AchievementDb, { achievementStorage } from "@/lib/databases/AchievementDb";
+import templeDb, { TempleInterface } from "@/lib/databases/TempleDb";
+import { useTempleCreatorStore } from "@/lib/store/stores/temple-creator";
+import { escapeHtml, linksTo, unlink, usageNote } from "@/lib/services/bestiary/beastLinks";
 import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
 import debug from "@/lib/utils/debug";
 import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
@@ -97,7 +102,7 @@ export default defineComponent({
       const actionSheet = await actionSheetController.create({
         header: beast.name,
         subHeader: `${beast.checklist?.length || 0} Checks | ${beast.achievementIds?.length || 0
-          } Achievements`,
+          } Quests`,
         mode: "ios",
         buttons: [
           {
@@ -115,7 +120,7 @@ export default defineComponent({
             },
           },
           {
-            text: "Attach to Achievements",
+            text: "Attach to Quests",
             icon: attachOutline,
             handler: () => {
               this.clickAttachBeast(beast);
@@ -137,11 +142,57 @@ export default defineComponent({
       });
       await actionSheet.present();
     },
+    async toast(message: string, color?: string) {
+      const toast = await toastController.create({
+        message,
+        duration: 2500,
+        position: "top",
+        cssClass: "rpg-toast",
+        color,
+      });
+      await toast.present();
+    },
+    // The quests and temples as they are stored now: what a delete would touch
+    async loadBeastRecords() {
+      const [quests, temples] = await Promise.all([
+        this.achievementDb.getTasks(),
+        templeDb.getAll() as Promise<TempleInterface[]>,
+      ]);
+      return { quests, temples: temples.filter((temple) => temple?.id) };
+    },
+    // Take the beast off every quest and temple room that uses it, and save only the records that changed
+    async detachBeast(beast: Beast) {
+      const { quests, temples } = await this.loadBeastRecords();
+      const changed = unlink(beast.id, quests, temples);
+      for (const quest of changed.quests) await this.achievementDb.setTask(quest);
+      for (const temple of changed.temples) await templeDb.setTemple(temple);
+      if (!changed.temples.length) return;
+
+      // The temple creator keeps its own copy of the temple it has open and the bestiary it listed; neither may
+      // hand the deleted beast back
+      const creator = useTempleCreatorStore();
+      creator.cachedBestiary = [];
+      if (changed.temples.some((temple) => temple.id === creator.loadedTempleId)) creator.reset();
+    },
     async clickDeleteBeast(beast: Beast) {
+      let usage = "";
+      try {
+        const { quests, temples } = await this.loadBeastRecords();
+        usage = usageNote(linksTo(beast.id, quests, temples));
+      } catch (error) {
+        // Without knowing what uses it, a delete could leave quests and rooms pointing at nothing
+        debug.error("Error checking where the beast is used:", error);
+        await this.toast("Could not check where this beast is used, so it was not deleted", "danger");
+        return;
+      }
+      const detaching = usage
+        ? `<br><br>${escapeHtml(usage)}.<br>Deleting it takes the beast off them first: quests become plain quests and temple rooms fall back to a random beast.`
+        : "";
+
       const alert = await alertController.create({
         header: "Delete Beast",
         mode: "ios",
-        message: `Are you sure you want to delete ${beast.name}?`,
+        message: `Are you sure you want to delete ${escapeHtml(beast.name)}?${detaching}`,
         buttons: [
           {
             text: "Cancel",
@@ -159,10 +210,17 @@ export default defineComponent({
       alert.present();
     },
     async deleteBeast(beast: Beast) {
-      await this.bestiary
-        .deleteBeast(beast)
-        .then(() => this.loadBeasts())
-        .then(this.bestiary.showDeleteToast);
+      try {
+        // Unlink first: if that fails the beast is still here, and nothing points at a beast that is gone
+        await this.detachBeast(beast);
+        await this.bestiary.deleteBeast(beast);
+        await this.loadBeasts();
+        await this.bestiary.showDeleteToast();
+      } catch (error) {
+        debug.error("Error deleting beast:", error);
+        await this.loadBeasts(true);
+        await this.toast("There was a problem deleting the beast", "danger");
+      }
     },
     async clickAddBeast(beast?: Beast) {
       if (beast) {
@@ -334,6 +392,7 @@ export default defineComponent({
 
   setup() {
     const bestiary = new BestiaryDb(beastStorage);
+    const achievementDb = new AchievementDb(achievementStorage);
     const beasts = ref([] as Beast[]);
     const router = useRouter();
     const searchQuery = ref("");
@@ -360,6 +419,7 @@ export default defineComponent({
     return {
       beasts,
       bestiary,
+      achievementDb,
       router,
       searchQuery,
       filteredBeasts,
