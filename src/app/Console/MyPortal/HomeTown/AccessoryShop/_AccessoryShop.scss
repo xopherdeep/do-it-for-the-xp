@@ -103,6 +103,20 @@
   text-align: center;
 }
 
+// The sign on the door while the Game Master's hours have the shop shut
+.shop-closed-sign {
+  display: block;
+  margin-bottom: 0.4em;
+  font-family: "StatusPlz", "Apple Kid", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--ion-color-danger);
+
+  i {
+    margin-right: 0.25em;
+  }
+}
+
 .shop-item-placeholder {
   display: block;
   margin: 0.5em auto;

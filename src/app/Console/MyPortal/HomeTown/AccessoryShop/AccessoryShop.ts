@@ -1,4 +1,4 @@
-import { computed, defineComponent, onMounted, ref, watch } from "vue";
+import { computed, defineComponent, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import ionic from "@/lib/mixins/ionic";
 
 import {
@@ -33,7 +33,15 @@ import ATMModal from "@/app/Console/MyPortal/HomeTown/GoldBank/components/ATMMod
 // Import the GPSystem
 import { getGPService } from '@/lib/services/gp';
 import { useUserStore } from "@/lib/store/stores/user";
-import shopsDb from "@/lib/databases/ShopsDb";
+import shopsDb, {
+  ShopInterface,
+  clerkDefaultFor,
+  customClerkName,
+  customGreeting,
+  customIcon,
+  customWorld,
+} from "@/lib/databases/ShopsDb";
+import { isShopOpen, opensAtLabel } from "@/lib/services/shops/shopHours";
 import AccessoriesDb, { accessoriesStorage } from "@/lib/databases/AccessoriesDb";
 import {
   buyItem as purchaseItem,
@@ -49,6 +57,19 @@ import { shopDiscountLabel, shopPrice } from "@/lib/services/stats/StatEffects";
 // The general store you reach from Home Town; also where an unknown shop id ends up.
 const DEFAULT_SHOP_ID = "hometown-market";
 const ITEMS_PER_PAGE = 4;
+
+// The Game Master can dress a shop in a world's art (Compendium > Economy > Shops > Decorate).
+// Only world-*.jpg / hometown.jpg are looked up by key; keep the filter (a bare context bundles all 90 MB)
+const requireWorldBg = require.context("@/assets/images/backgrounds/", false, /^\.\/(world-[a-z-]+|hometown)\.jpg$/);
+// Empty when the world has no art of its own, so the shop keeps its usual picture.
+const worldBackground = (world: string): string => {
+  if (!world) return "";
+  try {
+    return requireWorldBg(world === "hometown" ? "./hometown.jpg" : `./world-${world}.jpg`);
+  } catch {
+    return "";
+  }
+};
 
 export default defineComponent({
   props: ["userId", "merchant"],
@@ -73,52 +94,18 @@ export default defineComponent({
         "theia-city": require("@/assets/images/midjourney/shop.png"),
         default: require("@/assets/images/midjourney/shop.png")
       },
+      // Each shop's sign. Who minds the shop and what they say live in SHOP_CLERK_DEFAULTS (ShopsDb),
+      // where the Game Master's clerk tab shows them as the placeholder.
       merchants: {
-        "pegasus-ranch": {
-          icon: "farm",
-          shopkeep: "Francis the Rancher",
-          greeting: "Howdy partner, let me know what I can do ya for."
-        },
-        "wrecked-ship": {
-          icon: "ship",
-          shopkeep: "Douglas the Pirate",
-          greeting: "Rrrrrr matey, I be wilin ta trade with ya."
-        },
-        "hermits-tent": {
-          icon: "campground",
-          shopkeep: "Terrance the Hermit",
-          greeting: "No loitering, I have work that needs my attention."
-        },
-        "witchs-hut": {
-          icon: "cauldron",
-          shopkeep: "Dr. Who",
-          greeting: "Hello my sweet, will you be staying long?"
-        },
-        "crystal-caverns": {
-          icon: "dungeon",
-          shopkeep: "Jeff",
-          greeting: "Hi there, take a look at our lovely jewels!"
-        },
-        "snow-shack": {
-          icon: "igloo",
-          shopkeep: "Abominable Snowman",
-          greeting: "Greetings, the warmth is free, but please buy something if you plan on staying."
-        },
-        "traveling-merchant": {
-          icon: "wagon-covered",
-          shopkeep: "Boobeedeedle",
-          greeting: "Ah, It's you! Here's what I have today."
-        },
-        "theia-city": {
-          icon: "chess-rook",
-          shopkeep: "The Watcher",
-          greeting: "Ah, It's you! Here's what I have today."
-        },
-        default: {
-          icon: "store",
-          shopkeep: "Dr. Who",
-          greeting: "Hello! What shelf can I show you?"
-        }
+        "pegasus-ranch": { icon: "farm" },
+        "wrecked-ship": { icon: "ship" },
+        "hermits-tent": { icon: "campground" },
+        "witchs-hut": { icon: "cauldron" },
+        "crystal-caverns": { icon: "dungeon" },
+        "snow-shack": { icon: "igloo" },
+        "traveling-merchant": { icon: "wagon-covered" },
+        "theia-city": { icon: "chess-rook" },
+        default: { icon: "store" }
       }
     };
   },
@@ -135,14 +122,28 @@ export default defineComponent({
       // console.log(this.merchant);
       return this.merchants[this.merchant]
     },
-    shopGreeting() {
-      return this.currentMerchant?.greeting
+    // The Game Master's own clerk and line (Compendium > Economy > Shops > Clerk), else the portal's.
+    shopGreeting(): string {
+      return customGreeting(this.shopRecord) || clerkDefaultFor(this.shopRecord?.id ?? this.merchant).greeting;
     },
-    shopkeeper() {
-      return this.currentMerchant?.shopkeep
+    shopkeeper(): string {
+      return customClerkName(this.shopRecord) || clerkDefaultFor(this.shopRecord?.id ?? this.merchant).shopkeep;
+    },
+    // The Game Master's icon for the sign, else the one this portal has always hung there.
+    shopIconClass(): string {
+      const custom = customIcon(this.shopRecord);
+      return custom ? `${custom} fa-2x` : `fa fa-2x fa-${this.shopIcon}`;
+    },
+    // What the clerk says while the doors are shut.
+    closedLine(): string {
+      return `Sorry, we're closed right now. ${this.opensAt}.`;
     },
     dynamicShopBackground() {
-      const backgroundImage = this.shopBackgrounds[this.merchant] || this.shopBackgrounds.default;
+      // A world picked on the Decorate tab wins; an untouched shop keeps its own picture.
+      const backgroundImage =
+        worldBackground(customWorld(this.shopRecord)) ||
+        this.shopBackgrounds[this.merchant] ||
+        this.shopBackgrounds.default;
       return {
         backgroundImage: `url(${backgroundImage})`,
         backgroundSize: 'cover',
@@ -231,11 +232,20 @@ export default defineComponent({
       const toast = await toastController.create({ message, duration: 3000, position: "top", cssClass: "rpg-toast" });
       await toast.present();
     },
+    // The Game Master's hours (Compendium > Economy > Shops > Hours): behind a shut door the clerk says when the
+    // shop opens and nothing is sold, even if the hour struck while an item was open on screen.
+    turnedAwayWhileClosed(): boolean {
+      if (this.isOpen) return false;
+      this.play$fx("no");
+      void this.rpgToast(`${this.shopkeeper}: "${this.closedLine}"`);
+      return true;
+    },
     // The shop's own ware, not something the Game Master stocked: the next wallet size, sold here and only here.
     // Pays out of savings first, then the wallet, and the new limit takes effect at once (no delivery to wait on).
     async buyWallet() {
       const ware = this.walletWare;
       if (!ware || this.isBuying) return;
+      if (this.turnedAwayWhileClosed()) return;
       if (!ware.offer) {
         this.play$fx("no");
         void this.rpgToast(ware.status === "owned" ? `${ware.note} ${ware.hint}` : ware.note);
@@ -279,6 +289,7 @@ export default defineComponent({
     // (it shows up under Approvals > Accessories until they do).
     async buyItem(item: ShelfItem) {
       if (this.isBuying) return;
+      if (this.turnedAwayWhileClosed()) return;
       this.isBuying = true;
       try {
         await purchaseItem(this.heroId, item);
@@ -316,6 +327,8 @@ export default defineComponent({
     });
 
     const shelf = ref<ShelfItem[]>([]);
+    // The Game Master's shop record: its clerk, sign, picture and hours
+    const shopRecord = ref<ShopInterface | null>(null);
     const isLoading = ref(true);
     const isBuying = ref(false);
     const search = ref("");
@@ -325,6 +338,15 @@ export default defineComponent({
     // Trained charisma takes 1% a point off every price on the shelf, up to 20% (docs/Stats-Contract.md);
     // the shelf carries the price this hero pays, so the badge, the "need more" line and the charge agree.
     const charismaDiscount = computed(() => shopDiscountLabel(userStore.users[heroId.value]));
+
+    // Whether the shop is open right now by the Game Master's hours; the clock keeps ticking while you stand there.
+    const now = ref(new Date());
+    const clockTimer = setInterval(() => {
+      now.value = new Date();
+    }, 30000);
+    onBeforeUnmount(() => clearInterval(clockTimer));
+    const isOpen = computed(() => isShopOpen(shopRecord.value?.hours, now.value));
+    const opensAt = computed(() => opensAtLabel(shopRecord.value?.hours, now.value));
 
     // What the Game Master stocked in this shop (Compendium > Accessories > Shops).
     // Only the newest load may write the shelf, so a slow earlier read can't overwrite a fresh one.
@@ -336,6 +358,8 @@ export default defineComponent({
         const shop = requested || (await shopsDb.getShopById(DEFAULT_SHOP_ID));
         const accessories = await accessoriesDb.getAccessories();
         if (thisLoad === latestLoad) {
+          now.value = new Date();
+          shopRecord.value = shop ?? null;
           const hero = userStore.users[heroId.value];
           shelf.value = stockShelf(shop?.items ?? [], accessories, heroId.value).map((item) => ({
             ...item,
@@ -344,7 +368,10 @@ export default defineComponent({
         }
       } catch (error) {
         debug.error("Failed to stock the shelves:", error);
-        if (thisLoad === latestLoad) shelf.value = [];
+        if (thisLoad === latestLoad) {
+          shelf.value = [];
+          shopRecord.value = null;
+        }
       } finally {
         if (thisLoad === latestLoad) isLoading.value = false;
       }
@@ -420,6 +447,9 @@ export default defineComponent({
       wallet,
       canAfford,
       walletWare,
+      shopRecord,
+      isOpen,
+      opensAt,
       gold,
       charismaDiscount,
       shelf,

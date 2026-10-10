@@ -97,7 +97,8 @@
         "--background": bgImage.value
           ? `url(${bgImage.value}) no-repeat center center / cover`
           : "var(--ion-color-dark)",
-        position: "relative",
+        // No position here: an inline "relative" overrode .ion-page's absolute fill and, with its
+        // contain: size, collapsed the page (and every shop tab) to 0px
       }));
 
       return {

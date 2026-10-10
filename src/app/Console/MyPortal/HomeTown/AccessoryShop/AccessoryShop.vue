@@ -4,10 +4,7 @@
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
           <ion-back-button :default-href="`/my-portal/${userId}/home-town`"></ion-back-button>
-          <i
-            class="fa fa-2x"
-            :class="`fa-${shopIcon}`"
-          />
+          <i :class="shopIconClass" />
         </ion-buttons>
         <ion-title>
           {{ shopName }}
@@ -29,17 +26,27 @@
           </ion-card-title>
           <ion-card-content class="rpg-box">
             <!-- Welcome! What shelves can I interest you looking at today? -->
-            {{ shopGreeting }}
+            <template v-if="isOpen">
+              {{ shopGreeting }}
+            </template>
+            <!-- The Game Master's hours say the doors are shut: the clerk says when they open -->
+            <template v-else>
+              <span class="shop-closed-sign">
+                <i class="fad fa-door-closed" />
+                Closed
+              </span>
+              {{ closedLine }}
+            </template>
             <p class="shop-wallet">
               <i class="fa fa-coins" />
               Your wallet: <xp-gp :gp="wallet" />
             </p>
-            <p v-if="charismaDiscount" class="shop-wallet shop-charisma">
+            <p v-if="isOpen && charismaDiscount" class="shop-wallet shop-charisma">
               <i class="fad fa-comment-smile" />
               Your charisma gets you {{ charismaDiscount }} everything on the shelf.
             </p>
             <!-- Filters -->
-            <ion-item>
+            <ion-item v-if="isOpen">
               <ion-label> Shelves </ion-label>
               <ion-select
                 @ionChange="selectShelf"
@@ -76,7 +83,7 @@
         </ion-card>
         <!-- The shop's own ware: the next wallet size, Majora's Mask style. Not on the Game Master's shelf. -->
         <ion-card
-          v-if="walletWare"
+          v-if="isOpen && walletWare"
           class="shop-wallet-ware rpg-box"
           :class="`is-${walletWare.status}`"
           button
@@ -101,7 +108,7 @@
           </ion-card-content>
         </ion-card>
         <!-- Nothing to show -->
-        <ion-card v-if="pagedItems.length === 0" class="shop-empty-shelf">
+        <ion-card v-if="isOpen && pagedItems.length === 0" class="shop-empty-shelf">
           <ion-card-content class="rpg-box">
             <template v-if="shelf.length === 0">
               The shelves are bare right now. Ask the Game Master to stock this shop!
@@ -112,7 +119,7 @@
           </ion-card-content>
         </ion-card>
         <!-- Hero -->
-        <ion-row>
+        <ion-row v-if="isOpen">
           <ion-col
             size-md="3"
             size="6"
@@ -228,7 +235,7 @@
       />
     </ion-content>
     
-    <ion-footer>
+    <ion-footer v-if="isOpen">
       <ion-toolbar>
         <ion-grid>
           <ion-row>
