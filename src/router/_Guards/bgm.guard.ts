@@ -1,5 +1,6 @@
 import { RouteLocationNormalized } from "vue-router";
 import { changeBGM } from "@/lib/engine/audio/routeMusic";
+import { metadataForAsync } from "@/lib/engine/temples/templeRegistry";
 import debug from "@/lib/utils/debug";
 import { useAudioStore } from "@/lib/store/stores/audio";
 import { useGameStore } from "@/lib/store/stores/game";
@@ -172,6 +173,15 @@ export function handleBgmGuard(to: RouteLocationNormalized): void {
   // 3a. A temple plays its own theme when it has one (BGM.temples["fire-temple"]), else the dungeon set
   else if (routeName === "temple" && BGM.temples?.[String(to.params.temple)]) {
     payload = createBgmPayload(BGM.temples[String(to.params.temple)], { startDelay, saveBookmark: true });
+  }
+  // 3b. A generated temple (gen-<slug>) plays its element's theme (its record is in the TempleDb, so the pick is async)
+  else if (routeName === "temple" && String(to.params.temple).startsWith("gen-")) {
+    void metadataForAsync(String(to.params.temple)).then((meta) => {
+      const tracks = BGM.temples?.[`${meta.element}-temple`] ?? terrains?.dungeon;
+      const picked = createBgmPayload(tracks, { track: "random", startDelay, saveBookmark: true });
+      if (!picked || (picked.tracks === bgm.tracks && bgm.is_on)) return;
+      changeBGM(audioStore, picked, true);
+    });
   }
   // 3. Check terrain routes
   else if (TERRAIN_BGM_ROUTES[routeName]) {

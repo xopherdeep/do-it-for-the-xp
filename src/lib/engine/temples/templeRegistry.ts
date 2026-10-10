@@ -104,3 +104,39 @@ export const getTempleMetadata = (templeId: string): TempleMetadata => {
     color: "medium"
   };
 };
+
+// Generated temples (gen-<slug>) live in the TempleDb, not in TEMPLE_METADATA; a resolved one is cached here
+const generatedMetadata = new Map<string, TempleMetadata>();
+
+/** Sync lookup: a registry temple, or a generated one already resolved by metadataForAsync. */
+export const metadataFor = (templeId: string): TempleMetadata | undefined => {
+  return TEMPLE_METADATA[templeId] || generatedMetadata.get(templeId);
+};
+
+/** Registry temple, else a `gen-` temple built from its TempleDb record, else the getTempleMetadata fallback. */
+export const metadataForAsync = async (templeId: string): Promise<TempleMetadata> => {
+  const known = metadataFor(templeId);
+  if (known) return known;
+  if (String(templeId).startsWith("gen-")) {
+    try {
+      const { TempleDb, templeStorage } = await import("@/lib/databases/TempleDb");
+      const record = await new TempleDb(templeStorage).getTempleById(templeId);
+      if (record) {
+        const meta: TempleMetadata = {
+          id: templeId,
+          name: record.customName || record.name || "Unknown Temple",
+          description: "A generated temple.",
+          world: record.themeId || "plains",
+          element: record.element || "none",
+          icon: "fa-dungeon",
+          color: "medium"
+        };
+        generatedMetadata.set(templeId, meta);
+        return meta;
+      }
+    } catch {
+      // No TempleDb (tests, private mode): fall through to the unknown-temple fallback
+    }
+  }
+  return getTempleMetadata(templeId);
+};

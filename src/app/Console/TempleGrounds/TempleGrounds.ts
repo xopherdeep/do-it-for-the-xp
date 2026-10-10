@@ -4,6 +4,7 @@ import { actionSheetController, alertController } from '@ionic/vue';
 import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
 import { useRoute, useRouter } from 'vue-router';
 import { useTemple } from '@/hooks/temples/useTemple';
+import { metadataFor, metadataForAsync, type TempleMetadata } from '@/lib/engine/temples/templeRegistry';
 import { registerAllTemples, registerCustomTemples } from '@/lib/engine/core/dungeons/TempleAdapter';
 import { importAllTempleLayouts } from '@/lib/engine/core/dungeons/importAllTemples';
 import temples from '../../../lib/engine/temples';
@@ -192,7 +193,19 @@ export default defineComponent({
     });
 
     // Format the temple name for display
+    // Registry temples and generated ones (gen-<slug>, from the TempleDb) share one metadata ref
+    const templeMeta = ref<TempleMetadata | undefined>(metadataFor(props.temple));
+    const isGenerated = computed(() => String(props.temple || '').startsWith('gen-'));
+    const resolveTempleMeta = (id: string) => {
+      templeMeta.value = metadataFor(id);
+      if (id.startsWith('gen-')) {
+        void metadataForAsync(id).then((meta) => { if (id === props.temple) templeMeta.value = meta; });
+      }
+    };
+    resolveTempleMeta(props.temple);
+    watch(() => props.temple, resolveTempleMeta);
     const templeName = computed(() => {
+      if (isGenerated.value && templeMeta.value?.name) return templeMeta.value.name;
       return props.temple.replace(/-/g, ' ');
     });
 
@@ -471,7 +484,11 @@ export default defineComponent({
       const [r, c] = currentPosition.value || [0, 0];
       return Math.abs(r - row) + Math.abs(c - col) <= 2;
     };
-    const templeElement = computed(() => String(props.temple || '').replace('-temple', '') || 'wind');
+    const templeElement = computed(() => {
+      const element = templeMeta.value?.element;
+      if (isGenerated.value && element && element !== 'none') return element;
+      return String(props.temple || '').replace('-temple', '') || 'wind';
+    });
 
     // Swipe to walk: a swipe toward an open door moves the hero, a swipe into a wall does nothing.
     // Swipes shorter than the threshold, or more sideways than forwards, are ignored.

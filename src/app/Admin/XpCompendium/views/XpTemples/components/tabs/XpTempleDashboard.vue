@@ -109,9 +109,9 @@ import { IonPage, IonContent, IonButton } from "@ionic/vue";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 
 import XpTempleTitle from "../XpTempleCreator/XpTempleTitle.vue";
-import { TEMPLE_METADATA } from "@/lib/engine/temples/templeRegistry";
+import { TEMPLE_METADATA, metadataFor, metadataForAsync, type TempleMetadata } from "@/lib/engine/temples/templeRegistry";
 import { TempleDataInjectionKey } from "../../hooks/useTempleData";
-import { inject } from "vue";
+import { inject, ref, watch } from "vue";
 
 export default defineComponent({
   name: "XpTempleDashboard",
@@ -144,8 +144,16 @@ export default defineComponent({
     // We could add an onIonViewWillEnter to refresh if needed, 
     // but the parent's useTempleData already handles it on mount.
 
+    // A generated temple (gen-<slug>) is resolved from the TempleDb; registry temples are known at once
+    const resolvedMetadata = ref<TempleMetadata | undefined>(metadataFor(props.templeId));
+    watch(() => props.templeId, (id) => {
+      resolvedMetadata.value = metadataFor(id);
+      if (!id.startsWith('gen-')) return;
+      void metadataForAsync(id).then((meta) => { if (id === props.templeId) resolvedMetadata.value = meta; });
+    }, { immediate: true });
+
     const templeMetadata = computed(() => {
-      return TEMPLE_METADATA[props.templeId] || {
+      return resolvedMetadata.value || {
         ...TEMPLE_METADATA['wind-temple'],
         name: props.templeId,
         id: props.templeId,
