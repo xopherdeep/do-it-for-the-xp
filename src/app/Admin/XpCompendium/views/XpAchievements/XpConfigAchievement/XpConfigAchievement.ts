@@ -22,6 +22,7 @@ import {
   IonTabs,
   IonRouterOutlet,
   onIonViewWillEnter,
+  alertController,
 } from "@ionic/vue";
 
 import XpAddCategoryModal from "./components/XpAddCategoryModal.vue";
@@ -83,6 +84,10 @@ export default defineComponent({
       beasts,
       categories,
       users,
+      saveState,
+      saveNow,
+      categoryQuestCounts,
+      getValidationMessage,
 
       // UI
       adventureType,
@@ -164,9 +169,36 @@ export default defineComponent({
       return pathParts[pathParts.length - 1];
     });
 
+    // The save chip: autosave's state in words; a draft is saved but hidden from heroes
+    const SAVE_CHIPS: Record<string, { icon: string; label: string }> = {
+      saving: { icon: "fa-spinner-third fa-spin", label: "Saving" },
+      saved: { icon: "fa-check-circle", label: "Saved" },
+      draft: { icon: "fa-pencil-ruler", label: "Draft" },
+      error: { icon: "fa-exclamation-triangle", label: "Not saved" },
+    };
+    const saveChip = computed(() => SAVE_CHIPS[saveState.value] || null);
+
+    const clickSaveChip = async () => {
+      if (saveState.value === "error") return saveNow();
+      const missing = getValidationMessage();
+      const alert = await alertController.create({
+        header: saveState.value === "draft" ? "Draft quest" : "Quest saved",
+        message:
+          saveState.value === "draft"
+            ? `Heroes can't see this quest yet. It goes live by itself once it has:<br>${missing.replace(/\n/g, "<br>")}`
+            : "Changes save by themselves. Heroes see this quest.",
+        buttons: ["OK"],
+      });
+      await alert.present();
+    };
+
     return {
       // Form State
       achievement,
+      saveChip,
+      saveState,
+      clickSaveChip,
+      categoryQuestCounts,
       // id, // Removed to avoid vue/no-dupe-keys with props.id
       minEndDate,
       achievements,

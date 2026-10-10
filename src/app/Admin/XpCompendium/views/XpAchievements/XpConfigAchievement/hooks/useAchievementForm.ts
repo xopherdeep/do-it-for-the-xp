@@ -25,6 +25,7 @@ import {
 } from "@/constants";
 import XpReorderAchievementsModal from "../components/XpReorderAchievementsModal.vue";
 import { formatQuestName } from "@/lib/utils/format";
+import debug from "@/lib/utils/debug";
 
 export const sortCategoryByName = (a: any, b: any) => {
   const nameA = a.name.toLowerCase();
@@ -61,6 +62,8 @@ export function useAchievementForm() {
 
   const loading = ref(false);
   const saving = ref(false);
+  /** What the editor's save chip says: draft = saved but hidden from heroes until the quest is complete */
+  const saveState = ref<"idle" | "saving" | "saved" | "draft" | "error">("idle");
   const isGeneratingSchedule = ref(false);
   const lastSavedState = ref("");
 
@@ -204,9 +207,9 @@ export function useAchievementForm() {
   const beastAvatarUrl = computed(() => {
     if (!activeBeast.value?.avatar) return null;
     try {
+      // webpack resolves require(); new URL("/src/...") never pointed at a bundled file
       const pad = activeBeast.value.avatar.toString().padStart(3, "0");
-      return new URL(`/src/assets/images/beasts/${pad}.png`, import.meta.url)
-        .href;
+      return require(`@/assets/images/beasts/${pad}.png`);
     } catch {
       return null;
     }
@@ -406,7 +409,7 @@ export function useAchievementForm() {
   const getValidationMessage = () => {
     const messages: string[] = [];
     if (!achievement.value.achievementName?.trim())
-      messages.push("• Name your achievement");
+      messages.push("• Name your quest");
     if (!achievement.value.categoryId) messages.push("• Select a category");
     if (!achievement.value.difficulty)
       messages.push("• Set the difficulty level");
@@ -421,8 +424,11 @@ export function useAchievementForm() {
       achievement.value.adventureType === "chain" &&
       !achievement.value.subAchievementIds?.length
     ) {
-      messages.push("• Add achievements to your quest chain");
+      messages.push("• Add quests to your quest chain");
     }
+    if (!["simple", "beast", "chain"].includes(achievement.value.adventureType))
+      messages.push("• Choose a quest type (How)");
+    if (!isPartyComplete.value) messages.push("• Pick the heroes (Who)");
     return messages.join("\n");
   };
 
@@ -495,30 +501,49 @@ export function useAchievementForm() {
     }
   };
 
-  // Debounced Autosave
+  // Debounced Autosave. An incomplete quest is saved as a draft, which heroes never see
+  // (QuestEngine.filterQuests); it goes live by itself the moment it is complete.
   const autosave = debounce(async () => {
-    const currentState = JSON.stringify(achievement.value);
-    if (currentState === lastSavedState.value) return;
-
-    // Auto-save regardless of validity? Or only valid?
-    // Let's save as draft if we can, but since DB structure is simple,
-    // maybe we just save it.
-    // User requested "form needs to be saved or autosave".
+    if (JSON.stringify(achievement.value) === lastSavedState.value) return;
+    // A quest without a name has nothing worth keeping yet
+    if (!achievement.value.achievementName?.trim()) {
+      saveState.value = "draft";
+      return;
+    }
 
     saving.value = true;
+    saveState.value = "saving";
     try {
       achievement.value.achievementName = formatQuestName(
         achievement.value.achievementName
       );
+      achievement.value.draft = !isValidAdventure.value;
       await achievementDb.setTask(achievement.value);
-      lastSavedState.value = currentState;
-      // Optional: show subtle indicator
-    } catch {
-      // Autosave failed - silently ignore or handle error
+      // Taken after the edits above, so they don't trigger another save
+      lastSavedState.value = JSON.stringify(achievement.value);
+      saveState.value = achievement.value.draft ? "draft" : "saved";
+    } catch (error) {
+      debug.error("Quest autosave failed:", error);
+      saveState.value = "error";
     } finally {
       saving.value = false;
     }
   }, 2000); // 2 second debounce
+
+  /** Save now (the chip's retry after a failed save) */
+  const saveNow = async () => {
+    lastSavedState.value = "";
+    autosave();
+    await autosave.flush();
+  };
+
+  /** Quests per category id, so a category that is still in use can't be deleted */
+  const categoryQuestCounts = computed(() =>
+    achievements.value.reduce((counts, quest) => {
+      if (quest.categoryId) counts[quest.categoryId] = (counts[quest.categoryId] || 0) + 1;
+      return counts;
+    }, {} as Record<string, number>)
+  );
 
   const saveManual = async () => {
     if (!isValidAdventure.value) {
@@ -534,11 +559,15 @@ export function useAchievementForm() {
     achievement.value.achievementName = formatQuestName(
       achievement.value.achievementName
     );
+    achievement.value.draft = false;
     await achievementDb.setTask(achievement.value);
+    lastSavedState.value = JSON.stringify(achievement.value);
+    saveState.value = "saved";
     const toast = await toastController.create({
-      message: "Achievement Saved!",
+      message: "Quest saved!",
       duration: 2000,
-      color: "success",
+      cssClass: "rpg-toast",
+      position: "top",
     });
     await toast.present();
     router.go(-1);
@@ -584,6 +613,10 @@ export function useAchievementForm() {
     id,
     loading,
     saving,
+    saveState,
+    saveNow,
+    categoryQuestCounts,
+    getValidationMessage,
 
     // UI
     activeSegment,
@@ -719,6 +752,8 @@ export function useAchievementForm() {
       achievement.value.categoryId = cat.id;
     },
     deleteCategory: async (cat: any) => {
+      // The category modal refuses this already; never leave a quest pointing at a deleted category
+      if (categoryQuestCounts.value[cat.id]) return;
       await categoryDb.remove(cat.id);
       const all = await categoryDb.getAll();
       categories.value = all.sort(sortCategoryByName);

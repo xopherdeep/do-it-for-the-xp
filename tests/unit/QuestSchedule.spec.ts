@@ -341,4 +341,10 @@ describe("QuestEngine board", () => {
     );
     expect(item).toMatchObject({ status: "open", pending: true, progress: { done: 1, allowance: 2, isOpen: true } });
   });
+
+  it("never shows a hero a draft quest", async () => {
+    const draft = { ...quest("quest-2"), draft: true } as Achievement;
+    const items = await board([quest("quest-1"), draft], []);
+    expect(items.map(({ quest }) => quest.id)).toEqual(["quest-1"]);
+  });
 });

@@ -44,6 +44,19 @@
       </ion-tab-bar>
     </ion-tabs>
 
+    <!-- Autosave state; a draft is saved but hidden from heroes until the quest is complete -->
+    <button
+      v-if="saveChip"
+      type="button"
+      class="save-chip"
+      :class="`save-chip--${saveState}`"
+      :aria-label="`${saveChip.label}: tap for details`"
+      @click="clickSaveChip"
+    >
+      <i :class="['fad', saveChip.icon]" />
+      <span>{{ saveChip.label }}</span>
+    </button>
+
     <!-- Shared Modals (moved inside ion-page but outside ion-tabs if they are truly global) -->
     <!-- Or keep them in the parent so children can trigger them via the shared state -->
 
@@ -143,6 +156,7 @@
     <xp-add-category-modal
       :is-open="addCategoryModalOpen"
       :categories="categories"
+      :quest-counts="categoryQuestCounts"
       @dismiss="addCategoryModalOpen = false"
       @add-category="addCategory"
       @edit-categories="editCategories"

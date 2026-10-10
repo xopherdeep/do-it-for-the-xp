@@ -27,10 +27,12 @@ class QuestEngine {
     }
 
     /**
-     * Get all quests from local database
+     * Every quest a hero may see. Drafts (quests the Game Master saved before finishing them in the
+     * Compendium) stay out of every hero view: the board, the calendar, the Town Hall and battles.
      */
     async getAllQuests(): Promise<Achievement[]> {
-        return this.achievementDb.getTasks();
+        const quests = await this.achievementDb.getTasks();
+        return quests.filter((quest) => !quest.draft);
     }
 
     /**

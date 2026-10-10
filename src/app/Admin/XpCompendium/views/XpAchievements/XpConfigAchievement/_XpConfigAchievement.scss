@@ -1291,3 +1291,45 @@ ion-item-group {
     display: none;
   }
 }
+
+// Autosave chip, top right over the tab pages (Earthbound palette, written out: this sheet has no theme variables)
+$chip-cream: #e7e6b3;
+$chip-dark-purple: #280828;
+$chip-mint: #80d890;
+$chip-pale-yellow: #f7e8a8;
+
+.save-chip {
+  position: absolute;
+  top: calc(var(--ion-safe-area-top, 0px) + 10px);
+  right: 10px;
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-family: "StatusPlz", monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: $chip-cream;
+  background: $chip-dark-purple;
+  border: 2px solid $chip-cream;
+  border-radius: 6px;
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.5);
+
+  &--saved i {
+    color: $chip-mint;
+  }
+
+  &--draft {
+    color: $chip-dark-purple;
+    background: $chip-pale-yellow;
+    border-color: $chip-dark-purple;
+  }
+
+  &--error {
+    color: #fff;
+    background: var(--ion-color-danger);
+    border-color: #fff;
+  }
+}

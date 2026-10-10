@@ -8,7 +8,7 @@
           </ion-button>
         </ion-buttons>
 
-        <ion-title>Add New Category</ion-title>
+        <ion-title>Categories</ion-title>
         <ion-buttons slot="end">
           <ion-button
             expand="full"
@@ -28,9 +28,7 @@
           <ion-col>
             <ion-list>
               <ion-item>
-                <ion-avatar @click="openActionSheet" slot="start">
-                  <ion-skeleton-text></ion-skeleton-text>
-                </ion-avatar>
+                <i class="fad fa-tags fa-lg mr-3" slot="start" aria-hidden="true"></i>
                 <ion-input
                   v-model="newCategoryName"
                   placeholder="Enter Category Name"
@@ -44,9 +42,7 @@
                 @ionChange="setPredefinedCategory"
               >
                 <ion-item size="4" v-for="cat in categoriesNotAdded" :key="cat">
-                  <ion-avatar slot="start">
-                    <ion-skeleton-text />
-                  </ion-avatar>
+                  <i class="fad fa-tag mr-3" slot="start" aria-hidden="true"></i>
                   <ion-label>
                     {{ cat }}
                   </ion-label>
@@ -65,15 +61,22 @@
       </ion-grid>
 
       <ion-list>
-        <ion-list-header> Categories </ion-list-header>
+        <ion-list-header> Your categories </ion-list-header>
         <ion-item v-for="category in categories" :key="category.id">
-          <ion-avatar slot="start">
-            <ion-skeleton-text />
-          </ion-avatar>
-          <ion-input :value="category.name"> </ion-input>
-          <!-- {{ category.name }} -->
+          <i class="fad fa-tag mr-3" slot="start" aria-hidden="true"></i>
+          <ion-input
+            :value="category.name"
+            :aria-label="`Rename ${category.name}`"
+            @ionChange="renameCategory(category, $event.detail.value)"
+          >
+          </ion-input>
+          <ion-note slot="end" class="mr-2">{{ questCountLabel(category) }}</ion-note>
           <ion-buttons slot="end">
-            <ion-button @click="deleteCategory(category)" color="danger">
+            <ion-button
+              @click="deleteCategory(category)"
+              color="danger"
+              :aria-label="`Delete ${category.name}`"
+            >
               <i class="fad fa-trash fa-lg"></i>
             </ion-button>
           </ion-buttons>
@@ -85,16 +88,6 @@
         <ion-button @click="didDismiss"> Cancel </ion-button>
       </ion-toolbar>
     </ion-footer>
-    <ion-action-sheet
-      :is-open="actionSheetOpen"
-      :header="'Choose an option'"
-      :buttons="[
-        { text: 'Take Picture', icon: cameraOutline, handler: () => {} },
-        { text: 'Choose from Gallery', icon: imagesOutline, handler: () => {} },
-        { text: 'Cancel', role: 'cancel' },
-      ]"
-      @didDismiss="actionSheetOpen = false"
-    />
   </ion-modal>
 </template>
 
@@ -102,12 +95,12 @@
   import { defineComponent, ref } from "vue";
   import ionic from "@/lib/mixins/ionic";
   import { alertController } from "@ionic/vue";
-  import { cameraOutline, imagesOutline } from "ionicons/icons";
   import { v4 as uuid4 } from "uuid";
 
   export default defineComponent({
     name: "xp-add-category",
-    props: ["isOpen", "categories"],
+    // questCounts: quests per category id (a category in use can't be deleted)
+    props: ["isOpen", "categories", "questCounts"],
     mixins: [ionic],
     data() {
       return {
@@ -131,10 +124,33 @@
       editCategories() {
         this.$emit("edit-categories", this.categories);
       },
+      questCountLabel(category) {
+        const count = this.questCounts?.[category.id] || 0;
+        return count === 1 ? "1 quest" : `${count} quests`;
+      },
+      renameCategory(category, name) {
+        const trimmed = (name || "").trim();
+        if (!trimmed || trimmed === category.name) return;
+        this.$emit(
+          "edit-categories",
+          this.categories.map((cat) => (cat.id === category.id ? { ...cat, name: trimmed } : cat))
+        );
+      },
       async deleteCategory(category) {
+        const count = this.questCounts?.[category.id] || 0;
+        // A category in use stays: its quests would point at nothing and fall under "Uncategorized"
+        if (count > 0) {
+          const blocked = await alertController.create({
+            header: `${category.name} is in use`,
+            message: `${this.questCountLabel(category)} ${count === 1 ? "uses" : "use"} this category. Move ${count === 1 ? "it" : "them"} to another category first.`,
+            buttons: ["OK"],
+          });
+          await blocked.present();
+          return;
+        }
         const alert = await alertController.create({
-          header: "Delete Category: " + category.name,
-          message: "Are you sure you want to delete this category?",
+          header: `Delete ${category.name}?`,
+          message: "No quests use it.",
           buttons: [
             {
               text: "Cancel",
@@ -142,13 +158,14 @@
             },
             {
               text: "Delete",
+              role: "destructive",
               handler: () => {
                 this.$emit("delete-category", category);
               },
             },
           ],
         });
-        alert.present();
+        await alert.present();
       },
       addNewCategory() {
         // emit event with new category name
@@ -164,12 +181,6 @@
       },
     },
     setup() {
-      const actionSheetOpen = ref(false);
-
-      const openActionSheet = () => {
-        actionSheetOpen.value = true;
-      };
-
       const predefinedCategories = ref([
         "After School",
         "Bathroom",
@@ -187,10 +198,6 @@
       ]);
 
       return {
-        actionSheetOpen,
-        openActionSheet,
-        cameraOutline,
-        imagesOutline,
         predefinedCategories,
       };
     },

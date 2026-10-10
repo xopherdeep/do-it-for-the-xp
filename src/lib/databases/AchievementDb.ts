@@ -45,6 +45,8 @@ export interface Achievement {
   ap: number;
   // meta
   adventureType: string;
+  /** Saved while still incomplete in the Compendium: heroes never see a draft (QuestEngine.filterQuests) */
+  draft?: boolean;
 }
 
 export interface AchievementCategoryInterface {
@@ -58,7 +60,8 @@ export class AchievementCategoryDb extends DbStorageApi {
   }
 
   public async setCategories(categories: AchievementCategoryInterface[]) {
-    categories.forEach(this.setCategory);
+    // An arrow keeps `this` bound; a bare method reference loses it and setCategory throws
+    await Promise.all(categories.map((category) => this.setCategory(category)));
   }
 }
 
