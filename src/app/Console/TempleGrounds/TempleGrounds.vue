@@ -53,11 +53,13 @@
   position: 'relative'
 }"
       id="game-area"
+      :class="{ 'temple-shake': isShaking }"
       @touchstart.passive="onTouchStart"
       @touchend.passive="onTouchEnd"
     >
       <!-- Lantern light breathing over the room, dust in the air -->
       <weather-fx type="temple" :intensity="4" :sound-enabled="false" />
+
       <!-- Background grid container with all rooms -->
       <div
         id="background-container"
@@ -70,7 +72,7 @@
           height: '100%',
           zIndex: 0,
           transform: `translate(${backgroundPosition.x}px, ${backgroundPosition.y}px)`,
-          transition: 'transform 0.5s ease-in-out'
+          transition: 'transform 0.65s ease-in-out'
         }"
       >
         <!-- Create background cells -->
@@ -91,7 +93,14 @@
               backgroundSize: 'cover',
               backgroundPosition: 'center'
             }"
-          ></div>
+          >
+            <!-- Each room carries its own walls, doors and gates, so they scroll with the floor -->
+            <temple-walls
+              v-if="isNearHero(rowIndex, colIndex)"
+              :exits="exitsAt(rowIndex, colIndex)"
+              :element="templeElement"
+            />
+          </div>
         </template>
       </div>
 
@@ -195,7 +204,6 @@
               <span v-if="hasMap" class="legend-item"><i class="fad fa-walking"></i> You are here</span>
               <span v-if="hasCompass" class="legend-item"><i class="fad fa-compass"></i> Compass reveals rooms</span>
             </div>
-            <button type="button" class="temple-map__close" @click="closeMap">Fold the map</button>
           </ion-card>
         </ion-modal>
       </ion-fab>
@@ -290,21 +298,23 @@
 
 
 
-      <!-- Toast for messages -->
-      <ion-toast
-        :is-open="showMessage"
-        :message="currentMessage"
-        position="middle"
-        :duration="2000"
-      ></ion-toast>
     </ion-content>
     <ion-footer class="temple-footer">
       <nav class="temple-nav icon-colors" aria-label="Temple actions">
-        <!-- Left hand: what is equipped, or an empty hand -->
-        <div class="temple-nav__hand" :class="{ 'is-empty': !leftHandItem }">
-          <i v-if="leftHandItem" :class="`fa-${leftHandItem.faIcon}`" class="fad"></i>
-          <i v-else class="fad fa-hand-paper fa-flip-horizontal"></i>
-          <span>Left</span>
+        <!-- Left hand: the equipped item by name (tap to use it), or an empty hand -->
+        <button
+          v-if="leftHandItem"
+          type="button"
+          class="temple-nav__hand is-equipped"
+          :aria-label="`Use ${leftHandItem.name}`"
+          @click="useHand(leftHandItem)"
+        >
+          <i :class="`fa-${leftHandItem.faIcon}`" class="fad"></i>
+          <span>{{ leftHandLabel }}</span>
+        </button>
+        <div v-else class="temple-nav__hand is-empty">
+          <i class="fad fa-hand-paper fa-flip-horizontal"></i>
+          <span>{{ leftHandLabel }}</span>
         </div>
 
         <button type="button" class="temple-nav__button" @click="$router.push(`/my-tasks/${userId}`)">
@@ -321,10 +331,19 @@
         </button>
 
         <!-- Right hand -->
-        <div class="temple-nav__hand" :class="{ 'is-empty': !rightHandItem }">
-          <i v-if="rightHandItem" :class="`fa-${rightHandItem.faIcon}`" class="fad"></i>
-          <i v-else class="fad fa-hand-paper"></i>
-          <span>Right</span>
+        <button
+          v-if="rightHandItem"
+          type="button"
+          class="temple-nav__hand is-equipped"
+          :aria-label="`Use ${rightHandItem.name}`"
+          @click="useHand(rightHandItem)"
+        >
+          <i :class="`fa-${rightHandItem.faIcon}`" class="fad"></i>
+          <span>{{ rightHandLabel }}</span>
+        </button>
+        <div v-else class="temple-nav__hand is-empty">
+          <i class="fad fa-hand-paper"></i>
+          <span>{{ rightHandLabel }}</span>
         </div>
       </nav>
 

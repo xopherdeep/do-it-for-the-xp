@@ -8,7 +8,7 @@
           <div class="avatar-wrapper">
             <ion-fab-button color="light" class="avatar-button">
               <i v-if="isImpersonating" class="fad fa-mask fa-2x text-danger"></i>
-              <ion-img v-else-if="user.avatar" class="ion-no-padding" :src="userAvatar"></ion-img>
+              <ion-img v-else-if="user.avatarImage || user.avatar" class="ion-no-padding" :src="userAvatar"></ion-img>
             </ion-fab-button>
             <ion-badge color="secondary" class="avatar-badge" v-if="apPercent !== null">
               AP {{ apPercent }}%
@@ -48,6 +48,7 @@ import { computed, defineComponent, ref, PropType } from "vue";
 import { walletOutline, colorWand, fitnessOutline } from "ionicons/icons";
 import { useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
+import { heroAvatarSrc } from "@/lib/hero-look/look";
 import { play$fx } from "@/assets/fx";
 import {
   menuController,
@@ -109,8 +110,7 @@ export default defineComponent({
   emits: ["open-profile"],
   computed: {
     userAvatar() {
-      const avatar = `./${this.user.avatar}.svg`;
-      return this.$requireAvatar(avatar);
+      return heroAvatarSrc(this.user, (key: string) => this.$requireAvatar(key));
     },
     walletHtml() {
       return `<span class="wallet"><i class="fad fa-coin mr-1"></i> <small>₲</small>${this.user.stats.gp.wallet}<small>00</small></span>`;

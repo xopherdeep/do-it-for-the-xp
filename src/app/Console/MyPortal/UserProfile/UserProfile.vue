@@ -29,12 +29,21 @@
             <div class="hero-avatar-side">
               <div class="hero-avatar-wrapper">
                 <ion-avatar class="hero-avatar">
-                  <ion-img :src="$requireAvatar(`./${user.avatar || '001-gamer'}.svg`)" />
+                  <ion-img :src="avatarSrc" />
                 </ion-avatar>
                 <div class="level-badge">
                   <ion-badge color="success">Lv.{{ user.stats?.level || 1 }}</ion-badge>
                 </div>
               </div>
+              <ion-button
+                class="my-look-button"
+                size="small"
+                fill="outline"
+                @click="openMyLook"
+              >
+                <i class="fad fa-tshirt mr-1"></i>
+                My Look
+              </ion-button>
             </div>
 
             <!-- Right Side: Info -->
@@ -207,7 +216,7 @@
                     :color="area.color"
                     class="stat-badge"
                   >
-                    {{ user.stats[stat] || 0 }}
+                    {{ user.stats.special?.[stat] ?? user.stats[stat] ?? 0 }}
                   </ion-badge>
                 </ion-item>
               </ion-list>

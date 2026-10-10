@@ -361,6 +361,16 @@ const $fx = {
           "https://starmen.net/mother2/music/131- Earthbound - Eight Melodies.mp3",
         ],
         dungeon: [tune("dungeon"), tune("temple")],
+        // One theme per temple, chosen by the route's temple id (bgm.guard); unknown temples fall back to `dungeon`
+        temples: {
+          "wind-temple": [tune("temple-wind")],
+          "earth-temple": [tune("temple-earth")],
+          "water-temple": [tune("temple-water")],
+          "fire-temple": [tune("temple-fire")],
+          "ice-temple": [tune("temple-ice")],
+          "light-temple": [tune("temple-light")],
+          "shadow-temple": [tune("temple-shadow")],
+        },
         dungeonOnline: [
           // "https://starmen.net/mother2/music/088- Earthbound - Belch_s Factory.mp3",
           "https://starmen.net/mother2/music/113- Earthbound - Pyramid.mp3",

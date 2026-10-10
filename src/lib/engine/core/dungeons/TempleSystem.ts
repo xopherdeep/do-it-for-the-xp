@@ -24,9 +24,18 @@ export interface TempleState {
   currentPosition: [number, number];
   currentLevel: string;
   visitedRooms: Set<string>;
-  /** Combat rooms whose beasts have been beaten, keyed `${level}:${row},${col}` */
+  /** Combat rooms whose beasts have been beaten, keyed `${level}:${row},${col}`. Also holds TEMPLE_CLEARED_KEY once the gate was opened. */
   clearedRooms?: Set<string>;
+  /** The master key was picked up this run (kept in memory: the chests that hold it refill on a reload too) */
+  hasMasterKey?: boolean;
 }
+
+/**
+ * Stored in a hero's clearedRooms once they opened the temple's gate. It rides on the saved
+ * clearedRooms list so the progress record keeps its documented fields; it is not a room, and
+ * nothing parses it as one.
+ */
+export const TEMPLE_CLEARED_KEY = 'temple:cleared';
 
 export interface DoorState {
   direction: 'north' | 'south' | 'east' | 'west';
@@ -454,6 +463,144 @@ export class TempleSystem {
   }
   
   /**
+   * Open one locked side of a room without a key (a bomb, a solved riddle).
+   * @param level Floor the room is on; the floor the hero stands on when left out
+   * @returns True if the side was locked and is open now
+   */
+  public openDoorSide(
+    templeId: string,
+    position: [number, number],
+    direction: 'north' | 'south' | 'east' | 'west',
+    level?: string
+  ): boolean {
+    const templeState = this.templeStates[templeId];
+    if (!templeState) return false;
+
+    const room = this.dungeonManager.getRoom(templeId, position, level ?? templeState.currentLevel);
+    if (!room?.locked?.[direction]) return false;
+
+    room.locked = { ...room.locked, [direction]: false };
+    return true;
+  }
+
+  /**
+   * Open every locked door of a room and the matching door of each room it leads to (the side
+   * facing it), so the way is open both ways. A fight's seal is not a door and stays.
+   * @returns How many doors opened
+   */
+  public openDoorsAround(templeId: string, position: [number, number], level?: string): number {
+    const templeState = this.templeStates[templeId];
+    if (!templeState) return 0;
+
+    const floor = level ?? templeState.currentLevel;
+    const opposite = { north: 'south', south: 'north', east: 'west', west: 'east' } as const;
+    const step = { north: [-1, 0], south: [1, 0], east: [0, 1], west: [0, -1] } as const;
+    let opened = 0;
+
+    const sealedHere = this.isSealedByFight(templeId, floor, position);
+    for (const direction of DOOR_DIRECTIONS) {
+      if (!sealedHere && this.openDoorSide(templeId, position, direction, floor)) opened++;
+
+      const next: [number, number] = [position[0] + step[direction][0], position[1] + step[direction][1]];
+      const neighbour = this.dungeonManager.getRoom(templeId, next, floor);
+      if (!neighbour || neighbour.type === 'wall' || this.isSealedByFight(templeId, floor, next)) continue;
+      if (this.openDoorSide(templeId, next, opposite[direction], floor)) opened++;
+    }
+    return opened;
+  }
+
+  /** A combat room that seals its doors on entry and has not been won yet. */
+  private isSealedByFight(templeId: string, level: string, position: [number, number]): boolean {
+    const room = this.dungeonManager.getRoom(templeId, position, level);
+    return Boolean(room?.content?.lockOnEnter) && !this.isRoomCleared(templeId, level, position);
+  }
+
+  /** Floors of a temple in the order the layout lists them ("1F" for a single grid). */
+  public getFloors(templeId: string): string[] {
+    const temple = this.dungeonManager.getDungeon(templeId);
+    return temple ? this.floorsOf(temple) : [];
+  }
+
+  /**
+   * Put the hero on another floor.
+   * @returns False when the temple has no such floor or the hero cannot stand at that spot
+   */
+  public changeLevel(templeId: string, level: string, position: [number, number]): boolean {
+    const templeState = this.templeStates[templeId];
+    if (!templeState || !this.canStandAt(templeId, level, position)) return false;
+
+    templeState.currentLevel = level;
+    templeState.currentPosition = [position[0], position[1]];
+    this.visitRoom(templeId, templeState.currentPosition, level);
+    return true;
+  }
+
+  /** Reveal the whole temple to the hero: the map and the compass. */
+  public grantMapAndCompass(templeId: string): boolean {
+    const templeState = this.templeStates[templeId];
+    if (!templeState) return false;
+
+    templeState.hasMap = true;
+    templeState.hasCompass = true;
+    this.queueSave(templeId);
+    return true;
+  }
+
+  /** One more key in the hero's hand. */
+  public addKey(templeId: string): boolean {
+    const templeState = this.templeStates[templeId];
+    if (!templeState) return false;
+    templeState.playerKeys += 1;
+    this.queueSave(templeId);
+    return true;
+  }
+
+  /** The hero picked up the master key (it opens the gate without waking the beast that guards it). */
+  public grantMasterKey(templeId: string): boolean {
+    const templeState = this.templeStates[templeId];
+    if (!templeState) return false;
+    templeState.hasMasterKey = true;
+    return true;
+  }
+
+  public hasMasterKey(templeId: string): boolean {
+    return Boolean(this.templeStates[templeId]?.hasMasterKey);
+  }
+
+  /** The hero opened the temple's gate. The win is saved with their progress. */
+  public markTempleCleared(templeId: string): boolean {
+    const templeState = this.templeStates[templeId];
+    if (!templeState) return false;
+
+    if (!templeState.clearedRooms) templeState.clearedRooms = new Set<string>();
+    templeState.clearedRooms.add(TEMPLE_CLEARED_KEY);
+    this.queueSave(templeId);
+    return true;
+  }
+
+  public isTempleCleared(templeId: string): boolean {
+    return Boolean(this.templeStates[templeId]?.clearedRooms?.has(TEMPLE_CLEARED_KEY));
+  }
+
+  /** True once every boss room of the temple (on any floor) has been beaten. A temple without a boss room has nothing to beat. */
+  public isBossBeaten(templeId: string): boolean {
+    const temple = this.dungeonManager.getDungeon(templeId);
+    if (!temple) return false;
+
+    const floors = Array.isArray(temple.maze) ? { '1F': temple.maze } : temple.maze;
+    for (const [floor, grid] of Object.entries(floors)) {
+      for (let row = 0; row < grid.length; row++) {
+        for (let col = 0; col < grid[row].length; col++) {
+          if (temple.rooms[grid[row][col]]?.type === 'boss' && !this.isRoomCleared(templeId, floor, [row, col])) {
+            return false;
+          }
+        }
+      }
+    }
+    return true;
+  }
+
+  /**
    * Open a chest and collect its contents
    * @returns Object with collected items
    */
@@ -616,6 +763,9 @@ export class TempleSystem {
     
     // Check if room has been visited
     const isVisited = this.hasVisited(templeId, position);
+
+    // A secret chamber stays off the map, compass or not, until the hero has stood in it
+    if (room?.type === 'secret' && !isVisited) return MapVisibility.NONE;
     
     // Return full details if the room is visited or player has compass
     if (isVisited || templeState.hasCompass) {
@@ -636,8 +786,11 @@ export class TempleSystem {
   public shouldShowRoomDetails(templeId: string, position: [number, number]): boolean {
     const templeState = this.templeStates[templeId];
     if (!templeState || !templeState.hasMap) return false;
+
+    const visited = this.hasVisited(templeId, position);
+    if (!visited && this.dungeonManager.getRoom(templeId, position, templeState.currentLevel)?.type === 'secret') return false;
     
-    return templeState.hasCompass || this.hasVisited(templeId, position);
+    return templeState.hasCompass || visited;
   }
   
   /**

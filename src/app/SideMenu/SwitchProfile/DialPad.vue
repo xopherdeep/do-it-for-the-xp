@@ -22,7 +22,7 @@
       <!-- Profile Card -->
       <div class="profile-card rpg-box">
         <ion-avatar class="profile-avatar">
-          <ion-img v-if="profile?.avatar" :src="currentAvatar" />
+          <ion-img v-if="profile?.avatarImage || profile?.avatar" :src="currentAvatar" />
         </ion-avatar>
         <div class="profile-info">
           <h2 class="profile-name earthbound-text">
@@ -174,6 +174,7 @@
   import { defineComponent, onUnmounted, computed, ref } from "vue";
   import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
   import debug from "@/lib/utils/debug";
+  import { heroAvatarSrc } from "@/lib/hero-look/look";
   import { fingerPrintOutline, fingerPrintSharp } from "ionicons/icons";
 
   const $requireAvatar = require.context(
@@ -201,12 +202,8 @@
 
       // Avatar
       const currentAvatar = computed(() => {
-        if (!props.profile?.avatar) return null;
-        try {
-          return $requireAvatar(`./${props.profile.avatar}.svg`);
-        } catch {
-          return $requireAvatar("./001-gamer.svg");
-        }
+        if (!props.profile?.avatarImage && !props.profile?.avatar) return null;
+        return heroAvatarSrc(props.profile, $requireAvatar) || $requireAvatar("./001-gamer.svg");
       });
 
       // Icons

@@ -108,7 +108,7 @@ const avatarBroken = ref(false);
 watch(avatarSrc, () => {
   avatarBroken.value = false;
 });
-const showImage = computed(() => Boolean(player.value?.avatar) && !avatarBroken.value);
+const showImage = computed(() => Boolean(player.value?.avatar || player.value?.avatarImage) && !avatarBroken.value);
 const initial = computed(() => (Array.from(playerName.value)[0] ?? "?").toUpperCase());
 
 // --- bars ---

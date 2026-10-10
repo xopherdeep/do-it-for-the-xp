@@ -40,6 +40,7 @@ import {
 import { useRoute, useRouter } from "vue-router";
 import { useAudioStore } from "@/lib/store/stores/audio";
 import { useUserStore } from "@/lib/store/stores/user";
+import { heroAvatarSrc } from "@/lib/hero-look/look";
 import { useGameStore } from "@/lib/store/stores/game";
 import { useBattleStore } from "@/lib/store/stores/battle";
 
@@ -90,10 +91,7 @@ export default defineComponent({
   methods: {
     loginUser(user: any) { return (this as any).userStore.loginUser(user) },
     getUserAvatar(user) {
-      // console.log(user.avatar);
-      const avatar = `./${user.avatar}.svg`;
-      // console.log(avatar);
-      return this.$requireAvatar(avatar);
+      return heroAvatarSrc(user, (key: string) => this.$requireAvatar(key));
     },
     async dismissRPGBox() {
       this.isRPGBoxOpen = false;

@@ -3,6 +3,7 @@ import { reactive, computed } from 'vue';
 import Api from "@/lib/api";
 import { ProfileDb } from '@/lib/databases/ProfileDb';
 import { profileStorage } from '@/lib/databases/profileStorage';
+import type { HeroLook } from '@/lib/hero-look/types';
 import { getGPService } from '@/lib/services/gp/GPService';
 import {
   JOB_UNLOCK_REQUIREMENTS,
@@ -297,6 +298,64 @@ export const useUserStore = defineStore('user', () => {
       return userStats.hp.now > 0;
     }
     return true; // Default to alive if user not found
+  }
+
+  /**
+   * Update User MP (spells, springs, camps). Mirrors updateUserHP: negative spends, positive restores,
+   * and the result stays between 0 and the maximum.
+   * Returns true while the hero still has MP left.
+   */
+  function updateUserMP(payload: { userId: string, amount: number }): boolean {
+    const { userId, amount } = payload;
+
+    if (users[userId]) {
+      const userStats = users[userId].stats || {};
+
+      // Initialize/Standardize mp structure if missing or primitive
+      if (typeof userStats.mp !== 'object' || userStats.mp === null) {
+        const currentMp = typeof userStats.mp === 'number' ? userStats.mp : 100;
+        const maxMp = typeof userStats.maxMp === 'number' ? userStats.maxMp : 100;
+        userStats.mp = { now: currentMp, max: maxMp };
+      }
+
+      // Ensure maxMp is synced if it exists as a top-level property
+      if (typeof userStats.maxMp === 'number') {
+        userStats.mp.max = userStats.maxMp;
+      }
+
+      userStats.mp.now = Math.max(0, Math.min(userStats.mp.max, userStats.mp.now + amount));
+
+      // Standardize hp structure while we're here
+      if (typeof userStats.hp !== 'object' || userStats.hp === null) {
+        const currentHp = typeof userStats.hp === 'number' ? userStats.hp : 100;
+        const maxHp = typeof userStats.maxHp === 'number' ? userStats.maxHp : 100;
+        userStats.hp = { now: currentHp, max: maxHp };
+      }
+
+      users[userId].stats = userStats;
+
+      if (currentUser.id === userId) {
+        currentUser.stats = userStats;
+      }
+
+      persistUser(userId);
+
+      return userStats.mp.now > 0;
+    }
+    return true;
+  }
+
+  /**
+   * Put an item in the hero's bag, e.g. what a temple shop sold. Kept on the profile (and so in ProfileDb).
+   * Returns false when there is no such hero.
+   */
+  function addInventoryItem(userId: string, item: { name: string, source?: string, [key: string]: any }): boolean {
+    const user = users[userId];
+    if (!user) return false;
+    user.inventory = [...(Array.isArray(user.inventory) ? user.inventory : []), JSON.parse(JSON.stringify(item))];
+    if (currentUser.id === userId) syncCurrentUser(user);
+    persistUser(userId);
+    return true;
   }
 
   /**
@@ -656,6 +715,20 @@ export const useUserStore = defineStore('user', () => {
     persistUser(userId);
   }
 
+  /**
+   * The hero's voxel look. Stored on the profile (and so in ProfileDb); `avatarImage`, a PNG data URL
+   * of the rendered look, replaces the avatar SVG everywhere a hero is shown. Leaving it out keeps the
+   * snapshot already saved.
+   */
+  function setLook(userId: string, look: HeroLook, avatarImage?: string) {
+    const user = users[userId];
+    if (!user) return;
+    user.look = JSON.parse(JSON.stringify(look));
+    if (avatarImage) user.avatarImage = avatarImage;
+    if (currentUser.id === userId) syncCurrentUser(user);
+    persistUser(userId);
+  }
+
   function recordAPGain(payload: { userId: string, amount: number, source: string }) {
     const { userId, amount, source } = payload;
 
@@ -721,6 +794,8 @@ export const useUserStore = defineStore('user', () => {
     addUser,
     updateUserGP,
     updateUserHP,
+    updateUserMP,
+    addInventoryItem,
     unlockPegasus,
     unlockQuickDrawSlot,
     unlockClass,
@@ -729,6 +804,7 @@ export const useUserStore = defineStore('user', () => {
     updateUserXP,
     recordAPGain,
     setEquipment,
+    setLook,
     persistUser,
     getAPInTimeRange,
     impersonateUser,

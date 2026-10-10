@@ -31,6 +31,7 @@
 
 <script lang="ts">
   import User from "@/lib/utils/User";
+  import { heroAvatarSrc } from "@/lib/hero-look/look";
   import { defineComponent } from "vue";
 
   import ionic from "@/lib/mixins/ionic";
@@ -58,10 +59,7 @@
         this.$emit("load-profiles");
       },
       getUserAvatar(user) {
-        const { avatar } = user;
-        if (avatar) {
-          return this.requireAvatar(`./${user.avatar}.svg`);
-        }
+        return heroAvatarSrc(user, (key: string) => this.requireAvatar(key)) || undefined;
       },
     },
     setup,

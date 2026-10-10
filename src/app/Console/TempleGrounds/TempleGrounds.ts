@@ -1,4 +1,4 @@
-import { defineComponent, onMounted, computed, ref, watch } from 'vue';
+import { defineComponent, onBeforeUnmount, onMounted, computed, ref, watch } from 'vue';
 import ionic from '@/lib/mixins/ionic';
 import { actionSheetController, alertController } from '@ionic/vue';
 import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
@@ -14,7 +14,25 @@ import debug from '@/lib/utils/debug';
 import { useUserStore } from '@/lib/store/stores/user';
 import { templeBattleRoute } from '@/app/Console/BattleField/battle/battleContext';
 import WeatherFX from '@/components/organisms/WeatherFX/WeatherFX.vue';
+import TempleWalls from './TempleWalls.vue';
+import type { ExitKind, WallSide } from './templeWalls';
 import { play$fx } from "@/assets/fx"
+import { useToast } from '@/hooks/useToast';
+import { TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
+import { useEquipmentItems, type EquipmentItem } from '@/app/Console/MyPortal/UserHud/components/equipment/EquipmentItems';
+import {
+  answerRiddle,
+  buyWare,
+  onEnterRoom,
+  readExits,
+  roomActions,
+  type Riddle,
+  type RoomAction,
+  type RoomContext,
+  type RoomOutcome,
+  type Ware
+} from '@/lib/services/temples/RoomInteractions';
+import { handLabel, useItem as useEquippedItem } from '@/lib/services/temples/ItemUse';
 
 const COMBAT_ROOM_TYPES = ['monster', 'miniboss', 'boss'];
 
@@ -39,6 +57,7 @@ export default defineComponent({
   mixins: [ionic],
   components: {
     'weather-fx': WeatherFX,
+    'temple-walls': TempleWalls,
     XpFabUserHud,
     XpXpBar,
     XpMainHud
@@ -100,8 +119,8 @@ export default defineComponent({
       handleTeleport,
       toggleMap,
       displayMessage,
+      registerMessageDisplay,
       chestContents,
-      isChestEmpty,
       isCurrentRoomCleared,
       openMap,
       closeMap,
@@ -115,6 +134,18 @@ export default defineComponent({
     } = useTemple(props.temple, startPosition, startLevel, progressHeroId);
 
     const router = useRouter();
+
+    // Messages are toasts pinned to the top, in the game's own style
+    const { showToast } = useToast();
+    const say = (message: string, duration = 2400) => {
+      showToast(message, duration, 'top').catch((error: unknown) => debug.error('Failed to show toast', error));
+    };
+    registerMessageDisplay(say);
+
+    // A sound key from the fx table; the table is not there in every environment
+    const fx = (key: string) => {
+      if (typeof play$fx === 'function') play$fx(key);
+    };
 
     // A combat room whose beasts are already beaten: no second fight, and the room shows a mark
     const isCombatRoomCleared = computed(
@@ -228,98 +259,176 @@ export default defineComponent({
       await alert.present();
     };
 
-    // Handle showing room actions
-    const showRoomActions = async () => {
-      if (!currentRoom.value) return;
+    // --- Room actions: what each room says and does lives in RoomInteractions ---------------------
 
-      const actions = {
-        header: 'What would you like to do?',
-        buttons: [{ text: 'Cancel', role: 'cancel' } as any]
+    const templeSystem = TempleSystem.getInstance();
+
+    // The shake on the game area when something hurts or blows up
+    const isShaking = ref(false);
+    let shakeTimer: ReturnType<typeof setTimeout> | undefined;
+    const shake = () => {
+      isShaking.value = true;
+      if (shakeTimer) clearTimeout(shakeTimer);
+      shakeTimer = setTimeout(() => (isShaking.value = false), 400);
+    };
+    onBeforeUnmount(() => {
+      if (shakeTimer) clearTimeout(shakeTimer);
+    });
+
+    /**
+     * Where the hero stands right now, read from the temple itself: the refs of useTemple only catch up
+     * on the next tick, and a trap has to know the room the hero just walked into.
+     */
+    const liveContext = (): { ctx: RoomContext; room: any } | null => {
+      const state = templeSystem.getTempleState(props.temple);
+      const room = templeSystem.getCurrentRoom(props.temple);
+      if (!state || !room || !progressHeroId) return null;
+      return {
+        room,
+        ctx: {
+          userId: String(progressHeroId),
+          templeId: props.temple,
+          level: state.currentLevel,
+          position: [state.currentPosition[0], state.currentPosition[1]]
+        }
       };
+    };
 
-      switch (currentRoom.value.type) {
-        case 'entrance':
-          actions.header = 'Temple Entrance';
-          actions.buttons.unshift({
-            text: 'Leave Temple',
-            role: 'leave',
-            handler: () => {
-              // Get the world location for this temple
-              const templeWorldMap = getTempleWorldLocation(props.temple);
+    // A riddle on the wall: pick an answer from the choices
+    const showRiddleAlert = async (riddle: Riddle, room: any, ctx: RoomContext) => {
+      const alert = await alertController.create({
+        header: 'The Glyphs',
+        message: riddle.question,
+        inputs: riddle.choices.map((choice, index) => ({ type: 'radio' as const, label: choice, value: index })),
+        buttons: [
+          { text: 'Step back', role: 'cancel' },
+          {
+            text: 'Answer',
+            handler: (choice: number | undefined) => {
+              if (choice === undefined || choice === null) return false;
+              void applyOutcome(answerRiddle(room, ctx, Number(choice)));
+              return true;
+            }
+          }
+        ]
+      });
+      await alert.present();
+    };
 
-              // Navigate to the appropriate world map location
-              router.push({
-                name: templeWorldMap.route,
-                params: { userId: props.userId }
-              });
+    // The shopkeeper's wares with the hero's wallet
+    const showShopAlert = async (wares: Ware[], gp: number, room: any, ctx: RoomContext) => {
+      const alert = await alertController.create({
+        header: 'Wares',
+        subHeader: `You carry ${gp} GP`,
+        inputs: wares.map((ware, index) => ({
+          type: 'radio' as const,
+          label: `${ware.name}: ${ware.blurb}, ${ware.price} GP${ware.soldOut ? ' (sold out)' : ''}`,
+          value: ware.id,
+          checked: index === 0 && !ware.soldOut,
+          disabled: ware.soldOut
+        })),
+        buttons: [
+          { text: 'Leave', role: 'cancel' },
+          {
+            text: 'Buy',
+            handler: (wareId: string | undefined) => {
+              if (!wareId) return false;
+              void applyOutcome(buyWare(room, ctx, wareId));
+              return true;
             }
-          } as any);
-          break;
-        case 'loot':
-          // Check the chest state using our improved isChestEmpty computed property
-          if (isChestEmpty.value) {
-            actions.buttons.unshift({
-              text: 'Inspect Empty Chest',
-              role: 'open',
-              handler: () => {
-                showEmptyChestAlert();
-              }
-            } as any);
-          } else {
-            actions.buttons.unshift({
-              text: 'Open Chest',
-              role: 'open',
-              handler: () => {
-                showChestContentsDialog();
-              }
-            } as any);
           }
+        ]
+      });
+      await alert.present();
+    };
+
+    /** Show what a room or an item did: the sound, the shake, the toast, and whatever screen it opens. */
+    const applyOutcome = async (outcome: RoomOutcome): Promise<void> => {
+      if (outcome.sound) fx(outcome.sound);
+      if (outcome.shake) shake();
+      if (outcome.message) say(outcome.message);
+
+      if (outcome.defeated) {
+        // Same as losing a battle: HP is already back, the game-over screen takes over
+        fx('die');
+        void router.replace({ name: 'game-over' });
+        return;
+      }
+
+      const live = liveContext();
+      switch (outcome.intent) {
+        case 'leave': {
+          // Get the world location for this temple and walk out to it
+          const templeWorldMap = getTempleWorldLocation(props.temple);
+          router.push({ name: templeWorldMap.route, params: { userId: props.userId } });
+          return;
+        }
+        case 'fight':
+          startFight();
           break;
-        case 'monster':
-        case 'miniboss':
-        case 'boss':
-          if (isCombatRoomCleared.value) {
-            actions.header = 'The beast here has already been defeated.';
-            break;
-          }
-          actions.header = currentRoom.value.type === 'boss'
-            ? 'A Powerful Boss appears!'
-            : 'A Monster approaches!';
-          actions.buttons.unshift({
-            text: 'Fight',
-            role: 'fight',
-            handler: startFight
-          } as any);
+        case 'openChest':
+          await showChestContentsDialog();
           break;
-        case 'shop':
-          actions.header = 'Can I interest you in my wares?';
-          actions.buttons.unshift({
-            text: 'View Wares',
-            role: 'view',
-            handler: () => {
-              // handle shop
-            }
-          } as any);
+        case 'emptyChest':
+          await showEmptyChestAlert();
           break;
         case 'teleport':
-          actions.header = 'You found a teleport!';
-          actions.buttons.unshift({
-            text: 'Teleport',
-            role: 'teleport',
-            handler: () => {
-              if (handleTeleport()) {
-                // Update UI after teleport
-                setTimeout(() => {
-                  updateBg(currentPosition.value[1], currentPosition.value[0]);
-                }, 100);
-              }
-            }
-          } as any);
+          if (handleTeleport()) {
+            // Update UI after teleport, then see what the new room does
+            fx('okdesuka');
+            setTimeout(() => updateBg(currentPosition.value[1], currentPosition.value[0]), 100);
+            await arrive();
+          }
+          break;
+        case 'riddle':
+          if (live && outcome.riddle) await showRiddleAlert(outcome.riddle, live.room, live.ctx);
+          break;
+        case 'shop':
+          if (live && outcome.wares) await showShopAlert(outcome.wares, outcome.gp ?? 0, live.room, live.ctx);
+          break;
+        case 'sheet':
+          await showRoomActions();
           break;
       }
 
-      const actionSheet = await actionSheetController.create(actions);
-      actionSheet.present();
+      if (outcome.moved) await arrive();
+    };
+
+    /** The hero has just walked (or fallen, or jumped) into a room: traps and pits act at once. */
+    const arrive = async (): Promise<void> => {
+      const live = liveContext();
+      if (!live) return;
+      const outcome = onEnterRoom(live.room, live.ctx);
+      if (outcome) await applyOutcome(outcome);
+    };
+
+    const runRoomAction = async (action: RoomAction) => {
+      await applyOutcome(await action.run());
+    };
+
+    // Handle showing room actions
+    const showRoomActions = async () => {
+      const live = liveContext();
+      if (!live) {
+        displayMessage('Choose a profile first');
+        return;
+      }
+
+      const sheet = roomActions(live.room, live.ctx);
+      const buttons: any[] = sheet.actions.map((action) => ({
+        text: action.label,
+        handler: () => {
+          void runRoomAction(action);
+        }
+      }));
+      buttons.push({ text: 'Cancel', role: 'cancel' });
+
+      const actionSheet = await actionSheetController.create({
+        header: sheet.header,
+        subHeader: sheet.subHeader,
+        buttons
+      });
+      await actionSheet.present();
     };
 
     // Get the appropriate world location for a temple
@@ -340,6 +449,35 @@ export default defineComponent({
       // Return the world location or default to home-town if not found
       return templeWorldMap[templeId] || { world: 'plains', route: 'home-town' };
     };
+
+    // What each side of a room is, for the wall layer: solid stone, an open door, or a locked one
+    const exitsAt = (row: number, col: number): Record<WallSide, ExitKind> => {
+      const roomAt = (r: number, c: number) => {
+        const key = maze.value?.[r]?.[c];
+        return key ? rooms.value?.[key] : undefined;
+      };
+      const here = roomAt(row, col);
+      const kind = (side: WallSide, r: number, c: number): ExitKind => {
+        const there = roomAt(r, c);
+        if (!there || there.type === 'wall') return 'wall';
+        const lockedHere = Boolean(here?.locked?.[side]);
+        const opposite = { north: 'south', south: 'north', east: 'west', west: 'east' }[side] as WallSide;
+        const lockedThere = Boolean(there.locked?.[opposite]);
+        return lockedHere || lockedThere ? 'locked' : 'door';
+      };
+      return {
+        north: kind('north', row - 1, col),
+        south: kind('south', row + 1, col),
+        west: kind('west', row, col - 1),
+        east: kind('east', row, col + 1),
+      };
+    };
+    // Only the hero's room and its neighbours carry a wall layer: enough to scroll into, cheap to keep
+    const isNearHero = (row: number, col: number) => {
+      const [r, c] = currentPosition.value || [0, 0];
+      return Math.abs(r - row) + Math.abs(c - col) <= 2;
+    };
+    const templeElement = computed(() => String(props.temple || '').replace('-temple', '') || 'wind');
 
     // Swipe to walk: a swipe toward an open door moves the hero, a swipe into a wall does nothing.
     // Swipes shorter than the threshold, or more sideways than forwards, are ignored.
@@ -401,7 +539,11 @@ export default defineComponent({
       // If movement failed for some reason, revert the background position
       if (!result) {
         updateBg(col, row);
+        return;
       }
+
+      // Traps and pits act the moment the hero walks in
+      void arrive();
     };
 
     // Show a dialog with chest contents
@@ -491,6 +633,33 @@ export default defineComponent({
       return currentUser.equipment.rightHand[0] || null;
     });
 
+    // The footer names what is held, or says Left / Right for an empty hand
+    const leftHandLabel = computed(() => handLabel(leftHandItem.value, 'Left'));
+    const rightHandLabel = computed(() => handLabel(rightHandItem.value, 'Right'));
+
+    // The live item definitions: the copy stored on the profile has no click. The composable needs the
+    // router and the game store; where those are missing the navigation items simply have no click.
+    let itemCatalog: EquipmentItem[] = [];
+    try {
+      itemCatalog = useEquipmentItems().specialItems;
+    } catch (error) {
+      debug.warn('Equipment catalog unavailable', error);
+    }
+
+    // Tapping an equipped item: the select tick, then whatever the item does here
+    const useHand = (item: EquipmentItem | null) => {
+      if (!item) return;
+      fx('select');
+      const live = liveContext();
+      if (!live) {
+        displayMessage('Choose a profile first');
+        return;
+      }
+      const { ctx, room } = live;
+      const exits = readExits(ctx.templeId, ctx.level, ctx.position);
+      void applyOutcome(useEquippedItem(item, { ...ctx, room, exits, catalog: itemCatalog }));
+    };
+
 
     return {
       // From useTemple
@@ -524,6 +693,9 @@ export default defineComponent({
       moveWithUpdate,
       onTouchStart,
       onTouchEnd,
+      exitsAt,
+      isNearHero,
+      templeElement,
       isDoorLocked,
       showRoomActions,
       getBgImage,
@@ -542,7 +714,11 @@ export default defineComponent({
       closeMap,
       user,
       leftHandItem,
-      rightHandItem
+      rightHandItem,
+      leftHandLabel,
+      rightHandLabel,
+      useHand,
+      isShaking
     };
   },
   computed: {

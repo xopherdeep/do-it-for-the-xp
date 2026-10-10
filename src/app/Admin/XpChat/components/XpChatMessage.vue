@@ -31,6 +31,7 @@ import { defineComponent, PropType, computed } from 'vue';
 import { ChatMessage } from '@/lib/databases/ChatDb';
 import { chatEngine } from '@/lib/engine/core/ChatEngine';
 import { useUserStore } from '@/lib/store/stores/user';
+import { heroAvatarImage } from '@/lib/hero-look/look';
 import ionic from "@/lib/mixins/ionic";
 
 export default defineComponent({
@@ -48,6 +49,9 @@ export default defineComponent({
         const isOwn = computed(() => props.message.senderId === userStore.currentUser.id);
 
         const avatarUrl = computed(() => {
+            // The sender's rendered look, read from their profile so messages stay small
+            const snapshot = heroAvatarImage(userStore.getUserById(props.message.senderId));
+            if (snapshot) return snapshot;
             if (props.message.avatar) {
                 return require(`@/assets/images/avatars/${props.message.avatar}.svg`);
             }

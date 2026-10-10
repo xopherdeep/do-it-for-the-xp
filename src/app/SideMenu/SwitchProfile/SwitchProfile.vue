@@ -136,6 +136,7 @@ import DialPad from "./DialPad.vue";
 import ionic from "@/lib/mixins/ionic";
 import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
 import debug from "@/lib/utils/debug";
+import { heroAvatarSrc } from "@/lib/hero-look/look";
 import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
 
 const requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
@@ -409,10 +410,7 @@ export default defineComponent({
 
     // Profile functions
     const getUserAvatar = (user: User) => {
-      if (user?.avatar) {
-        return requireAvatar(`./${user.avatar}.svg`);
-      }
-      return ""; // Return empty string or default avatar path
+      return heroAvatarSrc(user, requireAvatar); // "" when there is neither a snapshot nor an avatar
     };
 
     const getJobClassIcon = (profile: User) => {

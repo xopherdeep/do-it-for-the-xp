@@ -150,40 +150,73 @@ def frame(img, pal, rng):
     return pil
 
 def doors(pil, pal, sides):
-    """Openings in the frame: a doorway where the hero can walk, a barred door where it is locked, nothing on a wall."""
+    """Each side of the frame reads at a glance: a solid wall with a torch sconce, an archway lit from
+    beyond where the hero can walk, or a barred, padlocked gate where the way is locked."""
     stone, metal, hi = [tuple(int(v) for v in np.array(c)) for c in pal[5:8]]
+    glow = tuple(int(v) for v in np.array(pal[4]))
     d = ImageDraw.Draw(pil, "RGBA")
-    dark = (18, 12, 14)
-    DW = 120   # doorway width
+    dark = (14, 10, 12)
+    OPEN = 150          # width of the opening along the wall
+    def box(side):
+        if side == "north": return (W // 2 - OPEN // 2, 0, W // 2 + OPEN // 2, FRAME + 6)
+        if side == "south": return (W // 2 - OPEN // 2, H - FRAME - 6, W // 2 + OPEN // 2, H)
+        if side == "west":  return (0, H // 2 - OPEN // 2, FRAME + 6, H // 2 + OPEN // 2)
+        return (W - FRAME - 6, H // 2 - OPEN // 2, W, H // 2 + OPEN // 2)
     def draw(side, kind):
+        x0, y0, x1, y1 = box(side)
+        horizontal = side in ("north", "south")
         if kind == "wall":
+            # a sconce: a small torch bracket on the wall, so a blank side still reads as solid stone
+            cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
+            d.rectangle([cx - 5, cy - 9, cx + 5, cy + 9], fill=metal, outline=dark, width=1)
+            d.ellipse([cx - 9, cy - 20, cx + 9, cy - 2], fill=glow + (190,))
+            d.ellipse([cx - 5, cy - 16, cx + 5, cy - 6], fill=(255, 255, 220, 220))
             return
-        if side in ("north", "south"):
-            x0, x1 = W // 2 - DW // 2, W // 2 + DW // 2
-            y0, y1 = (0, FRAME) if side == "north" else (H - FRAME, H)
-        else:
-            y0, y1 = H // 2 - DW // 2, H // 2 + DW // 2
-            x0, x1 = (0, FRAME) if side == "west" else (W - FRAME, W)
-        # the dark opening with a lit lintel
+        # the opening: a dark passage with light at the far end, cut through the whole frame
         d.rectangle([x0, y0, x1, y1], fill=dark)
-        d.rectangle([x0, y0, x1, y1], outline=hi, width=4)
-        # a worn threshold on the floor side
-        if side == "north":   d.rectangle([x0 + 6, y1, x1 - 6, y1 + 14], fill=(0, 0, 0, 70))
-        if side == "south":   d.rectangle([x0 + 6, y0 - 14, x1 - 6, y0], fill=(0, 0, 0, 70))
-        if side == "west":    d.rectangle([x1, y0 + 6, x1 + 14, y1 - 6], fill=(0, 0, 0, 70))
-        if side == "east":    d.rectangle([x0 - 14, y0 + 6, x0, y1 - 6], fill=(0, 0, 0, 70))
+        if horizontal:
+            far = y0 if side == "north" else y1
+            for i in range(0, 24, 2):
+                a = int(90 * (1 - i / 24))
+                yy = far + (i if side == "north" else -i)
+                d.rectangle([x0 + 10, yy, x1 - 10, yy + 2], fill=glow + (a,))
+        else:
+            far = x0 if side == "west" else x1
+            for i in range(0, 24, 2):
+                a = int(90 * (1 - i / 24))
+                xx = far + (i if side == "west" else -i)
+                d.rectangle([xx, y0 + 10, xx + 2, y1 - 10], fill=glow + (a,))
+        # stone jambs and a lintel in the bright metal, and a threshold worn into the floor
+        if horizontal:
+            d.rectangle([x0 - 10, y0, x0, y1], fill=metal, outline=hi, width=2)
+            d.rectangle([x1, y0, x1 + 10, y1], fill=metal, outline=hi, width=2)
+            ly = y1 if side == "north" else y0
+            d.rectangle([x0 - 10, ly - 5, x1 + 10, ly + 5], fill=hi, outline=dark, width=1)
+            ty = y1 + 6 if side == "north" else y0 - 22
+            d.rectangle([x0 + 8, ty, x1 - 8, ty + 16], fill=(0, 0, 0, 80))
+        else:
+            d.rectangle([x0, y0 - 10, x1, y0], fill=metal, outline=hi, width=2)
+            d.rectangle([x0, y1, x1, y1 + 10], fill=metal, outline=hi, width=2)
+            lx = x1 if side == "west" else x0
+            d.rectangle([lx - 5, y0 - 10, lx + 5, y1 + 10], fill=hi, outline=dark, width=1)
+            tx = x1 + 6 if side == "west" else x0 - 22
+            d.rectangle([tx, y0 + 8, tx + 16, y1 - 8], fill=(0, 0, 0, 80))
         if kind == "locked":
-            # a barred gate with a lock plate
-            if side in ("north", "south"):
-                for x in range(x0 + 14, x1 - 6, 16):
-                    d.line([x, y0 + 6, x, y1 - 6], fill=metal, width=5)
-                cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
+            # bars across the opening and a padlock plate in the middle
+            if horizontal:
+                for x in range(x0 + 14, x1 - 8, 14):
+                    d.line([x, y0 + 4, x, y1 - 4], fill=metal, width=5)
+                    d.line([x - 1, y0 + 4, x - 1, y1 - 4], fill=hi, width=1)
+                d.line([x0 + 6, (y0 + y1) // 2, x1 - 6, (y0 + y1) // 2], fill=metal, width=6)
             else:
-                for y in range(y0 + 14, y1 - 6, 16):
-                    d.line([x0 + 6, y, x1 - 6, y], fill=metal, width=5)
-                cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
-            d.rectangle([cx - 14, cy - 10, cx + 14, cy + 12], fill=hi, outline=dark, width=2)
-            d.ellipse([cx - 4, cy - 3, cx + 4, cy + 5], fill=dark)
+                for y in range(y0 + 14, y1 - 8, 14):
+                    d.line([x0 + 4, y, x1 - 4, y], fill=metal, width=5)
+                    d.line([x0 + 4, y - 1, x1 - 4, y - 1], fill=hi, width=1)
+                d.line([(x0 + x1) // 2, y0 + 6, (x0 + x1) // 2, y1 - 6], fill=metal, width=6)
+            cx, cy = (x0 + x1) // 2, (y0 + y1) // 2
+            d.rounded_rectangle([cx - 16, cy - 12, cx + 16, cy + 14], radius=4, fill=hi, outline=dark, width=2)
+            d.ellipse([cx - 5, cy - 4, cx + 5, cy + 6], fill=dark)
+            d.arc([cx - 10, cy - 24, cx + 10, cy - 4], 180, 360, fill=hi, width=4)
     for side, kind in sides.items():
         draw(side, kind)
     return pil
@@ -212,10 +245,9 @@ def render(temple):
             img = floor(pal, rng, room_type)
             if room_type == "wall":
                 img = img * 0.35
-            pil = frame(img, pal, rng)
-            if room_type != "wall":
-                pil = doors(pil, pal, exits(rows, types, locks, r, c))
-            pil = shade(pil)
+            # Walls, doors and gates are drawn live by TempleWalls.vue so they scale to the screen;
+            # the image is the floor alone, with a soft edge where the wall will stand.
+            pil = shade(Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)))
             pil.save(os.path.join(out_dir, f"[{r},{c}].jpg"), quality=78, optimize=True)
             count += 1
     print(f"{temple}: {count} rooms")

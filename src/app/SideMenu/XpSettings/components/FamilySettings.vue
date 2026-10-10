@@ -69,6 +69,7 @@ import { alertController, modalController } from "@ionic/vue";
 import XpProfileItem from "./ProfileItem.vue";
 import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
 import { useUserStore } from "@/lib/store/stores/user";
+import { heroAvatarSrc } from "@/lib/hero-look/look";
 
 export default defineComponent({
   name: "xp-settings-family",
@@ -149,10 +150,7 @@ export default defineComponent({
       await alert.present();
     },
     getUserAvatar(user) {
-      const { avatar } = user;
-      if (avatar) {
-        return this.requireAvatar(`./${user.avatar}.svg`);
-      }
+      return heroAvatarSrc(user, (key: string) => this.requireAvatar(key)) || undefined;
     },
   },
 });

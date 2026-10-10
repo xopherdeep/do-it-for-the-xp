@@ -77,6 +77,16 @@ const MyPortalRoutes = [{
     component: () => import('@/app/Console/MyPortal/UserProfile/UserProfile.vue'),
     props: true
   },
+  {
+    path: 'my-look',
+    name: 'my-look',
+    meta: {
+      faIcon: "tshirt",
+      hideUserFab: true,
+    },
+    component: () => import('@/app/Console/MyPortal/UserProfile/MyLook/MyLook.vue'),
+    props: true
+  },
   ...WorldMapRoutes
   ],
 }];

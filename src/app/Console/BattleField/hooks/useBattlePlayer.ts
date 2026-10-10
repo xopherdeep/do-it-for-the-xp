@@ -10,6 +10,7 @@ import {
 import { calculatePlayerStats } from "@/lib/services/stats/PlayerStatsService";
 import { useUserStore } from "@/lib/store/stores/user";
 import type { SpecialStats } from "@/lib/utils/User/stats";
+import { heroAvatarSrc } from "@/lib/hero-look/look";
 import { requireAvatar } from "@/lib/utils/requireImg";
 
 /** One tick of the HP / MP odometer: the number on the tiles moves one step toward the real value. */
@@ -21,6 +22,8 @@ export interface BattlePlayer {
   name?: { full?: string; first?: string; nick?: string };
   /** File name of the avatar without folder or extension, e.g. "003-gamer". */
   avatar?: string;
+  /** PNG data URL of the hero's rendered look; preferred over `avatar` when present. */
+  avatarImage?: string;
   jobClass?: string;
   stats?: {
     level?: number;
@@ -130,14 +133,7 @@ export function useBattlePlayer(userId?: MaybeRefOrGetter<string | null | undefi
   const level = computed(() => Math.max(1, Math.floor(finiteNumber(player.value?.stats?.level) ?? 1)));
 
   const avatarSrc = computed(() => {
-    const avatar = player.value?.avatar;
-    if (!avatar) return "";
-    try {
-      const src = requireAvatar(`./${avatar}.svg`);
-      return typeof src === "string" ? src : "";
-    } catch {
-      return "";
-    }
+    return heroAvatarSrc(player.value, requireAvatar);
   });
 
   // The profile's own max is the source of truth; the class formula only fills in for a profile without one.

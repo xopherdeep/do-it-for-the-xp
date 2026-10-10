@@ -1,5 +1,7 @@
 import { defineComponent, PropType, computed } from "vue";
+import { useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
+import { heroAvatarSrc } from "@/lib/hero-look/look";
 import { JOB_CLASS_OPTIONS, FOOD_OPTIONS } from "@/constants";
 import {
   IonBackButton,
@@ -188,6 +190,16 @@ export default defineComponent({
       return userData;
     });
 
+    // The snapshot of the hero's look when they have saved one, else their avatar SVG
+    const avatarSrc = computed(
+      () => heroAvatarSrc(user.value, requireAvatar) || requireAvatar("./001-gamer.svg")
+    );
+
+    const router = useRouter();
+    const openMyLook = () => {
+      router.push({ name: "my-look", params: { userId: props.userId } });
+    };
+
     // Helper to get class icon
     const getClassIcon = (className: string | undefined): string => {
       if (!className) return 'fa-shield-alt';
@@ -214,10 +226,10 @@ export default defineComponent({
     };
 
     // Helper to calculate area total
+    // Special stats live under stats.special; older profiles kept them at the top level
     const getAreaTotal = (area: Area, stats: UserStats): number => {
-      return Object.keys(area.stats).reduce((total, stat) => {
-        return total + (stats[stat] || 0);
-      }, 0);
+      const special = (stats as any)?.special || {};
+      return Object.keys(area.stats).reduce((total, stat) => total + Number(special[stat] ?? stats[stat] ?? 0), 0);
     };
 
     // Experience Progress calculation
@@ -234,6 +246,8 @@ export default defineComponent({
     return {
       user,
       requireAvatar,
+      avatarSrc,
+      openMyLook,
       $requireAvatar: requireAvatar,
       modalController,
       getClassIcon,

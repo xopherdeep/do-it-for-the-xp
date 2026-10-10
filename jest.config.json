@@ -9,6 +9,9 @@
     }
   },
   "transformIgnorePatterns": [
-    "/node_modules/(?!(\\.pnpm/|@ionic/(vue|vue-router|core)|@stencil/core|ionicons))"
-  ]
+    "/node_modules/(?!(\\.pnpm/|@ionic/(vue|vue-router|core)|@stencil/core|ionicons|three/))"
+  ],
+  "transform": {
+    "/three/build/three\\.(module|core)\\.js$": "<rootDir>/tests/jest/esm-transform.js"
+  }
 }

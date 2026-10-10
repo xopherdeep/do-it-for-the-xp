@@ -327,21 +327,40 @@ ion-modal.temple-map-modal {
     }
   }
 
-  &__close {
-    margin-top: 2px;
-    padding: 8px 18px;
-    border: 2px solid rgba(90, 60, 20, 0.6);
-    border-radius: 3px;
-    background: rgba(255, 250, 235, 0.45);
-    color: #3a2a14;
-    font-family: "Apple Kid", sans-serif;
-    font-size: 1.1rem;
-    letter-spacing: 1px;
-    cursor: pointer;
+  // Every icon on the parchment is ink, the compass included (the app-wide icon colours would paint it blue)
+  i.fad,
+  i.fal,
+  .maze-cell i,
+  &__rose,
+  &__legend i {
+    color: #3a2a14 !important;
+    --fa-primary-color: #3a2a14 !important;
+    --fa-secondary-color: #7a5a2a !important;
+    --fa-secondary-opacity: 0.7;
+  }
+}
 
-    &:active {
-      background: rgba(90, 60, 20, 0.2);
-    }
+// The fold button sits under the parchment at the bottom centre of the screen
+ion-modal.temple-map-modal .temple-map__close,
+.temple-map__close {
+  position: fixed;
+  left: 50%;
+  bottom: calc(28px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 2;
+  padding: 10px 22px;
+  border: 2px solid #f7e8a8;
+  border-radius: 3px;
+  background: #280828;
+  color: #f7e8a8;
+  font-family: "Apple Kid", sans-serif;
+  font-size: 1.15rem;
+  letter-spacing: 1px;
+  cursor: pointer;
+  box-shadow: 0 0 0 4px #383050, 0 10px 24px rgba(0, 0, 0, 0.6);
+
+  &:active {
+    background: #383050;
   }
 }
 
@@ -394,17 +413,77 @@ ion-modal.temple-map-modal {
     }
   }
 
+  // Wide enough for a twelve-letter item name
   .temple-nav__hand {
-    flex: 0 0 62px;
+    flex: 0 0 76px;
+    min-width: 0;
     color: #a8a8a8;
     border: 1px dashed rgba(255, 255, 255, 0.18);
 
-    &.is-empty i {
-      opacity: 0.35;
+    span {
+      max-width: 100%;
+      overflow: hidden;
+      white-space: nowrap;
+      font-size: 0.64rem;
+      letter-spacing: 0;
+    }
+
+    // Nothing in the hand: the label is dimmed with the icon
+    &.is-empty {
+      i,
+      span {
+        opacity: 0.35;
+      }
+    }
+
+    // Something in the hand: a tap uses it
+    &.is-equipped {
+      cursor: pointer;
+      color: #e7e6b3;
+      border-style: solid;
+      border-color: rgba(231, 230, 179, 0.35);
+
+      &:active {
+        background: rgba(231, 230, 179, 0.12);
+      }
     }
   }
 
   .footer-docked-xp {
     padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+
+// The game area shakes for 400 ms when a trap bites or a bomb goes off
+#game-area.temple-shake {
+  animation: temple-shake 0.4s linear;
+}
+
+@keyframes temple-shake {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  15% {
+    transform: translate(-6px, 3px);
+  }
+  30% {
+    transform: translate(5px, -4px);
+  }
+  45% {
+    transform: translate(-4px, -2px);
+  }
+  60% {
+    transform: translate(4px, 3px);
+  }
+  75% {
+    transform: translate(-2px, 2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #game-area.temple-shake {
+    animation: none;
   }
 }

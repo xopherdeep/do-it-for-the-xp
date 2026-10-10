@@ -156,6 +156,10 @@ export function handleBgmGuard(to: RouteLocationNormalized): void {
     const { key, options = {} } = SIMPLE_BGM_ROUTES[routeName];
     payload = createBgmPayload(BGM[key], { startDelay, ...options });
   }
+  // 3a. A temple plays its own theme when it has one (BGM.temples["fire-temple"]), else the dungeon set
+  else if (routeName === "temple" && BGM.temples?.[String(to.params.temple)]) {
+    payload = createBgmPayload(BGM.temples[String(to.params.temple)], { startDelay, saveBookmark: true });
+  }
   // 3. Check terrain routes
   else if (TERRAIN_BGM_ROUTES[routeName]) {
     const terrainKey = TERRAIN_BGM_ROUTES[routeName];

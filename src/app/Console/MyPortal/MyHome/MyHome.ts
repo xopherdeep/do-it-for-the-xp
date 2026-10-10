@@ -2,6 +2,7 @@ import { defineComponent } from "vue";
 import { computed, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
+import { heroAvatarSrc } from "@/lib/hero-look/look";
 import { useUserActions } from "@/hooks/useUserActions";
 import ionic from "@/lib/mixins/ionic";
 import { modalController, toastController } from "@ionic/vue";
@@ -94,7 +95,7 @@ export default defineComponent({
     };
 
     const userAvatar = computed(() => {
-      return (user.value?.avatar) ? requireAvatar(`./${user.value.avatar}.svg`) : '';
+      return heroAvatarSrc(user.value, requireAvatar);
     });
 
     return {

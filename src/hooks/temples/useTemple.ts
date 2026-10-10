@@ -323,6 +323,9 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
         // Update the temple system state directly to ensure persistence
         const state = templeSystem.getTempleState(templeId);
         if (state) state.playerKeys = playerKeys.value;
+      } else if (item === 'master-key') {
+        // Holding the master key opens the temple's gate without the beast that guards it
+        templeSystem.grantMasterKey(templeId);
       } else if (item === 'map') {
         hasMap.value = true;
         // Update the temple system state directly

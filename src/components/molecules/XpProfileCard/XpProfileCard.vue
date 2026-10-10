@@ -52,6 +52,7 @@
 import { computed, defineComponent, PropType } from "vue";
 import { IonCard, IonCardHeader, IonCardTitle, IonCardContent, IonAvatar } from "@ionic/vue";
 import User from "@/lib/utils/User";
+import { heroAvatarSrc } from "@/lib/hero-look/look";
 
 const requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
 
@@ -81,14 +82,7 @@ export default defineComponent({
   emits: ["select"],
   setup(props) {
     const avatarSrc = computed(() => {
-      if (props.user?.avatar) {
-        try {
-          return requireAvatar(`./${props.user.avatar}.svg`);
-        } catch {
-          return requireAvatar("./001-gamer.svg");
-        }
-      }
-      return requireAvatar("./001-gamer.svg");
+      return heroAvatarSrc(props.user, requireAvatar) || requireAvatar("./001-gamer.svg");
     });
 
     const formattedGp = computed(() => {

@@ -457,11 +457,10 @@ export default defineComponent({
     };
 
     // Helper to calculate area total
+    // The area header sums the same numbers the badges show (base plus special, see getStatTotal)
     const getAreaTotal = (area: any, stats: any) => {
       if (!stats) return 0;
-      return Object.keys(area.stats).reduce((total, stat) => {
-        return total + (stats[stat] || 0);
-      }, 0);
+      return Object.keys(area.stats).reduce((total, stat) => total + getStatTotal(stat), 0);
     };
 
     // XP Calculation Helpers
