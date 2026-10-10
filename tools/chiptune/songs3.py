@@ -273,3 +273,48 @@ def _():
     ], inst="softlead", gain=0.17, glass_gain=0.04, echo=0.4)
     s.drum_track(["D...............", "........D......."] * 8, gain=0.36)
     return s
+
+@song("temple-moon")   # Selene's Silent Court: a cold nocturne, glass and choir, a bell far back in the hall
+def _():
+    s = Song(bpm=66, bars=16)
+    c = ["Gm9", "Ebmaj7", "Am7b5", "D7sus4", "Gm9", "Cm9", "Ebmaj7", "D7sus4"]
+    sub(s, c, gain=0.26, octave=1)
+    held(c, 2, 0, 2, "darkpad", s, 0.09, pan=-0.3)                       # the floor: root and fifth, very low
+    held(c, 2, 2, 2, "darkpad", s, 0.06, pan=0.3)
+    held(c, 2, 1, 3, "choir", s, 0.09, pan=-0.2)                         # the bed: third and seventh in the choir
+    held(c, 2, 3, 3, "choir", s, 0.07, pan=0.2)
+    s.pulse_track([f"{t[0]}:8 {t[2]}:8 {t[1]}:8 {t[3]}:8" for t in (chord(x, 3) for x in c)], inst="glass", gain=0.07, legato=0.98, pan=0.25)
+    s.pulse_track([" ".join(f"{t[i]}:4" for i in (0, 1, 2, 3, 4, 3, 2, 1)) for t in (chord(x, 3, 5) for x in c)], inst="harp", gain=0.13, legato=0.95, pan=-0.3)
+    bass_walk(s, c, gain=0.38, pattern="r.......r.....r.")               # the sub pulse
+    lead(s, [                                                           # the flute asks...
+        "-:8 D4:4 G4:4", "Bb4:8 A4:8", "-:16", "-:16",
+        "-:8 C4:4 Eb4:4", "G4:8 Eb4:8", "-:16", "-:16",
+        "D4:4 G4:4 Bb4:8", "D5:8 C5:4 Bb4:4", "-:16", "-:16",
+        "Bb4:8 G4:4 Eb4:4", "F4:8 D4:8", "-:16", "-:16",
+    ], inst="flute", gain=0.13, glass_gain=0.0, echo=0.35)
+    s.pulse_track([                                                     # ...and the bell answers from the far wall
+        "-:16", "-:16", "-:8 G4:4 Bb4:4", "D5:12 -:4",
+        "-:16", "-:16", "-:8 A4:4 G4:4", "F#4:12 -:4",
+        "-:16", "-:16", "-:8 Eb4:4 G4:4", "D5:12 -:4",
+        "-:16", "-:16", "-:8 A4:4 C5:4", "D4:12 -:4",
+    ], inst="bell", gain=0.06, legato=0.9, pan=0.45, echo=0.5)
+    s.drum_track(["D...............", "................", "..........D.....", "................"] * 4, gain=0.34)
+    return s
+
+@song("temple-storm")  # Thunderhead Aerie: a dotted 3+3+2 bass under low brass, thunder rolling in every fourth bar
+def _():
+    s = Song(bpm=88, bars=16)
+    c = ["Bm9", "Gmaj7", "Em9", "F#7sus4", "Bm9", "Cmaj7", "Em9", "F#7"]
+    sub(s, c, gain=0.3, octave=1)
+    bed(s, c, gain=0.11, octave=2)
+    bass_walk(s, c, gain=0.5, pattern="r..r..r.5..5.o.r")               # restless: dotted eighths, 3+3+2
+    s.pulse_track([f"-:6 {t[0]}:2 -:6 {t[2]}:2 -:12 {t[0]}:2 -:2" for t in (chord(x, 3) for x in c)], inst="brass", gain=0.12, legato=0.5, pan=0.3)
+    lead(s, [
+        "-:8 F#4:4 A4:4", "B4:6 A4:2 F#4:8", "G4:8 B4:4 D5:4", "C#5:12 -:4",
+        "E4:4 G4:4 B4:8", "A4:6 G4:2 E4:8", "F#4:8 A4:4 C#5:4", "B4:12 -:4",
+        "D5:6 C#5:2 B4:8", "A4:8 F#4:8", "G4:4 B4:4 E5:8", "D5:6 C5:2 B4:8",
+        "E4:4 G4:4 B4:4 D5:4", "C#5:8 B4:8", "A#4:8 F#4:4 E4:4", "F#4:16",
+    ], inst="flute", gain=0.16, glass_gain=0.04, echo=0.25)
+    s.drum_track([SHAKER] * 16, gain=0.3)
+    s.drum_track(["D...............", "................", "................", "........D..D.DDD"] * 4, gain=0.44)
+    return s
