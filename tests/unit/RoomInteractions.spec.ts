@@ -595,6 +595,25 @@ describe("secret chambers, saves and pick-ups", () => {
     expect(after.actions).toEqual([]);
   });
 
+  it("pays a Thief 25% more from the chest, and from what a search turns up", async () => {
+    hero().jobClass = "Thief";
+    const { room, ctx } = withRoom({ type: "secret" });
+    expect((await run(roomActions(room, ctx))).message).toBe("A hidden chest! +25 GP");
+    expect(wallet()).toBe(125);
+
+    const empty = withRoom({ type: "empty" });
+    const found = await run(roomActions(empty.room, { ...empty.ctx, rng: dice(0, 0.5) })); // finds 3 GP -> 4
+    expect(found.message).toBe("You found 4 GP under a stone!");
+    expect(wallet()).toBe(129);
+  });
+
+  it("pays a Warrior the plain 20 GP", async () => {
+    hero().jobClass = "Warrior";
+    const { room, ctx } = withRoom({ type: "secret" });
+    expect((await run(roomActions(room, ctx))).message).toBe("A hidden chest! +20 GP");
+    expect(wallet()).toBe(120);
+  });
+
   it("stays off the map, compass or not, until the hero has stood in it", () => {
     const id = makeTemple({ E: { type: "entrance" }, S: { type: "secret" } }, [["E", "S"]]);
     enter(id, [0, 0]);

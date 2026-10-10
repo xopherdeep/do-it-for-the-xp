@@ -8,6 +8,7 @@ import { getGPService } from '@/lib/services/gp/GPService';
 import { DEFAULT_WALLET_LIMIT, walletLimitOf } from '@/lib/services/gp/wallet';
 import {
   JOB_UNLOCK_REQUIREMENTS,
+  getClassStatBonus,
   getLevelFromXp,
   calculateLevelUp,
   getXpForLevel
@@ -622,6 +623,20 @@ export const useUserStore = defineStore('user', () => {
         result.newLevel = newLevel;
         result.levelsGained = newLevel - oldLevel;
 
+        // The hero's own class growing grows their max HP/MP by the class bonus (CLASS_LEVEL_BONUSES)
+        if ((users[userId].jobClass || 'default') === jobClassId) {
+          const before = getClassStatBonus(jobClassId, oldLevel);
+          const after = getClassStatBonus(jobClassId, newLevel);
+          if (userStats.hp && typeof userStats.hp === 'object' && after.hp > before.hp) {
+            userStats.hp.max = (userStats.hp.max || 0) + (after.hp - before.hp);
+            userStats.hp.now = (userStats.hp.now || 0) + (after.hp - before.hp);
+          }
+          if (userStats.mp && typeof userStats.mp === 'object' && after.mp > before.mp) {
+            userStats.mp.max = (userStats.mp.max || 0) + (after.mp - before.mp);
+            userStats.mp.now = (userStats.mp.now || 0) + (after.mp - before.mp);
+          }
+        }
+
         // Trigger checks for other unlocks
         checkClassUnlocks(userId);
       } else {
@@ -710,8 +725,9 @@ export const useUserStore = defineStore('user', () => {
         result.levelsGained = newLevel - oldLevel;
 
         // Calculate stats with potential level ups
-        // Use updated calculateLevelUp which returns statsGained
-        const levelUpDetails = calculateLevelUp(oldLevel, result.newLevel, jobClass, specialStats);
+        // Use updated calculateLevelUp which returns statsGained; the hero's class level counts too
+        const classLevel = Number(userStats.classes?.[jobClass]?.level) || 1;
+        const levelUpDetails = calculateLevelUp(oldLevel, result.newLevel, jobClass, specialStats, classLevel);
 
         result.hpGained = levelUpDetails.hpGained;
         result.mpGained = levelUpDetails.mpGained;

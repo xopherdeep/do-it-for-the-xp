@@ -2,7 +2,8 @@ import { createPinia, setActivePinia } from "pinia";
 import type { EquipmentItem } from "@/app/Console/MyPortal/UserHud/components/equipment/EquipmentItems";
 import { readExits, resetVisitMemory } from "@/lib/services/temples/RoomInteractions";
 import { handLabel, mpCostOf, shortItemName, useItem, type ItemUseContext } from "@/lib/services/temples/ItemUse";
-import { addHero, contextAt, dungeons, enter, hp, makeTemple, mp, temples } from "./templeFixtures";
+import { useUserStore } from "@/lib/store/stores/user";
+import { HERO, addHero, contextAt, dungeons, enter, hp, makeTemple, mp, temples } from "./templeFixtures";
 
 // The user store is real; only what it writes to disk is faked.
 jest.mock("@/lib/databases/ProfileDb", () => {
@@ -145,6 +146,26 @@ describe("Lantern", () => {
     expect(outcome).toEqual({ message: "The lantern shows the way: map and compass revealed.", sound: "shhh" });
     expect(temples.getTempleState(id)).toMatchObject({ hasMap: true, hasCompass: true });
     expect(mp()).toBe(55);
+  });
+
+  it("bills a Mage 25% less and a Sage half (the class passive), rounded down", () => {
+    useUserStore().users[HERO].jobClass = "Mage";
+    useItem(LANTERN, itemContext(hall(), [0, 0])); // 5 MP list price -> 3
+    expect(mp()).toBe(57);
+
+    useUserStore().users[HERO].jobClass = "Sage";
+    useItem(stored("Lantern", "flashlight"), itemContext(hall(), [0, 0], { catalog: [] })); // 10 MP -> 5
+    expect(mp()).toBe(52);
+  });
+
+  it("a Mage with 3 MP can still light a 5 MP lantern: the discount applies before the refusal", () => {
+    addHero({ mp: { now: 3, max: 80 } });
+    useUserStore().users[HERO].jobClass = "Mage";
+    const id = hall();
+
+    expect(useItem(LANTERN, itemContext(id, [0, 0])).message).not.toBe("Not enough MP");
+    expect(temples.getTempleState(id)).toMatchObject({ hasMap: true, hasCompass: true });
+    expect(mp()).toBe(0);
   });
 
   it("costs 10 MP when nothing says otherwise", () => {

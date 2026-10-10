@@ -18,7 +18,27 @@ export interface JobClass {
   statBoosts: ClassStatBoost[];
 }
 
-export const JOB_CLASS_OPTIONS: JobClass[] = [
+/** The parent classes a tier-2 class grows out of; the picker shows them as "Warrior 10 + Monk 10". */
+export const TIER_2_PARENTS: Record<string, [string, string]> = {
+  Paladin: ['Warrior', 'Monk'],
+  Ninja: ['Thief', 'Warrior'],
+  Sage: ['Mage', 'Monk'],
+};
+
+/** Base stats of a tier-2 class: its parents' average, rounded. */
+export const averageBaseStats = (a: Record<string, number> = {}, b: Record<string, number> = {}): Record<string, number> =>
+  Object.fromEntries(
+    Array.from(new Set([...Object.keys(a), ...Object.keys(b)])).map((stat) => [stat, Math.round(((a[stat] ?? 0) + (b[stat] ?? 0)) / 2)])
+  );
+
+/** Level boosts of a tier-2 class: every stat either parent boosts, at the bigger of the two amounts. */
+export const combineStatBoosts = (a: ClassStatBoost[] = [], b: ClassStatBoost[] = []): ClassStatBoost[] => {
+  const merged = new Map<string, number>();
+  [...a, ...b].forEach((boost) => merged.set(boost.stat, Math.max(merged.get(boost.stat) ?? 0, boost.amount)));
+  return Array.from(merged.entries()).map(([stat, amount]) => ({ stat, amount }));
+};
+
+const BASE_CLASSES: JobClass[] = [
   // Base Classes (Tier 1) - Currently Active
   {
     name: "Warrior",
@@ -148,7 +168,6 @@ export const JOB_CLASS_OPTIONS: JobClass[] = [
       { stat: 'focus', amount: 2 }
     ]
   },
-  // { name: "Paladin", icon: "fa-shield-cross" },
   // { name: "Dark Knight", icon: "fa-skull" },
   // { name: "Gunbreaker", icon: "fa-gun" },
   // { name: "White Mage", icon: "fa-hat-wizard" },
@@ -156,7 +175,6 @@ export const JOB_CLASS_OPTIONS: JobClass[] = [
   // { name: "Astrologian", icon: "fa-astrology" },
   // { name: "Monk", icon: "fa-fist-raised" },
   // { name: "Dragoon", icon: "fa-dragon" },
-  // { name: "Ninja", icon: "fa-ninja" },
   // { name: "Samurai", icon: "fa-samurai" },
   // { name: "Bard", icon: "fa-bow-arrow" },
   // { name: "Machinist", icon: "fa-crosshairs" },
@@ -176,4 +194,54 @@ export const JOB_CLASS_OPTIONS: JobClass[] = [
   // { name: "Miner", icon: "fa-pickaxe" },
   // { name: "Botanist", icon: "fa-leaf" },
   // { name: "Fisher", icon: "fa-fish" },
-]
+];
+
+const baseClass = (name: string): JobClass => {
+  const found = BASE_CLASSES.find((job) => job.name === name);
+  if (!found) throw new Error(`JOB_CLASS_OPTIONS: unknown parent class ${name}`);
+  return found;
+};
+
+/**
+ * A tier-2 class is its two parents folded together: three pillars drawn from the parents', the base stats
+ * their average and the boosts their union. It unlocks once both parents reach the level in
+ * PlayerStatsService's JOB_UNLOCK_REQUIREMENTS (ClassPassives.isClassUnlocked).
+ */
+const tier2 = (name: string, icon: string, description: string, pillars: [PillarType, PillarType, PillarType]): JobClass => {
+  const [first, second] = TIER_2_PARENTS[name].map(baseClass);
+  return {
+    name,
+    icon,
+    tier: 2,
+    description,
+    primaryPillar: pillars[0],
+    secondaryPillar: pillars[1],
+    tertiaryPillar: pillars[2],
+    baseStats: averageBaseStats(first.baseStats, second.baseStats),
+    statBoosts: combineStatBoosts(first.statBoosts, second.statBoosts),
+  };
+};
+
+// Advanced Classes (Tier 2) - locked until both parents reach level 10
+const ADVANCED_CLASSES: JobClass[] = [
+  tier2(
+    "Paladin",
+    "fa-shield-cross",
+    "A Warrior's heart with a Monk's calm. Body (HP) first, then Mind and Legend. Holds the line and walks away from every fight a little healed.",
+    ['physical', 'mental', 'eternal']
+  ),
+  tier2(
+    "Ninja",
+    "fa-user-ninja",
+    "A Thief's feet with a Warrior's arm. Spirit (AP), Body (HP) and Heart (GP). Slips the first strike and leaves with the heavier purse.",
+    ['vibrational', 'physical', 'relational']
+  ),
+  tier2(
+    "Sage",
+    "fa-hat-wizard",
+    "A Mage's mind with a Monk's patience. Mind (MP), Spirit (AP) and Legend (XP). Spells for half price and a spare minute on every clock.",
+    ['mental', 'vibrational', 'eternal']
+  ),
+];
+
+export const JOB_CLASS_OPTIONS: JobClass[] = [...BASE_CLASSES, ...ADVANCED_CLASSES];

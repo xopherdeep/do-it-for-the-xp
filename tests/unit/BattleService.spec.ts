@@ -1,5 +1,12 @@
 import { createPinia, setActivePinia } from "pinia";
-import { BattleService, strikeDamage, type BattleCallbacks, type Enemy } from "@/lib/services/battle/BattleService";
+import {
+  BattleService,
+  strikeDamage,
+  type BattleCallbacks,
+  type BattleServiceOptions,
+  type Enemy,
+} from "@/lib/services/battle/BattleService";
+import { classPassive } from "@/lib/services/stats/ClassPassives";
 import { createBattleService } from "@/lib/services/battle";
 import { useUserStore } from "@/lib/store/stores/user";
 import type { EngineMessage } from "@/app/Console/BattleField/battle/battleView";
@@ -49,7 +56,7 @@ interface Rig {
 }
 
 /** A started two-chore fight against `enemy` with the hero from the store and every callback spied on. */
-const startFight = (enemy: Enemy = makeEnemy(), options?: { freeFight?: boolean }): Rig => {
+const startFight = (enemy: Enemy = makeEnemy(), options?: BattleServiceOptions): Rig => {
   const service = createBattleService(options);
   const lines: EngineMessage[] = [];
   const cb = {
@@ -96,7 +103,7 @@ describe("BattleService", () => {
     jest.useRealTimers();
   });
 
-  const fight = (enemy?: Enemy, options?: { freeFight?: boolean }): Rig => {
+  const fight = (enemy?: Enemy, options?: BattleServiceOptions): Rig => {
     const rig = startFight(enemy, options);
     service = rig.service;
     return rig;
@@ -126,6 +133,15 @@ describe("BattleService", () => {
     it("falls back to the default roll when none is given", () => {
       jest.spyOn(Math, "random").mockReturnValue(0.5);
       expect(strikeDamage(30, 10, false)).toBe(4);
+    });
+
+    it("lets a class brace factor through instead of half, never below 1, and ignores a broken factor", () => {
+      expect(strikeDamage(100, 10, true, 0.5, 0.25)).toBe(3);
+      expect(strikeDamage(100, 10, true, 0.5, 0.5)).toBe(6);
+      expect(strikeDamage(100, 10, false, 0.5, 0.25)).toBe(12);
+      expect(strikeDamage(1, 10, true, 0, 0.25)).toBe(1);
+      expect(strikeDamage(100, 10, true, 0.5, NaN)).toBe(6);
+      expect(strikeDamage(100, 10, true, 0.5, 0)).toBe(6);
     });
   });
 
@@ -822,6 +838,102 @@ describe("BattleService", () => {
         s.initMultiBattle([makeEnemy()], [HERO_ID]);
         s.startAttackTimer();
         expect(s.getAttackDuration()).toBe(2 * THREE_MINUTES);
+      });
+    });
+  });
+
+  describe("class passives (docs/Items-And-Classes-Contract.md, C)", () => {
+    const hero100 = () => {
+      (useUserStore().getUserById(HERO_ID) as any).stats.hp = { now: 100, max: 100 };
+    };
+
+    it("runs with the default rules when no passive is given", () => {
+      const { service: s } = fight();
+      expect(s.getPassive()).toEqual({ braceFactor: 0.5, runChance: null, cooldownMinutesBonus: 0, skipFirstStrike: false });
+    });
+
+    it("Warrior: a braced strike lands at a quarter instead of half", () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.5);
+      hero100();
+      const plain = fight();
+      plain.service.handleBattleAction("defend");
+      jest.advanceTimersByTime(1000);
+      expect(plain.service.getPendingDamage()).toBe(6);
+      plain.service.dispose();
+
+      const { service: s, lines } = fight(makeEnemy(), { passive: classPassive("Warrior") });
+      s.handleBattleAction("defend");
+      jest.advanceTimersByTime(1000);
+      expect(s.getPendingDamage()).toBe(3);
+      s.applyPendingDamage();
+      expect(textOf(lines)).toContain("Max braced: only 3 damage!");
+      // An unbraced strike is the full 12 either way
+      jest.advanceTimersByTime(2 * THREE_MINUTES);
+      expect(s.getPendingDamage()).toBe(12);
+    });
+
+    it.each([
+      ["a monster", {}, 0.89, true],
+      ["a monster", {}, 0.91, false],
+      ["a miniboss", { type: "miniboss" }, 0.51, false],
+      ["a boss", { isBoss: true }, 0.26, false],
+    ])("Thief: 90%% odds against %s only (roll %p)", (_label, overrides, roll, escapes) => {
+      jest.spyOn(Math, "random").mockReturnValue(roll);
+      const { service: s } = fight(makeEnemy(overrides as Partial<Enemy>), { passive: classPassive("Thief") });
+      expect(s.handleBattleAction("run").success).toBe(escapes);
+    });
+
+    it("Monk: every chore earns one more minute, on top of the beast's cooldown and the Fire Wand", () => {
+      const { service: s } = fight(makeEnemy(), { passive: classPassive("Monk") });
+      s.startAttackTimer();
+      expect(s.getAttackDuration()).toBe(2 * 4 * 60_000);
+
+      s.scaleCooldown(1.5);
+      s.finishCombatTask("t1"); // one chore left: 3 * 1.5 + 1 = 5.5 min
+      expect(s.getAttackDuration()).toBe(5.5 * 60_000);
+
+      s.initMultiBattle([makeEnemy({ attackCooldown: 2 })], [HERO_ID]);
+      s.startAttackTimer();
+      expect(s.getAttackDuration()).toBe(2 * 3 * 60_000);
+    });
+
+    it("Ninja: the beast's first strike of every fight hits only shadow, then it strikes as usual", () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.5);
+      const { service: s, lines, cb } = fight(makeEnemy(), { passive: classPassive("Ninja") });
+      s.startAttackTimer();
+      jest.advanceTimersByTime(2 * THREE_MINUTES);
+
+      expect(s.hasPendingDamage()).toBe(false);
+      expect(textOf(lines)).toContain("Socktopus strikes at a shadow! Max is already elsewhere.");
+      expect(cb.onAttack).not.toHaveBeenCalled();
+      expect(s.isPlayerTurn()).toBe(true);
+      expect(s.getTimeRemaining()).toBe(2 * THREE_MINUTES);
+
+      jest.advanceTimersByTime(2 * THREE_MINUTES);
+      expect(s.hasPendingDamage()).toBe(true);
+      expect(cb.onAttack).toHaveBeenCalledTimes(1);
+
+      // A new fight owes a new miss; a Defend walks straight into it
+      s.applyPendingDamage();
+      s.initMultiBattle([makeEnemy()], [HERO_ID]);
+      lines.length = 0;
+      s.handleBattleAction("defend");
+      jest.advanceTimersByTime(1000);
+      expect(s.hasPendingDamage()).toBe(false);
+      expect(s.isDefending()).toBe(false);
+      expect(textOf(lines)).toEqual(["Max braces!", "Socktopus strikes at a shadow! Max is already elsewhere."]);
+    });
+
+    it("Sage and Paladin inherit their parents' engine rules", () => {
+      expect(fight(makeEnemy(), { passive: classPassive("Sage") }).service.getPassive()).toMatchObject({
+        cooldownMinutesBonus: 1,
+        braceFactor: 0.5,
+        runChance: null,
+      });
+      service?.dispose();
+      expect(fight(makeEnemy(), { passive: classPassive("Paladin") }).service.getPassive()).toMatchObject({
+        braceFactor: 0.25,
+        skipFirstStrike: false,
       });
     });
   });

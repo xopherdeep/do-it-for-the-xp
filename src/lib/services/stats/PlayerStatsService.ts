@@ -60,6 +60,34 @@ export const JOB_CLASS_BASE_STATS: Record<string, JobClassBaseStats> = {
     intelligenceMultiplier: 1,
     wisdomMultiplier: 1.5,      // Monks have good wisdom too
   },
+  // Tier 2: each is the average of its two parents (see JOB_UNLOCK_REQUIREMENTS)
+  Paladin: {
+    hp: 48,       // (Warrior 50 + Monk 45) / 2, rounded
+    mp: 18,
+    hpGrowth: 8,
+    mpGrowth: 4,
+    enduranceMultiplier: 2.75,
+    intelligenceMultiplier: 0.75,
+    wisdomMultiplier: 1,
+  },
+  Ninja: {
+    hp: 43,       // (Thief 35 + Warrior 50) / 2, rounded
+    mp: 15,
+    hpGrowth: 7,
+    mpGrowth: 3,
+    enduranceMultiplier: 2.25,
+    intelligenceMultiplier: 0.75,
+    wisdomMultiplier: 0.75,
+  },
+  Sage: {
+    hp: 35,       // (Mage 25 + Monk 45) / 2
+    mp: 33,
+    hpGrowth: 5,
+    mpGrowth: 7,
+    enduranceMultiplier: 1.75,
+    intelligenceMultiplier: 2,
+    wisdomMultiplier: 1.75,
+  },
   // Default fallback for unknown classes
   default: {
     hp: 30,
@@ -295,19 +323,22 @@ export interface LevelUpResult {
 }
 
 /**
- * Calculate the result of leveling up
+ * Calculate the result of leveling up. The hero's class level (`classLevel`, the level of their current
+ * class on `stats.classes`) counts too: a normal level-up keeps the class bonus (`getClassStatBonus`) the
+ * HUD already shows instead of silently dropping it from max HP/MP.
  */
 export function calculateLevelUp(
   currentLevel: number,
   targetLevel: number,
   jobClass: string,
-  specialStats?: Partial<SpecialStats>
+  specialStats?: Partial<SpecialStats>,
+  classLevel: number = 0
 ): LevelUpResult {
-  const oldMaxHp = calculateMaxHp(currentLevel, jobClass, specialStats);
-  const oldMaxMp = calculateMaxMp(currentLevel, jobClass, specialStats);
+  const oldMaxHp = calculateMaxHp(currentLevel, jobClass, specialStats, classLevel);
+  const oldMaxMp = calculateMaxMp(currentLevel, jobClass, specialStats, classLevel);
 
-  const newMaxHp = calculateMaxHp(targetLevel, jobClass, specialStats);
-  const newMaxMp = calculateMaxMp(targetLevel, jobClass, specialStats);
+  const newMaxHp = calculateMaxHp(targetLevel, jobClass, specialStats, classLevel);
+  const newMaxMp = calculateMaxMp(targetLevel, jobClass, specialStats, classLevel);
 
   // Calculate Stat Boosts based on Class
   const statsGained: Record<string, number> = {};
@@ -367,6 +398,9 @@ export function getJobClassPreview(jobClass: string): {
     Mage: "Low HP, high MP. Masters of abilities and knowledge.",
     Thief: "Balanced stats. Excels at efficiency and resource gathering.",
     Monk: "Good HP and MP. Balanced physical and mental prowess.",
+    Paladin: "A Warrior's heart with a Monk's calm. Sturdy, and every win heals.",
+    Ninja: "A Thief's feet with a Warrior's arm. Quick, rich and hard to catch.",
+    Sage: "A Mage's mind with a Monk's patience. Deep MP and a spare minute.",
     default: "A balanced adventurer with no specialization.",
   };
 

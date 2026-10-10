@@ -6,6 +6,7 @@ import type { BattleService, CombatTask, Enemy } from "@/lib/services/battle/Bat
 import { describeBattleItem, useBattleItem, type BattleItemCard, type BattleItemLike } from "@/lib/services/battle/BattleItems";
 import { useHeroEquipment } from "@/hooks/useHeroEquipment";
 import { useUserStore } from "@/lib/store/stores/user";
+import { classPassive } from "@/lib/services/stats/ClassPassives";
 import debug from "@/lib/utils/debug";
 import { resolveBattleContext } from "./battle/battleContext";
 import { loadEncounter, type Encounter } from "./battle/encounterLoader";
@@ -245,7 +246,10 @@ export default defineComponent({
     };
 
     const createEngine = () => {
-      const engine = createBattleService({ freeFight: ctx.kind === "free" });
+      const engine = createBattleService({
+        freeFight: ctx.kind === "free",
+        passive: classPassive(userStore.users[ctx.userId]?.jobClass),
+      });
       engine.registerCallbacks({
         onDialogMessage: (messages) => dialog.enqueue(messages),
         onCombatTasksChange: (tasks) => {

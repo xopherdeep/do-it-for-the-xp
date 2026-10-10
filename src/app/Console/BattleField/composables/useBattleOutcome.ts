@@ -4,6 +4,7 @@ import { TempleSystem } from "@/lib/engine/core/dungeons/TempleSystem";
 import type { QuestRewards } from "@/lib/databases/QuestLogDb";
 import type { Enemy } from "@/lib/services/battle/BattleService";
 import { completeQuest, recordBattleCompletion } from "@/lib/services/quests/QuestCompletionService";
+import { classPassive, rewardsWithPassive, winRegen } from "@/lib/services/stats/ClassPassives";
 import { useUserStore, type ClassLevelUpInfo, type LevelUpInfo } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
 import { battleReturnRoute, type BattleContext } from "../battle/battleContext";
@@ -46,6 +47,8 @@ const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slic
  * How a battle ends. Rewards are credited (or held for the Game Master) and outcomes recorded
  * the moment the last beast falls, so leaving early, reloading or a crash can never lose them;
  * the strobe, the fanfare and the victory card that follow are purely celebration.
+ * The hero's class has its say on the pay (docs/Items-And-Classes-Contract.md, C): a Thief's or
+ * Ninja's +25% GP, a Monk's +1 AP, a Mage's or Sage's 10% MP back and a Paladin's 10% HP back.
  * Every fight ends with the hero at full HP: max HP is how many slow chores one fight can afford.
  */
 export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
@@ -65,7 +68,23 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
       rewards.xp > 0 ? userStore.updateClassXp(ctx.userId, user.jobClass || "default", rewards.xp) : null;
     if (rewards.gp > 0) void userStore.updateUserGP({ userId: ctx.userId, wallet: rewards.gp });
     if (rewards.ap > 0) userStore.recordAPGain({ userId: ctx.userId, amount: rewards.ap, source: `battle:${ctx.kind}` });
+    regenerateOnWin();
     return { levelUp, classLevelUp };
+  };
+
+  /** The rewards this hero's class turns the fight's pay into (nothing changes for a Warrior). */
+  const rewardsForHero = (rewards: QuestRewards): QuestRewards =>
+    rewardsWithPassive(rewards, classPassive(userStore.users[ctx.userId]?.jobClass));
+
+  /** A Mage or Sage gets 10% MP back on a win, a Paladin 10% HP (before the full heal every fight ends with). */
+  const regenerateOnWin = () => {
+    const user = userStore.users[ctx.userId];
+    const stats = user?.stats;
+    if (!stats) return;
+    const points = (value: { now?: number; max?: number } | undefined) => ({ now: value?.now ?? 0, max: value?.max ?? 0 });
+    const regen = winRegen(classPassive(user.jobClass), points(stats.hp), points(stats.mp));
+    if (regen.hp > 0) userStore.updateUserHP({ userId: ctx.userId, amount: regen.hp });
+    if (regen.mp > 0) userStore.updateUserMP({ userId: ctx.userId, amount: regen.mp });
   };
 
   const recordOutcome = async (rewards: QuestRewards) => {
@@ -123,8 +142,11 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
   const celebrateVictory = async (defeated: Enemy[], stats: FightStats) => {
     const encounter = deps.encounter.value;
     const quest = encounter?.quest;
-    const rewards = resolveRewards(encounter, defeated, ctx.kind);
     const held = ctx.kind === "quest" && Boolean(quest?.requiresApproval);
+    // A held quest is paid later by the Game Master at the quest's own rate, so the class bonus only
+    // applies to pay the fight hands over now.
+    const base = resolveRewards(encounter, defeated, ctx.kind);
+    const rewards = held ? base : rewardsForHero(base);
 
     // 1. Pay (or hold) first, celebrate after: nothing below can lose the loot.
     let levelUp: LevelUpInfo | null = null;

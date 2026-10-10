@@ -203,7 +203,8 @@ import {
   IonList,
   IonSpinner,
   IonToggle,
-  alertController
+  alertController,
+  toastController
 } from "@ionic/vue";
 import { JOB_CLASS_OPTIONS, FOOD_OPTIONS, POINT_ICONS } from "@/constants";
 import AvatarSelector from "@/app/SideMenu/SwitchProfile/AddProfile/components/AvatarSelector.vue";
@@ -214,6 +215,7 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { useGameStore } from "@/lib/store/stores/game";
 import { play$fx } from "@/assets/fx";
 import { getXpForLevel } from "@/lib/services/stats/PlayerStatsService";
+import { classLevelsOf, classRequirementLabel, isClassUnlocked } from "@/lib/services/stats/ClassPassives";
 
 // Avatar helper using require.context
 import { useRouter } from "vue-router";
@@ -345,18 +347,47 @@ export default defineComponent({
       onSelect: () => { } // No parameter here = No ESLint error
     });
 
+    /**
+     * The class picker. Tier-2 classes (Paladin, Ninja, Sage) stay locked, greyed with their requirement
+     * ("Warrior 10 + Monk 10"), until the hero's class levels meet JOB_UNLOCK_REQUIREMENTS; tapping a
+     * locked one only says what it takes.
+     */
+    const classOptions = () => {
+      const levels = classLevelsOf(props.user?.stats?.classes);
+      return JOB_CLASS_OPTIONS.map((job) => {
+        const locked = !isClassUnlocked(job.name, levels);
+        return { ...job, locked, lockHint: locked ? classRequirementLabel(job.name) : '' };
+      });
+    };
+
+    const toastLockedClass = async (name: string) => {
+      play$fx('no');
+      const toast = await toastController.create({
+        message: `${name} is sealed. Needs ${classRequirementLabel(name)}.`,
+        duration: 2200,
+        position: 'top',
+        cssClass: 'rpg-toast',
+      });
+      await toast.present();
+    };
+
     const openClassSelector = () => {
       statSelector.value = {
         isOpen: true,
         title: 'Choose Your Class',
-        options: JOB_CLASS_OPTIONS,
+        options: classOptions(),
         columns: 2,
         fullscreen: false,
-        height: '55vh',
+        height: '70vh',
         selectedValue: props.user?.jobClass || 'Adventurer',
         onSelect: (val: string) => {
+          if (!isClassUnlocked(val, classLevelsOf(props.user?.stats?.classes))) {
+            void toastLockedClass(val);
+            return;
+          }
           if (props.user?.id && userStore.users[props.user.id]) {
             userStore.users[props.user.id].jobClass = val;
+            userStore.persistUser(props.user.id);
           }
           statSelector.value.isOpen = false;
         }

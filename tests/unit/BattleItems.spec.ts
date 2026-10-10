@@ -14,6 +14,7 @@ import {
   SOUND_NO,
   battleMpCost,
   describeBattleItem,
+  heroMpCost,
   useBattleItem,
   type BattleItemContext,
   type BattleItemEngine,
@@ -104,6 +105,29 @@ describe("BattleItems", () => {
       expect(battleMpCost(stored("Thor's Hammer", "hammer-war"))).toBe(60);
       expect(battleMpCost(BOTTLES)).toBe(0);
       expect(battleMpCost(stored("Pegasus Boots", "boot"))).toBe(0);
+    });
+
+    it("a Mage pays 25% less and a Sage half; the list price itself does not move", () => {
+      (useUserStore().getUserById(HERO_ID) as any).jobClass = "Mage";
+      expect(battleMpCost(ICE_WAND)).toBe(50);
+      expect(heroMpCost(ICE_WAND, HERO_ID)).toBe(37);
+      expect(describeBattleItem(ICE_WAND, ctx)?.mp).toBe(37);
+      useBattleItem(ICE_WAND, ctx);
+      expect(mpNow()).toBe(263);
+
+      (useUserStore().getUserById(HERO_ID) as any).jobClass = "Sage";
+      expect(heroMpCost(CHRONOS, HERO_ID)).toBe(50);
+      expect(heroMpCost(BOTTLES, HERO_ID)).toBe(0);
+      expect(heroMpCost(ICE_WAND, "nobody")).toBe(50);
+    });
+
+    it("the discount is taken before the MP check, so a Mage with 40 MP can swing a 50 MP wand", () => {
+      (useUserStore().getUserById(HERO_ID) as any).jobClass = "Mage";
+      (useUserStore().getUserById(HERO_ID) as any).stats.mp.now = 40;
+      expect(describeBattleItem(ICE_WAND, ctx)?.reason).toBeNull();
+      expect(useBattleItem(ICE_WAND, ctx).ok).toBe(true);
+      expect(mpNow()).toBe(3);
+      expect(describeBattleItem(ICE_WAND, ctx)?.reason).toBe(REASON_NO_MP);
     });
 
     it("the table matches the contract", () => {

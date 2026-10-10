@@ -11,6 +11,7 @@
  */
 import { useUserStore } from '@/lib/store/stores/user';
 import { mpCostOf } from '@/lib/services/temples/ItemUse';
+import { discountedMp } from '@/lib/services/stats/ClassPassives';
 import type { BattleService, CombatTask } from './BattleService';
 
 /** The engine calls an item can make; a Pick so tests can hand in a plain mock. */
@@ -95,6 +96,10 @@ const nameOf = (item: BattleItemLike): string => (typeof item.name === 'string' 
 /** The item's MP cost in a fight: the number its description starts with, else the contract's table. */
 export const battleMpCost = (item: BattleItemLike): number => mpCostOf(item) || BATTLE_ITEMS[nameOf(item)]?.mp || 0;
 
+/** What this hero pays for the item: the list price with their class discount taken (Mage 25%, Sage 50%). */
+export const heroMpCost = (item: BattleItemLike, userId: string): number =>
+  discountedMp(battleMpCost(item), useUserStore().getUserById(userId)?.jobClass);
+
 const points = (userId: string, kind: 'hp' | 'mp'): { now: number; max: number } => {
   const stats = useUserStore().getUserById(userId)?.stats;
   const value = stats?.[kind];
@@ -112,7 +117,7 @@ export const describeBattleItem = (item: BattleItemLike | null | undefined, ctx:
   if (!item || !nameOf(item)) return null;
   const name = nameOf(item);
   const rule = BATTLE_ITEMS[name];
-  const mp = rule ? battleMpCost(item) : 0;
+  const mp = rule ? heroMpCost(item, ctx.userId) : 0;
   const faIcon = typeof item.faIcon === 'string' ? item.faIcon : '';
 
   if (!rule) return { name, faIcon, mp, effect: REASON_NOTHING, reason: REASON_NOTHING };
@@ -142,7 +147,7 @@ export const useBattleItem = (item: BattleItemLike, ctx: BattleItemContext): Bat
   if (!rule) return refuse(`${name}: ${REASON_NOTHING}`);
   if (rule.oncePerFight && ctx.usedThisFight.has(name)) return refuse(REASON_USED);
 
-  const mp = battleMpCost(item);
+  const mp = heroMpCost(item, ctx.userId);
   if (mp > 0 && points(ctx.userId, 'mp').now < mp) return refuse(REASON_NO_MP);
 
   switch (name) {

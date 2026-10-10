@@ -24,13 +24,23 @@
           v-for="option in options"
           :key="option.name || option.value"
           class="option-btn"
-          :class="{ 'active': isSelected(option), 'has-pillars': option.primaryPillar }"
+          :class="{ 'active': isSelected(option), 'has-pillars': option.primaryPillar, 'locked': option.locked }"
+          :aria-disabled="option.locked ? 'true' : undefined"
           @click="selectOption(option)"
         >
           <div class="option-icon">
             <i :class="['fad', option.icon, 'fa-3x']"></i>
+            <i
+              v-if="option.locked"
+              class="option-lock fad fa-lock"
+            ></i>
           </div>
           <span class="option-label">{{ option.name || option.value }}</span>
+          <!-- A sealed class says what it takes -->
+          <span
+            v-if="option.locked && option.lockHint"
+            class="option-hint"
+          >{{ option.lockHint }}</span>
           <!-- Pillar Focus Icons - positioned at corners -->
           <template v-if="option.primaryPillar">
             <i
@@ -304,6 +314,49 @@ export default defineComponent({
       padding: 12px 8px;
       gap: 8px;
       position: relative;
+    }
+
+    // A sealed (tier-2) class: greyed, padlocked, with its requirement under the name
+    &.locked {
+      cursor: not-allowed;
+      border-style: dashed;
+
+      .option-icon i:not(.option-lock),
+      .pillar-icon {
+        opacity: 0.35;
+        filter: grayscale(0.8);
+      }
+
+      .option-label {
+        color: rgba(255, 255, 255, 0.4);
+      }
+
+      &:hover {
+        transform: none;
+        background: rgba(255, 255, 255, 0.05);
+        border-color: rgba(255, 255, 255, 0.1);
+      }
+    }
+
+    .option-icon {
+      position: relative;
+    }
+
+    .option-lock {
+      position: absolute;
+      right: -10px;
+      bottom: -4px;
+      font-size: 1.1rem;
+      color: var(--ion-color-warning);
+      filter: drop-shadow(0 0 4px rgba(0, 0, 0, 0.8));
+    }
+
+    .option-hint {
+      font-family: "StatusPlz";
+      font-size: 0.6rem;
+      line-height: 1.2;
+      color: var(--ion-color-warning);
+      text-align: center;
     }
   }
 

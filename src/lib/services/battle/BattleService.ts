@@ -2,6 +2,7 @@ import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
 import { reactive } from "vue";
 import type { DialogLine, EngineMessage } from "@/app/Console/BattleField/battle/battleView";
+import type { ClassPassive } from "@/lib/services/stats/ClassPassives";
 
 // Define interfaces for the battle system
 export interface Enemy {
@@ -90,12 +91,21 @@ export interface BattleCallbacks {
   onDamage?: (target: 'player' | 'enemy', amount: number, isFinalBlow?: boolean) => void;
 }
 
+/** The part of a class passive the engine reads (docs/Items-And-Classes-Contract.md, C). */
+export type BattlePassive = Pick<ClassPassive, 'braceFactor' | 'runChance' | 'cooldownMinutesBonus' | 'skipFirstStrike'>;
+
 export interface BattleServiceOptions {
   /**
    * A free fight (random encounter, Test Fight): there is nothing to lose by leaving, so
    * Run Away always works.
    */
   freeFight?: boolean;
+  /**
+   * The hero's class passive: how much of a strike the brace lets through, the Run Away odds against
+   * monsters, extra minutes per chore and whether the beast's first strike misses. Anything left out
+   * keeps the default rule.
+   */
+  passive?: Partial<BattlePassive>;
 }
 
 /** Minutes of clock a hero earns per remaining chore when the beast does not say otherwise. */
@@ -106,16 +116,26 @@ const CLOCK_TICK_MS = 100;
 const STRIKE_DELAY_MS = 1000;
 /** A strike costs about this share of the hero's max HP. */
 const STRIKE_SHARE_OF_MAX_HP = 0.12;
+/** The share of a strike a brace lets through when the class does not say otherwise. */
+const DEFAULT_BRACE_FACTOR = 0.5;
 
 /**
  * What one beast strike costs the hero: about 12% of their max HP, scaled by the beast's attack
  * (10 is the baseline, so a boss with 15 bites 1.5x as hard) and a +-10% roll. It never scales
- * with time or chores left. A brace halves it (rounded down, never below 1).
+ * with time or chores left. A brace lets `braceFactor` of it through (half by default, a quarter for
+ * a Warrior's wall), rounded down, never below 1.
  */
-export function strikeDamage(maxHp: number, attack: number, braced: boolean, roll: number = Math.random()): number {
+export function strikeDamage(
+  maxHp: number,
+  attack: number,
+  braced: boolean,
+  roll: number = Math.random(),
+  braceFactor: number = DEFAULT_BRACE_FACTOR
+): number {
   const raw = Math.round(maxHp * STRIKE_SHARE_OF_MAX_HP * ((attack || 10) / 10) * (0.9 + roll * 0.2));
   const full = Number.isFinite(raw) ? Math.max(1, raw) : 1;
-  return braced ? Math.max(1, Math.floor(full / 2)) : full;
+  const factor = Number.isFinite(braceFactor) && braceFactor > 0 ? braceFactor : DEFAULT_BRACE_FACTOR;
+  return braced ? Math.max(1, Math.floor(full * factor)) : full;
 }
 
 /** A line that types out and moves on by itself, for results the hero does not need to tap through. */
@@ -147,10 +167,21 @@ export class BattleService {
   private strikeSkips = 0;
   /** Multiplies the minutes every chore earns on the clock (Fire Wand); 1 by default. */
   private cooldownScale = 1;
+  /** The hero's class passive, filled in with the default rules. */
+  private readonly passive: BattlePassive;
+  /** The beast's first strike of this fight still has to miss (Ninja). */
+  private firstStrikeOwed = false;
 
   constructor(options: BattleServiceOptions = {}) {
     this.userStore = useUserStore();
     this.alwaysEscapes = Boolean(options.freeFight);
+    this.passive = {
+      braceFactor: DEFAULT_BRACE_FACTOR,
+      runChance: null,
+      cooldownMinutesBonus: 0,
+      skipFirstStrike: false,
+      ...options.passive,
+    };
     this.state = reactive({
       battleStarted: false,
       isPlayerTurn: false,
@@ -265,6 +296,7 @@ export class BattleService {
     this.frozenUntil = 0;
     this.strikeSkips = 0;
     this.cooldownScale = 1;
+    this.firstStrikeOwed = Boolean(this.passive.skipFirstStrike);
 
     // Store enemies in participants array
     this.state.participants.enemies = enemies;
@@ -329,8 +361,8 @@ export class BattleService {
   }
 
   /**
-   * Run away. Monsters let you go 75% of the time, minibosses 50%, bosses 25%; in a free fight
-   * the hero always gets away. A failed run costs exactly one free strike.
+   * Run away. Monsters let you go 75% of the time (90% for a Thief or Ninja), minibosses 50%,
+   * bosses 25%; in a free fight the hero always gets away. A failed run costs exactly one free strike.
    */
   private handleRun(): BattleResult {
     if (this.state.pendingPlayerDamage > 0) {
@@ -343,6 +375,8 @@ export class BattleService {
       escapeChance = 0.25;
     } else if (enemy?.type === 'miniboss') {
       escapeChance = 0.5;
+    } else if (typeof this.passive.runChance === 'number') {
+      escapeChance = this.passive.runChance;
     }
 
     if (this.alwaysEscapes || Math.random() < escapeChance) {
@@ -535,11 +569,20 @@ export class BattleService {
     return this.state.attackDuration;
   }
 
-  /** Minutes per remaining chore: the beast's own attackCooldown, or 3, times the fight's cooldown scale. */
+  /**
+   * Minutes per remaining chore: the beast's own attackCooldown, or 3, times the fight's cooldown scale,
+   * plus the class's flat minute (Monk, Sage).
+   */
   private minutesPerChore(): number {
     const minutes = this.state.currentEnemy?.attackCooldown;
     const base = typeof minutes === 'number' && Number.isFinite(minutes) && minutes > 0 ? minutes : DEFAULT_MINUTES_PER_CHORE;
-    return base * this.cooldownScale;
+    const bonus = Number.isFinite(this.passive.cooldownMinutesBonus) ? Math.max(0, this.passive.cooldownMinutesBonus) : 0;
+    return base * this.cooldownScale + bonus;
+  }
+
+  /** The brace factor and run odds the fight runs with (for the page and the tests). */
+  public getPassive(): BattlePassive {
+    return { ...this.passive };
   }
 
   // --- battle items (see docs/Items-And-Classes-Contract.md, section A) ---------------------------
@@ -660,6 +703,13 @@ export class BattleService {
     const enemy = this.state.currentEnemy;
     if (!enemy || enemy.health <= 0) return;
 
+    // A Ninja is never where the first strike lands
+    if (this.firstStrikeOwed) {
+      this.firstStrikeOwed = false;
+      this.skipStrike(`${enemy.name} strikes at a shadow! ${this.heroName()} is already elsewhere.`);
+      return;
+    }
+
     // Chronos' ice or Thor's hammer: the strike does not land
     if (this.isClockFrozen()) {
       this.skipStrike(`${enemy.name} is frozen solid and cannot strike!`);
@@ -683,7 +733,7 @@ export class BattleService {
     // The brace stays up until the hit lands (applyPendingDamage lowers it)
     const braced = this.state.isDefending;
     this.state.pendingStrikeBraced = braced;
-    this.state.pendingPlayerDamage = strikeDamage(hero.stats.maxHp, enemy.attack, braced);
+    this.state.pendingPlayerDamage = strikeDamage(hero.stats.maxHp, enemy.attack, braced, Math.random(), this.passive.braceFactor);
 
     // Trigger enemy pre-attack sound (ambush/charge)
     this.battleCallbacks.onAttack?.('enemy');
