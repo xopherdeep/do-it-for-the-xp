@@ -68,7 +68,7 @@ export const TEMPLE_METADATA: Record<string, TempleMetadata> = {
     id: "shadow-temple",
     name: "The Moonveil Shrine",
     description: "A shrine wrapped in moonlit mist where dreams wander in and not all of them wander out. Keep your lantern lit and your name in your pocket.",
-    world: "moon",
+    world: "swamps",
     element: "shadow",
     icon: "fa-moon",
     color: "dark"

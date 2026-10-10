@@ -21,7 +21,7 @@
 <script lang="ts" src="./WorldSwamps.ts" />
 <style lang="scss" src="./_WorldSwamps.scss" scoped />
 <style lang="scss">
-  #moon-temple{
+  #shadow-temple{
     .fa-place-of-worship {
       --fa-primary-color: var(--xp-color-yellow);
       --fa-secondary-color: var(--xp-color-yellow);

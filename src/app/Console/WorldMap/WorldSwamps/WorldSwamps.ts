@@ -39,7 +39,7 @@ export default dC({
         },
       },
       {
-        label: "Moon Temple",
+        label: "Moonveil Shrine",
         id: "shadow-temple",
         faIcon: "place-of-worship",
         side: "end",
