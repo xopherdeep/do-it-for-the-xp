@@ -8,7 +8,7 @@ import { useGameStore } from "@/lib/store/stores/game";
 import { useUserStore } from "@/lib/store/stores/user";
 import { changeBGM } from "@/lib/engine/audio/routeMusic";
 import { handleBgmGuard } from "@/router/_Guards/bgm.guard";
-import { canSetGameMaster, passcodeProblem } from "@/router/_Guards/gm.guard";
+import { canSetGameMaster, needsGameMasterPasscode, passcodeProblem } from "@/router/_Guards/gm.guard";
 import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
 
 import { ProfileDb } from "@/lib/databases";
@@ -26,7 +26,7 @@ import debug from "@/lib/utils/debug";
 export const AddProfile = defineComponent({
   // presetGameMaster (new profiles only): true starts the Game Master toggle on ("Add Adult"),
   // false starts it off ("Add Kid"), undefined keeps the default.
-  props: ["id", "profile", "presetGameMaster"],
+  props: ["id", "profile", "presetGameMaster", "startTab"],
   mixins: [ionic],
   components: {
     InputSettings,
@@ -124,6 +124,8 @@ export const AddProfile = defineComponent({
     const gameMasterChosen = ref(false);
     // The profile being edited already is a Game Master
     const wasGameMaster = ref(false);
+    // The profile being edited is a Game Master saved without a usable PIN (from before the rule)
+    const legacyGameMaster = ref(false);
     // True once the device's profiles are known; until then the toggle stays locked, so a slow
     // load can never leave it open by accident
     const profilesLoaded = ref(false);
@@ -133,7 +135,10 @@ export const AddProfile = defineComponent({
     // (off for a new profile), whatever the toggle says, so a preset cannot be a back door.
     const isGameMaster = computed(() => (canSetFlag.value ? isAdult.value : wasGameMaster.value));
     // A Game Master's profile, and above all its PIN, is only editable by a Game Master
-    const gameMasterEditLocked = computed(() => wasGameMaster.value && !canSetFlag.value);
+    // (unless it is a legacy Game Master with no 4-digit PIN, which has nothing to protect and must be fixed)
+    const gameMasterEditLocked = computed(
+      () => wasGameMaster.value && !canSetFlag.value && !legacyGameMaster.value
+    );
     // Why the passcode cannot be saved yet, or null: a Game Master must have a 4-digit PIN
     const passcodeError = computed(() => passcodeProblem(passcode.value, isGameMaster.value));
     // "Add Adult" / "Add Kid" pick the toggle's starting side for a new profile (isGameMaster still
@@ -203,6 +208,7 @@ export const AddProfile = defineComponent({
       jobClass.value = profile.jobClass;
       isAdult.value = profile.isAdult === true;
       wasGameMaster.value = profile.isAdult === true;
+      legacyGameMaster.value = needsGameMasterPasscode(profile);
       avatarIndex.value = parseInt(profile.avatar.split("-")[0]);
     };
 
@@ -238,7 +244,7 @@ export const AddProfile = defineComponent({
       }
     };
 
-    const activeSegment = ref("info")
+    const activeSegment = ref(props.startTab === "account" ? "account" : "info")
 
     // Play sound when switching tabs
     watch(activeSegment, () => {

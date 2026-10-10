@@ -136,6 +136,7 @@ import DialPad from "./DialPad.vue";
 import ionic from "@/lib/mixins/ionic";
 import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
 import debug from "@/lib/utils/debug";
+import { needsGameMasterPasscode } from "@/router/_Guards/gm.guard";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
 import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
 
@@ -428,6 +429,25 @@ export default defineComponent({
     };
 
     const selectProfile = async (profile: User) => {
+      // A Game Master saved before the passcode rule has no 4-digit PIN: set one before letting them in
+      if (needsGameMasterPasscode(profile)) {
+        const toast = await toastController.create({
+          message: "Game Masters need a 4-digit passcode",
+          duration: 2500,
+          position: "top",
+          color: "warning",
+        });
+        await toast.present();
+        const modal = await modalController.create({
+          component: AddProfile,
+          cssClass: "fullscreen",
+          componentProps: { profile, startTab: "account" },
+        });
+        await modal.present();
+        await modal.onDidDismiss();
+        await loadProfiles();
+        return;
+      }
       if (profile.passcode) {
         openPasscodeModal(profile);
       } else {

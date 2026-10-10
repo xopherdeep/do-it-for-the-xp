@@ -33,24 +33,24 @@
           <ion-item-group>
             <ion-item-divider>
               <ion-label>Adults</ion-label>
-              <ion-button slot="end" v-if="!lockFamily" @click="openModal({ presetGameMaster: true })">
+              <ion-button slot="end" v-if="!lockFamily && canManage" @click="openModal({ presetGameMaster: true })">
                 Add Adult
               </ion-button>
             </ion-item-divider>
             <xp-profile-item v-for="profile in profiles.filter((p) => p.isAdult)" :key="profile.id" :profile="profile"
-              :isLocked="lockFamily" @clickAddProfile="clickEditProfile" @clickDeleteProfile="clickDeleteProfile" />
+              :isLocked="lockFamily || !canManage" @clickAddProfile="clickEditProfile" @clickDeleteProfile="clickDeleteProfile" />
           </ion-item-group>
 
           <ion-item-group>
             <ion-item-divider>
               <ion-label>Kids</ion-label>
-              <ion-button slot="end" v-if="!lockFamily" @click="openModal({ presetGameMaster: false })">
+              <ion-button slot="end" v-if="!lockFamily && canManage" @click="openModal({ presetGameMaster: false })">
                 Add Kid
               </ion-button>
             </ion-item-divider>
 
             <xp-profile-item v-for="profile in profiles.filter((p) => !p.isAdult)" :key="profile.id" :profile="profile"
-              :isLocked="lockFamily" @clickAddProfile="clickEditProfile" @clickDeleteProfile="clickDeleteProfile" />
+              :isLocked="lockFamily || !canManage" @clickAddProfile="clickEditProfile" @clickDeleteProfile="clickDeleteProfile" />
           </ion-item-group>
         </ion-list>
       </ion-card>
@@ -65,10 +65,11 @@ import { arrowBack } from "ionicons/icons";
 import { profileStorage } from "@/lib/databases/profileStorage";
 import { ProfileDb } from "@/lib/databases";
 import User from "@/lib/utils/User";
-import { alertController, modalController } from "@ionic/vue";
+import { alertController, modalController, toastController } from "@ionic/vue";
 import XpProfileItem from "./ProfileItem.vue";
 import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
 import { useUserStore } from "@/lib/store/stores/user";
+import { canManageFamily, deleteProfileProblem, FAMILY_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
 
 export default defineComponent({
@@ -86,6 +87,9 @@ export default defineComponent({
     // Get profiles from Pinia store
     const profiles = computed(() => userStore.usersAz);
 
+    // Only a Game Master adds, edits or deletes profiles; heroes see the list without the buttons
+    const canManage = computed(() => canManageFamily(userStore));
+
     // Methods
     const loadProfiles = async () => {
       await userStore.loadUsers();
@@ -98,6 +102,7 @@ export default defineComponent({
       userStore,
       requireAvatar,
       profiles,
+      canManage,
       profileDb,
       lockFamily,
       toggleFamily,
@@ -107,10 +112,21 @@ export default defineComponent({
     };
   },
   methods: {
+    async refuse(message: string) {
+      const toast = await toastController.create({
+        message,
+        duration: 2500,
+        position: "top",
+        cssClass: "rpg-toast",
+      });
+      await toast.present();
+    },
     async clickEditProfile(profile: User) {
+      if (!this.canManage) return this.refuse(FAMILY_GM_ONLY_MESSAGE);
       await this.openModal({ profile });
     },
     async openModal(componentProps?: any) {
+      if (!this.canManage) return this.refuse(FAMILY_GM_ONLY_MESSAGE);
       const modal = await modalController.create({
         component: AddProfile,
         cssClass: "fullscreen",
@@ -120,6 +136,9 @@ export default defineComponent({
       modal.present();
     },
     async deleteProfile(profile: User) {
+      // Backstop for the alert: refuse again at the moment of deleting
+      const problem = deleteProfileProblem(profile, this.userStore);
+      if (problem) return this.refuse(problem);
       const { profileDb, loadProfiles } = this;
       await profileDb
         .removeProfile(profile.id)
@@ -127,6 +146,8 @@ export default defineComponent({
         .then(profileDb.showDeleteToast);
     },
     async clickDeleteProfile(profile: User) {
+      const problem = deleteProfileProblem(profile, this.userStore);
+      if (problem) return this.refuse(problem);
       const alert = await alertController.create({
         header: "Delete " + profile.name.full + "?",
         subHeader: "Are you sure you want to delete this profile?",

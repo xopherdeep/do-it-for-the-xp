@@ -12,9 +12,15 @@ import { handleBgmGuard } from "@/router/_Guards/bgm.guard";
 import {
   GM_ONLY_MESSAGE,
   canAccessGameMaster,
+  FAMILY_GM_ONLY_MESSAGE,
+  LAST_GM_MESSAGE,
+  canManageFamily,
   canSetGameMaster,
+  deleteProfileProblem,
   handleGmGuard,
   isGameMasterRoute,
+  isLastGameMaster,
+  needsGameMasterPasscode,
   passcodeProblem,
   resolveGmAccess,
 } from "@/router/_Guards/gm.guard";
@@ -720,5 +726,38 @@ describe("useRouterGuards wiring", () => {
     expect(next).toHaveBeenCalledWith();
     expect(firstArgOf(handleBgmGuard)).toBe(to);
     expect(toastCreate).not.toHaveBeenCalled();
+  });
+});
+
+describe("family settings permissions", () => {
+  const gm = { id: "gm", isAdult: true };
+  const kid = { id: "kid", isAdult: false };
+  const view = (id: string | null, users: Record<string, { id: string; isAdult?: unknown }>) => ({
+    currentUser: { id },
+    users,
+  });
+
+  it("lets a Game Master manage the family and a hero not", () => {
+    const users = { gm, kid };
+    expect(canManageFamily(view("gm", users))).toBe(true);
+    expect(canManageFamily(view("kid", users))).toBe(false);
+    expect(deleteProfileProblem(kid, view("kid", users))).toBe(FAMILY_GM_ONLY_MESSAGE);
+  });
+
+  it("never allows deleting the last Game Master, even by a Game Master", () => {
+    const users = { gm, kid };
+    expect(isLastGameMaster(gm, users)).toBe(true);
+    expect(isLastGameMaster(kid, users)).toBe(false);
+    expect(deleteProfileProblem(gm, view("gm", users))).toBe(LAST_GM_MESSAGE);
+    const two = { gm, gm2: { id: "gm2", isAdult: true }, kid };
+    expect(deleteProfileProblem(gm, view("gm", two))).toBeNull();
+    expect(deleteProfileProblem(kid, view("gm", two))).toBeNull();
+  });
+
+  it("flags a Game Master without a 4-digit passcode, and nobody else", () => {
+    expect(needsGameMasterPasscode({ isAdult: true })).toBe(true);
+    expect(needsGameMasterPasscode({ isAdult: true, passcode: "12" })).toBe(true);
+    expect(needsGameMasterPasscode({ isAdult: true, passcode: "1234" })).toBe(false);
+    expect(needsGameMasterPasscode({ isAdult: false })).toBe(false);
   });
 });

@@ -112,6 +112,52 @@ export function passcodeProblem(passcode: unknown, forGameMaster: boolean): stri
   return text === "" ? null : "A passcode is exactly 4 digits";
 }
 
+/** Toast shown when a hero taps a family-settings action only a Game Master may use. */
+export const FAMILY_GM_ONLY_MESSAGE = "Only a Game Master can change the family";
+
+/** Toast shown when the last Game Master profile would be deleted. */
+export const LAST_GM_MESSAGE = "The last Game Master cannot be deleted";
+
+/**
+ * Who may add, edit or delete profiles on /xp-settings/family: the same people who may open the
+ * Game Master area (a Game Master, a masquerading Game Master, or anybody while the device has no
+ * Game Master yet). A hero can otherwise delete the last Game Master and re-open the GM toggle.
+ */
+export function canManageFamily(view: GmStoreView = useUserStore()): boolean {
+  return canAccessGameMaster(view);
+}
+
+/** True when `profile` is a Game Master and no other profile in `users` is one. */
+export function isLastGameMaster(
+  profile: { id?: string; isAdult?: unknown } | undefined,
+  users: Record<string, { isAdult?: unknown } | undefined>
+): boolean {
+  if (!isGameMaster(profile)) return false;
+  return !Object.entries(users).some(
+    ([id, other]) => id !== profile?.id && isGameMaster(other)
+  );
+}
+
+/** Why `profile` may not be deleted right now (toast text), or null when it may. */
+export function deleteProfileProblem(
+  profile: { id?: string; isAdult?: unknown },
+  view: GmStoreView = useUserStore()
+): string | null {
+  if (!canManageFamily(view)) return FAMILY_GM_ONLY_MESSAGE;
+  if (isLastGameMaster(profile, view.users)) return LAST_GM_MESSAGE;
+  return null;
+}
+
+/**
+ * A Game Master saved before the passcode rule has no 4-digit PIN. They are sent to the Pin tab of
+ * their profile form to set one before the profile chooser lets them in.
+ */
+export function needsGameMasterPasscode(
+  profile: { isAdult?: unknown; passcode?: unknown } | undefined
+): boolean {
+  return isGameMaster(profile) && passcodeProblem(profile?.passcode, true) !== null;
+}
+
 /**
  * True for /game-master and everything beneath it. The route record is checked as well as the
  * path because vue-router matches paths case-insensitively and honours aliases, so a typed
