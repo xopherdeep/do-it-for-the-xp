@@ -68,9 +68,9 @@
           </ion-infinite-scroll>
         </div>
 
-        <!-- Events Tab -->
+        <!-- Events Tab: the hero's scheduled quests for the week ahead -->
         <div v-if="selectedTab === 'events'">
-          <ion-list>
+          <ion-list v-if="hasEvents">
             <ion-item-group v-for="(events, date) in groupedEvents" :key="date">
               <ion-item-divider sticky>
                 <ion-label>{{ date }}</ion-label>
@@ -82,12 +82,15 @@
                   <p>{{ event.description }}</p>
                   <ion-note>{{ event.time }}</ion-note>
                 </ion-label>
-                <ion-badge :color="event.type === 'special' ? 'warning' : 'primary'" slot="end">
+                <ion-badge :color="event.type === 'bounty' ? 'warning' : 'primary'" slot="end">
                   {{ event.type }}
                 </ion-badge>
               </ion-item>
             </ion-item-group>
           </ion-list>
+          <ion-card v-else>
+            <ion-card-content class="ion-text-center">No events posted</ion-card-content>
+          </ion-card>
         </div>
 
         <!-- Updates Tab -->
@@ -99,22 +102,20 @@
             <ion-card-content>
               <ion-list>
                 <ion-item>
-                  <ion-label>Active Players</ion-label>
-                  <ion-badge color="success" slot="end">{{
-                    stats.activePlayers
-                    }}</ion-badge>
+                  <ion-label>Heroes</ion-label>
+                  <ion-badge color="success" slot="end">{{ stats.heroes }}</ion-badge>
                 </ion-item>
                 <ion-item>
-                  <ion-label>Total XP Earned Today</ion-label>
-                  <ion-badge color="warning" slot="end">{{
-                    stats.dailyXP
-                    }}</ion-badge>
+                  <ion-label>Quests Posted</ion-label>
+                  <ion-badge color="tertiary" slot="end">{{ stats.quests }}</ion-badge>
                 </ion-item>
                 <ion-item>
-                  <ion-label>Active Quests</ion-label>
-                  <ion-badge color="tertiary" slot="end">{{
-                    stats.activeQuests
-                    }}</ion-badge>
+                  <ion-label>Open Today</ion-label>
+                  <ion-badge color="primary" slot="end">{{ stats.openToday }}</ion-badge>
+                </ion-item>
+                <ion-item>
+                  <ion-label>Awaiting Approval</ion-label>
+                  <ion-badge color="warning" slot="end">{{ stats.pendingApprovals }}</ion-badge>
                 </ion-item>
               </ion-list>
             </ion-card-content>
@@ -183,6 +184,7 @@ import {
   IonInfiniteScroll,
   IonInfiniteScrollContent,
   actionSheetController,
+  toastController,
 } from "@ionic/vue";
 import {
   businessOutline,
@@ -197,6 +199,23 @@ import {
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import debug from "@/lib/utils/debug";
 import Ionic from "@/lib/mixins/ionic";
+import { useUserStore } from "@/lib/store/stores/user";
+import { getQuestEngine } from "@/lib/engine/quests/QuestEngine";
+import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
+import { formatQuestName } from "@/lib/utils/format";
+
+/** One scheduled quest on the events board */
+interface TownEvent {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  time: string;
+  type: "quest" | "bounty";
+}
+
+/** How many days ahead the events board looks */
+const EVENT_HORIZON_DAYS = 7;
 
 // Define the type for Ionic infinite scroll element
 declare global {
@@ -283,7 +302,7 @@ export default defineComponent({
       required: true,
     },
   },
-  setup() {
+  setup(props) {
     const isLoading = ref(false);
     const error = ref<string | null>(null);
     const selectedTab = ref("news");
@@ -292,24 +311,57 @@ export default defineComponent({
     const hasMorePosts = ref(true);
     const wpBaseUrl = "https://doit.forthexp.com/wp-json/wp/v2";
 
-    // Event and update data - Replace with actual API calls in the future
-    const events = ref([
-      {
-        id: 1,
-        title: "Double XP Weekend",
-        description: "Earn double XP on all activities!",
-        date: "2025-04-13",
-        time: "All Day",
-        type: "special",
-      },
-      // Add more events...
-    ]);
+    const userStore = useUserStore();
+    const questEngine = getQuestEngine();
 
-    const stats = ref({
-      activePlayers: 1234,
-      dailyXP: "150,000",
-      activeQuests: 45,
+    // Events: the hero's quests scheduled over the coming week, read from the same board as the quest log
+    const events = ref<TownEvent[]>([]);
+    const openToday = ref(0);
+    const pendingApprovals = ref(0);
+    const questsPosted = ref(0);
+
+    const dayKey = (date: Date) => date.toISOString().slice(0, 10);
+
+    const toEvent = (item: QuestBoardItem, date: Date): TownEvent => ({
+      id: `${item.quest.id}-${dayKey(date)}`,
+      title: formatQuestName(item.quest.achievementName || "Untitled Quest"),
+      description: item.pending ? "Awaiting the Game Master's approval" : `${item.quest.xp || 0} XP | ${item.quest.gp || 0} GP`,
+      date: dayKey(date),
+      time: item.quest.dueByTime ? `Due by ${item.quest.dueByTime}` : "Any time",
+      type: questEngine.isOpenBounty(item.quest) ? "bounty" : "quest",
     });
+
+    const loadQuestBoard = async () => {
+      try {
+        const today = new Date();
+        const days = Array.from({ length: EVENT_HORIZON_DAYS }, (_, i) => {
+          const d = new Date(today);
+          d.setDate(today.getDate() + i);
+          return d;
+        });
+        const [all, ...boards] = await Promise.all([
+          questEngine.getAllQuests(),
+          ...days.map((d) => questEngine.getQuestBoardForUser(props.userId, d)),
+        ]);
+        questsPosted.value = all.length;
+        const todayBoard = boards[0];
+        openToday.value = todayBoard.filter((item) => item.status === "open").length;
+        pendingApprovals.value = todayBoard.filter((item) => item.pending).length;
+        events.value = boards.flatMap((board, i) =>
+          board.filter((item) => item.status !== "notDue").map((item) => toEvent(item, days[i]))
+        );
+      } catch (err) {
+        debug.error("Town Hall could not read the quest board:", err);
+        events.value = [];
+      }
+    };
+
+    const stats = computed(() => ({
+      heroes: Object.keys(userStore.users).length,
+      quests: questsPosted.value,
+      openToday: openToday.value,
+      pendingApprovals: pendingApprovals.value,
+    }));
 
     const updates = ref([
       {
@@ -410,30 +462,26 @@ export default defineComponent({
 
     const groupedEvents = computed(() => {
       // Group events by date
-      return events.value.reduce((groups: any, event) => {
-        const date = event.date;
-        if (!groups[date]) {
-          groups[date] = [];
-        }
-        groups[date].push(event);
+      return events.value.reduce((groups: Record<string, TownEvent[]>, event) => {
+        (groups[event.date] ||= []).push(event);
         return groups;
       }, {});
     });
+    const hasEvents = computed(() => events.value.length > 0);
 
-    const submitAnnouncement = () => {
-      // Implement announcement submission
-      debug.log("Submit announcement");
+    const comingSoon = async (what: string) => {
+      const toast = await toastController.create({
+        message: `${what}: coming soon`,
+        duration: 2000,
+        position: "top",
+        cssClass: "rpg-toast",
+      });
+      await toast.present();
     };
 
-    const reportBug = () => {
-      // Implement bug reporting
-      debug.log("Report bug");
-    };
-
-    const suggestFeature = () => {
-      // Implement feature suggestion
-      debug.log("Suggest feature");
-    };
+    const submitAnnouncement = () => comingSoon("Announcements");
+    const reportBug = () => comingSoon("Bug reports");
+    const suggestFeature = () => comingSoon("Feature suggestions");
 
     const presentActionSheet = async () => {
       const actionSheet = await actionSheetController.create({
@@ -469,6 +517,7 @@ export default defineComponent({
     // Fetch WordPress posts when component is mounted
     onMounted(() => {
       fetchWordPressPosts();
+      loadQuestBoard();
     });
 
     return {
@@ -478,6 +527,7 @@ export default defineComponent({
       newsItems,
       hasMorePosts,
       groupedEvents,
+      hasEvents,
       stats,
       updates,
       fetchWordPressPosts,
