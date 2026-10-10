@@ -37,7 +37,7 @@ export function useRouterGuards(router: Router): void {
     handleBattleTimerGuard(to, router);
 
     // 5. BGM management (side effect only)
-    handleBgmGuard(to);
+    handleBgmGuard(to, router);
 
     // Continue navigation
     next();

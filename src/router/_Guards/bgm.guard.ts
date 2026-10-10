@@ -1,4 +1,4 @@
-import { RouteLocationNormalized } from "vue-router";
+import { RouteLocationNormalized, Router } from "vue-router";
 import { changeBGM } from "@/lib/engine/audio/routeMusic";
 import { metadataForAsync } from "@/lib/engine/temples/templeRegistry";
 import debug from "@/lib/utils/debug";
@@ -34,6 +34,9 @@ interface SimpleBgmRouteConfig {
 function isValidTrackList(tracks: unknown): tracks is string[] {
   return Array.isArray(tracks) && tracks.length > 0;
 }
+
+// Counts guard runs, so an async pick can tell a newer navigation has superseded it
+let guardRun = 0;
 
 // The last random pick per playlist, so two fights in a row never get the same song
 const lastRandomPick = new WeakMap<object, number>();
@@ -138,7 +141,9 @@ const BATTLE_BGM_ROUTES = [
 /**
  * Manages background music based on current route.
  */
-export function handleBgmGuard(to: RouteLocationNormalized): void {
+export function handleBgmGuard(to: RouteLocationNormalized, router?: Router): void {
+  // Each run supersedes the one before: an async pick (generated temple) from an earlier route must not play
+  const run = ++guardRun;
   const audioStore = useAudioStore();
   const gameStore = useGameStore();
   const battleStore = useBattleStore();
@@ -176,11 +181,23 @@ export function handleBgmGuard(to: RouteLocationNormalized): void {
   }
   // 3b. A generated temple (gen-<slug>) plays its element's theme (its record is in the TempleDb, so the pick is async)
   else if (routeName === "temple" && String(to.params.temple).startsWith("gen-")) {
+    const fullPath = to.fullPath;
     void metadataForAsync(String(to.params.temple)).then((meta) => {
       const tracks = BGM.temples?.[`${meta.element}-temple`] ?? terrains?.dungeon;
       const picked = createBgmPayload(tracks, { track: "random", startDelay, saveBookmark: true });
-      if (!picked || (picked.tracks === bgm.tracks && bgm.is_on)) return;
-      changeBGM(audioStore, picked, true);
+      const play = () => {
+        if (!picked || (picked.tracks === bgm.tracks && bgm.is_on)) return;
+        changeBGM(audioStore, picked, true);
+      };
+      // The hero navigated on before the element resolved: the wrong track must not start
+      if (run !== guardRun) return;
+      const current = router?.currentRoute.value;
+      if (!router || current?.fullPath === fullPath) return play();
+      // Still on the route being left (this guard runs before the navigation lands): play once it lands here
+      const off = router.afterEach((landed, _from, failure) => {
+        off();
+        if (!failure && run === guardRun && landed.fullPath === fullPath) play();
+      });
     });
   }
   // 3. Check terrain routes

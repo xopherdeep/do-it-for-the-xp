@@ -7,7 +7,7 @@
  * - Player progression through temples, saved per hero in TempleProgressDb
  */
 
-import { reactive } from 'vue';
+import { reactive, ref } from 'vue';
 import { DungeonManager, roomPositionKey } from './DungeonManager';
 import { Dungeon, Room } from './types';
 import { ChestSystem } from './ChestSystem';
@@ -22,6 +22,13 @@ import { bloodMoon as notifyBloodMoon } from '@/lib/services/notifications/notif
 import debug from '@/lib/utils/debug';
 
 export { TEMPLE_CLEARED_KEY };
+
+/**
+ * True while a blood moon has risen over a temple and nobody has consumed it yet (set where the system
+ * records one, cleared by bloodMoonRose() when it hands the last one over). A screen watches it to
+ * call bloodMoonRose(temple) and toast the hero live, not only on mount.
+ */
+export const bloodMoonRisen = ref(false);
 
 // Types
 export interface TempleState {
@@ -1070,6 +1077,7 @@ export class TempleSystem {
     if (open) this.openState(templeId, userId, [reset.currentPosition[0], reset.currentPosition[1]], reset.currentLevel, true);
     // The hero hears of it when they next stand in the temple (the screen reads this flag on mount)
     this.risen.set(templeId, userId);
+    bloodMoonRisen.value = true;
     notifyBloodMoon(userId, { id: templeId, name: getTempleMetadata(templeId).name });
     return entry;
   }
@@ -1082,7 +1090,9 @@ export class TempleSystem {
   public bloodMoonRose(templeId: string): boolean {
     const hero = this.heroByTemple.get(templeId);
     if (!hero || this.risen.get(templeId) !== hero) return false;
-    return this.risen.delete(templeId);
+    const rose = this.risen.delete(templeId);
+    bloodMoonRisen.value = this.risen.size > 0;
+    return rose;
   }
 
   /**
@@ -1150,6 +1160,7 @@ export class TempleSystem {
             // A weekly moon rises again a week on from the one just spent (skipping weeks the hero was away)
             if (saved.bloodMoonEvery === 'weekly' && spent) saved.bloodMoonAt = nextWeekly(spent);
             this.risen.set(templeId, userId);
+            bloodMoonRisen.value = true;
             notifyBloodMoon(userId, { id: templeId, name: getTempleMetadata(templeId).name });
           }
           this.applyProgress(templeId, saved, resume ? start : undefined);
