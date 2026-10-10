@@ -391,7 +391,10 @@ describe("shops", () => {
 
     expect(outcome).toMatchObject({ sound: "buyItem" });
     expect(wallet()).toBe(50);
-    expect(hero().inventory).toEqual([{ name: "EarthquakeScroll", source: id }]);
+    // Bag items carry their type and icon since e2e9798f (My Goods files them by type)
+    expect(hero().inventory).toEqual([
+      expect.objectContaining({ name: "EarthquakeScroll", source: id, type: "material", faIcon: "gem" }),
+    ]);
     expect(buyWare(room, ctx, "special:EarthquakeScroll")).toMatchObject({ message: expect.stringMatching(/Sold out/), sound: "error" });
     expect(wallet()).toBe(50);
     expect(hero().inventory).toHaveLength(1);
