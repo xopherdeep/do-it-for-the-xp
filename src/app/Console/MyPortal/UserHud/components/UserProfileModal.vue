@@ -28,15 +28,16 @@
         <div class="stats-flex">
           <!-- Row 1: Avatar | Class | Food -->
           <div class="stats-row">
-            <div class="stat-box avatar-box" @click="openAvatarSelector">
+            <div class="stat-box avatar-box" @click="openMyLook">
               <div class="avatar-container">
                 <ion-avatar class="hero-avatar">
-                  <ion-img :src="$requireAvatar(`./${user.avatar || '001-gamer'}.svg`)" />
+                  <ion-img :src="avatarSrc" />
                 </ion-avatar>
                 <div class="edit-overlay">
-                  <i class="fad fa-camera"></i>
+                  <i class="fad fa-tshirt"></i>
                 </div>
               </div>
+              <span class="my-look-label">My Look</span>
             </div>
 
             <div class="stat-box class-box" @click="openClassSelector">
@@ -215,6 +216,8 @@ import { play$fx } from "@/assets/fx";
 import { getXpForLevel } from "@/lib/services/stats/PlayerStatsService";
 
 // Avatar helper using require.context
+import { useRouter } from "vue-router";
+import { heroAvatarSrc } from "@/lib/hero-look/look";
 const $requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
 
 export default defineComponent({
@@ -255,6 +258,7 @@ export default defineComponent({
   },
   emits: ['close'],
   setup(props) {
+    const router = useRouter();
     const userStore = useUserStore();
     const gameStore = useGameStore();
     const modal = ref<any>(null);
@@ -292,6 +296,15 @@ export default defineComponent({
       if (!props.user?.avatar) return 1;
       const match = props.user.avatar.match(/(\d+)/);
       return match ? parseInt(match[1], 10) : 1;
+    };
+
+    // The hero's picture: the saved voxel snapshot when there is one, else the chosen SVG
+    const avatarSrc = computed(() => heroAvatarSrc(props.user, (key: string) => $requireAvatar(key)));
+
+    // My Look: close this sheet and open the dressing room
+    const openMyLook = () => {
+      modal.value?.$el?.dismiss?.();
+      router.push({ name: "my-look", params: { userId: props.user?.id } });
     };
 
     const openAvatarSelector = () => {
@@ -477,6 +490,8 @@ export default defineComponent({
       const xpForNext = getXpForLevel(level + 1);
 
       return {
+      avatarSrc,
+      openMyLook,
         // Amount of XP gained into this level
         inLevel: Math.max(0, totalXp - xpForCurrent),
         // Total XP needed for this level (delta)
@@ -809,5 +824,16 @@ export default defineComponent({
       }
     }
   }
+}
+
+.avatar-box .my-look-label {
+  display: block;
+  margin-top: 4px;
+  font-family: "StatusPlz", monospace;
+  font-size: 0.7rem;
+  letter-spacing: 1px;
+  text-align: center;
+  color: #e7e6b3;
+  opacity: 0.85;
 }
 </style>
