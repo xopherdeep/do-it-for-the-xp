@@ -11,7 +11,7 @@
  */
 import { useUserStore } from '@/lib/store/stores/user';
 import { mpCostOf } from '@/lib/services/temples/ItemUse';
-import { discountedMp } from '@/lib/services/stats/ClassPassives';
+import { heroMpBill } from '@/lib/services/stats/StatEffects';
 import type { BattleService, CombatTask } from './BattleService';
 
 /** The engine calls an item can make; a Pick so tests can hand in a plain mock. */
@@ -96,9 +96,9 @@ const nameOf = (item: BattleItemLike): string => (typeof item.name === 'string' 
 /** The item's MP cost in a fight: the number its description starts with, else the contract's table. */
 export const battleMpCost = (item: BattleItemLike): number => mpCostOf(item) || BATTLE_ITEMS[nameOf(item)]?.mp || 0;
 
-/** What this hero pays for the item: the list price with their class discount taken (Mage 25%, Sage 50%). */
+/** What this hero pays for the item: the list price with their class discount (Mage 25%, Sage 50%) and trained intelligence taken. */
 export const heroMpCost = (item: BattleItemLike, userId: string): number =>
-  discountedMp(battleMpCost(item), useUserStore().getUserById(userId)?.jobClass);
+  heroMpBill(battleMpCost(item), useUserStore().getUserById(userId));
 
 const points = (userId: string, kind: 'hp' | 'mp'): { now: number; max: number } => {
   const stats = useUserStore().getUserById(userId)?.stats;

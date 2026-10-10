@@ -3,7 +3,8 @@
  *
  * Rule zero still holds: no class completes a chore. A passive changes the brace, the MP bill, the loot, the
  * escape odds, the clock or what a win restores. `classPassive(jobClass)` is the whole table as one typed
- * object; the engines read the field they care about and never spell a class name themselves.
+ * object; the engines read the field they care about and never spell a class name themselves. The hero's
+ * trained stats lay over this table in `StatEffects.heroPassive` (docs/Stats-Contract.md).
  *
  * Pure: nothing here touches the store. Callers that know the hero look up their jobClass and hand it in.
  */
@@ -12,6 +13,8 @@ import { JOB_UNLOCK_REQUIREMENTS } from './PlayerStatsService';
 export interface ClassPassive {
   /** Share of a strike that lands through a brace (Defend). 0.5 for most; a Warrior's wall takes a quarter. */
   braceFactor: number;
+  /** Share of every strike that lands at all; 1 for every class (trained strength lowers it, see StatEffects). */
+  strikeFactor: number;
   /** Share taken off every item and ability MP cost. */
   mpDiscount: number;
   /** Share of max MP restored on a win. */
@@ -20,6 +23,8 @@ export interface ClassPassive {
   gpBonus: number;
   /** Run Away odds against a plain monster, or null to keep the beast's own odds. */
   runChance: number | null;
+  /** Added to the Run Away odds against any beast; 0 for every class (trained agility raises it, see StatEffects). */
+  runChanceBonus: number;
   /** Flat minutes added to what every chore earns on the clock. */
   cooldownMinutesBonus: number;
   /** Extra AP on every win. */
@@ -45,10 +50,12 @@ export const MONK_AP = 1;
 
 const NONE: ClassPassive = {
   braceFactor: DEFAULT_BRACE_FACTOR,
+  strikeFactor: 1,
   mpDiscount: 0,
   mpRegenOnWin: 0,
   gpBonus: 0,
   runChance: null,
+  runChanceBonus: 0,
   cooldownMinutesBonus: 0,
   apBonusOnWin: 0,
   hpRegenOnWin: 0,

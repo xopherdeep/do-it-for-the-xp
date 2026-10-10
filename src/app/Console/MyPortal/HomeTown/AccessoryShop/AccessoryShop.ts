@@ -44,6 +44,7 @@ import type { ShelfItem } from "@/lib/services/shop/PurchaseService";
 // Bigger wallets, Majora's Mask style: each region shop sells one tier, and only as the hero's next one.
 import { buyWalletUpgrade } from "@/lib/services/gp/wallet";
 import { gold, walletOfferAt } from "@/lib/services/gp/walletShops";
+import { shopDiscountLabel, shopPrice } from "@/lib/services/stats/StatEffects";
 
 // The general store you reach from Home Town; also where an unknown shop id ends up.
 const DEFAULT_SHOP_ID = "hometown-market";
@@ -321,6 +322,10 @@ export default defineComponent({
     const page = ref(1);
     const shelves = ref<string[]>(["affordable", "out-of-budget"]);
 
+    // Trained charisma takes 1% a point off every price on the shelf, up to 20% (docs/Stats-Contract.md);
+    // the shelf carries the price this hero pays, so the badge, the "need more" line and the charge agree.
+    const charismaDiscount = computed(() => shopDiscountLabel(userStore.users[heroId.value]));
+
     // What the Game Master stocked in this shop (Compendium > Accessories > Shops).
     // Only the newest load may write the shelf, so a slow earlier read can't overwrite a fresh one.
     let latestLoad = 0;
@@ -331,7 +336,11 @@ export default defineComponent({
         const shop = requested || (await shopsDb.getShopById(DEFAULT_SHOP_ID));
         const accessories = await accessoriesDb.getAccessories();
         if (thisLoad === latestLoad) {
-          shelf.value = stockShelf(shop?.items ?? [], accessories, heroId.value);
+          const hero = userStore.users[heroId.value];
+          shelf.value = stockShelf(shop?.items ?? [], accessories, heroId.value).map((item) => ({
+            ...item,
+            price: shopPrice(item.price, hero),
+          }));
         }
       } catch (error) {
         debug.error("Failed to stock the shelves:", error);
@@ -412,6 +421,7 @@ export default defineComponent({
       canAfford,
       walletWare,
       gold,
+      charismaDiscount,
       shelf,
       shelves,
       isLoading,

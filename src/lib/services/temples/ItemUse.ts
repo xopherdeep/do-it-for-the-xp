@@ -13,7 +13,7 @@ import { TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
 import type { Room } from '@/lib/engine/core/dungeons/types';
 import type { EquipmentItem } from '@/app/Console/MyPortal/UserHud/components/equipment/EquipmentItems';
 import { useUserStore } from '@/lib/store/stores/user';
-import { discountedMp } from '@/lib/services/stats/ClassPassives';
+import { heroMpBill } from '@/lib/services/stats/StatEffects';
 import {
   DIRECTIONS,
   SFX,
@@ -163,12 +163,12 @@ const useHookShot = (ctx: ItemUseContext, cost: number): ItemOutcome => {
  * Use an equipped item in a temple.
  * Navigation items run their click; the Lantern, Bottles, Bombs and Hook Shot work in the dungeon;
  * the battle items point at the battle screen; the rest are still on their way. The MP bill is the
- * item's list price with the hero's class discount taken (Mage 25%, Sage 50%).
+ * item's list price with the hero's class discount (Mage 25%, Sage 50%) and trained intelligence taken.
  */
 export const useItem = (item: Partial<EquipmentItem>, ctx: ItemUseContext): ItemOutcome => {
   const definition = definitionOf(item, ctx.catalog);
   const name = definition?.name ?? item.name ?? 'That';
-  const cost = discountedMp(mpCostOf(item, definition), useUserStore().getUserById(ctx.userId)?.jobClass);
+  const cost = heroMpBill(mpCostOf(item, definition), useUserStore().getUserById(ctx.userId));
 
   if (NAVIGATION_ITEMS.includes(name)) {
     if (typeof definition?.click !== 'function') return refuse(`${name} is out of reach right now.`);

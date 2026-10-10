@@ -44,7 +44,7 @@ const BASE_CLASSES: JobClass[] = [
     name: "Warrior",
     icon: "fa-swords",
     tier: 1,
-    description: "Built for the physical grind. Enhances Body (HP) through brute force and Legend (XP) through sheer guts. Ideal for those who thrive on physical challenges.",
+    description: "Built for the physical grind. Trains Body (strength and endurance) and Legend (guts) with every level, and braces like a wall. Ideal for those who thrive on physical challenges.",
     primaryPillar: 'physical',     // HP: strength, endurance
     secondaryPillar: 'eternal',    // XP: guts
     tertiaryPillar: 'relational',  // GP: presence
@@ -76,7 +76,7 @@ const BASE_CLASSES: JobClass[] = [
     name: "Mage",
     icon: "fa-hat-wizard",
     tier: 1,
-    description: "A path of the Mind. Sharpens focus for Spirit (AP) and mastery for Legend (XP). Best for those who use intelligence to optimize their everyday routines.",
+    description: "A path of the Mind. Trains intelligence and wisdom with every level, pays less MP and gets some back on every win. Best for those who use intelligence to optimize their everyday routines.",
     primaryPillar: 'mental',       // MP: intelligence, wisdom
     secondaryPillar: 'eternal',    // XP: mastery
     tertiaryPillar: 'vibrational', // AP: focus
@@ -108,7 +108,7 @@ const BASE_CLASSES: JobClass[] = [
     name: "Thief",
     icon: "fa-user-secret",
     tier: 1,
-    description: "The agile resource gatherer. Maximizes Spirit (AP) flow and Heart (GP) through charisma. Perfect for efficient scavengers who value luck and social grace.",
+    description: "The agile resource gatherer. Trains agility, charisma and luck with every level, takes more GP from quests and chests, and slips away from monsters. Perfect for scavengers who value luck and social grace.",
     primaryPillar: 'vibrational',  // AP: agility, flow
     secondaryPillar: 'relational', // GP: charisma
     tertiaryPillar: 'eternal',     // XP: luck
@@ -140,7 +140,7 @@ const BASE_CLASSES: JobClass[] = [
     name: "Monk",
     icon: "fa-fist-raised",
     tier: 1,
-    description: "The balanced ascetic. Harmonizes Body (HP) with Mind (MP) while maintaining intense Spirit (AP) focus. A versatile choice for those seeking total self-mastery.",
+    description: "The balanced ascetic. Trains endurance, wisdom and perception with every level, and earns a spare minute and an extra AP from every fight. A versatile choice for those seeking total self-mastery.",
     primaryPillar: 'physical',     // HP: endurance
     secondaryPillar: 'mental',     // MP: wisdom, perception
     tertiaryPillar: 'vibrational', // AP: focus

@@ -34,6 +34,10 @@
               <i class="fa fa-coins" />
               Your wallet: <xp-gp :gp="wallet" />
             </p>
+            <p v-if="charismaDiscount" class="shop-wallet shop-charisma">
+              <i class="fad fa-comment-smile" />
+              Your charisma gets you {{ charismaDiscount }} everything on the shelf.
+            </p>
             <!-- Filters -->
             <ion-item>
               <ion-label> Shelves </ion-label>

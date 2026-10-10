@@ -91,8 +91,15 @@ export interface BattleCallbacks {
   onDamage?: (target: 'player' | 'enemy', amount: number, isFinalBlow?: boolean) => void;
 }
 
-/** The part of a class passive the engine reads (docs/Items-And-Classes-Contract.md, C). */
-export type BattlePassive = Pick<ClassPassive, 'braceFactor' | 'runChance' | 'cooldownMinutesBonus' | 'skipFirstStrike'>;
+/**
+ * The part of a hero's passive the engine reads: the class table (docs/Items-And-Classes-Contract.md, C)
+ * with the trained stats laid over it (docs/Stats-Contract.md): strength's strike share, agility's run bonus
+ * and seconds, guts in the brace factor.
+ */
+export type BattlePassive = Pick<
+  ClassPassive,
+  'braceFactor' | 'strikeFactor' | 'runChance' | 'runChanceBonus' | 'cooldownMinutesBonus' | 'skipFirstStrike'
+>;
 
 export interface BattleServiceOptions {
   /**
@@ -101,9 +108,9 @@ export interface BattleServiceOptions {
    */
   freeFight?: boolean;
   /**
-   * The hero's class passive: how much of a strike the brace lets through, the Run Away odds against
-   * monsters, extra minutes per chore and whether the beast's first strike misses. Anything left out
-   * keeps the default rule.
+   * The hero's passive: how much of a strike lands at all and how much the brace lets through, the Run
+   * Away odds against monsters and what is added to them, extra minutes per chore and whether the beast's
+   * first strike misses. Anything left out keeps the default rule.
    */
   passive?: Partial<BattlePassive>;
 }
@@ -118,24 +125,29 @@ const STRIKE_DELAY_MS = 1000;
 const STRIKE_SHARE_OF_MAX_HP = 0.12;
 /** The share of a strike a brace lets through when the class does not say otherwise. */
 const DEFAULT_BRACE_FACTOR = 0.5;
+/** Run Away never becomes a sure thing, however nimble the hero. */
+const RUN_CHANCE_CEILING = 0.95;
 
 /**
  * What one beast strike costs the hero: about 12% of their max HP, scaled by the beast's attack
  * (10 is the baseline, so a boss with 15 bites 1.5x as hard) and a +-10% roll. It never scales
- * with time or chores left. A brace lets `braceFactor` of it through (half by default, a quarter for
- * a Warrior's wall), rounded down, never below 1.
+ * with time or chores left. Trained strength lets only `strikeFactor` of it land (1 by default, never
+ * below three quarters), and a brace lets `braceFactor` of that through (half by default, a quarter for
+ * a Warrior's wall), each rounded down, never below 1.
  */
 export function strikeDamage(
   maxHp: number,
   attack: number,
   braced: boolean,
   roll: number = Math.random(),
-  braceFactor: number = DEFAULT_BRACE_FACTOR
+  braceFactor: number = DEFAULT_BRACE_FACTOR,
+  strikeFactor: number = 1
 ): number {
   const raw = Math.round(maxHp * STRIKE_SHARE_OF_MAX_HP * ((attack || 10) / 10) * (0.9 + roll * 0.2));
-  const full = Number.isFinite(raw) ? Math.max(1, raw) : 1;
+  const share = Number.isFinite(strikeFactor) && strikeFactor > 0 && strikeFactor <= 1 ? strikeFactor : 1;
+  const full = Math.max(1, Math.floor((Number.isFinite(raw) ? Math.max(1, raw) : 1) * share + 1e-9));
   const factor = Number.isFinite(braceFactor) && braceFactor > 0 ? braceFactor : DEFAULT_BRACE_FACTOR;
-  return braced ? Math.max(1, Math.floor(full * factor)) : full;
+  return braced ? Math.max(1, Math.floor(full * factor + 1e-9)) : full;
 }
 
 /** A line that types out and moves on by itself, for results the hero does not need to tap through. */
@@ -177,7 +189,9 @@ export class BattleService {
     this.alwaysEscapes = Boolean(options.freeFight);
     this.passive = {
       braceFactor: DEFAULT_BRACE_FACTOR,
+      strikeFactor: 1,
       runChance: null,
+      runChanceBonus: 0,
       cooldownMinutesBonus: 0,
       skipFirstStrike: false,
       ...options.passive,
@@ -362,7 +376,8 @@ export class BattleService {
 
   /**
    * Run away. Monsters let you go 75% of the time (90% for a Thief or Ninja), minibosses 50%,
-   * bosses 25%; in a free fight the hero always gets away. A failed run costs exactly one free strike.
+   * bosses 25%, plus the hero's trained agility (1% a point, and never past 95% in all); in a free
+   * fight the hero always gets away. A failed run costs exactly one free strike.
    */
   private handleRun(): BattleResult {
     if (this.state.pendingPlayerDamage > 0) {
@@ -378,6 +393,8 @@ export class BattleService {
     } else if (typeof this.passive.runChance === 'number') {
       escapeChance = this.passive.runChance;
     }
+    const bonus = this.passive.runChanceBonus;
+    if (Number.isFinite(bonus) && bonus > 0) escapeChance = Math.min(RUN_CHANCE_CEILING, escapeChance + bonus);
 
     if (this.alwaysEscapes || Math.random() < escapeChance) {
       this.stopAttackTimer();
@@ -580,7 +597,7 @@ export class BattleService {
     return base * this.cooldownScale + bonus;
   }
 
-  /** The brace factor and run odds the fight runs with (for the page and the tests). */
+  /** The brace and strike factors, run odds and clock bonus the fight runs with (for the page and the tests). */
   public getPassive(): BattlePassive {
     return { ...this.passive };
   }
@@ -733,7 +750,14 @@ export class BattleService {
     // The brace stays up until the hit lands (applyPendingDamage lowers it)
     const braced = this.state.isDefending;
     this.state.pendingStrikeBraced = braced;
-    this.state.pendingPlayerDamage = strikeDamage(hero.stats.maxHp, enemy.attack, braced, Math.random(), this.passive.braceFactor);
+    this.state.pendingPlayerDamage = strikeDamage(
+      hero.stats.maxHp,
+      enemy.attack,
+      braced,
+      Math.random(),
+      this.passive.braceFactor,
+      this.passive.strikeFactor
+    );
 
     // Trigger enemy pre-attack sound (ambush/charge)
     this.battleCallbacks.onAttack?.('enemy');

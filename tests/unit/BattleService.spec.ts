@@ -849,7 +849,14 @@ describe("BattleService", () => {
 
     it("runs with the default rules when no passive is given", () => {
       const { service: s } = fight();
-      expect(s.getPassive()).toEqual({ braceFactor: 0.5, runChance: null, cooldownMinutesBonus: 0, skipFirstStrike: false });
+      expect(s.getPassive()).toEqual({
+        braceFactor: 0.5,
+        strikeFactor: 1,
+        runChance: null,
+        runChanceBonus: 0,
+        cooldownMinutesBonus: 0,
+        skipFirstStrike: false,
+      });
     });
 
     it("Warrior: a braced strike lands at a quarter instead of half", () => {

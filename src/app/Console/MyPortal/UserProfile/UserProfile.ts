@@ -2,7 +2,7 @@ import { defineComponent, PropType, computed } from "vue";
 import { useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
-import { JOB_CLASS_OPTIONS, FOOD_OPTIONS } from "@/constants";
+import { JOB_CLASS_OPTIONS, FOOD_OPTIONS, PILLARS } from "@/constants";
 import {
   IonBackButton,
   IonButton,
@@ -109,9 +109,9 @@ export default defineComponent({
           color: 'danger',
           icon: fitnessOutline,
           stats: {
-            strength: 'Use less HP when completing a task',
-            defense: 'Influences max HP',
-            endurance: 'Influences HP restore rate',
+            strength: PILLARS.physical.stats.strength.description,
+            defense: PILLARS.physical.stats.defense.description,
+            endurance: PILLARS.physical.stats.endurance.description,
           }
         },
         mental: {
@@ -119,27 +119,27 @@ export default defineComponent({
           color: 'tertiary',
           icon: colorWand,
           stats: {
-            intelligence: 'Use less MP when casting abilities',
-            perception: 'Influences max MP',
-            wisdom: 'Influences MP restore rate',
+            intelligence: PILLARS.mental.stats.intelligence.description,
+            perception: PILLARS.mental.stats.perception.description,
+            wisdom: PILLARS.mental.stats.wisdom.description,
           }
         },
         social: {
           color: 'warning',
           icon: serverOutline,
           stats: {
-            charisma: 'Influences GP discounts on items',
-            awareness: 'Gain more GP when completing tasks',
-            presence: 'Influences GP to $ conversion rate',
+            charisma: PILLARS.relational.stats.charisma.description,
+            awareness: PILLARS.relational.stats.awareness.description,
+            presence: PILLARS.relational.stats.presence.description,
           }
         },
         misc: {
           color: 'success',
           icon: sparklesOutline,
           stats: {
-            agility: 'Gain more AP when completing tasks',
-            guts: 'Gain more XP when completing tasks',
-            luck: 'Influence chances of receiving bonus points'
+            agility: PILLARS.vibrational.stats.agility.description,
+            guts: PILLARS.eternal.stats.guts.description,
+            luck: PILLARS.eternal.stats.luck.description
           }
         }
       }

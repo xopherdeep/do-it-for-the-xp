@@ -119,8 +119,8 @@
           <div v-if="!activeAccordion" class="pillars-explanation">
             <h3 class="pillars-title">The Five Pillars of Heroism</h3>
             <p class="pillars-text">
-              A true hero balances Body, Mind, Spirit, Heart, and Legend. Tap a pillar to see how your training shapes
-              your destiny.
+              A true hero balances Body, Mind, Spirit, Heart, and Legend. Tap a pillar to see what each stat does.
+              Every level-up trains a few points; the badge shows your class's start plus what you have trained.
             </p>
           </div>
         </Transition>
@@ -150,6 +150,7 @@
                 <ion-label>
                   <h3 class="capitalize" :style="{ color: `var(--ion-color-${area.color})` }">{{ stat }}</h3>
                   <p class="stat-desc">{{ desc }}</p>
+                  <p v-if="statEffectLine(stat, user)" class="stat-desc stat-now">{{ statEffectLine(stat, user) }}</p>
                 </ion-label>
                 <div slot="end" class="stat-value-wrapper">
                   <i v-if="isStatBoosted(stat)" class="fad fa-chevron-double-up stat-boost-arrow"
@@ -206,7 +207,7 @@ import {
   alertController,
   toastController
 } from "@ionic/vue";
-import { JOB_CLASS_OPTIONS, FOOD_OPTIONS, POINT_ICONS } from "@/constants";
+import { JOB_CLASS_OPTIONS, FOOD_OPTIONS, POINT_ICONS, PILLARS, type PillarType } from "@/constants";
 import AvatarSelector from "@/app/SideMenu/SwitchProfile/AddProfile/components/AvatarSelector.vue";
 import XpStatSelectorModal from "./XpStatSelectorModal.vue";
 import XpProfileStatBox from "@/components/molecules/ProfileStatBox/XpProfileStatBox.vue";
@@ -216,6 +217,7 @@ import { useGameStore } from "@/lib/store/stores/game";
 import { play$fx } from "@/assets/fx";
 import { getXpForLevel } from "@/lib/services/stats/PlayerStatsService";
 import { classLevelsOf, classRequirementLabel, isClassUnlocked } from "@/lib/services/stats/ClassPassives";
+import { statEffectLine, statTotal } from "@/lib/services/stats/StatEffects";
 
 // Avatar helper using require.context
 import { useRouter } from "vue-router";
@@ -412,6 +414,10 @@ export default defineComponent({
       };
     };
 
+    // The stat lines come from PILLARS, the one copy the code keeps true (docs/Stats-Contract.md)
+    const pillarStats = (pillar: PillarType): Record<string, string> =>
+      Object.fromEntries(Object.entries(PILLARS[pillar].stats).map(([stat, info]) => [stat, info.description]));
+
     // Areas data for stats accordions
     const areas = ref({
       physical: {
@@ -419,52 +425,32 @@ export default defineComponent({
         open: true,
         color: 'danger',
         description: 'Vitality and endurance',
-        stats: {
-          defense: 'Increases Maximum HP capacity',
-          strength: 'Decreases HP loss when taking damage',
-          endurance: 'Boosts HP recovery and restoration',
-        }
+        stats: pillarStats('physical'),
       },
       mental: {
         label: 'Mind',
         open: false,
         color: 'tertiary',
         description: 'Focus and wisdom',
-        stats: {
-          perception: 'Increases Maximum MP capacity',
-          intelligence: 'Decreases MP cost for active abilities',
-          wisdom: 'Boosts MP recovery and meditation rate',
-        }
+        stats: pillarStats('mental'),
       },
       vibrational: {
         label: 'Spirit',
         color: 'secondary',
         description: 'Energy and attention',
-        stats: {
-          agility: 'Gain more AP when completing tasks',
-          focus: 'Influence chances of receiving bonus AP points',
-          flow: 'Reduces AP cost for active abilities'
-        }
+        stats: pillarStats('vibrational'),
       },
       relational: {
         label: 'Heart',
         color: 'warning',
         description: 'Social presence and trade',
-        stats: {
-          awareness: 'Influences the amount of GP awarded',
-          presence: 'Influences GP to $ conversion and trade rates',
-          charisma: 'Reduces the GP cost of items in shops',
-        }
+        stats: pillarStats('relational'),
       },
       eternal: {
         label: 'Legend',
         color: 'success',
         description: 'Lasting legacy and growth',
-        stats: {
-          guts: 'Influences the amount of XP awarded',
-          luck: 'Influence chances of receiving bonus XP points',
-          mastery: 'Reduces the XP threshold required to reach the next Level'
-        }
+        stats: pillarStats('eternal'),
       }
     });
 
@@ -600,22 +586,9 @@ export default defineComponent({
       return jobClass.statBoosts.some(boost => boost.stat === statName);
     };
 
-    // Calculate total stat value (Base + Bonus)
-    const getStatTotal = (statName: string): number => {
-      // 1. Get Base Stat for Class
-      // Default to Adventurer or generic fallback if class not found
-      const jobClassName = props.user?.jobClass || 'Adventurer';
-      const jobClass = JOB_CLASS_OPTIONS.find(j => j.name === jobClassName);
-
-      // Default base stat if not defined is 5
-      const base = jobClass?.baseStats?.[statName] || 5;
-
-      // 2. Get Special Stat Bonus (Level Ups)
-      // user.stats.special might be undefined
-      const special = props.user?.stats?.special?.[statName] || 0;
-
-      return base + special;
-    };
+    // The badge: the class's starting number (5 without a class) plus the points trained at level-ups.
+    // StatEffects reads the same profile, so the "Trained N" line under a stat matches the badge.
+    const getStatTotal = (statName: string): number => statTotal(props.user, statName);
 
     // Mastery Dice Configuration (Fibonacci Levels)
     const dice = [
@@ -719,6 +692,7 @@ export default defineComponent({
       isPillarBoosted,
       isStatBoosted,
       getStatTotal,
+      statEffectLine,
       onFabStyleToggle,
       dice,
       isDieUnlocked,
@@ -855,6 +829,12 @@ export default defineComponent({
       }
     }
   }
+}
+
+.user-profile-modal .stat-item .stat-now {
+  margin-top: 2px;
+  font-style: italic;
+  opacity: 0.8;
 }
 
 .avatar-box .my-look-label {

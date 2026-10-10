@@ -228,11 +228,15 @@ export function calculateMaxHp(
   const endurance = specialStats?.endurance || 0;
   maxHp += Math.floor(endurance * baseStats.enduranceMultiplier);
 
-  // 4. Add contribution from guts stat
+  // 4. Add contribution from guts stat (half a point of HP each)
   const guts = specialStats?.guts || 0;
   maxHp += Math.floor(guts * 0.5);
 
-  // 5. Add Class Level Bonus
+  // 5. Add contribution from defense stat (one point of HP each, docs/Stats-Contract.md)
+  const defense = specialStats?.defense || 0;
+  maxHp += Math.floor(defense);
+
+  // 6. Add Class Level Bonus
   if (classLevel > 0) {
     const classBonus = getClassStatBonus(jobClass, classLevel);
     maxHp += classBonus.hp;
