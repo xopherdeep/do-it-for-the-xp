@@ -72,6 +72,24 @@ export const TEMPLE_METADATA: Record<string, TempleMetadata> = {
     element: "shadow",
     icon: "fa-moon",
     color: "dark"
+  },
+  "moon-temple": {
+    id: "moon-temple",
+    name: "Selene's Silent Court",
+    description: "A pale court of moonstone where gravity forgets its manners and the silence is so deep you can hear your own heartbeat drift. Step lightly: the floor is borrowed from the sky.",
+    world: "moon",
+    element: "moon",
+    icon: "fa-moon-stars",
+    color: "secondary"
+  },
+  "storm-temple": {
+    id: "storm-temple",
+    name: "Thunderhead Aerie",
+    description: "A fortress nested in a cloud that never breaks, where lightning is the doorbell and every gale carries a dare. Hold fast, and the sky will let you pass.",
+    world: "clouds",
+    element: "storm",
+    icon: "fa-bolt",
+    color: "tertiary"
   }
 };
 

@@ -60,8 +60,8 @@ const CORNERS = ["nw", "ne", "sw", "se"];
   &--water  { --stone: #324650; --stone-dark: #1e2c34; --metal: #967d46; --metal-hi: #e6c882; --glow: #96e6f0; }
   &--earth  { --stone: #463a2c; --stone-dark: #2c2419; --metal: #8c643c; --metal-hi: #d2aa6e; --glow: #96be5a; }
   &--light  { --stone: #786446; --stone-dark: #4c3f2c; --metal: #dcb450; --metal-hi: #ffeb96; --glow: #fff0b4; }
-  &--shadow { --stone: #282038; --stone-dark: #161020; --metal: #968caa; --metal-hi: #dcd2f0; --glow: #aa6eff; }
-  &--wind   { --stone: #5c4a5c; --stone-dark: #3a2c3a; --metal: #cd9646; --metal-hi: #fad78c; --glow: #fff2d0; }
+  &--shadow, &--moon { --stone: #282038; --stone-dark: #161020; --metal: #968caa; --metal-hi: #dcd2f0; --glow: #aa6eff; }
+  &--wind, &--storm { --stone: #5c4a5c; --stone-dark: #3a2c3a; --metal: #cd9646; --metal-hi: #fad78c; --glow: #fff2d0; }
 }
 
 .wall {

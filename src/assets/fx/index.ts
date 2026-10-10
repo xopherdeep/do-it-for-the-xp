@@ -372,6 +372,9 @@ const $fx = {
           "shadow-temple": [tune("temple-shadow")],
         },
         dungeonOnline: [
+          // No themes rendered yet for the last two: borrow the closest (moon -> shadow, storm -> wind)
+          "moon-temple": [tune("temple-shadow")],
+          "storm-temple": [tune("temple-wind")],
           // "https://starmen.net/mother2/music/088- Earthbound - Belch_s Factory.mp3",
           "https://starmen.net/mother2/music/113- Earthbound - Pyramid.mp3",
           "https://starmen.net/mother2/music/114- Earthbound - Inside the Dungeon.mp3",
