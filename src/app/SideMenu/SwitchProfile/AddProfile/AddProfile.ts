@@ -12,6 +12,7 @@ import { canSetGameMaster, needsGameMasterPasscode, passcodeProblem } from "@/ro
 import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
 
 import { ProfileDb } from "@/lib/databases";
+import type { NewProfileForm } from "@/lib/databases/ProfileDb";
 import { profileStorage } from "@/lib/databases/profileStorage";
 import { heroAvatarImage, heroAvatarSrc } from "@/lib/hero-look/look";
 import { isHeroLook, type HeroLook } from "@/lib/hero-look/types";
@@ -22,6 +23,7 @@ import ionic from "@/lib/mixins/ionic";
 import XpGp from "@/components/atoms/Currency/XpGp.vue";
 import GamerCard from "./GamerCard.vue"
 import Stats from "@/lib/utils/User/stats";
+import { profileToSave } from "@/lib/utils/User/user";
 import debug from "@/lib/utils/debug";
 
 export const AddProfile = defineComponent({
@@ -66,13 +68,10 @@ export const AddProfile = defineComponent({
         return;
       }
 
-      // `new User` keeps only the fields it knows, so the 3D look and its picture are added back by hand
-      const profile = {
-        ...this.storage.newProfile(this.newProfile),
-        ...(this.look ? { look: this.look } : {}),
-        ...(this.avatarImage ? { avatarImage: this.avatarImage } : {}),
-      };
-      await this.storage.setProfile(profile);
+      // An edit lays the form's fields over the stored hero, so equipment, inventory, quest effects
+      // and the rest survive; a new hero is built from the form (see profileToSave)
+      const profile = await profileToSave(this.storage, this.newProfile, this.$props.profile);
+      await this.storage.setProfile(profile as NewProfileForm);
 
       // Show success splash
       this.showSuccessSplash = true;

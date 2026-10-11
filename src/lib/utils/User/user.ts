@@ -1,4 +1,4 @@
-import { NewProfileForm } from "@/lib/databases/ProfileDb"
+import type { NewProfileForm } from "@/lib/databases/ProfileDb"
 import Stats from "./stats"
 import { v4 as uuidv4 } from 'uuid'
 
@@ -46,22 +46,105 @@ export default class User {
     this.isAdult = defaults.isAdult
     this.unlockedItems = Array.isArray(defaults.unlockedItems) ? [...defaults.unlockedItems] : []
   }
-  setName({ full, first, last, middle, nick, preferred }: any) {
-    const name = { full, first, last, middle, nick, preferred }
-    if (full) {
-      // Accepts "First Last", "First Middle Last" (any number of middle names)
-      // and an optional nickname after "aka", e.g. "Sam Jo Smith aka Sammy".
-      const [realName, akaNick] = String(full).split(/\s+aka\s+/i)
-      const parts = realName.trim().split(/\s+/).filter(Boolean)
-      if (parts.length) {
-        name.first = name.first || parts[0]
-        name.last = name.last || (parts.length > 1 ? parts[parts.length - 1] : "")
-        name.middle = name.middle || parts.slice(1, -1).join(" ")
-      }
-      if (akaNick) name.nick = name.nick || akaNick.trim()
+  setName(name: any) {
+    return nameFromFull(name)
+  }
+}
+
+/**
+ * A hero's name block from what the form holds. Accepts "First Last", "First Middle Last" (any
+ * number of middle names) and an optional nickname after "aka", e.g. "Sam Jo Smith aka Sammy".
+ */
+export function nameFromFull({ full, first, last, middle, nick, preferred }: any) {
+  const name = { full, first, last, middle, nick, preferred }
+  if (full) {
+    const [realName, akaNick] = String(full).split(/\s+aka\s+/i)
+    const parts = realName.trim().split(/\s+/).filter(Boolean)
+    if (parts.length) {
+      name.first = name.first || parts[0]
+      name.last = name.last || (parts.length > 1 ? parts[parts.length - 1] : "")
+      name.middle = name.middle || parts.slice(1, -1).join(" ")
     }
-    // Every hero needs something to be called by; fall back to the first name
-    if (!name.nick) name.nick = name.first || name.full
-    return name
+    if (akaNick) name.nick = name.nick || akaNick.trim()
+  }
+  // Every hero needs something to be called by; fall back to the first name
+  if (!name.nick) name.nick = name.first || name.full
+  return name
+}
+
+// --- Saving the profile form ------------------------------------------------------------------
+
+/** A hero as it sits in profile storage: every field the app has ever put on it, not only the ones the form shows */
+export type StoredProfile = Record<string, any>
+
+/** What the profile form holds: the `new User` fields, plus the 3D hero built in the look builder and its picture */
+export type ProfileFormValues = NewProfileForm & { look?: unknown; avatarImage?: string }
+
+/** The only fields the profile form edits. Everything else on a stored hero is not the form's to touch. */
+const FORM_EDITED_FIELDS = ["email", "passcode", "avatar", "favoriteThing", "favoriteFood", "jobClass", "isAdult"] as const
+
+/**
+ * The record to save when the form edits a hero that already exists: the stored record with the
+ * form's own fields laid over it. Stats, equipment, inventory, quest effects, Pegasi, unlocked
+ * items and anything else the form never shows come through untouched, because `new User` keeps
+ * only a fixed list of fields and would drop the rest.
+ */
+export function mergeProfileEdit(stored: StoredProfile, form: ProfileFormValues): StoredProfile {
+  const edited: StoredProfile = {}
+  for (const field of FORM_EDITED_FIELDS) {
+    if (form[field] !== undefined) edited[field] = form[field]
+  }
+  // The same normalisation `new User` applies, so an edit never turns "" into a missing field
+  edited.email = form.email || ""
+  edited.passcode = form.passcode || ""
+
+  // A renamed hero gets the name block derived again; the same name keeps the block as it is
+  // (nickname and all). A nickname someone chose for themselves survives a rename.
+  const storedName = stored.name ?? {}
+  const full = form.name?.full
+  if (full && full !== storedName.full) {
+    edited.name = { ...nameFromFull({ full }), ...(storedName.preferred ? { preferred: storedName.preferred } : {}) }
+  }
+
+  // Only a look the form really holds is laid over the stored one; the form cannot clear it
+  if (form.look) edited.look = form.look
+  if (form.avatarImage) edited.avatarImage = form.avatarImage
+
+  return { ...stored, ...edited }
+}
+
+/** What the save path reads from profile storage (ProfileDb has both) */
+export interface ProfileSaveStorage {
+  get(id: string): Promise<StoredProfile | null | undefined>
+  newProfile(form: NewProfileForm): StoredProfile
+}
+
+/**
+ * The record the profile form saves. A hero that already exists (found in storage, else the
+ * profile the form was opened with) is merged with the form's fields, so editing never wipes what
+ * the form does not show. A new hero is built by `new User` as always, with the 3D look and its
+ * picture added back by hand because `new User` does not keep them.
+ */
+export async function profileToSave(
+  storage: ProfileSaveStorage,
+  form: ProfileFormValues,
+  openedWith?: StoredProfile | null
+): Promise<StoredProfile> {
+  let stored: StoredProfile | null | undefined
+  if (form.id) {
+    try {
+      // Read it again now: the copy the form was opened with may be older than what is stored
+      stored = await storage.get(form.id)
+    } catch {
+      stored = undefined
+    }
+  }
+  const existing = stored || openedWith
+  if (existing) return mergeProfileEdit(existing, form)
+
+  return {
+    ...storage.newProfile(form),
+    ...(form.look ? { look: form.look } : {}),
+    ...(form.avatarImage ? { avatarImage: form.avatarImage } : {}),
   }
 }
