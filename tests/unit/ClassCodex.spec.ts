@@ -36,7 +36,23 @@ const entry = (name: string, levels: Record<string, number> = fresh) => {
 describe("classCodex", () => {
   it("lists every class in JOB_CLASS_OPTIONS order", () => {
     expect(classCodex(fresh).map((c) => c.name)).toEqual(JOB_CLASS_OPTIONS.map((j) => j.name));
-    expect(classCodex(fresh).map((c) => c.name)).toEqual(["Warrior", "Mage", "Thief", "Monk", "Paladin", "Ninja", "Sage"]);
+    expect(classCodex(fresh).map((c) => c.name)).toEqual([
+      "Warrior",
+      "Mage",
+      "Thief",
+      "Monk",
+      "Knight",
+      "Berserker",
+      "White Mage",
+      "Black Mage",
+      "Assassin",
+      "Ranger",
+      "Martial Artist",
+      "Mystic",
+      "Paladin",
+      "Ninja",
+      "Sage",
+    ]);
   });
 
   it("gives every class a creed, three real-life lines, a passive and three pillars with stat names", () => {
@@ -64,6 +80,13 @@ describe("classCodex", () => {
     expect(warrior.pillars.map((p) => p.key)).toEqual(["physical", "eternal", "relational"]);
     expect(warrior.pillars[0]).toMatchObject({ name: "Body", stats: ["Defense", "Strength", "Endurance"], currency: "HP" });
     expect(entry("Sage").pillars.map((p) => p.key)).toEqual(["mental", "vibrational", "eternal"]);
+    expect(entry("Martial Artist").pillars.map((p) => p.key)).toEqual(["physical", "vibrational", "mental"]);
+  });
+
+  it("carries the new classes' creed, passive and icon from the tables", () => {
+    expect(entry("Black Mage")).toMatchObject({ creed: "Burns through the list.", icon: "fa-meteor", passive: classPassive("Black Mage").blurb });
+    expect(entry("Mystic")).toMatchObject({ creed: "Calm sees further.", icon: "fa-eye" });
+    expect(entry("Knight").realLife[0]).toBe("Suits the protector jobs: locking up at night, checking on siblings, keeping the house safe.");
   });
 
   it("reads the starting HP and MP at level 1 from PlayerStatsService", () => {
@@ -79,40 +102,36 @@ describe("classCodex", () => {
 
   it("marks tier 1 and tier 2", () => {
     ["Warrior", "Mage", "Thief", "Monk"].forEach((name) => expect(entry(name).tier).toBe(1));
-    ["Paladin", "Ninja", "Sage"].forEach((name) => expect(entry(name).tier).toBe(2));
+    ["Knight", "Berserker", "White Mage", "Black Mage", "Assassin", "Ranger", "Martial Artist", "Mystic"].forEach((name) =>
+      expect(entry(name).tier).toBe(2)
+    );
   });
 });
 
 describe("growsInto", () => {
-  it("Warrior grows into Paladin (with Monk) and Ninja (with Thief)", () => {
-    const grows = entry("Warrior").growsInto;
-    expect(grows.map((g) => [g.name, g.with])).toEqual([
-      ["Paladin", "Monk"],
-      ["Ninja", "Thief"],
+  it("each base class grows into its two advanced classes, with nobody to pair with", () => {
+    expect(entry("Warrior").growsInto.map((g) => [g.name, g.with])).toEqual([
+      ["Knight", null],
+      ["Berserker", null],
     ]);
-    expect(grows[0].requirement).toBe(classRequirementLabel("Paladin"));
-    expect(grows[0].icon).toBe(JOB_CLASS_OPTIONS.find((j) => j.name === "Paladin")?.icon);
+    expect(entry("Mage").growsInto.map((g) => g.name)).toEqual(["White Mage", "Black Mage"]);
+    expect(entry("Thief").growsInto.map((g) => g.name)).toEqual(["Assassin", "Ranger"]);
+    expect(entry("Monk").growsInto.map((g) => g.name)).toEqual(["Martial Artist", "Mystic"]);
+  });
+
+  it("shows the requirement label and icon of each evolution", () => {
+    const grows = entry("Warrior").growsInto;
+    expect(grows[0].requirement).toBe(classRequirementLabel("Knight"));
+    expect(grows[0].requirement).toBe("Warrior 10");
+    expect(grows[0].icon).toBe(JOB_CLASS_OPTIONS.find((j) => j.name === "Knight")?.icon);
     expect(grows.every((g) => g.met === false)).toBe(true);
   });
 
-  it("Monk grows into Paladin (with Warrior) and Sage (with Mage); Mage into Sage; Thief into Ninja", () => {
-    expect(entry("Monk").growsInto.map((g) => [g.name, g.with])).toEqual([
-      ["Paladin", "Warrior"],
-      ["Sage", "Mage"],
-    ]);
-    expect(entry("Mage").growsInto.map((g) => [g.name, g.with])).toEqual([["Sage", "Monk"]]);
-    expect(entry("Thief").growsInto.map((g) => [g.name, g.with])).toEqual([["Ninja", "Warrior"]]);
-  });
-
-  it("tier-2 entries grow into nothing", () => {
-    ["Paladin", "Ninja", "Sage"].forEach((name) => expect(entry(name).growsInto).toEqual([]));
-  });
-
-  it("flags an evolution as met once the hero has both parents at the level", () => {
-    const levels = classLevelsOf({ Warrior: { level: 10 }, Monk: { level: 10 } });
-    const grows = entry("Warrior", levels).growsInto;
-    expect(grows.find((g) => g.name === "Paladin")?.met).toBe(true);
-    expect(grows.find((g) => g.name === "Ninja")?.met).toBe(false);
+  it("flags an evolution as met once the hero has the parent at level 10", () => {
+    const grows = entry("Warrior", classLevelsOf({ Warrior: { level: 10 } })).growsInto;
+    expect(grows.map((g) => g.met)).toEqual([true, true]);
+    expect(entry("Warrior", classLevelsOf({ Warrior: { level: 9 } })).growsInto.map((g) => g.met)).toEqual([false, false]);
+    expect(entry("Mage", classLevelsOf({ mage: { level: 10 } })).growsInto.map((g) => g.met)).toEqual([true, true]);
   });
 });
 
@@ -125,35 +144,61 @@ describe("sealed classes", () => {
     });
   });
 
-  it("Paladin is sealed behind its requirement label and opens at Warrior 10 + Monk 10", () => {
-    const sealed = entry("Paladin");
-    expect(sealed.requirement).toBe(classRequirementLabel("Paladin"));
-    expect(sealed.requirement).toBe("Warrior 10 + Monk 10");
+  it("an advanced class is sealed behind its one parent and opens at level 10", () => {
+    const sealed = entry("White Mage");
+    expect(sealed.requirement).toBe(classRequirementLabel("White Mage"));
+    expect(sealed.requirement).toBe("Mage 10");
     expect(sealed.sealed).toBe(true);
 
-    expect(entry("Paladin", classLevelsOf({ Warrior: { level: 10 }, Monk: { level: 9 } })).sealed).toBe(true);
-    expect(entry("Paladin", classLevelsOf({ Warrior: { level: 10 }, Monk: { level: 10 } })).sealed).toBe(false);
+    expect(entry("White Mage", classLevelsOf({ Mage: { level: 9 } })).sealed).toBe(true);
+    expect(entry("White Mage", classLevelsOf({ Mage: { level: 10 } })).sealed).toBe(false);
+    expect(entry("Black Mage", classLevelsOf({ Mage: { level: 10 } })).sealed).toBe(false);
+    expect(entry("Knight", classLevelsOf({ Mage: { level: 10 } })).sealed).toBe(true);
     // Lower-case spellings from old profiles count the same
-    expect(entry("Paladin", classLevelsOf({ warrior: { level: 12 }, monk: { level: 10 } })).sealed).toBe(false);
+    expect(entry("Knight", classLevelsOf({ warrior: { level: 12 } })).sealed).toBe(false);
   });
 
-  it("every tier-2 class is sealed for a fresh hero and carries a requirement", () => {
-    ["Paladin", "Ninja", "Sage"].forEach((name) => {
-      expect(entry(name).sealed).toBe(true);
-      expect(entry(name).requirement).toBe(classRequirementLabel(name));
-      expect(entry(name).requirement).not.toBe("");
-    });
+  it("Paladin is sealed behind its requirement label and opens at Knight 10 + Mystic 10", () => {
+    const sealed = entry("Paladin");
+    expect(sealed.requirement).toBe(classRequirementLabel("Paladin"));
+    expect(sealed.requirement).toBe("Knight 10 + Mystic 10");
+    expect(sealed.sealed).toBe(true);
+
+    expect(entry("Paladin", classLevelsOf({ Knight: { level: 10 }, Mystic: { level: 9 } })).sealed).toBe(true);
+    expect(entry("Paladin", classLevelsOf({ Knight: { level: 10 }, Mystic: { level: 10 } })).sealed).toBe(false);
+    expect(entry("Paladin", classLevelsOf({ knight: { level: 12 }, mystic: { level: 10 } })).sealed).toBe(false);
+    // The old pair no longer opens it
+    expect(entry("Paladin", classLevelsOf({ Warrior: { level: 10 }, Monk: { level: 10 } })).sealed).toBe(true);
+  });
+
+  it("a class with a space in its name opens a crown class", () => {
+    expect(entry("Sage").requirement).toBe("White Mage 10 + Mystic 10");
+    expect(entry("Sage", classLevelsOf({ "White Mage": { level: 10 }, Mystic: { level: 10 } })).sealed).toBe(false);
+    expect(entry("Sage", classLevelsOf({ "White Mage": { level: 10 } })).sealed).toBe(true);
+  });
+
+  it("every advanced and crown class is sealed for a fresh hero and carries a requirement", () => {
+    classCodex(fresh)
+      .filter((c) => !["Warrior", "Mage", "Thief", "Monk"].includes(c.name))
+      .forEach((c) => {
+        expect(c.sealed).toBe(true);
+        expect(c.requirement).toBe(classRequirementLabel(c.name));
+        expect(c.requirement).not.toBe("");
+      });
   });
 
   it("reports the hero's progress toward each parent", () => {
-    const levels = classLevelsOf({ Warrior: { level: 3 }, Monk: { level: 10 } });
+    const levels = classLevelsOf({ Knight: { level: 3 }, Mystic: { level: 10 } });
     expect(entry("Paladin", levels).requirementProgress).toEqual([
-      { name: "Warrior", level: 3, needed: 10, met: false },
-      { name: "Monk", level: 10, needed: 10, met: true },
+      { name: "Knight", level: 3, needed: 10, met: false },
+      { name: "Mystic", level: 10, needed: 10, met: true },
     ]);
     expect(entry("Ninja", levels).requirementProgress.map((p) => [p.name, p.level])).toEqual([
-      ["Thief", 0],
-      ["Warrior", 3],
+      ["Assassin", 0],
+      ["Berserker", 0],
+    ]);
+    expect(entry("Knight", classLevelsOf({ Warrior: { level: 4 } })).requirementProgress).toEqual([
+      { name: "Warrior", level: 4, needed: 10, met: false },
     ]);
   });
 });
@@ -170,6 +215,7 @@ describe("heroLevel", () => {
 describe("classCodexEntry", () => {
   it("finds a class however it is cased and returns null for a stranger", () => {
     expect(classCodexEntry("warrior", fresh)?.name).toBe("Warrior");
+    expect(classCodexEntry("white mage", fresh)?.name).toBe("White Mage");
     expect(classCodexEntry("Bard", fresh)).toBeNull();
     expect(classCodexEntry("", fresh)).toBeNull();
   });
@@ -199,7 +245,7 @@ describe("useUserStore().setJobClass", () => {
   });
 
   it("refuses a sealed class and changes nothing", async () => {
-    store.users["hero-1"].stats.classes = { Warrior: { level: 10 }, Monk: { level: 9 } };
+    store.users["hero-1"].stats.classes = { Warrior: { level: 10 }, Knight: { level: 10 }, Mystic: { level: 9 } };
 
     expect(store.setJobClass("hero-1", "Paladin")).toBe(false);
     await Promise.resolve();
@@ -208,8 +254,17 @@ describe("useUserStore().setJobClass", () => {
     expect(mockSetProfile).not.toHaveBeenCalled();
   });
 
-  it("accepts a tier-2 class once both parents reach the level", () => {
-    store.users["hero-1"].stats.classes = { Warrior: { level: 10 }, Monk: { level: 10 } };
+  it("accepts an advanced class once its parent reaches level 10, spaces and all", () => {
+    store.users["hero-1"].stats.classes = { Warrior: { level: 10 }, Mage: { level: 10 } };
+
+    expect(store.setJobClass("hero-1", "Knight")).toBe(true);
+    expect(store.users["hero-1"].jobClass).toBe("Knight");
+    expect(store.setJobClass("hero-1", "White Mage")).toBe(true);
+    expect(store.users["hero-1"].jobClass).toBe("White Mage");
+  });
+
+  it("accepts a crown class once both advanced parents reach the level", () => {
+    store.users["hero-1"].stats.classes = { Knight: { level: 10 }, Mystic: { level: 10 } };
 
     expect(store.setJobClass("hero-1", "Paladin")).toBe(true);
     expect(store.users["hero-1"].jobClass).toBe("Paladin");

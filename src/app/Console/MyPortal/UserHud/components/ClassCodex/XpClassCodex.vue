@@ -221,12 +221,21 @@
     (e: "chosen", name: string): void;
   }>();
 
-  // The class colours of the old picker (JobClassSelector) for the four base classes, blended for the advanced ones
+  // The class colours of the old picker (JobClassSelector) for the four base classes, one tint of its own per advanced
+  // class (all at least 4.5:1 on the dark purple checker)
   const CREST_RGB: Record<string, [number, number, number]> = {
     Warrior: [255, 82, 82],
     Mage: [64, 196, 255],
     Thief: [105, 240, 174],
     Monk: [255, 215, 64],
+    Knight: [125, 165, 220], // steel blue
+    Berserker: [230, 45, 60], // blood red
+    "White Mage": [250, 235, 190], // ivory and gold
+    "Black Mage": [160, 110, 255], // violet
+    Assassin: [150, 165, 188], // slate
+    Ranger: [85, 190, 95], // forest green
+    "Martial Artist": [255, 176, 20], // amber
+    Mystic: [35, 200, 188], // teal
     Paladin: [255, 160, 90],
     Ninja: [196, 140, 255],
     Sage: [130, 230, 215],

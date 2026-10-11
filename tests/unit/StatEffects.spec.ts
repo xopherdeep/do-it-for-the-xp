@@ -189,3 +189,46 @@ describe("the profile sheet", () => {
     expect(heroEffects(hero)).toEqual(statEffects({ luck: 3, charisma: 2 }));
   });
 });
+
+/** The advanced classes (Knight, Berserker, White Mage, ...) run through the same stat rules as the four base classes. */
+describe("the advanced classes in the stat rules", () => {
+  it("the badge total starts from the advanced class's raised base stats", () => {
+    expect(statTotal({ jobClass: "Knight", stats: {} }, "strength")).toBe(14); // Warrior 12, +10 % rounded up
+    expect(statTotal({ jobClass: "Knight", stats: { special: { strength: 4 } } }, "strength")).toBe(18);
+    expect(statTotal({ jobClass: "Black Mage", stats: {} }, "intelligence")).toBe(14); // Mage 12, +10 % rounded up
+    expect(statTotal({ jobClass: "Mystic", stats: {} }, "focus")).toBe(11); // Monk 10, +10 %: 11, not 12
+  });
+
+  it("a hero with nothing trained gets exactly the advanced class's table", () => {
+    ["Knight", "Berserker", "White Mage", "Black Mage", "Assassin", "Ranger", "Martial Artist", "Mystic"].forEach((jobClass) => {
+      expect(heroPassive({ jobClass, stats: {} })).toEqual(classPassive(jobClass));
+    });
+  });
+
+  it("trained guts lower a Berserker's brace the way they do a Warrior's", () => {
+    const passive = heroPassive({ jobClass: "Berserker", stats: { special: { guts: 10 } } });
+    expect(passive.braceFactor).toBeCloseTo(0.315, 5); // 0.35 * 0.9
+    expect(passive.hpRegenOnWin).toBe(0.15);
+  });
+
+  it("the MP bill and the loot use the new passives", () => {
+    expect(heroMpBill(100, { jobClass: "Black Mage", stats: {} })).toBe(65);
+    expect(heroMpBill(100, { jobClass: "White Mage", stats: {} })).toBe(75);
+    expect(heroGold(20, { jobClass: "Assassin", stats: {} })).toBe(26);
+    expect(heroGold(20, { jobClass: "Ranger", stats: {} })).toBe(25);
+    expect(heroGold(20, { jobClass: "Mystic", stats: {} })).toBe(20);
+  });
+
+  it("statEffectLine reads the advanced class's HP and MP growth, for names with a space too", () => {
+    expect(statEffectLine("endurance", { jobClass: "Martial Artist", stats: { special: { endurance: 4 } } })).toBe("Trained 4: +11 max HP");
+    expect(statEffectLine("wisdom", { jobClass: "Mystic", stats: { special: { wisdom: 3 } } })).toBe("Trained 3: +6 max MP");
+    expect(statEffectLine("intelligence", { jobClass: "Black Mage", stats: { special: { intelligence: 2 } } })).toBe(
+      "Trained 2: +7 max MP, MP costs 2% off"
+    );
+  });
+
+  it("max HP and MP use the advanced class's own row", () => {
+    expect(calculateMaxHp(1, "Knight", { endurance: 2 })).toBe(54 + 6);
+    expect(calculateMaxHp(1, "Martial Artist", {})).toBe(48);
+  });
+});

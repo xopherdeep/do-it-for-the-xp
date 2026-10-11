@@ -47,6 +47,18 @@ export const THIEF_GP_BONUS = 0.25;
 export const THIEF_RUN_CHANCE = 0.9;
 export const MONK_MINUTE = 1;
 export const MONK_AP = 1;
+// Tier-2 nudges: each advanced class is its parent's passive plus one of these (docs/Items-And-Classes-Contract.md, C)
+export const KNIGHT_HP_REGEN = 0.05;
+export const BERSERKER_BRACE_FACTOR = 0.35;
+export const BERSERKER_HP_REGEN = 0.15;
+export const WHITE_MAGE_MP_REGEN = 0.2;
+export const WHITE_MAGE_HP_REGEN = 0.1;
+export const BLACK_MAGE_MP_DISCOUNT = 0.35;
+export const ASSASSIN_GP_BONUS = 0.3;
+export const RANGER_GP_BONUS = 0.25;
+export const MARTIAL_ARTIST_MINUTES = 2;
+export const MYSTIC_AP = 2;
+export const MYSTIC_MP_REGEN = 0.1;
 
 const NONE: ClassPassive = {
   braceFactor: DEFAULT_BRACE_FACTOR,
@@ -84,6 +96,49 @@ const PASSIVES: Record<string, Partial<ClassPassive>> = {
     apBonusOnWin: MONK_AP,
     blurb: 'Each chore earns +1 minute on the clock; +1 AP on every win.',
   },
+  // Tier 2: the parent's passive plus one nudge, made only of the fields above
+  Knight: {
+    braceFactor: WARRIOR_BRACE_FACTOR,
+    hpRegenOnWin: KNIGHT_HP_REGEN,
+    blurb: 'Braces like a wall, and every win mends a little.',
+  },
+  Berserker: {
+    braceFactor: BERSERKER_BRACE_FACTOR,
+    hpRegenOnWin: BERSERKER_HP_REGEN,
+    blurb: 'Shrugs off the hit; wins heal a chunk.',
+  },
+  'White Mage': {
+    mpDiscount: MAGE_MP_DISCOUNT,
+    mpRegenOnWin: WHITE_MAGE_MP_REGEN,
+    hpRegenOnWin: WHITE_MAGE_HP_REGEN,
+    blurb: 'Cheap casts, MP back on wins, and a little HP too.',
+  },
+  'Black Mage': {
+    mpDiscount: BLACK_MAGE_MP_DISCOUNT,
+    mpRegenOnWin: WIN_MP_REGEN,
+    blurb: 'The deepest MP discount in the game.',
+  },
+  Assassin: {
+    runChance: THIEF_RUN_CHANCE,
+    gpBonus: ASSASSIN_GP_BONUS,
+    blurb: 'Slips away from almost anything, and pockets extra GP.',
+  },
+  Ranger: {
+    gpBonus: RANGER_GP_BONUS,
+    cooldownMinutesBonus: MONK_MINUTE,
+    blurb: 'Extra GP from every quest, and a spare minute on the clock.',
+  },
+  'Martial Artist': {
+    cooldownMinutesBonus: MARTIAL_ARTIST_MINUTES,
+    apBonusOnWin: MONK_AP,
+    blurb: 'Two extra minutes a chore, and AP on every win.',
+  },
+  Mystic: {
+    apBonusOnWin: MYSTIC_AP,
+    mpRegenOnWin: MYSTIC_MP_REGEN,
+    blurb: 'Double AP on every win, and MP back as you go.',
+  },
+  // Tier 3: the passives of the old pair rule, unchanged
   Paladin: {
     braceFactor: WARRIOR_BRACE_FACTOR,
     hpRegenOnWin: WIN_HP_REGEN,
@@ -127,7 +182,10 @@ export const bonusGp = (gp: number, jobClass: string | null | undefined): number
   return Math.round(gp * (1 + classPassive(jobClass).gpBonus));
 };
 
-/** The class levels on a hero, as `isClassUnlocked` wants them, from `stats.classes` ({ [name]: { level } }). */
+/**
+ * The class levels on a hero, as `isClassUnlocked` wants them, from `stats.classes` ({ [name]: { level } }).
+ * `stats.classes` is keyed by `jobClass` exactly as the hero's class is spelled ("White Mage"), for every tier.
+ */
 export const classLevelsOf = (
   classes: Record<string, { level?: number } | undefined> | null | undefined
 ): Record<string, number> =>
@@ -135,11 +193,11 @@ export const classLevelsOf = (
     Object.entries(classes ?? {}).map(([name, progress]) => [name, Math.max(0, Number(progress?.level) || 0)])
   );
 
-/** The requirement of a tier-2 class, or null when the class has none (tier 1 and unknown classes are open). */
+/** The requirement of an advanced class (tier 2 or 3), or null when the class has none (tier 1 and unknown classes are open). */
 export const classRequirement = (jobClass: string | null | undefined): Record<string, number> | null =>
   JOB_UNLOCK_REQUIREMENTS[canonicalClassName(jobClass)] ?? null;
 
-/** "Warrior 10 + Monk 10": the requirement as the picker prints it, or '' when there is none. */
+/** "Warrior 10" or "Knight 10 + Mystic 10": the requirement as the picker prints it, or '' when there is none. */
 export const classRequirementLabel = (jobClass: string | null | undefined): string => {
   const requirement = classRequirement(jobClass);
   if (!requirement) return '';
@@ -149,8 +207,9 @@ export const classRequirementLabel = (jobClass: string | null | undefined): stri
 };
 
 /**
- * Whether the hero may pick this class: tier 1 always, tier 2 once every parent class in
- * JOB_UNLOCK_REQUIREMENTS has reached its level. Class names in `classLevels` match however they are cased.
+ * Whether the hero may pick this class: tier 1 always, tier 2 once its parent and tier 3 once both its parents in
+ * JOB_UNLOCK_REQUIREMENTS have reached their level. Class names in `classLevels` match however they are cased
+ * (names with a space, "White Mage", included).
  */
 export const isClassUnlocked = (jobClass: string | null | undefined, classLevels: Record<string, number>): boolean => {
   const requirement = classRequirement(jobClass);

@@ -60,7 +60,81 @@ export const JOB_CLASS_BASE_STATS: Record<string, JobClassBaseStats> = {
     intelligenceMultiplier: 1,
     wisdomMultiplier: 1.5,      // Monks have good wisdom too
   },
-  // Tier 2: each is the average of its two parents (see JOB_UNLOCK_REQUIREMENTS)
+  // Tier 2: each stays near its single parent and tilts toward what it does (see JOB_UNLOCK_REQUIREMENTS)
+  Knight: {
+    hp: 54,       // Warrior 50, a little sturdier
+    mp: 11,
+    hpGrowth: 8,
+    mpGrowth: 2,
+    enduranceMultiplier: 3,
+    intelligenceMultiplier: 0.5,
+    wisdomMultiplier: 0.75,
+  },
+  Berserker: {
+    hp: 56,       // Warrior 50, all muscle and less MP
+    mp: 8,
+    hpGrowth: 9,
+    mpGrowth: 1,
+    enduranceMultiplier: 3,
+    intelligenceMultiplier: 0.5,
+    wisdomMultiplier: 0.5,
+  },
+  'White Mage': {
+    hp: 28,       // Mage 25/40, a healer keeps a little more HP
+    mp: 42,
+    hpGrowth: 3,
+    mpGrowth: 8,
+    enduranceMultiplier: 1,
+    intelligenceMultiplier: 2.5,
+    wisdomMultiplier: 2.5,
+  },
+  'Black Mage': {
+    hp: 24,       // Mage 25/40, glass cannon
+    mp: 46,
+    hpGrowth: 3,
+    mpGrowth: 9,
+    enduranceMultiplier: 1,
+    intelligenceMultiplier: 3.5,
+    wisdomMultiplier: 1.5,
+  },
+  Assassin: {
+    hp: 36,       // Thief 35/20, a touch tougher
+    mp: 20,
+    hpGrowth: 6,
+    mpGrowth: 3,
+    enduranceMultiplier: 1.5,
+    intelligenceMultiplier: 1,
+    wisdomMultiplier: 0.75,
+  },
+  Ranger: {
+    hp: 36,       // Thief 35/20, a touch more MP
+    mp: 22,
+    hpGrowth: 5,
+    mpGrowth: 4,
+    enduranceMultiplier: 1.5,
+    intelligenceMultiplier: 1,
+    wisdomMultiplier: 1.25,
+  },
+  'Martial Artist': {
+    hp: 48,       // Monk 45/25, body first
+    mp: 25,
+    hpGrowth: 8,
+    mpGrowth: 4,
+    enduranceMultiplier: 2.75,
+    intelligenceMultiplier: 1,
+    wisdomMultiplier: 1.25,
+  },
+  Mystic: {
+    hp: 42,       // Monk 45/25, mind first
+    mp: 28,
+    hpGrowth: 6,
+    mpGrowth: 6,
+    enduranceMultiplier: 2,
+    intelligenceMultiplier: 1,
+    wisdomMultiplier: 2,
+  },
+  // Tier 3: the numbers they have always had (the average of the old Warrior/Monk/Thief/Mage parents), kept so
+  // no hero's max HP or MP shifts when the tree grew
   Paladin: {
     hp: 48,       // (Warrior 50 + Monk 45) / 2, rounded
     mp: 18,
@@ -104,12 +178,25 @@ export const JOB_CLASS_BASE_STATS: Record<string, JobClassBaseStats> = {
 // JOB UNLOCK REQUIREMENTS
 // ============================================
 
+/**
+ * The class tree: 4 base classes (always open) -> 8 advanced classes, each unlocked when ONE base class is level 10
+ * -> 3 crown classes, each unlocked when TWO advanced classes are level 10. Keys are class names exactly as
+ * JOB_CLASS_OPTIONS spells them (some have a space); `stats.classes` is keyed the same way.
+ */
 export const JOB_UNLOCK_REQUIREMENTS: Record<string, Record<string, number>> = {
-  // Advanced Classes
-  Paladin: { Warrior: 10, Monk: 10 },
-  Ninja: { Thief: 10, Warrior: 10 },
-  Sage: { Mage: 10, Monk: 10 },
-  // Future classes can be added here
+  // Tier 2: one parent each
+  Knight: { Warrior: 10 },
+  Berserker: { Warrior: 10 },
+  'White Mage': { Mage: 10 },
+  'Black Mage': { Mage: 10 },
+  Assassin: { Thief: 10 },
+  Ranger: { Thief: 10 },
+  'Martial Artist': { Monk: 10 },
+  Mystic: { Monk: 10 },
+  // Tier 3: two tier-2 parents
+  Paladin: { Knight: 10, Mystic: 10 },
+  Ninja: { Assassin: 10, Berserker: 10 },
+  Sage: { 'White Mage': 10, Mystic: 10 },
 };
 
 // ============================================
@@ -126,6 +213,16 @@ export const CLASS_LEVEL_BONUSES: Record<string, ClassLevelBonus> = {
   Mage: { hp: 1, mp: 5 },
   Thief: { hp: 3, mp: 2 },
   Monk: { hp: 4, mp: 2 },
+  // Tier 2: the parent's bonus, leaning the way the class leans
+  Knight: { hp: 6, mp: 1 },
+  Berserker: { hp: 6, mp: 0 },
+  'White Mage': { hp: 2, mp: 5 },
+  'Black Mage': { hp: 1, mp: 6 },
+  Assassin: { hp: 4, mp: 2 },
+  Ranger: { hp: 3, mp: 3 },
+  'Martial Artist': { hp: 5, mp: 2 },
+  Mystic: { hp: 3, mp: 4 },
+  // Tier 3
   Paladin: { hp: 6, mp: 2 },
   Ninja: { hp: 3, mp: 3 },
   Sage: { hp: 2, mp: 6 },
@@ -402,9 +499,17 @@ export function getJobClassPreview(jobClass: string): {
     Mage: "Low HP, high MP. Masters of abilities and knowledge.",
     Thief: "Balanced stats. Excels at efficiency and resource gathering.",
     Monk: "Good HP and MP. Balanced physical and mental prowess.",
-    Paladin: "A Warrior's heart with a Monk's calm. Sturdy, and every win heals.",
-    Ninja: "A Thief's feet with a Warrior's arm. Quick, rich and hard to catch.",
-    Sage: "A Mage's mind with a Monk's patience. Deep MP and a spare minute.",
+    Knight: "A Warrior who guards others. Sturdy, braces like a wall, and every win heals a little.",
+    Berserker: "A Warrior who goes all in. Big HP, softer hits, and every win heals a chunk.",
+    "White Mage": "A Mage who looks after the party. Cheap casts, MP back on wins, and a little HP too.",
+    "Black Mage": "A Mage who burns through the list. The deepest MP and the cheapest spells.",
+    Assassin: "A Thief who is done before anyone notices. Slips away from almost anything, and pockets extra GP.",
+    Ranger: "A Thief with a patient aim. Extra GP from every quest, and a spare minute on the clock.",
+    "Martial Artist": "A Monk who lives by practice. Two extra minutes a chore, and AP on every win.",
+    Mystic: "A Monk who finds the calm. Double AP on every win, and MP back as you go.",
+    Paladin: "A Knight's shield with a Mystic's calm. Sturdy, and every win heals.",
+    Ninja: "An Assassin's feet with a Berserker's arm. Quick, rich and hard to catch.",
+    Sage: "A White Mage's mind with a Mystic's patience. Deep MP and a spare minute.",
     default: "A balanced adventurer with no specialization.",
   };
 
