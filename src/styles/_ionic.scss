@@ -329,16 +329,20 @@ ion-toast.rpg-toast,
     font-family: "Apple Kid", "StatusPlz", sans-serif;
   }
 
+  // The X that dismisses the box (a cancel button): cream, a finger-sized target, never uppercase
   &::part(button) {
     font-family: "Apple Kid", sans-serif;
     font-size: 1.05rem;
     letter-spacing: 1px;
     text-transform: none;
     color: #f7e8a8 !important;
+    min-width: 44px;
+    min-height: 44px;
   }
 
   &::part(icon) {
     color: #f7e8a8 !important;
+    font-size: 1.6rem;
   }
 
   &.toast-top,
