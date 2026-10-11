@@ -14,6 +14,10 @@
 
     <ion-content :fullscreen="true">
       <WeatherFX type="mountains" :intensity="4" :sound-enabled="false" />
+      <div class="world-landmarks-layer">
+        <xp-temple-model temple-id="fire-temple" :size="115" />
+        <xp-building-model building-id="crystal-caverns" :size="115" />
+      </div>
       <div class="fire-container">
         <!-- Base fire layer along the bottom -->
         <div class="fire-base"></div>

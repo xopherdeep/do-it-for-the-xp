@@ -186,16 +186,18 @@ ion-modal.temple-map-modal {
   }
 }
 
+ion-modal.temple-map-modal .temple-map,
 .temple-map {
   margin: 0;
-  padding: 16px 18px 14px;
+  padding: 16px 18px 24px;
   max-height: 86vh;
   overflow: auto;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  color: #3a2a14;
+  gap: 12px;
+  --color: #3a2a14;
+  color: #3a2a14 !important;
   background:
     radial-gradient(ellipse at 28% 18%, rgba(255, 255, 255, 0.28), transparent 55%),
     radial-gradient(ellipse at 72% 85%, rgba(110, 70, 25, 0.28), transparent 60%),
@@ -218,11 +220,13 @@ ion-modal.temple-map-modal {
     padding: 2px 6px 6px;
     border-bottom: 2px solid rgba(90, 60, 20, 0.45);
     font-family: "Onett", "Apple Kid", serif;
+    color: #3a2a14;
   }
 
   &__name {
     font-size: 1.25rem;
     letter-spacing: 1px;
+    color: #3a2a14;
   }
 
   &__floor {
@@ -230,6 +234,7 @@ ion-modal.temple-map-modal {
     font-family: "StatusPlz", monospace;
     font-size: 0.95rem;
     opacity: 0.8;
+    color: #3a2a14;
   }
 
   &__rose {
@@ -315,15 +320,18 @@ ion-modal.temple-map-modal {
     display: flex;
     flex-wrap: wrap;
     justify-content: center;
-    gap: 6px 16px;
+    gap: 10px 24px;
+    margin-top: 8px;
+    padding: 4px 10px 6px;
     font-family: "StatusPlz", monospace;
     font-size: 0.85rem;
-    opacity: 0.85;
+    color: #3a2a14;
 
     .legend-item {
       display: inline-flex;
       align-items: center;
-      gap: 6px;
+      gap: 8px;
+      color: #3a2a14;
     }
   }
 

@@ -6,7 +6,11 @@ import { IonicVue } from '@ionic/vue';
 import Vue3AutoCounter from 'vue3-autocounter';
 import Countdown from 'vue3-flip-countdown'
 import XpGp from './components/atoms/Currency/XpGp.vue'
+import XpLandmarkBadge from './components/atoms/Badge/XpLandmarkBadge.vue'
 import XpLoading from './components/molecules/Loading'
+import XpTempleModel from './components/organisms/TempleModel/XpTempleModel.vue'
+import XpBuildingModel from './components/organisms/BuildingModel/XpBuildingModel.vue'
+import XpStageModel from './components/organisms/StageModel/XpStageModel.vue'
 
 // Virtual Scroller
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
@@ -63,6 +67,10 @@ function readyRouterMountApp() {
     .component('vue3-autocounter', Vue3AutoCounter)
     .component('xp-loading', XpLoading)
     .component('xp-gp', XpGp)
+    .component('xp-landmark-badge', XpLandmarkBadge)
+    .component('xp-temple-model', XpTempleModel)
+    .component('xp-building-model', XpBuildingModel)
+    .component('xp-stage-model', XpStageModel)
     // .component('RecycleScroller', RecycleScroller)
     .use(VueVirtualScroller)
     .use(Countdown)

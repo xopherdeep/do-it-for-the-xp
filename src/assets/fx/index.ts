@@ -104,6 +104,8 @@ const $fx = {
       openShop: new Audio(nintendo.Eshop),
       okdesuka: new Audio(earthbound.okdesuka),
       GameBoy: new Audio(nintendo.GameBoy),
+      key: new Audio(key),
+      useKey: new Audio(useKey),
     },
     sony: {
       loading: new Audio(nintendo.EshopIntro),

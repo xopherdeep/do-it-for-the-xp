@@ -9,13 +9,12 @@
       </xp-main-hud>
     </template>
 
-    <!-- FABs: the page menu (navigating the world) and the shortcuts stay. The quick-draw FAB (the arms with the
-         equipment pull-up) is retired 2026-10-10: the hands live in the bottom nav, the equipment opens from the
-         Area tab, the Pegasus map opens from the avatar menu next to Save & Quit. Kept here for a while to feel it out. -->
+    <!-- FABs: Retired 2026-10-10 now that 3D voxel models match navigation menus 1:1 across all plazas.
+         The quick-draw FAB hands live in bottom nav; the Pegasus map opens from the avatar menu next to Save & Quit. -->
     <template #fabs v-if="user">
       <!-- <xp-fab-quick-draw v-if="isUserFabOn" :user="user" :equipment="equipment" @openHud="openAreaMenu" /> -->
-      <xp-fab-page-menu v-if="isUserFabOn && fabStyle === 'retro'" :user="user" :page-name="compass.name" :key="`menu-${route.path}`" />
-      <xp-fab-page-shortcuts v-if="isUserFabOn && fabStyle === 'modern'" :shortcuts="userActions" :key="`shortcuts-${route.path}`" />
+      <!-- <xp-fab-page-menu v-if="isUserFabOn && fabStyle === 'retro'" :user="user" :page-name="compass.name" :key="`menu-${route.path}`" /> -->
+      <!-- <xp-fab-page-shortcuts v-if="isUserFabOn && fabStyle === 'modern'" :shortcuts="userActions" :key="`shortcuts-${route.path}`" /> -->
     </template>
 
     <!-- Tabs with router outlet -->

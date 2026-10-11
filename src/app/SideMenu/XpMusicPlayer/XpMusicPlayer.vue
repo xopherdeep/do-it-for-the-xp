@@ -129,6 +129,8 @@
     }
   }
 
+  let progressTimer: ReturnType<typeof setInterval> | null = null;
+
   export default defineComponent({
     name: "XpMusicPlayer",
     mixins: [ionic],
@@ -286,10 +288,11 @@
 
       simulateProgressUpdate() {
         // Clear any existing interval
-        if (this.intervalId !== null) {
-          clearInterval(this.intervalId);
-          this.intervalId = null;
+        if (progressTimer !== null) {
+          clearInterval(progressTimer);
+          progressTimer = null;
         }
+        this.intervalId = null;
 
         // Only start progress simulation if music is playing
         if (this.isPlaying) {
@@ -297,7 +300,7 @@
           this.updateProgressFromAudio();
 
           // Then set up interval for regular updates
-          this.intervalId = setInterval(() => {
+          progressTimer = setInterval(() => {
             if (this.audioElement && this.audioElement.duration) {
               // Use actual audio progress if available
               this.updateProgressFromAudio();
@@ -305,7 +308,8 @@
               // Fallback to simulation
               this.progressPercentage = (this.progressPercentage + 0.5) % 100;
             }
-          }, 1000) as unknown as number;
+          }, 1000);
+          this.intervalId = progressTimer as unknown as number;
         }
       },
 
@@ -468,6 +472,11 @@
       );
 
       // Clear intervals and timeouts
+      if (progressTimer !== null) {
+        clearInterval(progressTimer);
+        progressTimer = null;
+      }
+
       if (this.intervalId !== null) {
         clearInterval(this.intervalId);
       }

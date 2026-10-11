@@ -209,6 +209,11 @@ ion-app {
         --bg-slide-base: #5a5a2e;
         --bg-slide-pattern: #6b6b3a;
       }
+
+      &.bg-slide-equipment {
+        --bg-slide-base: rgba(18, 18, 24, 0.6);
+        --bg-slide-pattern: rgba(255, 255, 255, 0.07);
+      }
     }
 
     // Typography
@@ -1285,6 +1290,28 @@ ion-app {
             }
           }
         }
+      }
+    }
+
+    &.xp-equipment-modal {
+      &::part(content) {
+        background-color: transparent;
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+      }
+
+      ion-header {
+        ion-toolbar {
+          --background: rgba(35, 8, 40, 0.85);
+          backdrop-filter: blur(8px);
+          -webkit-backdrop-filter: blur(8px);
+          border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+      }
+
+      ion-content.bg-slide {
+        --bg-slide-base: rgba(18, 18, 24, 0.6);
+        --bg-slide-pattern: rgba(255, 255, 255, 0.07);
       }
     }
   }

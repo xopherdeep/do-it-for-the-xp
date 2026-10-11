@@ -583,8 +583,10 @@ export default defineComponent({
             text: 'Loot',
             handler: (selectedItems) => {
               if (selectedItems && selectedItems.length > 0) {
-                // The Zelda "item get" sting: the loot is in the bag
-                if (typeof play$fx === 'function') play$fx('takeItem');
+                const hasKey = selectedItems.some((i: string) => String(i).toLowerCase().includes('key'));
+                if (typeof play$fx === 'function') {
+                  play$fx(hasKey ? 'key' : 'takeItem');
+                }
                 processChestItems(selectedItems);
               } else if (typeof play$fx === 'function') {
                 play$fx('yes');

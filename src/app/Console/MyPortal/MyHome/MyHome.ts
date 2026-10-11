@@ -5,8 +5,9 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
 import { useUserActions } from "@/hooks/useUserActions";
 import ionic from "@/lib/mixins/ionic";
-import { modalController, toastController } from "@ionic/vue";
+import { alertController, modalController, toastController } from "@ionic/vue";
 import { arrowBack } from "ionicons/icons";
+import { readPool } from "@/lib/services/hometown/Lodging";
 import SaveAndQuitModal from "@/components/molecules/Modals/SaveAndQuitModal.vue";
 
 const requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
@@ -98,8 +99,64 @@ export default defineComponent({
       return heroAvatarSrc(user.value, requireAvatar);
     });
 
+    const restInBed = async () => {
+      const stats = user.value?.stats;
+      const hp = readPool(stats?.hp, stats?.maxHp);
+      const mp = readPool(stats?.mp, stats?.maxMp);
+      const hpGain = Math.max(0, hp.max - hp.now);
+      const mpGain = Math.max(0, mp.max - mp.now);
+
+      if (hpGain <= 0 && mpGain <= 0) {
+        const toast = await toastController.create({
+          message: "You are already fully rested!",
+          duration: 2500,
+          position: "top",
+          cssClass: "rpg-toast",
+        });
+        await toast.present();
+        return;
+      }
+
+      const alert = await alertController.create({
+        header: "Rest in Bed",
+        message: "Sleep in your cozy bed to restore all HP and MP for free?",
+        buttons: [
+          {
+            text: "Not now",
+            role: "cancel",
+            cssClass: "alert-cancel",
+          },
+          {
+            text: "Rest",
+            role: "confirm",
+            cssClass: "alert-confirm",
+            handler: async () => {
+              if (hpGain > 0) {
+                userStore.updateUserHP({ userId: userId as string, amount: hpGain });
+              }
+              if (mpGain > 0) {
+                userStore.updateUserMP({ userId: userId as string, amount: mpGain });
+              }
+              if (typeof (window as any).play$fx === "function") {
+                (window as any).play$fx("restoreAll");
+              }
+              const toast = await toastController.create({
+                message: "You rested comfortably. Full HP & MP restored!",
+                duration: 2500,
+                position: "top",
+                cssClass: "rpg-toast",
+              });
+              await toast.present();
+            },
+          },
+        ],
+      });
+      await alert.present();
+    };
+
     return {
       userAvatar,
+      restInBed,
       closeModal,
       clickSave,
       user,
@@ -135,11 +192,6 @@ export default defineComponent({
             router.push({ name: 'calendar', params: { userId } })
           }
         },
-        // {
-        //   id: 'rest',
-        //   label: "Rest",
-        //   faIcon: "bed",
-        // },
         {
           label: "My Workbench",
           id: 'craft',
@@ -156,6 +208,15 @@ export default defineComponent({
           side: "end",
           click() {
             router.push({ name: 'cook-food', params: { userId } })
+          }
+        },
+        {
+          label: "Rest in Bed",
+          id: 'rest',
+          faIcon: "bed",
+          side: "bottom",
+          click() {
+            restInBed();
           }
         },
         {

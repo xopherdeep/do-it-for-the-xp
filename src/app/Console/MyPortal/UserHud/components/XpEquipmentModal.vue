@@ -22,8 +22,7 @@
       </ion-toolbar>
     </ion-header>
 
-    <!-- <ion-content class="icon-colors bg-slide bg-slide-modal"> -->
-    <ion-content class="icon-colors bg-slide bg-slide-dark">
+    <ion-content class="icon-colors bg-slide bg-slide-equipment">
       <ion-grid>
         <ion-row>
           <ion-col size="12" class="ion-flex ion-flex-column">
@@ -383,8 +382,23 @@
 
 <style lang="scss" scoped>
   .xp-equipment-modal {
+    &::part(content) {
+      background-color: transparent;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+    }
+
+    ion-header ion-toolbar {
+      --background: rgba(35, 8, 40, 0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
     ion-content {
       --background: transparent;
+      --bg-slide-base: rgba(18, 18, 24, 0.6);
+      --bg-slide-pattern: rgba(255, 255, 255, 0.07);
       overflow: visible;
 
       ion-grid {

@@ -14,6 +14,10 @@
 
     <ion-content :fullscreen="true">
       <WeatherFX type="forest" :intensity="5" :sound-enabled="false" />
+      <div class="world-landmarks-layer">
+        <xp-temple-model temple-id="earth-temple" :size="115" />
+        <xp-building-model building-id="hermits-tent" :size="115" />
+      </div>
       <div class="enchanted-forest">
         <!-- Magical forest mist -->
         <div class="mist-container">

@@ -1,4 +1,3 @@
-```
 <template>
   <div class="grid-container icon-colors">
     <div class="temple-grid">

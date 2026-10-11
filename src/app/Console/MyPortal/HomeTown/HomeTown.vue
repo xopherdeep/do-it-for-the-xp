@@ -13,7 +13,28 @@
     </ion-header> -->
 
     <ion-content :fullscreen="true">
-    <ion-modal trigger="adventure-time"
+      <div class="hometown-plaza">
+        <!-- North: Town Hall and Gold Bank -->
+        <div class="plaza-row plaza-top">
+          <xp-building-model building-id="town-hall" label="Town Hall" :size="115" />
+          <xp-building-model building-id="bank" label="Gold Bank" :size="115" />
+        </div>
+
+        <!-- East/West flank: Market, The Plains, and Hospital -->
+        <div class="plaza-row plaza-middle">
+          <xp-building-model building-id="shop" label="Market" :size="105" />
+          <xp-stage-model stage-id="world-plains" label="The Plains" sublabel="Leave town" :size="105" />
+          <xp-building-model building-id="hospital" label="Hospital" :size="105" />
+        </div>
+
+        <!-- South: Hero's Home and Hotel -->
+        <div class="plaza-row plaza-bottom">
+          <xp-building-model building-id="hero-home" label="Hero's Home" :size="115" />
+          <xp-building-model building-id="hotel" label="Hotel" :size="115" />
+        </div>
+      </div>
+
+      <ion-modal trigger="adventure-time"
         :breakpoints="[.9]"
         :initialBreakpoint=".9"
     >

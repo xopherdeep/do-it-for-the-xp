@@ -14,6 +14,10 @@
 
     <ion-content :fullscreen="true">
       <WeatherFX type="moon" :intensity="5" :sound-enabled="false" />
+      <div class="world-landmarks-layer">
+        <xp-temple-model temple-id="moon-temple" :size="115" />
+        <xp-building-model building-id="theia-city" :size="115" />
+      </div>
     </ion-content>
   </ion-page>
 </template>

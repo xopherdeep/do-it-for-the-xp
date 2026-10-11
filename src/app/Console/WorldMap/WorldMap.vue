@@ -13,6 +13,33 @@
     </ion-header> -->
 
     <ion-content :fullscreen="true">
+      <div class="world-map-plaza">
+        <!-- North: High seas, mountain heights, storm clouds -->
+        <div class="plaza-row plaza-north">
+          <xp-stage-model stage-id="world-islands" :size="100" />
+          <xp-stage-model stage-id="world-mountains" :size="100" />
+          <xp-stage-model stage-id="world-clouds" :size="100" />
+        </div>
+
+        <!-- Equator: West forest and East tundras, leaving center clear for navigation FAB -->
+        <div class="plaza-row plaza-equator">
+          <xp-stage-model stage-id="world-forest" :size="105" />
+          <div class="plaza-center-clearing" aria-hidden="true"></div>
+          <xp-stage-model stage-id="world-ice" :size="105" />
+        </div>
+
+        <!-- South: Open prairie plains and desert dunes -->
+        <div class="plaza-row plaza-south">
+          <xp-stage-model stage-id="world-plains" :size="105" />
+          <xp-stage-model stage-id="world-sands" :size="105" />
+        </div>
+
+        <!-- Deep South & Cosmos: Witch bogs and cosmic moon -->
+        <div class="plaza-row plaza-deep-south">
+          <xp-stage-model stage-id="world-swamps" :size="105" />
+          <xp-stage-model stage-id="the-moon" :size="105" />
+        </div>
+      </div>
     </ion-content>
   </ion-page>
 </template>

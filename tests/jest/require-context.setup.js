@@ -68,7 +68,16 @@ global.__requireContext = function requireContext(
     return path.join(base, key);
   };
 
-  const context = (key) => require(resolve(key));
+  const context = (key) => {
+    try {
+      return require(resolve(key));
+    } catch (err) {
+      if (/\.(png|jpe?g|webp|svg|gif|mp3|ogg)$/i.test(key)) {
+        return { default: key };
+      }
+      throw err;
+    }
+  };
   context.keys = () => getKeys().slice();
   context.resolve = resolve;
   context.id = base;

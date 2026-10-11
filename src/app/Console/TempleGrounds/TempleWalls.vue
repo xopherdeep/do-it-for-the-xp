@@ -60,8 +60,8 @@ const CORNERS = ["nw", "ne", "sw", "se"];
   &--water  { --stone: #324650; --stone-dark: #1e2c34; --metal: #967d46; --metal-hi: #e6c882; --glow: #96e6f0; }
   &--earth  { --stone: #463a2c; --stone-dark: #2c2419; --metal: #8c643c; --metal-hi: #d2aa6e; --glow: #96be5a; }
   &--light  { --stone: #786446; --stone-dark: #4c3f2c; --metal: #dcb450; --metal-hi: #ffeb96; --glow: #fff0b4; }
-  &--shadow { --stone: #282038; --stone-dark: #161020; --metal: #968caa; --metal-hi: #dcd2f0; --glow: #aa6eff; }
-  &--wind   { --stone: #5c4a5c; --stone-dark: #3a2c3a; --metal: #cd9646; --metal-hi: #fad78c; --glow: #fff2d0; }
+  &--shadow, &--moon { --stone: #282038; --stone-dark: #161020; --metal: #968caa; --metal-hi: #dcd2f0; --glow: #aa6eff; }
+  &--wind, &--storm { --stone: #5c4a5c; --stone-dark: #3a2c3a; --metal: #cd9646; --metal-hi: #fad78c; --glow: #fff2d0; }
 }
 
 .wall {
@@ -93,15 +93,15 @@ const CORNERS = ["nw", "ne", "sw", "se"];
     linear-gradient(var(--stone-dark), var(--stone-dark));
 }
 
-// North: we look straight at its face, the tallest one; its shadow falls into the room
+// North: we look straight at its face, the tallest one; inset shadow casts down into the face
 .wall--north .wall__cap  { top: 0; left: 0; right: 0; height: 40%; }
-.wall--north .wall__face { top: 40%; left: 0; right: 0; bottom: 0; border-bottom: 5px solid var(--metal); box-shadow: 0 8px 18px rgba(0, 0, 0, 0.6); }
+.wall--north .wall__face { top: 40%; left: 0; right: 0; bottom: 0; border-bottom: 5px solid var(--metal); box-shadow: inset 0 8px 18px rgba(0, 0, 0, 0.6); }
 // South: mostly its top surface, a short face toward the room
 .wall--south .wall__cap  { bottom: 0; left: 0; right: 0; height: 62%; }
 .wall--south .wall__face { bottom: 62%; left: 0; right: 0; top: 0; border-top: 5px solid var(--metal); }
 // West and east: a cap and a face, seams running the other way
 .wall--west .wall__cap   { top: 0; bottom: 0; left: 0; width: 55%; background-image: repeating-linear-gradient(0deg, transparent 0 26px, rgba(0, 0, 0, 0.22) 26px 28px), linear-gradient(90deg, var(--cap-hi, #fff2) 0, transparent 40%), linear-gradient(var(--stone), var(--stone)); }
-.wall--west .wall__face  { top: 0; bottom: 0; left: 55%; right: 0; border-right: 5px solid var(--metal); box-shadow: 6px 0 14px rgba(0, 0, 0, 0.45); }
+.wall--west .wall__face  { top: 0; bottom: 0; left: 55%; right: 0; border-right: 5px solid var(--metal); box-shadow: inset 6px 0 14px rgba(0, 0, 0, 0.45); }
 .wall--east .wall__cap   { top: 0; bottom: 0; right: 0; width: 55%; background-image: repeating-linear-gradient(0deg, transparent 0 26px, rgba(0, 0, 0, 0.22) 26px 28px), linear-gradient(270deg, var(--cap-hi, #fff2) 0, transparent 40%), linear-gradient(var(--stone), var(--stone)); }
 .wall--east .wall__face  { top: 0; bottom: 0; right: 55%; left: 0; border-left: 5px solid var(--metal); }
 

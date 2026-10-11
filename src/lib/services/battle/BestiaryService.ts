@@ -2,6 +2,12 @@ import BestiaryDb, { beastStorage } from "@/lib/databases/BestiaryDb";
 import { Enemy } from './BattleService';
 import debug from "@/lib/utils/debug";
 
+export const TOTAL_BEAST_AVATARS = 93; // NNN.png files in src/assets/images/beasts (tools/art/beasts.py draws the newer ones)
+export const MAX_BG_INDEX = 325;
+
+const getRandomBeastAvatar = (): number => Math.floor(Math.random() * TOTAL_BEAST_AVATARS) + 1;
+const getRandomBgIndex = (): number => Math.floor(Math.random() * (MAX_BG_INDEX + 1));
+
 /**
  * BestiaryService - Service for loading and managing enemies from the bestiary
  * 
@@ -75,6 +81,10 @@ export class BestiaryService {
    * Creates a sample enemy for demos or when no beasts are available
    */
   public createSampleEnemy(): Enemy {
+    const randomAvatar = getRandomBeastAvatar();
+    const randomBg1 = getRandomBgIndex();
+    const randomBg2 = getRandomBgIndex();
+
     return {
       id: 'sample',
       name: 'Training Dummy',
@@ -82,9 +92,13 @@ export class BestiaryService {
       isBoss: false,
       health: 500,
       maxHealth: 500,
-      emoji: '👾', // Default emoji
-      attack: 10,    // Added missing required property
-      defense: 5,    // Added missing required property
+      avatar: randomAvatar,
+      bg1: randomBg1,
+      bg2: randomBg2,
+      aspectRatio: 48,
+      emoji: '👾',
+      attack: 10,
+      defense: 5,
       speed: 8,
       tasks: [
         { id: 's1', name: 'Hit it', isCompleted: false },

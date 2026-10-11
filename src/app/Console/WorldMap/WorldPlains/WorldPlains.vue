@@ -14,6 +14,24 @@
 
     <ion-content :fullscreen="true">
       <WeatherFX type="plains" :intensity="4" :sound-enabled="false" />
+      <div class="world-landmarks-plaza">
+        <!-- North: Wind Temple and Pegasus Ranch -->
+        <div class="plaza-row plaza-top">
+          <xp-temple-model temple-id="wind-temple" :size="115" />
+          <xp-building-model building-id="pegasus-ranch" :size="115" />
+        </div>
+
+        <!-- Center clearing for navigation FAB -->
+        <div class="plaza-row plaza-middle">
+          <div class="plaza-center-clearing" aria-hidden="true"></div>
+        </div>
+
+        <!-- South: Return to Hometown Gate and Travel Pegasus -->
+        <div class="plaza-row plaza-bottom">
+          <xp-building-model building-id="home-town" label="Hometown" sublabel="Return home" :size="115" />
+          <xp-building-model building-id="pegasus" label="Travel World" sublabel="Fly to World Map" :size="115" />
+        </div>
+      </div>
       <div class="plains-weather-container">
         <!-- Heat haze mirage effect -->
         <div class="heat-haze-container">

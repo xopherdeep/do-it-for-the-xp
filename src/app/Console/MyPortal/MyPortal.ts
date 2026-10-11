@@ -1,4 +1,4 @@
-import { computed, defineComponent, reactive, onBeforeMount, onMounted, onBeforeUnmount } from "vue";
+import { computed, defineComponent, reactive, ref, onBeforeMount, onMounted, onBeforeUnmount } from "vue";
 // import requireImg from "@/assets/js/requireImg";
 import ionic from "@/lib/mixins/ionic";
 import components from "./UserHud/components";
@@ -67,7 +67,6 @@ export default defineComponent({
       battleInterval: null,
       isRPGBoxOpen: false,
       isUserProfileModalOpen: false,
-      isPegasusModalOpen: false,  // Wind Whistle modal
       currentTerrain: "plains",
     };
   },
@@ -123,13 +122,6 @@ export default defineComponent({
     openAreaMenu() {
       this.isRPGBoxOpen = true;
       this.play$fx('openMenu');
-    },
-    openPegasusModal() {
-      this.isPegasusModalOpen = true;
-      this.play$fx('openMenu');
-    },
-    closePegasusModal() {
-      this.isPegasusModalOpen = false;
     },
     updateCompass(name) {
       const { userId } = this;
@@ -303,25 +295,32 @@ export default defineComponent({
           .catch(() => resolve(null));
       });
 
+    const isPegasusModalOpen = ref(false);
+    const openPegasusModal = () => {
+      isPegasusModalOpen.value = true;
+      play$fx("openMenu");
+    };
+    const closePegasusModal = () => {
+      isPegasusModalOpen.value = false;
+    };
+
+    const { specialItems } = useEquipmentItems({ onOpenPegasusModal: openPegasusModal });
+
     // Tapping an equipped item outside a temple: navigation items navigate, board items act on the quest
     // board (docs/Items-And-Classes-Contract.md section B), the rest wait for a temple or a fight
     const useHand = async (item: EquipmentItem | null) => {
       if (!item) return;
       play$fx("select");
-      let live: EquipmentItem | undefined;
-      try {
-        live = useEquipmentItems().specialItems.find((candidate: EquipmentItem) => candidate.faIcon === item.faIcon);
-      } catch {
-        live = undefined;
-      }
+      const live = specialItems.find((candidate: EquipmentItem) =>
+        (item.faIcon && candidate.faIcon === item.faIcon) ||
+        (item.name && candidate.name === item.name)
+      );
       if (live?.click) {
         live.click();
         return;
       }
       const name = String(item.name ?? live?.name ?? "");
       const effect = boardEffectOf(name);
-      if (effect.kind === "none") return say(`${name}: use it in a temple or a fight.`);
-      if (effect.kind === "soon") return say(`${name}: coming soon to the quest board.`);
 
       let questId: string | undefined;
       if (effect.kind === "pick-quest") {
@@ -361,6 +360,9 @@ export default defineComponent({
       rightHandItem,
       useHand,
       openParty,
+      isPegasusModalOpen,
+      openPegasusModal,
+      closePegasusModal,
       compass,
       pageIcon,
       fabStyle,

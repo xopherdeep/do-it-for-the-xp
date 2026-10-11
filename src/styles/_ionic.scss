@@ -298,6 +298,55 @@ ion-modal.save-quit-modal {
   }
 }
 
+/* RPG Toast - Themed Earthbound RPG message box */
+ion-toast.rpg-toast,
+.rpg-toast {
+  --background: #280828;
+  --color: #e7e6b3;
+  --border-radius: 2px;
+  --box-shadow: 0 0 0 3px #383050, 0 0 0 6px #68d0b8, 0 0 0 8px #f7e8a8, 0 0 0 10px #3d3c55;
+  --button-color: #f7e8a8;
+  --start: 14px;
+  --end: 14px;
+  --min-height: 52px;
+  --max-width: 520px;
+  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  font-size: 1.15rem;
+  letter-spacing: 1px;
+
+  &::part(container) {
+    background: #280828 !important;
+    color: #e7e6b3 !important;
+    border-radius: 2px !important;
+    box-shadow: 0 0 0 3px #383050, 0 0 0 6px #68d0b8, 0 0 0 8px #f7e8a8, 0 0 0 10px #3d3c55 !important;
+    padding: 2px 4px;
+    border: none;
+  }
+
+  &::part(message) {
+    color: #e7e6b3 !important;
+    line-height: 1.25;
+    font-family: "Apple Kid", "StatusPlz", sans-serif;
+  }
+
+  &::part(button) {
+    font-family: "Apple Kid", sans-serif;
+    font-size: 1.05rem;
+    letter-spacing: 1px;
+    text-transform: none;
+    color: #f7e8a8 !important;
+  }
+
+  &::part(icon) {
+    color: #f7e8a8 !important;
+  }
+
+  &.toast-top,
+  &[position="top"] {
+    --top: 14px;
+  }
+}
+
 /* 
  * Active Tab Highlighting (Navigational Depth Clarification)
  * When a tab is selected, all other siblings in that ion-tab-bar are dimmed and desaturated.
@@ -370,5 +419,88 @@ ion-tab-bar {
 swiper-slide {
   overflow-x: hidden !important;
   max-width: 100vw;
+}
+
+.world-landmarks-layer {
+  position: absolute;
+  bottom: calc(var(--ion-safe-area-bottom, env(safe-area-inset-bottom, 0px)) + 120px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 600px;
+  padding: 0 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  pointer-events: none;
+  z-index: 100;
+  box-sizing: border-box;
+
+  & > * {
+    pointer-events: auto;
+  }
+}
+
+.world-landmarks-plaza {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: center;
+  width: 100%;
+  max-width: 620px;
+  min-height: 100%;
+  margin: 0 auto;
+  padding: calc(var(--ion-safe-area-top, 0px) + 5.5rem) 0.75rem calc(var(--ion-safe-area-bottom, env(safe-area-inset-bottom, 0px)) + 120px);
+  gap: clamp(0.75rem, 2vh, 1.5rem);
+  box-sizing: border-box;
+  pointer-events: none;
+  position: relative;
+  z-index: 100;
+
+  .plaza-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    pointer-events: none;
+
+    & > * {
+      pointer-events: auto;
+    }
+  }
+
+  .plaza-top {
+    margin-top: auto;
+    justify-content: space-between;
+    padding: 0 0.5rem;
+  }
+
+  .plaza-middle {
+    justify-content: center;
+    padding: 0 0.5rem;
+  }
+
+  .plaza-center-clearing {
+    width: 140px;
+    height: 140px;
+    flex-shrink: 0;
+    pointer-events: none;
+  }
+
+  .plaza-bottom {
+    justify-content: space-between;
+    padding: 0 0.5rem;
+  }
+}
+
+.temple-landmark-layer {
+  position: absolute;
+  top: calc(var(--ion-safe-area-top, 0px) + 80px);
+  left: 20%;
+  z-index: 100;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: auto;
 }
 

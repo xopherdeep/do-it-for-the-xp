@@ -112,11 +112,14 @@ describe("boardEffectOf", () => {
     expect(boardEffectOf("X's Invisibility")).toMatchObject({ kind: "instant", cost: 300, cooldownMs: 2 * 86_400_000 });
   });
 
-  it("leaves the large ones as coming soon and the rest to temples and fights", () => {
-    for (const name of ["Bombs", "Thor's Hammer", "Tesla's Bolt", "Gaia's Quake", "Night's Light", "Gale's Wind"]) {
-      expect(boardEffectOf(name).kind).toBe("soon");
+  it("provides board effects for all equipment items without temple restriction", () => {
+    for (const name of ["Bombs", "Thor's Hammer", "Fire Wand"]) {
+      expect(boardEffectOf(name).kind).toBe("pick-quest");
     }
-    for (const name of ["Wallet", "Bottles", "Fire Wand", "Sol's Flare", "Pegasus Boots", undefined, "Nonsense"]) {
+    for (const name of ["Tesla's Bolt", "Gaia's Quake", "Night's Light", "Gale's Wind", "Sol's Flare", "Bottles"]) {
+      expect(boardEffectOf(name).kind).toBe("instant");
+    }
+    for (const name of ["Wallet", "Pegasus Boots", undefined, "Nonsense"]) {
       expect(boardEffectOf(name).kind).toBe("none");
     }
     expect(boardEffectOf("Ice Wand").describe).toMatch(/24 hours/);
@@ -131,12 +134,12 @@ describe("boardEffectOf", () => {
 });
 
 describe("applyBoardEffect refusals", () => {
-  it("refuses items that do nothing here, and the ones not built yet, without charging", async () => {
+  it("activates generic items and charges MP properly", async () => {
     addHero();
-    expect(await applyBoardEffect({ name: "Wallet" }, { userId: HERO, now: NOW })).toMatchObject({ ok: false, sound: "no" });
-    const soon = await applyBoardEffect({ name: "Bombs" }, { userId: HERO, now: NOW });
-    expect(soon.ok).toBe(false);
-    expect(soon.line).toMatch(/coming soon/);
+    expect(await applyBoardEffect({ name: "Wallet" }, { userId: HERO, now: NOW })).toMatchObject({ ok: true, sound: "useItem" });
+    const bombPick = await applyBoardEffect({ name: "Bombs" }, { userId: HERO, now: NOW });
+    expect(bombPick.ok).toBe(false);
+    expect(bombPick.line).toMatch(/Pick a quest first/);
     expect(mp()).toBe(400);
   });
 

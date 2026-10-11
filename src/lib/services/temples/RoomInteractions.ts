@@ -42,6 +42,7 @@ export const SFX = {
   yes: 'yes',
   loot: 'loot',
   takeItem: 'takeItem',
+  key: 'key',
   useKey: 'useKey',
   gainGP: 'gainGP',
 } as const;
@@ -790,8 +791,8 @@ const pickUp = (kind: string, room: Room, ctx: RoomContext): RoomOutcome => {
   const name = String(room.content?.keyName ?? 'a small key');
   if (room.content?.keyId === 'master') {
     system.grantMasterKey(ctx.templeId);
-    return { message: `${name}: the master key is yours.`, sound: SFX.takeItem };
+    return { message: `${name}: the master key is yours.`, sound: SFX.key };
   }
   system.addKey(ctx.templeId);
-  return { message: `You take ${name}.`, sound: SFX.takeItem };
+  return { message: `You take ${name}.`, sound: SFX.key };
 };

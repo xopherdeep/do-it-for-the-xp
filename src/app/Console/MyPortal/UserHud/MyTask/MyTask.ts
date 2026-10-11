@@ -488,13 +488,14 @@ export default defineComponent({
         this.claiming = false;
       }
     },
-    announceClaim({ awaitingApproval, levelUp }: CompletionResult) {
+    announceClaim({ awaitingApproval, levelUp, paid }: CompletionResult) {
       const nick = this.user.name.nick;
       if (awaitingApproval) {
         this.say("Sent to the Game Master for approval", nick, 2200);
         return;
       }
-      const { xp, gp, ap } = this.rewards;
+      // What landed in the pocket: a Thief's or Ninja's GP comes with the class bonus on top
+      const { xp, gp, ap } = paid ?? this.rewards;
       this.say(`+${xp} XP · +${gp} GP · +${ap} AP`, `${nick} tamed ${this.item.achievementName || "the quest"}!`);
       if (!levelUp?.didLevelUp) return;
       const { newLevel } = levelUp;

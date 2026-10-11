@@ -247,8 +247,8 @@ describe("BattleField: a free fight", () => {
     expect(vm.dialogText).toBe("Socktopus attacks!");
     await tap();
     await tap();
-    expect(userStore.users["hero-1"].stats.hp.now).toBe(28); // half a strike
-    expect(vm.dialogText).toBe("Max braced: only 2 damage!");
+    expect(userStore.users["hero-1"].stats.hp.now).toBe(29); // warrior wall lets 25% through
+    expect(vm.dialogText).toBe("Max braced: only 1 damage!");
     await readUntilMenu();
     expect(wrapper.find(".attack-timer-label").text()).toBe("6:00");
     (Math.random as jest.Mock).mockRestore();

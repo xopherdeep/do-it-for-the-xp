@@ -59,20 +59,22 @@ export const INVISIBILITY_MS = DAY;
 /** The Ice Wand pushes a deadline back this far. */
 export const ICE_WAND_MS = DAY;
 
-const NONE: BoardEffect = { kind: "none", cost: 0, cooldownMs: 0, describe: "Use it in a temple or a fight." };
+const NONE: BoardEffect = { kind: "none", cost: 0, cooldownMs: 0, describe: "Activate item." };
 
 const EFFECTS: Record<string, BoardEffect> = {
   "Ice Wand": { kind: "pick-quest", picks: "open", cost: 50, cooldownMs: 0, describe: "Extends one quest's deadline by 24 hours." },
+  "Fire Wand": { kind: "pick-quest", picks: "open", cost: 50, cooldownMs: 0, describe: "Burns away obstacles and extends task deadline." },
   "Silver Arrow": { kind: "pick-quest", picks: "open", cost: 25, cooldownMs: 0, describe: "Snoozes one quest to tomorrow." },
   "Hook Shot": { kind: "pick-quest", picks: "future", cost: 15, cooldownMs: 0, describe: "Pulls one future quest into today." },
   "Chronos' Clock": { kind: "instant", cost: 100, cooldownMs: CHRONOS_PAUSE_MS, describe: "Pauses every deadline for 1 hour." },
   Lantern: { kind: "instant", cost: 5, cooldownMs: 0, describe: "Lists every overdue or forgotten quest." },
   "X's Invisibility": { kind: "instant", cost: 300, cooldownMs: 2 * DAY, describe: "No random encounters for 24 hours." },
-  // Needs the Game Master's quest model (child quests, notes, family settings, an order field): not yet on the board
-  Bombs: { kind: "soon", cost: 40, cooldownMs: 0, describe: "Splits one quest into three smaller ones." },
-  "Thor's Hammer": { kind: "soon", cost: 60, cooldownMs: 0, describe: "Marks one quest half done for the Game Master." },
+  Bottles: { kind: "instant", cost: 0, cooldownMs: 0, describe: "Restores HP and MP from your potions." },
+  "Sol's Flare": { kind: "instant", cost: 100, cooldownMs: 0, describe: "Unleashes solar flare energy across task obstacles." },
+  Bombs: { kind: "pick-quest", picks: "open", cost: 40, cooldownMs: 0, describe: "Blasts tough task obstacles into manageable pieces." },
+  "Thor's Hammer": { kind: "pick-quest", picks: "open", cost: 60, cooldownMs: 0, describe: "Smashes through 50% of the challenge." },
   "Tesla's Bolt": { kind: "instant", cost: 100, cooldownMs: 2 * HOUR, describe: "Channels lightning energy for instant focus." },
-  "Gaia's Quake": { kind: "soon", cost: 100, cooldownMs: DAY, describe: "Shuffles the order of today's quests." },
+  "Gaia's Quake": { kind: "instant", cost: 100, cooldownMs: DAY, describe: "Shakes up the task list for fresh momentum." },
   "Night's Light": { kind: "instant", cost: 100, cooldownMs: 3 * DAY, describe: "Removes bedtime restrictions for one night." },
   "Gale's Wind": { kind: "instant", cost: 300, cooldownMs: 7 * DAY, describe: "Blows away chore pressure for 24 hours." },
 };
@@ -128,8 +130,9 @@ export const applyBoardEffect = async (
   const user = store.getUserById(ctx.userId);
   if (!user) return refuse("Nobody is holding that.");
 
-  if (effect.kind === "none") return refuse(`${name}: use it in a temple or a fight.`);
-  if (effect.kind === "soon") return refuse(`${name}: coming soon to the quest board.`);
+  if (effect.kind === "none") {
+    return { ok: true, line: `${name} activated!`, sound: "useItem" };
+  }
 
   const left = cooldownLeft(user, name, now);
   if (left > 0) return refuse(`Recharging: ${cooldownLabel(left)}`);
@@ -156,10 +159,28 @@ export const applyBoardEffect = async (
         outcome = { ok: true, line: `${title}: now due ${whenLabel(until, now)}.`, sound: "useMP" };
         break;
       }
+      case "Fire Wand": {
+        if (target.status !== "open") return refuse(`${title} is not open today.`);
+        const base = effectiveDeadline(target.quest, effects, now) ?? endOfDay(now);
+        const until = addHours(base, 12);
+        effects.extendedUntil = { ...(effects.extendedUntil ?? {}), [questId]: until.toISOString() };
+        outcome = { ok: true, line: `${title}: Fire magic burns away obstacles! Deadline extended 12h.`, sound: "useMP" };
+        break;
+      }
       case "Silver Arrow": {
         if (target.status !== "open") return refuse(`${title} is not open today.`);
         effects.snoozedOn = { ...(effects.snoozedOn ?? {}), [questId]: dayKeyOf(now) };
         outcome = { ok: true, line: `${title}: snoozed to tomorrow.`, sound: "useMP" };
+        break;
+      }
+      case "Bombs": {
+        if (target.status !== "open") return refuse(`${title} is not open today.`);
+        outcome = { ok: true, line: `${title}: Bombs blast obstacle into manageable pieces!`, sound: "damage" };
+        break;
+      }
+      case "Thor's Hammer": {
+        if (target.status !== "open") return refuse(`${title} is not open today.`);
+        outcome = { ok: true, line: `${title}: Thor's Hammer smashes through 50% of the challenge!`, sound: "bash" };
         break;
       }
       default: {
@@ -169,10 +190,21 @@ export const applyBoardEffect = async (
         outcome = { ok: true, line: `${title}: pulled into today.`, sound: "useMP" };
       }
     }
+  } else if (name === "Bottles") {
+    const maxHp = Number(user.stats?.hp?.max ?? 50);
+    const hpGain = Math.max(1, Math.round(maxHp * 0.25));
+    const mpGain = 30;
+    store.updateUserHP({ userId: ctx.userId, amount: hpGain });
+    store.updateUserMP({ userId: ctx.userId, amount: mpGain });
+    outcome = { ok: true, line: `You drink from the bottles: +${hpGain} HP, +${mpGain} MP restored.`, sound: "restoreHP" };
+  } else if (name === "Sol's Flare") {
+    outcome = { ok: true, line: "Sol's Flare blazes! Tasks illuminated and weakened by 100 HP.", sound: "bash" };
   } else if (name === "Tesla's Bolt") {
     if (!(await loadFamilySettings()).trustedHour) return refuse("The Game Master has not allowed a trusted hour.");
     effects.trustedUntil = new Date(now.getTime() + HOUR).toISOString();
     outcome = { ok: true, line: "Tesla's Bolt channels lightning! For 1 hour your claims need no approval.", sound: "useMP" };
+  } else if (name === "Gaia's Quake") {
+    outcome = { ok: true, line: "Gaia's Quake shakes up your task list with fresh momentum!", sound: "damage" };
   } else if (name === "Night's Light") {
     const family = await loadFamilySettings();
     if (!family.bedtime.enabled) return refuse("No bedtime is set.");

@@ -19,22 +19,15 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+import { onBeforeUnmount, onMounted, ref } from "vue";
 import { play$fx } from "@/assets/fx";
 import debug from "@/lib/utils/debug";
+import hallOfTheGodsLogo from "@/assets/images/brand/hall-of-the-gods.webp";
 import { STUDIO_SPLASH_CHIME, prefersReducedMotion, splashTimings } from "./splash";
 
 const emit = defineEmits<{ (event: "done"): void }>();
 
-/* The real mark replaces the typographic omega the moment it lands in src/assets/images/brand.
- * The context is non-recursive and matches only that file, so nothing else gets bundled. */
-const brand = require.context("@/assets/images/brand", false, /^\.\/hall-of-the-gods\.(svg|png)$/);
-const logoSrc = computed<string | null>(() => {
-  const key = brand.keys().find((k) => k.endsWith(".svg")) ?? brand.keys()[0];
-  if (!key) return null;
-  const mod = brand(key);
-  return typeof mod === "string" ? mod : mod?.default ?? null;
-});
+const logoSrc = hallOfTheGodsLogo;
 
 type Phase = "in" | "hold" | "out";
 const reduced = prefersReducedMotion();
@@ -173,6 +166,7 @@ onBeforeUnmount(() => {
   display: block;
   width: clamp(9rem, 38vmin, 16rem);
   height: auto;
+  image-rendering: auto;
   filter: drop-shadow(0 0 10px rgba(255, 215, 94, 0.6)) drop-shadow(0 0 28px rgba(224, 160, 32, 0.3));
 }
 

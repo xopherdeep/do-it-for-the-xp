@@ -29,7 +29,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, PropType, onMounted, onUnmounted, watch } from 'vue';
+import { defineComponent, ref, PropType, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import XpTypingText from '@/components/atoms/TypingText/XpTypingText.vue';
 import debug from '@/lib/utils/debug';
 
@@ -307,10 +307,10 @@ export default defineComponent({
       imagesReady.value = true;
 
       if (props.autoPlay) {
-        // Small delay to ensure DOM is ready
-        setTimeout(() => {
+        // Ensure DOM is ready before starting intro
+        nextTick(() => {
           startIntro();
-        }, 0);
+        });
       }
     };
 
