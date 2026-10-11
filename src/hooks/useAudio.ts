@@ -78,6 +78,13 @@ export function useAudio() {
   const playSelectSound = (): string => {
     return playUISound('select');
   };
+
+  /**
+   * Helper method for common UI sound: click
+   */
+  const playClickSound = (): string => {
+    return playUISound('click');
+  };
   
   /**
    * Helper method for common UI sound: confirm
@@ -180,6 +187,7 @@ export function useAudio() {
     playSound,
     playUISound,
     playSelectSound,
+    playClickSound,
     playConfirmSound,
     playCancelSound,
     playErrorSound,

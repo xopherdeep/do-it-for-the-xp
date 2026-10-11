@@ -8,7 +8,7 @@
       <slot name="header">
         <div class="header-content">
           <span class="menu-title">{{ title }}</span>
-          <div v-if="subtitle" class="menu-subtitle" v-html="subtitle"></div>
+          <div v-if="subtitle" class="menu-subtitle" v-html="sanitizeHtml(subtitle)"></div>
         </div>
       </slot>
     </div>
@@ -33,6 +33,7 @@
 
 <script lang="ts">
 import { defineComponent, PropType } from 'vue';
+import { sanitizeHtml } from '@/lib/utils/sanitizeHtml';
 
 export interface RpgMenuAction {
   id?: string;
@@ -85,7 +86,8 @@ export default defineComponent({
     };
 
     return {
-      handleAction
+      handleAction,
+      sanitizeHtml,
     };
   }
 });

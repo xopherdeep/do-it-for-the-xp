@@ -8,9 +8,10 @@
         @toggleBGM="toggleBGMOnOff" 
         @changeBGM="clickBGMTrack"
       />
-      <ion-router-outlet id="main-content" />
+      <ion-router-outlet id="main-content" :animated="!sceneTransitionActive" />
     </ion-split-pane>
     <xp-global-dialog />
+    <xp-scene-transition />
   </ion-app>
 </template>
 

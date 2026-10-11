@@ -284,7 +284,7 @@ $lavender-dark: #9080a8;
   min-width: 0;
   height: 24px;
   line-height: 24px;
-  font-family: "Orange Kid", "StatusPlz", monospace;
+  font-family: "Pixel Takhisis", "Orange Kid", "StatusPlz", monospace;
   font-size: 20px;
   font-weight: 600;
   text-align: center;

@@ -197,7 +197,7 @@
                 />
               </div>
               <div class="quest-card-content">
-                <h3 v-html="formatQuestName(achievement.achievementName)" />
+                <h3 v-html="sanitizeHtml(formatQuestName(achievement.achievementName))" />
                 <p class="category-label">{{ getCategoryById(achievement.categoryId)?.name || 'Uncategorized' }}</p>
               </div>
               <div class="quest-card-rewards">

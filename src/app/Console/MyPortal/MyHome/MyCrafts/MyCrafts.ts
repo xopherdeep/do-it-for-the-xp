@@ -30,6 +30,7 @@ import { useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useItemFetcher } from "@/hooks/useItemFetcher";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
+import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 
 import {
   calendarOutline,
@@ -177,7 +178,8 @@ export default dC({
       bookOutline,
       videocamOutline,
       appsOutline,
-      bedOutline
+      bedOutline,
+      sanitizeHtml,
     };
   },
 });

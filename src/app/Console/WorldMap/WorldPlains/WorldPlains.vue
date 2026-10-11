@@ -15,10 +15,10 @@
     <ion-content :fullscreen="true">
       <WeatherFX type="plains" :intensity="4" :sound-enabled="false" />
       <div class="world-landmarks-plaza">
-        <!-- North: Wind Temple and Pegasus Ranch -->
+        <!-- North: Pegasus Ranch (shop) and Wind Temple -->
         <div class="plaza-row plaza-top">
-          <xp-temple-model temple-id="wind-temple" :size="115" />
           <xp-building-model building-id="pegasus-ranch" :size="115" />
+          <xp-temple-model temple-id="wind-temple" :size="115" />
         </div>
 
         <!-- Center clearing for navigation FAB -->

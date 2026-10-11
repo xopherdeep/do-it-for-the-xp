@@ -46,10 +46,10 @@
             </div>
             <ion-card-header>
               <ion-card-subtitle>{{ formatDate(news.date) }}</ion-card-subtitle>
-              <ion-card-title v-html="news.title.rendered"></ion-card-title>
+              <ion-card-title v-html="sanitizeHtml(news.title.rendered)"></ion-card-title>
             </ion-card-header>
             <ion-card-content>
-              <div v-html="news.excerpt.rendered"></div>
+              <div v-html="sanitizeHtml(news.excerpt.rendered)"></div>
               <ion-button size="small" fill="clear" @click="openPost(news.link)">
                 Read more
                 <ion-icon slot="end" :icon="arrowForwardOutline"></ion-icon>
@@ -203,6 +203,7 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { getQuestEngine } from "@/lib/engine/quests/QuestEngine";
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import { formatQuestName } from "@/lib/utils/format";
+import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 
 /** One scheduled quest on the events board */
 interface TownEvent {
@@ -547,6 +548,7 @@ export default defineComponent({
       bugOutline,
       bulbOutline,
       arrowForwardOutline,
+      sanitizeHtml,
     };
   },
 });

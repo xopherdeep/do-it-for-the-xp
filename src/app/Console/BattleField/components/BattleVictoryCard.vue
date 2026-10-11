@@ -18,7 +18,24 @@
     </div>
 
     <div class="victory-body">
-      <div class="victory-title" :data-text="card.title">{{ card.title }}</div>
+      <div
+        class="victory-title"
+        :class="{ 'has-sprite': isYouWon }"
+        :data-text="card.title"
+      >
+        <template v-if="isYouWon">
+          <img
+            src="@/assets/images/battle/you_won.png"
+            alt=""
+            class="you-won-sprite"
+            draggable="false"
+          />
+          <span class="sr-only">{{ card.title }}</span>
+        </template>
+        <template v-else>
+          {{ card.title }}
+        </template>
+      </div>
       <div v-if="card.levelUp" class="victory-levelup">LEVEL UP! Lv {{ card.levelUp.from }} → {{ card.levelUp.to }}</div>
       <div class="victory-subtitle">{{ card.subtitle }}</div>
       <div v-if="card.questName" class="victory-quest">Quest tamed: {{ card.questName }}</div>
@@ -62,6 +79,11 @@ const props = defineProps<{
   visible: boolean;
   card: VictoryCardState;
 }>();
+
+const isYouWon = computed(() => {
+  const title = props.card?.title?.trim().toUpperCase();
+  return title === "YOU WON!" || title === "YOU WON !" || title === "YOU WON" || title === "VICTORY!";
+});
 
 const emit = defineEmits<{
   (e: "continue"): void;
@@ -321,9 +343,9 @@ $vc-star-colors: #f7e8a8, #ffffff, $eb-color-sky-blue, $eb-color-mint-green, $vc
 // ---------------------------------------------------------------------------------------------------------------
 .victory-title {
   position: relative;
-  margin: 0 0 4px;
-  font-family: "Year Is 199X", "Apple Kid", sans-serif;
-  font-size: 2rem;
+  margin: 0 0 6px;
+  font-family: "Pixel Takhisis", "Year Is 199X", "Apple Kid", sans-serif;
+  font-size: 2.4rem;
   line-height: 1.15;
   letter-spacing: 0.06em;
   text-align: center;
@@ -335,6 +357,16 @@ $vc-star-colors: #f7e8a8, #ffffff, $eb-color-sky-blue, $eb-color-mint-green, $vc
   -webkit-text-fill-color: transparent;
   filter: drop-shadow(0 2px 0 $vc-ink) drop-shadow(0 0 8px rgba(247, 232, 168, 0.35));
   animation: victory-title-pop 0.6s cubic-bezier(0.2, 0.9, 0.3, 1.2) backwards;
+
+  &.has-sprite {
+    background-image: none;
+    -webkit-text-fill-color: initial;
+    filter: none;
+
+    &::after {
+      display: none !important;
+    }
+  }
 
   &::after {
     content: attr(data-text);
@@ -353,6 +385,29 @@ $vc-star-colors: #f7e8a8, #ffffff, $eb-color-sky-blue, $eb-color-mint-green, $vc
     pointer-events: none;
     animation: victory-title-shimmer 2.8s ease-in-out 0.8s infinite;
   }
+}
+
+.you-won-sprite {
+  display: block;
+  margin: 4px auto 8px;
+  width: 276px;
+  height: 32px;
+  max-width: 90%;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  filter: drop-shadow(0 2px 0 #101010) drop-shadow(0 0 14px rgba(112, 80, 248, 0.85));
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 @keyframes victory-title-pop {
@@ -449,7 +504,7 @@ $vc-star-colors: #f7e8a8, #ffffff, $eb-color-sky-blue, $eb-color-mint-green, $vc
 .victory-subtitle {
   margin-top: 2px;
   font-family: "StatusPlz", "Apple Kid", sans-serif;
-  font-size: 1rem;
+  font-size: 1.2rem;
   line-height: 1.3;
   letter-spacing: 0.04em;
   color: $eb-color-cream;
@@ -458,7 +513,7 @@ $vc-star-colors: #f7e8a8, #ffffff, $eb-color-sky-blue, $eb-color-mint-green, $vc
 .victory-quest {
   margin-top: 4px;
   font-family: "Apple Kid", sans-serif;
-  font-size: 1.05rem;
+  font-size: 1.25rem;
   line-height: 1.25;
   color: $eb-color-pale-yellow;
 }
@@ -467,7 +522,7 @@ $vc-star-colors: #f7e8a8, #ffffff, $eb-color-sky-blue, $eb-color-mint-green, $vc
   margin-top: 6px;
   padding-bottom: 10px;
   font-family: "Apple Kid", sans-serif;
-  font-size: 1.1rem;
+  font-size: 1.3rem;
   line-height: 1.2;
   color: $eb-color-cream;
   border-bottom: 2px dotted rgba(231, 230, 179, 0.28);

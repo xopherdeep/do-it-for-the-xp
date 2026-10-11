@@ -45,6 +45,7 @@ const MyPortalRoutes = [{
   },
   {
     path: "my-party",
+    name: "my-party",
     meta: {
       faIcon: "fort-awesome",
       hideUserFab: true,

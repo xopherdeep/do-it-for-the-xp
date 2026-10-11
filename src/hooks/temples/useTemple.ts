@@ -5,12 +5,13 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { TempleSystem, MapVisibility } from '@/lib/engine/core/dungeons/TempleSystem';
 import { DungeonManager } from '@/lib/engine/core/dungeons/DungeonManager';
 import { registerCustomTemples } from '@/lib/engine/core/dungeons/TempleAdapter';
-import { AlertInput } from '@ionic/vue';
 import { ChestSystem } from '@/lib/engine/core/dungeons/ChestSystem';
 import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
 import debug from '@/lib/utils/debug';
 import { useUserStore } from '@/lib/store/stores/user';
 import { chestItemUnlocks, freeTemplePegasus } from '@/lib/services/temples/TemplePegasus';
+import { chestLoot, lootFace } from '@/lib/services/temples/ChestLoot';
+import { earnGold } from '@/lib/services/temples/RoomInteractions';
 
 // Define a message display function type that can be provided by the component using this hook
 export type MessageDisplayFn = (message: string, duration?: number) => void;
@@ -21,10 +22,6 @@ export type MessageDisplayFn = (message: string, duration?: number) => void;
  * @param userId the hero playing: their saved run in this temple is resumed (it wins over the start position)
  *               and kept up to date. Without one the run lives in memory only.
  */
-/** "golden key" -> "Golden Key": loot names are stored lowercase, the chest shows them properly. */
-const titleCase = (value: string): string =>
-  String(value).replace(/\b([a-z])/g, (letter) => letter.toUpperCase());
-
 export function useTemple(templeId: string, startPosition?: [number, number], startLevel?: string, userId?: string) {
   const templeSystem = TempleSystem.getInstance();
   const dungeonManager = DungeonManager.getInstance();
@@ -113,51 +110,10 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     return temple?.rooms || {};
   });
   
-  // Get chest contents for the current room
-  const chestContents = computed(() => {
-    if (!currentRoom.value || currentRoom.value.type !== 'loot' || !currentRoom.value.content) {
-      return [] as AlertInput[];
-    }
-    
-    const contents: AlertInput[] = [];
-    
-    // Add standard items
-    if (currentRoom.value.content.items) {
-      currentRoom.value.content.items.forEach(item => {
-        contents.push({
-          name: item,
-          type: 'checkbox',
-          label: titleCase(item),
-          value: item,
-          checked: false
-        });
-      });
-    }
-    
-    // Add dungeon items like maps, compasses, keys
-    if (currentRoom.value.content.chest === 'dungeon' && currentRoom.value.content.dungeon) {
-      contents.push({
-        name: currentRoom.value.content.dungeon,
-        type: 'checkbox',
-        label: titleCase(currentRoom.value.content.dungeon),
-        value: currentRoom.value.content.dungeon,
-        checked: false
-      });
-    }
-    
-    // Add gold if present
-    if (currentRoom.value.content.gold) {
-      contents.push({
-        name: `${currentRoom.value.content.gold} Gold`,
-        type: 'checkbox',
-        label: `${currentRoom.value.content.gold} Gold`,
-        value: `gold:${currentRoom.value.content.gold}`,
-        checked: false
-      });
-    }
-    
-    return contents;
-  });
+  // What the current room's chest holds, as the chest reveal shows it
+  const chestContents = computed(() =>
+    currentRoom.value?.type === 'loot' ? chestLoot(currentRoom.value.content) : []
+  );
   
   // Get the color for the current room action
   const actionColor = computed(() => {
@@ -330,18 +286,21 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
       return;
     }
     
+    // What the message lists: each item by its proper name, the gold as it was paid
+    const collected: string[] = [];
+
     // Process each selected item
     selectedItems.forEach(item => {
       // Handle special gold item format
       if (item.startsWith('gold:')) {
         const goldAmount = parseInt(item.split(':')[1], 10);
-        if (!isNaN(goldAmount)) {
-          // TODO: Add gold to player inventory
-          debug.log(`Added ${goldAmount} gold to player inventory`);
-        }
+        // Paid with the hero's class and awareness bonus, like any other temple gold
+        if (!isNaN(goldAmount) && userId) collected.push(`${earnGold(userId, goldAmount)} GP`);
         return;
       }
       
+      collected.push(lootFace(item).name);
+
       // Handle special items by updating both local refs AND the temple system state
       if (item === 'key') {
         playerKeys.value++;
@@ -382,7 +341,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     templeSystem.takeFromChest(templeId, currentLevel.value, currentPosition.value, selectedItems);
     
     // Generate a message about what was collected; a freed Pegasus is the news
-    displayMessage(freed ?? `Collected: ${selectedItems.join(', ')}`, 3000);
+    displayMessage(freed ?? `Collected: ${collected.join(', ')}`, 3000);
   };
   
   // Check if the chest in the current room is empty

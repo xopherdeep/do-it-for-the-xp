@@ -14,17 +14,17 @@
 
     <ion-content :fullscreen="true">
       <div class="hometown-plaza">
-        <!-- North: Town Hall and Gold Bank -->
+        <!-- North: Town Hall, The Plains (leave town), and Gold Bank -->
         <div class="plaza-row plaza-top">
-          <xp-building-model building-id="town-hall" label="Town Hall" :size="115" />
-          <xp-building-model building-id="bank" label="Gold Bank" :size="115" />
+          <xp-building-model building-id="town-hall" label="Town Hall" :size="105" />
+          <xp-stage-model stage-id="world-plains" label="The Plains" sublabel="Leave town" :size="105" />
+          <xp-building-model building-id="bank" label="Gold Bank" :size="105" />
         </div>
 
-        <!-- East/West flank: Market, The Plains, and Hospital -->
+        <!-- East/West flank: Market and Hospital -->
         <div class="plaza-row plaza-middle">
-          <xp-building-model building-id="shop" label="Market" :size="105" />
-          <xp-stage-model stage-id="world-plains" label="The Plains" sublabel="Leave town" :size="105" />
-          <xp-building-model building-id="hospital" label="Hospital" :size="105" />
+          <xp-building-model building-id="shop" label="Market" :size="115" />
+          <xp-building-model building-id="hospital" label="Hospital" :size="115" />
         </div>
 
         <!-- South: Hero's Home and Hotel -->

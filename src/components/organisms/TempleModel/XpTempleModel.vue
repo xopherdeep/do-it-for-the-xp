@@ -123,16 +123,16 @@ export default defineComponent({
     transform: translateY(-4px) scale(1.04);
 
     :deep(.xp-landmark-badge) {
-      background: rgba(22, 24, 38, 0.95);
-      border-color: #ffe082;
-      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.7), 0 0 10px rgba(255, 215, 0, 0.5);
-
       .landmark-title {
-        color: #fff275;
-      }
-
-      .landmark-cue {
         color: #ffffff;
+        transform: scale(1.08);
+        text-shadow:
+          -2px -2px 0 #000,
+          2px -2px 0 #000,
+          -2px 2px 0 #000,
+          2px 2px 0 #000,
+          0 0 10px rgba(255, 215, 0, 0.8),
+          0 3px 6px rgba(0, 0, 0, 0.95);
       }
     }
   }

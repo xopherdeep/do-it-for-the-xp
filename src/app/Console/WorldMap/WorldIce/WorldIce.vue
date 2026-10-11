@@ -15,8 +15,9 @@
     <ion-content :fullscreen="true">
       <WeatherFX type="snowy" :intensity="6" :sound-enabled="false" />
       <div class="world-landmarks-layer">
-        <xp-temple-model temple-id="ice-temple" :size="115" />
-        <xp-building-model building-id="snow-shack" :size="115" />
+        <xp-building-model building-id="snow-shack" :size="105" />
+        <xp-building-model building-id="pegasus" label="Travel World" sublabel="Fly to World Map" :size="105" />
+        <xp-temple-model temple-id="ice-temple" :size="105" />
       </div>
     </ion-content>
   </ion-page>

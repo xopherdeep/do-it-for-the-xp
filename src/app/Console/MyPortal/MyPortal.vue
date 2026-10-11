@@ -22,25 +22,25 @@
       <ion-tabs>
         <ion-router-outlet ref="outlet" :userId="user?.id"></ion-router-outlet>
 
-        <!-- The purse and the XP hairline sit on a ledge just above the nav -->
-        <div class="tab-docked-xp tab-docked-xp--ledge" v-if="user.stats && !battleState('active')" slot="bottom">
-          <xp-gp-bar :stats="user.stats" />
-          <xp-xp-bar :stats="user.stats" :hairline="true" />
-        </div>
+        <!-- The dock (XP | GP hairline over the nav) floats over the bottom of the page so the scene shows through -->
+        <div class="portal-dock" v-if="user.stats && !battleState('active')" slot="bottom">
+          <div class="tab-docked-xp tab-docked-xp--ledge">
+            <xp-purse-bar :stats="user.stats" />
+          </div>
 
-        <xp-bottom-nav
-          slot="bottom"
-          v-if="user.stats && !battleState('active')"
-          :profile-label="user.name?.nick || 'Hero'"
-          :area-label="compass.name"
-          :area-icon="compass.icon"
-          :left-hand="leftHandItem"
-          :right-hand="rightHandItem"
-          @open-profile="openUserProfileModal"
-          @open-area="openAreaMenu"
-          @open-party="openParty"
-          @use-hand="useHand"
-        />
+          <xp-bottom-nav
+            :profile-label="user.name?.nick || 'Hero'"
+            :area-label="compass.name"
+            :area-icon="compass.icon"
+            :left-hand="leftHandItem"
+            :right-hand="rightHandItem"
+            :active="activeNavTab"
+            @open-profile="openUserProfileModal"
+            @open-area="openAreaMenu"
+            @open-party="openParty"
+            @use-hand="useHand"
+          />
+        </div>
       </ion-tabs>
     </template>
 

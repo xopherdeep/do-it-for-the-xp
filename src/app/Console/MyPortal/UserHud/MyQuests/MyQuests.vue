@@ -38,7 +38,7 @@
               <i :class="rowIcon(row)" />
             </span>
             <ion-label>
-              <h2 class="quest-row-name" v-html="formatQuestName(row.title)"></h2>
+              <h2 class="quest-row-name" v-html="sanitizeHtml(formatQuestName(row.title))"></h2>
               <p class="quest-row-meta">
                 <img v-if="avatarFor(row.assigneeId)" :src="avatarFor(row.assigneeId)" class="quest-row-avatar"
                   :alt="row.assigneeName" />
@@ -102,7 +102,7 @@
                     <ion-skeleton-text :animated="true" style="width: 100px;"></ion-skeleton-text>
                   </ion-card-title>
                   <ion-card-title v-else
-                    v-html="formatQuestName(item.achievementName || item.title?.rendered || 'Untitled Quest')"></ion-card-title>
+                    v-html="sanitizeHtml(formatQuestName(item.achievementName || item.title?.rendered || 'Untitled Quest'))"></ion-card-title>
 
                   <ion-thumbnail v-if="isLoading">
                     <ion-skeleton-text :animated="true" style="width: 100%;"></ion-skeleton-text>

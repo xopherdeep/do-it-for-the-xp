@@ -326,7 +326,7 @@ const ADVANCED_CLASSES: JobClass[] = [
     "Burns through the list.",
     [
       "Suits deep focus: homework, study, building and fixing things.",
-      "Potent: the biggest MP discount in the game, so spells come easy.",
+      "Potent: a deep MP discount, so spells come easy.",
       "Trains Mind and Spirit: focus turned to power.",
     ],
     ['mental', 'vibrational', 'eternal']

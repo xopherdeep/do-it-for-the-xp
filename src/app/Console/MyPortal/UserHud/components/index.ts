@@ -9,6 +9,7 @@ import XpWorldMapModal from "./XpWorldMapModal.vue"
 import UserProfileModal from "./UserProfileModal.vue"
 import XpXpBar from "./XpXpBar.vue"
 import XpGpBar from "./XpGpBar.vue" // Import new component
+import XpPurseBar from "./XpPurseBar.vue"
 import XpMainHud from "./XpMainHud.vue"
 
 
@@ -25,5 +26,6 @@ export default {
   UserProfileModal,
   XpXpBar,
   XpGpBar, // Export new component
+  XpPurseBar,
   XpMainHud
 }

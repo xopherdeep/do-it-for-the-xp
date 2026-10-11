@@ -1,14 +1,6 @@
 <template>
   <ion-modal ref="modal" :is-open="true" :class="$options.name" :backdropDismiss="false" @willPresent="willPresent"
     @willDismiss="willDismiss" @didPresent="didPresent" @didDismiss="$emit('didDismiss')">
-    <!-- <ion-header v-if="item">
-      <ion-toolbar>
-        <ion-buttons slot="end">
-          <ion-button @click="activeModal = 0"> Close </ion-button>
-        </ion-buttons>
-        <ion-title v-if="item.title" v-html="item.title.rendered" />
-      </ion-toolbar>
-    </ion-header> -->
     <transition name="fade">
       <ion-header v-if="debug">
         <ion-toolbar>
@@ -39,7 +31,7 @@
       <swiper-slide class="task">
         <ion-card color="success">
           <ion-card-title v-if="item"
-            v-html="formatQuestName(item.achievementName || item.title?.rendered || 'Untitled Quest')"></ion-card-title>
+            v-html="sanitizeHtml(formatQuestName(item.achievementName || item.title?.rendered || 'Untitled Quest'))"></ion-card-title>
           <ion-grid>
             <ion-row>
               <ion-col>
@@ -283,7 +275,7 @@
                         <ion-list>
                           <ion-item-sliding v-for="item in itemsDropped" :key="item.id">
                             <ion-item color="light">
-                              <ion-label v-html="getItemLabel(item)" />
+                              <ion-label v-html="sanitizeHtml(getItemLabel(item))" />
                             </ion-item>
                             <ion-item-options side="end">
                               <ion-item-option @click="slideLootItem(item)" color="danger">
@@ -298,7 +290,7 @@
                         <ion-list>
                           <ion-item-sliding v-for="item in itemsLooted" :key="item.id">
                             <ion-item color="danger">
-                              <ion-label v-html="getItemLabel(item)" />
+                              <ion-label v-html="sanitizeHtml(getItemLabel(item))" />
                             </ion-item>
                             <ion-item-options side="end">
                               <ion-item-option @click="slideDropItem(item)" color="light">

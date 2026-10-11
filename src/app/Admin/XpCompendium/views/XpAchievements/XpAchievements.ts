@@ -23,6 +23,7 @@ import {
 import { LORE_COMBO_MATRIX } from "@/constants";
 import { formatQuestName } from "@/lib/utils/format";
 import { formatPoints } from "@/lib/services/quests/QuestLabels";
+import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 
 import AchievementDb, {
   achievementStorage,
@@ -548,6 +549,7 @@ Feed the pets`,
       beasts,
       formatQuestName,
       formatPoints,
+      sanitizeHtml,
     };
   },
 });

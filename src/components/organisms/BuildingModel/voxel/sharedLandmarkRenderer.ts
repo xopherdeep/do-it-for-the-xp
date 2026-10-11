@@ -16,6 +16,8 @@ export interface LandmarkOptions {
 
 export interface LandmarkHandle {
   rebuildMesh: (newGetMeshData?: () => MeshData) => void;
+  setSpinSpeed?: (speed: number) => void;
+  setYaw?: (yaw: number) => void;
   dispose: () => void;
 }
 
@@ -36,6 +38,7 @@ interface LandmarkClient {
   spinSpeed: number;
   yaw: number;
   dragging: boolean;
+  dirty: boolean;
   lastPointerX: number;
   onScreen: boolean;
   t0: number;
@@ -97,6 +100,7 @@ const initSharedRenderer = (): THREE.WebGLRenderer | null => {
       isContextLost = false;
       clients.forEach((client) => {
         buildClientMesh(client);
+        client.dirty = true;
       });
       syncLoop();
     });
@@ -149,6 +153,7 @@ const buildClientMesh = (client: LandmarkClient): void => {
   client.mesh = new THREE.Mesh(geometry, material);
   client.mesh.position.y = 0;
   client.group.add(client.mesh);
+  client.dirty = true;
 };
 
 const setupClientScene = (client: LandmarkClient, ambientIntensity = 1.05, dirIntensity = 1.3): void => {
@@ -212,19 +217,24 @@ const resizeClient = (client: LandmarkClient): void => {
   );
   client.camera.lookAt(0, client.cameraTargetY, 0);
   client.camera.updateProjectionMatrix();
+  client.dirty = true;
 };
 
-const renderClient = (client: LandmarkClient, renderer: THREE.WebGLRenderer, nowSec: number): void => {
+const renderClient = (client: LandmarkClient, renderer: THREE.WebGLRenderer): void => {
   const isRenderable = client.onScreen && client.pixelWidth > 0 && client.pixelHeight > 0;
   if (!isRenderable) return;
 
-  const t = nowSec - client.t0;
-
-  if (!client.dragging) {
+  if (client.spinSpeed !== 0 && !client.dragging) {
     client.yaw += client.spinSpeed * 0.018;
+    client.dirty = true;
   }
+
+  if (!client.dirty && !client.dragging && client.spinSpeed === 0) {
+    return;
+  }
+
   client.group.rotation.y = client.yaw;
-  client.group.position.y = Math.sin(t * 1.5) * 0.35;
+  client.group.position.y = 0;
 
   if (sharedCanvas && (sharedCanvas.width !== client.pixelWidth || sharedCanvas.height !== client.pixelHeight)) {
     renderer.setSize(client.pixelWidth, client.pixelHeight, false);
@@ -236,50 +246,66 @@ const renderClient = (client: LandmarkClient, renderer: THREE.WebGLRenderer, now
   if (sharedCanvas) {
     client.ctx.drawImage(sharedCanvas, 0, 0, client.pixelWidth, client.pixelHeight);
   }
+
+  client.dirty = false;
+};
+
+const shouldRunLoop = (): boolean => {
+  if (isContextLost || document.hidden || clients.size === 0) return false;
+  let anyActive = false;
+  clients.forEach((client) => {
+    if (client.onScreen && (client.dragging || client.dirty || client.spinSpeed !== 0)) {
+      anyActive = true;
+    }
+  });
+  return anyActive;
 };
 
 const renderLoop = (currentTime = performance.now()): void => {
   if (!isLoopRunning || isContextLost) return;
-  rafId = requestAnimationFrame(renderLoop);
 
   let hasDraggingClient = false;
-  let hasVisibleClient = false;
+  let hasActiveClient = false;
 
   clients.forEach((client) => {
     if (client.onScreen) {
-      hasVisibleClient = true;
+      if (client.dragging || client.dirty || client.spinSpeed !== 0) {
+        hasActiveClient = true;
+      }
       if (client.dragging) {
         hasDraggingClient = true;
       }
     }
   });
 
-  if (!hasVisibleClient) {
+  if (!hasActiveClient) {
     stopLoop();
     return;
   }
 
   const minInterval = hasDraggingClient ? 16 : 33;
   const elapsed = currentTime - lastRenderTime;
-  if (elapsed < minInterval) return;
+  if (elapsed < minInterval) {
+    rafId = requestAnimationFrame(renderLoop);
+    return;
+  }
   lastRenderTime = currentTime - (elapsed % minInterval);
 
   const renderer = initSharedRenderer();
-  if (!renderer) return;
+  if (!renderer) {
+    rafId = requestAnimationFrame(renderLoop);
+    return;
+  }
 
-  const nowSec = getNowSeconds();
   clients.forEach((client) => {
-    renderClient(client, renderer, nowSec);
+    renderClient(client, renderer);
   });
-};
 
-const shouldRunLoop = (): boolean => {
-  if (isContextLost || document.hidden || clients.size === 0) return false;
-  let anyVisible = false;
-  clients.forEach((client) => {
-    if (client.onScreen) anyVisible = true;
-  });
-  return anyVisible;
+  if (shouldRunLoop()) {
+    rafId = requestAnimationFrame(renderLoop);
+  } else {
+    stopLoop();
+  }
 };
 
 const syncLoop = (): void => {
@@ -310,6 +336,7 @@ const attachPointerEvents = (client: LandmarkClient): (() => void) => {
 
   const onPointerDown = (event: PointerEvent): void => {
     client.dragging = true;
+    client.dirty = true;
     client.lastPointerX = event.clientX;
     (event.target as HTMLElement)?.setPointerCapture?.(event.pointerId);
     syncLoop();
@@ -320,12 +347,16 @@ const attachPointerEvents = (client: LandmarkClient): (() => void) => {
     const dx = event.clientX - client.lastPointerX;
     client.lastPointerX = event.clientX;
     client.yaw += dx * 0.018;
+    client.dirty = true;
+    syncLoop();
   };
 
   const onPointerUp = (event: PointerEvent): void => {
     if (!client.dragging) return;
     client.dragging = false;
+    client.dirty = true;
     (event.target as HTMLElement)?.releasePointerCapture?.(event.pointerId);
+    syncLoop();
   };
 
   client.canvas.addEventListener("pointerdown", onPointerDown);
@@ -372,6 +403,7 @@ export const registerLandmark = (
     spinSpeed: options.spinSpeed ?? 0,
     yaw: options.initialYaw ?? 0,
     dragging: false,
+    dirty: true,
     lastPointerX: 0,
     onScreen: true,
     t0: getNowSeconds(),
@@ -389,6 +421,7 @@ export const registerLandmark = (
 
   client.resizeObserver = new ResizeObserver(() => {
     resizeClient(client);
+    client.dirty = true;
     syncLoop();
   });
   client.resizeObserver.observe(canvas.parentElement ?? canvas);
@@ -397,6 +430,9 @@ export const registerLandmark = (
     (entries) => {
       const isVisible = entries.some((entry) => entry.isIntersecting);
       client.onScreen = isVisible;
+      if (isVisible) {
+        client.dirty = true;
+      }
       syncLoop();
     },
     { threshold: 0.05 }
@@ -412,7 +448,20 @@ export const registerLandmark = (
         client.getMeshData = newGetMeshData;
       }
       buildClientMesh(client);
+      client.dirty = true;
       syncLoop();
+    },
+    setSpinSpeed: (speed: number): void => {
+      client.spinSpeed = speed;
+      if (speed !== 0 && client.onScreen) {
+        client.dirty = true;
+        startLoop();
+      }
+    },
+    setYaw: (yaw: number): void => {
+      client.yaw = yaw;
+      client.dirty = true;
+      startLoop();
     },
     dispose: (): void => {
       client.cleanupEvents();

@@ -95,10 +95,26 @@
     position: relative;
     z-index: 1000;
 
-    // The ledge above the nav: GP then the XP hairline, flush on the nav's top border
+    // The ledge above the nav: the XP | GP hairline, its empty track shows the scene
     &--ledge {
-      background: #000;
+      background: transparent;
     }
+  }
+
+  // Hairline (20px) + nav (56px): the dock floats over the pages instead of pushing them up
+  --xp-dock-height: calc(76px + env(safe-area-inset-bottom, 0px));
+
+  .portal-dock {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+  }
+
+  // Pages run under the dock; their scroll still ends above it
+  ion-router-outlet ion-content {
+    --padding-bottom: var(--xp-dock-height);
   }
 
   ion-tab-bar {

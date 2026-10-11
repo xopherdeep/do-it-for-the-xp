@@ -91,7 +91,7 @@
       <h2 class="quest-title">
         <span
           v-if="achievement.achievementName"
-          v-html="formatQuestName(achievement.achievementName)"
+          v-html="sanitizeHtml(formatQuestName(achievement.achievementName))"
         />
         <span
           v-else
@@ -159,6 +159,7 @@ import {
 import ionic from "@/lib/mixins/ionic";
 import { formatQuestName } from "@/lib/utils/format";
 import { formatPoints, questSubtitle, statusIconLabels } from "@/lib/services/quests/QuestLabels";
+import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 export default defineComponent({
   // users: the family's profiles, for the hero nicknames; groupBy: the list's grouping, so the subtitle skips what the group header already says
   props: ["achievement", "categories", "showPoints", "beasts", "users", "groupBy"],
@@ -225,6 +226,7 @@ export default defineComponent({
   methods: {
     formatQuestName,
     formatPoints,
+    sanitizeHtml,
   },
 });
 </script>

@@ -31,6 +31,7 @@ import {
 } from "ionicons/icons";
 import { useItemFetcher } from "@/hooks/useItemFetcher";
 import { actionSheetController } from "@ionic/vue";
+import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 
 export default defineComponent({
   props: ["userId"],
@@ -153,7 +154,8 @@ export default defineComponent({
       items,
       getItems,
       getImgObj,
-      nTotalPages
+      nTotalPages,
+      sanitizeHtml,
     };
   },
 });

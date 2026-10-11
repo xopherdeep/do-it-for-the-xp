@@ -76,8 +76,8 @@
             <ion-img v-bind="getFeaturedImg(task?._embedded)" />
           </ion-avatar>
           <ion-label>
-            <h3 v-html="task.title.rendered" />
-            <p v-html="task.content.rendered" />
+            <h3 v-html="sanitizeHtml(task.title.rendered)" />
+            <p v-html="sanitizeHtml(task.content.rendered)" />
           </ion-label>
         </ion-item>
       </ion-list>
@@ -124,7 +124,7 @@
                   </ion-card-title>
                   <ion-card-title
                     v-else
-                    v-html="item.title.rendered"
+                    v-html="sanitizeHtml(item.title.rendered)"
                   ></ion-card-title>
 
                   <ion-avatar v-if="isFetching">

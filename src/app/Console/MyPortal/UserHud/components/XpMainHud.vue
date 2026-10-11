@@ -22,7 +22,7 @@
           </div>
         </div>
         <div class="wing-icon-col">
-          <i :class="`fad ${POINT_ICONS.hp.icon} hp-icon`" :style="heartStyle"></i>
+          <i :class="`fad ${POINT_ICONS.hp.icon} hp-icon`"></i>
         </div>
       </div>
 
@@ -87,11 +87,6 @@ export default defineComponent({
     });
 
 
-    const heartStyle = computed(() => {
-      // We can add the pulse logic here if needed, or keep it in SCSS
-      return {};
-    });
-
     const formatNumber = (num: number) => {
       return num ? num.toLocaleString() : "0";
     };
@@ -100,7 +95,6 @@ export default defineComponent({
       POINT_ICONS,
       hpProgress,
       mpProgress,
-      heartStyle,
       formatNumber
     };
   }
@@ -266,40 +260,13 @@ export default defineComponent({
       --fa-secondary-color: #ff0000;
       --fa-secondary-opacity: 1;
       --fa-primary-color: #880000; // Base EKG color
-      animation: heartbeat 2s infinite ease-in-out;
       transform-origin: center;
     }
 
     &.mp-icon {
       color: var(--ion-color-tertiary);
-      animation: mp-glow 3s infinite alternate ease-in-out;
+      filter: drop-shadow(0 0 6px rgba(var(--ion-color-tertiary-rgb), 0.5));
     }
   }
-}
-
-@keyframes heartbeat {
-  0% {
-    transform: scale(1);
-    filter: drop-shadow(0 0 2px rgba(80, 0, 0, 0.5));
-    --fa-primary-color: #660000;
-    --fa-primary-opacity: 0.6;
-  }
-  50% {
-    transform: scale(1.1);
-    filter: drop-shadow(0 0 15px rgba(220, 20, 60, 0.8)); // Crimson glow
-    --fa-primary-color: #ff3333;
-    --fa-primary-opacity: 1;
-  }
-  100% {
-    transform: scale(1);
-    filter: drop-shadow(0 0 2px rgba(80, 0, 0, 0.5));
-    --fa-primary-color: #660000;
-    --fa-primary-opacity: 0.6;
-  }
-}
-
-@keyframes mp-glow {
-  0% { transform: rotate(-5deg); filter: drop-shadow(0 0 5px rgba(var(--ion-color-tertiary-rgb), 0.4)); }
-  100% { transform: rotate(5deg); filter: drop-shadow(0 0 15px rgba(var(--ion-color-tertiary-rgb), 0.8)); }
 }
 </style>

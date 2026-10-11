@@ -1,7 +1,7 @@
 <template>
   <span ref="textContainer" :class="['xp-typing-text  rpg-box', {'rpg-text': isRpgStyled}]">
     <slot v-if="showSlot"></slot>
-    <span v-else v-html="displayedText"></span>
+    <span v-else v-html="sanitizeHtml(displayedText)"></span>
     <span v-if="isTyping && cursorVisible" class="typing-cursor">|</span>
     <!-- Only show the caret when typing is complete and there's more text to read -->
     <i v-if="!isTyping && hasMoreText" class="fad fa-caret-down fa-2x float-right mt-3 animate-bounce" />
@@ -11,6 +11,7 @@
 <script lang="ts">
 import { play$fx } from '@/assets/fx';
 import { defineComponent, ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import { sanitizeHtml } from '@/lib/utils/sanitizeHtml';
 
 export default defineComponent({
   name: 'XpTypingText',
@@ -262,7 +263,8 @@ export default defineComponent({
       resetTyping,
       pauseTyping,
       resumeTyping,
-      showSlot
+      showSlot,
+      sanitizeHtml,
     };
   }
 });

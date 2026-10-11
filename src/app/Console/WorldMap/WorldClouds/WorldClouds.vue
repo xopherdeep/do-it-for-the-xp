@@ -15,8 +15,9 @@
     <ion-content :fullscreen="true">
       <WeatherFX type="cloudy" :intensity="5" :sound-enabled="false" />
       <div class="world-landmarks-layer">
-        <xp-temple-model temple-id="storm-temple" :size="115" />
-        <xp-building-model building-id="cloud-market" :size="115" />
+        <xp-building-model building-id="cloud-market" :size="105" />
+        <xp-building-model building-id="pegasus" label="Travel World" sublabel="Fly to World Map" :size="105" />
+        <xp-temple-model temple-id="storm-temple" :size="105" />
       </div>
     </ion-content>
   </ion-page>

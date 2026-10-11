@@ -247,7 +247,7 @@ $seam: rgba($eb-color-cream, 0.25);
 .sheet-subtitle {
   margin: 6px 0 0;
   font-family: "StatusPlz", sans-serif;
-  font-size: 0.95rem;
+  font-size: 1.15rem;
   line-height: 1.25;
   opacity: 0.85;
 }

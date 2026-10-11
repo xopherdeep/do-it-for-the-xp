@@ -93,9 +93,8 @@
               <ion-card-header>
                 <ion-card-subtitle
                   v-if="item.title"
-                  v-html="item.title.rendered"
+                  v-html="sanitizeHtml(item.title.rendered)"
                 />
-                <!-- <ion-card-title v-if="item.title" v-html="item.title.rendered"></ion-card-title> -->
               </ion-card-header>
               <ion-img v-bind="getImgObj(item.featured_media)"></ion-img>
 

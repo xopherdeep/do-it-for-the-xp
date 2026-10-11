@@ -115,10 +115,10 @@
     color: var(--ion-color-rpg); // rpg yellow text
 
     .dialog-content {
-      font-family: inherit;
-      font-size: 1.2rem;
-      line-height: 1.4;
-      max-height: 200px;
+      font-family: "Apple Kid", "StatusPlz", monospace;
+      font-size: 1.55rem;
+      line-height: 1.45;
+      max-height: 220px;
       overflow-y: auto;
       cursor: pointer;
       // Tapping the box never selects text or zooms
@@ -161,7 +161,7 @@
     .dialog-prompt {
       margin: 6px 16px 0;
       font-family: "StatusPlz", monospace;
-      font-size: 0.95rem;
+      font-size: 1.15rem;
       letter-spacing: 1px;
       color: #e7e6b3;
       opacity: 0.9;

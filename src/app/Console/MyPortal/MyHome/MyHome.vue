@@ -15,23 +15,25 @@
     <ion-content :fullscreen="true" class="my-home-bg">
       <IonRouterOutlet />
       <div class="my-home-plaza">
-        <!-- North: My Calendar and My Storage -->
+        <!-- North: Cozy Bed (left) and My Storage (center) -->
         <div class="plaza-row plaza-top">
-          <xp-building-model building-id="home-calendar" label="My Calendar" sublabel="View schedule" :size="115" />
+          <xp-building-model building-id="home-bed" label="Cozy Bed" sublabel="Rest & heal" :size="115" @click="restInBed" />
           <xp-building-model building-id="home-storage" label="My Storage" sublabel="Open vault" :size="115" />
+          <div class="plaza-clearing" aria-hidden="true"></div>
         </div>
 
-        <!-- East/West flank: My Workbench and My Kitchen, leaving center clear for navigation FAB -->
+        <!-- East/West flank: My Workbench and My Kitchen, leaving center clear for table -->
         <div class="plaza-row plaza-middle">
           <xp-building-model building-id="home-workbench" label="My Workbench" sublabel="Craft gear" :size="115" />
-          <div class="plaza-center-clearing" aria-hidden="true"></div>
+          <div class="plaza-clearing" aria-hidden="true"></div>
           <xp-building-model building-id="home-kitchen" label="My Kitchen" sublabel="Cook meals" :size="115" />
         </div>
 
-        <!-- South: Rest in Bed and Go Outside -->
+        <!-- South: My Calendar (left) and Front Door (center) -->
         <div class="plaza-row plaza-bottom">
-          <xp-building-model building-id="home-bed" label="Cozy Bed" sublabel="Rest & heal" :size="115" @click="restInBed" />
+          <xp-building-model building-id="home-calendar" label="My Calendar" sublabel="View schedule" :size="115" />
           <xp-building-model building-id="home-door" label="Front Door" sublabel="Go outside" :size="115" />
+          <div class="plaza-clearing" aria-hidden="true"></div>
         </div>
       </div>
       <ion-modal :breakpoints="[0.9]" :initialBreakpoint="0.9">

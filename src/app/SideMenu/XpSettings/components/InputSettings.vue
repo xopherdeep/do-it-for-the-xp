@@ -124,6 +124,11 @@
   import { volumeHigh, volumeLow } from "ionicons/icons";
   import { useAudioStore } from "@/lib/store/stores/audio";
   import { useGameStore } from "@/lib/store/stores/game";
+  import {
+    feel,
+    hapticsEnabled,
+    setHapticsEnabled,
+  } from "@/lib/services/feedback/haptics";
 
   export default defineComponent({
     name: "input-settings",
@@ -199,16 +204,15 @@
         );
       },
 
-      toggleVibration() {
-        // In a real app, this would enable/disable vibration
-        this.showToast(
-          `Vibration ${this.vibrationEnabled ? "enabled" : "disabled"}`
-        );
+      toggleVibration(event?: CustomEvent) {
+        // The event carries the new state; the v-model may not have caught up yet
+        const on = event?.detail?.checked ?? this.vibrationEnabled;
+        this.vibrationEnabled = on;
+        setHapticsEnabled(on);
+        this.showToast(`Vibration ${on ? "enabled" : "disabled"}`);
 
-        // Provide haptic feedback if enabled
-        if (this.vibrationEnabled && navigator.vibrate) {
-          navigator.vibrate(50);
-        }
+        // A tap to show what it feels like
+        if (on) feel("tap");
       },
 
       async showToast(message: string) {
@@ -243,7 +247,7 @@
       const musicVolume = ref(80);
       const effectsVolume = ref(70);
       const soundEffectsEnabled = ref(true);
-      const vibrationEnabled = ref(true);
+      const vibrationEnabled = ref(hapticsEnabled());
       const volumeToastTimeout = ref<ReturnType<typeof setTimeout> | null>(
         null
       );

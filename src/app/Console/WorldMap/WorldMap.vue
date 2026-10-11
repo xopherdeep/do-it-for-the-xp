@@ -21,7 +21,7 @@
           <xp-stage-model stage-id="world-clouds" :size="100" />
         </div>
 
-        <!-- Equator: West forest and East tundras, leaving center clear for navigation FAB -->
+        <!-- Equator: West forest and East tundras -->
         <div class="plaza-row plaza-equator">
           <xp-stage-model stage-id="world-forest" :size="105" />
           <div class="plaza-center-clearing" aria-hidden="true"></div>

@@ -51,7 +51,8 @@ export default defineComponent({
   display: flex;
   width: 100%;
   height: 20px;
-  background: rgba(0, 0, 0, 0.6);
+  // A 25% track, same tint as the nav: the empty part of each bar shows the page behind it
+  background: rgba(16, 12, 28, 0.25);
   font-family: "StatusPlz", sans-serif;
   pointer-events: none;
 

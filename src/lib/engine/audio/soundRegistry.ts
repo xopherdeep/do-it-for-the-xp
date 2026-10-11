@@ -4,6 +4,7 @@ import debug from '@/lib/utils/debug';
 // Import actual audio files instead of using placeholders
 // Nintendo UI sounds
 import nintendoSelect from '@/assets/audio/nintendo/switch/Select.wav';
+import nintendoKlick from '@/assets/audio/nintendo/switch/Klick.wav';
 import nintendoConfirm from '@/assets/audio/nintendo/switch/Tick.wav';
 import nintendoCancel from '@/assets/audio/nintendo/switch/Border.wav';
 import nintendoError from '@/assets/audio/nintendo/switch/Error.wav';
@@ -52,6 +53,11 @@ export const soundEffects: Record<string, Record<string, Record<string, SoundEff
         src: nintendoSelect,
         category: 'ui'
       },
+      click: {
+        id: 'nintendo_click',
+        src: nintendoKlick,
+        category: 'ui'
+      },
       confirm: {
         id: 'nintendo_confirm',
         src: nintendoConfirm,
@@ -77,6 +83,11 @@ export const soundEffects: Record<string, Record<string, Record<string, SoundEff
     sony: {
       select: {
         id: 'sony_select',
+        src: sonySelect,
+        category: 'ui'
+      },
+      click: {
+        id: 'sony_click',
         src: sonySelect,
         category: 'ui'
       },

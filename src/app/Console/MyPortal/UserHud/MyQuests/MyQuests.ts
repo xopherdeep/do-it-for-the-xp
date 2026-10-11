@@ -46,6 +46,7 @@ import { useRouter } from "vue-router";
 // import { useSwiper } from "swiper/vue";
 import { Controller, Navigation, Swiper as SwiperClass } from "swiper";
 import { formatQuestName } from "@/lib/utils/format";
+import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 
 // The quest log has two faces: the card board (the RPG view) and the plain to-do list
 type QuestLogView = "board" | "list";
@@ -428,6 +429,7 @@ export default defineComponent({
       add,
       shieldCheckmarkOutline,
       formatQuestName,
+      sanitizeHtml,
     };
   },
 });

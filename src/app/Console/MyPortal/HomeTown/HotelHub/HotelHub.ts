@@ -40,6 +40,7 @@ import ATMModal from "@/app/Console/MyPortal/HomeTown/GoldBank/components/ATMMod
 import { getGPService } from '@/lib/services/gp';
 import { quoteCare, ROOM_COST } from "@/lib/services/hometown/Lodging";
 import type { CareQuote } from "@/lib/services/hometown/Lodging";
+import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 
 // Define the interface for XpTypingText instance methods
 interface XpTypingTextInstance {
@@ -373,7 +374,8 @@ export default defineComponent({
       items,
       getItems,
       getImgObj,
-      nTotalPages
+      nTotalPages,
+      sanitizeHtml,
     };
   },
 });

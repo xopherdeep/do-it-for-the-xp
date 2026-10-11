@@ -67,7 +67,7 @@ describe("classPassive", () => {
   });
 
   it("Black Mage pays 35% less MP and gets 10% MP back on a win", () => {
-    expect(classPassive("Black Mage")).toEqual({ ...none, mpDiscount: 0.35, mpRegenOnWin: 0.1, blurb: "The deepest MP discount in the game." });
+    expect(classPassive("Black Mage")).toEqual({ ...none, mpDiscount: 0.35, mpRegenOnWin: 0.1, blurb: "A deep MP discount; spells come easy." });
   });
 
   it("Assassin runs from monsters 90% of the time and loots +30% GP", () => {

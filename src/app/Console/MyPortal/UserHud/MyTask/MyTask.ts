@@ -41,6 +41,7 @@ import { useAudioStore } from "@/lib/store/stores/audio";
 import { useRouter } from "vue-router";
 import { Controller, Navigation } from "swiper";
 import { formatQuestName } from "@/lib/utils/format";
+import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 import { format, set } from "date-fns";
 import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
 import { DAY_TOKENS, effectiveDeadline, getQuestProgressFor, hasPendingClaimFor } from "@/lib/engine/quests/QuestSchedule";
@@ -655,7 +656,8 @@ export default defineComponent({
       getItems,
       getImgObj,
       nTotalPages,
-      formatQuestName
+      formatQuestName,
+      sanitizeHtml,
     };
   },
 });

@@ -5,6 +5,7 @@ import { useRouter } from "vue-router";
 import XpApi from "@/lib/api/doit.forthexp.com.api";
 // import ionic from "@/lib/mixins/ionic";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
+import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 import {
   IonBackButton,
   IonButton,
@@ -337,6 +338,7 @@ export const XpDiscoverAchievements = defineComponent({
       medalOutline,
       ribbonOutline,
       checkmarkDone,
+      sanitizeHtml,
     };
 
     function useTasks(page, params) {

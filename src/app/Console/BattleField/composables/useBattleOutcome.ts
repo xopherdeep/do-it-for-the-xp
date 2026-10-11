@@ -180,7 +180,7 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     deps.feedback.victory();
     const label = encounter?.label || defeated[0]?.name || "The enemy";
     await deps.presentVictory({
-      title: quest ? "QUEST TAMED!" : "VICTORY!",
+      title: "YOU WON!",
       subtitle: `${label} was defeated!`,
       rewards,
       questName: quest?.achievementName,

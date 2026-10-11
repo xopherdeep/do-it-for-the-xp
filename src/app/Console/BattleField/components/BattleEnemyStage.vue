@@ -41,7 +41,20 @@
           class="damage-popup"
           :class="{ 'is-smash': popup.smash }"
           :style="popup.style"
-        >{{ popup.text }}</span>
+        >
+          <template v-if="popup.smash">
+            <img
+              src="@/assets/images/battle/smash.png"
+              alt=""
+              class="smash-sprite"
+              draggable="false"
+            />
+            <span class="sr-only">SMAAAASH!!</span>
+          </template>
+          <template v-else>
+            {{ popup.text }}
+          </template>
+        </span>
       </div>
     </div>
 
@@ -445,20 +458,49 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
   text-align: center;
   white-space: nowrap;
   pointer-events: none;
-  font-family: "Year Is 199X", "Apple Kid", sans-serif;
-  font-size: 1.8rem;
+  font-family: "Pixel Takhisis", "Year Is 199X", "Apple Kid", sans-serif;
+  font-size: 3.2rem;
   line-height: 1;
-  letter-spacing: 1px;
+  font-weight: 700;
+  letter-spacing: 2px;
   color: #fff;
-  text-shadow: #{$outline}, 0 4px 6px rgba(0, 0, 0, 0.45);
+  text-shadow:
+    -2px -2px 0 $ink,
+    2px -2px 0 $ink,
+    -2px 2px 0 $ink,
+    2px 2px 0 $ink,
+    0 4px 10px rgba(0, 0, 0, 0.7);
   animation: damage-pop 1s ease-out forwards;
 
   &.is-smash {
-    --pop: 1.55;
-    font-size: 2.4rem;
-    color: #ffd84a;
-    text-shadow: #{$outline}, 0 0 14px rgba(255, 216, 74, 0.85);
+    --pop: 1.6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
+}
+
+.smash-sprite {
+  display: inline-block;
+  width: 213px;
+  height: 73px;
+  max-width: 85vw;
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;
+  filter: drop-shadow(0 4px 0 $ink) drop-shadow(0 0 16px rgba(112, 80, 248, 0.95));
+  vertical-align: middle;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
 }
 
 .chores {
@@ -528,7 +570,7 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
 .chores-left-label {
   margin-top: 4px;
   font-family: "StatusPlz", "Apple Kid", sans-serif;
-  font-size: 0.95rem;
+  font-size: 1.2rem;
   line-height: 1.1;
   letter-spacing: 0.5px;
   white-space: nowrap;
@@ -650,7 +692,7 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
 
 .attack-timer-caption {
   font-family: "StatusPlz", "Apple Kid", sans-serif;
-  font-size: 0.75rem;
+  font-size: 0.95rem;
   letter-spacing: 0.5px;
   color: $eb-color-cream;
   opacity: 0.85;
@@ -659,7 +701,7 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
 .attack-timer-label {
   margin-top: 2px;
   font-family: "Apple Kid", sans-serif;
-  font-size: 1.3rem;
+  font-size: 1.55rem;
   letter-spacing: 1px;
   font-variant-numeric: tabular-nums;
   color: var(--tone-light);

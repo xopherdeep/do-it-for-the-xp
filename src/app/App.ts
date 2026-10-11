@@ -45,6 +45,8 @@ import XpSideMenu from "@/app/SideMenu/SideMenu.vue";
 import XpAudioPermissionModal from "@/components/molecules/Modals/XpAudioPermissionModal.vue";
 import XpStudioSplash from "@/components/organisms/Splash/XpStudioSplash.vue";
 import { claimStudioSplash } from "@/components/organisms/Splash/splash";
+import XpSceneTransition from "@/components/organisms/SceneTransition/XpSceneTransition.vue";
+import { isActive as sceneTransitionActive } from "@/components/organisms/SceneTransition/sceneTransitionController";
 // import XpGlobalDialog from "../../components/molecules/Dialog/XpGlobalDialog.vue";
 import XpGlobalDialog from "@/components/molecules/Dialog/XpGlobalDialog.vue";
 import debug from "@/lib/utils/debug";
@@ -88,6 +90,7 @@ export default defineComponent({
     XpAudioPermissionModal,
     XpStudioSplash,
     XpGlobalDialog,
+    XpSceneTransition,
   },
   data() {
     return {
@@ -292,6 +295,8 @@ export default defineComponent({
     const bgm = computed(() => audioStore.bgm);
 
     return {
+      // Ionic's own page slide stays off while a scene transition plays over it
+      sceneTransitionActive,
       audioStore,
       userStore,
       gameStore,

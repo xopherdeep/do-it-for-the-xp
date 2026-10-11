@@ -176,6 +176,7 @@
   import debug from "@/lib/utils/debug";
   import { heroAvatarSrc } from "@/lib/hero-look/look";
   import { fingerPrintOutline, fingerPrintSharp } from "ionicons/icons";
+  import { play$fx } from "@/assets/fx";
 
   const $requireAvatar = require.context(
     "@/assets/images/avatars",
@@ -248,7 +249,10 @@
       });
 
       const dismiss = async () => {
-        await modalController.dismiss();
+        play$fx("select");
+        if (typeof modalController?.dismiss === "function") {
+          await modalController.dismiss();
+        }
       };
 
       const clickUnlock = async () => {
@@ -259,7 +263,9 @@
           )}`
         );
 
-        if (inputCode.value !== props.profile.passcode) {
+        const isPasscodeMatch = inputCode.value === props.profile.passcode;
+        if (!isPasscodeMatch) {
+          play$fx("no");
           hasError.value = true;
           setTimeout(() => {
             hasError.value = false;
@@ -267,50 +273,62 @@
           }, 500);
           alertIncorrectPasscode();
         } else {
-          const toast = await toastController.create({
-            message: "Profile unlocked",
-            duration: 1500,
-            position: "top",
-          });
-          await toast.present();
+          play$fx("yes");
+          if (typeof toastController?.create === "function") {
+            const toast = await toastController.create({
+              message: "Profile unlocked",
+              duration: 1500,
+              position: "top",
+            });
+            await toast.present();
+          }
 
           setTimeout(() => {
-            modalController.dismiss(props.profile);
+            if (typeof modalController?.dismiss === "function") {
+              modalController.dismiss(props.profile);
+            }
           }, 300);
         }
       };
 
       const toggleShowPass = () => {
+        play$fx("click");
         showPass.value = !showPass.value;
       };
 
       const appendToCode = (digit: number) => {
-        if (inputCode.value.length < 4) {
+        const canAddDigit = inputCode.value.length < 4;
+        if (canAddDigit) {
+          play$fx("click");
           inputCode.value += digit;
         }
       };
 
       const removeLastDigit = () => {
+        play$fx("click");
         inputCode.value = inputCode.value.slice(0, -1);
       };
 
       const clearCode = () => {
+        play$fx("click");
         inputCode.value = "";
       };
 
       const alertIncorrectPasscode = async () => {
-        const alert = await alertController.create({
-          mode: "ios",
-          header: "Passcode Incorrect",
-          message: "The passcode you entered was not valid. Please try again.",
-          buttons: [
-            {
-              text: "OK",
-              role: "confirm",
-            },
-          ],
-        });
-        alert.present();
+        if (typeof alertController?.create === "function") {
+          const alert = await alertController.create({
+            mode: "ios",
+            header: "Passcode Incorrect",
+            message: "The passcode you entered was not valid. Please try again.",
+            buttons: [
+              {
+                text: "OK",
+                role: "confirm",
+              },
+            ],
+          });
+          alert.present();
+        }
       };
 
       return {

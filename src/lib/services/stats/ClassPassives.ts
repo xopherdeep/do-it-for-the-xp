@@ -116,7 +116,7 @@ const PASSIVES: Record<string, Partial<ClassPassive>> = {
   'Black Mage': {
     mpDiscount: BLACK_MAGE_MP_DISCOUNT,
     mpRegenOnWin: WIN_MP_REGEN,
-    blurb: 'The deepest MP discount in the game.',
+    blurb: 'A deep MP discount; spells come easy.',
   },
   Assassin: {
     runChance: THIEF_RUN_CHANCE,
