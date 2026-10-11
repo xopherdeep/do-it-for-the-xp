@@ -1,0 +1,274 @@
+// The temple's full-screen reveals (the chest, the locked doors): one look for the dark overlay, the light behind the
+// sprite, the RPG box under it and its buttons. Each reveal sets `--reveal-glow` / `--reveal-glow-soft` on its root and
+// includes these mixins in its own scoped style, together with `reveal-keyframes` at the root of the stylesheet.
+@use "@/styles/themes/earthbound.scss" as *;
+
+$reveal-gold: #ffd84a;
+$reveal-amber: #ffb347;
+$reveal-ink: #1c0a04;
+
+/** The overlay: covers the temple page (ion-page is its containing block) and stacks the stage over the panel. */
+@mixin reveal-overlay {
+  position: absolute;
+  inset: 0;
+  // Above the room's floating buttons (ion-fab, 999) and the footer with the nav (1000): the reveal has the screen
+  z-index: 1100;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  padding: max(24px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom));
+  // Clip, not hidden: the light rays reach past the screen, and a hidden box still scrolls when a button takes focus
+  overflow: hidden;
+  overflow: clip;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+
+  &:focus {
+    outline: none;
+  }
+}
+
+/** The dark around the sprite, with the reveal's light pooled behind it at `$light-y` down the screen. */
+@mixin reveal-backdrop($light-y: 34%) {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at 50% $light-y, var(--reveal-glow-soft) 0, transparent 46%),
+    radial-gradient(ellipse at 50% 40%, rgba(40, 8, 40, 0.9) 0, rgba(10, 2, 10, 0.97) 75%);
+}
+
+@mixin reveal-backdrop-unlit {
+  background: radial-gradient(ellipse at 50% 40%, rgba(40, 8, 40, 0.9) 0, rgba(10, 2, 10, 0.97) 75%);
+}
+
+/** A slow-turning wheel of light, centred where the reveal places it. */
+@mixin reveal-rays($size: 520px) {
+  position: absolute;
+  z-index: 0;
+  width: $size;
+  height: $size;
+  margin: calc(#{$size} / -2) 0 0 calc(#{$size} / -2);
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, var(--reveal-glow) 0deg 7deg, transparent 7deg 22.5deg);
+  mask-image: radial-gradient(circle, #000 0, rgba(0, 0, 0, 0.55) 22%, transparent 62%);
+  -webkit-mask-image: radial-gradient(circle, #000 0, rgba(0, 0, 0, 0.55) 22%, transparent 62%);
+  opacity: 0;
+  transform: scale(0.3);
+  pointer-events: none;
+}
+
+@mixin reveal-flash($size: 80px) {
+  position: absolute;
+  width: $size;
+  height: $size;
+  margin: calc(#{$size} / -2) 0 0 calc(#{$size} / -2);
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0, var(--reveal-glow) 40%, transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+/** The RPG box under the sprite; it rises in with `reveal-panel-in`. */
+@mixin reveal-panel {
+  @include eb-box();
+  position: relative;
+  z-index: 4;
+  box-sizing: border-box;
+  width: calc(100% - 32px);
+  max-width: 360px;
+  margin: 16px auto 0;
+  padding: 14px 12px 12px;
+  opacity: 0;
+  transform: translateY(18px);
+}
+
+@mixin reveal-title {
+  margin: 0 0 10px;
+  font-family: $eb-font-status;
+  font-size: 1.5rem;
+  letter-spacing: 0.06em;
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--reveal-glow);
+  text-shadow: 2px 2px 0 $reveal-ink, 0 0 10px var(--reveal-glow-soft);
+}
+
+@mixin reveal-text {
+  margin: 4px 4px 2px;
+  font-family: $eb-font-primary;
+  font-size: 1.1rem;
+  line-height: 1.3;
+  text-align: center;
+  color: rgba(231, 230, 179, 0.85);
+}
+
+@mixin reveal-actions {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+
+@mixin reveal-button {
+  min-height: 46px;
+  border-radius: 2px;
+  font-family: $eb-font-status;
+  font-size: 1.1rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform 0.08s ease, filter 0.15s ease, opacity 0.15s ease;
+
+  &:focus {
+    outline: none;
+  }
+  &:focus-visible {
+    outline: 2px dashed $eb-color-pale-yellow;
+    outline-offset: 3px;
+  }
+  &:active:not(:disabled) {
+    transform: translateY(2px);
+  }
+  &:disabled {
+    cursor: default;
+    opacity: 0.45;
+  }
+
+  i {
+    margin-left: 6px;
+  }
+}
+
+@mixin reveal-button-ghost {
+  border: 2px solid rgba(231, 230, 179, 0.4);
+  background: transparent;
+  color: $eb-color-cream;
+}
+
+/** The gold button that does the thing, its caret nudging forward while it can be pressed. */
+@mixin reveal-button-primary {
+  border: 2px solid $reveal-ink;
+  background: linear-gradient(180deg, #fff2a6 0, $reveal-gold 45%, #c78f1c 100%);
+  color: $reveal-ink;
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.2), 0 0 0 2px $eb-color-pale-yellow, 0 3px 0 2px $reveal-ink;
+
+  &:not(:disabled) i {
+    animation: reveal-caret-nudge 0.9s steps(2, end) infinite;
+  }
+}
+
+/** The motions the mixins above name. Include once at the root of each reveal's stylesheet. */
+@mixin reveal-keyframes {
+  @keyframes reveal-rays-in {
+    0% { opacity: 0; transform: scale(0.3); }
+    100% { opacity: 0.55; transform: scale(1); }
+  }
+
+  @keyframes reveal-rays-turn {
+    to { rotate: 360deg; }
+  }
+
+  @keyframes reveal-flash {
+    0% { opacity: 0; transform: scale(0.4); }
+    20% { opacity: 1; }
+    100% { opacity: 0; transform: scale(4.5); }
+  }
+
+  @keyframes reveal-panel-in {
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes reveal-panel-out {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(18px); }
+  }
+
+  @keyframes reveal-caret-nudge {
+    50% { transform: translateX(3px); }
+  }
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// The choice reveal (the riddle, the shop and the room actions): a panel at the bottom of the screen with a stacked
+// list of choices, a confirm button and a cancel button, all within reach of a thumb.
+// ---------------------------------------------------------------------------------------------------------------
+
+/** The overlay of a reveal whose controls sit at the bottom: the sprite above, the panel under it. */
+@mixin reveal-overlay-docked {
+  @include reveal-overlay;
+  justify-content: flex-end;
+  gap: 0;
+  padding-bottom: max(32px, env(safe-area-inset-bottom));
+}
+
+/** The stacked list of choices. It scrolls when a long list does not fit; the padding keeps the focus outline whole. */
+@mixin reveal-choice-list {
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 2px;
+  display: grid;
+  gap: 6px;
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+/** One row of the list: a tap target at least 48 px tall. */
+@mixin reveal-choice-row {
+  width: 100%;
+  min-height: 52px;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px 6px 12px;
+  border: 2px solid rgba(231, 230, 179, 0.18);
+  border-radius: 2px;
+  background: rgba(56, 48, 80, 0.75);
+  color: $eb-color-cream;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, opacity 0.15s ease;
+
+  &:focus {
+    outline: none;
+  }
+  &:focus-visible {
+    outline: 2px dashed $eb-color-pale-yellow;
+    outline-offset: 2px;
+  }
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+  &:disabled {
+    cursor: default;
+    opacity: 0.5;
+    border-style: dashed;
+  }
+}
+
+/** The row that is picked, in the pale-yellow accent. */
+@mixin reveal-choice-row-selected {
+  border-color: $eb-color-pale-yellow;
+  background: rgba(247, 232, 168, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(247, 232, 168, 0.35);
+}
+
+/** The confirm and cancel buttons, one under the other, full width. */
+@mixin reveal-actions-stacked {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 10px;
+  flex: none;
+}
+
+/** Reveal buttons grow to a thumb: 48 px tall. */
+@mixin reveal-button-tall {
+  min-height: 48px;
+}
