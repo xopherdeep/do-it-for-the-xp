@@ -28,6 +28,7 @@
       class="stat-value"
     >
       <template v-if="isPercentage">{{ displayCurrent }}%</template>
+      <template v-else-if="!hasMax">{{ displayCurrent }}</template>
       <template v-else>{{ displayCurrent }}/{{ displayMax }}</template>
     </xp-text>
   </div>
@@ -68,7 +69,7 @@ export default defineComponent({
     },
     max: {
       type: [Number, String],
-      default: 100
+      default: undefined
     },
     progress: {
       type: Number,
@@ -101,11 +102,14 @@ export default defineComponent({
       return abbreviateNumber(Number(props.current), 1);
     });
 
+    // No usable max (undefined, null or empty) means the box shows the plain value; 0 is a real max.
+    const hasMax = computed(() => props.max !== undefined && props.max !== null && props.max !== '');
+
     const displayMax = computed(() => {
       return abbreviateNumber(Number(props.max), 1);
     });
 
-    return { iconAnimationClass, displayCurrent, displayMax };
+    return { iconAnimationClass, displayCurrent, displayMax, hasMax };
   },
   methods: {
     handleClick() {

@@ -70,7 +70,7 @@
               :progress="(user.stats?.mp?.now || 0) / (user.stats?.mp?.max || 1)" @click="openAccordion('mental')" />
 
             <xp-profile-stat-box type="ap" :icon="POINT_ICONS.ap.icon" :label="POINT_ICONS.ap.label"
-              :color="POINT_ICONS.ap.color" :current="apPercent" :progress="apProgress" :is-percentage="true"
+              :color="POINT_ICONS.ap.color" :current="apTotal" :progress="apProgress"
               @click="openAccordion('vibrational')" />
 
             <xp-profile-stat-box type="gp" :icon="POINT_ICONS.gp.icon" :label="POINT_ICONS.gp.label"
@@ -217,6 +217,7 @@ import { useGameStore } from "@/lib/store/stores/game";
 import { play$fx } from "@/assets/fx";
 import { getXpForLevel } from "@/lib/services/stats/PlayerStatsService";
 import { classLevelsOf, classRequirementLabel, isClassUnlocked } from "@/lib/services/stats/ClassPassives";
+import { heroApWindows } from "@/lib/services/abilities/heroAbilityStatus";
 import { statEffectLine, statTotal } from "@/lib/services/stats/StatEffects";
 
 // Avatar helper using require.context
@@ -532,39 +533,14 @@ export default defineComponent({
       return Math.min(Math.max(wallet / max, 0), 1);
     });
 
-    // AP calculations (today vs week - measuring consistency)
-    const apToday = computed(() => {
-      const stats = props.user?.stats;
-      if (!stats || !stats.ap) return 0;
+    // AP is logged as stats.ap = { total, history }; the windows are summed from the history.
+    const apWindows = computed(() => heroApWindows(props.user?.stats?.ap));
+    const apTotal = computed(() => apWindows.value.total);
 
-      if (typeof stats.ap === 'object') {
-        return stats.ap.today || 0;
-      }
-      return 0;
-    });
-
-    const apWeek = computed(() => {
-      const stats = props.user?.stats;
-      if (!stats || !stats.ap) return 0;
-
-      if (typeof stats.ap === 'object') {
-        return stats.ap.week || stats.ap.total || 0;
-      }
-      return stats.ap || 0;
-    });
-
+    // Bar fill: today's AP against this week's daily average, capped at 1.
     const apProgress = computed(() => {
-      const today = parseFloat(String(apToday.value));
-      const week = parseFloat(String(apWeek.value));
-
-      if (isNaN(today) || isNaN(week) || week <= 0) return 0;
-      return Math.min(Math.max(today / week, 0), 1);
-    });
-
-    // AP as percentage for energy meter display
-    const apPercent = computed(() => {
-      const progress = apProgress.value;
-      return isNaN(progress) ? 0 : Math.round(progress * 100);
+      const { daily, weekly } = apWindows.value;
+      return weekly > 0 ? Math.min(daily / (weekly / 7), 1) : 0;
     });
 
     // Check if a pillar is boosted by the user's current class
@@ -705,7 +681,7 @@ export default defineComponent({
       xpValues,
       gpProgress,
       apProgress,
-      apPercent
+      apTotal
     };
   }
 });

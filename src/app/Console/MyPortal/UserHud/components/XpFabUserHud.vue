@@ -10,8 +10,8 @@
               <i v-if="isImpersonating" class="fad fa-mask fa-2x text-danger"></i>
               <ion-img v-else-if="user.avatarImage || user.avatar" class="ion-no-padding" :src="userAvatar"></ion-img>
             </ion-fab-button>
-            <ion-badge color="secondary" class="avatar-badge" v-if="apPercent !== null">
-              AP {{ apPercent }}%
+            <ion-badge color="secondary" class="avatar-badge" v-if="user?.stats">
+              AP {{ apTotalLabel }}
             </ion-badge>
           </div>
 
@@ -31,7 +31,7 @@
                 <small>LVL</small>{{ user.stats.level }}
               </div>
             </div>
-            <div v-if="walletHtml" class="menu-subtitle" v-html="walletHtml"></div>
+            <div v-if="walletHtml" class="menu-subtitle" v-html="sanitizeHtml(walletHtml)"></div>
           </div>
         </template>
       </xp-rpg-menu>
@@ -51,6 +51,9 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { useNotificationsStore } from "@/lib/store/stores/notifications";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
 import { play$fx } from "@/assets/fx";
+import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
+import { abbreviateNumber } from "@/lib/utils/format";
+import { heroApWindows } from "@/lib/services/abilities/heroAbilityStatus";
 import {
   menuController,
   modalController,
@@ -116,15 +119,11 @@ export default defineComponent({
     walletHtml() {
       return `<span class="wallet"><i class="fad fa-coin mr-1"></i> <small>₲</small>${this.user.stats.gp.wallet}<small>00</small></span>`;
     },
-    apPercent() {
-      const ap = this.user?.stats?.ap;
-      if (ap === undefined || ap === null) return null;
-      if (typeof ap === "object") {
-        const today = Number(ap.today) || 0;
-        const week = Number(ap.week || ap.total) || 1;
-        return Math.round((today / week) * 100);
-      }
-      return Number(ap) || 0;
+    apTotal(): number {
+      return heroApWindows(this.user?.stats?.ap).total;
+    },
+    apTotalLabel(): string {
+      return abbreviateNumber(this.apTotal, 1);
     },
     isImpersonating() {
       return (this as any).userStore.currentUser.isImpersonating;
@@ -329,6 +328,7 @@ export default defineComponent({
       showSaveQuitModal,
       closeSaveQuitModal,
       confirmSaveQuit,
+      sanitizeHtml,
     };
   },
 });
