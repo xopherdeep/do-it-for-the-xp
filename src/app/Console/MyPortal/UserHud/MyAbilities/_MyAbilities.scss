@@ -1,35 +1,163 @@
-:root{
-  --color-light: #59296b;
-  --color-medium: #0f1444;
-  --color-dark: #11174d;
-  --color-darkest: #0f1444;
-  --animation-speed: 4s;
-  --animation-loop: infinite;
-}
+@use "@/styles/themes/earthbound.scss" as *;
 
-.my-abilities{
-  ion-card {
-    &.item {
-      margin: 1em;
-      // 100% view height - header - footer toolbar - padding / 2 
-      // height: calc((100vh - 120px - 110px - 5em) / 2);
-      border-radius: 0 0 65px 65px;
-      box-shadow: 
-      rgb(0 0 0 / 20%) 0px 3px 1px -2px,
-      rgb(0 0 0 / 14%) 0px 2px 2px 0px,
-      rgb(0 0 0 / 12%) 0px 1px 5px 0px;
+// The hero's Powers: one boxed card per Power, Privileges first and then Spells
+.my-abilities {
+  .powers-list {
+    display: flex;
+    flex-direction: column;
+    padding: 4px 0;
+  }
 
-      ion-img {
-        margin: .5em auto;
-        // object-fit: fill;
-        // transform: scale(1.15);
-        img {
-          margin: 1em auto;
-          object-fit: fill;
-          max-width: 95%;
-        }
-      }
+  .powers-empty {
+    @include eb-box();
+    margin: 20px;
+    padding: 20px;
+    text-align: center;
+    font-family: $eb-font-status, sans-serif;
+    line-height: 1.5;
+
+    p {
+      margin: 0;
     }
   }
 
+  // The card is a child component: its own markup is reached through :deep.
+  // The ring shadow of an eb-box reaches 16px outside it, hence the 20px margin.
+  :deep(.power-card) {
+    @include eb-box();
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 20px;
+    padding: 14px;
+    font-family: $eb-font-status, sans-serif;
+
+    .power-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .power-icon {
+      flex: 0 0 auto;
+      width: 2.4rem;
+      font-size: 2rem;
+      text-align: center;
+      color: $eb-color-pale-yellow;
+    }
+
+    .power-title {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+      min-width: 0;
+    }
+
+    .power-name {
+      margin: 0;
+      font-size: 1.1rem;
+      line-height: 1.2;
+      color: $eb-color-pale-yellow;
+      overflow-wrap: anywhere;
+    }
+
+    .power-chip {
+      padding: 2px 8px;
+      font-size: 0.7rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: $eb-color-dark-purple;
+      background: $eb-color-minty-blue;
+    }
+
+    &.type-in-game .power-chip {
+      background: $eb-color-sky-blue;
+    }
+
+    .power-desc {
+      margin: 0;
+      font-size: 0.9rem;
+      line-height: 1.4;
+      color: $eb-color-cream;
+    }
+
+    .power-ap-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+      font-size: 0.85rem;
+    }
+
+    .power-need,
+    .power-ap-text {
+      color: var(--xp-color-ap);
+    }
+
+    .power-ap-text {
+      white-space: nowrap;
+    }
+
+    .power-meter {
+      height: 10px;
+      margin-top: 4px;
+      background: $eb-color-medium-purple;
+      border: 2px solid $eb-color-slate;
+    }
+
+    .power-meter-fill {
+      height: 100%;
+      background: var(--xp-color-ap);
+      transition: width 0.3s steps(8);
+    }
+
+    .power-cost {
+      margin: 0;
+      font-size: 0.85rem;
+      color: var(--xp-color-mp);
+    }
+
+    .power-foot {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .power-state {
+      margin: 0;
+      font-size: 0.85rem;
+      color: $eb-color-cream;
+    }
+
+    .cast-btn {
+      margin-left: auto;
+      min-width: 96px;
+      min-height: 48px;
+      padding: 0 20px;
+      border: 0;
+      font-family: $eb-font-status, sans-serif;
+      font-size: 1rem;
+      color: var(--ion-color-rpg-contrast);
+      background: var(--ion-color-rpg);
+      box-shadow: 0 0 0 3px $eb-color-slate;
+
+      &:active:not(:disabled) {
+        background: var(--ion-color-rpg-tint);
+      }
+
+      &:disabled {
+        opacity: 0.4;
+      }
+    }
+
+    // A Power that cannot be cast yet sits a little dimmer than one that can
+    &.status-locked {
+      .power-icon,
+      .power-name {
+        opacity: 0.7;
+      }
+    }
+  }
 }
