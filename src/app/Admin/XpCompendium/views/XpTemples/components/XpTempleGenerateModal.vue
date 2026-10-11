@@ -161,7 +161,7 @@
             <span><i class="fad fa-bat"></i> {{ summary.monsters }}</span>
             <span><i class="fad fa-key"></i> {{ summary.keys }} keys / {{ summary.locks }} locks</span>
             <span><i class="fad fa-treasure-chest"></i> {{ summary.chests }}</span>
-            <span v-if="summary.hasMasterKey"><i class="fad fa-key-skeleton"></i> master key</span>
+            <span v-if="summary.hasMasterKey"><i class="fad fa-key-skeleton"></i> Boss Key</span>
             <span v-if="summary.hasPegasus"><i class="fad fa-pegasus"></i> Pegasus</span>
             <span v-if="temple.attempts > 1"><i class="fad fa-history"></i> {{ temple.attempts }} tries</span>
           </div>

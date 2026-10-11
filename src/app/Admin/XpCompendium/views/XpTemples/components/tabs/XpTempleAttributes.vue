@@ -95,7 +95,7 @@
                   <i :class="['fad', getItemIcon('master')]"></i>
                 </div>
                 <div class="audit-info">
-                  <span class="audit-label">Big Key</span>
+                  <span class="audit-label">Boss Key</span>
                   <span class="audit-status">{{ dungeonAudit.hasBossKey ? 'Placed' : 'Missing' }}</span>
                 </div>
                 <ion-icon :icon="dungeonAudit.hasBossKey ? checkmarkCircle : closeCircle" class="status-indicator"></ion-icon>

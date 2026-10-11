@@ -153,6 +153,7 @@ export function useTempleData(templeId: string) {
       compass: 'fa-compass',
       key: 'fa-key',
       master: 'fa-key-skeleton',
+      'master-key': 'fa-key-skeleton',
       'pegasus whistle': 'fa-megaphone'
     };
     return (icons as any)[name.toLowerCase()] || 'fa-treasure-chest';
@@ -210,11 +211,13 @@ export function useTempleData(templeId: string) {
 
           if (type === 'loot' && roomDef.content?.dungeon) {
             const dungeonItem = roomDef.content.dungeon;
-            const itemName = dungeonItem.charAt(0).toUpperCase() + dungeonItem.slice(1);
+            // The key to the boss door is the Boss Key to a parent; its id stays `master-key` and the run state `hasMasterKey`
+            const isBossKey = dungeonItem === 'master-key';
+            const itemName = isBossKey ? 'Boss Key' : dungeonItem.charAt(0).toUpperCase() + dungeonItem.slice(1);
 
             if (!seenKeyItems.has(itemName.toLowerCase())) {
               seenKeyItems.add(itemName.toLowerCase());
-              const found = sysState?.[`has${itemName}`] || false;
+              const found = sysState?.[isBossKey ? 'hasMasterKey' : `has${itemName}`] || false;
               result.keyItems.push({
                 name: itemName,
                 icon: getItemIcon(dungeonItem),

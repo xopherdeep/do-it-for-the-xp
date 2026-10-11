@@ -70,11 +70,11 @@ export const ROOM_ICONS = {
   save: 'fa-monument',           // Save Point
   gate: 'fa-door-closed',        // Exit Gate
   
-  pit: 'fa-hole',                // Pit Hazard
+  pit: 'fa-dot-circle',          // Pit Hazard (Font Awesome 5.15 has no fa-hole)
   void: 'fa-eclipse',            // Void Space
   
-  'stairs-up': 'fa-stairs',      // Stairs Up
-  'stairs-down': 'fa-stairs-down', // Stairs Down
+  'stairs-up': 'fa-arrow-alt-circle-up',     // Stairs Up (no fa-stairs in the bundled Font Awesome 5.15)
+  'stairs-down': 'fa-arrow-alt-circle-down', // Stairs Down (no fa-stairs-down either)
   camp: 'fa-campfire',           // Camp Room
   lock: 'fa-lock',               // Locked Chest 
 };

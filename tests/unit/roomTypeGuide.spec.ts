@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { ROOM_ICONS, MASTER_EGG_ICON } from "@/lib/engine/dungeons/roomTypes";
+import { ITEM_METADATA, getItemMetadata } from "@/lib/engine/core/items/itemRegistry";
 import { DUNGEON_ITEMS, ROOM_CATEGORIES } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/hooks/useTempleRoomEditor";
 import {
   CATEGORY_BLURBS,
@@ -190,5 +191,63 @@ describe("the critical path", () => {
     });
     expect(isOnCriticalPath("master")).toBe(true);
     expect(isOnCriticalPath("boss")).toBe(true);
+  });
+});
+
+describe("the Boss Key in the item registry and the legend", () => {
+  it("names the boss door's key Boss Key, keeping its id `master-key`", () => {
+    expect(getItemMetadata("master-key")?.name).toBe("Boss Key");
+    expect(getItemMetadata("master-key")?.icon).toBe("key-skeleton");
+  });
+
+  it("has no item whose name or description calls a key the Master Key", () => {
+    Object.values(ITEM_METADATA).forEach((item) => {
+      expect(item.name).not.toMatch(/master key/i);
+      expect(item.description).not.toMatch(/master key/i);
+    });
+  });
+
+  it("says the Wind Whistle comes from the Wind Temple, not from Ventus", () => {
+    const whistle = getItemMetadata("wind-whistle");
+    expect(whistle?.description).toBe("A mystical whistle from the Wind Temple. Summon the Sacred Pegasi for fast travel!");
+    expect(whistle?.description).not.toMatch(/ventus/i);
+  });
+
+  it("lists the Master Room in the room legend, beside the other rooms, with the golden egg", () => {
+    const legend = fs.readFileSync(
+      path.resolve(__dirname, "../../src/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/components/RoomLegendModal.vue"),
+      "utf8"
+    );
+    expect(legend).toContain("label: 'Master Room'");
+    expect(legend).toContain("icon: ROOM_ICONS.master");
+    expect(legend).toContain("The Pegasus Egg chamber, after the boss");
+    expect(legend).toContain("Boss Key");
+    expect(legend).not.toMatch(/master key/i);
+  });
+});
+
+describe("the room icons exist in the bundled Font Awesome", () => {
+  const fontAwesome = path.resolve(__dirname, "../../src/assets/fonts/font-awesome");
+  const allCss = fs.readFileSync(path.join(fontAwesome, "css/all.css"), "utf8");
+  const exists = (icon: string) => {
+    const iconClass = icon.split(/\s+/)[0];
+    return allCss.includes(`.${iconClass}:before`) && fs.existsSync(path.join(fontAwesome, "svgs/duotone", `${iconClass.slice(3)}.svg`));
+  };
+
+  it("gives the stairs and the pit icons that ship in the font (fa-stairs and fa-hole do not)", () => {
+    expect(ROOM_ICONS["stairs-up"]).toBe("fa-arrow-alt-circle-up");
+    expect(ROOM_ICONS["stairs-down"]).toBe("fa-arrow-alt-circle-down");
+    expect(ROOM_ICONS.pit).toBe("fa-dot-circle");
+    ["stairs-up", "stairs-down", "pit"].forEach((type) => {
+      expect([type, exists((ROOM_ICONS as Record<string, string>)[type])]).toEqual([type, true]);
+    });
+    expect(exists("fa-stairs")).toBe(false);
+    expect(exists("fa-hole")).toBe(false);
+  });
+
+  it("draws every room type with an icon that ships in the font", () => {
+    Object.entries(ROOM_ICONS).forEach(([type, icon]) => {
+      expect([type, exists(icon)]).toEqual([type, true]);
+    });
   });
 });

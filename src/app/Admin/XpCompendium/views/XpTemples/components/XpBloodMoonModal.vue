@@ -39,7 +39,7 @@
         </ion-item>
         <p class="moon-help">
           A blood moon resets a hero's run through the temple: beasts return, chests of consumables refill,
-          small keys and the master key are forgotten, doors re-lock. The map, the compass, the key items and
+          small keys and the Boss Key are forgotten, doors re-lock. The map, the compass, the key items and
           the clears stay. A scheduled moon rises when the hero next enters after its time.
         </p>
       </div>
@@ -95,9 +95,9 @@
             <span title="Rooms cleared"><i class="fad fa-swords"></i> {{ row.clearedRooms }} cleared</span>
             <span title="Small keys"><i class="fad fa-key"></i> {{ row.progress.playerKeys }}</span>
             <span
-              title="Master key"
+              title="Boss Key"
               :class="{ dim: !row.progress.hasMasterKey }"
-            ><i class="fad fa-key-skeleton"></i> {{ row.progress.hasMasterKey ? "master key" : "no master key" }}</span>
+            ><i class="fad fa-key-skeleton"></i> {{ row.progress.hasMasterKey ? "Boss Key" : "no Boss Key" }}</span>
             <span title="Times cleared"><i class="fad fa-trophy"></i> ×{{ row.progress.timesCleared }}</span>
             <span title="Blood moons so far"><i class="fad fa-moon"></i> {{ row.progress.bloodMoons }}</span>
           </div>
