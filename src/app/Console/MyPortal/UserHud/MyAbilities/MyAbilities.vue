@@ -1,5 +1,6 @@
 <template>
-  <ion-page v-if="user">
+  <ion-page>
+    <template v-if="user">
     <ion-header>
       <ion-toolbar
         color="tertiary"
@@ -217,6 +218,7 @@
         </ion-grid> -->
       </ion-toolbar>
     </ion-footer>
+    </template>
   </ion-page>
 </template>
 

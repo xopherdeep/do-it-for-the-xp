@@ -19,8 +19,8 @@
 
     <!-- Tabs with router outlet -->
     <template #tabs>
-      <ion-tabs v-if="user && user.stats">
-        <ion-router-outlet ref="outlet" :userId="user.id"></ion-router-outlet>
+      <ion-tabs>
+        <ion-router-outlet ref="outlet" :userId="user?.id"></ion-router-outlet>
 
         <!-- The purse and the XP hairline sit on a ledge just above the nav -->
         <div class="tab-docked-xp tab-docked-xp--ledge" v-if="user.stats && !battleState('active')" slot="bottom">
