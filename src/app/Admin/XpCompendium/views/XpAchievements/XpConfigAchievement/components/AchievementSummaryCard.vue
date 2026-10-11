@@ -28,6 +28,7 @@
         <div class="stat-cell">
           <XpStatBlock :icon="activeScheduleIcon" label="WHEN" :value="scheduleSummary" variant="when" :is-set="true"
             :clickable="true" value-class="text-xs" @click="$emit('navigate', 'when')" />
+          <p v-if="timesText" class="stat-hint">{{ timesText }}</p>
         </div>
       </div>
 
@@ -75,6 +76,7 @@
 import { computed } from 'vue';
 import XpStatBlock from '@/components/atoms/StatBlock/XpStatBlock.vue';
 import XpStatGrid from '@/components/molecules/StatGrid/XpStatGrid.vue';
+import { timesOfDayLine } from '../hooks/timesOfDayEditor';
 import { approvalHint, partyHint, priorityHint, questTypeHint } from '@/lib/services/quests/QuestLabels';
 
 interface Category {
@@ -96,6 +98,7 @@ interface Achievement {
   bonusAchievement?: boolean;
   type?: string;
   adventureType?: string;
+  timesOfDay?: string[];
 }
 
 interface Props {
@@ -146,6 +149,8 @@ const typeHint = computed(() => questTypeHint(props.achievement.type, props.achi
 const partyHintText = computed(() => partyHint(props.achievement.type, props.heroCount));
 const approvalText = computed(() => approvalHint(props.achievement.requiresApproval));
 const priorityText = computed(() => priorityHint(props.achievement.bonusAchievement));
+// "Morn · Night" under WHEN when the quest picks times of day
+const timesText = computed(() => timesOfDayLine(props.achievement.timesOfDay));
 </script>
 
 <style lang="scss" scoped>

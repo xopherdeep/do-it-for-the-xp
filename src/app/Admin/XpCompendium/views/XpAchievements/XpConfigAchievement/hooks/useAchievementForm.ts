@@ -26,6 +26,7 @@ import {
 import XpReorderAchievementsModal from "../components/XpReorderAchievementsModal.vue";
 import { formatQuestName } from "@/lib/utils/format";
 import debug from "@/lib/utils/debug";
+import { withoutEmptyTimes } from "./timesOfDayEditor";
 
 export const sortCategoryByName = (a: any, b: any) => {
   const nameA = a.name.toLowerCase();
@@ -63,7 +64,9 @@ export function useAchievementForm() {
 
   // State
   // State
-  const achievement = ref<Achievement>(AchievementDb.getDefault());
+  // timesOfDay starts as an empty list so the Schedule tab's chips have something to toggle;
+  // withoutEmptyTimes drops it again on save while no time is picked
+  const achievement = ref<Achievement>({ ...AchievementDb.getDefault(), timesOfDay: [] });
 
   const achievements = ref<Achievement[]>([]);
   const beasts = ref<Beast[]>([]);
@@ -523,7 +526,7 @@ export function useAchievementForm() {
         achievement.value.achievementName
       );
       achievement.value.draft = !isValidAdventure.value;
-      await achievementDb.setTask(achievement.value);
+      await achievementDb.setTask(withoutEmptyTimes(achievement.value));
       // Taken after the edits above, so they don't trigger another save
       lastSavedState.value = JSON.stringify(achievement.value);
       saveState.value = achievement.value.draft ? "draft" : "saved";
@@ -565,7 +568,7 @@ export function useAchievementForm() {
       achievement.value.achievementName
     );
     achievement.value.draft = false;
-    await achievementDb.setTask(achievement.value);
+    await achievementDb.setTask(withoutEmptyTimes(achievement.value));
     lastSavedState.value = JSON.stringify(achievement.value);
     saveState.value = "saved";
     const toast = await toastController.create({
@@ -720,7 +723,7 @@ export function useAchievementForm() {
           (ids) => {
             achievement.value.beastId = ids[0] || "";
             // Immediately save when a beast is selected to prevent loss during route transitions
-            achievementDb.setTask(achievement.value);
+            achievementDb.setTask(withoutEmptyTimes(achievement.value));
           }
         );
         router.push({ name: "xp-bestiary-select" });

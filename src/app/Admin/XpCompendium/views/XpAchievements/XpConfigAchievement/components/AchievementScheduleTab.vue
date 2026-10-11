@@ -84,6 +84,30 @@
           </xp-glass-card>
         </div>
       </div>
+
+      <!-- Times of day: which calendar tabs list this chore. Several means it is done that many times a day. -->
+      <div class="times-of-day">
+        <div class="date-label">TIMES OF DAY</div>
+        <div
+          class="times-row"
+          role="group"
+          aria-label="Times of day"
+        >
+          <button
+            v-for="time in TIMES_OF_DAY"
+            :key="time"
+            type="button"
+            class="time-chip"
+            :class="{ 'is-on': hasTime(time) }"
+            :aria-pressed="hasTime(time)"
+            @click="toggleTime(time)"
+          >
+            <i :class="['fad', hasTime(time) ? 'fa-check' : TIME_OF_DAY_ICONS[time], 'time-chip__icon']"></i>
+            <span class="time-chip__name">{{ TIME_OF_DAY_LABELS[time] }}</span>
+          </button>
+        </div>
+        <p class="times-note">Picks which calendar tabs list this chore. Two or more mean it is done that many times a day.</p>
+      </div>
     </div>
 
     <div class="schedule-section">
@@ -251,7 +275,10 @@ import {
 } from '@ionic/vue';
 import { BASIC_SCHEDULE_ICONS } from "@/constants";
 import XpGlassCard from "@/components/atoms/XpGlassCard.vue";
+import { play$fx } from "@/assets/fx";
+import { TIMES_OF_DAY, type TimeOfDay } from "@/lib/engine/quests/QuestSchedule";
 import { AchievementFormInjectionKey } from "../hooks/useAchievementForm";
+import { TIME_OF_DAY_ICONS, TIME_OF_DAY_LABELS, toggleTimeOfDay } from "../hooks/timesOfDayEditor";
 
 const {
   achievement,
@@ -330,6 +357,13 @@ const toggleDay = (day: string) => {
     next = [...current, day];
   }
   achievement.value.repeatOnDays = next;
+};
+
+const hasTime = (time: TimeOfDay) => Boolean(achievement.value.timesOfDay?.includes(time));
+
+const toggleTime = (time: TimeOfDay) => {
+  achievement.value.timesOfDay = toggleTimeOfDay(achievement.value.timesOfDay, time);
+  play$fx('select');
 };
 
 const scheduleSummary = computed(() => {
@@ -424,6 +458,65 @@ const scheduleSummary = computed(() => {
 
   .text-muted {
     opacity: 0.5;
+  }
+
+  .times-of-day {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .times-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  // Toggle chip: muted until picked, then AP blue with a check
+  .time-chip {
+    min-height: 56px;
+    padding: 6px 4px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+    font-family: inherit;
+    color: var(--ion-color-medium);
+    background: rgba(255, 255, 255, 0.05);
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    opacity: 0.75;
+    transition: all 0.2s ease;
+
+    &.is-on {
+      color: #10101c;
+      background: var(--xp-color-ap);
+      border-color: var(--xp-color-ap);
+      box-shadow: 0 0 8px var(--xp-color-ap);
+      opacity: 1;
+
+      .time-chip__icon {
+        color: #10101c;
+      }
+    }
+  }
+
+  .time-chip__icon {
+    font-size: 1.25rem;
+  }
+
+  .time-chip__name {
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+
+  .times-note {
+    margin: 0;
+    font-size: 0.75rem;
+    line-height: 1.3;
+    color: var(--ion-color-medium);
   }
 
 
