@@ -12,6 +12,19 @@
     <ion-content :fullscreen="true" class="rpg-box bg-slide">
       <ion-card class="max-w-2xl">
         <ion-list>
+          <!-- Ambush Alerts -->
+          <ion-item>
+            <ion-label>
+              <h2>Ambush alerts on this device</h2>
+              <p>{{ ambushAlertsMessage }}</p>
+            </ion-label>
+            <ion-toggle
+              v-model="ambushAlerts"
+              :disabled="ambushAlertsDisabled"
+              @ionChange="handleAmbushAlertsChange"
+            ></ion-toggle>
+          </ion-item>
+
           <!-- Chore Due Notifications -->
           <ion-item>
             <ion-label>
@@ -98,7 +111,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, computed } from "vue";
+  import { defineComponent, ref, computed, onMounted } from "vue";
   import { useUserStore } from "@/lib/store/stores/user";
   import {
     IonPage,
@@ -114,9 +127,16 @@
     IonBackButton,
     IonButtons,
     IonAvatar,
+    toastController,
   } from "@ionic/vue";
   import appConfig from "@/app.config";
   import ionic from "@/lib/mixins/ionic";
+  import {
+    alertPermission,
+    requestAlertPermission,
+    battleAlertsChoice,
+    setBattleAlertsChoice,
+  } from "@/lib/services/notifications/alertBridge";
 
   export default defineComponent({
     name: "NotificationSettings",
@@ -144,6 +164,11 @@
       });
 
       const notifiedKids = ref({});
+      const ambushAlerts = ref(battleAlertsChoice() === "on");
+      const ambushAlertsDisabled = ref(false);
+      const ambushAlertsMessage = ref(
+        "A heads-up when a beast ambushes your hero while the game is in the background."
+      );
 
       // Get all users sorted A-Z from Pinia store
       const users = computed(() => userStore.usersAz);
@@ -163,6 +188,42 @@
         notifiedKids.value[kidId] = !notifiedKids.value[kidId];
       };
 
+      onMounted(async () => {
+        const perm = await alertPermission();
+        if (perm === "unsupported") {
+          ambushAlertsDisabled.value = true;
+          ambushAlertsMessage.value = "This browser can't show alerts.";
+        } else if (perm !== "granted") {
+          // Alerts were turned off in the browser since the hero said yes
+          ambushAlerts.value = false;
+        }
+      });
+
+      const handleAmbushAlertsChange = async (event: any) => {
+        const isOn = event.detail.checked;
+
+        if (isOn) {
+          const perm = await requestAlertPermission();
+          if (perm === "granted") {
+            setBattleAlertsChoice("on");
+            ambushAlerts.value = true;
+          } else {
+            setBattleAlertsChoice("off");
+            ambushAlerts.value = false;
+            const toast = await toastController.create({
+              message:
+                "Your browser blocked alerts. Allow them in the site settings, then try again.",
+              cssClass: "rpg-toast",
+              position: "top",
+              duration: 3000,
+            });
+            await toast.present();
+          }
+        } else {
+          setBattleAlertsChoice("off");
+        }
+      };
+
       return {
         settings,
         adultUsers,
@@ -170,6 +231,10 @@
         notifiedKids,
         toggleKidNotification,
         appConfig,
+        ambushAlerts,
+        ambushAlertsDisabled,
+        ambushAlertsMessage,
+        handleAmbushAlertsChange,
       };
     },
   });
