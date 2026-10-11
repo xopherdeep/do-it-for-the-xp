@@ -1,9 +1,9 @@
 /**
  * Device reminders for quests coming due, through Capacitor's LocalNotifications plugin when the app runs
- * on a phone that has it. The plugin is not a dependency of this project: it is loaded with a guarded
- * dynamic import, so on the web (and on a device without the plugin) nothing is scheduled and the result
- * says why. Nothing here throws.
+ * on a phone. The plugin is loaded through the alert bridge (alertBridge.ts), so on the web (and on a device
+ * where it cannot be loaded) nothing is scheduled and the result says why. Nothing here throws.
  */
+import { isNativeApp, loadLocalNotifications } from "./alertBridge";
 
 export interface DueReminder {
   /** The quest the reminder is about; the same quest keeps the same device notification id */
@@ -35,31 +35,6 @@ export const reminderTimeOf = (deadline: Date, now: Date, leadMs = REMINDER_LEAD
   return at > now ? at : null;
 };
 
-type Platform = { isNativePlatform(): boolean };
-
-const nativePlatform = async (): Promise<boolean> => {
-  try {
-    const core = (await import("@capacitor/core")) as { Capacitor?: Platform };
-    return Boolean(core.Capacitor?.isNativePlatform?.());
-  } catch {
-    return false;
-  }
-};
-
-/**
- * Load the plugin without making it a build dependency: a variable specifier keeps webpack from trying
- * to resolve it, and the failure (web, or a device without the plugin) is the reason returned.
- */
-const loadPlugin = async (): Promise<any | null> => {
-  const specifier = "@capacitor/local-notifications";
-  try {
-    const mod = await import(/* webpackIgnore: true */ specifier);
-    return mod?.LocalNotifications ?? null;
-  } catch {
-    return null;
-  }
-};
-
 /**
  * Schedule a device reminder for every quest still ahead of its lead time. Earlier reminders for the same
  * quests are replaced (same id), so running this every few minutes is safe.
@@ -74,8 +49,8 @@ export const scheduleDueReminders = async (
     .filter((entry): entry is { reminder: DueReminder; at: Date } => entry.at !== null);
   if (!pending.length) return { scheduled: 0, reason: "nothing-due" };
 
-  if (!(await (deps.isNative ?? nativePlatform)())) return { scheduled: 0, reason: "web" };
-  const plugin = await (deps.plugin ?? loadPlugin)();
+  if (!(await (deps.isNative ?? (async () => isNativeApp()))())) return { scheduled: 0, reason: "web" };
+  const plugin = await (deps.plugin ?? loadLocalNotifications)();
   if (!plugin) return { scheduled: 0, reason: "plugin-missing" };
 
   try {
