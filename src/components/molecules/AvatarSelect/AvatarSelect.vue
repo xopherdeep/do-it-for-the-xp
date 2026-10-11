@@ -72,7 +72,8 @@
       },
     },
     setup(props: { avatar: number; bg1: number; bg2: number }) {
-      const nAvatars = 73;
+      // every NNN.png in src/assets/images/beasts; tools/art/beasts.py prints the next numbers it writes
+      const nAvatars = 93;
       const selectedAvatar = ref(props.avatar || 0);
       const backgroundInitialized = ref(false);
 
