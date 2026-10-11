@@ -301,6 +301,16 @@ describe("the Codex copy", () => {
     expect(byName("Mystic").creed).toBe("Calm sees further.");
   });
 
+  it("only claims a superlative that is true: Black Mage has a deep MP discount, Sage the cheapest casts", () => {
+    expect(byName("Black Mage").realLife[1]).toBe("Potent: a deep MP discount, so spells come easy.");
+    expect(classPassive("Black Mage").blurb).toBe("A deep MP discount; spells come easy.");
+    expect(classPassive("Sage").mpDiscount).toBeGreaterThan(classPassive("Black Mage").mpDiscount);
+    expect(byName("Sage").realLife[2]).toMatch(/cheapest casts in the game/);
+    JOB_CLASS_OPTIONS.filter((job) => job.name !== "Sage").forEach((job) => {
+      expect([job.description, ...job.realLife].join(" ")).not.toMatch(/biggest MP discount|deepest MP discount|cheapest casts in the game/);
+    });
+  });
+
   it("names the new parents in the crown classes' descriptions", () => {
     expect(byName("Paladin").description).toMatch(/Knight.*Mystic/);
     expect(byName("Ninja").description).toMatch(/Assassin.*Berserker/);

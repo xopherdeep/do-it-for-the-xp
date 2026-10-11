@@ -2,8 +2,8 @@
  * The Class Codex: everything the class picker tells a hero about a class, as plain data.
  *
  * What the class is (description, creed), what it does in the game (passive, pillars, starting HP/MP), what it
- * means in real life (three short lines), what it grows into and what unlocks it. The Codex modal
- * (XpClassCodex.vue) only draws these entries; every rule is read from the same tables the engines use
+ * means in real life (three short lines), what it grows into and what unlocks it (base -> advanced -> crown).
+ * The Codex modal (XpClassCodex.vue) only draws these entries; every rule is read from the same tables the engines use
  * (JOB_CLASS_OPTIONS, ClassPassives, PlayerStatsService, PILLARS), so the screen cannot drift from the game.
  *
  * Pure: no store, no Vue. Callers hand in the hero's class levels (`classLevelsOf(user.stats.classes)`).
@@ -33,9 +33,9 @@ export interface CodexPillar {
 export interface CodexEvolution {
   name: string;
   icon: string;
-  /** The other parent a base class pairs with to reach this class; null on a tier-2 entry. */
+  /** The other parent this class pairs with to reach the evolution (a tier-2 class for a crown class); null when the evolution has one parent. */
   with: string | null;
-  /** "Warrior 10 + Monk 10". */
+  /** "Warrior 10" or "Knight 10 + Mystic 10". */
   requirement: string;
   /** Whether the hero already meets the requirement. */
   met: boolean;
@@ -62,16 +62,17 @@ export interface ClassCodexEntry {
   /** Max HP and MP at hero level 1 with no trained stats and no class levels. */
   startingHp: number;
   startingMp: number;
-  tier: 1 | 2;
+  /** 1 base class, 2 advanced class (one parent), 3 crown class (two advanced parents). */
+  tier: 1 | 2 | 3;
   /** True while the hero has not met the requirement. */
   sealed: boolean;
-  /** "Warrior 10 + Monk 10", or '' for a tier-1 class. */
+  /** "Warrior 10" or "Knight 10 + Mystic 10", or '' for a tier-1 class. */
   requirement: string;
   /** Where the hero stands on each parent level; empty for a tier-1 class. */
   requirementProgress: CodexRequirementProgress[];
   /** The hero's level in this class (0 when never played). */
   heroLevel: number;
-  /** Tier 1: every tier-2 class it parents, with the other parent. Tier 2: nothing. */
+  /** Tier 1: the advanced classes it parents. Tier 2: the crown classes it parents, each with the other parent. Tier 3: nothing. */
   growsInto: CodexEvolution[];
 }
 
@@ -102,7 +103,7 @@ const pillarOf = (key: PillarType, rank: PillarRank): CodexPillar => ({
   currency: PILLARS[key].currencyLabel,
 });
 
-/** The tier-2 classes that list `name` as a parent, in JOB_CLASS_OPTIONS order, each with the other parent. */
+/** The classes that list `name` as a parent, in JOB_CLASS_OPTIONS order, each with the other parent (null when it has just one). */
 const evolutionsOf = (name: string, levels: Record<string, number>): CodexEvolution[] =>
   JOB_CLASS_OPTIONS.filter((job) => job.name in JOB_UNLOCK_REQUIREMENTS && name in JOB_UNLOCK_REQUIREMENTS[job.name]).map((job) => ({
     name: job.name,
@@ -113,7 +114,7 @@ const evolutionsOf = (name: string, levels: Record<string, number>): CodexEvolut
   }));
 
 const buildEntry = (job: JobClass, levels: Record<string, number>): ClassCodexEntry => {
-  const tier = job.tier === 2 ? 2 : 1;
+  const tier = job.tier === 3 ? 3 : job.tier === 2 ? 2 : 1;
   const requirement = JOB_UNLOCK_REQUIREMENTS[job.name] ?? {};
   return {
     name: job.name,
@@ -135,7 +136,7 @@ const buildEntry = (job: JobClass, levels: Record<string, number>): ClassCodexEn
       met: levelIn(levels, name) >= needed,
     })),
     heroLevel: levelIn(levels, job.name),
-    growsInto: tier === 1 ? evolutionsOf(job.name, levels) : [],
+    growsInto: tier < 3 ? evolutionsOf(job.name, levels) : [],
   };
 };
 

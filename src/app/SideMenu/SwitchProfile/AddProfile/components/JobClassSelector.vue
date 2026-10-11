@@ -173,10 +173,12 @@
     },
     emits: ["update:modelValue", "close"],
     setup(props, { emit }) {
-      const jobClassOptions = ref(JOB_CLASS_OPTIONS);
+      // A new hero starts as a base class (Warrior, Mage, Thief or Monk); the rest are reached through the Class Codex
+      const jobClassOptions = ref(JOB_CLASS_OPTIONS.filter((job) => !job.tier || job.tier === 1));
 
+      // The preview still knows every class, so a hero who already plays an advanced one sees their own card
       const selectedJob = computed(() =>
-        jobClassOptions.value.find((job) => job.name === props.modelValue)
+        JOB_CLASS_OPTIONS.find((job) => job.name === props.modelValue)
       );
 
       // Pillar helpers matching UserProfileModal
@@ -216,7 +218,7 @@
       // Get the icon for the selected class
       const getSelectedClassIcon = () => {
         if (!props.modelValue) return "";
-        const selectedClass = jobClassOptions.value.find(
+        const selectedClass = JOB_CLASS_OPTIONS.find(
           (job) => job.name === props.modelValue
         );
         return selectedClass ? selectedClass.icon : "";

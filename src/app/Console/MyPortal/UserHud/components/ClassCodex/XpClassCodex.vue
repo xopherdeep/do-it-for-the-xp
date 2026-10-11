@@ -36,7 +36,7 @@
           <h2 class="codex-name">{{ shown.name }}</h2>
           <p class="codex-creed">&ldquo;{{ shown.creed }}&rdquo;</p>
           <div class="codex-chips">
-            <span class="codex-chip">{{ shown.tier === 2 ? "Advanced class" : "Base class" }}</span>
+            <span class="codex-chip">{{ tierLabel(shown.tier) }}</span>
             <span
               v-if="isCurrent"
               class="codex-chip is-yours"
@@ -95,7 +95,7 @@
         </section>
 
         <section
-          v-if="shown.tier === 1 && shown.growsInto.length"
+          v-if="shown.growsInto.length"
           class="codex-section"
         >
           <h3 class="codex-heading"><i class="fad fa-crown"></i> Grows into</h3>
@@ -110,7 +110,10 @@
                 <i :class="['fad', evolution.icon, 'fa-2x', 'evolution-crest']"></i>
                 <span class="evolution-text">
                   <span class="evolution-name">{{ evolution.name }}</span>
-                  <span class="evolution-with">with {{ evolution.with }}</span>
+                  <span
+                    v-if="evolution.with"
+                    class="evolution-with"
+                  >with {{ evolution.with }}</span>
                   <span class="evolution-need">{{ evolution.requirement }}</span>
                 </span>
                 <i
@@ -124,7 +127,7 @@
         </section>
 
         <section
-          v-if="shown.tier === 2"
+          v-if="shown.tier >= 2"
           class="codex-section"
         >
           <h3 class="codex-heading"><i class="fad fa-lock"></i> Unlocks when</h3>
@@ -244,6 +247,8 @@
     const [r, g, b] = CREST_RGB[name] ?? [247, 232, 168];
     return { "--crest": `rgb(${r}, ${g}, ${b})`, "--crest-rgb": `${r}, ${g}, ${b}` };
   };
+
+  const tierLabel = (tier: ClassCodexEntry["tier"]) => (tier === 3 ? "Crown class" : tier === 2 ? "Advanced class" : "Base class");
 
   const entries = computed<ClassCodexEntry[]>(() => classCodex(classLevelsOf(props.user?.stats?.classes)));
   const currentName = computed(() => canonicalClassName(props.user?.jobClass));

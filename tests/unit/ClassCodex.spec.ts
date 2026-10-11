@@ -100,11 +100,13 @@ describe("classCodex", () => {
     });
   });
 
-  it("marks tier 1 and tier 2", () => {
+  it("marks tier 1, 2 and 3: base, advanced and crown", () => {
     ["Warrior", "Mage", "Thief", "Monk"].forEach((name) => expect(entry(name).tier).toBe(1));
     ["Knight", "Berserker", "White Mage", "Black Mage", "Assassin", "Ranger", "Martial Artist", "Mystic"].forEach((name) =>
       expect(entry(name).tier).toBe(2)
     );
+    ["Paladin", "Ninja", "Sage"].forEach((name) => expect(entry(name).tier).toBe(3));
+    classCodex(fresh).forEach((c) => expect(c.tier).toBe(JOB_CLASS_OPTIONS.find((j) => j.name === c.name)?.tier));
   });
 });
 
@@ -117,6 +119,52 @@ describe("growsInto", () => {
     expect(entry("Mage").growsInto.map((g) => g.name)).toEqual(["White Mage", "Black Mage"]);
     expect(entry("Thief").growsInto.map((g) => g.name)).toEqual(["Assassin", "Ranger"]);
     expect(entry("Monk").growsInto.map((g) => g.name)).toEqual(["Martial Artist", "Mystic"]);
+  });
+
+  it("an evolution with one parent carries `with: null`, so the screen leaves the phrase out", () => {
+    ["Warrior", "Mage", "Thief", "Monk"].forEach((name) => {
+      const grows = entry(name).growsInto;
+      expect(grows).toHaveLength(2);
+      grows.forEach((g) => expect(g.with).toBeNull());
+    });
+  });
+
+  it("an advanced class lists the crown classes it parents, each with the other advanced parent", () => {
+    expect(entry("Knight").growsInto.map((g) => [g.name, g.with])).toEqual([["Paladin", "Mystic"]]);
+    expect(entry("Mystic").growsInto.map((g) => [g.name, g.with])).toEqual([
+      ["Paladin", "Knight"],
+      ["Sage", "White Mage"],
+    ]);
+    expect(entry("Berserker").growsInto.map((g) => [g.name, g.with])).toEqual([["Ninja", "Assassin"]]);
+    expect(entry("Assassin").growsInto.map((g) => [g.name, g.with])).toEqual([["Ninja", "Berserker"]]);
+    expect(entry("White Mage").growsInto.map((g) => [g.name, g.with])).toEqual([["Sage", "Mystic"]]);
+    // Black Mage, Ranger and Martial Artist lead nowhere further
+    ["Black Mage", "Ranger", "Martial Artist"].forEach((name) => expect(entry(name).growsInto).toEqual([]));
+  });
+
+  it("flags a crown evolution as met only when the hero has both advanced parents at level 10", () => {
+    const knightOnly = classLevelsOf({ Knight: { level: 10 } });
+    expect(entry("Knight", knightOnly).growsInto[0]).toMatchObject({ name: "Paladin", requirement: "Knight 10 + Mystic 10", met: false });
+    const both = classLevelsOf({ Knight: { level: 10 }, Mystic: { level: 10 } });
+    expect(entry("Knight", both).growsInto[0].met).toBe(true);
+    expect(entry("Mystic", both).growsInto.map((g) => [g.name, g.met])).toEqual([
+      ["Paladin", true],
+      ["Sage", false],
+    ]);
+  });
+
+  it("a crown class grows into nothing", () => {
+    ["Paladin", "Ninja", "Sage"].forEach((name) => expect(entry(name).growsInto).toEqual([]));
+  });
+
+  it("a crown class is tier 3 with progress toward both advanced parents", () => {
+    const paladin = entry("Paladin", classLevelsOf({ Knight: { level: 4 }, Mystic: { level: 10 } }));
+    expect(paladin.tier).toBe(3);
+    expect(paladin.growsInto).toEqual([]);
+    expect(paladin.requirementProgress).toEqual([
+      { name: "Knight", level: 4, needed: 10, met: false },
+      { name: "Mystic", level: 10, needed: 10, met: true },
+    ]);
   });
 
   it("shows the requirement label and icon of each evolution", () => {
