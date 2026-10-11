@@ -157,6 +157,20 @@
                 <p>Replace what the app holds with the contents of a backup file</p>
               </ion-label>
             </ion-item>
+
+            <ion-item
+              button
+              :detail="false"
+              :disabled="isBackupBusy"
+              :style="canRestore() ? undefined : { opacity: 0.5 }"
+              @click="confirmStarterWorld"
+            >
+              <ion-icon slot="start" :icon="sparklesOutline"></ion-icon>
+              <ion-label>
+                <h2>Load the starter world</h2>
+                <p>Fill the Compendium with ready-made quests, beasts, Powers, rewards and shops. Profiles stay as they are</p>
+              </ion-label>
+            </ion-item>
           </ion-item-group>
 
           <ion-item-group>
@@ -210,10 +224,11 @@
 <script lang="ts">
   import { defineComponent, ref } from "vue";
   import ionic from "@/lib/mixins/ionic";
-  import { arrowBack, cloudDownloadOutline, cloudUploadOutline } from "ionicons/icons";
+  import { arrowBack, cloudDownloadOutline, cloudUploadOutline, sparklesOutline } from "ionicons/icons";
   import { alertController, loadingController, toastController } from "@ionic/vue";
   import backupService, { BackupFormatError } from "@/lib/services/core/BackupService";
   import type { BackupFile, BackupSummary, RestoreResult } from "@/lib/services/core/BackupService";
+  import { buildStarterWorld } from "@/lib/services/core/StarterWorld";
   import { canManageFamily, RESTORE_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
 
   type AlertButton = string | { text: string; role?: string; handler?: () => void };
@@ -417,26 +432,51 @@
         await alert.present();
       },
 
-      async runRestore(backup: BackupFile) {
+      /** The starter world names only the content stores, so the family's profiles and logs are never touched */
+      async confirmStarterWorld() {
+        if (!canManageFamily()) {
+          this.showGmOnlyToast();
+          return;
+        }
+        const alert = await alertController.create({
+          header: "Load the starter world?",
+          message:
+            "This replaces the quest categories, bestiary, quests, Powers, rewards and shop stock with a ready-made set. Every quest is an open bounty, so your heroes can claim them right away. Profiles, temples, logs and chat are left as they are. This cannot be undone.",
+          buttons: [
+            { text: "Cancel", role: "cancel" },
+            {
+              text: "Load starter world",
+              role: "destructive",
+              handler: () => {
+                this.runRestore(buildStarterWorld(), "the starter world");
+              },
+            },
+          ],
+        });
+        await alert.present();
+      },
+
+      /** `source` names what was loaded in the done dialog; a file is named by the date it was made */
+      async runRestore(backup: BackupFile, source?: string) {
         try {
           const result = await this.withLoading(
             "Restoring your data...",
             () => backupService.restoreBackup(backup)
           );
-          await this.showRestoreDone(result);
+          await this.showRestoreDone(result, source);
         } catch (error) {
           await this.showAlert("Restore failed", errorMessage(error));
         }
       },
 
       /** Caches and open screens still hold the old data, so the only button reloads the app */
-      async showRestoreDone(result: RestoreResult) {
+      async showRestoreDone(result: RestoreResult, source?: string) {
         const notes = [
-          `Restored ${result.total} entries from the backup made ${formatBackupDate(result.exportedAt)}.`,
+          `Restored ${result.total} entries from ${source ?? `the backup made ${formatBackupDate(result.exportedAt)}`}.`,
         ];
         if (result.untouched.length) {
           notes.push(
-            `Not in that backup, so left as they were: ${result.untouched.join(", ")}.`
+            `Not ${source ? "part of it" : "in that backup"}, so left as they were: ${result.untouched.join(", ")}.`
           );
         }
         if (result.ignored.length) {
@@ -499,6 +539,7 @@
         arrowBack,
         cloudDownloadOutline,
         cloudUploadOutline,
+        sparklesOutline,
       };
     },
   });
