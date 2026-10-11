@@ -64,17 +64,12 @@
       @unequip="handleUnequipFromModal"
     />
 
-    <!-- Class Selector Modal -->
-    <xp-stat-selector-modal
+    <!-- Class Codex: the full-screen class guide and picker -->
+    <xp-class-codex
       :is-open="classSelectorOpen"
-      title="Choose Your Class"
-      :options="classOptions"
-      :columns="2"
-      :fullscreen="false"
-      height="55vh"
-      :selected-value="user?.jobClass || 'Adventurer'"
+      :user="user"
       @close="classSelectorOpen = false"
-      @select="onClassSelect"
+      @chosen="onClassSelect"
     />
   </ion-modal>
 </template>
@@ -86,10 +81,9 @@
   import EquipmentGrid from "./equipment/EquipmentGrid.vue";
   import EquippedItemsCard from "./equipment/EquippedItemsCard.vue";
   import ItemInfoModal from "./equipment/ItemInfoModal.vue";
-  import XpStatSelectorModal from "./XpStatSelectorModal.vue";
+  import XpClassCodex from "./ClassCodex/XpClassCodex.vue";
   import { toastController } from "@ionic/vue";
   import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue";
-  import { JOB_CLASS_OPTIONS } from "@/constants";
   import { useUserStore } from "@/lib/store/stores/user";
   import { play$fx } from "@/assets/fx";
   import { isItemUnlocked, unlockHintOf } from "@/lib/services/quests/ItemEffects";
@@ -100,7 +94,7 @@
       EquipmentGrid,
       EquippedItemsCard,
       ItemInfoModal,
-      XpStatSelectorModal,
+      XpClassCodex,
       XpCloseButton,
     },
     props: {
@@ -128,7 +122,6 @@
 
       // Class selector state
       const classSelectorOpen = ref(false);
-      const classOptions = JOB_CLASS_OPTIONS;
 
       // Item Info Modal state
       const itemInfoOpen = ref(false);
@@ -342,10 +335,9 @@
         classSelectorOpen.value = true;
       };
 
+      // The store refuses a sealed class and saves the hero
       const onClassSelect = (val: string) => {
-        if (props.user?.id && userStore.users[props.user.id]) {
-          userStore.users[props.user.id].jobClass = val;
-        }
+        if (props.user?.id) userStore.setJobClass(props.user.id, val);
         classSelectorOpen.value = false;
       };
 
@@ -370,7 +362,6 @@
         equipItem,
         close,
         classSelectorOpen,
-        classOptions,
         openClassSelector,
         onClassSelect,
         modal,
@@ -382,23 +373,13 @@
 
 <style lang="scss" scoped>
   .xp-equipment-modal {
-    &::part(content) {
-      background-color: transparent;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-    }
-
     ion-header ion-toolbar {
-      --background: rgba(35, 8, 40, 0.85);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
+      --background: #230828;
       border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     ion-content {
       --background: transparent;
-      --bg-slide-base: rgba(18, 18, 24, 0.6);
-      --bg-slide-pattern: rgba(255, 255, 255, 0.07);
       overflow: visible;
 
       ion-grid {

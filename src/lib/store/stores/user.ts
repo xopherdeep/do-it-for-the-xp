@@ -13,6 +13,7 @@ import {
   calculateLevelUp,
   getXpForLevel
 } from '@/lib/services/stats/PlayerStatsService';
+import { classLevelsOf, isClassUnlocked } from '@/lib/services/stats/ClassPassives';
 import { levelUpNotification } from '@/lib/services/notifications/Notifications';
 import { notify } from '@/lib/services/notifications/notify';
 
@@ -822,6 +823,20 @@ export const useUserStore = defineStore('user', () => {
     persistUser(userId);
   }
 
+  /**
+   * Change the hero's class (the Class Codex). A sealed tier-2 class is refused, so the profile can only
+   * ever hold a class the hero has earned. Returns whether the class changed hands.
+   */
+  function setJobClass(userId: string, jobClass: string): boolean {
+    const user = users[userId];
+    if (!user || !jobClass) return false;
+    if (!isClassUnlocked(jobClass, classLevelsOf(user.stats?.classes))) return false;
+    user.jobClass = jobClass;
+    if (currentUser.id === userId) syncCurrentUser(user);
+    persistUser(userId);
+    return true;
+  }
+
   function recordAPGain(payload: { userId: string, amount: number, source: string, at?: string }) {
     const { userId, amount, source, at } = payload;
 
@@ -903,6 +918,7 @@ export const useUserStore = defineStore('user', () => {
     recordAPGain,
     setEquipment,
     setLook,
+    setJobClass,
     persistUser,
     getAPInTimeRange,
     impersonateUser,

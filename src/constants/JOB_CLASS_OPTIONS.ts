@@ -10,6 +10,10 @@ export interface JobClass {
   icon: string;
   tier?: number;
   description?: string;
+  /** One line of attitude for the Class Codex ("Shows up and finishes."). */
+  creed: string;
+  /** Three short lines for the Class Codex: what chores suit it, what it does for you, what it trains. */
+  realLife: [string, string, string];
   // Each class focuses on 3 pillars for balanced coverage
   primaryPillar: PillarType;
   secondaryPillar: PillarType;
@@ -45,6 +49,12 @@ const BASE_CLASSES: JobClass[] = [
     icon: "fa-swords",
     tier: 1,
     description: "Built for the physical grind. Trains Body (strength and endurance) and Legend (guts) with every level, and braces like a wall. Ideal for those who thrive on physical challenges.",
+    creed: "Shows up and finishes.",
+    realLife: [
+      "Suits the heavy work: yard, hauling, big clean-ups, sports practice.",
+      "Takes pressure well: when a deadline bites, a Warrior's brace blocks most of the hit.",
+      "Trains Body and Legend every level: tougher and gutsier.",
+    ],
     primaryPillar: 'physical',     // HP: strength, endurance
     secondaryPillar: 'eternal',    // XP: guts
     tertiaryPillar: 'relational',  // GP: presence
@@ -77,6 +87,12 @@ const BASE_CLASSES: JobClass[] = [
     icon: "fa-hat-wizard",
     tier: 1,
     description: "A path of the Mind. Trains intelligence and wisdom with every level, pays less MP and gets some back on every win. Best for those who use intelligence to optimize their everyday routines.",
+    creed: "Thinks first, then acts.",
+    realLife: [
+      "Suits homework, reading, planning the week, fixing what's broken.",
+      "Casts cheaper: privileges and spells cost 25% less MP, and wins give MP back.",
+      "Trains Mind every level: more MP, cheaper casts.",
+    ],
     primaryPillar: 'mental',       // MP: intelligence, wisdom
     secondaryPillar: 'eternal',    // XP: mastery
     tertiaryPillar: 'vibrational', // AP: focus
@@ -109,6 +125,12 @@ const BASE_CLASSES: JobClass[] = [
     icon: "fa-user-secret",
     tier: 1,
     description: "The agile resource gatherer. Trains agility, charisma and luck with every level, takes more GP from quests and chests, and slips away from monsters. Perfect for scavengers who value luck and social grace.",
+    creed: "Quick hands, quick wits.",
+    realLife: [
+      "Suits errands, helping out, trading and finding bargains.",
+      "Earns more: +25% GP from quests and chests means more allowance.",
+      "Trains Spirit and Heart every level: faster, luckier, more charming.",
+    ],
     primaryPillar: 'vibrational',  // AP: agility, flow
     secondaryPillar: 'relational', // GP: charisma
     tertiaryPillar: 'eternal',     // XP: luck
@@ -141,6 +163,12 @@ const BASE_CLASSES: JobClass[] = [
     icon: "fa-fist-raised",
     tier: 1,
     description: "The balanced ascetic. Trains endurance, wisdom and perception with every level, and earns a spare minute and an extra AP from every fight. A versatile choice for those seeking total self-mastery.",
+    creed: "Steady every day.",
+    realLife: [
+      "Suits routines: making the bed, practice, tidying a little every day.",
+      "Charges privileges faster: +1 AP on every win, and an extra minute on the clock.",
+      "Trains Body, Mind and Spirit evenly: the balanced path.",
+    ],
     primaryPillar: 'physical',     // HP: endurance
     secondaryPillar: 'mental',     // MP: wisdom, perception
     tertiaryPillar: 'vibrational', // AP: focus
@@ -207,13 +235,22 @@ const baseClass = (name: string): JobClass => {
  * their average and the boosts their union. It unlocks once both parents reach the level in
  * PlayerStatsService's JOB_UNLOCK_REQUIREMENTS (ClassPassives.isClassUnlocked).
  */
-const tier2 = (name: string, icon: string, description: string, pillars: [PillarType, PillarType, PillarType]): JobClass => {
+const tier2 = (
+  name: string,
+  icon: string,
+  description: string,
+  creed: string,
+  realLife: [string, string, string],
+  pillars: [PillarType, PillarType, PillarType]
+): JobClass => {
   const [first, second] = TIER_2_PARENTS[name].map(baseClass);
   return {
     name,
     icon,
     tier: 2,
     description,
+    creed,
+    realLife,
     primaryPillar: pillars[0],
     secondaryPillar: pillars[1],
     tertiaryPillar: pillars[2],
@@ -228,18 +265,36 @@ const ADVANCED_CLASSES: JobClass[] = [
     "Paladin",
     "fa-shield-cross",
     "A Warrior's heart with a Monk's calm. Body (HP) first, then Mind and Legend. Holds the line and walks away from every fight a little healed.",
+    "Protects the party.",
+    [
+      "Suits the big jobs done steadily: the long clean-up, the week-long project.",
+      "Warrior's brace, and every win heals 10% HP.",
+      "The family's shield: tough, steady, dependable.",
+    ],
     ['physical', 'mental', 'eternal']
   ),
   tier2(
     "Ninja",
     "fa-user-ninja",
     "A Thief's feet with a Warrior's arm. Spirit (AP), Body (HP) and Heart (GP). Slips the first strike and leaves with the heavier purse.",
+    "Strikes before the clock does.",
+    [
+      "Suits quick turnarounds: dishes right after dinner, bag packed the night before.",
+      "Thief's escape, and the beast's first strike always misses.",
+      "The fast finisher: done before the pressure builds.",
+    ],
     ['vibrational', 'physical', 'relational']
   ),
   tier2(
     "Sage",
     "fa-hat-wizard",
     "A Mage's mind with a Monk's patience. Mind (MP), Spirit (AP) and Legend (XP). Spells for half price and a spare minute on every clock.",
+    "Knows the way.",
+    [
+      "Suits the planners: study schedules, teaching a sibling, reading ahead.",
+      "Mage's discount doubled (50% off MP), plus Monk's minute.",
+      "The wise planner: the cheapest casts in the game.",
+    ],
     ['mental', 'vibrational', 'eternal']
   ),
 ];
