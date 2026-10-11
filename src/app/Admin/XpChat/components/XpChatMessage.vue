@@ -1,5 +1,9 @@
 <template>
-    <div class="xp-chat-message" :class="{ 'is-own': isOwn }">
+    <div v-if="message.kind === 'system'" class="xp-chat-message is-system">
+        <div class="system-line">{{ message.text }} <span class="timestamp">{{ formattedTime }}</span></div>
+    </div>
+
+    <div v-else class="xp-chat-message" :class="{ 'is-own': isOwn }">
         <div class="message-avatar" v-if="!isOwn">
             <ion-avatar>
                 <img :src="avatarUrl" />
@@ -79,6 +83,26 @@ export default defineComponent({
 
     &.is-own {
         justify-content: flex-end;
+    }
+
+    // The Town Crier: a centred line of news, not a bubble
+    &.is-system {
+        justify-content: center;
+
+        .system-line {
+            max-width: 90%;
+            text-align: center;
+            font-size: 0.8rem;
+            line-height: 1.4;
+            color: #f5ecd0;
+            opacity: 0.7;
+            word-break: break-word;
+
+            .timestamp {
+                margin-left: 0.25rem;
+                opacity: 0.8;
+            }
+        }
     }
 
     .message-avatar {

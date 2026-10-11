@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { POINT_ICONS } from "@/constants/POINT_ICONS";
 
 /**
  * The hero's notification feed, the pure part: what a notification is, how two are told apart
@@ -15,6 +16,7 @@ export type XpNotificationKind =
   | "level-up"
   | "blood-moon"
   | "purchase"
+  | "power-cast"
   | "system";
 
 export interface XpNotification {
@@ -137,6 +139,8 @@ export const iconOfKind = (kind: XpNotificationKind): string => {
       return "fa-moon";
     case "purchase":
       return "fa-shopping-bag";
+    case "power-cast":
+      return POINT_ICONS.ap.icon;
     default:
       return "fa-bell";
   }

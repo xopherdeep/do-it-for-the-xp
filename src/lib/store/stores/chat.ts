@@ -5,6 +5,11 @@ import { chatEngine } from '@/lib/engine/core/ChatEngine';
 import { v4 as uuidv4 } from 'uuid';
 import { useUserStore } from './user';
 
+/** The one family room every hero and Game Master shares. */
+export const FAMILY_CHAT_ROOM = 'family-chat';
+/** The sender id of system lines (casts, announcements) that no person wrote. */
+export const TOWN_CRIER_ID = 'town-crier';
+
 export const useChatStore = defineStore('chat', () => {
     const userStore = useUserStore();
     const messages = ref<Record<string, ChatMessage[]>>({});
@@ -59,6 +64,34 @@ export const useChatStore = defineStore('chat', () => {
         chatEngine.processIncomingMessage(message);
     }
 
+    /**
+     * Post a Town Crier line ("Dad cast Video Games") to a room. Nobody has to be logged in:
+     * the sender is the Town Crier, not the current hero.
+     */
+    async function postSystemLine(roomId: string, text: string): Promise<ChatMessage> {
+        const message: ChatMessage = {
+            id: uuidv4(),
+            roomId,
+            senderId: TOWN_CRIER_ID,
+            senderName: 'Town Crier',
+            text,
+            timestamp: Date.now(),
+            kind: 'system'
+        };
+
+        // Load the room's history first: a room that holds only this line would never load the rest (initRoom skips loaded rooms)
+        await initRoom(roomId);
+        await chatDb.saveMessage(message);
+
+        if (!messages.value[roomId]) {
+            messages.value[roomId] = [];
+        }
+        messages.value[roomId].push(message);
+
+        chatEngine.processIncomingMessage(message);
+        return message;
+    }
+
     const hasMore = ref<Record<string, boolean>>({});
 
     /**
@@ -98,6 +131,7 @@ export const useChatStore = defineStore('chat', () => {
         isLoading,
         initRoom,
         sendMessage,
+        postSystemLine,
         loadMoreMessages,
         getRoomMessages,
         canLoadMore

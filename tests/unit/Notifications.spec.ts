@@ -5,6 +5,7 @@ import {
   bloodMoonNotification,
   dedupeKeyOf,
   dueInCopy,
+  iconOfKind,
   isDuplicate,
   levelUpNotification,
   makeNotification,
@@ -25,6 +26,7 @@ import {
   reminderTimeOf,
   scheduleDueReminders,
 } from "@/lib/services/notifications/deviceReminders";
+import { POINT_ICONS } from "@/constants/POINT_ICONS";
 import { useNotificationsStore } from "@/lib/store/stores/notifications";
 import { bloodMoon, notify } from "@/lib/services/notifications/notify";
 
@@ -92,6 +94,17 @@ describe("Notifications helpers", () => {
     expect(isDuplicate(questDueNotification(HERO, quest("q1", "14:00"), new Date(2026, 9, 11, 14), tomorrow), existing)).toBe(false);
     // notes without a refId are never duplicates
     expect(isDuplicate({ heroId: HERO, kind: "system", title: "Hi", body: "" }, existing)).toBe(false);
+  });
+
+  it("dedupes two power-cast notifications with the same refId on the same day", () => {
+    const cast = { heroId: HERO, kind: "power-cast" as const, title: "Dad cast Video Games", body: "5 MP", refId: "cast-video-games" };
+    const existing = [makeNotification(cast, NOON)];
+    expect(isDuplicate({ ...cast, createdAt: new Date(NOON.getTime() + 3600e3).toISOString() }, existing)).toBe(true);
+    // another power the same day is its own note
+    expect(isDuplicate({ ...cast, refId: "cast-treats" }, existing)).toBe(false);
+    // the same power the next day is a new note
+    expect(isDuplicate({ ...cast, createdAt: new Date(2026, 9, 11, 12).toISOString() }, existing)).toBe(false);
+    expect(iconOfKind("power-cast")).toBe(POINT_ICONS.ap.icon);
   });
 
   it("writes the due copy", () => {
