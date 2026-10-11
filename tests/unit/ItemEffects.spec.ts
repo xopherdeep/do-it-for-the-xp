@@ -20,6 +20,7 @@ import {
   unlockHintOf,
   unlocksFromChest,
 } from "@/lib/services/quests/ItemEffects";
+import { freeTemplePegasus } from "@/lib/services/temples/TemplePegasus";
 import { useUserStore } from "@/lib/store/stores/user";
 
 // The user store is real; only what it writes to disk is faked.
@@ -33,6 +34,13 @@ jest.mock("@/lib/databases/ProfileDb", () => {
 jest.mock("@/lib/services/core/StorageService", () => ({
   __esModule: true,
   default: { saveUsers: jest.fn().mockResolvedValue(undefined) },
+}));
+
+jest.mock("@/lib/databases/TempleProgressDb", () => ({
+  getTempleProgressDb: () => ({
+    getProgress: () => Promise.resolve(null),
+    saveProgress: (progress: unknown) => Promise.resolve(progress),
+  }),
 }));
 
 // The quest engine reads IndexedDB; here the board is whatever the spec says it is.
@@ -355,6 +363,71 @@ describe("locks", () => {
     expect(isItemUnlocked(hero(), "Gale's Wind")).toBe(true);
 
     expect(store.unlockItem("ghost", "Ice Wand")).toBe(false);
+  });
+
+  it("an item never frees a Pegasus: the Wind Whistle and Pegasus Boots unlock as items and stats.pegasi stays put", () => {
+    const store = useUserStore();
+    addHero({ unlockedItems: [] });
+    for (const chestItem of ["Pegasus Whistle", "Pegasus Boots"]) {
+      for (const name of unlocksFromChest(chestItem)) store.unlockItem(HERO, name);
+    }
+    expect(hero().unlockedItems).toEqual(["Pegasus Whistle", "Wind Whistle", "Pegasus Boots"]);
+    expect(isItemUnlocked(hero(), "Wind Whistle")).toBe(true);
+    expect(isItemUnlocked(hero(), "Pegasus Boots")).toBe(true);
+    expect(hero().stats.pegasi).toBeUndefined();
+  });
+
+  it("freeing a Pegasus is the Pegasus chest's job: the Wind Temple's chest frees Aura, not Ventus", () => {
+    addHero({ unlockedItems: [] });
+    const { pegasus } = freeTemplePegasus("wind-temple", HERO);
+    expect(pegasus?.name).toBe("Aura");
+    expect(hero().stats.pegasi).toEqual([false, false, false, true, false, false, false, false, false]);
+  });
+
+  it("unlockPegasus frees one Pegasus in a list of nine flags", () => {
+    const store = useUserStore();
+    addHero();
+    store.unlockPegasus(HERO, 3);
+    expect(hero().stats.pegasi).toEqual([false, false, false, true, false, false, false, false, false]);
+    store.unlockPegasus(HERO, 8);
+    expect(hero().stats.pegasi.filter(Boolean)).toHaveLength(2);
+    expect(hero().stats.pegasi[8]).toBe(true);
+  });
+
+  it("unlockPegasus turns the index-keyed object that storage hands back into an array", () => {
+    const store = useUserStore();
+    addHero({ stats: { level: 1, pegasi: { 0: false, 3: true, 4: false } } });
+    store.unlockPegasus(HERO, 4);
+    const pegasi = hero().stats.pegasi;
+    expect(Array.isArray(pegasi)).toBe(true);
+    expect(pegasi).toEqual([false, false, false, true, true, false, false, false, false]);
+    expect(pegasi.some(Boolean)).toBe(true);
+  });
+
+  it("unlockPegasus rebuilds a list that is short, missing or not a list, and ignores a slot that is not one of the nine", () => {
+    const store = useUserStore();
+    for (const bad of [undefined, null, "yes", [], [true]]) {
+      addHero({ stats: { level: 1, pegasi: bad } });
+      store.unlockPegasus(HERO, 1);
+      expect(hero().stats.pegasi).toHaveLength(9);
+      expect(hero().stats.pegasi[1]).toBe(true);
+    }
+    addHero({ stats: { level: 1, pegasi: [true] } });
+    store.unlockPegasus(HERO, 9);
+    store.unlockPegasus(HERO, -1);
+    store.unlockPegasus(HERO, 1.5);
+    expect(hero().stats.pegasi).toEqual([true, false, false, false, false, false, false, false, false]);
+    store.unlockPegasus("ghost", 2); // nobody there: nothing happens
+    expect(useUserStore().users.ghost).toBeUndefined();
+  });
+
+  it("unlockPegasus keeps the signed-in copy in step", () => {
+    const store = useUserStore();
+    addHero();
+    store.currentUser.id = HERO;
+    store.unlockPegasus(HERO, 5);
+    expect(store.currentUser.stats.pegasi[5]).toBe(true);
+    expect(Array.isArray(store.currentUser.stats.pegasi)).toBe(true);
   });
 
   it("the store keeps and clears recharges", () => {

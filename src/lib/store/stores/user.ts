@@ -436,19 +436,23 @@ export const useUserStore = defineStore('user', () => {
   }
 
   /**
-   * Unlock a specific Pegasus for a user
+   * Unlock a specific Pegasus for a user. Storage can hand `stats.pegasi` back as an index-keyed object
+   * ({"3": true}) or not at all, so the nine flags are rebuilt as a real array before the write: readers
+   * that use `.length` or `.some` are then always safe.
    */
   function unlockPegasus(userId: string, pegasusIndex: number) {
     if (users[userId]) {
       const userStats = users[userId].stats || {};
 
-      // Initialize pegasi array if missing (9 slots for 9 worlds)
-      if (!userStats.pegasi) userStats.pegasi = Array(9).fill(false);
+      // Nine slots for nine worlds, from an array, an object with numeric keys, or nothing
+      const slots = userStats.pegasi && typeof userStats.pegasi === "object" ? userStats.pegasi : {};
+      const pegasi: boolean[] = Array.from({ length: 9 }, (_, index) => Boolean(slots[index]));
 
       // Unlock
-      if (pegasusIndex >= 0 && pegasusIndex < userStats.pegasi.length) {
-        userStats.pegasi[pegasusIndex] = true;
+      if (Number.isInteger(pegasusIndex) && pegasusIndex >= 0 && pegasusIndex < pegasi.length) {
+        pegasi[pegasusIndex] = true;
       }
+      userStats.pegasi = pegasi;
 
       // Update state
       users[userId].stats = userStats;
