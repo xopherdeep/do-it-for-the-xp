@@ -73,11 +73,13 @@
             @select-pegasus="selectEggPegasus" />
 
           <!-- Travel Configuration -->
-          <RoomTravelConfig v-if="isTravelRoom" :floors="floors"
+          <!-- Circles pair themselves: the controls appear only when pairing cannot guess -->
+          <RoomTravelConfig v-if="isTravelRoom && travel.controls" :circle-hint="travel.circle" :floors="floors"
             :target-level="roomData?.content?.targetLevel || store.currentLevelId"
             :target-x="roomData?.content?.targetCoords?.x ?? 0" :target-y="roomData?.content?.targetCoords?.y ?? 0"
             @update:target-level="setTargetLevel" @update:target-x="(val) => setTargetCoord('x', val)"
             @update:target-y="(val) => setTargetCoord('y', val)" />
+          <p v-else-if="isTravelRoom" class="circle-note">{{ travel.note }}</p>
 
           <!-- Shop Configuration -->
           <RoomShopConfig v-if="isShopRoom" :shops="allShops" :selected-shop-id="roomData?.content?.shopId || ''"
@@ -123,6 +125,7 @@ import {
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import { useUserStore } from '@/lib/store/stores/user';
 import { freeBattleRoute } from '@/app/Console/BattleField/battle/battleContext';
+import { needsTravelControls, pairingNote, withRoomAt } from '@/lib/engine/core/dungeons/teleportPairing';
 
 // Import hooks
 import { useTempleRoomEditor, useTempleRoomNavigation } from './hooks';
@@ -168,6 +171,25 @@ export default defineComponent({
     });
 
     const showLegendModal = ref(false);
+
+    // Stairs always ask where they lead. A circle asks only when pairing cannot guess (teleportPairing).
+    const travel = computed(() => {
+      const room = editor.roomData.value;
+      if (room?.type !== 'teleport') return { controls: true, circle: false, note: '' };
+
+      // The room on screen has not reached the store yet: count it as the circle it is
+      const temple = withRoomAt(
+        { maze: editor.store.templeMaze, rooms: editor.store.roomsData },
+        editor.store.currentLevelId,
+        [editor.rowIdx.value, editor.colIdx.value],
+        room
+      );
+      return {
+        controls: needsTravelControls(temple, editor.store.currentLevelId),
+        circle: true,
+        note: pairingNote(temple, editor.store.currentLevelId)
+      };
+    });
 
     // Room Navigation Hook
     const navigation = useTempleRoomNavigation({
@@ -227,6 +249,7 @@ export default defineComponent({
       isBossRoom: editor.isBossRoom,
       isLootRoom: editor.isLootRoom,
       isTravelRoom: editor.isTravelRoom,
+      travel,
       isShopRoom: editor.isShopRoom,
       isEggRoom: editor.isEggRoom, // NEW
       floors: editor.floors,
@@ -338,6 +361,14 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
+// The config slot is shown inside the type modal, which Ionic may move out of the page
+.circle-note {
+  margin: 12px 0 0;
+  font-family: "StatusPlz";
+  font-size: 1rem;
+  color: #40c4ff;
+}
+
 .xp-room-editor-page {
   --background: transparent;
 

@@ -12,6 +12,7 @@ import { DungeonManager, roomPositionKey } from './DungeonManager';
 import { Dungeon, Room } from './types';
 import { ChestSystem } from './ChestSystem';
 import { TempleHydrator } from './TempleHydrator';
+import { teleportTargetFor } from './teleportPairing';
 import { getTempleProgressDb } from '@/lib/databases/TempleProgressDb';
 import type { NewTempleProgress, TempleProgressEntry } from '@/lib/databases/TempleProgressDb';
 import { TEMPLE_CLEARED_KEY, isBloodMoonDue, resetTempleProgress } from './templeReset';
@@ -847,55 +848,21 @@ export class TempleSystem {
   }
   
   /**
-   * Handle teleport action between teleport rooms
-   * @returns The new position after teleporting, or undefined if teleport failed
+   * Step through the teleport circle the hero stands on. Where it leads is teleportPairing's business: the
+   * author's target, else the next circle on the floor. Another floor is entered the way stairs do it.
+   * @returns The new position after teleporting, or undefined when the circle leads nowhere
    */
   public handleTeleport(templeId: string): [number, number] | undefined {
     const templeState = this.templeStates[templeId];
     if (!templeState) return undefined;
-    
+
     const temple = this.dungeonManager.getDungeon(templeId);
     if (!temple) return undefined;
-    
-    // Current position
-    const [currentRow, currentCol] = templeState.currentPosition;
-    
-    // Find another teleport room
-    let destPosition: [number, number] | undefined;
-    
-    // Search for other teleport rooms
-    const mazeData = temple.maze;
-    const floors = Array.isArray(mazeData) ? { "1F": mazeData } : mazeData;
 
-    for (const [floorId, grid] of Object.entries(floors)) {
-      for (let row = 0; row < grid.length; row++) {
-        for (let col = 0; col < grid[row].length; col++) {
-          // Skip the current room
-          if (floorId === templeState.currentLevel && row === currentRow && col === currentCol) continue;
-          
-          const roomKey = grid[row][col];
-          const room = temple.rooms[roomKey];
-          
-          // If we find another teleport room, use it as destination
-          if (room && room.type === 'teleport') {
-            destPosition = [row, col];
-            templeState.currentLevel = floorId;
-            break;
-          }
-        }
-        if (destPosition) break;
-      }
-      if (destPosition) break;
-    }
-    
-    // If no other teleport room found, return undefined
-    if (!destPosition) return undefined;
-    
-    // Update position and mark room as visited
-    templeState.currentPosition = destPosition;
-    this.visitRoom(templeId, destPosition);
-    
-    return destPosition;
+    const destination = teleportTargetFor(temple, templeState.currentLevel, templeState.currentPosition);
+    if (!destination || !this.changeLevel(templeId, destination.level, destination.position)) return undefined;
+
+    return destination.position;
   }
 
   /**

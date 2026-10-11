@@ -1,6 +1,7 @@
 <template>
   <div class="travel-settings config-box">
     <div class="config-label">Target Destination</div>
+    <div v-if="circleHint" class="config-hint">Only needed with several floors or more than two circles on a floor.</div>
     
     <div class="target-floor-select mt-10">
       <div class="low-label">Target Floor</div>
@@ -52,6 +53,11 @@ export default defineComponent({
   name: 'RoomTravelConfig',
   components: { IonSelect, IonSelectOption, IonInput },
   props: {
+    /** Circles pair themselves; say when the controls are worth touching. Stairs have no such hint. */
+    circleHint: {
+      type: Boolean,
+      default: false
+    },
     floors: {
       type: Array as PropType<string[]>,
       default: () => ['1F']
@@ -82,6 +88,13 @@ export default defineComponent({
     opacity: 0.7;
     margin-bottom: 12px;
     letter-spacing: 0.5px;
+  }
+
+  .config-hint {
+    font-family: "StatusPlz";
+    font-size: 0.8rem;
+    opacity: 0.7;
+    margin: -4px 0 12px;
   }
 }
 
