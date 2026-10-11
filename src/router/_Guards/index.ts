@@ -4,6 +4,8 @@ import { handleAuthGuard } from "./auth.guard";
 import { handleBattleTimerGuard } from "./battle.guard";
 import { handleBgmGuard } from "./bgm.guard";
 import { handleGmGuard } from "./gm.guard";
+import { handleWorldGuard } from "./world.guard";
+import { handleTransitionGuard } from "./transition.guard";
 
 /**
  * Applies all router guards to the provided router instance.
@@ -33,20 +35,33 @@ export function useRouterGuards(router: Router): void {
       return next(gmResult);
     }
 
-    // 4. Battle timer management (side effect only)
+    // 4. Onboarding gate: on foot the hero reaches only Hometown and the Plains; the overworld and the
+    //    other regions need a freed Pegasus. Before the side-effect guards so a turned-back hero never
+    //    starts the soundtrack or the encounter clock of a region they did not enter.
+    const worldResult = await handleWorldGuard(to);
+    if (typeof worldResult === "object") {
+      return next(worldResult);
+    }
+
+    // 5. Battle timer management (side effect only)
     handleBattleTimerGuard(to, router);
 
-    // 5. BGM management (side effect only)
+    // 6. BGM management (side effect only)
     handleBgmGuard(to, router);
 
     // Continue navigation
     next();
   });
+
+  // 7. Scene transitions run last (beforeResolve), once every guard above has allowed the navigation
+  handleTransitionGuard(router);
 }
 
 // Re-export individual guards for testing or direct use
 export { handleLogoutGuard } from "./logout.guard";
 export { handleAuthGuard, type AuthGuardResult } from "./auth.guard";
 export { handleGmGuard, canAccessGameMaster, isGameMasterRoute, type GmGuardResult } from "./gm.guard";
+export { handleWorldGuard, type WorldGuardResult } from "./world.guard";
 export { handleBattleTimerGuard } from "./battle.guard";
 export { handleBgmGuard } from "./bgm.guard";
+export { handleTransitionGuard } from "./transition.guard";

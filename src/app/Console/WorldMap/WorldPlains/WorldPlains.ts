@@ -4,6 +4,8 @@ import { computed, onMounted, onUnmounted, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useUserActions } from "@/hooks/useUserActions";
+import { useToast } from "@/hooks/useToast";
+import { FIRST_FLIGHT_LINE, canFly } from "@/lib/services/travel/flight";
 import debug from "@/lib/utils/debug";
 import { IonPage, IonContent, onIonViewDidEnter } from "@ionic/vue";
 import WeatherFX from "@/components/organisms/WeatherFX/WeatherFX.vue";
@@ -17,6 +19,7 @@ export default dC({
     const router = useRouter();
     const userStore = useUserStore();
     const { setActions } = useUserActions();
+    const { showToast } = useToast();
 
     const { userId } = route.params;
     const user = computed(() => userStore.getUserById(userId as string));
@@ -76,6 +79,11 @@ export default dC({
         faIcon: "pegasus",
         side: "top",
         click() {
+          // On foot the hero stays in Hometown and the Plains until the first Pegasus is free
+          if (!canFly(user.value ?? userStore.currentUser)) {
+            showToast(FIRST_FLIGHT_LINE, 2500, "bottom").catch((e) => { debug.warn("Could not show the first flight toast:", e); });
+            return;
+          }
           router.push({ name: "world-map", params: { userId } });
         },
       },

@@ -140,7 +140,7 @@
               <h3 :style="{ color: activePegasusData.obtained ? activePegasusData.color : '#888' }">
                 {{ activePegasusData.obtained ? activePegasusData.name : '???' }}
               </h3>
-              <p class="lore-text">{{ activePegasusData.obtained ? activePegasusData.desc : 'Locked' }}</p>
+              <p class="lore-text">{{ activePegasusData.obtained ? activePegasusData.desc : activePegasusData.egg }}</p>
               <div
                 class="temple-tag"
                 v-if="activePegasusData.obtained"
@@ -149,6 +149,16 @@
               </div>
             </div>
           </div>
+
+          <!-- BOTTOM: FLY (within thumb reach; only a freed Pegasus can carry the hero) -->
+          <button
+            type="button"
+            class="fly-btn"
+            :disabled="!activePegasusData || !activePegasusData.obtained"
+            @click="fly"
+          >
+            <i class="fad fa-pegasus"></i> Fly
+          </button>
         </div>
       </ion-card-content>
     </ion-card>
@@ -160,6 +170,12 @@ import { defineComponent } from "vue";
 import { useUserStore } from "@/lib/store/stores/user";
 import { IonCard, IonCardContent } from "@ionic/vue";
 import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue";
+import { play$fx } from "@/assets/fx";
+import { PEGASI } from "@/lib/services/temples/TemplePegasus";
+import { eggLine, routeOfWorld } from "@/lib/services/travel/flight";
+
+/** With no Pegasus free yet the modal opens on the one the first flight needs: Aura, in the Wind Temple. */
+const FIRST_PEGASUS = 3;
 
 export default defineComponent({
   name: "xp-world-map-modal",
@@ -196,6 +212,12 @@ export default defineComponent({
       activePegasusData() {
       return this.pegasiList[this.selectedPegasus];
     },
+    // The hero this modal flies: the one on the route, else whoever is signed in
+    heroId(): string {
+      const raw = this.$route?.params?.userId;
+      const id = Array.isArray(raw) ? raw[0] : raw;
+      return String(id || useUserStore().currentUser.id || "");
+    },
     // Reactive Pegasi list from store
     pegasiList() {
       const userStore = useUserStore();
@@ -204,15 +226,45 @@ export default defineComponent({
       return this.pegasiLore.map((lore, index) => ({
         ...lore,
         obtained: !!userPegasi[index],
+        // What an egg says when it is picked: where the Pegasus sleeps
+        egg: PEGASI[index] ? eggLine(PEGASI[index]) : 'Locked',
       }));
+    }
+  },
+  watch: {
+    // Opening the modal lands on a Pegasus that is free (it can be flown to), else on the first one to find
+    isOpen(open: boolean) {
+      if (!open) return;
+      const freed = this.pegasiList.findIndex((p: any) => p.obtained);
+      this.selectedPegasus = freed >= 0 ? freed : FIRST_PEGASUS;
     }
   },
   methods: {
     close() {
       this.$emit("close");
     },
+    // A freed Pegasus flies the hero straight to its region; an egg only shows where it sleeps
     selectPegasus(index: number) {
       this.selectedPegasus = index;
+      if (this.pegasiList[index]?.obtained) {
+        this.flyTo(index);
+      } else {
+        play$fx("no");
+      }
+    },
+    // The Fly button: the Pegasus on show carries the hero (the button is off for an egg)
+    fly() {
+      if (this.activePegasusData?.obtained) this.flyTo(this.selectedPegasus);
+    },
+    flyTo(index: number) {
+      const route = PEGASI[index] ? routeOfWorld(PEGASI[index].world) : null;
+      if (!route) {
+        play$fx("no");
+        return;
+      }
+      play$fx("select");
+      this.close();
+      this.$router.push({ name: route, params: { userId: this.heroId } }).catch(() => undefined);
     },
     hoverPegasus(index: number) {
       this.selectedPegasus = index;
@@ -528,6 +580,44 @@ export default defineComponent({
         margin-right: 6px;
         color: #aaa;
       }
+    }
+  }
+
+  /* Fly: full width under the lore, 52 px tall so a thumb finds it; dim until a freed Pegasus is shown */
+  .fly-btn {
+    width: 100%;
+    min-height: 52px;
+    margin-top: 12px;
+    padding: 8px 16px;
+    background: rgba(0, 0, 0, 0.6);
+    border: 2px solid #ffd700;
+    border-radius: 4px;
+    color: #ffd700;
+    font-family: 'Apple Kid', sans-serif;
+    font-size: 1.5rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    text-shadow: 2px 2px 0 #000;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+
+    i {
+      margin-right: 8px;
+    }
+
+    &:hover:not(:disabled) {
+      background: rgba(255, 215, 0, 0.18);
+    }
+
+    &:active:not(:disabled) {
+      transform: scale(0.98);
+    }
+
+    &:disabled {
+      border-color: #555;
+      color: #777;
+      opacity: 0.6;
+      cursor: not-allowed;
     }
   }
 

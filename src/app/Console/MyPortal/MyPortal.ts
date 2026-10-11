@@ -1,4 +1,4 @@
-import { computed, defineComponent, reactive, ref, onBeforeMount, onMounted, onBeforeUnmount } from "vue";
+import { computed, defineComponent, ref, onBeforeMount, onMounted, onBeforeUnmount } from "vue";
 // import requireImg from "@/assets/js/requireImg";
 import ionic from "@/lib/mixins/ionic";
 import components from "./UserHud/components";
@@ -18,6 +18,7 @@ import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import { dueTimeOn, isQuestActiveOn } from "@/lib/engine/quests/QuestSchedule";
 import { applyBoardEffect, boardEffectOf } from "@/lib/services/quests/ItemEffects";
 import { startQuestWatch } from "@/lib/services/notifications/questWatch";
+import { canFly } from "@/lib/services/travel/flight";
 import { useNotificationsStore } from "@/lib/store/stores/notifications";
 import XpBottomNav from "@/components/organisms/BottomNav/XpBottomNav.vue";
 
@@ -98,6 +99,13 @@ export default defineComponent({
     isImpersonating() {
       return (this as any).userStore.currentUser.isImpersonating;
     },
+    activeNavTab(): "profile" | "area" | "party" | "" {
+      if (this.isUserProfileModalOpen) return "profile";
+      const currentRouteName = String(this.route?.name || "");
+      const currentRoutePath = String(this.route?.path || "");
+      if (currentRouteName === "my-party" || currentRoutePath.endsWith("/my-party")) return "party";
+      return "area";
+    },
   },
   methods: {
     loginUser(user: any) { return (this as any).userStore.loginUser(user) },
@@ -118,91 +126,22 @@ export default defineComponent({
     closeUserProfileModal() {
       this.isUserProfileModalOpen = false;
     },
-    // The Area tab opens the equipment (what used to be the quick-draw FAB)
+    // The Area tab opens the equipment (or returns to the area if viewing party)
     openAreaMenu() {
+      const isViewingParty = this.route?.name === "my-party" || this.route?.path?.endsWith("/my-party");
+      if (isViewingParty) {
+        const targetLink = this.compass?.link || `/my-portal/${this.userId}/my-home`;
+        this.router.push(targetLink);
+        return;
+      }
       this.isRPGBoxOpen = true;
       this.play$fx('openMenu');
-    },
-    updateCompass(name) {
-      const { userId } = this;
-      const worlds = {
-        "world-map": {
-          name: "The World",
-          icon: "pegasus",
-          link: `/my-portal/${userId}/world-map`,
-        },
-        "home-town": {
-          name: "Hometown",
-          icon: "archway",
-          link: `/my-portal/${userId}/home-town`,
-        },
-        "my-home": {
-          name: "My Home",
-          icon: "house-user",
-          link: `/my-portal/${userId}/my-home`,
-        },
-        "world-plains": {
-          name: "Plains",
-          icon: "tornado",
-          link: `/my-portal/${userId}/plains`,
-        },
-        "world-islands": {
-          name: "Islands",
-          icon: "island-tropical",
-          link: `/my-portal/${userId}/islands`,
-        },
-        "world-forest": {
-          name: "Forests",
-          icon: "trees",
-          link: `/my-portal/${userId}/forest`,
-        },
-        "world-swamps": {
-          name: "Swamps",
-          icon: "skull-crossbones",
-          link: `/my-portal/${userId}/world-ice`,
-        },
-        "world-mountains": {
-          name: "Mountains",
-          icon: "mountains",
-          link: `/my-portal/${userId}/mountains`,
-        },
-        "world-sands": {
-          name: "Sands",
-          icon: "cactus",
-          link: `/my-portal/${userId}/desert`,
-        },
-        "world-ice": {
-          name: "Tundras",
-          icon: "igloo",
-          link: `/my-portal/${userId}/world-ice`,
-        },
-        "world-clouds": {
-          name: "Clouds",
-          icon: "cloud",
-          link: `/my-portal/${userId}/world-clouds`,
-        },
-        "the-moon": {
-          name: "The Moon",
-          icon: "moon",
-          link: `/my-portal/${userId}/the-moon`,
-        },
-      };
-      const world = worlds[name];
-      if (world) this.compass = world;
     },
 
     stopImpersonating() {
       (this as any).userStore.stopImpersonating();
       this.play$fx("start");
       this.router.push({ name: "xp-dashboard" });
-    },
-  },
-  created() {
-    this.updateCompass(this.routeName);
-  },
-  watch: {
-    routeName(name) {
-      this.updateCompass(name);
     },
   },
   setup() {
@@ -355,10 +294,122 @@ export default defineComponent({
 
     const openParty = () => router.push(`/my-portal/${userId}/my-party`);
 
-    const compass = reactive({
-      name: "Home",
-      icon: "house-user",
-      link: `/my-portal/${userId}/my-home`,
+    const compass = computed(() => {
+      const currentName = String(route.name || "");
+      const currentPath = String(route.path || "");
+      const heroId = String(userId || "");
+
+      const worlds: Record<string, { name: string; icon: string; link: string }> = {
+        "world-map": {
+          name: "The World",
+          icon: "pegasus",
+          // On foot there is no overworld to return to: the Plains is as far as the hero's feet go
+          link: `/my-portal/${heroId}/${canFly(user.value) ? "world-map" : "plains"}`,
+        },
+        "home-town": {
+          name: "Hometown",
+          icon: "archway",
+          link: `/my-portal/${heroId}/home-town`,
+        },
+        "my-home": {
+          name: "My Home",
+          icon: "house-user",
+          link: `/my-portal/${heroId}/my-home`,
+        },
+        "world-plains": {
+          name: "Plains",
+          icon: "tornado",
+          link: `/my-portal/${heroId}/plains`,
+        },
+        "world-islands": {
+          name: "Islands",
+          icon: "island-tropical",
+          link: `/my-portal/${heroId}/islands`,
+        },
+        "world-forest": {
+          name: "Forests",
+          icon: "trees",
+          link: `/my-portal/${heroId}/forest`,
+        },
+        "world-swamps": {
+          name: "Swamps",
+          icon: "skull-crossbones",
+          link: `/my-portal/${heroId}/swamps`,
+        },
+        "world-mountains": {
+          name: "Mountains",
+          icon: "mountains",
+          link: `/my-portal/${heroId}/mountains`,
+        },
+        "world-sands": {
+          name: "Sands",
+          icon: "cactus",
+          link: `/my-portal/${heroId}/sands`,
+        },
+        "world-ice": {
+          name: "Tundras",
+          icon: "igloo",
+          link: `/my-portal/${heroId}/world-ice`,
+        },
+        "world-clouds": {
+          name: "Clouds",
+          icon: "cloud",
+          link: `/my-portal/${heroId}/clouds`,
+        },
+        "the-moon": {
+          name: "The Moon",
+          icon: "moon",
+          link: `/my-portal/${heroId}/the-moon`,
+        },
+        "my-party": {
+          name: "Party",
+          icon: "fort-awesome",
+          link: `/my-portal/${heroId}/my-party`,
+        },
+        "my-profile": {
+          name: "Profile",
+          icon: "user-circle",
+          link: `/my-portal/${heroId}/my-profile`,
+        },
+        "my-look": {
+          name: "Hero Look",
+          icon: "tshirt",
+          link: `/my-portal/${heroId}/my-look`,
+        },
+      };
+
+      if (worlds[currentName]) {
+        return worlds[currentName];
+      }
+
+      for (const world of Object.values(worlds)) {
+        if (world.link && (currentPath === world.link || currentPath.endsWith(world.link))) {
+          return world;
+        }
+      }
+
+      const pathSegments = currentPath.split("/").filter(Boolean);
+      const lastSegment = pathSegments[pathSegments.length - 1];
+      if (lastSegment && worlds[lastSegment]) {
+        return worlds[lastSegment];
+      }
+
+      if (route.meta?.faIcon) {
+        const rawName = typeof route.name === "string"
+          ? route.name.replace(/^(world-|my-)/, "").replace(/-/g, " ")
+          : "Area";
+        return {
+          name: rawName.charAt(0).toUpperCase() + rawName.slice(1),
+          icon: String(route.meta.faIcon),
+          link: currentPath,
+        };
+      }
+
+      return {
+        name: "My Home",
+        icon: "house-user",
+        link: `/my-portal/${heroId}/my-home`,
+      };
     });
 
     const pageIcon = computed(() => route.meta.faIcon);
