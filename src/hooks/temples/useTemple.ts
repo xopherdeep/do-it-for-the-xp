@@ -378,41 +378,8 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     // The state above was changed directly, so it has to be asked to save
     templeSystem.saveProgress(templeId);
     
-    // Get chest ID if available
-    const chestId = currentRoom.value.content?.chestId;
-    
-    // Remove the items from the chest in both systems
-    dungeonManager.removeItemsFromRoomChest(templeId, currentPosition.value, selectedItems, currentLevel.value);
-    
-    // If we have a chest ID, also update it in the ChestSystem
-    if (chestId) {
-      const chestSystem = ChestSystem.getInstance();
-      chestSystem.removeItemsFromChest(chestId, selectedItems);
-      
-      // Check if the chest is now empty in the ChestSystem
-      const chest = chestSystem.getChest(chestId);
-      if (chest && chest.isEmpty) {
-        // Mark the room as empty in the dungeonManager to ensure persistence
-        dungeonManager.updateRoom(templeId, currentPosition.value, {
-          ...currentRoom.value,
-          isEmpty: true
-        }, currentLevel.value);
-        templeSystem.markChestOpened(templeId, currentLevel.value, currentPosition.value);
-      }
-    } else {
-      // For chests without a chestId, check if all items have been collected
-      const itemsLeft = (currentRoom.value.content?.items?.length || 0) === 0;
-      const dungeonItemLeft = !currentRoom.value.content?.dungeon;
-      
-      if (itemsLeft && dungeonItemLeft) {
-        // Mark the room as empty if all items have been collected
-        dungeonManager.updateRoom(templeId, currentPosition.value, {
-          ...currentRoom.value,
-          isEmpty: true
-        }, currentLevel.value);
-        templeSystem.markChestOpened(templeId, currentLevel.value, currentPosition.value);
-      }
-    }
+    // Out of the chest: it is empty (and stays so) only once nothing is left in it; the rest waits for the next visit
+    templeSystem.takeFromChest(templeId, currentLevel.value, currentPosition.value, selectedItems);
     
     // Generate a message about what was collected; a freed Pegasus is the news
     displayMessage(freed ?? `Collected: ${selectedItems.join(', ')}`, 3000);

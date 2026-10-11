@@ -103,11 +103,17 @@ export class DungeonManager {
           if (room && room.type === 'loot' && room.content) {
             const chestContent: ChestContent = {};
             
-            // Map room content to chest content
-            if (room.content.chest === 'loot' && room.content.items) {
-              chestContent.items = room.content.items;
-            } else if (room.content.chest === 'dungeon' && room.content.dungeon) {
+            // Map room content to chest content: the items whatever the chest is called ("loot", "random"...),
+            // copied so the chest and the room each keep their own list
+            if (room.content.items?.length) {
+              chestContent.items = [...room.content.items];
+            }
+            if (room.content.chest === 'dungeon' && room.content.dungeon) {
               chestContent.dungeon = room.content.dungeon;
+            }
+            const gold = Math.floor(Number(room.content.gold) || 0);
+            if (gold > 0) {
+              chestContent.gold = gold;
             }
             
             // Create a chest with position information
@@ -178,13 +184,26 @@ export class DungeonManager {
   }
 
   /**
-   * Remove items from a chest in a room
+   * Remove items from a chest in a room. The room's own content follows, so whoever shows the chest sees
+   * only what is left in it.
+   * @param items Item names, the dungeon item, or `gold:<amount>`
+   * @returns True when nothing is left in the chest
    */
-  public removeItemsFromRoomChest(dungeonId: string, position: [number, number], items: string[], level: string = "1F"): void {
+  public removeItemsFromRoomChest(dungeonId: string, position: [number, number], items: string[], level: string = "1F"): boolean {
     const room = this.getRoom(dungeonId, position, level);
-    if (room?.content?.chestId) {
-      this.chestSystem.removeItemsFromChest(room.content.chestId, items);
+    const content = room?.content;
+    if (!content) return true;
+
+    if (content.items) content.items = content.items.filter(item => !items.includes(item));
+    if (content.chest === 'dungeon' && content.dungeon && items.includes(content.dungeon)) delete content.dungeon;
+    if (items.some(item => item.startsWith('gold:'))) delete content.gold;
+
+    if (content.chestId) {
+      this.chestSystem.removeItemsFromChest(content.chestId, items);
+      const chest = this.chestSystem.getChest(content.chestId);
+      if (chest) return chest.isEmpty;
     }
+    return !content.items?.length && !(content.chest === 'dungeon' && content.dungeon) && !(Number(content.gold) > 0);
   }
 
   /**

@@ -37,6 +37,7 @@ export const resetTempleProgress = <P extends NewTempleProgress>(progress: P): P
     bloodMoons: (progress.bloodMoons ?? 0) + 1,
   };
   delete (next as Partial<NewTempleProgress>).bloodMoonAt;
+  delete (next as Partial<NewTempleProgress>).takenFromChests;
   return next;
 };
 

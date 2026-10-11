@@ -46,6 +46,8 @@ export interface TempleState {
   openedDoors?: Set<string>;
   /** Chests of consumables emptied this run, as `${level}:${row},${col}` */
   openedChests?: Set<string>;
+  /** Items taken from chests that still hold others, as `${level}:${row},${col}>${item}` */
+  takenFromChests?: Set<string>;
   /** Key items the temple handed out; kept across blood moons */
   keyItems?: string[];
   timesCleared?: number;
@@ -166,6 +168,7 @@ export class TempleSystem {
       hasMasterKey: false,
       openedDoors: new Set<string>(),
       openedChests: new Set<string>(),
+      takenFromChests: new Set<string>(),
       keyItems: [],
       timesCleared: 0,
       bloodMoons: 0
@@ -466,6 +469,33 @@ export class TempleSystem {
 
     // Every move, teleport and first visit ends up here: this is where the hero's new position is saved
     this.queueSave(templeId);
+  }
+
+  /**
+   * Take items out of the chest of a room. The chest counts as opened (and stays empty after a reload) only
+   * once nothing is left in it; until then it keeps the rest, and a reload keeps out what was taken.
+   * @param items Item names, the dungeon item, or `gold:<amount>`, as the chest reveal hands them back
+   * @returns True when the chest is now empty
+   */
+  public takeFromChest(templeId: string, level: string, position: [number, number], items: string[]): boolean {
+    const emptied = this.dungeonManager.removeItemsFromRoomChest(templeId, position, items, level);
+    const templeState = this.templeStates[templeId];
+    if (templeState) {
+      if (!templeState.takenFromChests) templeState.takenFromChests = new Set<string>();
+      const room = roomPositionKey(level, position);
+      for (const key of Array.from(templeState.takenFromChests)) {
+        if (emptied && key.startsWith(`${room}>`)) templeState.takenFromChests.delete(key);
+      }
+      if (!emptied) items.forEach(item => templeState.takenFromChests?.add(`${room}>${item}`));
+    }
+
+    if (emptied) {
+      this.dungeonManager.updateRoom(templeId, position, { isEmpty: true }, level);
+      this.markChestOpened(templeId, level, position);
+    } else {
+      this.queueSave(templeId);
+    }
+    return emptied;
   }
 
   /**
@@ -1010,6 +1040,7 @@ export class TempleSystem {
       hasMasterKey: Boolean(state.hasMasterKey),
       openedDoors: Array.from(state.openedDoors ?? []),
       openedChests: Array.from(state.openedChests ?? []),
+      ...(state.takenFromChests?.size ? { takenFromChests: Array.from(state.takenFromChests) } : {}),
       keyItems: [...(state.keyItems ?? [])],
       timesCleared: state.timesCleared ?? 0,
       bloodMoons: state.bloodMoons ?? 0,
@@ -1222,6 +1253,15 @@ export class TempleSystem {
       if (this.dungeonManager.getRoom(templeId, at.position, at.level)?.type === 'loot') {
         this.dungeonManager.updateRoom(templeId, at.position, { isEmpty: true }, at.level);
       }
+    }
+    // Chests the hero took part of: what was taken stays out, the rest is still there
+    if (!state.takenFromChests) state.takenFromChests = new Set<string>();
+    for (const key of saved.takenFromChests ?? []) {
+      const split = key.indexOf('>');
+      const at = parseRoomKey(key.slice(0, split));
+      if (split < 0 || !at || state.openedChests.has(key.slice(0, split))) continue;
+      state.takenFromChests.add(key);
+      this.dungeonManager.removeItemsFromRoomChest(templeId, at.position, [key.slice(split + 1)], at.level);
     }
     if (!state.clearedRooms) state.clearedRooms = new Set<string>();
     for (const key of saved.clearedRooms) state.clearedRooms.add(key);

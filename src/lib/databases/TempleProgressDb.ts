@@ -31,6 +31,8 @@ export interface TempleProgressEntry {
   openedDoors: string[];
   /** Chests of consumables emptied this run, as `${level}:${row},${col}`; a blood moon refills them */
   openedChests: string[];
+  /** Items taken from chests that still hold others, as `${level}:${row},${col}>${item}`; a blood moon refills them */
+  takenFromChests?: string[];
   /** Key items the temple handed out (the temple's tool, the Pegasus); kept across blood moons */
   keyItems: string[];
   /** How often the hero opened the gate of this temple */
@@ -80,6 +82,7 @@ export const toTempleProgress = (raw: unknown): TempleProgressEntry | null => {
   const position = Array.isArray(data.currentPosition) ? data.currentPosition : [];
   const bloodMoonAt = toIsoTime(data.bloodMoonAt);
   const bloodMoonEvery = toCadence(data.bloodMoonEvery);
+  const takenFromChests = toStringList(data.takenFromChests);
 
   return {
     userId: data.userId,
@@ -94,6 +97,7 @@ export const toTempleProgress = (raw: unknown): TempleProgressEntry | null => {
     hasMasterKey: data.hasMasterKey === true,
     openedDoors: toStringList(data.openedDoors),
     openedChests: toStringList(data.openedChests),
+    ...(takenFromChests.length ? { takenFromChests } : {}),
     keyItems: toStringList(data.keyItems),
     timesCleared: toCount(data.timesCleared),
     bloodMoons: toCount(data.bloodMoons),

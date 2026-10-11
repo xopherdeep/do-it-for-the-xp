@@ -138,6 +138,9 @@ export class ChestSystem {
         delete chest.content.gold;
       }
     });
+    if (chest.content.gold) {
+      allItemsRemoved = false;
+    }
     
     // If all items are gone, mark the chest as empty
     if (allItemsRemoved) {
@@ -225,6 +228,7 @@ export class ChestSystem {
     // Clear contents and mark as empty
     chest.content.items = [];
     chest.content.dungeon = undefined;
+    delete chest.content.gold;
     chest.isEmpty = true;
     
     return true;
