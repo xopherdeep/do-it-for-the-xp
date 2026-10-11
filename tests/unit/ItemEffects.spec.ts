@@ -330,11 +330,25 @@ describe("locks", () => {
     expect(isItemUnlocked({ unlockedItems: ["Ice Wand"] }, "Ice Wand")).toBe(true);
   });
 
-  it("counts a freed Pegasus as the unlock of its item", () => {
-    const pegasi = Array(9).fill(false);
-    pegasi[0] = true; // Ventus
-    expect(isItemUnlocked({ unlockedItems: [], stats: { pegasi } }, "Wind Whistle")).toBe(true);
-    expect(isItemUnlocked({ unlockedItems: [], stats: { pegasi } }, "Pegasus Boots")).toBe(false);
+  it("counts a freed Pegasus as the unlock of its item: Aura gifts the Pegasus Boots", () => {
+    const aura = Array(9).fill(false);
+    aura[3] = true;
+    expect(isItemUnlocked({ unlockedItems: [], stats: { pegasi: aura } }, "Pegasus Boots")).toBe(true);
+    const ventus = Array(9).fill(false);
+    ventus[0] = true;
+    expect(isItemUnlocked({ unlockedItems: [], stats: { pegasi: ventus } }, "Pegasus Boots")).toBe(false);
+  });
+
+  it("the Wind Whistle is locked until the Wind Temple's chest unlocks it: no freed Pegasus does", () => {
+    const user = (pegasus: number[], unlockedItems: string[] = []) => ({
+      unlockedItems,
+      stats: { pegasi: Array.from({ length: 9 }, (_, index) => pegasus.includes(index)) },
+    });
+    expect(isItemUnlocked(user([]), "Wind Whistle")).toBe(false);
+    expect(isItemUnlocked(user([0]), "Wind Whistle")).toBe(false); // Ventus alone
+    expect(isItemUnlocked(user([3]), "Wind Whistle")).toBe(false); // Aura alone
+    expect(isItemUnlocked(user([0, 1, 2, 3, 4, 5, 6, 7, 8]), "Wind Whistle")).toBe(false); // all nine
+    expect(isItemUnlocked(user([], unlocksFromChest("Pegasus Whistle")), "Wind Whistle")).toBe(true);
   });
 
   it("maps a temple chest item to the board item it stands for", () => {
@@ -344,7 +358,7 @@ describe("locks", () => {
   });
 
   it("hints how an item is earned", () => {
-    expect(unlockHintOf("Wind Whistle")).toBe("Locked: free Ventus the Pegasus to earn Wind Whistle.");
+    expect(unlockHintOf("Wind Whistle")).toBe("Locked: Wind Whistle waits in a chest in the Wind Temple.");
     expect(unlockHintOf("Pegasus Boots")).toMatch(/free Aura/);
     expect(unlockHintOf("Ice Wand")).toBe("Locked: Ice Wand waits in a chest in the Ice Temple.");
     expect(unlockHintOf("Bombs")).toMatch(/temple chest or a shop/);

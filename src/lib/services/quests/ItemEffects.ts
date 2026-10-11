@@ -260,8 +260,12 @@ export const applyBoardEffect = async (
 /** The hero always has these: the pages, the potions and the little light. */
 export const ALWAYS_UNLOCKED = ["My Quests", "Book Of Spells", "Goods", "Wallet", "Portal Home", "Bottles", "Lantern"];
 
-/** Which freed Pegasus (index into stats.pegasi, the order of XpWorldMapModal) unlocks a Pegasus item. */
-const PEGASUS_INDEX: Record<string, number> = { "Wind Whistle": 0, "Pegasus Boots": 3 };
+/**
+ * Which freed Pegasus (index into stats.pegasi, the order of XpWorldMapModal) unlocks a Pegasus item: Aura gifts
+ * the Pegasus Boots. The Wind Whistle is not here: it unlocks only from the Wind Temple's chest (CHEST_ALIASES),
+ * so freeing a Pegasus, Ventus included, never hands it over.
+ */
+const PEGASUS_INDEX: Record<string, number> = { "Pegasus Boots": 3 };
 
 /** Temple chest items (templeRegistry) that are a board item by another name. */
 const CHEST_ALIASES: Record<string, string> = {
@@ -308,7 +312,8 @@ const PEGASUS_NAMES = ["Ventus", "Ignis", "Sol", "Aura", "Terra", "Glacie", "Aqu
 export const unlockHintOf = (itemName: string): string => {
   const meta = Object.values(ITEM_METADATA).find((entry) => entry.name === itemName);
   const event = meta?.unlockEvent ?? "";
-  if (event.startsWith("pegasus:")) {
+  // An item with a chest of its own (the Wind Whistle) is earned there, whatever its registry event says
+  if (event.startsWith("pegasus:") && !CHEST_TEMPLE[itemName]) {
     const index = PEGASUS_INDEX[itemName];
     const pegasus = index !== undefined ? PEGASUS_NAMES[index] : event.slice("pegasus:".length);
     return `Locked: free ${pegasus} the Pegasus to earn ${itemName}.`;
