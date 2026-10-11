@@ -17,12 +17,18 @@ const bossMultiplier = (enemy: Enemy): number => {
   return 1;
 };
 
+const bossApReward = (enemy: Enemy): number => {
+  if (enemy.isBoss) return 3;
+  if (enemy.type === "miniboss") return 2;
+  return 1;
+};
+
 export const formulaRewards = (enemy: Enemy): QuestRewards => {
   const multiplier = bossMultiplier(enemy);
   return {
     xp: Math.round((enemy.maxHealth / 2) * multiplier),
     gp: Math.round((enemy.maxHealth / 4) * multiplier),
-    ap: enemy.isBoss ? 3 : enemy.type === "miniboss" ? 2 : 1,
+    ap: bossApReward(enemy),
   };
 };
 

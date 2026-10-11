@@ -269,11 +269,23 @@ const linkPits = (graph: TempleGraph): void => {
   }
 };
 
+const resolveEntranceFloor = (given: number[], graph: TempleGraph): string => {
+  const hasFloorIndex = given.length >= 3;
+  if (hasFloorIndex) {
+    return graph.floors[given[0]] ?? graph.floors[0];
+  }
+  const hasFirstFloor = graph.floors.includes("1F");
+  if (hasFirstFloor) {
+    return "1F";
+  }
+  return graph.floors[0];
+};
+
 /** The entrance: the layout's coordinates when they point at a room, else the first entrance room, else nothing. */
 const findEntrance = (layout: TempleLayout, graph: TempleGraph): string | undefined => {
   const given = layout.entrance;
   if (given && given.length >= 2) {
-    const floor = given.length >= 3 ? graph.floors[given[0]] ?? graph.floors[0] : graph.floors.includes("1F") ? "1F" : graph.floors[0];
+    const floor = resolveEntranceFloor(given, graph);
     const [row, col] = given.length >= 3 ? [given[1], given[2]] : [given[0], given[1]];
     const room = graph.rooms.get(roomKey({ floor, row, col }));
     if (room) return room.key;

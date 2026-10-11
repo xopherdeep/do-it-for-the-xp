@@ -108,7 +108,15 @@ const goalOf = (graph: TempleGraph): Goal => ({
 });
 
 /** The gate the hero leaves by: a gate room when the temple has one, else the entrance. */
-const exits = (graph: TempleGraph, goal: Goal): string[] => (goal.gates.length ? goal.gates : graph.entrance ? [graph.entrance] : []);
+const exits = (graph: TempleGraph, goal: Goal): string[] => {
+  if (goal.gates.length > 0) {
+    return goal.gates;
+  }
+  if (graph.entrance) {
+    return [graph.entrance];
+  }
+  return [];
+};
 
 /** What a run still lacks, as text, or nothing when it is done. */
 const missing = (graph: TempleGraph, goal: Goal, region: Region, opened: ReadonlySet<string>): string | undefined => {

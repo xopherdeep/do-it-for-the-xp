@@ -158,15 +158,22 @@ export const isQuestActiveOn = (quest: QuestScheduleFields, date: Date): boolean
   return true;
 };
 
+const calculateUnitDiff = (unit: "day" | "month" | "year", day: Date, anchor: Date): number => {
+  if (unit === "day") return differenceInCalendarDays(day, anchor);
+  if (unit === "month") return differenceInCalendarMonths(day, anchor);
+  return differenceInCalendarYears(day, anchor);
+};
+
+const UNIT_ADD_FUNCTIONS = {
+  day: addDays,
+  month: addMonths,
+  year: addYears,
+} as const;
+
 const alignedStart = (anchor: Date, day: Date, span: number, unit: "day" | "month" | "year"): Date => {
-  const diff =
-    unit === "day"
-      ? differenceInCalendarDays(day, anchor)
-      : unit === "month"
-        ? differenceInCalendarMonths(day, anchor)
-        : differenceInCalendarYears(day, anchor);
+  const diff = calculateUnitDiff(unit, day, anchor);
   let steps = Math.floor(diff / span);
-  const add = unit === "day" ? addDays : unit === "month" ? addMonths : addYears;
+  const add = UNIT_ADD_FUNCTIONS[unit] ?? addYears;
   let start = add(anchor, steps * span);
   // Calendar-month/year differences can overshoot (Jan 31 + 1 month = Feb 28 > Feb 1); step back.
   while (start > day && steps > 0) {

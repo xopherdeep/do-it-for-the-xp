@@ -13,14 +13,19 @@ const today = (now = new Date()): string => {
   return `${now.getFullYear()}-${month}-${day}`;
 };
 
+const resolveFightKey = (ctx: BattleContext): string => {
+  if (ctx.kind === "quest") {
+    return `quest:${ctx.questId ?? ""}`;
+  }
+  if (ctx.kind === "temple") {
+    return `temple:${ctx.templeId ?? ""}:${ctx.level ?? ""}:${ctx.x ?? ""}:${ctx.y ?? ""}`;
+  }
+  return `free:${ctx.beastIds.join(",")}`;
+};
+
 /** One key per hero, fight and day; the fight is the quest, the temple room or the beast set. */
 export const battleProgressKey = (ctx: BattleContext, now = new Date()): string => {
-  const fight =
-    ctx.kind === "quest"
-      ? `quest:${ctx.questId ?? ""}`
-      : ctx.kind === "temple"
-        ? `temple:${ctx.templeId ?? ""}:${ctx.level ?? ""}:${ctx.x ?? ""}:${ctx.y ?? ""}`
-        : `free:${ctx.beastIds.join(",")}`;
+  const fight = resolveFightKey(ctx);
   return `${STORAGE_PREFIX}${ctx.userId}:${fight}:${today(now)}`;
 };
 

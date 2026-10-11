@@ -108,13 +108,25 @@ export interface BankMove {
   capped: "none" | "wallet-full" | "savings" | "wallet" | "debt";
 }
 
+const resolveWithdrawCap = (amount: number, wanted: number, room: number, savings: number): BankMove["capped"] => {
+  if (amount === wanted) return "none";
+  if (room < savings && room < wanted) return "wallet-full";
+  return "savings";
+};
+
+const resolveDebtCap = (amount: number, wanted: number, debt: number, wallet: number): BankMove["capped"] => {
+  if (amount === wanted) return "none";
+  if (debt < wallet) return "debt";
+  return "wallet";
+};
+
 /** Withdraw from savings into the wallet: never more than is saved, never past the wallet's limit. */
 export function withdrawFromSavings(gp: GpPurse | null | undefined, requested: number): BankMove {
   const purse = normalizePurse(gp);
   const room = Math.max(0, purse.limit - purse.wallet);
   const wanted = money(requested);
   const amount = Math.min(wanted, purse.savings, room);
-  const capped = amount === wanted ? "none" : room < purse.savings && room < wanted ? "wallet-full" : "savings";
+  const capped = resolveWithdrawCap(amount, wanted, room, purse.savings);
   return { gp: { ...purse, savings: purse.savings - amount, wallet: purse.wallet + amount }, amount, capped };
 }
 
@@ -134,6 +146,6 @@ export function payDownDebt(gp: GpPurse | null | undefined, requested: number): 
   const purse = normalizePurse(gp);
   const wanted = money(requested);
   const amount = Math.min(wanted, purse.wallet, purse.debt);
-  const capped = amount === wanted ? "none" : purse.debt < purse.wallet ? "debt" : "wallet";
+  const capped = resolveDebtCap(amount, wanted, purse.debt, purse.wallet);
   return { gp: { ...purse, wallet: purse.wallet - amount, debt: purse.debt - amount }, amount, capped };
 }

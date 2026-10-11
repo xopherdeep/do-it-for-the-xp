@@ -115,6 +115,12 @@ class QuestEngine {
         return this.filterQuests(allQuests, { userId, ...filter });
     }
 
+    private static resolveBoardStatus(progress: QuestProgress | null): QuestBoardStatus {
+        if (!progress) return 'notDue';
+        if (progress.isOpen) return 'open';
+        return 'done';
+    }
+
     /**
      * Every quest visible to the hero, tagged with today's completion state:
      * open (can still be done), done (window used up), notDue (not scheduled for this day).
@@ -137,7 +143,7 @@ class QuestEngine {
         if (isDayOff(effects, date)) return [];
         return quests.map((quest) => {
             const progress = getQuestProgressFor(quest, entries, userId, date, effects);
-            const status: QuestBoardStatus = !progress ? 'notDue' : progress.isOpen ? 'open' : 'done';
+            const status: QuestBoardStatus = QuestEngine.resolveBoardStatus(progress);
             const pending = hasPendingClaimFor(quest, entries, userId, date, effects);
             const overdue = status === 'open' && isQuestOverdue(quest, effects, date);
             return { quest, status, progress, pending, overdue };

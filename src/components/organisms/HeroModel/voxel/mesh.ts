@@ -31,8 +31,16 @@ type Axis = 0 | 1 | 2;
 const AXES: Axis[] = [0, 1, 2];
 const EPS = 1e-5;
 
-const lo = (b: Box, a: Axis): number => (a === 0 ? b.x : a === 1 ? b.y : b.z);
-const size = (b: Box, a: Axis): number => (a === 0 ? b.w : a === 1 ? b.h : b.d);
+const lo = (b: Box, a: Axis): number => {
+  if (a === 0) return b.x;
+  if (a === 1) return b.y;
+  return b.z;
+};
+const size = (b: Box, a: Axis): number => {
+  if (a === 0) return b.w;
+  if (a === 1) return b.h;
+  return b.d;
+};
 const hi = (b: Box, a: Axis): number => lo(b, a) + size(b, a);
 
 export const hexToRgb = (hex: string): [number, number, number] => {

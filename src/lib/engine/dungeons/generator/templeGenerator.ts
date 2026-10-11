@@ -178,10 +178,28 @@ interface Skeleton {
 
 const cellKey = (floor: number, row: number, col: number): string => `${floor}:${row},${col}`;
 
+const SPAN_BY_SIZE: Record<TempleSize, [number, number]> = {
+  small: [5, 6],
+  medium: [6, 7],
+  large: [7, 9],
+};
+
+const FLOORS_BY_SIZE: Record<TempleSize, 1 | 2 | 3> = {
+  small: 1,
+  medium: 2,
+  large: 3,
+};
+
+const DEFAULT_LOCKS_BY_SIZE: Record<TempleSize, 1 | 2 | 3> = {
+  small: 1,
+  medium: 2,
+  large: 3,
+};
+
 const dimensionsFor = (rng: Rng, options: GenerateOptions): { floors: number; rows: number; cols: number } => {
   const size = options.size ?? "medium";
-  const span = size === "small" ? [5, 6] : size === "medium" ? [6, 7] : [7, 9];
-  const floors = options.floors ?? (size === "small" ? 1 : size === "medium" ? 2 : 3);
+  const span = SPAN_BY_SIZE[size];
+  const floors = options.floors ?? FLOORS_BY_SIZE[size];
   return { floors, rows: between(rng, span[0], span[1]), cols: between(rng, span[0], span[1]) };
 };
 
@@ -782,7 +800,7 @@ const skeletonFor = (seed: string, options: GenerateOptions, locks: number): Ske
 export const generateTemple = (seed: number | string, options: GenerateOptions): GeneratedTemple => {
   const seedText = String(seed);
   const themeId = slug(options.theme);
-  const locks = options.locks ?? (options.size === "small" ? 1 : options.size === "large" ? 3 : 2);
+  const locks = options.locks ?? DEFAULT_LOCKS_BY_SIZE[options.size ?? "medium"];
   const skeleton = skeletonFor(seedText, options, locks);
   const failures: string[] = [];
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
