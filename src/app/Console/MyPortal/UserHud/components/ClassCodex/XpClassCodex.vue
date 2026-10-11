@@ -5,8 +5,9 @@
     @didPresent="centerRail()"
     @didDismiss="emit('close')"
   >
+    <!-- The RPG box lives on the app bar only; the page below stays light -->
     <ion-header class="ion-no-border">
-      <ion-toolbar class="codex-toolbar">
+      <ion-toolbar class="rpg-box codex-toolbar">
         <ion-title>
           <span class="codex-title"><i class="fad fa-scroll-old mr-2"></i>Class Codex</span>
         </ion-title>
@@ -21,14 +22,14 @@
     </ion-header>
 
     <!-- Content only reads. Everything you tap lives in the footer, under the thumb. -->
-    <ion-content ref="content" class="codex-content">
+    <ion-content ref="content" class="bg-slide bg-slide-equipment codex-content">
       <div
         v-if="shown"
         :key="shown.name"
         class="codex-page"
         :style="crestStyle(shown.name)"
       >
-        <section class="codex-hero eb-panel">
+        <section class="codex-hero">
           <div class="codex-crest">
             <i :class="['fad', shown.icon, 'fa-4x']"></i>
           </div>
@@ -52,85 +53,93 @@
           <p class="codex-description">{{ shown.description }}</p>
         </section>
 
-        <section class="codex-box eb-panel">
+        <section class="codex-section">
           <h3 class="codex-heading"><i class="fad fa-dungeon"></i> In the game</h3>
-          <p class="codex-passive">
-            <i class="fad fa-sparkles"></i>
-            <span>{{ shown.passive }}</span>
-          </p>
-          <p class="codex-start">
-            Starts with <strong class="is-hp">{{ shown.startingHp }} HP</strong> &middot;
-            <strong class="is-mp">{{ shown.startingMp }} MP</strong>
-          </p>
-          <ul class="codex-pillars">
-            <li
-              v-for="pillar in shown.pillars"
-              :key="pillar.key"
-              class="codex-pillar"
-              :style="{ '--pillar': `var(--ion-color-${pillar.color})` }"
-            >
-              <i :class="['fad', pillar.icon, 'fa-lg']"></i>
-              <span class="pillar-text">
-                <span class="pillar-rank">{{ pillar.rank }}</span>
-                <span class="pillar-name">{{ pillar.name }} <small>({{ pillar.currency }})</small></span>
-                <span class="pillar-stats">{{ pillar.stats.join(" · ") }}</span>
-              </span>
-            </li>
-          </ul>
+          <div class="codex-body">
+            <p class="codex-passive">
+              <i class="fad fa-sparkles"></i>
+              <span>{{ shown.passive }}</span>
+            </p>
+            <p class="codex-start">
+              Starts with <strong class="is-hp">{{ shown.startingHp }} HP</strong> &middot;
+              <strong class="is-mp">{{ shown.startingMp }} MP</strong>
+            </p>
+            <ul class="codex-pillars">
+              <li
+                v-for="pillar in shown.pillars"
+                :key="pillar.key"
+                class="codex-pillar"
+                :style="{ '--pillar': `var(--ion-color-${pillar.color})` }"
+              >
+                <i :class="['fad', pillar.icon, 'fa-lg']"></i>
+                <span class="pillar-text">
+                  <span class="pillar-rank">{{ pillar.rank }}</span>
+                  <span class="pillar-name">{{ pillar.name }} <small>({{ pillar.currency }})</small></span>
+                  <span class="pillar-stats">{{ pillar.stats.join(" · ") }}</span>
+                </span>
+              </li>
+            </ul>
+          </div>
         </section>
 
-        <section class="codex-box eb-panel">
+        <section class="codex-section">
           <h3 class="codex-heading"><i class="fad fa-clipboard-check"></i> In real life</h3>
-          <ul class="codex-lines">
-            <li
-              v-for="line in shown.realLife"
-              :key="line"
-            >{{ line }}</li>
-          </ul>
+          <div class="codex-body">
+            <ul class="codex-lines">
+              <li
+                v-for="line in shown.realLife"
+                :key="line"
+              >{{ line }}</li>
+            </ul>
+          </div>
         </section>
 
         <section
           v-if="shown.tier === 1 && shown.growsInto.length"
-          class="codex-box eb-panel"
+          class="codex-section"
         >
           <h3 class="codex-heading"><i class="fad fa-crown"></i> Grows into</h3>
-          <ul class="codex-evolutions">
-            <li
-              v-for="evolution in shown.growsInto"
-              :key="evolution.name"
-              class="codex-evolution"
-              :style="crestStyle(evolution.name)"
-            >
-              <span class="evolution-crest"><i :class="['fad', evolution.icon, 'fa-2x']"></i></span>
-              <span class="evolution-text">
-                <span class="evolution-name">{{ evolution.name }}</span>
-                <span class="evolution-with">with {{ evolution.with }}</span>
-                <span class="evolution-need">{{ evolution.requirement }}</span>
-              </span>
-              <i
-                v-if="evolution.met"
-                class="fad fa-check-circle evolution-met"
-                title="Ready"
-              ></i>
-            </li>
-          </ul>
+          <div class="codex-body">
+            <ul class="codex-evolutions">
+              <li
+                v-for="evolution in shown.growsInto"
+                :key="evolution.name"
+                class="codex-evolution"
+                :style="crestStyle(evolution.name)"
+              >
+                <i :class="['fad', evolution.icon, 'fa-2x', 'evolution-crest']"></i>
+                <span class="evolution-text">
+                  <span class="evolution-name">{{ evolution.name }}</span>
+                  <span class="evolution-with">with {{ evolution.with }}</span>
+                  <span class="evolution-need">{{ evolution.requirement }}</span>
+                </span>
+                <i
+                  v-if="evolution.met"
+                  class="fad fa-check-circle evolution-met"
+                  title="Ready"
+                ></i>
+              </li>
+            </ul>
+          </div>
         </section>
 
         <section
           v-if="shown.tier === 2"
-          class="codex-box eb-panel"
+          class="codex-section"
         >
           <h3 class="codex-heading"><i class="fad fa-lock"></i> Unlocks when</h3>
-          <p class="codex-need">{{ shown.requirement }}</p>
-          <p class="codex-progress">
-            <template
-              v-for="(part, index) in shown.requirementProgress"
-              :key="part.name"
-            >
-              <span v-if="index > 0"> &middot; </span>
-              <span :class="{ 'is-met': part.met }">{{ part.name }} {{ part.level }} of {{ part.needed }}</span>
-            </template>
-          </p>
+          <div class="codex-body">
+            <p class="codex-need">{{ shown.requirement }}</p>
+            <p class="codex-progress">
+              <template
+                v-for="(part, index) in shown.requirementProgress"
+                :key="part.name"
+              >
+                <span v-if="index > 0"> &middot; </span>
+                <span :class="{ 'is-met': part.met }">{{ part.name }} {{ part.level }} of {{ part.needed }}</span>
+              </template>
+            </p>
+          </div>
         </section>
       </div>
     </ion-content>
@@ -292,6 +301,9 @@
   @use "@/styles/themes/earthbound.scss" as *;
 
   $rail-crest: 64px;
+  // One translucent backing behind each section's body, the only box the page has
+  $body-backing: rgba(20, 6, 28, 0.55);
+  $divider: rgba(231, 230, 179, 0.25);
 
   .class-codex-modal {
     --width: 100%;
@@ -303,11 +315,14 @@
     --box-shadow: none;
   }
 
+  // The app bar carries the RPG box (the global `ion-toolbar.rpg-box`); the title sits at the start, Material style
   .codex-toolbar {
-    --background: #{$eb-color-dark-purple};
     --color: #{$eb-color-cream};
-    --border-width: 0 0 2px 0;
-    --border-color: #{$eb-color-medium-purple};
+
+    ion-title {
+      text-align: left;
+      padding-inline-start: 8px;
+    }
   }
 
   .codex-title {
@@ -317,46 +332,39 @@
     letter-spacing: 1px;
   }
 
+  // The animated sliding background comes from `bg-slide bg-slide-equipment`; nothing solid here
   .codex-content {
-    --background: #{$eb-color-slate};
-    --padding-top: 24px;
+    --padding-top: 8px;
     --padding-bottom: 28px;
-    --padding-start: 4px;
-    --padding-end: 4px;
     color: $eb-color-cream;
   }
 
-  /* The ring shadows of an Earthbound box reach 16px outside it: keep a 20px margin inside the scroller. */
   .codex-page {
-    margin: 0 20px;
+    margin: 0 16px;
     display: flex;
     flex-direction: column;
-    gap: 28px;
+    gap: 22px;
     animation: codex-in 160ms steps(4) both;
   }
 
-  .eb-panel {
-    @include eb-box();
-    padding: 16px 14px;
-  }
-
+  /* ---- Hero: no box, just the crest, name, creed, chips and description ---- */
   .codex-hero {
     text-align: center;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6);
   }
 
   .codex-crest {
-    width: 112px;
-    height: 112px;
+    width: 104px;
+    height: 104px;
     display: grid;
     place-items: center;
     border-radius: 50%;
     background: rgba(var(--crest-rgb), 0.18);
-    border: 3px solid var(--crest);
-    box-shadow: 0 0 24px rgba(var(--crest-rgb), 0.45), inset 0 0 18px rgba(var(--crest-rgb), 0.25);
+    border: 2px solid rgba(var(--crest-rgb), 0.7);
 
     i {
       --fa-primary-color: var(--crest);
@@ -372,7 +380,6 @@
     font-size: 1.9rem;
     font-weight: normal;
     color: var(--crest);
-    text-shadow: 2px 2px 0 rgba(0, 0, 0, 0.6);
   }
 
   .codex-creed {
@@ -394,19 +401,17 @@
     font-family: $eb-font-status;
     font-size: 0.8rem;
     padding: 2px 9px;
-    border-radius: 2px;
-    background: $eb-color-medium-purple;
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    background: $body-backing;
     color: $eb-color-cream;
+    text-shadow: none;
 
     &.is-yours {
       color: $eb-color-mint-green;
-      border-color: $eb-color-mint-green;
     }
 
     &.is-sealed {
       color: #ffb4a8;
-      border-color: #ffb4a8;
     }
   }
 
@@ -417,15 +422,32 @@
     text-align: left;
   }
 
+  /* ---- Sections: small heading, a 1px rule, then the body on one translucent backing ---- */
+  .codex-section {
+    display: flex;
+    flex-direction: column;
+  }
+
   .codex-heading {
-    margin: 0 0 10px;
-    font-family: $eb-font-status;
-    font-weight: normal;
-    font-size: 1.25rem;
-    color: $eb-color-pale-yellow;
+    margin: 0 0 8px;
+    padding: 0 2px 6px;
     display: flex;
     align-items: center;
     gap: 8px;
+    border-bottom: 1px solid $divider;
+    font-family: $eb-font-status;
+    font-weight: normal;
+    font-size: 0.9rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: $eb-color-pale-yellow;
+    text-shadow: 0 2px 0 rgba(0, 0, 0, 0.6);
+  }
+
+  .codex-body {
+    padding: 12px 14px;
+    border-radius: 8px;
+    background: $body-backing;
   }
 
   .codex-passive {
@@ -447,7 +469,7 @@
     font-family: $eb-font-status;
     font-size: 1.1rem;
 
-    // The HUD's HP red and MP purple, lightened so they read on the dark panel
+    // The HUD's HP red and MP purple, lightened so they read on the dark backing
     .is-hp {
       color: #ff8a80;
       font-weight: normal;
@@ -470,16 +492,14 @@
   .codex-pillars {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 12px;
   }
 
+  // Plain row: only the icon carries the pillar colour
   .codex-pillar {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 8px 10px;
-    background: rgba(0, 0, 0, 0.25);
-    border-left: 4px solid var(--pillar);
 
     > i {
       --fa-primary-color: var(--pillar);
@@ -510,8 +530,8 @@
     color: #fff;
 
     small {
-      color: var(--pillar);
       font-size: 0.85rem;
+      opacity: 0.75;
     }
   }
 
@@ -528,7 +548,7 @@
 
     li {
       position: relative;
-      padding-left: 20px;
+      padding-left: 18px;
       font-size: 1.05rem;
       line-height: 1.4;
 
@@ -536,11 +556,10 @@
         content: "";
         position: absolute;
         left: 2px;
-        top: 0.5em;
-        width: 8px;
-        height: 8px;
+        top: 0.55em;
+        width: 7px;
+        height: 7px;
         background: $eb-color-pale-yellow;
-        box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.5);
       }
     }
   }
@@ -548,32 +567,23 @@
   .codex-evolutions {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
   }
 
+  // Plain row: only the crest icon carries the class colour
   .codex-evolution {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 8px 10px;
-    background: rgba(0, 0, 0, 0.25);
-    border-left: 4px solid var(--crest);
   }
 
   .evolution-crest {
-    flex: 0 0 48px;
-    height: 48px;
-    display: grid;
-    place-items: center;
-    border-radius: 50%;
-    background: rgba(var(--crest-rgb), 0.18);
-
-    i {
-      --fa-primary-color: var(--crest);
-      --fa-secondary-color: var(--crest);
-      --fa-secondary-opacity: 0.55;
-      color: var(--crest);
-    }
+    --fa-primary-color: var(--crest);
+    --fa-secondary-color: var(--crest);
+    --fa-secondary-opacity: 0.55;
+    color: var(--crest);
+    flex: 0 0 40px;
+    text-align: center;
   }
 
   .evolution-text {
@@ -586,7 +596,7 @@
   .evolution-name {
     font-family: $eb-font-status;
     font-size: 1.2rem;
-    color: var(--crest);
+    color: #fff;
   }
 
   .evolution-with {
@@ -607,7 +617,7 @@
     margin: 0 0 6px;
     font-family: $eb-font-status;
     font-size: 1.25rem;
-    color: var(--crest);
+    color: #fff;
   }
 
   .codex-progress {
