@@ -533,14 +533,14 @@ export class TempleSystem {
     return `${roomPositionKey(level, position)}>${direction}`;
   }
 
-  /** The door into a boss room that carries `locked.master` (or whose approach does) is the boss door. */
-  private isBossDoor(here: Room, there: Room | undefined): boolean {
-    return there?.type === 'boss' && Boolean(there.locked?.master || here.locked?.master);
+  /** Every door into a boss room is the boss door, whatever the authored sides say: only the Boss Key opens it. */
+  private isBossDoor(there: Room | undefined): boolean {
+    return there?.type === 'boss';
   }
 
   /**
    * What stands between the room at `position` and the room in `direction`: an open way, a small lock, or
-   * the boss door. A boss door stays `master` until it is opened with the master key, bar or no bar on the
+   * the boss door. A boss door stays `master` until it is opened with the Boss Key, bar or no bar on the
    * room in front of it; a wall or the edge of the floor is no door at all and reads as open.
    * @param level Floor the room is on; the floor the hero stands on when left out
    */
@@ -556,7 +556,7 @@ export class TempleSystem {
     if (!here) return 'open';
 
     const there = this.dungeonManager.getRoom(templeId, stepFrom(position, direction), floor);
-    if (this.isBossDoor(here, there) && !templeState?.openedDoors?.has(this.doorKey(floor, position, direction))) return 'master';
+    if (this.isBossDoor(there) && !templeState?.openedDoors?.has(this.doorKey(floor, position, direction))) return 'master';
     return here.locked?.[direction] ? 'locked' : 'open';
   }
 

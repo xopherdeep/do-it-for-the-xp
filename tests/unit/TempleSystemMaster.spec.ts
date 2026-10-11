@@ -1,6 +1,6 @@
 /**
- * The boss door (R6 of docs/Temple-Generation-Contract.md): the door into a boss room that carries
- * `locked.master` refuses small keys, bombs and riddles, and opens only for a hero holding the master key,
+ * The boss door (R6 of docs/Temple-Generation-Contract.md): every door into a boss room, flagged
+ * `locked.master` or not, refuses small keys, bombs and riddles, and opens only for a hero holding the Boss Key,
  * which is not spent. The temple screen reads the door through doorKind (walls) and doorActions (the dialog).
  */
 import { createPinia, setActivePinia } from "pinia";
@@ -86,6 +86,38 @@ describe("TempleSystem.doorKind", () => {
 
     expect(temples.doorKind(id, [0, 1], "east")).toBe("master");
     expect(temples.doorKind(id, [0, 1], "west")).toBe("open");
+  });
+
+  it("reads any door into a boss room as the Boss door, flag or no flag anywhere", () => {
+    // The authored way in is a plain "Locked" side, which used to make it a small-key door
+    const id = makeTemple(
+      { E: { type: "entrance" }, A: { type: "empty", locked: { east: true } }, B: { type: "boss" } },
+      [["E", "A", "B"]]
+    );
+    enter(id, [0, 1]);
+    keys(id, 3);
+
+    expect(temples.doorKind(id, [0, 1], "east")).toBe("master");
+    expect(temples.explainDoor(id, [0, 1], "east")).toBe(BOSS_DOOR_LINE);
+    expect(temples.unlockDoor(id, [0, 1], "east")).toBe(false); // a small key never fits
+    expect(temples.getTempleState(id)?.playerKeys).toBe(3);
+    expect(temples.moveToPosition(id, [0, 2], "east")).toBe(false);
+
+    temples.grantMasterKey(id);
+    expect(temples.explainDoor(id, [0, 1], "east")).toBeNull();
+    expect(temples.unlockDoor(id, [0, 1], "east")).toBe(true);
+    expect(temples.getTempleState(id)?.playerKeys).toBe(3); // the Boss Key is not spent, nor is a small one
+    expect(temples.doorKind(id, [0, 1], "east")).toBe("open");
+    expect(temples.moveToPosition(id, [0, 2], "east")).toBe(true);
+  });
+
+  it("reads a boss room with no lock on its side at all as the Boss door too", () => {
+    const id = makeTemple({ E: { type: "entrance" }, A: { type: "empty" }, B: { type: "boss" } }, [["E", "A", "B"]]);
+    enter(id, [0, 1]);
+
+    expect(temples.doorKind(id, [0, 1], "east")).toBe("master");
+    expect(temples.moveToPosition(id, [0, 2], "east")).toBe(false);
+    expect(temples.doorKind(id, [0, 2], "west")).toBe("open"); // out of the boss room is no boss door
   });
 
   it("is not master between two ordinary rooms with a master flag lying around", () => {
