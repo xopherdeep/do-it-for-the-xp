@@ -270,13 +270,24 @@ export default defineComponent({
         : board.filter((entry) => entry.status === "open");
     };
 
+    const resolveScheduleLabel = (entry: QuestBoardItem, now: Date): string => {
+      const isNotDue = entry.status === "notDue";
+      if (isNotDue) {
+        return entry.quest.basicSchedule;
+      }
+      const due = dueTimeOn(entry.quest.dueByTime, now);
+      if (due) {
+        return `due ${format(due, "h:mma")}`;
+      }
+      return "";
+    };
+
     /** An action sheet of quests (title and due time); resolves with the picked quest id, or null on cancel. */
     const pickQuest = (choices: QuestBoardItem[], header: string): Promise<string | null> =>
       new Promise((resolve) => {
         const now = new Date();
         const buttons = choices.map((entry) => {
-          const due = dueTimeOn(entry.quest.dueByTime, now);
-          const when = entry.status === "notDue" ? entry.quest.basicSchedule : due ? `due ${format(due, "h:mma")}` : "";
+          const when = resolveScheduleLabel(entry, now);
           return {
             text: when ? `${entry.quest.achievementName} · ${when}` : entry.quest.achievementName,
             handler: () => resolve(String(entry.quest.id)),

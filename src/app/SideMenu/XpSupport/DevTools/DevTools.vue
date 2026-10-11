@@ -160,6 +160,16 @@
   import Ionic from "@/lib/mixins/ionic";
   import debug from "@/lib/utils/debug";
 
+  const resolvePlatformName = (): string => {
+    if (isPlatform("ios")) {
+      return "iOS";
+    }
+    if (isPlatform("android")) {
+      return "Android";
+    }
+    return "Web";
+  };
+
   export default defineComponent({
     name: "DevTools",
     mixins: [Ionic],
@@ -168,9 +178,7 @@
       const { showToast } = useToast();
       const appVersion = ref(packageJson.version || "0.0.0");
       const environment = ref(process.env.NODE_ENV || "development");
-      const platform = ref(
-        isPlatform("ios") ? "iOS" : isPlatform("android") ? "Android" : "Web"
-      );
+      const platform = ref(resolvePlatformName());
       const buildDate = ref(new Date().toLocaleDateString());
       const isTaskRunning = ref(false);
 

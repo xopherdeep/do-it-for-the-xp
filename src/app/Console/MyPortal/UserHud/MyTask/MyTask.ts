@@ -87,6 +87,16 @@ const dueTimeToday = (dueByTime = ""): Date | null => {
   return set(new Date(), { hours, minutes, seconds: 0, milliseconds: 0 });
 };
 
+const resolveClaimNotice = (hasProgress: boolean, awaitingApproval: boolean): string => {
+  if (!hasProgress) {
+    return "This quest is not due right now.";
+  }
+  if (awaitingApproval) {
+    return "Your claim is waiting for the Game Master.";
+  }
+  return "You already tamed this quest.";
+};
+
 export default defineComponent({
   // boardStatus: 'open' | 'done' | 'notDue' as seen on the quest board the modal was opened from
   // pending: a claim in the current window is still waiting for the Game Master (a done quest then reads Pending, not Tamed)
@@ -468,13 +478,7 @@ export default defineComponent({
           // The log says the window is used up already; show it the way the board would
           this.claimed = Boolean(progress);
           this.awaitingApproval = this.claimed && hasPendingClaimFor(this.item, entries, heroId, now, effects);
-          this.say(
-            !progress
-              ? "This quest is not due right now."
-              : this.awaitingApproval
-                ? "Your claim is waiting for the Game Master."
-                : "You already tamed this quest."
-          );
+          this.say(resolveClaimNotice(Boolean(progress), this.awaitingApproval));
           return;
         }
         const result = await completeQuest(this.item, heroId, "claim");

@@ -1,6 +1,14 @@
 import type { EffectFactory, WeatherEffect } from "../types";
 import { countFor, makeRng, pulse, softBlob } from "./util";
 
+const resolveWindowIntensity = (reducedMotion: boolean, time: number, index: number, phase: number): number => {
+  if (reducedMotion) {
+    return 0.6;
+  }
+  const isPulsing = pulse(time, 2 + (index % 5), phase) > 0.6;
+  return isPulsing ? 0.8 : 0.3;
+};
+
 /** Low grey drift along the bottom and a few window lights twinkling: the city at night. */
 export const smog: EffectFactory = () => {
   const rng = makeRng(149);
@@ -26,7 +34,7 @@ export const smog: EffectFactory = () => {
       }
       ctx.globalCompositeOperation = "lighter";
       for (let i = 0; i < windows; i++) {
-        const on = f.reducedMotion ? 0.6 : pulse(f.time, 2 + (i % 5), wp[i]) > 0.6 ? 0.8 : 0.3;
+        const on = resolveWindowIntensity(Boolean(f.reducedMotion), f.time, i, wp[i]);
         ctx.fillStyle = `rgba(255,220,150,${on * 0.5})`;
         ctx.fillRect(wx[i], wy[i], 2, 3);
       }

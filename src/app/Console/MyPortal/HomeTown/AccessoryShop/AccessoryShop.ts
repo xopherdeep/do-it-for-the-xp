@@ -49,10 +49,20 @@ import {
   stockShelf,
 } from "@/lib/services/shop/PurchaseService";
 import type { ShelfItem } from "@/lib/services/shop/PurchaseService";
-// Bigger wallets, Majora's Mask style: each region shop sells one tier, and only as the hero's next one.
 import { buyWalletUpgrade } from "@/lib/services/gp/wallet";
+import type { WalletUpgradeResult } from "@/lib/services/gp/wallet";
 import { gold, walletOfferAt } from "@/lib/services/gp/walletShops";
 import { shopDiscountLabel, shopPrice } from "@/lib/services/stats/StatEffects";
+
+const resolveUpgradeFailureMessage = (result: Extract<WalletUpgradeResult, { ok: false }>): string => {
+  if (result.reason === "poor") {
+    return `Not enough GP! You are ${gold(result.short)} short, savings and all.`;
+  }
+  if (result.reason === "locked") {
+    return `LVL ${result.offer?.minLevel} needed.`;
+  }
+  return "You already carry the biggest wallet there is.";
+};
 
 // The general store you reach from Home Town; also where an unknown shop id ends up.
 const DEFAULT_SHOP_ID = "hometown-market";
@@ -272,12 +282,7 @@ export default defineComponent({
       const result = buyWalletUpgrade(hero?.stats?.gp, Number(hero?.stats?.level) || 1);
       if (!result.ok) {
         this.play$fx("no");
-        const why =
-          result.reason === "poor"
-            ? `Not enough GP! You are ${gold(result.short)} short, savings and all.`
-            : result.reason === "locked"
-              ? `LVL ${result.offer?.minLevel} needed.`
-              : "You already carry the biggest wallet there is.";
+        const why = resolveUpgradeFailureMessage(result);
         void this.rpgToast(why);
         return;
       }

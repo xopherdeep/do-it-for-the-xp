@@ -54,6 +54,18 @@ import { useGameStore } from "@/lib/store/stores/game";
 import { useBattleStore } from "@/lib/store/stores/battle";
 import { changeBGM as changeBGMAdapter } from '@/lib/engine/audio/routeMusic';
 
+const resolveNextTrackIndex = (requestedTrack: number, maxTrackIndex: number): number => {
+  const isBelowMinimum = requestedTrack < 0;
+  if (isBelowMinimum) {
+    return maxTrackIndex;
+  }
+  const isAboveMaximum = requestedTrack > maxTrackIndex;
+  if (isAboveMaximum) {
+    return 0;
+  }
+  return requestedTrack;
+};
+
 export default defineComponent({
   name: "App",
   components: {
@@ -208,11 +220,8 @@ export default defineComponent({
         bgm,
         playAudio,
       } = (this as any);
-      const maxTrackIndex = -1 + bgm.tracks.length;
-      let track = bgm.track + inc;
-      const cantGoBack = track < 0;
-      const hasNextTrack = track <= maxTrackIndex && !cantGoBack;
-      track = cantGoBack ? maxTrackIndex : hasNextTrack ? track : 0;
+      const maxTrackIndex = bgm.tracks.length - 1;
+      const track = resolveNextTrackIndex(bgm.track + inc, maxTrackIndex);
       this.changeBGM({ track, is_on: true }).then(playAudio);
     },
 

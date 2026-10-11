@@ -498,6 +498,16 @@ export default defineComponent({
       const touch = event.changedTouches[0];
       swipeStart = touch ? { x: touch.clientX, y: touch.clientY } : null;
     };
+    const resolveSwipeDirection = (dx: number, dy: number): 'north' | 'south' | 'east' | 'west' => {
+      const isHorizontalSwipe = Math.abs(dx) > Math.abs(dy);
+      if (isHorizontalSwipe) {
+        const isSwipingRight = dx > 0;
+        return isSwipingRight ? 'west' : 'east';
+      }
+      const isSwipingDown = dy > 0;
+      return isSwipingDown ? 'north' : 'south';
+    };
+
     const onTouchEnd = (event: TouchEvent) => {
       const touch = event.changedTouches[0];
       if (!swipeStart || !touch) return;
@@ -505,9 +515,8 @@ export default defineComponent({
       const dy = touch.clientY - swipeStart.y;
       swipeStart = null;
       if (Math.max(Math.abs(dx), Math.abs(dy)) < SWIPE_MIN_PX) return;
-      const horizontal = Math.abs(dx) > Math.abs(dy);
       // Dragging the world: a swipe to the right pulls the room on the left into view (west), and so on
-      const direction = horizontal ? (dx > 0 ? 'west' : 'east') : dy > 0 ? 'north' : 'south';
+      const direction = resolveSwipeDirection(dx, dy);
       const allowed = { north: canMoveUp, south: canMoveDown, west: canMoveLeft, east: canMoveRight }[direction];
       if (!allowed.value) return;
       moveWithUpdate(direction);
