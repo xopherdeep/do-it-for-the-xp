@@ -17,6 +17,7 @@ import { useUserStore, LevelUpInfo } from "@/lib/store/stores/user";
  * The log keeps the quest's own rate; what the hero is paid is paidQuestRewards(): the same
  * XP and AP, and the GP with the class loot bonus on top (a Thief's or Ninja's +25%, see
  * docs/Items-And-Classes-Contract.md, C). Screens print the paid line, not the board's.
+ * AP is stamped at the entry's completedAt, so a next-morning approval lands on the day the chore was done.
  */
 export interface CompletionResult {
   entry: QuestLogEntry;
@@ -44,15 +45,23 @@ export const paidQuestRewards = (userId: string, rewards: QuestRewards): QuestRe
   return { ...rewards, gp: bonusGp(rewards.gp, hero.jobClass) };
 };
 
-/** Credit rewards to the hero's profile (persisted by the user store); the GP paid carries the class bonus. */
-export const applyQuestRewards = (userId: string, rewards: QuestRewards, source: string): LevelUpInfo | null => {
+/**
+ * Credit rewards to the hero's profile (persisted by the user store); the GP paid carries the class bonus.
+ * `at` is when the chore was finished (ISO); it stamps the AP record, and defaults to now.
+ */
+export const applyQuestRewards = (
+  userId: string,
+  rewards: QuestRewards,
+  source: string,
+  at?: string
+): LevelUpInfo | null => {
   const userStore = useUserStore();
   if (!userStore.users[userId]) return null;
 
   const paid = paidQuestRewards(userId, rewards);
   const levelUp = paid.xp > 0 ? userStore.updateUserXP({ userId, amount: paid.xp, commit: true }) : null;
   if (paid.gp > 0) void userStore.updateUserGP({ userId, wallet: paid.gp });
-  if (paid.ap > 0) userStore.recordAPGain({ userId, amount: paid.ap, source });
+  if (paid.ap > 0) userStore.recordAPGain({ userId, amount: paid.ap, source, at });
   return levelUp;
 };
 
@@ -116,7 +125,7 @@ const reviewEntry = async (
 
 export const approveCompletion = (entryId: string, reviewerId?: string): Promise<QuestLogEntry | null> =>
   reviewEntry(entryId, (entry) => {
-    if (!entry.rewardsApplied) applyQuestRewards(entry.userId, entry.rewards, `quest:${entry.questId}`);
+    if (!entry.rewardsApplied) applyQuestRewards(entry.userId, entry.rewards, `quest:${entry.questId}`, entry.completedAt);
     return getQuestLogDb().updateEntry(entryId, {
       status: "approved",
       rewardsApplied: true,

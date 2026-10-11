@@ -157,11 +157,49 @@ describe("approveCompletion", () => {
     expect(paidQuestRewards(approved!.userId, approved!.rewards).gp).toBe(50); // what the toast prints
   });
 
+  it("an approved quest stamps its AP on the day the chore was done, not the day of the approval", async () => {
+    addHero("Warrior");
+    const held = await completeQuest(quest(true), HERO_ID, "claim");
+    const yesterdayEvening = new Date();
+    yesterdayEvening.setDate(yesterdayEvening.getDate() - 1);
+    yesterdayEvening.setHours(20, 0, 0, 0);
+    log.find((candidate) => candidate.id === held.entry.id)!.completedAt = yesterdayEvening.toISOString();
+
+    await approveCompletion(held.entry.id, "gm-1");
+
+    expect(stats().ap.total).toBe(2);
+    expect(stats().ap.history).toEqual([
+      { amount: 2, timestamp: yesterdayEvening.toISOString(), source: "quest:q1" },
+    ]);
+  });
+
   it("approving twice pays once", async () => {
     addHero("Ninja");
     const held = await completeQuest(quest(true), HERO_ID, "claim");
     await approveCompletion(held.entry.id, "gm-1");
     await approveCompletion(held.entry.id, "gm-1");
     expect(stats().gp.wallet).toBe(50);
+  });
+});
+
+describe("recordAPGain", () => {
+  it("stamps now when `at` is not a date", () => {
+    addHero("Warrior");
+    const before = Date.now();
+    useUserStore().recordAPGain({ userId: HERO_ID, amount: 3, source: "test", at: "not a date" });
+    const after = Date.now();
+
+    const [record] = stats().ap.history;
+    expect(record.amount).toBe(3);
+    expect(Number.isNaN(new Date(record.timestamp).getTime())).toBe(false);
+    expect(new Date(record.timestamp).getTime()).toBeGreaterThanOrEqual(before);
+    expect(new Date(record.timestamp).getTime()).toBeLessThanOrEqual(after);
+  });
+
+  it("stamps the given time when `at` parses", () => {
+    addHero("Warrior");
+    const at = "2026-10-09T20:00:00.000Z";
+    useUserStore().recordAPGain({ userId: HERO_ID, amount: 3, source: "test", at });
+    expect(stats().ap.history[0].timestamp).toBe(at);
   });
 });

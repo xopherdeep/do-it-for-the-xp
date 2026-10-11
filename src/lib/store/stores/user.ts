@@ -822,8 +822,8 @@ export const useUserStore = defineStore('user', () => {
     persistUser(userId);
   }
 
-  function recordAPGain(payload: { userId: string, amount: number, source: string }) {
-    const { userId, amount, source } = payload;
+  function recordAPGain(payload: { userId: string, amount: number, source: string, at?: string }) {
+    const { userId, amount, source, at } = payload;
 
     if (users[userId] && amount > 0) {
       const userStats = users[userId].stats || {};
@@ -840,7 +840,7 @@ export const useUserStore = defineStore('user', () => {
       userStats.ap.history = userStats.ap.history || [];
       userStats.ap.history.push({
         amount,
-        timestamp: new Date().toISOString(),
+        timestamp: at && !Number.isNaN(new Date(at).getTime()) ? at : new Date().toISOString(),
         source
       });
 
