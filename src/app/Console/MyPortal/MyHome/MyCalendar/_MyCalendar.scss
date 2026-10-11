@@ -1,3 +1,5 @@
+@use "@/styles/themes/earthbound.scss" as *;
+
 .my-calendar {
   --background: var(--ion-background-color);
 
@@ -39,19 +41,15 @@
     }
   }
 
-  .no-quests {
-    margin-top: 50px;
-    color: var(--ion-color-medium);
-
-    i {
-      margin-bottom: 20px;
-      opacity: 0.5;
-    }
-
-    p {
-      font-size: 1.1rem;
-      font-weight: bold;
-    }
+  .no-chores {
+    @include eb-box();
+    // The ring shadows reach 16px outside the box; the list's overflow clips them without this margin
+    margin: 20px;
+    padding: 18px 14px;
+    text-align: center;
+    font-family: "StatusPlz", "Press Start 2P", cursive;
+    font-size: 1rem;
+    line-height: 1.4;
   }
 }
 

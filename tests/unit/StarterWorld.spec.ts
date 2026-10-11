@@ -10,6 +10,7 @@ import {
 } from "@/lib/services/core/StarterWorld";
 import { BACKUP_STORES, BackupService } from "@/lib/services/core/BackupService";
 import { getAllShops } from "@/lib/engine/core/shopRegistry";
+import { TIMES_OF_DAY, getQuestWindow, questMatchesSegment, questTimesOfDay } from "@/lib/engine/quests/QuestSchedule";
 
 jest.mock("@/lib/databases/AbilitiesDb", () => ({ __esModule: true, abilitiesStorage: { sentinel: "abilities" } }));
 jest.mock("@/lib/databases/AccessoriesDb", () => ({
@@ -89,6 +90,57 @@ describe("the starter content", () => {
       expect(quest.draft).toBeUndefined();
       expect(quest.xp).toBeGreaterThan(0);
     }
+  });
+
+  describe("times of day", () => {
+    const monday = new Date("2026-10-05T10:00:00");
+    const questById = (id: string) => STARTER_QUESTS.find((quest) => quest.id === id)!;
+
+    it("times the chores by the part of the day they belong to", () => {
+      const timed = Object.fromEntries(
+        STARTER_QUESTS.filter((quest) => quest.timesOfDay).map((quest) => [quest.id, quest.timesOfDay])
+      );
+      expect(timed).toEqual({
+        "quest-bed": ["morning"],
+        "quest-teeth": ["morning", "night"],
+        "quest-pet": ["morning", "evening"],
+        "quest-crumbs": ["noon"],
+        "quest-dishes": ["evening"],
+        "quest-homework": ["evening"],
+        "quest-trash": ["evening"],
+        "quest-reading": ["night"],
+      });
+    });
+
+    it("leaves the weekly hauls untimed: no key at all, no due time", () => {
+      for (const id of ["quest-socks", "quest-dust", "quest-laundry", "quest-weeds"]) {
+        expect(Object.prototype.hasOwnProperty.call(questById(id), "timesOfDay")).toBe(false);
+        expect(questTimesOfDay(questById(id))).toEqual([]);
+      }
+      for (const quest of STARTER_QUESTS) expect(quest.dueByTime).toBe("");
+    });
+
+    it("gives every time-of-day tab at least one chore, and All the whole board", () => {
+      for (const time of TIMES_OF_DAY) {
+        expect(STARTER_QUESTS.filter((quest) => questMatchesSegment(quest, time)).length).toBeGreaterThan(0);
+      }
+      expect(STARTER_QUESTS.filter((quest) => questMatchesSegment(quest, "all"))).toHaveLength(STARTER_QUESTS.length);
+    });
+
+    it("lists the tooth brushing under Morn and Night as one quest done twice a day", () => {
+      const teeth = questById("quest-teeth");
+      expect(questMatchesSegment(teeth, "morning")).toBe(true);
+      expect(questMatchesSegment(teeth, "noon")).toBe(false);
+      expect(questMatchesSegment(teeth, "night")).toBe(true);
+      expect(getQuestWindow(teeth, monday)?.allowance).toBe(2);
+      expect(getQuestWindow(questById("quest-pet"), monday)?.allowance).toBe(2);
+      expect(getQuestWindow(questById("quest-dishes"), monday)?.allowance).toBe(1);
+    });
+
+    it("carries the times into the backup, so a restored world has them", () => {
+      const restored = buildStarterWorld().stores.__achievements.find((entry) => entry.key === "quest-teeth");
+      expect((restored?.value as { timesOfDay?: string[] }).timesOfDay).toEqual(["morning", "night"]);
+    });
   });
 
   it("gives every beast a checklist, an avatar in the sprite range and battle backgrounds", () => {

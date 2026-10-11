@@ -17,6 +17,7 @@ import type { Ability } from "@/types/abilities";
 import { HYBRID_PRESETS, REAL_LIFE_PRESETS, TECH_MAGE_PRESETS, TIME_MAGE_PRESETS } from "@/lib/services/abilities/AbilityPresets";
 import { REAL_REWARD_PRESETS, rewardFromPreset } from "@/lib/services/shops/rewardPresets";
 import { getAllShops } from "@/lib/engine/core/shopRegistry";
+import type { TimeOfDay } from "@/lib/engine/quests/QuestSchedule";
 
 /** The stores the starter world fills; everything else in BACKUP_STORES is left untouched by a restore */
 export const STARTER_WORLD_STORES = [
@@ -61,6 +62,11 @@ interface QuestSeed {
   schedule: "daily" | "weekly";
   difficulty: 1 | 2 | 3;
   requiresApproval?: boolean;
+  /**
+   * The parts of the day the chore belongs to. Two or more make one daily quest done that many times
+   * (brushing teeth morning and night); none leaves it untimed, shown only under the calendar's All tab.
+   */
+  timesOfDay?: TimeOfDay[];
 }
 
 /** Rewards grow with difficulty: a daily tidy pays a little, a weekly haul pays a lot */
@@ -72,17 +78,17 @@ const REWARDS: Record<QuestSeed["difficulty"], { xp: number; gp: number; ap: num
 
 const QUEST_SEEDS: QuestSeed[] = [
   { id: "quest-socks", name: "Tame the Socktopus", categoryId: "cat-chamber", beastId: "beast-socktopus", schedule: "weekly", difficulty: 2 },
-  { id: "quest-bed", name: "Smooth the Bed Basilisk", categoryId: "cat-chamber", beastId: "beast-bed-basilisk", schedule: "daily", difficulty: 1 },
+  { id: "quest-bed", name: "Smooth the Bed Basilisk", categoryId: "cat-chamber", beastId: "beast-bed-basilisk", schedule: "daily", difficulty: 1, timesOfDay: ["morning"] },
   { id: "quest-dust", name: "Dethrone the Dust Bunny King", categoryId: "cat-chamber", beastId: "beast-dust-bunny-king", schedule: "weekly", difficulty: 3, requiresApproval: true },
-  { id: "quest-dishes", name: "Banish the Dish Goblin", categoryId: "cat-mess-hall", beastId: "beast-dish-goblin", schedule: "daily", difficulty: 2 },
-  { id: "quest-crumbs", name: "Sweep out the Crumb Gremlin", categoryId: "cat-mess-hall", beastId: "beast-crumb-gremlin", schedule: "daily", difficulty: 1 },
+  { id: "quest-dishes", name: "Banish the Dish Goblin", categoryId: "cat-mess-hall", beastId: "beast-dish-goblin", schedule: "daily", difficulty: 2, timesOfDay: ["evening"] },
+  { id: "quest-crumbs", name: "Sweep out the Crumb Gremlin", categoryId: "cat-mess-hall", beastId: "beast-crumb-gremlin", schedule: "daily", difficulty: 1, timesOfDay: ["noon"] },
   { id: "quest-laundry", name: "Corner the Laundry Lurker", categoryId: "cat-chamber", beastId: "beast-laundry-lurker", schedule: "weekly", difficulty: 3, requiresApproval: true },
   { id: "quest-weeds", name: "Slay the Weed Wyrm", categoryId: "cat-grounds", beastId: "beast-weed-wyrm", schedule: "weekly", difficulty: 3, requiresApproval: true },
-  { id: "quest-trash", name: "Outwit the Trash Troll", categoryId: "cat-grounds", beastId: "beast-trash-troll", schedule: "weekly", difficulty: 2 },
-  { id: "quest-homework", name: "Behead the Homework Hydra", categoryId: "cat-tower", beastId: "beast-homework-hydra", schedule: "daily", difficulty: 2 },
-  { id: "quest-reading", name: "Study the Ancient Tomes", categoryId: "cat-tower", schedule: "daily", difficulty: 1 },
-  { id: "quest-teeth", name: "Fend off the Fang Fairy", categoryId: "cat-upkeep", beastId: "beast-fang-fairy", schedule: "daily", difficulty: 1 },
-  { id: "quest-pet", name: "Feed the Loyal Familiar", categoryId: "cat-upkeep", schedule: "daily", difficulty: 1 },
+  { id: "quest-trash", name: "Outwit the Trash Troll", categoryId: "cat-grounds", beastId: "beast-trash-troll", schedule: "weekly", difficulty: 2, timesOfDay: ["evening"] },
+  { id: "quest-homework", name: "Behead the Homework Hydra", categoryId: "cat-tower", beastId: "beast-homework-hydra", schedule: "daily", difficulty: 2, timesOfDay: ["evening"] },
+  { id: "quest-reading", name: "Study the Ancient Tomes", categoryId: "cat-tower", schedule: "daily", difficulty: 1, timesOfDay: ["night"] },
+  { id: "quest-teeth", name: "Fend off the Fang Fairy", categoryId: "cat-upkeep", beastId: "beast-fang-fairy", schedule: "daily", difficulty: 1, timesOfDay: ["morning", "night"] },
+  { id: "quest-pet", name: "Feed the Loyal Familiar", categoryId: "cat-upkeep", schedule: "daily", difficulty: 1, timesOfDay: ["morning", "evening"] },
 ];
 
 const questFromSeed = (seed: QuestSeed): Achievement => ({
@@ -99,6 +105,7 @@ const questFromSeed = (seed: QuestSeed): Achievement => ({
   startsOn: STARTED_ON,
   endsOn: "",
   dueByTime: "",
+  ...(seed.timesOfDay?.length ? { timesOfDay: [...seed.timesOfDay] } : {}),
   basicSchedule: seed.schedule,
   scheduleType: "basic",
   showDailyUntilComplete: seed.schedule === "daily",

@@ -53,7 +53,7 @@
               <ion-card @click="activeModal = item.id" button class="item"
                 :class="{ 'is-tamed': status === 'done' && !pending, 'is-pending': status === 'done' && pending }">
                 <ion-card-header>
-                  <ion-card-title v-html="formatQuestName(item.achievementName || 'Untitled Quest')"></ion-card-title>
+                  <ion-card-title v-html="sanitizeHtml(formatQuestName(item.achievementName || 'Untitled Quest'))"></ion-card-title>
                   <ion-card-subtitle v-if="item.dueByTime">
                     <i class="fal fa-clock"></i> {{ item.dueByTime }}
                   </ion-card-subtitle>
@@ -79,10 +79,7 @@
             </ion-col>
           </ion-row>
         </ion-grid>
-        <div v-else class="no-quests ion-text-center ion-padding">
-          <i class="fad fa-scroll-old fa-3x"></i>
-          <p>No quests scheduled for this time.</p>
-        </div>
+        <div v-else class="no-chores" data-test="no-chores">{{ emptyLine }}</div>
       </div>
 
       <ion-fab vertical="bottom" horizontal="center" slot="fixed" @click.stop="presentActionSheet">
@@ -167,8 +164,11 @@ import {
 import { isToday } from "date-fns";
 import MyTask from "../../UserHud/MyTask/MyTask.vue";
 import { formatQuestName } from "@/lib/utils/format";
-import { getQuestEngine } from "@/lib/engine/quests/QuestEngine";
+import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
+import { boardStatusInSegment, getQuestEngine } from "@/lib/engine/quests/QuestEngine";
 import type { QuestBoardItem, QuestBoardStatus } from "@/lib/engine/quests/QuestEngine";
+import { emptyBoardLine } from "@/lib/engine/quests/QuestSchedule";
+import type { TimeOfDay } from "@/lib/engine/quests/QuestSchedule";
 import { useUserStore } from "@/lib/store/stores/user";
 
 defineComponent({
@@ -189,7 +189,7 @@ const heroId = computed(() => String(props.userId || userStore.currentUser.id ||
 const selectedDate = ref(new Date());
 const isLoading = ref(false);
 const searchQuery = ref("");
-const activeSegment = ref("all");
+const activeSegment = ref<"all" | TimeOfDay>("all");
 const board = ref<QuestBoardItem[]>([]);
 const activeModal = ref<any>(0);
 
@@ -202,20 +202,25 @@ const calendarTitle = computed(() => {
   });
 });
 
-// Search and segment narrow the board; quests not due that day are hidden and tamed ones sink to the end
+// Search and segment narrow the board; quests not due that day are hidden and tamed ones sink to the end.
+// Under a time tab a quest that is done in only some of its times reads by that tab's slot.
 const filteredQuests = computed(() => {
   const matches = new Set(
     getQuestEngine().filterQuests(board.value.map(({ quest }) => quest), {
       search: searchQuery.value,
-      segment: activeSegment.value as any
+      segment: activeSegment.value
     })
   );
-  const shown = board.value.filter(({ quest, status }) => status !== "notDue" && matches.has(quest));
+  const shown = board.value
+    .filter(({ quest, status }) => status !== "notDue" && matches.has(quest))
+    .map((item) => ({ ...item, status: boardStatusInSegment(item, activeSegment.value) }));
   return [
     ...shown.filter(({ status }) => status === "open"),
     ...shown.filter(({ status }) => status === "done")
   ];
 });
+
+const emptyLine = computed(() => emptyBoardLine(activeSegment.value));
 
 // Methods
 const fetchBoard = async () => {

@@ -34,6 +34,12 @@ export interface Achievement {
   customPeriodType: string;
   customPeriodNumber: number;
   dueByTime: string;
+  /**
+   * The parts of the day a chore belongs to (morning, noon, evening, night). Several times make one quest
+   * the hero does that many times a day; the calendar tabs list it under each. Old records have none and
+   * fall back to `dueByTime` (see QuestSchedule.questTimesOfDay).
+   */
+  timesOfDay?: ("morning" | "noon" | "evening" | "night")[];
   endsOn: string;
   startsOn: string;
   repeatOnDays: string[];

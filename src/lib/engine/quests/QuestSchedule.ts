@@ -34,7 +34,71 @@ export type QuestScheduleFields = Pick<
   | "showDailyUntilComplete"
   | "startsOn"
   | "endsOn"
+  | "timesOfDay"
 >;
+
+/** The four parts of a day the calendar tabs (Morn / Noon / Even / Night) and a quest's times speak in. */
+export type TimeOfDay = "morning" | "noon" | "evening" | "night";
+
+export const TIMES_OF_DAY: TimeOfDay[] = ["morning", "noon", "evening", "night"];
+
+/** morning 6-11, noon 12-17, evening 18-23, night 0-5 */
+export const timeOfDayOfHour = (hour: number): TimeOfDay => {
+  const h = ((Math.floor(hour) % 24) + 24) % 24;
+  if (h >= 6 && h < 12) return "morning";
+  if (h >= 12 && h < 18) return "noon";
+  if (h >= 18) return "evening";
+  return "night";
+};
+
+export const timeOfDayOf = (date: Date): TimeOfDay => timeOfDayOfHour(date.getHours());
+
+/** The quest's own list of times in day order, deduped; empty when it has none (old records, one due time). */
+const listedTimesOfDay = (quest: Pick<Achievement, "timesOfDay">): TimeOfDay[] =>
+  TIMES_OF_DAY.filter((time) => quest.timesOfDay?.includes(time));
+
+/**
+ * The parts of the day a quest belongs to: its `timesOfDay` when it lists any, else the one its `dueByTime`
+ * falls in, else none (an untimed quest only shows under the All tab).
+ */
+export const questTimesOfDay = (quest: Pick<Achievement, "timesOfDay" | "dueByTime">): TimeOfDay[] => {
+  const listed = listedTimesOfDay(quest);
+  if (listed.length) return listed;
+  const due = dueTimeOn(quest.dueByTime, new Date(0));
+  return due ? [timeOfDayOf(due)] : [];
+};
+
+/** True when the quest belongs under the calendar tab: every quest under "all", an untimed one nowhere else. */
+export const questMatchesSegment = (
+  quest: Pick<Achievement, "timesOfDay" | "dueByTime">,
+  segment: "all" | TimeOfDay
+): boolean => segment === "all" || questTimesOfDay(quest).includes(segment);
+
+/** The one centred line a calendar tab shows when it lists no chores. */
+export const emptyBoardLine = (segment: "all" | TimeOfDay): string =>
+  ({
+    all: "No chores today.",
+    morning: "No chores this morning.",
+    noon: "No chores this afternoon.",
+    evening: "No chores this evening.",
+    night: "No chores tonight.",
+  })[segment] ?? "No chores today.";
+
+/** One of a timed quest's times of day and whether the hero has done it in the current window. */
+export interface QuestSlot {
+  time: TimeOfDay;
+  done: boolean;
+}
+
+/**
+ * The slots of a quest that lists times of day: completions fill them in day order (the first `progress.done`
+ * are done, the rest open), whatever hour the hero actually claimed at. Empty for a quest with no listed
+ * times or no window today.
+ */
+export const slotsFor = (quest: Pick<Achievement, "timesOfDay">, progress: QuestProgress | null): QuestSlot[] => {
+  if (!progress) return [];
+  return listedTimesOfDay(quest).map((time, index) => ({ time, done: index < progress.done }));
+};
 
 export const DAY_TOKENS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
@@ -228,7 +292,8 @@ export const getQuestWindow = (quest: QuestScheduleFields, date: Date): QuestWin
     case "custom":
       return customWindow(quest, day, anchor);
     default:
-      return { start: day, end: addDays(day, 1), allowance: 1 };
+      // A daily quest that lists times of day is done once for each of them; one due time stays one completion
+      return { start: day, end: addDays(day, 1), allowance: Math.max(1, listedTimesOfDay(quest).length) };
   }
 };
 

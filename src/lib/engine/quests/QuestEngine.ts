@@ -5,14 +5,19 @@ import {
     hasPendingClaimFor,
     isDayOff,
     isQuestOverdue,
+    questMatchesSegment,
+    questTimesOfDay,
+    slotsFor,
     type HeroQuestEffects,
     type QuestProgress,
+    type QuestSlot,
+    type TimeOfDay,
 } from "@/lib/engine/quests/QuestSchedule";
 
 export interface QuestFilter {
     userId?: string | number;
     search?: string;
-    segment?: 'all' | 'morning' | 'noon' | 'evening' | 'night';
+    segment?: 'all' | TimeOfDay;
 }
 
 /**
@@ -58,19 +63,11 @@ class QuestEngine {
     }
 
     /**
-     * Get the segment a quest belongs to based on its dueByTime
-     * Returns 'all' if no time is set
+     * Get the segment a quest belongs to: the first part of the day it is timed for (its timesOfDay, else the
+     * one its dueByTime falls in). Returns 'all' if it has no time.
      */
-    getQuestSegment(quest: Achievement): 'all' | 'morning' | 'noon' | 'evening' | 'night' {
-        const time = quest.dueByTime;
-        if (!time) return 'all';
-
-        const hour = parseInt(time.split(':')[0]);
-        if (hour >= 6 && hour < 12) return 'morning';
-        if (hour >= 12 && hour < 18) return 'noon';
-        if (hour >= 18 && hour < 24) return 'evening';
-        if (hour >= 0 && hour < 6) return 'night';
-        return 'all';
+    getQuestSegment(quest: Achievement): 'all' | TimeOfDay {
+        return questTimesOfDay(quest)[0] ?? 'all';
     }
 
     /**
@@ -94,13 +91,9 @@ class QuestEngine {
                 }
             }
 
-            // 3. Segment filter (skip if 'all')
-            if (filter.segment && filter.segment !== 'all') {
-                const questSegment = this.getQuestSegment(quest);
-                // Quests with no time (segment 'all') show in every segment
-                if (questSegment !== 'all' && questSegment !== filter.segment) {
-                    return false;
-                }
+            // 3. Segment filter: a tab lists the quests timed for it; a quest with no time shows only under 'all'
+            if (filter.segment && !questMatchesSegment(quest, filter.segment)) {
+                return false;
             }
 
             return true;
@@ -146,7 +139,7 @@ class QuestEngine {
             const status: QuestBoardStatus = QuestEngine.resolveBoardStatus(progress);
             const pending = hasPendingClaimFor(quest, entries, userId, date, effects);
             const overdue = status === 'open' && isQuestOverdue(quest, effects, date);
-            return { quest, status, progress, pending, overdue };
+            return { quest, status, progress, pending, overdue, slots: slotsFor(quest, progress) };
         });
     }
 
@@ -172,7 +165,24 @@ export interface QuestBoardItem {
     pending: boolean;
     /** Open, and its deadline on this day has passed (after the hero's Ice Wand and Chronos' Clock) */
     overdue: boolean;
+    /**
+     * The quest's times of day and which are done in the current window (see QuestSchedule.slotsFor); empty for
+     * a quest with no listed times. Always set by getQuestBoardForUser; hand-built items may leave it out.
+     */
+    slots?: QuestSlot[];
 }
+
+/**
+ * How a board item reads under a calendar tab. "all" (and a quest with no slot for that time) keeps the
+ * item's own status; under a time tab a quest that lists that time is done when its slot is, otherwise open.
+ * A quest that is not due stays not due.
+ */
+export const boardStatusInSegment = (item: QuestBoardItem, segment: 'all' | TimeOfDay): QuestBoardStatus => {
+    if (segment === 'all' || item.status === 'notDue') return item.status;
+    const slot = item.slots?.find(({ time }) => time === segment);
+    if (!slot) return item.status;
+    return slot.done ? 'done' : 'open';
+};
 
 // Singleton instance
 let questEngineInstance: QuestEngine | null = null;

@@ -1,11 +1,18 @@
-import QuestEngine from "@/lib/engine/quests/QuestEngine";
+import QuestEngine, { boardStatusInSegment, type QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import {
   countPendingInWindow,
+  emptyBoardLine,
   getQuestWindow,
   hasPendingClaimFor,
   isQuestActiveOn,
   isQuestOpenFor,
   getQuestProgressFor,
+  questMatchesSegment,
+  questTimesOfDay,
+  slotsFor,
+  timeOfDayOf,
+  timeOfDayOfHour,
+  TIMES_OF_DAY,
   QuestScheduleFields,
 } from "@/lib/engine/quests/QuestSchedule";
 import type { Achievement } from "@/lib/databases/AchievementDb";
@@ -276,6 +283,170 @@ describe("QuestSchedule", () => {
   });
 });
 
+describe("times of day", () => {
+  const timed = (timesOfDay?: QuestScheduleFields["timesOfDay"], dueByTime = "") => ({ timesOfDay, dueByTime });
+
+  it("keeps the four parts of the day in order", () => {
+    expect(TIMES_OF_DAY).toEqual(["morning", "noon", "evening", "night"]);
+  });
+
+  it("maps an hour to its part of the day: morning 6-11, noon 12-17, evening 18-23, night 0-5", () => {
+    expect([5, 6, 11, 12, 17, 18, 23, 0].map(timeOfDayOfHour)).toEqual([
+      "night",
+      "morning",
+      "morning",
+      "noon",
+      "noon",
+      "evening",
+      "evening",
+      "night",
+    ]);
+    expect(timeOfDayOf(at("2026-10-08T07:45:00"))).toBe("morning");
+    expect(timeOfDayOf(at("2026-10-08T23:59:00"))).toBe("evening");
+  });
+
+  describe("questTimesOfDay", () => {
+    it("lists the quest's own times in day order, without repeats", () => {
+      expect(questTimesOfDay(timed(["night", "morning", "night"]))).toEqual(["morning", "night"]);
+    });
+
+    it("prefers the listed times over the due time", () => {
+      expect(questTimesOfDay(timed(["evening"], "07:30"))).toEqual(["evening"]);
+    });
+
+    it("falls back to the part of the day the due time falls in", () => {
+      expect(questTimesOfDay(timed(undefined, "07:30"))).toEqual(["morning"]);
+      expect(questTimesOfDay(timed([], "13:00"))).toEqual(["noon"]);
+      expect(questTimesOfDay(timed(undefined, "00:15"))).toEqual(["night"]);
+      expect(questTimesOfDay(timed(undefined, "2026-10-08T19:00:00"))).toEqual(["evening"]);
+    });
+
+    it("is empty for an untimed quest or an unreadable due time", () => {
+      expect(questTimesOfDay(timed(undefined, ""))).toEqual([]);
+      expect(questTimesOfDay(timed([], "soon"))).toEqual([]);
+      expect(questTimesOfDay(timed(undefined, "25:00"))).toEqual([]);
+    });
+  });
+
+  describe("questMatchesSegment", () => {
+    it("shows every quest under All", () => {
+      expect(questMatchesSegment(timed(), "all")).toBe(true);
+      expect(questMatchesSegment(timed(["night"]), "all")).toBe(true);
+    });
+
+    it("shows an untimed quest only under All", () => {
+      for (const time of TIMES_OF_DAY) expect(questMatchesSegment(timed(), time)).toBe(false);
+    });
+
+    it("shows a timed quest under each of its times and no other", () => {
+      const teeth = timed(["morning", "night"]);
+      expect(TIMES_OF_DAY.filter((time) => questMatchesSegment(teeth, time))).toEqual(["morning", "night"]);
+      expect(questMatchesSegment(timed(undefined, "07:30"), "morning")).toBe(true);
+      expect(questMatchesSegment(timed(undefined, "07:30"), "noon")).toBe(false);
+    });
+  });
+
+  describe("daily allowance", () => {
+    const day = at("2026-10-08T10:00:00");
+
+    it("allows one completion for each listed time", () => {
+      expect(getQuestWindow(makeQuest({ timesOfDay: ["morning", "night"] }), day)?.allowance).toBe(2);
+      expect(getQuestWindow(makeQuest({ timesOfDay: ["night", "morning", "night", "noon"] }), day)?.allowance).toBe(3);
+    });
+
+    it("stays at one for a single time, none, or a lone due time", () => {
+      expect(getQuestWindow(makeQuest({ timesOfDay: ["evening"] }), day)?.allowance).toBe(1);
+      expect(getQuestWindow(makeQuest({ timesOfDay: [] }), day)?.allowance).toBe(1);
+      // A quest with only a dueByTime is not in QuestScheduleFields: it never changes the window
+      expect(getQuestWindow(makeQuest(), day)?.allowance).toBe(1);
+    });
+
+    it("leaves once, weekly and custom windows alone: the times only decide the tabs there", () => {
+      const timesOfDay: QuestScheduleFields["timesOfDay"] = ["morning", "night"];
+      expect(getQuestWindow(makeQuest({ basicSchedule: "once", timesOfDay }), day)?.allowance).toBe(1);
+      expect(getQuestWindow(makeQuest({ basicSchedule: "weekly", repeatOnDays: ["thu"], timesOfDay }), day)?.allowance).toBe(1);
+      expect(
+        getQuestWindow(makeQuest({ basicSchedule: "custom", customFrequency: 3, customPeriodType: "week", timesOfDay }), day)
+          ?.allowance
+      ).toBe(3);
+    });
+
+    it("is open until every time has been done, then used up", () => {
+      const quest = makeQuest({ timesOfDay: ["morning", "night"] });
+      const one = [makeEntry("2026-10-08T07:00:00")];
+      const two = [...one, makeEntry("2026-10-08T21:00:00")];
+      expect(getQuestProgressFor(quest, [], "hero-1", day)).toEqual({ done: 0, allowance: 2, isOpen: true });
+      expect(getQuestProgressFor(quest, one, "hero-1", day)).toEqual({ done: 1, allowance: 2, isOpen: true });
+      expect(getQuestProgressFor(quest, two, "hero-1", day)).toEqual({ done: 2, allowance: 2, isOpen: false });
+    });
+  });
+
+  describe("slotsFor", () => {
+    const quest = { timesOfDay: ["night", "morning"] as QuestScheduleFields["timesOfDay"] };
+    const progress = (done: number) => ({ done, allowance: 2, isOpen: done < 2 });
+
+    it("fills the slots in day order, however many are done", () => {
+      expect(slotsFor(quest, progress(0))).toEqual([
+        { time: "morning", done: false },
+        { time: "night", done: false },
+      ]);
+      expect(slotsFor(quest, progress(1))).toEqual([
+        { time: "morning", done: true },
+        { time: "night", done: false },
+      ]);
+      expect(slotsFor(quest, progress(2))).toEqual([
+        { time: "morning", done: true },
+        { time: "night", done: true },
+      ]);
+    });
+
+    it("is empty without listed times or without a window today", () => {
+      expect(slotsFor({ timesOfDay: undefined }, progress(1))).toEqual([]);
+      expect(slotsFor({ timesOfDay: [] }, progress(1))).toEqual([]);
+      expect(slotsFor(quest, null)).toEqual([]);
+    });
+  });
+
+  describe("boardStatusInSegment", () => {
+    const item = (status: QuestBoardItem["status"], slots: QuestBoardItem["slots"]): QuestBoardItem => ({
+      quest: {} as QuestBoardItem["quest"],
+      status,
+      progress: null,
+      pending: false,
+      overdue: false,
+      slots,
+    });
+    const teethDoneInMorning = item("open", [
+      { time: "morning", done: true },
+      { time: "night", done: false },
+    ]);
+
+    it("reads a done slot as done and an open one as open under its own tab", () => {
+      expect(boardStatusInSegment(teethDoneInMorning, "morning")).toBe("done");
+      expect(boardStatusInSegment(teethDoneInMorning, "night")).toBe("open");
+    });
+
+    it("keeps the item's own status under All and under a tab the quest has no slot for", () => {
+      expect(boardStatusInSegment(teethDoneInMorning, "all")).toBe("open");
+      expect(boardStatusInSegment(teethDoneInMorning, "noon")).toBe("open");
+      expect(boardStatusInSegment(item("done", []), "evening")).toBe("done");
+      expect(boardStatusInSegment(item("open", undefined), "evening")).toBe("open");
+    });
+
+    it("keeps a quest that is not due as not due", () => {
+      expect(boardStatusInSegment(item("notDue", []), "morning")).toBe("notDue");
+    });
+  });
+
+  it("says something plain for a tab with no chores", () => {
+    expect(emptyBoardLine("all")).toBe("No chores today.");
+    expect(emptyBoardLine("morning")).toBe("No chores this morning.");
+    expect(emptyBoardLine("noon")).toBe("No chores this afternoon.");
+    expect(emptyBoardLine("evening")).toBe("No chores this evening.");
+    expect(emptyBoardLine("night")).toBe("No chores tonight.");
+  });
+});
+
 describe("QuestEngine board", () => {
   const hero = "hero-1";
   const now = at("2026-10-08T12:00:00");
@@ -346,5 +517,67 @@ describe("QuestEngine board", () => {
     const draft = { ...quest("quest-2"), draft: true } as Achievement;
     const items = await board([quest("quest-1"), draft], []);
     expect(items.map(({ quest }) => quest.id)).toEqual(["quest-1"]);
+  });
+
+  describe("calendar tabs", () => {
+    const timedQuest = (id: string, timesOfDay?: QuestScheduleFields["timesOfDay"], dueByTime = "") =>
+      ({ ...quest(id, { timesOfDay }), dueByTime }) as Achievement;
+    const engine = () => new QuestEngine();
+    const idsIn = (quests: Achievement[], segment: "all" | "morning" | "noon" | "evening" | "night") =>
+      engine()
+        .filterQuests(quests, { segment })
+        .map(({ id }) => id);
+    const quests = [
+      timedQuest("teeth", ["morning", "night"]),
+      timedQuest("dishes", ["evening"]),
+      timedQuest("walk", undefined, "13:30"),
+      timedQuest("dust"),
+    ];
+
+    it("lists each chore under its own times and the untimed one only under All", () => {
+      expect(idsIn(quests, "all")).toEqual(["teeth", "dishes", "walk", "dust"]);
+      expect(idsIn(quests, "morning")).toEqual(["teeth"]);
+      expect(idsIn(quests, "noon")).toEqual(["walk"]);
+      expect(idsIn(quests, "evening")).toEqual(["dishes"]);
+      expect(idsIn(quests, "night")).toEqual(["teeth"]);
+    });
+
+    it("gives a tab with no chores an empty list", () => {
+      expect(idsIn([timedQuest("dust")], "morning")).toEqual([]);
+    });
+
+    it("keeps getQuestSegment on the first time a quest belongs to, All when it has none", () => {
+      expect(engine().getQuestSegment(timedQuest("teeth", ["night", "morning"]))).toBe("morning");
+      expect(engine().getQuestSegment(timedQuest("walk", undefined, "13:30"))).toBe("noon");
+      expect(engine().getQuestSegment(timedQuest("dust"))).toBe("all");
+    });
+
+    it("fills a many-times-a-day quest one slot at a time on the board", async () => {
+      const teeth = timedQuest("quest-1", ["morning", "night"]);
+      const [none] = await board([teeth], []);
+      expect(none).toMatchObject({ status: "open", progress: { done: 0, allowance: 2 } });
+      expect(none.slots).toEqual([
+        { time: "morning", done: false },
+        { time: "night", done: false },
+      ]);
+
+      const [one] = await board([teeth], [makeEntry("2026-10-08T07:00:00")]);
+      expect(one).toMatchObject({ status: "open", progress: { done: 1, allowance: 2 } });
+      expect(one.slots).toEqual([
+        { time: "morning", done: true },
+        { time: "night", done: false },
+      ]);
+      expect(boardStatusInSegment(one, "morning")).toBe("done");
+      expect(boardStatusInSegment(one, "night")).toBe("open");
+
+      const [both] = await board([teeth], [makeEntry("2026-10-08T07:00:00"), makeEntry("2026-10-08T08:00:00")]);
+      expect(both.status).toBe("done");
+      expect(boardStatusInSegment(both, "night")).toBe("done");
+    });
+
+    it("gives an untimed quest no slots", async () => {
+      const [item] = await board([quest("quest-1")], []);
+      expect(item.slots).toEqual([]);
+    });
   });
 });
