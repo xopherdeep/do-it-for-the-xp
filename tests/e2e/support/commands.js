@@ -8,7 +8,14 @@
  */
 Cypress.Commands.add("seedWorld", (fixtureName = "battle-backup.json", heroId = "hero-1") => {
   cy.fixture(fixtureName).then((backup) => {
-    cy.visit("/", { timeout: 120000 });
+    cy.visit("/", {
+      timeout: 120000,
+      // The hero has already answered the one-time ambush-alert ask (see battle.guard), so its dialog
+      // never covers a spec.
+      onBeforeLoad(win) {
+        win.localStorage.setItem("xp.battleAlerts", "off");
+      },
+    });
     cy.window({ timeout: 60000 }).should((win) => {
       expect(win.__xp, "development seam window.__xp").to.be.an("object");
     });

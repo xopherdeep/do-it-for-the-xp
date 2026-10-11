@@ -24,6 +24,9 @@ export const useBattleStore = defineStore('battle', () => {
   // When the hero last walked or rested, as Date.now(); null while the timer is not running.
   // randomEncounter walks the time since this moment, restWalk moves it up without walking.
   const lastWalkAt = ref<number | null>(null);
+  // An encounter that sprang while the hero was away (see battle.guard): it waits here for them to come back.
+  // Not persisted, a restart forgets it. `at` is when it sprang, as Date.now().
+  const pendingAmbush = ref<{ heroId: string; region?: string; at: number } | null>(null);
 
   const terrain = reactive({
     plains: 1,
@@ -108,6 +111,15 @@ export const useBattleStore = defineStore('battle', () => {
     }
   }
 
+  /** Hold an encounter that sprang while the hero was away; only one waits at a time. */
+  function setPendingAmbush(ambush: { heroId: string; region?: string; at: number }) {
+    pendingAmbush.value = ambush;
+  }
+
+  function clearPendingAmbush() {
+    pendingAmbush.value = null;
+  }
+
   /**
    * When the step counter runs out if the hero keeps walking from `now` (after `invisibleUntil`, when X's
    * Invisibility holds the walk back); null when the hero covers no ground.
@@ -123,6 +135,7 @@ export const useBattleStore = defineStore('battle', () => {
     timer,
     bgmWaitToStart,
     lastWalkAt,
+    pendingAmbush,
     terrain,
     steps,
     
@@ -134,6 +147,8 @@ export const useBattleStore = defineStore('battle', () => {
     resetBattleTimer,
     randomEncounter,
     restWalk,
+    setPendingAmbush,
+    clearPendingAmbush,
     nextEncounterAt
   };
 });
