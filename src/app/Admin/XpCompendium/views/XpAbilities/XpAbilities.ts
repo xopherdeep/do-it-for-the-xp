@@ -1,4 +1,4 @@
-import { defineComponent, ref, computed, onMounted } from "vue";
+import { defineComponent, ref, computed, onMounted, watch } from "vue";
 import ionic from "@/lib/mixins/ionic";
 import {
   add,
@@ -18,6 +18,7 @@ import {
   toastController,
 } from "@ionic/vue";
 import AbilitiesDb, { abilitiesStorage } from "@/lib/databases/AbilitiesDb";
+import { getCastLogDb, lastCastsOf } from "@/lib/databases/CastLogDb";
 import XpAbilityManager from "@/components/molecules/Ability/XpAbilityManager.vue";
 import XpIconPicker from "@/components/atoms/Icon/XpIconPicker.vue";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
@@ -468,10 +469,27 @@ export default defineComponent({
       play$fx("cursor");
     };
 
+    // The previewed hero's own newest cast per Power (the Cast Log), so the cooldown is theirs and not the family's
+    const previewCasts = ref<Record<string, string>>({});
+    watch(
+      previewHero,
+      async (hero: any) => {
+        if (!hero) {
+          previewCasts.value = {};
+          return;
+        }
+        const heroId = String(hero.id);
+        const casts = lastCastsOf(await getCastLogDb().getForHero(heroId));
+        // A slow load for a hero the GM already tapped away from must not overwrite the current one
+        if (String(previewHero.value?.id) === heroId) previewCasts.value = casts;
+      },
+      { immediate: true }
+    );
+
     // Judged against every ability, not only the filtered ones, so prerequisites resolve
     const heroStatuses = computed(() =>
       previewHero.value
-        ? computeHeroAbilityStatuses(abilities.value, previewHero.value)
+        ? computeHeroAbilityStatuses(abilities.value, previewHero.value, [], new Date(), previewCasts.value)
         : { statuses: {}, unlocks: {} }
     );
     const abilityStatuses = computed(() => heroStatuses.value.statuses);

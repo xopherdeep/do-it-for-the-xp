@@ -232,6 +232,34 @@ describe("computeHeroAbilityStatuses: MP and cooldown", () => {
     expect(statusOf(power({ id: "d", mpCost: 10, lastUsed: at(9, 9, 23) }), charged)).toBe(AbilityStatus.Available);
   });
 
+  describe("per-hero casts (lastCasts)", () => {
+    const charged = hero({ mp: { now: 30, max: 30 } });
+    const statusWith = (ability: Ability, lastCasts?: Record<string, string>) =>
+      computeHeroAbilityStatuses([ability], charged, [], NOW, lastCasts).statuses[ability.id];
+
+    it("cools a daily power the hero cast this morning, whatever the shared lastUsed says", () => {
+      expect(statusWith(power({ id: "d", mpCost: 10 }), { d: at(9, 10, 7) })).toBe(AbilityStatus.Cooling);
+    });
+
+    it("ignores the shared lastUsed when lastCasts is given, even empty", () => {
+      expect(statusWith(power({ id: "d", mpCost: 10, lastUsed: at(9, 10, 7) }), {})).toBe(AbilityStatus.Available);
+    });
+
+    it("still reads the shared lastUsed when no lastCasts is handed in", () => {
+      expect(statusWith(power({ id: "d", mpCost: 10, lastUsed: at(9, 10, 7) }))).toBe(AbilityStatus.Cooling);
+    });
+
+    it("reads each power's own cast, so another hero's casts do not cool it", () => {
+      const abilities = [power({ id: "a", mpCost: 10 }), power({ id: "b", mpCost: 10 })];
+      const { statuses } = computeHeroAbilityStatuses(abilities, charged, [], NOW, { a: at(9, 10, 7) });
+      expect(statuses).toEqual({ a: AbilityStatus.Cooling, b: AbilityStatus.Available });
+    });
+
+    it("frees a power whose last cast was yesterday", () => {
+      expect(statusWith(power({ id: "d", mpCost: 10 }), { d: at(9, 9, 23) })).toBe(AbilityStatus.Available);
+    });
+  });
+
   it("cools an hourly power for an hour", () => {
     const hourly = (lastUsed: Date) => power({ id: "h", frequency: TimePeriod.Hourly, lastUsed: lastUsed.toISOString() });
     expect(statusOf(hourly(new Date(NOW.getTime() - 30 * 60 * 1000)), hero())).toBe(AbilityStatus.Cooling);

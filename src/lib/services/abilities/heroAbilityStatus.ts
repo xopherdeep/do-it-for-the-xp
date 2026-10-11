@@ -7,6 +7,10 @@
  *  - unlock = enough AP in the ability's window, the level, every class level, and every prerequisite unlocked;
  *  - status = Locked, else Unlocked when the MP cannot pay for it, else Cooling inside the frequency window, else Available.
  *
+ * Casts are per hero: the cooldown reads the hero's own newest cast of each Power (`lastCasts`, from the Cast Log,
+ * see `lastCastsOf` in CastLogDb). `lastUsed` on the ability record is the legacy shared stamp (one hero's cast cooled
+ * the Power for every hero); it is only read when the caller hands in no `lastCasts`.
+ *
  * Two things the service leaves open are decided here:
  *  - AP windows come from the hero's AP history (`stats.ap.history`, written by `recordAPGain`) and follow the
  *    same stretches of time as the cooldowns: today, the last 7 days, this calendar month / quarter / year;
@@ -187,12 +191,15 @@ const statusOf = (isUnlocked: boolean, cannotPayMp: boolean, isCooling: boolean)
  * The status of every ability for one hero.
  * `unlockedAbilityIds` are abilities already counted as unlocked when a prerequisite asks (the ability's own
  * unlock is always worked out from the rules). A prerequisite that is not in `abilities` can never be met.
+ * `lastCasts` is the hero's newest cast per ability id (ISO). When it is given, even as `{}`, the cooldown reads it and
+ * ignores `ability.lastUsed`; when it is left out, the cooldown reads the legacy shared `ability.lastUsed`.
  */
 export const computeHeroAbilityStatuses = (
   abilities: Ability[],
   hero: HeroAbilityProfile,
   unlockedAbilityIds: string[] = [],
-  now: Date = new Date()
+  now: Date = new Date(),
+  lastCasts?: Record<string, string>
 ): HeroAbilityStatusMap => {
   const snapshot = heroAbilitySnapshot(hero, now);
 
@@ -215,7 +222,8 @@ export const computeHeroAbilityStatuses = (
   const statuses: Record<string, AbilityStatus> = {};
   const unlocks: Record<string, boolean> = {};
   for (const ability of abilities) {
-    const lastUsed = new Date(ability.lastUsed as string); // no lastUsed is an invalid date, which never cools
+    const lastCastAt = lastCasts ? lastCasts[ability.id] : ability.lastUsed;
+    const lastUsed = new Date(lastCastAt as string); // no cast is an invalid date, which never cools
     const isCooling = !Number.isNaN(lastUsed.getTime()) && (COOLDOWN_HOLDS[ability.frequency]?.(lastUsed, now) ?? false);
     unlocks[ability.id] = unlocked.has(ability.id);
     statuses[ability.id] = statusOf(unlocks[ability.id], snapshot.mp < finite(ability.mpCost), isCooling);
