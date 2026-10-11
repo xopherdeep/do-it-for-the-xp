@@ -14,6 +14,15 @@ import { isWallToken } from '@/lib/engine/dungeons/SpatialPalette';
 // No-op animation for instant navigation
 const noAnimation = () => createAnimation();
 
+const resolveSideIcon = (icon: string, wallType?: string): string => {
+  const isDynamicWall = icon === 'DYNAMIC_WALL';
+  if (!isDynamicWall) {
+    return icon;
+  }
+  const isWallType = wallType === 'wall';
+  return isWallType ? 'fa-wind' : 'fa-dungeon';
+};
+
 export type Direction = 'north' | 'east' | 'south' | 'west';
 
 export interface AdjacentRooms {
@@ -234,7 +243,7 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     };
     
     const info = stateInfo[newState];
-    const resolvedIcon = info.icon === 'DYNAMIC_WALL' ? (store.roomsData[____]?.type === 'wall' ? 'fa-wind' : 'fa-dungeon') : info.icon;
+    const resolvedIcon = resolveSideIcon(info.icon, store.roomsData[____]?.type);
     
     // We try to get the real wall icon if available in store
     let finalIcon = resolvedIcon;

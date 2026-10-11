@@ -35,6 +35,16 @@ export const sortCategoryByName = (a: any, b: any) => {
   return 0;
 };
 
+const resolveLegacyAdventureType = (hasBeast: boolean, hasSubAchievements: boolean): "beast" | "chain" | "simple" => {
+  if (hasBeast) {
+    return "beast";
+  }
+  if (hasSubAchievements) {
+    return "chain";
+  }
+  return "simple";
+};
+
 export const AchievementFormInjectionKey: InjectionKey<
   ReturnType<typeof useAchievementForm>
 > = Symbol("AchievementForm");
@@ -467,14 +477,9 @@ export function useAchievementForm() {
 
           // Honor stored adventureType, or infer if legacy
           if (!task.adventureType) {
-            const hasBeast = !!task.beastId;
-            const hasSub =
-              task.subAchievementIds && task.subAchievementIds.length > 0;
-            achievement.value.adventureType = hasBeast
-              ? "beast"
-              : hasSub
-              ? "chain"
-              : "simple";
+            const hasBeast = Boolean(task.beastId);
+            const hasSub = Boolean(task.subAchievementIds && task.subAchievementIds.length > 0);
+            achievement.value.adventureType = resolveLegacyAdventureType(hasBeast, hasSub);
           }
 
           // Set fib index

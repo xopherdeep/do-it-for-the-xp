@@ -191,6 +191,16 @@ import { useTempleCreatorStore } from "@/lib/store/stores/temple-creator";
 import { TempleDataInjectionKey } from "../../hooks/useTempleData";
 import { inject, onMounted } from "vue";
 
+const resolveRoomTypeFromTier = (tier: string): "monster" | "miniboss" | "boss" => {
+  if (tier === "monster") {
+    return "monster";
+  }
+  if (tier === "miniboss") {
+    return "miniboss";
+  }
+  return "boss";
+};
+
 export default defineComponent({
   name: "xp-temple-beasts",
   components: {
@@ -373,12 +383,7 @@ export default defineComponent({
           if (!temple.value.dungeonLayout.rooms[targetSymbol]) {
             // Initialize room if it doesn't exist
             temple.value.dungeonLayout.rooms[targetSymbol] = {
-              type:
-                entry.tier === "monster"
-                  ? "monster"
-                  : entry.tier === "miniboss"
-                    ? "miniboss"
-                    : "boss",
+              type: resolveRoomTypeFromTier(entry.tier),
             };
           }
 

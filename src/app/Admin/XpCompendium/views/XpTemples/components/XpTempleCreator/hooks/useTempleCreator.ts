@@ -924,6 +924,16 @@ export function useTempleCreator(
       .sort((a, b) => a.key.localeCompare(b.key));
   });
 
+  const resolveEntranceCoordinates = (parts: number[]): number[] => {
+    if (parts.length === 2) {
+      return parts;
+    }
+    if (parts.length === 3) {
+      return [parts[1], parts[2]];
+    }
+    return [0, 0];
+  };
+
   const saveTemple = async () => {
     try {
       debug.log("Saving temple to database...", props.templeId);
@@ -934,12 +944,7 @@ export function useTempleCreator(
 
       // Get current data from store (Layer 1) after migration
       const layoutToSave = {
-        entrance:
-          parts.length === 2
-            ? parts
-            : parts.length === 3
-            ? [parts[1], parts[2]]
-            : [0, 0],
+        entrance: resolveEntranceCoordinates(parts),
         maze: JSON.parse(JSON.stringify(store.templeMaze)), // Deep clone to be safe
         rooms: JSON.parse(JSON.stringify(store.roomsData)),
       };
