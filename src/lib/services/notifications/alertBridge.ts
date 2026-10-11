@@ -26,6 +26,8 @@ export interface AlertResult {
 
 /** The one OS alert for "a beast ambushed you": a fixed id so a newer ambush alert replaces the older one. */
 export const AMBUSH_ALERT_ID = 7001;
+/** The one OS alert for "a hero cast a Power": a fixed id so a newer cast alert replaces the older one. */
+export const POWER_CAST_ALERT_ID = 7002;
 
 /**
  * Where the worker sits: beside index.html, under the publicPath. Dev serves "/" with history routing (a bare

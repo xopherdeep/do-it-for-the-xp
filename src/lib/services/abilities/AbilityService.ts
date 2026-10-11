@@ -15,9 +15,18 @@ import {
   TECH_MAGE_PRESETS,
 } from "./AbilityPresets";
 import { useUserStore } from "@/lib/store/stores/user";
+import { format } from "date-fns";
+import { getCastLogDb, type CastLogEntry } from "@/lib/databases/CastLogDb";
+import { FAMILY_CHAT_ROOM, useChatStore } from "@/lib/store/stores/chat";
+import { useNotificationsStore } from "@/lib/store/stores/notifications";
+import { POWER_CAST_ALERT_ID, showAlert } from "@/lib/services/notifications/alertBridge";
+import debug from "@/lib/utils/debug";
 
-/** What a cast came to: `mp` when the hero could not afford it, `unknown` when there is no such ability or hero. */
-export type UseAbilityResult = { ok: true } | { ok: false; reason: "mp" | "unknown" };
+/**
+ * What a cast came to: `mp` when the hero could not afford it, `unknown` when there is no such ability or hero.
+ * A successful cast carries the Cast Log entry it left behind (absent only if the log could not be written).
+ */
+export type UseAbilityResult = { ok: true; entry?: CastLogEntry } | { ok: false; reason: "mp" | "unknown" };
 
 /** The hero's MP right now, whether stats keep it as `{ now, max }` or a bare number. */
 const currentMp = (stats: { mp?: { now?: number } | number } | undefined): number => {
@@ -351,7 +360,8 @@ export class AbilityService {
   }
 
   /**
-   * Cast an ability: charge its MP cost to the hero through the user store and stamp `lastUsed`.
+   * Cast an ability: charge its MP cost to the hero through the user store, stamp `lastUsed`, and leave a
+   * record the parent sees (Cast Log entry, Town Crier line, Game Master notifications, one OS alert).
    * Refuses (and charges nothing) when the ability is unknown or the hero has less MP than it costs.
    */
   async useAbility(abilityId: string, userId: string): Promise<UseAbilityResult> {
@@ -370,7 +380,70 @@ export class AbilityService {
     ability.lastUsed = new Date().toISOString();
     await this.saveAbility(ability);
 
-    return { ok: true };
+    // The ledger: the cast is already paid for, so nothing below may undo it
+    let entry: CastLogEntry | undefined;
+    try {
+      entry = await getCastLogDb().logCast({
+        userId,
+        abilityId,
+        abilityName: ability.name,
+        abilityType: ability.type,
+        mpPaid: cost,
+      });
+    } catch (error) {
+      debug.warn("The cast could not be logged", error);
+      return { ok: true };
+    }
+
+    await this.tellTheFamily(entry, ability, hero, userId, cost);
+    return { ok: true, entry };
+  }
+
+  /**
+   * Announce a cast: a Town Crier line in the family chat, a notification for every other Game Master and one OS alert.
+   * Each step stands alone; a failure is logged and never reaches the caller.
+   */
+  private async tellTheFamily(
+    entry: CastLogEntry,
+    ability: Ability,
+    hero: { name?: { nick?: string; first?: string } },
+    userId: string,
+    cost: number
+  ): Promise<void> {
+    const heroName = hero.name?.nick || hero.name?.first || "A hero";
+    const time = format(new Date(entry.castAt), "h:mma").toLowerCase();
+    const title = `${ability.name} cast`;
+    const body = `${heroName} · ${time}`;
+
+    try {
+      const line = `${heroName} cast ${ability.name}${cost > 0 ? ` · ${cost} MP` : ""} · ${time}`;
+      await useChatStore().postSystemLine(FAMILY_CHAT_ROOM, line);
+    } catch (error) {
+      debug.warn("The Town Crier could not post the cast", error);
+    }
+
+    try {
+      const notifications = useNotificationsStore();
+      for (const gm of Object.values(useUserStore().users)) {
+        if (gm?.isAdult !== true || gm.id === userId) continue;
+        notifications.push({
+          heroId: gm.id,
+          kind: "power-cast",
+          title,
+          body,
+          refId: entry.id,
+          link: "/game-master/chat",
+        });
+      }
+    } catch (error) {
+      debug.warn("The Game Masters could not be notified of the cast", error);
+    }
+
+    try {
+      void showAlert({ id: POWER_CAST_ALERT_ID, title, body }).catch(() => undefined);
+    } catch (error) {
+      debug.warn("The cast alert could not be shown", error);
+    }
   }
   /**
    * Load ability presets by type
