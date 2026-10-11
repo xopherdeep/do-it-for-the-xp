@@ -24,8 +24,9 @@ const isBattleRoute = (name: unknown): boolean =>
 /**
  * One exploration tick, run by the battle store's timer while the hero is out exploring.
  *
- * A tick that cannot start a fight spends no steps, so the encounter that was coming is still
- * coming afterwards instead of landing the moment the hero is free again:
+ * A tick that cannot start a fight spends no steps (the encounter clock counts wall-clock time, so the
+ * tick rests the walk clock), and the encounter that was coming is still coming afterwards instead of
+ * landing the moment the hero is free again:
  *  - the live route is a battle page (returning from a fight restarts this timer while the
  *    route is still battle-free, so reading the live route also stops a second fight stacking
  *    on the first);
@@ -41,12 +42,17 @@ async function onExplorationTick(router: Router): Promise<void> {
 
   const routeName = router.currentRoute.value.name;
 
-  if (isBattleRoute(routeName)) return;
-  if (typeof document !== "undefined" && document.hidden) return;
-  if (isOverlayOpen()) return;
-  if (!heroId) return;
-  if (hasNoEncounters(userStore.users?.[heroId] ?? userStore.currentUser, new Date())) return;
-  if (battleStore.active) return;
+  const blocked =
+    isBattleRoute(routeName) ||
+    (typeof document !== "undefined" && document.hidden) ||
+    isOverlayOpen() ||
+    !heroId ||
+    hasNoEncounters(userStore.users?.[heroId] ?? userStore.currentUser, new Date()) ||
+    battleStore.active;
+  if (blocked) {
+    battleStore.restWalk();
+    return;
+  }
 
   if (!battleStore.randomEncounter()) return;
 

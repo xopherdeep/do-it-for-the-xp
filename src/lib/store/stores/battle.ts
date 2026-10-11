@@ -1,9 +1,11 @@
 import { defineStore } from 'pinia';
 import { ref, reactive } from 'vue';
+import { nextEncounterAt as encounterDueAt, stepsPerSecond, stepsWalked } from '@/lib/services/battle/encounterClock';
 
 /**
  * Random-encounter pacing. One step is one second of walking on plains (see randomEncounter),
  * so this window is also the wait between two encounters: 2 to 4 minutes, rolled again after each.
+ * The clock is wall-clock time (see encounterClock), so time spent in the background still walks.
  */
 const ENCOUNTER_STEPS_MIN = 120;
 const ENCOUNTER_STEPS_MAX = 240;
@@ -15,9 +17,13 @@ export const useBattleStore = defineStore('battle', () => {
   // --- State ---
   const active = ref(false);
   const interval = ref<number | null>(null);
-  // Length of one exploration tick in ms: one tick, one step on plains, one second.
+  // Length of one exploration tick in ms. A tick only wakes the guard; the steps it walks come from the
+  // wall clock (lastWalkAt), so a throttled or paused timer does not slow the walk down.
   const timer = ref(1000);
   const bgmWaitToStart = ref(4200);
+  // When the hero last walked or rested, as Date.now(); null while the timer is not running.
+  // randomEncounter walks the time since this moment, restWalk moves it up without walking.
+  const lastWalkAt = ref<number | null>(null);
 
   const terrain = reactive({
     plains: 1,
@@ -47,6 +53,7 @@ export const useBattleStore = defineStore('battle', () => {
 
     if (!interval.value) {
       interval.value = window.setInterval(options.onEncounter, timer.value);
+      lastWalkAt.value = Date.now();
     }
   }
 
@@ -55,6 +62,7 @@ export const useBattleStore = defineStore('battle', () => {
       clearInterval(interval.value);
       interval.value = null;
     }
+    lastWalkAt.value = null;
   }
 
   /** Weigh the terrain the hero walks on: `key` counts double, null (or an unknown key) is plains. */
@@ -70,11 +78,20 @@ export const useBattleStore = defineStore('battle', () => {
     steps.counter = rollSteps(steps.min, steps.max);
   }
 
-  function randomEncounter() {
-    // Steps walked this tick. Plains (the default terrain) is the baseline, 1 step a tick;
-    // every other terrain counts double, so the next encounter comes in half the time.
-    const minus = terrain.plains + (terrain.swamp + terrain.forest + terrain.mountain + terrain.island) * 2;
-    steps.counter -= minus;
+  /**
+   * Walk the time since the hero last walked, then say whether an encounter is due. The clock is wall-clock
+   * time: plains (the default terrain) is the baseline, 1 step a second, and every other terrain counts
+   * double, so the next encounter comes in half the time. Without a running timer (lastWalkAt is null)
+   * one call is one second of walking, a single tick.
+   */
+  function randomEncounter(now: number = Date.now()) {
+    const perSecond = stepsPerSecond(terrain);
+    if (lastWalkAt.value === null) {
+      steps.counter -= perSecond;
+    } else {
+      steps.counter -= stepsWalked(now - lastWalkAt.value, perSecond);
+      lastWalkAt.value = now;
+    }
 
     const isBattleTimerUp = steps.counter <= 0;
     if (isBattleTimerUp && !active.value) {
@@ -84,12 +101,28 @@ export const useBattleStore = defineStore('battle', () => {
     return false;
   }
 
+  /** A tick that could not start a fight spends no steps: move the walk clock up to `now` without walking. */
+  function restWalk(now: number = Date.now()) {
+    if (lastWalkAt.value !== null) {
+      lastWalkAt.value = now;
+    }
+  }
+
+  /**
+   * When the step counter runs out if the hero keeps walking from `now` (after `invisibleUntil`, when X's
+   * Invisibility holds the walk back); null when the hero covers no ground.
+   */
+  function nextEncounterAt(now: Date, invisibleUntil?: Date | null): Date | null {
+    return encounterDueAt(steps.counter, stepsPerSecond(terrain), now, invisibleUntil);
+  }
+
   return {
     // State
     active,
     interval,
     timer,
     bgmWaitToStart,
+    lastWalkAt,
     terrain,
     steps,
     
@@ -99,6 +132,8 @@ export const useBattleStore = defineStore('battle', () => {
     stopBattleTimer,
     setTerrainForRoute,
     resetBattleTimer,
-    randomEncounter
+    randomEncounter,
+    restWalk,
+    nextEncounterAt
   };
 });

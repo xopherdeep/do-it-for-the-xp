@@ -52,6 +52,7 @@ const makeBattleStore = () => {
       store.counter -= 1;
       return store.counter <= 0 && !store.active;
     }),
+    restWalk: jest.fn(),
   };
   return store;
 };
