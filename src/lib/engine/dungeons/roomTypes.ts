@@ -40,6 +40,13 @@ export const SCRT = '?';  // Secret Room - Hidden until discovered
 // Special Recovery
 export const CAMP = 'C';  // Camp Room - Restores health and mana
 
+/**
+ * The Master Room is the temple's last chamber, the one that holds the Pegasus Egg, so its icon is a golden egg.
+ * The class list is the one place the icon is named; the two golds are the `.icon-master-egg` rule in
+ * src/styles/icons/_icon-colors.scss (every renderer draws `['fad', ROOM_ICONS[type]]`, so the colour follows).
+ */
+export const MASTER_EGG_ICON = 'fa-egg icon-master-egg';
+
 export const ROOM_ICONS = {
   entrance: 'fa-dungeon',          // Entrance (dungeon door)
   empty: 'fa-th',                // Empty Room
@@ -55,7 +62,7 @@ export const ROOM_ICONS = {
   key: 'fa-key',                 // Key Room
   health: 'fa-heart',            // Healing Room
   mana: 'fa-flask-potion',       // Mana Room
-  master: 'fa-triangle',            // Master Room
+  master: MASTER_EGG_ICON,       // Master Room (the Pegasus Egg)
   puzzle: 'fa-puzzle-piece',     // Puzzle Room
   secret: 'fa-mask',             // Secret Room
   teleport: 'fa-transporter',

@@ -1,0 +1,194 @@
+import fs from "fs";
+import path from "path";
+import { ROOM_ICONS, MASTER_EGG_ICON } from "@/lib/engine/dungeons/roomTypes";
+import { DUNGEON_ITEMS, ROOM_CATEGORIES } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/hooks/useTempleRoomEditor";
+import {
+  CATEGORY_BLURBS,
+  CRITICAL_PATH,
+  DEFAULT_ROOM_GUIDE,
+  ROOM_TYPE_GUIDE,
+  canonicalRoomType,
+  categoryBlurb,
+  criticalPathStops,
+  hasRoomTypeGuide,
+  isOnCriticalPath,
+  roomTypeGuide,
+  roomTypeShortLabel,
+} from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/roomTypeGuide";
+
+/**
+ * The room type guide behind the full-screen room type picker: every pickable type is explained, the Master Room is
+ * the Pegasus Egg room (not a key room), and the critical path lights the stop a room belongs to.
+ */
+const everyPickableType = ROOM_CATEGORIES.flatMap((category) => category.types);
+
+describe("the guide covers the picker", () => {
+  it("has an entry for every type in every category", () => {
+    everyPickableType.forEach((type) => {
+      expect(ROOM_TYPE_GUIDE[type]).toBeDefined();
+      expect(hasRoomTypeGuide(type)).toBe(true);
+    });
+  });
+
+  it("writes every entry in full: label, icon, a blurb, what happens in play and where it goes", () => {
+    Object.entries(ROOM_TYPE_GUIDE).forEach(([type, entry]) => {
+      expect([type, entry.label.trim()]).not.toEqual([type, ""]);
+      expect([type, entry.blurb.trim()]).not.toEqual([type, ""]);
+      expect([type, entry.inPlay.trim()]).not.toEqual([type, ""]);
+      expect([type, entry.place.trim()]).not.toEqual([type, ""]);
+      expect(entry.icon.split(/\s+/)[0]).toMatch(/^fa-[a-z0-9-]+$/);
+    });
+  });
+
+  it("gives every pickable type a label of its own", () => {
+    const labels = everyPickableType.map((type) => ROOM_TYPE_GUIDE[type].label);
+    expect(new Set(labels).size).toBe(labels.length);
+  });
+
+  it("only uses icons that ship in the bundled Font Awesome duotone set", () => {
+    const fontAwesome = path.resolve(__dirname, "../../src/assets/fonts/font-awesome");
+    const allCss = fs.readFileSync(path.join(fontAwesome, "css/all.css"), "utf8");
+    Object.values(ROOM_TYPE_GUIDE).forEach((entry) => {
+      const iconClass = entry.icon.split(/\s+/)[0];
+      expect(allCss).toContain(`.${iconClass}:before`);
+      expect(fs.existsSync(path.join(fontAwesome, "svgs/duotone", `${iconClass.slice(3)}.svg`))).toBe(true);
+    });
+  });
+
+  it("has the five categories, each with a one-line purpose", () => {
+    expect(ROOM_CATEGORIES.map((category) => category.name)).toEqual(["Combat", "Resources", "Recovery", "Navigation", "Structure"]);
+    ROOM_CATEGORIES.forEach((category) => {
+      expect(CATEGORY_BLURBS[category.name]).toBeTruthy();
+      expect(categoryBlurb(category.name)).toBe(CATEGORY_BLURBS[category.name]);
+    });
+    expect(categoryBlurb("nope")).toBe("");
+  });
+});
+
+describe("the Master Room is the Pegasus Egg room", () => {
+  it("keeps `master` in Resources and never offers the older `dragon-egg`", () => {
+    const resources = ROOM_CATEGORIES.find((category) => category.name === "Resources");
+    expect(resources?.types).toEqual(["loot", "key", "master", "shop"]);
+    expect(everyPickableType).not.toContain("dragon-egg");
+  });
+
+  it("shares one egg entry between `master` and `dragon-egg`", () => {
+    expect(ROOM_TYPE_GUIDE["dragon-egg"]).toBe(ROOM_TYPE_GUIDE.master);
+    expect(roomTypeGuide("dragon-egg")).toEqual(roomTypeGuide("master"));
+    expect(canonicalRoomType("dragon-egg")).toBe("master");
+    expect(canonicalRoomType("master")).toBe("master");
+    expect(canonicalRoomType("loot")).toBe("loot");
+    expect(canonicalRoomType(undefined)).toBe("");
+  });
+
+  it("calls it the Master Room (Pegasus Egg), short name Master Room, and says it holds the egg, after the boss", () => {
+    const master = roomTypeGuide("master");
+    expect(master.label).toBe("Master Room (Pegasus Egg)");
+    expect(master.short).toBe("Master Room");
+    expect(roomTypeShortLabel("master")).toBe("Master Room");
+    expect(roomTypeShortLabel("dragon-egg")).toBe("Master Room");
+    expect(roomTypeShortLabel("boss")).toBe("Boss");
+    expect(roomTypeShortLabel("nope")).toBe(DEFAULT_ROOM_GUIDE.label);
+    expect(master.blurb).toContain("Pegasus Egg");
+    expect(master.inPlay).toContain("Pegasus");
+    expect(master.place).toBe("Right AFTER the boss.");
+  });
+
+  it("draws it as a golden egg, one icon for the picker and every room-type icon table", () => {
+    expect(roomTypeGuide("master").icon).toBe(MASTER_EGG_ICON);
+    expect(MASTER_EGG_ICON.split(/\s+/)).toEqual(["fa-egg", "icon-master-egg"]);
+    expect(ROOM_ICONS.master).toBe(MASTER_EGG_ICON);
+  });
+
+  it("puts the two golds of the egg in the shared icon stylesheet", () => {
+    const css = fs.readFileSync(path.resolve(__dirname, "../../src/styles/icons/_icon-colors.scss"), "utf8");
+    const rule = css.match(/\.icon-master-egg\s*\{([^}]*)\}/);
+    expect(rule).not.toBeNull();
+    expect(rule?.[1]).toContain("--fa-primary-color: #f7e8a8");
+    expect(rule?.[1]).toContain("--fa-secondary-color: #c9a227");
+    expect(rule?.[1]).toContain("--fa-secondary-opacity: 1");
+  });
+
+  it("keeps the Boss Key out of the room list: it is a Chest item", () => {
+    expect(Object.keys(ROOM_TYPE_GUIDE)).not.toContain("master-key");
+    expect(Object.keys(ROOM_TYPE_GUIDE)).not.toContain("boss-key");
+    expect(roomTypeGuide("loot").inPlay).toContain("Dungeon Item → Boss Key");
+    expect(roomTypeGuide("boss").needs).toBe("Needs a Chest holding the Boss Key before its door.");
+    // The Master Room is not a key room
+    expect(roomTypeGuide("master").inPlay).not.toMatch(/key/i);
+    expect(roomTypeGuide("key").label).toBe("Small Key");
+  });
+
+  it("never calls the boss door's key the Master Key in the copy a parent reads", () => {
+    const copy = Object.values(ROOM_TYPE_GUIDE)
+      .flatMap((entry) => [entry.label, entry.short, entry.blurb, entry.inPlay, entry.place, entry.needs])
+      .concat(CRITICAL_PATH.map((stop) => stop.label));
+    copy.forEach((line) => expect(line ?? "").not.toMatch(/master key/i));
+  });
+
+  it("names the chest item Boss Key, keeping its id `master-key`", () => {
+    const bossKey = DUNGEON_ITEMS.find((item) => item.id === "master-key");
+    expect(bossKey?.label).toBe("Boss Key");
+    expect(DUNGEON_ITEMS.map((item) => item.label)).not.toContain("Master Key");
+  });
+});
+
+describe("roomTypeGuide", () => {
+  it("returns the default for a type it does not know", () => {
+    expect(roomTypeGuide("nope")).toBe(DEFAULT_ROOM_GUIDE);
+    expect(roomTypeGuide("")).toBe(DEFAULT_ROOM_GUIDE);
+    expect(roomTypeGuide(undefined)).toBe(DEFAULT_ROOM_GUIDE);
+    expect(roomTypeGuide(null)).toBe(DEFAULT_ROOM_GUIDE);
+    expect(hasRoomTypeGuide("nope")).toBe(false);
+  });
+
+  it("does not mistake object prototype names for room types", () => {
+    expect(roomTypeGuide("constructor")).toBe(DEFAULT_ROOM_GUIDE);
+    expect(roomTypeGuide("toString")).toBe(DEFAULT_ROOM_GUIDE);
+  });
+});
+
+describe("the critical path", () => {
+  const labels = () => CRITICAL_PATH.map((stop) => stop.label);
+  const lit = (type: string) => criticalPathStops(type).filter((stop) => stop.active).map((stop) => stop.label);
+
+  it("always reads from the entrance to the gate, the Master Room right after the boss", () => {
+    expect(labels()).toEqual([
+      "Entrance",
+      "Keys and locks",
+      "Mini-boss",
+      "Chest with the Boss Key",
+      "Boss door",
+      "Boss",
+      "Master Room (Pegasus Egg)",
+      "Gate",
+    ]);
+    // The same eight stops whichever room is picked
+    ["monster", "boss", "master", "nope", ""].forEach((type) => {
+      expect(criticalPathStops(type).map((stop) => stop.label)).toEqual(labels());
+    });
+  });
+
+  it("lights the stop a room belongs to", () => {
+    expect(lit("entrance")).toEqual(["Entrance"]);
+    expect(lit("key")).toEqual(["Keys and locks"]);
+    expect(lit("miniboss")).toEqual(["Mini-boss"]);
+    expect(lit("loot")).toEqual(["Chest with the Boss Key"]);
+    expect(lit("boss")).toEqual(["Boss door", "Boss"]);
+    expect(lit("master")).toEqual(["Master Room (Pegasus Egg)"]);
+    expect(lit("gate")).toEqual(["Gate"]);
+  });
+
+  it("lights the Master Room for its older name too", () => {
+    expect(lit("dragon-egg")).toEqual(lit("master"));
+  });
+
+  it("lights nothing for a room that can go anywhere", () => {
+    ["monster", "trap", "shop", "health", "mana", "save", "camp", "teleport", "puzzle", "secret", "empty", "wall", "pit", "void"].forEach((type) => {
+      expect(lit(type)).toEqual([]);
+      expect(isOnCriticalPath(type)).toBe(false);
+    });
+    expect(isOnCriticalPath("master")).toBe(true);
+    expect(isOnCriticalPath("boss")).toBe(true);
+  });
+});

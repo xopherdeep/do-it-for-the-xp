@@ -26,8 +26,10 @@ import { ____, _00_, ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
 import { isWallToken } from '@/lib/engine/dungeons/SpatialPalette';
 import { getTempleIconClass } from '../../../hooks/useTempleIcon';
 import { getNarrativeItems, getPegasusItems } from '@/lib/engine/core/items/itemRegistry';
+import { canonicalRoomType, hasRoomTypeGuide, roomTypeShortLabel } from '../roomTypeGuide';
 
-// Room types organized by category
+// Room types organized by category. Labels and explanations come from ../roomTypeGuide. `master` is the Master Room
+// (the Pegasus Egg, after the boss), not a key room; `dragon-egg` is its older name and is never offered.
 export const ROOM_CATEGORIES = [
   {
     name: 'Combat',
@@ -77,7 +79,7 @@ export const CONSUMABLE_ITEMS = [
 // Dungeon items for dungeon chest type (Strict 2x2 grid set)
 export const DUNGEON_ITEMS = [
   { id: 'small-key', icon: 'fa-key', label: 'Small Key' },
-  { id: 'master-key', icon: 'fa-key-skeleton', label: 'Master Key' },
+  { id: 'master-key', icon: 'fa-key-skeleton', label: 'Boss Key' }, // opens the boss door; the id stays `master-key`
   { id: 'dungeon-map', icon: 'fa-map', label: 'Map' },
   { id: 'compass', icon: 'fa-compass', label: 'Compass' }
 ];
@@ -657,7 +659,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
   // Computed properties
   const capitalizedType = computed(() => {
     const type = roomData.value?.type || 'empty';
-    return type.charAt(0).toUpperCase() + type.slice(1);
+    return hasRoomTypeGuide(type) ? roomTypeShortLabel(type) : type.charAt(0).toUpperCase() + type.slice(1);
   });
 
   const isMonsterRoom = computed(() => {
@@ -679,14 +681,14 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
 
   const isShopRoom = computed(() => roomData.value?.type === 'shop');
 
-  const isEggRoom = computed(() => roomData.value?.type === 'dragon-egg');
+  // The Master Room holds the Pegasus Egg; `dragon-egg` is its older name
+  const isEggRoom = computed(() => canonicalRoomType(roomData.value?.type) === 'master');
 
   const modalTitle = computed(() => {
     if (modalStep.value === 1) return 'Select Category';
     if (modalStep.value === 2) return selectedCategory.value?.name || 'Select Type';
     if (modalStep.value === 3) {
-      const type = roomData.value?.type || '';
-      return type.charAt(0).toUpperCase() + type.slice(1) + ' Config';
+      return roomTypeShortLabel(roomData.value?.type) + ' Config';
     }
     return 'Room Editor';
   });
@@ -695,10 +697,10 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
   const openTypeModal = () => {
     const currentType = roomData.value?.type;
     if (currentType && currentType !== 'empty' && currentType !== 'wall') {
-      const category = ROOM_CATEGORIES.find(c => c.types.includes(currentType));
+      const category = ROOM_CATEGORIES.find(c => c.types.includes(canonicalRoomType(currentType)));
       if (category) {
         selectedCategory.value = category;
-        if (['monster', 'miniboss', 'boss', 'loot', 'stairs-up', 'stairs-down', 'pit', 'void', 'teleport'].includes(currentType)) {
+        if (['monster', 'miniboss', 'boss', 'loot', 'master', 'dragon-egg', 'stairs-up', 'stairs-down', 'pit', 'void', 'teleport'].includes(currentType)) {
           modalStep.value = 3;
         } else {
           modalStep.value = 2;
@@ -777,8 +779,8 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
       return;
     }
 
-    // Other types with configuration move to step 3
-    if (['loot', 'shop', 'stairs-up', 'stairs-down', 'pit', 'void', 'teleport'].includes(type)) {
+    // Other types with configuration move to step 3 (the Master Room picks its Pegasus there)
+    if (['loot', 'shop', 'master', 'stairs-up', 'stairs-down', 'pit', 'void', 'teleport'].includes(type)) {
       if (!roomData.value.content) roomData.value.content = {} as RoomContent;
       if (['stairs-up', 'stairs-down', 'pit', 'void', 'teleport'].includes(type)) {
         if (!roomData.value.content.targetLevel) roomData.value.content.targetLevel = store.currentLevelId;
