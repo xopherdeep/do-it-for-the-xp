@@ -16,6 +16,7 @@ import { BOSS_DOOR_LINE, TempleSystem } from '@/lib/engine/core/dungeons/TempleS
 import type { Room } from '@/lib/engine/core/dungeons/types';
 import { useUserStore } from '@/lib/store/stores/user';
 import { heroEffects, heroGold, luckyTop, shopPrice } from '@/lib/services/stats/StatEffects';
+import { asChestRoom, isPegasusRoom } from './ChestLoot';
 
 export type Direction = 'north' | 'south' | 'east' | 'west';
 
@@ -116,6 +117,11 @@ export interface RoomSheet {
   actions: RoomAction[];
   /** An encounter's first beast (a Bestiary id): the screen looks up its picture and name for the reveal */
   beastId?: string;
+  /**
+   * A chest: the screen opens the chest itself instead of this sheet (a shut chest to open, or an open empty one).
+   * The sheet's action is the same thing for a caller with no chest to show: `openChest` / `emptyChest`.
+   */
+  chest?: 'closed' | 'empty';
 }
 
 // --- helpers ---------------------------------------------------------------------------------------
@@ -148,6 +154,8 @@ const TYPE_ALIASES: Record<string, string> = {
   'dungeon-map': 'map',
 };
 export const roomKind = (room: Room | undefined): string => {
+  // A Dragon Egg or `master` room is the temple's Pegasus chest (ChestLoot.asPegasusChest)
+  if (isPegasusRoom(room)) return 'loot';
   const type = room?.type ?? '';
   return TYPE_ALIASES[type] ?? type;
 };
@@ -246,7 +254,7 @@ export const readExits = (templeId: string, level: string, position: [number, nu
 };
 
 /**
- * The sheet for a door the hero taps: a small lock asks for a key, the boss door asks for the master key and
+ * The sheet for a door the hero taps: a small lock asks for a key, the boss door asks for the Boss Key and
  * refuses everything else ("A big lock. This needs the Boss Key."), an open way has nothing to say.
  */
 export const doorActions = (ctx: RoomContext, direction: Direction): RoomSheet => {
@@ -271,7 +279,8 @@ export const doorActions = (ctx: RoomContext, direction: Direction): RoomSheet =
 };
 
 /** A chest is empty when the room says so, or its chest in the ChestSystem is. */
-export const isChestEmptyIn = (room: Room): boolean => {
+export const isChestEmptyIn = (given: Room): boolean => {
+  const room = asChestRoom(given);
   if (room.type !== 'loot' || room.isEmpty || !room.content) return true;
   if (room.content.chestId) {
     const chest = ChestSystem.getInstance().getChest(room.content.chestId);
@@ -580,7 +589,9 @@ const ENCOUNTER_LINES: Record<string, string> = {
  * The action sheet for a room: a header in the temple's voice and the room's own actions.
  * Rooms with nothing to do (or nothing left to do) answer with no actions.
  */
-export const roomActions = (room: Room | undefined, ctx: RoomContext): RoomSheet => {
+export const roomActions = (given: Room | undefined, ctx: RoomContext): RoomSheet => {
+  // The temple keeps a Dragon Egg or `master` room as the Pegasus chest: from here on it is a loot room
+  const room = given && asChestRoom(given);
   const kind = roomKind(room);
   if (!room) return { header: 'Something strange.', actions: [] };
   const act = (label: string, run: RoomAction['run']): RoomAction => ({ label, run });
@@ -612,7 +623,7 @@ export const roomActions = (room: Room | undefined, ctx: RoomContext): RoomSheet
         return sheet(
           'A great gate, sealed.',
           [],
-          'It will not budge. The master key, or the beast that guards it, must come first.'
+          'It will not budge. The Boss Key, or the beast that guards it, must come first.'
         );
       }
       return sheet('A great gate, sealed.', [act('Open the gate', () => openGate(room, ctx))]);
@@ -679,8 +690,8 @@ export const roomActions = (room: Room | undefined, ctx: RoomContext): RoomSheet
 
     case 'loot':
       return isChestEmptyIn(room)
-        ? sheet('An old chest, already opened.', [act('Inspect Empty Chest', () => ({ intent: 'emptyChest' }))])
-        : sheet('A chest!', [act('Open Chest', () => ({ intent: 'openChest' }))]);
+        ? { ...sheet('An old chest, already opened.', [act('Inspect Empty Chest', () => ({ intent: 'emptyChest' }))]), chest: 'empty' }
+        : { ...sheet('A chest!', [act('Open Chest', () => ({ intent: 'openChest' }))]), chest: 'closed' };
 
     case 'key':
     case 'map':
@@ -763,33 +774,57 @@ export const roomActions = (room: Room | undefined, ctx: RoomContext): RoomSheet
 
 const GATE_REWARD = { xp: 150, gp: 50, ap: 3 };
 
-/** Open the temple's gate: mark the temple cleared for this hero, pay the reward, send them home. */
-const openGate = (room: Room, ctx: RoomContext): RoomOutcome => {
-  const system = temples();
-  if (system.isTempleCleared(ctx.templeId)) return { intent: 'leave', sound: SFX.yes };
-
-  const authored = room.content?.reward ?? {};
-  const reward = {
-    xp: Number(authored.xp ?? room.content?.xp ?? GATE_REWARD.xp),
-    gp: Number(authored.gp ?? room.content?.gp ?? GATE_REWARD.gp),
-    ap: Number(authored.ap ?? room.content?.ap ?? GATE_REWARD.ap),
+/** The XP, GP and AP a gate's content names, else the standard reward. */
+const gateRewardOf = (content: Room['content'] | undefined): { xp: number; gp: number; ap: number } => {
+  const authored = content?.reward ?? {};
+  return {
+    xp: Number(authored.xp ?? content?.xp ?? GATE_REWARD.xp),
+    gp: Number(authored.gp ?? content?.gp ?? GATE_REWARD.gp),
+    ap: Number(authored.ap ?? content?.ap ?? GATE_REWARD.ap),
   };
+};
 
-  system.markTempleCleared(ctx.templeId);
+/** What a temple pays for being cleared: its gate's own reward when the layout has a gate that names one, else the standard. */
+const templeReward = (templeId: string): { xp: number; gp: number; ap: number } => {
+  const rooms = Object.values(DungeonManager.getInstance().getDungeon(templeId)?.rooms ?? {});
+  const gate = rooms.find((room) => roomKind(room) === 'gate' && (room.content?.reward || room.content?.xp !== undefined));
+  return gateRewardOf(gate?.content);
+};
+
+/**
+ * The one way a temple is cleared, for the gate and for the Pegasus chest alike: mark the temple cleared for this hero
+ * and pay the reward, once. Whichever comes first pays; a temple that is already cleared pays nothing and answers
+ * null, so the second of the two (the chest after the gate, the gate after the chest) is only a way out.
+ * @param reward What to pay; the temple's own (its gate's, else the standard 150 XP, 50 GP, 3 AP) when not given
+ * @returns The tally as paid (the coins with the hero's bonuses), or null when nothing was paid
+ */
+export const clearTemple = (templeId: string, userId?: string, reward = templeReward(templeId)): ClearedReward | null => {
+  const system = temples();
+  if (system.isTempleCleared(templeId)) return null;
+  system.markTempleCleared(templeId);
+  if (!userId) return null;
+
   const store = useUserStore();
   let levelUp = false;
   if (reward.xp > 0) {
-    levelUp = store.updateUserXP({ userId: ctx.userId, amount: reward.xp, commit: true }).didLevelUp;
-    store.updateClassXp(ctx.userId, store.getUserById(ctx.userId)?.jobClass || 'default', reward.xp);
+    levelUp = store.updateUserXP({ userId, amount: reward.xp, commit: true }).didLevelUp;
+    store.updateClassXp(userId, store.getUserById(userId)?.jobClass || 'default', reward.xp);
   }
-  const paidGp = reward.gp > 0 ? earnGold(ctx.userId, reward.gp) : 0;
-  if (reward.ap > 0) store.recordAPGain({ userId: ctx.userId, amount: reward.ap, source: `temple:${ctx.templeId}` });
+  const paidGp = reward.gp > 0 ? earnGold(userId, reward.gp) : 0;
+  if (reward.ap > 0) store.recordAPGain({ userId, amount: reward.ap, source: `temple:${templeId}` });
+  return { xp: reward.xp, gp: paidGp, ap: reward.ap, levelUp };
+};
+
+/** Open the temple's gate: clear the temple for this hero (paying the reward once), send them home. */
+const openGate = (room: Room, ctx: RoomContext): RoomOutcome => {
+  const cleared = clearTemple(ctx.templeId, ctx.userId, gateRewardOf(room.content));
+  if (!cleared) return { intent: 'leave', sound: SFX.yes };
 
   return {
-    message: `The gate swings wide. Temple cleared! +${reward.xp} XP, +${paidGp} GP, +${reward.ap} AP${levelUp ? '. Level up!' : ''}`,
+    message: `The gate swings wide. Temple cleared! +${cleared.xp} XP, +${cleared.gp} GP, +${cleared.ap} AP${cleared.levelUp ? '. Level up!' : ''}`,
     sound: SFX.secret,
     intent: 'leave',
-    cleared: { xp: reward.xp, gp: paidGp, ap: reward.ap, levelUp },
+    cleared,
   };
 };
 
@@ -814,7 +849,9 @@ const pickUp = (kind: string, room: Room, ctx: RoomContext): RoomOutcome => {
   const name = String(room.content?.keyName ?? 'a small key');
   if (room.content?.keyId === 'master') {
     system.grantMasterKey(ctx.templeId);
-    return { message: `${name}: the master key is yours.`, sound: SFX.key };
+    // The key that opens the boss door is the Boss Key; a layout may give this one a name of its own
+    const named = room.content?.keyName;
+    return { message: named ? `${named}: the Boss Key is yours.` : 'The Boss Key is yours.', sound: SFX.key };
   }
   system.addKey(ctx.templeId);
   return { message: `You take ${name}.`, sound: SFX.key };

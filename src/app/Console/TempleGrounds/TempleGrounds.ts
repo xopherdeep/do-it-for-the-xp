@@ -28,6 +28,7 @@ import { BestiaryService } from '@/lib/services/battle/BestiaryService';
 import type { DoorView } from './components/doorView';
 import type { ChestLoot } from '@/lib/services/temples/ChestLoot';
 import { pegasusOfTemple, pegasusView, type PegasusView } from '@/lib/services/temples/TemplePegasus';
+import { CIRCLE_FIZZLES } from '@/lib/engine/core/dungeons/teleportPairing';
 import type { ExitKind, WallSide } from './templeWalls';
 import { play$fx } from "@/assets/fx"
 import { useToast } from '@/hooks/useToast';
@@ -37,6 +38,7 @@ import { useEquipmentItems, type EquipmentItem } from '@/app/Console/MyPortal/Us
 import {
   answerRiddle,
   buyWare,
+  clearTemple,
   doorActions,
   onEnterRoom,
   readExits,
@@ -186,9 +188,18 @@ export default defineComponent({
 
     const bestiaryService = new BestiaryService();
 
+    // The beast the room's first beast id names, once the bestiary has been asked (filled in by the watch below the
+    // reveal's beast lookup). While it is being asked the voxel monster waits, so it never swaps in front of the hero.
+    const roomBeast = ref<{ name: string; avatar: string } | null>(null);
+    const beastPending = ref(false);
+
     // Uncleared combat encounter in the room displays 3D roaming voxel monster
     const showVoxelMonster = computed(
-      () => !!currentRoom.value && COMBAT_ROOM_TYPES.includes(currentRoom.value.type) && !isCombatRoomCleared.value
+      () =>
+        !!currentRoom.value &&
+        COMBAT_ROOM_TYPES.includes(currentRoom.value.type) &&
+        !isCombatRoomCleared.value &&
+        !beastPending.value
     );
 
     const activeMonster = computed(() => {
@@ -196,22 +207,8 @@ export default defineComponent({
         return { name: 'Dustbunny', avatar: bestiaryService.getAvatar(74) };
       }
 
-      const beasts = currentRoom.value.content?.beasts;
-      if (Array.isArray(beasts) && beasts.length > 0) {
-        const beastId = beasts[0];
-        const numId = parseInt(beastId, 10);
-        const avatarUrl = !isNaN(numId) && numId > 0
-          ? bestiaryService.getAvatar(numId)
-          : bestiaryService.getAvatar(74);
-
-        const name = currentRoom.value.type === 'boss'
-          ? 'Temple Boss'
-          : currentRoom.value.type === 'miniboss'
-          ? 'Temple Guardian'
-          : 'Dungeon Monster';
-
-        return { name, avatar: avatarUrl };
-      }
+      // The beast the room names, by its Bestiary id: its own name and portrait
+      if (roomBeast.value) return roomBeast.value;
 
       const fallbackAvatarId = currentRoom.value.type === 'boss' ? 1 : 74;
       const fallbackName = currentRoom.value.type === 'boss'
@@ -553,6 +550,10 @@ export default defineComponent({
             fx('okdesuka');
             setTimeout(() => updateBg(currentPosition.value[1], currentPosition.value[0]), 100);
             await arrive();
+          } else {
+            // A circle with no partner anywhere leads nowhere
+            fx('no');
+            displayMessage(CIRCLE_FIZZLES);
           }
           break;
         case 'riddle':
@@ -609,10 +610,26 @@ export default defineComponent({
       }
       return card;
     };
+    // Walking into a room with a beast warms the lookup (the tap on the monster then opens its reveal at once) and
+    // hands the voxel monster the same beast, name and portrait. A beast with no portrait keeps the stand-in's face.
     watch(
-      () => (isCombatRoomCleared.value ? undefined : currentRoom.value?.content?.beasts?.[0]),
-      (beastId) => {
-        if (beastId) void beastCard(String(beastId));
+      () => {
+        const room = currentRoom.value;
+        if (!room || !COMBAT_ROOM_TYPES.includes(room.type) || isCombatRoomCleared.value) return undefined;
+        return room.content?.beasts?.[0];
+      },
+      async (beastId) => {
+        roomBeast.value = null;
+        if (!beastId) {
+          beastPending.value = false;
+          return;
+        }
+        beastPending.value = true;
+        const card = await beastCard(String(beastId));
+        // The hero may have walked on while the bestiary answered
+        if (String(currentRoom.value?.content?.beasts?.[0] ?? '') !== String(beastId)) return;
+        roomBeast.value = card ? { name: card.name, avatar: card.art?.src || bestiaryService.getAvatar(74) } : null;
+        beastPending.value = false;
       },
       { immediate: true }
     );
@@ -626,6 +643,15 @@ export default defineComponent({
       }
 
       const sheet = roomActions(live.room, live.ctx);
+      // A chest has no sheet: it comes up as the chest itself, shut with Open and Leave (or open and empty, with Leave)
+      if (sheet.chest === 'closed') {
+        showChestContentsDialog();
+        return;
+      }
+      if (sheet.chest === 'empty') {
+        showEmptyChest();
+        return;
+      }
       // An encounter shows its beast: the picture and the name are looked up first, so they are there as the reveal opens
       const beast = sheet.beastId ? await beastCard(sheet.beastId) : null;
       openChoiceReveal({
@@ -776,9 +802,12 @@ export default defineComponent({
     // The chest reveal. It shows what the chest held when it opened, so the rows stay put while it closes
     const isChestOpen = ref(false);
     const chestLootShown = ref<ChestLoot[]>([]);
+    // A chest comes up shut, with Open and Leave; only an empty one opens at once (with Leave alone)
+    const isChestClosed = ref(false);
 
     const showChestContentsDialog = () => {
       chestLootShown.value = chestContents.value;
+      isChestClosed.value = chestContents.value.length > 0;
       isChestOpen.value = true;
     };
 
@@ -786,9 +815,13 @@ export default defineComponent({
       isChestOpen.value = false;
       // The Pegasus chest behind the boss: taking its prize frees the world's Pegasus and clears the temple
       const prize = currentRoom.value?.content;
-      const freesPegasus = prize?.pegasus === true && Boolean(prize.dungeon) && values.includes(String(prize.dungeon));
+      const pick = prize?.dungeon ? String(prize.dungeon) : '';
+      const freesPegasus = prize?.pegasus === true && Boolean(pick) && values.includes(pick);
       const hasKey = values.some((value) => value.toLowerCase().includes('key'));
       if (!freesPegasus) play$fx(hasKey ? 'key' : 'takeItem');
+      // The first clear pays the temple's reward, whether it comes through the chest or the gate; the chest's own call
+      // to freeTemplePegasus then finds the temple cleared and pays nothing more
+      const cleared = freesPegasus ? clearTemple(props.temple, progressHeroId) : null;
       // The reveal tells the news, so the toast about the freed Pegasus is left unsaid
       hushMessages = freesPegasus;
       try {
@@ -796,7 +829,8 @@ export default defineComponent({
       } finally {
         hushMessages = false;
       }
-      if (freesPegasus) showTempleCleared(pegasusView(props.temple));
+      // The Pegasus the chest's prize names (the Game Master's pick), else the temple's own
+      if (freesPegasus) showTempleCleared(pegasusView(props.temple, pick), cleared ?? undefined);
     };
 
     const leaveChest = () => {
@@ -806,6 +840,7 @@ export default defineComponent({
     // An empty chest opens the same way, with nothing inside
     const showEmptyChest = () => {
       chestLootShown.value = [];
+      isChestClosed.value = false;
       isChestOpen.value = true;
     };
 
@@ -867,6 +902,7 @@ export default defineComponent({
     return {
       // From useTemple
       currentPosition,
+      currentLevel,
       hasMap,
       hasCompass,
       playerKeys,
@@ -902,6 +938,7 @@ export default defineComponent({
       isDoorLocked,
       showRoomActions,
       isChestOpen,
+      isChestClosed,
       chestLootShown,
       takeChestLoot,
       leaveChest,

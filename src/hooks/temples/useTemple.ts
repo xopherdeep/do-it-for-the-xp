@@ -325,7 +325,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
         useUserStore().addInventoryItem(userId, { name: item, type: 'consumable', faIcon: 'flask-potion', qty: 1 });
       } else {
         // The Pegasus chest behind the boss: the world's Pegasus is free and the temple is cleared
-        if (content?.pegasus === true && item === content.dungeon) freed = freeTemplePegasus(templeId, userId).message;
+        if (content?.pegasus === true && item === content.dungeon) freed = freeTemplePegasus(templeId, userId, item).message;
         // A named item (Frost Wand, the wind temple's whistle...): the hero may now equip it, and what it stands for
         if (userId) {
           const store = useUserStore();

@@ -80,6 +80,8 @@ describe("chestItemUnlocks", () => {
 
 describe("freeTemplePegasus", () => {
   const pegasusChest = (id: string) => {
+    // The temple engine outlives a test: a registered temple's progress (cleared or not) starts over for each
+    delete (temples as unknown as { templeStates: Record<string, unknown> }).templeStates[id];
     makeTemple({ E: { type: "entrance" }, P: { type: "loot", content: { chest: "dungeon", dungeon: "Pegasus Whistle", pegasus: true } } }, [["E", "P"]], id);
     enter(id, [0, 1]);
   };
@@ -89,7 +91,12 @@ describe("freeTemplePegasus", () => {
 
     const outcome = freeTemplePegasus("fire-temple", HERO);
 
-    expect(outcome).toEqual({ message: "The Ignis is free!", pegasus: { index: 1, name: "Ignis", world: "mountains" } });
+    expect(outcome).toEqual({
+      message: "The Ignis is free!",
+      pegasus: { index: 1, name: "Ignis", world: "mountains" },
+      // The first clear pays the temple's reward, and hands the temple screen the tally for its reveal
+      cleared: { xp: 150, gp: 50, ap: 3, levelUp: false },
+    });
     expect(hero().stats.pegasi).toEqual([false, true, false, false, false, false, false, false, false]);
     expect(temples.isTempleCleared("fire-temple")).toBe(true);
   });
@@ -97,7 +104,10 @@ describe("freeTemplePegasus", () => {
   it("clears a temple the registry does not know, without a Pegasus to free", () => {
     pegasusChest("custom-temple");
 
-    expect(freeTemplePegasus("custom-temple", HERO)).toEqual({ message: "A Pegasus is free!" });
+    expect(freeTemplePegasus("custom-temple", HERO)).toEqual({
+      message: "A Pegasus is free!",
+      cleared: { xp: 150, gp: 50, ap: 3, levelUp: false },
+    });
     expect(hero().stats.pegasi).toBeUndefined();
     expect(temples.isTempleCleared("custom-temple")).toBe(true);
   });
@@ -105,8 +115,37 @@ describe("freeTemplePegasus", () => {
   it("clears the temple for a run without a hero, and frees nobody's Pegasus", () => {
     pegasusChest("ice-temple");
 
-    expect(freeTemplePegasus("ice-temple")).toMatchObject({ message: "The Glacie is free!" });
+    const outcome = freeTemplePegasus("ice-temple");
+
+    expect(outcome).toMatchObject({ message: "The Glacie is free!" });
+    expect(outcome.cleared).toBeUndefined();
     expect(hero().stats.pegasi).toBeUndefined();
     expect(temples.isTempleCleared("ice-temple")).toBe(true);
+  });
+
+  it("frees the Pegasus the chest's prize names instead of the temple's own, and says so", () => {
+    pegasusChest("fire-temple");
+
+    const outcome = freeTemplePegasus("fire-temple", HERO, "Terra");
+
+    expect(outcome).toMatchObject({ message: "The Terra is free!", pegasus: { index: 4, name: "Terra" } });
+    expect(hero().stats.pegasi).toEqual([false, false, false, false, true, false, false, false, false]);
+  });
+
+  it("frees the temple's own Pegasus when the prize names none (the whistle)", () => {
+    pegasusChest("fire-temple");
+
+    expect(freeTemplePegasus("fire-temple", HERO, "Pegasus Whistle").pegasus?.name).toBe("Ignis");
+  });
+
+  it("pays the clear reward once: a second Pegasus chest in a cleared temple pays nothing", () => {
+    pegasusChest("fire-temple");
+    freeTemplePegasus("fire-temple", HERO);
+
+    const again = freeTemplePegasus("fire-temple", HERO);
+
+    expect(again.cleared).toBeUndefined();
+    expect(again.pegasus?.name).toBe("Ignis");
+    expect(hero().stats.gp.wallet).toBe(150);
   });
 });

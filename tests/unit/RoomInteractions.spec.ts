@@ -4,6 +4,7 @@ import { MapVisibility, TEMPLE_CLEARED_KEY } from "@/lib/engine/core/dungeons/Te
 import {
   answerRiddle,
   buyWare,
+  clearTemple,
   onEnterRoom,
   resetVisitMemory,
   roomActions,
@@ -64,7 +65,7 @@ describe("the sheet of every room type", () => {
     ["opened chest", { type: "loot", isEmpty: true, content: { chest: "dungeon", dungeon: "map" } }, "An old chest, already opened.", ["Inspect Empty Chest"]],
     ["key", { type: "key", content: { keyId: "key1" } }, "A key glints in the dust.", ["Take it"]],
     ["monster", { type: "monster" }, "A Monster approaches!", ["Fight"]],
-    ["miniboss", { type: "miniboss" }, "A Monster approaches!", ["Fight"]],
+    ["miniboss", { type: "miniboss" }, "A fierce foe blocks the way!", ["Fight"]],
     ["boss", { type: "boss" }, "A Powerful Boss appears!", ["Fight"]],
     ["stairs up", { type: "stairs-up" }, "Stairs lead up.", ["Climb"]],
     ["stairs down", { type: "stairs_down" }, "Stairs lead down.", ["Climb"]],
@@ -87,6 +88,17 @@ describe("the sheet of every room type", () => {
   it("says something strange about a room that is not there", () => {
     const { ctx } = withRoom({ type: "empty" });
     expect(roomActions(undefined, ctx)).toMatchObject({ header: "Something strange.", actions: [] });
+  });
+
+  it("marks a chest for the screen to open itself, shut, instead of showing a sheet", () => {
+    const full = withRoom({ type: "loot", content: { chest: "dungeon", dungeon: "map" } });
+    expect(roomActions(full.room, full.ctx).chest).toBe("closed");
+
+    const opened = withRoom({ type: "loot", isEmpty: true, content: { chest: "dungeon", dungeon: "map" } });
+    expect(roomActions(opened.room, opened.ctx).chest).toBe("empty");
+
+    const monster = withRoom({ type: "monster" });
+    expect(roomActions(monster.room, monster.ctx).chest).toBeUndefined();
   });
 
   it("hands the screen what it must open for rooms it owns", async () => {
@@ -432,7 +444,7 @@ describe("the temple gate", () => {
     const sheet = roomActions(room, ctx);
 
     expect(sheet.header).toBe("A great gate, sealed.");
-    expect(sheet.subHeader).toBe("It will not budge. The master key, or the beast that guards it, must come first.");
+    expect(sheet.subHeader).toBe("It will not budge. The Boss Key, or the beast that guards it, must come first.");
     expect(sheet.actions).toEqual([]);
   });
 
@@ -458,6 +470,36 @@ describe("the temple gate", () => {
     temples.grantMasterKey(id);
 
     expect(labels(roomActions(room, ctx))).toEqual(["Open the gate"]);
+  });
+
+  it("hands the screen the tally for the temple-cleared reveal", async () => {
+    const { id, room, ctx } = gateTemple();
+    temples.grantMasterKey(id);
+
+    const outcome = await run(roomActions(room, ctx));
+
+    expect(outcome.cleared).toEqual({ xp: 150, gp: 50, ap: 3, levelUp: false });
+  });
+
+  it("tells the reveal when the clear levelled the hero up", async () => {
+    const { id, room, ctx } = gateTemple({ type: "gate", content: { reward: { xp: 500, gp: 0, ap: 0 } } });
+    temples.grantMasterKey(id);
+
+    const outcome = await run(roomActions(room, ctx));
+
+    expect(outcome.cleared).toMatchObject({ xp: 500, gp: 0, ap: 0, levelUp: true });
+    expect(outcome.message).toMatch(/Level up!/);
+  });
+
+  it("has no tally for a gate that was already open: the second clear pays nothing", async () => {
+    const { id, room, ctx } = gateTemple();
+    temples.grantMasterKey(id);
+    await run(roomActions(room, ctx));
+
+    const second = await run(roomActions(room, ctx));
+
+    expect(second).toEqual({ intent: "leave", sound: "yes" });
+    expect(second.cleared).toBeUndefined();
   });
 
   it("pays the reward the layout names", async () => {
@@ -489,6 +531,108 @@ describe("the temple gate", () => {
     enter(id, [0, 1]);
 
     expect(labels(roomActions(dungeons.getRoom(id, [0, 1])!, contextAt(id, [0, 1])))).toEqual(["Open the gate"]);
+  });
+});
+
+describe("clearing a temple", () => {
+  const gateTemplate = (gate: Room = { type: "gate" }) => {
+    const id = makeTemple({ E: { type: "entrance" }, G: gate }, [["E", "G"]]);
+    enter(id, [0, 1]);
+    return id;
+  };
+
+  it("marks the temple cleared and pays the standard reward once", () => {
+    const id = gateTemplate();
+
+    const paid = clearTemple(id, "hero-1");
+
+    expect(paid).toEqual({ xp: 150, gp: 50, ap: 3, levelUp: false });
+    expect(temples.isTempleCleared(id)).toBe(true);
+    expect(wallet()).toBe(150);
+    expect(hero().stats.ap.total).toBe(3);
+    expect(hero().stats.xp.now).toBe(150);
+  });
+
+  it("pays nothing the second time, whichever way the temple is cleared", async () => {
+    const id = gateTemplate();
+    clearTemple(id, "hero-1");
+
+    expect(clearTemple(id, "hero-1")).toBeNull();
+    // ... nor does the gate, which only lets the hero out
+    const room = dungeons.getRoom(id, [0, 1])!;
+    const outcome = await run(roomActions(room, contextAt(id, [0, 1])));
+    expect(outcome).toEqual({ intent: "leave", sound: "yes" });
+    expect(wallet()).toBe(150);
+    expect(hero().stats.xp.now).toBe(150);
+  });
+
+  it("pays the reward the temple's gate names, even when the chest clears it", () => {
+    const id = gateTemplate({ type: "gate", content: { reward: { xp: 40, gp: 8, ap: 2 } } });
+
+    expect(clearTemple(id, "hero-1")).toEqual({ xp: 40, gp: 8, ap: 2, levelUp: false });
+    expect(wallet()).toBe(108);
+  });
+
+  it("takes the reward it is told to pay over the temple's own", () => {
+    const id = gateTemplate();
+
+    expect(clearTemple(id, "hero-1", { xp: 5, gp: 0, ap: 0 })).toEqual({ xp: 5, gp: 0, ap: 0, levelUp: false });
+    expect(wallet()).toBe(100);
+  });
+
+  it("clears the temple for a run with no hero, and pays nobody", () => {
+    const id = gateTemplate();
+
+    expect(clearTemple(id)).toBeNull();
+    expect(temples.isTempleCleared(id)).toBe(true);
+    expect(wallet()).toBe(100);
+  });
+});
+
+describe("the beast an encounter shows", () => {
+  it.each([
+    ["monster", "A Monster approaches!"],
+    ["miniboss", "A fierce foe blocks the way!"],
+    ["boss", "A Powerful Boss appears!"],
+  ])("hands the screen the first beast of a %s room, under the kind's line", async (type, header) => {
+    const { ctx, room } = withRoom({ type, content: { beasts: ["beast-socktopus", "beast-dust-bunny-king"] } });
+
+    const sheet = roomActions(room, ctx);
+
+    expect(sheet.header).toBe(header);
+    expect(sheet.beastId).toBe("beast-socktopus");
+    // The fight itself is unchanged: one action, the screen starts the battle
+    expect(labels(sheet)).toEqual(["Fight"]);
+    expect(await run(sheet)).toEqual({ intent: "fight" });
+  });
+
+  it.each(["monster", "miniboss", "boss"])("names no beast for a %s room that lists none", (type) => {
+    const withNone = withRoom({ type });
+    expect(roomActions(withNone.room, withNone.ctx).beastId).toBeUndefined();
+
+    const empty = withRoom({ type, content: { beasts: [] } });
+    expect(roomActions(empty.room, empty.ctx).beastId).toBeUndefined();
+  });
+
+  it("keeps a beast id as the text it is (a numeric id is still an id)", () => {
+    const { ctx, room } = withRoom({ type: "monster", content: { beasts: [74 as unknown as string] } });
+    expect(roomActions(room, ctx).beastId).toBe("74");
+  });
+
+  it("shows no beast once the fight is won: the room only offers its search", () => {
+    const { id, ctx, room } = withRoom({ type: "monster", content: { beasts: ["beast-socktopus"] } });
+    temples.markRoomCleared(id, "1F", [0, 1]);
+
+    const sheet = roomActions(room, ctx);
+
+    expect(sheet.header).toBe("Nothing left here but the smell.");
+    expect(sheet.beastId).toBeUndefined();
+    expect(labels(sheet)).toEqual(["Search the room"]);
+  });
+
+  it("names no beast for rooms that are not encounters", () => {
+    const { ctx, room } = withRoom({ type: "empty", content: { beasts: ["beast-socktopus"] } });
+    expect(roomActions(room, ctx).beastId).toBeUndefined();
   });
 });
 
@@ -649,7 +793,12 @@ describe("secret chambers, saves and pick-ups", () => {
     expect(roomActions(room, ctx).actions).toEqual([]);
 
     const master = withRoom({ type: "key", content: { keyId: "master" } });
-    await run(roomActions(master.room, master.ctx));
+    const taken = await run(roomActions(master.room, master.ctx));
     expect(temples.hasMasterKey(master.id)).toBe(true);
+    // The player reads "Boss Key", never "master key"
+    expect(taken.message).toBe("The Boss Key is yours.");
+
+    const named = withRoom({ type: "key", content: { keyId: "master", keyName: "Trident Key" } });
+    expect((await run(roomActions(named.room, named.ctx))).message).toBe("Trident Key: the Boss Key is yours.");
   });
 });

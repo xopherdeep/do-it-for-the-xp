@@ -5,6 +5,74 @@
  */
 import type { RoomContent } from '@/lib/engine/core/dungeons/types';
 
+/**
+ * The room types that hold a Pegasus: the Temple Creator's Dragon Egg (`dragon-egg`) and the picker's `master` room,
+ * the temple's final chamber that the Game Master places after the boss. In play both are the Pegasus chest.
+ */
+export const PEGASUS_ROOM_TYPES: readonly string[] = ['dragon-egg', 'master'];
+
+/** What a Pegasus chest holds when the Game Master did not pick a Pegasus: the temple's own, set free by taking it. */
+export const DEFAULT_PEGASUS_ITEM = 'Pegasus';
+
+/**
+ * The temple's own items a Dungeon Item chest can hold, by the id the take path knows: the small key, the Boss Key
+ * (id `master-key`, it opens the boss door), the map and the compass. None of them is ever a Pegasus's prize.
+ */
+const TEMPLE_ITEMS: readonly string[] = ['key', 'master-key', 'map', 'compass'];
+
+/** The Temple Creator's Dungeon Item picker spells two of them differently from the temples and the take path. */
+const DUNGEON_ITEM_IDS: Record<string, string> = { 'small-key': 'key', 'dungeon-map': 'map' };
+
+/** The id the take path knows for a dungeon item as the editor or a layout wrote it ("small-key" -> "key"). */
+export const dungeonItemId = (value: string): string => DUNGEON_ITEM_IDS[value] ?? value;
+
+/** Whether a stored dungeon item is one of the temple's keys, map or compass (so not a Pegasus's prize). */
+export const isTempleItem = (value: unknown): boolean => TEMPLE_ITEMS.includes(dungeonItemId(String(value ?? '')));
+
+/** "Dragon_Egg" -> "dragon-egg": the layouts spell room types a few ways. */
+const roomTypeOf = (room: { type?: string } | undefined): string =>
+  String(room?.type ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/[_\s]+/g, '-');
+
+/** Whether a room is a Dragon Egg or `master` room (the Pegasus chamber) that is not yet a chest. */
+export const isPegasusRoom = (room: { type?: string } | undefined): boolean => PEGASUS_ROOM_TYPES.includes(roomTypeOf(room));
+
+/**
+ * A Dragon Egg or `master` room, as the loot room holding the Pegasus chest that the built-in temples and the
+ * generator use: `{ chest: 'dungeon', dungeon: <the Game Master's pick, else 'Pegasus'>, pegasus: true }`. Taking that
+ * chest's prize frees the Pegasus and clears the temple. Any other room comes back untouched (the same object), so
+ * this is safe to run on every room, and running it twice changes nothing. Pure: the room given is not modified.
+ */
+export const asPegasusChest = <R extends { type?: string; content?: RoomContent }>(room: R): R => {
+  if (!isPegasusRoom(room)) return room;
+  const content = room.content ?? {};
+  // A key or map left over from the room's earlier life is not a Pegasus to pick: the temple's own is meant
+  const pick = content.dungeon && !isTempleItem(content.dungeon) ? content.dungeon : DEFAULT_PEGASUS_ITEM;
+  return { ...room, type: 'loot', content: { ...content, chest: 'dungeon', dungeon: pick, pegasus: true } };
+};
+
+/**
+ * A room as the temple plays it: a Dragon Egg or `master` room is the Pegasus chest (`asPegasusChest`), and a Dungeon
+ * Item chest holds the id the take path knows: the editor's "small-key" and "dungeon-map" are the small key and the
+ * map, and a chest that holds one of the temple's own items (the Boss Key above all) is not a Pegasus chest, whatever
+ * `pegasus` flag the room carried over from the Pegasus chest it was edited from. Any other room comes back untouched
+ * (the same object); running it twice changes nothing. Pure.
+ */
+export const asChestRoom = <R extends { type?: string; content?: RoomContent }>(given: R): R => {
+  const room = asPegasusChest(given);
+  const content = room.content;
+  if (roomTypeOf(room) !== 'loot' || content?.chest !== 'dungeon' || typeof content.dungeon !== 'string') return room;
+
+  const dungeon = dungeonItemId(content.dungeon);
+  const stale = content.pegasus === true && isTempleItem(dungeon);
+  if (dungeon === content.dungeon && !stale) return room;
+
+  const { pegasus, ...rest } = content;
+  return { ...room, content: { ...rest, dungeon, ...(pegasus === true && !stale ? { pegasus } : {}) } };
+};
+
 /** How the reveal frames the item: keys and maps are the temple's own, relics are the prize behind the boss. */
 export type LootTier = 'relic' | 'key' | 'gold' | 'supply' | 'item';
 
@@ -28,8 +96,11 @@ interface LootFace {
 const KNOWN: Record<string, LootFace> = {
   key: { name: 'Small Key', icon: 'key', blurb: 'Opens one locked door in this temple.', tier: 'key' },
   'small key': { name: 'Small Key', icon: 'key', blurb: 'Opens one locked door in this temple.', tier: 'key' },
-  'master-key': { name: 'Master Key', icon: 'key-skeleton', blurb: "Opens the great door to the temple's master.", tier: 'key' },
+  // The key that opens the boss door is the Boss Key to the player; its id stays `master-key`
+  'master-key': { name: 'Boss Key', icon: 'key-skeleton', blurb: "Opens the great door to the temple's boss.", tier: 'key' },
   map: { name: 'Dungeon Map', icon: 'map', blurb: 'Shows every room of the temple.', tier: 'key' },
+  'dungeon-map': { name: 'Dungeon Map', icon: 'map', blurb: 'Shows every room of the temple.', tier: 'key' },
+  'small-key': { name: 'Small Key', icon: 'key', blurb: 'Opens one locked door in this temple.', tier: 'key' },
   compass: { name: 'Compass', icon: 'compass', blurb: 'Reveals what waits in the rooms ahead.', tier: 'key' },
   potion: { name: 'Potion', icon: 'flask-potion', blurb: 'Restores HP. Goes in your bag.', tier: 'supply' },
   ether: { name: 'Ether', icon: 'flask', blurb: 'Restores MP. Goes in your bag.', tier: 'supply' },
@@ -49,6 +120,9 @@ const RELICS: Record<string, { icon: string; blurb: string }> = {
   'Flame Shield': { icon: 'shield', blurb: 'A relic of the Fire Temple.' },
   'Dawnbreaker Bow': { icon: 'bow-arrow', blurb: 'A relic of the Light Temple.' },
 };
+
+/** The face of a Pegasus chest's prize that is not a relic of its own: an egg with a Pegasus asleep inside. */
+const EGG: { icon: string; blurb: string } = { icon: 'egg', blurb: 'A Pegasus sleeps inside. Take it to set it free.' };
 
 /** "golden key" -> "Golden Key": loot names are stored lowercase, the chest shows them properly. */
 export const titleCase = (value: string): string =>
@@ -70,8 +144,9 @@ export const chestLoot = (content: RoomContent | undefined): ChestLoot[] => {
 
   if (content.chest === 'dungeon' && content.dungeon) {
     const face = lootFace(content.dungeon);
-    // The Pegasus chest's item is a relic whatever it is called
-    loot.push({ value: content.dungeon, ...face, tier: content.pegasus === true ? 'relic' : face.tier });
+    // The Pegasus chest's item is a relic whatever it is called; unless it is a named relic (the whistle), it is an egg
+    const isPegasus = content.pegasus === true;
+    loot.push({ value: content.dungeon, ...face, ...(isPegasus && !RELICS[content.dungeon] ? EGG : {}), tier: isPegasus ? 'relic' : face.tier });
   }
 
   const gold = Math.floor(Number(content.gold) || 0);

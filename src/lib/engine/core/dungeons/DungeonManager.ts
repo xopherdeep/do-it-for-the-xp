@@ -7,6 +7,7 @@
 
 import { ChestSystem, ChestContent } from './ChestSystem';
 import { Room, Dungeon } from './types';
+import { asChestRoom } from '@/lib/services/temples/ChestLoot';
 import { reactive } from 'vue';
 import debug from '@/lib/utils/debug';
 
@@ -55,6 +56,11 @@ export class DungeonManager {
     // Initialize visitedPositions if not already present
     if (!dungeon.visitedPositions) {
       dungeon.visitedPositions = new Set<string>();
+    }
+    // A Dragon Egg or `master` room is the Pegasus chest, and a Dungeon Item chest holds the ids the take path knows
+    // (the editor's "small-key" is the small key): rooms are put right before their chests are made
+    if (dungeon.rooms) {
+      dungeon.rooms = Object.fromEntries(Object.entries(dungeon.rooms).map(([key, room]) => [key, asChestRoom(room)]));
     }
     // Copied before initializeChests writes chest ids into the rooms and before anyone plays in them
     this.layouts.set(dungeon.id, copyLayout(dungeon));

@@ -5,10 +5,10 @@
  * cleared. Only the wind temple's chest also hands out the Wind Whistle item: the other eight temples' whistle
  * is the call that frees their Pegasus, not a thing for the hero's hands.
  */
-import { TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
 import { TEMPLE_METADATA } from '@/lib/engine/temples/templeRegistry';
 import { unlocksFromChest } from '@/lib/services/quests/ItemEffects';
 import { useUserStore } from '@/lib/store/stores/user';
+import { clearTemple, type ClearedReward } from './RoomInteractions';
 
 export interface Pegasus {
   /** Index into `stats.pegasi` */
@@ -66,6 +66,19 @@ export const pegasusOfWorld = (world: string): Pegasus | undefined => {
   return PEGASI.find((pegasus) => pegasus.world === key);
 };
 
+/**
+ * The Pegasus a Game Master's key item names: "Aura", "pegasus-aura", "Aura's Egg" and "AURA" all mean Aura. Any other
+ * value (the Pegasus Whistle, "Pegasus", the editor's own key items) names none, and the temple's own Pegasus is meant.
+ */
+export const pegasusOfKeyItem = (value: string | null | undefined): Pegasus | undefined => {
+  const words = String(value ?? '')
+    .toLowerCase()
+    .replace(/['\u2019]s\b/g, '')
+    .split(/[^a-z]+/)
+    .filter(Boolean);
+  return PEGASI.find((pegasus) => words.includes(pegasus.name.toLowerCase()));
+};
+
 /** The Pegasus a temple keeps, by the world the temple registry places it in. */
 export const pegasusOfTemple = (templeId: string): Pegasus | undefined => {
   const world = TEMPLE_METADATA[templeId]?.world;
@@ -81,9 +94,9 @@ export interface PegasusView {
   temple: string;
 }
 
-/** The Pegasus a temple keeps as the celebration draws it; none for a temple that keeps no Pegasus. */
-export const pegasusView = (templeId: string): PegasusView | null => {
-  const pegasus = pegasusOfTemple(templeId);
+/** The Pegasus a temple's clear frees as the celebration draws it: the Game Master's pick if there is one, else the temple's own; none for a temple that keeps no Pegasus. */
+export const pegasusView = (templeId: string, pick?: string | null): PegasusView | null => {
+  const pegasus = pegasusOfKeyItem(pick) ?? pegasusOfTemple(templeId);
   const look = pegasus ? PEGASUS_LOOK[pegasus.index] : undefined;
   if (!pegasus || !look) return null;
   return { name: pegasus.name, color: look.color, secondaryColor: look.secondaryColor, world: pegasus.world, temple: look.temple };
@@ -102,15 +115,21 @@ export const chestItemUnlocks = (templeId: string, chestItem: string): string[] 
 export const pegasusFreedLine = (name: string): string => `The ${name} is free!`;
 
 /**
- * The hero opened the temple's Pegasus chest: the world's Pegasus is free (on the hero, when one is named)
- * and the temple is cleared, which the hero's progress remembers.
- * @returns What the temple says, and the Pegasus freed when the temple has one
+ * The hero opened the temple's Pegasus chest: the world's Pegasus is free (on the hero, when one is named) and the
+ * temple is cleared, which the hero's progress remembers. The first clear pays the temple's reward (`clearTemple`);
+ * a temple already cleared (by its gate) pays nothing more.
+ * @param pick The chest's prize as the Game Master set it: a Pegasus it names is the one freed, else the temple's own
+ * @returns What the temple says, the Pegasus freed when the temple has one, and the reward paid when this clear paid it
  */
-export const freeTemplePegasus = (templeId: string, userId?: string): { message: string; pegasus?: Pegasus } => {
-  TempleSystem.getInstance().markTempleCleared(templeId);
+export const freeTemplePegasus = (
+  templeId: string,
+  userId?: string,
+  pick?: string | null,
+): { message: string; pegasus?: Pegasus; cleared?: ClearedReward } => {
+  const cleared = clearTemple(templeId, userId) ?? undefined;
 
-  const pegasus = pegasusOfTemple(templeId);
-  if (!pegasus) return { message: 'A Pegasus is free!' };
+  const pegasus = pegasusOfKeyItem(pick) ?? pegasusOfTemple(templeId);
+  if (!pegasus) return { message: 'A Pegasus is free!', ...(cleared && { cleared }) };
   if (userId) useUserStore().unlockPegasus(userId, pegasus.index);
-  return { message: pegasusFreedLine(pegasus.name), pegasus };
+  return { message: pegasusFreedLine(pegasus.name), pegasus, ...(cleared && { cleared }) };
 };
