@@ -68,11 +68,15 @@
     <!-- v-if="activeSegment === 'info'" -->
     <ion-grid class="md:max-w-[60vw] mb-7 mx-auto flex flex-col items-center justify-center gap-6">
       <gamer-card
+        ref="gamerCard"
         :profile="newProfile"
+        :equipment="equipment"
         class="w-full"
         v-model:avatarIndex="avatarIndex"
         v-model:jobClass="jobClass"
         v-model:favoriteFood="favoriteFood"
+        v-model:look="look"
+        v-model:avatarImage="avatarImage"
       />
 
       <!-- <ion-card class="w-full shadow-lg">
@@ -123,8 +127,7 @@
             <div class="flex items-center w-full gap-4">
               <div
                 class="avatar-preview w-20 h-20 rounded-full bg-gray-200 flex items-center justify-center cursor-pointer hover:opacity-80"
-                @click="isAvatarSelectorOpen = true"
-                id="avatar-trigger"
+                @click="gamerCard?.openAvatarPicker()"
               >
                 <img
                   :src="currentAvatar"
@@ -224,16 +227,6 @@
           </ion-item>
         </ion-list>
       </ion-card>
-
-      <!-- Avatar Selector -->
-      <avatar-selector
-        v-model="avatarIndex"
-        :is-open="isAvatarSelectorOpen"
-        :max-avatar-index="maxAvatarIndex"
-        @close="isAvatarSelectorOpen = false"
-        @selected="selectAvatar"
-        :fullscreen="true"
-      />
 
       <ion-card v-if="activeSegment === 'account'">
         <ion-list class="p-0 space-y-4 pb-2">

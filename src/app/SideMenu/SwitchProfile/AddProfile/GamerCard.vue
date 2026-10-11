@@ -4,15 +4,17 @@
     <div class="avatar-section">
       <ion-avatar
         class="main-avatar cursor-pointer"
-        @click="isAvatarSelectorOpen = true"
+        :class="{ 'has-voxel': hasVoxelFace }"
+        @click="openAvatarPicker"
         id="avatar-trigger"
       >
         <ion-img
-          v-if="profile?.avatar"
+          v-if="currentAvatar"
           :src="currentAvatar"
           class="img-avatar"
         />
       </ion-avatar>
+      <p class="avatar-caption">Tap to change</p>
     </div>
 
     <!-- Name Section: Clear Typography Hierarchy -->
@@ -69,8 +71,17 @@
       v-model="avatarIndex"
       :is-open="isAvatarSelectorOpen"
       :max-avatar-index="maxAvatarIndex"
+      :fullscreen="true"
       @close="isAvatarSelectorOpen = false"
-      trigger="avatar-trigger"
+      @build="buildHero"
+    />
+
+    <look-modal
+      :is-open="isLookOpen"
+      :look="profile?.look"
+      :equipment="equipment"
+      @close="isLookOpen = false"
+      @save="saveLook"
     />
 
     <job-class-selector
@@ -95,22 +106,39 @@
   import { defineComponent, computed, ref } from "vue";
   import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
   import ionic from "@/lib/mixins/ionic";
+  import { heroAvatarSrc } from "@/lib/hero-look/look";
+  import type { HeroLook } from "@/lib/hero-look/types";
   import AvatarSelector from "./components/AvatarSelector.vue";
+  import LookModal from "./components/LookModal.vue";
   import JobClassSelector from "./components/JobClassSelector.vue";
   import FoodSelector from "./components/FoodSelector.vue";
 
   export default defineComponent({
     components: {
       AvatarSelector,
+      LookModal,
       JobClassSelector,
       FoodSelector,
     },
     props: {
+      /** The draft profile: `avatar` ("001-gamer"), `look` and `avatarImage` (the voxel face) among the rest */
       profile: {
         type: Object,
         required: true,
       },
+      /** What the hero holds (lends the 3D hero its hands); a new profile holds nothing */
+      equipment: {
+        type: Object,
+        default: undefined,
+      },
     },
+    emits: [
+      "update:avatarIndex",
+      "update:jobClass",
+      "update:favoriteFood",
+      "update:look",
+      "update:avatarImage",
+    ],
     name: "GamerCard",
     mixins: [ionic],
     setup(props, { emit }) {
@@ -125,11 +153,16 @@
       const isAvatarSelectorOpen = ref(false);
       const isJobClassSelectorOpen = ref(false);
       const isFoodSelectorOpen = ref(false);
+      const isLookOpen = ref(false);
 
       // Form values that will be v-modeled from parent
       const avatarIndex = computed({
         get: () => parseInt(props.profile.avatar?.split("-")[0] || "1"),
-        set: (value) => emit("update:avatarIndex", value),
+        set: (value) => {
+          emit("update:avatarIndex", value);
+          // A portrait picked after a 3D face wins: the voxel picture goes, the look stays to build on
+          if (props.profile.avatarImage) emit("update:avatarImage", undefined);
+        },
       });
 
       const jobClass = computed({
@@ -142,12 +175,30 @@
         set: (value) => emit("update:favoriteFood", value),
       });
 
-      // Icon computations
-      const currentAvatar = computed(() =>
-        $requireAvatar(
-          `./${avatarIndex.value.toString().padStart(3, "0")}-gamer.svg`
-        )
+      // The face on the card: the snapshot of the 3D hero when there is one, else the preset portrait
+      const currentAvatar = computed(
+        () =>
+          heroAvatarSrc(
+            { avatar: props.profile.avatar, avatarImage: props.profile.avatarImage },
+            (key: string) => $requireAvatar(key)
+          ) || undefined
       );
+      const hasVoxelFace = computed(() => !!props.profile.avatarImage);
+
+      const openAvatarPicker = () => {
+        isAvatarSelectorOpen.value = true;
+      };
+
+      // "Build my hero in 3D": the picker gives way to the look builder
+      const buildHero = () => {
+        isAvatarSelectorOpen.value = false;
+        isLookOpen.value = true;
+      };
+
+      const saveLook = (look: HeroLook, image?: string) => {
+        emit("update:look", look);
+        emit("update:avatarImage", image);
+      };
 
       const selectedFoodIcon = computed(() => {
         const findFavoriteFood = (food) =>
@@ -165,6 +216,11 @@
       return {
         maxAvatarIndex,
         currentAvatar,
+        hasVoxelFace,
+        openAvatarPicker,
+        buildHero,
+        saveLook,
+        isLookOpen,
         selectedJobIcon,
         selectedFoodIcon,
         isAvatarSelectorOpen,
@@ -188,8 +244,18 @@
   // Avatar Section
   .avatar-section {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
     margin-bottom: 1rem;
+  }
+
+  .avatar-caption {
+    margin: 0;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    color: eb.$eb-color-cream;
+    opacity: 0.75;
   }
 
   .main-avatar {
@@ -204,6 +270,11 @@
       border-color: eb.$eb-color-pale-yellow;
       box-shadow: 0 6px 20px rgba(247, 232, 168, 0.4);
     }
+  }
+
+  // A 3D face is a bust on a transparent picture: give it a backdrop
+  .main-avatar.has-voxel {
+    background: rgba(20, 6, 28, 0.55);
   }
 
   .img-avatar {

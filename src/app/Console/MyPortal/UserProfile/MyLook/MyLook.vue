@@ -20,103 +20,39 @@
         v-if="user"
         class="look-layout"
       >
-        <!-- The hero, on the sky-blue checkerboard -->
-        <section class="look-stage eb-box">
-          <XpHeroModel
-            ref="model"
-            class="look-model"
-            :look="previewLook"
-            :animation="preview"
-            interactive
-          />
-          <span
-            v-if="dirty"
-            class="unsaved-tag"
-          >Unsaved</span>
-        </section>
-
-        <!-- Animation preview chips -->
-        <div
-          class="chip-row"
-          role="group"
-          aria-label="Preview animation"
+        <!-- The hero, the animation chips and the pickers (tab strip at the bottom) -->
+        <xp-look-editor
+          ref="editor"
+          v-model="draft"
+          :equipment="equipment"
+          :preview="preview"
         >
-          <button
-            v-for="anim in ANIMATIONS"
-            :key="anim.id"
-            type="button"
-            class="look-chip"
-            :class="{ active: preview === anim.id }"
-            :aria-pressed="preview === anim.id"
-            @click="preview = anim.id"
-          >
-            {{ anim.label }}
-          </button>
-        </div>
+          <template #stage>
+            <span
+              v-if="dirty"
+              class="unsaved-tag"
+            >Unsaved</span>
+          </template>
 
-        <!-- Pickers -->
-        <section class="look-panel eb-box">
+          <!-- Animation preview chips -->
           <div
-            class="tab-strip"
-            role="tablist"
+            class="chip-row"
+            role="group"
+            aria-label="Preview animation"
           >
             <button
-              v-for="t in TABS"
-              :key="t.id"
+              v-for="anim in ANIMATIONS"
+              :key="anim.id"
               type="button"
-              role="tab"
-              class="tab"
-              :class="{ active: tab === t.id }"
-              :aria-selected="tab === t.id"
-              @click="tab = t.id"
+              class="look-chip"
+              :class="{ active: preview === anim.id }"
+              :aria-pressed="preview === anim.id"
+              @click="preview = anim.id"
             >
-              {{ t.label }}
+              {{ anim.label }}
             </button>
           </div>
-
-          <div class="tab-body">
-            <div
-              v-if="current.styles"
-              class="picker"
-            >
-              <h4 class="picker-title">Style</h4>
-              <div class="style-grid">
-                <button
-                  v-for="style in current.styles.options"
-                  :key="style"
-                  type="button"
-                  class="style-button"
-                  :class="{ active: draft[current.styles.key] === style }"
-                  :aria-pressed="draft[current.styles.key] === style"
-                  @click="pick(current.styles.key, style)"
-                >
-                  {{ styleLabel(style) }}
-                </button>
-              </div>
-            </div>
-
-            <div
-              v-for="group in current.colors"
-              :key="group.key"
-              class="picker"
-            >
-              <h4 class="picker-title">{{ group.label }}</h4>
-              <div class="color-grid">
-                <button
-                  v-for="swatch in group.swatches"
-                  :key="swatch.value"
-                  type="button"
-                  class="swatch"
-                  :class="{ active: draft[group.key] === swatch.value }"
-                  :style="{ backgroundColor: swatch.color }"
-                  :aria-label="swatch.name"
-                  :aria-pressed="draft[group.key] === swatch.value"
-                  @click="pick(group.key, swatch.value)"
-                ></button>
-              </div>
-            </div>
-          </div>
-        </section>
+        </xp-look-editor>
 
         <div class="action-row">
           <button

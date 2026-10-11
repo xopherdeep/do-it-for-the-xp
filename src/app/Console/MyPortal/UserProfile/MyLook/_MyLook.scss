@@ -10,25 +10,6 @@
     padding: 0 16px;
   }
 
-  // The hero on the checkerboard, inside an Earthbound box
-  .look-stage {
-    @include eb-box();
-    @include eb-checkerboard-config($eb-color-sky-blue, $eb-color-mint-green);
-    position: relative;
-    height: min(46vh, 380px);
-    min-height: 240px;
-    box-shadow: 0 0 0 5px $eb-color-medium-purple, 0 0 0 10px $eb-color-minty-blue,
-      0 0 0 12px $eb-color-pale-yellow, 0 0 0 16px $eb-color-slate;
-    overflow: hidden;
-  }
-
-  .look-model {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-  }
-
   .unsaved-tag {
     position: absolute;
     top: 8px;
@@ -68,103 +49,6 @@
     }
   }
 
-  // Pickers
-  .look-panel {
-    @include eb-box();
-    padding: 0;
-  }
-
-  .tab-strip {
-    display: flex;
-    border-bottom: 3px solid $eb-color-medium-purple;
-  }
-
-  .tab {
-    flex: 1;
-    min-height: 44px;
-    padding: 0 4px;
-    font-family: $eb-font-status, $eb-font-primary, sans-serif;
-    font-size: 1rem;
-    color: $eb-color-cream;
-    background: transparent;
-    border: 0;
-    border-right: 3px solid $eb-color-medium-purple;
-    cursor: pointer;
-
-    &:last-child {
-      border-right: 0;
-    }
-
-    &.active {
-      color: $eb-color-dark-purple;
-      background: $eb-color-pale-yellow;
-    }
-  }
-
-  .tab-body {
-    padding: 14px;
-    max-height: 340px;
-    overflow-y: auto;
-    @include eb-scrollbar();
-  }
-
-  .picker + .picker {
-    margin-top: 16px;
-  }
-
-  .picker-title {
-    margin: 0 0 8px;
-    font-family: $eb-font-status, $eb-font-primary, sans-serif;
-    font-size: 0.95rem;
-    font-weight: normal;
-    color: $eb-color-pale-yellow;
-  }
-
-  .style-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(104px, 1fr));
-    gap: 8px;
-  }
-
-  .style-button {
-    min-height: 48px;
-    padding: 4px 6px;
-    font-family: $eb-font-primary, sans-serif;
-    font-size: 1.1rem;
-    color: $eb-color-cream;
-    background: $eb-color-medium-purple;
-    border: 3px solid $eb-color-slate;
-    border-radius: 1px;
-    cursor: pointer;
-
-    &.active {
-      color: $eb-color-dark-purple;
-      background: $eb-color-pale-yellow;
-      border-color: $eb-color-minty-blue;
-    }
-  }
-
-  .color-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
-    gap: 8px;
-  }
-
-  .swatch {
-    width: 100%;
-    aspect-ratio: 1;
-    min-height: 40px;
-    border: 3px solid $eb-color-dark-purple;
-    border-radius: 1px;
-    cursor: pointer;
-    box-shadow: 0 0 0 2px $eb-color-slate;
-
-    &.active {
-      border-color: $eb-color-white;
-      box-shadow: 0 0 0 3px $eb-color-minty-blue;
-    }
-  }
-
   // Save and reset
   .action-row {
     display: flex;
@@ -196,9 +80,6 @@
   }
 
   .look-chip,
-  .tab,
-  .style-button,
-  .swatch,
   .look-button {
     &:focus-visible {
       outline: 3px solid $eb-color-white;

@@ -13,8 +13,9 @@ import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
 
 import { ProfileDb } from "@/lib/databases";
 import { profileStorage } from "@/lib/databases/profileStorage";
+import { heroAvatarImage, heroAvatarSrc } from "@/lib/hero-look/look";
+import { isHeroLook, type HeroLook } from "@/lib/hero-look/types";
 import InputSettings from "../../XpSettings/components/InputSettings.vue";
-import AvatarSelector from "./components/AvatarSelector.vue";
 
 import ionic from "@/lib/mixins/ionic";
 
@@ -31,8 +32,7 @@ export const AddProfile = defineComponent({
   components: {
     InputSettings,
     XpGp,
-    GamerCard,
-    AvatarSelector
+    GamerCard
   },
   methods: {
     async loadProfile() {
@@ -48,10 +48,6 @@ export const AddProfile = defineComponent({
     getAvatarSrc(index: number) {
       const paddedIdx = index.toString().padStart(3, "0");
       return this.requireAvatar(`./${paddedIdx}-gamer.svg`);
-    },
-    selectAvatar(index: number) {
-      this.avatarIndex = index;
-      this.isAvatarSelectorOpen = false; // Close the modal after selecting
     },
     async clickSaveProfile() {
       // A Game Master's profile is only saved by a Game Master (Save is disabled otherwise)
@@ -70,7 +66,12 @@ export const AddProfile = defineComponent({
         return;
       }
 
-      const profile = this.storage.newProfile(this.newProfile);
+      // `new User` keeps only the fields it knows, so the 3D look and its picture are added back by hand
+      const profile = {
+        ...this.storage.newProfile(this.newProfile),
+        ...(this.look ? { look: this.look } : {}),
+        ...(this.avatarImage ? { avatarImage: this.avatarImage } : {}),
+      };
       await this.storage.setProfile(profile);
 
       // Show success splash
@@ -157,15 +158,25 @@ export const AddProfile = defineComponent({
     const jobClass = ref("");
     const jobClassOptions = ref(JOB_CLASS_OPTIONS);
     const maxAvatarIndex = requireAvatar.keys().length;
-    const isAvatarSelectorOpen = ref(false);
+    // The 3D hero built in the look builder (GamerCard), and the picture of its face; none until they build one
+    const look = ref<HeroLook | undefined>(undefined);
+    const avatarImage = ref<string | undefined>(undefined);
+    // What an existing hero holds: it lends the 3D hero its hands in the look builder
+    const equipment = ref<Record<string, unknown> | undefined>(undefined);
+    const gamerCard = ref<{ openAvatarPicker: () => void } | null>(null);
     const showSuccessSplash = ref(false);
 
     const paddedIndex = computed(() =>
       avatarIndex.value.toString().padStart(3, "0")
     );
 
-    const currentAvatar = computed(() =>
-      requireAvatar(`./${paddedIndex.value}-gamer.svg`)
+    // The face shown on the avatar row: the 3D hero's picture when there is one, else the preset portrait
+    const currentAvatar = computed(
+      () =>
+        heroAvatarSrc(
+          { avatar: `${paddedIndex.value}-gamer`, avatarImage: avatarImage.value },
+          (key: string) => requireAvatar(key)
+        ) || undefined
     );
 
     const closeModal = () => {
@@ -182,6 +193,9 @@ export const AddProfile = defineComponent({
       favoriteFood.value = "";
       jobClass.value = "";
       avatarIndex.value = 1;
+      look.value = undefined;
+      avatarImage.value = undefined;
+      equipment.value = undefined;
       email.value = "";
       passcode.value = "";
     };
@@ -210,6 +224,9 @@ export const AddProfile = defineComponent({
       wasGameMaster.value = profile.isAdult === true;
       legacyGameMaster.value = needsGameMasterPasscode(profile);
       avatarIndex.value = parseInt(profile.avatar.split("-")[0]);
+      look.value = isHeroLook(profile.look) ? { ...profile.look } : undefined;
+      avatarImage.value = heroAvatarImage(profile) || undefined;
+      equipment.value = profile.equipment || undefined;
     };
 
     const setGameMaster = (event: CustomEvent<{ checked: boolean }>) => {
@@ -274,6 +291,8 @@ export const AddProfile = defineComponent({
       passcode: passcode.value,
       name: { full: fullName.value },
       avatar: `${paddedIndex.value}-gamer`,
+      look: look.value,
+      avatarImage: avatarImage.value,
       favoriteThing: favoriteThing.value,
       favoriteFood: favoriteFood.value,
       jobClass: jobClass.value,
@@ -320,6 +339,10 @@ export const AddProfile = defineComponent({
       arrowForward,
       closeOutline,
       avatarIndex,
+      look,
+      avatarImage,
+      equipment,
+      gamerCard,
       closeModal,
       currentAvatar,
       email,
@@ -348,7 +371,6 @@ export const AddProfile = defineComponent({
       toggleGoal,
       toggleReward,
       profileAdded,
-      isAvatarSelectorOpen,
       showSuccessSplash,
       requireAvatar,
       audioStore,
