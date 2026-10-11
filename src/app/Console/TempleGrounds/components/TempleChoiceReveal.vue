@@ -5,7 +5,7 @@
       ref="root"
       class="choice-reveal"
       tabindex="-1"
-      :class="[`kind-${kind}`, { 'has-sprite': sprite }]"
+      :class="[`kind-${kind}`, { 'has-sprite': sprite, 'has-art': showArt }]"
       role="dialog"
       aria-modal="true"
       aria-labelledby="choice-reveal-title"
@@ -30,6 +30,11 @@
       </div>
 
       <section class="choice-reveal__panel">
+        <!-- The beast (or the room) in its frame, there from the first frame of the reveal -->
+        <figure v-if="showArt && art" class="choice-reveal__art" :class="`frame-${art.frame ?? 'beast'}`" data-cy="choice-art">
+          <img class="choice-reveal__art-img" :src="art.src" :alt="art.alt" draggable="false" @error="artFailed = true" />
+        </figure>
+
         <h2 id="choice-reveal-title" class="choice-reveal__title">
           <span>{{ title }}</span>
         </h2>
@@ -103,6 +108,13 @@ interface RevealChoice {
 
 type RevealKind = "riddle" | "shop" | "sheet";
 
+/** A picture for the top of the panel: a beast's portrait in its checkered frame, or a view of the room. */
+interface RevealArt {
+  src: string;
+  alt: string;
+  frame?: "beast" | "room";
+}
+
 /**
  * The temple's third reveal, in the style of the chest and the doors: the riddle on the wall, the shopkeeper's wares
  * and a room's actions come up in a pixel-art panel at the bottom of the screen, with the sprite in its light above.
@@ -122,6 +134,8 @@ const props = defineProps<{
   confirmLabel?: string;
   /** The cancel button's text: "Step back" for the riddle, "Leave" for the others */
   cancelLabel?: string;
+  /** A picture above the title, shown from the moment the reveal opens (an encounter's beast). No source, no picture. */
+  art?: RevealArt;
 }>();
 
 const emit = defineEmits<{
@@ -135,6 +149,16 @@ const selectedId = ref<string | null>(null);
 let spent = false;
 
 const isSheet = computed(() => props.kind === "sheet");
+
+// A picture that will not load is dropped, never left as a broken-image icon
+const artFailed = ref(false);
+const showArt = computed(() => Boolean(props.art?.src) && !artFailed.value);
+watch(
+  () => props.art?.src,
+  () => {
+    artFailed.value = false;
+  },
+);
 
 const confirmText = computed(() => props.confirmLabel ?? (props.kind === "shop" ? "Buy" : "Answer"));
 const cancelText = computed(() => props.cancelLabel ?? (props.kind === "riddle" ? "Step back" : "Leave"));
@@ -271,10 +295,13 @@ $cv-sprite-scale: 3;
   animation: choice-land 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
 }
 
-// A short phone has no room for the sprite: the choices come first
+// A short phone has no room for the sprite: the choices come first, and a picture shrinks to a thumbnail
 @media (max-height: 660px) {
   .choice-reveal__stage {
     display: none;
+  }
+  .choice-reveal__art {
+    --art-height: clamp(64px, 15vh, 96px);
   }
 }
 
@@ -290,6 +317,39 @@ $cv-sprite-scale: 3;
   // The ring around the box reaches 16 px outside it: the overlay's own padding keeps it on screen
   max-height: calc(100% - 16px);
   animation: reveal-panel-in 0.32s 0.06s cubic-bezier(0.2, 0.9, 0.3, 1.15) forwards;
+}
+
+// The picture: the beast on its dark checker, there as the panel rises. It takes a share of the panel, never most of it.
+.choice-reveal__art {
+  --art-height: clamp(88px, 17vh, 140px);
+  @include reveal-art-frame;
+  flex: none;
+  width: 100%;
+  height: var(--art-height);
+  margin: 0 0 10px;
+  animation: choice-art-in 0.45s 0.12s steps(5, end) both;
+
+  &.frame-beast {
+    @include reveal-checker(16px);
+  }
+  &.frame-room {
+    background: linear-gradient(180deg, #2c1535 0, #1c0a04 100%);
+  }
+}
+
+.choice-reveal__art-img {
+  @include reveal-art-image;
+  height: 100%;
+  width: auto;
+  object-fit: contain;
+  // The beast stands on the checker with a hard drop of shadow, like the battle sprite
+  filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.5));
+
+  .frame-room & {
+    width: 100%;
+    object-fit: cover;
+    filter: none;
+  }
 }
 
 .choice-reveal__title {
@@ -443,6 +503,11 @@ $cv-sprite-scale: 3;
 // ---------------------------------------------------------------------------------------------------------------
 @include reveal-keyframes;
 
+@keyframes choice-art-in {
+  0% { opacity: 0; filter: brightness(2.4); transform: scale(0.94); }
+  100% { opacity: 1; filter: none; transform: scale(1); }
+}
+
 @keyframes choice-land {
   0% { transform: translateY(-40px) scale(0.85); opacity: 0; }
   60% { transform: translateY(4px) scale(1.04, 0.94); opacity: 1; }
@@ -451,6 +516,7 @@ $cv-sprite-scale: 3;
 
 @media (prefers-reduced-motion: reduce) {
   .choice-sprite,
+  .choice-reveal__art,
   .choice-reveal__rays,
   .choice-reveal__flash,
   .choice-reveal__panel,

@@ -1,6 +1,5 @@
 import { defineComponent, onBeforeUnmount, onMounted, computed, ref, watch } from 'vue';
 import ionic from '@/lib/mixins/ionic';
-import { actionSheetController, alertController } from '@ionic/vue';
 import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
 import { useRoute, useRouter } from 'vue-router';
 import { useTemple } from '@/hooks/temples/useTemple';
@@ -20,6 +19,15 @@ import { useUserStore } from '@/lib/store/stores/user';
 import { templeBattleRoute } from '@/app/Console/BattleField/battle/battleContext';
 import WeatherFX from '@/components/organisms/WeatherFX/WeatherFX.vue';
 import TempleWalls from './TempleWalls.vue';
+import TempleChestReveal from './components/TempleChestReveal.vue';
+import TempleChoiceReveal from './components/TempleChoiceReveal.vue';
+import TempleDoorReveal from './components/TempleDoorReveal.vue';
+import TemplePegasusReveal from './components/TemplePegasusReveal.vue';
+import XpMonsterModel from '@/components/organisms/MonsterModel/XpMonsterModel.vue';
+import { BestiaryService } from '@/lib/services/battle/BestiaryService';
+import type { DoorView } from './components/doorView';
+import type { ChestLoot } from '@/lib/services/temples/ChestLoot';
+import { pegasusOfTemple, pegasusView, type PegasusView } from '@/lib/services/temples/TemplePegasus';
 import type { ExitKind, WallSide } from './templeWalls';
 import { play$fx } from "@/assets/fx"
 import { useToast } from '@/hooks/useToast';
@@ -33,6 +41,7 @@ import {
   onEnterRoom,
   readExits,
   roomActions,
+  SFX,
   type Riddle,
   type RoomAction,
   type RoomContext,
@@ -65,12 +74,17 @@ export default defineComponent({
   components: {
     'weather-fx': WeatherFX,
     'temple-walls': TempleWalls,
+    'temple-chest-reveal': TempleChestReveal,
+    'temple-choice-reveal': TempleChoiceReveal,
+    'temple-door-reveal': TempleDoorReveal,
+    'temple-pegasus-reveal': TemplePegasusReveal,
     XpVitalsBar,
     XpPurseBar,
     XpEquipmentModal,
     XpWorldMapModal,
     UserProfileModal,
-    XpBottomNav
+    XpBottomNav,
+    XpMonsterModel
   },
   setup(props) {
     const userStore = useUserStore();
@@ -132,7 +146,7 @@ export default defineComponent({
       chestContents,
       isCurrentRoomCleared,
       openMap,
-      closeMap,
+      closeMap: closeMapQuietly,
       // Map and compass utilities
       showRoomDetails,
       getRoomVisibility,
@@ -144,10 +158,13 @@ export default defineComponent({
 
     const router = useRouter();
 
-    // Messages are toasts pinned to the top, in the game's own style
+    // Messages are RPG-box toasts at the bottom, over the nav, so they never cover the dungeon (X or swipe to dismiss)
     const { showToast } = useToast();
+    // Hushed while a reveal tells the news itself (the Pegasus chest), so the toast does not say it twice
+    let hushMessages = false;
     const say = (message: string, duration = 2400) => {
-      showToast(message, duration, 'top').catch((error: unknown) => debug.error('Failed to show toast', error));
+      if (hushMessages) return;
+      showToast(message, duration, 'bottom').catch((error: unknown) => debug.error('Failed to show toast', error));
     };
     registerMessageDisplay(say);
 
@@ -156,10 +173,58 @@ export default defineComponent({
       if (typeof play$fx === 'function') play$fx(key);
     };
 
+    // The map closes with the page-close sound, once: from the compass rose, from a tap outside, or from the modal's own dismiss
+    const closeMap = () => {
+      if (isMapOpen.value) fx('closePage');
+      closeMapQuietly();
+    };
+
     // A combat room whose beasts are already beaten: no second fight, and the room shows a mark
     const isCombatRoomCleared = computed(
       () => !!currentRoom.value && COMBAT_ROOM_TYPES.includes(currentRoom.value.type) && isCurrentRoomCleared.value
     );
+
+    const bestiaryService = new BestiaryService();
+
+    // Uncleared combat encounter in the room displays 3D roaming voxel monster
+    const showVoxelMonster = computed(
+      () => !!currentRoom.value && COMBAT_ROOM_TYPES.includes(currentRoom.value.type) && !isCombatRoomCleared.value
+    );
+
+    const activeMonster = computed(() => {
+      if (!currentRoom.value) {
+        return { name: 'Dustbunny', avatar: bestiaryService.getAvatar(74) };
+      }
+
+      const beasts = currentRoom.value.content?.beasts;
+      if (Array.isArray(beasts) && beasts.length > 0) {
+        const beastId = beasts[0];
+        const numId = parseInt(beastId, 10);
+        const avatarUrl = !isNaN(numId) && numId > 0
+          ? bestiaryService.getAvatar(numId)
+          : bestiaryService.getAvatar(74);
+
+        const name = currentRoom.value.type === 'boss'
+          ? 'Temple Boss'
+          : currentRoom.value.type === 'miniboss'
+          ? 'Temple Guardian'
+          : 'Dungeon Monster';
+
+        return { name, avatar: avatarUrl };
+      }
+
+      const fallbackAvatarId = currentRoom.value.type === 'boss' ? 1 : 74;
+      const fallbackName = currentRoom.value.type === 'boss'
+        ? 'Temple Boss'
+        : currentRoom.value.type === 'miniboss'
+        ? 'Temple Guardian'
+        : 'Dustbunny';
+
+      return {
+        name: fallbackName,
+        avatar: bestiaryService.getAvatar(fallbackAvatarId)
+      };
+    });
 
     // Hand the hero to the battle screen for the combat room they stand in
     const startFight = () => {
@@ -175,22 +240,33 @@ export default defineComponent({
     // Background position state for CSS transforms - initialize with default values
     const backgroundPosition = ref({ x: 0, y: 0 });
 
-    // Tile dimensions for the background grid
+    // Tile dimensions for the background grid: one room fills the game area exactly,
+    // so its south wall sits on the hairlines instead of running under the footer
+    const gameArea = ref<{ $el: HTMLElement } | null>(null);
     const tileWidth = ref(window.innerWidth);
-    const tileHeight = ref(window.innerHeight - 140);
+    const tileHeight = ref(window.innerHeight - 172);
+    let gameAreaObserver: ResizeObserver | null = null;
 
-    // Update tile dimensions when window resizes
+    // Re-measure whenever the game area changes: a window resize, or the footer growing as the vitals load
     onMounted(() => {
+      const el = gameArea.value?.$el;
       const updateDimensions = () => {
-        tileWidth.value = window.innerWidth;
-        tileHeight.value = window.innerHeight - 140;
+        const box = el?.getBoundingClientRect();
+        if (box && box.height > 0) {
+          tileWidth.value = box.width;
+          tileHeight.value = box.height;
+        }
         const [row, col] = currentPosition.value;
         updateBg(col, row);
       };
 
-      window.addEventListener('resize', updateDimensions);
+      if (el) {
+        gameAreaObserver = new ResizeObserver(updateDimensions);
+        gameAreaObserver.observe(el);
+      }
       updateDimensions(); // Initial setup
     });
+    onBeforeUnmount(() => gameAreaObserver?.disconnect());
 
     // Format the temple name for display
     // Registry temples and generated ones (gen-<slug>, from the TempleDb) share one metadata ref
@@ -239,30 +315,59 @@ export default defineComponent({
 
     // Update the background position visually
     const updateBg = (x: number, y: number) => {
-      // Get dimensions of a single image tile
-      const tileWidth = window.innerWidth; // Full viewport width
-      const tileHeight = window.innerHeight - 140; // Account for header/footer
-
       // Calculate translate values - invert for proper positioning
-      const translateX = -x * tileWidth;
-      const translateY = -y * tileHeight;
+      const translateX = -x * tileWidth.value;
+      const translateY = -y * tileHeight.value;
 
       // Update the background position directly in our reactive state
       backgroundPosition.value = { x: translateX, y: translateY };
     };
 
     // The door the hero walked into: a small lock asks for a key, the boss door for the Boss Key (RoomInteractions.doorActions)
-    const showUnlockDoorAlert = async (direction: 'north' | 'south' | 'east' | 'west') => {
+    // The locked-door reveal: the door close up, its lock, and the key if the hero holds one
+    const isDoorOpen = ref(false);
+    const doorShown = ref<DoorView | null>(null);
+    const doorResult = ref<'opened' | 'refused' | null>(null);
+    let doorAction: RoomAction | null = null;
+    let doorOutcome: RoomOutcome | null = null;
+
+    const showLockedDoor = (direction: 'north' | 'south' | 'east' | 'west') => {
       const live = liveContext();
       if (!live) return;
       const door = doorActions(live.ctx, direction);
-      const buttons = [
-        { text: door.actions.length ? 'Cancel' : 'Ok', role: 'cancel' },
-        ...door.actions.map((action) => ({ text: action.label, handler: () => void runRoomAction(action) }))
-      ];
+      const kind = templeSystem.doorKind(props.temple, live.ctx.position, direction, live.ctx.level);
+      doorAction = door.actions[0] ?? null;
+      doorOutcome = null;
+      doorResult.value = null;
+      doorShown.value = {
+        kind: kind === 'master' ? 'master' : 'locked',
+        canOpen: Boolean(doorAction),
+        header: door.header,
+        line: door.subHeader ?? '',
+        keys: playerKeys.value
+      };
+      isDoorOpen.value = true;
+    };
 
-      const alert = await alertController.create({ header: door.header, message: door.subHeader, buttons });
-      await alert.present();
+    // The key went in: the temple opens the door now, the reveal swings it open and hands back on `done`
+    const unlockShownDoor = async () => {
+      if (!doorAction) return;
+      const outcome = await doorAction.run();
+      if (outcome.sound === SFX.error) {
+        doorResult.value = 'refused';
+        isDoorOpen.value = false;
+        await applyOutcome(outcome);
+        return;
+      }
+      doorOutcome = outcome;
+      doorResult.value = 'opened';
+    };
+
+    // The reveal already played the key and the door, so the outcome only has its message left to say
+    const finishShownDoor = async () => {
+      isDoorOpen.value = false;
+      if (doorOutcome) await applyOutcome({ ...doorOutcome, sound: undefined });
+      doorOutcome = null;
     };
 
     // --- Room actions: what each room says and does lives in RoomInteractions ---------------------
@@ -300,59 +405,117 @@ export default defineComponent({
       };
     };
 
+    // The riddle, the shopkeeper and a room's actions share one reveal (TempleChoiceReveal), one at a time. It keeps
+    // what it showed when it closes (`open` goes false), so the panel can sink away; a new one replaces it.
+    type RevealChoice = { id: string; label: string; hint?: string; disabled?: boolean; price?: number };
+    interface ChoiceRevealState {
+      open: boolean;
+      kind: 'riddle' | 'shop' | 'sheet';
+      title: string;
+      subtitle?: string;
+      body?: string;
+      choices: RevealChoice[];
+      cancelLabel?: string;
+      /** A picture above the title: an encounter's beast */
+      art?: { src: string; alt: string; frame?: 'beast' | 'room' };
+      onChoose: (id: string) => void;
+      onLeave: () => void;
+    }
+    const choiceReveal = ref<ChoiceRevealState | null>(null);
+    // A new reveal is a new component, so nothing picked in the last one carries over
+    const choiceRevealKey = ref(0);
+
+    const openChoiceReveal = (state: Omit<ChoiceRevealState, 'open'>) => {
+      choiceRevealKey.value += 1;
+      choiceReveal.value = { ...state, open: true };
+    };
+
+    const closeChoiceReveal = () => {
+      if (choiceReveal.value) choiceReveal.value = { ...choiceReveal.value, open: false };
+    };
+
+    // Close first, then act: the answer can open the next reveal (an action that leads to a riddle)
+    const chooseReveal = (id: string) => {
+      const reveal = choiceReveal.value;
+      closeChoiceReveal();
+      reveal?.onChoose(id);
+    };
+
+    const leaveReveal = () => {
+      const reveal = choiceReveal.value;
+      closeChoiceReveal();
+      reveal?.onLeave();
+    };
+
     // A riddle on the wall: pick an answer from the choices
     const showRiddleAlert = async (riddle: Riddle, room: any, ctx: RoomContext) => {
-      const alert = await alertController.create({
-        header: 'The Glyphs',
-        message: riddle.question,
-        inputs: riddle.choices.map((choice, index) => ({ type: 'radio' as const, label: choice, value: index })),
-        buttons: [
-          { text: 'Step back', role: 'cancel' },
-          {
-            text: 'Answer',
-            handler: (choice: number | undefined) => {
-              if (choice === undefined || choice === null) return false;
-              void applyOutcome(answerRiddle(room, ctx, Number(choice)));
-              return true;
-            }
-          }
-        ]
+      openChoiceReveal({
+        kind: 'riddle',
+        title: 'The Glyphs',
+        body: riddle.question,
+        choices: riddle.choices.map((label, index) => ({ id: String(index), label })),
+        onChoose: (id) => {
+          void applyOutcome(answerRiddle(room, ctx, Number(id)));
+        },
+        onLeave: () => undefined
       });
-      await alert.present();
     };
 
     // The shopkeeper's wares with the hero's wallet
     const showShopAlert = async (wares: Ware[], gp: number, room: any, ctx: RoomContext) => {
-      const alert = await alertController.create({
-        header: 'Wares',
-        subHeader: `You carry ${gp} GP`,
-        inputs: wares.map((ware, index) => ({
-          type: 'radio' as const,
-          label: `${ware.name}: ${ware.blurb}, ${ware.price} GP${ware.soldOut ? ' (sold out)' : ''}`,
-          value: ware.id,
-          checked: index === 0 && !ware.soldOut,
-          disabled: ware.soldOut
+      openChoiceReveal({
+        kind: 'shop',
+        title: 'Wares',
+        subtitle: `You carry ${gp} GP`,
+        choices: wares.map((ware) => ({
+          id: ware.id,
+          label: ware.name,
+          hint: ware.blurb,
+          price: ware.price,
+          disabled: Boolean(ware.soldOut)
         })),
-        buttons: [
-          { text: 'Leave', role: 'cancel' },
-          {
-            text: 'Buy',
-            handler: (wareId: string | undefined) => {
-              if (!wareId) return false;
-              void applyOutcome(buyWare(room, ctx, wareId));
-              return true;
-            }
-          }
-        ]
+        onChoose: (wareId) => {
+          void applyOutcome(buyWare(room, ctx, wareId));
+        },
+        onLeave: () => undefined
       });
-      await alert.present();
+    };
+
+    // Get the world location for this temple and walk out to it
+    const leaveTemple = () => {
+      const templeWorldMap = getTempleWorldLocation(props.temple);
+      router.push({ name: templeWorldMap.route, params: { userId: props.userId } });
+    };
+
+    // The temple cleared: the Pegasus's egg cracks (or the temple lights up, for one without a Pegasus) and the reward
+    // counts up. It keeps what it showed while it closes. `Fly home` is the way out of the temple.
+    const isPegasusRevealOpen = ref(false);
+    const pegasusShown = ref<PegasusView | null>(null);
+    const pegasusReward = ref({ xp: 0, gp: 0, ap: 0 });
+    const pegasusLevelUp = ref(false);
+
+    const showTempleCleared = (
+      pegasus: PegasusView | null,
+      reward: { xp: number; gp: number; ap: number; levelUp?: boolean } = { xp: 0, gp: 0, ap: 0 }
+    ) => {
+      pegasusShown.value = pegasus;
+      pegasusReward.value = { xp: reward.xp, gp: reward.gp, ap: reward.ap };
+      pegasusLevelUp.value = Boolean(reward.levelUp);
+      isPegasusRevealOpen.value = true;
+    };
+
+    const finishTempleCleared = () => {
+      isPegasusRevealOpen.value = false;
+      leaveTemple();
     };
 
     /** Show what a room or an item did: the sound, the shake, the toast, and whatever screen it opens. */
     const applyOutcome = async (outcome: RoomOutcome): Promise<void> => {
-      if (outcome.sound) fx(outcome.sound);
+      // A cleared temple has its own reveal, with its own sounds and its own words: no toast, no sting
+      const celebrating = Boolean(outcome.cleared);
+      if (outcome.sound && !celebrating) fx(outcome.sound);
       if (outcome.shake) shake();
-      if (outcome.message) say(outcome.message);
+      if (outcome.message && !celebrating) say(outcome.message);
 
       if (outcome.defeated) {
         // Same as losing a battle: HP is already back, the game-over screen takes over
@@ -364,19 +527,25 @@ export default defineComponent({
       const live = liveContext();
       switch (outcome.intent) {
         case 'leave': {
-          // Get the world location for this temple and walk out to it
-          const templeWorldMap = getTempleWorldLocation(props.temple);
-          router.push({ name: templeWorldMap.route, params: { userId: props.userId } });
+          if (outcome.cleared) {
+            // The gate opened: the egg cracks and the reward counts up, and only then does the hero walk out
+            const heroId = String(progressHeroId ?? '');
+            const freed = pegasusOfTemple(props.temple);
+            const hasFreed = Boolean(freed && userStore.getUserById(heroId)?.stats?.pegasi?.[freed.index]);
+            showTempleCleared(hasFreed ? pegasusView(props.temple) : null, outcome.cleared);
+            return;
+          }
+          leaveTemple();
           return;
         }
         case 'fight':
           startFight();
           break;
         case 'openChest':
-          await showChestContentsDialog();
+          showChestContentsDialog();
           break;
         case 'emptyChest':
-          await showEmptyChestAlert();
+          showEmptyChest();
           break;
         case 'teleport':
           if (handleTeleport()) {
@@ -412,6 +581,42 @@ export default defineComponent({
       await applyOutcome(await action.run());
     };
 
+    /**
+     * The beast an encounter names, as the reveal shows it: its name, and its portrait when it has an avatar.
+     * Nothing (never a broken picture) for a beast the bestiary does not know or one that has no avatar.
+     */
+    type BeastCard = { name: string; art?: ChoiceRevealState['art'] } | null;
+    const lookUpBeast = async (beastId: string): Promise<BeastCard> => {
+      try {
+        const beast = await bestiaryService.loadBeastById(beastId);
+        const name = String(beast?.name || '').trim();
+        if (!beast || !name) return null;
+        const src = beast.avatar ? bestiaryService.getAvatar(Number(beast.avatar)) : '';
+        return { name, art: src ? { src, alt: name, frame: 'beast' } : undefined };
+      } catch (error) {
+        debug.warn('Could not look up the beast of this room', error);
+        return null;
+      }
+    };
+    // The bestiary is read from storage: each beast is looked up once, and the hero's arrival in its room warms the
+    // lookup, so the tap on the monster opens the reveal with the picture already there
+    const beastCards = new Map<string, Promise<BeastCard>>();
+    const beastCard = (beastId: string): Promise<BeastCard> => {
+      let card = beastCards.get(beastId);
+      if (!card) {
+        card = lookUpBeast(beastId);
+        beastCards.set(beastId, card);
+      }
+      return card;
+    };
+    watch(
+      () => (isCombatRoomCleared.value ? undefined : currentRoom.value?.content?.beasts?.[0]),
+      (beastId) => {
+        if (beastId) void beastCard(String(beastId));
+      },
+      { immediate: true }
+    );
+
     // Handle showing room actions
     const showRoomActions = async () => {
       const live = liveContext();
@@ -421,20 +626,22 @@ export default defineComponent({
       }
 
       const sheet = roomActions(live.room, live.ctx);
-      const buttons: any[] = sheet.actions.map((action) => ({
-        text: action.label,
-        handler: () => {
-          void runRoomAction(action);
-        }
-      }));
-      buttons.push({ text: 'Cancel', role: 'cancel' });
-
-      const actionSheet = await actionSheetController.create({
-        header: sheet.header,
-        subHeader: sheet.subHeader,
-        buttons
+      // An encounter shows its beast: the picture and the name are looked up first, so they are there as the reveal opens
+      const beast = sheet.beastId ? await beastCard(sheet.beastId) : null;
+      openChoiceReveal({
+        kind: 'sheet',
+        title: sheet.header,
+        subtitle: beast?.name ?? sheet.subHeader,
+        art: beast?.art,
+        choices: sheet.actions.map((action, index) => ({ id: String(index), label: action.label })),
+        // "Leave" would sit under the entrance's "Leave Temple": the way back is "Back"
+        cancelLabel: 'Back',
+        onChoose: (id) => {
+          const action = sheet.actions[Number(id)];
+          if (action) void runRoomAction(action);
+        },
+        onLeave: () => undefined
       });
-      await actionSheet.present();
     };
 
     // Get the appropriate world location for a temple
@@ -545,7 +752,7 @@ export default defineComponent({
 
       // Check if door is locked (the boss door counts, bar or no bar in front of it)
       if (isDoorLocked(newRow, newCol) || templeSystem.doorKind(props.temple, [row, col], direction) === 'master') {
-        showUnlockDoorAlert(direction);
+        showLockedDoor(direction);
         return;
       }
 
@@ -566,71 +773,40 @@ export default defineComponent({
       void arrive();
     };
 
-    // Show a dialog with chest contents
-    const showChestContentsDialog = async () => {
-      // Play chest opening sound effect
-      if (typeof play$fx === 'function') {
-        play$fx('openChest');
-      }
+    // The chest reveal. It shows what the chest held when it opened, so the rows stay put while it closes
+    const isChestOpen = ref(false);
+    const chestLootShown = ref<ChestLoot[]>([]);
 
-      const inputs = chestContents.value;
-
-      if (inputs.length === 0) {
-        showEmptyChestAlert();
-        return;
-      }
-
-      const alert = await alertController.create({
-        header: 'Chest Contents',
-        inputs,
-        buttons: [
-          {
-            text: 'Leave',
-            role: 'cancel',
-          },
-          {
-            text: 'Loot',
-            handler: (selectedItems) => {
-              if (selectedItems && selectedItems.length > 0) {
-                const hasKey = selectedItems.some((i: string) => String(i).toLowerCase().includes('key'));
-                if (typeof play$fx === 'function') {
-                  play$fx(hasKey ? 'key' : 'takeItem');
-                }
-                processChestItems(selectedItems);
-              } else if (typeof play$fx === 'function') {
-                play$fx('yes');
-              }
-            },
-          },
-        ],
-      });
-
-      await alert.present();
+    const showChestContentsDialog = () => {
+      chestLootShown.value = chestContents.value;
+      isChestOpen.value = true;
     };
 
+    const takeChestLoot = (values: string[]) => {
+      isChestOpen.value = false;
+      // The Pegasus chest behind the boss: taking its prize frees the world's Pegasus and clears the temple
+      const prize = currentRoom.value?.content;
+      const freesPegasus = prize?.pegasus === true && Boolean(prize.dungeon) && values.includes(String(prize.dungeon));
+      const hasKey = values.some((value) => value.toLowerCase().includes('key'));
+      if (!freesPegasus) play$fx(hasKey ? 'key' : 'takeItem');
+      // The reveal tells the news, so the toast about the freed Pegasus is left unsaid
+      hushMessages = freesPegasus;
+      try {
+        processChestItems(values);
+      } finally {
+        hushMessages = false;
+      }
+      if (freesPegasus) showTempleCleared(pegasusView(props.temple));
+    };
 
-    // Show an alert for an empty chest
-    const showEmptyChestAlert = async () => {
-      // Play chest opening sound effect
-      play$fx('openChest');
+    const leaveChest = () => {
+      isChestOpen.value = false;
+    };
 
-
-      const alert = await alertController.create({
-        header: 'Chest is empty!',
-        buttons: [
-          {
-            text: 'Ok',
-            role: 'cancel',
-            handler: () => {
-              if (typeof play$fx === 'function') {
-                play$fx('yes');
-              }
-            },
-          },
-        ],
-      });
-
-      await alert.present();
+    // An empty chest opens the same way, with nothing inside
+    const showEmptyChest = () => {
+      chestLootShown.value = [];
+      isChestOpen.value = true;
     };
 
     // Set up initial background position
@@ -725,6 +901,24 @@ export default defineComponent({
       templeElement,
       isDoorLocked,
       showRoomActions,
+      isChestOpen,
+      chestLootShown,
+      takeChestLoot,
+      leaveChest,
+      choiceReveal,
+      choiceRevealKey,
+      chooseReveal,
+      leaveReveal,
+      isDoorOpen,
+      doorShown,
+      doorResult,
+      unlockShownDoor,
+      finishShownDoor,
+      isPegasusRevealOpen,
+      pegasusShown,
+      pegasusReward,
+      pegasusLevelUp,
+      finishTempleCleared,
       getBgImage,
       validRoomCoords,
       templeName,
@@ -732,6 +926,7 @@ export default defineComponent({
       updateBg,
 
       // Tile dimensions for grid
+      gameArea,
       tileWidth,
       tileHeight,
 
@@ -750,7 +945,9 @@ export default defineComponent({
       openEquipment,
       templeShortName,
       useHand,
-      isShaking
+      isShaking,
+      showVoxelMonster,
+      activeMonster
     };
   },
   computed: {

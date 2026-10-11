@@ -92,6 +92,16 @@ export interface RoomOutcome {
   defeated?: boolean;
   /** The hero is in another room (or floor) now: the screen runs the entry check for it */
   moved?: boolean;
+  /** The temple was just cleared: the screen celebrates with this reward before the hero walks out (the toast stays unsaid) */
+  cleared?: ClearedReward;
+}
+
+/** What the temple paid for being cleared: the coins as paid (with the hero's bonuses), and whether the XP levelled them up. */
+export interface ClearedReward {
+  xp: number;
+  gp: number;
+  ap: number;
+  levelUp: boolean;
 }
 
 export interface RoomAction {
@@ -104,6 +114,8 @@ export interface RoomSheet {
   subHeader?: string;
   /** The room's own actions; the screen adds Cancel */
   actions: RoomAction[];
+  /** An encounter's first beast (a Bestiary id): the screen looks up its picture and name for the reveal */
+  beastId?: string;
 }
 
 // --- helpers ---------------------------------------------------------------------------------------
@@ -177,7 +189,7 @@ export const readGold = (userId: string): number => {
  * Ninja +25%) and trained awareness on top (docs/Stats-Contract.md). Returns the coins actually paid, for
  * the message.
  */
-const earnGold = (userId: string, amount: number): number => {
+export const earnGold = (userId: string, amount: number): number => {
   const store = useUserStore();
   const gp = heroGold(amount, store.getUserById(userId));
   // The wallet moves before updateUserGP's first await; the save is not waited for
@@ -557,6 +569,13 @@ const spring = (
 
 const spent = (ctx: RoomContext, topic: string): boolean => hasHappened(roomKey(ctx, topic));
 
+/** What a room with a beast in it says when the hero steps up to it; the beast's own name is the line under it. */
+const ENCOUNTER_LINES: Record<string, string> = {
+  monster: 'A Monster approaches!',
+  miniboss: 'A fierce foe blocks the way!',
+  boss: 'A Powerful Boss appears!',
+};
+
 /**
  * The action sheet for a room: a header in the temple's voice and the room's own actions.
  * Rooms with nothing to do (or nothing left to do) answer with no actions.
@@ -685,9 +704,12 @@ export const roomActions = (room: Room | undefined, ctx: RoomContext): RoomSheet
             : [act('Search the room', () => hunt(ctx, 'search', 1 / 2, 2, 8, (gp) => `You found ${gp} GP in the mess.`, () => 'Nothing but the smell.'))]
         );
       }
-      return sheet(kind === 'boss' ? 'A Powerful Boss appears!' : 'A Monster approaches!', [
-        act('Fight', () => ({ intent: 'fight' })),
-      ]);
+      const beasts = room.content?.beasts;
+      const beastId = Array.isArray(beasts) && beasts.length > 0 ? String(beasts[0]) : undefined;
+      return {
+        ...sheet(ENCOUNTER_LINES[kind] ?? ENCOUNTER_LINES.monster, [act('Fight', () => ({ intent: 'fight' }))]),
+        beastId,
+      };
     }
 
     case 'stairs-up':
@@ -767,6 +789,7 @@ const openGate = (room: Room, ctx: RoomContext): RoomOutcome => {
     message: `The gate swings wide. Temple cleared! +${reward.xp} XP, +${paidGp} GP, +${reward.ap} AP${levelUp ? '. Level up!' : ''}`,
     sound: SFX.secret,
     intent: 'leave',
+    cleared: { xp: reward.xp, gp: paidGp, ap: reward.ap, levelUp },
   };
 };
 

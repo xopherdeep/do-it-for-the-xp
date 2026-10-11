@@ -165,6 +165,57 @@ describe("TempleChoiceReveal", () => {
     });
   });
 
+  describe("the picture", () => {
+    const sheet = { kind: "sheet", title: "A Monster approaches!", subtitle: "Dustbunny", choices: [{ id: "0", label: "Fight" }] };
+    const art = { src: "/assets/images/beasts/074.png", alt: "Dustbunny", frame: "beast" };
+
+    it("shows the beast above the title from the moment the reveal opens, with its name as the alt", () => {
+      const reveal = show({ ...sheet, art });
+      const picture = reveal.get('[data-cy="choice-art"] img');
+      expect(picture.attributes("src")).toBe(art.src);
+      expect(picture.attributes("alt")).toBe("Dustbunny");
+      expect(reveal.get('[data-cy="choice-art"]').classes()).toContain("frame-beast");
+      // Inside the panel and before the title, so it reads first
+      const panel = reveal.get(".choice-reveal__panel").element;
+      expect(panel.firstElementChild?.getAttribute("data-cy")).toBe("choice-art");
+      // Fight stays the one action, with the cancel button last
+      expect(reveal.findAll(".choice-row").map((item) => item.text())).toEqual(["Fight"]);
+      const buttons = reveal.findAll("button");
+      expect(buttons[buttons.length - 1].attributes("data-cy")).toBe("choice-leave");
+    });
+
+    it("draws no picture without art", () => {
+      const reveal = show(sheet);
+      expect(reveal.find('[data-cy="choice-art"]').exists()).toBe(false);
+      expect(reveal.find("img").exists()).toBe(false);
+    });
+
+    it("draws no picture for art with no source", () => {
+      const reveal = show({ ...sheet, art: { src: "", alt: "Nobody" } });
+      expect(reveal.find("img").exists()).toBe(false);
+    });
+
+    it("takes the room frame when it is asked for", () => {
+      const reveal = show({ ...sheet, art: { ...art, frame: "room" } });
+      expect(reveal.get('[data-cy="choice-art"]').classes()).toContain("frame-room");
+    });
+
+    it("drops a picture that fails to load instead of leaving a broken image, and tries again for a new one", async () => {
+      const reveal = show({ ...sheet, art });
+      await reveal.get("img").trigger("error");
+      expect(reveal.find("img").exists()).toBe(false);
+
+      await reveal.setProps({ art: { ...art, src: "/assets/images/beasts/001.png", alt: "Slime" } });
+      expect(reveal.get("img").attributes("alt")).toBe("Slime");
+    });
+
+    it("keeps the actions working under the picture", async () => {
+      const reveal = show({ ...sheet, art });
+      await row(reveal, "0").trigger("click");
+      expect(reveal.emitted("choose")).toEqual([["0"]]);
+    });
+  });
+
   describe("leaving", () => {
     it.each([["riddle"], ["shop"], ["sheet"]])("emits leave from the cancel button in a %s", async (kind) => {
       const reveal = show({ kind, choices: kind === "shop" ? wares : riddleChoices });

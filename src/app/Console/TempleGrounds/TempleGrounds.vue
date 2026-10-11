@@ -8,11 +8,6 @@
             {{ playerKeys }}
           </ion-button>
         </ion-buttons>
-        <!-- <ion-buttons slot="start">
-          <ion-back-button :default-href="`/my-portal/${userId}/home-town`"></ion-back-button>
-          <i class="fad fa-2x fa-place-of-worship" />
-        </ion-buttons> -->
-        <!-- <ion-title v-html="templeName" /> -->
         <ion-buttons slot="start">
 
           <ion-button
@@ -48,6 +43,7 @@
       </ion-toolbar>
     </ion-header>
     <ion-content
+      ref="gameArea"
       :style="{
         overflow: 'hidden',
   position: 'relative'
@@ -104,7 +100,16 @@
         </template>
       </div>
 
+      <!-- 3D Voxel Monster roaming in the room -->
+      <xp-monster-model
+        v-if="showVoxelMonster"
+        :monster-name="activeMonster.name"
+        :avatar-src="activeMonster.avatar"
+        @click="showRoomActions"
+      />
+
       <ion-fab
+        v-if="!showVoxelMonster"
         vertical="center"
         horizontal="center"
         id="room-action"
@@ -130,7 +135,7 @@
         horizontal="start"
         v-if="hasMap"
       >
-        <ion-fab-button @click="openMap">
+        <ion-fab-button class="temple-map-fab" @click="openMap">
           <i
             class="fad fa-2x"
             :class="{ 'fa-map': !hasCompass, 'fa-map-marked': hasCompass }"
@@ -146,7 +151,10 @@
             <div class="temple-map__title">
               <span class="temple-map__name">{{ templeName }}</span>
               <span class="temple-map__floor">{{ currentLevel }}</span>
-              <i class="fad fa-compass temple-map__rose" aria-hidden="true"></i>
+              <!-- The rose sits where a modal's X sits: it closes the map -->
+              <button type="button" class="temple-map__rose-btn" aria-label="Close the map" @click="closeMap">
+                <i class="fad fa-compass temple-map__rose" aria-hidden="true"></i>
+              </button>
             </div>
             <ion-grid class="temple-map__grid">
               <ion-row
@@ -318,6 +326,45 @@
       @close="isEquipmentOpen = false" @open-pegasus-modal="isPegasusOpen = true" />
     <user-profile-modal :is-open="isProfileOpen" :user="user" @close="isProfileOpen = false" />
     <xp-world-map-modal :is-open="isPegasusOpen" @close="isPegasusOpen = false" />
+
+    <!-- Opening a chest: the lid flies open and the loot rises out of it -->
+    <temple-chest-reveal :open="isChestOpen" :loot="chestLootShown" @take="takeChestLoot" @leave="leaveChest" />
+
+    <!-- The riddle on the wall, the shopkeeper's wares and a room's actions, in the same pixel style -->
+    <temple-choice-reveal
+      v-if="choiceReveal"
+      :key="choiceRevealKey"
+      :open="choiceReveal.open"
+      :kind="choiceReveal.kind"
+      :title="choiceReveal.title"
+      :subtitle="choiceReveal.subtitle"
+      :body="choiceReveal.body"
+      :choices="choiceReveal.choices"
+      :cancel-label="choiceReveal.cancelLabel"
+      :art="choiceReveal.art"
+      @choose="chooseReveal"
+      @leave="leaveReveal"
+    />
+
+    <!-- A locked door close up: the key goes in, the lock drops and the doors swing open -->
+    <temple-door-reveal
+      :open="isDoorOpen"
+      :door="doorShown"
+      :element="templeElement"
+      :result="doorResult"
+      @unlock="unlockShownDoor"
+      @leave="isDoorOpen = false"
+      @done="finishShownDoor"
+    />
+
+    <!-- The temple is cleared: the egg cracks, the Pegasus is free and the reward counts up; Fly home walks out -->
+    <temple-pegasus-reveal
+      :open="isPegasusRevealOpen"
+      :pegasus="pegasusShown"
+      :reward="pegasusReward"
+      :level-up="pegasusLevelUp"
+      @done="finishTempleCleared"
+    />
   </ion-page>
 </template>
 <script lang="ts" src="./TempleGrounds.ts" />

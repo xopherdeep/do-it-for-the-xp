@@ -31,6 +31,33 @@ export const PEGASI: readonly Pegasus[] = [
   { index: 8, name: 'Umbra', world: 'moon' },
 ];
 
+/** How a Pegasus looks and what it is called on screen (the order of `PEGASI` and of `stats.pegasi`). */
+export interface PegasusLook {
+  id: string;
+  color: string;
+  secondaryColor: string;
+  name: string;
+  /** The temple's name as the world map says it */
+  temple: string;
+  desc: string;
+}
+
+/**
+ * The nine Pegasi's colours and lore, keyed by index like `PEGASI`. It is the table XpWorldMapModal draws its eggs
+ * from, so the temple's own celebration paints the same Pegasus in the same colours.
+ */
+export const PEGASUS_LOOK: readonly PegasusLook[] = [
+  { id: 'ventus', color: '#f1f2f6', secondaryColor: '#2f3542', name: 'Ventus', temple: 'Cloud Temple', desc: 'The swift winds of change. Soaring high above the troubles.' },
+  { id: 'ignis', color: '#ff4757', secondaryColor: '#f1c40f', name: 'Ignis', temple: 'Fire Temple', desc: 'The burning spirit of passion. Rescued from the ashes of the Red Dragon.' },
+  { id: 'sol', color: '#ffa502', secondaryColor: '#ff6b81', name: 'Sol', temple: 'Sun Temple', desc: 'The radiant light of hope. Its warmth melts even the coldest despair.' },
+  { id: 'aura', color: '#badc58', secondaryColor: '#ffffff', name: 'Aura', temple: 'Plains', desc: 'The spirit of new beginnings, wandering the grassy fields.' },
+  { id: 'terra', color: '#2ed573', secondaryColor: '#2f3542', name: 'Terra', temple: 'Forest Temple', desc: 'The unshakeable foundation. Grounded and strong against all odds.' },
+  { id: 'glacie', color: '#00d2d3', secondaryColor: '#5352ed', name: 'Glacie', temple: 'Frozen Temple', desc: 'The calm clarity of mind. Found deep within the cryo-chambers.' },
+  { id: 'aqua', color: '#3742fa', secondaryColor: '#7bed9f', name: 'Aqua', temple: 'Water Temple', desc: 'The healing flow. Cleanses the spirit with pure waters.' },
+  { id: 'venenum', color: '#8e44ad', secondaryColor: '#badc58', name: 'Venenum', temple: 'Swamp Temple', desc: 'The shadow that protects. Lurking in the mist to guard the weak.' },
+  { id: 'umbra', color: '#130f40', secondaryColor: '#ffffff', name: 'Umbra', temple: 'Moon Temple', desc: 'The mysterious guide of dreams. Sees what is hidden in the dark.' },
+];
+
 /** The other names the screens use for a world */
 const WORLD_ALIASES: Record<string, string> = { sands: 'desert', tundra: 'ice', 'the-moon': 'moon' };
 
@@ -43,6 +70,23 @@ export const pegasusOfWorld = (world: string): Pegasus | undefined => {
 export const pegasusOfTemple = (templeId: string): Pegasus | undefined => {
   const world = TEMPLE_METADATA[templeId]?.world;
   return world ? pegasusOfWorld(world) : undefined;
+};
+
+/** What the temple's cleared celebration needs to draw a Pegasus: its colours, its name and where it was freed. */
+export interface PegasusView {
+  name: string;
+  color: string;
+  secondaryColor: string;
+  world: string;
+  temple: string;
+}
+
+/** The Pegasus a temple keeps as the celebration draws it; none for a temple that keeps no Pegasus. */
+export const pegasusView = (templeId: string): PegasusView | null => {
+  const pegasus = pegasusOfTemple(templeId);
+  const look = pegasus ? PEGASUS_LOOK[pegasus.index] : undefined;
+  if (!pegasus || !look) return null;
+  return { name: pegasus.name, color: look.color, secondaryColor: look.secondaryColor, world: pegasus.world, temple: look.temple };
 };
 
 /** Only the wind temple's whistle is the Wind Whistle the hero can equip. */
