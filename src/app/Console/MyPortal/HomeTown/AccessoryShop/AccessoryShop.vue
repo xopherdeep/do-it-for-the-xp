@@ -137,12 +137,15 @@
                   <ion-row>
                     <ion-col size="6">
                       <ion-img
-                        v-if="item.image"
-                        :src="item.image"
+                        v-if="item.photo"
+                        :src="item.photo"
                         :alt="item.name"
                         class="featured-media"
                       ></ion-img>
-                      <i v-else class="fad fa-gift fa-5x shop-item-placeholder" />
+                      <!-- No photo: the item's own duotone icon in its colours, or a gift when it has none -->
+                      <span v-else class="icon-colors shop-item-icon" :class="{ 'is-placeholder': !item.icon }">
+                        <i :class="[itemIconClass(item.icon), 'fa-5x']" />
+                      </span>
                     </ion-col>
                     <ion-col>
                       <ion-card-content>
@@ -200,12 +203,15 @@
               <ion-card-title>{{ item.name }}</ion-card-title>
               <ion-card-content class="ion-no-margin ion-no-padding">
                 <ion-img
-                  v-if="item.image"
-                  :src="item.image"
+                  v-if="item.photo"
+                  :src="item.photo"
                   :alt="item.name"
                   class="featured-media"
                 ></ion-img>
-                <i v-else class="fad fa-gift fa-5x shop-item-placeholder" />
+                <!-- No photo: the item's own duotone icon in its colours, or a gift when it has none -->
+                <span v-else class="icon-colors shop-item-icon" :class="{ 'is-placeholder': !item.icon }">
+                  <i :class="[itemIconClass(item.icon), 'fa-5x']" />
+                </span>
               </ion-card-content>
               <ion-button
                 size="large"

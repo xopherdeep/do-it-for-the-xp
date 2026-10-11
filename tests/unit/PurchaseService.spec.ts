@@ -457,20 +457,27 @@ describe("stockShelf", () => {
     expect(stockShelf([slot("a")], [accessory({ id: "a", availableToMembers: [] })], "hero-9", thursday)).toHaveLength(1);
   });
 
-  it("carries the name, description and picture to show", () => {
-    const [withImage, withIcon, bare] = stockShelf(
+  // The catalogue's icon is a Font Awesome name ("film"), not a picture: it must never end up as an image address
+  it("carries the name, description, photo and icon to show, each in its own field", () => {
+    const [withPhoto, withIcon, bare] = stockShelf(
       [slot("a"), slot("b"), slot("c")],
       [
-        accessory({ id: "a", imageUrl: "https://example.com/a.png", icon: "icon-a.png" }),
-        accessory({ id: "b", imageUrl: "", icon: "icon-b.png" }),
+        accessory({ id: "a", imageUrl: "https://example.com/a.png", icon: "cubes" }),
+        accessory({ id: "b", imageUrl: "", icon: "film" }),
         accessory({ id: "c", name: "", description: undefined }),
       ],
       "hero-1",
       thursday
     );
 
-    expect(withImage).toMatchObject({ name: "Lego Set", description: "A big box of bricks", image: "https://example.com/a.png" });
-    expect(withIcon.image).toBe("icon-b.png");
-    expect(bare).toMatchObject({ name: "Mystery item", description: "", image: "" });
+    expect(withPhoto).toMatchObject({
+      name: "Lego Set",
+      description: "A big box of bricks",
+      photo: "https://example.com/a.png",
+      icon: "cubes",
+    });
+    expect(withIcon).toMatchObject({ photo: "", icon: "film" });
+    expect(bare).toMatchObject({ name: "Mystery item", description: "", photo: "", icon: "" });
+    expect(withIcon).not.toHaveProperty("image");
   });
 });

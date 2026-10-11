@@ -117,11 +117,14 @@
   }
 }
 
-.shop-item-placeholder {
+.shop-item-icon {
   display: block;
   margin: 0.5em auto;
   text-align: center;
-  opacity: 0.6;
+
+  &.is-placeholder {
+    opacity: 0.6;
+  }
 }
 
 // The wallet the shop itself sells: one card above the Game Master's shelf. Greyed when it's not for sale today.

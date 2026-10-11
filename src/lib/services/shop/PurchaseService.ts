@@ -60,7 +60,10 @@ export type Buyer = string | number | { id: string | number };
 export interface ShelfItem extends PurchasableItem {
   id: string;
   description: string;
-  image: string;
+  /** The Game Master's uploaded picture (an address), or "" */
+  photo: string;
+  /** Font Awesome duotone icon name ("film") or class ("fad fa-film"), or "": never an image address */
+  icon: string;
 }
 
 /**
@@ -97,7 +100,8 @@ export const stockShelf = (
       name: accessory.name || "Mystery item",
       description: accessory.description || "",
       price,
-      image: accessory.imageUrl || accessory.icon || "",
+      photo: accessory.imageUrl || "",
+      icon: accessory.icon || "",
     });
   }
   return shelf;

@@ -320,6 +320,12 @@ export default defineComponent({
     const heroId = computed(() => String(props.userId || userStore.currentUser.id || ""));
     const wallet = computed(() => Number(userStore.users[heroId.value]?.stats?.gp?.wallet) || 0);
     const canAfford = (price: number) => wallet.value >= price;
+    // The catalogue keeps a bare Font Awesome name ("film"); a full class ("fad fa-film") is honoured as given
+    const itemIconClass = (icon: string): string => {
+      if (!icon) return "fad fa-gift";
+      const isFullClass = icon.includes("fa-");
+      return isFullClass ? icon : `fad fa-${icon}`;
+    };
     // Null at shops that sell no wallet (Home Town, the Swamps, the Tundra, the Clouds)
     const walletWare = computed(() => {
       const stats = userStore.users[heroId.value]?.stats;
@@ -446,6 +452,7 @@ export default defineComponent({
       heroId,
       wallet,
       canAfford,
+      itemIconClass,
       walletWare,
       shopRecord,
       isOpen,
