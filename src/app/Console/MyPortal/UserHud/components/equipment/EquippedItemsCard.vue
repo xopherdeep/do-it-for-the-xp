@@ -36,7 +36,12 @@
 
       <!-- CENTER: Class Icon -->
       <div class="loadout-center">
-        <div class="class-icon-wrapper" @click="$emit('change-class')">
+        <div
+          class="class-icon-wrapper"
+          :class="{ 'is-static': readonly }"
+          :data-cy="readonly ? undefined : 'change-class'"
+          @click="changeClass"
+        >
           <i class="fad fa-3x" :class="classIcon"></i>
         </div>
       </div>
@@ -108,6 +113,11 @@
         type: Number,
         default: 2,
       },
+      /** The bag in battle mode: hands can be tapped, but nothing drops on them and the class stays */
+      readonly: {
+        type: Boolean,
+        default: false,
+      },
     },
     emits: ["equip", "select-item", "change-class"],
     setup(props) {
@@ -163,10 +173,14 @@
         });
       },
       allowDrop(event: DragEvent) {
-        event.preventDefault();
+        if (!this.readonly) event.preventDefault();
+      },
+      changeClass() {
+        if (!this.readonly) this.$emit("change-class");
       },
       async drop(event: DragEvent, hand: string, index: number) {
         event.preventDefault();
+        if (this.readonly) return;
 
         if (index > 0) {
           const toast = await toastController.create({
@@ -319,10 +333,15 @@
           filter: drop-shadow(0 0 12px rgba(var(--ion-color-primary-rgb), 0.5));
         }
 
-        &:hover {
+        &:hover:not(.is-static) {
           border-color: var(--ion-color-primary);
           background: rgba(var(--ion-color-primary-rgb), 0.1);
           transform: scale(1.08);
+        }
+
+        // Read-only dock: the class is shown, not a button
+        &.is-static {
+          cursor: default;
         }
       }
     }

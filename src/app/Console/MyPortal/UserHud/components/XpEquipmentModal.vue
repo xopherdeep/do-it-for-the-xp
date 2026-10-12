@@ -31,6 +31,7 @@
               :equipped-items="equippedItemsArray"
               :locked-items="lockedItemsArray"
               :lock-hint="lockHint"
+              :no-drag="isBattle"
               @display-info="openItemInfo"
               @equip-item="equipItem"
             />
@@ -45,6 +46,7 @@
         :left-hand-items="equipmentOnLeft"
         :right-hand-items="equipmentOnRight"
         :job-class="user?.jobClass"
+        :readonly="isBattle"
         @equip="handleEquipRequest"
         @select-item="openItemInfo"
         @change-class="openClassSelector"
@@ -59,9 +61,12 @@
       :is-equipped="isSelectedItemEquipped"
       :left-hand-slots="leftHandSlots"
       :right-hand-slots="rightHandSlots"
+      :mode="mode"
+      :battle-card="selectedBattleCard"
       @close="closeItemInfo"
       @equip="handleEquipFromModal"
       @unequip="handleUnequipFromModal"
+      @use="useSelectedItem"
     />
 
     <!-- Class Codex: the full-screen class guide and picker -->
@@ -75,7 +80,7 @@
 </template>
 
 <script lang="ts">
-  import { defineComponent, ref, computed } from "vue";
+  import { defineComponent, ref, computed, watch, PropType } from "vue";
   import ionic from "@/lib/mixins/ionic";
   import { useEquipmentItems, EquipmentItem } from "./equipment/EquipmentItems";
   import EquipmentGrid from "./equipment/EquipmentGrid.vue";
@@ -87,6 +92,7 @@
   import { useUserStore } from "@/lib/store/stores/user";
   import { play$fx } from "@/assets/fx";
   import { isItemUnlocked, unlockHintOf } from "@/lib/services/quests/ItemEffects";
+  import type { BattleItemCard } from "@/lib/services/battle/BattleItems";
 
   export default defineComponent({
     name: "xp-equipment-modal",
@@ -110,8 +116,22 @@
         type: Object,
         default: () => ({}),
       },
+      // 'battle' is the Goods bag in a fight: Use instead of Equip, hands read-only
+      mode: {
+        type: String as PropType<"equip" | "battle">,
+        default: "equip",
+      },
+      // The fight page answers these, so the bag holds no battle rules
+      battleCard: {
+        type: Function as PropType<(item: EquipmentItem) => BattleItemCard | null>,
+        default: null,
+      },
+      opensDirectly: {
+        type: Function as PropType<(item: EquipmentItem) => boolean>,
+        default: () => false,
+      },
     },
-    emits: ["close", "equip-item", "open-pegasus-modal"],
+    emits: ["close", "equip-item", "open-pegasus-modal", "use-item"],
     mixins: [ionic],
     setup(props, { emit }) {
       const equipmentItems = useEquipmentItems({
@@ -131,6 +151,28 @@
       const leftHandSlots = ref<(EquipmentItem | null)[]>([null, null]);
       const rightHandSlots = ref<(EquipmentItem | null)[]>([null, null]);
       const equippedItems = ref(new Set<string>());
+
+      const isBattle = computed(() => props.mode === "battle");
+
+      // Equip mode keeps the hands it edits; battle mode only shows what the hero already holds
+      watch(
+        () => (isBattle.value ? (props.equipment as (EquipmentItem & { slotIndex?: number })[]) : null),
+        (held) => {
+          if (!held) return;
+          const hands: Record<string, (EquipmentItem | null)[]> = { left: [null, null], right: [null, null] };
+          equippedItems.value = new Set<string>();
+          held.forEach((entry) => {
+            const slots = hands[entry.hand ?? ""];
+            const index = entry.slotIndex ?? 0;
+            if (!slots || index > 1) return;
+            slots[index] = equipmentItems.specialItems.find((item) => item.faIcon === entry.faIcon) ?? entry;
+            equippedItems.value.add(entry.faIcon);
+          });
+          leftHandSlots.value = hands.left;
+          rightHandSlots.value = hands.right;
+        },
+        { immediate: true, deep: true }
+      );
 
       const equipmentOnLeft = computed(
         () =>
@@ -177,7 +219,14 @@
       };
 
       const openItemInfo = (item: EquipmentItem) => {
-        if (isLocked(item)) {
+        if (isBattle.value) {
+          // Bottles, Goods and the Book Of Spells open their own sheet on the fight page; a locked one
+          // opens its card instead, where the page says why it cannot be used
+          if (!isLocked(item) && props.opensDirectly(item)) {
+            emit("use-item", item);
+            return;
+          }
+        } else if (isLocked(item)) {
           void refuseLocked(item);
           return;
         }
@@ -187,6 +236,16 @@
 
       const closeItemInfo = () => {
         itemInfoOpen.value = false;
+      };
+
+      const selectedBattleCard = computed(() =>
+        isBattle.value && props.battleCard && selectedItem.value ? props.battleCard(selectedItem.value) : null
+      );
+
+      const useSelectedItem = () => {
+        if (!selectedItem.value) return;
+        emit("use-item", selectedItem.value);
+        closeItemInfo();
       };
 
       const handleEquipFromModal = async (
@@ -210,6 +269,7 @@
         hand?: string,
         index?: number
       ) => {
+        if (isBattle.value) return; // the hands are read-only in a fight
         if (item === null && !hand) return;
 
         if (item) {
@@ -354,8 +414,11 @@
         isSelectedItemEquipped,
         leftHandSlots,
         rightHandSlots,
+        isBattle,
+        selectedBattleCard,
         openItemInfo,
         closeItemInfo,
+        useSelectedItem,
         handleEquipFromModal,
         handleUnequipFromModal,
         handleEquipRequest,

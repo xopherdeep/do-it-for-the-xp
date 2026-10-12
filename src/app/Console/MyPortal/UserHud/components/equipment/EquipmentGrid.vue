@@ -8,7 +8,7 @@
           class="grid-item"
           :class="{ 'is-equipped': isItemEquipped(item.faIcon), 'is-locked': isItemLocked(item.faIcon) }"
           @click="$emit('display-info', item)"
-          :draggable="!isItemLocked(item.faIcon)"
+          :draggable="!isItemLocked(item.faIcon) && !noDrag"
           @dragstart="drag($event, item)"
         >
           <div class="item-inner">
@@ -53,12 +53,17 @@ export default defineComponent({
     lockHint: {
       type: Function as PropType<(item: EquipmentItem) => string>,
       default: () => ""
+    },
+    /** Tiles only tap (the bag in battle mode has no hands to drop them on) */
+    noDrag: {
+      type: Boolean,
+      default: false
     }
   },
   emits: ["display-info", "equip-item"],
   methods: {
     drag(event: DragEvent, item: EquipmentItem) {
-      if (this.isItemLocked(item.faIcon)) {
+      if (this.noDrag || this.isItemLocked(item.faIcon)) {
         event.preventDefault();
         return;
       }

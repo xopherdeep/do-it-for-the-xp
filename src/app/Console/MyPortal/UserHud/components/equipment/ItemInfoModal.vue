@@ -35,6 +35,7 @@
               <span class="value">{{ item.mpCost ? 'Ability' : 'Special' }}</span>
             </div>
             <div
+              v-if="!isBattle"
               class="meta-pill status"
               :class="{ equipped: isEquipped }"
             >
@@ -44,12 +45,30 @@
           </div>
         </div>
 
-        <div class="description-box">
+        <!-- The lore is for the equip card; in a fight the card's effect line is the truth -->
+        <div class="description-box" v-if="!isBattle">
           <p>{{ item.desc }}</p>
         </div>
       </div>
 
-      <div class="action-container">
+      <!-- Battle mode: what it does, what it costs and a Use button instead of the hand slots -->
+      <div class="action-container battle-card" v-if="isBattle">
+        <div class="battle-effect-row">
+          <p class="battle-effect" data-cy="item-effect">{{ battleCard?.effect }}</p>
+          <span class="mp-pill" data-cy="item-mp" v-if="battleCard && battleCard.mp > 0">{{ battleCard.mp }} MP</span>
+        </div>
+        <button
+          class="use-btn"
+          data-cy="item-use"
+          :disabled="!canUse"
+          @click.stop="handleUse"
+        >
+          Use
+        </button>
+        <p class="battle-reason" data-cy="item-reason" v-if="battleCard?.reason">{{ battleCard.reason }}</p>
+      </div>
+
+      <div class="action-container" v-else>
         <div class="slot-selection-row">
           <!-- LEFT SLOTS (L2, L1) -->
           <div class="hand-group left">
@@ -103,9 +122,10 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType, ref } from 'vue';
+import { computed, defineComponent, PropType, ref, watch } from 'vue';
 import { IonModal } from '@ionic/vue';
 import { EquipmentItem } from './EquipmentItems';
+import type { BattleItemCard } from '@/lib/services/battle/BattleItems';
 import { play$fx } from '@/assets/fx';
 import XpCloseButton from '@/components/atoms/CloseButton/XpCloseButton.vue';
 
@@ -133,11 +153,33 @@ export default defineComponent({
     rightHandSlots: {
       type: Array as PropType<(EquipmentItem | null)[]>,
       default: () => [null, null]
+    },
+    // 'battle' swaps the hand slots for the card's effect, MP and a Use button
+    mode: {
+      type: String as PropType<'equip' | 'battle'>,
+      default: 'equip'
+    },
+    battleCard: {
+      type: Object as PropType<BattleItemCard | null>,
+      default: null
     }
   },
-  emits: ['close', 'equip', 'unequip'],
+  emits: ['close', 'equip', 'unequip', 'use'],
   setup(props, { emit }) {
     const modal = ref<any>(null);
+    const isBattle = computed(() => props.mode === 'battle');
+    const canUse = computed(() => !!props.battleCard && !props.battleCard.reason);
+
+    // One tap uses the item: a second tap before the card closes does nothing. A new card (another item,
+    // or the same one opened again) starts fresh.
+    const busy = ref(false);
+    watch(() => props.item, () => { busy.value = false; });
+    watch(() => props.isOpen, (open) => { if (open) busy.value = false; });
+    const handleUse = () => {
+      if (busy.value || !canUse.value) return;
+      busy.value = true;
+      emit('use');
+    };
 
     const dismiss = async () => {
       play$fx('no');
@@ -172,6 +214,9 @@ export default defineComponent({
       handleEquipAt,
       isEquippedAt,
       getSlotIcon,
+      isBattle,
+      canUse,
+      handleUse,
       modal,
       dismiss
     };
@@ -442,6 +487,79 @@ export default defineComponent({
 
   .action-container {
     margin-top: 15px;
+  }
+
+  // Battle mode: effect line, MP pill, reason and the Use button
+  .battle-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+
+    .battle-effect-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .battle-effect {
+      flex: 1;
+      margin: 0;
+      color: #fff;
+      font-size: 1.4rem;
+      line-height: 1.2;
+      font-family: 'Apple Kid', sans-serif;
+      text-align: left;
+    }
+
+    .mp-pill {
+      flex-shrink: 0;
+      padding: 8px 14px;
+      background: rgba(var(--ion-color-primary-rgb), 0.12);
+      border: 1px solid rgba(var(--ion-color-primary-rgb), 0.35);
+      border-radius: 12px;
+      color: var(--ion-color-primary);
+      font-family: 'StatusPlz', sans-serif;
+      font-size: 1rem;
+      font-weight: 900;
+      text-transform: uppercase;
+    }
+
+    .battle-reason {
+      margin: 0;
+      color: var(--ion-color-danger);
+      font-size: 1.2rem;
+      line-height: 1.2;
+      font-family: 'Apple Kid', sans-serif;
+      text-align: center;
+    }
+
+    .use-btn {
+      min-height: 48px;
+      width: 100%;
+      padding: 0 16px;
+      background: rgba(var(--ion-color-success-rgb), 0.15);
+      border: 1px solid var(--ion-color-success);
+      border-radius: 16px;
+      color: var(--ion-color-success);
+      font-family: 'StatusPlz', sans-serif;
+      font-size: 1.4rem;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: all 0.2s ease;
+
+      &:active:not(:disabled) {
+        transform: scale(0.97);
+      }
+
+      &:disabled {
+        background: rgba(0, 0, 0, 0.3);
+        border-color: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.3);
+        cursor: not-allowed;
+      }
+    }
   }
 
   .slot-selection-row {
