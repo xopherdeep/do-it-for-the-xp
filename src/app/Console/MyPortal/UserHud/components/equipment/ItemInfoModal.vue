@@ -179,7 +179,8 @@ export default defineComponent({
     watch(() => props.item, () => { busy.value = false; });
     watch(() => props.isOpen, (open) => { if (open) busy.value = false; });
     const handleUse = () => {
-      if (busy.value || !canUse.value) return;
+      const isUseBlocked = busy.value || !canUse.value;
+      if (isUseBlocked) return;
       busy.value = true;
       emit('use');
     };

@@ -136,21 +136,21 @@
 
       const handleDeposit = (data: any) => {
         const amount = Number(data.gp); // Ensure it's a number
-        if (amount && amount > 0) {
+        if (amount > 0) {
           emit("deposit", { gp: amount });
         }
       };
 
       const handleWithdraw = (data: any) => {
         const amount = Number(data.gp); // Ensure it's a number
-        if (amount && amount > 0) {
+        if (amount > 0) {
           emit("withdraw", { gp: amount });
         }
       };
 
       const handlePayDebt = (data: any) => {
         const amount = Number(data.gp); // Ensure it's a number
-        if (amount && amount > 0) {
+        if (amount > 0) {
           emit("payDebt", { gp: amount });
         }
       };

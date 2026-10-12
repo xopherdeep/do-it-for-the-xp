@@ -164,7 +164,8 @@
           held.forEach((entry) => {
             const slots = hands[entry.hand ?? ""];
             const index = entry.slotIndex ?? 0;
-            if (!slots || index > 1) return;
+            const hasNoFreeHandSlot = !slots || index > 1;
+            if (hasNoFreeHandSlot) return;
             slots[index] = equipmentItems.specialItems.find((item) => item.faIcon === entry.faIcon) ?? entry;
             equippedItems.value.add(entry.faIcon);
           });
@@ -222,7 +223,8 @@
         if (isBattle.value) {
           // Bottles, Goods and the Book Of Spells open their own sheet on the fight page; a locked one
           // opens its card instead, where the page says why it cannot be used
-          if (!isLocked(item) && props.opensDirectly(item)) {
+          const canUseDirectly = !isLocked(item) && props.opensDirectly(item);
+          if (canUseDirectly) {
             emit("use-item", item);
             return;
           }
@@ -282,10 +284,12 @@
         index?: number
       ) => {
         if (isBattle.value) return; // the hands are read-only in a fight
-        if (item === null && !hand) return;
+        const isUnequipWithoutHand = item === null && !hand;
+        if (isUnequipWithoutHand) return;
 
         if (item) {
-          if (isLocked(item) && !equippedItems.value.has(item.faIcon)) {
+          const shouldRefuseLockedItem = isLocked(item) && !equippedItems.value.has(item.faIcon);
+          if (shouldRefuseLockedItem) {
             await refuseLocked(item);
             return;
           }
@@ -302,7 +306,8 @@
             return;
           }
 
-          if (hand !== undefined && index !== undefined) {
+          const isHandSlotChosen = hand !== undefined && index !== undefined;
+          if (isHandSlotChosen) {
             if (index === 0) {
               await performEquip(item, hand, index);
             }

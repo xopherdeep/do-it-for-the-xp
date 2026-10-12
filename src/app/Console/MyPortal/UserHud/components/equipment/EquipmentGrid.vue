@@ -63,7 +63,8 @@ export default defineComponent({
   emits: ["display-info", "equip-item"],
   methods: {
     drag(event: DragEvent, item: EquipmentItem) {
-      if (this.noDrag || this.isItemLocked(item.faIcon)) {
+      const isDragBlocked = this.noDrag || this.isItemLocked(item.faIcon);
+      if (isDragBlocked) {
         event.preventDefault();
         return;
       }

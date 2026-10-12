@@ -34,7 +34,8 @@ export const useBattleAudio = () => {
   /** Plays one of a BGM slot's songs through the audio engine; false when the slot is empty or music is off. */
   const playSlot = (slot: string): boolean => {
     const tracks = bgm()[slot] || [];
-    if (!tracks.length || audioStore.bgm?.is_on === false) return false;
+    const isSlotSilent = !tracks.length || audioStore.bgm?.is_on === false;
+    if (isSlotSilent) return false;
     changeBGM(audioStore, { tracks, track: Math.floor(Math.random() * tracks.length), startDelay: 0 }, true);
     return true;
   };

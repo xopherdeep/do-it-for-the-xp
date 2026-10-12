@@ -215,7 +215,8 @@ export default defineComponent({
       return alert.present();
     },
     getFeaturedImg(item: any) {
-      if (item.localImage || item.imageUrl) {
+      const hasFeaturedImage = Boolean(item.localImage || item.imageUrl);
+      if (hasFeaturedImage) {
         return {
           src: item.localImage || item.imageUrl,
           alt: item.achievementName,

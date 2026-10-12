@@ -77,7 +77,8 @@ export default defineComponent({
         .toLowerCase();
       return abilities.value
         .filter((ability) => {
-          if (filter.value === "real-life" || filter.value === "in-game") return ability.type === filter.value;
+          const isTypeFilter = filter.value === "real-life" || filter.value === "in-game";
+          if (isTypeFilter) return ability.type === filter.value;
           if (filter.value === "unlocked") return Boolean(unlocks.value[ability.id]);
           if (filter.value === "locked") return !unlocks.value[ability.id];
           return true;
@@ -90,7 +91,8 @@ export default defineComponent({
     const casting = ref("");
 
     const cast = async (abilityId: string) => {
-      if (casting.value || !heroId.value) return;
+      const isCastBlocked = Boolean(casting.value) || !heroId.value;
+      if (isCastBlocked) return;
       const name = abilities.value.find((ability) => ability.id === abilityId)?.name ?? "Power";
       casting.value = abilityId;
       try {
@@ -114,7 +116,8 @@ export default defineComponent({
 
     const segmentChanged = (event: CustomEvent) => {
       const value = event.detail?.value as PowerFilter;
-      if (!FILTERS.includes(value) || value === filter.value) return;
+      const shouldIgnoreSegment = !FILTERS.includes(value) || value === filter.value;
+      if (shouldIgnoreSegment) return;
       filter.value = value;
       play$fx("cursor");
     };

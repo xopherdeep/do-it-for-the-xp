@@ -106,7 +106,8 @@ export default defineComponent({
       const hpGain = Math.max(0, hp.max - hp.now);
       const mpGain = Math.max(0, mp.max - mp.now);
 
-      if (hpGain <= 0 && mpGain <= 0) {
+      const isFullyRested = hpGain <= 0 && mpGain <= 0;
+      if (isFullyRested) {
         const toast = await toastController.create({
           message: "You are already fully rested!",
           duration: 2500,

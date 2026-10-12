@@ -235,7 +235,8 @@ export default defineComponent({
     // Experience Progress calculation
     const xpProgress = computed(() => {
       const stats = user.value?.stats;
-      if (!stats || !stats.xp) return 0;
+      const hasNoXp = !stats || !stats.xp;
+      if (hasNoXp) return 0;
 
       const now = stats.xp.now || stats.xp.current || 0;
       const next = stats.xp.next_level || stats.xp.max || 100;

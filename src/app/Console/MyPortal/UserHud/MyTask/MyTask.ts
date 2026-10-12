@@ -85,7 +85,8 @@ const dueTimeToday = (dueByTime = ""): Date | null => {
   const hours = clock ? Number(clock[1]) : stamp?.getHours();
   const minutes = clock ? Number(clock[2]) : stamp?.getMinutes();
   // Unset, unreadable (NaN) and out-of-range times all fail this check
-  if (hours === undefined || minutes === undefined || !(hours < 24 && minutes < 60)) return null;
+  const isClockUnreadable = hours === undefined || minutes === undefined || !(hours < 24 && minutes < 60);
+  if (isClockUnreadable) return null;
   return set(new Date(), { hours, minutes, seconds: 0, milliseconds: 0 });
 };
 
@@ -216,8 +217,11 @@ export default defineComponent({
     },
     // Flip-clock target: only while the quest is still open and today's due time is ahead
     deadline() {
-      if (this.isDone || !this.dueTime || this.dueTime <= new Date()) return null;
-      return format(this.dueTime, "yyyy-MM-dd HH:mm:ss");
+      if (this.isDone) return null;
+      const dueTime = this.dueTime;
+      const isDeadlineOver = !dueTime || dueTime <= new Date();
+      if (isDeadlineOver) return null;
+      return format(dueTime, "yyyy-MM-dd HH:mm:ss");
     },
     difficultyLabel() {
       const difficulty = Number(this.item?.difficulty);
@@ -226,7 +230,8 @@ export default defineComponent({
     // Weekday chips for daily and weekly quests, lit on the days the quest repeats
     weekDays() {
       const { basicSchedule, repeatOnDays = [] } = this.item || {};
-      if (basicSchedule !== "daily" && basicSchedule !== "weekly") return [];
+      const hasNoWeekdayChips = basicSchedule !== "daily" && basicSchedule !== "weekly";
+      if (hasNoWeekdayChips) return [];
       return DAY_TOKENS.map((token) => ({
         letter: token[0].toUpperCase(),
         active: basicSchedule === "daily" || repeatOnDays.includes(token),

@@ -78,7 +78,8 @@ const activeIndex = ref(0);
 const offset = computed(() => (props.walletWare ? 1 : 0));
 const walletNote = computed(() => {
   const ware = props.walletWare;
-  if (!ware || ware.status === "for-sale") return "";
+  const hasNoNoteToShow = !ware || ware.status === "for-sale";
+  if (hasNoNoteToShow) return "";
   return ware.status === "owned" ? "Owned" : ware.note;
 });
 
@@ -105,7 +106,8 @@ const pick = (index: number) => {
     swiperRef.value?.slideTo(index);
     return;
   }
-  if (props.walletWare && index === 0) {
+  const isWalletSlot = Boolean(props.walletWare) && index === 0;
+  if (isWalletSlot) {
     emit("buy-wallet");
     return;
   }

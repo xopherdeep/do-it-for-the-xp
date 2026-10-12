@@ -29,14 +29,16 @@ export const useBattleBackground = () => {
 
   /** A room-authored background beats whatever the beast would have chosen. */
   const lockLayers = (layers?: { bg1?: number; bg2?: number }) => {
-    if (!layers || (layers.bg1 === undefined && layers.bg2 === undefined)) return;
+    const hasNoRoomBackground = !layers || (layers.bg1 === undefined && layers.bg2 === undefined);
+    if (hasNoRoomBackground) return;
     if (layers.bg1 !== undefined) bg1.value = layers.bg1;
     if (layers.bg2 !== undefined) bg2.value = layers.bg2;
     locked = true;
   };
 
   const applyEnemy = async (enemy: Enemy | null) => {
-    if (enemy && !locked) {
+    const canUseBeastBackground = enemy !== null && !locked;
+    if (canUseBeastBackground) {
       if (enemy.bg1 !== undefined) bg1.value = enemy.bg1;
       if (enemy.bg2 !== undefined) bg2.value = enemy.bg2;
     }

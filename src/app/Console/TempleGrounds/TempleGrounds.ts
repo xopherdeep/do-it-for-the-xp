@@ -59,8 +59,11 @@ import { pickRoomBeast, standInMonster, templeElementFor } from '@/lib/services/
 const COMBAT_ROOM_TYPES = ['monster', 'miniboss', 'boss'];
 
 // Route params arrive as strings ("0" included). Only a complete, numeric x/y pair is a start position.
+const isBlankParam = (value: unknown): boolean => value === undefined || value === null || value === '';
+
 const toStartPosition = (x: unknown, y: unknown): [number, number] | undefined => {
-  if (x === undefined || x === null || x === '' || y === undefined || y === null || y === '') return undefined;
+  const isStartIncomplete = isBlankParam(x) || isBlankParam(y);
+  if (isStartIncomplete) return undefined;
   const col = Number(x);
   const row = Number(y);
   return Number.isInteger(col) && Number.isInteger(row) && col >= 0 && row >= 0 ? [row, col] : undefined;
@@ -250,7 +253,8 @@ export default defineComponent({
       const el = gameArea.value?.$el;
       const updateDimensions = () => {
         const box = el?.getBoundingClientRect();
-        if (box && box.height > 0) {
+        const isGameAreaMeasurable = box !== undefined && box.height > 0;
+        if (isGameAreaMeasurable) {
           tileWidth.value = box.width;
           tileHeight.value = box.height;
         }
@@ -279,7 +283,8 @@ export default defineComponent({
     resolveTempleMeta(props.temple);
     watch(() => props.temple, resolveTempleMeta);
     const templeName = computed(() => {
-      if (isGenerated.value && templeMeta.value?.name) return templeMeta.value.name;
+      const generatedName = isGenerated.value ? templeMeta.value?.name : undefined;
+      if (generatedName) return generatedName;
       return props.temple.replace(/-/g, ' ');
     });
 
@@ -398,7 +403,8 @@ export default defineComponent({
     const liveContext = (): { ctx: RoomContext; room: any } | null => {
       const state = templeSystem.getTempleState(props.temple);
       const room = templeSystem.getCurrentRoom(props.temple);
-      if (!state || !room || !progressHeroId) return null;
+      const hasNoLiveRoom = !state || !room || !progressHeroId;
+      if (hasNoLiveRoom) return null;
       return {
         room,
         ctx: {
@@ -518,9 +524,12 @@ export default defineComponent({
     const applyOutcome = async (outcome: RoomOutcome): Promise<void> => {
       // A cleared temple has its own reveal, with its own sounds and its own words: no toast, no sting
       const celebrating = Boolean(outcome.cleared);
-      if (outcome.sound && !celebrating) fx(outcome.sound);
+      const { sound, message } = outcome;
+      const shouldPlaySound = sound && !celebrating;
+      if (shouldPlaySound) fx(sound);
       if (outcome.shake) shake();
-      if (outcome.message && !celebrating) say(outcome.message);
+      const shouldShowToast = message && !celebrating;
+      if (shouldShowToast) say(message);
 
       if (outcome.defeated) {
         // Same as losing a battle: HP is already back, the game-over screen takes over
@@ -632,7 +641,8 @@ export default defineComponent({
         const room = currentRoom.value;
         const pos = currentPosition.value;
         const lvl = currentLevel.value;
-        if (!room || !COMBAT_ROOM_TYPES.includes(room.type) || isCombatRoomCleared.value) return undefined;
+        const hasNoBeastToShow = !room || !COMBAT_ROOM_TYPES.includes(room.type) || isCombatRoomCleared.value;
+        if (hasNoBeastToShow) return undefined;
         return `${lvl}:${pos[0]}:${pos[1]}:${room.content?.beasts?.[0] ?? ''}:${templeMeta.value?.element ?? ''}`;
       },
       async (roomKey) => {
@@ -657,7 +667,8 @@ export default defineComponent({
         }
 
         // A generated temple's element arrives with its metadata: the voxel waits for it rather than picking by the wrong element
-        if (isGenerated.value && !templeMeta.value) {
+        const isAwaitingTempleMeta = isGenerated.value && !templeMeta.value;
+        if (isAwaitingTempleMeta) {
           beastPending.value = true;
           return;
         }
@@ -667,11 +678,13 @@ export default defineComponent({
         beastPending.value = true;
         try {
           const beasts = await new BestiaryDb(beastStorage).getBeasts();
-          if (beasts && beasts.length > 0) {
+          const hasBeasts = beasts && beasts.length > 0;
+          if (hasBeasts) {
             const element = templeElement.value || 'fire';
             const chosen = pickRoomBeast(room, element, currentPosition.value[0], currentPosition.value[1], beasts);
 
-            if (chosen && chosen.name) {
+            const isBeastNamed = chosen !== null && Boolean(chosen.name);
+            if (isBeastNamed) {
               const src = chosen.imageUrl || chosen.localImage || (chosen.avatar ? bestiaryService.getAvatar(Number(chosen.avatar)) : '');
               if (currentRoom.value === room) {
                 roomBeast.value = {
@@ -757,7 +770,8 @@ export default defineComponent({
       const here = roomAt(row, col);
       const kind = (side: WallSide, r: number, c: number): ExitKind => {
         const there = roomAt(r, c);
-        if (!there || there.type === 'wall') return 'wall';
+        const isSolidStone = !there || there.type === 'wall';
+        if (isSolidStone) return 'wall';
         const door = templeSystem.doorKind(props.temple, [row, col], side);
         if (door === 'master') return 'master';
         // The way into the boss room is the Boss door or an open one: the boss room's fight seal is no small lock on it
@@ -835,7 +849,8 @@ export default defineComponent({
       }
 
       // Check if door is locked (the boss door counts, bar or no bar in front of it)
-      if (isDoorLocked(newRow, newCol) || templeSystem.doorKind(props.temple, [row, col], direction) === 'master') {
+      const isDoorShut = isDoorLocked(newRow, newCol) || templeSystem.doorKind(props.temple, [row, col], direction) === 'master';
+      if (isDoorShut) {
         showLockedDoor(direction);
         return;
       }

@@ -134,7 +134,7 @@ export default defineComponent({
     clickDeposit(data) {
       // Use new GPSystem to handle deposits
       const amount = Number(data.gp);
-      if (amount && amount > 0) {
+      if (amount > 0) {
         getGPService()
           .depositToSavings(this.userId, amount)
           .then(() => {
@@ -150,7 +150,7 @@ export default defineComponent({
     clickWithdraw(data) {
       // Use new GPSystem to handle withdrawals
       const amount = Number(data.gp);
-      if (amount && amount > 0) {
+      if (amount > 0) {
         getGPService()
           .withdrawFromSavings(this.userId, amount)
           .then(() => {
@@ -166,7 +166,7 @@ export default defineComponent({
     clickPayDebt(data) {
       // Use new GPSystem to handle debt payments
       const amount = Number(data.gp);
-      if (amount && amount > 0) {
+      if (amount > 0) {
         getGPService()
           .payDebtFromWallet(this.userId, amount)
           .then(() => {

@@ -95,13 +95,16 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
 
   const recordOutcome = async (rewards: QuestRewards) => {
     const quest = deps.encounter.value?.quest;
-    if (ctx.kind === "quest" && quest) {
+    const hasQuestToRecord = ctx.kind === "quest" && quest !== undefined;
+    if (hasQuestToRecord) {
       await recordBattleCompletion(quest, ctx.userId, rewards).catch((error) =>
         debug.error("Failed to record quest battle completion", error)
       );
     }
-    if (ctx.kind === "temple" && ctx.templeId && ctx.level && ctx.x !== undefined && ctx.y !== undefined) {
-      TempleSystem.getInstance().markRoomCleared(ctx.templeId, ctx.level, [ctx.y, ctx.x], ctx.userId);
+    const { templeId, level, x: col, y: row } = ctx;
+    const isTempleRoomWon = ctx.kind === "temple" && templeId && level && col !== undefined && row !== undefined;
+    if (isTempleRoomWon) {
+      TempleSystem.getInstance().markRoomCleared(templeId, level, [row, col], ctx.userId);
     }
   };
 
@@ -159,7 +162,8 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     // 1. Pay (or hold) first, celebrate after: nothing below can lose the loot.
     let levelUp: LevelUpInfo | null = null;
     let classLevelUp: ClassLevelUpInfo | null = null;
-    if (held && quest) {
+    const shouldHoldForApproval = held && quest !== undefined;
+    if (shouldHoldForApproval) {
       await holdOutcome(quest);
     } else {
       ({ levelUp, classLevelUp } = commitRewards(rewards));

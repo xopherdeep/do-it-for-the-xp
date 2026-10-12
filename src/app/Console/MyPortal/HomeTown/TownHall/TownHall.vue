@@ -393,24 +393,15 @@ export default defineComponent({
         // Process the posts to extract media URLs and category names
         const processedPosts = posts.map((post) => {
           // Extract featured media URL if available
-          if (
-            post._embedded &&
-            post._embedded["wp:featuredmedia"] &&
-            post._embedded["wp:featuredmedia"][0]
-          ) {
-            post.featured_media_url =
-              post._embedded["wp:featuredmedia"][0].source_url;
+          const featuredMedia = post._embedded?.["wp:featuredmedia"]?.[0];
+          if (featuredMedia) {
+            post.featured_media_url = featuredMedia.source_url;
           }
 
           // Extract category names if available
-          if (
-            post._embedded &&
-            post._embedded["wp:term"] &&
-            post._embedded["wp:term"][0]
-          ) {
-            post.categories_names = post._embedded["wp:term"][0].map(
-              (term) => term.name
-            );
+          const categoryTerms = post._embedded?.["wp:term"]?.[0];
+          if (categoryTerms) {
+            post.categories_names = categoryTerms.map((term) => term.name);
           }
 
           return post;

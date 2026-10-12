@@ -168,7 +168,8 @@ export default defineComponent({
     watch(
       userId,
       (id) => {
-        if (id !== undefined && id !== null && id !== 0 && id !== "") void notificationsStore.load(String(id));
+        const hasHeroId = id !== undefined && id !== null && id !== 0 && id !== "";
+        if (hasHeroId) void notificationsStore.load(String(id));
       },
       { immediate: true }
     );

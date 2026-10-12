@@ -88,7 +88,8 @@ const useRollingNumber = (target: () => number) => {
   watch(
     target,
     (goal) => {
-      if (shown.value !== goal && timer === undefined) timer = window.setInterval(step, ROLL_STEP_MS);
+      const needsRoll = shown.value !== goal && timer === undefined;
+      if (needsRoll) timer = window.setInterval(step, ROLL_STEP_MS);
     },
     { flush: "sync" }
   );

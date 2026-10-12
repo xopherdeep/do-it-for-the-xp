@@ -317,12 +317,15 @@ export default defineComponent({
       isAvatarSelectorOpen.value = true;
     };
 
+    // True once the hero this modal shows is held by the store, so edits have somewhere to land
+    const isHeroInStore = () => Boolean(props.user?.id && userStore.users[props.user.id]);
+
     const onAvatarSelected = (index: number) => {
       const paddedIndex = index.toString().padStart(3, "0");
       const newAvatar = `${paddedIndex}-gamer`;
 
       // Update user in store directly via the users reactive object
-      if (props.user?.id && userStore.users[props.user.id]) {
+      if (isHeroInStore()) {
         userStore.users[props.user.id].avatar = newAvatar;
       }
     };
@@ -388,7 +391,7 @@ export default defineComponent({
             void toastLockedClass(val);
             return;
           }
-          if (props.user?.id && userStore.users[props.user.id]) {
+          if (isHeroInStore()) {
             userStore.users[props.user.id].jobClass = val;
             userStore.persistUser(props.user.id);
           }
@@ -407,7 +410,7 @@ export default defineComponent({
         height: 'auto',
         selectedValue: props.user?.favoriteFood || 'None',
         onSelect: (val: string) => {
-          if (props.user?.id && userStore.users[props.user.id]) {
+          if (isHeroInStore()) {
             userStore.users[props.user.id].favoriteFood = val;
           }
           statSelector.value.isOpen = false;
@@ -471,7 +474,8 @@ export default defineComponent({
 
     // Helper to get Class Level
     const getClassLevel = (className: string) => {
-      if (!className || !props.user?.stats?.classes) return 1;
+      const hasNoClassLevels = !className || !props.user?.stats?.classes;
+      if (hasNoClassLevels) return 1;
       return props.user.stats.classes[className]?.level || 1;
     };
 
@@ -525,7 +529,8 @@ export default defineComponent({
     // GP Progress calculation (wallet vs max)
     const gpProgress = computed(() => {
       const stats = props.user?.stats;
-      if (!stats || !stats.gp) return 0;
+      const hasNoWallet = !stats || !stats.gp;
+      if (hasNoWallet) return 0;
 
       const wallet = stats.gp.wallet || 0;
       const max = stats.gp.max || 1000;
@@ -558,7 +563,8 @@ export default defineComponent({
     const isStatBoosted = (statName: string): boolean => {
       if (!props.user?.jobClass) return false;
       const jobClass = JOB_CLASS_OPTIONS.find(j => j.name === props.user.jobClass);
-      if (!jobClass || !jobClass.statBoosts) return false;
+      const hasNoStatBoosts = !jobClass || !jobClass.statBoosts;
+      if (hasNoStatBoosts) return false;
       return jobClass.statBoosts.some(boost => boost.stat === statName);
     };
 

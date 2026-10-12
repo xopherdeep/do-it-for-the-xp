@@ -103,7 +103,8 @@ export default defineComponent({
       if (this.isUserProfileModalOpen) return "profile";
       const currentRouteName = String(this.route?.name || "");
       const currentRoutePath = String(this.route?.path || "");
-      if (currentRouteName === "my-party" || currentRoutePath.endsWith("/my-party")) return "party";
+      const isPartyRoute = currentRouteName === "my-party" || currentRoutePath.endsWith("/my-party");
+      if (isPartyRoute) return "party";
       return "area";
     },
   },
@@ -382,14 +383,16 @@ export default defineComponent({
       }
 
       for (const world of Object.values(worlds)) {
-        if (world.link && (currentPath === world.link || currentPath.endsWith(world.link))) {
+        const isCurrentWorld = Boolean(world.link) && (currentPath === world.link || currentPath.endsWith(world.link));
+        if (isCurrentWorld) {
           return world;
         }
       }
 
       const pathSegments = currentPath.split("/").filter(Boolean);
       const lastSegment = pathSegments[pathSegments.length - 1];
-      if (lastSegment && worlds[lastSegment]) {
+      const isWorldSegment = Boolean(lastSegment && worlds[lastSegment]);
+      if (isWorldSegment) {
         return worlds[lastSegment];
       }
 

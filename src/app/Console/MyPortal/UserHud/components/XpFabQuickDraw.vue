@@ -196,7 +196,8 @@ export default defineComponent({
         return;
       }
 
-      if (item.click && typeof item.click === "function") {
+      const hasClickHandler = typeof item.click === "function";
+      if (hasClickHandler) {
         item.click();
       } else if (item.mpCost) {
         this.play$fx("spell");

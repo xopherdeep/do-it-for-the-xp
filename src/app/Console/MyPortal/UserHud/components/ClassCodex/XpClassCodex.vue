@@ -272,7 +272,8 @@
     await nextTick();
     const strip = rail.value;
     const crest = strip?.querySelector<HTMLElement>(`[data-class="${shown.value?.name}"]`);
-    if (!strip || !crest) return;
+    const hasNothingToCenter = !strip || !crest;
+    if (hasNothingToCenter) return;
     strip.scrollTo({ left: crest.offsetLeft - (strip.clientWidth - crest.offsetWidth) / 2, behavior: smooth ? "smooth" : "auto" });
   };
 
@@ -308,7 +309,8 @@
   });
 
   const confirm = () => {
-    if (confirmDisabled.value || !shown.value) return;
+    const isConfirmBlocked = confirmDisabled.value || !shown.value;
+    if (isConfirmBlocked) return;
     play$fx("select");
     emit("chosen", shown.value.name);
     emit("close");

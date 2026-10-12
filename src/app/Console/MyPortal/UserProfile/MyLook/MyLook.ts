@@ -55,7 +55,8 @@ export default defineComponent({
     };
 
     const save = async () => {
-      if (saving.value || !user.value) return;
+      const isSaveBlocked = saving.value || !user.value;
+      if (isSaveBlocked) return;
       saving.value = true;
       try {
         // A snapshot that fails (no WebGL, say) must not lose the look: save it without a new picture

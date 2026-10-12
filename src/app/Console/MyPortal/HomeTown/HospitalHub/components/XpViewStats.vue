@@ -245,7 +245,8 @@
       watch(
         () => user.value?.stats?.hp?.now,
         (newVal, oldVal) => {
-          if (oldVal !== undefined && newVal !== oldVal) {
+          const hasHpMoved = oldVal !== undefined && newVal !== oldVal;
+          if (hasHpMoved) {
             isHpChanged.value = true;
             timers.startTimeout(600, () => {
               isHpChanged.value = false;
@@ -258,7 +259,8 @@
       watch(
         () => user.value?.stats?.mp?.now,
         (newVal, oldVal) => {
-          if (oldVal !== undefined && newVal !== oldVal) {
+          const hasMpMoved = oldVal !== undefined && newVal !== oldVal;
+          if (hasMpMoved) {
             isMpChanged.value = true;
             timers.startTimeout(600, () => {
               isMpChanged.value = false;

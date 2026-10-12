@@ -78,7 +78,8 @@ const DEFAULT_SHOP_ID = "hometown-market";
 const resolveAssetUrl = (asset: any): string => {
   if (!asset) return "";
   if (typeof asset === "string") return asset;
-  if (typeof asset === "object" && typeof asset.default === "string") return asset.default;
+  const isAssetModule = typeof asset === "object" && typeof asset.default === "string";
+  if (isAssetModule) return asset.default;
   return String(asset);
 };
 
@@ -253,7 +254,7 @@ export default defineComponent({
 
     clickDeposit(data) {
       const amount = Number(data.gp);
-      if (amount && amount > 0) {
+      if (amount > 0) {
         getGPService()
           .depositToSavings(this.heroId, amount)
           .then(() => {
@@ -267,7 +268,7 @@ export default defineComponent({
 
     clickWithdraw(data) {
       const amount = Number(data.gp);
-      if (amount && amount > 0) {
+      if (amount > 0) {
         getGPService()
           .withdrawFromSavings(this.heroId, amount)
           .then(() => {
@@ -281,7 +282,7 @@ export default defineComponent({
 
     clickPayDebt(data) {
       const amount = Number(data.gp);
-      if (amount && amount > 0) {
+      if (amount > 0) {
         getGPService()
           .payDebtFromWallet(this.heroId, amount)
           .then(() => {
@@ -329,7 +330,8 @@ export default defineComponent({
     // Pays out of savings first, then the wallet, and the new limit takes effect at once (no delivery to wait on).
     async buyWallet() {
       const ware = this.walletWare;
-      if (!ware || this.isBuying) return;
+      const isPurchaseBlocked = !ware || this.isBuying;
+      if (isPurchaseBlocked) return;
       if (this.turnedAwayWhileClosed()) return;
       if (!ware.offer) {
         this.play$fx("no");
@@ -496,7 +498,8 @@ export default defineComponent({
     const visibleItems = computed(() => {
       const term = search.value.trim().toLowerCase();
       return shelf.value.filter((item) => {
-        if (term && !item.name.toLowerCase().includes(term)) return false;
+        const isHiddenBySearch = term !== "" && !item.name.toLowerCase().includes(term);
+        if (isHiddenBySearch) return false;
         return shelves.value.includes(canAfford(item.price) ? "affordable" : "out-of-budget");
       });
     });

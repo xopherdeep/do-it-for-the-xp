@@ -67,7 +67,8 @@ export const useBattleDialog = ({ onIdle, onDismiss }: BattleDialogOptions = {})
 
   const enqueue = (items: DialogItem[]) => {
     queue.value.push(...items);
-    if (!isTyping.value && !text.value) showNext();
+    const isDialogIdle = !isTyping.value && !text.value;
+    if (isDialogIdle) showNext();
   };
 
   /** Finishing a line: either keep it on screen until a tap, or move on by itself. */
@@ -83,7 +84,8 @@ export const useBattleDialog = ({ onIdle, onDismiss }: BattleDialogOptions = {})
 
   const onTypingComplete = () => {
     isTyping.value = false;
-    if (isAppendMode.value && text.value) {
+    const shouldStashLine = isAppendMode.value && Boolean(text.value);
+    if (shouldStashLine) {
       accumulatedLines.value.push(text.value);
       text.value = "";
     }
