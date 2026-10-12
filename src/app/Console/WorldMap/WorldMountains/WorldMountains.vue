@@ -16,12 +16,12 @@
       <WeatherFX type="mountains" :intensity="4" :sound-enabled="false" />
       <div class="world-scene-frame">
         <div class="world-scene">
-          <!-- Temple up the switchback trail, the caverns at the cave mouth, Pegasus in the valley camp -->
-          <xp-temple-model class="world-spot" style="--x: 56%; --y: 54%; --z: 54" temple-id="fire-temple" :size="95" />
-          <xp-building-model class="world-spot" style="--x: 74%; --y: 64%; --z: 64" building-id="crystal-caverns" :size="100" />
-          <xp-building-model class="world-spot" style="--x: 27%; --y: 69%; --z: 69" building-id="pegasus" world="mountains" :size="105" />
+          <!-- Caverns on the ledge at the cave mouth, the temple on the west dirt flat, Pegasus on the east flat -->
+          <xp-temple-model class="world-spot" style="--x: 30%; --y: 79%; --z: 79" temple-id="fire-temple" :size="95" />
+          <xp-building-model class="world-spot" style="--x: 70%; --y: 62%; --z: 62" building-id="crystal-caverns" :size="100" />
+          <xp-building-model class="world-spot" style="--x: 74%; --y: 80%; --z: 80" building-id="pegasus" world="mountains" :size="105" />
           <!-- Boobeedeedle's balloon, only on the day the traveling merchant is visiting this world -->
-          <xp-traveling-merchant class="world-spot" style="--x: 42%; --y: 63%; --z: 63" world="mountains" :size="100" />
+          <xp-traveling-merchant class="world-spot" style="--x: 40%; --y: 58%; --z: 58" world="mountains" :size="100" />
         </div>
       </div>
       <div class="fire-container">

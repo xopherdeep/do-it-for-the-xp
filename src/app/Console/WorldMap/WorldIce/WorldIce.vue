@@ -16,12 +16,12 @@
       <WeatherFX type="snowy" :intensity="6" :sound-enabled="false" />
       <div class="world-scene-frame">
         <div class="world-scene">
-          <!-- Temple among the north pines, the shack on the frozen lake's shore, Pegasus on the snowfield -->
-          <xp-temple-model class="world-spot" style="--x: 62%; --y: 44%; --z: 44" temple-id="ice-temple" :size="95" />
-          <xp-building-model class="world-spot" style="--x: 30%; --y: 70%; --z: 70" building-id="snow-shack" :size="105" />
-          <xp-building-model class="world-spot" style="--x: 67%; --y: 76%; --z: 76" building-id="pegasus" world="ice" :size="100" />
+          <!-- Temple on the open snowfield past the stream, the shack on the frozen lake's shore, Pegasus on the south drifts -->
+          <xp-temple-model class="world-spot" style="--x: 72%; --y: 57%; --z: 57" temple-id="ice-temple" :size="95" />
+          <xp-building-model class="world-spot" style="--x: 28%; --y: 69%; --z: 69" building-id="snow-shack" :size="105" />
+          <xp-building-model class="world-spot" style="--x: 58%; --y: 79%; --z: 79" building-id="pegasus" world="ice" :size="100" />
           <!-- Boobeedeedle's balloon, only on the day the traveling merchant is visiting this world -->
-          <xp-traveling-merchant class="world-spot" style="--x: 46%; --y: 58%; --z: 58" world="ice" :size="100" />
+          <xp-traveling-merchant class="world-spot" style="--x: 44%; --y: 40%; --z: 40" world="ice" :size="100" />
         </div>
       </div>
     </ion-content>

@@ -16,14 +16,14 @@
       <WeatherFX type="plains" :intensity="4" :sound-enabled="false" />
       <div class="world-scene-frame">
         <div class="world-scene">
-          <!-- Ranch on the north-west clearing, the spire on the north-east rise, Pegasus on the south-east
-               clearing, and the Hometown gate where the path leaves the plains -->
-          <xp-building-model class="world-spot" style="--x: 29%; --y: 41%; --z: 41" building-id="pegasus-ranch" :size="100" />
-          <xp-temple-model class="world-spot" style="--x: 70%; --y: 43%; --z: 43" temple-id="wind-temple" :size="100" />
-          <xp-building-model class="world-spot" style="--x: 68%; --y: 66%; --z: 66" building-id="pegasus" world="plains" :size="105" />
-          <xp-building-model class="world-spot" style="--x: 38%; --y: 82%; --z: 82" building-id="home-town" label="Hometown" sublabel="Return home" :size="105" />
+          <!-- Each landmark on one of the four sandy pads: ranch north-west, spire north-east, Pegasus
+               south-east, the Hometown gate south-west -->
+          <xp-building-model class="world-spot" style="--x: 26%; --y: 40%; --z: 40" building-id="pegasus-ranch" :size="100" />
+          <xp-temple-model class="world-spot" style="--x: 69%; --y: 41%; --z: 41" temple-id="wind-temple" :size="100" />
+          <xp-building-model class="world-spot" style="--x: 69%; --y: 67%; --z: 67" building-id="pegasus" world="plains" :size="105" />
+          <xp-building-model class="world-spot" style="--x: 25%; --y: 69%; --z: 69" building-id="home-town" label="Hometown" sublabel="Return home" :size="105" />
           <!-- Boobeedeedle's balloon, only on the day the traveling merchant is visiting this world -->
-          <xp-traveling-merchant class="world-spot" style="--x: 48%; --y: 58%; --z: 58" world="plains" :size="100" />
+          <xp-traveling-merchant class="world-spot" style="--x: 47%; --y: 56%; --z: 56" world="plains" :size="100" />
         </div>
       </div>
       <div class="plains-weather-container">

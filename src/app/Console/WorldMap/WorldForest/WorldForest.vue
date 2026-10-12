@@ -16,12 +16,12 @@
       <WeatherFX type="forest" :intensity="5" :sound-enabled="false" />
       <div class="world-scene-frame">
         <div class="world-scene">
-          <!-- Temple in the deep meadow, the hermit camped in the glade by the path, Pegasus where the path leaves the wood -->
-          <xp-temple-model class="world-spot" style="--x: 60%; --y: 42%; --z: 42" temple-id="earth-temple" :size="95" />
-          <xp-building-model class="world-spot" style="--x: 30%; --y: 64%; --z: 64" building-id="hermits-tent" :size="100" />
-          <xp-building-model class="world-spot" style="--x: 66%; --y: 75%; --z: 75" building-id="pegasus" world="forest" :size="105" />
+          <!-- Temple in the sunlit west meadow, the hermit in the bright south glade, Pegasus in the east clearing -->
+          <xp-temple-model class="world-spot" style="--x: 29%; --y: 48%; --z: 48" temple-id="earth-temple" :size="95" />
+          <xp-building-model class="world-spot" style="--x: 47%; --y: 74%; --z: 74" building-id="hermits-tent" :size="100" />
+          <xp-building-model class="world-spot" style="--x: 70%; --y: 66%; --z: 66" building-id="pegasus" world="forest" :size="105" />
           <!-- Boobeedeedle's balloon, only on the day the traveling merchant is visiting this world -->
-          <xp-traveling-merchant class="world-spot" style="--x: 44%; --y: 52%; --z: 52" world="forest" :size="100" />
+          <xp-traveling-merchant class="world-spot" style="--x: 64%; --y: 40%; --z: 40" world="forest" :size="100" />
         </div>
       </div>
       <div class="enchanted-forest">

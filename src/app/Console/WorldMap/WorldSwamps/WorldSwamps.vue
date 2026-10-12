@@ -16,12 +16,12 @@
       <WeatherFX type="swamp" :intensity="5" :sound-enabled="false" />
       <div class="world-scene-frame">
         <div class="world-scene">
-          <!-- Temple sunk among the north pools, the witch on the west mud bank, Pegasus on the east bank -->
-          <xp-temple-model class="world-spot" style="--x: 64%; --y: 45%; --z: 45" temple-id="shadow-temple" :size="95" />
-          <xp-building-model class="world-spot" style="--x: 28%; --y: 73%; --z: 73" building-id="witchs-hut" :size="105" />
-          <xp-building-model class="world-spot" style="--x: 70%; --y: 76%; --z: 76" building-id="pegasus" world="swamps" :size="100" />
+          <!-- Temple on the reed islet in the pools, the witch on the west mud bank, Pegasus on the east bank -->
+          <xp-temple-model class="world-spot" style="--x: 57%; --y: 57%; --z: 57" temple-id="shadow-temple" :size="95" />
+          <xp-building-model class="world-spot" style="--x: 25%; --y: 73%; --z: 73" building-id="witchs-hut" :size="105" />
+          <xp-building-model class="world-spot" style="--x: 73%; --y: 72%; --z: 72" building-id="pegasus" world="swamps" :size="100" />
           <!-- Boobeedeedle's balloon, only on the day the traveling merchant is visiting this world -->
-          <xp-traveling-merchant class="world-spot" style="--x: 46%; --y: 60%; --z: 60" world="swamps" :size="100" />
+          <xp-traveling-merchant class="world-spot" style="--x: 36%; --y: 44%; --z: 44" world="swamps" :size="100" />
         </div>
       </div>
     </ion-content>

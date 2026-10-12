@@ -454,7 +454,9 @@ swiper-slide {
     left: var(--x);
     top: var(--y);
     z-index: var(--z, 1);
-    transform: translate(-50%, -78%);
+    // `translate`, not `transform`: the models lift and squash with their own hover / press `transform`,
+    // which would otherwise replace this offset and jump the landmark off its spot when tapped.
+    translate: -50% -78%;
     pointer-events: auto;
   }
 }
