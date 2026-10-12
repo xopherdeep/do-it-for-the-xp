@@ -80,6 +80,19 @@ describe("BattlePotions", () => {
       expect(mana.faIcon).toBe("bottle-water");
     });
 
+    it("lists the Potion and Ether rows exactly as a temple chest writes them", () => {
+      addHero([
+        { name: "potion", type: "consumable", faIcon: "flask-potion", qty: 1 },
+        { name: "ether", type: "consumable", faIcon: "flask-potion", qty: 1 },
+        { name: "Small Key" },
+      ]);
+      const shelf = potionShelf(HERO_ID);
+      expect(shelf.map((card) => [card.id, card.name, card.qty, card.effect])).toEqual([
+        ["ether", "Ether", 1, "Restores 50 MP"],
+        ["potion", "Potion", 1, "Restores 50 HP"],
+      ]);
+    });
+
     it("is empty for an empty pack and for an unknown hero", () => {
       addHero([]);
       expect(potionShelf(HERO_ID)).toEqual([]);
@@ -112,6 +125,25 @@ describe("BattlePotions", () => {
       expect(hpNow()).toBe(60);
       expect(mpNow()).toBe(0);
       expect(qtyOf("health-potion")).toBe(1);
+    });
+
+    it("a chest Potion heals 50 and is spent", () => {
+      addHero([{ name: "potion", type: "consumable", faIcon: "flask-potion", qty: 1 }]);
+      const outcome = drinkPotion(HERO_ID, "potion");
+      expect(outcome).toEqual({ ok: true, line: "You drink a Potion: +50 HP", sound: SOUND_HEAL });
+      expect(hpNow()).toBe(60);
+      expect(mpNow()).toBe(0);
+      expect(potionShelf(HERO_ID)).toEqual([]);
+      expect(hero().inventory).toEqual([]);
+    });
+
+    it("a chest Ether restores 50 MP and is spent", () => {
+      addHero([{ name: "ether", type: "consumable", faIcon: "flask-potion", qty: 1 }]);
+      const outcome = drinkPotion(HERO_ID, "ether");
+      expect(outcome).toEqual({ ok: true, line: "You drink an Ether: +50 MP", sound: SOUND_HEAL });
+      expect(mpNow()).toBe(50);
+      expect(hpNow()).toBe(10);
+      expect(hero().inventory).toEqual([]);
     });
 
     it("the last bottle leaves the shelf", () => {
@@ -162,6 +194,12 @@ describe("BattlePotions", () => {
       expect(SOUND_NO).toBe("no");
       expect(hpNow()).toBe(100);
       expect(qtyOf("health-potion")).toBe(1);
+    });
+
+    it("full HP refuses a chest Potion and keeps it", () => {
+      addHero([{ name: "potion", type: "consumable", faIcon: "flask-potion", qty: 1 }], { now: 100, max: 100 });
+      expect(drinkPotion(HERO_ID, "potion")).toEqual({ ok: false, line: "Your HP is full.", sound: SOUND_NO });
+      expect(qtyOf("potion")).toBe(1);
     });
 
     it("full MP refuses a Mana Potion and an Ether", () => {

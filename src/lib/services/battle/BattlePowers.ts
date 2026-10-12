@@ -19,11 +19,11 @@ import {
   BATTLE_EFFECTS,
   BATTLE_EFFECT_IDS,
   REASON_NO_MP,
-  SOUND_NO,
   applyBattleEffect,
   battleEffectBlocked,
   heroPoints,
   isBattleEffectId,
+  refuse,
   type BattleEffectContext,
   type BattleEffectId,
   type BattleEffectOutcome,
@@ -91,8 +91,6 @@ export const battlePowers = (abilities: Ability[], ctx: BattleEffectContext, now
   }
   return entries;
 };
-
-const refuse = (line: string): BattleEffectOutcome => ({ ok: false, line, sound: SOUND_NO });
 
 /**
  * Cast a Power in a fight. Checks the once-per-fight rule and the MP first (no MP is spent on a refusal), runs the

@@ -175,6 +175,18 @@ describe("XpEquipmentModal in battle mode", () => {
     expect(mounted.emitted("use-item")).toBeUndefined();
   });
 
+  it("battle mode: a non-fight item's card says it once, as the reason, with Use off", async () => {
+    const line = "Can't use that in a fight.";
+    mounted = await battle({ battleCard: () => card({ mp: 0, effect: line, reason: line }) });
+    await iceWandTile(mounted).trigger("click");
+
+    const info = mounted.findComponent(ItemInfoModal);
+    expect(info.text().split(line)).toHaveLength(2);
+    expect(info.find("[data-cy=item-reason]").text()).toBe(line);
+    expect(info.find("[data-cy=item-effect]").exists()).toBe(false);
+    expect(mounted.find("[data-cy=item-use]").attributes("disabled")).toBeDefined();
+  });
+
   it("battle mode: Bottles goes straight to use-item without a card", async () => {
     mounted = await battle();
     await bottlesTile(mounted).trigger("click");

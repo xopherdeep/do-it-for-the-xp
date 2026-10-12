@@ -19,10 +19,10 @@ import { isItemUnlocked, unlockHintOf } from '@/lib/services/quests/ItemEffects'
 import {
   BATTLE_EFFECTS,
   REASON_NO_MP,
-  SOUND_NO,
   applyBattleEffect,
   battleEffectBlocked,
   heroPoints,
+  refuse,
   type BattleEffectContext,
   type BattleEffectEngine,
   type BattleEffectId,
@@ -131,8 +131,6 @@ export const describeBattleItem = (item: BattleItemLike | null | undefined, ctx:
   const mp = heroMpCost(item, ctx.userId);
   return { name, faIcon, mp, effect: BATTLE_EFFECTS[rule.effect].label, reason: reasonOf(name, rule.effect, mp, ctx) };
 };
-
-const refuse = (line: string): BattleItemOutcome => ({ ok: false, line, sound: SOUND_NO });
 
 /**
  * Use a fight item from the bag. Checks the lock, the once-per-fight rule and the MP first (no MP is spent on a

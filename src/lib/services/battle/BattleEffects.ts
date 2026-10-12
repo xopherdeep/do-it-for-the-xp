@@ -100,7 +100,8 @@ export const battleEffectBlocked = (effect: BattleEffectId, ctx: BattleEffectCon
   return null;
 };
 
-const refuse = (line: string): BattleEffectOutcome => ({ ok: false, line, sound: SOUND_NO });
+/** A refusal: nothing happens, nothing is spent, the page plays the no sound and says why. Shared by the item, potion and Power rules. */
+export const refuse = (line: string): BattleEffectOutcome => ({ ok: false, line, sound: SOUND_NO });
 
 const done = (ctx: BattleEffectContext, effect: BattleEffectId, line: string, sound = SOUND_ITEM): BattleEffectOutcome => {
   if (BATTLE_EFFECTS[effect].oncePerFight) ctx.usedThisFight.add(effect);

@@ -7,7 +7,7 @@
  */
 import { useUserStore } from '@/lib/store/stores/user';
 import { inventoryOf } from '@/lib/services/inventory/Inventory';
-import { REASON_HP_FULL, SOUND_HEAL, SOUND_NO, heroPoints, type BattleEffectOutcome } from './BattleEffects';
+import { REASON_HP_FULL, SOUND_HEAL, heroPoints, refuse, type BattleEffectOutcome } from './BattleEffects';
 
 export interface PotionRule {
   /** HP restored (capped at the hero's max). */
@@ -22,6 +22,8 @@ export interface PotionRule {
 
 /** The potions a fight can drink, keyed by the pack entry's name. */
 export const POTIONS: Record<string, PotionRule> = {
+  /** The bottle a temple chest drops: the chest writes the row as "potion", shown as "Potion". */
+  Potion: { hp: 50, effect: 'Restores 50 HP' },
   'Health Potion': { hp: 50, effect: 'Restores 50 HP' },
   'Mana Potion': { mp: 30, effect: 'Restores 30 MP' },
   Ether: { mp: 50, effect: 'Restores 50 MP' },
@@ -74,8 +76,6 @@ export const potionShelf = (userId: string): PotionCard[] =>
         reason: reasonOf(rule, gainOf(rule, userId)),
       };
     });
-
-const refuse = (line: string): BattleEffectOutcome => ({ ok: false, line, sound: SOUND_NO });
 
 /** "an Ether", "a Health Potion" */
 const withArticle = (name: string): string => `${/^[aeiou]/i.test(name) ? 'an' : 'a'} ${name}`;

@@ -53,7 +53,8 @@
 
       <!-- Battle mode: what it does, what it costs and a Use button instead of the hand slots -->
       <div class="action-container battle-card" v-if="isBattle">
-        <div class="battle-effect-row">
+        <!-- An item with no fight use has one line, the reason; the effect row would repeat it -->
+        <div class="battle-effect-row" v-if="!sameLine">
           <p class="battle-effect" data-cy="item-effect">{{ battleCard?.effect }}</p>
           <span class="mp-pill" data-cy="item-mp" v-if="battleCard && battleCard.mp > 0">{{ battleCard.mp }} MP</span>
         </div>
@@ -169,6 +170,8 @@ export default defineComponent({
     const modal = ref<any>(null);
     const isBattle = computed(() => props.mode === 'battle');
     const canUse = computed(() => !!props.battleCard && !props.battleCard.reason);
+    // The effect and the reason are the same line ("Can't use that in a fight."): show it once, as the reason
+    const sameLine = computed(() => !!props.battleCard?.reason && props.battleCard.reason === props.battleCard.effect);
 
     // One tap uses the item: a second tap before the card closes does nothing. A new card (another item,
     // or the same one opened again) starts fresh.
@@ -216,6 +219,7 @@ export default defineComponent({
       getSlotIcon,
       isBattle,
       canUse,
+      sameLine,
       handleUse,
       modal,
       dismiss
