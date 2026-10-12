@@ -39,12 +39,14 @@ export function handleTransitionGuard(router: Router): void {
   router.beforeResolve?.(async (to, from) => {
     try {
       // The first navigation of the session is app boot, and e2e specs must not wait on animations
-      if (from === START_LOCATION || isE2e()) return;
+      const shouldSkipEffect = from === START_LOCATION || isE2e();
+      if (shouldSkipEffect) return;
       const plan = transitionFor(sceneOf(from), sceneOf(to));
       if (!plan) return;
       if (plan.sound) play$fx(plan.sound);
       feelCoverStart(plan);
-      if (plan.effect === "swirl" && !prefersReducedMotion()) {
+      const shouldHoldForSwirl = plan.effect === "swirl" && !prefersReducedMotion();
+      if (shouldHoldForSwirl) {
         await new Promise((resolve) => setTimeout(resolve, 800));
       }
       await cover(plan);

@@ -10,10 +10,10 @@ export function fixAriaHiddenFocusIssues() {
   if (process.env.NODE_ENV === "development") {
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
-        if (
+        const isAriaHiddenChange =
           mutation.type === "attributes" &&
-          mutation.attributeName === "aria-hidden"
-        ) {
+          mutation.attributeName === "aria-hidden";
+        if (isAriaHiddenChange) {
           if (mutation.target instanceof HTMLElement) {
             mutation.target.removeAttribute("aria-hidden");
           }
@@ -36,17 +36,18 @@ export function fixAriaHiddenFocusIssues() {
     // Create a MutationObserver to monitor for aria-hidden changes
     const observer = new MutationObserver((mutations) => {
       mutations.forEach((mutation) => {
-        if (
-          mutation.type === 'attributes' && 
+        const isAriaHiddenChangeOnElement =
+          mutation.type === 'attributes' &&
           mutation.attributeName === 'aria-hidden' &&
-          mutation.target instanceof HTMLElement
-        ) {
+          mutation.target instanceof HTMLElement;
+        if (isAriaHiddenChangeOnElement) {
           const element = mutation.target;
+          const isInertLeftover = () => element.hasAttribute('inert') && !element.hasAttribute('aria-hidden');
           if (element.getAttribute('aria-hidden') === 'true') {
             // Replace aria-hidden with inert
             element.removeAttribute('aria-hidden');
             element.setAttribute('inert', '');
-          } else if (element.hasAttribute('inert') && !element.hasAttribute('aria-hidden')) {
+          } else if (isInertLeftover()) {
             // If aria-hidden was removed, also remove inert
             element.removeAttribute('inert');
           }
@@ -63,7 +64,8 @@ export function fixAriaHiddenFocusIssues() {
     // Observe existing elements
     targetsToObserve.forEach(el => {
       // Handle existing aria-hidden attributes
-      if (el instanceof HTMLElement && el.getAttribute('aria-hidden') === 'true') {
+      const isAriaHiddenElement = el instanceof HTMLElement && el.getAttribute('aria-hidden') === 'true';
+      if (isAriaHiddenElement) {
         el.removeAttribute('aria-hidden');
         el.setAttribute('inert', '');
       }

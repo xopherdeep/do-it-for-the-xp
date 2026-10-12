@@ -80,7 +80,8 @@ export const useAudioStore = defineStore('audio', () => {
       return;
     }
 
-    if (!bgm.is_on || !bgm.tracks || !bgm.tracks.length) {
+    const hasNothingToPlay = !bgm.is_on || !bgm.tracks || !bgm.tracks.length;
+    if (hasNothingToPlay) {
       return;
     }
 

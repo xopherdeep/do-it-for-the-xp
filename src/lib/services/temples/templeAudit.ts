@@ -87,9 +87,11 @@ const placedRooms = (temple: AuditableTemple | null | undefined): AuditableRoom[
   for (const floor of floorsOf(layout?.maze)) {
     for (const row of floor) {
       for (const token of row ?? []) {
-        if (!token || isWallToken(token) || token === VOID) continue;
+        const isRoomlessCell = !token || isWallToken(token) || token === VOID;
+        if (isRoomlessCell) continue;
         const room = definitions[token];
-        if (room && typeOf(room) !== 'wall') rooms.push(asChestRoom(room));
+        const isPlayableRoom = room && typeOf(room) !== 'wall';
+        if (isPlayableRoom) rooms.push(asChestRoom(room));
       }
     }
   }

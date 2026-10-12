@@ -59,6 +59,9 @@ export interface ClassLevelUpInfo {
   jobClassId: string;
 }
 
+/** A profile's HP or MP is missing, or still the old plain number, so it needs its { now, max } object. */
+const needsPointsObject = (stat: unknown): boolean => typeof stat !== 'object' || stat === null;
+
 export const useUserStore = defineStore('user', () => {
   // --- State ---
   const currentUser = reactive({
@@ -125,7 +128,8 @@ export const useUserStore = defineStore('user', () => {
    * Calls made in the same tick (e.g. XP + GP + AP on a battle victory) are coalesced into one write.
    */
   function persistUser(userId: string) {
-    if (!userId || !users[userId]) return;
+    const isUnknownUser = !userId || !users[userId];
+    if (isUnknownUser) return;
     pendingPersist.add(userId);
     if (persistScheduled) return;
     persistScheduled = true;
@@ -197,7 +201,8 @@ export const useUserStore = defineStore('user', () => {
         // Restore the previously saved user, if any. Nobody is signed in on a first run: there is
         // no default profile to fall back to.
         const savedUserId = getSavedUserId();
-        if (savedUserId && users[savedUserId]) {
+        const hasSavedProfile = savedUserId && users[savedUserId];
+        if (hasSavedProfile) {
           // loadUsers runs after every deposit, battle and page entry, so refreshing the profile
           // that is already signed in must not end a masquerade; only a different profile does.
           if (currentUser.id === savedUserId) syncCurrentUser(users[savedUserId]);
@@ -290,7 +295,7 @@ export const useUserStore = defineStore('user', () => {
       const userStats = users[userId].stats || {};
 
       // Initialize/Standardize hp structure if missing or primitive
-      if (typeof userStats.hp !== 'object' || userStats.hp === null) {
+      if (needsPointsObject(userStats.hp)) {
         const currentHp = typeof userStats.hp === 'number' ? userStats.hp : 100;
         const maxHp = typeof userStats.maxHp === 'number' ? userStats.maxHp : 100;
         userStats.hp = { now: currentHp, max: maxHp };
@@ -305,7 +310,7 @@ export const useUserStore = defineStore('user', () => {
       userStats.hp.now = Math.max(0, Math.min(userStats.hp.max, userStats.hp.now + amount));
 
       // Standardize mp structure while we're here
-      if (typeof userStats.mp !== 'object' || userStats.mp === null) {
+      if (needsPointsObject(userStats.mp)) {
         const currentMp = typeof userStats.mp === 'number' ? userStats.mp : 100;
         const maxMp = typeof userStats.maxMp === 'number' ? userStats.maxMp : 100;
         userStats.mp = { now: currentMp, max: maxMp };
@@ -339,7 +344,7 @@ export const useUserStore = defineStore('user', () => {
       const userStats = users[userId].stats || {};
 
       // Initialize/Standardize mp structure if missing or primitive
-      if (typeof userStats.mp !== 'object' || userStats.mp === null) {
+      if (needsPointsObject(userStats.mp)) {
         const currentMp = typeof userStats.mp === 'number' ? userStats.mp : 100;
         const maxMp = typeof userStats.maxMp === 'number' ? userStats.maxMp : 100;
         userStats.mp = { now: currentMp, max: maxMp };
@@ -353,7 +358,7 @@ export const useUserStore = defineStore('user', () => {
       userStats.mp.now = Math.max(0, Math.min(userStats.mp.max, userStats.mp.now + amount));
 
       // Standardize hp structure while we're here
-      if (typeof userStats.hp !== 'object' || userStats.hp === null) {
+      if (needsPointsObject(userStats.hp)) {
         const currentHp = typeof userStats.hp === 'number' ? userStats.hp : 100;
         const maxHp = typeof userStats.maxHp === 'number' ? userStats.maxHp : 100;
         userStats.hp = { now: currentHp, max: maxHp };
@@ -392,7 +397,8 @@ export const useUserStore = defineStore('user', () => {
    */
   function spendInventoryItem(userId: string, entryId: string, qty = 1): boolean {
     const user = users[userId];
-    if (!user || !Array.isArray(user.inventory) || !(qty >= 1)) return false;
+    const hasNothingToSpend = !user || !Array.isArray(user.inventory) || !(qty >= 1);
+    if (hasNothingToSpend) return false;
     const entries = user.inventory.map((row: unknown) => toEntry(row));
     const held = entries.reduce((sum: number, entry: { id: string, qty: number } | null) => (entry?.id === entryId ? sum + entry.qty : sum), 0);
     if (held < qty) return false;
@@ -401,7 +407,8 @@ export const useUserStore = defineStore('user', () => {
     const next: any[] = [];
     user.inventory.forEach((row: any, index: number) => {
       const entry = entries[index];
-      if (left <= 0 || entry?.id !== entryId) {
+      const shouldKeepRow = left <= 0 || entry?.id !== entryId;
+      if (shouldKeepRow) {
         next.push(row);
         return;
       }
@@ -461,7 +468,8 @@ export const useUserStore = defineStore('user', () => {
    */
   function unlockItem(userId: string, itemName: string): boolean {
     const user = users[userId];
-    if (!user || !Array.isArray(user.unlockedItems)) return false;
+    const hasNoUnlockList = !user || !Array.isArray(user.unlockedItems);
+    if (hasNoUnlockList) return false;
     if (user.unlockedItems.includes(itemName)) return false;
     user.unlockedItems = [...user.unlockedItems, itemName];
     if (currentUser.id === userId) syncCurrentUser(user);
@@ -483,7 +491,8 @@ export const useUserStore = defineStore('user', () => {
       const pegasi: boolean[] = Array.from({ length: 9 }, (_, index) => Boolean(slots[index]));
 
       // Unlock
-      if (Number.isInteger(pegasusIndex) && pegasusIndex >= 0 && pegasusIndex < pegasi.length) {
+      const isValidPegasusIndex = Number.isInteger(pegasusIndex) && pegasusIndex >= 0 && pegasusIndex < pegasi.length;
+      if (isValidPegasusIndex) {
         pegasi[pegasusIndex] = true;
       }
       userStats.pegasi = pegasi;
@@ -506,8 +515,10 @@ export const useUserStore = defineStore('user', () => {
   function impersonateUser(userId: string) {
     if (users[userId]) {
       // Remember who is masquerading so stopImpersonating can hand control back to them
-      if (!currentUser.isImpersonating && currentUser.id && currentUser.id !== userId) {
-        localStorage.setItem(IMPERSONATOR_KEY, currentUser.id);
+      const impersonatorId = currentUser.id;
+      const shouldRememberImpersonator = !currentUser.isImpersonating && impersonatorId && impersonatorId !== userId;
+      if (shouldRememberImpersonator) {
+        localStorage.setItem(IMPERSONATOR_KEY, impersonatorId);
       }
       Object.assign(currentUser, users[userId]);
       currentUser.id = userId;
@@ -524,7 +535,8 @@ export const useUserStore = defineStore('user', () => {
     // Read the Game Master before clearMasquerade removes the key
     const returnTo = localStorage.getItem(IMPERSONATOR_KEY);
     clearMasquerade();
-    if (returnTo && users[returnTo]) {
+    const canReturnToGameMaster = returnTo && users[returnTo];
+    if (canReturnToGameMaster) {
       loginUser(users[returnTo]);
     }
   }
@@ -677,11 +689,13 @@ export const useUserStore = defineStore('user', () => {
         if ((users[userId].jobClass || 'default') === jobClassId) {
           const before = getClassStatBonus(jobClassId, oldLevel);
           const after = getClassStatBonus(jobClassId, newLevel);
-          if (userStats.hp && typeof userStats.hp === 'object' && after.hp > before.hp) {
+          const shouldGrowMaxHp = userStats.hp && typeof userStats.hp === 'object' && after.hp > before.hp;
+          if (shouldGrowMaxHp) {
             userStats.hp.max = (userStats.hp.max || 0) + (after.hp - before.hp);
             userStats.hp.now = (userStats.hp.now || 0) + (after.hp - before.hp);
           }
-          if (userStats.mp && typeof userStats.mp === 'object' && after.mp > before.mp) {
+          const shouldGrowMaxMp = userStats.mp && typeof userStats.mp === 'object' && after.mp > before.mp;
+          if (shouldGrowMaxMp) {
             userStats.mp.max = (userStats.mp.max || 0) + (after.mp - before.mp);
             userStats.mp.now = (userStats.mp.now || 0) + (after.mp - before.mp);
           }
@@ -738,7 +752,8 @@ export const useUserStore = defineStore('user', () => {
         : (userData.stats || {});
 
       // Ensure we have an object to work with
-      if (!userData.stats && commit) {
+      const shouldAttachStats = !userData.stats && commit;
+      if (shouldAttachStats) {
         userData.stats = userStats;
       }
 
@@ -867,7 +882,8 @@ export const useUserStore = defineStore('user', () => {
    */
   function setJobClass(userId: string, jobClass: string): boolean {
     const user = users[userId];
-    if (!user || !jobClass) return false;
+    const hasNoClassToSet = !user || !jobClass;
+    if (hasNoClassToSet) return false;
     if (!isClassUnlocked(jobClass, classLevelsOf(user.stats?.classes))) return false;
     user.jobClass = jobClass;
     if (currentUser.id === userId) syncCurrentUser(user);
@@ -878,7 +894,8 @@ export const useUserStore = defineStore('user', () => {
   function recordAPGain(payload: { userId: string, amount: number, source: string, at?: string }) {
     const { userId, amount, source, at } = payload;
 
-    if (users[userId] && amount > 0) {
+    const hasAPToRecord = users[userId] && amount > 0;
+    if (hasAPToRecord) {
       const userStats = users[userId].stats || {};
 
       // Initialize ap structure if missing

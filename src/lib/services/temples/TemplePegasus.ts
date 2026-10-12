@@ -105,7 +105,8 @@ export interface PegasusView {
 export const pegasusView = (templeId: string, pick?: string | null): PegasusView | null => {
   const pegasus = pegasusFor(templeId, pick);
   const look = pegasus ? PEGASUS_LOOK[pegasus.index] : undefined;
-  if (!pegasus || !look) return null;
+  const hasNoPegasusToDraw = !pegasus || !look;
+  if (hasNoPegasusToDraw) return null;
   return { name: pegasus.name, color: look.color, secondaryColor: look.secondaryColor, world: pegasus.world, temple: look.temple };
 };
 
@@ -116,7 +117,8 @@ export const pegasusView = (templeId: string, pick?: string | null): PegasusView
 export const pegasusEgg = (templeId: string, pick?: string | null): PegasusEgg => {
   const pegasus = pegasusFor(templeId, pick);
   const look = pegasus ? PEGASUS_LOOK[pegasus.index] : undefined;
-  if (!pegasus || !look) return UNKNOWN_EGG;
+  const hasNoPegasusToName = !pegasus || !look;
+  if (hasNoPegasusToName) return UNKNOWN_EGG;
   return { name: `${pegasus.name}'s Egg`, color: look.color, secondaryColor: look.secondaryColor };
 };
 
@@ -125,7 +127,9 @@ const PEGASUS_WHISTLE = 'Pegasus Whistle';
 
 /** What a chest item unlocks on the hero: the Pegasus Whistle only in the wind temple, anything else as itself. */
 export const chestItemUnlocks = (templeId: string, chestItem: string): string[] => {
-  if ((chestItem === PEGASUS_WHISTLE || chestItem === WIND_WHISTLE) && templeId !== WIND_TEMPLE_ID) return [];
+  const isWhistle = chestItem === PEGASUS_WHISTLE || chestItem === WIND_WHISTLE;
+  const isWhistleOutsideWindTemple = isWhistle && templeId !== WIND_TEMPLE_ID;
+  if (isWhistleOutsideWindTemple) return [];
   return unlocksFromChest(chestItem);
 };
 

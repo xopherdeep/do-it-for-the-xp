@@ -51,7 +51,8 @@ export const useGameStore = defineStore('game', () => {
   }
 
   function addEntity(type: string, item: any) {
-    if (!item || !type) return;
+    const hasNothingToAdd = !item || !type;
+    if (hasNothingToAdd) return;
     
     if (type === 'xp_ability') abilities[item.id] = item;
     else if (type === 'xp_accessory') accessories[item.id] = item;
@@ -91,7 +92,8 @@ export const useGameStore = defineStore('game', () => {
   }
 
   function addData(type: string, data: any) {
-    if (data.results && Array.isArray(data.results)) {
+    const hasResultList = data.results && Array.isArray(data.results);
+    if (hasResultList) {
       data.results.forEach((item: any) => addEntity(type, item));
     }
   }
@@ -104,7 +106,8 @@ export const useGameStore = defineStore('game', () => {
   // --- Getters (Functional) ---
 
   function findRequest(type: string, params: any) {
-    if (!type || !requests[type]) return undefined;
+    const hasNoRequestsOfType = !type || !requests[type];
+    if (hasNoRequestsOfType) return undefined;
     
     return requests[type].find((request: any) => {
       if (Object.keys(request.params).length === Object.keys(params).length) {

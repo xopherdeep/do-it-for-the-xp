@@ -5,7 +5,8 @@ import debug from "@/lib/utils/debug";
  */
 export async function copyTextToClipboard(text: string): Promise<boolean> {
   // Try modern Clipboard API if supported in a secure context
-  if (typeof navigator !== "undefined" && navigator.clipboard && window.isSecureContext) {
+  const canUseClipboardApi = typeof navigator !== "undefined" && navigator.clipboard && window.isSecureContext;
+  if (canUseClipboardApi) {
     try {
       await navigator.clipboard.writeText(text);
       return true;

@@ -5,7 +5,8 @@
  * @returns A string representing the abbreviated number
  */
 export function abbreviateNumber(value: number, decimals: number = 0): string {
-  if (value === null || value === undefined) return "0";
+  const hasNoValue = value === null || value === undefined;
+  if (hasNoValue) return "0";
   if (isNaN(value)) return "0";
 
   const suffixes = ["", "k", "M", "G", "T", "P", "E"];

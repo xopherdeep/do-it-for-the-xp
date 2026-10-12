@@ -183,7 +183,8 @@ export const readPoints = (userId: string, kind: 'hp' | 'mp'): { now: number; ma
   const stats = useUserStore().getUserById(userId)?.stats;
   const value = stats?.[kind];
   const topMax = stats?.[kind === 'hp' ? 'maxHp' : 'maxMp'];
-  if (value && typeof value === 'object') return { now: Number(value.now) || 0, max: Number(value.max) || 0 };
+  const storesPointsAsObject = value && typeof value === 'object';
+  if (storesPointsAsObject) return { now: Number(value.now) || 0, max: Number(value.max) || 0 };
   const max = typeof topMax === 'number' ? topMax : 100;
   return { now: typeof value === 'number' ? value : max, max };
 };
@@ -281,9 +282,11 @@ export const doorActions = (ctx: RoomContext, direction: Direction): RoomSheet =
 /** A chest is empty when the room says so, or its chest in the ChestSystem is. */
 export const isChestEmptyIn = (given: Room): boolean => {
   const room = asChestRoom(given);
-  if (room.type !== 'loot' || room.isEmpty || !room.content) return true;
-  if (room.content.chestId) {
-    const chest = ChestSystem.getInstance().getChest(room.content.chestId);
+  const content = room.content;
+  const hasNothingToLoot = room.type !== 'loot' || room.isEmpty || !content;
+  if (hasNothingToLoot) return true;
+  if (content.chestId) {
+    const chest = ChestSystem.getInstance().getChest(content.chestId);
     if (chest?.isEmpty) return true;
   }
   return false;
@@ -298,7 +301,8 @@ const neighbourFloor = (templeId: string, level: string, step: 1 | -1): string |
 /** Put the hero on `floor`, trying each spot in turn. Returns true on the first one they can stand on. */
 const arriveOn = (templeId: string, floor: string, spots: Array<[number, number] | undefined>): boolean => {
   for (const spot of spots) {
-    if (spot && temples().changeLevel(templeId, floor, spot)) return true;
+    const hasArrived = spot && temples().changeLevel(templeId, floor, spot);
+    if (hasArrived) return true;
   }
   return false;
 };
@@ -388,7 +392,8 @@ export const shopWares = (room: Room, ctx: RoomContext): Ware[] => {
     { id: POTION_ID, name: 'Potion of Vigor', price: shopPrice(POTION_PRICE, hero), blurb: `restore ${POTION_HEAL} HP` },
   ];
   const special = room.content?.specialItem;
-  if (typeof special === 'string' && special) {
+  const hasSpecialItem = typeof special === 'string' && special;
+  if (hasSpecialItem) {
     wares.push({
       id: `special:${special}`,
       name: titleWords(special),
@@ -477,7 +482,8 @@ const springTrap = (room: Room, ctx: RoomContext): RoomOutcome => {
 const jumpTrap = (room: Room, ctx: RoomContext): RoomOutcome => {
   const stats = useUserStore().getUserById(ctx.userId)?.stats;
   const agility = Number(stats?.special?.agility ?? stats?.agility) || 0;
-  if (agility >= 8 || rngOf(ctx)() < 0.5) {
+  const canLeapClear = agility >= 8 || rngOf(ctx)() < 0.5;
+  if (canLeapClear) {
     rememberOnce(roomKey(ctx, 'trap'));
     return { message: 'You leap clear of the trap.', sound: SFX.yes };
   }
@@ -489,7 +495,8 @@ const fallInPit = (ctx: RoomContext): RoomOutcome => {
   if (defeated) return { message: `The pit swallows you: -${lost} HP. You black out.`, sound: SFX.damage, shake: true, defeated: true };
 
   const below = neighbourFloor(ctx.templeId, ctx.level, -1);
-  if (below && arriveOn(ctx.templeId, below, [ctx.position, findRoomOfKind(ctx.templeId, below, ['stairs-up'])])) {
+  const hasLandedBelow = below && arriveOn(ctx.templeId, below, [ctx.position, findRoomOfKind(ctx.templeId, below, ['stairs-up'])]);
+  if (hasLandedBelow) {
     return { message: `You fall to ${below}: -${lost} HP`, sound: SFX.damage, shake: true, moved: true };
   }
   return { message: `You land hard at the bottom: -${lost} HP`, sound: SFX.damage, shake: true };
@@ -511,7 +518,8 @@ export const onEnterRoom = (room: Room | undefined, ctx: RoomContext): RoomOutco
   if (kind === 'pit') {
     // With a floor below the pit always drops the hero; with none it only bruises them once
     const hasFloorBelow = Boolean(neighbourFloor(ctx.templeId, ctx.level, -1));
-    if (!hasFloorBelow && !rememberOnce(roomKey(ctx, 'pit'))) return null;
+    const isRepeatPitVisit = !hasFloorBelow && !rememberOnce(roomKey(ctx, 'pit'));
+    if (isRepeatPitVisit) return null;
     return fallInPit(ctx);
   }
 
@@ -523,7 +531,8 @@ export const onEnterRoom = (room: Room | undefined, ctx: RoomContext): RoomOutco
 const climb = (room: Room, ctx: RoomContext, way: 'up' | 'down'): RoomOutcome => {
   const rubble: RoomOutcome = { message: 'The stairs are blocked by rubble.', sound: SFX.error };
   const target = (room.content?.targetLevel as string | undefined) ?? neighbourFloor(ctx.templeId, ctx.level, way === 'up' ? 1 : -1);
-  if (!target || !temples().getFloors(ctx.templeId).includes(target) || target === ctx.level) return rubble;
+  const isStairwayBlocked = !target || !temples().getFloors(ctx.templeId).includes(target) || target === ctx.level;
+  if (isStairwayBlocked) return rubble;
 
   const coords = room.content?.targetCoords;
   const landing = findRoomOfKind(ctx.templeId, target, [way === 'up' ? 'stairs-down' : 'stairs-up']);
@@ -654,7 +663,8 @@ export const roomActions = (given: Room | undefined, ctx: RoomContext): RoomShee
               act('Make camp', () => {
                 const hp = readPoints(ctx.userId, 'hp');
                 const mp = readPoints(ctx.userId, 'mp');
-                if (hp.now >= hp.max && mp.now >= mp.max) return { message: 'Not tired. Maybe later.' };
+                const isFullyRested = hp.now >= hp.max && mp.now >= mp.max;
+                if (isFullyRested) return { message: 'Not tired. Maybe later.' };
                 rememberOnce(roomKey(ctx, 'camp'));
                 healHero(ctx.userId, hp.max - hp.now);
                 restoreMana(ctx.userId, mp.max - mp.now);
@@ -664,7 +674,8 @@ export const roomActions = (given: Room | undefined, ctx: RoomContext): RoomShee
       );
 
     case 'trap': {
-      if (!room.content?.avoidable || spent(ctx, 'trap')) {
+      const hasNoWayToDodge = !room.content?.avoidable || spent(ctx, 'trap');
+      if (hasNoWayToDodge) {
         return sheet(spent(ctx, 'trap') ? 'A sprung trap. Quiet now.' : 'Something nasty waits underfoot.');
       }
       return sheet('Something nasty waits underfoot.', [

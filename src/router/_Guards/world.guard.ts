@@ -49,7 +49,8 @@ export async function handleWorldGuard(to: RouteLocationNormalized): Promise<Wor
     if (!userId) return;
 
     const hero = userStore.users?.[userId] ?? (userStore.currentUser?.id === userId ? userStore.currentUser : undefined);
-    if (!hero || canFly(hero)) return;
+    const shouldLetPass = !hero || canFly(hero);
+    if (shouldLetPass) return;
 
     announceFirstFlight();
     return { name: PLAINS_ROUTE, params: { userId } };

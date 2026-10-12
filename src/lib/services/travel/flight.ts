@@ -37,7 +37,8 @@ interface FlightHero {
 /** True when any slot of the Pegasi list is freed (a list of nine flags, or an index-keyed map from older saves). */
 const anyFreed = (slots: unknown): boolean => {
   if (Array.isArray(slots)) return slots.some(Boolean);
-  if (slots && typeof slots === "object") return Object.values(slots).some(Boolean);
+  const isIndexKeyedMap = slots && typeof slots === "object";
+  if (isIndexKeyedMap) return Object.values(slots).some(Boolean);
   return false;
 };
 

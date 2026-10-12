@@ -162,8 +162,10 @@
 
         // Play corresponding sound effect for the current screen
         const screen = splashScreens.value[index];
-        if (screen && screen.soundEffect) {
-          playSoundEffect(screen.soundEffect);
+        const soundEffect = screen?.soundEffect;
+        const hasSoundEffect = screen && soundEffect;
+        if (hasSoundEffect) {
+          playSoundEffect(soundEffect);
         }
 
         // Change background music based on world category - special case for credits
@@ -177,7 +179,8 @@
       // Special function to play credits music
       const playCreditsMusic = () => {
         const $fx = window.$fx as unknown as FXObject | undefined;
-        if (!$fx || !$fx.rpg || !$fx.theme) return;
+        const hasNoFxTheme = !$fx || !$fx.rpg || !$fx.theme;
+        if (hasNoFxTheme) return;
 
         stopBGM();
 
@@ -186,7 +189,8 @@
           const creditsTracks = $fx.rpg[String($fx.theme.rpg)]?.BGM?.credits ||
             $fx.rpg[String($fx.theme.rpg)]?.BGM?.demo;
 
-          if (creditsTracks && Array.isArray(creditsTracks) && creditsTracks.length > 0) {
+          const hasCreditsTracks = creditsTracks && Array.isArray(creditsTracks) && creditsTracks.length > 0;
+          if (hasCreditsTracks) {
             const trackIndex = Math.floor(Math.random() * creditsTracks.length);
             const audio = new Audio(creditsTracks[trackIndex]);
             audio.volume = 0.6;
@@ -209,7 +213,8 @@
         try {
           // Try to find the sound in RPG sound effects
           const rpgSound = $fx.rpg[String($fx.theme.rpg)]?.[effectName];
-          if (rpgSound && typeof rpgSound.play === 'function') {
+          const canPlayRpgSound = rpgSound && typeof rpgSound.play === 'function';
+          if (canPlayRpgSound) {
             rpgSound.currentTime = 0;
             rpgSound.play().catch(err => debug.error('Error playing sound effect:', err));
             return;
@@ -217,7 +222,8 @@
 
           // Try UI sounds if RPG sound not found
           const uiSound = $fx.ui[String($fx.theme.ui)]?.[effectName];
-          if (uiSound && typeof uiSound.play === 'function') {
+          const canPlayUiSound = uiSound && typeof uiSound.play === 'function';
+          if (canPlayUiSound) {
             uiSound.currentTime = 0;
             uiSound.play().catch(err => debug.error('Error playing UI sound:', err));
             return;
@@ -230,7 +236,8 @@
       // Change background music based on world type
       const changeBackgroundMusic = (index: number) => {
         const $fx = window.$fx as unknown as FXObject | undefined;
-        if (!$fx || !$fx.rpg || !$fx.theme) return;
+        const hasNoFxTheme = !$fx || !$fx.rpg || !$fx.theme;
+        if (hasNoFxTheme) return;
 
         // Stop any currently playing BGM
         stopBGM();
@@ -257,7 +264,8 @@
             const bgmTracks = $fx.rpg[String($fx.theme.rpg)]?.BGM?.[bgmCategory] ||
               ($fx.rpg[String($fx.theme.rpg)]?.BGM?.worlds?.terrains?.[bgmCategory]);
 
-            if (bgmTracks && Array.isArray(bgmTracks) && bgmTracks.length > 0) {
+            const hasBgmTracks = bgmTracks && Array.isArray(bgmTracks) && bgmTracks.length > 0;
+            if (hasBgmTracks) {
               const trackIndex = Math.floor(Math.random() * bgmTracks.length);
               const audio = new Audio(bgmTracks[trackIndex]);
               audio.volume = 0.6;

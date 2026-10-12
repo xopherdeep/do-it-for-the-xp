@@ -179,17 +179,20 @@ export function handleBgmGuard(to: RouteLocationNormalized, router?: Router): vo
       const tracks = BGM.temples?.[`${meta.element}-temple`] ?? terrains?.dungeon;
       const picked = createBgmPayload(tracks, { track: "random", startDelay, saveBookmark: true });
       const play = () => {
-        if (!picked || (picked.tracks === bgm.tracks && bgm.is_on)) return;
+        const hasNothingNewToPlay = !picked || (picked.tracks === bgm.tracks && bgm.is_on);
+        if (hasNothingNewToPlay) return;
         changeBGM(audioStore, picked, true);
       };
       // The hero navigated on before the element resolved: the wrong track must not start
       if (run !== guardRun) return;
       const current = router?.currentRoute.value;
-      if (!router || current?.fullPath === fullPath) return play();
+      const canPlayNow = !router || current?.fullPath === fullPath;
+      if (canPlayNow) return play();
       // Still on the route being left (this guard runs before the navigation lands): play once it lands here
       const off = router.afterEach((landed, _from, failure) => {
         off();
-        if (!failure && run === guardRun && landed.fullPath === fullPath) play();
+        const shouldPlayOnLanding = !failure && run === guardRun && landed.fullPath === fullPath;
+        if (shouldPlayOnLanding) play();
       });
     });
   }
@@ -206,7 +209,8 @@ export function handleBgmGuard(to: RouteLocationNormalized, router?: Router): vo
   // Dispatch BGM change if payload was determined. The same playlist already playing (a hero
   // stepping out to the quest log and back into the temple) keeps playing: no new random pick, no restart.
   if (payload?.tracks?.length) {
-    if (payload.tracks === bgm.tracks && bgm.is_on) return;
+    const isPlaylistAlreadyPlaying = payload.tracks === bgm.tracks && bgm.is_on;
+    if (isPlaylistAlreadyPlaying) return;
     changeBGM(audioStore, payload, true);
   }
 }

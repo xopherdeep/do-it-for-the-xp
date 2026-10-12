@@ -72,7 +72,8 @@ export function resolveGmAccess(
   // not turn the next kid who opens the app into a Game Master.
   if (currentUser.isImpersonating) {
     const impersonatorId = getImpersonatorId();
-    if (impersonatorId && isGameMaster(users[impersonatorId])) return "masquerade";
+    const isMasqueradingGameMaster = impersonatorId && isGameMaster(users[impersonatorId]);
+    if (isMasqueradingGameMaster) return "masquerade";
   }
 
   return Object.values(users).some(isGameMaster) ? "denied" : "no-game-master";
@@ -170,7 +171,8 @@ export function isGameMasterRoute(
   to: Pick<RouteLocationNormalized, "path" | "matched">
 ): boolean {
   const path = to.path.toLowerCase();
-  if (path === GM_PATH || path.startsWith(`${GM_PATH}/`)) return true;
+  const isUnderGameMasterPath = path === GM_PATH || path.startsWith(`${GM_PATH}/`);
+  if (isUnderGameMasterPath) return true;
   return (to.matched ?? []).some((record) => record.name === GM_ROUTE_NAME);
 }
 

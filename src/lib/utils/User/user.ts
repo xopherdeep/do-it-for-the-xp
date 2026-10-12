@@ -102,7 +102,8 @@ export function mergeProfileEdit(stored: StoredProfile, form: ProfileFormValues)
   // (nickname and all). A nickname someone chose for themselves survives a rename.
   const storedName = stored.name ?? {}
   const full = form.name?.full
-  if (full && full !== storedName.full) {
+  const isRenamed = full && full !== storedName.full;
+  if (isRenamed) {
     edited.name = { ...nameFromFull({ full }), ...(storedName.preferred ? { preferred: storedName.preferred } : {}) }
   }
 

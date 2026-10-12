@@ -127,7 +127,8 @@ export const useTempleCreatorStore = defineStore("temple-creator", () => {
     const firstFloor = Array.isArray(defaultData.maze)
       ? defaultData.maze
       : (Object.values(defaultData.maze)[0] as string[][]);
-    if (firstFloor && firstFloor.length > 0) {
+    const hasMazeRows = firstFloor && firstFloor.length > 0;
+    if (hasMazeRows) {
       const rows = firstFloor.length;
       const cols = firstFloor[0].length;
       gridSize.value = `${rows}x${cols}`;
@@ -152,7 +153,8 @@ export const useTempleCreatorStore = defineStore("temple-creator", () => {
     col?: number,
     type: string = "empty"
   ): string {
-    if (row !== undefined && col !== undefined) {
+    const hasCoordinates = row !== undefined && col !== undefined;
+    if (hasCoordinates) {
       // Use coordinates TXXYY (e.g. M0104 for monster at x1, y4)
       const prefix = typePrefixes[type] || "R";
       const xx = col.toString().padStart(2, "0");
@@ -196,8 +198,10 @@ export const useTempleCreatorStore = defineStore("temple-creator", () => {
       return grid.map((row, rIdx) =>
         row.map((cell, cIdx) => {
           // Normalize legacy tokens to 4-char versions
-          if (cell === ____ || cell === WALL_TOKEN) return WALL_TOKEN;
-          if (cell === _00_ || cell === ENTRANCE_TOKEN) return ENTRANCE_TOKEN;
+          const isWallCell = cell === ____ || cell === WALL_TOKEN;
+          if (isWallCell) return WALL_TOKEN;
+          const isEntranceCell = cell === _00_ || cell === ENTRANCE_TOKEN;
+          if (isEntranceCell) return ENTRANCE_TOKEN;
 
           // WALL NORMALIZATION: If this cell's room has type 'wall', replace with WALL_TOKEN
           const existingRoom = roomsData.value[cell];
@@ -212,14 +216,16 @@ export const useTempleCreatorStore = defineStore("temple-creator", () => {
 
           let newKey = cell;
           // If it starts with R or is a legacy token, we migrate it to the current coordinate.
-          if (!isCoordToken || cell.startsWith("R")) {
+          const shouldMigrateToken = !isCoordToken || cell.startsWith("R");
+          if (shouldMigrateToken) {
             const room = roomsData.value[cell];
             const type = room?.type || "empty";
             newKey = generateUniqueSymbol(rIdx, cIdx, type);
 
             // Only copy data if we haven't already moved this room definition
             // (Handles cases where multiple maze cells used the same token)
-            if (roomsData.value[cell] && !newRoomsData[newKey]) {
+            const hasUnmovedRoomDefinition = roomsData.value[cell] && !newRoomsData[newKey];
+            if (hasUnmovedRoomDefinition) {
               newRoomsData[newKey] = JSON.parse(
                 JSON.stringify(roomsData.value[cell])
               );

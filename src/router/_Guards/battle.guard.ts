@@ -125,7 +125,8 @@ async function onReturn(router: Router): Promise<void> {
     if (!ambush) return;
     battleStore.clearPendingAmbush();
 
-    if (useUserStore().currentUser.id !== ambush.heroId || isBattleRoute(router.currentRoute.value.name)) return;
+    const shouldDropAmbush = useUserStore().currentUser.id !== ambush.heroId || isBattleRoute(router.currentRoute.value.name);
+    if (shouldDropAmbush) return;
 
     try {
       await router.push(freeBattleRoute(ambush.heroId, [], ambush.region));
@@ -150,15 +151,15 @@ function onLeave(router: Router): void {
     const heroId = userStore.currentUser.id;
 
     // The same reasons a tick would rest: nothing is coming for the hero, so nothing is booked
-    if (
+    const isNothingComingForHero =
       !battleStore.interval ||
       battleStore.pendingAmbush ||
       isBattleRoute(router.currentRoute.value.name) ||
       isOverlayOpen() ||
       !heroId ||
       battleStore.active ||
-      battleAlertsChoice() !== "on"
-    ) {
+      battleAlertsChoice() !== "on";
+    if (isNothingComingForHero) {
       return;
     }
 
@@ -223,7 +224,8 @@ let askedAboutAlerts = false;
 async function askAboutAmbushAlerts(): Promise<void> {
   const permission = await alertPermission();
   if (permission === "unsupported") return;
-  if (permission === "denied" || permission === "granted") {
+  const isPermissionSettled = permission === "denied" || permission === "granted";
+  if (isPermissionSettled) {
     setBattleAlertsChoice(permission === "granted" ? "on" : "off");
     return;
   }
@@ -272,7 +274,8 @@ export function handleBattleTimerGuard(
       onEncounter: () => onExplorationTick(router),
     });
 
-    if (!askedAboutAlerts && battleAlertsChoice() === "unasked") {
+    const shouldAskAboutAlerts = !askedAboutAlerts && battleAlertsChoice() === "unasked";
+    if (shouldAskAboutAlerts) {
       askedAboutAlerts = true;
       askAboutAmbushAlerts().catch((error) => debug.warn("Ambush alerts could not be asked", error));
     }

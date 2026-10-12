@@ -139,7 +139,8 @@ export const transitionFor = (from: Scene, to: Scene): TransitionPlan | null => 
   if (to.kind === "battle") return { effect: "swirl", direction: "in", sound: "enterBattle" };
 
   // Back out of a battle to where the hero was
-  if (from.kind === "battle" && ["temple", "region", "town", "world-map"].includes(to.kind)) {
+  const isReturningFromBattle = from.kind === "battle" && ["temple", "region", "town", "world-map"].includes(to.kind);
+  if (isReturningFromBattle) {
     return { effect: "fade", direction: "out" };
   }
   if (from.kind === "battle") return null;
@@ -165,13 +166,15 @@ export const transitionFor = (from: Scene, to: Scene): TransitionPlan | null => 
     };
   }
   if (from.kind === "temple") {
-    if (to.kind === "other" || to.kind === "portal") return null;
+    const hasNoSceneToEnter = to.kind === "other" || to.kind === "portal";
+    if (hasNoSceneToEnter) return null;
     return { effect: "iris", direction: "out", title: to.title, element: to.element };
   }
 
   // Travel: the hero rides the clouds between town, world map and regions
   const travel: SceneKind[] = ["town", "world-map", "region"];
-  if (travel.includes(from.kind) && travel.includes(to.kind)) {
+  const isTravelBetweenPlaces = travel.includes(from.kind) && travel.includes(to.kind);
+  if (isTravelBetweenPlaces) {
     return {
       effect: "clouds",
       direction: "in",

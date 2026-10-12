@@ -104,7 +104,8 @@ export const useProStore = defineStore("pro", () => {
     watch(
       () => needsRecheck(license.value, now.value),
       (due) => {
-        if (due && !disposed) recheckInBackground();
+        const shouldRecheck = due && !disposed;
+        if (shouldRecheck) recheckInBackground();
       }
     );
   }

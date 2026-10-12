@@ -9,7 +9,8 @@ import type { Room } from "@/lib/engine/core/dungeons/types";
 /** The element a temple fights with: a generated temple carries its own; the nine shipped temples take it from their id. */
 export const templeElementFor = (templeId: string, recordElement?: string): string => {
   const id = String(templeId || "");
-  if (id.startsWith("gen-") && recordElement && recordElement !== "none") return recordElement;
+  const carriesOwnElement = id.startsWith("gen-") && recordElement && recordElement !== "none";
+  if (carriesOwnElement) return recordElement;
   return id.replace("-temple", "") || "wind";
 };
 
@@ -118,7 +119,8 @@ export const pickRoomBeast = (room: Room, element: string, row: number, col: num
   if (authoredId) return beasts.find((b) => String(b.id) === String(authoredId)) ?? null;
 
   const type = squash(String(room.content?.monsterType || ""));
-  if (type && type !== "small") {
+  const hasNamedMonsterType = type && type !== "small";
+  if (hasNamedMonsterType) {
     const typeMatch = beasts.find((b) => squash(b.name || "").includes(type));
     if (typeMatch) return typeMatch;
   }

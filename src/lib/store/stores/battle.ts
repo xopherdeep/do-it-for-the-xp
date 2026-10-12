@@ -97,7 +97,8 @@ export const useBattleStore = defineStore('battle', () => {
     }
 
     const isBattleTimerUp = steps.counter <= 0;
-    if (isBattleTimerUp && !active.value) {
+    const isEncounterDue = isBattleTimerUp && !active.value;
+    if (isEncounterDue) {
       // The caller (battle.guard) sends the hero into the fight and re-arms the counter.
       return true;
     }

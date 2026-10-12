@@ -17,7 +17,8 @@ export async function handleProGuard(
   // `proWhenNew` gates a route only while it creates something (a temple id of "new"); saved items stay open.
   const whenNew = (to as { params?: Record<string, unknown> }).params?.templeId === "new" ? to.meta?.proWhenNew : undefined;
   const gate = (to.meta?.pro ?? whenNew) as ProGate | undefined;
-  if (!gate || !GATES.includes(gate)) return;
+  const isUngatedRoute = !gate || !GATES.includes(gate);
+  if (isUngatedRoute) return;
 
   const pro = useProStore();
   // A deep link arrives before the cached license is loaded; wait for it so a Pro family is not turned away.
@@ -25,7 +26,8 @@ export async function handleProGuard(
   if (pro.isPro) return;
 
   // A deep link or reload has nowhere to stay on: send it to the Go Pro page instead of a blank screen
-  if (from && from.matched.length === 0) return { name: "xp-pro" };
+  const isDeepLinkEntry = from && from.matched.length === 0;
+  if (isDeepLinkEntry) return { name: "xp-pro" };
 
   await pro.requirePro(gate);
   return false;

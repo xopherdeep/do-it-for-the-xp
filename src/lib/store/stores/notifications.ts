@@ -35,7 +35,8 @@ export const useNotificationsStore = defineStore("notifications", () => {
     const seen = new Set<string>();
     const all: XpNotification[] = [];
     for (const entry of [...memory, ...stored]) {
-      if (!entry || seen.has(entry.id)) continue;
+      const isBlankOrRepeat = !entry || seen.has(entry.id);
+      if (isBlankOrRepeat) continue;
       seen.add(entry.id);
       all.push(entry);
     }
