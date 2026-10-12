@@ -123,7 +123,7 @@
       },
       // The fight page answers these, so the bag holds no battle rules
       battleCard: {
-        type: Function as PropType<(item: EquipmentItem) => BattleItemCard | null>,
+        type: Function as PropType<((item: EquipmentItem) => BattleItemCard | null) | null>,
         default: null,
       },
       opensDirectly: {
