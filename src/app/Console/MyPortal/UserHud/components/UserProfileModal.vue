@@ -28,7 +28,8 @@
         <div class="stats-flex">
           <!-- Row 1: Avatar | Class | Food -->
           <div class="stats-row">
-            <div class="stat-box avatar-box" @click="openMyLook">
+            <div class="stat-box avatar-box" role="button" tabindex="0" @click="openMyLook" @keydown.enter="openMyLook"
+              @keydown.space.prevent="openMyLook">
               <div class="avatar-container">
                 <ion-avatar class="hero-avatar">
                   <ion-img :src="avatarSrc" />
@@ -40,7 +41,8 @@
               <span class="my-look-label">My Look</span>
             </div>
 
-            <div class="stat-box class-box" @click="openClassSelector">
+            <div class="stat-box class-box" role="button" tabindex="0" @click="openClassSelector" @keydown.enter="openClassSelector"
+              @keydown.space.prevent="openClassSelector">
               <div class="stat-icon">
                 <i :class="`fad ${getClassIcon(user.jobClass)} fa-3x`"></i>
               </div>
@@ -50,7 +52,8 @@
               </div>
             </div>
 
-            <div class="stat-box food-box" @click="openFoodSelector">
+            <div class="stat-box food-box" role="button" tabindex="0" @click="openFoodSelector" @keydown.enter="openFoodSelector"
+              @keydown.space.prevent="openFoodSelector">
               <span class="stat-label">FOOD</span>
               <div class="stat-icon">
                 <i :class="`fad ${getFoodIcon(user.favoriteFood)} fa-2x`"></i>
@@ -268,9 +271,6 @@ export default defineComponent({
     const gameStore = useGameStore();
     const modal = ref<any>(null);
     const maxAvatarIndex = $requireAvatar.keys().length;
-
-    console.log('UserProfileModal setup running');
-
 
     // Avatar selector state
     const isAvatarSelectorOpen = ref(false);

@@ -1,6 +1,7 @@
 <template>
   <!-- BACKDROP TO CLOSE ON CLICK OUTSIDE -->
-  <div v-if="fabActive" class="menu-backdrop-overlay" @click="closeAndDeactivate"></div>
+  <div v-if="fabActive" class="menu-backdrop-overlay" role="button" tabindex="0" aria-label="Close shortcuts" @click="closeAndDeactivate"
+    @keydown.enter="closeAndDeactivate" @keydown.space.prevent="closeAndDeactivate"></div>
 
   <ion-fab ref="fabContainer" vertical="center" horizontal="center" class="icon-colors fab-page-shortcuts">
     <ion-fab-button expand="block" color="light" @click="syncToggle">

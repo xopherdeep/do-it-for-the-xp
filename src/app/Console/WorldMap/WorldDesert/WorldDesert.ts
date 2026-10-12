@@ -5,6 +5,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useUserActions } from "@/hooks/useUserActions";
 import debug from "@/lib/utils/debug";
+import { useTimers } from "@/hooks/useTimers";
 import { IonPage, IonContent, onIonViewDidEnter } from "@ionic/vue";
 import WeatherFX from "@/components/organisms/WeatherFX/WeatherFX.vue";
 
@@ -17,6 +18,7 @@ export default dC({
     const router = useRouter();
     const userStore = useUserStore();
     const { setActions } = useUserActions();
+    const timers = useTimers();
 
     const { userId } = route.params;
     const user = computed(() => userStore.getUserById(userId as string));
@@ -47,11 +49,11 @@ export default dC({
             windAudio.value.volume = Math.min(0.8, originalVolume * 1.5);
 
             // Return to normal volume after 2 seconds
-            setTimeout(() => {
+            timers.startTimeout(2000, () => {
               if (windAudio.value) {
                 windAudio.value.volume = originalVolume;
               }
-            }, 2000);
+            });
           }
         }
       }, 10000); // Check every 10 seconds

@@ -29,6 +29,7 @@
   import { XpIntroSplash } from '@/components/organisms/IntroSplash';
   import type { SplashScreen } from '@/components/organisms/IntroSplash';
   import debug from '@/lib/utils/debug';
+  import { useTimers } from '@/hooks/useTimers';
 
   // Extended splash screen interface that includes our custom properties
   interface ExtendedSplashScreen extends SplashScreen {
@@ -54,6 +55,7 @@
     },
     setup() {
       const router = useRouter();
+      const timers = useTimers();
       // const ionRouter = useIonRouter();
       const viewActive = ref(false);
       const duration = 1300; // Duration for each splash screen - longer to read text
@@ -286,7 +288,7 @@
       const onComplete = () => {
         stopBGM();
         playSoundEffect('finish');
-        setTimeout(() => navigateTo('/log-in'), 1000);
+        timers.startTimeout(1000, () => navigateTo('/log-in'));
       };
 
       // Handle demo skip
@@ -306,7 +308,8 @@
         onComplete,
         onSkip,
         onScreenChange,
-        navigateTo
+        navigateTo,
+        timers
       };
     },
 
@@ -320,16 +323,19 @@
     ionViewWillEnter() {
       // Ensure demo will play when entering the view
       this.viewActive = false;
+      this.timers.cancelAll();
       // Short delay to ensure a clean start
-      setTimeout(() => {
+      this.timers.startTimeout(100, () => {
         this.viewActive = true;
-      }, 100);
+      });
     },
 
     // This is called when leaving the view - Ionic specific
     ionViewWillLeave() {
       // Deactivate the component when navigating away
       this.viewActive = false;
+      // A pending start or the delayed hop to the log-in screen must not fire after we left
+      this.timers.cancelAll();
 
       // Ensure all audio is stopped
       const audio = (this as any).bgmAudio;

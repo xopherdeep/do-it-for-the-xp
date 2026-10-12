@@ -90,7 +90,6 @@ import {
 import {
   settingsOutline} from 'ionicons/icons';
 
-// Import components
 import RoomInfoDisplay from './components/RoomInfoDisplay.vue';
 import NavigationControls from './components/NavigationControls.vue';
 import RoomActionButton from './components/RoomActionButton.vue';
@@ -107,6 +106,7 @@ import { useCanvasRenderer } from './hooks/useCanvasRenderer';
 import { ROOM_ICONS } from './utils/roomIcons';
 import { Direction, RoomDefinition } from './types';
 import debug from '@/lib/utils/debug';
+import { useTimers } from '@/hooks/useTimers';
 
 // Initialize temple data hook
 const { 
@@ -122,6 +122,7 @@ const {
 } = useTempleData();
 
 // UI state
+const timers = useTimers();
 const showControlsModal = ref(false);
 
 // Message display system
@@ -132,9 +133,9 @@ const displayMessage = (message: string) => {
   currentMessage.value = message;
   showMessage.value = true;
   
-  setTimeout(() => {
+  timers.startTimeout(2000, () => {
     showMessage.value = false;
-  }, 2000);
+  });
 };
 
 // Initialize door locks hook

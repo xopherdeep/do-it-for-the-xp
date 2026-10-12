@@ -47,6 +47,8 @@ import { useRouter } from "vue-router";
 import { Controller, Navigation, Swiper as SwiperClass } from "swiper";
 import { formatQuestName } from "@/lib/utils/format";
 import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
+import debug from "@/lib/utils/debug";
+import { useTimers } from "@/hooks/useTimers";
 
 // The quest log has two faces: the card board (the RPG view) and the plain to-do list
 type QuestLogView = "board" | "list";
@@ -251,8 +253,9 @@ export default defineComponent({
       this.$fx.ui[this.$fx.theme.ui].select.play();
       try {
         localStorage.setItem(VIEW_KEY, view);
-      } catch {
+      } catch (error) {
         // a private window forgets the choice; the board is the default
+        debug.warn("[MyQuests] could not remember the quest log view", error);
       }
     },
     rowIcon(row: QuestListRow): string {
@@ -331,10 +334,10 @@ export default defineComponent({
       this.say(`${nick} tamed ${row.title}!`, `+${xp} XP · +${gp} GP · +${ap} AP`);
       if (!levelUp?.didLevelUp) return;
       const { newLevel } = levelUp;
-      setTimeout(() => {
+      this.timers.startTimeout(2000, () => {
         this.$fx.rpg[this.$fx.theme.rpg].levelUp.play();
         this.say(`LEVEL UP! Now level ${newLevel}`, nick, 2400);
-      }, 2000); // let the rewards toast clear first
+      }); // let the rewards toast clear first
     },
     async say(header: string, message?: string, duration = 2000) {
       const toast = await toastController.create({
@@ -363,6 +366,7 @@ export default defineComponent({
     const gameStore = useGameStore();
     const userStore = useUserStore();
     const router = useRouter();
+    const timers = useTimers();
     const controlledSwiper = ref<SwiperClass | null>(null);
     const setControlledSwiper = (swiper: SwiperClass) => {
       controlledSwiper.value = swiper;
@@ -399,6 +403,7 @@ export default defineComponent({
     return {
       gameStore,
       userStore,
+      timers,
       params,
       board,
       loadBoard,

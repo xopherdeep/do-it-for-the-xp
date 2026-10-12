@@ -28,6 +28,7 @@
   import { XpIntroSplash } from "@/components/organisms/IntroSplash";
   import type { SplashScreen } from "@/components/organisms/IntroSplash";
   import Ionic from "@/lib/mixins/ionic";
+  import { useTimers } from "@/hooks/useTimers";
 
   export default defineComponent({
     name: "XpIntro",
@@ -39,6 +40,7 @@
     },
     setup() {
       const router = useRouter();
+      const timers = useTimers();
       // const ionRouter = useIonRouter();
       const viewActive = ref(false);
       const duration = 2500; // Default duration for each splash screen
@@ -125,6 +127,7 @@
         onComplete,
         onSkip,
         navigateTo,
+        timers,
       };
     },
 
@@ -142,16 +145,18 @@
     ionViewWillEnter() {
       // Ensure intro will play when entering the view
       this.viewActive = false;
+      this.timers.cancelAll();
       // Short delay to ensure a clean start
-      setTimeout(() => {
+      this.timers.startTimeout(100, () => {
         this.viewActive = true;
-      }, 100);
+      });
     },
 
     // This is called when leaving the view - Ionic specific
     ionViewWillLeave() {
       // Deactivate the component when navigating away
       this.viewActive = false;
+      this.timers.cancelAll();
     },
   });
 </script>

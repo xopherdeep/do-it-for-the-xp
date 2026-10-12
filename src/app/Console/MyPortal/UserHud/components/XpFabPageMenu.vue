@@ -1,6 +1,7 @@
 <template>
   <!-- BACKDROP TO CLOSE ON CLICK OUTSIDE -->
-  <div v-if="fabActive" class="menu-backdrop-overlay" @click="closeMenu"></div>
+  <div v-if="fabActive" class="menu-backdrop-overlay" role="button" tabindex="0" aria-label="Close menu" @click="closeMenu"
+    @keydown.enter="closeMenu" @keydown.space.prevent="closeMenu"></div>
 
   <!-- CENTERED MENU -->
   <div v-if="fabActive" class="centered-menu-wrapper">

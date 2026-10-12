@@ -33,6 +33,7 @@ import type { Swiper as SwiperType } from 'swiper';
 import { NativeAudio } from "@awesome-cordova-plugins/native-audio";
 import CardUserStats from "@/components/organisms/CardUserStats/CardUserStats.vue";
 import { useItemFetcher } from "@/hooks/useItemFetcher";
+import { useTimers } from "@/hooks/useTimers";
 import AnimatedNumber from "@/components/atoms/AnimatedNumber/XpAnimatedNumber.vue";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useGameStore } from "@/lib/store/stores/game";
@@ -257,7 +258,7 @@ export default defineComponent({
       $fx.rpg[theme.rpg].fillPoints.currentTime = 0;
     },
     didPresent() {
-      setTimeout(() => (this.userMenuActive = true), 500);
+      this.timers.startTimeout(500, () => (this.userMenuActive = true));
     },
     willPresent() {
       this.$fx.ui[this.$fx.theme.ui].openTask.play();
@@ -638,6 +639,7 @@ export default defineComponent({
     const battleStore = useBattleStore();
     const audioStore = useAudioStore();
     const router = useRouter();
+    const timers = useTimers();
     const controlledSwiper = ref<SwiperType | null>(null);
     const setControlledSwiper = (swiper: SwiperType) => {
       controlledSwiper.value = swiper;
@@ -647,6 +649,7 @@ export default defineComponent({
       gameStore,
       battleStore,
       audioStore,
+      timers,
       controlledSwiper,
       setControlledSwiper,
       modules: [IonicSlides, Navigation, Controller],

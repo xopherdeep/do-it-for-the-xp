@@ -59,7 +59,8 @@
     </ion-content>
 
     <!-- Custom Concierge Dialog (RPG style) -->
-    <div class="concierge-dialog-overlay" v-if="isDialogVisible" @click="advanceDialog">
+    <div class="concierge-dialog-overlay" v-if="isDialogVisible" role="button" tabindex="0" @click="advanceDialog"
+      @keydown.enter="advanceDialog" @keydown.space.prevent="advanceDialog">
       <ion-card class="concierge-dialog-box">
         <ion-card-title class="dialog-header">
           <i class="fad fa-concierge-bell fa-lg mr-2"></i>

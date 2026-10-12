@@ -104,6 +104,7 @@
   import { actionSheetController, alertController } from "@ionic/vue";
   import Ionic from "@/lib/mixins/ionic";
   import { play$fx } from "@/assets/fx";
+  import { useTimers } from "@/hooks/useTimers";
 
   export default defineComponent({
     name: "ATMModal",
@@ -121,6 +122,7 @@
     emits: ["update:isOpen", "deposit", "withdraw", "payDebt"],
     setup(props, { emit }) {
       const modal = ref<any>(null);
+      const timers = useTimers();
 
       // Dismiss the modal
       const dismiss = async () => {
@@ -258,21 +260,21 @@
               icon: arrowUpCircleOutline,
               handler: () => {
                 // Action sheet auto-dismisses
-                setTimeout(() => presentDepositAlert(), 100);
+                timers.startTimeout(100, () => presentDepositAlert());
               },
             },
             {
               text: "Withdraw from Savings",
               icon: arrowDownCircleOutline,
               handler: () => {
-                setTimeout(() => presentWithdrawAlert(), 100);
+                timers.startTimeout(100, () => presentWithdrawAlert());
               },
             },
             {
               text: "Pay Down Debt",
               icon: cardOutline,
               handler: () => {
-                setTimeout(() => presentPayDebtAlert(), 100);
+                timers.startTimeout(100, () => presentPayDebtAlert());
               },
             },
             {
@@ -300,9 +302,9 @@
       // Present action sheet on modal open
       onMounted(() => {
         if (props.isOpen) {
-          setTimeout(() => {
+          timers.startTimeout(500, () => {
             showActions();
-          }, 500); // Increased delay to ensure modal is fully visible
+          }); // Increased delay to ensure modal is fully visible
         }
       });
 
@@ -311,9 +313,9 @@
         () => props.isOpen,
         (isOpen) => {
           if (isOpen) {
-            setTimeout(() => {
+            timers.startTimeout(500, () => {
               showActions();
-            }, 500); // Same delay as onMounted for consistency
+            }); // Same delay as onMounted for consistency
           }
         }
       );

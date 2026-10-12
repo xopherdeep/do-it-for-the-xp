@@ -135,6 +135,7 @@
   import ionic from "@/lib/mixins/ionic";
   import XpIcon from "@/components/atoms/Icon/XpIcon.vue";
   import type { StatAreas } from "../types";
+  import { useTimers } from "@/hooks/useTimers";
 
   export default defineComponent({
     name: "xp-view-stats",
@@ -149,6 +150,7 @@
 
     setup(props) {
       const userStore = useUserStore();
+      const timers = useTimers();
 
       // Get user from props via getUserById
       const user = computed(() => userStore.getUserById(props.userId));
@@ -245,9 +247,9 @@
         (newVal, oldVal) => {
           if (oldVal !== undefined && newVal !== oldVal) {
             isHpChanged.value = true;
-            setTimeout(() => {
+            timers.startTimeout(600, () => {
               isHpChanged.value = false;
-            }, 600);
+            });
           }
           prevHp.value = newVal || 0;
         }
@@ -258,9 +260,9 @@
         (newVal, oldVal) => {
           if (oldVal !== undefined && newVal !== oldVal) {
             isMpChanged.value = true;
-            setTimeout(() => {
+            timers.startTimeout(600, () => {
               isMpChanged.value = false;
-            }, 600);
+            });
           }
           prevMp.value = newVal || 0;
         }
@@ -275,9 +277,9 @@
           Object.keys(newStats || {}).forEach((stat) => {
             if (newStats[stat] !== oldStats[stat]) {
               changedStats.value.add(stat);
-              setTimeout(() => {
+              timers.startTimeout(500, () => {
                 changedStats.value.delete(stat);
-              }, 500);
+              });
             }
           });
         },

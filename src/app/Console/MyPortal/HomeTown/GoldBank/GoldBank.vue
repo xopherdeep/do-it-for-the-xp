@@ -33,7 +33,8 @@
     </ion-content>
     
     <!-- Custom Banker Dialog (RPG style) -->
-    <div class="banker-dialog-overlay" v-if="isDialogVisible" @click="advanceDialog">
+    <div class="banker-dialog-overlay" v-if="isDialogVisible" role="button" tabindex="0" @click="advanceDialog"
+      @keydown.enter="advanceDialog" @keydown.space.prevent="advanceDialog">
       <ion-card class="banker-dialog-box">
         <ion-card-title class="dialog-header">
           <i class="fad fa-user-tie fa-lg mr-2"></i>

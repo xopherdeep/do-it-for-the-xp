@@ -29,7 +29,8 @@
     </ion-content>
 
     <!-- Custom Nurse Dialog (RPG style) -->
-    <div class="nurse-dialog-overlay" v-if="isDialogVisible" @click="advanceDialog">
+    <div class="nurse-dialog-overlay" v-if="isDialogVisible" role="button" tabindex="0" @click="advanceDialog"
+      @keydown.enter="advanceDialog" @keydown.space.prevent="advanceDialog">
       <ion-card class="nurse-dialog-box">
         <ion-card-title class="dialog-header">
           <i class="fad fa-user-nurse fa-lg mr-2"></i>
