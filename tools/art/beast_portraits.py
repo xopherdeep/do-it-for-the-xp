@@ -8,12 +8,16 @@ Usage (GEMINI_API_KEY in the environment):
   python3 tools/art/beast_portraits.py socktopus dish-goblin           # one take each in style a (painted)
   python3 tools/art/beast_portraits.py -n 2 --style b socktopus        # two takes in style b (hd pixel art)
   python3 tools/art/beast_portraits.py --all -j 4                       # every beast with no take yet, 4 at a time
-  python3 tools/art/beast_portraits.py --sheet [--only d] [--now] [slug ...]   # review pages (_sheet.png / _sheet-NN.png)
+  python3 tools/art/beast_portraits.py --sheet [--only d] [--now] [slug ...]   # review pages (_sheet[-d][-NN].png)
   python3 tools/art/beast_portraits.py --rekey [slug ...]               # redo the background keying from raw/
-  python3 tools/art/beast_portraits.py --install socktopus=a2 dish-goblin=b1
-                                                                        # take -> src/assets/images/beasts/NNN.webp,
-                                                                        # number remembered in beast_numbers.json,
-                                                                        # TOTAL_BEAST_AVATARS / nAvatars bumped
+  python3 tools/art/beast_portraits.py --assign                         # number every beast (roster order) in beast_numbers.json
+  python3 tools/art/beast_portraits.py --install socktopus=d4 dish-goblin=d3
+                                                                        # take -> src/assets/images/beasts/NNN.webp under the
+                                                                        # beast's number; TOTAL_BEAST_AVATARS / nAvatars follow
+                                                                        # the highest unbroken run of portrait files
+  python3 tools/art/beast_portraits.py --install auto --style d          # first clean take of every beast not installed yet
+  python3 tools/art/beast_portraits.py --assign --variant b              # a second number per beast for its style-b look
+  python3 tools/art/beast_portraits.py --install auto --variant b        # ... installed as variantAvatar in the library
   python3 tools/art/beast_portraits.py --emit-ts                        # src/lib/services/core/beastLibrary.ts
 Styles: a painted gouache storybook, b modern hd pixel art, c ink and watercolour, d painted pixel (a+b).
 Env: XP_GEMINI_MODEL pins a model; XP_BEAST_STYLE sets the default style; XP_KEY_THRESH the keying tolerance."""
@@ -52,8 +56,8 @@ STYLES = {
           "flat bands, warm saturated colours with hue-shifted shadows, soft dark-brown outlines, chibi proportions with a big "
           "head and a small round body, large glossy expressive eyes."),
 }
-FRAME = ("{style} A single whimsical monster for a children's chore-quest game bestiary: {look}. It is {name}, the "
-         "spirit of the chore \"{chore}\". Full body, facing the viewer, centred and filling most of the frame, no ground "
+FRAME = ("{style} A single whimsical monster for a children's chore-quest game bestiary: {look}. It is the spirit "
+         "of the chore \"{chore}\". Full body, facing the viewer, centred and filling most of the frame, no ground "
          "shadow, no scenery, isolated on a plain flat solid pure white background (never a checkerboard, a transparency "
          "grid or a pixel grid behind it). No text, no letters, no logo, no border, no frame.")
 
@@ -72,17 +76,18 @@ def take_path(slug, style, i): return os.path.join(OUT_DIR, f"{slug}-{style}{i}.
 def raw_path(slug, style, i): return os.path.join(RAW_DIR, f"{slug}-{style}{i}.png")
 
 
-def takes_of(slug):
+def takes_of(slug, drawn=False):
+    """(style, n) of this beast's takes; drawn=True skips the empty files reserve() leaves while a take is in flight."""
     pat = re.compile(re.escape(slug) + r"-([a-d])(\d+)\.png$")
     found = []
     for f in os.listdir(OUT_DIR) if os.path.isdir(OUT_DIR) else []:
         m = pat.match(f)
-        if m: found.append((m.group(1), int(m.group(2))))
+        if m and not (drawn and os.path.getsize(os.path.join(OUT_DIR, f)) == 0): found.append((m.group(1), int(m.group(2))))
     return sorted(found)
 
 
 def prompt_for(beast, style):
-    return FRAME.format(style=STYLES[style][1], look=beast["look"], name=beast["name"], chore=beast["chore"])
+    return FRAME.format(style=STYLES[style][1], look=beast["look"], chore=beast["chore"])
 
 
 # --- drawing -----------------------------------------------------------------------------------
@@ -174,7 +179,7 @@ def run(slugs, style, n, jobs):
 
 def rekey(slugs):
     for slug in slugs:
-        for style, i in takes_of(slug):
+        for style, i in takes_of(slug, drawn=True):
             if os.path.exists(raw_path(slug, style, i)):
                 key_out(Image.open(raw_path(slug, style, i)).convert("RGB")).save(take_path(slug, style, i))
                 print(f"{slug} {style}{i}: rekeyed")
@@ -194,7 +199,7 @@ def sheet(slugs, only=None, now=False, per_page=24):
     """Review pages: each beast's takes side by side, several beasts per row, per_page beasts per page.
     --now adds the starter beasts' current portrait in front of their takes."""
     book = roster()
-    def takes(s): return [t for t in takes_of(s) if not only or t[0] in only]
+    def takes(s): return [t for t in takes_of(s, drawn=True) if not only or t[0] in only]
     rows = [s for s in (slugs or book) if takes(s)]
     if not rows: return print("no takes yet")
     cell, pad, lab, gap = 200, 4, 16, 14
@@ -218,13 +223,61 @@ def sheet(slugs, only=None, now=False, per_page=24):
                     tile.alpha_composite(Image.open(path).convert("RGBA").resize((cell, cell), Image.LANCZOS))
                     out.paste(tile.convert("RGB"), (x, y + lab))
                 d.text((x + 2, y + 3), f"{book[slug]['name']} {label}", fill=(240, 236, 220))
-        path = os.path.join(OUT_DIR, "_sheet.png" if len(pages) == 1 else f"_sheet-{n:02d}.png")
+        tag = f"-{only}" if only else ""
+        path = os.path.join(OUT_DIR, f"_sheet{tag}.png" if len(pages) == 1 else f"_sheet{tag}-{n:02d}.png")
         out.save(path); print(path)
 
 
 # --- install -----------------------------------------------------------------------------------
 def numbers():
     return json.load(open(NUMBERS_PATH)) if os.path.exists(NUMBERS_PATH) else {}
+
+
+def save_numbers(nums):
+    json.dump(dict(sorted(nums.items(), key=lambda kv: kv[1])), open(NUMBERS_PATH, "w"), indent=1)
+
+
+def number_key(slug, variant=None):
+    """beast_numbers.json key: the main portrait by slug, a variant look (a second style) by slug~<style>."""
+    return f"{slug}~{variant}" if variant else slug
+
+
+def assign_numbers(variant=None):
+    """Give every roster beast a portrait number in roster order, from the next free one, drawing nothing."""
+    book, nums = roster(), numbers()
+    nxt = max([total_avatars()] + list(nums.values())) + 1
+    fresh = 0
+    for slug in book:
+        key = number_key(slug, variant)
+        if key not in nums: nums[key] = nxt; nxt += 1; fresh += 1
+    save_numbers(nums)
+    print(f"{fresh} {'variant ' if variant else ''}portraits newly numbered; {len(nums)} numbered {min(nums.values())}..{max(nums.values())}")
+
+
+def keyed_fraction(path):
+    h = Image.open(path).convert("RGBA").getchannel("A").histogram()
+    return h[0] / sum(h)
+
+
+def auto_picks(style, variant=None):
+    """slug=take for every numbered beast with no portrait installed yet: its first drawn take in `style` whose ground keyed."""
+    book, nums = roster(), numbers()
+    picks = []
+    for slug in book:
+        key = number_key(slug, variant)
+        if key in nums and os.path.exists(os.path.join(BEAST_DIR, f"{nums[key]:03d}.webp")): continue
+        for st, i in takes_of(slug, drawn=True):
+            if st == style and keyed_fraction(take_path(slug, st, i)) >= 0.15:
+                picks.append(f"{slug}={st}{i}"); break
+    return picks
+
+
+def installed_total():
+    """The highest portrait number such that every number from 1 up to it has a webp file."""
+    have = {int(f[:3]) for f in os.listdir(BEAST_DIR) if re.fullmatch(r"\d{3}\.webp", f)}
+    n = 0
+    while n + 1 in have: n += 1
+    return n
 
 
 def total_avatars():
@@ -240,7 +293,10 @@ def bump_total(new_total):
         print(f"{os.path.relpath(path, ROOT)}: {'bumped to ' + str(new_total) if n else 'pattern not found'}")
 
 
-def install(picks):
+def install(picks, style="d", variant=None):
+    """Write picked takes as numbered webp portraits; variant names the style whose look is the beast's second portrait."""
+    if picks == ["auto"]:
+        picks = auto_picks(style, variant); print(f"auto: {len(picks)} {'variant ' if variant else ''}portraits to install")
     book, nums = roster(), numbers()
     nxt = max([total_avatars()] + list(nums.values())) + 1
     for pick in picks:
@@ -250,27 +306,38 @@ def install(picks):
         if not m: sys.exit(f"{pick}: say slug=a2 (style letter + take number)")
         src = take_path(slug, m.group(1), int(m.group(2)))
         if not os.path.exists(src) or not os.path.getsize(src): sys.exit(f"{src} does not exist")
-        if slug not in nums: nums[slug] = nxt; nxt += 1
+        key = number_key(slug, variant)
+        if key not in nums: nums[key] = nxt; nxt += 1
         im = Image.open(src).convert("RGBA").resize((SIZE, SIZE), Image.LANCZOS)
-        dst = os.path.join(BEAST_DIR, f"{nums[slug]:03d}.webp")
+        dst = os.path.join(BEAST_DIR, f"{nums[key]:03d}.webp")
         im.save(dst, "WEBP", quality=92, method=6)
         print(f"{slug}: {take} -> {os.path.relpath(dst, ROOT)}")
-    json.dump(dict(sorted(nums.items(), key=lambda kv: kv[1])), open(NUMBERS_PATH, "w"), indent=1)
-    bump_total(max([total_avatars()] + list(nums.values())))
+    save_numbers(nums)
+    total = installed_total()
+    if total > total_avatars(): bump_total(total)
+    missing = sorted(n for n in nums.values() if n > total)
+    if missing: print(f"{len(missing)} numbered beasts have no portrait yet (from {missing[0]:03d}); the avatar count stays at {total}")
 
 
 def emit_ts():
     book, nums = roster(), numbers()
-    rows = [book[s] for s in sorted(nums, key=nums.get)]
-    def bg(slug, salt): return zlib.crc32(f"{slug}:{salt}".encode()) % 327
+    rows = [book[s] for s in sorted((k for k in nums if "~" not in k), key=nums.get)]
+    variants = {k.split("~")[0]: n for k, n in nums.items() if "~" in k}
+    # the starter world's hand-picked battle backgrounds; everyone else gets a stable pair from the slug
+    picked = {"socktopus": (219, 218), "dish-goblin": (44, 101), "dust-bunny-king": (150, 77), "laundry-lurker": (88, 203),
+              "weed-wyrm": (12, 266), "trash-troll": (301, 55), "crumb-gremlin": (170, 9), "homework-hydra": (230, 140),
+              "bed-basilisk": (120, 288), "fang-fairy": (60, 190)}
+    def bg(slug, salt): return picked[slug][salt - 1] if slug in picked else zlib.crc32(f"{slug}:{salt}".encode()) % 327
     lines = ['import type { Beast } from "@/lib/databases/BestiaryDb";', "",
              "/** Starter beast library: one beast per common chore, drawn by tools/art/beast_portraits.py from",
              " *  tools/art/beast_roster.json. Generated: edit the roster and re-run --emit-ts. */",
              "export interface LibraryBeast extends Beast {", "  slug: string;", "  chore: string;", "  room: string;",
-             '  age: "little" | "kid" | "teen";', "}", "", "export const BEAST_LIBRARY: LibraryBeast[] = ["]
+             '  age: "little" | "kid" | "teen";', "  /** A second look for the same beast (NNN.webp), for elite or shadow encounters */",
+             "  variantAvatar?: number;", "}", "", "export const BEAST_LIBRARY: LibraryBeast[] = ["]
     for b in rows:
         lines.append("  " + json.dumps({"id": f"beast-{b['slug']}", "slug": b["slug"], "name": b["name"], "chore": b["chore"],
                                         "room": b["room"], "age": b["age"], "element": b["element"], "avatar": nums[b["slug"]],
+                                        **({"variantAvatar": variants[b["slug"]]} if b["slug"] in variants else {}),
                                         "bg1": bg(b["slug"], 1), "bg2": bg(b["slug"], 2), "aspectRatio": 48,
                                         "checklist": b["checklist"]}, ensure_ascii=False) + ",")
     lines += ["];", ""]
@@ -289,15 +356,18 @@ def main():
     ap.add_argument("--only", help="style letters to show on the sheet, e.g. abd")
     ap.add_argument("--now", action="store_true", help="sheet: show the starter beasts' current portrait too")
     ap.add_argument("--rekey", action="store_true")
-    ap.add_argument("--install", nargs="+", metavar="slug=a1")
+    ap.add_argument("--assign", action="store_true", help="number every roster beast in roster order, drawing nothing")
+    ap.add_argument("--variant", metavar="STYLE", help="assign/install: number this style's takes as each beast's second look")
+    ap.add_argument("--install", nargs="+", metavar="slug=a1", help="or `auto`: the first clean take of every beast not yet installed")
     ap.add_argument("--emit-ts", action="store_true")
     a = ap.parse_args()
-    if a.install: return install(a.install)
+    if a.assign: return assign_numbers(a.variant)
+    if a.install: return install(a.install, a.variant or a.style, a.variant)
     if a.emit_ts: return emit_ts()
     if a.sheet: return sheet(a.slugs, a.only, a.now)
     if a.rekey: return rekey(a.slugs or list(roster()))
     slugs = a.slugs
-    if a.all: slugs = [s for s in roster() if not any(st == a.style for st, _ in takes_of(s))]
+    if a.all: slugs = [s for s in roster() if not any(st == a.style for st, _ in takes_of(s, drawn=True))]
     if not slugs: return ap.print_help()
     run(slugs, a.style, a.n, a.j)
 

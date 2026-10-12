@@ -22,6 +22,7 @@ export interface Beast {
   imageUrl?: string;
   localImage?: string;
   avatar?: number;
+  variantAvatar?: number;  // A second look (NNN.webp) for elite or shadow encounters, from the beast library
   achievementIds?: string[];
   bg1?: number;            // Background layer 1 for earthbound battle backgrounds
   bg2?: number;            // Background layer 2 for earthbound battle backgrounds

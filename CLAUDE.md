@@ -26,7 +26,7 @@ pnpm build:compass               # same build into ../Xophz-COMPASS/wp-content/p
 python3 tools/chiptune/render_all.py [song...]   # re-render the chiptune soundtrack into src/assets/audio/chiptune
 python3 tools/art/temple_floors.py               # regenerate the procedural temple floor tiles
 python3 tools/art/beast_portraits.py -n 2 --style a socktopus   # paint chore beasts from tools/art/beast_roster.json via Gemini (GEMINI_API_KEY);
-                                 # --sheet to review, --install slug=a2 to number them into src/assets/images/beasts, --emit-ts for the library
+                                 # --sheet to review, --assign + --install auto|slug=d2 to number them into src/assets/images/beasts, --emit-ts for the library
 python3 tools/bgm/master_bgm.py master --upload [name...]  # master produced songs from ~/Downloads WAVs and upload them to R2
 ```
 

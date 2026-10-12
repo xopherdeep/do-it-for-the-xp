@@ -2,7 +2,7 @@ import BestiaryDb, { beastStorage, type Beast } from "@/lib/databases/BestiaryDb
 import { Enemy } from './BattleService';
 import debug from "@/lib/utils/debug";
 
-export const TOTAL_BEAST_AVATARS = 93; // NNN.webp files in src/assets/images/beasts (tools/art/beasts.py draws the newer ones)
+export const TOTAL_BEAST_AVATARS = 293; // NNN.webp files in src/assets/images/beasts (tools/art/beasts.py draws the newer ones)
 export const MAX_BG_INDEX = 325;
 
 const getRandomBeastAvatar = (): number => Math.floor(Math.random() * TOTAL_BEAST_AVATARS) + 1;

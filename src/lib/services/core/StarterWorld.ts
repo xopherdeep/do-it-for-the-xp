@@ -11,6 +11,7 @@ import { BACKUP_VERSION } from "./BackupService";
 import type { BackupEntry, BackupFile } from "./BackupService";
 import type { Achievement, AchievementCategoryInterface } from "@/lib/databases/AchievementDb";
 import type { Beast } from "@/lib/databases/BestiaryDb";
+import { BEAST_LIBRARY } from "./beastLibrary";
 import { ShopItemType } from "@/lib/databases/ShopsDb";
 import type { ShopInterface } from "@/lib/databases/ShopsDb";
 import type { Ability } from "@/types/abilities";
@@ -40,19 +41,14 @@ export const STARTER_CATEGORIES: AchievementCategoryInterface[] = [
   { id: "cat-upkeep", name: "Hero Upkeep" },
 ];
 
-/** One beast per household chore, each tied to a region element so random encounters there pick it */
-export const STARTER_BEASTS: Beast[] = [
-  { id: "beast-socktopus", name: "Socktopus", element: "wind", avatar: 7, bg1: 219, bg2: 218, aspectRatio: 48, checklist: ["Sort the socks", "Match the pairs", "Put them away"] },
-  { id: "beast-dish-goblin", name: "Dish Goblin", element: "water", avatar: 12, bg1: 44, bg2: 101, aspectRatio: 48, checklist: ["Scrape the plates", "Load the dishwasher", "Wipe the counters"] },
-  { id: "beast-dust-bunny-king", name: "Dust Bunny King", element: "earth", avatar: 23, bg1: 150, bg2: 77, aspectRatio: 48, checklist: ["Dust the shelves", "Vacuum the floor", "Empty the bin"] },
-  { id: "beast-laundry-lurker", name: "Laundry Lurker", element: "water", avatar: 31, bg1: 88, bg2: 203, aspectRatio: 48, checklist: ["Sort darks and lights", "Run the wash", "Fold and put away"] },
-  { id: "beast-weed-wyrm", name: "Weed Wyrm", element: "earth", avatar: 40, bg1: 12, bg2: 266, aspectRatio: 48, checklist: ["Pull the weeds", "Water the plants", "Sweep the path"] },
-  { id: "beast-trash-troll", name: "Trash Troll", element: "shadow", avatar: 48, bg1: 301, bg2: 55, aspectRatio: 48, checklist: ["Gather every bin", "Roll them to the curb", "Bring them back in"] },
-  { id: "beast-crumb-gremlin", name: "Crumb Gremlin", element: "fire", avatar: 55, bg1: 170, bg2: 9, aspectRatio: 48, checklist: ["Wipe the table", "Sweep under it", "Push in the chairs"] },
-  { id: "beast-homework-hydra", name: "Homework Hydra", element: "light", avatar: 61, bg1: 230, bg2: 140, aspectRatio: 48, checklist: ["Open the planner", "Finish each subject", "Pack the bag for tomorrow"] },
-  { id: "beast-bed-basilisk", name: "Bed Basilisk", element: "moon", avatar: 66, bg1: 120, bg2: 288, aspectRatio: 48, checklist: ["Pull the sheets straight", "Fluff the pillows", "Fold the blanket"] },
-  { id: "beast-fang-fairy", name: "Fang Fairy", element: "ice", avatar: 70, bg1: 60, bg2: 190, aspectRatio: 48, checklist: ["Brush for two minutes", "Floss", "Rinse"] },
-];
+/**
+ * The whole beast library (tools/art/beast_roster.json): one beast per common chore with its task list, each tied
+ * to a region element so random encounters there pick it. Stored as plain beasts; the library's chore, room and age
+ * stay in BEAST_LIBRARY for the Compendium to browse.
+ */
+export const STARTER_BEASTS: Beast[] = BEAST_LIBRARY.map(({ id, name, element, avatar, bg1, bg2, aspectRatio, checklist }) => ({
+  id, name, element, avatar, bg1, bg2, aspectRatio, checklist: [...checklist],
+}));
 
 interface QuestSeed {
   id: string;

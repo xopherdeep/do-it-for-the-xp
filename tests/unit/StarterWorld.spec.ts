@@ -1,3 +1,4 @@
+import { TOTAL_BEAST_AVATARS } from "@/lib/services/battle/BestiaryService";
 import {
   STARTER_ABILITIES,
   STARTER_ACCESSORIES,
@@ -147,7 +148,7 @@ describe("the starter content", () => {
     for (const beast of STARTER_BEASTS) {
       expect(beast.checklist.length).toBeGreaterThanOrEqual(3);
       expect(beast.avatar).toBeGreaterThanOrEqual(1);
-      expect(beast.avatar).toBeLessThanOrEqual(73);
+      expect(beast.avatar).toBeLessThanOrEqual(TOTAL_BEAST_AVATARS);
       expect(beast.bg1).toBeLessThanOrEqual(325);
       expect(beast.bg2).toBeLessThanOrEqual(325);
       expect(beast.element).toBeTruthy();
