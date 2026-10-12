@@ -115,13 +115,18 @@ export const buildTempleCode = (
   return code;
 };
 
-/** The entrance as a [row, col] pair for saving: a "floor,row,col" position drops the floor index */
-export const resolveEntranceCoordinates = (parts: number[]): number[] => {
+/**
+ * The entrance as saved, in the forms the game reads (TempleSystem startAt): `[row, col]` is a cell of the first floor,
+ * `[floor index, row, col]` a cell of the floor at that place among the maze's floors, as the shipped multi-floor
+ * temples store it. A maze of floors keeps the floor index (dropping it sent the hero to the first floor); a single
+ * grid has one floor, so it saves `[row, col]`. A `[row, col]` pair is saved as it is, whatever the maze.
+ */
+export const resolveEntranceCoordinates = (parts: number[], maze: MazeData): number[] => {
   if (parts.length === 2) {
     return parts;
   }
   if (parts.length === 3) {
-    return [parts[1], parts[2]];
+    return Array.isArray(maze) ? [parts[1], parts[2]] : parts;
   }
   return [0, 0];
 };

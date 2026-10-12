@@ -722,7 +722,7 @@ export function useTempleCreator(
 
       // Get current data from store (Layer 1) after migration
       const layoutToSave = {
-        entrance: resolveEntranceCoordinates(parts),
+        entrance: resolveEntranceCoordinates(parts, store.templeMaze),
         maze: JSON.parse(JSON.stringify(store.templeMaze)), // Deep clone to be safe
         rooms: JSON.parse(JSON.stringify(store.roomsData)),
       };

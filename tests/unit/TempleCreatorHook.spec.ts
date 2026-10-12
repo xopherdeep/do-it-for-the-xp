@@ -168,16 +168,48 @@ describe("a 'floor,row,col' entrance", () => {
     expect(creator.isEntrancePosition(0, 0)).toBe(true);
   });
 
-  it("is saved as the [row, col] the game reads on its first floor", async () => {
+  // Changed with #1218: this pinned "a 'floor,row,col' entrance is saved as [row, col]" for every temple, which sent a
+  // multi-floor temple's hero to the first floor whatever floor the entrance was on. It now holds for a single grid
+  // only (one floor, so the index says nothing); a temple with floors keeps its [floor, row, col] (next specs).
+  it("is saved as the [row, col] the game reads on its first floor when the temple is one grid", async () => {
     const id = nextId();
     const creator = startTemple(id, "3x4", "0,1,2");
     await creator.saveTemple();
     const stored = await new TempleDb(templeStorage).getTempleById(id);
     expect(stored?.dungeonLayout?.entrance).toEqual([1, 2]);
   });
+
+  it("keeps its floor index when the temple has floors: an entrance on the second floor is saved as [1, row, col]", async () => {
+    const id = nextId();
+    const creator = startTemple(id, "3x4", "1,1,2");
+    creator.addFloor("2F");
+    creator.currentLevelId.value = "2F";
+    expect(creator.entranceOnThisFloor.value).toBe("1,2"); // the editor reads it as a cell of the second floor
+    await creator.saveTemple();
+    const stored = await new TempleDb(templeStorage).getTempleById(id);
+    expect(stored?.dungeonLayout?.entrance).toEqual([1, 1, 2]);
+  });
+
+  it("keeps [0, row, col] for an entrance on the first floor of a temple with floors (shadow-temple's [0, 3, 2])", async () => {
+    const id = nextId();
+    const creator = startTemple(id, "5x5", "0,3,2");
+    creator.addFloor("2F");
+    await creator.saveTemple();
+    const stored = await new TempleDb(templeStorage).getTempleById(id);
+    expect(stored?.dungeonLayout?.entrance).toEqual([0, 3, 2]);
+  });
 });
 
 describe("a 'row,col' entrance", () => {
+  it("is saved as [row, col] on a temple with floors too: the game reads it on '1F'", async () => {
+    const id = nextId();
+    const creator = startTemple(id, "3x4", "1,2");
+    creator.addFloor("2F");
+    await creator.saveTemple();
+    const stored = await new TempleDb(templeStorage).getTempleById(id);
+    expect(stored?.dungeonLayout?.entrance).toEqual([1, 2]);
+  });
+
   it("is the entrance cell on every floor, as before", () => {
     const creator = startTemple(nextId(), "3x4", "1,2");
     creator.addFloor("2F");

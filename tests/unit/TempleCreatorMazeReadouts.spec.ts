@@ -3,6 +3,10 @@
  * whether the maze has one, the rooms that own a symbol, the copyable temple source and the entrance as saved.
  */
 import type { Room } from "@/lib/engine/core/dungeons/types";
+import type { TempleInterface } from "@/lib/databases/TempleDb";
+import temples from "@/lib/engine/temples";
+import { layoutSignature, planSeedSync, type ShippedTemple } from "@/lib/engine/core/dungeons/importAllTemples";
+import type { MazeData } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/hooks/grid/floorLayers";
 import {
   buildTempleCode,
   collectUniqueRooms,
@@ -144,18 +148,55 @@ describe("buildTempleCode", () => {
 });
 
 describe("resolveEntranceCoordinates", () => {
+  const oneGrid = [["_"]];
+  const twoFloors = { "1F": [["_"]], "2F": [["_"]] };
+
   it("keeps a [row, col] pair as it is", () => {
     const pair = [1, 2];
-    expect(resolveEntranceCoordinates(pair)).toBe(pair);
+    expect(resolveEntranceCoordinates(pair, oneGrid)).toBe(pair);
   });
 
-  it("drops the floor index from a [floor, row, col] triple", () => {
-    expect(resolveEntranceCoordinates([4, 1, 2])).toEqual([1, 2]);
+  it("keeps a [row, col] pair on a maze of floors too (the game reads it on '1F', as wind-temple ships it)", () => {
+    expect(resolveEntranceCoordinates([5, 2], { "1F": [["_"]] })).toEqual([5, 2]);
+    expect(resolveEntranceCoordinates([1, 2], twoFloors)).toEqual([1, 2]);
+  });
+
+  // Changed with #1218: the floor index was dropped on every save, so an entrance on a later floor came back as a
+  // cell of the first floor. A single grid has one floor, so there the floor index is still dropped.
+  it("drops the floor index from a [floor, row, col] triple when the maze is one grid", () => {
+    expect(resolveEntranceCoordinates([4, 1, 2], oneGrid)).toEqual([1, 2]);
+    expect(resolveEntranceCoordinates([0, 1, 2], oneGrid)).toEqual([1, 2]);
+  });
+
+  it("keeps the floor index of a [floor, row, col] triple when the maze has floors", () => {
+    expect(resolveEntranceCoordinates([0, 3, 2], twoFloors)).toEqual([0, 3, 2]);
+    expect(resolveEntranceCoordinates([1, 3, 2], twoFloors)).toEqual([1, 3, 2]);
+    expect(resolveEntranceCoordinates([0, 0, 0], { "1F": [["_"]] })).toEqual([0, 0, 0]);
   });
 
   it("is [0, 0] for any other length", () => {
-    expect(resolveEntranceCoordinates([])).toEqual([0, 0]);
-    expect(resolveEntranceCoordinates([5])).toEqual([0, 0]);
-    expect(resolveEntranceCoordinates([1, 2, 3, 4])).toEqual([0, 0]);
+    expect(resolveEntranceCoordinates([], oneGrid)).toEqual([0, 0]);
+    expect(resolveEntranceCoordinates([5], oneGrid)).toEqual([0, 0]);
+    expect(resolveEntranceCoordinates([1, 2, 3, 4], oneGrid)).toEqual([0, 0]);
+    expect(resolveEntranceCoordinates([1, 2, 3, 4], twoFloors)).toEqual([0, 0]);
+  });
+});
+
+describe("saving a shipped temple's entrance (resolveEntranceCoordinates)", () => {
+  const shippedTemples = temples as unknown as Record<string, ShippedTemple & { entrance: number[]; maze: MazeData }>;
+
+  // The editor keeps the entrance as the "a,b,c" string it loaded and saves it back through the same split
+  it.each(Object.keys(shippedTemples))("writes %s's entrance back as shipped", (id) => {
+    const shipped = shippedTemples[id];
+    const parts = shipped.entrance.join(",").split(",").map(Number);
+    expect(resolveEntranceCoordinates(parts, shipped.maze)).toEqual(shipped.entrance);
+  });
+
+  it.each(Object.keys(shippedTemples))("leaves an unedited %s looking unedited to the temple import", (id) => {
+    const shipped = shippedTemples[id];
+    const parts = shipped.entrance.join(",").split(",").map(Number);
+    const saved = { entrance: resolveEntranceCoordinates(parts, shipped.maze), maze: shipped.maze, rooms: shipped.rooms };
+    const record = { id, dungeonLayout: saved, seedSignature: layoutSignature(shipped) } as unknown as TempleInterface;
+    expect(planSeedSync(record, shipped).action).toBe("current");
   });
 });
