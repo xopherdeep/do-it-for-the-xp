@@ -9,11 +9,13 @@ import { AudioEngine, MusicTrack } from './AudioEngine';
 import debug from '@/lib/utils/debug';
 
 /**
- * Default album artwork for the game
+ * Default album artwork for the game. Bundled through webpack so the URL
+ * follows the runtime public path (the repo-root `assets/` folder is a
+ * Capacitor resource and never reaches the web build).
  */
 const DEFAULT_ARTWORK = [
   {
-    src: '/assets/icon-only.png',
+    src: require('@/assets/images/brand/icon-512.png') as string,
     sizes: '512x512',
     type: 'image/png'
   }
