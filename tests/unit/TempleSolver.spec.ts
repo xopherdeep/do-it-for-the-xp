@@ -1,10 +1,11 @@
 /**
  * The temple solver against the rules of docs/Temple-Generation-Contract.md (R1..R9 on fixtures, R12 on the
- * authored temples). Fixtures are written in the authored shape: a grid of tokens and a `rooms` table.
+ * shipped temples). Fixtures are written in the authored shape: a grid of tokens and a `rooms` table.
  */
 import { solveTemple, openableDoors, buildTempleGraph, type TempleLayout } from "@/lib/engine/dungeons/generator";
 import type { Room } from "@/lib/engine/core/dungeons/types";
 import temples from "@/lib/engine/temples";
+import { lockedFromSides } from "@/lib/services/temples/authoredDoors";
 
 const _ = "_";
 
@@ -115,6 +116,19 @@ describe("TempleSolver", () => {
     expect(reasonsUnder("R7", fixture({ "2,5": _, "0,2": "P001" }))).toEqual(["R7: the Pegasus chest at 1F (0,2) loot can be reached without beating the boss"]);
   });
 
+  it("R7 Pegasus: a Master Room is the Pegasus chamber, never a master key", () => {
+    const master = fixture({ "2,5": "P002" }, { P002: { type: "master", content: { chest: "dungeon", dungeon: "Pegasus", pegasus: true } } });
+    expect(solveTemple(master).reasons).toEqual([]);
+    expect(buildTempleGraph(master).rooms.get("1F:2,5")).toMatchObject({ kind: "master", prize: true, masterKey: false });
+
+    // The bare room the Temple Creator draws, and its older name, are the chamber too
+    for (const type of ["master", "dragon-egg"]) {
+      const bare = fixture({ "2,5": "P002" }, { P002: { type } });
+      expect(solveTemple(bare).reasons).toEqual([]);
+      expect(buildTempleGraph(bare).rooms.get("1F:2,5")).toMatchObject({ prize: true, masterKey: false });
+    }
+  });
+
   it("R8 Floors: stairs pair on the same cell, teleports pair up, pits land on a room", () => {
     const rooms: Record<string, Room> = {
       ...ROOMS,
@@ -164,11 +178,20 @@ describe("TempleSolver", () => {
     expect(next.doors).toEqual([]);
   });
 
-  describe("R12 Hand-authored temples pass", () => {
+  describe("R12 Shipped temples pass", () => {
+    /** The Wind Temple is the owner's own, edited in the Temple Creator: a rule it breaks shows in the title, it does not fail the suite */
+    const HAND_MADE = ["wind-temple"];
+
+    /** The layout as registration reads it: the editor's door sides (`sides`) become locks */
+    const asRegistered = (temple: TempleLayout): TempleLayout => ({
+      ...temple,
+      rooms: Object.fromEntries(Object.entries(temple.rooms).map(([token, room]) => [token, lockedFromSides(room)])),
+    });
+
     for (const [id, temple] of Object.entries(temples)) {
-      const result = solveTemple(temple as TempleLayout);
-      const test = result.reasons.length ? it.skip : it;
-      const title = result.reasons.length ? `${id} fails the solver: ${result.reasons.join(" | ")}` : `${id} passes the solver`;
+      const result = solveTemple(asRegistered(temple as TempleLayout));
+      const test = HAND_MADE.includes(id) && result.reasons.length ? it.skip : it;
+      const title = test === it.skip ? `${id} fails the solver: ${result.reasons.join(" | ")}` : `${id} passes the solver`;
       test(title, () => {
         expect(result.reasons).toEqual([]);
         expect(result.solvable).toBe(true);

@@ -104,11 +104,14 @@ const chestItem = (room: AuditableRoom): string => {
 };
 
 /**
- * Whether a room hands the hero the Boss Key: a chest holding it, or the older Key room whose key is the master
- * key (the Water Temple still has one; play gives the Boss Key for it just the same).
+ * Whether a room hands the hero the Boss Key: a chest holding it, a mini-boss room whose own chest holds it (the
+ * generator's older temples kept it there), or the older Key room whose key is the master key (the Water Temple
+ * still had one; play gives the Boss Key for it just the same).
  */
 const holdsBossKey = (room: AuditableRoom): boolean =>
-  chestItem(room) === BOSS_KEY_ID || (typeOf(room) === 'key' && room.content?.keyId === 'master');
+  chestItem(room) === BOSS_KEY_ID ||
+  (typeOf(room) === 'miniboss' && room.content?.chest === 'dungeon' && dungeonItemId(String(room.content.dungeon ?? '')) === BOSS_KEY_ID) ||
+  (typeOf(room) === 'key' && room.content?.keyId === 'master');
 
 /** Whether a room is the Master Room: the Pegasus Egg chamber, which play turns into the Pegasus chest whatever name the layout gave it */
 const isMasterRoom = (room: AuditableRoom): boolean => typeOf(room) === 'loot' && room.content?.pegasus === true;

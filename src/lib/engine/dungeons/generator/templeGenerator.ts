@@ -3,7 +3,7 @@
  *
  * `generateTemple(seed, options)` is a pure function of its arguments: the same seed and options give the same
  * temple (R11). It carves a tree of rooms on each floor, chains the floors with stairs, lays the critical path
- * (entrance, locks and keys, mini-boss, master key, boss door, boss, Pegasus chest), dresses the other rooms,
+ * (entrance, locks and keys, mini-boss, Boss Key, boss door, boss, Master Room), dresses the other rooms,
  * then runs the solver on the result. A layout the solver rejects is dressed again with the next sub-seed, at
  * most eight times, after which the generator throws: a thrown generator is a test failure, never a shipped
  * temple.
@@ -62,9 +62,9 @@ export interface GenerateOptions {
   name?: string;
   /** Rooms carved on each floor (loops, the Pegasus chamber and the shortcuts come on top); default is half the grid */
   roomsPerFloor?: number;
-  /** The Boss Key goes in a chest room of its own past the mini-boss, never in the mini-boss room, so the audit finds the chest */
+  /** The Boss Key goes in a chest room of its own past the mini-boss, never in the mini-boss room, so the audit finds the chest. Default true; false allows the older mini-boss chest */
   bossKeyChest?: boolean;
-  /** Name the Pegasus chamber a Master Room (`type: "master"`, the name the picker and the audit use) rather than a loot room */
+  /** Name the Pegasus chamber a Master Room (`type: "master"`, the name the picker and the audit use). Default true; false makes it a loot room holding the Pegasus chest */
   masterRoom?: boolean;
 }
 
@@ -340,12 +340,26 @@ const pathTo = (skeleton: Skeleton, key: string): string[] => {
   return path;
 };
 
-/** The mini-boss sits 55–75 % of the way to the boss, on a plain room, leaving room for `locks` doors before it. */
-const chooseMiniboss = (skeleton: Skeleton, rng: Rng, locks: number): number | undefined => {
+/** Where on the critical path a room hangs: its own position when it is on the path, else the path room its branch leaves from. */
+const anchorIndex = (skeleton: Skeleton, key: string): number => {
+  const anchor = pathTo(skeleton, key).reverse().find((at) => skeleton.path.includes(at))!;
+  return skeleton.path.indexOf(anchor);
+};
+
+/** Whether a plain room stands past position `index` of the path (after it, or on a branch leaving it from there on): a spot for the Boss Key's chest. */
+const roomPast = (skeleton: Skeleton, index: number): boolean =>
+  [...skeleton.cells.values()].some((cell) => cell.kind === "plain" && cell.key !== skeleton.path[index] && anchorIndex(skeleton, cell.key) >= index && anchorIndex(skeleton, cell.key) < skeleton.path.length - 1);
+
+/**
+ * The mini-boss sits 55–75 % of the way to the boss, on a plain room, leaving room for `locks` doors before it.
+ * When the Boss Key gets a chest of its own (`bossKeyChest`) there must also be a room past the mini-boss for it.
+ */
+const chooseMiniboss = (skeleton: Skeleton, rng: Rng, locks: number, bossKeyChest: boolean): number | undefined => {
   const last = skeleton.path.length - 1;
   const wanted = Math.round(last * (0.55 + rng() * 0.2));
   const candidates = [...skeleton.path.keys()]
     .filter((index) => index >= 1 && index < last && skeleton.cells.get(skeleton.path[index])!.kind === "plain")
+    .filter((index) => !bossKeyChest || roomPast(skeleton, index))
     .sort((a, b) => Math.abs(a - wanted) - Math.abs(b - wanted) || b - a);
   const roomy = candidates.filter((index) => index >= locks);
   return (roomy.length ? roomy : candidates)[0];
@@ -362,7 +376,7 @@ const buildSkeleton = (rng: Rng, options: GenerateOptions, locks: number): Skele
   if (!boss) return undefined;
   boss.kind = "boss";
   skeleton.path = pathTo(skeleton, boss.key);
-  const minibossAt = chooseMiniboss(skeleton, rng, locks);
+  const minibossAt = chooseMiniboss(skeleton, rng, locks, options.bossKeyChest ?? true);
   if (minibossAt === undefined) return undefined;
   skeleton.minibossAt = minibossAt;
   skeleton.cells.get(skeleton.path[minibossAt])!.kind = "miniboss";
@@ -485,12 +499,11 @@ const placeSideLock = (dressing: Dressing): void => {
  * Step 4: the master key, in the mini-boss room's chest or in a leaf hanging off the path past the mini-boss. With
  * `bossKeyChest` it always gets a chest room of its own: a leaf when there is one, else any room past the mini-boss.
  */
-const placeMasterKey = (dressing: Dressing, bossKeyChest = false): void => {
+const placeMasterKey = (dressing: Dressing, bossKeyChest: boolean): void => {
   const { skeleton, rng } = dressing;
   const miniboss = skeleton.path[skeleton.minibossAt];
   const pastMiniboss = (cell: Cell): boolean => {
-    const anchor = pathTo(skeleton, cell.key).reverse().find((key) => onPath(skeleton, key))!;
-    const index = skeleton.path.indexOf(anchor);
+    const index = anchorIndex(skeleton, cell.key);
     return index >= skeleton.minibossAt && index < skeleton.path.length - 1;
   };
   const free = [...skeleton.cells.values()].filter((cell) => cell.kind === "plain" && !dressing.reserved.has(cell.key) && pastMiniboss(cell));
@@ -769,7 +782,7 @@ const dress = (skeleton: Skeleton, rng: Rng, options: GenerateOptions, locks: nu
   lockBossDoor(dressing);
   placeCriticalLocks(dressing, locks);
   if (chance(rng, 0.5)) placeSideLock(dressing);
-  placeMasterKey(dressing, options.bossKeyChest);
+  placeMasterKey(dressing, options.bossKeyChest ?? true);
   const zones = zoneSignatures(dressing);
   addLoops(dressing, zones);
   placeComforts(dressing);
@@ -803,7 +816,7 @@ const skeletonFor = (seed: string, options: GenerateOptions, locks: number): Ske
   throw new Error(`generateTemple: no skeleton with a critical path for seed "${seed}" after ${MAX_ATTEMPTS} attempts`);
 };
 
-/** The Pegasus chest's room renamed Master Room. The solver reads the loot spelling, so this runs after it has passed. */
+/** The Pegasus chest's room renamed Master Room (the solver reads either spelling as the Pegasus chamber). */
 const withMasterRoom = (temple: Omit<GeneratedTemple, "criticalPath" | "attempts">): typeof temple => ({
   ...temple,
   rooms: Object.fromEntries(Object.entries(temple.rooms).map(([token, room]) => [token, room.type === "loot" && room.content?.pegasus === true ? { ...room, type: "master" } : room])),
@@ -825,11 +838,12 @@ export const generateTemple = (seed: number | string, options: GenerateOptions):
   const failures: string[] = [];
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     const dressed = dress(skeleton, rngFor(`${seedText}/dress/${attempt}`), options, locks, themeId);
-    const temple = toTemple(dressed, seed, options, themeId);
+    const plain = toTemple(dressed, seed, options, themeId);
+    const temple = (options.masterRoom ?? true) ? withMasterRoom(plain) : plain;
     const verdict = solveTemple(temple);
     const reasons = [...verdict.reasons];
-    if (options.bossKeyChest && bossKeyInMiniboss(temple)) reasons.push("the Boss Key has no chest of its own");
-    if (!reasons.length) return { ...(options.masterRoom ? withMasterRoom(temple) : temple), criticalPath: verdict.criticalPath, attempts: attempt + 1 };
+    if ((options.bossKeyChest ?? true) && bossKeyInMiniboss(temple)) reasons.push("the Boss Key has no chest of its own");
+    if (!reasons.length) return { ...temple, criticalPath: verdict.criticalPath, attempts: attempt + 1 };
     failures.push(`attempt ${attempt + 1}: ${reasons.join("; ")}`);
   }
   throw new Error(`generateTemple: seed "${seedText}" failed the solver ${MAX_ATTEMPTS} times\n${failures.join("\n")}`);

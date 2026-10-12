@@ -130,15 +130,19 @@ const smallKeysIn = (room: Room, kind: string): number => {
   return items.filter((item) => item === "key").length;
 };
 
+/** The Master Room (`master`, or its older name the Dragon Egg) is the Pegasus chamber, whatever it was edited from. */
+const MASTER_ROOM_KINDS = new Set(["master", "dragon-egg", "dragon_egg"]);
+
 const hasMasterKey = (room: Room, kind: string): boolean => {
   const content = room.content ?? {};
-  return kind === "master" || content.dungeon === "master-key" || (kind === "key" && content.keyId === "master");
+  if (MASTER_ROOM_KINDS.has(kind)) return false;
+  return content.dungeon === "master-key" || (kind === "key" && content.keyId === "master");
 };
 
-/** The Pegasus chest: flagged `content.pegasus`, or a chest whose prize is named after the Pegasus. */
-const isPrize = (room: Room): boolean => {
+/** The Pegasus chest: a Master Room, a room flagged `content.pegasus`, or a chest whose prize is named after the Pegasus. */
+const isPrize = (room: Room, kind: string): boolean => {
   const content = room.content ?? {};
-  return content.pegasus === true || /pegasus/i.test(String(content.dungeon ?? ""));
+  return MASTER_ROOM_KINDS.has(kind) || content.pegasus === true || /pegasus/i.test(String(content.dungeon ?? ""));
 };
 
 const makeRoom = (ref: RoomRef, token: string, room: Room): GraphRoom => {
@@ -151,7 +155,7 @@ const makeRoom = (ref: RoomRef, token: string, room: Room): GraphRoom => {
     kind,
     smallKeys: smallKeysIn(room, kind),
     masterKey: hasMasterKey(room, kind),
-    prize: isPrize(room),
+    prize: isPrize(room, kind),
   };
 };
 

@@ -11,7 +11,7 @@ import temples from "@/lib/engine/temples";
 import { TEMPLE_METADATA } from "@/lib/engine/temples/templeRegistry";
 import { DungeonManager } from "@/lib/engine/core/dungeons/DungeonManager";
 import { registerTemple } from "@/lib/engine/core/dungeons/TempleAdapter";
-import { buildTempleGraph, generateTemple, roomKey, solveTemple, type TempleGraph } from "@/lib/engine/dungeons/generator";
+import { buildTempleGraph, generateTemple, previewChar, roomKey, solveTemple, summarize, type TempleGraph } from "@/lib/engine/dungeons/generator";
 import { auditSummary, auditTemple, missingNames } from "@/lib/services/temples/templeAudit";
 import { generateShipped, renderModule } from "../../tools/temples/regenerate";
 import { readFileSync } from "fs";
@@ -174,31 +174,61 @@ describe("the eight regenerated temples", () => {
   });
 });
 
-describe("the generator options the shipped temples are made with", () => {
+describe("the generator defaults the shipped temples are made with", () => {
   const options = { theme: "Kitchen", size: "small" as const, floors: 2 as const, locks: 1 as const };
   const typed = (temple: { rooms: Record<string, { type: string }> }, type: string) => Object.values(temple.rooms).filter((room) => room.type === type);
+  const keyInMiniboss = (temple: { rooms: Record<string, { type: string; content?: Record<string, any> }> }) =>
+    Object.values(temple.rooms).some((room) => room.type === "miniboss" && room.content?.dungeon === "master-key");
 
-  it("name the Pegasus chamber a Master Room, and leave it a loot room otherwise", () => {
-    const named = generateTemple("master-room", { ...options, masterRoom: true });
-    const plain = generateTemple("master-room", options);
+  it("name the Pegasus chamber a Master Room unless told not to", () => {
+    const named = generateTemple("master-room", options);
+    const plain = generateTemple("master-room", { ...options, masterRoom: false });
     expect(typed(named, "master")).toHaveLength(1);
     expect(typed(named, "master")[0]).toMatchObject({ content: { chest: "dungeon", pegasus: true } });
     expect(typed(plain, "master")).toHaveLength(0);
     expect(Object.values(plain.rooms).filter((room) => room.content?.pegasus)).toHaveLength(1);
-    expect(plain.criticalPath).toEqual(named.criticalPath);
+    expect(solveTemple(named).reasons).toEqual([]);
+    expect(solveTemple(plain).reasons).toEqual([]);
   });
 
-  it("put the Boss Key in a chest of its own, so the audit finds it", () => {
-    for (let seed = 1; seed <= 12; seed++) {
-      const temple = generateTemple(`boss-key-${seed}`, { ...options, bossKeyChest: true, masterRoom: true });
-      expect(Object.values(temple.rooms).some((room) => room.type === "miniboss" && room.content?.dungeon === "master-key")).toBe(false);
-      expect({ seed, passed: auditTemple(temple).passed }).toEqual({ seed, passed: true });
+  it("put the Boss Key in a chest of its own, so every temple passes the audit with no flags", () => {
+    for (const size of ["small", "medium", "large"] as const) {
+      for (let seed = 1; seed <= 8; seed++) {
+        const temple = generateTemple(`default-${seed}`, { theme: "Kitchen", size });
+        expect(keyInMiniboss(temple)).toBe(false);
+        expect({ size, seed, passed: auditTemple(temple).passed }).toEqual({ size, seed, passed: true });
+      }
     }
+  });
+
+  it("still allow the older Boss Key in the mini-boss room, which the audit now finds too", () => {
+    const older = Array.from({ length: 12 }, (_, i) => generateTemple(`older-${i + 1}`, { ...options, bossKeyChest: false, masterRoom: false }));
+    expect(older.some(keyInMiniboss)).toBe(true);
+    for (const temple of older) expect(auditTemple(temple).passed).toBe(true);
+  });
+
+  it("find the Boss Key in a mini-boss room's chest, and nowhere else but a chest or a key room", () => {
+    const rooms = (extra: Record<string, any>) => ({
+      maze: [["E", "m", "B", "M"]],
+      rooms: { E: { type: "entrance" }, B: { type: "boss" }, M: { type: "master" }, m: { type: "miniboss", content: { lockOnEnter: true } }, ...extra },
+    });
+    const bossKey = (temple: ReturnType<typeof rooms>) => auditTemple(temple).checks.find((check) => check.id === "bossKey")!.ok;
+    expect(bossKey(rooms({}))).toBe(false);
+    expect(bossKey(rooms({ m: { type: "miniboss", content: { chest: "dungeon", dungeon: "master-key" } } }))).toBe(true);
+    expect(bossKey(rooms({ m: { type: "miniboss", content: { chest: "dungeon", dungeon: "key" } } }))).toBe(false);
+    expect(bossKey(rooms({ B: { type: "boss", content: { chest: "dungeon", dungeon: "master-key" } } }))).toBe(false);
+  });
+
+  it("draw the Master Room as the Pegasus star in the preview", () => {
+    const temple = generateTemple("preview", options);
+    const token = Object.keys(temple.rooms).find((key) => temple.rooms[key].type === "master")!;
+    expect(previewChar(temple, token)).toBe("*");
+    expect(summarize(temple).hasPegasus).toBe(true);
   });
 
   it("carve as many rooms a floor as asked, loops and the Master Room on top", () => {
     for (let seed = 1; seed <= 12; seed++) {
-      const temple = generateTemple(`rooms-${seed}`, { ...options, roomsPerFloor: 9, bossKeyChest: true });
+      const temple = generateTemple(`rooms-${seed}`, { ...options, roomsPerFloor: 9 });
       for (const grid of Object.values(temple.maze)) {
         const count = grid.flat().filter((token) => token !== "_").length;
         expect(count).toBeGreaterThanOrEqual(8);
@@ -208,7 +238,6 @@ describe("the generator options the shipped temples are made with", () => {
   });
 
   it("give the same temple for the same seed", () => {
-    const all = { ...options, roomsPerFloor: 9, bossKeyChest: true, masterRoom: true };
-    expect(generateTemple("again", all)).toEqual(generateTemple("again", all));
+    expect(generateTemple("again", { ...options, roomsPerFloor: 9 })).toEqual(generateTemple("again", { ...options, roomsPerFloor: 9 }));
   });
 });

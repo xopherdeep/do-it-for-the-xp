@@ -57,10 +57,11 @@ export interface TempleSummary {
   chests: number;
 }
 
-/** The character a room shows: a key or master-key chest by its item, a Pegasus chest with a star, else by kind. */
+/** The character a room shows: a key or master-key chest by its item, a Pegasus chest or Master Room with a star, else by kind. */
 export const previewChar = (dungeon: Pick<Dungeon, "rooms">, token: string): string => {
   const room = dungeon.rooms[token];
   const kind = kindOf(room);
+  if (kind === "master") return "*";
   if (kind === "loot") {
     const item = String(room?.content?.dungeon ?? "").toLowerCase();
     if (item === "key") return PREVIEW_CHARS.key;

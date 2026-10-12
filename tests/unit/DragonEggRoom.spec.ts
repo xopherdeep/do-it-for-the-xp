@@ -336,26 +336,35 @@ describe("pegasusOfKeyItem", () => {
 
 describe("what a generated temple emits for its Pegasus and its master key", () => {
   const temple = generateTemple(7, { theme: "Kitchen", size: "medium" });
-  const rooms = Object.values(temple.rooms);
+  const older = generateTemple(7, { theme: "Kitchen", size: "medium", masterRoom: false, bossKeyChest: false });
 
-  it("keeps the Pegasus chest and the master key chest as loot rooms: no Dragon Egg or master room is generated", () => {
-    expect(rooms.some((room) => isPegasusRoom(room))).toBe(false);
-    const pegasus = rooms.filter((room) => room.content?.pegasus === true);
+  it("names the Pegasus chamber a Master Room and keeps the master key in a loot chest", () => {
+    const rooms = Object.values(temple.rooms);
+    const masters = rooms.filter((room) => isPegasusRoom(room));
+    expect(masters).toHaveLength(1);
+    expect(masters[0]).toMatchObject({ type: "master", content: { chest: "dungeon", pegasus: true } });
     const masterKey = rooms.filter((room) => room.content?.dungeon === "master-key");
-    expect(pegasus).toHaveLength(1);
     expect(masterKey.length).toBeGreaterThanOrEqual(1);
-    for (const room of [...pegasus, ...masterKey]) expect(room.type).toBe("loot");
+    for (const room of masterKey) expect(room.type).toBe("loot");
   });
 
-  it("plays the same after the engine registers it: every room comes through untouched", () => {
+  it("is the Pegasus loot chest once the engine registers it; every other room comes through untouched", () => {
     const id = "gen-dragon-egg-spec";
     registerTemple(id, { maze: temple.maze, rooms: temple.rooms, entrance: temple.entrance });
     const registered = dungeons.getDungeon(id)!.rooms;
 
     for (const [token, room] of Object.entries(temple.rooms)) {
-      expect(registered[token].type).toBe(room.type);
+      expect(registered[token].type).toBe(isPegasusRoom(room) ? "loot" : room.type);
       expect(registered[token].content?.dungeon).toBe(room.content?.dungeon);
       expect(registered[token].content?.pegasus).toBe(room.content?.pegasus);
     }
+  });
+
+  it("keeps the Pegasus chest as a loot room when the Master Room is turned off", () => {
+    const rooms = Object.values(older.rooms);
+    expect(rooms.some((room) => isPegasusRoom(room))).toBe(false);
+    const pegasus = rooms.filter((room) => room.content?.pegasus === true);
+    expect(pegasus).toHaveLength(1);
+    expect(pegasus[0].type).toBe("loot");
   });
 });
