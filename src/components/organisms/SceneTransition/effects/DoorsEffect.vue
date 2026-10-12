@@ -15,11 +15,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, watch } from "vue";
+import { computed, watch } from "vue";
 import type { TransitionPlan } from "@/lib/services/transitions/sceneTransitions";
 import PixelRuns from "@/app/Console/TempleGrounds/components/PixelRuns.vue";
 import { feel } from "@/lib/services/feedback/haptics";
 import { play$fx } from "@/assets/fx";
+import { useTimers } from "@/hooks/useTimers";
 import { prefersReducedMotion } from "../sceneTransitionController";
 import { screenLeafLeft, screenLeafRight } from "./screenDoorSprite";
 
@@ -36,8 +37,8 @@ const reduced = prefersReducedMotion();
 const leftRuns = computed(() => screenLeafLeft(props.plan.variant ?? props.plan.title));
 const rightRuns = computed(() => screenLeafRight(props.plan.variant ?? props.plan.title));
 
-const timers: ReturnType<typeof setTimeout>[] = [];
-const later = (fn: () => void, ms: number) => timers.push(setTimeout(fn, ms));
+const timers = useTimers();
+const later = (fn: () => void, ms: number) => timers.startTimeout(ms, fn);
 
 // The animations are CSS keyframes; these timers line the events and beats up with them
 watch(
@@ -55,8 +56,6 @@ watch(
   },
   { immediate: true }
 );
-
-onBeforeUnmount(() => timers.forEach(clearTimeout));
 </script>
 
 <style scoped>

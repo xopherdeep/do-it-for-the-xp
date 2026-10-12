@@ -28,6 +28,7 @@ import { getTempleMetadata } from "@/lib/engine/temples/templeRegistry";
 import XpLandmarkBadge from "@/components/atoms/Badge/XpLandmarkBadge.vue";
 import { useTempleScene } from "./useTempleScene";
 import { play$fx } from "@/assets/fx";
+import debug from "@/lib/utils/debug";
 
 export default defineComponent({
   name: "xp-temple-model",
@@ -78,8 +79,9 @@ export default defineComponent({
     const handleClick = () => {
       try {
         play$fx("select");
-      } catch {
+      } catch (error) {
         // audio optional
+        debug.warn("[XpTempleModel] select sound failed", error);
       }
       emit("click", props.templeId);
 

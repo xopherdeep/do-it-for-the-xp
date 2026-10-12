@@ -1,7 +1,14 @@
 <template>
   <transition name="fade">
     <div v-if="showModal" class="xp-audio-permission-overlay">
-      <div class="permission-card rpg-box" @click="enableAudio">
+      <div
+        class="permission-card rpg-box"
+        role="button"
+        tabindex="0"
+        @click="enableAudio"
+        @keydown.enter="enableAudio"
+        @keydown.space.prevent="enableAudio"
+      >
         <div class="icon-wrapper">
           <i class="fal fa-music main-pulse-icon"></i>
         </div>
@@ -11,7 +18,14 @@
         
       </div>
       
-      <div class="silent-option" @click.stop="continueSilently">
+      <div
+        class="silent-option"
+        role="button"
+        tabindex="0"
+        @click.stop="continueSilently"
+        @keydown.enter="continueSilently"
+        @keydown.space.prevent="continueSilently"
+      >
         <span class="silent-text">Continue Silently</span>
         <i class="fal fa-music-slash mute-icon"></i>
       </div>

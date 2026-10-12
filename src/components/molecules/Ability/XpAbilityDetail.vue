@@ -8,7 +8,7 @@
       <div class="ability-title">
         <h2>{{ ability.name }}</h2>
         <div class="ability-badges">
-          <ion-badge color="primary">{{ capitalize(ability.type) }}</ion-badge>
+          <ion-badge color="primary">{{ toTitleCase(ability.type) }}</ion-badge>
           <ion-badge color="tertiary">{{ formatFrequency(ability.frequency) }}</ion-badge>
           <ion-badge :color="getStatusColor()">{{ formatStatus(abilityStatus) }}</ion-badge>
         </div>
@@ -109,6 +109,7 @@ import {
   AbilityStatus, 
   TimePeriod 
 } from '@/hooks/abilities/abilityConstants';
+import { toTitleCase } from '@/lib/utils/format';
 import {
   starOutline,
   flameOutline,
@@ -298,10 +299,6 @@ export default defineComponent({
       return new Date(date).toLocaleDateString();
     };
     
-    const capitalize = (str: string) => {
-      return str.charAt(0).toUpperCase() + str.slice(1);
-    };
-    
     const getScalingBonus = () => {
       if (!props.ability.scaling) return 0;
       
@@ -335,7 +332,7 @@ export default defineComponent({
       formatClassName,
       formatAttribute,
       formatDate,
-      capitalize,
+      toTitleCase,
       getScalingBonus,
       getScalingWidth,
       useAbility,

@@ -27,6 +27,7 @@ import { useRoute, useRouter } from "vue-router";
 import XpLandmarkBadge from "@/components/atoms/Badge/XpLandmarkBadge.vue";
 import { useStageScene } from "./useStageScene";
 import { play$fx } from "@/assets/fx";
+import debug from "@/lib/utils/debug";
 
 const STAGE_NAMES: Record<string, string> = {
   "world-plains": "The Plains",
@@ -129,8 +130,9 @@ export default defineComponent({
     const handleClick = () => {
       try {
         play$fx("select");
-      } catch {
+      } catch (error) {
         // audio optional
+        debug.warn("[XpStageModel] select sound failed", error);
       }
       emit("click", props.stageId);
 

@@ -4,6 +4,7 @@ import type { Ref } from "vue";
 import type { HeroAnimation, HeroLook } from "@/lib/hero-look/types";
 import { animateHero } from "./voxel/animate";
 import { buildHero, disposeHero } from "./voxel/build";
+import debug from "@/lib/utils/debug";
 
 export interface HeroSceneOptions {
   /** Drag or touch to turn the hero, with a little inertia */
@@ -162,8 +163,9 @@ export function useHeroScene(
     lastPointerTime = now();
     try {
       (event.target as Element).setPointerCapture?.(event.pointerId);
-    } catch {
-      /* capture is a nicety */
+    } catch (error) {
+      // capture is a nicety: dragging still works without it
+      debug.warn("[useHeroScene] pointer capture failed", error);
     }
   };
   const onPointerMove = (event: PointerEvent): void => {

@@ -10,6 +10,7 @@ import { changeBGM } from "@/lib/engine/audio/routeMusic";
 import { handleBgmGuard } from "@/router/_Guards/bgm.guard";
 import { canSetGameMaster, needsGameMasterPasscode, passcodeProblem } from "@/router/_Guards/gm.guard";
 import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
+import { useTimers } from "@/hooks/useTimers";
 
 import { ProfileDb } from "@/lib/databases";
 import type { NewProfileForm } from "@/lib/databases/ProfileDb";
@@ -93,10 +94,10 @@ export const AddProfile = defineComponent({
       this.play$fx('levelUp');
 
       // Hide splash after 3 seconds
-      setTimeout(() => {
+      this.timers.startTimeout(3000, () => {
         this.showSuccessSplash = false;
         modalController.dismiss({ profileAdded: true });
-      }, 3000);
+      });
     }
   },
 
@@ -114,6 +115,7 @@ export const AddProfile = defineComponent({
 
     const storage = new ProfileDb(profileStorage);
     const userStore = useUserStore();
+    const timers = useTimers();
     const email = ref("");
     const passcode = ref("");
     // What the Game Master toggle is set to. Off unless someone turns it on, except for the first
@@ -373,7 +375,8 @@ export const AddProfile = defineComponent({
       showSuccessSplash,
       requireAvatar,
       audioStore,
-      gameStore
+      gameStore,
+      timers
     };
   },
 });

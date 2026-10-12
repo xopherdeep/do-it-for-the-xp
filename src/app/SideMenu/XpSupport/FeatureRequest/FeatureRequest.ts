@@ -1,6 +1,7 @@
 import { defineComponent, ref } from 'vue'
 
 import Ionic from '@/lib/mixins/ionic';
+import { useTimers } from '@/hooks/useTimers';
 
 interface FeatureRequest {
   title: string;
@@ -23,6 +24,7 @@ export default defineComponent({
   setup() {
     const showToast = ref(false);
     const toastMessage = ref('');
+    const timers = useTimers();
 
     const presentToast = async (message: string) => {
       toastMessage.value = message;
@@ -32,7 +34,8 @@ export default defineComponent({
     return {
       showToast,
       toastMessage,
-      presentToast
+      presentToast,
+      timers
     };
   },
   data() {
@@ -89,9 +92,9 @@ export default defineComponent({
         importance: ''
       };
       // Ensure modal closes - added setTimeout to avoid potential race conditions
-      setTimeout(() => {
+      this.timers.startTimeout(100, () => {
         this.showSubmitModal = false;
-      }, 100);
+      });
     },
     voteForFeature(featureId: number) {
       // Find the feature and increment its vote count

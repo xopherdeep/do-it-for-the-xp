@@ -5,6 +5,7 @@ import { play$fx } from "@/assets/fx";
 import { useProStore } from "@/lib/store/stores/pro";
 import { fetchPlans, ProPlanInfo } from "@/lib/services/pro/proClient";
 import { PRO_GATE_NAMES, PRO_PLANS, ProPlanId } from "@/lib/services/pro/proPlans";
+import debug from "@/lib/utils/debug";
 
 const TITLES: Record<ProPlanId, string> = {
   monthly: "Monthly",
@@ -36,8 +37,9 @@ export default defineComponent({
     onMounted(async () => {
       try {
         catalog.value = await fetchPlans();
-      } catch {
+      } catch (error) {
         // offline: the built-in prices stand and lifetime stays hidden
+        debug.warn("[XpGoPro] could not fetch the plan catalog", error);
       }
     });
 

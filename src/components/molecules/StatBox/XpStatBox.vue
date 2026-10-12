@@ -1,5 +1,13 @@
 <template>
-  <div button class="stat-box clickable text-center" @click="handleClick">
+  <div
+    button
+    class="stat-box clickable text-center"
+    role="button"
+    tabindex="0"
+    @click="handleClick"
+    @keydown.enter="handleClick"
+    @keydown.space.prevent="handleClick"
+  >
     <i
       :class="`fad ${iconName} fa-2x ${iconColor ? 'text-' + iconColor : ''}`"
     ></i>
@@ -54,6 +62,7 @@
   import Vue3Autocounter from "vue3-autocounter";
   import XpLabel from "@/components/atoms/Label/XpLabel.vue";
   import XpText from "@/components/atoms/Text/XpText.vue";
+  import { useTimers } from "@/hooks/useTimers";
 
   export default defineComponent({
     name: "XpStatBox",
@@ -123,15 +132,16 @@
     },
     setup(props) {
       const counter = ref<any>(null);
+      const timers = useTimers();
 
       const startCounter = () => {
         if (counter.value && props.isActive) {
           // Reset and start after delay
-          setTimeout(() => {
+          timers.startTimeout(props.animationDelay, () => {
             if (counter.value?.start) {
               counter.value.start();
             }
-          }, props.animationDelay);
+          });
         }
       };
 

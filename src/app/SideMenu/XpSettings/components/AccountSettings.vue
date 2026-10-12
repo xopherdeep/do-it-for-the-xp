@@ -296,9 +296,10 @@
       },
     },
     setup() {
+      // Empty until there is an account service to load from; the inputs show their placeholders
       const accountInfo = ref({
-        email: "user@example.com",
-        username: "XpHero123",
+        email: "",
+        username: "",
       });
 
       const passwordChange = ref({

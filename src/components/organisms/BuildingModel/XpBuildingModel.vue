@@ -31,6 +31,7 @@ import { getShopMetadata } from "@/lib/engine/core/shopRegistry";
 import XpLandmarkBadge from "@/components/atoms/Badge/XpLandmarkBadge.vue";
 import { useBuildingScene } from "./useBuildingScene";
 import { play$fx } from "@/assets/fx";
+import debug from "@/lib/utils/debug";
 
 const HOMETOWN_NAMES: Record<string, string> = {
   "hero-home": "Hero's Home",
@@ -230,8 +231,9 @@ export default defineComponent({
     const handleClick = () => {
       try {
         play$fx("select");
-      } catch {
+      } catch (error) {
         // audio optional
+        debug.warn("[XpBuildingModel] select sound failed", error);
       }
       emit("click", props.buildingId);
 

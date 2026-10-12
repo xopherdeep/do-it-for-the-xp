@@ -177,6 +177,7 @@
   import { heroAvatarSrc } from "@/lib/hero-look/look";
   import { fingerPrintOutline, fingerPrintSharp } from "ionicons/icons";
   import { play$fx } from "@/assets/fx";
+  import { useTimers } from "@/hooks/useTimers";
 
   const $requireAvatar = require.context(
     "@/assets/images/avatars",
@@ -200,6 +201,7 @@
       const inputCode = ref("");
       const showPass = ref(false);
       const hasError = ref(false);
+      const timers = useTimers();
 
       // Avatar
       const currentAvatar = computed(() => {
@@ -267,10 +269,10 @@
         if (!isPasscodeMatch) {
           play$fx("no");
           hasError.value = true;
-          setTimeout(() => {
+          timers.startTimeout(500, () => {
             hasError.value = false;
             inputCode.value = "";
-          }, 500);
+          });
           alertIncorrectPasscode();
         } else {
           play$fx("yes");
@@ -283,11 +285,11 @@
             await toast.present();
           }
 
-          setTimeout(() => {
+          timers.startTimeout(300, () => {
             if (typeof modalController?.dismiss === "function") {
               modalController.dismiss(props.profile);
             }
-          }, 300);
+          });
         }
       };
 
@@ -376,7 +378,6 @@
     height: 100%;
   }
 
-  // Profile Card
   .profile-card {
     display: flex;
     align-items: center;

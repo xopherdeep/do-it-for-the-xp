@@ -21,11 +21,12 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from "vue";
+import { computed, ref, watch } from "vue";
 import type { TransitionPlan } from "@/lib/services/transitions/sceneTransitions";
 import { prefersReducedMotion } from "../sceneTransitionController";
 import { feel } from "@/lib/services/feedback/haptics";
 import { play$fx } from "@/assets/fx";
+import { useTimers } from "@/hooks/useTimers";
 import PixelRuns from "@/app/Console/TempleGrounds/components/PixelRuns.vue";
 import { irisTemple, IRIS_SPRITE_H, IRIS_SPRITE_W } from "./irisSprite";
 
@@ -61,19 +62,10 @@ const maxRadius = () => Math.ceil(Math.hypot(window.innerWidth, window.innerHeig
 
 // Radius of the iris circle in px. 'in' starts open and closes; 'out' starts at 0 and bursts.
 const radius = ref(props.plan.direction === "in" ? maxRadius() : 0);
-const timers = new Set<ReturnType<typeof setTimeout>>();
+const timers = useTimers();
 
-const later = (fn: () => void, ms: number) => {
-  const t = setTimeout(() => {
-    timers.delete(t);
-    fn();
-  }, ms);
-  timers.add(t);
-};
-const clearAll = () => {
-  timers.forEach(clearTimeout);
-  timers.clear();
-};
+const later = (fn: () => void, ms: number) => timers.startTimeout(ms, fn);
+const clearAll = () => timers.cancelAll();
 
 /** Walk the radius from one value to another in hard steps, then call done. */
 const stepRadius = (from: number, to: number, ms: number, done: () => void) => {
@@ -108,7 +100,6 @@ const run = (phase: string) => {
 };
 
 watch(() => props.phase, run, { immediate: true });
-onBeforeUnmount(clearAll);
 </script>
 
 <style scoped>

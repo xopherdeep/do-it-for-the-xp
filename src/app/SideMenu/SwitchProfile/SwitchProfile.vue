@@ -142,6 +142,9 @@ import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
 
 const requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
 
+// What a caught value says for a toast: an Error's message, else the value as text
+const errorText = (error: unknown): string => (error instanceof Error && error.message) || String(error);
+
 // Re-exported for backwards compatibility; the instance now lives in lib/databases/profileStorage.ts
 export { profileStorage };
 
@@ -227,9 +230,9 @@ export default defineComponent({
           position: "top",
         });
         await toast.present();
-      } catch (error: any) {
+      } catch (error) {
         const toast = await toastController.create({
-          message: `Failed to export profiles: ${error.message || error}`,
+          message: `Failed to export profiles: ${errorText(error)}`,
           duration: 3000,
           color: "danger",
           position: "top",
@@ -264,9 +267,9 @@ export default defineComponent({
                   });
                   await toast.present();
                 }
-              } catch (err: any) {
+              } catch (err) {
                 const toast = await toastController.create({
-                  message: `Failed to import profiles: ${err.message || err}`,
+                  message: `Failed to import profiles: ${errorText(err)}`,
                   duration: 3000,
                   color: "danger",
                   position: "top",
@@ -275,9 +278,9 @@ export default defineComponent({
               }
             };
             reader.readAsText(file);
-          } catch (error: any) {
+          } catch (error) {
             const toast = await toastController.create({
-              message: `Failed to read file: ${error.message || error}`,
+              message: `Failed to read file: ${errorText(error)}`,
               duration: 3000,
               color: "danger",
               position: "top",
@@ -342,10 +345,9 @@ export default defineComponent({
                         }
 
                         showRestoreToast.value = true;
-                      } catch (error: any) {
+                      } catch (error) {
                         restoreSuccess.value = false;
-                        restoreMessage.value = `Restore failed: ${error.message || error
-                          }`;
+                        restoreMessage.value = `Restore failed: ${errorText(error)}`;
                         showRestoreToast.value = true;
                       } finally {
                         isRestoringProfiles.value = false;
@@ -392,10 +394,10 @@ export default defineComponent({
           `/my-portal/${profile.id}/my-home`,
           "root"
         );
-      } catch (error: any) {
+      } catch (error) {
         debug.error("Login/Navigation error:", error);
         const toast = await toastController.create({
-          message: `Failed to load profile: ${error.message || error}`,
+          message: `Failed to load profile: ${errorText(error)}`,
           duration: 3000,
           color: "danger",
           position: "top",

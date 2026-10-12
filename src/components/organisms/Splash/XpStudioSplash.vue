@@ -22,6 +22,7 @@
 import { onBeforeUnmount, onMounted, ref } from "vue";
 import { play$fx } from "@/assets/fx";
 import debug from "@/lib/utils/debug";
+import { useTimers } from "@/hooks/useTimers";
 import hallOfTheGodsLogo from "@/assets/images/brand/hall-of-the-gods.webp";
 import { STUDIO_SPLASH_CHIME, prefersReducedMotion, splashTimings } from "./splash";
 
@@ -38,14 +39,9 @@ const styleVars = {
   "--splash-fade-out": `${timings.fadeOut}ms`,
 };
 
-let timers: ReturnType<typeof setTimeout>[] = [];
+const timers = useTimers();
 let finished = false;
 let chimed = false;
-
-const clearTimers = () => {
-  timers.forEach(clearTimeout);
-  timers = [];
-};
 
 /** One soft chime; play$fx already swallows autoplay refusals, the try/catch covers the rest. */
 const chime = () => {
@@ -61,7 +57,7 @@ const chime = () => {
 const finish = () => {
   if (finished) return;
   finished = true;
-  clearTimers();
+  timers.cancelAll();
   window.removeEventListener("keydown", skip);
   emit("done");
 };
@@ -69,7 +65,7 @@ const finish = () => {
 const fadeOut = () => {
   if (finished) return;
   phase.value = "out";
-  timers.push(setTimeout(finish, timings.fadeOut));
+  timers.startTimeout(timings.fadeOut, finish);
 };
 
 /** Tap or key: the gesture also unlocks audio, so the chime that autoplay refused can sound now. */
@@ -83,12 +79,11 @@ function skip() {
 onMounted(() => {
   window.addEventListener("keydown", skip);
   chime();
-  timers.push(setTimeout(() => (phase.value = "hold"), timings.fadeIn));
-  timers.push(setTimeout(fadeOut, timings.fadeIn + timings.hold));
+  timers.startTimeout(timings.fadeIn, () => (phase.value = "hold"));
+  timers.startTimeout(timings.fadeIn + timings.hold, fadeOut);
 });
 
 onBeforeUnmount(() => {
-  clearTimers();
   window.removeEventListener("keydown", skip);
 });
 </script>

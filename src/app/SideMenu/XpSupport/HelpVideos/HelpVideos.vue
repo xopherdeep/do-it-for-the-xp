@@ -18,7 +18,15 @@
             <ion-card>
               <div class="video-container">
                 <img :src="video.thumbnail" :alt="video.title" class="video-thumbnail" />
-                <div class="play-button" @click="playVideo(video)">
+                <div
+                  class="play-button"
+                  role="button"
+                  tabindex="0"
+                  :aria-label="`Play ${video.title}`"
+                  @click="playVideo(video)"
+                  @keydown.enter="playVideo(video)"
+                  @keydown.space.prevent="playVideo(video)"
+                >
                   <i class="fad fa-play-circle fa-3x"></i>
                 </div>
               </div>

@@ -213,9 +213,9 @@
         this.isInfoVisible = true;
 
         // Set timeout to hide it after the specified duration
-        this.infoVisibilityTimeoutId = setTimeout(() => {
+        this.infoVisibilityTimeoutId = window.setTimeout(() => {
           this.isInfoVisible = false;
-        }, this.infoVisibilityDuration) as unknown as number;
+        }, this.infoVisibilityDuration);
       },
 
       toggleMusic(event: CustomEvent) {
@@ -444,11 +444,11 @@
       document.addEventListener("audio-engine:nextTrack", this.handleNextTrack);
       document.addEventListener(
         "audio-engine:seekBackward",
-        this.handleSeekBackward as unknown as (ev: Event) => void
+        this.handleSeekBackward
       );
       document.addEventListener(
         "audio-engine:seekForward",
-        this.handleSeekForward as unknown as (ev: Event) => void
+        this.handleSeekForward
       );
     },
 
@@ -464,11 +464,11 @@
       );
       document.removeEventListener(
         "audio-engine:seekBackward",
-        this.handleSeekBackward as unknown as (ev: Event) => void
+        this.handleSeekBackward
       );
       document.removeEventListener(
         "audio-engine:seekForward",
-        this.handleSeekForward as unknown as (ev: Event) => void
+        this.handleSeekForward
       );
 
       // Clear intervals and timeouts

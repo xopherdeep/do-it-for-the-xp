@@ -59,7 +59,14 @@
           </ion-item>
           <ion-item v-if="settings.enableCashOut" lines="none">
             <div class="coin-grid">
-              <div class="coin-option custom" @click="selectRate('custom')">
+              <div
+                class="coin-option custom"
+                role="button"
+                tabindex="0"
+                @click="selectRate('custom')"
+                @keydown.enter="selectRate('custom')"
+                @keydown.space.prevent="selectRate('custom')"
+              >
                 <div class="coin-circle">
                   <i class="fad fa-plus"></i>
                 </div>
@@ -70,7 +77,11 @@
                 :key="rate"
                 class="coin-option"
                 :class="{ active: settings.conversionRate === rate }"
+                role="button"
+                tabindex="0"
                 @click="selectRate(rate)"
+                @keydown.enter="selectRate(rate)"
+                @keydown.space.prevent="selectRate(rate)"
               >
                 <div class="coin-circle">
                   <span>{{ rate }}</span>

@@ -144,11 +144,12 @@
             cssClass: "rpg-toast", // Optional: for custom styling
           });
           await toast.present();
-        } catch (error: any) {
+        } catch (error) {
           // Handle cancellation or errors
           // Check if it's a cancellation (often error message contains "Abort" or similar, but Capacitor API might not provide specific codes)
           // For simplicity, we show a generic message if it's not a success.
-          if (error?.message && error.message.includes("Abort")) {
+          const message = (error as { message?: unknown } | null)?.message;
+          if (typeof message === "string" && message.includes("Abort")) {
             debug.log("Share dialog was cancelled by the user.");
             // Optionally show a less prominent message or do nothing
             const toast = await toastController.create({

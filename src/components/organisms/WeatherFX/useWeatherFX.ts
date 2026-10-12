@@ -1,6 +1,7 @@
 import { getCurrentInstance, onUnmounted, readonly, ref } from "vue";
 import type { Ref } from "vue";
 import { AudioEngine } from "@/lib/engine/audio/AudioEngine";
+import debug from "@/lib/utils/debug";
 import { pickSoundSource, SOUND_DEFAULT_VOLUME, SOUND_FADE_MS } from "./sounds";
 import type { WeatherSoundType } from "./types";
 
@@ -101,15 +102,17 @@ export function useWeatherFX(): WeatherFXAPI {
       try {
         entry.audio.pause();
         entry.audio.currentTime = 0;
-      } catch {
+      } catch (error) {
         // nothing to clean up
+        debug.warn("[useWeatherFX] could not stop the loop", error);
       }
     };
     if (immediate || entry.audio.paused) {
       try {
         entry.audio.volume = 0;
-      } catch {
-        // ignore
+      } catch (error) {
+        // the sound is stopped below either way
+        debug.warn("[useWeatherFX] could not mute the loop", error);
       }
       finish();
       return;
@@ -128,7 +131,8 @@ export function useWeatherFX(): WeatherFXAPI {
             clearFade(entry);
           });
         }
-      } catch {
+      } catch (error) {
+        debug.warn("[useWeatherFX] could not start the loop", error);
         return;
       }
     }

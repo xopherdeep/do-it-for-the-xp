@@ -1,6 +1,16 @@
 <template>
   <Transition name="backdrop-fade">
-    <div v-if="show" class="xp-blur-backdrop" :style="backdropStyle" @click="$emit('close')" />
+    <div
+      v-if="show"
+      class="xp-blur-backdrop"
+      :style="backdropStyle"
+      role="button"
+      tabindex="0"
+      aria-label="Close"
+      @click="$emit('close')"
+      @keydown.enter="$emit('close')"
+      @keydown.space.prevent="$emit('close')"
+    />
   </Transition>
 </template>
 

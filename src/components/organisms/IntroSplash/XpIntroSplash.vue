@@ -32,6 +32,7 @@
 import { defineComponent, ref, PropType, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import XpTypingText from '@/components/atoms/TypingText/XpTypingText.vue';
 import debug from '@/lib/utils/debug';
+import { useTimers } from '@/hooks/useTimers';
 
 import type { SplashScreen } from './types';
 export type { SplashScreen };
@@ -81,6 +82,8 @@ export default defineComponent({
   },
   emits: ['complete', 'skip', 'splash-change'],
   setup(props, { emit }) {
+    const timers = useTimers();
+
     // Core state
     const isActive = ref(true); // Start active by default
     const currentIndex = ref(-1);
@@ -199,11 +202,11 @@ export default defineComponent({
     // Skip the entire intro
     const skipIntro = () => {
       fadeOut.value = true;
-      setTimeout(() => {
+      timers.startTimeout(props.transitionDuration, () => {
         isActive.value = false;
         emit('skip');
         document.removeEventListener('keydown', handleKeyDown);
-      }, props.transitionDuration);
+      });
     };
 
     // Advance to next splash screen
@@ -213,7 +216,8 @@ export default defineComponent({
         fadeOut.value = true;
         showText.value = false;
 
-        await new Promise(resolve => setTimeout(resolve, props.transitionDuration));
+        // Cancelled with the component, so a closed splash never plays on
+        await new Promise<void>(resolve => timers.startTimeout(props.transitionDuration, resolve));
         fadeOut.value = false;
       }
 
@@ -236,16 +240,16 @@ export default defineComponent({
       }
 
       // After transition, show text if available
-      setTimeout(() => {
+      timers.startTimeout(props.transitionDuration, () => {
         fadeIn.value = false;
         if (currentSplash.value?.text) {
           showText.value = true;
         } else {
           // No text to show, move to next splash after duration
           const duration = currentSplash.value?.duration || props.defaultDuration;
-          setTimeout(nextSplash, duration);
+          timers.startTimeout(duration, nextSplash);
         }
-      }, props.transitionDuration);
+      });
     };
 
     // Handle typing completion
@@ -254,7 +258,7 @@ export default defineComponent({
       // Auto-advance after a delay if text is shown
       if (props.autoPlay) {
         const duration = currentSplash.value?.duration || props.defaultDuration;
-        setTimeout(nextSplash, duration);
+        timers.startTimeout(duration, nextSplash);
       }
     };
 
