@@ -24,6 +24,7 @@ export const SideMenuRoutes: Array<RouteRecordRaw> = [
   // Game Master route - imported from separate file
   {
     path: "/xp-membership",
+    name: "xp-membership",
     component: () =>
       import("@/app/SideMenu/XpMembership/XpMembership.vue"),
   },

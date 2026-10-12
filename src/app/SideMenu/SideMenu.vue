@@ -105,6 +105,8 @@
   import { useAudioStore } from "@/lib/store/stores/audio";
   import { useGameStore } from "@/lib/store/stores/game";
   import { useRoute } from "vue-router";
+  import { useProStore } from "@/lib/store/stores/pro";
+  import { proMenuIcon } from "@/lib/services/pro/membershipStatus";
   import { GM_PATH, canAccessGameMaster } from "@/router/_Guards/gm.guard";
   import {
     logInOutline,
@@ -125,6 +127,8 @@
     moonSharp,
     pizzaOutline,
     pizzaSharp,
+    ribbonOutline,
+    ribbonSharp,
     sunnyOutline,
     sunnySharp,
   } from "ionicons/icons";
@@ -139,7 +143,6 @@
 
     data() {
       return {
-        isAnnual: true,
         activeMenuItem: 0, // Changed back to number
         icons: {
           lockClosedOutline,
@@ -193,13 +196,12 @@
             title: "",
           },
           {
-            title: "Membership",
+            title: "XP Pro",
             url: "/xp-membership",
-            // iosIcon: fitnessOutline,
-            // mdIcon: fitnessSharp,
-            // moon if monthly or sun if yearly
-            iosIcon: this.isAnnual ? moonOutline : sunnyOutline,
-            mdIcon: this.isAnnual ? moonSharp : sunnySharp,
+            // the icon follows the real plan: see proMenuIcon
+            iosIcon: ribbonOutline,
+            mdIcon: ribbonSharp,
+            proIcon: true,
 
             lines: "none",
           },
@@ -274,8 +276,10 @@
         },
       },
       getCurrentMenu() {
-        const { appPages, appPagesAnon, isLoggedIn, canOpenGameMaster } = this;
+        const { appPagesAnon, isLoggedIn, canOpenGameMaster, proIcon } = this;
         if (!isLoggedIn) return appPagesAnon;
+        // XP Pro shows the sun (yearly, lifetime), the moon (monthly) or a ribbon (free)
+        const appPages = this.appPages.map((page: any) => (page.proIcon ? { ...page, ...proIcon } : page));
         // The Compendium (/game-master) is for Game Masters; everyone else never sees the entry.
         // The router guard enforces it, hiding it just keeps the door out of sight.
         return canOpenGameMaster
@@ -324,7 +328,16 @@
       const gameStore = useGameStore();
       const route = useRoute();
 
+      const proStore = useProStore();
+      const proIcon = computed(() => {
+        const kind = proMenuIcon(proStore.isPro, proStore.plan);
+        if (kind === "sun") return { iosIcon: sunnyOutline, mdIcon: sunnySharp };
+        if (kind === "moon") return { iosIcon: moonOutline, mdIcon: moonSharp };
+        return { iosIcon: ribbonOutline, mdIcon: ribbonSharp };
+      });
+
       return {
+        proIcon,
         isLoggedIn: computed(() => userStore.currentUser.isAuthenticated),
         // Same rule as the /game-master router guard, so the menu never offers a door that is locked
         canOpenGameMaster: computed(() => canAccessGameMaster(userStore)),

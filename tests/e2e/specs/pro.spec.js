@@ -1,4 +1,4 @@
-// XP Pro: Go Pro, the Stripe return page and the Settings panel, with the Gatekeeper routes stubbed.
+// XP Pro: the membership page, the Stripe return page and the Settings panel, with the Gatekeeper routes stubbed.
 const PLANS = {
   monthly: { price: 5.49, mode: "subscription", interval: "month", trial_days: 7, store_product_id: "xp_pro_monthly", on_sale: true },
   yearly: { price: 41.25, mode: "subscription", interval: "year", trial_days: 7, store_product_id: "xp_pro_yearly", on_sale: true },
@@ -31,11 +31,11 @@ describe("XP Pro", () => {
 
   // The Return page needs no sign-in (Stripe lands there after a full reload), so those tests run unseeded.
   // Go Pro and Settings sit behind sign-in and seed a hero first.
-  it("Go Pro lists three plans with the server prices", () => {
+  it("the XP Pro page lists three plans with the server prices", () => {
     cy.seedWorld();
     cy.intercept("GET", route("plans"), { statusCode: 200, body: PLANS }).as("plans");
     cy.intercept("POST", route("claim"), { statusCode: 404, body: { pro: false } });
-    cy.visit("/pro", { timeout: 120000 });
+    cy.visit("/xp-membership", { timeout: 120000 });
     cy.tapToWakeAudio();
     cy.wait("@plans");
     cy.get('[data-cy="plan-price"]', { timeout: 20000 }).should("have.length", 3);
@@ -43,7 +43,29 @@ describe("XP Pro", () => {
     cy.contains('[data-cy="plan-yearly"]', "$41.25");
     cy.contains('[data-cy="plan-lifetime"]', "$83.00");
     cy.contains("7 days free");
-    cy.screenshot("pro-01-go-pro", { capture: "viewport" });
+    cy.screenshot("pro-01-xp-pro-page", { capture: "viewport" });
+  });
+
+  it("/pro redirects to the membership page", () => {
+    cy.seedWorld();
+    cy.intercept("GET", route("plans"), { statusCode: 200, body: PLANS });
+    cy.intercept("POST", route("claim"), { statusCode: 404, body: { pro: false } });
+    cy.visit("/pro", { timeout: 120000 });
+    cy.tapToWakeAudio();
+    cy.location("pathname", { timeout: 30000 }).should("match", /\/xp-membership$/);
+    cy.get('[data-cy="plan-price"]', { timeout: 20000 }).should("have.length", 3);
+  });
+
+  it("the menu's XP Pro link opens the membership page", () => {
+    cy.seedWorld();
+    cy.intercept("GET", route("plans"), { statusCode: 200, body: PLANS });
+    cy.intercept("POST", route("claim"), { statusCode: 404, body: { pro: false } });
+    cy.visit("/xp-settings/pro", { timeout: 120000 });
+    cy.tapToWakeAudio();
+    cy.get('[data-cy="restore-key-input"]', { timeout: 20000 });
+    cy.get("ion-menu ion-item").contains("XP Pro").click({ force: true });
+    cy.location("pathname", { timeout: 20000 }).should("match", /\/xp-membership$/);
+    cy.contains("Your family's XP Pro", { timeout: 20000 });
   });
 
   it("/#/pro/return?session_id=cs_1&purchased=doitforthexp unlocks after one pending claim", () => {
@@ -64,7 +86,7 @@ describe("XP Pro", () => {
     cy.then(() => expect(claims).to.be.at.least(3));
   });
 
-  it("/#/pro/return?status=cancelled returns to /pro without claiming", () => {
+  it("/#/pro/return?status=cancelled returns to the membership page without claiming", () => {
     let claims = 0;
     cy.intercept("POST", route("claim"), (req) => {
       claims += 1;
@@ -73,7 +95,7 @@ describe("XP Pro", () => {
     cy.intercept("GET", route("plans"), { statusCode: 200, body: PLANS });
     cy.visit(`${hash}/pro/return?status=cancelled`, { timeout: 120000 });
     cy.location({ timeout: 20000 }).should((loc) => {
-      expect(loc.href).to.match(/\/pro(\?|$)/);
+      expect(loc.href).to.match(/\/xp-membership(\?|$)/);
       expect(loc.href).not.to.include("return");
     });
     cy.then(() => expect(claims, "claim calls from the Return page").to.be.at.most(1));
@@ -127,11 +149,11 @@ describe("XP Pro", () => {
       cy.contains("ion-button, button", "Not now").click({ force: true });
     });
 
-    it("a deep link to the room editor without Pro lands on Go Pro", () => {
+    it("a deep link to the room editor without Pro lands on the XP Pro page", () => {
       cy.intercept("GET", route("plans"), { statusCode: 200, body: PLANS });
       // a fresh load straight onto a Pro route (Cypress's visit is a first navigation)
       cy.window().then((win) => win.location.assign("/game-master/compendium/temples/creator/plains/rooms/0/0"));
-      cy.location("pathname", { timeout: 40000 }).should("match", /\/pro$/);
+      cy.location("pathname", { timeout: 40000 }).should("match", /\/xp-membership$/);
     });
 
     it("the dashboard New Temple asks for Pro when free", () => {

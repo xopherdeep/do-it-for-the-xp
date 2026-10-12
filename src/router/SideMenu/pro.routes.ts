@@ -1,11 +1,12 @@
 import { RouteRecordRaw } from "vue-router";
 
-/** XP Pro: the shop counter and the page Stripe sends the parent back to. */
+/** XP Pro: the old shop address and the page Stripe sends the parent back to. */
 export const ProRoutes: RouteRecordRaw[] = [
   {
     path: "/pro",
     name: "xp-pro",
-    component: () => import("@/app/SideMenu/XpPro/XpGoPro/XpGoPro.vue"),
+    // the shop lives on the XP Pro page; old links, the upsell and the deep-link guard still arrive here
+    redirect: (to) => ({ name: "xp-membership", query: to.query }),
   },
   {
     path: "/pro/return",
