@@ -312,7 +312,8 @@ export default defineComponent({
       dialog.enqueue([
         () => {
           showEnemy.value = true;
-          audio.playSound("startBattle");
+          if (encounter.value?.boss) audio.startBossBgm();
+          else audio.startBattleBgm();
         },
         `From the dark forces of chaos comes ${label}!!!`,
         ...(stillHurt ? [`${label} is still hurt from earlier!`] : []),
@@ -338,7 +339,6 @@ export default defineComponent({
 
         const loaded = await loadEncounter(ctx, bestiary);
         encounter.value = loaded;
-        if (loaded.boss) audio.startBossBgm();
         background.lockLayers({ bg1: toLayer(route.query.bg1), bg2: toLayer(route.query.bg2) });
         background.lockLayers(loaded.background);
 
