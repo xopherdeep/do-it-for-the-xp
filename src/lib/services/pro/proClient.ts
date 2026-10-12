@@ -47,13 +47,13 @@ async function call(path: string, body?: unknown): Promise<{ status: number; dat
       headers: { "Content-Type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
-  } catch (e) {
+  } catch {
     throw new ProClientError("network");
   }
   let data: any = null;
   try {
     data = await res.json();
-  } catch (e) {
+  } catch {
     data = null;
   }
   return { status: res.status, data };

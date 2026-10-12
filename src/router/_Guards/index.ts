@@ -5,6 +5,7 @@ import { handleBattleTimerGuard } from "./battle.guard";
 import { handleBgmGuard } from "./bgm.guard";
 import { handleGmGuard } from "./gm.guard";
 import { handleWorldGuard } from "./world.guard";
+import { handleProGuard } from "./pro.guard";
 import { handleTransitionGuard } from "./transition.guard";
 
 /**
@@ -35,6 +36,9 @@ export function useRouterGuards(router: Router): void {
       return next(gmResult);
     }
 
+    // 3b. XP Pro gate: routes with meta.pro open the upsell instead when the family is not Pro
+    if ((await handleProGuard(to)) === false) return next(false);
+
     // 4. Onboarding gate: on foot the hero reaches only Hometown and the Plains; the overworld and the
     //    other regions need a freed Pegasus. Before the side-effect guards so a turned-back hero never
     //    starts the soundtrack or the encounter clock of a region they did not enter.
@@ -62,6 +66,7 @@ export { handleLogoutGuard } from "./logout.guard";
 export { handleAuthGuard, type AuthGuardResult } from "./auth.guard";
 export { handleGmGuard, canAccessGameMaster, isGameMasterRoute, type GmGuardResult } from "./gm.guard";
 export { handleWorldGuard, type WorldGuardResult } from "./world.guard";
+export { handleProGuard } from "./pro.guard";
 export { handleBattleTimerGuard } from "./battle.guard";
 export { handleBgmGuard } from "./bgm.guard";
 export { handleTransitionGuard } from "./transition.guard";

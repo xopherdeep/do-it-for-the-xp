@@ -41,6 +41,7 @@ import { fixAriaHiddenFocusIssues, preventIOSZoom } from '@/lib/utils/a11yUtils'
 
 // Pinia
 import { createPinia } from 'pinia';
+import { useProStore } from '@/lib/store/stores/pro';
 
 // Title
 const TITLE = 'Do it for the XP';
@@ -97,6 +98,9 @@ function readyRouterMountApp() {
 
   // Initialize the GPSystem// Initialize Services
   GPService.initialize();
+
+  // XP Pro: load the cached license and recheck it when the offline rules say so (never blocks the app)
+  useProStore().init().catch(() => undefined);
 
   // Initialize the AbilitySystem
   const abilitiesDb = new AbilitiesDb(abilitiesStorage);
