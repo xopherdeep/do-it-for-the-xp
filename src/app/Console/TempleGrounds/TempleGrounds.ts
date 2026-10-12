@@ -105,13 +105,13 @@ export default defineComponent({
     // Register predefined temples with the engine (for gameplay, not editing)
     registerAllTemples(temples);
 
-    // Import all temple layouts into the database if they don't exist
+    // Sync the shipped temples into the database first (an old seed is refreshed, an edited copy is kept), and
+    // only then register the temples the database holds (user-created content), so what registers is the fresh copy
     importAllTempleLayouts()
       .then(() => debug.log('Temple layouts checked/syncing with TempleDb'))
-      .catch(err => debug.error('Failed to sync temple layouts:', err));
-
-    // Register custom temples from the TempleDb (user-created content)
-    registerCustomTemples().catch(err => debug.error('Failed to register custom temples:', err));
+      .catch(err => debug.error('Failed to sync temple layouts:', err))
+      .then(() => registerCustomTemples())
+      .catch(err => debug.error('Failed to register custom temples:', err));
 
     // Where the hero starts: the room (and floor) a battle returns to, if the route names one.
     // A hero with a saved run in this temple resumes it instead, wherever it stopped.
@@ -927,6 +927,8 @@ export default defineComponent({
         updateBg(col, row);
         return;
       }
+
+      fx('step');
 
       // Traps and pits act the moment the hero walks in
       void arrive();

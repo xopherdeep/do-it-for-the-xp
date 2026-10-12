@@ -1,7 +1,9 @@
 import { TempleDb, type TempleInterface } from "@/lib/databases/TempleDb";
 import temples from "@/lib/engine/temples";
 import { importAllTempleLayouts, layoutSignature, planSeedSync, type ShippedTemple } from "@/lib/engine/core/dungeons/importAllTemples";
+import { auditTemple } from "@/lib/services/temples/templeAudit";
 import debug from "@/lib/utils/debug";
+import backup from "./importAllTemples.backup.json";
 
 jest.mock("@/lib/utils/debug", () => ({
   __esModule: true,
@@ -26,6 +28,14 @@ const fakeStorage = () => {
   };
   return storage;
 };
+
+/**
+ * The nine temple records the owner's phone held on 2026-10-11 (do-it-for-the-xp-backup-2026-10-11.json, store
+ * __temples), as exported: no seedSignature on any. Eight are the old single-floor shipped seeds, which the temple
+ * audit fails (no Master Room; moon and storm also lack the Boss Key). wind-temple is the owner's hand-built copy.
+ */
+const ownerBackup = backup as unknown as Record<string, TempleInterface>;
+const oldSeedIds = Object.keys(ownerBackup).filter((id) => id !== "wind-temple");
 
 /** A tiny two-room temple as shipped in code */
 const shippedTemple = (extraRoom = false): ShippedTemple => ({
@@ -109,21 +119,56 @@ describe("importAllTempleLayouts", () => {
     expect((await stored("wind-temple")).dungeonLayout).toEqual(layoutOf(shippedTemple(true)));
   });
 
-  it("keeps an edited copy that has no signature (a hand-built temple), whatever the shipped layout does", async () => {
-    const handBuilt = layoutOf(shippedTemple(true));
-    handBuilt.rooms.R001 = { type: "boss", content: { boss: "wind-lord" } };
-    await db.setTemple({ id: "wind-temple", customName: "My Wind Temple", categoryIds: ["dungeon"], dungeonLayout: handBuilt });
+  it("keeps the owner's hand-built wind temple (no signature, differs from the shipped layout, passes the audit), whatever the shipped layout does", async () => {
+    const owner = ownerBackup["wind-temple"];
+    expect(owner.seedSignature).toBeUndefined();
+    expect(auditTemple(owner).passed).toBe(true);
+    await storage.set("wind-temple", JSON.parse(JSON.stringify(owner)));
     storage.set.mockClear();
 
-    for (const shipped of [shippedTemple(), shippedTemple(true)]) {
+    for (const shipped of [shippedTemple(), shippedTemple(true), (temples as Record<string, ShippedTemple>)["wind-temple"]]) {
+      expect(layoutSignature(shipped)).not.toBe(layoutSignature(owner.dungeonLayout));
       expect(await sync({ "wind-temple": shipped })).toEqual({ "wind-temple": "edited" });
     }
 
     expect(storage.set).not.toHaveBeenCalled();
-    const record = await stored("wind-temple");
-    expect(record.dungeonLayout).toEqual(handBuilt);
-    expect(record.seedSignature).toBeUndefined();
-    expect(record.customName).toBe("My Wind Temple");
+    expect(await stored("wind-temple")).toEqual(owner);
+  });
+
+  it("refreshes the owner's eight old shipped seeds (no signature, differ, fail the audit) and stamps them", async () => {
+    for (const id of oldSeedIds) {
+      expect(auditTemple(ownerBackup[id]).passed).toBe(false);
+      await storage.set(id, JSON.parse(JSON.stringify(ownerBackup[id])));
+    }
+    const shipped = Object.fromEntries(oldSeedIds.map((id) => [id, (temples as Record<string, ShippedTemple>)[id]]));
+    expect(oldSeedIds).toHaveLength(8);
+
+    const report = await sync(shipped);
+
+    for (const id of oldSeedIds) {
+      expect(report[id]).toBe("refresh");
+      const record = await stored(id);
+      expect(record.dungeonLayout).toEqual(layoutOf(shipped[id]));
+      expect(record.seedSignature).toBe(layoutSignature(shipped[id]));
+      expect(record.customName).toBe(ownerBackup[id].customName);
+      expect(record.level).toBe(ownerBackup[id].level);
+    }
+
+    // the next start has nothing left to do
+    storage.set.mockClear();
+    expect(Object.values(await sync(shipped)).every((action) => action === "current")).toBe(true);
+    expect(storage.set).not.toHaveBeenCalled();
+  });
+
+  it("syncs the owner's whole backup: eight stale seeds refresh, the hand-built wind temple stays as it is", async () => {
+    for (const [id, record] of Object.entries(ownerBackup)) await storage.set(id, JSON.parse(JSON.stringify(record)));
+    const shipped = { ...(temples as Record<string, ShippedTemple>), "wind-temple": shippedTemple(true) };
+
+    const report = await sync(shipped);
+
+    expect(report["wind-temple"]).toBe("edited");
+    expect(await stored("wind-temple")).toEqual(ownerBackup["wind-temple"]);
+    for (const id of oldSeedIds) expect(report[id]).toBe("refresh");
   });
 
   it("keeps an edited copy that has a signature, whatever the shipped layout does", async () => {
@@ -183,7 +228,7 @@ describe("importAllTempleLayouts", () => {
 
   it("says once that a copy is the Game Master's", async () => {
     const logged = () => (debug.log as jest.Mock).mock.calls.filter(([line]) => String(line).includes("quiet-temple"));
-    await db.setTemple({ id: "quiet-temple", categoryIds: ["dungeon"], dungeonLayout: layoutOf(shippedTemple(true)) });
+    await db.setTemple({ id: "quiet-temple", categoryIds: ["dungeon"], dungeonLayout: ownerBackup["wind-temple"].dungeonLayout });
 
     await sync({ "quiet-temple": shippedTemple() });
     await sync({ "quiet-temple": shippedTemple() });
@@ -213,8 +258,31 @@ describe("layoutSignature", () => {
 });
 
 describe("planSeedSync", () => {
+  const unsigned = (dungeonLayout: unknown): TempleInterface => ({ id: "x", categoryIds: [], dungeonLayout } as TempleInterface);
+
   it("creates when there is no stored layout", () => {
     expect(planSeedSync(null, shippedTemple()).action).toBe("create");
     expect(planSeedSync({ id: "x", categoryIds: [] }, shippedTemple()).action).toBe("create");
+  });
+
+  it("stamps an unsigned copy that is the shipped layout", () => {
+    expect(planSeedSync(unsigned(layoutOf(shippedTemple())), shippedTemple()).action).toBe("stamp");
+  });
+
+  it("refreshes an unsigned copy that differs and fails the audit: a stale seed or an unfinished draft", () => {
+    const draft = layoutOf(shippedTemple(true)); // no entrance, no boss, no Boss Key, no Master Room
+    expect(auditTemple({ dungeonLayout: draft }).passed).toBe(false);
+    expect(planSeedSync(unsigned(draft), shippedTemple()).action).toBe("refresh");
+  });
+
+  it("keeps an unsigned copy that differs and passes the audit", () => {
+    const finished = ownerBackup["wind-temple"].dungeonLayout;
+    expect(planSeedSync(unsigned(finished), shippedTemple()).action).toBe("edited");
+  });
+
+  it("keeps a signed copy that differs even when it fails the audit", () => {
+    const record = { ...unsigned(layoutOf(shippedTemple(true))), seedSignature: layoutSignature(shippedTemple()) };
+    expect(auditTemple(record).passed).toBe(false);
+    expect(planSeedSync(record, shippedTemple(true)).action).toBe("edited");
   });
 });

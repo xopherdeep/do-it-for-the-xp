@@ -6,14 +6,17 @@
  * - The record's layout still has that signature: nobody edited it, so when the shipped layout changes
  *   (a new room, the master key, the boss room) the record is refreshed to the new layout.
  * - The record's layout differs from its signature: the Game Master edited it, so it is never touched.
- * - A record from before signatures (none stored) is unedited only if its layout equals the shipped one;
- *   if it differs it is treated as edited (that is also what a hand-built copy looks like).
+ * - A record from before signatures (none stored) whose layout equals the shipped one is unedited too.
+ *   If it differs, the temple audit decides: a copy that passes it is a finished temple of the Game Master's
+ *   own (a hand-built one) and is kept; a copy that fails it can not be finished, so it is a stale old seed
+ *   (missing its Master Room or Boss Key, say) and is refreshed like an unedited one.
  * Hero progress lives in another store (`__templeProgress`) and is never read or written here.
  */
 import { TempleDb, templeStorage, TempleInterface } from '@/lib/databases/TempleDb';
 import temples from '@/lib/engine/temples';
 import { Room } from './types';
 import debug from '@/lib/utils/debug';
+import { auditTemple, type AuditableLayout } from '@/lib/services/temples/templeAudit';
 
 type SeedLayout = NonNullable<TempleInterface['dungeonLayout']>;
 
@@ -34,7 +37,8 @@ export interface ImportOptions {
 /**
  * What the import did with one shipped temple:
  * - create:  no stored layout yet, the shipped one was written
- * - refresh: unedited copy, the shipped layout changed, the copy now has the new layout
+ * - refresh: unedited copy (or an unsigned copy that fails the audit: a stale seed), the shipped layout
+ *            changed, the copy now has the new layout
  * - stamp:   an unsigned copy that equals the shipped layout got its signature (nothing else changed)
  * - current: unedited copy that already has the shipped layout, nothing written
  * - edited:  the Game Master's copy, kept as it is
@@ -96,9 +100,11 @@ export function planSeedSync(existing: TempleInterface | null | undefined, shipp
     if (current !== seeded) return { action: 'edited', signature };
     return { action: seeded === signature ? 'current' : 'refresh', signature };
   }
-  // Nothing says what this copy was imported from: it is untouched only when it is the shipped layout
-  if (current !== signature) return { action: 'edited', signature };
-  return { action: 'stamp', signature };
+  // Nothing says what this copy was imported from (it predates signatures). The shipped layout: untouched.
+  if (current === signature) return { action: 'stamp', signature };
+  // Another layout: kept when the temple can be finished (the Game Master built it), else it is a stale old seed
+  const finishable = auditTemple({ dungeonLayout: existing.dungeonLayout as AuditableLayout }).passed;
+  return { action: finishable ? 'edited' : 'refresh', signature };
 }
 
 const templeNames: Record<string, string> = {
