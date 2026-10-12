@@ -1,0 +1,14 @@
+{
+  "name": "Do It For The XP",
+  "short_name": "Do It For XP",
+  "description": "Chores become quests in a retro RPG for the whole family. Earn XP and gold for every job done.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "theme_color": "#280828",
+  "background_color": "#280828",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}

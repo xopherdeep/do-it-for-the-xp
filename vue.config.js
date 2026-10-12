@@ -66,6 +66,13 @@ module.exports = {
   ...(sassOptions ? { css: { loaderOptions: { scss: sassOptions, sass: sassOptions } } } : {}),
 
   chainWebpack: config => {
+    // Static <title> for crawlers and link previews (they do not run JS); the default is the package name.
+    // main.ts still sets document.title per route.
+    config.plugin('html').tap(args => {
+      args[0].title = 'Do It For The XP';
+      return args;
+    });
+
     // Dev only: drop the fork-ts-checker type pass from the dev build, `chemx typecheck` covers it (production keeps it)
     if (!isProd && DEV_TYPECHECK) config.plugins.delete('fork-ts-checker');
 
