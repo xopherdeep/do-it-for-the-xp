@@ -147,6 +147,14 @@ if (process.env.NODE_ENV !== 'production') {
   import('./lib/services/core/BackupService').then(({ backupService }) => {
     (window as any).__xp = {
       restoreBackup: (backup: unknown) => backupService.restoreBackup(backup as any),
+      // Restoring a backup is Game Master only, so a spec signs in as a throwaway Game Master first.
+      // The profile lives in memory only and the restore that follows drops it.
+      signInSeedGameMaster: () => {
+        const store = useUserStore();
+        const gm = { id: 'seed-game-master', name: { nick: 'Seed GM' }, isAdult: true, passcode: '0000' };
+        store.addUser(gm);
+        store.loginUser(gm);
+      },
       loginUser: (userId: string) => {
         const store = useUserStore();
         const user = store.users[userId];

@@ -18,6 +18,17 @@ const hash = Cypress.env("hashRouting") ? "/#" : "";
 const route = (name) => `**/compass/v1/gatekeeper/xp-pro/${name}*`;
 
 describe("XP Pro", () => {
+  // IndexedDB outlives a test: forget any cached Pro license before each page load so tests stay independent
+  const forgetLicense = (win) => {
+    try {
+      win.indexedDB.deleteDatabase("__xp_pro");
+    } catch (e) {
+      // no IndexedDB: nothing cached
+    }
+  };
+  before(() => Cypress.on("window:before:load", forgetLicense));
+  after(() => Cypress.off("window:before:load", forgetLicense));
+
   // The Return page needs no sign-in (Stripe lands there after a full reload), so those tests run unseeded.
   // Go Pro and Settings sit behind sign-in and seed a hero first.
   it("Go Pro lists three plans with the server prices", () => {
@@ -97,12 +108,30 @@ describe("XP Pro", () => {
     });
 
     it("opening the room editor without Pro shows the upsell", () => {
-      cy.visit("/game-master/compendium/temples/creator/plains/rooms/0/0", { timeout: 120000 });
+      // headless Chrome rejects the upsell's open sound (no audio device) with an empty reason
+      cy.on("uncaught:exception", (err) => !/unhandled promise rejection/i.test(err.message));
+      cy.visit("/game-master/compendium/temples", { timeout: 120000 });
       cy.tapToWakeAudio();
-      cy.contains("Temple Creator", { timeout: 20000 });
-      cy.contains("is part of XP Pro");
-      cy.contains("ion-button, button", "Not now").click({ force: true });
+      cy.contains("Temples", { timeout: 30000 });
+      cy.wait(4000); // the page and the Pro store finish loading
+      // an in-app navigation: refused with the upsell
+      cy.window().then((win) => {
+        win.document.querySelector("#app").__vue_app__.config.globalProperties.$router
+          .push("/game-master/compendium/temples/creator/plains/rooms/0/0")
+          .catch(() => undefined);
+      });
+      cy.get(".xp-pro-upsell-modal", { timeout: 20000 }).should(($m) => {
+        expect($m[0].outerHTML.slice(0, 600)).to.contain("is part of XP Pro");
+      });
       cy.screenshot("pro-04-upsell", { capture: "viewport" });
+      cy.contains("ion-button, button", "Not now").click({ force: true });
+    });
+
+    it("a deep link to the room editor without Pro lands on Go Pro", () => {
+      cy.intercept("GET", route("plans"), { statusCode: 200, body: PLANS });
+      // a fresh load straight onto a Pro route (Cypress's visit is a first navigation)
+      cy.window().then((win) => win.location.assign("/game-master/compendium/temples/creator/plains/rooms/0/0"));
+      cy.location("pathname", { timeout: 40000 }).should("match", /\/pro$/);
     });
 
     it("the Bestiary create page opens without Pro", () => {

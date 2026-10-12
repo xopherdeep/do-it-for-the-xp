@@ -19,6 +19,8 @@ Cypress.Commands.add("seedWorld", (fixtureName = "battle-backup.json", heroId = 
     cy.window({ timeout: 60000 }).should((win) => {
       expect(win.__xp, "development seam window.__xp").to.be.an("object");
     });
+    // Restore is Game Master only: sign in as a throwaway Game Master first (the restore drops that profile)
+    cy.window().then((win) => win.__xp.signInSeedGameMaster());
     cy.window().then((win) => cy.wrap(win.__xp.restoreBackup(backup), { timeout: 60000 }));
     cy.window().then((win) => {
       expect(win.__xp.loginUser(heroId), `hero ${heroId} is loaded`).to.eq(true);

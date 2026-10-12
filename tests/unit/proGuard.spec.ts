@@ -16,6 +16,17 @@ describe("pro guard", () => {
     expect(mockStore.requirePro).toHaveBeenCalledWith("templeCreator");
   });
 
+  it("redirects a first navigation (deep link) to Go Pro without opening the upsell", async () => {
+    const result = await handleProGuard(route({ pro: "templeCreator" }), { matched: [] } as any);
+    expect(result).toEqual({ name: "xp-pro" });
+    expect(mockStore.requirePro).not.toHaveBeenCalled();
+  });
+
+  it("keeps next(false) plus the upsell for in-app navigation", async () => {
+    expect(await handleProGuard(route({ pro: "aiHelpers" }), { matched: [{}] } as any)).toBe(false);
+    expect(mockStore.requirePro).toHaveBeenCalledWith("aiHelpers");
+  });
+
   it("allows a meta.pro route when Pro", async () => {
     mockStore.isPro = true;
     expect(await handleProGuard(route({ pro: "templeCreator" }))).toBeUndefined();

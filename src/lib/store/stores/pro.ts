@@ -1,5 +1,6 @@
 import { defineStore } from "pinia";
 import { computed, ref } from "vue";
+import { usesHashHistory } from "@/router/historyMode";
 import { getProDb } from "@/lib/databases/ProDb";
 import { compassSiteRoot } from "@/lib/api/apiHost";
 import { CachedLicense, isPro as entitled, needsRecheck } from "@/lib/services/pro/entitlement";
@@ -8,6 +9,12 @@ import * as proClient from "@/lib/services/pro/proClient";
 import { ProClientError, ProStatus } from "@/lib/services/pro/proClient";
 import { ProGate, ProPlanId } from "@/lib/services/pro/proPlans";
 import { DEVICE_LIMIT_MESSAGE, openProUpsell, proToast } from "@/lib/services/pro/proUi";
+
+/** Where Stripe sends the parent back, shaped for the router's history mode. */
+const proReturnUrl = (): string =>
+  usesHashHistory()
+    ? `${window.location.origin}${window.location.pathname}#/pro/return`
+    : `${window.location.origin}/pro/return`;
 
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
@@ -117,7 +124,7 @@ export const useProStore = defineStore("pro", () => {
     const params = new URLSearchParams({
       family_id: familyId.value,
       device_id: deviceId.value,
-      return_url: `${window.location.origin}/#/pro/return`,
+      return_url: proReturnUrl(),
     });
     window.location.assign(`${compassSiteRoot()}/buy/doitforthexp/${planId}?${params.toString()}`);
   }

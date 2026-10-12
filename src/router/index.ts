@@ -6,7 +6,6 @@ import {
 } from "@ionic/vue-router";
 import { RouteRecordRaw } from "vue-router";
 import { useRouterGuards } from "./_Guards";
-import { Capacitor } from "@capacitor/core";
 
 // Admin / Game Master
 import { GameMasterRoutes } from "./Admin";
@@ -21,6 +20,7 @@ import {
 } from "./Console";
 
 // SideMenu
+import { usesHashHistory } from "./historyMode";
 import { SideMenuRoutes, SettingsRoutes, SupportRoutes, ProRoutes } from "./SideMenu";
 
 // Dev
@@ -117,12 +117,9 @@ const routes: Array<RouteRecordRaw> = [
 export const createAppRouter = () => {
   // Use hash mode for production builds and Capacitor apps
   // This helps with navigation in production builds
-  const isNative = Capacitor.isNativePlatform();
-  const isProduction = process.env.NODE_ENV === "production";
-
   const router = createRouter({
     history:
-      isNative || isProduction
+      usesHashHistory()
         ? createWebHashHistory(process.env.BASE_URL)
         : createWebHistory(process.env.BASE_URL),
     routes,

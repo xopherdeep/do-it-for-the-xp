@@ -37,7 +37,9 @@ export function useRouterGuards(router: Router): void {
     }
 
     // 3b. XP Pro gate: routes with meta.pro open the upsell instead when the family is not Pro
-    if ((await handleProGuard(to)) === false) return next(false);
+    const proResult = await handleProGuard(to, from);
+    if (proResult === false) return next(false);
+    if (typeof proResult === "object") return next(proResult);
 
     // 4. Onboarding gate: on foot the hero reaches only Hometown and the Plains; the overworld and the
     //    other regions need a freed Pegasus. Before the side-effect guards so a turned-back hero never

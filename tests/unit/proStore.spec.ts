@@ -10,6 +10,9 @@ const FAMILY = "3f6c2a1e-8b4d-4c7a-9e2f-1a2b3c4d5e6f";
 const OTHER_FAMILY = "9a1b2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d";
 const KEY = "XP-PRO-AAAA-BBBB-CCCC";
 
+let mockHash = false;
+jest.mock("@/router/historyMode", () => ({ __esModule: true, usesHashHistory: () => mockHash }));
+
 let mockStored: ProState | null = null;
 jest.mock("@/lib/databases/ProDb", () => ({
   __esModule: true,
@@ -203,22 +206,34 @@ describe("pro store", () => {
     expect(openProUpsell).toHaveBeenCalledWith("aiHelpers");
   });
 
-  it("purchase sends the browser to the Bazaar resolver with family, device and return url", async () => {
+  const purchaseUrl = async (hash: boolean, pathname = "/") => {
+    mockHash = hash;
     claim.mockResolvedValue(null);
     const assign = jest.fn();
     const original = window.location;
-    Object.defineProperty(window, "location", { configurable: true, value: { origin: "http://localhost:8100", assign } });
+    Object.defineProperty(window, "location", {
+      configurable: true,
+      value: { origin: "http://localhost:8100", pathname, assign },
+    });
     try {
-      const store = useProStore();
-      await store.purchase("yearly");
+      await useProStore().purchase("yearly");
     } finally {
       Object.defineProperty(window, "location", { configurable: true, value: original });
     }
     expect(assign).toHaveBeenCalledTimes(1);
-    const url = new URL(assign.mock.calls[0][0]);
+    return new URL(assign.mock.calls[0][0]);
+  };
+
+  it("purchase (web history) sends the browser to the Bazaar resolver and returns to /pro/return", async () => {
+    const url = await purchaseUrl(false);
     expect(url.origin + url.pathname).toBe("https://doit.forthexp.com/buy/doitforthexp/yearly");
     expect(url.searchParams.get("family_id")).toBe(FAMILY);
     expect(url.searchParams.get("device_id")).toBe("devicetest01");
-    expect(url.searchParams.get("return_url")).toBe("http://localhost:8100/#/pro/return");
+    expect(url.searchParams.get("return_url")).toBe("http://localhost:8100/pro/return");
+  });
+
+  it("purchase (hash history) returns to the hash route under the current path", async () => {
+    const url = await purchaseUrl(true, "/app/index.html");
+    expect(url.searchParams.get("return_url")).toBe("http://localhost:8100/app/index.html#/pro/return");
   });
 });
