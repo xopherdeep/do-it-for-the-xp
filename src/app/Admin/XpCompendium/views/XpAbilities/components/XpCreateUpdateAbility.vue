@@ -230,6 +230,23 @@
           ></ion-textarea>
         </ion-item>
 
+        <ion-item data-cy="ability-battle-effect">
+          <ion-label>In battle</ion-label>
+          <ion-select
+            :value="battleEffectOf(ability) ?? 'none'"
+            @ionChange="ability.battleEffect = $event.detail?.value ?? $event.target?.value"
+            interface="popover"
+          >
+            <ion-select-option
+              v-for="option in BATTLE_EFFECT_OPTIONS"
+              :key="option.value"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+
         <ion-item>
           <ion-label>Scaling Attribute</ion-label>
           <ion-select
@@ -307,6 +324,7 @@
     TimePeriod,
     ABILITY_CLASSES,
   } from "@/hooks/abilities/abilityConstants";
+  import { BATTLE_EFFECT_OPTIONS, battleEffectOf } from "@/lib/services/battle/BattlePowers";
   import debug from "@/lib/utils/debug";
 
   export default defineComponent({
@@ -588,6 +606,8 @@
         AbilityType,
         TimePeriod,
         ABILITY_CLASSES,
+        BATTLE_EFFECT_OPTIONS,
+        battleEffectOf,
       };
     },
   });
