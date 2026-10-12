@@ -5,13 +5,14 @@ import type { ProGate } from "./proPlans";
 export const DEVICE_LIMIT_MESSAGE =
   "This key is on 10 devices already; contact support to reset them.";
 
-/** A top toast in the RPG style. Fire and forget: a toast that fails must never break a purchase flow. */
+/** A middle-of-the-screen toast in the RPG style. Fire and forget: a toast that fails must never break a purchase flow. */
 export async function proToast(message: string, color: "success" | "warning" | "danger" = "warning"): Promise<void> {
   try {
     const toast = await toastController.create({
       message,
       duration: 3500,
-      position: "top",
+      position: "middle",
+      buttons: [{ text: "Close", role: "cancel" }],
       color,
       cssClass: "rpg-toast",
     });
