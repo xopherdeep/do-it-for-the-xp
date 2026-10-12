@@ -81,4 +81,35 @@ describe("XP Pro", () => {
     cy.contains('[data-cy="pro-masked-key"]', "XP-PRO-****-****-CCCC");
     cy.screenshot("pro-03-settings-restored", { capture: "viewport" });
   });
+
+  describe("gates (free family)", () => {
+    beforeEach(() => {
+      cy.intercept("POST", route("claim"), { statusCode: 404, body: { pro: false } });
+      cy.intercept("POST", route("validate"), { statusCode: 404, body: { pro: false } });
+      cy.seedWorld();
+    });
+
+    it("a free family can add a fourth kid", () => {
+      cy.visit("/xp-settings/family", { timeout: 120000 });
+      cy.tapToWakeAudio();
+      cy.contains("ion-button, button", /add kid/i, { timeout: 20000 }).click({ force: true });
+      cy.contains("is part of XP Pro").should("not.exist");
+    });
+
+    it("opening the room editor without Pro shows the upsell", () => {
+      cy.visit("/game-master/compendium/temples/creator/plains/rooms/0/0", { timeout: 120000 });
+      cy.tapToWakeAudio();
+      cy.contains("Temple Creator", { timeout: 20000 });
+      cy.contains("is part of XP Pro");
+      cy.contains("ion-button, button", "Not now").click({ force: true });
+      cy.screenshot("pro-04-upsell", { capture: "viewport" });
+    });
+
+    it("the Bestiary create page opens without Pro", () => {
+      cy.visit("/game-master/compendium/bestiary/create-update", { timeout: 120000 });
+      cy.tapToWakeAudio();
+      cy.location("pathname", { timeout: 20000 }).should("include", "bestiary/create-update");
+      cy.contains("is part of XP Pro").should("not.exist");
+    });
+  });
 });

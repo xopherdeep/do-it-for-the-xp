@@ -121,6 +121,7 @@
   import { TEMPLE_METADATA } from "@/lib/engine/temples/templeRegistry";
   import { ensureBuiltInTemples } from "@/lib/engine/core/dungeons/importAllTemples";
   import { play$fx } from "@/assets/fx";
+  import { useProStore } from "@/lib/store/stores/pro";
 
   // Only world-*.webp / hometown.webp are looked up by key; keep the filter (a bare context bundles all 90 MB)
   const requireBg = require.context("@/assets/images/backgrounds/", false, /^\.\/(world-[a-z-]+|hometown)\.webp$/);
@@ -297,7 +298,11 @@
         bloodMoonsOpen.value = true;
       };
 
-      const openGenerator = () => {
+      const pro = useProStore();
+
+      // Temple Creator is XP Pro: making a temple (by hand or from a seed) opens the upsell for a free family
+      const openGenerator = async () => {
+        if (!(await pro.requirePro("templeCreator"))) return;
         play$fx("openMenu");
         generatorOpen.value = true;
       };
@@ -338,7 +343,8 @@
               text: "Create New Temple",
               icon: createOutline,
               cssClass: "action-create",
-              handler: () => {
+              handler: async () => {
+                if (!(await pro.requirePro("templeCreator"))) return;
                 goToTempleCreator("new");
               },
             },

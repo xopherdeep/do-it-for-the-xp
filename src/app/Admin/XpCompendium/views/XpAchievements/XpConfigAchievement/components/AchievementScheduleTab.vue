@@ -10,12 +10,17 @@
           class="ai-oracle-btn"
           fill="clear"
           size="small"
-          @click="generateScheduleWithAI"
+          @click="askOracle"
           :disabled="isGeneratingSchedule"
         >
           <i
             v-if="isGeneratingSchedule"
             class="fad fa-spinner-third fa-spin mr-1"
+          ></i>
+          <i
+            v-else-if="!pro.isPro"
+            class="fad fa-lock mr-1"
+            data-cy="oracle-lock"
           ></i>
           <i
             v-else
@@ -102,7 +107,15 @@
             :aria-pressed="hasTime(time)"
             @click="toggleTime(time)"
           >
-            <i :class="['fad', hasTime(time) ? 'fa-check' : TIME_OF_DAY_ICONS[time], 'time-chip__icon']"></i>
+            <i
+              v-if="!pro.isPro"
+              class="fad fa-lock time-chip__icon"
+              data-cy="time-lock"
+            ></i>
+            <i
+              v-else
+              :class="['fad', hasTime(time) ? 'fa-check' : TIME_OF_DAY_ICONS[time], 'time-chip__icon']"
+            ></i>
             <span class="time-chip__name">{{ TIME_OF_DAY_LABELS[time] }}</span>
           </button>
         </div>
@@ -124,7 +137,13 @@
           @click="updateSchedule(type)"
         >
           <i :class="['fad', icon, 'frequency-card__icon']"></i>
-          <span class="frequency-card__name">{{ type.charAt(0).toUpperCase() + type.slice(1) }}</span>
+          <span class="frequency-card__name">
+            <i
+              v-if="type === 'custom' && !pro.isPro"
+              class="fad fa-lock mr-1"
+              data-cy="custom-lock"
+            ></i>{{ type.charAt(0).toUpperCase() + type.slice(1) }}
+          </span>
         </xp-glass-card>
       </div>
 
@@ -166,9 +185,14 @@
                   <input
                     type="number"
                     :value="achievement.customFrequency"
-                    @input="updateField('customFrequency', parseInt(($event.target as HTMLInputElement).value))"
+                    @input="updateTimesPerDay($event.target as HTMLInputElement)"
                     min="1"
+                    data-cy="times-per-day"
                   />
+                  <i
+                    v-if="!pro.isPro"
+                    class="fad fa-lock ml-1"
+                  ></i>
                   <span class="unit">Time(s)</span>
                 </div>
               </div>
@@ -278,6 +302,7 @@ import XpGlassCard from "@/components/atoms/XpGlassCard.vue";
 import { play$fx } from "@/assets/fx";
 import { TIMES_OF_DAY, type TimeOfDay } from "@/lib/engine/quests/QuestSchedule";
 import { AchievementFormInjectionKey } from "../hooks/useAchievementForm";
+import { useProStore } from "@/lib/store/stores/pro";
 import { TIME_OF_DAY_ICONS, TIME_OF_DAY_LABELS, toggleTimeOfDay } from "../hooks/timesOfDayEditor";
 
 const {
@@ -288,6 +313,8 @@ const {
   generateScheduleWithAI,
   isGeneratingSchedule
 } = inject(AchievementFormInjectionKey) as any;
+
+const pro = useProStore();
 
 const formatDate = (dateStr?: string) => {
   if (!dateStr) return 'Not Set';
@@ -338,7 +365,12 @@ const daysOfWeek = [
   { label: getLocalDayName(6), value: 'sat', color: 'blue', symbol: '♄' },
 ];
 
-const updateSchedule = (value: string) => {
+// XP Pro: custom repeats, the times-of-day chips and "times per day" above 1 are Pro. A free family can still
+// see (and keep) what a saved quest already has; only changing it opens the upsell.
+const updateSchedule = async (value: string) => {
+  if (value === 'custom' && achievement.value.basicSchedule !== 'custom') {
+    if (!(await pro.requirePro('advancedSchedule'))) return;
+  }
   achievement.value.basicSchedule = value;
   achievement.value.scheduleType = value === 'custom' ? 'custom' : 'basic';
 };
@@ -361,9 +393,25 @@ const toggleDay = (day: string) => {
 
 const hasTime = (time: TimeOfDay) => Boolean(achievement.value.timesOfDay?.includes(time));
 
-const toggleTime = (time: TimeOfDay) => {
+const toggleTime = async (time: TimeOfDay) => {
+  if (!(await pro.requirePro('advancedSchedule'))) return;
   achievement.value.timesOfDay = toggleTimeOfDay(achievement.value.timesOfDay, time);
   play$fx('select');
+};
+
+const updateTimesPerDay = async (input: HTMLInputElement) => {
+  const value = parseInt(input.value);
+  if (value > 1 && !pro.isPro) {
+    input.value = String(achievement.value.customFrequency || 1);
+    await pro.requirePro('advancedSchedule');
+    return;
+  }
+  updateField('customFrequency', value);
+};
+
+const askOracle = async () => {
+  if (!(await pro.requirePro('aiHelpers'))) return;
+  generateScheduleWithAI();
 };
 
 const scheduleSummary = computed(() => {

@@ -29,6 +29,10 @@
             class="fad fa-spinner-third fa-spin mr-1"
           ></i>
           <i
+            v-else-if="!isPro"
+            class="fad fa-lock mr-1"
+          ></i>
+          <i
             v-else
             class="fad fa-sparkles mr-1"
           ></i>
@@ -43,6 +47,10 @@
           <i
             v-if="isGenerating"
             class="fad fa-spinner-third fa-spin mr-1"
+          ></i>
+          <i
+            v-else-if="!isPro"
+            class="fad fa-lock mr-1"
           ></i>
           <i
             v-else
@@ -237,6 +245,7 @@ import { close } from "ionicons/icons";
 import { Beast } from "@/lib/databases/BestiaryDb";
 import Ionic from "@/lib/mixins/ionic";
 import { generateMonsterName, generateChecklistFromName, isGeminiConfigured } from "@/lib/services/ai/GeminiService";
+import { useProStore } from "@/lib/store/stores/pro";
 import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
 import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue";
 
@@ -387,7 +396,11 @@ export default defineComponent({
     };
 
     // AI-powered monster name generation based on checklist
+    const pro = useProStore();
+    const isPro = computed(() => pro.isPro);
+
     const clickGenerateMonsterName = async () => {
+      if (!(await pro.requirePro("aiHelpers"))) return;
       if (!hasChecklistItems.value) {
         const toast = await toastController.create({
           message: "Add some checklist items first!",
@@ -456,6 +469,7 @@ export default defineComponent({
 
     // AI-powered checklist generation from monster name
     const clickGenerateChecklist = async () => {
+      if (!(await pro.requirePro("aiHelpers"))) return;
       if (!isNameValid.value) {
         const toast = await toastController.create({
           message: "Enter a monster name first!",
@@ -532,6 +546,7 @@ export default defineComponent({
       isGenerating,
       isGeneratingChecklist,
       isGeminiConfigured: isGeminiConfigured(),
+      isPro,
       clickAddItem,
       clickTrash,
       handleReorder,
