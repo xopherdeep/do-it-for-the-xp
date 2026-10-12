@@ -28,31 +28,13 @@
       </ion-fab>
     </ion-content>
 
-    <!-- Custom Nurse Dialog (RPG style) -->
-    <div class="nurse-dialog-overlay" v-if="isDialogVisible" @click="advanceDialog">
-      <ion-card class="nurse-dialog-box">
-        <ion-card-title class="dialog-header">
-          <i class="fad fa-user-nurse fa-lg mr-2"></i>
-          <span>Nurse Joy</span>
-        </ion-card-title>
-        <div class="dialog-content">
-          <xp-typing-text
-            ref="nurseDialogText"
-            :text="currentDialogText"
-            :speed="30"
-            :auto-start="true"
-            :sound-theme="$fx.theme.rpg"
-            sound-type="text"
-            @typing-complete="onTypingComplete"
-            class="nurse-text"
-            hasMoreText="hasMoreDialog"
-          />
-        </div>
-        <div v-if="hasMoreDialog" class="dialog-indicator">
-          <i class="fad fa-chevron-down blink"></i>
-        </div>
-      </ion-card>
-    </div>
+    <xp-npc-dialog
+      v-model:open="isTalking"
+      speaker="Nurse Joy"
+      :lines="dialogBlocks"
+      icon="fad fa-user-nurse"
+      @done="showActionSheet"
+    />
 
     <!-- Patient Modal -->
     <ion-modal ref="patientsModal" :is-open="isModalOpen" @did-dismiss="closePatientsModal">

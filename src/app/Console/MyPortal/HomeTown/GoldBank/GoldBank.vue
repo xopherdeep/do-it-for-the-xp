@@ -32,31 +32,13 @@
       </ion-fab>
     </ion-content>
     
-    <!-- Custom Banker Dialog (RPG style) -->
-    <div class="banker-dialog-overlay" v-if="isDialogVisible" @click="advanceDialog">
-      <ion-card class="banker-dialog-box">
-        <ion-card-title class="dialog-header">
-          <i class="fad fa-user-tie fa-lg mr-2"></i>
-          <span>Bank Manager</span>
-        </ion-card-title>
-        <div class="dialog-content">
-          <xp-typing-text
-            ref="bankerDialogText"
-            :text="currentDialogText"
-            :speed="30"
-            :auto-start="true"
-            :sound-theme="$fx.theme.rpg"
-            sound-type="text"
-            @typing-complete="onTypingComplete"
-            class="banker-text"
-            :has-more-text="hasMoreDialog"
-          />
-        </div>
-        <div v-if="hasMoreDialog" class="dialog-indicator">
-          <i class="fad fa-chevron-down blink"></i>
-        </div>
-      </ion-card>
-    </div>
+    <xp-npc-dialog
+      v-model:open="isTalking"
+      speaker="Bank Manager"
+      :lines="dialogBlocks"
+      icon="fad fa-user-tie"
+      @done="presentActionSheet"
+    />
     
     <!-- ATM Modal Component -->
     <ATMModal
