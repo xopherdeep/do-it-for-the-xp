@@ -119,7 +119,8 @@ export class ProfileDb extends DbStorageApi {
       // Get profiles from persistent storage
       const profiles = await StorageService.getProfiles()
       
-      if (!profiles || profiles.length === 0) {
+      const hasNoProfiles = !profiles || profiles.length === 0;
+      if (hasNoProfiles) {
         debug.log('No profiles found in persistent storage')
         return false
       }

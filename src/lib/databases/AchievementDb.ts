@@ -195,16 +195,19 @@ export class AchievementDb extends DbStorageApi {
       // Set up file change handler
       fileInput.onchange = async (event) => {
         const target = event.target as HTMLInputElement;
-        if (!target || !target.files || target.files.length === 0) return;
+        const files = target?.files;
+        const hasNoFileChosen = !files || files.length === 0;
+        if (hasNoFileChosen) return;
 
-        const file = target.files[0];
+        const file = files[0];
         if (!file) return;
 
         const reader = new FileReader();
 
         reader.onload = async (e) => {
           try {
-            if (!e.target || e.target.result === null) {
+            const isReadEmpty = !e.target || e.target.result === null;
+            if (isReadEmpty) {
               this.showErrorToast("Failed to read file");
               return;
             }

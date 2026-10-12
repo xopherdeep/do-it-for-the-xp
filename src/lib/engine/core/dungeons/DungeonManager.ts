@@ -114,7 +114,8 @@ export class DungeonManager {
             if (room.content.items?.length) {
               chestContent.items = [...room.content.items];
             }
-            if (room.content.chest === 'dungeon' && room.content.dungeon) {
+            const hasDungeonItem = room.content.chest === 'dungeon' && room.content.dungeon;
+            if (hasDungeonItem) {
               chestContent.dungeon = room.content.dungeon;
             }
             const gold = Math.floor(Number(room.content.gold) || 0);
@@ -168,7 +169,8 @@ export class DungeonManager {
     const [row, col] = position;
     const grid = this.getMazeGrid(dungeonId, level);
     
-    if (!grid[row] || !grid[row][col]) return undefined;
+    const hasNoRoomThere = !grid[row] || !grid[row][col];
+    if (hasNoRoomThere) return undefined;
     
     const roomKey = grid[row][col];
     return dungeon.rooms[roomKey];
@@ -201,7 +203,8 @@ export class DungeonManager {
     if (!content) return true;
 
     if (content.items) content.items = content.items.filter(item => !items.includes(item));
-    if (content.chest === 'dungeon' && content.dungeon && items.includes(content.dungeon)) delete content.dungeon;
+    const isDungeonItemTaken = content.chest === 'dungeon' && content.dungeon && items.includes(content.dungeon);
+    if (isDungeonItemTaken) delete content.dungeon;
     if (items.some(item => item.startsWith('gold:'))) delete content.gold;
 
     if (content.chestId) {
@@ -243,7 +246,8 @@ export class DungeonManager {
     if (!room?.content?.chestId) return false;
     
     const chest = this.chestSystem.getChest(room.content.chestId);
-    if (!chest || chest.isEmpty) return false;
+    const hasNothingInside = !chest || chest.isEmpty;
+    if (hasNothingInside) return false;
     
     return (
       (chest.content.items && chest.content.items.includes(itemId)) ||
@@ -267,8 +271,10 @@ export class DungeonManager {
       Object.assign(room, updates);
       
       // If the room has a chest and we're marking it as empty, update the chest system too
-      if (updates.isEmpty && room.content?.chestId) {
-        this.chestSystem.markChestEmpty(room.content.chestId);
+      const chestId = room.content?.chestId;
+      const isMarkingChestEmpty = updates.isEmpty && chestId;
+      if (isMarkingChestEmpty) {
+        this.chestSystem.markChestEmpty(chestId);
       }
       
       return true;
@@ -281,7 +287,8 @@ export class DungeonManager {
     // Get the room key for this position
     const grid = this.getMazeGrid(dungeonId, level);
     const roomKey = grid[position[0]]?.[position[1]];
-    if (!roomKey || !dungeon.rooms[roomKey]) return false;
+    const hasNoRoomThere = !roomKey || !dungeon.rooms[roomKey];
+    if (hasNoRoomThere) return false;
     
     // Update the room with the new data
     dungeon.rooms[roomKey] = { ...dungeon.rooms[roomKey], ...updates };

@@ -188,16 +188,19 @@ export class BestiaryDb extends DbStorageApi {
       // Set up file change handler
       fileInput.onchange = async (event) => {
         const target = event.target as HTMLInputElement;
-        if (!target || !target.files || target.files.length === 0) return;
+        const files = target?.files;
+        const hasNoFileChosen = !files || files.length === 0;
+        if (hasNoFileChosen) return;
         
-        const file = target.files[0];
+        const file = files[0];
         if (!file) return;
         
         const reader = new FileReader();
         
         reader.onload = async (e) => {
           try {
-            if (!e.target || e.target.result === null) {
+            const isReadEmpty = !e.target || e.target.result === null;
+            if (isReadEmpty) {
               this.showErrorToast("Failed to read file");
               return;
             }
@@ -210,7 +213,8 @@ export class BestiaryDb extends DbStorageApi {
             let backgroundPresets: BackgroundPreset[] = [];
             let bestiaryBgSettings: BgSettings | null = null;
             
-            if (importedData.beasts && Array.isArray(importedData.beasts)) {
+            const isNewFormat = importedData.beasts && Array.isArray(importedData.beasts);
+            if (isNewFormat) {
               // New format
               beasts = importedData.beasts;
               backgroundPresets = importedData.backgroundPresets || [];
@@ -310,7 +314,8 @@ export class BestiaryDb extends DbStorageApi {
   public async importBackgroundPresets(presets: BackgroundPreset[], bgSettings: BgSettings | null): Promise<number> {
     try {
       // If no presets to import, skip
-      if (!presets || presets.length === 0) {
+      const hasNoPresets = !presets || presets.length === 0;
+      if (hasNoPresets) {
         return 0;
       }
       

@@ -231,8 +231,10 @@ export class AudioEngine {
         this.state.audioPermissionGranted = true;
 
         // Resume AudioContext if it was suspended
-        if (this.audioContext && this.audioContext.state === 'suspended') {
-          this.audioContext.resume().catch(err => {
+        const context = this.audioContext;
+        const isSuspended = context && context.state === 'suspended';
+        if (isSuspended) {
+          context.resume().catch(err => {
             debug.error('Failed to resume AudioContext', err);
           });
         }
@@ -262,9 +264,12 @@ export class AudioEngine {
       this.initializeAudioContext();
     }
 
-    if (this.audioContext && this.audioContext.state === 'suspended') {
+    const context = this.audioContext;
+    const isSuspended = context && context.state === 'suspended';
+    const isRunning = context && context.state === 'running';
+    if (isSuspended) {
       try {
-        await this.audioContext.resume();
+        await context.resume();
         this.state.audioPermissionGranted = true;
         this.state.audioReady = true;
         debug.log('AudioContext resumed successfully');
@@ -279,7 +284,7 @@ export class AudioEngine {
       } catch (err) {
         debug.error('Failed to resume AudioContext manually', err);
       }
-    } else if (this.audioContext && this.audioContext.state === 'running') {
+    } else if (isRunning) {
       this.state.audioPermissionGranted = true;
     }
   }
@@ -331,7 +336,9 @@ export class AudioEngine {
    * @returns String identifier for the sound instance
    */
   public playSound(id: string, options: { volume?: number, loop?: boolean } = {}): string {
-    if (!this.audioContext || !this.state.audioReady) {
+    const context = this.audioContext;
+    const isAudioNotReady = !context || !this.state.audioReady;
+    if (isAudioNotReady) {
       debug.warn('Audio context not ready. Sound will not play:', id);
       return '';
     }
@@ -347,8 +354,8 @@ export class AudioEngine {
       (this.state.muted ? 0 : this.state.sfxVolume * this.state.masterVolume);
 
     // Create audio nodes
-    const sourceNode = this.audioContext.createBufferSource();
-    const gainNode = this.audioContext.createGain();
+    const sourceNode = context.createBufferSource();
+    const gainNode = context.createGain();
 
     // Configure nodes
     sourceNode.buffer = soundBuffer;
@@ -357,7 +364,7 @@ export class AudioEngine {
 
     // Connect nodes
     sourceNode.connect(gainNode);
-    gainNode.connect(this.audioContext.destination);
+    gainNode.connect(context.destination);
 
     // Generate unique instance ID for this playback
     const instanceId = `${id}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
@@ -427,7 +434,8 @@ export class AudioEngine {
     const fallback = fallbackFor(url);
     const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
     const audio = new Audio(fallback && offline ? fallback : url);
-    if (fallback && !offline) {
+    const canFallBackToLocalLoop = fallback && !offline;
+    if (canFallBackToLocalLoop) {
       audio.addEventListener('error', () => {
         // A replaced track (src cleared above) also fires error: only the live one falls back
         if (this._musicTracks.get(id) !== audio) return;
@@ -462,8 +470,9 @@ export class AudioEngine {
   private handleTrackEnded(id: string): void {
     debug.log(`Track ended: ${id}`);
     // If we're playing a sequence of tracks, advance to the next one
-    if (this._currentTrackSequence.length > 0 &&
-      this._currentTrackIndex < this._currentTrackSequence.length - 1) {
+    const hasNextTrackInSequence = this._currentTrackSequence.length > 0 &&
+      this._currentTrackIndex < this._currentTrackSequence.length - 1;
+    if (hasNextTrackInSequence) {
       // Advance to next track
       this._currentTrackIndex++;
       const nextTrackId = this._currentTrackSequence[this._currentTrackIndex];
@@ -500,7 +509,8 @@ export class AudioEngine {
       if (id === excludeId) return; // Skip the excluded track
 
       const track = this._musicTracks.get(id);
-      if (track && !track.paused) {
+      const isStillPlaying = track && !track.paused;
+      if (isStillPlaying) {
         const startVolume = track.volume;
         const startTime = Date.now();
 
@@ -546,7 +556,8 @@ export class AudioEngine {
     // If this track is already playing, don't restart it
     if (this.state.currentMusic === id) {
       const track = this._musicTracks.get(id);
-      if (track && !track.paused) {
+      const isAlreadyPlaying = track && !track.paused;
+      if (isAlreadyPlaying) {
         debug.log(`Music track ${id} is already playing.`);
         return;
       }
@@ -579,7 +590,8 @@ export class AudioEngine {
           debug.error("Couldn't play music:", error);
 
           // Check if error is related to user interaction policy
-          if (error.name === 'NotAllowedError' || error.message.includes('interact') || error.message.includes('user activation')) {
+          const isAutoplayBlocked = error.name === 'NotAllowedError' || error.message.includes('interact') || error.message.includes('user activation');
+          if (isAutoplayBlocked) {
             debug.warn('Autoplay prevented. Queuing track and requesting permission.');
             this.state.audioPermissionGranted = false; // This triggers the modal
             this.state.pendingMusicId = id; // Queue this track

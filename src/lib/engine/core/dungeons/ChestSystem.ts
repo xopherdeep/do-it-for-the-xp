@@ -91,7 +91,8 @@ export class ChestSystem {
   public openChest(chestId: string): ChestContent | undefined {
     const chest = this.chests[chestId];
     
-    if (!chest || chest.isEmpty) {
+    const hasNothingInside = !chest || chest.isEmpty;
+    if (hasNothingInside) {
       return undefined;
     }
     
@@ -110,7 +111,8 @@ export class ChestSystem {
    */
   public removeItemsFromChest(chestId: string, items: string[]): void {
     const chest = this.chests[chestId];
-    if (!chest || chest.isEmpty) return;
+    const hasNothingInside = !chest || chest.isEmpty;
+    if (hasNothingInside) return;
     
     let allItemsRemoved = true;
     
@@ -126,7 +128,8 @@ export class ChestSystem {
     }
     
     // Handle dungeon items like map or compass
-    if (chest.content.dungeon && items.includes(chest.content.dungeon)) {
+    const isDungeonItemTaken = chest.content.dungeon && items.includes(chest.content.dungeon);
+    if (isDungeonItemTaken) {
       delete chest.content.dungeon;
     } else if (chest.content.dungeon) {
       allItemsRemoved = false;
@@ -169,12 +172,14 @@ export class ChestSystem {
   public unlockChest(chestId: string, keyType: string): boolean {
     const chest = this.chests[chestId];
     
-    if (!chest || !chest.isLocked) {
+    const hasNothingToUnlock = !chest || !chest.isLocked;
+    if (hasNothingToUnlock) {
       return false;
     }
     
     // Check if the key matches the required key type
-    if (chest.requiresKey && chest.requiresKey !== keyType) {
+    const isWrongKey = chest.requiresKey && chest.requiresKey !== keyType;
+    if (isWrongKey) {
       return false;
     }
     

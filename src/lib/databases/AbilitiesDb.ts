@@ -71,29 +71,31 @@ export class AbilitiesDb extends DbStorageApi {
     return abilities.filter((ability) => {
       let matches = true;
 
-      if (filters.type !== undefined && ability.type !== filters.type) {
+      const isWrongType =
+        filters.type !== undefined && ability.type !== filters.type;
+      if (isWrongType) {
         matches = false;
       }
 
-      if (
+      const isOutsideClassFilter =
         filters.class !== undefined &&
         ability.characterRequirement?.class &&
-        !Object.keys(ability.characterRequirement.class).includes(filters.class)
-      ) {
+        !Object.keys(ability.characterRequirement.class).includes(filters.class);
+      if (isOutsideClassFilter) {
         matches = false;
       }
 
-      if (
+      const isWrongFrequency =
         filters.frequency !== undefined &&
-        ability.frequency !== filters.frequency
-      ) {
+        ability.frequency !== filters.frequency;
+      if (isWrongFrequency) {
         matches = false;
       }
 
-      if (
+      const isWrongPresetFlag =
         filters.isPreset !== undefined &&
-        ability.isPreset !== filters.isPreset
-      ) {
+        ability.isPreset !== filters.isPreset;
+      if (isWrongPresetFlag) {
         matches = false;
       }
 
@@ -141,10 +143,10 @@ export class AbilitiesDb extends DbStorageApi {
     if (!hasEnoughAp) return false;
 
     // Check character level requirement
-    if (
+    const isBelowRequiredLevel =
       ability.characterRequirement?.level &&
-      characterLevel < ability.characterRequirement.level
-    ) {
+      characterLevel < ability.characterRequirement.level;
+    if (isBelowRequiredLevel) {
       return false;
     }
 

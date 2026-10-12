@@ -36,8 +36,10 @@ export const lastCastsOf = (entries: CastLogEntry[]): Record<string, string> => 
   const newestTime: Record<string, number> = {};
   for (const entry of entries) {
     const time = new Date(entry?.castAt).getTime();
-    if (!entry?.abilityId || Number.isNaN(time)) continue;
-    if (newestTime[entry.abilityId] !== undefined && newestTime[entry.abilityId] >= time) continue;
+    const isUnusableEntry = !entry?.abilityId || Number.isNaN(time);
+    if (isUnusableEntry) continue;
+    const hasNewerCast = newestTime[entry.abilityId] !== undefined && newestTime[entry.abilityId] >= time;
+    if (hasNewerCast) continue;
     newestTime[entry.abilityId] = time;
     newest[entry.abilityId] = entry.castAt;
   }

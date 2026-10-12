@@ -52,8 +52,9 @@ class BackgroundManager {
    */
   private validateBackgroundIndex(index: number | undefined, defaultValue: number): number {
     // Check if index is a number and within valid range
-    if (typeof index === 'number' && !isNaN(index) &&
-      index >= MIN_BG_INDEX && index <= MAX_BG_INDEX) {
+    const isValidIndex = typeof index === 'number' && !isNaN(index) &&
+      index >= MIN_BG_INDEX && index <= MAX_BG_INDEX;
+    if (isValidIndex) {
       return index;
     }
 
@@ -84,13 +85,15 @@ class BackgroundManager {
       this.canvasElement = options.canvasElement;
     } else if (options.canvasSelector) {
       const el = document.querySelector(options.canvasSelector);
-      if (el && el instanceof HTMLCanvasElement) {
+      const isCanvasElement = el && el instanceof HTMLCanvasElement;
+      if (isCanvasElement) {
         this.canvasElement = el;
       }
     } else {
       // Default to .battle-bg if no selector provided
       const el = document.querySelector(".battle-bg");
-      if (el && el instanceof HTMLCanvasElement) {
+      const isCanvasElement = el && el instanceof HTMLCanvasElement;
+      if (isCanvasElement) {
         this.canvasElement = el;
       }
     }
@@ -339,12 +342,14 @@ class BackgroundManager {
       }
 
       timeout = setTimeout(() => {
-        if (this.canvasElement && this.backgroundEngine) {
+        const canvas = this.canvasElement;
+        const isEngineDrawing = canvas && this.backgroundEngine;
+        if (isEngineDrawing) {
           // The engine paints a fixed 256x224 SNES frame and CSS stretches the canvas to the page, so
           // the backing store must keep the engine's size. Resizing it to the window used to leave the
           // frame in the top-left corner and the rest of the arena black after any resize event.
-          this.canvasElement.width = ENGINE_FRAME_WIDTH;
-          this.canvasElement.height = ENGINE_FRAME_HEIGHT;
+          canvas.width = ENGINE_FRAME_WIDTH;
+          canvas.height = ENGINE_FRAME_HEIGHT;
         }
       }, 250);
     };
@@ -386,7 +391,8 @@ class BackgroundManager {
   public clearState(id: string): void {
     this.stateRegistry.delete(id);
     const pooledEngine = this.enginePool.get(id);
-    if (pooledEngine && typeof pooledEngine.stop === 'function') {
+    const isStoppable = pooledEngine && typeof pooledEngine.stop === 'function';
+    if (isStoppable) {
       pooledEngine.stop();
     }
     this.enginePool.delete(id);
@@ -403,7 +409,8 @@ class BackgroundManager {
       this.enginePool.set(id, engine);
     } else {
       // Update canvas and other properties if they differ
-      if (options.canvas && (engine as any).canvas !== options.canvas) {
+      const hasNewCanvas = options.canvas && (engine as any).canvas !== options.canvas;
+      if (hasNewCanvas) {
         (engine as any).canvas = options.canvas;
       }
       if (options.aspectRatio !== undefined) {

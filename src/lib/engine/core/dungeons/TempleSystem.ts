@@ -92,7 +92,8 @@ const stepFrom = (position: [number, number], direction: DoorState['direction'])
 const parseRoomKey = (key: string): { level: string; position: [number, number] } | null => {
   const split = key.lastIndexOf(':');
   const [row, col] = key.slice(split + 1).split(',').map(Number);
-  if (split <= 0 || !Number.isInteger(row) || !Number.isInteger(col)) return null;
+  const isMalformedKey = split <= 0 || !Number.isInteger(row) || !Number.isInteger(col);
+  if (isMalformedKey) return null;
   return { level: key.slice(0, split), position: [row, col] };
 };
 
@@ -147,7 +148,8 @@ export class TempleSystem {
   /** True when the hero could stand there: the temple has that floor and the room is not a wall */
   private canStandAt(templeId: string, level: string, position: [number, number]): boolean {
     const temple = this.dungeonManager.getDungeon(templeId);
-    if (!temple || !this.floorsOf(temple).includes(level)) return false;
+    const hasNoSuchFloor = !temple || !this.floorsOf(temple).includes(level);
+    if (hasNoSuchFloor) return false;
 
     const room = this.dungeonManager.getRoom(templeId, position, level);
     return Boolean(room) && room?.type !== 'wall';
@@ -280,7 +282,8 @@ export class TempleSystem {
     }
 
     // A floor named outright (the battle page hands back "2F", not an index) beats the guess above
-    if (startLevel && floors.includes(startLevel)) finalLevel = startLevel;
+    const isFloorNamed = startLevel && floors.includes(startLevel);
+    if (isFloorNamed) finalLevel = startLevel;
 
     // Create temple state if it doesn't exist
     const { state } = this.openState(templeId, userId, finalPos, finalLevel, true);
@@ -312,13 +315,15 @@ export class TempleSystem {
   ): { state: TempleState; created: boolean } {
     // Another hero's run: theirs is saved as it stands, then this hero gets the temple as the layout made it
     const bound = this.heroByTemple.get(templeId);
-    if (userId && bound && bound !== userId) this.releaseTemple(templeId);
+    const isAnotherHeroRun = userId && bound && bound !== userId;
+    if (isAnotherHeroRun) this.releaseTemple(templeId);
 
     const created = !this.templeStates[templeId];
     if (created) this.templeStates[templeId] = this.createTempleState(position, level);
 
     // A run nobody owned yet (a win reported without a hero) is taken over, what it holds is merged with the save
-    if (userId && this.heroByTemple.get(templeId) !== userId) {
+    const isTakingOverRun = userId && this.heroByTemple.get(templeId) !== userId;
+    if (isTakingOverRun) {
       this.heroByTemple.set(templeId, userId);
       this.loadProgress(templeId, userId, created && resume);
     }
@@ -338,7 +343,8 @@ export class TempleSystem {
    */
   private forgetRun(templeId: string, unsaved = false): void {
     const hero = this.heroByTemple.get(templeId);
-    if (unsaved && hero) this.pendingSaves.delete(`${hero}|${templeId}`);
+    const hasSaveToDrop = unsaved && hero;
+    if (hasSaveToDrop) this.pendingSaves.delete(`${hero}|${templeId}`);
 
     delete this.templeStates[templeId];
     this.heroByTemple.delete(templeId);
@@ -370,7 +376,8 @@ export class TempleSystem {
           const room = temple.rooms[roomKey];
         
         // Skip walls and non-existent rooms
-        if (!room || room.type === 'wall') continue;
+        const isNotARoom = !room || room.type === 'wall';
+        if (isNotARoom) continue;
         
           // Check if this room was marked as visited in the old system
           if ((room as any).visited === true) {
@@ -408,7 +415,8 @@ export class TempleSystem {
     const temple = this.dungeonManager.getDungeon(templeId);
     const templeState = this.templeStates[templeId];
     
-    if (!temple || !templeState) return false;
+    const isTempleNotOpen = !temple || !templeState;
+    if (isTempleNotOpen) return false;
     
     const level = templeState.currentLevel;
     
@@ -417,20 +425,23 @@ export class TempleSystem {
     if (!currentRoom) return false;
     
     // Check if the door is locked in the direction of movement; the boss door counts as locked until it is opened
-    if (currentRoom.locked?.[direction] || this.doorKind(templeId, templeState.currentPosition, direction) === 'master') {
+    const isDoorBlocked = currentRoom.locked?.[direction] || this.doorKind(templeId, templeState.currentPosition, direction) === 'master';
+    if (isDoorBlocked) {
       return false;
     }
     
     // Check if the destination is a wall
     const destRoom = this.dungeonManager.getRoom(templeId, newPosition, level);
-    if (!destRoom || destRoom.type === 'wall') return false;
+    const isNotARoom = !destRoom || destRoom.type === 'wall';
+    if (isNotARoom) return false;
     
     // Move to the new position
     templeState.currentPosition = [...newPosition];
     
     // Check for lockOnEnter (combat rooms that lock doors on entry)
     // Only lock if the room hasn't been visited yet (to avoid re-locking on re-entry if cleared)
-    if (destRoom.content?.lockOnEnter && !this.hasVisited(templeId, newPosition)) {
+    const shouldSealOnEntry = destRoom.content?.lockOnEnter && !this.hasVisited(templeId, newPosition);
+    if (shouldSealOnEntry) {
       // Lock all 4 directions (markRoomCleared opens them again after the fight)
       this.sealRoom(templeId, level, newPosition, destRoom);
 
@@ -486,7 +497,8 @@ export class TempleSystem {
       if (!templeState.takenFromChests) templeState.takenFromChests = new Set<string>();
       const room = roomPositionKey(level, position);
       for (const key of Array.from(templeState.takenFromChests)) {
-        if (emptied && key.startsWith(`${room}>`)) templeState.takenFromChests.delete(key);
+        const isLeftoverOfEmptiedChest = emptied && key.startsWith(`${room}>`);
+        if (isLeftoverOfEmptiedChest) templeState.takenFromChests.delete(key);
       }
       if (!emptied) items.forEach(item => templeState.takenFromChests?.add(`${room}>${item}`));
     }
@@ -557,7 +569,8 @@ export class TempleSystem {
     if (!here) return 'open';
 
     const there = this.dungeonManager.getRoom(templeId, stepFrom(position, direction), floor);
-    if (this.isBossDoor(there) && !templeState?.openedDoors?.has(this.doorKey(floor, position, direction))) return 'master';
+    const isUnopenedBossDoor = this.isBossDoor(there) && !templeState?.openedDoors?.has(this.doorKey(floor, position, direction));
+    if (isUnopenedBossDoor) return 'master';
     return here.locked?.[direction] ? 'locked' : 'open';
   }
 
@@ -635,7 +648,8 @@ export class TempleSystem {
     const floor = level ?? templeState.currentLevel;
     const room = this.dungeonManager.getRoom(templeId, position, floor);
     // The boss door is beyond a bomb or a riddle: only the master key opens it
-    if (!room?.locked?.[direction] || this.doorKind(templeId, position, direction, floor) === 'master') return false;
+    const isSideUnopenable = !room?.locked?.[direction] || this.doorKind(templeId, position, direction, floor) === 'master';
+    if (isSideUnopenable) return false;
 
     this.openDoor(templeId, floor, position, direction);
     return true;
@@ -657,11 +671,13 @@ export class TempleSystem {
 
     const sealedHere = this.isSealedByFight(templeId, floor, position);
     for (const direction of DOOR_DIRECTIONS) {
-      if (!sealedHere && this.openDoorSide(templeId, position, direction, floor)) opened++;
+      const openedOwnSide = !sealedHere && this.openDoorSide(templeId, position, direction, floor);
+      if (openedOwnSide) opened++;
 
       const next: [number, number] = [position[0] + step[direction][0], position[1] + step[direction][1]];
       const neighbour = this.dungeonManager.getRoom(templeId, next, floor);
-      if (!neighbour || neighbour.type === 'wall' || this.isSealedByFight(templeId, floor, next)) continue;
+      const isNeighbourClosedOff = !neighbour || neighbour.type === 'wall' || this.isSealedByFight(templeId, floor, next);
+      if (isNeighbourClosedOff) continue;
       if (this.openDoorSide(templeId, next, opposite[direction], floor)) opened++;
     }
     return opened;
@@ -685,7 +701,8 @@ export class TempleSystem {
    */
   public changeLevel(templeId: string, level: string, position: [number, number]): boolean {
     const templeState = this.templeStates[templeId];
-    if (!templeState || !this.canStandAt(templeId, level, position)) return false;
+    const cannotChangeLevel = !templeState || !this.canStandAt(templeId, level, position);
+    if (cannotChangeLevel) return false;
 
     templeState.currentLevel = level;
     templeState.currentPosition = [position[0], position[1]];
@@ -751,7 +768,8 @@ export class TempleSystem {
     for (const [floor, grid] of Object.entries(floors)) {
       for (let row = 0; row < grid.length; row++) {
         for (let col = 0; col < grid[row].length; col++) {
-          if (temple.rooms[grid[row][col]]?.type === 'boss' && !this.isRoomCleared(templeId, floor, [row, col])) {
+          const isUnbeatenBoss = temple.rooms[grid[row][col]]?.type === 'boss' && !this.isRoomCleared(templeId, floor, [row, col]);
+          if (isUnbeatenBoss) {
             return false;
           }
         }
@@ -791,7 +809,7 @@ export class TempleSystem {
     } = {};
     
     // Process items
-    if (chestContent.items && chestContent.items.length > 0) {
+    if (chestContent.items?.length) {
       result.items = chestContent.items;
       
       // Check for special items
@@ -861,7 +879,8 @@ export class TempleSystem {
     if (!temple) return undefined;
 
     const destination = teleportTargetFor(temple, templeState.currentLevel, templeState.currentPosition);
-    if (!destination || !this.changeLevel(templeId, destination.level, destination.position)) return undefined;
+    const stayedPut = !destination || !this.changeLevel(templeId, destination.level, destination.position);
+    if (stayedPut) return undefined;
 
     return destination.position;
   }
@@ -891,10 +910,12 @@ export class TempleSystem {
     const isVisited = this.hasVisited(templeId, position);
 
     // A secret chamber stays off the map, compass or not, until the hero has stood in it
-    if (room?.type === 'secret' && !isVisited) return MapVisibility.NONE;
+    const isHiddenSecret = room?.type === 'secret' && !isVisited;
+    if (isHiddenSecret) return MapVisibility.NONE;
     
     // Return full details if the room is visited or player has compass
-    if (isVisited || templeState.hasCompass) {
+    const canSeeDetails = isVisited || templeState.hasCompass;
+    if (canSeeDetails) {
       return MapVisibility.FULL_DETAILS;
     }
     
@@ -911,10 +932,12 @@ export class TempleSystem {
    */
   public shouldShowRoomDetails(templeId: string, position: [number, number]): boolean {
     const templeState = this.templeStates[templeId];
-    if (!templeState || !templeState.hasMap) return false;
+    const hasNoMap = !templeState || !templeState.hasMap;
+    if (hasNoMap) return false;
 
     const visited = this.hasVisited(templeId, position);
-    if (!visited && this.dungeonManager.getRoom(templeId, position, templeState.currentLevel)?.type === 'secret') return false;
+    const isHiddenSecret = !visited && this.dungeonManager.getRoom(templeId, position, templeState.currentLevel)?.type === 'secret';
+    if (isHiddenSecret) return false;
     
     return templeState.hasCompass || visited;
   }
@@ -947,7 +970,8 @@ export class TempleSystem {
     iconMap: Record<string, string>
   ): string {
     const templeState = this.templeStates[templeId];
-    if (!templeState || !templeState.hasMap) return 'fa-question';
+    const hasNoMap = !templeState || !templeState.hasMap;
+    if (hasNoMap) return 'fa-question';
     
     // Always show player's current position if player has map
     if (this.isCurrentPosition(templeId, position)) {
@@ -960,7 +984,8 @@ export class TempleSystem {
     const isVisited = this.hasVisited(templeId, position);
     
     // If room hasn't been visited and player doesn't have compass
-    if (!isVisited && !templeState.hasCompass) {
+    const isStillUnknown = !isVisited && !templeState.hasCompass;
+    if (isStillUnknown) {
       return 'fa-question';
     }
     
@@ -993,7 +1018,8 @@ export class TempleSystem {
   private progressSnapshot(templeId: string): NewTempleProgress | undefined {
     const userId = this.heroByTemple.get(templeId);
     const state = this.templeStates[templeId];
-    if (!userId || !state || this.reads.has(templeId)) return undefined;
+    const hasNothingToSave = !userId || !state || this.reads.has(templeId);
+    if (hasNothingToSave) return undefined;
 
     return {
       userId,
@@ -1028,7 +1054,8 @@ export class TempleSystem {
 
     const entry = await getTempleProgressDb().scheduleBloodMoon(userId, templeId, whenISO);
     const state = this.templeStates[templeId];
-    if (entry && state && this.heroByTemple.get(templeId) === userId) state.bloodMoonAt = entry.bloodMoonAt;
+    const isHeroRunOpen = entry && state && this.heroByTemple.get(templeId) === userId;
+    if (isHeroRunOpen) state.bloodMoonAt = entry.bloodMoonAt;
     return entry;
   }
 
@@ -1043,7 +1070,8 @@ export class TempleSystem {
     await this.flushProgress();
 
     let entry = await getTempleProgressDb().setBloodMoonEvery(userId, templeId, every);
-    if (entry && every === 'weekly' && !entry.bloodMoonAt) {
+    const isMissingFirstMoon = entry && every === 'weekly' && !entry.bloodMoonAt;
+    if (isMissingFirstMoon) {
       entry = await getTempleProgressDb().scheduleBloodMoon(userId, templeId, nextWeekly(new Date().toISOString()));
     }
     const state = this.templeStates[templeId];
@@ -1101,7 +1129,8 @@ export class TempleSystem {
    */
   public bloodMoonRose(templeId: string): boolean {
     const hero = this.heroByTemple.get(templeId);
-    if (!hero || this.risen.get(templeId) !== hero) return false;
+    const hasNoMoonForHero = !hero || this.risen.get(templeId) !== hero;
+    if (hasNoMoonForHero) return false;
     const rose = this.risen.delete(templeId);
     bloodMoonRisen.value = this.risen.size > 0;
     return rose;
@@ -1170,7 +1199,8 @@ export class TempleSystem {
             const spent = saved.bloodMoonAt;
             saved = resetTempleProgress(saved);
             // A weekly moon rises again a week on from the one just spent (skipping weeks the hero was away)
-            if (saved.bloodMoonEvery === 'weekly' && spent) saved.bloodMoonAt = nextWeekly(spent);
+            const shouldRescheduleWeekly = saved.bloodMoonEvery === 'weekly' && spent;
+            if (shouldRescheduleWeekly) saved.bloodMoonAt = nextWeekly(spent);
             this.risen.set(templeId, userId);
             bloodMoonRisen.value = true;
             notifyBloodMoon(userId, { id: templeId, name: getTempleMetadata(templeId).name });
@@ -1227,7 +1257,8 @@ export class TempleSystem {
     for (const key of saved.takenFromChests ?? []) {
       const split = key.indexOf('>');
       const at = parseRoomKey(key.slice(0, split));
-      if (split < 0 || !at || state.openedChests.has(key.slice(0, split))) continue;
+      const shouldSkipTake = split < 0 || !at || state.openedChests.has(key.slice(0, split));
+      if (shouldSkipTake) continue;
       state.takenFromChests.add(key);
       this.dungeonManager.removeItemsFromRoomChest(templeId, at.position, [key.slice(split + 1)], at.level);
     }
@@ -1241,7 +1272,8 @@ export class TempleSystem {
       const split = key.lastIndexOf('>');
       const at = parseRoomKey(key.slice(0, split));
       const direction = key.slice(split + 1) as DoorState['direction'];
-      if (!at || !DOOR_DIRECTIONS.includes(direction)) continue;
+      const isNotADoor = !at || !DOOR_DIRECTIONS.includes(direction);
+      if (isNotADoor) continue;
       const room = this.dungeonManager.getRoom(templeId, at.position, at.level);
       if (room?.locked?.[direction]) room.locked = { ...room.locked, [direction]: false };
     }
@@ -1254,7 +1286,8 @@ export class TempleSystem {
     // Back to where the hero stopped, unless they already moved on or that room is gone from the layout
     const [row, col] = state.currentPosition;
     const atStart = resumeFrom && state.currentLevel === resumeFrom.level && row === resumeFrom.row && col === resumeFrom.col;
-    if (!atStart || !this.canStandAt(templeId, saved.currentLevel, saved.currentPosition)) return;
+    const cannotResumeThere = !atStart || !this.canStandAt(templeId, saved.currentLevel, saved.currentPosition);
+    if (cannotResumeThere) return;
 
     state.currentLevel = saved.currentLevel;
     state.currentPosition = [saved.currentPosition[0], saved.currentPosition[1]];
@@ -1262,7 +1295,8 @@ export class TempleSystem {
 
     // A fight left unfinished still holds the hero: a reload does not open the doors
     const room = this.dungeonManager.getRoom(templeId, state.currentPosition, state.currentLevel);
-    if (room?.content?.lockOnEnter && !this.isRoomCleared(templeId, state.currentLevel, state.currentPosition)) {
+    const isFightUnfinished = room?.content?.lockOnEnter && !this.isRoomCleared(templeId, state.currentLevel, state.currentPosition);
+    if (isFightUnfinished) {
       this.sealRoom(templeId, state.currentLevel, state.currentPosition, room);
     }
   }

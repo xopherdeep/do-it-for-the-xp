@@ -58,7 +58,8 @@ export class TempleDb extends DbStorageApi {
     
     for (const key of keys) {
       const temple = await this.get(key);
-      if (temple && (temple.name === name || temple.customName === name)) {
+      const isRequestedTemple = temple && (temple.name === name || temple.customName === name);
+      if (isRequestedTemple) {
         return temple;
       }
     }

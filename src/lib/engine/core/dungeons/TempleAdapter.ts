@@ -33,7 +33,8 @@ export function registerTemple(templeId: string, templeData: any, options: Regis
   // Same layout, already registered: the hero may be halfway through it, registering again would wipe that
   const signature = layoutSignature(templeData);
   const running = dungeonManager.getDungeon(templeId);
-  if (running && !options.force && registeredLayouts.get(templeId) === signature) return running;
+  const hasSameLayoutRunning = running && !options.force && registeredLayouts.get(templeId) === signature;
+  if (hasSameLayoutRunning) return running;
 
   // Convert the temple data to a dungeon
   const dungeon: Dungeon = {
@@ -44,7 +45,8 @@ export function registerTemple(templeId: string, templeData: any, options: Regis
     visitedPositions: new Set<string>()
   };
   // Where the hero starts ([row, col] or [floor, row, col]); without it TempleSystem starts at [0, 0]
-  if (Array.isArray(templeData.entrance) && templeData.entrance.length) dungeon.entrance = [...templeData.entrance];
+  const hasAuthoredEntrance = Array.isArray(templeData.entrance) && templeData.entrance.length;
+  if (hasAuthoredEntrance) dungeon.entrance = [...templeData.entrance];
 
   // Convert rooms
   if (templeData.rooms) {
@@ -81,7 +83,8 @@ export function registerAllTemples(temples: Record<string, any>, options: Regist
   const dungeonManager = DungeonManager.getInstance();
 
   for (const [templeId, templeData] of Object.entries(temples)) {
-    if (!options.force && dungeonManager.getDungeon(templeId)) continue;
+    const isAlreadyRegistered = !options.force && dungeonManager.getDungeon(templeId);
+    if (isAlreadyRegistered) continue;
     registerTemple(templeId, templeData, options);
   }
 }
@@ -106,14 +109,15 @@ export async function registerCustomTemples(options: RegisterTempleOptions = {})
       const temple = await templeDb.getTempleById(key);
       
       // Only process temples that have a dungeonLayout defined
-      if (temple && temple.dungeonLayout) {
+      const dungeonLayout = temple?.dungeonLayout;
+      if (dungeonLayout) {
         debug.log(`Registering custom temple: ${key}`);
         
         // Convert the temple data format for the engine
         const templeData = {
-          maze: temple.dungeonLayout.maze,
-          rooms: temple.dungeonLayout.rooms,
-          entrance: temple.dungeonLayout.entrance
+          maze: dungeonLayout.maze,
+          rooms: dungeonLayout.rooms,
+          entrance: dungeonLayout.entrance
         };
         
         // Register the temple with the engine

@@ -130,8 +130,10 @@ export class TempleHydrator {
 
       floors[floorId] = floors[floorId].map(row => row.map(key => `${floorId}:${key}`));
 
-      if (floorDungeon.entrance && !entrance) {
-        entrance = [floorDungeon.entrance[0], floorDungeon.entrance[1], floorId];
+      const floorEntrance = floorDungeon.entrance;
+      const isFirstEntrance = floorEntrance && !entrance;
+      if (isFirstEntrance) {
+        entrance = [floorEntrance[0], floorEntrance[1], floorId];
       }
     });
 

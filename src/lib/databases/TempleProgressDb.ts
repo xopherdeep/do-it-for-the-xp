@@ -75,9 +75,12 @@ const toIsoTime = (value: unknown): string | undefined =>
  * @returns null when the record is not a progress entry at all
  */
 export const toTempleProgress = (raw: unknown): TempleProgressEntry | null => {
-  if (!raw || typeof raw !== "object") return null;
+  const isNotARecord = !raw || typeof raw !== "object";
+  if (isNotARecord) return null;
   const data = raw as Record<string, unknown>;
-  if (typeof data.userId !== "string" || typeof data.templeId !== "string") return null;
+  const { userId, templeId } = data;
+  const isMissingIds = typeof userId !== "string" || typeof templeId !== "string";
+  if (isMissingIds) return null;
 
   const position = Array.isArray(data.currentPosition) ? data.currentPosition : [];
   const bloodMoonAt = toIsoTime(data.bloodMoonAt);
@@ -85,8 +88,8 @@ export const toTempleProgress = (raw: unknown): TempleProgressEntry | null => {
   const takenFromChests = toStringList(data.takenFromChests);
 
   return {
-    userId: data.userId,
-    templeId: data.templeId,
+    userId,
+    templeId,
     currentLevel: typeof data.currentLevel === "string" && data.currentLevel ? data.currentLevel : "1F",
     currentPosition: [toCoordinate(position[0]), toCoordinate(position[1])],
     hasMap: data.hasMap === true,
@@ -133,7 +136,8 @@ export class TempleProgressDb extends DbStorageApi {
    * @returns The record as saved, or null when the hero has no progress in that temple (nothing to reset)
    */
   public async scheduleBloodMoon(userId: string, templeId: string, whenISO: string | null): Promise<TempleProgressEntry | null> {
-    if (whenISO !== null && toIsoTime(whenISO) === undefined) throw new Error(`Not a date: ${whenISO}`);
+    const isUnreadableDate = whenISO !== null && toIsoTime(whenISO) === undefined;
+    if (isUnreadableDate) throw new Error(`Not a date: ${whenISO}`);
     const current = await this.getProgress(userId, templeId);
     if (!current) return null;
 

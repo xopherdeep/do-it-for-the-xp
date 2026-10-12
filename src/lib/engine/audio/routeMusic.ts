@@ -29,7 +29,8 @@ let pendingStart: ReturnType<typeof setTimeout> | undefined;
  * @param payload The BGM payload from the router
  */
 export function playRouteMusic(payload: BGMPayload): void {
-  if (!payload || !payload.tracks || !Array.isArray(payload.tracks) || payload.tracks.length === 0) {
+  const isInvalidPayload = !payload || !payload.tracks || !Array.isArray(payload.tracks) || payload.tracks.length === 0;
+  if (isInvalidPayload) {
     debug.warn('Invalid BGM payload:', payload);
     return;
   }
@@ -40,7 +41,8 @@ export function playRouteMusic(payload: BGMPayload): void {
   const audioStore = useAudioStore();
 
   // If BGM is toggled off in settings, stop current music and don't start new music
-  if (audioStore.bgm && audioStore.bgm.is_on === false) {
+  const isBgmToggledOff = audioStore.bgm && audioStore.bgm.is_on === false;
+  if (isBgmToggledOff) {
     debug.log('BGM is toggled off, stopping playback');
     engine.stopAllMusic(500);
     return;
@@ -99,7 +101,8 @@ export function playRouteMusic(payload: BGMPayload): void {
   }
 
   // Set up the track sequence for auto-advancing when non-repeating
-  if (!shouldRepeat && trackIds.length > 1) {
+  const isPlayingInSequence = !shouldRepeat && trackIds.length > 1;
+  if (isPlayingInSequence) {
     engine.setTrackSequence(trackIds);
   }
 
@@ -109,7 +112,8 @@ export function playRouteMusic(payload: BGMPayload): void {
   if (delay > 0) {
     pendingStart = setTimeout(() => {
       // Check again after delay to ensure BGM wasn't toggled off
-      if (audioStore.bgm && audioStore.bgm.is_on !== false) {
+      const isBgmStillOn = audioStore.bgm && audioStore.bgm.is_on !== false;
+      if (isBgmStillOn) {
         engine.playMusic(currentTrackId, 1000, payload.saveBookmark);
       }
     }, delay);

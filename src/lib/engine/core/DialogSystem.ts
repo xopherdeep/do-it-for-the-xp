@@ -86,7 +86,8 @@ export class DialogSystem {
     const finalOptions = { ...defaultOptions, ...options };
     
     // Use the specified context's display function if it exists
-    if (context && this.displayFunctions.has(context)) {
+    const hasContextDisplay = context && this.displayFunctions.has(context);
+    if (hasContextDisplay) {
       this.displayFunctions.get(context)!(message, finalOptions);
       return;
     }
