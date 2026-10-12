@@ -76,7 +76,8 @@ export class BestiaryService {
   public async loadRandomBeast(element?: string): Promise<Enemy | null> {
     try {
       const all = await this.bestiary.getBeasts();
-      if (!all || all.length === 0) return null;
+      const isBestiaryEmpty = !all || all.length === 0;
+      if (isBestiaryEmpty) return null;
       const native = element ? all.filter((b: any) => b.element === element) : [];
       const beasts = native.length ? native : all;
 
@@ -157,7 +158,8 @@ export class BestiaryService {
    * @returns An object with background settings or null if not available
    */
   public getBeastBackgroundSettings(beast: any): { bg1: number, bg2: number, aspectRatio?: number } | null {
-    if (!beast || beast.bg1 === undefined || beast.bg2 === undefined) return null;
+    const hasNoBackground = !beast || beast.bg1 === undefined || beast.bg2 === undefined;
+    if (hasNoBackground) return null;
 
     return {
       bg1: beast.bg1,

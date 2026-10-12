@@ -86,14 +86,17 @@ export const stockShelf = (
     const accessory = accessories.find((candidate) => candidate && candidate.id === slot.itemId);
     if (!accessory) continue;
 
-    if (slot.availableDays?.length && !slot.availableDays.includes(now.getDay())) continue;
+    const isClosedToday = slot.availableDays?.length && !slot.availableDays.includes(now.getDay());
+    if (isClosedToday) continue;
 
     const members = (accessory.availableToMembers || []).filter(Boolean).map(String);
-    if (members.length > 0 && !members.includes(String(heroId))) continue;
+    const isHiddenFromHero = members.length > 0 && !members.includes(String(heroId));
+    if (isHiddenFromHero) continue;
 
     // The accessory form stores prices typed into a text box, so "25" is a normal price.
     const price = Number(slot.price || accessory.basePrice);
-    if (!Number.isFinite(price) || price <= 0) continue;
+    const hasNoShelfPrice = !Number.isFinite(price) || price <= 0;
+    if (hasNoShelfPrice) continue;
 
     shelf.push({
       id: String(accessory.id),
@@ -118,10 +121,12 @@ const walletOf = (userId: string): number => {
 
 const placeOrder = async (userId: string, item: PurchasableItem): Promise<PurchaseLogEntry> => {
   const price = Number(item.price);
-  if (!item.name || item.id === undefined || item.id === null || item.id === "") {
+  const isMissingIdOrName = !item.name || item.id === undefined || item.id === null || item.id === "";
+  if (isMissingIdOrName) {
     throw new PurchaseError("invalid-item", "That item has no id or name, so it can't be bought.");
   }
-  if (!Number.isFinite(price) || price < 0) {
+  const hasInvalidPrice = !Number.isFinite(price) || price < 0;
+  if (hasInvalidPrice) {
     throw new PurchaseError("invalid-item", `${item.name} has no valid price, so it can't be bought.`);
   }
 
@@ -182,7 +187,8 @@ const reviewEntry = async (
   reviewsInFlight.add(entryId);
   try {
     const entry = await getPurchaseLogDb().getEntry(entryId);
-    if (!entry || entry.status !== "pending") return entry;
+    const isNotAwaitingHandover = !entry || entry.status !== "pending";
+    if (isNotAwaitingHandover) return entry;
     return await review(entry);
   } finally {
     reviewsInFlight.delete(entryId);

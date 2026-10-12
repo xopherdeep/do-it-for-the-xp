@@ -95,7 +95,8 @@ const useLantern = (ctx: ItemUseContext, cost: number): ItemOutcome => {
   const system = TempleSystem.getInstance();
   const state = system.getTempleState(ctx.templeId);
   if (!state) return refuse('The lantern flickers. There is nothing to light here.');
-  if (state.hasMap && state.hasCompass) return { message: 'The lantern glows. You already know the way.' };
+  const knowsTheWay = state.hasMap && state.hasCompass;
+  if (knowsTheWay) return { message: 'The lantern glows. You already know the way.' };
 
   const poor = shortOnMp(ctx, cost);
   if (poor) return poor;
@@ -122,7 +123,8 @@ const useBombs = (ctx: ItemUseContext, cost: number): ItemOutcome => {
   if (!side) return { message: 'Nothing to blow up here.' };
 
   // A fight's seal is not a door: no walking out of a battle through the wall
-  if (ctx.room.content?.lockOnEnter && !system.isRoomCleared(ctx.templeId, ctx.level, ctx.position)) {
+  const isSealedByFight = ctx.room.content?.lockOnEnter && !system.isRoomCleared(ctx.templeId, ctx.level, ctx.position);
+  if (isSealedByFight) {
     return refuse('The seal holds. Bombs will not help until the fight is won.');
   }
 
@@ -143,11 +145,13 @@ const useHookShot = (ctx: ItemUseContext, cost: number): ItemOutcome => {
 
   for (const direction of DIRECTIONS) {
     const near = ctx.exits[direction];
-    if (near.locked || !HAZARDS.includes(roomKind(near.room))) continue;
+    const hasNoHazardToCross = near.locked || !HAZARDS.includes(roomKind(near.room));
+    if (hasNoHazardToCross) continue;
 
     const far: [number, number] = [near.position[0] + steps[direction][0], near.position[1] + steps[direction][1]];
     const beyond = manager.getRoom(ctx.templeId, far, ctx.level);
-    if (!beyond || SOLID_GROUND_NOT.includes(roomKind(beyond))) continue;
+    const hasNoGroundBeyond = !beyond || SOLID_GROUND_NOT.includes(roomKind(beyond));
+    if (hasNoGroundBeyond) continue;
 
     const poor = shortOnMp(ctx, cost);
     if (poor) return poor;

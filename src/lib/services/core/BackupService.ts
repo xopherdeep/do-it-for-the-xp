@@ -162,6 +162,10 @@ const OBJECT_URL_LIFETIME_MS = 10_000;
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+/** A stored row needs a non-empty text key and some value to restore. */
+const isBackupEntry = (entry: unknown): entry is BackupEntry =>
+  isRecord(entry) && typeof entry.key === "string" && entry.key !== "" && entry.value !== undefined;
+
 const hasOwn = (target: object, name: string): boolean => Object.prototype.hasOwnProperty.call(target, name);
 
 const reasonOf = (error: unknown): string => (error instanceof Error ? error.message : String(error));
@@ -195,7 +199,7 @@ const parseEntries = (store: string, entries: unknown): BackupEntry[] => {
   }
   const seen = new Set<string>();
   return entries.map((entry, index) => {
-    if (!isRecord(entry) || typeof entry.key !== "string" || entry.key === "" || entry.value === undefined) {
+    if (!isBackupEntry(entry)) {
       throw new BackupFormatError(`"${store}", entry ${index + 1}: every entry needs a "key" (text) and a "value".`);
     }
     if (seen.has(entry.key)) {

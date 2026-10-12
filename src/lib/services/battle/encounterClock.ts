@@ -22,8 +22,10 @@ export const stepsPerSecond = (t: TerrainWeights): number =>
 
 /** Steps walked in `elapsedMs` at `perSecond` (fractions kept). Negative, NaN or non-finite time walks nothing. */
 export const stepsWalked = (elapsedMs: number, perSecond: number): number => {
-  if (!Number.isFinite(elapsedMs) || elapsedMs <= 0) return 0;
-  if (!Number.isFinite(perSecond) || perSecond <= 0) return 0;
+  const hasNoTimePassed = !Number.isFinite(elapsedMs) || elapsedMs <= 0;
+  if (hasNoTimePassed) return 0;
+  const hasNoWalkingPace = !Number.isFinite(perSecond) || perSecond <= 0;
+  if (hasNoWalkingPace) return 0;
   return (elapsedMs / 1000) * perSecond;
 };
 
@@ -42,7 +44,8 @@ export const nextEncounterAt = (
 
   const resumes = invisibleUntil && invisibleUntil.getTime() > now.getTime() ? invisibleUntil : now;
   if (stepsLeft <= 0) return new Date(resumes.getTime());
-  if (!Number.isFinite(stepsLeft) || !Number.isFinite(perSecond) || perSecond <= 0) return null;
+  const isEncounterUnreachable = !Number.isFinite(stepsLeft) || !Number.isFinite(perSecond) || perSecond <= 0;
+  if (isEncounterUnreachable) return null;
 
   return new Date(resumes.getTime() + Math.round((stepsLeft / perSecond) * 1000));
 };

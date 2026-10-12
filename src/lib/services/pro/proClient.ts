@@ -115,7 +115,8 @@ export async function validate(licenseKey: string, deviceId: string): Promise<Pr
 
 export async function recover(email: string): Promise<void> {
   const { status, data } = await call("recover", { email });
-  if (status !== 202 && status !== 200) fail(status, data);
+  const isNotAccepted = status !== 202 && status !== 200;
+  if (isNotAccepted) fail(status, data);
 }
 
 export async function manage(

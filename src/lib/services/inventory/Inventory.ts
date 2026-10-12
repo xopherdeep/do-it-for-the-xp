@@ -94,7 +94,8 @@ const count = (value: unknown): number => {
 
 /** One bag item as a list entry, or null when it names nothing. */
 export const toEntry = (item: unknown): InventoryEntry | null => {
-  if (!item || typeof item !== 'object') return null;
+  const isNotAnItem = !item || typeof item !== 'object';
+  if (isNotAnItem) return null;
   const raw = item as RawInventoryItem;
   const label = text(raw.name) ?? text(raw.itemId) ?? text(raw.id);
   if (!label) return null;
@@ -125,9 +126,12 @@ export const inventoryOf = (user: InventoryOwner | null | undefined): InventoryE
       continue;
     }
     seen.qty += entry.qty;
-    if (!seen.faIcon && entry.faIcon) seen.faIcon = entry.faIcon;
-    if (!seen.description && entry.description) seen.description = entry.description;
-    if (seen.kind === 'misc' && entry.kind !== 'misc') seen.kind = entry.kind;
+    const canFillIcon = !seen.faIcon && Boolean(entry.faIcon);
+    if (canFillIcon) seen.faIcon = entry.faIcon;
+    const canFillDescription = !seen.description && Boolean(entry.description);
+    if (canFillDescription) seen.description = entry.description;
+    const canRefineKind = seen.kind === 'misc' && entry.kind !== 'misc';
+    if (canRefineKind) seen.kind = entry.kind;
   }
   return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name) || a.id.localeCompare(b.id));
 };

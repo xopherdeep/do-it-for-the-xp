@@ -63,11 +63,14 @@ export const asPegasusChest = <R extends { type?: string; content?: RoomContent 
 export const asChestRoom = <R extends { type?: string; content?: RoomContent }>(given: R, templeId?: string): R => {
   const room = asPegasusChest(given);
   const content = room.content;
-  if (roomTypeOf(room) !== 'loot' || content?.chest !== 'dungeon' || typeof content.dungeon !== 'string') return asWhistled(room, templeId);
+  const chestItem = content?.dungeon;
+  const isDungeonItemChest = roomTypeOf(room) === 'loot' && content?.chest === 'dungeon' && typeof chestItem === 'string';
+  if (!isDungeonItemChest) return asWhistled(room, templeId);
 
-  const dungeon = dungeonItemId(content.dungeon);
+  const dungeon = dungeonItemId(chestItem);
   const stale = content.pegasus === true && isTempleItem(dungeon);
-  if (dungeon === content.dungeon && !stale) return asWhistled(room, templeId);
+  const isChestUpToDate = dungeon === chestItem && !stale;
+  if (isChestUpToDate) return asWhistled(room, templeId);
 
   const { pegasus, ...rest } = content;
   // The flag first, the whistle after: a room that is no longer a Pegasus chest gets no whistle
@@ -81,7 +84,8 @@ export const asChestRoom = <R extends { type?: string; content?: RoomContent }>(
  */
 const asWhistled = <R extends { type?: string; content?: RoomContent }>(room: R, templeId?: string): R => {
   const content = room.content;
-  if (templeId !== WIND_TEMPLE_ID || roomTypeOf(room) !== 'loot' || content?.pegasus !== true) return room;
+  const isNotWindPegasusChest = templeId !== WIND_TEMPLE_ID || roomTypeOf(room) !== 'loot' || content?.pegasus !== true;
+  if (isNotWindPegasusChest) return room;
   if ((content.items ?? []).includes(WIND_WHISTLE)) return room;
   return { ...room, content: { ...content, items: [...(content.items ?? []), WIND_WHISTLE] } };
 };
@@ -190,12 +194,15 @@ export const chestLoot = (content: RoomContent | undefined, egg?: PegasusEgg | n
   if (!content) return [];
   const isPegasus = content.pegasus === true;
   const loot: ChestLoot[] = [];
+  const dungeonItem = content.dungeon;
 
-  if (isPegasus && content.chest === 'dungeon' && content.dungeon) loot.push(eggRow(content.dungeon, egg ?? UNKNOWN_EGG));
+  const hasPegasusEgg = isPegasus && content.chest === 'dungeon' && dungeonItem;
+  if (hasPegasusEgg) loot.push(eggRow(dungeonItem, egg ?? UNKNOWN_EGG));
 
   (content.items ?? []).forEach((item) => loot.push({ value: item, ...lootFace(item), ...(isPegasus ? { checked: true } : {}) }));
 
-  if (!isPegasus && content.chest === 'dungeon' && content.dungeon) loot.push({ value: content.dungeon, ...lootFace(content.dungeon) });
+  const hasDungeonItem = !isPegasus && content.chest === 'dungeon' && dungeonItem;
+  if (hasDungeonItem) loot.push({ value: dungeonItem, ...lootFace(dungeonItem) });
 
   const gold = Math.floor(Number(content.gold) || 0);
   if (gold > 0) {

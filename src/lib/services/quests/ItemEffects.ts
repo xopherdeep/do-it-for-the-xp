@@ -313,13 +313,15 @@ export const unlockHintOf = (itemName: string): string => {
   const meta = Object.values(ITEM_METADATA).find((entry) => entry.name === itemName);
   const event = meta?.unlockEvent ?? "";
   // An item with a chest of its own (the Wind Whistle) is earned there, whatever its registry event says
-  if (event.startsWith("pegasus:") && !CHEST_TEMPLE[itemName]) {
+  const isEarnedFromPegasus = event.startsWith("pegasus:") && !CHEST_TEMPLE[itemName];
+  if (isEarnedFromPegasus) {
     const index = PEGASUS_INDEX[itemName];
     const pegasus = index !== undefined ? PEGASUS_NAMES[index] : event.slice("pegasus:".length);
     return `Locked: free ${pegasus} the Pegasus to earn ${itemName}.`;
   }
   if (event === "purchase") return `Locked: ${itemName} is for sale in a shop.`;
-  if (event.startsWith("dungeon:") || CHEST_TEMPLE[itemName]) {
+  const isEarnedFromChest = event.startsWith("dungeon:") || Boolean(CHEST_TEMPLE[itemName]);
+  if (isEarnedFromChest) {
     const where = CHEST_TEMPLE[itemName] ? `the ${CHEST_TEMPLE[itemName]}` : "a temple";
     return `Locked: ${itemName} waits in a chest in ${where}.`;
   }

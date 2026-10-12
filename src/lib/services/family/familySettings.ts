@@ -51,7 +51,8 @@ export const bedtimeNightOf = (settings: FamilySettings, now: Date): string => {
   const { from, to } = settings.bedtime;
   const crossesMidnight = minutesOf(from) > minutesOf(to);
   const minutes = now.getHours() * 60 + now.getMinutes();
-  if (!crossesMidnight || minutes >= minutesOf(from)) return dayKeyOf(now);
+  const isNightOfToday = !crossesMidnight || minutes >= minutesOf(from);
+  if (isNightOfToday) return dayKeyOf(now);
   return dayKeyOf(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
 };
 

@@ -10,7 +10,8 @@ let pending: Promise<ProState> | null = null;
 async function loadOrCreate(): Promise<ProState> {
   const db = getProDb();
   const stored = await db.getState();
-  if (stored?.familyId && stored?.deviceId) return stored;
+  const hasStoredIdentity = stored?.familyId && stored?.deviceId;
+  if (hasStoredIdentity) return stored;
   const state: ProState = {
     familyId: stored?.familyId || newFamilyId(),
     deviceId: stored?.deviceId || newDeviceId(),

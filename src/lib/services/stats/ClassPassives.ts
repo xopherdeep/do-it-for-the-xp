@@ -235,7 +235,8 @@ export const winRegen = (
   mp: { now: number; max: number }
 ): { hp: number; mp: number } => {
   const share = (points: { now: number; max: number }, ratio: number): number => {
-    if (!(ratio > 0) || !(points.max > 0)) return 0;
+    const hasNothingToRestore = !(ratio > 0) || !(points.max > 0);
+    if (hasNothingToRestore) return 0;
     const missing = Math.max(0, points.max - points.now);
     return Math.min(missing, Math.max(1, Math.round(points.max * ratio)));
   };

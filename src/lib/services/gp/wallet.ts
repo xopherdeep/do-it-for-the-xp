@@ -110,7 +110,8 @@ export interface BankMove {
 
 const resolveWithdrawCap = (amount: number, wanted: number, room: number, savings: number): BankMove["capped"] => {
   if (amount === wanted) return "none";
-  if (room < savings && room < wanted) return "wallet-full";
+  const isWalletTheLimit = room < savings && room < wanted;
+  if (isWalletTheLimit) return "wallet-full";
   return "savings";
 };
 

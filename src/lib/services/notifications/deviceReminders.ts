@@ -55,7 +55,8 @@ export const scheduleDueReminders = async (
 
   try {
     let permission = await plugin.checkPermissions();
-    if (permission?.display === "prompt" || permission?.display === "prompt-with-rationale") {
+    const canAskForPermission = permission?.display === "prompt" || permission?.display === "prompt-with-rationale";
+    if (canAskForPermission) {
       permission = await plugin.requestPermissions();
     }
     if (permission?.display !== "granted") return { scheduled: 0, reason: "denied" };

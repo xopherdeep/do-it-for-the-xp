@@ -131,9 +131,14 @@ const statusOf = (item: QuestBoardItem, due: Date | null, date: Date): QuestList
 const compareRows = (a: QuestListRow, b: QuestListRow): number => {
   const rank = STATUS_RANK[a.status] - STATUS_RANK[b.status];
   if (rank) return rank;
-  if (a.due && b.due && a.due.getTime() !== b.due.getTime()) return a.due.getTime() - b.due.getTime();
-  if (a.due && !b.due) return -1;
-  if (!a.due && b.due) return 1;
+  const dueA = a.due;
+  const dueB = b.due;
+  const isDueAtDifferentMoments = dueA && dueB && dueA.getTime() !== dueB.getTime();
+  if (isDueAtDifferentMoments) return dueA.getTime() - dueB.getTime();
+  const isOnlyADated = dueA && !dueB;
+  if (isOnlyADated) return -1;
+  const isOnlyBDated = !dueA && dueB;
+  if (isOnlyBDated) return 1;
   return a.title.localeCompare(b.title);
 };
 
@@ -195,7 +200,8 @@ export interface QuickTaskInput {
 
 /** The calendar day a quick task is due, at midnight. */
 export const quickTaskDay = (due: QuickTaskDue | undefined, now: Date): Date => {
-  if (due === undefined || due === "today") return startOfDay(now);
+  const isDueToday = due === undefined || due === "today";
+  if (isDueToday) return startOfDay(now);
   if (due === "tomorrow") return startOfDay(addDays(now, 1));
   if (due instanceof Date) {
     if (Number.isNaN(due.getTime())) throw new Error("That day is not on any calendar.");
@@ -212,7 +218,8 @@ const cleanClock = (dueByTime?: string): string => {
   if (!clock) return "";
   const hours = Number(clock[1]);
   const minutes = Number(clock[2]);
-  if (!(hours < 24 && minutes < 60)) return "";
+  const isValidClock = hours < 24 && minutes < 60;
+  if (!isValidClock) return "";
   return `${String(hours).padStart(2, "0")}:${clock[2]}`;
 };
 

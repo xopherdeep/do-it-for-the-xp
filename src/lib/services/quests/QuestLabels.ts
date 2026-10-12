@@ -76,7 +76,8 @@ export const questTypeHint = (type?: string, adventureType?: string): string => 
 /** What the party tile's number means: it counts heroes, or the quest is open to every hero. */
 export const partyHint = (type: string | undefined, heroCount: number): string => {
   if (type === "asNeeded") return "any hero can claim it";
-  if (!heroCount || heroCount < 1) return "pick a hero";
+  const hasNoHeroes = !heroCount || heroCount < 1;
+  if (hasNoHeroes) return "pick a hero";
   return heroCount === 1 ? "hero assigned" : "heroes assigned";
 };
 
@@ -90,7 +91,8 @@ export const priorityHint = (bonus?: boolean): string => (bonus ? "optional extr
 /** "Difficulty: Easy (3)"; a value off the slider's steps keeps just its number. */
 export const difficultyLabel = (difficulty?: number): string => {
   const value = Number(difficulty);
-  if (!Number.isFinite(value) || value <= 0) return "Difficulty: not set";
+  const isDifficultyUnset = !Number.isFinite(value) || value <= 0;
+  if (isDifficultyUnset) return "Difficulty: not set";
   const name = DIFFICULTY_NAMES[value];
   return name ? `Difficulty: ${name} (${value})` : `Difficulty: ${value}`;
 };
@@ -104,7 +106,8 @@ export const scheduleLabel = (quest: ScheduleFields): string => {
     const days = DAY_ORDER.filter((day) => (quest.repeatOnDays || []).includes(day)).map((day) => DAY_NAMES[day]);
     return days.length ? `Weekly on ${days.join(", ")}` : "Weekly";
   }
-  if (basicSchedule === "custom" || scheduleType === "custom") {
+  const isCustomSchedule = basicSchedule === "custom" || scheduleType === "custom";
+  if (isCustomSchedule) {
     const every = Number(quest.customPeriodNumber) || 1;
     const period = quest.customPeriodType || "day";
     return `${Number(quest.customFrequency) || 1}x every ${every > 1 ? `${every} ` : ""}${period}${every > 1 ? "s" : ""}`;

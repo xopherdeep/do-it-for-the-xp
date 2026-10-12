@@ -66,7 +66,8 @@ export function linksTo(beastId: string, quests: QuestRef[], temples: TempleRef[
     const listed = new Set<string>();
     for (const rooms of roomMaps(temple)) {
       for (const [roomKey, room] of Object.entries(rooms)) {
-        if (listed.has(roomKey) || !roomUsesBeast(room, beastId)) continue;
+        const shouldSkipRoom = listed.has(roomKey) || !roomUsesBeast(room, beastId);
+        if (shouldSkipRoom) continue;
         listed.add(roomKey);
         links.rooms.push({ templeId: temple.id, roomKey });
       }
@@ -132,7 +133,8 @@ const count = (n: number, one: string, many = `${one}s`): string => `${n} ${n ==
 /** "Used by 2 quests (Dishes, Laundry) and 1 temple room"; empty when nothing links to the beast */
 export function usageNote(links: BeastLinks): string {
   const { quests, rooms } = links;
-  if (!quests.length && !rooms.length) return "";
+  const isUnlinked = !quests.length && !rooms.length;
+  if (isUnlinked) return "";
 
   const parts: string[] = [];
   if (quests.length) {

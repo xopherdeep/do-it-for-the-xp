@@ -22,12 +22,16 @@ const SYNONYMS: Record<string, string[]> = {
   socks: ["sock"], snow: ["shovel"], leaves: ["rake", "leaf"], phone: ["screen", "device"], tablet: ["screen", "device"],
 };
 
+/** A word longer than `longerThan` letters that ends in `suffix`, so short words keep their last letters ("bus", "red") */
+const hasSuffix = (word: string, suffix: string, longerThan: number): boolean =>
+  word.length > longerThan && word.endsWith(suffix);
+
 const stem = (word: string): string => {
-  if (word.length > 5 && word.endsWith("ing")) return word.slice(0, -3);
-  if (word.length > 4 && word.endsWith("ies")) return `${word.slice(0, -3)}y`;
-  if (word.length > 4 && word.endsWith("es")) return word.slice(0, -2);
-  if (word.length > 3 && word.endsWith("ed")) return word.slice(0, -2);
-  if (word.length > 3 && word.endsWith("s")) return word.slice(0, -1);
+  if (hasSuffix(word, "ing", 5)) return word.slice(0, -3);
+  if (hasSuffix(word, "ies", 4)) return `${word.slice(0, -3)}y`;
+  if (hasSuffix(word, "es", 4)) return word.slice(0, -2);
+  if (hasSuffix(word, "ed", 3)) return word.slice(0, -2);
+  if (hasSuffix(word, "s", 3)) return word.slice(0, -1);
   return word;
 };
 

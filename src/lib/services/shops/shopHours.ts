@@ -23,7 +23,8 @@ export function clockToMinutes(clock: unknown): number | null {
   if (!match) return null;
   const hours = Number(match[1]);
   const minutes = Number(match[2]);
-  if (hours > 23 || minutes > 59) return null;
+  const isNotAClockTime = hours > 23 || minutes > 59;
+  if (isNotAClockTime) return null;
   return hours * 60 + minutes;
 }
 
@@ -43,7 +44,8 @@ function readHours(hours: ShopHours | null | undefined): { open: number; close: 
   if (!hours) return null;
   const open = clockToMinutes(hours.open);
   const close = clockToMinutes(hours.close);
-  if (open === null || close === null) return null;
+  const isMissingAnEnd = open === null || close === null;
+  if (isMissingAnEnd) return null;
   // Opening and closing at the same minute is not a closure: the shop is open round the clock.
   if (open === close) return null;
   return { open, close };
@@ -69,7 +71,8 @@ export function isShopOpen(hours: ShopHours | null | undefined, now: Date): bool
  */
 export function opensAtLabel(hours: ShopHours | null | undefined, now: Date): string {
   const range = readHours(hours);
-  if (!range || isShopOpen(hours, now)) return "";
+  const isOpenNow = !range || isShopOpen(hours, now);
+  if (isOpenNow) return "";
   const clock = formatClock(hours!.open);
   return minutesOf(now) < range.open ? `Opens at ${clock}` : `Opens tomorrow at ${clock}`;
 }

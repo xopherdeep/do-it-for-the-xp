@@ -40,14 +40,17 @@ export const pickQuestAlerts = (
   if (isSchedulePaused(effects, now)) return [];
   const alerts: QuestAlert[] = [];
   for (const item of board) {
-    if (item.status !== "open" || item.pending) continue;
+    const isClosedOrAwaitingApproval = item.status !== "open" || item.pending;
+    if (isClosedOrAwaitingApproval) continue;
     const deadline = effectiveDeadline(item.quest, effects, now);
     const quest = { id: String(item.quest.id), achievementName: String(item.quest.achievementName ?? "A quest") };
-    if (item.overdue || (deadline && now > deadline)) {
+    const isOverdue = item.overdue || (deadline && now > deadline);
+    if (isOverdue) {
       alerts.push({ notification: questOverdueNotification(heroId, quest, deadline, now), deadline });
       continue;
     }
-    if (deadline && deadline.getTime() - now.getTime() <= DUE_SOON_MS) {
+    const isDueSoon = deadline && deadline.getTime() - now.getTime() <= DUE_SOON_MS;
+    if (isDueSoon) {
       alerts.push({ notification: questDueNotification(heroId, quest, deadline, now), deadline });
     }
   }
@@ -59,9 +62,11 @@ export const remindersOf = (board: readonly QuestBoardItem[], effects: HeroQuest
   if (isSchedulePaused(effects, now)) return [];
   const reminders: DueReminder[] = [];
   for (const item of board) {
-    if (item.status !== "open" || item.pending || item.overdue) continue;
+    const isSettledOrOverdue = item.status !== "open" || item.pending || item.overdue;
+    if (isSettledOrOverdue) continue;
     const deadline = effectiveDeadline(item.quest, effects, now);
-    if (!deadline || deadline <= now) continue;
+    const hasNoDeadlineAhead = !deadline || deadline <= now;
+    if (hasNoDeadlineAhead) continue;
     const name = String(item.quest.achievementName ?? "A quest");
     reminders.push({
       questId: String(item.quest.id),

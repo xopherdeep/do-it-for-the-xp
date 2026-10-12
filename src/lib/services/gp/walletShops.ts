@@ -111,7 +111,8 @@ export function walletOfferAt(place: string | null | undefined, gp?: GpPurse | n
   if (walletLimitOf(gp) >= tier.limit) {
     return { ...base, offer: null, status: "owned", note: "You already carry a bigger wallet." };
   }
-  if (!next || next.limit !== tier.limit) {
+  const isTierAhead = !next || next.limit !== tier.limit;
+  if (isTierAhead) {
     return { ...base, offer: null, status: "ahead", note: hint };
   }
   const heroLevel = Number.isFinite(Number(level)) ? Number(level) : 1;

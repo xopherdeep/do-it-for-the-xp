@@ -222,7 +222,8 @@ export const totalsByPeriod = (records: ReadonlyArray<{ at: unknown; amount: num
   const totals: PeriodTotals = { today: 0, week: 0, month: 0 };
   for (const { at, amount } of records) {
     const when = Date.parse(String(at));
-    if (!Number.isFinite(when) || when > end) continue;
+    const isUndatedOrFuture = !Number.isFinite(when) || when > end;
+    if (isUndatedOrFuture) continue;
     if (when >= starts.today) totals.today += amount;
     if (when >= starts.week) totals.week += amount;
     if (when >= starts.month) totals.month += amount;
@@ -380,10 +381,16 @@ export const beastFigures = (
 export const FOE_ROOM_TYPES = ["monster", "miniboss", "boss"];
 export const TREASURE_ROOM_TYPES = ["loot", "secret"];
 
+const isFoeRoom = (type: string | undefined): boolean => Boolean(type && FOE_ROOM_TYPES.includes(type));
+const isTreasureRoom = (type: string | undefined): boolean => Boolean(type && TREASURE_ROOM_TYPES.includes(type));
+
 /** A temple's maze and room table, from the layout or the older top-level fields; null without both. */
 export const layoutOf = (temple: TempleLike): { maze: unknown; rooms: Record<string, RoomLike | undefined> } | null => {
   for (const candidate of [temple.dungeonLayout, { maze: temple.maze, rooms: temple.rooms }]) {
-    if (candidate && candidate.maze && candidate.rooms) return { maze: candidate.maze, rooms: candidate.rooms };
+    const maze = candidate?.maze;
+    const rooms = candidate?.rooms;
+    const hasLayout = maze && rooms;
+    if (hasLayout) return { maze, rooms };
   }
   return null;
 };
@@ -391,7 +398,8 @@ export const layoutOf = (temple: TempleLike): { maze: unknown; rooms: Record<str
 /** The floors of a maze: one grid of rows, or several grids keyed by floor name. */
 const floorsOf = (maze: unknown): unknown[] => {
   if (Array.isArray(maze)) return [maze];
-  if (maze && typeof maze === "object") return Object.values(maze);
+  const hasNamedFloors = maze && typeof maze === "object";
+  if (hasNamedFloors) return Object.values(maze);
   return [];
 };
 
@@ -414,7 +422,8 @@ export const uniqueTemples = (temples: ReadonlyArray<TempleLike | null | undefin
   const unique: TempleLike[] = [];
   for (const temple of temples) {
     const id = idOf(temple?.id);
-    if (!temple || !id || seen.has(id)) continue;
+    const shouldSkipTemple = !temple || !id || seen.has(id);
+    if (shouldSkipTemple) continue;
     seen.add(id);
     unique.push(temple);
   }
@@ -441,8 +450,8 @@ export const templeFigures = (temples: ReadonlyArray<TempleLike | null | undefin
     laidOut += 1;
     for (const cell of cellsOf(layout.maze)) {
       const type = Object.prototype.hasOwnProperty.call(layout.rooms, cell) ? layout.rooms[cell]?.type : undefined;
-      if (type && FOE_ROOM_TYPES.includes(type)) foeRooms += 1;
-      else if (type && TREASURE_ROOM_TYPES.includes(type)) treasureRooms += 1;
+      if (isFoeRoom(type)) foeRooms += 1;
+      else if (isTreasureRoom(type)) treasureRooms += 1;
     }
   }
   return {

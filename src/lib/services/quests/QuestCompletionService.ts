@@ -116,7 +116,8 @@ const reviewEntry = async (
   reviewsInFlight.add(entryId);
   try {
     const entry = (await getQuestLogDb().get(entryId)) as QuestLogEntry | null;
-    if (!entry || entry.status !== "pending") return entry;
+    const isNotAwaitingReview = !entry || entry.status !== "pending";
+    if (isNotAwaitingReview) return entry;
     return await review(entry);
   } finally {
     reviewsInFlight.delete(entryId);

@@ -68,7 +68,8 @@ const webNotification = (): typeof Notification | null => (typeof Notification =
 const nativePermissionOf = (display: unknown): AlertPermission => {
   if (display === "granted") return "granted";
   if (display === "denied") return "denied";
-  if (display === "prompt" || display === "prompt-with-rationale") return "prompt";
+  const isAskable = display === "prompt" || display === "prompt-with-rationale";
+  if (isAskable) return "prompt";
   return "unsupported";
 };
 
@@ -105,7 +106,8 @@ const looseAlerts = new Map<number, Notification>();
 const registerWorker = async (): Promise<ServiceWorkerRegistration | null> => {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    if (typeof window === "undefined" || !window.isSecureContext || !("serviceWorker" in navigator)) return null;
+    const isWorkerUnavailable = typeof window === "undefined" || !window.isSecureContext || !("serviceWorker" in navigator);
+    if (isWorkerUnavailable) return null;
     await navigator.serviceWorker.register(WORKER_PATH);
     const timeout = new Promise<null>((resolve) => {
       timer = setTimeout(() => resolve(null), WORKER_READY_MS);

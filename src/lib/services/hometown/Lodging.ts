@@ -96,7 +96,8 @@ export function quoteCare(kind: CareKind, stats: CareStats | null | undefined): 
       break;
   }
 
-  if (hpGain <= 0 && mpGain <= 0) {
+  const isAlreadyHealthy = hpGain <= 0 && mpGain <= 0;
+  if (isAlreadyHealthy) {
     return { kind, cost, hpGain: 0, mpGain: 0, canPay: false, reason: "healthy" };
   }
   if (wallet < cost) {

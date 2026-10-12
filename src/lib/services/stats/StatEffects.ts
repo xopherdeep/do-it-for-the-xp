@@ -217,7 +217,8 @@ const pct = (share: number): string => `${Math.round(share * 100)}%`;
  */
 export const statEffectLine = (stat: string, hero: HeroLike | null | undefined): string => {
   const trained = points(trainedStats(hero)[stat as StatName]);
-  if (!trained || FLAVOUR_STATS.includes(stat as StatName)) return '';
+  const hasNothingToDescribe = !trained || FLAVOUR_STATS.includes(stat as StatName);
+  if (hasNothingToDescribe) return '';
   const fx = heroEffects(hero);
   const growth = JOB_CLASS_BASE_STATS[hero?.jobClass || ''] || JOB_CLASS_BASE_STATS.default;
   const lead = `Trained ${trained}: `;
