@@ -238,6 +238,18 @@
         itemInfoOpen.value = false;
       };
 
+      // The host can close the bag with a card or the codex still up (a beast's strike, hardware back,
+      // leaving the view). Ionic does not dismiss nested modals with their parent, so close them here,
+      // or they stay on screen cut off from the bag and the stale card pops up again next time
+      watch(
+        () => props.isOpen,
+        (open) => {
+          if (open) return;
+          itemInfoOpen.value = false;
+          classSelectorOpen.value = false;
+        }
+      );
+
       const selectedBattleCard = computed(() =>
         isBattle.value && props.battleCard && selectedItem.value ? props.battleCard(selectedItem.value) : null
       );

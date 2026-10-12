@@ -47,28 +47,46 @@
     </div>
 
     <!-- Overlays sit beside the shaking container so they never shake with it -->
-    <!-- Attack = pick a chore from the beast's checklist; the Silver Arrow borrows the same list to pick a chore to postpone -->
+    <!-- Tackle = pick a chore from the beast's checklist; Recall (Silver Arrow, Rewind) borrows the same list to pick a chore to postpone -->
     <transition name="sheet">
       <XpBattleTaskMenu
-        v-if="showTaskMenu && currentEnemy"
+        v-if="sheet === 'task' && currentEnemy"
         :tasks="combatTasks"
         :enemy-name="currentEnemy.name"
         :damage-per-task="damagePerTask"
         :mode="taskMenuMode"
-        @cancel="closeTaskMenu"
+        :recall="recallBy"
+        @cancel="closeSheet"
         @task-complete="finishCombatTask"
         @task-pick="postponeTask"
       />
     </transition>
 
-    <!-- Item = the two hands; using one keeps the hero's move -->
+    <!-- Goods = the same bag as everywhere else, in battle mode: Use instead of Equip; using one keeps the hero's move -->
+    <XpEquipmentModal
+      :is-open="sheet === 'bag'"
+      mode="battle"
+      :equipment="equipment"
+      :user="hero"
+      :battle-card="bagCard"
+      :opens-directly="opensDirectly"
+      @use-item="useBagItem"
+      @close="closeBag"
+    />
+
+    <!-- Bottles (from the bag): drink one; the sheet goes inert after a drink, so it is closed and mounted fresh each time -->
     <transition name="sheet">
-      <BattleItemMenu
-        v-if="showItemMenu"
-        :left="itemCards.left"
-        :right="itemCards.right"
-        @cancel="closeTaskMenu"
-        @use="useItemCard"
+      <BattlePotionSheet v-if="sheet === 'potions'" :potions="potionCards" @cancel="closeSheet" @drink="drink" />
+    </transition>
+
+    <!-- Powers (the menu, or the Book Of Spells in the bag): cast one; the same inert-after-one rule -->
+    <transition name="sheet">
+      <BattlePowersSheet
+        v-if="sheet === 'powers'"
+        :powers="powerEntries"
+        :snapshot="heroSnapshot"
+        @cancel="closeSheet"
+        @cast="castPower"
       />
     </transition>
 

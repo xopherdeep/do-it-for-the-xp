@@ -3,12 +3,18 @@ import { IonPage, onIonViewDidEnter, onIonViewWillLeave, useBackButton } from "@
 import { useRoute, useRouter } from "vue-router";
 import { createBattleService, createBestiaryService } from "@/lib/services/battle";
 import type { BattleService, CombatTask, Enemy } from "@/lib/services/battle/BattleService";
-import { describeBattleItem, useBattleItem, type BattleItemCard, type BattleItemLike } from "@/lib/services/battle/BattleItems";
+import { battleBagRole, describeBattleItem, useBattleItem, type BattleItemLike } from "@/lib/services/battle/BattleItems";
 import type { BattleEffectId } from "@/lib/services/battle/BattleEffects";
+import { drinkPotion, potionShelf } from "@/lib/services/battle/BattlePotions";
+import { battlePowers, castBattlePower } from "@/lib/services/battle/BattlePowers";
+import { getAbilityService } from "@/lib/services/abilities/AbilityService";
+import { heroAbilitySnapshot } from "@/lib/services/abilities/heroAbilityStatus";
+import type { Ability } from "@/hooks/abilities/abilityConstants";
 import { useHeroEquipment } from "@/hooks/useHeroEquipment";
 import { useUserStore } from "@/lib/store/stores/user";
 import { heroPassive } from "@/lib/services/stats/StatEffects";
 import debug from "@/lib/utils/debug";
+import XpEquipmentModal from "@/app/Console/MyPortal/UserHud/components/XpEquipmentModal.vue";
 import { resolveBattleContext } from "./battle/battleContext";
 import { loadEncounter, type Encounter } from "./battle/encounterLoader";
 import { tackleIcon, type BattleMenuAction } from "./battle/battleMenu";
@@ -24,7 +30,8 @@ import BattleDialogBox from "./components/BattleDialogBox.vue";
 import BattleEnemyStage from "./components/BattleEnemyStage.vue";
 import BattleHeroCard from "./components/BattleHeroCard.vue";
 import BattleVictoryCard from "./components/BattleVictoryCard.vue";
-import BattleItemMenu from "./components/BattleItemMenu.vue";
+import BattlePotionSheet from "./components/BattlePotionSheet.vue";
+import BattlePowersSheet from "./components/BattlePowersSheet.vue";
 import XpBattleTaskMenu from "./components/XpBattleTaskMenu.vue";
 
 const toLayer = (value: unknown): number | undefined => {
@@ -45,6 +52,12 @@ const BACK_BUTTON_PRIORITY = 100;
 const PROMPT_FIRST_CHORE = "Do its chores to win!";
 const PROMPT_RUN = "Run away? Your finished chores won't count.";
 
+/** What covers the menu: the chore checklist, the Goods bag, the potion sheet or the Powers sheet. One at a time. */
+type BattleSheetName = "task" | "bag" | "potions" | "powers";
+
+/** The Powers command, and a Power's Recall on the chore pick, wear the spell book. */
+const POWERS_ICON = "book-spells";
+
 /**
  * The arena. A chore is a beast; its checklist items are the hero's attacks.
  * Everything here is wiring: the engine lives in BattleService, loading in
@@ -52,7 +65,17 @@ const PROMPT_RUN = "Run away? Your finished chores won't count.";
  */
 export default defineComponent({
   name: "battle-field",
-  components: { IonPage, BattleDialogBox, BattleEnemyStage, BattleHeroCard, BattleVictoryCard, BattleItemMenu, XpBattleTaskMenu },
+  components: {
+    IonPage,
+    BattleDialogBox,
+    BattleEnemyStage,
+    BattleHeroCard,
+    BattleVictoryCard,
+    BattlePotionSheet,
+    BattlePowersSheet,
+    XpBattleTaskMenu,
+    XpEquipmentModal,
+  },
   setup() {
     const route = useRoute();
     const router = useRouter();
@@ -67,14 +90,19 @@ export default defineComponent({
     const combatTasks = ref<CombatTask[]>([]);
     const battleStarted = ref(false);
     const showEnemy = ref(false);
-    const showTaskMenu = ref(false);
-    /** The task sheet confirms a finished chore, or (Silver Arrow) picks one to send back to the board. */
+    const sheet = ref<BattleSheetName | null>(null);
+    /** The task sheet confirms a finished chore, or (Recall) picks one to send back to the board. */
     const taskMenuMode = ref<"attack" | "postpone">("attack");
-    const showItemMenu = ref(false);
     /** The Silver Arrow in hand while the hero picks the chore it will carry away. */
     let arrowInFlight: BattleItemLike | null = null;
+    /** A Recall Power (Rewind) cast while the hero picks the chore it will carry away. */
+    let powerInFlight: Ability | null = null;
+    /** Who the chore pick names: a Power by its name, or null for the Silver Arrow (the sheet's default). */
+    const recallBy = ref<{ name: string; faIcon: string } | null>(null);
     /** Once-per-fight effects already used (items and Powers share them); a new fight starts with an empty set. */
     let usedThisFight = new Set<BattleEffectId>();
+    /** The Game Master's Powers, read once per fight; the Powers sheet keeps the hero's unlocked battle ones. */
+    let abilities: Ability[] = [];
     const enemyAnimationClass = ref<EnemyAnimation>("");
     const heroDowned = ref(false);
     const lastHit = ref<HitPopup | null>(null);
@@ -93,7 +121,8 @@ export default defineComponent({
     const audio = useBattleAudio();
     const background = useBattleBackground();
     const feedback = useBattleFeedback();
-    const hands = useHeroEquipment(ctx.userId);
+    const { equipment } = useHeroEquipment(ctx.userId);
+    const hero = computed(() => userStore.getUserById(ctx.userId));
 
     const stopNag = () => {
       window.clearInterval(nagTimer);
@@ -150,8 +179,7 @@ export default defineComponent({
         battleStarted.value &&
         isPlayerTurn.value &&
         !dialog.isShowing.value &&
-        !showTaskMenu.value &&
-        !showItemMenu.value &&
+        !sheet.value &&
         !victoryCard.value
     );
     const avatarSrc = computed(() =>
@@ -171,29 +199,21 @@ export default defineComponent({
       }, HIT_SHAKE_MS);
     };
 
+    /** Closes whatever covers the menu and drops a Recall still waiting for its chore (nothing was charged yet). */
     const closeSheet = () => {
-      showTaskMenu.value = false;
-      showItemMenu.value = false;
+      sheet.value = null;
       taskMenuMode.value = "attack";
       arrowInFlight = null;
+      powerInFlight = null;
+      recallBy.value = null;
     };
 
-    /** What the hero may use right now: the engine, the hero and this fight's spent items. */
+    /** What the hero may use right now: the engine, the hero and this fight's spent effects. */
     const itemContext = (taskId?: string) => ({
       userId: ctx.userId,
       service: service.value as BattleService,
       usedThisFight,
       taskId,
-    });
-
-    // The Item sheet re-reads the hands and the MP every time it opens (useHeroEquipment and the store are reactive)
-    const itemCards = computed<{ left: BattleItemCard | null; right: BattleItemCard | null }>(() => {
-      if (!service.value || !showItemMenu.value) return { left: null, right: null };
-      const context = itemContext();
-      return {
-        left: describeBattleItem(hands.leftHandItem.value, context),
-        right: describeBattleItem(hands.rightHandItem.value, context),
-      };
     });
 
     /** The sheet's answer typed as one line that moves on by itself; the menu comes back after it. */
@@ -203,33 +223,80 @@ export default defineComponent({
       if (result.line) dialog.enqueue([{ text: result.line, auto: true }]);
     };
 
-    /** An item was tapped on the Item sheet: the Silver Arrow goes on to pick a chore, everything else acts now. */
-    const useItemCard = (card: BattleItemCard) => {
-      const engine = service.value;
-      if (!engine || !battleStarted.value) return;
-      const item = [hands.leftHandItem.value, hands.rightHandItem.value].find((held) => held?.name === card.name) ?? null;
-      if (!item) return;
+    /** Recall (the Silver Arrow or a Power) borrows the checklist to pick the chore it carries back. */
+    const pickChoreToRecall = (by: { name: string; faIcon: string } | null = null) => {
+      audio.playSound("cursor");
+      recallBy.value = by;
+      taskMenuMode.value = "postpone";
+      sheet.value = "task";
+    };
 
-      const result = useBattleItem(item, itemContext());
-      if (result.needsTaskPick) {
+    // The bag asks the page about each tile, so it holds no battle rules
+    const bagCard = (item: BattleItemLike) => (service.value ? describeBattleItem(item, itemContext()) : null);
+    const opensDirectly = (item: BattleItemLike) => ["potions", "powers"].includes(battleBagRole(item));
+
+    /** The bag's own close (its X or a swipe): it only ever clears the bag, never a sheet the bag handed over to. */
+    const closeBag = () => {
+      if (sheet.value === "bag") closeSheet();
+    };
+
+    /** Goods: a tile used from the bag. The bag closes first; Bottles and the Book open their sheet, a fight item acts now. */
+    const useBagItem = (item: BattleItemLike) => {
+      // Containers emit with no latch: only the first tap while the bag is open counts
+      if (sheet.value !== "bag" || !service.value || !battleStarted.value) return;
+      const role = battleBagRole(item);
+      if (role === "potions" || role === "powers") {
         audio.playSound("cursor");
-        showItemMenu.value = false;
-        arrowInFlight = item;
-        taskMenuMode.value = "postpone";
-        showTaskMenu.value = true;
+        sheet.value = role;
         return;
       }
       closeSheet();
+      const result = useBattleItem(item, itemContext());
+      if (result.needsTaskPick) {
+        arrowInFlight = item;
+        pickChoreToRecall();
+        return;
+      }
       sayItemResult(result);
     };
 
-    /** The hero chose the chore the Silver Arrow carries back to the board. It is postponed, never completed. */
-    const postponeTask = (taskId: string) => {
-      const engine = service.value;
-      const arrow = arrowInFlight;
+    // The potion and Powers sheets re-read the pack, the MP and the spent effects every time they open
+    const potionCards = computed(() => (sheet.value === "potions" ? potionShelf(ctx.userId) : []));
+    const powerEntries = computed(() =>
+      sheet.value === "powers" && service.value ? battlePowers(abilities, itemContext()) : []
+    );
+    const heroSnapshot = computed(() => heroAbilitySnapshot(hero.value ?? {}));
+
+    /** A bottle from the potion sheet. The sheet latches after one tap, so it closes on every answer, refusals too. */
+    const drink = (entryId: string) => {
+      const live = sheet.value === "potions" && battleStarted.value;
       closeSheet();
-      if (!engine || !battleStarted.value || !arrow) return;
-      sayItemResult(useBattleItem(arrow, itemContext(taskId)));
+      if (live) sayItemResult(drinkPotion(ctx.userId, entryId));
+    };
+
+    /** A Power cast from its sheet: Recall goes on to pick a chore, everything else acts now. The sheet always closes. */
+    const castPower = (abilityId: string) => {
+      const live = sheet.value === "powers" && battleStarted.value && !!service.value;
+      const ability = abilities.find((entry) => entry.id === abilityId);
+      closeSheet();
+      if (!live || !ability) return;
+      const result = castBattlePower(ability, itemContext());
+      if (result.needsTaskPick) {
+        powerInFlight = ability;
+        pickChoreToRecall({ name: ability.name, faIcon: POWERS_ICON });
+        return;
+      }
+      sayItemResult(result);
+    };
+
+    /** The hero chose the chore Recall carries back to the board. It is postponed, never completed. */
+    const postponeTask = (taskId: string) => {
+      const arrow = arrowInFlight;
+      const power = powerInFlight;
+      closeSheet();
+      if (!service.value || !battleStarted.value) return;
+      if (arrow) sayItemResult(useBattleItem(arrow, itemContext(taskId)));
+      else if (power) sayItemResult(castBattlePower(power, itemContext(taskId)));
     };
 
     /** The beast wound up: the hit is waiting for a tap; remind a hero who walked away. */
@@ -326,6 +393,16 @@ export default defineComponent({
       ]);
     };
 
+    /** The Powers for this fight; without them (no abilities database yet, a read error) the fight still runs. */
+    const loadAbilities = async (): Promise<Ability[]> => {
+      try {
+        return await getAbilityService().getAllAbilities();
+      } catch (error) {
+        debug.warn("BattleField: no Powers for this fight", error);
+        return [];
+      }
+    };
+
     const beginBattle = async () => {
       if (started) return;
       started = true;
@@ -340,6 +417,7 @@ export default defineComponent({
 
         const loaded = await loadEncounter(ctx, bestiary);
         encounter.value = loaded;
+        abilities = await loadAbilities();
         background.lockLayers({ bg1: toLayer(route.query.bg1), bg2: toLayer(route.query.bg2) });
         background.lockLayers(loaded.background);
 
@@ -408,11 +486,11 @@ export default defineComponent({
         {
           id: "attack",
           label: "Tackle",
-          faIcon: tackleIcon(userStore.getUserById(ctx.userId)?.jobClass),
+          faIcon: tackleIcon(hero.value?.jobClass),
           click: () => {
             audio.playSound("cursor");
             feedback.tap();
-            showTaskMenu.value = true;
+            sheet.value = "task";
           },
         },
         {
@@ -425,15 +503,23 @@ export default defineComponent({
           },
         },
         {
-          id: "item",
-          label: "Goods",
-          faIcon: "backpack",
-          // Spans its row until Powers sits beside it
-          fullWidth: true,
+          id: "powers",
+          label: "Powers",
+          faIcon: POWERS_ICON,
           click: () => {
             audio.playSound("cursor");
             feedback.tap();
-            showItemMenu.value = true;
+            sheet.value = "powers";
+          },
+        },
+        {
+          id: "item",
+          label: "Goods",
+          faIcon: "backpack",
+          click: () => {
+            audio.playSound("cursor");
+            feedback.tap();
+            sheet.value = "bag";
           },
         },
         { id: "run-away", label: "Run Away", faIcon: "running", fullWidth: true, click: openRunConfirm },
@@ -451,10 +537,6 @@ export default defineComponent({
         feedback.beastHit();
         service.value?.finishCombatTask(taskId);
       }, SHEET_LEAVE_MS);
-    };
-
-    const closeTaskMenu = () => {
-      closeSheet();
     };
 
     // The clock is felt, not just seen: it ticks for the last ten seconds
@@ -476,7 +558,7 @@ export default defineComponent({
         next();
         return;
       }
-      if (showTaskMenu.value || showItemMenu.value) {
+      if (sheet.value) {
         closeSheet();
         return;
       }
@@ -486,6 +568,7 @@ export default defineComponent({
     const stopEngine = () => {
       service.value?.stopAttackTimer();
       stopNag();
+      closeSheet();
     };
 
     onIonViewDidEnter(() => void beginBattle());
@@ -532,17 +615,28 @@ export default defineComponent({
       showMenu,
       menuActions,
       menuPrompt,
+      // sheets: one at a time
+      sheet,
+      closeSheet,
       // attacks
-      showTaskMenu,
       taskMenuMode,
+      recallBy,
       combatTasks,
       finishCombatTask,
       postponeTask,
-      closeTaskMenu,
-      // items
-      showItemMenu,
-      itemCards,
-      useItemCard,
+      // goods
+      hero,
+      equipment,
+      bagCard,
+      opensDirectly,
+      closeBag,
+      useBagItem,
+      potionCards,
+      drink,
+      // powers
+      powerEntries,
+      heroSnapshot,
+      castPower,
       // victory
       victoryCard,
       continueAfterVictory,

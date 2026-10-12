@@ -1,6 +1,6 @@
 import { classKey } from "@/lib/services/abilities/heroAbilityStatus";
 
-/** One entry in the in-dialog command menu (Tackle / Defend / Goods / Run Away, or a confirm pair). */
+/** One entry in the in-dialog command menu (Tackle / Defend / Powers / Goods / Run Away, or a confirm pair). */
 export interface BattleMenuAction {
   id: string;
   label: string;

@@ -1,5 +1,5 @@
 // Battle Field page: the three-zone layout, the message box and the shared motion.
-// The beast, the hero card, the checklist sheet and the victory card style themselves.
+// The beast, the hero card, the sheets (checklist, potions, Powers), the bag and the victory card style themselves.
 
 .battlefield {
   display: flex;
@@ -193,7 +193,7 @@
 // ============================================
 // Transitions owned by the page
 // ============================================
-// The checklist slides up from the bottom edge
+// The checklist, potion and Powers sheets slide up from the bottom edge
 .sheet-enter-active,
 .sheet-leave-active {
   transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1), opacity 0.22s ease;

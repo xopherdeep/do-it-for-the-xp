@@ -60,8 +60,17 @@ import { computed, nextTick, ref } from "vue";
 import { play$fx } from "@/assets/fx";
 import type { CombatTask } from "@/lib/services/battle/BattleService";
 
-/** Attack (the default) confirms a finished chore; postpone (the Silver Arrow) picks a chore to send back to the board. */
+/** Attack (the default) confirms a finished chore; postpone (Recall) picks a chore to send back to the board. */
 type TaskSheetMode = "attack" | "postpone";
+
+/** What sends the chore back: its name heads the postpone sheet, its Font Awesome icon (no prefix) beside it. */
+interface RecallSource {
+  name: string;
+  faIcon: string;
+}
+
+/** The Silver Arrow was the first Recall, so a postpone sheet that names nothing is its. */
+const SILVER_ARROW: RecallSource = { name: "Silver Arrow", faIcon: "bow-arrow" };
 
 const props = withDefaults(
   defineProps<{
@@ -71,8 +80,10 @@ const props = withDefaults(
     /** What one finished chore takes off the beast; only shown in the header. */
     damagePerTask: number;
     mode?: TaskSheetMode;
+    /** Postpone mode: the item or Power doing the Recall (a Rewind cast must not read as the arrow being spent). */
+    recall?: RecallSource | null;
   }>(),
-  { mode: "attack" },
+  { mode: "attack", recall: null },
 );
 
 const emit = defineEmits<{
@@ -88,8 +99,8 @@ const emit = defineEmits<{
 const copy = computed(() =>
   props.mode === "postpone"
     ? {
-        title: "Silver Arrow",
-        icon: "fa-bow-arrow",
+        title: (props.recall ?? SILVER_ARROW).name,
+        icon: `fa-${(props.recall ?? SILVER_ARROW).faIcon}`,
         subtitle: "Which chore flies back to the board?",
         question: "Send it back? It stays unfinished.",
         no: "Keep it",

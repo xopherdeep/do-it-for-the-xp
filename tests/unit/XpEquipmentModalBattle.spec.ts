@@ -6,6 +6,7 @@ import XpEquipmentModal from "@/app/Console/MyPortal/UserHud/components/XpEquipm
 import EquippedItemsCard from "@/app/Console/MyPortal/UserHud/components/equipment/EquippedItemsCard.vue";
 import EquipmentGrid from "@/app/Console/MyPortal/UserHud/components/equipment/EquipmentGrid.vue";
 import ItemInfoModal from "@/app/Console/MyPortal/UserHud/components/equipment/ItemInfoModal.vue";
+import XpClassCodex from "@/app/Console/MyPortal/UserHud/components/ClassCodex/XpClassCodex.vue";
 import type { EquipmentItem } from "@/app/Console/MyPortal/UserHud/components/equipment/EquipmentItems";
 import { useUserStore } from "@/lib/store/stores/user";
 import type { BattleItemCard } from "@/lib/services/battle/BattleItems";
@@ -119,6 +120,31 @@ describe("XpEquipmentModal in battle mode", () => {
 
     await mounted.find("[data-cy=item-use]").trigger("click");
     expect(mounted.findComponent(ItemInfoModal).props("isOpen")).toBe(false);
+  });
+
+  it("battle mode: the page closing the bag closes an open card with it, and the bag reopens on its grid", async () => {
+    mounted = await battle();
+    await iceWandTile(mounted).trigger("click");
+    expect(mounted.findComponent(ItemInfoModal).props("isOpen")).toBe(true);
+
+    // A strike, hardware back or leaving the view: the fight closes the bag while the card is up
+    await mounted.setProps({ isOpen: false });
+    expect(mounted.findComponent(ItemInfoModal).props("isOpen")).toBe(false);
+
+    // Goods again: no stale card, and nothing was used
+    await mounted.setProps({ isOpen: true });
+    expect(mounted.findComponent(ItemInfoModal).props("isOpen")).toBe(false);
+    expect(mounted.emitted("use-item")).toBeUndefined();
+  });
+
+  it("closing the bag closes the class codex with it", async () => {
+    mounted = await open();
+    await mounted.find("[data-cy=change-class]").trigger("click");
+    const codex = () => mounted?.findComponent(XpClassCodex);
+    expect(codex()?.props("isOpen")).toBe(true);
+
+    await mounted.setProps({ isOpen: false });
+    expect(codex()?.props("isOpen")).toBe(false);
   });
 
   it("battle mode: the card shows the effect line instead of the catalogue lore, equip mode keeps the lore", async () => {
