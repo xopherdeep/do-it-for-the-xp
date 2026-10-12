@@ -42,6 +42,7 @@ import { useRouter } from 'vue-router';
 import XpBeastSelector from './components/XpBeastSelector.vue';
 import BestiaryDb, { beastStorage, Beast } from '@/lib/databases/BestiaryDb';
 import { useBestiarySelectionStore } from '@/lib/store/stores/bestiary-selection';
+import debug from '@/lib/utils/debug';
 
 export default defineComponent({
   name: 'XpBeastSelectionPage',
@@ -63,8 +64,7 @@ export default defineComponent({
       try {
         beasts.value = await bestiary.getBeasts();
       } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error('Failed to load beasts for selection:', err);
+        debug.warn('[BeastSelection] failed to load beasts for selection', err);
       }
     });
 

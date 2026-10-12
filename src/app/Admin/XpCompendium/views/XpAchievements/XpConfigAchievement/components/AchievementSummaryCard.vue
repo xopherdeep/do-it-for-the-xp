@@ -1,5 +1,7 @@
 <template>
-  <div class="achievement-summary-card" :class="{ 'is-ready': isReady, 'is-draft': !isReady }" @click="$emit('click')">
+  <div class="achievement-summary-card" :class="{ 'is-ready': isReady, 'is-draft': !isReady }" role="button"
+    tabindex="0" @click="$emit('click')" @keydown.enter.self="$emit('click')"
+    @keydown.space.self.prevent="$emit('click')">
     <!-- Card Glow Effect -->
     <div class="quest-card-glow"></div>
 

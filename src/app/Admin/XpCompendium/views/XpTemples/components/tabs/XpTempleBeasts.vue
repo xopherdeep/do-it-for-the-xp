@@ -46,7 +46,9 @@
                 <ion-row>
                   <ion-col size="6" size-md="4" size-lg="3" v-for="entry in getBeastsByTierGroup('boss')"
                     :key="`${entry.roomSymbol}-${entry.beastId}`" :id="`beast-card-${entry.roomSymbol}`">
-                    <div class="beast-card-wrapper" @click="openBeastSelector(entry)">
+                    <div class="beast-card-wrapper" role="button" tabindex="0" @click="openBeastSelector(entry)"
+                      @keydown.enter.self="openBeastSelector(entry)"
+                      @keydown.space.self.prevent="openBeastSelector(entry)">
                       <XpBeastSelectorItem v-if="entry.beast" :id="entry.beast.id" :name="entry.beast.name"
                         :avatar="entry.beast.avatar" :bg1="entry.beast.bg1" :bg2="entry.beast.bg2" />
                       <div v-else class="placeholder-beast boss">
@@ -88,7 +90,9 @@
                 <ion-row>
                   <ion-col size="6" size-md="4" size-lg="3" v-for="entry in getBeastsByTierGroup('miniboss')"
                     :key="`${entry.roomSymbol}-${entry.beastId}`" :id="`beast-card-${entry.roomSymbol}`">
-                    <div class="beast-card-wrapper" @click="openBeastSelector(entry)">
+                    <div class="beast-card-wrapper" role="button" tabindex="0" @click="openBeastSelector(entry)"
+                      @keydown.enter.self="openBeastSelector(entry)"
+                      @keydown.space.self.prevent="openBeastSelector(entry)">
                       <XpBeastSelectorItem v-if="entry.beast" :id="entry.beast.id" :name="entry.beast.name"
                         :avatar="entry.beast.avatar" :bg1="entry.beast.bg1" :bg2="entry.beast.bg2" />
                       <div v-else class="placeholder-beast miniboss">
@@ -130,7 +134,9 @@
                 <ion-row>
                   <ion-col size="4" size-md="3" size-lg="2" v-for="entry in getBeastsByTierGroup('monster')"
                     :key="`${entry.roomSymbol}-${entry.beastId}`" :id="`beast-card-${entry.roomSymbol}`">
-                    <div class="beast-card-wrapper" @click="openBeastSelector(entry)">
+                    <div class="beast-card-wrapper" role="button" tabindex="0" @click="openBeastSelector(entry)"
+                      @keydown.enter.self="openBeastSelector(entry)"
+                      @keydown.space.self.prevent="openBeastSelector(entry)">
                       <XpBeastSelectorItem v-if="entry.beast" :id="entry.beast.id" :name="entry.beast.name"
                         :avatar="entry.beast.avatar" :bg1="entry.beast.bg1" :bg2="entry.beast.bg2" />
                       <div v-else class="placeholder-beast monster">
@@ -190,6 +196,7 @@ import { useBestiarySelectionStore } from "@/lib/store/stores/bestiary-selection
 import { useTempleCreatorStore } from "@/lib/store/stores/temple-creator";
 import { TempleDataInjectionKey } from "../../hooks/useTempleData";
 import { inject, onMounted } from "vue";
+import { useTimers } from "@/hooks/useTimers";
 
 const resolveRoomTypeFromTier = (tier: string): "monster" | "miniboss" | "boss" => {
   if (tier === "monster") {
@@ -218,6 +225,7 @@ export default defineComponent({
     XpCoordBadge,
   },
   setup() {
+    const timers = useTimers();
     const route = useRoute();
     const ionRouter = useIonRouter();
     const templeId = route.params.templeId as string;
@@ -293,7 +301,7 @@ export default defineComponent({
       );
 
       if (!entry && attempt < 5) {
-        setTimeout(() => performScrollToTarget(attempt + 1), 100);
+        timers.startTimeout(100, () => performScrollToTarget(attempt + 1));
         return;
       }
 
@@ -303,16 +311,15 @@ export default defineComponent({
 
         // Use a slightly longer timeout to ensure Ionic's internals have registered the value change
         // and the transition has at least started.
-        setTimeout(() => {
+        timers.startTimeout(300, () => {
           const elementId = `beast-card-${targetId}`;
           const element = document.getElementById(elementId);
 
           if (element) {
             element.scrollIntoView({ behavior: "smooth", block: "center" });
             element.classList.add("beast-card-highlight");
-            setTimeout(
-              () => element.classList.remove("beast-card-highlight"),
-              2000
+            timers.startTimeout(2000, () =>
+              element.classList.remove("beast-card-highlight")
             );
           }
 
@@ -325,7 +332,7 @@ export default defineComponent({
               window.location.pathname + window.location.search
             );
           }
-        }, 300);
+        });
       } else {
         updateDefaultTiers();
       }

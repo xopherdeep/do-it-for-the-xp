@@ -17,7 +17,7 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, PropType, ref, watch, onMounted, nextTick } from 'vue';
+import { defineComponent, PropType, ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { ChatMessage } from '@/lib/databases/ChatDb';
 import XpChatMessage from './XpChatMessage.vue';
 
@@ -72,6 +72,8 @@ export default defineComponent({
             }
         }, { deep: true, immediate: true });
 
+        const listeners = new AbortController();
+
         onMounted(() => {
             // Initial scroll (redundant with immediate watch but safe)
             scrollToBottom(true);
@@ -82,9 +84,11 @@ export default defineComponent({
                     if ((e.target as HTMLElement).tagName === 'IMG') {
                         scrollToBottom(false);
                     }
-                }, true);
+                }, { capture: true, signal: listeners.signal });
             }
         });
+
+        onBeforeUnmount(() => listeners.abort());
 
         return {
             scrollContainer,

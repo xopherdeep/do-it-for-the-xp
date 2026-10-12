@@ -126,6 +126,7 @@ import ionic from "@/lib/mixins/ionic";
 import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
 // Import debug utility
 import debug from "@/lib/utils/debug";
+import { useTimers } from "@/hooks/useTimers";
 
 // What a task field offers for focus: the ion-textarea component has setFocus, a bare element only focus
 type TaskField = { setFocus?: () => Promise<void>; focus?: () => void };
@@ -280,11 +281,11 @@ export default defineComponent({
     // Ionic hydrates a field a moment after Vue renders it, so wait a beat before focusing
     focusTask(index: number) {
       this.$nextTick(() => {
-        setTimeout(() => {
+        this.timers.startTimeout(50, () => {
           const field = this.inputRefs[index];
           if (typeof field?.setFocus === "function") field.setFocus();
           else if (typeof field?.focus === "function") field.focus();
-        }, 50);
+        });
       });
     },
     // Enter on a task moves on to the next one, or starts a new one after the last; a blank task starts nothing
@@ -501,6 +502,7 @@ export default defineComponent({
     },
   },
   setup(props) {
+    const timers = useTimers();
     const bestiary = new BestiaryDb(beastStorage);
     const router = useRouter();
     const route = useRoute();
@@ -592,6 +594,7 @@ export default defineComponent({
     );
 
     return {
+      timers,
       bestiary,
       updateBeast,
       beastPage,

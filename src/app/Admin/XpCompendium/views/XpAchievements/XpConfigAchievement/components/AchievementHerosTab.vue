@@ -1,7 +1,8 @@
 <template>
   <ion-card-content class="achievement-heros-tab">
     <!-- Assignment Type Selector -->
-    <div class="assignment-selector" @click="$emit('open-assignment-modal')">
+    <div class="assignment-selector" role="button" tabindex="0" @click="$emit('open-assignment-modal')"
+      @keydown.enter="$emit('open-assignment-modal')" @keydown.space.prevent="$emit('open-assignment-modal')">
       <div class="assignment-icon">
         <i :class="['fad', activePartyType.icon]"></i>
       </div>

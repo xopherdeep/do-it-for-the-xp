@@ -60,8 +60,9 @@
             </ion-card-header>
             <ion-card-content>
               <div class="config-grid">
-                <div v-for="room in uniqueRooms" :key="room.key" class="config-item glass-panel"
-                  @click="focusRoom(room.key)">
+                <div v-for="room in uniqueRooms" :key="room.key" class="config-item glass-panel" role="button"
+                  tabindex="0" @click="focusRoom(room.key)" @keydown.enter="focusRoom(room.key)"
+                  @keydown.space.prevent="focusRoom(room.key)">
                   <div class="token-badge">{{ room.key }}</div>
                   <div class="room-info">
                     <div class="type-row">
@@ -202,7 +203,10 @@
 
         <div class="level-choice-container">
           <!-- Build Up -->
-          <div class="level-choice-card surface" @click="confirmAddFloor(nextFloorOptions.surface)">
+          <div class="level-choice-card surface" role="button" tabindex="0"
+            @click="confirmAddFloor(nextFloorOptions.surface)"
+            @keydown.enter="confirmAddFloor(nextFloorOptions.surface)"
+            @keydown.space.prevent="confirmAddFloor(nextFloorOptions.surface)">
             <div class="icon-box">
               <i class="fad fa-clouds"></i>
             </div>
@@ -218,7 +222,10 @@
           <div class="choice-divider">or</div>
 
           <!-- Dig Down -->
-          <div class="level-choice-card basement" @click="confirmAddFloor(nextFloorOptions.basement)">
+          <div class="level-choice-card basement" role="button" tabindex="0"
+            @click="confirmAddFloor(nextFloorOptions.basement)"
+            @keydown.enter="confirmAddFloor(nextFloorOptions.basement)"
+            @keydown.space.prevent="confirmAddFloor(nextFloorOptions.basement)">
             <div class="icon-box">
               <i class="fad fa-dungeon"></i>
             </div>
@@ -232,7 +239,8 @@
           </div>
         </div>
 
-        <div class="custom-name-trigger" @click="promptCustomFloorName">
+        <div class="custom-name-trigger" role="button" tabindex="0" @click="promptCustomFloorName"
+          @keydown.enter="promptCustomFloorName" @keydown.space.prevent="promptCustomFloorName">
           <span>Use a custom name instead...</span>
         </div>
       </div>

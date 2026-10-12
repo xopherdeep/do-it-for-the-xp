@@ -134,6 +134,7 @@
   import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 
   import { useRouter } from "vue-router";
+  import { useTimers } from "@/hooks/useTimers";
 
   import AccessoriesDb, {
     Accessory,
@@ -169,11 +170,11 @@
             loading.present();
 
             // After loading finishes, navigate to discover page
-            setTimeout(() => {
+            this.timers.startTimeout(1600, () => {
               this.$router.push({
                 name: "xp-discover-accessories",
               });
-            }, 1600);
+            });
           });
       },
       async loadAccessories() {
@@ -215,6 +216,7 @@
     setup() {
       const accessories = ref([] as Accessory[]);
       const router = useRouter();
+      const timers = useTimers();
       const accessoryDb = new AccessoriesDb(accessoriesStorage);
       const showFilter = ref(false);
       const filterType = ref("all");
@@ -309,6 +311,7 @@
       };
 
       return {
+        timers,
         isSelectionMode,
         selectedIds,
         handleAccessoryClick,

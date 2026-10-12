@@ -1,4 +1,5 @@
 import { useInfiniteQuests } from "@/hooks/useQuests";
+import { useTimers } from "@/hooks/useTimers";
 import { computed, defineComponent, reactive, ref } from "vue";
 import { useQueryClient } from "vue-query";
 import { useRouter } from "vue-router";
@@ -160,11 +161,11 @@ export const XpDiscoverAchievements = defineComponent({
       this.page++
       this.fetchNextPage()
 
-      setTimeout(() => {
+      this.timers.startTimeout(1000, () => {
         if (!this.isLoading) {
           ev.target.complete();
         }
-      }, 1000)
+      })
 
     },
 
@@ -255,6 +256,7 @@ export const XpDiscoverAchievements = defineComponent({
   },
   setup() {
     const gameStore = useGameStore();
+    const timers = useTimers();
     const params = reactive({
       page: 1,
       search: "",
@@ -303,6 +305,7 @@ export const XpDiscoverAchievements = defineComponent({
     const achievementDb = new AchievementDb(achievementStorage)
     return {
       gameStore,
+      timers,
       achievementDb,
       fetchNextPage,
       useTasks,

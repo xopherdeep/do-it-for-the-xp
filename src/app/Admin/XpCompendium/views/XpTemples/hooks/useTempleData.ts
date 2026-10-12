@@ -548,9 +548,9 @@ export function useTempleData(templeId: string) {
       await saveTemple();
 
       return { success: true };
-    } catch (err: any) {
+    } catch (err: unknown) {
       debug.error('applyRawJson failed', err);
-      return { success: false, error: err.message };
+      return { success: false, error: err instanceof Error ? err.message : String(err) };
     }
   };
 

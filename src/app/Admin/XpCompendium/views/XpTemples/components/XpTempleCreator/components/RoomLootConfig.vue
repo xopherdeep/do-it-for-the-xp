@@ -4,8 +4,10 @@
 
     <!-- Chest Type Grid -->
     <div class="chest-type-grid">
-      <div v-for="chest in chestTypes" :key="chest.id" class="chest-option"
-        :class="{ active: selectedChestType === chest.id }" @click="$emit('select-chest-type', chest.id)">
+      <div v-for="chest in chestTypes" :key="chest.id" class="chest-option" role="button" tabindex="0"
+        :class="{ active: selectedChestType === chest.id }" @click="$emit('select-chest-type', chest.id)"
+        @keydown.enter="$emit('select-chest-type', chest.id)"
+        @keydown.space.prevent="$emit('select-chest-type', chest.id)">
         <i :class="['fad', chest.icon]"></i>
         <span>{{ chest.label }}</span>
       </div>
@@ -14,8 +16,10 @@
     <!-- Dungeon Items (Strict 2x2 Grid) -->
     <div v-if="selectedChestType === 'dungeon'" class="dungeon-items mt-15">
       <div class="item-grid items-2">
-        <div v-for="item in dungeonItems" :key="item.id" class="item-option mini"
-          :class="{ active: selectedDungeonItem === item.id }" @click="$emit('select-dungeon-item', item.id)">
+        <div v-for="item in dungeonItems" :key="item.id" class="item-option mini" role="button" tabindex="0"
+          :class="{ active: selectedDungeonItem === item.id }" @click="$emit('select-dungeon-item', item.id)"
+          @keydown.enter="$emit('select-dungeon-item', item.id)"
+          @keydown.space.prevent="$emit('select-dungeon-item', item.id)">
           <i :class="['fad', item.icon]"></i>
           <span>{{ item.label }}</span>
         </div>
@@ -25,9 +29,10 @@
     <!-- Key Items (Narrative & Pegasus) -->
     <div v-if="selectedChestType === 'key-item'" class="key-items mt-15">
       <div class="item-grid items-3">
-        <div v-for="item in keyItems" :key="item.id" class="item-option mini"
+        <div v-for="item in keyItems" :key="item.id" class="item-option mini" role="button" tabindex="0"
           :class="{ active: selectedDungeonItem === item.id }" @click="$emit('select-dungeon-item', item.id)"
-          :title="item.description">
+          @keydown.enter="$emit('select-dungeon-item', item.id)"
+          @keydown.space.prevent="$emit('select-dungeon-item', item.id)" :title="item.description">
           <!-- Handle both font-awesome classes and simple icon names -->
           <i :class="item.icon.startsWith('fa')
             ? ['fad', item.icon]
@@ -50,8 +55,10 @@
     <!-- Consumables -->
     <div v-if="selectedChestType === 'consumable'" class="consumable-items mt-15">
       <div class="item-grid items-3">
-        <div v-for="item in consumableItems" :key="item.id" class="item-option mini"
-          :class="{ active: selectedItems?.includes(item.id) }" @click="$emit('toggle-consumable', item.id)">
+        <div v-for="item in consumableItems" :key="item.id" class="item-option mini" role="button" tabindex="0"
+          :class="{ active: selectedItems?.includes(item.id) }" @click="$emit('toggle-consumable', item.id)"
+          @keydown.enter="$emit('toggle-consumable', item.id)"
+          @keydown.space.prevent="$emit('toggle-consumable', item.id)">
           <i :class="['fad', item.icon]"></i>
           <span>{{ item.label }}</span>
         </div>
@@ -59,7 +66,9 @@
     </div>
 
     <!-- Mimic Option -->
-    <div class="mimic-config-toggle mt-15 glass-box" :class="{ active: isMimic }" @click="$emit('toggle-mimic')">
+    <div class="mimic-config-toggle mt-15 glass-box" :class="{ active: isMimic }" role="button" tabindex="0"
+      @click="$emit('toggle-mimic')" @keydown.enter.self="$emit('toggle-mimic')"
+      @keydown.space.self.prevent="$emit('toggle-mimic')">
       <div class="toggle-left">
         <i :class="isMimic ? 'fas fa-eye-evil' : 'fad fa-treasure-chest'"></i>
         <span>Mimic Trap</span>
@@ -70,18 +79,22 @@
     <!-- Mimic Details -->
     <div v-if="isMimic" class="mimic-details mt-10">
       <div class="mimic-type-grid mini">
-        <div class="mimic-option mini" :class="{ active: mimicType === 'random' || !mimicType }"
-          @click="$emit('select-mimic-type', 'random')">
+        <div class="mimic-option mini" :class="{ active: mimicType === 'random' || !mimicType }" role="button"
+          tabindex="0" @click="$emit('select-mimic-type', 'random')"
+          @keydown.enter="$emit('select-mimic-type', 'random')"
+          @keydown.space.prevent="$emit('select-mimic-type', 'random')">
           <i class="fad fa-dice"></i>
           <span>Random</span>
         </div>
-        <div class="mimic-option mini" :class="{ active: mimicType === 'mimic' }"
-          @click="$emit('select-mimic-type', 'mimic')">
+        <div class="mimic-option mini" :class="{ active: mimicType === 'mimic' }" role="button" tabindex="0"
+          @click="$emit('select-mimic-type', 'mimic')" @keydown.enter="$emit('select-mimic-type', 'mimic')"
+          @keydown.space.prevent="$emit('select-mimic-type', 'mimic')">
           <i class="fad fa-treasure-chest"></i>
           <span>Classic</span>
         </div>
-        <div class="mimic-option mini" :class="{ active: mimicType === 'custom' }"
-          @click="$emit('select-mimic-type', 'custom')">
+        <div class="mimic-option mini" :class="{ active: mimicType === 'custom' }" role="button" tabindex="0"
+          @click="$emit('select-mimic-type', 'custom')" @keydown.enter="$emit('select-mimic-type', 'custom')"
+          @keydown.space.prevent="$emit('select-mimic-type', 'custom')">
           <i class="fad fa-paw-claws"></i>
           <span>Pick</span>
         </div>
@@ -89,12 +102,16 @@
 
       <!-- Custom Mimic Beast Selector -->
       <div v-if="mimicType === 'custom'" class="mimic-custom-visual mt-10">
-        <div v-if="mimicBeast" class="beast-card-wrapper max-w-120 mx-auto" @click="$emit('open-mimic-selector')">
+        <div v-if="mimicBeast" class="beast-card-wrapper max-w-120 mx-auto" role="button" tabindex="0"
+          @click="$emit('open-mimic-selector')" @keydown.enter="$emit('open-mimic-selector')"
+          @keydown.space.prevent="$emit('open-mimic-selector')">
           <XpBeastSelectorItem :name="mimicBeast.name" :avatar="mimicBeast.avatar" :bg1="mimicBeast.bg1"
             :bg2="mimicBeast.bg2" />
           <div class="edit-overlay"><i class="fas fa-pen"></i></div>
         </div>
-        <div v-else class="beast-selection-trigger mini" @click="$emit('open-mimic-selector')">
+        <div v-else class="beast-selection-trigger mini" role="button" tabindex="0"
+          @click="$emit('open-mimic-selector')" @keydown.enter="$emit('open-mimic-selector')"
+          @keydown.space.prevent="$emit('open-mimic-selector')">
           <div class="trigger-left">
             <i class="fad fa-paw-claws"></i>
             <span>Select Mimic Beast</span>

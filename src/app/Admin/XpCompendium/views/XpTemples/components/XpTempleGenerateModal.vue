@@ -338,11 +338,11 @@ function generate() {
     summary.value = summarize(generated);
     dirty.value = false;
     play$fx("select");
-  } catch (err: any) {
+  } catch (err: unknown) {
     temple.value = null;
     verdict.value = null;
     summary.value = null;
-    error.value = err?.message ?? String(err);
+    error.value = err instanceof Error ? err.message : String(err);
     play$fx("no");
     debug.error("generateTemple failed", err);
   }

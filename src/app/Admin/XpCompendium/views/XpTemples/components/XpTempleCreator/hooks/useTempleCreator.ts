@@ -881,8 +881,8 @@ export function useTempleCreator(
       } else {
         showToast("Failed to copy: Clipboard write not supported");
       }
-    } catch (err: any) {
-      showToast("Failed to copy: " + (err?.message || err));
+    } catch (err: unknown) {
+      showToast("Failed to copy: " + (err instanceof Error ? err.message : String(err)));
     }
   };
 
@@ -1004,9 +1004,9 @@ export function useTempleCreator(
         showUnfinishableToast(missingNames(audit));
       }
       debug.log("Temple saved to DB successfully");
-    } catch (err: any) {
+    } catch (err: unknown) {
       debug.error("Error saving temple:", err);
-      showToast("Error saving temple: " + err.message);
+      showToast("Error saving temple: " + (err instanceof Error ? err.message : String(err)));
     }
   };
 

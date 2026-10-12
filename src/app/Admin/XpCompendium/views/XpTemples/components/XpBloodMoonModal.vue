@@ -309,10 +309,10 @@ async function act(row: HeroRow, work: () => Promise<TempleProgressEntry | null>
     patchRow(row.userId, entry);
     play$fx("select");
     await toast(done(entry));
-  } catch (err: any) {
+  } catch (err: unknown) {
     play$fx("no");
     debug.error("blood moon action failed", err);
-    await toast(err?.message ?? "The blood moon would not move.", "danger");
+    await toast(err instanceof Error ? err.message : "The blood moon would not move.", "danger");
   } finally {
     busy.value = null;
   }

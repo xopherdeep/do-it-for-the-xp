@@ -15,14 +15,17 @@
             <div class="beast-card-wrapper">
               <XpBeastSelectorItem :name="beast.name" :avatar="beast.avatar" :bg1="beast.bg1" :bg2="beast.bg2"
                 @select="$emit('remove-beast', beast.id)" />
-              <div class="remove-beast-overlay" @click.stop="$emit('remove-beast', beast.id)">
+              <div class="remove-beast-overlay" role="button" tabindex="0" :aria-label="`Remove ${beast.name}`"
+                @click.stop="$emit('remove-beast', beast.id)" @keydown.enter.stop="$emit('remove-beast', beast.id)"
+                @keydown.space.stop.prevent="$emit('remove-beast', beast.id)">
                 <i class="fas fa-times-circle"></i>
               </div>
             </div>
           </ion-col>
           <!-- Add Placeholder if space -->
           <ion-col size="4" v-if="selectedBeasts.length < 6">
-            <div class="beast-card-wrapper" @click="$emit('open-beast-selector')">
+            <div class="beast-card-wrapper" role="button" tabindex="0" @click="$emit('open-beast-selector')"
+              @keydown.enter="$emit('open-beast-selector')" @keydown.space.prevent="$emit('open-beast-selector')">
               <div class="beast-placeholder-card">
                 <i class="fas fa-plus fa-lg"></i>
                 <span>Add</span>
@@ -34,7 +37,9 @@
       </ion-grid>
     </div>
 
-    <div v-else class="beast-selection-trigger large mt-10" @click="$emit('open-beast-selector')">
+    <div v-else class="beast-selection-trigger large mt-10" role="button" tabindex="0"
+      @click="$emit('open-beast-selector')" @keydown.enter="$emit('open-beast-selector')"
+      @keydown.space.prevent="$emit('open-beast-selector')">
       <div class="trigger-left">
         <div class="beast-icon-box">
           <i class="fad fa-paw-claws"></i>
@@ -48,7 +53,9 @@
 
     <!-- Trap Toggle - Regular monster rooms -->
     <div v-if="!isBoss" class="trap-config mt-20">
-      <div class="trap-row" :class="{ active: lockOnEnter }" @click="$emit('toggle-auto-lock')">
+      <div class="trap-row" :class="{ active: lockOnEnter }" role="button" tabindex="0"
+        @click="$emit('toggle-auto-lock')" @keydown.enter.self="$emit('toggle-auto-lock')"
+        @keydown.space.self.prevent="$emit('toggle-auto-lock')">
         <div class="trap-info">
           <i class="fad fa-dungeon trap-icon" :class="{ neutral: !lockOnEnter }"></i>
           <span class="trap-label">It's a trap!</span>

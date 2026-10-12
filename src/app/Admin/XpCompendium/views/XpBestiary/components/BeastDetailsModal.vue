@@ -248,6 +248,7 @@ import { generateMonsterName, generateChecklistFromName, isGeminiConfigured } fr
 import { useProStore } from "@/lib/store/stores/pro";
 import { backgroundManager } from "@/lib/engine/core/BackgroundManager";
 import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue";
+import { useTimers } from "@/hooks/useTimers";
 
 const PAGE_ID = "beast-details-modal";
 
@@ -271,6 +272,7 @@ export default defineComponent({
     },
   },
   setup(props) {
+    const timers = useTimers();
     const inputRefs = ref<Record<number, IonInputElement>>({});
 
     // Create a local copy of the beast to work with
@@ -335,20 +337,20 @@ export default defineComponent({
       // Focus the new input after it's rendered
       // Use nextTick + setTimeout for Ionic component hydration
       nextTick(() => {
-        setTimeout(() => {
+        timers.startTimeout(50, () => {
           const inputEl = inputRefs.value[index];
           if (inputEl && typeof inputEl.setFocus === "function") {
             inputEl.setFocus();
           } else {
             // Retry once more after additional delay for slow renders
-            setTimeout(() => {
+            timers.startTimeout(150, () => {
               const retryEl = inputRefs.value[index];
               if (retryEl && typeof retryEl.setFocus === "function") {
                 retryEl.setFocus();
               }
-            }, 150);
+            });
           }
-        }, 50);
+        });
       });
     };
 

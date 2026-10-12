@@ -91,8 +91,8 @@ import Ionic from "@/lib/mixins/ionic";
 import { useDialogSystem } from "@/lib/engine/core/DialogSystem";
 import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
 import { play$fx } from "@/assets/fx";
+import { useTimers } from "@/hooks/useTimers";
 
-// Define tutorial completed key
 const TUTORIAL_COMPLETED_KEY = "xp_compendium_tutorial_completed";
 
 // Define SlideData interface
@@ -124,6 +124,7 @@ export default defineComponent({
   },
   setup() {
     const router = useRouter();
+    const timers = useTimers();
     const activeSlideIndex = ref(0);
     const slidesViewed = ref<boolean[]>([]);
     const swiperInstance = ref<SwiperClass | null>(null);
@@ -245,7 +246,8 @@ export default defineComponent({
 
     // Function to handle slide 0 enter (animation + sound)
     const handleSlide0Enter = () => {
-      setTimeout(() => {
+      // 2200ms: synchronize with the end of the slower animation
+      timers.startTimeout(2200, () => {
         // Verify we are still on slide 0 before playing
         if (
           activeSlideIndex.value === 0 &&
@@ -253,7 +255,7 @@ export default defineComponent({
         ) {
           window["play$fx"]("GameBoy");
         }
-      }, 2200); // Synchronize with the end of the slower animation
+      });
     };
 
     // Initialize slidesViewed array based on slides length and tutorial completion status
@@ -267,9 +269,9 @@ export default defineComponent({
 
       // Auto-start dialog for first slide after a short delay if tutorial not completed
       if (!tutorialCompleted) {
-        setTimeout(() => {
+        timers.startTimeout(500, () => {
           showSlideDialog(0);
-        }, 500);
+        });
       }
 
       // Trigger slide 0 enter effect
@@ -332,9 +334,9 @@ export default defineComponent({
               autoAdvance.value &&
               activeSlideIndex.value < slides.value.length - 1
             ) {
-              setTimeout(() => {
+              timers.startTimeout(500, () => {
                 goToSlide(activeSlideIndex.value + 1);
-              }, 500);
+              });
             }
           },
         }

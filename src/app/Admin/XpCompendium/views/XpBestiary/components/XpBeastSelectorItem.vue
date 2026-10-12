@@ -10,7 +10,7 @@
       <canvas ref="bgCanvas" class="beast-bg"></canvas>
       <div class="beast-avatar-container">
         <i v-if="icon" :class="['fad', icon, 'fa-3x', 'beast-icon']"></i>
-        <img v-else-if="avatarUrl" :src="avatarUrl" class="beast-avatar" />
+        <img v-else-if="avatarUrl" :src="avatarUrl" :alt="name" class="beast-avatar" />
         <div v-else class="beast-placeholder">?</div>
       </div>
       <div v-if="selected" class="selection-overlay">
@@ -25,6 +25,7 @@
 import { defineComponent, ref, onMounted, onUnmounted, watch, computed } from 'vue';
 import { BackgroundLayer } from "earthbound-battle-backgrounds";
 import { backgroundManager } from '@/lib/engine/core/BackgroundManager';
+import debug from '@/lib/utils/debug';
 
 export default defineComponent({
   name: 'XpBeastSelectorItem',
@@ -69,8 +70,7 @@ export default defineComponent({
         // If we found an existing engine, it might already have a tick 
         // that's more accurate than our lastTick ref.
       } catch (err) {
-        // eslint-disable-next-line no-console
-        console.error('Failed to init EB engine for beast item:', err);
+        debug.warn('[BeastSelectorItem] failed to init EB engine for beast item', err);
       }
     };
 
