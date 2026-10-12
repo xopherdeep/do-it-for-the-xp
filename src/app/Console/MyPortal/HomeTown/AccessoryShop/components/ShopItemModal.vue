@@ -13,17 +13,7 @@
       </div>
 
       <div class="shop-item-modal__showcase">
-        <div class="item-visual-frame">
-          <img
-            v-if="item.photo"
-            :src="item.photo"
-            :alt="item.name"
-            class="item-photo"
-          />
-          <div v-else class="item-icon-wrap icon-colors">
-            <i :class="[itemIconClass, 'fa-4x']" />
-          </div>
-        </div>
+        <xp-item-model :icon="item.icon" :photo="item.photo" :name="item.name" :size="150" spinning />
       </div>
 
       <div class="shop-item-modal__desc-box">
@@ -89,10 +79,11 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, PropType, ref } from "vue";
+import { defineComponent, PropType, ref } from "vue";
 import { IonButton, IonModal } from "@ionic/vue";
 import type { ShelfItem } from "@/lib/services/shop/PurchaseService";
 import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue";
+import XpItemModel from "@/components/organisms/ItemModel/XpItemModel.vue";
 
 export default defineComponent({
   name: "ShopItemModal",
@@ -100,6 +91,7 @@ export default defineComponent({
     IonButton,
     IonModal,
     XpCloseButton,
+    XpItemModel,
   },
   props: {
     isOpen: {
@@ -127,12 +119,6 @@ export default defineComponent({
   setup(props, { emit }) {
     const modalRef = ref<any>(null);
 
-    const itemIconClass = computed(() => {
-      const icon = props.item?.icon;
-      if (!icon) return "fad fa-gift";
-      return icon.includes("fa-") ? icon : `fad fa-${icon}`;
-    });
-
     const handleDismiss = async () => {
       await modalRef.value?.$el?.dismiss();
       emit("close");
@@ -140,7 +126,6 @@ export default defineComponent({
 
     return {
       modalRef,
-      itemIconClass,
       handleDismiss,
     };
   },
@@ -199,29 +184,6 @@ export default defineComponent({
   display: flex;
   justify-content: center;
 
-  .item-visual-frame {
-    width: 120px;
-    height: 120px;
-    background: radial-gradient(circle, rgba(247, 232, 168, 0.15) 0%, rgba(0, 0, 0, 0.4) 75%);
-    border: 2px solid rgba(247, 232, 168, 0.3);
-    border-radius: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
-  }
-
-  .item-photo {
-    max-width: 85%;
-    max-height: 85%;
-    object-fit: contain;
-    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.6));
-  }
-
-  .item-icon-wrap {
-    color: #f7e8a8;
-    filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.6));
-  }
 }
 
 .shop-item-modal__desc-box {

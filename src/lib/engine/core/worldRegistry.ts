@@ -148,6 +148,10 @@ export const getAllWorlds = (): WorldMetadata[] => {
   return Object.values(WORLD_METADATA);
 };
 
+/** The Ionic colour a world's screens wear (its shop's bars, its clerk); a shop with no world of its own gets purple. */
+export const worldColor = (worldId: string | null | undefined): string =>
+  WORLD_METADATA[worldId ?? ""]?.color || "secondary";
+
 export const getWorldByShopId = (shopId: string): WorldMetadata | undefined => {
   return Object.values(WORLD_METADATA).find(w => w.shopId === shopId);
 };

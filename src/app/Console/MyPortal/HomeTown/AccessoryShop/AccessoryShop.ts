@@ -26,14 +26,13 @@ import {
   bagOutline,
   cashOutline
 } from "ionicons/icons";
-import { alertController, modalController, onIonViewWillEnter, toastController } from "@ionic/vue";
+import { actionSheetController, alertController, modalController, onIonViewWillEnter, toastController } from "@ionic/vue";
 import debug from "@/lib/utils/debug";
 import { play$fx } from "@/assets/fx";
 // Import ATM Modal component
 import ATMModal from "@/app/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
-import ShopClerkStage from "./components/ShopClerkStage.vue";
-import ShopWalletWare from "./components/ShopWalletWare.vue";
-import ShopItemCard from "./components/ShopItemCard.vue";
+import XpNpcDialog from "@/components/molecules/Dialog/XpNpcDialog.vue";
+import ShopShelfSlider from "./components/ShopShelfSlider.vue";
 import ShopItemModal from "./components/ShopItemModal.vue";
 // Import the GPSystem
 import { getGPService } from '@/lib/services/gp';
@@ -58,6 +57,9 @@ import { buyWalletUpgrade } from "@/lib/services/gp/wallet";
 import type { WalletUpgradeResult } from "@/lib/services/gp/wallet";
 import { gold, walletOfferAt } from "@/lib/services/gp/walletShops";
 import { shopDiscountLabel, shopPrice } from "@/lib/services/stats/StatEffects";
+import { rpgToastOptions } from "@/hooks/useToast";
+import { SHOP_METADATA } from "@/lib/engine/core/shopRegistry";
+import { worldColor } from "@/lib/engine/core/worldRegistry";
 
 const resolveUpgradeFailureMessage = (result: Extract<WalletUpgradeResult, { ok: false }>): string => {
   if (result.reason === "poor") {
@@ -71,7 +73,6 @@ const resolveUpgradeFailureMessage = (result: Extract<WalletUpgradeResult, { ok:
 
 // The general store you reach from Home Town; also where an unknown shop id ends up.
 const DEFAULT_SHOP_ID = "hometown-market";
-const ITEMS_PER_PAGE = 8;
 
 const resolveAssetUrl = (asset: any): string => {
   if (!asset) return "";
@@ -99,15 +100,16 @@ export default defineComponent({
   name: "accessory-shop",
   components: {
     ATMModal,
-    ShopClerkStage,
-    ShopWalletWare,
-    ShopItemCard,
+    XpNpcDialog,
+    ShopShelfSlider,
     ShopItemModal,
   },
   mixins: [ionic],
   data() {
     return {
       showAtm: false,
+      // The clerk's conversation box (the FAB, or being turned away at a shut door)
+      isTalking: false,
       // Map shop IDs to background image paths
       shopBackgrounds: {
         "pegasus-ranch": require("@/assets/images/backgrounds/shops/pegasus-ranch.webp"),
@@ -138,8 +140,10 @@ export default defineComponent({
     };
   },
   computed: {
-    shopName() {
-      return this.merchant ? this.merchant.replace("-", " ") : "Shop";
+    // The Game Master's name for the shop, else its address read out ("hometown-market" -> "hometown market")
+    shopName(): string {
+      if (this.shopRecord?.name) return this.shopRecord.name;
+      return this.merchant ? this.merchant.replace(/-/g, " ") : "Shop";
     },
     shopIcon() {
       return this.currentMerchant
@@ -160,11 +164,29 @@ export default defineComponent({
     // The Game Master's icon for the sign, else the one this portal has always hung there.
     shopIconClass(): string {
       const custom = customIcon(this.shopRecord);
-      return custom ? `${custom} fa-2x` : `fa fa-2x fa-${this.shopIcon}`;
+      return custom ? `${custom} fa-lg` : `fad fa-lg fa-${this.shopIcon}`;
+    },
+    // The shop wears its world's colour: the world picked on the Decorate tab, else the one it stands in.
+    shopColor(): string {
+      const shopId = this.shopRecord?.id ?? this.merchant ?? "";
+      return worldColor(this.shopRecord?.world || SHOP_METADATA[shopId]?.world);
     },
     // What the clerk says while the doors are shut.
     closedLine(): string {
       return `Sorry, we're closed right now. ${this.opensAt}.`;
+    },
+    // What the clerk says when you talk to them: the greeting, a word on your charm, how to shop.
+    clerkLines(): string[] {
+      if (!this.isOpen) return [this.closedLine];
+      const lines = [this.shopGreeting];
+      if (this.charismaDiscount) {
+        lines.push(`My, what charm! Everything's ${this.charismaDiscount} for you, and the tags already show it.`);
+      }
+      if (this.walletWare?.status === "for-sale") {
+        lines.push(`That wallet up front holds more GP than yours. Have a look if your purse is bursting.`);
+      }
+      lines.push("Swipe along the shelf, and tap anything for a closer look.");
+      return lines;
     },
     shopBackgroundUrl(): string {
       const candidate =
@@ -188,6 +210,23 @@ export default defineComponent({
     }
   },
   methods: {
+    talkToClerk() {
+      this.play$fx("select");
+      this.isTalking = true;
+    },
+    // After the last line, the clerk asks what you want, like the bank manager does.
+    async clerkMenu() {
+      if (!this.isOpen) return;
+      const sheet = await actionSheetController.create({
+        header: `${this.shopkeeper}: "What'll it be?"`,
+        cssClass: "atm-action-sheet",
+        buttons: [
+          { text: "Browse the shelves", icon: bagOutline, role: "cancel" },
+          { text: "Use the ATM", icon: cashOutline, handler: () => this.openATM() },
+        ],
+      });
+      await sheet.present();
+    },
     // ATM methods
     openATM() {
       this.play$fx("select");
@@ -244,13 +283,9 @@ export default defineComponent({
       return modalController.dismiss(null, 'cancel');
       // this.$refs[`modal-${itemId}`].$el.dismiss(null, 'cancel');
     },
-    async showToast(message: string, color: "success" | "danger" = "success") {
-      const toast = await toastController.create({
-        message,
-        duration: 3000,
-        position: "top",
-        color,
-      });
+    // Every toast is the RPG message box in the middle of the screen, with an X (src/hooks/useToast.ts).
+    async showToast(message: string) {
+      const toast = await toastController.create(rpgToastOptions(message, 3000));
       await toast.present();
     },
     failureMessage(error: unknown, item: ShelfItem): string {
@@ -260,16 +295,16 @@ export default defineComponent({
       debug.error("Purchase failed:", error);
       return "Something went wrong, so nothing was bought. Please try again.";
     },
-    async rpgToast(message: string) {
-      const toast = await toastController.create({ message, duration: 3000, position: "top", cssClass: "rpg-toast" });
-      await toast.present();
+    rpgToast(message: string) {
+      return this.showToast(message);
     },
     // The Game Master's hours (Compendium > Economy > Shops > Hours): behind a shut door the clerk says when the
     // shop opens and nothing is sold, even if the hour struck while an item was open on screen.
     turnedAwayWhileClosed(): boolean {
       if (this.isOpen) return false;
       this.play$fx("no");
-      void this.rpgToast(`${this.shopkeeper}: "${this.closedLine}"`);
+      this.closeInspect();
+      this.isTalking = true;
       return true;
     },
     // The shop's own ware, not something the Game Master stocked: the next wallet size, sold here and only here.
@@ -323,7 +358,7 @@ export default defineComponent({
       } catch (error) {
         this.isBuying = false;
         this.play$fx("error");
-        void this.showToast(this.failureMessage(error, item), "danger");
+        void this.showToast(this.failureMessage(error, item));
         return;
       }
 
@@ -366,7 +401,13 @@ export default defineComponent({
     const isLoading = ref(true);
     const isBuying = ref(false);
     const search = ref("");
-    const page = ref(1);
+    // The slider on the shop floor, and where it stands, for the footer's < > buttons
+    const shelfRef = ref<{ prev: () => void; next: () => void } | null>(null);
+    const shelfPosition = ref({ index: 0, count: 0 });
+    const canGoBack = computed(() => Boolean(shelfRef.value) && shelfPosition.value.index > 0);
+    const canGoForward = computed(
+      () => Boolean(shelfRef.value) && shelfPosition.value.index < shelfPosition.value.count - 1
+    );
     const shelves = ref<string[]>(["affordable", "out-of-budget"]);
     const inspectedItem = ref<ShelfItem | null>(null);
     const openInspect = (item: ShelfItem) => {
@@ -441,24 +482,6 @@ export default defineComponent({
         return shelves.value.includes(canAfford(item.price) ? "affordable" : "out-of-budget");
       });
     });
-    const totalPages = computed(() => Math.max(1, Math.ceil(visibleItems.value.length / ITEMS_PER_PAGE)));
-    const hasNextPage = computed(() => page.value < totalPages.value);
-    const pagedItems = computed(() =>
-      visibleItems.value.slice((page.value - 1) * ITEMS_PER_PAGE, page.value * ITEMS_PER_PAGE)
-    );
-    const prevPage = () => {
-      if (page.value > 1) page.value--;
-    };
-    const nextPage = () => {
-      if (hasNextPage.value) page.value++;
-    };
-    // A new search or shelf filter starts from page 1; a shrinking list can't leave you on a missing page.
-    watch([search, shelves], () => {
-      page.value = 1;
-    });
-    watch(totalPages, (pages) => {
-      if (page.value > pages) page.value = pages;
-    });
 
     const customAlertOptions = {
       header: "Shelves",
@@ -509,12 +532,11 @@ export default defineComponent({
       isLoading,
       isBuying,
       search,
-      page,
-      pagedItems,
-      hasNextPage,
-      prevPage,
-      nextPage,
-      totalPages,
+      visibleItems,
+      shelfRef,
+      shelfPosition,
+      canGoBack,
+      canGoForward,
       inspectedItem,
       openInspect,
       closeInspect,

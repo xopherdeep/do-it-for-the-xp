@@ -1,153 +1,115 @@
 import { mount } from "@vue/test-utils";
-import ShopClerkStage from "@/app/Console/MyPortal/HomeTown/AccessoryShop/components/ShopClerkStage.vue";
-import ShopWalletWare from "@/app/Console/MyPortal/HomeTown/AccessoryShop/components/ShopWalletWare.vue";
-import ShopItemCard from "@/app/Console/MyPortal/HomeTown/AccessoryShop/components/ShopItemCard.vue";
+import ShopItemSlide from "@/app/Console/MyPortal/HomeTown/AccessoryShop/components/ShopItemSlide.vue";
 import ShopItemModal from "@/app/Console/MyPortal/HomeTown/AccessoryShop/components/ShopItemModal.vue";
+import XpNpcDialog from "@/components/molecules/Dialog/XpNpcDialog.vue";
+import { worldColor } from "@/lib/engine/core/worldRegistry";
 
 jest.mock("@/assets/fx", () => ({
   __esModule: true,
   play$fx: jest.fn(),
 }));
+// Jest 27 cannot follow swiper's package exports; the page spec stubs the shelf anyway
+jest.mock("swiper/vue", () => ({ Swiper: { template: "<div><slot /></div>" }, SwiperSlide: { template: "<div><slot /></div>" } }), {
+  virtual: true,
+});
+jest.mock("swiper/css", () => ({}), { virtual: true });
 
-describe("ShopClerkStage", () => {
-  it("renders shopkeeper and greeting when open", () => {
-    const wrapper = mount(ShopClerkStage, {
-      props: {
-        shopkeeper: "Douglas the Pirate",
-        shopGreeting: "Rrrrrr matey, I be wilin ta trade with ya.",
-        isOpen: true,
-        closedLine: "Sorry, we're closed right now.",
-        charismaDiscount: "10%",
-        backgroundImage: "https://example.com/wrecked-ship.webp",
-      },
+// The voxel model needs WebGL; these specs are about the shelf, not the renderer
+const itemModelStub = { template: "<div class='item-model-stub' />", props: ["icon", "photo", "name", "size", "spinning"] };
+
+describe("ShopItemSlide", () => {
+  const mountSlide = (props: Record<string, unknown>) =>
+    mount(ShopItemSlide, {
+      props: { name: "Picture Show Ticket", price: 37, icon: "film", ...props },
+      global: { stubs: { XpItemModel: itemModelStub } },
     });
 
-    expect(wrapper.text()).toContain("Douglas the Pirate");
-    expect(wrapper.text()).toContain("Rrrrrr matey, I be wilin ta trade with ya.");
-    expect(wrapper.text()).toContain("10% OFF");
-    expect(wrapper.find(".shop-closed-cue").exists()).toBe(false);
+  it("shows the item's name and price with no shortfall when the wallet covers it", () => {
+    const wrapper = mountSlide({ affordable: true });
+    expect(wrapper.text()).toContain("Picture Show Ticket");
+    expect(wrapper.text()).toContain("37 GP");
+    expect(wrapper.text()).not.toContain("Need");
+    expect(wrapper.classes()).not.toContain("is-short");
   });
 
-  it("renders closed cue and message when shop is shut", () => {
-    const wrapper = mount(ShopClerkStage, {
-      props: {
-        shopkeeper: "Douglas the Pirate",
-        shopGreeting: "Rrrrrr matey",
-        isOpen: false,
-        closedLine: "Doors open at 8:00 AM.",
-        charismaDiscount: "10%",
-        backgroundImage: "https://example.com/wrecked-ship.webp",
-      },
-    });
+  it("says how much more GP is needed when the wallet falls short", () => {
+    const wrapper = mountSlide({ affordable: false, shortBy: 70, price: 110 });
+    expect(wrapper.text()).toContain("Need 70 more");
+    expect(wrapper.classes()).toContain("is-short");
+  });
 
-    expect(wrapper.text()).toContain("CLOSED:");
-    expect(wrapper.text()).toContain("Doors open at 8:00 AM.");
-    expect(wrapper.text()).not.toContain("10% OFF");
+  it("shows its own note instead of the shortfall (an owned wallet)", () => {
+    const wrapper = mountSlide({ affordable: false, shortBy: 10, note: "Owned" });
+    expect(wrapper.text()).toContain("Owned");
+    expect(wrapper.text()).not.toContain("Need");
+  });
+
+  it("turns the model only while it is the slide on show, and reports a pick", async () => {
+    const wrapper = mountSlide({ active: true });
+    expect(wrapper.findComponent(itemModelStub).props("spinning")).toBe(true);
+    await wrapper.trigger("click");
+    expect(wrapper.emitted("pick")).toHaveLength(1);
+    await wrapper.setProps({ active: false });
+    expect(wrapper.findComponent(itemModelStub).props("spinning")).toBe(false);
   });
 });
 
-describe("ShopWalletWare", () => {
-  const sampleWare = {
-    name: "Bigger Wallet (1000 GP)",
-    blurb: "Holds 1000 GP.",
-    price: 500,
-    status: "for-sale" as const,
-    note: "Upgrade your capacity.",
+describe("XpNpcDialog", () => {
+  const typingStub = {
+    name: "XpTypingText",
+    template: "<span class='typing-stub'>{{ text }}</span>",
+    props: ["text", "hasMoreText"],
+    emits: ["typing-complete"],
+    methods: { completeTyping() {} },
   };
-
-  it("renders wallet name, blurb, and price tag", () => {
-    const wrapper = mount(ShopWalletWare, {
-      props: {
-        walletWare: sampleWare,
-        isBuying: false,
-      },
-    });
-
-    expect(wrapper.text()).toContain("Bigger Wallet (1000 GP)");
-    expect(wrapper.text()).toContain("Holds 1000 GP.");
-    expect(wrapper.text()).toContain("500 GP");
-    expect(wrapper.text()).toContain("Tap to upgrade wallet");
-  });
-
-  it("emits buy event when clicked", async () => {
-    const wrapper = mount(ShopWalletWare, {
-      props: {
-        walletWare: sampleWare,
-        isBuying: false,
-      },
-    });
-
-    await wrapper.trigger("click");
-    expect(wrapper.emitted("buy")).toBeTruthy();
-  });
-
-  it("shows locked note when status is locked", () => {
-    const wrapper = mount(ShopWalletWare, {
-      props: {
-        walletWare: {
-          ...sampleWare,
-          status: "locked" as const,
-          note: "LVL 5 needed.",
+  const mountDialog = () =>
+    mount(XpNpcDialog, {
+      props: { open: true, speaker: "Old Man Morris", lines: ["Hello!", "8% off for you."] },
+      global: {
+        stubs: {
+          XpTypingText: typingStub,
+          IonCard: { template: "<div class='card-stub'><slot /></div>" },
+          IonCardTitle: { template: "<div class='title-stub'><slot /></div>" },
         },
-        isBuying: false,
       },
     });
 
-    expect(wrapper.text()).toContain("LVL 5 needed.");
-    expect(wrapper.find(".is-locked").exists()).toBe(true);
+  it("finishes the line on the first tap, turns to the next on the second, and closes after the last", async () => {
+    const wrapper = mountDialog();
+    expect(wrapper.text()).toContain("Old Man Morris");
+    expect(wrapper.text()).toContain("Hello!");
+
+    await wrapper.trigger("click"); // finish typing
+    expect(wrapper.text()).toContain("Hello!");
+    await wrapper.trigger("click"); // next line
+    expect(wrapper.text()).toContain("8% off for you.");
+
+    wrapper.findComponent(typingStub).vm.$emit("typing-complete");
+    await wrapper.trigger("click");
+    expect(wrapper.emitted("update:open")?.[0]).toEqual([false]);
+    expect(wrapper.emitted("done")).toHaveLength(1);
+  });
+
+  it("shows one arrow at most: the typing text's own, and only while more lines wait", async () => {
+    const wrapper = mountDialog();
+    expect(wrapper.findComponent(typingStub).props("hasMoreText")).toBe(true);
+    expect(wrapper.find(".dialog-indicator").exists()).toBe(false);
+    await wrapper.trigger("click");
+    await wrapper.trigger("click");
+    expect(wrapper.findComponent(typingStub).props("hasMoreText")).toBe(false);
   });
 });
 
-describe("ShopItemCard", () => {
-  const sampleItem = {
-    id: "item-1",
-    name: "Frost Treat",
-    price: 25,
-    description: "Cool and refreshing.",
-    icon: "ice-cream",
-    photo: "",
-  };
-
-  it("renders item name and affordable price state", () => {
-    const wrapper = mount(ShopItemCard, {
-      props: {
-        item: sampleItem,
-        canAfford: true,
-        wallet: 100,
-      },
-    });
-
-    expect(wrapper.text()).toContain("Frost Treat");
-    expect(wrapper.text()).toContain("25 GP");
-    expect(wrapper.find(".price-badge.is-affordable").exists()).toBe(true);
-    expect(wrapper.find(".shortage-badge").exists()).toBe(false);
+describe("worldColor", () => {
+  it("dresses a shop in its world's colour", () => {
+    expect(worldColor("forest")).toBe("success");
+    expect(worldColor("mountains")).toBe("danger");
+    expect(worldColor("hometown")).toBe("rpg");
   });
 
-  it("renders shortage indicator when unaffordable", () => {
-    const wrapper = mount(ShopItemCard, {
-      props: {
-        item: sampleItem,
-        canAfford: false,
-        wallet: 10,
-      },
-    });
-
-    expect(wrapper.text()).toContain("Need 15");
-    expect(wrapper.find(".price-badge.is-short").exists()).toBe(true);
-  });
-
-  it("emits inspect event on click", async () => {
-    const wrapper = mount(ShopItemCard, {
-      props: {
-        item: sampleItem,
-        canAfford: true,
-        wallet: 100,
-      },
-    });
-
-    await wrapper.trigger("click");
-    expect(wrapper.emitted("inspect")).toBeTruthy();
-    expect(wrapper.emitted("inspect")![0]).toEqual([sampleItem]);
+  it("gives a shop with no world of its own (the traveling merchant) purple", () => {
+    expect(worldColor("traveling")).toBe("secondary");
+    expect(worldColor(undefined)).toBe("secondary");
   });
 });
 
@@ -210,11 +172,12 @@ describe("ShopItemModal", () => {
 });
 
 describe("AccessoryShop Page", () => {
-  it("mounts and renders shopkeeper stage and controls", async () => {
+  it("mounts with the wallet button, the clerk's button and the < > shelf buttons", async () => {
     const { createPinia, setActivePinia } = await import("pinia");
     const pinia = createPinia();
     setActivePinia(pinia);
     const AccessoryShop = (await import("@/app/Console/MyPortal/HomeTown/AccessoryShop/AccessoryShop.vue")).default;
+    const slot = { template: "<div><slot /></div>" };
 
     const wrapper = mount(AccessoryShop, {
       props: {
@@ -224,17 +187,30 @@ describe("AccessoryShop Page", () => {
       global: {
         plugins: [pinia],
         stubs: {
-          "ion-page": { template: "<div><slot /></div>" },
-          "ion-header": { template: "<div><slot /></div>" },
-          "ion-toolbar": { template: "<div><slot /></div>" },
-          "ion-buttons": { template: "<div><slot /></div>" },
-          "ion-back-button": { template: "<div><slot /></div>" },
-          "ion-title": { template: "<div><slot /></div>" },
-          "ion-button": { template: "<button><slot /></button>" },
-          "ion-content": { template: "<div><slot /></div>" },
+          "ion-page": slot,
+          "ion-header": slot,
+          "ion-footer": slot,
+          "ion-toolbar": { template: "<div class='toolbar-stub' :data-color='color'><slot /></div>", props: ["color"] },
+          "ion-buttons": slot,
+          "ion-back-button": slot,
+          "ion-title": slot,
+          "ion-grid": slot,
+          "ion-row": slot,
+          "ion-col": slot,
+          "ion-button": { template: "<button class='ion-button-stub'><slot /></button>" },
+          "ion-icon": true,
+          "ion-select": slot,
+          "ion-select-option": slot,
+          "ion-searchbar": true,
+          "ion-fab": slot,
+          "ion-fab-button": { template: "<button class='clerk-fab'><slot /></button>" },
+          "ion-content": slot,
           "xp-loading": { template: "<div>loading</div>" },
           "xp-gp": { template: "<span>{{ gp }} GP</span>", props: ["gp"] },
-          "ATMModal": { template: "<div>ATM</div>" },
+          ATMModal: { template: "<div>ATM</div>" },
+          XpNpcDialog: true,
+          ShopShelfSlider: true,
+          ShopItemModal: true,
         },
       },
     });
@@ -243,6 +219,10 @@ describe("AccessoryShop Page", () => {
     await wrapper.vm.$nextTick();
 
     expect(wrapper.find(".header-wallet-btn").exists()).toBe(true);
-    expect(wrapper.findComponent({ name: "ShopClerkStage" }).exists()).toBe(true);
+    expect(wrapper.find(".clerk-fab").exists()).toBe(true);
+    expect(wrapper.findAll(".ion-button-stub")).toHaveLength(2);
+    expect(wrapper.text()).toContain("Can Afford");
+    // The Hermit's Tent stands in the Forest, so its bars are the Forest's green
+    expect(wrapper.find(".toolbar-stub").attributes("data-color")).toBe("success");
   });
 });
