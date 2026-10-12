@@ -105,7 +105,8 @@ export const heroApWindows = (ap: unknown, now: Date = new Date()): HeroApWindow
     const at = new Date(record?.timestamp as string);
     const isDatedBeforeNow = at.getTime() <= now.getTime(); // an invalid date is NaN, and NaN <= anything is false
     historyTotal += amount;
-    if (!amount || !isDatedBeforeNow) continue;
+    const isUncountedRecord = !amount || !isDatedBeforeNow;
+    if (isUncountedRecord) continue;
     for (const slot of windowsHolding(at, now)) windows[slot] += amount;
   }
 
@@ -212,7 +213,8 @@ export const computeHeroAbilityStatuses = (
     progressed = false;
     for (const ability of candidates) {
       const hasPrerequisites = (ability.prerequisites ?? []).every((id) => known.has(id));
-      if (unlocked.has(ability.id) || !hasPrerequisites) continue;
+      const shouldSkipAbility = unlocked.has(ability.id) || !hasPrerequisites;
+      if (shouldSkipAbility) continue;
       unlocked.add(ability.id);
       known.add(ability.id);
       progressed = true;

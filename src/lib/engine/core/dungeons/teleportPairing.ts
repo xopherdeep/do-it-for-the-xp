@@ -76,12 +76,14 @@ const explicitTarget = (
   if (coords) {
     const spot: Position = [Number(coords.y), Number(coords.x)];
     const there = floor ?? level;
-    if (spot.every(Number.isInteger) && isTeleport(roomAt(temple, there, spot)) && !samePlace({ level: there, position: spot }, level, position)) {
+    const isOtherCircle = spot.every(Number.isInteger) && isTeleport(roomAt(temple, there, spot)) && !samePlace({ level: there, position: spot }, level, position);
+    if (isOtherCircle) {
       return { level: there, position: spot };
     }
   }
 
-  if (floor && floor !== level) {
+  const hasPickedOtherFloor = floor && floor !== level;
+  if (hasPickedOtherFloor) {
     const first = teleportsOn(temple, floor)[0];
     if (first) return { level: floor, position: first };
   }
@@ -96,7 +98,8 @@ const explicitTarget = (
  */
 export const teleportTargetFor = (temple: PairingTemple, level: string, position: Position): TeleportDestination | null => {
   const room = roomAt(temple, level, position);
-  if (!room || !isTeleport(room)) return null;
+  const isMissingCircle = !room || !isTeleport(room);
+  if (isMissingCircle) return null;
 
   const picked = explicitTarget(temple, level, position, room);
   if (picked) return picked;

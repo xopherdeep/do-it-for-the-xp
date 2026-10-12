@@ -72,7 +72,8 @@ const explore = (graph: TempleGraph, opened: ReadonlySet<string>): Region => {
     region.order.push(key);
     const room = graph.rooms.get(key)!;
     region.keysFound += room.smallKeys;
-    if (room.masterKey && !region.master) {
+    const isMasterKeyFound = room.masterKey && !region.master;
+    if (isMasterKeyFound) {
       region.master = true;
       waiting.splice(0).forEach((door) => arrive(door.to));
     }
@@ -124,7 +125,8 @@ const missing = (graph: TempleGraph, goal: Goal, region: Region, opened: Readonl
   const boss = goal.bosses.find((key) => region.reached.has(key));
   if (!boss) return region.master ? "the boss room is out of reach" : "the master key is out of reach";
   const prize = goal.prizes.find((key) => region.reached.has(key));
-  if (goal.prizes.length && !prize) return "the Pegasus chest is out of reach";
+  const isPrizeOutOfReach = goal.prizes.length > 0 && !prize;
+  if (isPrizeOutOfReach) return "the Pegasus chest is out of reach";
   const closed = new Set(graph.doors.filter((door) => !passable(door, opened, true)).map((door) => door.id));
   const back = new Set(reachableFrom(graph, prize ?? boss, new Set(), closed));
   return exits(graph, goal).some((key) => back.has(key)) ? undefined : "no way back to the gate";
@@ -180,7 +182,8 @@ const replay = (graph: TempleGraph, history: string[]): { order: RoomRef[]; crit
       seen.add(key);
       order.push(key);
       const room = graph.rooms.get(key)!;
-      if (NOTABLE.has(room.kind) || room.smallKeys > 0 || room.masterKey || room.prize || targets.has(key)) critical.push(key);
+      const isCriticalRoom = NOTABLE.has(room.kind) || room.smallKeys > 0 || room.masterKey || room.prize || targets.has(key);
+      if (isCriticalRoom) critical.push(key);
     }
   }
   return { order: order.map((key) => refOf(graph, key)), critical: critical.map((key) => refOf(graph, key)) };
@@ -225,9 +228,11 @@ const checkMasterKey = (graph: TempleGraph, goal: Goal, reasons: string[]): void
     return;
   }
   const master = masters[0];
-  if (!openReach(graph, goal.bosses).has(master.key) && openReach(graph).has(master.key)) reasons.push(`R4: master key behind the boss door (${describeRoom(master)})`);
+  const isMasterKeyBehindBossDoor = !openReach(graph, goal.bosses).has(master.key) && openReach(graph).has(master.key);
+  const isMasterKeyUnguarded = () => !minibosses.includes(master.key) && openReach(graph, minibosses).has(master.key);
+  if (isMasterKeyBehindBossDoor) reasons.push(`R4: master key behind the boss door (${describeRoom(master)})`);
   if (!minibosses.length) reasons.push("R4: no mini-boss room to guard the master key");
-  else if (!minibosses.includes(master.key) && openReach(graph, minibosses).has(master.key)) reasons.push(`R4: the master key at ${describeRoom(master)} can be reached without passing the mini-boss`);
+  else if (isMasterKeyUnguarded()) reasons.push(`R4: the master key at ${describeRoom(master)} can be reached without passing the mini-boss`);
 };
 
 /** R5: mini-boss and boss rooms start their fight on entry. */
@@ -264,7 +269,8 @@ const checkPegasus = (graph: TempleGraph, goal: Goal, reasons: string[]): void =
     return;
   }
   const prize = graph.rooms.get(goal.prizes[0])!;
-  if (goal.bosses.length && openReach(graph, goal.bosses).has(prize.key)) reasons.push(`R7: the Pegasus chest at ${describeRoom(prize)} can be reached without beating the boss`);
+  const isPrizeOpenWithoutBoss = goal.bosses.length > 0 && openReach(graph, goal.bosses).has(prize.key);
+  if (isPrizeOpenWithoutBoss) reasons.push(`R7: the Pegasus chest at ${describeRoom(prize)} can be reached without beating the boss`);
 };
 
 /** R9: no small key waits behind the boss door. */
@@ -273,7 +279,8 @@ const checkDeadKeys = (graph: TempleGraph, goal: Goal, reasons: string[]): void 
   const all = openReach(graph);
   const beforeBoss = openReach(graph, goal.bosses);
   for (const room of graph.rooms.values()) {
-    if (room.smallKeys > 0 && all.has(room.key) && !beforeBoss.has(room.key)) reasons.push(`R9: small key behind the boss door (${describeRoom(room)})`);
+    const isDeadKey = room.smallKeys > 0 && all.has(room.key) && !beforeBoss.has(room.key);
+    if (isDeadKey) reasons.push(`R9: small key behind the boss door (${describeRoom(room)})`);
   }
 };
 

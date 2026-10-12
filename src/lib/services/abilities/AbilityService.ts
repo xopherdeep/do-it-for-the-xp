@@ -236,10 +236,10 @@ export class AbilityService {
     if (!hasEnoughAp) return false;
 
     // Check character level requirement
-    if (
+    const isBelowRequiredLevel =
       ability.characterRequirement?.level &&
-      characterLevel < ability.characterRequirement.level
-    ) {
+      characterLevel < ability.characterRequirement.level;
+    if (isBelowRequiredLevel) {
       return false;
     }
 
@@ -256,8 +256,10 @@ export class AbilityService {
     }
 
     // Check prerequisites
-    if (ability.prerequisites && ability.prerequisites.length > 0) {
-      for (const prereqId of ability.prerequisites) {
+    const { prerequisites } = ability;
+    const hasPrerequisites = prerequisites && prerequisites.length > 0;
+    if (hasPrerequisites) {
+      for (const prereqId of prerequisites) {
         if (!unlockedAbilityIds.includes(prereqId)) {
           return false;
         }
@@ -425,7 +427,8 @@ export class AbilityService {
     try {
       const notifications = useNotificationsStore();
       for (const gm of Object.values(useUserStore().users)) {
-        if (gm?.isAdult !== true || gm.id === userId) continue;
+        const shouldSkipHero = gm?.isAdult !== true || gm.id === userId;
+        if (shouldSkipHero) continue;
         notifications.push({
           heroId: gm.id,
           kind: "power-cast",

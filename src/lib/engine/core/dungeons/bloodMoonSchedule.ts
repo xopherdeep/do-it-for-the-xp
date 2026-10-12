@@ -39,7 +39,8 @@ export const nextWeekly = (fromISO: string, now: Date = new Date()): string => {
 /** "in 6 days", "in 3 hours", "in 20 minutes", "in a moment": the wait until `atISO` from `now`. */
 export const describeWait = (atISO: string, now: Date = new Date()): string => {
   const wait = Date.parse(atISO) - now.getTime();
-  if (Number.isNaN(wait) || wait < MINUTE_MS) return 'in a moment';
+  const isWithinAMoment = Number.isNaN(wait) || wait < MINUTE_MS;
+  if (isWithinAMoment) return 'in a moment';
   const unit = (count: number, word: string) => `in ${count} ${word}${count === 1 ? '' : 's'}`;
   if (wait >= DAY_MS) return unit(Math.round(wait / DAY_MS), 'day');
   if (wait >= HOUR_MS) return unit(Math.round(wait / HOUR_MS), 'hour');

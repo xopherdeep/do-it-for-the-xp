@@ -84,7 +84,8 @@ export const isBattleEffectId = (value: unknown): value is BattleEffectId =>
 export const heroPoints = (userId: string, kind: 'hp' | 'mp'): { now: number; max: number } => {
   const stats = useUserStore().getUserById(userId)?.stats;
   const value = stats?.[kind];
-  if (value && typeof value === 'object') return { now: Number(value.now) || 0, max: Number(value.max) || 0 };
+  const isPointsObject = value && typeof value === 'object';
+  if (isPointsObject) return { now: Number(value.now) || 0, max: Number(value.max) || 0 };
   const topMax = stats?.[kind === 'hp' ? 'maxHp' : 'maxMp'];
   const max = typeof topMax === 'number' ? topMax : 100;
   return { now: typeof value === 'number' ? value : max, max };
@@ -92,7 +93,8 @@ export const heroPoints = (userId: string, kind: 'hp' | 'mp'): { now: number; ma
 
 /** Why the effect cannot run right now (already used this fight, HP full), else null. MP is not checked here. */
 export const battleEffectBlocked = (effect: BattleEffectId, ctx: BattleEffectContext): string | null => {
-  if (BATTLE_EFFECTS[effect].oncePerFight && ctx.usedThisFight.has(effect)) return REASON_USED;
+  const isAlreadyUsed = BATTLE_EFFECTS[effect].oncePerFight && ctx.usedThisFight.has(effect);
+  if (isAlreadyUsed) return REASON_USED;
   if (effect === 'heal') {
     const hp = heroPoints(ctx.userId, 'hp');
     if (hp.now >= hp.max) return REASON_HP_FULL;

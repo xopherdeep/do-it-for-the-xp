@@ -57,6 +57,8 @@ export interface TempleSummary {
   chests: number;
 }
 
+const isPegasusChest = (item: string, room: Dungeon["rooms"][string] | undefined): boolean => item === "pegasus" || Boolean(room?.content?.pegasus);
+
 /** The character a room shows: a key or master-key chest by its item, a Pegasus chest or Master Room with a star, else by kind. */
 export const previewChar = (dungeon: Pick<Dungeon, "rooms">, token: string): string => {
   const room = dungeon.rooms[token];
@@ -66,7 +68,7 @@ export const previewChar = (dungeon: Pick<Dungeon, "rooms">, token: string): str
     const item = String(room?.content?.dungeon ?? "").toLowerCase();
     if (item === "key") return PREVIEW_CHARS.key;
     if (item === "master-key") return PREVIEW_CHARS.master;
-    if (item === "pegasus" || room?.content?.pegasus) return "*";
+    if (isPegasusChest(item, room)) return "*";
   }
   return PREVIEW_CHARS[kind] ?? "?";
 };
@@ -113,19 +115,24 @@ export const summarize = (dungeon: Pick<Dungeon, "maze" | "rooms">): TempleSumma
       for (const token of row) {
         const room = dungeon.rooms[token];
         const kind = kindOf(room);
-        if (kind === "wall" || kind === "void") continue;
+        const isUnstandable = kind === "wall" || kind === "void";
+        if (isUnstandable) continue;
         summary.rooms++;
         summary.byKind[kind] = (summary.byKind[kind] ?? 0) + 1;
-        if (kind === "monster" || kind === "miniboss" || kind === "boss") summary.monsters++;
+        const isFoeRoom = kind === "monster" || kind === "miniboss" || kind === "boss";
+        if (isFoeRoom) summary.monsters++;
         if (room?.locked) {
-          for (const [side, locked] of Object.entries(room.locked)) if (locked && side !== "master") summary.locks++;
+          for (const [side, locked] of Object.entries(room.locked)) {
+            const isSmallKeyLock = locked && side !== "master";
+            if (isSmallKeyLock) summary.locks++;
+          }
         }
         if (room?.content?.chest) {
           summary.chests++;
           const item = String(room.content.dungeon ?? "").toLowerCase();
           if (item === "key") summary.keys++;
           if (item === "master-key") summary.hasMasterKey = true;
-          if (item === "pegasus" || room.content.pegasus) summary.hasPegasus = true;
+          if (isPegasusChest(item, room)) summary.hasPegasus = true;
         }
       }
     }

@@ -106,7 +106,8 @@ export const createPlaceholderItemMesh = (): MeshData =>
 
 /** Reads the glyph a `<i class="fad fa-...">` draws inside `.icon-colors`, colours included. */
 export const readIconGlyph = (iconClass: string): IconGlyph | null => {
-  if (typeof document === "undefined" || typeof getComputedStyle !== "function") return null;
+  const isWithoutDom = typeof document === "undefined" || typeof getComputedStyle !== "function";
+  if (isWithoutDom) return null;
   const wrap = document.createElement("span");
   wrap.className = "icon-colors";
   wrap.setAttribute("aria-hidden", "true");

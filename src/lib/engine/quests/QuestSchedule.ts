@@ -45,8 +45,10 @@ export const TIMES_OF_DAY: TimeOfDay[] = ["morning", "noon", "evening", "night"]
 /** morning 6-11, noon 12-17, evening 18-23, night 0-5 */
 export const timeOfDayOfHour = (hour: number): TimeOfDay => {
   const h = ((Math.floor(hour) % 24) + 24) % 24;
-  if (h >= 6 && h < 12) return "morning";
-  if (h >= 12 && h < 18) return "noon";
+  const isMorning = h >= 6 && h < 12;
+  if (isMorning) return "morning";
+  const isNoon = h >= 12 && h < 18;
+  if (isNoon) return "noon";
   if (h >= 18) return "evening";
   return "night";
 };
@@ -157,7 +159,8 @@ export const dueTimeOn = (dueByTime: string | undefined, date: Date): Date | nul
   const stamp = !clock && /[T-]/.test(value) ? parseDate(value) : null;
   const hours = clock ? Number(clock[1]) : stamp?.getHours();
   const minutes = clock ? Number(clock[2]) : stamp?.getMinutes();
-  if (hours === undefined || minutes === undefined || !(hours < 24 && minutes < 60)) return null;
+  const isUnusableClock = hours === undefined || minutes === undefined || !(hours < 24 && minutes < 60);
+  if (isUnusableClock) return null;
   return set(date, { hours, minutes, seconds: 0, milliseconds: 0 });
 };
 
@@ -192,11 +195,13 @@ export const effectiveDeadline = (
 ): Date | null => {
   let deadline = dueTimeOn(quest.dueByTime, date);
   const extended = parseDate(effects?.extendedUntil?.[quest.id]);
-  if (extended && (!deadline || extended > deadline)) deadline = extended;
+  const hasLaterExtension = extended && (!deadline || extended > deadline);
+  if (hasLaterExtension) deadline = extended;
   if (!deadline) return null;
   const from = parseDate(effects?.pause?.from);
   const until = parseDate(effects?.pause?.until);
-  if (from && until && until > from && from <= deadline) {
+  const hasPauseBeforeDeadline = from && until && until > from && from <= deadline;
+  if (hasPauseBeforeDeadline) {
     deadline = new Date(deadline.getTime() + (until.getTime() - from.getTime()));
   }
   return deadline;
@@ -216,9 +221,11 @@ export const isQuestOverdue = (
 export const isQuestActiveOn = (quest: QuestScheduleFields, date: Date): boolean => {
   const day = startOfDay(date);
   const starts = parseDate(quest.startsOn);
-  if (starts && startOfDay(starts) > day) return false;
+  const isBeforeStart = starts && startOfDay(starts) > day;
+  if (isBeforeStart) return false;
   const ends = parseDate(quest.endsOn);
-  if (ends && startOfDay(ends) < day) return false;
+  const isPastEnd = ends && startOfDay(ends) < day;
+  if (isPastEnd) return false;
   return true;
 };
 
@@ -282,10 +289,12 @@ export const getQuestWindow = (quest: QuestScheduleFields, date: Date): QuestWin
     case "weekly": {
       const listedDays = quest.repeatOnDays || [];
       const isListedDay = listedDays.includes(DAY_TOKENS[day.getDay()]);
-      if (listedDays.length && isListedDay && !quest.showDailyUntilComplete) {
+      const isDueOnListedDay = listedDays.length > 0 && isListedDay && !quest.showDailyUntilComplete;
+      if (isDueOnListedDay) {
         return { start: day, end: addDays(day, 1), allowance: 1 };
       }
-      if (listedDays.length && !isListedDay && !quest.showDailyUntilComplete) return null;
+      const isNotDueToday = listedDays.length > 0 && !isListedDay && !quest.showDailyUntilComplete;
+      if (isNotDueToday) return null;
       const start = alignedStart(anchor, day, 7, "day");
       return { start, end: addDays(start, 7), allowance: Math.max(1, listedDays.length) };
     }
@@ -317,7 +326,8 @@ const countsTowardAllowance = (entry: QuestLogEntry) => entry.status !== "reject
 
 /** The hero's log entry for this quest, completed inside the window (whatever its approval status). */
 const isEntryInWindow = (entry: QuestLogEntry, questId: string, userId: string, window: QuestWindow): boolean => {
-  if (entry.questId !== questId || entry.userId !== userId) return false;
+  const isUnrelatedEntry = entry.questId !== questId || entry.userId !== userId;
+  if (isUnrelatedEntry) return false;
   const completedAt = new Date(entry.completedAt);
   return completedAt >= window.start && completedAt < window.end;
 };

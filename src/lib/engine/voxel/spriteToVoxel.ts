@@ -110,7 +110,8 @@ export const sampleImagePixels = (
   targetResolution = 28
 ): Promise<{ pixels: Uint8ClampedArray; width: number; height: number } | null> => {
   return new Promise((resolve) => {
-    if (typeof document === "undefined" || typeof Image === "undefined") {
+    const isWithoutDom = typeof document === "undefined" || typeof Image === "undefined";
+    if (isWithoutDom) {
       resolve(null);
       return;
     }
@@ -176,7 +177,8 @@ export const spriteToVoxelMesh = async (
   }
 
   const sample = await sampleImagePixels(imageSrc, targetResolution);
-  if (!sample || sample.pixels.length === 0) {
+  const hasNoPixels = !sample || sample.pixels.length === 0;
+  if (hasNoPixels) {
     const placeholder = createPlaceholderMonsterMesh();
     meshCache.set(imageSrc, placeholder);
     return placeholder;

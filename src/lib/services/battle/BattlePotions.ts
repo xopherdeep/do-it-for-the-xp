@@ -56,7 +56,8 @@ const gainOf = (rule: PotionRule, userId: string): { hp: number; mp: number } =>
 
 /** Why the potion would do nothing (HP or MP already full), else null. */
 const reasonOf = (rule: PotionRule, gain: { hp: number; mp: number }): string | null => {
-  if (gain.hp > 0 || gain.mp > 0) return null;
+  const canRestoreSomething = gain.hp > 0 || gain.mp > 0;
+  if (canRestoreSomething) return null;
   if (rule.full) return REASON_FULL_STRENGTH;
   return rule.hp ? REASON_HP_FULL : REASON_MP_FULL;
 };

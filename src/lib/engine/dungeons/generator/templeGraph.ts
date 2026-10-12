@@ -201,7 +201,8 @@ const addDoor = (graph: TempleGraph, door: Omit<Door, "id">): void => {
 
 /** The lock on walking from `from` to `to`: the boss door needs the master key, a locked side a small key. */
 const lockBetween = (from: GraphRoom, to: GraphRoom, direction: Direction): LockKind => {
-  if (to.kind === "boss" && (to.room.locked?.master || from.room.locked?.master)) return "master";
+  const isMasterDoor = to.kind === "boss" && (to.room.locked?.master || from.room.locked?.master);
+  if (isMasterDoor) return "master";
   return from.room.locked?.[direction] ? "small" : "none";
 };
 
@@ -227,12 +228,14 @@ const stairsLanding = (graph: TempleGraph, stairs: GraphRoom, target: string, wa
 /** Stairs: up goes to the next floor of the layout, down to the previous one. R8 wants the twin on the same cell. */
 const linkStairs = (graph: TempleGraph): void => {
   for (const stairs of graph.rooms.values()) {
-    if (stairs.kind !== "stairs-up" && stairs.kind !== "stairs-down") continue;
+    const isNotStaircase = stairs.kind !== "stairs-up" && stairs.kind !== "stairs-down";
+    if (isNotStaircase) continue;
     const up = stairs.kind === "stairs-up";
     const index = graph.floors.indexOf(stairs.ref.floor);
     const target = (stairs.room.content?.targetLevel as string | undefined) ?? graph.floors[index + (up ? 1 : -1)];
     const twinKind = up ? "stairs-down" : "stairs-up";
-    if (!target || !graph.floors.includes(target) || target === stairs.ref.floor) {
+    const isDeadEndStairs = !target || !graph.floors.includes(target) || target === stairs.ref.floor;
+    if (isDeadEndStairs) {
       graph.issues.push({ rule: "R8", text: `${describeRoom(stairs)} leads to no floor` });
       continue;
     }
@@ -288,7 +291,8 @@ const resolveEntranceFloor = (given: number[], graph: TempleGraph): string => {
 /** The entrance: the layout's coordinates when they point at a room, else the first entrance room, else nothing. */
 const findEntrance = (layout: TempleLayout, graph: TempleGraph): string | undefined => {
   const given = layout.entrance;
-  if (given && given.length >= 2) {
+  const hasEntranceCoords = given && given.length >= 2;
+  if (hasEntranceCoords) {
     const floor = resolveEntranceFloor(given, graph);
     const [row, col] = given.length >= 3 ? [given[1], given[2]] : [given[0], given[1]];
     const room = graph.rooms.get(roomKey({ floor, row, col }));
@@ -321,12 +325,14 @@ export const roomsOfKind = (graph: TempleGraph, kind: string): GraphRoom[] => [.
  * `blocked` rooms. Pits still drop one way. Returns the room keys in the order they were reached.
  */
 export const reachableFrom = (graph: TempleGraph, start: string, blocked: ReadonlySet<string> = new Set(), closed: ReadonlySet<string> = new Set()): string[] => {
-  if (!graph.rooms.has(start) || blocked.has(start)) return [];
+  const isStartUnreachable = !graph.rooms.has(start) || blocked.has(start);
+  if (isStartUnreachable) return [];
   const seen = new Set<string>([start]);
   const order = [start];
   for (let i = 0; i < order.length; i++) {
     for (const door of graph.out.get(order[i]) ?? []) {
-      if (seen.has(door.to) || blocked.has(door.to) || closed.has(door.id)) continue;
+      const shouldSkipDoor = seen.has(door.to) || blocked.has(door.to) || closed.has(door.id);
+      if (shouldSkipDoor) continue;
       seen.add(door.to);
       order.push(door.to);
     }

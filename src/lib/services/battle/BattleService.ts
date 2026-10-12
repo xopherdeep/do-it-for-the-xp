@@ -275,8 +275,10 @@ export class BattleService {
 
   /** The beast's checklist becomes the player's attacks. */
   private loadCombatTasks(enemy: Enemy): void {
-    if (enemy.tasks && enemy.tasks.length > 0) {
-      this.state.combatTasks = enemy.tasks.map((task) => ({ ...task }));
+    const { tasks } = enemy;
+    const hasChecklist = tasks && tasks.length > 0;
+    if (hasChecklist) {
+      this.state.combatTasks = tasks.map((task) => ({ ...task }));
     } else {
       debug.warn('BattleService: No tasks found on enemy, the beast itself is the chore', enemy);
       this.state.combatTasks = [{ id: `${enemy.id}-task`, name: `Defeat ${enemy.name}`, isCompleted: false }];
@@ -394,9 +396,11 @@ export class BattleService {
       escapeChance = this.passive.runChance;
     }
     const bonus = this.passive.runChanceBonus;
-    if (Number.isFinite(bonus) && bonus > 0) escapeChance = Math.min(RUN_CHANCE_CEILING, escapeChance + bonus);
+    const hasRunBonus = Number.isFinite(bonus) && bonus > 0;
+    if (hasRunBonus) escapeChance = Math.min(RUN_CHANCE_CEILING, escapeChance + bonus);
 
-    if (this.alwaysEscapes || Math.random() < escapeChance) {
+    const canSlipAway = this.alwaysEscapes || Math.random() < escapeChance;
+    if (canSlipAway) {
       this.stopAttackTimer();
       this.queueDialogMessages([autoLine("Running away..."), "Got away safely!"]);
       return { success: true, message: "Escaped successfully" };
@@ -455,7 +459,8 @@ export class BattleService {
   public finishCombatTask(taskId: string): void {
     const enemy = this.state.currentEnemy;
     const task = this.state.combatTasks.find(t => t.id === taskId);
-    if (!enemy || !task || task.isCompleted) return;
+    const isChoreUnavailable = !enemy || !task || task.isCompleted;
+    if (isChoreUnavailable) return;
 
     task.isCompleted = true;
 
@@ -487,12 +492,14 @@ export class BattleService {
    */
   public restoreCompletedTasks(taskIds: string[]): number {
     const enemy = this.state.currentEnemy;
-    if (!enemy || taskIds.length === 0) return 0;
+    const isNothingToRestore = !enemy || taskIds.length === 0;
+    if (isNothingToRestore) return 0;
 
     const wanted = new Set(taskIds);
     let restored = 0;
     for (const task of this.state.combatTasks) {
-      if (!wanted.has(task.id) || task.isCompleted) continue;
+      const shouldSkipTask = !wanted.has(task.id) || task.isCompleted;
+      if (shouldSkipTask) continue;
       if (this.state.combatTasks.filter(t => !t.isCompleted).length <= 1) break;
 
       task.isCompleted = true;
@@ -604,13 +611,18 @@ export class BattleService {
 
   // --- battle items (see docs/Items-And-Classes-Contract.md, section A) ---------------------------
 
+  /** A clock can only be moved while it runs, and only by a positive amount of time. */
+  private isClockUnmovable(ms: number): boolean {
+    return this.attackTimerInterval === null || !(ms > 0);
+  }
+
   /**
    * Add `ms` to the running clock (Ice Wand). The deadline and the clock's full length both grow, so
    * the bar fills back up instead of jumping past 100%. Returns false, and changes nothing, when no
    * clock is running (before the intro is read, or while a strike is waiting to land).
    */
   public extendClock(ms: number): boolean {
-    if (this.attackTimerInterval === null || !(ms > 0)) return false;
+    if (this.isClockUnmovable(ms)) return false;
     this.attackDeadline += ms;
     this.state.attackDuration += ms;
     this.tick();
@@ -624,7 +636,7 @@ export class BattleService {
    * to the first. Returns false, and changes nothing, when no clock is running.
    */
   public freezeClock(ms: number): boolean {
-    if (this.attackTimerInterval === null || !(ms > 0)) return false;
+    if (this.isClockUnmovable(ms)) return false;
     this.frozenUntil = Math.max(Date.now(), this.frozenUntil) + ms;
     this.attackDeadline += ms;
     this.tick();
@@ -660,7 +672,8 @@ export class BattleService {
     const enemy = this.state.currentEnemy;
     const index = this.state.combatTasks.findIndex((t) => t.id === taskId);
     const task = index === -1 ? undefined : this.state.combatTasks[index];
-    if (!enemy || !task || task.isCompleted) return null;
+    const isChoreUnavailable = !enemy || !task || task.isCompleted;
+    if (isChoreUnavailable) return null;
     if (this.state.combatTasks.filter((t) => !t.isCompleted).length <= 1) return null;
 
     const slice = this.choreDamage(enemy, false);
@@ -718,7 +731,8 @@ export class BattleService {
     if (this.state.pendingPlayerDamage > 0) return;
 
     const enemy = this.state.currentEnemy;
-    if (!enemy || enemy.health <= 0) return;
+    const isBeastGone = !enemy || enemy.health <= 0;
+    if (isBeastGone) return;
 
     // A Ninja is never where the first strike lands
     if (this.firstStrikeOwed) {
@@ -891,7 +905,8 @@ export class BattleService {
    */
   private getActiveUser(): User | null {
     const { users, activeUserIndex } = this.state.participants;
-    if (users.length === 0 || activeUserIndex >= users.length) {
+    const hasNoActiveUser = users.length === 0 || activeUserIndex >= users.length;
+    if (hasNoActiveUser) {
       return null;
     }
     return users[activeUserIndex];

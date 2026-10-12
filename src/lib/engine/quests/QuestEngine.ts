@@ -92,7 +92,9 @@ class QuestEngine {
             }
 
             // 3. Segment filter: a tab lists the quests timed for it; a quest with no time shows only under 'all'
-            if (filter.segment && !questMatchesSegment(quest, filter.segment)) {
+            const { segment } = filter;
+            const isOutsideSegment = segment && !questMatchesSegment(quest, segment);
+            if (isOutsideSegment) {
                 return false;
             }
 
@@ -178,7 +180,8 @@ export interface QuestBoardItem {
  * A quest that is not due stays not due.
  */
 export const boardStatusInSegment = (item: QuestBoardItem, segment: 'all' | TimeOfDay): QuestBoardStatus => {
-    if (segment === 'all' || item.status === 'notDue') return item.status;
+    const shouldKeepOwnStatus = segment === 'all' || item.status === 'notDue';
+    if (shouldKeepOwnStatus) return item.status;
     const slot = item.slots?.find(({ time }) => time === segment);
     if (!slot) return item.status;
     return slot.done ? 'done' : 'open';

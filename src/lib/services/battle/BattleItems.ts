@@ -109,7 +109,8 @@ const reasonOf = (name: string, effect: BattleEffectId, mp: number, ctx: BattleI
   if (!isItemUnlocked(useUserStore().getUserById(ctx.userId), name)) return unlockHintOf(name);
   const blocked = battleEffectBlocked(effect, ctx);
   if (blocked) return blocked;
-  if (mp > 0 && heroPoints(ctx.userId, 'mp').now < mp) return REASON_NO_MP;
+  const isShortOnMp = mp > 0 && heroPoints(ctx.userId, 'mp').now < mp;
+  if (isShortOnMp) return REASON_NO_MP;
   return null;
 };
 
@@ -119,12 +120,14 @@ const reasonOf = (name: string, effect: BattleEffectId, mp: number, ctx: BattleI
  * empty hand) gives null.
  */
 export const describeBattleItem = (item: BattleItemLike | null | undefined, ctx: BattleItemContext): BattleItemCard | null => {
-  if (!item || !nameOf(item)) return null;
+  const isEmptyHand = !item || !nameOf(item);
+  if (isEmptyHand) return null;
   const name = nameOf(item);
   const faIcon = typeof item.faIcon === 'string' ? item.faIcon : '';
   const role = battleBagRole(item);
 
-  if (role === 'potions' || role === 'powers') return { name, faIcon, mp: 0, effect: CONTAINER_LINES[role], reason: null };
+  const isContainer = role === 'potions' || role === 'powers';
+  if (isContainer) return { name, faIcon, mp: 0, effect: CONTAINER_LINES[role], reason: null };
   if (role === 'none') return { name, faIcon, mp: 0, effect: REASON_NOTHING, reason: REASON_NOTHING };
 
   const rule = BATTLE_ITEMS[name];
@@ -148,6 +151,7 @@ export const useBattleItem = (item: BattleItemLike, ctx: BattleItemContext): Bat
   if (reason) return refuse(reason);
 
   const outcome = applyBattleEffect(rule.effect, ctx);
-  if (outcome.ok && !outcome.needsTaskPick && mp > 0) useUserStore().updateUserMP({ userId: ctx.userId, amount: -mp });
+  const shouldChargeMp = outcome.ok && !outcome.needsTaskPick && mp > 0;
+  if (shouldChargeMp) useUserStore().updateUserMP({ userId: ctx.userId, amount: -mp });
   return outcome;
 };

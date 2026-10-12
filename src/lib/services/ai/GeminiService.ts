@@ -132,10 +132,12 @@ export async function generateFullBeast(
   const res = await runTask<{ name?: string; checklist?: unknown }>("full_beast", input);
   if (!res.ok) return res.failure;
   const checklist = cleanList(res.data?.checklist);
-  if (!res.data?.name || !checklist.length) {
+  const name = res.data?.name;
+  const isIncompleteBeast = !name || !checklist.length;
+  if (isIncompleteBeast) {
     return { success: false, error: "Failed to parse AI response. Please try again." };
   }
-  return { success: true, name: res.data.name, checklist };
+  return { success: true, name, checklist };
 }
 
 export interface GenerateScheduleOptions {
@@ -167,7 +169,8 @@ export async function generateSchedule(
   }
   const input: Record<string, unknown> = { taskName };
   if (options.beastName) input.beastName = options.beastName;
-  if (options.checklist && options.checklist.length > 0) input.checklist = options.checklist;
+  const hasChecklist = options.checklist && options.checklist.length > 0;
+  if (hasChecklist) input.checklist = options.checklist;
 
   const res = await runTask<Omit<ScheduleResponse, "success">>("schedule", input);
   if (!res.ok) return res.failure;

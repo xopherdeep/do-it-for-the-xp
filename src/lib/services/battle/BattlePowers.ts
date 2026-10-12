@@ -85,7 +85,8 @@ export const battlePowers = (abilities: Ability[], ctx: BattleEffectContext, now
   const entries: BattlePowerEntry[] = [];
   for (const ability of abilities) {
     const effect = battleEffectOf(ability);
-    if (ability.type !== AbilityType.InGame || !effect || statuses[ability.id] === AbilityStatus.Locked) continue;
+    const isUnavailablePower = ability.type !== AbilityType.InGame || !effect || statuses[ability.id] === AbilityStatus.Locked;
+    if (isUnavailablePower) continue;
     const mp = heroMpBill(ability.mpCost, hero);
     entries.push({ ability, card: { mp, effect: BATTLE_EFFECTS[effect].label, reason: reasonOf(effect, mp, ctx) } });
   }
@@ -107,7 +108,8 @@ export const castBattlePower = (ability: Ability, ctx: BattleEffectContext): Bat
   if (reason) return refuse(reason);
 
   const outcome = applyBattleEffect(effect, ctx);
-  if (!outcome.ok || outcome.needsTaskPick) return outcome;
+  const isCastIncomplete = !outcome.ok || outcome.needsTaskPick;
+  if (isCastIncomplete) return outcome;
 
   if (mp > 0) useUserStore().updateUserMP({ userId: ctx.userId, amount: -mp });
   const name = hero?.name?.nick || hero?.name?.first;

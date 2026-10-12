@@ -163,7 +163,8 @@ export function migrateLocalStorageAbilities(): void {
       const item = storageMap[key];
       
       // Skip if not an object
-      if (!item || typeof item !== 'object') continue;
+      const isMalformedEntry = !item || typeof item !== 'object';
+      if (isMalformedEntry) continue;
 
       // If it doesn't match our new ability structure, migrate it
       if (!isAbility(item)) {

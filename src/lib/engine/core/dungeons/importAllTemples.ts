@@ -58,7 +58,8 @@ const SIGNATURE_VERSION = 'v1';
 /** The value as plain JSON with every object's keys in sorted order, so equal layouts stringify equal */
 function toStable(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(toStable);
-  if (value && typeof value === 'object') {
+  const isObjectValue = value && typeof value === 'object';
+  if (isObjectValue) {
     const sorted: Record<string, unknown> = {};
     for (const key of Object.keys(value).sort()) sorted[key] = toStable((value as Record<string, unknown>)[key]);
     return sorted;
@@ -156,7 +157,8 @@ async function syncSeeds(options: ImportOptions): Promise<SeedReport> {
         }
         if (action === 'current') continue;
 
-        if (action === 'stamp' && existing) {
+        const shouldOnlyStamp = action === 'stamp' && existing;
+        if (shouldOnlyStamp) {
           // The layout is already the shipped one: only remember where it came from
           await db.setTemple({ ...existing, seedSignature: signature });
           continue;
@@ -199,7 +201,8 @@ let running: Promise<SeedReport> | null = null;
  * like: it writes only what changed, and calls made while one is running share it.
  */
 export function importAllTempleLayouts(options: ImportOptions = {}): Promise<SeedReport> {
-  if (options.db || options.shipped) return syncSeeds(options);
+  const hasInjectedSource = options.db || options.shipped;
+  if (hasInjectedSource) return syncSeeds(options);
   if (!running) {
     running = syncSeeds(options).finally(() => {
       running = null;
