@@ -174,6 +174,14 @@ describe("ShopItemModal", () => {
 
 describe("AccessoryShop Page", () => {
   const slot = { template: "<div><slot /></div>" };
+
+  // The first import drags the stores and the equipment catalogue through the transformer; on a cold jest cache that
+  // outlasts the default 5s test timeout, so pay it here under a generous limit and keep the tests themselves tight.
+  beforeAll(async () => {
+    await import("pinia");
+    await import("@/app/Console/MyPortal/HomeTown/AccessoryShop/AccessoryShop.vue");
+  }, 60000);
+
   const mountShop = async (merchant: string) => {
     const { createPinia, setActivePinia } = await import("pinia");
     const pinia = createPinia();
