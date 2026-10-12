@@ -455,13 +455,13 @@ export const registerLandmark = (
       client.spinSpeed = speed;
       if (speed !== 0 && client.onScreen) {
         client.dirty = true;
-        startLoop();
+        syncLoop();
       }
     },
     setYaw: (yaw: number): void => {
       client.yaw = yaw;
       client.dirty = true;
-      startLoop();
+      syncLoop();
     },
     dispose: (): void => {
       client.cleanupEvents();

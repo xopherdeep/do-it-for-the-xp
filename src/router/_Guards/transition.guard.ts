@@ -21,8 +21,9 @@ const afterPaint = (): Promise<void> =>
 const feelCoverStart = (plan: TransitionPlan) => {
   if (plan.effect === "clouds") rumble([[0, "tick"], [140, "tick"], [280, "tick"]]);
 };
+// The doors slam on their own when the leaves meet, so they get no second hit here
 const feelCovered = (plan: TransitionPlan) => {
-  if (plan.effect === "doors" || plan.effect === "iris") feel("thud");
+  if (plan.effect === "iris") feel("thud");
   if (plan.effect === "swirl") feel("slam");
 };
 
@@ -34,7 +35,7 @@ const isE2e = (): boolean => typeof window !== "undefined" && Boolean((window as
  * a transition is dressing, and the navigation must happen with or without it.
  */
 export function handleTransitionGuard(router: Router): void {
-  router.beforeResolve(async (to, from) => {
+  router.beforeResolve?.(async (to, from) => {
     try {
       // The first navigation of the session is app boot, and e2e specs must not wait on animations
       if (from === START_LOCATION || isE2e()) return;
@@ -49,7 +50,7 @@ export function handleTransitionGuard(router: Router): void {
     }
   });
 
-  router.afterEach(async () => {
+  router.afterEach?.(async () => {
     try {
       if (state.phase === "idle") return;
       // Covered and mounted, or the navigation failed or was aborted: either way the cover comes off.
@@ -63,7 +64,7 @@ export function handleTransitionGuard(router: Router): void {
     }
   });
 
-  router.onError(() => {
+  router.onError?.(() => {
     if (state.phase !== "idle") void reveal();
   });
 }

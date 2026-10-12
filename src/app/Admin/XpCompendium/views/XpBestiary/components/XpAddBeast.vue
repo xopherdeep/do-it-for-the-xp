@@ -260,7 +260,7 @@ export default defineComponent({
   methods: {
     getAvatar(id: number) {
       const pad = id.toString().padStart(3, "0");
-      return require(`@/assets/images/beasts/${pad}.png`);
+      return require(`@/assets/images/beasts/${pad}.webp`);
     },
     async dismiss() {
       // Navigate back using named route

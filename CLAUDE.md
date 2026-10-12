@@ -22,6 +22,7 @@ pnpm serve                       # ionic serve, dev server on :8100 (the owner u
 pnpm vue-cli-service test:e2e --headless --url http://localhost:8100 --spec tests/e2e/specs/battle.spec.js
                                  # Cypress 8 against a running server, 390x844; screenshots land in tests/e2e/screenshots
 pnpm build                       # ionic build (production uses hash routing and relative publicPath)
+pnpm build:compass               # same build into ../Xophz-COMPASS/wp-content/plugins/xophz-compass-xp/public/dist (override with XP_OUTPUT_DIR)
 python3 tools/chiptune/render_all.py [song...]   # re-render the chiptune soundtrack into src/assets/audio/chiptune
 python3 tools/art/temple_floors.py               # regenerate the procedural temple floor tiles
 ```

@@ -222,7 +222,7 @@ export function useAchievementForm() {
     try {
       // webpack resolves require(); new URL("/src/...") never pointed at a bundled file
       const pad = activeBeast.value.avatar.toString().padStart(3, "0");
-      return require(`@/assets/images/beasts/${pad}.png`);
+      return require(`@/assets/images/beasts/${pad}.webp`);
     } catch {
       return null;
     }

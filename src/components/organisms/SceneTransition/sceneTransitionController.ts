@@ -81,11 +81,17 @@ const wait = (assign: (waiter: Waiter) => void): Promise<void> =>
 export const cover = (plan: TransitionPlan): Promise<void> => {
   settle(coverWaiter);
   settle(revealWaiter);
+  revealWaiter = null;
   state.plan = plan;
   state.phase = "cover";
+  let mine: Waiter | null = null;
   return wait((waiter) => {
+    mine = waiter;
     coverWaiter = waiter;
   }).then(() => {
+    // A newer cover (a redirect mid-transition) owns the state now: a stale waiter leaves it alone
+    const superseded = coverWaiter !== mine;
+    if (superseded) return;
     coverWaiter = null;
     if (state.phase === "cover") state.phase = "covered";
   });
@@ -97,9 +103,14 @@ export const reveal = (): Promise<void> => {
   settle(coverWaiter);
   state.phase = "reveal";
   if (state.plan) showCard(state.plan);
+  let mine: Waiter | null = null;
   return wait((waiter) => {
+    mine = waiter;
     revealWaiter = waiter;
   }).then(() => {
+    // A cover that started during this reveal owns the state now: leave it covering
+    const superseded = revealWaiter !== mine;
+    if (superseded) return;
     revealWaiter = null;
     state.phase = "idle";
     state.plan = null;

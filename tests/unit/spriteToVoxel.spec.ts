@@ -49,8 +49,23 @@ describe("spriteToVoxel", () => {
   });
 
   it("falls back to placeholder mesh when image loading cannot decode", async () => {
-    const mesh = await spriteToVoxelMesh("invalid-path.png");
-    expect(mesh).toBeDefined();
-    expect(mesh.faceCount).toBeGreaterThan(0);
+    const originalImage = window.Image;
+    class MockFailingImage {
+      onload: (() => void) | null = null;
+      onerror: (() => void) | null = null;
+      set src(_val: string) {
+        setTimeout(() => this.onerror?.(), 0);
+      }
+    }
+    // @ts-expect-error test mock
+    window.Image = MockFailingImage;
+
+    try {
+      const mesh = await spriteToVoxelMesh("invalid-path.png");
+      expect(mesh).toBeDefined();
+      expect(mesh.faceCount).toBeGreaterThan(0);
+    } finally {
+      window.Image = originalImage;
+    }
   });
 });

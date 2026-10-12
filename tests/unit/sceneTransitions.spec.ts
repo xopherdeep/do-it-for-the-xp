@@ -73,9 +73,10 @@ describe("transitionFor", () => {
   });
 
   it("opens doors into a building and back out", () => {
-    expect(transitionFor(town, shop)).toMatchObject({ effect: "doors", direction: "in", title: "Item Shop" });
+    expect(transitionFor(town, shop)).toMatchObject({ effect: "doors", direction: "in", title: "Item Shop", variant: "Item Shop" });
     expect(transitionFor(portal, shop)?.effect).toBe("doors");
-    expect(transitionFor(shop, town)).toMatchObject({ effect: "doors", direction: "out", title: "Home Town" });
+    // Coming out the card names the town, the doors are still the shop's
+    expect(transitionFor(shop, town)).toMatchObject({ effect: "doors", direction: "out", title: "Home Town", variant: "Item Shop" });
     expect(transitionFor(shop, other)).toBeNull();
   });
 

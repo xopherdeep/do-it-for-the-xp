@@ -23,7 +23,7 @@ export const WORLD_METADATA: Record<string, WorldMetadata> = {
     element: "wind",
     icon: "tornado",
     color: "primary",
-    bgImage: "world-plains.jpg",
+    bgImage: "world-plains.webp",
     templeId: "wind-temple",
     shopId: "pegasus-ranch"
   },
@@ -34,7 +34,7 @@ export const WORLD_METADATA: Record<string, WorldMetadata> = {
     element: "water",
     icon: "island-tropical",
     color: "tertiary",
-    bgImage: "world-islands.jpg",
+    bgImage: "world-islands.webp",
     templeId: "water-temple",
     shopId: "wrecked-ship"
   },
@@ -45,7 +45,7 @@ export const WORLD_METADATA: Record<string, WorldMetadata> = {
     element: "earth",
     icon: "trees",
     color: "success",
-    bgImage: "world-forest.jpg",
+    bgImage: "world-forest.webp",
     templeId: "earth-temple",
     shopId: "hermits-tent"
   },
@@ -56,7 +56,7 @@ export const WORLD_METADATA: Record<string, WorldMetadata> = {
     element: "fire",
     icon: "mountains",
     color: "danger",
-    bgImage: "world-mountains.jpg",
+    bgImage: "world-mountains.webp",
     templeId: "fire-temple",
     shopId: "crystal-caverns"
   },
@@ -67,7 +67,7 @@ export const WORLD_METADATA: Record<string, WorldMetadata> = {
     element: "light",
     icon: "cactus",
     color: "warning",
-    bgImage: "world-desert.jpg",
+    bgImage: "world-desert.webp",
     templeId: "sun-temple",
     shopId: "pond-of-life"
   },
@@ -78,7 +78,7 @@ export const WORLD_METADATA: Record<string, WorldMetadata> = {
     element: "moon",
     icon: "skull-crossbones",
     color: "dark",
-    bgImage: "world-swamps.jpg",
+    bgImage: "world-swamps.webp",
     templeId: "moon-temple",
     shopId: "witchs-hut"
   },
@@ -89,7 +89,7 @@ export const WORLD_METADATA: Record<string, WorldMetadata> = {
     element: "ice",
     icon: "igloo",
     color: "medium",
-    bgImage: "world-ice.jpg",
+    bgImage: "world-ice.webp",
     templeId: "frozen-fortress",
     shopId: "snow-shack"
   },
@@ -100,7 +100,7 @@ export const WORLD_METADATA: Record<string, WorldMetadata> = {
     element: "lightning",
     icon: "bolt",
     color: "secondary",
-    bgImage: "world-clouds.jpg",
+    bgImage: "world-clouds.webp",
     templeId: "sky-temple",
     shopId: "cloud-market"
   },
@@ -111,7 +111,7 @@ export const WORLD_METADATA: Record<string, WorldMetadata> = {
     element: "shadow",
     icon: "moon",
     color: "dark",
-    bgImage: "world-moon.jpg",
+    bgImage: "world-moon.webp",
     templeId: "moon-temple", // Note: shares with swamps in current config
     shopId: "theia-city"
   },
@@ -122,7 +122,7 @@ export const WORLD_METADATA: Record<string, WorldMetadata> = {
     element: "neutral",
     icon: "archway",
     color: "rpg",
-    bgImage: "hometown.jpg",
+    bgImage: "hometown.webp",
     templeId: "",
     shopId: "hometown-market"
   }
@@ -138,7 +138,7 @@ export const getWorldMetadata = (worldId: string): WorldMetadata => {
     element: "none",
     icon: "question",
     color: "medium",
-    bgImage: "world-map.jpg",
+    bgImage: "world-map.webp",
     templeId: "",
     shopId: ""
   };

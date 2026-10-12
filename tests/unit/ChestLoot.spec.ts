@@ -2,7 +2,7 @@
  * The chest reveal's view of a chest: every stored item comes out with a name, an icon and a tier, and its
  * value is the token processChestItems takes back.
  */
-import type { Room } from "@/lib/engine/core/dungeons/types";
+import type { Room, RoomContent } from "@/lib/engine/core/dungeons/types";
 import { getDungeonItems } from "@/lib/engine/core/items/itemRegistry";
 import { asChestRoom, chestGlow, chestLoot, dungeonItemId, isTempleItem, lootFace, UNKNOWN_EGG, type PegasusEgg } from "@/lib/services/temples/ChestLoot";
 
@@ -44,7 +44,7 @@ describe("chestLoot", () => {
 
 describe("a Pegasus chest's rows", () => {
   const aura: PegasusEgg = { name: "Aura's Egg", color: "#badc58", secondaryColor: "#ffffff" };
-  const pegasusChest = { chest: "dungeon", dungeon: "Pegasus Whistle", pegasus: true };
+  const pegasusChest: RoomContent = { chest: "dungeon", dungeon: "Pegasus Whistle", pegasus: true };
 
   it("lists the egg of the Pegasus it frees, painted in its shell colours, relic and ticked", () => {
     const [egg] = chestLoot(pegasusChest, aura);
@@ -78,7 +78,7 @@ describe("a Pegasus chest's rows", () => {
   });
 
   it("adds the whistle once, however often the room is put right, and only to a Pegasus chest", () => {
-    const once = asChestRoom<Room>({ type: "loot", content: pegasusChest }, "wind-temple");
+    const once: Room = asChestRoom({ type: "loot", content: pegasusChest }, "wind-temple");
     expect(asChestRoom(once, "wind-temple")).toBe(once);
     expect(once.content?.items).toEqual(["Wind Whistle"]);
 

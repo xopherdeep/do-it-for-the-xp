@@ -33,14 +33,14 @@ export default defineComponent({
         // Define the splash screens for the game over sequence
         const splashScreens = ref<SplashScreen[]>([
             {
-                image: require("@/assets/images/about/darkness.png"),
+                image: require("@/assets/images/about/darkness.webp"),
                 text: "You have been defeated...",
                 alt: "Game Over",
                 duration,
                 soundEffect: "defeat",
             },
             {
-                image: require("@/assets/images/midjourney/hospital.png"),
+                image: require("@/assets/images/midjourney/hospital.webp"),
                 text: "The hospital will patch you up.",
                 alt: "To the hospital",
                 duration,

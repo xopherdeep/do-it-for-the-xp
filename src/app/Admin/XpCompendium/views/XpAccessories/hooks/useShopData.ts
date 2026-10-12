@@ -3,8 +3,8 @@ import { toastController } from "@ionic/vue";
 import shopsDb, { ShopInterface } from "@/lib/databases/ShopsDb";
 import debug from "@/lib/utils/debug";
 
-// Only world-*.jpg / hometown.jpg are looked up by key; keep the filter (a bare context bundles all 90 MB)
-const requireBg = require.context("@/assets/images/backgrounds/", false, /^\.\/(world-[a-z-]+|hometown)\.jpg$/);
+// Only world-*.webp / hometown.webp are looked up by key; keep the filter (a bare context bundles all 90 MB)
+const requireBg = require.context("@/assets/images/backgrounds/", false, /^\.\/(world-[a-z-]+|hometown)\.webp$/);
 
 // The world art a shop can wear (a shop's `world` is one of these ids), in the order the Decorate tab lists it.
 export const SHOP_WORLD_CHOICES: { id: string; label: string }[] = [
@@ -32,8 +32,8 @@ const findBg = (file: string): string => {
 // The art for a world id; a world with no art of its own ("traveling", an old free-text value) gets the world map.
 export function shopWorldBackground(world?: string | null): string {
   const id = world || "hometown";
-  const file = id === "hometown" ? "./hometown.jpg" : `./world-${id}.jpg`;
-  return findBg(file) || findBg("./world-map.jpg") || findBg("./hometown.jpg");
+  const file = id === "hometown" ? "./hometown.webp" : `./world-${id}.webp`;
+  return findBg(file) || findBg("./world-map.webp") || findBg("./hometown.webp");
 }
 
 // Writes the changed fields to the shop record, then onto the shop the tabs share so they all show it.

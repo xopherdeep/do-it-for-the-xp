@@ -69,13 +69,13 @@ const DEFAULT_SHOP_ID = "hometown-market";
 const ITEMS_PER_PAGE = 4;
 
 // The Game Master can dress a shop in a world's art (Compendium > Economy > Shops > Decorate).
-// Only world-*.jpg / hometown.jpg are looked up by key; keep the filter (a bare context bundles all 90 MB)
-const requireWorldBg = require.context("@/assets/images/backgrounds/", false, /^\.\/(world-[a-z-]+|hometown)\.jpg$/);
+// Only world-*.webp / hometown.webp are looked up by key; keep the filter (a bare context bundles all 90 MB)
+const requireWorldBg = require.context("@/assets/images/backgrounds/", false, /^\.\/(world-[a-z-]+|hometown)\.webp$/);
 // Empty when the world has no art of its own, so the shop keeps its usual picture.
 const worldBackground = (world: string): string => {
   if (!world) return "";
   try {
-    return requireWorldBg(world === "hometown" ? "./hometown.jpg" : `./world-${world}.jpg`);
+    return requireWorldBg(world === "hometown" ? "./hometown.webp" : `./world-${world}.webp`);
   } catch {
     return "";
   }
@@ -98,11 +98,11 @@ export default defineComponent({
         "witchs-hut": require("@/assets/images/backgrounds/shops/witch's-hut.png"),
         "snow-shack": require("@/assets/images/backgrounds/shops/snow-shack.png"),
         // For other shops without specific backgrounds, use the default
-        "hermits-tent": require("@/assets/images/midjourney/shop.png"),
-        "crystal-caverns": require("@/assets/images/midjourney/shop.png"),
-        "traveling-merchant": require("@/assets/images/midjourney/shop.png"),
-        "theia-city": require("@/assets/images/midjourney/shop.png"),
-        default: require("@/assets/images/midjourney/shop.png")
+        "hermits-tent": require("@/assets/images/midjourney/shop.webp"),
+        "crystal-caverns": require("@/assets/images/midjourney/shop.webp"),
+        "traveling-merchant": require("@/assets/images/midjourney/shop.webp"),
+        "theia-city": require("@/assets/images/midjourney/shop.webp"),
+        default: require("@/assets/images/midjourney/shop.webp")
       },
       // Each shop's sign. Who minds the shop and what they say live in SHOP_CLERK_DEFAULTS (ShopsDb),
       // where the Game Master's clerk tab shows them as the placeholder.

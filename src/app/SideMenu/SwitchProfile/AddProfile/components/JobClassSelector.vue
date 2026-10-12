@@ -254,7 +254,7 @@
   }
 
   .class-selector-content {
-    --background: url("/src/assets/images/backgrounds/my-home.jpg") no-repeat
+    --background: url("/src/assets/images/backgrounds/my-home.webp") no-repeat
       center center / cover;
   }
 

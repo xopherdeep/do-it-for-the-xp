@@ -47,7 +47,7 @@ export default defineComponent({
       if (!props.avatar) return null;
       try {
         const pad = props.avatar.toString().padStart(3, '0');
-        return require(`@/assets/images/beasts/${pad}.png`);
+        return require(`@/assets/images/beasts/${pad}.webp`);
       } catch {
         return null;
       }

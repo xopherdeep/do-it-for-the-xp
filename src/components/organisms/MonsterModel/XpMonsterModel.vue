@@ -11,16 +11,19 @@
     @keydown.enter="handleClick"
     @keydown.space.prevent="handleClick"
   >
-    <div class="monster-entity" :style="modelStyle">
-      <div class="badge-wrap">
-        <xp-landmark-badge v-if="monsterName" :title="monsterName" />
-      </div>
-
+    <div
+      class="monster-entity"
+      :class="{ 'is-moving': isMoving, 'is-idle': !isMoving }"
+    >
       <div class="canvas-box" :style="boxStyle">
         <canvas ref="canvasRef" class="monster-canvas"></canvas>
       </div>
 
       <div class="monster-shadow" aria-hidden="true"></div>
+
+      <div class="badge-wrap name-under">
+        <xp-landmark-badge v-if="monsterName" :title="monsterName" />
+      </div>
     </div>
   </div>
 </template>
@@ -63,7 +66,7 @@ export default defineComponent({
     },
     spinSpeed: {
       type: Number,
-      default: 0.9,
+      default: 0,
     },
   },
   emits: ["click"],
@@ -72,11 +75,11 @@ export default defineComponent({
     let handle: LandmarkHandle | null = null;
     let currentMeshData: MeshData = createPlaceholderMonsterMesh();
 
-    const { isHovered, wrapperStyle, modelStyle } = useMonsterRoam({}, false);
+    const { isHovered, isMoving, facingYaw, wrapperStyle } = useMonsterRoam();
 
     const loadMesh = async () => {
       try {
-        const mesh = await spriteToVoxelMesh(props.avatarSrc, 30, 2.5);
+        const mesh = await spriteToVoxelMesh(props.avatarSrc, 26, 1.6);
         currentMeshData = mesh;
         if (handle) {
           handle.rebuildMesh(() => mesh);
@@ -92,13 +95,13 @@ export default defineComponent({
       handle = registerLandmark(canvasRef.value, {
         getMeshData: () => currentMeshData,
         interactive: false,
-        elevation: 0.22,
-        cameraDistance: 36,
-        cameraTargetY: 10,
+        elevation: 0.28,
+        cameraDistance: 64,
+        cameraTargetY: 0,
         spinSpeed: props.spinSpeed,
-        initialYaw: 0,
-        ambientIntensity: 1.2,
-        dirLightIntensity: 1.4,
+        initialYaw: facingYaw.value,
+        ambientIntensity: 1.25,
+        dirLightIntensity: 1.45,
       });
 
       loadMesh();
@@ -110,6 +113,12 @@ export default defineComponent({
         loadMesh();
       }
     );
+
+    watch(facingYaw, (newYaw) => {
+      if (handle?.setYaw) {
+        handle.setYaw(newYaw);
+      }
+    });
 
     watch(
       () => props.spinSpeed,
@@ -152,9 +161,9 @@ export default defineComponent({
     return {
       canvasRef,
       isHovered,
+      isMoving,
       boxStyle,
       computedWrapperStyle,
-      modelStyle,
       handleClick,
     };
   },
@@ -175,16 +184,23 @@ export default defineComponent({
     align-items: center;
     justify-content: center;
     position: relative;
-    animation: monster-bob 2.2s ease-in-out infinite alternate;
     transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
-    filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.5));
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.45));
+
+    &.is-idle {
+      animation: npc-idle 2.4s ease-in-out infinite alternate;
+    }
+
+    &.is-moving {
+      animation: npc-step 0.38s ease-in-out infinite alternate;
+    }
 
     &:hover {
       transform: translateY(-4px) scale(1.08);
-      filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.65)) drop-shadow(0 0 12px rgba(255, 80, 80, 0.7));
+      filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 10px rgba(255, 80, 80, 0.7));
 
       .badge-wrap {
-        transform: scale(1.08);
+        transform: scale(1.05);
       }
     }
 
@@ -193,8 +209,8 @@ export default defineComponent({
     }
   }
 
-  .badge-wrap {
-    margin-bottom: 2px;
+  .badge-wrap.name-under {
+    margin-top: 3px;
     transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
   }
 
@@ -222,12 +238,21 @@ export default defineComponent({
   }
 }
 
-@keyframes monster-bob {
+@keyframes npc-idle {
   0% {
     transform: translateY(0px);
   }
   100% {
-    transform: translateY(-6px);
+    transform: translateY(-3px);
+  }
+}
+
+@keyframes npc-step {
+  0% {
+    transform: translateY(0px);
+  }
+  100% {
+    transform: translateY(-5px);
   }
 }
 </style>

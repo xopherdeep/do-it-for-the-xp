@@ -1,6 +1,11 @@
 <template>
   <xp-rpg-page title="Setup XP" :headerIcon="slides[activeSlideIndex].icon"
     :class="['bg-slide', getBgClass(activeSlideIndex)]">
+    <!-- Primary Toolbar Actions -->
+    <template #start-actions>
+      <ion-menu-button @click="play$fx('select')" />
+    </template>
+
     <!-- Native Navigation FABs in fixed slot -->
     <ion-fab slot="fixed" vertical="bottom" horizontal="start" class="nav-fab-container" v-if="activeSlideIndex > 0">
       <ion-fab-button color="light" @click.stop="swiperInstance?.slidePrev()" class="rpg-box">
@@ -85,6 +90,7 @@ import { getEngineStatsService } from "@/lib/services/stats/EngineStatsService";
 import Ionic from "@/lib/mixins/ionic";
 import { useDialogSystem } from "@/lib/engine/core/DialogSystem";
 import XpRpgPage from "@/components/templates/pages/XpRpgPage.vue";
+import { play$fx } from "@/assets/fx";
 
 // Define tutorial completed key
 const TUTORIAL_COMPLETED_KEY = "xp_compendium_tutorial_completed";
@@ -414,6 +420,7 @@ export default defineComponent({
       getDashboardComponent,
       getBgClass,
       swiperInstance,
+      play$fx,
     };
   },
 });

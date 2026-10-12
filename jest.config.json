@@ -13,5 +13,12 @@
   ],
   "transform": {
     "/three/build/three\\.(module|core)\\.js$": "<rootDir>/tests/jest/esm-transform.js"
-  }
+  },
+  "testPathIgnorePatterns": [
+    "/node_modules/",
+    "<rootDir>/.claude/"
+  ],
+  "modulePathIgnorePatterns": [
+    "<rootDir>/.claude/"
+  ]
 }

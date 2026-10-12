@@ -7,15 +7,15 @@ export interface RoamBounds {
   maxY?: number;
 }
 
-export const useMonsterRoam = (bounds: RoamBounds = {}, enableFlip = false) => {
-  const minX = bounds.minX ?? 25;
-  const maxX = bounds.maxX ?? 75;
-  const minY = bounds.minY ?? 40;
-  const maxY = bounds.maxY ?? 68;
+export const useMonsterRoam = (bounds: RoamBounds = {}) => {
+  const minX = bounds.minX ?? 28;
+  const maxX = bounds.maxX ?? 72;
+  const minY = bounds.minY ?? 38;
+  const maxY = bounds.maxY ?? 64;
 
   const posX = ref(50);
-  const posY = ref(54);
-  const facing = ref(1);
+  const posY = ref(52);
+  const facingYaw = ref(0);
   const isHovered = ref(false);
   const isMoving = ref(false);
 
@@ -29,27 +29,46 @@ export const useMonsterRoam = (bounds: RoamBounds = {}, enableFlip = false) => {
 
   const stepRoam = () => {
     if (isHovered.value) {
-      roamTimer = setTimeout(stepRoam, 2000);
+      facingYaw.value = 0;
+      roamTimer = setTimeout(stepRoam, 1600);
       return;
     }
 
     const { nextX, nextY } = getRandomTarget();
-    facing.value = nextX >= posX.value ? 1 : -1;
+    const dx = nextX - posX.value;
+    const dy = nextY - posY.value;
+
+    // Calculate facing angle for 3D NPC navigation
+    let targetYaw = 0;
+    if (Math.abs(dx) >= 3) {
+      targetYaw = dx > 0 ? 0.6 : -0.6;
+    } else if (dy > 3) {
+      targetYaw = 0;
+    } else if (dy < -3) {
+      targetYaw = (dx >= 0 ? 1 : -1) * 2.2;
+    }
+
+    facingYaw.value = targetYaw;
     isMoving.value = true;
     posX.value = nextX;
     posY.value = nextY;
 
-    // Movement duration is ~2.2s, schedule next waypoint after brief pause
-    const dwell = 2600 + Math.random() * 2200;
+    // Movement duration: ~2.4s. When arriving, face forward like an attentive NPC
+    const moveDuration = 2400;
     roamTimer = setTimeout(() => {
       isMoving.value = false;
-      roamTimer = setTimeout(stepRoam, 800 + Math.random() * 1200);
-    }, dwell);
+      roamTimer = setTimeout(() => {
+        if (!isMoving.value && !isHovered.value) {
+          facingYaw.value = 0;
+        }
+        const dwell = 2000 + Math.random() * 2600;
+        roamTimer = setTimeout(stepRoam, dwell);
+      }, 600);
+    }, moveDuration);
   };
 
   onMounted(() => {
-    // Initial wander after brief entrance delay
-    roamTimer = setTimeout(stepRoam, 1200);
+    roamTimer = setTimeout(stepRoam, 1000);
   });
 
   onBeforeUnmount(() => {
@@ -65,22 +84,12 @@ export const useMonsterRoam = (bounds: RoamBounds = {}, enableFlip = false) => {
     zIndex: 90,
   }));
 
-  const modelStyle = computed(() =>
-    enableFlip
-      ? {
-          transform: `scaleX(${facing.value})`,
-          transition: "transform 0.3s ease",
-        }
-      : {}
-  );
-
   return {
     posX,
     posY,
-    facing,
+    facingYaw,
     isHovered,
     isMoving,
     wrapperStyle,
-    modelStyle,
   };
 };

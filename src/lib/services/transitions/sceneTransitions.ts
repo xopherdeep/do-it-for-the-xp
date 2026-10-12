@@ -146,11 +146,12 @@ export const transitionFor = (from: Scene, to: Scene): TransitionPlan | null => 
 
   // Through a building's door
   if (to.kind === "building") {
-    return { effect: "doors", direction: "in", title: to.title, sound: "openDoor" };
+    // The variant names the building whose doors these are (the effect paints its trim); the doors play their own creak
+    return { effect: "doors", direction: "in", title: to.title, variant: to.title };
   }
   if (from.kind === "building") {
     if (to.kind === "other") return null;
-    return { effect: "doors", direction: "out", title: to.title, sound: "openDoor" };
+    return { effect: "doors", direction: "out", title: to.title, variant: from.title };
   }
 
   // Into and out of a temple

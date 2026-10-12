@@ -18,6 +18,7 @@
     "vue-serve": "vue-cli-service serve",
     "vue-build": "vue-cli-service build",
     "build": "ionic build",
+    "build:compass": "XP_OUTPUT_DIR=${XP_OUTPUT_DIR:-../Xophz-COMPASS/wp-content/plugins/xophz-compass-xp/public/dist} ionic build",
     "typecheck": "tsc --noEmit",
     "test": "sh -c 'if [ \"$1\" = \"--\" ]; then shift; fi; exec jest \"$@\"' sh",
     "test:unit": "vue-cli-service test:unit",

@@ -8,6 +8,9 @@ module.exports = {
   // Configure for Ionic
   publicPath: process.env.NODE_ENV === 'production' ? './' : '/',
 
+  // XP_OUTPUT_DIR redirects the build, e.g. into the COMPASS XP plugin's public/dist (`pnpm build:compass`)
+  outputDir: process.env.XP_OUTPUT_DIR || 'dist',
+
   // Keep superseded art out of the bundle. TempleGrounds.ts requires
   // `@/assets/images/backgrounds/${temple}/${xy}.jpg`, which webpack turns into an implicit,
   // recursive context over the whole backgrounds folder, so it would also emit the `ai/` and

@@ -276,7 +276,7 @@ export default defineComponent({
 
     getAvatar(id: number | string) {
       const pad = id.toString().padStart(3, "0");
-      return require(`@/assets/images/beasts/${pad}.png`);
+      return require(`@/assets/images/beasts/${pad}.webp`);
     },
 
     async loadBeasts(silent = false) {

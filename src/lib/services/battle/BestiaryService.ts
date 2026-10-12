@@ -2,7 +2,7 @@ import BestiaryDb, { beastStorage } from "@/lib/databases/BestiaryDb";
 import { Enemy } from './BattleService';
 import debug from "@/lib/utils/debug";
 
-export const TOTAL_BEAST_AVATARS = 93; // NNN.png files in src/assets/images/beasts (tools/art/beasts.py draws the newer ones)
+export const TOTAL_BEAST_AVATARS = 93; // NNN.webp files in src/assets/images/beasts (tools/art/beasts.py draws the newer ones)
 export const MAX_BG_INDEX = 325;
 
 const getRandomBeastAvatar = (): number => Math.floor(Math.random() * TOTAL_BEAST_AVATARS) + 1;
@@ -30,7 +30,7 @@ export class BestiaryService {
   public getAvatar(id: number): string {
     try {
       const pad = id.toString().padStart(3, '0');
-      return require(`@/assets/images/beasts/${pad}.png`);
+      return require(`@/assets/images/beasts/${pad}.webp`);
     } catch (error) {
       debug.error('Error loading beast avatar:', error);
       return '';

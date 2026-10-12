@@ -122,8 +122,8 @@
   import { ensureBuiltInTemples } from "@/lib/engine/core/dungeons/importAllTemples";
   import { play$fx } from "@/assets/fx";
 
-  // Only world-*.jpg / hometown.jpg are looked up by key; keep the filter (a bare context bundles all 90 MB)
-  const requireBg = require.context("@/assets/images/backgrounds/", false, /^\.\/(world-[a-z-]+|hometown)\.jpg$/);
+  // Only world-*.webp / hometown.webp are looked up by key; keep the filter (a bare context bundles all 90 MB)
+  const requireBg = require.context("@/assets/images/backgrounds/", false, /^\.\/(world-[a-z-]+|hometown)\.webp$/);
 
   export default defineComponent({
     name: "xp-temples",
@@ -243,15 +243,15 @@
       // Internal helper for background images
       const _getBgImage = (world: string) => {
         try {
-          return requireBg(`./world-${world}.jpg`);
+          return requireBg(`./world-${world}.webp`);
         } catch (error) {
-          debug.warn(`Could not load world-${world}.jpg:`, error);
+          debug.warn(`Could not load world-${world}.webp:`, error);
           try {
-            return requireBg("./world-map.jpg");
+            return requireBg("./world-map.webp");
           } catch (error) {
-            debug.warn("Could not load world-map.jpg fallback:", error);
+            debug.warn("Could not load world-map.webp fallback:", error);
             try {
-              return requireBg("./hometown.jpg");
+              return requireBg("./hometown.webp");
             } catch {
               // If all fallbacks fail, return a blank transparent image
               return "data:image/gif;base64,R0lGODlhAQABAAAAACH5BAEKAAEALAAAAAABAAEAAAICTAEAOw==";

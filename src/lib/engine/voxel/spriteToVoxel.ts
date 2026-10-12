@@ -15,12 +15,12 @@ const rgbToHex = (r: number, g: number, b: number): string => {
  */
 export const createPlaceholderMonsterMesh = (color = "#9944bb"): MeshData => {
   const boxes: Box[] = [
-    { x: -5, y: 0, z: -3, w: 10, h: 8, d: 6, color },
-    { x: -4, y: 8, z: -2, w: 8, h: 4, d: 4, color },
-    { x: -3, y: 4, z: 3.1, w: 2, h: 2, d: 0.2, color: "#ffffff" },
-    { x: 1, y: 4, z: 3.1, w: 2, h: 2, d: 0.2, color: "#ffffff" },
-    { x: -2, y: 4, z: 3.2, w: 1, h: 1, d: 0.2, color: "#000000" },
-    { x: 2, y: 4, z: 3.2, w: 1, h: 1, d: 0.2, color: "#000000" },
+    { x: -5, y: -4, z: -2, w: 10, h: 8, d: 4, color },
+    { x: -4, y: 4, z: -1.5, w: 8, h: 4, d: 3, color },
+    { x: -3, y: 0, z: 2.1, w: 2, h: 2, d: 0.2, color: "#ffffff" },
+    { x: 1, y: 0, z: 2.1, w: 2, h: 2, d: 0.2, color: "#ffffff" },
+    { x: -2, y: 0, z: 2.2, w: 1, h: 1, d: 0.2, color: "#000000" },
+    { x: 2, y: 0, z: 2.2, w: 1, h: 1, d: 0.2, color: "#000000" },
   ];
   return buildMeshData(boxes);
 };
@@ -32,10 +32,11 @@ export const pixelDataToBoxes = (
   pixels: Uint8ClampedArray,
   width: number,
   height: number,
-  depth = 2.5
+  depth = 1.6
 ): Box[] => {
   const boxes: Box[] = [];
   const halfW = width / 2;
+  const halfH = height / 2;
   const halfD = depth / 2;
 
   for (let y = 0; y < height; y++) {
@@ -57,7 +58,7 @@ export const pixelDataToBoxes = (
           const span = x - runStart;
           boxes.push({
             x: runStart - halfW,
-            y: height - y,
+            y: height - y - halfH,
             z: -halfD,
             w: span,
             h: 1,
@@ -72,7 +73,7 @@ export const pixelDataToBoxes = (
         const span = x - runStart;
         boxes.push({
           x: runStart - halfW,
-          y: height - y,
+          y: height - y - halfH,
           z: -halfD,
           w: span,
           h: 1,
@@ -88,7 +89,7 @@ export const pixelDataToBoxes = (
       const span = width - runStart;
       boxes.push({
         x: runStart - halfW,
-        y: height - y,
+        y: height - y - halfH,
         z: -halfD,
         w: span,
         h: 1,
@@ -114,6 +115,14 @@ export const sampleImagePixels = (
       return;
     }
 
+    const timer = setTimeout(() => resolve(null), 1500);
+    const finish = (
+      result: { pixels: Uint8ClampedArray; width: number; height: number } | null
+    ) => {
+      clearTimeout(timer);
+      resolve(result);
+    };
+
     const img = new Image();
     img.crossOrigin = "anonymous";
 
@@ -135,7 +144,7 @@ export const sampleImagePixels = (
 
         const ctx = canvas.getContext("2d", { willReadFrequently: true });
         if (!ctx) {
-          resolve(null);
+          finish(null);
           return;
         }
 
@@ -143,13 +152,13 @@ export const sampleImagePixels = (
         ctx.drawImage(img, 0, 0, sampleW, sampleH);
 
         const imgData = ctx.getImageData(0, 0, sampleW, sampleH);
-        resolve({ pixels: imgData.data, width: sampleW, height: sampleH });
+        finish({ pixels: imgData.data, width: sampleW, height: sampleH });
       } catch {
-        resolve(null);
+        finish(null);
       }
     };
 
-    img.onerror = () => resolve(null);
+    img.onerror = () => finish(null);
     img.src = imageSrc;
   });
 };
@@ -159,8 +168,8 @@ export const sampleImagePixels = (
  */
 export const spriteToVoxelMesh = async (
   imageSrc: string,
-  targetResolution = 28,
-  depth = 2.5
+  targetResolution = 26,
+  depth = 1.6
 ): Promise<MeshData> => {
   if (meshCache.has(imageSrc)) {
     return meshCache.get(imageSrc)!;

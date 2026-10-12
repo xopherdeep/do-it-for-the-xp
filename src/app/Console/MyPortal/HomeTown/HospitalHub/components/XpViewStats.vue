@@ -302,7 +302,7 @@
 <style lang="scss" scoped>
   .xp-view-stats {
     ion-content {
-      --background: url("@/assets/images/midjourney/hospital.png") center /
+      --background: url("@/assets/images/midjourney/hospital.webp") center /
         cover no-repeat;
     }
 

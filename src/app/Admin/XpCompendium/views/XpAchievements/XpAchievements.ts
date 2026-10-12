@@ -395,7 +395,7 @@ export default defineComponent({
       if (beast.avatar) {
         try {
           const pad = beast.avatar.toString().padStart(3, "0");
-          return require(`@/assets/images/beasts/${pad}.png`);
+          return require(`@/assets/images/beasts/${pad}.webp`);
         } catch {
           return null;
         }

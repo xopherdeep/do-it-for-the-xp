@@ -167,7 +167,7 @@ describe("TempleChoiceReveal", () => {
 
   describe("the picture", () => {
     const sheet = { kind: "sheet", title: "A Monster approaches!", subtitle: "Dustbunny", choices: [{ id: "0", label: "Fight" }] };
-    const art = { src: "/assets/images/beasts/074.png", alt: "Dustbunny", frame: "beast" };
+    const art = { src: "/assets/images/beasts/074.webp", alt: "Dustbunny", frame: "beast" };
 
     it("shows the beast above the title from the moment the reveal opens, with its name as the alt", () => {
       const reveal = show({ ...sheet, art });
@@ -205,7 +205,7 @@ describe("TempleChoiceReveal", () => {
       await reveal.get("img").trigger("error");
       expect(reveal.find("img").exists()).toBe(false);
 
-      await reveal.setProps({ art: { ...art, src: "/assets/images/beasts/001.png", alt: "Slime" } });
+      await reveal.setProps({ art: { ...art, src: "/assets/images/beasts/001.webp", alt: "Slime" } });
       expect(reveal.get("img").attributes("alt")).toBe("Slime");
     });
 
