@@ -90,7 +90,10 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     const c = props.colIdx.value;
     
     // Safety check - if maze isn't loaded or coords are invalid, set all to false
-    if (!maze || !maze.length || !maze[0] || isNaN(r) || isNaN(c) || r < 0 || c < 0) {
+    const isMazeUnusable = !maze || !maze.length || !maze[0];
+    const areCoordsInvalid = isNaN(r) || isNaN(c) || r < 0 || c < 0;
+    const cannotLocateRoom = isMazeUnusable || areCoordsInvalid;
+    if (cannotLocateRoom) {
       adjacentRooms.value = { north: false, east: false, south: false, west: false };
       return;
     }
@@ -99,7 +102,8 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     const cols = maze[0]?.length || 0;
     
     // Additional bounds check
-    if (r >= rows || c >= cols) {
+    const isOutsideMaze = r >= rows || c >= cols;
+    if (isOutsideMaze) {
       adjacentRooms.value = { north: false, east: false, south: false, west: false };
       return;
     }
@@ -239,7 +243,8 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     }
 
     // Every door into a boss room is the Boss door: it stays the skull, whatever is tapped
-    if (sideOf(dir) === 'masterlocked' && leadsToBoss(props.roomData.value, neighbourRoom(dir))) {
+    const isBossDoor = sideOf(dir) === 'masterlocked' && leadsToBoss(props.roomData.value, neighbourRoom(dir));
+    if (isBossDoor) {
       const toast = await toastController.create({
         message: 'Boss Lock: only the Boss Key opens it',
         duration: 1400,
@@ -308,7 +313,8 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     const isTrapped = (roomType === 'boss' || roomType === 'miniboss' || props.roomData.value?.content?.lockOnEnter);
     
     // If it's a solid wall config OR the neighbor is a wall, show the wall icon
-    if (state === 'wall' || isNeighborWall) {
+    const isWalledOff = state === 'wall' || !!isNeighborWall;
+    if (isWalledOff) {
       return 'DYNAMIC_WALL';
     }
     
@@ -317,7 +323,8 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
       return 'fas fa-skull';
     }
     
-    if (isTrapped && state !== 'bombable') {
+    const isTrapDoor = isTrapped && state !== 'bombable';
+    if (isTrapDoor) {
       const adjType = getAdjacentRoomType(dir);
       const isEntrance = adjType === 'entrance';
       return `fad fa-dungeon${isEntrance ? ' entrance-variant' : ''}`;
@@ -343,7 +350,8 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     const neighborSymbol = coords ? maze[coords.row]?.[coords.col] : null;
     const isNeighborWall = neighborSymbol && store.roomsData[neighborSymbol]?.type === 'wall';
     
-    if (state === 'wall' || isNeighborWall) {
+    const isWalledOff = state === 'wall' || !!isNeighborWall;
+    if (isWalledOff) {
       return 'state-wall';
     }
 
@@ -354,7 +362,8 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     const roomType = props.roomData.value?.type;
     const isTrapped = (roomType === 'boss' || roomType === 'miniboss' || props.roomData.value?.content?.lockOnEnter);
     
-    if (isTrapped && state !== 'bombable') {
+    const isTrapDoor = isTrapped && state !== 'bombable';
+    if (isTrapDoor) {
       return 'state-trapped';
     }
     
@@ -368,7 +377,8 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     for (let r = 0; r < maze.length; r++) {
       for (let c = 0; c < (maze[r]?.length || 0); c++) {
         const symbol = maze[r][c];
-        if (symbol && store.roomsData[symbol]?.type !== 'wall') {
+        const isNavigableRoom = !!symbol && store.roomsData[symbol]?.type !== 'wall';
+        if (isNavigableRoom) {
           coords.push({ row: r, col: c });
         }
       }

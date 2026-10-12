@@ -136,7 +136,8 @@ export default defineComponent({
       },
       onDismiss: () => {
         const engine = service.value;
-        if (!engine || !battleStarted.value) return;
+        const isBattleNotRunning = !engine || !battleStarted.value;
+        if (isBattleNotRunning) return;
         if (engine.hasPendingDamage()) {
           // The hit lands now: HP rolls while the damage line types (the engine queues it)
           stopNag();
@@ -243,9 +244,11 @@ export default defineComponent({
     /** Goods: a tile used from the bag. The bag closes first; Bottles and the Book open their sheet, a fight item acts now. */
     const useBagItem = (item: BattleItemLike) => {
       // Containers emit with no latch: only the first tap while the bag is open counts
-      if (sheet.value !== "bag" || !service.value || !battleStarted.value) return;
+      const isBagUnusable = sheet.value !== "bag" || !service.value || !battleStarted.value;
+      if (isBagUnusable) return;
       const role = battleBagRole(item);
-      if (role === "potions" || role === "powers") {
+      const opensItsOwnSheet = role === "potions" || role === "powers";
+      if (opensItsOwnSheet) {
         audio.playSound("cursor");
         sheet.value = role;
         return;
@@ -279,7 +282,8 @@ export default defineComponent({
       const live = sheet.value === "powers" && battleStarted.value && !!service.value;
       const ability = abilities.find((entry) => entry.id === abilityId);
       closeSheet();
-      if (!live || !ability) return;
+      const cannotCastPower = !live || !ability;
+      if (cannotCastPower) return;
       const result = castBattlePower(ability, itemContext());
       if (result.needsTaskPick) {
         powerInFlight = ability;
@@ -294,7 +298,8 @@ export default defineComponent({
       const arrow = arrowInFlight;
       const power = powerInFlight;
       closeSheet();
-      if (!service.value || !battleStarted.value) return;
+      const isBattleNotRunning = !service.value || !battleStarted.value;
+      if (isBattleNotRunning) return;
       if (arrow) sayItemResult(useBattleItem(arrow, itemContext(taskId)));
       else if (power) sayItemResult(castBattlePower(power, itemContext(taskId)));
     };
@@ -304,7 +309,8 @@ export default defineComponent({
       stopNag();
       nagTimer = window.setInterval(() => {
         const engine = service.value;
-        if (!engine?.hasPendingDamage() || nagCount >= STRIKE_NAG_LIMIT) {
+        const shouldStopNagging = !engine?.hasPendingDamage() || nagCount >= STRIKE_NAG_LIMIT;
+        if (shouldStopNagging) {
           stopNag();
           return;
         }
@@ -444,9 +450,11 @@ export default defineComponent({
 
     const act = (action: "defend" | "run") => {
       const engine = service.value;
-      if (!engine || !battleStarted.value) return;
+      const isBattleNotRunning = !engine || !battleStarted.value;
+      if (isBattleNotRunning) return;
       const result = engine.handleBattleAction(action);
-      if (action === "run" && result.success) {
+      const hasEscaped = action === "run" && result.success;
+      if (hasEscaped) {
         battleStarted.value = false;
         stopNag();
         outcome.handleEscape();
@@ -541,7 +549,8 @@ export default defineComponent({
 
     // The clock is felt, not just seen: it ticks for the last ten seconds
     watch(atb.timerLabel, (label, previous) => {
-      if (!atb.timerCritical.value || !label || label === previous) return;
+      const isSilentTick = !atb.timerCritical.value || !label || label === previous;
+      if (isSilentTick) return;
       audio.playSound("cursor");
       feedback.tick();
     });
@@ -554,7 +563,8 @@ export default defineComponent({
 
     // Hardware back mid-fight asks before running away; otherwise it behaves as usual
     useBackButton(BACK_BUTTON_PRIORITY, (next) => {
-      if (!battleStarted.value || victoryCard.value) {
+      const isOutsideActiveFight = !battleStarted.value || victoryCard.value;
+      if (isOutsideActiveFight) {
         next();
         return;
       }

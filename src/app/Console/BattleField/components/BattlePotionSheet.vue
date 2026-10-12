@@ -54,7 +54,8 @@ const emit = defineEmits<{
 const busy = ref(false);
 
 const drink = (potion: PotionCard) => {
-  if (busy.value || potion.reason) return;
+  const cannotDrink = busy.value || !!potion.reason;
+  if (cannotDrink) return;
   busy.value = true;
   emit("drink", potion.id);
 };

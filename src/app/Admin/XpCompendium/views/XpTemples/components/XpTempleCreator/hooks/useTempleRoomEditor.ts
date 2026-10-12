@@ -199,6 +199,10 @@ export interface UseTempleRoomEditorReturn {
   selectEggPegasus: (pegasusId: string) => void;
 }
 
+// A shared config token: not the entrance, not a room id, not already a unique coordinate id
+const isSharedConfigToken = (token: string): boolean =>
+  !token.startsWith('R') && token !== _00_ && !/^[A-Za-z]\d{4}$/.test(token);
+
 export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleRoomEditorReturn {
   const ionRouter = useIonRouter();
   const store = useTempleCreatorStore();
@@ -259,7 +263,8 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
       const hasBeasts = beasts.length > 0;
 
       // Only show if it's in use OR has been configured
-      if (count > 0 || hasBeasts || roomConfig) {
+      const shouldListToken = count > 0 || hasBeasts || !!roomConfig;
+      if (shouldListToken) {
         // Determine display name based on configuration state
         let displayName = 'Empty';
         if (hasBeasts) {
@@ -409,7 +414,8 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     const maze = store.templeMaze;
     const isEmpty = Array.isArray(maze) ? maze.length === 0 : Object.keys(maze).length === 0;
 
-    if (isEmpty && props.templeId) {
+    const shouldLoadTempleFromDb = isEmpty && !!props.templeId;
+    if (shouldLoadTempleFromDb) {
       debug.log('Store empty on room page, loading temple from DB...');
       const templeDb = new TempleDb(templeStorage);
       try {
@@ -589,7 +595,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
         symbol = newSymbol;
       }
       // STANDARD PROMOTION: Other shared tokens (not entrance, not already unique)
-      else if (!symbol.startsWith('R') && symbol !== _00_ && !/^[A-Za-z]\d{4}$/.test(symbol)) {
+      else if (isSharedConfigToken(symbol)) {
         const newSymbol = store.generateUniqueSymbol(r, c, roomData.value.type || 'empty');
 
         // Update the maze grid in the store so this cell uses the new unique ID
@@ -627,7 +633,8 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
           const neighborSymbol = maze[adjCoords.row]?.[adjCoords.col];
           // Skip if neighbor is a wall token or doesn't exist
           // This prevents walls from being corrupted into empty rooms
-          if (!neighborSymbol || isWallToken(neighborSymbol)) continue;
+          const isNeighborWallOrMissing = !neighborSymbol || isWallToken(neighborSymbol);
+          if (isNeighborWallOrMissing) continue;
 
           // Get or initialize neighbor room data
           // IMPORTANT: Only create room data for non-wall rooms that already have 
@@ -696,7 +703,8 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
   // Modal Methods
   const openTypeModal = () => {
     const currentType = roomData.value?.type;
-    if (currentType && currentType !== 'empty' && currentType !== 'wall') {
+    const hasChosenRoomType = !!currentType && currentType !== 'empty' && currentType !== 'wall';
+    if (hasChosenRoomType) {
       const category = ROOM_CATEGORIES.find(c => c.types.includes(canonicalRoomType(currentType)));
       if (category) {
         selectedCategory.value = category;
@@ -852,7 +860,8 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
         return;
       }
       // Handle step 3 - if it was a monster room, go back to 2.5
-      if (modalStep.value === 3 && ['monster', 'miniboss', 'boss'].includes(roomData.value?.type || '')) {
+      const isOnMonsterConfigStep = modalStep.value === 3 && ['monster', 'miniboss', 'boss'].includes(roomData.value?.type || '');
+      if (isOnMonsterConfigStep) {
         modalStep.value = 2.5;
         pendingMonsterType.value = roomData.value?.type || 'monster';
         return;
@@ -901,7 +910,8 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     if (!roomData.value) return;
     if (!roomData.value.content) roomData.value.content = {} as RoomContent;
     roomData.value.content.isMimic = !roomData.value.content.isMimic;
-    if (roomData.value.content.isMimic && !roomData.value.content.mimicType) {
+    const shouldDefaultMimicType = roomData.value.content.isMimic && !roomData.value.content.mimicType;
+    if (shouldDefaultMimicType) {
       roomData.value.content.mimicType = 'random';
     }
   };
@@ -921,14 +931,16 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
       const currentDungeonItem = roomData.value.content.dungeon;
       // Reset if current item is not in the strict dungeon list
       const isValidDungeonItem = DUNGEON_ITEMS.some(i => i.id === currentDungeonItem);
-      if (!currentDungeonItem || !isValidDungeonItem) {
+      const shouldResetDungeonItem = !currentDungeonItem || !isValidDungeonItem;
+      if (shouldResetDungeonItem) {
         roomData.value.content.dungeon = 'small-key';
       }
     } else if (typeId === 'key-item') {
       // Initialize with first key item if not set or invalid
       const currentKeyItem = roomData.value.content.dungeon; // processing as same field 'dungeon' for ID
       const isValidKeyItem = KEY_ITEMS.some(i => i.id === currentKeyItem);
-      if (!currentKeyItem || !isValidKeyItem) {
+      const shouldResetKeyItem = !currentKeyItem || !isValidKeyItem;
+      if (shouldResetKeyItem) {
         roomData.value.content.dungeon = KEY_ITEMS[0]?.id;
       }
     } else if (typeId === 'gold') {

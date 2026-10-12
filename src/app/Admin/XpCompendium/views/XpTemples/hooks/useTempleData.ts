@@ -108,7 +108,8 @@ export function useTempleData(templeId: string) {
   });
 
   const isRoom = (cell: string) => {
-    if (!cell || isWallToken(cell) || cell === ROOM_VOID) return false;
+    const isNonRoomCell = !cell || isWallToken(cell) || cell === ROOM_VOID;
+    if (isNonRoomCell) return false;
     // Anything that's not a wall or void is a room
     // This supports legacy single-char tokens (s, k, O, B, E, etc.)
     return true;
@@ -191,13 +192,15 @@ export function useTempleData(templeId: string) {
     allFloors.forEach(floor => {
       floor.forEach(row => {
         row.forEach(cellCode => {
-          if (!cellCode || isWallToken(cellCode)) return;
+          const isWallOrBlankCell = !cellCode || isWallToken(cellCode);
+          if (isWallOrBlankCell) return;
 
           const roomDef = (roomDefs as any)[cellCode];
           if (!roomDef) return;
 
           const type = roomDef.type;
-          if (!type || type === 'wall' || type === 'empty') return;
+          const isBlankRoomType = !type || type === 'wall' || type === 'empty';
+          if (isBlankRoomType) return;
 
           roomTypeCounts[type] = (roomTypeCounts[type] || 0) + 1;
 
@@ -210,7 +213,8 @@ export function useTempleData(templeId: string) {
             monCounts['miniboss'] = (monCounts['miniboss'] || 0) + 1;
           }
 
-          if (type === 'loot' && roomDef.content?.dungeon) {
+          const isDungeonItemChest = type === 'loot' && !!roomDef.content?.dungeon;
+          if (isDungeonItemChest) {
             const dungeonItem = roomDef.content.dungeon;
             // The key to the boss door is the Boss Key to a parent; its id stays `master-key` and the run state `hasMasterKey`
             const isBossKey = dungeonItem === 'master-key';
@@ -261,7 +265,8 @@ export function useTempleData(templeId: string) {
       let foundTreasures = 0;
 
       const maze = previewMaze.value;
-      if (maze && Array.isArray(maze)) {
+      const hasSingleFloorMaze = !!maze && Array.isArray(maze);
+      if (hasSingleFloorMaze) {
         maze.forEach(row => {
           row.forEach(cell => {
             if (isRoom(cell)) totalRooms++;
@@ -272,9 +277,11 @@ export function useTempleData(templeId: string) {
       if (layout.rooms) {
         Object.values(layout.rooms).forEach((room: any) => {
           if (room.visited) visitedRooms++;
-          if (room.type === 'chest' || room.type === 'treasure' || room.type === 'loot') {
+          const isTreasureRoom = room.type === 'chest' || room.type === 'treasure' || room.type === 'loot';
+          if (isTreasureRoom) {
             totalTreasures++;
-            if (room.opened || room.visited) foundTreasures++;
+            const isTreasureFound = !!(room.opened || room.visited);
+            if (isTreasureFound) foundTreasures++;
           }
         });
       }
@@ -344,7 +351,8 @@ export function useTempleData(templeId: string) {
     // If already loading OR already loaded in creator store (and not forced), skip
     if (isLoading.value) return;
     await ensureBuiltInTemples();
-    if (!force && creatorStore.isLoaded(id)) {
+    const canReuseLoadedTemple = !force && creatorStore.isLoaded(id);
+    if (canReuseLoadedTemple) {
       debug.log("useTempleData: Using existing creatorStore data for", id);
       // Sync temple ref with store once
       const templeData = await templeDb.getTempleById(id);
@@ -470,7 +478,10 @@ export function useTempleData(templeId: string) {
 
         // 4. Force migrate R-style or legacy tokens to coordinate format if possible (Standardization)
         // This ensures the current maze matches the TXXYY format we are moving towards.
-        if ((result.startsWith('R') || result.length === 4) && rowIdx !== undefined && colIdx !== undefined && result !== '____' && result !== '_00_') {
+        const isLegacyToken = result.startsWith('R') || result.length === 4;
+        const isSharedToken = result === '____' || result === '_00_';
+        const shouldMigrateToCoordToken = isLegacyToken && rowIdx !== undefined && colIdx !== undefined && !isSharedToken;
+        if (shouldMigrateToCoordToken) {
           const type = parsedData.dungeonLayout?.rooms?.[result]?.type || 'empty';
           const typePrefixes: Record<string, string> = {
             monster: 'M', boss: 'B', miniboss: 'm', loot: 'L', shop: 'S',
@@ -619,7 +630,7 @@ export function useTempleData(templeId: string) {
     const processFloor = (grid: string[][], floorId: string) => {
       grid.forEach((row, rowIndex) => {
         row.forEach((cellSymbol, colIndex) => {
-          if (!cellSymbol || isWallToken(cellSymbol) || cellSymbol === ROOM_VOID) return;
+          if (!isRoom(cellSymbol)) return;
 
           const roomData = (roomDefs as any)[cellSymbol];
           if (!roomData) return;
@@ -650,7 +661,8 @@ export function useTempleData(templeId: string) {
           });
 
           // If no specific beasts but room is a battle type, add placeholder
-          if (beastIds.length === 0 && tier) {
+          const shouldAddPlaceholder = beastIds.length === 0 && !!tier;
+          if (shouldAddPlaceholder) {
             result.push({
               beast: null,
               beastId: '',
@@ -699,7 +711,8 @@ export function useTempleData(templeId: string) {
     let totalLockedDoors = 0;
 
     Object.values(rooms).forEach((room: any) => {
-      if (room.type === 'loot' && room.content?.dungeon === 'key') totalKeys++;
+      const isKeyChest = room.type === 'loot' && room.content?.dungeon === 'key';
+      if (isKeyChest) totalKeys++;
 
       // Check locked doors
       if (room.sides) {
@@ -735,7 +748,7 @@ export function useTempleData(templeId: string) {
 
     const processGrid = (grid: string[][]) => {
       return grid.map((row) => row.map((cellSymbol) => {
-        if (!cellSymbol || isWallToken(cellSymbol) || cellSymbol === ROOM_VOID) {
+        if (!isRoom(cellSymbol)) {
           return { isRoom: false };
         }
 

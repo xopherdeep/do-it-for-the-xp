@@ -33,7 +33,8 @@ export const useAtbDisplay = (
   /** Each chore is worth an equal slice of the beast's health. */
   const damagePerTask = computed(() => {
     const enemy = currentEnemy.value;
-    if (!enemy || !combatTasks.value.length) return 0;
+    const hasNothingToSplit = !enemy || !combatTasks.value.length;
+    if (hasNothingToSplit) return 0;
     return Math.ceil(enemy.maxHealth / combatTasks.value.length);
   });
 

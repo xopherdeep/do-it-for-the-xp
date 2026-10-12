@@ -73,7 +73,8 @@ export const pruneBattleProgress = (now = new Date()): void => {
     const stale: string[] = [];
     for (let index = 0; index < store.length; index += 1) {
       const key = store.key(index);
-      if (key && key.startsWith(STORAGE_PREFIX) && !key.endsWith(keep)) stale.push(key);
+      const isStaleKey = !!key && key.startsWith(STORAGE_PREFIX) && !key.endsWith(keep);
+      if (isStaleKey) stale.push(key);
     }
     stale.forEach((key) => store.removeItem(key));
   } catch (error) {

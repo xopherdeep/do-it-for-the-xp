@@ -60,7 +60,8 @@ const typing = ref<{ completeTyping?: () => void } | null>(null);
 
 /** Taps advance the text; menu taps bubble up here too, and must not count as a dismiss. */
 const onTap = () => {
-  if (props.text || props.accumulatedLines.length) emit("advance");
+  const hasTextToAdvance = !!props.text || props.accumulatedLines.length > 0;
+  if (hasTextToAdvance) emit("advance");
 };
 
 /** Lets the parent finish the typewriter effect on a tap. */

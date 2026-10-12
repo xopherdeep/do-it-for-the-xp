@@ -116,7 +116,7 @@
       </div>
 
       <!-- Save FAB -->
-      <ion-fab v-if="hasLayout && !isLoading && !showPreview && !showMazeConfig" vertical="bottom" horizontal="center" slot="fixed">
+      <ion-fab v-if="areEditorFabsVisible" vertical="bottom" horizontal="center" slot="fixed">
         <ion-fab-button :color="hasUnsavedChanges ? 'success' : 'medium'" @click="saveTemple"
           :class="{ 'faded-fab': !hasUnsavedChanges }">
           <i class="fad fa-save fa-lg"></i>
@@ -124,7 +124,7 @@
       </ion-fab>
 
       <!-- Consolidated Management FAB -->
-      <ion-fab v-if="hasLayout && !isLoading && !showPreview && !showMazeConfig" vertical="center" horizontal="end" slot="fixed">
+      <ion-fab v-if="areEditorFabsVisible" vertical="center" horizontal="end" slot="fixed">
         <ion-fab-button color="medium">
           <i class="fad fa-shovel fa-2x"></i>
         </ion-fab-button>
@@ -157,7 +157,7 @@
       </ion-fab>
 
       <!-- Floor Switcher FAB -->
-      <ion-fab v-if="hasLayout && floors.length > 0 && !isLoading && !showPreview && !showMazeConfig" vertical="center" horizontal="start" slot="fixed"
+      <ion-fab v-if="isFloorFabVisible" vertical="center" horizontal="start" slot="fixed"
         class="floor-fab-container">
         <ion-fab-button color="rpg" class="floor-fab-trigger">
           <span class="floor-label">{{ currentLevelId }}</span>
@@ -307,7 +307,8 @@ export default defineComponent({
 
     // Watch for templeId changes
     watch(() => route.params.templeId, (newId) => {
-      if (newId && typeof newId === 'string' && creator.store.templeId !== newId) {
+      const isDifferentTemple = !!newId && typeof newId === 'string' && creator.store.templeId !== newId;
+      if (isDifferentTemple) {
         creator.store.templeId = newId;
         creator.loadTempleLayout();
       }
@@ -318,6 +319,12 @@ export default defineComponent({
       const maze = creator.currentMazeSlice.value;
       return maze && maze.length > 0 && maze.some(row => row.some(cell => cell !== '____'));
     });
+
+    // The floating action buttons only show over a ready editor, not the preview or the maze config
+    const areEditorFabsVisible = computed(
+      () => hasLayout.value && !creator.isLoading.value && !creator.showPreview.value && !showMazeConfig.value
+    );
+    const isFloorFabVisible = computed(() => areEditorFabsVisible.value && creator.floors.value.length > 0);
 
     // Initialize a new empty layout
     const initializeNewLayout = () => {
@@ -360,6 +367,8 @@ export default defineComponent({
       // State
       templeId,
       hasLayout,
+      areEditorFabsVisible,
+      isFloorFabVisible,
       isLoading: creator.isLoading,
       showAddFloorModal: creator.showAddFloorModal,
       nextFloorOptions: creator.nextFloorOptions,

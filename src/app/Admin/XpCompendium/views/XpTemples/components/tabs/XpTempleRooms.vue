@@ -208,10 +208,12 @@ export default defineComponent({
       const processFloor = (grid: string[][], floorId: string) => {
         grid.forEach((row, rowIndex) => {
           row.forEach((cellSymbol, colIndex) => {
-            if (!cellSymbol || isWallToken(cellSymbol) || cellSymbol === ROOM_VOID) return;
+            const isNonRoomCell = !cellSymbol || isWallToken(cellSymbol) || cellSymbol === ROOM_VOID;
+            if (isNonRoomCell) return;
             
             const roomData = roomDefs[cellSymbol];
-            if (!roomData || roomData.type === 'wall' || roomData.type === 'empty') return;
+            const isUnlistedRoom = !roomData || roomData.type === 'wall' || roomData.type === 'empty';
+            if (isUnlistedRoom) return;
 
             rooms.push({
               symbol: cellSymbol,

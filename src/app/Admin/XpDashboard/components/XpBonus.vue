@@ -15,9 +15,7 @@
           <i class="fad fa-minus-circle fa-2x mr-2"></i>
           Subtract Points
         </ion-button>
-        <ion-button v-else @click="clickAward" :disabled="members.length === 0 ||
-          (gPoints === 0 && xpPoints === 0 && apPoints === 0)
-          ">
+        <ion-button v-else @click="clickAward" :disabled="cannotAwardPoints">
           <i class="fad fa-gift fa-2x mr-2"></i>
           Award Points
         </ion-button>
@@ -175,9 +173,7 @@
                 <i class="fad fa-minus-circle mr-2"></i>
                 Subtract Points
               </ion-button>
-              <ion-button expand="block" v-else @click="clickAward" :disabled="members.length === 0 ||
-                (gPoints === 0 && xpPoints === 0 && apPoints === 0)
-                ">
+              <ion-button expand="block" v-else @click="clickAward" :disabled="cannotAwardPoints">
                 <i class="fad fa-gift mr-2"></i>
                 Award Points
               </ion-button>
@@ -212,6 +208,11 @@ export default defineComponent({
     },
     usersAz() {
       return (this as any).userStore.usersAz;
+    },
+    cannotAwardPoints(): boolean {
+      const hasNoRecipients = this.members.length === 0;
+      const hasNoPoints = this.gPoints === 0 && this.xpPoints === 0 && this.apPoints === 0;
+      return hasNoRecipients || hasNoPoints;
     },
   },
   data() {

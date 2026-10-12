@@ -135,7 +135,8 @@ const isSelected = (task: CombatTask) => selectedTask.value?.id === task.id;
 const revealStrip = () => {
   const list = listEl.value;
   const strip = list?.querySelector<HTMLElement>(".task-confirm-strip");
-  if (!list || !strip) return;
+  const hasNoStripToReveal = !list || !strip;
+  if (hasNoStripToReveal) return;
   const hidden = strip.getBoundingClientRect().bottom - list.getBoundingClientRect().bottom;
   if (hidden <= 0) return;
   const calm = typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -143,7 +144,8 @@ const revealStrip = () => {
 };
 
 const selectTask = (task: CombatTask) => {
-  if (busy.value || task.isCompleted || isSelected(task)) return;
+  const cannotSelectTask = busy.value || task.isCompleted || isSelected(task);
+  if (cannotSelectTask) return;
   selectedId.value = task.id;
   openedAt = Date.now();
   play$fx("cursor");
@@ -158,7 +160,8 @@ const notYet = () => {
 
 /** The hero says the chore is done: the page deals the damage and closes the sheet; the attack sounds are its job. */
 const confirmDone = (task: CombatTask) => {
-  if (busy.value || !isSelected(task) || Date.now() - openedAt < CONFIRM_GUARD_MS) return;
+  const isConfirmBlocked = busy.value || !isSelected(task) || Date.now() - openedAt < CONFIRM_GUARD_MS;
+  if (isConfirmBlocked) return;
   busy.value = true;
   if (props.mode === "postpone") {
     emit("task-pick", task.id);

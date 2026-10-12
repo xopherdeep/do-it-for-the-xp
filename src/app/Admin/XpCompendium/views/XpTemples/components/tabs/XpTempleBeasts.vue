@@ -300,7 +300,8 @@ export default defineComponent({
         (b) => b.roomSymbol === targetId
       );
 
-      if (!entry && attempt < 5) {
+      const shouldRetryLookup = !entry && attempt < 5;
+      if (shouldRetryLookup) {
         timers.startTimeout(100, () => performScrollToTarget(attempt + 1));
         return;
       }

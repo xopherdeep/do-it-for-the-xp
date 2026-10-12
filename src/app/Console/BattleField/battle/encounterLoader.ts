@@ -83,7 +83,8 @@ const loadQuestEncounter = async (ctx: BattleContext, bestiary: BestiaryService)
 
   const beastEnemy = quest.beastId ? await bestiary.loadBeastById(quest.beastId) : null;
   // A beast with an empty checklist would otherwise be beaten with made-up attacks: the chore itself is the move
-  if (beastEnemy && !beastEnemy.tasks?.length) beastEnemy.tasks = enemyFromQuest(quest).tasks;
+  const isBeastWithoutChecklist = !!beastEnemy && !beastEnemy.tasks?.length;
+  if (isBeastWithoutChecklist) beastEnemy.tasks = enemyFromQuest(quest).tasks;
   const enemies = [beastEnemy || enemyFromQuest(quest)];
   return { enemies, rewards: questRewards(quest), quest, label: labelFor(enemies) };
 };
@@ -92,7 +93,8 @@ const findRoom = async (ctx: BattleContext) => {
   if (!ctx.templeId || ctx.level === undefined || ctx.x === undefined || ctx.y === undefined) return null;
   const temple = await templeDb.getTempleById(ctx.templeId);
   const maze = temple?.dungeonLayout?.maze || temple?.maze;
-  if (!temple || !maze) return null;
+  const isMazeUnavailable = !temple || !maze;
+  if (isMazeUnavailable) return null;
 
   const levelMaze = Array.isArray(maze) ? maze : (maze as Record<string, string[][]>)[ctx.level];
   const roomKey = levelMaze?.[ctx.y]?.[ctx.x];
