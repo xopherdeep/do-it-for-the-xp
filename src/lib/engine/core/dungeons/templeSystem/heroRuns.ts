@@ -1,0 +1,290 @@
+/**
+ * A hero's run tied to their saved progress (TempleProgressDb): opening a temple for a hero, putting a run away,
+ * the snapshot that is saved, and the read that merges a save back into the run.
+ * TempleSystem's run and progress methods delegate here; each public method documents its contract.
+ */
+
+import { getTempleProgressDb } from '@/lib/databases/TempleProgressDb';
+import type { NewTempleProgress, TempleProgressEntry } from '@/lib/databases/TempleProgressDb';
+import { isBloodMoonDue, resetTempleProgress } from '../templeReset';
+import { nextWeekly } from '../bloodMoonSchedule';
+import { getTempleMetadata } from '@/lib/engine/temples/templeRegistry';
+import { bloodMoon as notifyBloodMoon } from '@/lib/services/notifications/notify';
+import debug from '@/lib/utils/debug';
+import { bloodMoonRisen, clearedRoomKey, createTempleState, isRoomCleared, parseRoomKey, visitRoom } from './runState';
+import type { TempleRuns, TempleState } from './runState';
+import { DOOR_DIRECTIONS, sealRoom, unsealRoom } from './doors';
+import type { DoorState } from './doors';
+import { canStandAt, floorsOf, migrateVisitedRooms } from './floors';
+
+export function markRoomCleared(runs: TempleRuns, templeId: string, level: string, position: [number, number], userId?: string): void {
+  // The hero stands in the room they just won, wherever the save says they were
+  const { state, created } = openState(runs, templeId, userId, [position[0], position[1]], level, false);
+  if (created) visitRoom(runs, templeId, position);
+
+  if (!state.clearedRooms) state.clearedRooms = new Set<string>();
+  state.clearedRooms.add(clearedRoomKey(level, position));
+  unsealRoom(runs, templeId, level, position);
+  runs.queueSave(templeId);
+}
+
+export function initTemple(runs: TempleRuns, templeId: string, startPosition?: number[], startLevel?: string, userId?: string): boolean {
+  // Check if the dungeon exists
+  const temple = runs.dungeonManager.getDungeon(templeId);
+  if (!temple) {
+    debug.error(`Temple ${templeId} not found`);
+    return false;
+  }
+
+  // Determine starting position and level
+  let finalPos: [number, number] = [0, 0];
+  let finalLevel = "1F";
+
+  const entrance = startPosition || temple.entrance || [0, 0];
+  const floors = floorsOf(temple);
+
+  if (entrance.length === 3) {
+    // If we have 3 coordinates, assume [floorIndex, row, col]
+    // where floorIndex is an index into the keys of the maze object
+    finalLevel = floors[entrance[0]] || floors[0];
+    finalPos = [entrance[1], entrance[2]];
+  } else {
+    finalPos = [entrance[0], entrance[1]];
+  }
+
+  // A floor named outright (the battle page hands back "2F", not an index) beats the guess above
+  const isFloorNamed = startLevel && floors.includes(startLevel);
+  if (isFloorNamed) finalLevel = startLevel;
+
+  // Create temple state if it doesn't exist
+  const { state } = openState(runs, templeId, userId, finalPos, finalLevel, true);
+
+  // Migrate any previously visited rooms
+  migrateVisitedRooms(runs, templeId);
+
+  // Mark the room the hero stands in as visited (a run that was already going stays where it is)
+  visitRoom(runs, templeId, state.currentPosition);
+  return true;
+}
+
+/**
+ * The state of a temple for a hero: the run already going in memory, or a fresh one starting at
+ * `position` on `level`. A hero's saved progress is read back as soon as they are tied to the temple.
+ * @param resume Whether a fresh run moves to where the saved progress left the hero, once it is read
+ */
+export function openState(
+  runs: TempleRuns,
+  templeId: string,
+  userId: string | undefined,
+  position: [number, number],
+  level: string,
+  resume: boolean
+): { state: TempleState; created: boolean } {
+  // Another hero's run: theirs is saved as it stands, then this hero gets the temple as the layout made it
+  const bound = runs.heroByTemple.get(templeId);
+  const isAnotherHeroRun = userId && bound && bound !== userId;
+  if (isAnotherHeroRun) releaseTemple(runs, templeId);
+
+  const created = !runs.templeStates[templeId];
+  if (created) runs.templeStates[templeId] = createTempleState(position, level);
+
+  // A run nobody owned yet (a win reported without a hero) is taken over, what it holds is merged with the save
+  const isTakingOverRun = userId && runs.heroByTemple.get(templeId) !== userId;
+  if (isTakingOverRun) {
+    runs.heroByTemple.set(templeId, userId);
+    loadProgress(runs, templeId, userId, created && resume);
+  }
+
+  return { state: runs.templeStates[templeId], created };
+}
+
+/** Put a temple's run away: the hero's last changes are queued for saving, then the state, seals and dungeon reset. */
+export function releaseTemple(runs: TempleRuns, templeId: string): void {
+  runs.queueSave(templeId);
+  forgetRun(runs, templeId);
+}
+
+/**
+ * Drop a temple's run from memory: the state, the seals and the dungeon as the hero left it.
+ * @param unsaved Also drop a save of it still waiting for the end of the tick (the blood moon writes its own)
+ */
+export function forgetRun(runs: TempleRuns, templeId: string, unsaved = false): void {
+  const hero = runs.heroByTemple.get(templeId);
+  const hasSaveToDrop = unsaved && hero;
+  if (hasSaveToDrop) runs.pendingSaves.delete(`${hero}|${templeId}`);
+
+  delete runs.templeStates[templeId];
+  runs.heroByTemple.delete(templeId);
+  runs.reads.delete(templeId);
+  for (const key of Array.from(runs.sealedRooms.keys())) {
+    if (key.startsWith(`${templeId}|`)) runs.sealedRooms.delete(key);
+  }
+  // Chests full again and doors as the layout made them, for whoever plays next
+  runs.dungeonManager.resetDungeon(templeId);
+}
+
+export function whenProgressReady(runs: TempleRuns, templeId: string): Promise<void> {
+  return runs.reads.get(templeId) ?? Promise.resolve();
+}
+
+/** What the hero's save should say right now; nothing without a hero, or while their save is still being read. */
+export function progressSnapshot(runs: TempleRuns, templeId: string): NewTempleProgress | undefined {
+  const userId = runs.heroByTemple.get(templeId);
+  const state = runs.templeStates[templeId];
+  const hasNothingToSave = !userId || !state || runs.reads.has(templeId);
+  if (hasNothingToSave) return undefined;
+
+  return {
+    userId,
+    templeId,
+    currentLevel: state.currentLevel,
+    currentPosition: [state.currentPosition[0], state.currentPosition[1]],
+    hasMap: state.hasMap,
+    hasCompass: state.hasCompass,
+    playerKeys: state.playerKeys,
+    visitedRooms: Array.from(state.visitedRooms),
+    clearedRooms: Array.from(state.clearedRooms ?? []),
+    hasMasterKey: Boolean(state.hasMasterKey),
+    openedDoors: Array.from(state.openedDoors ?? []),
+    openedChests: Array.from(state.openedChests ?? []),
+    ...(state.takenFromChests?.size ? { takenFromChests: Array.from(state.takenFromChests) } : {}),
+    keyItems: [...(state.keyItems ?? [])],
+    timesCleared: state.timesCleared ?? 0,
+    bloodMoons: state.bloodMoons ?? 0,
+    ...(state.bloodMoonAt ? { bloodMoonAt: state.bloodMoonAt } : {}),
+    ...(state.bloodMoonEvery ? { bloodMoonEvery: state.bloodMoonEvery } : {})
+  };
+}
+
+/** A hero's saved progress in a temple: null when there is none, undefined when it could not be read. */
+export async function readSavedProgress(userId: string, templeId: string): Promise<TempleProgressEntry | null | undefined> {
+  try {
+    return await getTempleProgressDb().getProgress(userId, templeId);
+  } catch (error) {
+    debug.error(`Failed to read temple progress of ${userId} in ${templeId}`, error);
+    return undefined;
+  }
+}
+
+/**
+ * Read the hero's saved progress and merge it into the run that stands in for it meanwhile.
+ * @param resume Put the hero back where they stopped: for a run that has just started, not one already going
+ */
+export function loadProgress(runs: TempleRuns, templeId: string, userId: string, resume: boolean): void {
+  const state = runs.templeStates[templeId];
+  const start = { level: state.currentLevel, row: state.currentPosition[0], col: state.currentPosition[1] };
+
+  const read: Promise<void> = readSavedProgress(userId, templeId).then(saved => {
+    // Not when the temple went to another hero while the save was on its way
+    if (runs.reads.get(templeId) !== read) return;
+
+    let readable = saved !== undefined;
+    if (saved) {
+      try {
+        // A blood moon the Game Master scheduled has risen since the last visit: the run starts over
+        if (isBloodMoonDue(saved)) {
+          const spent = saved.bloodMoonAt;
+          saved = resetTempleProgress(saved);
+          // A weekly moon rises again a week on from the one just spent (skipping weeks the hero was away)
+          const shouldRescheduleWeekly = saved.bloodMoonEvery === 'weekly' && spent;
+          if (shouldRescheduleWeekly) saved.bloodMoonAt = nextWeekly(spent);
+          runs.risen.set(templeId, userId);
+          bloodMoonRisen.value = true;
+          notifyBloodMoon(userId, { id: templeId, name: getTempleMetadata(templeId).name });
+        }
+        applyProgress(runs, templeId, saved, resume ? start : undefined);
+      } catch (error) {
+        debug.error(`Failed to merge temple progress of ${userId} in ${templeId}`, error);
+        readable = false;
+      }
+    }
+    runs.reads.delete(templeId);
+
+    if (!readable) {
+      // Not knowing what is saved, the run must not be saved over it. The next visit tries the read again.
+      runs.heroByTemple.delete(templeId);
+      return;
+    }
+    // The merged run is the hero's progress from here on (for a hero with nothing saved: the start of it)
+    runs.queueSave(templeId);
+  });
+  runs.reads.set(templeId, read);
+}
+
+export function applyProgress(
+  runs: TempleRuns,
+  templeId: string,
+  saved: TempleProgressEntry,
+  resumeFrom?: { level: string; row: number; col: number }
+): void {
+  const state = runs.templeStates[templeId];
+  if (!state) return;
+
+  // Merged, not replaced: the run standing in may already hold a win or a visit of its own
+  state.hasMap = state.hasMap || saved.hasMap;
+  state.hasCompass = state.hasCompass || saved.hasCompass;
+  state.playerKeys = Math.max(state.playerKeys, saved.playerKeys);
+  state.hasMasterKey = Boolean(state.hasMasterKey || saved.hasMasterKey);
+  state.keyItems = Array.from(new Set([...(state.keyItems ?? []), ...saved.keyItems]));
+  state.timesCleared = Math.max(state.timesCleared ?? 0, saved.timesCleared);
+  state.bloodMoons = Math.max(state.bloodMoons ?? 0, saved.bloodMoons);
+  if (saved.bloodMoonAt) state.bloodMoonAt = saved.bloodMoonAt;
+  if (saved.bloodMoonEvery) state.bloodMoonEvery = saved.bloodMoonEvery;
+  if (!state.openedChests) state.openedChests = new Set<string>();
+  for (const key of saved.openedChests) {
+    state.openedChests.add(key);
+    // The chest was refilled with the layout: it is emptied again (the room and its chest)
+    const at = parseRoomKey(key);
+    if (!at) continue;
+    if (runs.dungeonManager.getRoom(templeId, at.position, at.level)?.type === 'loot') {
+      runs.dungeonManager.updateRoom(templeId, at.position, { isEmpty: true }, at.level);
+    }
+  }
+  // Chests the hero took part of: what was taken stays out, the rest is still there
+  if (!state.takenFromChests) state.takenFromChests = new Set<string>();
+  for (const key of saved.takenFromChests ?? []) {
+    const split = key.indexOf('>');
+    const at = parseRoomKey(key.slice(0, split));
+    const shouldSkipTake = split < 0 || !at || state.openedChests.has(key.slice(0, split));
+    if (shouldSkipTake) continue;
+    state.takenFromChests.add(key);
+    runs.dungeonManager.removeItemsFromRoomChest(templeId, at.position, [key.slice(split + 1)], at.level);
+  }
+  if (!state.clearedRooms) state.clearedRooms = new Set<string>();
+  for (const key of saved.clearedRooms) state.clearedRooms.add(key);
+
+  // Doors opened stay open: the layout was registered again locked
+  if (!state.openedDoors) state.openedDoors = new Set<string>();
+  for (const key of saved.openedDoors) {
+    state.openedDoors.add(key);
+    const split = key.lastIndexOf('>');
+    const at = parseRoomKey(key.slice(0, split));
+    const direction = key.slice(split + 1) as DoorState['direction'];
+    const isNotADoor = !at || !DOOR_DIRECTIONS.includes(direction);
+    if (isNotADoor) continue;
+    const room = runs.dungeonManager.getRoom(templeId, at.position, at.level);
+    if (room?.locked?.[direction]) room.locked = { ...room.locked, [direction]: false };
+  }
+  for (const key of saved.visitedRooms) {
+    state.visitedRooms.add(key);
+    const visited = parseRoomKey(key);
+    if (visited) runs.dungeonManager.visitRoom(templeId, visited.position, visited.level);
+  }
+
+  // Back to where the hero stopped, unless they already moved on or that room is gone from the layout
+  const [row, col] = state.currentPosition;
+  const atStart = resumeFrom && state.currentLevel === resumeFrom.level && row === resumeFrom.row && col === resumeFrom.col;
+  const cannotResumeThere = !atStart || !canStandAt(runs, templeId, saved.currentLevel, saved.currentPosition);
+  if (cannotResumeThere) return;
+
+  state.currentLevel = saved.currentLevel;
+  state.currentPosition = [saved.currentPosition[0], saved.currentPosition[1]];
+  visitRoom(runs, templeId, state.currentPosition);
+
+  // A fight left unfinished still holds the hero: a reload does not open the doors
+  const room = runs.dungeonManager.getRoom(templeId, state.currentPosition, state.currentLevel);
+  const isFightUnfinished = room?.content?.lockOnEnter && !isRoomCleared(runs, templeId, state.currentLevel, state.currentPosition);
+  if (isFightUnfinished) {
+    sealRoom(runs, templeId, state.currentLevel, state.currentPosition, room);
+  }
+}
