@@ -1,5 +1,7 @@
 import { createPinia, setActivePinia } from "pinia";
 import { useUserStore } from "@/lib/store/stores/user";
+import type { BattleEffectId } from "@/lib/services/battle/BattleEffects";
+import { unlockHintOf } from "@/lib/services/quests/ItemEffects";
 import {
   BATTLE_ITEMS,
   CHRONOS_FREEZE_MS,
@@ -9,9 +11,9 @@ import {
   REASON_NO_MP,
   REASON_USED,
   SOL_FLARE_FACTOR,
-  SOUND_HEAL,
   SOUND_ITEM,
   SOUND_NO,
+  battleBagRole,
   battleMpCost,
   describeBattleItem,
   heroMpCost,
@@ -22,8 +24,9 @@ import {
 
 /**
  * Every row of the battle item table, against a mocked engine: the right engine call, the MP spent, the
- * line and the sound, plus the refusals (not enough MP, once per fight, "does nothing here"). The user store
- * is real; only what it writes to disk is faked.
+ * line and the sound, plus the refusals (locked, not enough MP, once per fight, "can't use that in a fight")
+ * and the bag roles (effect items, the potion and Power containers). The user store is real; only what it
+ * writes to disk is faked.
  */
 
 jest.mock("@/lib/databases/ProfileDb", () => {
@@ -53,6 +56,8 @@ const ARROW = stored("Silver Arrow", "bow-arrow", "25MP | A precise magical arro
 const FLARE = stored("Sol's Flare", "flame", "100MP | Unleash the power of the sun!");
 const FIRE_WAND = stored("Fire Wand", "wand-magic fire", "50MP | Channel fire magic.");
 const BOTTLES = stored("Bottles", "flask-potion", "Store and access your potions and ethers.");
+const GOODS = stored("Goods", "backpack", "View all items you've collected on your journey.");
+const BOOK = stored("Book Of Spells", "book-spells", "Access your magical abilities.");
 const LANTERN = stored("Lantern", "flashlight", "5MP | Illuminate dark areas.");
 const BOMBS = stored("Bombs", "bomb", "40MP | Blast through tough obstacles!");
 const QUESTS = stored("My Quests", "staff quest", "5HP | View and manage all your active quests.");
@@ -85,7 +90,6 @@ const addHero = (mp: number, hp = { now: 30, max: 30 }) => {
 };
 
 const mpNow = () => (useUserStore().getUserById(HERO_ID) as any).stats.mp.now as number;
-const hpNow = () => (useUserStore().getUserById(HERO_ID) as any).stats.hp.now as number;
 
 describe("BattleItems", () => {
   let service: Engine;
@@ -95,7 +99,7 @@ describe("BattleItems", () => {
     setActivePinia(createPinia());
     addHero(300);
     service = mockEngine();
-    ctx = { userId: HERO_ID, service, usedThisFight: new Set<string>() };
+    ctx = { userId: HERO_ID, service, usedThisFight: new Set<BattleEffectId>() };
   });
 
   describe("MP costs", () => {
@@ -131,14 +135,13 @@ describe("BattleItems", () => {
     });
 
     it("the table matches the contract", () => {
-      expect(Object.entries(BATTLE_ITEMS).map(([name, rule]) => [name, rule.mp])).toEqual([
-        ["Ice Wand", 50],
-        ["Chronos' Clock", 100],
-        ["Thor's Hammer", 60],
-        ["Silver Arrow", 25],
-        ["Sol's Flare", 100],
-        ["Fire Wand", 50],
-        ["Bottles", 0],
+      expect(Object.entries(BATTLE_ITEMS).map(([name, rule]) => [name, rule.mp, rule.effect])).toEqual([
+        ["Ice Wand", 50, "frost"],
+        ["Chronos' Clock", 100, "time-stop"],
+        ["Thor's Hammer", 60, "stun"],
+        ["Silver Arrow", 25, "recall"],
+        ["Sol's Flare", 100, "weaken"],
+        ["Fire Wand", 50, "kindle"],
       ]);
     });
   });
@@ -171,7 +174,7 @@ describe("BattleItems", () => {
       expect(service.freezeClock).toHaveBeenCalledWith(CHRONOS_FREEZE_MS);
       expect(out).toEqual({ ok: true, line: "Time stands still for 15 minutes!", sound: SOUND_ITEM });
       expect(mpNow()).toBe(200);
-      expect(ctx.usedThisFight.has("Chronos' Clock")).toBe(true);
+      expect(ctx.usedThisFight.has("time-stop")).toBe(true);
 
       expect(useBattleItem(CHRONOS, ctx)).toEqual({ ok: false, line: REASON_USED, sound: SOUND_NO });
       expect(service.freezeClock).toHaveBeenCalledTimes(1);
@@ -235,31 +238,11 @@ describe("BattleItems", () => {
     });
   });
 
-  describe("Bottles", () => {
-    it("heal 25% of max HP for no MP, once per fight", () => {
-      useUserStore().updateUserHP({ userId: HERO_ID, amount: -20 });
-      const out = useBattleItem(BOTTLES, ctx);
-      expect(out).toEqual({ ok: true, line: "You drink from the bottles: +8 HP", sound: SOUND_HEAL });
-      expect(hpNow()).toBe(18);
-      expect(mpNow()).toBe(300);
-      expect(useBattleItem(BOTTLES, ctx)).toEqual({ ok: false, line: REASON_USED, sound: SOUND_NO });
-      expect(hpNow()).toBe(18);
-    });
-
-    it("never heal past the maximum and are not spent on a full hero", () => {
-      expect(useBattleItem(BOTTLES, ctx)).toEqual({ ok: false, line: "No need for a swig. Your HP is full.", sound: SOUND_NO });
-      expect(ctx.usedThisFight.has("Bottles")).toBe(false);
-
-      useUserStore().updateUserHP({ userId: HERO_ID, amount: -3 });
-      expect(useBattleItem(BOTTLES, ctx).line).toBe("You drink from the bottles: +3 HP");
-      expect(hpNow()).toBe(30);
-    });
-  });
-
   describe("everything else", () => {
     it.each([LANTERN, BOMBS, QUESTS, stored("Pegasus Boots", "boot"), stored("Gale's Wind", "wind", "300MP | Summon a wind.")])(
       "$name does nothing here and costs nothing",
       (item) => {
+        expect(REASON_NOTHING).toBe("Can't use that in a fight.");
         const out = useBattleItem(item, ctx);
         expect(out.ok).toBe(false);
         expect(out.line).toBe(`${item.name}: ${REASON_NOTHING}`);
@@ -299,6 +282,60 @@ describe("BattleItems", () => {
       // The arrow costs 25: still within reach
       expect(describeBattleItem(ARROW, ctx)?.reason).toBeNull();
       expect(describeBattleItem(BOTTLES, ctx)?.reason).toBeNull();
+    });
+  });
+
+  describe("the bag", () => {
+    it("battleBagRole sorts the bag", () => {
+      expect(battleBagRole(ICE_WAND)).toBe("effect");
+      expect(battleBagRole(BOTTLES)).toBe("potions");
+      expect(battleBagRole(GOODS)).toBe("potions");
+      expect(battleBagRole(BOOK)).toBe("powers");
+      expect(battleBagRole(LANTERN)).toBe("none");
+      expect(battleBagRole(null)).toBe("none");
+      // Containers are matched whatever the case
+      expect(battleBagRole(stored("BOTTLES", "flask-potion"))).toBe("potions");
+      expect(battleBagRole(stored("book of spells", "book-spells"))).toBe("powers");
+    });
+
+    it("a locked item says how to earn it", () => {
+      (useUserStore().getUserById(HERO_ID) as any).unlockedItems = [];
+      expect(describeBattleItem(HAMMER, ctx)?.reason).toBe(unlockHintOf("Thor's Hammer"));
+      expect(useBattleItem(HAMMER, ctx)).toEqual({ ok: false, line: unlockHintOf("Thor's Hammer"), sound: SOUND_NO });
+      expect(service.skipNextStrike).not.toHaveBeenCalled();
+      expect(mpNow()).toBe(300);
+
+      // Unlocked but not in a hand: any bag item works in a fight
+      (useUserStore().getUserById(HERO_ID) as any).unlockedItems = ["Thor's Hammer"];
+      expect(describeBattleItem(HAMMER, ctx)?.reason).toBeNull();
+      expect(useBattleItem(HAMMER, ctx).ok).toBe(true);
+    });
+
+    it("containers carry no reason and no MP", () => {
+      expect(describeBattleItem(BOTTLES, ctx)).toEqual({
+        name: "Bottles",
+        faIcon: "flask-potion",
+        mp: 0,
+        effect: "Your potions",
+        reason: null,
+      });
+      expect(describeBattleItem(GOODS, ctx)).toMatchObject({ mp: 0, effect: "Your potions", reason: null });
+      expect(describeBattleItem(BOOK, ctx)).toMatchObject({ mp: 0, effect: "Your Powers", reason: null });
+    });
+
+    it("Chronos' Clock and Time Stop share one use", () => {
+      ctx.usedThisFight = new Set<BattleEffectId>(["time-stop"]);
+      expect(describeBattleItem(CHRONOS, ctx)?.reason).toBe(REASON_USED);
+      expect(useBattleItem(CHRONOS, ctx)).toEqual({ ok: false, line: REASON_USED, sound: SOUND_NO });
+      expect(service.freezeClock).not.toHaveBeenCalled();
+      expect(mpNow()).toBe(300);
+    });
+
+    it("MP is charged only on success", () => {
+      expect(useBattleItem(ARROW, ctx).needsTaskPick).toBe(true);
+      expect(mpNow()).toBe(300);
+      expect(useBattleItem(ARROW, { ...ctx, taskId: "t1" }).ok).toBe(true);
+      expect(mpNow()).toBe(275);
     });
   });
 });

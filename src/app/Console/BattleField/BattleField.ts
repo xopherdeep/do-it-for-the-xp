@@ -4,6 +4,7 @@ import { useRoute, useRouter } from "vue-router";
 import { createBattleService, createBestiaryService } from "@/lib/services/battle";
 import type { BattleService, CombatTask, Enemy } from "@/lib/services/battle/BattleService";
 import { describeBattleItem, useBattleItem, type BattleItemCard, type BattleItemLike } from "@/lib/services/battle/BattleItems";
+import type { BattleEffectId } from "@/lib/services/battle/BattleEffects";
 import { useHeroEquipment } from "@/hooks/useHeroEquipment";
 import { useUserStore } from "@/lib/store/stores/user";
 import { heroPassive } from "@/lib/services/stats/StatEffects";
@@ -72,8 +73,8 @@ export default defineComponent({
     const showItemMenu = ref(false);
     /** The Silver Arrow in hand while the hero picks the chore it will carry away. */
     let arrowInFlight: BattleItemLike | null = null;
-    /** Once-per-fight items already used; a new fight starts with an empty set. */
-    let usedThisFight = new Set<string>();
+    /** Once-per-fight effects already used (items and Powers share them); a new fight starts with an empty set. */
+    let usedThisFight = new Set<BattleEffectId>();
     const enemyAnimationClass = ref<EnemyAnimation>("");
     const heroDowned = ref(false);
     const lastHit = ref<HitPopup | null>(null);
@@ -344,7 +345,7 @@ export default defineComponent({
 
         const engine = createEngine();
         service.value = engine;
-        usedThisFight = new Set<string>();
+        usedThisFight = new Set<BattleEffectId>();
         engine.initMultiBattle(loaded.enemies, [ctx.userId]);
         currentEnemy.value = loaded.enemies[0];
         await background.applyEnemy(loaded.enemies[0]);

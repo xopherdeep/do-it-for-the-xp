@@ -4,6 +4,7 @@
  * Pure type declarations for the ability system.
  * Runtime constants are in @/hooks/abilities/abilityConstants.ts
  */
+import type { BattleEffectId } from "@/lib/services/battle/BattleEffects";
 
 /**
  * Ability Type - real-life or in-game
@@ -88,6 +89,8 @@ export interface Ability {
   characterRequirement?: CharacterRequirement;
   scaling?: AbilityScaling;
   lastUsed?: string;
+  /** In-game Powers: the fight effect the Game Master picked ("In battle"); 'none' wins over the preset default. */
+  battleEffect?: BattleEffectId | "none";
 }
 
 /**
