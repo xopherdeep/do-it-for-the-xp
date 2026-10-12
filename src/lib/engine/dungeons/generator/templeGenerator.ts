@@ -60,6 +60,12 @@ export interface GenerateOptions {
   quests?: QuestRef[];
   id?: string;
   name?: string;
+  /** Rooms carved on each floor (loops, the Pegasus chamber and the shortcuts come on top); default is half the grid */
+  roomsPerFloor?: number;
+  /** The Boss Key goes in a chest room of its own past the mini-boss, never in the mini-boss room, so the audit finds the chest */
+  bossKeyChest?: boolean;
+  /** Name the Pegasus chamber a Master Room (`type: "master"`, the name the picker and the audit use) rather than a loot room */
+  masterRoom?: boolean;
 }
 
 export interface GeneratedTemple extends Dungeon {
@@ -283,8 +289,8 @@ const farthestLeaf = (skeleton: Skeleton, floor: number, from: string): Cell | u
 };
 
 /** Carve every floor, each one starting under the stairs that lead up to it. */
-const carveFloors = (skeleton: Skeleton, rng: Rng): Cell | undefined => {
-  const target = Math.max(8, Math.ceil(skeleton.rows * skeleton.cols * 0.5));
+const carveFloors = (skeleton: Skeleton, rng: Rng, roomsPerFloor?: number): Cell | undefined => {
+  const target = roomsPerFloor ?? Math.max(8, Math.ceil(skeleton.rows * skeleton.cols * 0.5));
   let start = addCell(skeleton, 0, between(rng, 0, skeleton.rows - 1), between(rng, 0, skeleton.cols - 1), "entrance");
   const entrance = start;
   for (let floor = 0; floor < skeleton.floors; floor++) {
@@ -349,7 +355,7 @@ const chooseMiniboss = (skeleton: Skeleton, rng: Rng, locks: number): number | u
 const buildSkeleton = (rng: Rng, options: GenerateOptions, locks: number): Skeleton | undefined => {
   const dimensions = dimensionsFor(rng, options);
   const skeleton: Skeleton = { ...dimensions, cells: new Map(), adjacency: new Map(), parent: new Map(), depth: new Map(), path: [], minibossAt: 0, pegasus: "" };
-  const entrance = carveFloors(skeleton, rng);
+  const entrance = carveFloors(skeleton, rng, options.roomsPerFloor);
   if (!entrance) return undefined;
   rootTree(skeleton, entrance.key);
   const boss = chooseBoss(skeleton);
@@ -475,23 +481,27 @@ const placeSideLock = (dressing: Dressing): void => {
   lockEdge(dressing, parent, child.key);
 };
 
-/** Step 4: the master key, in the mini-boss room's chest or in a leaf hanging off the path past the mini-boss. */
-const placeMasterKey = (dressing: Dressing): void => {
+/**
+ * Step 4: the master key, in the mini-boss room's chest or in a leaf hanging off the path past the mini-boss. With
+ * `bossKeyChest` it always gets a chest room of its own: a leaf when there is one, else any room past the mini-boss.
+ */
+const placeMasterKey = (dressing: Dressing, bossKeyChest = false): void => {
   const { skeleton, rng } = dressing;
   const miniboss = skeleton.path[skeleton.minibossAt];
-  const leaves = [...skeleton.cells.values()]
-    .filter((cell) => cell.kind === "plain" && isLeaf(skeleton, cell.key) && !dressing.reserved.has(cell.key))
-    .filter((cell) => {
-      const anchor = pathTo(skeleton, cell.key).reverse().find((key) => onPath(skeleton, key))!;
-      const index = skeleton.path.indexOf(anchor);
-      return index >= skeleton.minibossAt && index < skeleton.path.length - 1;
-    });
-  if (chance(rng, 0.6) || !leaves.length) {
+  const pastMiniboss = (cell: Cell): boolean => {
+    const anchor = pathTo(skeleton, cell.key).reverse().find((key) => onPath(skeleton, key))!;
+    const index = skeleton.path.indexOf(anchor);
+    return index >= skeleton.minibossAt && index < skeleton.path.length - 1;
+  };
+  const free = [...skeleton.cells.values()].filter((cell) => cell.kind === "plain" && !dressing.reserved.has(cell.key) && pastMiniboss(cell));
+  const leaves = free.filter((cell) => isLeaf(skeleton, cell.key));
+  const spots = bossKeyChest && !leaves.length ? free : leaves;
+  if (bossKeyChest ? !spots.length : chance(rng, 0.6) || !spots.length) {
     reserveAs(dressing, miniboss, "miniboss", { lockOnEnter: true, difficulty: "hard", chest: "dungeon", dungeon: "master-key" });
     return;
   }
   reserveAs(dressing, miniboss, "miniboss", { lockOnEnter: true, difficulty: "hard" });
-  reserveAs(dressing, pick(rng, leaves.map((cell) => cell.key)), "master");
+  reserveAs(dressing, pick(rng, spots.map((cell) => cell.key)), "master");
 };
 
 /** Step 3: the boss door, locked with the master key on the boss room and barred on the room in front of it. */
@@ -759,7 +769,7 @@ const dress = (skeleton: Skeleton, rng: Rng, options: GenerateOptions, locks: nu
   lockBossDoor(dressing);
   placeCriticalLocks(dressing, locks);
   if (chance(rng, 0.5)) placeSideLock(dressing);
-  placeMasterKey(dressing);
+  placeMasterKey(dressing, options.bossKeyChest);
   const zones = zoneSignatures(dressing);
   addLoops(dressing, zones);
   placeComforts(dressing);
@@ -793,6 +803,16 @@ const skeletonFor = (seed: string, options: GenerateOptions, locks: number): Ske
   throw new Error(`generateTemple: no skeleton with a critical path for seed "${seed}" after ${MAX_ATTEMPTS} attempts`);
 };
 
+/** The Pegasus chest's room renamed Master Room. The solver reads the loot spelling, so this runs after it has passed. */
+const withMasterRoom = (temple: Omit<GeneratedTemple, "criticalPath" | "attempts">): typeof temple => ({
+  ...temple,
+  rooms: Object.fromEntries(Object.entries(temple.rooms).map(([token, room]) => [token, room.type === "loot" && room.content?.pegasus === true ? { ...room, type: "master" } : room])),
+});
+
+/** Whether the mini-boss room holds the Boss Key itself, which `bossKeyChest` rules out. */
+const bossKeyInMiniboss = (temple: Pick<GeneratedTemple, "rooms">): boolean =>
+  Object.values(temple.rooms).some((room) => room.type === "miniboss" && room.content?.dungeon === "master-key");
+
 /**
  * Generate a temple from a seed. Same seed and options, same temple (R11). Throws when eight dressings in a
  * row fail the solver, which the tests treat as a bug.
@@ -807,8 +827,10 @@ export const generateTemple = (seed: number | string, options: GenerateOptions):
     const dressed = dress(skeleton, rngFor(`${seedText}/dress/${attempt}`), options, locks, themeId);
     const temple = toTemple(dressed, seed, options, themeId);
     const verdict = solveTemple(temple);
-    if (!verdict.reasons.length) return { ...temple, criticalPath: verdict.criticalPath, attempts: attempt + 1 };
-    failures.push(`attempt ${attempt + 1}: ${verdict.reasons.join("; ")}`);
+    const reasons = [...verdict.reasons];
+    if (options.bossKeyChest && bossKeyInMiniboss(temple)) reasons.push("the Boss Key has no chest of its own");
+    if (!reasons.length) return { ...(options.masterRoom ? withMasterRoom(temple) : temple), criticalPath: verdict.criticalPath, attempts: attempt + 1 };
+    failures.push(`attempt ${attempt + 1}: ${reasons.join("; ")}`);
   }
   throw new Error(`generateTemple: seed "${seedText}" failed the solver ${MAX_ATTEMPTS} times\n${failures.join("\n")}`);
 };
