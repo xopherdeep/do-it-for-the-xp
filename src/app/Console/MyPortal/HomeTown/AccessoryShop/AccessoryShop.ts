@@ -93,10 +93,10 @@ export default defineComponent({
       showAtm: false,
       // Map shop IDs to background image paths
       shopBackgrounds: {
-        "pegasus-ranch": require("@/assets/images/backgrounds/shops/pegasus-ranch.png"),
-        "wrecked-ship": require("@/assets/images/backgrounds/shops/wrecked-ship.png"),
-        "witchs-hut": require("@/assets/images/backgrounds/shops/witch's-hut.png"),
-        "snow-shack": require("@/assets/images/backgrounds/shops/snow-shack.png"),
+        "pegasus-ranch": require("@/assets/images/backgrounds/shops/pegasus-ranch.webp"),
+        "wrecked-ship": require("@/assets/images/backgrounds/shops/wrecked-ship.webp"),
+        "witchs-hut": require("@/assets/images/backgrounds/shops/witch's-hut.webp"),
+        "snow-shack": require("@/assets/images/backgrounds/shops/snow-shack.webp"),
         // For other shops without specific backgrounds, use the default
         "hermits-tent": require("@/assets/images/midjourney/shop.webp"),
         "crystal-caverns": require("@/assets/images/midjourney/shop.webp"),

@@ -12,7 +12,7 @@ module.exports = {
   outputDir: process.env.XP_OUTPUT_DIR || 'dist',
 
   // Keep superseded art out of the bundle. TempleGrounds.ts requires
-  // `@/assets/images/backgrounds/${temple}/${xy}.jpg`, which webpack turns into an implicit,
+  // `@/assets/images/backgrounds/${temple}/${xy}.webp`, which webpack turns into an implicit,
   // recursive context over the whole backgrounds folder, so it would also emit the `ai/` and
   // `old/` drafts (.gitignore marks backgrounds/ai, backgrounds/old and backgrounds/gaia as
   // local-only) and wind-temple/old/. No code requests those keys, so drop them from every context.

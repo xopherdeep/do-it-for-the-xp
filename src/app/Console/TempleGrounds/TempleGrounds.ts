@@ -378,7 +378,7 @@ export default defineComponent({
     // Helper to get background images
     const getBgImage = (xy: string) => {
       try {
-        return require(`@/assets/images/backgrounds/${props.temple}/${xy}.jpg`);
+        return require(`@/assets/images/backgrounds/${props.temple}/${xy}.webp`);
       } catch {
         return '';
       }
@@ -1116,7 +1116,7 @@ export default defineComponent({
     currentBgImage() {
       const [row, col] = this.currentPosition;
       try {
-        return require(`@/assets/images/backgrounds/${this.temple}/[${row},${col}].jpg`);
+        return require(`@/assets/images/backgrounds/${this.temple}/[${row},${col}].webp`);
       } catch {
         return '';
       }
