@@ -15,7 +15,7 @@ export default defineComponent({
 
     async function claim() {
       timedOut.value = false;
-      const ok = await pro.claimWithRetry();
+      const ok = await pro.claimWithRetry({ keepClaiming: true });
       if (!ok) {
         timedOut.value = true;
         return;

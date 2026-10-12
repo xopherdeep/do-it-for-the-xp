@@ -1,5 +1,5 @@
 import { defineStore } from "pinia";
-import { computed, ref } from "vue";
+import { computed, onScopeDispose, ref, watch } from "vue";
 import { usesHashHistory } from "@/router/historyMode";
 import { getProDb } from "@/lib/databases/ProDb";
 import { compassSiteRoot } from "@/lib/api/apiHost";
@@ -25,7 +25,9 @@ export const useProStore = defineStore("pro", () => {
   const deviceId = ref("");
   const loading = ref(false);
 
-  const isPro = computed(() => entitled(license.value, new Date(), process.env.NODE_ENV === "production"));
+  /** Ticks every hour so isPro and needsRecheck notice an expiry without a reload. */
+  const now = ref(new Date());
+  const isPro = computed(() => entitled(license.value, now.value, process.env.NODE_ENV === "production"));
   const plan = computed(() => license.value?.plan ?? null);
   const expiresAt = computed(() => license.value?.expiresAt ?? null);
   const licenseKey = computed(() => license.value?.key ?? "");
@@ -35,18 +37,25 @@ export const useProStore = defineStore("pro", () => {
   }
 
   function cacheFrom(status: ProStatus) {
+    now.value = new Date();
     license.value = {
       key: status.licenseKey,
       plan: status.plan,
       expiresAt: status.expiresAt,
       env: status.env,
       pro: status.pro,
-      lastValidatedAt: new Date().toISOString(),
+      lastValidatedAt: now.value.toISOString(),
     };
   }
 
   /** Ask the server again. A network or server error keeps what is cached; a 404 turns Pro off but keeps the key. */
-  async function recheck(): Promise<void> {
+  let rechecking: Promise<void> | null = null;
+  function recheck(): Promise<void> {
+    if (!rechecking) rechecking = doRecheck().finally(() => (rechecking = null));
+    return rechecking;
+  }
+
+  async function doRecheck(): Promise<void> {
     loading.value = true;
     try {
       const key = license.value?.key;
@@ -57,7 +66,8 @@ export const useProStore = defineStore("pro", () => {
         cacheFrom(status);
         await persist();
       } else if (license.value) {
-        license.value = { ...license.value, pro: false, lastValidatedAt: new Date().toISOString() };
+        now.value = new Date();
+        license.value = { ...license.value, pro: false, lastValidatedAt: now.value.toISOString() };
         await persist();
       }
     } catch (e) {
@@ -68,9 +78,42 @@ export const useProStore = defineStore("pro", () => {
     }
   }
 
+  let disposed = false;
+  let clockTimer: ReturnType<typeof setInterval> | null = null;
+  let backgroundTimer: ReturnType<typeof setTimeout> | null = null;
+  let backgroundRunning = false;
+
+  onScopeDispose(() => {
+    disposed = true;
+    if (clockTimer) clearInterval(clockTimer);
+    if (backgroundTimer) clearTimeout(backgroundTimer);
+  });
+
+  /** A recheck nobody waits for: a failure keeps the cached state, anything else is ignored. */
+  function recheckInBackground() {
+    recheck().catch(() => undefined);
+  }
+
+  function startClock() {
+    if (clockTimer) return;
+    clockTimer = setInterval(() => {
+      now.value = new Date();
+    }, 60 * 60 * 1000);
+    (clockTimer as unknown as { unref?: () => void }).unref?.();
+    watch(
+      () => needsRecheck(license.value, now.value),
+      (due) => {
+        if (due && !disposed) recheckInBackground();
+      }
+    );
+  }
+
   let initPromise: Promise<void> | null = null;
 
-  /** Load the identity and the cached license, then recheck when the rules ask for it. Runs once. */
+  /**
+   * Load the identity and the cached license. With a cache this resolves at once and any recheck runs in the
+   * background; with no cache at all the first claim is awaited, because there is nothing to show yet.
+   */
   function init(): Promise<void> {
     if (!initPromise) {
       initPromise = (async () => {
@@ -79,7 +122,13 @@ export const useProStore = defineStore("pro", () => {
         deviceId.value = identity.deviceId;
         const stored = await getProDb().getState();
         license.value = stored?.license ?? null;
-        if (needsRecheck(license.value, new Date())) await recheck();
+        now.value = new Date();
+        const due = needsRecheck(license.value, now.value);
+        startClock();
+        if (due) {
+          if (license.value) recheckInBackground();
+          else await recheck();
+        }
       })().catch((e) => {
         initPromise = null;
         throw e;
@@ -88,11 +137,53 @@ export const useProStore = defineStore("pro", () => {
     return initPromise;
   }
 
+  /** One claim; true when it came back Pro (the license is cached). A lapsed family answers 200 with pro:false. */
+  async function attemptClaim(): Promise<boolean> {
+    try {
+      const status = await proClient.claim(familyId.value, deviceId.value);
+      if (status) {
+        cacheFrom(status);
+        await persist();
+        return status.pro;
+      }
+    } catch (e) {
+      if (!(e instanceof ProClientError)) throw e;
+    }
+    return false;
+  }
+
+  /** After the Return page gives up, keep asking every 15 s for up to 10 minutes and unlock when Pro arrives. */
+  function claimInBackground() {
+    if (backgroundRunning) return;
+    backgroundRunning = true;
+    const intervalMs = 15000;
+    const attempts = (10 * 60 * 1000) / intervalMs;
+    (async () => {
+      for (let i = 0; i < attempts && !disposed; i++) {
+        await new Promise<void>((resolve) => {
+          backgroundTimer = setTimeout(resolve, intervalMs);
+        });
+        if (disposed) return;
+        if (await attemptClaim().catch(() => false)) {
+          await proToast("XP Pro unlocked!", "success");
+          return;
+        }
+      }
+    })()
+      .catch(() => undefined)
+      .finally(() => {
+        backgroundRunning = false;
+      });
+  }
+
   /**
-   * Poll claim until the license arrives (a purchase's webhook lands within seconds).
-   * Resolves true at the first 200 that is Pro, false when the timeout passes.
+   * Poll claim until Pro arrives (a purchase's webhook lands within seconds).
+   * Resolves true at the first 200 that is Pro (a lapsed family's pro:false keeps polling), false at the timeout.
+   * With keepClaiming, a timeout hands over to a slower background claim.
    */
-  async function claimWithRetry(opts: { intervalMs?: number; timeoutMs?: number } = {}): Promise<boolean> {
+  async function claimWithRetry(
+    opts: { intervalMs?: number; timeoutMs?: number; keepClaiming?: boolean } = {}
+  ): Promise<boolean> {
     const intervalMs = opts.intervalMs ?? 2000;
     const timeoutMs = opts.timeoutMs ?? 30000;
     await init();
@@ -100,18 +191,10 @@ export const useProStore = defineStore("pro", () => {
     loading.value = true;
     try {
       for (let i = 0; i < attempts; i++) {
-        try {
-          const status = await proClient.claim(familyId.value, deviceId.value);
-          if (status) {
-            cacheFrom(status);
-            await persist();
-            return status.pro;
-          }
-        } catch (e) {
-          if (!(e instanceof ProClientError)) throw e;
-        }
+        if (await attemptClaim()) return true;
         if (i < attempts - 1) await sleep(intervalMs);
       }
+      if (opts.keepClaiming) claimInBackground();
       return false;
     } finally {
       loading.value = false;

@@ -162,6 +162,83 @@ describe("pro store", () => {
     expect(claim).toHaveBeenCalledTimes(16);
   });
 
+  it("a lapsed family's claim keeps polling until pro is true", async () => {
+    claim.mockResolvedValue(null);
+    const store = useProStore();
+    await store.init();
+    jest.useFakeTimers();
+    claim.mockReset();
+    claim
+      .mockResolvedValueOnce(status({ pro: false }))
+      .mockResolvedValueOnce(status({ pro: false }))
+      .mockResolvedValueOnce(status());
+    const won = store.claimWithRetry({ intervalMs: 2000, timeoutMs: 30000 });
+    await tick(2000);
+    await tick(2000);
+    expect(await won).toBe(true);
+    expect(claim).toHaveBeenCalledTimes(3);
+    expect(store.isPro).toBe(true);
+  });
+
+  it("init resolves from cache before the recheck finishes", async () => {
+    mockStored = {
+      familyId: FAMILY,
+      deviceId: "devicetest01",
+      license: cached({ lastValidatedAt: new Date(Date.now() - 2 * 86400000).toISOString() }) as any,
+    };
+    let release: (v: unknown) => void = () => undefined;
+    validate.mockReturnValue(new Promise((r) => (release = r)));
+    const store = useProStore();
+    await store.init();
+    expect(store.isPro).toBe(true);
+    expect(validate).toHaveBeenCalledTimes(1);
+    release(status({ plan: "monthly" }));
+    for (let i = 0; i < 20; i++) await Promise.resolve();
+    expect(store.plan).toBe("monthly");
+    store.$dispose();
+  });
+
+  it("a Return timeout keeps claiming in the background and unlocks", async () => {
+    claim.mockResolvedValue(null);
+    const store = useProStore();
+    await store.init();
+    jest.useFakeTimers();
+    claim.mockReset();
+    claim.mockResolvedValue(null);
+    const lost = store.claimWithRetry({ intervalMs: 2000, timeoutMs: 4000, keepClaiming: true });
+    for (let i = 0; i < 4; i++) await tick(2000);
+    expect(await lost).toBe(false);
+    expect(store.isPro).toBe(false);
+    claim.mockClear();
+    claim.mockResolvedValueOnce(null).mockResolvedValueOnce(status());
+    await tick(15000);
+    await tick(15000);
+    expect(claim).toHaveBeenCalledTimes(2);
+    expect(store.isPro).toBe(true);
+    await tick(15000);
+    expect(claim).toHaveBeenCalledTimes(2);
+    store.$dispose();
+  });
+
+  it("isPro turns off after expiry plus 3 days without a reload", async () => {
+    jest.useFakeTimers();
+    mockStored = {
+      familyId: FAMILY,
+      deviceId: "devicetest01",
+      license: cached({ expiresAt: new Date(Date.now() + 86400000).toISOString() }) as any,
+    };
+    validate.mockRejectedValue(new ProClientError("network"));
+    const store = useProStore();
+    await store.init();
+    expect(store.isPro).toBe(true);
+    for (let h = 0; h < 24 * 3; h++) await tick(3600 * 1000);
+    expect(store.isPro).toBe(true); // inside the 3-day grace
+    for (let h = 0; h < 24 * 1 + 2; h++) await tick(3600 * 1000);
+    expect(store.isPro).toBe(false);
+    expect(validate).toHaveBeenCalled(); // the expiry triggered a background recheck
+    store.$dispose();
+  });
+
   it("restoreWithKey adopts the returned family", async () => {
     claim.mockResolvedValue(null);
     validate.mockResolvedValue(status({ familyId: OTHER_FAMILY }));

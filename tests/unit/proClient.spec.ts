@@ -67,4 +67,41 @@ describe("proClient", () => {
     (global as any).fetch = reply(200, { name: "Gloop" });
     expect(await askAi("monster_name", {}, "K", "d")).toEqual({ name: "Gloop" });
   });
+
+  it("a rest_no_route 404 is a server error and keeps Pro", async () => {
+    (global as any).fetch = reply(404, { code: "rest_no_route" });
+    await expect(claim(server.family_id, "devicetest01")).rejects.toMatchObject({ code: "server" });
+    await expect(validate("XP-PRO-AAAA-BBBB-CCCC", "devicetest01")).rejects.toMatchObject({ code: "server" });
+    (global as any).fetch = reply(503, null);
+    await expect(claim(server.family_id, "devicetest01")).rejects.toMatchObject({ code: "server" });
+  });
+
+  it("a {pro:false} 404 is no license", async () => {
+    (global as any).fetch = reply(404, { pro: false });
+    expect(await claim(server.family_id, "devicetest01")).toBeNull();
+    expect(await validate("XP-PRO-AAAA-BBBB-CCCC", "devicetest01")).toBeNull();
+  });
+
+  it("a stalled fetch becomes a network error after 8 s", async () => {
+    jest.useFakeTimers();
+    try {
+      (global as any).fetch = jest.fn(
+        (_url: string, init: { signal: AbortSignal }) =>
+          new Promise((_resolve, reject) => {
+            init.signal.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")));
+          })
+      );
+      let settled: any = null;
+      const p = claim(server.family_id, "devicetest01").catch((e) => (settled = e));
+      jest.advanceTimersByTime(7999);
+      await Promise.resolve();
+      expect(settled).toBeNull();
+      jest.advanceTimersByTime(2);
+      await p;
+      expect(settled).toBeInstanceOf(ProClientError);
+      expect(settled.code).toBe("network");
+    } finally {
+      jest.useRealTimers();
+    }
+  });
 });

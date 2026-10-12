@@ -39,25 +39,37 @@ export type AiTask = "monster_name" | "checklist" | "full_beast" | "schedule";
 
 const base = () => `${compassRestRoot()}/compass/v1/gatekeeper/xp-pro`;
 
+export const REQUEST_TIMEOUT_MS = 8000;
+
 async function call(path: string, body?: unknown): Promise<{ status: number; data: any }> {
-  let res: Response;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   try {
-    res = await fetch(`${base()}/${path}`, {
-      method: body === undefined ? "GET" : "POST",
-      headers: { "Content-Type": "application/json" },
-      body: body === undefined ? undefined : JSON.stringify(body),
-    });
-  } catch {
-    throw new ProClientError("network");
+    let res: Response;
+    try {
+      res = await fetch(`${base()}/${path}`, {
+        method: body === undefined ? "GET" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: body === undefined ? undefined : JSON.stringify(body),
+        signal: controller.signal,
+      });
+    } catch {
+      throw new ProClientError("network");
+    }
+    let data: any = null;
+    try {
+      data = await res.json();
+    } catch {
+      data = null;
+    }
+    return { status: res.status, data };
+  } finally {
+    clearTimeout(timer);
   }
-  let data: any = null;
-  try {
-    data = await res.json();
-  } catch {
-    data = null;
-  }
-  return { status: res.status, data };
 }
+
+/** Only the Gatekeeper's own "no license" answer is a 404 that turns Pro off; a missing route is a server error. */
+const noLicense = (status: number, data: any): boolean => status === 404 && data?.pro === false;
 
 function fail(status: number, data: any): never {
   const code = data?.error;
@@ -88,7 +100,7 @@ export async function fetchPlans(): Promise<Record<ProPlanId, ProPlanInfo>> {
 /** The family's license, or null when nothing has arrived for it yet. */
 export async function claim(familyId: string, deviceId: string): Promise<ProStatus | null> {
   const { status, data } = await call("claim", { family_id: familyId, device_id: deviceId });
-  if (status === 404) return null;
+  if (noLicense(status, data)) return null;
   if (status !== 200) fail(status, data);
   return toStatus(data);
 }
@@ -96,7 +108,7 @@ export async function claim(familyId: string, deviceId: string): Promise<ProStat
 /** Check a key (also how a second device restores). Null when the key is unknown. */
 export async function validate(licenseKey: string, deviceId: string): Promise<ProStatus | null> {
   const { status, data } = await call("validate", { license_key: licenseKey, device_id: deviceId });
-  if (status === 404) return null;
+  if (noLicense(status, data)) return null;
   if (status !== 200) fail(status, data);
   return toStatus(data);
 }
