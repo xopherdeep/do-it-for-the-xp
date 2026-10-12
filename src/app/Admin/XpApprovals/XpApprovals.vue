@@ -238,7 +238,8 @@
 
       const heroAvatar = (userId: string): string => {
         const hero = heroFor(userId);
-        if (!hero || !globalProps?.$getUserAvatar) return "";
+        const isAvatarUnavailable = !hero || !globalProps?.$getUserAvatar;
+        if (isAvatarUnavailable) return "";
         try {
           return globalProps.$getUserAvatar(hero) || "";
         } catch {
@@ -248,7 +249,8 @@
 
       const formatDate = (dateString: string) => {
         const date = new Date(dateString);
-        if (!dateString || Number.isNaN(date.getTime())) return "";
+        const isUnreadableDate = !dateString || Number.isNaN(date.getTime());
+        if (isUnreadableDate) return "";
         return format(date, "MMM d, h:mma");
       };
 

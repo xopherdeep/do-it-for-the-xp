@@ -145,7 +145,8 @@ export default defineComponent({
       else if (dir === 'east') nCol++;
       else if (dir === 'west') nCol--;
       
-      if (nRow < 0 || nRow >= props.maze.length || nCol < 0 || nCol >= props.maze[0].length) {
+      const isOutsideMaze = nRow < 0 || nRow >= props.maze.length || nCol < 0 || nCol >= props.maze[0].length;
+      if (isOutsideMaze) {
         return false;
       }
       

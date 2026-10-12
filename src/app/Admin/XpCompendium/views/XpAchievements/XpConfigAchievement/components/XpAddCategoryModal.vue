@@ -130,7 +130,8 @@
       },
       renameCategory(category, name) {
         const trimmed = (name || "").trim();
-        if (!trimmed || trimmed === category.name) return;
+        const shouldSkipRename = !trimmed || trimmed === category.name;
+        if (shouldSkipRename) return;
         this.$emit(
           "edit-categories",
           this.categories.map((cat) => (cat.id === category.id ? { ...cat, name: trimmed } : cat))

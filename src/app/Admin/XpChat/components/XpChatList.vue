@@ -58,7 +58,8 @@ export default defineComponent({
 
         // Watch for new messages
         watch(() => props.messages, (newVal) => {
-            if (!newVal || !newVal.length) {
+            const hasNoMessages = !newVal || !newVal.length;
+            if (hasNoMessages) {
                 lastProcessedId.value = null;
                 return;
             }

@@ -442,7 +442,8 @@ Feed the pets`,
     },
 
     async processBulkImport(questList: string) {
-      if (!questList || !questList.trim()) {
+      const isQuestListEmpty = !questList || !questList.trim();
+      if (isQuestListEmpty) {
         return;
       }
 

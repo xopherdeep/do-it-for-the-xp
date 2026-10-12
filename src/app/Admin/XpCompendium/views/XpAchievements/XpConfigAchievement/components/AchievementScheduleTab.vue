@@ -346,7 +346,8 @@ const formatDate = (dateStr?: string) => {
 const formatTime = (timeStr?: string) => {
   if (!timeStr) return null;
   try {
-    if (timeStr.includes('T') || timeStr.includes('-')) {
+    const isDateTimeString = timeStr.includes('T') || timeStr.includes('-');
+    if (isDateTimeString) {
       const date = new Date(timeStr);
       if (isNaN(date.getTime())) return timeStr;
       return date.toLocaleTimeString(undefined, { 
@@ -380,7 +381,8 @@ const daysOfWeek = [
 // XP Pro: custom repeats, the times-of-day chips and "times per day" above 1 are Pro. A free family can still
 // see (and keep) what a saved quest already has; only changing it opens the upsell.
 const updateSchedule = async (value: string) => {
-  if (value === 'custom' && achievement.value.basicSchedule !== 'custom') {
+  const isSwitchingToCustom = value === 'custom' && achievement.value.basicSchedule !== 'custom';
+  if (isSwitchingToCustom) {
     if (!(await pro.requirePro('advancedSchedule'))) return;
   }
   achievement.value.basicSchedule = value;
@@ -430,7 +432,8 @@ const toggleTime = async (time: TimeOfDay) => {
 
 const updateTimesPerDay = async (input: HTMLInputElement) => {
   const value = parseInt(input.value);
-  if (value > 1 && !pro.isPro) {
+  const isLockedByPro = value > 1 && !pro.isPro;
+  if (isLockedByPro) {
     input.value = String(achievement.value.customFrequency || 1);
     await pro.requirePro('advancedSchedule');
     return;

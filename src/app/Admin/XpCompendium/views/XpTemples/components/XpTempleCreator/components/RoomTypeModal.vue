@@ -336,7 +336,8 @@
     const strip = rail.value;
     const key = props.step === 1 ? shownCategory.value?.name : shownType.value;
     const button = strip?.querySelector<HTMLElement>(`[data-pick="${key}"]`);
-    if (!strip || !button) return;
+    const isRailNotReady = !strip || !button;
+    if (isRailNotReady) return;
     strip.scrollTo({ left: button.offsetLeft - (strip.clientWidth - button.offsetWidth) / 2, behavior: smooth ? "smooth" : "auto" });
   };
 

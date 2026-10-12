@@ -329,7 +329,8 @@ function openPicker(row: HeroRow) {
 async function confirmPick() {
   const row = pickerFor.value;
   pickerFor.value = null;
-  if (!row || !pickDate.value) return;
+  const isPickIncomplete = !row || !pickDate.value;
+  if (isPickIncomplete) return;
   const when = new Date(pickDate.value); // a local wall-clock string parses in the viewer's zone
   if (Number.isNaN(when.getTime())) return;
   await act(
@@ -385,7 +386,8 @@ watch(
   () => props.isOpen,
   (open) => {
     if (!open) return;
-    if (!templeId.value && props.temples.length) templeId.value = props.temples[0].id;
+    const shouldPickFirstTemple = !templeId.value && props.temples.length;
+    if (shouldPickFirstTemple) templeId.value = props.temples[0].id;
     else void load();
   }
 );

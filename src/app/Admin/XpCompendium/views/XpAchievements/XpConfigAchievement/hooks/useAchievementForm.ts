@@ -47,6 +47,10 @@ const resolveLegacyAdventureType = (hasBeast: boolean, hasSubAchievements: boole
   return "simple";
 };
 
+// "new" is the route placeholder for a quest that has no saved id yet
+const isSavedQuestId = (questId?: string) =>
+  Boolean(questId && questId !== "new");
+
 export const AchievementFormInjectionKey: InjectionKey<
   ReturnType<typeof useAchievementForm>
 > = Symbol("AchievementForm");
@@ -264,7 +268,9 @@ export function useAchievementForm() {
 
       return `Weekly\n${activeDays}`;
     }
-    if (a.basicSchedule === "custom" || a.scheduleType === "custom") {
+    const isCustomSchedule =
+      a.basicSchedule === "custom" || a.scheduleType === "custom";
+    if (isCustomSchedule) {
       return `${a.customFrequency}x Every ${a.customPeriodNumber} ${
         a.customPeriodType
       }${a.customPeriodNumber > 1 ? "s" : ""}`;
@@ -308,8 +314,10 @@ export function useAchievementForm() {
     return [...users.value].sort((a, b) => {
       const aActive = assignees.includes(a.id);
       const bActive = assignees.includes(b.id);
-      if (aActive && !bActive) return -1;
-      if (!aActive && bActive) return 1;
+      const isOnlyFirstAssigned = aActive && !bActive;
+      if (isOnlyFirstAssigned) return -1;
+      const isOnlySecondAssigned = !aActive && bActive;
+      if (isOnlySecondAssigned) return 1;
       return a.name.first.localeCompare(b.name.first);
     });
   });
@@ -428,16 +436,16 @@ export function useAchievementForm() {
     if (!achievement.value.difficulty)
       messages.push("• Set the difficulty level");
 
-    if (
+    const isMissingBeast =
       achievement.value.adventureType === "beast" &&
-      !achievement.value.beastId
-    ) {
+      !achievement.value.beastId;
+    if (isMissingBeast) {
       messages.push("• Choose a beast to challenge");
     }
-    if (
+    const isMissingChainQuests =
       achievement.value.adventureType === "chain" &&
-      !achievement.value.subAchievementIds?.length
-    ) {
+      !achievement.value.subAchievementIds?.length;
+    if (isMissingChainQuests) {
       messages.push("• Add quests to your quest chain");
     }
     if (!["simple", "beast", "chain"].includes(achievement.value.adventureType))
@@ -456,7 +464,7 @@ export function useAchievementForm() {
       } else {
         // Fallback to route param if not set (legacy support)
         const paramId = router.currentRoute.value.params.id as string;
-        if (paramId && paramId !== "new") {
+        if (isSavedQuestId(paramId)) {
           id.value = paramId;
         }
       }
@@ -474,7 +482,7 @@ export function useAchievementForm() {
       categories.value = allCategories.sort(sortCategoryByName);
       users.value = allUsers;
 
-      if (id.value && id.value !== "new") {
+      if (isSavedQuestId(id.value)) {
         const task = await achievementDb.getTaskById(id.value);
         if (task) {
           achievement.value = { ...achievement.value, ...task };
@@ -500,7 +508,7 @@ export function useAchievementForm() {
         fibonacciIndex.value = 0;
         updatePoints();
         // Ensure ID is set on the object
-        if (id.value && id.value !== "new") achievement.value.id = id.value;
+        if (isSavedQuestId(id.value)) achievement.value.id = id.value;
       }
 
       // Store initial state for change detection
@@ -592,7 +600,9 @@ export function useAchievementForm() {
   );
 
   watch(fibonacciIndex, (newIndex) => {
-    if (newIndex >= 0 && newIndex < fibonacciArray.length) {
+    const isValidDifficultyStep =
+      newIndex >= 0 && newIndex < fibonacciArray.length;
+    if (isValidDifficultyStep) {
       const targetDiff = fibonacciArray[newIndex];
       // Only update if changed prevents loop
       if (achievement.value.difficulty !== targetDiff) {
@@ -825,8 +835,10 @@ export function useAchievementForm() {
       let beastName;
       let checklist: string[] = [];
 
+      const isChallengingBeast =
+        achievement.value.adventureType === "beast" && activeBeast.value;
       // If Beast
-      if (achievement.value.adventureType === "beast" && activeBeast.value) {
+      if (isChallengingBeast) {
         beastName = activeBeast.value.name;
         checklist = activeBeast.value.checklist || [];
       }

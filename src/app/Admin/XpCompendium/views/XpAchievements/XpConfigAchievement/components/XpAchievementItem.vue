@@ -196,7 +196,8 @@ export default defineComponent({
       return `fad ${combo.icon} fa-lg`;
     },
     activeBeast() {
-      if (!this.achievement.beastId || !this.beasts) return null;
+      const hasNoBeastToShow = !this.achievement.beastId || !this.beasts;
+      if (hasNoBeastToShow) return null;
       return this.beasts.find((b) => b.id === this.achievement.beastId);
     },
     beastAvatarUrl(): string | null {

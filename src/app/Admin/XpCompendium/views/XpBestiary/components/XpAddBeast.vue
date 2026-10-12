@@ -298,7 +298,8 @@ export default defineComponent({
     moveItem(index: number, step: -1 | 1) {
       const tasks = this.updateBeast.checklist;
       const target = index + step;
-      if (target < 0 || target >= tasks.length) return;
+      const isTargetOffList = target < 0 || target >= tasks.length;
+      if (isTargetOffList) return;
       [tasks[index], tasks[target]] = [tasks[target], tasks[index]];
     },
     async validateAndSave() {
@@ -314,7 +315,9 @@ export default defineComponent({
         });
 
         // If avatar is missing, show prompt
-        if (!this.updateBeast.avatar || this.updateBeast.avatar <= 0) {
+        const isAvatarMissing =
+          !this.updateBeast.avatar || this.updateBeast.avatar <= 0;
+        if (isAvatarMissing) {
           await this.presentToast({
             message: "Please select an avatar for your beast",
             color: "warning",
@@ -560,7 +563,9 @@ export default defineComponent({
       }
 
       // Add a default checklist item if empty
-      if (!updateBeast.checklist || updateBeast.checklist.length === 0) {
+      const hasNoChecklistItems =
+        !updateBeast.checklist || updateBeast.checklist.length === 0;
+      if (hasNoChecklistItems) {
         updateBeast.checklist = [""];
       }
     });

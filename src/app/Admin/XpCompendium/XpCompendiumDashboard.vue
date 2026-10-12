@@ -249,10 +249,10 @@ export default defineComponent({
       // 2200ms: synchronize with the end of the slower animation
       timers.startTimeout(2200, () => {
         // Verify we are still on slide 0 before playing
-        if (
+        const canPlayIntroSound =
           activeSlideIndex.value === 0 &&
-          typeof window["play$fx"] === "function"
-        ) {
+          typeof window["play$fx"] === "function";
+        if (canPlayIntroSound) {
           window["play$fx"]("GameBoy");
         }
       });
@@ -330,10 +330,10 @@ export default defineComponent({
               markTutorialCompleted();
             }
 
-            if (
+            const shouldAdvanceToNextSlide =
               autoAdvance.value &&
-              activeSlideIndex.value < slides.value.length - 1
-            ) {
+              activeSlideIndex.value < slides.value.length - 1;
+            if (shouldAdvanceToNextSlide) {
               timers.startTimeout(500, () => {
                 goToSlide(activeSlideIndex.value + 1);
               });

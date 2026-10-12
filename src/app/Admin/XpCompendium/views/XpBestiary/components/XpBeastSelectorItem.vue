@@ -54,8 +54,14 @@ export default defineComponent({
       }
     });
 
+    const canAnimateEngine = () =>
+      Boolean(engine && typeof engine.animate === 'function');
+    const canStopEngine = () =>
+      Boolean(engine && typeof engine.stop === 'function');
+
     const initEngine = () => {
-      if (!bgCanvas.value || !props.id) return;
+      const isMissingCanvasOrBeastId = !bgCanvas.value || !props.id;
+      if (isMissingCanvasOrBeastId) return;
 
       try {
         const layer1 = new BackgroundLayer(props.bg1);
@@ -76,9 +82,10 @@ export default defineComponent({
 
     const startAnimation = () => {
       isHovered.value = true;
-      if (engine && typeof engine.animate === 'function') {
+      if (canAnimateEngine()) {
         // Synchronously prime the canvas to avoid the black flash
-        if (props.id && bgCanvas.value) {
+        const canPrimeCanvas = props.id && bgCanvas.value;
+        if (canPrimeCanvas) {
           backgroundManager.renderFrame(props.id, bgCanvas.value);
         }
         
@@ -92,7 +99,7 @@ export default defineComponent({
 
     const stopAnimation = () => {
       isHovered.value = false;
-      if (engine && typeof engine.stop === 'function') {
+      if (canStopEngine()) {
         engine.stop();
       }
     };
@@ -101,9 +108,10 @@ export default defineComponent({
       initEngine();
       
       // Render first frame then stop for "freeze frame" effect
-      if (engine && typeof engine.animate === 'function') {
+      if (canAnimateEngine()) {
         // Synchronously render the first static frame to avoid initial black flash
-        if (props.id && bgCanvas.value) {
+        const canPrimeCanvas = props.id && bgCanvas.value;
+        if (canPrimeCanvas) {
           backgroundManager.renderFrame(props.id, bgCanvas.value);
         }
 
@@ -112,7 +120,8 @@ export default defineComponent({
         // A very short delay to ensure the engine re-captures the canvas 
         // and draws at least one frame before we freeze.
         requestAnimationFrame(() => {
-          if (!isHovered.value && engine && typeof engine.stop === 'function') {
+          const shouldFreezeFrame = !isHovered.value && canStopEngine();
+          if (shouldFreezeFrame) {
             engine.stop();
           }
         });
@@ -120,14 +129,14 @@ export default defineComponent({
     });
 
     onUnmounted(() => {
-      if (engine && typeof engine.stop === 'function') {
+      if (canStopEngine()) {
         engine.stop();
       }
     });
 
     // Re-init if background settings change
     watch(() => [props.bg1, props.bg2], () => {
-      if (engine && typeof engine.stop === 'function') {
+      if (canStopEngine()) {
         engine.stop();
       }
       initEngine();

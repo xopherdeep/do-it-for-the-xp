@@ -171,7 +171,8 @@ export default defineComponent({
   setup(props, { emit }) {
     const handleDoorTriggerClick = (dir: string) => {
       const hasAccess = props.adjacentRooms[dir as keyof AdjacentRooms];
-      if (hasAccess && !props.lockOnEnter) {
+      const canToggleDoor = hasAccess && !props.lockOnEnter;
+      if (canToggleDoor) {
         emit('door-toggle', dir);
       }
     };

@@ -132,7 +132,8 @@ export const XpDiscoverAchievements = defineComponent({
     fetchWPItems(request: any) { return (this as any).gameStore.fetchWPItems(request.type, request.params) },
     // Add the missing play$fx method
     play$fx(soundType) {
-      if (this.$fx?.rpg && this.$fx?.theme?.rpg) {
+      const hasRpgSoundTheme = this.$fx?.rpg && this.$fx?.theme?.rpg;
+      if (hasRpgSoundTheme) {
         const sound = this.$fx.rpg[this.$fx.theme.rpg][soundType];
         if (sound) sound.play();
       }

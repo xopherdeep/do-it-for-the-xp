@@ -107,7 +107,8 @@ export default defineComponent({
     const showItems = ref(false);
 
     watch(() => props.modelValue.isOpen, (isOpen) => {
-      if (isOpen && props.modelValue.roomType === 'loot') {
+      const shouldShowItems = isOpen && props.modelValue.roomType === 'loot';
+      if (shouldShowItems) {
         showItems.value = true;
       } else {
         showItems.value = false;

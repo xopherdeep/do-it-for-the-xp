@@ -372,20 +372,24 @@
       // Computed properties
       const isValid = computed(() => {
         // Basic validation
-        if (!ability.value.name || ability.value.name.trim() === "") {
+        const isNameBlank =
+          !ability.value.name || ability.value.name.trim() === "";
+        if (isNameBlank) {
           return false;
         }
 
         // Ensure MP cost is valid
-        if (ability.value.mpCost < 0 || isNaN(ability.value.mpCost)) {
+        const isMpCostInvalid =
+          ability.value.mpCost < 0 || isNaN(ability.value.mpCost);
+        if (isMpCostInvalid) {
           return false;
         }
 
         // Ensure AP requirement is valid
-        if (
+        const isApRequirementInvalid =
           ability.value.apRequirement.amount < 0 ||
-          isNaN(ability.value.apRequirement.amount)
-        ) {
+          isNaN(ability.value.apRequirement.amount);
+        if (isApRequirementInvalid) {
           return false;
         }
 

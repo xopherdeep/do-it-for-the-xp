@@ -92,7 +92,9 @@ export default defineComponent({
       }
 
       // Apply class filter for in-game abilities
-      if (currentFilter.value === "in-game" && classFilter.value !== "all") {
+      const isFilteringInGameByClass =
+        currentFilter.value === "in-game" && classFilter.value !== "all";
+      if (isFilteringInGameByClass) {
         filtered = filtered.filter((a) => {
           if (a.characterRequirement?.class) {
             return Object.keys(a.characterRequirement.class).includes(
@@ -376,10 +378,10 @@ export default defineComponent({
 
         // Also remove this ability from prerequisites of other abilities
         abilities.value.forEach((ability) => {
-          if (
+          const requiresDeletedAbility =
             ability.prerequisites &&
-            ability.prerequisites.includes(editingAbility.value.id)
-          ) {
+            ability.prerequisites.includes(editingAbility.value.id);
+          if (requiresDeletedAbility) {
             ability.prerequisites = ability.prerequisites.filter(
               (p) => p !== editingAbility.value.id
             );

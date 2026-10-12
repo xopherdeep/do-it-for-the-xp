@@ -339,13 +339,17 @@ export default defineComponent({
       nextTick(() => {
         timers.startTimeout(50, () => {
           const inputEl = inputRefs.value[index];
-          if (inputEl && typeof inputEl.setFocus === "function") {
+          const canFocusInput =
+            inputEl && typeof inputEl.setFocus === "function";
+          if (canFocusInput) {
             inputEl.setFocus();
           } else {
             // Retry once more after additional delay for slow renders
             timers.startTimeout(150, () => {
               const retryEl = inputRefs.value[index];
-              if (retryEl && typeof retryEl.setFocus === "function") {
+              const canFocusRetryInput =
+                retryEl && typeof retryEl.setFocus === "function";
+              if (canFocusRetryInput) {
                 retryEl.setFocus();
               }
             });
@@ -380,7 +384,8 @@ export default defineComponent({
       // Validate form first
       localShowErrors.value = true;
 
-      if (!isNameValid.value || !isChecklistValid.value) {
+      const isFormInvalid = !isNameValid.value || !isChecklistValid.value;
+      if (isFormInvalid) {
         // You could show a toast here if needed
         return;
       }

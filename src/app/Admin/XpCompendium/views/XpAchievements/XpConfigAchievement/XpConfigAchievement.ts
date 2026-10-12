@@ -129,7 +129,8 @@ export default defineComponent({
     onIonViewWillEnter(() => {
       const idToLoad = props.id;
 
-      if (!idToLoad || idToLoad === "new") {
+      const isNewQuest = !idToLoad || idToLoad === "new";
+      if (isNewQuest) {
         const newId = uuidv4();
         // Load data immediately with the new ID to ensure state is ready
         loadData(newId);
