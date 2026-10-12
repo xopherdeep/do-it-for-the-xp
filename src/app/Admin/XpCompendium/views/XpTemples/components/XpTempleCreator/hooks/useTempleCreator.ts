@@ -27,6 +27,7 @@ import { useBestiarySelectionStore } from "@/lib/store/stores/bestiary-selection
 import { getTempleIcon } from "@/lib/engine/dungeons/templeIcons";
 import { getTempleIconClass } from "../../../hooks/useTempleIcon";
 import debug from "@/lib/utils/debug";
+import { auditTemple, missingNames } from "@/lib/services/temples/templeAudit";
 
 import { getDungeonItems } from "@/lib/engine/core/items/itemRegistry";
 
@@ -820,6 +821,17 @@ export function useTempleCreator(
     toast.present();
   };
 
+  /** The toast after a save that leaves the temple unfinishable: an RPG toast, a little longer so the list can be read */
+  const showUnfinishableToast = async (missing: string[]) => {
+    const toast = await toastController.create({
+      message: `Saved. Not finishable yet: ${missing.join(", ")}`,
+      duration: 3000,
+      position: "bottom",
+      cssClass: "rpg-toast",
+    });
+    toast.present();
+  };
+
   const templeCodePreview = computed(() => {
     const parts = entrancePosition.value.split(",").map(Number);
 
@@ -975,7 +987,13 @@ export function useTempleCreator(
       // Sync the loaded state
       store.markAsLoaded(props.templeId);
 
-      showToast("Temple persists successfully!");
+      // A draft always saves; when it cannot be finished yet, the one toast says what it still needs
+      const audit = auditTemple({ dungeonLayout: layoutToSave });
+      if (audit.passed) {
+        showToast("Temple persists successfully!");
+      } else {
+        showUnfinishableToast(missingNames(audit));
+      }
       debug.log("Temple saved to DB successfully");
     } catch (err: any) {
       debug.error("Error saving temple:", err);

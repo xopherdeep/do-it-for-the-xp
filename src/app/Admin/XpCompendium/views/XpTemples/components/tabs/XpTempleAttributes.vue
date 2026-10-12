@@ -66,39 +66,27 @@
           <!-- Dungeon Audit -->
           <div v-show="activeTab === 'audit'" class="glass-card dungeon-audit-full">
             <h3 class="section-title">Dungeon Audit</h3>
-            
+            <p class="audit-summary" :class="{ 'is-ready': dungeonAudit.passed }">
+              {{ dungeonAudit.summary }}
+              <template v-if="dungeonAudit.passed"> · Ready to play</template>
+            </p>
+
             <div class="audit-grid-full">
-              <div class="audit-item" :class="{ 'passed': dungeonAudit.hasMap }">
+              <div
+                v-for="check in dungeonAudit.checks"
+                :key="check.id"
+                class="audit-item"
+                :class="{ 'passed': check.ok }"
+                :data-check="check.id"
+              >
                 <div class="audit-icon">
-                  <i :class="['fad', getItemIcon('map')]"></i>
+                  <i :class="['fad', auditIcon(check.id)]"></i>
                 </div>
                 <div class="audit-info">
-                  <span class="audit-label">Dungeon Map</span>
-                  <span class="audit-status">{{ dungeonAudit.hasMap ? 'Placed' : 'Missing' }}</span>
+                  <span class="audit-label">{{ check.label }}</span>
+                  <span class="audit-status">{{ check.detail }}</span>
                 </div>
-                <ion-icon :icon="dungeonAudit.hasMap ? checkmarkCircle : closeCircle" class="status-indicator"></ion-icon>
-              </div>
-
-              <div class="audit-item" :class="{ 'passed': dungeonAudit.hasCompass }">
-                <div class="audit-icon">
-                  <i :class="['fad', getItemIcon('compass')]"></i>
-                </div>
-                <div class="audit-info">
-                  <span class="audit-label">Compass</span>
-                  <span class="audit-status">{{ dungeonAudit.hasCompass ? 'Placed' : 'Missing' }}</span>
-                </div>
-                <ion-icon :icon="dungeonAudit.hasCompass ? checkmarkCircle : closeCircle" class="status-indicator"></ion-icon>
-              </div>
-
-              <div class="audit-item" :class="{ 'passed': dungeonAudit.hasBossKey }">
-                <div class="audit-icon">
-                  <i :class="['fad', getItemIcon('master')]"></i>
-                </div>
-                <div class="audit-info">
-                  <span class="audit-label">Boss Key</span>
-                  <span class="audit-status">{{ dungeonAudit.hasBossKey ? 'Placed' : 'Missing' }}</span>
-                </div>
-                <ion-icon :icon="dungeonAudit.hasBossKey ? checkmarkCircle : closeCircle" class="status-indicator"></ion-icon>
+                <ion-icon :icon="check.ok ? checkmarkCircle : closeCircle" class="status-indicator"></ion-icon>
               </div>
             </div>
 
@@ -181,6 +169,19 @@ import {
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import { TempleDataInjectionKey } from "../../hooks/useTempleData";
 import { inject } from "vue";
+import { ROOM_ICONS } from "@/lib/engine/dungeons/roomTypes";
+import type { AuditCheckId } from "@/lib/services/temples/templeAudit";
+
+/** The icon each audit check wears: the room it asks for (the Master Room is the golden egg), or the item it asks for */
+const AUDIT_ICONS: Record<AuditCheckId, string> = {
+  entrance: ROOM_ICONS.entrance,
+  exit: ROOM_ICONS.gate,
+  boss: ROOM_ICONS.boss,
+  bossKey: "fa-key-skeleton",
+  masterRoom: ROOM_ICONS.master,
+  map: "fa-map",
+  compass: "fa-compass",
+};
 
 export default defineComponent({
   name: "xp-temple-attributes",
@@ -217,6 +218,8 @@ export default defineComponent({
       isLoading
     } = inject(TempleDataInjectionKey)!;
 
+    const auditIcon = (id: AuditCheckId) => AUDIT_ICONS[id];
+
     // TODO: move this mapping to a shared location or update useTempleData to return icons
     const getCategoryIcon = (catId: string) => {
       const iconMap: Record<string, string> = {
@@ -243,6 +246,7 @@ export default defineComponent({
       getCategoryName,
       getCategoryIcon,
       dungeonAudit,
+      auditIcon,
       itemMapData,
       getItemIcon,
       activeTab,
@@ -299,6 +303,15 @@ export default defineComponent({
 }
 
 /* Auditing Full View */
+.audit-summary {
+  margin: -12px 0 16px;
+  font-size: 0.8rem;
+  letter-spacing: 0.5px;
+  color: rgba(255, 255, 255, 0.5);
+
+  &.is-ready { color: var(--ion-color-success); }
+}
+
 .audit-grid-full {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -341,7 +354,7 @@ export default defineComponent({
     display: flex;
     flex-direction: column;
     .audit-label { font-size: 1rem; color: white; }
-    .audit-status { font-size: 0.75rem; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 0.5px; }
+    .audit-status { font-size: 0.75rem; line-height: 1.3; color: rgba(255, 255, 255, 0.4); text-transform: uppercase; letter-spacing: 0.5px; }
   }
 
   .status-indicator { font-size: 1.5rem; }

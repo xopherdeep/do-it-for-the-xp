@@ -21,9 +21,10 @@ import { isWallToken, isMonsterToken, isLootToken, isTeleportToken, isKeyToken }
 import { toastController } from "@ionic/vue";
 import { saveOutline } from 'ionicons/icons';
 import { useTempleCreatorStore } from "@/lib/store/stores/temple-creator";
+import { auditTemple, auditSummary, missingNames } from "@/lib/services/temples/templeAudit";
 
-// Only world-*.jpg / hometown.jpg are looked up by key; keep the filter (a bare context bundles all 90 MB)
-const requireBg = require.context("@/assets/images/backgrounds/", false, /^\.\/(world-[a-z-]+|hometown)\.jpg$/);
+// Only world-*.webp / hometown.webp are looked up by key; keep the filter (a bare context bundles all 90 MB)
+const requireBg = require.context("@/assets/images/backgrounds/", false, /^\.\/(world-[a-z-]+|hometown)\.webp$/);
 
 export interface ExtendedTempleInterface extends TempleInterface {
   smallMonsters?: number;
@@ -325,7 +326,7 @@ export function useTempleData(templeId: string) {
     };
     const world = (worlds as any)[templeId] || "plains";
     try {
-      const img = requireBg(`./world-${world}.jpg`);
+      const img = requireBg(`./world-${world}.webp`);
       return `url(${img})`;
     } catch (err) {
       debug.log("Background load failed", err);
@@ -689,23 +690,16 @@ export function useTempleData(templeId: string) {
     debug.log("Temple settings changed, skipping autosave");
   }, { deep: true });
 
+  // Can the temple be finished? The checks live in the audit service; the key and lock count is the editor's own.
   const dungeonAudit = computed(() => {
+    const audit = auditTemple(temple.value);
     const rooms = temple.value.dungeonLayout?.rooms || {};
-    let hasMap = false;
-    let hasCompass = false;
-    let hasBossKey = false;
+    const isOk = (id: string) => audit.checks.some((check) => check.id === id && check.ok);
     let totalKeys = 0;
     let totalLockedDoors = 0;
 
     Object.values(rooms).forEach((room: any) => {
-      // Check items
-      if (room.type === 'loot' && room.content?.dungeon) {
-        const item = room.content.dungeon;
-        if (item === 'map') hasMap = true;
-        if (item === 'compass') hasCompass = true;
-        if (item === 'master-key') hasBossKey = true;
-        if (item === 'key') totalKeys++;
-      }
+      if (room.type === 'loot' && room.content?.dungeon === 'key') totalKeys++;
 
       // Check locked doors
       if (room.sides) {
@@ -720,9 +714,12 @@ export function useTempleData(templeId: string) {
     const actualLocks = Math.ceil(totalLockedDoors / 2);
 
     return {
-      hasMap,
-      hasCompass,
-      hasBossKey,
+      ...audit,
+      summary: auditSummary(audit),
+      missing: missingNames(audit),
+      hasMap: isOk('map'),
+      hasCompass: isOk('compass'),
+      hasBossKey: isOk('bossKey'),
       totalKeys,
       totalLockedDoors: actualLocks,
       keyBalance: totalKeys - actualLocks

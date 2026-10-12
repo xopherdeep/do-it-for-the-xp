@@ -65,6 +65,19 @@
         </ion-button>
       </ion-buttons>
     </ion-toolbar>
+
+    <!-- What the temple still needs to be finished; tap to open the audit -->
+    <button
+      v-if="missingBanner"
+      type="button"
+      class="audit-banner"
+      data-test="audit-banner"
+      @click="openAudit"
+    >
+      <i class="fad fa-exclamation-triangle" aria-hidden="true"></i>
+      <span>{{ missingBanner }}</span>
+      <i class="fas fa-chevron-right" aria-hidden="true"></i>
+    </button>
   </ion-header>
 </template>
 
@@ -73,8 +86,11 @@ import { defineComponent, computed } from 'vue';
 import { 
   IonHeader, IonToolbar, IonTitle, IonButtons, 
   IonBackButton, IonButton,
-  alertController
+  alertController, useIonRouter
 } from '@ionic/vue';
+import { play$fx } from '@/assets/fx';
+import { useTempleCreatorStore } from '@/lib/store/stores/temple-creator';
+import { auditTemple, missingNames, shortList } from '@/lib/services/temples/templeAudit';
 
 export default defineComponent({
   name: 'XpTempleCreatorHeader',
@@ -95,6 +111,23 @@ export default defineComponent({
   },
   emits: ['update:gridSize', 'update:currentLevelId', 'resize', 'toggle-preview', 'save', 'floor-change', 'add-floor', 'remove-floor'],
   setup(props, { emit }) {
+    const store = useTempleCreatorStore();
+    const ionRouter = useIonRouter();
+
+    // "2 missing: Entrance, Master Room". Only once this temple's layout is in the editor, so it never flashes while loading.
+    const missingBanner = computed(() => {
+      if (!store.isLoaded(props.templeId)) return '';
+      const result = auditTemple({ dungeonLayout: { maze: store.templeMaze, rooms: store.roomsData } });
+      if (result.passed) return '';
+      const names = missingNames(result);
+      return `${names.length} missing: ${shortList(names)}`;
+    });
+
+    const openAudit = () => {
+      play$fx('select');
+      ionRouter.push(`/game-master/compendium/temples/${props.templeId}/attributes/audit`);
+    };
+
     const gridHeight = computed(() => props.gridSize.split('x')[0]);
     const gridWidth = computed(() => props.gridSize.split('x')[1]);
 
@@ -140,6 +173,8 @@ export default defineComponent({
     };
 
     return {
+      missingBanner,
+      openAudit,
       gridHeight,
       gridWidth,
       updateHeight,
@@ -230,5 +265,30 @@ export default defineComponent({
 
   .mr-2 {
     margin-right: 0.5rem;
+  }
+
+  .audit-banner {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 48px;
+    padding: 6px 16px;
+    border: 0;
+    border-top: 2px solid var(--xp-color-gp);
+    background: rgba(0, 0, 0, 0.75);
+    color: var(--xp-color-gp);
+    font-family: "StatusPlz";
+    font-size: 1rem;
+    text-align: left;
+    cursor: pointer;
+
+    span {
+      flex: 1;
+    }
+
+    &:active {
+      background: rgba(255, 255, 255, 0.12);
+    }
   }
 </style>
