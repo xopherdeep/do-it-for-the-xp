@@ -1,66 +1,40 @@
 import { defineStore } from 'pinia';
 import { reactive, computed } from 'vue';
 import Api from "@/lib/api";
-import { ProfileDb } from '@/lib/databases/ProfileDb';
-import { profileStorage } from '@/lib/databases/profileStorage';
-import type { HeroLook } from '@/lib/hero-look/types';
 import { getGPService } from '@/lib/services/gp/GPService';
-import { DEFAULT_WALLET_LIMIT, walletLimitOf } from '@/lib/services/gp/wallet';
-import {
-  JOB_UNLOCK_REQUIREMENTS,
-  getClassStatBonus,
-  getLevelFromXp,
-  calculateLevelUp,
-  getXpForLevel
-} from '@/lib/services/stats/PlayerStatsService';
-import { classLevelsOf, isClassUnlocked } from '@/lib/services/stats/ClassPassives';
-import { toEntry } from '@/lib/services/inventory/Inventory';
+import type { GpPurse } from '@/lib/services/gp/wallet';
 import { levelUpNotification } from '@/lib/services/notifications/Notifications';
 import { notify } from '@/lib/services/notifications/notify';
 import debug from '@/lib/utils/debug';
+import { createProfilePersister } from './user/persistence';
+import { createProfileSetters } from './user/profileFields';
+import {
+  newLevelUpInfo,
+  newClassLevelUpInfo,
+  applyXpGain,
+  applyClassXp,
+  applyApGain,
+  apInTimeRange,
+  applyPegasusUnlock,
+  applyQuickDrawSlotUnlock,
+  applyClassUnlock,
+  forEachClassUnlockMet
+} from './user/progression';
+import { applyGpChange, applyWallet, applyHpChange, applyMpChange } from './user/resources';
+import {
+  IMPERSONATOR_KEY,
+  IMPERSONATING_FLAG_KEY,
+  saveCurrentUserId,
+  getSavedUserId,
+  clearMasqueradeKeys,
+  replaceRoster,
+  sortByNick
+} from './user/session';
+import type { ApGainPayload, ClassLevelUpInfo, GpPayload, LevelUpInfo } from './user/types';
 
-// LocalStorage key for persisting current user ID
-const CURRENT_USER_KEY = 'xp_current_user_id';
-/**
- * LocalStorage key for the Game Master who started a masquerade (impersonation).
- * Exported so the Game Master guard reads the key this store writes, not a copy of the string.
- */
-export const IMPERSONATOR_KEY = 'xp_impersonator_id';
-// LocalStorage flag that says a masquerade is running
-const IMPERSONATING_FLAG_KEY = 'xp_is_impersonating';
-
-/**
- * Level-up information returned from updateUserXP
- */
-export interface LevelUpInfo {
-  didLevelUp: boolean;
-  oldLevel: number;
-  newLevel: number;
-  levelsGained: number;
-  hpGained: number;
-  mpGained: number;
-  newMaxHp: number;
-  newMaxMp: number;
-  statsGained?: Record<string, number>;
-}
-
-// ...
-
-
-
-/**
- * Class Level-up information returned from updateClassXp
- */
-export interface ClassLevelUpInfo {
-  didLevelUp: boolean;
-  oldLevel: number;
-  newLevel: number;
-  levelsGained: number;
-  jobClassId: string;
-}
-
-/** A profile's HP or MP is missing, or still the old plain number, so it needs its { now, max } object. */
-const needsPointsObject = (stat: unknown): boolean => typeof stat !== 'object' || stat === null;
+// The Game Master guard reads the key this store writes, so the key stays importable from here.
+export { IMPERSONATOR_KEY };
+export type { LevelUpInfo, ClassLevelUpInfo };
 
 export const useUserStore = defineStore('user', () => {
   // --- State ---
@@ -73,68 +47,12 @@ export const useUserStore = defineStore('user', () => {
 
   const users = reactive<Record<string, any>>({});
 
-  const usersAz = computed(() => {
-    return Object.values(users).sort((a, b) => {
-      const nameA = a.name?.nick || '';
-      const nameB = b.name?.nick || '';
-      return nameA.localeCompare(nameB);
-    });
-  });
-
-  // --- Helper Functions ---
-
-  /**
-   * Save current user ID to localStorage
-   */
-  function saveCurrentUserId(userId: string | null) {
-    if (userId) {
-      localStorage.setItem(CURRENT_USER_KEY, userId);
-    } else {
-      localStorage.removeItem(CURRENT_USER_KEY);
-    }
-  }
-
-  /**
-   * Get saved user ID from localStorage
-   */
-  function getSavedUserId(): string | null {
-    return localStorage.getItem(CURRENT_USER_KEY);
-  }
+  const usersAz = computed(() => sortByNick(users));
 
   // --- Persistence ---
   // ProfileDb (`__profiles`) is the only thing loadUsers reads back, so every stat mutation
   // below must end with persistUser(); otherwise rewards vanish on the next reload.
-  let profileDb: ProfileDb | null = null;
-  const pendingPersist = new Set<string>();
-  let persistScheduled = false;
-
-  async function flushPersist() {
-    persistScheduled = false;
-    const userIds = Array.from(pendingPersist);
-    pendingPersist.clear();
-    if (!profileDb) profileDb = new ProfileDb(profileStorage);
-    for (const userId of userIds) {
-      if (!users[userId]) continue;
-      try {
-        await profileDb.setProfile(JSON.parse(JSON.stringify(users[userId])));
-      } catch (error) {
-        debug.error(`[user] failed to persist profile ${userId}`, error);
-      }
-    }
-  }
-
-  /**
-   * Write a user's in-memory profile back to ProfileDb.
-   * Calls made in the same tick (e.g. XP + GP + AP on a battle victory) are coalesced into one write.
-   */
-  function persistUser(userId: string) {
-    const isUnknownUser = !userId || !users[userId];
-    if (isUnknownUser) return;
-    pendingPersist.add(userId);
-    if (persistScheduled) return;
-    persistScheduled = true;
-    queueMicrotask(flushPersist);
-  }
+  const persistUser = createProfilePersister(users);
 
   // --- Actions ---
 
@@ -144,13 +62,7 @@ export const useUserStore = defineStore('user', () => {
    */
   function clearMasquerade() {
     currentUser.isImpersonating = false;
-    try {
-      localStorage.removeItem(IMPERSONATING_FLAG_KEY);
-      localStorage.removeItem(IMPERSONATOR_KEY);
-    } catch (error) {
-      // storage blocked (private mode): nothing was stored, nothing to clear
-      debug.warn('[user] could not clear the masquerade keys', error);
-    }
+    clearMasqueradeKeys();
   }
 
   /** Copy a profile onto currentUser. Leaves a masquerade in progress alone. */
@@ -177,6 +89,18 @@ export const useUserStore = defineStore('user', () => {
     saveCurrentUserId(null);
   }
 
+  const {
+    addInventoryItem,
+    spendInventoryItem,
+    setItemCooldown,
+    setBenchRestAt,
+    setQuestEffects,
+    unlockItem,
+    setEquipment,
+    setLook,
+    setJobClass
+  } = createProfileSetters({ users, currentUser, persistUser, syncCurrentUser });
+
   async function loadUsers() {
     try {
       const response = await Api.get("users");
@@ -184,19 +108,7 @@ export const useUserStore = defineStore('user', () => {
       const usersList = Array.isArray(response) ? response : response.data;
 
       if (Array.isArray(usersList)) {
-        const userIds = usersList.map(u => u.id);
-
-        // Remove users that are no longer in the list
-        Object.keys(users).forEach(id => {
-          if (!userIds.includes(id)) {
-            delete users[id];
-          }
-        });
-
-        // Update/Add users from the list
-        usersList.forEach(user => {
-          users[user.id] = user;
-        });
+        replaceRoster(users, usersList);
 
         // Restore the previously saved user, if any. Nobody is signed in on a first run: there is
         // no default profile to fall back to.
@@ -228,26 +140,11 @@ export const useUserStore = defineStore('user', () => {
   /**
    * Update User GP and persist to local storage
    */
-  async function updateUserGP(payload: { userId: string, wallet?: number, savings?: number, debt?: number }) {
-    const { userId, wallet, savings, debt } = payload;
+  async function updateUserGP(payload: GpPayload) {
+    const { userId } = payload;
 
     if (users[userId]) {
-      const userStats = users[userId].stats || { gp: { wallet: 0, savings: 0, debt: 0, limit: DEFAULT_WALLET_LIMIT } };
-
-      // Initialize stats if missing
-      if (!userStats.gp) userStats.gp = { wallet: 0, savings: 0, debt: 0, limit: DEFAULT_WALLET_LIMIT };
-
-      if (wallet !== undefined) userStats.gp.wallet = (userStats.gp.wallet || 0) + wallet;
-      if (savings !== undefined) userStats.gp.savings = (userStats.gp.savings || 0) + savings;
-      if (debt !== undefined) userStats.gp.debt = (userStats.gp.debt || 0) + debt;
-
-      // Wallet overflow protection: excess goes to savings (Earthbound-style ATM)
-      const walletLimit = walletLimitOf(userStats.gp);
-      if (userStats.gp.wallet > walletLimit) {
-        const overflow = userStats.gp.wallet - walletLimit;
-        userStats.gp.wallet = walletLimit;
-        userStats.gp.savings = (userStats.gp.savings || 0) + overflow;
-      }
+      const userStats = applyGpChange(users[userId].stats, payload);
 
       // Update state
       users[userId].stats = userStats;
@@ -267,18 +164,10 @@ export const useUserStore = defineStore('user', () => {
    * Replace the hero's purse wholesale: what a wallet upgrade from a world shop hands back
    * (new limit, savings and wallet already charged). Persists like every other stat change.
    */
-  function setWallet(userId: string, gp: { wallet?: number; savings?: number; debt?: number; limit?: number }) {
+  function setWallet(userId: string, gp: GpPurse) {
     const user = users[userId];
     if (!user) return;
-    const stats = user.stats || {};
-    const current = stats.gp || {};
-    stats.gp = {
-      ...current,
-      wallet: Number(gp.wallet ?? current.wallet) || 0,
-      savings: Number(gp.savings ?? current.savings) || 0,
-      debt: Number(gp.debt ?? current.debt) || 0,
-      limit: walletLimitOf({ limit: gp.limit ?? current.limit }),
-    };
+    const stats = applyWallet(user, gp);
     user.stats = stats;
     if (currentUser.id === userId) currentUser.stats = stats;
     persistUser(userId);
@@ -294,27 +183,7 @@ export const useUserStore = defineStore('user', () => {
     if (users[userId]) {
       const userStats = users[userId].stats || {};
 
-      // Initialize/Standardize hp structure if missing or primitive
-      if (needsPointsObject(userStats.hp)) {
-        const currentHp = typeof userStats.hp === 'number' ? userStats.hp : 100;
-        const maxHp = typeof userStats.maxHp === 'number' ? userStats.maxHp : 100;
-        userStats.hp = { now: currentHp, max: maxHp };
-      }
-
-      // Ensure maxHp is synced if it exists as a top-level property
-      if (typeof userStats.maxHp === 'number') {
-        userStats.hp.max = userStats.maxHp;
-      }
-
-      // Apply damage (negative amount) or healing (positive amount)
-      userStats.hp.now = Math.max(0, Math.min(userStats.hp.max, userStats.hp.now + amount));
-
-      // Standardize mp structure while we're here
-      if (needsPointsObject(userStats.mp)) {
-        const currentMp = typeof userStats.mp === 'number' ? userStats.mp : 100;
-        const maxMp = typeof userStats.maxMp === 'number' ? userStats.maxMp : 100;
-        userStats.mp = { now: currentMp, max: maxMp };
-      }
+      const isStillAlive = applyHpChange(userStats, amount);
 
       // Update state
       users[userId].stats = userStats;
@@ -327,7 +196,7 @@ export const useUserStore = defineStore('user', () => {
       persistUser(userId);
 
       // Return whether player is still alive
-      return userStats.hp.now > 0;
+      return isStillAlive;
     }
     return true; // Default to alive if user not found
   }
@@ -343,26 +212,7 @@ export const useUserStore = defineStore('user', () => {
     if (users[userId]) {
       const userStats = users[userId].stats || {};
 
-      // Initialize/Standardize mp structure if missing or primitive
-      if (needsPointsObject(userStats.mp)) {
-        const currentMp = typeof userStats.mp === 'number' ? userStats.mp : 100;
-        const maxMp = typeof userStats.maxMp === 'number' ? userStats.maxMp : 100;
-        userStats.mp = { now: currentMp, max: maxMp };
-      }
-
-      // Ensure maxMp is synced if it exists as a top-level property
-      if (typeof userStats.maxMp === 'number') {
-        userStats.mp.max = userStats.maxMp;
-      }
-
-      userStats.mp.now = Math.max(0, Math.min(userStats.mp.max, userStats.mp.now + amount));
-
-      // Standardize hp structure while we're here
-      if (needsPointsObject(userStats.hp)) {
-        const currentHp = typeof userStats.hp === 'number' ? userStats.hp : 100;
-        const maxHp = typeof userStats.maxHp === 'number' ? userStats.maxHp : 100;
-        userStats.hp = { now: currentHp, max: maxHp };
-      }
+      const hasMpLeft = applyMpChange(userStats, amount);
 
       users[userId].stats = userStats;
 
@@ -372,108 +222,8 @@ export const useUserStore = defineStore('user', () => {
 
       persistUser(userId);
 
-      return userStats.mp.now > 0;
+      return hasMpLeft;
     }
-    return true;
-  }
-
-  /**
-   * Put an item in the hero's bag, e.g. what a temple shop sold. Kept on the profile (and so in ProfileDb).
-   * Returns false when there is no such hero.
-   */
-  function addInventoryItem(userId: string, item: { name: string, source?: string, [key: string]: any }): boolean {
-    const user = users[userId];
-    if (!user) return false;
-    user.inventory = [...(Array.isArray(user.inventory) ? user.inventory : []), JSON.parse(JSON.stringify(item))];
-    if (currentUser.id === userId) syncCurrentUser(user);
-    persistUser(userId);
-    return true;
-  }
-
-  /**
-   * Take `qty` of one pack entry (an `Inventory` id, e.g. what a fight potion was) out of the hero's bag: the first
-   * rows that match count down by their `qty` / `quantity` and a row is dropped when it reaches 0. Spends nothing and
-   * returns false when there is no such hero or the pack holds fewer than `qty`.
-   */
-  function spendInventoryItem(userId: string, entryId: string, qty = 1): boolean {
-    const user = users[userId];
-    const hasNothingToSpend = !user || !Array.isArray(user.inventory) || !(qty >= 1);
-    if (hasNothingToSpend) return false;
-    const entries = user.inventory.map((row: unknown) => toEntry(row));
-    const held = entries.reduce((sum: number, entry: { id: string, qty: number } | null) => (entry?.id === entryId ? sum + entry.qty : sum), 0);
-    if (held < qty) return false;
-
-    let left = qty;
-    const next: any[] = [];
-    user.inventory.forEach((row: any, index: number) => {
-      const entry = entries[index];
-      const shouldKeepRow = left <= 0 || entry?.id !== entryId;
-      if (shouldKeepRow) {
-        next.push(row);
-        return;
-      }
-      const taken = Math.min(left, entry.qty);
-      left -= taken;
-      if (entry.qty > taken) {
-        const key = row.qty == null && row.quantity != null ? 'quantity' : 'qty';
-        next.push({ ...row, [key]: entry.qty - taken });
-      }
-    });
-    user.inventory = next;
-    if (currentUser.id === userId) syncCurrentUser(user);
-    persistUser(userId);
-    return true;
-  }
-
-  /**
-   * When an equipped item is ready again on the board (ISO), or null to clear it. Kept on the profile as
-   * `itemCooldowns[name]` (see services/quests/ItemEffects.ts).
-   */
-  function setItemCooldown(userId: string, itemName: string, readyAt: string | null) {
-    const user = users[userId];
-    if (!user) return;
-    const cooldowns: Record<string, string> = { ...(user.itemCooldowns || {}) };
-    if (readyAt) cooldowns[itemName] = readyAt;
-    else delete cooldowns[itemName];
-    user.itemCooldowns = cooldowns;
-    if (currentUser.id === userId) syncCurrentUser(user);
-    persistUser(userId);
-  }
-
-  /**
-   * What the hero's items did to their quest board: extensions, snoozes, pull-ins, a pause, the cloak
-   * (HeroQuestEffects). Replaces the whole record; the board reads it back.
-   */
-  /** Stamp the hero's last free nap on the Hospital bench (ISO), so the bench is once a day. */
-  function setBenchRestAt(userId: string, benchRestAt: string | null) {
-    const user = users[userId];
-    if (!user) return;
-    user.benchRestAt = benchRestAt;
-    if (currentUser.id === userId) syncCurrentUser(user);
-    persistUser(userId);
-  }
-
-  function setQuestEffects(userId: string, effects: object) {
-    const user = users[userId];
-    if (!user) return;
-    user.questEffects = JSON.parse(JSON.stringify(effects));
-    if (currentUser.id === userId) syncCurrentUser(user);
-    persistUser(userId);
-  }
-
-  /**
-   * Unlock an equipment item by name (a temple chest, a shop, a Pegasus). A profile with no `unlockedItems`
-   * list predates the locks and already holds everything, so it is left alone rather than given a list of one.
-   * Returns true when the item was newly unlocked.
-   */
-  function unlockItem(userId: string, itemName: string): boolean {
-    const user = users[userId];
-    const hasNoUnlockList = !user || !Array.isArray(user.unlockedItems);
-    if (hasNoUnlockList) return false;
-    if (user.unlockedItems.includes(itemName)) return false;
-    user.unlockedItems = [...user.unlockedItems, itemName];
-    if (currentUser.id === userId) syncCurrentUser(user);
-    persistUser(userId);
     return true;
   }
 
@@ -486,16 +236,7 @@ export const useUserStore = defineStore('user', () => {
     if (users[userId]) {
       const userStats = users[userId].stats || {};
 
-      // Nine slots for nine worlds, from an array, an object with numeric keys, or nothing
-      const slots = userStats.pegasi && typeof userStats.pegasi === "object" ? userStats.pegasi : {};
-      const pegasi: boolean[] = Array.from({ length: 9 }, (_, index) => Boolean(slots[index]));
-
-      // Unlock
-      const isValidPegasusIndex = Number.isInteger(pegasusIndex) && pegasusIndex >= 0 && pegasusIndex < pegasi.length;
-      if (isValidPegasusIndex) {
-        pegasi[pegasusIndex] = true;
-      }
-      userStats.pegasi = pegasi;
+      applyPegasusUnlock(userStats, pegasusIndex);
 
       // Update state
       users[userId].stats = userStats;
@@ -549,13 +290,7 @@ export const useUserStore = defineStore('user', () => {
     if (users[userId]) {
       const userStats = users[userId].stats || {};
 
-      // Initialize quickDrawSlots if missing (default 1)
-      userStats.quickDrawSlots = userStats.quickDrawSlots ?? 1;
-
-      // Max 3 slots
-      if (userStats.quickDrawSlots < 3) {
-        userStats.quickDrawSlots++;
-      }
+      applyQuickDrawSlotUnlock(userStats);
 
       // Update state
       users[userId].stats = userStats;
@@ -576,23 +311,7 @@ export const useUserStore = defineStore('user', () => {
     if (users[userId]) {
       const userStats = users[userId].stats || {};
 
-      // Initialize classes if missing
-      if (!userStats.classes) userStats.classes = {};
-
-      // Initialize class entry if missing
-      if (!userStats.classes[jobClassId]) {
-        userStats.classes[jobClassId] = {
-          level: 1,
-          xp: 0,
-          unlocked: false
-        };
-      }
-
-      // Unlock
-      if (!userStats.classes[jobClassId].unlocked) {
-        userStats.classes[jobClassId].unlocked = true;
-        // Optionally add notification here
-      }
+      applyClassUnlock(userStats, jobClassId);
 
       // Update state
       users[userId].stats = userStats;
@@ -615,26 +334,7 @@ export const useUserStore = defineStore('user', () => {
     const userStats = users[userId].stats || {};
     const classes = userStats.classes || {};
 
-    // Iterate over all available job classes in requirements
-    Object.entries(JOB_UNLOCK_REQUIREMENTS).forEach(([jobClassId, requirements]) => {
-      // If already unlocked, skip
-      if (classes[jobClassId]?.unlocked) return;
-
-      // Check if all requirements are met
-      let allMet = true;
-      for (const [reqClass, reqLevel] of Object.entries(requirements)) {
-        const currentClassLevel = classes[reqClass]?.level || 0;
-        if (currentClassLevel < reqLevel) {
-          allMet = false;
-          break;
-        }
-      }
-
-      // Unlock if met
-      if (allMet) {
-        unlockClass(userId, jobClassId);
-      }
-    });
+    forEachClassUnlockMet(classes, (jobClassId) => unlockClass(userId, jobClassId));
   }
 
   /**
@@ -643,69 +343,12 @@ export const useUserStore = defineStore('user', () => {
    */
   function updateClassXp(userId: string, jobClassId: string, amount: number): ClassLevelUpInfo {
     // Default result
-    const result: ClassLevelUpInfo = {
-      didLevelUp: false,
-      oldLevel: 1,
-      newLevel: 1,
-      levelsGained: 0,
-      jobClassId
-    };
+    const result = newClassLevelUpInfo(jobClassId);
 
     if (users[userId]) {
       const userStats = users[userId].stats || {};
 
-      // Initialize classes if missing
-      if (!userStats.classes) userStats.classes = {};
-
-      // Initialize specific class if missing (standard default is unlocked)
-      if (!userStats.classes[jobClassId]) {
-        userStats.classes[jobClassId] = {
-          level: 1,
-          xp: 0,
-          // Base classes are always unlocked, advanced classes need unlocking
-          // For safety, if we are adding XP, we assume it's unlocked or being unlocked
-          unlocked: true
-        };
-      }
-
-      const classProgress = userStats.classes[jobClassId];
-      const oldLevel = classProgress.level || 1;
-      result.oldLevel = oldLevel;
-
-      // Add XP
-      classProgress.xp += amount;
-
-      // Recalculate level
-      const newLevel = getLevelFromXp(classProgress.xp);
-
-      // Check for level up
-      if (newLevel > oldLevel) {
-        classProgress.level = newLevel;
-        result.didLevelUp = true;
-        result.newLevel = newLevel;
-        result.levelsGained = newLevel - oldLevel;
-
-        // The hero's own class growing grows their max HP/MP by the class bonus (CLASS_LEVEL_BONUSES)
-        if ((users[userId].jobClass || 'default') === jobClassId) {
-          const before = getClassStatBonus(jobClassId, oldLevel);
-          const after = getClassStatBonus(jobClassId, newLevel);
-          const shouldGrowMaxHp = userStats.hp && typeof userStats.hp === 'object' && after.hp > before.hp;
-          if (shouldGrowMaxHp) {
-            userStats.hp.max = (userStats.hp.max || 0) + (after.hp - before.hp);
-            userStats.hp.now = (userStats.hp.now || 0) + (after.hp - before.hp);
-          }
-          const shouldGrowMaxMp = userStats.mp && typeof userStats.mp === 'object' && after.mp > before.mp;
-          if (shouldGrowMaxMp) {
-            userStats.mp.max = (userStats.mp.max || 0) + (after.mp - before.mp);
-            userStats.mp.now = (userStats.mp.now || 0) + (after.mp - before.mp);
-          }
-        }
-
-        // Trigger checks for other unlocks
-        checkClassUnlocks(userId);
-      } else {
-        result.newLevel = oldLevel;
-      }
+      applyClassXp(userStats, users[userId].jobClass, jobClassId, amount, result, () => checkClassUnlocks(userId));
 
       // Update state
       users[userId].stats = userStats;
@@ -730,17 +373,7 @@ export const useUserStore = defineStore('user', () => {
     const commit = payload.commit !== false;
 
     // Default result (no level up)
-    const result: LevelUpInfo = {
-      didLevelUp: false,
-      oldLevel: 1,
-      newLevel: 1,
-      levelsGained: 0,
-      hpGained: 0,
-      mpGained: 0,
-      newMaxHp: 0,
-      newMaxMp: 0,
-      statsGained: {}
-    };
+    const result = newLevelUpInfo();
 
     if (users[userId]) {
       const userData = users[userId];
@@ -758,69 +391,7 @@ export const useUserStore = defineStore('user', () => {
       }
 
       const jobClass = userData.jobClass || 'default';
-      const specialStats = userStats.special || {};
-
-      // Initialize xp structure if missing
-      if (!userStats.xp) {
-        userStats.xp = { now: 0, next_level: 100 };
-      }
-
-      // Store old level before adding XP
-      const oldLevel = userStats.level || 1;
-      result.oldLevel = oldLevel;
-
-      // Add XP
-      userStats.xp.now = (userStats.xp.now || 0) + amount;
-
-      // Recalculate level
-      const totalXp = userStats.xp.now;
-      const newLevel = getLevelFromXp(totalXp);
-
-      // Update stats with new level
-      userStats.level = newLevel;
-
-      // Update next level requirement
-      // Using cumulative target XP 
-      userStats.xp.next_level = getXpForLevel(newLevel + 1);
-
-      // Check for level up
-      if (newLevel > oldLevel) {
-        result.didLevelUp = true;
-        result.newLevel = newLevel;
-        result.levelsGained = newLevel - oldLevel;
-
-        // Calculate stats with potential level ups
-        // Use updated calculateLevelUp which returns statsGained; the hero's class level counts too
-        const classLevel = Number(userStats.classes?.[jobClass]?.level) || 1;
-        const levelUpDetails = calculateLevelUp(oldLevel, result.newLevel, jobClass, specialStats, classLevel);
-
-        result.hpGained = levelUpDetails.hpGained;
-        result.mpGained = levelUpDetails.mpGained;
-        result.newMaxHp = levelUpDetails.newMaxHp;
-        result.newMaxMp = levelUpDetails.newMaxMp;
-        result.statsGained = levelUpDetails.statsGained;
-
-        // Apply stat gains to user profile
-        if (result.statsGained) {
-          if (!userStats.special) userStats.special = {};
-          Object.entries(result.statsGained).forEach(([stat, val]) => {
-            userStats.special[stat] = (userStats.special[stat] || 0) + val;
-          });
-        }
-
-        // Restore HP/MP to full on level up
-        if (!userStats.hp) userStats.hp = { now: 0, max: 0 };
-        if (!userStats.mp) userStats.mp = { now: 0, max: 0 };
-
-        userStats.hp.max = result.newMaxHp;
-        userStats.mp.max = result.newMaxMp;
-
-        // Only heal if committing? Or keep it consistent
-        userStats.hp.now = result.newMaxHp;
-        userStats.mp.now = result.newMaxMp;
-      } else {
-        result.newLevel = oldLevel;
-      }
+      applyXpGain(userStats, jobClass, amount, result);
 
       // Update state if committing
       if (commit) {
@@ -849,70 +420,14 @@ export const useUserStore = defineStore('user', () => {
   /**
    * Record AP gain with timestamp for time-based tracking
    */
-  /**
-   * What the hero holds in each hand. Stored on the profile (and so in ProfileDb) as plain item data,
-   * so the temple footer, the quick-draw slots and the equipment screen all read the same thing.
-   */
-  function setEquipment(userId: string, equipment: { leftHand: any[]; rightHand: any[] }) {
-    const user = users[userId];
-    if (!user) return;
-    const plain = (items: any[]) => items.map((item) => JSON.parse(JSON.stringify(item)));
-    user.equipment = { ...(user.equipment || {}), leftHand: plain(equipment.leftHand), rightHand: plain(equipment.rightHand) };
-    if (currentUser.id === userId) syncCurrentUser(user);
-    persistUser(userId);
-  }
-
-  /**
-   * The hero's voxel look. Stored on the profile (and so in ProfileDb); `avatarImage`, a PNG data URL
-   * of the rendered look, replaces the avatar SVG everywhere a hero is shown. Leaving it out keeps the
-   * snapshot already saved.
-   */
-  function setLook(userId: string, look: HeroLook, avatarImage?: string) {
-    const user = users[userId];
-    if (!user) return;
-    user.look = JSON.parse(JSON.stringify(look));
-    if (avatarImage) user.avatarImage = avatarImage;
-    if (currentUser.id === userId) syncCurrentUser(user);
-    persistUser(userId);
-  }
-
-  /**
-   * Change the hero's class (the Class Codex). A sealed tier-2 class is refused, so the profile can only
-   * ever hold a class the hero has earned. Returns whether the class changed hands.
-   */
-  function setJobClass(userId: string, jobClass: string): boolean {
-    const user = users[userId];
-    const hasNoClassToSet = !user || !jobClass;
-    if (hasNoClassToSet) return false;
-    if (!isClassUnlocked(jobClass, classLevelsOf(user.stats?.classes))) return false;
-    user.jobClass = jobClass;
-    if (currentUser.id === userId) syncCurrentUser(user);
-    persistUser(userId);
-    return true;
-  }
-
-  function recordAPGain(payload: { userId: string, amount: number, source: string, at?: string }) {
-    const { userId, amount, source, at } = payload;
+  function recordAPGain(payload: ApGainPayload) {
+    const { userId, amount } = payload;
 
     const hasAPToRecord = users[userId] && amount > 0;
     if (hasAPToRecord) {
       const userStats = users[userId].stats || {};
 
-      // Initialize ap structure if missing
-      if (!userStats.ap) {
-        userStats.ap = { total: 0, history: [] };
-      }
-
-      // Add to total
-      userStats.ap.total = (userStats.ap.total || 0) + amount;
-
-      // Add timestamped record
-      userStats.ap.history = userStats.ap.history || [];
-      userStats.ap.history.push({
-        amount,
-        timestamp: at && !Number.isNaN(new Date(at).getTime()) ? at : new Date().toISOString(),
-        source
-      });
+      applyApGain(userStats, payload);
 
       // Update state
       users[userId].stats = userStats;
@@ -933,18 +448,8 @@ export const useUserStore = defineStore('user', () => {
     if (!users[userId]) return { total: 0, records: [] };
 
     const userStats = users[userId].stats || {};
-    const history = userStats.ap?.history || [];
 
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-
-    const filteredRecords = history.filter((r: any) => {
-      return new Date(r.timestamp) >= cutoff;
-    });
-
-    const total = filteredRecords.reduce((sum: number, r: any) => sum + r.amount, 0);
-
-    return { total, records: filteredRecords };
+    return apInTimeRange(userStats, days);
   }
 
   return {
