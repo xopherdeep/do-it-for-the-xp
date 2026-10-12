@@ -31,7 +31,7 @@
             :class="[`tier-${item.tier}`, { 'is-out': index < revealed, 'is-left': isLeftBehind(item.value), 'is-hop': hopping === item.value }]"
             :style="fanStyle(index)"
           >
-            <i :class="['fad', `fa-${item.icon}`]"></i>
+            <i :class="['fad', `fa-${item.icon}`, { 'is-tinted': Boolean(item.color) }]" :style="iconStyle(item)"></i>
           </span>
         </div>
 
@@ -91,7 +91,7 @@
               @click.stop="toggle(item.value)"
             >
               <span class="loot-row__slot">
-                <i :class="['fad', `fa-${item.icon}`]" aria-hidden="true"></i>
+                <i :class="['fad', `fa-${item.icon}`, { 'is-tinted': Boolean(item.color) }]" :style="iconStyle(item)" aria-hidden="true"></i>
               </span>
               <span class="loot-row__text">
                 <span class="loot-row__name">{{ item.name }}</span>
@@ -142,7 +142,7 @@
               type="button"
               class="chest-button chest-button--take"
               data-cy="chest-take"
-              :disabled="phase !== 'ready'"
+              :disabled="phase !== 'ready' || selected.size === 0"
               @click.stop="take"
             >
               {{ takeLabel }}
@@ -177,7 +177,8 @@ import PixelRuns from "./PixelRuns.vue";
  * Opening a treasure chest: the chest lands and rattles, the lid flies open in a burst of light and the loot rises
  * out of it one piece after another, fanning out above the chest while each piece's line fills in below. A chest that
  * comes with `closed` first lands shut and waits: Leave, or Open, which plays the same lid sequence from a shake. Everything
- * starts unpicked; tap a line to grab that piece (nothing picked takes it all). A tap anywhere while the chest is still opening skips to
+ * starts unticked; tap a line to tick that piece, and Take hands over only what is ticked (Take stays disabled until a
+ * line is ticked; whatever is left stays in the chest). A tap anywhere while the chest is still opening skips to
  * the end. An empty chest opens the same way, on a puff of dust instead of light, and can only be closed. The page
  * owns `open`, and closes the reveal on `take` or `leave`.
  */
@@ -245,13 +246,20 @@ const title = computed(() => {
 
 const takeLabel = computed(() => {
   const count = selected.value.size;
-  if (count === 0 || count === props.loot.length) return props.loot.length === 1 ? "Take" : "Take all";
+  // Nothing ticked: the button is disabled and only says "Take"; "Take all" is every row ticked
+  if (count === 0) return "Take";
+  if (count === props.loot.length) return props.loot.length === 1 ? "Take" : "Take all";
   return `Take ${count}`;
 });
 
-/** What Take hands over: the picked pieces, or everything while nothing is picked. In the chest's order. */
-const taking = (): string[] =>
-  props.loot.map((item) => item.value).filter((value) => selected.value.size === 0 || selected.value.has(value));
+/** A row's own icon colours (a Pegasus's egg is painted in its shell colours), else the reveal's. */
+const iconStyle = (item: ChestLoot) =>
+  item.color
+    ? { "--fa-primary-color": item.color, "--fa-secondary-color": item.secondaryColor ?? item.color, "--fa-secondary-opacity": "1" }
+    : undefined;
+
+/** What Take hands over: only the pieces that are ticked, in the chest's order. Whatever is not ticked stays in the chest. */
+const taking = (): string[] => props.loot.map((item) => item.value).filter((value) => selected.value.has(value));
 
 /** Once Take is pressed, the pieces not being taken stay behind in the chest. */
 const isLeftBehind = (value: string): boolean => exitMode.value === "take" && !taking().includes(value);
@@ -314,7 +322,8 @@ const start = () => {
   clearTimers();
   revealed.value = 0;
   exitMode.value = "leave";
-  selected.value = new Set();
+  // A row that comes ticked (a Pegasus chest's egg and whistle) starts ticked; every other row starts unticked
+  selected.value = new Set(props.loot.filter((item) => item.checked).map((item) => item.value));
   // The dialog holds the focus from the start, so Escape leaves even while the chest is opening
   nextTick(() => root.value?.focus({ preventScroll: true }));
   // A shut chest waits for Open: it lands, and nothing else happens until the hero presses it
@@ -381,10 +390,13 @@ const toggle = (value: string) => {
 
 const take = () => {
   if (phase.value !== "ready") return;
+  const picked = taking();
+  // Nothing is ticked: the button is disabled, and a take that gets here anyway takes nothing
+  if (picked.length === 0) return;
   exitMode.value = "take";
   // In the chest's order, whatever order they were ticked in
   feel("success");
-  emit("take", taking());
+  emit("take", picked);
 };
 
 const leave = () => {
@@ -645,6 +657,11 @@ $cr-chest-h: 48px * $cr-scale;
   animation: spark-fly 0.9s var(--spark-delay) cubic-bezier(0.15, 0.7, 0.35, 1) both;
 }
 
+// A tinted icon (an egg in its Pegasus's colours) keeps a pale edge, so a dark shell still reads on the dark box
+.loot-row__slot i.is-tinted {
+  filter: drop-shadow(0 0 1.5px #fff);
+}
+
 // The loot above the chest, each piece in a bright orb
 .chest-reveal__fan {
   position: absolute;
@@ -731,6 +748,7 @@ $cr-chest-h: 48px * $cr-scale;
 .chest-reveal__empty {
   @include reveal-text;
 }
+
 
 // ---------------------------------------------------------------------------------------------------------------
 // The panel: the RPG box with what came out of the chest, and the two buttons
@@ -906,6 +924,7 @@ $cr-chest-h: 48px * $cr-scale;
 
 .chest-button--take {
   @include reveal-button-primary;
+
 }
 
 // ---------------------------------------------------------------------------------------------------------------

@@ -9,7 +9,7 @@ import { ChestSystem } from '@/lib/engine/core/dungeons/ChestSystem';
 import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
 import debug from '@/lib/utils/debug';
 import { useUserStore } from '@/lib/store/stores/user';
-import { chestItemUnlocks, freeTemplePegasus } from '@/lib/services/temples/TemplePegasus';
+import { chestItemUnlocks, freeTemplePegasus, pegasusEgg } from '@/lib/services/temples/TemplePegasus';
 import { chestLoot, lootFace } from '@/lib/services/temples/ChestLoot';
 import { earnGold } from '@/lib/services/temples/RoomInteractions';
 
@@ -112,7 +112,9 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
   
   // What the current room's chest holds, as the chest reveal shows it
   const chestContents = computed(() =>
-    currentRoom.value?.type === 'loot' ? chestLoot(currentRoom.value.content) : []
+    currentRoom.value?.type === 'loot'
+      ? chestLoot(currentRoom.value.content, currentRoom.value.content?.pegasus === true ? pegasusEgg(templeId, currentRoom.value.content.dungeon) : undefined)
+      : []
   );
   
   // Get the color for the current room action
@@ -285,6 +287,12 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
       displayMessage('The chest is empty.', 2000);
       return;
     }
+
+    // Only what the hero chose is taken: a take that names nothing takes nothing and leaves the chest as it was
+    if (!selectedItems.length) {
+      displayMessage('You took nothing.', 2000);
+      return;
+    }
     
     // What the message lists: each item by its proper name, the gold as it was paid
     const collected: string[] = [];
@@ -324,10 +332,12 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
         // Restoratives go in the bag as consumables, so My Goods files them under Consumables
         useUserStore().addInventoryItem(userId, { name: item, type: 'consumable', faIcon: 'flask-potion', qty: 1 });
       } else {
-        // The Pegasus chest behind the boss: the world's Pegasus is free and the temple is cleared
-        if (content?.pegasus === true && item === content.dungeon) freed = freeTemplePegasus(templeId, userId, item).message;
-        // A named item (Frost Wand, the wind temple's whistle...): the hero may now equip it, and what it stands for
-        if (userId) {
+        // The Pegasus chest behind the boss: the egg frees the world's Pegasus and clears the temple. The egg is the
+        // chest's whole prize token: it unlocks no item (the Wind Temple's whistle is a row of its own).
+        const isEgg = content?.pegasus === true && item === content.dungeon;
+        if (isEgg) freed = freeTemplePegasus(templeId, userId, item).message;
+        // A named item (Frost Wand, the Wind Whistle...): the hero may now equip it, and what it stands for
+        if (userId && !isEgg) {
           const store = useUserStore();
           chestItemUnlocks(templeId, item).forEach((name) => store.unlockItem(userId, name));
         }

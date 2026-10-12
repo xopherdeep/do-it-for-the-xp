@@ -60,7 +60,7 @@ export class DungeonManager {
     // A Dragon Egg or `master` room is the Pegasus chest, and a Dungeon Item chest holds the ids the take path knows
     // (the editor's "small-key" is the small key): rooms are put right before their chests are made
     if (dungeon.rooms) {
-      dungeon.rooms = Object.fromEntries(Object.entries(dungeon.rooms).map(([key, room]) => [key, asChestRoom(room)]));
+      dungeon.rooms = Object.fromEntries(Object.entries(dungeon.rooms).map(([key, room]) => [key, asChestRoom(room, dungeon.id)]));
     }
     // Copied before initializeChests writes chest ids into the rooms and before anyone plays in them
     this.layouts.set(dungeon.id, copyLayout(dungeon));

@@ -2,7 +2,11 @@
  * A temple chest is empty only when every item in it has been taken. Items left behind stay in the chest,
  * the chest still opens and shows just those, and a reload does not refill what was taken.
  */
+import { defineComponent } from "vue";
+import { mount } from "@vue/test-utils";
 import { createPinia, setActivePinia } from "pinia";
+import { useTemple } from "@/hooks/temples/useTemple";
+import { useUserStore } from "@/lib/store/stores/user";
 import { ChestSystem } from "@/lib/engine/core/dungeons/ChestSystem";
 import type { Room } from "@/lib/engine/core/dungeons/types";
 import { isChestEmptyIn, roomActions } from "@/lib/services/temples/RoomInteractions";
@@ -144,5 +148,101 @@ describe("a chest after a reload", () => {
     await reload(id);
 
     expect(isChestEmptyIn(roomAt(id))).toBe(true);
+  });
+});
+
+describe("taking from a chest through the temple screen's hook: only what was ticked", () => {
+  /** The screen's take: the hook files the ticked rows, the reveal's rows are what it showed */
+  const play = async (chest: Room) => {
+    const id = temple(chest);
+    await openFor(id);
+    const messages: string[] = [];
+    const wrapper = mount(
+      defineComponent({
+        setup() {
+          const hook = useTemple(id, CHEST, undefined, HERO);
+          hook.registerMessageDisplay((message) => messages.push(message));
+          return hook;
+        },
+        render: () => null,
+      })
+    );
+    const vm = wrapper.vm as any;
+    const rows = () => vm.chestContents.map((item: { value: string }) => item.value);
+    return { id, messages, rows, take: (items: string[]) => vm.processChestItems(items), done: () => wrapper.unmount() };
+  };
+
+  it("takes the one ticked row of two and leaves the other in the chest, to be shown again", async () => {
+    const bag = jest.spyOn(useUserStore(), "addInventoryItem");
+    const chest = await play(supplies);
+    expect(chest.rows()).toEqual(["potion", "ether"]);
+
+    chest.take(["ether"]);
+
+    // Only the Ether came out; the Potion is still in the chest, which is not empty and shows just it
+    expect(bag.mock.calls.map((call) => call[1].name)).toEqual(["ether"]);
+    expect(chest.rows()).toEqual(["potion"]);
+    expect(roomAt(chest.id).content?.items).toEqual(["potion"]);
+    expect(isChestEmptyIn(roomAt(chest.id))).toBe(false);
+    expect(roomAt(chest.id).isEmpty).toBeFalsy();
+    expect(sheetHeader(chest.id)).toBe("A chest!");
+    expect(chest.messages).toEqual(["Collected: Ether"]);
+
+    // ... and what is left can be taken on a later visit to it
+    chest.take(["potion"]);
+    expect(bag.mock.calls.map((call) => call[1].name)).toEqual(["ether", "potion"]);
+    expect(isChestEmptyIn(roomAt(chest.id))).toBe(true);
+    chest.done();
+    bag.mockRestore();
+  });
+
+  it("takes nothing for a take that names nothing, and says so", async () => {
+    const bag = jest.spyOn(useUserStore(), "addInventoryItem");
+    const chest = await play(supplies);
+
+    chest.take([]);
+
+    expect(bag).not.toHaveBeenCalled();
+    expect(chest.messages).toEqual(["You took nothing."]);
+    expect(chest.rows()).toEqual(["potion", "ether"]);
+    expect(roomAt(chest.id).content?.items).toEqual(["potion", "ether"]);
+    expect(isChestEmptyIn(roomAt(chest.id))).toBe(false);
+    chest.done();
+    bag.mockRestore();
+  });
+
+  it("takes only the ticked gold of a chest that holds gold and supplies, and leaves the supplies", async () => {
+    const chest = await play(lootChest);
+    const before = (useUserStore().users[HERO].stats.gp as { wallet: number }).wallet;
+
+    chest.take(["gold:20"]);
+
+    expect((useUserStore().users[HERO].stats.gp as { wallet: number }).wallet).toBeGreaterThan(before);
+    expect(chest.rows()).toEqual(["potion", "ether"]);
+    expect(isChestEmptyIn(roomAt(chest.id))).toBe(false);
+    chest.done();
+  });
+
+  it("takes only the Boss Key's chest's ticked row: ticking the gold leaves the key", async () => {
+    const chest = await play({ type: "loot", content: { chest: "dungeon", dungeon: "master-key", gold: 15 } } as Room);
+
+    chest.take(["gold:15"]);
+
+    expect(temples.hasMasterKey(chest.id)).toBe(false);
+    expect(chest.rows()).toEqual(["master-key"]);
+
+    chest.take(["master-key"]);
+    expect(temples.hasMasterKey(chest.id)).toBe(true);
+    chest.done();
+  });
+
+  it("leaves the Pegasus chest's prize in it when only its gold was ticked: nobody is freed, the temple is not cleared", async () => {
+    const chest = await play({ type: "loot", content: { chest: "dungeon", dungeon: "Pegasus Whistle", pegasus: true, gold: 10 } } as Room);
+
+    chest.take(["gold:10"]);
+
+    expect(temples.isTempleCleared(chest.id)).toBe(false);
+    expect(chest.rows()).toEqual(["Pegasus Whistle"]);
+    chest.done();
   });
 });

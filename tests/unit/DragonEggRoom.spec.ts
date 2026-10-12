@@ -12,7 +12,7 @@ import { registerTemple } from "@/lib/engine/core/dungeons/TempleAdapter";
 import { generateTemple } from "@/lib/engine/dungeons/generator";
 import { asPegasusChest, chestLoot, isPegasusRoom } from "@/lib/services/temples/ChestLoot";
 import { isChestEmptyIn, resetVisitMemory, roomActions, roomKind } from "@/lib/services/temples/RoomInteractions";
-import { freeTemplePegasus, pegasusOfKeyItem, pegasusView } from "@/lib/services/temples/TemplePegasus";
+import { freeTemplePegasus, pegasusEgg, pegasusOfKeyItem, pegasusView } from "@/lib/services/temples/TemplePegasus";
 import { HERO, addHero, contextAt, dungeons, enter, hero, makeTemple, temples, wallet } from "./templeFixtures";
 
 jest.mock("@/lib/databases/ProfileDb", () => {
@@ -102,13 +102,20 @@ describe("asPegasusChest", () => {
 describe("the Pegasus chest as the chest reveal shows it", () => {
   it("is an egg, a relic, with a line about the Pegasus asleep inside", () => {
     const [prize] = chestLoot(asPegasusChest<Room>({ type: "dragon-egg" }).content);
-    expect(prize).toMatchObject({ value: "Pegasus", name: "Pegasus", icon: "egg", tier: "relic" });
+    expect(prize).toMatchObject({ value: "Pegasus", name: "A Pegasus Egg", icon: "egg", tier: "relic" });
     expect(prize.blurb).toMatch(/Pegasus sleeps inside/);
   });
 
-  it("keeps the whistle's own face in a temple whose chest holds it", () => {
-    const [whistle] = chestLoot({ chest: "dungeon", dungeon: "Pegasus Whistle", pegasus: true });
-    expect(whistle).toMatchObject({ icon: "whistle", tier: "relic" });
+  it("is the temple's own Pegasus's egg, in its colours, when the temple screen names it", () => {
+    const content = asPegasusChest<Room>({ type: "master" }).content;
+    expect(chestLoot(content, pegasusEgg("fire-temple", content?.dungeon))[0]).toMatchObject({ name: "Ignis's Egg", color: "#ff4757", secondaryColor: "#f1c40f" });
+  });
+
+  it("is the egg of the Pegasus the Game Master picked in a Master room", () => {
+    const content = asPegasusChest<Room>({ type: "master", content: { dungeon: "Terra" } }).content;
+    expect(chestLoot(content, pegasusEgg("fire-temple", content?.dungeon))).toEqual([
+      expect.objectContaining({ value: "Terra", name: "Terra's Egg", icon: "egg", color: "#2ed573", secondaryColor: "#2f3542", checked: true }),
+    ]);
   });
 });
 

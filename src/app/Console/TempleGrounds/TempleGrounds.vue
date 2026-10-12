@@ -4,7 +4,8 @@
       <ion-toolbar class="rpg-box icon-colors">
         <ion-buttons slot="end">
           <ion-button color="rpg">
-            <i class="fad fa-key-skeleton m-0 mr-2 fa-2x ion-float-right" />
+            <!-- The small keys in hand; the Boss Key (fa-key-skeleton) is another thing -->
+            <i class="fad fa-key m-0 mr-2 fa-2x ion-float-right" />
             {{ playerKeys }}
           </ion-button>
         </ion-buttons>
@@ -103,6 +104,7 @@
       <!-- 3D Voxel Monster roaming in the room -->
       <xp-monster-model
         v-if="showVoxelMonster"
+        :key="`monster-${currentLevel}-${currentPosition[0]}-${currentPosition[1]}`"
         :monster-name="activeMonster.name"
         :avatar-src="activeMonster.avatar"
         @click="showRoomActions"

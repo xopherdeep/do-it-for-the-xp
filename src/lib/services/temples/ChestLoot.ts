@@ -60,17 +60,30 @@ export const asPegasusChest = <R extends { type?: string; content?: RoomContent 
  * `pegasus` flag the room carried over from the Pegasus chest it was edited from. Any other room comes back untouched
  * (the same object); running it twice changes nothing. Pure.
  */
-export const asChestRoom = <R extends { type?: string; content?: RoomContent }>(given: R): R => {
+export const asChestRoom = <R extends { type?: string; content?: RoomContent }>(given: R, templeId?: string): R => {
   const room = asPegasusChest(given);
   const content = room.content;
-  if (roomTypeOf(room) !== 'loot' || content?.chest !== 'dungeon' || typeof content.dungeon !== 'string') return room;
+  if (roomTypeOf(room) !== 'loot' || content?.chest !== 'dungeon' || typeof content.dungeon !== 'string') return asWhistled(room, templeId);
 
   const dungeon = dungeonItemId(content.dungeon);
   const stale = content.pegasus === true && isTempleItem(dungeon);
-  if (dungeon === content.dungeon && !stale) return room;
+  if (dungeon === content.dungeon && !stale) return asWhistled(room, templeId);
 
   const { pegasus, ...rest } = content;
-  return { ...room, content: { ...rest, dungeon, ...(pegasus === true && !stale ? { pegasus } : {}) } };
+  // The flag first, the whistle after: a room that is no longer a Pegasus chest gets no whistle
+  return asWhistled({ ...room, content: { ...rest, dungeon, ...(pegasus === true && !stale ? { pegasus } : {}) } }, templeId);
+};
+
+/**
+ * The Wind Temple's Pegasus chest holds the Wind Whistle beside the egg, as a row of its own (an item in the chest,
+ * so taking it or leaving it is remembered like any other row). Needs the temple to be known; any other room, and
+ * every other temple, comes back untouched.
+ */
+const asWhistled = <R extends { type?: string; content?: RoomContent }>(room: R, templeId?: string): R => {
+  const content = room.content;
+  if (templeId !== WIND_TEMPLE_ID || roomTypeOf(room) !== 'loot' || content?.pegasus !== true) return room;
+  if ((content.items ?? []).includes(WIND_WHISTLE)) return room;
+  return { ...room, content: { ...content, items: [...(content.items ?? []), WIND_WHISTLE] } };
 };
 
 /** How the reveal frames the item: keys and maps are the temple's own, relics are the prize behind the boss. */
@@ -83,7 +96,26 @@ export interface ChestLoot {
   icon: string;
   blurb: string;
   tier: LootTier;
+  /** Duotone colours for the icon (a Pegasus's egg is painted in its own); the reveal's own colours when absent */
+  color?: string;
+  secondaryColor?: string;
+  /** The row starts ticked (a Pegasus chest's egg and whistle: the prize is meant to be taken) */
+  checked?: boolean;
 }
+
+/** A Pegasus's egg as the chest shows it: the name on its row and the colours of its shell. */
+export interface PegasusEgg {
+  name: string;
+  color: string;
+  secondaryColor: string;
+}
+
+/** The egg of a Pegasus nobody can name (a temple the registry has no world for): the editor's golden egg. */
+export const UNKNOWN_EGG: PegasusEgg = { name: 'A Pegasus Egg', color: '#ffd740', secondaryColor: '#fff6d0' };
+
+/** The Wind Temple's Pegasus chest holds a second prize beside the egg: the Wind Whistle (every other temple's whistle is the call). */
+export const WIND_TEMPLE_ID = 'wind-temple';
+export const WIND_WHISTLE = 'Wind Whistle';
 
 interface LootFace {
   name: string;
@@ -102,6 +134,7 @@ const KNOWN: Record<string, LootFace> = {
   'dungeon-map': { name: 'Dungeon Map', icon: 'map', blurb: 'Shows every room of the temple.', tier: 'key' },
   'small-key': { name: 'Small Key', icon: 'key', blurb: 'Opens one locked door in this temple.', tier: 'key' },
   compass: { name: 'Compass', icon: 'compass', blurb: 'Reveals what waits in the rooms ahead.', tier: 'key' },
+  'wind whistle': { name: 'Wind Whistle', icon: 'whistle', blurb: 'Its call carries you to a Pegasus you have freed.', tier: 'item' },
   potion: { name: 'Potion', icon: 'flask-potion', blurb: 'Restores HP. Goes in your bag.', tier: 'supply' },
   ether: { name: 'Ether', icon: 'flask', blurb: 'Restores MP. Goes in your bag.', tier: 'supply' },
   elixir: { name: 'Elixir', icon: 'flask-poison', blurb: 'Restores HP and MP. Goes in your bag.', tier: 'supply' },
@@ -121,9 +154,6 @@ const RELICS: Record<string, { icon: string; blurb: string }> = {
   'Dawnbreaker Bow': { icon: 'bow-arrow', blurb: 'A relic of the Light Temple.' },
 };
 
-/** The face of a Pegasus chest's prize that is not a relic of its own: an egg with a Pegasus asleep inside. */
-const EGG: { icon: string; blurb: string } = { icon: 'egg', blurb: 'A Pegasus sleeps inside. Take it to set it free.' };
-
 /** "golden key" -> "Golden Key": loot names are stored lowercase, the chest shows them properly. */
 export const titleCase = (value: string): string =>
   String(value).replace(/\b([a-z])/g, (letter) => letter.toUpperCase());
@@ -137,17 +167,35 @@ export const lootFace = (item: string): LootFace => {
   return { name: titleCase(item), icon: 'gift', blurb: 'Goes in your bag.', tier: 'item' };
 };
 
-/** Everything in the chest, in the order it comes out: the items, the temple's own item, then the gold. */
-export const chestLoot = (content: RoomContent | undefined): ChestLoot[] => {
-  if (!content) return [];
-  const loot: ChestLoot[] = (content.items ?? []).map((item) => ({ value: item, ...lootFace(item) }));
+/** The Pegasus chest's egg row: "{Name}'s Egg", painted in the Pegasus's own colours, ticked to be taken. */
+const eggRow = (value: string, egg: PegasusEgg): ChestLoot => ({
+  value,
+  name: egg.name,
+  icon: 'egg',
+  blurb: egg.name === UNKNOWN_EGG.name ? 'A Pegasus sleeps inside. Take it to set it free.' : `${egg.name.replace(/'s Egg$/, '')} sleeps inside. Take it to set it free.`,
+  tier: 'relic',
+  color: egg.color,
+  secondaryColor: egg.secondaryColor,
+  checked: true,
+});
 
-  if (content.chest === 'dungeon' && content.dungeon) {
-    const face = lootFace(content.dungeon);
-    // The Pegasus chest's item is a relic whatever it is called; unless it is a named relic (the whistle), it is an egg
-    const isPegasus = content.pegasus === true;
-    loot.push({ value: content.dungeon, ...face, ...(isPegasus && !RELICS[content.dungeon] ? EGG : {}), tier: isPegasus ? 'relic' : face.tier });
-  }
+/**
+ * Everything in the chest, in the order it comes out: a Pegasus chest's egg first, then the items, the temple's own
+ * item, then the gold. A Pegasus chest (`pegasus: true`) lists its prize as the egg of the Pegasus it frees, whatever
+ * the stored value is ("Pegasus", "Pegasus Whistle", a Game Master's pick); `egg` names that Pegasus and its colours
+ * (the temple screen asks `pegasusEgg`), and without it the egg is a plain "A Pegasus Egg". The Pegasus chest's rows
+ * start ticked: the egg, and the Wind Whistle beside it in the Wind Temple.
+ */
+export const chestLoot = (content: RoomContent | undefined, egg?: PegasusEgg | null): ChestLoot[] => {
+  if (!content) return [];
+  const isPegasus = content.pegasus === true;
+  const loot: ChestLoot[] = [];
+
+  if (isPegasus && content.chest === 'dungeon' && content.dungeon) loot.push(eggRow(content.dungeon, egg ?? UNKNOWN_EGG));
+
+  (content.items ?? []).forEach((item) => loot.push({ value: item, ...lootFace(item), ...(isPegasus ? { checked: true } : {}) }));
+
+  if (!isPegasus && content.chest === 'dungeon' && content.dungeon) loot.push({ value: content.dungeon, ...lootFace(content.dungeon) });
 
   const gold = Math.floor(Number(content.gold) || 0);
   if (gold > 0) {

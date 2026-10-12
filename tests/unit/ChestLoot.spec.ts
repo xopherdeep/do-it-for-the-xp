@@ -2,7 +2,9 @@
  * The chest reveal's view of a chest: every stored item comes out with a name, an icon and a tier, and its
  * value is the token processChestItems takes back.
  */
-import { asChestRoom, chestGlow, chestLoot, dungeonItemId, isTempleItem, lootFace } from "@/lib/services/temples/ChestLoot";
+import type { Room } from "@/lib/engine/core/dungeons/types";
+import { getDungeonItems } from "@/lib/engine/core/items/itemRegistry";
+import { asChestRoom, chestGlow, chestLoot, dungeonItemId, isTempleItem, lootFace, UNKNOWN_EGG, type PegasusEgg } from "@/lib/services/temples/ChestLoot";
 
 describe("chestLoot", () => {
   it("is empty without content", () => {
@@ -26,9 +28,74 @@ describe("chestLoot", () => {
     expect(chestLoot({ gold: Number.NaN })).toEqual([]);
   });
 
-  it("makes the Pegasus chest's item a relic", () => {
-    const [whistle] = chestLoot({ chest: "dungeon", dungeon: "Pegasus Whistle", pegasus: true });
-    expect(whistle).toMatchObject({ value: "Pegasus Whistle", name: "Pegasus Whistle", icon: "whistle", tier: "relic" });
+  it("makes the Pegasus chest's prize the egg, a relic, whatever it is called", () => {
+    ["Pegasus", "Pegasus Whistle", "Terra"].forEach((dungeon) => {
+      const [egg] = chestLoot({ chest: "dungeon", dungeon, pegasus: true });
+      expect(egg).toMatchObject({ value: dungeon, name: "A Pegasus Egg", icon: "egg", tier: "relic", checked: true });
+    });
+  });
+
+  it("keeps the whistle's own face for a chest that is not the Pegasus chest", () => {
+    const [whistle] = chestLoot({ chest: "dungeon", dungeon: "Pegasus Whistle" });
+    expect(whistle).toMatchObject({ name: "Pegasus Whistle", icon: "whistle", tier: "relic" });
+    expect(whistle.checked).toBeUndefined();
+  });
+});
+
+describe("a Pegasus chest's rows", () => {
+  const aura: PegasusEgg = { name: "Aura's Egg", color: "#badc58", secondaryColor: "#ffffff" };
+  const pegasusChest = { chest: "dungeon", dungeon: "Pegasus Whistle", pegasus: true };
+
+  it("lists the egg of the Pegasus it frees, painted in its shell colours, relic and ticked", () => {
+    const [egg] = chestLoot(pegasusChest, aura);
+    expect(egg).toMatchObject({
+      value: "Pegasus Whistle",
+      name: "Aura's Egg",
+      icon: "egg",
+      tier: "relic",
+      color: "#badc58",
+      secondaryColor: "#ffffff",
+      checked: true,
+    });
+    expect(egg.blurb).toBe("Aura sleeps inside. Take it to set it free.");
+  });
+
+  it("lists the Wind Whistle as a row of its own in the Wind Temple, after the egg, ticked too", () => {
+    const content = asChestRoom({ type: "loot", content: pegasusChest }, "wind-temple").content;
+
+    const loot = chestLoot(content, aura);
+
+    expect(loot.map((item) => item.name)).toEqual(["Aura's Egg", "Wind Whistle"]);
+    expect(loot[1]).toMatchObject({ value: "Wind Whistle", icon: "whistle", checked: true });
+    expect(loot[1].color).toBeUndefined();
+  });
+
+  it("lists only the egg in every other temple (their whistle is the call, not a thing)", () => {
+    const terra: PegasusEgg = { name: "Terra's Egg", color: "#2ed573", secondaryColor: "#2f3542" };
+    const content = asChestRoom({ type: "loot", content: pegasusChest }, "earth-temple").content;
+
+    expect(chestLoot(content, terra).map((item) => item.name)).toEqual(["Terra's Egg"]);
+  });
+
+  it("adds the whistle once, however often the room is put right, and only to a Pegasus chest", () => {
+    const once = asChestRoom<Room>({ type: "loot", content: pegasusChest }, "wind-temple");
+    expect(asChestRoom(once, "wind-temple")).toBe(once);
+    expect(once.content?.items).toEqual(["Wind Whistle"]);
+
+    const other = { type: "loot", content: { chest: "dungeon", dungeon: "map" } };
+    expect(asChestRoom(other, "wind-temple")).toBe(other);
+    const supplies = { type: "loot", content: { chest: "random", items: ["potion"] } };
+    expect(asChestRoom(supplies, "wind-temple")).toBe(supplies);
+  });
+
+  it("is an egg of an unnamed Pegasus without a name to give it", () => {
+    expect(chestLoot(pegasusChest)[0]).toMatchObject({ name: "A Pegasus Egg", color: "#ffd740" });
+    expect(chestLoot(pegasusChest, UNKNOWN_EGG)[0].blurb).toBe("A Pegasus sleeps inside. Take it to set it free.");
+  });
+
+  it("lists the egg before the gold, and no row is ticked in a chest that is not the Pegasus chest", () => {
+    expect(chestLoot({ ...pegasusChest, gold: 10 }, aura).map((item) => item.name)).toEqual(["Aura's Egg", "10 GP"]);
+    expect(chestLoot({ chest: "loot", items: ["potion"], gold: 10 }).some((item) => item.checked)).toBe(false);
   });
 });
 
@@ -63,6 +130,22 @@ describe("the Boss Key chest", () => {
   it("knows the Temple Creator's own ids for the small key and the map", () => {
     expect(lootFace("small-key")).toMatchObject({ name: "Small Key", tier: "key" });
     expect(lootFace("dungeon-map")).toMatchObject({ name: "Dungeon Map", tier: "key" });
+  });
+});
+
+describe("the keys' icons", () => {
+  it("draws the Boss Key as the skeleton key, and the small key as the plain key", () => {
+    expect(lootFace("master-key").icon).toBe("key-skeleton");
+    expect(chestLoot({ chest: "dungeon", dungeon: "master-key" })[0].icon).toBe("key-skeleton");
+    expect(lootFace("key").icon).toBe("key");
+    expect(lootFace("small-key").icon).toBe("key");
+    expect(chestLoot({ chest: "dungeon", dungeon: "key" })[0].icon).toBe("key");
+  });
+
+  it("is the same in the item registry: the Boss Key is the skeleton key, the small key the plain key", () => {
+    const icons = Object.fromEntries(getDungeonItems().map((item) => [item.id, item.icon]));
+    expect(icons["master-key"]).toBe("key-skeleton");
+    expect(icons["small-key"]).toBe("key");
   });
 });
 

@@ -9,6 +9,9 @@ import { TEMPLE_METADATA } from '@/lib/engine/temples/templeRegistry';
 import { unlocksFromChest } from '@/lib/services/quests/ItemEffects';
 import { useUserStore } from '@/lib/store/stores/user';
 import { clearTemple, type ClearedReward } from './RoomInteractions';
+import { UNKNOWN_EGG, WIND_TEMPLE_ID, WIND_WHISTLE, type PegasusEgg } from './ChestLoot';
+
+export { WIND_TEMPLE_ID };
 
 export interface Pegasus {
   /** Index into `stats.pegasi` */
@@ -79,6 +82,10 @@ export const pegasusOfKeyItem = (value: string | null | undefined): Pegasus | un
   return PEGASI.find((pegasus) => words.includes(pegasus.name.toLowerCase()));
 };
 
+/** The Pegasus a chest or its celebration means: the Game Master's pick if it names one, else the temple's own. */
+export const pegasusFor = (templeId: string, pick?: string | null): Pegasus | undefined =>
+  pegasusOfKeyItem(pick) ?? pegasusOfTemple(templeId);
+
 /** The Pegasus a temple keeps, by the world the temple registry places it in. */
 export const pegasusOfTemple = (templeId: string): Pegasus | undefined => {
   const world = TEMPLE_METADATA[templeId]?.world;
@@ -96,19 +103,29 @@ export interface PegasusView {
 
 /** The Pegasus a temple's clear frees as the celebration draws it: the Game Master's pick if there is one, else the temple's own; none for a temple that keeps no Pegasus. */
 export const pegasusView = (templeId: string, pick?: string | null): PegasusView | null => {
-  const pegasus = pegasusOfKeyItem(pick) ?? pegasusOfTemple(templeId);
+  const pegasus = pegasusFor(templeId, pick);
   const look = pegasus ? PEGASUS_LOOK[pegasus.index] : undefined;
   if (!pegasus || !look) return null;
   return { name: pegasus.name, color: look.color, secondaryColor: look.secondaryColor, world: pegasus.world, temple: look.temple };
 };
 
+/**
+ * The egg a Pegasus chest lists for the Pegasus it frees: "{Name}'s Egg" in that Pegasus's egg colours, the same
+ * Pegasus and colours the celebration draws (`pegasusView`). A temple with no Pegasus to name has "A Pegasus Egg".
+ */
+export const pegasusEgg = (templeId: string, pick?: string | null): PegasusEgg => {
+  const pegasus = pegasusFor(templeId, pick);
+  const look = pegasus ? PEGASUS_LOOK[pegasus.index] : undefined;
+  if (!pegasus || !look) return UNKNOWN_EGG;
+  return { name: `${pegasus.name}'s Egg`, color: look.color, secondaryColor: look.secondaryColor };
+};
+
 /** Only the wind temple's whistle is the Wind Whistle the hero can equip. */
-export const WIND_TEMPLE_ID = 'wind-temple';
 const PEGASUS_WHISTLE = 'Pegasus Whistle';
 
 /** What a chest item unlocks on the hero: the Pegasus Whistle only in the wind temple, anything else as itself. */
 export const chestItemUnlocks = (templeId: string, chestItem: string): string[] => {
-  if (chestItem === PEGASUS_WHISTLE && templeId !== WIND_TEMPLE_ID) return [];
+  if ((chestItem === PEGASUS_WHISTLE || chestItem === WIND_WHISTLE) && templeId !== WIND_TEMPLE_ID) return [];
   return unlocksFromChest(chestItem);
 };
 
@@ -128,7 +145,7 @@ export const freeTemplePegasus = (
 ): { message: string; pegasus?: Pegasus; cleared?: ClearedReward } => {
   const cleared = clearTemple(templeId, userId) ?? undefined;
 
-  const pegasus = pegasusOfKeyItem(pick) ?? pegasusOfTemple(templeId);
+  const pegasus = pegasusFor(templeId, pick);
   if (!pegasus) return { message: 'A Pegasus is free!', ...(cleared && { cleared }) };
   if (userId) useUserStore().unlockPegasus(userId, pegasus.index);
   return { message: pegasusFreedLine(pegasus.name), pegasus, ...(cleared && { cleared }) };

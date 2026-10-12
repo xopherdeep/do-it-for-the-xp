@@ -159,25 +159,79 @@ describe("the Temple Creator's other dungeon items", () => {
 describe("the Pegasus chest and the Wind Whistle", () => {
   const pegasusChest = { chest: "dungeon", dungeon: "Pegasus Whistle", pegasus: true };
 
-  it("hands out the Wind Whistle from the Wind Temple's Pegasus chest, and frees Aura", () => {
+  it("lists Aura's Egg (in Aura's colours) and the Wind Whistle in the Wind Temple's chest, both ticked", () => {
     chestTemple("wind-temple", pegasusChest);
 
-    const { rows, messages } = take("wind-temple", ["Pegasus Whistle"]);
+    const { rows } = take("wind-temple", []);
 
-    expect(rows).toEqual([expect.objectContaining({ value: "Pegasus Whistle", icon: "whistle", tier: "relic" })]);
-    expect(hero().unlockedItems).toEqual(expect.arrayContaining(["Pegasus Whistle", "Wind Whistle"]));
+    expect(rows).toEqual([
+      expect.objectContaining({ value: "Pegasus Whistle", name: "Aura's Egg", icon: "egg", tier: "relic", color: "#badc58", secondaryColor: "#ffffff", checked: true }),
+      expect.objectContaining({ value: "Wind Whistle", name: "Wind Whistle", icon: "whistle", checked: true }),
+    ]);
+  });
+
+  it("hands out the Wind Whistle and frees Aura when both rows are taken", () => {
+    chestTemple("wind-temple", pegasusChest);
+
+    const { messages } = take("wind-temple", ["Pegasus Whistle", "Wind Whistle"]);
+
+    expect(hero().unlockedItems).toEqual(["Wind Whistle"]);
     expect(pegasi()?.[3]).toBe(true);
     expect(temples.isTempleCleared("wind-temple")).toBe(true);
     expect(messages).toContain("The Aura is free!");
     expect(temples.hasMasterKey("wind-temple")).toBe(false);
   });
 
+  it("frees Aura and no whistle when only the egg is taken; the whistle stays in the chest", () => {
+    chestTemple("wind-temple", pegasusChest);
+
+    take("wind-temple", ["Pegasus Whistle"]);
+
+    expect(hero().unlockedItems).toEqual([]);
+    expect(pegasi()?.[3]).toBe(true);
+    expect(take("wind-temple", []).rows.map((row: { name: string }) => row.name)).toEqual(["Wind Whistle"]);
+  });
+
+  it("hands out the whistle and frees nobody when only the whistle is taken; the egg stays in the chest", () => {
+    chestTemple("wind-temple", pegasusChest);
+
+    take("wind-temple", ["Wind Whistle"]);
+
+    expect(hero().unlockedItems).toEqual(["Wind Whistle"]);
+    expect(pegasi()).toBeUndefined();
+    expect(temples.isTempleCleared("wind-temple")).toBe(false);
+    expect(take("wind-temple", []).rows.map((row: { name: string }) => row.name)).toEqual(["Aura's Egg"]);
+  });
+
+  it("lists the Earth Temple's Terra's Egg alone, and hands out no whistle", () => {
+    chestTemple("earth-temple", pegasusChest);
+
+    const { rows, messages } = take("earth-temple", ["Pegasus Whistle"]);
+
+    expect(rows).toEqual([expect.objectContaining({ name: "Terra's Egg", color: "#2ed573", checked: true })]);
+    expect(hero().unlockedItems).toEqual([]);
+    expect(pegasi()?.[4]).toBe(true);
+    expect(messages).toContain("The Terra is free!");
+  });
+
   it("hands out no Wind Whistle from any other temple's Pegasus chest", () => {
     chestTemple("fire-temple", pegasusChest);
 
-    take("fire-temple", ["Pegasus Whistle"]);
+    const { rows } = take("fire-temple", ["Pegasus Whistle"]);
 
+    expect(rows.map((row: { name: string }) => row.name)).toEqual(["Ignis's Egg"]);
     expect(hero().unlockedItems).toEqual([]);
     expect(pegasi()?.[1]).toBe(true);
+  });
+
+  it("lists an egg of an unnamed Pegasus, in the default colour, for a temple the registry has no world for", () => {
+    chestTemple("gen-some-seed", pegasusChest);
+
+    const { rows, messages } = take("gen-some-seed", ["Pegasus Whistle"]);
+
+    expect(rows).toEqual([expect.objectContaining({ name: "A Pegasus Egg", color: "#ffd740", checked: true })]);
+    expect(pegasi()).toBeUndefined();
+    expect(temples.isTempleCleared("gen-some-seed")).toBe(true);
+    expect(messages).toContain("A Pegasus is free!");
   });
 });

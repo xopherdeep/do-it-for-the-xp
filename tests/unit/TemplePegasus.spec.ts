@@ -8,8 +8,11 @@ import {
   PEGASI,
   chestItemUnlocks,
   freeTemplePegasus,
+  pegasusEgg,
+  pegasusFor,
   pegasusOfTemple,
   pegasusOfWorld,
+  pegasusView,
 } from "@/lib/services/temples/TemplePegasus";
 import { HERO, addHero, enter, hero, makeTemple, temples } from "./templeFixtures";
 
@@ -70,6 +73,11 @@ describe("chestItemUnlocks", () => {
   it("hands out the Wind Whistle in the wind temple only", () => {
     expect(chestItemUnlocks("wind-temple", "Pegasus Whistle")).toEqual(["Pegasus Whistle", "Wind Whistle"]);
     expect(chestItemUnlocks("ice-temple", "Pegasus Whistle")).toEqual([]);
+  });
+
+  it("hands out the Wind Whistle row's item in the wind temple only", () => {
+    expect(chestItemUnlocks("wind-temple", "Wind Whistle")).toEqual(["Wind Whistle"]);
+    expect(chestItemUnlocks("fire-temple", "Wind Whistle")).toEqual([]);
   });
 
   it("leaves the other chest items as they were", () => {
@@ -147,5 +155,34 @@ describe("freeTemplePegasus", () => {
     expect(again.cleared).toBeUndefined();
     expect(again.pegasus?.name).toBe("Ignis");
     expect(hero().stats.gp.wallet).toBe(150);
+  });
+});
+
+describe("the egg a Pegasus chest lists", () => {
+  it("is the temple's own Pegasus's egg in its colours, named like the celebration names it", () => {
+    expect(pegasusEgg("wind-temple")).toEqual({ name: "Aura's Egg", color: "#badc58", secondaryColor: "#ffffff" });
+    expect(pegasusEgg("earth-temple", "Pegasus Whistle")).toEqual({ name: "Terra's Egg", color: "#2ed573", secondaryColor: "#2f3542" });
+    expect(pegasusEgg("fire-temple", "Pegasus")).toMatchObject({ name: "Ignis's Egg" });
+  });
+
+  it("is the Game Master's pick when it names a Pegasus, whatever the temple", () => {
+    expect(pegasusEgg("fire-temple", "Terra")).toEqual({ name: "Terra's Egg", color: "#2ed573", secondaryColor: "#2f3542" });
+    expect(pegasusEgg("wind-temple", "umbra-egg")).toMatchObject({ name: "Umbra's Egg", color: "#130f40" });
+  });
+
+  it("has a name and a colour for each of the nine Pegasi, and shows the same Pegasus the celebration does", () => {
+    PEGASI.forEach((pegasus) => {
+      const templeId = Object.keys(TEMPLE_METADATA).find((id) => pegasusOfTemple(id)?.index === pegasus.index)!;
+      const egg = pegasusEgg(templeId);
+      const view = pegasusView(templeId)!;
+      expect(egg.name).toBe(`${pegasus.name}'s Egg`);
+      expect(egg.color).toBe(view.color);
+      expect(egg.secondaryColor).toBe(view.secondaryColor);
+      expect(pegasusFor(templeId)?.name).toBe(view.name);
+    });
+  });
+
+  it("is a plain Pegasus Egg in the default colour for a temple with no Pegasus to name", () => {
+    expect(pegasusEgg("gen-some-seed")).toEqual({ name: "A Pegasus Egg", color: "#ffd740", secondaryColor: "#fff6d0" });
   });
 });

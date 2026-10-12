@@ -25,6 +25,7 @@ import TempleDoorReveal from './components/TempleDoorReveal.vue';
 import TemplePegasusReveal from './components/TemplePegasusReveal.vue';
 import XpMonsterModel from '@/components/organisms/MonsterModel/XpMonsterModel.vue';
 import { BestiaryService } from '@/lib/services/battle/BestiaryService';
+import BestiaryDb, { beastStorage } from '@/lib/databases/BestiaryDb';
 import type { DoorView } from './components/doorView';
 import type { ChestLoot } from '@/lib/services/temples/ChestLoot';
 import { pegasusOfTemple, pegasusView, type PegasusView } from '@/lib/services/temples/TemplePegasus';
@@ -202,24 +203,97 @@ export default defineComponent({
         !beastPending.value
     );
 
-    const activeMonster = computed(() => {
-      if (!currentRoom.value) {
-        return { name: 'Dustbunny', avatar: bestiaryService.getAvatar(74) };
+    const formatMonsterName = (text: string): string =>
+      text
+        .replace(/([a-z])([A-Z])/g, '$1 $2')
+        .replace(/[-_]+/g, ' ')
+        .trim()
+        .replace(/\b([a-z])/g, (l) => l.toUpperCase());
+
+    const resolveMonsterInfo = (room: any, element: string) => {
+      const authoredName = room.content?.name || room.content?.monsterName || room.content?.beastName;
+      const rawMonsterType = room.content?.monsterType;
+      const roomType = room.type;
+
+      let name = '';
+      if (authoredName) {
+        name = authoredName;
+      } else if (rawMonsterType && rawMonsterType !== 'small') {
+        name = formatMonsterName(rawMonsterType);
+      } else if (roomType === 'boss') {
+        const bossNames: Record<string, string> = {
+          fire: 'Ifrit',
+          earth: 'Titan',
+          water: 'Leviathan',
+          ice: 'Frost Giant',
+          light: 'Seraph',
+          shadow: 'Shadowlord',
+          wind: 'Tempest Wyrm',
+          moon: 'Eclipse Dragon',
+          storm: 'Thunder Drake',
+        };
+        name = bossNames[element] || 'Ancient Dragon';
+      } else if (roomType === 'miniboss') {
+        const minibossNames: Record<string, string> = {
+          fire: 'Fire Elemental',
+          earth: 'Stone Guardian',
+          water: 'Giant Squid',
+          ice: 'Ice Wyrm',
+          light: 'Radiant Guardian',
+          shadow: 'Dark Phantom',
+          wind: 'Gale Chimera',
+          moon: 'Lunar Phantom',
+          storm: 'Storm Drake',
+        };
+        name = minibossNames[element] || 'Dungeon Chimera';
+      } else {
+        const mobNames: Record<string, string> = {
+          fire: 'Fire Imp',
+          earth: 'Rock Golem',
+          water: 'Water Elemental',
+          ice: 'Ice Golem',
+          light: 'Light Sentinel',
+          shadow: 'Shadow Stalker',
+          wind: 'Gale Sprite',
+          moon: 'Moon Bat',
+          storm: 'Spark Wisp',
+        };
+        name = mobNames[element] || 'Dust Bunny';
       }
 
-      // The beast the room names, by its Bestiary id: its own name and portrait
+      let avatarId = 74;
+      if (roomType === 'boss') {
+        const bossAvatars: Record<string, number> = {
+          fire: 46, earth: 14, water: 3, ice: 32, light: 5, shadow: 18, wind: 1, moon: 1, storm: 1,
+        };
+        avatarId = bossAvatars[element] || 1;
+      } else if (roomType === 'miniboss') {
+        const minibossAvatars: Record<string, number> = {
+          fire: 22, earth: 28, water: 40, ice: 35, light: 25, shadow: 41, wind: 19, moon: 43, storm: 29,
+        };
+        avatarId = minibossAvatars[element] || 19;
+      } else {
+        const mobAvatars: Record<string, number> = {
+          fire: 12, earth: 27, water: 21, ice: 31, light: 24, shadow: 42, wind: 74, moon: 74, storm: 74,
+        };
+        avatarId = mobAvatars[element] || 74;
+      }
+
+      return { name, avatarId };
+    };
+
+    const activeMonster = computed(() => {
+      if (!currentRoom.value) {
+        return { name: 'Dust Bunny', avatar: bestiaryService.getAvatar(74) };
+      }
+
       if (roomBeast.value) return roomBeast.value;
 
-      const fallbackAvatarId = currentRoom.value.type === 'boss' ? 1 : 74;
-      const fallbackName = currentRoom.value.type === 'boss'
-        ? 'Temple Boss'
-        : currentRoom.value.type === 'miniboss'
-        ? 'Temple Guardian'
-        : 'Dustbunny';
-
+      const element = templeElement.value || 'fire';
+      const info = resolveMonsterInfo(currentRoom.value, element);
       return {
-        name: fallbackName,
-        avatar: bestiaryService.getAvatar(fallbackAvatarId)
+        name: info.name,
+        avatar: bestiaryService.getAvatar(info.avatarId),
       };
     });
 
@@ -589,10 +663,17 @@ export default defineComponent({
     type BeastCard = { name: string; art?: ChoiceRevealState['art'] } | null;
     const lookUpBeast = async (beastId: string): Promise<BeastCard> => {
       try {
-        const beast = await bestiaryService.loadBeastById(beastId);
-        const name = String(beast?.name || '').trim();
-        if (!beast || !name) return null;
-        const src = beast.avatar ? bestiaryService.getAvatar(Number(beast.avatar)) : '';
+        const beast = await new BestiaryDb(beastStorage).getBeastById(beastId);
+        if (!beast) {
+          const fallbackEnemy = await bestiaryService.loadBeastById(beastId);
+          if (!fallbackEnemy) return null;
+          const name = String(fallbackEnemy.name || '').trim();
+          const src = fallbackEnemy.avatar ? bestiaryService.getAvatar(Number(fallbackEnemy.avatar)) : '';
+          return { name, art: src ? { src, alt: name, frame: 'beast' } : undefined };
+        }
+        const name = String(beast.name || '').trim();
+        if (!name) return null;
+        const src = beast.imageUrl || beast.localImage || (beast.avatar ? bestiaryService.getAvatar(Number(beast.avatar)) : '');
         return { name, art: src ? { src, alt: name, frame: 'beast' } : undefined };
       } catch (error) {
         debug.warn('Could not look up the beast of this room', error);
@@ -615,21 +696,58 @@ export default defineComponent({
     watch(
       () => {
         const room = currentRoom.value;
+        const pos = currentPosition.value;
+        const lvl = currentLevel.value;
         if (!room || !COMBAT_ROOM_TYPES.includes(room.type) || isCombatRoomCleared.value) return undefined;
-        return room.content?.beasts?.[0];
+        return `${lvl}:${pos[0]}:${pos[1]}:${room.content?.beasts?.[0] ?? ''}`;
       },
-      async (beastId) => {
+      async (roomKey) => {
         roomBeast.value = null;
-        if (!beastId) {
+        if (!roomKey) {
           beastPending.value = false;
           return;
         }
-        beastPending.value = true;
-        const card = await beastCard(String(beastId));
-        // The hero may have walked on while the bestiary answered
-        if (String(currentRoom.value?.content?.beasts?.[0] ?? '') !== String(beastId)) return;
-        roomBeast.value = card ? { name: card.name, avatar: card.art?.src || bestiaryService.getAvatar(74) } : null;
-        beastPending.value = false;
+
+        const room = currentRoom.value;
+        if (!room) return;
+
+        const authoredBeastId = room.content?.beasts?.[0];
+        if (authoredBeastId) {
+          beastPending.value = true;
+          const card = await beastCard(String(authoredBeastId));
+          if (currentRoom.value === room) {
+            roomBeast.value = card ? { name: card.name, avatar: card.art?.src || bestiaryService.getAvatar(74) } : null;
+          }
+          beastPending.value = false;
+          return;
+        }
+
+        // Query BestiaryDb for an actual beast matching this monsterType or temple element
+        try {
+          const beasts = await new BestiaryDb(beastStorage).getBeasts();
+          if (beasts && beasts.length > 0) {
+            const rawType = (room.content?.monsterType || '').toLowerCase().replace(/[-_ ]/g, '');
+            const typeMatch = rawType && rawType !== 'small'
+              ? beasts.find((b: any) => (b.name || '').toLowerCase().replace(/[-_ ]/g, '').includes(rawType))
+              : undefined;
+
+            const element = templeElement.value || 'fire';
+            const elementBeasts = beasts.filter((b: any) => b.element === element);
+            const chosen = typeMatch || (elementBeasts.length > 0 ? elementBeasts[(currentPosition.value[0] + currentPosition.value[1]) % elementBeasts.length] : undefined);
+
+            if (chosen && chosen.name) {
+              const src = chosen.imageUrl || chosen.localImage || (chosen.avatar ? bestiaryService.getAvatar(Number(chosen.avatar)) : '');
+              if (currentRoom.value === room) {
+                roomBeast.value = {
+                  name: chosen.name,
+                  avatar: src || bestiaryService.getAvatar(74),
+                };
+              }
+            }
+          }
+        } catch {
+          // Fall through to resolveMonsterInfo
+        }
       },
       { immediate: true }
     );
@@ -654,11 +772,13 @@ export default defineComponent({
       }
       // An encounter shows its beast: the picture and the name are looked up first, so they are there as the reveal opens
       const beast = sheet.beastId ? await beastCard(sheet.beastId) : null;
+      const monsterSubtitle = beast?.name ?? (activeMonster.value ? activeMonster.value.name : sheet.subHeader);
+      const monsterArt = beast?.art ?? (activeMonster.value.avatar ? { src: activeMonster.value.avatar, alt: activeMonster.value.name, frame: 'beast' } : undefined);
       openChoiceReveal({
         kind: 'sheet',
         title: sheet.header,
-        subtitle: beast?.name ?? sheet.subHeader,
-        art: beast?.art,
+        subtitle: monsterSubtitle,
+        art: monsterArt,
         choices: sheet.actions.map((action, index) => ({ id: String(index), label: action.label })),
         // "Leave" would sit under the entrance's "Leave Temple": the way back is "Back"
         cancelLabel: 'Back',
@@ -812,6 +932,11 @@ export default defineComponent({
     };
 
     const takeChestLoot = (values: string[]) => {
+      // Only what the hero ticked is taken. A take that names nothing takes nothing: the chest stays open and as it was.
+      if (values.length === 0) {
+        displayMessage('You took nothing.');
+        return;
+      }
       isChestOpen.value = false;
       // The Pegasus chest behind the boss: taking its prize frees the world's Pegasus and clears the temple
       const prize = currentRoom.value?.content;
