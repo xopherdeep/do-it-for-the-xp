@@ -170,7 +170,6 @@ export default defineComponent({
     const user = computed(() => userStore.getUserById(userId as string));
 
     onBeforeMount(async () => {
-      console.log('MyPortal: Checking user hydration...');
       if (!user.value) {
         await userStore.loadUsers();
         if (!user.value) {

@@ -127,7 +127,6 @@ import { useUserStore } from '@/lib/store/stores/user';
 import { freeBattleRoute } from '@/app/Console/BattleField/battle/battleContext';
 import { needsTravelControls, pairingNote, withRoomAt } from '@/lib/engine/core/dungeons/teleportPairing';
 
-// Import hooks
 import { useTempleRoomEditor, useTempleRoomNavigation } from './hooks';
 
 // Import components

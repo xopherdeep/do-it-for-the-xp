@@ -241,7 +241,6 @@
     padding: 1.5rem 1rem;
   }
 
-  // Avatar Section
   .avatar-section {
     display: flex;
     flex-direction: column;
@@ -283,7 +282,6 @@
     object-fit: cover;
   }
 
-  // Name Section
   .name-section {
     text-align: center;
     margin-bottom: 1.25rem;
@@ -332,7 +330,6 @@
     }
   }
 
-  // Selector Section
   .selector-section {
     display: flex;
     justify-content: center;

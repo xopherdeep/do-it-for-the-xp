@@ -6,7 +6,7 @@
     <div v-else class="xp-chat-message" :class="{ 'is-own': isOwn }">
         <div class="message-avatar" v-if="!isOwn">
             <ion-avatar>
-                <img :src="avatarUrl" />
+                <img :src="avatarUrl" :alt="message.senderName" />
             </ion-avatar>
         </div>
 
@@ -24,7 +24,7 @@
 
         <div class="message-avatar" v-if="isOwn">
             <ion-avatar>
-                <img :src="avatarUrl" />
+                <img :src="avatarUrl" :alt="message.senderName" />
             </ion-avatar>
         </div>
     </div>

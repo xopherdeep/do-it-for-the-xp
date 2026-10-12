@@ -878,7 +878,6 @@
       const customPresets = ref<BackgroundPreset[]>([]);
       const selectedCustomPreset = ref<number | null>(null);
 
-      // Storage key for custom presets
       const STORAGE_KEY = "xp-custom-bg-presets";
 
       // Load saved custom presets from localStorage
@@ -943,7 +942,6 @@
             }
           }
 
-          // Emit background-changed event
           emit("background-changed", {
             bg1: preset.bg1,
             bg2: preset.bg2,
@@ -1131,7 +1129,6 @@
           }
         }
 
-        // Emit background-changed event
         emit("background-changed", { bg1: randomBg1, bg2: randomBg2 });
 
         // Set selected suggested to custom since we're using random values

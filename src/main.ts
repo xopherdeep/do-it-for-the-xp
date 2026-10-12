@@ -16,7 +16,6 @@ import XpBuildingModel from './components/organisms/BuildingModel/XpBuildingMode
 import XpStageModel from './components/organisms/StageModel/XpStageModel.vue'
 import XpTravelingMerchant from './components/organisms/TravelingMerchant/XpTravelingMerchant.vue'
 
-// Virtual Scroller
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
 import VueVirtualScroller from 'vue-virtual-scroller';
 
@@ -27,7 +26,6 @@ import appConfig from "./app.config"
 // ROUTER & STORE
 import { createAppRouter as useRouter } from './router';
 
-// Audio Engine
 import { AudioEnginePlugin } from './lib/engine/audio/plugin';
 
 // GP System
@@ -116,6 +114,7 @@ function readyRouterMountApp() {
 
 // Global Console Helper for Testing
 import { useUserStore } from './lib/store/stores/user';
+import debug from './lib/utils/debug';
 // Extend window interface
 declare global {
   interface Window {
@@ -129,11 +128,9 @@ if (process.env.NODE_ENV !== 'production') {
     const store = useUserStore();
     if (store.currentUser.id) {
       store.unlockPegasus(store.currentUser.id, index);
-      // eslint-disable-next-line no-console
-      console.log(`%c 🦄 Pegasus #${index + 1} Unlocked!`, 'color: #ff00ff; font-weight: bold; font-size: 14px;');
+      debug.log(`%c 🦄 Pegasus #${index + 1} Unlocked!`, 'color: #ff00ff; font-weight: bold; font-size: 14px;');
     } else {
-      // eslint-disable-next-line no-console
-      console.warn("No user logged in.");
+      debug.warn("No user logged in.");
     }
   };
 }

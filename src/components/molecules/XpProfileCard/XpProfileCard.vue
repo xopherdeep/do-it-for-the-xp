@@ -220,7 +220,6 @@ export default defineComponent({
     }
   }
 
-  // Card Header
   ion-card-header {
     padding-bottom: 0.5rem;
   }
@@ -254,7 +253,6 @@ export default defineComponent({
     }
   }
 
-  // Card Content
   ion-card-content {
     flex: 1;
     display: flex;

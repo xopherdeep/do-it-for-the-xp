@@ -3,7 +3,7 @@
     <!-- Custom Icon with Avatar -->
     <template #icon>
       <div v-if="userAvatar" class="avatar-container">
-        <img :src="userAvatar" class="profile-avatar" />
+        <img :src="userAvatar" class="profile-avatar" alt="User avatar" />
       </div>
       <i v-else class="fad fa-user-astronaut"></i>
     </template>
