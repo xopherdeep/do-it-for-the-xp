@@ -20,6 +20,8 @@
           <xp-building-model class="world-spot" style="--x: 70%; --y: 54%; --z: 54" building-id="pegasus" world="moon" :size="90" />
           <xp-temple-model class="world-spot" style="--x: 64%; --y: 72%; --z: 72" temple-id="moon-temple" :size="95" />
           <xp-building-model class="world-spot" style="--x: 33%; --y: 78%; --z: 78" building-id="theia-city" :size="110" />
+          <!-- Boobeedeedle's balloon, only on the day the traveling merchant is visiting this world -->
+          <xp-traveling-merchant class="world-spot" style="--x: 36%; --y: 52%; --z: 52" world="moon" :size="100" />
         </div>
       </div>
     </ion-content>

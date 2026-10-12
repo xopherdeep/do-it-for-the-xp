@@ -20,6 +20,8 @@
           <xp-temple-model class="world-spot" style="--x: 56%; --y: 54%; --z: 54" temple-id="fire-temple" :size="95" />
           <xp-building-model class="world-spot" style="--x: 74%; --y: 64%; --z: 64" building-id="crystal-caverns" :size="100" />
           <xp-building-model class="world-spot" style="--x: 27%; --y: 69%; --z: 69" building-id="pegasus" world="mountains" :size="105" />
+          <!-- Boobeedeedle's balloon, only on the day the traveling merchant is visiting this world -->
+          <xp-traveling-merchant class="world-spot" style="--x: 42%; --y: 63%; --z: 63" world="mountains" :size="100" />
         </div>
       </div>
       <div class="fire-container">

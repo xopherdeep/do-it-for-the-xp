@@ -8,6 +8,8 @@
           <xp-building-model class="world-spot" style="--x: 34%; --y: 47%; --z: 47" building-id="wrecked-ship" :size="100" />
           <xp-temple-model class="world-spot" style="--x: 66%; --y: 63%; --z: 63" temple-id="water-temple" :size="100" />
           <xp-building-model class="world-spot" style="--x: 50%; --y: 83%; --z: 83" building-id="pegasus" world="islands" :size="105" />
+          <!-- Boobeedeedle's balloon, only on the day the traveling merchant is visiting this world -->
+          <xp-traveling-merchant class="world-spot" style="--x: 46%; --y: 64%; --z: 64" world="islands" :size="100" />
         </div>
       </div>
     </ion-content>

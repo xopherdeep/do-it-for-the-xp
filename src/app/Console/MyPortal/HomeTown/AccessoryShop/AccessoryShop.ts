@@ -59,7 +59,8 @@ import { gold, walletOfferAt } from "@/lib/services/gp/walletShops";
 import { shopDiscountLabel, shopPrice } from "@/lib/services/stats/StatEffects";
 import { rpgToastOptions } from "@/hooks/useToast";
 import { SHOP_METADATA } from "@/lib/engine/core/shopRegistry";
-import { worldColor } from "@/lib/engine/core/worldRegistry";
+import { WORLD_METADATA, worldColor } from "@/lib/engine/core/worldRegistry";
+import { merchantWorldOn } from "@/lib/services/shops/travelingMerchant";
 
 const resolveUpgradeFailureMessage = (result: Extract<WalletUpgradeResult, { ok: false }>): string => {
   if (result.reason === "poor") {
@@ -166,10 +167,21 @@ export default defineComponent({
       const custom = customIcon(this.shopRecord);
       return custom ? `${custom} fa-lg` : `fad fa-lg fa-${this.shopIcon}`;
     },
-    // The shop wears its world's colour: the world picked on the Decorate tab, else the one it stands in.
-    shopColor(): string {
+    // Boobeedeedle's balloon shop, which stands in a different world every day
+    isTraveling(): boolean {
       const shopId = this.shopRecord?.id ?? this.merchant ?? "";
-      return worldColor(this.shopRecord?.world || SHOP_METADATA[shopId]?.world);
+      return SHOP_METADATA[shopId]?.type === "traveling";
+    },
+    // Where the shop stands: the world picked on the Decorate tab, else its own, else wherever the merchant is today
+    shopWorld(): string {
+      const shopId = this.shopRecord?.id ?? this.merchant ?? "";
+      const world = this.shopRecord?.world || SHOP_METADATA[shopId]?.world || "";
+      const followsTheMerchant = this.isTraveling && (!world || world === "traveling");
+      return followsTheMerchant ? merchantWorldOn(this.now) : world;
+    },
+    // The shop wears its world's colour.
+    shopColor(): string {
+      return worldColor(this.shopWorld);
     },
     // What the clerk says while the doors are shut.
     closedLine(): string {
@@ -185,12 +197,18 @@ export default defineComponent({
       if (this.walletWare?.status === "for-sale") {
         lines.push(`That wallet up front holds more GP than yours. Have a look if your purse is bursting.`);
       }
+      if (this.isTraveling) {
+        const where = WORLD_METADATA[this.shopWorld]?.name || "these parts";
+        lines.push(`I'm only in ${where} today. Tomorrow? Wherever the wind takes my balloon!`);
+      }
       lines.push("Swipe along the shelf, and tap anything for a closer look.");
       return lines;
     },
     shopBackgroundUrl(): string {
+      const travelingWorld = this.isTraveling ? worldBackground(this.shopWorld) : "";
       const candidate =
         worldBackground(customWorld(this.shopRecord)) ||
+        travelingWorld ||
         this.shopBackgrounds[this.merchant] ||
         this.shopBackgrounds.default;
       return resolveAssetUrl(candidate);
@@ -532,6 +550,7 @@ export default defineComponent({
       isLoading,
       isBuying,
       search,
+      now,
       visibleItems,
       shelfRef,
       shelfPosition,

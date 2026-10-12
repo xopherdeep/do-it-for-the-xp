@@ -300,6 +300,56 @@ const cloudMarketBoxes = (): Box[] => [
   b(-2.5, 2.8, -1, 5, 2, 2, "#0277bd"),
 ];
 
+/**
+ * Boobeedeedle's traveling shop: a covered merchant wagon on four wheels, roped under a red-and-gold striped
+ * hot-air balloon with a coin on each side. It turns up in a different world every day.
+ */
+const travelingMerchantBoxes = (): Box[] => [
+  // Wheels and hubs
+  b(-3.4, 0, 2.2, 1.8, 1.8, 0.4, "#4e342e"),
+  b(-3.4, 0, -2.6, 1.8, 1.8, 0.4, "#4e342e"),
+  b(1.6, 0, 2.2, 1.8, 1.8, 0.4, "#4e342e"),
+  b(1.6, 0, -2.6, 1.8, 1.8, 0.4, "#4e342e"),
+  b(-2.75, 0.65, 2.6, 0.5, 0.5, 0.2, "#ffca28"),
+  b(-2.75, 0.65, -2.8, 0.5, 0.5, 0.2, "#ffca28"),
+  b(2.25, 0.65, 2.6, 0.5, 0.5, 0.2, "#ffca28"),
+  b(2.25, 0.65, -2.8, 0.5, 0.5, 0.2, "#ffca28"),
+  // Wagon bed, plank sides and a darker rail
+  b(-4, 1.2, -2.2, 8, 0.6, 4.4, "#5d4037"),
+  b(-4, 1.8, -2.2, 8, 1.6, 4.4, "#8d6e63"),
+  b(-4.05, 2.4, -2.25, 8.1, 0.4, 4.5, "#6d4c41"),
+  // Canvas cover, arched in three steps, with its ribs
+  b(-3.8, 3.4, -2, 7.6, 0.9, 4, "#f3e5c0"),
+  b(-3.8, 4.3, -1.6, 7.6, 0.7, 3.2, "#ecd9a8"),
+  b(-3.8, 5, -0.9, 7.6, 0.5, 1.8, "#e2c98f"),
+  b(-2.4, 3.4, -2.05, 0.4, 0.9, 4.1, "#a1887f"),
+  b(-0.2, 3.4, -2.05, 0.4, 0.9, 4.1, "#a1887f"),
+  b(2, 3.4, -2.05, 0.4, 0.9, 4.1, "#a1887f"),
+  // Shop sign with a coin up front, a lantern at the back
+  b(4, 2, -1, 0.3, 1.2, 2, "#ffd54f"),
+  b(4.3, 2.3, -0.3, 0.2, 0.6, 0.6, "#ff8f00"),
+  b(-4.5, 2.6, -0.3, 0.5, 0.8, 0.6, "#ffeb3b"),
+  b(-4.35, 3.4, -0.1, 0.2, 0.4, 0.2, "#424242"),
+  // Ropes from the wagon's corners up into the balloon, and the burner glowing under its neck
+  b(-3.4, 3.4, -1.9, 0.2, 6.8, 0.2, "#d7ccc8"),
+  b(-3.4, 3.4, 1.7, 0.2, 6.8, 0.2, "#d7ccc8"),
+  b(3.2, 3.4, -1.9, 0.2, 6.8, 0.2, "#d7ccc8"),
+  b(3.2, 3.4, 1.7, 0.2, 6.8, 0.2, "#d7ccc8"),
+  b(-0.5, 7, -0.5, 1, 0.6, 1, "#ffab00"),
+  // The balloon: a teardrop of red and gold bands, narrow at the neck, a coin on each face
+  b(-1.2, 7.6, -1.2, 2.4, 0.6, 2.4, "#8e1b1b"),
+  b(-2, 8.2, -2, 4, 0.8, 4, "#e53935"),
+  b(-2.8, 9, -2.8, 5.6, 1, 5.6, "#fdd835"),
+  b(-3.5, 10, -3.5, 7, 1.2, 7, "#e53935"),
+  b(-4.1, 11.2, -4.1, 8.2, 1.4, 8.2, "#fdd835"),
+  b(-4.3, 12.6, -4.3, 8.6, 1.2, 8.6, "#e53935"),
+  b(-3.9, 13.8, -3.9, 7.8, 0.9, 7.8, "#fdd835"),
+  b(-3, 14.7, -3, 6, 0.6, 6, "#e53935"),
+  b(-1.8, 15.3, -1.8, 3.6, 0.4, 3.6, "#fdd835"),
+  b(-0.7, 11.4, 4.1, 1.4, 1, 0.2, "#ff8f00"),
+  b(-0.7, 11.4, -4.3, 1.4, 1, 0.2, "#ff8f00"),
+];
+
 /** Theia City Emporium (Moon): Geodesic lunar biodome, neon purple arches, airlock portal and satellite array */
 const theiaCityBoxes = (): Box[] => [
   b(-6, 0, -6, 12, 1.2, 12, "#37474f"),
@@ -719,6 +769,7 @@ const BUILDINGS: Record<string, () => Box[]> = {
   "snow-shack": snowShackBoxes,
   "cloud-market": cloudMarketBoxes,
   "theia-city": theiaCityBoxes,
+  "traveling-merchant": travelingMerchantBoxes,
 };
 
 export const getBuildingBoxes = (buildingId: string): Box[] => {

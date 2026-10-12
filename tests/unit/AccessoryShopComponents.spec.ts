@@ -3,6 +3,7 @@ import ShopItemSlide from "@/app/Console/MyPortal/HomeTown/AccessoryShop/compone
 import ShopItemModal from "@/app/Console/MyPortal/HomeTown/AccessoryShop/components/ShopItemModal.vue";
 import XpNpcDialog from "@/components/molecules/Dialog/XpNpcDialog.vue";
 import { worldColor } from "@/lib/engine/core/worldRegistry";
+import { merchantWorldOn } from "@/lib/services/shops/travelingMerchant";
 
 jest.mock("@/assets/fx", () => ({
   __esModule: true,
@@ -172,18 +173,14 @@ describe("ShopItemModal", () => {
 });
 
 describe("AccessoryShop Page", () => {
-  it("mounts with the wallet button, the clerk's button and the < > shelf buttons", async () => {
+  const slot = { template: "<div><slot /></div>" };
+  const mountShop = async (merchant: string) => {
     const { createPinia, setActivePinia } = await import("pinia");
     const pinia = createPinia();
     setActivePinia(pinia);
     const AccessoryShop = (await import("@/app/Console/MyPortal/HomeTown/AccessoryShop/AccessoryShop.vue")).default;
-    const slot = { template: "<div><slot /></div>" };
-
     const wrapper = mount(AccessoryShop, {
-      props: {
-        merchant: "hermits-tent",
-        userId: "test-user",
-      },
+      props: { merchant, userId: "test-user" },
       global: {
         plugins: [pinia],
         stubs: {
@@ -214,15 +211,23 @@ describe("AccessoryShop Page", () => {
         },
       },
     });
-
     await new Promise((r) => setTimeout(r, 100));
     await wrapper.vm.$nextTick();
+    return wrapper;
+  };
 
+  it("mounts with the wallet button, the clerk's button and the < > shelf buttons", async () => {
+    const wrapper = await mountShop("hermits-tent");
     expect(wrapper.find(".header-wallet-btn").exists()).toBe(true);
     expect(wrapper.find(".clerk-fab").exists()).toBe(true);
     expect(wrapper.findAll(".ion-button-stub")).toHaveLength(2);
     expect(wrapper.text()).toContain("Can Afford");
     // The Hermit's Tent stands in the Forest, so its bars are the Forest's green
     expect(wrapper.find(".toolbar-stub").attributes("data-color")).toBe("success");
+  });
+
+  it("dresses the traveling merchant's shop in the colours of the world the merchant visits today", async () => {
+    const wrapper = await mountShop("traveling-merchant");
+    expect(wrapper.find(".toolbar-stub").attributes("data-color")).toBe(worldColor(merchantWorldOn(new Date())));
   });
 });

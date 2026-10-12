@@ -27,6 +27,7 @@ describe("buildingShapes: voxel geometries for Hometown and Land shops", () => {
     "snow-shack",
     "cloud-market",
     "theia-city",
+    "traveling-merchant",
   ];
 
   const homeLandmarks = [
@@ -84,6 +85,18 @@ describe("buildingShapes: voxel geometries for Hometown and Land shops", () => {
       expect(mesh.indices.length).toBeGreaterThan(0);
       expect(mesh.positions.length % 3).toBe(0);
     });
+  });
+
+  it("hangs the traveling merchant's wagon under a balloon, all inside the landmark camera's frame", () => {
+    const boxes = getBuildingBoxes("traveling-merchant");
+    const top = Math.max(...boxes.map((box) => box.y + box.h));
+    const widest = Math.max(...boxes.map((box) => Math.max(Math.abs(box.x), Math.abs(box.x + box.w))));
+    const balloon = boxes.filter((box) => box.y >= 8);
+    const wagon = boxes.filter((box) => box.y + box.h <= 6);
+    expect(balloon.length).toBeGreaterThanOrEqual(6);
+    expect(wagon.length).toBeGreaterThanOrEqual(10);
+    expect(top).toBeLessThanOrEqual(16);
+    expect(widest).toBeLessThanOrEqual(8);
   });
 
   it("falls back to hero-home for unknown building IDs", () => {

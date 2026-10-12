@@ -1,38 +1,22 @@
-import { computed, ref } from 'vue'
+import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { isMerchantIn, merchantWorldOn } from '@/lib/services/shops/travelingMerchant'
 
+// Boobeedeedle turns up in a different world every day (src/lib/services/shops/travelingMerchant.ts);
+// the world pages show the balloon itself (XpTravelingMerchant), this hook offers the shop as a page action.
 export const useTravelingMerchant = () => {
   const router = useRouter()
 
-  const merchant = ref({
+  const merchant = {
     label: "Boobeedeedle",
     faIcon: "wagon-covered",
     side: "bottom",
-    travels: {
-      sunday: 'world-plains',
-      monday: 'world-islands',
-      tuesday: 'world-forest',
-      wednesday: 'world-swamps',
-      thursday: 'world-mountains',
-      friday: 'world-sands',
-      saturday: 'world-ice',
-    } as Record<string, string>,
-  })
-
-  const dayOfTheWeek = computed(() => {
-    const today = new Date()
-    return today
-      .toLocaleDateString('en-US', { weekday: 'long' })
-      .toLowerCase()
-  })
-
-  const areaWhereMerchantIs = computed(() => {
-    return merchant.value.travels[dayOfTheWeek.value]
-  })
-
-  const isMerchantInArea = (area: string) => {
-    return areaWhereMerchantIs.value === area
   }
+
+  // The page area the merchant is in today ("world-forest")
+  const areaWhereMerchantIs = computed(() => `world-${merchantWorldOn()}`)
+
+  const isMerchantInArea = (area: string) => isMerchantIn(area)
 
   const goToMerchantShop = () => {
     router.push({
@@ -43,15 +27,10 @@ export const useTravelingMerchant = () => {
     })
   }
 
-  const merchantAction = computed(() => {
-    const { label, faIcon, side } = merchant.value
-    return {
-      label,
-      side,
-      faIcon,
-      click: goToMerchantShop
-    }
-  })
+  const merchantAction = computed(() => ({
+    ...merchant,
+    click: goToMerchantShop
+  }))
 
   function maybeAddMerchantToActionsIfInArea(payload: { actions: any[], area: string }) {
     if (isMerchantInArea(payload.area)) {
@@ -61,7 +40,6 @@ export const useTravelingMerchant = () => {
 
   return {
     merchant,
-    dayOfTheWeek,
     areaWhereMerchantIs,
     isMerchantInArea,
     merchantAction,

@@ -20,6 +20,8 @@
           <xp-temple-model class="world-spot" style="--x: 62%; --y: 44%; --z: 44" temple-id="ice-temple" :size="95" />
           <xp-building-model class="world-spot" style="--x: 30%; --y: 70%; --z: 70" building-id="snow-shack" :size="105" />
           <xp-building-model class="world-spot" style="--x: 67%; --y: 76%; --z: 76" building-id="pegasus" world="ice" :size="100" />
+          <!-- Boobeedeedle's balloon, only on the day the traveling merchant is visiting this world -->
+          <xp-traveling-merchant class="world-spot" style="--x: 46%; --y: 58%; --z: 58" world="ice" :size="100" />
         </div>
       </div>
     </ion-content>

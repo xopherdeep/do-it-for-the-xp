@@ -22,6 +22,8 @@
           <xp-temple-model class="world-spot" style="--x: 70%; --y: 43%; --z: 43" temple-id="wind-temple" :size="100" />
           <xp-building-model class="world-spot" style="--x: 68%; --y: 66%; --z: 66" building-id="pegasus" world="plains" :size="105" />
           <xp-building-model class="world-spot" style="--x: 38%; --y: 82%; --z: 82" building-id="home-town" label="Hometown" sublabel="Return home" :size="105" />
+          <!-- Boobeedeedle's balloon, only on the day the traveling merchant is visiting this world -->
+          <xp-traveling-merchant class="world-spot" style="--x: 48%; --y: 58%; --z: 58" world="plains" :size="100" />
         </div>
       </div>
       <div class="plains-weather-container">

@@ -14,6 +14,7 @@ import XpLoading from './components/molecules/Loading'
 import XpTempleModel from './components/organisms/TempleModel/XpTempleModel.vue'
 import XpBuildingModel from './components/organisms/BuildingModel/XpBuildingModel.vue'
 import XpStageModel from './components/organisms/StageModel/XpStageModel.vue'
+import XpTravelingMerchant from './components/organisms/TravelingMerchant/XpTravelingMerchant.vue'
 
 // Virtual Scroller
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
@@ -75,6 +76,7 @@ function readyRouterMountApp() {
     .component('xp-temple-model', XpTempleModel)
     .component('xp-building-model', XpBuildingModel)
     .component('xp-stage-model', XpStageModel)
+    .component('xp-traveling-merchant', XpTravelingMerchant)
     // .component('RecycleScroller', RecycleScroller)
     .use(VueVirtualScroller)
     .use(Countdown)
