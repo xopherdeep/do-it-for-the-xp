@@ -5,6 +5,7 @@ import { createBestiaryService } from "@/lib/services/battle";
 import type { BestiaryService } from "@/lib/services/battle/BestiaryService";
 import type { Enemy } from "@/lib/services/battle/BattleService";
 import { questRewards } from "@/lib/services/quests/QuestCompletionService";
+import { isBossRoom } from "@/lib/services/temples/authoredDoors";
 import debug from "@/lib/utils/debug";
 import { WORLD_REGIONS, type BattleContext } from "./battleContext";
 
@@ -20,6 +21,8 @@ export interface Encounter {
   roomKey?: string;
   background?: { bg1?: number; bg2?: number };
   label: string;
+  /** A temple's boss room: the fight plays the boss theme and the boss victory song. */
+  boss?: boolean;
 }
 
 let achievementDb: AchievementDb | null = null;
@@ -102,6 +105,7 @@ const loadTempleEncounter = async (ctx: BattleContext, bestiary: BestiaryService
     roomKey: found.roomKey,
     background: { bg1: content.bg1, bg2: content.bg2 },
     label: labelFor(enemies),
+    boss: isBossRoom(found.room) || content.difficulty === "boss",
   };
 };
 

@@ -338,6 +338,7 @@ export default defineComponent({
 
         const loaded = await loadEncounter(ctx, bestiary);
         encounter.value = loaded;
+        if (loaded.boss) audio.startBossBgm();
         background.lockLayers({ bg1: toLayer(route.query.bg1), bg2: toLayer(route.query.bg2) });
         background.lockLayers(loaded.background);
 

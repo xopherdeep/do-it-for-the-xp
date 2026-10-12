@@ -80,7 +80,7 @@ const rig = (kind: "free" | "quest", encounter: Partial<Encounter> | null) => {
     ctx: { kind, userId: HERO_ID, questId: "q1" },
     encounter: ref(encounter as Encounter | null),
     dialog: { clear: jest.fn(), enqueue: jest.fn(), enableAppendMode: jest.fn(), disableAppendMode: jest.fn(), isVictoryMessage: ref(false) },
-    audio: { playSound: jest.fn(), playFanfare: jest.fn(), stopBgm: jest.fn() },
+    audio: { playSound: jest.fn(), playVictory: jest.fn(), stopBgm: jest.fn() },
     background: { collapse: jest.fn().mockResolvedValue(undefined) },
     feedback: { victory: jest.fn() },
     enemyAnimationClass: ref(""),

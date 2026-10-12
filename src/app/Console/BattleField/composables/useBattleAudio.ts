@@ -1,5 +1,7 @@
 import $fx, { play$fx } from "@/assets/fx";
 import { useAudioStore } from "@/lib/store/stores/audio";
+import { AudioEngine } from "@/lib/engine/audio/AudioEngine";
+import { changeBGM } from "@/lib/engine/audio/routeMusic";
 
 /**
  * Battle sound effects and music, in one place so the page never touches the audio store.
@@ -29,29 +31,36 @@ export const useBattleAudio = () => {
 
   const playSound = (effect: BattleSound | string) => play$fx(effect);
 
-  /** The battle tracks are remote (starmen.net); offline this is simply silent. */
-  const startBattleBgm = () => {
-    const tracks = bgm().battle || [];
-    if (!tracks.length) return;
-    audioStore.changeBGM({ tracks, track: Math.floor(Math.random() * tracks.length), is_on: true });
+  /** Plays one of a BGM slot's songs through the audio engine; false when the slot is empty or music is off. */
+  const playSlot = (slot: string): boolean => {
+    const tracks = bgm()[slot] || [];
+    if (!tracks.length || audioStore.bgm?.is_on === false) return false;
+    changeBGM(audioStore, { tracks, track: Math.floor(Math.random() * tracks.length), startDelay: 0 }, true);
+    return true;
   };
 
-  /** Pauses whatever is playing without flipping the player's music setting. */
+  const startBattleBgm = () => playSlot("battle");
+
+  /** The route guard only knows this is a temple fight; a boss room swaps in the boss theme once it loads. */
+  const startBossBgm = () => playSlot("boss");
+
+  /** Stops whatever is playing without flipping the player's music setting. */
   const stopBgm = () => {
-    try {
-      audioStore.bgm.audio?.pause();
-    } catch {
-      // nothing was playing
-    }
+    AudioEngine.getInstance().stopMusic(300);
   };
 
-  /** The fanfare is a local effect, so a win sounds like a win even with no network. */
-  const playFanfare = (kind: "win" | "levelUp" = "win") => {
-    stopBgm();
-    playSound(kind);
+  /**
+   * A win plays the victory song over the card (the boss one after a boss room; offline its chiptune loop).
+   * A level up rings its fanfare on top; with music off the local win effect still sounds.
+   */
+  const playVictory = (boss: boolean, leveled: boolean) => {
+    const playing = playSlot(boss ? "winboss" : "win");
+    if (!playing) stopBgm();
+    if (leveled) playSound("levelUp");
+    else if (!playing) playSound("win");
   };
 
-  return { playSound, startBattleBgm, stopBgm, playFanfare };
+  return { playSound, startBattleBgm, startBossBgm, stopBgm, playVictory };
 };
 
 export type BattleAudio = ReturnType<typeof useBattleAudio>;

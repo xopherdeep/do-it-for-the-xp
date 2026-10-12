@@ -3,6 +3,7 @@ import debug from '@/lib/utils/debug';
 import { getCurrentInstance, reactive } from 'vue';
 import { loadAudioSettings, loadAudioTheme, saveAudioSettings, saveAudioTheme } from './storage';
 import { MediaSessionHandler } from './mediaControls';
+import { fallbackFor } from './remoteBgm';
 import { play$fx } from "@/assets/fx"
 // Import types directly instead of from module
 export type AudioCategory = 'ui' | 'music' | 'sfx' | 'ambient';
@@ -418,7 +419,19 @@ export class AudioEngine {
     }
 
     // Create audio element for music (HTML5 Audio is better for streaming)
-    const audio = new Audio(url);
+    // A remote song starts on its local loop when offline, and swaps to it if the stream fails
+    const fallback = fallbackFor(url);
+    const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
+    const audio = new Audio(fallback && offline ? fallback : url);
+    if (fallback && !offline) {
+      audio.addEventListener('error', () => {
+        // A replaced track (src cleared above) also fires error: only the live one falls back
+        if (this._musicTracks.get(id) !== audio) return;
+        debug.warn(`Remote BGM failed, playing the local loop: ${url}`);
+        audio.src = fallback;
+        if (this.state.currentMusic === id) audio.play().catch(() => undefined);
+      }, { once: true });
+    }
     audio.volume = this.state.muted ? 0 : this.state.musicVolume * this.state.masterVolume;
     audio.loop = metadata.loop !== false; // Default to looping if not specified
 

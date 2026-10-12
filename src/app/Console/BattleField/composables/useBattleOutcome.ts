@@ -176,7 +176,7 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
 
     // 3. Fanfare, then the card counts the loot up and waits for a tap.
     const leveled = Boolean(levelUp?.didLevelUp);
-    audio.playFanfare(leveled ? "levelUp" : "win");
+    audio.playVictory(Boolean(encounter?.boss), leveled);
     deps.feedback.victory();
     const label = encounter?.label || defeated[0]?.name || "The enemy";
     await deps.presentVictory({

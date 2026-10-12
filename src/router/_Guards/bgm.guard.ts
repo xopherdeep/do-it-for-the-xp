@@ -85,7 +85,7 @@ function createBgmPayload(
 /** Route-to-track mapping for simple routes */
 const SIMPLE_BGM_ROUTES: Record<string, SimpleBgmRouteConfig> = {
   "xp-intro": { key: "intro", options: { saveBookmark: false } },
-  "xp-demo": { key: "demo", options: { saveBookmark: false } },
+  "xp-demo": { key: "demo", options: { track: "random", saveBookmark: false } },
   "log-in": {
     key: "startScreen",
     options: { repeat: false, saveBookmark: false },
@@ -101,12 +101,13 @@ const SIMPLE_BGM_ROUTES: Record<string, SimpleBgmRouteConfig> = {
   hospital: { key: "hospital" },
   bank: { key: "hotel" },
   hotel: { key: "hotel" },
+  "town-hall": { key: "townHall", options: { track: "random" } },
   "world-map": {
     key: "world",
     options: { track: "random", saveBookmark: false },
   },
-  shop: { key: "shop", options: { saveBookmark: false } },
-  "game-over": { key: "gameover", options: { saveBookmark: false } },
+  shop: { key: "shop", options: { track: "random", saveBookmark: false } },
+  "game-over": { key: "gameover", options: { track: "random", saveBookmark: false } },
 };
 
 /** Terrain-to-world route mapping */
@@ -163,12 +164,13 @@ export function handleBgmGuard(to: RouteLocationNormalized, router?: Router): vo
 
   let payload: BgmPayload | null = null;
 
-  // 1. Check area-based BGM (e.g., entire Game Master area)
-  if (to.path.startsWith("/game-master")) {
-    payload = createBgmPayload(BGM.chooseFile, {
-      startDelay,
-      saveBookmark: false,
-    });
+  // 1. Check area-based BGM: Settings, the Compendium and the rest of the Game Master area each have their own music
+  if (to.path.startsWith("/xp-settings")) {
+    payload = createBgmPayload(BGM.settings, { track: "random", startDelay, saveBookmark: false });
+  } else if (to.path.startsWith("/game-master/compendium")) {
+    payload = createBgmPayload(BGM.compendium, { track: "random", startDelay, saveBookmark: false });
+  } else if (to.path.startsWith("/game-master")) {
+    payload = createBgmPayload(BGM.gameMaster, { track: "random", startDelay, saveBookmark: false });
   }
   // 2. Check simple route mappings
   else if (SIMPLE_BGM_ROUTES[routeName]) {
@@ -177,7 +179,7 @@ export function handleBgmGuard(to: RouteLocationNormalized, router?: Router): vo
   }
   // 3a. A temple plays its own theme when it has one (BGM.temples["fire-temple"]), else the dungeon set
   else if (routeName === "temple" && BGM.temples?.[String(to.params.temple)]) {
-    payload = createBgmPayload(BGM.temples[String(to.params.temple)], { startDelay, saveBookmark: true });
+    payload = createBgmPayload(BGM.temples[String(to.params.temple)], { track: "random", startDelay, saveBookmark: true });
   }
   // 3b. A generated temple (gen-<slug>) plays its element's theme (its record is in the TempleDb, so the pick is async)
   else if (routeName === "temple" && String(to.params.temple).startsWith("gen-")) {
