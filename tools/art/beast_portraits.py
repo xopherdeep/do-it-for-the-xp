@@ -8,14 +8,14 @@ Usage (GEMINI_API_KEY in the environment):
   python3 tools/art/beast_portraits.py socktopus dish-goblin           # one take each in style a (painted)
   python3 tools/art/beast_portraits.py -n 2 --style b socktopus        # two takes in style b (hd pixel art)
   python3 tools/art/beast_portraits.py --all -j 4                       # every beast with no take yet, 4 at a time
-  python3 tools/art/beast_portraits.py --sheet [slug ...]               # contact sheet of the takes (_sheet.png)
+  python3 tools/art/beast_portraits.py --sheet [--only abd] [slug ...]  # contact sheet of the takes (_sheet.png)
   python3 tools/art/beast_portraits.py --rekey [slug ...]               # redo the background keying from raw/
   python3 tools/art/beast_portraits.py --install socktopus=a2 dish-goblin=b1
                                                                         # take -> src/assets/images/beasts/NNN.webp,
                                                                         # number remembered in beast_numbers.json,
                                                                         # TOTAL_BEAST_AVATARS / nAvatars bumped
   python3 tools/art/beast_portraits.py --emit-ts                        # src/lib/services/core/beastLibrary.ts
-Styles: a painted gouache storybook, b modern hd pixel art, c ink and watercolour.
+Styles: a painted gouache storybook, b modern hd pixel art, c ink and watercolour, d painted pixel (a+b).
 Env: XP_GEMINI_MODEL pins a model; XP_BEAST_STYLE sets the default style; XP_KEY_THRESH the keying tolerance."""
 import argparse, base64, io, json, os, re, sys, threading, time, urllib.error, urllib.request, zlib
 from concurrent.futures import ThreadPoolExecutor
@@ -47,11 +47,15 @@ STYLES = {
     "c": ("ink", "A hand-drawn ink and watercolour monster illustration: loose confident ink outlines, wet watercolour "
           "washes with soft bleeding edges and paper texture, chibi proportions with a big head and a small round body, "
           "large expressive eyes."),
+    "d": ("painted pixel", "A modern high-definition pixel-art monster painted like a storybook illustration: a large detailed "
+          "sprite with crisp pixel edges, but shaded with soft gouache-like colour blends in painterly clusters rather than hard "
+          "flat bands, warm saturated colours with hue-shifted shadows, soft dark-brown outlines, chibi proportions with a big "
+          "head and a small round body, large glossy expressive eyes."),
 }
 FRAME = ("{style} A single whimsical monster for a children's chore-quest game bestiary: {look}. It is {name}, the "
          "spirit of the chore \"{chore}\". Full body, facing the viewer, centred and filling most of the frame, no ground "
-         "shadow, no scenery, isolated on a plain flat pure white background. No text, no letters, no logo, no border, "
-         "no frame.")
+         "shadow, no scenery, isolated on a plain flat solid pure white background (never a checkerboard, a transparency "
+         "grid or a pixel grid behind it). No text, no letters, no logo, no border, no frame.")
 
 # the starter beasts' current portraits, for the sheet's first column
 CURRENT = {"socktopus": 7, "dish-goblin": 12, "dust-bunny-king": 23, "laundry-lurker": 31, "weed-wyrm": 40,
@@ -69,7 +73,7 @@ def raw_path(slug, style, i): return os.path.join(RAW_DIR, f"{slug}-{style}{i}.p
 
 
 def takes_of(slug):
-    pat = re.compile(re.escape(slug) + r"-([abc])(\d+)\.png$")
+    pat = re.compile(re.escape(slug) + r"-([a-d])(\d+)\.png$")
     found = []
     for f in os.listdir(OUT_DIR) if os.path.isdir(OUT_DIR) else []:
         m = pat.match(f)
@@ -131,8 +135,10 @@ def draw(slug, beast, style, i):
     im = gemini(prompt_for(beast, style), label)
     os.makedirs(RAW_DIR, exist_ok=True)
     im.save(raw_path(slug, style, i))
-    key_out(im).save(take_path(slug, style, i))
-    print(f"{label}: drawn", flush=True)
+    keyed = key_out(im)
+    keyed.save(take_path(slug, style, i))
+    h = keyed.getchannel("A").histogram(); clear = h[0] / sum(h)
+    print(f"{label}: drawn" + ("" if clear >= 0.15 else f"  (only {clear:.0%} keyed: the ground is not flat white, re-roll)"), flush=True)
 
 
 def reserve(slug, style, n):
@@ -184,12 +190,13 @@ def checker(size, cell=24):
     return im
 
 
-def sheet(slugs):
+def sheet(slugs, only=None):
     book = roster()
-    rows = [s for s in (slugs or book) if takes_of(s)]
+    def takes(s): return [t for t in takes_of(s) if not only or t[0] in only]
+    rows = [s for s in (slugs or book) if takes(s)]
     if not rows: return print("no takes yet")
     cell, pad = 240, 6
-    cols = 1 + max(len(takes_of(s)) for s in rows)
+    cols = 1 + max(len(takes(s)) for s in rows)
     out = Image.new("RGB", (cols * (cell + pad), len(rows) * (cell + 22)), (20, 16, 28))
     d = ImageDraw.Draw(out)
     for r, slug in enumerate(rows):
@@ -197,7 +204,7 @@ def sheet(slugs):
         if slug in CURRENT:
             cells.append(("now", os.path.join(BEAST_DIR, f"{CURRENT[slug]:03d}.webp")))
         else: cells.append((None, None))
-        cells += [(f"{s}{i}", take_path(slug, s, i)) for s, i in takes_of(slug)]
+        cells += [(f"{s}{i}", take_path(slug, s, i)) for s, i in takes(slug)]
         for c, (label, path) in enumerate(cells):
             x, y = c * (cell + pad), r * (cell + 22)
             if path and os.path.exists(path) and os.path.getsize(path):
@@ -234,7 +241,7 @@ def install(picks):
     for pick in picks:
         slug, _, take = pick.partition("=")
         if slug not in book: sys.exit(f"unknown beast {slug}")
-        m = re.fullmatch(r"([abc])(\d+)", take)
+        m = re.fullmatch(r"([a-d])(\d+)", take)
         if not m: sys.exit(f"{pick}: say slug=a2 (style letter + take number)")
         src = take_path(slug, m.group(1), int(m.group(2)))
         if not os.path.exists(src) or not os.path.getsize(src): sys.exit(f"{src} does not exist")
@@ -274,13 +281,14 @@ def main():
     ap.add_argument("--style", default=os.environ.get("XP_BEAST_STYLE", "a"), choices=list(STYLES))
     ap.add_argument("--all", action="store_true", help="every beast without a take in this style")
     ap.add_argument("--sheet", action="store_true")
+    ap.add_argument("--only", help="style letters to show on the sheet, e.g. abd")
     ap.add_argument("--rekey", action="store_true")
     ap.add_argument("--install", nargs="+", metavar="slug=a1")
     ap.add_argument("--emit-ts", action="store_true")
     a = ap.parse_args()
     if a.install: return install(a.install)
     if a.emit_ts: return emit_ts()
-    if a.sheet: return sheet(a.slugs)
+    if a.sheet: return sheet(a.slugs, a.only)
     if a.rekey: return rekey(a.slugs or list(roster()))
     slugs = a.slugs
     if a.all: slugs = [s for s in roster() if not any(st == a.style for st, _ in takes_of(s))]
