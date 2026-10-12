@@ -6,6 +6,7 @@ import type { BestiaryService } from "@/lib/services/battle/BestiaryService";
 import type { Enemy } from "@/lib/services/battle/BattleService";
 import { questRewards } from "@/lib/services/quests/QuestCompletionService";
 import { isBossRoom } from "@/lib/services/temples/authoredDoors";
+import { pickRoomBeast, standInMonster, templeElementFor, type StandInMonster } from "@/lib/services/temples/RoomBeast";
 import debug from "@/lib/utils/debug";
 import { WORLD_REGIONS, type BattleContext } from "./battleContext";
 
@@ -40,6 +41,22 @@ const fallbackEnemies = async (bestiary: BestiaryService, element?: string): Pro
   const random = await bestiary.loadRandomBeast(element);
   return [random || bestiary.createSampleEnemy()];
 };
+
+/** A temple room the bestiary has nothing for fights the creature the room screen shows in its place. */
+const standInEnemy = ({ name, avatarId }: StandInMonster): Enemy => ({
+  id: `stand-in-${name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "")}`,
+  name,
+  type: "beast",
+  isBoss: false,
+  health: 100,
+  maxHealth: 100,
+  avatar: avatarId,
+  emoji: "👹",
+  attack: 10,
+  defense: 5,
+  speed: 8,
+  tasks: [],
+});
 
 /** A quest with no beast attached still deserves a monster: the chore itself. */
 const enemyFromQuest = (quest: Achievement): Enemy => ({
@@ -83,7 +100,19 @@ const findRoom = async (ctx: BattleContext) => {
 
   const rooms = temple.dungeonLayout?.rooms || temple.rooms;
   const room = rooms?.[roomKey];
-  return room ? { roomKey, room } : null;
+  return room ? { temple, roomKey, room } : null;
+};
+
+/** The beast the room screen shows for a room with no beast of its own, so the fight is the creature the hero saw. */
+const roomEnemy = async (
+  ctx: BattleContext,
+  found: NonNullable<Awaited<ReturnType<typeof findRoom>>>,
+  bestiary: BestiaryService
+): Promise<Enemy> => {
+  const element = templeElementFor(ctx.templeId!, found.temple.element);
+  const picked = pickRoomBeast(found.room, element, ctx.y!, ctx.x!, await bestiary.listBeasts());
+  const loaded = picked ? await bestiary.loadBeastById(String(picked.id)) : null;
+  return loaded || standInEnemy(standInMonster(found.room, element));
 };
 
 const loadTempleEncounter = async (ctx: BattleContext, bestiary: BestiaryService): Promise<Encounter> => {
@@ -96,7 +125,7 @@ const loadTempleEncounter = async (ctx: BattleContext, bestiary: BestiaryService
 
   const content = found.room.content || {};
   const configured = await loadBeasts(bestiary, content.beasts || []);
-  const enemies = configured.length ? configured : await fallbackEnemies(bestiary);
+  const enemies = configured.length ? configured : [await roomEnemy(ctx, found, bestiary)];
   const hasAuthoredRewards = [content.xp, content.gp, content.ap].some((value) => value !== undefined);
 
   return {

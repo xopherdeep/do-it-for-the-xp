@@ -53,6 +53,7 @@ import {
   type Ware
 } from '@/lib/services/temples/RoomInteractions';
 import { useItem as useEquippedItem } from '@/lib/services/temples/ItemUse';
+import { pickRoomBeast, standInMonster, templeElementFor } from '@/lib/services/temples/RoomBeast';
 
 const COMBAT_ROOM_TYPES = ['monster', 'miniboss', 'boss'];
 
@@ -207,85 +208,6 @@ export default defineComponent({
         !beastPending.value
     );
 
-    const formatMonsterName = (text: string): string =>
-      text
-        .replace(/([a-z])([A-Z])/g, '$1 $2')
-        .replace(/[-_]+/g, ' ')
-        .trim()
-        .replace(/\b([a-z])/g, (l) => l.toUpperCase());
-
-    const resolveMonsterInfo = (room: any, element: string) => {
-      const authoredName = room.content?.name || room.content?.monsterName || room.content?.beastName;
-      const rawMonsterType = room.content?.monsterType;
-      const roomType = room.type;
-
-      let name = '';
-      if (authoredName) {
-        name = authoredName;
-      } else if (rawMonsterType && rawMonsterType !== 'small') {
-        name = formatMonsterName(rawMonsterType);
-      } else if (roomType === 'boss') {
-        const bossNames: Record<string, string> = {
-          fire: 'Ifrit',
-          earth: 'Titan',
-          water: 'Leviathan',
-          ice: 'Frost Giant',
-          light: 'Seraph',
-          shadow: 'Shadowlord',
-          wind: 'Tempest Wyrm',
-          moon: 'Eclipse Dragon',
-          storm: 'Thunder Drake',
-        };
-        name = bossNames[element] || 'Ancient Dragon';
-      } else if (roomType === 'miniboss') {
-        const minibossNames: Record<string, string> = {
-          fire: 'Fire Elemental',
-          earth: 'Stone Guardian',
-          water: 'Giant Squid',
-          ice: 'Ice Wyrm',
-          light: 'Radiant Guardian',
-          shadow: 'Dark Phantom',
-          wind: 'Gale Chimera',
-          moon: 'Lunar Phantom',
-          storm: 'Storm Drake',
-        };
-        name = minibossNames[element] || 'Dungeon Chimera';
-      } else {
-        const mobNames: Record<string, string> = {
-          fire: 'Fire Imp',
-          earth: 'Rock Golem',
-          water: 'Water Elemental',
-          ice: 'Ice Golem',
-          light: 'Light Sentinel',
-          shadow: 'Shadow Stalker',
-          wind: 'Gale Sprite',
-          moon: 'Moon Bat',
-          storm: 'Spark Wisp',
-        };
-        name = mobNames[element] || 'Dust Bunny';
-      }
-
-      let avatarId = 74;
-      if (roomType === 'boss') {
-        const bossAvatars: Record<string, number> = {
-          fire: 46, earth: 14, water: 3, ice: 32, light: 5, shadow: 18, wind: 1, moon: 1, storm: 1,
-        };
-        avatarId = bossAvatars[element] || 1;
-      } else if (roomType === 'miniboss') {
-        const minibossAvatars: Record<string, number> = {
-          fire: 22, earth: 28, water: 40, ice: 35, light: 25, shadow: 41, wind: 19, moon: 43, storm: 29,
-        };
-        avatarId = minibossAvatars[element] || 19;
-      } else {
-        const mobAvatars: Record<string, number> = {
-          fire: 12, earth: 27, water: 21, ice: 31, light: 24, shadow: 42, wind: 74, moon: 74, storm: 74,
-        };
-        avatarId = mobAvatars[element] || 74;
-      }
-
-      return { name, avatarId };
-    };
-
     const activeMonster = computed(() => {
       if (!currentRoom.value) {
         return { name: 'Dust Bunny', avatar: bestiaryService.getAvatar(74) };
@@ -294,7 +216,7 @@ export default defineComponent({
       if (roomBeast.value) return roomBeast.value;
 
       const element = templeElement.value || 'fire';
-      const info = resolveMonsterInfo(currentRoom.value, element);
+      const info = standInMonster(currentRoom.value, element);
       return {
         name: info.name,
         avatar: bestiaryService.getAvatar(info.avatarId),
@@ -709,7 +631,7 @@ export default defineComponent({
         const pos = currentPosition.value;
         const lvl = currentLevel.value;
         if (!room || !COMBAT_ROOM_TYPES.includes(room.type) || isCombatRoomCleared.value) return undefined;
-        return `${lvl}:${pos[0]}:${pos[1]}:${room.content?.beasts?.[0] ?? ''}`;
+        return `${lvl}:${pos[0]}:${pos[1]}:${room.content?.beasts?.[0] ?? ''}:${templeMeta.value?.element ?? ''}`;
       },
       async (roomKey) => {
         roomBeast.value = null;
@@ -732,18 +654,20 @@ export default defineComponent({
           return;
         }
 
-        // Query BestiaryDb for an actual beast matching this monsterType or temple element
+        // A generated temple's element arrives with its metadata: the voxel waits for it rather than picking by the wrong element
+        if (isGenerated.value && !templeMeta.value) {
+          beastPending.value = true;
+          return;
+        }
+
+        // The same beast the battle will load (RoomBeast): a monsterType match, else the element's beasts by position.
+        // The voxel monster waits for the lookup so it never swaps in front of the hero.
+        beastPending.value = true;
         try {
           const beasts = await new BestiaryDb(beastStorage).getBeasts();
           if (beasts && beasts.length > 0) {
-            const rawType = (room.content?.monsterType || '').toLowerCase().replace(/[-_ ]/g, '');
-            const typeMatch = rawType && rawType !== 'small'
-              ? beasts.find((b: any) => (b.name || '').toLowerCase().replace(/[-_ ]/g, '').includes(rawType))
-              : undefined;
-
             const element = templeElement.value || 'fire';
-            const elementBeasts = beasts.filter((b: any) => b.element === element);
-            const chosen = typeMatch || (elementBeasts.length > 0 ? elementBeasts[(currentPosition.value[0] + currentPosition.value[1]) % elementBeasts.length] : undefined);
+            const chosen = pickRoomBeast(room, element, currentPosition.value[0], currentPosition.value[1], beasts);
 
             if (chosen && chosen.name) {
               const src = chosen.imageUrl || chosen.localImage || (chosen.avatar ? bestiaryService.getAvatar(Number(chosen.avatar)) : '');
@@ -756,7 +680,9 @@ export default defineComponent({
             }
           }
         } catch {
-          // Fall through to resolveMonsterInfo
+          // Fall through to the stand-in
+        } finally {
+          beastPending.value = false;
         }
       },
       { immediate: true }
@@ -850,11 +776,7 @@ export default defineComponent({
       const [r, c] = currentPosition.value || [0, 0];
       return Math.abs(r - row) + Math.abs(c - col) <= 2;
     };
-    const templeElement = computed(() => {
-      const element = templeMeta.value?.element;
-      if (isGenerated.value && element && element !== 'none') return element;
-      return String(props.temple || '').replace('-temple', '') || 'wind';
-    });
+    const templeElement = computed(() => templeElementFor(props.temple, templeMeta.value?.element));
 
     // Swipe to walk: a swipe toward an open door moves the hero, a swipe into a wall does nothing.
     // Swipes shorter than the threshold, or more sideways than forwards, are ignored.

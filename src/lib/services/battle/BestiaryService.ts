@@ -1,4 +1,4 @@
-import BestiaryDb, { beastStorage } from "@/lib/databases/BestiaryDb";
+import BestiaryDb, { beastStorage, type Beast } from "@/lib/databases/BestiaryDb";
 import { Enemy } from './BattleService';
 import debug from "@/lib/utils/debug";
 
@@ -51,6 +51,20 @@ export class BestiaryService {
     } catch (error) {
       debug.error('Error loading beast:', error);
       return null;
+    }
+  }
+
+  /**
+   * Every beast in the bestiary, as stored (the temple rooms pick theirs from this list)
+   * @returns The beasts, or an empty list when the bestiary is empty or cannot be read
+   */
+  public async listBeasts(): Promise<Beast[]> {
+    try {
+      const all = await this.bestiary.getBeasts();
+      return all && all.length ? all : [];
+    } catch (error) {
+      debug.error('Error listing beasts:', error);
+      return [];
     }
   }
 
