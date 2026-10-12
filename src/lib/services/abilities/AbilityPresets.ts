@@ -25,6 +25,7 @@ export const TIME_MAGE_PRESETS: Ability[] = [
     icon: 'timeOutline',
     prerequisites: [],
     isPreset: true,
+    battleEffect: 'kindle',
     effect: 'Reduce the time required for your next task by 20%',
     characterRequirement: {
       level: 1,
@@ -48,6 +49,7 @@ export const TIME_MAGE_PRESETS: Ability[] = [
     icon: 'timeOutline',
     prerequisites: [],
     isPreset: true,
+    battleEffect: 'frost',
     effect: 'Increase the quality of your next task by taking your time',
     characterRequirement: {
       level: 1,
@@ -71,6 +73,7 @@ export const TIME_MAGE_PRESETS: Ability[] = [
     icon: 'timeOutline',
     prerequisites: ['time-mage-slow'],
     isPreset: true,
+    battleEffect: 'time-stop',
     effect: 'Take a 30-minute break without guilt to recover MP and reset cooldowns',
     characterRequirement: {
       level: 5,
@@ -94,6 +97,7 @@ export const TIME_MAGE_PRESETS: Ability[] = [
     icon: 'refreshOutline',
     prerequisites: ['time-mage-stop'],
     isPreset: true,
+    battleEffect: 'recall',
     effect: 'Retry a failed task with a +20% success bonus',
     characterRequirement: {
       level: 10,
@@ -127,6 +131,7 @@ export const TECH_MAGE_PRESETS: Ability[] = [
     icon: 'appsOutline',
     prerequisites: [],
     isPreset: true,
+    battleEffect: 'weaken',
     effect: 'Increase problem-solving speed by 25% for technical tasks',
     characterRequirement: {
       level: 1,
@@ -150,6 +155,7 @@ export const TECH_MAGE_PRESETS: Ability[] = [
     icon: 'saveOutline',
     prerequisites: [],
     isPreset: true,
+    battleEffect: 'none',
     effect: 'Automatically save your work every 15 minutes for the next 4 hours',
     characterRequirement: {
       level: 1,
@@ -173,6 +179,7 @@ export const TECH_MAGE_PRESETS: Ability[] = [
     icon: 'flashOutline',
     prerequisites: ['tech-mage-debug'],
     isPreset: true,
+    battleEffect: 'stun',
     effect: 'Double your productivity for the next hour, but requires a cooldown period after',
     characterRequirement: {
       level: 5,
@@ -196,6 +203,7 @@ export const TECH_MAGE_PRESETS: Ability[] = [
     icon: 'refreshOutline',
     prerequisites: ['tech-mage-overclock'],
     isPreset: true,
+    battleEffect: 'heal',
     effect: 'Reset all cooldowns and restore 50% of MP',
     characterRequirement: {
       level: 10,
@@ -357,6 +365,7 @@ export const HYBRID_PRESETS: Ability[] = [
     icon: 'flashOutline',
     prerequisites: ['time-mage-haste', 'tech-mage-debug'],
     isPreset: true,
+    battleEffect: 'none',
     effect: 'Work on two different tasks simultaneously with 80% efficiency on both',
     characterRequirement: {
       level: 8,
@@ -396,6 +405,7 @@ export function createCustomAbility(partial: Partial<Ability> = {}): Ability {
       y: Math.floor(Math.random() * 600)
     },
     effect: partial.effect,
+    battleEffect: partial.battleEffect,
     characterRequirement: partial.characterRequirement,
     scaling: partial.scaling
   };
