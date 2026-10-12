@@ -732,7 +732,8 @@ describe("applyRawJson", () => {
       ["A1234", "R0104", "R0204", W],
     ];
     expect(plain(store.templeMaze)).toEqual(migratedMaze);
-    // the shared R000 record follows the last cell that mapped to it (R0103); the cell migrated first (R0003) has no record
+    // the shared R000 record goes to every cell that held it (R0003 and R0103), each with its own copy (changed with #1217:
+    // it used to follow only the last cell, leaving R0003 with no record)
     expect(plain(store.roomsData)).toEqual({
       [W]: { type: "wall" },
       L0101: { type: "loot" },
@@ -740,6 +741,7 @@ describe("applyRawJson", () => {
       A0002: { type: "mana" },
       V0102: { type: "savepoint" },
       K0202: { type: "key" },
+      R0003: { type: "empty", label: "shared" },
       R0103: { type: "empty", label: "shared" },
       A1234: { type: "trap" },
     });

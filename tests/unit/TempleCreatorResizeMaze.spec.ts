@@ -5,7 +5,9 @@
 import { _00_, ____ } from "@/lib/engine/dungeons/roomTypes";
 import {
   buildInitialMaze,
+  entranceCellOnFloor,
   isInsideGrid,
+  readEntrancePosition,
   resizeMaze,
 } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/hooks/grid/resizeMaze";
 
@@ -17,6 +19,61 @@ describe("isInsideGrid", () => {
     expect(isInsideGrid(0, 3, 2, 3)).toBe(false);
     expect(isInsideGrid(-1, 0, 2, 3)).toBe(false);
     expect(isInsideGrid(0, -1, 2, 3)).toBe(false);
+  });
+});
+
+describe("readEntrancePosition", () => {
+  it("reads 'row,col' as a position with no floor", () => {
+    expect(readEntrancePosition("3,2")).toEqual({ floorIndex: null, row: 3, col: 2 });
+  });
+
+  // Added with #1155: the shipped multi-floor temples (shadow-temple, light-temple) store [floor index, row, col]
+  it("reads 'floor,row,col' as a floor index, then row and col", () => {
+    expect(readEntrancePosition("0,3,2")).toEqual({ floorIndex: 0, row: 3, col: 2 });
+    expect(readEntrancePosition("1,0,4")).toEqual({ floorIndex: 1, row: 0, col: 4 });
+  });
+
+  it("reads anything that is not two or three numbers as no position", () => {
+    expect(readEntrancePosition("")).toBeNull();
+    expect(readEntrancePosition("1")).toBeNull();
+    expect(readEntrancePosition("1,1,1,1")).toBeNull();
+  });
+
+  it("keeps a number that is not a number as NaN for the caller to find outside every grid", () => {
+    expect(readEntrancePosition("a,b")).toEqual({ floorIndex: null, row: NaN, col: NaN });
+  });
+});
+
+describe("entranceCellOnFloor", () => {
+  const floors = { "1F": [], "2F": [], B1: [] };
+
+  it("is the cell of a 'row,col' position on every floor", () => {
+    expect(entranceCellOnFloor("1,2", floors, "1F")).toEqual({ row: 1, col: 2 });
+    expect(entranceCellOnFloor("1,2", floors, "B1")).toEqual({ row: 1, col: 2 });
+  });
+
+  // Added with #1155: the editor read these as row,col and so drew the entrance at (floor, row) on every floor
+  it("is the row and col of a 'floor,row,col' position on the floor at that index, and nowhere else", () => {
+    expect(entranceCellOnFloor("0,3,2", floors, "1F")).toEqual({ row: 3, col: 2 });
+    expect(entranceCellOnFloor("0,3,2", floors, "2F")).toBeNull();
+    expect(entranceCellOnFloor("1,3,2", floors, "2F")).toEqual({ row: 3, col: 2 });
+    expect(entranceCellOnFloor("1,3,2", floors, "1F")).toBeNull();
+  });
+
+  it("counts floors in the order the maze holds them, not sorted by height", () => {
+    expect(entranceCellOnFloor("2,1,1", floors, "B1")).toEqual({ row: 1, col: 1 });
+    expect(entranceCellOnFloor("2,1,1", floors, "2F")).toBeNull();
+  });
+
+  it("reads a single-grid maze as the one floor 1F", () => {
+    expect(entranceCellOnFloor("0,1,1", [["_"]], "1F")).toEqual({ row: 1, col: 1 });
+    expect(entranceCellOnFloor("1,1,1", [["_"]], "1F")).toBeNull();
+  });
+
+  it("is null for a floor index that names no floor and for a position that is not one", () => {
+    expect(entranceCellOnFloor("5,1,1", floors, "1F")).toBeNull();
+    expect(entranceCellOnFloor("-1,1,1", floors, "1F")).toBeNull();
+    expect(entranceCellOnFloor("1", floors, "1F")).toBeNull();
   });
 });
 
@@ -143,14 +200,69 @@ describe("resizeMaze", () => {
     expect(entranceOutsideGrid).toBe(true);
   });
 
-  it("reads the first two numbers of a 'floor,row,col' position as row and col", () => {
+  // Changed with #1155: the first two numbers used to be read as row and col whatever the position said, so
+  // "0,1,2" put the entrance at row 0, col 1 and turned the real one (row 1, col 2) into an empty room
+  it("places a 'floor,row,col' entrance at its row and col when that floor is the one resized", () => {
+    const floors = { "1F": [], "2F": [] };
+    const old = [
+      ["R001", "R002", "R003"],
+      ["R004", "R005", _00_],
+    ];
+    const { maze, entranceOutsideGrid, entrancePosition } = resizeMaze(old, 2, 3, "0,1,2", floors, "1F");
+    expect(maze).toEqual([
+      ["R001", "R002", "R003"],
+      ["R004", "R005", _00_],
+    ]);
+    expect(entranceOutsideGrid).toBe(false);
+    expect(entrancePosition).toBe("0,1,2");
+  });
+
+  it("places no entrance on a floor a 'floor,row,col' entrance is not on, and turns a stray entrance symbol into an empty room", () => {
+    const floors = { "1F": [], "2F": [] };
+    const old = [
+      ["R001", _00_],
+      ["R002", "R003"],
+    ];
+    const { maze, entranceOutsideGrid, entrancePosition } = resizeMaze(old, 3, 3, "0,1,1", floors, "2F");
+    expect(maze).toEqual([
+      ["R001", "O__O", ____],
+      ["R002", "R003", ____],
+      [____, ____, ____],
+    ]);
+    expect(entranceOutsideGrid).toBe(false);
+    expect(entrancePosition).toBe("0,1,1");
+  });
+
+  it("puts a 'floor,row,col' entrance that falls outside the grid back at 0,0 of the same floor", () => {
+    const floors = { "1F": [], "2F": [] };
     const old = [
       ["R001", "R002", "R003"],
       ["R004", "R005", "R006"],
+      ["R007", "R008", _00_],
     ];
-    const { maze, entranceOutsideGrid } = resizeMaze(old, 2, 3, "0,1,2");
-    expect(maze[0][1]).toBe(_00_);
-    expect(entranceOutsideGrid).toBe(false);
+    const { maze, entranceOutsideGrid, entrancePosition } = resizeMaze(old, 2, 2, "1,2,2", floors, "2F");
+    expect(maze).toEqual([
+      [_00_, "R002"],
+      ["R004", "R005"],
+    ]);
+    expect(entranceOutsideGrid).toBe(true);
+    expect(entrancePosition).toBe("1,0,0");
+  });
+
+  it("reads a single-grid maze as the one floor 1F for a 'floor,row,col' entrance, with no maze given too", () => {
+    const old = [["R001", "R002"], ["R003", "R004"]];
+    expect(resizeMaze(old, 2, 2, "0,1,0", [["_"]], "1F").maze[1][0]).toBe(_00_);
+    expect(resizeMaze(old, 2, 2, "0,1,0").maze[1][0]).toBe(_00_);
+  });
+
+  it("leaves a 'row,col' position as it was when the entrance fits and gives it back as 0,0 when it does not", () => {
+    expect(resizeMaze([["R001", "R002"]], 1, 2, "0,1").entrancePosition).toBe("0,1");
+    expect(resizeMaze([["R001", "R002"]], 1, 1, "0,1").entrancePosition).toBe("0,0");
+  });
+
+  it("treats a position of one or four numbers as outside the grid", () => {
+    expect(resizeMaze([["R001", "R002"]], 1, 2, "1").entranceOutsideGrid).toBe(true);
+    expect(resizeMaze([["R001", "R002"]], 1, 2, "0,0,1,1").entranceOutsideGrid).toBe(true);
   });
 
   it("treats a position that is not numbers as outside the grid", () => {

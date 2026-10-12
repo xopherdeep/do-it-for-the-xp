@@ -9,27 +9,37 @@ import { roomSymbols } from "./roomSymbols";
 export const isInsideGrid = (row: number, col: number, rows: number, cols: number): boolean =>
   row >= 0 && row < rows && col >= 0 && col < cols;
 
-const placeFlatEntrance = (grid: string[][], parts: number[], rows: number, cols: number): void => {
-  const [eRow, eCol] = parts;
-  if (isInsideGrid(eRow, eCol, rows, cols)) {
-    grid[eRow][eCol] = _00_;
-  }
+/** An entrance position read out: "row,col" names no floor, "floor index,row,col" names one by its place among the maze's floors */
+export interface EntrancePosition {
+  floorIndex: number | null;
+  row: number;
+  col: number;
+}
+
+/** Reads a "row,col" or "floor index,row,col" position; null for anything else (the numbers themselves may be NaN) */
+export const readEntrancePosition = (entrancePosition: string): EntrancePosition | null => {
+  const parts = entrancePosition.split(",").map(Number);
+  if (parts.length === 2) return { floorIndex: null, row: parts[0], col: parts[1] };
+  if (parts.length === 3) return { floorIndex: parts[0], row: parts[1], col: parts[2] };
+  return null;
 };
 
-const placeFloorEntrance = (
-  grid: string[][],
-  parts: number[],
-  rows: number,
-  cols: number,
+/**
+ * Whether the position puts the entrance on `levelId`: "row,col" holds on every floor, "floor index,row,col" only on
+ * the floor at that place in the maze's floor keys (the multi-floor temples the game ships store it this way)
+ */
+const isOnFloor = (position: EntrancePosition, maze: MazeData, levelId: string): boolean =>
+  position.floorIndex === null || floorKeysOf(maze)[position.floorIndex] === levelId;
+
+/** The entrance's cell on one floor; null when the position is not a position or names another floor */
+export const entranceCellOnFloor = (
+  entrancePosition: string,
   maze: MazeData,
-  currentLevelId: string
-): void => {
-  const floorKeys = floorKeysOf(maze);
-  if (floorKeys[parts[0]] === currentLevelId) {
-    if (isInsideGrid(parts[1], parts[2], rows, cols)) {
-      grid[parts[1]][parts[2]] = _00_;
-    }
-  }
+  levelId: string
+): { row: number; col: number } | null => {
+  const position = readEntrancePosition(entrancePosition);
+  if (!position || !isOnFloor(position, maze, levelId)) return null;
+  return { row: position.row, col: position.col };
 };
 
 /**
@@ -45,11 +55,9 @@ export const buildInitialMaze = (
   const [rows, cols] = gridSize.split("x").map(Number);
   const newGrid = blankGrid(rows, cols);
 
-  const parts = entrancePosition.split(",").map(Number);
-  if (parts.length === 2) {
-    placeFlatEntrance(newGrid, parts, rows, cols);
-  } else if (parts.length === 3) {
-    placeFloorEntrance(newGrid, parts, rows, cols, maze, currentLevelId);
+  const cell = entranceCellOnFloor(entrancePosition, maze, currentLevelId);
+  if (cell && isInsideGrid(cell.row, cell.col, rows, cols)) {
+    newGrid[cell.row][cell.col] = _00_;
   }
 
   return newGrid;
@@ -59,22 +67,31 @@ export interface ResizedMaze {
   maze: string[][];
   /** True when the entrance fell outside the new grid: it was put back at 0,0 and the caller must say so */
   entranceOutsideGrid: boolean;
+  /** The entrance position afterwards: as given, but an entrance that fell outside is at 0,0 (of its own floor) */
+  entrancePosition: string;
 }
 
 /**
- * A copy of `mazeData` at the new size: cells inside the old grid keep their symbol, the rest are walls. An old
- * entrance symbol that is not on the entrance cell becomes an empty room, and the entrance cell itself is placed
- * (or reset to 0,0 when it fell outside the new grid).
+ * A copy of `mazeData` (the grid of the floor `currentLevelId`) at the new size: cells inside the old grid keep their
+ * symbol, the rest are walls. An old entrance symbol that is not on the entrance cell becomes an empty room, and the
+ * entrance cell itself is placed (or reset to 0,0 when it fell outside the new grid). A "floor,row,col" entrance that
+ * is on another floor places nothing here. `maze` is the whole temple, to tell which floor that position names.
  */
 export const resizeMaze = (
   mazeData: string[][],
   newRows: number,
   newCols: number,
-  entrancePosition: string
+  entrancePosition: string,
+  maze: MazeData = [],
+  currentLevelId = "1F"
 ): ResizedMaze => {
   const oldMaze: string[][] = JSON.parse(JSON.stringify(mazeData));
   const oldRows = oldMaze.length;
   const oldCols = oldMaze[0]?.length || 0;
+
+  const position = readEntrancePosition(entrancePosition);
+  const isOnOtherFloor = position !== null && !isOnFloor(position, maze, currentLevelId);
+  const entranceCell = position !== null && !isOnOtherFloor ? position : null;
 
   const newMaze = blankGrid(newRows, newCols);
 
@@ -86,10 +103,7 @@ export const resizeMaze = (
         if (oldSymbol !== _00_) {
           newMaze[i][j] = oldSymbol;
         } else {
-          const [entranceRow, entranceCol] = entrancePosition
-            .split(",")
-            .map(Number);
-          const isNotEntranceCell = i !== entranceRow || j !== entranceCol;
+          const isNotEntranceCell = !entranceCell || i !== entranceCell.row || j !== entranceCell.col;
           if (isNotEntranceCell) {
             newMaze[i][j] = roomSymbols["empty"];
           }
@@ -98,15 +112,16 @@ export const resizeMaze = (
     }
   }
 
-  const [entranceRow, entranceCol] = entrancePosition
-    .split(",")
-    .map(Number);
-  const isEntranceInsideGrid = isInsideGrid(entranceRow, entranceCol, newRows, newCols);
-  if (isEntranceInsideGrid) {
-    newMaze[entranceRow][entranceCol] = _00_;
-  } else {
-    newMaze[0][0] = _00_;
+  if (isOnOtherFloor) {
+    return { maze: newMaze, entranceOutsideGrid: false, entrancePosition };
   }
 
-  return { maze: newMaze, entranceOutsideGrid: !isEntranceInsideGrid };
+  if (entranceCell && isInsideGrid(entranceCell.row, entranceCell.col, newRows, newCols)) {
+    newMaze[entranceCell.row][entranceCell.col] = _00_;
+    return { maze: newMaze, entranceOutsideGrid: false, entrancePosition };
+  }
+
+  newMaze[0][0] = _00_;
+  const origin = position?.floorIndex == null ? "0,0" : `${position.floorIndex},0,0`;
+  return { maze: newMaze, entranceOutsideGrid: true, entrancePosition: origin };
 };

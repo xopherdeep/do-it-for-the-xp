@@ -47,7 +47,7 @@ import {
   mazeHasEntrance,
   resolveEntranceCoordinates,
 } from "./grid/mazeReadouts";
-import { buildInitialMaze, resizeMaze } from "./grid/resizeMaze";
+import { buildInitialMaze, entranceCellOnFloor, resizeMaze } from "./grid/resizeMaze";
 import {
   buildRoomRecord,
   chooseRoomSymbol,
@@ -98,6 +98,7 @@ export interface UseTempleCreatorReturn {
   dynamicRoomIcons: ComputedRef<Record<string, string>>;
   entranceDisplay: ComputedRef<string>;
   hasEntrance: ComputedRef<boolean>;
+  entranceOnThisFloor: ComputedRef<string>;
   templeCodePreview: ComputedRef<string>;
 
   // Quick edit state
@@ -314,6 +315,17 @@ export function useTempleCreator(
   // Check if any entrance token exists in the maze (uses engine helper)
   const hasEntrance = computed(() => mazeHasEntrance(templeMaze.value));
 
+  // The entrance as the grid on show wants it: "row,col" when it is a cell of this floor, "-1,-1" when it is not
+  // (a "floor,row,col" entrance is on one floor only)
+  const entranceOnThisFloor = computed(() => {
+    const cell = entranceCellOnFloor(
+      entrancePosition.value,
+      templeMaze.value,
+      currentLevelId.value
+    );
+    return cell ? `${cell.row},${cell.col}` : "-1,-1";
+  });
+
   const currentMazeSlice = computed({
     get: () => floorSlice(templeMaze.value, currentLevelId.value),
     set: (newSlice: string[][]) => {
@@ -433,14 +445,16 @@ export function useTempleCreator(
       currentMazeSlice.value,
       newRows,
       newCols,
-      entrancePosition.value
+      entrancePosition.value,
+      templeMaze.value,
+      currentLevelId.value
     );
 
     if (resized.entranceOutsideGrid) {
       debug.warn(
         "Entrance position is outside the new grid bounds! Resetting to 0,0"
       );
-      entrancePosition.value = `0,0`;
+      entrancePosition.value = resized.entrancePosition;
     }
 
     currentMazeSlice.value = resized.maze;
@@ -460,16 +474,8 @@ export function useTempleCreator(
     return roomData?.sides?.[direction] || "door";
   };
 
-  const isEntrancePosition = (row: number, col: number) => {
-    const parts = entrancePosition.value.split(",").map(Number);
-    if (parts.length === 3) {
-      const mazeObj = templeMaze.value;
-      const floorKeys = Array.isArray(mazeObj) ? ["1F"] : Object.keys(mazeObj);
-      const zIndex = floorKeys.indexOf(currentLevelId.value);
-      return parts[0] === zIndex && parts[1] === row && parts[2] === col;
-    }
-    return row === parts[0] && col === parts[1];
-  };
+  const isEntrancePosition = (row: number, col: number) =>
+    entranceOnThisFloor.value === `${row},${col}`;
 
   const selectCell = (row: number, col: number) => {
     selectedCell.value = { row, col };
@@ -739,9 +745,6 @@ export function useTempleCreator(
       await templeDb.setTemple(templeToSave);
 
       // Update the snapshot after successful save
-      await templeDb.setTemple(templeToSave);
-
-      // Update the snapshot after successful save
       store.updateDbSnapshot();
 
       // Sync the loaded state
@@ -935,6 +938,7 @@ export function useTempleCreator(
     dynamicRoomIcons,
     entranceDisplay,
     hasEntrance,
+    entranceOnThisFloor,
     templeCodePreview,
 
     // Quick edit

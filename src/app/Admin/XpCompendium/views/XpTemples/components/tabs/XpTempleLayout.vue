@@ -88,7 +88,7 @@
         <!-- Grid Editor -->
         <div v-else class="grid-wrapper">
           <xp-temple-creator-grid :maze="currentMazeSlice" :rooms-data="roomsData" :room-icons="dynamicRoomIcons"
-            :side-type-info="SIDE_TYPE_INFO" :selected-cell="selectedCell" :entrance-position="entrancePosition"
+            :side-type-info="SIDE_TYPE_INFO" :selected-cell="selectedCell" :entrance-position="entranceOnThisFloor"
             :current-level-id="currentLevelId" @cell-click="onCellClick"
             @cell-contextmenu="({ row, col, event }) => showQuickEditPopover(event, row, col)" />
         </div>
@@ -380,7 +380,7 @@ export default defineComponent({
       roomsData: creator.roomsData,
       dynamicRoomIcons: creator.dynamicRoomIcons,
       selectedCell: creator.selectedCell,
-      entrancePosition: creator.entrancePosition,
+      entranceOnThisFloor: creator.entranceOnThisFloor,
       currentLevelId: creator.currentLevelId,
       floors: creator.floors,
       aboveFloors: creator.aboveFloors,

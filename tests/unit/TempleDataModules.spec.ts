@@ -394,8 +394,9 @@ describe("tokenMigration", () => {
         rooms: { L123: { type: "loot" }, HEAL: { type: "health" }, MKEY: { type: "key" }, T123: { type: "teleport" } },
       },
     };
+    // Each old token maps to the list of coordinate tokens it became: one per cell that held it
     const run = (token: string, row?: number, col?: number) => {
-      const mapping = new Map<string, string>();
+      const mapping = new Map<string, string[]>();
       const result = createTokenNormalizer(parsed, mapping)(token, row, col);
       return { result, mapping: Object.fromEntries(mapping) };
     };
@@ -416,16 +417,16 @@ describe("tokenMigration", () => {
     });
 
     it("moves a four-character token to a coordinate token of its room type: prefix, column, row", () => {
-      expect(run("L123", 1, 1)).toEqual({ result: "L0101", mapping: { L123: "L0101" } });
-      expect(run("T123", 0, 2)).toEqual({ result: "T0200", mapping: { T123: "T0200" } });
-      expect(run("ABCD", 3, 2)).toEqual({ result: "R0203", mapping: { ABCD: "R0203" } });
+      expect(run("L123", 1, 1)).toEqual({ result: "L0101", mapping: { L123: ["L0101"] } });
+      expect(run("T123", 0, 2)).toEqual({ result: "T0200", mapping: { T123: ["T0200"] } });
+      expect(run("ABCD", 3, 2)).toEqual({ result: "R0203", mapping: { ABCD: ["R0203"] } });
     });
 
     it("names a single-letter token, then moves it to a coordinate token", () => {
-      expect(run("H", 1, 3)).toEqual({ result: "H0301", mapping: { HEAL: "H0301" } });
-      expect(run("MSTK", 1, 1)).toEqual({ result: "K0101", mapping: { MKEY: "K0101" } });
-      expect(run("v", 2, 5)).toEqual({ result: "R0502", mapping: { PIT_: "R0502" } });
-      expect(run("COMP", 0, 0)).toEqual({ result: "R0000", mapping: { COMP: "R0000" } });
+      expect(run("H", 1, 3)).toEqual({ result: "H0301", mapping: { HEAL: ["H0301"] } });
+      expect(run("MSTK", 1, 1)).toEqual({ result: "K0101", mapping: { MKEY: ["K0101"] } });
+      expect(run("v", 2, 5)).toEqual({ result: "R0502", mapping: { PIT_: ["R0502"] } });
+      expect(run("COMP", 0, 0)).toEqual({ result: "R0000", mapping: { COMP: ["R0000"] } });
     });
 
     it("keeps a short or long unknown token as it is and turns a 2 or 3 character one into the wall", () => {
@@ -437,6 +438,28 @@ describe("tokenMigration", () => {
     it("renames but does not migrate a token when the cell is not known", () => {
       expect(run(".")).toEqual({ result: "R000", mapping: {} });
       expect(run("L123", 1)).toEqual({ result: "L123", mapping: {} });
+    });
+
+    // Changed with #1217: two cells that share one legacy token used to leave only the last cell's coordinate token
+    // in the mapping, so the room record went to that one cell and the earlier cell was left with no record
+    it("keeps every coordinate token a shared legacy token became, one per cell, in the order met", () => {
+      const mapping = new Map<string, string[]>();
+      const normalize = createTokenNormalizer(parsed, mapping);
+      expect([normalize(".", 3, 0), normalize("0", 3, 1), normalize("L123", 1, 1), normalize(".", 4, 2)]).toEqual([
+        "R0003",
+        "R0103",
+        "L0101",
+        "R0204",
+      ]);
+      expect(Object.fromEntries(mapping)).toEqual({ R000: ["R0003", "R0103", "R0204"], L123: ["L0101"] });
+    });
+
+    it("lists a coordinate token once when the same cell is read twice", () => {
+      const mapping = new Map<string, string[]>();
+      const normalize = createTokenNormalizer(parsed, mapping);
+      normalize(".", 1, 1);
+      normalize(".", 1, 1);
+      expect(Object.fromEntries(mapping)).toEqual({ R000: ["R0101"] });
     });
   });
 
@@ -475,6 +498,32 @@ describe("tokenMigration", () => {
       normalizeImportedLayout(parsed);
       expect(parsed.dungeonLayout.rooms).toBe(rooms);
       expect(debug.log).not.toHaveBeenCalled();
+    });
+
+    // Changed with #1217: the record used to be renamed to the last cell's token only (the earlier cell lost it)
+    it("gives each cell that shared a legacy token its own copy of the room record", () => {
+      const parsed = {
+        id: "x",
+        dungeonLayout: {
+          maze: [[".", "0"], ["L123", "."]],
+          rooms: { R000: { type: "empty", label: "shared", content: { beasts: ["a"] } }, L123: { type: "loot" } },
+        },
+      };
+      normalizeImportedLayout(parsed);
+      expect(parsed.dungeonLayout.maze).toEqual([["R0000", "R0100"], ["L0001", "R0101"]]);
+      expect(parsed.dungeonLayout.rooms).toEqual({
+        R0000: { type: "empty", label: "shared", content: { beasts: ["a"] } },
+        R0100: { type: "empty", label: "shared", content: { beasts: ["a"] } },
+        R0101: { type: "empty", label: "shared", content: { beasts: ["a"] } },
+        L0001: { type: "loot" },
+      });
+      // Copies, not one record under three names: editing one room must not change its twins
+      const rooms = parsed.dungeonLayout.rooms as unknown as Record<string, { content: { beasts: string[] } }>;
+      expect(rooms.R0000).not.toBe(rooms.R0100);
+      expect(rooms.R0000.content).not.toBe(rooms.R0100.content);
+      rooms.R0000.content.beasts.push("b");
+      expect(rooms.R0100.content.beasts).toEqual(["a"]);
+      expect(debug.log).toHaveBeenCalledWith("Normalized 2 room tokens in layout import.");
     });
 
     it("lets the first record win when two tokens map to the same new one", () => {

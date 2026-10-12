@@ -14,8 +14,11 @@ export const parseTempleJson = (jsonStr: string) => {
   return parsedData;
 };
 
-/** Maps one maze token to its standard form; a legacy token at a known cell becomes a coordinate token and is noted in `tokenMapping` */
-export const createTokenNormalizer = (parsedData: any, tokenMapping: Map<string, string>) => {
+/**
+ * Maps one maze token to its standard form; a legacy token at a known cell becomes a coordinate token and is noted in
+ * `tokenMapping`, which lists every coordinate token an old token became (one per cell that held it)
+ */
+export const createTokenNormalizer = (parsedData: any, tokenMapping: Map<string, string[]>) => {
   return (token: string, rowIdx?: number, colIdx?: number): string => {
     // 1. Preserve specialized tokens that already match the 5-char coordinate format
     if (/^[A-Za-z]\d{4}$/.test(token)) return token;
@@ -38,9 +41,6 @@ export const createTokenNormalizer = (parsedData: any, tokenMapping: Map<string,
       result = token;
     } else if (/^T\d{2,4}$/.test(token)) {
       // Teleporters
-      result = token;
-    } else if (/^[HVAPXUDS]\d{4}$/.test(token)) {
-      // Other 5-char dynamic tokens
       result = token;
     } else {
       // 3. Static Mapping for single characters
@@ -76,7 +76,11 @@ export const createTokenNormalizer = (parsedData: any, tokenMapping: Map<string,
       const coordToken = prefix + xx + yy;
 
       if (coordToken !== result) {
-        tokenMapping.set(result, coordToken);
+        // Two cells can share a legacy token (every "." is R000): each gets its own coordinate token, and the room
+        // record is copied to all of them afterwards
+        const coordTokens = tokenMapping.get(result) ?? [];
+        if (!coordTokens.includes(coordToken)) coordTokens.push(coordToken);
+        tokenMapping.set(result, coordTokens);
         result = coordToken;
       }
     }
@@ -88,7 +92,7 @@ export const createTokenNormalizer = (parsedData: any, tokenMapping: Map<string,
 /** Rewrites the maze tokens of the parsed temple in place and renames its room records to the new tokens */
 export const normalizeImportedLayout = (parsedData: any) => {
   // Normalization: Enforce coordinate-based or standard tokens for maze layout
-  const tokenMapping = new Map<string, string>();
+  const tokenMapping = new Map<string, string[]>();
   const normalizeToken = createTokenNormalizer(parsedData, tokenMapping);
 
   if (parsedData.dungeonLayout?.maze) {
@@ -113,14 +117,17 @@ export const normalizeImportedLayout = (parsedData: any) => {
     const oldRooms = parsedData.dungeonLayout.rooms;
     const newRooms: Record<string, any> = {};
 
-    // Transfer all room definitions, renaming those redirected by normalizeToken
+    // Transfer all room definitions, renaming those redirected by normalizeToken. A record that several cells shared
+    // goes to each of their new tokens as its own deep copy, so editing one room never changes another.
     Object.entries(oldRooms).forEach(([key, room]) => {
-      const newKey = tokenMapping.get(key) || key;
-      // If multiple old keys map to the same new key (unlikely but possible), 
-      // we keep the first one or merge. Usually it's unique.
-      if (!newRooms[newKey]) {
-        newRooms[newKey] = room;
-      }
+      const renamedTo = tokenMapping.get(key);
+      const newKeys = renamedTo ?? [key];
+      newKeys.forEach((newKey) => {
+        // If an old record already holds a new key (unlikely but possible), the first one wins
+        if (!newRooms[newKey]) {
+          newRooms[newKey] = renamedTo ? JSON.parse(JSON.stringify(room)) : room;
+        }
+      });
     });
 
     parsedData.dungeonLayout.rooms = newRooms;
