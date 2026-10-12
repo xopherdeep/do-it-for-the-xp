@@ -8,7 +8,7 @@ Usage (GEMINI_API_KEY in the environment):
   python3 tools/art/beast_portraits.py socktopus dish-goblin           # one take each in style a (painted)
   python3 tools/art/beast_portraits.py -n 2 --style b socktopus        # two takes in style b (hd pixel art)
   python3 tools/art/beast_portraits.py --all -j 4                       # every beast with no take yet, 4 at a time
-  python3 tools/art/beast_portraits.py --sheet [--only abd] [slug ...]  # contact sheet of the takes (_sheet.png)
+  python3 tools/art/beast_portraits.py --sheet [--only d] [--now] [slug ...]   # review pages (_sheet.png / _sheet-NN.png)
   python3 tools/art/beast_portraits.py --rekey [slug ...]               # redo the background keying from raw/
   python3 tools/art/beast_portraits.py --install socktopus=a2 dish-goblin=b1
                                                                         # take -> src/assets/images/beasts/NNN.webp,
@@ -190,31 +190,36 @@ def checker(size, cell=24):
     return im
 
 
-def sheet(slugs, only=None):
+def sheet(slugs, only=None, now=False, per_page=24):
+    """Review pages: each beast's takes side by side, several beasts per row, per_page beasts per page.
+    --now adds the starter beasts' current portrait in front of their takes."""
     book = roster()
     def takes(s): return [t for t in takes_of(s) if not only or t[0] in only]
     rows = [s for s in (slugs or book) if takes(s)]
     if not rows: return print("no takes yet")
-    cell, pad = 240, 6
-    cols = 1 + max(len(takes(s)) for s in rows)
-    out = Image.new("RGB", (cols * (cell + pad), len(rows) * (cell + 22)), (20, 16, 28))
-    d = ImageDraw.Draw(out)
-    for r, slug in enumerate(rows):
-        cells = []
-        if slug in CURRENT:
-            cells.append(("now", os.path.join(BEAST_DIR, f"{CURRENT[slug]:03d}.webp")))
-        else: cells.append((None, None))
-        cells += [(f"{s}{i}", take_path(slug, s, i)) for s, i in takes(slug)]
-        for c, (label, path) in enumerate(cells):
-            x, y = c * (cell + pad), r * (cell + 22)
-            if path and os.path.exists(path) and os.path.getsize(path):
-                tile = checker(cell)
-                im = Image.open(path).convert("RGBA").resize((cell, cell), Image.LANCZOS)
-                tile.alpha_composite(im)
-                out.paste(tile.convert("RGB"), (x, y + 18))
-            d.text((x + 2, y + 3), f"{book[slug]['name']} {label}" if label else "", fill=(240, 236, 220))
-    path = os.path.join(OUT_DIR, "_sheet.png")
-    out.save(path); print(path)
+    cell, pad, lab, gap = 200, 4, 16, 14
+    per_beast = max(len(takes(s)) for s in rows) + (1 if now else 0)
+    group = per_beast * (cell + pad) + gap
+    per_row = max(1, 1700 // group)
+    pages = [rows[i:i + per_page] for i in range(0, len(rows), per_page)]
+    for n, page in enumerate(pages, 1):
+        nrows = (len(page) + per_row - 1) // per_row
+        out = Image.new("RGB", (per_row * group, nrows * (cell + lab + pad)), (20, 16, 28))
+        d = ImageDraw.Draw(out)
+        for k, slug in enumerate(page):
+            gx, gy = (k % per_row) * group, (k // per_row) * (cell + lab + pad)
+            cells = []
+            if now: cells.append(("now", os.path.join(BEAST_DIR, f"{CURRENT[slug]:03d}.webp") if slug in CURRENT else None))
+            cells += [(f"{s}{i}", take_path(slug, s, i)) for s, i in takes(slug)]
+            for c, (label, path) in enumerate(cells):
+                x, y = gx + c * (cell + pad), gy
+                if path and os.path.exists(path) and os.path.getsize(path):
+                    tile = checker(cell)
+                    tile.alpha_composite(Image.open(path).convert("RGBA").resize((cell, cell), Image.LANCZOS))
+                    out.paste(tile.convert("RGB"), (x, y + lab))
+                d.text((x + 2, y + 3), f"{book[slug]['name']} {label}", fill=(240, 236, 220))
+        path = os.path.join(OUT_DIR, "_sheet.png" if len(pages) == 1 else f"_sheet-{n:02d}.png")
+        out.save(path); print(path)
 
 
 # --- install -----------------------------------------------------------------------------------
@@ -282,13 +287,14 @@ def main():
     ap.add_argument("--all", action="store_true", help="every beast without a take in this style")
     ap.add_argument("--sheet", action="store_true")
     ap.add_argument("--only", help="style letters to show on the sheet, e.g. abd")
+    ap.add_argument("--now", action="store_true", help="sheet: show the starter beasts' current portrait too")
     ap.add_argument("--rekey", action="store_true")
     ap.add_argument("--install", nargs="+", metavar="slug=a1")
     ap.add_argument("--emit-ts", action="store_true")
     a = ap.parse_args()
     if a.install: return install(a.install)
     if a.emit_ts: return emit_ts()
-    if a.sheet: return sheet(a.slugs, a.only)
+    if a.sheet: return sheet(a.slugs, a.only, a.now)
     if a.rekey: return rekey(a.slugs or list(roster()))
     slugs = a.slugs
     if a.all: slugs = [s for s in roster() if not any(st == a.style for st, _ in takes_of(s))]
