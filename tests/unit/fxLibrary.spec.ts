@@ -104,7 +104,7 @@ describe("$fx", () => {
     expect($fx.ui.nintendo.key).not.toBe($fx.rpg.earthbound.key);
   });
 
-  it("loops only the coin counter and the loading jingle, with one listener each", () => {
+  it("loops only the coin counter, with one listener", () => {
     const looping = new Set<FakeAudio>();
     const visit = (node: unknown) => {
       if (node instanceof FakeAudio) {
@@ -113,7 +113,6 @@ describe("$fx", () => {
       else if (node && typeof node === "object") Object.values(node).forEach(visit);
     };
     visit($fx);
-    // The loading jingle is only built, never handed to a set; the coin counter is the one the sets carry
     expect([...looping]).toEqual([$fx.rpg.earthbound.countCoins]);
     expect($fx.rpg.earthbound.countCoins.listeners).toEqual(["ended"]);
   });

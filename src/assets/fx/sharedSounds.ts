@@ -1,4 +1,3 @@
-import loadingMP3 from "@/assets/audio/loading.mp3";
 import earthbound from "./earthbound.fx";
 
 import Coins from "@/assets/audio/nintendo/chrono trigger/cursor.mp3";
@@ -16,7 +15,6 @@ import takeItemMP3 from "@/assets/audio/take_item.mp3";
 import doorOpen from "@/assets/audio/door-open.mp3";
 
 export const coins = new Audio(Coins);
-const loading = new Audio(loadingMP3);
 
 export const gp = new Audio(rupee);
 export const shhh = new Audio(secret)
@@ -35,15 +33,6 @@ export const steps = new Audio(earthbound.steps);
 
 
 coins.addEventListener(
-  "ended",
-  function () {
-    this.currentTime = 0;
-    this.play();
-  },
-  false
-);
-
-loading.addEventListener(
   "ended",
   function () {
     this.currentTime = 0;

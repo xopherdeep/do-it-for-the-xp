@@ -8,6 +8,7 @@
  */
 
 import { AudioEngine } from './AudioEngine';
+import { streamUrl } from './remoteBgm';
 import { useAudioStore } from '@/lib/store/stores/audio';
 import debug from '@/lib/utils/debug';
 
@@ -68,8 +69,9 @@ export function playRouteMusic(payload: BGMPayload): void {
     if (typeof trackInfo === 'string') {
       // If it's just a string URL
       trackSrc = trackInfo;
-      // Create a unique ID based on the track source
-      const uniquePart = trackSrc.split('/').pop() || '';
+      // Create a unique ID based on the track source; the slot's fallback tag is left out so two slots
+      // that share one song share one track and keep playing it across routes
+      const uniquePart = streamUrl(trackSrc).split('/').pop() || '';
       // DON'T include the index in the ID if we want seamless transitions between different routes using the same file
       trackId = `route-music-${uniquePart}`;
       trackTitle = uniquePart.replace(/\..+$/, '').replace(/[-_]/g, ' ');
@@ -78,7 +80,7 @@ export function playRouteMusic(payload: BGMPayload): void {
       trackSrc = trackInfo.src;
       trackTitle = trackInfo.title;
       // Create a unique ID based on the track source
-      const uniquePart = trackSrc.split('/').pop() || '';
+      const uniquePart = streamUrl(trackSrc).split('/').pop() || '';
       trackId = `route-music-${uniquePart}`;
     }
 
