@@ -14,6 +14,7 @@ import {
   getXpForLevel
 } from '@/lib/services/stats/PlayerStatsService';
 import { classLevelsOf, isClassUnlocked } from '@/lib/services/stats/ClassPassives';
+import { toEntry } from '@/lib/services/inventory/Inventory';
 import { levelUpNotification } from '@/lib/services/notifications/Notifications';
 import { notify } from '@/lib/services/notifications/notify';
 
@@ -379,6 +380,39 @@ export const useUserStore = defineStore('user', () => {
     const user = users[userId];
     if (!user) return false;
     user.inventory = [...(Array.isArray(user.inventory) ? user.inventory : []), JSON.parse(JSON.stringify(item))];
+    if (currentUser.id === userId) syncCurrentUser(user);
+    persistUser(userId);
+    return true;
+  }
+
+  /**
+   * Take `qty` of one pack entry (an `Inventory` id, e.g. what a fight potion was) out of the hero's bag: the first
+   * rows that match count down by their `qty` / `quantity` and a row is dropped when it reaches 0. Spends nothing and
+   * returns false when there is no such hero or the pack holds fewer than `qty`.
+   */
+  function spendInventoryItem(userId: string, entryId: string, qty = 1): boolean {
+    const user = users[userId];
+    if (!user || !Array.isArray(user.inventory) || !(qty >= 1)) return false;
+    const entries = user.inventory.map((row: unknown) => toEntry(row));
+    const held = entries.reduce((sum: number, entry: { id: string, qty: number } | null) => (entry?.id === entryId ? sum + entry.qty : sum), 0);
+    if (held < qty) return false;
+
+    let left = qty;
+    const next: any[] = [];
+    user.inventory.forEach((row: any, index: number) => {
+      const entry = entries[index];
+      if (left <= 0 || entry?.id !== entryId) {
+        next.push(row);
+        return;
+      }
+      const taken = Math.min(left, entry.qty);
+      left -= taken;
+      if (entry.qty > taken) {
+        const key = row.qty == null && row.quantity != null ? 'quantity' : 'qty';
+        next.push({ ...row, [key]: entry.qty - taken });
+      }
+    });
+    user.inventory = next;
     if (currentUser.id === userId) syncCurrentUser(user);
     persistUser(userId);
     return true;
@@ -909,6 +943,7 @@ export const useUserStore = defineStore('user', () => {
     updateUserHP,
     updateUserMP,
     addInventoryItem,
+    spendInventoryItem,
     setItemCooldown,
     setBenchRestAt,
     setQuestEffects,
