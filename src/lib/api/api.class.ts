@@ -5,6 +5,7 @@
  * @since 1.0.0
  */
 import debug from '@/lib/utils/debug';
+import type { ApiConfig } from './apiHost';
 
 export interface ApiType {
   url: string;
@@ -19,17 +20,19 @@ export interface ApiParams {
 
 export default class Api {
   uri: string;
+  nonce?: string;
   private static instance: Api | null = null;
 
-  constructor({ protocol, url, base }: { protocol?: string, url: string, base: string }) {
+  constructor({ protocol, url, base, nonce }: ApiConfig) {
     this.uri = protocol ? `${protocol}://${url}/${base}` : `${url}/${base}`;
+    this.nonce = nonce;
   }
 
   /**
    * Get a singleton instance of the API
    * @param config Configuration for the API
    */
-  static getInstance(config?: { protocol?: string, url: string, base: string }): Api {
+  static getInstance(config?: ApiConfig): Api {
     if (!Api.instance && config) {
       Api.instance = new Api(config);
     }
@@ -78,7 +81,10 @@ export default class Api {
 
     const queryString = query.toString().replace(/%2C/g, ",");
     const uri = `${this.uri}/${type}${queryString ? `?${queryString}` : ''}`;
-    const options = { method: "GET" };
+    // The hosting site's nonce makes WordPress treat the request as the signed-in visitor
+    const options: RequestInit = this.nonce
+      ? { method: "GET", headers: { "X-WP-Nonce": this.nonce } }
+      : { method: "GET" };
     return fetch(uri, options)
       .then(this.responseHandler)
       .catch(this.errorHandler);

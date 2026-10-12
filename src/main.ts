@@ -1,3 +1,6 @@
+// Must run before anything loads a chunk; see publicPath.ts
+import './publicPath'
+
 // FRAMEWORK LIBS
 import { createApp } from 'vue'
 import { IonicVue } from '@ionic/vue';
