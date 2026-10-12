@@ -1317,7 +1317,7 @@ ion-app {
   }
 }
 // ============================================================
-// Toasts: an RPG message box that drops in over the app bar (top) or the nav (bottom), never mid-screen
+// Toasts: an RPG message box centered on screen with a close button
 // ============================================================
 ion-toast {
   --background: #280828;

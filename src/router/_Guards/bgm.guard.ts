@@ -4,7 +4,6 @@ import { metadataForAsync } from "@/lib/engine/temples/templeRegistry";
 import debug from "@/lib/utils/debug";
 import { useAudioStore } from "@/lib/store/stores/audio";
 import { useGameStore } from "@/lib/store/stores/game";
-import { useBattleStore } from "@/lib/store/stores/battle";
 
 // ============================================================================
 // TYPES
@@ -128,13 +127,6 @@ const TERRAIN_BGM_ROUTES: Record<string, string> = {
   temple: "dungeon",
 };
 
-/** Battle-related routes */
-const BATTLE_BGM_ROUTES = [
-  "battle-quest",
-  "battle-temple",
-  "battle-free",
-] as const;
-
 // ============================================================================
 // GUARD
 // ============================================================================
@@ -147,7 +139,6 @@ export function handleBgmGuard(to: RouteLocationNormalized, router?: Router): vo
   const run = ++guardRun;
   const audioStore = useAudioStore();
   const gameStore = useGameStore();
-  const battleStore = useBattleStore();
 
   const bgm = audioStore.bgm;
   const rpgTheme = gameStore.theme?.rpg;
@@ -208,16 +199,6 @@ export function handleBgmGuard(to: RouteLocationNormalized, router?: Router): vo
     payload = createBgmPayload(terrains?.[terrainKey], {
       track: "random",
       startDelay,
-      saveBookmark: true,
-    });
-  }
-  // 4. Check battle routes
-  else if (
-    BATTLE_BGM_ROUTES.includes(routeName as (typeof BATTLE_BGM_ROUTES)[number])
-  ) {
-    payload = createBgmPayload(BGM.battle, {
-      track: "random",
-      startDelay: battleStore.bgmWaitToStart || startDelay,
       saveBookmark: true,
     });
   }

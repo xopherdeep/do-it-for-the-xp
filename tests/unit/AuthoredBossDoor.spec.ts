@@ -465,3 +465,88 @@ describe("bossDoorSides and lockedFromSides", () => {
     });
   });
 });
+
+describe("the phone's wind temple layout (task #926)", () => {
+  const _____ = "_____";
+  const _00__ = "_00__";
+  const T0100 = "T0100";
+  const L0200 = "L0200";
+  const M0201 = "M0201";
+  const B0401 = "B0401";
+  const R0501 = "R0501";
+  const S0002 = "S0002";
+  const M0102 = "M0102";
+  const L0202 = "L0202";
+  const M0302 = "M0302";
+  const m0402 = "m0402";
+  const R0103 = "R0103";
+  const M0203 = "M0203";
+  const L0303 = "L0303";
+  const L0503 = "L0503";
+  const M0204 = "M0204";
+  const M0404 = "M0404";
+  const m0504 = "m0504";
+  const L0105 = "L0105";
+  const M0305 = "M0305";
+  const T0505 = "T0505";
+
+  const windtemple = {
+    entrance: [5, 2],
+    maze: {
+      "1F": [
+        [_____, T0100, L0200, _____, _____, _____],
+        [_____, _____, M0201, _____, B0401, R0501],
+        [S0002, M0102, L0202, M0302, m0402, _____],
+        [_____, R0103, M0203, L0303, _____, L0503],
+        [_____, _____, M0204, _____, M0404, m0504],
+        [_____, L0105, _00__, M0305, _____, T0505],
+      ],
+    },
+    rooms: {
+      [_____]: { type: "wall", content: { beasts: [] }, sides: { north: "door", east: "door", south: "door", west: "door" } },
+      [_00__]: { type: "entrance", visited: true, locked: { north: true } },
+      [T0100]: { type: "teleport", content: { beasts: [], targetLevel: "1F", targetCoords: { x: 0, y: 0 } }, sides: { north: "door", east: "door", south: "door", west: "door" } },
+      [L0200]: { type: "loot", content: { beasts: [], chest: "gold", gold: 140 }, sides: { north: "door", east: "door", south: "door", west: "door" } },
+      [M0201]: { type: "monster", content: { monsterType: "small" }, sides: { north: "door", east: "door", south: "door", west: "door" } },
+      [B0401]: { type: "boss", content: { lockOnEnter: true, beasts: ["beast-trash-troll"] }, sides: { north: "door", east: "masterlocked", south: "masterlocked", west: "door" } },
+      [R0501]: { type: "master", content: { beasts: [] }, sides: { north: "door", east: "door", south: "door", west: "masterlocked" } },
+      [S0002]: { type: "shop" },
+      [M0102]: { type: "monster", content: { monsterType: "small" }, sides: { north: "door", east: "door", south: "door", west: "door" } },
+      [L0202]: { type: "loot", content: { chest: "dungeon", dungeon: "compass" } },
+      [M0302]: { type: "monster", content: { monsterType: "small" }, sides: { north: "door", east: "door", south: "door", west: "door" } },
+      [m0402]: { type: "miniboss", locked: { north: true }, sides: { north: "masterlocked", east: "door", south: "door", west: "door" }, content: { beasts: [] } },
+      [R0103]: { type: "empty" },
+      [M0203]: { type: "monster", content: { monsterType: "small" }, sides: { north: "door", east: "door", south: "door", west: "door" } },
+      [L0303]: { type: "loot", content: { chest: "dungeon", dungeon: "map" } },
+      [L0503]: { type: "loot", content: { chest: "dungeon", dungeon: "master-key", beasts: [] }, sides: { north: "door", east: "door", south: "door", west: "door" } },
+      [M0204]: { type: "monster", content: { monsterType: "small" }, sides: { north: "door", east: "door", south: "door", west: "door" } },
+      [M0404]: { type: "monster", content: { monsterType: "small" }, sides: { north: "door", east: "door", south: "door", west: "door" } },
+      [m0504]: { type: "miniboss", content: { beasts: [] }, sides: { north: "door", east: "door", south: "door", west: "door" } },
+      [L0105]: { type: "loot", content: { chest: "dungeon", dungeon: "key" } },
+      [M0305]: { type: "monster", content: { monsterType: "small" }, sides: { north: "door", east: "door", south: "door", west: "door" } },
+      [T0505]: { type: "teleport", sides: { north: "door", east: "door", south: "door", west: "door" } },
+    },
+  };
+
+  it("checks room details and doorKind results for hero before boss door", () => {
+    const id = "wind-temple-phone";
+    registerTemple(id, windtemple, { force: true });
+    temples.initTemple(id, [2, 4], "1F");
+
+    const heroPos: [number, number] = [2, 4];
+    const beyondPos: [number, number] = [1, 4];
+
+    const heroRoom = dungeons.getRoom(id, heroPos, "1F");
+    const beyondRoom = dungeons.getRoom(id, beyondPos, "1F");
+
+    expect(heroRoom?.type).toBe("miniboss");
+    expect(heroRoom?.locked).toEqual({ north: true, master: true });
+    expect(beyondRoom?.type).toBe("boss");
+    expect(beyondRoom?.locked).toEqual({ master: true });
+
+    expect(temples.doorKind(id, heroPos, "north", "1F")).toBe("master");
+    expect(temples.doorKind(id, heroPos, "east", "1F")).toBe("open");
+    expect(temples.doorKind(id, heroPos, "south", "1F")).toBe("open");
+    expect(temples.doorKind(id, heroPos, "west", "1F")).toBe("open");
+  });
+});

@@ -31,6 +31,7 @@ import { auditTemple, missingNames } from "@/lib/services/temples/templeAudit";
 import { bossDoorSides } from "@/lib/services/temples/authoredDoors";
 
 import { getDungeonItems } from "@/lib/engine/core/items/itemRegistry";
+import { copyTextToClipboard } from "@/lib/utils/clipboard";
 
 // Side type information for UI
 export const SIDE_TYPE_INFO: Record<
@@ -874,10 +875,14 @@ export function useTempleCreator(
 
   const copyToClipboard = async () => {
     try {
-      await navigator.clipboard.writeText(templeCodePreview.value);
-      showToast("Code copied to clipboard");
-    } catch (err) {
-      showToast("Failed to copy: " + err);
+      const copied = await copyTextToClipboard(templeCodePreview.value);
+      if (copied) {
+        showToast("Code copied to clipboard");
+      } else {
+        showToast("Failed to copy: Clipboard write not supported");
+      }
+    } catch (err: any) {
+      showToast("Failed to copy: " + (err?.message || err));
     }
   };
 

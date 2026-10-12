@@ -49,5 +49,5 @@ E2E seams: in development `window.__xp` exposes `restoreBackup`, `loginUser`, `g
 - Pages are `defineComponent` with a sibling `.ts` and `.scss`; new components use `<script setup lang="ts">`.
 - Game rules live in pure modules under `src/lib/services/**` with jest specs; screens stay thin.
 - Sounds come from `play$fx(key)`; valid keys are the exports of `src/assets/fx/index.ts` (e.g. `select`, `cursor`, `no`, `openMenu`).
-- Ionic alerts render HTML (`innerHTMLTemplatesEnabled`); toasts use `cssClass: "rpg-toast"`, position `top`.
+- Ionic alerts render HTML (`innerHTMLTemplatesEnabled`); toasts use `cssClass: "rpg-toast"`, position `middle` (with close button).
 - Don't `pkill -f` by command text (it kills the shell); use `lsof -ti:PORT`.

@@ -35,11 +35,11 @@ describe("rpgToastOptions", () => {
     expect(rpgToastOptions("x", 1500, "bottom").swipeGesture).toBe("vertical");
   });
 
-  it("defaults to two seconds at the bottom", () => {
+  it("defaults to two seconds in the center", () => {
     const options = rpgToastOptions("hello");
 
     expect(options.duration).toBe(2000);
-    expect(options.position).toBe("bottom");
+    expect(options.position).toBe("middle");
   });
 });
 
@@ -47,6 +47,18 @@ describe("useToast", () => {
   beforeEach(() => {
     mockPresent.mockReset().mockResolvedValue(undefined);
     mockCreate.mockReset().mockResolvedValue({ present: mockPresent });
+  });
+
+  it("defaults to presenting in the center with close button", async () => {
+    const { showToast } = useToast();
+
+    await showToast("A door creaks open");
+
+    expect(mockCreate).toHaveBeenCalledTimes(1);
+    expect(mockCreate).toHaveBeenCalledWith(
+      expect.objectContaining({ message: "A door creaks open", duration: 2000, position: "middle", cssClass: "rpg-toast" })
+    );
+    expect(mockPresent).toHaveBeenCalledTimes(1);
   });
 
   it("presents one RPG toast, whatever colour the caller asks for", async () => {

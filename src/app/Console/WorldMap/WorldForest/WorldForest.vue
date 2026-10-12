@@ -16,7 +16,7 @@
       <WeatherFX type="forest" :intensity="5" :sound-enabled="false" />
       <div class="world-landmarks-layer">
         <xp-building-model building-id="hermits-tent" :size="105" />
-        <xp-building-model building-id="pegasus" label="Travel World" sublabel="Fly to World Map" :size="105" />
+        <xp-building-model building-id="pegasus" world="forest" :size="105" />
         <xp-temple-model temple-id="earth-temple" :size="105" />
       </div>
       <div class="enchanted-forest">

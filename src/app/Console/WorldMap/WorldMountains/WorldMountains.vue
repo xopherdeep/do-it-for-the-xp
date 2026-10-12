@@ -16,7 +16,7 @@
       <WeatherFX type="mountains" :intensity="4" :sound-enabled="false" />
       <div class="world-landmarks-layer">
         <xp-building-model building-id="crystal-caverns" :size="105" />
-        <xp-building-model building-id="pegasus" label="Travel World" sublabel="Fly to World Map" :size="105" />
+        <xp-building-model building-id="pegasus" world="mountains" :size="105" />
         <xp-temple-model temple-id="fire-temple" :size="105" />
       </div>
       <div class="fire-container">

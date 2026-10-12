@@ -44,7 +44,7 @@
         </div>
 
         <!-- Maze Configuration View -->
-        <div v-if="showMazeConfig" class="tab-content w-full max-w-4xl">
+        <div v-else-if="showMazeConfig" class="tab-content w-full max-w-4xl">
           <ion-card class="maze-config-card">
             <ion-card-header>
               <div class="flex justify-between items-center">
@@ -115,7 +115,7 @@
       </div>
 
       <!-- Save FAB -->
-      <ion-fab v-if="hasLayout && !isLoading" vertical="bottom" horizontal="center" slot="fixed">
+      <ion-fab v-if="hasLayout && !isLoading && !showPreview && !showMazeConfig" vertical="bottom" horizontal="center" slot="fixed">
         <ion-fab-button :color="hasUnsavedChanges ? 'success' : 'medium'" @click="saveTemple"
           :class="{ 'faded-fab': !hasUnsavedChanges }">
           <i class="fad fa-save fa-lg"></i>
@@ -123,7 +123,7 @@
       </ion-fab>
 
       <!-- Consolidated Management FAB -->
-      <ion-fab v-if="hasLayout && !isLoading" vertical="center" horizontal="end" slot="fixed">
+      <ion-fab v-if="hasLayout && !isLoading && !showPreview && !showMazeConfig" vertical="center" horizontal="end" slot="fixed">
         <ion-fab-button color="medium">
           <i class="fad fa-shovel fa-2x"></i>
         </ion-fab-button>
@@ -156,7 +156,7 @@
       </ion-fab>
 
       <!-- Floor Switcher FAB -->
-      <ion-fab v-if="hasLayout && floors.length > 0 && !isLoading" vertical="center" horizontal="start" slot="fixed"
+      <ion-fab v-if="hasLayout && floors.length > 0 && !isLoading && !showPreview && !showMazeConfig" vertical="center" horizontal="start" slot="fixed"
         class="floor-fab-container">
         <ion-fab-button color="rpg" class="floor-fab-trigger">
           <span class="floor-label">{{ currentLevelId }}</span>
@@ -792,5 +792,28 @@ export default defineComponent({
   background: rgba(255, 255, 255, 0.03);
   border-radius: 12px;
   backdrop-filter: blur(5px);
+}
+
+.tab-content {
+  padding: 16px;
+  margin: 0 auto;
+}
+
+.preview-container {
+  max-height: 52vh;
+  overflow: auto;
+  border-radius: 8px;
+  background: rgba(10, 10, 18, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 12px;
+}
+
+.code-preview {
+  margin: 0;
+  font-family: monospace;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: #a5d6a7;
+  white-space: pre;
 }
 </style>

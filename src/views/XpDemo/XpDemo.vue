@@ -69,7 +69,7 @@
           additionalClass: 'plains-theme'
         },
         // {
-        //   image: require('@/assets/images/backgrounds/wind-temple/[5,2].jpg'),
+        //   image: require('@/assets/images/backgrounds/wind-temple/[5,2].webp'),
         //   text: "The Ancient Wind Temple\n\nA sacred place of trials and wisdom. Mastering the elements is key to your success.",
         //   alt: "Wind Temple",
         //   duration: duration + 300,

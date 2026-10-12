@@ -241,8 +241,11 @@
                 <div class="custom-input-group">
                   <input
                     type="number"
+                    data-cy="custom-repeat"
                     :value="achievement.customFrequency"
-                    @input="updateField('customFrequency', parseInt(($event.target as HTMLInputElement).value))"
+                    :readonly="!pro.isPro"
+                    @click="lockedTap"
+                    @input="updateCustomField('customFrequency', $event.target as HTMLInputElement)"
                     min="1"
                   />
                   <span class="unit">Time(s)</span>
@@ -256,21 +259,30 @@
                 <div class="custom-input-group">
                   <input
                     type="number"
+                    data-cy="custom-interval"
                     :value="achievement.customPeriodNumber"
-                    @input="updateField('customPeriodNumber', parseInt(($event.target as HTMLInputElement).value))"
+                    :readonly="!pro.isPro"
+                    @click="lockedTap"
+                    @input="updateCustomField('customPeriodNumber', $event.target as HTMLInputElement)"
                     min="1"
                   />
-                  <ion-select
-                    :value="achievement.customPeriodType"
-                    @ionChange="updateField('customPeriodType', $event.detail.value)"
-                    mode="ios"
-                    class="interval-select"
+                  <div
+                    class="interval-select-wrap"
+                    data-cy="custom-period"
+                    @click.capture="lockedTap"
                   >
-                    <ion-select-option value="day">Day(s)</ion-select-option>
-                    <ion-select-option value="week">Week(s)</ion-select-option>
-                    <ion-select-option value="month">Month(s)</ion-select-option>
-                    <ion-select-option value="year">Year(s)</ion-select-option>
-                  </ion-select>
+                    <ion-select
+                      :value="achievement.customPeriodType"
+                      @ionChange="pro.isPro && updateField('customPeriodType', $event.detail.value)"
+                      mode="ios"
+                      class="interval-select"
+                    >
+                      <ion-select-option value="day">Day(s)</ion-select-option>
+                      <ion-select-option value="week">Week(s)</ion-select-option>
+                      <ion-select-option value="month">Month(s)</ion-select-option>
+                      <ion-select-option value="year">Year(s)</ion-select-option>
+                    </ion-select>
+                  </div>
                 </div>
               </div>
             </div>
@@ -377,6 +389,23 @@ const updateSchedule = async (value: string) => {
 
 const updateField = (field: string, value: unknown) => {
   achievement.value[field] = value;
+};
+
+// A free family sees the saved custom schedule but cannot change it: the inputs are read-only and a tap asks for Pro.
+const lockedTap = (event: Event) => {
+  if (pro.isPro) return;
+  event.preventDefault();
+  event.stopPropagation();
+  void pro.requirePro('advancedSchedule');
+};
+
+const updateCustomField = (field: string, input: HTMLInputElement) => {
+  if (!pro.isPro) {
+    input.value = String(achievement.value[field] ?? '');
+    void pro.requirePro('advancedSchedule');
+    return;
+  }
+  updateField(field, parseInt(input.value));
 };
 
 const toggleDay = (day: string) => {

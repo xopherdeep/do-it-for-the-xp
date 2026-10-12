@@ -28,8 +28,13 @@ import {
 } from "ionicons/icons";
 import { alertController, modalController, onIonViewWillEnter, toastController } from "@ionic/vue";
 import debug from "@/lib/utils/debug";
+import { play$fx } from "@/assets/fx";
 // Import ATM Modal component
 import ATMModal from "@/app/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
+import ShopClerkStage from "./components/ShopClerkStage.vue";
+import ShopWalletWare from "./components/ShopWalletWare.vue";
+import ShopItemCard from "./components/ShopItemCard.vue";
+import ShopItemModal from "./components/ShopItemModal.vue";
 // Import the GPSystem
 import { getGPService } from '@/lib/services/gp';
 import { useUserStore } from "@/lib/store/stores/user";
@@ -66,7 +71,14 @@ const resolveUpgradeFailureMessage = (result: Extract<WalletUpgradeResult, { ok:
 
 // The general store you reach from Home Town; also where an unknown shop id ends up.
 const DEFAULT_SHOP_ID = "hometown-market";
-const ITEMS_PER_PAGE = 4;
+const ITEMS_PER_PAGE = 8;
+
+const resolveAssetUrl = (asset: any): string => {
+  if (!asset) return "";
+  if (typeof asset === "string") return asset;
+  if (typeof asset === "object" && typeof asset.default === "string") return asset.default;
+  return String(asset);
+};
 
 // The Game Master can dress a shop in a world's art (Compendium > Economy > Shops > Decorate).
 // Only world-*.webp / hometown.webp are looked up by key; keep the filter (a bare context bundles all 90 MB)
@@ -75,7 +87,8 @@ const requireWorldBg = require.context("@/assets/images/backgrounds/", false, /^
 const worldBackground = (world: string): string => {
   if (!world) return "";
   try {
-    return requireWorldBg(world === "hometown" ? "./hometown.webp" : `./world-${world}.webp`);
+    const raw = requireWorldBg(world === "hometown" ? "./hometown.webp" : `./world-${world}.webp`);
+    return resolveAssetUrl(raw);
   } catch {
     return "";
   }
@@ -85,7 +98,11 @@ export default defineComponent({
   props: ["userId", "merchant"],
   name: "accessory-shop",
   components: {
-    ATMModal
+    ATMModal,
+    ShopClerkStage,
+    ShopWalletWare,
+    ShopItemCard,
+    ShopItemModal,
   },
   mixins: [ionic],
   data() {
@@ -97,6 +114,7 @@ export default defineComponent({
         "wrecked-ship": require("@/assets/images/backgrounds/shops/wrecked-ship.webp"),
         "witchs-hut": require("@/assets/images/backgrounds/shops/witch's-hut.webp"),
         "snow-shack": require("@/assets/images/backgrounds/shops/snow-shack.webp"),
+        "pond-of-life": require("@/assets/images/backgrounds/shops/pond-of-life.webp"),
         // For other shops without specific backgrounds, use the default
         "hermits-tent": require("@/assets/images/midjourney/shop.webp"),
         "crystal-caverns": require("@/assets/images/midjourney/shop.webp"),
@@ -148,12 +166,16 @@ export default defineComponent({
     closedLine(): string {
       return `Sorry, we're closed right now. ${this.opensAt}.`;
     },
-    dynamicShopBackground() {
-      // A world picked on the Decorate tab wins; an untouched shop keeps its own picture.
-      const backgroundImage =
+    shopBackgroundUrl(): string {
+      const candidate =
         worldBackground(customWorld(this.shopRecord)) ||
         this.shopBackgrounds[this.merchant] ||
         this.shopBackgrounds.default;
+      return resolveAssetUrl(candidate);
+    },
+    dynamicShopBackground() {
+      // A world picked on the Decorate tab wins; an untouched shop keeps its own picture.
+      const backgroundImage = this.shopBackgroundUrl;
       return {
         backgroundImage: `url(${backgroundImage})`,
         backgroundSize: 'cover',
@@ -308,6 +330,7 @@ export default defineComponent({
       try {
         this.play$fx("buyItem");
         void this.showToast("Bought! The Game Master will deliver it.");
+        this.closeInspect();
         await modalController.dismiss(null, "confirm").catch(() => false);
       } finally {
         this.isBuying = false;
@@ -315,7 +338,7 @@ export default defineComponent({
     }
   },
   mounted() {
-    this.$fx.ui[this.$fx.theme.ui].openShop.play();
+    this.$fx?.ui?.[this.$fx?.theme?.ui]?.openShop?.play?.();
   },
   setup(props) {
     const userStore = useUserStore();
@@ -345,6 +368,23 @@ export default defineComponent({
     const search = ref("");
     const page = ref(1);
     const shelves = ref<string[]>(["affordable", "out-of-budget"]);
+    const inspectedItem = ref<ShelfItem | null>(null);
+    const openInspect = (item: ShelfItem) => {
+      play$fx("select");
+      inspectedItem.value = item;
+    };
+    const closeInspect = () => {
+      inspectedItem.value = null;
+    };
+    const shelfFilter = ref<"all" | "affordable" | "out-of-budget">("all");
+    const setShelfFilter = (filter: "all" | "affordable" | "out-of-budget") => {
+      shelfFilter.value = filter;
+      if (filter === "all") {
+        shelves.value = ["affordable", "out-of-budget"];
+      } else {
+        shelves.value = [filter];
+      }
+    };
 
     // Trained charisma takes 1% a point off every price on the shelf, up to 20% (docs/Stats-Contract.md);
     // the shelf carries the price this hero pays, so the badge, the "need more" line and the charge agree.
@@ -474,6 +514,12 @@ export default defineComponent({
       hasNextPage,
       prevPage,
       nextPage,
+      totalPages,
+      inspectedItem,
+      openInspect,
+      closeInspect,
+      shelfFilter,
+      setShelfFilter,
     };
   },
 });

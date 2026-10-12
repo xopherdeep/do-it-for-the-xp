@@ -18,15 +18,13 @@
 		}
 	},
 	"server": {
-		"androidScheme": "https",
-		"cleartext": true,
-		"url": "http://192.168.1.189:8100",
-		"originalUrl": "http://192.168.1.189:8100"
+		"androidScheme": "https"
 	},
 	"packageClassList": [
 		"AppPlugin",
 		"HapticsPlugin",
 		"KeyboardPlugin",
+		"LocalNotificationsPlugin",
 		"PreferencesPlugin",
 		"SharePlugin",
 		"StatusBarPlugin",

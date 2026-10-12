@@ -21,23 +21,18 @@
           <xp-stage-model stage-id="world-clouds" :size="100" />
         </div>
 
-        <!-- Equator: West forest and East tundras -->
+        <!-- Equator: West forest, Central plains, and East tundras -->
         <div class="plaza-row plaza-equator">
-          <xp-stage-model stage-id="world-forest" :size="105" />
-          <div class="plaza-center-clearing" aria-hidden="true"></div>
-          <xp-stage-model stage-id="world-ice" :size="105" />
+          <xp-stage-model stage-id="world-forest" :size="100" />
+          <xp-stage-model stage-id="world-plains" :size="100" />
+          <xp-stage-model stage-id="world-ice" :size="100" />
         </div>
 
-        <!-- South: Open prairie plains and desert dunes -->
+        <!-- South: Swamp bogs, desert sands, and cosmic stars/moon -->
         <div class="plaza-row plaza-south">
-          <xp-stage-model stage-id="world-plains" :size="105" />
-          <xp-stage-model stage-id="world-sands" :size="105" />
-        </div>
-
-        <!-- Deep South & Cosmos: Witch bogs and cosmic moon -->
-        <div class="plaza-row plaza-deep-south">
-          <xp-stage-model stage-id="world-swamps" :size="105" />
-          <xp-stage-model stage-id="the-moon" :size="105" />
+          <xp-stage-model stage-id="world-swamps" :size="100" />
+          <xp-stage-model stage-id="world-sands" :size="100" />
+          <xp-stage-model stage-id="the-moon" :size="100" />
         </div>
       </div>
     </ion-content>

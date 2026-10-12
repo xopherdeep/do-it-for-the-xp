@@ -134,6 +134,20 @@ describe("XP Pro", () => {
       cy.location("pathname", { timeout: 40000 }).should("match", /\/pro$/);
     });
 
+    it("the dashboard New Temple asks for Pro when free", () => {
+      cy.on("uncaught:exception", (err) => !/unhandled promise rejection/i.test(err.message));
+      cy.visit("/game-master/dashboard", { timeout: 120000 });
+      cy.tapToWakeAudio();
+      cy.wait(4000); // the page and the Pro store finish loading
+      cy.get("ion-fab-button:has(.fa-plus)", { timeout: 30000 }).first().click({ force: true });
+      cy.contains("button.action-temple, .action-temple", "New Temple", { timeout: 10000 }).click({ force: true });
+      cy.get(".xp-pro-upsell-modal", { timeout: 20000 }).should(($m) => {
+        expect($m[0].outerHTML.slice(0, 600)).to.contain("is part of XP Pro");
+      });
+      cy.location("pathname").should("not.include", "temples/new");
+      cy.screenshot("pro-05-new-temple-upsell", { capture: "viewport" });
+    });
+
     it("the Bestiary create page opens without Pro", () => {
       cy.visit("/game-master/compendium/bestiary/create-update", { timeout: 120000 });
       cy.tapToWakeAudio();

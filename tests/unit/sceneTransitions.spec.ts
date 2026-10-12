@@ -96,7 +96,9 @@ describe("transitionFor", () => {
   });
 
   it("swirls into a battle, from anywhere", () => {
-    [town, plains, wind, shop, other].forEach((from) => expect(transitionFor(from, battle)).toMatchObject({ effect: "swirl", direction: "in" }));
+    [town, plains, wind, shop, other].forEach((from) =>
+      expect(transitionFor(from, battle)).toMatchObject({ effect: "swirl", direction: "in", sound: "enterBattle" })
+    );
     expect(transitionFor(wind, battle)?.title).toBeUndefined();
   });
 

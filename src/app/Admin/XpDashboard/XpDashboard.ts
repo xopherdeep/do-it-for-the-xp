@@ -1,5 +1,6 @@
 import ionic from "@/lib/mixins/ionic";
 import { useUserStore } from "@/lib/store/stores/user";
+import { useProStore } from "@/lib/store/stores/pro";
 import XpBonus from "./components/XpBonus.vue";
 import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
 import AchievementDb, {
@@ -235,7 +236,8 @@ export default defineComponent({
           {
             text: "New Temple",
             cssClass: "action-temple",
-            handler: () => {
+            handler: async () => {
+              if (!(await useProStore().requirePro("templeCreator"))) return;
               this.navigateTo({
                 name: "xp-temple-settings",
                 params: { templeId: "new" },

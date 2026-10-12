@@ -666,13 +666,13 @@
     background: $eb-color-dark-purple;
   }
 
-  // The buttons sit in one row with the free space between them. A rail that cannot fit (the seven navigation rooms,
+  // The buttons sit in one row spaced evenly across the rail. A rail that cannot fit (the seven navigation rooms,
   // or the five categories on a very narrow phone) scrolls sideways with snap instead of shrinking or wrapping the labels.
   .guide-rail {
     position: relative;
     display: flex;
     flex-wrap: nowrap;
-    justify-content: space-between;
+    justify-content: space-evenly;
     gap: 6px;
     overflow-x: auto;
     overflow-y: hidden;

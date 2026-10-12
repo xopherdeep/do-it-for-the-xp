@@ -678,7 +678,7 @@ describe("stairs and pits", () => {
 
     const outcome = await run(roomActions(room, contextAt(id, [0, 1])));
 
-    expect(outcome).toMatchObject({ message: "You climb up to 2F.", moved: true });
+    expect(outcome).toMatchObject({ message: "You climb up to 2F.", sound: "steps", moved: true });
     expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "2F", currentPosition: [0, 1] });
   });
 
@@ -690,6 +690,7 @@ describe("stairs and pits", () => {
     const outcome = await run(roomActions(room, contextAt(id, [0, 1])));
 
     expect(outcome.message).toBe("You climb down to 1F.");
+    expect(outcome.sound).toBe("steps");
     expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "1F", currentPosition: [0, 1] });
   });
 

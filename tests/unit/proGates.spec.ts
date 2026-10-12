@@ -89,6 +89,33 @@ describe("advanced schedule gate (not Pro)", () => {
     expect(achievement.value.customFrequency).toBe(1);
   });
 
+  it("a saved custom schedule shows its values read-only and asks for Pro when tapped", async () => {
+    const { wrapper, achievement } = mountTab({
+      basicSchedule: "custom",
+      scheduleType: "custom",
+      customFrequency: 3,
+      customPeriodNumber: 2,
+      customPeriodType: "week",
+    });
+    const repeat = wrapper.find('[data-cy="custom-repeat"]');
+    const interval = wrapper.find('[data-cy="custom-interval"]');
+    expect((repeat.element as HTMLInputElement).value).toBe("3");
+    expect((interval.element as HTMLInputElement).value).toBe("2");
+    expect(repeat.attributes("readonly")).toBeDefined();
+    expect(interval.attributes("readonly")).toBeDefined();
+    await repeat.trigger("click");
+    expect(mockPro.requirePro).toHaveBeenCalledWith("advancedSchedule");
+    mockPro.requirePro.mockClear();
+    await interval.trigger("click");
+    await wrapper.find('[data-cy="custom-period"]').trigger("click");
+    expect(mockPro.requirePro).toHaveBeenCalledTimes(2);
+    (repeat.element as HTMLInputElement).value = "9";
+    await repeat.trigger("input");
+    expect(achievement.value.customFrequency).toBe(3);
+    expect((repeat.element as HTMLInputElement).value).toBe("3");
+    expect((achievement.value as Record<string, unknown>).customPeriodType).toBe("week");
+  });
+
   it("the Oracle (AI) button asks for Pro and does not call the AI", async () => {
     const { wrapper, generateScheduleWithAI } = mountTab({});
     await wrapper.find(".ai-oracle-btn").trigger("click");

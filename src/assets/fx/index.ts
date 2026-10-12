@@ -61,6 +61,8 @@ const openChest = new Audio(chestOpen);
 // The Zelda "item get" sting, for the moment the loot actually lands in the bag
 const takeItem = new Audio(takeItemMP3);
 const openDoor = new Audio(doorOpen);
+const step = new Audio(earthbound.step);
+const steps = new Audio(earthbound.steps);
 
 
 coins.addEventListener(
@@ -536,6 +538,8 @@ const $fx = {
       key: new Audio(key),
       useKey: new Audio(useKey),
       map: new Audio(map),
+      step,
+      steps,
     },
 
     chronoTrigger: {
@@ -562,6 +566,8 @@ const $fx = {
       useKey: new Audio(useKey),
       map: new Audio(map),
       error: new Audio(chronoTrigger.alert),
+      enterBattle: new Audio(chronoTrigger.battleStart),
+      startBattle: new Audio(chronoTrigger.battleStart),
       attack: new Audio(chronoTrigger.attack),
       runAway: new Audio(),
       learn: new Audio(chronoTrigger.psilearn),
@@ -589,6 +595,8 @@ const $fx = {
       text: new Audio(chronoTrigger.type),
       cursorHoriz: new Audio(chronoTrigger.curshoriz),
       cursorVerti: new Audio(chronoTrigger.cursverti),
+      step: new Audio(chronoTrigger.step),
+      steps: new Audio(chronoTrigger.step),
     },
 
     finalFantasy: {
@@ -614,6 +622,8 @@ const $fx = {
       useKey: new Audio(useKey),
       map: new Audio(map),
       error: new Audio(chronoTrigger.alert),
+      enterBattle: new Audio(sting("encounter")),
+      startBattle: new Audio(sting("encounter")),
       attack: new Audio(chronoTrigger.attack),
       runAway: new Audio(),
       learn: new Audio(chronoTrigger.psilearn),
@@ -641,6 +651,8 @@ const $fx = {
       text: new Audio(chronoTrigger.type),
       cursorHoriz: new Audio(chronoTrigger.curshoriz),
       cursorVerti: new Audio(chronoTrigger.cursverti),
+      step,
+      steps,
     },
   },
 };

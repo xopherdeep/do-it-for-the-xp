@@ -12,7 +12,7 @@ export type ToastPosition = 'top' | 'bottom' | 'middle';
 export const rpgToastOptions = (
   message: string,
   duration: number = 2000,
-  position: ToastPosition = 'bottom',
+  position: ToastPosition = 'middle',
 ): ToastOptions => ({
   message,
   duration,
@@ -37,13 +37,13 @@ export const useToast = () => {
    * Show a toast notification in the RPG message box style
    * @param message The message to display
    * @param duration The duration in milliseconds (default: 2000)
-   * @param position The position of the toast (default: 'bottom')
+   * @param position The position of the toast (default: 'middle')
    * @param _color Ignored: every toast uses the RPG box colours (kept so older callers compile)
    */
   const showToast = async (
     message: string,
     duration: number = 2000,
-    position: ToastPosition = 'bottom',
+    position: ToastPosition = 'middle',
     _color: string = 'dark'
   ) => {
     const toast = await toastController.create(rpgToastOptions(message, duration, position));

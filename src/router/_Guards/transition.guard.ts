@@ -3,7 +3,7 @@ import { START_LOCATION, Router } from "vue-router";
 import { play$fx } from "@/assets/fx";
 import { feel, rumble } from "@/lib/services/feedback/haptics";
 import { sceneOf, transitionFor, type TransitionPlan } from "@/lib/services/transitions/sceneTransitions";
-import { cover, reveal, state } from "@/components/organisms/SceneTransition/sceneTransitionController";
+import { cover, prefersReducedMotion, reveal, state } from "@/components/organisms/SceneTransition/sceneTransitionController";
 
 /** Two animation frames: the new page has mounted and painted once. Falls back to a timer where rAF is paused. */
 const afterPaint = (): Promise<void> =>
@@ -43,6 +43,9 @@ export function handleTransitionGuard(router: Router): void {
       if (!plan) return;
       if (plan.sound) play$fx(plan.sound);
       feelCoverStart(plan);
+      if (plan.effect === "swirl" && !prefersReducedMotion()) {
+        await new Promise((resolve) => setTimeout(resolve, 800));
+      }
       await cover(plan);
       feelCovered(plan);
     } catch {

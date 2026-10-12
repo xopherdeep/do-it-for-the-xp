@@ -1,237 +1,146 @@
 <template>
   <ion-page class="accessory-shop">
     <ion-header>
-      <ion-toolbar class="rpg-box">
+      <ion-toolbar class="shop-header-toolbar">
         <ion-buttons slot="start">
-          <ion-back-button :default-href="`/my-portal/${userId}/home-town`"></ion-back-button>
-          <i :class="shopIconClass" />
+          <ion-back-button :default-href="`/my-portal/${userId}/home-town`" />
         </ion-buttons>
-        <ion-title>
-          {{ shopName }}
+
+        <ion-title class="shop-title">
+          <div class="shop-title-wrap">
+            <i :class="shopIconClass" class="shop-title-icon" />
+            <span class="shop-title-text">{{ shopName }}</span>
+          </div>
         </ion-title>
+
         <ion-buttons slot="end">
-          <ion-button @click="openATM" color="rpg">
-            <i class="fad fa-hand-holding-usd fa-2x"></i>
-          </ion-button>
+          <button class="header-wallet-btn" @click="openATM" title="Open ATM">
+            <i class="fa fa-coins" />
+            <span class="wallet-amount"><xp-gp :gp="wallet" /></span>
+          </button>
         </ion-buttons>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content :style="dynamicShopBackground" >
+    <ion-content class="shop-content" :style="dynamicShopBackground">
       <xp-loading v-if="isLoading" />
-      <ion-grid v-else>
-        <ion-card>
-          <ion-card-title>
-            {{ shopkeeper }}
-          </ion-card-title>
-          <ion-card-content class="rpg-box">
-            <!-- Welcome! What shelves can I interest you looking at today? -->
-            <template v-if="isOpen">
-              {{ shopGreeting }}
-            </template>
-            <!-- The Game Master's hours say the doors are shut: the clerk says when they open -->
-            <template v-else>
-              <span class="shop-closed-sign">
-                <i class="fad fa-door-closed" />
-                Closed
-              </span>
-              {{ closedLine }}
-            </template>
-            <p class="shop-wallet">
-              <i class="fa fa-coins" />
-              Your wallet: <xp-gp :gp="wallet" />
-            </p>
-            <p v-if="isOpen && charismaDiscount" class="shop-wallet shop-charisma">
-              <i class="fad fa-comment-smile" />
-              Your charisma gets you {{ charismaDiscount }} everything on the shelf.
-            </p>
-            <!-- Filters -->
-            <ion-item v-if="isOpen">
-              <ion-label> Shelves </ion-label>
-              <ion-select
-                @ionChange="selectShelf"
-                :value="shelves"
-                :interface-options="customAlertOptions"
-                interface="alert"
-                placeholder="..."
-                multiple
+      <div v-else class="shop-body">
+        <!-- Shopkeeper Stage and Speech -->
+        <shop-clerk-stage
+          :shopkeeper="shopkeeper"
+          :shop-greeting="shopGreeting"
+          :is-open="isOpen"
+          :closed-line="closedLine"
+          :charisma-discount="charismaDiscount"
+          :background-image="shopBackgroundUrl"
+        />
+
+        <!-- Shelves Content Area -->
+        <div class="shop-shelves-wrap">
+          <!-- Shelf Controls: Filter Chips and Search -->
+          <div v-if="isOpen" class="shop-controls-bar">
+            <div class="shop-filters-row">
+              <button
+                class="shop-filter-chip"
+                :class="{ 'is-active': shelfFilter === 'all' }"
+                @click="setShelfFilter('all')"
               >
-                <ion-select-option
-                  value="out-of-budget"
-                  checked
-                >
-                  Can't Afford
-                </ion-select-option>
-                <ion-select-option value="wish-list">
-                  Wish List
-                </ion-select-option>
-                <ion-select-option
-                  value="affordable"
-                  selected
-                >
-                  Can Afford
-                </ion-select-option>
-                <ion-select-option value="purchased">
-                  Purchased
-                </ion-select-option>
-                <ion-select-option value="favorites">
-                  Favorites
-                </ion-select-option>
-              </ion-select>
-            </ion-item>
-          </ion-card-content>
-        </ion-card>
-        <!-- The shop's own ware: the next wallet size, Majora's Mask style. Not on the Game Master's shelf. -->
-        <ion-card
-          v-if="isOpen && walletWare"
-          class="shop-wallet-ware rpg-box"
-          :class="`is-${walletWare.status}`"
-          button
-          :disabled="isBuying"
-          @click="buyWallet"
-        >
-          <ion-card-title>
-            <i class="fad fa-wallet" />
-            {{ walletWare.name }}
-          </ion-card-title>
-          <ion-card-content>
-            <p class="shop-wallet-ware__blurb">{{ walletWare.blurb }}</p>
-            <ion-badge :color="walletWare.status === 'for-sale' ? 'warning' : 'medium'">
-              <i class="fa fa-coins" />
-              {{ walletWare.price }}
-              <strong>GP</strong>
-            </ion-badge>
-            <p class="shop-wallet-ware__note">
-              <i v-if="walletWare.status === 'locked'" class="fa fa-lock" />
-              {{ walletWare.note }}
-            </p>
-          </ion-card-content>
-        </ion-card>
-        <!-- Nothing to show -->
-        <ion-card v-if="isOpen && pagedItems.length === 0" class="shop-empty-shelf">
-          <ion-card-content class="rpg-box">
-            <template v-if="shelf.length === 0">
+                All Items
+              </button>
+              <button
+                class="shop-filter-chip"
+                :class="{ 'is-active': shelfFilter === 'affordable' }"
+                @click="setShelfFilter('affordable')"
+              >
+                Can Afford
+              </button>
+              <button
+                class="shop-filter-chip"
+                :class="{ 'is-active': shelfFilter === 'out-of-budget' }"
+                @click="setShelfFilter('out-of-budget')"
+              >
+                Can't Afford
+              </button>
+            </div>
+
+            <div class="shop-search-wrap">
+              <i class="fa fa-search search-icon" />
+              <input
+                type="text"
+                v-model="search"
+                placeholder="Search shelves..."
+                class="shop-search-input"
+              />
+            </div>
+          </div>
+
+          <!-- Featured Wallet Upgrade Ware -->
+          <shop-wallet-ware
+            v-if="isOpen && walletWare"
+            :wallet-ware="walletWare"
+            :is-buying="isBuying"
+            @buy="buyWallet"
+          />
+
+          <!-- Empty Shelf State -->
+          <div v-if="isOpen && pagedItems.length === 0" class="shop-empty-shelf">
+            <i class="fad fa-box-open empty-icon" />
+            <p v-if="shelf.length === 0">
               The shelves are bare right now. Ask the Game Master to stock this shop!
-            </template>
-            <template v-else>
-              Nothing on the shelves matches. Try another search or shelf.
-            </template>
-          </ion-card-content>
-        </ion-card>
-        <!-- Hero -->
-        <ion-row v-if="isOpen">
-          <ion-col
-            size-md="3"
-            size="6"
-            v-for="item in pagedItems"
-            :key="`${shopIcon}-${item.id}`"
-            class="ion-no-padding"
-          >
-            <ion-modal
-              :ref="`modal-${item.id}`"
-              :trigger="`${shopIcon}-${item.id}`"
+            </p>
+            <p v-else>
+              Nothing on the shelves matches. Try another search or filter.
+            </p>
+          </div>
+
+          <!-- Items Grid -->
+          <div v-else-if="isOpen" class="shop-items-grid">
+            <shop-item-card
+              v-for="item in pagedItems"
+              :key="`${shopIcon}-${item.id}`"
+              :item="item"
+              :can-afford="canAfford(item.price)"
+              :wallet="wallet"
+              @inspect="openInspect"
+            />
+          </div>
+
+          <!-- Pagination Bar -->
+          <div v-if="isOpen && totalPages > 1" class="shop-pagination-bar">
+            <button
+              class="page-nav-btn"
+              :disabled="page === 1"
+              @click="prevPage"
             >
-              <ion-card>
-                <ion-card-title>{{ item.name }}</ion-card-title>
-                <ion-grid>
-                  <ion-row>
-                    <ion-col size="6">
-                      <ion-img
-                        v-if="item.photo"
-                        :src="item.photo"
-                        :alt="item.name"
-                        class="featured-media"
-                      ></ion-img>
-                      <!-- No photo: the item's own duotone icon in its colours, or a gift when it has none -->
-                      <span v-else class="icon-colors shop-item-icon" :class="{ 'is-placeholder': !item.icon }">
-                        <i :class="[itemIconClass(item.icon), 'fa-5x']" />
-                      </span>
-                    </ion-col>
-                    <ion-col>
-                      <ion-card-content>
-                        {{ item.description || "A fine find, if you can afford it." }}
-                      </ion-card-content>
-                    </ion-col>
-                  </ion-row>
-                  <hr />
-                  <ion-row>
-                    <ion-col size="12">
-                      <ion-card-title>
-                        Would you like to buy this?
-                        <ion-badge color="warning">
-                          <i class="fa fa-coins" />
-                          {{ item.price }}
-                          <strong>GP</strong>
-                        </ion-badge>
-                      </ion-card-title>
-                      <p v-if="!canAfford(item.price)" class="shop-short-on-gp">
-                        Not enough GP! You have {{ wallet }} and need
-                        {{ item.price - wallet }} more.
-                      </p>
-                    </ion-col>
-                  </ion-row>
-                  <ion-row>
-                    <ion-col>
-                      <ion-button
-                        @click.stop="buyItem(item)"
-                        :disabled="isBuying"
-                        color="success"
-                        expand="block"
-                      >
-                        Yes
-                        <i class="fa fad fa-lg fa-thumbs-up" />
-                      </ion-button>
-                    </ion-col>
-                    <ion-col>
-                      <ion-button
-                        @click.stop="closeModal(item.id)"
-                        color="danger"
-                        expand="block"
-                      >
-                        <i class="fa fad fa-lg fa-thumbs-down" />
-                        No
-                      </ion-button>
-                    </ion-col>
-                  </ion-row>
-                </ion-grid>
-              </ion-card>
-            </ion-modal>
-            <ion-card
-              class="item ion-no-padding"
-              :id="`${shopIcon}-${item.id}`"
+              <i class="fa fa-chevron-left" />
+            </button>
+            <span class="page-indicator">
+              Page {{ page }} of {{ totalPages }}
+            </span>
+            <button
+              class="page-nav-btn"
+              :disabled="!hasNextPage"
+              @click="nextPage"
             >
-              <ion-card-title>{{ item.name }}</ion-card-title>
-              <ion-card-content class="ion-no-margin ion-no-padding">
-                <ion-img
-                  v-if="item.photo"
-                  :src="item.photo"
-                  :alt="item.name"
-                  class="featured-media"
-                ></ion-img>
-                <!-- No photo: the item's own duotone icon in its colours, or a gift when it has none -->
-                <span v-else class="icon-colors shop-item-icon" :class="{ 'is-placeholder': !item.icon }">
-                  <i :class="[itemIconClass(item.icon), 'fa-5x']" />
-                </span>
-              </ion-card-content>
-              <ion-button
-                size="large"
-                expand="fill"
-              >
-                <i class="fa fa-lg fa-eye" />
-                &nbsp; Look Closer
-              </ion-button>
-              <ion-badge :color="canAfford(item.price) ? 'warning' : 'medium'">
-                <i class="fa fa-coins" />
-                {{ item.price }}
-                <strong>GP</strong>
-              </ion-badge>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-      
+              <i class="fa fa-chevron-right" />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Item Inspection and Purchase Modal -->
+      <shop-item-modal
+        :is-open="!!inspectedItem"
+        :item="inspectedItem"
+        :can-afford="inspectedItem ? canAfford(inspectedItem.price) : false"
+        :wallet="wallet"
+        :is-buying="isBuying"
+        @close="closeInspect"
+        @buy="buyItem"
+      />
+
       <!-- ATM Modal -->
-      <ATMModal 
+      <ATMModal
         :is-open="showAtm"
         :user="user"
         @update:isOpen="showAtm = $event"
@@ -240,49 +149,6 @@
         @pay-debt="clickPayDebt"
       />
     </ion-content>
-    
-    <ion-footer v-if="isOpen">
-      <ion-toolbar>
-        <ion-grid>
-          <ion-row>
-            <ion-col class="ion-no-padding">
-              <ion-searchbar
-                color="dark"
-                v-model="search"
-              ></ion-searchbar>
-            </ion-col>
-          </ion-row>
-          <ion-row>
-            <ion-col>
-              <ion-button
-                @click="prevPage"
-                :disabled="page == 1"
-                color="dark"
-                expand="block"
-              >
-                <ion-icon
-                  :icon="chevronBack"
-                  slot="icon-only"
-                />
-              </ion-button>
-            </ion-col>
-            <ion-col>
-              <ion-button
-                @click="nextPage"
-                :disabled="!hasNextPage"
-                color="dark"
-                expand="block"
-              >
-                <ion-icon
-                  :icon="chevronForward"
-                  slot="icon-only"
-                />
-              </ion-button>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-      </ion-toolbar>
-    </ion-footer>
   </ion-page>
 </template>
 

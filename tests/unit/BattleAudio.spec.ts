@@ -64,6 +64,12 @@ describe("useBattleAudio", () => {
     expect(playedSlot()).toEqual(["final-chore-standoff.mp3"]);
   });
 
+  it("plays the battle theme directly", () => {
+    Object.assign(mockBGM, { battle: ["oddball-battle-bounce.mp3"] });
+    useBattleAudio().startBattleBgm();
+    expect(playedSlot()).toEqual(["oddball-battle-bounce.mp3"]);
+  });
+
   it("stops the music through the audio engine", () => {
     useBattleAudio().stopBgm();
     expect(mockStopMusic).toHaveBeenCalled();

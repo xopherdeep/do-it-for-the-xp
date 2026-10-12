@@ -1,6 +1,7 @@
 <template>
   <div
     class="xp-building-model-wrapper"
+    :class="{ 'is-locked': isPegasus && !isUnlocked }"
     :style="wrapperStyle"
     @click="handleClick"
     :title="`Enter ${displayName}`"
@@ -22,8 +23,10 @@
 </template>
 
 <script lang="ts">
-import { computed, defineComponent, ref, toRef } from "vue";
+import { computed, defineComponent, ref } from "vue";
 import { useRoute, useRouter } from "vue-router";
+import { useUserStore } from "@/lib/store/stores/user";
+import { pegasusOfWorld } from "@/lib/services/temples/TemplePegasus";
 import { getShopMetadata } from "@/lib/engine/core/shopRegistry";
 import XpLandmarkBadge from "@/components/atoms/Badge/XpLandmarkBadge.vue";
 import { useBuildingScene } from "./useBuildingScene";
@@ -67,6 +70,10 @@ export default defineComponent({
       type: String,
       required: true,
     },
+    world: {
+      type: String,
+      default: "",
+    },
     size: {
       type: Number,
       default: 120,
@@ -91,11 +98,47 @@ export default defineComponent({
   emits: ["click"],
   setup(props, { emit }) {
     const canvasRef = ref<HTMLCanvasElement | null>(null);
-    const buildingIdRef = toRef(props, "buildingId");
     const router = useRouter();
     const route = useRoute();
+    const userStore = useUserStore();
 
-    useBuildingScene(canvasRef, buildingIdRef, {
+    const isPegasus = computed(() => {
+      const isPegasusShrine = props.buildingId === "pegasus" || props.buildingId.startsWith("pegasus-");
+      const isRanchShop = props.buildingId === "pegasus-ranch";
+      return isPegasusShrine && !isRanchShop;
+    });
+
+    const activeWorld = computed(() => {
+      if (props.world) return props.world.toLowerCase();
+      const routeName = String(route.name ?? "");
+      const match = routeName.match(/world-([a-z]+)/);
+      if (match) return match[1];
+      if (routeName === "the-moon") return "moon";
+      return "";
+    });
+
+    const pegasus = computed(() => {
+      if (!isPegasus.value) return undefined;
+      return pegasusOfWorld(activeWorld.value);
+    });
+
+    const isUnlocked = computed(() => {
+      if (!isPegasus.value) return true;
+      if (!pegasus.value) return true;
+      const userId = (route.params.userId as string) || userStore.currentUser?.id;
+      const user = (userId ? userStore.getUserById(userId) : null) ?? userStore.currentUser;
+      return Boolean(user?.stats?.pegasi?.[pegasus.value.index]);
+    });
+
+    const sceneBuildingId = computed(() => {
+      if (!isPegasus.value) return props.buildingId;
+      const peg = pegasus.value;
+      if (!peg) return "pegasus";
+      const slug = peg.name.toLowerCase();
+      return isUnlocked.value ? `pegasus-${slug}` : `pegasus-${slug}-locked`;
+    });
+
+    useBuildingScene(canvasRef, sceneBuildingId, {
       interactive: props.interactive,
     });
 
@@ -124,11 +167,17 @@ export default defineComponent({
         "front-door",
         "world-plains",
         "plains",
-      ].includes(props.buildingId);
+      ].includes(props.buildingId) && !isPegasus.value;
     });
 
     const displayName = computed(() => {
       if (props.label) return props.label;
+      if (isPegasus.value) {
+        if (isUnlocked.value && pegasus.value) {
+          return pegasus.value.name;
+        }
+        return "Travel World";
+      }
       if (HOMETOWN_NAMES[props.buildingId]) return HOMETOWN_NAMES[props.buildingId];
       const shopMeta = getShopMetadata(props.buildingId);
       return shopMeta?.name || props.buildingId;
@@ -139,8 +188,11 @@ export default defineComponent({
       if (props.buildingId === "home-town" || props.buildingId === "hometown") {
         return "Return home";
       }
-      if (props.buildingId === "pegasus") {
-        return "Fly to World Map";
+      if (isPegasus.value) {
+        if (isUnlocked.value) {
+          return "Fly to World Map";
+        }
+        return pegasus.value ? `${pegasus.value.name} is asleep` : "Locked in Temple";
       }
       if (props.buildingId === "home-calendar" || props.buildingId === "calendar") {
         return "View schedule";
@@ -186,6 +238,11 @@ export default defineComponent({
       const userId = route.params.userId;
       if (!userId) return;
 
+      if (isPegasus.value) {
+        router.push({ name: "world-map", params: { userId } });
+        return;
+      }
+
       switch (props.buildingId) {
         case "hero-home":
         case "my-home":
@@ -194,9 +251,6 @@ export default defineComponent({
         case "home-town":
         case "hometown":
           router.push({ name: "home-town", params: { userId } });
-          break;
-        case "pegasus":
-          router.push({ name: "world-map", params: { userId } });
           break;
         case "home-calendar":
         case "calendar":
@@ -259,6 +313,8 @@ export default defineComponent({
       canvasRef,
       displayName,
       displaySublabel,
+      isPegasus,
+      isUnlocked,
       wrapperStyle,
       canvasStyle,
       handleClick,
@@ -300,6 +356,16 @@ export default defineComponent({
 
   &:active {
     transform: translateY(-1px) scale(0.98);
+  }
+
+  &.is-locked {
+    opacity: 0.45;
+    filter: grayscale(60%) drop-shadow(0 4px 8px rgba(0, 0, 0, 0.25));
+
+    &:hover {
+      opacity: 0.7;
+      filter: grayscale(30%) drop-shadow(0 6px 12px rgba(0, 0, 0, 0.35));
+    }
   }
 
   .canvas-box {

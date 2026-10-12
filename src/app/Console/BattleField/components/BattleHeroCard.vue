@@ -28,7 +28,7 @@
 
         <!-- HP: three rolling tiles. The tiles are for eyes; .hp-value is the same number for everything else. -->
         <div class="stat-row hp-row" role="group" aria-label="Hit points">
-          <span class="stat-label" aria-hidden="true">HP</span>
+          <span class="stat-label" aria-hidden="true"><span>H</span><span>P</span></span>
           <div class="odometer hp-digits" aria-hidden="true">
             <span class="digit">{{ formattedHp.thou }}</span>
             <span class="digit">{{ formattedHp.hun }}</span>
@@ -43,7 +43,7 @@
 
         <!-- MP: the same odometer -->
         <div class="stat-row mp-row" role="group" aria-label="Magic points">
-          <span class="stat-label" aria-hidden="true">MP</span>
+          <span class="stat-label" aria-hidden="true"><span>M</span><span>P</span></span>
           <div class="odometer mp-digits" aria-hidden="true">
             <span class="digit">{{ formattedMp.thou }}</span>
             <span class="digit">{{ formattedMp.hun }}</span>
@@ -155,7 +155,7 @@ $lavender-dark: #9080a8;
 .hero-card {
   position: relative;
   width: 100%;
-  max-width: 168px;
+  max-width: 192px;
   margin: 0 auto;
   border-radius: 4px;
   background: $lavender;
@@ -202,11 +202,14 @@ $lavender-dark: #9080a8;
 .hero-identity {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 4px;
+  min-height: 20px;
 }
 
 .hero-name {
+  flex: 1 1 auto;
+  min-width: 0;
   font-family: "StatusPlz", monospace;
   font-size: 1rem;
   font-weight: 600;
@@ -218,17 +221,19 @@ $lavender-dark: #9080a8;
 }
 
 .hero-level {
+  flex-shrink: 0;
+  white-space: nowrap;
   margin-left: auto;
   font-family: "StatusPlz", monospace;
-  font-size: 0.65rem;
+  font-size: 0.72rem;
   text-shadow: 1px 1px 0 $ink;
   opacity: 0.9;
 }
 
 .hero-avatar {
   flex-shrink: 0;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   overflow: hidden;
   background: $ink;
@@ -260,13 +265,23 @@ $lavender-dark: #9080a8;
 
 // Fourside gives the HP / MP captions their outlined pixel look
 .stat-label {
-  width: 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+  width: 16px;
+  height: 30px;
   font-family: "Fourside", "StatusPlz", monospace;
-  font-size: 1.05rem;
-  line-height: 1;
-  letter-spacing: -4px;
+  font-size: 0.82rem;
+  line-height: 0.88;
   -webkit-text-stroke: 1px $bone;
   text-shadow: 1px 1px 0 $ink;
+
+  span {
+    display: block;
+    text-align: center;
+  }
 }
 
 .odometer {
@@ -280,10 +295,14 @@ $lavender-dark: #9080a8;
 }
 
 .digit {
+  box-sizing: border-box;
   flex: 1;
   min-width: 0;
   height: 24px;
-  line-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 4px;
   font-family: "Pixel Takhisis", "Orange Kid", "StatusPlz", monospace;
   font-size: 20px;
   font-weight: 600;

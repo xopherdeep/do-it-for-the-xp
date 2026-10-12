@@ -1,165 +1,256 @@
-:root {
-  --color-light: #332633;
-  --color-medium: #301c30;
-  --color-dark: #280828;
-  --color-darkest: #220222;
-  --animation-speed: 4s;
-  --animation-loop: infinite;
-}
-
 .accessory-shop {
-  ion-content {
-    --background: transparent
+  ion-header {
+    --background: transparent;
   }
 
-  // background-image: url();
-  display: flex;
-  height: 100%;
-  flex-direction: column;
-  justify-content: space-between;
-  contain: layout size style;
+  .shop-header-toolbar {
+    --background: rgba(24, 14, 34, 0.95);
+    --color: #ffffff;
+    --border-width: 0;
+    border-bottom: 2px solid rgba(247, 232, 168, 0.3);
+    backdrop-filter: blur(12px);
+    padding: 0 4px;
 
-  ion-badge {
-    position: absolute;
-    bottom: -20px;
-    width: 60%;
-    margin: auto auto;
-    left: 20%;
+    ion-title {
+      padding-inline-start: 4px;
+      padding-inline-end: 4px;
+    }
   }
 
-  ion-card {
-    &.item {
-      margin: 2em;
-      // 100% view height - header - footer toolbar - padding / 2
-      // height: calc((100vh - 120px - 110px - 50px - 5em) / 2);
-      border-radius: 0 0 65px 65px;
-      box-shadow: rgb(0 0 0 / 20%) 0px 3px 1px -2px,
-        rgb(0 0 0 / 14%) 0px 2px 2px 0px, rgb(0 0 0 / 12%) 0px 1px 5px 0px;
+  .shop-title-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: "Twoson", "Apple Kid", sans-serif;
+    letter-spacing: 0.5px;
+    font-size: 1.1rem;
+    color: #ffffff;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 
-      ion-img {
-        img {
-          // transform: scale(1.15);
-          margin: 1em auto;
-          object-fit: fill;
-          max-width: 95%;
-          // max-height: 50px;
-        }
-      }
+  .shop-title-icon {
+    font-size: 1.2rem;
+    color: #f7e8a8;
+    flex-shrink: 0;
+  }
+
+  .header-wallet-btn {
+    background: rgba(247, 232, 168, 0.15);
+    border: 1.5px solid rgba(247, 232, 168, 0.7);
+    border-radius: 16px;
+    padding: 4px 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    color: #f7e8a8;
+    transition: all 0.2s ease;
+    margin-inline-end: 4px;
+
+    i {
+      font-size: 0.85rem;
     }
 
-    ion-button {
-      --background: transparent;
-      --color: var(--color);
+    .wallet-amount {
+      font-family: "StatusPlz", "Apple Kid", sans-serif;
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: #ffffff;
+    }
+
+    &:hover,
+    &:active {
+      background: rgba(247, 232, 168, 0.28);
+      border-color: #f7e8a8;
+      transform: scale(1.03);
+    }
+  }
+
+  .shop-content {
+    --background: transparent;
+    background-color: #14091f;
+  }
+
+  .shop-body {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+  }
+
+  .shop-shelves-wrap {
+    width: 100%;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 16px 14px 48px;
+    background: rgba(18, 10, 26, 0.9);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: 20px 20px 0 0;
+    border-top: 1.5px solid rgba(247, 232, 168, 0.25);
+    box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.5);
+    flex: 1 1 auto;
+  }
+
+  .shop-controls-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .shop-filters-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .shop-filter-chip {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 6px 14px;
+    color: #cbd5e1;
+    font-family: "StatusPlz", "Apple Kid", sans-serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      border-color: rgba(247, 232, 168, 0.5);
+      color: #ffffff;
+    }
+
+    &.is-active {
+      background: rgba(247, 232, 168, 0.2);
+      border-color: #f7e8a8;
+      color: #f7e8a8;
+      font-weight: bold;
+      box-shadow: 0 0 10px rgba(247, 232, 168, 0.15);
+    }
+  }
+
+  .shop-search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.35);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 6px 12px;
+    min-width: 170px;
+    flex: 1 1 auto;
+    max-width: 260px;
+
+    .search-icon {
+      color: rgba(255, 255, 255, 0.5);
+      font-size: 0.85rem;
+      margin-right: 8px;
+    }
+
+    .shop-search-input {
+      background: transparent;
+      border: none;
+      color: #ffffff;
+      font-family: "Apple Kid", sans-serif;
+      font-size: 1.05rem;
+      width: 100%;
+      outline: none;
+
+      &::placeholder {
+        color: rgba(255, 255, 255, 0.4);
+      }
+    }
+  }
+
+  .shop-items-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-top: 10px;
+
+    @media (min-width: 640px) {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    @media (min-width: 860px) {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  .shop-empty-shelf {
+    background: rgba(26, 14, 36, 0.85);
+    border: 2px dashed rgba(247, 232, 168, 0.35);
+    border-radius: 18px;
+    padding: 36px 20px;
+    text-align: center;
+    margin: 20px 0;
+    backdrop-filter: blur(10px);
+
+    .empty-icon {
+      font-size: 2.5rem;
+      color: rgba(247, 232, 168, 0.6);
+      margin-bottom: 12px;
+    }
+
+    p {
+      margin: 0;
+      font-family: "Apple Kid", sans-serif;
+      font-size: 1.3rem;
+      line-height: 1.3;
+      color: #e7e6b3;
+    }
+  }
+
+  .shop-pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin: 28px 0 16px;
+
+    .page-nav-btn {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1.5px solid rgba(255, 255, 255, 0.2);
+      color: #f7e8a8;
+      cursor: pointer;
       display: flex;
-      margin: 0.5em auto 0;
-      width: 60%;
-      height: 30px;
-      i {
-        // margin-right: 5px;
-        // display: inline-block;
-        // width: 35px;
-        font-size: 20px;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+
+      &:hover:not(:disabled) {
+        background: rgba(247, 232, 168, 0.2);
+        border-color: #f7e8a8;
+        transform: scale(1.05);
       }
 
-      &::part(native) {
-        overflow: visible;
-
-        font-family: "Apple Kid";
-        font-size: 20pt;
-        text-transform: capitalize;
-        // padding-left: 5px;
-
-        &:hover::before {
-          content: "";
-          position: absolute;
-          left: -10px;
-          top: 10px;
-          width: 0;
-          border-color: yellow;
-          height: 0;
-          border-top: 0.3rem solid transparent;
-          border-bottom: 0.3rem solid transparent;
-          border-left: 0.3rem solid var(--ion-color-primary);
-        }
+      &:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
       }
+    }
+
+    .page-indicator {
+      font-family: "StatusPlz", "Apple Kid", sans-serif;
+      font-size: 0.95rem;
+      color: #ffffff;
+      letter-spacing: 0.5px;
     }
   }
 }
 
-// Rendered inside the shop page and inside its item modals, so these aren't nested under .accessory-shop
-.shop-wallet {
-  margin: 0.75em 0 0;
-  font-weight: bold;
-}
-
-.shop-short-on-gp {
-  margin: 0.5em 0 0;
-  text-align: center;
-  font-weight: bold;
-  color: var(--ion-color-danger);
-}
-
-.shop-empty-shelf ion-card-content {
-  text-align: center;
-}
-
-// The sign on the door while the Game Master's hours have the shop shut
-.shop-closed-sign {
-  display: block;
-  margin-bottom: 0.4em;
-  font-family: "StatusPlz", "Apple Kid", sans-serif;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--ion-color-danger);
-
-  i {
-    margin-right: 0.25em;
-  }
-}
-
-.shop-item-icon {
-  display: block;
-  margin: 0.5em auto;
-  text-align: center;
-
-  &.is-placeholder {
-    opacity: 0.6;
-  }
-}
-
-// The wallet the shop itself sells: one card above the Game Master's shelf. Greyed when it's not for sale today.
-.accessory-shop .shop-wallet-ware {
-  margin: 1em 2em 1.5em;
-  text-align: center;
-
-  ion-card-title i {
-    margin-right: 0.25em;
-  }
-
-  ion-badge {
-    position: static;
-    width: auto;
-    display: inline-block;
-    margin: 0.5em auto 0;
-  }
-
-  &__blurb {
-    margin: 0.25em 0 0;
-  }
-
-  &__note {
-    margin: 0.75em 0 0;
-    font-weight: bold;
-  }
-
-  &.is-locked,
-  &.is-owned,
-  &.is-ahead {
-    opacity: 0.6;
-    filter: grayscale(0.7);
-  }
-
-  &.is-locked .shop-wallet-ware__note {
-    color: var(--ion-color-danger);
-  }
+// Global toast support for shop
+.rpg-toast {
+  font-family: "Apple Kid", sans-serif;
+  font-size: 1.15rem;
 }

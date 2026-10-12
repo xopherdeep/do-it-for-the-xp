@@ -38,4 +38,13 @@ describe("pro guard", () => {
     expect(await handleProGuard(route({ pro: "bogus" }))).toBeUndefined();
     expect(mockStore.init).not.toHaveBeenCalled();
   });
+
+  it("proWhenNew gates the route only for a new temple", async () => {
+    const meta = { proWhenNew: "templeCreator" };
+    expect(await handleProGuard({ meta, params: { templeId: "new" } } as any)).toBe(false);
+    expect(mockStore.requirePro).toHaveBeenCalledWith("templeCreator");
+    mockStore.requirePro.mockClear();
+    expect(await handleProGuard({ meta, params: { templeId: "plains" } } as any)).toBeUndefined();
+    expect(mockStore.requirePro).not.toHaveBeenCalled();
+  });
 });

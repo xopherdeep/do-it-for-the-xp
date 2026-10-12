@@ -15,11 +15,12 @@
     >
       <div class="choice-reveal__backdrop" aria-hidden="true"></div>
 
-      <!-- The tablet on the wall, or the shopkeeper's coins, in the light of the reveal. A room's actions have none. -->
-      <div v-if="sprite" class="choice-reveal__stage" aria-hidden="true">
+      <!-- The sprite (tablet, coins) or art (beast portrait) in its light above the sheet, like the chests and door -->
+      <div v-if="hasStage" class="choice-reveal__stage" aria-hidden="true">
         <div class="choice-reveal__rays"></div>
         <div class="choice-reveal__flash"></div>
         <svg
+          v-if="sprite"
           class="choice-sprite"
           :viewBox="`0 0 ${sprite.width} ${sprite.height}`"
           shape-rendering="crispEdges"
@@ -27,13 +28,17 @@
         >
           <pixel-runs :runs="sprite.runs" />
         </svg>
+        <figure
+          v-else-if="showArt && art"
+          class="choice-reveal__art"
+          :class="`frame-${art.frame ?? 'beast'}`"
+          data-cy="choice-art"
+        >
+          <img class="choice-reveal__art-img" :src="art.src" :alt="art.alt" draggable="false" @error="artFailed = true" />
+        </figure>
       </div>
 
       <section class="choice-reveal__panel">
-        <!-- The beast (or the room) in its frame, there from the first frame of the reveal -->
-        <figure v-if="showArt && art" class="choice-reveal__art" :class="`frame-${art.frame ?? 'beast'}`" data-cy="choice-art">
-          <img class="choice-reveal__art-img" :src="art.src" :alt="art.alt" draggable="false" @error="artFailed = true" />
-        </figure>
 
         <h2 id="choice-reveal-title" class="choice-reveal__title">
           <span>{{ title }}</span>
@@ -169,6 +174,8 @@ const sprite = computed(() => {
   return null;
 });
 
+const hasStage = computed(() => Boolean(sprite.value) || showArt.value);
+
 const rowLabel = (choice: RevealChoice): string =>
   props.kind === "shop" && choice.price !== undefined ? `${choice.label} · ${choice.price} GP` : choice.label;
 
@@ -252,7 +259,7 @@ $cv-sprite-scale: 3;
 }
 
 // A room's actions come up over the room, which stays faintly there behind the dark
-.kind-sheet .choice-reveal__backdrop {
+.kind-sheet:not(.has-art) .choice-reveal__backdrop {
   background: rgba(10, 2, 10, 0.78);
 }
 
@@ -295,13 +302,10 @@ $cv-sprite-scale: 3;
   animation: choice-land 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
 }
 
-// A short phone has no room for the sprite: the choices come first, and a picture shrinks to a thumbnail
+// A short phone leaves less room above the panel: the scene shrinks with it
 @media (max-height: 660px) {
   .choice-reveal__stage {
-    display: none;
-  }
-  .choice-reveal__art {
-    --art-height: clamp(64px, 15vh, 96px);
+    transform: scale(0.8);
   }
 }
 
@@ -319,34 +323,38 @@ $cv-sprite-scale: 3;
   animation: reveal-panel-in 0.32s 0.06s cubic-bezier(0.2, 0.9, 0.3, 1.15) forwards;
 }
 
-// The picture: the beast on its dark checker, there as the panel rises. It takes a share of the panel, never most of it.
+// The art: the beast stands on the stage in its light, or a view of the room
 .choice-reveal__art {
-  --art-height: clamp(88px, 17vh, 140px);
-  @include reveal-art-frame;
-  flex: none;
-  width: 100%;
-  height: var(--art-height);
-  margin: 0 0 10px;
-  animation: choice-art-in 0.45s 0.12s steps(5, end) both;
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  animation: choice-land 0.42s cubic-bezier(0.2, 0.9, 0.3, 1.25) both;
 
-  &.frame-beast {
-    @include reveal-checker(16px);
-  }
   &.frame-room {
+    @include reveal-art-frame;
+    width: min(280px, 80vw);
+    height: 160px;
     background: linear-gradient(180deg, #2c1535 0, #1c0a04 100%);
   }
 }
 
 .choice-reveal__art-img {
   @include reveal-art-image;
-  height: 100%;
   width: auto;
+  height: auto;
+  max-width: 160px;
+  max-height: 160px;
   object-fit: contain;
-  // The beast stands on the checker with a hard drop of shadow, like the battle sprite
-  filter: drop-shadow(0 4px 0 rgba(0, 0, 0, 0.5));
+  filter: drop-shadow(0 6px 0 rgba(0, 0, 0, 0.45)) drop-shadow(0 0 10px var(--reveal-glow-soft));
 
   .frame-room & {
     width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
     object-fit: cover;
     filter: none;
   }

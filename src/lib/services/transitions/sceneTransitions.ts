@@ -136,7 +136,7 @@ export const transitionFor = (from: Scene, to: Scene): TransitionPlan | null => 
   if (from.key === to.key) return null;
 
   // Into a battle, from anywhere
-  if (to.kind === "battle") return { effect: "swirl", direction: "in" };
+  if (to.kind === "battle") return { effect: "swirl", direction: "in", sound: "enterBattle" };
 
   // Back out of a battle to where the hero was
   if (from.kind === "battle" && ["temple", "region", "town", "world-map"].includes(to.kind)) {

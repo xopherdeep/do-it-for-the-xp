@@ -33,6 +33,8 @@ export const TempleRoutes: RouteRecordRaw[] = [
       {
         path: "dashboard",
         name: "xp-temple-dashboard",
+        // existing temples stay viewable; only creating a new one is Pro
+        meta: { proWhenNew: "templeCreator" },
         component: () =>
           import(
             "@/app/Admin/XpCompendium/views/XpTemples/components/tabs/XpTempleDashboard.vue"
@@ -85,6 +87,7 @@ export const TempleRoutes: RouteRecordRaw[] = [
           {
             path: "general",
             name: "xp-temple-attributes-general",
+            meta: { pro: "templeCreator" },
             component: () =>
               import(
                 "@/app/Admin/XpCompendium/views/XpTemples/components/tabs/XpTempleAttributes.vue"
@@ -94,6 +97,7 @@ export const TempleRoutes: RouteRecordRaw[] = [
           {
             path: "audit",
             name: "xp-temple-attributes-audit",
+            meta: { pro: "templeCreator" },
             component: () =>
               import(
                 "@/app/Admin/XpCompendium/views/XpTemples/components/tabs/XpTempleAttributes.vue"
@@ -103,6 +107,7 @@ export const TempleRoutes: RouteRecordRaw[] = [
           {
             path: "navigator",
             name: "xp-temple-attributes-navigator",
+            meta: { pro: "templeCreator" },
             component: () =>
               import(
                 "@/app/Admin/XpCompendium/views/XpTemples/components/tabs/XpTempleAttributes.vue"

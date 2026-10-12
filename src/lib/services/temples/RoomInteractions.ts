@@ -46,6 +46,7 @@ export const SFX = {
   key: 'key',
   useKey: 'useKey',
   gainGP: 'gainGP',
+  steps: 'steps',
 } as const;
 
 // --- the shapes the screen deals in ----------------------------------------------------------------
@@ -529,7 +530,7 @@ const climb = (room: Room, ctx: RoomContext, way: 'up' | 'down'): RoomOutcome =>
   const requested: [number, number] | undefined = coords ? [Number(coords.y), Number(coords.x)] : undefined;
   if (!arriveOn(ctx.templeId, target, [requested, landing, ctx.position])) return rubble;
 
-  return { message: `You climb ${way} to ${target}.`, sound: SFX.yes, moved: true };
+  return { message: `You climb ${way} to ${target}.`, sound: SFX.steps, moved: true };
 };
 
 // --- the sheets ------------------------------------------------------------------------------------

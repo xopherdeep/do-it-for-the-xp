@@ -169,15 +169,15 @@ describe("TempleChoiceReveal", () => {
     const sheet = { kind: "sheet", title: "A Monster approaches!", subtitle: "Dustbunny", choices: [{ id: "0", label: "Fight" }] };
     const art = { src: "/assets/images/beasts/074.webp", alt: "Dustbunny", frame: "beast" };
 
-    it("shows the beast above the title from the moment the reveal opens, with its name as the alt", () => {
+    it("shows the beast on the stage outside the sheet, with its name as the alt", () => {
       const reveal = show({ ...sheet, art });
       const picture = reveal.get('[data-cy="choice-art"] img');
       expect(picture.attributes("src")).toBe(art.src);
       expect(picture.attributes("alt")).toBe("Dustbunny");
       expect(reveal.get('[data-cy="choice-art"]').classes()).toContain("frame-beast");
-      // Inside the panel and before the title, so it reads first
-      const panel = reveal.get(".choice-reveal__panel").element;
-      expect(panel.firstElementChild?.getAttribute("data-cy")).toBe("choice-art");
+      // On the stage outside the panel, like the chests and doors
+      expect(reveal.get(".choice-reveal__stage").find('[data-cy="choice-art"]').exists()).toBe(true);
+      expect(reveal.get(".choice-reveal__panel").find('[data-cy="choice-art"]').exists()).toBe(false);
       // Fight stays the one action, with the cancel button last
       expect(reveal.findAll(".choice-row").map((item) => item.text())).toEqual(["Fight"]);
       const buttons = reveal.findAll("button");

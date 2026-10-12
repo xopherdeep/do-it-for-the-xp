@@ -11,10 +11,12 @@ const GATES: ProGate[] = ["templeCreator", "advancedSchedule", "aiHelpers"];
 export type ProGuardResult = boolean | { name: string } | void;
 
 export async function handleProGuard(
-  to: Pick<RouteLocationNormalized, "meta">,
+  to: Pick<RouteLocationNormalized, "meta"> & { params?: RouteLocationNormalized["params"] },
   from?: Pick<RouteLocationNormalized, "matched">
 ): Promise<ProGuardResult> {
-  const gate = to.meta?.pro as ProGate | undefined;
+  // `proWhenNew` gates a route only while it creates something (a temple id of "new"); saved items stay open.
+  const whenNew = (to as { params?: Record<string, unknown> }).params?.templeId === "new" ? to.meta?.proWhenNew : undefined;
+  const gate = (to.meta?.pro ?? whenNew) as ProGate | undefined;
   if (!gate || !GATES.includes(gate)) return;
 
   const pro = useProStore();

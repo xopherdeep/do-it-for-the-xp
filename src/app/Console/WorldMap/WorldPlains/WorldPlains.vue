@@ -29,7 +29,7 @@
         <!-- South: Return to Hometown Gate and Travel Pegasus -->
         <div class="plaza-row plaza-bottom">
           <xp-building-model building-id="home-town" label="Hometown" sublabel="Return home" :size="115" />
-          <xp-building-model building-id="pegasus" label="Travel World" sublabel="Fly to World Map" :size="115" />
+          <xp-building-model building-id="pegasus" world="plains" :size="115" />
         </div>
       </div>
       <div class="plains-weather-container">
