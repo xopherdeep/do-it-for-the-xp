@@ -79,7 +79,7 @@ describe("XpBattleTaskMenu", () => {
       expect(menu.attributes("data-cy")).toBe("task-sheet");
       expect(menu.find(".sheet-backdrop").exists()).toBe(true);
       expect(menu.find(".menu-container").exists()).toBe(true);
-      expect(menu.find(".sheet-title").text()).toBe("Attack!");
+      expect(menu.find(".sheet-title").text()).toBe("Tackle!");
       expect(menu.find(".sheet-subtitle").text()).toBe("Each chore hits Socktopus for 50");
 
       expect(menu.html()).not.toMatch(/<ion-/i);

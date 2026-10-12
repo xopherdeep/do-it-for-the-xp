@@ -18,11 +18,11 @@ const readUntilMenu = (maxTaps = 8) => {
     });
   };
   step(maxTaps);
-  cy.get(".menu-item", { timeout: 10000 }).should("have.length", 3);
+  cy.get(".menu-item", { timeout: 10000 }).should("have.length", 4);
 };
 /** Opens the checklist and confirms one chore by name. */
 const finishChore = (name) => {
-  cy.contains(".menu-item", "Attack").click();
+  cy.contains(".menu-item", "Tackle").click();
   cy.get("[data-cy=task-sheet]", { timeout: 10000 }).should("be.visible");
   cy.contains(".battle-task-item", name).click();
   cy.get("[data-cy=task-confirm]", { timeout: 5000 }).should("be.visible");

@@ -158,7 +158,8 @@ describe("BattleField: a free fight", () => {
     expect(wrapper.find("[data-cy=battle-dialog]").text()).toContain(INTRO);
     expect(vm.dialogText).toBe(INTRO); // still on screen: the atom's own click no longer dismisses it
     await tap();
-    expect(wrapper.findAll(".menu-item").map((button) => button.text())).toEqual(["Attack", "Defend", "Item", "Run Away"]);
+    expect(wrapper.findAll(".menu-item").map((button) => button.text())).toEqual(["Tackle", "Defend", "Goods", "Run Away"]);
+    expect(wrapper.find("#attack i").classes()).toContain("fa-axe"); // the warrior tackles with an axe
     expect(wrapper.find(".dialog-prompt").text()).toBe("Do its chores to win!");
     expect(chores()).toBe("2 chores left");
     expect(clock().text()).toBe("6:00"); // three minutes a chore
@@ -235,7 +236,7 @@ describe("BattleField: a free fight", () => {
     expect(wrapper.find(".dialog-prompt").text()).toBe("Run away? Your finished chores won't count.");
     expect(wrapper.findAll(".menu-item").map((button) => button.text())).toEqual(["Keep fighting", "Run"]);
     await wrapper.find("#keep-fighting").trigger("click");
-    expect(wrapper.findAll(".menu-item").map((button) => button.text())).toEqual(["Attack", "Defend", "Item", "Run Away"]);
+    expect(wrapper.findAll(".menu-item").map((button) => button.text())).toEqual(["Tackle", "Defend", "Goods", "Run Away"]);
 
     jest.spyOn(Math, "random").mockReturnValue(0.5);
     await wrapper.find("#defend").trigger("click");
@@ -284,7 +285,7 @@ describe("BattleField: a free fight", () => {
     expect(wrapper.find(".attack-timer-label").text()).toBe("16:00");
     expect(mockPlaySound).toHaveBeenCalledWith("select");
     await readUntilMenu();
-    expect(wrapper.findAll(".menu-item").map((button) => button.text())).toEqual(["Attack", "Defend", "Item", "Run Away"]);
+    expect(wrapper.findAll(".menu-item").map((button) => button.text())).toEqual(["Tackle", "Defend", "Goods", "Run Away"]);
 
     // Silver Arrow: the task list opens to pick the chore, which flies back to the board unfinished
     await wrapper.find("#item").trigger("click");

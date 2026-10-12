@@ -10,7 +10,7 @@ import { heroPassive } from "@/lib/services/stats/StatEffects";
 import debug from "@/lib/utils/debug";
 import { resolveBattleContext } from "./battle/battleContext";
 import { loadEncounter, type Encounter } from "./battle/encounterLoader";
-import type { BattleMenuAction } from "./battle/battleMenu";
+import { tackleIcon, type BattleMenuAction } from "./battle/battleMenu";
 import { clearBattleProgress, loadBattleProgress, pruneBattleProgress, saveBattleProgress } from "./battle/battleProgress";
 import type { EnemyAnimation, HitPopup, VictoryCardState } from "./battle/battleView";
 import { useAtbDisplay } from "./composables/useAtbDisplay";
@@ -406,9 +406,8 @@ export default defineComponent({
       return [
         {
           id: "attack",
-          label: "Attack",
-          faIcon: "fist-raised",
-          fullWidth: true,
+          label: "Tackle",
+          faIcon: tackleIcon(userStore.getUserById(ctx.userId)?.jobClass),
           click: () => {
             audio.playSound("cursor");
             feedback.tap();
@@ -426,8 +425,10 @@ export default defineComponent({
         },
         {
           id: "item",
-          label: "Item",
+          label: "Goods",
           faIcon: "backpack",
+          // Spans its row until Powers sits beside it
+          fullWidth: true,
           click: () => {
             audio.playSound("cursor");
             feedback.tap();

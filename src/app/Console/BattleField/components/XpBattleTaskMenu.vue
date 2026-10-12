@@ -96,7 +96,7 @@ const copy = computed(() =>
         yes: "Send it!",
       }
     : {
-        title: "Attack!",
+        title: "Tackle!",
         icon: "fa-claw-marks",
         subtitle: `Each chore hits ${props.enemyName} for ${props.damagePerTask}`,
         question: "Did you finish it?",
