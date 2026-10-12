@@ -14,10 +14,13 @@
 
     <ion-content :fullscreen="true">
       <WeatherFX type="snowy" :intensity="6" :sound-enabled="false" />
-      <div class="world-landmarks-layer">
-        <xp-building-model building-id="snow-shack" :size="105" />
-        <xp-building-model building-id="pegasus" world="ice" :size="105" />
-        <xp-temple-model temple-id="ice-temple" :size="105" />
+      <div class="world-scene-frame">
+        <div class="world-scene">
+          <!-- Temple among the north pines, the shack on the frozen lake's shore, Pegasus on the snowfield -->
+          <xp-temple-model class="world-spot" style="--x: 62%; --y: 44%; --z: 44" temple-id="ice-temple" :size="95" />
+          <xp-building-model class="world-spot" style="--x: 30%; --y: 70%; --z: 70" building-id="snow-shack" :size="105" />
+          <xp-building-model class="world-spot" style="--x: 67%; --y: 76%; --z: 76" building-id="pegasus" world="ice" :size="100" />
+        </div>
       </div>
     </ion-content>
   </ion-page>

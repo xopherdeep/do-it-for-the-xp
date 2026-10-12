@@ -14,22 +14,14 @@
 
     <ion-content :fullscreen="true">
       <WeatherFX type="plains" :intensity="4" :sound-enabled="false" />
-      <div class="world-landmarks-plaza">
-        <!-- North: Pegasus Ranch (shop) and Wind Temple -->
-        <div class="plaza-row plaza-top">
-          <xp-building-model building-id="pegasus-ranch" :size="115" />
-          <xp-temple-model temple-id="wind-temple" :size="115" />
-        </div>
-
-        <!-- Center clearing for navigation FAB -->
-        <div class="plaza-row plaza-middle">
-          <div class="plaza-center-clearing" aria-hidden="true"></div>
-        </div>
-
-        <!-- South: Return to Hometown Gate and Travel Pegasus -->
-        <div class="plaza-row plaza-bottom">
-          <xp-building-model building-id="home-town" label="Hometown" sublabel="Return home" :size="115" />
-          <xp-building-model building-id="pegasus" world="plains" :size="115" />
+      <div class="world-scene-frame">
+        <div class="world-scene">
+          <!-- Ranch on the north-west clearing, the spire on the north-east rise, Pegasus on the south-east
+               clearing, and the Hometown gate where the path leaves the plains -->
+          <xp-building-model class="world-spot" style="--x: 29%; --y: 41%; --z: 41" building-id="pegasus-ranch" :size="100" />
+          <xp-temple-model class="world-spot" style="--x: 70%; --y: 43%; --z: 43" temple-id="wind-temple" :size="100" />
+          <xp-building-model class="world-spot" style="--x: 68%; --y: 66%; --z: 66" building-id="pegasus" world="plains" :size="105" />
+          <xp-building-model class="world-spot" style="--x: 38%; --y: 82%; --z: 82" building-id="home-town" label="Hometown" sublabel="Return home" :size="105" />
         </div>
       </div>
       <div class="plains-weather-container">

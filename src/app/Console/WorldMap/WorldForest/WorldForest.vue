@@ -14,10 +14,13 @@
 
     <ion-content :fullscreen="true">
       <WeatherFX type="forest" :intensity="5" :sound-enabled="false" />
-      <div class="world-landmarks-layer">
-        <xp-building-model building-id="hermits-tent" :size="105" />
-        <xp-building-model building-id="pegasus" world="forest" :size="105" />
-        <xp-temple-model temple-id="earth-temple" :size="105" />
+      <div class="world-scene-frame">
+        <div class="world-scene">
+          <!-- Temple in the deep meadow, the hermit camped in the glade by the path, Pegasus where the path leaves the wood -->
+          <xp-temple-model class="world-spot" style="--x: 60%; --y: 42%; --z: 42" temple-id="earth-temple" :size="95" />
+          <xp-building-model class="world-spot" style="--x: 30%; --y: 64%; --z: 64" building-id="hermits-tent" :size="100" />
+          <xp-building-model class="world-spot" style="--x: 66%; --y: 75%; --z: 75" building-id="pegasus" world="forest" :size="105" />
+        </div>
       </div>
       <div class="enchanted-forest">
         <!-- Magical forest mist -->

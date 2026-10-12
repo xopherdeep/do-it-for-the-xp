@@ -14,10 +14,13 @@
 
     <ion-content :fullscreen="true">
       <WeatherFX type="desert" :intensity="5" :sound-enabled="false" />
-      <div class="world-landmarks-layer">
-        <xp-building-model building-id="pond-of-life" :size="105" />
-        <xp-building-model building-id="pegasus" world="desert" :size="105" />
-        <xp-temple-model temple-id="light-temple" :size="105" />
+      <div class="world-scene-frame">
+        <div class="world-scene">
+          <!-- The oasis under the palm, the temple on the west salt flat, Pegasus on the east flat -->
+          <xp-building-model class="world-spot" style="--x: 68%; --y: 47%; --z: 47" building-id="pond-of-life" :size="95" />
+          <xp-temple-model class="world-spot" style="--x: 33%; --y: 69%; --z: 69" temple-id="light-temple" :size="105" />
+          <xp-building-model class="world-spot" style="--x: 68%; --y: 75%; --z: 75" building-id="pegasus" world="desert" :size="100" />
+        </div>
       </div>
     </ion-content>
   </ion-page>
