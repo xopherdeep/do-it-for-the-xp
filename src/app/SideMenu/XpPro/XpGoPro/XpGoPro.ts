@@ -1,4 +1,5 @@
 import { computed, defineComponent, onMounted, ref } from "vue";
+import { Capacitor } from "@capacitor/core";
 import ionic from "@/lib/mixins/ionic";
 import { play$fx } from "@/assets/fx";
 import { useProStore } from "@/lib/store/stores/pro";
@@ -29,6 +30,7 @@ export default defineComponent({
   mixins: [ionic],
   setup() {
     const pro = useProStore();
+    const native = Capacitor.isNativePlatform();
     const catalog = ref<Record<ProPlanId, Partial<ProPlanInfo>>>(fallbackPlans());
 
     onMounted(async () => {
@@ -59,6 +61,6 @@ export default defineComponent({
       await pro.purchase(id);
     }
 
-    return { pro, items, buy, gateNames: PRO_GATE_NAMES };
+    return { pro, native, items, buy, gateNames: PRO_GATE_NAMES };
   },
 });

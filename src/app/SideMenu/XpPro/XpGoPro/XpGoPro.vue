@@ -24,7 +24,11 @@
           <li v-for="(name, gate) in gateNames" :key="gate">{{ name }}</li>
         </ul>
 
-        <div class="shelf">
+        <p v-if="native" class="native-note" data-cy="native-coming-soon">
+          Purchases on this device are coming soon. Already bought XP Pro? Restore with your key in Settings &gt; XP Pro.
+        </p>
+
+        <div v-else class="shelf">
           <div v-for="item in items" :key="item.id" class="shop-item" :data-cy="`plan-${item.id}`">
             <div class="item-name">{{ item.title }}</div>
             <div class="item-price" data-cy="plan-price">{{ item.priceLabel }}</div>

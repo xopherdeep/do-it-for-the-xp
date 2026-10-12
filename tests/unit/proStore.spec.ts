@@ -10,6 +10,9 @@ const FAMILY = "3f6c2a1e-8b4d-4c7a-9e2f-1a2b3c4d5e6f";
 const OTHER_FAMILY = "9a1b2c3d-4e5f-4a6b-8c7d-0e1f2a3b4c5d";
 const KEY = "XP-PRO-AAAA-BBBB-CCCC";
 
+let mockNative = false;
+jest.mock("@capacitor/core", () => ({ __esModule: true, Capacitor: { isNativePlatform: () => mockNative } }));
+
 let mockHash = false;
 jest.mock("@/router/historyMode", () => ({ __esModule: true, usesHashHistory: () => mockHash }));
 
@@ -307,6 +310,24 @@ describe("pro store", () => {
     expect(url.searchParams.get("family_id")).toBe(FAMILY);
     expect(url.searchParams.get("device_id")).toBe("devicetest01");
     expect(url.searchParams.get("return_url")).toBe("http://localhost:8100/pro/return");
+  });
+
+  it("purchase on a native build refuses and never opens Bazaar", async () => {
+    mockNative = true;
+    try {
+      claim.mockResolvedValue(null);
+      const assign = jest.fn();
+      const original = window.location;
+      Object.defineProperty(window, "location", { configurable: true, value: { origin: "http://localhost", pathname: "/", assign } });
+      try {
+        await useProStore().purchase("yearly");
+      } finally {
+        Object.defineProperty(window, "location", { configurable: true, value: original });
+      }
+      expect(assign).not.toHaveBeenCalled();
+    } finally {
+      mockNative = false;
+    }
   });
 
   it("purchase (hash history) returns to the hash route under the current path", async () => {

@@ -1,3 +1,4 @@
+import { Capacitor } from "@capacitor/core";
 import { defineStore } from "pinia";
 import { computed, onScopeDispose, ref, watch } from "vue";
 import { usesHashHistory } from "@/router/historyMode";
@@ -201,8 +202,12 @@ export const useProStore = defineStore("pro", () => {
     }
   }
 
-  /** Web: send the browser to Bazaar's Stripe checkout. (Native purchases arrive with Task 16.) */
+  /**
+   * Web: send the browser to Bazaar's Stripe checkout. A native build never opens Bazaar (it forces Stripe test
+   * mode for localhost return URLs); store purchases are not available there yet, so it refuses.
+   */
   async function purchase(planId: ProPlanId): Promise<void> {
+    if (Capacitor.isNativePlatform()) return;
     await init();
     const params = new URLSearchParams({
       family_id: familyId.value,
