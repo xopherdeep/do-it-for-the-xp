@@ -1,4 +1,5 @@
 import { modalController, toastController } from "@ionic/vue";
+import debug from "@/lib/utils/debug";
 import type { ProGate } from "./proPlans";
 
 /** Shown when an 11th device restores a key. */
@@ -17,8 +18,9 @@ export async function proToast(message: string, color: "success" | "warning" | "
       cssClass: "rpg-toast",
     });
     await toast.present();
-  } catch {
-    // nothing to do: the flow carries on without the toast
+  } catch (error) {
+    // the flow carries on without the toast
+    debug.warn("[proUi] the toast could not be shown", error);
   }
 }
 

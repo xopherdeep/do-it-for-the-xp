@@ -1,3 +1,5 @@
+import debug from "@/lib/utils/debug";
+
 /**
  * Safely copy text to clipboard across secure (HTTPS/localhost) and non-secure (HTTP LAN) contexts.
  */
@@ -7,8 +9,9 @@ export async function copyTextToClipboard(text: string): Promise<boolean> {
     try {
       await navigator.clipboard.writeText(text);
       return true;
-    } catch {
+    } catch (error) {
       // Fall through to textarea fallback
+      debug.warn("[clipboard] the Clipboard API refused, using the textarea fallback", error);
     }
   }
 

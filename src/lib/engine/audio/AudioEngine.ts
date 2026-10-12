@@ -64,6 +64,7 @@ export class AudioEngine {
   private _musicTracks = new Map<string, HTMLAudioElement>();
   private activeSounds = new Map<string, { source: AudioBufferSourceNode, gain: GainNode }>();
   private mediaSession: MediaSessionHandler | null = null;
+  private initialized = false;
   public play$fx = getCurrentInstance()?.appContext.config.globalProperties.play$fx
 
   // Keep track of the current track sequence for auto-advancing tracks
@@ -144,6 +145,10 @@ export class AudioEngine {
    * Creates AudioContext and sets up event listeners
    */
   public initialize(): void {
+    // getInstance() and the Vue plugin both call this: run once, or every media key would fire twice
+    if (this.initialized) return;
+    this.initialized = true;
+
     // Attempt to create AudioContext immediately
     try {
       this.initializeAudioContext();
@@ -396,7 +401,6 @@ export class AudioEngine {
     try {
       sound.source.stop();
     } catch (error) {
-      // Source might have already ended
       debug.log(`Could not stop sound ${instanceId}, it might have already ended`, error);
     }
 

@@ -7,6 +7,7 @@
  * packaged app is what covers phones properly. Nothing here throws: the results say why nothing happened.
  */
 import { Capacitor } from "@capacitor/core";
+import debug from "@/lib/utils/debug";
 
 export type AlertPermission = "granted" | "denied" | "prompt" | "unsupported";
 /** What the hero answered when the game asked about battle alerts; "unasked" until they have */
@@ -203,8 +204,9 @@ export const showAlert = async (alert: HeroAlert): Promise<AlertResult> => {
           data: { url: location.href },
         } as NotificationOptions);
         return { shown: true };
-      } catch {
+      } catch (error) {
         // fall through to the plain constructor
+        debug.warn("[alertBridge] the worker could not show the alert", error);
       }
     }
     try {
@@ -253,8 +255,9 @@ export const cancelAlert = async (id: number): Promise<void> => {
     const registration = workerReady ?? (await navigator.serviceWorker?.getRegistration?.());
     const shown = (await registration?.getNotifications({ tag: String(id) })) ?? [];
     shown.forEach((notification) => notification.close());
-  } catch {
+  } catch (error) {
     // nothing to take back
+    debug.warn("[alertBridge] could not take an alert back", error);
   }
 };
 
@@ -271,7 +274,8 @@ export const battleAlertsChoice = (): AlertChoice => {
 export const setBattleAlertsChoice = (choice: "on" | "off"): void => {
   try {
     localStorage.setItem(CHOICE_KEY, choice);
-  } catch {
+  } catch (error) {
     // private mode or blocked storage: the hero is simply asked again next time
+    debug.warn("[alertBridge] could not keep the alerts choice", error);
   }
 };

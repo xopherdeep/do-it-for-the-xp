@@ -3,6 +3,7 @@ import { ref, computed } from 'vue';
 import { chatDb, ChatMessage } from '@/lib/databases/ChatDb';
 import { chatEngine } from '@/lib/engine/core/ChatEngine';
 import { v4 as uuidv4 } from 'uuid';
+import debug from '@/lib/utils/debug';
 import { useUserStore } from './user';
 
 /** The one family room every hero and Game Master shares. */
@@ -25,7 +26,7 @@ export const useChatStore = defineStore('chat', () => {
             const roomMessages = await chatDb.getMessagesByRoom(roomId, 50);
             messages.value[roomId] = roomMessages;
         } catch (error) {
-            console.error(`Failed to load messages for room ${roomId}`, error);
+            debug.error(`[chat] failed to load messages for room ${roomId}`, error);
             messages.value[roomId] = [];
         } finally {
             isLoading.value = false;
@@ -114,7 +115,7 @@ export const useChatStore = defineStore('chat', () => {
                 hasMore.value[roomId] = true;
             }
         } catch (error) {
-            console.error(`Failed to load more messages for room ${roomId}`, error);
+            debug.error(`[chat] failed to load more messages for room ${roomId}`, error);
         } finally {
             isLoading.value = false;
         }

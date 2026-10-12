@@ -17,6 +17,7 @@ import { classLevelsOf, isClassUnlocked } from '@/lib/services/stats/ClassPassiv
 import { toEntry } from '@/lib/services/inventory/Inventory';
 import { levelUpNotification } from '@/lib/services/notifications/Notifications';
 import { notify } from '@/lib/services/notifications/notify';
+import debug from '@/lib/utils/debug';
 
 // LocalStorage key for persisting current user ID
 const CURRENT_USER_KEY = 'xp_current_user_id';
@@ -114,8 +115,7 @@ export const useUserStore = defineStore('user', () => {
       try {
         await profileDb.setProfile(JSON.parse(JSON.stringify(users[userId])));
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error(`Failed to persist profile ${userId}`, error);
+        debug.error(`[user] failed to persist profile ${userId}`, error);
       }
     }
   }
@@ -143,8 +143,9 @@ export const useUserStore = defineStore('user', () => {
     try {
       localStorage.removeItem(IMPERSONATING_FLAG_KEY);
       localStorage.removeItem(IMPERSONATOR_KEY);
-    } catch {
+    } catch (error) {
       // storage blocked (private mode): nothing was stored, nothing to clear
+      debug.warn('[user] could not clear the masquerade keys', error);
     }
   }
 
@@ -204,8 +205,7 @@ export const useUserStore = defineStore('user', () => {
         }
       }
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.error("Failed to load users", error);
+      debug.error('[user] failed to load users', error);
     }
   }
 

@@ -1,4 +1,6 @@
 
+import debug from "@/lib/utils/debug";
+
 export interface TempleMetadata {
   id: string;
   name: string;
@@ -134,8 +136,9 @@ export const metadataForAsync = async (templeId: string): Promise<TempleMetadata
         generatedMetadata.set(templeId, meta);
         return meta;
       }
-    } catch {
+    } catch (error) {
       // No TempleDb (tests, private mode): fall through to the unknown-temple fallback
+      debug.warn("[templeRegistry] could not load the generated temple", templeId, error);
     }
   }
   return getTempleMetadata(templeId);

@@ -21,6 +21,9 @@ export interface BGMPayload {
   _usingNewAudioEngine?: boolean; // Flag to prevent double playback
 }
 
+/** The delayed start of the latest route's song; a newer route cancels it so a stale song never lands late. */
+let pendingStart: ReturnType<typeof setTimeout> | undefined;
+
 /**
  * Process BGM payload from the router and play using the new audio engine
  * @param payload The BGM payload from the router
@@ -30,6 +33,8 @@ export function playRouteMusic(payload: BGMPayload): void {
     debug.warn('Invalid BGM payload:', payload);
     return;
   }
+
+  clearTimeout(pendingStart);
 
   const engine = AudioEngine.getInstance();
   const audioStore = useAudioStore();
@@ -102,7 +107,7 @@ export function playRouteMusic(payload: BGMPayload): void {
 
   // Play the track with delay
   if (delay > 0) {
-    setTimeout(() => {
+    pendingStart = setTimeout(() => {
       // Check again after delay to ensure BGM wasn't toggled off
       if (audioStore.bgm && audioStore.bgm.is_on !== false) {
         engine.playMusic(currentTrackId, 1000, payload.saveBookmark);

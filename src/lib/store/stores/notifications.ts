@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import { reactive } from "vue";
 import { getNotificationsDb } from "@/lib/databases/NotificationsDb";
+import debug from "@/lib/utils/debug";
 import {
   MAX_NOTIFICATIONS_PER_HERO,
   isDuplicate,
@@ -53,8 +54,7 @@ export const useNotificationsStore = defineStore("notifications", () => {
       try {
         stored = await getNotificationsDb().getForHero(key);
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error(`Failed to read notifications of ${key}`, error);
+        debug.error(`[notifications] failed to read the feed of ${key}`, error);
       }
       byHero[key] = merge(stored, feedOf(key));
       loaded[key] = true;
@@ -77,8 +77,7 @@ export const useNotificationsStore = defineStore("notifications", () => {
         await load(heroId);
         await getNotificationsDb().saveForHero(heroId, byHero[heroId] ?? []);
       } catch (error) {
-        // eslint-disable-next-line no-console
-        console.error(`Failed to persist notifications of ${heroId}`, error);
+        debug.error(`[notifications] failed to persist the feed of ${heroId}`, error);
       }
     }
   }

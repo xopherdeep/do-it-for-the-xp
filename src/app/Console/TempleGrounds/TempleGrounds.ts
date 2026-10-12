@@ -14,6 +14,7 @@ import XpWorldMapModal from '../MyPortal/UserHud/components/XpWorldMapModal.vue'
 import UserProfileModal from '../MyPortal/UserHud/components/UserProfileModal.vue';
 import XpBottomNav from '@/components/organisms/BottomNav/XpBottomNav.vue';
 import { useHeroEquipment } from '@/hooks/useHeroEquipment';
+import { useTimers } from '@/hooks/useTimers';
 import debug from '@/lib/utils/debug';
 import { useUserStore } from '@/lib/store/stores/user';
 import { templeBattleRoute } from '@/app/Console/BattleField/battle/battleContext';
@@ -388,6 +389,7 @@ export default defineComponent({
     onBeforeUnmount(() => {
       if (shakeTimer) clearTimeout(shakeTimer);
     });
+    const timers = useTimers();
 
     /**
      * Where the hero stands right now, read from the temple itself: the refs of useTemple only catch up
@@ -554,7 +556,7 @@ export default defineComponent({
           if (handleTeleport()) {
             // Update UI after teleport, then see what the new room does
             fx('okdesuka');
-            setTimeout(() => updateBg(currentPosition.value[1], currentPosition.value[0]), 100);
+            timers.startTimeout(100, () => updateBg(currentPosition.value[1], currentPosition.value[0]));
             await arrive();
           } else {
             // A circle with no partner anywhere leads nowhere
@@ -679,8 +681,9 @@ export default defineComponent({
               }
             }
           }
-        } catch {
+        } catch (error) {
           // Fall through to the stand-in
+          debug.warn('[TempleGrounds] could not look up the room beast', error);
         } finally {
           beastPending.value = false;
         }

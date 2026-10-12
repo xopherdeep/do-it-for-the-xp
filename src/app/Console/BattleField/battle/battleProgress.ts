@@ -1,3 +1,4 @@
+import debug from "@/lib/utils/debug";
 import type { BattleContext } from "./battleContext";
 
 /**
@@ -55,8 +56,9 @@ export const saveBattleProgress = (ctx: BattleContext, completedTaskIds: string[
   try {
     if (completedTaskIds.length) store.setItem(battleProgressKey(ctx), JSON.stringify(completedTaskIds));
     else store.removeItem(battleProgressKey(ctx));
-  } catch {
+  } catch (error) {
     // storage full or blocked: the fight still works, it just will not be remembered
+    debug.warn("[BattleProgress] could not save progress", error);
   }
 };
 
@@ -74,7 +76,8 @@ export const pruneBattleProgress = (now = new Date()): void => {
       if (key && key.startsWith(STORAGE_PREFIX) && !key.endsWith(keep)) stale.push(key);
     }
     stale.forEach((key) => store.removeItem(key));
-  } catch {
+  } catch (error) {
     // nothing to prune
+    debug.warn("[BattleProgress] could not prune stale progress", error);
   }
 };

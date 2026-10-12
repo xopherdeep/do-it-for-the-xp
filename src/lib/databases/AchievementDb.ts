@@ -1,4 +1,5 @@
 import { v4 as uuidv4 } from "uuid";
+import debug from "@/lib/utils/debug";
 import DbStorageApi from "./DbStorageApi";
 
 import { Drivers, Storage } from "@ionic/storage";
@@ -273,7 +274,8 @@ export class AchievementDb extends DbStorageApi {
           await this.setTask(importedAchievement);
           successCount++;
         } catch (err) {
-          console.error("Error importing achievement:", err);
+          // One bad entry does not stop the rest; the caller learns the shortfall from the returned count
+          debug.error("[AchievementDb] could not import an achievement", err);
         }
       }
 

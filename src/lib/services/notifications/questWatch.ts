@@ -4,6 +4,7 @@ import { effectiveDeadline, isSchedulePaused } from "@/lib/engine/quests/QuestSc
 import type { HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useNotificationsStore } from "@/lib/store/stores/notifications";
+import debug from "@/lib/utils/debug";
 import { byClockCopy, questDueNotification, questOverdueNotification } from "./Notifications";
 import type { NewXpNotification } from "./Notifications";
 import { scheduleDueReminders } from "./deviceReminders";
@@ -110,8 +111,7 @@ export const startQuestWatch = (
       const run = await runQuestWatch(heroId);
       options.onRun?.(run);
     } catch (error) {
-      // eslint-disable-next-line no-console
-      console.warn("Quest watch failed", error);
+      debug.warn("[QuestWatch] a run failed", error);
     }
   };
   void tick();

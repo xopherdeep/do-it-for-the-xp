@@ -2,6 +2,7 @@ import { nextTick } from "vue";
 import { START_LOCATION, Router } from "vue-router";
 import { play$fx } from "@/assets/fx";
 import { feel, rumble } from "@/lib/services/feedback/haptics";
+import debug from "@/lib/utils/debug";
 import { sceneOf, transitionFor, type TransitionPlan } from "@/lib/services/transitions/sceneTransitions";
 import { cover, prefersReducedMotion, reveal, state } from "@/components/organisms/SceneTransition/sceneTransitionController";
 
@@ -48,8 +49,9 @@ export function handleTransitionGuard(router: Router): void {
       }
       await cover(plan);
       feelCovered(plan);
-    } catch {
+    } catch (error) {
       // Fall through: navigate without the effect
+      debug.warn("[transition.guard] the scene transition failed, navigating without it", error);
     }
   });
 

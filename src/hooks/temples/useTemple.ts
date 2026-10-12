@@ -9,6 +9,7 @@ import { ChestSystem } from '@/lib/engine/core/dungeons/ChestSystem';
 import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
 import debug from '@/lib/utils/debug';
 import { useUserStore } from '@/lib/store/stores/user';
+import { useTimers } from '@/hooks/useTimers';
 import { chestItemUnlocks, freeTemplePegasus, pegasusEgg } from '@/lib/services/temples/TemplePegasus';
 import { chestLoot, lootFace } from '@/lib/services/temples/ChestLoot';
 import { earnGold } from '@/lib/services/temples/RoomInteractions';
@@ -25,6 +26,7 @@ export type MessageDisplayFn = (message: string, duration?: number) => void;
 export function useTemple(templeId: string, startPosition?: [number, number], startLevel?: string, userId?: string) {
   const templeSystem = TempleSystem.getInstance();
   const dungeonManager = DungeonManager.getInstance();
+  const timers = useTimers();
 
   // Local refs to track state
   const currentPosition = ref<[number, number]>([0, 0]);
@@ -201,12 +203,11 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     currentMessage.value = message;
     showMessage.value = true;
     
-    setTimeout(() => {
+    timers.startTimeout(duration, () => {
       showMessage.value = false;
-    }, duration);
+    });
   };
   
-  // Move in a direction
   const move = (direction: 'north' | 'south' | 'east' | 'west') => {
     if (!currentPosition.value) return false;
     

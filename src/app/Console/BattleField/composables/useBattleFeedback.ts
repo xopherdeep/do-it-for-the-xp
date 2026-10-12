@@ -1,5 +1,6 @@
 import { onUnmounted, ref } from "vue";
 import { Haptics, ImpactStyle, NotificationType } from "@capacitor/haptics";
+import debug from "@/lib/utils/debug";
 
 const SHAKE_MS = 500;
 const FLASH_MS = 320;
@@ -14,8 +15,9 @@ export const prefersReducedMotion = (): boolean =>
 const buzz = (run: () => Promise<unknown>) => {
   try {
     run().catch(() => undefined);
-  } catch {
-    // no haptics on this platform
+  } catch (error) {
+    // no haptics on this platform: a rejected promise is the normal web case and stays silent
+    debug.warn("[BattleFeedback] haptics threw synchronously", error);
   }
 };
 
