@@ -1,0 +1,84 @@
+// XP Pro: Go Pro, the Stripe return page and the Settings panel, with the Gatekeeper routes stubbed.
+const PLANS = {
+  monthly: { price: 5.49, mode: "subscription", interval: "month", trial_days: 7, store_product_id: "xp_pro_monthly", on_sale: true },
+  yearly: { price: 41.25, mode: "subscription", interval: "year", trial_days: 7, store_product_id: "xp_pro_yearly", on_sale: true },
+  lifetime: { price: 83, mode: "payment", interval: null, trial_days: 0, store_product_id: "xp_pro_lifetime", on_sale: true },
+};
+const LICENSE = {
+  pro: true,
+  license_key: "XP-PRO-AAAA-BBBB-CCCC",
+  plan: "yearly",
+  expires_at: "2099-01-01T00:00:00Z",
+  env: "production",
+  family_id: "3f6c2a1e-8b4d-4c7a-9e2f-1a2b3c4d5e6f",
+};
+// Production builds (and Capacitor) route by hash, `pnpm serve` by path: the Stripe return arrives as
+// /#/pro/return?... on a production build. Run against a static dist with CYPRESS_hashRouting=1 to cover it.
+const hash = Cypress.env("hashRouting") ? "/#" : "";
+const route = (name) => `**/compass/v1/gatekeeper/xp-pro/${name}*`;
+
+describe("XP Pro", () => {
+  // The Return page needs no sign-in (Stripe lands there after a full reload), so those tests run unseeded.
+  // Go Pro and Settings sit behind sign-in and seed a hero first.
+  it("Go Pro lists three plans with the server prices", () => {
+    cy.seedWorld();
+    cy.intercept("GET", route("plans"), { statusCode: 200, body: PLANS }).as("plans");
+    cy.intercept("POST", route("claim"), { statusCode: 404, body: { pro: false } });
+    cy.visit("/pro", { timeout: 120000 });
+    cy.tapToWakeAudio();
+    cy.wait("@plans");
+    cy.get('[data-cy="plan-price"]', { timeout: 20000 }).should("have.length", 3);
+    cy.contains('[data-cy="plan-monthly"]', "$5.49");
+    cy.contains('[data-cy="plan-yearly"]', "$41.25");
+    cy.contains('[data-cy="plan-lifetime"]', "$83.00");
+    cy.contains("7 days free");
+    cy.screenshot("pro-01-go-pro", { capture: "viewport" });
+  });
+
+  it("/#/pro/return?session_id=cs_1&purchased=doitforthexp unlocks after one pending claim", () => {
+    let claims = 0;
+    cy.intercept("POST", route("claim"), (req) => {
+      claims += 1;
+      // claim 1 is the store's start-up check, claim 2 the Return page's first try: both find nothing yet
+      if (claims <= 2) req.reply({ statusCode: 404, body: { pro: false } });
+      else req.reply({ statusCode: 200, body: LICENSE });
+    }).as("claim");
+    cy.visit(`${hash}/pro/return?session_id=cs_1&purchased=doitforthexp`, { timeout: 120000 });
+    cy.tapToWakeAudio();
+    cy.wait("@claim");
+    cy.wait("@claim");
+    cy.wait("@claim", { timeout: 15000 });
+    cy.location({ timeout: 15000 }).should((loc) => expect(loc.href).not.to.include("/pro/return"));
+    cy.screenshot("pro-02-return-unlocked", { capture: "viewport" });
+    cy.then(() => expect(claims).to.be.at.least(3));
+  });
+
+  it("/#/pro/return?status=cancelled returns to /pro without claiming", () => {
+    let claims = 0;
+    cy.intercept("POST", route("claim"), (req) => {
+      claims += 1;
+      req.reply({ statusCode: 404, body: { pro: false } });
+    });
+    cy.intercept("GET", route("plans"), { statusCode: 200, body: PLANS });
+    cy.visit(`${hash}/pro/return?status=cancelled`, { timeout: 120000 });
+    cy.location({ timeout: 20000 }).should((loc) => {
+      expect(loc.href).to.match(/\/pro(\?|$)/);
+      expect(loc.href).not.to.include("return");
+    });
+    cy.then(() => expect(claims, "claim calls from the Return page").to.be.at.most(1));
+  });
+
+  it("Settings > XP Pro restores with a key", () => {
+    cy.seedWorld();
+    cy.intercept("POST", route("claim"), { statusCode: 404, body: { pro: false } });
+    cy.intercept("POST", route("validate"), { statusCode: 200, body: LICENSE }).as("validate");
+    cy.visit("/xp-settings/pro", { timeout: 120000 });
+    cy.tapToWakeAudio();
+    cy.get('[data-cy="restore-key-input"]', { timeout: 20000 }).find("input").type("XP-PRO-AAAA-BBBB-CCCC", { force: true });
+    cy.get('[data-cy="restore-key-button"]').click({ force: true });
+    cy.wait("@validate");
+    cy.contains('[data-cy="pro-status"]', "XP Pro is on", { timeout: 10000 });
+    cy.contains('[data-cy="pro-masked-key"]', "XP-PRO-****-****-CCCC");
+    cy.screenshot("pro-03-settings-restored", { capture: "viewport" });
+  });
+});

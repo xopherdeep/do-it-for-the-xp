@@ -70,6 +70,14 @@ export const SettingsRoutes: RouteRecordRaw[] = [{
         ),
     },
     {
+      path: "pro",
+      name: "xp-settings-pro",
+      component: () =>
+        import(
+          "@/app/SideMenu/XpSettings/components/ProSettings.vue"
+        ),
+    },
+    {
       path: "chore",
       name: "xp-settings-chore",
       component: () =>

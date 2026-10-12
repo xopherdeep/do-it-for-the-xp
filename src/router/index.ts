@@ -21,7 +21,7 @@ import {
 } from "./Console";
 
 // SideMenu
-import { SideMenuRoutes, SettingsRoutes, SupportRoutes } from "./SideMenu";
+import { SideMenuRoutes, SettingsRoutes, SupportRoutes, ProRoutes } from "./SideMenu";
 
 // Dev
 import DevRoutes from "./Dev/dev.routes";
@@ -40,6 +40,7 @@ const routes: Array<RouteRecordRaw> = [
 
   // SideMenu Routes
   ...SettingsRoutes,
+  ...ProRoutes,
   ...SideMenuRoutes,
   ...SupportRoutes,
 

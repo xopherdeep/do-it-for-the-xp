@@ -78,6 +78,13 @@ export default defineComponent({
         description: 'Customize app appearance, UI style, and game theme',
         icon: require('@/assets/icons/settings.png'),
         route: '/xp-settings/theme'
+      },
+      {
+        id: 'pro',
+        title: 'XP Pro',
+        description: 'Your XP Pro status and key; restore Pro on this device',
+        icon: require('@/assets/icons/new.png'),
+        route: '/xp-settings/pro'
       }
     ];
 

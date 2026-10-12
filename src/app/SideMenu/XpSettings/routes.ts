@@ -4,6 +4,7 @@ import FamilySettings from './components/FamilySettings.vue';
 import SoundSettings from './components/SoundSettings.vue';
 import PrivacySettings from './components/PrivacySettings.vue';
 import AccountSettings from './components/AccountSettings.vue';
+import ProSettings from './components/ProSettings.vue';
 
 export default [
   {
@@ -30,5 +31,9 @@ export default [
   {
     path: 'account',
     component: AccountSettings
+  },
+  {
+    path: 'pro',
+    component: ProSettings
   }
 ];
