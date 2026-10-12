@@ -293,6 +293,10 @@ def bump_total(new_total):
         print(f"{os.path.relpath(path, ROOT)}: {'bumped to ' + str(new_total) if n else 'pattern not found'}")
 
 
+# Beasts 001-093 are the original art (many drawn with the owner's kids); the pipeline only ever adds after them
+ORIGINAL_ART_MAX = 93
+
+
 def install(picks, style="d", variant=None):
     """Write picked takes as numbered webp portraits; variant names the style whose look is the beast's second portrait."""
     if picks == ["auto"]:
@@ -310,6 +314,7 @@ def install(picks, style="d", variant=None):
         if key not in nums: nums[key] = nxt; nxt += 1
         im = Image.open(src).convert("RGBA").resize((SIZE, SIZE), Image.LANCZOS)
         dst = os.path.join(BEAST_DIR, f"{nums[key]:03d}.webp")
+        if nums[key] <= ORIGINAL_ART_MAX: sys.exit(f"{slug}: refusing to overwrite {nums[key]:03d}.webp, the family's original art (001-{ORIGINAL_ART_MAX:03d})")
         im.save(dst, "WEBP", quality=92, method=6)
         print(f"{slug}: {take} -> {os.path.relpath(dst, ROOT)}")
     save_numbers(nums)
