@@ -53,6 +53,9 @@ module.exports = {
   // Configure for Ionic
   publicPath: process.env.NODE_ENV === 'production' ? './' : '/',
 
+  // Never publish source maps: they hand out the private source
+  productionSourceMap: false,
+
   // XP_OUTPUT_DIR redirects the build, e.g. into the COMPASS XP plugin's public/dist (`pnpm build:compass`)
   outputDir: process.env.XP_OUTPUT_DIR || 'dist',
 
