@@ -1,157 +1,56 @@
 import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
 import { reactive } from "vue";
-import type { DialogLine, EngineMessage } from "@/app/Console/BattleField/battle/battleView";
-import type { ClassPassive } from "@/lib/services/stats/ClassPassives";
+import {
+  CLOCK_TICK_MS,
+  STRIKE_DELAY_MS,
+  clockDuration,
+  clockEndsAt,
+  clockReading,
+  minutesPerChore,
+} from "./battleService/attackClock";
+import { armCombatTasks, choreDamage, openChores } from "./battleService/combatTasks";
+import {
+  attacksLines,
+  autoLine,
+  blockedPathLines,
+  bracesLines,
+  choreUsedLines,
+  damageTakenLines,
+  fallenLines,
+  frozenStrikeLine,
+  runAwayLines,
+  shadowStrikeLine,
+  stepsForwardLines,
+  stunnedStrikeLine,
+} from "./battleService/dialogLines";
+import { activeUserOf, beginFightState, initialBattleState, nextLivingBeast, toBattleUser } from "./battleService/fightState";
+import { escapeChanceAgainst, resolvePassive, strikeDamage } from "./battleService/strikeMath";
+import type {
+  BattleCallbacks,
+  BattlePassive,
+  BattleResult,
+  BattleServiceOptions,
+  BattleState,
+  CombatTask,
+  Enemy,
+  User,
+} from "./battleService/types";
+import type { EngineMessage } from "@/app/Console/BattleField/battle/battleView";
 
-// Define interfaces for the battle system
-export interface Enemy {
-  id: string;
-  name: string;
-  type: string;
-  isBoss: boolean;
-  health: number;
-  maxHealth: number;
-  avatar?: number;
-  imageUrl?: string;
-  emoji?: string;
-  attack: number;
-  defense: number;
-  speed: number;
-  bg1?: number;
-  bg2?: number;
-  aspectRatio?: number;
-  /** Minutes the hero gets per remaining chore before this beast strikes. Defaults to 3. */
-  attackCooldown?: number;
-  tasks?: CombatTask[];
-}
-
-export interface CombatTask {
-  id: string;
-  name: string;
-  isCompleted: boolean;
-}
-
-export interface User {
-  id: string;
-  name: string;
-  avatar?: string;
-  stats: {
-    level: number;
-    hp: number;
-    maxHp: number;
-    mp: number;
-    maxMp: number;
-    strength: number;
-    defense: number;
-    speed: number;
-  }
-}
-
-export interface BattleState {
-  battleStarted: boolean;
-  isPlayerTurn: boolean;
-  turnCounter: number;
-  isDefending: boolean;
-  currentEnemy: Enemy | null;
-  participants: {
-    enemies: Enemy[];
-    users: User[];
-    activeEnemyIndex: number;
-    activeUserIndex: number;
-  };
-  enemyAttackTimer: number; // 100 (full clock) down to 0 (the beast strikes)
-  timeRemaining: number; // ms left on the clock
-  attackDuration: number; // ms the current clock started with
-  combatTasks: CombatTask[];
-  pendingPlayerDamage: number; // Damage waiting for the hero to tap through "{Beast} attacks!"
-  pendingStrikeBraced: boolean; // The waiting strike was met with a brace
-}
-
-export interface BattleResult {
-  success: boolean;
-  message: string;
-}
-
-/**
- * Everything the page can listen for. Lines for the message box are EngineMessages: plain strings
- * wait for a tap, `{ text, auto: true }` lines move on by themselves once typed.
- */
-export interface BattleCallbacks {
-  onDialogMessage?: (messages: EngineMessage[]) => void;
-  onEnemyHealthChange?: () => void;
-  onDefendStateChange?: (isDefending: boolean) => void;
-  onPlayerTurnChange?: (isPlayerTurn: boolean) => void;
-  onEnemyDefeated?: (enemy: Enemy) => void;
-  onEnemyChange?: (enemy: Enemy) => void;
-  onCombatTasksChange?: (tasks: CombatTask[]) => void;
-  onPlayerDefeated?: () => void;
-  onAttack?: (attacker: 'player' | 'enemy') => void;
-  /** `isFinalBlow` is set on the chore that finishes the beast on screen ("SMAAAASH!!"). */
-  onDamage?: (target: 'player' | 'enemy', amount: number, isFinalBlow?: boolean) => void;
-}
-
-/**
- * The part of a hero's passive the engine reads: the class table (docs/Items-And-Classes-Contract.md, C)
- * with the trained stats laid over it (docs/Stats-Contract.md): strength's strike share, agility's run bonus
- * and seconds, guts in the brace factor.
- */
-export type BattlePassive = Pick<
-  ClassPassive,
-  'braceFactor' | 'strikeFactor' | 'runChance' | 'runChanceBonus' | 'cooldownMinutesBonus' | 'skipFirstStrike'
->;
-
-export interface BattleServiceOptions {
-  /**
-   * A free fight (random encounter, Test Fight): there is nothing to lose by leaving, so
-   * Run Away always works.
-   */
-  freeFight?: boolean;
-  /**
-   * The hero's passive: how much of a strike lands at all and how much the brace lets through, the Run
-   * Away odds against monsters and what is added to them, extra minutes per chore and whether the beast's
-   * first strike misses. Anything left out keeps the default rule.
-   */
-  passive?: Partial<BattlePassive>;
-}
-
-/** Minutes of clock a hero earns per remaining chore when the beast does not say otherwise. */
-const DEFAULT_MINUTES_PER_CHORE = 3;
-/** How often the clock re-reads Date.now(); the deadline, not the interval, decides when the beast strikes. */
-const CLOCK_TICK_MS = 100;
-/** The beat between "braces!" / "Couldn't escape!" and the strike. */
-const STRIKE_DELAY_MS = 1000;
-/** A strike costs about this share of the hero's max HP. */
-const STRIKE_SHARE_OF_MAX_HP = 0.12;
-/** The share of a strike a brace lets through when the class does not say otherwise. */
-const DEFAULT_BRACE_FACTOR = 0.5;
-/** Run Away never becomes a sure thing, however nimble the hero. */
-const RUN_CHANCE_CEILING = 0.95;
-
-/**
- * What one beast strike costs the hero: about 12% of their max HP, scaled by the beast's attack
- * (10 is the baseline, so a boss with 15 bites 1.5x as hard) and a +-10% roll. It never scales
- * with time or chores left. Trained strength lets only `strikeFactor` of it land (1 by default, never
- * below three quarters), and a brace lets `braceFactor` of that through (half by default, a quarter for
- * a Warrior's wall), each rounded down, never below 1.
- */
-export function strikeDamage(
-  maxHp: number,
-  attack: number,
-  braced: boolean,
-  roll: number = Math.random(),
-  braceFactor: number = DEFAULT_BRACE_FACTOR,
-  strikeFactor: number = 1
-): number {
-  const raw = Math.round(maxHp * STRIKE_SHARE_OF_MAX_HP * ((attack || 10) / 10) * (0.9 + roll * 0.2));
-  const share = Number.isFinite(strikeFactor) && strikeFactor > 0 && strikeFactor <= 1 ? strikeFactor : 1;
-  const full = Math.max(1, Math.floor((Number.isFinite(raw) ? Math.max(1, raw) : 1) * share + 1e-9));
-  const factor = Number.isFinite(braceFactor) && braceFactor > 0 ? braceFactor : DEFAULT_BRACE_FACTOR;
-  return braced ? Math.max(1, Math.floor(full * factor + 1e-9)) : full;
-}
-
-/** A line that types out and moves on by itself, for results the hero does not need to tap through. */
-const autoLine = (text: string): DialogLine => ({ text, auto: true });
+// The engine's types and the strike formula live beside this file; they are re-exported so every
+// importer keeps using "@/lib/services/battle/BattleService".
+export type {
+  BattleCallbacks,
+  BattlePassive,
+  BattleResult,
+  BattleServiceOptions,
+  BattleState,
+  CombatTask,
+  Enemy,
+  User,
+} from "./battleService/types";
+export { strikeDamage } from "./battleService/strikeMath";
 
 /**
  * BattleService - Core service for managing battle mechanics
@@ -187,34 +86,8 @@ export class BattleService {
   constructor(options: BattleServiceOptions = {}) {
     this.userStore = useUserStore();
     this.alwaysEscapes = Boolean(options.freeFight);
-    this.passive = {
-      braceFactor: DEFAULT_BRACE_FACTOR,
-      strikeFactor: 1,
-      runChance: null,
-      runChanceBonus: 0,
-      cooldownMinutesBonus: 0,
-      skipFirstStrike: false,
-      ...options.passive,
-    };
-    this.state = reactive({
-      battleStarted: false,
-      isPlayerTurn: false,
-      turnCounter: 0,
-      isDefending: false,
-      currentEnemy: null,
-      participants: {
-        enemies: [],
-        users: [],
-        activeEnemyIndex: 0,
-        activeUserIndex: 0
-      },
-      enemyAttackTimer: 100,
-      timeRemaining: 0,
-      attackDuration: 0,
-      combatTasks: [],
-      pendingPlayerDamage: 0,
-      pendingStrikeBraced: false
-    });
+    this.passive = resolvePassive(options.passive);
+    this.state = reactive(initialBattleState());
   }
 
   /**
@@ -248,13 +121,13 @@ export class BattleService {
     debug.log(`Challenge '${enemy.name}' completed!`);
 
     // In a multi-beast fight the next living beast steps forward with its own chores.
-    const next = this.state.participants.enemies.find((candidate) => candidate !== enemy && candidate.health > 0);
+    const next = nextLivingBeast(this.state.participants.enemies, enemy);
     if (next) {
       this.state.participants.activeEnemyIndex = this.state.participants.enemies.indexOf(next);
       this.state.currentEnemy = next;
       this.loadCombatTasks(next);
       this.notifyEnemyHealthChange();
-      this.queueDialogMessages([`${enemy.name} was defeated!`, `${next.name} steps forward!`]);
+      this.queueDialogMessages(stepsForwardLines(enemy, next));
       this.battleCallbacks.onEnemyChange?.(next);
       // A strike that is already waiting restarts the clock itself when it lands
       if (this.state.pendingPlayerDamage === 0) {
@@ -275,14 +148,7 @@ export class BattleService {
 
   /** The beast's checklist becomes the player's attacks. */
   private loadCombatTasks(enemy: Enemy): void {
-    const { tasks } = enemy;
-    const hasChecklist = tasks && tasks.length > 0;
-    if (hasChecklist) {
-      this.state.combatTasks = tasks.map((task) => ({ ...task }));
-    } else {
-      debug.warn('BattleService: No tasks found on enemy, the beast itself is the chore', enemy);
-      this.state.combatTasks = [{ id: `${enemy.id}-task`, name: `Defeat ${enemy.name}`, isCompleted: false }];
-    }
+    this.state.combatTasks = armCombatTasks(enemy);
 
     this.battleCallbacks.onCombatTasksChange?.(this.state.combatTasks);
   }
@@ -300,15 +166,7 @@ export class BattleService {
 
     // A fresh fight inherits nothing from the last one
     this.dispose();
-    this.state.battleStarted = true;
-    this.state.isPlayerTurn = true; // Task-ATB: the player is always ready to act
-    this.state.turnCounter = 1;
-    this.state.isDefending = false;
-    this.state.pendingPlayerDamage = 0;
-    this.state.pendingStrikeBraced = false;
-    this.state.timeRemaining = 0;
-    this.state.attackDuration = 0;
-    this.state.enemyAttackTimer = 100;
+    beginFightState(this.state);
     this.frozenUntil = 0;
     this.strikeSkips = 0;
     this.cooldownScale = 1;
@@ -369,7 +227,7 @@ export class BattleService {
 
     this.setDefendingState(true);
     this.stopAttackTimer();
-    this.queueDialogMessages([`${this.heroName()} braces!`]);
+    this.queueDialogMessages(bracesLines(this.heroName()));
 
     // The beast strikes a beat later, at half damage
     this.endPlayerTurn();
@@ -387,26 +245,16 @@ export class BattleService {
     }
 
     const enemy = this.state.currentEnemy;
-    let escapeChance = 0.75;
-    if (enemy?.isBoss) {
-      escapeChance = 0.25;
-    } else if (enemy?.type === 'miniboss') {
-      escapeChance = 0.5;
-    } else if (typeof this.passive.runChance === 'number') {
-      escapeChance = this.passive.runChance;
-    }
-    const bonus = this.passive.runChanceBonus;
-    const hasRunBonus = Number.isFinite(bonus) && bonus > 0;
-    if (hasRunBonus) escapeChance = Math.min(RUN_CHANCE_CEILING, escapeChance + bonus);
+    const escapeChance = escapeChanceAgainst(enemy, this.passive);
 
     const canSlipAway = this.alwaysEscapes || Math.random() < escapeChance;
     if (canSlipAway) {
       this.stopAttackTimer();
-      this.queueDialogMessages([autoLine("Running away..."), "Got away safely!"]);
+      this.queueDialogMessages(runAwayLines());
       return { success: true, message: "Escaped successfully" };
     }
 
-    this.queueDialogMessages(["Couldn't escape!", `${enemy?.name ?? 'The enemy'} blocks your path!`]);
+    this.queueDialogMessages(blockedPathLines(enemy));
     this.stopAttackTimer();
     this.endPlayerTurn();
     return { success: false, message: "Failed to escape" };
@@ -439,17 +287,9 @@ export class BattleService {
     }, STRIKE_DELAY_MS);
   }
 
-  /**
-   * What one chore takes off the beast: an equal slice of its health, except that the beast always
-   * survives until its last chore (so rounding can never end a fight with chores still open), and
-   * the last chore takes whatever is left.
-   */
+  /** What one chore takes off the beast (see choreDamage in battleService/combatTasks). */
   private choreDamage(enemy: Enemy, isLastChore: boolean): number {
-    if (isLastChore) {
-      return Math.max(0, enemy.health);
-    }
-    const slice = Math.ceil(enemy.maxHealth / this.state.combatTasks.length);
-    return Math.max(0, Math.min(slice, enemy.health - 1));
+    return choreDamage(enemy, isLastChore, this.state.combatTasks.length);
   }
 
   /**
@@ -472,7 +312,7 @@ export class BattleService {
     this.battleCallbacks.onCombatTasksChange?.(this.state.combatTasks);
     this.notifyEnemyHealthChange();
     this.battleCallbacks.onDamage?.('enemy', damage, isFinalBlow);
-    this.queueDialogMessages([autoLine(`${this.heroName()} used ${task.name}! ${enemy.name} took ${damage} damage!`)]);
+    this.queueDialogMessages(choreUsedLines(this.heroName(), task.name, enemy, damage));
 
     if (isFinalBlow) {
       this.defeatEnemy(enemy);
@@ -500,7 +340,7 @@ export class BattleService {
     for (const task of this.state.combatTasks) {
       const shouldSkipTask = !wanted.has(task.id) || task.isCompleted;
       if (shouldSkipTask) continue;
-      if (this.state.combatTasks.filter(t => !t.isCompleted).length <= 1) break;
+      if (openChores(this.state.combatTasks) <= 1) break;
 
       task.isCompleted = true;
       enemy.health -= this.choreDamage(enemy, false);
@@ -529,11 +369,11 @@ export class BattleService {
   public startAttackTimer(): void {
     this.stopAttackTimer();
 
-    const remainingChores = this.state.combatTasks.filter(t => !t.isCompleted).length;
-    const duration = Math.max(1, remainingChores) * this.minutesPerChore() * 60_000;
+    const remainingChores = openChores(this.state.combatTasks);
+    const duration = clockDuration(remainingChores, this.minutesPerChore());
 
     // A clock started under the ice only begins to run down when the ice melts
-    this.attackDeadline = Math.max(Date.now(), this.frozenUntil) + duration;
+    this.attackDeadline = clockEndsAt(Date.now(), this.frozenUntil, duration);
     this.state.attackDuration = duration;
     // The bar is full the moment the clock starts, not one tick later
     this.state.timeRemaining = duration;
@@ -550,10 +390,9 @@ export class BattleService {
     if (this.attackTimerInterval === null) return;
 
     // Frozen: the bar stands where the ice caught it and the beast cannot strike
-    const now = Math.max(Date.now(), this.frozenUntil);
-    const remaining = Math.max(0, this.attackDeadline - now);
+    const { remaining, percent } = clockReading(Date.now(), this.frozenUntil, this.attackDeadline, this.state.attackDuration);
     this.state.timeRemaining = remaining;
-    this.state.enemyAttackTimer = this.state.attackDuration > 0 ? (remaining / this.state.attackDuration) * 100 : 0;
+    this.state.enemyAttackTimer = percent;
 
     if (remaining <= 0) {
       this.stopAttackTimer();
@@ -593,15 +432,9 @@ export class BattleService {
     return this.state.attackDuration;
   }
 
-  /**
-   * Minutes per remaining chore: the beast's own attackCooldown, or 3, times the fight's cooldown scale,
-   * plus the class's flat minute (Monk, Sage).
-   */
+  /** Minutes per remaining chore (see minutesPerChore in battleService/attackClock). */
   private minutesPerChore(): number {
-    const minutes = this.state.currentEnemy?.attackCooldown;
-    const base = typeof minutes === 'number' && Number.isFinite(minutes) && minutes > 0 ? minutes : DEFAULT_MINUTES_PER_CHORE;
-    const bonus = Number.isFinite(this.passive.cooldownMinutesBonus) ? Math.max(0, this.passive.cooldownMinutesBonus) : 0;
-    return base * this.cooldownScale + bonus;
+    return minutesPerChore(this.state.currentEnemy, this.passive, this.cooldownScale);
   }
 
   /** The brace and strike factors, run odds and clock bonus the fight runs with (for the page and the tests). */
@@ -637,7 +470,7 @@ export class BattleService {
    */
   public freezeClock(ms: number): boolean {
     if (this.isClockUnmovable(ms)) return false;
-    this.frozenUntil = Math.max(Date.now(), this.frozenUntil) + ms;
+    this.frozenUntil = clockEndsAt(Date.now(), this.frozenUntil, ms);
     this.attackDeadline += ms;
     this.tick();
     return true;
@@ -674,7 +507,7 @@ export class BattleService {
     const task = index === -1 ? undefined : this.state.combatTasks[index];
     const isChoreUnavailable = !enemy || !task || task.isCompleted;
     if (isChoreUnavailable) return null;
-    if (this.state.combatTasks.filter((t) => !t.isCompleted).length <= 1) return null;
+    if (openChores(this.state.combatTasks) <= 1) return null;
 
     const slice = this.choreDamage(enemy, false);
     this.state.combatTasks.splice(index, 1);
@@ -737,18 +570,18 @@ export class BattleService {
     // A Ninja is never where the first strike lands
     if (this.firstStrikeOwed) {
       this.firstStrikeOwed = false;
-      this.skipStrike(`${enemy.name} strikes at a shadow! ${this.heroName()} is already elsewhere.`);
+      this.skipStrike(shadowStrikeLine(enemy, this.heroName()));
       return;
     }
 
     // Chronos' ice or Thor's hammer: the strike does not land
     if (this.isClockFrozen()) {
-      this.skipStrike(`${enemy.name} is frozen solid and cannot strike!`);
+      this.skipStrike(frozenStrikeLine(enemy));
       return;
     }
     if (this.strikeSkips > 0) {
       this.strikeSkips--;
-      this.skipStrike(`${enemy.name} is stunned and misses its strike!`);
+      this.skipStrike(stunnedStrikeLine(enemy));
       return;
     }
 
@@ -775,7 +608,7 @@ export class BattleService {
 
     // Trigger enemy pre-attack sound (ambush/charge)
     this.battleCallbacks.onAttack?.('enemy');
-    this.queueDialogMessages([`${enemy.name} attacks!`]);
+    this.queueDialogMessages(attacksLines(enemy));
   }
 
   /**
@@ -821,13 +654,11 @@ export class BattleService {
     // The brace is spent
     this.setDefendingState(false);
 
-    this.queueDialogMessages([
-      braced ? `${hero.name} braced: only ${damage} damage!` : `${hero.name} takes ${damage} damage!`
-    ]);
+    this.queueDialogMessages(damageTakenLines(hero.name, damage, braced));
 
     if (!isAlive) {
       // Player defeated
-      this.queueDialogMessages([`${hero.name} has fallen!`, 'You blacked out...']);
+      this.queueDialogMessages(fallenLines(hero.name));
       this.battleCallbacks.onPlayerDefeated?.();
       return;
     }
@@ -904,12 +735,7 @@ export class BattleService {
    * Get active user from participants
    */
   private getActiveUser(): User | null {
-    const { users, activeUserIndex } = this.state.participants;
-    const hasNoActiveUser = users.length === 0 || activeUserIndex >= users.length;
-    if (hasNoActiveUser) {
-      return null;
-    }
-    return users[activeUserIndex];
+    return activeUserOf(this.state.participants);
   }
 
   /**
@@ -919,37 +745,7 @@ export class BattleService {
     const storeUser = this.userStore.getUserById(userId);
     if (!storeUser) return null;
 
-    const stats = storeUser.stats || {};
-    const special = stats.special || {};
-
-    // Extract HP/MP from either primitive or object structure { now, max }
-    const hp = typeof stats.hp === 'object' ? stats.hp?.now : stats.hp;
-    const maxHp = typeof stats.hp === 'object' ? stats.hp?.max : (stats.maxHp || 100);
-    const mp = typeof stats.mp === 'object' ? stats.mp?.now : stats.mp;
-    const maxMp = typeof stats.mp === 'object' ? stats.mp?.max : (stats.maxMp || 100);
-
-    // The first real number wins; heroes saved before `special` existed keep their top-level stats
-    const statOr = (fallback: number, ...candidates: unknown[]): number => {
-      const found = candidates.find((value) => typeof value === 'number' && Number.isFinite(value));
-      return typeof found === 'number' ? found : fallback;
-    };
-
-    // Convert store user to battle user interface
-    return {
-      id: userId,
-      name: storeUser.name?.nick || storeUser.name?.first || 'Player',
-      avatar: storeUser.avatar,
-      stats: {
-        level: stats.level || 1,
-        hp: typeof hp === 'number' ? hp : 100,
-        maxHp: typeof maxHp === 'number' ? maxHp : 100,
-        mp: typeof mp === 'number' ? mp : 100,
-        maxMp: typeof maxMp === 'number' ? maxMp : 100,
-        strength: statOr(10, special.strength, stats.strength),
-        defense: statOr(10, special.defense, stats.defense),
-        speed: statOr(10, special.speed, special.agility, stats.speed),
-      }
-    };
+    return toBattleUser(userId, storeUser);
   }
 
   /**
