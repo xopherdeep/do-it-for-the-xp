@@ -138,7 +138,7 @@ const $fx = {
   rpg: {
     earthbound: {
       BGM: {
-        intro: [song("xp-level-up-intro", "intro")],
+        intro: [song("cinematic-story-intro", "intro")],
         introOnline: [
           "https://starmen.net/mother2/music/018-%20Earthbound%20-%20Buzz%20Buzz_s%20Prophecy.mp3",
         ],
@@ -146,7 +146,7 @@ const $fx = {
         demoOnline: [
           "https://starmen.net/mother2/music/005- Earthbound - Opening Credits.mp3",
         ],
-        startScreen: [song("ready-set-xp", "startScreen")],
+        startScreen: [song("title-screen-theme", "startScreen")],
         startScreenOnline: [
           "https://starmen.net/mother2/music/004- Earthbound - Title Screen.mp3",
           "https://starmen.net/mother2/music/005- Earthbound - Opening Credits.mp3",
