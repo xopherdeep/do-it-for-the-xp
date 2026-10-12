@@ -23,10 +23,21 @@ const shopsStorage = new Storage({
 });
 import debug from '@/lib/utils/debug';
 import { ____, _00_, ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
-import { isWallToken } from '@/lib/engine/dungeons/SpatialPalette';
 import { getTempleIconClass } from '../../../hooks/useTempleIcon';
 import { getNarrativeItems, getPegasusItems } from '@/lib/engine/core/items/itemRegistry';
 import { canonicalRoomType, hasRoomTypeGuide, roomTypeShortLabel } from '../roomTypeGuide';
+import { floorSlice, getEntranceFloor, sortedFloorKeys, writeMazeCell } from './grid/floorLayers';
+import { listMonsterConfigs, type MonsterConfigOption } from './grid/monsterConfigs';
+import { syncNeighbourSides } from './grid/neighbourLinks';
+import {
+  applyChestType,
+  ensureContent,
+  prepareRoomForEditing,
+  seedTravelTargets,
+  stepForRoomType,
+  toggleConsumableItem
+} from './grid/roomContent';
+import { promoteToUniqueSymbol } from './grid/roomSymbols';
 
 // Room types organized by category. Labels and explanations come from ../roomTypeGuide. `master` is the Master Room
 // (the Pegasus Egg, after the boss), not a key room; `dragon-egg` is its older name and is never offered.
@@ -105,13 +116,7 @@ export const MINIBOSS_CONFIG_TOKENS = [
   'MINI', 'MIN1', 'MIN2', 'MIN3'
 ];
 
-// Interface for monster config options in the selector
-export interface MonsterConfigOption {
-  token: string;
-  name: string;
-  hasBeasts: boolean;
-  count: number;
-}
+export type { MonsterConfigOption };
 
 export interface UseTempleRoomEditorProps {
   templeId: string;
@@ -199,10 +204,6 @@ export interface UseTempleRoomEditorReturn {
   selectEggPegasus: (pegasusId: string) => void;
 }
 
-// A shared config token: not the entrance, not a room id, not already a unique coordinate id
-const isSharedConfigToken = (token: string): boolean =>
-  !token.startsWith('R') && token !== _00_ && !/^[A-Za-z]\d{4}$/.test(token);
-
 export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleRoomEditorReturn {
   const ionRouter = useIonRouter();
   const store = useTempleCreatorStore();
@@ -227,73 +228,12 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
 
   // Computed: Get available monster/miniboss configs in the current temple
   const availableMonsterConfigs = computed((): MonsterConfigOption[] => {
-    const configs: MonsterConfigOption[] = [];
-    const maze = store.templeMaze;
-    const roomsData = store.roomsData;
-
     // Determine which tokens to show based on pending type
     const tokenSet = pendingMonsterType.value === 'miniboss'
       ? MINIBOSS_CONFIG_TOKENS
       : MONSTER_CONFIG_TOKENS;
 
-    // Count how many times each token appears in the maze
-    const tokenCounts: Record<string, number> = {};
-
-    const countInMaze = (grid: string[][]) => {
-      for (const row of grid) {
-        for (const cell of row) {
-          if (tokenSet.includes(cell)) {
-            tokenCounts[cell] = (tokenCounts[cell] || 0) + 1;
-          }
-        }
-      }
-    };
-
-    if (Array.isArray(maze)) {
-      countInMaze(maze);
-    } else {
-      Object.values(maze).forEach(floor => countInMaze(floor as string[][]));
-    }
-
-    // Build config options for tokens that are in use or have room data
-    for (const token of tokenSet) {
-      const roomConfig = roomsData[token];
-      const count = tokenCounts[token] || 0;
-      const beasts = roomConfig?.content?.beasts || [];
-      const hasBeasts = beasts.length > 0;
-
-      // Only show if it's in use OR has been configured
-      const shouldListToken = count > 0 || hasBeasts || !!roomConfig;
-      if (shouldListToken) {
-        // Determine display name based on configuration state
-        let displayName = 'Empty';
-        if (hasBeasts) {
-          displayName = `${beasts.length} beast${beasts.length > 1 ? 's' : ''}`;
-        } else if (count > 0) {
-          displayName = `${count} room${count > 1 ? 's' : ''}`;
-        }
-
-        configs.push({
-          token,
-          name: displayName,
-          hasBeasts,
-          count
-        });
-      }
-    }
-
-    // Also show unused tokens (up to 3 that aren't in use)
-    const unusedTokens = tokenSet.filter(t => !configs.find(c => c.token === t));
-    for (let i = 0; i < Math.min(3, unusedTokens.length); i++) {
-      configs.push({
-        token: unusedTokens[i],
-        name: 'New shared config',
-        hasBeasts: false,
-        count: 0
-      });
-    }
-
-    return configs;
+    return listMonsterConfigs(tokenSet, store.templeMaze, store.roomsData);
   });
 
   const resetRoom = async () => {
@@ -373,40 +313,9 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     roomData.value.content.dungeon = pegasusId;
   };
 
-  // Helper for floor value sorting
-  const getFloorValue = (f: string): number => {
-    if (f.endsWith('F')) return parseInt(f);
-    if (f.startsWith('B')) return -parseInt(f.replace('B', ''));
-    return 0;
-  };
+  const floors = computed(() => sortedFloorKeys(store.templeMaze));
 
-  const floors = computed(() => {
-    const maze = store.templeMaze;
-    let keys: string[] = [];
-    if (Array.isArray(maze)) {
-      keys = ['1F'];
-    } else {
-      keys = Object.keys(maze);
-    }
-    return keys.sort((a, b) => getFloorValue(a) - getFloorValue(b));
-  });
-
-  const maze = computed(() => {
-    const allMaze = store.templeMaze;
-    return Array.isArray(allMaze)
-      ? allMaze
-      : (allMaze as Record<string, string[][]>)[store.currentLevelId] || [];
-  });
-
-  const getEntranceFloor = (floorList: string[]): string => {
-    const fFloors = floorList.filter(f => f.endsWith('F')).sort((a, b) => getFloorValue(a) - getFloorValue(b));
-    if (fFloors.length > 0) return fFloors[0];
-
-    const bFloors = floorList.filter(f => f.startsWith('B')).sort((a, b) => getFloorValue(b) - getFloorValue(a));
-    if (bFloors.length > 0) return bFloors[0];
-
-    return floorList[0] || '1F';
-  };
+  const maze = computed(() => floorSlice(store.templeMaze, store.currentLevelId));
 
   // Ensure store is loaded (for page refresh scenarios)
   const ensureStoreLoaded = async () => {
@@ -459,10 +368,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
   const loadRoomData = async () => {
     await ensureStoreLoaded();
 
-    const allMaze = store.templeMaze;
-    const maze = Array.isArray(allMaze)
-      ? allMaze
-      : (allMaze as Record<string, string[][]>)[store.currentLevelId] || [];
+    const maze = floorSlice(store.templeMaze, store.currentLevelId);
     const r = rowIdx.value;
     const c = colIdx.value;
     const symbol = maze[r]?.[c];
@@ -477,62 +383,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
         store.roomsData[symbol] = currentRoom;
       }
 
-      if (!currentRoom.content) currentRoom.content = {} as RoomContent;
-
-      // Migration: Move top-level properties to content (legacy support)
-      const rd = currentRoom as Record<string, unknown>;
-      if (rd.selectedBeastIds) {
-        currentRoom.content.beasts = rd.selectedBeastIds as string[];
-        delete rd.selectedBeastIds;
-      }
-      if (rd.isMimic !== undefined) {
-        currentRoom.content.isMimic = rd.isMimic as boolean;
-        delete rd.isMimic;
-      }
-      if (rd.mimicType) {
-        currentRoom.content.mimicType = rd.mimicType as string;
-        delete rd.mimicType;
-      }
-      if (rd.mimicBeastId) {
-        currentRoom.content.mimicBeastId = rd.mimicBeastId as string;
-        delete rd.mimicBeastId;
-      }
-      if (rd.lockOnEnter !== undefined) {
-        currentRoom.content.lockOnEnter = rd.lockOnEnter as boolean;
-        delete rd.lockOnEnter;
-      }
-      if (rd.chestType) {
-        currentRoom.content.chest = rd.chestType as string;
-        delete rd.chestType;
-      }
-
-      if (!currentRoom.content.beasts) currentRoom.content.beasts = [];
-
-      // Migration: Move legacy locked to sides
-      if (!currentRoom.sides && currentRoom.locked) {
-        currentRoom.sides = {
-          north: currentRoom.locked.north ? 'locked' : 'door',
-          east: currentRoom.locked.east ? 'locked' : 'door',
-          south: currentRoom.locked.south ? 'locked' : 'door',
-          west: currentRoom.locked.west ? 'locked' : 'door'
-        };
-        delete currentRoom.locked;
-      }
-
-      if (!currentRoom.sides) {
-        currentRoom.sides = { north: 'door', east: 'door', south: 'door', west: 'door' };
-      }
-
-      // Auto-select chest type from content if it exists
-      if (currentRoom.type === 'loot') {
-        if (currentRoom.content.dungeon) {
-          currentRoom.content.chest = 'dungeon';
-        } else if (currentRoom.content.gold !== undefined) {
-          currentRoom.content.chest = 'gold';
-        } else if (currentRoom.content.items?.length) {
-          currentRoom.content.chest = 'consumable';
-        }
-      }
+      prepareRoomForEditing(currentRoom);
 
       // Clone the room data to work with local state
       roomData.value = JSON.parse(JSON.stringify(currentRoom));
@@ -540,34 +391,9 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     }
   };
 
-  // Helper: Get opposite direction for bidirectional edge sync
-  const getOppositeDirection = (dir: string): string => {
-    const opposites: Record<string, string> = {
-      north: 'south',
-      south: 'north',
-      east: 'west',
-      west: 'east'
-    };
-    return opposites[dir] || dir;
-  };
-
-  // Helper: Get adjacent room coordinates
-  const getAdjacentCoords = (r: number, c: number, dir: string, rows: number, cols: number): { row: number; col: number } | null => {
-    switch (dir) {
-      case 'north': return r > 0 ? { row: r - 1, col: c } : null;
-      case 'south': return r < rows - 1 ? { row: r + 1, col: c } : null;
-      case 'east': return c < cols - 1 ? { row: r, col: c + 1 } : null;
-      case 'west': return c > 0 ? { row: r, col: c - 1 } : null;
-      default: return null;
-    }
-  };
-
   const saveToStore = async () => {
     const allMaze = store.templeMaze;
-    const isArrayMaze = Array.isArray(allMaze);
-    const maze = isArrayMaze
-      ? (allMaze as string[][])
-      : ((allMaze as Record<string, string[][]>)[store.currentLevelId] || []);
+    const maze = floorSlice(allMaze, store.currentLevelId);
 
     const r = rowIdx.value;
     const c = colIdx.value;
@@ -578,35 +404,16 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
       // If the current symbol is a shared token (wall, entrance, or other shared configs),
       // we MUST promote it to a unique coordinate-based ID so this specific cell 
       // can have its own data without affecting others.
-
-      // WALL TOKEN PROMOTION:
-      // When editing a wall cell, we MUST create a new unique token.
       // Saving to the shared wall token '____' would corrupt ALL walls in the temple.
-      if (isWallToken(symbol)) {
-        const newSymbol = store.generateUniqueSymbol(r, c, roomData.value.type || 'empty');
+      const promotedSymbol = promoteToUniqueSymbol(
+        symbol,
+        () => store.generateUniqueSymbol(r, c, roomData.value?.type || 'empty')
+      );
+      if (promotedSymbol !== symbol) {
+        // Update the maze grid so this cell uses the new unique token
+        writeMazeCell(allMaze, store.currentLevelId, r, c, promotedSymbol);
 
-        // Update the maze grid to use the new unique token
-        if (isArrayMaze) {
-          (allMaze as string[][])[r][c] = newSymbol;
-        } else {
-          (allMaze as Record<string, string[][]>)[store.currentLevelId][r][c] = newSymbol;
-        }
-
-        symbol = newSymbol;
-      }
-      // STANDARD PROMOTION: Other shared tokens (not entrance, not already unique)
-      else if (isSharedConfigToken(symbol)) {
-        const newSymbol = store.generateUniqueSymbol(r, c, roomData.value.type || 'empty');
-
-        // Update the maze grid in the store so this cell uses the new unique ID
-        if (isArrayMaze) {
-          (allMaze as string[][])[r][c] = newSymbol;
-        } else {
-          (allMaze as Record<string, string[][]>)[store.currentLevelId][r][c] = newSymbol;
-        }
-
-        // Use the new symbol for the room data update
-        symbol = newSymbol;
+        symbol = promotedSymbol;
       }
 
       // Update the store's roomsData with our local roomData
@@ -619,44 +426,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
       // When saving, ensure adjacent rooms have their connecting edges set to match.
       // This keeps configs consistent: if Room A sets north=locked, Room B's south=locked.
       if (roomData.value.sides) {
-        const rows = maze.length;
-        const cols = maze[0]?.length || 0;
-        const directions = ['north', 'south', 'east', 'west'] as const;
-
-        for (const dir of directions) {
-          const edgeType = roomData.value.sides[dir];
-          if (!edgeType) continue;
-
-          const adjCoords = getAdjacentCoords(r, c, dir, rows, cols);
-          if (!adjCoords) continue;
-
-          const neighborSymbol = maze[adjCoords.row]?.[adjCoords.col];
-          // Skip if neighbor is a wall token or doesn't exist
-          // This prevents walls from being corrupted into empty rooms
-          const isNeighborWallOrMissing = !neighborSymbol || isWallToken(neighborSymbol);
-          if (isNeighborWallOrMissing) continue;
-
-          // Get or initialize neighbor room data
-          // IMPORTANT: Only create room data for non-wall rooms that already have 
-          // a coordinate-based token (like R0000, M0000, etc.)
-          if (!store.roomsData[neighborSymbol]) {
-            // Check if this looks like a user-created room token vs a shared/system token
-            // If it's a shared token without data, we should NOT create empty data for it
-            const isCoordinateToken = /^[A-Za-z]\d{4}$/.test(neighborSymbol);
-            if (!isCoordinateToken) continue; // Skip shared tokens without explicit data
-
-            store.roomsData[neighborSymbol] = { type: 'empty' };
-          }
-
-          const neighborRoom = store.roomsData[neighborSymbol];
-          if (!neighborRoom.sides) {
-            neighborRoom.sides = { north: 'door', east: 'door', south: 'door', west: 'door' };
-          }
-
-          // Sync the opposite edge to the same type
-          const oppositeDir = getOppositeDirection(dir);
-          neighborRoom.sides[oppositeDir] = edgeType;
-        }
+        syncNeighbourSides(maze, r, c, roomData.value.sides, store.roomsData);
       }
 
       debug.log(`Room saved to store at ${r},${c}:`, store.roomsData[symbol]);
@@ -748,36 +518,22 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
 
     roomData.value.type = type;
 
-    // Monster rooms go to config selector first (step 2.5) - choose M001-M009
-    if (type === 'monster') {
-      pendingMonsterType.value = type;
-      if (!roomData.value.content) roomData.value.content = {} as RoomContent;
-      modalStep.value = 2.5;
-      return;
-    }
+    const step = stepForRoomType(type);
 
+    // Monster rooms go to config selector first (step 2.5) - choose M001-M009
     // Miniboss rooms go to config selector (step 2.5) - choose MINI/MIN1-MIN3
-    if (type === 'miniboss') {
+    if (step === 'monster-config') {
       pendingMonsterType.value = type;
-      if (!roomData.value.content) roomData.value.content = {} as RoomContent;
+      ensureContent(roomData.value);
       modalStep.value = 2.5;
       return;
     }
 
     // Boss rooms go directly to config (typically one BOSS per dungeon)
-    if (type === 'boss') {
-      if (!roomData.value.content) roomData.value.content = {} as RoomContent;
+    if (step === 'boss') {
+      ensureContent(roomData.value);
       // Assign BOSS token directly
-      const allMaze = store.templeMaze;
-      const isArrayMaze = Array.isArray(allMaze);
-      const r = rowIdx.value;
-      const c = colIdx.value;
-
-      if (isArrayMaze) {
-        (allMaze as string[][])[r][c] = 'BOSS';
-      } else {
-        (allMaze as Record<string, string[][]>)[store.currentLevelId][r][c] = 'BOSS';
-      }
+      writeMazeCell(store.templeMaze, store.currentLevelId, rowIdx.value, colIdx.value, 'BOSS');
 
       if (!store.roomsData['BOSS']) {
         store.roomsData['BOSS'] = { type: 'boss', content: { lockOnEnter: true } as RoomContent };
@@ -788,12 +544,8 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     }
 
     // Other types with configuration move to step 3 (the Master Room picks its Pegasus there)
-    if (['loot', 'shop', 'master', 'stairs-up', 'stairs-down', 'pit', 'void', 'teleport'].includes(type)) {
-      if (!roomData.value.content) roomData.value.content = {} as RoomContent;
-      if (['stairs-up', 'stairs-down', 'pit', 'void', 'teleport'].includes(type)) {
-        if (!roomData.value.content.targetLevel) roomData.value.content.targetLevel = store.currentLevelId;
-        if (!roomData.value.content.targetCoords) roomData.value.content.targetCoords = { x: 0, y: 0 };
-      }
+    if (step === 'config') {
+      seedTravelTargets(ensureContent(roomData.value), type, store.currentLevelId);
       modalStep.value = 3;
     } else {
       closeTypeModal();
@@ -804,8 +556,6 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
   const selectMonsterConfig = (token: string) => {
     if (!roomData.value) return;
 
-    const allMaze = store.templeMaze;
-    const isArrayMaze = Array.isArray(allMaze);
     const r = rowIdx.value;
     const c = colIdx.value;
 
@@ -814,11 +564,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
       const newSymbol = store.generateUniqueSymbol();
 
       // Update the maze grid
-      if (isArrayMaze) {
-        (allMaze as string[][])[r][c] = newSymbol;
-      } else {
-        (allMaze as Record<string, string[][]>)[store.currentLevelId][r][c] = newSymbol;
-      }
+      writeMazeCell(store.templeMaze, store.currentLevelId, r, c, newSymbol);
 
       // Initialize room data with the pending type
       store.roomsData[newSymbol] = {
@@ -828,11 +574,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
       roomData.value = JSON.parse(JSON.stringify(store.roomsData[newSymbol]));
     } else {
       // Use the selected M-token (shared config)
-      if (isArrayMaze) {
-        (allMaze as string[][])[r][c] = token;
-      } else {
-        (allMaze as Record<string, string[][]>)[store.currentLevelId][r][c] = token;
-      }
+      writeMazeCell(store.templeMaze, store.currentLevelId, r, c, token);
 
       // Initialize or get existing room data for this token
       if (!store.roomsData[token]) {
@@ -925,29 +667,8 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
   const selectChestType = (typeId: string) => {
     if (!roomData.value) return;
     if (!roomData.value.content) roomData.value.content = {} as RoomContent;
-    roomData.value.content.chest = typeId;
     // Initialize content based on type
-    if (typeId === 'dungeon') {
-      const currentDungeonItem = roomData.value.content.dungeon;
-      // Reset if current item is not in the strict dungeon list
-      const isValidDungeonItem = DUNGEON_ITEMS.some(i => i.id === currentDungeonItem);
-      const shouldResetDungeonItem = !currentDungeonItem || !isValidDungeonItem;
-      if (shouldResetDungeonItem) {
-        roomData.value.content.dungeon = 'small-key';
-      }
-    } else if (typeId === 'key-item') {
-      // Initialize with first key item if not set or invalid
-      const currentKeyItem = roomData.value.content.dungeon; // processing as same field 'dungeon' for ID
-      const isValidKeyItem = KEY_ITEMS.some(i => i.id === currentKeyItem);
-      const shouldResetKeyItem = !currentKeyItem || !isValidKeyItem;
-      if (shouldResetKeyItem) {
-        roomData.value.content.dungeon = KEY_ITEMS[0]?.id;
-      }
-    } else if (typeId === 'gold') {
-      roomData.value.content.gold = roomData.value.content.gold || 50;
-    } else if (typeId === 'consumable') {
-      roomData.value.content.items = roomData.value.content.items || ['potion'];
-    }
+    applyChestType(roomData.value.content, typeId, DUNGEON_ITEMS, KEY_ITEMS);
   };
 
   const selectDungeonItem = (itemId: string) => {
@@ -960,16 +681,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     if (!roomData.value) return;
     if (!roomData.value.content) roomData.value.content = {} as RoomContent;
     // Toggle item in the array
-    if (!roomData.value.content.items) {
-      roomData.value.content.items = [itemId];
-    } else if (roomData.value.content.items.includes(itemId)) {
-      roomData.value.content.items = roomData.value.content.items.filter((i: string) => i !== itemId);
-      if (roomData.value.content.items.length === 0) {
-        roomData.value.content.items = [itemId]; // Keep at least one
-      }
-    } else {
-      roomData.value.content.items.push(itemId);
-    }
+    toggleConsumableItem(roomData.value.content, itemId);
   };
 
   const updateAmount = (event: CustomEvent) => {

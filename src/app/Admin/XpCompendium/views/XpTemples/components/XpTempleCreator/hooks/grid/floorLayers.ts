@@ -1,0 +1,144 @@
+/**
+ * Floors and maze slices for the temple editor: floor names and their order, which floor takes the entrance, the
+ * blank layer a new floor starts from, and how one floor's grid is read out of (or written into) the temple maze.
+ * A temple maze is either one grid (a single-floor temple, always "1F") or a map of floor name to grid.
+ */
+import { ____ } from "@/lib/engine/dungeons/roomTypes";
+
+export type MazeData = string[][] | Record<string, string[][]>;
+
+/** "2F" is above "1F" and "B1" is below it; any other name sits at ground level */
+export const getFloorValue = (f: string): number => {
+  if (f.endsWith("F")) return parseInt(f);
+  if (f.startsWith("B")) return -parseInt(f.replace("B", ""));
+  return 0;
+};
+
+/** The floor names as the maze holds them: a single grid is the one floor "1F" */
+export const floorKeysOf = (maze: MazeData): string[] =>
+  Array.isArray(maze) ? ["1F"] : Object.keys(maze);
+
+/** Every floor, lowest (deepest basement) first */
+export const sortedFloorKeys = (maze: MazeData): string[] => {
+  let keys: string[] = [];
+  if (Array.isArray(maze)) {
+    keys = ["1F"];
+  } else {
+    keys = Object.keys(maze);
+  }
+  return keys.sort((a, b) => getFloorValue(a) - getFloorValue(b));
+};
+
+export const floorsAbove = (floors: string[], currentLevelId: string): string[] => {
+  const currentVal = getFloorValue(currentLevelId);
+  return floors
+    .filter((f) => getFloorValue(f) > currentVal)
+    .sort((a, b) => getFloorValue(a) - getFloorValue(b));
+};
+
+export const floorsBelow = (floors: string[], currentLevelId: string): string[] => {
+  const currentVal = getFloorValue(currentLevelId);
+  return floors
+    .filter((f) => getFloorValue(f) < currentVal)
+    .sort((a, b) => getFloorValue(b) - getFloorValue(a));
+};
+
+/** The one floor that may hold the entrance: the lowest surface floor, else the shallowest basement, else the first */
+export const getEntranceFloor = (floorList: string[]): string => {
+  const fFloors = floorList
+    .filter((f) => f.endsWith("F"))
+    .sort((a, b) => getFloorValue(a) - getFloorValue(b));
+  if (fFloors.length > 0) return fFloors[0];
+  const bFloors = floorList
+    .filter((f) => f.startsWith("B"))
+    .sort((a, b) => getFloorValue(b) - getFloorValue(a));
+  if (bFloors.length > 0) return bFloors[0];
+  return floorList[0] || "1F";
+};
+
+/** The names the "add floor" prompt offers: the next surface floor and the next basement */
+export const nextFloorOptions = (
+  existingFloors: string[]
+): { surface: string; basement: string } => {
+  let nextSurface = 2;
+  let nextBasement = 1;
+
+  existingFloors.forEach((f) => {
+    if (f.endsWith("F")) {
+      const n = parseInt(f);
+      if (n >= nextSurface) nextSurface = n + 1;
+    } else if (f.startsWith("B")) {
+      const n = parseInt(f.replace("B", ""));
+      if (n >= nextBasement) nextBasement = n + 1;
+    }
+  });
+
+  return {
+    surface: `${nextSurface}F`,
+    basement: `B${nextBasement}`,
+  };
+};
+
+/** A grid of walls */
+export const blankGrid = (rows: number, cols: number): string[][] => {
+  const grid: string[][] = [];
+  for (let i = 0; i < rows; i++) {
+    grid.push(new Array(cols).fill(____));
+  }
+  return grid;
+};
+
+/** A blank grid for a "RxC" grid size */
+export const blankFloorLayer = (gridSize: string): string[][] => {
+  const [rows, cols] = gridSize.split("x").map(Number);
+  return blankGrid(rows, cols);
+};
+
+/** The grid of one floor (the whole maze for a single-floor temple); an unknown floor reads as empty */
+export const floorSlice = (maze: MazeData, levelId: string): string[][] => {
+  if (Array.isArray(maze)) {
+    return maze;
+  }
+  return maze[levelId] || [];
+};
+
+/** Writes one cell of one floor's grid, in place */
+export const writeMazeCell = (
+  maze: MazeData,
+  levelId: string,
+  row: number,
+  col: number,
+  symbol: string
+): void => {
+  if (Array.isArray(maze)) {
+    maze[row][col] = symbol;
+  } else {
+    maze[levelId][row][col] = symbol;
+  }
+};
+
+/** The "RxC" size of a loaded maze (its first floor), or null when that floor has no rows */
+export const measureGridSize = (maze: MazeData): string | null => {
+  const firstLevel = Array.isArray(maze)
+    ? maze
+    : (Object.values(maze)[0] as string[][]);
+  const hasFloorLayout = firstLevel && firstLevel.length > 0;
+  if (hasFloorLayout) {
+    return `${firstLevel.length}x${firstLevel[0].length}`;
+  }
+  return null;
+};
+
+/** The floor to show after a layout loads: "1F" for a single grid, else the current floor if the maze has it */
+export const levelIdAfterLoad = (maze: MazeData, currentLevelId: string): string => {
+  if (Array.isArray(maze)) {
+    return "1F";
+  }
+  const dungeonFloors = Object.keys(maze);
+  const needsFloorCorrection =
+    dungeonFloors.length > 0 && !dungeonFloors.includes(currentLevelId);
+  if (needsFloorCorrection) {
+    return dungeonFloors.includes("1F") ? "1F" : dungeonFloors[0];
+  }
+  return currentLevelId;
+};
