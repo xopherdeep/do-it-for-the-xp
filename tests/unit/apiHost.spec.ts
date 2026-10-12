@@ -1,4 +1,4 @@
-import { resolveApiConfig } from "@/lib/api/apiHost";
+import { resolveApiConfig, compassRestRoot, compassSiteRoot } from "@/lib/api/apiHost";
 import Api from "@/lib/api/api.class";
 
 describe("resolveApiConfig", () => {
@@ -47,5 +47,19 @@ describe("Api with a nonce", () => {
     expect(fetchMock).toHaveBeenCalledWith("https://doit.forthexp.com/wp-json/wp/v2/xp_achievement", {
       method: "GET",
     });
+  });
+});
+
+describe("compass roots", () => {
+  it("point at doit.forthexp.com without a hosting site", () => {
+    expect(compassRestRoot(undefined)).toBe("https://doit.forthexp.com/wp-json");
+    expect(compassSiteRoot(undefined)).toBe("https://doit.forthexp.com");
+  });
+
+  it("follow the hosting site's REST root", () => {
+    const settings = { root: "https://doit.forthexp.com/wp-json/" };
+    expect(compassRestRoot(settings)).toBe("https://doit.forthexp.com/wp-json");
+    expect(compassSiteRoot(settings)).toBe("https://doit.forthexp.com");
+    expect(compassSiteRoot({ root: "https://family.example.org/wp-json/" })).toBe("https://family.example.org");
   });
 });

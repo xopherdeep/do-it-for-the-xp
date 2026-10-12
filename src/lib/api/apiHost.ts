@@ -32,3 +32,16 @@ export function resolveApiConfig(settings: WpApiSettings | undefined): ApiConfig
   }
   return { protocol: "https", url: "doit.forthexp.com", base: "wp-json/wp/v2" };
 }
+
+const DEFAULT_COMPASS_REST_ROOT = "https://doit.forthexp.com/wp-json";
+
+/** The WordPress REST root (no trailing slash): the hosting site when XP serves the app, else doit.forthexp.com. */
+export function compassRestRoot(settings: WpApiSettings | undefined = window.wpApiSettings): string {
+  const hostRoot = settings?.root;
+  return hostRoot ? hostRoot.replace(/\/+$/, "") : DEFAULT_COMPASS_REST_ROOT;
+}
+
+/** The WordPress site itself (the REST root without its /wp-json), where /buy/... lives. */
+export function compassSiteRoot(settings: WpApiSettings | undefined = window.wpApiSettings): string {
+  return compassRestRoot(settings).replace(/\/wp-json$/, "");
+}
