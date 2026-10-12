@@ -20,12 +20,32 @@
             "level": 3,
             "xp": { "now": 300, "next_level": 900, "ledger": [] },
             "gp": { "limit": 100, "debt": 0, "wallet": 40, "savings": 100, "ledger": [] },
-            "hp": { "now": 42, "max": 42, "min": 0 },
-            "mp": { "now": 12, "max": 12, "min": 0 },
+            "hp": { "now": 20, "max": 42, "min": 0 },
+            "mp": { "now": 300, "max": 300, "min": 0 },
             "ap": { "hour": [], "day": [], "week": [], "month": [], "year": [], "total": 4, "ledger": [] },
             "special": { "ledger": [], "strength": 12, "defense": 8, "endurance": 9, "intelligence": 8, "perception": 7, "wisdom": 6, "charisma": 8, "awareness": 7, "presence": 6, "agility": 9, "guts": 10, "luck": 7 },
             "ailments": []
-          }
+          },
+          "inventory": [{ "name": "Health Potion", "kind": "consumable", "qty": 2 }]
+        }
+      }
+    ],
+    "__abilities": [
+      {
+        "key": "ability-stop",
+        "value": {
+          "id": "ability-stop",
+          "name": "Stop",
+          "description": "Time stands still while you catch your breath.",
+          "type": "in-game",
+          "frequency": "daily",
+          "mpCost": 25,
+          "apRequirement": { "amount": 0, "period": "flat" },
+          "icon": "fa-hourglass-half",
+          "prerequisites": [],
+          "isPreset": false,
+          "position": { "x": 0, "y": 0 },
+          "battleEffect": "time-stop"
         }
       }
     ],
