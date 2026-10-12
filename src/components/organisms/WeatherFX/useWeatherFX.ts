@@ -107,7 +107,8 @@ export function useWeatherFX(): WeatherFXAPI {
         debug.warn("[useWeatherFX] could not stop the loop", error);
       }
     };
-    if (immediate || entry.audio.paused) {
+    const shouldMuteAtOnce = immediate || entry.audio.paused;
+    if (shouldMuteAtOnce) {
       try {
         entry.audio.volume = 0;
       } catch (error) {
@@ -125,7 +126,8 @@ export function useWeatherFX(): WeatherFXAPI {
       try {
         entry.audio.volume = 0;
         const result = entry.audio.play();
-        if (result && typeof result.catch === "function") {
+        const hasPlayPromise = !!result && typeof result.catch === "function";
+        if (hasPlayPromise) {
           result.catch(() => {
             // autoplay blocked or file missing: stay silent
             clearFade(entry);
@@ -164,7 +166,8 @@ export function useWeatherFX(): WeatherFXAPI {
     const type = currentSound.value;
     if (!type) return;
     const entry = entries.get(type);
-    if (entry && !entry.audio.paused && !isAppMuted()) fadeTo(entry, targetVolume(type));
+    const shouldAdjustLoop = !!entry && !entry.audio.paused && !isAppMuted();
+    if (shouldAdjustLoop) fadeTo(entry, targetVolume(type));
   }
 
   function dispose(immediate = true) {

@@ -130,11 +130,13 @@ export function useHeroScene(
 
   const tick = (): void => {
     raf = 0;
-    if (!running || disposed) return;
+    const isStopped = !running || disposed;
+    if (isStopped) return;
     const time = now();
     const dt = Math.min(0.1, time - lastFrame);
     lastFrame = time;
-    if (!dragging && Math.abs(spin) > 0.01) {
+    const isCoasting = !dragging && Math.abs(spin) > 0.01;
+    if (isCoasting) {
       yaw += spin * dt;
       spin *= Math.pow(0.04, dt); // friction
     }
@@ -145,11 +147,13 @@ export function useHeroScene(
   const shouldRun = (): boolean => !disposed && onScreen && !document.hidden && !!renderer;
   const sync = (): void => {
     const want = shouldRun();
-    if (want && !running) {
+    const shouldStart = want && !running;
+    const shouldStop = !want && running;
+    if (shouldStart) {
       running = true;
       lastFrame = now();
       raf = requestAnimationFrame(tick);
-    } else if (!want && running) {
+    } else if (shouldStop) {
       running = false;
       if (raf) cancelAnimationFrame(raf);
       raf = 0;
@@ -187,7 +191,8 @@ export function useHeroScene(
 
   const init = (): void => {
     const canvas = canvasRef.value;
-    if (!canvas || renderer || disposed) return;
+    const cannotInit = !canvas || renderer !== null || disposed;
+    if (cannotInit) return;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     try {
       renderer = new THREE.WebGLRenderer({
@@ -297,7 +302,8 @@ export function useHeroScene(
     intersectionObserver?.disconnect();
     document.removeEventListener("visibilitychange", onVisibility);
     const canvas = canvasRef.value;
-    if (canvas && interactive) {
+    const hasPointerListeners = !!canvas && interactive;
+    if (hasPointerListeners) {
       canvas.removeEventListener("pointerdown", onPointerDown);
       canvas.removeEventListener("pointermove", onPointerMove);
       canvas.removeEventListener("pointerup", onPointerUp);

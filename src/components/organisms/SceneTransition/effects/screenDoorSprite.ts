@@ -48,8 +48,10 @@ const RING = { x: LEAF_W - 9, y: 48 };
 
 /** Trim tone: bright on the top and hinge edge, shaded on the bottom and seam edge. */
 const trimShade = (x: number, y: number, seamEdge: number): number => {
-  if (y < 3 || x < 3) return 4;
-  if (y >= LEAF_H - 3 || seamEdge < 2) return 1;
+  const isLitEdge = y < 3 || x < 3;
+  if (isLitEdge) return 4;
+  const isShadedEdge = y >= LEAF_H - 3 || seamEdge < 2;
+  if (isShadedEdge) return 1;
   return 3;
 };
 
@@ -74,7 +76,8 @@ const paintLeaf = (trim: string[]): Grid => {
     for (let x = 0; x < LEAF_W; x++) {
       const frame = Math.min(x, y, LEAF_H - 1 - y); // the hinge side and the top and bottom
       const seamEdge = LEAF_W - 1 - x;
-      if (frame < 3 || seamEdge < 2) {
+      const isTrim = frame < 3 || seamEdge < 2;
+      if (isTrim) {
         // Trim: bright on the top and hinge edge, shaded on the bottom and seam edge
         const shade = trimShade(x, y, seamEdge);
         paint(g, x, y, tone(trim, frame === 2 ? shade - 1 : shade));

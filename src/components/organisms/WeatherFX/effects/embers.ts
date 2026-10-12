@@ -15,7 +15,8 @@ export const embers: EffectFactory = () => {
     update(f) {
       for (let i = 0; i < count; i++) {
         y[i] -= (25 + k[i] * 35) * f.dt; x[i] += Math.sin(f.time * 2.5 + k[i] * 9) * 14 * f.dt; life[i] -= f.dt * (0.18 + k[i] * 0.2);
-        if (life[i] <= 0 || y[i] < -5) { life[i] = 1; x[i] = rng() * f.width; y[i] = f.height + 4; }
+        const shouldRespawn = life[i] <= 0 || y[i] < -5;
+        if (shouldRespawn) { life[i] = 1; x[i] = rng() * f.width; y[i] = f.height + 4; }
       }
     },
     draw(f) {

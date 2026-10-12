@@ -16,7 +16,8 @@ export const stars: EffectFactory = (options = {}) => {
     },
     update(f) {
       if (f.reducedMotion) return;
-      if (shootT < 0 && f.time >= shootAt) { shootT = 0; sx = rng() * f.width * 0.7; sy = rng() * f.height * 0.3; }
+      const shouldLaunchShootingStar = shootT < 0 && f.time >= shootAt;
+      if (shouldLaunchShootingStar) { shootT = 0; sx = rng() * f.width * 0.7; sy = rng() * f.height * 0.3; }
       if (shootT >= 0) { shootT += f.dt * 1.6; if (shootT > 1) { shootT = -1; shootAt = f.time + 10 + rng() * 10; } }
     },
     draw(f) {

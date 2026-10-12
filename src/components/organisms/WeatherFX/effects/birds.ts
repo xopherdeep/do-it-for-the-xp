@@ -10,7 +10,8 @@ export const birds: EffectFactory = () => {
     init(f) { nextAt = f.time + 2 + rng() * 6; active = false; flock.length = 0; },
     update(f) {
       if (f.reducedMotion) return;
-      if (!active && f.time >= nextAt) {
+      const shouldLaunchFlock = !active && f.time >= nextAt;
+      if (shouldLaunchFlock) {
         active = true;
         flock.length = 0;
         const n = 2 + Math.floor(rng() * 4), dir = rng() < 0.5 ? 1 : -1;
@@ -18,7 +19,11 @@ export const birds: EffectFactory = () => {
       }
       if (active) {
         let gone = true;
-        for (const b of flock) { b.x += b.v * f.dt; b.y += Math.sin(f.time * 1.3 + b.ph) * 4 * f.dt; if (b.x > -60 && b.x < f.width + 60) gone = false; }
+        for (const b of flock) {
+          b.x += b.v * f.dt; b.y += Math.sin(f.time * 1.3 + b.ph) * 4 * f.dt;
+          const isStillCrossingSky = b.x > -60 && b.x < f.width + 60;
+          if (isStillCrossingSky) gone = false;
+        }
         if (gone) { active = false; nextAt = f.time + 8 + rng() * 7; }
       }
     },

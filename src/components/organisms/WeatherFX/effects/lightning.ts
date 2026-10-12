@@ -9,7 +9,8 @@ export const lightning: EffectFactory = () => {
   const effect: WeatherEffect = {
     init(f) { nextAt = f.time + 4 + rng() * 10; flash = 0; boltFrames = 0; },
     update(f) {
-      if (f.reducedMotion || f.intensity < 6) return;
+      const cannotStrike = f.reducedMotion || f.intensity < 6;
+      if (cannotStrike) return;
       if (f.time >= nextAt) {
         nextAt = f.time + 6 + rng() * 14;
         flash = 1;
@@ -25,7 +26,8 @@ export const lightning: EffectFactory = () => {
       if (flash > 0) flash = Math.max(0, flash - f.dt / 0.18);
     },
     draw(f) {
-      if (flash <= 0 && boltFrames <= 0) return;
+      const isSkyQuiet = flash <= 0 && boltFrames <= 0;
+      if (isSkyQuiet) return;
       const { ctx } = f;
       ctx.save();
       if (flash > 0) {

@@ -88,7 +88,8 @@ const run = (phase: string) => {
   const max = maxRadius();
   const entering = props.plan.direction === "in";
   if (phase === "cover") {
-    if (entering && !props.plan.sound) play$fx("openDoor");
+    const shouldPlayDoorSound = entering && !props.plan.sound;
+    if (shouldPlayDoorSound) play$fx("openDoor");
     if (entering) stepRadius(max, 0, CLOSE_MS, () => emit("covered"));
     else stepRadius(0, max, BURST_MS, () => emit("covered"));
   }

@@ -60,13 +60,14 @@ const isHidden = (box: Box, axis: Axis, positive: boolean, others: Box[]): boole
     if (o === box) continue;
     const touching = Math.abs((positive ? lo(o, axis) : hi(o, axis)) - plane) < EPS;
     const swallowing = lo(o, axis) < plane - EPS && hi(o, axis) > plane + EPS;
-    if (!touching && !swallowing) continue;
-    if (
+    const cannotHideFace = !touching && !swallowing;
+    if (cannotHideFace) continue;
+    const isFaceCovered =
       lo(o, u) <= lo(box, u) + EPS &&
       hi(o, u) >= hi(box, u) - EPS &&
       lo(o, v) <= lo(box, v) + EPS &&
-      hi(o, v) >= hi(box, v) - EPS
-    ) {
+      hi(o, v) >= hi(box, v) - EPS;
+    if (isFaceCovered) {
       return true;
     }
   }
@@ -87,7 +88,8 @@ export const visibleFaces = (box: Box, others: Box[]): Array<[Axis, boolean]> =>
 export const buildMeshData = (boxes: Box[]): MeshData => {
   const faces: Array<{ box: Box; axis: Axis; positive: boolean }> = [];
   for (const box of boxes) {
-    if (box.w <= 0 || box.h <= 0 || box.d <= 0) continue;
+    const isEmptyBox = box.w <= 0 || box.h <= 0 || box.d <= 0;
+    if (isEmptyBox) continue;
     for (const [axis, positive] of visibleFaces(box, boxes)) faces.push({ box, axis, positive });
   }
 

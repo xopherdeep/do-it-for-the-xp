@@ -60,7 +60,8 @@ export default defineComponent({
 
     const syncSound = () => {
       const sound = presetSound();
-      if (props.active && props.soundEnabled && sound) {
+      const shouldPlayLoop = props.active && props.soundEnabled && !!sound;
+      if (shouldPlayLoop) {
         playSound(sound, props.soundVolume);
       } else {
         stopSound();

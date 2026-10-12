@@ -85,7 +85,8 @@ const startVoxel = () => {
 // Cover-crops the photo onto a tiny canvas; the CSS scales it up with hard pixel edges.
 const drawPhoto = () => {
   const canvas = photoRef.value;
-  if (!canvas || !props.photo) return;
+  const cannotDrawPhoto = !canvas || !props.photo;
+  if (cannotDrawPhoto) return;
   const img = new Image();
   img.onload = () => {
     const ctx = canvas.getContext("2d");
@@ -104,10 +105,11 @@ const drawPhoto = () => {
 
 const show = async () => {
   await nextTick();
+  const shouldStartVoxel = !flat.value && !handle;
   if (showPhoto.value) {
     stopVoxel();
     drawPhoto();
-  } else if (!flat.value && !handle) {
+  } else if (shouldStartVoxel) {
     startVoxel();
   }
 };

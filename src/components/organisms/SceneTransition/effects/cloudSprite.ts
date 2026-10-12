@@ -94,8 +94,10 @@ export const paintCloud = (w: number, h: number, rand: () => number, palette: Cl
       }
       const up = reach(mask, x, y, 0, -1);
       let band = bodyBand(up);
-      if (reach(mask, x, y, 1, 0) <= 2 && band < 3) band++;
-      if (reach(mask, x, y, -1, 0) <= 2 && band > 0) band--;
+      const shouldRaiseBandAtRightEdge = reach(mask, x, y, 1, 0) <= 2 && band < 3;
+      if (shouldRaiseBandAtRightEdge) band++;
+      const shouldLowerBandAtLeftEdge = reach(mask, x, y, -1, 0) <= 2 && band > 0;
+      if (shouldLowerBandAtLeftEdge) band--;
       paint(g, x, y, palette.body[band]);
     }
   outlineGrid(g, palette.ink);

@@ -82,7 +82,8 @@ const draw = (now: number, fill: number) => {
     const t = angle[i] * ARMS + dist[i] * TWIST * ARMS * 0.5 - spin * ARMS;
     const phase = t - Math.floor(t);
     const o = i * 4;
-    if (fill < 1 && phase > fill) {
+    const isBetweenArms = fill < 1 && phase > fill;
+    if (isBetweenArms) {
       data[o + 3] = 0;
       continue;
     }

@@ -58,7 +58,8 @@ export const useMonsterRoam = (bounds: RoamBounds = {}) => {
     roamTimer = setTimeout(() => {
       isMoving.value = false;
       roamTimer = setTimeout(() => {
-        if (!isMoving.value && !isHovered.value) {
+        const shouldFaceForward = !isMoving.value && !isHovered.value;
+        if (shouldFaceForward) {
           facingYaw.value = 0;
         }
         const dwell = 2000 + Math.random() * 2600;

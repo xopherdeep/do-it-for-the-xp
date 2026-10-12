@@ -74,7 +74,8 @@ export function createWeatherCanvas(canvas: HTMLCanvasElement, options: WeatherC
     const nextWidth = Math.max(1, Math.round(rect.width || canvas.clientWidth || 1));
     const nextHeight = Math.max(1, Math.round(rect.height || canvas.clientHeight || 1));
     const nextDpr = Math.min(MAX_DPR, (typeof window !== "undefined" && window.devicePixelRatio) || 1);
-    if (nextWidth === width && nextHeight === height && nextDpr === dpr && !needsInit) return;
+    const isAlreadyMeasured = nextWidth === width && nextHeight === height && nextDpr === dpr && !needsInit;
+    if (isAlreadyMeasured) return;
     width = nextWidth;
     height = nextHeight;
     dpr = nextDpr;
@@ -106,7 +107,8 @@ export function createWeatherCanvas(canvas: HTMLCanvasElement, options: WeatherC
 
   const tick = () => {
     rafId = null;
-    if (!running || !visible || !inView || !ctx) return;
+    const cannotDraw = !running || !visible || !inView || !ctx;
+    if (cannotDraw) return;
     const t = now();
     if (!startTime) {
       startTime = t;
@@ -134,7 +136,8 @@ export function createWeatherCanvas(canvas: HTMLCanvasElement, options: WeatherC
     if (cost > SLOW_FRAME_MS) {
       slowStreak += 1;
       fastStreak = 0;
-      if (slowStreak >= SLOW_FRAMES_BEFORE_DROP && budget > MIN_BUDGET) {
+      const shouldDropBudget = slowStreak >= SLOW_FRAMES_BEFORE_DROP && budget > MIN_BUDGET;
+      if (shouldDropBudget) {
         budget = Math.max(MIN_BUDGET, budget - 0.25);
         slowStreak = 0;
         needsInit = true;
@@ -142,7 +145,8 @@ export function createWeatherCanvas(canvas: HTMLCanvasElement, options: WeatherC
     } else {
       slowStreak = 0;
       fastStreak += 1;
-      if (fastStreak >= FAST_FRAMES_BEFORE_RAISE && budget < 1) {
+      const shouldRaiseBudget = fastStreak >= FAST_FRAMES_BEFORE_RAISE && budget < 1;
+      if (shouldRaiseBudget) {
         budget = Math.min(1, budget + 0.25);
         fastStreak = 0;
         needsInit = true;
@@ -160,7 +164,8 @@ export function createWeatherCanvas(canvas: HTMLCanvasElement, options: WeatherC
   };
 
   const schedule = () => {
-    if (rafId !== null || !running || !visible || !inView) return;
+    const cannotSchedule = rafId !== null || !running || !visible || !inView;
+    if (cannotSchedule) return;
     if (typeof requestAnimationFrame !== "function") return;
     rafId = requestAnimationFrame(tick);
   };

@@ -19,7 +19,8 @@ const getRig = (hero: THREE.Object3D): HeroRig | null => {
   if (cached) return cached;
   const rig = hero.getObjectByName("rig") as THREE.Group | undefined;
   const shadow = hero.getObjectByName("shadow") as THREE.Mesh | undefined;
-  if (!rig || !shadow) return null;
+  const isRigMissing = !rig || !shadow;
+  if (isRigMissing) return null;
   const parts = {} as Record<PartName, THREE.Group>;
   for (const name of PART_NAMES) {
     const found = hero.getObjectByName(name) as THREE.Group | undefined;

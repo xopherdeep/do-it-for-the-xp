@@ -31,7 +31,8 @@ export const assembleHero = (look: HeroLook): Part[] => {
     if (!item) return;
     const handPart = parts.find((p) => p.name === handName);
     const armPart = parts.find((p) => p.name === armName);
-    if (!handPart || !armPart) return;
+    const cannotCarry = !handPart || !armPart;
+    if (cannotCarry) return;
     handPart.boxes.push(...translate(item.boxes, handPart.pivot));
     armPart.raise = item.raise;
   };

@@ -123,10 +123,12 @@ export default defineComponent({
       document.removeEventListener('keydown', handleKeyDown);
     };
 
+    const canSkipIntro = (): boolean => props.skipEnabled && isActive.value;
+
     // Handle keyboard and click events for skipping
     const handleKeyDown = (event: KeyboardEvent) => {
       debug.log('Key pressed:', event.key);
-      if (props.skipEnabled && isActive.value) {
+      if (canSkipIntro()) {
         skipIntro();
       }
     };
@@ -136,7 +138,8 @@ export default defineComponent({
       preloadedImages.value++;
       if (preloadedImages.value >= totalImages.value) {
         imagesReady.value = true;
-        if (props.autoPlay && currentIndex.value === -1) {
+        const shouldAutoStart = props.autoPlay && currentIndex.value === -1;
+        if (shouldAutoStart) {
           startIntro();
         }
       }
@@ -144,7 +147,7 @@ export default defineComponent({
 
     // Handle screen click
     const handleClick = () => {
-      if (!props.skipEnabled || !isActive.value) return;
+      if (!canSkipIntro()) return;
 
       // If typing is in progress, complete it immediately
       if (showText.value && !typingComplete.value && typingText.value) {
@@ -154,7 +157,8 @@ export default defineComponent({
       }
 
       // If typing is complete, advance to next splash
-      if (showText.value && typingComplete.value) {
+      const isReadyToAdvance = showText.value && typingComplete.value;
+      if (isReadyToAdvance) {
         nextSplash();
         return;
       }
@@ -166,9 +170,11 @@ export default defineComponent({
     // Play intro sound effect
     const playSound = (sound?: string) => {
       try {
-        if (sound && window.$fx && window.$fx.ui) {
+        const hasSoundPlayer = sound && window.$fx && window.$fx.ui;
+        if (hasSoundPlayer) {
           const soundPath = sound.split('.');
-          if (soundPath.length > 1 && window.$fx.ui[soundPath[0]] && window.$fx.ui[soundPath[0]][soundPath[1]]) {
+          const isKnownSound = soundPath.length > 1 && window.$fx.ui[soundPath[0]] && window.$fx.ui[soundPath[0]][soundPath[1]];
+          if (isKnownSound) {
             window.$fx.ui[soundPath[0]][soundPath[1]].play();
           }
         }
@@ -179,7 +185,8 @@ export default defineComponent({
 
     // Start the intro sequence
     const startIntro = () => {
-      if (!imagesReady.value && props.splashScreens.length > 0) {
+      const isStillLoadingImages = !imagesReady.value && props.splashScreens.length > 0;
+      if (isStillLoadingImages) {
         // Wait for images to load before starting
         return;
       }
@@ -289,7 +296,8 @@ export default defineComponent({
       // If all images are already cached, they might not trigger load events
       // In this case, we need to start the intro manually after a short delay
       fallbackTimeout = window.setTimeout(() => {
-        if (preloadedImages.value < totalImages.value && props.autoPlay) {
+        const shouldStartDespiteLoading = preloadedImages.value < totalImages.value && props.autoPlay;
+        if (shouldStartDespiteLoading) {
           debug.log('Starting intro despite not all images loaded');
           imagesReady.value = true;
           startIntro();

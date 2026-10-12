@@ -41,7 +41,8 @@ export const hair = (style: HairStyle, color: string, options: HairOptions = {})
   const slab = (r = 3.75, y1 = 15.75): Box[] => (covered ? [] : [box(-r, 15, -r, r, y1, r, H)]);
 
   if (options.hooded) {
-    if (style === "none" || style === "buzz" || style === "mohawk") return [];
+    const isHairHiddenByHood = style === "none" || style === "buzz" || style === "mohawk";
+    if (isHairHiddenByHood) return [];
     return [box(-3.5, 13.6, F_FRONT, 3.5, 14.25, F_FRONT + 0.25, H)];
   }
 

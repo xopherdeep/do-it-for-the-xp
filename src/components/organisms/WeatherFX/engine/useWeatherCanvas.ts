@@ -26,7 +26,8 @@ export function useWeatherCanvas(
 
   onMounted(() => {
     const canvas = canvasRef.value;
-    if (!canvas || typeof canvas.getContext !== "function" || !canvas.getContext("2d")) return;
+    const cannotPaint = !canvas || typeof canvas.getContext !== "function" || !canvas.getContext("2d");
+    if (cannotPaint) return;
     handle = createWeatherCanvas(canvas, {
       type: type.value,
       intensity: intensity.value,

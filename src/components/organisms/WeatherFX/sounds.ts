@@ -39,7 +39,8 @@ function getContext(): SoundContext | null {
 
 function moduleToUrl(mod: unknown): string | null {
   if (typeof mod === "string") return mod;
-  if (mod && typeof mod === "object" && "default" in mod) {
+  const hasDefaultExport = !!mod && typeof mod === "object" && "default" in mod;
+  if (hasDefaultExport) {
     const value = (mod as { default: unknown }).default;
     if (typeof value === "string") return value;
   }
@@ -72,7 +73,8 @@ export function getSoundSources(type: WeatherSoundType): { ogg: string | null; m
 /** The url this browser should play for `type`, or null when no file exists. */
 export function pickSoundSource(type: WeatherSoundType, audio?: { canPlayType?: (mime: string) => string }): string | null {
   const { ogg, mp3 } = getSoundSources(type);
-  if (ogg && mp3) {
+  const hasBothFormats = !!ogg && !!mp3;
+  if (hasBothFormats) {
     let oggOk = true;
     try {
       oggOk = !audio?.canPlayType || audio.canPlayType('audio/ogg; codecs="vorbis"') !== "";
