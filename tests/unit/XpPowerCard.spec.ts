@@ -2,10 +2,12 @@ import { mount } from "@vue/test-utils";
 import XpPowerCard from "@/app/Console/MyPortal/UserHud/MyAbilities/components/XpPowerCard.vue";
 import type { Ability, AbilityStatus } from "@/types/abilities";
 import type { HeroAbilitySnapshot } from "@/lib/services/abilities/heroAbilityStatus";
+import type { BattlePowerCard } from "@/lib/services/battle/BattlePowers";
 
 /**
  * The Power card in jsdom: the requirement and meter, the one line that says why a Power cannot be cast yet,
- * and the Cast button, which only works when the Power is available. The card is presentational (no store,
+ * and the Cast button, which only works when the Power is available. In a fight (`battle` set) the AP meter
+ * gives way to the MP and effect, and the battle reason decides Cast. The card is presentational (no store,
  * router or sounds), so nothing is mocked.
  */
 
@@ -32,7 +34,14 @@ const makeSnapshot = (ap: Partial<HeroAbilitySnapshot["ap"]> = {}): HeroAbilityS
 });
 
 const show = (
-  props: { ability?: Ability; status?: AbilityStatus; unlocked?: boolean; snapshot?: HeroAbilitySnapshot; casting?: boolean } = {}
+  props: {
+    ability?: Ability;
+    status?: AbilityStatus;
+    unlocked?: boolean;
+    snapshot?: HeroAbilitySnapshot;
+    casting?: boolean;
+    battle?: BattlePowerCard;
+  } = {}
 ) =>
   mount(XpPowerCard, {
     props: {
@@ -138,5 +147,29 @@ describe("XpPowerCard", () => {
     expect(spell.get(".power-chip").text()).toBe("Spell");
     expect(spell.get("i.power-icon").classes()).toEqual(expect.arrayContaining(["fad", "fa-sparkles"]));
     expect(spell.text()).toContain("5 MP · anytime");
+  });
+
+  it("battle prop hides the AP meter and shows MP and effect", async () => {
+    const card = show({
+      ability: makeAbility({ type: "in-game", mpCost: 30 }),
+      battle: { mp: 25, effect: "Pauses the clock for 15 minutes", reason: null },
+    });
+
+    expect(card.find(".power-ap").exists()).toBe(false);
+    expect(card.get(".power-cost").text()).toBe("25 MP · Pauses the clock for 15 minutes");
+    expect(card.find(".power-state").exists()).toBe(false);
+
+    await card.get("button.cast-btn").trigger("click");
+    expect(card.emitted("cast")).toEqual([["power-1"]]);
+  });
+
+  it("battle reason disables Cast", async () => {
+    const card = show({ battle: { mp: 25, effect: "Pauses the clock for 15 minutes", reason: "Not enough MP" } });
+
+    expect(card.get(".power-state").text()).toBe("Not enough MP");
+    expect(card.get("button.cast-btn").attributes("disabled")).toBeDefined();
+
+    await card.get("button.cast-btn").trigger("click");
+    expect(card.emitted("cast")).toBeUndefined();
   });
 });
