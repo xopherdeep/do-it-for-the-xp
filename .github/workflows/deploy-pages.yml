@@ -1,0 +1,65 @@
+name: Deploy to Cloudflare Pages
+
+# Every push to master builds the app and uploads dist/ to the Cloudflare Pages project
+# do-it-for-the-xp (custom domains app.forthexp.com and app.doit.forthexp.com).
+# Needs the repo secret CLOUDFLARE_API_TOKEN (Account > Cloudflare Pages > Edit) and the repo
+# variable CLOUDFLARE_ACCOUNT_ID.
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: pages-deploy-master
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      HAS_CLOUDFLARE_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.3.4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+        env:
+          NODE_OPTIONS: --max-old-space-size=6144
+
+      - name: Check the bundle ships no source maps or API keys
+        run: |
+          maps=$(find dist -name '*.map' | wc -l)
+          keys=$(grep -rlE 'AIza[0-9A-Za-z_-]{35}' dist | wc -l || true)
+          echo "source maps: $maps, Google API keys: $keys"
+          test "$maps" -eq 0
+          test "$keys" -eq 0
+
+      - name: Deploy
+        if: env.HAS_CLOUDFLARE_TOKEN == 'true'
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name do-it-for-the-xp --branch master --commit-hash ${{ github.sha }}
+
+      - name: Explain a skipped deploy
+        if: env.HAS_CLOUDFLARE_TOKEN != 'true'
+        run: echo "::warning::Built but not deployed - add the CLOUDFLARE_API_TOKEN repo secret."
