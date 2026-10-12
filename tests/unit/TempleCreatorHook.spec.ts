@@ -5,9 +5,11 @@
  * Only the browser's storage is faked (in memory).
  */
 import { createPinia, setActivePinia } from "pinia";
+import { toastController } from "@ionic/vue";
 import { useTempleCreator } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/hooks/useTempleCreator";
 import { TempleDb, templeStorage } from "@/lib/databases/TempleDb";
 import { _00_ } from "@/lib/engine/dungeons/roomTypes";
+import { writeMazeCell } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/hooks/grid/floorLayers";
 
 jest.mock("@ionic/storage", () => {
   const rows = new Map<string, Map<string, unknown>>();
@@ -62,6 +64,7 @@ const nextId = () => `creator-hook-temple-${++counter}`;
 
 beforeEach(() => {
   setActivePinia(createPinia());
+  (toastController.create as jest.Mock).mockClear();
 });
 
 /** A fresh creator on an empty store with a `rows`x`cols` first floor and the entrance at `entrance` */
@@ -218,5 +221,195 @@ describe("a 'row,col' entrance", () => {
       expect(creator.isEntrancePosition(1, 2)).toBe(true);
       expect(creator.entranceOnThisFloor.value).toBe("1,2");
     }
+  });
+});
+
+// --- #1219: the entrance follows the Game Master's edits -------------------------------------------------------------
+
+const doors = { north: "door", east: "door", south: "door", west: "door" };
+
+/** The Game Master picks `type` for a cell in the quick-edit popover */
+const paint = (creator: ReturnType<typeof useTempleCreator>, type: string, row: number, col: number) => {
+  creator.selectCell(row, col);
+  creator.applyRoomChanges(type, {}, doors);
+};
+
+const floorMap = (creator: ReturnType<typeof useTempleCreator>) =>
+  creator.templeMaze.value as Record<string, string[][]>;
+
+/** Every entrance token in a temple with floors, as "floor:row,col" */
+const entranceTokens = (creator: ReturnType<typeof useTempleCreator>) =>
+  Object.entries(floorMap(creator)).flatMap(([levelId, grid]) =>
+    entranceCells(grid).map(([row, col]) => `${levelId}:${row},${col}`)
+  );
+
+const savedEntrance = async (id: string) =>
+  (await new TempleDb(templeStorage).getTempleById(id))?.dungeonLayout?.entrance;
+
+/** A temple of `floorNames` floors, 3x4 each, with the entrance token already on the cell its position names */
+const startFloors = (floorNames: string[], entrance: string, tokenOn?: { levelId: string; row: number; col: number }) => {
+  const id = nextId();
+  const creator = startTemple(id, "3x4", entrance);
+  floorNames.forEach((name) => creator.addFloor(name));
+  if (tokenOn) writeMazeCell(creator.templeMaze.value, tokenOn.levelId, tokenOn.row, tokenOn.col, _00_);
+  creator.currentLevelId.value = "1F";
+  return { id, creator };
+};
+
+describe("painting the entrance on a cell", () => {
+  // Added with #1219: the editor only set the entrance on load, resize or reset, so a painted token and the saved
+  // entrance came apart (the game started the hero at the old place, or at a cell with no entrance token)
+  it("makes that cell the saved entrance and turns the old entrance cell into an empty room", async () => {
+    const id = nextId();
+    const creator = startTemple(id, "3x4", "0,0");
+    paint(creator, "entrance", 2, 3);
+
+    expect(creator.entrancePosition.value).toBe("2,3");
+    expect(entranceCells(creator.templeMaze.value as string[][])).toEqual([[2, 3]]);
+    const oldCell = (creator.templeMaze.value as string[][])[0][0];
+    expect(oldCell).not.toBe(_00_);
+    expect(creator.roomsData.value[oldCell]).toMatchObject({ type: "empty" });
+    expect(creator.isEntrancePosition(2, 3)).toBe(true);
+    expect(creator.isEntrancePosition(0, 0)).toBe(false);
+
+    await creator.saveTemple();
+    expect(await savedEntrance(id)).toEqual([2, 3]);
+  });
+
+  it("keeps the floor index when the temple has floors: the entrance is 'floor index,row,col' of the floor painted on", async () => {
+    const { id, creator } = startFloors(["2F"], "0,1,2");
+    paint(creator, "entrance", 2, 0);
+
+    expect(creator.entrancePosition.value).toBe("0,2,0");
+    expect(entranceTokens(creator)).toEqual(["1F:2,0"]);
+    expect(creator.entranceOnThisFloor.value).toBe("2,0");
+    const oldCell = floorMap(creator)["1F"][1][2];
+    expect(creator.roomsData.value[oldCell]).toMatchObject({ type: "empty" });
+
+    await creator.saveTemple();
+    expect(await savedEntrance(id)).toEqual([0, 2, 0]);
+  });
+
+  it("leaves one entrance when the old one was on another floor: that floor's token becomes an empty room", async () => {
+    const { id, creator } = startFloors(["2F"], "1,1,2", { levelId: "2F", row: 1, col: 2 });
+    expect(entranceTokens(creator)).toEqual(["2F:1,2"]);
+
+    paint(creator, "entrance", 0, 1); // the entrance floor is the lowest surface floor, 1F
+
+    expect(creator.entrancePosition.value).toBe("0,0,1");
+    expect(entranceTokens(creator)).toEqual(["1F:0,1"]);
+    const oldCell = floorMap(creator)["2F"][1][2];
+    expect(creator.roomsData.value[oldCell]).toMatchObject({ type: "empty" });
+
+    await creator.saveTemple();
+    expect(await savedEntrance(id)).toEqual([0, 0, 1]);
+  });
+
+  it("finds the old entrance when it is saved as the 5-character token a reloaded temple holds", () => {
+    const creator = startTemple(nextId(), "3x4", "0,0");
+    (creator.templeMaze.value as string[][])[0][0] = "_00__";
+    paint(creator, "entrance", 1, 1);
+
+    expect(creator.entrancePosition.value).toBe("1,1");
+    expect((creator.templeMaze.value as string[][])[0][0]).not.toBe("_00__");
+    expect(entranceCells(creator.templeMaze.value as string[][])).toEqual([[1, 1]]);
+  });
+
+  it("changes nothing when the entrance is painted on the cell that already is the entrance", () => {
+    const creator = startTemple(nextId(), "3x4", "1,2");
+    paint(creator, "entrance", 1, 2);
+    expect(creator.entrancePosition.value).toBe("1,2");
+    expect(entranceCells(creator.templeMaze.value as string[][])).toEqual([[1, 2]]);
+  });
+
+  it("is refused off the entrance floor, with the toast, and the entrance stays where it was", () => {
+    const { creator } = startFloors(["2F"], "0,1,2", { levelId: "1F", row: 1, col: 2 });
+    creator.currentLevelId.value = "2F";
+    paint(creator, "entrance", 0, 0);
+
+    expect(creator.entrancePosition.value).toBe("0,1,2");
+    expect(entranceTokens(creator)).toEqual(["1F:1,2"]);
+    expect(toastController.create).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining("lowest surface floor (1F)") })
+    );
+  });
+
+  it("does not move the entrance when another kind of room is painted", () => {
+    const creator = startTemple(nextId(), "3x4", "1,2");
+    paint(creator, "monster", 0, 0);
+    expect(creator.entrancePosition.value).toBe("1,2");
+    expect(entranceCells(creator.templeMaze.value as string[][])).toEqual([[1, 2]]);
+  });
+});
+
+describe("removing a floor", () => {
+  // Added with #1219: deleting a maze key shifts the index of every later floor, so "2,1,2" (the third floor) pointed
+  // at nothing, or at another floor, once a floor before it was gone
+  it("keeps an entrance on the same floor when a floor before it is removed: its floor index moves down one", async () => {
+    const { id, creator } = startFloors(["2F", "3F"], "2,1,2", { levelId: "3F", row: 1, col: 2 });
+    creator.removeFloor("2F");
+
+    expect(Object.keys(floorMap(creator))).toEqual(["1F", "3F"]);
+    expect(creator.entrancePosition.value).toBe("1,1,2");
+    creator.currentLevelId.value = "3F";
+    expect(creator.entranceOnThisFloor.value).toBe("1,2");
+    creator.currentLevelId.value = "1F";
+    expect(creator.entranceOnThisFloor.value).toBe("-1,-1");
+    expect(entranceTokens(creator)).toEqual(["3F:1,2"]);
+    expect(toastController.create).not.toHaveBeenCalled();
+
+    await creator.saveTemple();
+    expect(await savedEntrance(id)).toEqual([1, 1, 2]);
+  });
+
+  it("leaves the entrance alone when the floor removed comes after its floor", () => {
+    const { creator } = startFloors(["2F", "3F"], "0,1,2", { levelId: "1F", row: 1, col: 2 });
+    creator.removeFloor("3F");
+    expect(creator.entrancePosition.value).toBe("0,1,2");
+    expect(entranceTokens(creator)).toEqual(["1F:1,2"]);
+  });
+
+  it("leaves a 'row,col' entrance alone: it names no floor", () => {
+    const { creator } = startFloors(["2F", "3F"], "1,2", { levelId: "1F", row: 1, col: 2 });
+    creator.removeFloor("2F");
+    expect(creator.entrancePosition.value).toBe("1,2");
+    expect(entranceTokens(creator)).toEqual(["1F:1,2"]);
+  });
+
+  it("puts the entrance back at 0,0 of the entrance floor when its own floor is removed, and says so", async () => {
+    const { id, creator } = startFloors(["2F", "3F"], "1,1,2", { levelId: "2F", row: 1, col: 2 });
+    paint(creator, "monster", 0, 0); // the cell the entrance goes back to holds a room
+    const monsterSymbol = floorMap(creator)["1F"][0][0];
+    expect(creator.roomsData.value[monsterSymbol]).toMatchObject({ type: "monster" });
+
+    creator.removeFloor("2F");
+
+    expect(Object.keys(floorMap(creator))).toEqual(["1F", "3F"]);
+    expect(creator.entrancePosition.value).toBe("0,0,0");
+    expect(entranceTokens(creator)).toEqual(["1F:0,0"]);
+    expect(creator.roomsData.value[monsterSymbol]).toBeUndefined(); // the room the entrance took the cell from is gone
+    creator.currentLevelId.value = "1F";
+    expect(creator.isEntrancePosition(0, 0)).toBe(true);
+    expect(toastController.create).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringMatching(/2F.*1F/) })
+    );
+
+    await creator.saveTemple();
+    expect(await savedEntrance(id)).toEqual([0, 0, 0]);
+  });
+
+  it("counts the entrance floor's place among the floors left when its own floor is removed", () => {
+    const { creator } = startFloors(["B1", "2F"], "2,0,0", { levelId: "2F", row: 0, col: 0 });
+    // the maze holds its floors in the order 1F, B1, 2F; the entrance floor of 1F and 2F is 1F, the first
+    creator.removeFloor("2F");
+    expect(creator.entrancePosition.value).toBe("0,0,0");
+    expect(entranceTokens(creator)).toEqual(["1F:0,0"]);
+  });
+
+  it("still refuses to remove 1F and leaves the entrance alone", () => {
+    const { creator } = startFloors(["2F"], "1,1,2", { levelId: "2F", row: 1, col: 2 });
+    creator.removeFloor("1F");
+    expect(Object.keys(floorMap(creator))).toEqual(["1F", "2F"]);
+    expect(creator.entrancePosition.value).toBe("1,1,2");
   });
 });

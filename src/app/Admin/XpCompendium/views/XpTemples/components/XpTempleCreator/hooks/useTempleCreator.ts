@@ -40,6 +40,7 @@ import {
   nextFloorOptions as nextFloorOptionsFor,
   sortedFloorKeys,
 } from "./grid/floorLayers";
+import { placeEntrance, removeFloorFrom } from "./grid/entranceMoves";
 import {
   buildTempleCode,
   collectUniqueRooms,
@@ -384,18 +385,15 @@ export function useTempleCreator(
     }
   };
 
+  /** The temple as the entrance moves read and change it, in place: painting the entrance, or removing a floor */
+  const entranceTemple = () => ({ maze: templeMaze.value, rooms: roomsData.value, usedSymbols: usedSymbols.value });
+
   const removeFloor = (levelId: string) => {
-    if (levelId === "1F") return; // Absolute protection
-    if (Array.isArray(templeMaze.value)) return;
-
-    const mazeMap = templeMaze.value as Record<string, string[][]>;
-    if (Object.keys(mazeMap).length <= 1) return;
-
-    delete mazeMap[levelId];
-
-    // Fallback to the first available floor
-    const nextFloor = Object.keys(mazeMap)[0] || "1F";
-    setLevel(nextFloor);
+    const removal = removeFloorFrom(entranceTemple(), entrancePosition.value, levelId, store.generateUniqueSymbol);
+    if (!removal) return;
+    entrancePosition.value = removal.entrancePosition;
+    if (removal.notice) showToast(removal.notice);
+    setLevel(removal.nextLevelId);
   };
 
   const setLevel = (levelId: string) => {
@@ -526,6 +524,11 @@ export function useTempleCreator(
 
     currentSlice[row][col] = symbolToUse;
     currentMazeSlice.value = currentSlice;
+
+    if (newType === "entrance") {
+      const cell = { levelId: currentLevelId.value, row, col };
+      entrancePosition.value = placeEntrance(entranceTemple(), cell, store.generateUniqueSymbol);
+    }
 
     // A boss room's doors are all locked with the boss key
     const roomData = buildRoomRecord(newType, contentData, sideData);
