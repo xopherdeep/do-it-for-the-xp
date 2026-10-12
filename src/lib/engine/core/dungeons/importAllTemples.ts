@@ -1,84 +1,205 @@
 /**
- * Import All Temples - A utility to import all temple layouts into the TempleDb
+ * Import All Temples - copies the nine temples shipped in code into the TempleDb, and keeps those copies
+ * fresh without ever overwriting a Game Master's work.
+ *
+ * Every shipped record carries a `seedSignature`: the signature of the shipped layout it was imported from.
+ * - The record's layout still has that signature: nobody edited it, so when the shipped layout changes
+ *   (a new room, the master key, the boss room) the record is refreshed to the new layout.
+ * - The record's layout differs from its signature: the Game Master edited it, so it is never touched.
+ * - A record from before signatures (none stored) is unedited only if its layout equals the shipped one;
+ *   if it differs it is treated as edited (that is also what a hand-built copy looks like).
+ * Hero progress lives in another store (`__templeProgress`) and is never read or written here.
  */
 import { TempleDb, templeStorage, TempleInterface } from '@/lib/databases/TempleDb';
 import temples from '@/lib/engine/temples';
 import { Room } from './types';
 import debug from '@/lib/utils/debug';
 
+type SeedLayout = NonNullable<TempleInterface['dungeonLayout']>;
+
+/** A temple as shipped in code: the parts that make up its layout */
+export interface ShippedTemple {
+  entrance?: unknown;
+  maze?: unknown;
+  rooms?: unknown;
+}
+
+export interface ImportOptions {
+  /** The store to sync (default: the app's TempleDb) */
+  db?: TempleDb;
+  /** The temples shipped in code (default: the nine in src/lib/engine/temples) */
+  shipped?: Record<string, ShippedTemple>;
+}
+
 /**
- * Import all temple layouts into the TempleDb
- * This makes them available for editing in the temple creator
+ * What the import did with one shipped temple:
+ * - create:  no stored layout yet, the shipped one was written
+ * - refresh: unedited copy, the shipped layout changed, the copy now has the new layout
+ * - stamp:   an unsigned copy that equals the shipped layout got its signature (nothing else changed)
+ * - current: unedited copy that already has the shipped layout, nothing written
+ * - edited:  the Game Master's copy, kept as it is
  */
-export async function importAllTempleLayouts(): Promise<void> {
+export type SeedAction = 'create' | 'refresh' | 'stamp' | 'current' | 'edited';
+
+export interface SeedPlan {
+  action: SeedAction;
+  /** The signature of the shipped layout */
+  signature: string;
+}
+
+export type SeedReport = Record<string, SeedAction>;
+
+const SIGNATURE_VERSION = 'v1';
+
+/** The value as plain JSON with every object's keys in sorted order, so equal layouts stringify equal */
+function toStable(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(toStable);
+  if (value && typeof value === 'object') {
+    const sorted: Record<string, unknown> = {};
+    for (const key of Object.keys(value).sort()) sorted[key] = toStable((value as Record<string, unknown>)[key]);
+    return sorted;
+  }
+  return value;
+}
+
+/** A 53-bit string hash (cyrb53): plenty to tell one layout from another, and short enough to store beside it */
+function hashText(text: string): string {
+  let h1 = 0xdeadbeef;
+  let h2 = 0x41c6ce57;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(16);
+}
+
+/**
+ * A stable signature of a layout (entrance, maze and rooms). It reads the layout the way the TempleDb
+ * stores it (as JSON, so `undefined` fields do not count) and ignores key order.
+ */
+export function layoutSignature(layout: Partial<SeedLayout> | ShippedTemple | null | undefined): string {
+  const plain = JSON.parse(JSON.stringify({ entrance: layout?.entrance, maze: layout?.maze, rooms: layout?.rooms }));
+  return `${SIGNATURE_VERSION}:${hashText(JSON.stringify(toStable(plain)))}`;
+}
+
+/** What to do with a stored record given the layout now shipped for it. Pure. */
+export function planSeedSync(existing: TempleInterface | null | undefined, shipped: ShippedTemple): SeedPlan {
+  const signature = layoutSignature(shipped);
+  if (!existing?.dungeonLayout) return { action: 'create', signature };
+
+  const current = layoutSignature(existing.dungeonLayout);
+  const seeded = existing.seedSignature;
+  if (seeded) {
+    if (current !== seeded) return { action: 'edited', signature };
+    return { action: seeded === signature ? 'current' : 'refresh', signature };
+  }
+  // Nothing says what this copy was imported from: it is untouched only when it is the shipped layout
+  if (current !== signature) return { action: 'edited', signature };
+  return { action: 'stamp', signature };
+}
+
+const templeNames: Record<string, string> = {
+  'wind-temple': 'Wind Temple',
+  'earth-temple': 'Earth Temple',
+  'water-temple': 'Water Temple',
+  'fire-temple': 'Fire Temple',
+  'ice-temple': 'Ice Temple',
+  'light-temple': 'Light Temple',
+  'shadow-temple': 'Shadow Temple',
+  'storm-temple': 'Storm Temple',
+  'moon-temple': 'Moon Temple',
+};
+
+const templeDescriptions: Record<string, string> = {
+  'wind-temple': 'Masters of aerial magic and swift techniques',
+  'earth-temple': 'Guardians of nature and earthen powers',
+  'water-temple': 'Wielders of healing and fluid combat',
+  'fire-temple': 'Home to powerful offensive spells',
+  'ice-temple': 'Specialists in ice magic and defense',
+  'light-temple': 'Light magic and restoration abilities',
+  'shadow-temple': 'Dark magic and mysterious arts',
+  'storm-temple': 'Masters of lightning and thunder',
+  'moon-temple': 'Mysterious powers of the night sky',
+};
+
+// Temples whose edited copy was already reported this session, so the log says it once
+const reportedEdited = new Set<string>();
+
+async function syncSeeds(options: ImportOptions): Promise<SeedReport> {
+  const report: SeedReport = {};
   try {
-    // Initialize the storage
-    await templeStorage.create();
-    
-    // Create TempleDb instance
-    const templeDb = new TempleDb(templeStorage);
-    
-    // Get temple display names
-    const templeNames = {
-      "wind-temple":    "Wind Temple",
-      "earth-temple":   "Earth Temple",
-      "water-temple":   "Water Temple",
-      "fire-temple":    "Fire Temple",
-      "ice-temple":     "Ice Temple",
-      "light-temple":   "Light Temple",
-      "shadow-temple":  "Shadow Temple",
-      "storm-temple":   "Storm Temple",
-      "moon-temple":    "Moon Temple"
-    };
+    const db = options.db ?? new TempleDb(templeStorage);
+    await (options.db ? options.db.init() : templeStorage.create());
+    const shipped = options.shipped ?? (temples as unknown as Record<string, ShippedTemple>);
 
-    // Get temple descriptions
-    const templeDescriptions = {
-      "wind-temple":    "Masters of aerial magic and swift techniques",
-      "earth-temple":   "Guardians of nature and earthen powers",
-      "water-temple":   "Wielders of healing and fluid combat",
-      "fire-temple":    "Home to powerful offensive spells",
-      "ice-temple":     "Specialists in ice magic and defense",
-      "light-temple":   "Light magic and restoration abilities",
-      "shadow-temple":  "Dark magic and mysterious arts",
-      "storm-temple":   "Masters of lightning and thunder",
-      "moon-temple":    "Mysterious powers of the night sky"
-    };
-    
-    // Import each temple layout
-    for (const [templeId, templeData] of Object.entries(temples)) {
-      // A stored layout is the Game Master's work: never overwrite it. A record without one (settings
-      // saved before the layout was ever imported) keeps its fields and gains the shipped layout.
-      const existing = await templeDb.getTempleById(templeId);
-      if (existing?.dungeonLayout) {
-        debug.log(`Temple ${templeId} already exists in DB, skipping import to preserve user changes.`);
-        continue;
-      }
+    for (const [templeId, templeData] of Object.entries(shipped)) {
+      try {
+        const existing = await db.getTempleById(templeId);
+        const { action, signature } = planSeedSync(existing, templeData);
+        report[templeId] = action;
 
-      debug.log(`Importing ${templeId} layout to TempleDb for the first time...`);
-      
-      // Convert the temple to the TempleInterface format
-      const templeToSave: TempleInterface = {
-        id: templeId,
-        customName: templeNames[templeId] || templeId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' '),
-        customDescription: templeDescriptions[templeId] || `A mysterious temple of ${templeId.split('-')[0]} magic.`,
-        categoryIds: ['dungeon', templeId.split('-')[0]],
-        level: getTempleLevel(templeId),
-        dungeonLayout: {
-          entrance: templeData.entrance as number[],
-          maze: templeData.maze as string[][] | Record<string, string[][]>,
-          rooms: templeData.rooms as Record<string, Room>
+        if (action === 'edited') {
+          if (!reportedEdited.has(templeId)) {
+            reportedEdited.add(templeId);
+            debug.log(`Temple ${templeId} was edited by the Game Master, keeping their layout.`);
+          }
+          continue;
         }
-      };
-      
-      // Store the temple in the database
-      await templeDb.setTemple(existing ? { ...templeToSave, ...existing, dungeonLayout: templeToSave.dungeonLayout } : templeToSave);
-      debug.log(`${templeId} imported successfully to TempleDb`);
+        if (action === 'current') continue;
+
+        if (action === 'stamp' && existing) {
+          // The layout is already the shipped one: only remember where it came from
+          await db.setTemple({ ...existing, seedSignature: signature });
+          continue;
+        }
+
+        // create or refresh: the layout is the shipped one. A record without a layout (settings saved before
+        // the layout was ever imported) and a refreshed copy keep their own fields: name, icon, description.
+        const baseName = templeNames[templeId] || templeId.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+        const base: TempleInterface = {
+          id: templeId,
+          customName: baseName,
+          customDescription: templeDescriptions[templeId] || `A mysterious temple of ${templeId.split('-')[0]} magic.`,
+          categoryIds: ['dungeon', templeId.split('-')[0]],
+          level: getTempleLevel(templeId),
+          dungeonLayout: {
+            entrance: templeData.entrance as number[],
+            maze: templeData.maze as string[][] | Record<string, string[][]>,
+            rooms: templeData.rooms as Record<string, Room>,
+          },
+        };
+        debug.log(`${action === 'create' ? 'Importing' : 'Refreshing'} ${templeId} layout in TempleDb...`);
+        await db.setTemple({ ...base, ...existing, dungeonLayout: base.dungeonLayout, seedSignature: signature });
+      } catch (error) {
+        // One broken record must not keep the other temples from syncing
+        debug.error(`Failed to sync ${templeId} to TempleDb:`, error);
+      }
     }
-    
-    debug.log('All temple layouts imported successfully to TempleDb');
+
+    debug.log('All temple layouts synced with TempleDb');
   } catch (error) {
     debug.error('Failed to import temple layouts to TempleDb:', error);
   }
+  return report;
+}
+
+let running: Promise<SeedReport> | null = null;
+
+/**
+ * Sync the shipped temples into the TempleDb (see the top of this file). Safe to call as often as you
+ * like: it writes only what changed, and calls made while one is running share it.
+ */
+export function importAllTempleLayouts(options: ImportOptions = {}): Promise<SeedReport> {
+  if (options.db || options.shipped) return syncSeeds(options);
+  if (!running) {
+    running = syncSeeds(options).finally(() => {
+      running = null;
+    });
+  }
+  return running;
 }
 
 let builtInImport: Promise<void> | null = null;
@@ -89,7 +210,7 @@ let builtInImport: Promise<void> | null = null;
  * (and never offers to "Create Layout" over one). Runs the import once per session.
  */
 export function ensureBuiltInTemples(): Promise<void> {
-  if (!builtInImport) builtInImport = importAllTempleLayouts();
+  if (!builtInImport) builtInImport = importAllTempleLayouts().then(() => undefined);
   return builtInImport;
 }
 
@@ -97,17 +218,17 @@ export function ensureBuiltInTemples(): Promise<void> {
  * Get a default level for each temple type
  */
 function getTempleLevel(templeId: string): number {
-  const levels = {
-    "wind-temple": 1,
-    "water-temple": 2,
-    "earth-temple": 3,
-    "moon-temple": 4,
-    "fire-temple": 5,
-    "light-temple": 6,
-    "ice-temple": 7,
-    "storm-temple": 8,
-    "shadow-temple": 9
+  const levels: Record<string, number> = {
+    'wind-temple': 1,
+    'water-temple': 2,
+    'earth-temple': 3,
+    'moon-temple': 4,
+    'fire-temple': 5,
+    'light-temple': 6,
+    'ice-temple': 7,
+    'storm-temple': 8,
+    'shadow-temple': 9,
   };
-  
+
   return levels[templeId] || Math.floor(Math.random() * 5) + 1; // Default to random level 1-5
 }

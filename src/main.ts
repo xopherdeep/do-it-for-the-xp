@@ -134,6 +134,9 @@ if (process.env.NODE_ENV !== 'production') {
 
 readyRouterMountApp()
 
+// Refresh the temples shipped in code in this device's TempleDb before any temple opens (a Game Master's edited copy is kept)
+import('@/lib/engine/core/dungeons/importAllTemples').then(({ ensureBuiltInTemples }) => ensureBuiltInTemples()).catch(() => undefined);
+
 // E2E seam, development builds only: the Cypress suite seeds every store from a backup file and
 // signs a hero in without driving the whole onboarding flow (tests/e2e/support/commands.js).
 if (process.env.NODE_ENV !== 'production') {

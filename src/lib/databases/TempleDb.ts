@@ -22,6 +22,10 @@ export interface TempleInterface {
     maze: string[][] | Record<string, string[][]>;
     rooms: Record<string, Room>;
   };
+  // Set on the nine temples shipped in code (importAllTemples): the signature of the shipped layout this
+  // record was imported from. A record whose layout still has this signature is untouched by the Game Master
+  // and is refreshed when the shipped layout changes; a record whose layout differs is theirs and is kept.
+  seedSignature?: string;
   // A temple from the generator (src/lib/engine/dungeons/generator): its seed, theme and element
   seed?: number | string;
   themeId?: string;
