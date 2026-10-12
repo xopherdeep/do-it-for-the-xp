@@ -48,8 +48,12 @@ const emit = defineEmits<{ (e: "covered"): void; (e: "revealed"): void }>();
 const pegasus = computed(() => props.plan.variant === "pegasus");
 // Reduced motion: just the sky field, fading in and out
 const calm = prefersReducedMotion();
-const cover = calm ? 150 : pegasus.value ? 750 : 600;
-const reveal = calm ? 150 : pegasus.value ? 650 : 600;
+const sweepMs = (pegasusMs: number) => {
+  if (calm) return 150;
+  return pegasus.value ? pegasusMs : 600;
+};
+const cover = sweepMs(750);
+const reveal = sweepMs(650);
 const vars = computed(() => ({
   "--cover-ms": `${cover}ms`,
   "--reveal-ms": `${reveal}ms`,

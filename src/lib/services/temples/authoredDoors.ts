@@ -101,6 +101,13 @@ export const effectiveSide = (layout: DoorLayout, level: string, position: reado
 /** The sides an editor room starts with */
 const openSides = (): Record<string, string> => ({ north: 'door', east: 'door', south: 'door', west: 'door' });
 
+/** The grids of a layout: none for no maze, one for a single floor, one per floor otherwise */
+const gridsOf = (maze: Maze | null | undefined) => {
+  if (!maze) return [];
+  if (Array.isArray(maze)) return [maze];
+  return Object.values(maze).filter(Array.isArray);
+};
+
 /**
  * The rooms with the Boss Lock written on both ends of every door into or out of a boss room (on the same floor): a
  * plain door or a small lock there becomes 'masterlocked'. A wall or a bombable side stays what it is, and a room
@@ -110,7 +117,7 @@ const openSides = (): Record<string, string> => ({ north: 'door', east: 'door', 
  */
 export const bossDoorSides = <R extends DoorRoom>(maze: Maze | null | undefined, rooms: Record<string, R>): Record<string, R> => {
   const result: Record<string, R> = { ...rooms };
-  const grids = !maze ? [] : Array.isArray(maze) ? [maze] : Object.values(maze).filter(Array.isArray);
+  const grids = gridsOf(maze);
 
   for (const grid of grids) {
     grid.forEach((cells, row) =>

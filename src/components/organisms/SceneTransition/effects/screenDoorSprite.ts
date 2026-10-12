@@ -46,6 +46,28 @@ const tone = (ramp: string[], index: number): string => ramp[Math.max(0, Math.mi
 const BANDS = [14, 74];
 const RING = { x: LEAF_W - 9, y: 48 };
 
+/** Trim tone: bright on the top and hinge edge, shaded on the bottom and seam edge. */
+const trimShade = (x: number, y: number, seamEdge: number): number => {
+  if (y < 3 || x < 3) return 4;
+  if (y >= LEAF_H - 3 || seamEdge < 2) return 1;
+  return 3;
+};
+
+/** Board tone by column within a seven-wide board: lit on the left, darker to the right. */
+const boardShade = (bx: number): number => {
+  if (bx === 0) return 4;
+  if (bx <= 2) return 3;
+  if (bx <= 4) return 2;
+  return 1;
+};
+
+/** Ring pull tone: bright above the middle, shaded below. */
+const ringShade = (dy: number): number => {
+  if (dy < 0) return 4;
+  if (dy > 0) return 1;
+  return 3;
+};
+
 const paintLeaf = (trim: string[]): Grid => {
   const g = createGrid(LEAF_W, LEAF_H);
   for (let y = 0; y < LEAF_H; y++) {
@@ -54,7 +76,7 @@ const paintLeaf = (trim: string[]): Grid => {
       const seamEdge = LEAF_W - 1 - x;
       if (frame < 3 || seamEdge < 2) {
         // Trim: bright on the top and hinge edge, shaded on the bottom and seam edge
-        const shade = y < 3 || x < 3 ? 4 : y >= LEAF_H - 3 || seamEdge < 2 ? 1 : 3;
+        const shade = trimShade(x, y, seamEdge);
         paint(g, x, y, tone(trim, frame === 2 ? shade - 1 : shade));
         continue;
       }
@@ -65,7 +87,7 @@ const paintLeaf = (trim: string[]): Grid => {
       }
       // Boards seven wide: lit on the left, a dark seam on the right, a knot or two
       const bx = (x - 3) % 7;
-      paint(g, x, y, bx === 6 ? WOOD[0] : tone(WOOD, bx === 0 ? 4 : bx <= 2 ? 3 : bx <= 4 ? 2 : 1));
+      paint(g, x, y, bx === 6 ? WOOD[0] : tone(WOOD, boardShade(bx)));
     }
   }
   [[8, 34], [22, 60], [31, 24], [12, 86]].forEach(([x, y]) => {
@@ -82,7 +104,7 @@ const paintLeaf = (trim: string[]): Grid => {
   // The ring pull: a plate and a hoop
   const { x: rx, y: ry } = RING;
   [[0, -2], [-1, -1], [1, -1], [-2, 0], [2, 0], [-1, 1], [1, 1], [0, 2]].forEach(([dx, dy]) =>
-    paint(g, rx + dx, ry + dy, tone(IRON, dy < 0 ? 4 : dy > 0 ? 1 : 3)),
+    paint(g, rx + dx, ry + dy, tone(IRON, ringShade(dy))),
   );
   paint(g, rx, ry - 4, tone(IRON, 2));
   paint(g, rx, ry - 3, tone(IRON, 3));

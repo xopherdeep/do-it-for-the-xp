@@ -14,6 +14,13 @@ const fillRect = (g: ReturnType<typeof createGrid>, x: number, y: number, w: num
   for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) paint(g, x + i, y + j, fill);
 };
 
+/** A pediment pixel: bright on the left slope, shaded on the right, mid-tone between. */
+const slopeTone = (stone: string[], x: number, half: number): string => {
+  if (x < 14 - half + 2) return stone[4];
+  if (x > 14 + half - 3) return stone[2];
+  return stone[3];
+};
+
 export function irisTemple(element: string): PixelRun[] {
   const stone = doorPalette(element).stone;
   const g = createGrid(IRIS_SPRITE_W, IRIS_SPRITE_H);
@@ -21,7 +28,7 @@ export function irisTemple(element: string): PixelRun[] {
   // Pediment: a triangle two pixels wider per row, bright on its left slope
   for (let y = 0; y < 5; y++) {
     const half = 3 + y * 3;
-    for (let x = 14 - half; x < 14 + half; x++) paint(g, x, y, x < 14 - half + 2 ? stone[4] : x > 14 + half - 3 ? stone[2] : stone[3]);
+    for (let x = 14 - half; x < 14 + half; x++) paint(g, x, y, slopeTone(stone, x, half));
   }
   // Entablature
   fillRect(g, 1, 5, 26, 2, stone[3]);

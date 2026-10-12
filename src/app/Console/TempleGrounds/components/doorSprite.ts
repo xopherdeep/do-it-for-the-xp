@@ -85,6 +85,56 @@ const distanceToOpening = (x: number, y: number): number => {
   return 99;
 };
 
+// Shade picks for the sprites below, kept out of the drawing loops
+const thresholdStep = (y: number): number => {
+  if (y === DOOR_H - 4) return 4;
+  if (y === DOOR_H - 1) return 1;
+  return 3;
+};
+const archRingStep = (ring: number): number => {
+  if (ring === 1) return 1;
+  if (ring === 2) return 4;
+  return 3;
+};
+const blockLit = (bx: number, by: number): number => {
+  if (by === 0 || bx === 0) return 1;
+  if (by === 4) return -1;
+  return 0;
+};
+const keystoneStep = (x: number, y: number, half: number): number => {
+  if (x <= SEAM_X - half) return 4;
+  if (y >= 14) return 2;
+  return 3;
+};
+const boardShade = (side: 'left' | 'right', x: number, from: number, to: number): number => {
+  if (side === 'right' && x >= to - 3) return -1;
+  if (side === 'left' && x <= from + 2) return -1;
+  return 0;
+};
+const boardLight = (bx: number): number => {
+  if (bx === 0) return 3;
+  if (bx === 3) return 1;
+  return 2;
+};
+const ringPullStep = (dy: number): number => {
+  if (dy < 0) return 4;
+  if (dy > 0) return 1;
+  return 3;
+};
+const padlockStep = (y: number, t: number): number => {
+  if (y === LOCK_Y || t < 0.15) return 4;
+  if (t < 0.55) return 3;
+  if (t < 0.85) return 2;
+  return 1;
+};
+const linkStep = (sum: number): number => {
+  if (sum <= 1) return 4;
+  if (sum >= 3) return 1;
+  return 3;
+};
+const rimStep = (light: number): number => (light > 0 ? 4 : 1);
+const gemStep = (y: number, cy: number): number => (y >= cy - 5 ? 1 : 2);
+
 const grid = (): Grid => createGrid(DOOR_W, DOOR_H);
 const runs = (g: Grid): PixelRun[] => {
   outlineGrid(g, INK);
@@ -102,10 +152,10 @@ export const doorFrame = (element: string): PixelRun[] => {
       const ring = distanceToOpening(x, y);
       if (y >= DOOR_H - 4) {
         // The threshold: a worn step, lit along its top
-        paint(g, x, y, tone(stone, y === DOOR_H - 4 ? 4 : y === DOOR_H - 1 ? 1 : 3));
+        paint(g, x, y, tone(stone, thresholdStep(y)));
       } else if (ring <= 3) {
         // The dressed stone around the arch, brighter at the inner edge
-        paint(g, x, y, tone(stone, ring === 1 ? 1 : ring === 2 ? 4 : 3));
+        paint(g, x, y, tone(stone, archRingStep(ring)));
       } else {
         // Blocks ten wide and six high, every other course shifted half a block
         const course = Math.floor(y / 6);
@@ -113,8 +163,8 @@ export const doorFrame = (element: string): PixelRun[] => {
         const by = y % 6;
         if (by === 5 || bx === 9) paint(g, x, y, tone(stone, 0));
         else {
-          const lit = by === 0 || bx === 0 ? 1 : by === 4 ? -1 : 0;
-          const side = x < 4 ? -1 : x > DOOR_W - 6 ? -1 : 0;
+          const lit = blockLit(bx, by);
+          const side = x < 4 || x > DOOR_W - 6 ? -1 : 0;
           paint(g, x, y, tone(stone, 2 + lit + side));
         }
       }
@@ -124,7 +174,7 @@ export const doorFrame = (element: string): PixelRun[] => {
   for (let y = 8; y <= 15; y++) {
     const half = 4 - Math.floor((y - 8) / 3);
     for (let x = SEAM_X - half - 1; x <= SEAM_X + half; x++) {
-      paint(g, x, y, tone(stone, x <= SEAM_X - half ? 4 : y >= 14 ? 2 : 3));
+      paint(g, x, y, tone(stone, keystoneStep(x, y, half)));
     }
   }
   // A few cracks, the same every time
@@ -159,8 +209,8 @@ const leaf = (element: string, side: 'left' | 'right'): PixelRun[] => {
       } else {
         // Boards five wide: lit on the left, a dark seam on the right
         const bx = (x - from) % 5;
-        const shade = side === 'right' && x >= to - 3 ? -1 : side === 'left' && x <= from + 2 ? -1 : 0;
-        paint(g, x, y, bx === 4 ? WOOD[0] : tone(WOOD, (bx === 0 ? 3 : bx === 3 ? 1 : 2) + shade));
+        const shade = boardShade(side, x, from, to);
+        paint(g, x, y, bx === 4 ? WOOD[0] : tone(WOOD, boardLight(bx) + shade));
       }
     }
   }
@@ -174,7 +224,7 @@ const leaf = (element: string, side: 'left' | 'right'): PixelRun[] => {
   // The ring pull, near the seam
   const rx = side === 'left' ? SEAM_X - 6 : SEAM_X + 5;
   [[0, -2], [-1, -1], [1, -1], [-2, 0], [2, 0], [-1, 1], [1, 1], [0, 2]].forEach(([dx, dy]) =>
-    paint(g, rx + dx, 40 + dy, tone(metal, dy < 0 ? 4 : dy > 0 ? 1 : 3)),
+    paint(g, rx + dx, 40 + dy, tone(metal, ringPullStep(dy))),
   );
   paint(g, rx, 37, tone(metal, 2));
   return runs(g);
@@ -207,7 +257,7 @@ export const padlockBody = (element: string): PixelRun[] => {
     const inset = y >= LOCK_Y + 8 ? y - (LOCK_Y + 7) : 0;
     for (let x = SEAM_X - 7 + inset; x <= SEAM_X + 6 - inset; x++) {
       const t = (x - (SEAM_X - 7)) / 13;
-      paint(g, x, y, tone(metal, y === LOCK_Y ? 4 : t < 0.15 ? 4 : t < 0.55 ? 3 : t < 0.85 ? 2 : 1));
+      paint(g, x, y, tone(metal, padlockStep(y, t)));
     }
   }
   [[0, 3], [-1, 3], [0, 4], [-1, 4], [0, 5], [-1, 5], [0, 6], [-1, 6], [-1, 7], [0, 7]].forEach(([dx, dy]) =>
@@ -236,7 +286,7 @@ export const bossChains = (element: string): PixelRun[] => {
         for (let dy = 0; dy < 3; dy++) {
           for (let dx = 0; dx < 3; dx++) {
             if (dx === 1 && dy === 1) paint(g, x + dx, y + dy, INK);
-            else paint(g, x + dx, y + dy, tone(metal, dx + dy <= 1 ? 4 : dx + dy >= 3 ? 1 : 3));
+            else paint(g, x + dx, y + dy, tone(metal, linkStep(dx + dy)));
           }
         }
       } else {
@@ -269,14 +319,14 @@ export const bossLock = (element: string): PixelRun[] => {
       if (r > 10.4) continue;
       // A raised rim, then the face lit from the top left
       const light = -(dx + dy) / 14;
-      paint(g, x, y, tone(metal, r > 8.6 ? (light > 0 ? 4 : 1) : Math.round(2.4 + light)));
+      paint(g, x, y, tone(metal, r > 8.6 ? rimStep(light) : Math.round(2.4 + light)));
     }
   }
   // The gem, with its glint
   const gem = ['#5a0a14', '#a01428', '#e0283c', '#ff8a96'];
   for (let y = cy - 8; y <= cy - 4; y++) {
     const half = 2 - Math.abs(y - (cy - 6));
-    for (let x = SEAM_X - 1 - half; x <= SEAM_X + half; x++) paint(g, x, y, gem[y <= cy - 7 ? 2 : y >= cy - 5 ? 1 : 2]);
+    for (let x = SEAM_X - 1 - half; x <= SEAM_X + half; x++) paint(g, x, y, gem[gemStep(y, cy)]);
   }
   paint(g, SEAM_X - 1, cy - 7, gem[3]);
   // The keyhole: a round head and a long slot

@@ -248,7 +248,11 @@
     return { "--crest": `rgb(${r}, ${g}, ${b})`, "--crest-rgb": `${r}, ${g}, ${b}` };
   };
 
-  const tierLabel = (tier: ClassCodexEntry["tier"]) => (tier === 3 ? "Crown class" : tier === 2 ? "Advanced class" : "Base class");
+  const tierLabel = (tier: ClassCodexEntry["tier"]) => {
+    if (tier === 3) return "Crown class";
+    if (tier === 2) return "Advanced class";
+    return "Base class";
+  };
 
   const entries = computed<ClassCodexEntry[]>(() => classCodex(classLevelsOf(props.user?.stats?.classes)));
   const currentName = computed(() => canonicalClassName(props.user?.jobClass));

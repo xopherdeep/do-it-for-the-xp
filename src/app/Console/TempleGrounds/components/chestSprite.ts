@@ -63,6 +63,39 @@ const sideShade = (x: number): number => {
 const wood = (tone: number): string => WOOD[Math.max(0, Math.min(WOOD.length - 1, tone))];
 
 /** Two-pixel rivet: a bright head with its shadow below. */
+/** Plank tone by row within the seven-row plank: bright top edge, dark seam at the bottom */
+const plankTone = (plankRow: number): number => {
+  if (plankRow === 0) return 3;
+  if (plankRow === 6) return 0;
+  return plankRow >= 4 ? 1 : 2;
+};
+
+/** Gold tone across the lock plate: bright along the top and the left edge, fading to the right */
+const lockTone = (y: number, t: number): number => {
+  if (y === 2 || t < 0.12) return 4;
+  if (t < 0.5) return 3;
+  return t < 0.85 ? 2 : 1;
+};
+
+/** Wood tone banded over the lid's curve: highlight at the crown, falling into shadow above the rim */
+const lidTone = (y: number): number => {
+  if (y <= 3) return 4;
+  if (y <= 7) return 3;
+  return y <= 12 ? 2 : 1;
+};
+
+/** Gold tone across the hasp: lit on its left column, then falling to the right */
+const haspTone = (x: number): number => {
+  if (x === 29) return 4;
+  return x <= 31 ? 3 : 2;
+};
+
+/** Wood tone on the open lid's inside face: the light fades towards the hinge */
+const insideTone = (y: number): number => {
+  if (y <= 4) return 2;
+  return y <= 9 ? 1 : 0;
+};
+
 const rivet = (g: Grid, x: number, y: number) => {
   set(g, x, y, GOLD[4]);
   set(g, x + 1, y, GOLD[3]);
@@ -88,7 +121,7 @@ export const chestBody = (): ChestRun[] => {
       } else {
         // Planks seven rows high: a bright top edge, the face, a dark seam at the bottom
         const plankRow = (y - 3) % 7;
-        const tone = plankRow === 0 ? 3 : plankRow === 6 ? 0 : plankRow >= 4 ? 1 : 2;
+        const tone = plankTone(plankRow);
         set(g, x, y, wood(tone + sideShade(x)));
       }
     }
@@ -104,7 +137,7 @@ export const chestBody = (): ChestRun[] => {
     const inset = y >= 11 ? y - 10 : 0;
     for (let x = 26 + inset; x <= 37 - inset; x++) {
       const t = (x - 26) / 11;
-      const tone = y === 2 || t < 0.12 ? 4 : t < 0.5 ? 3 : t < 0.85 ? 2 : 1;
+      const tone = lockTone(y, t);
       set(g, x, y, GOLD[y >= 12 ? Math.min(tone, 2) : tone]);
     }
   }
@@ -139,7 +172,7 @@ export const chestLidClosed = (): ChestRun[] => {
         set(g, x, y, y <= 3 ? GOLD[4] : strapTone(x, strap));
       } else {
         // Banded light over the curve: highlight at the crown, falling into shadow above the rim
-        const tone = y <= 3 ? 4 : y <= 7 ? 3 : y <= 12 ? 2 : 1;
+        const tone = lidTone(y);
         set(g, x, y, wood(tone + sideShade(x)));
       }
     }
@@ -149,7 +182,7 @@ export const chestLidClosed = (): ChestRun[] => {
   for (let x = 22; x <= 25; x++) set(g, x, 1, '#f8dcae');
   STRAPS.forEach(([from]) => [7, 12].forEach((y) => rivet(g, from + 2, y)));
   // The hasp that drops onto the lock
-  for (let y = 13; y <= 19; y++) for (let x = 29; x <= 34; x++) set(g, x, y, GOLD[x === 29 ? 4 : x <= 31 ? 3 : 2]);
+  for (let y = 13; y <= 19; y++) for (let x = 29; x <= 34; x++) set(g, x, y, GOLD[haspTone(x)]);
   outline(g);
   return toRuns(g, 0);
 };
@@ -168,8 +201,9 @@ export const chestLidOpen = (): ChestRun[] => {
         set(g, x, y, GOLD[1]);
       } else {
         // Vertical boards, every eighth column a seam; the light fades towards the hinge
-        const tone = y <= 4 ? 2 : y <= 9 ? 1 : 0;
-        set(g, x, y, (x - LEFT) % 8 === 0 ? WOOD[0] : wood(tone + (sideShade(x) < 0 ? -1 : 0)));
+        const tone = insideTone(y);
+        const lean = sideShade(x) < 0 ? -1 : 0;
+        set(g, x, y, (x - LEFT) % 8 === 0 ? WOOD[0] : wood(tone + lean));
       }
     }
   }

@@ -235,7 +235,11 @@ const isEmpty = computed(() => props.loot.length === 0);
 const waiting = computed(() => phase.value === "closed" || phase.value === "rattle");
 
 // A shut chest gives nothing away: its light has the plain colour until the lid flies
-const glow = computed(() => (waiting.value ? "item" : isEmpty.value ? "empty" : chestGlow(props.loot) ?? "item"));
+const glow = computed(() => {
+  if (waiting.value) return "item";
+  if (isEmpty.value) return "empty";
+  return chestGlow(props.loot) ?? "item";
+});
 
 const title = computed(() => {
   if (waiting.value) return "A chest!";

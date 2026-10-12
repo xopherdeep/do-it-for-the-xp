@@ -87,9 +87,22 @@ const paintGlyph = (g: Grid, glyph: string[], x0: number, y0: number) => {
   );
   glyph.forEach((row, dy) =>
     [...row].forEach((cell, dx) => {
-      if (cell === '#') paint(g, x0 + dx, y0 + dy, dy === 0 ? GOLD[4] : dy === glyph.length - 1 ? GOLD[2] : GOLD[3]);
+      if (cell === '#') paint(g, x0 + dx, y0 + dy, GOLD[glyphTone(dy, glyph.length)]);
     }),
   );
+};
+
+/** Gold tone for a glyph row: lit on the first row, shadowed on the last */
+const glyphTone = (dy: number, rows: number): number => {
+  if (dy === 0) return 4;
+  return dy === rows - 1 ? 2 : 3;
+};
+
+/** Gold tone on a coin's rim: lit on the left, then falling from the top rows into shadow */
+const rimTone = (dx: number, dy: number): number => {
+  if (dx < -COIN_RX + 3 && dy <= 0) return 3;
+  if (dy <= 0) return 2;
+  return dy === 1 ? 1 : 0;
 };
 
 const paintGlyphs = (g: Grid) => {
@@ -155,7 +168,7 @@ const paintEllipse = (g: Grid, cx: number, cy: number, rx: number, ry: number, f
 const paintCoin = (g: Grid, cx: number, cy: number) => {
   // The rim: the same ellipse two rows lower, in three tones from lit to shadowed, brightest on the left
   paintEllipse(g, cx, cy + 2, COIN_RX, COIN_RY, (dx, dy) =>
-    dx < -COIN_RX + 3 && dy <= 0 ? GOLD[3] : dy <= 0 ? GOLD[2] : dy === 1 ? GOLD[1] : GOLD[0],
+    GOLD[rimTone(dx, dy)],
   );
   // The face: a bright edge along the top left and a pale mark in the middle
   paintEllipse(g, cx, cy, COIN_RX, COIN_RY, (dx, dy) => {

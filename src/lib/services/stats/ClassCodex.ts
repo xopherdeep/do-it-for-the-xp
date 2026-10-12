@@ -113,8 +113,14 @@ const evolutionsOf = (name: string, levels: Record<string, number>): CodexEvolut
     met: isClassUnlocked(job.name, levels),
   }));
 
+const codexTier = (tier: number | undefined): 1 | 2 | 3 => {
+  if (tier === 3) return 3;
+  if (tier === 2) return 2;
+  return 1;
+};
+
 const buildEntry = (job: JobClass, levels: Record<string, number>): ClassCodexEntry => {
-  const tier = job.tier === 3 ? 3 : job.tier === 2 ? 2 : 1;
+  const tier = codexTier(job.tier);
   const requirement = JOB_UNLOCK_REQUIREMENTS[job.name] ?? {};
   return {
     name: job.name,

@@ -138,7 +138,9 @@ export const auditTemple = (temple: AuditableTemple | null | undefined): AuditRe
   const compasses = countOf(rooms, (room) => chestItem(room) === 'compass');
 
   // A temple without a gate ends where it began: the entrance is also the way out (how the generator builds them)
-  const exitDetail = gates > 0 ? 'Placed' : entrances > 0 ? 'Entrance doubles as exit' : 'Missing';
+  let exitDetail = 'Missing';
+  if (gates > 0) exitDetail = 'Placed';
+  else if (entrances > 0) exitDetail = 'Entrance doubles as exit';
 
   const checks: AuditCheck[] = [
     { id: 'entrance', label: 'Entrance', ok: entrances === 1, detail: oneOf(entrances, 'entrances') },

@@ -58,6 +58,14 @@ const reach = (mask: boolean[][], x: number, y: number, dx: number, dy: number):
 };
 
 /** One cloud of puffs on a flat base, shaded and inked. */
+/** Which body band a pixel falls in, by how far the cloud reaches above it. */
+const bodyBand = (up: number): number => {
+  if (up <= 2) return 0;
+  if (up <= 5) return 1;
+  if (up <= 9) return 2;
+  return 3;
+};
+
 export const paintCloud = (w: number, h: number, rand: () => number, palette: CloudPalette): Grid => {
   const mask = Array.from({ length: h }, () => Array<boolean>(w).fill(false));
   const baseY = h - 2;
@@ -85,7 +93,7 @@ export const paintCloud = (w: number, h: number, rand: () => number, palette: Cl
         continue;
       }
       const up = reach(mask, x, y, 0, -1);
-      let band = up <= 2 ? 0 : up <= 5 ? 1 : up <= 9 ? 2 : 3;
+      let band = bodyBand(up);
       if (reach(mask, x, y, 1, 0) <= 2 && band < 3) band++;
       if (reach(mask, x, y, -1, 0) <= 2 && band > 0) band--;
       paint(g, x, y, palette.body[band]);
