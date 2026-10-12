@@ -270,7 +270,7 @@ describe("TempleSystem.initTemple start floor", () => {
     expect(temples.getTempleState(id)).toMatchObject({ currentLevel: "2F", currentPosition: [0, 1] });
   });
 
-  it("hands the floor the temple screen passes through useTemple to the temple", () => {
+  it("hands the floor the temple screen passes through useTemple to the temple", async () => {
     const id = registerTower(nextId());
     const wrapper = mount(
       defineComponent({
@@ -280,6 +280,7 @@ describe("TempleSystem.initTemple start floor", () => {
     );
 
     const vm = wrapper.vm as any;
+    await vm.whenOpened; // the run starts once the temple's saved layout was read
     expect(vm.currentLevel).toBe("2F");
     expect(vm.currentPosition).toEqual([0, 1]);
     expect(vm.currentRoom?.type).toBe("monster");
@@ -386,7 +387,9 @@ describe("TempleGrounds start", () => {
     const router = createTempleRouter();
     await router.push(url);
     await router.isReady();
-    return mount({ ...TempleGrounds, render: () => null }, { props, global: { plugins: [router] } });
+    const wrapper = mount({ ...TempleGrounds, render: () => null }, { props, global: { plugins: [router] } });
+    await (wrapper.vm as any).whenOpened; // the run starts once the temple's saved layout was read
+    return wrapper;
   };
 
   it("puts the hero on the floor named by ?level= in the room named by x and y", async () => {

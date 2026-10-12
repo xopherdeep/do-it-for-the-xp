@@ -17,6 +17,7 @@ import temples from '@/lib/engine/temples';
 import { Room } from './types';
 import debug from '@/lib/utils/debug';
 import { auditTemple, type AuditableLayout } from '@/lib/services/temples/templeAudit';
+import { startTempleSync } from './templeFreshness';
 
 type SeedLayout = NonNullable<TempleInterface['dungeonLayout']>;
 
@@ -217,9 +218,15 @@ let builtInImport: Promise<void> | null = null;
  * The nine shipped temples are only copied into the TempleDb on demand. Every Compendium temple screen
  * awaits this before reading the TempleDb, so a Game Master never sees a shipped temple as empty
  * (and never offers to "Create Layout" over one). Runs the import once per session.
+ *
+ * The first call is at app start (main.ts), so it also starts the engine following the TempleDb: from then on a
+ * temple saved in the editor is played as saved, without a reload (templeFreshness).
  */
 export function ensureBuiltInTemples(): Promise<void> {
-  if (!builtInImport) builtInImport = importAllTempleLayouts().then(() => undefined);
+  if (!builtInImport) {
+    startTempleSync();
+    builtInImport = importAllTempleLayouts().then(() => undefined);
+  }
   return builtInImport;
 }
 

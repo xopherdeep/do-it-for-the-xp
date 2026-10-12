@@ -110,6 +110,11 @@ export const getTempleMetadata = (templeId: string): TempleMetadata => {
 // Generated temples (gen-<slug>) live in the TempleDb, not in TEMPLE_METADATA; a resolved one is cached here
 const generatedMetadata = new Map<string, TempleMetadata>();
 
+/** Forget a resolved generated temple, so the next metadataForAsync reads its (edited) record again. */
+export const forgetGeneratedMetadata = (templeId: string): void => {
+  generatedMetadata.delete(templeId);
+};
+
 /** Sync lookup: a registry temple, or a generated one already resolved by metadataForAsync. */
 export const metadataFor = (templeId: string): TempleMetadata | undefined => {
   return TEMPLE_METADATA[templeId] || generatedMetadata.get(templeId);

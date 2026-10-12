@@ -6,6 +6,7 @@
 
 import { getTempleProgressDb } from '@/lib/databases/TempleProgressDb';
 import type { NewTempleProgress, TempleProgressEntry } from '@/lib/databases/TempleProgressDb';
+import type { Dungeon } from '../types';
 import { isBloodMoonDue, resetTempleProgress } from '../templeReset';
 import { nextWeekly } from '../bloodMoonSchedule';
 import { getTempleMetadata } from '@/lib/engine/temples/templeRegistry';
@@ -13,7 +14,7 @@ import { bloodMoon as notifyBloodMoon } from '@/lib/services/notifications/notif
 import debug from '@/lib/utils/debug';
 import { bloodMoonRisen, clearedRoomKey, createTempleState, isRoomCleared, parseRoomKey, visitRoom } from './runState';
 import type { TempleRuns, TempleState } from './runState';
-import { DOOR_DIRECTIONS, sealRoom, unsealRoom } from './doors';
+import { DOOR_DIRECTIONS, sealKey, sealRoom, unsealRoom } from './doors';
 import type { DoorState } from './doors';
 import { canStandAt, floorsOf, migrateVisitedRooms } from './floors';
 
@@ -28,6 +29,16 @@ export function markRoomCleared(runs: TempleRuns, templeId: string, level: strin
   runs.queueSave(templeId);
 }
 
+/** Where an entrance puts the hero: `[row, col]` on the first floor, or `[floorIndex, row, col]` */
+export function startAt(temple: Dungeon, entrance: number[]): { level: string; position: [number, number] } {
+  const isOnAFloor = entrance.length === 3;
+  if (!isOnAFloor) return { level: '1F', position: [entrance[0], entrance[1]] };
+
+  // The floor index is an index into the keys of the maze object
+  const floors = floorsOf(temple);
+  return { level: floors[entrance[0]] || floors[0], position: [entrance[1], entrance[2]] };
+}
+
 export function initTemple(runs: TempleRuns, templeId: string, startPosition?: number[], startLevel?: string, userId?: string): boolean {
   // Check if the dungeon exists
   const temple = runs.dungeonManager.getDungeon(templeId);
@@ -37,20 +48,10 @@ export function initTemple(runs: TempleRuns, templeId: string, startPosition?: n
   }
 
   // Determine starting position and level
-  let finalPos: [number, number] = [0, 0];
-  let finalLevel = "1F";
-
-  const entrance = startPosition || temple.entrance || [0, 0];
   const floors = floorsOf(temple);
-
-  if (entrance.length === 3) {
-    // If we have 3 coordinates, assume [floorIndex, row, col]
-    // where floorIndex is an index into the keys of the maze object
-    finalLevel = floors[entrance[0]] || floors[0];
-    finalPos = [entrance[1], entrance[2]];
-  } else {
-    finalPos = [entrance[0], entrance[1]];
-  }
+  const start = startAt(temple, startPosition || temple.entrance || [0, 0]);
+  const finalPos = start.position;
+  let finalLevel = start.level;
 
   // A floor named outright (the battle page hands back "2F", not an index) beats the guess above
   const isFloorNamed = startLevel && floors.includes(startLevel);
@@ -134,6 +135,11 @@ export function progressSnapshot(runs: TempleRuns, templeId: string): NewTempleP
   const hasNothingToSave = !userId || !state || runs.reads.has(templeId);
   if (hasNothingToSave) return undefined;
 
+  return snapshotOf(userId, templeId, state);
+}
+
+/** A run as a progress record: what is saved, and what refreshRun puts back on a new layout */
+function snapshotOf(userId: string, templeId: string, state: TempleState): NewTempleProgress {
   return {
     userId,
     templeId,
@@ -154,6 +160,41 @@ export function progressSnapshot(runs: TempleRuns, templeId: string): NewTempleP
     ...(state.bloodMoonAt ? { bloodMoonAt: state.bloodMoonAt } : {}),
     ...(state.bloodMoonEvery ? { bloodMoonEvery: state.bloodMoonEvery } : {})
   };
+}
+
+/**
+ * The layout of a temple changed (the Game Master saved it) while a hero's run in it is in memory: the engine now
+ * holds the new rooms, fresh from the layout (chests full, doors as drawn, nothing visited). The run is kept:
+ * the rooms visited and won, the chests emptied and the doors opened are put back on the new rooms, and the hero
+ * stays where they stand if that is still a room they can stand in, else they are back at the entrance.
+ * Nothing happens for a temple without a run in memory.
+ */
+export function refreshRun(runs: TempleRuns, templeId: string): void {
+  const state = runs.templeStates[templeId];
+  const temple = runs.dungeonManager.getDungeon(templeId);
+  const hasNothingToKeep = !state || !temple;
+  if (hasNothingToKeep) return;
+
+  // A fight the hero stood in the middle of seals its room again below; the seals of the old rooms are gone with them
+  const wasInFight = runs.sealedRooms.has(sealKey(templeId, state.currentLevel, state.currentPosition));
+  for (const key of Array.from(runs.sealedRooms.keys())) {
+    if (key.startsWith(`${templeId}|`)) runs.sealedRooms.delete(key);
+  }
+
+  applyProgress(runs, templeId, snapshotOf(runs.heroByTemple.get(templeId) ?? '', templeId, state));
+
+  const canStayPut = canStandAt(runs, templeId, state.currentLevel, state.currentPosition);
+  if (!canStayPut) {
+    const entrance = startAt(temple, temple.entrance || [0, 0]);
+    state.currentLevel = entrance.level;
+    state.currentPosition = entrance.position;
+  }
+  visitRoom(runs, templeId, state.currentPosition);
+
+  const room = runs.dungeonManager.getRoom(templeId, state.currentPosition, state.currentLevel);
+  const isFightRoom = Boolean(room?.content?.lockOnEnter) && !isRoomCleared(runs, templeId, state.currentLevel, state.currentPosition);
+  const roomToSeal = wasInFight && canStayPut && isFightRoom ? room : undefined;
+  if (roomToSeal) sealRoom(runs, templeId, state.currentLevel, state.currentPosition, roomToSeal);
 }
 
 /** A hero's saved progress in a temple: null when there is none, undefined when it could not be read. */
@@ -214,7 +255,7 @@ export function loadProgress(runs: TempleRuns, templeId: string, userId: string,
 export function applyProgress(
   runs: TempleRuns,
   templeId: string,
-  saved: TempleProgressEntry,
+  saved: NewTempleProgress,
   resumeFrom?: { level: string; row: number; col: number }
 ): void {
   const state = runs.templeStates[templeId];

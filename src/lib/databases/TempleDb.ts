@@ -1,6 +1,7 @@
 import DbStorageApi from './DbStorageApi';
 import { Drivers, Storage } from "@ionic/storage";
 import { Room } from '@/lib/engine/core/dungeons/types';
+import { emitTempleChanged } from '@/lib/engine/temples/templeChanges';
 
 export const templeStorage = new Storage({
   name: "__temples",
@@ -39,8 +40,16 @@ export interface TempleInterface {
 
 
 export class TempleDb extends DbStorageApi {
+  // Every save tells the engine (templeChanges), so a temple edited in the Game Master's editor is played as it
+  // now is, without reloading the app. The event comes after the write: a listener that reads the record sees it.
   public async setTemple(temple: TempleInterface) {
     await this.set(temple.id, temple);
+    emitTempleChanged(temple.id);
+  }
+
+  public async remove(key: string) {
+    await super.remove(key);
+    emitTempleChanged(key);
   }
 
   public async setTemples(temples: TempleInterface[]) {

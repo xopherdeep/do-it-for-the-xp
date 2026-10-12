@@ -4,7 +4,9 @@
 
 import { Dungeon, Room } from './types';
 import { DungeonManager } from './DungeonManager';
+import { TempleSystem } from './TempleSystem';
 import { TempleDb, templeStorage } from '@/lib/databases/TempleDb';
+import type { TempleInterface } from '@/lib/databases/TempleDb';
 import { TempleHydrator } from './TempleHydrator';
 import { lockedFromSides } from '@/lib/services/temples/authoredDoors';
 import debug from '@/lib/utils/debug';
@@ -18,10 +20,15 @@ export interface RegisterTempleOptions {
   force?: boolean;
 }
 
-// The layout (maze and rooms) each temple was last registered from here, to tell a repeat from an edit
+// The layout (maze, rooms and entrance) each temple was last registered from here, to tell a repeat from an edit
 const registeredLayouts = new Map<string, string>();
 
-const layoutSignature = (templeData: any): string => JSON.stringify([templeData?.maze ?? [], templeData?.rooms ?? {}]);
+// A temple without an authored entrance starts at [0, 0] (TempleSystem.initTemple), so both read the same here
+const entranceOf = (templeData: any): number[] =>
+  Array.isArray(templeData?.entrance) && templeData.entrance.length ? templeData.entrance : [0, 0];
+
+const layoutSignature = (templeData: any): string =>
+  JSON.stringify([templeData?.maze ?? [], templeData?.rooms ?? {}, entranceOf(templeData)]);
 
 /**
  * Convert a temple from the legacy format to the engine format and register it with the DungeonManager.
@@ -68,8 +75,14 @@ export function registerTemple(templeId: string, templeData: any, options: Regis
   }
 
   // Register the dungeon with the engine
+  const isReplacingLayout = Boolean(running) && !options.force;
   dungeonManager.registerDungeon(dungeon);
   registeredLayouts.set(templeId, signature);
+
+  // A different layout replaced the one a hero may be halfway through: their run stays, on the new rooms. Done here, where
+  // every registration passes, so no way of registering (the editor's save, the temple screen, a reload of all custom
+  // temples) can leave a run standing in a room that is no longer there. A forced registration resets the temple instead.
+  if (isReplacingLayout) TempleSystem.getInstance().refreshRun(templeId);
 
   return dungeon;
 }
@@ -90,6 +103,30 @@ export function registerAllTemples(temples: Record<string, any>, options: Regist
 }
 
 /**
+ * Register the layout a TempleDb record holds (the temple creator's, a generated one, or the copy of a temple
+ * shipped in code). A record without a layout registers nothing. Registering follows registerTemple: the layout
+ * the engine already runs is kept, a different one replaces it.
+ * @returns The registered dungeon, or undefined when the record has no layout
+ */
+export function registerTempleRecord(
+  templeId: string,
+  record: TempleInterface | null | undefined,
+  options: RegisterTempleOptions = {}
+): Dungeon | undefined {
+  // Only process temples that have a dungeonLayout defined
+  const dungeonLayout = record?.dungeonLayout;
+  if (!dungeonLayout) return undefined;
+
+  // Convert the temple data format for the engine
+  const templeData = {
+    maze: dungeonLayout.maze,
+    rooms: dungeonLayout.rooms,
+    entrance: dungeonLayout.entrance
+  };
+  return registerTemple(templeId, templeData, options);
+}
+
+/**
  * Register custom temples created with the temple creator
  * This loads temples from the TempleDb and registers them with the engine.
  * A temple whose stored layout is the one already running is skipped; a stored layout that differs
@@ -107,22 +144,8 @@ export async function registerCustomTemples(options: RegisterTempleOptions = {})
     
     for (const key of keys) {
       const temple = await templeDb.getTempleById(key);
-      
-      // Only process temples that have a dungeonLayout defined
-      const dungeonLayout = temple?.dungeonLayout;
-      if (dungeonLayout) {
-        debug.log(`Registering custom temple: ${key}`);
-        
-        // Convert the temple data format for the engine
-        const templeData = {
-          maze: dungeonLayout.maze,
-          rooms: dungeonLayout.rooms,
-          entrance: dungeonLayout.entrance
-        };
-        
-        // Register the temple with the engine
-        registerTemple(key, templeData, options);
-      }
+      if (temple?.dungeonLayout) debug.log(`Registering custom temple: ${key}`);
+      registerTempleRecord(key, temple, options);
     }
     debug.log('Custom temples registered successfully');
   } catch (error) {

@@ -473,6 +473,7 @@ describe("TempleSystem saves the progress of the hero it was opened for", () => 
     );
     const vm = wrapper.vm as any;
     vm.registerMessageDisplay(() => undefined);
+    await vm.whenOpened; // the run starts once the temple's saved layout was read
     await temples.whenProgressReady(id);
 
     vm.processChestItems(["key", "map", "compass"]);

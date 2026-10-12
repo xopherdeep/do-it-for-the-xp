@@ -157,6 +157,16 @@ export class TempleSystem {
     return heroRuns.initTemple(this.runs, templeId, startPosition, startLevel, userId);
   }
 
+  /**
+   * The temple's layout was replaced (the Game Master saved a change) while a hero's run in it is in memory: keep
+   * the run. What the hero did (rooms visited and won, chests emptied, doors opened) is put back on the new rooms;
+   * the hero stays where they stand if they can still stand there, else they are back at the entrance.
+   * Does nothing for a temple without a run in memory.
+   */
+  public refreshRun(templeId: string): void {
+    heroRuns.refreshRun(this.runs, templeId);
+  }
+
   /** The hero whose run the temple's state is, if the temple was opened for one. */
   public getHeroId(templeId: string): string | undefined {
     return this.heroByTemple.get(templeId);

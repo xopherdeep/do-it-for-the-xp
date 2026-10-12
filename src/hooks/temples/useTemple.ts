@@ -1,10 +1,11 @@
 /**
  * Temple Hook - Provides access to the Temple System from Vue components
  */
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { TempleSystem, MapVisibility } from '@/lib/engine/core/dungeons/TempleSystem';
 import { DungeonManager } from '@/lib/engine/core/dungeons/DungeonManager';
 import { registerCustomTemples } from '@/lib/engine/core/dungeons/TempleAdapter';
+import { ensureTempleFresh } from '@/lib/engine/core/dungeons/templeFreshness';
 import { ChestSystem } from '@/lib/engine/core/dungeons/ChestSystem';
 import { ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
 import debug from '@/lib/utils/debug';
@@ -59,14 +60,8 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
   // Optional function reference for external message display
   let externalDisplayMessage: MessageDisplayFn | null = null;
 
-  // Initialize the temple if it has a defined entrance position
-  const initTemple = (): boolean => {
-    const temple = dungeonManager.getDungeon(templeId);
-    if (!temple) return false;
-    const entrance = startPosition || (temple as any).entrance || [0, 0];
-    templeSystem.initTemple(templeId, entrance, startLevel, userId);
-
-    // Sync local state with temple state
+  // Sync local state with temple state
+  const syncLocalState = () => {
     const state = templeSystem.getTempleState(templeId);
     if (state) {
       currentPosition.value = state.currentPosition;
@@ -74,18 +69,54 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
       hasCompass.value = state.hasCompass;
       currentLevel.value = state.currentLevel;
     }
+  };
+
+  // Initialize the temple if it has a defined entrance position
+  const initTemple = (): boolean => {
+    const temple = dungeonManager.getDungeon(templeId);
+    if (!temple) return false;
+    const entrance = startPosition || (temple as any).entrance || [0, 0];
+    templeSystem.initTemple(templeId, entrance, startLevel, userId);
+    syncLocalState();
     return true;
   };
 
-  // Initialize temple. A temple that only lives in TempleDb (the creator's or a generated "gen-<seed>" one) is
-  // registered asynchronously, so when it is not in the engine yet wait for that registration and init then.
+  // Start the run once the engine plays the layout the Game Master last saved: the temple's record in TempleDb is read
+  // first, so a copy from an earlier visit (or the one shipped in code) never wins over an edit. A temple that only
+  // lives in TempleDb (the creator's or a generated "gen-<seed>" one) is registered by that read; one the read did
+  // not find is looked for among all the custom temples. Resolves to whether the temple was opened.
+  let isUnmounted = false;
+  onBeforeUnmount(() => {
+    isUnmounted = true;
+  });
+
+  const openTemple = async (): Promise<boolean> => {
+    await ensureTempleFresh(templeId);
+    if (isUnmounted) return false;
+    if (initTemple()) return true;
+
+    try {
+      await registerCustomTemples();
+    } catch (err) {
+      debug.error('Failed to register custom temples:', err);
+    }
+    if (isUnmounted) return false;
+    const isOpened = initTemple();
+    if (!isOpened) debug.warn(`Temple ${templeId} is not registered and not in TempleDb`);
+    return isOpened;
+  };
+
+  // Settles when the run has started (or the temple could not be opened): the screen waits on it for anything that
+  // needs the hero's run, such as the blood moon that rose since the last visit
+  let markOpened: (isOpened: boolean) => void = () => undefined;
+  const whenOpened = new Promise<boolean>((resolve) => {
+    markOpened = resolve;
+  });
+
   onMounted(() => {
-    if (initTemple()) return;
-    registerCustomTemples()
-      .then(() => {
-        if (!initTemple()) debug.warn(`Temple ${templeId} is not registered and not in TempleDb`);
-      })
-      .catch((err) => debug.error('Failed to register custom temples:', err));
+    // A run already going shows at once; the layout is checked behind it
+    syncLocalState();
+    void openTemple().then(markOpened);
   });
   
   // Allow components to register their own message display function
@@ -508,6 +539,7 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
 
   return {
     // State
+    whenOpened,
     currentPosition,
     hasMap,
     hasCompass,

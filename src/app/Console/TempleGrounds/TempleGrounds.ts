@@ -85,8 +85,11 @@ export default defineComponent({
       return userStore.getUserById(props.userId);
     });
 
-    // Register predefined temples with the engine (for gameplay, not editing)
-    registerAllTemples(temples);
+    // Register predefined temples with the engine (for gameplay, not editing). The temple being opened is left out:
+    // useTemple registers it from the Game Master's copy in TempleDb (the shipped one only when there is none) before
+    // the run starts, so the shipped layout is never registered, even for a moment, over an edited one.
+    // registerAllTemples keeps any temple the engine already holds, so the others are only a starting point too.
+    registerAllTemples(Object.fromEntries(Object.entries(temples).filter(([id]) => id !== props.temple)));
 
     // Sync the shipped temples into the database first (an old seed is refreshed, an edited copy is kept), and
     // only then register the temples the database holds (user-created content), so what registers is the fresh copy
@@ -137,6 +140,7 @@ export default defineComponent({
       isCurrentRoomCleared,
       openMap,
       closeMap: closeMapQuietly,
+      whenOpened,
       // Map and compass utilities
       showRoomDetails,
       getRoomVisibility,
@@ -291,7 +295,8 @@ export default defineComponent({
 
     // A blood moon the Game Master scheduled has risen since the last visit: the temple starts over, and says so
     onMounted(() => {
-      void templeSystem.whenProgressReady(props.temple).then(() => {
+      // The run starts after the temple's saved layout was read, and the hero's save is read once it has
+      void whenOpened.then(() => templeSystem.whenProgressReady(props.temple)).then(() => {
         if (!templeSystem.bloodMoonRose(props.temple)) return;
         fx('no');
         say(bloodMoonLine(templeShortName.value.replace(/\b\w/g, (letter) => letter.toUpperCase())), 3600);
@@ -324,6 +329,7 @@ export default defineComponent({
 
     return {
       // From useTemple
+      whenOpened,
       currentPosition,
       currentLevel,
       hasMap,
