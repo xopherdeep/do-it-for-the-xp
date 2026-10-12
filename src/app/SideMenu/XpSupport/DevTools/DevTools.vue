@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-back-button default-href="/xp-support"></ion-back-button>
+          <xp-back-button></xp-back-button>
         </ion-buttons>
         <ion-title>Developer Tools</ion-title>
       </ion-toolbar>

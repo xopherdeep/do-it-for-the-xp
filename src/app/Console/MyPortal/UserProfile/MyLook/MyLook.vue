@@ -3,10 +3,7 @@
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button
-            :default-href="`/my-portal/${userId}/my-profile`"
-            :icon="arrowBack"
-          ></ion-back-button>
+          <xp-back-button :icon="arrowBack"></xp-back-button>
         </ion-buttons>
         <ion-title>My Look</ion-title>
       </ion-toolbar>

@@ -3,7 +3,7 @@
     <ion-header :translucent="true">
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button default-href="/xp-settings"/>
+          <xp-back-button/>
         </ion-buttons>
         <ion-title>Chore Settings</ion-title>
         <ion-buttons slot="end">

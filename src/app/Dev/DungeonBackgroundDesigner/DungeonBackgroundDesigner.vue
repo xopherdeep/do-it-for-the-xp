@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-back-button default-href="/dev"></ion-back-button>
+          <xp-back-button></xp-back-button>
         </ion-buttons>
         <ion-title>Dungeon Background Designer</ion-title>
         <ion-buttons slot="end">
@@ -84,7 +84,7 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import {
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
-  IonButtons, IonBackButton, IonButton, IonIcon, IonAlert, IonToast,
+  IonButtons, IonButton, IonIcon, IonAlert, IonToast,
   actionSheetController, alertController
 } from '@ionic/vue';
 import {

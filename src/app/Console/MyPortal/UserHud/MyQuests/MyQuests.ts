@@ -1,7 +1,6 @@
 import { defineComponent, onMounted, reactive, ref, watch } from "vue";
 import ionic from "@/lib/mixins/ionic";
 import {
-  IonBackButton,
   actionSheetController,
   alertController,
   IonicSlides,
@@ -42,7 +41,6 @@ import { useUserStore } from "@/lib/store/stores/user";
 
 import MyTask from "../MyTask/MyTask.vue";
 import XpQuickTaskModal from "./components/XpQuickTaskModal.vue";
-import { useRouter } from "vue-router";
 // import { useSwiper } from "swiper/vue";
 import { Controller, Navigation, Swiper as SwiperClass } from "swiper";
 import { formatQuestName } from "@/lib/utils/format";
@@ -83,7 +81,6 @@ export default defineComponent({
   props: ["userId"],
   name: "my-quests",
   components: {
-    IonBackButton,
     MyTask,
     XpQuickTaskModal,
   },
@@ -171,12 +168,6 @@ export default defineComponent({
     },
   },
   methods: {
-    clickBack() {
-      const hasHistory = (this as any).$historyCount - window.history.length;
-      // console.log("hashistory", hasHistory);
-      if (hasHistory) (this as any).router.go(-1);
-      else (this as any).router.push(`/my-portal/${this.userId}`);
-    },
     clickItem(item: any) {
       this.activeModal = item.id;
     },
@@ -366,7 +357,6 @@ export default defineComponent({
   setup(props) {
     const gameStore = useGameStore();
     const userStore = useUserStore();
-    const router = useRouter();
     const timers = useTimers();
     const controlledSwiper = ref<SwiperClass | null>(null);
     const setControlledSwiper = (swiper: SwiperClass) => {
@@ -412,7 +402,6 @@ export default defineComponent({
       controlledSwiper,
       setControlledSwiper,
       modules: [IonicSlides, Navigation, Controller],
-      router,
       chevronBack,
       chevronForward,
       stop,

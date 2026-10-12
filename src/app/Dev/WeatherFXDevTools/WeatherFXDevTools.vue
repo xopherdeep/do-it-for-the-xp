@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-back-button :default-href="'/dev'"></ion-back-button>
+          <xp-back-button></xp-back-button>
         </ion-buttons>
         <ion-title>Weather FX Dev Tools</ion-title>
       </ion-toolbar>
@@ -99,7 +99,7 @@
 import { defineComponent, ref, computed, onMounted, onUnmounted } from 'vue';
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent,
          IonButton, IonList, IonItem, IonLabel, IonToggle,
-         IonRange, IonButtons, IonBackButton, IonSelect,
+         IonRange, IonButtons, IonSelect,
          IonSelectOption, IonCard, IonCardHeader,
          IonCardTitle, IonCardContent, IonText } from '@ionic/vue';
 import WeatherFX from '@/components/organisms/WeatherFX/WeatherFX.vue';
@@ -127,7 +127,6 @@ export default defineComponent({
     IonToggle,
     IonRange,
     IonButtons,
-    IonBackButton,
     IonSelect,
     IonSelectOption,
     IonCard,

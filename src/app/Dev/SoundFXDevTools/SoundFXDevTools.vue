@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-back-button default-href="/dev"></ion-back-button>
+          <xp-back-button></xp-back-button>
         </ion-buttons>
         <ion-title>Sound FX Dev Tools</ion-title>
       </ion-toolbar>
@@ -152,7 +152,7 @@ import {
   IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,
   IonItem, IonLabel, IonList, IonSelect, IonSelectOption,
   IonRange, IonAccordionGroup, IonAccordion, IonButton,
-  IonBackButton, IonButtons, IonIcon
+  IonButtons, IonIcon
 } from '@ionic/vue';
 import { 
   volumeHighOutline, volumeLowOutline, playOutline, 
@@ -183,7 +183,7 @@ export default defineComponent({
     IonCard, IonCardHeader, IonCardTitle, IonCardSubtitle, IonCardContent,
     IonItem, IonLabel, IonList, IonSelect, IonSelectOption,
     IonRange, IonAccordionGroup, IonAccordion, IonButton,
-    IonBackButton, IonButtons, IonIcon
+    IonButtons, IonIcon
   },
   setup() {
     const gameStore = useGameStore();

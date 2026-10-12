@@ -38,7 +38,7 @@ import {
   IonTitle, IonContent 
 } from '@ionic/vue';
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
-import { useRouter } from 'vue-router';
+import { useBack } from '@/hooks/useBack';
 import XpBeastSelector from './components/XpBeastSelector.vue';
 import BestiaryDb, { beastStorage, Beast } from '@/lib/databases/BestiaryDb';
 import { useBestiarySelectionStore } from '@/lib/store/stores/bestiary-selection';
@@ -53,7 +53,7 @@ export default defineComponent({
     XpLoading
   },
   setup() {
-    const router = useRouter();
+    const { back } = useBack();
     const selectionStore = useBestiarySelectionStore();
     const bestiary = new BestiaryDb(beastStorage);
     
@@ -75,11 +75,11 @@ export default defineComponent({
 
     const confirm = () => {
       selectionStore.confirmSelection();
-      router.back();
+      back();
     };
 
     const goBack = () => {
-      router.back();
+      back();
     };
 
     return {

@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar color="warning">
         <ion-buttons slot="start">
-          <ion-back-button :default-href="`/my-portal/${userId}/home-town`"></ion-back-button>
+          <xp-back-button></xp-back-button>
           <i class="fa fa-piggy-bank fa-2x"></i>
         </ion-buttons>
         <ion-title>

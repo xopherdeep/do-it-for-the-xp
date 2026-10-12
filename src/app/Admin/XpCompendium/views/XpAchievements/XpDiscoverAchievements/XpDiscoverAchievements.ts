@@ -2,13 +2,11 @@ import { useInfiniteQuests } from "@/hooks/useQuests";
 import { useTimers } from "@/hooks/useTimers";
 import { computed, defineComponent, reactive, ref } from "vue";
 import { useQueryClient } from "vue-query";
-import { useRouter } from "vue-router";
 import XpApi from "@/lib/api/doit.forthexp.com.api";
 // import ionic from "@/lib/mixins/ionic";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 import {
-  IonBackButton,
   IonButton,
   IonButtons,
   IonCol,
@@ -68,7 +66,6 @@ export const XpDiscoverAchievements = defineComponent({
   mixins: [],
   props: ["userId"], // Added missing prop
   components: {
-    IonBackButton,
     IonButton,
     IonButtons,
     IonCol,
@@ -170,12 +167,6 @@ export const XpDiscoverAchievements = defineComponent({
 
     },
 
-    clickBack() {
-      const hasHistory = this.$historyCount - window.history.length;
-      // console.log("hashistory", hasHistory);
-      if (hasHistory) this.router.go(-1);
-      else this.router.push(`/my-portal/${this.userId}`);
-    },
     clickItem(item) {
       this.activeModal = item.id;
     },
@@ -275,7 +266,6 @@ export const XpDiscoverAchievements = defineComponent({
     const queryClient = useQueryClient();
     const nTotalTasks = ref(0);
     const nTotalPages = ref(0);
-    const router = useRouter();
     const controlledSwiper = ref({} as Swiper);
     const setControlledSwiper = swiper => controlledSwiper.value = swiper;
 
@@ -323,7 +313,6 @@ export const XpDiscoverAchievements = defineComponent({
       controlledSwiper,
       setControlledSwiper,
       modules: [IonicSlides, Navigation, Controller],
-      router,
       chevronBack,
       chevronForward,
       stop,

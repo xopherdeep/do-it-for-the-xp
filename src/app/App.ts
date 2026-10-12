@@ -50,6 +50,7 @@ import { isActive as sceneTransitionActive } from "@/components/organisms/SceneT
 // import XpGlobalDialog from "../../components/molecules/Dialog/XpGlobalDialog.vue";
 import XpGlobalDialog from "@/components/molecules/Dialog/XpGlobalDialog.vue";
 import debug from "@/lib/utils/debug";
+import { useHardwareBack } from "@/hooks/useBack";
 import { useAudioStore } from "@/lib/store/stores/audio";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useGameStore } from "@/lib/store/stores/game";
@@ -280,6 +281,8 @@ export default defineComponent({
     const battleStore = useBattleStore();
     
     useQueryProvider();
+    // Android's Back button goes up from a page with no history instead of quitting the app
+    useHardwareBack();
 
     const labels = [
       "Family",

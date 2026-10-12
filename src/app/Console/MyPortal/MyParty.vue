@@ -3,7 +3,7 @@
     <ion-header :translucent="true">
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button :default-href="`/xp-profile`"></ion-back-button>
+          <xp-back-button></xp-back-button>
         </ion-buttons>
         <ion-title>
           <i class="fab fa-fort-awesome fa-lg" />

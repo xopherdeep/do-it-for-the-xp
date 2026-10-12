@@ -4,7 +4,6 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
 import { JOB_CLASS_OPTIONS, FOOD_OPTIONS, PILLARS } from "@/constants";
 import {
-  IonBackButton,
   IonButton,
   IonIcon,
   IonButtons,
@@ -154,7 +153,6 @@ export default defineComponent({
     IonItemDivider,
     IonLabel,
     IonNote,
-    IonBackButton,
     IonButtons,
     IonButton,
     IonContent,

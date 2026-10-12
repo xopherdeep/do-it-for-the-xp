@@ -3,6 +3,7 @@ import { useRoute, useRouter } from "vue-router";
 import ionic from "@/lib/mixins/ionic";
 import { useProStore } from "@/lib/store/stores/pro";
 import { proToast } from "@/lib/services/pro/proUi";
+import { useBack } from "@/hooks/useBack";
 
 export default defineComponent({
   name: "xp-pro-return",
@@ -10,6 +11,7 @@ export default defineComponent({
   setup() {
     const route = useRoute();
     const router = useRouter();
+    const { back } = useBack();
     const pro = useProStore();
     const timedOut = ref(false);
 
@@ -21,9 +23,9 @@ export default defineComponent({
         return;
       }
       await proToast("XP Pro unlocked!", "success");
-      // After Stripe the previous history entry is the checkout, not the app: only go back inside the app.
-      if (window.history.state?.back) router.back();
-      else router.replace("/xp-settings/pro");
+      // After Stripe the history behind this page is the checkout, not the app: Back goes back only inside the app,
+      // and otherwise up to the Pro settings (parentOf).
+      back();
     }
 
     function retry() {

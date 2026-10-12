@@ -4,7 +4,7 @@
     <ion-header>
       <ion-toolbar color="warning">
         <ion-buttons slot="start">
-          <ion-back-button :default-href="`/my-portal/${userId}`"></ion-back-button>
+          <xp-back-button></xp-back-button>
           <!-- <ion-icon
             :icon="serverOutline"
             size="large"

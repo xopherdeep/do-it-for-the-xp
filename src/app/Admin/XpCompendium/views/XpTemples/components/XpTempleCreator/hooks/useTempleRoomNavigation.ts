@@ -5,6 +5,7 @@
  */
 import { ref, computed, ComputedRef, Ref } from 'vue';
 import { useIonRouter, createAnimation, toastController } from '@ionic/vue';
+import { useBack } from '@/hooks/useBack';
 import { useTempleCreatorStore } from '@/lib/store/stores/temple-creator';
 import { ROOM_ICONS, ____ } from '@/lib/engine/dungeons/roomTypes';
 import { Room } from '@/lib/engine/core/dungeons/types';
@@ -70,6 +71,8 @@ export interface UseTempleRoomNavigationReturn {
 
 export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): UseTempleRoomNavigationReturn {
   const ionRouter = useIonRouter();
+  // Back from a room goes back, or up to the temple's rooms when the editor was opened with no history behind it
+  const { back } = useBack();
   const store = useTempleCreatorStore();
   
   const adjacentRooms = ref<AdjacentRooms>({ 
@@ -324,11 +327,11 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
 
   const apply = () => {
     props.saveToStore();
-    ionRouter.back();
+    back();
   };
 
   const goBack = () => {
-    ionRouter.back();
+    back();
   };
 
   // Navigate to specific cell coordinates (for mini-map)

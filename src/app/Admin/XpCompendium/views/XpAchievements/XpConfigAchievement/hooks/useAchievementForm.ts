@@ -1,5 +1,6 @@
 import { ref, computed, watch, InjectionKey } from "vue";
 import { useRouter } from "vue-router";
+import { useBack } from "@/hooks/useBack";
 import { alertController, toastController, modalController } from "@ionic/vue";
 import { debounce } from "lodash";
 
@@ -57,6 +58,7 @@ export const AchievementFormInjectionKey: InjectionKey<
 
 export function useAchievementForm() {
   const router = useRouter();
+  const { back } = useBack();
 
   // State
   const id = ref<string>("");
@@ -587,7 +589,7 @@ export function useAchievementForm() {
       position: "top",
     });
     await toast.present();
-    router.go(-1);
+    back();
   };
 
   // Watchers

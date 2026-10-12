@@ -3,10 +3,7 @@
     <ion-header>
       <ion-toolbar color="tertiary">
         <ion-buttons slot="start">
-          <ion-back-button
-            :default-href="`/my-portal/${heroId}`"
-            :icon="arrowBack"
-          ></ion-back-button>
+          <xp-back-button :icon="arrowBack"></xp-back-button>
           <i class="fad fa-book-spells fa-lg" />
         </ion-buttons>
         <ion-title> My Powers </ion-title>

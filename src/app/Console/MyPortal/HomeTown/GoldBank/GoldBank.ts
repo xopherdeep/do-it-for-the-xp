@@ -11,6 +11,7 @@ import {
   calculatorOutline
 } from "ionicons/icons";
 import { actionSheetController, alertController, toastController } from "@ionic/vue";
+import { useBack } from "@/hooks/useBack";
 import { useItemFetcher } from "@/hooks/useItemFetcher";
 import { ProfileDb } from "@/lib/databases";
 import { profileStorage } from "@/lib/databases/profileStorage";
@@ -177,7 +178,7 @@ export default defineComponent({
               text: "Leave Bank",
               icon: handLeftOutline,
               handler: () => {
-                this.$router.go(-1)
+                this.goBack();
               }
             },
             {
@@ -310,8 +311,11 @@ export default defineComponent({
 
     const userStore = useUserStore();
     const profileDb = new ProfileDb(profileStorage)
+    // Leaving the bank goes back, or up to Home Town when the bank was opened with no history behind it
+    const { back: goBack } = useBack();
 
     return {
+      goBack,
       profileDb,
       userStore,
       // Icons for use in template

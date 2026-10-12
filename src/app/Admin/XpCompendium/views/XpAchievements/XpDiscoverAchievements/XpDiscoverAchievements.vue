@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar color="success">
         <ion-buttons slot="start">
-          <ion-back-button :default-href="`/game-master/achievements`" />
+          <xp-back-button />
           <i class="fad fa-medal fa-2x"></i>
           <!-- <ion-icon :icon="medalOutline" size="large" /> -->
         </ion-buttons>

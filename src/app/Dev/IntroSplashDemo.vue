@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-back-button default-href="/dev"></ion-back-button>
+          <xp-back-button></xp-back-button>
         </ion-buttons>
         <ion-title>Intro Splash Demo</ion-title>
       </ion-toolbar>
@@ -106,7 +106,7 @@
 import { defineComponent, ref } from 'vue';
 import { 
   IonPage, IonHeader, IonToolbar, IonTitle, IonContent, 
-  IonButtons, IonBackButton, IonCard, IonCardHeader, 
+  IonButtons, IonCard, IonCardHeader, 
   IonCardTitle, IonCardContent, IonButton, IonItem, 
   IonLabel, IonRange, IonToggle, toastController
 } from '@ionic/vue';
@@ -123,7 +123,6 @@ export default defineComponent({
     IonTitle, 
     IonContent, 
     IonButtons, 
-    IonBackButton,
     IonCard, 
     IonCardHeader, 
     IonCardTitle, 

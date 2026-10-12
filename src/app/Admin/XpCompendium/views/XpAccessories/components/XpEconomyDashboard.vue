@@ -1,5 +1,5 @@
 <template>
-  <xp-rpg-page title="Economy" headerIcon="fa-hand-holding-box" backButtonHref="/game-master/compendium"
+  <xp-rpg-page title="Economy" headerIcon="fa-hand-holding-box"
     class="xp-economy-dashboard" :hideHeader="true">
     <ion-tabs>
       <ion-router-outlet></ion-router-outlet>

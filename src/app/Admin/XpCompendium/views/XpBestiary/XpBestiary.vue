@@ -1,5 +1,5 @@
 <template>
-  <xp-rpg-page title="Bestiary" header-icon="fa-hand-holding-heart" :loading="isLoading" back-button-href="/game-master"
+  <xp-rpg-page title="Bestiary" header-icon="fa-hand-holding-heart" :loading="isLoading"
     :on-refresh="handleRefresh">
     <template #actions>
       <ion-button @click="saveBackgroundPreset" fill="clear" color="light" size="small">

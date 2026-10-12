@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-back-button defaultHref="/game-master" />
+          <xp-back-button />
         </ion-buttons>
         <ion-title>
           {{ doDonts.length }}

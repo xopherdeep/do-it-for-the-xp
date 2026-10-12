@@ -1,7 +1,7 @@
 import { defineComponent, onMounted, computed } from "vue";
 import ionic from "@/lib/mixins/ionic";
 import { useChatStore } from "@/lib/store/stores/chat";
-import { useRouter } from "vue-router";
+import { useBack } from "@/hooks/useBack";
 import { modalController } from "@ionic/vue";
 import XpChatList from "./components/XpChatList.vue";
 import XpChatInput from "./components/XpChatInput.vue";
@@ -16,7 +16,7 @@ export default defineComponent({
     XpCloseButton
   },
   setup() {
-    const router = useRouter();
+    const { back } = useBack();
     const chatStore = useChatStore();
     const roomId = 'family-chat';
 
@@ -38,8 +38,8 @@ export default defineComponent({
       if (modal) {
         await modalController.dismiss();
       } else {
-        // Fallback to router
-        router.back();
+        // Fallback to the page behind (or the place this page belongs to when there is none)
+        back();
       }
     };
 

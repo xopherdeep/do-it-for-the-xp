@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-back-button defaultHref="/game-master" />
+          <xp-back-button />
         </ion-buttons>
         <ion-title>
           <i class="fad fa-clipboard-check fa-lg mr-2"></i>

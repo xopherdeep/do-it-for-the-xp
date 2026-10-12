@@ -3,9 +3,7 @@
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button
-            defaultHref="/game-master/compendium/abilities"
-          ></ion-back-button>
+          <xp-back-button></xp-back-button>
         </ion-buttons>
 
         <ion-title>

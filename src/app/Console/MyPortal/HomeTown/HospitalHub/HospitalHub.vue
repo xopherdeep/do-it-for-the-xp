@@ -3,9 +3,7 @@
     <ion-header>
       <ion-toolbar color="secondary">
         <ion-buttons slot="start">
-          <ion-back-button
-            :default-href="`/my-portal/${userId}/home-town`"
-          />
+          <xp-back-button />
           <xp-icon 
             icon="hospital" 
             primary="red" 

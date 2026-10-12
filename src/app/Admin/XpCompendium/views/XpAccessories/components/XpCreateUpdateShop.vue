@@ -3,9 +3,7 @@
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-back-button
-            defaultHref="/game-master/compendium/economy"
-          />
+          <xp-back-button />
         </ion-buttons>
         <ion-title>{{ id ? "Update" : "Create" }} Shop</ion-title>
       </ion-toolbar>
@@ -73,7 +71,7 @@
 
 <script lang="ts">
   import { defineComponent, ref, computed, onMounted } from "vue";
-  import { useRouter } from "vue-router";
+  import { useBack } from "@/hooks/useBack";
   import Ionic from "@/lib/mixins/ionic";
   import shopsDb, { ShopInterface } from "@/lib/databases/ShopsDb";
   import {
@@ -94,7 +92,7 @@
       },
     },
     setup(props) {
-      const router = useRouter();
+      const { back } = useBack();
       const shop = ref<ShopInterface>({
         id: "",
         name: "",
@@ -120,7 +118,7 @@
 
       const saveShop = async () => {
         await shopsDb.setShop(shop.value);
-        router.back();
+        back();
       };
 
       return {

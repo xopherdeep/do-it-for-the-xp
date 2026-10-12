@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar :color="shopColor">
         <ion-buttons slot="start">
-          <ion-back-button :default-href="`/my-portal/${userId}/home-town`" />
+          <xp-back-button :default-href="backHref" />
           <i :class="shopIconClass" class="shop-title-icon" />
         </ion-buttons>
         <ion-title class="shop-title">{{ shopName }}</ion-title>

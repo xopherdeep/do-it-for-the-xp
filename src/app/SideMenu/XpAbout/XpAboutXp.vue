@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar color="success">
         <ion-buttons slot="start">
-          <ion-back-button default-href="/about-xp" />
+          <xp-back-button />
           <i
             class="fad fa-hand-holding-seedling fa-lg mr-2"
             style="color: lightgreen"

@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar color="primary">
         <ion-buttons slot="start">
-          <ion-back-button :default-href="`/my-portal/${userId}/my-home`"></ion-back-button>
+          <xp-back-button></xp-back-button>
           <ion-icon :icon="businessOutline" slot="icon-only" />
         </ion-buttons>
         <ion-title> Town Hall </ion-title>
@@ -161,7 +161,6 @@ import {
   IonTitle,
   IonContent,
   IonButtons,
-  IonBackButton,
   IonIcon,
   IonSegment,
   IonSegmentButton,
@@ -272,7 +271,6 @@ export default defineComponent({
     IonTitle,
     IonContent,
     IonButtons,
-    IonBackButton,
     IonIcon,
     IonSegment,
     IonSegmentButton,

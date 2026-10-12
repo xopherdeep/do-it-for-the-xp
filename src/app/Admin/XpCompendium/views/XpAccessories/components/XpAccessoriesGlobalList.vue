@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar class="icon-colors rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button defaultHref="/game-master" />
+          <xp-back-button />
         </ion-buttons>
         <i slot="start" class="fad fa-hand-holding-usd fa-2x" />
         <ion-title> Shops & Accessories </ion-title>
@@ -135,6 +135,7 @@
 
   import { useRouter } from "vue-router";
   import { useTimers } from "@/hooks/useTimers";
+  import { useBack } from "@/hooks/useBack";
 
   import AccessoriesDb, {
     Accessory,
@@ -216,6 +217,7 @@
     setup() {
       const accessories = ref([] as Accessory[]);
       const router = useRouter();
+      const { back } = useBack();
       const timers = useTimers();
       const accessoryDb = new AccessoriesDb(accessoriesStorage);
       const showFilter = ref(false);
@@ -251,12 +253,12 @@
 
       const confirmSelection = () => {
         itemSelectionStore.confirmSelection();
-        router.back();
+        back();
       };
 
       const cancelSelection = () => {
         itemSelectionStore.clear();
-        router.back();
+        back();
       };
 
       const filteredAccessories = computed(() => {

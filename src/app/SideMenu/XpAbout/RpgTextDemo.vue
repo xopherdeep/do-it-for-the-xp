@@ -3,10 +3,7 @@
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button
-            :default-href="'/'"
-            color="primary"
-          ></ion-back-button>
+          <xp-back-button color="primary"></xp-back-button>
         </ion-buttons>
         <ion-title>RPG Text Demo</ion-title>
       </ion-toolbar>
@@ -116,7 +113,6 @@
     IonTitle,
     IonContent,
     IonButtons,
-    IonBackButton,
     IonCard,
     IonCardHeader,
     IonCardTitle,
@@ -148,7 +144,6 @@
       IonTitle,
       IonContent,
       IonButtons,
-      IonBackButton,
       IonCard,
       IonCardHeader,
       IonCardTitle,

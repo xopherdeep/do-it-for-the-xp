@@ -1,6 +1,7 @@
 import { defineComponent } from "vue";
 import ionic from "@/lib/mixins/ionic";
 import { actionSheetController, alertController, toastController } from "@ionic/vue";
+import { useBack } from "@/hooks/useBack";
 import XpIcon from "@/components/atoms/Icon/XpIcon.vue";
 import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -74,7 +75,7 @@ export default defineComponent({
           role: "leave",
           icon: logOut,
           handler: () => {
-            this.$router.go(-1);
+            this.goBack();
           },
           cssClass: "action-leave",
         },
@@ -340,6 +341,8 @@ export default defineComponent({
   },
   setup() {
     const userStore = useUserStore();
-    return { userStore };
+    // Leaving goes back, or up to Home Town when the hospital was opened with no history behind it
+    const { back: goBack } = useBack();
+    return { userStore, goBack };
   }
 });

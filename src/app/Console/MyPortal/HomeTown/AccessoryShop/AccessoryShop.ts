@@ -61,6 +61,7 @@ import { rpgToastOptions } from "@/hooks/useToast";
 import { SHOP_METADATA } from "@/lib/engine/core/shopRegistry";
 import { WORLD_METADATA, worldColor } from "@/lib/engine/core/worldRegistry";
 import { merchantWorldOn } from "@/lib/services/shops/travelingMerchant";
+import { parentOf } from "@/router/parentOf";
 
 const resolveUpgradeFailureMessage = (result: Extract<WalletUpgradeResult, { ok: false }>): string => {
   if (result.reason === "poor") {
@@ -179,6 +180,11 @@ export default defineComponent({
       const world = this.shopRecord?.world || SHOP_METADATA[shopId]?.world || "";
       const followsTheMerchant = this.isTraveling && (!world || world === "traveling");
       return followsTheMerchant ? merchantWorldOn(this.now) : world;
+    },
+    // Where Back goes with no history behind the shop: the world it stands in, or Home Town for the town's own market.
+    backHref(): string | undefined {
+      const here = { name: "shop", params: { merchant: this.merchant, userId: this.heroId } };
+      return parentOf(here, { shopWorld: this.shopWorld }) ?? undefined;
     },
     // The shop wears its world's colour.
     shopColor(): string {

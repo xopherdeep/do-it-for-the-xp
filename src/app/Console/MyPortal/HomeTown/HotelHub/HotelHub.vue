@@ -3,9 +3,7 @@
     <ion-header>
       <ion-toolbar color="danger">
         <ion-buttons slot="start">
-          <ion-back-button
-           :default-href="`/my-portal/${userId}/my-home`"
-           />
+          <xp-back-button />
           <i class="fad fa-2x fa-hotel"
           />
         </ion-buttons>

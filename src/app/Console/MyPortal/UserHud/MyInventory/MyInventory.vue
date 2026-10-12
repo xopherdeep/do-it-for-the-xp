@@ -3,8 +3,8 @@
     <ion-header>
       <ion-toolbar color="danger">
         <ion-buttons slot="start">
-          <ion-back-button :default-href="`/my-portal/${userId}`">
-          </ion-back-button>
+          <xp-back-button>
+          </xp-back-button>
           <i class="fad fa-backpack fa-lg" />
         </ion-buttons>
         <ion-title>

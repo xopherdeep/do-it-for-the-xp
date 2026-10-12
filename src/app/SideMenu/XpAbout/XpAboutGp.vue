@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar color="warning">
         <ion-buttons slot="start">
-          <ion-back-button default-href="/about-xp" />
+          <xp-back-button />
           <i class="fad fa-hand-holding-usd fa-lg mr-2" style="color: gold"></i>
         </ion-buttons>
         <ion-title>About Gold Points</ion-title>

@@ -10,6 +10,7 @@ import Vue3AutoCounter from 'vue3-autocounter';
 import Countdown from 'vue3-flip-countdown'
 import XpGp from './components/atoms/Currency/XpGp.vue'
 import XpLandmarkBadge from './components/atoms/Badge/XpLandmarkBadge.vue'
+import XpBackButton from './components/atoms/BackButton/XpBackButton.vue'
 import XpLoading from './components/molecules/Loading'
 import XpTempleModel from './components/organisms/TempleModel/XpTempleModel.vue'
 import XpBuildingModel from './components/organisms/BuildingModel/XpBuildingModel.vue'
@@ -71,6 +72,7 @@ function readyRouterMountApp() {
     .component('xp-loading', XpLoading)
     .component('xp-gp', XpGp)
     .component('xp-landmark-badge', XpLandmarkBadge)
+    .component('xp-back-button', XpBackButton)
     .component('xp-temple-model', XpTempleModel)
     .component('xp-building-model', XpBuildingModel)
     .component('xp-stage-model', XpStageModel)

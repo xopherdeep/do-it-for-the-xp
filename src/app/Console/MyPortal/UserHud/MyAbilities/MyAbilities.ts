@@ -1,6 +1,6 @@
 import { computed, defineComponent, onMounted, ref, watch } from "vue";
 import ionic from "@/lib/mixins/ionic";
-import { IonBackButton, onIonViewWillEnter, toastController } from "@ionic/vue";
+import { onIonViewWillEnter, toastController } from "@ionic/vue";
 import {
   arrowBack,
   colorWandOutline,
@@ -33,7 +33,6 @@ export default defineComponent({
   props: ["userId"],
   name: "my-abilities",
   components: {
-    IonBackButton,
     XpLoading,
     XpPowerCard,
   },

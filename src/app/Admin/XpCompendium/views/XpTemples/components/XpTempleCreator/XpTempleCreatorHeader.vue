@@ -2,7 +2,7 @@
   <ion-header>
     <ion-toolbar class="rpg-box">
       <ion-buttons slot="start">
-        <ion-back-button :default-href="backHref" />
+        <xp-back-button />
       </ion-buttons>
 
       <ion-title>
@@ -85,7 +85,7 @@
 import { defineComponent, computed } from 'vue';
 import { 
   IonHeader, IonToolbar, IonTitle, IonButtons, 
-  IonBackButton, IonButton,
+  IonButton,
   alertController, useIonRouter
 } from '@ionic/vue';
 import { play$fx } from '@/assets/fx';
@@ -96,7 +96,7 @@ export default defineComponent({
   name: 'XpTempleCreatorHeader',
   components: {
     IonHeader, IonToolbar, IonTitle, IonButtons,
-    IonBackButton, IonButton
+    IonButton
   },
   props: {
     templeId: { type: String, required: true },
@@ -105,7 +105,6 @@ export default defineComponent({
     gridSize: { type: String, default: '6x6' },
     entranceDisplay: { type: String, default: '1x 1y' },
     showPreview: { type: Boolean, default: false },
-    backHref: { type: String, default: '/game-master/compendium/temples' },
     currentLevelId: { type: String, default: '1F' },
     floors: { type: Array as () => string[], default: () => ['1F'] }
   },

@@ -5,7 +5,7 @@
       <!-- Primary Toolbar -->
       <ion-toolbar :class="['icon-colors', headerClass]">
         <ion-buttons slot="start">
-          <ion-back-button v-if="backButtonHref" :default-href="backButtonHref" />
+          <xp-back-button :default-href="backButtonHref" />
           <slot name="icon" />
           <slot name="start-actions" />
         </ion-buttons>
@@ -42,7 +42,8 @@
 
 <script lang="ts">
 import { defineComponent, PropType } from 'vue';
-import { IonPage, IonHeader, IonToolbar, IonButtons, IonBackButton, IonTitle, IonContent, IonRefresher, IonRefresherContent } from '@ionic/vue';
+import { IonPage, IonHeader, IonToolbar, IonButtons, IonTitle, IonContent, IonRefresher, IonRefresherContent } from '@ionic/vue';
+import XpBackButton from '@/components/atoms/BackButton/XpBackButton.vue';
 import XpLoading from '@/components/molecules/Loading/XpLoading.vue';
 
 export default defineComponent({
@@ -52,7 +53,7 @@ export default defineComponent({
     IonHeader,
     IonToolbar,
     IonButtons,
-    IonBackButton,
+    XpBackButton,
     IonTitle,
     IonContent,
     IonRefresher,
@@ -72,6 +73,8 @@ export default defineComponent({
       type: Boolean,
       default: false
     },
+    // Where Back goes with no history; empty = the place this page belongs to (src/router/parentOf.ts), and no
+    // button at all on a page that is the top of its stack
     backButtonHref: {
       type: String,
       default: ''

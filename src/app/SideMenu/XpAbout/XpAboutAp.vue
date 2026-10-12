@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar color="tertiary">
         <ion-buttons slot="start">
-          <ion-back-button default-href="/about-xp" />
+          <xp-back-button />
           <i class="fad fa-hand-holding-magic fa-lg mr-2"></i>
         </ion-buttons>
         <ion-title>About Ability Points</ion-title>

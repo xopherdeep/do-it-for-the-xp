@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar color="secondary">
         <ion-buttons slot="start">
-          <ion-back-button></ion-back-button>
+          <xp-back-button></xp-back-button>
           <xp-icon
             icon="chart-bar"
             primary="blue"

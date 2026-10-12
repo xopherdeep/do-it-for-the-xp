@@ -3,7 +3,7 @@
     <ion-header :translucent="true">
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button :default-href="`/xp-settings/`"></ion-back-button>
+          <xp-back-button></xp-back-button>
         </ion-buttons>
         <ion-title>Account Settings</ion-title>
       </ion-toolbar>
@@ -161,7 +161,6 @@
     IonHeader,
     IonToolbar,
     IonButtons,
-    IonBackButton,
     IonTitle,
     IonContent,
     IonList, // Added
@@ -184,7 +183,6 @@
       IonHeader,
       IonToolbar,
       IonButtons,
-      IonBackButton,
       IonTitle,
       IonContent,
       IonList, // Added

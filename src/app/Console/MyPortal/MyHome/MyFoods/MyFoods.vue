@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button :default-href="`/my-portal/${userId}/my-home`"></ion-back-button>
+          <xp-back-button></xp-back-button>
           <!-- <ion-icon :icon="fastFoodOutline" slot="icon-only" /> -->
           <!-- Using FontAwesome icon -->
           <i class="fad fa-utensils-alt fa-lg" />

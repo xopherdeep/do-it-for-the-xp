@@ -3,7 +3,7 @@
     <ion-header :translucent="true">
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button default-href="/xp-settings"></ion-back-button>
+          <xp-back-button></xp-back-button>
         </ion-buttons>
         <ion-title>Notifications Settings</ion-title>
       </ion-toolbar>
@@ -124,7 +124,6 @@
     IonLabel,
     IonToggle,
     IonCard,
-    IonBackButton,
     IonButtons,
     IonAvatar,
     toastController,
@@ -151,7 +150,6 @@
       IonLabel,
       IonToggle,
       IonCard,
-      IonBackButton,
       IonButtons,
       IonAvatar,
     },

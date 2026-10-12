@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button :default-href="`/my-portal/${heroId}/my-home`"></ion-back-button>
+          <xp-back-button></xp-back-button>
           <ion-icon :icon="calendarOutline" slot="icon-only" />
         </ion-buttons>
         <ion-title>
@@ -128,7 +128,6 @@ import {
   IonHeader,
   IonToolbar,
   IonButtons,
-  IonBackButton,
   IonIcon,
   IonTitle,
   IonContent,

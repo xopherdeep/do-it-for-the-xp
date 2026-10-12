@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button default-href="/game-master" />
+          <xp-back-button />
         </ion-buttons>
         <i class="fad fa-2x fa-shopping-basket" slot="start" />
         <ion-title> Shops & Accessories </ion-title>

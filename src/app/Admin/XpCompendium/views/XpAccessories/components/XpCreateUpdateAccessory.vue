@@ -3,7 +3,7 @@
     <ion-header>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-back-button defaultHref="/game-master/accessories" />
+          <xp-back-button />
         </ion-buttons>
         <ion-title>{{ id ? "Update" : "Create" }} Accessory</ion-title>
       </ion-toolbar>
@@ -203,7 +203,7 @@
     <ion-footer>
       <ion-toolbar>
         <ion-buttons slot="start">
-          <ion-button @click="$router.go(-1)">
+          <ion-button @click="goBack">
             <i class="fad fa-times fa-lg mr-2" />
             Cancel
           </ion-button>
@@ -223,6 +223,7 @@
   import { modalController } from "@ionic/vue";
   import ionic from "@/lib/mixins/ionic";
   import { useUserStore } from "@/lib/store/stores/user";
+  import { useBack } from "@/hooks/useBack";
   import debug from "@/lib/utils/debug";
 
   import AccessoriesDb, {
@@ -261,7 +262,7 @@
       clickSave() {
         this.accessoryDb
           .setAccessory(this.updateAccessory)
-          .then(() => this.$router.go(-1));
+          .then(() => this.goBack());
       },
       getNumber(number) {
         return this.isPenalty ? number * -1 : number;
@@ -278,6 +279,7 @@
     },
     setup() {
       const userStore = useUserStore();
+      const { back: goBack } = useBack();
       const accessoryDb = new AccessoriesDb(accessoriesStorage);
       const updateAccessory = ref({
         name: "",
@@ -356,6 +358,7 @@
       const activeSegment = ref("label");
 
       return {
+        goBack,
         accessoryDb,
         activeSegment,
         isPenalty,

@@ -30,6 +30,7 @@ import {
   logOut,
 } from "ionicons/icons";
 import { actionSheetController, alertController, toastController } from "@ionic/vue";
+import { useBack } from "@/hooks/useBack";
 import { useItemFetcher } from "@/hooks/useItemFetcher";
 import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
 import debug from "@/lib/utils/debug";
@@ -105,7 +106,7 @@ export default defineComponent({
           text: 'Leave Hotel',
           icon: logOut,
           handler: () => {
-            this.$router.go(-1);
+            this.goBack();
           },
           cssClass: "action-leave",
         },
@@ -329,6 +330,8 @@ export default defineComponent({
   },
   setup(props) {
     const userStore = useUserStore();
+    // Leaving goes back, or up to Home Town when the hotel was opened with no history behind it
+    const { back: goBack } = useBack();
     const {
       request,
       items,
@@ -345,6 +348,7 @@ export default defineComponent({
     };
 
     return {
+      goBack,
       userStore,
       customAlertOptions,
       storefrontOutline,

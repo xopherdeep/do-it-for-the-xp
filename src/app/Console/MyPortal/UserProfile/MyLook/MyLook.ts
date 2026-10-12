@@ -1,5 +1,5 @@
 import { computed, defineComponent, ref } from "vue";
-import { IonBackButton, IonButtons, IonContent, IonHeader, IonPage, IonTitle, IonToolbar, toastController } from "@ionic/vue";
+import { IonButtons, IonContent, IonHeader, IonPage, IonTitle, IonToolbar, toastController } from "@ionic/vue";
 import { arrowBack } from "ionicons/icons";
 import XpLookEditor from "@/components/organisms/HeroModel/XpLookEditor.vue";
 import { withoutHands } from "@/components/organisms/HeroModel/lookEditor";
@@ -25,7 +25,6 @@ export default defineComponent({
     },
   },
   components: {
-    IonBackButton,
     IonButtons,
     IonContent,
     IonHeader,

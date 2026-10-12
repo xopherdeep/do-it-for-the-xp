@@ -3,10 +3,7 @@
     <ion-header>
       <ion-toolbar class="rpg-box">
         <ion-buttons slot="start">
-          <ion-back-button
-            :default-href="`/my-portal/${userId}/my-home`"
-            :icon="arrowBack"
-          ></ion-back-button>
+          <xp-back-button :icon="arrowBack"></xp-back-button>
         </ion-buttons>
         <ion-title v-if="user && user.name">
           {{ user.name.first }}
