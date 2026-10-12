@@ -49,6 +49,7 @@
                           @click="generateBeastWithAI">
                           <div class="generate-beast-content">
                             <i v-if="isGeneratingBeast" class="fad fa-spinner-third fa-spin fa-3x"></i>
+                            <i v-else-if="!pro.isPro" class="fad fa-lock fa-3x"></i>
                             <i v-else class="fad fa-sparkles fa-3x"></i>
                             <span class="generate-label">{{ isGeneratingBeast ? 'Generating...' : 'AI Generate'
                               }}</span>
@@ -84,6 +85,7 @@
                 <div class="empty-state-buttons">
                   <ion-button @click="generateBeastWithAI" class="mt-4" color="tertiary" :disabled="isGeneratingBeast">
                     <i v-if="isGeneratingBeast" class="fad fa-spinner-third fa-spin mr-2"></i>
+                    <i v-else-if="!pro.isPro" class="fad fa-lock mr-2"></i>
                     <i v-else class="fad fa-sparkles mr-2"></i>
                     {{ isGeneratingBeast ? 'Generating...' : 'AI Generate' }}
                   </ion-button>
@@ -154,7 +156,8 @@ import {
 import XpSplashHeader from "@/components/atoms/SplashHeader/XpSplashHeader.vue";
 import XpBeastSelectorItem from "@/app/Admin/XpCompendium/views/XpBestiary/components/XpBeastSelectorItem.vue";
 import { AchievementFormInjectionKey } from "../../hooks/useAchievementForm";
-import { generateFullBeast, isGeminiConfigured } from "@/lib/services/ai/GeminiService";
+import { generateFullBeast } from "@/lib/services/ai/GeminiService";
+import { useProStore } from "@/lib/store/stores/pro";
 import BestiaryDb, { beastStorage, Beast } from "@/lib/databases/BestiaryDb";
 
 const {
@@ -168,6 +171,7 @@ const {
 } = inject(AchievementFormInjectionKey)!;
 
 const router = useRouter();
+const pro = useProStore();
 const bestiaryDb = new BestiaryDb(beastStorage);
 const isGeneratingBeast = ref(false);
 
@@ -188,16 +192,7 @@ const availableAchievements = computed(() => {
 });
 
 const generateBeastWithAI = async () => {
-  if (!isGeminiConfigured()) {
-    const toast = await toastController.create({
-      message: 'AI not configured. Add VUE_APP_GEMINI_API_KEY to your .env file.',
-      duration: 3000,
-      color: 'warning',
-      position: 'top',
-    });
-    await toast.present();
-    return;
-  }
+  if (!(await pro.requirePro("aiHelpers"))) return;
 
   isGeneratingBeast.value = true;
 

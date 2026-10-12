@@ -27,6 +27,7 @@ import XpReorderAchievementsModal from "../components/XpReorderAchievementsModal
 import { formatQuestName } from "@/lib/utils/format";
 import debug from "@/lib/utils/debug";
 import { withoutEmptyTimes } from "./timesOfDayEditor";
+import { useProStore } from "@/lib/store/stores/pro";
 
 export const sortCategoryByName = (a: any, b: any) => {
   const nameA = a.name.toLowerCase();
@@ -804,14 +805,8 @@ export function useAchievementForm() {
       );
 
       if (!isGeminiConfigured()) {
-        const toast = await toastController.create({
-          message:
-            "AI not configured. Add VUE_APP_GEMINI_API_KEY to your .env file.",
-          duration: 3000,
-          color: "warning",
-          position: "top",
-        });
-        await toast.present();
+        // AI helpers are XP Pro: show the upsell instead of a "not configured" message
+        await useProStore().requirePro("aiHelpers");
         return;
       }
 
