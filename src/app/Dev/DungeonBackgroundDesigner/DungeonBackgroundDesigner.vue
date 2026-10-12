@@ -261,7 +261,8 @@ const showChestContentsDialog = async (room: RoomDefinition) => {
       {
         text: 'Loot',
         handler: (selectedItems) => {
-          if (selectedItems && selectedItems.length > 0) {
+          const hasSelectedItems = selectedItems && selectedItems.length > 0;
+          if (hasSelectedItems) {
             processChestItems(selectedItems, room);
           }
         }
@@ -281,15 +282,17 @@ const handleTeleport = () => {
   
   // Get the current room for context
   const currentRoom = getCurrentRoom();
-  if (!currentRoom || currentRoom.type !== 'teleport') return false;
+  const isNotOnTeleport = !currentRoom || currentRoom.type !== 'teleport';
+  if (isNotOnTeleport) return false;
   
   // Find all teleport rooms
   const teleportRooms: [number, number][] = [];
   temple.maze.forEach((row, rowIndex) => {
     row.forEach((cell, colIndex) => {
       const cellRoom = temple.rooms[cell];
-      if (cellRoom && cellRoom.type === 'teleport' && 
-          !(rowIndex === currentPosition.value[0] && colIndex === currentPosition.value[1])) {
+      const isOtherTeleportRoom = cellRoom && cellRoom.type === 'teleport' &&
+          !(rowIndex === currentPosition.value[0] && colIndex === currentPosition.value[1]);
+      if (isOtherTeleportRoom) {
         teleportRooms.push([rowIndex, colIndex]);
       }
     });

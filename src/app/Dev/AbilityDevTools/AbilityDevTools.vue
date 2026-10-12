@@ -216,7 +216,8 @@ export default defineComponent({
           level?: number 
         } = {};
 
-        if (type === AbilityType.InGame && Math.random() > 0.3) {
+        const needsClassRequirement = type === AbilityType.InGame && Math.random() > 0.3;
+        if (needsClassRequirement) {
           const selectedClass = classTypes[Math.floor(Math.random() * (classTypes.length - 1))]; // Exclude 'none'
           const classLevel = Math.floor(Math.random() * 5) + 1;
           

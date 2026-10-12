@@ -47,7 +47,8 @@ export function useHeroEquipment(userId: Ref<string> | string) {
 
   /** Equip `item` into `hand` slot `index`, or clear the slot when `item` is null. */
   const clickItem = (item: EquippedItem | null, hand: string, index = 0) => {
-    if (item === null && hand) {
+    const isClearingSlot = item === null && hand;
+    if (isClearingSlot) {
       equipment.value = equipment.value.filter((i) => !(i.hand === hand && i.slotIndex === index));
       save();
       return;
@@ -57,7 +58,8 @@ export function useHeroEquipment(userId: Ref<string> | string) {
     const slotOccupiedIndex = equipment.value.findIndex((i) => i.hand === hand && i.slotIndex === index);
     if (slotOccupiedIndex !== -1) equipment.value.splice(slotOccupiedIndex, 1);
     const itemToEquip = { ...item, hand, slotIndex: index } as EquippedItem;
-    if (item?.click && typeof item.click === "function") itemToEquip.click = item.click;
+    const hasClickHandler = item?.click && typeof item.click === "function";
+    if (hasClickHandler) itemToEquip.click = item.click;
     equipment.value.push(itemToEquip);
     save();
   };

@@ -270,7 +270,8 @@ export default defineComponent({
     const playRPGSound = (soundName: string) => {
       try {
         const sound = window.$fx?.rpg?.[selectedRPGTheme.value]?.[soundName];
-        if (sound && typeof sound === 'object' && 'play' in sound) {
+        const isPlayableSound = sound && typeof sound === 'object' && 'play' in sound;
+        if (isPlayableSound) {
           // Reset the sound to start from beginning
           sound.currentTime = 0;
           sound.volume = fxVolume.value / 100;
@@ -291,7 +292,8 @@ export default defineComponent({
         const fx = window.$fx as unknown as FXObject;
         const tracks = fx?.rpg?.[selectedRPGTheme.value]?.BGM?.[category];
         
-        if (tracks && tracks[index]) {
+        const hasTrack = tracks && tracks[index];
+        if (hasTrack) {
           const track = tracks[index];
           currentTrack.value = track;
           
@@ -316,9 +318,11 @@ export default defineComponent({
       }
     };
 
+    const hasFxTheme = () => Boolean(window.$fx && window.$fx.theme);
+
     // Change UI theme
     const changeUITheme = () => {
-      if (window.$fx && window.$fx.theme) {
+      if (hasFxTheme()) {
         // Use type assertion to avoid type error
         const fx = window.$fx as unknown as FXObject;
         fx.theme.ui = selectedUITheme.value;
@@ -332,7 +336,7 @@ export default defineComponent({
 
     // Change RPG theme
     const changeRPGTheme = () => {
-      if (window.$fx && window.$fx.theme) {
+      if (hasFxTheme()) {
         // Use type assertion to avoid type error
         const fx = window.$fx as unknown as FXObject;
         fx.theme.rpg = selectedRPGTheme.value;

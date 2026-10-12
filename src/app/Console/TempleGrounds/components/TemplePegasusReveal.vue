@@ -184,7 +184,8 @@ const glowOf = (pegasus: RevealPegasus | null): string => {
   if (!pegasus) return PALE_YELLOW;
   for (const candidate of [pegasus.color, pegasus.secondaryColor]) {
     const rgb = rgbOf(candidate);
-    if (rgb && brightness(rgb) >= 0.22) return candidate;
+    const isBrightEnoughToGlow = rgb && brightness(rgb) >= 0.22;
+    if (isBrightEnoughToGlow) return candidate;
   }
   return PALE_YELLOW;
 };

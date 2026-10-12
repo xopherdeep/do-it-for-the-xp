@@ -159,7 +159,8 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
   
   // Movement capability checks
   const canMoveUp = computed(() => {
-    if (!currentPosition.value || currentPosition.value[0] <= 0) return false;
+    const isAtTopEdge = !currentPosition.value || currentPosition.value[0] <= 0;
+    if (isAtTopEdge) return false;
     const [row, col] = currentPosition.value;
     const roomKey = maze.value[row - 1]?.[col];
     if (!roomKey) return false;
@@ -168,7 +169,8 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
   
   const canMoveDown = computed(() => {
     const mazeData = maze.value;
-    if (!currentPosition.value || currentPosition.value[0] >= mazeData.length - 1) return false;
+    const isAtBottomEdge = !currentPosition.value || currentPosition.value[0] >= mazeData.length - 1;
+    if (isAtBottomEdge) return false;
     const [row, col] = currentPosition.value;
     const roomKey = maze.value[row + 1]?.[col];
     if (!roomKey) return false;
@@ -176,7 +178,8 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
   });
   
   const canMoveLeft = computed(() => {
-    if (!currentPosition.value || currentPosition.value[1] <= 0) return false;
+    const isAtLeftEdge = !currentPosition.value || currentPosition.value[1] <= 0;
+    if (isAtLeftEdge) return false;
     const [row, col] = currentPosition.value;
     const roomKey = maze.value[row]?.[col - 1];
     if (!roomKey) return false;
@@ -184,7 +187,8 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
   });
   
   const canMoveRight = computed(() => {
-    if (!currentPosition.value || currentPosition.value[1] >= (maze.value[0]?.length || 0) - 1) return false;
+    const isAtRightEdge = !currentPosition.value || currentPosition.value[1] >= (maze.value[0]?.length || 0) - 1;
+    if (isAtRightEdge) return false;
     const [row, col] = currentPosition.value;
     const roomKey = maze.value[row]?.[col + 1];
     if (!roomKey) return false;
@@ -236,7 +240,8 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     const result = templeSystem.moveToPosition(templeId, [newRow, newCol], direction);
     
     // If movement wasn't successful, check if it was due to a locked door
-    if (!result && isDoorLocked(newRow, newCol)) {
+    const wasStoppedByLockedDoor = !result && isDoorLocked(newRow, newCol);
+    if (wasStoppedByLockedDoor) {
       // Could show unlock dialog here
       return false;
     }
@@ -291,7 +296,8 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
 
   // Process selected chest items
   const processChestItems = (selectedItems: string[]) => {
-    if (!currentRoom.value || !currentPosition.value) return;
+    const isNotInARoom = !currentRoom.value || !currentPosition.value;
+    if (isNotInARoom) return;
     
     // Get the room key for the current position
     const [row, col] = currentPosition.value;
@@ -320,7 +326,8 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
       if (item.startsWith('gold:')) {
         const goldAmount = parseInt(item.split(':')[1], 10);
         // Paid with the hero's class and awareness bonus, like any other temple gold
-        if (!isNaN(goldAmount) && userId) collected.push(`${earnGold(userId, goldAmount)} GP`);
+        const canPayGold = !isNaN(goldAmount) && userId;
+        if (canPayGold) collected.push(`${earnGold(userId, goldAmount)} GP`);
         return;
       }
       
@@ -352,7 +359,8 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
         const isEgg = content?.pegasus === true && item === content.dungeon;
         if (isEgg) freed = freeTemplePegasus(templeId, userId, item).message;
         // A named item (Frost Wand, the Wind Whistle...): the hero may now equip it, and what it stands for
-        if (userId && !isEgg) {
+        const shouldUnlockItem = userId && !isEgg;
+        if (shouldUnlockItem) {
           const store = useUserStore();
           chestItemUnlocks(templeId, item).forEach((name) => store.unlockItem(userId, name));
         }
@@ -371,7 +379,8 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
   
   // Check if the chest in the current room is empty
   const isChestEmpty = computed(() => {
-    if (!currentRoom.value || currentRoom.value.type !== 'loot') {
+    const isNotLootRoom = !currentRoom.value || currentRoom.value.type !== 'loot';
+    if (isNotLootRoom) {
       return true;
     }
     
@@ -388,7 +397,8 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     // If the room has a chestId, check the actual chest state in the ChestSystem
     if (currentRoom.value.content.chestId) {
       const chest = ChestSystem.getInstance().getChest(currentRoom.value.content.chestId);
-      if (chest && chest.isEmpty) {
+      const isEmptiedInChestSystem = chest && chest.isEmpty;
+      if (isEmptiedInChestSystem) {
         // Synchronize the room state with chest state
         currentRoom.value.isEmpty = true;
         return true;

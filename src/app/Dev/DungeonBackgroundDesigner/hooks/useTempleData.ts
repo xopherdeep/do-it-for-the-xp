@@ -54,7 +54,8 @@ export function useTempleData() {
     if (!temple) return null;
 
     const [row, col] = currentPosition.value;
-    if (row < 0 || row >= temple.maze.length || col < 0 || col >= temple.maze[0].length) {
+    const isOutsideMaze = row < 0 || row >= temple.maze.length || col < 0 || col >= temple.maze[0].length;
+    if (isOutsideMaze) {
       return null;
     }
 
@@ -68,7 +69,8 @@ export function useTempleData() {
     if (!temple) return false;
 
     const [row, col] = position;
-    if (row < 0 || row >= temple.maze.length || col < 0 || col >= temple.maze[0].length) {
+    const isOutsideMaze = row < 0 || row >= temple.maze.length || col < 0 || col >= temple.maze[0].length;
+    if (isOutsideMaze) {
       return false;
     }
 

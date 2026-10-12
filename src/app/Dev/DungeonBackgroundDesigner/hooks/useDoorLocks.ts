@@ -21,9 +21,11 @@ export function useDoorLocks() {
     lockedDoors.value[direction] = !lockedDoors.value[direction];
     
     // If temple and position are provided, update the room definition in temple data
-    if (temple && position) {
+    const canUpdateRoomDefinition = temple && position;
+    if (canUpdateRoomDefinition) {
       const [row, col] = position;
-      if (row < 0 || row >= temple.maze.length || col < 0 || col >= temple.maze[0].length) {
+      const isOutsideMaze = row < 0 || row >= temple.maze.length || col < 0 || col >= temple.maze[0].length;
+      if (isOutsideMaze) {
         return;
       }
       

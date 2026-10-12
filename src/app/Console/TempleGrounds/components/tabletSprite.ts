@@ -46,9 +46,12 @@ const LINE_PITCH = 7;
 
 /** The bevel of a slab: lit along the top and left, falling into shadow along the bottom and right. */
 const bevelTone = (x: number, y: number, left: number, right: number, top: number, bottom: number): number => {
-  if (y <= top + 1 || x <= left + 1) return 4;
-  if (y >= bottom - 1 || x >= right - 1) return 1;
-  if (y <= top + 3 || x <= left + 3) return 3;
+  const isLitEdge = y <= top + 1 || x <= left + 1;
+  if (isLitEdge) return 4;
+  const isShadowedEdge = y >= bottom - 1 || x >= right - 1;
+  if (isShadowedEdge) return 1;
+  const isNearLitEdge = y <= top + 3 || x <= left + 3;
+  if (isNearLitEdge) return 3;
   return 2;
 };
 
@@ -58,7 +61,8 @@ const paintSlab = (g: Grid) => {
     for (let x = SLAB.left + inset; x <= SLAB.right - inset; x++) {
       let tone = bevelTone(x, y, SLAB.left + inset, SLAB.right - inset, 0, SLAB.bottom);
       // Grain: a few darker flecks in the stone
-      if (tone === 2 && (x * 7 + y * 13) % 11 === 0) tone = 1;
+      const isGrainFleck = tone === 2 && (x * 7 + y * 13) % 11 === 0;
+      if (isGrainFleck) tone = 1;
       paint(g, x, y, STONE[tone]);
     }
   }
@@ -100,7 +104,8 @@ const glyphTone = (dy: number, rows: number): number => {
 
 /** Gold tone on a coin's rim: lit on the left, then falling from the top rows into shadow */
 const rimTone = (dx: number, dy: number): number => {
-  if (dx < -COIN_RX + 3 && dy <= 0) return 3;
+  const isLitLeftRim = dx < -COIN_RX + 3 && dy <= 0;
+  if (isLitLeftRim) return 3;
   if (dy <= 0) return 2;
   return dy === 1 ? 1 : 0;
 };
@@ -124,7 +129,8 @@ const paintPlinth = (g: Grid) => {
     for (let x = PLINTH.left; x <= PLINTH.right; x++) {
       let tone = bevelTone(x, y, PLINTH.left, PLINTH.right, PLINTH.top, PLINTH.bottom);
       // Straight in front of the viewer, the plinth is mostly one flat face: keep the shadow on the lower rows
-      if (y >= PLINTH.top + 2 && y < PLINTH.bottom - 1 && x > PLINTH.left + 1 && x < PLINTH.right - 1) tone = 2;
+      const isFlatFace = y >= PLINTH.top + 2 && y < PLINTH.bottom - 1 && x > PLINTH.left + 1 && x < PLINTH.right - 1;
+      if (isFlatFace) tone = 2;
       paint(g, x, y, STONE[tone]);
     }
   }
@@ -172,8 +178,10 @@ const paintCoin = (g: Grid, cx: number, cy: number) => {
   );
   // The face: a bright edge along the top left and a pale mark in the middle
   paintEllipse(g, cx, cy, COIN_RX, COIN_RY, (dx, dy) => {
-    if (dy === -COIN_RY || (dx < -COIN_RX + 3 && dy < 0)) return GOLD[4];
-    if (dy === COIN_RY || dx > COIN_RX - 3) return GOLD[2];
+    const isLitTopLeftEdge = dy === -COIN_RY || (dx < -COIN_RX + 3 && dy < 0);
+    if (isLitTopLeftEdge) return GOLD[4];
+    const isShadowedBottomRightEdge = dy === COIN_RY || dx > COIN_RX - 3;
+    if (isShadowedBottomRightEdge) return GOLD[2];
     return GOLD[3];
   });
   // The stamp on the face

@@ -180,7 +180,8 @@ const rowLabel = (choice: RevealChoice): string =>
   props.kind === "shop" && choice.price !== undefined ? `${choice.label} · ${choice.price} GP` : choice.label;
 
 const pick = (choice: RevealChoice) => {
-  if (spent || choice.disabled) return;
+  const isPickBlocked = spent || choice.disabled;
+  if (isPickBlocked) return;
   if (isSheet.value) {
     spent = true;
     emit("choose", choice.id);
@@ -191,9 +192,11 @@ const pick = (choice: RevealChoice) => {
 };
 
 const confirm = () => {
-  if (spent || selectedId.value === null) return;
+  const hasNothingToConfirm = spent || selectedId.value === null;
+  if (hasNothingToConfirm) return;
   const choice = props.choices.find((item) => item.id === selectedId.value);
-  if (!choice || choice.disabled) return;
+  const isChoiceUnavailable = !choice || choice.disabled;
+  if (isChoiceUnavailable) return;
   spent = true;
   emit("choose", choice.id);
 };

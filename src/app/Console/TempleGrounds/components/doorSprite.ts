@@ -67,7 +67,8 @@ const tone = (ramp: string[], index: number): string => ramp[Math.max(0, Math.mi
 /** Inside the doorway: below the arch's spring line it is the straight jambs, above it the circle. */
 export const inOpening = (x: number, y: number): boolean => {
   const { left, right, top, archCenterY, radius } = OPENING;
-  if (x < left || x > right || y < top) return false;
+  const isOutsideDoorway = x < left || x > right || y < top;
+  if (isOutsideDoorway) return false;
   if (y >= archCenterY) return true;
   const cx = (left + right) / 2;
   return (x - cx) ** 2 + (y - archCenterY) ** 2 <= radius ** 2 + radius;
@@ -78,7 +79,8 @@ const distanceToOpening = (x: number, y: number): number => {
   for (let d = 1; d <= 4; d++) {
     for (let dy = -d; dy <= d; dy++) {
       for (let dx = -d; dx <= d; dx++) {
-        if (Math.max(Math.abs(dx), Math.abs(dy)) === d && inOpening(x + dx, y + dy)) return d;
+        const isOpeningAtThisRing = Math.max(Math.abs(dx), Math.abs(dy)) === d && inOpening(x + dx, y + dy);
+        if (isOpeningAtThisRing) return d;
       }
     }
   }
@@ -97,7 +99,8 @@ const archRingStep = (ring: number): number => {
   return 3;
 };
 const blockLit = (bx: number, by: number): number => {
-  if (by === 0 || bx === 0) return 1;
+  const isLitEdge = by === 0 || bx === 0;
+  if (isLitEdge) return 1;
   if (by === 4) return -1;
   return 0;
 };
@@ -107,8 +110,10 @@ const keystoneStep = (x: number, y: number, half: number): number => {
   return 3;
 };
 const boardShade = (side: 'left' | 'right', x: number, from: number, to: number): number => {
-  if (side === 'right' && x >= to - 3) return -1;
-  if (side === 'left' && x <= from + 2) return -1;
+  const isShadowedRightEdge = side === 'right' && x >= to - 3;
+  if (isShadowedRightEdge) return -1;
+  const isShadowedLeftEdge = side === 'left' && x <= from + 2;
+  if (isShadowedLeftEdge) return -1;
   return 0;
 };
 const boardLight = (bx: number): number => {
@@ -122,7 +127,8 @@ const ringPullStep = (dy: number): number => {
   return 3;
 };
 const padlockStep = (y: number, t: number): number => {
-  if (y === LOCK_Y || t < 0.15) return 4;
+  const isBrightEdge = y === LOCK_Y || t < 0.15;
+  if (isBrightEdge) return 4;
   if (t < 0.55) return 3;
   if (t < 0.85) return 2;
   return 1;
@@ -161,7 +167,8 @@ export const doorFrame = (element: string): PixelRun[] => {
         const course = Math.floor(y / 6);
         const bx = (x + (course % 2) * 5) % 10;
         const by = y % 6;
-        if (by === 5 || bx === 9) paint(g, x, y, tone(stone, 0));
+        const isMortarLine = by === 5 || bx === 9;
+        if (isMortarLine) paint(g, x, y, tone(stone, 0));
         else {
           const lit = blockLit(bx, by);
           const side = x < 4 || x > DOOR_W - 6 ? -1 : 0;
@@ -243,7 +250,8 @@ export const padlockShackle = (element: string): PixelRun[] => {
       const dx = x - cx;
       const dy = Math.max(0, LOCK_Y - 5 - y);
       const r = Math.sqrt(dx * dx + dy * dy);
-      if (r >= 3.5 && r <= 5.6) paint(g, x, y, tone(metal, dx < 0 ? 3 : 1));
+      const isOnHoop = r >= 3.5 && r <= 5.6;
+      if (isOnHoop) paint(g, x, y, tone(metal, dx < 0 ? 3 : 1));
     }
   }
   return runs(g);
@@ -285,7 +293,8 @@ export const bossChains = (element: string): PixelRun[] => {
         // A link seen face on: a ring of metal around a dark eye, lit on its upper left
         for (let dy = 0; dy < 3; dy++) {
           for (let dx = 0; dx < 3; dx++) {
-            if (dx === 1 && dy === 1) paint(g, x + dx, y + dy, INK);
+            const isLinkEye = dx === 1 && dy === 1;
+            if (isLinkEye) paint(g, x + dx, y + dy, INK);
             else paint(g, x + dx, y + dy, tone(metal, linkStep(dx + dy)));
           }
         }
@@ -299,7 +308,8 @@ export const bossChains = (element: string): PixelRun[] => {
   // A drop shadow under the chains, so they hang off the wood
   for (let y = DOOR_H - 2; y >= 0; y--) {
     for (let x = 0; x < DOOR_W - 1; x++) {
-      if (g[y][x] && g[y][x] !== INK && !g[y + 1][x + 1]) paint(g, x + 1, y + 1, INK);
+      const needsDropShadow = g[y][x] && g[y][x] !== INK && !g[y + 1][x + 1];
+      if (needsDropShadow) paint(g, x + 1, y + 1, INK);
     }
   }
   return gridRuns(g);

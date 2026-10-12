@@ -72,7 +72,8 @@ const plankTone = (plankRow: number): number => {
 
 /** Gold tone across the lock plate: bright along the top and the left edge, fading to the right */
 const lockTone = (y: number, t: number): number => {
-  if (y === 2 || t < 0.12) return 4;
+  const isBrightEdge = y === 2 || t < 0.12;
+  if (isBrightEdge) return 4;
   if (t < 0.5) return 3;
   return t < 0.85 ? 2 : 1;
 };

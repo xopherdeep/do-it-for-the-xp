@@ -657,13 +657,20 @@ const $fx = {
   },
 };
 
+/** The browser refused to play because the page has not had a tap or key press yet. */
+const isAutoplayBlocked = (err: { name?: string; message?: string }): boolean => {
+  const message = err.message ?? '';
+  return err.name === 'NotAllowedError' || message.includes('interact') || message.includes('user activation');
+};
+
 export const play$fx = (fx = 'select', options?: { loop?: boolean, stop?: boolean }) => {
   const { ui, rpg, theme: { ui: themeUi, rpg: themeRpg } } = $fx
 
   // Logic to determine if we should use 'setup' instead of 'loading'
   // When in the "backend" (GameMaster/Compendium Setup), we use the setup sound
   let targetFx = fx;
-  if (fx === 'loading' && typeof window !== 'undefined' && window.location.pathname.includes('/game-master/compendium')) {
+  const isLoadingInCompendium = fx === 'loading' && typeof window !== 'undefined' && window.location.pathname.includes('/game-master/compendium');
+  if (isLoadingInCompendium) {
     targetFx = 'setup';
   }
 
@@ -681,7 +688,7 @@ export const play$fx = (fx = 'select', options?: { loop?: boolean, stop?: boolea
       soundFx.play().catch((err: any) => {
         debug.warn('UI Sound playback was prevented:', err);
         // Only trigger modal if it's a permission/interaction issue
-        if (err.name === 'NotAllowedError' || err.message?.includes('interact') || err.message?.includes('user activation')) {
+        if (isAutoplayBlocked(err)) {
           audioEngine.state.audioPermissionGranted = false;
         }
       });
@@ -727,7 +734,7 @@ export const play$fx = (fx = 'select', options?: { loop?: boolean, stop?: boolea
             // Suppress NotSupportedError (no supported sources)
             return;
           }
-          if (err.name === 'NotAllowedError' || err.message?.includes('interact') || err.message?.includes('user activation')) {
+          if (isAutoplayBlocked(err)) {
             audioEngine.state.audioPermissionGranted = false;
           }
         });

@@ -331,7 +331,8 @@ const start = () => {
   // The dialog holds the focus from the start, so Escape leaves even while the chest is opening
   nextTick(() => root.value?.focus({ preventScroll: true }));
   // A shut chest waits for Open: it lands, and nothing else happens until the hero presses it
-  if (props.closed && !isEmpty.value) {
+  const shouldWaitForOpen = props.closed && !isEmpty.value;
+  if (shouldWaitForOpen) {
     phase.value = "closed";
     nextTick(() => openButton.value?.focus({ preventScroll: true }));
     return;
@@ -362,8 +363,10 @@ const openLid = () => {
 /** A tap while the chest is still opening shows everything at once. */
 const skip = () => {
   // A shut chest is opened with its button, never by a stray tap
-  if (phase.value === "ready" || phase.value === "closed") return;
-  if (phase.value === "landing" || phase.value === "rattle") play$fx("openChest");
+  const hasNothingToSkip = phase.value === "ready" || phase.value === "closed";
+  if (hasNothingToSkip) return;
+  const isLidOpening = phase.value === "landing" || phase.value === "rattle";
+  if (isLidOpening) play$fx("openChest");
   settle();
 };
 

@@ -234,7 +234,8 @@ const start = () => {
 };
 
 const unlock = () => {
-  if (phase.value !== "ready" || !props.door?.canOpen) return;
+  const cannotUnlock = phase.value !== "ready" || !props.door?.canOpen;
+  if (cannotUnlock) return;
   phase.value = "keying";
   play$fx("key");
   feel("grab");

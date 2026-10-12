@@ -16,7 +16,8 @@ export const createGrid = (width: number, rows: number): Grid =>
   Array.from({ length: rows }, () => Array<string | null>(width).fill(null));
 
 export const paint = (g: Grid, x: number, y: number, fill: string): void => {
-  if (y >= 0 && y < g.length && x >= 0 && x < g[y].length) g[y][x] = fill;
+  const isInsideGrid = y >= 0 && y < g.length && x >= 0 && x < g[y].length;
+  if (isInsideGrid) g[y][x] = fill;
 };
 
 /** Merge each row into runs of one colour, shifted down by `top` rows into the sprite's frame. */

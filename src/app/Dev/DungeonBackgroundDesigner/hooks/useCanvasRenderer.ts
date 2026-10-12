@@ -34,13 +34,16 @@ export function useCanvasRenderer() {
     room: RoomDefinition | undefined,
     isDoorLocked: (dir: Direction) => boolean
   ) => {
-    if (!ctx || !temple) {
+    const hasNothingToDraw = !ctx || !temple;
+    if (hasNothingToDraw) {
       drawEmptyRoom(ctx);
       return;
     }
 
     const [row, col] = position;
-    if (row < 0 || row >= temple.maze.length || col < 0 || col >= temple.maze[0].length || !room || room.type === 'wall') {
+    const isOutsideMaze = row < 0 || row >= temple.maze.length || col < 0 || col >= temple.maze[0].length;
+    const isWallOrMissingRoom = isOutsideMaze || !room || room.type === 'wall';
+    if (isWallOrMissingRoom) {
       drawEmptyRoom(ctx);
       return;
     }
@@ -104,7 +107,8 @@ export function useCanvasRenderer() {
     
     // Function to check if there's a valid room in a direction
     const hasRoomInDirection = (r: number, c: number): boolean => {
-      if (r < 0 || r >= temple.maze.length || c < 0 || c >= temple.maze[0].length) {
+      const isOutsideMaze = r < 0 || r >= temple.maze.length || c < 0 || c >= temple.maze[0].length;
+      if (isOutsideMaze) {
         return false;
       }
       const roomKey = temple.maze[r][c];

@@ -33,7 +33,8 @@ export default class Api {
    * @param config Configuration for the API
    */
   static getInstance(config?: ApiConfig): Api {
-    if (!Api.instance && config) {
+    const shouldCreateInstance = !Api.instance && config;
+    if (shouldCreateInstance) {
       Api.instance = new Api(config);
     }
     if (!Api.instance) {
@@ -63,10 +64,12 @@ export default class Api {
     
     // Handle different parameter types
     if (params) {
-      if (typeof params === 'object' && !(params instanceof URLSearchParams) && !Array.isArray(params)) {
+      const isRecordParams = typeof params === 'object' && !(params instanceof URLSearchParams) && !Array.isArray(params);
+      if (isRecordParams) {
         // Handle record objects with various value types
         Object.entries(params).forEach(([key, value]) => {
-          if (value !== undefined && value !== null) {
+          const hasValue = value !== undefined && value !== null;
+          if (hasValue) {
             query.append(key, String(value));
           }
         });

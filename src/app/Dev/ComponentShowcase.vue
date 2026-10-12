@@ -435,9 +435,11 @@ const latestEvent = ref("No events yet");
 import { getCurrentInstance } from 'vue';
 
 const restartTypingDemo = (refName: string) => {
-  if (refName && typeof refName === 'string') {
+  const isNamedRef = refName && typeof refName === 'string';
+  if (isNamedRef) {
     const demoRef = (getCurrentInstance()?.proxy?.$refs as any)[refName];
-    if (demoRef && demoRef.resetTyping && demoRef.startTyping) {
+    const canRestartTyping = demoRef && demoRef.resetTyping && demoRef.startTyping;
+    if (canRestartTyping) {
       demoRef.resetTyping();
       demoRef.startTyping();
     }
@@ -445,9 +447,11 @@ const restartTypingDemo = (refName: string) => {
 };
 
 const skipTypingDemo = (refName: string) => {
-  if (refName && typeof refName === 'string') {
+  const isNamedRef = refName && typeof refName === 'string';
+  if (isNamedRef) {
     const demoRef = (getCurrentInstance()?.proxy?.$refs as any)[refName];
-    if (demoRef && demoRef.completeTyping) {
+    const canCompleteTyping = demoRef && demoRef.completeTyping;
+    if (canCompleteTyping) {
       demoRef.completeTyping();
     }
   }
