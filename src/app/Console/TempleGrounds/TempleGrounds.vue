@@ -3,10 +3,11 @@
     <ion-header>
       <ion-toolbar class="rpg-box icon-colors">
         <ion-buttons slot="end">
-          <ion-button color="rpg">
+          <ion-button color="rpg" data-cy="temple-keys" :aria-label="`Small keys: ${playerKeys}`">
             <!-- The small keys in hand; the Boss Key (fa-key-skeleton) is another thing -->
             <i class="fad fa-key m-0 mr-2 fa-2x ion-float-right" />
-            {{ playerKeys }}
+            <!-- Keyed on the pulse: a key spent or picked up replays the roll (down red, up green) -->
+            <span :key="keyPulse" class="temple-key-count" :class="keyChange ? `is-${keyChange}` : ''" data-cy="temple-keys-count">{{ playerKeys }}</span>
           </ion-button>
         </ion-buttons>
         <ion-buttons slot="start">
@@ -370,4 +371,38 @@
   </ion-page>
 </template>
 <script lang="ts" src="./TempleGrounds.ts" />
+<style lang="scss">
+// The small-key counter in the header: the number rolls in from above when a key is spent and from below when one is
+// picked up, with a flash of red or green, then settles
+.temple-key-count {
+  display: inline-block;
+
+  &.is-down {
+    animation: temple-key-roll-down 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  &.is-up {
+    animation: temple-key-roll-up 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+}
+
+@keyframes temple-key-roll-down {
+  0% { transform: translateY(-70%) scale(1.5); opacity: 0; color: var(--xp-color-hp, #e53935); }
+  60% { transform: translateY(8%) scale(1.15); opacity: 1; color: var(--xp-color-hp, #e53935); }
+  100% { transform: none; opacity: 1; }
+}
+
+@keyframes temple-key-roll-up {
+  0% { transform: translateY(70%) scale(1.5); opacity: 0; color: var(--xp-color-xp, #43a047); }
+  60% { transform: translateY(-8%) scale(1.15); opacity: 1; color: var(--xp-color-xp, #43a047); }
+  100% { transform: none; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .temple-key-count.is-down,
+  .temple-key-count.is-up {
+    animation: none;
+  }
+}
+</style>
 <style lang="scss" src="./_TempleGrounds.scss" />

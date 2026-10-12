@@ -19,6 +19,7 @@ import { TEMPLE_CLEARED_KEY, isBloodMoonDue, resetTempleProgress } from './templ
 import { nextWeekly } from './bloodMoonSchedule';
 import type { BloodMoonCadence } from './bloodMoonSchedule';
 import { getTempleMetadata } from '@/lib/engine/temples/templeRegistry';
+import { isBossRoom } from '@/lib/services/temples/authoredDoors';
 import { bloodMoon as notifyBloodMoon } from '@/lib/services/notifications/notify';
 import debug from '@/lib/utils/debug';
 
@@ -535,7 +536,7 @@ export class TempleSystem {
 
   /** Every door into a boss room is the boss door, whatever the authored sides say: only the Boss Key opens it. */
   private isBossDoor(there: Room | undefined): boolean {
-    return there?.type === 'boss';
+    return isBossRoom(there);
   }
 
   /**

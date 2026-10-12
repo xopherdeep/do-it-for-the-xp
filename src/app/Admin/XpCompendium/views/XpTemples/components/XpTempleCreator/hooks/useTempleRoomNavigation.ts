@@ -8,8 +8,8 @@ import { useIonRouter, createAnimation, toastController } from '@ionic/vue';
 import { useTempleCreatorStore } from '@/lib/store/stores/temple-creator';
 import { ROOM_ICONS, ____ } from '@/lib/engine/dungeons/roomTypes';
 import { Room } from '@/lib/engine/core/dungeons/types';
-import { getSideState } from '@/lib/engine/dungeons/roomIcons';
 import { isWallToken } from '@/lib/engine/dungeons/SpatialPalette';
+import { facingSide, leadsToBoss, type Side } from '@/lib/services/temples/authoredDoors';
 
 // No-op animation for instant navigation
 const noAnimation = () => createAnimation();
@@ -141,6 +141,16 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     }
   };
 
+  // The room on the other side of a door, as the store holds it
+  const neighbourRoom = (dir: string): Room | undefined => {
+    const coords = getRelativeRoom(dir);
+    const symbol = coords ? getMaze()[coords.row]?.[coords.col] : undefined;
+    return symbol ? store.roomsData[symbol] : undefined;
+  };
+
+  // The side as the room page shows it: any door into or out of a boss room is the Boss Lock (the skull)
+  const sideOf = (dir: string): string => facingSide(props.roomData.value, neighbourRoom(dir), dir as Side);
+
   // Get the adjacent room's icon
   const getAdjacentRoomIcon = (dir: string): string => {
     const coords = getRelativeRoom(dir);
@@ -228,6 +238,20 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
       props.roomData.value.sides = { north: 'door', east: 'door', south: 'door', west: 'door' };
     }
 
+    // Every door into a boss room is the Boss door: it stays the skull, whatever is tapped
+    if (sideOf(dir) === 'masterlocked' && leadsToBoss(props.roomData.value, neighbourRoom(dir))) {
+      const toast = await toastController.create({
+        message: 'Boss Lock: only the Boss Key opens it',
+        duration: 1400,
+        position: 'top',
+        color: 'danger',
+        cssClass: 'door-state-toast',
+        icon: 'skull'
+      });
+      toast.present();
+      return;
+    }
+
     const currentState = props.roomData.value.sides[dir] || 'door';
     const states = ['door', 'locked', 'bombable', 'wall'];
     const nextIdx = (states.indexOf(currentState) + 1) % states.length;
@@ -271,7 +295,7 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     const hasAccess = adjacentRooms.value[dir as keyof typeof adjacentRooms.value];
     if (!hasAccess) return 'DYNAMIC_WALL';
 
-    const state = getSideState(dir, props.roomData.value);
+    const state = sideOf(dir);
     
     // Check if the adjacent room is actually a wall
     const coords = getRelativeRoom(dir);
@@ -286,6 +310,11 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     // If it's a solid wall config OR the neighbor is a wall, show the wall icon
     if (state === 'wall' || isNeighborWall) {
       return 'DYNAMIC_WALL';
+    }
+    
+    // The Boss Lock: any door into or out of a boss room, from either room's page
+    if (state === 'masterlocked') {
+      return 'fas fa-skull';
     }
     
     if (isTrapped && state !== 'bombable') {
@@ -307,7 +336,7 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     const hasAccess = adjacentRooms.value[dir as keyof typeof adjacentRooms.value];
     if (!hasAccess) return 'state-wall state-banned';
     
-    const state = getSideState(dir, props.roomData.value);
+    const state = sideOf(dir);
     
     const coords = getRelativeRoom(dir);
     const maze = getMaze();
@@ -316,6 +345,10 @@ export function useTempleRoomNavigation(props: UseTempleRoomNavigationProps): Us
     
     if (state === 'wall' || isNeighborWall) {
       return 'state-wall';
+    }
+
+    if (state === 'masterlocked') {
+      return 'state-masterlocked';
     }
     
     const roomType = props.roomData.value?.type;

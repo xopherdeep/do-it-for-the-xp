@@ -30,7 +30,25 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
   const currentPosition = ref<[number, number]>([0, 0]);
   const hasMap = ref(false);
   const hasCompass = ref(false);
-  const playerKeys = ref(0);
+  // The small keys in hand, read straight from the temple's state (reactive), so a key spent or picked up shows at
+  // once whichever door, chest or reload changed it; nothing copies the count and can fall behind
+  const playerKeys = computed(() => templeSystem.getTempleState(templeId)?.playerKeys ?? 0);
+  // Which way the count moved last, and a tick that moves on every change (and on `replayKeyPulse`): the header's number
+  // rolls on it
+  const keyChange = ref<'up' | 'down' | null>(null);
+  const keyPulse = ref(0);
+  watch(
+    playerKeys,
+    (now, before) => {
+      keyChange.value = now > before ? 'up' : 'down';
+      keyPulse.value++;
+    },
+    { flush: 'sync' }
+  );
+  /** Roll the number again (the door reveal covered the header while the key went in) */
+  const replayKeyPulse = () => {
+    keyPulse.value++;
+  };
   const currentLevel = ref("1F");
   const isMapOpen = ref(false);
   const currentMessage = ref('');
@@ -52,7 +70,6 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
       currentPosition.value = state.currentPosition;
       hasMap.value = state.hasMap;
       hasCompass.value = state.hasCompass;
-      playerKeys.value = state.playerKeys;
       currentLevel.value = state.currentLevel;
     }
     return true;
@@ -82,7 +99,6 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
         currentPosition.value = newState.currentPosition;
         hasMap.value = newState.hasMap;
         hasCompass.value = newState.hasCompass;
-        playerKeys.value = newState.playerKeys;
         currentLevel.value = newState.currentLevel;
       }
     },
@@ -311,10 +327,8 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
 
       // Handle special items by updating both local refs AND the temple system state
       if (item === 'key') {
-        playerKeys.value++;
-        // Update the temple system state directly to ensure persistence
-        const state = templeSystem.getTempleState(templeId);
-        if (state) state.playerKeys = playerKeys.value;
+        // The temple holds the count (and saves it with the hero's progress); the header reads it from there
+        templeSystem.addKey(templeId);
       } else if (item === 'master-key') {
         // Holding the master key opens the temple's gate without the beast that guards it
         templeSystem.grantMasterKey(templeId);
@@ -487,6 +501,9 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     hasMap,
     hasCompass,
     playerKeys,
+    keyChange,
+    keyPulse,
+    replayKeyPulse,
     currentLevel,
     isMapOpen,
     currentRoom,

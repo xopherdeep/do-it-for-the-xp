@@ -530,6 +530,23 @@ export default defineComponent({
       }
     }
 
+    // The Boss Lock: every door into or out of a boss room, shown as the skull
+    &.state-masterlocked {
+      background: linear-gradient(135deg, rgba(var(--ion-color-danger-rgb), 0.28), rgba(var(--ion-color-danger-rgb), 0.12));
+      border-color: var(--ion-color-danger);
+      box-shadow: 0 0 14px rgba(var(--ion-color-danger-rgb), 0.45);
+
+      >i {
+        color: var(--ion-color-danger);
+        font-size: clamp(1.1rem, 4.5vw, 1.4rem);
+      }
+
+      &:hover {
+        background: linear-gradient(135deg, rgba(var(--ion-color-danger-rgb), 0.38), rgba(var(--ion-color-danger-rgb), 0.18));
+        box-shadow: 0 0 22px rgba(var(--ion-color-danger-rgb), 0.6);
+      }
+    }
+
     &.state-trapped,
     &.state-locked-on-enter {
       background: rgba(0, 0, 0, 0.2);

@@ -28,6 +28,7 @@ import { getTempleIcon } from "@/lib/engine/dungeons/templeIcons";
 import { getTempleIconClass } from "../../../hooks/useTempleIcon";
 import debug from "@/lib/utils/debug";
 import { auditTemple, missingNames } from "@/lib/services/temples/templeAudit";
+import { bossDoorSides } from "@/lib/services/temples/authoredDoors";
 
 import { getDungeonItems } from "@/lib/engine/core/items/itemRegistry";
 
@@ -953,6 +954,9 @@ export function useTempleCreator(
 
       // Standardize tokens on save (TXXYY format)
       store.migrateTokens();
+
+      // Every door into a boss room is the Boss door: draw it as the Boss Lock, never as a small lock
+      store.roomsData = bossDoorSides(store.templeMaze, store.roomsData);
 
       // Get current data from store (Layer 1) after migration
       const layoutToSave = {

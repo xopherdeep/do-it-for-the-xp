@@ -6,6 +6,7 @@ import { Dungeon, Room } from './types';
 import { DungeonManager } from './DungeonManager';
 import { TempleDb, templeStorage } from '@/lib/databases/TempleDb';
 import { TempleHydrator } from './TempleHydrator';
+import { lockedFromSides } from '@/lib/services/temples/authoredDoors';
 import debug from '@/lib/utils/debug';
 
 export interface RegisterTempleOptions {
@@ -50,11 +51,13 @@ export function registerTemple(templeId: string, templeData: any, options: Regis
     for (const [key, room] of Object.entries(templeData.rooms)) {
       // Content and doors are copied: play writes into them (chest ids, seals), and the layout it came
       // from must stay as it was authored, or the next registration would start from a played-in layout
+      // The temple creator draws doors as `sides`; the engine plays them as `locked` (lockedFromSides)
+      const authored = lockedFromSides(room as Room);
       const engineRoom: Room = {
         type: (room as any).type || 'empty',
         content: (room as any).content ? JSON.parse(JSON.stringify((room as any).content)) : undefined,
         visited: (room as any).visited || false,
-        locked: (room as any).locked ? { ...(room as any).locked } : undefined,
+        locked: authored.locked ? { ...authored.locked } : undefined,
         isEmpty: (room as any).isEmpty || false
       };
 

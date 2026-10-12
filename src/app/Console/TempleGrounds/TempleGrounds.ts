@@ -35,6 +35,7 @@ import { play$fx } from "@/assets/fx"
 import { useToast } from '@/hooks/useToast';
 import { TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
 import { bloodMoonLine } from '@/lib/engine/core/dungeons/templeReset';
+import { isBossRoom } from '@/lib/services/temples/authoredDoors';
 import { useEquipmentItems, type EquipmentItem } from '@/app/Console/MyPortal/UserHud/components/equipment/EquipmentItems';
 import {
   answerRiddle,
@@ -128,6 +129,9 @@ export default defineComponent({
       hasMap,
       hasCompass,
       playerKeys,
+      keyChange,
+      keyPulse,
+      replayKeyPulse,
       isMapOpen,
       currentRoom,
       maze,
@@ -161,13 +165,13 @@ export default defineComponent({
 
     const router = useRouter();
 
-    // Messages are RPG-box toasts at the bottom, over the nav, so they never cover the dungeon (X or swipe to dismiss)
+    // Messages are RPG-box toasts in the center with an X to dismiss
     const { showToast } = useToast();
     // Hushed while a reveal tells the news itself (the Pegasus chest), so the toast does not say it twice
     let hushMessages = false;
     const say = (message: string, duration = 2400) => {
       if (hushMessages) return;
-      showToast(message, duration, 'bottom').catch((error: unknown) => debug.error('Failed to show toast', error));
+      showToast(message, duration, 'middle').catch((error: unknown) => debug.error('Failed to show toast', error));
     };
     registerMessageDisplay(say);
 
@@ -401,6 +405,8 @@ export default defineComponent({
     const doorResult = ref<'opened' | 'refused' | null>(null);
     let doorAction: RoomAction | null = null;
     let doorOutcome: RoomOutcome | null = null;
+    // The small keys the hero held when the door came up: the header's number rolls again once the reveal lets go of it
+    let keysAtDoor = 0;
 
     const showLockedDoor = (direction: 'north' | 'south' | 'east' | 'west') => {
       const live = liveContext();
@@ -409,6 +415,7 @@ export default defineComponent({
       const kind = templeSystem.doorKind(props.temple, live.ctx.position, direction, live.ctx.level);
       doorAction = door.actions[0] ?? null;
       doorOutcome = null;
+      keysAtDoor = playerKeys.value;
       doorResult.value = null;
       doorShown.value = {
         kind: kind === 'master' ? 'master' : 'locked',
@@ -432,11 +439,14 @@ export default defineComponent({
       }
       doorOutcome = outcome;
       doorResult.value = 'opened';
+      // The key is spent: the count on the door goes down with it
+      if (doorShown.value) doorShown.value = { ...doorShown.value, keys: playerKeys.value };
     };
 
     // The reveal already played the key and the door, so the outcome only has its message left to say
     const finishShownDoor = async () => {
       isDoorOpen.value = false;
+      if (playerKeys.value !== keysAtDoor) replayKeyPulse();
       if (doorOutcome) await applyOutcome({ ...doorOutcome, sound: undefined });
       doorOutcome = null;
     };
@@ -819,7 +829,10 @@ export default defineComponent({
       const kind = (side: WallSide, r: number, c: number): ExitKind => {
         const there = roomAt(r, c);
         if (!there || there.type === 'wall') return 'wall';
-        if (templeSystem.doorKind(props.temple, [row, col], side) === 'master') return 'master';
+        const door = templeSystem.doorKind(props.temple, [row, col], side);
+        if (door === 'master') return 'master';
+        // The way into the boss room is the Boss door or an open one: the boss room's fight seal is no small lock on it
+        if (isBossRoom(there)) return door === 'locked' ? 'locked' : 'door';
         const lockedHere = Boolean(here?.locked?.[side]);
         const opposite = { north: 'south', south: 'north', east: 'west', west: 'east' }[side] as WallSide;
         const lockedThere = Boolean(there.locked?.[opposite]);
@@ -1031,6 +1044,8 @@ export default defineComponent({
       hasMap,
       hasCompass,
       playerKeys,
+      keyChange,
+      keyPulse,
       isMapOpen,
       currentRoom,
       isCombatRoomCleared,

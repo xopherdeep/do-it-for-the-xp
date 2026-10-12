@@ -235,7 +235,7 @@ export const restoreMana = (userId: string, amount: number): number => {
 
 const temples = () => TempleSystem.getInstance();
 
-/** What lies in each direction of a room: the room there (if any), and whether this side is locked. */
+/** What lies in each direction of a room: the room there (if any), and whether this side has a small lock (the boss door has its own). */
 export interface Exit {
   position: [number, number];
   room?: Room;
@@ -245,10 +245,9 @@ export type Exits = Record<Direction, Exit>;
 
 export const readExits = (templeId: string, level: string, position: [number, number]): Exits => {
   const manager = DungeonManager.getInstance();
-  const here = manager.getRoom(templeId, position, level);
   const exit = (direction: Direction): Exit => {
     const next: [number, number] = [position[0] + STEP[direction][0], position[1] + STEP[direction][1]];
-    return { position: next, room: manager.getRoom(templeId, next, level), locked: Boolean(here?.locked?.[direction]) };
+    return { position: next, room: manager.getRoom(templeId, next, level), locked: temples().doorKind(templeId, position, direction, level) === 'locked' };
   };
   return { north: exit('north'), east: exit('east'), south: exit('south'), west: exit('west') };
 };
