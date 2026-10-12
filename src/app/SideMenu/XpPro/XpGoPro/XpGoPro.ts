@@ -11,6 +11,12 @@ const TITLES: Record<ProPlanId, string> = {
   lifetime: "Founder's Lifetime",
 };
 
+const PER_LABEL: Record<ProPlanId, string> = {
+  monthly: " / month",
+  yearly: " / year",
+  lifetime: " once",
+};
+
 /** What the page shows before (or without) the server catalog: the two subscriptions, lifetime hidden. */
 const fallbackPlans = (): Record<ProPlanId, Partial<ProPlanInfo>> => ({
   monthly: { price: PRO_PLANS.monthly.price, trial_days: 7, on_sale: true },
@@ -39,11 +45,10 @@ export default defineComponent({
         .map((id) => {
           const info = catalog.value[id];
           const price = Number(info.price ?? PRO_PLANS[id].price);
-          const per = id === "monthly" ? " / month" : id === "yearly" ? " / year" : " once";
           return {
             id,
             title: TITLES[id],
-            priceLabel: `$${price.toFixed(2)}${per}`,
+            priceLabel: `$${price.toFixed(2)}${PER_LABEL[id]}`,
             trial: id !== "lifetime" && (info.trial_days ?? PRO_PLANS[id].trialDays) > 0,
           };
         })

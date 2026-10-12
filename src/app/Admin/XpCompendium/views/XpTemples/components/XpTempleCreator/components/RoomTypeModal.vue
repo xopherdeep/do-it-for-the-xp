@@ -363,7 +363,8 @@
     if (props.step === 3) return "Confirm Configuration";
     return "";
   });
-  const confirmIcon = computed(() => (props.step === 3 ? "fa-check-circle" : props.step === 2 ? "fa-sparkles" : "fa-arrow-right"));
+  const CONFIRM_ICONS: Record<number, string> = { 2: "fa-sparkles", 3: "fa-check-circle" };
+  const confirmIcon = computed(() => CONFIRM_ICONS[props.step] ?? "fa-arrow-right");
 
   const confirm = () => {
     play$fx("select");
