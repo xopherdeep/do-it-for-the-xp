@@ -16,6 +16,7 @@ import { onMounted, onUnmounted, getCurrentInstance, computed } from 'vue';
 // Access global properties like $fx via getCurrentInstance
 const instance = getCurrentInstance();
 const fx = instance?.appContext.config.globalProperties.$fx;
+const hasUiSounds = () => Boolean(fx && fx.ui && fx.theme);
 // const route = useRoute();
 
 // Determine which sound to play based on current route
@@ -28,7 +29,7 @@ const activeSoundId = computed(() => {
 });
 
 onMounted(() => {
-  if (fx && fx.ui && fx.theme) {
+  if (hasUiSounds()) {
     const sound = fx.ui[fx.theme.ui]?.[activeSoundId.value];
     if (sound) {
       sound.play();
@@ -37,7 +38,7 @@ onMounted(() => {
 });
 
 onUnmounted(() => {
-  if (fx && fx.ui && fx.theme) {
+  if (hasUiSounds()) {
     const sound = fx.ui[fx.theme.ui]?.[activeSoundId.value];
     if (sound) {
       sound.pause();

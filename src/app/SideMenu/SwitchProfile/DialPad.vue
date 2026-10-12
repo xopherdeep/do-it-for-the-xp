@@ -205,7 +205,8 @@
 
       // Avatar
       const currentAvatar = computed(() => {
-        if (!props.profile?.avatarImage && !props.profile?.avatar) return null;
+        const hasNoAvatar = !props.profile?.avatarImage && !props.profile?.avatar;
+        if (hasNoAvatar) return null;
         return heroAvatarSrc(props.profile, $requireAvatar) || $requireAvatar("./001-gamer.svg");
       });
 

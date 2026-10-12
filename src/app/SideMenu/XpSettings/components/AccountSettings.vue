@@ -217,11 +217,11 @@
 
       async changePassword() {
         // Simple validation
-        if (
+        const hasEmptyPasswordField =
           !this.passwordChange.current ||
           !this.passwordChange.new ||
-          !this.passwordChange.confirm
-        ) {
+          !this.passwordChange.confirm;
+        if (hasEmptyPasswordField) {
           this.showToast("Please fill in all password fields", "danger");
           return;
         }

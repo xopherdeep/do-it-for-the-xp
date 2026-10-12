@@ -174,8 +174,10 @@ export default defineComponent({
     const displayName = computed(() => {
       if (props.label) return props.label;
       if (isPegasus.value) {
-        if (isUnlocked.value && pegasus.value) {
-          return pegasus.value.name;
+        const stablePegasus = pegasus.value;
+        const isPegasusAwake = isUnlocked.value && stablePegasus;
+        if (isPegasusAwake) {
+          return stablePegasus.name;
         }
         return "Travel World";
       }
@@ -184,9 +186,11 @@ export default defineComponent({
       return shopMeta?.name || props.buildingId;
     });
 
+    const isBuilding = (...ids: string[]) => ids.includes(props.buildingId);
+
     const displaySublabel = computed(() => {
       if (props.sublabel) return props.sublabel;
-      if (props.buildingId === "home-town" || props.buildingId === "hometown") {
+      if (isBuilding("home-town", "hometown")) {
         return "Return home";
       }
       if (isPegasus.value) {
@@ -195,25 +199,25 @@ export default defineComponent({
         }
         return pegasus.value ? `${pegasus.value.name} is asleep` : "Locked in Temple";
       }
-      if (props.buildingId === "home-calendar" || props.buildingId === "calendar") {
+      if (isBuilding("home-calendar", "calendar")) {
         return "View schedule";
       }
-      if (props.buildingId === "home-storage" || props.buildingId === "storage") {
+      if (isBuilding("home-storage", "storage")) {
         return "Open vault";
       }
-      if (props.buildingId === "home-workbench" || props.buildingId === "craft-item") {
+      if (isBuilding("home-workbench", "craft-item")) {
         return "Craft gear";
       }
-      if (props.buildingId === "home-kitchen" || props.buildingId === "cook-food") {
+      if (isBuilding("home-kitchen", "cook-food")) {
         return "Cook meals";
       }
-      if (props.buildingId === "home-bed" || props.buildingId === "bed") {
+      if (isBuilding("home-bed", "bed")) {
         return "Rest & heal";
       }
-      if (props.buildingId === "home-door" || props.buildingId === "front-door") {
+      if (isBuilding("home-door", "front-door")) {
         return "Go outside";
       }
-      if (props.buildingId === "world-plains" || props.buildingId === "plains") {
+      if (isBuilding("world-plains", "plains")) {
         return "Leave town";
       }
       return isShop.value ? "Tap to shop" : "Tap to enter";

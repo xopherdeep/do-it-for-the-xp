@@ -230,8 +230,9 @@ export default defineComponent({
         return 'Locked';
       }
       
-      if (props.abilityStatus === AbilityStatus.Used || 
-          props.abilityStatus === AbilityStatus.Cooling) {
+      const isAlreadyUsed = props.abilityStatus === AbilityStatus.Used ||
+          props.abilityStatus === AbilityStatus.Cooling;
+      if (isAlreadyUsed) {
         return 'Already Used';
       }
       

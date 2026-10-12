@@ -121,9 +121,11 @@ export default defineComponent({
     };
 
     const handleClick = () => {
-      if (isTyping.value && typingText.value) {
+      const typingComponent = typingText.value;
+      const isMidSentence = isTyping.value && typingComponent;
+      if (isMidSentence) {
         // Complete the typing immediately
-        typingText.value.completeTyping?.();
+        typingComponent.completeTyping?.();
       } else if (hasMoreBlocks.value) {
         nextBlock();
       } else {
@@ -134,7 +136,8 @@ export default defineComponent({
 
     const onTypingComplete = () => {
       isTyping.value = false;
-      if (autoDismiss.value && !hasMoreBlocks.value) {
+      const shouldAutoDismiss = autoDismiss.value && !hasMoreBlocks.value;
+      if (shouldAutoDismiss) {
         dismissTimeout.value = window.setTimeout(() => {
           hide();
         }, 2000);

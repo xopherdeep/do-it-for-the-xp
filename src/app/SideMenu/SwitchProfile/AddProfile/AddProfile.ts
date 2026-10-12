@@ -44,7 +44,8 @@ export const AddProfile = defineComponent({
     moveFocus(event: Event, nextInput: string) {
       const target = event.target as HTMLInputElement;
       const el = this.$refs[nextInput] as HTMLInputElement;
-      if (target.value.length === 1 && el && typeof el.focus === 'function') {
+      const canFocusNextInput = target.value.length === 1 && el && typeof el.focus === 'function';
+      if (canFocusNextInput) {
         el.focus();
       }
     },
@@ -80,7 +81,8 @@ export const AddProfile = defineComponent({
       // Play Now, Let's Go! BGM
       const rpgTheme = this.gameStore.theme?.rpg || 'earthbound';
       const BGM = this.audioStore.bgm?.$fx?.rpg?.[rpgTheme]?.BGM;
-      if (BGM && BGM.nowLetsGo) {
+      const hasNowLetsGoTrack = BGM && BGM.nowLetsGo;
+      if (hasNowLetsGoTrack) {
         changeBGM(this.audioStore, {
           tracks: BGM.nowLetsGo,
           track: 0,
@@ -145,8 +147,10 @@ export const AddProfile = defineComponent({
     const passcodeError = computed(() => passcodeProblem(passcode.value, isGameMaster.value));
     // "Add Adult" / "Add Kid" pick the toggle's starting side for a new profile (isGameMaster still
     // holds it off when the person has no say). Applied once, before the first render.
+    const isEditingProfile = () => Boolean(props.id || props.profile);
     const applyPresetGameMaster = () => {
-      if (props.id || props.profile || typeof props.presetGameMaster !== "boolean") return;
+      const hasNoPresetToApply = isEditingProfile() || typeof props.presetGameMaster !== "boolean";
+      if (hasNoPresetToApply) return;
       isAdult.value = props.presetGameMaster;
       gameMasterChosen.value = true;
     };
@@ -252,10 +256,11 @@ export const AddProfile = defineComponent({
     // There must be a parent: the first profile created on a device starts as a Game Master.
     // Anyone else, and anyone being edited, is left exactly as they are.
     const defaultFirstProfileToGameMaster = async () => {
-      if (props.id || props.profile) return;
+      if (isEditingProfile()) return;
       try {
         const profiles = await storage.getProfiles();
-        if (profiles.length === 0 && !gameMasterChosen.value) isAdult.value = true;
+        const isFirstProfileUnchosen = profiles.length === 0 && !gameMasterChosen.value;
+        if (isFirstProfileUnchosen) isAdult.value = true;
       } catch (error) {
         // Could not tell, so stay off: a kid must never become a Game Master by accident
         debug.error("Could not check for existing profiles", error);
@@ -301,6 +306,11 @@ export const AddProfile = defineComponent({
       stats: props.profile?.stats || new Stats(),
     }))
 
+    const hasMissingRequiredField = computed(
+      () => !favoriteFood.value || !favoriteThing.value || !jobClass.value || !fullName.value
+    );
+    const isSaveDisabled = computed(() => hasMissingRequiredField.value || gameMasterEditLocked.value);
+
     const audioStore = useAudioStore();
     const gameStore = useGameStore();
     const route = useRoute();
@@ -308,11 +318,12 @@ export const AddProfile = defineComponent({
     onMounted(() => {
       loadProfilesForGameMasterCheck();
       // If creating a new profile (no id or profile prop)
-      if (!props.id && !props.profile) {
+      if (!isEditingProfile()) {
         defaultFirstProfileToGameMaster();
         const rpgTheme = gameStore.theme?.rpg || 'earthbound';
         const BGM = audioStore.bgm?.$fx?.rpg?.[rpgTheme]?.BGM;
-        if (BGM && BGM.createProfile) {
+        const hasCreateProfileTrack = BGM && BGM.createProfile;
+        if (hasCreateProfileTrack) {
           debug.log('Playing createProfile music');
           changeBGM(audioStore, {
             tracks: BGM.createProfile,
@@ -357,6 +368,7 @@ export const AddProfile = defineComponent({
       canSetFlag,
       profilesLoaded,
       gameMasterEditLocked,
+      isSaveDisabled,
       passcodeError,
       jobClass,
       jobClassOptions,

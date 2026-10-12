@@ -149,7 +149,8 @@
           // Check if it's a cancellation (often error message contains "Abort" or similar, but Capacitor API might not provide specific codes)
           // For simplicity, we show a generic message if it's not a success.
           const message = (error as { message?: unknown } | null)?.message;
-          if (typeof message === "string" && message.includes("Abort")) {
+          const wasShareCancelled = typeof message === "string" && message.includes("Abort");
+          if (wasShareCancelled) {
             debug.log("Share dialog was cancelled by the user.");
             // Optionally show a less prominent message or do nothing
             const toast = await toastController.create({

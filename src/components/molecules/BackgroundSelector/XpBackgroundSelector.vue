@@ -913,11 +913,11 @@
 
       // Apply a custom preset
       const applyCustomPreset = () => {
-        if (
-          selectedCustomPreset.value !== null &&
-          customPresets.value[selectedCustomPreset.value]
-        ) {
-          const preset = customPresets.value[selectedCustomPreset.value];
+        const presetIndex = selectedCustomPreset.value;
+        const hasSelectedPreset =
+          presetIndex !== null && customPresets.value[presetIndex];
+        if (hasSelectedPreset) {
+          const preset = customPresets.value[presetIndex];
 
           // Update custom values with preset values
           customBg1.value = preset.bg1;

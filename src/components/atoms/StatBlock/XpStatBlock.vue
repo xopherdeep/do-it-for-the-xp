@@ -58,7 +58,8 @@ defineOptions({
 });
 
 const displayValue = computed(() => {
-  if (props.value === undefined || props.value === null) return '';
+  const hasNoValue = props.value === undefined || props.value === null;
+  if (hasNoValue) return '';
   if (typeof props.value === 'number') {
     return props.value.toLocaleString();
   }

@@ -225,8 +225,10 @@
         const originalBlocks = this.dialogBlocks;
         // Override with custom blocks - Type-safe access
         const options = this.$options as ComponentOptions;
-        if (options.computed && options.computed.dialogBlocks) {
-          options.computed.dialogBlocks = function () {
+        const computedOptions = options.computed;
+        const canOverrideDialogBlocks = computedOptions && computedOptions.dialogBlocks;
+        if (canOverrideDialogBlocks) {
+          computedOptions.dialogBlocks = function () {
             return blocks;
           };
         }
@@ -238,8 +240,10 @@
         this.$watch("isDialogVisible", (newVal) => {
           if (!newVal) {
             const options = this.$options as ComponentOptions;
-            if (options.computed && options.computed.dialogBlocks) {
-              options.computed.dialogBlocks = function () {
+            const computedOptions = options.computed;
+            const canRestoreDialogBlocks = computedOptions && computedOptions.dialogBlocks;
+            if (canRestoreDialogBlocks) {
+              computedOptions.dialogBlocks = function () {
                 return originalBlocks;
               };
             }

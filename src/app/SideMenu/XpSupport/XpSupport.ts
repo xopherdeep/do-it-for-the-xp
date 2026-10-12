@@ -109,12 +109,14 @@ export default defineComponent({
   mounted() {
     // Check if dev mode was previously enabled
     const savedDevMode = localStorage.getItem('xp-dev-mode') === 'true';
-    if (devToolsAvailable && savedDevMode && !this.gameStore.devMode) {
+    const shouldRestoreDevMode = devToolsAvailable && savedDevMode && !this.gameStore.devMode;
+    if (shouldRestoreDevMode) {
       this.gameStore.setDevMode(true);
     }
 
     // Add dev tools tile if dev mode is enabled
-    if (devToolsAvailable && this.gameStore.devMode) {
+    const shouldShowDevToolsTile = devToolsAvailable && this.gameStore.devMode;
+    if (shouldShowDevToolsTile) {
       this.tiles.push({
         src: '/support/dev-tools',
         title: 'Developer Tools',

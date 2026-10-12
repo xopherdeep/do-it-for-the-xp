@@ -188,7 +188,8 @@ export default defineComponent({
         // Check if we have profiles, if not try to restore from persistent storage
         const existingProfiles = await storage.getProfiles();
 
-        if (!existingProfiles || existingProfiles.length === 0) {
+        const hasNoProfiles = !existingProfiles || existingProfiles.length === 0;
+        if (hasNoProfiles) {
           if (!isRestoringProfiles.value) {
             isRestoringProfiles.value = true;
             const restored = await storage.restoreProfiles();

@@ -405,7 +405,8 @@
       };
 
       const hasConnections = (ability: Ability): boolean => {
-        if (!ability.prerequisites || ability.prerequisites.length === 0) {
+        const hasNoPrerequisites = !ability.prerequisites || ability.prerequisites.length === 0;
+        if (hasNoPrerequisites) {
           return false;
         }
         return true;
@@ -470,8 +471,10 @@
             };
           }
 
-          if (ability.prerequisites && ability.prerequisites.length > 0) {
-            ability.prerequisites.forEach((prereqId) => {
+          const prerequisiteIds = ability.prerequisites;
+          const hasPrerequisites = prerequisiteIds && prerequisiteIds.length > 0;
+          if (hasPrerequisites) {
+            prerequisiteIds.forEach((prereqId) => {
               const prereq = props.abilities.find((a) => a.id === prereqId);
               if (prereq) {
                 // Initialize position for prereq if it doesn't exist

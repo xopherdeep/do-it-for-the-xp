@@ -135,7 +135,8 @@
       const timers = useTimers();
 
       const startCounter = () => {
-        if (counter.value && props.isActive) {
+        const canStartCounter = counter.value && props.isActive;
+        if (canStartCounter) {
           // Reset and start after delay
           timers.startTimeout(props.animationDelay, () => {
             if (counter.value?.start) {

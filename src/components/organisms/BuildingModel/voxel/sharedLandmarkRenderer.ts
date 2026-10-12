@@ -200,7 +200,8 @@ const resizeClient = (client: LandmarkClient): void => {
   const pixelWidth = Math.round(width * dpr);
   const pixelHeight = Math.round(height * dpr);
 
-  if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+  const isCanvasSizeStale = canvas.width !== pixelWidth || canvas.height !== pixelHeight;
+  if (isCanvasSizeStale) {
     canvas.width = pixelWidth;
     canvas.height = pixelHeight;
   }
@@ -224,19 +225,23 @@ const renderClient = (client: LandmarkClient, renderer: THREE.WebGLRenderer): vo
   const isRenderable = client.onScreen && client.pixelWidth > 0 && client.pixelHeight > 0;
   if (!isRenderable) return;
 
-  if (client.spinSpeed !== 0 && !client.dragging) {
+  const isAutoSpinning = client.spinSpeed !== 0 && !client.dragging;
+  if (isAutoSpinning) {
     client.yaw += client.spinSpeed * 0.018;
     client.dirty = true;
   }
 
-  if (!client.dirty && !client.dragging && client.spinSpeed === 0) {
+  const hasNothingToDraw = !client.dirty && !client.dragging && client.spinSpeed === 0;
+  if (hasNothingToDraw) {
     return;
   }
 
   client.group.rotation.y = client.yaw;
   client.group.position.y = 0;
 
-  if (sharedCanvas && (sharedCanvas.width !== client.pixelWidth || sharedCanvas.height !== client.pixelHeight)) {
+  const isRendererSizeStale =
+    sharedCanvas && (sharedCanvas.width !== client.pixelWidth || sharedCanvas.height !== client.pixelHeight);
+  if (isRendererSizeStale) {
     renderer.setSize(client.pixelWidth, client.pixelHeight, false);
   }
 
@@ -250,11 +255,16 @@ const renderClient = (client: LandmarkClient, renderer: THREE.WebGLRenderer): vo
   client.dirty = false;
 };
 
+const needsFrames = (client: LandmarkClient): boolean =>
+  client.dragging || client.dirty || client.spinSpeed !== 0;
+
 const shouldRunLoop = (): boolean => {
-  if (isContextLost || document.hidden || clients.size === 0) return false;
+  const cannotRunLoop = isContextLost || document.hidden || clients.size === 0;
+  if (cannotRunLoop) return false;
   let anyActive = false;
   clients.forEach((client) => {
-    if (client.onScreen && (client.dragging || client.dirty || client.spinSpeed !== 0)) {
+    const isActiveOnScreen = client.onScreen && needsFrames(client);
+    if (isActiveOnScreen) {
       anyActive = true;
     }
   });
@@ -262,14 +272,15 @@ const shouldRunLoop = (): boolean => {
 };
 
 const renderLoop = (currentTime = performance.now()): void => {
-  if (!isLoopRunning || isContextLost) return;
+  const isLoopHalted = !isLoopRunning || isContextLost;
+  if (isLoopHalted) return;
 
   let hasDraggingClient = false;
   let hasActiveClient = false;
 
   clients.forEach((client) => {
     if (client.onScreen) {
-      if (client.dragging || client.dirty || client.spinSpeed !== 0) {
+      if (needsFrames(client)) {
         hasActiveClient = true;
       }
       if (client.dragging) {
@@ -310,11 +321,13 @@ const renderLoop = (currentTime = performance.now()): void => {
 
 const syncLoop = (): void => {
   const wantRunning = shouldRunLoop();
-  if (wantRunning && !isLoopRunning) {
+  const shouldStartLoop = wantRunning && !isLoopRunning;
+  const shouldStopLoop = !wantRunning && isLoopRunning;
+  if (shouldStartLoop) {
     isLoopRunning = true;
     lastRenderTime = performance.now();
     rafId = requestAnimationFrame(renderLoop);
-  } else if (!wantRunning && isLoopRunning) {
+  } else if (shouldStopLoop) {
     stopLoop();
   }
 };
@@ -453,7 +466,8 @@ export const registerLandmark = (
     },
     setSpinSpeed: (speed: number): void => {
       client.spinSpeed = speed;
-      if (speed !== 0 && client.onScreen) {
+      const isSpinningOnScreen = speed !== 0 && client.onScreen;
+      if (isSpinningOnScreen) {
         client.dirty = true;
         syncLoop();
       }

@@ -242,8 +242,16 @@
         this.simulateProgressUpdate();
       },
 
+      hasPlaybackPosition(): boolean {
+        return Boolean(this.audioElement && this.audioElement.currentTime);
+      },
+
+      hasKnownDuration(): boolean {
+        return Boolean(this.audioElement && this.audioElement.duration);
+      },
+
       rewind() {
-        if (this.audioElement && this.audioElement.currentTime) {
+        if (this.hasPlaybackPosition()) {
           // Rewind by seekAmount seconds, but don't go below 0
           this.audioElement.currentTime = Math.max(
             0,
@@ -259,7 +267,7 @@
       },
 
       fastForward() {
-        if (this.audioElement && this.audioElement.currentTime) {
+        if (this.hasPlaybackPosition()) {
           // Fast forward by seekAmount seconds, but don't exceed duration
           const newTime = this.audioElement.currentTime + this.seekAmount;
           if (this.audioElement.duration) {
@@ -280,7 +288,7 @@
       },
 
       updateProgressFromAudio() {
-        if (this.audioElement && this.audioElement.duration) {
+        if (this.hasKnownDuration()) {
           this.progressPercentage =
             (this.audioElement.currentTime / this.audioElement.duration) * 100;
         }
@@ -301,7 +309,7 @@
 
           // Then set up interval for regular updates
           progressTimer = setInterval(() => {
-            if (this.audioElement && this.audioElement.duration) {
+            if (this.hasKnownDuration()) {
               // Use actual audio progress if available
               this.updateProgressFromAudio();
             } else {
@@ -320,15 +328,18 @@
 
       getTrackTitle() {
         // First try to get the track title from the tracks array if available
-        if (this.bgm && this.bgm.tracks && this.bgm.track !== undefined) {
+        const hasCurrentTrackListed = this.bgm && this.bgm.tracks && this.bgm.track !== undefined;
+        if (hasCurrentTrackListed) {
           const currentTrack = this.bgm.tracks[this.bgm.track];
-          if (currentTrack && currentTrack.title) {
+          const hasTrackTitle = currentTrack && currentTrack.title;
+          if (hasTrackTitle) {
             return currentTrack.title;
           }
         }
 
         // If no title in tracks array, try to extract from the audio source URL
-        if (this.audioElement && this.audioElement.src) {
+        const hasAudioSource = this.audioElement && this.audioElement.src;
+        if (hasAudioSource) {
           const url = this.audioElement.src;
 
           // Extract the filename from the URL
@@ -391,7 +402,8 @@
             ".xp-music-player .track-title"
           );
 
-          if (titleEl && containerEl) {
+          const canMeasureTitle = titleEl && containerEl;
+          if (canMeasureTitle) {
             this.shouldMarquee =
               titleEl.scrollWidth > containerEl.clientWidth - 80; // Account for the BGM ON/OFF label
           }

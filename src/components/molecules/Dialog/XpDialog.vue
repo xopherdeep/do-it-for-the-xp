@@ -59,10 +59,10 @@
 
       // Update the text based on current index
       const updateCurrentText = () => {
-        if (
+        const hasBlockToShow =
           props.textBlocks.length > 0 &&
-          currentBlockIndex.value < props.textBlocks.length
-        ) {
+          currentBlockIndex.value < props.textBlocks.length;
+        if (hasBlockToShow) {
           currentText.value = props.textBlocks[currentBlockIndex.value];
           isTyping.value = true;
         } else {

@@ -13,7 +13,7 @@
       <ion-title class="text-xl font-bold">New Profile</ion-title>
       <ion-buttons slot="end">
         <ion-button
-          :disabled="!favoriteFood || !favoriteThing || !jobClass || !fullName || gameMasterEditLocked"
+          :disabled="isSaveDisabled"
           @click="clickSaveProfile"
           class="font-medium"
           color="rpg"

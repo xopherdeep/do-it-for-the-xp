@@ -77,7 +77,8 @@ export default defineComponent({
     const startDelayTimeout = ref<number | null>(null);
 
     const typeNextChar = (timestamp: number) => {
-      if (!isTyping.value || isPaused.value) {
+      const isTypingOnHold = !isTyping.value || isPaused.value;
+      if (isTypingOnHold) {
         lastFrameTime = timestamp;
         animationFrameId = window.requestAnimationFrame(typeNextChar);
         return;
@@ -103,7 +104,8 @@ export default defineComponent({
             displayedText.value += char;
 
             // One short blip every other visible character, like the SNES text box
-            if (props.playSound && char !== ' ' && charIndex.value % 2 === 0) {
+            const shouldBlip = props.playSound && char !== ' ' && charIndex.value % 2 === 0;
+            if (shouldBlip) {
               play$fx(props.soundType);
             }
 
@@ -206,7 +208,8 @@ export default defineComponent({
       isPaused.value = false;
       lastFrameTime = 0; // Reset frame time so we don't jump
       
-      if (isTyping.value && !animationFrameId) {
+      const needsFrameLoop = isTyping.value && !animationFrameId;
+      if (needsFrameLoop) {
          animationFrameId = window.requestAnimationFrame(typeNextChar);
       }
     };
@@ -234,8 +237,10 @@ export default defineComponent({
         startTyping();
       }
       
-      if (props.interactive && textContainer.value) {
-        textContainer.value.addEventListener('click', handleClick);
+      const container = textContainer.value;
+      const canTapToSkip = props.interactive && container;
+      if (canTapToSkip) {
+        container.addEventListener('click', handleClick);
       }
     });
 
@@ -243,7 +248,8 @@ export default defineComponent({
     onBeforeUnmount(() => {
       resetTypingState();
       // Leaving mid-line must not leave the typewriter blip looping
-      if (isTyping.value && props.playSound) {
+      const shouldSilenceBlip = isTyping.value && props.playSound;
+      if (shouldSilenceBlip) {
         play$fx(props.soundType, { stop: true });
       }
 
