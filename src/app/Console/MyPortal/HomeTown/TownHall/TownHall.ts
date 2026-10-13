@@ -50,6 +50,7 @@ import { canAccessGameMaster } from "@/router/_Guards/gm.guard";
 import { NATIVE_RETURN_URL, authorizeUrl, townHallReturnUrl } from "@/lib/services/townhall/townHallLink";
 import { takeLinkReturn } from "@/lib/services/townhall/pendingReturn";
 import { SIGNUP_URL, TOWN_HALL_BOARDS, connectionName, townHallSiteUrl, type TownHallBoardSlug } from "@/lib/services/townhall/townHallSite";
+import { signingName } from "@/lib/services/townhall/townHallPosts";
 import { usesHashHistory } from "@/router/historyMode";
 import type { BoardInfo } from "@/lib/services/townhall/townHallFeed";
 import TownHallNews from "./components/TownHallNews.vue";
@@ -188,10 +189,8 @@ export default defineComponent({
     const reveal = useRevealPrompt();
 
     // The clerk's counter: the menu, the compose sheet, the hero's waiting list, and sending the queue whenever there is a chance to
-    const heroName = () => {
-      const name = userStore.getUserById(props.userId)?.name;
-      return name?.nick || name?.first || "A hero";
-    };
+    // Posts are signed on the public site: a nickname of the hero's own, never their real name (see signingName)
+    const heroName = () => signingName(userStore.getUserById(props.userId)?.name);
     const posting = useTownHallPosting({
       store: townHall,
       reveal,

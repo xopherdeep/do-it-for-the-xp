@@ -40,9 +40,32 @@ export function draftProblem(draft: PostDraft): string | null {
   return null;
 }
 
-/** The line that ends every topic and comment. No real names, no family name. */
+/** The line that ends every topic and comment. No real names, no family name: see `signingName`. */
 export function signature(heroName: string): string {
   return `\n\n— ${heroName}, from Do It For The XP`;
+}
+
+/** How a post is signed when the hero has no nickname of their own. */
+export const ANONYMOUS_SIGNATURE_NAME = "a hero";
+
+/** A hero's name as the profile keeps it. */
+export interface HeroNameParts {
+  first?: string;
+  last?: string;
+  full?: string;
+  nick?: string;
+}
+
+const sameName = (a: string, b: string | undefined): boolean => a.toLowerCase() === (b ?? "").trim().toLowerCase();
+
+/**
+ * What a hero's posts are signed with on the public site: their nickname, but only one that is not their real name (the
+ * nickname starts out as the first name). Otherwise "a hero". The first name is never a fallback.
+ */
+export function signingName(name: HeroNameParts | null | undefined): string {
+  const nick = name?.nick?.trim() ?? "";
+  const isRealName = [name?.first, name?.last, name?.full].some((part) => sameName(nick, part));
+  return nick && !isRealName ? nick : ANONYMOUS_SIGNATURE_NAME;
 }
 
 /** What a bug report says about the device, as plain text for the site's environment field. */

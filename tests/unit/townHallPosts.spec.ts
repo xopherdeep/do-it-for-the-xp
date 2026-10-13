@@ -6,6 +6,7 @@ import {
   draftProblem,
   requestFor,
   signature,
+  signingName,
   TITLE_MAX,
 } from "@/lib/services/townhall/townHallPosts";
 import type { PostDraft } from "@/lib/services/townhall/townHallPosts";
@@ -134,6 +135,36 @@ describe("signature", () => {
     expect(signature("Max")).toBe(SIGNED);
     expect(signature("Max")).toContain("—");
     expect(signature("Max")).not.toContain("–");
+  });
+});
+
+describe("signingName (no real names on a public site)", () => {
+  it("signs with a nickname the hero chose, trimmed", () => {
+    expect(signingName({ first: "Ronan", nick: "Moanin Ronan" })).toBe("Moanin Ronan");
+    expect(signingName({ first: "Max", nick: "  Dragonslayer " })).toBe("Dragonslayer");
+  });
+
+  it("signs as 'a hero' when the nickname is the first name, whatever its case or spaces", () => {
+    expect(signingName({ first: "Ronan", nick: "Ronan" })).toBe("a hero");
+    expect(signingName({ first: "Ronan", nick: " ronan " })).toBe("a hero");
+    expect(signingName({ first: " RONAN", nick: "Ronan" })).toBe("a hero");
+  });
+
+  it("never falls back to the first name", () => {
+    expect(signingName({ first: "Ronan" })).toBe("a hero");
+    expect(signingName({ first: "Ronan", nick: "   " })).toBe("a hero");
+    expect(signingName({ first: "Ronan", nick: "" })).toBe("a hero");
+    expect(signingName(undefined)).toBe("a hero");
+    expect(signingName(null)).toBe("a hero");
+  });
+
+  it("signs as 'a hero' when the nickname is the family name or the full name", () => {
+    expect(signingName({ first: "Max", last: "Power", full: "Max Power", nick: "Power" })).toBe("a hero");
+    expect(signingName({ first: "Max", last: "Power", full: "Max Power", nick: "max power" })).toBe("a hero");
+  });
+
+  it("makes the line '— a hero, from Do It For The XP'", () => {
+    expect(signature(signingName({ first: "Ronan", nick: "Ronan" }))).toBe("\n\n— a hero, from Do It For The XP");
   });
 });
 

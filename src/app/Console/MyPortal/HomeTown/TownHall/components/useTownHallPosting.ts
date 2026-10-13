@@ -30,7 +30,7 @@ export interface PostingDeps {
   /** The clerk's dialog: `ask` shows a prompt and answers with the choice picked; `prompt` is the one showing, if any */
   reveal: { ask(options: RevealPromptOptions): Promise<string>; prompt: Ref<unknown> };
   userId(): string;
-  /** What the hero signs with: the nickname */
+  /** What the hero signs with on the public site: a nickname of their own, never their real name (`signingName`) */
   heroName(): string;
   isGameMaster(): boolean;
   /** Where the hero is now, for a bug report */

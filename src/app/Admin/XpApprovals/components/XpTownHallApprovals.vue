@@ -7,7 +7,7 @@
       <ion-label class="ion-text-wrap">
         <h2 data-cy="th-approval-title">{{ headlineOf(post) }}</h2>
         <p>
-          <span data-cy="th-approval-hero">{{ post.heroName }}</span>
+          <span data-cy="th-approval-hero">{{ authorOf(post) }}</span>
           ·
           <span data-cy="th-approval-kind">{{ KIND_NAMES[post.kind] }}</span>
           <template v-if="post.kind === 'topic' && post.board">
@@ -17,6 +17,7 @@
           <ion-note>{{ formatDate(post.createdAt) }}</ion-note>
         </p>
         <p class="th-approval__body" data-cy="th-approval-body">{{ post.body }}</p>
+        <p v-if="isSigned(post)" class="th-approval__signature" data-cy="th-approval-signature">{{ signatureLine(post) }}</p>
         <div class="th-approval__actions">
           <ion-button size="small" color="success" data-cy="th-approve" @click="approve(post.id)">
             <i class="fad fa-check mr-2"></i>
@@ -42,8 +43,10 @@
 import { computed, onMounted, ref } from "vue";
 import { IonAvatar, IonButton, IonItem, IonLabel, IonList, IonNote } from "@ionic/vue";
 import { format } from "date-fns";
+import { signature } from "@/lib/services/townhall/townHallPosts";
 import type { TownHallPost, TownHallPostKind } from "@/lib/services/townhall/townHallTypes";
 import { useTownHallStore } from "@/lib/store/stores/townHall";
+import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
 
 /**
@@ -80,6 +83,17 @@ const headlineOf = (post: TownHallPost): string => {
 };
 
 const formatDate = (at: number): string => format(at, "MMM d, h:mma");
+
+/** Who wrote it, as the family knows them in the game (the post itself is signed without the real name) */
+const users = useUserStore();
+const authorOf = (post: TownHallPost): string => {
+  const name = users.getUserById(post.heroId)?.name;
+  return name?.nick?.trim() || name?.first?.trim() || post.heroName;
+};
+
+/** Topics and comments end with the hero's signature on the site; the Game Master sees the line exactly as it will read */
+const isSigned = (post: TownHallPost): boolean => post.kind !== "bug";
+const signatureLine = (post: TownHallPost): string => signature(post.heroName).trim();
 
 async function approve(id: string): Promise<void> {
   try {
@@ -126,6 +140,12 @@ async function reject(id: string): Promise<void> {
   .th-approval__body {
     white-space: pre-line;
     overflow-wrap: anywhere;
+  }
+
+  .th-approval__signature {
+    margin-top: 4px;
+    font-style: italic;
+    color: var(--ion-color-medium);
   }
 
   .th-approval__actions {

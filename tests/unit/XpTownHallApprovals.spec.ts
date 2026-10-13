@@ -2,6 +2,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { flushPromises, mount } from "@vue/test-utils";
 import XpTownHallApprovals from "@/app/Admin/XpApprovals/components/XpTownHallApprovals.vue";
 import { useTownHallStore } from "@/lib/store/stores/townHall";
+import { useUserStore } from "@/lib/store/stores/user";
 import type { TownHallPost } from "@/lib/services/townhall/townHallTypes";
 
 const mockDb = {
@@ -66,6 +67,25 @@ describe("XpTownHallApprovals", () => {
     expect(found[1].text()).toContain("Nice news!");
     expect(wrapper.text()).not.toContain("Already approved");
     expect(wrapper.text()).not.toContain("Turned down");
+  });
+
+  it("shows the exact signature line the site will publish under a topic or a comment", async () => {
+    const { wrapper } = await open([aPost({ id: "a", heroName: "a hero" }), aComment({ id: "b", heroName: "Dragonslayer" })]);
+
+    const [topic, comment] = rows(wrapper);
+    expect(topic.find('[data-cy="th-approval-signature"]').text()).toBe("— a hero, from Do It For The XP");
+    expect(comment.find('[data-cy="th-approval-signature"]').text()).toBe("— Dragonslayer, from Do It For The XP");
+  });
+
+  it("names the hero who wrote it as the family knows them, while the post is signed without the real name", async () => {
+    const users = useUserStore();
+    users.users["h-1"] = { id: "h-1", name: { first: "Max", nick: "Max" } };
+
+    const { wrapper } = await open([aPost({ heroName: "a hero" })]);
+
+    const row = rows(wrapper)[0];
+    expect(row.find('[data-cy="th-approval-hero"]').text()).toBe("Max");
+    expect(row.find('[data-cy="th-approval-signature"]').text()).toBe("— a hero, from Do It For The XP");
   });
 
   it("shows the hero, the kind, the board, the title and the message of a topic", async () => {
