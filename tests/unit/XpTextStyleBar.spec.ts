@@ -20,12 +20,16 @@ jest.mock("@/lib/services/notifications/notify", () => ({ notify: jest.fn() }));
 
 const bornAged = (age: number) => `${new Date().getFullYear() - age}-01-01`;
 
+const mockCreate = jest.fn();
+jest.mock("@ionic/vue", () => {
+  const actual = jest.requireActual("@ionic/vue");
+  return { ...actual, actionSheetController: { create: (options: unknown) => mockCreate(options) } };
+});
+
 // Ionic's web components are not the subject here: slots and events are
 const stubs = {
   IonToolbar: { template: "<div class='toolbar'><slot /></div>" },
   IonLabel: { template: "<span><slot /></span>" },
-  IonSegment: { name: "IonSegment", props: ["value"], template: "<div class='segment'><slot /></div>" },
-  IonSegmentButton: { props: ["value"], template: "<button class='choice' :data-value='value'><slot /></button>" },
   IonToggle: { name: "IonToggle", props: ["checked"], template: "<input type='checkbox' class='toggle' :checked='checked' />" },
 };
 
@@ -37,27 +41,49 @@ const mountBar = (profile: Record<string, unknown>) => {
   return { store, wrapper };
 };
 
+/** Open the action sheet and hand back its buttons, as the sheet would show them */
+const openSheet = async (wrapper: ReturnType<typeof mountBar>["wrapper"]) => {
+  const present = jest.fn();
+  mockCreate.mockResolvedValueOnce({ present });
+  await wrapper.find('[data-test="text-style-pick"]').trigger("click");
+  await Promise.resolve();
+  const options = mockCreate.mock.calls[mockCreate.mock.calls.length - 1][0];
+  return { options, present, buttons: options.buttons as { text: string; icon?: string; role?: string; handler?: () => void }[] };
+};
+
 describe("XpTextStyleBar (Text style on the profile)", () => {
-  it("offers Auto and the three voices, with Auto picked for a hero with no pick", () => {
+  beforeEach(() => mockCreate.mockReset());
+
+  it("shows Auto and the voice the birthday gives for a hero with no pick", () => {
     const { wrapper } = mountBar({ birthday: bornAged(6) });
-    expect(wrapper.findAll(".choice").map((choice) => choice.text())).toEqual(["Auto", "Simple", "Adventure", "Classic"]);
-    expect(wrapper.findComponent({ name: "IonSegment" }).props("value")).toBe("auto");
-    expect(wrapper.text()).toContain("Auto: Simple for this hero");
+    expect(wrapper.find('[data-test="text-style-pick"]').text()).toBe("Auto: Simple");
+  });
+
+  it("opens the four choices as an action sheet, with a Cancel, and ticks the one in use", async () => {
+    const { wrapper } = mountBar({ birthday: bornAged(6) });
+    const { options, present, buttons } = await openSheet(wrapper);
+    expect(options.header).toBe("Text style");
+    expect(present).toHaveBeenCalled();
+    expect(buttons.map((button) => button.text)).toEqual(["Auto (Simple for this hero)", "Simple", "Adventure", "Classic", "Cancel"]);
+    expect(buttons[0].icon).toBeDefined();
+    expect(buttons[1].icon).toBeUndefined();
+    expect(buttons[4].role).toBe("cancel");
   });
 
   it("saves the pick on the profile and Auto clears it", async () => {
     const { store, wrapper } = mountBar({ birthday: bornAged(6) });
-    const segment = wrapper.findComponent({ name: "IonSegment" });
-    segment.vm.$emit("ionChange", { detail: { value: "classic" } });
+    let sheet = await openSheet(wrapper);
+    sheet.buttons[3].handler?.();
     await wrapper.vm.$nextTick();
     expect(store.users.hero.voice).toBe("classic");
-    expect(segment.props("value")).toBe("classic");
-    expect(wrapper.text()).toContain("Classic words for this hero");
+    expect(wrapper.find('[data-test="text-style-pick"]').text()).toBe("Classic");
 
-    segment.vm.$emit("ionChange", { detail: { value: "auto" } });
+    sheet = await openSheet(wrapper);
+    expect(sheet.buttons[3].icon).toBeDefined();
+    sheet.buttons[0].handler?.();
     await wrapper.vm.$nextTick();
     expect(store.users.hero.voice).toBeUndefined();
-    expect(segment.props("value")).toBe("auto");
+    expect(wrapper.find('[data-test="text-style-pick"]').text()).toBe("Auto: Simple");
   });
 
   it("shows the read-aloud switch only for the simple voice and saves it", async () => {
