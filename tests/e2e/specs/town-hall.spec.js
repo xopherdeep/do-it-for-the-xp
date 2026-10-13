@@ -203,7 +203,7 @@ describe("Town Hall", () => {
       cy.intercept("DELETE", "**/application-passwords/u-1*", json({ deleted: true })).as("removeConnection");
     }
 
-    // IndexedDB outlives a Cypress test: clear the link an earlier test saved on this device (the open page may hold the database)
+    // IndexedDB outlives a Cypress test: clear the link and the posts an earlier test saved on this device (the open page may hold the database)
     function forgetDeviceLink() {
       cy.window().then(
         (win) =>
@@ -218,9 +218,11 @@ describe("Town Hall", () => {
                   db.close();
                   return resolve();
                 }
-                const clearing = db.transaction("_ionickv", "readwrite").objectStore("_ionickv").delete("link");
-                clearing.onerror = () => reject(clearing.error);
-                clearing.transaction.oncomplete = () => {
+                const saved = db.transaction("_ionickv", "readwrite");
+                saved.objectStore("_ionickv").delete("link");
+                saved.objectStore("_ionickv").delete("posts");
+                saved.onerror = () => reject(saved.error);
+                saved.oncomplete = () => {
                   db.close();
                   resolve();
                 };
@@ -389,6 +391,142 @@ describe("Town Hall", () => {
 
       openRegistrationQuestion();
       cy.get("[data-cy=reveal-choice-have]", { timeout: 20000 }).should("exist");
+    });
+
+    describe("Posting for the family", () => {
+      const heroPath = hash ? "/#/town-hall/hero-1" : "/town-hall/hero-1";
+      const approvalsPath = hash ? "/#/game-master/approvals" : "/game-master/approvals";
+      const FEATURE_REQUESTS_ID = 11; // BOARDS above
+      const TOPIC_TITLE = "More dragons";
+      const TOPIC_MESSAGE = "Please let every hero ride a dragon.";
+      const BUG_MESSAGE = "The treasure chest would not open.";
+      const SIGNATURE = "— Max, from Do It For The XP";
+      // The site answers a made post with its id (WordPress says 201)
+      const made = (id) => ({ statusCode: 201, body: { id }, headers: CORS });
+
+      // The posts the earlier cases (or a failed run) left on this device must not be sent from here, and these cases leave none behind
+      afterEach(forgetDeviceLink);
+
+      const signInAs = (userId) => {
+        cy.window().then((win) => expect(win.__xp.loginUser(userId), `${userId} is loaded`).to.eq(true));
+      };
+      const openAs = (userId, path) => {
+        signInAs(userId);
+        cy.visit(path, { timeout: 120000 });
+        cy.tapToWakeAudio();
+      };
+      /** Dad registers the family (the site sends him back with a new password), then the device is Max's, at the Town Hall */
+      const registeredFamilyAsMax = () => {
+        openRegistration(returnPath(LINK_QUERY));
+        cy.contains("[data-cy=reveal-text]", "Welcome, Mom!", { timeout: 30000 });
+        dismissNotice();
+        openAs("hero-1", heroPath);
+        cy.get("[data-cy=th-clerk]", { timeout: 30000 }).should("be.visible");
+      };
+      const pickFromClerk = (choice) => {
+        cy.get("[data-cy=th-clerk]", { timeout: 30000 }).click();
+        cy.get(`[data-cy=reveal-choice-${choice}]`, { timeout: 20000 }).should("not.be.disabled").click();
+      };
+      const sendWhatIsWritten = () => cy.get("[data-cy=th-send]", { timeout: 20000 }).should("not.be.disabled").click();
+      const postTopic = () => {
+        pickFromClerk("board");
+        cy.get("[data-cy=th-title]", { timeout: 20000 }).type(TOPIC_TITLE);
+        cy.get("[data-cy=th-body]").type(TOPIC_MESSAGE);
+        cy.get("[data-cy=th-pick-feature-requests]").click().should("have.attr", "aria-checked", "true");
+        sendWhatIsWritten();
+      };
+      const reportBug = () => {
+        pickFromClerk("bug");
+        cy.get("[data-cy=th-body]", { timeout: 20000 }).type(BUG_MESSAGE);
+        sendWhatIsWritten();
+      };
+
+      it("Max's topic goes to the Game Master first: the clerk says so and nothing reaches the site", () => {
+        cy.intercept("POST", "**/wp/v2/cafeteria_topic*", made(501)).as("topicPost");
+        registeredFamilyAsMax();
+        postTopic();
+        cy.contains("[data-cy=reveal-text]", "Your Game Master will read it first.", { timeout: 20000 });
+        cy.screenshot("town-hall-10-topic-to-game-master", { capture: "viewport" });
+        dismissNotice();
+
+        cy.wait(1500); // a send would leave right after the clerk has spoken
+        cy.get("@topicPost.all").should("have.length", 0);
+        cy.get("[data-cy=th-tab-board]").click();
+        cy.contains("[data-cy=th-waiting-post]", TOPIC_TITLE, { timeout: 20000 }).within(() => {
+          cy.contains("[data-cy=th-waiting-status]", "Waiting for your Game Master");
+        });
+      });
+
+      it("the Game Master approves Max's topic, and one pending, signed topic reaches the site on the family's login", () => {
+        cy.intercept("POST", "**/wp/v2/cafeteria_topic*", made(501)).as("topicPost");
+        registeredFamilyAsMax();
+        postTopic();
+        cy.contains("[data-cy=reveal-text]", "Your Game Master will read it first.", { timeout: 20000 });
+        dismissNotice();
+        cy.get("@topicPost.all").should("have.length", 0);
+
+        openAs("gm-1", approvalsPath);
+        cy.get("ion-segment-button[value=town-hall]", { timeout: 30000 }).click();
+        cy.contains("ion-segment-button[value=town-hall] ion-badge", "1");
+        cy.contains("[data-cy=th-approval]", TOPIC_TITLE, { timeout: 20000 }).within(() => {
+          cy.contains("[data-cy=th-approval-hero]", "Max");
+          cy.screenshot("town-hall-11-approvals", { capture: "viewport" });
+          cy.get("[data-cy=th-approve]").click();
+        });
+
+        cy.wait("@topicPost").then(({ request }) => {
+          expect(request.headers.authorization).to.match(/^Basic /);
+          expect(request.headers.authorization).to.eq(MOM_BASIC);
+          expect(request.body.status).to.eq("pending");
+          expect(request.body.title).to.eq(TOPIC_TITLE);
+          expect(request.body.cafeteria_board).to.deep.eq([FEATURE_REQUESTS_ID]);
+          expect(request.body.content).to.match(/— Max, from Do It For The XP$/);
+          expect(request.body.content).to.eq(`${TOPIC_MESSAGE}\n\n${SIGNATURE}`);
+        });
+        cy.get("[data-cy=th-approvals-empty]", { timeout: 20000 }).should("exist");
+        cy.wait(1000);
+        cy.get("@topicPost.all").should("have.length", 1);
+      });
+
+      it("Max's bug report leaves at once, pending, for the Bug Net, without waiting for the Game Master", () => {
+        cy.intercept("POST", "**/wp/v2/compass_bug*", made(601)).as("bugPost");
+        registeredFamilyAsMax();
+        reportBug();
+        cy.contains("[data-cy=reveal-text]", "The developers will see it.", { timeout: 20000 });
+
+        cy.wait("@bugPost").then(({ request }) => {
+          expect(request.headers.authorization).to.match(/^Basic /);
+          expect(request.body.status).to.eq("pending");
+          expect(request.body.bug_plugin).to.eq("do-it-for-the-xp");
+          expect(request.body.content).to.eq(BUG_MESSAGE);
+          expect(request.body.bug_url).to.eq("/town-hall/hero-1");
+        });
+        dismissNotice();
+        cy.wait(1000);
+        cy.get("@bugPost.all").should("have.length", 1);
+      });
+
+      it("a post the site answers with 401 gives up the registration: the clerk says to register again, and Family Registration offers 'I have an account'", () => {
+        cy.intercept("POST", "**/wp/v2/compass_bug*", {
+          statusCode: 401,
+          body: { code: "incorrect_password", message: "The provided password is an invalid application password." },
+          headers: CORS,
+        }).as("bugRefused");
+        registeredFamilyAsMax();
+        reportBug();
+        cy.contains("[data-cy=reveal-text]", "The developers will see it.", { timeout: 20000 });
+        dismissNotice();
+        cy.contains("[data-cy=reveal-text]", "needs to register again", { timeout: 20000 });
+        cy.screenshot("town-hall-12-register-again", { capture: "viewport" });
+        dismissNotice();
+        cy.get("@bugRefused.all").should("have.length", 1);
+
+        openAs("gm-1", townHallPath);
+        openRegistrationQuestion();
+        skipToRegistrationMenu();
+        cy.contains("[data-cy=reveal-choice-have]", "I have an account", { timeout: 20000 }).should("not.be.disabled");
+        cy.get("[data-cy=reveal-choice-unlink]").should("not.exist");
+      });
     });
   });
 });
