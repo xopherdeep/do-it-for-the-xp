@@ -38,6 +38,7 @@ import { AbilitiesDb, abilitiesStorage } from '@/lib/databases/AbilitiesDb';
 
 // Accessibility fixes
 import { fixAriaHiddenFocusIssues, preventIOSZoom } from '@/lib/utils/a11yUtils';
+import { startInstallWatch } from '@/lib/services/pwa/installApp';
 
 // Pinia
 import { createPinia } from 'pinia';
@@ -63,6 +64,9 @@ fixAriaHiddenFocusIssues();
 
 // Prevent iOS zoom on double tap
 preventIOSZoom();
+
+// Catch Chrome's install prompt before the side menu exists; see installApp.ts
+startInstallWatch();
 
 
 function readyRouterMountApp() {

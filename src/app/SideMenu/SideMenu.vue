@@ -74,6 +74,22 @@
         />
 
         <ion-item
+          v-if="canInstall"
+          @click="installApp"
+          lines="none"
+          detail="false"
+          button
+        >
+          <ion-icon
+            slot="start"
+            :ios="icons.downloadOutline"
+            :md="icons.downloadSharp"
+            class="ml-2"
+          />
+          <ion-label>Install App</ion-label>
+        </ion-item>
+
+        <ion-item
           @click="
             setMenuItem(-1);
             $fx.ui[$fx.theme.ui].select.play();
@@ -108,7 +124,11 @@
   import { useProStore } from "@/lib/store/stores/pro";
   import { proMenuIcon } from "@/lib/services/pro/membershipStatus";
   import { GM_PATH, canAccessGameMaster } from "@/router/_Guards/gm.guard";
+  import { alertController } from "@ionic/vue";
+  import { installState, installSteps, promptInstall } from "@/lib/services/pwa/installApp";
   import {
+    downloadOutline,
+    downloadSharp,
     logInOutline,
     logInSharp,
     lockClosedOutline,
@@ -145,6 +165,8 @@
       return {
         activeMenuItem: 0, // Changed back to number
         icons: {
+          downloadOutline,
+          downloadSharp,
           lockClosedOutline,
           lockClosedSharp,
         },
@@ -309,6 +331,18 @@
         // Still emit the event for any parent components
         this.$emit("changeBGM", direction);
       },
+      // Chrome, Edge and Android show their own install dialog; Safari only installs from its menus, so show the steps
+      async installApp() {
+        this.$fx.ui[this.$fx.theme.ui].select.play();
+        if (installState.route === "prompt") {
+          await promptInstall();
+          return;
+        }
+        const steps = installSteps(installState.route);
+        if (!steps) return;
+        const alert = await alertController.create({ ...steps, buttons: ["Got it"] });
+        await alert.present();
+      },
       navigateToGpPage() {
         this.$fx.ui[this.$fx.theme.ui].select.play();
         this.$router.push("/about-xp/gp");
@@ -338,6 +372,8 @@
 
       return {
         proIcon,
+        // Shown until the game runs installed, and only where this browser can install it
+        canInstall: computed(() => ["prompt", "ios", "mac-safari"].includes(installState.route)),
         isLoggedIn: computed(() => userStore.currentUser.isAuthenticated),
         // Same rule as the /game-master router guard, so the menu never offers a door that is locked
         canOpenGameMaster: computed(() => canAccessGameMaster(userStore)),
