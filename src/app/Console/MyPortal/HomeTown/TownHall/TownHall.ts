@@ -113,7 +113,8 @@ export default defineComponent({
     const boardSlug = ref<TownHallBoardSlug>(TOWN_HALL_BOARDS[0]);
     const onBoards = (found: BoardInfo[]) => {
       boards.value = found;
-      if (found.length && !found.some((board) => board.slug === boardSlug.value)) boardSlug.value = found[0].slug;
+      const pickedBoardIsMissing = found.length > 0 && !found.some((board) => board.slug === boardSlug.value);
+      if (pickedBoardIsMissing) boardSlug.value = found[0].slug;
     };
 
     // Events: the hero's quests scheduled over the coming week, read from the same board as the quest log
