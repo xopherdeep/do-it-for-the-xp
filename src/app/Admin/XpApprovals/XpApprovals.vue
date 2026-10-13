@@ -26,6 +26,10 @@
           Accessories
           <ion-badge color="warning">{{ pendingAccessories.length }}</ion-badge>
         </ion-segment-button>
+        <ion-segment-button value="town-hall">
+          Town Hall
+          <ion-badge color="tertiary">{{ townHallWaiting.length }}</ion-badge>
+        </ion-segment-button>
         <ion-segment-button value="history">
           History
         </ion-segment-button>
@@ -116,6 +120,8 @@
           </p>
         </ion-list>
 
+        <xp-town-hall-approvals v-if="activeSegment === 'town-hall'" />
+
         <ion-list v-if="activeSegment === 'history'">
           <ion-item v-for="row in historyRows" :key="row.key">
             <i
@@ -159,6 +165,8 @@
   } from "@ionic/vue";
   import { format } from "date-fns";
   import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
+  import XpTownHallApprovals from "./components/XpTownHallApprovals.vue";
+  import { useTownHallStore } from "@/lib/store/stores/townHall";
   import debug from "@/lib/utils/debug";
   import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
   import type { QuestLogEntry, QuestRewards } from "@/lib/databases/QuestLogDb";
@@ -207,14 +215,24 @@
     mixins: [ionic],
     components: {
       XpLoading,
+      XpTownHallApprovals,
     },
     setup() {
       const userStore = useUserStore();
       const globalProps = getCurrentInstance()?.appContext.config.globalProperties;
-      const activeSegment = ref<"achievements" | "accessories" | "history">(
+      const activeSegment = ref<"achievements" | "accessories" | "town-hall" | "history">(
         "achievements"
       );
       const isLoading = ref(true);
+
+      // Heroes' Town Hall posts waiting on the Game Master (the store keeps them on this device)
+      const townHall = useTownHallStore();
+      const townHallWaiting = computed(() =>
+        townHall.posts.filter((post) => post.status === "awaiting-gm")
+      );
+      onMounted(() => {
+        townHall.init().catch((error) => debug.error("Failed to load Town Hall posts:", error));
+      });
 
       // Quest completions waiting on the Game Master (QuestLog entries with status "pending")
       const pendingAchievements = ref<QuestLogEntry[]>([]);
@@ -600,6 +618,7 @@
         activeSegment,
         pendingAchievements,
         pendingAccessories,
+        townHallWaiting,
         historyRows,
         heroName,
         heroAvatar,
