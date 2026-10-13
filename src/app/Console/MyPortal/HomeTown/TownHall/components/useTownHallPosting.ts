@@ -47,6 +47,8 @@ export interface PostingDeps {
   registerFamily(): Promise<void>;
   /** A Game Master said yes to redoing a registration that is not finished */
   redoRegistration(): Promise<void>;
+  /** Resolves once the device's profiles are read (a cold start may not have them yet); `isGameMaster` needs them */
+  profilesReady?(): Promise<void>;
 }
 
 /** What the compose is opened for: the same fields as the sheet's props, and the failed post being edited, if any. */
@@ -129,6 +131,7 @@ export function useTownHallPosting(deps: PostingDeps) {
    * Registration, once per visit, and never over a prompt that is already showing. A hero is not asked.
    */
   const offerRegistration = async (): Promise<void> => {
+    await deps.profilesReady?.();
     const postsWait = !store.isLinked && sendable(store.posts).length > 0;
     const mayOffer = deps.isGameMaster() && postsWait && !offeredRegistration && reveal.prompt.value === null;
     if (!mayOffer) return;

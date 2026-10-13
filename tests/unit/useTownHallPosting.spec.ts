@@ -665,6 +665,49 @@ describe("a Game Master who opens the Town Hall with posts waiting and no regist
     expect(busy.reveal.asked).toHaveLength(0);
   });
 
+  it("waits for the device's profiles first: on a cold start the Game Master is not known until they are read", async () => {
+    const store = waitingStore();
+    const reveal = fakeReveal();
+    let profilesRead = false;
+    let readProfiles: () => void = () => undefined;
+    const register = jest.fn(async () => undefined);
+    let posting!: ReturnType<typeof useTownHallPosting>;
+    mount(
+      defineComponent({
+        setup() {
+          posting = useTownHallPosting({
+            store,
+            reveal,
+            userId: () => HERO.id,
+            heroName: () => HERO.name,
+            isGameMaster: () => profilesRead,
+            route: () => "/town-hall/gm-1",
+            currentBoard: () => "feature-requests",
+            registerFamily: register,
+            redoRegistration: jest.fn(async () => undefined),
+            profilesReady: () =>
+              new Promise<void>((resolve) => {
+                readProfiles = () => {
+                  profilesRead = true;
+                  resolve();
+                };
+              }),
+          });
+          return () => null;
+        },
+      }),
+    );
+
+    const offering = posting.offerRegistration();
+    await flushPromises();
+    expect(reveal.asked).toHaveLength(0);
+    readProfiles();
+    await flushPromises();
+    expect(reveal.asked).toEqual([unregisteredOutboxPrompt()]);
+    reveal.answer("never");
+    await offering;
+  });
+
   it("is never something a hero is asked", async () => {
     const hero = rig({ store: waitingStore(), isGameMaster: false });
     await hero.posting.offerRegistration();

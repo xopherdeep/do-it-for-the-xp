@@ -204,6 +204,10 @@ export default defineComponent({
         await townHall.unlink();
         await registerFamily();
       },
+      // App.ts reads the profiles without waiting, so a cold start at the Town Hall may not know its Game Master yet
+      profilesReady: async () => {
+        if (Object.keys(userStore.users).length === 0) await userStore.loadUsers();
+      },
     });
 
     // The courier is late: the clerk says so and offers to ask again. One answer at a time, whatever else is talking.
