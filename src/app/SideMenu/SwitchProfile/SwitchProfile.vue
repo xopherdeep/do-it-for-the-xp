@@ -9,74 +9,26 @@
     </ion-refresher>
 
     <ion-grid>
-      <!-- Empty State -->
-      <div v-if="users.length === 0" class="empty-state">
-        <i class="fad fa-users-slash fa-4x" />
-        <h2 class="earthbound-title">No Adventurers Yet!</h2>
-        <p>Tap the + button below to create your first profile.</p>
-      </div>
-
-      <!-- Card View (Default) -->
-      <ion-row v-else-if="!isRetroView" class="md:hidden profile-grid"
-        :class="{ 'justify-content-center items-center': users.length === 1 }">
-        <ion-col v-for="(user, key) in users" :key="key" :size="users.length === 1 ? '12' : '6'"
-          :size-sm="users.length === 1 ? '10' : '4'" :size-md="users.length === 1 ? '8' : '3'"
-          :size-xl="users.length === 1 ? '6' : '2'" class="profile-card-col">
-          <XpProfileCard :user="user" :is-large="users.length === 1" @select="selectProfile" />
-        </ion-col>
-      </ion-row>
-
-      <!-- Retro View (Earthbound Save Slots) -->
-      <div v-else class="retro-view md:hidden">
-        <div class="eb-window">
+      <!-- Empty State: Authentic Earthbound Window (Unified Mobile & Desktop) -->
+      <div v-if="users.length === 0" class="empty-state-view">
+        <div class="eb-window empty-window">
           <div class="eb-window-header">
             <span class="eb-window-title">Choose A Profile</span>
             <span class="eb-window-sub">File Select</span>
           </div>
 
-          <div class="eb-slots-list">
-            <div
-              v-for="(user, index) in users"
-              :key="user.id"
-              class="eb-file-slot"
-              role="button"
-              tabindex="0"
-              @click="selectProfile(user)"
-              @keydown.enter="selectProfile(user)"
-            >
-              <div class="eb-cursor" aria-hidden="true">&#9654;</div>
-              <div class="eb-slot-tag">0{{ index + 1 }}</div>
-              <div class="eb-slot-avatar-frame">
-                <img v-if="getUserAvatar(user)" :src="getUserAvatar(user)" :alt="user.name.nick" />
-                <i v-else class="fad fa-user-ninja"></i>
-              </div>
-              <div class="eb-slot-details">
-                <div class="eb-slot-name-row">
-                  <span class="eb-slot-hero-name">{{ user.name.nick }}</span>
-                  <span v-if="user.isAdult" class="gm-badge" title="Game Master">
-                    <i class="fad fa-crown" aria-hidden="true"></i>GM
-                  </span>
-                </div>
-                <div class="eb-slot-meta-row">
-                  <span class="eb-slot-class">
-                    <i :class="`fad fa-${getJobClassIcon(user)}`"></i>
-                    {{ user.jobClass || 'Hero' }}
-                  </span>
-                </div>
-              </div>
-              <div class="eb-slot-badge-column">
-                <div class="eb-lvl-pill">
-                  <small>LV</small>
-                  <span>{{ user?.stats?.level || 1 }}</span>
-                </div>
-                <div class="eb-gp-pill">
-                  <i class="fad fa-coins"></i>
-                  <span>{{ user?.stats?.gp?.wallet ?? 0 }}</span>
-                </div>
-              </div>
+          <div class="empty-banner">
+            <div class="empty-icon-frame">
+              <i class="fad fa-users-slash" aria-hidden="true"></i>
             </div>
+            <h2 class="empty-title">No Adventurers Yet!</h2>
+            <p class="empty-blurb">
+              Every grand quest begins with a single hero. Create your first profile to begin the journey.
+            </p>
+          </div>
 
-            <!-- Start New Game Slot -->
+          <div class="eb-slots-list">
+            <!-- Start New Game Slot (CTA) -->
             <div
               class="eb-file-slot eb-new-slot"
               role="button"
@@ -92,7 +44,7 @@
               <div class="eb-slot-details">
                 <div class="eb-slot-hero-name">Start New Game</div>
                 <div class="eb-slot-meta-row">
-                  <span class="eb-slot-desc">Create a new hero profile</span>
+                  <span class="eb-slot-desc">Create your first hero profile</span>
                 </div>
               </div>
               <div class="eb-slot-badge-column">
@@ -102,57 +54,148 @@
           </div>
         </div>
       </div>
-      <ion-row class="ion-no-padding hidden md:block">
-        <ion-card v-show="!isLoading" class="max-w-4xl">
-          <ion-list>
-            <ion-item detail button @click="openNewProfileModal">
-              <ion-buttons slot="start" class="icon-colors">
-                <i class="fad fa-heartbeat fa-3x"></i>
-              </ion-buttons>
-              <ion-label class="py-4">
-                New Profile
-                <p>New players Start Here.</p>
-              </ion-label>
-            </ion-item>
-            <ion-item v-for="user in users" :key="user.id" @click="selectProfile(user)" button detail
-              class="profile-item rpg-box">
-              <div slot="start" class="profile-info stats-container py-4">
-                <div class="level">
-                  <span class="label">LVL</span>
-                  <span class="value">{{ user?.stats?.level || 1 }}</span>
+
+      <!-- Populated Profiles Views -->
+      <template v-else>
+        <!-- Card View (Default) -->
+        <ion-row v-if="!isRetroView" class="md:hidden profile-grid"
+          :class="{ 'justify-content-center items-center': users.length === 1 }">
+          <ion-col v-for="(user, key) in users" :key="key" :size="users.length === 1 ? '12' : '6'"
+            :size-sm="users.length === 1 ? '10' : '4'" :size-md="users.length === 1 ? '8' : '3'"
+            :size-xl="users.length === 1 ? '6' : '2'" class="profile-card-col">
+            <XpProfileCard :user="user" :is-large="users.length === 1" @select="selectProfile" />
+          </ion-col>
+        </ion-row>
+
+        <!-- Retro View (Earthbound Save Slots) -->
+        <div v-else class="retro-view md:hidden">
+          <div class="eb-window">
+            <div class="eb-window-header">
+              <span class="eb-window-title">Choose A Profile</span>
+              <span class="eb-window-sub">File Select</span>
+            </div>
+
+            <div class="eb-slots-list">
+              <div
+                v-for="(user, index) in users"
+                :key="user.id"
+                class="eb-file-slot"
+                role="button"
+                tabindex="0"
+                @click="selectProfile(user)"
+                @keydown.enter="selectProfile(user)"
+              >
+                <div class="eb-cursor" aria-hidden="true">&#9654;</div>
+                <div class="eb-slot-tag">0{{ index + 1 }}</div>
+                <div class="eb-slot-avatar-frame">
+                  <img v-if="getUserAvatar(user)" :src="getUserAvatar(user)" :alt="user.name.nick" />
+                  <i v-else class="fad fa-user-ninja"></i>
                 </div>
-                <div class="avatar-container">
-                  <ion-avatar>
-                    <ion-img :src="getUserAvatar(user)" />
-                  </ion-avatar>
-                  <div class="role-icons icon-colors">
-                    <i :class="`fad fa-${getJobClassIcon(user)}`"></i>
-                    <i :class="`fad fa-${getFoodIcon(user)}`"></i>
+                <div class="eb-slot-details">
+                  <div class="eb-slot-name-row">
+                    <span class="eb-slot-hero-name">{{ user.name.nick }}</span>
+                    <span v-if="user.isAdult" class="gm-badge" title="Game Master">
+                      <i class="fad fa-crown" aria-hidden="true"></i>GM
+                    </span>
+                  </div>
+                  <div class="eb-slot-meta-row">
+                    <span class="eb-slot-class">
+                      <i :class="`fad fa-${getJobClassIcon(user)}`"></i>
+                      {{ user.jobClass || 'Hero' }}
+                    </span>
                   </div>
                 </div>
-                <ion-label class="name-container">
-                  <h1>
-                    {{ user.name.nick }}
-                    <span v-if="user.isAdult" class="gm-badge" role="img" aria-label="Game Master"
-                      title="Game Master"><i class="fad fa-crown" aria-hidden="true" />GM</span>
-                  </h1>
-                  <p>{{ user.name.full }}</p>
-                </ion-label>
+                <div class="eb-slot-badge-column">
+                  <div class="eb-lvl-pill">
+                    <small>LV</small>
+                    <span>{{ user?.stats?.level || 1 }}</span>
+                  </div>
+                  <div class="eb-gp-pill">
+                    <i class="fad fa-coins"></i>
+                    <span>{{ user?.stats?.gp?.wallet ?? 0 }}</span>
+                  </div>
+                </div>
               </div>
 
-              <div slot="end" class="stats-container">
-                <ion-chip class="wallet" color="warning">
-                  <xp-gp :gp="user?.stats?.gp.wallet" />
-                </ion-chip>
+              <!-- Start New Game Slot -->
+              <div
+                class="eb-file-slot eb-new-slot"
+                role="button"
+                tabindex="0"
+                @click="openNewProfileModal"
+                @keydown.enter="openNewProfileModal"
+              >
+                <div class="eb-cursor" aria-hidden="true">&#9654;</div>
+                <div class="eb-slot-tag"><i class="fad fa-sparkles"></i></div>
+                <div class="eb-slot-avatar-frame eb-new-avatar">
+                  <i class="fad fa-plus"></i>
+                </div>
+                <div class="eb-slot-details">
+                  <div class="eb-slot-hero-name">Start New Game</div>
+                  <div class="eb-slot-meta-row">
+                    <span class="eb-slot-desc">Create a new hero profile</span>
+                  </div>
+                </div>
+                <div class="eb-slot-badge-column">
+                  <i class="fad fa-chevron-right eb-new-arrow"></i>
+                </div>
               </div>
-            </ion-item>
-          </ion-list>
-        </ion-card>
-      </ion-row>
+            </div>
+          </div>
+        </div>
+
+        <ion-row class="ion-no-padding hidden md:block">
+          <ion-card v-show="!isLoading" class="max-w-4xl">
+            <ion-list>
+              <ion-item detail button @click="openNewProfileModal">
+                <ion-buttons slot="start" class="icon-colors">
+                  <i class="fad fa-heartbeat fa-3x"></i>
+                </ion-buttons>
+                <ion-label class="py-4">
+                  New Profile
+                  <p>New players Start Here.</p>
+                </ion-label>
+              </ion-item>
+              <ion-item v-for="user in users" :key="user.id" @click="selectProfile(user)" button detail
+                class="profile-item rpg-box">
+                <div slot="start" class="profile-info stats-container py-4">
+                  <div class="level">
+                    <span class="label">LVL</span>
+                    <span class="value">{{ user?.stats?.level || 1 }}</span>
+                  </div>
+                  <div class="avatar-container">
+                    <ion-avatar>
+                      <ion-img :src="getUserAvatar(user)" />
+                    </ion-avatar>
+                    <div class="role-icons icon-colors">
+                      <i :class="`fad fa-${getJobClassIcon(user)}`"></i>
+                      <i :class="`fad fa-${getFoodIcon(user)}`"></i>
+                    </div>
+                  </div>
+                  <ion-label class="name-container">
+                    <h1>
+                      {{ user.name.nick }}
+                      <span v-if="user.isAdult" class="gm-badge" role="img" aria-label="Game Master"
+                        title="Game Master"><i class="fad fa-crown" aria-hidden="true" />GM</span>
+                    </h1>
+                    <p>{{ user.name.full }}</p>
+                  </ion-label>
+                </div>
+
+                <div slot="end" class="stats-container">
+                  <ion-chip class="wallet" color="warning">
+                    <xp-gp :gp="user?.stats?.gp.wallet" />
+                  </ion-chip>
+                </div>
+              </ion-item>
+            </ion-list>
+          </ion-card>
+        </ion-row>
+      </template>
     </ion-grid>
 
-    <!-- Left FAB: Toggle Grid / List View -->
-    <ion-fab vertical="bottom" horizontal="start" slot="fixed" class="ion-no-border md:hidden">
+    <!-- Left FAB: Toggle Grid / List View (Only when profiles exist) -->
+    <ion-fab v-if="users.length > 0" vertical="bottom" horizontal="start" slot="fixed" class="ion-no-border md:hidden">
       <ion-fab-button color="light" @click="isRetroView = !isRetroView">
         <ion-icon :icon="isRetroView ? gridOutline : listOutline"></ion-icon>
       </ion-fab-button>
@@ -723,30 +766,66 @@ ion-content {
   }
 }
 
-// Empty state styles
-.empty-state {
+// Empty state styling (Authentic Earthbound Window)
+.empty-state-view {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  text-align: center;
-  padding: 3rem 1.5rem;
-  gap: 1rem;
+  width: 100%;
+  padding: 1rem 0 6rem 0;
 
-  i {
-    color: rgba(255, 255, 255, 0.4);
+  .empty-window {
+    max-width: 520px;
+    margin: 1rem auto 2rem auto;
   }
 
-  h2 {
-    margin: 0;
-    color: #f7e8a8;
-    font-size: 1.5rem;
-  }
+  .empty-banner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 24px 20px 20px 20px;
+    border-bottom: 2px dashed rgba(104, 208, 184, 0.35);
 
-  p {
-    margin: 0;
-    color: rgba(255, 255, 255, 0.7);
-    font-size: 1rem;
+    .empty-icon-frame {
+      width: 56px;
+      height: 56px;
+      border-radius: 6px;
+      border: 2px solid #68d0b8;
+      background: #383050;
+      box-shadow: 0 0 0 1px #280828;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+
+      i {
+        font-size: 1.8rem;
+        color: #f7e8a8;
+        --fa-primary-color: #f7e8a8;
+        --fa-secondary-color: #68d0b8;
+      }
+    }
+
+    .empty-title {
+      font-family: "Twoson", "Apple Kid", sans-serif;
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: #ffffff;
+      margin: 0 0 8px 0;
+      letter-spacing: 1px;
+    }
+
+    .empty-blurb {
+      font-family: "StatusPlz", monospace;
+      font-size: 0.9rem;
+      line-height: 1.45;
+      color: #f7e8a8;
+      opacity: 0.95;
+      margin: 0;
+      max-width: 380px;
+    }
   }
 }
 
