@@ -56,6 +56,7 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { useGameStore } from "@/lib/store/stores/game";
 import { useBattleStore } from "@/lib/store/stores/battle";
 import { changeBGM as changeBGMAdapter } from '@/lib/engine/audio/routeMusic';
+import { play$fx } from "@/assets/fx";
 
 const resolveNextTrackIndex = (requestedTrack: number, maxTrackIndex: number): number => {
   const isBelowMinimum = requestedTrack < 0;
@@ -145,8 +146,7 @@ export default defineComponent({
     changeBGM(payload: any) { return this.audioStore.changeBGM(payload) },
     turnMusicOnOff() { return this.audioStore.turnMusicOnOff() },
     clickSound() {
-      // Cast this to any as a workaround for TS2339
-      (this as any).audioStore.bgm.$fx.ui[(this as any).gameStore.theme.ui].select.play();
+      play$fx('select');
     },
     getAudioPlayer() {
       return this.bgm.audio;
@@ -236,8 +236,14 @@ export default defineComponent({
         this.bgm.audio.pause();
         this.loadBGM(track, this.bgm.audio.currentTime);
         this.bgm.audio.load();
-        if (is_on)
-          this.bgm.audio.play();
+        if (is_on) {
+          const playPromise = this.bgm.audio.play();
+          if (playPromise && typeof playPromise.catch === "function") {
+            playPromise.catch((err: unknown) => {
+              debug.warn("BGM playback was prevented:", err);
+            });
+          }
+        }
       }
     },
   },

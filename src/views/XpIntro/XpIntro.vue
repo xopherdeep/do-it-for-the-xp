@@ -29,6 +29,7 @@
   import type { SplashScreen } from "@/components/organisms/IntroSplash";
   import Ionic from "@/lib/mixins/ionic";
   import { useTimers } from "@/hooks/useTimers";
+  import { play$fx } from "@/assets/fx";
 
   export default defineComponent({
     name: "XpIntro",
@@ -134,11 +135,7 @@
     // Use Ionic-specific lifecycle hooks
     beforeMount() {
       // Play sound if needed
-      if (
-        typeof this.$fx?.ui?.[this.$fx.theme.ui]?.options?.play === "function"
-      ) {
-        this.$fx.ui[this.$fx.theme.ui].options.play();
-      }
+      play$fx("options");
     },
 
     // This is called every time the view is entered - Ionic specific

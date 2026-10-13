@@ -8,6 +8,8 @@ const mockBgmState = { is_on: true };
 jest.mock("@/lib/engine/audio/AudioEngine", () => ({
   AudioEngine: {
     getInstance: () => ({
+      // routeMusic stops the music when the engine is muted
+      state: { muted: false },
       hasMusicTrack: (id: string) => mockLoaded.has(id),
       loadMusic: mockLoadMusic,
       playMusic: mockPlayMusic,

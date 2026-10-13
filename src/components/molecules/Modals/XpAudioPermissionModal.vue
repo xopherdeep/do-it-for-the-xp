@@ -36,11 +36,14 @@
 <script lang="ts">
 import { defineComponent, computed } from 'vue';
 import { AudioEngine } from '@/lib/engine/audio/AudioEngine';
+import { useAudioStore } from '@/lib/store/stores/audio';
+import { cancelPendingRouteMusic } from '@/lib/engine/audio/routeMusic';
 
 export default defineComponent({
   name: 'XpAudioPermissionModal',
   setup() {
     const audioEngine = AudioEngine.getInstance();
+    const audioStore = useAudioStore();
     
     // We show the modal if audio is NOT ready/granted
     const showModal = computed(() => {
@@ -49,16 +52,24 @@ export default defineComponent({
     });
 
     const enableAudio = async () => {
+      audioStore.bgm.is_on = true;
+      if (audioEngine.state.muted) {
+        audioEngine.unmute();
+      }
       await audioEngine.resumeContext();
+      if (audioEngine.state.currentMusic) {
+        audioEngine.playMusic(audioEngine.state.currentMusic);
+      }
     };
 
     const continueSilently = () => {
-        // Mute the engine
-        audioEngine.mute();
-        // Grant permission (conceptually) so the modal closes, but context remains suspended/muted until later interaction
-        audioEngine.state.audioPermissionGranted = true;
-        // Clear pending music so it doesn't try to auto-play if they unmute later without selecting a track
-        audioEngine.state.pendingMusicId = null; 
+      cancelPendingRouteMusic();
+      audioEngine.mute();
+      audioEngine.stopAllMusic(0);
+      audioStore.bgm.is_on = false;
+      audioStore.turnMusicOnOff();
+      audioEngine.state.audioPermissionGranted = true;
+      audioEngine.state.pendingMusicId = null; 
     };
 
     return {

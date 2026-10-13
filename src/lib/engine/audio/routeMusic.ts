@@ -26,6 +26,16 @@ export interface BGMPayload {
 let pendingStart: ReturnType<typeof setTimeout> | undefined;
 
 /**
+ * Cancel any pending delayed route music start
+ */
+export function cancelPendingRouteMusic(): void {
+  if (pendingStart) {
+    clearTimeout(pendingStart);
+    pendingStart = undefined;
+  }
+}
+
+/**
  * Process BGM payload from the router and play using the new audio engine
  * @param payload The BGM payload from the router
  */
@@ -36,16 +46,16 @@ export function playRouteMusic(payload: BGMPayload): void {
     return;
   }
 
-  clearTimeout(pendingStart);
+  cancelPendingRouteMusic();
 
   const engine = AudioEngine.getInstance();
   const audioStore = useAudioStore();
 
-  // If BGM is toggled off in settings, stop current music and don't start new music
-  const isBgmToggledOff = audioStore.bgm && audioStore.bgm.is_on === false;
+  // If BGM is toggled off in settings or engine is muted, stop current music and don't start new music
+  const isBgmToggledOff = (audioStore.bgm && audioStore.bgm.is_on === false) || engine.state.muted;
   if (isBgmToggledOff) {
-    debug.log('BGM is toggled off, stopping playback');
-    engine.stopAllMusic(500);
+    debug.log('BGM is toggled off or muted, stopping playback');
+    engine.stopAllMusic(0);
     return;
   }
 
@@ -113,8 +123,8 @@ export function playRouteMusic(payload: BGMPayload): void {
   // Play the track with delay
   if (delay > 0) {
     pendingStart = setTimeout(() => {
-      // Check again after delay to ensure BGM wasn't toggled off
-      const isBgmStillOn = audioStore.bgm && audioStore.bgm.is_on !== false;
+      // Check again after delay to ensure BGM wasn't toggled off or muted
+      const isBgmStillOn = (!audioStore.bgm || audioStore.bgm.is_on !== false) && !engine.state.muted;
       if (isBgmStillOn) {
         engine.playMusic(currentTrackId, 1000, payload.saveBookmark);
       }

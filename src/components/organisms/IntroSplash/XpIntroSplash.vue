@@ -33,6 +33,7 @@ import { defineComponent, ref, PropType, onMounted, onUnmounted, watch, nextTick
 import XpTypingText from '@/components/atoms/TypingText/XpTypingText.vue';
 import debug from '@/lib/utils/debug';
 import { useTimers } from '@/hooks/useTimers';
+import { play$fx } from '@/assets/fx';
 
 import type { SplashScreen } from './types';
 export type { SplashScreen };
@@ -170,13 +171,23 @@ export default defineComponent({
     // Play intro sound effect
     const playSound = (sound?: string) => {
       try {
-        const hasSoundPlayer = sound && window.$fx && window.$fx.ui;
-        if (hasSoundPlayer) {
-          const soundPath = sound.split('.');
-          const isKnownSound = soundPath.length > 1 && window.$fx.ui[soundPath[0]] && window.$fx.ui[soundPath[0]][soundPath[1]];
-          if (isKnownSound) {
-            window.$fx.ui[soundPath[0]][soundPath[1]].play();
+        if (!sound) return;
+        const soundPath = sound.split('.');
+        const targetFx = soundPath.length > 1 ? soundPath[1] : sound;
+        const hasDirectSound =
+          soundPath.length > 1 &&
+          Boolean(window.$fx?.ui?.[soundPath[0]]?.[soundPath[1]]);
+
+        if (hasDirectSound) {
+          const soundAudio = window.$fx.ui[soundPath[0]][soundPath[1]];
+          const playPromise = soundAudio.play();
+          if (playPromise && typeof playPromise.catch === 'function') {
+            playPromise.catch((err: unknown) => {
+              debug.warn('Intro sound playback was prevented:', err);
+            });
           }
+        } else {
+          play$fx(targetFx);
         }
       } catch (error) {
         debug.error("Error playing sound:", error);

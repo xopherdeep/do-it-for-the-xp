@@ -15,8 +15,8 @@ import XpLoading from './components/molecules/Loading'
 import XpTempleModel from './components/organisms/TempleModel/XpTempleModel.vue'
 import XpBuildingModel from './components/organisms/BuildingModel/XpBuildingModel.vue'
 import XpStageModel from './components/organisms/StageModel/XpStageModel.vue'
-import XpDraggableSpot from './components/organisms/DraggableSpot/XpDraggableSpot.vue'
 import XpTravelingMerchant from './components/organisms/TravelingMerchant/XpTravelingMerchant.vue'
+import XpDraggableSpot from './components/organisms/DraggableSpot/XpDraggableSpot.vue'
 
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
 import VueVirtualScroller from 'vue-virtual-scroller';
@@ -48,16 +48,30 @@ import { useProStore } from '@/lib/store/stores/pro';
 const TITLE = 'Do it for the XP';
 document.title = TITLE;
 
+// Suppress unhandled autoplay rejections from triggering dev server error overlay
+window.addEventListener('unhandledrejection', (event) => {
+  const reason = event.reason;
+  const isAutoplayBlocked =
+    reason?.name === 'NotAllowedError' ||
+    (typeof reason?.message === 'string' &&
+      (reason.message.includes('interact') || reason.message.includes('user activation')));
+
+  if (isAutoplayBlocked) {
+    event.preventDefault();
+  }
+});
+
 // Set up user interaction detection for audio playback
-document.addEventListener('click', () => {
+const markUserInteracted = () => {
   document.documentElement.setAttribute('data-user-interacted', 'true');
 
-  // Play any pending audio that was attempted before user interaction
   if (window._pendingAudioPlay) {
-    // Clear the flag
     window._pendingAudioPlay = false;
   }
-}, { once: true });
+};
+document.addEventListener('click', markUserInteracted, { once: true });
+document.addEventListener('keydown', markUserInteracted, { once: true });
+document.addEventListener('touchstart', markUserInteracted, { once: true });
 
 // Apply accessibility fixes for aria-hidden issues
 fixAriaHiddenFocusIssues();
@@ -77,8 +91,8 @@ function readyRouterMountApp() {
     .component('xp-temple-model', XpTempleModel)
     .component('xp-building-model', XpBuildingModel)
     .component('xp-stage-model', XpStageModel)
-    .component('xp-draggable-spot', XpDraggableSpot)
     .component('xp-traveling-merchant', XpTravelingMerchant)
+    .component('xp-draggable-spot', XpDraggableSpot)
     // .component('RecycleScroller', RecycleScroller)
     .use(VueVirtualScroller)
     .use(Countdown)

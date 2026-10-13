@@ -70,6 +70,7 @@ export class AudioEngine {
   // Keep track of the current track sequence for auto-advancing tracks
   private _currentTrackSequence: string[] = [];
   private _currentTrackIndex = 0;
+  private _musicFadeAnimationId: number | null = null;
 
   // Reactive state for the audio system
   public state = reactive<AudioState>({
@@ -210,7 +211,13 @@ export class AudioEngine {
   private initializeAudioContext(): void {
     if (this.audioContext) return;
 
-    this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const AudioContextClass = typeof window !== 'undefined' ? (window.AudioContext || (window as any).webkitAudioContext) : undefined;
+    if (!AudioContextClass) {
+      debug.warn('Web Audio API not supported in this environment');
+      return;
+    }
+
+    this.audioContext = new AudioContextClass();
     this.state.audioReady = true;
     this.state.audioPermissionGranted = this.audioContext.state !== 'suspended';
 
@@ -501,6 +508,11 @@ export class AudioEngine {
    * @param saveBookmarks Whether to preserve the current time of stopped tracks (bookmarking)
    */
   public stopAllMusic(fadeOutTime = 1000, excludeId?: string, saveBookmarks = false): void {
+    if (this._musicFadeAnimationId !== null) {
+      cancelAnimationFrame(this._musicFadeAnimationId);
+      this._musicFadeAnimationId = null;
+    }
+
     // Get all loaded music tracks
     const trackIds = Array.from(this._musicTracks.keys());
 
@@ -509,7 +521,18 @@ export class AudioEngine {
       if (id === excludeId) return; // Skip the excluded track
 
       const track = this._musicTracks.get(id);
-      const isStillPlaying = track && !track.paused;
+      if (!track) return;
+
+      if (fadeOutTime <= 0) {
+        track.pause();
+        track.volume = 0;
+        if (!saveBookmarks) {
+          track.currentTime = 0;
+        }
+        return;
+      }
+
+      const isStillPlaying = !track.paused;
       if (isStillPlaying) {
         const startVolume = track.volume;
         const startTime = Date.now();
@@ -524,20 +547,16 @@ export class AudioEngine {
             requestAnimationFrame(fadeOut);
           } else {
             track.pause();
+            track.volume = 0;
             if (!saveBookmarks) {
               track.currentTime = 0;
             }
           }
         };
 
-        if (fadeOutTime <= 0) {
-          track.pause();
-          if (!saveBookmarks) {
-            track.currentTime = 0;
-          }
-        } else {
-          requestAnimationFrame(fadeOut);
-        }
+        requestAnimationFrame(fadeOut);
+      } else {
+        track.volume = 0;
       }
     });
 
@@ -553,6 +572,19 @@ export class AudioEngine {
    * @param saveBookmarks Whether to bookmark currently playing tracks when stopping them
    */
   public playMusic(id: string, fadeInTime = 1000, saveBookmarks = false): void {
+    if (this._musicFadeAnimationId !== null) {
+      cancelAnimationFrame(this._musicFadeAnimationId);
+      this._musicFadeAnimationId = null;
+    }
+
+    // If engine is muted, ensure tracks are stopped and do not start playback
+    if (this.state.muted) {
+      this.stopAllMusic(0, undefined, saveBookmarks);
+      this.state.currentMusic = id;
+      this.state.pendingMusicId = null;
+      return;
+    }
+
     // If this track is already playing, don't restart it
     if (this.state.currentMusic === id) {
       const track = this._musicTracks.get(id);
@@ -576,8 +608,7 @@ export class AudioEngine {
     this.state.currentMusic = id;
     this.state.pendingMusicId = null; // Clear pending since we are trying to play now
 
-    // If it's already playing but volume is just being managed, don't reset currentTime
-    const targetVolume = this.state.muted ? 0 : this.state.musicVolume * this.state.masterVolume;
+    const targetVolume = this.state.musicVolume * this.state.masterVolume;
 
     if (track.paused) {
       // Start with volume 0 and fade in
@@ -610,19 +641,30 @@ export class AudioEngine {
     const startVolume = track.volume;
 
     const fadeIn = () => {
+      if (this.state.muted) {
+        track.volume = 0;
+        this._musicFadeAnimationId = null;
+        return;
+      }
+      if (track.paused) {
+        this._musicFadeAnimationId = null;
+        return;
+      }
+
       const elapsed = Date.now() - startTime;
       const progress = Math.min(1, elapsed / fadeInTime);
 
       track.volume = startVolume + (progress * (targetVolume - startVolume));
 
       if (progress < 1) {
-        requestAnimationFrame(fadeIn);
+        this._musicFadeAnimationId = requestAnimationFrame(fadeIn);
       } else {
         track.volume = targetVolume;
+        this._musicFadeAnimationId = null;
       }
     };
 
-    requestAnimationFrame(fadeIn);
+    this._musicFadeAnimationId = requestAnimationFrame(fadeIn);
 
     // Update media session metadata and state
     if (this.mediaSession) {
@@ -637,6 +679,11 @@ export class AudioEngine {
    * @param saveBookmark Whether to preserve the current time of this track
    */
   public stopMusic(fadeOutTime = 1000, saveBookmark = false): void {
+    if (this._musicFadeAnimationId !== null) {
+      cancelAnimationFrame(this._musicFadeAnimationId);
+      this._musicFadeAnimationId = null;
+    }
+
     const currentId = this.state.currentMusic;
     if (!currentId) return;
 
@@ -660,6 +707,7 @@ export class AudioEngine {
         requestAnimationFrame(fadeOut);
       } else {
         currentTrack.pause();
+        currentTrack.volume = 0;
         if (!saveBookmark) {
           currentTrack.currentTime = 0;
         }
@@ -674,6 +722,7 @@ export class AudioEngine {
 
     if (fadeOutTime <= 0) {
       currentTrack.pause();
+      currentTrack.volume = 0;
       if (!saveBookmark) {
         currentTrack.currentTime = 0;
       }
@@ -751,22 +800,22 @@ export class AudioEngine {
    * Update music volume specifically
    */
   private updateMusicVolume(): void {
-    const currentId = this.state.currentMusic;
-    if (!currentId) return;
-
-    const track = this._musicTracks.get(currentId);
-    if (!track) return;
-
-    track.volume = this.state.musicVolume * this.state.masterVolume * (this.state.muted ? 0 : 1);
+    const isMuted = this.state.muted;
+    const targetVolume = isMuted ? 0 : this.state.musicVolume * this.state.masterVolume;
+    this._musicTracks.forEach(track => {
+      track.volume = targetVolume;
+    });
   }
 
   /**
    * Toggle mute state
    */
   public toggleMute(): boolean {
-    this.state.muted = !this.state.muted;
-    this.updateAllVolumes();
-    this.saveUserPreferences();
+    if (this.state.muted) {
+      this.unmute();
+    } else {
+      this.mute();
+    }
     return this.state.muted;
   }
 
@@ -774,6 +823,10 @@ export class AudioEngine {
    * Mute all audio
    */
   public mute(): void {
+    if (this._musicFadeAnimationId !== null) {
+      cancelAnimationFrame(this._musicFadeAnimationId);
+      this._musicFadeAnimationId = null;
+    }
     this.state.muted = true;
     this.updateAllVolumes();
     this.saveUserPreferences();
@@ -786,6 +839,12 @@ export class AudioEngine {
     this.state.muted = false;
     this.updateAllVolumes();
     this.saveUserPreferences();
+    if (this.state.currentMusic) {
+      const track = this._musicTracks.get(this.state.currentMusic);
+      if (track && track.paused) {
+        this.playMusic(this.state.currentMusic);
+      }
+    }
   }
 
   /**
