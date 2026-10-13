@@ -20,6 +20,7 @@ import { DIFFICULTY_NAMES, TIER_NAMES, assigneeLabel, scheduleLabel } from "@/li
 import type { FamilyMember } from "@/lib/services/quests/QuestList";
 import {
   TEMPLE_FULL_SIZE,
+  headlineQuest,
   questBeastId,
   questTier,
   templeSize,
@@ -330,13 +331,14 @@ export function beastToAdopt(beastId: string | undefined, ownedIds: Iterable<str
 
 /**
  * One room's part in the size of its temple, as the editor knows it (it has no hero and no board): the quest the
- * room is set to, else the live quest that has the template's beast, else the template's own difficulty, dormant.
+ * room is set to (the biggest live one when it lists several), else the live quest that has the template's beast,
+ * else the template's own difficulty, dormant.
  * Classic beast rooms, empty lairs (a deleted quest, no template) and every other room are left out (null).
  */
 export function roomSizeShare(room: Partial<Room> | undefined, quests: readonly Achievement[]): SizedRoom | null {
   const content = room?.content;
   const live = quests.filter((quest) => !quest.draft);
-  const picked = content?.questId ? live.find((quest) => String(quest.id) === String(content.questId)) : undefined;
+  const picked = headlineQuest(room, live);
   if (picked) return { difficulty: Number(picked.difficulty) || 0 };
   const template = content?.quest;
   if (!template) return null;

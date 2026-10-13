@@ -15,8 +15,10 @@ import type { HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 import { browseLibrary, type LibraryEntry } from "@/lib/services/bestiary/librarySuggest";
 import { DIFFICULTY_NAMES, TIER_NAMES, assigneeLabel, scheduleLabel } from "@/lib/services/quests/QuestLabels";
 import {
+  headlineQuest,
   questBeastId,
   questTier,
+  roomQuestIds,
   roomQuestState,
   sizedRoomOf,
   templeSize,
@@ -55,11 +57,14 @@ export interface QuestRoomCell {
 
 const COMBAT_TIERS: readonly string[] = ["monster", "miniboss", "boss"];
 
-const isQuestRoom = (room: Room | undefined): room is Room => Boolean(room?.content?.questId || room?.content?.quest);
+const isQuestRoom = (room: Room | undefined): room is Room => roomQuestIds(room).length > 0 || Boolean(room?.content?.quest);
+
+/** True for a room that lists its quests in `questIds`: it reads by its biggest quest, not by what each hero sees. */
+const isListRoom = (room: Room): boolean => Boolean(room.content?.questIds?.length);
 
 /**
- * Every cell of every floor that holds a quest room (a `questId` or a shipped template) and is a combat room, in
- * reading order. A token many cells share is one row for each cell: each is a room of its own.
+ * Every cell of every floor that holds a quest room (a `questId`, a list of `questIds` or a shipped template) and is
+ * a combat room, in reading order. A token many cells share is one row for each cell: each is a room of its own.
  */
 export function questRoomCells(layout?: QuestLayout | null): QuestRoomCell[] {
   const rooms = layout?.rooms;
@@ -88,19 +93,20 @@ export function questRoomCells(layout?: QuestLayout | null): QuestRoomCell[] {
 
 /**
  * What a quest room holds with no hero in mind, the way the Game Master reads the family's quests:
- * - the quest the editor picked (`questId`), when it is live;
+ * - the quest the editor picked (`questId`), when it is live; a room that lists several (`questIds`) is read by the
+ *   biggest live quest in the list;
  * - else the first live quest whose beast is the template's (a quest with no beast of its own counts through the
  *   library's suggestion for its name, the rule a room finds its quest by);
  * - else the room is dormant (it has a template) or an empty lair (it has none).
  * A draft is not live: heroes never see it, so it cannot hold a room. A classic room is never resolved.
  */
 export function gmResolution(room: Room, quests: readonly Achievement[]): RoomQuestResolution {
-  const { questId, quest: template } = room.content ?? {};
-  const isClassic = !questId && !template;
+  const template = room.content?.quest;
+  const isClassic = roomQuestIds(room).length === 0 && !template;
   if (isClassic) return { kind: "classic" };
 
   const live = quests.filter((quest) => !quest.draft);
-  const picked = questId ? live.find((quest) => String(quest.id) === String(questId)) : undefined;
+  const picked = headlineQuest(room, live);
   if (picked) return { kind: "quest", quest: picked, source: "questId" };
   if (!template) return { kind: "emptyLair" };
 
@@ -323,8 +329,13 @@ const rowOf = (cell: QuestRoomCell, input: TempleQuestsInput, liveQuests: readon
   const others = new Set(read.map((item) => item.quest && String(item.quest.id)).filter((id): id is string => Boolean(id)));
   others.delete(String(quest.id));
 
+  // A list room holds quests of every size on purpose, so only a single-quest room can disagree with its tier
+  const isList = isListRoom(cell.room);
+  const heldIds = new Set(roomQuestIds(cell.room).filter((id) => liveQuests.some((live) => String(live.id) === id)));
+  heldIds.delete(String(quest.id));
+
   const questTierOfRoom = questTier(difficulty);
-  const isMismatched = questTierOfRoom !== cell.tier;
+  const isMismatched = !isList && questTierOfRoom !== cell.tier;
   const difficultyName = DIFFICULTY_NAMES[difficulty] ?? "";
   const schedule = scheduleLabel(quest);
   const heroesLine = assigneeLabel(quest, users);
@@ -333,7 +344,7 @@ const rowOf = (cell: QuestRoomCell, input: TempleQuestsInput, liveQuests: readon
     kind: "quest",
     title: quest.achievementName || "Unnamed quest",
     quest,
-    moreQuests: others.size,
+    moreQuests: isList ? heldIds.size : others.size,
     beastId,
     beastName: face.name,
     avatar: face.avatar,

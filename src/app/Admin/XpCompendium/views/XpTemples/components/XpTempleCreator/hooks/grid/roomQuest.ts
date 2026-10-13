@@ -5,32 +5,41 @@
  */
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { Room, RoomQuestTemplate } from "@/lib/engine/core/dungeons/types";
-import { isQuestRoom, questBeastId, questTier, type QuestTier } from "@/lib/services/temples/questRooms";
+import {
+  headlineQuest,
+  isQuestRoom,
+  questBeastId,
+  questTier,
+  roomQuestIds,
+  type QuestTier,
+} from "@/lib/services/temples/questRooms";
 import { ensureContent } from "./roomContent";
 
 /** The type picker's guide key for a quest room. It is not an engine type: the room's `type` is its tier. */
 export const QUEST_ROOM_KEY = "quest";
 
 /**
- * Picks `quest` for the room: writes `content.questId`, sets the room `type` from the quest's tier, and seals a
- * miniboss or boss room on entry when the Game Master has not chosen yet (a boss fight is always sealed). Everything
- * else the room holds stays, a shipped template included: it takes over if the quest is ever deleted (5.2).
- * Returns the tier. The cell's shared token (M001, MINI, BOSS) becomes a unique symbol when the room is saved.
+ * Picks `quest` for the room: writes `content.questId` (a list of quests the room held gives way to the one pick),
+ * sets the room `type` from the quest's tier, and seals a miniboss or boss room on entry when the Game Master has
+ * not chosen yet (a boss fight is always sealed). Everything else the room holds stays, a shipped template included:
+ * it takes over if the quest is ever deleted (5.2). Returns the tier. The cell's shared token (M001, MINI, BOSS) becomes a unique symbol when the room is saved.
  */
 export function applyQuestPick(room: Room, quest: Pick<Achievement, "id" | "difficulty">): QuestTier {
   const content = ensureContent(room);
   const tier = questTier(quest.difficulty);
   content.questId = String(quest.id);
+  delete content.questIds;
   room.type = tier;
   const isSealedByDefault = tier !== "monster" && content.lockOnEnter === undefined;
   if (isSealedByDefault) content.lockOnEnter = true;
   return tier;
 }
 
-/** Makes a quest room a classic room again: no quest, no shipped template. */
+/** Makes a quest room a classic room again: no quest, no list of quests, no shipped template. */
 export function releaseQuest(room: Room): void {
   if (!room.content) return;
   delete room.content.questId;
+  delete room.content.questIds;
   delete room.content.quest;
 }
 
@@ -42,8 +51,8 @@ export function pickerTypeOf(room: Partial<Room> | null | undefined): string {
 
 /**
  * What a quest room holds, for its quest card:
- * - `picked`: the Game Master's quest;
- * - `missing`: the room names a quest that is gone (or only a draft), with the shipped template when it has one;
+ * - `picked`: the Game Master's quest (the biggest live one when the room lists several);
+ * - `missing`: the room names quests and none is live (gone, or only drafts), with the shipped template when it has one;
  * - `template`: a shipped template, with the live quest that has its beast when one fills it;
  * - `none`: not a quest room.
  */
@@ -54,15 +63,14 @@ export type RoomQuestHolding =
   | { kind: "none" };
 
 export function describeRoomQuest(room: Partial<Room> | null | undefined, quests: readonly Achievement[]): RoomQuestHolding {
-  const questId = room?.content?.questId;
   const template = room?.content?.quest;
-  const live = quests.filter((quest) => !quest.draft);
-  if (questId) {
-    const picked = live.find((quest) => String(quest.id) === String(questId));
+  if (roomQuestIds(room).length > 0) {
+    const picked = headlineQuest(room, quests);
     if (picked) return { kind: "picked", quest: picked };
     return template ? { kind: "missing", template } : { kind: "missing" };
   }
   if (!template) return { kind: "none" };
+  const live = quests.filter((quest) => !quest.draft);
   const filler = live.find((quest) => questBeastId(quest) === String(template.beastId));
   return filler ? { kind: "template", template, filler } : { kind: "template", template };
 }
