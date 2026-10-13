@@ -1,7 +1,8 @@
 /**
  * Temple runs follow the quest board (docs/Quest-Rooms-Spec.md 7.1, 7.2, 7.10, 7.11): a quest room that is not
  * lurking counts as cleared, a lurking one does not, dormant and classic rooms keep the classic rules; a room seals on
- * entry while it is not cleared; a blood moon leaves quest rooms to their schedules.
+ * entry while it is not cleared; a blood moon leaves quest rooms to their schedules; a temple built again after its
+ * saved walks were cleared starts afresh once the run held in memory is forgotten too.
  *
  * The real TempleSystem, TempleProgressDb and QuestEngine. Only the storage is faked: the progress records in memory,
  * the quests and the quest log as plain arrays (the same seam questRooms.spec uses), so the run reads exactly what the
@@ -14,9 +15,10 @@ import type { QuestLogEntry } from "@/lib/databases/QuestLogDb";
 import { getTempleProgressDb } from "@/lib/databases/TempleProgressDb";
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import { dayKeyOf } from "@/lib/engine/quests/QuestSchedule";
+import { registerTemple } from "@/lib/engine/core/dungeons/TempleAdapter";
 import { TEMPLE_CLEARED_KEY } from "@/lib/engine/core/dungeons/TempleSystem";
 import type { Room, RoomQuestTemplate } from "@/lib/engine/core/dungeons/types";
-import { HERO, dungeons, makeTemple, temples } from "./templeFixtures";
+import { HERO, dungeons, makeTemple, nextTempleId, temples } from "./templeFixtures";
 
 jest.mock("@ionic/storage", () => {
   class Storage {
@@ -579,5 +581,41 @@ describe("blood moons leave quest rooms to their schedules (7.11)", () => {
     expect(cleared(id, 1)).toBe(true);
     expect(cleared(id, 2)).toBe(false);
     expect(cleared(id, 3)).toBe(false);
+  });
+});
+
+describe("a rebuilt temple forgets the run held in memory (the Moving House pack's Old House)", () => {
+  /** The old plan: [0,0] entrance, [0,1] a hall, [0,2] a fight that seals its room on entry, [0,3] another hall */
+  const oldPlan = { entrance: [0, 0], maze: [["E", "H", "C", "H"]], rooms: { E: { type: "entrance" }, H: { type: "empty" }, C: CLASSIC } };
+  /** The house built again: the same rooms in new places */
+  const newPlan = { entrance: [0, 0], maze: [["E", "C", "H", "H"]], rooms: oldPlan.rooms };
+
+  it("starts the next visit at the entrance with nothing cleared once the saved walk is cleared and the run forgotten", async () => {
+    const id = nextTempleId();
+    registerTemple(id, oldPlan);
+    await openFor(id);
+    temples.moveToPosition(id, [0, 1], "east");
+    temples.moveToPosition(id, [0, 2], "east");
+    temples.markRoomCleared(id, "1F", [0, 2], HERO);
+    expect(temples.moveToPosition(id, [0, 3], "east")).toBe(true);
+    await temples.flushProgress();
+
+    // The setup dialog clears the saved walk, loads the new plan, then drops the run the hero left in memory
+    await db.clearProgress(HERO, id);
+    temples.forgetTempleRun(id);
+    registerTemple(id, newPlan);
+    await openFor(id);
+
+    expect(temples.getTempleState(id)?.currentPosition).toEqual([0, 0]);
+    expect([1, 2, 3].map((col) => cleared(id, col))).toEqual([false, false, false]);
+    expect(temples.hasVisited(id, [0, 3])).toBe(false);
+    await temples.flushProgress();
+    const saved = await db.getProgress(HERO, id);
+    expect(saved?.currentPosition).toEqual([0, 0]);
+    expect(saved?.clearedRooms).toEqual([]);
+  });
+
+  it("does nothing for a temple with no run in memory", () => {
+    expect(() => temples.forgetTempleRun(nextTempleId())).not.toThrow();
   });
 });

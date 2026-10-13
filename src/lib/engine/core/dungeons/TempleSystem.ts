@@ -245,6 +245,16 @@ export class TempleSystem {
   private forgetRun(templeId: string, unsaved = false): void {
     heroRuns.forgetRun(this.runs, templeId, unsaved);
   }
+
+  /**
+   * Drop the temple's run from memory without saving it, a save still waiting included, so the next visit starts from
+   * what is stored. For a temple built again after the saved walks through it were cleared (the Moving House pack's
+   * Old House): a run kept in memory would otherwise be put back on the new rooms (refreshRun) and saved over the clear.
+   * Does nothing for a temple without a run in memory.
+   */
+  public forgetTempleRun(templeId: string): void {
+    this.forgetRun(templeId, true);
+  }
   
   private migrateVisitedRooms(templeId: string): void {
     floors.migrateVisitedRooms(this.runs, templeId);

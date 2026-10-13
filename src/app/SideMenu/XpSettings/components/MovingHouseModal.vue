@@ -119,7 +119,9 @@
           </template>
           <template v-else>Pick a move date and at least one hero.</template>
         </p>
-        <p v-if="canBuild && templeFailed" class="moving-note" role="status">The temple could not be laid out for this house.</p>
+        <p v-if="canBuild && templeFailed" class="moving-note" role="status">
+          The temple could not be laid out for this house. Untick the temple to build the pack.
+        </p>
         <p v-if="error" class="moving-error" role="alert">{{ error }}</p>
       </template>
 
@@ -164,7 +166,8 @@ import {
 import type { MovingAnswers, MovingRole, MovingRoomId } from "@/lib/services/core/packs/movingPack";
 import { buildMovingTemple, movingTempleBackup, movingTempleSummary } from "@/lib/services/core/packs/movingTemple";
 import type { MovingTemple } from "@/lib/services/core/packs/movingTemple";
-import { forgetOldHouseWalks } from "@/lib/services/core/packs/movingTempleReset";
+import { forgetOldHouseRun, forgetOldHouseWalks } from "@/lib/services/core/packs/movingTempleReset";
+import debug from "@/lib/utils/debug";
 
 const props = defineProps<{ isOpen: boolean }>();
 const emit = defineEmits<{ (event: "close"): void }>();
@@ -227,7 +230,8 @@ const previewBuild = computed((): { temple: MovingTemple | null; failed: boolean
   if (!wantsTemple.value) return { temple: null, failed: false };
   try {
     return { temple: buildMovingTemple(preview.value, answers.value), failed: false };
-  } catch {
+  } catch (error) {
+    debug.warn("[MovingHouse] the temple could not be laid out for this house", error);
     return { temple: null, failed: true };
   }
 });
@@ -257,6 +261,8 @@ const build = async () => {
     // The rooms of a rebuilt house moved, so no hero resumes a walk through the old plan
     if (temple) await forgetOldHouseWalks(userStore.usersAz.map((hero) => String(hero.id)));
     await backupService.restoreBackup(movingTempleBackup(pack, temple), { mode: "merge" });
+    // The run a hero left in memory is on the old plan too: once the new house is in, it goes, so nobody resumes it
+    if (temple) forgetOldHouseRun();
     play$fx("select");
     summary.value = temple ? [movingPackSummary(pack), movingTempleSummary(temple)].join("\n") : movingPackSummary(pack);
   } catch (caught) {
