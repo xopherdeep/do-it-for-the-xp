@@ -210,7 +210,6 @@ import AddProfile from "./AddProfile/AddProfile.vue";
 import ProfileLoadingModal from "../../../components/templates/modals/ProfileLoadingModal.vue";
 import XpGp from "@/components/atoms/Currency/XpGp.vue";
 import XpProfileCard from "@/components/molecules/XpProfileCard/XpProfileCard.vue";
-import XpRpgMenu from "@/components/molecules/RpgMenu/XpRpgMenu.vue";
 import DialPad from "./DialPad.vue";
 import ionic from "@/lib/mixins/ionic";
 import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
@@ -232,7 +231,6 @@ export default defineComponent({
   components: {
     XpGp,
     XpProfileCard,
-    XpRpgMenu,
     XpRpgPage
   },
   mixins: [ionic],
