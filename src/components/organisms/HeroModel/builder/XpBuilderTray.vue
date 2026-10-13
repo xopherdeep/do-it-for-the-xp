@@ -7,41 +7,52 @@
       role="region"
       :aria-label="`${tab.label} options`"
     >
-      <!-- Style side: one picture of the player's own hero per option -->
+      <!-- Style side: one picture of the player's own hero per option; a titled section starts at a heading -->
       <div
         v-if="showStyles"
         class="tile-grid"
       >
-        <button
+        <template
           v-for="tile in tiles"
           :key="tile.option"
-          type="button"
-          class="tile"
-          :class="{ active: tile.chosen }"
-          data-cy="look-tile"
-          :data-option="tile.option"
-          :aria-label="tile.label"
-          :aria-pressed="tile.chosen"
-          @click="pickStyle(tile.option)"
         >
-          <img
-            v-if="tile.src"
-            class="tile-picture"
-            :src="tile.src"
-            alt=""
-            :width="TILE_SIZE"
-            :height="TILE_SIZE"
-            draggable="false"
-          />
-          <span
-            v-else
-            class="tile-label"
-            >{{ tile.label }}</span
+          <h4
+            v-if="tile.heading"
+            class="tile-heading"
+            data-cy="tray-heading"
           >
-        </button>
+            {{ tile.heading }}
+          </h4>
+          <button
+            type="button"
+            class="tile"
+            :class="{ active: tile.chosen, painted: !!tile.swatch, 'light-swatch': tile.lightSwatch }"
+            :style="tile.swatch ? { backgroundColor: tile.swatch } : undefined"
+            data-cy="look-tile"
+            :data-option="tile.option"
+            :aria-label="tile.label"
+            :aria-pressed="tile.chosen"
+            @click="pickStyle(tile.option)"
+          >
+            <img
+              v-if="tile.src"
+              class="tile-picture"
+              :src="tile.src"
+              alt=""
+              :width="TILE_SIZE"
+              :height="TILE_SIZE"
+              draggable="false"
+            />
+            <span
+              v-else
+              class="tile-label"
+              >{{ tile.label }}</span
+            >
+          </button>
+        </template>
       </div>
 
-      <!-- Colour side (or the only side, on Body): one labelled group of swatches per colour the tab sets -->
+      <!-- Colour side (or the only side on a tab with colours and no styles): one labelled group of swatches per colour the tab sets -->
       <template v-else>
         <section
           v-for="group in tab.colors"
@@ -68,9 +79,9 @@
       </template>
     </div>
 
-    <!-- Style | Colour, under the thumb; Body has only colours, so it has no switch -->
+    <!-- Style | Colour, under the thumb; a tab with only one side has no switch -->
     <div
-      v-if="tab.styles"
+      v-if="showSwitch"
       class="mode-switch"
       role="group"
       aria-label="Style or colour"
@@ -95,7 +106,7 @@
 <script setup lang="ts">
   import { computed } from "vue";
   import type { HeroLook } from "@/lib/hero-look/types";
-  import { styleLabel, tileLook, type LookTab } from "../lookEditor";
+  import { optionLabel, optionSwatch, tileLook, type LookTab } from "../lookEditor";
   import type { LookThumbnailer } from "../useLookThumbnails";
 
   /**
@@ -126,19 +137,39 @@
     { id: "colour", label: "Colour" },
   ];
 
-  /** A tab with no styles (Body) only has colours, whatever side the parent asks for */
-  const showStyles = computed(() => !!props.tab.styles && props.mode === "style");
+  /** Both sides exist only when the tab has styles and at least one colour group */
+  const showSwitch = computed(() => !!props.tab.styles && props.tab.colors.length > 0);
 
-  /** The picture is "" until it is drawn (or without WebGL): the tile then shows the option's name */
+  /** A tab with one side shows it, whatever side the parent asks for; with both, the parent's choice wins */
+  const showStyles = computed(() => !!props.tab.styles && (props.tab.colors.length === 0 || props.mode === "style"));
+
+  /** A painted tile this bright takes dark lettering; the darker ones keep the cream */
+  const isLight = (hex: string): boolean => {
+    const value = parseInt(hex.replace("#", ""), 16);
+    const [r, g, b] = [(value >> 16) & 255, (value >> 8) & 255, value & 255];
+    return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.5;
+  };
+
+  /** The picture is "" until it is drawn (or without WebGL): the tile then shows the option's name, on its colour if it has one */
   const tiles = computed(() => {
     const styles = props.tab.styles;
     if (!styles) return [];
-    return styles.options.map((option) => ({
-      option,
-      label: styleLabel(option),
-      src: props.thumbnails.get(tileLook(props.modelValue, props.tab, option), props.tab.focus, TILE_SIZE),
-      chosen: props.modelValue[styles.key] === option,
-    }));
+    return styles.options.map((option) => {
+      const swatch = optionSwatch(props.tab, option);
+      return {
+        option,
+        label: optionLabel(props.tab, option),
+        heading: styles.headings?.[option],
+        swatch,
+        lightSwatch: !!swatch && isLight(swatch),
+        src: props.thumbnails.get(
+          tileLook(props.modelValue, props.tab, option),
+          props.tab.tileFocus ?? props.tab.focus,
+          TILE_SIZE,
+        ),
+        chosen: props.modelValue[styles.key] === option,
+      };
+    });
   });
 
   const change = (key: keyof HeroLook, value: string) => {
@@ -206,6 +237,20 @@
       border-color: $eb-color-pale-yellow;
       box-shadow: 0 0 0 2px $eb-color-pale-yellow;
     }
+  }
+
+  // A painted tile (a skin tone) is a block of its colour that frames the face; the name needs ink it can be read in
+  .tile.light-swatch {
+    color: $eb-color-dark-purple;
+  }
+
+  .tile-heading {
+    grid-column: 1 / -1;
+    margin: 6px 0 0;
+    font-family: $eb-font-status, $eb-font-primary, sans-serif;
+    font-size: 0.95rem;
+    font-weight: normal;
+    color: $eb-color-pale-yellow;
   }
 
   .tile-picture {

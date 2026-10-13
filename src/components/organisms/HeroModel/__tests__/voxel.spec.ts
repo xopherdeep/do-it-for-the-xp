@@ -157,6 +157,16 @@ describe("buildHero", () => {
     }
   });
 
+  it("builds a hero in every skin tone", () => {
+    for (const skin of Object.keys(SKIN_TONES) as Array<keyof typeof SKIN_TONES>) {
+      const hero = buildHero(look({ skin }));
+      expectWellFormed(hero);
+      for (const name of PART_NAMES) expect(hero.getObjectByName(name)).toBeTruthy();
+      disposeHero(hero);
+    }
+    expect(Object.keys(SKIN_TONES)).toHaveLength(18);
+  });
+
   it("covers every skin tone and a hood that gives way to a hat", () => {
     for (const skin of Object.keys(SKIN_TONES) as Array<keyof typeof SKIN_TONES>) {
       expectWellFormed(buildHero(look({ skin, outfit: "hoodie" })));

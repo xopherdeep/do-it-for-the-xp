@@ -1,10 +1,13 @@
 import {
   FACE_STYLES,
+  FANTASY_SKIN_TONES,
   HAIR_STYLES,
   HAT_STYLES,
   LOOK_COLORS,
   OUTFIT_STYLES,
+  REAL_SKIN_TONES,
   SKIN_TONES,
+  SKIN_TONE_NAMES,
   type HeroLook,
   type SkinTone,
 } from "@/lib/hero-look/types";
@@ -39,19 +42,16 @@ export interface LookTab {
   /** Font Awesome icon (duotone) shown above the label on the tab strip */
   icon: string;
   focus: LookFocus;
+  /** How its picture tiles are framed, when that differs from the stage (Body: the stage shows the whole hero, the tiles show the face) */
+  tileFocus?: LookFocus;
   /** Hair is judged without a hat, so its tiles and the stage take the hat off */
   bareHead?: boolean;
-  styles?: { key: keyof HeroLook; options: string[] };
+  /** `headings`: an option id that starts a titled section of the tiles, mapped to the heading text */
+  styles?: { key: keyof HeroLook; options: string[]; headings?: Record<string, string> };
   colors: ColorGroup[];
 }
 
 const palette = (): Swatch[] => LOOK_COLORS.map((color) => ({ value: color, color, name: color }));
-const skinTones = (): Swatch[] =>
-  (Object.keys(SKIN_TONES) as (keyof typeof SKIN_TONES)[]).map((tone) => ({
-    value: tone,
-    color: SKIN_TONES[tone],
-    name: tone,
-  }));
 
 export const TABS: LookTab[] = [
   {
@@ -59,7 +59,9 @@ export const TABS: LookTab[] = [
     label: "Body",
     icon: "fa-user",
     focus: "full",
-    colors: [{ key: "skin", label: "Skin tone", swatches: skinTones() }],
+    tileFocus: "bust",
+    styles: { key: "skin", options: [...REAL_SKIN_TONES, ...FANTASY_SKIN_TONES], headings: { orc: "Fantasy" } },
+    colors: [],
   },
   {
     id: "hair",
@@ -116,6 +118,14 @@ export const stageLook = (draft: HeroLook, tab: LookTab): HeroLook =>
 /** "ponytail" -> "Ponytail" */
 export const styleLabel = (style: string): string => style.charAt(0).toUpperCase() + style.slice(1);
 
+/** What a tile is called: skin tones have names of their own ("Frost Blue"), every other option is its capitalised id */
+export const optionLabel = (tab: LookTab, option: string): string =>
+  tab.styles?.key === "skin" ? SKIN_TONE_NAMES[option as SkinTone] || styleLabel(option) : styleLabel(option);
+
+/** The colour a tile is painted with, for the options that are colours (skin tones); undefined for the rest */
+export const optionSwatch = (tab: LookTab, option: string): string | undefined =>
+  tab.styles?.key === "skin" ? SKIN_TONES[option as SkinTone] : undefined;
+
 /** The equipped items as far as the look cares: hand slots hold lists of plain item data with a `faIcon` */
 export interface HandSlots {
   leftHand?: unknown;
@@ -155,11 +165,11 @@ const REAL_HATS = HAT_STYLES.filter((hat) => hat !== "none");
 
 const pick = <T>(list: T[], rng: Rng): T => list[Math.min(list.length - 1, Math.floor(rng() * list.length))];
 
-/** A random hero: a plain head of hair most of the time, a hat about half of the time, a trim that stands out from the outfit */
+/** A random hero: a real skin tone six times in seven, a plain head of hair most of the time, a hat about half of the time, a trim that stands out from the outfit */
 export const randomLook = (rng: Rng = Math.random): HeroLook => {
   const outfitColor = pick(LOOK_COLORS, rng);
   return {
-    skin: pick(Object.keys(SKIN_TONES) as SkinTone[], rng),
+    skin: rng() < 1 / 7 ? pick(FANTASY_SKIN_TONES, rng) : pick(REAL_SKIN_TONES, rng),
     hair: pick(HAIR_STYLES, rng),
     hairColor: rng() < 0.75 ? pick(NATURAL_HAIR, rng) : pick(LOOK_COLORS, rng),
     face: pick(FACE_STYLES, rng),

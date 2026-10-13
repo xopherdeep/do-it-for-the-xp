@@ -41,18 +41,107 @@ const group = (wrapper: ReturnType<typeof show>["wrapper"], label: string) =>
   wrapper.findAll("[role=group]").find((el) => el.attributes("aria-label") === label)!;
 
 describe("XpBuilderTray", () => {
-  it("hides the Style/Colour switch on Body and shows the skin tones", () => {
-    const { wrapper } = show({ tabId: "body", mode: "style" });
+  it("fills Body with 18 face tiles and no switch", () => {
+    const { wrapper, thumbnails } = show({ tabId: "body", mode: "style" });
 
     expect(wrapper.find("[data-cy=tray-mode]").exists()).toBe(false);
-    expect(tiles(wrapper)).toHaveLength(0);
+    expect(tiles(wrapper)).toHaveLength(18);
+    expect(tiles(wrapper).map((tile) => tile.attributes("data-option"))).toEqual(Object.keys(SKIN_TONES));
+    tiles(wrapper).forEach((tile) => expect(tile.attributes("type")).toBe("button"));
 
-    const skin = group(wrapper, "Skin tone");
-    const swatches = skin.findAll("button");
-    expect(swatches.map((swatch) => swatch.attributes("aria-label"))).toEqual(Object.keys(SKIN_TONES));
-    swatches.forEach((swatch) => expect(swatch.attributes("type")).toBe("button"));
-    expect(swatches[0].attributes("aria-pressed")).toBe("true");
-    expect(swatches[1].attributes("aria-pressed")).toBe("false");
+    // Each tile is the player's own hero in that tone, framed on the face, at 96 pixels
+    expect(thumbnails.get).toHaveBeenCalledTimes(18);
+    tiles(wrapper).forEach((tile, i) => {
+      const call = thumbnails.get.mock.calls[i] as unknown[];
+      expect((call[0] as HeroLook).skin).toBe(tile.attributes("data-option"));
+      expect(call[1]).toBe("bust");
+      expect(call[2]).toBe(96);
+    });
+    expect(thumbnails.get).toHaveBeenCalledWith(expect.objectContaining({ skin: "frost" }), "bust", 96);
+
+    // The current tone (the default hero is a Peach) rings and no other; there is no colour group
+    const pressed = tiles(wrapper).filter((tile) => tile.attributes("aria-pressed") === "true");
+    expect(pressed.map((tile) => tile.attributes("data-option"))).toEqual(["peach"]);
+    expect(pressed[0].classes()).toContain("active");
+    expect(wrapper.findAll("[role=group]")).toHaveLength(0);
+  });
+
+  it("names skin tiles and paints them when there is no picture", () => {
+    const { wrapper } = show({ tabId: "body", thumbnails: fakeThumbnails("") });
+
+    const frost = tiles(wrapper).find((tile) => tile.attributes("data-option") === "frost")!;
+    expect(frost.attributes("aria-label")).toBe("Frost Blue");
+    expect(frost.text()).toBe("Frost Blue");
+    expect(frost.find("img").exists()).toBe(false);
+    expect((frost.element as HTMLElement).style.backgroundColor).toBe("rgb(156, 199, 230)");
+    expect(tiles(wrapper)[0].attributes("aria-label")).toBe("Porcelain");
+
+    // With a picture the colour still frames the face
+    const picture = show({ tabId: "body" });
+    const tile = tiles(picture.wrapper).find((t) => t.attributes("data-option") === "frost")!;
+    expect(tile.find("img").exists()).toBe(true);
+    expect((tile.element as HTMLElement).style.backgroundColor).toBe("rgb(156, 199, 230)");
+
+    // Other tabs keep their plain look
+    expect(tiles(show({ tabId: "hair" }).wrapper)[0].attributes("style")).toBeUndefined();
+  });
+
+  it("emits the skin key when a tone is tapped", async () => {
+    const draft: HeroLook = { ...DEFAULT_LOOK };
+    const { wrapper } = show({ tabId: "body", modelValue: draft });
+
+    await tiles(wrapper)
+      .find((tile) => tile.attributes("data-option") === "ember")!
+      .trigger("click");
+
+    expect(wrapper.emitted("update:modelValue")).toEqual([[{ ...draft, skin: "ember" }]]);
+  });
+
+  it("letters light tones dark and deep tones light, so a nameless tile still reads", () => {
+    const { wrapper } = show({ tabId: "body", thumbnails: fakeThumbnails("") });
+    const tile = (option: string) => tiles(wrapper).find((t) => t.attributes("data-option") === option)!;
+
+    expect(tile("porcelain").classes()).toContain("light-swatch");
+    expect(tile("frost").classes()).toContain("light-swatch");
+    expect(tile("ebony").classes()).not.toContain("light-swatch");
+    expect(tile("umber").classes()).not.toContain("light-swatch");
+  });
+
+  it("shows only the side a tab has", async () => {
+    // Body has styles and no colours: the style tiles show even if the parent asks for the Colour side
+    const body = show({ tabId: "body", mode: "colour" });
+    expect(tiles(body.wrapper)).toHaveLength(18);
+    expect(body.wrapper.find("[data-cy=tray-mode]").exists()).toBe(false);
+
+    // A tab with colours and no styles shows its colour groups and no switch
+    const colours = tabById("hat");
+    const only = mount(XpBuilderTray, {
+      props: {
+        modelValue: { ...DEFAULT_LOOK },
+        tab: { ...colours, styles: undefined },
+        mode: "style",
+        thumbnails: fakeThumbnails(),
+      },
+    });
+    expect(only.findAll("[data-cy=look-tile]")).toHaveLength(0);
+    expect(only.find("[data-cy=tray-mode]").exists()).toBe(false);
+    expect(group(only, "Hat colour")).toBeDefined();
+  });
+
+  it("puts a Fantasy heading before the fantasy tones", () => {
+    const { wrapper } = show({ tabId: "body" });
+
+    const headings = wrapper.findAll("[data-cy=tray-heading]");
+    expect(headings).toHaveLength(1);
+    expect(headings[0].text()).toBe("Fantasy");
+
+    // The heading sits in the grid right before the Orc Green tile
+    const orc = tiles(wrapper).find((tile) => tile.attributes("data-option") === "orc")!;
+    expect(orc.element.previousElementSibling).toBe(headings[0].element);
+    expect(tiles(wrapper).findIndex((tile) => tile.attributes("data-option") === "orc")).toBe(12);
+
+    // Tabs without headings render none
+    expect(show({ tabId: "hair" }).wrapper.findAll("[data-cy=tray-heading]")).toHaveLength(0);
   });
 
   it("shows one picture tile per hair style, drawn bare-headed at head framing", () => {

@@ -3,7 +3,25 @@
  * Stored on the profile as `look`; the renderer builds it, the customiser edits it, a snapshot of it
  * becomes the avatar everywhere else.
  */
-export type SkinTone = "peach" | "tan" | "brown" | "deep" | "olive" | "pale";
+export type SkinTone =
+  | "porcelain"
+  | "pale"
+  | "rose"
+  | "peach"
+  | "honey"
+  | "tan"
+  | "olive"
+  | "sienna"
+  | "brown"
+  | "umber"
+  | "deep"
+  | "ebony"
+  | "orc"
+  | "frost"
+  | "lavender"
+  | "stone"
+  | "ember"
+  | "gold";
 export type HairStyle = "none" | "short" | "bob" | "spiky" | "ponytail" | "curly" | "buzz" | "long" | "mohawk" | "bun";
 export type OutfitStyle = "tunic" | "overalls" | "armor" | "robe" | "hoodie" | "dress" | "tracksuit" | "pyjamas";
 export type HatStyle = "none" | "cap" | "crown" | "wizard" | "helmet" | "beanie" | "headband" | "bandana" | "flower";
@@ -42,14 +60,55 @@ export const DEFAULT_LOOK: HeroLook = {
   hatColor: "#b8342b",
 };
 
+/** Light to deep, then the fantasy hues; the original six (peach, tan, brown, deep, olive, pale) keep their hexes */
 export const SKIN_TONES: Record<SkinTone, string> = {
-  peach: "#f1c9a5",
-  tan: "#d9a877",
-  brown: "#a86b3c",
-  deep: "#6b3f22",
-  olive: "#c9b07a",
+  porcelain: "#fbeee6",
   pale: "#f7e3d3",
+  rose: "#f3c6b8",
+  peach: "#f1c9a5",
+  honey: "#e0b07a",
+  tan: "#d9a877",
+  olive: "#c9b07a",
+  sienna: "#c08250",
+  brown: "#a86b3c",
+  umber: "#8a5530",
+  deep: "#6b3f22",
+  ebony: "#4a2a18",
+  orc: "#7fae5a",
+  frost: "#9cc7e6",
+  lavender: "#b9a3e0",
+  stone: "#9a9a94",
+  ember: "#d0584a",
+  gold: "#e8c45a",
 };
+
+/** What a tone is called on its tile */
+export const SKIN_TONE_NAMES: Record<SkinTone, string> = {
+  porcelain: "Porcelain",
+  pale: "Pale",
+  rose: "Rose",
+  peach: "Peach",
+  honey: "Honey",
+  tan: "Tan",
+  olive: "Olive",
+  sienna: "Sienna",
+  brown: "Brown",
+  umber: "Umber",
+  deep: "Deep",
+  ebony: "Ebony",
+  orc: "Orc Green",
+  frost: "Frost Blue",
+  lavender: "Lavender",
+  stone: "Stone Grey",
+  ember: "Ember Red",
+  gold: "Gold",
+};
+
+/** The tones people really have (the first twelve, light to deep) and the fantasy hues that follow them */
+export const REAL_SKIN_TONES: SkinTone[] = [
+  "porcelain", "pale", "rose", "peach", "honey", "tan", "olive", "sienna", "brown", "umber", "deep", "ebony",
+];
+export const FANTASY_SKIN_TONES: SkinTone[] = ["orc", "frost", "lavender", "stone", "ember", "gold"];
 
 /** The palette offered by the colour pickers: warm, saturated, reads on the dark RPG boxes */
 export const LOOK_COLORS: string[] = [

@@ -1,16 +1,21 @@
 import {
   DEFAULT_LOOK,
   FACE_STYLES,
+  FANTASY_SKIN_TONES,
   HAIR_STYLES,
   HAT_STYLES,
   OUTFIT_STYLES,
+  REAL_SKIN_TONES,
   SKIN_TONES,
+  SKIN_TONE_NAMES,
 } from "@/lib/hero-look/types";
 import {
   EYE_COLORS,
   NATURAL_HAIR,
   TABS,
   handIcon,
+  optionLabel,
+  optionSwatch,
   popHistory,
   pushHistory,
   randomLook,
@@ -46,7 +51,7 @@ describe("lookEditor helpers", () => {
 });
 
 describe("the tabs", () => {
-  it("gives every tab a focus and only Body has no styles", () => {
+  it("gives every tab a focus and styles, and Body has no colour groups", () => {
     expect(TABS.map((t) => [t.id, t.focus])).toEqual([
       ["body", "full"],
       ["hair", "bust"],
@@ -54,8 +59,48 @@ describe("the tabs", () => {
       ["outfit", "full"],
       ["hat", "bust"],
     ]);
-    expect(TABS.filter((t) => !t.styles).map((t) => t.id)).toEqual(["body"]);
+    expect(TABS.filter((t) => !t.styles)).toEqual([]);
+    expect(tabById("body").colors).toEqual([]);
+    expect(tabById("body").tileFocus).toBe("bust");
+    expect(tabById("hair").tileFocus).toBeUndefined();
     expect(tabById("outfit").colors.map((c) => c.label)).toEqual(["Main", "Trim"]);
+  });
+
+  it("offers 18 skin tones, real first, keeping the old six", () => {
+    const body = tabById("body");
+
+    expect(Object.keys(SKIN_TONES)).toHaveLength(18);
+    expect({
+      peach: SKIN_TONES.peach,
+      tan: SKIN_TONES.tan,
+      brown: SKIN_TONES.brown,
+      deep: SKIN_TONES.deep,
+      olive: SKIN_TONES.olive,
+      pale: SKIN_TONES.pale,
+    }).toEqual({
+      peach: "#f1c9a5",
+      tan: "#d9a877",
+      brown: "#a86b3c",
+      deep: "#6b3f22",
+      olive: "#c9b07a",
+      pale: "#f7e3d3",
+    });
+    expect(REAL_SKIN_TONES).toHaveLength(12);
+    expect(FANTASY_SKIN_TONES).toEqual(["orc", "frost", "lavender", "stone", "ember", "gold"]);
+    expect(body.styles!.key).toBe("skin");
+    expect(body.styles!.options).toEqual([...REAL_SKIN_TONES, ...FANTASY_SKIN_TONES]);
+    expect([...body.styles!.options].sort()).toEqual(Object.keys(SKIN_TONES).sort());
+    expect(body.styles!.options.indexOf("orc")).toBe(12);
+    expect(body.styles!.headings).toEqual({ orc: "Fantasy" });
+    expect(Object.keys(SKIN_TONE_NAMES)).toEqual(Object.keys(SKIN_TONES));
+  });
+
+  it("names tones for people", () => {
+    expect(optionLabel(tabById("body"), "frost")).toBe("Frost Blue");
+    expect(optionLabel(tabById("body"), "orc")).toBe("Orc Green");
+    expect(optionLabel(tabById("hair"), "mohawk")).toBe("Mohawk");
+    expect(optionSwatch(tabById("body"), "orc")).toBe("#7fae5a");
+    expect(optionSwatch(tabById("hair"), "bob")).toBeUndefined();
   });
 
   it("draws hair tiles bare-headed and other tiles with the hat on", () => {
@@ -87,6 +132,16 @@ describe("random heroes", () => {
     expect(bare).toBeGreaterThan(0.4);
     expect(bare).toBeLessThan(0.6);
     expect(looks.filter((l) => NATURAL_HAIR.includes(l.hairColor)).length / 500).toBeGreaterThan(0.65);
+  });
+
+  it("rolls mostly real skin tones", () => {
+    const rng = seeded(11);
+    const looks = Array.from({ length: 500 }, () => randomLook(rng));
+
+    for (const l of looks) expect(Object.keys(SKIN_TONES)).toContain(l.skin);
+    const fantasy = looks.filter((l) => FANTASY_SKIN_TONES.includes(l.skin)).length / 500;
+    expect(fantasy).toBeGreaterThan(0.08);
+    expect(fantasy).toBeLessThan(0.22);
   });
 
   it("deals nine different starters", () => {
