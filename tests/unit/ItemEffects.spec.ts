@@ -1,22 +1,11 @@
 import { createPinia, setActivePinia } from "pinia";
 import type { Achievement } from "@/lib/databases/AchievementDb";
-import type { QuestLogEntry } from "@/lib/databases/QuestLogDb";
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import {
-  effectiveDeadline,
-  getEffectiveWindow,
-  getQuestProgressFor,
-  isQuestOverdue,
-  isSchedulePaused,
-  type HeroQuestEffects,
-} from "@/lib/engine/quests/QuestSchedule";
-import {
   ALWAYS_UNLOCKED,
-  applyBoardEffect,
-  boardEffectOf,
-  cooldownLabel,
   hasNoEncounters,
   isItemUnlocked,
+  lanternOverdue,
   unlockHintOf,
   unlockableItemNames,
   unlocksFromChest,
@@ -82,19 +71,6 @@ const boardItem = (q: Achievement, status: QuestBoardItem["status"] = "open", ov
   overdue,
 });
 
-const entry = (completedAt: string, questId = "q1", status: QuestLogEntry["status"] = "approved"): QuestLogEntry => ({
-  id: `entry-${completedAt}`,
-  questId,
-  questName: "Quest",
-  userId: HERO,
-  completedAt,
-  dayKey: completedAt.slice(0, 10),
-  status,
-  source: "claim",
-  rewards: { xp: 1, gp: 1, ap: 1 },
-  rewardsApplied: true,
-});
-
 const addHero = (extra: Record<string, unknown> = {}, mp = 400) => {
   useUserStore().users[HERO] = {
     id: HERO,
@@ -112,209 +88,53 @@ beforeEach(() => {
   mockBoard.mockResolvedValue([]);
 });
 
-describe("boardEffectOf", () => {
-  it("knows the board items, their MP and their recharge", () => {
-    expect(boardEffectOf("Ice Wand")).toMatchObject({ kind: "pick-quest", picks: "open", cost: 50, cooldownMs: 0 });
-    expect(boardEffectOf("Silver Arrow")).toMatchObject({ kind: "pick-quest", picks: "open", cost: 25 });
-    expect(boardEffectOf("Hook Shot")).toMatchObject({ kind: "pick-quest", picks: "future", cost: 15 });
-    expect(boardEffectOf("Chronos' Clock")).toMatchObject({ kind: "instant", cost: 100, cooldownMs: 3_600_000 });
-    expect(boardEffectOf("Lantern")).toMatchObject({ kind: "instant", cost: 5 });
-    expect(boardEffectOf("X's Invisibility")).toMatchObject({ kind: "instant", cost: 300, cooldownMs: 2 * 86_400_000 });
-  });
-
-  it("provides board effects for all equipment items without temple restriction", () => {
-    for (const name of ["Bombs", "Thor's Hammer", "Fire Wand"]) {
-      expect(boardEffectOf(name).kind).toBe("pick-quest");
-    }
-    for (const name of ["Tesla's Bolt", "Gaia's Quake", "Night's Light", "Gale's Wind", "Sol's Flare", "Bottles"]) {
-      expect(boardEffectOf(name).kind).toBe("instant");
-    }
-    for (const name of ["Wallet", "Pegasus Boots", undefined, "Nonsense"]) {
-      expect(boardEffectOf(name).kind).toBe("none");
-    }
-    expect(boardEffectOf("Ice Wand").describe).toMatch(/24 hours/);
-  });
-
-  it("labels a recharge in minutes, hours or days", () => {
-    expect(cooldownLabel(42 * 60_000)).toBe("42 min left");
-    expect(cooldownLabel(10)).toBe("1 min left");
-    expect(cooldownLabel(2.5 * 3_600_000)).toBe("3 h left");
-    expect(cooldownLabel(1.2 * 86_400_000)).toBe("2 d left");
-  });
-});
-
-describe("applyBoardEffect refusals", () => {
-  it("activates generic items and charges MP properly", async () => {
-    addHero();
-    expect(await applyBoardEffect({ name: "Wallet" }, { userId: HERO, now: NOW })).toMatchObject({ ok: true, sound: "useItem" });
-    const bombPick = await applyBoardEffect({ name: "Bombs" }, { userId: HERO, now: NOW });
-    expect(bombPick.ok).toBe(false);
-    expect(bombPick.line).toMatch(/Pick a quest first/);
-    expect(mp()).toBe(400);
-  });
-
-  it("refuses when the hero is short on MP", async () => {
-    addHero({}, 40);
-    const result = await applyBoardEffect({ name: "Ice Wand" }, { userId: HERO, questId: "q1", now: NOW });
-    expect(result).toMatchObject({ ok: false, line: "Not enough MP (50 needed)" });
-    expect(mp()).toBe(40);
-    expect(hero().questEffects).toBeUndefined();
-  });
-
-  it("refuses while the item recharges, saying how long is left", async () => {
-    const readyAt = new Date(NOW.getTime() + 42 * 60_000).toISOString();
-    addHero({ itemCooldowns: { "X's Invisibility": readyAt } });
-    const result = await applyBoardEffect({ name: "X's Invisibility" }, { userId: HERO, now: NOW });
-    expect(result).toMatchObject({ ok: false, line: "Recharging: 42 min left" });
-    expect(mp()).toBe(400);
-  });
-
-  it("needs a quest for a pick-quest item, and one that is on the board", async () => {
-    addHero();
-    expect((await applyBoardEffect({ name: "Silver Arrow" }, { userId: HERO, now: NOW })).line).toBe("Pick a quest first.");
-    mockBoard.mockResolvedValue([boardItem(quest("q1"))]);
-    expect((await applyBoardEffect({ name: "Silver Arrow" }, { userId: HERO, questId: "zzz", now: NOW })).ok).toBe(false);
-    expect(mp()).toBe(400);
-  });
-
-  it("refuses for a hero that does not exist", async () => {
-    expect((await applyBoardEffect({ name: "Lantern" }, { userId: "ghost", now: NOW })).ok).toBe(false);
-  });
-});
-
-describe("Ice Wand", () => {
-  it("pushes one open quest's deadline back 24 hours and charges 50 MP", async () => {
-    addHero();
-    const q = quest("q1", { dueByTime: "17:00" });
-    mockBoard.mockResolvedValue([boardItem(q)]);
-    const result = await applyBoardEffect({ name: "Ice Wand" }, { userId: HERO, questId: "q1", now: NOW });
-    expect(result.ok).toBe(true);
-    expect(result.line).toMatch(/Quest q1: now due Fri 5:00PM/);
-    expect(mp()).toBe(350);
-    const effects: HeroQuestEffects = hero().questEffects;
-    expect(new Date(effects.extendedUntil!.q1)).toEqual(at("2026-10-09T17:00:00"));
-
-    // The board reads it back: not late this evening, late tomorrow evening
-    expect(effectiveDeadline(q, effects, at("2026-10-08T18:00:00"))).toEqual(at("2026-10-09T17:00:00"));
-    expect(isQuestOverdue(q, undefined, at("2026-10-08T18:00:00"))).toBe(true);
-    expect(isQuestOverdue(q, effects, at("2026-10-08T18:00:00"))).toBe(false);
-    expect(isQuestOverdue(q, effects, at("2026-10-09T18:00:00"))).toBe(true);
-  });
-
-  it("gives a quest with no due time until the end of tomorrow, and will not touch a quest that is not open", async () => {
-    addHero();
-    mockBoard.mockResolvedValue([boardItem(quest("q1", { dueByTime: "" })), boardItem(quest("q2"), "done")]);
-    const result = await applyBoardEffect({ name: "Ice Wand" }, { userId: HERO, questId: "q1", now: NOW });
-    expect(result.ok).toBe(true);
-    expect(new Date(hero().questEffects.extendedUntil.q1).getTime()).toBe(at("2026-10-09T23:59:59.999").getTime());
-
-    const done = await applyBoardEffect({ name: "Ice Wand" }, { userId: HERO, questId: "q2", now: NOW });
-    expect(done).toMatchObject({ ok: false, line: "Quest q2 is not open today." });
-    expect(mp()).toBe(350);
-  });
-});
-
-describe("Silver Arrow", () => {
-  it("snoozes one open quest to tomorrow: gone from today's board, back tomorrow", async () => {
-    addHero();
-    const q = quest("q1");
-    mockBoard.mockResolvedValue([boardItem(q)]);
-    const result = await applyBoardEffect({ name: "Silver Arrow" }, { userId: HERO, questId: "q1", now: NOW });
-    expect(result).toMatchObject({ ok: true, line: "Quest q1: snoozed to tomorrow." });
-    expect(mp()).toBe(375);
-    const effects: HeroQuestEffects = hero().questEffects;
-    expect(effects.snoozedOn).toEqual({ q1: "2026-10-08" });
-    expect(getEffectiveWindow(q, effects, NOW)).toBeNull();
-    expect(getQuestProgressFor(q, [], HERO, NOW, effects)).toBeNull();
-    expect(getQuestProgressFor(q, [], HERO, at("2026-10-09T09:00:00"), effects)).toEqual({ done: 0, allowance: 1, isOpen: true });
-  });
-});
-
-describe("Hook Shot", () => {
-  it("pulls a quest that is not due today onto today's board for one completion", async () => {
-    addHero();
-    const monday = quest("q1", { basicSchedule: "weekly", repeatOnDays: ["mon"] });
-    expect(getQuestProgressFor(monday, [], HERO, NOW)).toBeNull(); // Thursday
-    mockBoard.mockResolvedValue([boardItem(monday, "notDue")]);
-    const result = await applyBoardEffect({ name: "Hook Shot" }, { userId: HERO, questId: "q1", now: NOW });
-    expect(result).toMatchObject({ ok: true, line: "Quest q1: pulled into today." });
-    expect(mp()).toBe(385);
-    const effects: HeroQuestEffects = hero().questEffects;
-    expect(effects.pulledInOn).toEqual({ q1: "2026-10-08" });
-    expect(getQuestProgressFor(monday, [], HERO, NOW, effects)).toEqual({ done: 0, allowance: 1, isOpen: true });
-    // Done today: used up today, and tomorrow it is back to its own schedule
-    expect(getQuestProgressFor(monday, [entry("2026-10-08T14:00:00")], HERO, NOW, effects)?.isOpen).toBe(false);
-    expect(getQuestProgressFor(monday, [], HERO, at("2026-10-09T12:00:00"), effects)).toBeNull();
-  });
-
-  it("will not pull a quest that is already on today's board", async () => {
-    addHero();
-    mockBoard.mockResolvedValue([boardItem(quest("q1"))]);
-    const result = await applyBoardEffect({ name: "Hook Shot" }, { userId: HERO, questId: "q1", now: NOW });
-    expect(result).toMatchObject({ ok: false, line: "Quest q1 is already on today's board." });
-    expect(mp()).toBe(400);
-  });
-});
-
-describe("Chronos' Clock", () => {
-  it("pauses every deadline for an hour, the paused time is added to the deadlines, and it recharges for that hour", async () => {
-    addHero();
-    const result = await applyBoardEffect({ name: "Chronos' Clock" }, { userId: HERO, now: NOW });
-    expect(result).toMatchObject({ ok: true, line: "Time stands still until 1:00PM." });
-    expect(mp()).toBe(300);
-    const effects: HeroQuestEffects = hero().questEffects;
-    expect(effects.pause).toEqual({ from: NOW.toISOString(), until: at("2026-10-08T13:00:00").toISOString() });
-    expect(hero().itemCooldowns["Chronos' Clock"]).toBe(at("2026-10-08T13:00:00").toISOString());
-
-    const q = quest("q1", { dueByTime: "12:30" });
-    expect(isSchedulePaused(effects, at("2026-10-08T12:45:00"))).toBe(true);
-    expect(isQuestOverdue(q, effects, at("2026-10-08T12:45:00"))).toBe(false); // paused
-    expect(effectiveDeadline(q, effects, NOW)).toEqual(at("2026-10-08T13:30:00")); // 12:30 + the hour paused
-    expect(isQuestOverdue(q, effects, at("2026-10-08T13:15:00"))).toBe(false);
-    expect(isQuestOverdue(q, effects, at("2026-10-08T13:45:00"))).toBe(true);
-    // A quest due before the pause began was late already; the pause only hides it while it runs
-    const early = quest("q2", { dueByTime: "11:00" });
-    expect(effectiveDeadline(early, effects, NOW)).toEqual(at("2026-10-08T11:00:00"));
-    expect(isQuestOverdue(early, effects, at("2026-10-08T12:30:00"))).toBe(false);
-    expect(isQuestOverdue(early, effects, at("2026-10-08T13:30:00"))).toBe(true);
-
-    const again = await applyBoardEffect({ name: "Chronos' Clock" }, { userId: HERO, now: at("2026-10-08T12:18:00") });
-    expect(again).toMatchObject({ ok: false, line: "Recharging: 42 min left" });
-  });
-});
-
-describe("Lantern", () => {
-  it("lists the overdue quests for 5 MP, and says so when there are none", async () => {
+describe("lanternOverdue", () => {
+  it("lists the overdue quest titles for free and writes nothing", async () => {
     addHero();
     mockBoard.mockResolvedValue([
       boardItem(quest("q1", { achievementName: "Dishes" }), "open", true),
       boardItem(quest("q2", { achievementName: "Homework" }), "open", false),
+    ]);
+    const lit = await lanternOverdue(HERO, NOW);
+    expect(lit).toMatchObject({ ok: true, line: "1 overdue: Dishes", sound: "useItem" });
+    expect(lit.quests.map((item) => item.quest.id)).toEqual(["q1"]);
+    expect(mp()).toBe(400);
+    expect(hero().questEffects).toBeUndefined();
+    // The board is asked with the hero's own effects (none yet), so a quest given extra time is not lit
+    expect(mockBoard).toHaveBeenCalledWith(HERO, NOW, undefined, {});
+  });
+
+  it("names every overdue quest, in board order", async () => {
+    addHero({ questEffects: { snoozedOn: { q9: "2026-10-08" } } });
+    mockBoard.mockResolvedValue([
+      boardItem(quest("q1", { achievementName: "Dishes" }), "open", true),
       boardItem(quest("q3", { achievementName: "Trash" }), "open", true),
     ]);
-    const lit = await applyBoardEffect({ name: "Lantern" }, { userId: HERO, now: NOW });
-    expect(lit).toMatchObject({ ok: true, line: "2 overdue: Dishes, Trash", sound: "useItem" });
-    expect(lit.quests?.map((item) => item.quest.id)).toEqual(["q1", "q3"]);
-    expect(mp()).toBe(395);
-    // The board is asked with the hero's own effects, so a paused clock lights nothing up
-    expect(mockBoard).toHaveBeenCalledWith(HERO, NOW, undefined, {});
+    expect((await lanternOverdue(HERO, NOW)).line).toBe("2 overdue: Dishes, Trash");
+    expect(mockBoard).toHaveBeenCalledWith(HERO, NOW, undefined, { snoozedOn: { q9: "2026-10-08" } });
+  });
 
+  it("says so when nothing is overdue", async () => {
+    addHero();
+    mockBoard.mockResolvedValue([]);
+    expect(await lanternOverdue(HERO, NOW)).toEqual({
+      ok: true,
+      line: "The lantern finds nothing overdue. Well done.",
+      sound: "useItem",
+      quests: [],
+    });
     mockBoard.mockResolvedValue([boardItem(quest("q2"))]);
-    expect((await applyBoardEffect({ name: "Lantern" }, { userId: HERO, now: NOW })).line).toMatch(/nothing overdue/);
+    expect((await lanternOverdue(HERO, NOW)).line).toBe("The lantern finds nothing overdue. Well done.");
   });
 });
 
-describe("X's Invisibility", () => {
-  it("keeps the beasts away for 24 hours and recharges for two days", async () => {
-    addHero();
-    const result = await applyBoardEffect({ name: "X's Invisibility" }, { userId: HERO, now: NOW });
-    expect(result).toMatchObject({ ok: true, line: "Unseen by beasts until Fri 12:00PM." });
-    expect(mp()).toBe(100);
-    expect(hasNoEncounters(hero(), at("2026-10-08T13:00:00"))).toBe(true);
-    expect(hasNoEncounters(hero(), at("2026-10-09T11:59:00"))).toBe(true);
-    expect(hasNoEncounters(hero(), at("2026-10-09T12:01:00"))).toBe(false);
+describe("hasNoEncounters", () => {
+  it("reads a saved no-encounters stamp, and nothing else", () => {
+    const effects = { questEffects: { noEncountersUntil: at("2026-10-09T12:00:00").toISOString() } };
+    expect(hasNoEncounters(effects, at("2026-10-09T11:59:00"))).toBe(true);
+    expect(hasNoEncounters(effects, at("2026-10-09T12:01:00"))).toBe(false);
     expect(hasNoEncounters(undefined, NOW)).toBe(false);
     expect(hasNoEncounters({ questEffects: { noEncountersUntil: "garbage" } }, NOW)).toBe(false);
-    expect(hero().itemCooldowns["X's Invisibility"]).toBe(at("2026-10-10T12:00:00").toISOString());
   });
 });
 

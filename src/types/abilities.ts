@@ -12,6 +12,11 @@ import type { BattleEffectId } from "@/lib/services/battle/BattleEffects";
 export type AbilityType = "real-life" | "in-game";
 
 /**
+ * What a real-life Power does to the hero's own quest board when cast (services/abilities/PowerBoardEffects.ts)
+ */
+export type PowerBoardEffectId = "snooze" | "extra-time" | "quiet-day" | "trusted-hour";
+
+/**
  * Time Period for scheduling and frequency
  */
 export type TimePeriod =
@@ -91,6 +96,8 @@ export interface Ability {
   lastUsed?: string;
   /** In-game Powers: the fight effect the Game Master picked ("In battle"); 'none' wins over the preset default. */
   battleEffect?: BattleEffectId | "none";
+  /** Real-life Powers: the quest-board effect the Game Master picked ("On the quest board"); 'none' wins over the preset default. */
+  boardEffect?: PowerBoardEffectId | "none";
 }
 
 /**

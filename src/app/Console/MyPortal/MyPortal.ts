@@ -10,13 +10,10 @@ import { useItemFetcher } from "@/hooks/useItemFetcher";
 import { useUserActions } from "@/hooks/useUserActions";
 import { useHeroEquipment } from "@/hooks/useHeroEquipment";
 import { useEquipmentItems } from "./UserHud/components/equipment/EquipmentItems";
-import { actionSheetController, toastController } from "@ionic/vue";
-import { format } from "date-fns";
+import { toastController } from "@ionic/vue";
 import { play$fx } from "@/assets/fx";
-import { getQuestEngine } from "@/lib/engine/quests/QuestEngine";
-import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
-import { dueTimeOn, isQuestActiveOn } from "@/lib/engine/quests/QuestSchedule";
-import { applyBoardEffect, boardEffectOf } from "@/lib/services/quests/ItemEffects";
+import { itemCardLine } from "@/lib/services/items/ItemRules";
+import { lanternOverdue } from "@/lib/services/quests/ItemEffects";
 import { startQuestWatch } from "@/lib/services/notifications/questWatch";
 import { canFly } from "@/lib/services/travel/flight";
 import { useNotificationsStore } from "@/lib/store/stores/notifications";
@@ -200,51 +197,6 @@ export default defineComponent({
       await toast.present();
     };
 
-    /** The quests a pick-quest item may target today: the open ones, or (Hook Shot) the ones not due yet. */
-    const questChoices = async (picks: "open" | "future"): Promise<QuestBoardItem[]> => {
-      const now = new Date();
-      const board = await getQuestEngine().getQuestBoardForUser(String(userId), now, undefined, user.value?.questEffects);
-      return picks === "future"
-        ? board.filter((entry) => entry.status === "notDue" && isQuestActiveOn(entry.quest, now))
-        : board.filter((entry) => entry.status === "open");
-    };
-
-    const resolveScheduleLabel = (entry: QuestBoardItem, now: Date): string => {
-      const isNotDue = entry.status === "notDue";
-      if (isNotDue) {
-        return entry.quest.basicSchedule;
-      }
-      const due = dueTimeOn(entry.quest.dueByTime, now);
-      if (due) {
-        return `due ${format(due, "h:mma")}`;
-      }
-      return "";
-    };
-
-    /** An action sheet of quests (title and due time); resolves with the picked quest id, or null on cancel. */
-    const pickQuest = (choices: QuestBoardItem[], header: string): Promise<string | null> =>
-      new Promise((resolve) => {
-        const now = new Date();
-        const buttons = choices.map((entry) => {
-          const when = resolveScheduleLabel(entry, now);
-          return {
-            text: when ? `${entry.quest.achievementName} · ${when}` : entry.quest.achievementName,
-            handler: () => resolve(String(entry.quest.id)),
-          };
-        });
-        actionSheetController
-          .create({
-            header,
-            cssClass: "rpg-sheet",
-            buttons: [...buttons, { text: "Cancel", role: "cancel", handler: () => resolve(null) }],
-          })
-          .then((sheet) => {
-            sheet.onDidDismiss().then(() => resolve(null));
-            return sheet.present();
-          })
-          .catch(() => resolve(null));
-      });
-
     const isPegasusModalOpen = ref(false);
     const openPegasusModal = () => {
       isPegasusModalOpen.value = true;
@@ -256,8 +208,9 @@ export default defineComponent({
 
     const { specialItems } = useEquipmentItems({ onOpenPegasusModal: openPegasusModal });
 
-    // Tapping an equipped item outside a temple: navigation items navigate, board items act on the quest
-    // board (docs/Items-And-Classes-Contract.md section B), the rest wait for a temple or a fight
+    // Tapping an equipped item outside a temple: navigation items navigate, the Lantern lists the overdue quests,
+    // and every other tool shows its card (its temple use, fight use and MP). Items bend no real chore: that is
+    // the real-life Powers' job (docs/superpowers/specs/2026-10-13-equipment-rules-design.md, 1)
     const useHand = async (item: EquipmentItem | null) => {
       if (!item) return;
       play$fx("select");
@@ -270,26 +223,14 @@ export default defineComponent({
         return;
       }
       const name = String(item.name ?? live?.name ?? "");
-      const effect = boardEffectOf(name);
-
-      let questId: string | undefined;
-      if (effect.kind === "pick-quest") {
-        const choices = await questChoices(effect.picks ?? "open");
-        if (!choices.length) {
-          play$fx("no");
-          return say(effect.picks === "future" ? "No future quests to pull in." : "No open quests on the board.");
-        }
-        const picked = await pickQuest(choices, `${name}: ${effect.describe}`);
-        if (!picked) return;
-        questId = picked;
+      if (!name) return;
+      const isLantern = name === "Lantern";
+      if (isLantern) {
+        const result = await lanternOverdue(String(userId));
+        play$fx(result.sound);
+        return say(result.line, 2600);
       }
-      const result = await applyBoardEffect({ name, faIcon: item.faIcon, desc: String(item.desc ?? "") }, {
-        userId: String(userId),
-        questId,
-        now: new Date(),
-      });
-      play$fx(result.sound);
-      await say(result.line, result.ok ? 2600 : 1800);
+      return say(itemCardLine(name), 4000);
     };
 
     const openParty = () => router.push(`/my-portal/${userId}/my-party`);

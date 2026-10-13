@@ -98,7 +98,7 @@ export const TIME_MAGE_PRESETS: Ability[] = [
     prerequisites: ['time-mage-stop'],
     isPreset: true,
     battleEffect: 'gust',
-    effect: 'Retry a failed task with a +20% success bonus',
+    effect: "The beast's clock refills to full.",
     characterRequirement: {
       level: 10,
       class: {
@@ -344,6 +344,79 @@ export const REAL_LIFE_PRESETS: Ability[] = [
     prerequisites: ['irl-gaming-hour'],
     isPreset: true,
     position: { x: 500, y: 500 }
+  },
+  // On the quest board: these four bend the hero's own schedule when cast (PowerBoardEffects.ts)
+  {
+    id: 'irl-snooze',
+    name: 'Snooze',
+    description: 'Move one quest to tomorrow.',
+    type: AbilityType.RealLife,
+    frequency: TimePeriod.Weekly,
+    mpCost: 10,
+    apRequirement: {
+      amount: 150,
+      period: TimePeriod.Weekly
+    },
+    icon: 'alarm-snooze',
+    iconPrefix: 'fad',
+    prerequisites: [],
+    isPreset: true,
+    boardEffect: 'snooze',
+    position: { x: 100, y: 600 }
+  },
+  {
+    id: 'irl-extra-time',
+    name: 'Extra Time',
+    description: "24 more hours on one quest's deadline.",
+    type: AbilityType.RealLife,
+    frequency: TimePeriod.Weekly,
+    mpCost: 10,
+    apRequirement: {
+      amount: 150,
+      period: TimePeriod.Weekly
+    },
+    icon: 'hourglass-half',
+    iconPrefix: 'fad',
+    prerequisites: [],
+    isPreset: true,
+    boardEffect: 'extra-time',
+    position: { x: 200, y: 600 }
+  },
+  {
+    id: 'irl-quiet-day',
+    name: 'Quiet Day',
+    description: 'No ambushes for 24 hours.',
+    type: AbilityType.RealLife,
+    frequency: TimePeriod.Weekly,
+    mpCost: 15,
+    apRequirement: {
+      amount: 200,
+      period: TimePeriod.Weekly
+    },
+    icon: 'eye-slash',
+    iconPrefix: 'fad',
+    prerequisites: [],
+    isPreset: true,
+    boardEffect: 'quiet-day',
+    position: { x: 300, y: 600 }
+  },
+  {
+    id: 'irl-trusted-hour',
+    name: 'Trusted Hour',
+    description: 'For one hour, your claims skip the approval queue.',
+    type: AbilityType.RealLife,
+    frequency: TimePeriod.Weekly,
+    mpCost: 20,
+    apRequirement: {
+      amount: 300,
+      period: TimePeriod.Weekly
+    },
+    icon: 'user-shield',
+    iconPrefix: 'fad',
+    prerequisites: [],
+    isPreset: true,
+    boardEffect: 'trusted-hour',
+    position: { x: 400, y: 600 }
   }
 ];
 
@@ -406,6 +479,7 @@ export function createCustomAbility(partial: Partial<Ability> = {}): Ability {
     },
     effect: partial.effect,
     battleEffect: partial.battleEffect,
+    boardEffect: partial.boardEffect,
     characterRequirement: partial.characterRequirement,
     scaling: partial.scaling
   };
