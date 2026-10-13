@@ -1,6 +1,8 @@
 import type { Beast } from "@/lib/databases/BestiaryDb";
 import type { Room } from "@/lib/engine/core/dungeons/types";
+import { BEAST_LIBRARY } from "@/lib/services/core/beastLibrary";
 import { isClassicBeastId } from "@/lib/services/core/classicBeasts";
+import { adoptLibraryBeast } from "@/lib/services/bestiary/librarySuggest";
 
 /**
  * Which beast lives in a temple's combat room. The room screen (the voxel monster and the "A Monster approaches!"
@@ -108,16 +110,32 @@ export const standInMonster = (room: Room, element: string): StandInMonster => {
 
 const squash = (text: string): string => text.toLowerCase().replace(/[-_ ]/g, "");
 
+/** The beast a quest template is bound to: the family's own, else the library's (adopted under the same id). */
+const pickTemplateBeast = (beastId: string | undefined, beasts: Beast[]): Beast | null => {
+  if (!beastId) return null;
+  const own = beasts.find((b) => String(b.id) === String(beastId));
+  if (own) return own;
+  const fromLibrary = BEAST_LIBRARY.find((b) => String(b.id) === String(beastId));
+  return fromLibrary ? adoptLibraryBeast(fromLibrary) : null;
+};
+
 /**
  * The bestiary beast that lives in a combat room: the same answer for the room screen and the battle.
  *  1. an authored beast (content.beasts[0]) is that beast, or null when the bestiary no longer has it (no substitute)
- *  2. a monsterType other than "small" is the first beast whose name contains it
- *  3. otherwise the temple element's beasts, indexed by (row + col) % count (never a classic beast: those are only authored in)
- *  4. null: the caller shows the stand-in
+ *  2. a quest room's template beast (content.quest.beastId, docs/Quest-Rooms-Spec.md 5.2 step 3: the room is dormant and
+ *     plays as a classic fight with it): the family's own beast, else the library's, ready to be adopted (same id)
+ *  3. a monsterType other than "small" is the first beast whose name contains it
+ *  4. otherwise the temple element's beasts, indexed by (row + col) % count (never a classic beast: those are only authored in)
+ *  5. null: the caller shows the stand-in
+ * A quest room that a live quest fills fights that quest's beast instead (questRooms.roomQuestState); this answers for
+ * the rooms that no quest fills.
  */
 export const pickRoomBeast = (room: Room, element: string, row: number, col: number, beasts: Beast[]): Beast | null => {
   const authoredId = room.content?.beasts?.[0];
   if (authoredId) return beasts.find((b) => String(b.id) === String(authoredId)) ?? null;
+
+  const templateBeast = pickTemplateBeast(room.content?.quest?.beastId, beasts);
+  if (templateBeast) return templateBeast;
 
   const type = squash(String(room.content?.monsterType || ""));
   const hasNamedMonsterType = type && type !== "small";

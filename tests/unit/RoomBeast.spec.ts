@@ -73,6 +73,43 @@ describe("pickRoomBeast", () => {
   });
 });
 
+describe("pickRoomBeast: a dormant quest room", () => {
+  const dishGoblin = beast("beast-dish-goblin", "Dish Goblin (the family's)", "water");
+  const hydra = beast("b-hydra", "Homework Hydra", "light");
+  const weedWyrm = beast("b-weed", "Weed Wyrm", "earth");
+  const quest = (beastId: string) => ({ beastId, difficulty: 2, basicSchedule: "daily" });
+
+  it("gives the template's beast from the family's bestiary", () => {
+    expect(pickRoomBeast(room({ quest: quest("b-hydra") }), "earth", 0, 0, [weedWyrm, hydra])).toBe(hydra);
+  });
+
+  it("beats a monsterType and the element's beasts", () => {
+    const picked = pickRoomBeast(room({ quest: quest("b-hydra"), monsterType: "weedwyrm" }), "earth", 0, 0, [weedWyrm, hydra]);
+    expect(picked).toBe(hydra);
+  });
+
+  it("prefers the family's copy of a library beast to the library's", () => {
+    expect(pickRoomBeast(room({ quest: quest("beast-dish-goblin") }), "shadow", 0, 0, [dishGoblin])).toBe(dishGoblin);
+  });
+
+  it("gives the library's beast, ready to be adopted under the same id, when the bestiary does not have it yet", () => {
+    const picked = pickRoomBeast(room({ quest: quest("beast-dish-goblin") }), "shadow", 0, 0, []);
+    expect(picked).toMatchObject({ id: "beast-dish-goblin", name: "Dish Goblin", theme: "shadow" });
+    expect(picked?.checklist.length).toBeGreaterThan(0);
+  });
+
+  it("falls back to the usual rules when the template's beast is nowhere", () => {
+    const picked = pickRoomBeast(room({ quest: quest("beast-nobody"), monsterType: "weedwyrm" }), "light", 0, 0, [weedWyrm]);
+    expect(picked).toBe(weedWyrm);
+    expect(pickRoomBeast(room({ quest: quest("beast-nobody") }), "fire", 0, 0, [weedWyrm])).toBeNull();
+  });
+
+  it("leaves an authored beast first: a classic room is never read as a quest room", () => {
+    expect(pickRoomBeast(room({ beasts: ["b-weed"], quest: quest("b-hydra") }), "earth", 0, 0, [weedWyrm, hydra])).toBe(weedWyrm);
+    expect(pickRoomBeast(room({ beasts: ["b-gone"], quest: quest("b-hydra") }), "earth", 0, 0, [weedWyrm, hydra])).toBeNull();
+  });
+});
+
 describe("templeElementFor", () => {
   it("takes the element of a shipped temple from its id", () => {
     expect(templeElementFor("wind-temple")).toBe("wind");

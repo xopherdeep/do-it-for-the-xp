@@ -2,8 +2,33 @@
  * Dungeon Engine Types
  */
 
+/**
+ * What a shipped combat room asks of a family quest (docs/Quest-Rooms-Spec.md section 6): the beast it is bound to
+ * (the binding key), the quest it wakes when no family quest fills the room, and the difficulty that sizes the
+ * temple and sets the tier. `resolveRoomQuest` matches it to a live quest by beast; until one exists the room is
+ * dormant and plays as a classic fight with this beast.
+ */
+export interface RoomQuestTemplate {
+  /** The bestiary / library beast id the room is bound to (a quest's beast is its `beastId`, else the library's suggestion) */
+  beastId: string;
+  /** The Fibonacci difficulty (1-2 monster, 3-5 miniboss, 8+ boss) */
+  difficulty: number;
+  /** once | daily | weekly | custom, as on the quest record */
+  basicSchedule: string;
+  repeatOnDays?: string[];
+  timesOfDay?: ('morning' | 'noon' | 'evening' | 'night')[];
+  dueByTime?: string;
+  customPeriodType?: string;
+  /** About how long the chore takes in minutes (the strike clock); absent means the default for the difficulty */
+  estimatedMinutes?: number;
+}
+
 export interface RoomContent {
   beasts?: string[];
+  /** A quest room: the family quest the Game Master picked in the editor (5.2 step 1) */
+  questId?: string;
+  /** A quest room: the shipped template, matched to a live quest by beast (5.2 step 2) */
+  quest?: RoomQuestTemplate;
   difficulty?: 'easy' | 'normal' | 'hard' | 'boss';
   lockOnEnter?: boolean;
   isMimic?: boolean;
