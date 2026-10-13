@@ -41,6 +41,7 @@
           A blood moon resets a hero's run through the temple: beasts return, chests of consumables refill,
           small keys and the Boss Key are forgotten, doors re-lock. The map, the compass, the key items and
           the clears stay. A scheduled moon rises when the hero next enters after its time.
+          Quest rooms follow their chores; the blood moon brings back beast rooms, chests, keys and doors.
         </p>
       </div>
 

@@ -26,6 +26,8 @@ import * as visibility from './templeSystem/visibility';
 import { MapVisibility } from './templeSystem/visibility';
 import * as heroRuns from './templeSystem/heroRuns';
 import * as bloodMoons from './templeSystem/bloodMoons';
+import * as questRooms from './templeSystem/questRooms';
+import type { QuestRoomBoard, QuestRoomSync } from './templeSystem/questRooms';
 
 export { TEMPLE_CLEARED_KEY };
 export { bloodMoonRisen } from './templeSystem/runState';
@@ -33,6 +35,7 @@ export type { TempleState } from './templeSystem/runState';
 export { BOSS_DOOR_LINE } from './templeSystem/doors';
 export type { DoorKind, DoorState } from './templeSystem/doors';
 export { MapVisibility } from './templeSystem/visibility';
+export type { QuestRoomBoard, QuestRoomSync } from './templeSystem/questRooms';
 
 export class TempleSystem {
   private static instance: TempleSystem;
@@ -60,6 +63,10 @@ export class TempleSystem {
   private saveScheduled = false;
   private writes: Promise<void> = Promise.resolve();
 
+  // The quest board each temple's quest rooms were last synced with, and a board read under way for a run already going
+  private questBoards = new Map<string, QuestRoomBoard>();
+  private boardReads = new Map<string, Promise<unknown>>();
+
   private constructor() {
     this.dungeonManager = DungeonManager.getInstance();
     this.chestSystem = ChestSystem.getInstance();
@@ -83,6 +90,8 @@ export class TempleSystem {
       reads: this.reads,
       risen: this.risen,
       pendingSaves: this.pendingSaves,
+      questBoards: this.questBoards,
+      boardReads: this.boardReads,
       queueSave: (templeId) => this.queueSave(templeId),
       flushProgress: () => this.flushProgress()
     };
@@ -133,6 +142,45 @@ export class TempleSystem {
 
   public isRoomCleared(templeId: string, level: string, position: [number, number]): boolean {
     return runState.isRoomCleared(this.runs, templeId, level, position);
+  }
+
+  // --- Quest rooms follow the hero's quest board (docs/Quest-Rooms-Spec.md 7.1; templeSystem/questRooms.ts) ---
+
+  /**
+   * Bring the run's quest rooms in line with its hero's board: a quest room that is not lurking counts as cleared (no
+   * fight, doors open), a lurking one does not (its doors seal on the next entry); dormant and classic rooms keep the
+   * classic rules. The temple reads the board by itself when a run opens and when the screen opens a run already
+   * going; call this to sync again without a read (a room entry), or with a board in hand.
+   * @param board The hero's board (QuestEngine.getQuestBoardForUser) with every live quest and the effects it was
+   *              read with. It is kept for the next sync. A board of anyone but the run's hero is ignored. Left
+   *              out, the board kept last is used. A board read before a quest-room win was logged would put the
+   *              beast back: after a win, refresh instead (refreshQuestRooms) once the log has the completion.
+   * @returns The room keys that went in and came out of the cleared rooms
+   */
+  public syncQuestRooms(templeId: string, board?: QuestRoomBoard, now: Date = new Date()): QuestRoomSync {
+    return board
+      ? questRooms.keepBoardAndSync(this.runs, templeId, board, now)
+      : questRooms.syncWithKeptBoard(this.runs, templeId, now);
+  }
+
+  /**
+   * Read the board of the run's hero again (the QuestEngine, with their item effects) and sync with it: for the
+   * return from a battle and the quest watch. Resolves to what changed, or null when nothing was synced (no hero, the
+   * board could not be read, the run changed hands or a newer read took over).
+   * @param now The moment the board is read for (the hero's day); now by default
+   */
+  public refreshQuestRooms(templeId: string, now?: Date): Promise<QuestRoomSync | null> {
+    return questRooms.refreshQuestRooms(this.runs, templeId, now);
+  }
+
+  /** The board the run's quest rooms were last synced with, for the screen to word a room (roomQuestState). */
+  public getQuestBoard(templeId: string): QuestRoomBoard | undefined {
+    return this.questBoards.get(templeId);
+  }
+
+  /** Resolves once the reads under way for the temple (the hero's save with their board, a board refresh) are in. */
+  public whenQuestRoomsReady(templeId: string): Promise<void> {
+    return questRooms.whenQuestRoomsReady(this.runs, templeId);
   }
 
   /**

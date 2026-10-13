@@ -17,6 +17,7 @@ import type { TempleRuns, TempleState } from './runState';
 import { DOOR_DIRECTIONS, sealKey, sealRoom, unsealRoom } from './doors';
 import type { DoorState } from './doors';
 import { canStandAt, floorsOf, migrateVisitedRooms } from './floors';
+import { readQuestBoard, refreshQuestRooms, syncWithKeptBoard } from './questRooms';
 
 export function markRoomCleared(runs: TempleRuns, templeId: string, level: string, position: [number, number], userId?: string): void {
   // The hero stands in the room they just won, wherever the save says they were
@@ -65,6 +66,12 @@ export function initTemple(runs: TempleRuns, templeId: string, startPosition?: n
 
   // Mark the room the hero stands in as visited (a run that was already going stays where it is)
   visitRoom(runs, templeId, state.currentPosition);
+
+  // The quest rooms follow the hero's board: a run that just opened reads it with the save (loadProgress), a run
+  // already going (the temple screen mounting again after a battle) reads it again here
+  const hero = runs.heroByTemple.get(templeId);
+  const isBoardOnItsWay = runs.reads.has(templeId);
+  if (hero && !isBoardOnItsWay) void refreshQuestRooms(runs, templeId);
   return true;
 }
 
@@ -117,6 +124,9 @@ export function forgetRun(runs: TempleRuns, templeId: string, unsaved = false): 
   delete runs.templeStates[templeId];
   runs.heroByTemple.delete(templeId);
   runs.reads.delete(templeId);
+  // The next run reads its hero's board afresh
+  runs.questBoards.delete(templeId);
+  runs.boardReads.delete(templeId);
   for (const key of Array.from(runs.sealedRooms.keys())) {
     if (key.startsWith(`${templeId}|`)) runs.sealedRooms.delete(key);
   }
@@ -208,16 +218,19 @@ export async function readSavedProgress(userId: string, templeId: string): Promi
 }
 
 /**
- * Read the hero's saved progress and merge it into the run that stands in for it meanwhile.
+ * Read the hero's saved progress and their quest board, and merge the save into the run that stands in for it
+ * meanwhile. The board comes with the save so the quest rooms are synced before the hero is put back in a room (a
+ * lurking one holds them, a done one lets them walk out); a board that cannot be read leaves the saved rooms as they are.
  * @param resume Put the hero back where they stopped: for a run that has just started, not one already going
  */
 export function loadProgress(runs: TempleRuns, templeId: string, userId: string, resume: boolean): void {
   const state = runs.templeStates[templeId];
   const start = { level: state.currentLevel, row: state.currentPosition[0], col: state.currentPosition[1] };
 
-  const read: Promise<void> = readSavedProgress(userId, templeId).then(saved => {
+  const read: Promise<void> = Promise.all([readSavedProgress(userId, templeId), readQuestBoard(userId)]).then(([saved, board]) => {
     // Not when the temple went to another hero while the save was on its way
     if (runs.reads.get(templeId) !== read) return;
+    if (board) runs.questBoards.set(templeId, board);
 
     let readable = saved !== undefined;
     if (saved) {
@@ -246,6 +259,8 @@ export function loadProgress(runs: TempleRuns, templeId: string, userId: string,
       runs.heroByTemple.delete(templeId);
       return;
     }
+    // A hero with nothing saved starts from their board too (applyProgress synced a merged save already)
+    syncWithKeptBoard(runs, templeId);
     // The merged run is the hero's progress from here on (for a hero with nothing saved: the start of it)
     runs.queueSave(templeId);
   });
@@ -293,6 +308,9 @@ export function applyProgress(
   }
   if (!state.clearedRooms) state.clearedRooms = new Set<string>();
   for (const key of saved.clearedRooms) state.clearedRooms.add(key);
+  // The keys of quest rooms are the board's to say, not the save's (a stale one does no harm): synced before the hero
+  // is put back below, so a lurking room holds them and a done one does not
+  syncWithKeptBoard(runs, templeId);
 
   // Doors opened stay open: the layout was registered again locked
   if (!state.openedDoors) state.openedDoors = new Set<string>();

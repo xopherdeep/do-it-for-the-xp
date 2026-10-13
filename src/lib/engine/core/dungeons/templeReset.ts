@@ -3,8 +3,9 @@
  *
  * Beasts return, chests of consumables refill, small keys and the master key are forgotten, doors re-lock.
  * What the hero earned for good stays: the map, the compass, the key items (the temple's tool, the Pegasus),
- * the "cleared" badge and the count of clears. Pure functions over a progress record; TempleSystem.bloodMoon
- * applies them to the saved record and to the run in memory.
+ * the "cleared" badge and the count of clears. Quest rooms follow their chores instead (docs/Quest-Rooms-Spec.md
+ * 7.11). Pure functions over a progress record; TempleSystem.bloodMoon applies them to the saved record and to
+ * the run in memory.
  */
 import type { NewTempleProgress } from '@/lib/databases/TempleProgressDb';
 
@@ -21,8 +22,10 @@ export const bloodMoonLine = (templeName: string): string => `The blood moon ris
 /**
  * The progress after a blood moon: cleared rooms and opened doors forgotten, no keys in hand, chests full
  * again. The cleared badge, the map, the compass, the key items and timesCleared stay; bloodMoons counts
- * one more; a scheduled bloodMoonAt is spent. Rooms the hero won leave the visited list too, so their beasts
- * seal the doors again on the next entry. The hero stays where they stand.
+ * one more; a scheduled bloodMoonAt is spent. Rooms the hero won leave the visited list too; their beasts
+ * seal the doors again on the next entry because the rooms are no longer cleared (floors.ts). Quest rooms are
+ * forgotten here with the rest, and the run's next sync with the hero's quest board (templeSystem/questRooms.ts)
+ * puts back whatever their schedules say. The hero stays where they stand.
  */
 export const resetTempleProgress = <P extends NewTempleProgress>(progress: P): P => {
   const won = new Set(progress.clearedRooms);

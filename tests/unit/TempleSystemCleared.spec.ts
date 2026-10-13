@@ -215,6 +215,18 @@ describe("TempleSystem.markRoomCleared", () => {
       expect(room.locked).toEqual({ ...OPEN, north: true });
     });
 
+    it("seals a fight the hero has seen but not won, every time they walk in (7.2)", () => {
+      const id = registerHall(nextId());
+      temples.initTemple(id, [0, 2]); // a reload put the hero in the fight: visited, never sealed
+      expect(temples.getCurrentRoom(id)?.locked).toBeUndefined();
+      expect(temples.moveToPosition(id, [0, 1], "west")).toBe(true);
+
+      expect(temples.moveToPosition(id, [0, 2], "east")).toBe(true);
+
+      expect(temples.getCurrentRoom(id)!.locked).toEqual(SEALED);
+      expect(temples.moveToPosition(id, [0, 1], "west")).toBe(false);
+    });
+
     it("leaves the key door of a combat room that never sealed (a miniboss guarding a chest)", () => {
       const id = nextId();
       const dungeon = TempleHydrator.hydrate("EXIT MINI", id, id);

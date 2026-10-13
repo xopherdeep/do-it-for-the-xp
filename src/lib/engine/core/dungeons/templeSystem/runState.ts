@@ -11,6 +11,7 @@ import type { Room } from '../types';
 import type { NewTempleProgress } from '@/lib/databases/TempleProgressDb';
 import { TEMPLE_CLEARED_KEY } from '../templeReset';
 import type { BloodMoonCadence } from '../bloodMoonSchedule';
+import type { QuestRoomBoard } from './questRooms';
 
 /**
  * True while a blood moon has risen over a temple and nobody has consumed it yet (set where the system
@@ -65,6 +66,10 @@ export interface TempleRuns {
   risen: Map<string, string>;
   /** Saves waiting for the end of the tick, one per hero and temple */
   pendingSaves: Map<string, NewTempleProgress>;
+  /** The quest board each temple's quest rooms were last synced with (templeSystem/questRooms.ts), by temple id */
+  questBoards: Map<string, QuestRoomBoard>;
+  /** A read of the hero's quest board under way for a run already going (refreshQuestRooms), by temple id */
+  boardReads: Map<string, Promise<unknown>>;
   queueSave: (templeId: string) => void;
   flushProgress: () => Promise<void>;
 }

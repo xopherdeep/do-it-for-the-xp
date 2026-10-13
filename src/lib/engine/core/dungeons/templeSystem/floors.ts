@@ -9,7 +9,7 @@ import type { Dungeon } from '../types';
 import { TempleHydrator } from '../TempleHydrator';
 import { teleportTargetFor } from '../teleportPairing';
 import debug from '@/lib/utils/debug';
-import { getCurrentRoom, hasVisited, visitRoom } from './runState';
+import { getCurrentRoom, isRoomCleared, visitRoom } from './runState';
 import type { TempleRuns } from './runState';
 import { doorKind, sealRoom } from './doors';
 
@@ -111,9 +111,9 @@ export function moveToPosition(
   // Move to the new position
   templeState.currentPosition = [...newPosition];
   
-  // Check for lockOnEnter (combat rooms that lock doors on entry)
-  // Only lock if the room hasn't been visited yet (to avoid re-locking on re-entry if cleared)
-  const shouldSealOnEntry = destRoom.content?.lockOnEnter && !hasVisited(runs, templeId, newPosition);
+  // A lockOnEnter room seals while its beast is not beaten (docs/Quest-Rooms-Spec.md 7.2): a won or done room lets the
+  // hero through, and a beast that is back (its quest due again, a blood moon) seals it again on the next entry
+  const shouldSealOnEntry = destRoom.content?.lockOnEnter && !isRoomCleared(runs, templeId, level, newPosition);
   if (shouldSealOnEntry) {
     // Lock all 4 directions (markRoomCleared opens them again after the fight)
     sealRoom(runs, templeId, level, newPosition, destRoom);
