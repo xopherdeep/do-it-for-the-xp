@@ -62,9 +62,12 @@ export const buyWare = (room: Room, ctx: RoomContext, wareId: string): RoomOutco
 
   const isBomb = ware.id === BOMB_ID;
   if (isBomb) {
-    // Into the pack before any GP changes hands: a full bag takes nothing and charges nothing
-    const packed = store.addInventoryItem(ctx.userId, { name: 'Bomb', kind: 'consumable', faIcon: 'bomb', qty: 1, source: ctx.templeId });
-    if (!packed) return { message: BAG_FULL, sound: SFX.error };
+    // The pack or nowhere, checked before any GP changes hands: a Bomb in home storage is out of the hand's reach
+    // (ItemUse.bombInPack reads the pack), so a full bag takes nothing and charges nothing
+    const bomb = { name: 'Bomb', kind: 'consumable', faIcon: 'bomb', qty: 1, source: ctx.templeId };
+    const fitsInBag = canCarry(store.getUserById(ctx.userId), bomb) === 'bag';
+    if (!fitsInBag) return { message: BAG_FULL, sound: SFX.error };
+    store.addInventoryItem(ctx.userId, bomb);
     void store.updateUserGP({ userId: ctx.userId, wallet: -ware.price });
     return { message: 'A Bomb is in your bag.', sound: SFX.buy };
   }

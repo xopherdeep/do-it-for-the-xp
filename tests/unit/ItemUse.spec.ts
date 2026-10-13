@@ -84,9 +84,9 @@ const hall = (rooms = {}, grid: string[][] = [["E", "H"]]) => {
 /** Put Bombs in the hero's pack, the way a temple shop or a chest does. */
 const packBombs = (qty: number) => useUserStore().addInventoryItem(HERO, { name: "Bomb", kind: "consumable", qty });
 
-/** The hero's bag with every one of its 20 stacks taken. */
-const fillBag = () =>
-  Object.assign(hero(), { inventory: Array.from({ length: 20 }, (_, i) => ({ id: `thing-${i}`, name: `Thing ${i}`, qty: 1 })) });
+/** The hero's bag with every one of its 20 stacks taken (and whatever else the profile should hold). */
+const fillBag = (extra: object = {}) =>
+  Object.assign(hero(), { inventory: Array.from({ length: 20 }, (_, i) => ({ id: `thing-${i}`, name: `Thing ${i}`, qty: 1 })), ...extra });
 
 describe("hand slots", () => {
   it("shows the item's name, or Left / Right for an empty hand", () => {
@@ -276,6 +276,17 @@ describe("Bottles", () => {
     // the spring is still there: a free slot and it bottles
     hero().inventory.pop();
     expect(useItem(BOTTLES, itemContext(id, [0, 1])).sound).toBe("takeItem");
+  });
+
+  it("never bottle into home storage: the water must be in the bag", () => {
+    const id = hall({ S: { type: "health" } }, [["E", "S"]]);
+    enter(id, [0, 1]);
+    fillBag({ storageTier: 1, storage: [] });
+
+    expect(useItem(BOTTLES, itemContext(id, [0, 1]))).toEqual({ message: "Your bag is full.", sound: "error" });
+    expect(hero().storage).toEqual([]);
+    expect(hero().inventory).toHaveLength(20);
+    expect(roomActions(dungeons.getRoom(id, [0, 1])!, contextAt(id, [0, 1])).header).toBe("A spring of clear water.");
   });
 });
 

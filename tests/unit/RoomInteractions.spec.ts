@@ -528,6 +528,16 @@ describe("shops", () => {
       expect(bombInPack(hero().id)).toBeNull();
     });
 
+    it("will not send a Bomb to home storage, out of reach of the hand", () => {
+      const { room, ctx } = shop();
+      fullBag({ storageTier: 1, storage: [] });
+
+      expect(buyWare(room, ctx, "bomb")).toEqual({ message: "Your bag is full. Store something at home first.", sound: "error" });
+      expect(wallet()).toBe(100);
+      expect(hero().storage).toEqual([]);
+      expect(bombInPack(hero().id)).toBeNull();
+    });
+
     it("adds a Bomb to a Bomb stack the full bag already holds", () => {
       const { room, ctx } = shop();
       fullBag();

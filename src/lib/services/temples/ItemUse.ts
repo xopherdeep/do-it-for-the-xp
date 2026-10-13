@@ -17,6 +17,7 @@ import type { Room } from '@/lib/engine/core/dungeons/types';
 import type { EquipmentItem } from '@/app/Console/MyPortal/UserHud/components/equipment/EquipmentItems';
 import { useUserStore } from '@/lib/store/stores/user';
 import { inventoryOf, type InventoryEntry } from '@/lib/services/inventory/Inventory';
+import { canCarry } from '@/lib/services/inventory/Storage';
 import { itemRule, type TempleUseId } from '@/lib/services/items/ItemRules';
 import { heroMpBill } from '@/lib/services/stats/StatEffects';
 import { isQuestRoom } from './questRooms';
@@ -118,9 +119,12 @@ const useBottles = (ctx: ItemUseContext): ItemOutcome => {
   const hasSpringToBottle = Boolean(water) && !hasHappened(roomKey(ctx, 'spring'));
   if (!hasSpringToBottle) return { message: 'No spring here to bottle.' };
 
-  // A full bag leaves the spring as it was, to drink or to bottle later
-  const bottled = useUserStore().addInventoryItem(ctx.userId, { name: water, kind: 'consumable', qty: 1, source: ctx.templeId });
-  if (!bottled) return refuse('Your bag is full.');
+  // The bag or nowhere (home storage is out of reach in a fight): a full bag leaves the spring as it was, for later
+  const store = useUserStore();
+  const bottle = { name: water, kind: 'consumable', qty: 1, source: ctx.templeId };
+  const fitsInBag = canCarry(store.getUserById(ctx.userId), bottle) === 'bag';
+  if (!fitsInBag) return refuse('Your bag is full.');
+  store.addInventoryItem(ctx.userId, bottle);
   rememberOnce(roomKey(ctx, 'spring'));
   return { message: `You bottle the spring: ${water} is in your bag.`, sound: SFX.takeItem };
 };
