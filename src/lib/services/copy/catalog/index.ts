@@ -9,10 +9,11 @@ import { beastCard } from "./beastCard";
 import { demo } from "./demo";
 import { npc } from "./npc";
 import { questWizard } from "./questWizard";
+import { speech } from "./speech";
 
 /** The files the catalogue is made of, so a spec can check that no key is written twice */
-export const CATALOG_PARTS: readonly CopyCatalog[] = [demo, questWizard, beastCard, apps, npc];
+export const CATALOG_PARTS: readonly CopyCatalog[] = [demo, questWizard, beastCard, apps, npc, speech];
 
-export const CATALOG = { ...demo, ...questWizard, ...beastCard, ...apps, ...npc } satisfies CopyCatalog;
+export const CATALOG = { ...demo, ...questWizard, ...beastCard, ...apps, ...npc, ...speech } satisfies CopyCatalog;
 
 export type CopyKey = keyof typeof CATALOG;

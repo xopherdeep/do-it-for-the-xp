@@ -1060,62 +1060,77 @@ describe("BattleService", () => {
       });
     });
 
-    describe("postponeTask (Silver Arrow)", () => {
-      it("removes the chore from the queue, takes its slice off the beast, and hands the chore back unfinished", () => {
-        const { service: s, lines, cb } = fight();
-        cb.onCombatTasksChange.mockClear();
-        cb.onEnemyHealthChange.mockClear();
-
-        const flown = s.postponeTask("t1");
-
-        expect(flown).toEqual({ id: "t1", name: "Pair the socks", isCompleted: false });
-        expect(s.getCombatTasks().map((task) => task.id)).toEqual(["t2"]);
-        expect(s.getCombatTasks().some((task) => task.isCompleted)).toBe(false);
-        expect(s.getCurrentEnemy()?.health).toBe(50);
-        expect(cb.onCombatTasksChange).toHaveBeenCalledTimes(1);
-        expect(cb.onEnemyHealthChange).toHaveBeenCalledTimes(1);
-        expect(cb.onDamage).not.toHaveBeenCalled();
-        expect(cb.onEnemyDefeated).not.toHaveBeenCalled();
-        expect(lines).toEqual([]);
-      });
-
-      it("the chores that remain still end the fight exactly on the last one", () => {
-        const tasks = Array.from({ length: 4 }, (_, i) => ({ id: `c${i}`, name: `Chore ${i}`, isCompleted: false }));
-        const { service: s, cb } = fight(makeEnemy({ tasks }));
-        expect(s.postponeTask("c1")).not.toBeNull();
-        expect(s.getCurrentEnemy()?.health).toBe(75);
-
-        s.finishCombatTask("c0");
-        s.finishCombatTask("c2");
-        expect(s.getCurrentEnemy()?.health).toBeGreaterThan(0);
-        expect(cb.onEnemyDefeated).not.toHaveBeenCalled();
-        s.finishCombatTask("c3");
-        expect(s.getCurrentEnemy()?.health).toBe(0);
-        expect(cb.onEnemyDefeated).toHaveBeenCalledTimes(1);
-      });
-
-      it("refuses an unknown chore, a finished chore and the last open chore", () => {
-        const { service: s, cb } = fight();
-        s.finishCombatTask("t1");
-        cb.onCombatTasksChange.mockClear();
-
-        expect(s.postponeTask("nope")).toBeNull();
-        expect(s.postponeTask("t1")).toBeNull();
-        expect(s.postponeTask("t2")).toBeNull(); // the fight needs one chore
-        expect(s.getCombatTasks()).toHaveLength(2);
-        expect(s.getCurrentEnemy()?.health).toBe(50);
-        expect(cb.onCombatTasksChange).not.toHaveBeenCalled();
-      });
-
-      it("leaves the running clock alone and the finished chore unaffected", () => {
-        const tasks = Array.from({ length: 3 }, (_, i) => ({ id: `c${i}`, name: `Chore ${i}`, isCompleted: false }));
-        const { service: s } = fight(makeEnemy({ tasks }));
+    describe("refillClock (Gale's Wind)", () => {
+      it("restarts the running countdown at its full length", () => {
+        const { service: s } = fight();
         s.startAttackTimer();
         jest.advanceTimersByTime(30_000);
-        const remaining = s.getTimeRemaining();
-        s.postponeTask("c1");
-        expect(s.getTimeRemaining()).toBe(remaining);
-        expect(s.getAttackDuration()).toBe(3 * THREE_MINUTES);
+        expect(s.getTimeRemaining()).toBe(2 * THREE_MINUTES - 30_000);
+
+        expect(s.refillClock()).toBe(true);
+
+        expect(s.getTimeRemaining()).toBe(s.getAttackDuration());
+        expect(s.getAttackDuration()).toBe(2 * THREE_MINUTES);
+        expect(s.getEnemyAttackTimer()).toBe(100);
+        // The beast strikes a full clock later, not before
+        jest.advanceTimersByTime(2 * THREE_MINUTES - 500);
+        expect(s.hasPendingDamage()).toBe(false);
+        jest.advanceTimersByTime(1000);
+        expect(s.hasPendingDamage()).toBe(true);
+      });
+
+      it("refuses a stopped or frozen clock", () => {
+        const { service: s } = fight();
+        expect(s.refillClock()).toBe(false); // the intro is not read yet
+        s.startAttackTimer();
+        s.stopAttackTimer();
+        expect(s.refillClock()).toBe(false);
+
+        s.startAttackTimer();
+        jest.advanceTimersByTime(30_000);
+        s.freezeClock(FIFTEEN_MINUTES);
+        const before = s.getTimeRemaining();
+        expect(s.refillClock()).toBe(false);
+        expect(s.getTimeRemaining()).toBe(before);
+      });
+    });
+
+    describe("vanishNextRun (X's Invisibility)", () => {
+      it("dodges the parting strike once", () => {
+        jest.spyOn(Math, "random").mockReturnValue(0.5);
+        const { service: s, lines, cb } = fight();
+        s.startAttackTimer();
+        s.vanishNextRun();
+
+        const result = s.handleBattleAction("run");
+
+        expect(result.escape?.dodgedBy).toBe("vanish");
+        expect(result.escape?.damage).toBe(0);
+        expect(heroHp()).toBe(30);
+        expect(cb.onDamage).not.toHaveBeenCalled();
+        expect(textOf(lines)).toEqual(["Running away...", "Socktopus swings at empty air.", "Got away safely!"]);
+        // Spent: the next getaway pays its strike
+        expect(s.handleBattleAction("run").escape).toMatchObject({ dodgedBy: null, damage: 4 });
+      });
+
+      it("comes before a hammer skip, which stays owed", () => {
+        const { service: s } = fight();
+        s.skipNextStrike();
+        s.vanishNextRun();
+        expect(s.handleBattleAction("run").escape?.dodgedBy).toBe("vanish");
+        expect(s.getStrikeSkips()).toBe(1);
+      });
+
+      it("is forgotten when the hero leaves the fight or a new one starts", () => {
+        jest.spyOn(Math, "random").mockReturnValue(0.5);
+        const { service: s } = fight();
+        s.vanishNextRun();
+        s.dispose();
+        expect(s.handleBattleAction("run").escape).toMatchObject({ dodgedBy: null, damage: 4 });
+
+        s.vanishNextRun();
+        s.initMultiBattle([makeEnemy()], [HERO_ID]);
+        expect(s.handleBattleAction("run").escape).toMatchObject({ dodgedBy: null });
       });
     });
 

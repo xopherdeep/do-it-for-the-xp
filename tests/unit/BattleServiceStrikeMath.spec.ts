@@ -153,7 +153,7 @@ describe("strikeMath (characterization)", () => {
   });
 
   describe("partingStrike", () => {
-    const owed = { shadow: false, frozen: false, hammer: false };
+    const owed = { shadow: false, frozen: false, hammer: false, vanish: false };
     const run = (extra: Partial<Parameters<typeof partingStrike>[0]> = {}) =>
       partingStrike({
         maxHp: 100,
@@ -229,13 +229,20 @@ describe("strikeMath (characterization)", () => {
       ["a Ninja's owed first strike", { owed: { ...owed, shadow: true } }, "shadow"],
       ["a frozen clock (Chronos)", { owed: { ...owed, frozen: true } }, "frozen"],
       ["a Thor's Hammer skip", { owed: { ...owed, hammer: true } }, "hammer"],
+      ["X's Invisibility", { owed: { ...owed, vanish: true } }, "vanish"],
     ] as const)("is dodged by %s", (_label, extra, dodgedBy) => {
       expect(run(extra)).toEqual({ dodgedBy, damage: 0, softener: null, emptied: false });
     });
 
     it("keeps the order a real strike does: the Ninja's shadow, then the ice, then the hammer", () => {
-      expect(run({ owed: { shadow: true, frozen: true, hammer: true } }).dodgedBy).toBe("shadow");
-      expect(run({ owed: { shadow: false, frozen: true, hammer: true } }).dodgedBy).toBe("frozen");
+      expect(run({ owed: { ...owed, shadow: true, frozen: true, hammer: true } }).dodgedBy).toBe("shadow");
+      expect(run({ owed: { ...owed, frozen: true, hammer: true } }).dodgedBy).toBe("frozen");
+    });
+
+    it("checks a vanish first: it wins over the shadow, the ice and the hammer", () => {
+      expect(run({ owed: { shadow: false, frozen: false, hammer: false, vanish: true } }).dodgedBy).toBe("vanish");
+      expect(run({ owed: { shadow: true, frozen: false, hammer: false, vanish: true } }).dodgedBy).toBe("vanish");
+      expect(run({ owed: { shadow: true, frozen: true, hammer: true, vanish: true } }).dodgedBy).toBe("vanish");
     });
 
     it("is dodged when the agility roll falls under the bonus, and lands when it does not", () => {

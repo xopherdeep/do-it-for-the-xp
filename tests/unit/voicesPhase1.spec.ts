@@ -24,7 +24,8 @@ jest.mock("@/lib/engine/audio/speech", () => ({
   __esModule: true,
   speak: (text: string) => mockSpeak(text),
   stop: () => mockStop(),
-  speech: { isAvailable: () => true },
+  hasReadingVoice: () => true,
+  onReadingVoiceChange: () => () => undefined,
 }));
 jest.mock("@/lib/api", () => ({ __esModule: true, default: { get: jest.fn() } }));
 jest.mock("@/lib/databases/ProfileDb", () => ({ __esModule: true, ProfileDb: class { setProfile() { return Promise.resolve(); } }, default: class {} }));

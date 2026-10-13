@@ -68,9 +68,11 @@ const mockEngine = (): Engine => ({
   extendClock: jest.fn().mockReturnValue(true),
   freezeClock: jest.fn().mockReturnValue(true),
   skipNextStrike: jest.fn(),
-  postponeTask: jest.fn((taskId: string) => ({ id: taskId, name: "Fold the socks", isCompleted: false })),
   weakenEnemy: jest.fn().mockReturnValue(5),
   scaleCooldown: jest.fn().mockReturnValue(1.5),
+  refillClock: jest.fn().mockReturnValue(true),
+  vanishNextRun: jest.fn(),
+  hasPendingDamage: jest.fn().mockReturnValue(false),
   getCurrentEnemy: jest.fn().mockReturnValue({ name: "Socktopus" }),
 });
 
@@ -131,7 +133,7 @@ describe("BattleItems", () => {
       expect(describeBattleItem(ICE_WAND, ctx)?.reason).toBeNull();
       expect(useBattleItem(ICE_WAND, ctx).ok).toBe(true);
       expect(mpNow()).toBe(3);
-      expect(describeBattleItem(ICE_WAND, ctx)?.reason).toBe(REASON_NO_MP);
+      expect(describeBattleItem(ICE_WAND, { ...ctx, usedThisFight: new Set<BattleEffectId>() })?.reason).toBe(REASON_NO_MP);
     });
 
     it("the table matches the contract", () => {
@@ -139,7 +141,7 @@ describe("BattleItems", () => {
         ["Ice Wand", 50, "frost"],
         ["Chronos' Clock", 100, "time-stop"],
         ["Thor's Hammer", 60, "stun"],
-        ["Silver Arrow", 25, "recall"],
+        ["Silver Arrow", 25, "pin"],
         ["Sol's Flare", 100, "weaken"],
         ["Fire Wand", 50, "kindle"],
       ]);
@@ -154,11 +156,12 @@ describe("BattleItems", () => {
       expect(mpNow()).toBe(250);
     });
 
-    it("can be used again and again while the MP lasts", () => {
+    it("works once per fight", () => {
       useBattleItem(ICE_WAND, ctx);
-      expect(useBattleItem(ICE_WAND, ctx).ok).toBe(true);
-      expect(describeBattleItem(ICE_WAND, ctx)?.reason).toBeNull();
-      expect(mpNow()).toBe(200);
+      expect(useBattleItem(ICE_WAND, ctx)).toEqual({ ok: false, line: REASON_USED, sound: SOUND_NO });
+      expect(describeBattleItem(ICE_WAND, ctx)?.reason).toBe(REASON_USED);
+      expect(service.extendClock).toHaveBeenCalledTimes(1);
+      expect(mpNow()).toBe(250);
     });
 
     it("spends nothing when the clock is not running", () => {
@@ -193,26 +196,11 @@ describe("BattleItems", () => {
   });
 
   describe("Silver Arrow", () => {
-    it("asks for a chore first, without spending anything", () => {
+    it("pins the beast so it misses its next two strikes, for 25 MP", () => {
       const out = useBattleItem(ARROW, ctx);
-      expect(out.needsTaskPick).toBe(true);
-      expect(out.ok).toBe(true);
-      expect(service.postponeTask).not.toHaveBeenCalled();
-      expect(mpNow()).toBe(300);
-    });
-
-    it("then sends the picked chore back to the board for 25 MP", () => {
-      const out = useBattleItem(ARROW, { ...ctx, taskId: "t2" });
-      expect(service.postponeTask).toHaveBeenCalledWith("t2");
-      expect(out).toEqual({ ok: true, line: "The chore flies back to the board.", sound: SOUND_ITEM });
+      expect(service.skipNextStrike).toHaveBeenCalledTimes(2);
+      expect(out).toEqual({ ok: true, line: "Socktopus is pinned! It will miss its next two strikes.", sound: SOUND_ITEM });
       expect(mpNow()).toBe(275);
-    });
-
-    it("keeps the MP when the engine refuses (the last open chore)", () => {
-      service.postponeTask.mockReturnValue(null);
-      const out = useBattleItem(ARROW, { ...ctx, taskId: "t2" });
-      expect(out).toEqual({ ok: false, line: "The last chore cannot fly away.", sound: SOUND_NO });
-      expect(mpNow()).toBe(300);
     });
   });
 
@@ -329,13 +317,6 @@ describe("BattleItems", () => {
       expect(useBattleItem(CHRONOS, ctx)).toEqual({ ok: false, line: REASON_USED, sound: SOUND_NO });
       expect(service.freezeClock).not.toHaveBeenCalled();
       expect(mpNow()).toBe(300);
-    });
-
-    it("MP is charged only on success", () => {
-      expect(useBattleItem(ARROW, ctx).needsTaskPick).toBe(true);
-      expect(mpNow()).toBe(300);
-      expect(useBattleItem(ARROW, { ...ctx, taskId: "t1" }).ok).toBe(true);
-      expect(mpNow()).toBe(275);
     });
   });
 });

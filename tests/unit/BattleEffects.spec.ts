@@ -7,6 +7,7 @@ import {
   FIRE_WAND_FACTOR,
   ICE_WAND_MS,
   REASON_HP_FULL,
+  REASON_STRIKE_WAITING,
   REASON_USED,
   SOL_FLARE_FACTOR,
   SOUND_HEAL,
@@ -15,6 +16,7 @@ import {
   applyBattleEffect,
   battleEffectBlocked,
   isBattleEffectId,
+  normalizeBattleEffect,
   type BattleEffectContext,
   type BattleEffectEngine,
   type BattleEffectId,
@@ -50,9 +52,11 @@ const mockEngine = (): Engine => ({
   extendClock: jest.fn().mockReturnValue(true),
   freezeClock: jest.fn().mockReturnValue(true),
   skipNextStrike: jest.fn(),
-  postponeTask: jest.fn((taskId: string) => ({ id: taskId, name: "Fold the socks", isCompleted: false })),
   weakenEnemy: jest.fn().mockReturnValue(5),
   scaleCooldown: jest.fn().mockReturnValue(1.5),
+  refillClock: jest.fn().mockReturnValue(true),
+  vanishNextRun: jest.fn(),
+  hasPendingDamage: jest.fn().mockReturnValue(false),
   getCurrentEnemy: jest.fn().mockReturnValue({ name: "Socktopus" }),
 });
 
@@ -85,20 +89,31 @@ describe("BattleEffects", () => {
     ctx = { userId: HERO_ID, service, usedThisFight: new Set<BattleEffectId>() };
   });
 
-  it("the table matches the spec", () => {
-    expect(BATTLE_EFFECT_IDS).toEqual(["frost", "time-stop", "stun", "recall", "weaken", "kindle", "heal"]);
-    expect(BATTLE_EFFECT_IDS.map((id) => [BATTLE_EFFECTS[id].id, BATTLE_EFFECTS[id].label, BATTLE_EFFECTS[id].oncePerFight])).toEqual([
-      ["frost", "+10 minutes on the clock", false],
-      ["time-stop", "Pauses the clock for 15 minutes", true],
-      ["stun", "The beast skips its next strike", false],
-      ["recall", "Sends one chore back to the board", false],
-      ["weaken", "Halves the beast's attack", true],
-      ["kindle", "Chores earn 1.5x the minutes", true],
-      ["heal", "Heals 25% of max HP", true],
-    ]);
+  it("lists the effects in dropdown order", () => {
+    expect(BATTLE_EFFECT_IDS).toEqual(["frost", "time-stop", "kindle", "gust", "stun", "pin", "weaken", "vanish", "charge", "moonlight", "heal"]);
+    expect(BATTLE_EFFECT_IDS.every((id) => BATTLE_EFFECTS[id].id === id)).toBe(true);
   });
 
-  it("isBattleEffectId knows the seven ids and nothing else", () => {
+  it.each([
+    ["frost", "+10 minutes on the clock"],
+    ["time-stop", "Pauses the clock for 15 minutes"],
+    ["kindle", "Chores earn 1.5x the minutes"],
+    ["gust", "Refills the clock to full"],
+    ["stun", "The beast misses its next strike"],
+    ["pin", "The beast misses its next two strikes"],
+    ["weaken", "Halves the beast's attack"],
+    ["vanish", "Run away with no parting strike"],
+    ["charge", "Chores give back double MP"],
+    ["moonlight", "Each chore heals 5% of max HP"],
+    ["heal", "Heals 25% of max HP"],
+  ])("labels %s", (id, label) => expect(BATTLE_EFFECTS[id as BattleEffectId].label).toBe(label));
+
+  it("makes every effect once per fight", () => {
+    expect(BATTLE_EFFECT_IDS.every((id) => BATTLE_EFFECTS[id].oncePerFight)).toBe(true);
+  });
+
+  it("isBattleEffectId knows the eleven ids and nothing else", () => {
+    expect(BATTLE_EFFECT_IDS).toHaveLength(11);
     expect(BATTLE_EFFECT_IDS.every((id) => isBattleEffectId(id))).toBe(true);
     expect(isBattleEffectId("none")).toBe(false);
     expect(isBattleEffectId("Frost")).toBe(false);
@@ -106,14 +121,24 @@ describe("BattleEffects", () => {
     expect(isBattleEffectId(3)).toBe(false);
   });
 
-  it("frost adds ten minutes and can be used again", () => {
+  it("reads a stored recall as gust", () => {
+    expect(normalizeBattleEffect("recall")).toBe("gust");
+    expect(normalizeBattleEffect("nope")).toBeNull();
+    expect(isBattleEffectId("recall")).toBe(false);
+    expect(BATTLE_EFFECT_IDS.every((id) => normalizeBattleEffect(id) === id)).toBe(true);
+    expect(normalizeBattleEffect(undefined)).toBeNull();
+    expect(normalizeBattleEffect("none")).toBeNull();
+  });
+
+  it("frost adds ten minutes once per fight", () => {
     const out = applyBattleEffect("frost", ctx);
     expect(service.extendClock).toHaveBeenCalledWith(600000);
     expect(ICE_WAND_MS).toBe(600000);
     expect(out).toEqual({ ok: true, line: "Ice creeps over the clock: +10 minutes!", sound: SOUND_ITEM });
-    expect(ctx.usedThisFight.has("frost")).toBe(false);
-    expect(battleEffectBlocked("frost", ctx)).toBeNull();
-    expect(applyBattleEffect("frost", ctx).ok).toBe(true);
+    expect(ctx.usedThisFight.has("frost")).toBe(true);
+    expect(battleEffectBlocked("frost", ctx)).toBe(REASON_USED);
+    expect(applyBattleEffect("frost", ctx)).toEqual({ ok: false, line: REASON_USED, sound: SOUND_NO });
+    expect(service.extendClock).toHaveBeenCalledTimes(1);
   });
 
   it("time-stop pauses fifteen minutes once per fight", () => {
@@ -132,30 +157,69 @@ describe("BattleEffects", () => {
     const out = applyBattleEffect("stun", ctx);
     expect(service.skipNextStrike).toHaveBeenCalledTimes(1);
     expect(out).toEqual({ ok: true, line: "Socktopus is stunned! It will miss its next strike.", sound: SOUND_ITEM });
-    expect(ctx.usedThisFight.has("stun")).toBe(false);
+    expect(ctx.usedThisFight.has("stun")).toBe(true);
 
     service.getCurrentEnemy.mockReturnValue(null);
-    expect(applyBattleEffect("stun", ctx).line).toBe("The beast is stunned! It will miss its next strike.");
+    const fresh: BattleEffectContext = { ...ctx, usedThisFight: new Set<BattleEffectId>() };
+    expect(applyBattleEffect("stun", fresh).line).toBe("The beast is stunned! It will miss its next strike.");
   });
 
-  it("recall without a chore asks for one and changes nothing", () => {
-    const out = applyBattleEffect("recall", ctx);
-    expect(out).toEqual({ ok: true, needsTaskPick: true, line: "Which chore flies back to the board?", sound: SOUND_ITEM });
-    expect(service.postponeTask).not.toHaveBeenCalled();
-    expect(ctx.usedThisFight.size).toBe(0);
+  it("refuses a second stun in the same fight", () => {
+    applyBattleEffect("stun", ctx);
+    expect(applyBattleEffect("stun", ctx)).toEqual({ ok: false, line: REASON_USED, sound: SOUND_NO });
+    expect(service.skipNextStrike).toHaveBeenCalledTimes(1);
   });
 
-  it("recall with a chore sends it back", () => {
-    const out = applyBattleEffect("recall", { ...ctx, taskId: "t1" });
-    expect(service.postponeTask).toHaveBeenCalledWith("t1");
-    expect(out).toEqual({ ok: true, line: "The chore flies back to the board.", sound: SOUND_ITEM });
+  it("gust refills the clock", () => {
+    expect(applyBattleEffect("gust", ctx)).toEqual({ ok: true, line: "A gust blows the beast back: the clock is full again!", sound: SOUND_ITEM });
+    expect(service.refillClock).toHaveBeenCalledTimes(1);
+    expect(ctx.usedThisFight.has("gust")).toBe(true);
+  });
 
-    service.postponeTask.mockReturnValue(null);
-    expect(applyBattleEffect("recall", { ...ctx, taskId: "t2" })).toEqual({
-      ok: false,
-      line: "The last chore cannot fly away.",
-      sound: SOUND_NO,
-    });
+  it("gust refuses a stopped clock and stays unspent", () => {
+    service.refillClock.mockReturnValue(false);
+    expect(applyBattleEffect("gust", ctx)).toEqual({ ok: false, line: "The clock is not running.", sound: SOUND_NO });
+    expect(ctx.usedThisFight.has("gust")).toBe(false);
+  });
+
+  it("pin skips two strikes", () => {
+    expect(applyBattleEffect("pin", ctx)).toEqual({ ok: true, line: "Socktopus is pinned! It will miss its next two strikes.", sound: SOUND_ITEM });
+    expect(service.skipNextStrike).toHaveBeenCalledTimes(2);
+    expect(ctx.usedThisFight.has("pin")).toBe(true);
+  });
+
+  it("vanish arms the getaway and asks the page to run", () => {
+    const out = applyBattleEffect("vanish", ctx);
+    expect(out).toEqual({ ok: true, line: "Max vanishes into the shadows...", sound: SOUND_ITEM, runsAway: true });
+    expect(service.vanishNextRun).toHaveBeenCalledTimes(1);
+    expect(ctx.usedThisFight.has("vanish")).toBe(true);
+  });
+
+  it("vanish names the hero by nickname, else first name, else \"You\"", () => {
+    const fresh = (): BattleEffectContext => ({ ...ctx, usedThisFight: new Set<BattleEffectId>() });
+    const hero = useUserStore().getUserById(HERO_ID) as any;
+    hero.name = { first: "Maxine" };
+    expect(applyBattleEffect("vanish", fresh()).line).toBe("Maxine vanishes into the shadows...");
+    hero.name = {};
+    expect(applyBattleEffect("vanish", fresh()).line).toBe("You vanish into the shadows...");
+  });
+
+  it("vanish refuses while a strike is waiting to land", () => {
+    service.hasPendingDamage.mockReturnValue(true);
+    expect(REASON_STRIKE_WAITING).toBe("A strike is already on its way.");
+    expect(battleEffectBlocked("vanish", ctx)).toBe(REASON_STRIKE_WAITING);
+    expect(applyBattleEffect("vanish", ctx)).toEqual({ ok: false, line: "A strike is already on its way.", sound: SOUND_NO });
+    expect(service.vanishNextRun).not.toHaveBeenCalled();
+    expect(ctx.usedThisFight.has("vanish")).toBe(false);
+  });
+
+  it.each([
+    ["charge", "Lightning crackles: every chore gives back double MP!"],
+    ["moonlight", "Moonlight settles on you: every chore heals you!"],
+  ])("%s only marks the fight", (id, line) => {
+    expect(applyBattleEffect(id as BattleEffectId, ctx)).toEqual({ ok: true, line, sound: SOUND_ITEM });
+    expect(ctx.usedThisFight.has(id as BattleEffectId)).toBe(true);
+    expect(applyBattleEffect(id as BattleEffectId, ctx)).toEqual({ ok: false, line: REASON_USED, sound: SOUND_NO });
   });
 
   it("weaken halves the attack once per fight", () => {
@@ -214,7 +278,7 @@ describe("BattleEffects", () => {
     setActivePinia(createPinia());
     addHero(120, { now: 10, max: 100 });
     for (const effect of BATTLE_EFFECT_IDS) {
-      applyBattleEffect(effect, { ...ctx, taskId: "t1" });
+      applyBattleEffect(effect, ctx);
       expect(mpNow()).toBe(120);
     }
     expect(hpNow()).toBe(35);

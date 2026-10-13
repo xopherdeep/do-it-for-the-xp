@@ -68,6 +68,14 @@ describe("XpRevealPrompt", () => {
     expect(cy(wrapper, "reveal-choice-yes").attributes("disabled")).toBeUndefined();
   });
 
+  it("keeps the speaker button, dimmed with the no-voice note, on a device that has no reading voice (jsdom has none)", async () => {
+    const wrapper = await open(shown());
+    const speaker = wrapper.find(".xp-speak-button");
+    expect(speaker.exists()).toBe(true);
+    expect(speaker.classes()).toContain("is-dimmed");
+    expect(speaker.attributes("title")).toBe("No reading voice answers on this device.");
+  });
+
   it("draws an icon on every row that has one, whether or not the cursor is on it", async () => {
     const wrapper = await open(
       shown({

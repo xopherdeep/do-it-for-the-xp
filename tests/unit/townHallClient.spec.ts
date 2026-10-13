@@ -118,6 +118,38 @@ describe("townHallClient", () => {
     await expect(failure).rejects.toBeInstanceOf(TownHallError);
   });
 
+  it("sends a hero's key in its own header", () => {
+    expect(authHeaders({ kind: "hero", key: "xph_k" })).toEqual({ "X-XP-Hero-Key": "xph_k" });
+  });
+
+  it("carries the site's error code and the Retry-After seconds", async () => {
+    const fetchImpl = jest.fn(async () => reply(429, { code: "xp_family_rate_limited", message: "Slow down" }, { "Retry-After": "600" }));
+    await expect(townHallFetch("xp-family/v1/events", { fetchImpl: fetchImpl as unknown as typeof fetch, method: "POST", body: {} })).rejects.toMatchObject({
+      code: "server",
+      status: 429,
+      siteCode: "xp_family_rate_limited",
+      retryAfterSec: 600,
+    });
+  });
+
+  it("leaves siteCode and retryAfterSec empty when the site sends neither", async () => {
+    const fetchImpl = jest.fn(async () => reply(403, { message: "Sorry" }));
+    const err = await townHallFetch("xp-family/v1/family", { fetchImpl: fetchImpl as unknown as typeof fetch }).catch((e) => e);
+    expect(err.siteCode).toBeUndefined();
+    expect(err.retryAfterSec).toBeUndefined();
+  });
+
+  it("ignores a Retry-After that is not a number of seconds", async () => {
+    const fetchImpl = jest.fn(async () => reply(503, null, { "Retry-After": "Wed, 21 Oct 2026 07:28:00 GMT" }));
+    const err = await townHallFetch("xp-family/v1/events", { fetchImpl: fetchImpl as unknown as typeof fetch }).catch((e) => e);
+    expect(err.retryAfterSec).toBeUndefined();
+  });
+
+  it("builds an error with the new fields", () => {
+    const err = new TownHallError("server", "msg", 409, "xp_family_moved", 5);
+    expect(err).toMatchObject({ code: "server", message: "msg", status: 409, siteCode: "xp_family_moved", retryAfterSec: 5 });
+  });
+
   it("names the code when the site sends no message", async () => {
     const fetchImpl = jest.fn(async () => reply(404, null));
     await expect(townHallFetch("compass/v1/nope", { fetchImpl: fetchImpl as unknown as typeof fetch })).rejects.toMatchObject({

@@ -6,11 +6,19 @@
         <span class="text-style-pick__now">{{ pickedLabel }}</span>
         <i class="fad fa-chevron-down" aria-hidden="true"></i>
       </button>
-      <label v-if="isSimpleVoice" class="text-style-autoread">
+      <label v-if="isSimpleVoice" class="text-style-autoread" :class="{ 'is-dimmed': !canRead }">
         Read aloud
-        <ion-toggle :checked="autoReadOn" class="text-style-autoread-toggle" @ionChange="pickAutoRead($event)"></ion-toggle>
+        <ion-toggle
+          :checked="autoReadOn"
+          :disabled="!canRead"
+          class="text-style-autoread-toggle"
+          data-test="autoread-toggle"
+          @ionChange="pickAutoRead($event)"
+        ></ion-toggle>
       </label>
     </div>
+    <!-- Reading aloud needs a voice on the device; with none the switch is dimmed and this says why -->
+    <p v-if="isSimpleVoice && !canRead" class="text-style-note" data-test="no-voice-note">{{ t("speech.noVoice") }}</p>
   </ion-toolbar>
 </template>
 
@@ -18,13 +26,15 @@
 /**
  * "Text style" on the profile: Auto (the birthday picks) or one of the three voices the game's words read in
  * (services/copy/voices.ts), and for the simple voice a switch for reading lines aloud on its own. The four choices
- * open as an action sheet at the bottom of the screen, in thumb reach.
+ * open as an action sheet at the bottom of the screen, in thumb reach. On a device with no reading voice the switch is
+ * dimmed and locked, and a note says so.
  */
 import { computed } from "vue";
 import { IonLabel, IonToggle, IonToolbar, actionSheetController } from "@ionic/vue";
 import { checkmark } from "ionicons/icons";
 import { play$fx } from "@/assets/fx";
 import { appSheet } from "@/components/organisms/XpApp/useAppSkin";
+import { useCopy, useReadingVoice } from "@/hooks/useVoice";
 import { useUserStore } from "@/lib/store/stores/user";
 import {
   TEXT_STYLE_CHOICES,
@@ -40,6 +50,8 @@ import {
 const props = defineProps<{ user: { id?: string; [key: string]: any } }>();
 
 const userStore = useUserStore();
+const t = useCopy();
+const { canRead } = useReadingVoice();
 // The store's copy of the hero, so a change shows at once
 const hero = computed(() => (props.user?.id && userStore.users[props.user.id]) || props.user);
 const textStyle = computed<TextStyleChoice>(() => (isVoice(hero.value?.voice) ? hero.value.voice : "auto"));
@@ -82,7 +94,7 @@ const openChoices = async () => {
 
 const pickAutoRead = (event: CustomEvent) => {
   const isUnchanged = event.detail.checked === autoReadOn.value;
-  if (isUnchanged) return;
+  if (isUnchanged || !canRead.value) return;
   userStore.setAutoRead(String(props.user.id), event.detail.checked);
 };
 </script>
@@ -141,6 +153,18 @@ const pickAutoRead = (event: CustomEvent) => {
   font-size: 0.7rem;
   color: #e7e6b3;
   text-transform: uppercase;
+}
+
+.text-style-autoread.is-dimmed {
+  opacity: 0.45;
+}
+
+.text-style-note {
+  margin: 2px 0 0;
+  font-family: "StatusPlz", sans-serif;
+  font-size: 0.68rem;
+  color: #e7e6b3;
+  opacity: 0.85;
 }
 
 .text-style-autoread-toggle {

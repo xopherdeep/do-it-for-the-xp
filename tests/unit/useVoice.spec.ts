@@ -1,15 +1,22 @@
 import { createPinia, setActivePinia } from "pinia";
 import { mount } from "@vue/test-utils";
 import { defineComponent, nextTick } from "vue";
-import { useCopy, useReadAloud, useVoice } from "@/hooks/useVoice";
+import { useCopy, useReadAloud, useReadingVoice, useVoice } from "@/hooks/useVoice";
 import { useUserStore } from "@/lib/store/stores/user";
 
 const mockSpeak = jest.fn((_text: string) => true);
 const mockStop = jest.fn();
+let mockHasVoice = true;
+const mockVoiceListeners = new Set<() => void>();
 jest.mock("@/lib/engine/audio/speech", () => ({
   __esModule: true,
   speak: (text: string) => mockSpeak(text),
   stop: () => mockStop(),
+  hasReadingVoice: () => mockHasVoice,
+  onReadingVoiceChange: (listener: () => void) => {
+    mockVoiceListeners.add(listener);
+    return () => mockVoiceListeners.delete(listener);
+  },
 }));
 
 const mockSetProfile = jest.fn((_profile: unknown) => Promise.resolve());
@@ -46,6 +53,8 @@ beforeEach(() => {
   mockSpeak.mockClear();
   mockStop.mockClear();
   mockSetProfile.mockClear();
+  mockHasVoice = true;
+  mockVoiceListeners.clear();
 });
 
 describe("the profile's Text style", () => {
@@ -165,5 +174,35 @@ describe("useVoice / useCopy", () => {
     mockStop.mockClear();
     mount(Quiet).unmount();
     expect(mockStop).not.toHaveBeenCalled();
+  });
+});
+
+describe("the device's reading voice (useReadingVoice, canRead)", () => {
+  const Probe = defineComponent({
+    setup() {
+      const { canRead } = useReadAloud();
+      return { canRead };
+    },
+    template: "<p>{{ canRead }}</p>",
+  });
+
+  it("starts from whether the device has a voice and follows it when a voice arrives", async () => {
+    mockHasVoice = false;
+    const probe = mount(Probe);
+    expect(probe.text()).toBe("false");
+    expect(mockVoiceListeners.size).toBe(1);
+    mockHasVoice = true;
+    mockVoiceListeners.forEach((listener) => listener());
+    await nextTick();
+    expect(probe.text()).toBe("true");
+  });
+
+  it("stops listening when the screen unmounts, and listens to nothing outside a screen", () => {
+    const probe = mount(Probe);
+    expect(mockVoiceListeners.size).toBe(1);
+    probe.unmount();
+    expect(mockVoiceListeners.size).toBe(0);
+    expect(useReadingVoice().canRead.value).toBe(true);
+    expect(mockVoiceListeners.size).toBe(0);
   });
 });

@@ -51,9 +51,11 @@ const mockEngine = (): Engine => ({
   extendClock: jest.fn().mockReturnValue(true),
   freezeClock: jest.fn().mockReturnValue(true),
   skipNextStrike: jest.fn(),
-  postponeTask: jest.fn((taskId: string) => ({ id: taskId, name: "Fold the socks", isCompleted: false })),
   weakenEnemy: jest.fn().mockReturnValue(5),
   scaleCooldown: jest.fn().mockReturnValue(1.5),
+  refillClock: jest.fn().mockReturnValue(true),
+  vanishNextRun: jest.fn(),
+  hasPendingDamage: jest.fn().mockReturnValue(false),
   getCurrentEnemy: jest.fn().mockReturnValue({ name: "Socktopus" }),
 });
 
@@ -114,12 +116,17 @@ describe("BattlePowers", () => {
       expect(battleEffectOf({ name: "Stop", battleEffect: null as never })).toBe("time-stop");
     });
 
+    it("reads a stored recall as gust", () => {
+      expect(battleEffectOf({ name: "Old", battleEffect: "recall" as never })).toBe("gust");
+      expect(battleEffectOf({ name: "Old", battleEffect: "pin" })).toBe("pin");
+    });
+
     it("the preset picks match the spec", () => {
       expect(PRESET_BATTLE_EFFECTS).toEqual({
         Haste: "kindle",
         Slow: "frost",
         Stop: "time-stop",
-        Rewind: "recall",
+        Rewind: "gust",
         Debug: "weaken",
         Overclock: "stun",
         "System Restore": "heal",
@@ -127,15 +134,19 @@ describe("BattlePowers", () => {
     });
   });
 
-  it("BATTLE_EFFECT_OPTIONS lists None first, then the seven effects with their labels", () => {
+  it("BATTLE_EFFECT_OPTIONS lists None first, then the eleven effects with their labels", () => {
     expect(BATTLE_EFFECT_OPTIONS).toEqual([
       { value: "none", label: "None" },
       { value: "frost", label: "+10 minutes on the clock" },
       { value: "time-stop", label: "Pauses the clock for 15 minutes" },
-      { value: "stun", label: "The beast skips its next strike" },
-      { value: "recall", label: "Sends one chore back to the board" },
-      { value: "weaken", label: "Halves the beast's attack" },
       { value: "kindle", label: "Chores earn 1.5x the minutes" },
+      { value: "gust", label: "Refills the clock to full" },
+      { value: "stun", label: "The beast misses its next strike" },
+      { value: "pin", label: "The beast misses its next two strikes" },
+      { value: "weaken", label: "Halves the beast's attack" },
+      { value: "vanish", label: "Run away with no parting strike" },
+      { value: "charge", label: "Chores give back double MP" },
+      { value: "moonlight", label: "Each chore heals 5% of max HP" },
       { value: "heal", label: "Heals 25% of max HP" },
     ]);
   });
@@ -168,7 +179,7 @@ describe("BattlePowers", () => {
 
       const listed = battlePowers([mine, muted, broken, haste], ctx);
       expect(listed.map((entry) => entry.ability.name)).toEqual(["Mine", "Haste"]);
-      expect(listed.map((entry) => entry.card.effect)).toEqual(["The beast skips its next strike", "Chores earn 1.5x the minutes"]);
+      expect(listed.map((entry) => entry.card.effect)).toEqual(["The beast misses its next strike", "Chores earn 1.5x the minutes"]);
     });
 
     it("a Power whose prerequisite is missing is locked and not listed", () => {
@@ -236,15 +247,16 @@ describe("BattlePowers", () => {
 
     it("the caster is the nickname, else the first name, else a nameless hero reads \"You cast\"", () => {
       const slow = power("Slow");
-      expect(castBattlePower(slow, ctx).line).toBe("Max casts Slow! Ice creeps over the clock: +10 minutes!");
+      const fresh = (): BattleEffectContext => ({ ...ctx, usedThisFight: new Set<BattleEffectId>() });
+      expect(castBattlePower(slow, fresh()).line).toBe("Max casts Slow! Ice creeps over the clock: +10 minutes!");
 
       setActivePinia(createPinia());
       addHero(100, { first: "Maxine" });
-      expect(castBattlePower(slow, ctx).line).toBe("Maxine casts Slow! Ice creeps over the clock: +10 minutes!");
+      expect(castBattlePower(slow, fresh()).line).toBe("Maxine casts Slow! Ice creeps over the clock: +10 minutes!");
 
       setActivePinia(createPinia());
       addHero(100, {});
-      expect(castBattlePower(slow, ctx).line).toBe("You cast Slow! Ice creeps over the clock: +10 minutes!");
+      expect(castBattlePower(slow, fresh()).line).toBe("You cast Slow! Ice creeps over the clock: +10 minutes!");
     });
 
     it("a heal Power heals through the user store", () => {
@@ -255,16 +267,10 @@ describe("BattlePowers", () => {
       expect(mpNow()).toBe(50);
     });
 
-    it("Recall without a chore asks for one and charges nothing; the chore then charges the MP", () => {
-      const rewind = power("Rewind", { mpCost: 40 });
-      const asked = castBattlePower(rewind, ctx);
-      expect(asked).toEqual({ ok: true, line: "Which chore flies back to the board?", sound: "select", needsTaskPick: true });
-      expect(service.postponeTask).not.toHaveBeenCalled();
-      expect(mpNow()).toBe(100);
-
-      const sent = castBattlePower(rewind, { ...ctx, taskId: "task-1" });
-      expect(service.postponeTask).toHaveBeenCalledWith("task-1");
-      expect(sent).toEqual({ ok: true, line: "Max casts Rewind! The chore flies back to the board.", sound: "select" });
+    it("Rewind refills the clock and charges the MP", () => {
+      const out = castBattlePower(power("Rewind", { mpCost: 40 }), ctx);
+      expect(out).toEqual({ ok: true, line: "Max casts Rewind! A gust blows the beast back: the clock is full again!", sound: "select" });
+      expect(service.refillClock).toHaveBeenCalledTimes(1);
       expect(mpNow()).toBe(60);
     });
 

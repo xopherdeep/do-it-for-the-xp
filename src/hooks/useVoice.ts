@@ -1,6 +1,6 @@
-import { computed, getCurrentInstance, onBeforeUnmount } from "vue";
+import { computed, getCurrentInstance, onBeforeUnmount, ref } from "vue";
 import { getActivePinia } from "pinia";
-import { speak, stop } from "@/lib/engine/audio/speech";
+import { hasReadingVoice, onReadingVoiceChange, speak, stop } from "@/lib/engine/audio/speech";
 import { useUserStore } from "@/lib/store/stores/user";
 import { copyFor } from "@/lib/services/copy/copy";
 import type { CopyKey } from "@/lib/services/copy/catalog";
@@ -43,13 +43,34 @@ export function useCopy(): CopyLookup {
 }
 
 /**
+ * Whether this device has a voice to read with, kept current: the browser lists its voices a moment after the page
+ * loads and the phone answers asynchronously, so it can turn true while a screen is up. A screen that shows a speaker
+ * button or a read-aloud switch dims it, with the "No reading voice on this device" note, while it is false.
+ */
+export function useReadingVoice() {
+  const canRead = ref(hasReadingVoice());
+  const sync = () => {
+    canRead.value = hasReadingVoice();
+  };
+  const isInComponent = getCurrentInstance() !== null;
+  if (isInComponent) {
+    const stopListening = onReadingVoiceChange(sync);
+    onBeforeUnmount(stopListening);
+    // A voice that arrived between the first read and the subscription
+    sync();
+  }
+  return { canRead };
+}
+
+/**
  * Read-aloud for a screen: `playLine(text)` is the speaker button (every voice); `startAutoReading(text)` reads only
  * when the hero's voice does so on its own (simple, unless they turned it off) and says whether it did;
- * `stopReading()` is for dismissing. Both stay quiet while the app is muted or where the device cannot speak. A screen
- * that started a reading cuts it off when it unmounts.
+ * `stopReading()` is for dismissing. Both stay quiet while the app is muted or where the device has no reading voice
+ * (`canRead` says which). A screen that started a reading cuts it off when it unmounts.
  */
 export function useReadAloud() {
   const { autoReadOn } = useVoice();
+  const { canRead } = useReadingVoice();
   let startedReading = false;
 
   const playLine = (text: string): boolean => {
@@ -69,5 +90,5 @@ export function useReadAloud() {
     });
   }
 
-  return { playLine, startAutoReading, stopReading };
+  return { playLine, startAutoReading, stopReading, canRead };
 }

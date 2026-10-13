@@ -18,6 +18,15 @@ jest.mock("@/lib/databases/profileStorage", () => ({ __esModule: true, profileSt
 jest.mock("@/lib/services/gp/GPService", () => ({ getGPService: () => ({ syncGP: jest.fn() }) }));
 jest.mock("@/lib/services/notifications/notify", () => ({ notify: jest.fn() }));
 
+let mockHasVoice = true;
+jest.mock("@/lib/engine/audio/speech", () => ({
+  __esModule: true,
+  speak: jest.fn(() => true),
+  stop: jest.fn(),
+  hasReadingVoice: () => mockHasVoice,
+  onReadingVoiceChange: () => () => undefined,
+}));
+
 const bornAged = (age: number) => `${new Date().getFullYear() - age}-01-01`;
 
 const mockCreate = jest.fn();
@@ -52,7 +61,10 @@ const openSheet = async (wrapper: ReturnType<typeof mountBar>["wrapper"]) => {
 };
 
 describe("XpTextStyleBar (Text style on the profile)", () => {
-  beforeEach(() => mockCreate.mockReset());
+  beforeEach(() => {
+    mockCreate.mockReset();
+    mockHasVoice = true;
+  });
 
   it("shows Auto and the voice the birthday gives for a hero with no pick", () => {
     const { wrapper } = mountBar({ birthday: bornAged(6) });
@@ -99,5 +111,31 @@ describe("XpTextStyleBar (Text style on the profile)", () => {
     store.setVoice("hero", "classic");
     await wrapper.vm.$nextTick();
     expect(wrapper.findComponent({ name: "IonToggle" }).exists()).toBe(false);
+  });
+
+  it("dims and locks the read-aloud switch, with a note, on a device with no reading voice", async () => {
+    mockHasVoice = false;
+    const { store, wrapper } = mountBar({ birthday: bornAged(6) });
+    const toggle = wrapper.find('[data-test="autoread-toggle"]');
+    expect(toggle.attributes("disabled")).toBeDefined();
+    expect(wrapper.find(".text-style-autoread").classes()).toContain("is-dimmed");
+    expect(wrapper.find('[data-test="no-voice-note"]').text()).toBe("No reading voice on this device.");
+
+    // a stray change event from the locked switch does not rewrite the hero's setting
+    wrapper.findComponent({ name: "IonToggle" }).vm.$emit("ionChange", { detail: { checked: false } });
+    await wrapper.vm.$nextTick();
+    expect(store.users.hero.autoRead).toBeUndefined();
+
+    // the note speaks in the hero's voice
+    store.setVoice("hero", "adventure");
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find('[data-test="no-voice-note"]').exists()).toBe(false); // no switch outside the simple voice, so no note
+  });
+
+  it("shows no note and a live switch where there is a voice", () => {
+    const { wrapper } = mountBar({ birthday: bornAged(6) });
+    expect(wrapper.find('[data-test="no-voice-note"]').exists()).toBe(false);
+    expect(wrapper.find('[data-test="autoread-toggle"]').attributes("disabled")).toBeUndefined();
+    expect(wrapper.find(".text-style-autoread").classes()).not.toContain("is-dimmed");
   });
 });
