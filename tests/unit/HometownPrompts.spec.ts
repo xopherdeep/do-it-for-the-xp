@@ -16,12 +16,17 @@ import {
   conciergeMenuPrompt,
   conciergeNotice,
   courierLatePrompt,
+  linkResultNotice,
+  linkedStatusPrompt,
   nurseMenuChoices,
   nurseMenuPrompt,
   nurseNotice,
+  phoneAppRegistrationNotice,
+  registrationPrompt,
   roomConfirmPrompt,
   roomReceiptLine,
   roomRefusalLine,
+  unlinkResultNotice,
 } from "@/lib/services/hometown/hometownPrompts";
 import { quoteBenchRest, quoteCare } from "@/lib/services/hometown/Lodging";
 import { BUILDING_ACCENTS, accentOf } from "@/components/organisms/RevealPrompt/revealPrompt";
@@ -201,5 +206,75 @@ describe("the Town Hall clerk", () => {
     ]);
     expect(prompt.choices[0].icon).toBe("redo");
     expect(prompt.choices[1].tone).toBe("ghost");
+  });
+});
+
+describe("the clerk's Family Registration", () => {
+  it("asks a family that is not registered to register, naming the account and warning the display name is public", () => {
+    const prompt = registrationPrompt(false);
+    expect(prompt).toMatchObject({ speaker: CLERK, accent: "townHall", sprite: "tablet", cancelId: "never" });
+    expect(prompt.lines).toEqual([
+      "To post for your family, register it with the Town Hall. You'll need a For the XP account.",
+      "Your display name on the site is public, so pick one that isn't your full name.",
+    ]);
+    expect(prompt.choices.map((choice) => [choice.id, choice.label, choice.icon])).toEqual([
+      ["have", "I have an account", "sign-in-alt"],
+      ["create", "Create one", "user-plus"],
+      ["never", "Never mind", "times"],
+    ]);
+    expect(prompt.choices[2].tone).toBe("ghost");
+  });
+
+  it("says the family is signed in through the website first, only when it is", () => {
+    const viaWebsite = registrationPrompt(true);
+    expect(viaWebsite.lines).toEqual([
+      "You're signed in through the website. Registering lets your family post from any device.",
+      "To post for your family, register it with the Town Hall. You'll need a For the XP account.",
+      "Your display name on the site is public, so pick one that isn't your full name.",
+    ]);
+    expect(registrationPrompt(false).lines.join(" ")).not.toContain("signed in through the website");
+  });
+
+  it("shows a registered family under its display name, with Unlink this device and an OK", () => {
+    const prompt = linkedStatusPrompt("Mom");
+    expect(prompt).toMatchObject({ speaker: CLERK, accent: "townHall", sprite: "tablet", cancelId: "never" });
+    expect(prompt.lines).toEqual(["Your family is registered as Mom."]);
+    expect(prompt.choices.map((choice) => [choice.id, choice.label, choice.icon])).toEqual([
+      ["unlink", "Unlink this device", "unlink"],
+      ["never", "OK", "check"],
+    ]);
+  });
+
+  it("welcomes the new member by name, takes a refusal gracefully and says plainly when nothing was saved", () => {
+    expect(linkResultNotice("linked", "Mom")).toMatchObject({
+      speaker: CLERK,
+      accent: "townHall",
+      lines: ["*stamps the ledger* Welcome, Mom! Your family is registered at the Town Hall."],
+      cancelId: "ok",
+    });
+    expect(linkResultNotice("rejected").lines).toEqual(["*closes the ledger* Maybe another time."]);
+    expect(linkResultNotice("failed").lines).toEqual([
+      "*squints at the papers* The registration didn't go through, and nothing was saved. Try again.",
+    ]);
+  });
+
+  it("tears up the card, and says what is left to do when the site could not be asked", () => {
+    expect(unlinkResultNotice("forgotten")).toMatchObject({
+      speaker: CLERK,
+      accent: "townHall",
+      lines: ["*tears up the card* This device no longer posts for your family."],
+      cancelId: "ok",
+    });
+    expect(unlinkResultNotice("removed-here-only").lines).toEqual([
+      '*tears up the card* Done here. To finish, remove "Do It For The XP" from your profile on doit.forthexp.com.',
+    ]);
+  });
+
+  it("tells the phone app to register from the web version for now", () => {
+    expect(phoneAppRegistrationNotice()).toMatchObject({
+      speaker: CLERK,
+      accent: "townHall",
+      lines: ["For now, register from the web version of the game. The phone app will learn it soon."],
+    });
   });
 });

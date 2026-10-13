@@ -165,5 +165,5 @@ export const useTownHallStore = defineStore("townHall", () => {
     return removedOnSite ? "forgotten" : "removed-here-only";
   }
 
-  return { link, posts, lastLinkResult, auth, isLinked, signedInThroughWebsite, init, completeLink, unlink, forgetLink };
+  return { link, activeLink, posts, lastLinkResult, auth, isLinked, signedInThroughWebsite, init, completeLink, unlink, forgetLink };
 });

@@ -198,3 +198,66 @@ export const courierLatePrompt = (): RevealPromptOptions => ({
   ],
   cancelId: 'never',
 });
+
+// ---------------------------------------------------------------------------------------------------------------
+// The Town Hall: Family Registration (linking the family to its account on the site)
+// ---------------------------------------------------------------------------------------------------------------
+
+/** The ids of the clerk's registration question. */
+export type RegistrationMenuId = 'have' | 'create' | 'never';
+
+/** The clerk's notice shape: a line, one OK, the stone tablet rising. */
+const clerkNotice = (line: string): RevealPromptOptions => noticeOf(CLERK, line, { accent: 'townHall', sprite: 'tablet' });
+
+/**
+ * The clerk asks a family that is not registered yet to register. `viaWebsite`: the app runs inside the site and the
+ * parent is already signed in there, which is worth saying because registering makes the family post from any device.
+ */
+export const registrationPrompt = (viaWebsite: boolean): RevealPromptOptions => ({
+  speaker: CLERK,
+  accent: 'townHall',
+  sprite: 'tablet',
+  lines: [
+    ...(viaWebsite ? ["You're signed in through the website. Registering lets your family post from any device."] : []),
+    "To post for your family, register it with the Town Hall. You'll need a For the XP account.",
+    "Your display name on the site is public, so pick one that isn't your full name.",
+  ],
+  choices: [
+    { id: 'have', label: 'I have an account', icon: 'sign-in-alt', tone: 'primary' },
+    { id: 'create', label: 'Create one', icon: 'user-plus' },
+    { id: 'never', label: 'Never mind', icon: 'times', tone: 'ghost' },
+  ],
+  cancelId: 'never',
+});
+
+/** The clerk shows a registered family under its display name and offers to unlink this device. */
+export const linkedStatusPrompt = (displayName: string): RevealPromptOptions => ({
+  speaker: CLERK,
+  accent: 'townHall',
+  sprite: 'tablet',
+  lines: [`Your family is registered as ${displayName}.`],
+  choices: [
+    { id: 'unlink', label: 'Unlink this device', icon: 'unlink' },
+    { id: 'never', label: 'OK', icon: 'check', tone: 'ghost' },
+  ],
+  cancelId: 'never',
+});
+
+/** What the clerk says when the parent comes back from the site's authorize page. */
+export const linkResultNotice = (result: 'linked' | 'rejected' | 'failed', displayName?: string): RevealPromptOptions => {
+  if (result === 'linked') return clerkNotice(`*stamps the ledger* Welcome, ${displayName?.trim() || 'friend'}! Your family is registered at the Town Hall.`);
+  if (result === 'rejected') return clerkNotice('*closes the ledger* Maybe another time.');
+  return clerkNotice("*squints at the papers* The registration didn't go through, and nothing was saved. Try again.");
+};
+
+/** What the clerk says after unlinking: `removed-here-only` means the site could not be asked, so the parent removes the connection there. */
+export const unlinkResultNotice = (result: 'forgotten' | 'removed-here-only'): RevealPromptOptions =>
+  clerkNotice(
+    result === 'forgotten'
+      ? '*tears up the card* This device no longer posts for your family.'
+      : '*tears up the card* Done here. To finish, remove "Do It For The XP" from your profile on doit.forthexp.com.'
+  );
+
+/** The phone app cannot register the family yet (removed when it can). */
+export const phoneAppRegistrationNotice = (): RevealPromptOptions =>
+  clerkNotice('For now, register from the web version of the game. The phone app will learn it soon.');

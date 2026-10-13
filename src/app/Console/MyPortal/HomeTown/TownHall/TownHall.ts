@@ -28,22 +28,32 @@ import {
 } from "ionicons/icons";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
 import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
+import { Capacitor } from "@capacitor/core";
 import { useVoice } from "@/hooks/useVoice";
 import {
   CLERK_ERRANDS,
   clerkMenuPrompt,
   comingSoonPrompt,
   courierLatePrompt,
+  linkResultNotice,
+  linkedStatusPrompt,
+  phoneAppRegistrationNotice,
+  registrationPrompt,
+  unlinkResultNotice,
+  type RegistrationMenuId,
 } from "@/lib/services/hometown/hometownPrompts";
 import debug from "@/lib/utils/debug";
 import Ionic from "@/lib/mixins/ionic";
 import { useUserStore } from "@/lib/store/stores/user";
+import { useTownHallStore, type LinkResult } from "@/lib/store/stores/townHall";
 import { getQuestEngine } from "@/lib/engine/quests/QuestEngine";
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import { formatQuestName } from "@/lib/utils/format";
 import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 import { canAccessGameMaster } from "@/router/_Guards/gm.guard";
-import { TOWN_HALL_BOARDS, type TownHallBoardSlug } from "@/lib/services/townhall/townHallSite";
+import { authorizeUrl, readLinkReturn, strippedUrl, townHallReturnUrl } from "@/lib/services/townhall/townHallLink";
+import { SIGNUP_URL, TOWN_HALL_BOARDS, connectionName, townHallSiteUrl, type TownHallBoardSlug } from "@/lib/services/townhall/townHallSite";
+import { usesHashHistory } from "@/router/historyMode";
 import type { BoardInfo } from "@/lib/services/townhall/townHallFeed";
 import TownHallNews from "./components/TownHallNews.vue";
 import TownHallBoard from "./components/TownHallBoard.vue";
@@ -99,6 +109,7 @@ export default defineComponent({
     const router = useRouter();
     const selectedTab = ref<TabId>("news");
     const userStore = useUserStore();
+    const townHall = useTownHallStore();
     const questEngine = getQuestEngine();
 
     // A tab loads the first time it is opened and is kept after that
@@ -190,10 +201,75 @@ export default defineComponent({
       if (pick === "retry") await tabRefs[id].value?.reload();
     };
 
+    /** The device's saved link is read once; a storage failure leaves the family unregistered here and the page working */
+    const loadLink = async () => {
+      try {
+        await townHall.init();
+      } catch (err) {
+        debug.error("Town Hall could not read this device's link:", err);
+      }
+    };
+
+    /**
+     * Coming back from WordPress's "authorize this app" page, the new password rides in the address. It leaves the address
+     * bar and the history first, before anything is awaited, then the clerk checks it and says how it went.
+     */
+    const finishLinkReturn = async () => {
+      const search = window.location.search;
+      const returning = readLinkReturn(search).kind !== "none";
+      if (returning) window.history.replaceState(window.history.state, "", strippedUrl(window.location));
+      await loadLink();
+      if (!returning) return;
+      let result: LinkResult;
+      try {
+        result = await townHall.completeLink(search);
+      } catch (err) {
+        debug.error("Town Hall could not finish the registration:", err);
+        result = "failed";
+      }
+      if (result === "none") return;
+      await reveal.ask(linkResultNotice(result, townHall.activeLink?.displayName));
+    };
+
+    /** "I have an account": the web version leaves for the site's authorize page, which sends the parent back here */
+    const goToAuthorizePage = async () => {
+      if (Capacitor.isNativePlatform()) {
+        await reveal.ask(phoneAppRegistrationNotice());
+        return;
+      }
+      window.location.assign(
+        authorizeUrl({
+          site: townHallSiteUrl(),
+          appName: connectionName(navigator.userAgent, Capacitor.getPlatform()),
+          returnUrl: townHallReturnUrl(props.userId, window.location, usesHashHistory()),
+        })
+      );
+    };
+
+    /** A registered family sees whom it is registered as and may unlink this device; an unregistered one is asked to register */
+    const registerFamily = async () => {
+      await loadLink();
+      const link = townHall.activeLink;
+      if (link) {
+        const pick = await reveal.ask(linkedStatusPrompt(link.displayName));
+        if (pick !== "unlink") return;
+        try {
+          await reveal.ask(unlinkResultNotice(await townHall.unlink()));
+        } catch (err) {
+          debug.error("Town Hall could not unlink this device:", err);
+        }
+        return;
+      }
+      const pick = (await reveal.ask(registrationPrompt(townHall.signedInThroughWebsite))) as RegistrationMenuId;
+      if (pick === "create") window.open(SIGNUP_URL, "_blank", "noopener");
+      if (pick === "have") await goToAuthorizePage();
+    };
+
     // The clerk takes the errand in the game's own dialog; the board cannot post any of them yet
     const talkToClerk = async () => {
       const pick = await reveal.ask(clerkMenuPrompt(canAccessGameMaster(), voice.value));
       if (pick === "never") return;
+      if (pick === "registration") return registerFamily();
       const what = CLERK_ERRANDS[pick as keyof typeof CLERK_ERRANDS];
       if (what) await reveal.ask(comingSoonPrompt(what, voice.value));
     };
@@ -201,6 +277,7 @@ export default defineComponent({
     const openFamilyChat = () => router.push({ name: "town-hall-chat", params: { userId: props.userId } });
 
     onMounted(loadQuestBoard);
+    onMounted(finishLinkReturn);
 
     return {
       tabs: TABS,

@@ -172,4 +172,199 @@ describe("Town Hall", () => {
     cy.get("[data-cy=reveal-choice-retry]", { timeout: 30000 }).should("not.be.disabled").click();
     cy.contains("[data-cy=th-post]", "Back on the road", { timeout: 20000 });
   });
+
+  describe("Family Registration", () => {
+    // Production builds route by hash: WordPress then puts its answer before the fragment, as /?query#/town-hall/gm-1
+    const hash = Cypress.env("hashRouting");
+    const SITE = "https://doit.forthexp.com";
+    const APP_ID = "7606ce60-29c7-43b6-9533-2063ee726df4";
+    const LINK_QUERY = "site_url=https%3A%2F%2Fdoit.forthexp.com&user_login=mom&password=abcd+efgh";
+    const MOM_BASIC = `Basic ${btoa("mom:abcd efgh")}`;
+
+    const withQuery = (address, query) => {
+      const [base, fragment] = address.split("#");
+      return fragment === undefined ? `${base}?${query}` : `${base}?${query}#${fragment}`;
+    };
+    const returnPath = (query) => (hash ? `/?${query}#/town-hall/gm-1` : `/town-hall/gm-1?${query}`);
+    const townHallPath = hash ? "/#/town-hall/gm-1" : "/town-hall/gm-1";
+
+    // The site answers the new password's check and, for a request carrying Authorization, the CORS preflight before it
+    function stubLinkSite() {
+      cy.intercept("OPTIONS", `${SITE}/**`, {
+        statusCode: 204,
+        headers: {
+          ...CORS,
+          "access-control-allow-headers": "authorization,content-type,accept,x-wp-nonce",
+          "access-control-allow-methods": "GET,POST,DELETE,OPTIONS",
+        },
+      });
+      cy.intercept("GET", "**/wp/v2/users/me?context=edit*", json({ name: "Mom" })).as("me");
+      cy.intercept("GET", "**/application-passwords/introspect*", json({ uuid: "u-1" })).as("introspect");
+      cy.intercept("DELETE", "**/application-passwords/u-1*", json({ deleted: true })).as("removeConnection");
+    }
+
+    // IndexedDB outlives a Cypress test: clear the link an earlier test saved on this device (the open page may hold the database)
+    function forgetDeviceLink() {
+      cy.window().then(
+        (win) =>
+          new Cypress.Promise((resolve, reject) => {
+            win.indexedDB.databases().then((known) => {
+              if (!known.some((db) => db.name === "__xp_town_hall")) return resolve();
+              const opening = win.indexedDB.open("__xp_town_hall");
+              opening.onerror = () => reject(opening.error);
+              opening.onsuccess = () => {
+                const db = opening.result;
+                if (!db.objectStoreNames.contains("_ionickv")) {
+                  db.close();
+                  return resolve();
+                }
+                const clearing = db.transaction("_ionickv", "readwrite").objectStore("_ionickv").delete("link");
+                clearing.onerror = () => reject(clearing.error);
+                clearing.transaction.oncomplete = () => {
+                  db.close();
+                  resolve();
+                };
+              };
+            }, reject);
+          })
+      );
+    }
+
+    /** As the Game Master gm-1 on a device with no link, at `path` (the Town Hall, or what WordPress sends the parent back to) */
+    function openRegistration(path, { wpApiSettings } = {}) {
+      cy.seedWorld("town-hall-backup.json", "gm-1");
+      forgetDeviceLink();
+      cy.visit(path, {
+        timeout: 120000,
+        onBeforeLoad(win) {
+          if (wpApiSettings) win.wpApiSettings = wpApiSettings;
+        },
+      });
+      cy.tapToWakeAudio();
+    }
+
+    const openRegistrationQuestion = () => {
+      cy.get("[data-cy=th-clerk]", { timeout: 30000 }).click();
+      cy.get("[data-cy=reveal-choice-registration]", { timeout: 20000 }).should("not.be.disabled").click();
+    };
+    // The question for an unregistered family is several lines long and its menu opens at the last: Skip goes there
+    const skipToRegistrationMenu = () => cy.get("[data-cy=reveal-skip]", { timeout: 20000 }).click();
+    const dismissNotice = () => cy.get("[data-cy=reveal-choice-ok]", { timeout: 20000 }).should("not.be.disabled").click();
+
+    beforeEach(() => {
+      stubLinkSite();
+    });
+
+    it("coming back from WordPress with a new password links the family, takes the password out of the address, and offers Unlink", () => {
+      openRegistration(returnPath(LINK_QUERY));
+      cy.contains("[data-cy=reveal-text]", "Welcome, Mom!", { timeout: 30000 });
+      cy.url().should("not.contain", "password");
+      cy.url().should("not.contain", "abcd");
+      cy.location("search").should("eq", "");
+      cy.wait("@me").its("request.headers.authorization").should("eq", MOM_BASIC);
+      cy.screenshot("town-hall-08-registered", { capture: "viewport" });
+      dismissNotice();
+
+      openRegistrationQuestion();
+      cy.contains("[data-cy=reveal-text]", "Your family is registered as Mom.", { timeout: 20000 });
+      cy.contains("[data-cy=reveal-choice-unlink]", "Unlink this device").should("not.be.disabled");
+    });
+
+    it("a refusal at WordPress comes back as 'Maybe another time' and registers nothing", () => {
+      openRegistration(returnPath("success=false"));
+      cy.contains("[data-cy=reveal-text]", "Maybe another time.", { timeout: 30000 });
+      cy.url().should("not.contain", "success=false");
+      dismissNotice();
+
+      openRegistrationQuestion();
+      cy.get("[data-cy=reveal-choice-have]", { timeout: 20000 }).should("exist");
+      cy.get("[data-cy=reveal-choice-unlink]").should("not.exist");
+    });
+
+    it("a password the site does not accept saves nothing and says so", () => {
+      cy.intercept("GET", "**/wp/v2/users/me?context=edit*", { statusCode: 401, body: { code: "incorrect_password" }, headers: CORS }).as("meRefused");
+      openRegistration(returnPath(LINK_QUERY));
+      cy.contains("[data-cy=reveal-text]", "The registration didn't go through, and nothing was saved.", { timeout: 30000 });
+      cy.url().should("not.contain", "password");
+      dismissNotice();
+
+      openRegistrationQuestion();
+      cy.get("[data-cy=reveal-choice-have]", { timeout: 20000 }).should("exist");
+    });
+
+    it("asks an unregistered family to register, and says first when it is already signed in through the website", () => {
+      openRegistration(townHallPath);
+      openRegistrationQuestion();
+      cy.contains("[data-cy=reveal-text]", "To post for your family, register it with the Town Hall.", { timeout: 20000 });
+      cy.contains("[data-cy=reveal-text]", "signed in through the website").should("not.exist");
+      skipToRegistrationMenu();
+      cy.contains("[data-cy=reveal-text]", "Your display name on the site is public", { timeout: 20000 });
+      cy.contains("[data-cy=reveal-choice-have]", "I have an account").should("not.be.disabled");
+      cy.contains("[data-cy=reveal-choice-create]", "Create one").should("not.be.disabled");
+      cy.screenshot("town-hall-09-registration", { capture: "viewport" });
+
+      openRegistration(townHallPath, { wpApiSettings: { root: `${SITE}/wp-json/`, nonce: "host-nonce" } });
+      openRegistrationQuestion();
+      cy.contains("[data-cy=reveal-text]", "You're signed in through the website.", { timeout: 20000 });
+    });
+
+    it("Create one opens the site's sign-up page in a new tab", () => {
+      openRegistration(townHallPath);
+      cy.window().then((win) => cy.stub(win, "open").as("open"));
+      openRegistrationQuestion();
+      skipToRegistrationMenu();
+      cy.get("[data-cy=reveal-choice-create]", { timeout: 20000 }).should("not.be.disabled").click();
+      cy.get("@open").should("have.been.calledWith", "https://www.forthexp.com/wp-signup.php");
+    });
+
+    it("I have an account sends the parent to the site's authorize page, and WordPress sends them back linked", () => {
+      cy.intercept("GET", `${SITE}/wp-admin/authorize-application.php*`, (req) => {
+        const back = new URL(req.url).searchParams.get("success_url");
+        req.reply({ statusCode: 302, headers: { location: withQuery(back, LINK_QUERY) } });
+      }).as("authorize");
+      openRegistration(townHallPath);
+      openRegistrationQuestion();
+      skipToRegistrationMenu();
+      cy.get("[data-cy=reveal-choice-have]", { timeout: 20000 }).should("not.be.disabled").click();
+      cy.wait("@authorize").then(({ request }) => {
+        const asked = new URL(request.url).searchParams;
+        expect(asked.get("app_id")).to.eq(APP_ID);
+        expect(asked.get("app_name")).to.match(/^Do It For The XP – /);
+        expect(asked.get("success_url")).to.eq(asked.get("reject_url"));
+        expect(asked.get("success_url")).to.match(/\/town-hall\/gm-1$/);
+      });
+      cy.contains("[data-cy=reveal-text]", "Welcome, Mom!", { timeout: 30000 });
+      cy.url().should("not.contain", "password");
+    });
+
+    it("Unlink this device removes the connection on the site and forgets the link", () => {
+      openRegistration(returnPath(LINK_QUERY));
+      cy.contains("[data-cy=reveal-text]", "Welcome, Mom!", { timeout: 30000 });
+      dismissNotice();
+
+      openRegistrationQuestion();
+      cy.get("[data-cy=reveal-choice-unlink]", { timeout: 20000 }).should("not.be.disabled").click();
+      cy.wait("@removeConnection").its("request.headers.authorization").should("eq", MOM_BASIC);
+      cy.contains("[data-cy=reveal-text]", "This device no longer posts for your family.", { timeout: 20000 });
+      dismissNotice();
+
+      openRegistrationQuestion();
+      cy.get("[data-cy=reveal-choice-have]", { timeout: 20000 }).should("exist");
+    });
+
+    it("Unlink tells the parent to finish on the site when the site cannot be asked", () => {
+      cy.intercept("DELETE", "**/application-passwords/u-1*", { statusCode: 503, body: { code: "down" }, headers: CORS }).as("removeRefused");
+      openRegistration(returnPath(LINK_QUERY));
+      cy.contains("[data-cy=reveal-text]", "Welcome, Mom!", { timeout: 30000 });
+      dismissNotice();
+
+      openRegistrationQuestion();
+      cy.get("[data-cy=reveal-choice-unlink]", { timeout: 20000 }).should("not.be.disabled").click();
+      cy.contains("[data-cy=reveal-text]", "To finish, remove", { timeout: 20000 });
+      dismissNotice();
+
+      openRegistrationQuestion();
+      cy.get("[data-cy=reveal-choice-have]", { timeout: 20000 }).should("exist");
+    });
+  });
 });
