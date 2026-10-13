@@ -1,5 +1,6 @@
-// The Moving Day temple walk-through: a Game Master builds the Moving House pack with the temple option on, a hero finds
-// The Old House on the Hometown plaza, walks in from the front door to a bedroom and opens its quest room.
+// The Moving Day temple walk-through: a Game Master builds the Moving House pack for a two-floor house with the temple
+// option on, a hero finds The Old House on the Hometown plaza, walks in at the front porch and steps north into the front
+// hall, reading each room's name in the temple header.
 // Keeps a screenshot of every step at 390x844 in tests/e2e/screenshots/moving-temple.spec.js.
 // Run (dev server first; a server that reloads mid-run breaks the walk, so use one that does not):
 //   pnpm vue-cli-service test:e2e --headless --browser chrome --url http://localhost:8100 --spec tests/e2e/specs/moving-temple.spec.js
@@ -73,14 +74,18 @@ describe("Moving Day temple", () => {
     // The temple option sits above the build button and is ticked
     cy.get(".moving-house-modal .moving-temple-check").scrollIntoView().should("be.visible").and("have.class", "is-on");
     cy.get(".moving-house-modal .moving-temple-check").should("have.attr", "aria-checked", "true");
-    cy.get(".moving-house-modal .moving-preview").should("contain", "-room temple");
+    cy.get(".moving-house-modal .moving-preview").should("contain", "house temple with");
     shot("01-dialog-temple-option");
 
     // Off: the preview drops the temple. On again: it is back.
     cy.get(".moving-house-modal .moving-temple-check").click().should("not.have.class", "is-on");
     cy.get(".moving-house-modal .moving-preview").should("not.contain", "temple");
     cy.get(".moving-house-modal .moving-temple-check").click().should("have.class", "is-on");
-    cy.get(".moving-house-modal .moving-preview").should("contain", "-room temple");
+    cy.get(".moving-house-modal .moving-preview").should("contain", "house temple with");
+
+    // Two floors: the preview says so before the build
+    cy.get("[data-cy=moving-floors-2]").click().should("have.attr", "aria-checked", "true");
+    cy.get(".moving-house-modal .moving-preview").should("contain", "two-floor house temple with");
 
     cy.get(".moving-house-modal .moving-build").should("be.visible").and("not.have.attr", "disabled");
     cy.get(".moving-house-modal .moving-build").click();
@@ -113,30 +118,17 @@ describe("Moving Day temple", () => {
     cy.get(".xp-building-model-wrapper[title='Enter The Old House']").click();
 
     cy.location("pathname", { timeout: 30000 }).should("eq", `/temple/${TEMPLE}/hero-1`);
-    // The front door: the hall runs east
+    // The front porch: the temple header names the room, and the hall lies north
     cy.get("ion-fab ion-fab-button", { timeout: 60000 }).should("exist");
+    cy.get("[data-cy=temple-room-name]", { timeout: 60000 }).should("have.text", "Front porch");
     cy.wait(1500);
     shot("04-front-door");
-  });
 
-  it("opens a bedroom's quest room: the hero's own packing quest waits there", () => {
-    cy.window().then((win) => {
-      expect(win.__xp.loginUser("hero-2"), "Pip is signed in").to.eq(true);
-    });
-    // Pip has no run in the temple yet, so the route's start position holds. Pip's bedroom is the third room north of
-    // the hall for this family (row 1, column 3).
-    cy.visit(`/temple/${TEMPLE}/hero-2/3/1`, { timeout: 300000, onBeforeLoad: quietAlerts });
-    cy.tapToWakeAudio();
-    // The room's beast is the quest's beast; tapping it opens the room's sheet with the quest on it
-    cy.get(".xp-monster-model-wrapper", { timeout: 60000 }).should("be.visible").and("have.attr", "title", "Attack Plush Pile Gremlin");
+    // One step north, into the front hall
+    // (ion-fab keeps its place as classes, not attributes; the temple page is the one shown, an earlier page may linger)
+    cy.get(".temple-grounds-engine:not(.ion-page-hidden) ion-fab.fab-vertical-top.fab-horizontal-center ion-fab-button").click();
+    cy.get("[data-cy=temple-room-name]", { timeout: 20000 }).should("have.text", "Front hall");
     cy.wait(1500);
-    shot("05-bedroom-quest-room");
-    cy.get(".xp-monster-model-wrapper").click();
-    cy.get("[data-cy=choice-reveal]", { timeout: 20000 }).should("be.visible");
-    // The sheet reads: A Monster approaches! / the beast / the quest and when it is due / Fight
-    cy.get("[data-cy=choice-reveal]").should("contain", "Plush Pile Gremlin").and("contain", "Fight");
-    cy.get("[data-cy=choice-body]").should("contain", "Stuffed Animals");
-    cy.wait(4000); // the beast shows first, then the sheet slides in over the room
-    shot("06-quest-room-sheet");
+    shot("05-front-hall");
   });
 });

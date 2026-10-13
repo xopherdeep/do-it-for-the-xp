@@ -46,6 +46,8 @@
             <ion-title>x{{ currentPosition[1] + 1 }} y{{ currentPosition[0] + 1 }}</ion-title>
           </ion-button>
         </ion-buttons>
+        <!-- Where in the house the hero stands: the room's name, when it has one -->
+        <ion-title v-if="currentRoom?.content?.name" class="temple-room-name" data-cy="temple-room-name">{{ currentRoom.content.name }}</ion-title>
       </ion-toolbar>
     </ion-header>
     <ion-content

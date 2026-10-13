@@ -1,3 +1,5 @@
+@use "@/styles/themes/earthbound.scss" as *;
+
 .temple-grounds,
 .temple-grounds-engine {
   ion-content {
@@ -517,6 +519,21 @@ ion-modal.temple-map-modal .temple-map__close,
   background: #000;
   position: relative;
   z-index: 1000;
+}
+
+// The room's name on the header, so a hero knows where in the house they stand: a small cream plate between the map
+// buttons and the key count, on one line, cut with an ellipsis when it is too long to fit
+.temple-room-name {
+  --color: #{$eb-color-cream};
+  min-width: 0;
+  padding: 0 6px;
+  font-family: "StatusPlz", monospace;
+  font-size: 0.95rem;
+  color: $eb-color-cream;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 
