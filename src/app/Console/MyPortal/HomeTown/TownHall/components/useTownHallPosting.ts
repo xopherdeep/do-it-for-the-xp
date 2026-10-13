@@ -1,14 +1,8 @@
 import { computed, onBeforeUnmount, onMounted, ref, watch, type Ref } from "vue";
 import type { RevealPromptOptions } from "@/components/organisms/RevealPrompt/revealPrompt";
 import { useVoice } from "@/hooks/useVoice";
-import {
-  clerkMenuPrompt,
-  forbiddenPrompt,
-  postedNotice,
-  registerAgainPrompt,
-  unregisteredOutboxPrompt,
-} from "@/lib/services/hometown/hometownPrompts";
-import { postedOutcome, sendable, waitingFor } from "@/lib/services/townhall/townHallOutbox";
+import { clerkMenuPrompt, forbiddenPrompt, postedNotice, registerAgainPrompt } from "@/lib/services/hometown/hometownPrompts";
+import { postedOutcome, waitingFor } from "@/lib/services/townhall/townHallOutbox";
 import type { PostDraft } from "@/lib/services/townhall/townHallPosts";
 import { TOWN_HALL_BOARDS, type TownHallBoardSlug } from "@/lib/services/townhall/townHallSite";
 import type { TownHallPost, TownHallPostKind } from "@/lib/services/townhall/townHallTypes";
@@ -47,8 +41,6 @@ export interface PostingDeps {
   registerFamily(): Promise<void>;
   /** A Game Master said yes to redoing a registration that is not finished */
   redoRegistration(): Promise<void>;
-  /** Resolves once the device's profiles are read (a cold start may not have them yet); `isGameMaster` needs them */
-  profilesReady?(): Promise<void>;
 }
 
 /** What the compose is opened for: the same fields as the sheet's props, and the failed post being edited, if any. */
@@ -121,23 +113,6 @@ export function useTownHallPosting(deps: PostingDeps) {
     if (pick === "registration") await deps.registerFamily();
     if (pick === "board") openTopic(deps.currentBoard());
     if (pick === "bug") openBug();
-  };
-
-  /** Whether the clerk has offered Family Registration on this visit */
-  let offeredRegistration = false;
-
-  /**
-   * A Game Master opens the Town Hall with posts queued and no registration on this device: the clerk offers Family
-   * Registration, once per visit, and never over a prompt that is already showing. A hero is not asked.
-   */
-  const offerRegistration = async (): Promise<void> => {
-    await deps.profilesReady?.();
-    const postsWait = !store.isLinked && sendable(store.posts).length > 0;
-    const mayOffer = deps.isGameMaster() && postsWait && !offeredRegistration && reveal.prompt.value === null;
-    if (!mayOffer) return;
-    offeredRegistration = true;
-    const pick = await reveal.ask(unregisteredOutboxPrompt());
-    if (pick === "registration") await deps.registerFamily();
   };
 
   // --- Sending the queue --------------------------------------------------------------------------------------
@@ -278,7 +253,6 @@ export function useTownHallPosting(deps: PostingDeps) {
     openEdit,
     closeCompose,
     openClerkMenu,
-    offerRegistration,
     sendDraft,
     dismissPost,
     sendQueue,

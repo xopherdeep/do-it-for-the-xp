@@ -5,13 +5,7 @@ import {
   type PostingDeps,
   type PostingStore,
 } from "@/app/Console/MyPortal/HomeTown/TownHall/components/useTownHallPosting";
-import {
-  clerkMenuPrompt,
-  forbiddenPrompt,
-  postedNotice,
-  registerAgainPrompt,
-  unregisteredOutboxPrompt,
-} from "@/lib/services/hometown/hometownPrompts";
+import { clerkMenuPrompt, forbiddenPrompt, postedNotice, registerAgainPrompt } from "@/lib/services/hometown/hometownPrompts";
 import type { RevealPromptOptions } from "@/components/organisms/RevealPrompt/revealPrompt";
 import type { FlushResult } from "@/lib/store/stores/townHall";
 import { newPost } from "@/lib/services/townhall/townHallOutbox";
@@ -614,103 +608,5 @@ describe("coming back online", () => {
     window.dispatchEvent(new Event("online"));
     await flushPromises();
     expect(store.flush).toHaveBeenCalledTimes(1);
-  });
-});
-
-describe("a Game Master who opens the Town Hall with posts waiting and no registration", () => {
-  const waitingStore = (over: { isLinked?: boolean; statuses?: TownHallPost["status"][] } = {}) => {
-    const store = fakeStore();
-    store.isLinked = over.isLinked ?? false;
-    store.posts = (over.statuses ?? ["queued"]).map((status, i) => ({ ...newPost(bugDraft, HERO, true, NOW + i, `w-${i}`), status }));
-    return store;
-  };
-
-  it("is offered Family Registration by the clerk, and 'Family Registration' starts it", async () => {
-    const desk = rig({ store: waitingStore(), isGameMaster: true });
-
-    const offering = desk.posting.offerRegistration();
-    await flushPromises();
-    expect(desk.reveal.asked).toEqual([unregisteredOutboxPrompt()]);
-    desk.reveal.answer("registration");
-    await offering;
-
-    expect(desk.register).toHaveBeenCalledTimes(1);
-  });
-
-  it("is offered it once per visit", async () => {
-    const desk = rig({ store: waitingStore(), isGameMaster: true });
-    const first = desk.posting.offerRegistration();
-    await flushPromises();
-    desk.reveal.answer("never");
-    await first;
-
-    await desk.posting.offerRegistration();
-
-    expect(desk.reveal.asked).toHaveLength(1);
-    expect(desk.register).not.toHaveBeenCalled();
-  });
-
-  it("is not asked when the device is registered, when nothing waits to be sent, or when the clerk is already talking", async () => {
-    const linked = rig({ store: waitingStore({ isLinked: true }), isGameMaster: true });
-    await linked.posting.offerRegistration();
-    expect(linked.reveal.asked).toHaveLength(0);
-
-    const onlyAwaiting = rig({ store: waitingStore({ statuses: ["awaiting-gm", "rejected", "failed", "sent"] }), isGameMaster: true });
-    await onlyAwaiting.posting.offerRegistration();
-    expect(onlyAwaiting.reveal.asked).toHaveLength(0);
-
-    const busy = rig({ store: waitingStore(), isGameMaster: true });
-    busy.reveal.prompt.value = clerkMenuPrompt(true);
-    await busy.posting.offerRegistration();
-    expect(busy.reveal.asked).toHaveLength(0);
-  });
-
-  it("waits for the device's profiles first: on a cold start the Game Master is not known until they are read", async () => {
-    const store = waitingStore();
-    const reveal = fakeReveal();
-    let profilesRead = false;
-    let readProfiles: () => void = () => undefined;
-    const register = jest.fn(async () => undefined);
-    let posting!: ReturnType<typeof useTownHallPosting>;
-    mount(
-      defineComponent({
-        setup() {
-          posting = useTownHallPosting({
-            store,
-            reveal,
-            userId: () => HERO.id,
-            heroName: () => HERO.name,
-            isGameMaster: () => profilesRead,
-            route: () => "/town-hall/gm-1",
-            currentBoard: () => "feature-requests",
-            registerFamily: register,
-            redoRegistration: jest.fn(async () => undefined),
-            profilesReady: () =>
-              new Promise<void>((resolve) => {
-                readProfiles = () => {
-                  profilesRead = true;
-                  resolve();
-                };
-              }),
-          });
-          return () => null;
-        },
-      }),
-    );
-
-    const offering = posting.offerRegistration();
-    await flushPromises();
-    expect(reveal.asked).toHaveLength(0);
-    readProfiles();
-    await flushPromises();
-    expect(reveal.asked).toEqual([unregisteredOutboxPrompt()]);
-    reveal.answer("never");
-    await offering;
-  });
-
-  it("is never something a hero is asked", async () => {
-    const hero = rig({ store: waitingStore(), isGameMaster: false });
-    await hero.posting.offerRegistration();
-    expect(hero.reveal.asked).toHaveLength(0);
   });
 });

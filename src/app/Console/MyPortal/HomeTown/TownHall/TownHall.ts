@@ -60,6 +60,7 @@ import TownHallEvents from "./components/TownHallEvents.vue";
 import TownHallUpdates from "./components/TownHallUpdates.vue";
 import type { TownEvent, TownHallTab, TownStats } from "./components/townHallShared";
 import { useTownHallPosting } from "./components/useTownHallPosting";
+import { registrationOffer } from "./components/registrationOffer";
 
 /** How many days ahead the events board looks */
 const EVENT_HORIZON_DAYS = 7;
@@ -204,6 +205,14 @@ export default defineComponent({
         await townHall.unlink();
         await registerFamily();
       },
+    });
+
+    // Posts queued and no registration here: the clerk offers it to a Game Master, once per visit
+    const offerRegistration = registrationOffer({
+      store: townHall,
+      reveal,
+      isGameMaster: () => canAccessGameMaster(),
+      registerFamily: () => registerFamily(),
       // App.ts reads the profiles without waiting, so a cold start at the Town Hall may not know its Game Master yet
       profilesReady: async () => {
         if (Object.keys(userStore.users).length === 0) await userStore.loadUsers();
@@ -250,7 +259,7 @@ export default defineComponent({
       await loadLink();
       void posting.sendQueue();
       if (search === null) {
-        await posting.offerRegistration();
+        await offerRegistration();
         return;
       }
       let result: LinkResult;
