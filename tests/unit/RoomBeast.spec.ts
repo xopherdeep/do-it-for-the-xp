@@ -149,8 +149,15 @@ describe("standInMonster", () => {
     expect(standInMonster(named, "earth").name).toBe("Light Sentinel");
   });
 
-  it("prefers a name the Game Master wrote", () => {
-    expect(standInMonster(room({ name: "Big Steve", monsterType: "LightSentinel" }), "earth").name).toBe("Big Steve");
+  it("prefers a name the Game Master wrote for the beast", () => {
+    expect(standInMonster(room({ monsterName: "Big Steve", monsterType: "LightSentinel" }), "earth").name).toBe("Big Steve");
+    expect(standInMonster(room({ beastName: "Little Steve" }), "earth").name).toBe("Little Steve");
+  });
+
+  it("never names the beast after the room: the Old House kitchen's stand-in is the element's beast", () => {
+    expect(standInMonster(room({ name: "Kitchen" }), "earth")).toEqual({ name: "Rock Golem", avatarId: 27 });
+    expect(standInMonster(room({ name: "Kitchen", monsterName: "Big Steve" }), "earth").name).toBe("Big Steve");
+    expect(standInMonster(room({ name: "Garage" }, "miniboss"), "fire").name).toBe("Fire Elemental");
   });
 
   it("falls back to a Dust Bunny in an element it has no table for", () => {

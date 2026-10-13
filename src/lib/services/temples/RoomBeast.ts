@@ -77,9 +77,12 @@ const MOB_AVATARS: Record<string, number> = {
   fire: 12, earth: 27, water: 21, ice: 31, light: 24, shadow: 42, wind: 74, moon: 74, storm: 74,
 };
 
-/** What a combat room shows when the bestiary has nothing for it. */
+/**
+ * What a combat room shows when the bestiary has nothing for it. A name the Game Master wrote for the beast wins;
+ * `content.name` is the room's own name ("Kitchen" in the Old House), never the beast's.
+ */
 export const standInMonster = (room: Room, element: string): StandInMonster => {
-  const authoredName = room.content?.name || room.content?.monsterName || room.content?.beastName;
+  const authoredName = room.content?.monsterName || room.content?.beastName;
   const rawMonsterType = room.content?.monsterType;
   const roomType = room.type;
 
