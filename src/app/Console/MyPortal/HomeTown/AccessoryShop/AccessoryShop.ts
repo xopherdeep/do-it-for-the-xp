@@ -139,7 +139,7 @@ export default defineComponent({
       shopBackgrounds: {
         "pegasus-ranch": require("@/assets/images/backgrounds/shops/pegasus-ranch.webp"),
         "wrecked-ship": require("@/assets/images/backgrounds/shops/wrecked-ship.webp"),
-        "witchs-hut": require("@/assets/images/backgrounds/shops/witch's-hut.webp"),
+        "witchs-hut": require("@/assets/images/backgrounds/shops/witchs-hut.webp"),
         "snow-shack": require("@/assets/images/backgrounds/shops/snow-shack.webp"),
         "pond-of-life": require("@/assets/images/backgrounds/shops/pond-of-life.webp"),
         "hermits-tent": require("@/assets/images/backgrounds/shops/hermits-tent.webp"),
@@ -252,7 +252,8 @@ export default defineComponent({
       // A world picked on the Decorate tab wins; an untouched shop keeps its own picture.
       const backgroundImage = this.shopBackgroundUrl;
       return {
-        backgroundImage: `url(${backgroundImage})`,
+        // Quoted: the browser drops an unquoted url() whose file name holds an apostrophe or a space (the old witch's-hut)
+        backgroundImage: `url("${backgroundImage}")`,
         backgroundSize: 'cover',
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat'

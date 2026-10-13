@@ -1,5 +1,5 @@
-"""Paints the region shops that still borrow the general store's picture (Hermit's Tent, Crystal Caverns, Cloud Market,
-Theia City Emporium) in the Snow Shack's style. The Snow Shack interior (src/assets/images/backgrounds/shops/snow-shack.webp)
+"""Paints the region shops in the Snow Shack's style (Hermit's Tent, Crystal Caverns, Cloud Market, Theia City Emporium
+the Witch's Hut and the Pond of Life Oasis). The Snow Shack interior (src/assets/images/backgrounds/shops/snow-shack.webp)
 goes to Gemini's image model as the style anchor with a description of the new shop and its clerk. Results land in
 tools/art/out/shops for review; nothing in src changes until --install.
 
@@ -52,6 +52,22 @@ SHOPS = {
              "star fragments, meteorite chunks, brass telescopes, star charts and jars of moon dust, soft silver lamps",
         clerk="The Watcher, a calm and kindly mysterious shopkeeper in a hooded indigo cloak sprinkled with tiny stars, "
               "only two soft glowing eyes visible under the hood, hands resting on a counter of polished moonstone"),
+    "witchs-hut": dict(
+        name="Witch's Hut", region="the Swamps",
+        room="the inside of a crooked wooden swamp shack: warped plank walls and a sagging beamed roof, mossy floorboards, "
+             "a big black cauldron of bubbling green brew on a stone ring behind the counter, crooked shelves of glowing "
+             "potion bottles, spell books, jars of eyes and frog legs, bundles of swamp herbs and dried mushrooms hanging "
+             "from the beams, melted candles, a broom in the corner, cobwebs, a black cat curled on a shelf",
+        clerk="Granny Hex, a cheerful old witch with green skin, a long crooked nose, a big friendly grin, a tall bent "
+              "pointed black hat and a patched purple shawl, standing behind a crooked wooden counter"),
+    "pond-of-life": dict(
+        name="Pond of Life Oasis", region="the Sands",
+        room="a shaded trading tent at a desert oasis: a striped sand-and-teal canvas canopy on carved wooden poles, woven "
+             "rugs laid over golden sand, a clear sparkling blue spring pool with lily pads behind the counter and palm "
+             "trees beyond it, clay water jars, gourds and waterskins, baskets of dates and figs, healing potions in blue "
+             "bottles, brass lanterns hanging from the poles",
+        clerk="Oasis Guardian Miriam, a kind smiling oasis keeper in long flowing sand-coloured robes and a teal head "
+              "scarf, holding a little water jug, standing behind a counter of palm wood"),
 }
 
 PROMPT = """The attached picture is the Snow Shack, a shop interior from our retro 16-bit SNES-era fantasy RPG for a portrait phone screen. Paint a NEW shop interior for the same game, the {name} in {region}.
