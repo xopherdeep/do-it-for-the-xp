@@ -12,12 +12,12 @@
  * touches MP and never casts; it is pure apart from the user store, the quest engine and the family settings,
  * and answers with a line and a play$fx sound for the screen to show.
  */
-import { addHours, endOfDay, format } from "date-fns";
+import { addHours, format, max } from "date-fns";
 import { AbilityType } from "@/hooks/abilities/abilityConstants";
 import type { Ability } from "@/hooks/abilities/abilityConstants";
 import type { PowerBoardEffectId } from "@/types/abilities";
 import { getQuestEngine, type QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
-import { dayKeyOf, effectiveDeadline, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
+import { dayKeyOf, dueTimeOn, effectiveDeadline, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 import { loadFamilySettings } from "@/lib/services/family/familySettings";
 import { useUserStore } from "@/lib/store/stores/user";
 
@@ -127,6 +127,9 @@ const checkBoard = async (effect: PowerBoardEffectId, ctx: PowerBoardContext, no
   // Asked before the status: a quest snoozed today is off today's board, so it would read "not open"
   const isSnoozedToday = effect === "snooze" && effects.snoozedOn?.[questId] === dayKeyOf(now);
   if (isSnoozedToday) return { effects, target, refusal: `${title} is already snoozed.` };
+  // A quest with no due time is never late, so it has nothing to extend (the board ignores an extension on it)
+  const hasNoDueTime = effect === "extra-time" && !dueTimeOn(target.quest.dueByTime, now);
+  if (hasNoDueTime) return { effects, target, refusal: `${title} has no deadline to push back.` };
   const isExtended = effect === "extra-time" && hasRunningExtension(effects, questId, now);
   if (isExtended) return { effects, target, refusal: `${title} already has extra time.` };
   const isOpenToday = target.status === "open";
@@ -163,8 +166,8 @@ export const applyPowerBoardEffect = async (effect: PowerBoardEffectId, ctx: Pow
     effects.snoozedOn = { ...(effects.snoozedOn ?? {}), [String(target.quest.id)]: dayKeyOf(now) };
     line = `${titleOf(target)}: snoozed to tomorrow.`;
   } else {
-    // Extra Time
-    const base = effectiveDeadline(target.quest, effects, now) ?? endOfDay(now);
+    // Extra Time: 24 hours past the deadline, or past now when that has gone by (it never lands in the past)
+    const base = max([effectiveDeadline(target.quest, effects, now) ?? now, now]);
     const until = addHours(base, EXTRA_TIME_MS / HOUR);
     effects.extendedUntil = { ...(effects.extendedUntil ?? {}), [String(target.quest.id)]: until.toISOString() };
     line = `${titleOf(target)}: now due ${whenLabel(until, now)}.`;

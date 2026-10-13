@@ -423,6 +423,34 @@ describe("QuestSchedule", () => {
       expect(isQuestOverdue(weekly(), effects, at("2026-10-11T19:00:00"))).toBe(false);
     });
 
+    it("ignores an extension on a quest with no due time, so it is never late (an old save may hold one)", () => {
+      // Extra Time and the old Ice Wand once gave such a quest until the end of the next day
+      const daily = { ...makeQuest(), dueByTime: "" };
+      const effects = { extendedUntil: { "quest-1": at("2026-10-09T23:59:59.999").toISOString() } };
+      expect(effectiveDeadline(daily, effects, at("2026-10-08T12:00:00"))).toBeNull();
+      expect(isQuestOverdue(daily, effects, at("2026-10-10T09:00:00"))).toBe(false);
+      expect(isQuestOverdue(daily, effects, at("2026-10-11T09:00:00"))).toBe(false);
+    });
+
+    it("moves a once quest snoozed on its deadline day to the next day, same due time", () => {
+      // Due Thursday 8 Oct at 17:00, snoozed that Thursday ("Move one quest to tomorrow")
+      const once = { ...makeQuest({ basicSchedule: "once", startsOn: "2026-10-08T00:00:00" }), dueByTime: "17:00" };
+      const effects = { snoozedOn: { "quest-1": "2026-10-08" } };
+      expect(deadlineDayOf(once, effects, at("2026-10-09T09:00:00"))).toEqual(at("2026-10-09T00:00:00"));
+      expect(effectiveDeadline(once, effects, at("2026-10-09T09:00:00"))).toEqual(at("2026-10-09T17:00:00"));
+      expect(isQuestOverdue(once, effects, at("2026-10-09T09:00:00"))).toBe(false);
+      expect(isQuestOverdue(once, effects, at("2026-10-09T17:30:00"))).toBe(true);
+      // A snooze on another day leaves the deadline where it was
+      expect(effectiveDeadline(once, { snoozedOn: { "quest-1": "2026-10-07" } }, at("2026-10-09T09:00:00"))).toEqual(at("2026-10-08T17:00:00"));
+    });
+
+    it("keeps a repeating quest's snooze to the one day: the next day's deadline is that day's", () => {
+      const daily = { ...makeQuest(), dueByTime: "17:00" };
+      const effects = { snoozedOn: { "quest-1": "2026-10-08" } };
+      expect(effectiveDeadline(daily, effects, at("2026-10-09T09:00:00"))).toEqual(at("2026-10-09T17:00:00"));
+      expect(isQuestOverdue(daily, effects, at("2026-10-09T17:30:00"))).toBe(true);
+    });
+
     it("still reads an old saved pause: it moves a deadline that falls after it began and keeps the quest on time while it holds", () => {
       // Chronos' Clock wrote this once and nothing does now; a profile keeps it until it is overwritten
       const daily = { ...makeQuest(), dueByTime: "18:00" };
@@ -696,6 +724,26 @@ describe("QuestEngine board", () => {
     expect(midWeek).toMatchObject({ status: "open", overdue: false });
     const [lastDay] = await board([chores as Achievement], [], at("2026-10-11T10:30:00"));
     expect(lastDay).toMatchObject({ status: "open", overdue: true });
+  });
+
+  it("never reads a quest with no due time overdue, whatever extension an old save holds", async () => {
+    const chores = { ...quest("quest-1"), dueByTime: "" } as Achievement;
+    const effects = { extendedUntil: { "quest-1": at("2026-10-09T23:59:59.999").toISOString() } };
+    mockGetTasks.mockResolvedValue([chores]);
+    mockGetEntries.mockResolvedValue([]);
+    const [twoDaysOn] = await new QuestEngine().getQuestBoardForUser(hero, at("2026-10-11T12:00:00"), undefined, effects);
+    expect(twoDaysOn).toMatchObject({ status: "open", overdue: false });
+  });
+
+  it("brings a once quest snoozed on its due day back the next day, on time until its due time", async () => {
+    const move = { ...quest("quest-1", { basicSchedule: "once", startsOn: "2026-10-08T00:00:00" }), dueByTime: "17:00" } as Achievement;
+    const effects = { snoozedOn: { "quest-1": "2026-10-08" } };
+    mockGetTasks.mockResolvedValue([move]);
+    mockGetEntries.mockResolvedValue([]);
+    const read = async (date: Date) => (await new QuestEngine().getQuestBoardForUser(hero, date, undefined, effects))[0];
+    expect(await read(at("2026-10-08T18:00:00"))).toMatchObject({ status: "notDue", overdue: false });
+    expect(await read(at("2026-10-09T09:00:00"))).toMatchObject({ status: "open", overdue: false });
+    expect(await read(at("2026-10-09T17:30:00"))).toMatchObject({ status: "open", overdue: true });
   });
 
   describe("calendar tabs", () => {

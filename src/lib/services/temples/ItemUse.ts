@@ -29,6 +29,7 @@ import {
   rememberOnce,
   roomKey,
   roomKind,
+  type Direction,
   type Exits,
   type RoomContext,
   type RoomOutcome,
@@ -137,7 +138,11 @@ const useBombs = (ctx: ItemUseContext): ItemOutcome => {
   if (!bomb) return refuse(REASON_NO_BOMBS);
 
   const system = TempleSystem.getInstance();
-  const side = DIRECTIONS.find((direction) => ctx.exits[direction].locked);
+  // The first small lock, clockwise from north: the one openDoorSide opens. The boss door is the Boss Key's alone,
+  // so it is skipped whatever the exits handed in say about it
+  const isSmallLock = (direction: Direction): boolean =>
+    system.doorKind(ctx.templeId, ctx.position, direction, ctx.level) === 'locked';
+  const side = DIRECTIONS.find(isSmallLock);
   if (!side) return { message: 'Nothing to blow up here.' };
 
   // A fight's seal is not a door: no walking out of a battle through the wall
@@ -171,10 +176,15 @@ const useIceWand = (ctx: ItemUseContext, cost: number): ItemOutcome => {
   return { message: 'Frost spreads into the next room: the trap is frozen.', sound: SFX.secret };
 };
 
-/** Gaia's Quake: once a floor per visit, its secret rooms go on the map (TempleSystem.revealSecrets). */
+/**
+ * Gaia's Quake: once a floor per visit, its secret rooms go on the map (TempleSystem.revealSecrets). Without the
+ * map there is nothing to show them on, so it asks for the map first.
+ */
 const useQuake = (ctx: ItemUseContext, cost: number): ItemOutcome => {
   const system = TempleSystem.getInstance();
-  const isFloorShown = Boolean(system.getTempleState(ctx.templeId)?.revealedSecretFloors?.has(ctx.level));
+  const state = system.getTempleState(ctx.templeId);
+  if (!state?.hasMap) return refuse("Find this temple's map first.");
+  const isFloorShown = Boolean(state.revealedSecretFloors?.has(ctx.level));
   if (isFloorShown) return { message: 'Hidden rooms on this floor are already on your map.' };
 
   const poor = shortOnMp(ctx, cost);

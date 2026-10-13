@@ -163,10 +163,30 @@ describe("Extra Time", () => {
     expect(isQuestOverdue(dishes, effects, at("2026-10-09T18:00:00"))).toBe(true);
   });
 
-  it("gives a quest with no due time until the end of tomorrow", async () => {
+  it("refuses a quest with no due time: there is no deadline to push back, and nothing is written", async () => {
+    // The quest wizard and the Moving House pack make quests like this one
     mockBoard.mockResolvedValue([boardItem(quest("q1", { achievementName: "Dishes", dueByTime: "" }))]);
-    await applyPowerBoardEffect("extra-time", { userId: HERO, questId: "q1", now });
-    expect(new Date(user().questEffects.extendedUntil.q1).getTime()).toBe(at("2026-10-09T23:59:59.999").getTime());
+    expect(await powerBoardEffectBlocked("extra-time", { userId: HERO, questId: "q1", now })).toBe("Dishes has no deadline to push back.");
+    expect(await applyPowerBoardEffect("extra-time", { userId: HERO, questId: "q1", now })).toEqual({
+      ok: false,
+      line: "Dishes has no deadline to push back.",
+      sound: "no",
+    });
+    expect(user().questEffects).toBeUndefined();
+  });
+
+  it("never lands in the past: a quest overdue by days gets 24 hours from now, and is on time again", async () => {
+    // Due Monday 17:00, cast Thursday noon
+    const move = quest("q1", { achievementName: "Pack the books", basicSchedule: "once", startsOn: "2026-10-05T00:00:00" });
+    mockBoard.mockResolvedValue([boardItem(move)]);
+    expect(isQuestOverdue(move, undefined, now)).toBe(true);
+
+    const result = await applyPowerBoardEffect("extra-time", { userId: HERO, questId: "q1", now });
+    expect(result).toEqual({ ok: true, line: "Pack the books: now due Fri 12:00PM.", sound: "useMP" });
+    const effects: HeroQuestEffects = user().questEffects;
+    expect(new Date(effects.extendedUntil!.q1)).toEqual(at("2026-10-09T12:00:00"));
+    expect(isQuestOverdue(move, effects, at("2026-10-08T12:01:00"))).toBe(false);
+    expect(isQuestOverdue(move, effects, at("2026-10-09T12:01:00"))).toBe(true);
   });
 
   it("never stacks extra time, but allows it again once it passed", async () => {

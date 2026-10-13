@@ -925,13 +925,13 @@ describe("secret chambers, saves and pick-ups", () => {
     const id = makeTemple({ E: { type: "entrance" }, S: { type: "secret" } }, [["E", "S"]]);
     enter(id, [0, 0]);
     const state = temples.getTempleState(id)!;
+    const quake = () => useTool("Gaia's Quake", dungeons.getRoom(id, [0, 0])!, contextAt(id, [0, 0]));
 
-    useTool("Gaia's Quake", dungeons.getRoom(id, [0, 0])!, contextAt(id, [0, 0]));
-
-    // revealed without the map; it shows once the map is held
-    expect(temples.getRoomVisibility(id, [0, 1])).toBe(MapVisibility.NONE);
+    // No map, nothing to show the rooms on: the Quake asks for it first (ItemUse)
+    expect(quake().message).toBe("Find this temple's map first.");
     state.hasMap = true;
-    expect(temples.getRoomVisibility(id, [0, 1])).not.toBe(MapVisibility.NONE);
+    expect(temples.getRoomVisibility(id, [0, 1])).toBe(MapVisibility.NONE); // the map alone keeps the secret
+    quake();
     expect(temples.getRoomVisibility(id, [0, 1])).toBe(MapVisibility.LAYOUT_ONLY);
     state.hasCompass = true;
     expect(temples.shouldShowRoomDetails(id, [0, 1])).toBe(true);

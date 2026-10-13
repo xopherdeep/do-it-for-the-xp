@@ -148,7 +148,10 @@ const parseDate = (value?: string): Date | null => {
 export interface HeroQuestEffects {
   /** The Extra Time Power: quest id -> ISO deadline that replaces the quest's due time while it lies ahead of it */
   extendedUntil?: Record<string, string>;
-  /** The Snooze Power: quest id -> the day (yyyy-MM-dd) the quest was snoozed on; it is not due that day */
+  /**
+   * The Snooze Power (old saves: the Silver Arrow): quest id -> the day (yyyy-MM-dd) the quest was snoozed on; it is
+   * not due that day, and a once quest snoozed on its due day is due the day after (deadlineDayOf)
+   */
   snoozedOn?: Record<string, string>;
   /** Old saves only (the Hook Shot used to write it): quest id -> the day (yyyy-MM-dd) a quest that was not due got pulled into */
   pulledInOn?: Record<string, string>;
@@ -210,7 +213,8 @@ export const isSchedulePaused = (effects: HeroQuestEffects | undefined, now: Dat
 /**
  * The calendar day the quest's deadline falls on, seen from `date`. This is the one due-date rule: the board's
  * `overdue`, the list, the due-soon and overdue alerts and the Extra Time Power all read it through effectiveDeadline.
- * - once: the day it starts (its only due day), else `date`'s day;
+ * - once: the day it starts (its only due day), else `date`'s day; snoozed on that day (the Snooze Power, or an
+ *   old save's Silver Arrow), the day after it, since the snooze only hides the day it was cast on;
  * - a window that spans several days (weekly without listed weekdays, custom periods): the window's last day,
  *   or the day the quest ends when that comes first;
  * - a one-day window (daily, a listed weekday, an old saved pull-in) or no window at all: `date`'s day.
@@ -219,7 +223,9 @@ export const deadlineDayOf = (quest: QuestDeadlineFields, effects: HeroQuestEffe
   const day = startOfDay(date);
   if (quest.basicSchedule === "once") {
     const starts = parseDate(quest.startsOn);
-    return starts ? startOfDay(starts) : day;
+    const dueDay = starts ? startOfDay(starts) : day;
+    const isSnoozedOnDueDay = effects?.snoozedOn?.[quest.id] === dayKeyOf(dueDay);
+    return isSnoozedOnDueDay ? addDays(dueDay, 1) : dueDay;
   }
   const window = getEffectiveWindow(quest, effects, date);
   if (!window) return day;
@@ -230,9 +236,10 @@ export const deadlineDayOf = (quest: QuestDeadlineFields, effects: HeroQuestEffe
 };
 
 /**
- * When the quest is late, seen from `date`, after the hero's items: the due time on the deadline day
- * (deadlineDayOf), then the Extra Time Power's extension replaces it while it lies ahead of it, and an old saved
- * pause that began before the deadline pushes it back by the time paused. Null when the quest has no due time and no extension.
+ * When the quest is late, seen from `date`, after the hero's Powers: the due time on the deadline day
+ * (deadlineDayOf), then the Extra Time Power's extension replaces it while it lies ahead of it, and a pause that
+ * began before the deadline pushes it back by the time paused (only old saves carry one: Chronos' Clock wrote it).
+ * Null when the quest has no due time: it is never late, and an extension an old save holds on it is ignored.
  */
 export const effectiveDeadline = (
   quest: QuestDeadlineFields,
@@ -240,10 +247,10 @@ export const effectiveDeadline = (
   date: Date
 ): Date | null => {
   let deadline = dueTimeOn(quest.dueByTime, deadlineDayOf(quest, effects, date));
-  const extended = parseDate(effects?.extendedUntil?.[quest.id]);
-  const hasLaterExtension = extended && (!deadline || extended > deadline);
-  if (hasLaterExtension) deadline = extended;
   if (!deadline) return null;
+  const extended = parseDate(effects?.extendedUntil?.[quest.id]);
+  const hasLaterExtension = extended && extended > deadline;
+  if (hasLaterExtension) deadline = extended;
   const from = parseDate(effects?.pause?.from);
   const until = parseDate(effects?.pause?.until);
   const hasPauseBeforeDeadline = from && until && until > from && from <= deadline;

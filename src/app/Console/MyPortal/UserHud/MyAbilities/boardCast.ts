@@ -49,15 +49,16 @@ export const castWithBoardEffect = async (
   if (asksForQuest) {
     const choices = await deps.openQuests();
     const isBoardEmpty = choices.length === 0;
-    if (isBoardEmpty) return { status: "refused", line: "No open quests on the board." };
+    if (isBoardEmpty) return { status: "refused", line: "No open quests on the board.", sound: "no" };
     const picked = await deps.selectQuest(choices, `${ability.name}: ${POWER_BOARD_EFFECTS[effect].label}`);
     const isBackedOut = picked === null;
     if (isBackedOut) return { status: "cancelled" };
     questId = picked;
   }
 
-  // Asked before the cast, so a Power that cannot land costs nothing
-  const context = { userId, questId, now: deps.now };
+  // Asked before the cast, so a Power that cannot land costs nothing; the check and the landing read one instant,
+  // so a cast that runs past midnight cannot land on another day than the one it was checked on
+  const context = { userId, questId, now: deps.now ?? new Date() };
   const refusal = await powerBoardEffectBlocked(effect, context);
   if (refusal) return { status: "refused", line: refusal, sound: "no" };
 

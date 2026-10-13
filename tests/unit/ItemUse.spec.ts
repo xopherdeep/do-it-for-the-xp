@@ -81,6 +81,12 @@ const hall = (rooms = {}, grid: string[][] = [["E", "H"]]) => {
   return id;
 };
 
+/** The temple's map is found, the way a chest gives it (no compass). */
+const mapped = (id: string): string => {
+  temples.getTempleState(id)!.hasMap = true;
+  return id;
+};
+
 /** Put Bombs in the hero's pack, the way a temple shop or a chest does. */
 const packBombs = (qty: number) => useUserStore().addInventoryItem(HERO, { name: "Bomb", kind: "consumable", qty });
 
@@ -326,6 +332,46 @@ describe("Bombs", () => {
     expect(bombInPack(HERO)).toBeNull(); // the last one is gone from the pack
   });
 
+  describe("beside the boss door, which only the Boss Key opens", () => {
+    /** The hero in H: the boss door east, a small lock south. */
+    const bossHall = () => {
+      const id = makeTemple(
+        {
+          E: { type: "entrance" },
+          H: { type: "empty", locked: { east: true, south: true } },
+          B: { type: "boss" },
+          F: { type: "empty" },
+          W: { type: "wall" },
+        },
+        [
+          ["E", "H", "B"],
+          ["W", "F", "W"],
+        ]
+      );
+      enter(id, [0, 1]);
+      return id;
+    };
+
+    it("blow the small lock and leave the boss door shut", () => {
+      packBombs(1);
+      const id = bossHall();
+
+      expect(useItem(BOMBS, itemContext(id, [0, 1])).message).toBe("Boom! The south door blows open.");
+      expect(dungeons.getRoom(id, [0, 1])!.locked).toMatchObject({ east: true, south: false });
+      expect(bombInPack(HERO)).toBeNull();
+    });
+
+    it("go by the temple's own doors, even when the exits handed in mark the boss door as locked", () => {
+      packBombs(1);
+      const id = bossHall();
+      const base = itemContext(id, [0, 1]);
+      const exits = { ...base.exits, east: { ...base.exits.east, locked: true } };
+
+      expect(useItem(BOMBS, { ...base, exits }).message).toBe("Boom! The south door blows open.");
+      expect(dungeons.getRoom(id, [0, 1])!.locked).toMatchObject({ east: true, south: false });
+    });
+  });
+
   it("refuse with an empty pack and spend nothing", () => {
     const id = lockedHall();
     const before = mp();
@@ -479,7 +525,16 @@ describe("Ice Wand", () => {
 });
 
 describe("Gaia's Quake", () => {
-  const secretHall = () => hall({ S: { type: "secret" } }, [["E", "H", "S"]]);
+  /** A hall with a secret room at its end, whose map the hero has found (a chest's map: no compass). */
+  const secretHall = () => mapped(hall({ S: { type: "secret" } }, [["E", "H", "S"]]));
+
+  it("asks for the temple's map first, charging nothing and shaking no floor", () => {
+    const id = hall({ S: { type: "secret" } }, [["E", "H", "S"]]);
+
+    expect(useItem(QUAKE, itemContext(id, [0, 0]))).toEqual({ message: "Find this temple's map first.", sound: "error" });
+    expect(mp()).toBe(60);
+    expect(temples.getTempleState(id)!.revealedSecretFloors).toBeUndefined();
+  });
 
   it("shows the floor's hidden rooms, for 10 MP", () => {
     const id = secretHall();
@@ -500,9 +555,9 @@ describe("Gaia's Quake", () => {
   });
 
   it("finds nothing on a floor with no secret room, or only ones the hero has stood in, and charges nothing", () => {
-    expect(useItem(QUAKE, itemContext(hall(), [0, 0]))).toEqual({ message: "The ground shakes, but nothing is hidden on this floor." });
+    expect(useItem(QUAKE, itemContext(mapped(hall()), [0, 0]))).toEqual({ message: "The ground shakes, but nothing is hidden on this floor." });
 
-    const id = hall({ S: { type: "secret" } }, [["E", "S"]]);
+    const id = mapped(hall({ S: { type: "secret" } }, [["E", "S"]]));
     temples.moveToPosition(id, [0, 1], "east");
     expect(useItem(QUAKE, itemContext(id, [0, 1])).message).toBe("The ground shakes, but nothing is hidden on this floor.");
     expect(temples.getTempleState(id)!.revealedSecretFloors).toBeUndefined();

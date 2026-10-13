@@ -20,6 +20,7 @@ import {
 import { getCastLogDb, lastCastsOf } from "@/lib/databases/CastLogDb";
 import type { Ability } from "@/types/abilities";
 import { play$fx } from "@/assets/fx";
+import debug from "@/lib/utils/debug";
 import { useQuestPicker } from "@/hooks/quests/useQuestPicker";
 import { castWithBoardEffect } from "./boardCast";
 import { buildPowerRow, type PowerRow } from "./powerRow";
@@ -178,6 +179,12 @@ export default defineComponent({
         await loadLastCasts();
         await say(outcome.line ?? t("powers.toast.cast", { name: ability.name }));
         now.value = new Date();
+      } catch (error) {
+        // Something broke once the cast may have been paid (landing the effect, the cast log): say so, never nothing
+        debug.error("[MyAbilities] cast failed", error);
+        play$fx("no");
+        await loadLastCasts();
+        await say("Something went wrong. Your Power may still have been cast.");
       } finally {
         casting.value = "";
       }

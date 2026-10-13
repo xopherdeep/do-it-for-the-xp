@@ -144,7 +144,7 @@ describe("castWithBoardEffect", () => {
 
   it("charges nothing and asks nothing when no quest is open", async () => {
     const deps = fakeDeps({ quests: [] });
-    expect(await castWithBoardEffect(snooze, HERO, deps)).toEqual({ status: "refused", line: "No open quests on the board." });
+    expect(await castWithBoardEffect(snooze, HERO, deps)).toEqual({ status: "refused", line: "No open quests on the board.", sound: "no" });
     expect(deps.selectQuest).not.toHaveBeenCalled();
     expect(deps.cast).not.toHaveBeenCalled();
   });
@@ -189,6 +189,34 @@ describe("castWithBoardEffect", () => {
     expect(out.sound).toBe("useMP");
     expect(deps.selectQuest).not.toHaveBeenCalled();
     expect(useUserStore().users[HERO].questEffects.noEncountersUntil).toBeTruthy();
+  });
+
+  it("checks and lands the effect at the one moment it read, however long the cast takes", async () => {
+    // The page passes no clock: the check and the landing must still see the same instant
+    jest.useFakeTimers();
+    try {
+      jest.setSystemTime(now);
+      const deps: BoardCastDeps = {
+        ...fakeDeps(),
+        now: undefined,
+        cast: jest.fn(async () => {
+          jest.setSystemTime(new Date("2026-10-09T00:30:00")); // the cast ran past midnight
+          return { ok: true };
+        }),
+      };
+      expect((await castWithBoardEffect(snooze, HERO, deps)).status).toBe("cast");
+      expect(mockBoard.mock.calls.map((call) => call[1])).toEqual([now, now]);
+      expect(useUserStore().users[HERO].questEffects.snoozedOn).toEqual({ q1: dayKeyOf(now) });
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it("lets a failure after the cast reach the page, which says the Power may have been cast", async () => {
+    const deps = fakeDeps();
+    mockBoard.mockResolvedValueOnce([boardItem(dishes)]).mockRejectedValueOnce(new Error("board gone"));
+    await expect(castWithBoardEffect(snooze, HERO, deps)).rejects.toThrow("board gone");
+    expect(deps.cast).toHaveBeenCalledTimes(1);
   });
 
   it("says nothing more when the cast itself fails, and lands no effect", async () => {
