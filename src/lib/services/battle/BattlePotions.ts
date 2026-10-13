@@ -28,6 +28,22 @@ export const POTIONS: Record<string, PotionRule> = {
   'Mana Potion': { mp: 30, effect: 'Restores 30 MP' },
   Ether: { mp: 50, effect: 'Restores 50 MP' },
   Elixir: { full: true, effect: 'Fully restores HP and MP' },
+  'Hi-Potion': { hp: 50, effect: 'Restores 50 HP' },
+  'X-Potion': { hp: 100, effect: 'Restores 100 HP' },
+  'Mega Potion': { hp: 200, effect: 'Restores 200 HP' },
+};
+
+/** Match a potion rule by name, case-insensitively and handling spacing/hyphens. */
+export const findPotionRule = (name: string): { key: string; rule: PotionRule } | null => {
+  if (!name) return null;
+  if (POTIONS[name]) return { key: name, rule: POTIONS[name] };
+  const lower = name.toLowerCase().replace(/[-_\s]+/g, " ").trim();
+  for (const [key, rule] of Object.entries(POTIONS)) {
+    if (key.toLowerCase().replace(/[-_\s]+/g, " ").trim() === lower) {
+      return { key, rule };
+    }
+  }
+  return null;
 };
 
 /** One bottle row on the potion sheet. `reason` is why it cannot be drunk right now, else null. */
@@ -46,7 +62,7 @@ const NOT_IN_PACK = "You don't have that.";
 const DEFAULT_ICON = 'flask-potion';
 
 /** What the potion would give the hero right now: its rule capped by the room left in HP and MP. */
-const gainOf = (rule: PotionRule, userId: string): { hp: number; mp: number } => {
+export const gainOf = (rule: PotionRule, userId: string): { hp: number; mp: number } => {
   const hp = heroPoints(userId, 'hp');
   const mp = heroPoints(userId, 'mp');
   const room = { hp: Math.max(0, hp.max - hp.now), mp: Math.max(0, mp.max - mp.now) };
@@ -55,19 +71,25 @@ const gainOf = (rule: PotionRule, userId: string): { hp: number; mp: number } =>
 };
 
 /** Why the potion would do nothing (HP or MP already full), else null. */
-const reasonOf = (rule: PotionRule, gain: { hp: number; mp: number }): string | null => {
+export const reasonOf = (rule: PotionRule, gain: { hp: number; mp: number }): string | null => {
   const canRestoreSomething = gain.hp > 0 || gain.mp > 0;
   if (canRestoreSomething) return null;
   if (rule.full) return REASON_FULL_STRENGTH;
   return rule.hp ? REASON_HP_FULL : REASON_MP_FULL;
 };
 
+/** Calculate whether a potion can be drunk by a user, returning reason or null. */
+export const potionReason = (rule: PotionRule, userId: string): string | null => {
+  return reasonOf(rule, gainOf(rule, userId));
+};
+
 /** The potions in the hero's pack (merged by `inventoryOf`, in name order), each with the reason it cannot be drunk now. */
 export const potionShelf = (userId: string): PotionCard[] =>
   inventoryOf(useUserStore().getUserById(userId))
-    .filter((entry) => Object.prototype.hasOwnProperty.call(POTIONS, entry.name))
+    .filter((entry) => Boolean(findPotionRule(entry.name)))
     .map((entry) => {
-      const rule = POTIONS[entry.name];
+      const match = findPotionRule(entry.name)!;
+      const rule = match.rule;
       return {
         id: entry.id,
         name: entry.name,
@@ -83,14 +105,21 @@ const withArticle = (name: string): string => `${/^[aeiou]/i.test(name) ? 'an' :
 
 /** Drink one potion of the pack entry: heal and/or restore, then spend one from the pack. Nothing is spent on a refusal. */
 export const drinkPotion = (userId: string, entryId: string): BattleEffectOutcome => {
-  const card = potionShelf(userId).find((potion) => potion.id === entryId);
+  const shelf = potionShelf(userId);
+  const card = shelf.find(
+    (potion) =>
+      potion.id === entryId ||
+      potion.name.toLowerCase() === entryId.toLowerCase() ||
+      potion.name.toLowerCase().replace(/[-_\s]+/g, " ") === entryId.toLowerCase().replace(/[-_\s]+/g, " ")
+  );
   if (!card) return refuse(NOT_IN_PACK);
   if (card.reason) return refuse(card.reason);
 
-  const rule = POTIONS[card.name];
+  const match = findPotionRule(card.name);
+  const rule = match?.rule ?? POTIONS[card.name];
   const gain = gainOf(rule, userId);
   const store = useUserStore();
-  if (!store.spendInventoryItem(userId, entryId)) return refuse(NOT_IN_PACK);
+  if (!store.spendInventoryItem(userId, card.id)) return refuse(NOT_IN_PACK);
   if (gain.hp > 0) store.updateUserHP({ userId, amount: gain.hp });
   if (gain.mp > 0) store.updateUserMP({ userId, amount: gain.mp });
 

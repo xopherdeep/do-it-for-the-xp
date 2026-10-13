@@ -503,8 +503,8 @@ $vc-star-colors: #f7e8a8, #ffffff, $eb-color-sky-blue, $eb-color-mint-green, $vc
 // ---------------------------------------------------------------------------------------------------------------
 .victory-subtitle {
   margin-top: 2px;
-  font-family: "StatusPlz", "Apple Kid", sans-serif;
-  font-size: 1.2rem;
+  font-family: "StatusPlz", monospace;
+  font-size: 1.15rem;
   line-height: 1.3;
   letter-spacing: 0.04em;
   color: $eb-color-cream;
@@ -512,8 +512,8 @@ $vc-star-colors: #f7e8a8, #ffffff, $eb-color-sky-blue, $eb-color-mint-green, $vc
 
 .victory-quest {
   margin-top: 4px;
-  font-family: "Apple Kid", sans-serif;
-  font-size: 1.25rem;
+  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  font-size: 1.15rem;
   line-height: 1.25;
   color: $eb-color-pale-yellow;
 }
@@ -521,8 +521,8 @@ $vc-star-colors: #f7e8a8, #ffffff, $eb-color-sky-blue, $eb-color-mint-green, $vc
 .victory-work {
   margin-top: 6px;
   padding-bottom: 10px;
-  font-family: "Apple Kid", sans-serif;
-  font-size: 1.3rem;
+  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  font-size: 1.15rem;
   line-height: 1.2;
   color: $eb-color-cream;
   border-bottom: 2px dotted rgba(231, 230, 179, 0.28);
@@ -671,8 +671,8 @@ $vc-star-colors: #f7e8a8, #ffffff, $eb-color-sky-blue, $eb-color-mint-green, $vc
   box-sizing: border-box;
   margin: 12px auto 0;
   padding: 4px 12px 3px;
-  font-family: "StatusPlz", "Apple Kid", sans-serif;
-  font-size: 1rem;
+  font-family: "StatusPlz", monospace;
+  font-size: 0.95rem;
   line-height: 1.2;
   letter-spacing: 0.04em;
   color: $vc-amber;
@@ -693,7 +693,7 @@ $vc-star-colors: #f7e8a8, #ffffff, $eb-color-sky-blue, $eb-color-mint-green, $vc
 
 .victory-footer {
   margin-top: 12px;
-  font-family: "Apple Kid", sans-serif;
+  font-family: "Apple Kid", "StatusPlz", sans-serif;
   font-size: 1.15rem;
   line-height: 1.2;
   letter-spacing: 0.03em;

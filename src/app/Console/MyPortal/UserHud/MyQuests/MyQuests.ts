@@ -43,6 +43,8 @@ import { useUserStore } from "@/lib/store/stores/user";
 
 import MyTask from "../MyTask/MyTask.vue";
 import XpQuickTaskModal from "./components/XpQuickTaskModal.vue";
+import XpAppBottomNav from "@/components/organisms/BottomNav/XpAppBottomNav.vue";
+import type { AppNavTab } from "@/components/organisms/BottomNav/appBottomNav";
 // import { useSwiper } from "swiper/vue";
 import { Controller, Navigation, Swiper as SwiperClass } from "swiper";
 import { formatQuestName } from "@/lib/utils/format";
@@ -85,6 +87,7 @@ export default defineComponent({
   components: {
     MyTask,
     XpQuickTaskModal,
+    XpAppBottomNav,
   },
   data() {
     return {
@@ -163,6 +166,12 @@ export default defineComponent({
     todoCount(): number {
       return this.listCounts.overdue + this.listCounts.open;
     },
+    questTabs(): AppNavTab[] {
+      return [
+        { id: "board", label: "Board", faIcon: "th-large" },
+        { id: "list", label: "List", faIcon: "tasks", badge: this.todoCount },
+      ];
+    },
     listEmptyLine(): string {
       return this.params.search
         ? "No quest answers to that name."
@@ -240,6 +249,15 @@ export default defineComponent({
     },
 
     // --- the List view ---
+    onViewChange(view: QuestLogView) {
+      if (view === this.view) return;
+      this.view = view;
+      try {
+        localStorage.setItem(VIEW_KEY, view);
+      } catch (error) {
+        debug.warn("[MyQuests] could not remember the quest log view", error);
+      }
+    },
     viewChanged(ev: CustomEvent) {
       const view: QuestLogView = ev.detail.value === "list" ? "list" : "board";
       if (view === this.view) return;

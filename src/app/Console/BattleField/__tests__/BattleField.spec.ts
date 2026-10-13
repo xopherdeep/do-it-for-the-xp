@@ -151,7 +151,7 @@ describe("BattleField: a free fight", () => {
     await router.isReady();
 
     // The bag is an ion-modal; the stub keeps its props and lets the test emit what the grid would
-    const wrapper = mount(BattleField, { global: { plugins: [pinia, router], stubs: { XpEquipmentModal: true } } });
+    const wrapper = mount(BattleField, { global: { plugins: [pinia, router], stubs: { XpEquipmentModal: true, XpInventoryModal: true } } });
     mounted = wrapper;
     const vm = wrapper.vm as unknown as BattleVm;
     expect(vm.dialogText).toBe(""); // nothing starts until the view is entered
@@ -185,7 +185,10 @@ describe("BattleField: a free fight", () => {
       await flushPromises();
     };
     /** The Goods bag, and what the page answers for one of its tiles. */
-    const bag = () => wrapper.findComponent({ name: "xp-equipment-modal" });
+    const bag = () => {
+      const inv = wrapper.findComponent({ name: "xp-inventory-modal" });
+      return inv.exists() ? inv : wrapper.findComponent({ name: "xp-equipment-modal" });
+    };
     const bagOpen = () => bag().props("isOpen") as boolean;
     const bagCard = (item: BagItem) => (bag().props("battleCard") as (item: BagItem) => BattleItemCard | null)(item);
     /** A tile tapped in the bag: Use on an item's card, or a container (Bottles, Book Of Spells) straight away. */

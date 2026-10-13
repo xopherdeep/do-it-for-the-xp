@@ -29,13 +29,27 @@ import {
   banOutline,
   bagOutline,
 } from "ionicons/icons";
+import { ref } from "vue";
 import { useItemFetcher } from "@/hooks/useItemFetcher";
 import { actionSheetController } from "@ionic/vue";
 import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
+import XpAppBottomNav from "@/components/organisms/BottomNav/XpAppBottomNav.vue";
+import type { AppNavTab } from "@/components/organisms/BottomNav/appBottomNav";
+
+const STORAGE_TABS: AppNavTab[] = [
+  { id: "all", label: "All", ionIcon: bagOutline },
+  { id: "hp", label: "HP", ionIcon: fitnessOutline },
+  { id: "mp", label: "MP", ionIcon: colorWandOutline },
+  { id: "misc", label: "Misc", ionIcon: sparklesOutline },
+  { id: "key", label: "Key", ionIcon: keyOutline },
+];
 
 export default defineComponent({
   props: ["userId"],
   name: "my-storage",
+  components: {
+    XpAppBottomNav,
+  },
   mixins: [ionic],
   data() {
     return {
@@ -120,14 +134,17 @@ export default defineComponent({
       nTotalPages
     } = useItemFetcher("xp_accessory", { per_page: 4 }, props.userId);
 
-    const customAlertOptions = {
-      header: 'Storage Categories',
-      subHeader: 'Categorized by type',
-      message: 'What would you like to view?',
-      translucent: true
+    const activeShelf = ref("all");
+    const onShelfChange = (val: string) => {
+      activeShelf.value = val;
+      request.params.filter = val === "all" ? "" : val;
+      request.params.page = 1;
     };
+
     return {
-      customAlertOptions,
+      activeShelf,
+      storageTabs: STORAGE_TABS,
+      onShelfChange,
       storefrontOutline,
       banOutline,
       chevronBack,

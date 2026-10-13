@@ -10,19 +10,15 @@
         </ion-buttons>
         <ion-title> Quest Log </ion-title>
       </ion-toolbar>
-      <!-- Two faces of the log: the card board, and the plain to-do list with assignee, due time and status -->
-      <ion-toolbar color="success" class="view-toolbar">
-        <ion-segment :value="view" color="dark" @ionChange="viewChanged">
-          <ion-segment-button value="board">
-            <i class="fad fa-th-large" />
-            Board
-          </ion-segment-button>
-          <ion-segment-button value="list">
-            <i class="fad fa-tasks" />
-            List
-            <ion-badge v-if="todoCount" class="tab-count" color="dark">{{ todoCount }}</ion-badge>
-          </ion-segment-button>
-        </ion-segment>
+      <ion-toolbar color="success">
+        <ion-searchbar
+          color="light"
+          @keypress="playTextSound"
+          @keyUp="resetTextSound"
+          @ionChange="searchChanged"
+          v-model="searchText"
+          placeholder="Search Quests"
+        />
       </ion-toolbar>
     </ion-header>
 
@@ -172,15 +168,9 @@
         </ion-tab-bar>
       </ion-tabs> -->
     </ion-content>
-    <ion-footer>
-      <ion-toolbar color="success">
+    <ion-footer class="quests-footer">
+      <ion-toolbar color="success" class="quests-subtoolbar">
         <ion-grid>
-          <ion-row>
-            <ion-col class="ion-no-padding">
-              <ion-searchbar color="light" @keypress="playTextSound" @keyUp="resetTextSound" @ionChange="searchChanged"
-                v-model="searchText"></ion-searchbar>
-            </ion-col>
-          </ion-row>
           <ion-row v-if="view === 'list'">
             <ion-col class="total-pages">
               <ion-text class="ion-text-align-center">
@@ -219,6 +209,13 @@
           </ion-row>
         </ion-grid>
       </ion-toolbar>
+
+      <xp-app-bottom-nav
+        :tabs="questTabs"
+        v-model="view"
+        aria-label="Quest Navigation"
+        @change="onViewChange"
+      />
     </ion-footer>
   </ion-page></template>
 

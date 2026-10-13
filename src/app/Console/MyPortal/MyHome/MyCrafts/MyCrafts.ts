@@ -64,12 +64,23 @@ import {
   appsOutline,
   bedOutline
 } from "ionicons/icons";
+import XpAppBottomNav from "@/components/organisms/BottomNav/XpAppBottomNav.vue";
+import type { AppNavTab } from "@/components/organisms/BottomNav/appBottomNav";
+
+const WORKBENCH_TABS: AppNavTab[] = [
+  { id: "all", label: "All", ionIcon: appsOutline },
+  { id: "hp", label: "Furniture", ionIcon: bedOutline },
+  { id: "mp", label: "Accessories", ionIcon: colorWandOutline },
+  { id: "misc", label: "Weapons", ionIcon: sparklesOutline },
+  { id: "key", label: "Key", ionIcon: keyOutline },
+];
 
 export default dC({
-  name: "my-foods",
+  name: "my-crafts",
   props: ["userId"],
   components: {
     XpLoading,
+    XpAppBottomNav,
     IonPage,
     IonContent,
     IonButton,
@@ -78,8 +89,6 @@ export default dC({
     IonToolbar,
     IonButtons,
     IonTitle,
-    IonSegment,
-    IonSegmentButton,
     IonGrid,
     IonRow,
     IonCol,
@@ -110,6 +119,13 @@ export default dC({
     const request = fetcher.request;
     const actionSheetOpen = ref(false);
     const shelves = ref(['affordable']);
+    const activeTab = ref("all");
+
+    const onTabChange = (val: string) => {
+      activeTab.value = val;
+      request.params.filter = val === "all" ? "" : val;
+      request.params.page = 1;
+    };
 
     const segmentChanged = () => {
       // console.log("Segment changed", ev);
@@ -141,6 +157,9 @@ export default dC({
       user,
       actionSheetOpen,
       shelves,
+      activeTab,
+      workbenchTabs: WORKBENCH_TABS,
+      onTabChange,
       segmentChanged,
       handleInventoryClick,
       customAlertOptions,

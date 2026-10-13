@@ -28,6 +28,12 @@ import {
   type BattleEffectId,
   type BattleEffectOutcome,
 } from './BattleEffects';
+import {
+  drinkPotion,
+  findPotionRule,
+  potionReason,
+  potionShelf,
+} from './BattlePotions';
 
 export {
   CHRONOS_FREEZE_MS,
@@ -79,8 +85,8 @@ export const BATTLE_ITEMS: Record<string, { mp: number; effect: BattleEffectId }
   'Fire Wand': { mp: 50, effect: 'kindle' },
 };
 
-/** What tapping a bag item does in a fight: run an effect, open the potions, open the Powers, or nothing. */
-export type BattleBagRole = 'effect' | 'potions' | 'powers' | 'none';
+/** What tapping a bag item does in a fight: run an effect, open the potions, open the Powers, drink a potion, or nothing. */
+export type BattleBagRole = 'effect' | 'potions' | 'powers' | 'potion' | 'none';
 
 /** The bag's containers by lower-cased name. */
 const CONTAINERS: Record<string, BattleBagRole> = { bottles: 'potions', goods: 'potions', 'book of spells': 'powers' };
@@ -90,11 +96,13 @@ const CONTAINER_LINES: Record<'potions' | 'powers', string> = { potions: 'Your p
 
 const nameOf = (item: BattleItemLike): string => (typeof item.name === 'string' ? item.name : '');
 
-/** Sort a bag item for the fight: a BATTLE_ITEMS name is an effect, Bottles and Goods hold potions, the Book Of Spells holds Powers. */
+/** Sort a bag item for the fight: a BATTLE_ITEMS name is an effect, Containers open sheets, Potions/Ethers are consumable directly. */
 export const battleBagRole = (item: BattleItemLike | null | undefined): BattleBagRole => {
   const name = item ? nameOf(item) : '';
   if (BATTLE_ITEMS[name]) return 'effect';
-  return CONTAINERS[name.toLowerCase()] ?? 'none';
+  if (CONTAINERS[name.toLowerCase()]) return CONTAINERS[name.toLowerCase()];
+  if (findPotionRule(name)) return 'potion';
+  return 'none';
 };
 
 /** The item's MP cost in a fight: the number its description starts with, else the contract's table. */
@@ -116,8 +124,8 @@ const reasonOf = (name: string, effect: BattleEffectId, mp: number, ctx: BattleI
 
 /**
  * Describe a bag item for the battle card: name, MP, one line of effect and, when it cannot be used right now,
- * the reason. Containers (Bottles, Goods, Book Of Spells) cost nothing and carry no reason. A null item (an
- * empty hand) gives null.
+ * the reason. Containers (Bottles, Goods, Book Of Spells) cost nothing and carry no reason. Potions restore HP/MP.
+ * A null item gives null.
  */
 export const describeBattleItem = (item: BattleItemLike | null | undefined, ctx: BattleItemContext): BattleItemCard | null => {
   const isEmptyHand = !item || !nameOf(item);
@@ -128,6 +136,24 @@ export const describeBattleItem = (item: BattleItemLike | null | undefined, ctx:
 
   const isContainer = role === 'potions' || role === 'powers';
   if (isContainer) return { name, faIcon, mp: 0, effect: CONTAINER_LINES[role], reason: null };
+
+  if (role === 'potion') {
+    const potion = findPotionRule(name);
+    if (potion) {
+      const shelfItem = potionShelf(ctx.userId).find(
+        (p) => p.id === (item as any).id || p.name.toLowerCase() === name.toLowerCase()
+      );
+      const reason = shelfItem ? shelfItem.reason : potionReason(potion.rule, ctx.userId);
+      return {
+        name,
+        faIcon: faIcon || 'flask-potion',
+        mp: 0,
+        effect: potion.rule.effect,
+        reason,
+      };
+    }
+  }
+
   if (role === 'none') return { name, faIcon, mp: 0, effect: REASON_NOTHING, reason: REASON_NOTHING };
 
   const rule = BATTLE_ITEMS[name];
@@ -136,13 +162,17 @@ export const describeBattleItem = (item: BattleItemLike | null | undefined, ctx:
 };
 
 /**
- * Use a fight item from the bag. Checks the lock, the once-per-fight rule and the MP first (no MP is spent on a
- * refusal), then runs the item's effect, and charges the MP only when it worked and needs no chore pick. The
- * Silver Arrow answers `needsTaskPick` until it is called again with `ctx.taskId`. Returns `{ ok, line, sound }`
- * like ItemUse.useItem.
+ * Use a fight item from the bag. Potions heal and restore. Combat items check locks, once-per-fight and MP first.
  */
 export const useBattleItem = (item: BattleItemLike, ctx: BattleItemContext): BattleItemOutcome => {
   const name = nameOf(item) || 'That';
+
+  const potion = findPotionRule(name);
+  if (potion) {
+    const entryId = (item as any).id || name;
+    return drinkPotion(ctx.userId, entryId);
+  }
+
   const rule = BATTLE_ITEMS[name];
   if (!rule) return refuse(`${name}: ${REASON_NOTHING}`);
 

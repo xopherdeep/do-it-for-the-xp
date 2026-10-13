@@ -15,29 +15,14 @@
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
-      <ion-toolbar>
-        <ion-segment v-model="activeSegment" color="success" scrollable>
-          <ion-segment-button value="all">
-            <i class="fal fa-calendar-alt fa-2x"></i>
-            All
-          </ion-segment-button>
-          <ion-segment-button value="morning">
-            <i class="fal fa-sun fa-2x"></i>
-            Morn
-          </ion-segment-button>
-          <ion-segment-button value="noon">
-            <i class="fal fa-cloud-sun fa-2x"></i>
-            Noon
-          </ion-segment-button>
-          <ion-segment-button value="evening">
-            <i class="fal fa-cloud-moon fa-2x"></i>
-            Eve
-          </ion-segment-button>
-          <ion-segment-button value="night">
-            <i class="fal fa-moon-stars fa-2x"></i>
-            Night
-          </ion-segment-button>
-        </ion-segment>
+      <ion-toolbar class="calendar-subtoolbar">
+        <ion-searchbar
+          color="light"
+          :debounce="500"
+          @ionChange="filterQuests"
+          v-model="searchQuery"
+          placeholder="Search Daily Quests..."
+        ></ion-searchbar>
       </ion-toolbar>
     </ion-header>
 
@@ -88,29 +73,30 @@
         </ion-fab-button>
       </ion-fab>
     </ion-content>
-    <ion-footer>
-      <ion-toolbar color="secondary">
+    <ion-footer class="calendar-footer">
+      <ion-toolbar color="secondary" class="calendar-subtoolbar">
         <ion-grid>
           <ion-row>
-            <ion-col class="ion-no-padding">
-              <ion-searchbar color="light" :debounce="500" @ionChange="filterQuests" v-model="searchQuery"
-                placeholder="Search Daily Quests..."></ion-searchbar>
-            </ion-col>
-          </ion-row>
-          <ion-row>
             <ion-col>
-              <ion-button @click="prevDay" color="light" expand="block">
+              <ion-button @click="prevDay" color="light" expand="block" size="small">
                 <ion-icon :icon="chevronBack" slot="icon-only" />
               </ion-button>
             </ion-col>
             <ion-col>
-              <ion-button @click="nextDay" color="light" expand="block">
+              <ion-button @click="nextDay" color="light" expand="block" size="small">
                 <ion-icon :icon="chevronForward" slot="icon-only" />
               </ion-button>
             </ion-col>
           </ion-row>
         </ion-grid>
       </ion-toolbar>
+
+      <xp-app-bottom-nav
+        :tabs="calendarTabs"
+        v-model="activeSegment"
+        aria-label="Calendar Navigation"
+        @change="onTabChange"
+      />
     </ion-footer>
   </ion-page>
 </template>
@@ -139,8 +125,6 @@ import {
   IonCol,
   IonSearchbar,
   IonButton,
-  IonSegment,
-  IonSegmentButton,
   IonCard,
   IonCardHeader,
   IonCardTitle,
@@ -162,6 +146,8 @@ import {
 } from "ionicons/icons";
 import { isToday } from "date-fns";
 import MyTask from "../../UserHud/MyTask/MyTask.vue";
+import XpAppBottomNav from "@/components/organisms/BottomNav/XpAppBottomNav.vue";
+import type { AppNavTab } from "@/components/organisms/BottomNav/appBottomNav";
 import { formatQuestName } from "@/lib/utils/format";
 import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 import { boardStatusInSegment, getQuestEngine } from "@/lib/engine/quests/QuestEngine";
@@ -173,7 +159,8 @@ import { useUserStore } from "@/lib/store/stores/user";
 defineComponent({
   name: "MyCalendar",
   components: {
-    MyTask
+    MyTask,
+    XpAppBottomNav,
   }
 });
 
@@ -183,6 +170,19 @@ const props = defineProps<{
 const userStore = useUserStore();
 // /calendar/:userId? may be opened without an id (the router hands over "" for it), so fall back to the active profile
 const heroId = computed(() => String(props.userId || userStore.currentUser.id || ""));
+
+// Navigation tabs
+const calendarTabs: AppNavTab[] = [
+  { id: "all", label: "All", ionIcon: calendarOutline },
+  { id: "morning", label: "Morn", faIcon: "sun" },
+  { id: "noon", label: "Noon", faIcon: "cloud-sun" },
+  { id: "evening", label: "Eve", faIcon: "cloud-moon" },
+  { id: "night", label: "Night", faIcon: "moon-stars" },
+];
+
+const onTabChange = (tabId: string) => {
+  activeSegment.value = tabId as "all" | TimeOfDay;
+};
 
 // State
 const selectedDate = ref(new Date());

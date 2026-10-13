@@ -123,8 +123,8 @@ const drink = (potion: PotionCard) => {
 }
 
 .item-name {
-  font-family: "Apple Kid", sans-serif;
-  font-size: 1.35rem;
+  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  font-size: 1.25rem;
   letter-spacing: 1px;
   line-height: 1.2;
   overflow-wrap: anywhere;
@@ -132,15 +132,15 @@ const drink = (potion: PotionCard) => {
 
 .item-qty {
   flex: 0 0 auto;
-  font-family: "StatusPlz", sans-serif;
+  font-family: "StatusPlz", monospace;
   font-size: 0.95rem;
   color: $eb-color-pale-yellow;
 }
 
 .item-effect,
 .item-reason {
-  font-family: "StatusPlz", sans-serif;
-  font-size: 0.95rem;
+  font-family: "StatusPlz", monospace;
+  font-size: 0.85rem;
   line-height: 1.25;
   opacity: 0.85;
   white-space: normal;

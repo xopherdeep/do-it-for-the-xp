@@ -13,6 +13,9 @@
             <ion-badge color="secondary" class="avatar-badge" v-if="user?.stats">
               AP {{ apTotalLabel }}
             </ion-badge>
+            <ion-badge color="danger" class="notification-badge" v-if="hasUnreadNotifications">
+              {{ notificationBadgeLabel }}
+            </ion-badge>
           </div>
 
           <ion-badge class="name-badge">
@@ -130,9 +133,9 @@ export default defineComponent({
     },
     allUserActions(): RpgMenuAction[] {
       // Use a broad RpgMenuAction type to allow any labels/icons; the Notifications entry carries the unread count
-      const unread = (this as any).unreadNotifications as number;
+      const badge = (this as any).notificationBadgeLabel;
       const actions: RpgMenuAction[] = this.staticActions.map((action: RpgMenuAction) =>
-        action.id === USER_MENU_CONFIG.notifications.id ? { ...action, badge: unread > 99 ? "99+" : unread || undefined } : action
+        action.id === USER_MENU_CONFIG.notifications.id ? { ...action, badge } : action
       );
 
       actions.push({
@@ -174,6 +177,12 @@ export default defineComponent({
       { immediate: true }
     );
     const unreadNotifications = computed(() => notificationsStore.unreadCount(String(userId.value)));
+    const hasUnreadNotifications = computed(() => Boolean(unreadNotifications.value && unreadNotifications.value > 0));
+    const notificationBadgeLabel = computed(() => {
+      const count = unreadNotifications.value;
+      if (!count) return undefined;
+      return count > 99 ? "99+" : count;
+    });
     const fabActive = ref(false);
     const showSaveQuitModal = ref(false);
 
@@ -322,6 +331,8 @@ export default defineComponent({
       userId,
       userStore,
       unreadNotifications,
+      hasUnreadNotifications,
+      notificationBadgeLabel,
       walletOutline,
       colorWand,
       fitnessOutline,
@@ -404,6 +415,23 @@ ion-fab {
         border: 1px solid rgba(255, 255, 255, 0.2);
         box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
         pointer-events: none;
+      }
+
+      .notification-badge {
+        position: absolute;
+        top: 2px;
+        right: -2px;
+        z-index: 21;
+        font-family: "StatusPlz", sans-serif;
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        min-width: 1.3rem;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+        pointer-events: none;
+        line-height: 1.1;
+        text-align: center;
       }
     }
 

@@ -328,8 +328,8 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
   padding: 2px 12px;
   text-align: center;
   overflow-wrap: break-word;
-  font-family: "Apple Kid", sans-serif;
-  font-size: 1.1rem;
+  font-family: "StatusPlz", monospace;
+  font-size: 1.2rem;
   line-height: 1.35;
   letter-spacing: 1px;
   text-transform: uppercase;
@@ -622,8 +622,8 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
 
 .chores-left-label {
   margin-top: 4px;
-  font-family: "StatusPlz", "Apple Kid", sans-serif;
-  font-size: 1.2rem;
+  font-family: "StatusPlz", monospace;
+  font-size: 1.15rem;
   line-height: 1.1;
   letter-spacing: 0.5px;
   white-space: nowrap;
@@ -744,8 +744,8 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
 }
 
 .attack-timer-caption {
-  font-family: "StatusPlz", "Apple Kid", sans-serif;
-  font-size: 0.95rem;
+  font-family: "StatusPlz", monospace;
+  font-size: 0.85rem;
   letter-spacing: 0.5px;
   color: $eb-color-cream;
   opacity: 0.85;
@@ -753,8 +753,8 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
 
 .attack-timer-label {
   margin-top: 2px;
-  font-family: "Apple Kid", sans-serif;
-  font-size: 1.55rem;
+  font-family: "StatusPlz", monospace;
+  font-size: 1.25rem;
   letter-spacing: 1px;
   font-variant-numeric: tabular-nums;
   color: var(--tone-light);

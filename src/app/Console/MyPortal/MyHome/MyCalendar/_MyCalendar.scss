@@ -53,16 +53,16 @@
   }
 }
 
-ion-segment {
-  --background: var(--ion-toolbar-background, var(--ion-color-step-50));
+.calendar-footer {
+  background: transparent;
 
-  ion-segment-button {
-    --color: var(--ion-color-medium);
-    --color-checked: var(--ion-color-success);
-
-    i {
-      display: block;
-      margin-bottom: 5px;
-    }
+  .calendar-subtoolbar {
+    --min-height: 40px;
+    padding: 0 4px;
   }
+}
+
+.calendar-subtoolbar {
+  --min-height: 48px;
+  padding: 0 4px;
 }

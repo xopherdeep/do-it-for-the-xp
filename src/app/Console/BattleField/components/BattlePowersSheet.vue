@@ -95,8 +95,8 @@ const cast = (abilityId: string) => {
 
   .power-name {
     margin: 0;
-    font-family: "Apple Kid", sans-serif;
-    font-size: 1.35rem;
+    font-family: "Apple Kid", "StatusPlz", sans-serif;
+    font-size: 1.25rem;
     font-weight: normal;
     letter-spacing: 1px;
     line-height: 1.2;
@@ -105,7 +105,8 @@ const cast = (abilityId: string) => {
 
   .power-chip {
     padding: 1px 6px;
-    font-size: 0.7rem;
+    font-family: "StatusPlz", monospace;
+    font-size: 0.85rem;
     letter-spacing: 0.05em;
     text-transform: uppercase;
     color: $eb-color-dark-purple;
@@ -114,13 +115,15 @@ const cast = (abilityId: string) => {
 
   .power-desc {
     margin: 0;
-    font-size: 0.95rem;
+    font-family: "StatusPlz", monospace;
+    font-size: 0.85rem;
     line-height: 1.25;
     opacity: 0.85;
   }
 
   .power-cost {
     margin: 0;
+    font-family: "StatusPlz", monospace;
     font-size: 0.95rem;
     color: var(--xp-color-mp, #{$eb-color-pale-yellow});
   }
@@ -134,7 +137,8 @@ const cast = (abilityId: string) => {
 
   .power-state {
     margin: 0;
-    font-size: 0.95rem;
+    font-family: "StatusPlz", monospace;
+    font-size: 0.85rem;
     line-height: 1.25;
     color: #ff6b6b;
   }

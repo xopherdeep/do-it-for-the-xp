@@ -17,6 +17,7 @@ import XpBuildingModel from './components/organisms/BuildingModel/XpBuildingMode
 import XpStageModel from './components/organisms/StageModel/XpStageModel.vue'
 import XpTravelingMerchant from './components/organisms/TravelingMerchant/XpTravelingMerchant.vue'
 import XpDraggableSpot from './components/organisms/DraggableSpot/XpDraggableSpot.vue'
+import XpAppBottomNav from './components/organisms/BottomNav/XpAppBottomNav.vue'
 
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
 import VueVirtualScroller from 'vue-virtual-scroller';
@@ -93,6 +94,7 @@ function readyRouterMountApp() {
     .component('xp-stage-model', XpStageModel)
     .component('xp-traveling-merchant', XpTravelingMerchant)
     .component('xp-draggable-spot', XpDraggableSpot)
+    .component('xp-app-bottom-nav', XpAppBottomNav)
     // .component('RecycleScroller', RecycleScroller)
     .use(VueVirtualScroller)
     .use(Countdown)

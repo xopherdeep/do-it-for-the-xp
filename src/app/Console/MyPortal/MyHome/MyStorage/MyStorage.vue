@@ -9,49 +9,13 @@
         </ion-buttons>
         <ion-title> My Storage </ion-title>
       </ion-toolbar>
-      <ion-toolbar>
-        <ion-segment
-          @ionChange="selectShelf($event)"
-          color="danger"
-          scrollable
-          value="all"
-        >
-          <ion-segment-button value="all">
-            <ion-icon
-              :icon="bagOutline"
-              color="primary"
-            ></ion-icon>
-            All
-          </ion-segment-button>
-          <ion-segment-button value="hp">
-            <ion-icon
-              :icon="fitnessOutline"
-              color="danger"
-            ></ion-icon>
-            HP
-          </ion-segment-button>
-          <ion-segment-button value="mp">
-            <ion-icon
-              :icon="colorWandOutline"
-              color="tertiary"
-            ></ion-icon>
-            MP
-          </ion-segment-button>
-          <ion-segment-button value="misc">
-            <ion-icon
-              :icon="sparklesOutline"
-              color="success"
-            ></ion-icon>
-            Misc
-          </ion-segment-button>
-          <ion-segment-button value="key">
-            <ion-icon
-              :icon="keyOutline"
-              color="gold"
-            ></ion-icon>
-            Key
-          </ion-segment-button>
-        </ion-segment>
+      <ion-toolbar color="danger">
+        <ion-searchbar
+          color="dark"
+          @ionChange="request.params.page = 1"
+          v-model="request.params.search"
+          placeholder="Search Storage..."
+        />
       </ion-toolbar>
     </ion-header>
 
@@ -132,19 +96,9 @@
         </ion-fab-button>
       </ion-fab>
     </ion-content>
-    <ion-footer>
-      <ion-toolbar>
+    <ion-footer class="storage-footer">
+      <ion-toolbar class="storage-subtoolbar">
         <ion-grid>
-          <ion-row>
-            <ion-col class="ion-no-padding">
-              <ion-searchbar
-                color="dark"
-                @ionChange="request.params.page = 1"
-                v-model="request.params.search"
-                placeholder="Search Storage..."
-              ></ion-searchbar>
-            </ion-col>
-          </ion-row>
           <ion-row>
             <ion-col>
               <ion-button
@@ -175,6 +129,13 @@
         </ion-row>
       </ion-grid>
     </ion-toolbar>
+
+    <xp-app-bottom-nav
+      :tabs="storageTabs"
+      v-model="activeShelf"
+      aria-label="Storage Navigation"
+      @change="onShelfChange"
+    />
   </ion-footer>
 </ion-page></template>
 

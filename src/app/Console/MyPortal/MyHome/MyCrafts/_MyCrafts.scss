@@ -28,3 +28,12 @@
   }
 
 }
+
+.crafts-footer {
+  background: transparent;
+
+  .crafts-subtoolbar {
+    --min-height: 40px;
+    padding: 0 4px;
+  }
+}

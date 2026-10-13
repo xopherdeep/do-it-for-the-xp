@@ -157,6 +157,55 @@ describe("BattleEnemyStage", () => {
     });
   });
 
+  describe("the grudge marks (docs/Quest-Rooms-Spec.md 5.7)", () => {
+    const marks = () => wrapper!.findAll(".grudge-mark");
+
+    it("shows nothing for a beast that holds no grudge", () => {
+      show({ enemy: makeEnemy() });
+      expect(wrapper!.find(".grudge-marks").exists()).toBe(false);
+      show({ enemy: makeEnemy({ grudgeMarks: 0 }) });
+      expect(wrapper!.find(".grudge-marks").exists()).toBe(false);
+    });
+
+    it.each([
+      [1, "Holds a grudge: 1 mark, hits 25% harder"],
+      [2, "Holds a grudge: 2 marks, hits 50% harder"],
+      [3, "Holds a grudge: 3 marks, hits 75% harder"],
+    ])("draws %i marks and says what they mean", (count, label) => {
+      show({ enemy: makeEnemy({ grudgeMarks: count }) });
+      expect(marks()).toHaveLength(count);
+      const row = wrapper!.find(".grudge-marks");
+      expect(row.attributes("role")).toBe("img");
+      expect(row.attributes("aria-label")).toBe(label);
+      expect(row.attributes("title")).toBe(label);
+    });
+
+    it("never draws more than three, and ignores a count it cannot read", () => {
+      show({ enemy: makeEnemy({ grudgeMarks: 9 }) });
+      expect(marks()).toHaveLength(3);
+      show({ enemy: makeEnemy({ grudgeMarks: Number.NaN }) });
+      expect(wrapper!.find(".grudge-marks").exists()).toBe(false);
+    });
+
+    it("sits on the beast, so it shakes and fades with it, and leaves the name plate's text alone", () => {
+      show({ enemy: makeEnemy({ name: "Dish Goblin", grudgeMarks: 2 }) });
+      expect(wrapper!.find(".enemy-sprite-container .grudge-marks").exists()).toBe(true);
+      expect(wrapper!.find(".enemy-name").text()).toBe("Dish Goblin");
+    });
+
+    it("keeps no marks of its own text on screen: the marks are pictures, the label is for a reader", () => {
+      show({ enemy: makeEnemy({ grudgeMarks: 3 }) });
+      expect(wrapper!.find(".grudge-marks").text()).toBe("");
+    });
+
+    it("follows the beast: a new beast with no grudge clears them", async () => {
+      show({ enemy: makeEnemy({ grudgeMarks: 2 }) });
+      expect(marks()).toHaveLength(2);
+      await update({ enemy: makeEnemy({ id: "beast-2", grudgeMarks: undefined }) });
+      expect(wrapper!.find(".grudge-marks").exists()).toBe(false);
+    });
+  });
+
   describe("the attack clock", () => {
     it("shows the caption and the label", () => {
       show({ timerLabel: "2:05" });

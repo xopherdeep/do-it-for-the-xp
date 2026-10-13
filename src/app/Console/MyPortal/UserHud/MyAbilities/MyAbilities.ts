@@ -21,11 +21,21 @@ import type { Ability } from "@/types/abilities";
 import { play$fx } from "@/assets/fx";
 import XpPowerCard from "./components/XpPowerCard.vue";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
+import XpAppBottomNav from "@/components/organisms/BottomNav/XpAppBottomNav.vue";
+import type { AppNavTab } from "@/components/organisms/BottomNav/appBottomNav";
 
 /** The tabs of the Powers page: everything, the two kinds, and whether the hero has earned them yet */
 export type PowerFilter = "all" | "real-life" | "in-game" | "unlocked" | "locked";
 
 const FILTERS: PowerFilter[] = ["all", "real-life", "in-game", "unlocked", "locked"];
+
+const POWER_TABS: AppNavTab[] = [
+  { id: "all", label: "All", ionIcon: colorWandOutline },
+  { id: "real-life", label: "Privileges", ionIcon: keyOutline },
+  { id: "in-game", label: "Spells", ionIcon: flashOutline },
+  { id: "unlocked", label: "Unlocked", ionIcon: lockOpenOutline },
+  { id: "locked", label: "Locked", ionIcon: lockClosedOutline },
+];
 
 /** Privileges (real-life) come before Spells (in-game) */
 const TYPE_ORDER: Record<string, number> = { "real-life": 0, "in-game": 1 };
@@ -39,6 +49,7 @@ export default defineComponent({
   components: {
     XpLoading,
     XpPowerCard,
+    XpAppBottomNav,
   },
   mixins: [ionic],
   setup(props) {
@@ -151,6 +162,7 @@ export default defineComponent({
       casting,
       cast,
       segmentChanged,
+      powerTabs: POWER_TABS,
       arrowBack,
       colorWandOutline,
       flashOutline,

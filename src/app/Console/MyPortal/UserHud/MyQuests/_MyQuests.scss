@@ -273,3 +273,14 @@ ion-modal{
     line-height: 1.5;
   }
 }
+
+.quests-footer {
+  background: transparent;
+
+  .quests-subtoolbar {
+    --min-height: 38px;
+    padding: 0 4px;
+    font-size: 0.8rem;
+    font-family: "StatusPlz", monospace;
+  }
+}

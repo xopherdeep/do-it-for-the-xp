@@ -11,34 +11,13 @@
           My Workbench
         </ion-title>
       </ion-toolbar>
-      <ion-toolbar>
-        <ion-segment
-          @ionChange="segmentChanged($event)"
-          color="primary"
-          scrollable
-          value="all"
-        >
-          <ion-segment-button value="all">
-            <ion-icon :icon="appsOutline" color="primary"></ion-icon>
-            All
-          </ion-segment-button>
-          <ion-segment-button value="hp">
-            <ion-icon :icon="bedOutline" color=""></ion-icon>
-            Furniture
-          </ion-segment-button>
-          <ion-segment-button value="mp">
-            <ion-icon :icon="colorWandOutline" color=""></ion-icon>
-            Accessories
-          </ion-segment-button>
-          <ion-segment-button value="misc">
-            <ion-icon :icon="sparklesOutline" color=""></ion-icon>
-            Weapons
-          </ion-segment-button>
-          <ion-segment-button value="key">
-            <ion-icon :icon="keyOutline" color=""></ion-icon>
-            Key
-          </ion-segment-button>
-        </ion-segment>
+      <ion-toolbar color="primary">
+        <ion-searchbar
+          color="light"
+          @ionChange="request.params.page = 1"
+          v-model="request.params.search"
+          placeholder="Search Workbench"
+        />
       </ion-toolbar>
     </ion-header>
 
@@ -127,18 +106,9 @@
         @didDismiss="actionSheetOpen = false"
       />
     </ion-content>
-    <ion-footer>
-      <ion-toolbar color="secondary">
+    <ion-footer class="crafts-footer">
+      <ion-toolbar color="secondary" class="crafts-subtoolbar">
         <ion-grid>
-          <ion-row>
-            <ion-col class="ion-no-padding">
-              <ion-searchbar
-                color="light"
-                @ionChange="request.params.page = 1"
-                v-model="request.params.search"
-              ></ion-searchbar>
-            </ion-col>
-          </ion-row>
           <ion-row>
             <ion-col>
               <ion-button
@@ -146,6 +116,7 @@
                 :disabled="request.params.page == 1"
                 color="light"
                 expand="block"
+                size="small"
               >
                 <ion-icon
                   :icon="chevronBack"
@@ -153,24 +124,32 @@
                 />
               </ion-button>
             </ion-col>
-          <ion-col>
-            <ion-button
-              @click="request.params.page++"
-              :disabled="!hasNextPage"
-              color="light"
-              expand="block"
-            >
-              <ion-icon
-                :icon="chevronForward"
-                slot="icon-only"
-              />
-            </ion-button>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
-    </ion-toolbar>
-  </ion-footer>
-</ion-page></template>
+            <ion-col>
+              <ion-button
+                @click="request.params.page++"
+                :disabled="!hasNextPage"
+                color="light"
+                expand="block"
+                size="small"
+              >
+                <ion-icon
+                  :icon="chevronForward"
+                  slot="icon-only"
+                />
+              </ion-button>
+            </ion-col>
+          </ion-row>
+        </ion-grid>
+      </ion-toolbar>
+
+      <xp-app-bottom-nav
+        :tabs="workbenchTabs"
+        v-model="activeTab"
+        aria-label="Workbench Navigation"
+        @change="onTabChange"
+      />
+    </ion-footer>
+  </ion-page></template>
 
 <script lang="ts" src="./MyCrafts.ts" />
 <style lang="scss" src="./_MyCrafts.scss" scoped />

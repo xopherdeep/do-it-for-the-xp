@@ -10,26 +10,17 @@
         </ion-buttons>
         <ion-title> My Kitchen </ion-title>
       </ion-toolbar>
+      <ion-toolbar color="secondary">
+        <ion-searchbar
+          color="light"
+          placeholder="Search Foods..."
+          v-model="searchTerm"
+          :debounce="300"
+        />
+      </ion-toolbar>
     </ion-header>
 
     <ion-content class="my-foods">
-      <ion-item lines="full">
-        <ion-label> Category </ion-label>
-        <ion-select
-          @ionChange="selectCategory"
-          :value="selectedCategory"
-          :interface-options="customAlertOptions"
-          interface="alert"
-          placeholder="Select One"
-        >
-          <ion-select-option value="all"> All Foods </ion-select-option>
-          <ion-select-option value="favorites"> Favorites </ion-select-option>
-          <ion-select-option value="meal"> Meals </ion-select-option>
-          <ion-select-option value="snack"> Snacks </ion-select-option>
-          <ion-select-option value="dessert"> Desserts </ion-select-option>
-          <ion-select-option value="ingredient"> Ingredients </ion-select-option>
-        </ion-select>
-      </ion-item>
 
       <!-- Display Filtered Foods -->
       <ion-grid>
@@ -87,16 +78,12 @@
       </ion-fab>
     </ion-content>
 
-    <!-- Footer with Search Bar -->
-    <ion-footer>
-      <ion-toolbar color="secondary">
-         <ion-searchbar
-            color="light"
-            placeholder="Search Foods..."
-            v-model="searchTerm"
-            :debounce="300"
-          ></ion-searchbar>
-      </ion-toolbar>
+    <ion-footer class="foods-footer">
+      <xp-app-bottom-nav
+        :tabs="foodTabs"
+        v-model="selectedCategory"
+        aria-label="Kitchen Navigation"
+      />
     </ion-footer>
   </ion-page>
 </template>

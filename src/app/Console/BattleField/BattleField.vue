@@ -36,11 +36,20 @@
           :is-append-mode="dialogIsAppendMode"
           :is-victory="dialogIsVictory"
           :has-more="dialogHasMore"
-          :show-menu="showMenu"
+          :show-menu="showMenu && isRetro"
           :menu-actions="menuActions"
           :prompt="menuPrompt"
           @advance="advanceDialog"
           @typing-complete="onDialogTypingComplete"
+        />
+
+        <XpBattleRadialMenu
+          v-if="showMenu && isModern"
+          :actions="menuActions"
+          :hero-avatar="heroAvatar"
+          :hero-look="heroLook"
+          :animation="heroAnimation"
+          :prompt="menuPrompt"
         />
       </div>
 
@@ -63,7 +72,7 @@
     </transition>
 
     <!-- Goods = the same bag as everywhere else, in battle mode: Use instead of Equip; using one keeps the hero's move -->
-    <XpEquipmentModal
+    <XpInventoryModal
       :is-open="sheet === 'bag'"
       mode="battle"
       :equipment="equipment"

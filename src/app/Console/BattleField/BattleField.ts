@@ -14,7 +14,7 @@ import { useHeroEquipment } from "@/hooks/useHeroEquipment";
 import { useUserStore } from "@/lib/store/stores/user";
 import { heroPassive } from "@/lib/services/stats/StatEffects";
 import debug from "@/lib/utils/debug";
-import XpEquipmentModal from "@/app/Console/MyPortal/UserHud/components/XpEquipmentModal.vue";
+import XpInventoryModal from "@/app/Console/MyPortal/UserHud/MyInventory/XpInventoryModal.vue";
 import { resolveBattleContext, type BattleContext } from "./battle/battleContext";
 import { loadEncounter, type Encounter } from "./battle/encounterLoader";
 import { tackleIcon, type BattleMenuAction } from "./battle/battleMenu";
@@ -33,6 +33,10 @@ import BattleVictoryCard from "./components/BattleVictoryCard.vue";
 import BattlePotionSheet from "./components/BattlePotionSheet.vue";
 import BattlePowersSheet from "./components/BattlePowersSheet.vue";
 import XpBattleTaskMenu from "./components/XpBattleTaskMenu.vue";
+import XpBattleRadialMenu from "./components/XpBattleRadialMenu.vue";
+import type { HeroAnimation, HeroLook } from "@/lib/hero-look/types";
+import { useGameStore } from "@/lib/store/stores/game";
+import appConfig from "@/app.config";
 
 const toLayer = (value: unknown): number | undefined => {
   const parsed = Number(Array.isArray(value) ? value[0] : value);
@@ -74,13 +78,22 @@ export default defineComponent({
     BattlePotionSheet,
     BattlePowersSheet,
     XpBattleTaskMenu,
-    XpEquipmentModal,
+    XpInventoryModal,
+    XpEquipmentModal: XpInventoryModal,
+    XpBattleRadialMenu,
   },
   setup() {
     const route = useRoute();
     const router = useRouter();
     const userStore = useUserStore();
+    const gameStore = useGameStore();
     const ctx = resolveBattleContext(route, userStore.currentUser.id);
+    const isModern = computed(() => gameStore.fabStyle === "modern");
+    const isRetro = computed(() => gameStore.fabStyle === "retro");
+    const heroAvatar = computed(() => {
+      const heroUser = userStore.users[ctx.userId];
+      return heroUser ? appConfig.$getUserAvatar(heroUser) || "" : "";
+    });
     /**
      * What the chores ticked off today are kept under: the quest when the fight carries one, so its board fight and its
      * temple room share them (the dishes already scraped stay scraped), else the fight itself. Set once it has loaded.
@@ -128,6 +141,27 @@ export default defineComponent({
     const feedback = useBattleFeedback();
     const { equipment } = useHeroEquipment(ctx.userId);
     const hero = computed(() => userStore.getUserById(ctx.userId));
+    const heroLook = computed(() => hero.value?.look);
+    const heroAnimation = ref<HeroAnimation>("idle");
+    let animTimer: number | undefined;
+
+    watch(feedback.hitSignal, () => {
+      heroAnimation.value = "hurt";
+      window.clearTimeout(animTimer);
+      animTimer = window.setTimeout(() => {
+        if (battleStarted.value && !victoryCard.value) {
+          heroAnimation.value = "idle";
+        }
+      }, 600);
+    });
+
+    watch(victoryCard, (card) => {
+      if (card) {
+        heroAnimation.value = "victory";
+      } else if (battleStarted.value) {
+        heroAnimation.value = "idle";
+      }
+    });
 
     const stopNag = () => {
       window.clearInterval(nagTimer);
@@ -549,12 +583,16 @@ export default defineComponent({
     const finishCombatTask = (taskId: string) => {
       if (!battleStarted.value) return;
       closeSheet();
+      heroAnimation.value = "walk";
       window.clearTimeout(swingTimer);
       swingTimer = window.setTimeout(() => {
         if (!battleStarted.value) return;
         audio.playSound("attack");
         feedback.beastHit();
         service.value?.finishCombatTask(taskId);
+        if (battleStarted.value && !victoryCard.value) {
+          heroAnimation.value = "idle";
+        }
       }, SHEET_LEAVE_MS);
     };
 
@@ -600,6 +638,7 @@ export default defineComponent({
       document.removeEventListener("visibilitychange", onVisibilityChange);
       window.clearTimeout(hitTimer);
       window.clearTimeout(swingTimer);
+      window.clearTimeout(animTimer);
     });
 
     return {
@@ -624,6 +663,8 @@ export default defineComponent({
       hitSignal: feedback.hitSignal,
       shaking: feedback.shaking,
       flashing: feedback.flashing,
+      heroLook,
+      heroAnimation,
       // dialog + menu
       typingRef: dialog.typingRef,
       dialogText: dialog.text,
@@ -636,6 +677,9 @@ export default defineComponent({
       showMenu,
       menuActions,
       menuPrompt,
+      isModern,
+      isRetro,
+      heroAvatar,
       // sheets: one at a time
       sheet,
       closeSheet,

@@ -110,8 +110,8 @@ $button-edge: #1a0a1a;
 
 .sheet-title {
   margin: 0;
-  font-family: "Apple Kid", sans-serif;
-  font-size: 1.5rem;
+  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  font-size: 1.4rem;
   font-weight: normal;
   line-height: 1.1;
   letter-spacing: 2px;
@@ -125,7 +125,7 @@ $button-edge: #1a0a1a;
 
 .sheet-subtitle {
   margin: 6px 0 0;
-  font-family: "StatusPlz", sans-serif;
+  font-family: "StatusPlz", monospace;
   font-size: 0.95rem;
   line-height: 1.25;
   opacity: 0.85;
@@ -155,8 +155,8 @@ $button-edge: #1a0a1a;
 :slotted(.empty-state) {
   padding: 18px 8px;
   text-align: center;
-  font-family: "Apple Kid", sans-serif;
-  font-size: 1.2rem;
+  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  font-size: 1.15rem;
   letter-spacing: 1px;
   opacity: 0.8;
 }
@@ -183,8 +183,8 @@ $button-edge: #1a0a1a;
   border-radius: 2px;
   background: $button-fill;
   color: $eb-color-cream;
-  font-family: "Apple Kid", sans-serif;
-  font-size: 1.3rem;
+  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  font-size: 1.25rem;
   letter-spacing: 1px;
   line-height: 1.1;
   cursor: pointer;

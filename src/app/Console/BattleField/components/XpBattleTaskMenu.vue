@@ -245,8 +245,8 @@ $seam: rgba($eb-color-cream, 0.25);
 
 .sheet-title {
   margin: 0;
-  font-family: "Apple Kid", sans-serif;
-  font-size: 1.5rem;
+  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  font-size: 1.4rem;
   font-weight: normal;
   line-height: 1.1;
   letter-spacing: 2px;
@@ -260,8 +260,8 @@ $seam: rgba($eb-color-cream, 0.25);
 
 .sheet-subtitle {
   margin: 6px 0 0;
-  font-family: "StatusPlz", sans-serif;
-  font-size: 1.15rem;
+  font-family: "StatusPlz", monospace;
+  font-size: 0.95rem;
   line-height: 1.25;
   opacity: 0.85;
 }
@@ -287,8 +287,8 @@ $seam: rgba($eb-color-cream, 0.25);
 .empty-state {
   padding: 18px 8px;
   text-align: center;
-  font-family: "Apple Kid", sans-serif;
-  font-size: 1.2rem;
+  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  font-size: 1.15rem;
   letter-spacing: 1px;
   opacity: 0.8;
 }
@@ -306,8 +306,8 @@ $seam: rgba($eb-color-cream, 0.25);
   border-radius: 2px;
   background: rgba($eb-color-cream, 0.04);
   color: $eb-color-cream;
-  font-family: "Apple Kid", sans-serif;
-  font-size: 1.35rem;
+  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  font-size: 1.25rem;
   letter-spacing: 1px;
   text-align: left;
   cursor: pointer;
@@ -442,8 +442,8 @@ $seam: rgba($eb-color-cream, 0.25);
   border-radius: 2px;
   background: $button-fill;
   color: $eb-color-cream;
-  font-family: "Apple Kid", sans-serif;
-  font-size: 1.3rem;
+  font-family: "Apple Kid", "StatusPlz", sans-serif;
+  font-size: 1.25rem;
   letter-spacing: 1px;
   line-height: 1.1;
   cursor: pointer;

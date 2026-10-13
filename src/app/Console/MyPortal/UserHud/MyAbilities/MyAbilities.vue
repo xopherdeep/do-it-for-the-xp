@@ -8,34 +8,12 @@
         </ion-buttons>
         <ion-title> My Powers </ion-title>
       </ion-toolbar>
-      <ion-toolbar>
-        <ion-segment
-          @ionChange="segmentChanged($event)"
-          color="tertiary"
-          scrollable
-          :value="filter"
-        >
-          <ion-segment-button value="all">
-            <ion-icon :icon="colorWandOutline"></ion-icon>
-            All
-          </ion-segment-button>
-          <ion-segment-button value="real-life">
-            <ion-icon :icon="keyOutline"></ion-icon>
-            Privileges
-          </ion-segment-button>
-          <ion-segment-button value="in-game">
-            <ion-icon :icon="flashOutline"></ion-icon>
-            Spells
-          </ion-segment-button>
-          <ion-segment-button value="unlocked">
-            <ion-icon :icon="lockOpenOutline"></ion-icon>
-            Unlocked
-          </ion-segment-button>
-          <ion-segment-button value="locked">
-            <ion-icon :icon="lockClosedOutline"></ion-icon>
-            Locked
-          </ion-segment-button>
-        </ion-segment>
+      <ion-toolbar color="tertiary">
+        <ion-searchbar
+          color="light"
+          placeholder="Search Powers"
+          v-model="search"
+        />
       </ion-toolbar>
     </ion-header>
 
@@ -60,20 +38,12 @@
       </div>
     </ion-content>
 
-    <ion-footer>
-      <ion-toolbar color="tertiary">
-        <ion-grid>
-          <ion-row>
-            <ion-col class="ion-no-padding">
-              <ion-searchbar
-                color="light"
-                placeholder="Search Powers"
-                v-model="search"
-              ></ion-searchbar>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-      </ion-toolbar>
+    <ion-footer class="abilities-footer">
+      <xp-app-bottom-nav
+        :tabs="powerTabs"
+        v-model="filter"
+        aria-label="Powers Navigation"
+      />
     </ion-footer>
   </ion-page>
 </template>

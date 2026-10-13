@@ -18,6 +18,17 @@ import {
   cartOutline,
 } from 'ionicons/icons';
 import { actionSheetController } from '@ionic/vue';
+import XpAppBottomNav from "@/components/organisms/BottomNav/XpAppBottomNav.vue";
+import type { AppNavTab } from "@/components/organisms/BottomNav/appBottomNav";
+
+const FOOD_TABS: AppNavTab[] = [
+  { id: "all", label: "All", ionIcon: restaurantOutline },
+  { id: "favorites", label: "Favorites", ionIcon: heartOutline },
+  { id: "meal", label: "Meals", ionIcon: fastFoodOutline },
+  { id: "snack", label: "Snacks", ionIcon: pizzaOutline },
+  { id: "dessert", label: "Desserts", ionIcon: iceCreamOutline },
+  { id: "ingredient", label: "Pantry", ionIcon: cartOutline },
+];
 
 // Mock Data Interface
 interface FoodItem {
@@ -32,6 +43,9 @@ interface FoodItem {
 export default defineComponent({
   props: ['userId'],
   name: 'my-foods',
+  components: {
+    XpAppBottomNav,
+  },
   mixins: [ionic],
   data() {
     return {
@@ -87,7 +101,10 @@ export default defineComponent({
       }
 
       return foods;
-    }
+    },
+    foodTabs(): AppNavTab[] {
+      return FOOD_TABS;
+    },
   },
   methods: {
     selectCategory($event: CustomEvent) {

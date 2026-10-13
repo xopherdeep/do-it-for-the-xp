@@ -211,7 +211,7 @@ $lavender-dark: #9080a8;
   flex: 1 1 auto;
   min-width: 0;
   font-family: "StatusPlz", monospace;
-  font-size: 1rem;
+  font-size: 1.05rem;
   font-weight: 600;
   letter-spacing: 0.5px;
   text-shadow: 1px 1px 0 $ink;
@@ -225,7 +225,7 @@ $lavender-dark: #9080a8;
   white-space: nowrap;
   margin-left: auto;
   font-family: "StatusPlz", monospace;
-  font-size: 0.72rem;
+  font-size: 0.85rem;
   text-shadow: 1px 1px 0 $ink;
   opacity: 0.9;
 }
@@ -249,7 +249,7 @@ $lavender-dark: #9080a8;
 
 .hero-initial {
   font-family: "StatusPlz", monospace;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   color: $bone;
 }
 
@@ -273,7 +273,7 @@ $lavender-dark: #9080a8;
   width: 16px;
   height: 30px;
   font-family: "Fourside", "StatusPlz", monospace;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   line-height: 0.88;
   -webkit-text-stroke: 1px $bone;
   text-shadow: 1px 1px 0 $ink;
@@ -372,7 +372,7 @@ $lavender-dark: #9080a8;
   border: 2px solid $bone;
   color: $bone;
   font-family: "StatusPlz", monospace;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   letter-spacing: 1px;
   animation: badge-pop 0.2s ease-out;
 }
