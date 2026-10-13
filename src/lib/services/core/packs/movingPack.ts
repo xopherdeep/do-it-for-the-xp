@@ -70,6 +70,10 @@ export interface MovingAnswers {
   heroes: MovingHero[];
   /** Today, "YYYY-MM-DD"; decides how far the phases are squeezed when the move is near. Defaults to today. */
   today?: string;
+  /** How many floors the home has; the temple puts the bedrooms upstairs on two. Defaults to 1; the pack ignores it. */
+  floors?: 1 | 2;
+  /** The storage room is a basement under the house. Defaults to false and counts only while storage is ticked; the pack ignores it. */
+  basement?: boolean;
 }
 
 /** What the setup starts with: a typical family home with three bedrooms. */
