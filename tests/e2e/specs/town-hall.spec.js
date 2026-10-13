@@ -1,6 +1,18 @@
 // The Town Hall: the read-only tabs (News, Board, Events, Updates) and the clerk's menu, with the site stubbed.
-// The live site is never touched: every request to it is answered by a fixture below.
+// The live site is never touched: every request to it is answered by a fixture below, and a write no case stubbed is
+// answered 599 here (stubCatchAllWrites), never sent.
 const CORS = { "access-control-allow-origin": "*", "access-control-expose-headers": "X-WP-TotalPages,X-WP-Total" };
+const LIVE_SITE = "https://doit.forthexp.com";
+
+/**
+ * Every write to the site (POST, PUT, PATCH, DELETE) is answered 599 unless a case stubs it. Defined first in the top-level
+ * beforeEach, so each case's own stubs (defined later) win over it, and no case can ever write to the live site.
+ */
+function stubCatchAllWrites() {
+  cy.intercept({ method: /^(POST|PUT|PATCH|DELETE)$/, url: `${LIVE_SITE}/**` }, { statusCode: 599, body: { code: "e2e_unstubbed_write" }, headers: CORS }).as(
+    "unstubbedWrite"
+  );
+}
 const json = (body, extra = {}) => ({ statusCode: 200, body, headers: { ...CORS, ...extra } });
 
 const post = (id, title, excerpt, extra = {}) => ({
@@ -65,6 +77,7 @@ describe("Town Hall", () => {
   });
 
   beforeEach(() => {
+    stubCatchAllWrites();
     stubSite();
   });
 
@@ -174,18 +187,21 @@ describe("Town Hall", () => {
   });
 
   describe("Family Registration", () => {
-    // Production builds route by hash: WordPress then puts its answer before the fragment, as /?query#/town-hall/gm-1
+    // Production builds route by hash: WordPress's approve button appends its answer to the END of the return address, so
+    // it lands after the route, as /#/town-hall/gm-1?th_state=..&site_url=..
     const hash = Cypress.env("hashRouting");
-    const SITE = "https://doit.forthexp.com";
+    const SITE = LIVE_SITE;
     const APP_ID = "7606ce60-29c7-43b6-9533-2063ee726df4";
-    const LINK_QUERY = "site_url=https%3A%2F%2Fdoit.forthexp.com&user_login=mom&password=abcd+efgh";
+    // auth-app.js encodes with encodeURIComponent: spaces are %20
+    const LINK_QUERY = "site_url=https%3A%2F%2Fdoit.forthexp.com&user_login=mom&password=abcd%20efgh";
     const MOM_BASIC = `Basic ${btoa("mom:abcd efgh")}`;
+    // The one-shot state the device remembered when the Game Master left for the authorize page (townHallLinkState.ts)
+    const STATE = "e2e-state-1";
+    const STATE_KEY = "xp:townHallLinkState";
 
-    const withQuery = (address, query) => {
-      const [base, fragment] = address.split("#");
-      return fragment === undefined ? `${base}?${query}` : `${base}?${query}#${fragment}`;
-    };
-    const returnPath = (query) => (hash ? `/?${query}#/town-hall/gm-1` : `/town-hall/gm-1?${query}`);
+    /** What auth-app.js does with success_url: plain concatenation, "?" or "&" by whether it has a "?" already */
+    const appended = (address, query) => `${address}${address.includes("?") ? "&" : "?"}${query}`;
+    const returnPath = (query, state = STATE) => appended(hash ? "/#/town-hall/gm-1" : "/town-hall/gm-1", state ? `th_state=${state}&${query}` : query);
     const townHallPath = hash ? "/#/town-hall/gm-1" : "/town-hall/gm-1";
 
     // The site answers the new password's check and, for a request carrying Authorization, the CORS preflight before it
@@ -232,14 +248,19 @@ describe("Town Hall", () => {
       );
     }
 
-    /** As the Game Master gm-1 on a device with no link, at `path` (the Town Hall, or what WordPress sends the parent back to) */
-    function openRegistration(path, { wpApiSettings } = {}) {
+    /**
+     * As the Game Master gm-1 on a device with no link, at `path` (the Town Hall, or what WordPress sends the parent back to).
+     * `expecting`: the device remembers that state, as it does when the Game Master left for the authorize page.
+     */
+    function openRegistration(path, { wpApiSettings, expecting = STATE } = {}) {
       cy.seedWorld("town-hall-backup.json", "gm-1");
       forgetDeviceLink();
       cy.visit(path, {
         timeout: 120000,
         onBeforeLoad(win) {
           if (wpApiSettings) win.wpApiSettings = wpApiSettings;
+          win.sessionStorage.removeItem(STATE_KEY);
+          if (expecting) win.sessionStorage.setItem(STATE_KEY, JSON.stringify({ state: expecting, heroId: "gm-1", expiresAt: Date.now() + 600000 }));
         },
       });
       cy.tapToWakeAudio();
@@ -266,11 +287,13 @@ describe("Town Hall", () => {
       cy.contains("[data-cy=reveal-text]", "Welcome, Mom!", { timeout: 30000 });
       cy.url().should("not.contain", "password");
       cy.url().should("not.contain", "abcd");
+      cy.url().should("not.contain", "th_state");
       cy.location("search").should("eq", "");
       // vue-router writes history.state.current back to the entry's address when the app navigates on
       cy.window().then((win) => {
         expect(JSON.stringify(win.history.state)).to.not.contain("password");
         expect(win.history.state.current).to.eq("/town-hall/gm-1");
+        expect(win.sessionStorage.getItem(STATE_KEY), "the state is used up").to.eq(null);
       });
       cy.wait("@meSlow").its("request.headers.authorization").should("eq", MOM_BASIC);
       cy.screenshot("town-hall-08-registered", { capture: "viewport" });
@@ -305,6 +328,20 @@ describe("Town Hall", () => {
       openRegistrationQuestion();
       cy.get("[data-cy=reveal-choice-have]", { timeout: 20000 }).should("exist");
       cy.get("[data-cy=reveal-choice-unlink]").should("not.exist");
+    });
+
+    it("a hand-crafted return without the device's state is ignored: nothing asked, nothing kept, nothing said, and the address is clean", () => {
+      openRegistration(returnPath(LINK_QUERY, "crafted"));
+      cy.get("[data-cy=th-tab-news]", { timeout: 30000 }).should("be.visible");
+      cy.url().should("not.contain", "password");
+      cy.url().should("not.contain", "th_state");
+      cy.wait(1500); // a link would ask the site right after the page opens
+      cy.get("@me.all").should("have.length", 0);
+      cy.contains("[data-cy=reveal-text]", "Welcome").should("not.exist");
+
+      openRegistrationQuestion();
+      skipToRegistrationMenu();
+      cy.get("[data-cy=reveal-choice-have]", { timeout: 20000 }).should("exist");
     });
 
     it("a password the site does not accept saves nothing and says so", () => {
@@ -346,9 +383,9 @@ describe("Town Hall", () => {
     it("I have an account sends the parent to the site's authorize page, and WordPress sends them back linked", () => {
       cy.intercept("GET", `${SITE}/wp-admin/authorize-application.php*`, (req) => {
         const back = new URL(req.url).searchParams.get("success_url");
-        req.reply({ statusCode: 302, headers: { location: withQuery(back, LINK_QUERY) } });
+        req.reply({ statusCode: 302, headers: { location: appended(back, LINK_QUERY) } });
       }).as("authorize");
-      openRegistration(townHallPath);
+      openRegistration(townHallPath, { expecting: null });
       openRegistrationQuestion();
       skipToRegistrationMenu();
       cy.get("[data-cy=reveal-choice-have]", { timeout: 20000 }).should("not.be.disabled").click();
@@ -356,8 +393,8 @@ describe("Town Hall", () => {
         const asked = new URL(request.url).searchParams;
         expect(asked.get("app_id")).to.eq(APP_ID);
         expect(asked.get("app_name")).to.match(/^Do It For The XP – /);
-        expect(asked.get("success_url")).to.eq(asked.get("reject_url"));
-        expect(asked.get("success_url")).to.match(/\/town-hall\/gm-1$/);
+        expect(asked.get("success_url")).to.match(/\/town-hall\/gm-1\?th_state=[0-9a-f-]{36}$/);
+        expect(asked.get("reject_url")).to.eq(`${asked.get("success_url")}&success=false`);
       });
       cy.contains("[data-cy=reveal-text]", "Welcome, Mom!", { timeout: 30000 });
       cy.url().should("not.contain", "password");
@@ -400,7 +437,8 @@ describe("Town Hall", () => {
       const TOPIC_TITLE = "More dragons";
       const TOPIC_MESSAGE = "Please let every hero ride a dragon.";
       const BUG_MESSAGE = "The treasure chest would not open.";
-      const SIGNATURE = "— Max, from Do It For The XP";
+      // Max's nickname is his first name, so his posts are signed without it
+      const SIGNATURE = "— a hero, from Do It For The XP";
       // The site answers a made post with its id (WordPress says 201)
       const made = (id) => ({ statusCode: 201, body: { id }, headers: CORS });
 
@@ -470,6 +508,7 @@ describe("Town Hall", () => {
         cy.contains("ion-segment-button[value=town-hall] ion-badge", "1");
         cy.contains("[data-cy=th-approval]", TOPIC_TITLE, { timeout: 20000 }).within(() => {
           cy.contains("[data-cy=th-approval-hero]", "Max");
+          cy.contains("[data-cy=th-approval-signature]", SIGNATURE);
           cy.screenshot("town-hall-11-approvals", { capture: "viewport" });
           cy.get("[data-cy=th-approve]").click();
         });
@@ -480,7 +519,8 @@ describe("Town Hall", () => {
           expect(request.body.status).to.eq("pending");
           expect(request.body.title).to.eq(TOPIC_TITLE);
           expect(request.body.cafeteria_board).to.deep.eq([FEATURE_REQUESTS_ID]);
-          expect(request.body.content).to.match(/— Max, from Do It For The XP$/);
+          expect(request.body.content).to.match(/— a hero, from Do It For The XP$/);
+          expect(request.body.content).not.to.contain("Max");
           expect(request.body.content).to.eq(`${TOPIC_MESSAGE}\n\n${SIGNATURE}`);
         });
         cy.get("[data-cy=th-approvals-empty]", { timeout: 20000 }).should("exist");
@@ -521,11 +561,31 @@ describe("Town Hall", () => {
         dismissNotice();
         cy.get("@bugRefused.all").should("have.length", 1);
 
+        // The bug waits in the queue and this device is no longer registered: the clerk offers Family Registration
         openAs("gm-1", townHallPath);
-        openRegistrationQuestion();
+        cy.contains("[data-cy=reveal-text]", "this device isn't registered at the Town Hall yet", { timeout: 30000 });
+        cy.get("[data-cy=reveal-choice-registration]", { timeout: 20000 }).should("not.be.disabled").click();
         skipToRegistrationMenu();
         cy.contains("[data-cy=reveal-choice-have]", "I have an account", { timeout: 20000 }).should("not.be.disabled");
         cy.get("[data-cy=reveal-choice-unlink]").should("not.exist");
+      });
+
+      it("approving on a device that is not registered says the approved posts wait here", () => {
+        cy.intercept("POST", "**/wp/v2/cafeteria_topic*", made(501)).as("topicPost");
+        cy.seedWorld("town-hall-backup.json", "hero-1");
+        forgetDeviceLink();
+        openAs("hero-1", heroPath);
+        postTopic();
+        cy.contains("[data-cy=reveal-text]", "Your Game Master will read it first.", { timeout: 20000 });
+        dismissNotice();
+
+        openAs("gm-1", approvalsPath);
+        cy.get("ion-segment-button[value=town-hall]", { timeout: 30000 }).click();
+        cy.contains("[data-cy=th-approval]", TOPIC_TITLE, { timeout: 20000 }).within(() => {
+          cy.get("[data-cy=th-approve]").click();
+        });
+        cy.contains("[data-cy=th-approvals-notice]", "This device isn't registered at the Town Hall, so approved posts wait here.", { timeout: 20000 });
+        cy.get("@topicPost.all").should("have.length", 0);
       });
     });
   });
