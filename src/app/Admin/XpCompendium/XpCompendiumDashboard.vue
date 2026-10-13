@@ -70,7 +70,8 @@
 <script lang="ts">
 import { defineComponent, ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
-import { Swiper as SwiperClass, Pagination, Navigation } from "swiper";
+import type { Swiper as SwiperClass } from "swiper";
+import { Pagination, Navigation } from "swiper/modules";
 import { Swiper, SwiperSlide } from "swiper/vue";
 import "swiper/css";
 import "swiper/css/pagination";

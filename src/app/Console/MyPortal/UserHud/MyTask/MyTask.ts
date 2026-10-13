@@ -40,7 +40,7 @@ import { useGameStore } from "@/lib/store/stores/game";
 import { useBattleStore } from "@/lib/store/stores/battle";
 import { useAudioStore } from "@/lib/store/stores/audio";
 import { useRouter } from "vue-router";
-import { Controller, Navigation } from "swiper";
+import { Controller, Navigation } from "swiper/modules";
 import { formatQuestName } from "@/lib/utils/format";
 import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 import { format, set } from "date-fns";

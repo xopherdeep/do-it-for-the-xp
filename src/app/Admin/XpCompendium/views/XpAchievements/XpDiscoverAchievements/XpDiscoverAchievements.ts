@@ -48,7 +48,8 @@ import { mapStores } from "pinia";
 
 import MyTask from "@/app/Console/MyPortal/UserHud/MyTask/MyTask.vue";
 // import { useSwiper } from "swiper/vue";
-import Swiper, { Controller, Navigation } from "swiper";
+import type Swiper from "swiper";
+import { Controller, Navigation } from "swiper/modules";
 import { useQuery } from "vue-query";
 
 import XpAchievementDetails from "./XpAchievementDetails.vue"

@@ -91,7 +91,7 @@
 
 <script lang="ts">
   import { defineComponent } from "vue";
-  import { Controller, Navigation } from "swiper";
+  import { Controller, Navigation } from "swiper/modules";
   import { IonicSlides } from "@ionic/vue";
   import { useItemFetcher } from "@/hooks/useItemFetcher";
   import ionic from "@/lib/mixins/ionic";
