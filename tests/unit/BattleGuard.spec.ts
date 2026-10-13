@@ -1,13 +1,15 @@
 import { createPinia, setActivePinia } from "pinia";
 import type { RouteLocationNormalized, Router } from "vue-router";
-import { freeBattleRoute } from "@/app/Console/BattleField/battle/battleContext";
+import { freeBattleRoute, questBattleRoute } from "@/app/Console/BattleField/battle/battleContext";
+import type { Achievement } from "@/lib/databases/AchievementDb";
+import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import { handleBattleTimerGuard } from "@/router/_Guards/battle.guard";
 import debug from "@/lib/utils/debug";
 
-// The guard talks to six things only: the battle store, the user store, the router, the alert bridge,
-// the Ionic alert controller and debug. All six are faked here, and the guard is driven through the same
-// entry point the router uses. Each spec sets `mockBattleStore` to a fresh fake (or, in the pacing block,
-// to the real store).
+// The guard talks to eight things only: the battle store, the user store, the router, the alert bridge,
+// the Ionic alert controller, debug, the quest board and the bestiary. All eight are faked here, and the guard is
+// driven through the same entry point the router uses. Each spec sets `mockBattleStore` to a fresh fake (or, in
+// the pacing block, to the real store). The quest ambush rule itself (questAmbush) is the real one.
 let mockBattleStore: any;
 const mockUserStore = {
   currentUser: { id: "hero-1" as string | null },
@@ -28,6 +30,9 @@ const mockBridge = {
 };
 const mockAlertController = { create: jest.fn() };
 const mockCapacitorApp = { addListener: jest.fn() };
+// The hero's quest board (an empty one unless a spec fills it) and the bestiary's beasts by id.
+const mockBoard = jest.fn();
+const mockLoadBeast = jest.fn();
 
 jest.mock("@/lib/store/stores/battle", () => ({ useBattleStore: () => mockBattleStore }));
 jest.mock("@/lib/store/stores/user", () => ({ useUserStore: () => mockUserStore }));
@@ -51,6 +56,16 @@ jest.mock("@ionic/vue", () => ({
 }));
 jest.mock("@capacitor/app", () => ({
   App: { addListener: (...args: unknown[]) => mockCapacitorApp.addListener(...args) },
+}));
+jest.mock("@/lib/engine/quests/QuestEngine", () => ({
+  getQuestEngine: () => ({ getQuestBoardForUser: (...args: unknown[]) => mockBoard(...args) }),
+}));
+jest.mock("@/lib/services/battle/BestiaryService", () => ({
+  BestiaryService: class {
+    loadBeastById(id: string) {
+      return mockLoadBeast(id);
+    }
+  },
 }));
 
 const AMBUSH_ALERT = { id: 7001, title: "⚔️ A beast blocks your path!", body: "Come back and fight!" };
@@ -76,13 +91,15 @@ const toRoute = (name: string) =>
  * would fire again, which is exactly the bug the specs below pin down.
  */
 const ARM_STEPS = 3;
-type Ambush = { heroId: string; region?: string; at: number };
+type Ambush = { heroId: string; region?: string; at: number; questId?: string };
 const makeBattleStore = () => {
   const store = {
     active: false,
     counter: ARM_STEPS,
     interval: null as number | null,
     pendingAmbush: null as Ambush | null,
+    // hero id -> quest id -> when it last ambushed them, the way the real store keeps it
+    ambushStamps: {} as Record<string, Record<string, number>>,
     startBattleTimer: jest.fn(() => {
       store.interval = 1;
     }),
@@ -103,6 +120,12 @@ const makeBattleStore = () => {
     }),
     clearPendingAmbush: jest.fn(() => {
       store.pendingAmbush = null;
+    }),
+    questAmbushesOf: jest.fn((heroId: string) =>
+      Object.fromEntries(Object.entries(store.ambushStamps[heroId] ?? {}).map(([id, at]) => [id, { lastAmbushAt: at }]))
+    ),
+    recordQuestAmbush: jest.fn((heroId: string, questId: string, now: number) => {
+      store.ambushStamps[heroId] = { ...store.ambushStamps[heroId], [questId]: now };
     }),
     nextEncounterAt: jest.fn((_now: Date, _invisibleUntil?: Date | null): Date | null => null),
   };
@@ -146,6 +169,8 @@ beforeEach(() => {
   mockBridge.showAlert.mockResolvedValue({ shown: true });
   mockBridge.scheduleAlert.mockResolvedValue({ shown: false, reason: "web" });
   mockBridge.cancelAlert.mockResolvedValue(undefined);
+  mockBoard.mockReset().mockResolvedValue([]);
+  mockLoadBeast.mockReset().mockResolvedValue(null);
 });
 
 // --- guard decisions (stores and router faked) ---------------------------------------------------
@@ -210,14 +235,15 @@ describe("battle guard", () => {
       expect(mockBattleStore.resetBattleTimer).toHaveBeenCalledTimes(2);
     });
 
-    it("re-arms before it navigates, so a slow navigation cannot fire a second encounter", () => {
+    it("re-arms before it navigates, so a slow navigation cannot fire a second encounter", async () => {
       const router = makeRouter();
       router.push.mockReturnValue(new Promise(() => undefined)); // the navigation never lands
       const tick = enter("home-town", router);
 
       mockBattleStore.counter = 1;
-      void tick(); // fires; the push is now in flight
+      void tick(); // fires; the quest lookup and then the push are in flight
       void tick(); // the next tick arrives before the navigation does
+      await flush();
 
       expect(router.push).toHaveBeenCalledTimes(1);
       expect(mockBattleStore.resetBattleTimer).toHaveBeenCalledTimes(1);
@@ -355,6 +381,303 @@ describe("battle guard", () => {
       mockBattleStore.active = false; // the fight is over
       await tick();
       expect(router.push).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("quest ambushes", () => {
+    const NOON = new Date(2026, 9, 12, 12, 0, 0, 0);
+    const HOUR = 60 * 60_000;
+
+    /** A daily quest for hero-1 due at 08:00 (so overdue at noon) whose beast is the Dish Goblin. */
+    const makeQuest = (id: string, overrides: Record<string, unknown> = {}) =>
+      ({
+        id,
+        achievementName: `Chore ${id}`,
+        beastId: "beast-dish-goblin",
+        type: "individual",
+        assignee: ["hero-1"],
+        basicSchedule: "daily",
+        dueByTime: "08:00",
+        repeatOnDays: [],
+        ...overrides,
+      }) as unknown as Achievement;
+
+    /** The board's row for an open quest, overdue at noon unless `overrides` push its due time later. */
+    const openRow = (id: string, overrides: Record<string, unknown> = {}): QuestBoardItem => ({
+      quest: makeQuest(id, overrides),
+      status: "open",
+      progress: null,
+      pending: false,
+      overdue: true,
+    });
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+      jest.setSystemTime(NOON);
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    /** The hero stands on `routeName`, the encounter is one step away, and the tick springs it. */
+    const spring = async (routeName = "home-town") => {
+      const router = makeRouter(routeName);
+      const tick = enter(routeName, router);
+      mockBattleStore.counter = 1;
+      await tick();
+      return { router, tick };
+    };
+
+    it("sends the hero into the battle of an overdue quest instead of a free fight", async () => {
+      mockBoard.mockResolvedValue([openRow("q-dishes")]);
+      const { router } = await spring();
+
+      expect(router.push).toHaveBeenCalledTimes(1);
+      expect(router.push).toHaveBeenCalledWith(questBattleRoute("hero-1", "q-dishes"));
+      expect(mockBoard).toHaveBeenCalledWith("hero-1", NOON, undefined, undefined);
+      expect(mockBattleStore.recordQuestAmbush).toHaveBeenCalledWith("hero-1", "q-dishes", NOON.getTime());
+      expect(mockBattleStore.resetBattleTimer).toHaveBeenCalledTimes(1);
+    });
+
+    it("takes the encounter on a region page too", async () => {
+      mockBoard.mockResolvedValue([openRow("q-dishes")]);
+      const { router } = await spring("world-ice");
+
+      expect(router.push).toHaveBeenCalledWith(questBattleRoute("hero-1", "q-dishes"));
+    });
+
+    it("sends the quest with the oldest deadline first", async () => {
+      mockBoard.mockResolvedValue([
+        openRow("later", { dueByTime: "10:00" }),
+        openRow("oldest", { dueByTime: "06:30" }),
+        openRow("middle", { dueByTime: "08:00" }),
+      ]);
+      const { router } = await spring();
+
+      expect(router.push).toHaveBeenCalledWith(questBattleRoute("hero-1", "oldest"));
+    });
+
+    it("stays a free fight when nothing is overdue", async () => {
+      mockBoard.mockResolvedValue([
+        openRow("not-yet", { dueByTime: "18:00" }),
+        openRow("no-clock", { dueByTime: "" }),
+        { ...openRow("done"), status: "done" },
+        { ...openRow("waiting"), pending: true },
+      ]);
+      const { router } = await spring();
+
+      expect(router.push).toHaveBeenCalledWith(freeBattleRoute("hero-1"));
+      expect(mockBattleStore.recordQuestAmbush).not.toHaveBeenCalled();
+    });
+
+    it("stays a free fight when the overdue quest has no beast", async () => {
+      mockBoard.mockResolvedValue([openRow("q1", { beastId: undefined, noBeast: true })]);
+      const { router } = await spring();
+
+      expect(router.push).toHaveBeenCalledWith(freeBattleRoute("hero-1"));
+    });
+
+    it("stays a free fight, and says so, when the board cannot be read", async () => {
+      const failure = new Error("storage is gone");
+      mockBoard.mockRejectedValue(failure);
+      const { router } = await spring();
+
+      expect(router.push).toHaveBeenCalledWith(freeBattleRoute("hero-1"));
+      expect(debug.warn).toHaveBeenCalledWith(expect.any(String), failure);
+    });
+
+    describe("the 60-minute cooldown", () => {
+      it("lets an overdue quest ambush a hero once an hour, and the next encounter is free", async () => {
+        mockBoard.mockResolvedValue([openRow("q-dishes")]);
+        const { router, tick } = await spring();
+        expect(router.push).toHaveBeenLastCalledWith(questBattleRoute("hero-1", "q-dishes"));
+
+        jest.setSystemTime(NOON.getTime() + 30 * 60_000);
+        mockBattleStore.counter = 1;
+        await tick();
+        expect(router.push).toHaveBeenLastCalledWith(freeBattleRoute("hero-1"));
+
+        jest.setSystemTime(NOON.getTime() + HOUR);
+        mockBattleStore.counter = 1;
+        await tick();
+        expect(router.push).toHaveBeenLastCalledWith(questBattleRoute("hero-1", "q-dishes"));
+        expect(mockBattleStore.recordQuestAmbush).toHaveBeenCalledTimes(2);
+      });
+
+      it("gives the slot to the next overdue quest while the first one rests", async () => {
+        mockBoard.mockResolvedValue([openRow("first", { dueByTime: "07:00" }), openRow("second", { dueByTime: "09:00" })]);
+        const { router, tick } = await spring();
+        expect(router.push).toHaveBeenLastCalledWith(questBattleRoute("hero-1", "first"));
+
+        mockBattleStore.counter = 1;
+        await tick();
+        expect(router.push).toHaveBeenLastCalledWith(questBattleRoute("hero-1", "second"));
+
+        mockBattleStore.counter = 1;
+        await tick();
+        expect(router.push).toHaveBeenLastCalledWith(freeBattleRoute("hero-1"));
+      });
+
+      it("is kept for each hero on their own", async () => {
+        mockBoard.mockResolvedValue([openRow("q-dishes", { assignee: ["hero-1", "hero-2"] })]);
+        const { router, tick } = await spring();
+        expect(router.push).toHaveBeenLastCalledWith(questBattleRoute("hero-1", "q-dishes"));
+
+        mockUserStore.currentUser.id = "hero-2";
+        mockBattleStore.counter = 1;
+        await tick();
+        expect(router.push).toHaveBeenLastCalledWith(questBattleRoute("hero-2", "q-dishes"));
+      });
+    });
+
+    describe("what still holds the ambush back", () => {
+      it("sends nothing while X's Invisibility holds every encounter back", async () => {
+        mockBoard.mockResolvedValue([openRow("q-dishes")]);
+        const router = makeRouter();
+        const tick = enter("home-town", router);
+        mockBattleStore.counter = 1;
+        mockUserStore.users["hero-1"] = { questEffects: { noEncountersUntil: new Date(NOON.getTime() + 60_000).toISOString() } };
+
+        await tickTimes(tick, 3);
+        expect(router.push).not.toHaveBeenCalled();
+        expect(mockBoard).not.toHaveBeenCalled();
+        expect(mockBattleStore.recordQuestAmbush).not.toHaveBeenCalled();
+
+        jest.setSystemTime(NOON.getTime() + 2 * 60_000); // worn off
+        await tick();
+        expect(router.push).toHaveBeenCalledWith(questBattleRoute("hero-1", "q-dishes"));
+      });
+
+      it("reads the hero's items: Chronos' Clock holds the deadline, so the encounter stays free", async () => {
+        const questEffects = {
+          pause: { from: new Date(NOON.getTime() - HOUR).toISOString(), until: new Date(NOON.getTime() + HOUR).toISOString() },
+        };
+        mockUserStore.users["hero-1"] = { questEffects };
+        mockBoard.mockResolvedValue([openRow("q-dishes")]);
+        const { router } = await spring();
+
+        expect(mockBoard).toHaveBeenCalledWith("hero-1", NOON, undefined, questEffects);
+        expect(router.push).toHaveBeenCalledWith(freeBattleRoute("hero-1"));
+      });
+
+      it("never stacks a quest fight on a fight that started while the board was loading", async () => {
+        let loaded!: (board: QuestBoardItem[]) => void;
+        mockBoard.mockReturnValue(new Promise((resolve) => (loaded = resolve)));
+        const router = makeRouter();
+        const tick = enter("home-town", router);
+        mockBattleStore.counter = 1;
+
+        const pending = tick();
+        router.currentRoute.value.name = "battle-quest"; // the hero opened a fight by hand
+        loaded([openRow("q-dishes")]);
+        await pending;
+
+        expect(router.push).not.toHaveBeenCalled();
+        expect(mockBattleStore.recordQuestAmbush).not.toHaveBeenCalled();
+        expect(mockBattleStore.setPendingAmbush).not.toHaveBeenCalled();
+      });
+    });
+
+    describe("while the hero is away", () => {
+      const springAway = async (routeName = "home-town") => {
+        mockVisibility = "hidden";
+        return spring(routeName);
+      };
+
+      it("waits for the hero with the quest it sent, and navigates nowhere", async () => {
+        mockBoard.mockResolvedValue([openRow("q-dishes")]);
+        const { router } = await springAway("world-ice");
+
+        expect(router.push).not.toHaveBeenCalled();
+        expect(mockBattleStore.pendingAmbush).toEqual({
+          heroId: "hero-1",
+          region: "ice",
+          at: NOON.getTime(),
+          questId: "q-dishes",
+        });
+        expect(mockBattleStore.recordQuestAmbush).toHaveBeenCalledWith("hero-1", "q-dishes", NOON.getTime());
+      });
+
+      it("holds a free ambush with no quest when nothing is overdue", async () => {
+        mockBoard.mockResolvedValue([openRow("not-yet", { dueByTime: "18:00" })]);
+        await springAway();
+
+        expect(mockBattleStore.pendingAmbush).toEqual({ heroId: "hero-1", at: NOON.getTime(), region: undefined });
+        expect(mockBattleStore.pendingAmbush.questId).toBeUndefined();
+      });
+
+      it("names the beast and the chore in the alert, as the family's bestiary calls the beast", async () => {
+        mockBridge.battleAlertsChoice.mockReturnValue("on");
+        mockBoard.mockResolvedValue([openRow("q-dishes", { achievementName: "Load the dishwasher" })]);
+        mockLoadBeast.mockResolvedValue({ name: "Plate Gremlin" });
+        await springAway();
+
+        expect(mockLoadBeast).toHaveBeenCalledWith("beast-dish-goblin");
+        expect(mockBridge.showAlert).toHaveBeenCalledTimes(1);
+        expect(mockBridge.showAlert).toHaveBeenCalledWith({
+          id: 7001,
+          title: "⚔️ The Plate Gremlin blocks your path!",
+          body: "Load the dishwasher is overdue. Come back and fight!",
+        });
+      });
+
+      it("falls back to the library's name for a beast the bestiary does not hold", async () => {
+        mockBridge.battleAlertsChoice.mockReturnValue("on");
+        mockBoard.mockResolvedValue([openRow("q-dishes", { achievementName: "Load the dishwasher" })]);
+        await springAway();
+
+        expect(mockBridge.showAlert.mock.calls[0][0].title).toBe("⚔️ The Dish Goblin blocks your path!");
+      });
+
+      it("still names the chore when nobody knows the beast", async () => {
+        mockBridge.battleAlertsChoice.mockReturnValue("on");
+        mockBoard.mockResolvedValue([openRow("q-dishes", { beastId: "custom-beast-1" })]);
+        await springAway();
+
+        expect(mockBridge.showAlert).toHaveBeenCalledWith({
+          id: 7001,
+          title: "⚔️ A beast blocks your path!",
+          body: "Chore q-dishes is overdue. Come back and fight!",
+        });
+      });
+
+      it("rings the plain alert for a free ambush", async () => {
+        mockBridge.battleAlertsChoice.mockReturnValue("on");
+        await springAway();
+
+        expect(mockBridge.showAlert).toHaveBeenCalledWith(AMBUSH_ALERT);
+      });
+
+      it("rings nothing, and does not read the bestiary, when the hero did not ask for alerts", async () => {
+        mockBridge.battleAlertsChoice.mockReturnValue("off");
+        mockBoard.mockResolvedValue([openRow("q-dishes")]);
+        await springAway();
+
+        expect(mockBattleStore.pendingAmbush.questId).toBe("q-dishes");
+        expect(mockBridge.showAlert).not.toHaveBeenCalled();
+        expect(mockLoadBeast).not.toHaveBeenCalled();
+      });
+
+      it("rings the alert once, without naming a beast it could not read", async () => {
+        mockBridge.battleAlertsChoice.mockReturnValue("on");
+        mockBoard.mockResolvedValue([openRow("q-dishes", { beastId: "custom-beast-1" })]);
+        mockLoadBeast.mockRejectedValue(new Error("bestiary is gone"));
+        await springAway();
+
+        expect(mockBridge.showAlert).toHaveBeenCalledTimes(1);
+        expect(mockBridge.showAlert.mock.calls[0][0].title).toBe("⚔️ A beast blocks your path!");
+      });
+
+      it("springs the quest's battle when the hero comes back", async () => {
+        mockBoard.mockResolvedValue([openRow("q-dishes")]);
+        const { router } = await springAway("world-forest");
+        setVisibility("visible");
+
+        expect(router.push).toHaveBeenCalledTimes(1);
+        expect(router.push).toHaveBeenCalledWith(questBattleRoute("hero-1", "q-dishes"));
+        expect(mockBattleStore.pendingAmbush).toBeNull();
+      });
     });
   });
 
@@ -930,7 +1253,7 @@ describe("encounter pacing with the real battle store", () => {
     jest.useRealTimers();
   });
 
-  it("an encounter lands 2 to 4 minutes apart and the wait is rolled again after every one", () => {
+  it("an encounter lands 2 to 4 minutes apart and the wait is rolled again after every one", async () => {
     const router = makeRouter();
     handleBattleTimerGuard(toRoute("home-town"), asRouter(router));
     random.mockReturnValue(0.999999); // the roll after the first encounter is the longest wait
@@ -938,12 +1261,14 @@ describe("encounter pacing with the real battle store", () => {
     jest.advanceTimersByTime(119_000);
     expect(router.push).not.toHaveBeenCalled();
     jest.advanceTimersByTime(1_000); // 2:00, the shortest wait
+    await flush(); // the tick looks at the quest board before it sends the hero
     expect(router.push).toHaveBeenCalledTimes(1);
     expect(router.push).toHaveBeenCalledWith(freeBattleRoute("hero-1"));
 
     jest.advanceTimersByTime(239_000);
     expect(router.push).toHaveBeenCalledTimes(1);
     jest.advanceTimersByTime(1_000); // 4:00 later, the longest wait
+    await flush();
     expect(router.push).toHaveBeenCalledTimes(2);
   });
 
@@ -961,7 +1286,7 @@ describe("encounter pacing with the real battle store", () => {
     }
   });
 
-  it("spends no steps on a battle page or without a hero, then picks up where it left off", () => {
+  it("spends no steps on a battle page or without a hero, then picks up where it left off", async () => {
     const router = makeRouter("battle-free");
     handleBattleTimerGuard(toRoute("home-town"), asRouter(router));
     const stepsLeft = mockBattleStore.steps.counter;
@@ -979,6 +1304,7 @@ describe("encounter pacing with the real battle store", () => {
     jest.advanceTimersByTime((stepsLeft - 1) * 1_000);
     expect(router.push).not.toHaveBeenCalled();
     jest.advanceTimersByTime(1_000); // exactly the steps that were left
+    await flush();
     expect(router.push).toHaveBeenCalledTimes(1);
   });
 

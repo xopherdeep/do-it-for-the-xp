@@ -1,8 +1,16 @@
-import { RouteLocationNormalized, Router } from "vue-router";
+import { RouteLocationNormalized, RouteLocationRaw, Router } from "vue-router";
 import { alertController } from "@ionic/vue";
 import { useBattleStore } from "@/lib/store/stores/battle";
 import { useUserStore } from "@/lib/store/stores/user";
-import { freeBattleRoute, regionForRoute, WORLD_REGIONS } from "@/app/Console/BattleField/battle/battleContext";
+import {
+  freeBattleRoute,
+  questBattleRoute,
+  regionForRoute,
+  WORLD_REGIONS,
+} from "@/app/Console/BattleField/battle/battleContext";
+import { getQuestEngine } from "@/lib/engine/quests/QuestEngine";
+import type { HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
+import { ambushAlertCopy, libraryBeastName, pickQuestAmbush, type QuestAmbush } from "@/lib/services/battle/questAmbush";
 import { hasNoEncounters } from "@/lib/services/quests/ItemEffects";
 import {
   AMBUSH_ALERT_ID,
@@ -33,12 +41,54 @@ const isOverlayOpen = (): boolean =>
 const isBattleRoute = (name: unknown): boolean =>
   typeof name === "string" && name.startsWith("battle-");
 
-/** The OS alert for an ambush the hero is away from; the fixed id lets a newer one replace the older. */
-const ambushAlert = () => ({
+/**
+ * The OS alert for an ambush the hero is away from; the fixed id lets a newer one replace the older. A quest
+ * ambush names its beast and chore; with no names it is the plain "a beast" alert of a free encounter.
+ */
+const ambushAlert = (names: { beastName?: string; questName?: string } = {}) => ({
   id: AMBUSH_ALERT_ID,
-  title: "⚔️ A beast blocks your path!",
-  body: "Come back and fight!",
+  ...ambushAlertCopy(names),
 });
+
+/** What the alert for a quest ambush can name: the beast (the family's bestiary first, then the library) and the chore. */
+async function ambushNames(ambush: QuestAmbush): Promise<{ beastName?: string; questName?: string }> {
+  const questName = ambush.quest.achievementName;
+  try {
+    const { BestiaryService } = await import("@/lib/services/battle/BestiaryService");
+    const beast = await new BestiaryService().loadBeastById(ambush.beastId);
+    const beastName = beast?.name;
+    const isNamed = Boolean(beastName);
+    if (isNamed) return { beastName, questName };
+  } catch (error) {
+    debug.warn("The ambushing beast could not be read from the bestiary", error);
+  }
+  return { beastName: libraryBeastName(ambush.beastId), questName };
+}
+
+/**
+ * The overdue quest whose beast takes this encounter, or null when it stays a free fight (nothing is overdue,
+ * every overdue quest rested in the last hour, or the board cannot be read). The board is read fresh because
+ * the quest log changes under the timer.
+ */
+async function findQuestAmbush(heroId: string, profile: unknown, now: Date): Promise<QuestAmbush | null> {
+  try {
+    const effects = (profile as { questEffects?: HeroQuestEffects } | null | undefined)?.questEffects;
+    const board = await getQuestEngine().getQuestBoardForUser(heroId, now, undefined, effects);
+    return pickQuestAmbush(board, effects, useBattleStore().questAmbushesOf(heroId), now);
+  } catch (error) {
+    debug.warn("Quest ambush could not be looked up, so the encounter is free", error);
+    return null;
+  }
+}
+
+/** True when the hero said yes to OS alerts for ambushes. */
+const wantsAlerts = (): boolean => battleAlertsChoice() === "on";
+
+/** Where an encounter goes: the quest's battle when a quest sent it, else a free fight (from the region page, if any). */
+const encounterRoute = (heroId: string, questId: string | undefined, region: string | undefined): RouteLocationRaw => {
+  if (questId) return questBattleRoute(heroId, questId);
+  return region ? freeBattleRoute(heroId, [], region) : freeBattleRoute(heroId);
+};
 
 /** True unless the page is hidden (another tab, a locked phone); with no document at all the hero is "here". */
 const isHeroHere = (): boolean => typeof document === "undefined" || document.visibilityState === "visible";
@@ -54,6 +104,9 @@ const heroProfile = (userStore: ReturnType<typeof useUserStore>, heroId: string)
  * walks. An encounter that springs while the hero is away does not navigate; it waits for them as the
  * store's pendingAmbush, rings the OS alert when they chose to have one, and the fight starts the moment
  * they come back (see onReturn).
+ *
+ * An encounter is a free fight unless a quest of the hero's is overdue (spec 5.9, see questAmbush): then the
+ * quest's beast takes the slot and the fight is that quest's battle. A quest rests for an hour after it ambushes.
  *
  * A tick that cannot start a fight spends no steps (the tick rests the walk clock), and the encounter
  * that was coming is still coming afterwards instead of landing the moment the hero is free again:
@@ -92,19 +145,33 @@ async function onExplorationTick(router: Router): Promise<void> {
   // so no tick can fire again while the push is still in flight.
   battleStore.resetBattleTimer();
 
-  // The battle page picks a random bestiary beast (from the region's element on a region page)
+  // A free fight's battle page picks a random bestiary beast (from the region's element on a region page)
   // and returns to the page the hero left, home-town or the region.
   const region = regionForRoute(routeName);
 
+  const now = new Date();
+  const ambush = await findQuestAmbush(heroId, heroProfile(userStore, heroId), now);
+  // Look the beast up before the last look at where the hero is: nothing below waits, so the alert is never
+  // rung after the hero is back.
+  const needsNames = Boolean(ambush) && !isHeroHere() && wantsAlerts();
+  const names = ambush && needsNames ? await ambushNames(ambush) : {};
+
+  // The lookups took a moment: a fight that started meanwhile must not get a second one stacked on it
+  const isFightAlreadyOn = isBattleRoute(router.currentRoute.value.name) || battleStore.active;
+  if (isFightAlreadyOn) return;
+
+  const questId = ambush ? String(ambush.quest.id) : undefined;
+  if (questId) battleStore.recordQuestAmbush(heroId, questId, now.getTime());
+
   if (!isHeroHere()) {
     // Away: hold the fight until the hero is back, and ring the alert if they asked for one.
-    battleStore.setPendingAmbush({ heroId, region, at: Date.now() });
-    if (battleAlertsChoice() === "on") void showAlert(ambushAlert());
+    battleStore.setPendingAmbush({ heroId, region, at: Date.now(), ...(questId ? { questId } : {}) });
+    if (wantsAlerts()) void showAlert(ambushAlert(names));
     return;
   }
 
   try {
-    await router.push(region ? freeBattleRoute(heroId, [], region) : freeBattleRoute(heroId));
+    await router.push(encounterRoute(heroId, questId, region));
   } catch (error) {
     debug.error("Random encounter could not start a battle", error);
   }
@@ -129,7 +196,9 @@ async function onReturn(router: Router): Promise<void> {
     if (shouldDropAmbush) return;
 
     try {
-      await router.push(freeBattleRoute(ambush.heroId, [], ambush.region));
+      await router.push(
+        ambush.questId ? questBattleRoute(ambush.heroId, ambush.questId) : freeBattleRoute(ambush.heroId, [], ambush.region)
+      );
     } catch (error) {
       debug.error("Ambush could not start a battle", error);
     }
