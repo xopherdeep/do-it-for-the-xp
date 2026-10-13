@@ -22,7 +22,8 @@ export const QUEST_ROOM_KEY = "quest";
  * Picks `quest` for the room: writes `content.questId` (a list of quests the room held gives way to the one pick),
  * sets the room `type` from the quest's tier, and seals a miniboss or boss room on entry when the Game Master has
  * not chosen yet (a boss fight is always sealed). Everything else the room holds stays, a shipped template included:
- * it takes over if the quest is ever deleted (5.2). Returns the tier. The cell's shared token (M001, MINI, BOSS) becomes a unique symbol when the room is saved.
+ * it takes over if the quest is ever deleted (5.2). Returns the tier. The cell's shared token (M001, MINI, BOSS)
+ * becomes a unique symbol when the room is saved.
  */
 export function applyQuestPick(room: Room, quest: Pick<Achievement, "id" | "difficulty">): QuestTier {
   const content = ensureContent(room);
