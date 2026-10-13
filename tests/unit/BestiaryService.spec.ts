@@ -1,9 +1,11 @@
 import { BestiaryService, MAX_BG_INDEX, TOTAL_BEAST_AVATARS } from "@/lib/services/battle/BestiaryService";
 
 jest.mock("@/lib/databases/BestiaryDb", () => {
+  // Like the real BestiaryDb: an id it does not know is answered with a blank beast, never with nothing
+  const blank = { id: "new", name: "", checklist: [], achievementIds: [] };
   class MockBestiaryDb {
     getBeasts = jest.fn().mockResolvedValue([]);
-    getBeastById = jest.fn().mockResolvedValue(null);
+    getBeastById = jest.fn().mockImplementation(async (id: string) => (id === "known" ? { id, name: "Cushion Croc", checklist: ["Fluff"], avatar: 7 } : blank));
   }
   return {
     __esModule: true,
@@ -29,5 +31,16 @@ describe("BestiaryService", () => {
     expect(enemy.bg2).toBeGreaterThanOrEqual(0);
     expect(enemy.bg2).toBeLessThanOrEqual(MAX_BG_INDEX);
     expect(enemy.tasks).toHaveLength(2);
+  });
+
+  it("loads a beast the bestiary holds", async () => {
+    const enemy = await new BestiaryService().loadBeastById("known");
+    expect(enemy?.name).toBe("Cushion Croc");
+    expect(enemy?.avatar).toBe(7);
+  });
+
+  it("answers null for an id the bestiary does not know, never a blank beast with the fallback emoji", async () => {
+    // The temple battle falls back to the library's beast (or the room's stand-in) only on null
+    expect(await new BestiaryService().loadBeastById("beast-cushion-croc")).toBeNull();
   });
 });

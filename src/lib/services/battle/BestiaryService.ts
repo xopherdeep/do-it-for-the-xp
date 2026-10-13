@@ -46,7 +46,9 @@ export class BestiaryService {
   public async loadBeastById(beastId: string): Promise<Enemy | null> {
     try {
       const beast = await this.bestiary.getBeastById(beastId);
-      if (!beast) return null;
+      // BestiaryDb.getBeastById answers an id it does not know with a blank beast, never with nothing
+      const isUnknownBeast = !beast || !String(beast.name || '').trim();
+      if (isUnknownBeast) return null;
 
       return this.convertBeastToEnemy(beast);
     } catch (error) {
