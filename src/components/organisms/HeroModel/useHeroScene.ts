@@ -4,64 +4,41 @@ import type { Ref } from "vue";
 import type { HeroAnimation, HeroLook } from "@/lib/hero-look/types";
 import { animateHero } from "./voxel/animate";
 import { buildHero, disposeHero } from "./voxel/build";
+import {
+  DEFAULT_YAW,
+  FOV,
+  addHeroLights,
+  easeOutCubic,
+  lerpFrame,
+  placeCamera,
+  renderHeroSnapshot,
+  stageFrame,
+} from "./heroCamera";
+import type { Frame, SnapshotFraming } from "./heroCamera";
 import debug from "@/lib/utils/debug";
+
+export type { SnapshotFraming } from "./heroCamera";
 
 export interface HeroSceneOptions {
   /** Drag or touch to turn the hero, with a little inertia */
   interactive?: boolean;
   background?: "transparent";
+  /** What the camera frames: the whole hero or a head close-up. A change eases over; it starts on this value. */
+  focus?: Ref<SnapshotFraming>;
 }
-
-export type SnapshotFraming = "bust" | "full";
 
 export interface HeroScene {
   /** Render one frame at size x size with a transparent background into a PNG data URL ("" when WebGL is missing) */
   snapshot: (size?: number, framing?: SnapshotFraming) => string;
+  /** Spin the hero with a kick that coasts to a stop (radians per second; the default is about one turn) */
+  flick: (velocity?: number) => void;
   dispose: () => void;
   /** False when WebGL could not start; the canvas stays blank */
   supported: Ref<boolean>;
 }
 
-/** The hero stands at a 3/4 turn; the camera is a narrow lens far away so it reads almost orthographic */
-const DEFAULT_YAW = 0.5;
-const FOV = 18;
-const ELEVATION = 0.2;
-/** Widest the hero gets with arms out and a sword, plus air */
-const FRAME_WIDTH = 15;
-
-interface Frame {
-  centerY: number;
-  height: number;
-}
-
-const placeCamera = (camera: THREE.PerspectiveCamera, frame: Frame, aspect: number): void => {
-  const halfH = Math.max(frame.height / 2, FRAME_WIDTH / 2 / Math.max(aspect, 0.01));
-  const distance = halfH / Math.tan(THREE.MathUtils.degToRad(FOV / 2));
-  camera.aspect = aspect;
-  camera.fov = FOV;
-  camera.position.set(0, frame.centerY + Math.sin(ELEVATION) * distance, Math.cos(ELEVATION) * distance);
-  camera.lookAt(0, frame.centerY, 0);
-  camera.near = 1;
-  camera.far = distance * 2 + 40;
-  camera.updateProjectionMatrix();
-};
-
-/** Whole body: from the floor shadow to a little above the tallest hat, never tighter than a bare head */
-const fullFrame = (hero: THREE.Object3D): Frame => {
-  const box = new THREE.Box3().setFromObject(hero);
-  const top = Math.max(box.max.y + 0.8, 17.4);
-  const bottom = -1.2;
-  return { centerY: (top + bottom) / 2, height: top - bottom };
-};
-
-/** Head and shoulders: what an avatar circle wants */
-const bustFrame = (hero: THREE.Object3D): Frame => {
-  const head = hero.getObjectByName("head");
-  const headTop = head ? new THREE.Box3().setFromObject(head).max.y : 15;
-  const top = Math.min(Math.max(headTop + 0.7, 16.6), 20.5);
-  const bottom = 3.6;
-  return { centerY: (top + bottom) / 2, height: top - bottom };
-};
+/** How long the camera takes to move between the whole body and the close-up */
+const FOCUS_EASE_SECONDS = 0.3;
 
 export function useHeroScene(
   canvasRef: Ref<HTMLCanvasElement | null>,
@@ -77,6 +54,10 @@ export function useHeroScene(
   let camera: THREE.PerspectiveCamera | null = null;
   let hero: THREE.Group | null = null;
   let frame: Frame = { centerY: 8, height: 20 };
+  // The focus tween: the camera eases from tweenFrom to tweenTo, started at tweenStart (null when settled)
+  let tweenFrom: Frame | null = null;
+  let tweenTo: Frame | null = null;
+  let tweenStart = 0;
 
   let yaw = DEFAULT_YAW;
   let spin = 0; // radians per second left over from a flick
@@ -115,10 +96,20 @@ export function useHeroScene(
     hero = buildHero(look.value);
     hero.rotation.y = yaw;
     scene.add(hero);
-    frame = fullFrame(hero);
+    frame = stageFrame(hero, options.focus?.value ?? "full");
+    tweenFrom = tweenTo = null; // a new hero snaps to the frame, there is nothing to ease from
     resize();
     t0 = now();
     render();
+  };
+
+  /** Move the camera along the focus tween; the last step lands exactly on the target frame */
+  const stepCamera = (): void => {
+    if (!tweenFrom || !tweenTo || !camera) return;
+    const k = Math.min(1, (now() - tweenStart) / FOCUS_EASE_SECONDS);
+    frame = k >= 1 ? tweenTo : lerpFrame(tweenFrom, tweenTo, easeOutCubic(k));
+    placeCamera(camera, frame, camera.aspect);
+    if (k >= 1) tweenFrom = tweenTo = null;
   };
 
   const render = (): void => {
@@ -140,6 +131,7 @@ export function useHeroScene(
       yaw += spin * dt;
       spin *= Math.pow(0.04, dt); // friction
     }
+    stepCamera();
     render();
     raf = requestAnimationFrame(tick);
   };
@@ -210,10 +202,7 @@ export function useHeroScene(
     renderer.shadowMap.enabled = false;
 
     scene = new THREE.Scene();
-    scene.add(new THREE.HemisphereLight(0xffffff, 0x8a7a6a, 1.7));
-    const sun = new THREE.DirectionalLight(0xffffff, 2.2);
-    sun.position.set(6, 12, 10);
-    scene.add(sun);
+    addHeroLights(scene);
     camera = new THREE.PerspectiveCamera(FOV, 1, 1, 400);
 
     if (interactive) {
@@ -246,50 +235,12 @@ export function useHeroScene(
 
   const snapshot = (size = 256, framing: SnapshotFraming = "bust"): string => {
     if (!renderer || !hero || !scene) return "";
-    const target = new THREE.WebGLRenderTarget(size, size, { samples: 4, colorSpace: THREE.SRGBColorSpace });
-    const shotCamera = new THREE.PerspectiveCamera(FOV, 1, 1, 400);
-    placeCamera(shotCamera, framing === "full" ? fullFrame(hero) : bustFrame(hero), 1);
+    return renderHeroSnapshot(renderer, scene, hero, size, framing);
+  };
 
-    // A canonical pose: rest, turned a little, whatever the live animation is doing
-    const previousYaw = hero.rotation.y;
-    animateHero(hero, "idle", 0);
-    hero.rotation.y = DEFAULT_YAW - 0.1;
-
-    const previousTarget = renderer.getRenderTarget();
-    const pixels = new Uint8Array(size * size * 4);
-    try {
-      renderer.setRenderTarget(target);
-      renderer.setClearColor(0x000000, 0);
-      renderer.clear();
-      renderer.render(scene, shotCamera);
-      renderer.readRenderTargetPixels(target, 0, 0, size, size, pixels);
-    } finally {
-      renderer.setRenderTarget(previousTarget);
-      target.dispose();
-      hero.rotation.y = previousYaw;
-    }
-
-    // Rows come out bottom-up and anti-aliased edges are premultiplied: flip and un-premultiply
-    const out = document.createElement("canvas");
-    out.width = size;
-    out.height = size;
-    const ctx = out.getContext("2d");
-    if (!ctx) return "";
-    const image = ctx.createImageData(size, size);
-    for (let y = 0; y < size; y++) {
-      const src = (size - 1 - y) * size * 4;
-      const dst = y * size * 4;
-      for (let x = 0; x < size; x++) {
-        const a = pixels[src + x * 4 + 3];
-        const k = a > 0 ? 255 / a : 0;
-        image.data[dst + x * 4] = Math.min(255, pixels[src + x * 4] * k);
-        image.data[dst + x * 4 + 1] = Math.min(255, pixels[src + x * 4 + 1] * k);
-        image.data[dst + x * 4 + 2] = Math.min(255, pixels[src + x * 4 + 2] * k);
-        image.data[dst + x * 4 + 3] = a;
-      }
-    }
-    ctx.putImageData(image, 0, 0);
-    return out.toDataURL("image/png");
+  // 20 rad/s with the 0.04^dt friction in tick coasts 20 / -ln(0.04) = about 6.2 rad: one turn
+  const flick = (velocity = 20): void => {
+    spin = velocity;
   };
 
   const dispose = (): void => {
@@ -326,8 +277,24 @@ export function useHeroScene(
     t0 = now();
     if (!running) render();
   });
+  if (options.focus) {
+    watch(options.focus, (focus) => {
+      if (!hero || !camera) return; // the first rebuild frames the current focus
+      if (running) {
+        tweenFrom = frame; // from wherever the camera is now, so a change mid-move turns smoothly
+        tweenTo = stageFrame(hero, focus);
+        tweenStart = now();
+      } else {
+        // nothing ticks while off screen: land on the new frame at once
+        tweenFrom = tweenTo = null;
+        frame = stageFrame(hero, focus);
+        resize();
+        render();
+      }
+    });
+  }
   onMounted(init);
   onBeforeUnmount(dispose);
 
-  return { snapshot, dispose, supported };
+  return { snapshot, flick, dispose, supported };
 }

@@ -302,6 +302,19 @@ describe("animateHero", () => {
     expect((hero.getObjectByName("shadow") as THREE.Object3D).parent).toBe(hero);
   });
 
+  it("hops up and lands back on the rest pose", () => {
+    const hero = buildHero(look());
+    const rig = hero.getObjectByName("rig") as THREE.Object3D;
+    const restY = (rig.userData.rest as { pos: number[] } | undefined)?.pos[1] ?? 0;
+    animateHero(hero, "hop", 0.225); // the top of the hop
+    expect(rig.position.y).toBeGreaterThanOrEqual(restY + 1);
+    expect(Math.abs((hero.getObjectByName("armL") as THREE.Object3D).rotation.z)).toBeGreaterThan(0.3);
+    expect(Math.abs((hero.getObjectByName("armR") as THREE.Object3D).rotation.z)).toBeGreaterThan(0.3);
+    animateHero(hero, "hop", 0.6);
+    expect(rig.position.y).toBe(restY);
+    expect(rig.rotation.x).toBe(0);
+  });
+
   it("walk swings the legs against each other", () => {
     const hero = buildHero(look());
     animateHero(hero, "walk", 0.1);

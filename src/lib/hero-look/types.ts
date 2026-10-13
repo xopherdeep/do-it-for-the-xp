@@ -27,7 +27,7 @@ export interface HeroLook {
   rightHand?: string;
 }
 
-export type HeroAnimation = "idle" | "wave" | "walk" | "victory" | "hurt" | "dance";
+export type HeroAnimation = "idle" | "wave" | "walk" | "victory" | "hurt" | "dance" | "hop";
 
 export const DEFAULT_LOOK: HeroLook = {
   skin: "peach",

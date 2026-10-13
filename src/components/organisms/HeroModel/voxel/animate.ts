@@ -172,6 +172,16 @@ const dance = (r: HeroRig, t: number): void => {
   legR.rotation.x = -0.55 * Math.max(0, -sway);
 };
 
+/** One quick hop and a landing on the rest pose: what a picked option answers with */
+const HOP_SECONDS = 0.45;
+const hop = (r: HeroRig, t: number): void => {
+  if (t >= HOP_SECONDS) return; // landed: reset() already left the rest pose
+  const air = Math.abs(s((Math.PI * t) / HOP_SECONDS)); // 0 on the ground, 1 at the top of the hop
+  r.rig.position.y += 1.2 * air;
+  r.parts.armL.rotation.z = 0.5 * air;
+  r.parts.armR.rotation.z = -0.5 * air;
+};
+
 /** Pose `group` (built by buildHero) for `animation` at `t` seconds. Pure in (animation, t). */
 export const animateHero = (group: THREE.Object3D, animation: HeroAnimation, t: number): void => {
   const refs = getRig(group);
@@ -192,6 +202,9 @@ export const animateHero = (group: THREE.Object3D, animation: HeroAnimation, t: 
       break;
     case "dance":
       dance(refs, t);
+      break;
+    case "hop":
+      hop(refs, t);
       break;
     case "idle":
     default:
