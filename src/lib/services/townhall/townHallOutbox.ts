@@ -8,8 +8,30 @@ import type { PostStatus, TownHallPost, TownHallPostKind } from "./townHallTypes
  * All pure: every function returns new objects and leaves its input alone.
  */
 
-/** What one try at sending a post came back with. */
-export type SendResult = { ok: true; remoteId: number } | { ok: false; code: TownHallErrorCode; message?: string };
+/** What one try at sending a post came back with; a refusal carries WordPress's own error code when the site sent one. */
+export type SendResult = { ok: true; remoteId: number } | { ok: false; code: TownHallErrorCode; message?: string; siteCode?: string };
+
+/**
+ * WordPress's refusals of one comment (wp_allow_comment and the REST comments controller), told apart by their code
+ * because their statuses mislead: a non-moderator may comment once every 15 seconds (400 comment_flood); a retry of a
+ * comment the site already has is 409 comment_duplicate; a closed thread or an unpublished post is a 403 that says nothing
+ * about the family's account.
+ */
+const COMMENT_FLOOD = "comment_flood";
+const COMMENT_DUPLICATE = "comment_duplicate";
+const NOT_OPEN_FOR_COMMENTS: ReadonlySet<string> = new Set(["rest_comment_closed", "rest_comment_draft_post"]);
+
+const siteCodeOf = (result: SendResult): string => (result.ok ? "" : result.siteCode ?? "");
+
+/** The site refused the family's account, not one post (a 403 that is not about a thread): Family Registration may need redoing. */
+export function refusesAccount(result: SendResult): boolean {
+  return !result.ok && result.code === "forbidden" && !NOT_OPEN_FOR_COMMENTS.has(siteCodeOf(result));
+}
+
+/** The site asks the family to slow down with comments: the flush sends no more comments this time. */
+export function holdsComments(result: SendResult): boolean {
+  return siteCodeOf(result) === COMMENT_FLOOD;
+}
 
 /** A bug report needs no approval, and a Game Master approves their own posts by posting them. */
 function startingStatus(kind: TownHallPostKind, isGameMaster: boolean): PostStatus {
@@ -62,21 +84,30 @@ export function startSending(post: TownHallPost): TownHallPost {
   return post.status === "queued" ? { ...post, status: "sending" } : post;
 }
 
+/** The post as the site has it, its last error cleared. */
+function sentAs(post: TownHallPost, remoteId: number): TownHallPost {
+  const { error: _cleared, ...rest } = post;
+  return { ...rest, status: "sent", remoteId };
+}
+
 /**
  * What a send result does to the post. Anything the hero cannot fix by waiting or by fixing the link keeps the post
  * queued (offline, server errors, a 404 from a Bug Net that is not active yet, a link the site no longer knows, an
- * account that may not post). Only text the site refuses fails the post, with the site's words so the hero can fix it.
+ * account that may not post, a comment flood). Only text the site refuses, or a thread closed to comments, fails the post,
+ * with the site's words so the hero can fix or clear it. A duplicate comment is sent: the site has it already.
  * `unlink` tells the caller to forget the family's link, because the site no longer accepts it.
  * Only a post that is sending settles: a stray result for a post that already moved on (two sends in flight, a
  * late answer for a post the Game Master rejected) changes nothing, so a sent post is never queued and sent twice.
  */
 export function settle(post: TownHallPost, result: SendResult): { post: TownHallPost; unlink: boolean } {
   if (post.status !== "sending") return { post, unlink: false };
-  if (result.ok) {
-    const { error: _cleared, ...rest } = post;
-    return { post: { ...rest, status: "sent", remoteId: result.remoteId }, unlink: false };
-  }
-  if (result.code === "invalid") {
+  if (result.ok) return { post: sentAs(post, result.remoteId), unlink: false };
+  const siteCode = siteCodeOf(result);
+  // A duplicate: the site has the comment already, from a try whose answer was lost (its id is not known)
+  if (siteCode === COMMENT_DUPLICATE) return { post: sentAs(post, 0), unlink: false };
+  if (siteCode === COMMENT_FLOOD) return { post: { ...post, status: "queued", error: siteCode }, unlink: false };
+  const refusesText = result.code === "invalid" || NOT_OPEN_FOR_COMMENTS.has(siteCode);
+  if (refusesText) {
     return { post: { ...post, status: "failed", error: result.message || result.code }, unlink: false };
   }
   return { post: { ...post, status: "queued", error: result.code }, unlink: result.code === "unauthorized" };

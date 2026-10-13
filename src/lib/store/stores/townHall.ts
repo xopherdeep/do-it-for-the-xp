@@ -11,8 +11,10 @@ import {
   approvePost,
   canDismiss,
   editPost,
+  holdsComments,
   newPost,
   recover,
+  refusesAccount,
   rejectPost,
   sendable,
   settle,
@@ -60,11 +62,14 @@ interface FlushRun {
   tried: Set<string>;
   /** The site's board ids, read when the first topic needs them. */
   boardIds: BoardIds | null;
+  /** The site said to slow down with comments (one every 15 seconds): the rest of this flush sends none. */
+  commentsHeld: boolean;
 }
 
-/** What a send that did not come back with a post: the site's refusal as it is, anything else as a server error. */
+/** What a send that did not come back with a post: the site's refusal as it is (with WordPress's code), anything else as a server error. */
 function failureOf(error: unknown): SendResult {
-  return error instanceof TownHallError ? { ok: false, code: error.code, message: error.message } : { ok: false, code: "server" };
+  if (!(error instanceof TownHallError)) return { ok: false, code: "server" };
+  return { ok: false, code: error.code, message: error.message, ...(error.siteCode ? { siteCode: error.siteCode } : {}) };
 }
 
 /** A made post answers with its id. A reply without one (a captive portal's page, say) is no sign the site has the post. */
@@ -376,11 +381,12 @@ export const useTownHallStore = defineStore("townHall", () => {
     replacePost(settled.post);
     await persistPosts();
 
-    const refusal = result.ok ? null : result.code;
     if (settled.post.status === "sent") run.result.sent += 1;
-    if (refusal === "forbidden") run.result.forbidden = true;
+    if (refusesAccount(result)) run.result.forbidden = true;
+    if (holdsComments(result)) run.commentsHeld = true;
     if (settled.unlink) run.result.unlinked = await giveUpOnRefusedLink(withAuth);
-    return settled.unlink || refusal === "offline";
+    const isOffline = !result.ok && result.code === "offline";
+    return settled.unlink || isOffline;
   }
 
   let inFlight: Promise<FlushResult> | null = null;
@@ -388,10 +394,11 @@ export const useTownHallStore = defineStore("townHall", () => {
   async function sendQueued(): Promise<FlushResult> {
     try {
       await init();
-      const run: FlushRun = { result: { sent: 0, unlinked: false, forbidden: false }, tried: new Set(), boardIds: null };
+      const run: FlushRun = { result: { sent: 0, unlinked: false, forbidden: false }, tried: new Set(), boardIds: null, commentsHeld: false };
+      const mayTry = (post: TownHallPost) => !run.tried.has(post.id) && !(run.commentsHeld && post.kind === "comment");
       let stopped = false;
       while (!stopped && isLinked.value) {
-        const next = sendable(posts.value).find((post) => !run.tried.has(post.id));
+        const next = sendable(posts.value).find(mayTry);
         if (!next) break;
         run.tried.add(next.id);
         stopped = await sendOne(next, run);
@@ -411,7 +418,8 @@ export const useTownHallStore = defineStore("townHall", () => {
    * It looks at the queue again after each post, so a post approved meanwhile goes out in the same flush.
    * Nothing is requested while the device is not linked. A refused sign-in (401) gives the link up and stops; a connection
    * that is down stops; an account that may not post (403) is noted in `forbidden` and the flush goes on, because another
-   * kind of post may still be allowed. Anything else leaves the post queued (or failed, when the site refuses its text)
+   * kind of post may still be allowed. A comment flood keeps that comment queued and holds the other comments until the
+   * next flush. Anything else leaves the post queued (or failed, when the site refuses its text or the thread is closed)
    * and goes on to the next. Only a failure to load or save the stored posts rejects.
    */
   function flush(): Promise<FlushResult> {

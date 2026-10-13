@@ -2,9 +2,11 @@ import {
   approvePost,
   canDismiss,
   editPost,
+  holdsComments,
   newPost,
   postedOutcome,
   recover,
+  refusesAccount,
   rejectPost,
   sendable,
   settle,
@@ -359,5 +361,57 @@ describe("editPost", () => {
     const before = { ...failed };
     editPost(failed, fixed, true);
     expect(failed).toEqual(before);
+  });
+});
+
+/** WordPress's own refusals of a comment, as the comments controller and wp_allow_comment send them. */
+describe("settle by WordPress's error code", () => {
+  const sending = post({ id: "c-1", kind: "comment", postId: 7, board: undefined, title: undefined, status: "sending" });
+  const FLOOD = { ok: false as const, code: "invalid" as const, message: "You are posting comments too quickly. Slow down.", siteCode: "comment_flood" };
+  const DUPLICATE = { ok: false as const, code: "server" as const, message: "Duplicate comment detected", siteCode: "comment_duplicate" };
+  const CLOSED = { ok: false as const, code: "forbidden" as const, message: "Sorry, comments are closed for this item.", siteCode: "rest_comment_closed" };
+  const DRAFT = { ok: false as const, code: "forbidden" as const, message: "Sorry, you are not allowed to create a comment on this post.", siteCode: "rest_comment_draft_post" };
+
+  it("keeps a comment queued when the site says to slow down (400 comment_flood), instead of failing it", () => {
+    const { post: settled, unlink } = settle(sending, FLOOD);
+    expect(settled.status).toBe("queued");
+    expect(unlink).toBe(false);
+    expect(canDismiss(settled)).toBe(false);
+  });
+
+  it("counts a duplicate as sent (409 comment_duplicate: the site has it from a try whose answer was lost)", () => {
+    const { post: settled, unlink } = settle({ ...sending, error: "offline" }, DUPLICATE);
+    expect(settled.status).toBe("sent");
+    expect(settled.remoteId).toBe(0);
+    expect(settled.error).toBeUndefined();
+    expect(unlink).toBe(false);
+  });
+
+  it("fails a comment on a closed thread or a post that is not published, with the site's words, so it can be cleared", () => {
+    for (const refusal of [CLOSED, DRAFT]) {
+      const { post: settled, unlink } = settle(sending, refusal);
+      expect(settled.status).toBe("failed");
+      expect(settled.error).toBe(refusal.message);
+      expect(unlink).toBe(false);
+      expect(canDismiss(settled)).toBe(true);
+    }
+  });
+
+  it("refusesAccount: only a 403 that is not about one post means the account may not post", () => {
+    expect(refusesAccount({ ok: false, code: "forbidden", message: "Sorry, you are not allowed" })).toBe(true);
+    expect(refusesAccount({ ok: false, code: "forbidden", siteCode: "rest_cannot_create" })).toBe(true);
+    expect(refusesAccount(CLOSED)).toBe(false);
+    expect(refusesAccount(DRAFT)).toBe(false);
+    expect(refusesAccount(FLOOD)).toBe(false);
+    expect(refusesAccount({ ok: false, code: "unauthorized" })).toBe(false);
+    expect(refusesAccount({ ok: true, remoteId: 1 })).toBe(false);
+  });
+
+  it("holdsComments: a flood means no more comments in this flush", () => {
+    expect(holdsComments(FLOOD)).toBe(true);
+    expect(holdsComments(DUPLICATE)).toBe(false);
+    expect(holdsComments(CLOSED)).toBe(false);
+    expect(holdsComments({ ok: false, code: "invalid", message: "Title is required" })).toBe(false);
+    expect(holdsComments({ ok: true, remoteId: 1 })).toBe(false);
   });
 });

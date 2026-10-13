@@ -991,6 +991,80 @@ describe("town hall store", () => {
       expect(mockDb.clearLink).not.toHaveBeenCalled();
     });
 
+    describe("WordPress's refusals of a comment, by its error code", () => {
+      const flood = () => new TownHallError("invalid", "You are posting comments too quickly. Slow down.", 400, "comment_flood");
+
+      it("a flood keeps the comment queued, sends no more comments in this flush, and still sends the topic and the bug", async () => {
+        siteTakesPosts({ onPost: (path) => (path === "wp/v2/comments" ? flood() : { id: 150 }) });
+        const store = await storeWith([
+          aComment({ id: "c-1", createdAt: 1 }),
+          aComment({ id: "c-2", createdAt: 2 }),
+          aPost({ id: "t-1", createdAt: 3 }),
+          aBug({ id: "b-1", createdAt: 4 }),
+        ]);
+
+        expect(await store.flush()).toEqual({ sent: 2, unlinked: false, forbidden: false });
+
+        expect(posted().map((request) => request.path)).toEqual(["wp/v2/comments", "wp/v2/cafeteria_topic", "wp/v2/compass_bug"]);
+        expect(statusesOf(store.posts)).toEqual([
+          ["c-1", "queued"],
+          ["c-2", "queued"],
+          ["t-1", "sent"],
+          ["b-1", "sent"],
+        ]);
+        expect(mockDb.clearLink).not.toHaveBeenCalled();
+      });
+
+      it("a flood holds comments for that flush only: the next flush tries them again", async () => {
+        let flooding = true;
+        siteTakesPosts({ onPost: () => (flooding ? flood() : { id: 151 }) });
+        const store = await storeWith([aComment({ id: "c-1", createdAt: 1 }), aComment({ id: "c-2", createdAt: 2 })]);
+        await store.flush();
+        flooding = false;
+
+        expect(await store.flush()).toEqual({ sent: 2, unlinked: false, forbidden: false });
+        expect(statusesOf(store.posts)).toEqual([
+          ["c-1", "sent"],
+          ["c-2", "sent"],
+        ]);
+      });
+
+      it("a duplicate (a retry after a lost answer) counts as sent, so it does not wait forever", async () => {
+        siteTakesPosts({ onPost: () => new TownHallError("server", "Duplicate comment detected", 409, "comment_duplicate") });
+        const store = await storeWith([aComment({ id: "c-1", error: "offline" })]);
+
+        expect(await store.flush()).toEqual({ sent: 1, unlinked: false, forbidden: false });
+
+        expect(store.posts[0]).toMatchObject({ status: "sent", remoteId: 0 });
+        expect(store.posts[0].error).toBeUndefined();
+      });
+
+      it("a closed thread or an unpublished post fails that comment with the site's words: never 'forbidden', the link stays, the rest go", async () => {
+        const refusals: Record<number, TownHallError> = {
+          1: new TownHallError("forbidden", "Sorry, comments are closed for this item.", 403, "rest_comment_closed"),
+          2: new TownHallError("forbidden", "Sorry, you are not allowed to create a comment on this post.", 403, "rest_comment_draft_post"),
+        };
+        siteTakesPosts({ onPost: (_path, _req, n) => refusals[n] ?? { id: 152 } });
+        const store = await storeWith([
+          aComment({ id: "c-1", createdAt: 1 }),
+          aComment({ id: "c-2", createdAt: 2 }),
+          aPost({ id: "t-1", createdAt: 3 }),
+        ]);
+
+        expect(await store.flush()).toEqual({ sent: 1, unlinked: false, forbidden: false });
+
+        expect(statusesOf(store.posts)).toEqual([
+          ["c-1", "failed"],
+          ["c-2", "failed"],
+          ["t-1", "sent"],
+        ]);
+        expect(store.posts[0].error).toBe("Sorry, comments are closed for this item.");
+        expect(store.posts[1].error).toBe("Sorry, you are not allowed to create a comment on this post.");
+        expect(mockDb.clearLink).not.toHaveBeenCalled();
+        expect(store.isLinked).toBe(true);
+      });
+    });
+
     it("fails a post the site refuses with the site's own words, and sends the rest", async () => {
       siteTakesPosts({ onPost: (_path, _req, n) => (n === 1 ? new TownHallError("invalid", "Title is required", 400) : { id: 150 }) });
       const store = await storeWith([aComment({ id: "a", createdAt: 1 }), aComment({ id: "b", createdAt: 2 })]);
