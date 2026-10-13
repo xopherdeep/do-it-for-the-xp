@@ -7,11 +7,14 @@ import {
   QUEST_TIERS,
   TEMPLE_FULL_SIZE,
   TIER_ATTACK_FACTOR,
+  headlineQuest,
+  isQuestRoom,
   questBeastId,
   questOccurrenceKey,
   questReturnsAt,
   questTier,
   resolveRoomQuest,
+  roomQuestIds,
   roomQuestState,
   roomQuestStatus,
   sizedRoomOf,
@@ -384,6 +387,60 @@ describe("resolveRoomQuest", () => {
       expect(found).toEqual({ kind: "quest", quest: goblin, item: undefined, source: "template" });
       expect(roomQuestStatus(found)).toBe("away");
     });
+  });
+});
+
+describe("rooms that hold several quests", () => {
+  const dishes = makeQuest("dishes", { difficulty: 13, assignee: [MIA] });
+  const mugs = makeQuest("mugs", { difficulty: 3 });
+  const pantry = makeQuest("pantry", { difficulty: 8 });
+  const kitchen = room({ questIds: ["dishes", "pantry", "mugs"] });
+
+  it("names its quests in order, and reads a single questId as a list of one", () => {
+    expect(roomQuestIds(kitchen)).toEqual(["dishes", "pantry", "mugs"]);
+    expect(roomQuestIds(room({ questId: "q1" }))).toEqual(["q1"]);
+    expect(roomQuestIds(room({}))).toEqual([]);
+    expect(roomQuestIds(null)).toEqual([]);
+    expect(isQuestRoom(kitchen)).toBe(true);
+    expect(isQuestRoom(room({ questIds: [] }))).toBe(false);
+  });
+
+  it("gives each hero the quest that is open for them", () => {
+    const board = [makeItem(mugs, "open")];
+    expect(resolveRoomQuest(kitchen, HERO, board, [dishes, pantry, mugs])).toMatchObject({
+      kind: "quest",
+      quest: { id: "mugs" },
+      source: "questId",
+    });
+  });
+
+  it("prefers open, then pending, then done, then away; ties go to list order", () => {
+    // pantry done (cleared), mugs done with a claim waiting (pending): pending wins
+    const board = [makeItem(pantry, "done", false), makeItem(mugs, "done", true)];
+    expect(resolveRoomQuest(kitchen, HERO, board, [pantry, mugs])).toMatchObject({ kind: "quest", quest: { id: "mugs" } });
+    const twoOpen = [makeItem(mugs, "open"), makeItem(pantry, "open")];
+    expect(resolveRoomQuest(kitchen, HERO, twoOpen, [pantry, mugs])).toMatchObject({ quest: { id: "pantry" } });
+  });
+
+  it("sleeps for a hero none of its quests is for", () => {
+    expect(resolveRoomQuest(room({ questIds: ["dishes"] }), HERO, [], [dishes])).toMatchObject({
+      kind: "notYours",
+      quest: { id: "dishes" },
+    });
+  });
+
+  it("falls back to its template, else an empty lair, when none of its quests is live", () => {
+    expect(resolveRoomQuest(room({ questIds: ["gone"] }), HERO, [], [])).toEqual({ kind: "emptyLair" });
+    const tpl = template({ beastId: "beast-nobody-has" });
+    expect(resolveRoomQuest(room({ questIds: ["gone"], quest: tpl }), HERO, [], [])).toEqual({ kind: "dormant", template: tpl });
+  });
+
+  it("is headlined by its biggest live quest, ties to list order", () => {
+    expect(headlineQuest(kitchen, [mugs, pantry, dishes])?.id).toBe("dishes");
+    expect(headlineQuest(room({ questIds: ["mugs", "x"] }), [mugs, makeQuest("x", { difficulty: 3 })])?.id).toBe("mugs");
+    expect(headlineQuest(room({ questId: "pantry" }), [pantry])?.id).toBe("pantry");
+    expect(headlineQuest(room({ questIds: ["dishes", "pantry"] }), [makeQuest("dishes", { difficulty: 13, draft: true }), pantry])?.id).toBe("pantry");
+    expect(headlineQuest(room({ questIds: ["gone"] }), [mugs])).toBeUndefined();
   });
 });
 

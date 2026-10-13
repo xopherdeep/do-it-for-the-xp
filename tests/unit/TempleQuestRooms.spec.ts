@@ -362,6 +362,31 @@ describe("the run reads the hero's board", () => {
     expect(cleared(id, 2)).toBe(true);
   });
 
+  it("leaves an open list room unsealed when its next chore lurks after a win", async () => {
+    const a = quest("q-a");
+    const b = quest("q-b");
+    const id = makeTemple(
+      { E: { type: "entrance" }, LIST: { type: "monster", content: { questIds: ["q-a", "q-b"] } } },
+      [["E", "LIST"]]
+    );
+    world([a, b]);
+    await openFor(id);
+    expect(temples.moveToPosition(id, [0, 1], "east")).toBe(true);
+
+    world([a, b], [entry("q-a", { source: "battle" })]); // won a; b is still open
+    temples.initTemple(id, [0, 1], undefined, HERO); // back from the battle
+    await temples.whenQuestRoomsReady(id);
+
+    expect(cleared(id, 1)).toBe(false); // b lurks
+    expect(temples.getCurrentRoom(id)?.locked ?? {}).not.toEqual(SEALED);
+
+    world([a, b], [entry("q-a", { source: "battle" }), entry("q-b")]); // b done too: nothing left in the room
+    temples.initTemple(id, [0, 1], undefined, HERO);
+    await temples.whenQuestRoomsReady(id);
+
+    expect(cleared(id, 1)).toBe(true);
+  });
+
   it("again on refreshQuestRooms: the beast is back when its window rolls over (7.10)", async () => {
     const id = temple();
     world([dish, weed], [entry("q-dish")]);

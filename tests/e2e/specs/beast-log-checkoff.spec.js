@@ -49,7 +49,7 @@ describe("Beast Log check-off feedback", () => {
   });
 
   it("stamps a List row Tamed before it lands in Done", () => {
-    cy.contains("button, .xp-app-bottom-nav__tab, [role=tab]", "List").click();
+    cy.get("button[aria-label=List]").filter(":visible").first().click();
     cy.get(".quest-done-btn", { timeout: 20000 }).first().click();
     cy.get("ion-action-sheet button", { timeout: 10000 }).first().click();
     cy.get(".quest-log-row.is-celebrating", { timeout: 10000 }).should("exist");

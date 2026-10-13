@@ -132,8 +132,31 @@ export function questBeastId(quest: Pick<Achievement, "beastId" | "achievementNa
   return suggestedBeastIds.get(name);
 }
 
-/** True for a room that holds a quest or a shipped quest template; a classic beast room is not one. */
-export const isQuestRoom = (room: Partial<Room>): boolean => Boolean(room.content?.questId || room.content?.quest);
+/**
+ * The quests a room holds, in order: its `questIds` when it lists any, else its one `questId`, else none. A single
+ * `questId` reads as a list of one, so the rules below only ever deal with lists.
+ */
+export function roomQuestIds(room: Partial<Room> | null | undefined): string[] {
+  const listed = room?.content?.questIds;
+  const isList = Array.isArray(listed) && listed.length > 0;
+  if (isList) return listed.map(String);
+  const single = room?.content?.questId;
+  return single ? [String(single)] : [];
+}
+
+/**
+ * The quest a room is known by: the biggest of the live (non-draft) quests it holds, ties to the one listed first.
+ * Screens that need one quest to name or size a whole room ask for this.
+ */
+export function headlineQuest(room: Partial<Room> | null | undefined, quests: readonly Achievement[]): Achievement | undefined {
+  const sizeOf = (quest: Achievement): number => Number(quest.difficulty) || 0;
+  const live = roomQuestIds(room).flatMap((id) => quests.find((quest) => String(quest.id) === id && !quest.draft) ?? []);
+  // A later quest takes over only when it is strictly bigger, so ties stay with the one listed first
+  return live.reduce<Achievement | undefined>((headline, quest) => (!headline || sizeOf(quest) > sizeOf(headline) ? quest : headline), undefined);
+}
+
+/** True for a room that holds a quest (or several) or a shipped quest template; a classic beast room is not one. */
+export const isQuestRoom = (room: Partial<Room>): boolean => roomQuestIds(room).length > 0 || Boolean(room.content?.quest);
 
 /**
  * What a room holds for one hero:
@@ -170,7 +193,7 @@ const readRow = (item?: QuestBoardItem): RowReading => {
 /** Which quest a template prefers: an open one, then a claim waiting, then a done one, then one that is away. */
 const PREFERENCE: Record<RowReading, number> = { lurking: 0, pending: 1, cleared: 2, away: 3 };
 
-/** The Game Master's pick: on the hero's board, else among the live quests (visible: no row; not visible: asleep). */
+/** One of the Game Master's picks: on the hero's board, else among the live quests (visible: no row; not visible: asleep). */
 const resolvePick = (
   questId: string,
   heroId: string,
@@ -184,6 +207,23 @@ const resolvePick = (
   return isVisibleToHero(live, heroId)
     ? { kind: "quest", quest: live, source: "questId" }
     : { kind: "notYours", quest: live };
+};
+
+/**
+ * The Game Master's picks for a room, met by one hero: the pick that is for them and reads best (open before
+ * pending before done before away; ties go to the one listed first), else the first pick asleep for them, else null.
+ */
+const resolvePicks = (
+  ids: readonly string[],
+  heroId: string,
+  board: readonly QuestBoardItem[],
+  liveQuests: readonly Achievement[]
+): RoomQuestResolution | null => {
+  const picks = ids.flatMap((id) => resolvePick(id, heroId, board, liveQuests) ?? []);
+  const forTheHero = picks.filter((pick): pick is Extract<RoomQuestResolution, { kind: "quest" }> => pick.kind === "quest");
+  // Array.sort is stable: two picks that read the same keep the order the room lists them in
+  const [best] = forTheHero.sort((a, b) => PREFERENCE[readRow(a.item)] - PREFERENCE[readRow(b.item)]);
+  return best ?? picks.find((pick) => pick.kind === "notYours") ?? null;
 };
 
 /** The best live quest visible to the hero whose beast is the template's, or null. */
@@ -212,11 +252,13 @@ const matchTemplate = (
 
 /**
  * Which quest a room holds for this hero (5.2), in the spec's order:
- *  1. `content.questId` (the Game Master's pick), when that quest exists and is not a draft;
+ *  1. `content.questId` / `content.questIds` (the Game Master's picks): the pick that is for the hero and reads best,
+ *     open before pending before done before away, ties to the one listed first; a pick that is gone or a draft does
+ *     not count, and when every live pick is for someone else the room sleeps for the hero;
  *  2. `content.quest` (the shipped template): the live quest visible to the hero whose beast is the template's,
  *     open before pending before done before away; ties go to the first;
  *  3. the room is dormant.
- * A classic room is never resolved. A `questId` that no longer resolves and has no template is an empty lair.
+ * A classic room is never resolved. Picks that no longer resolve and have no template are an empty lair.
  *
  * `visibleQuests` is the hero's board (QuestEngine.getQuestBoardForUser): the quests visible to them, each with
  * its status. `liveQuests` is every live quest in the family (QuestEngine.getAllQuests): without it a Game
@@ -229,12 +271,12 @@ export function resolveRoomQuest(
   visibleQuests: readonly QuestBoardItem[],
   liveQuests: readonly Achievement[] = []
 ): RoomQuestResolution {
-  const questId = room.content?.questId;
+  const questIds = roomQuestIds(room);
   const template = room.content?.quest;
-  const isClassic = !questId && !template;
+  const isClassic = questIds.length === 0 && !template;
   if (isClassic) return { kind: "classic" };
 
-  const picked = questId ? resolvePick(String(questId), heroId, visibleQuests, liveQuests) : null;
+  const picked = resolvePicks(questIds, heroId, visibleQuests, liveQuests);
   if (picked) return picked;
   if (!template) return { kind: "emptyLair" };
   return matchTemplate(template, heroId, visibleQuests, liveQuests) ?? { kind: "dormant", template };

@@ -27,6 +27,10 @@ export interface RoomContent {
   beasts?: string[];
   /** A quest room: the family quest the Game Master picked in the editor (5.2 step 1) */
   questId?: string;
+  /** A quest room: the quests it holds, in order; each hero meets the one open for them */
+  questIds?: string[];
+  /** What the room is called in the house: "Kitchen" */
+  name?: string;
   /** A quest room: the shipped template, matched to a live quest by beast (5.2 step 2) */
   quest?: RoomQuestTemplate;
   difficulty?: 'easy' | 'normal' | 'hard' | 'boss';
