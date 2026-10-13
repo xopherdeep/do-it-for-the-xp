@@ -16,6 +16,7 @@ import { browseLibrary, type LibraryEntry } from "@/lib/services/bestiary/librar
 import { DIFFICULTY_NAMES, TIER_NAMES, assigneeLabel, scheduleLabel } from "@/lib/services/quests/QuestLabels";
 import {
   headlineQuest,
+  isListRoom,
   questBeastId,
   questTier,
   roomQuestIds,
@@ -58,9 +59,6 @@ export interface QuestRoomCell {
 const COMBAT_TIERS: readonly string[] = ["monster", "miniboss", "boss"];
 
 const isQuestRoom = (room: Room | undefined): room is Room => roomQuestIds(room).length > 0 || Boolean(room?.content?.quest);
-
-/** True for a room that lists its quests in `questIds`: it reads by its biggest quest, not by what each hero sees. */
-const isListRoom = (room: Room): boolean => Boolean(room.content?.questIds?.length);
 
 /**
  * Every cell of every floor that holds a quest room (a `questId`, a list of `questIds` or a shipped template) and is

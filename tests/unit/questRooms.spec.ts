@@ -437,7 +437,8 @@ describe("rooms that hold several quests", () => {
 
   it("is headlined by its biggest live quest, ties to list order", () => {
     expect(headlineQuest(kitchen, [mugs, pantry, dishes])?.id).toBe("dishes");
-    expect(headlineQuest(room({ questIds: ["mugs", "x"] }), [mugs, makeQuest("x", { difficulty: 3 })])?.id).toBe("mugs");
+    // The quests come in the other order: the tie still goes to the one the room lists first
+    expect(headlineQuest(room({ questIds: ["mugs", "x"] }), [makeQuest("x", { difficulty: 3 }), mugs])?.id).toBe("mugs");
     expect(headlineQuest(room({ questId: "pantry" }), [pantry])?.id).toBe("pantry");
     expect(headlineQuest(room({ questIds: ["dishes", "pantry"] }), [makeQuest("dishes", { difficulty: 13, draft: true }), pantry])?.id).toBe("pantry");
     expect(headlineQuest(room({ questIds: ["gone"] }), [mugs])).toBeUndefined();

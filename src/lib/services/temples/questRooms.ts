@@ -132,16 +132,30 @@ export function questBeastId(quest: Pick<Achievement, "beastId" | "achievementNa
   return suggestedBeastIds.get(name);
 }
 
+/** A room's `questIds` when it is a list of at least one id; anything else there (none, empty, not a list) is no list */
+function questListOf(room: Partial<Room> | null | undefined): string[] | undefined {
+  const listed = room?.content?.questIds;
+  const isList = Array.isArray(listed) && listed.length > 0;
+  return isList ? listed : undefined;
+}
+
+/** True for a room that lists its quests in `questIds`, read the way roomQuestIds reads it; a `questId` room is not one */
+export const isListRoom = (room: Partial<Room> | null | undefined): boolean => questListOf(room) !== undefined;
+
 /**
  * The quests a room holds, in order: its `questIds` when it lists any, else its one `questId`, else none. A single
  * `questId` reads as a list of one, so the rules below only ever deal with lists.
  */
 export function roomQuestIds(room: Partial<Room> | null | undefined): string[] {
-  const listed = room?.content?.questIds;
-  const isList = Array.isArray(listed) && listed.length > 0;
-  if (isList) return listed.map(String);
+  const listed = questListOf(room);
+  if (listed) return listed.map(String);
   const single = room?.content?.questId;
   return single ? [String(single)] : [];
+}
+
+/** The live (non-draft) quests a room holds, in its order; a quest it names that is gone or only a draft is left out. */
+export function liveRoomQuests(room: Partial<Room> | null | undefined, quests: readonly Achievement[]): Achievement[] {
+  return roomQuestIds(room).flatMap((id) => quests.find((quest) => String(quest.id) === id && !quest.draft) ?? []);
 }
 
 /**
@@ -153,9 +167,7 @@ export function headlineQuest(
   quests: readonly Achievement[]
 ): Achievement | undefined {
   const difficultyOf = (quest: Achievement): number => Number(quest.difficulty) || 0;
-  const held = roomQuestIds(room).flatMap(
-    (id) => quests.find((quest) => String(quest.id) === id && !quest.draft) ?? []
-  );
+  const held = liveRoomQuests(room, quests);
   // A later quest takes over only when it is strictly bigger, so ties stay with the one listed first
   return held.reduce<Achievement | undefined>(
     (headline, quest) => (!headline || difficultyOf(quest) > difficultyOf(headline) ? quest : headline),

@@ -433,6 +433,13 @@ describe("buildTempleQuests", () => {
       const row = build({ layout: single, quests: [mugs, dishes], heroes: [] }).rows[0];
       expect(row.mismatch).toBe("Monster room holds a Boss quest (13)");
     });
+
+    it("reads a list the way roomQuestIds does: a questIds that is not a list leaves the questId room single", () => {
+      const notAList = { questId: "dishes", questIds: "mugs" as unknown as string[] };
+      const single: QuestLayout = { maze: [["l"]], rooms: { l: room("monster", notAList) } };
+      const row = build({ layout: single, quests: [mugs, dishes], heroes: [] }).rows[0];
+      expect(row).toMatchObject({ quest: dishes, moreQuests: 0, mismatch: "Monster room holds a Boss quest (13)" });
+    });
   });
 
   it("shows the approval badge and the quest's own difficulty name", () => {
