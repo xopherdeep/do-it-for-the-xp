@@ -55,6 +55,8 @@ import { useAudioStore } from "@/lib/store/stores/audio";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useGameStore } from "@/lib/store/stores/game";
 import { useBattleStore } from "@/lib/store/stores/battle";
+import { useFamilyStore } from "@/lib/store/stores/family";
+import { multiplayerEnabled } from "@/lib/services/multiplayer/multiplayerFlag";
 import { changeBGM as changeBGMAdapter } from '@/lib/engine/audio/routeMusic';
 import { play$fx } from "@/assets/fx";
 
@@ -300,6 +302,13 @@ export default defineComponent({
     ];
 
     userStore.loadUsers();
+
+    // Multiplayer ships hidden: with the flag off nothing here runs and no request is made
+    if (multiplayerEnabled()) {
+      useFamilyStore()
+        .init()
+        .catch((error) => debug.warn("The family could not start:", error));
+    }
 
     const bgm = computed(() => audioStore.bgm);
 

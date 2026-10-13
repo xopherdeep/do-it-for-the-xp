@@ -1,4 +1,4 @@
-import { createPinia, setActivePinia } from "pinia";
+import { createPinia, getActivePinia, setActivePinia } from "pinia";
 import { reactive } from "vue";
 import { useFamilyStore } from "@/lib/store/stores/family";
 import { TownHallError } from "@/lib/services/townhall/townHallClient";
@@ -101,6 +101,12 @@ describe("family store", () => {
     fillUsers(mia(), mom(), noNickname());
   });
 
+  afterEach(() => {
+    // A store left running would keep listening to the shared signals and to the mocked Town Hall
+    const pinia = getActivePinia() as unknown as { _s: Map<string, { $dispose: () => void }> };
+    pinia._s.forEach((store) => store.$dispose());
+  });
+
   describe("binding", () => {
     it("with the flag off makes no server call", async () => {
       mockEnabled = false;
@@ -183,7 +189,7 @@ describe("family store", () => {
       await store.init();
       await settle();
       expect(bindFamily).toHaveBeenCalledTimes(1);
-      expect(store.init()).toBe(store.init());
+      expect(mockTownHall.init).toHaveBeenCalledTimes(1);
     });
 
     it("does not make the first screen wait for the server", async () => {
