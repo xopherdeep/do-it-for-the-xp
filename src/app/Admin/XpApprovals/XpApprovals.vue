@@ -15,7 +15,7 @@
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
-      <ion-segment v-model="activeSegment">
+      <ion-segment v-model="activeSegment" scrollable>
         <ion-segment-button value="achievements">
           Achievements
           <ion-badge color="success">{{
