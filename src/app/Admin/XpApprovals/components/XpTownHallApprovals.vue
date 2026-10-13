@@ -1,5 +1,8 @@
 <template>
   <ion-list class="th-approvals" data-cy="th-approvals">
+    <ion-item v-if="notice" lines="none" class="th-approvals__notice" data-cy="th-approvals-notice">
+      <ion-label class="ion-text-wrap">{{ notice }}</ion-label>
+    </ion-item>
     <ion-item v-for="post in awaiting" :key="post.id" class="th-approval" data-cy="th-approval">
       <ion-avatar slot="start" class="th-approval__avatar">
         <i class="fad" :class="KIND_ICONS[post.kind]"></i>
@@ -43,6 +46,8 @@
 import { computed, onMounted, ref } from "vue";
 import { IonAvatar, IonButton, IonItem, IonLabel, IonList, IonNote } from "@ionic/vue";
 import { format } from "date-fns";
+import { APPROVALS_REGISTER_AGAIN_LINE, APPROVALS_UNREGISTERED_LINE } from "@/lib/services/hometown/hometownPrompts";
+import { sendable } from "@/lib/services/townhall/townHallOutbox";
 import { signature } from "@/lib/services/townhall/townHallPosts";
 import type { TownHallPost, TownHallPostKind } from "@/lib/services/townhall/townHallTypes";
 import { useTownHallStore } from "@/lib/store/stores/townHall";
@@ -95,11 +100,25 @@ const authorOf = (post: TownHallPost): string => {
 const isSigned = (post: TownHallPost): boolean => post.kind !== "bug";
 const signatureLine = (post: TownHallPost): string => signature(post.heroName).trim();
 
+/** The send after the last approval found the family's registration refused by the site (the link was given up) */
+const refusedOnLastSend = ref(false);
+
+/**
+ * Approved posts that cannot leave this device, said in plain words: the registration the site refused on the last send,
+ * or no registration here while posts wait in the queue.
+ */
+const notice = computed((): string | null => {
+  if (refusedOnLastSend.value) return APPROVALS_REGISTER_AGAIN_LINE;
+  const postsWait = loaded.value && !store.isLinked && sendable(store.posts).length > 0;
+  return postsWait ? APPROVALS_UNREGISTERED_LINE : null;
+});
+
 async function approve(id: string): Promise<void> {
   try {
     // The approval is saved first, so the send that follows finds the post in the queue
     await store.approve(id);
-    await store.flush();
+    const sent = await store.flush();
+    refusedOnLastSend.value = sent.unlinked;
   } catch (e) {
     debug.error("The Town Hall post could not be approved:", e);
   }
@@ -120,6 +139,11 @@ async function reject(id: string): Promise<void> {
     --padding-start: 8px;
     --inner-padding-end: 8px;
     margin-bottom: 4px;
+  }
+
+  .th-approvals__notice {
+    --background: var(--ion-color-light);
+    font-size: 14px;
   }
 
   ion-note {

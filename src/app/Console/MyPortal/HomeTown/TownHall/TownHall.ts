@@ -238,13 +238,17 @@ export default defineComponent({
     /**
      * Coming back from WordPress's "authorize this app" page, the new password rode in the address. The app took it out of
      * the address bar and the history when it started (pendingReturn.ts, before the router read the address); the clerk
-     * checks it here and says how it went.
+     * checks it here and says how it went. An ordinary visit by a Game Master whose posts wait for a registration this
+     * device lacks is offered Family Registration instead.
      */
     const finishLinkReturn = async () => {
       const search = takeLinkReturn();
       await loadLink();
       void posting.sendQueue();
-      if (search === null) return;
+      if (search === null) {
+        await posting.offerRegistration();
+        return;
+      }
       let result: LinkResult;
       try {
         result = await townHall.completeLink(search);

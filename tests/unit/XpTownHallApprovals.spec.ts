@@ -3,6 +3,8 @@ import { flushPromises, mount } from "@vue/test-utils";
 import XpTownHallApprovals from "@/app/Admin/XpApprovals/components/XpTownHallApprovals.vue";
 import { useTownHallStore } from "@/lib/store/stores/townHall";
 import { useUserStore } from "@/lib/store/stores/user";
+import { townHallFetch, TownHallError } from "@/lib/services/townhall/townHallClient";
+import { APPROVALS_UNREGISTERED_LINE, APPROVALS_REGISTER_AGAIN_LINE } from "@/lib/services/hometown/hometownPrompts";
 import type { TownHallPost } from "@/lib/services/townhall/townHallTypes";
 
 const mockDb = {
@@ -13,6 +15,21 @@ const mockDb = {
   savePosts: jest.fn(),
 };
 jest.mock("@/lib/databases/TownHallDb", () => ({ __esModule: true, getTownHallDb: () => mockDb }));
+
+jest.mock("@/lib/services/townhall/townHallClient", () => {
+  const actual = jest.requireActual("@/lib/services/townhall/townHallClient");
+  return { __esModule: true, TownHallError: actual.TownHallError, townHallFetch: jest.fn() };
+});
+const fetchMock = townHallFetch as jest.Mock;
+
+/** The family's link on this device, to the configured site. */
+const LINK = {
+  siteUrl: "https://doit.forthexp.com",
+  userLogin: "mom",
+  appPassword: "abcd efgh",
+  displayName: "Mom",
+  linkedAt: 1760000000000,
+};
 
 const aPost = (over: Partial<TownHallPost> = {}): TownHallPost => ({
   id: "p-1",
@@ -67,6 +84,55 @@ describe("XpTownHallApprovals", () => {
     expect(found[1].text()).toContain("Nice news!");
     expect(wrapper.text()).not.toContain("Already approved");
     expect(wrapper.text()).not.toContain("Turned down");
+  });
+
+  describe("when this device cannot send what the Game Master approves", () => {
+    const notice = (wrapper: Opened) => wrapper.find('[data-cy="th-approvals-notice"]');
+
+    it("says approved posts wait here while the device is not registered and posts are queued", async () => {
+      const { wrapper } = await open([aPost({ id: "q", status: "queued" }), aPost({ id: "a" })]);
+
+      expect(notice(wrapper).text()).toBe(APPROVALS_UNREGISTERED_LINE);
+      expect(APPROVALS_UNREGISTERED_LINE).toBe(
+        "This device isn't registered at the Town Hall, so approved posts wait here. Register from the Town Hall clerk."
+      );
+    });
+
+    it("says it as soon as an approval puts a post in the queue of an unregistered device", async () => {
+      const { wrapper } = await open([aPost({ id: "a" })]);
+      expect(notice(wrapper).exists()).toBe(false);
+
+      await press(rows(wrapper)[0], "th-approve");
+      await flushPromises();
+
+      expect(notice(wrapper).text()).toBe(APPROVALS_UNREGISTERED_LINE);
+      expect(fetchMock).not.toHaveBeenCalled();
+    });
+
+    it("says nothing when the device is registered, or when nothing is queued", async () => {
+      mockDb.getLink.mockResolvedValue(LINK);
+      const registered = await open([aPost({ id: "a" })]);
+      expect(notice(registered.wrapper).exists()).toBe(false);
+
+      setActivePinia(createPinia());
+      mockDb.getLink.mockResolvedValue(null);
+      const nothingQueued = await open([aPost({ id: "a" }), aPost({ id: "s", status: "sent" })]);
+      expect(notice(nothingQueued.wrapper).exists()).toBe(false);
+    });
+
+    it("says to register again when the send after an approval finds the registration refused (401)", async () => {
+      mockDb.getLink.mockResolvedValue(LINK);
+      mockDb.clearLink.mockResolvedValue(undefined);
+      fetchMock.mockRejectedValue(new TownHallError("unauthorized", "The provided password is an invalid application password.", 401));
+      const { wrapper, store } = await open([aComment({ id: "c" })]);
+
+      await press(rows(wrapper)[0], "th-approve");
+      await flushPromises();
+
+      expect(store.isLinked).toBe(false);
+      expect(notice(wrapper).text()).toBe(APPROVALS_REGISTER_AGAIN_LINE);
+      expect(statusOf(store, "c")).toBe("queued");
+    });
   });
 
   it("shows the exact signature line the site will publish under a topic or a comment", async () => {

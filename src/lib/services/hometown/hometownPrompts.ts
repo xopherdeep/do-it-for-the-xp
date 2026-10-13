@@ -278,6 +278,30 @@ export const postedNotice = (outcome: PostedOutcome): RevealPromptOptions => cle
 export const registerAgainPrompt = (): RevealPromptOptions =>
   clerkNotice('The Town Hall no longer recognizes your family. Your Game Master needs to register again.');
 
+/**
+ * The Game Master opens the Town Hall with posts waiting to go out and this device is not registered: the clerk offers
+ * Family Registration ('registration') or lets it be ('never').
+ */
+export const unregisteredOutboxPrompt = (): RevealPromptOptions => ({
+  speaker: CLERK,
+  accent: 'townHall',
+  sprite: 'tablet',
+  lines: ["*taps a stack of letters* Your family's posts are waiting here: this device isn't registered at the Town Hall yet."],
+  choices: [
+    { id: 'registration', label: 'Family Registration', icon: 'file-signature', tone: 'primary' },
+    { id: 'never', label: 'Not now', icon: 'times', tone: 'ghost' },
+  ],
+  cancelId: 'never',
+});
+
+/** The Approvals page's Town Hall segment, when this device is not registered and approved posts wait in the queue. */
+export const APPROVALS_UNREGISTERED_LINE =
+  "This device isn't registered at the Town Hall, so approved posts wait here. Register from the Town Hall clerk.";
+
+/** The Approvals page's Town Hall segment, when the send after an approval found the family's registration refused. */
+export const APPROVALS_REGISTER_AGAIN_LINE =
+  'The Town Hall no longer recognizes your family, so approved posts wait here. Register again from the Town Hall clerk.';
+
 /** The site knows the family but its account may not post. A Game Master may redo the registration; a hero is sent to them. */
 export const forbiddenPrompt = (isGameMaster: boolean): RevealPromptOptions => {
   if (!isGameMaster) return clerkNotice("Your family's registration isn't finished. Ask your Game Master.");
