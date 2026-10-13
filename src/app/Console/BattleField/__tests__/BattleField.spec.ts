@@ -452,7 +452,7 @@ describe("BattleField: a free fight", () => {
     expect(bagOpen()).toBe(true);
     expect(bag().props("mode")).toBe("battle");
     expect(wrapper.find(".menu-item").exists()).toBe(false);
-    expect(bagCard(ICE_WAND)).toMatchObject({ mp: 50, effect: "+10 minutes on the clock", reason: null });
+    expect(bagCard(ICE_WAND)).toMatchObject({ mp: 10, effect: "+10 minutes on the clock", reason: null });
     expect(bagCard(SILVER_ARROW)).toMatchObject({ mp: 25, effect: "The beast misses its next two strikes", reason: null });
     const opensDirectly = bag().props("opensDirectly") as (item: BagItem) => boolean;
     expect([BOTTLES, BOOK_OF_SPELLS, ICE_WAND].map(opensDirectly)).toEqual([true, true, false]);
@@ -467,7 +467,7 @@ describe("BattleField: a free fight", () => {
     // Ice Wand: the bag closes, MP spent, one line, the clock is longer, and the hero keeps the move
     await useFromBag(ICE_WAND);
     expect(bagOpen()).toBe(false);
-    expect(hero.stats.mp.now).toBe(70);
+    expect(hero.stats.mp.now).toBe(110);
     expect(vm.dialogText).toBe("Ice creeps over the clock: +10 minutes!");
     expect(wrapper.find(".attack-timer-label").text()).toBe("16:00");
     expect(mockPlaySound).toHaveBeenCalledWith("select");
@@ -479,7 +479,7 @@ describe("BattleField: a free fight", () => {
     await useFromBag(SILVER_ARROW);
     expect(bagOpen()).toBe(false);
     expect(wrapper.find("[data-cy=task-sheet]").exists()).toBe(false);
-    expect(hero.stats.mp.now).toBe(45);
+    expect(hero.stats.mp.now).toBe(85);
     expect(vm.dialogText).toBe("Socktopus is pinned! It will miss its next two strikes.");
     expect(wrapper.find(".chores-left-label").text()).toBe("2 tasks left");
     expect(wrapper.find(".damage-popup").exists()).toBe(false); // not an attack
