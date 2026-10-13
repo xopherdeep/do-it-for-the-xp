@@ -16,12 +16,18 @@
       <WeatherFX type="forest" :intensity="5" :sound-enabled="false" />
       <div class="world-scene-frame">
         <div class="world-scene">
-          <!-- Temple in the sunlit west meadow, the hermit in the bright south glade, Pegasus in the east clearing -->
-          <xp-temple-model class="world-spot" style="--x: 29%; --y: 48%; --z: 48" temple-id="earth-temple" :size="95" />
-          <xp-building-model class="world-spot" style="--x: 47%; --y: 74%; --z: 74" building-id="hermits-tent" :size="100" />
-          <xp-building-model class="world-spot" style="--x: 70%; --y: 66%; --z: 66" building-id="pegasus" world="forest" :size="105" />
-          <!-- Boobeedeedle's balloon, only on the day the traveling merchant is visiting this world -->
-          <xp-traveling-merchant class="world-spot" style="--x: 64%; --y: 40%; --z: 40" world="forest" :size="100" />
+          <xp-draggable-spot screen="world-forest" spot-id="earth-temple" :default-x="29" :default-y="48">
+            <xp-temple-model temple-id="earth-temple" :size="95" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-forest" spot-id="hermits-tent" :default-x="47" :default-y="74">
+            <xp-building-model building-id="hermits-tent" :size="100" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-forest" spot-id="pegasus" :default-x="70" :default-y="66">
+            <xp-building-model building-id="pegasus" world="forest" :size="105" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-forest" spot-id="merchant" :default-x="64" :default-y="40">
+            <xp-traveling-merchant world="forest" :size="100" />
+          </xp-draggable-spot>
         </div>
       </div>
       <div class="enchanted-forest">

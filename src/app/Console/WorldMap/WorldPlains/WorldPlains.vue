@@ -16,14 +16,21 @@
       <WeatherFX type="plains" :intensity="4" :sound-enabled="false" />
       <div class="world-scene-frame">
         <div class="world-scene">
-          <!-- Each landmark on one of the four sandy pads: ranch north-west, spire north-east, Pegasus
-               south-east, the Hometown gate south-west -->
-          <xp-building-model class="world-spot" style="--x: 26%; --y: 40%; --z: 40" building-id="pegasus-ranch" :size="100" />
-          <xp-temple-model class="world-spot" style="--x: 69%; --y: 41%; --z: 41" temple-id="wind-temple" :size="100" />
-          <xp-building-model class="world-spot" style="--x: 69%; --y: 67%; --z: 67" building-id="pegasus" world="plains" :size="105" />
-          <xp-building-model class="world-spot" style="--x: 25%; --y: 69%; --z: 69" building-id="home-town" label="Hometown" sublabel="Return home" :size="105" />
-          <!-- Boobeedeedle's balloon, only on the day the traveling merchant is visiting this world -->
-          <xp-traveling-merchant class="world-spot" style="--x: 47%; --y: 56%; --z: 56" world="plains" :size="100" />
+          <xp-draggable-spot screen="world-plains" spot-id="pegasus-ranch" :default-x="26" :default-y="40">
+            <xp-building-model building-id="pegasus-ranch" :size="100" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-plains" spot-id="wind-temple" :default-x="69" :default-y="41">
+            <xp-temple-model temple-id="wind-temple" :size="100" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-plains" spot-id="pegasus" :default-x="69" :default-y="67">
+            <xp-building-model building-id="pegasus" world="plains" :size="105" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-plains" spot-id="home-town" :default-x="25" :default-y="69">
+            <xp-building-model building-id="home-town" label="Hometown" sublabel="Return home" :size="105" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-plains" spot-id="merchant" :default-x="47" :default-y="56">
+            <xp-traveling-merchant world="plains" :size="100" />
+          </xp-draggable-spot>
         </div>
       </div>
       <div class="plains-weather-container">
@@ -39,7 +46,7 @@
       </div>
       
       <!-- SVG filters -->
-      <svg width="0" height="0" style="position: absolute;">
+      <svg width="0" height="0" class="svg-filter-hidden">
         <defs>
           <filter id="heat-distortion">
             <feTurbulence type="fractalNoise" baseFrequency="0.01" numOctaves="3" result="noise" seed="0" />

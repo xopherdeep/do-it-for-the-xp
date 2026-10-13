@@ -14,25 +14,37 @@
 
     <ion-content :fullscreen="true">
       <div class="hometown-plaza">
-        <!-- North: Town Hall, The Plains (leave town), and Gold Bank -->
-        <div class="plaza-row plaza-top">
+        <xp-draggable-spot screen="home-town" spot-id="town-hall" :default-x="20" :default-y="24">
           <xp-building-model building-id="town-hall" label="Town Hall" :size="105" />
+        </xp-draggable-spot>
+
+        <xp-draggable-spot screen="home-town" spot-id="world-plains" :default-x="50" :default-y="20">
           <xp-stage-model stage-id="world-plains" label="The Plains" sublabel="Leave town" :size="105" />
+        </xp-draggable-spot>
+
+        <xp-draggable-spot screen="home-town" spot-id="bank" :default-x="80" :default-y="24">
           <xp-building-model building-id="bank" label="Gold Bank" :size="105" />
-        </div>
+        </xp-draggable-spot>
 
-        <!-- East/West flank: Market and Hospital -->
-        <div class="plaza-row plaza-middle">
+        <xp-draggable-spot screen="home-town" spot-id="shop" :default-x="22" :default-y="48">
           <xp-building-model building-id="shop" label="Market" :size="115" />
-          <xp-building-model building-id="hospital" label="Hospital" :size="115" />
-        </div>
+        </xp-draggable-spot>
 
-        <!-- South: Hero's Home, the Old House (once the Moving House pack built it) and Hotel -->
-        <div class="plaza-row plaza-bottom">
+        <xp-draggable-spot screen="home-town" spot-id="hospital" :default-x="78" :default-y="48">
+          <xp-building-model building-id="hospital" label="Hospital" :size="115" />
+        </xp-draggable-spot>
+
+        <xp-draggable-spot screen="home-town" spot-id="hero-home" :default-x="24" :default-y="74">
           <xp-building-model building-id="hero-home" label="Hero's Home" :size="115" />
-          <xp-building-model v-if="hasOldHouse" building-id="old-house" label="The Old House" sublabel="Fight the packing" :size="100" @click="enterOldHouse" />
+        </xp-draggable-spot>
+
+        <xp-draggable-spot v-if="hasOldHouse" screen="home-town" spot-id="old-house" :default-x="50" :default-y="72">
+          <xp-building-model building-id="old-house" label="The Old House" sublabel="Fight the packing" :size="100" @click="enterOldHouse" />
+        </xp-draggable-spot>
+
+        <xp-draggable-spot screen="home-town" spot-id="hotel" :default-x="76" :default-y="74">
           <xp-building-model building-id="hotel" label="Hotel" :size="115" />
-        </div>
+        </xp-draggable-spot>
       </div>
 
       <ion-modal trigger="adventure-time"

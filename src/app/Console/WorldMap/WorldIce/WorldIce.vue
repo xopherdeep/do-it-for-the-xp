@@ -16,12 +16,18 @@
       <WeatherFX type="snowy" :intensity="6" :sound-enabled="false" />
       <div class="world-scene-frame">
         <div class="world-scene">
-          <!-- Temple on the open snowfield past the stream, the shack on the frozen lake's shore, Pegasus on the south drifts -->
-          <xp-temple-model class="world-spot" style="--x: 72%; --y: 57%; --z: 57" temple-id="ice-temple" :size="95" />
-          <xp-building-model class="world-spot" style="--x: 28%; --y: 69%; --z: 69" building-id="snow-shack" :size="105" />
-          <xp-building-model class="world-spot" style="--x: 58%; --y: 79%; --z: 79" building-id="pegasus" world="ice" :size="100" />
-          <!-- Boobeedeedle's balloon, only on the day the traveling merchant is visiting this world -->
-          <xp-traveling-merchant class="world-spot" style="--x: 44%; --y: 40%; --z: 40" world="ice" :size="100" />
+          <xp-draggable-spot screen="world-ice" spot-id="ice-temple" :default-x="72" :default-y="57">
+            <xp-temple-model temple-id="ice-temple" :size="95" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-ice" spot-id="snow-shack" :default-x="28" :default-y="69">
+            <xp-building-model building-id="snow-shack" :size="105" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-ice" spot-id="pegasus" :default-x="58" :default-y="79">
+            <xp-building-model building-id="pegasus" world="ice" :size="100" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-ice" spot-id="merchant" :default-x="44" :default-y="40">
+            <xp-traveling-merchant world="ice" :size="100" />
+          </xp-draggable-spot>
         </div>
       </div>
     </ion-content>

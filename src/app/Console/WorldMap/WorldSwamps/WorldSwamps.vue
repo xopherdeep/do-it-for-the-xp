@@ -16,12 +16,18 @@
       <WeatherFX type="swamp" :intensity="5" :sound-enabled="false" />
       <div class="world-scene-frame">
         <div class="world-scene">
-          <!-- Temple on the reed islet in the pools, the witch on the west mud bank, Pegasus on the east bank -->
-          <xp-temple-model class="world-spot" style="--x: 57%; --y: 57%; --z: 57" temple-id="shadow-temple" :size="95" />
-          <xp-building-model class="world-spot" style="--x: 25%; --y: 73%; --z: 73" building-id="witchs-hut" :size="105" />
-          <xp-building-model class="world-spot" style="--x: 73%; --y: 72%; --z: 72" building-id="pegasus" world="swamps" :size="100" />
-          <!-- Boobeedeedle's balloon, only on the day the traveling merchant is visiting this world -->
-          <xp-traveling-merchant class="world-spot" style="--x: 36%; --y: 44%; --z: 44" world="swamps" :size="100" />
+          <xp-draggable-spot screen="world-swamps" spot-id="shadow-temple" :default-x="57" :default-y="57">
+            <xp-temple-model temple-id="shadow-temple" :size="95" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-swamps" spot-id="witchs-hut" :default-x="25" :default-y="73">
+            <xp-building-model building-id="witchs-hut" :size="105" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-swamps" spot-id="pegasus" :default-x="73" :default-y="72">
+            <xp-building-model building-id="pegasus" world="swamps" :size="100" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-swamps" spot-id="merchant" :default-x="36" :default-y="44">
+            <xp-traveling-merchant world="swamps" :size="100" />
+          </xp-draggable-spot>
         </div>
       </div>
     </ion-content>

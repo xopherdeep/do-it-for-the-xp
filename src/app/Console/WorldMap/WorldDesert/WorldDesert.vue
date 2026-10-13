@@ -16,12 +16,18 @@
       <WeatherFX type="desert" :intensity="5" :sound-enabled="false" />
       <div class="world-scene-frame">
         <div class="world-scene">
-          <!-- The oasis on the flat under the palm, the temple on the west salt pan, Pegasus on the east pan -->
-          <xp-building-model class="world-spot" style="--x: 70%; --y: 50%; --z: 50" building-id="pond-of-life" :size="95" />
-          <xp-temple-model class="world-spot" style="--x: 27%; --y: 71%; --z: 71" temple-id="light-temple" :size="105" />
-          <xp-building-model class="world-spot" style="--x: 72%; --y: 74%; --z: 74" building-id="pegasus" world="desert" :size="100" />
-          <!-- Boobeedeedle's balloon, only on the day the traveling merchant is visiting this world -->
-          <xp-traveling-merchant class="world-spot" style="--x: 48%; --y: 56%; --z: 56" world="desert" :size="100" />
+          <xp-draggable-spot screen="world-sands" spot-id="pond-of-life" :default-x="70" :default-y="50">
+            <xp-building-model building-id="pond-of-life" :size="95" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-sands" spot-id="light-temple" :default-x="27" :default-y="71">
+            <xp-temple-model temple-id="light-temple" :size="105" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-sands" spot-id="pegasus" :default-x="72" :default-y="74">
+            <xp-building-model building-id="pegasus" world="desert" :size="100" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-sands" spot-id="merchant" :default-x="48" :default-y="56">
+            <xp-traveling-merchant world="desert" :size="100" />
+          </xp-draggable-spot>
         </div>
       </div>
     </ion-content>

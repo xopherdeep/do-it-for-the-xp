@@ -13,27 +13,23 @@
     </ion-header> -->
 
     <ion-content :fullscreen="true">
-      <div class="world-map-plaza">
-        <!-- North: High seas, mountain heights, storm clouds -->
-        <div class="plaza-row plaza-north">
-          <xp-stage-model stage-id="world-islands" :size="100" />
-          <xp-stage-model stage-id="world-mountains" :size="100" />
-          <xp-stage-model stage-id="world-clouds" :size="100" />
-        </div>
-
-        <!-- Equator: West forest, Central plains, and East tundras -->
-        <div class="plaza-row plaza-equator">
-          <xp-stage-model stage-id="world-forest" :size="100" />
-          <xp-stage-model stage-id="world-plains" :size="100" />
-          <xp-stage-model stage-id="world-ice" :size="100" />
-        </div>
-
-        <!-- South: Swamp bogs, desert sands, and cosmic stars/moon -->
-        <div class="plaza-row plaza-south">
-          <xp-stage-model stage-id="world-swamps" :size="100" />
-          <xp-stage-model stage-id="world-sands" :size="100" />
-          <xp-stage-model stage-id="the-moon" :size="100" />
-        </div>
+      <div class="world-map-plaza" ref="plazaRef">
+        <xp-draggable-spot
+          v-for="node in stageNodes"
+          :key="node.stageId"
+          screen="world-map"
+          :spot-id="node.stageId"
+          :default-x="node.defaultX"
+          :default-y="node.defaultY"
+        >
+          <xp-stage-model
+            :stage-id="node.stageId"
+            :size="100"
+            :interactive="false"
+            :navigate-on-click="false"
+            @click="handleStageTravel(node.stageId)"
+          />
+        </xp-draggable-spot>
       </div>
     </ion-content>
   </ion-page>

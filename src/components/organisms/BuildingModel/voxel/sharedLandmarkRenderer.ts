@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import type { MeshData } from "@/components/organisms/HeroModel/voxel/mesh";
+import { isOrganizeMode } from "@/components/organisms/DraggableSpot/spotState";
 
 export interface LandmarkOptions {
   getMeshData: () => MeshData;
@@ -54,13 +55,11 @@ let sharedCanvas: HTMLCanvasElement | null = null;
 let webGlCheckAttempted = false;
 let isWebGlAvailable = true;
 let isContextLost = false;
-
 const clients = new Map<number, LandmarkClient>();
 let nextClientId = 1;
 let rafId = 0;
 let isLoopRunning = false;
 let lastRenderTime = 0;
-
 const getNowSeconds = (): number => performance.now() / 1000;
 
 const initSharedRenderer = (): THREE.WebGLRenderer | null => {
@@ -158,18 +157,14 @@ const buildClientMesh = (client: LandmarkClient): void => {
 
 const setupClientScene = (client: LandmarkClient, ambientIntensity = 1.05, dirIntensity = 1.3): void => {
   const scene = new THREE.Scene();
-
   const ambient = new THREE.AmbientLight(0xffffff, ambientIntensity);
   scene.add(ambient);
-
   const dirLight = new THREE.DirectionalLight(0xffffff, dirIntensity);
   dirLight.position.set(18, 30, 22);
   scene.add(dirLight);
-
   const fillLight = new THREE.DirectionalLight(0xb0d8ff, 0.48);
   fillLight.position.set(-18, 12, -18);
   scene.add(fillLight);
-
   const shadowGeo = new THREE.CircleGeometry(7.5, 16);
   const shadowMat = new THREE.MeshBasicMaterial({
     color: 0x000000,
@@ -307,11 +302,9 @@ const renderLoop = (currentTime = performance.now()): void => {
     rafId = requestAnimationFrame(renderLoop);
     return;
   }
-
   clients.forEach((client) => {
     renderClient(client, renderer);
   });
-
   if (shouldRunLoop()) {
     rafId = requestAnimationFrame(renderLoop);
   } else {
@@ -348,6 +341,8 @@ const attachPointerEvents = (client: LandmarkClient): (() => void) => {
   if (!client.interactive) return () => {};
 
   const onPointerDown = (event: PointerEvent): void => {
+    const isOrganizing = isOrganizeMode.value;
+    if (isOrganizing) return;
     client.dragging = true;
     client.dirty = true;
     client.lastPointerX = event.clientX;
@@ -356,7 +351,13 @@ const attachPointerEvents = (client: LandmarkClient): (() => void) => {
   };
 
   const onPointerMove = (event: PointerEvent): void => {
-    if (!client.dragging) return;
+    const isOrganizing = isOrganizeMode.value;
+    if (isOrganizing) {
+      client.dragging = false;
+      return;
+    }
+    const isNotDragging = !client.dragging;
+    if (isNotDragging) return;
     const dx = event.clientX - client.lastPointerX;
     client.lastPointerX = event.clientX;
     client.yaw += dx * 0.018;
@@ -365,7 +366,8 @@ const attachPointerEvents = (client: LandmarkClient): (() => void) => {
   };
 
   const onPointerUp = (event: PointerEvent): void => {
-    if (!client.dragging) return;
+    const isDraggingActive = client.dragging;
+    if (!isDraggingActive) return;
     client.dragging = false;
     client.dirty = true;
     (event.target as HTMLElement)?.releasePointerCapture?.(event.pointerId);
@@ -438,7 +440,6 @@ export const registerLandmark = (
     syncLoop();
   });
   client.resizeObserver.observe(canvas.parentElement ?? canvas);
-
   client.intersectionObserver = new IntersectionObserver(
     (entries) => {
       const isVisible = entries.some((entry) => entry.isIntersecting);
@@ -451,7 +452,6 @@ export const registerLandmark = (
     { threshold: 0.05 }
   );
   client.intersectionObserver.observe(canvas);
-
   clients.set(clientId, client);
   syncLoop();
 
@@ -481,7 +481,6 @@ export const registerLandmark = (
       client.cleanupEvents();
       client.resizeObserver?.disconnect();
       client.intersectionObserver?.disconnect();
-
       if (client.mesh) {
         client.group.remove(client.mesh);
         client.mesh.geometry.dispose();
@@ -490,10 +489,8 @@ export const registerLandmark = (
         }
         client.mesh = null;
       }
-
       client.scene.clear();
       clients.delete(clientId);
-
       if (clients.size === 0) {
         stopLoop();
       }

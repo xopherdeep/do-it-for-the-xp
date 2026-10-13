@@ -16,12 +16,18 @@
       <WeatherFX type="moon" :intensity="5" :sound-enabled="false" />
       <div class="world-scene-frame">
         <div class="world-scene">
-          <!-- Theia City on the near crater field, the temple on the far ridge, Pegasus hovering in the starfield -->
-          <xp-building-model class="world-spot" style="--x: 70%; --y: 54%; --z: 54" building-id="pegasus" world="moon" :size="90" />
-          <xp-temple-model class="world-spot" style="--x: 64%; --y: 72%; --z: 72" temple-id="moon-temple" :size="95" />
-          <xp-building-model class="world-spot" style="--x: 30%; --y: 80%; --z: 80" building-id="theia-city" :size="110" />
-          <!-- Boobeedeedle's balloon, only on the day the traveling merchant is visiting this world -->
-          <xp-traveling-merchant class="world-spot" style="--x: 36%; --y: 52%; --z: 52" world="moon" :size="100" />
+          <xp-draggable-spot screen="the-moon" spot-id="pegasus" :default-x="70" :default-y="54">
+            <xp-building-model building-id="pegasus" world="moon" :size="90" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="the-moon" spot-id="moon-temple" :default-x="64" :default-y="72">
+            <xp-temple-model temple-id="moon-temple" :size="95" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="the-moon" spot-id="theia-city" :default-x="30" :default-y="80">
+            <xp-building-model building-id="theia-city" :size="110" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="the-moon" spot-id="merchant" :default-x="36" :default-y="52">
+            <xp-traveling-merchant world="moon" :size="100" />
+          </xp-draggable-spot>
         </div>
       </div>
     </ion-content>

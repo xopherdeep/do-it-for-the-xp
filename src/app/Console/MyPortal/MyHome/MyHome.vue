@@ -15,26 +15,29 @@
     <ion-content :fullscreen="true" class="my-home-bg">
       <IonRouterOutlet />
       <div class="my-home-plaza">
-        <!-- North: Cozy Bed (left) and My Storage (center) -->
-        <div class="plaza-row plaza-top">
+        <xp-draggable-spot screen="my-home" spot-id="home-bed" :default-x="25" :default-y="25">
           <xp-building-model building-id="home-bed" label="Cozy Bed" sublabel="Rest & heal" :size="115" @click="restInBed" />
+        </xp-draggable-spot>
+
+        <xp-draggable-spot screen="my-home" spot-id="home-storage" :default-x="65" :default-y="25">
           <xp-building-model building-id="home-storage" label="My Storage" sublabel="Open vault" :size="115" />
-          <div class="plaza-clearing" aria-hidden="true"></div>
-        </div>
+        </xp-draggable-spot>
 
-        <!-- East/West flank: My Workbench and My Kitchen, leaving center clear for table -->
-        <div class="plaza-row plaza-middle">
+        <xp-draggable-spot screen="my-home" spot-id="home-workbench" :default-x="20" :default-y="50">
           <xp-building-model building-id="home-workbench" label="My Workbench" sublabel="Craft gear" :size="115" />
-          <div class="plaza-clearing" aria-hidden="true"></div>
-          <xp-building-model building-id="home-kitchen" label="My Kitchen" sublabel="Cook meals" :size="115" />
-        </div>
+        </xp-draggable-spot>
 
-        <!-- South: My Calendar (left) and Front Door (center) -->
-        <div class="plaza-row plaza-bottom">
+        <xp-draggable-spot screen="my-home" spot-id="home-kitchen" :default-x="80" :default-y="50">
+          <xp-building-model building-id="home-kitchen" label="My Kitchen" sublabel="Cook meals" :size="115" />
+        </xp-draggable-spot>
+
+        <xp-draggable-spot screen="my-home" spot-id="home-calendar" :default-x="25" :default-y="75">
           <xp-building-model building-id="home-calendar" label="My Calendar" sublabel="View schedule" :size="115" />
+        </xp-draggable-spot>
+
+        <xp-draggable-spot screen="my-home" spot-id="home-door" :default-x="65" :default-y="75">
           <xp-building-model building-id="home-door" label="Front Door" sublabel="Go outside" :size="115" />
-          <div class="plaza-clearing" aria-hidden="true"></div>
-        </div>
+        </xp-draggable-spot>
       </div>
       <ion-modal :breakpoints="[0.9]" :initialBreakpoint="0.9">
         <ion-card>

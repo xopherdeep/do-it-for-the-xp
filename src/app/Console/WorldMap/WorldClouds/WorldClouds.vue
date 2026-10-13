@@ -16,12 +16,18 @@
       <WeatherFX type="cloudy" :intensity="5" :sound-enabled="false" />
       <div class="world-scene-frame">
         <div class="world-scene">
-          <!-- Temple on the high east cloudbank, the market on the west cloud, Pegasus on the low cloud road -->
-          <xp-temple-model class="world-spot" style="--x: 66%; --y: 55%; --z: 55" temple-id="storm-temple" :size="100" />
-          <xp-building-model class="world-spot" style="--x: 25%; --y: 68%; --z: 68" building-id="cloud-market" :size="105" />
-          <xp-building-model class="world-spot" style="--x: 45%; --y: 84%; --z: 84" building-id="pegasus" world="clouds" :size="100" />
-          <!-- Boobeedeedle's balloon, only on the day the traveling merchant is visiting this world -->
-          <xp-traveling-merchant class="world-spot" style="--x: 34%; --y: 46%; --z: 46" world="clouds" :size="100" />
+          <xp-draggable-spot screen="world-clouds" spot-id="storm-temple" :default-x="66" :default-y="55">
+            <xp-temple-model temple-id="storm-temple" :size="100" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-clouds" spot-id="cloud-market" :default-x="25" :default-y="68">
+            <xp-building-model building-id="cloud-market" :size="105" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-clouds" spot-id="pegasus" :default-x="45" :default-y="84">
+            <xp-building-model building-id="pegasus" world="clouds" :size="100" />
+          </xp-draggable-spot>
+          <xp-draggable-spot screen="world-clouds" spot-id="merchant" :default-x="34" :default-y="46">
+            <xp-traveling-merchant world="clouds" :size="100" />
+          </xp-draggable-spot>
         </div>
       </div>
     </ion-content>
