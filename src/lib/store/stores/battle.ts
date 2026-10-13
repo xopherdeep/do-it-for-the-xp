@@ -1,8 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, reactive } from 'vue';
 import { nextEncounterAt as encounterDueAt, stepsPerSecond, stepsWalked } from '@/lib/services/battle/encounterClock';
-import { withAmbushRecorded } from '@/lib/services/battle/questAmbush';
-import debug from '@/lib/utils/debug';
 
 /**
  * Random-encounter pacing. One step is one second of walking on plains (see randomEncounter),
@@ -26,33 +24,6 @@ export interface PendingAmbush {
   questId?: string;
 }
 
-/** Where this device keeps when each quest last ambushed each hero (hero id -> quest id -> epoch ms). */
-const QUEST_AMBUSHES_KEY = 'xp.questAmbushes';
-
-type QuestAmbushRecord = Record<string, Record<string, number>>;
-
-/** What this device remembered, or nothing: unreadable or blocked storage only means the cooldowns start over. */
-const readQuestAmbushes = (): QuestAmbushRecord => {
-  try {
-    const parsed = JSON.parse(localStorage.getItem(QUEST_AMBUSHES_KEY) ?? '{}');
-    const isRecord = parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed);
-    if (!isRecord) return {};
-    const heroes: QuestAmbushRecord = {};
-    for (const [heroId, quests] of Object.entries(parsed as Record<string, unknown>)) {
-      const stamps = Object.entries((quests ?? {}) as Record<string, unknown>).filter(
-        ([, at]) => typeof at === 'number' && Number.isFinite(at)
-      ) as Array<[string, number]>;
-      const hasStamps = stamps.length > 0;
-      if (hasStamps) heroes[heroId] = Object.fromEntries(stamps);
-    }
-    return heroes;
-  } catch (error) {
-    // storage blocked (private mode) or not JSON: start with no cooldowns
-    debug.warn('[battle] could not read the quest ambush record', error);
-    return {};
-  }
-};
-
 export const useBattleStore = defineStore('battle', () => {
   // --- State ---
   const active = ref(false);
@@ -67,9 +38,6 @@ export const useBattleStore = defineStore('battle', () => {
   // An encounter that sprang while the hero was away (see battle.guard): it waits here for them to come back.
   // Not persisted, a restart forgets it.
   const pendingAmbush = ref<PendingAmbush | null>(null);
-  // When each quest last ambushed each hero, for the 60-minute cooldown (see questAmbush). Kept on this device
-  // so a restart does not bring a quest straight back; slice 9 moves it to the hero's questGrudges.
-  const questAmbushes = ref<QuestAmbushRecord>(readQuestAmbushes());
 
   const terrain = reactive({
     plains: 1,
@@ -160,26 +128,6 @@ export const useBattleStore = defineStore('battle', () => {
     pendingAmbush.value = ambush;
   }
 
-  /** This hero's quest ambushes in the shape the ambush rule reads: quest id -> `{ lastAmbushAt }` (epoch ms). */
-  function questAmbushesOf(heroId: string): Record<string, { lastAmbushAt: number }> {
-    const stamps = questAmbushes.value[heroId] ?? {};
-    return Object.fromEntries(Object.entries(stamps).map(([questId, at]) => [questId, { lastAmbushAt: at }]));
-  }
-
-  /** Note that `questId` ambushed the hero at `now` (epoch ms) and keep the record on this device. */
-  function recordQuestAmbush(heroId: string, questId: string, now: number = Date.now()) {
-    questAmbushes.value = {
-      ...questAmbushes.value,
-      [heroId]: withAmbushRecorded(questAmbushes.value[heroId] ?? {}, questId, now),
-    };
-    try {
-      localStorage.setItem(QUEST_AMBUSHES_KEY, JSON.stringify(questAmbushes.value));
-    } catch (error) {
-      // private mode or blocked storage: the cooldown only lasts until the app restarts
-      debug.warn('[battle] could not keep the quest ambush record', error);
-    }
-  }
-
   function clearPendingAmbush() {
     pendingAmbush.value = null;
   }
@@ -200,7 +148,6 @@ export const useBattleStore = defineStore('battle', () => {
     bgmWaitToStart,
     lastWalkAt,
     pendingAmbush,
-    questAmbushes,
     terrain,
     steps,
     
@@ -214,8 +161,6 @@ export const useBattleStore = defineStore('battle', () => {
     restWalk,
     setPendingAmbush,
     clearPendingAmbush,
-    questAmbushesOf,
-    recordQuestAmbush,
     nextEncounterAt
   };
 });

@@ -6,7 +6,7 @@ import {
   ambushAlertCopy,
   libraryBeastName,
   pickQuestAmbush,
-  withAmbushRecorded,
+  withAmbushStamped,
 } from "@/lib/services/battle/questAmbush";
 
 const MIN = 60_000;
@@ -261,31 +261,59 @@ describe("pickQuestAmbush", () => {
   });
 });
 
-describe("withAmbushRecorded", () => {
-  it("adds the quest's stamp without touching the record it was given", () => {
-    const before = { old: NOW.getTime() - 10 * MIN };
-    const after = withAmbushRecorded(before, "q1", NOW.getTime());
+/** The ambush stamp lives on the hero's grudge record (docs/Quest-Rooms-Spec.md 5.7), beside the marks. */
+describe("withAmbushStamped", () => {
+  it("stamps the quest on the record without touching the one it was given", () => {
+    const before = { old: { marks: 1, lastAmbushAt: NOW.getTime() - 10 * MIN } };
+    const after = withAmbushStamped(before, "q1", NOW.getTime());
 
-    expect(after).toEqual({ old: NOW.getTime() - 10 * MIN, q1: NOW.getTime() });
-    expect(before).toEqual({ old: NOW.getTime() - 10 * MIN });
+    expect(after).toEqual({ old: { marks: 1, lastAmbushAt: NOW.getTime() - 10 * MIN }, q1: { marks: 0, lastAmbushAt: NOW.getTime() } });
+    expect(before).toEqual({ old: { marks: 1, lastAmbushAt: NOW.getTime() - 10 * MIN } });
   });
 
-  it("restarts the hour for a quest that ambushed before", () => {
-    const after = withAmbushRecorded({ q1: NOW.getTime() - 50 * MIN }, "q1", NOW.getTime());
+  it("keeps the marks a quest holds and the moment the hero fled, and restarts the hour", () => {
+    const after = withAmbushStamped(
+      { q1: { marks: 2, lastFledAt: NOW.getTime() - 5 * MIN, lastAmbushAt: NOW.getTime() - 50 * MIN } },
+      "q1",
+      NOW.getTime()
+    );
 
-    expect(after).toEqual({ q1: NOW.getTime() });
+    expect(after).toEqual({ q1: { marks: 2, lastFledAt: NOW.getTime() - 5 * MIN, lastAmbushAt: NOW.getTime() } });
   });
 
-  it("forgets stamps whose hour is already up, so the record stays small", () => {
-    const record = { stale: NOW.getTime() - 61 * MIN, edge: NOW.getTime() - 60 * MIN, fresh: NOW.getTime() - 59 * MIN };
+  it("forgets quests that are done with: no marks and their hour is up, so the record stays small", () => {
+    const record = {
+      stale: { marks: 0, lastAmbushAt: NOW.getTime() - 61 * MIN },
+      edge: { marks: 0, lastAmbushAt: NOW.getTime() - 60 * MIN },
+      fresh: { marks: 0, lastAmbushAt: NOW.getTime() - 59 * MIN },
+    };
 
-    expect(withAmbushRecorded(record, "q1", NOW.getTime())).toEqual({ fresh: NOW.getTime() - 59 * MIN, q1: NOW.getTime() });
+    expect(withAmbushStamped(record, "q1", NOW.getTime())).toEqual({
+      fresh: { marks: 0, lastAmbushAt: NOW.getTime() - 59 * MIN },
+      q1: { marks: 0, lastAmbushAt: NOW.getTime() },
+    });
   });
 
-  it("drops stamps that are not numbers", () => {
-    const record = { bad: "x" as unknown as number, nan: Number.NaN };
+  it("never forgets a grudge, however old its ambush stamp is", () => {
+    const record = { grudging: { marks: 3, lastFledAt: NOW.getTime() - 5000 * MIN, lastAmbushAt: NOW.getTime() - 9999 * MIN } };
 
-    expect(withAmbushRecorded(record, "q1", NOW.getTime())).toEqual({ q1: NOW.getTime() });
+    expect(withAmbushStamped(record, "q1", NOW.getTime()).grudging).toEqual(record.grudging);
+  });
+
+  it("starts a record for a hero from before grudges, and drops entries it cannot read", () => {
+    expect(withAmbushStamped(undefined, "q1", NOW.getTime())).toEqual({ q1: { marks: 0, lastAmbushAt: NOW.getTime() } });
+    expect(withAmbushStamped("junk", "q1", NOW.getTime())).toEqual({ q1: { marks: 0, lastAmbushAt: NOW.getTime() } });
+    const record = { bad: null, worse: 4, nan: { marks: 0, lastAmbushAt: "x" } };
+
+    expect(withAmbushStamped(record, "q1", NOW.getTime())).toEqual({ q1: { marks: 0, lastAmbushAt: NOW.getTime() } });
+  });
+
+  it("is read back by the ambush rule: the quest rests for the hour, then comes back", () => {
+    const board = [row(makeQuest("q1"))];
+    const stamped = withAmbushStamped({ q1: { marks: 2 } }, "q1", NOW.getTime());
+
+    expect(pickQuestAmbush(board, undefined, stamped, new Date(NOW.getTime() + 30 * MIN))).toBeNull();
+    expect(pickQuestAmbush(board, undefined, stamped, new Date(NOW.getTime() + 60 * MIN))?.quest.id).toBe("q1");
   });
 });
 

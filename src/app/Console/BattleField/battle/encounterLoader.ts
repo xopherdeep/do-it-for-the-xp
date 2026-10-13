@@ -10,6 +10,8 @@ import { adoptLibraryBeast } from "@/lib/services/bestiary/librarySuggest";
 import { BEAST_LIBRARY } from "@/lib/services/core/beastLibrary";
 import { questRewards } from "@/lib/services/quests/QuestCompletionService";
 import { questAttackCooldown } from "@/lib/services/quests/questClock";
+import { grudgeFactor, marksFor } from "@/lib/services/battle/questGrudge";
+import { useUserStore } from "@/lib/store/stores/user";
 import { isBossRoom } from "@/lib/services/temples/authoredDoors";
 import {
   isQuestRoom,
@@ -35,6 +37,11 @@ export interface Encounter {
   quest?: Achievement;
   /** The temple room the fight is in; a quest room's fight carries its quest too */
   roomKey?: string;
+  /**
+   * The beast's grudge against the hero (docs/Quest-Rooms-Spec.md 5.7): the factor every strike of a quest fight is
+   * multiplied by, 1 (no marks) to 1.75 (three). Only fights that carry a quest have one; its marks are on `enemies[0]`.
+   */
+  grudge?: number;
   background?: { bg1?: number; bg2?: number };
   label: string;
   /** A temple's boss room: the fight plays the boss theme and the boss victory song. */
@@ -117,16 +124,20 @@ const loadQuestBeast = async (quest: Achievement, bestiary: BestiaryService): Pr
  * - the quest's beast, or (no beast, or one nobody knows) the stand-in of its tier, which `standIn` names;
  * - the beast's checklist as the attacks, or the quest's name when it has none;
  * - the tier from the difficulty: a miniboss or a boss, hitting TIER_ATTACK_FACTOR harder;
- * - the strike clock: the quest's minutes spread over the checklist (questAttackCooldown).
+ * - the strike clock: the quest's minutes spread over the checklist (questAttackCooldown);
+ * - the grudge: the hero's marks on this quest (5.7). The beast carries them for the stage to show, and `grudge` is the
+ *   factor the engine multiplies its strikes by. Each hero's marks are their own.
  */
 const questFight = async (
   quest: Achievement,
+  heroId: string,
   bestiary: BestiaryService,
   standIn: (tier: QuestTier) => StandInMonster
-): Promise<{ enemy: Enemy; tier: QuestTier }> => {
+): Promise<{ enemy: Enemy; tier: QuestTier; grudge: number }> => {
   const tier = questTier(quest.difficulty);
   const beast = (await loadQuestBeast(quest, bestiary)) ?? standInEnemy(standIn(tier));
   const tasks = beast.tasks?.length ? beast.tasks : choreAsTasks(quest);
+  const marks = marksFor(useUserStore().users[heroId]?.questGrudges, quest.id);
   const enemy: Enemy = {
     ...beast,
     type: tier === "monster" ? beast.type : tier,
@@ -134,8 +145,9 @@ const questFight = async (
     attack: (beast.attack || 10) * tierAttackFactor(tier),
     attackCooldown: questAttackCooldown(quest, tasks.length),
     tasks,
+    ...(marks > 0 ? { grudgeMarks: marks } : {}),
   };
-  return { enemy, tier };
+  return { enemy, tier, grudge: grudgeFactor(marks) };
 };
 
 const loadQuestEncounter = async (ctx: BattleContext, bestiary: BestiaryService): Promise<Encounter> => {
@@ -147,9 +159,11 @@ const loadQuestEncounter = async (ctx: BattleContext, bestiary: BestiaryService)
   }
 
   // Off the board there is no temple: the stand-in is the tier's, named for no element
-  const { enemy, tier } = await questFight(quest, bestiary, (standInTier) => standInMonster({ type: standInTier }, ""));
+  const { enemy, tier, grudge } = await questFight(quest, ctx.userId, bestiary, (standInTier) =>
+    standInMonster({ type: standInTier }, "")
+  );
   const enemies = [enemy];
-  return { enemies, rewards: questRewards(quest), quest, label: labelFor(enemies), boss: tier === "boss" };
+  return { enemies, rewards: questRewards(quest), quest, grudge, label: labelFor(enemies), boss: tier === "boss" };
 };
 
 const findRoom = async (ctx: BattleContext) => {
@@ -216,7 +230,7 @@ const loadTempleEncounter = async (ctx: BattleContext, bestiary: BestiaryService
   if (quest) {
     const element = templeElementFor(ctx.templeId!, found.temple.element);
     // A stand-in keeps the room's own name and the temple's element; its size is the quest's tier
-    const { enemy, tier } = await questFight(quest, bestiary, (standInTier) =>
+    const { enemy, tier, grudge } = await questFight(quest, ctx.userId, bestiary, (standInTier) =>
       standInMonster({ ...found.room, type: standInTier }, element)
     );
     const enemies = [enemy];
@@ -224,6 +238,7 @@ const loadTempleEncounter = async (ctx: BattleContext, bestiary: BestiaryService
       enemies,
       rewards: questRewards(quest),
       quest,
+      grudge,
       roomKey: found.roomKey,
       background,
       label: labelFor(enemies),

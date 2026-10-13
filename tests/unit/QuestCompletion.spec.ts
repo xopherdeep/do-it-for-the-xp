@@ -7,6 +7,8 @@ import {
   completeQuest,
   isQuestStillOpen,
   paidQuestRewards,
+  recordBattleCompletion,
+  rejectCompletion,
 } from "@/lib/services/quests/QuestCompletionService";
 import { useUserStore } from "@/lib/store/stores/user";
 
@@ -271,5 +273,119 @@ describe("recordAPGain", () => {
     const at = "2026-10-09T20:00:00.000Z";
     useUserStore().recordAPGain({ userId: HERO_ID, amount: 3, source: "test", at });
     expect(stats().ap.history[0].timestamp).toBe(at);
+  });
+});
+
+/**
+ * A logged completion that is not rejected ends the grudge (docs/Quest-Rooms-Spec.md 5.7): a board claim (held or paid),
+ * a battle win, any other way. Shared quests (Team Effort, Rat Race) clear it for every assignee (section 8); everyone
+ * else keeps their own. Only the marks change: HP, MP and the purse are not touched.
+ */
+describe("a completion clears the grudge", () => {
+  const SIBLING = "hero-2";
+  const OUTSIDER = "hero-3";
+
+  const addOtherHero = (id: string) =>
+    useUserStore().addUser({
+      id,
+      name: { nick: id },
+      jobClass: "Warrior",
+      stats: {
+        level: 1,
+        xp: { now: 0, next_level: 283 },
+        hp: { now: 20, max: 100 },
+        mp: { now: 10, max: 80 },
+        gp: { wallet: 0, savings: 0, debt: 0, limit: 1000 },
+        ap: { total: 0, history: [] },
+      },
+    });
+  const marks = (heroId: string, questId = "q1") =>
+    (useUserStore().getUserById(heroId) as any)?.questGrudges?.[questId]?.marks ?? 0;
+  const markEveryone = (questId = "q1") => {
+    for (const id of [HERO_ID, SIBLING, OUTSIDER]) {
+      useUserStore().addQuestGrudge(id, questId, 1000);
+      useUserStore().addQuestGrudge(id, questId, 2000);
+    }
+  };
+  const questOf = (type: string, extra: Partial<Achievement> = {}): Achievement =>
+    ({ ...quest(), type, assignee: [HERO_ID, SIBLING], ...extra } as Achievement);
+
+  beforeEach(() => {
+    addHero("Warrior");
+    addOtherHero(SIBLING);
+    addOtherHero(OUTSIDER);
+    markEveryone();
+  });
+
+  it("a claim on the board clears the claiming hero's marks and no one else's", async () => {
+    expect(marks(HERO_ID)).toBe(2);
+    await completeQuest(questOf("individual"), HERO_ID, "claim");
+
+    expect(marks(HERO_ID)).toBe(0);
+    expect(marks(SIBLING)).toBe(2);
+    expect(marks(OUTSIDER)).toBe(2);
+  });
+
+  it("a claim waiting for the Game Master clears them too, and a later rejection does not bring them back", async () => {
+    const held = await completeQuest(questOf("individual", { requiresApproval: true }), HERO_ID, "claim");
+    expect(held.awaitingApproval).toBe(true);
+    expect(marks(HERO_ID)).toBe(0);
+
+    await rejectCompletion(held.entry.id, "gm-1", "not clean");
+    expect(marks(HERO_ID)).toBe(0);
+  });
+
+  it("an approval that pays a claim made earlier changes nothing more", async () => {
+    const held = await completeQuest(questOf("individual", { requiresApproval: true }), HERO_ID, "claim");
+    useUserStore().addQuestGrudge(HERO_ID, "q1", 3000); // a flight after the claim was made
+    await approveCompletion(held.entry.id, "gm-1");
+    expect(marks(HERO_ID)).toBe(1);
+  });
+
+  it("a battle win that is logged clears them", async () => {
+    await recordBattleCompletion(questOf("individual"), HERO_ID, { xp: 30, gp: 40, ap: 2 });
+
+    expect(marks(HERO_ID)).toBe(0);
+    expect(marks(SIBLING)).toBe(2);
+  });
+
+  it("a held battle win (a quest that needs approval) clears them", async () => {
+    await completeQuest(questOf("individual", { requiresApproval: true }), HERO_ID, "battle");
+    expect(marks(HERO_ID)).toBe(0);
+  });
+
+  it.each(["collaborate", "compete"])("a %s quest is shared: one clear lifts the marks from every assignee", async (type) => {
+    await completeQuest(questOf(type), HERO_ID, "claim");
+
+    expect(marks(HERO_ID)).toBe(0);
+    expect(marks(SIBLING)).toBe(0);
+    expect(marks(OUTSIDER)).toBe(2); // not an assignee
+  });
+
+  it("a Solo Mission and an Open Bounty keep each hero's grudge their own", async () => {
+    await recordBattleCompletion(questOf("asNeeded", { assignee: [] }), HERO_ID, { xp: 0, gp: 0, ap: 0 });
+    expect(marks(HERO_ID)).toBe(0);
+    expect(marks(SIBLING)).toBe(2);
+    expect(marks(OUTSIDER)).toBe(2);
+  });
+
+  it("another quest's marks stay", async () => {
+    useUserStore().addQuestGrudge(HERO_ID, "q-other", 1);
+    await completeQuest(questOf("individual"), HERO_ID, "claim");
+    expect(marks(HERO_ID, "q-other")).toBe(1);
+  });
+
+  it("does not touch HP, MP or the purse", async () => {
+    await completeQuest(questOf("individual"), HERO_ID, "claim");
+    expect(stats().hp).toEqual({ now: 20, max: 100 });
+    expect(stats().mp).toEqual({ now: 10, max: 80 });
+  });
+
+  it("a hero who held no marks is simply completed", async () => {
+    setActivePinia(createPinia());
+    addHero("Warrior");
+    const result = await completeQuest(questOf("individual"), HERO_ID, "claim");
+    expect(result.entry.questId).toBe("q1");
+    expect((useUserStore().getUserById(HERO_ID) as any).questGrudges).toBeUndefined();
   });
 });

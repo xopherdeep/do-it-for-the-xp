@@ -231,6 +231,17 @@ describe("useBattleOutcome: a parting strike that empties HP (docs/Quest-Rooms-S
     expect(deps.enemyAnimationClass.value).toBe(""); // no fade-out of the beast: the hero was carried off
   });
 
+  it("marks the quest's beast first: carried to the Hospital and holding a grudge, as spec 5.6 says", () => {
+    addHero({ wallet: 40 });
+    const { outcome, deps } = rig("quest");
+    deps.encounter.value = { quest: { id: "q1", achievementName: "Dishes" }, enemies: [], rewards: null, label: "Dishes" } as unknown as Encounter;
+
+    outcome.handleEscape({ ...emptied, carriesQuest: true });
+
+    expect(stats().hp.now).toBe(100);
+    expect((useUserStore().getUserById(HERO_ID) as any).questGrudges.q1.marks).toBe(1);
+  });
+
   it("does not bill a hero who got away with HP left", () => {
     addHero({ wallet: 40 }, 20);
     const { outcome, deps } = rig();

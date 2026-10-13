@@ -779,6 +779,117 @@ describe("BattleService", () => {
     });
   });
 
+  /**
+   * A grudge (docs/Quest-Rooms-Spec.md 5.7): the beast of a quest the hero ran from before hits 25% harder a mark, three
+   * marks at the most. The page sets the factor for the fight (the option, or setGrudge); it multiplies every strike of it.
+   */
+  describe("a grudge", () => {
+    const strikeOnClock = (rig: Rig) => {
+      rig.service.startAttackTimer();
+      jest.advanceTimersByTime(2 * THREE_MINUTES);
+      expect(rig.service.hasPendingDamage()).toBe(true);
+    };
+
+    beforeEach(() => {
+      jest.spyOn(Math, "random").mockReturnValue(0.5);
+    });
+
+    it("starts at 1: no grudge, no change", () => {
+      const rig = fight();
+      expect(rig.service.getGrudge()).toBe(1);
+      strikeOnClock(rig);
+      expect(rig.service.getPendingDamage()).toBe(4);
+    });
+
+    it.each([
+      [1.25, 5],
+      [1.5, 6],
+      [1.75, 7],
+    ])("a factor of %s makes the clock's strike cost %i, not 4", (factor, damage) => {
+      const rig = fight(makeEnemy(), { grudge: factor });
+      expect(rig.service.getGrudge()).toBe(factor);
+      strikeOnClock(rig);
+      expect(rig.service.getPendingDamage()).toBe(damage);
+      rig.service.applyPendingDamage();
+      expect(heroHp()).toBe(30 - damage);
+    });
+
+    it("setGrudge sets it for the fight, and a clamp keeps it between 1 and 1.75", () => {
+      const rig = fight();
+      rig.service.setGrudge(1.5);
+      expect(rig.service.getGrudge()).toBe(1.5);
+      rig.service.setGrudge(5);
+      expect(rig.service.getGrudge()).toBe(1.75);
+      rig.service.setGrudge(0.2);
+      expect(rig.service.getGrudge()).toBe(1);
+      rig.service.setGrudge(Number.NaN);
+      expect(rig.service.getGrudge()).toBe(1);
+      rig.service.setGrudge(undefined);
+      expect(rig.service.getGrudge()).toBe(1);
+    });
+
+    it("hits every strike of the fight, not only the first", () => {
+      const rig = fight(makeEnemy(), { grudge: 1.75 });
+      strikeOnClock(rig);
+      rig.service.applyPendingDamage();
+      expect(heroHp()).toBe(23);
+      strikeOnClock(rig);
+      rig.service.applyPendingDamage();
+      expect(heroHp()).toBe(16);
+    });
+
+    it("hits the strike a Defend provokes, through the brace", () => {
+      const rig = fight(makeEnemy(), { grudge: 1.75 });
+      rig.service.handleBattleAction("defend");
+      jest.advanceTimersByTime(1000);
+      // 4 x 1.75 = 7, and half of it gets through the brace
+      expect(rig.service.getPendingDamage()).toBe(3);
+    });
+
+    it("hits the parting strike when the hero runs, and the report says what it cost", () => {
+      const { service: s, lines, cb } = fight(makeEnemy(), { grudge: 1.75, carriesQuest: true });
+      s.startAttackTimer();
+
+      const result = s.handleBattleAction("run");
+
+      expect(result.escape).toMatchObject({ damage: 7, dodgedBy: null, carriesQuest: true });
+      expect(heroHp()).toBe(23);
+      expect(cb.onDamage).toHaveBeenCalledWith("player", 7);
+      expect(textOf(lines)).toContain("Socktopus strikes as Max flees! Max takes 7 damage!");
+    });
+
+    it("can empty a hero the plain strike would have spared: 6 HP survives 4, not 7", () => {
+      (useUserStore().getUserById(HERO_ID) as any).stats.hp.now = 6;
+      const plain = fight();
+      expect(plain.service.handleBattleAction("run").escape).toMatchObject({ damage: 4, emptied: false });
+      plain.service.dispose();
+
+      (useUserStore().getUserById(HERO_ID) as any).stats.hp.now = 6;
+      const grudged = fight(makeEnemy(), { grudge: 1.75 });
+      expect(grudged.service.handleBattleAction("run").escape).toMatchObject({ damage: 6, emptied: true });
+      expect(heroHp()).toBe(0);
+    });
+
+    it("a dodged parting strike stays dodged", () => {
+      const { service: s } = fight(makeEnemy(), { grudge: 1.75, passive: classPassive("Ninja") });
+      expect(s.handleBattleAction("run").escape).toMatchObject({ damage: 0, dodgedBy: "shadow" });
+      expect(heroHp()).toBe(30);
+    });
+
+    it("a free fight carries no grudge into its escape: it has no strike to make harder", () => {
+      const { service: s } = fight(makeEnemy(), { freeFight: true, grudge: 1.75 });
+      expect(s.handleBattleAction("run").escape).toMatchObject({ free: true, damage: 0 });
+      expect(heroHp()).toBe(30);
+    });
+
+    it("sits beside the hero's trained strength: both apply", () => {
+      // raw 4 x 0.75 x 1.75 = 5.25 -> 5
+      const rig = fight(makeEnemy(), { grudge: 1.75, passive: { strikeFactor: 0.75 } });
+      strikeOnClock(rig);
+      expect(rig.service.getPendingDamage()).toBe(5);
+    });
+  });
+
   describe("turns and names", () => {
     it("startPlayerTurn only hands the move back, with no lines", () => {
       const { service: s, lines } = fight();

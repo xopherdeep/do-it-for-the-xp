@@ -98,7 +98,10 @@ export const useUserStore = defineStore('user', () => {
     unlockItem,
     setEquipment,
     setLook,
-    setJobClass
+    setJobClass,
+    addQuestGrudge,
+    clearQuestGrudge,
+    setQuestGrudges
   } = createProfileSetters({ users, currentUser, persistUser, syncCurrentUser });
 
   async function loadUsers() {
@@ -480,6 +483,9 @@ export const useUserStore = defineStore('user', () => {
     setEquipment,
     setLook,
     setJobClass,
+    addQuestGrudge,
+    clearQuestGrudge,
+    setQuestGrudges,
     persistUser,
     getAPInTimeRange,
     impersonateUser,

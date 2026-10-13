@@ -1,3 +1,4 @@
+import { createPinia, setActivePinia } from "pinia";
 import { loadEncounter } from "@/app/Console/BattleField/battle/encounterLoader";
 import type { BattleContext } from "@/app/Console/BattleField/battle/battleContext";
 import type { Achievement } from "@/lib/databases/AchievementDb";
@@ -6,6 +7,7 @@ import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import type { Enemy } from "@/lib/services/battle/BattleService";
 import type { BestiaryService } from "@/lib/services/battle/BestiaryService";
 import templeDb from "@/lib/databases/TempleDb";
+import { useUserStore } from "@/lib/store/stores/user";
 
 /**
  * A temple combat room names one beast on the room screen and the battle must load that same beast
@@ -287,6 +289,7 @@ describe("loadEncounter for a quest room", () => {
   });
 
   beforeEach(() => {
+    setActivePinia(createPinia());
     getTempleById.mockReset();
     mockReadQuestBoard.mockReset();
     mockGetTaskById.mockReset();
@@ -418,6 +421,78 @@ describe("loadEncounter for a quest room", () => {
     expect(encounter.quest).toBeUndefined();
     expect(encounter.enemies[0].name).toBe("Weed Wyrm");
   });
+
+  describe("the grudge (docs/Quest-Rooms-Spec.md 5.7)", () => {
+    const hero = (questGrudges?: Record<string, unknown>) =>
+      useUserStore().addUser({ id: "u1", name: { nick: "Max" }, stats: {}, ...(questGrudges ? { questGrudges } : {}) });
+
+    beforeEach(() => {
+      getTempleById.mockResolvedValue(questTemple({ questId: "q-dishes" }));
+      boardOf(quest());
+    });
+
+    it("is 1 for a hero the beast holds nothing against, and the beast shows no marks", async () => {
+      hero();
+      const encounter = await loadEncounter(roomCtx, familyBestiary([dishGoblin]).service);
+
+      expect(encounter.grudge).toBe(1);
+      expect(encounter.enemies[0].grudgeMarks).toBeUndefined();
+    });
+
+    it.each([
+      [1, 1.25],
+      [2, 1.5],
+      [3, 1.75],
+    ])("puts %i marks on the beast and a factor of %s on the fight", async (marks, factor) => {
+      hero({ "q-dishes": { marks, lastFledAt: 5 } });
+      const encounter = await loadEncounter(roomCtx, familyBestiary([dishGoblin]).service);
+
+      expect(encounter.grudge).toBe(factor);
+      expect(encounter.enemies[0].grudgeMarks).toBe(marks);
+    });
+
+    it("reads this quest's marks and no other quest's", async () => {
+      hero({ "q-other": { marks: 3 } });
+      const encounter = await loadEncounter(roomCtx, familyBestiary([dishGoblin]).service);
+      expect(encounter.grudge).toBe(1);
+    });
+
+    it("reads this hero's marks, not a sibling's", async () => {
+      hero();
+      useUserStore().addUser({ id: "u2", name: { nick: "Mia" }, stats: {}, questGrudges: { "q-dishes": { marks: 3 } } });
+      const encounter = await loadEncounter(roomCtx, familyBestiary([dishGoblin]).service);
+      expect(encounter.grudge).toBe(1);
+    });
+
+    it("is tolerant of a hero who is not loaded and a record that holds nonsense", async () => {
+      const unloaded = await loadEncounter(roomCtx, familyBestiary([dishGoblin]).service);
+      expect(unloaded.grudge).toBe(1);
+
+      hero({ "q-dishes": { marks: 99 } });
+      const absurd = await loadEncounter(roomCtx, familyBestiary([dishGoblin]).service);
+      expect(absurd.grudge).toBe(1.75);
+      expect(absurd.enemies[0].grudgeMarks).toBe(3);
+    });
+
+    it("keeps the rest of the fight as it was: the quest, its rewards, its clock and the beast's attack", async () => {
+      hero({ "q-dishes": { marks: 2 } });
+      const encounter = await loadEncounter(roomCtx, familyBestiary([dishGoblin]).service);
+
+      expect(encounter.quest?.id).toBe("q-dishes");
+      expect(encounter.roomKey).toBe("Q0001");
+      expect(encounter.rewards).toEqual({ xp: 200, gp: 20, ap: 2 });
+      expect(encounter.enemies[0]).toMatchObject({ attack: 10, attackCooldown: 3 });
+    });
+
+    it("a dormant or classic room carries no grudge", async () => {
+      hero({ "q-dishes": { marks: 3 } });
+      getTempleById.mockResolvedValue(questTemple({ quest: { beastId: "beast-weed-wyrm", difficulty: 2, basicSchedule: "daily" } }));
+      const encounter = await loadEncounter(roomCtx, familyBestiary([weedWyrm]).service);
+      expect(encounter.quest).toBeUndefined();
+      expect(encounter.grudge).toBeUndefined();
+      expect(encounter.enemies[0].grudgeMarks).toBeUndefined();
+    });
+  });
 });
 
 /** A board fight (and a quest ambush, which is one) builds the same fight a quest room does. */
@@ -437,8 +512,44 @@ describe("loadEncounter for a quest from the board", () => {
     } as unknown as BestiaryService);
 
   beforeEach(() => {
+    setActivePinia(createPinia());
     mockGetTaskById.mockReset();
     mockReadQuestBoard.mockReset();
+  });
+
+  it("a board fight (and so an ambush) carries the hero's grudge: marks on the beast and the factor on the fight", async () => {
+    useUserStore().addUser({ id: "u1", name: { nick: "Max" }, stats: {}, questGrudges: { "q-dishes": { marks: 2 } } });
+    mockGetTaskById.mockResolvedValue({
+      id: "q-dishes",
+      achievementName: "Wash the dishes by hand",
+      beastId: "beast-dish-goblin",
+      difficulty: 2,
+      xp: 200,
+      gp: 20,
+      ap: 2,
+    });
+    const dishGoblin: Beast = { id: "beast-dish-goblin", name: "Dish Goblin", element: "water", checklist: ["Scrape", "Rinse"] };
+
+    const encounter = await loadEncounter(questCtx, familyBestiary([dishGoblin]));
+
+    expect(encounter.grudge).toBe(1.5);
+    expect(encounter.enemies[0].grudgeMarks).toBe(2);
+  });
+
+  it("a board fight with no marks carries a factor of 1", async () => {
+    useUserStore().addUser({ id: "u1", name: { nick: "Max" }, stats: {} });
+    mockGetTaskById.mockResolvedValue({ id: "q-dishes", achievementName: "Dishes", beastId: "", difficulty: 1, xp: 100, gp: 10, ap: 1 });
+
+    const encounter = await loadEncounter(questCtx, familyBestiary([]));
+
+    expect(encounter.grudge).toBe(1);
+    expect(encounter.enemies[0].grudgeMarks).toBeUndefined();
+  });
+
+  it("a quest that has gone fights a random beast with no grudge at all", async () => {
+    mockGetTaskById.mockResolvedValue(null);
+    const encounter = await loadEncounter(questCtx, familyBestiary([]));
+    expect(encounter.grudge).toBeUndefined();
   });
 
   it("a quest with no beast of its own fights the beast the library suggests, on the quest's clock", async () => {

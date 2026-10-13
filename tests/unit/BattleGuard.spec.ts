@@ -14,6 +14,10 @@ let mockBattleStore: any;
 const mockUserStore = {
   currentUser: { id: "hero-1" as string | null },
   users: {} as Record<string, any>,
+  // The ambush cooldowns live on the hero's grudge record (spec 5.7): the guard hands the rebuilt record back whole
+  setQuestGrudges: jest.fn((heroId: string, record: Record<string, unknown>) => {
+    mockUserStore.users[heroId] = { ...mockUserStore.users[heroId], questGrudges: record };
+  }),
 };
 
 // The alert bridge: every call is a jest.fn and the hero's choice is whatever the test says it is.
@@ -98,8 +102,6 @@ const makeBattleStore = () => {
     counter: ARM_STEPS,
     interval: null as number | null,
     pendingAmbush: null as Ambush | null,
-    // hero id -> quest id -> when it last ambushed them, the way the real store keeps it
-    ambushStamps: {} as Record<string, Record<string, number>>,
     startBattleTimer: jest.fn(() => {
       store.interval = 1;
     }),
@@ -120,12 +122,6 @@ const makeBattleStore = () => {
     }),
     clearPendingAmbush: jest.fn(() => {
       store.pendingAmbush = null;
-    }),
-    questAmbushesOf: jest.fn((heroId: string) =>
-      Object.fromEntries(Object.entries(store.ambushStamps[heroId] ?? {}).map(([id, at]) => [id, { lastAmbushAt: at }]))
-    ),
-    recordQuestAmbush: jest.fn((heroId: string, questId: string, now: number) => {
-      store.ambushStamps[heroId] = { ...store.ambushStamps[heroId], [questId]: now };
     }),
     nextEncounterAt: jest.fn((_now: Date, _invisibleUntil?: Date | null): Date | null => null),
   };
@@ -436,7 +432,9 @@ describe("battle guard", () => {
       expect(router.push).toHaveBeenCalledTimes(1);
       expect(router.push).toHaveBeenCalledWith(questBattleRoute("hero-1", "q-dishes"));
       expect(mockBoard).toHaveBeenCalledWith("hero-1", NOON, undefined, undefined);
-      expect(mockBattleStore.recordQuestAmbush).toHaveBeenCalledWith("hero-1", "q-dishes", NOON.getTime());
+      expect(mockUserStore.setQuestGrudges).toHaveBeenCalledWith("hero-1", {
+        "q-dishes": { marks: 0, lastAmbushAt: NOON.getTime() },
+      });
       expect(mockBattleStore.resetBattleTimer).toHaveBeenCalledTimes(1);
     });
 
@@ -468,7 +466,7 @@ describe("battle guard", () => {
       const { router } = await spring();
 
       expect(router.push).toHaveBeenCalledWith(freeBattleRoute("hero-1"));
-      expect(mockBattleStore.recordQuestAmbush).not.toHaveBeenCalled();
+      expect(mockUserStore.setQuestGrudges).not.toHaveBeenCalled();
     });
 
     it("stays a free fight when the overdue quest has no beast", async () => {
@@ -502,7 +500,7 @@ describe("battle guard", () => {
         mockBattleStore.counter = 1;
         await tick();
         expect(router.push).toHaveBeenLastCalledWith(questBattleRoute("hero-1", "q-dishes"));
-        expect(mockBattleStore.recordQuestAmbush).toHaveBeenCalledTimes(2);
+        expect(mockUserStore.setQuestGrudges).toHaveBeenCalledTimes(2);
       });
 
       it("gives the slot to the next overdue quest while the first one rests", async () => {
@@ -517,6 +515,38 @@ describe("battle guard", () => {
         mockBattleStore.counter = 1;
         await tick();
         expect(router.push).toHaveBeenLastCalledWith(freeBattleRoute("hero-1"));
+      });
+
+      it("is read from the hero's own grudge record: a stamp from ten minutes ago keeps the quest resting", async () => {
+        mockUserStore.users["hero-1"] = {
+          questGrudges: { "q-dishes": { marks: 2, lastAmbushAt: NOON.getTime() - 10 * 60_000 } },
+        };
+        mockBoard.mockResolvedValue([openRow("q-dishes")]);
+        const { router } = await spring();
+
+        expect(router.push).toHaveBeenCalledWith(freeBattleRoute("hero-1"));
+        expect(mockUserStore.setQuestGrudges).not.toHaveBeenCalled();
+      });
+
+      it("lets a quest whose last ambush is over an hour old ambush again, and keeps the marks it holds", async () => {
+        mockUserStore.users["hero-1"] = {
+          questGrudges: { "q-dishes": { marks: 2, lastFledAt: 5, lastAmbushAt: NOON.getTime() - 2 * HOUR } },
+        };
+        mockBoard.mockResolvedValue([openRow("q-dishes")]);
+        const { router } = await spring();
+
+        expect(router.push).toHaveBeenCalledWith(questBattleRoute("hero-1", "q-dishes"));
+        expect(mockUserStore.users["hero-1"].questGrudges).toEqual({
+          "q-dishes": { marks: 2, lastFledAt: 5, lastAmbushAt: NOON.getTime() },
+        });
+      });
+
+      it("a grudge with no ambush stamp does not stop the quest from ambushing", async () => {
+        mockUserStore.users["hero-1"] = { questGrudges: { "q-dishes": { marks: 3, lastFledAt: NOON.getTime() - 60_000 } } };
+        mockBoard.mockResolvedValue([openRow("q-dishes")]);
+        const { router } = await spring();
+
+        expect(router.push).toHaveBeenCalledWith(questBattleRoute("hero-1", "q-dishes"));
       });
 
       it("is kept for each hero on their own", async () => {
@@ -542,7 +572,7 @@ describe("battle guard", () => {
         await tickTimes(tick, 3);
         expect(router.push).not.toHaveBeenCalled();
         expect(mockBoard).not.toHaveBeenCalled();
-        expect(mockBattleStore.recordQuestAmbush).not.toHaveBeenCalled();
+        expect(mockUserStore.setQuestGrudges).not.toHaveBeenCalled();
 
         jest.setSystemTime(NOON.getTime() + 2 * 60_000); // worn off
         await tick();
@@ -574,7 +604,7 @@ describe("battle guard", () => {
         await pending;
 
         expect(router.push).not.toHaveBeenCalled();
-        expect(mockBattleStore.recordQuestAmbush).not.toHaveBeenCalled();
+        expect(mockUserStore.setQuestGrudges).not.toHaveBeenCalled();
         expect(mockBattleStore.setPendingAmbush).not.toHaveBeenCalled();
       });
     });
@@ -596,7 +626,9 @@ describe("battle guard", () => {
           at: NOON.getTime(),
           questId: "q-dishes",
         });
-        expect(mockBattleStore.recordQuestAmbush).toHaveBeenCalledWith("hero-1", "q-dishes", NOON.getTime());
+        expect(mockUserStore.setQuestGrudges).toHaveBeenCalledWith("hero-1", {
+          "q-dishes": { marks: 0, lastAmbushAt: NOON.getTime() },
+        });
       });
 
       it("holds a free ambush with no quest when nothing is overdue", async () => {

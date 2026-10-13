@@ -20,6 +20,8 @@ export interface Enemy {
   aspectRatio?: number;
   /** Minutes the hero gets per remaining chore before this beast strikes. Defaults to 3. */
   attackCooldown?: number;
+  /** The grudge marks (1 to 3) this beast holds against the hero, for the stage to show; absent for none. */
+  grudgeMarks?: number;
   tasks?: CombatTask[];
 }
 
@@ -136,6 +138,11 @@ export interface BattleServiceOptions {
    * only passes it on, in the escape report; the grudge it earns is not the engine's to keep.
    */
   carriesQuest?: boolean;
+  /**
+   * The beast's grudge against the hero (docs/Quest-Rooms-Spec.md 5.7): the factor every strike of the fight is multiplied
+   * by, 1 (none, the default) to 1.75. The page reads it off the hero's marks for this quest (`grudgeFactorFor`).
+   */
+  grudge?: number;
   /**
    * The hero's passive: how much of a strike lands at all and how much the brace lets through, whether
    * the class slips away from the parting strike (Thief, Ninja) and the agility that dodges it, extra

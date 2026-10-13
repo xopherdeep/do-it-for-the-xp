@@ -329,6 +329,8 @@ export default defineComponent({
         freeFight: ctx.kind === "free",
         // Leaving a fight that carries a quest is what earns the beast a grudge mark
         carriesQuest: Boolean(encounter.value?.quest),
+        // The beast's grudge against this hero multiplies every strike of the fight (1 when it holds none)
+        grudge: encounter.value?.grudge,
         passive: heroPassive(userStore.users[ctx.userId]),
       });
       engine.registerCallbacks({

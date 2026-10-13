@@ -2,7 +2,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { ref } from "vue";
 import { useBattleOutcome, type BattleOutcomeDeps } from "@/app/Console/BattleField/composables/useBattleOutcome";
 import type { Encounter } from "@/app/Console/BattleField/battle/encounterLoader";
-import type { Enemy } from "@/lib/services/battle/BattleService";
+import type { Enemy, EscapeReport } from "@/lib/services/battle/BattleService";
 import { useUserStore } from "@/lib/store/stores/user";
 
 /**
@@ -352,5 +352,185 @@ describe("useBattleOutcome: a quest room's win completes its quest", () => {
     expect(mockTemples.markRoomCleared).not.toHaveBeenCalled();
     expect(mockRecordBattleCompletion).not.toHaveBeenCalled();
     expect(deps.router.replace).toHaveBeenCalledWith(expect.objectContaining({ name: "temple" }));
+  });
+});
+
+/**
+ * The grudge (docs/Quest-Rooms-Spec.md 5.6, 5.7). Leaving a fight that carries a quest puts one mark on its beast for this
+ * hero (three at the most), even when the parting strike was dodged. Beating the beast clears the hero's marks, whether the
+ * win is paid, held for the Game Master or finds the window already used. A fight with no quest touches no marks.
+ */
+describe("useBattleOutcome: grudge marks", () => {
+  const OTHER_HERO = "hero-2";
+  const escape = (extra: Partial<EscapeReport> = {}): EscapeReport => ({
+    free: false,
+    damage: 4,
+    dodgedBy: null,
+    softener: null,
+    emptied: false,
+    carriesQuest: true,
+    ...extra,
+  });
+  const marks = (heroId = HERO_ID, questId = "q1") =>
+    (useUserStore().getUserById(heroId) as any)?.questGrudges?.[questId]?.marks ?? 0;
+  const markedHero = (count: number) => {
+    for (let flight = 0; flight < count; flight++) useUserStore().addQuestGrudge(HERO_ID, "q1", 1000 + flight);
+  };
+
+  beforeEach(() => {
+    jest.useFakeTimers();
+    setActivePinia(createPinia());
+    resetQuestFakes();
+    addHero("Warrior");
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  describe("running from a quest fight", () => {
+    it("leaves one mark on the quest's beast for this hero, and stamps when they fled", () => {
+      jest.setSystemTime(new Date(2026, 9, 12, 20, 0, 0));
+      const { outcome } = rig("quest", questEncounter());
+
+      outcome.handleEscape(escape());
+
+      const entry = (useUserStore().getUserById(HERO_ID) as any).questGrudges.q1;
+      expect(entry).toEqual({ marks: 1, lastFledAt: new Date(2026, 9, 12, 20, 0, 0).getTime() });
+    });
+
+    it("adds another mark each time, three at the most", () => {
+      const seen: number[] = [];
+      for (let flight = 0; flight < 5; flight++) {
+        rig("quest", questEncounter()).outcome.handleEscape(escape());
+        seen.push(marks());
+      }
+      expect(seen).toEqual([1, 2, 3, 3, 3]);
+    });
+
+    it("marks a quest room's beast too, the temple's fight carries its quest", () => {
+      rig("temple", roomQuestEncounter()).outcome.handleEscape(escape());
+      expect(marks()).toBe(1);
+    });
+
+    it("marks it even when the parting strike was dodged", () => {
+      rig("quest", questEncounter()).outcome.handleEscape(escape({ damage: 0, dodgedBy: "shadow" }));
+      expect(marks()).toBe(1);
+    });
+
+    it("marks only this hero's record", () => {
+      useUserStore().addUser({ id: OTHER_HERO, name: { nick: "Mia" }, stats: { hp: { now: 10, max: 10 } } });
+      rig("quest", questEncounter()).outcome.handleEscape(escape());
+      expect(marks(HERO_ID)).toBe(1);
+      expect(marks(OTHER_HERO)).toBe(0);
+    });
+
+    it("marks the quest the fight carries and no other", () => {
+      useUserStore().addQuestGrudge(HERO_ID, "q-other", 5);
+      rig("quest", questEncounter()).outcome.handleEscape(escape());
+      expect(marks(HERO_ID, "q1")).toBe(1);
+      expect(marks(HERO_ID, "q-other")).toBe(1);
+    });
+
+    it("marks nothing when the fight carries no quest: a free fight, a classic room, a report that says so", () => {
+      rig("free", { label: "Socktopus", enemies: [beast()] }).outcome.handleEscape(escape({ free: true, carriesQuest: false }));
+      rig("temple", { label: "Dish Goblin", enemies: [beast()], roomKey: "Q0001" }).outcome.handleEscape(
+        escape({ carriesQuest: false })
+      );
+      rig("quest", questEncounter()).outcome.handleEscape(escape({ carriesQuest: false }));
+      // a report that says there is a quest, with no quest on the page, has nothing to mark
+      rig("quest", { label: "Socktopus", enemies: [beast()] }).outcome.handleEscape(escape());
+
+      expect((useUserStore().getUserById(HERO_ID) as any).questGrudges).toBeUndefined();
+    });
+
+    it("marks nothing when no report comes with the escape", () => {
+      rig("quest", questEncounter()).outcome.handleEscape();
+      expect((useUserStore().getUserById(HERO_ID) as any).questGrudges).toBeUndefined();
+    });
+
+    it("still fades the beast and leaves, as before", () => {
+      const { outcome, deps } = rig("quest", questEncounter());
+      outcome.handleEscape(escape());
+      const queued = (deps.dialog.enqueue as jest.Mock).mock.calls[0][0] as Array<() => void>;
+      queued[0]();
+      jest.advanceTimersByTime(1000);
+      expect(deps.enemyAnimationClass.value).toBe("fadeout");
+      expect(deps.router.replace).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe("beating the beast", () => {
+    it("a paid win clears the hero's marks on the quest", async () => {
+      markedHero(3);
+      const { outcome } = rig("quest", questEncounter());
+      void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+      await flush();
+
+      expect(marks()).toBe(0);
+      expect(mockRecordBattleCompletion).toHaveBeenCalled();
+    });
+
+    it("a win held for the Game Master clears them too", async () => {
+      markedHero(2);
+      const { outcome } = rig("quest", questEncounter(true));
+      void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+      await flush();
+
+      expect(mockCompleteQuest).toHaveBeenCalled();
+      expect(marks()).toBe(0);
+    });
+
+    it("a quest room's win clears them, and the room still opens", async () => {
+      markedHero(1);
+      const { outcome } = rig("temple", roomQuestEncounter());
+      void outcome.celebrateVictory([beast()], { choresDone: 4, elapsedMs: 1000 });
+      await flush();
+
+      expect(marks()).toBe(0);
+      expect(mockTemples.markRoomCleared).toHaveBeenCalled();
+    });
+
+    it("a win on a window already used (nothing is logged) still ends the grudge", async () => {
+      markedHero(2);
+      mockIsQuestStillOpen.mockResolvedValue(false);
+      const { outcome } = rig("quest", questEncounter());
+      void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+      await flush();
+
+      expect(mockRecordBattleCompletion).not.toHaveBeenCalled();
+      expect(marks()).toBe(0);
+    });
+
+    it("leaves other quests' marks and other heroes' marks alone", async () => {
+      useUserStore().addUser({ id: OTHER_HERO, name: { nick: "Mia" }, stats: { hp: { now: 10, max: 10 } } });
+      markedHero(2);
+      useUserStore().addQuestGrudge(HERO_ID, "q-other", 5);
+      useUserStore().addQuestGrudge(OTHER_HERO, "q1", 5);
+      const { outcome } = rig("quest", questEncounter());
+      void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+      await flush();
+
+      expect(marks(HERO_ID, "q1")).toBe(0);
+      expect(marks(HERO_ID, "q-other")).toBe(1);
+      expect(marks(OTHER_HERO, "q1")).toBe(1);
+    });
+
+    it("a free fight's win touches no marks", async () => {
+      markedHero(2);
+      const { outcome } = rig("free", { label: "Socktopus", enemies: [beast()] });
+      void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+      await flush();
+      expect(marks()).toBe(2);
+    });
+
+    it("running again after a clear starts over at one mark", async () => {
+      markedHero(3);
+      const { outcome } = rig("quest", questEncounter());
+      void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+      await flush();
+      rig("quest", questEncounter()).outcome.handleEscape(escape());
+      expect(marks()).toBe(1);
+    });
   });
 });

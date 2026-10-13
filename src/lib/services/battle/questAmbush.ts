@@ -15,6 +15,7 @@ import {
   isQuestOverdue,
   type HeroQuestEffects,
 } from "@/lib/engine/quests/QuestSchedule";
+import { clampMarks, isPlainRecord, type QuestGrudge, type QuestGrudges } from "@/lib/services/battle/questGrudge";
 import { BEAST_LIBRARY } from "@/lib/services/core/beastLibrary";
 import { CLASSIC_BEASTS } from "@/lib/services/core/classicBeasts";
 import { questBeastId } from "@/lib/services/temples/questRooms";
@@ -97,24 +98,33 @@ export function pickQuestAmbush(
 }
 
 /**
- * The hero's record of when each quest last ambushed them (quest id -> epoch ms) with `questId` stamped at
- * `nowMs`. Stamps whose cooldown is over are dropped, so the record never grows past the quests that rest now.
- * Returns a new record.
+ * The hero's grudge record (spec 5.7) after `questId` ambushed them at `nowMs`: that quest's `lastAmbushAt` is stamped and
+ * the marks it holds stay. Entries that are done with (no marks, and a cooldown that is over) are dropped, so the record
+ * never grows past the quests that hold a grudge or rest now; entries it cannot read go too. Returns a new record.
  */
-export function withAmbushRecorded(
-  record: Readonly<Record<string, number>>,
+export function withAmbushStamped(
+  grudges: unknown,
   questId: string,
   nowMs: number,
   cooldownMs: number = QUEST_AMBUSH_COOLDOWN_MS
-): Record<string, number> {
-  const next: Record<string, number> = {};
-  for (const [id, at] of Object.entries(record ?? {})) {
-    const isStillResting = id !== questId && typeof at === "number" && isWithinCooldown(at, nowMs, cooldownMs);
-    if (isStillResting) next[id] = at;
+): QuestGrudges {
+  const previous = isPlainRecord(grudges) ? grudges : {};
+  const next: QuestGrudges = {};
+  for (const [id, entry] of Object.entries(previous)) {
+    const grudge = id === questId ? null : asGrudge(entry);
+    if (!grudge) continue;
+    const stamp = stampOf(grudge.lastAmbushAt);
+    const isResting = stamp !== null && isWithinCooldown(stamp, nowMs, cooldownMs);
+    const isDoneWith = clampMarks(grudge.marks) === 0 && !isResting;
+    if (!isDoneWith) next[id] = grudge;
   }
-  next[questId] = nowMs;
+  const held = asGrudge(previous[questId]);
+  next[questId] = { ...held, marks: clampMarks(held?.marks), lastAmbushAt: nowMs };
   return next;
 }
+
+/** A grudge entry from whatever the profile holds, or null for anything that is not an object. */
+const asGrudge = (value: unknown): QuestGrudge | null => (isPlainRecord(value) ? (value as unknown as QuestGrudge) : null);
 
 /** "Classic Beast 012": a name still waiting to be replaced says nothing about the beast. */
 const PLACEHOLDER_NAME = /^Classic Beast \d+$/;

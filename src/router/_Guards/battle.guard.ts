@@ -10,7 +10,14 @@ import {
 } from "@/app/Console/BattleField/battle/battleContext";
 import { getQuestEngine } from "@/lib/engine/quests/QuestEngine";
 import type { HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
-import { ambushAlertCopy, libraryBeastName, pickQuestAmbush, type QuestAmbush } from "@/lib/services/battle/questAmbush";
+import {
+  ambushAlertCopy,
+  libraryBeastName,
+  pickQuestAmbush,
+  withAmbushStamped,
+  type AmbushMemories,
+  type QuestAmbush,
+} from "@/lib/services/battle/questAmbush";
 import { hasNoEncounters } from "@/lib/services/quests/ItemEffects";
 import {
   AMBUSH_ALERT_ID,
@@ -74,7 +81,9 @@ async function findQuestAmbush(heroId: string, profile: unknown, now: Date): Pro
   try {
     const effects = (profile as { questEffects?: HeroQuestEffects } | null | undefined)?.questEffects;
     const board = await getQuestEngine().getQuestBoardForUser(heroId, now, undefined, effects);
-    return pickQuestAmbush(board, effects, useBattleStore().questAmbushesOf(heroId), now);
+    // The hero's own record of grudge marks and when each quest last ambushed them (spec 5.7)
+    const grudges = (profile as { questGrudges?: AmbushMemories } | null | undefined)?.questGrudges;
+    return pickQuestAmbush(board, effects, grudges ?? {}, now);
   } catch (error) {
     debug.warn("Quest ambush could not be looked up, so the encounter is free", error);
     return null;
@@ -164,7 +173,10 @@ async function onExplorationTick(router: Router): Promise<void> {
   if (isFightAlreadyOn) return;
 
   const questId = ambush ? String(ambush.quest.id) : undefined;
-  if (questId) battleStore.recordQuestAmbush(heroId, questId, now.getTime());
+  if (questId) {
+    const grudges = heroProfile(userStore, heroId)?.questGrudges;
+    userStore.setQuestGrudges(heroId, withAmbushStamped(grudges, questId, now.getTime()));
+  }
 
   if (!isHeroHere()) {
     // Away: hold the fight until the hero is back, and ring the alert if they asked for one.

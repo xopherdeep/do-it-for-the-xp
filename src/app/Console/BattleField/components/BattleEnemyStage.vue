@@ -32,6 +32,18 @@
           :aria-label="enemy.name"
         >{{ enemy.emoji }}</div>
         <div v-else class="enemy-placeholder" :class="{ 'is-critical': timerCritical }" aria-hidden="true">?</div>
+
+        <!-- Red scratches on the beast that remembers the hero ran from it: 1-3, 25% harder strikes each -->
+        <div
+          v-if="grudgeMarks > 0"
+          class="grudge-marks"
+          role="img"
+          :aria-label="grudgeText"
+          :title="grudgeText"
+          data-cy="grudge-marks"
+        >
+          <span v-for="n in grudgeMarks" :key="n" class="grudge-mark" aria-hidden="true"></span>
+        </div>
       </div>
 
       <div class="damage-popups" aria-hidden="true">
@@ -96,6 +108,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from "vue";
 import type { Enemy } from "@/lib/services/battle/BattleService";
+import { clampMarks, grudgeLabel } from "@/lib/services/battle/questGrudge";
 import type { EnemyAnimation, EnemySize, HitPopup } from "../battle/battleView";
 
 /**
@@ -170,6 +183,12 @@ watch(
   () => (spriteFailed.value = false)
 );
 const showSprite = computed(() => !!props.avatarSrc && !spriteFailed.value);
+
+// Grudge -----------------------------------------------------------------------------------------------------------
+
+// The beast carries the marks the hero earned by running from this quest (docs/Quest-Rooms-Spec.md 5.7)
+const grudgeMarks = computed(() => clampMarks(props.enemy?.grudgeMarks));
+const grudgeText = computed(() => grudgeLabel(grudgeMarks.value));
 
 // Chores -----------------------------------------------------------------------------------------------------------
 
@@ -438,6 +457,40 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
   background-color: rgba(0, 0, 0, 0.5);
   font-size: 40px;
   color: #fff;
+}
+
+// Claw scratches in the beast's top corner. They live inside the sprite container, so a hit shakes them and the
+// victory fade takes them along; they never catch a tap.
+.grudge-marks {
+  position: absolute;
+  top: 2%;
+  right: 4%;
+  z-index: 1;
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.grudge-mark {
+  display: block;
+  box-sizing: border-box;
+  width: 10px;
+  height: 32px;
+  border: 2px solid $ink;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #ff9a8a 0%, #ff3d2e 45%, #a3121f 100%);
+  box-shadow: 0 0 6px 1px rgba(255, 61, 46, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transform: skewX(-22deg) rotate(14deg);
+
+  // Each scratch a little longer than the one before, like a tally
+  &:nth-child(2) {
+    height: 38px;
+  }
+
+  &:nth-child(3) {
+    height: 44px;
+  }
 }
 
 .damage-popups {

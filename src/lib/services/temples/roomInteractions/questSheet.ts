@@ -8,6 +8,7 @@
 import { differenceInCalendarDays, format, startOfDay } from 'date-fns';
 import type { Room } from '@/lib/engine/core/dungeons/types';
 import type { HeroQuestEffects } from '@/lib/engine/quests/QuestSchedule';
+import { clampMarks, marksFor } from '@/lib/services/battle/questGrudge';
 import { dueFor, dueLabelFor, nickOf } from '@/lib/services/quests/QuestList';
 import { BEAST_LIBRARY } from '@/lib/services/core/beastLibrary';
 import {
@@ -22,9 +23,6 @@ import debug from '@/lib/utils/debug';
 import { temples } from './travel';
 import { ENCOUNTER_LINES } from './vocabulary';
 import type { RoomContext } from './vocabulary';
-
-/** The most grudge marks a beast holds against a hero (docs/Quest-Rooms-Spec.md 5.7) */
-const MAX_GRUDGE = 3;
 
 /** What a quest room's sheet is made of */
 export interface QuestRoomWords {
@@ -97,8 +95,6 @@ const dueWords = (
 
 const joinLine = (...parts: Array<string | null | undefined | false>): string => parts.filter(Boolean).join(' · ');
 
-const marksOf = (grudge?: number): number => Math.max(0, Math.min(MAX_GRUDGE, Math.floor(Number(grudge) || 0)));
-
 /**
  * What a quest room says for its state (5.3), or null for the rooms that keep the classic sheet (a classic beast room,
  * a dormant one). The chore's name rides in the body line; the title is the room's voice.
@@ -112,7 +108,7 @@ export const questRoomWords = (input: QuestRoomWordsInput): QuestRoomWords | nul
 
   switch (status) {
     case 'lurking': {
-      const marks = marksOf(input.grudge);
+      const marks = clampMarks(input.grudge);
       const grudge = marks > 0 && `Grudge x${marks}`;
       const header = ENCOUNTER_LINES[state.tier ?? 'monster'] ?? ENCOUNTER_LINES.monster;
       const due = dueWords(state, now, effects);
@@ -189,6 +185,10 @@ const ownersOf = (assignee: readonly (string | number)[] | undefined): string[] 
   return (assignee ?? []).map((id) => nickOf(store.getUserById(String(id)), String(id)));
 };
 
+/** The grudge marks the quest's beast holds against the hero standing in the room (5.7), from their profile. */
+const grudgeOf = (heroId: string, questId: string | number | undefined): number =>
+  marksFor(useUserStore().getUserById(String(heroId))?.questGrudges, questId);
+
 /** A quest room's sheet text for the hero standing in it; null where the classic sheet stands. */
 export const questRoomWordsFor = (room: Room, ctx: RoomContext): QuestRoomWords | null => {
   const now = ctx.now ?? new Date();
@@ -201,5 +201,6 @@ export const questRoomWordsFor = (room: Room, ctx: RoomContext): QuestRoomWords 
     effects: kept?.effects,
     owners: state.status === 'notYours' ? ownersOf(state.quest?.assignee) : undefined,
     beastName: libraryBeastName(state.beastId),
+    grudge: state.status === 'lurking' ? grudgeOf(ctx.userId, state.quest?.id) : undefined,
   });
 };

@@ -27,6 +27,7 @@ import {
 } from "./battleService/dialogLines";
 import { activeUserOf, beginFightState, initialBattleState, nextLivingBeast, toBattleUser } from "./battleService/fightState";
 import { partingStrike, resolvePassive, strikeDamage } from "./battleService/strikeMath";
+import { MAX_GRUDGE_FACTOR } from "@/lib/services/battle/questGrudge";
 import type {
   BattleCallbacks,
   BattlePassive,
@@ -88,6 +89,8 @@ export class BattleService {
   private cooldownScale = 1;
   /** The hero's class passive, filled in with the default rules. */
   private readonly passive: BattlePassive;
+  /** The beast's grudge against the hero: every strike of the fight is this many times as hard (1 to 1.75). */
+  private grudge = 1;
   /** The beast's first strike of this fight still has to miss (Ninja). */
   private firstStrikeOwed = false;
 
@@ -96,6 +99,7 @@ export class BattleService {
     this.alwaysEscapes = Boolean(options.freeFight);
     this.carriesQuest = Boolean(options.carriesQuest);
     this.passive = resolvePassive(options.passive);
+    this.setGrudge(options.grudge);
     this.state = reactive(initialBattleState());
   }
 
@@ -110,6 +114,20 @@ export class BattleService {
   /** Free fights let the hero run away every time. */
   public setFreeFight(freeFight: boolean): void {
     this.alwaysEscapes = freeFight;
+  }
+
+  /**
+   * The beast's grudge against the hero (docs/Quest-Rooms-Spec.md 5.7): every strike of the fight, the clock's and the
+   * parting strike, is this many times as hard. Kept between 1 (none) and 1.75 (three marks); anything else is no grudge.
+   */
+  public setGrudge(factor?: number): void {
+    const isReadable = typeof factor === 'number' && Number.isFinite(factor);
+    this.grudge = isReadable ? Math.min(MAX_GRUDGE_FACTOR, Math.max(1, factor)) : 1;
+  }
+
+  /** The factor the fight's strikes are multiplied by: 1 for none. */
+  public getGrudge(): number {
+    return this.grudge;
   }
 
   /**
@@ -293,6 +311,7 @@ export class BattleService {
       owed: { shadow: this.firstStrikeOwed, frozen: this.isClockFrozen(), hammer: this.strikeSkips > 0 },
       dodgeRoll: Math.random(),
       strikeRoll: Math.random(),
+      grudge: this.grudge,
     });
     // The brace was the hero's to spend, and the fight is over
     if (wasBracing) this.setDefendingState(false);
@@ -682,7 +701,8 @@ export class BattleService {
       braced,
       Math.random(),
       this.passive.braceFactor,
-      this.passive.strikeFactor
+      this.passive.strikeFactor,
+      this.grudge
     );
 
     // Trigger enemy pre-attack sound (ambush/charge)

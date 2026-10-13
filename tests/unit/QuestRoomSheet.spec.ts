@@ -340,6 +340,26 @@ describe("roomActions in a quest room", () => {
     expect(await sheet.actions[0].run()).toEqual({ intent: "fight" });
   });
 
+  it("adds the grudge marks this hero holds against the beast to the line, and none for another hero's", () => {
+    useUserStore().users[HERO].questGrudges = { q1: { marks: 2, lastFledAt: 5 }, "q-other": { marks: 3 } };
+    const { room, ctx } = withQuestRoom(item(dishes));
+    expect(roomActions(room, ctx).body).toBe("Wash the dishes · Due 6:00pm · Grudge x2");
+
+    useUserStore().users[HERO].questGrudges = { "q-other": { marks: 3 } };
+    expect(roomActions(room, ctx).body).toBe("Wash the dishes · Due 6:00pm");
+
+    useUserStore().users[HERO].questGrudges = { q1: { marks: 40 } };
+    expect(roomActions(room, ctx).body).toBe("Wash the dishes · Due 6:00pm · Grudge x3");
+  });
+
+  it("reads a hero from before grudges, and one whose record is broken, as holding none", () => {
+    const { room, ctx } = withQuestRoom(item(dishes));
+    delete useUserStore().users[HERO].questGrudges;
+    expect(roomActions(room, ctx).body).toBe("Wash the dishes · Due 6:00pm");
+    useUserStore().users[HERO].questGrudges = "junk";
+    expect(roomActions(room, ctx).body).toBe("Wash the dishes · Due 6:00pm");
+  });
+
   it("speaks the quest's tier, not the room's type", () => {
     const boss = quest("q1", { difficulty: 13 });
     const { room, ctx } = withQuestRoom(item(boss), { liveQuests: [boss] });

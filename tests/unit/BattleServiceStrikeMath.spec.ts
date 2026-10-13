@@ -41,6 +41,47 @@ describe("strikeMath (characterization)", () => {
       expect(strikeDamage(100, 10, false, 0.5, 0.5, 0.75)).toBe(9);
       expect(strikeDamage(100, 10, false, 0.5, 0.5, 2)).toBe(12);
     });
+
+    describe("the grudge (a sibling multiplier, docs/Quest-Rooms-Spec.md 5.7)", () => {
+      it("makes the hit harder by 25% a mark: 1, 1.25, 1.5 and 1.75", () => {
+        expect(strikeDamage(100, 10, false, 0.5, 0.5, 1, 1)).toBe(12);
+        expect(strikeDamage(100, 10, false, 0.5, 0.5, 1, 1.25)).toBe(15);
+        expect(strikeDamage(100, 10, false, 0.5, 0.5, 1, 1.5)).toBe(18);
+        expect(strikeDamage(100, 10, false, 0.5, 0.5, 1, 1.75)).toBe(21);
+      });
+
+      it("defaults to 1, so every existing caller is unchanged", () => {
+        expect(strikeDamage(100, 10, false, 0.5)).toBe(12);
+        expect(strikeDamage(100, 10, false, 0.5, 0.5, 1, undefined)).toBe(12);
+      });
+
+      it("is clamped to [1, 1.75]: a bigger factor counts as three marks, a smaller or broken one as none", () => {
+        expect(strikeDamage(100, 10, false, 0.5, 0.5, 1, 3)).toBe(21);
+        expect(strikeDamage(100, 10, false, 0.5, 0.5, 1, 0.5)).toBe(12);
+        expect(strikeDamage(100, 10, false, 0.5, 0.5, 1, 0)).toBe(12);
+        expect(strikeDamage(100, 10, false, 0.5, 0.5, 1, -2)).toBe(12);
+        expect(strikeDamage(100, 10, false, 0.5, 0.5, 1, Number.NaN)).toBe(12);
+        expect(strikeDamage(100, 10, false, 0.5, 0.5, 1, Number.POSITIVE_INFINITY)).toBe(12);
+      });
+
+      it("sits beside strikeFactor, which stays a share of at most 1: both apply, then the hit rounds down", () => {
+        // 12 x 0.75 = 9, x 1.25 = 11.25 -> 11; a wrong strikeFactor is still ignored on its own
+        expect(strikeDamage(100, 10, false, 0.5, 0.5, 0.75, 1.25)).toBe(11);
+        expect(strikeDamage(100, 10, false, 0.5, 0.5, 2, 1.25)).toBe(15);
+      });
+
+      it("is felt through a brace too: the brace lets its share of the harder hit through", () => {
+        // 12 x 1.75 = 21, braced: floor(21 x 0.5) = 10, a Warrior's quarter floor(21 x 0.25) = 5
+        expect(strikeDamage(100, 10, true, 0.5, 0.5, 1, 1.75)).toBe(10);
+        expect(strikeDamage(100, 10, true, 0.5, 0.25, 1, 1.75)).toBe(5);
+      });
+
+      it("rounds down and still never costs less than 1", () => {
+        // raw 4 (30 HP): 4 x 1.25 = 5, 4 x 1.5 = 6, 4 x 1.75 = 7
+        expect([1.25, 1.5, 1.75].map((grudge) => strikeDamage(30, 10, false, 0.5, 0.5, 1, grudge))).toEqual([5, 6, 7]);
+        expect(strikeDamage(1, 10, true, 0.5, 0.5, 1, 1.75)).toBe(1);
+      });
+    });
   });
 
   describe("resolvePassive", () => {
@@ -139,6 +180,35 @@ describe("strikeMath (characterization)", () => {
 
     it("lets only strikeFactor of it land (trained strength helps here too)", () => {
       expect(run({ passive: passiveOf({ strikeFactor: 0.75 }) }).damage).toBe(9);
+    });
+
+    it("is harder by the beast's grudge: 25% a mark, and the same number a clock strike would cost", () => {
+      expect(run({ grudge: 1.5 }).damage).toBe(18);
+      expect(run({ grudge: 1.75 }).damage).toBe(strikeDamage(100, 10, false, 0.5, 0.5, 1, 1.75));
+      expect(run({ grudge: 1.75 }).damage).toBe(21);
+    });
+
+    it("has no grudge to add when none is given, and clamps one that is too big", () => {
+      expect(run({ grudge: undefined }).damage).toBe(12);
+      expect(run({ grudge: 9 }).damage).toBe(21);
+    });
+
+    it("takes the grudge before the softener: a bracing hero still gets the brace factor of the harder hit", () => {
+      expect(run({ grudge: 1.75, wasBracing: true })).toMatchObject({ damage: 10, softener: "brace" });
+    });
+
+    it("empties HP on the harder hit: 12 would not empty 20 HP, 21 does", () => {
+      expect(run({ hp: 20 })).toMatchObject({ damage: 12, emptied: false });
+      expect(run({ hp: 20, grudge: 1.75 })).toMatchObject({ damage: 21, emptied: true });
+    });
+
+    it("a dodged strike has no damage at all, whatever the grudge", () => {
+      expect(run({ grudge: 1.75, owed: { ...owed, frozen: true } })).toEqual({
+        dodgedBy: "frozen",
+        damage: 0,
+        softener: null,
+        emptied: false,
+      });
     });
 
     it("is softened by the brace factor when the hero was bracing: half, or a Warrior's quarter", () => {

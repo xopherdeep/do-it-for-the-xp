@@ -121,6 +121,13 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
 
   const questEffects = () => userStore.users[ctx.userId]?.questEffects as HeroQuestEffects | undefined;
 
+  /** The id of the quest this fight carries (a board fight's, an ambush's, or the one a temple room holds), if any. */
+  const carriedQuestId = (): string | null => {
+    const id = deps.encounter.value?.quest?.id;
+    const hasQuest = id !== undefined && id !== null && id !== "";
+    return hasQuest ? String(id) : null;
+  };
+
   /**
    * The quest log, not the screen the fight began on, says whether the window is still open: a shared quest a sibling
    * already cleared, or a window the hero used up elsewhere, is not paid twice. A log that cannot be read does not cost
@@ -150,6 +157,10 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
    * Either way a temple room opens after the log write. The room's own xp/gp/ap never count: the quest's rewards do.
    */
   const settleQuestWin = async (quest: Quest, base: QuestRewards): Promise<Settlement> => {
+    // The beast is beaten: its grudge against this hero ends (5.7), whatever the log says next (a window already used
+    // logs nothing). A logged completion clears it for a shared quest's other assignees too (QuestCompletionService).
+    userStore.clearQuestGrudge(ctx.userId, String(quest.id));
+
     const isAlreadyDone = !(await isWindowOpen(quest));
     if (isAlreadyDone) {
       clearTempleRoom(true);
@@ -281,10 +292,21 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
   };
 
   /**
+   * Leaving a fight that carries a quest leaves one grudge mark on its beast for this hero, three at the most (5.6, 5.7),
+   * even when the parting strike was dodged or emptied the hero's HP. A free fight carries no quest and marks nothing.
+   */
+  const leaveGrudgeMark = (report?: EscapeReport) => {
+    const questId = report?.carriesQuest ? carriedQuestId() : null;
+    if (questId) userStore.addQuestGrudge(ctx.userId, questId);
+  };
+
+  /**
    * The service has already queued "Got away safely!"; the beast fades, then the hero leaves. When the parting strike
-   * emptied the hero's HP (`report.emptied`) the hero is carried to the Hospital instead.
+   * emptied the hero's HP (`report.emptied`) the hero is carried to the Hospital instead. Either way a fight that carries
+   * a quest earns its beast a grudge mark first.
    */
   const handleEscape = (report?: EscapeReport) => {
+    leaveGrudgeMark(report);
     if (report?.emptied) {
       handleCarriedOut();
       return;

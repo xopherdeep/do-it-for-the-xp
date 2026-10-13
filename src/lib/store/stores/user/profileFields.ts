@@ -1,4 +1,5 @@
 import type { HeroLook } from '@/lib/hero-look/types';
+import { addGrudgeMark, clearGrudgeMarks, marksFor } from '@/lib/services/battle/questGrudge';
 import { toEntry } from '@/lib/services/inventory/Inventory';
 import { classLevelsOf, isClassUnlocked } from '@/lib/services/stats/ClassPassives';
 
@@ -60,7 +61,7 @@ export interface ProfileFieldsDeps {
 
 /**
  * The store's setters for the plain fields of a profile (bag, cooldowns, bench rest, quest effects, unlocked
- * items, hands, look, class). The state they edit stays in the store; they get it through `deps`.
+ * items, hands, look, class, grudge marks). The state they edit stays in the store; they get it through `deps`.
  */
 export function createProfileSetters(deps: ProfileFieldsDeps) {
   const { users, currentUser, persistUser, syncCurrentUser } = deps;
@@ -185,6 +186,47 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     return true;
   }
 
+  /**
+   * The hero ran from a fight that carries this quest: one more grudge mark on its beast, three at the most
+   * (docs/Quest-Rooms-Spec.md 5.7). Kept on the profile as `questGrudges[questId]` (and so in ProfileDb); each hero's
+   * grudge is their own. Returns the marks the beast holds now, or 0 when there is no such hero or quest.
+   */
+  function addQuestGrudge(userId: string, questId: string, nowMs: number = Date.now()): number {
+    const user = users[userId];
+    const hasNobodyToMark = !user || !questId;
+    if (hasNobodyToMark) return 0;
+    user.questGrudges = addGrudgeMark(user.questGrudges, questId, nowMs);
+    if (currentUser.id === userId) syncCurrentUser(user);
+    persistUser(userId);
+    return marksFor(user.questGrudges, questId);
+  }
+
+  /**
+   * The quest was done: its grudge marks are gone (5.7). Writes nothing when the hero held none for it. Returns whether
+   * any were cleared.
+   */
+  function clearQuestGrudge(userId: string, questId: string): boolean {
+    const user = users[userId];
+    const hadNoMarks = !user || marksFor(user.questGrudges, questId) === 0;
+    if (hadNoMarks) return false;
+    user.questGrudges = clearGrudgeMarks(user.questGrudges, questId);
+    if (currentUser.id === userId) syncCurrentUser(user);
+    persistUser(userId);
+    return true;
+  }
+
+  /**
+   * Replace the hero's whole grudge record (what the ambush rule hands back after it stamps a quest, spec 5.9). Marks come
+   * and go through addQuestGrudge / clearQuestGrudge; this is for the rules that rebuild the record in one piece.
+   */
+  function setQuestGrudges(userId: string, questGrudges: object) {
+    const user = users[userId];
+    if (!user) return;
+    user.questGrudges = JSON.parse(JSON.stringify(questGrudges));
+    if (currentUser.id === userId) syncCurrentUser(user);
+    persistUser(userId);
+  }
+
   return {
     addInventoryItem,
     spendInventoryItem,
@@ -194,6 +236,9 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     unlockItem,
     setEquipment,
     setLook,
-    setJobClass
+    setJobClass,
+    addQuestGrudge,
+    clearQuestGrudge,
+    setQuestGrudges
   };
 }

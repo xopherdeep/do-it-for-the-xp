@@ -244,6 +244,9 @@ describe("profileFields: the bag, cooldowns, hands", () => {
       "setEquipment",
       "setLook",
       "setJobClass",
+      "addQuestGrudge",
+      "clearQuestGrudge",
+      "setQuestGrudges",
     ]);
 
     expect(setters.unlockItem("ava", "Shield")).toBe(true);
@@ -262,6 +265,100 @@ describe("profileFields: the bag, cooldowns, hands", () => {
     expect(setters.addInventoryItem("ghost", { name: "Potion" })).toBe(false);
     expect(setters.unlockItem("ben", "Shield")).toBe(false);
     expect(persistUser).not.toHaveBeenCalled();
+  });
+});
+
+describe("grudge setters (docs/Quest-Rooms-Spec.md 5.7)", () => {
+  const build = (users: Record<string, any>, signedIn: string | null = "ava") => {
+    const currentUser = { id: signedIn };
+    const persistUser = jest.fn();
+    const syncCurrentUser = jest.fn();
+    const setters = createProfileSetters({ users, currentUser, persistUser, syncCurrentUser });
+    return { setters, persistUser, syncCurrentUser };
+  };
+
+  it("addQuestGrudge puts a mark on the hero's own record, mirrors it to the signed-in hero and queues a save", () => {
+    const users: Record<string, any> = { ava: { id: "ava" }, ben: { id: "ben" } };
+    const { setters, persistUser, syncCurrentUser } = build(users);
+
+    expect(setters.addQuestGrudge("ava", "q1", 1234)).toBe(1);
+    expect(users.ava.questGrudges).toEqual({ q1: { marks: 1, lastFledAt: 1234 } });
+    expect(users.ben.questGrudges).toBeUndefined(); // each hero's grudge is their own
+    expect(syncCurrentUser).toHaveBeenCalledWith(users.ava);
+    expect(persistUser).toHaveBeenCalledWith("ava");
+  });
+
+  it("adds a mark each flight, three at the most, and keeps the other quests' marks", () => {
+    const users: Record<string, any> = { ava: { id: "ava", questGrudges: { q2: { marks: 2 } } } };
+    const { setters } = build(users);
+
+    expect([1, 2, 3, 4, 5].map(() => setters.addQuestGrudge("ava", "q1", 50))).toEqual([1, 2, 3, 3, 3]);
+    expect(users.ava.questGrudges).toEqual({ q1: { marks: 3, lastFledAt: 50 }, q2: { marks: 2 } });
+  });
+
+  it("starts a record for a hero from before grudges, and mends a broken one", () => {
+    const users: Record<string, any> = { ava: { id: "ava", questGrudges: "junk" } };
+    const { setters } = build(users);
+    expect(setters.addQuestGrudge("ava", "q1", 7)).toBe(1);
+    expect(users.ava.questGrudges).toEqual({ q1: { marks: 1, lastFledAt: 7 } });
+  });
+
+  it("addQuestGrudge refuses an unknown hero or a quest with no id: nothing is written", () => {
+    const users: Record<string, any> = { ava: { id: "ava" } };
+    const { setters, persistUser } = build(users);
+    expect(setters.addQuestGrudge("ghost", "q1")).toBe(0);
+    expect(setters.addQuestGrudge("ava", "")).toBe(0);
+    expect(users.ava.questGrudges).toBeUndefined();
+    expect(persistUser).not.toHaveBeenCalled();
+  });
+
+  it("clearQuestGrudge takes the marks off and queues a save; the other quests keep theirs", () => {
+    const users: Record<string, any> = {
+      ava: { id: "ava", questGrudges: { q1: { marks: 3, lastFledAt: 5 }, q2: { marks: 1 } } },
+    };
+    const { setters, persistUser, syncCurrentUser } = build(users);
+
+    expect(setters.clearQuestGrudge("ava", "q1")).toBe(true);
+    expect(users.ava.questGrudges).toEqual({ q2: { marks: 1 } });
+    expect(syncCurrentUser).toHaveBeenCalledWith(users.ava);
+    expect(persistUser).toHaveBeenCalledWith("ava");
+  });
+
+  it("clearQuestGrudge on a hero with no marks for the quest writes nothing and says so", () => {
+    const users: Record<string, any> = { ava: { id: "ava", questGrudges: { q2: { marks: 1 } } }, ben: { id: "ben" } };
+    const { setters, persistUser } = build(users);
+
+    expect(setters.clearQuestGrudge("ava", "q1")).toBe(false);
+    expect(setters.clearQuestGrudge("ben", "q1")).toBe(false);
+    expect(setters.clearQuestGrudge("ghost", "q1")).toBe(false);
+    expect(users.ava.questGrudges).toEqual({ q2: { marks: 1 } });
+    expect(users.ben.questGrudges).toBeUndefined();
+    expect(persistUser).not.toHaveBeenCalled();
+  });
+
+  it("setQuestGrudges replaces the whole record with a copy, mirrors it and queues a save", () => {
+    const users: Record<string, any> = { ava: { id: "ava", questGrudges: { q1: { marks: 1 } } }, ben: { id: "ben" } };
+    const { setters, persistUser, syncCurrentUser } = build(users);
+    const record = { q2: { marks: 0, lastAmbushAt: 99 } };
+
+    setters.setQuestGrudges("ava", record);
+
+    expect(users.ava.questGrudges).toEqual(record);
+    expect(users.ava.questGrudges).not.toBe(record);
+    expect(users.ben.questGrudges).toBeUndefined();
+    expect(syncCurrentUser).toHaveBeenCalledWith(users.ava);
+    expect(persistUser).toHaveBeenCalledWith("ava");
+
+    persistUser.mockClear();
+    setters.setQuestGrudges("ghost", record);
+    expect(persistUser).not.toHaveBeenCalled();
+  });
+
+  it("clearing keeps the ambush cooldown a quest's entry holds", () => {
+    const users: Record<string, any> = { ava: { id: "ava", questGrudges: { q1: { marks: 2, lastAmbushAt: 99 } } } };
+    const { setters } = build(users);
+    expect(setters.clearQuestGrudge("ava", "q1")).toBe(true);
+    expect(users.ava.questGrudges).toEqual({ q1: { marks: 0, lastAmbushAt: 99 } });
   });
 });
 

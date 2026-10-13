@@ -1,6 +1,6 @@
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import { getQuestLogDb, QuestLogEntry, QuestLogSource, QuestRewards } from "@/lib/databases/QuestLogDb";
-import { isQuestOpenFor, isTrustedHour, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
+import { countedHeroesOf, isQuestOpenFor, isTrustedHour, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 import { bonusGp } from "@/lib/services/stats/ClassPassives";
 import { useUserStore, LevelUpInfo } from "@/lib/store/stores/user";
 
@@ -19,6 +19,10 @@ import { useUserStore, LevelUpInfo } from "@/lib/store/stores/user";
  * XP and AP, and the GP with the class loot bonus on top (a Thief's or Ninja's +25%, see
  * docs/Items-And-Classes-Contract.md, C). Screens print the paid line, not the board's.
  * AP is stamped at the entry's completedAt, so a next-morning approval lands on the day the chore was done.
+ *
+ * Logging a completion also ends the grudge (docs/Quest-Rooms-Spec.md 5.7): a claim, held or paid, and a battle win
+ * clear the hero's marks on the quest, and a shared quest clears them for every assignee. A later rejection does not
+ * bring them back.
  */
 export interface CompletionResult {
   entry: QuestLogEntry;
@@ -66,6 +70,15 @@ export const applyQuestRewards = (
   return levelUp;
 };
 
+/**
+ * The quest is done: the beast's grudge marks come off the hero who did it, and off every assignee of a shared quest
+ * (Team Effort, Rat Race). Only the marks change.
+ */
+const clearGrudges = (quest: Pick<Achievement, "id" | "type" | "assignee">, userId: string): void => {
+  const userStore = useUserStore();
+  for (const heroId of countedHeroesOf(quest, userId)) userStore.clearQuestGrudge(heroId, String(quest.id));
+};
+
 export const completeQuest = async (
   quest: Achievement,
   userId: string,
@@ -84,6 +97,7 @@ export const completeQuest = async (
     source,
     rewards,
   });
+  clearGrudges(quest, userId);
 
   if (awaitingApproval) return { entry, levelUp: null, awaitingApproval, paid: rewards };
 
@@ -108,8 +122,8 @@ export const isQuestStillOpen = async (
 ): Promise<boolean> => isQuestOpenFor(quest, await getQuestLogDb().getEntries(), userId, now, effects);
 
 /** Battle victories already paid out; just record that the quest was finished. */
-export const recordBattleCompletion = (quest: Achievement, userId: string, rewards: QuestRewards) =>
-  getQuestLogDb().logCompletion({
+export const recordBattleCompletion = async (quest: Achievement, userId: string, rewards: QuestRewards) => {
+  const entry = await getQuestLogDb().logCompletion({
     questId: quest.id,
     questName: quest.achievementName,
     userId,
@@ -118,6 +132,9 @@ export const recordBattleCompletion = (quest: Achievement, userId: string, rewar
     rewards,
     rewardsApplied: true,
   });
+  clearGrudges(quest, userId);
+  return entry;
+};
 
 // Entries currently being reviewed; a second approve/reject for the same entry while the
 // first is still reading-then-writing would otherwise pay the hero twice.

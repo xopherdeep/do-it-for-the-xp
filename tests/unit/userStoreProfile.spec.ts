@@ -287,8 +287,10 @@ describe("signing in, masquerading, loading", () => {
     expect(Object.keys(store).filter((key) => !key.startsWith("$") && !key.startsWith("_")).sort()).toEqual(
       [
         "addInventoryItem",
+        "addQuestGrudge",
         "addUser",
         "checkClassUnlocks",
+        "clearQuestGrudge",
         "currentUser",
         "getAPInTimeRange",
         "getUserById",
@@ -304,6 +306,7 @@ describe("signing in, masquerading, loading", () => {
         "setJobClass",
         "setLook",
         "setQuestEffects",
+        "setQuestGrudges",
         "setWallet",
         "spendInventoryItem",
         "stopImpersonating",
