@@ -2,6 +2,12 @@
   --background: transparent;
   --box-shadow: none;
 
+  // The swiper is a flex item sized by its slides, which are 100% of it: Chrome settles that loop at
+  // 33,554,432px, and the card and the fab (Fight!, Magic, Goods) end up off screen
+  .swiper {
+    width: 100%;
+  }
+
   swiper-slides {
     height: 100%;
 
