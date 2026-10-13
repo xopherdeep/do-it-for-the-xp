@@ -27,9 +27,10 @@
           <xp-building-model building-id="hospital" label="Hospital" :size="115" />
         </div>
 
-        <!-- South: Hero's Home and Hotel -->
+        <!-- South: Hero's Home, the Old House (once the Moving House pack built it) and Hotel -->
         <div class="plaza-row plaza-bottom">
           <xp-building-model building-id="hero-home" label="Hero's Home" :size="115" />
+          <xp-building-model v-if="hasOldHouse" building-id="old-house" label="The Old House" sublabel="Fight the packing" :size="100" @click="enterOldHouse" />
           <xp-building-model building-id="hotel" label="Hotel" :size="115" />
         </div>
       </div>

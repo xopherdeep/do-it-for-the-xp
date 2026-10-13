@@ -4,6 +4,7 @@ describe("buildingShapes: voxel geometries for Hometown and Land shops", () => {
   const hometownBuildings = [
     "hero-home",
     "my-home",
+    "old-house",
     "hometown-market",
     "shop",
     "hospital",

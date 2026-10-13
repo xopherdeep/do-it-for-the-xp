@@ -282,6 +282,9 @@ export default defineComponent({
         case "bed":
           // Emitted click handled by caller (restInBed)
           break;
+        case "old-house":
+          // The Moving House pack's temple: the caller walks the hero in (HomeTown.enterOldHouse)
+          break;
         case "hometown-market":
         case "shop":
           router.push({ name: "shop", params: { userId } });

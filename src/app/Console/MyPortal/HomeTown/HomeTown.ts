@@ -1,6 +1,9 @@
 import { defineComponent as dC } from "vue";
 import { arrowBack } from "ionicons/icons";
-import { computed } from "vue";
+import { computed, ref } from "vue";
+import { TempleDb, templeStorage } from "@/lib/databases/TempleDb";
+import { MOVING_TEMPLE_ID } from "@/lib/services/core/packs/movingTemple";
+import debug from "@/lib/utils/debug";
 import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useUserActions } from "@/hooks/useUserActions";
@@ -89,8 +92,27 @@ export default dC({
       },
     ];
 
+    // The Moving House pack's temple is not one of the nine on the world map: it lives in the temple store, so the
+    // plaza gets a building for it once the family has built it
+    const hasOldHouse = ref(false);
+    const findOldHouse = async (): Promise<void> => {
+      try {
+        await templeStorage.create();
+        hasOldHouse.value = Boolean(await new TempleDb(templeStorage).getTempleById(MOVING_TEMPLE_ID));
+      } catch (error) {
+        // No temple store (private mode): the town just has no old house
+        debug.warn("[HomeTown] could not look for the old house", error);
+        hasOldHouse.value = false;
+      }
+    };
+
+    const enterOldHouse = () => {
+      router.push({ name: "temple", params: { userId, temple: MOVING_TEMPLE_ID } });
+    };
+
     onIonViewDidEnter(() => {
       setActions("home-town", userActions);
+      void findOldHouse();
     })
 
     return {
@@ -98,6 +120,8 @@ export default dC({
       userId,
       arrowBack,
       userActions,
+      hasOldHouse,
+      enterOldHouse,
     };
   },
 });

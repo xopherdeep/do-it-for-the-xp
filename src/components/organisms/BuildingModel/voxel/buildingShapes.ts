@@ -5,6 +5,7 @@ import { getStageBoxes } from "@/components/organisms/StageModel/voxel/stageShap
 export type BuildingId =
   // Hometown
   | "hero-home"
+  | "old-house"
   | "hometown-market"
   | "shop"
   | "hospital"
@@ -68,6 +69,20 @@ const heroHomeBoxes = (): Box[] => [
   b(2, 6.5, -2, 1.8, 6, 1.8, "#b23a22"),
   b(1.8, 12.5, -2.2, 2.2, 0.6, 2.2, "#7a2818"),
   b(2.2, 13.5, -1.8, 1.2, 1.2, 1.2, "#e0e0e0"),
+];
+
+/**
+ * The Old House (the Moving House pack's temple): the Hero's Home a little weathered, with cardboard boxes stacked
+ * by the door and the garden path. The plaza shows it only once the family has built the temple.
+ */
+const oldHouseBoxes = (): Box[] => [
+  ...heroHomeBoxes().map((box) => (box.color === "#f0e6d2" ? { ...box, color: "#d6c4a0" } : box)),
+  b(2.4, 0.2, 4.7, 1.8, 1.5, 1.6, "#b98a4e"),
+  b(2.6, 1.7, 4.8, 1.3, 1.2, 1.3, "#c99a5c"),
+  b(2.8, 0.2, 6.4, 1.2, 1, 1.1, "#a67a42"),
+  b(-4.4, 0.2, 4.8, 1.6, 1.3, 1.5, "#c99a5c"),
+  b(-4.2, 1.5, 4.9, 1.2, 1, 1.2, "#b98a4e"),
+  b(2.4, 1.5, 6.3, 1.8, 0.2, 0.2, "#e7d3a1"),
 ];
 
 /** Hometown Market / General Store: Striped awning, large display windows, hanging sign */
@@ -723,6 +738,7 @@ const BUILDINGS: Record<string, () => Box[]> = {
   // Hometown
   "hero-home": heroHomeBoxes,
   "my-home": heroHomeBoxes,
+  "old-house": oldHouseBoxes,
   "hometown-market": hometownMarketBoxes,
   shop: hometownMarketBoxes,
   hospital: hospitalBoxes,

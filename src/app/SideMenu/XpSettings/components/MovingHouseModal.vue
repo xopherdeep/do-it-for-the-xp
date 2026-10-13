@@ -58,8 +58,26 @@
           </div>
         </section>
 
+        <section class="moving-section">
+          <h3>Moving Day temple</h3>
+          <button
+            type="button"
+            class="moving-check moving-temple-check"
+            :class="{ 'is-on': wantsTemple }"
+            role="checkbox"
+            :aria-checked="wantsTemple"
+            @click="wantsTemple = !wantsTemple"
+          >
+            <i :class="['fad', wantsTemple ? 'fa-check-square' : 'fa-square']"></i>
+            Build the Moving Day temple
+          </button>
+          <p class="moving-note">Walk the old house room by room and fight the packing. Find it in Hometown.</p>
+        </section>
+
         <p class="moving-preview" aria-live="polite">
-          <template v-if="canBuild">This builds {{ preview.quests.length }} quests and {{ preview.beasts.length }} beasts.</template>
+          <template v-if="canBuild">
+            This builds {{ preview.quests.length }} quests and {{ preview.beasts.length }} beasts<template v-if="previewTemple"> and a {{ previewTemple.rooms.length }}-room temple</template>.
+          </template>
           <template v-else>Pick a move date and at least one hero.</template>
         </p>
         <p v-if="error" class="moving-error" role="alert">{{ error }}</p>
@@ -101,10 +119,10 @@ import {
   buildMovingPack,
   dateKey,
   movingBandFor,
-  movingPackBackup,
   movingPackSummary,
 } from "@/lib/services/core/packs/movingPack";
 import type { MovingAnswers, MovingRole, MovingRoomId } from "@/lib/services/core/packs/movingPack";
+import { buildMovingTemple, movingTempleBackup, movingTempleSummary } from "@/lib/services/core/packs/movingTemple";
 
 const props = defineProps<{ isOpen: boolean }>();
 const emit = defineEmits<{ (event: "close"): void }>();
@@ -117,6 +135,8 @@ const todayKey = dateKey(new Date());
 const moveDate = ref(dateKey(addDays(new Date(), 14)));
 const counts = reactive<Record<string, number>>({ ...DEFAULT_MOVING_ROOMS } as Record<string, number>);
 const roles = reactive<Record<string, MovingRole>>({});
+// The old house goes in with the pack unless the family turns it off
+const wantsTemple = ref(true);
 const summary = ref("");
 const error = ref("");
 const isBusy = ref(false);
@@ -153,6 +173,7 @@ const answers = computed<MovingAnswers>(() => ({
 }));
 
 const preview = computed(() => buildMovingPack(answers.value));
+const previewTemple = computed(() => (wantsTemple.value ? buildMovingTemple(preview.value, answers.value) : null));
 const canBuild = computed(() => /^\d{4}-\d{2}-\d{2}$/.test(moveDate.value) && preview.value.heroCount > 0);
 
 const step = (room: MovingRoomId, by: number) => {
@@ -171,9 +192,10 @@ const build = async () => {
   error.value = "";
   try {
     const pack = buildMovingPack(answers.value);
-    await backupService.restoreBackup(movingPackBackup(pack), { mode: "merge" });
+    const temple = wantsTemple.value ? buildMovingTemple(pack, answers.value) : null;
+    await backupService.restoreBackup(movingTempleBackup(pack, temple), { mode: "merge" });
     play$fx("select");
-    summary.value = movingPackSummary(pack);
+    summary.value = temple ? `${movingPackSummary(pack)} ${movingTempleSummary(temple)}` : movingPackSummary(pack);
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : String(caught);
   } finally {
