@@ -208,6 +208,10 @@ describe("questBeastId", () => {
     );
   });
 
+  it("is no beast at all when the parent chose No beast, even when the library has a match", () => {
+    expect(questBeastId(makeQuest("q", { beastId: "", achievementName: "Banish the Dish Goblin", noBeast: true }))).toBeUndefined();
+  });
+
   it("is the library's top suggestion for the quest's name when the quest has no beast", () => {
     expect(questBeastId(makeQuest("q", { beastId: "", achievementName: "Banish the Dish Goblin" }))).toBe("beast-dish-goblin");
     expect(questBeastId(makeQuest("q", { beastId: undefined, achievementName: "Banish the Dish Goblin" }))).toBe(

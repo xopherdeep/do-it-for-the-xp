@@ -118,9 +118,11 @@ const suggestedBeastIds = new Map<string, string | undefined>();
  * A quest's beast: its own `beastId`, else the top library suggestion for its name (decision 5). The Game Master
  * can change it on the quest form; nothing is rewritten here.
  */
-export function questBeastId(quest: Pick<Achievement, "beastId" | "achievementName">): string | undefined {
+export function questBeastId(quest: Pick<Achievement, "beastId" | "achievementName" | "noBeast">): string | undefined {
   const hasOwnBeast = Boolean(quest.beastId);
   if (hasOwnBeast) return String(quest.beastId);
+  // The parent chose "No beast" on the quest form (QR14): no suggestion stands in for one
+  if (quest.noBeast) return undefined;
   const name = String(quest.achievementName ?? "");
   const isUnasked = !suggestedBeastIds.has(name);
   if (isUnasked) {
