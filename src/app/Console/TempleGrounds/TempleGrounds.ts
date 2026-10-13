@@ -254,7 +254,8 @@ export default defineComponent({
       showEmptyChest,
       openChoiceReveal,
       beastCard,
-      activeMonster
+      activeMonster,
+      templeElement
     });
 
     // The locked door close up

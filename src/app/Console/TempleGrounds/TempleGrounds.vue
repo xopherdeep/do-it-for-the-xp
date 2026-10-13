@@ -1,6 +1,10 @@
 <template>
   <ion-page :class="$options.name">
     <ion-header>
+      <div class="temple-docked-xp" v-if="user && user.stats">
+        <XpPurseBar :stats="user.stats" />
+        <XpVitalsBar :stats="user.stats" />
+      </div>
       <ion-toolbar class="rpg-box icon-colors">
         <ion-buttons slot="end">
           <ion-button color="rpg" data-cy="temple-keys" :aria-label="`Small keys: ${playerKeys}`">
@@ -300,15 +304,9 @@
 
     </ion-content>
 
-    <!-- No HP / MP HUD in a temple: the room needs the space; the vitals ride the hairline above the nav -->
+    <!-- No HP / MP HUD in a temple: the room needs the space; vitals and purse ride hairlines at the top -->
 
     <ion-footer class="temple-footer">
-      <!-- The purse and the XP hairline sit on a ledge just above the nav, like the portal -->
-      <div class="footer-docked-xp" v-if="user && user.stats">
-        <XpVitalsBar :stats="user.stats" />
-        <XpPurseBar :stats="user.stats" />
-      </div>
-
       <!-- The same nav as the portal: Profile | left hand | Area (the equipment) | right hand | Party -->
       <xp-bottom-nav
         :profile-label="user?.name?.nick || 'Hero'"
@@ -345,6 +343,8 @@
       :choices="choiceReveal.choices"
       :cancel-label="choiceReveal.cancelLabel"
       :art="choiceReveal.art"
+      :sprite="choiceReveal.sprite"
+      :element="templeElement"
       @choose="chooseReveal"
       @leave="leaveReveal"
     />

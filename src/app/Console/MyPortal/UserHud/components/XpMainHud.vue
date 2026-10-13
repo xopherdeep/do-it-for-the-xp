@@ -107,7 +107,7 @@ export default defineComponent({
 <style lang="scss" scoped>
 .xp-main-hud {
   position: fixed;
-  top: 10px;
+  top: 32px;
   left: 0;
   right: 0;
   display: flex;

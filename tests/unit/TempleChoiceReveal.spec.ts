@@ -216,8 +216,26 @@ describe("TempleChoiceReveal", () => {
     });
   });
 
+  describe("the exit", () => {
+    const exitReveal = {
+      kind: "exit",
+      title: "The way out is behind you.",
+      choices: [{ id: "0", label: "Leave Temple" }],
+    };
+
+    it("shows the dungeon exit sprite and the leave choice without beasts", () => {
+      const reveal = show(exitReveal);
+      expect(reveal.get(".choice-reveal__title").text()).toBe("The way out is behind you.");
+      expect(reveal.find(".choice-sprite").exists()).toBe(true);
+      expect(reveal.find('[data-cy="choice-art"]').exists()).toBe(false);
+      expect(reveal.find('[data-cy="choice-subtitle"]').exists()).toBe(false);
+      expect(reveal.findAll(".choice-row").map((item) => item.text())).toEqual(["Leave Temple"]);
+      expect(leaveButton(reveal).text()).toBe("Back");
+    });
+  });
+
   describe("leaving", () => {
-    it.each([["riddle"], ["shop"], ["sheet"]])("emits leave from the cancel button in a %s", async (kind) => {
+    it.each([["riddle"], ["shop"], ["sheet"], ["exit"]])("emits leave from the cancel button in a %s", async (kind) => {
       const reveal = show({ kind, choices: kind === "shop" ? wares : riddleChoices });
       await leaveButton(reveal).trigger("click");
       expect(reveal.emitted("leave")).toHaveLength(1);

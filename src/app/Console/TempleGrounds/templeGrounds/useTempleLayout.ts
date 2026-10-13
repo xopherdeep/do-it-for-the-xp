@@ -20,13 +20,13 @@ export const useTempleLayout = (deps: TempleLayoutDeps) => {
   const backgroundPosition = ref({ x: 0, y: 0 });
 
   // Tile dimensions for the background grid: one room fills the game area exactly,
-  // so its south wall sits on the hairlines instead of running under the footer
+  // so its north wall sits below the header hairlines and south wall sits on the bottom nav
   const gameArea = ref<{ $el: HTMLElement } | null>(null);
   const tileWidth = ref(window.innerWidth);
   const tileHeight = ref(window.innerHeight - 172);
   let gameAreaObserver: ResizeObserver | null = null;
 
-  // Re-measure whenever the game area changes: a window resize, or the footer growing as the vitals load
+  // Re-measure whenever the game area changes: a window resize, or the header/footer changing size
   onMounted(() => {
     const el = gameArea.value?.$el;
     const updateDimensions = () => {

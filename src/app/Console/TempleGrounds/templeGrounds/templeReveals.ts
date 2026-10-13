@@ -4,6 +4,7 @@ import type { TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
 import type { ChestLoot } from '@/lib/services/temples/ChestLoot';
 import { clearTemple, doorActions, SFX, type RoomAction, type RoomOutcome } from '@/lib/services/temples/RoomInteractions';
 import { pegasusView, type PegasusView } from '@/lib/services/temples/TemplePegasus';
+import type { PixelRun } from '../components/pixelGrid';
 import type { DoorView } from '../components/doorView';
 import type { useRoomOutcomes } from './useRoomOutcomes';
 import type { TempleGroundsProps, TempleState } from './useTempleMeta';
@@ -13,7 +14,7 @@ import type { TempleGroundsProps, TempleState } from './useTempleMeta';
 type RevealChoice = { id: string; label: string; hint?: string; disabled?: boolean; price?: number };
 export interface ChoiceRevealState {
   open: boolean;
-  kind: 'riddle' | 'shop' | 'sheet';
+  kind: 'riddle' | 'shop' | 'sheet' | 'exit';
   title: string;
   subtitle?: string;
   body?: string;
@@ -21,6 +22,8 @@ export interface ChoiceRevealState {
   cancelLabel?: string;
   /** A picture above the title: an encounter's beast */
   art?: { src: string; alt: string; frame?: 'beast' | 'room' };
+  /** A pixel sprite above the title: riddle tablet, shop coins, or dungeon exit */
+  sprite?: { runs: PixelRun[]; width: number; height: number };
   onChoose: (id: string) => void;
   onLeave: () => void;
 }

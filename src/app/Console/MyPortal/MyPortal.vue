@@ -2,6 +2,9 @@
   <xp-portal-page :loading="!user" page-class="my-portal icon-colors">
     <!-- HUD Overlay (stats, avatar) -->
     <template #hud>
+      <div class="portal-docked-xp" v-if="user?.stats && !battleState('active')">
+        <xp-purse-bar :stats="user.stats" />
+      </div>
       <xp-main-hud v-if="isUserFabOn && user?.stats" :stats="user.stats">
         <template #avatar>
           <xp-fab-user-hud :user="user" :isUserFabOn="isUserFabOn" @open-profile="openUserProfileModal" @open-pegasus="openPegasusModal" />
@@ -22,12 +25,8 @@
       <ion-tabs>
         <ion-router-outlet ref="outlet" :userId="user?.id"></ion-router-outlet>
 
-        <!-- The dock (XP | GP hairline over the nav) floats over the bottom of the page so the scene shows through -->
+        <!-- Bottom nav floats over the bottom of the page so the scene shows through -->
         <div class="portal-dock" v-if="user.stats && !battleState('active')" slot="bottom">
-          <div class="tab-docked-xp tab-docked-xp--ledge">
-            <xp-purse-bar :stats="user.stats" />
-          </div>
-
           <xp-bottom-nav
             :profile-label="user.name?.nick || 'Hero'"
             :area-label="compass.name"

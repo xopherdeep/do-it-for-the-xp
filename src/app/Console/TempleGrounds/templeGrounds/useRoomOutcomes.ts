@@ -9,6 +9,7 @@ import {
   buyWare,
   onEnterRoom,
   roomActions,
+  roomKind,
   type Riddle,
   type RoomAction,
   type RoomContext,
@@ -19,6 +20,7 @@ import { hospitalRoute } from '@/lib/services/hometown/hospitalAdmission';
 import { CARRIED_TO_HOSPITAL_LINE } from '@/lib/services/hometown/hospitalBill';
 import { pegasusOfTemple, pegasusView } from '@/lib/services/temples/TemplePegasus';
 import type { useUserStore } from '@/lib/store/stores/user';
+import { dungeonExitRuns, EXIT_W, EXIT_H } from '../components/exitSprite';
 import type { useChestReveal, useChoiceReveal, usePegasusReveal } from './templeReveals';
 import type { useRoomBeast } from './useRoomBeast';
 import type { useTempleLayout } from './useTempleLayout';
@@ -41,6 +43,7 @@ export interface RoomOutcomeDeps
   openChoiceReveal: ReturnType<typeof useChoiceReveal>['openChoiceReveal'];
   beastCard: ReturnType<typeof useRoomBeast>['getBeastCard'];
   activeMonster: ReturnType<typeof useRoomBeast>['activeMonster'];
+  templeElement?: { value: string } | string;
 }
 
 /** How long the temple holds the "carried to the Hospital" line before the Hospital screen takes over */
@@ -72,7 +75,8 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
     showEmptyChest,
     openChoiceReveal,
     beastCard,
-    activeMonster
+    activeMonster,
+    templeElement
   } = deps;
 
   // Hand the hero to the battle screen for the combat room they stand in
@@ -209,12 +213,20 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
           displayMessage(CIRCLE_FIZZLES);
         }
         break;
-      case 'riddle':
-        if (live && outcome.riddle) await showRiddleAlert(outcome.riddle, live.room, live.ctx);
+      case 'riddle': {
+        const canShowRiddle = Boolean(live && outcome.riddle);
+        if (canShowRiddle) {
+          await showRiddleAlert(outcome.riddle!, live!.room, live!.ctx);
+        }
         break;
-      case 'shop':
-        if (live && outcome.wares) await showShopAlert(outcome.wares, outcome.gp ?? 0, live.room, live.ctx);
+      }
+      case 'shop': {
+        const canShowShop = Boolean(live && outcome.wares);
+        if (canShowShop) {
+          await showShopAlert(outcome.wares!, outcome.gp ?? 0, live!.room, live!.ctx);
+        }
         break;
+      }
       case 'sheet':
         await showRoomActions();
         break;
@@ -253,17 +265,26 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
       showEmptyChest();
       return;
     }
+    const roomType = live.room ? roomKind(live.room) : undefined;
+    const isEntrance = roomType === 'entrance' || roomType === 'gate';
+    const isCombatRoom = live.room ? ['monster', 'miniboss', 'boss'].includes(live.room.type) : false;
+
     // An encounter shows its beast: the picture and the name are looked up first, so they are there as the reveal opens
     const beast = sheet.beastId ? await beastCard(sheet.beastId, sheet.questBeast) : null;
     // A sheet that words its own subtitle (a quest room's, even an empty one) keeps it; an encounter shows its beast's name
-    const monsterSubtitle = sheet.subHeader ?? beast?.name ?? (activeMonster.value ? activeMonster.value.name : undefined);
-    const monsterArt = beast?.art ?? (activeMonster.value.avatar ? { src: activeMonster.value.avatar, alt: activeMonster.value.name, frame: 'beast' } : undefined);
+    const monsterSubtitle = sheet.subHeader ?? beast?.name ?? (isCombatRoom && activeMonster.value ? activeMonster.value.name : undefined);
+    const monsterArt = beast?.art ?? (isCombatRoom && activeMonster.value?.avatar ? { src: activeMonster.value.avatar, alt: activeMonster.value.name, frame: 'beast' } : undefined);
+
+    const element = (typeof templeElement === 'string' ? templeElement : templeElement?.value) || 'wind';
+    const exitSprite = isEntrance ? { runs: dungeonExitRuns(element), width: EXIT_W, height: EXIT_H } : undefined;
+
     openChoiceReveal({
-      kind: 'sheet',
+      kind: isEntrance ? 'exit' : 'sheet',
       title: sheet.header,
-      subtitle: monsterSubtitle,
+      subtitle: isEntrance ? sheet.subHeader : monsterSubtitle,
       body: sheet.body,
-      art: monsterArt,
+      art: isEntrance ? undefined : monsterArt,
+      sprite: exitSprite,
       choices: sheet.actions.map((action, index) => ({ id: String(index), label: action.label })),
       // "Leave" would sit under the entrance's "Leave Temple": the way back is "Back"
       cancelLabel: 'Back',

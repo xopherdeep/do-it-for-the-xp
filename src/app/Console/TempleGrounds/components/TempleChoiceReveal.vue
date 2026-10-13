@@ -98,6 +98,8 @@
 import { computed, nextTick, ref, watch } from "vue";
 import { play$fx } from "@/assets/fx";
 import { COINS_H, COINS_W, TABLET_H, TABLET_W, coinStackRuns, tabletRuns } from "./tabletSprite";
+import { EXIT_H, EXIT_W, dungeonExitRuns } from "./exitSprite";
+import type { PixelRun } from "./pixelGrid";
 import PixelRuns from "./PixelRuns.vue";
 
 interface RevealChoice {
@@ -111,7 +113,7 @@ interface RevealChoice {
   price?: number;
 }
 
-type RevealKind = "riddle" | "shop" | "sheet";
+type RevealKind = "riddle" | "shop" | "sheet" | "exit";
 
 /** A picture for the top of the panel: a beast's portrait in its checkered frame, or a view of the room. */
 interface RevealArt {
@@ -141,11 +143,16 @@ const props = defineProps<{
   cancelLabel?: string;
   /** A picture above the title, shown from the moment the reveal opens (an encounter's beast). No source, no picture. */
   art?: RevealArt;
+  /** Temple element for theme-aware sprite palettes */
+  element?: string;
+  /** Custom pixel-run sprite to render in the stage */
+  sprite?: { runs: PixelRun[]; width: number; height: number };
 }>();
 
 const emit = defineEmits<{
   (e: "choose", id: string): void;
   (e: "leave"): void;
+  (e: "confirm"): void;
 }>();
 
 const root = ref<HTMLElement | null>(null);
@@ -153,7 +160,7 @@ const selectedId = ref<string | null>(null);
 /** The reveal has answered; it is on its way out, and a second tap must not answer again (or buy twice). */
 let spent = false;
 
-const isSheet = computed(() => props.kind === "sheet");
+const isSheet = computed(() => props.kind === "sheet" || props.kind === "exit");
 
 // A picture that will not load is dropped, never left as a broken-image icon
 const artFailed = ref(false);
@@ -166,11 +173,13 @@ watch(
 );
 
 const confirmText = computed(() => props.confirmLabel ?? (props.kind === "shop" ? "Buy" : "Answer"));
-const cancelText = computed(() => props.cancelLabel ?? (props.kind === "riddle" ? "Step back" : "Leave"));
+const cancelText = computed(() => props.cancelLabel ?? (props.kind === "riddle" ? "Step back" : props.kind === "exit" ? "Back" : "Leave"));
 
 const sprite = computed(() => {
+  if (props.sprite) return props.sprite;
   if (props.kind === "riddle") return { runs: tabletRuns(), width: TABLET_W, height: TABLET_H };
   if (props.kind === "shop") return { runs: coinStackRuns(), width: COINS_W, height: COINS_H };
+  if (props.kind === "exit") return { runs: dungeonExitRuns(props.element), width: EXIT_W, height: EXIT_H };
   return null;
 });
 
@@ -254,6 +263,10 @@ $cv-sprite-scale: 3;
   &.kind-sheet {
     --reveal-glow: #{$eb-color-pale-yellow};
     --reveal-glow-soft: rgba(247, 232, 168, 0.25);
+  }
+  &.kind-exit {
+    --reveal-glow: #{$eb-color-sky-blue};
+    --reveal-glow-soft: rgba(104, 168, 216, 0.45);
   }
 }
 
@@ -369,7 +382,8 @@ $cv-sprite-scale: 3;
 }
 
 // A room's header is a sentence ("The way out is behind you."), not a name: it reads smaller than a riddle's title
-.kind-sheet .choice-reveal__title {
+.kind-sheet .choice-reveal__title,
+.kind-exit .choice-reveal__title {
   font-size: 1.2rem;
   line-height: 1.3;
 }

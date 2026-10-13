@@ -91,18 +91,18 @@
     }
   }
 
-  .tab-docked-xp {
-    position: relative;
-    z-index: 1000;
-
-    // The ledge above the nav: the XP | GP hairline, its empty track shows the scene
-    &--ledge {
-      background: transparent;
-    }
+  .portal-docked-xp {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1500;
+    pointer-events: none;
+    background: transparent;
   }
 
-  // Hairline (20px) + nav (56px): the dock floats over the pages instead of pushing them up
-  --xp-dock-height: calc(76px + env(safe-area-inset-bottom, 0px));
+  // Nav (56px): the dock floats over the pages instead of pushing them up
+  --xp-dock-height: calc(56px + env(safe-area-inset-bottom, 0px));
 
   .portal-dock {
     position: absolute;

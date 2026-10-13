@@ -510,13 +510,13 @@ ion-modal.temple-map-modal .temple-map__close,
       }
     }
   }
+}
 
-  // HP | MP and XP | GP hairlines on the footer, not over the room: the room's south door sits on its bottom edge
-  .footer-docked-xp {
-    background: transparent;
-    position: relative;
-    z-index: 1000;
-  }
+// XP | GP and HP | MP hairlines on the header, docked at the top of the dungeon
+.temple-docked-xp {
+  background: #000;
+  position: relative;
+  z-index: 1000;
 }
 
 
