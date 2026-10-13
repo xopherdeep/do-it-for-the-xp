@@ -1,10 +1,11 @@
 """
 Procedural room floors for the temples, in the spirit of the wind temple's painted tiles: a tiled
 floor with wear and blotches inside an ornate stone-and-metal frame, coloured per element, with a
-small emblem for the room type. One JPG per maze cell: src/assets/images/backgrounds/<temple>/[row,col].jpg
+small emblem for the room type. One WebP per maze cell: src/assets/images/backgrounds/<temple>/[row,col].webp
+(the dungeon screen shows the same image at that cell on every floor of the temple).
 Usage: python3 temple_floors.py [temple ...]   (default: every temple without a folder)
 """
-import os, re, sys, math
+import os, re, sys, math, zlib
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter
 
@@ -22,23 +23,36 @@ PALETTES = {
     "light":  ((236, 226, 196), (214, 200, 160), (180, 160, 120), (200, 170, 110), (255, 240, 180), (120, 100, 70), (220, 180, 80), (255, 235, 150)),
     "shadow": ((54, 44, 72), (38, 30, 52), (22, 16, 32), (80, 40, 110), (170, 110, 255), (40, 32, 56), (150, 140, 170), (220, 210, 240)),
     "wind":   ((206, 198, 176), (176, 166, 144), (140, 130, 110), (120, 110, 95), (240, 240, 230), (90, 70, 90), (205, 150, 70), (250, 215, 140)),
+    "moon":   ((196, 198, 216), (166, 168, 192), (120, 122, 150), (138, 128, 172), (232, 232, 255), (70, 70, 98), (182, 186, 212), (242, 242, 255)),
+    "storm":  ((94, 106, 130), (72, 82, 104), (44, 50, 66), (58, 80, 124), (255, 228, 92), (50, 56, 74), (150, 160, 190), (250, 238, 150)),
 }
 
+TEMPLE_DIR = os.path.join(ROOT, "src", "lib", "engine", "temples")
+FLOOR_DIR = os.path.join(ROOT, "src", "assets", "images", "backgrounds")
+
 def load_maze(temple):
-    src = open(os.path.join(ROOT, "src", "lib", "engine", "temples", f"{temple}.ts")).read()
-    body = src[src.index("maze: [") + 7: src.index("],\n  rooms")]
-    rows = []
-    for line in body.splitlines():
-        line = line.split("//")[0].strip()
-        if not line.startswith("["): continue
-        cells = [c.strip() for c in line.strip("[],").split(",") if c.strip()]
-        rows.append(cells)
-    types, locks = {}, {}
-    for m in re.finditer(r'\[(\w+)\]: \{ type: "(\w+)"([^\n]*)', src):
-        types[m.group(1)] = m.group(2)
-        lock = re.search(r'locked: \{([^}]*)\}', m.group(3))
-        locks[m.group(1)] = set(re.findall(r'(north|south|east|west): true', lock.group(1))) if lock else set()
-    return rows, types, locks
+    """The temple's floors (1F, 2F, ...) as grids of room tokens, and each token's room type, read from the file
+    tools/temples/regenerate.ts writes."""
+    src = open(os.path.join(TEMPLE_DIR, f"{temple}.ts")).read()
+    maze = src[src.index("maze: {"): src.index("rooms: {")]
+    floors = [[re.findall(r'"([^"]+)"', line) for line in body.splitlines() if line.strip().startswith("[")]
+              for body in re.findall(r'"\w+": \[\n(.*?)\n\s*\],', maze, re.S)]
+    types = dict(re.findall(r'"(\w+)": \{ type: "([\w-]+)"', src))
+    return floors, types
+
+def cell_types(floors, types):
+    """One image serves a [row,col] on every floor, so a cell shows a room's emblem only when every floor with a room
+    there agrees on its type (else a plain floor); a cell that is wall on every floor is a dark wall tile."""
+    kinds = {}
+    for rows in floors:
+        for r, row in enumerate(rows):
+            for c, token in enumerate(row):
+                kinds.setdefault((r, c), set()).add(types.get(token, "wall"))
+    cells = {}
+    for cell, found in kinds.items():
+        rooms = found - {"wall"}
+        cells[cell] = next(iter(rooms)) if len(rooms) == 1 else ("empty" if rooms else "wall")
+    return cells
 
 def exits(rows, types, locks, r, c):
     """What each side of this room is: 'wall', 'door' or 'locked'."""
@@ -234,25 +248,27 @@ def shade(pil):
 def render(temple):
     element = temple.replace("-temple", "")
     pal = PALETTES[element]
-    rows, types, locks = load_maze(temple)
-    out_dir = os.path.join(ROOT, "src", "assets", "images", "backgrounds", temple)
+    floors, types = load_maze(temple)
+    out_dir = os.path.join(FLOOR_DIR, temple)
     os.makedirs(out_dir, exist_ok=True)
     count = 0
-    for r, row in enumerate(rows):
-        for c, token in enumerate(row):
-            room_type = types.get(token, "wall")
-            rng = np.random.default_rng(hash((temple, r, c)) % (2**32))
-            img = floor(pal, rng, room_type)
-            if room_type == "wall":
-                img = img * 0.35
-            # Walls, doors and gates are drawn live by TempleWalls.vue so they scale to the screen;
-            # the image is the floor alone, with a soft edge where the wall will stand.
-            pil = shade(Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)))
-            pil.save(os.path.join(out_dir, f"[{r},{c}].jpg"), quality=78, optimize=True)
-            count += 1
-    print(f"{temple}: {count} rooms")
+    for (r, c), room_type in sorted(cell_types(floors, types).items()):
+        rng = np.random.default_rng(zlib.crc32(f"{temple}[{r},{c}]".encode()))   # the same floor every run
+        img = floor(pal, rng, room_type)
+        if room_type == "wall":
+            img = img * 0.35
+        # Walls, doors and gates are drawn live by TempleWalls.vue so they scale to the screen;
+        # the image is the floor alone, with a soft edge where the wall will stand.
+        pil = shade(Image.fromarray(np.clip(img, 0, 255).astype(np.uint8)))
+        pil.save(os.path.join(out_dir, f"[{r},{c}].webp"), quality=80, method=6)
+        count += 1
+    print(f"{temple}: {count} cells")
+
+def temples_without_floors():
+    ids = sorted(f[:-3] for f in os.listdir(TEMPLE_DIR) if f.endswith("-temple.ts"))
+    return [t for t in ids if not os.path.isdir(os.path.join(FLOOR_DIR, t))]
 
 if __name__ == "__main__":
-    temples = sys.argv[1:] or [t for t in ("earth-temple", "water-temple", "fire-temple", "ice-temple", "light-temple", "shadow-temple")]
+    temples = sys.argv[1:] or temples_without_floors()
     for t in temples:
         render(t)
