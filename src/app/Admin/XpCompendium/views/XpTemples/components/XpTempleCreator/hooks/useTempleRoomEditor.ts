@@ -26,6 +26,7 @@ import { ____, _00_, ROOM_ICONS } from '@/lib/engine/dungeons/roomTypes';
 import { getTempleIconClass } from '../../../hooks/useTempleIcon';
 import { getNarrativeItems, getPegasusItems } from '@/lib/engine/core/items/itemRegistry';
 import { canonicalRoomType, hasRoomTypeGuide, roomTypeShortLabel } from '../roomTypeGuide';
+import { isQuestRoom as holdsQuest } from '@/lib/services/temples/questRooms';
 import { floorSlice, getEntranceFloor, sortedFloorKeys, writeMazeCell } from './grid/floorLayers';
 import { listMonsterConfigs, type MonsterConfigOption } from './grid/monsterConfigs';
 import { syncNeighbourSides } from './grid/neighbourLinks';
@@ -38,14 +39,28 @@ import {
   toggleConsumableItem
 } from './grid/roomContent';
 import { promoteToUniqueSymbol } from './grid/roomSymbols';
+import { QUEST_ROOM_KEY, pickerTypeOf, releaseQuest } from './grid/roomQuest';
+import { useRoomQuests, type UseRoomQuestsReturn } from './useRoomQuests';
+
+export interface RoomCategory {
+  name: string;
+  icon: string;
+  /** The room types the picker's rail lists */
+  types: string[];
+  /** Room types kept behind the rail's "Classic" disclosure (Combat's beast rooms) */
+  classic?: string[];
+}
 
 // Room types organized by category. Labels and explanations come from ../roomTypeGuide. `master` is the Master Room
 // (the Pegasus Egg, after the boss), not a key room; `dragon-egg` is its older name and is never offered.
-export const ROOM_CATEGORIES = [
+// Combat leads with the quest room (a guide entry, not an engine type: it opens the quest picker); the beast rooms
+// are the same as ever, kept under "Classic" for families who want them.
+export const ROOM_CATEGORIES: RoomCategory[] = [
   {
     name: 'Combat',
     icon: 'fa-swords',
-    types: ['monster', 'miniboss', 'boss', 'trap']
+    types: [QUEST_ROOM_KEY, 'trap'],
+    classic: ['monster', 'miniboss', 'boss']
   },
   {
     name: 'Resources',
@@ -68,6 +83,12 @@ export const ROOM_CATEGORIES = [
     types: ['empty', 'wall', 'pit', 'void']
   }
 ];
+
+/** The category a room type is listed in, classic beast rooms included; `dragon-egg` counts as `master`. */
+export const categoryOfRoomType = (type: string | null | undefined): RoomCategory | undefined => {
+  const kind = canonicalRoomType(type);
+  return ROOM_CATEGORIES.find(category => category.types.includes(kind) || (category.classic ?? []).includes(kind));
+};
 
 // Chest types for loot rooms
 export const CHEST_TYPES = [
@@ -118,6 +139,14 @@ export const MINIBOSS_CONFIG_TOKENS = [
 
 export type { MonsterConfigOption };
 
+/**
+ * The room whose config to open again when the Game Master comes back from the Compendium's quest form. The form sits
+ * in another tab of the console, so the room page is rebuilt on the way back and the page's own flag is gone: this
+ * outlives the page. It lapses after an hour, so a trip that never came back does not open a modal days later.
+ */
+let pendingReturn: { templeId: string; row: string; col: string; at: number } | null = null;
+const RETURN_LAPSES_AFTER_MS = 60 * 60 * 1000;
+
 export interface UseTempleRoomEditorProps {
   templeId: string;
   row: string;
@@ -130,7 +159,7 @@ export interface UseTempleRoomEditorReturn {
   store: ReturnType<typeof useTempleCreatorStore>;
   showTypeModal: Ref<boolean>;
   modalStep: Ref<number>;
-  selectedCategory: Ref<{ name: string; icon: string; types: string[] } | null>;
+  selectedCategory: Ref<RoomCategory | null>;
   isReturningFromSelection: Ref<boolean>;
   hasChanges: ComputedRef<boolean>;
   pendingMonsterType: Ref<string | null>;
@@ -154,6 +183,9 @@ export interface UseTempleRoomEditorReturn {
   isTravelRoom: ComputedRef<boolean>;
   isShopRoom: ComputedRef<boolean>;
   isEggRoom: ComputedRef<boolean>;
+  isQuestRoom: ComputedRef<boolean>;
+  /** What the type picker calls the room now: `quest` for a quest room, else its type */
+  pickerType: ComputedRef<string>;
   floors: ComputedRef<string[]>;
   modalTitle: ComputedRef<string>;
   dynamicRoomIcons: ComputedRef<Record<string, string>>;
@@ -178,7 +210,7 @@ export interface UseTempleRoomEditorReturn {
   saveToStore: () => Promise<void>;
   openTypeModal: () => void;
   closeTypeModal: () => void;
-  goToTypes: (category: { name: string; icon: string; types: string[] }) => void;
+  goToTypes: (category: RoomCategory) => void;
   selectType: (type: string) => Promise<void>;
   selectMonsterConfig: (token: string) => void;
   backModalStep: () => void;
@@ -202,6 +234,13 @@ export interface UseTempleRoomEditorReturn {
   resetRoom: () => Promise<void>;
   selectShop: (shopId: string) => void;
   selectEggPegasus: (pegasusId: string) => void;
+
+  // Quest rooms (useRoomQuests)
+  questRooms: UseRoomQuestsReturn;
+  /** Open the Compendium's quest form for the room's quest; the editor comes back to the room's config */
+  editQuest: (questId: string) => void;
+  /** True once on coming back from picking beasts or editing the quest: the page then opens the room's config */
+  consumeReturnToConfig: () => boolean;
 }
 
 export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleRoomEditorReturn {
@@ -223,7 +262,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
   const showTypeModal = ref(false);
   const modalStep = ref(1); // 1: Category, 2: Type, 2.5: Monster Config, 3: Config
   const isReturningFromSelection = ref(false);
-  const selectedCategory = ref<{ name: string; icon: string; types: string[] } | null>(null);
+  const selectedCategory = ref<RoomCategory | null>(null);
   const pendingMonsterType = ref<string | null>(null); // Tracks monster type awaiting config selection
 
   // Computed: Get available monster/miniboss configs in the current temple
@@ -433,10 +472,31 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     }
   };
 
+  // Quest rooms: the picker's data, the pick itself, and the quest's beast. After a pick the type modal shows the
+  // quest room's config (step 3 of the Combat category).
+  const questRooms = useRoomQuests({
+    templeId: props.templeId,
+    store,
+    roomData,
+    rowIdx,
+    colIdx,
+    allBeasts,
+    saveToStore,
+    onPicked: () => {
+      selectedCategory.value = categoryOfRoomType(QUEST_ROOM_KEY) ?? null;
+      modalStep.value = 3;
+      showTypeModal.value = true;
+    }
+  });
+
   // Computed properties
+  const isQuestRoom = computed(() => (roomData.value ? holdsQuest(roomData.value) : false));
+  const pickerType = computed(() => pickerTypeOf(roomData.value));
+
   const capitalizedType = computed(() => {
     const type = roomData.value?.type || 'empty';
-    return hasRoomTypeGuide(type) ? roomTypeShortLabel(type) : type.charAt(0).toUpperCase() + type.slice(1);
+    const name = hasRoomTypeGuide(type) ? roomTypeShortLabel(type) : type.charAt(0).toUpperCase() + type.slice(1);
+    return isQuestRoom.value ? `${roomTypeShortLabel(QUEST_ROOM_KEY)} · ${name}` : name;
   });
 
   const isMonsterRoom = computed(() => {
@@ -475,7 +535,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     const currentType = roomData.value?.type;
     const hasChosenRoomType = !!currentType && currentType !== 'empty' && currentType !== 'wall';
     if (hasChosenRoomType) {
-      const category = ROOM_CATEGORIES.find(c => c.types.includes(canonicalRoomType(currentType)));
+      const category = categoryOfRoomType(pickerType.value);
       if (category) {
         selectedCategory.value = category;
         if (['monster', 'miniboss', 'boss', 'loot', 'master', 'dragon-egg', 'stairs-up', 'stairs-down', 'pit', 'void', 'teleport'].includes(currentType)) {
@@ -493,7 +553,7 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     showTypeModal.value = true;
   };
 
-  const goToTypes = (category: { name: string; icon: string; types: string[] }) => {
+  const goToTypes = (category: RoomCategory) => {
     selectedCategory.value = category;
     modalStep.value = 2;
   };
@@ -516,6 +576,14 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
 
     if (!roomData.value) return;
 
+    // The quest room is not an engine type: confirming it opens the picker, and the pick sets the type from its tier
+    if (type === QUEST_ROOM_KEY) {
+      questRooms.openPicker();
+      return;
+    }
+
+    // Any other type makes the room a classic one again: a quest left on it would still resolve and win
+    releaseQuest(roomData.value);
     roomData.value.type = type;
 
     const step = stepForRoomType(type);
@@ -599,6 +667,11 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
       if (modalStep.value === 2.5) {
         modalStep.value = 2;
         pendingMonsterType.value = null;
+        return;
+      }
+      // A quest room has no config selector: step 3 goes back to the type step
+      if (modalStep.value === 3 && isQuestRoom.value) {
+        modalStep.value = 2;
         return;
       }
       // Handle step 3 - if it was a monster room, go back to 2.5
@@ -741,6 +814,25 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     ionRouter.push({ name: 'xp-bestiary-select' });
   };
 
+  // Same trip as picking beasts: save the room, leave to the Compendium's quest form, and come back to the config
+  const editQuest = (questId: string) => {
+    saveToStore();
+    isReturningFromSelection.value = true;
+    pendingReturn = { templeId: props.templeId, row: props.row, col: props.col, at: Date.now() };
+    closeTypeModal();
+    ionRouter.push({ name: 'xp-achievement-config-dashboard', params: { id: questId } });
+  };
+
+  /** True once when the Game Master has come back to this room from picking beasts or editing its quest. */
+  const consumeReturnToConfig = (): boolean => {
+    const isThisRoom = pendingReturn?.templeId === props.templeId && pendingReturn.row === props.row && pendingReturn.col === props.col;
+    const isFresh = Boolean(pendingReturn) && Date.now() - (pendingReturn?.at ?? 0) < RETURN_LAPSES_AFTER_MS;
+    const wasReturning = isReturningFromSelection.value || (isThisRoom && isFresh);
+    isReturningFromSelection.value = false;
+    if (isThisRoom) pendingReturn = null;
+    return wasReturning;
+  };
+
   const removeBeast = (id: string) => {
     if (roomData.value && roomData.value.content?.beasts) {
       roomData.value.content.beasts = roomData.value.content.beasts.filter((bid: string) => bid !== id);
@@ -812,6 +904,8 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     isTravelRoom,
     isShopRoom,
     isEggRoom,
+    isQuestRoom,
+    pickerType,
     floors,
     modalTitle,
 
@@ -855,6 +949,11 @@ export function useTempleRoomEditor(props: UseTempleRoomEditorProps): UseTempleR
     // Shop Methods
     allShops,
     selectShop,
-    selectEggPegasus
+    selectEggPegasus,
+
+    // Quest rooms
+    questRooms,
+    editQuest,
+    consumeReturnToConfig
   };
 }

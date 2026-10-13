@@ -8,6 +8,7 @@
 export { 
   useTempleRoomEditor,
   ROOM_CATEGORIES,
+  categoryOfRoomType,
   CHEST_TYPES,
   CONSUMABLE_ITEMS,
   DUNGEON_ITEMS,
@@ -15,9 +16,13 @@ export {
 } from './useTempleRoomEditor';
 
 export type { 
+  RoomCategory,
   UseTempleRoomEditorProps,
   UseTempleRoomEditorReturn 
 } from './useTempleRoomEditor';
+
+export { useRoomQuests } from './useRoomQuests';
+export type { UseRoomQuestsReturn } from './useRoomQuests';
 
 export { 
   useTempleRoomNavigation 

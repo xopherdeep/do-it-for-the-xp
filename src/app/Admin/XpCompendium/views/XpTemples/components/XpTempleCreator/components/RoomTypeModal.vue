@@ -40,7 +40,7 @@
           <h2 class="guide-name">{{ shownCategory.name }}</h2>
           <p class="guide-lead">{{ categoryBlurb(shownCategory.name) }}</p>
           <div class="guide-chips">
-            <span class="guide-chip">{{ shownCategory.types.length }} room types</span>
+            <span class="guide-chip">{{ typesOf(shownCategory).length }} room types</span>
           </div>
         </section>
 
@@ -49,6 +49,26 @@
           <ul class="guide-body guide-types">
             <li
               v-for="entry in typeEntries(shownCategory)"
+              :key="entry.type"
+              class="guide-type"
+            >
+              <i :class="['fad', entry.icon, 'fa-2x', 'type-icon']"></i>
+              <span class="type-text">
+                <span class="type-name">{{ entry.label }}</span>
+                <span class="type-blurb">{{ entry.blurb }}</span>
+              </span>
+            </li>
+          </ul>
+        </section>
+
+        <section
+          v-if="classicEntries(shownCategory).length"
+          class="guide-section"
+        >
+          <h3 class="guide-heading"><i class="fad fa-paw-claws"></i> Classic beast rooms</h3>
+          <ul class="guide-body guide-types">
+            <li
+              v-for="entry in classicEntries(shownCategory)"
               :key="entry.type"
               class="guide-type"
             >
@@ -98,10 +118,17 @@
           <h2 class="guide-name">{{ shownGuide.label }}</h2>
           <p class="guide-lead">{{ shownGuide.blurb }}</p>
           <div
-            v-if="isCurrent"
+            v-if="isCurrent || isClassicShown"
             class="guide-chips"
           >
-            <span class="guide-chip is-yours"><i class="fad fa-check-circle"></i> This room now</span>
+            <span
+              v-if="isClassicShown"
+              class="guide-chip"
+            >Classic beast room</span>
+            <span
+              v-if="isCurrent"
+              class="guide-chip is-yours"
+            ><i class="fad fa-check-circle"></i> This room now</span>
           </div>
         </section>
 
@@ -116,6 +143,11 @@
             ><strong>Needs:</strong> {{ shownGuide.needs }}</p>
           </div>
         </section>
+
+        <p
+          v-if="shownType === QUEST_ROOM_KEY"
+          class="guide-hint"
+        >Pick the quest next. Want a loose beast with no chore instead? Open Classic below.</p>
       </div>
 
       <!-- STEP 2.5: Monster Config Selector, delegated via slot -->
@@ -172,26 +204,47 @@
           :aria-label="`${selectedCategory.name} rooms`"
           :style="tintStyle(selectedCategory.name)"
         >
-          <button
-            v-for="entry in typeEntries(selectedCategory)"
-            :key="entry.type"
-            type="button"
-            class="rail-button"
-            :class="{ 'is-selected': entry.type === shownType, 'is-current': entry.type === currentCanonical }"
-            :data-pick="entry.type"
-            :aria-pressed="entry.type === shownType"
-            :aria-label="entry.name"
-            @click="pickType(entry.type)"
+          <template
+            v-for="item in railItems"
+            :key="item.key"
           >
-            <span class="rail-badge">
-              <i :class="['fad', entry.icon, 'fa-2x']"></i>
-              <i
-                v-if="entry.type === currentCanonical"
-                class="fad fa-check-circle rail-check"
-              ></i>
-            </span>
-            <span class="rail-name">{{ entry.name }}</span>
-          </button>
+            <!-- The disclosure that keeps the classic beast rooms out of the default flow -->
+            <button
+              v-if="item.kind === 'disclosure'"
+              type="button"
+              class="rail-button rail-disclosure"
+              :class="{ 'is-open': classicOpen }"
+              data-pick="classic"
+              :aria-expanded="classicOpen"
+              aria-label="Classic beast rooms"
+              @click="toggleClassic"
+            >
+              <span class="rail-badge">
+                <i class="fad fa-paw-claws fa-2x"></i>
+                <i :class="['fad', classicOpen ? 'fa-chevron-up' : 'fa-chevron-down', 'rail-check']"></i>
+              </span>
+              <span class="rail-name">Classic</span>
+            </button>
+            <button
+              v-else
+              type="button"
+              class="rail-button"
+              :class="{ 'is-selected': item.entry.type === shownType, 'is-current': item.entry.type === currentCanonical }"
+              :data-pick="item.entry.type"
+              :aria-pressed="item.entry.type === shownType"
+              :aria-label="item.entry.name"
+              @click="pickType(item.entry.type)"
+            >
+              <span class="rail-badge">
+                <i :class="['fad', item.entry.icon, 'fa-2x']"></i>
+                <i
+                  v-if="item.entry.type === currentCanonical"
+                  class="fad fa-check-circle rail-check"
+                ></i>
+              </span>
+              <span class="rail-name">{{ item.entry.name }}</span>
+            </button>
+          </template>
         </div>
 
         <div class="guide-actions">
@@ -226,19 +279,25 @@
   import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue";
   import { play$fx } from "@/assets/fx";
   import { MASTER_EGG_ICON } from "@/lib/engine/dungeons/roomTypes";
-  import { ROOM_CATEGORIES } from "../hooks";
-  import { canonicalRoomType, categoryBlurb, criticalPathStops, isOnCriticalPath, roomTypeGuide, roomTypeShortLabel } from "../roomTypeGuide";
+  import { ROOM_CATEGORIES, type RoomCategory } from "../hooks";
+  import {
+    QUEST_PATH_NOTE,
+    canonicalRoomType,
+    categoryBlurb,
+    criticalPathStops,
+    isOnCriticalPath,
+    roomTypeGuide,
+    roomTypeShortLabel,
+  } from "../roomTypeGuide";
+  import { QUEST_ROOM_KEY } from "../hooks/grid/roomQuest";
 
   /**
    * The room type picker as a full-screen guide (the Class Codex look): the page above explains the pick, the rail of
    * categories or room types and the one Confirm button sit in the footer, under the thumb. Copy and the critical path
    * come from the pure module ../roomTypeGuide.ts. Steps: 1 category, 2 type, 2.5 monster config, 3 config.
+   * Combat lists the quest room first; its "Classic" disclosure on the rail holds the beast rooms (Monster, Miniboss,
+   * Boss), exactly as they were. `currentType` is what the picker calls the room: `quest` for a quest room.
    */
-  interface RoomCategory {
-    name: string;
-    icon: string;
-    types: string[];
-  }
 
   const props = withDefaults(
     defineProps<{
@@ -274,9 +333,16 @@
     return { "--tint": `rgb(${r}, ${g}, ${b})`, "--tint-rgb": `${r}, ${g}, ${b}` };
   };
 
+  /** Every room type of a category: the listed ones, then the classic beast rooms */
+  const typesOf = (category: RoomCategory) => [...category.types, ...(category.classic ?? [])];
+
+  const entryOf = (type: string) => ({ type, ...roomTypeGuide(type), name: roomTypeShortLabel(type) });
+
   /** A category's room types with their guide copy, for the preview list and the rail (`name` is the short rail label) */
-  const typeEntries = (category: RoomCategory) =>
-    category.types.map((type) => ({ type, ...roomTypeGuide(type), name: roomTypeShortLabel(type) }));
+  const typeEntries = (category: RoomCategory) => category.types.map(entryOf);
+
+  /** The classic beast rooms of a category (Combat only), kept behind the rail's disclosure */
+  const classicEntries = (category: RoomCategory) => (category.classic ?? []).map(entryOf);
 
   const isEggIcon = (icon: string) => icon === MASTER_EGG_ICON;
 
@@ -289,17 +355,42 @@
   );
   const currentCanonical = computed(() => canonicalRoomType(props.currentType));
   const shownType = computed(() => {
-    const types = props.selectedCategory?.types ?? [];
+    const types = props.selectedCategory ? typesOf(props.selectedCategory) : [];
     return types.includes(pickedType.value) ? pickedType.value : (types[0] ?? "");
   });
+  const isClassicShown = computed(() => Boolean(props.selectedCategory?.classic?.includes(shownType.value)));
+
+  // The classic beast rooms stay folded away unless the room is one, or one is on show
+  const classicOpen = ref(false);
+  const railItems = computed(() => {
+    const category = props.selectedCategory;
+    if (!category) return [];
+    const items: Array<{ key: string; kind: "type"; entry: ReturnType<typeof entryOf> } | { key: string; kind: "disclosure" }> =
+      typeEntries(category).map((entry) => ({ key: entry.type, kind: "type" as const, entry }));
+    if (!category.classic?.length) return items;
+    items.push({ key: "classic", kind: "disclosure" });
+    if (classicOpen.value) items.push(...classicEntries(category).map((entry) => ({ key: entry.type, kind: "type" as const, entry })));
+    return items;
+  });
+
   const shownGuide = computed(() => roomTypeGuide(shownType.value));
   const isCurrent = computed(() => !!shownType.value && shownType.value === currentCanonical.value);
 
   const pathStops = computed(() => criticalPathStops(shownType.value));
-  const pathNote = computed(() =>
-    isOnCriticalPath(shownType.value)
+  const pathNote = computed(() => {
+    if (shownType.value === QUEST_ROOM_KEY) return QUEST_PATH_NOTE;
+    return isOnCriticalPath(shownType.value)
       ? `${roomTypeShortLabel(shownType.value)} sits at the lit stop.`
-      : `${roomTypeShortLabel(shownType.value)} is not a fixed stop: it can go anywhere on the way.`
+      : `${roomTypeShortLabel(shownType.value)} is not a fixed stop: it can go anywhere on the way.`;
+  });
+
+  // Each time the picker opens the classic rooms are folded away again (the watch below opens them for a classic room)
+  watch(
+    () => props.isOpen,
+    (open) => {
+      if (open) classicOpen.value = false;
+    },
+    { immediate: true }
   );
 
   // The picker opens on the room's own category and type; a category or type already on show is kept
@@ -309,10 +400,13 @@
       if (!open) return;
       if (props.selectedCategory) pickedCategory.value = props.selectedCategory.name;
       else if (!pickedCategory.value) {
-        pickedCategory.value = categories.find((category) => category.types.includes(currentCanonical.value))?.name ?? categories[0]?.name ?? "";
+        pickedCategory.value = categories.find((category) => typesOf(category).includes(currentCanonical.value))?.name ?? categories[0]?.name ?? "";
       }
-      if (props.selectedCategory?.types.includes(currentCanonical.value)) pickedType.value = currentCanonical.value;
-      else if (!props.selectedCategory?.types.includes(pickedType.value)) pickedType.value = props.selectedCategory?.types[0] ?? "";
+      const allTypes = props.selectedCategory ? typesOf(props.selectedCategory) : [];
+      if (allTypes.includes(currentCanonical.value)) pickedType.value = currentCanonical.value;
+      else if (!allTypes.includes(pickedType.value)) pickedType.value = allTypes[0] ?? "";
+      const isClassicRoom = Boolean(props.selectedCategory?.classic?.includes(currentCanonical.value));
+      if (isClassicRoom) classicOpen.value = true;
       void centerRail();
     },
     { immediate: true }
@@ -357,15 +451,30 @@
     void centerRail(true);
   };
 
+  // Opening the disclosure shows the first classic room; folding it away while one is on show goes back to the quest room
+  const toggleClassic = () => {
+    const category = props.selectedCategory;
+    if (!category?.classic?.length) return;
+    play$fx("cursor");
+    classicOpen.value = !classicOpen.value;
+    if (classicOpen.value) pickedType.value = category.classic[0];
+    else if (isClassicShown.value) pickedType.value = category.types[0] ?? "";
+    content.value?.$el?.scrollToTop?.(0);
+    void centerRail(true);
+  };
+
   // ---- The one Confirm button ----
   const confirmLabel = computed(() => {
     if (props.step === 1) return shownCategory.value ? `Choose ${shownCategory.value.name}` : "";
+    if (props.step === 2 && shownType.value === QUEST_ROOM_KEY) return "Pick a quest";
     if (props.step === 2) return shownType.value ? `Confirm ${roomTypeShortLabel(shownType.value)}` : "";
     if (props.step === 3) return "Confirm Configuration";
     return "";
   });
   const CONFIRM_ICONS: Record<number, string> = { 2: "fa-sparkles", 3: "fa-check-circle" };
-  const confirmIcon = computed(() => CONFIRM_ICONS[props.step] ?? "fa-arrow-right");
+  const confirmIcon = computed(() =>
+    props.step === 2 && shownType.value === QUEST_ROOM_KEY ? "fa-scroll-old" : (CONFIRM_ICONS[props.step] ?? "fa-arrow-right")
+  );
 
   const confirm = () => {
     play$fx("select");
@@ -420,6 +529,8 @@
   .guide-content {
     --padding-top: 8px;
     --padding-bottom: 28px;
+    // ion-content reads its text colour from --color, not from `color`: without it the page copy was dark on dark
+    --color: #{$eb-color-cream};
     color: $eb-color-cream;
   }
 
@@ -754,6 +865,21 @@
     color: $eb-color-mint-green;
     --fa-primary-color: currentColor;
     --fa-secondary-color: currentColor;
+  }
+
+  // The "Classic" disclosure reads as a fold, not a room: a dashed ring that fills in when it is open
+  .rail-disclosure {
+    .rail-badge {
+      border-style: dashed;
+    }
+
+    .rail-check {
+      color: $eb-color-cream;
+    }
+
+    &.is-open .rail-badge {
+      border-color: $eb-color-pale-yellow;
+    }
   }
 
   .rail-button.is-selected {

@@ -7,3 +7,6 @@ export { default as RoomTravelConfig } from './RoomTravelConfig.vue';
 export { default as RoomShopConfig } from './RoomShopConfig.vue';
 export { default as RoomEditorMiniMap } from './RoomEditorMiniMap.vue';
 export { default as RoomLegendModal } from './RoomLegendModal.vue';
+export { default as RoomQuestConfig } from './RoomQuestConfig.vue';
+export { default as RoomQuestPicker } from './RoomQuestPicker.vue';
+export { default as QuestRoomRow } from './QuestRoomRow.vue';

@@ -55,18 +55,30 @@ export const ROOM_TYPE_GUIDE: Record<string, RoomTypeGuideEntry> = {
     inPlay: "Opens with the Boss Key or once the boss is beaten; clears the temple and pays its reward.",
     place: "After the boss.",
   },
+  // The quest room is a guide entry, not an engine type: confirming it opens the quest picker, and the quest's
+  // difficulty makes the room a monster, miniboss or boss room (questRooms.questTier).
+  quest: {
+    label: "Quest room",
+    short: "Quest",
+    icon: "fa-scroll-old",
+    blurb: "A real chore guards this room.",
+    inPlay:
+      "The hero fights the beast of one of your quests, and the chore's checklist is the fight. Winning finishes the quest, and finishing the quest on the board clears the room. The beast is back when the quest is due again.",
+    place: "Anywhere on the path. The quest's difficulty makes it a Monster, Miniboss or Boss room.",
+    needs: "A quest to hold: pick one you have, or make one from the library.",
+  },
   monster: {
     label: "Monster",
     icon: "fa-dragon",
-    blurb: "A chore guards this room.",
-    inPlay: "The hero fights a beast bound to one of your quests; the chore's checklist is the fight.",
+    blurb: "A beast guards this room.",
+    inPlay: "Classic beast room: the hero fights the beasts you pick, with no chore behind them.",
     place: "Anywhere on the path.",
   },
   miniboss: {
     label: "Mini-boss",
     icon: "fa-skull",
-    blurb: "A tougher chore halfway in.",
-    inPlay: "Guards the Boss Key side of the temple.",
+    blurb: "A tougher beast halfway in.",
+    inPlay: "Classic beast room: guards the Boss Key side of the temple.",
     place: "Between the entrance and the boss.",
   },
   boss: {
@@ -240,6 +252,10 @@ export const CATEGORY_BLURBS: Record<string, string> = {
 
 export const categoryBlurb = (name: string | null | undefined): string =>
   name && Object.prototype.hasOwnProperty.call(CATEGORY_BLURBS, name) ? CATEGORY_BLURBS[name] : "";
+
+/** What the type step says under the quest room: its difficulty picks the stop, so the path has no fixed one for it. */
+export const QUEST_PATH_NOTE =
+  "The quest's difficulty picks the stop: 1-2 a monster, 3-5 a miniboss, 8 and up the boss.";
 
 // ---- The critical path --------------------------------------------------------------------------------
 

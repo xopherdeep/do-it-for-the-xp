@@ -1,8 +1,13 @@
 import fs from "fs";
 import path from "path";
 import { ROOM_ICONS, MASTER_EGG_ICON } from "@/lib/engine/dungeons/roomTypes";
+import { questTier } from "@/lib/services/temples/questRooms";
 import { ITEM_METADATA, getItemMetadata } from "@/lib/engine/core/items/itemRegistry";
-import { DUNGEON_ITEMS, ROOM_CATEGORIES } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/hooks/useTempleRoomEditor";
+import {
+  DUNGEON_ITEMS,
+  ROOM_CATEGORIES,
+  categoryOfRoomType,
+} from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/hooks/useTempleRoomEditor";
 import {
   CATEGORY_BLURBS,
   CRITICAL_PATH,
@@ -13,6 +18,7 @@ import {
   criticalPathStops,
   hasRoomTypeGuide,
   isOnCriticalPath,
+  QUEST_PATH_NOTE,
   roomTypeGuide,
   roomTypeShortLabel,
 } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/roomTypeGuide";
@@ -21,7 +27,7 @@ import {
  * The room type guide behind the full-screen room type picker: every pickable type is explained, the Master Room is
  * the Pegasus Egg room (not a key room), and the critical path lights the stop a room belongs to.
  */
-const everyPickableType = ROOM_CATEGORIES.flatMap((category) => category.types);
+const everyPickableType = ROOM_CATEGORIES.flatMap((category) => [...category.types, ...(category.classic ?? [])]);
 
 describe("the guide covers the picker", () => {
   it("has an entry for every type in every category", () => {
@@ -56,6 +62,10 @@ describe("the guide covers the picker", () => {
     });
   });
 
+  it("never lists a type twice, in the rail or among the classic rooms", () => {
+    expect(new Set(everyPickableType).size).toBe(everyPickableType.length);
+  });
+
   it("has the five categories, each with a one-line purpose", () => {
     expect(ROOM_CATEGORIES.map((category) => category.name)).toEqual(["Combat", "Resources", "Recovery", "Navigation", "Structure"]);
     ROOM_CATEGORIES.forEach((category) => {
@@ -63,6 +73,51 @@ describe("the guide covers the picker", () => {
       expect(categoryBlurb(category.name)).toBe(CATEGORY_BLURBS[category.name]);
     });
     expect(categoryBlurb("nope")).toBe("");
+  });
+});
+
+describe("Combat leads with the quest room", () => {
+  const combat = ROOM_CATEGORIES.find((category) => category.name === "Combat");
+
+  it("lists Quest room first, then Trap, and keeps the beast rooms as they were under Classic", () => {
+    expect(combat?.types).toEqual(["quest", "trap"]);
+    expect(combat?.classic).toEqual(["monster", "miniboss", "boss"]);
+  });
+
+  it("finds the category of a classic beast room as well as of a listed one", () => {
+    expect(categoryOfRoomType("quest")?.name).toBe("Combat");
+    expect(categoryOfRoomType("trap")?.name).toBe("Combat");
+    ["monster", "miniboss", "boss"].forEach((type) => expect(categoryOfRoomType(type)?.name).toBe("Combat"));
+    expect(categoryOfRoomType("loot")?.name).toBe("Resources");
+    expect(categoryOfRoomType("dragon-egg")?.name).toBe("Resources");
+    expect(categoryOfRoomType("nope")).toBeUndefined();
+  });
+
+  it("explains the quest room as a guide entry: it is not an engine type, and its difficulty makes the tier", () => {
+    const quest = roomTypeGuide("quest");
+    expect(hasRoomTypeGuide("quest")).toBe(true);
+    expect(quest.label).toBe("Quest room");
+    expect(roomTypeShortLabel("quest")).toBe("Quest");
+    expect(quest.inPlay).toMatch(/checklist/i);
+    expect(quest.inPlay).toMatch(/back when the quest is due again/i);
+    expect(quest.place).toMatch(/Monster, Miniboss or Boss/);
+    expect(quest.needs).toMatch(/quest/i);
+  });
+
+  it("tells the tier thresholds the way the rules draw them", () => {
+    expect(QUEST_PATH_NOTE).toContain("1-2");
+    expect(QUEST_PATH_NOTE).toContain("3-5");
+    expect(QUEST_PATH_NOTE).toContain("8");
+    expect([1, 2].map(questTier)).toEqual(["monster", "monster"]);
+    expect([3, 5].map(questTier)).toEqual(["miniboss", "miniboss"]);
+    expect(questTier(8)).toBe("boss");
+  });
+
+  it("says the classic beast rooms are classic, without changing their names", () => {
+    expect(roomTypeGuide("monster").label).toBe("Monster");
+    expect(roomTypeGuide("miniboss").label).toBe("Mini-boss");
+    expect(roomTypeGuide("boss").label).toBe("Boss");
+    ["monster", "miniboss"].forEach((type) => expect(roomTypeGuide(type).inPlay).toMatch(/classic/i));
   });
 });
 
@@ -185,7 +240,7 @@ describe("the critical path", () => {
   });
 
   it("lights nothing for a room that can go anywhere", () => {
-    ["monster", "trap", "shop", "health", "mana", "save", "camp", "teleport", "puzzle", "secret", "empty", "wall", "pit", "void"].forEach((type) => {
+    ["quest", "monster", "trap", "shop", "health", "mana", "save", "camp", "teleport", "puzzle", "secret", "empty", "wall", "pit", "void"].forEach((type) => {
       expect(lit(type)).toEqual([]);
       expect(isOnCriticalPath(type)).toBe(false);
     });

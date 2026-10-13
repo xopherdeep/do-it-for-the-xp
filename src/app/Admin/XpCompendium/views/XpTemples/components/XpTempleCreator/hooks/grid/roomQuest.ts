@@ -1,0 +1,93 @@
+/**
+ * Room records for the quest room flow of the temple editor (docs/Quest-Rooms-Spec.md section 9): what a room's
+ * content says once a Game Master picks a quest for it, how a room stops being a quest room, which entry the type
+ * picker shows for a room, and what the room's quest card reads. Pure: the picker screens call these.
+ */
+import type { Achievement } from "@/lib/databases/AchievementDb";
+import type { Room, RoomQuestTemplate } from "@/lib/engine/core/dungeons/types";
+import { isQuestRoom, questBeastId, questTier, type QuestTier } from "@/lib/services/temples/questRooms";
+import { ensureContent } from "./roomContent";
+
+/** The type picker's guide key for a quest room. It is not an engine type: the room's `type` is its tier. */
+export const QUEST_ROOM_KEY = "quest";
+
+/**
+ * Picks `quest` for the room: writes `content.questId`, sets the room `type` from the quest's tier, and seals a
+ * miniboss or boss room on entry when the Game Master has not chosen yet (a boss fight is always sealed). Everything
+ * else the room holds stays, a shipped template included: it takes over if the quest is ever deleted (5.2).
+ * Returns the tier. The cell's shared token (M001, MINI, BOSS) becomes a unique symbol when the room is saved.
+ */
+export function applyQuestPick(room: Room, quest: Pick<Achievement, "id" | "difficulty">): QuestTier {
+  const content = ensureContent(room);
+  const tier = questTier(quest.difficulty);
+  content.questId = String(quest.id);
+  room.type = tier;
+  const isSealedByDefault = tier !== "monster" && content.lockOnEnter === undefined;
+  if (isSealedByDefault) content.lockOnEnter = true;
+  return tier;
+}
+
+/** Makes a quest room a classic room again: no quest, no shipped template. */
+export function releaseQuest(room: Room): void {
+  if (!room.content) return;
+  delete room.content.questId;
+  delete room.content.quest;
+}
+
+/** What the type picker calls the room: `quest` for a room that holds a quest or a template, else its type. */
+export function pickerTypeOf(room: Partial<Room> | null | undefined): string {
+  if (!room) return "";
+  return isQuestRoom(room) ? QUEST_ROOM_KEY : String(room.type ?? "");
+}
+
+/**
+ * What a quest room holds, for its quest card:
+ * - `picked`: the Game Master's quest;
+ * - `missing`: the room names a quest that is gone (or only a draft), with the shipped template when it has one;
+ * - `template`: a shipped template, with the live quest that has its beast when one fills it;
+ * - `none`: not a quest room.
+ */
+export type RoomQuestHolding =
+  | { kind: "picked"; quest: Achievement }
+  | { kind: "missing"; template?: RoomQuestTemplate }
+  | { kind: "template"; template: RoomQuestTemplate; filler?: Achievement }
+  | { kind: "none" };
+
+export function describeRoomQuest(room: Partial<Room> | null | undefined, quests: readonly Achievement[]): RoomQuestHolding {
+  const questId = room?.content?.questId;
+  const template = room?.content?.quest;
+  const live = quests.filter((quest) => !quest.draft);
+  if (questId) {
+    const picked = live.find((quest) => String(quest.id) === String(questId));
+    if (picked) return { kind: "picked", quest: picked };
+    return template ? { kind: "missing", template } : { kind: "missing" };
+  }
+  if (!template) return { kind: "none" };
+  const filler = live.find((quest) => questBeastId(quest) === String(template.beastId));
+  return filler ? { kind: "template", template, filler } : { kind: "template", template };
+}
+
+/**
+ * The beast a Test fight from the room fights: the quest's beast, the beast of the live quest that fills a shipped
+ * template, or the template's own beast when nothing fills it. Undefined for a room with no quest and no template,
+ * or a quest that has no beast (the Game Master chose none).
+ */
+export function heldBeastId(holding: RoomQuestHolding): string | undefined {
+  switch (holding.kind) {
+    case "picked":
+      return questBeastId(holding.quest);
+    case "template":
+      return holding.filler ? questBeastId(holding.filler) : String(holding.template.beastId);
+    case "missing":
+      return holding.template ? String(holding.template.beastId) : undefined;
+    default:
+      return undefined;
+  }
+}
+
+/** The live quest a quest room's card shows: the Game Master's pick, or the one that fills the template. */
+export function heldQuest(holding: RoomQuestHolding): Achievement | undefined {
+  if (holding.kind === "picked") return holding.quest;
+  if (holding.kind === "template") return holding.filler;
+  return undefined;
+}

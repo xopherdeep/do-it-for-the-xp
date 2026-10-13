@@ -45,15 +45,21 @@
 
       <!-- Room Type Selection Modal -->
       <RoomTypeModal :is-open="showTypeModal" :step="modalStep" :selected-category="selectedCategory"
-        :current-type="roomData?.type || ''" @close="closeTypeModal" @back="backModalStep" @select-category="goToTypes"
+        :current-type="pickerType" @close="closeTypeModal" @back="backModalStep" @select-category="goToTypes"
         @select-type="selectType" @confirm="confirmConfig">
         <template #config-selector>
           <!-- Monster Config Selector -->
           <RoomMonsterConfigSelector :existing-configs="availableMonsterConfigs" @select="selectMonsterConfig" />
         </template>
         <template #config>
-          <!-- Monster Configuration -->
-          <RoomMonsterConfig v-if="isMonsterRoom" :selected-beasts="selectedBeastsData"
+          <!-- Quest Room Configuration -->
+          <RoomQuestConfig v-if="isQuestRoom" :holding="questHolding" :card="questCard" :dormant-text="dormantText"
+            :lock-on-enter="roomData?.content?.lockOnEnter || false" :can-test-fight="canTestFight"
+            @change-quest="openQuestPicker" @edit-quest="editQuest" @toggle-auto-lock="toggleAutoLock"
+            @test-fight="testFight" />
+
+          <!-- Monster Configuration (classic beast rooms) -->
+          <RoomMonsterConfig v-else-if="isMonsterRoom" :selected-beasts="selectedBeastsData"
             :lock-on-enter="roomData?.content?.lockOnEnter || false" :is-boss="isBossRoom" :reward-index="rewardIndex"
             @open-beast-selector="openBeastSelector" @remove-beast="removeBeast" @toggle-auto-lock="toggleAutoLock"
             @update:reward-index="handleRewardIndexChange" @update:rewards="handleRewardsUpdate" />
@@ -87,7 +93,11 @@
         </template>
       </RoomTypeModal>
 
-
+      <!-- Quest picker: opens from the Quest room type and from Change quest -->
+      <RoomQuestPicker :is-open="showQuestPicker" :rows="questRows" :quests="quests" :heroes="questHeroes"
+        :theme="questTheme" :theme-info="questThemeInfo" :size="questSize"
+        :selected-id="roomData?.content?.questId || ''" :create-quest="createLibraryQuest" @close="closeQuestPicker"
+        @confirm="pickQuest" />
 
       <div slot="fixed" class="map-fixed-wrapper">
         <RoomEditorMiniMap v-if="maze" :maze="maze" :current-row="rowIdx" :current-col="colIdx"
@@ -125,6 +135,7 @@ import {
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import { useUserStore } from '@/lib/store/stores/user';
 import { freeBattleRoute } from '@/app/Console/BattleField/battle/battleContext';
+import { dormantLine, questCardOf } from '@/lib/services/temples/questRoomPicker';
 import { needsTravelControls, pairingNote, withRoomAt } from '@/lib/engine/core/dungeons/teleportPairing';
 
 import { useTempleRoomEditor, useTempleRoomNavigation } from './hooks';
@@ -135,6 +146,8 @@ import {
   RoomTypeModal,
   RoomMonsterConfig,
   RoomMonsterConfigSelector,
+  RoomQuestConfig,
+  RoomQuestPicker,
   RoomLootConfig,
   RoomTravelConfig,
   RoomShopConfig,
@@ -147,7 +160,8 @@ export default defineComponent({
   components: {
     IonPage, IonHeader, IonToolbar, IonButtons, IonButton,
     IonContent, IonFab, IonFabButton,
-    RoomCardinalLayout, RoomTypeModal, RoomMonsterConfig, RoomMonsterConfigSelector, RoomLootConfig, RoomTravelConfig, RoomShopConfig,
+    RoomCardinalLayout, RoomTypeModal, RoomMonsterConfig, RoomMonsterConfigSelector, RoomQuestConfig, RoomQuestPicker,
+    RoomLootConfig, RoomTravelConfig, RoomShopConfig,
     XpLoading,
     RoomEditorMiniMap,
     RoomLegendModal
@@ -199,25 +213,36 @@ export default defineComponent({
       saveToStore: editor.saveToStore
     });
 
+    // The quest room's card: the quest, or the live quest that fills a shipped template
+    const questCard = computed(() => (editor.questRooms.heldRow.value ? questCardOf(editor.questRooms.heldRow.value) : null));
+    const dormantText = computed(() => {
+      const holding = editor.questRooms.holding.value;
+      const isWaiting = holding.kind === 'template' && !holding.filler;
+      return isWaiting ? dormantLine(holding.template, editor.allBeasts.value) : '';
+    });
+
     // Initialize on mount
     onMounted(() => {
       editor.loadRoomData();
       editor.loadBestiary();
       editor.loadShops();
+      editor.questRooms.loadQuests();
       navigation.calculateAdjacency();
     });
 
     // Ionic lifecycle - reload when page enters view
-    onIonViewWillEnter(() => {
-      editor.loadRoomData();
+    onIonViewWillEnter(async () => {
+      const roomLoaded = editor.loadRoomData();
       editor.loadBestiary();
       editor.loadShops();
+      editor.questRooms.loadQuests();
       navigation.calculateAdjacency();
 
-      // If we just came back from selecting beasts, re-open the config modal
-      if (editor.isReturningFromSelection.value) {
+      // If we just came back from selecting beasts or editing the room's quest, re-open the config modal. The page
+      // may have been rebuilt on the way back, so the room has to be loaded before the modal reads its type.
+      await roomLoaded;
+      if (editor.consumeReturnToConfig()) {
         editor.openTypeModal();
-        editor.isReturningFromSelection.value = false;
       }
     });
 
@@ -251,11 +276,31 @@ export default defineComponent({
       travel,
       isShopRoom: editor.isShopRoom,
       isEggRoom: editor.isEggRoom, // NEW
+      isQuestRoom: editor.isQuestRoom,
+      pickerType: editor.pickerType,
       floors: editor.floors,
       selectedBeastsData: editor.selectedBeastsData,
       mimicBeastData: editor.mimicBeastData,
       allShops: editor.allShops,
       selectShop: editor.selectShop,
+
+      // Quest rooms
+      showQuestPicker: editor.questRooms.showPicker,
+      quests: editor.questRooms.quests,
+      questRows: editor.questRooms.rows,
+      questHeroes: editor.questRooms.heroes,
+      questTheme: editor.questRooms.theme,
+      questThemeInfo: editor.questRooms.themeInfo,
+      questSize: editor.questRooms.size,
+      questHolding: editor.questRooms.holding,
+      questCard,
+      dormantText,
+      canTestFight: editor.questRooms.canTestFight,
+      openQuestPicker: editor.questRooms.openPicker,
+      closeQuestPicker: editor.questRooms.closePicker,
+      pickQuest: editor.questRooms.pickQuest,
+      createLibraryQuest: editor.questRooms.createLibraryQuest,
+      editQuest: editor.editQuest,
 
       // Editor Methods
       selectEggPegasus: editor.selectEggPegasus, // NEW
@@ -305,9 +350,11 @@ export default defineComponent({
         }
       },
 
-      // Test Fight - Navigate to battle with configured beasts
+      // Test Fight - Navigate to battle with configured beasts (a quest room fights its quest's beast)
       testFight: async () => {
-        const beastIds = editor.roomData.value?.content?.beasts || [];
+        const beastIds = editor.isQuestRoom.value
+          ? await editor.questRooms.loadTestFightBeastIds()
+          : editor.roomData.value?.content?.beasts || [];
         if (beastIds.length === 0) return;
 
         // The battle belongs to a hero (rewards and the HUD read it), so a profile must be chosen
