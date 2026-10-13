@@ -182,8 +182,9 @@ export const isQuestRoom = (room: Partial<Room>): boolean =>
 /**
  * What a room holds for one hero:
  * - `classic`: a beast room (no `questId`, no `quest`); never resolved.
- * - `quest`: a live quest, with the hero's board row when the board has one (it has none while Gale's Wind hides
- *   the board). `source` says whether the Game Master picked it (`questId`) or the template matched it.
+ * - `quest`: a live quest, with the hero's board row when the board has one (it has none while an old save's day
+ *   off, which Gale's Wind used to write, hides the board). `source` says whether the Game Master picked it
+ *   (`questId`) or the template matched it.
  * - `notYours`: the Game Master's quest exists but is not for this hero: its beast sleeps here.
  * - `dormant`: nothing fills the template yet; the room plays as a classic fight with the template's beast.
  * - `emptyLair`: the Game Master's quest is gone and the room has no template: no fight.
@@ -202,7 +203,7 @@ const isVisibleToHero = (quest: Achievement, heroId: string): boolean =>
 /** How the hero's board row reads: the four states of a quest that is on the board (or hidden from it). */
 type RowReading = "lurking" | "pending" | "cleared" | "away";
 
-/** A quest the board has no row for (Gale's Wind hides the board) reads away, like one that is not due. */
+/** A quest the board has no row for (an old save's day off hides the board) reads away, like one that is not due. */
 const readRow = (item?: QuestBoardItem): RowReading => {
   const isAway = !item || item.status === "notDue";
   if (isAway) return "away";

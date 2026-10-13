@@ -132,7 +132,7 @@ export default defineComponent({
     const audio = useBattleAudio();
     const background = useBattleBackground();
     const feedback = useBattleFeedback();
-    const { equipment, reload: reloadHands } = useHeroEquipment(ctx.userId);
+    const { equipment, leftHandItem, rightHandItem, reload: reloadHands } = useHeroEquipment(ctx.userId);
     const hero = computed(() => userStore.getUserById(ctx.userId));
     const heroLook = computed(() => hero.value?.look);
     const heroAnimation = ref<HeroAnimation>("idle");
@@ -237,12 +237,15 @@ export default defineComponent({
       sheet.value = null;
     };
 
-    /** What the hero may use right now: the engine, the hero, the tools in the two hands and this fight's spent effects. */
+    /**
+     * What the hero may use right now: the engine, the hero, the tool in each hand and this fight's spent effects.
+     * A hand holds the item in its first slot, the one the temple footer and the bottom nav show.
+     */
     const itemContext = () => ({
       userId: ctx.userId,
       service: service.value as BattleService,
       usedThisFight,
-      heldItems: equipment.value.map((item) => String(item.name ?? "")),
+      heldItems: [leftHandItem.value, rightHandItem.value].flatMap((item) => (item ? [String(item.name ?? "")] : [])),
     });
 
     /** The sheet's answer typed as one line that moves on by itself; the menu comes back after it. */

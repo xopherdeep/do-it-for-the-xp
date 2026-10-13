@@ -30,8 +30,8 @@ export const stepsWalked = (elapsedMs: number, perSecond: number): number => {
 };
 
 /**
- * When the step counter reaches zero if the hero keeps walking from `now`. Walking only resumes once
- * X's Invisibility wears off, so the walk starts at the later of `now` and `invisibleUntil`.
+ * When the step counter reaches zero if the hero keeps walking from `now`. Walking only resumes once a Quiet Day
+ * (the Power; old saves: X's Invisibility) runs out, so the walk starts at the later of `now` and `invisibleUntil`.
  * Nothing left to walk is due the moment the walk starts; a hero who covers no ground never arrives (null).
  */
 export const nextEncounterAt = (

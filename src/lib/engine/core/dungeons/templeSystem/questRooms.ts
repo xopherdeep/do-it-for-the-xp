@@ -33,7 +33,10 @@ export interface QuestRoomBoard {
   board: readonly QuestBoardItem[];
   /** QuestEngine.getAllQuests: tells a Game Master's pick that is not for this hero from a deleted one */
   liveQuests?: readonly Achievement[];
-  /** The hero's item effects (snoozes, pull-ins, Gale's Wind) the board was read with */
+  /**
+   * The hero's effects the board was read with: snoozes and extensions (the Snooze and Extra Time Powers); a pull-in
+   * or a day off (Gale's Wind) only old saves carry
+   */
   effects?: HeroQuestEffects;
 }
 

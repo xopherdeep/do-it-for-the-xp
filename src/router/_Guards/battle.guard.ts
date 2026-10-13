@@ -126,7 +126,8 @@ const heroProfile = (userStore: ReturnType<typeof useUserStore>, heroId: string)
  *    route is still battle-free, so reading the live route also stops a second fight stacking
  *    on the first);
  *  - nobody is the current hero;
- *  - the hero wears X's Invisibility (no random encounters until it wears off);
+ *  - the hero cast the Quiet Day Power (no random encounters until it runs out; an old save's X's Invisibility
+ *    wrote the same field);
  *  - a battle is already active;
  *  - an ambush is already waiting for the hero (one at a time);
  *  - a modal / shop panel is open over the page.
@@ -245,7 +246,7 @@ function onLeave(router: Router): void {
       return;
     }
 
-    // X's Invisibility holds the walk back, so the alert waits for it to wear off
+    // A Quiet Day (the Power; old saves: X's Invisibility) holds the walk back, so the alert waits for it to run out
     const until = heroProfile(userStore, heroId)?.questEffects?.noEncountersUntil;
     const invisibleUntil = until ? new Date(until) : null;
     const at = battleStore.nextEncounterAt(new Date(), invisibleUntil);

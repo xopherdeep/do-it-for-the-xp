@@ -462,7 +462,7 @@ describe("BattleField: a free fight", () => {
 
   it("Goods opens the bag; the Ice Wand buys ten minutes and the Silver Arrow pins the beast", async () => {
     const { wrapper, userStore, vm, tap, readUntilMenu, bag, bagOpen, bagCard, useFromBag, menu } =
-      await enterBattle("/battle/hero-1/free/", { leftHand: [ICE_WAND], rightHand: [SILVER_ARROW] });
+      await enterBattle("/battle/hero-1/free/", { leftHand: [ICE_WAND, CHRONOS_CLOCK], rightHand: [SILVER_ARROW] });
     const hero = userStore.users["hero-1"];
     hero.stats.mp = { now: 120, max: 120 };
     await tap();
@@ -477,7 +477,7 @@ describe("BattleField: a free fight", () => {
     expect(wrapper.find(".menu-item").exists()).toBe(false);
     expect(bagCard(ICE_WAND)).toMatchObject({ mp: 10, effect: "+10 minutes on the clock", reason: null });
     expect(bagCard(SILVER_ARROW)).toMatchObject({ mp: 25, effect: "The beast misses its next two strikes", reason: null });
-    // Only the tools in the hands work: Chronos' Clock stays in the bag
+    // Only the tool in each hand works, the one the footer and the nav show: Chronos' Clock in a second slot stays in the bag
     expect(bagCard(CHRONOS_CLOCK)).toMatchObject({ mp: 20, reason: "Hold it in a hand before a fight." });
     const opensDirectly = bag().props("opensDirectly") as (item: BagItem) => boolean;
     expect([BOTTLES, BOOK_OF_SPELLS, ICE_WAND].map(opensDirectly)).toEqual([true, true, false]);

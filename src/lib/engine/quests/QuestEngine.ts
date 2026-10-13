@@ -122,8 +122,9 @@ class QuestEngine {
      * open (can still be done), done (window used up), notDue (not scheduled for this day).
      * `pending` is set when a claim in the current window still waits for the Game Master; it counts
      * toward the allowance, so a done quest with `pending` is awaiting approval rather than tamed.
-     * `effects` are the hero's own item effects (snoozes, pull-ins, extensions, a pause); `overdue` is set on an
-     * open quest whose deadline has passed (QuestSchedule.effectiveDeadline: due on a window's last day).
+     * `effects` are the hero's own Power effects (Snooze, Extra Time; old saves may still carry a pull-in or a
+     * pause); `overdue` is set on an open quest whose deadline has passed (QuestSchedule.effectiveDeadline: due
+     * on a window's last day).
      * A shared quest (Team Effort, Rat Race) reads the same for every assignee: one hero's clear makes it done
      * for all of them, and `doneBy` says who.
      */

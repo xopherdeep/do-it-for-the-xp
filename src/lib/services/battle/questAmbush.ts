@@ -3,10 +3,10 @@
  * sends its own beast instead of a free one. This module only decides which quest that is, and what the OS
  * alert says about it. No storage, no Vue, nothing throws.
  *
- * An overdue quest is the board's one due-date rule (QuestSchedule.isQuestOverdue: a window's last day, the Ice
- * Wand's extension, Chronos' pause). A quest with no due time is an "anytime" chore: it is always waiting, and
- * ambushes after any overdue one. A quest with no beast never ambushes, because the Game Master chose
- * "No beast" or the library has none to suggest.
+ * An overdue quest is the board's one due-date rule (QuestSchedule.isQuestOverdue: a window's last day, the Extra
+ * Time Power's extension, a pause only old saves carry from Chronos' Clock). A quest with no due time is an
+ * "anytime" chore: it is always waiting, and ambushes after any overdue one. A quest with no beast never ambushes,
+ * because the Game Master chose "No beast" or the library has none to suggest.
  */
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
@@ -68,7 +68,7 @@ const isCoolingDown = (memory: AmbushMemory | undefined, now: number, cooldownMs
  * hero's own board (it already holds only the quests they can see), `grudges` their per-quest record of when
  * each quest last ambushed them. A quest qualifies when it is open, not waiting on the Game Master, overdue
  * at `now`, has a beast, and has not ambushed this hero within `cooldownMs`. The oldest deadline goes first
- * (a tie goes to the quest listed first). Gale's Wind (a day off) ambushes nothing.
+ * (a tie goes to the quest listed first). A day off ambushes nothing (only old saves carry one: Gale's Wind wrote it).
  */
 export function pickQuestAmbush(
   board: readonly QuestBoardItem[],
