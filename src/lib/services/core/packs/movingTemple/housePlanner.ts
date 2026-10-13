@@ -85,7 +85,8 @@ export function planHouse(cells: readonly HouseCell[], seed: string): HousePlan 
     for (const direction of directions) {
       const row = anchor.row + STEP[direction][0];
       const col = anchor.col + STEP[direction][1];
-      if (fits(cell, row, col, anchor)) return [row, col];
+      const doesFit = fits(cell, row, col, anchor);
+      if (doesFit) return [row, col];
     }
     return undefined;
   };
@@ -104,7 +105,9 @@ export function planHouse(cells: readonly HouseCell[], seed: string): HousePlan 
       if (spot) return { anchor, spot };
       for (const direction of DIRECTIONS) {
         const next = at(cell, anchor.row + STEP[direction][0], anchor.col + STEP[direction][1]);
-        if (next && next.cell.zone === parent.cell.zone && !seen.has(next)) {
+        // A placed neighbour of the parent's zone, not walked yet, is walked next
+        const isZoneMateToWalk = next !== undefined && next.cell.zone === parent.cell.zone && !seen.has(next);
+        if (isZoneMateToWalk) {
           seen.add(next);
           queue.push(next);
         }
@@ -115,17 +118,22 @@ export function planHouse(cells: readonly HouseCell[], seed: string): HousePlan 
 
   /** Where a fixed cell or a landing stands: the spot it is given, or the row and column of its twin stairs */
   const fixedSpot = (cell: HouseCell): [number, number] | undefined => {
-    if (cell.at) return cell.at;
+    const given = cell.at;
+    if (given) return given;
     const twin = cell.twinOf ? placed.get(cell.twinOf) : undefined;
     return twin ? [twin.row, twin.col] : undefined;
   };
 
   for (const floor of BUILD_ORDER) {
     for (const cell of cells.filter((each) => each.floor === floor)) {
-      if (cell.at || cell.twinOf) {
+      const isFixed = Boolean(cell.at || cell.twinOf);
+      if (isFixed) {
         const spot = fixedSpot(cell);
-        if (!spot || !insideFrame(spot[0], spot[1]) || at(cell, spot[0], spot[1])) throw noRoom(cell);
-        put(cell, spot[0], spot[1]);
+        if (!spot) throw noRoom(cell);
+        const [row, col] = spot;
+        const isSpotFree = insideFrame(row, col) && !at(cell, row, col);
+        if (!isSpotFree) throw noRoom(cell);
+        put(cell, row, col);
         continue;
       }
 
@@ -146,7 +154,8 @@ export function planHouse(cells: readonly HouseCell[], seed: string): HousePlan 
     }
   }
 
-  if (!order.length) return { floors: [], rows: 0, cols: 0, cells: [] };
+  const hasNoCells = order.length === 0;
+  if (hasNoCells) return { floors: [], rows: 0, cols: 0, cells: [] };
   const top = Math.min(...order.map((spot) => spot.row));
   const left = Math.min(...order.map((spot) => spot.col));
   return {

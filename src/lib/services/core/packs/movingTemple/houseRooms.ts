@@ -53,13 +53,23 @@ const BEDROOM_SLUGS: Record<Child["band"], string[]> = {
   little: ["toy-triage", "books-little", "toys-little", "backpack-little", "dust-bunny-hunt"],
 };
 
-const COMPASS: Record<string, Direction> = { N: "north", E: "east", S: "south", W: "west" };
+type CompassLetter = "N" | "E" | "S" | "W";
+
+/** Up to four compass letters, "WNE": the directions a cell tries first, so a typo in the table is a type error */
+type PreferLetters =
+  | CompassLetter
+  | `${CompassLetter}${CompassLetter}`
+  | `${CompassLetter}${CompassLetter}${CompassLetter}`
+  | `${CompassLetter}${CompassLetter}${CompassLetter}${CompassLetter}`;
+
+const COMPASS: Record<CompassLetter, Direction> = { N: "north", E: "east", S: "south", W: "west" };
 
 /** "WNE" as directions, so the cell table below reads at a glance */
-const dirs = (letters: string): Direction[] => Array.from(letters, (letter) => COMPASS[letter]);
+const dirs = (letters: PreferLetters | ""): Direction[] => Array.from(letters, (letter) => COMPASS[letter as CompassLetter]);
 
 /** A cell as the table writes it: the plain ones fall back to a fight room on the ground floor of the house */
-type Draft = Pick<HouseCell, "id" | "name"> & Partial<Omit<HouseCell, "parents" | "prefer">> & { parents?: string[]; prefer?: string };
+type Draft = Pick<HouseCell, "id" | "name"> &
+  Partial<Omit<HouseCell, "parents" | "prefer">> & { parents?: string[]; prefer?: PreferLetters };
 
 interface Bedroom {
   id: string;
@@ -72,7 +82,8 @@ const nameOf = (hero: MovingHero): string => hero.name || "Hero";
 /** "Twelve's bedroom", "Twelve and Six's room", "Twelve, Six and Teen's room" */
 const bedroomNameOf = (occupants: Child[]): string => {
   const names = occupants.map(nameOf);
-  if (names.length === 1) return `${names[0]}'s bedroom`;
+  const isOwnRoom = names.length === 1;
+  if (isOwnRoom) return `${names[0]}'s bedroom`;
   return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}'s room`;
 };
 
@@ -84,7 +95,10 @@ const bedroomNameOf = (occupants: Child[]): string => {
 export function houseCellsFor(pack: MovingPack, answers: MovingAnswers): HouseCell[] | null {
   const known = new Set(pack.quests.map((quest) => String(quest.id)));
   const heroes = answers.heroes.filter((hero): hero is Player => hero.band !== "out");
-  if (!heroes.length || !known.has(VAN_QUEST)) return null;
+  const hasPlayers = heroes.length > 0;
+  const hasVan = known.has(VAN_QUEST);
+  const canBuildHouse = hasPlayers && hasVan;
+  if (!canBuildHouse) return null;
 
   const count = (room: MovingRoomId): number => Math.max(0, Math.floor(Number(answers.rooms[room]) || 0));
   const has = (room: MovingRoomId): boolean => count(room) > 0;
@@ -101,18 +115,20 @@ export function houseCellsFor(pack: MovingPack, answers: MovingAnswers): HouseCe
   const littles = heroes.filter((hero) => hero.band === "little");
   const children = heroes.filter((hero): hero is Child => hero.band !== "grownup");
   const ownBedroomQuests = (list: readonly Child[]): string[] => list.flatMap((child) => own([child], ...BEDROOM_SLUGS[child.band]));
+  const hasBedrooms = has("bedroom");
+  const hasGrownups = grownups.length > 0;
 
   // The bedrooms: the grown-ups share the main one; the children are dealt round robin into the rest
   const bedrooms: Bedroom[] = [];
-  if (has("bedroom")) {
-    if (grownups.length) {
+  if (hasBedrooms) {
+    if (hasGrownups) {
       bedrooms.push({
         id: "bedroom-main",
         name: grownups.length === 1 ? `${nameOf(grownups[0])}'s bedroom` : "Main bedroom",
         questIds: [...own(grownups, "closet-grownup"), ...shared("beds-apart")],
       });
     }
-    const roomsForChildren = grownups.length ? Math.max(1, count("bedroom") - 1) : count("bedroom");
+    const roomsForChildren = hasGrownups ? Math.max(1, count("bedroom") - 1) : count("bedroom");
     const shares: Child[][] = Array.from({ length: Math.min(roomsForChildren, children.length) }, () => []);
     children.forEach((child, index) => shares[index % shares.length].push(child));
     shares.forEach((occupants, index) => {
@@ -135,14 +151,35 @@ export function houseCellsFor(pack: MovingPack, answers: MovingAnswers): HouseCe
   const guestIds = has("guest") ? shared("guest-room") : [];
   const officeIds = has("office") ? shared("office", "paperwork") : [];
 
-  // The key guard: the kitchen; else the garage (its first chore, the rest at the workbench); else a packing pile
-  const guard = kitchenIds.length ? "kitchen" : garageIds.length ? "garage" : shared("open-first").length ? "packingPile" : undefined;
+  const hasKitchen = kitchenIds.length > 0;
+  const hasGarage = garageIds.length > 0;
+  const hasYard = yardIds.length > 0;
 
-  // The small-key room: the first of the basement stairs, the garage (when it is not the guard) and the yard.
-  // The basement is there for the storage chore, so with no chore to go down for there are no stairs either.
+  /** The key guard: the kitchen; else the garage (its first chore, the rest at the workbench); else a packing pile */
+  const guardOf = (): "kitchen" | "garage" | "packingPile" | undefined => {
+    if (hasKitchen) return "kitchen";
+    if (hasGarage) return "garage";
+    const hasPackingPile = shared("open-first").length > 0;
+    if (hasPackingPile) return "packingPile";
+    return undefined;
+  };
+  const guard = guardOf();
+
+  // The basement is there for the storage chore, so with no chore to go down for there are no stairs either
   const hasBasement = answers.basement === true && storageIds.length > 0;
-  const wing = hasBasement ? "basementStairs" : garageIds.length && guard !== "garage" ? "garage" : yardIds.length ? "yard" : undefined;
-  const wingOf = (id: string): Partial<Pick<HouseCell, "zone" | "lockedFromParent">> => (id === wing ? { zone: "wing", lockedFromParent: true } : {});
+
+  /** The small-key room: the first of the basement stairs, the garage (when it is not the guard) and the yard */
+  const wingOf = (): "basementStairs" | "garage" | "yard" | undefined => {
+    if (hasBasement) return "basementStairs";
+    const isGarageFree = hasGarage && guard !== "garage";
+    if (isGarageFree) return "garage";
+    if (hasYard) return "yard";
+    return undefined;
+  };
+  const wing = wingOf();
+  /** The wing cell's zone and the locked door its parent opens into it; nothing for any other cell */
+  const wingDoorOf = (id: string): Partial<Pick<HouseCell, "zone" | "lockedFromParent">> =>
+    id === wing ? { zone: "wing", lockedFromParent: true } : {};
 
   // Whatever has no room of its own goes to the front hall
   const hallIds = [
@@ -155,14 +192,16 @@ export function houseCellsFor(pack: MovingPack, answers: MovingAnswers): HouseCe
     ...(livingIds.length ? [] : daily("tidy")),
     ...(bathIds.length ? [] : daily("teeth")),
     ...(kitchenIds.length ? [] : daily("dishes")),
-    ...(has("bedroom") ? [] : ownBedroomQuests(children)),
+    ...(hasBedrooms ? [] : ownBedroomQuests(children)),
   ];
 
   const twoFloors = answers.floors === 2 && (bedrooms.length > 0 || guestIds.length > 0 || officeIds.length > 0);
 
   const cells: HouseCell[] = [];
   const add = (draft: Draft): void => {
-    if (draft.questIds && !draft.questIds.length) return;
+    // A cell given a list of quests with none of them in the pack is not built
+    const isFightWithNoQuests = draft.questIds !== undefined && draft.questIds.length === 0;
+    if (isFightWithNoQuests) return;
     cells.push({
       kind: "quest", floor: "1F", zone: "house", questIds: [],
       ...draft, parents: draft.parents ?? [], prefer: dirs(draft.prefer ?? ""),
@@ -170,8 +209,8 @@ export function houseCellsFor(pack: MovingPack, answers: MovingAnswers): HouseCe
   };
   /** The bedrooms, guest room and office: upstairs on a house of two floors, else off the hall */
   const addUpstairs = (): void => {
-    const where = (parents: string[], prefer: string) =>
-      twoFloors ? { floor: "2F" as const, parents, prefer } : { floor: "1F" as const, parents: ["hall"], prefer: "WEN" };
+    const where = (parents: string[], prefer: PreferLetters): Pick<Draft, "floor" | "parents" | "prefer"> =>
+      twoFloors ? { floor: "2F", parents, prefer } : { floor: "1F", parents: ["hall"], prefer: "WEN" };
     for (const bedroom of bedrooms) add({ ...bedroom, ...where(["upHall", "landing"], "WENS") });
     add({ id: "guest", name: "Guest room", ...where(["upHall"], "WEN"), questIds: guestIds });
     add({ id: "office", name: "Home office", ...where(["upHall"], "EWN"), questIds: officeIds });
@@ -179,7 +218,8 @@ export function houseCellsFor(pack: MovingPack, answers: MovingAnswers): HouseCe
 
   /** The junk drawer goes in right after its guard, while the guard still has free sides to hang it on */
   const addDrawerAfter = (room: string): void => {
-    if (guard === room) add({ id: "drawer", name: "Junk drawer", kind: "masterKey", parents: [room], prefer: "NEWS", zone: "drawer" });
+    const isGuardRoom = guard === room;
+    if (isGuardRoom) add({ id: "drawer", name: "Junk drawer", kind: "masterKey", parents: [room], prefer: "NEWS", zone: "drawer" });
   };
 
   // The cells, in the order they are placed. The driveway is fixed: the porch, the van, the last look, the keys.
@@ -199,7 +239,7 @@ export function houseCellsFor(pack: MovingPack, answers: MovingAnswers): HouseCe
   addDrawerAfter("kitchen");
   add({
     id: "garage", name: "Garage", kind: guard === "garage" ? "guard" : "quest", parents: ["pantry", "hall"], prefer: "EWN",
-    questIds: guard === "garage" ? garageIds.slice(0, 1) : garageIds, ...wingOf("garage"),
+    questIds: guard === "garage" ? garageIds.slice(0, 1) : garageIds, ...wingDoorOf("garage"),
   });
   addDrawerAfter("garage");
   add({ id: "workbench", name: "Workbench", parents: ["garage"], prefer: "NEW", questIds: guard === "garage" ? garageIds.slice(1) : [] });
@@ -209,7 +249,7 @@ export function houseCellsFor(pack: MovingPack, answers: MovingAnswers): HouseCe
   });
   addDrawerAfter("packingPile");
   add({ id: "laundry", name: "Laundry room", parents: ["pantry", "dining", "hall"], prefer: "WNE", questIds: laundryIds });
-  add({ id: "yard", name: "Back yard", parents: ["pantry", "dining", "living", "hall"], prefer: "NEW", questIds: yardIds, ...wingOf("yard") });
+  add({ id: "yard", name: "Back yard", parents: ["pantry", "dining", "living", "hall"], prefer: "NEW", questIds: yardIds, ...wingDoorOf("yard") });
   add({ id: "pets", name: "Pet corner", parents: ["living", "hall"], prefer: "SWN", questIds: petsIds });
   add({ id: "bath", name: "Bathroom", parents: ["hall"], prefer: "ENW", questIds: bathIds });
   // With the garage as the small-key room, storage stays out of the wing and hangs off the hall
@@ -219,7 +259,7 @@ export function houseCellsFor(pack: MovingPack, answers: MovingAnswers): HouseCe
   if (!twoFloors) addUpstairs();
   if (twoFloors) add({ id: "stairsUp", name: "Stairs up", kind: "stairsUp", parents: ["hall"], prefer: "EWN" });
   if (hasBasement) {
-    add({ id: "basementStairs", name: "Basement stairs", kind: "stairsDown", parents: ["hall"], prefer: "WEN", ...wingOf("basementStairs") });
+    add({ id: "basementStairs", name: "Basement stairs", kind: "stairsDown", parents: ["hall"], prefer: "WEN", ...wingDoorOf("basementStairs") });
   }
   if (twoFloors) {
     add({ id: "landing", name: "Landing", kind: "stairsDown", floor: "2F", twinOf: "stairsUp" });

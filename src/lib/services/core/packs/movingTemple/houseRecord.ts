@@ -110,13 +110,20 @@ export function houseLayout(plan: HousePlan, quests: ReadonlyMap<string, Achieve
       return [placed.cell.id, WRITERS[placed.cell.kind](placed.cell, context)];
     }),
   );
+  /** The room written for a cell of the plan. Every placed cell was written just above, so a miss is a bug: it throws */
+  const writtenFor = (cellId: string): Written => {
+    const found = written.get(cellId);
+    if (!found) throw new Error(`The house plan wrote no room for ${cellId}`);
+    return found;
+  };
 
   // The wing's one door is locked on the side of the room it was placed beside (not always its first parent)
   for (const wing of plan.cells.filter((placed) => placed.cell.lockedFromParent)) {
     const beside = wing.via ? byId.get(wing.via) : undefined;
-    const side = beside ? sideFacing(beside, wing) : undefined;
-    if (!beside || !side) continue;
-    const room = written.get(beside.cell.id)!.room;
+    if (!beside) continue;
+    const side = sideFacing(beside, wing);
+    if (!side) continue;
+    const { room } = writtenFor(beside.cell.id);
     room.locked = { ...room.locked, [side]: true };
   }
 
@@ -127,7 +134,7 @@ export function houseLayout(plan: HousePlan, quests: ReadonlyMap<string, Achieve
     const grid = Array.from({ length: plan.rows }, () => Array.from({ length: plan.cols }, () => ____));
     const onFloor = plan.cells.filter((placed) => placed.cell.floor === floor).sort((a, b) => a.row - b.row || a.col - b.col);
     for (const placed of onFloor) {
-      const { char, room } = written.get(placed.cell.id)!;
+      const { char, room } = writtenFor(placed.cell.id);
       const count = (counters.get(char) ?? 0) + 1;
       counters.set(char, count);
       const token = `${char}${String(count).padStart(3, "0")}`;
