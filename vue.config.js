@@ -5,6 +5,7 @@
  * XP_FS_CACHE, XP_DEV_LINT, XP_DEV_TYPECHECK, XP_SASS_MODERN, XP_DEV_ESBUILD default ON; XP_LAZY defaults OFF.
  * tools/bench/build-bench.sh measures them.
  */
+process.env.VUE_APP_VERSION = require("./package.json").version;
 const fs = require('fs');
 const path = require('path');
 
