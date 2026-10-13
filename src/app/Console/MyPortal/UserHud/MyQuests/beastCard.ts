@@ -147,6 +147,26 @@ export function toggleStep(steps: readonly CardStep[], stepId: string): CardStep
   return steps.map((step) => (step.id === stepId ? { ...step, checked: !step.checked } : step));
 }
 
+export interface StepTap {
+  /** The steps after the tap */
+  steps: CardStep[];
+  /** The tapped step is now checked (false: it was unchecked, or the id is not on the list) */
+  checked: boolean;
+  /** This tap checked the last open step: the quest is ready to claim */
+  completesList: boolean;
+  /** The id is on the list */
+  known: boolean;
+}
+
+/** A tap on a step and what the card should make of it: how it flipped, and whether it finished the list. */
+export function tapStep(steps: readonly CardStep[], stepId: string): StepTap {
+  const known = steps.some((step) => step.id === stepId);
+  const next = toggleStep(steps, stepId);
+  const checked = known && next.find((step) => step.id === stepId)?.checked === true;
+  const completesList = checked && next.every((step) => step.checked);
+  return { steps: next, checked, completesList, known };
+}
+
 /** "2 of 4 steps" / "All 4 steps" / "1 step": the checklist header. */
 export function progressLine(steps: readonly CardStep[]): string {
   const total = steps.length;

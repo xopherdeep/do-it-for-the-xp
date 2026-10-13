@@ -202,16 +202,16 @@ const PROBLEM_BY_SITE_CODE: Record<string, FamilyProblem> = {
   xp_family_key_revoked: "key-revoked",
 };
 
+const PROBLEM_BY_STATUS: Record<number, FamilyProblem> = { 400: "invalid", 401: "unlinked", 429: "rate-limited" };
+
 /** What a failed call means for the app (the table in the spec, section 10) */
 export const familyProblem = (e: unknown): FamilyProblem => {
   const isKnownError = e instanceof TownHallError;
   if (!isKnownError) return "server";
-  if (e.code === "offline") return "offline";
+  const isOffline = e.code === "offline";
+  if (isOffline) return "offline";
   const named = e.siteCode ? PROBLEM_BY_SITE_CODE[e.siteCode] : undefined;
-  if (named) return named;
-  if (e.status === 401) return "unlinked";
-  if (e.status === 429) return "rate-limited";
-  return e.status === 400 ? "invalid" : "server";
+  return named ?? PROBLEM_BY_STATUS[e.status ?? 0] ?? "server";
 };
 
 /** The wait a 429 asked for, in milliseconds; undefined when the failure carries none */

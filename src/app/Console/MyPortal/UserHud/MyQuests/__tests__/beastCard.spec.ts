@@ -24,6 +24,7 @@ import {
   progressLine,
   spanText,
   stepsForState,
+  tapStep,
   tamedCount,
   tamedLine,
   themeLine,
@@ -141,6 +142,35 @@ describe("mergeProgress / toggleStep / checkedIds", () => {
     expect(progressLine(mergeProgress(steps, ["task-0"]))).toBe("1 of 3 steps");
     expect(progressLine(mergeProgress(steps, ["task-0", "task-1", "task-2"]))).toBe("All 3 steps");
     expect(progressLine(huntSteps(quest()))).toBe("1 step");
+  });
+});
+
+describe("tapStep", () => {
+  const steps = huntSteps(quest(), sockBeast);
+
+  it("reports a check that leaves steps open as a plain check", () => {
+    const tap = tapStep(steps, "task-0");
+    expect(tap.checked).toBe(true);
+    expect(tap.completesList).toBe(false);
+    expect(checkedIds(tap.steps)).toEqual(["task-0"]);
+  });
+
+  it("reports the last check as completing the list", () => {
+    const tap = tapStep(mergeProgress(steps, ["task-0", "task-1"]), "task-2");
+    expect(tap.checked).toBe(true);
+    expect(tap.completesList).toBe(true);
+  });
+
+  it("reports an uncheck, even from a finished list, as not completing", () => {
+    const tap = tapStep(mergeProgress(steps, ["task-0", "task-1", "task-2"]), "task-1");
+    expect(tap.checked).toBe(false);
+    expect(tap.completesList).toBe(false);
+  });
+
+  it("changes nothing for an unknown id", () => {
+    const tap = tapStep(steps, "nope");
+    expect(tap.known).toBe(false);
+    expect(checkedIds(tap.steps)).toEqual([]);
   });
 });
 

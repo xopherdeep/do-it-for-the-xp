@@ -23,7 +23,7 @@
         <xp-app-section v-for="section in sections" :key="section.key" :label="section.label"
           :class="`quest-section quest-section--${section.key}`">
           <xp-app-row v-for="row in section.rows" :key="row.id" :id="row.id" class="quest-log-row"
-            :class="{ 'is-overdue': row.status === 'overdue', 'is-tamed': row.status === 'done', 'is-pending': row.status === 'pending', 'is-later': row.status === 'later' }"
+            :class="{ 'is-overdue': row.status === 'overdue', 'is-tamed': row.status === 'done', 'is-pending': row.status === 'pending', 'is-later': row.status === 'later', 'is-celebrating': celebrating?.id === row.id, 'is-celebrating--pending': celebrating?.id === row.id && celebrating.pending, 'is-landed': landed === row.id }"
             :data-status="row.status" :title="row.title" :subtitle="row.subtitle" :image="row.image" :icon="row.icon"
             :chevron="!(view === 'list' && row.canFinish)" :disabled="finishing === row.id" @click="openRow(row)">
             <template v-if="row.hasChips" #chips>
@@ -34,7 +34,12 @@
               <xp-app-chip v-if="row.who" kind="tag" :value="row.who" />
             </template>
             <template v-if="(view === 'list' && row.canFinish) || row.stateLabel" #trailing>
-              <button v-if="view === 'list' && row.canFinish" type="button" class="xp-app-btn quest-done-btn"
+              <span v-if="celebrating?.id === row.id" class="quest-stamp" :class="{ 'quest-stamp--pending': celebrating.pending }"
+                aria-hidden="true">
+                <i :class="['fad', celebrating.pending ? 'fa-hourglass-half' : 'fa-check-double']"></i>
+                {{ celebrating.pending ? "Sent" : "Tamed" }}
+              </span>
+              <button v-else-if="view === 'list' && row.canFinish" type="button" class="xp-app-btn quest-done-btn"
                 :disabled="finishing === row.id" :aria-label="`Done: ${row.title}`" @click="confirmDone(row.source)">
                 <i class="fad fa-check-double" aria-hidden="true"></i>
                 Done

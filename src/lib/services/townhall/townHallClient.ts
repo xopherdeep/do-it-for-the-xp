@@ -43,11 +43,19 @@ function utf8Base64(text: string): string {
   return btoa(binary);
 }
 
+type AuthOf<K extends TownHallAuth["kind"]> = Extract<TownHallAuth, { kind: K }>;
+
+/** The headers each kind of auth sends */
+const HEADERS_FOR: { [K in TownHallAuth["kind"]]: (auth: AuthOf<K>) => Record<string, string> } = {
+  none: () => ({}),
+  nonce: (auth) => ({ "X-WP-Nonce": auth.nonce }),
+  basic: (auth) => ({ Authorization: `Basic ${utf8Base64(`${auth.userLogin}:${auth.appPassword}`)}` }),
+  hero: (auth) => ({ "X-XP-Hero-Key": auth.key }),
+};
+
 export function authHeaders(auth: TownHallAuth): Record<string, string> {
-  if (auth.kind === "nonce") return { "X-WP-Nonce": auth.nonce };
-  if (auth.kind === "basic") return { Authorization: `Basic ${utf8Base64(`${auth.userLogin}:${auth.appPassword}`)}` };
-  if (auth.kind === "hero") return { "X-XP-Hero-Key": auth.key };
-  return {};
+  const headersFor = HEADERS_FOR[auth.kind] as (auth: TownHallAuth) => Record<string, string>;
+  return headersFor(auth);
 }
 
 export interface TownHallRequest {

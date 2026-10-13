@@ -70,12 +70,20 @@
       </div>
 
       <!-- The checklist: the battle's own attacks, checked off here or in the fight -->
-      <xp-app-section v-if="ready" :label="progress" class="beast-steps">
+      <xp-app-section
+        v-if="ready"
+        :label="progress"
+        class="beast-steps"
+        :class="{ 'is-complete': listReady, 'is-just-complete': justCompleted }"
+      >
         <xp-app-row
           v-for="step in shownSteps"
           :key="step.id"
           class="beast-step"
-          :class="{ 'is-checked': step.checked }"
+          :class="[
+            { 'is-checked': step.checked },
+            tapped?.id === step.id ? (tapped.checked ? 'is-just-checked' : 'is-just-unchecked') : '',
+          ]"
           :title="step.name"
           :chevron="false"
           role="checkbox"
@@ -88,6 +96,9 @@
               :class="['fad', step.checked ? 'fa-check-square' : 'fa-square', 'beast-step__box']"
               aria-hidden="true"
             ></i>
+            <span v-if="tapped?.id === step.id && tapped.checked" class="beast-step__spark" aria-hidden="true">
+              <i></i><i></i><i></i><i></i>
+            </span>
           </template>
         </xp-app-row>
       </xp-app-section>
@@ -124,6 +135,7 @@
             <button
               type="button"
               class="xp-app-btn xp-app-btn--ghost beast-btn beast-btn--claim"
+              :class="{ 'is-ready': actions.canClaim, 'is-just-ready': justCompleted }"
               data-test="claim"
               :disabled="!ready || !actions.canClaim || claiming"
               @click="claim"
@@ -192,9 +204,9 @@ import {
   stepsForState,
   tamedCount,
   tamedLine,
+  tapStep,
   themeLine,
   tierBadge,
-  toggleStep,
 } from "../beastCard";
 import type { BeastCardStatus, CardStep } from "../beastCard";
 
@@ -247,6 +259,13 @@ const familyBeasts = ref<Beast[]>([]);
 const categoryName = ref("");
 const entries = ref<QuestLogEntry[]>([]);
 const steps = ref<CardStep[]>([]);
+// The step just tapped and how it flipped, for its pop; the whole list lit when the last step fell
+const tapped = ref<{ id: string; checked: boolean } | null>(null);
+const justCompleted = ref(false);
+const TAP_ANIM_MS = 700;
+const COMPLETE_ANIM_MS = 1400;
+let tapTimer = 0;
+let completeTimer = 0;
 
 const heroId = computed(() => String(props.userId));
 const ctx = computed(() => progressContext(heroId.value, props.quest.id));
@@ -277,6 +296,7 @@ const stateChip = computed(() => stateWord(props.status, voice.value));
 const shownSteps = computed(() => stepsForState(props.status, steps.value));
 const progress = computed(() => progressLine(shownSteps.value));
 const actions = computed(() => cardActions(props.status, steps.value, voice.value));
+const listReady = computed(() => actions.value.canClaim);
 // Every quest earns it by winning its fight; a Game Master's approval pays it on top, once (a claim never does)
 const bonusLabel = huntBonusLabel();
 
@@ -363,11 +383,30 @@ onBeforeUnmount(stopBackdrop);
 // --- actions ---
 const onStep = (step: CardStep) => {
   if (!actions.value.canCheck) return;
-  const flipping = toggleStep(steps.value, step.id);
-  steps.value = flipping;
+  const tap = tapStep(steps.value, step.id);
+  if (!tap.known) return;
+  steps.value = tap.steps;
   // The fight reads this record when it starts and writes it as its chores fall
-  saveBattleProgress(ctx.value, checkedIds(flipping));
-  play$fx(step.checked ? "no" : "yes");
+  saveBattleProgress(ctx.value, checkedIds(tap.steps));
+  play$fx(tap.checked ? "yes" : "no");
+
+  tapped.value = { id: step.id, checked: tap.checked };
+  timers.cancel(tapTimer);
+  tapTimer = timers.startTimeout(TAP_ANIM_MS, () => {
+    tapped.value = null;
+  });
+
+  justCompleted.value = false;
+  timers.cancel(completeTimer);
+  if (!tap.completesList) return;
+  // The last step: let the check land, then light the list and the Claim button
+  void nextTick(() => {
+    justCompleted.value = true;
+    play$fx("gainGP");
+    completeTimer = timers.startTimeout(COMPLETE_ANIM_MS, () => {
+      justCompleted.value = false;
+    });
+  });
 };
 
 const close = () => {
@@ -628,19 +667,187 @@ defineExpose({ close });
 }
 
 .beast-step {
+  --step-pop-ms: 420ms;
+
+  :deep(.xp-app-row__tile) {
+    position: relative;
+    overflow: visible;
+  }
+
   &__box {
     font-size: 1.3rem;
+    transition: color 160ms ease-out;
+  }
+
+  // The title's line-through sweeps across instead of snapping on
+  :deep(.xp-app-row__title) {
+    background-image: linear-gradient(currentColor, currentColor);
+    background-position: 0 58%;
+    background-repeat: no-repeat;
+    background-size: 0% 2px;
+    transition: opacity 220ms ease-out, background-size 260ms ease-out;
+    width: fit-content;
   }
 
   &.is-checked {
     :deep(.xp-app-row__title) {
-      text-decoration: line-through;
+      background-size: 100% 2px;
       opacity: 0.6;
     }
 
     .beast-step__box {
       color: var(--xp-app-accent);
     }
+  }
+
+  // Checked: the box pops and the row flashes the accent once
+  &.is-just-checked {
+    animation: beast-step-flash 600ms ease-out;
+
+    .beast-step__box {
+      animation: beast-box-pop var(--step-pop-ms) cubic-bezier(0.2, 1.6, 0.4, 1);
+    }
+  }
+
+  // Unchecked: a quiet shake, no reward
+  &.is-just-unchecked .beast-step__box {
+    animation: beast-box-drop 320ms ease-out;
+  }
+
+  // Four pixel sparks fly off the box
+  &__spark {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+
+    i {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 5px;
+      height: 5px;
+      background: var(--xp-app-accent);
+      opacity: 0;
+      animation: beast-spark 520ms ease-out forwards;
+
+      &:nth-child(1) { --dx: -16px; --dy: -16px; }
+      &:nth-child(2) { --dx: 16px; --dy: -14px; animation-delay: 30ms; }
+      &:nth-child(3) { --dx: -14px; --dy: 15px; animation-delay: 60ms; }
+      &:nth-child(4) { --dx: 17px; --dy: 14px; animation-delay: 20ms; }
+    }
+  }
+}
+
+// Every step checked: the header lights and the list holds a soft accent edge until it is claimed
+.beast-steps {
+  &.is-complete :deep(.xp-app-section__label) {
+    color: var(--xp-app-accent);
+  }
+
+  &.is-just-complete :deep(.xp-app-section__label) {
+    transform-origin: left center;
+    animation: beast-label-pulse 700ms ease-out 2;
+  }
+}
+
+.beast-btn--claim {
+  &.is-ready:not(:disabled) {
+    box-shadow: 0 0 0 1px var(--xp-app-accent), 0 0 12px -2px var(--xp-app-accent);
+    color: var(--xp-app-accent);
+  }
+
+  &.is-just-ready {
+    animation: beast-claim-glow 700ms ease-out 2;
+  }
+}
+
+@keyframes beast-step-flash {
+  0% {
+    background-color: rgba(255, 255, 255, 0.22);
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes beast-box-pop {
+  0% {
+    transform: scale(0.6);
+  }
+
+  60% {
+    transform: scale(1.45) rotate(-6deg);
+  }
+
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+
+@keyframes beast-box-drop {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-3px) scale(0.92);
+  }
+
+  75% {
+    transform: translateX(3px) scale(0.92);
+  }
+}
+
+@keyframes beast-spark {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.2);
+  }
+}
+
+@keyframes beast-label-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.12);
+  }
+}
+
+@keyframes beast-claim-glow {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.04);
+    box-shadow: 0 0 0 2px var(--xp-app-accent), 0 0 22px 2px var(--xp-app-accent);
+  }
+}
+
+// Reduced motion: the colour change stays, the movement goes
+@media (prefers-reduced-motion: reduce) {
+  .beast-step,
+  .beast-step__box,
+  .beast-step__spark i,
+  .beast-steps :deep(.xp-app-section__label),
+  .beast-btn--claim {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .beast-step__spark {
+    display: none;
   }
 }
 

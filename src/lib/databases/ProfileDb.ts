@@ -5,6 +5,7 @@ import StorageService from '@/lib/services/core/StorageService';
 
 import { Entry, SpecialStats } from '@/lib/utils/User/stats';
 import debug from '@/lib/utils/debug';
+import { emitHeroRemoved } from '@/lib/services/multiplayer/gameSignals';
 
 // New types and interfaces for Skills, JobClass, Equipment, and Quests
 interface Skill {
@@ -89,6 +90,9 @@ export class ProfileDb extends DbStorageApi {
 
   public async removeProfile(profileId: string) {
     await this.remove(profileId)
+    // Multiplayer removes the hero from the family server; only an explicit removal says so, never a profile that is
+    // just not loaded yet
+    emitHeroRemoved(profileId)
     
     // Backup to persistent storage after removing a profile
     await this.backupProfiles()

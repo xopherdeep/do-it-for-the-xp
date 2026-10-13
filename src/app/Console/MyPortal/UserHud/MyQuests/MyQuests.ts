@@ -40,6 +40,13 @@ import type { QuestLogRow } from "./questLogRows";
 // The quest log has two faces: the card board (the RPG view) and the plain to-do list
 type QuestLogView = "board" | "list";
 const VIEW_KEY = "xp.questLogView";
+// How long a finished row wears its stamp before the board reloads, and how long it flashes in its new section
+const CELEBRATE_MS = 750;
+const CELEBRATE_REDUCED_MS = 350;
+const LANDED_MS = 1400;
+
+const prefersReducedMotion = (): boolean =>
+  typeof window !== "undefined" && Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
 
 const savedView = (): QuestLogView => {
   try {
@@ -68,6 +75,9 @@ export default defineComponent({
       wizardOpen: false,
       // the list row whose Done tap is being recorded, so a double tap can't claim twice
       finishing: "",
+      // the row that just paid out (or went to the Game Master): it wears a stamp for a beat, then lands in Done
+      celebrating: null as { id: string; pending: boolean } | null,
+      landed: "",
     };
   },
   mixins: [ionic],
@@ -245,13 +255,33 @@ export default defineComponent({
           return;
         }
         const result = await completeQuest(row.quest, heroId, "claim");
+        await this.celebrate(row, result.awaitingApproval);
         await this.loadBoard();
+        this.land(row);
         this.announceDone(row, result);
       } catch {
         this.say(this.t("beastCard.error.log"), undefined, 2200);
       } finally {
         this.finishing = "";
       }
+    },
+    // The row answers the tap before the board moves: a stamp over its Done button, held for a beat
+    celebrate(row: QuestListRow, pending: boolean): Promise<void> {
+      this.celebrating = { id: row.id, pending };
+      const wait = prefersReducedMotion() ? CELEBRATE_REDUCED_MS : CELEBRATE_MS;
+      return new Promise((resolve) => {
+        this.timers.startTimeout(wait, () => {
+          this.celebrating = null;
+          resolve();
+        });
+      });
+    },
+    // In its new section the row flashes once, so the eye finds where it went
+    land(row: QuestListRow) {
+      this.landed = row.id;
+      this.timers.startTimeout(LANDED_MS, () => {
+        this.landed = "";
+      });
     },
     announceDone(row: QuestListRow, { awaitingApproval, levelUp, paid }: CompletionResult) {
       const nick = (this as any).userStore.getUserById(this.userId)?.name?.nick || "The hero";

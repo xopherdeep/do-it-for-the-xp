@@ -1,6 +1,7 @@
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import { getQuestLogDb, QuestLogEntry, QuestLogSource, QuestRewards } from "@/lib/databases/QuestLogDb";
 import { countedHeroesOf, isQuestOpenFor, isTrustedHour, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
+import { emitQuestPaid } from "@/lib/services/multiplayer/gameSignals";
 import { huntBonusXpOn, withHuntBonus } from "@/lib/services/quests/huntBonus";
 import { bonusGp } from "@/lib/services/stats/ClassPassives";
 import { useUserStore, LevelUpInfo } from "@/lib/store/stores/user";
@@ -26,6 +27,9 @@ import { useUserStore, LevelUpInfo } from "@/lib/store/stores/user";
  * Logging a completion also ends the grudge (docs/Quest-Rooms-Spec.md 5.7): a claim, held or paid, and a battle win
  * clear the hero's marks on the quest, and a shared quest clears them for every assignee. A later rejection does not
  * bring them back.
+ *
+ * Multiplayer hears of every payment through emitQuestPaid (services/multiplayer/gameSignals.ts), after the rewards
+ * are in the pocket: a claim paid at once, an approval, a battle win. A held claim says nothing until it is paid.
  */
 export interface CompletionResult {
   entry: QuestLogEntry;
@@ -82,6 +86,12 @@ const clearGrudges = (quest: Pick<Achievement, "id" | "type" | "assignee">, user
   for (const heroId of countedHeroesOf(quest, userId)) userStore.clearQuestGrudge(heroId, String(quest.id));
 };
 
+/** Tells multiplayer a quest paid `xp`; a quest finished by winning its battle is a fight */
+const announcePaid = (heroId: string, questId: string, xp: number, source: QuestLogSource | undefined): void => {
+  const fight = source === "battle";
+  emitQuestPaid({ heroId, questId: String(questId), xp, fight });
+};
+
 export const completeQuest = async (
   quest: Achievement,
   userId: string,
@@ -113,6 +123,7 @@ export const completeQuest = async (
   const paid = paidQuestRewards(userId, owed);
   const levelUp = applyQuestRewards(userId, owed, `quest:${quest.id}`);
   const settled = await questLogDb.updateEntry(entry.id, { rewardsApplied: true });
+  announcePaid(userId, quest.id, owed.xp, source);
   return { entry: settled || entry, levelUp, awaitingApproval, paid };
 };
 
@@ -142,6 +153,7 @@ export const recordBattleCompletion = async (quest: Achievement, userId: string,
     rewardsApplied: true,
   });
   clearGrudges(quest, userId);
+  announcePaid(userId, quest.id, rewards.xp, "battle");
   return entry;
 };
 
@@ -166,16 +178,20 @@ const reviewEntry = async (
 };
 
 export const approveCompletion = (entryId: string, reviewerId?: string): Promise<QuestLogEntry | null> =>
-  reviewEntry(entryId, (entry) => {
+  reviewEntry(entryId, async (entry) => {
     // The quest's rate, and the hunt bonus a won fight wrote on the hold: paid here, once (a second approval finds the
     // entry already approved and pays nothing)
-    if (!entry.rewardsApplied) applyQuestRewards(entry.userId, withHuntBonus(entry), `quest:${entry.questId}`, entry.completedAt);
-    return getQuestLogDb().updateEntry(entryId, {
+    const owed = withHuntBonus(entry);
+    const shouldPay = !entry.rewardsApplied;
+    if (shouldPay) applyQuestRewards(entry.userId, owed, `quest:${entry.questId}`, entry.completedAt);
+    const settled = await getQuestLogDb().updateEntry(entryId, {
       status: "approved",
       rewardsApplied: true,
       reviewedAt: new Date().toISOString(),
       reviewedBy: reviewerId,
     });
+    if (shouldPay) announcePaid(entry.userId, entry.questId, owed.xp, entry.source);
+    return settled;
   });
 
 export const rejectCompletion = (entryId: string, reviewerId?: string, note?: string): Promise<QuestLogEntry | null> =>

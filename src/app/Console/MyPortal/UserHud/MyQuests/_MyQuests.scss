@@ -85,6 +85,122 @@
   .quest-done-btn {
     min-width: 76px;
   }
+
+  // Done tapped and paid: the row flashes, its tile hops, and a stamp drops where the button was, before the board moves
+  .quest-log-row.is-celebrating {
+    animation: quest-row-flash 750ms ease-out;
+    opacity: 1;
+
+    :deep(.xp-app-row__tile) {
+      animation: quest-tile-hop 520ms cubic-bezier(0.2, 1.4, 0.4, 1);
+    }
+
+    // The Game Master still has to say yes: a calmer, amber beat instead of a win
+    &--pending {
+      animation-name: quest-row-flash-pending;
+    }
+  }
+
+  .quest-stamp {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 9px;
+    border: 2px solid var(--xp-app-accent);
+    border-radius: 4px;
+    color: var(--xp-app-accent);
+    font-family: var(--xp-app-font-title);
+    font-size: 0.78rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    transform: rotate(-6deg);
+    animation: quest-stamp-drop 360ms cubic-bezier(0.2, 1.5, 0.4, 1) both;
+
+    &--pending {
+      border-color: var(--quest-pending);
+      color: var(--quest-pending);
+    }
+  }
+
+  // In its new section the row finds the eye once
+  .quest-log-row.is-landed {
+    animation: quest-row-landed 1200ms ease-out;
+  }
+}
+
+@keyframes quest-row-flash {
+  0% {
+    background-color: rgba(255, 255, 255, 0.28);
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes quest-row-flash-pending {
+  0% {
+    background-color: rgba(242, 193, 78, 0.28);
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
+@keyframes quest-tile-hop {
+  0% {
+    transform: translateY(0) scale(1);
+  }
+
+  35% {
+    transform: translateY(-7px) scale(1.18);
+  }
+
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes quest-stamp-drop {
+  0% {
+    opacity: 0;
+    transform: rotate(-6deg) scale(2.2);
+  }
+
+  100% {
+    opacity: 1;
+    transform: rotate(-6deg) scale(1);
+  }
+}
+
+@keyframes quest-row-landed {
+  0% {
+    background-color: rgba(255, 255, 255, 0.24);
+    transform: translateX(10px);
+  }
+
+  40% {
+    transform: translateX(0);
+  }
+
+  100% {
+    background-color: transparent;
+  }
+}
+
+// Reduced motion: the stamp and the colour stay, nothing moves
+@media (prefers-reduced-motion: reduce) {
+  .my-tasks .quest-log-row.is-celebrating,
+  .my-tasks .quest-log-row.is-celebrating :deep(.xp-app-row__tile),
+  .my-tasks .quest-log-row.is-landed {
+    animation: none !important;
+  }
+
+  .my-tasks .quest-stamp {
+    animation: none;
+    transform: none;
+  }
 }
 
 // Search sits above the dock (thumb reach); the dock itself switches Board and List and stays as it is

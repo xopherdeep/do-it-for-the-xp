@@ -1,5 +1,5 @@
 """Paints the region shops in the Snow Shack's style (Hermit's Tent, Crystal Caverns, Cloud Market, Theia City Emporium
-the Witch's Hut and the Pond of Life Oasis). The Snow Shack interior (src/assets/images/backgrounds/shops/snow-shack.webp)
+the Witch's Hut and the Pond of Life Oasis) and Home Town's Hospital. The Snow Shack interior (src/assets/images/backgrounds/shops/snow-shack.webp)
 goes to Gemini's image model as the style anchor with a description of the new shop and its clerk. Results land in
 tools/art/out/shops for review; nothing in src changes until --install.
 
@@ -68,6 +68,30 @@ SHOPS = {
              "bottles, brass lanterns hanging from the poles",
         clerk="Oasis Guardian Miriam, a kind smiling oasis keeper in long flowing sand-coloured robes and a teal head "
               "scarf, holding a little water jug, standing behind a counter of palm wood"),
+    "pegasus-ranch": dict(
+        name="Pegasus Ranch", region="the Plains",
+        room="a ranch's trading barn: warm wooden plank walls and floor, hay bales, saddles, bridles and coiled ropes "
+             "hanging on the walls, horseshoes, sacks of feed, barrels of apples and carrots, a stable door at the back "
+             "where a white winged pegasus pokes its head over the half door, lanterns on the posts",
+        clerk="Francis the Rancher, a cheerful rancher with a wide brown cowboy hat, a bushy moustache, a plaid shirt and "
+              "a leather vest, standing behind a wooden counter"),
+    # Home Town's general store; any shop without a picture of its own shows it too
+    "hometown-market": dict(
+        name="Hometown Market", region="Home Town", dest=os.path.join(ROOT, "src", "assets", "images", "midjourney", "shop.webp"),
+        room="a cosy village general store: stone walls and a warm wooden plank floor, shelves of bread loaves, fruit "
+             "baskets, jars of jam and honey and little potion bottles, a sword and a round shield hung on the wall, barrels "
+             "and crates, woven red rugs, potted plants, warm lanterns",
+        clerk="Old Man Morris, a friendly old shopkeeper with a bald head, round spectacles, a big grey moustache and a "
+              "green apron, standing behind a wooden counter"),
+    # Not a shop: the hospital, the stats view beside it and the game over screen share this picture
+    "hospital": dict(
+        name="Hospital", region="Home Town", dest=os.path.join(ROOT, "src", "assets", "images", "midjourney", "hospital.webp"),
+        room="a cosy fantasy-village infirmary: clean white stone walls with warm wooden beams, a red heart in a round "
+             "stained-glass window, two neat beds with white sheets and red blankets along the back wall, wooden shelves "
+             "of red and pink healing potions, rolled bandages, herb bundles and a mortar and pestle, a small glowing "
+             "healing spring in a stone basin, potted plants, warm lanterns",
+        clerk="the town nurse, a kind smiling young woman in a white nurse's cap with a small red cross and a white apron "
+              "over a pink dress, holding a clipboard, standing behind a curved wooden reception counter"),
 }
 
 PROMPT = """The attached picture is the Snow Shack, a shop interior from our retro 16-bit SNES-era fantasy RPG for a portrait phone screen. Paint a NEW shop interior for the same game, the {name} in {region}.
@@ -142,7 +166,7 @@ def install(picks):
     for pick in picks:
         key, _, i = pick.partition("=")
         if key not in SHOPS: sys.exit(f"unknown shop {key}; pick from {list(SHOPS)}")
-        src, dest = take_path(key, int(i or 1)), os.path.join(SHOP_DIR, f"{key}.webp")
+        src, dest = take_path(key, int(i or 1)), SHOPS[key].get("dest") or os.path.join(SHOP_DIR, f"{key}.webp")
         Image.open(src).convert("RGB").save(dest, "WEBP", quality=88, method=6)
         print(f"{src} -> {dest}")
 
