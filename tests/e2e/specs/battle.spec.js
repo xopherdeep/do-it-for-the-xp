@@ -99,7 +99,7 @@ describe("Battle Field", () => {
   });
 });
 
-/** A fresh seeded world and a fresh fight: the fixture hero has 20/42 HP, 300 MP, two Health Potions and the Stop Power. */
+/** A fresh seeded world and a fresh fight: the fixture hero has 20/42 HP, 300 MP, two Health Potions, a Sol's Flare in the pack, the Stop Power, the Ice Wand in the left hand and Thor's Hammer in the right. */
 const enterFight = () => {
   cy.seedWorld();
   cy.visit("/battle/hero-1/free/beast-socktopus", { timeout: 120000 });
@@ -116,38 +116,43 @@ describe("Battle Field: Goods and Powers", () => {
     enterFight();
   });
 
-  it("Goods: the Ice Wand buys time and a potion heals", () => {
-    // Goods opens the same Equipment bag as everywhere else, in battle mode (tiles tap, nothing drags).
+  it("Goods: a held tool buys time, an unheld one is refused and a potion heals", () => {
+    // Goods opens My Goods in battle mode: the pack and the two held tools, one row each with a Use button.
     cy.get(".menu-item").should("have.length", 5);
     cy.contains(".menu-item", "Goods").click();
-    cy.get(".xp-equipment-modal", { timeout: 10000 }).should("be.visible");
-    cy.get(".xp-equipment-modal .grid-item .fa-wand-magic.ice", { timeout: 10000 }).should("be.visible");
+    cy.get(".xp-inventory-modal", { timeout: 10000 }).should("be.visible");
+    cy.contains(".goods-row", "Ice Wand", { timeout: 10000 }).should("be.visible");
+    cy.contains(".goods-row", "Thor's Hammer").should("be.visible");
     shot("10-bag");
 
-    // The Ice Wand's card has a Use button; using it adds ten minutes to the clock.
-    cy.get(".xp-equipment-modal .grid-item .fa-wand-magic.ice").click();
-    cy.get("[data-cy=item-use]", { timeout: 10000 }).should("be.visible").and("not.be.disabled").click();
+    // The Ice Wand is held in the left hand: Use is on, and it adds ten minutes to the clock.
+    cy.contains(".goods-row", "Ice Wand").find(".goods-use-btn").should("not.be.disabled").click();
     cy.get("[data-cy=battle-dialog]", { timeout: 10000 }).should("contain", "+10 minutes");
     readUntilMenu();
     // The clock starts at 9:27 (3 chores x 3 minutes plus 9 s of Agility each); +10 minutes, minus the seconds spent getting here
     cy.get(".attack-timer-label").invoke("text").should("match", /^(18|19):\d\d$/);
 
-    // Goods again: Bottles opens the potion sheet and a Health Potion heals the hero (20 of 42 HP).
-    cy.get("[data-cy=hero-card] .hp-value").should("have.text", "20");
+    // Goods again: Sol's Flare lies in the pack, in neither hand, so its row says to hold it first and Use stays off.
     cy.contains(".menu-item", "Goods").click();
-    cy.get(".xp-equipment-modal .grid-item .fa-flask-potion", { timeout: 10000 }).should("be.visible").click();
-    cy.get("[data-cy=potion-sheet]", { timeout: 10000 }).should("be.visible");
-    cy.get("[data-cy=potion-health-potion]").should("be.visible").and("contain", "x2");
+    cy.contains(".goods-row", "Sol's Flare", { timeout: 10000 }).as("flare").should("be.visible");
+    cy.get("@flare").find(".goods-reason").should("contain", "Hold it in a hand before a fight.");
+    cy.get("@flare").find(".goods-use-btn").should("be.disabled");
+    shot("13-not-held");
+
+    // A Health Potion heals the hero (20 of 42 HP): its row sits in the same sheet and Use drinks it.
+    cy.get("[data-cy=hero-card] .hp-value").should("have.text", "20");
+    cy.contains(".goods-row", "Health Potion").as("potion").should("be.visible").and("contain", "\u00d72");
     shot("11-potions");
-    cy.get("[data-cy=potion-health-potion]").click();
+    cy.get("@potion").find(".goods-use-btn").should("not.be.disabled").click();
     cy.get("[data-cy=battle-dialog]", { timeout: 10000 }).should("contain", "You drink a Health Potion");
-    cy.get("[data-cy=potion-sheet]").should("not.exist");
     cy.get("[data-cy=hero-card] .hp-value", { timeout: 10000 }).should("have.text", "42");
-    // One potion left in the pack
+    // One potion left in the pack, and the Sol's Flare still lying there
     cy.window().then((win) => {
       const pack = win.__xp.getUser("hero-1").inventory;
-      expect(pack, "the pack after one drink").to.have.length(1);
-      expect(pack[0].qty).to.eq(1);
+      const potion = pack.find((entry) => entry.name === "Health Potion");
+      expect(potion, "the Health Potion stack after one drink").to.be.an("object");
+      expect(potion.qty).to.eq(1);
+      expect(pack.map((entry) => entry.name), "the pack after one drink").to.include("Sol's Flare");
     });
     readUntilMenu();
   });

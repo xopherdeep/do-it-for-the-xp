@@ -26,7 +26,14 @@
             "special": { "ledger": [], "strength": 12, "defense": 8, "endurance": 9, "intelligence": 8, "perception": 7, "wisdom": 6, "charisma": 8, "awareness": 7, "presence": 6, "agility": 9, "guts": 10, "luck": 7 },
             "ailments": []
           },
-          "inventory": [{ "name": "Health Potion", "kind": "consumable", "qty": 2 }]
+          "equipment": {
+            "leftHand": [{ "name": "Ice Wand", "faIcon": "wand-magic ice" }],
+            "rightHand": [{ "name": "Thor's Hammer", "faIcon": "hammer-war" }]
+          },
+          "inventory": [
+            { "name": "Health Potion", "kind": "consumable", "qty": 2 },
+            { "name": "Sol's Flare", "kind": "misc", "faIcon": "flame", "qty": 1 }
+          ]
         }
       }
     ],
