@@ -114,6 +114,10 @@ module.exports = {
     // Dev only: compile lazy route chunks on first request (needs a real browser check under Ionic's router; default off)
     ...(!isProd && LAZY ? { experiments: { lazyCompilation: { entries: false, imports: true } } } : {}),
 
+    // @capacitor-firebase/analytics carries a web fallback built on the Firebase JS SDK. Only the
+    // Android app calls the plugin (the web reports through gtag.js), so that import is left empty.
+    resolve: { alias: { 'firebase/analytics': false } },
+
     plugins: [
       {
         apply(compiler) {

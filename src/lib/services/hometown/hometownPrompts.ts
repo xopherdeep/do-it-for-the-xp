@@ -155,33 +155,46 @@ export const nothingOnTheBoard = (voice: Voice = 'adventure'): string => copyFor
 export const CLERK = 'Town Clerk';
 
 /** The ids of the clerk's menu. */
-export type ClerkMenuId = 'announce' | 'bug' | 'feature' | 'never';
+export type ClerkMenuId = 'board' | 'bug' | 'registration' | 'never';
 
 /** What the clerk can take down, with the words the board will use for it. */
 export const CLERK_ERRANDS: Record<Exclude<ClerkMenuId, 'never'>, string> = {
-  announce: 'Announcements',
+  board: 'Posting on the Board',
   bug: 'Bug reports',
-  feature: 'Feature suggestions',
+  registration: 'Family registration',
 };
 
-/** The clerk's menu: what to post, then never mind. */
-export const clerkMenuChoices = (): RevealChoice[] => [
-  { id: 'announce', label: 'Submit Announcement', icon: 'bullhorn' },
-  { id: 'bug', label: 'Report Bug', icon: 'bug' },
-  { id: 'feature', label: 'Suggest Feature', icon: 'lightbulb' },
-  { id: 'never', label: 'Never mind', icon: 'times', tone: 'ghost' },
+/** The clerk's menu: what to do at the board, then never mind. Registering the family is for a Game Master. */
+export const clerkMenuChoices = (isGameMaster: boolean): RevealChoice[] => [
+  { id: 'board', label: 'Post on the Board', icon: 'thumbtack' },
+  { id: 'bug', label: 'Report a Bug', icon: 'bug' },
+  ...(isGameMaster ? [{ id: 'registration', label: 'Family Registration', icon: 'file-signature' }] : []),
+  { id: 'never', label: 'Never mind', icon: 'times', tone: 'ghost' as const },
 ];
 
-/** The clerk asks what to put on the board, with the stone tablet rising. */
-export const clerkMenuPrompt = (voice: Voice = 'adventure'): RevealPromptOptions => ({
+/** The clerk asks what to do at the board, with the stone tablet rising. */
+export const clerkMenuPrompt = (isGameMaster: boolean, voice: Voice = 'adventure'): RevealPromptOptions => ({
   speaker: CLERK,
   accent: 'townHall',
   sprite: 'tablet',
   lines: [copyFor('clerk.welcome', voice)],
-  choices: clerkMenuChoices(),
+  choices: clerkMenuChoices(isGameMaster),
   cancelId: 'never',
 });
 
 /** The clerk's answer to an errand the board cannot take yet. */
 export const comingSoonPrompt = (what: string, voice: Voice = 'adventure'): RevealPromptOptions =>
   noticeOf(CLERK, copyFor('clerk.soon', voice, { what }), { accent: 'townHall', sprite: 'tablet' });
+
+/** The clerk when the site does not answer: the courier is late; try again or let it go. */
+export const courierLatePrompt = (): RevealPromptOptions => ({
+  speaker: CLERK,
+  accent: 'townHall',
+  sprite: 'tablet',
+  lines: ["*peers out the window* The courier hasn't arrived from the city yet."],
+  choices: [
+    { id: 'retry', label: 'Try again', icon: 'redo' },
+    { id: 'never', label: 'Never mind', icon: 'times', tone: 'ghost' },
+  ],
+  cancelId: 'never',
+});

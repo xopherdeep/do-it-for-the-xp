@@ -170,7 +170,7 @@ describe("the shops, the hospital, the hotel and the Town Hall in three voices",
     expect(roomRefusalLine({ reason: "healthy" } as never, "simple")).toBe("You look rested! Come back when you are tired.");
     expect(roomReceiptLine(30, { now: 40, max: 40 }, null, "classic")).toBe("Morning. ₲30 paid. HP 40/40");
     expect(nothingOnTheBoard("classic")).toBe("The board is empty.");
-    expect(clerkMenuPrompt("simple").lines).toEqual(["Hi! What goes on the board?"]);
+    expect(clerkMenuPrompt(false, "simple").lines).toEqual(["Hi! What goes on the board?"]);
     expect(comingSoonPrompt("Bug reports", "classic").lines).toEqual(["Bug reports: not yet available."]);
   });
 });

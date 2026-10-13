@@ -129,7 +129,7 @@ function readyRouterMountApp() {
     document.title = (to.meta?.title as string) || TITLE;
   });
 
-  // Google Analytics (G-5KV3PXQGH6), production builds only
+  // Google Analytics, production builds only: gtag on the web, Firebase in the Android app
   startAnalytics(router);
 
   // Initialize the GPSystem// Initialize Services

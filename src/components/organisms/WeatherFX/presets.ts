@@ -14,7 +14,7 @@ export const weatherPresets: Record<WeatherType, WeatherPreset> = {
   cloudy: { layers: [fx.clouds, opt(fx.sunRays, { faint: true })], sound: "wind" },
   plains: { layers: [fx.wind, fx.heatHaze, fx.birds], sound: "wind" },
   desert: { layers: [fx.sand, fx.heatHaze, opt(fx.sunRays, { faint: true })], sound: "wind" },
-  swamp: { layers: [fx.fog, fx.fireflies], sound: "night" },
+  swamp: { layers: [fx.fog, fx.rain, fx.fireflies], sound: "rain" },
   forest: { layers: [fx.leaves, fx.fireflies, opt(fx.sunRays, { faint: true })], sound: "night" },
   mountains: { layers: [opt(fx.clouds, { thin: true }), fx.wind, fx.embers, fx.birds], sound: "wind" },
   moon: { layers: [fx.stars, fx.aurora], sound: "night" },

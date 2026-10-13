@@ -15,6 +15,7 @@ import {
   conciergeMenuChoices,
   conciergeMenuPrompt,
   conciergeNotice,
+  courierLatePrompt,
   nurseMenuChoices,
   nurseMenuPrompt,
   nurseNotice,
@@ -144,31 +145,57 @@ describe("the concierge", () => {
 });
 
 describe("the Town Hall clerk", () => {
-  it("lists what can be posted, each with an icon, and a dim never mind", () => {
-    const choices = clerkMenuChoices();
+  it("lists what a hero can do at the board, each with an icon, and a dim never mind", () => {
+    const choices = clerkMenuChoices(false);
     expect(choices.map((choice) => [choice.id, choice.label])).toEqual([
-      ["announce", "Submit Announcement"],
-      ["bug", "Report Bug"],
-      ["feature", "Suggest Feature"],
+      ["board", "Post on the Board"],
+      ["bug", "Report a Bug"],
       ["never", "Never mind"],
     ]);
     expect(choices.every((choice) => Boolean(choice.icon))).toBe(true);
-    expect(choices[3].tone).toBe("ghost");
+    expect(choices[2].tone).toBe("ghost");
+  });
+
+  it("offers Family Registration to a Game Master only, just above never mind", () => {
+    expect(clerkMenuChoices(false).map((choice) => choice.id)).toEqual(["board", "bug", "never"]);
+    const choices = clerkMenuChoices(true);
+    expect(choices.map((choice) => choice.id)).toEqual(["board", "bug", "registration", "never"]);
+    expect(choices[2]).toMatchObject({ label: "Family Registration", icon: "file-signature" });
+    expect(choices.some((choice) => choice.id === "announce")).toBe(false);
   });
 
   it("asks with the stone tablet rising in the Town Hall's brown, and Escape is never mind", () => {
-    const prompt = clerkMenuPrompt();
+    const prompt = clerkMenuPrompt(true);
     expect(prompt).toMatchObject({ speaker: CLERK, accent: "townHall", sprite: "tablet", cancelId: "never" });
+    expect(prompt.choices.map((choice) => choice.id)).toEqual(["board", "bug", "registration", "never"]);
+    expect(clerkMenuPrompt(false).choices.map((choice) => choice.id)).toEqual(["board", "bug", "never"]);
     expect(accentOf(prompt.accent)).toBe(BUILDING_ACCENTS.townHall);
   });
 
   it("names each errand the way the board does, and says it is coming soon", () => {
-    expect(CLERK_ERRANDS).toEqual({ announce: "Announcements", bug: "Bug reports", feature: "Feature suggestions" });
+    expect(CLERK_ERRANDS).toEqual({ board: "Posting on the Board", bug: "Bug reports", registration: "Family registration" });
     expect(comingSoonPrompt("Bug reports")).toMatchObject({
       speaker: CLERK,
       accent: "townHall",
       lines: ["*shuffles papers* Bug reports: coming soon, friend."],
       cancelId: "ok",
     });
+  });
+
+  it("says the courier is late and offers to try again, or never mind", () => {
+    const prompt = courierLatePrompt();
+    expect(prompt).toMatchObject({
+      speaker: CLERK,
+      accent: "townHall",
+      sprite: "tablet",
+      lines: ["*peers out the window* The courier hasn't arrived from the city yet."],
+      cancelId: "never",
+    });
+    expect(prompt.choices.map((choice) => [choice.id, choice.label])).toEqual([
+      ["retry", "Try again"],
+      ["never", "Never mind"],
+    ]);
+    expect(prompt.choices[0].icon).toBe("redo");
+    expect(prompt.choices[1].tone).toBe("ghost");
   });
 });

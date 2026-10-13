@@ -3,6 +3,7 @@ import ionic from "@/lib/mixins/ionic";
 
 import {
   arrowBack,
+  checkmark,
   chevronBack,
   chevronForward,
   stop,
@@ -24,7 +25,8 @@ import {
   storefrontOutline,
   banOutline
 } from "ionicons/icons";
-import { modalController, onIonViewWillEnter } from "@ionic/vue";
+import { actionSheetController, modalController, onIonViewWillEnter } from "@ionic/vue";
+import { appSheet } from "@/components/organisms/XpApp/useAppSkin";
 import debug from "@/lib/utils/debug";
 import { play$fx } from "@/assets/fx";
 // Import ATM Modal component
@@ -84,6 +86,15 @@ interface GpAmount {
   gp?: number | string;
 }
 
+type ShelfFilter = "all" | "affordable" | "out-of-budget";
+
+// The ways to look at the shelves, picked from the shelves sheet
+const SHELF_FILTERS: ReadonlyArray<{ id: ShelfFilter; label: string }> = [
+  { id: "all", label: "All" },
+  { id: "affordable", label: "Can Afford" },
+  { id: "out-of-budget", label: "Can't Afford" },
+];
+
 // The general store you reach from Home Town; also where an unknown shop id ends up.
 const DEFAULT_SHOP_ID = "hometown-market";
 
@@ -131,11 +142,13 @@ export default defineComponent({
         "witchs-hut": require("@/assets/images/backgrounds/shops/witch's-hut.webp"),
         "snow-shack": require("@/assets/images/backgrounds/shops/snow-shack.webp"),
         "pond-of-life": require("@/assets/images/backgrounds/shops/pond-of-life.webp"),
-        // For other shops without specific backgrounds, use the default
-        "hermits-tent": require("@/assets/images/midjourney/shop.webp"),
-        "crystal-caverns": require("@/assets/images/midjourney/shop.webp"),
+        "hermits-tent": require("@/assets/images/backgrounds/shops/hermits-tent.webp"),
+        "crystal-caverns": require("@/assets/images/backgrounds/shops/crystal-caverns.webp"),
+        "cloud-market": require("@/assets/images/backgrounds/shops/cloud-market.webp"),
+        "theia-city": require("@/assets/images/backgrounds/shops/theia-city.webp"),
+        // The balloon stands in whichever world it visits today, so it shows that world (shopBackgroundUrl)
         "traveling-merchant": require("@/assets/images/midjourney/shop.webp"),
-        "theia-city": require("@/assets/images/midjourney/shop.webp"),
+        // Home Town's market and any shop the Game Master adds
         default: require("@/assets/images/midjourney/shop.webp")
       },
       // Each shop's sign. Who minds the shop and what they say live in SHOP_CLERK_DEFAULTS (ShopsDb),
@@ -309,8 +322,26 @@ export default defineComponent({
       await this.reveal.ask(atmNotice(this.voice, receipt, { sprite: "coins", sound: action === "payDebt" ? "success" : "coins" }));
     },
 
-    selectShelf($ev) {
-      this.shelves = $ev.detail.value || [];
+    // The shelves rise as the game's sheet at the bottom of the screen, ringed in the shop's colour
+    async openShelfFilter() {
+      if (!this.isOpen) return;
+      const sheet = await actionSheetController.create({
+        header: "Shelves",
+        ...appSheet(undefined, `xp-app-sheet--${this.voice.accent}`),
+        buttons: [
+          ...SHELF_FILTERS.map((filter) => ({
+            text: filter.label,
+            icon: filter.id === this.shelfFilter ? checkmark : undefined,
+            handler: () => {
+              this.play$fx("select");
+              this.setShelfFilter(filter.id);
+            },
+          })),
+          { text: "Cancel", role: "cancel" },
+        ],
+      });
+      this.play$fx("openMenu");
+      await sheet.present();
     },
     closeModal(_itemId) {
       debug.log("Closing modal with itemId:", _itemId);
@@ -424,8 +455,9 @@ export default defineComponent({
     const closeInspect = () => {
       inspectedItem.value = null;
     };
-    const shelfFilter = ref<"all" | "affordable" | "out-of-budget">("all");
-    const setShelfFilter = (filter: "all" | "affordable" | "out-of-budget") => {
+    const shelfFilter = ref<ShelfFilter>("all");
+    const shelfFilterLabel = computed(() => SHELF_FILTERS.find((filter) => filter.id === shelfFilter.value)?.label ?? "All");
+    const setShelfFilter = (filter: ShelfFilter) => {
       shelfFilter.value = filter;
       if (filter === "all") {
         shelves.value = ["affordable", "out-of-budget"];
@@ -491,19 +523,11 @@ export default defineComponent({
       });
     });
 
-    const customAlertOptions = {
-      header: "Shelves",
-      subHeader: "Select which shelves to see",
-      message: "What can I show you...?",
-      translucent: true,
-    };
-
     return {
       t,
       words,
       reveal,
       prompt: reveal.prompt,
-      customAlertOptions,
       storefrontOutline,
       banOutline,
       chevronBack,
@@ -551,6 +575,7 @@ export default defineComponent({
       openInspect,
       closeInspect,
       shelfFilter,
+      shelfFilterLabel,
       setShelfFilter,
     };
   },

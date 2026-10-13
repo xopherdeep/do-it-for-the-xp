@@ -1,0 +1,135 @@
+.town-hall {
+  // The portal's dock floats over the bottom of every page: the pages' own controls stand above it
+  &.ion-page ion-content {
+    --padding-bottom: 0px;
+  }
+
+  &.ion-page ion-fab.fab-vertical-bottom {
+    bottom: 16px;
+  }
+
+  .th-footer {
+    padding-bottom: var(--xp-dock-height, 0px);
+  }
+
+  .th-boards {
+    --min-height: 0;
+
+    .th-boards__chips {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      padding: 4px 8px;
+
+      ion-chip {
+        --color: var(--ion-color-light);
+        --background: transparent;
+        min-height: 40px;
+        margin: 4px;
+        border: 1px solid var(--ion-color-light);
+
+        &:not(.chip-outline) {
+          --color: var(--ion-color-primary);
+          --background: var(--ion-color-light);
+        }
+      }
+    }
+  }
+
+  ion-segment {
+    --background: var(--ion-color-primary);
+
+    ion-segment-button {
+      --color: var(--ion-color-light);
+      --color-checked: var(--ion-color-primary);
+      --background-checked: var(--ion-color-light);
+      min-height: 56px;
+    }
+  }
+
+  // Room under the last card for the clerk's button
+  .th-body {
+    padding: 12px 12px 88px;
+  }
+
+  ion-card {
+    margin: 0 0 12px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  ion-chip {
+    margin: 4px;
+  }
+
+  .th-post__image {
+    width: 100%;
+    height: 200px;
+    overflow: hidden;
+
+    ion-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  }
+
+  .th-post__tags {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+  }
+
+  .th-post__actions {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+  }
+
+  .th-comments {
+    margin-top: 8px;
+    border-top: 1px solid var(--ion-color-light-shade, rgba(0, 0, 0, 0.15));
+  }
+
+  .th-comments__note {
+    margin: 8px 0 0;
+    font-style: italic;
+  }
+
+  .th-comment {
+    padding: 8px 0;
+
+    .th-comment__head {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 8px;
+    }
+
+    p {
+      margin: 4px 0 0;
+    }
+  }
+
+  .th-more {
+    margin: 4px 0 12px;
+  }
+
+  // What WordPress sends can hold images and embeds wider than a phone
+  .th-post__excerpt,
+  .th-topic,
+  .th-patch-note {
+    img,
+    figure,
+    iframe {
+      max-width: 100%;
+      height: auto;
+    }
+  }
+
+  .wp-block-image img {
+    max-width: 100%;
+    height: auto;
+  }
+}

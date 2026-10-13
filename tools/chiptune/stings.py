@@ -1,7 +1,8 @@
-"""Short stings in the soundtrack's own voice: the battle encounter. python3 stings.py"""
-import os, subprocess
+"""Short stings in the soundtrack's own voice: the battle encounter and the cloud travel flourish.
+python3 stings.py [encounter] [travel]   (no names renders them all)"""
+import os, subprocess, sys
 import numpy as np
-from chip import SR, lowpass, noise, env_adsr
+from chip import SR, lowpass, noise, env_adsr, hz, midi
 import snes
 
 OUT = os.path.join(os.path.dirname(__file__), "..", "..", "src", "assets", "audio", "chiptune", "sfx")
@@ -44,4 +45,23 @@ def encounter():
     st = snes.hall(st, wet=0.22)
     return st
 
-write("encounter", encounter())
+def travel(notes=("D5", "F#5", "A5", "D6")):
+    """Riding the clouds between places: a clean, quiet marimba flourish that climbs a D major arpeggio over the
+    cover sweep. No noise, no bell ring, almost no reverb: it plays, it is gone."""
+    n = int(0.9 * SR)
+    out = np.zeros((n, 2))
+    for i, name in enumerate(notes):
+        freq = hz(midi(name))
+        start = int((0.02 + i * 0.085) * SR); d = int(0.5 * SR)
+        note = snes.marimba(freq, d) * (0.55 + 0.1 * i)
+        # the notes step across the field, left to right, so the flourish moves like the clouds do
+        pan = 0.3 + 0.4 * i / max(1, len(notes) - 1)
+        out[start:start + d, 0] += note[: n - start] * (1 - pan)
+        out[start:start + d, 1] += note[: n - start] * pan
+    out = snes.snes_echo(out, delay_s=0.11, feedback=0.3, wet=0.12, taps=2)
+    return snes.highshelf_cut(out, cutoff=5200, amount=0.4)
+
+SONGS = {"encounter": encounter, "travel": travel}
+LEVELS = {"travel": 0.6}   # a quiet one: it plays every time the hero moves between places
+for name in (sys.argv[1:] or SONGS):
+    write(name, SONGS[name](), peak=LEVELS.get(name, 0.85))

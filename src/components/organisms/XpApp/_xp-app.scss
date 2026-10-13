@@ -724,7 +724,27 @@ $xp-app-sheet-accents: (
   calendar: #3fbf5f,
 );
 
-@each $name, $color in $xp-app-sheet-accents {
+// A building's sheet (a shop's shelves) takes the building's accent the same way: appSheet(undefined, `xp-app-sheet--<name>`).
+// Keep in step with BUILDING_ACCENTS in RevealPrompt/revealPrompt.ts.
+$xp-building-sheet-accents: (
+  bank: #d4a017,
+  atm: #d4a017,
+  hospital: #e05a7a,
+  hotel: #e2783c,
+  townHall: #b8864b,
+  accessoryShop: #3f6fd8,
+  plains: #6cbf4a,
+  forest: #2f8f4e,
+  islands: #2fb8c8,
+  swamps: #7f8f3a,
+  mountains: #8a94a8,
+  sands: #d9b25f,
+  tundra: #8fd3f0,
+  clouds: #a8c8f0,
+  moon: #b39ddb,
+);
+
+@each $name, $color in map-merge($xp-app-sheet-accents, $xp-building-sheet-accents) {
   ion-action-sheet.xp-app-sheet--#{$name} {
     --xp-app-accent: #{$color};
   }

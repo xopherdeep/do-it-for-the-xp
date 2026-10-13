@@ -64,19 +64,18 @@
               </ion-button>
             </ion-col>
             <ion-col size="6">
-              <ion-select
+              <!-- The picked shelves on a button; the choices rise as the game's sheet, in thumb reach -->
+              <button
+                type="button"
                 class="shelf-filter"
-                interface="popover"
-                :interface-options="{ side: 'top', alignment: 'center', size: 'cover' }"
+                data-test="shelf-filter"
                 aria-label="Which shelves"
-                :value="shelfFilter"
                 :disabled="!isOpen"
-                @ionChange="setShelfFilter($event.detail.value)"
+                @click="openShelfFilter"
               >
-                <ion-select-option value="all">All</ion-select-option>
-                <ion-select-option value="affordable">Can Afford</ion-select-option>
-                <ion-select-option value="out-of-budget">Can't Afford</ion-select-option>
-              </ion-select>
+                <span>{{ shelfFilterLabel }}</span>
+                <i class="fad fa-chevron-up" aria-hidden="true" />
+              </button>
             </ion-col>
             <ion-col size="3">
               <ion-button color="light" expand="block" :disabled="!canGoForward" aria-label="Next item" @click="shelfRef?.next()">

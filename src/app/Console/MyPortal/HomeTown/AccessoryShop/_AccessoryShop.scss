@@ -61,15 +61,30 @@
     }
   }
 
-  // The shelf filter sits between the < > buttons and looks like one of them
+  // The shelf filter sits between the < > buttons and looks like one of them; it opens the shelves sheet
   .shelf-filter {
-    --padding-start: 12px;
-    --padding-end: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
     min-height: 36px;
+    padding: 0 12px;
+    border: 0;
     border-radius: 4px;
     background: var(--ion-color-light);
     color: var(--ion-color-light-contrast);
     font-family: "StatusPlz", "Apple Kid", sans-serif;
-    justify-content: center;
+    text-transform: uppercase;
+    cursor: pointer;
+
+    &:active {
+      opacity: 0.7;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: default;
+    }
   }
 }

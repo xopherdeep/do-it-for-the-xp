@@ -1,5 +1,8 @@
 import { analyticsEnabled, pageViewFor, startAnalytics, GA_MEASUREMENT_ID } from "@/lib/services/analytics/analytics";
 
+const mockLogEvent = jest.fn(() => Promise.resolve());
+jest.mock("@capacitor-firebase/analytics", () => ({ FirebaseAnalytics: { logEvent: mockLogEvent } }));
+
 const route = (path: string, name?: string, fullPath = path) =>
   ({ name, fullPath, matched: [{ path: "/" }, { path }] }) as any;
 
@@ -75,5 +78,24 @@ describe("startAnalytics", () => {
     expect(views).toEqual([
       ["event", "page_view", { page_location: "http://localhost/hospital/:userId", page_path: "/hospital/:userId", page_title: "hospital" }],
     ]);
+  });
+
+  it("in the Android app sends screen_view through native Firebase instead of loading gtag", async () => {
+    process.env.NODE_ENV = "production";
+    mockLogEvent.mockClear();
+    const { hooks, router } = fakeRouter();
+    startAnalytics(router, "android");
+
+    expect(window.gtag).toBeUndefined();
+    expect(document.querySelector("script[src*='googletagmanager']")).toBeNull();
+
+    hooks[0](route("/bank/:userId?/", "gold-bank"), undefined);
+    hooks[0](route("/shop/:merchant?/:userId?"), undefined, new Error("aborted"));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mockLogEvent).toHaveBeenCalledTimes(1);
+    expect(mockLogEvent).toHaveBeenCalledWith({
+      name: "screen_view",
+      params: { screen_class: "/bank/:userId", screen_name: "gold-bank" },
+    });
   });
 });

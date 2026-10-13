@@ -8,7 +8,6 @@ import purchaseWAV from "@/assets/audio/Purchase.wav";
 import pointsMP3 from "@/assets/audio/points.mp3";
 import key from "@/assets/audio/key.mp3";
 import useKey from "@/assets/audio/use-key.mp3";
-import map from "@/assets/audio/map.mp3";
 
 export const earthboundSounds = {
   BGM: earthboundBGM,
@@ -74,7 +73,7 @@ export const earthboundSounds = {
   okdesuka: new Audio(earthbound.okdesuka),
   key: new Audio(key),
   useKey: new Audio(useKey),
-  map: new Audio(map),
+  map: new Audio(sting("travel")),
   step,
   steps,
 };
@@ -101,7 +100,7 @@ export const chronoTriggerSounds = {
 
   key: new Audio(key),
   useKey: new Audio(useKey),
-  map: new Audio(map),
+  map: new Audio(sting("travel")),
   error: new Audio(chronoTrigger.alert),
   enterBattle: new Audio(chronoTrigger.battleStart),
   startBattle: new Audio(chronoTrigger.battleStart),
@@ -157,7 +156,7 @@ export const finalFantasySounds = {
 
   key: new Audio(key),
   useKey: new Audio(useKey),
-  map: new Audio(map),
+  map: new Audio(sting("travel")),
   error: new Audio(chronoTrigger.alert),
   enterBattle: new Audio(sting("encounter")),
   startBattle: new Audio(sting("encounter")),

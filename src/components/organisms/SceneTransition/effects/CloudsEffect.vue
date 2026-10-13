@@ -31,16 +31,8 @@ import PixelRuns from "@/app/Console/TempleGrounds/components/PixelRuns.vue";
 import { play$fx } from "@/assets/fx";
 import { feel } from "@/lib/services/feedback/haptics";
 import { prefersReducedMotion } from "../sceneTransitionController";
-import {
-  CLOUD_LAVENDER,
-  CLOUD_MINT,
-  PEGASUS_H,
-  PEGASUS_W,
-  SKY,
-  paintCloudLayer,
-  pegasusRuns,
-  type CloudLayerSpec,
-} from "./cloudSprite";
+import { CLOUD_BANKS, PEGASUS_H, PEGASUS_W, paintCloudLayer, pegasusRuns } from "./cloudSprite";
+import { skyGradient } from "./skyBands";
 
 const props = defineProps<{ plan: TransitionPlan; phase: "cover" | "covered" | "reveal" }>();
 const emit = defineEmits<{ (e: "covered"): void; (e: "revealed"): void }>();
@@ -57,18 +49,12 @@ const reveal = sweepMs(650);
 const vars = computed(() => ({
   "--cover-ms": `${cover}ms`,
   "--reveal-ms": `${reveal}ms`,
-  "--sky": SKY,
+  "--sky": skyGradient(props.plan.element),
 }));
 
-// Far, middle and near banks: bigger cells move faster for parallax
-const SPECS: CloudLayerSpec[] = [
-  { scale: 3, palette: CLOUD_MINT, cloudW: 48, cloudH: 26, seed: 11 },
-  { scale: 4, palette: CLOUD_LAVENDER, cloudW: 44, cloudH: 26, seed: 23 },
-  { scale: 5, palette: CLOUD_LAVENDER, cloudW: 40, cloudH: 24, seed: 37 },
-];
 const layers = calm
   ? []
-  : SPECS.map((spec) => paintCloudLayer(spec, window.innerWidth || 390, window.innerHeight || 844));
+  : CLOUD_BANKS.map((spec) => paintCloudLayer(spec, window.innerWidth || 390, window.innerHeight || 844));
 
 const pegasusSprite = pegasus.value ? pegasusRuns() : [];
 const streaks = Array.from({ length: 9 }, (_, i) => ({
@@ -137,14 +123,21 @@ onBeforeUnmount(() => clearTimeout(timer));
 .clouds-layer svg {
   display: block;
 }
-/* The far bank takes the whole phase, the near bank is quicker and starts later (cover) or leaves first (reveal) */
-.is-cover .layer-0 { animation: sweep-in var(--cover-ms) cubic-bezier(0.2, 0.6, 0.3, 1) both; }
-.is-cover .layer-1 { animation: sweep-in calc(var(--cover-ms) * 0.9) cubic-bezier(0.2, 0.6, 0.3, 1) calc(var(--cover-ms) * 0.1) both; }
-.is-cover .layer-2 { animation: sweep-in calc(var(--cover-ms) * 0.8) cubic-bezier(0.2, 0.6, 0.3, 1) calc(var(--cover-ms) * 0.2) both; }
-.is-reveal .layer-2 { animation: sweep-out calc(var(--reveal-ms) * 0.8) cubic-bezier(0.7, 0.1, 0.8, 0.4) both; }
-.is-reveal .layer-1 { animation: sweep-out calc(var(--reveal-ms) * 0.9) cubic-bezier(0.7, 0.1, 0.8, 0.4) calc(var(--reveal-ms) * 0.05) both; }
-.is-reveal .layer-0 { animation: sweep-out calc(var(--reveal-ms) * 0.9) cubic-bezier(0.7, 0.1, 0.8, 0.4) calc(var(--reveal-ms) * 0.1) both; }
+/*
+ * Flying up into the clouds (cover): the banks rush down the screen, the near bank fastest, and the sky closes in.
+ * Coming down out of them (reveal): the banks fall away upward, gathering speed like a drop, and the new place appears.
+ * The far bank takes the whole phase, the near bank is quicker and starts later (cover) or leaves first (reveal).
+ */
+.is-cover .layer-0 { animation: climb-in var(--cover-ms) cubic-bezier(0.2, 0.6, 0.3, 1) both; }
+.is-cover .layer-1 { animation: climb-in calc(var(--cover-ms) * 0.9) cubic-bezier(0.2, 0.6, 0.3, 1) calc(var(--cover-ms) * 0.1) both; }
+.is-cover .layer-2 { animation: climb-in calc(var(--cover-ms) * 0.8) cubic-bezier(0.2, 0.6, 0.3, 1) calc(var(--cover-ms) * 0.2) both; }
+.is-reveal .layer-2 { animation: descend-out calc(var(--reveal-ms) * 0.8) cubic-bezier(0.7, 0.1, 0.8, 0.4) both; }
+.is-reveal .layer-1 { animation: descend-out calc(var(--reveal-ms) * 0.9) cubic-bezier(0.7, 0.1, 0.8, 0.4) calc(var(--reveal-ms) * 0.05) both; }
+.is-reveal .layer-0 { animation: descend-out calc(var(--reveal-ms) * 0.9) cubic-bezier(0.7, 0.1, 0.8, 0.4) calc(var(--reveal-ms) * 0.1) both; }
 .is-covered .clouds-layer { transform: none; }
+/* The Pegasus flies between regions at the same height: its banks still sweep sideways */
+.is-pegasus.is-cover .clouds-layer { animation-name: sweep-in; }
+.is-pegasus.is-reveal .clouds-layer { animation-name: sweep-out; }
 
 .clouds-streak {
   position: absolute;
@@ -180,6 +173,8 @@ onBeforeUnmount(() => clearTimeout(timer));
 @keyframes sky-out { from { opacity: 1; } to { opacity: 0; } }
 @keyframes sweep-in { from { transform: translateX(100%); } to { transform: translateX(0); } }
 @keyframes sweep-out { from { transform: translateX(0); } to { transform: translateX(-100%); } }
+@keyframes climb-in { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+@keyframes descend-out { from { transform: translateY(0); } to { transform: translateY(-100%); } }
 @keyframes streak {
   0% { opacity: 0; transform: translateX(0); }
   15% { opacity: 1; }

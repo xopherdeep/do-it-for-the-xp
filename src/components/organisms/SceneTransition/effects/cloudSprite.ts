@@ -36,8 +36,6 @@ export const CLOUD_MINT: CloudPalette = {
   ink: "#3c6488",
 };
 
-export const SKY = "#68a8d8";
-
 /** Small, repeatable random numbers so a bank looks the same every time it is flown through. */
 export const seeded = (seed: number): (() => number) => {
   let s = seed >>> 0;
@@ -121,7 +119,20 @@ export interface CloudLayer {
   runs: PixelRun[];
 }
 
-/** Stamp clouds over a grid that covers the screen so the bank leaves almost no gaps (the sky field fills the rest). */
+/** Far, middle and near banks: bigger cells move faster for parallax. */
+export const CLOUD_BANKS: CloudLayerSpec[] = [
+  { scale: 3, palette: CLOUD_MINT, cloudW: 48, cloudH: 26, seed: 11 },
+  { scale: 4, palette: CLOUD_LAVENDER, cloudW: 44, cloudH: 26, seed: 23 },
+  { scale: 5, palette: CLOUD_LAVENDER, cloudW: 40, cloudH: 24, seed: 37 },
+];
+
+/** How far apart the clouds of a bank sit, in cloud widths and heights, and the share of spots left empty. */
+const CLOUD_SPACING = { x: 1.0, y: 0.9, missing: 0.15 };
+
+/**
+ * Scatter clouds over a grid that covers the screen. They sit about a cloud apart (rows staggered, spots jittered, the
+ * odd one missing) so a bank reads as clouds with sky between them, never a wall; the sky field fills the gaps.
+ */
 export const paintCloudLayer = (spec: CloudLayerSpec, width: number, height: number): CloudLayer => {
   const { scale, palette, cloudW, cloudH, seed } = spec;
   const cols = Math.ceil(width / scale) + 1;
@@ -132,13 +143,19 @@ export const paintCloudLayer = (spec: CloudLayerSpec, width: number, height: num
   );
   const target = createGrid(cols, rows);
   const stamps: Array<{ x: number; y: number; sprite: Grid }> = [];
-  const stepX = cloudW * 0.55;
-  const stepY = cloudH * 0.5;
+  const stepX = cloudW * CLOUD_SPACING.x;
+  const stepY = cloudH * CLOUD_SPACING.y;
   let row = 0;
   for (let y = -cloudH / 2; y < rows + cloudH / 2; y += stepY, row++)
     for (let x = -cloudW / 2 + (row % 2 ? stepX / 2 : 0); x < cols + cloudW / 2; x += stepX) {
       const sprite = variants[Math.floor(rand() * variants.length)];
-      stamps.push({ x: Math.round(x + (rand() - 0.5) * stepX * 0.5), y: Math.round(y + (rand() - 0.5) * stepY * 0.4), sprite });
+      const isMissing = rand() < CLOUD_SPACING.missing;
+      if (isMissing) continue;
+      stamps.push({
+        x: Math.round(x + (rand() - 0.5) * stepX * 0.6),
+        y: Math.round(y + (rand() - 0.5) * stepY * 0.5),
+        sprite,
+      });
     }
   // Lower clouds go on last so they overlap the ones above them
   stamps.sort((a, b) => a.y - b.y);

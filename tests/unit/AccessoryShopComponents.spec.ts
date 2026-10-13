@@ -1,4 +1,4 @@
-import { mount } from "@vue/test-utils";
+import { flushPromises, mount } from "@vue/test-utils";
 import ShopItemSlide from "@/app/Console/MyPortal/HomeTown/AccessoryShop/components/ShopItemSlide.vue";
 import ShopItemModal from "@/app/Console/MyPortal/HomeTown/AccessoryShop/components/ShopItemModal.vue";
 import XpNpcDialog from "@/components/molecules/Dialog/XpNpcDialog.vue";
@@ -14,6 +14,18 @@ jest.mock("swiper/vue", () => ({ Swiper: { template: "<div><slot /></div>" }, Sw
   virtual: true,
 });
 jest.mock("swiper/css", () => ({}), { virtual: true });
+// The shelves sheet is Ionic's overlay; the spec reads what the page asks it to show
+interface SheetButton {
+  text: string;
+  icon?: string;
+  role?: string;
+  handler?: () => void;
+}
+const mockCreateSheet = jest.fn();
+jest.mock("@ionic/vue", () => {
+  const actual = jest.requireActual("@ionic/vue");
+  return { ...actual, actionSheetController: { create: (options: unknown) => mockCreateSheet(options) } };
+});
 
 // The voxel model needs WebGL; these specs are about the shelf, not the renderer
 const itemModelStub = { template: "<div class='item-model-stub' />", props: ["icon", "photo", "name", "size", "spinning"] };
@@ -229,9 +241,31 @@ describe("AccessoryShop Page", () => {
     expect(wrapper.find(".header-wallet-btn").exists()).toBe(true);
     expect(wrapper.find(".clerk-fab").exists()).toBe(true);
     expect(wrapper.findAll(".ion-button-stub")).toHaveLength(2);
-    expect(wrapper.text()).toContain("Can Afford");
+    expect(wrapper.find("[data-test='shelf-filter']").text()).toBe("All");
     // The Hermit's Tent stands in the Forest, so its bars are the Forest's green
     expect(wrapper.find(".toolbar-stub").attributes("data-color")).toBe("success");
+  });
+
+  it("opens the shelves as the game's sheet in the shop's colour, and a pick filters the shelf", async () => {
+    const present = jest.fn();
+    mockCreateSheet.mockReset().mockResolvedValueOnce({ present });
+    const wrapper = await mountShop("hermits-tent");
+    await wrapper.find("[data-test='shelf-filter']").trigger("click");
+    await flushPromises();
+
+    const options = mockCreateSheet.mock.calls[0][0];
+    const buttons = options.buttons as SheetButton[];
+    expect(present).toHaveBeenCalled();
+    expect(options.header).toBe("Shelves");
+    // The Earthbound box, ringed in the Forest's accent
+    expect(options.cssClass).toEqual(["xp-app-sheet", "xp-app-sheet--forest"]);
+    expect(buttons.map((b) => b.text)).toEqual(["All", "Can Afford", "Can't Afford", "Cancel"]);
+    expect(buttons[0].icon).toBeDefined();
+    expect(buttons[3].role).toBe("cancel");
+
+    buttons[1].handler?.();
+    await wrapper.vm.$nextTick();
+    expect(wrapper.find("[data-test='shelf-filter']").text()).toBe("Can Afford");
   });
 
   it("dresses the traveling merchant's shop in the colours of the world the merchant visits today", async () => {
