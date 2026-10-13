@@ -5,7 +5,9 @@
  *
  * Seven checks, always in this order: Entrance, Exit, Boss, Boss Key, Master Room, Dungeon Map, Compass. The first
  * five are what a temple needs to be finished; the map and the compass are nice to have, so they are listed and
- * counted in the summary but never fail `passed`.
+ * counted in the summary but never fail `passed`. A caller that knows the quests behind the rooms can hand over a
+ * difficulty lookup (`options.sizeOf`) and the audit adds an eighth, just as optional, check: the temple's size
+ * ("Size 17 of 21", docs/Quest-Rooms-Spec.md section 9).
  *
  * Rooms are read the way the editor draws them: every cell of every floor of the maze, looked up in the room
  * definitions (a token a hundred cells share counts a hundred times; a definition no cell uses counts for nothing).
@@ -15,8 +17,9 @@
 import { asChestRoom, dungeonItemId } from '@/lib/services/temples/ChestLoot';
 import { VOID } from '@/lib/engine/dungeons/roomTypes';
 import { isWallToken } from '@/lib/engine/dungeons/SpatialPalette';
+import { TEMPLE_FULL_SIZE, templeSize, type SizedRoom, type TempleSize } from '@/lib/services/temples/questRooms';
 
-export type AuditCheckId = 'entrance' | 'exit' | 'boss' | 'bossKey' | 'masterRoom' | 'map' | 'compass';
+export type AuditCheckId = 'entrance' | 'exit' | 'boss' | 'bossKey' | 'masterRoom' | 'map' | 'compass' | 'size';
 
 export interface AuditCheck {
   id: AuditCheckId;
@@ -33,6 +36,20 @@ export interface AuditResult {
   checks: AuditCheck[];
   /** Every required check is ok: the temple can be finished */
   passed: boolean;
+}
+
+/**
+ * What one room adds to the temple's size: a quest's difficulty, a SizedRoom when the room is dormant (its template's
+ * difficulty, "if woken"), or nothing for a room that holds no quest (a trap, a classic beast room, a chest).
+ */
+export type SizeShare = SizedRoom | number | null | undefined;
+
+export interface AuditOptions {
+  /**
+   * The difficulty lookup: what each room of the maze adds to the temple's size. Without it the audit has no size
+   * check. It is called once for every cell of the maze, with the room as the audit reads it.
+   */
+  sizeOf?: (room: AuditableRoom) => SizeShare;
 }
 
 /** The part of a temple the audit reads. A saved temple, the editor's copy and a bare layout all fit. */
@@ -127,8 +144,28 @@ const oneOf = (count: number, many: string): string => {
   return tooMany(count, many);
 };
 
-/** Can this temple be finished? Runs the seven checks over the layout the temple holds. */
-export const auditTemple = (temple: AuditableTemple | null | undefined): AuditResult => {
+/** "Size 17 of 21", with the part that sleeps when some does: "Size 17 of 21 · 9 if woken" */
+export const describeTempleSize = (size: Pick<TempleSize, 'total' | 'dormant'>): string =>
+  `Size ${size.total} of ${TEMPLE_FULL_SIZE}${size.dormant > 0 ? ` · ${size.dormant} if woken` : ''}`;
+
+/** The size check: the lookup's share of every room added up. Optional: a small temple is a draft, not a mistake. */
+const sizeCheck = (rooms: AuditableRoom[], sizeOf: (room: AuditableRoom) => SizeShare): AuditCheck => {
+  const shares = rooms
+    .map((room): SizedRoom | null => {
+      const share = sizeOf(room);
+      if (share === null || share === undefined) return null;
+      return typeof share === 'number' ? { difficulty: share } : share;
+    })
+    .filter((share): share is SizedRoom => share !== null);
+  const size = templeSize(shares);
+  return { id: 'size', label: 'Size', ok: size.isFull, detail: describeTempleSize(size), optional: true };
+};
+
+/**
+ * Can this temple be finished? Runs the seven checks over the layout the temple holds, and the size check as an
+ * eighth when `options.sizeOf` is given.
+ */
+export const auditTemple = (temple: AuditableTemple | null | undefined, options: AuditOptions = {}): AuditResult => {
   const rooms = placedRooms(temple);
 
   const entrances = countOf(rooms, (room) => typeOf(room) === 'entrance');
@@ -163,6 +200,7 @@ export const auditTemple = (temple: AuditableTemple | null | undefined): AuditRe
     { id: 'map', label: 'Dungeon Map', ok: maps > 0, detail: maps > 0 ? 'Placed' : 'Missing', optional: true },
     { id: 'compass', label: 'Compass', ok: compasses > 0, detail: compasses > 0 ? 'Placed' : 'Missing', optional: true },
   ];
+  if (options.sizeOf) checks.push(sizeCheck(rooms, options.sizeOf));
 
   return { checks, passed: checks.every((check) => check.ok || check.optional === true) };
 };

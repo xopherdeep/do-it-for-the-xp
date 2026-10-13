@@ -2,177 +2,119 @@
   <ion-page class="xp-temple-beasts">
     <ion-content class="transparent-content">
       <div class="content-wrapper">
-        <!-- Summary Header -->
-        <div class="summary-header" v-if="templeBeastsWithDetails.length > 0">
-          <div class="stat-pills">
-            <div class="stat-pill">
-              <i class="fad fa-dragon"></i>
-              <span>{{ templeBeastsWithDetails.length }} Threats</span>
-            </div>
-            <div class="stat-pill" v-if="bossCount > 0">
-              <i class="fad fa-crown text-warning"></i>
-              <span>{{ bossCount }} Boss{{ bossCount !== 1 ? "es" : "" }}</span>
-            </div>
-            <div class="stat-pill" v-if="minibossCount > 0">
-              <i class="fad fa-helmet-battle text-tertiary"></i>
-              <span>{{ minibossCount }} Miniboss{{
-                minibossCount !== 1 ? "es" : ""
-                }}</span>
-            </div>
+        <!-- What the temple is about, how big it is, and what the dots mean -->
+        <TempleQuestsHeader v-if="hasRooms" :view="view" :theme-label="quests.themeLabel.value" />
+
+        <div class="stat-pills" v-if="totalRooms > 0">
+          <div class="stat-pill">
+            <i class="fad fa-dragon"></i>
+            <span>{{ totalRooms }} Threats</span>
+          </div>
+          <div class="stat-pill" v-if="roomCount('boss') > 0">
+            <i class="fad fa-crown text-warning"></i>
+            <span>{{ roomCount("boss") }} Boss{{ roomCount("boss") !== 1 ? "es" : "" }}</span>
+          </div>
+          <div class="stat-pill" v-if="roomCount('miniboss') > 0">
+            <i class="fad fa-helmet-battle text-tertiary"></i>
+            <span>{{ roomCount("miniboss") }} Miniboss{{ roomCount("miniboss") !== 1 ? "es" : "" }}</span>
           </div>
         </div>
 
-        <!-- Beasts Grouped by Tier -->
-        <ion-accordion-group v-if="templeBeastsWithDetails.length > 0" :value="activeTiers" :multiple="true"
-          @ionChange="onAccordionChange">
-          <!-- Boss Tier -->
-          <ion-accordion v-if="getBeastsByTierGroup('boss').length > 0" value="boss" class="tier-accordion boss-tier">
-            <ion-item slot="header" class="tier-header">
-              <div class="tier-icon boss">
-                <i class="fad fa-crown"></i>
-              </div>
-              <ion-label>
-                <h2>Bosses</h2>
-                <p>
-                  {{ getBeastsByTierGroup("boss").length }} encounter{{
-                    getBeastsByTierGroup("boss").length !== 1 ? "s" : ""
-                  }}
+        <!-- Rooms Grouped by Tier -->
+        <ion-accordion-group v-if="totalRooms > 0" :value="activeTiers" :multiple="true" @ionChange="onAccordionChange">
+          <template v-for="tier in TIERS" :key="tier.id">
+            <ion-accordion v-if="roomCount(tier.id) > 0" :value="tier.id" class="tier-accordion"
+              :class="`${tier.id}-tier`">
+              <ion-item slot="header" class="tier-header">
+                <div class="tier-icon" :class="tier.id">
+                  <i class="fad" :class="tier.icon"></i>
+                </div>
+                <ion-label>
+                  <h2>{{ tier.title }}</h2>
+                  <p>
+                    {{ roomCount(tier.id) }} encounter{{ roomCount(tier.id) !== 1 ? "s" : "" }}
+                  </p>
+                </ion-label>
+              </ion-item>
+
+              <div slot="content" class="tier-content">
+                <!-- Quest rooms: the quest each holds, or the dormant template waiting to be woken -->
+                <ul class="quest-list" v-if="view.groups[tier.id].length > 0">
+                  <li v-for="row in view.groups[tier.id]" :key="row.key">
+                    <TempleQuestRowCard :row="row" @open="navigateToRoom(row)" />
+                  </li>
+                </ul>
+
+                <!-- Classic beast rooms: listed as they always were -->
+                <p class="classic-label" v-if="view.groups[tier.id].length > 0 && classicEntries(tier.id).length > 0">
+                  Classic beast rooms
                 </p>
-              </ion-label>
-            </ion-item>
-
-            <div slot="content" class="beast-grid">
-              <ion-grid>
-                <ion-row>
-                  <ion-col size="6" size-md="4" size-lg="3" v-for="entry in getBeastsByTierGroup('boss')"
-                    :key="`${entry.roomSymbol}-${entry.beastId}`" :id="`beast-card-${entry.roomSymbol}`">
-                    <div class="beast-card-wrapper" role="button" tabindex="0" @click="openBeastSelector(entry)"
-                      @keydown.enter.self="openBeastSelector(entry)"
-                      @keydown.space.self.prevent="openBeastSelector(entry)">
-                      <XpBeastSelectorItem v-if="entry.beast" :id="entry.beast.id" :name="entry.beast.name"
-                        :avatar="entry.beast.avatar" :bg1="entry.beast.bg1" :bg2="entry.beast.bg2" />
-                      <div v-else class="placeholder-beast boss">
-                        <i class="fad fa-crown fa-3x"></i>
-                        <span class="beast-name">Boss Room</span>
-                      </div>
-                      <div class="room-info-overlay">
-                        <div class="config-token-badge">
-                          {{ entry.roomSymbol }}
+                <div class="beast-grid" v-if="classicEntries(tier.id).length > 0">
+                  <ion-grid>
+                    <ion-row>
+                      <ion-col :size="tier.colSize" :size-md="tier.colMd" :size-lg="tier.colLg"
+                        v-for="entry in classicEntries(tier.id)" :key="`${entry.roomSymbol}-${entry.beastId}`"
+                        :id="`beast-card-${entry.roomSymbol}`">
+                        <div class="beast-card-wrapper" role="button" tabindex="0" @click="openBeastSelector(entry)"
+                          @keydown.enter.self="openBeastSelector(entry)"
+                          @keydown.space.self.prevent="openBeastSelector(entry)">
+                          <XpBeastSelectorItem v-if="entry.beast" :id="entry.beast.id" :name="entry.beast.name"
+                            :avatar="entry.beast.avatar" :bg1="entry.beast.bg1" :bg2="entry.beast.bg2" />
+                          <div v-else class="placeholder-beast" :class="tier.id">
+                            <i class="fad" :class="tier.placeholderIcon"></i>
+                            <span class="beast-name">{{ tier.placeholderLabel }}</span>
+                          </div>
+                          <div class="room-info-overlay" :class="{ small: tier.small }">
+                            <div class="config-token-badge" :class="{ small: tier.small }">
+                              {{ entry.roomSymbol }}
+                            </div>
+                            <XpCoordBadge :size="tier.small ? 'small' : 'medium'" :x="entry.col" :y="entry.row"
+                              @click.stop="navigateToRoom(entry)" />
+                          </div>
                         </div>
-                        <XpCoordBadge :x="entry.col" :y="entry.row" @click.stop="navigateToRoom(entry)" />
-                      </div>
-                    </div>
-                  </ion-col>
-                </ion-row>
-              </ion-grid>
-            </div>
-          </ion-accordion>
-
-          <!-- Miniboss Tier -->
-          <ion-accordion v-if="getBeastsByTierGroup('miniboss').length > 0" value="miniboss"
-            class="tier-accordion miniboss-tier">
-            <ion-item slot="header" class="tier-header">
-              <div class="tier-icon miniboss">
-                <i class="fad fa-helmet-battle"></i>
+                      </ion-col>
+                    </ion-row>
+                  </ion-grid>
+                </div>
               </div>
-              <ion-label>
-                <h2>Minibosses</h2>
-                <p>
-                  {{ getBeastsByTierGroup("miniboss").length }} encounter{{
-                    getBeastsByTierGroup("miniboss").length !== 1 ? "s" : ""
-                  }}
-                </p>
-              </ion-label>
-            </ion-item>
-
-            <div slot="content" class="beast-grid">
-              <ion-grid>
-                <ion-row>
-                  <ion-col size="6" size-md="4" size-lg="3" v-for="entry in getBeastsByTierGroup('miniboss')"
-                    :key="`${entry.roomSymbol}-${entry.beastId}`" :id="`beast-card-${entry.roomSymbol}`">
-                    <div class="beast-card-wrapper" role="button" tabindex="0" @click="openBeastSelector(entry)"
-                      @keydown.enter.self="openBeastSelector(entry)"
-                      @keydown.space.self.prevent="openBeastSelector(entry)">
-                      <XpBeastSelectorItem v-if="entry.beast" :id="entry.beast.id" :name="entry.beast.name"
-                        :avatar="entry.beast.avatar" :bg1="entry.beast.bg1" :bg2="entry.beast.bg2" />
-                      <div v-else class="placeholder-beast miniboss">
-                        <i class="fad fa-helmet-battle fa-3x"></i>
-                        <span class="beast-name">Miniboss</span>
-                      </div>
-                      <div class="room-info-overlay">
-                        <div class="config-token-badge">
-                          {{ entry.roomSymbol }}
-                        </div>
-                        <XpCoordBadge :x="entry.col" :y="entry.row" @click.stop="navigateToRoom(entry)" />
-                      </div>
-                    </div>
-                  </ion-col>
-                </ion-row>
-              </ion-grid>
-            </div>
-          </ion-accordion>
-
-          <!-- Monster Tier -->
-          <ion-accordion v-if="getBeastsByTierGroup('monster').length > 0" value="monster"
-            class="tier-accordion monster-tier">
-            <ion-item slot="header" class="tier-header">
-              <div class="tier-icon monster">
-                <i class="fad fa-skull"></i>
-              </div>
-              <ion-label>
-                <h2>Monsters</h2>
-                <p>
-                  {{ getBeastsByTierGroup("monster").length }} encounter{{
-                    getBeastsByTierGroup("monster").length !== 1 ? "s" : ""
-                  }}
-                </p>
-              </ion-label>
-            </ion-item>
-
-            <div slot="content" class="beast-grid">
-              <ion-grid>
-                <ion-row>
-                  <ion-col size="4" size-md="3" size-lg="2" v-for="entry in getBeastsByTierGroup('monster')"
-                    :key="`${entry.roomSymbol}-${entry.beastId}`" :id="`beast-card-${entry.roomSymbol}`">
-                    <div class="beast-card-wrapper" role="button" tabindex="0" @click="openBeastSelector(entry)"
-                      @keydown.enter.self="openBeastSelector(entry)"
-                      @keydown.space.self.prevent="openBeastSelector(entry)">
-                      <XpBeastSelectorItem v-if="entry.beast" :id="entry.beast.id" :name="entry.beast.name"
-                        :avatar="entry.beast.avatar" :bg1="entry.beast.bg1" :bg2="entry.beast.bg2" />
-                      <div v-else class="placeholder-beast monster">
-                        <i class="fad fa-skull fa-2x"></i>
-                        <span class="beast-name">Monster</span>
-                      </div>
-                      <div class="room-info-overlay small">
-                        <div class="config-token-badge small">
-                          {{ entry.roomSymbol }}
-                        </div>
-                        <XpCoordBadge size="small" :x="entry.col" :y="entry.row" @click.stop="navigateToRoom(entry)" />
-                      </div>
-                    </div>
-                  </ion-col>
-                </ion-row>
-              </ion-grid>
-            </div>
-          </ion-accordion>
+            </ion-accordion>
+          </template>
         </ion-accordion-group>
 
         <!-- Empty State -->
         <div class="glass-card empty-state" v-else>
           <ion-icon :icon="skullOutline" class="empty-icon"></ion-icon>
-          <h2>No Beasts Yet</h2>
+          <h2>No Quests Yet</h2>
           <p>
-            Add monster, miniboss, or boss rooms in the Layout tab to populate
+            Add quest rooms (or classic monster, miniboss or boss rooms) in the Layout tab to populate
             this dungeon with threats.
           </p>
         </div>
       </div>
     </ion-content>
+
+    <!-- Wake quests sits at the bottom, under the thumb -->
+    <ion-footer class="quests-dock" v-if="quests.choices.value.length > 0">
+      <div class="dock">
+        <button type="button" class="wake-open" :disabled="quests.sleeping.value.length === 0"
+          @click="quests.openWake()">
+          <i class="fad fa-sunrise" aria-hidden="true"></i>
+          <span>{{ quests.sleeping.value.length === 0 ? "Every quest is awake" : "Wake quests" }}</span>
+          <span class="wake-count" v-if="quests.sleeping.value.length > 0">{{ quests.sleeping.value.length }} asleep</span>
+        </button>
+      </div>
+    </ion-footer>
+
+    <TempleWakeSheet :is-open="quests.showWake.value" :sleeping="quests.sleeping.value" :covered="quests.covered.value"
+      :heroes="quests.heroOptions.value" :picked-heroes="quests.pickedHeroes.value" :ticked="quests.ticked.value"
+      :report="quests.report.value" :problem="quests.problem.value" :waking="quests.waking.value"
+      :confirm-text="quests.confirmText.value" @close="quests.closeWake()" @toggle-hero="quests.toggleHero"
+      @toggle-tick="quests.toggleTick" @tick-all="quests.setAllTicks" @wake="quests.confirmWake()" />
   </ion-page>
 </template>
 
 <script lang="ts">
-import { defineComponent, computed, ref } from "vue";
+import { defineComponent, computed, ref, watch } from "vue";
 import { useRoute } from "vue-router";
 import {
   IonPage,
@@ -185,6 +127,7 @@ import {
   IonAccordion,
   IonItem,
   IonLabel,
+  IonFooter,
   useIonRouter,
   onIonViewDidEnter,
 } from "@ionic/vue";
@@ -197,6 +140,12 @@ import { useTempleCreatorStore } from "@/lib/store/stores/temple-creator";
 import { TempleDataInjectionKey } from "../../hooks/useTempleData";
 import { inject, onMounted } from "vue";
 import { useTimers } from "@/hooks/useTimers";
+import type { QuestTier } from "@/lib/services/temples/questRooms";
+import type { QuestLayout } from "@/lib/services/temples/templeQuestRows";
+import { useTempleQuests } from "../../hooks/useTempleQuests";
+import TempleQuestsHeader from "../quests/TempleQuestsHeader.vue";
+import TempleQuestRowCard from "../quests/TempleQuestRowCard.vue";
+import TempleWakeSheet from "../quests/TempleWakeSheet.vue";
 
 const resolveRoomTypeFromTier = (tier: string): "monster" | "miniboss" | "boss" => {
   if (tier === "monster") {
@@ -207,6 +156,23 @@ const resolveRoomTypeFromTier = (tier: string): "monster" | "miniboss" | "boss" 
   }
   return "boss";
 };
+
+/** The three tiers, boss first: how each is titled, drawn, and how wide its classic cards are */
+const TIERS: Array<{
+  id: QuestTier;
+  title: string;
+  icon: string;
+  placeholderIcon: string;
+  placeholderLabel: string;
+  colSize: string;
+  colMd: string;
+  colLg: string;
+  small: boolean;
+}> = [
+  { id: "boss", title: "Bosses", icon: "fa-crown", placeholderIcon: "fa-crown fa-3x", placeholderLabel: "Boss Room", colSize: "6", colMd: "4", colLg: "3", small: false },
+  { id: "miniboss", title: "Minibosses", icon: "fa-helmet-battle", placeholderIcon: "fa-helmet-battle fa-3x", placeholderLabel: "Miniboss", colSize: "6", colMd: "4", colLg: "3", small: false },
+  { id: "monster", title: "Monsters", icon: "fa-skull", placeholderIcon: "fa-skull fa-2x", placeholderLabel: "Monster", colSize: "4", colMd: "3", colLg: "2", small: true },
+];
 
 export default defineComponent({
   name: "xp-temple-beasts",
@@ -221,8 +187,12 @@ export default defineComponent({
     IonAccordion,
     IonItem,
     IonLabel,
+    IonFooter,
     XpBeastSelectorItem,
     XpCoordBadge,
+    TempleQuestsHeader,
+    TempleQuestRowCard,
+    TempleWakeSheet,
   },
   setup() {
     const timers = useTimers();
@@ -231,47 +201,51 @@ export default defineComponent({
     const templeId = route.params.templeId as string;
 
     // Inject shared temple data from XpTempleSettings
-    const { templeBeastsWithDetails, temple, saveTemple } = inject(
+    const { templeBeastsWithDetails, temple, saveTemple, allBeasts } = inject(
       TempleDataInjectionKey
     )!;
 
     const selectionStore = useBestiarySelectionStore();
     const creatorStore = useTempleCreatorStore();
 
-    const bossCount = computed(
-      () =>
-        templeBeastsWithDetails.value.filter((b) => b.tier === "boss").length
-    );
+    // The quest rooms: rows, size, status dots, and Wake quests
+    const layout = computed(() => temple.value.dungeonLayout as QuestLayout | undefined);
+    const quests = useTempleQuests(templeId, layout, allBeasts);
+    const view = computed(() => quests.view.value);
 
-    const minibossCount = computed(
-      () =>
-        templeBeastsWithDetails.value.filter((b) => b.tier === "miniboss")
-          .length
-    );
+    // Quest rooms are listed as quests; only the classic beast rooms keep the old cards
+    const questSymbols = computed(() => new Set(view.value.rows.map((row) => row.symbol)));
 
-    const getBeastsByTierGroup = (
-      tier: "boss" | "miniboss" | "monster"
-    ): TempleBeast[] => {
-      return templeBeastsWithDetails.value.filter((b) => b.tier === tier);
-    };
+    const classicEntries = (tier: QuestTier): TempleBeast[] =>
+      templeBeastsWithDetails.value.filter((b) => b.tier === tier && !questSymbols.value.has(b.roomSymbol));
+
+    const roomCount = (tier: QuestTier): number => view.value.groups[tier].length + classicEntries(tier).length;
+
+    const totalRooms = computed(() => TIERS.reduce((sum, tier) => sum + roomCount(tier.id), 0));
+    const hasRooms = computed(() => totalRooms.value > 0);
 
     const activeTiers = ref<string[]>([]);
 
     const updateDefaultTiers = () => {
-      const tiers: string[] = [];
-      if (getBeastsByTierGroup("boss").length > 0) tiers.push("boss");
-      if (getBeastsByTierGroup("miniboss").length > 0) tiers.push("miniboss");
-      if (getBeastsByTierGroup("monster").length > 0) tiers.push("monster");
-      activeTiers.value = tiers;
+      activeTiers.value = TIERS.filter((tier) => roomCount(tier.id) > 0).map((tier) => tier.id);
     };
 
+    // The rooms arrive after the tab does (the temple, then the quests): open every tier once they are in, unless the
+    // Game Master has already opened or closed some
+    const hasChosenTiers = ref(false);
+    watch(totalRooms, (rooms) => {
+      const isFirstFill = rooms > 0 && activeTiers.value.length === 0 && !hasChosenTiers.value;
+      if (isFirstFill) updateDefaultTiers();
+    });
+
     const onAccordionChange = (ev: CustomEvent) => {
+      hasChosenTiers.value = true;
       activeTiers.value = Array.isArray(ev.detail.value)
         ? ev.detail.value
         : [ev.detail.value].filter(Boolean);
     };
 
-    const navigateToRoom = (entry: TempleBeast) => {
+    const navigateToRoom = (entry: { row: number; col: number }) => {
       ionRouter.push({
         name: "xp-temple-room-editor",
         params: {
@@ -341,12 +315,15 @@ export default defineComponent({
 
     onIonViewDidEnter(() => {
       performScrollToTarget();
+      // A quest edited in the Compendium since the tab last showed changes its row and its dots
+      void quests.load();
     });
 
     onMounted(() => {
       if (activeTiers.value.length === 0) {
         updateDefaultTiers();
       }
+      void quests.load();
     });
 
     const openBeastSelector = (entry: TempleBeast) => {
@@ -418,12 +395,15 @@ export default defineComponent({
     };
 
     return {
-      templeBeastsWithDetails,
+      quests,
+      view,
+      TIERS,
       activeTiers,
       onAccordionChange,
-      bossCount,
-      minibossCount,
-      getBeastsByTierGroup,
+      classicEntries,
+      roomCount,
+      totalRooms,
+      hasRooms,
       openBeastSelector,
       navigateToRoom,
       skullOutline,
@@ -433,6 +413,9 @@ export default defineComponent({
 </script>
 
 <style lang="scss" scoped>
+@use "@/styles/themes/earthbound.scss" as *;
+@use "../quests/questCard" as *;
+
 .xp-temple-beasts {
   --background: transparent;
 }
@@ -442,23 +425,16 @@ export default defineComponent({
 }
 
 .content-wrapper {
-  padding: 0 16px 40px;
+  padding: 8px 16px 24px;
   max-width: 900px;
   margin: 0 auto;
-}
-
-/* Summary Header */
-.summary-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
 }
 
 .stat-pills {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
+  margin-bottom: 16px;
 }
 
 .stat-pill {
@@ -566,13 +542,34 @@ export default defineComponent({
   }
 }
 
-/* Beast Grid */
-.beast-grid {
-  padding: 12px;
+.tier-content {
   background: rgba(15, 17, 30, 0.4);
   border: 1px solid rgba(255, 255, 255, 0.05);
   border-top: none;
   border-radius: 0 0 16px 16px;
+}
+
+/* Quest rooms: the rows themselves are TempleQuestRowCard */
+.quest-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 12px;
+  list-style: none;
+}
+
+.classic-label {
+  margin: 0;
+  padding: 4px 16px 0;
+  font-family: $eb-font-status;
+  font-size: 0.85rem;
+  color: rgba(231, 230, 179, 0.6);
+}
+
+/* Beast Grid (classic beast rooms) */
+.beast-grid {
+  padding: 12px;
 }
 
 .beast-card-wrapper {
@@ -721,5 +718,30 @@ export default defineComponent({
 
 .text-tertiary {
   color: var(--ion-color-tertiary);
+}
+
+/* Wake quests: a dock above the tab bar, under the thumb */
+.quests-dock {
+  --background: transparent;
+
+  &::before {
+    display: none;
+  }
+
+  .dock {
+    @include dock;
+  }
+}
+
+.wake-open {
+  @include dock-button;
+}
+
+.wake-count {
+  padding: 1px 8px;
+  font-size: 0.8rem;
+  color: $eb-color-pale-yellow;
+  background: $eb-color-dark-purple;
+  border-radius: 10px;
 }
 </style>

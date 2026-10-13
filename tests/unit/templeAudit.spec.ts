@@ -3,7 +3,7 @@
  * A layout here is a grid of room names ("E" is the entrance, "_" a wall); `rooms` says what each name is.
  */
 import temples from "@/lib/engine/temples";
-import { auditSummary, auditTemple, missingLines, missingNames, shortList } from "@/lib/services/temples/templeAudit";
+import { auditSummary, auditTemple, describeTempleSize, missingLines, missingNames, shortList } from "@/lib/services/temples/templeAudit";
 import type { AuditableMaze, AuditableRoom, AuditResult } from "@/lib/services/temples/templeAudit";
 
 const chest = (dungeon: string): AuditableRoom => ({ type: "loot", content: { chest: "dungeon", dungeon } });
@@ -285,5 +285,75 @@ describe("shortList", () => {
     expect(shortList(["Entrance", "Master Room"])).toBe("Entrance, Master Room");
     expect(shortList(["Entrance", "Exit", "Boss"])).toBe("Entrance, Exit +1 more");
     expect(shortList(["Entrance", "Exit", "Boss", "Boss Key", "Master Room"])).toBe("Entrance, Exit +3 more");
+  });
+});
+
+describe("the size check (docs/Quest-Rooms-Spec.md section 9)", () => {
+  // A monster room holds a quest of 3; the boss room is a template nobody has woken yet, an 8 "if woken"
+  const sizeOf = (room: AuditableRoom) => {
+    if (room.type === "monster") return { difficulty: 3 };
+    if (room.type === "boss") return { difficulty: 8, dormant: true };
+    return null;
+  };
+
+  it("is not part of the audit unless a lookup is given: the seven checks stay seven", () => {
+    expect(auditTemple(temple()).checks.map((c) => c.id)).not.toContain("size");
+    expect(auditTemple(temple()).checks).toHaveLength(7);
+  });
+
+  it("adds an eighth, optional check that says 'Size 14 of 21' and what the sleeping rooms would add", () => {
+    const result = auditTemple(temple(), { sizeOf });
+    expect(result.checks.map((c) => c.id)).toEqual(["entrance", "exit", "boss", "bossKey", "masterRoom", "map", "compass", "size"]);
+    // two monster rooms (3 + 3) and one dormant boss room (8)
+    expect(check(result, "size")).toMatchObject({ label: "Size", ok: false, optional: true, detail: "Size 14 of 21 · 8 if woken" });
+  });
+
+  it("never fails the audit, however small the temple", () => {
+    const result = auditTemple(temple(), { sizeOf: () => null });
+    expect(check(result, "size")).toMatchObject({ ok: false, detail: "Size 0 of 21" });
+    expect(result.passed).toBe(true);
+    expect(missingNames(result)).toEqual([]);
+  });
+
+  it("does not rescue a temple that is missing something", () => {
+    const result = auditTemple(temple(without("M")), { sizeOf: () => ({ difficulty: 30 }) });
+    expect(check(result, "size").ok).toBe(true);
+    expect(result.passed).toBe(false);
+    expect(missingNames(result)).toEqual(["Master Room"]);
+  });
+
+  it("is ok once the temple is full, and says so without the 'if woken' tail when nothing sleeps", () => {
+    const result = auditTemple(temple(), { sizeOf: (room) => (room.type === "monster" ? { difficulty: 11 } : null) });
+    expect(check(result, "size")).toMatchObject({ ok: true, detail: "Size 22 of 21" });
+  });
+
+  it("takes a plain difficulty as a quest that is awake", () => {
+    const result = auditTemple(temple(), { sizeOf: (room) => (room.type === "boss" ? 13 : undefined) });
+    expect(check(result, "size").detail).toBe("Size 13 of 21");
+  });
+
+  it("counts the cells, not the definitions, and reads every floor", () => {
+    const tower = { "1F": [["E", "s", "s"]], "2F": [["G", "s", "B"]] };
+    const result = auditTemple(temple(tower), { sizeOf: (room) => (room.type === "monster" ? 2 : null) });
+    expect(check(result, "size").detail).toBe("Size 6 of 21");
+  });
+
+  it("counts toward the summary, and stays out of the lines and names of what is missing", () => {
+    const result = auditTemple(temple(), { sizeOf });
+    expect(auditSummary(result)).toBe("7 of 8 checks passed");
+    expect(missingNames(result)).toEqual([]);
+  });
+
+  it("copes with a temple that has no layout", () => {
+    const result = auditTemple(undefined, { sizeOf });
+    expect(check(result, "size").detail).toBe("Size 0 of 21");
+  });
+});
+
+describe("describeTempleSize", () => {
+  it("says the size against the full temple, with the sleeping part when there is one", () => {
+    expect(describeTempleSize({ total: 17, dormant: 0 })).toBe("Size 17 of 21");
+    expect(describeTempleSize({ total: 17, dormant: 9 })).toBe("Size 17 of 21 · 9 if woken");
+    expect(describeTempleSize({ total: 0, dormant: 0 })).toBe("Size 0 of 21");
   });
 });

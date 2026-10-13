@@ -181,6 +181,7 @@ const AUDIT_ICONS: Record<AuditCheckId, string> = {
   masterRoom: ROOM_ICONS.master,
   map: "fa-map",
   compass: "fa-compass",
+  size: "fa-ruler-combined",
 };
 
 export default defineComponent({

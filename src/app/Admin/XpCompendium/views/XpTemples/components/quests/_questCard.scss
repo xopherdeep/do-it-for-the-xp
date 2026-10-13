@@ -1,0 +1,215 @@
+// Shared looks of the temple's Quests tab: the quest row, the Wake quests sheet's rows, the status dots and the
+// buttons under the thumb. Mixins, so each component's scoped styles carry them.
+@use "@/styles/themes/earthbound.scss" as *;
+
+// The tier colours of QuestRoomRow in the room editor: the monster's mint, the miniboss's gold, the boss's red
+$tier-monster: #68d0b8;
+$tier-miniboss: #ffd740;
+$tier-boss: #ff5252;
+$tier-none: #f7e8a8;
+
+// The status dots
+$dot-lurking: #ff5252;
+$dot-pending: #ffd740;
+$dot-cleared: #80d890;
+$dot-away: #68a8d8;
+$dot-quiet: #9a96b0;
+
+// What a quest row and a Wake quests row have in common: the card, the portrait ring and the lines of text
+@mixin quest-card {
+  --tier: #{$tier-none};
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  margin: 0;
+  text-align: left;
+  color: $eb-color-cream;
+  font-family: $eb-font-status;
+  background: rgba(20, 6, 28, 0.55);
+  border: 2px solid rgba(231, 230, 179, 0.18);
+  border-radius: 8px;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+
+  &.tier-monster {
+    --tier: #{$tier-monster};
+  }
+
+  &.tier-miniboss {
+    --tier: #{$tier-miniboss};
+  }
+
+  &.tier-boss {
+    --tier: #{$tier-boss};
+  }
+
+  &:focus-visible {
+    outline: 2px solid $eb-color-pale-yellow;
+    outline-offset: 2px;
+  }
+
+  &:active:not(.is-static) {
+    transform: translateY(1px);
+  }
+
+  &.is-static {
+    cursor: default;
+  }
+
+  .portrait {
+    flex: 0 0 52px;
+    width: 52px;
+    height: 52px;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.35);
+    border: 3px solid var(--tier);
+
+    img {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+    }
+
+    i {
+      --fa-primary-color: var(--tier);
+      --fa-secondary-color: var(--tier);
+      --fa-secondary-opacity: 0.55;
+      font-size: 1.4rem;
+    }
+  }
+
+  .body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .title {
+    font-size: 1.1rem;
+    line-height: 1.2;
+    color: #fff;
+    overflow-wrap: anywhere;
+  }
+
+  .facts,
+  .when {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 8px;
+    font-size: 0.9rem;
+    line-height: 1.25;
+    opacity: 0.9;
+  }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 1px 7px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    line-height: 1.3;
+    white-space: nowrap;
+  }
+
+  .chip-tier {
+    color: $eb-color-dark-purple;
+    background: var(--tier);
+  }
+
+  .chip-approval {
+    color: $eb-color-pale-yellow;
+    background: rgba(247, 232, 168, 0.14);
+    border: 1px solid rgba(247, 232, 168, 0.4);
+
+    i {
+      --fa-primary-color: currentColor;
+      --fa-secondary-color: currentColor;
+    }
+  }
+}
+
+// The dot of a hero's status, coloured by what the board says; a hollow ring when the quest is not theirs
+@mixin status-dots {
+  .dot-mark {
+    flex: 0 0 auto;
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: $dot-quiet;
+    border: 2px solid rgba(0, 0, 0, 0.45);
+  }
+
+  .dot-lurking .dot-mark {
+    background: $dot-lurking;
+  }
+
+  .dot-pending .dot-mark {
+    background: $dot-pending;
+  }
+
+  .dot-cleared .dot-mark {
+    background: $dot-cleared;
+  }
+
+  .dot-away .dot-mark {
+    background: $dot-away;
+  }
+
+  .dot-notYours .dot-mark,
+  .dot-dormant .dot-mark {
+    background: transparent;
+    border-color: $dot-quiet;
+  }
+}
+
+// The dock under the thumb: a bar above the tab bar (or at the foot of a sheet) holding one big button
+@mixin dock {
+  padding: 8px 16px;
+  background: rgba(20, 6, 28, 0.92);
+  border-top: 2px solid rgba(231, 230, 179, 0.25);
+}
+
+@mixin dock-button {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 10px 16px;
+  font-family: $eb-font-status;
+  font-size: 1.1rem;
+  color: $eb-color-dark-purple;
+  background: $eb-color-pale-yellow;
+  border: 2px solid $eb-color-dark-purple;
+  border-radius: 8px;
+  box-shadow: 0 0 0 2px $eb-color-pale-yellow;
+  -webkit-tap-highlight-color: transparent;
+
+  i {
+    --fa-primary-color: #{$eb-color-dark-purple};
+    --fa-secondary-color: #{$eb-color-medium-purple};
+  }
+
+  &:active:not(:disabled) {
+    transform: translateY(1px);
+  }
+
+  &:disabled {
+    opacity: 0.55;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #fff;
+    outline-offset: 2px;
+  }
+}
