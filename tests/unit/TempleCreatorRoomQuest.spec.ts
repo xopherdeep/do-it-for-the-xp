@@ -1,7 +1,7 @@
 /**
  * The room-record rules of the quest room flow in the temple editor (hooks/grid/roomQuest): what the room's content
  * says once a quest is picked, how a room stops being a quest room, which entry the type picker shows for a room,
- * and what the room's quest card reads.
+ * what the room's quest card reads (with the other chores of a list room) and which quest the picker opens on.
  */
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { Room } from "@/lib/engine/core/dungeons/types";
@@ -11,7 +11,9 @@ import {
   describeRoomQuest,
   heldBeastId,
   heldQuest,
+  moreChoresLine,
   pickerTypeOf,
+  preselectedQuestId,
   releaseQuest,
 } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/hooks/grid/roomQuest";
 
@@ -143,9 +145,20 @@ describe("describeRoomQuest", () => {
     expect(describeRoomQuest({ type: "miniboss", content: { questId: "q1" } }, quests)).toEqual({ kind: "picked", quest: quests[0] });
   });
 
-  it("is the biggest live quest a room lists", () => {
+  it("is the biggest live quest a room lists, with the other live chores counted", () => {
     const listed = [quest("mugs", 3), quest("dishes", 13)];
-    expect(describeRoomQuest({ type: "boss", content: { questIds: ["mugs", "dishes"] } }, listed)).toEqual({ kind: "picked", quest: listed[1] });
+    expect(describeRoomQuest({ type: "boss", content: { questIds: ["mugs", "dishes"] } }, listed)).toEqual({
+      kind: "picked",
+      quest: listed[1],
+      moreChores: 1,
+    });
+  });
+
+  it("counts only the live chores of a list: a draft or a gone quest is not one more", () => {
+    const listed = [quest("mugs", 3), quest("dishes", 13), quest("wip", 2, { draft: true })];
+    const room = { type: "boss", content: { questIds: ["dishes", "mugs", "wip", "gone"] } };
+    expect(describeRoomQuest(room, listed)).toEqual({ kind: "picked", quest: listed[1], moreChores: 1 });
+    expect(describeRoomQuest({ type: "boss", content: { questIds: ["dishes", "wip"] } }, listed)).toEqual({ kind: "picked", quest: listed[1] });
   });
 
   it("flags a list whose quests are all gone or drafts, with the template when the room has one", () => {
@@ -171,6 +184,48 @@ describe("describeRoomQuest", () => {
     expect(describeRoomQuest({ type: "monster", content: { beasts: ["b1"] } }, quests)).toEqual({ kind: "none" });
     expect(describeRoomQuest({ type: "empty" }, quests)).toEqual({ kind: "none" });
     expect(describeRoomQuest(null, quests)).toEqual({ kind: "none" });
+  });
+});
+
+describe("the card line for a room's other chores", () => {
+  const picked = quest("q1", 5);
+
+  it("says how many more chores a list room holds besides the one on the card", () => {
+    expect(moreChoresLine({ kind: "picked", quest: picked, moreChores: 2 })).toBe("+2 more chores here");
+    expect(moreChoresLine({ kind: "picked", quest: picked, moreChores: 1 })).toBe("+1 more chore here");
+  });
+
+  it("says nothing for a one-quest room, a template, a missing quest or a room with no quest", () => {
+    expect(moreChoresLine({ kind: "picked", quest: picked })).toBe("");
+    expect(moreChoresLine({ kind: "template", template: { beastId: "b", difficulty: 2, basicSchedule: "daily" } })).toBe("");
+    expect(moreChoresLine({ kind: "missing" })).toBe("");
+    expect(moreChoresLine({ kind: "none" })).toBe("");
+  });
+
+  it("reads off the room: a kitchen of three live chores shows its biggest and '+2 more chores here'", () => {
+    const kitchen = [quest("dishes", 2), quest("pantry", 5), quest("mugs", 1)];
+    const holding = describeRoomQuest({ type: "miniboss", content: { questIds: ["dishes", "pantry", "mugs"] } }, kitchen);
+    expect(heldQuest(holding)).toBe(kitchen[1]);
+    expect(moreChoresLine(holding)).toBe("+2 more chores here");
+  });
+});
+
+describe("which quest the picker opens on", () => {
+  const listed = [quest("mugs", 3), quest("dishes", 13)];
+
+  it("is the headline quest of a list room, not only a questId", () => {
+    expect(preselectedQuestId({ type: "boss", content: { questIds: ["mugs", "dishes"] } }, listed)).toBe("dishes");
+  });
+
+  it("is a one-quest room's questId, as before, whether or not the quests are loaded or the quest is live", () => {
+    expect(preselectedQuestId({ type: "monster", content: { questId: "mugs" } }, listed)).toBe("mugs");
+    expect(preselectedQuestId({ type: "monster", content: { questId: "mugs" } }, [])).toBe("mugs");
+    expect(preselectedQuestId({ type: "monster", content: { questId: "gone" } }, listed)).toBe("gone");
+  });
+
+  it("is nothing for a room with no quest", () => {
+    expect(preselectedQuestId({ type: "monster", content: { beasts: ["b1"] } }, listed)).toBe("");
+    expect(preselectedQuestId(null, listed)).toBe("");
   });
 });
 

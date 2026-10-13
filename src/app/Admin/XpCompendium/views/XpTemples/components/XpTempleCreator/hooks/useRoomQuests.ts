@@ -28,7 +28,14 @@ import {
 } from "@/lib/services/temples/questRoomPicker";
 import { questBeastId } from "@/lib/services/temples/questRooms";
 import { TEMPLE_THEMES, isTempleTheme, type TempleTheme, type TempleThemeInfo } from "@/lib/services/temples/templeThemes";
-import { applyQuestPick, describeRoomQuest, heldBeastId, heldQuest, type RoomQuestHolding } from "./grid/roomQuest";
+import {
+  applyQuestPick,
+  describeRoomQuest,
+  heldBeastId,
+  heldQuest,
+  preselectedQuestId,
+  type RoomQuestHolding,
+} from "./grid/roomQuest";
 
 export interface UseRoomQuestsOptions {
   templeId: string;
@@ -91,6 +98,9 @@ export function useRoomQuests(options: UseRoomQuestsOptions) {
     const quest = heldQuest(holding.value);
     return quest ? pickerRowOf(quest, allBeasts.value, heroes.value) : null;
   });
+
+  /** The quest the picker opens on: a list room's headline quest, a one-quest room's pick */
+  const selectedId = computed<string>(() => preselectedQuestId(roomData.value, quests.value));
 
   /** A Test fight needs a beast to fight: the quest's, or the template's */
   const canTestFight = computed(() => Boolean(heldBeastId(holding.value)));
@@ -162,6 +172,7 @@ export function useRoomQuests(options: UseRoomQuestsOptions) {
     size,
     holding,
     heldRow,
+    selectedId,
     canTestFight,
     loadQuests,
     openPicker,

@@ -1,7 +1,8 @@
 /**
  * The quest room flow of the temple room editor (useTempleRoomEditor + useRoomQuests), with the real editor store:
  * picking a quest writes `questId`, sets the room type from the quest's tier and promotes a shared token to a unique
- * symbol; the beast rooms are still there as the classic path and drop a quest cleanly. Only the browser's storage
+ * symbol; a room that lists several chores opens the picker on its biggest and counts the rest on its card; the
+ * beast rooms are still there as the classic path and drop a quest cleanly. Only the browser's storage
  * and Ionic's router and controllers are faked.
  */
 import { createPinia, setActivePinia } from "pinia";
@@ -311,5 +312,32 @@ describe("Test fight", () => {
       content: { quest: { beastId: String(fluffalo?.id), difficulty: 2, basicSchedule: "daily" } },
     };
     expect(await editor.questRooms.loadTestFightBeastIds()).toEqual(["beast-fluffalo"]);
+  });
+});
+
+describe("a room that lists several chores (the Old House)", () => {
+  const listRoom = () => ({ type: "miniboss", content: { questIds: ["dishes", "pantry", "mugs"], lockOnEnter: true } });
+  const kitchen = () => [quest("dishes", 2), quest("pantry", 5), quest("mugs", 1)];
+
+  it("opens the picker on its headline quest and counts the other chores on the card", async () => {
+    const editor = await startEditor(kitchen(), 2);
+    editor.roomData.value = listRoom();
+    expect(editor.questRooms.selectedId.value).toBe("pantry");
+    expect(editor.questRooms.holding.value).toMatchObject({ kind: "picked", quest: { id: "pantry" }, moreChores: 2 });
+  });
+
+  it("opens the picker on a one-quest room's pick, as before", async () => {
+    const editor = await startEditor(kitchen(), 2);
+    editor.roomData.value = { type: "monster", content: { questId: "mugs" } };
+    expect(editor.questRooms.selectedId.value).toBe("mugs");
+    expect(editor.questRooms.holding.value).toEqual({ kind: "picked", quest: kitchen()[2] });
+  });
+
+  it("still replaces the list with the one quest the Game Master picks", async () => {
+    const editor = await startEditor(kitchen(), 2);
+    editor.roomData.value = listRoom();
+    await editor.questRooms.pickQuest("mugs");
+    expect(editor.roomData.value?.content?.questId).toBe("mugs");
+    expect(editor.roomData.value?.content).not.toHaveProperty("questIds");
   });
 });

@@ -96,7 +96,7 @@
       <!-- Quest picker: opens from the Quest room type and from Change quest -->
       <RoomQuestPicker :is-open="showQuestPicker" :rows="questRows" :quests="quests" :heroes="questHeroes"
         :theme="questTheme" :theme-info="questThemeInfo" :size="questSize"
-        :selected-id="roomData?.content?.questId || ''" :create-quest="createLibraryQuest" @close="closeQuestPicker"
+        :selected-id="questSelectedId" :create-quest="createLibraryQuest" @close="closeQuestPicker"
         @confirm="pickQuest" />
 
       <div slot="fixed" class="map-fixed-wrapper">
@@ -293,6 +293,7 @@ export default defineComponent({
       questThemeInfo: editor.questRooms.themeInfo,
       questSize: editor.questRooms.size,
       questHolding: editor.questRooms.holding,
+      questSelectedId: editor.questRooms.selectedId,
       questCard,
       dormantText,
       canTestFight: editor.questRooms.canTestFight,

@@ -19,6 +19,11 @@
       <span>{{ lairText }}</span>
     </p>
     <p
+      v-if="moreChores"
+      class="config-hint"
+      data-cy="room-more-chores"
+    >{{ moreChores }}</p>
+    <p
       v-if="fillsTemplate"
       class="config-hint"
     >Your quest for this beast fills the room.</p>
@@ -92,13 +97,14 @@
   import { computed } from "vue";
   import { IonToggle } from "@ionic/vue";
   import type { QuestCard } from "@/lib/services/temples/questRoomPicker";
-  import type { RoomQuestHolding } from "../hooks/grid/roomQuest";
+  import { moreChoresLine, type RoomQuestHolding } from "../hooks/grid/roomQuest";
   import QuestRoomRow from "./QuestRoomRow.vue";
 
   /**
    * The config of a quest room (shown in the room type modal): the quest card, Change quest, Edit quest (opens the
    * Compendium's quest form), the lock-on-enter toggle and Test fight. A room whose quest was deleted, or whose
-   * shipped template no quest fills yet, says so instead of showing a card.
+   * shipped template no quest fills yet, says so instead of showing a card. A room that lists several chores shows its
+   * biggest on the card and counts the rest under it ("+2 more chores here").
    */
   const props = defineProps<{
     holding: RoomQuestHolding;
@@ -119,6 +125,7 @@
 
   const isMissing = computed(() => props.holding.kind === "missing");
   const fillsTemplate = computed(() => props.holding.kind === "template" && Boolean(props.holding.filler));
+  const moreChores = computed(() => moreChoresLine(props.holding));
   const editableId = computed(() => {
     const { holding } = props;
     if (holding.kind === "picked") return String(holding.quest.id);

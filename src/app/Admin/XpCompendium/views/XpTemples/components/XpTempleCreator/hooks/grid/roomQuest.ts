@@ -1,13 +1,15 @@
 /**
  * Room records for the quest room flow of the temple editor (docs/Quest-Rooms-Spec.md section 9): what a room's
  * content says once a Game Master picks a quest for it, how a room stops being a quest room, which entry the type
- * picker shows for a room, and what the room's quest card reads. Pure: the picker screens call these.
+ * picker shows for a room, what the room's quest card reads and which quest the picker opens on. Pure: the picker
+ * screens call these.
  */
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { Room, RoomQuestTemplate } from "@/lib/engine/core/dungeons/types";
 import {
   headlineQuest,
   isQuestRoom,
+  liveRoomQuests,
   questBeastId,
   questTier,
   roomQuestIds,
@@ -52,23 +54,33 @@ export function pickerTypeOf(room: Partial<Room> | null | undefined): string {
 
 /**
  * What a quest room holds, for its quest card:
- * - `picked`: the Game Master's quest (the biggest live one when the room lists several);
+ * - `picked`: the Game Master's quest (the biggest live one when the room lists several), and `moreChores`, how many
+ *   other live quests a list room holds besides it (left out when there are none);
  * - `missing`: the room names quests and none is live (gone, or only drafts), with the shipped template when it has one;
  * - `template`: a shipped template, with the live quest that has its beast when one fills it;
  * - `none`: not a quest room.
  */
 export type RoomQuestHolding =
-  | { kind: "picked"; quest: Achievement }
+  | { kind: "picked"; quest: Achievement; moreChores?: number }
   | { kind: "missing"; template?: RoomQuestTemplate }
   | { kind: "template"; template: RoomQuestTemplate; filler?: Achievement }
   | { kind: "none" };
 
+/** The live quests a room holds besides its headline, each counted once */
+const otherLiveChores = (room: Partial<Room> | null | undefined, quests: readonly Achievement[], headline: Achievement): number => {
+  const ids = new Set(liveRoomQuests(room, quests).map((quest) => String(quest.id)));
+  ids.delete(String(headline.id));
+  return ids.size;
+};
+
 export function describeRoomQuest(room: Partial<Room> | null | undefined, quests: readonly Achievement[]): RoomQuestHolding {
   const template = room?.content?.quest;
-  if (roomQuestIds(room).length > 0) {
+  const holdsQuests = roomQuestIds(room).length > 0;
+  if (holdsQuests) {
     const picked = headlineQuest(room, quests);
-    if (picked) return { kind: "picked", quest: picked };
-    return template ? { kind: "missing", template } : { kind: "missing" };
+    if (!picked) return template ? { kind: "missing", template } : { kind: "missing" };
+    const moreChores = otherLiveChores(room, quests, picked);
+    return moreChores > 0 ? { kind: "picked", quest: picked, moreChores } : { kind: "picked", quest: picked };
   }
   if (!template) return { kind: "none" };
   const live = quests.filter((quest) => !quest.draft);
@@ -99,4 +111,24 @@ export function heldQuest(holding: RoomQuestHolding): Achievement | undefined {
   if (holding.kind === "picked") return holding.quest;
   if (holding.kind === "template") return holding.filler;
   return undefined;
+}
+
+/**
+ * The line under a list room's card: "+2 more chores here" for the live quests the card does not show, so the Game
+ * Master knows a pick from Change quest replaces them all. Empty for any other room.
+ */
+export function moreChoresLine(holding: RoomQuestHolding): string {
+  const count = holding.kind === "picked" ? holding.moreChores ?? 0 : 0;
+  const hasMore = count > 0;
+  if (!hasMore) return "";
+  return `+${count} more ${count === 1 ? "chore" : "chores"} here`;
+}
+
+/**
+ * The quest the picker opens on: the room's headline quest (the biggest live one of a list), else its `questId` as it
+ * stands, so a one-quest room opens on its pick exactly as before, loaded or not. Empty for a room with no quest.
+ */
+export function preselectedQuestId(room: Partial<Room> | null | undefined, quests: readonly Achievement[]): string {
+  const headline = headlineQuest(room, quests);
+  return String(headline?.id ?? room?.content?.questId ?? "");
 }
