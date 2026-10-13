@@ -1,0 +1,301 @@
+<template>
+  <div class="builder-tray">
+    <!-- The options for the chosen tab. It scrolls inside itself, never the page; a new tab or side starts at the top. -->
+    <div
+      :key="`${tab.id}-${showStyles ? 'style' : 'colour'}`"
+      class="tray-body"
+      role="region"
+      :aria-label="`${tab.label} options`"
+    >
+      <!-- Style side: one picture of the player's own hero per option -->
+      <div
+        v-if="showStyles"
+        class="tile-grid"
+      >
+        <button
+          v-for="tile in tiles"
+          :key="tile.option"
+          type="button"
+          class="tile"
+          :class="{ active: tile.chosen }"
+          data-cy="look-tile"
+          :data-option="tile.option"
+          :aria-label="tile.label"
+          :aria-pressed="tile.chosen"
+          @click="pickStyle(tile.option)"
+        >
+          <img
+            v-if="tile.src"
+            class="tile-picture"
+            :src="tile.src"
+            alt=""
+            :width="TILE_SIZE"
+            :height="TILE_SIZE"
+            draggable="false"
+          />
+          <span
+            v-else
+            class="tile-label"
+            >{{ tile.label }}</span
+          >
+        </button>
+      </div>
+
+      <!-- Colour side (or the only side, on Body): one labelled group of swatches per colour the tab sets -->
+      <template v-else>
+        <section
+          v-for="group in tab.colors"
+          :key="group.key"
+          class="picker"
+          role="group"
+          :aria-label="group.label"
+        >
+          <h4 class="picker-title">{{ group.label }}</h4>
+          <div class="color-grid">
+            <button
+              v-for="swatch in group.swatches"
+              :key="swatch.value"
+              type="button"
+              class="swatch"
+              :class="{ active: modelValue[group.key] === swatch.value }"
+              :style="{ backgroundColor: swatch.color }"
+              :aria-label="swatch.name"
+              :aria-pressed="modelValue[group.key] === swatch.value"
+              @click="pickColour(group.key, swatch.value)"
+            ></button>
+          </div>
+        </section>
+      </template>
+    </div>
+
+    <!-- Style | Colour, under the thumb; Body has only colours, so it has no switch -->
+    <div
+      v-if="tab.styles"
+      class="mode-switch"
+      role="group"
+      aria-label="Style or colour"
+    >
+      <button
+        v-for="side in SIDES"
+        :key="side.id"
+        type="button"
+        class="mode"
+        :class="{ active: mode === side.id }"
+        data-cy="tray-mode"
+        :data-mode="side.id"
+        :aria-pressed="mode === side.id"
+        @click="pickMode(side.id)"
+      >
+        {{ side.label }}
+      </button>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+  import { computed } from "vue";
+  import type { HeroLook } from "@/lib/hero-look/types";
+  import { styleLabel, tileLook, type LookTab } from "../lookEditor";
+  import type { LookThumbnailer } from "../useLookThumbnails";
+
+  /**
+   * The hero builder's tray: the options for the chosen tab, as picture tiles (the player's own hero wearing each
+   * option) on the Style side and as colour swatches on the Colour side. It only emits: `update:modelValue` with the
+   * draft and exactly one key changed, `update:mode` when the other side is tapped. No Ionic, no sounds.
+   */
+  type Mode = "style" | "colour";
+
+  const props = defineProps<{
+    /** The draft look, without the hands */
+    modelValue: HeroLook;
+    tab: LookTab;
+    mode: Mode;
+    thumbnails: LookThumbnailer;
+  }>();
+
+  const emit = defineEmits<{
+    (e: "update:modelValue", look: HeroLook): void;
+    (e: "update:mode", mode: Mode): void;
+  }>();
+
+  /** The tile pictures are drawn at this size (pixels) */
+  const TILE_SIZE = 96;
+
+  const SIDES: { id: Mode; label: string }[] = [
+    { id: "style", label: "Style" },
+    { id: "colour", label: "Colour" },
+  ];
+
+  /** A tab with no styles (Body) only has colours, whatever side the parent asks for */
+  const showStyles = computed(() => !!props.tab.styles && props.mode === "style");
+
+  /** The picture is "" until it is drawn (or without WebGL): the tile then shows the option's name */
+  const tiles = computed(() => {
+    const styles = props.tab.styles;
+    if (!styles) return [];
+    return styles.options.map((option) => ({
+      option,
+      label: styleLabel(option),
+      src: props.thumbnails.get(tileLook(props.modelValue, props.tab, option), props.tab.focus, TILE_SIZE),
+      chosen: props.modelValue[styles.key] === option,
+    }));
+  });
+
+  const change = (key: keyof HeroLook, value: string) => {
+    emit("update:modelValue", { ...props.modelValue, [key]: value });
+  };
+
+  const pickStyle = (option: string) => {
+    if (props.tab.styles) change(props.tab.styles.key, option);
+  };
+
+  const pickColour = (key: keyof HeroLook, value: string) => change(key, value);
+
+  const pickMode = (mode: Mode) => {
+    if (mode !== props.mode) emit("update:mode", mode);
+  };
+</script>
+
+<style lang="scss" scoped>
+  @use "@/styles/themes/earthbound.scss" as *;
+
+  .builder-tray {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    background: $eb-color-dark-purple;
+    color: $eb-color-cream;
+  }
+
+  // The only thing that scrolls: the page behind it stays put
+  .tray-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding: 10px 12px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+    @include eb-scrollbar();
+  }
+
+  .tile-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .tile {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    aspect-ratio: 1;
+    min-width: 0;
+    padding: 0;
+    overflow: hidden;
+    font-family: $eb-font-primary, sans-serif;
+    font-size: 0.9rem;
+    color: $eb-color-cream;
+    background: $eb-color-medium-purple;
+    border: 3px solid $eb-color-slate;
+    border-radius: 1px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    &.active {
+      border-color: $eb-color-pale-yellow;
+      box-shadow: 0 0 0 2px $eb-color-pale-yellow;
+    }
+  }
+
+  .tile-picture {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .tile-label {
+    padding: 0 2px;
+    line-height: 1.1;
+    text-align: center;
+    overflow-wrap: anywhere;
+  }
+
+  .picker + .picker {
+    margin-top: 14px;
+  }
+
+  .picker-title {
+    margin: 0 0 8px;
+    font-family: $eb-font-status, $eb-font-primary, sans-serif;
+    font-size: 0.95rem;
+    font-weight: normal;
+    color: $eb-color-pale-yellow;
+  }
+
+  .color-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+    gap: 8px;
+  }
+
+  .swatch {
+    width: 100%;
+    aspect-ratio: 1;
+    min-height: 40px;
+    padding: 0;
+    border: 3px solid $eb-color-dark-purple;
+    border-radius: 1px;
+    box-shadow: 0 0 0 2px $eb-color-slate;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    &.active {
+      border-color: $eb-color-white;
+      box-shadow: 0 0 0 3px $eb-color-pale-yellow;
+    }
+  }
+
+  .mode-switch {
+    display: flex;
+    flex: 0 0 auto;
+    margin: 6px 12px 8px;
+    border: 3px solid $eb-color-medium-purple;
+  }
+
+  .mode {
+    flex: 1;
+    min-height: 48px;
+    padding: 0 4px;
+    font-family: $eb-font-status, $eb-font-primary, sans-serif;
+    font-size: 1rem;
+    color: $eb-color-cream;
+    background: transparent;
+    border: 0;
+    border-right: 3px solid $eb-color-medium-purple;
+    border-radius: 1px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+
+    &:last-child {
+      border-right: 0;
+    }
+
+    &.active {
+      color: $eb-color-dark-purple;
+      background: $eb-color-pale-yellow;
+    }
+  }
+
+  .tile,
+  .swatch,
+  .mode {
+    &:focus-visible {
+      outline: 2px solid $eb-color-pale-yellow;
+      outline-offset: 2px;
+    }
+  }
+</style>
