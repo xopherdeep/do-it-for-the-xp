@@ -26,16 +26,25 @@ const knownAge = (profile: AgeProfile, today: Date): number | null => {
   return unusable ? null : age;
 };
 
+const groupOfAge = (age: number): AgeGroup => {
+  const isAdult = age >= ADULT_FROM_AGE;
+  const isTeen = age >= TEEN_FROM_AGE;
+  if (isAdult) return "adult";
+  return isTeen ? "teen" : "child";
+};
+
 export const ageGroupOf = (profile: AgeProfile, picked?: AgeGroup, today: Date = new Date()): AgeGroup => {
-  if (profile.isAdult === true) return "adult";
+  const isGameMaster = profile.isAdult === true;
+  if (isGameMaster) return "adult";
   const age = knownAge(profile, today);
-  if (age !== null) {
-    if (age >= ADULT_FROM_AGE) return "adult";
-    return age >= TEEN_FROM_AGE ? "teen" : "child";
-  }
+  const hasBirthday = age !== null;
+  if (hasBirthday) return groupOfAge(age);
   return isAgeGroup(picked) ? picked : "child";
 };
 
 /** A hero the Game Master has to pick for: not an adult and no readable birthday */
-export const needsAgePick = (profile: AgeProfile, today: Date = new Date()): boolean =>
-  profile.isAdult !== true && knownAge(profile, today) === null;
+export const needsAgePick = (profile: AgeProfile, today: Date = new Date()): boolean => {
+  const isGameMaster = profile.isAdult === true;
+  const hasBirthday = knownAge(profile, today) !== null;
+  return !isGameMaster && !hasBirthday;
+};

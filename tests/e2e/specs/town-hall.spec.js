@@ -129,7 +129,7 @@ describe("Town Hall", () => {
     openTownHall("gm-1");
     cy.get("[data-cy=th-clerk]", { timeout: 30000 }).click();
     cy.get("[data-cy=reveal-choice-registration]", { timeout: 20000 }).should("exist");
-    cy.contains("[data-cy=reveal-choice-registration]", "Family Registration");
+    cy.contains("[data-cy=reveal-choice-registration]", "Family Registration").should("not.be.disabled");
     cy.screenshot("town-hall-05-clerk-gm", { capture: "viewport" });
   });
 
@@ -137,7 +137,19 @@ describe("Town Hall", () => {
     cy.intercept("GET", "**/wp/v2/posts?_embed*", { statusCode: 503, body: { code: "down" }, headers: CORS }).as("newsDown");
     openTownHall("hero-1");
     cy.contains("[data-cy=reveal-text]", "The courier hasn't arrived", { timeout: 30000 });
-    cy.get("[data-cy=reveal-choice-retry]", { timeout: 20000 }).should("exist");
+    cy.get("[data-cy=reveal-choice-retry]", { timeout: 20000 }).should("not.be.disabled");
     cy.screenshot("town-hall-06-courier-late", { capture: "viewport" });
+  });
+
+  it("Try again asks the courier once more, and the news arrives", () => {
+    let calls = 0;
+    cy.intercept("GET", "**/wp/v2/posts?_embed*", (req) => {
+      calls += 1;
+      if (calls === 1) req.reply({ statusCode: 503, body: { code: "down" }, headers: CORS });
+      else req.reply(json([post(103, "Back on the road", "The courier made it.")], { "X-WP-TotalPages": "1" }));
+    }).as("newsRetry");
+    openTownHall("hero-1");
+    cy.get("[data-cy=reveal-choice-retry]", { timeout: 30000 }).should("not.be.disabled").click();
+    cy.contains("[data-cy=th-post]", "Back on the road", { timeout: 20000 });
   });
 });

@@ -5,7 +5,7 @@
     <ion-card v-else-if="failed && !notes.length" class="th-late" data-cy="th-late">
       <ion-card-content class="ion-text-center">
         <p>The patch notes haven't arrived.</p>
-        <ion-button size="small" @click="reload">Try again</ion-button>
+        <ion-button size="small" color="rpg" @click="reload">Try again</ion-button>
       </ion-card-content>
     </ion-card>
 

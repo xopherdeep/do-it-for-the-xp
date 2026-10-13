@@ -39,7 +39,7 @@
 
       <!-- The clerk takes errands: the button sits just above the tabs -->
       <ion-fab vertical="bottom" horizontal="center" slot="fixed">
-        <ion-fab-button color="primary" data-cy="th-clerk" aria-label="Talk to the clerk" @click="talkToClerk">
+        <ion-fab-button color="rpg" data-cy="th-clerk" aria-label="Talk to the clerk" @click="talkToClerk">
           <ion-icon :icon="addOutline"></ion-icon>
         </ion-fab-button>
       </ion-fab>
@@ -47,13 +47,13 @@
 
     <!-- The tabs, and above them the board picker while the Board is open: controls stay at the bottom -->
     <ion-footer class="th-footer">
-      <ion-toolbar v-if="selectedTab === 'board' && boards.length" color="primary" class="th-boards" data-cy="th-boards">
+      <ion-toolbar v-if="selectedTab === 'board' && boards.length" class="th-boards" data-cy="th-boards">
         <div class="th-boards__chips">
           <ion-chip
             v-for="board in boards"
             :key="board.slug"
             :data-cy="`th-board-${board.slug}`"
-            :outline="board.slug !== boardSlug"
+            :class="{ 'is-on': board.slug === boardSlug }"
             :aria-pressed="board.slug === boardSlug"
             @click="boardSlug = board.slug"
           >
@@ -61,7 +61,7 @@
           </ion-chip>
         </div>
       </ion-toolbar>
-      <ion-toolbar color="primary" class="th-tabs">
+      <ion-toolbar class="th-tabs">
         <ion-segment v-model="selectedTab">
           <ion-segment-button v-for="tab in tabs" :key="tab.id" :value="tab.id" :data-cy="`th-tab-${tab.id}`">
             <ion-label>{{ tab.label }}</ion-label>

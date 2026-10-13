@@ -54,7 +54,8 @@ export const LOOK_FIELDS = [
 const keepFields = (kind: FamilyEventKind, data: Record<string, unknown>): Record<string, unknown> => {
   const kept: Record<string, unknown> = {};
   for (const field of EVENT_KINDS[kind].fields) {
-    if (data[field] !== undefined) kept[field] = data[field];
+    const isPresent = data[field] !== undefined;
+    if (isPresent) kept[field] = data[field];
   }
   return kept;
 };
@@ -68,7 +69,8 @@ export const newEvent = (
   now: Date = new Date(),
   id: string = uuidv4(),
 ): FamilyEvent => {
-  if (EVENT_KINDS[kind].writer === "server") throw new Error(`${kind} is written by the server only`);
+  const isServerKind = EVENT_KINDS[kind].writer === "server";
+  if (isServerKind) throw new Error(`${kind} is written by the server only`);
   return { id, heroId, deviceId, kind, at: now.toISOString(), data: keepFields(kind, data) };
 };
 
@@ -76,7 +78,8 @@ const lookData = (look: HeroCard["look"]): Record<string, string> => {
   const kept: Record<string, string> = {};
   for (const field of LOOK_FIELDS) {
     const value = (look as unknown as Record<string, unknown>)[field];
-    if (typeof value === "string") kept[field] = value;
+    const isText = typeof value === "string";
+    if (isText) kept[field] = value as string;
   }
   return kept;
 };

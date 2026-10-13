@@ -6,7 +6,7 @@
     <ion-card v-else-if="failed && !items.length" class="th-late" data-cy="th-late">
       <ion-card-content class="ion-text-center">
         <p>The news hasn't arrived.</p>
-        <ion-button size="small" @click="reload">Try again</ion-button>
+        <ion-button size="small" color="rpg" @click="reload">Try again</ion-button>
       </ion-card-content>
     </ion-card>
 
@@ -25,7 +25,7 @@
       <ion-card-content>
         <div class="th-post__excerpt" v-html="sanitizeHtml(news.excerpt)"></div>
         <div v-if="news.categories.length" class="th-post__tags">
-          <ion-chip v-for="category in news.categories" :key="category" color="secondary">
+          <ion-chip v-for="category in news.categories" :key="category">
             <ion-label>{{ category }}</ion-label>
           </ion-chip>
         </div>
@@ -33,6 +33,7 @@
           <ion-button
             size="small"
             fill="clear"
+            color="rpg"
             data-cy="th-comments-toggle"
             :aria-expanded="isOpen(news.id)"
             @click="toggleComments(news.id)"
@@ -40,7 +41,7 @@
             Comments
             <ion-icon slot="end" :icon="isOpen(news.id) ? chevronUpOutline : chatbubblesOutline"></ion-icon>
           </ion-button>
-          <ion-button size="small" fill="clear" @click="openPost(news.link)">
+          <ion-button size="small" fill="clear" color="rpg" @click="openPost(news.link)">
             Read more
             <ion-icon slot="end" :icon="arrowForwardOutline"></ion-icon>
           </ion-button>
@@ -63,7 +64,7 @@
       </ion-card-content>
     </ion-card>
 
-    <ion-button v-if="hasMore && !loading" class="th-more" expand="block" fill="outline" data-cy="th-more" @click="loadMore">
+    <ion-button v-if="hasMore && !loading" class="th-more" expand="block" fill="outline" color="rpg" data-cy="th-more" @click="loadMore">
       Older news
     </ion-button>
   </div>

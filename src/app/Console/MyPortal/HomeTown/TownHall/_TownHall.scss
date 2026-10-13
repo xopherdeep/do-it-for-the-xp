@@ -1,65 +1,62 @@
+// The Earthbound palette the Hometown pages share (src/styles/themes/earthbound.scss)
+$th-purple: #280828;
+$th-cream: #e7e6b3;
+$th-yellow: #f7e8a8;
+$th-minty: #68d0b8;
+
 .town-hall {
-  // The portal's dock floats over the bottom of every page: the pages' own controls stand above it
-  &.ion-page ion-content {
-    --padding-bottom: 0px;
-  }
-
-  &.ion-page ion-fab.fab-vertical-bottom {
-    bottom: 16px;
-  }
-
-  .th-footer {
-    padding-bottom: var(--xp-dock-height, 0px);
+  // The tabs and the board picker: a dark menu bar under the page, ringed in the same mint as the cards
+  .th-footer ion-toolbar {
+    --background: #{$th-purple};
+    --color: #{$th-cream};
+    --border-width: 0;
+    --min-height: 0;
   }
 
   .th-boards {
-    --min-height: 0;
+    border-top: 2px solid $th-minty;
 
     .th-boards__chips {
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
       padding: 4px 8px;
+    }
 
-      ion-chip {
-        --color: var(--ion-color-light);
-        --background: transparent;
-        min-height: 40px;
-        margin: 4px;
-        border: 1px solid var(--ion-color-light);
+    ion-chip {
+      --background: transparent;
+      --color: #{$th-cream};
+      min-height: 40px;
+      margin: 4px;
+      border: 1px solid $th-minty;
 
-        &:not(.chip-outline) {
-          --color: var(--ion-color-primary);
-          --background: var(--ion-color-light);
-        }
+      &.is-on {
+        --background: #{$th-yellow};
+        --color: #{$th-purple};
+        border-color: $th-yellow;
       }
     }
   }
 
-  ion-segment {
-    --background: var(--ion-color-primary);
+  .th-tabs {
+    border-top: 2px solid $th-minty;
+
+    ion-segment {
+      --background: transparent;
+    }
 
     ion-segment-button {
-      --color: var(--ion-color-light);
-      --color-checked: var(--ion-color-primary);
-      --background-checked: var(--ion-color-light);
+      --color: #{$th-cream};
+      --color-checked: #{$th-purple};
+      --background-checked: #{$th-yellow};
+      --indicator-color: transparent;
       min-height: 56px;
     }
   }
 
   // Room under the last card for the clerk's button
   .th-body {
-    padding: 12px 12px 88px;
-  }
-
-  ion-card {
-    margin: 0 0 12px;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  }
-
-  ion-chip {
-    margin: 4px;
+    padding-bottom: 88px;
   }
 
   .th-post__image {
@@ -78,6 +75,12 @@
     margin-top: 8px;
     display: flex;
     flex-wrap: wrap;
+
+    ion-chip {
+      --background: rgba(104, 208, 184, 0.2);
+      --color: #{$th-cream};
+      margin: 4px 4px 4px 0;
+    }
   }
 
   .th-post__actions {
@@ -89,7 +92,7 @@
 
   .th-comments {
     margin-top: 8px;
-    border-top: 1px solid var(--ion-color-light-shade, rgba(0, 0, 0, 0.15));
+    border-top: 1px solid $th-minty;
   }
 
   .th-comments__note {
@@ -113,7 +116,7 @@
   }
 
   .th-more {
-    margin: 4px 0 12px;
+    margin: 1rem 1.25rem 0;
   }
 
   // What WordPress sends can hold images and embeds wider than a phone
@@ -131,5 +134,25 @@
   .wp-block-image img {
     max-width: 100%;
     height: auto;
+  }
+
+  // The Earthbound theme styles these with an id in the selector, so the page's own rules need one too
+  #earthbound & {
+    // A card's ring is as wide as the margin between cards: leave a gap so the rings do not touch
+    ion-card {
+      margin-bottom: 2rem;
+    }
+
+    // The tab names are set in the wide status font: smaller, so all four fit on a phone
+    ion-segment-button ion-label {
+      font-size: 0.7rem;
+      letter-spacing: 0;
+      color: inherit;
+    }
+
+    ion-segment-button.segment-button-checked ion-label,
+    ion-segment-button.segment-button-checked ion-icon {
+      color: $th-purple;
+    }
   }
 }

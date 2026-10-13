@@ -29,7 +29,8 @@ function storedOverride(): string | null {
 export function multiplayerEnabled(opts: MultiplayerFlagOptions = {}): boolean {
   const production = opts.production ?? process.env.NODE_ENV === "production";
   const env = "env" in opts ? opts.env : process.env.VUE_APP_MULTIPLAYER;
-  if (env === "true") return true;
+  const isOnInTheBuild = env === "true";
+  if (isOnInTheBuild) return true;
   if (production) return false;
   const override = opts.override === undefined ? storedOverride() : opts.override;
   return override === "on";

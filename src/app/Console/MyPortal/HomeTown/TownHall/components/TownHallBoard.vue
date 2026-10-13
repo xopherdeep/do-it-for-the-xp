@@ -5,7 +5,7 @@
     <ion-card v-else-if="failed && !topics.length" class="th-late" data-cy="th-late">
       <ion-card-content class="ion-text-center">
         <p>The Board hasn't arrived.</p>
-        <ion-button size="small" @click="reload">Try again</ion-button>
+        <ion-button size="small" color="rpg" @click="reload">Try again</ion-button>
       </ion-card-content>
     </ion-card>
 
@@ -35,7 +35,7 @@
         </ion-card-content>
       </ion-card>
 
-      <ion-button v-if="hasMore && !loading" class="th-more" expand="block" fill="outline" data-cy="th-more" @click="loadMore">
+      <ion-button v-if="hasMore && !loading" class="th-more" expand="block" fill="outline" color="rpg" data-cy="th-more" @click="loadMore">
         Older topics
       </ion-button>
     </template>

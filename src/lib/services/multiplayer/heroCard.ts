@@ -28,13 +28,14 @@ const levelOf = (value: unknown): number => {
 export const cardOf = (profile: CardProfile, now: Date = new Date()): HeroCard | null => {
   const heroId = text(profile?.id);
   const nickname = text(profile?.name?.nick);
-  if (!heroId || !nickname) return null;
+  const isIncomplete = !heroId || !nickname;
+  if (isIncomplete) return null;
   const look = isHeroLook(profile.look) ? profile.look : DEFAULT_LOOK;
   return { heroId, nickname, look, jobClass: text(profile.jobClass), level: levelOf(profile.stats?.level), updatedAt: now.toISOString() };
 };
 
 const sortedKeys = (value: object): Record<string, unknown> =>
-  Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
+  Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b, "en")));
 
 /** What identifies a card's content: the JSON of every field but `updatedAt`, with the look's keys in a fixed order */
 export const cardKey = (card: HeroCard): string =>
