@@ -63,7 +63,7 @@
             The comments are out of reach. Close them and open them again to try once more.
           </p>
           <p v-else-if="!commentsOf[news.id]?.items.length" class="th-comments__note">No comments yet.</p>
-          <div v-for="comment in commentsOf[news.id]?.items" :key="comment.id" class="th-comment" data-cy="th-comment">
+          <div v-for="comment in commentsOf[news.id]?.items" :key="comment.id" class="th-comment" data-cy="th-comment-item">
             <div class="th-comment__head">
               <strong>{{ comment.author }}</strong>
               <ion-note>{{ formatTownDate(comment.date) }}</ion-note>

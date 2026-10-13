@@ -84,7 +84,7 @@ describe("Town Hall", () => {
     cy.contains("The Hero’s Welcome", { timeout: 30000 });
     cy.contains("Harvest Festival");
     cy.get("[data-cy=th-comments-toggle]").first().click();
-    cy.contains("[data-cy=th-comment]", "Great news, heroes!", { timeout: 20000 });
+    cy.contains("[data-cy=th-comment-item]", "Great news, heroes!", { timeout: 20000 });
     cy.screenshot("town-hall-02-news", { capture: "viewport" });
   });
 

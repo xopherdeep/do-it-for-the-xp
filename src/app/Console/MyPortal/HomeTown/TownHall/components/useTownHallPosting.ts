@@ -156,15 +156,22 @@ export function useTownHallPosting(deps: PostingDeps) {
 
   const isBusy = () => reveal.prompt.value !== null || composeOpen.value;
 
-  /** Send the queue on the page's own account (opening, coming back online, linking) and tell the family when the way is clear */
-  const sendQueue = async (): Promise<void> => {
-    const result = await flushNow();
+  /**
+   * Give the family the news of a flush: now when the clerk is free and no sheet is open, else held until both are (a
+   * prompt asked over another one would cancel it, and one asked behind the open sheet would never be read).
+   */
+  const deliver = async (result: FlushResult | null): Promise<void> => {
     if (!hasNews(result)) return;
     if (isBusy()) {
       untold = result;
       return;
     }
     await tellAboutFlush(result);
+  };
+
+  /** Send the queue on the page's own account (opening, coming back online, linking) and deliver the news */
+  const sendQueue = async (): Promise<void> => {
+    await deliver(await flushNow());
   };
 
   watch(isBusy, (busy) => {
@@ -222,7 +229,7 @@ export function useTownHallPosting(deps: PostingDeps) {
     if (!kept.post) return;
     const flushed = flushNow();
     await reveal.ask(postedNotice(postedOutcome(kept.post, store.isLinked, deps.isGameMaster())));
-    await tellAboutFlush(await flushed);
+    await deliver(await flushed);
   };
 
   /** Clear a post from the list; a failure is logged and the post stays */

@@ -481,6 +481,72 @@ describe("sending the queue on its own (opening the Town Hall, coming back onlin
     expect(told).toHaveLength(1);
   });
 
+  describe("a slow flush that settles after the posted notice was answered", () => {
+    const slowFlush = () => {
+      let finish: (result: FlushResult) => void = () => undefined;
+      const flush = jest.fn(() => new Promise<FlushResult>((resolve) => (finish = resolve)));
+      return { flush, finish: (result: FlushResult) => finish(result) };
+    };
+    const TURNED_AWAY: FlushResult = { sent: 0, unlinked: true, forbidden: false };
+
+    /** The hero sent a bug report and has answered the clerk's notice; the flush is still out */
+    const sentAndAnswered = async () => {
+      const slow = slowFlush();
+      const desk = rig({ store: fakeStore({ flush: slow.flush }) });
+      desk.posting.openBug();
+      const sending = desk.posting.sendDraft(bugDraft);
+      await flushPromises();
+      desk.reveal.answer();
+      await flushPromises();
+      return { ...desk, slow, sending };
+    };
+
+    it("holds the news while the hero has another prompt open, then gives it once", async () => {
+      const { posting, reveal, slow, sending } = await sentAndAnswered();
+      const menu = posting.openClerkMenu();
+      await flushPromises();
+
+      slow.finish(TURNED_AWAY);
+      await sending;
+      expect(reveal.asked).toEqual([postedNotice("bug"), clerkMenuPrompt(false, "adventure")]);
+
+      reveal.answer("never");
+      await menu;
+      await flushPromises();
+      expect(reveal.asked.slice(2)).toEqual([registerAgainPrompt()]);
+      reveal.answer();
+      await flushPromises();
+      expect(reveal.ask).toHaveBeenCalledTimes(3);
+    });
+
+    it("holds the news while the hero writes another post, then gives it once", async () => {
+      const { posting, reveal, slow, sending } = await sentAndAnswered();
+      posting.openBug();
+
+      slow.finish(TURNED_AWAY);
+      await sending;
+      expect(reveal.asked).toEqual([postedNotice("bug")]);
+
+      posting.closeCompose();
+      await nextTick();
+      await flushPromises();
+      expect(reveal.asked).toEqual([postedNotice("bug"), registerAgainPrompt()]);
+      reveal.answer();
+      await flushPromises();
+      expect(reveal.ask).toHaveBeenCalledTimes(2);
+    });
+
+    it("gives the news at once when the way is clear", async () => {
+      const { reveal, slow, sending } = await sentAndAnswered();
+
+      slow.finish(TURNED_AWAY);
+      await flushPromises();
+      expect(reveal.asked).toEqual([postedNotice("bug"), registerAgainPrompt()]);
+      reveal.answer();
+      await sending;
+    });
+  });
+
   it("tells the family again when a later flush brings the news again", async () => {
     const store = fakeStore({ flush: jest.fn(async () => ({ sent: 0, unlinked: true, forbidden: false })) });
     const { posting, reveal } = rig({ store });
