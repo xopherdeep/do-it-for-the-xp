@@ -4,7 +4,8 @@ import { useRoute, useRouter } from "vue-router";
 import { createBattleService, createBestiaryService } from "@/lib/services/battle";
 import type { BattleService, CombatTask, Enemy } from "@/lib/services/battle/BattleService";
 import { battleBagRole, describeBattleItem, useBattleItem, type BattleItemLike } from "@/lib/services/battle/BattleItems";
-import type { BattleEffectId } from "@/lib/services/battle/BattleEffects";
+import { heroPoints, type BattleEffectId, type BattleEffectOutcome } from "@/lib/services/battle/BattleEffects";
+import { choreGains } from "@/lib/services/battle/choreGains";
 import { drinkPotion, potionShelf } from "@/lib/services/battle/BattlePotions";
 import { battlePowers, castBattlePower } from "@/lib/services/battle/BattlePowers";
 import { getAbilityService } from "@/lib/services/abilities/AbilityService";
@@ -59,7 +60,7 @@ const PROMPT_RUN = "Run away? Your finished chores won't count.";
 /** What covers the menu: the chore checklist, the Goods bag, the potion sheet or the Powers sheet. One at a time. */
 type BattleSheetName = "task" | "bag" | "potions" | "powers";
 
-/** The Powers command, and a Power's Recall on the chore pick, wear the spell book. */
+/** The Powers command wears the spell book. */
 const POWERS_ICON = "book-spells";
 
 /**
@@ -109,14 +110,6 @@ export default defineComponent({
     const battleStarted = ref(false);
     const showEnemy = ref(false);
     const sheet = ref<BattleSheetName | null>(null);
-    /** The task sheet confirms a finished chore, or (Recall) picks one to send back to the board. */
-    const taskMenuMode = ref<"attack" | "postpone">("attack");
-    /** The Silver Arrow in hand while the hero picks the chore it will carry away. */
-    let arrowInFlight: BattleItemLike | null = null;
-    /** A Recall Power (Rewind) cast while the hero picks the chore it will carry away. */
-    let powerInFlight: Ability | null = null;
-    /** Who the chore pick names: a Power by its name, or null for the Silver Arrow (the sheet's default). */
-    const recallBy = ref<{ name: string; faIcon: string } | null>(null);
     /** Once-per-fight effects already used (items and Powers share them); a new fight starts with an empty set. */
     let usedThisFight = new Set<BattleEffectId>();
     /** The Game Master's Powers, read once per fight; the Powers sheet keeps the hero's unlocked battle ones. */
@@ -139,7 +132,7 @@ export default defineComponent({
     const audio = useBattleAudio();
     const background = useBattleBackground();
     const feedback = useBattleFeedback();
-    const { equipment } = useHeroEquipment(ctx.userId);
+    const { equipment, reload: reloadHands } = useHeroEquipment(ctx.userId);
     const hero = computed(() => userStore.getUserById(ctx.userId));
     const heroLook = computed(() => hero.value?.look);
     const heroAnimation = ref<HeroAnimation>("idle");
@@ -239,22 +232,17 @@ export default defineComponent({
       }, HIT_SHAKE_MS);
     };
 
-    /** Closes whatever covers the menu and drops a Recall still waiting for its chore (nothing was charged yet). */
+    /** Closes whatever covers the menu. */
     const closeSheet = () => {
       sheet.value = null;
-      taskMenuMode.value = "attack";
-      arrowInFlight = null;
-      powerInFlight = null;
-      recallBy.value = null;
     };
 
     /** What the hero may use right now: the engine, the hero, the tools in the two hands and this fight's spent effects. */
-    const itemContext = (taskId?: string) => ({
+    const itemContext = () => ({
       userId: ctx.userId,
       service: service.value as BattleService,
       usedThisFight,
       heldItems: equipment.value.map((item) => String(item.name ?? "")),
-      taskId,
     });
 
     /** The sheet's answer typed as one line that moves on by itself; the menu comes back after it. */
@@ -264,12 +252,11 @@ export default defineComponent({
       if (result.line) dialog.enqueue([{ text: result.line, auto: true }]);
     };
 
-    /** Recall (the Silver Arrow or a Power) borrows the checklist to pick the chore it carries back. */
-    const pickChoreToRecall = (by: { name: string; faIcon: string } | null = null) => {
-      audio.playSound("cursor");
-      recallBy.value = by;
-      taskMenuMode.value = "postpone";
-      sheet.value = "task";
+    /** An item or a Power answered; a vanish (X's Invisibility) has armed the getaway, so Run Away follows at once. */
+    const answerEffect = (result: BattleEffectOutcome) => {
+      sayItemResult(result);
+      const hasVanished = result.ok && result.runsAway;
+      if (hasVanished) act("run");
     };
 
     // The bag asks the page about each tile, so it holds no battle rules
@@ -294,13 +281,7 @@ export default defineComponent({
         return;
       }
       closeSheet();
-      const result = useBattleItem(item, itemContext());
-      if (result.needsTaskPick) {
-        arrowInFlight = item;
-        pickChoreToRecall();
-        return;
-      }
-      sayItemResult(result);
+      answerEffect(useBattleItem(item, itemContext()));
     };
 
     // The potion and Powers sheets re-read the pack, the MP and the spent effects every time they open
@@ -317,31 +298,14 @@ export default defineComponent({
       if (live) sayItemResult(drinkPotion(ctx.userId, entryId));
     };
 
-    /** A Power cast from its sheet: Recall goes on to pick a chore, everything else acts now. The sheet always closes. */
+    /** A Power cast from its sheet acts now. The sheet always closes. */
     const castPower = (abilityId: string) => {
       const live = sheet.value === "powers" && battleStarted.value && !!service.value;
       const ability = abilities.find((entry) => entry.id === abilityId);
       closeSheet();
       const cannotCastPower = !live || !ability;
       if (cannotCastPower) return;
-      const result = castBattlePower(ability, itemContext());
-      if (result.needsTaskPick) {
-        powerInFlight = ability;
-        pickChoreToRecall({ name: ability.name, faIcon: POWERS_ICON });
-        return;
-      }
-      sayItemResult(result);
-    };
-
-    /** The hero chose the chore Recall carries back to the board. It is postponed, never completed. */
-    const postponeTask = (taskId: string) => {
-      const arrow = arrowInFlight;
-      const power = powerInFlight;
-      closeSheet();
-      const isBattleNotRunning = !service.value || !battleStarted.value;
-      if (isBattleNotRunning) return;
-      if (arrow) sayItemResult(useBattleItem(arrow, itemContext(taskId)));
-      else if (power) sayItemResult(castBattlePower(power, itemContext(taskId)));
+      answerEffect(castBattlePower(ability, itemContext()));
     };
 
     /** The beast wound up: the hit is waiting for a tap; remind a hero who walked away. */
@@ -464,6 +428,8 @@ export default defineComponent({
           dialog.enqueue(["No hero showed up for this fight...", () => outcome.leaveBattle()]);
           return;
         }
+        // The hands as they are now: a page Ionic kept from an earlier visit would still hold the old ones
+        reloadHands();
 
         const loaded = await loadEncounter(ctx, bestiary);
         encounter.value = loaded;
@@ -580,7 +546,22 @@ export default defineComponent({
       ];
     });
 
-    /** A confirmed chore is the hero's swing: the sheet slides away, then the blow lands. */
+    /** What a finished chore gives back (choreGains): MP in a quest fight, double when charged, and HP under moonlight. */
+    const giveChoreGains = () => {
+      const gains = choreGains({
+        maxHp: heroPoints(ctx.userId, "hp").max,
+        maxMp: heroPoints(ctx.userId, "mp").max,
+        questFight: Boolean(encounter.value?.quest),
+        charged: usedThisFight.has("charge"),
+        moonlit: usedThisFight.has("moonlight"),
+      });
+      const hasMpBack = gains.mp > 0;
+      const hasHpBack = gains.hp > 0;
+      if (hasMpBack) userStore.updateUserMP({ userId: ctx.userId, amount: gains.mp });
+      if (hasHpBack) userStore.updateUserHP({ userId: ctx.userId, amount: gains.hp });
+    };
+
+    /** A confirmed chore is the hero's swing: the sheet slides away, then the blow lands and the chore gives back. */
     const finishCombatTask = (taskId: string) => {
       if (!battleStarted.value) return;
       closeSheet();
@@ -590,7 +571,11 @@ export default defineComponent({
         if (!battleStarted.value) return;
         audio.playSound("attack");
         feedback.beastHit();
-        service.value?.finishCombatTask(taskId);
+        const engine = service.value;
+        // Only a chore the engine still holds open pays back: it ignores one that is already done
+        const isChoreOpen = engine?.getCombatTasks().some((task) => task.id === taskId && !task.isCompleted) ?? false;
+        engine?.finishCombatTask(taskId);
+        if (isChoreOpen) giveChoreGains();
         if (battleStarted.value && !victoryCard.value) {
           heroAnimation.value = "idle";
         }
@@ -685,11 +670,8 @@ export default defineComponent({
       sheet,
       closeSheet,
       // attacks
-      taskMenuMode,
-      recallBy,
       combatTasks,
       finishCombatTask,
-      postponeTask,
       // goods
       hero,
       equipment,

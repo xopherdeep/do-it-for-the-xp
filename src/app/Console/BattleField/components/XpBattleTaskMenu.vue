@@ -60,61 +60,30 @@ import { computed, nextTick, ref } from "vue";
 import { play$fx } from "@/assets/fx";
 import type { CombatTask } from "@/lib/services/battle/BattleService";
 
-/** Attack (the default) confirms a finished chore; postpone (Recall) picks a chore to send back to the board. */
-type TaskSheetMode = "attack" | "postpone";
-
-/** What sends the chore back: its name heads the postpone sheet, its Font Awesome icon (no prefix) beside it. */
-interface RecallSource {
-  name: string;
-  faIcon: string;
-}
-
-/** The Silver Arrow was the first Recall, so a postpone sheet that names nothing is its. */
-const SILVER_ARROW: RecallSource = { name: "Silver Arrow", faIcon: "bow-arrow" };
-
-const props = withDefaults(
-  defineProps<{
-    /** The beast's checklist, in the order the Game Master wrote it. */
-    tasks: CombatTask[];
-    enemyName: string;
-    /** What one finished chore takes off the beast; only shown in the header. */
-    damagePerTask: number;
-    mode?: TaskSheetMode;
-    /** Postpone mode: the item or Power doing the Recall (a Rewind cast must not read as the arrow being spent). */
-    recall?: RecallSource | null;
-  }>(),
-  { mode: "attack", recall: null },
-);
+const props = defineProps<{
+  /** The beast's checklist, in the order the Game Master wrote it. */
+  tasks: CombatTask[];
+  enemyName: string;
+  /** What one finished chore takes off the beast; only shown in the header. */
+  damagePerTask: number;
+}>();
 
 const emit = defineEmits<{
   (e: "cancel"): void;
   (e: "attack-start", task: CombatTask): void;
   (e: "task-complete", taskId: string): void;
   (e: "attack-end", payload: { success: true; taskId: string; taskName: string }): void;
-  /** Postpone mode: the chore the hero chose to send back to the board. Nothing is completed. */
-  (e: "task-pick", taskId: string): void;
 }>();
 
-/** The words on the sheet, per mode. */
-const copy = computed(() =>
-  props.mode === "postpone"
-    ? {
-        title: (props.recall ?? SILVER_ARROW).name,
-        icon: `fa-${(props.recall ?? SILVER_ARROW).faIcon}`,
-        subtitle: "Which chore flies back to the board?",
-        question: "Send it back? It stays unfinished.",
-        no: "Keep it",
-        yes: "Send it!",
-      }
-    : {
-        title: "Tackle!",
-        icon: "fa-claw-marks",
-        subtitle: `Each chore hits ${props.enemyName} for ${props.damagePerTask}`,
-        question: "Did you finish it?",
-        no: "Not yet",
-        yes: "Done!",
-      },
-);
+/** The words on the sheet. */
+const copy = computed(() => ({
+  title: "Tackle!",
+  icon: "fa-claw-marks",
+  subtitle: `Each chore hits ${props.enemyName} for ${props.damagePerTask}`,
+  question: "Did you finish it?",
+  no: "Not yet",
+  yes: "Done!",
+}));
 
 /** A Done! tap this soon after a row opened is the second half of a double-tap, not an answer. */
 const CONFIRM_GUARD_MS = 250;
@@ -163,10 +132,6 @@ const confirmDone = (task: CombatTask) => {
   const isConfirmBlocked = busy.value || !isSelected(task) || Date.now() - openedAt < CONFIRM_GUARD_MS;
   if (isConfirmBlocked) return;
   busy.value = true;
-  if (props.mode === "postpone") {
-    emit("task-pick", task.id);
-    return;
-  }
   emit("attack-start", task);
   emit("task-complete", task.id);
   emit("attack-end", { success: true, taskId: task.id, taskName: task.name });

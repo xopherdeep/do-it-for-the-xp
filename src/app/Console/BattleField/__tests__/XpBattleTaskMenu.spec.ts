@@ -295,41 +295,20 @@ describe("XpBattleTaskMenu", () => {
     });
   });
 
-  // Recall borrows the checklist to pick the chore it sends back: the sheet wears the name of what recalls it
-  describe("postpone (Recall)", () => {
-    const openPostpone = (recall?: { name: string; faIcon: string } | null) => {
+  // Recall is retired: the checklist only ever confirms finished chores, whatever an old caller still passes it
+  describe("one mode", () => {
+    it("still attacks when an old caller asks for the postpone mode", async () => {
       mounted = mount(XpBattleTaskMenu, {
-        props: { tasks: checklist(), enemyName: "Socktopus", damagePerTask: 50, mode: "postpone", recall },
-      });
-      return mounted;
-    };
-    const titleIcon = (menu: Sheet) => menu.find(".sheet-title i").classes();
-
-    it("is the Silver Arrow when nothing else is named", () => {
-      for (const recall of [undefined, null]) {
-        const menu = openPostpone(recall);
-        expect(menu.find(".sheet-title").text()).toBe("Silver Arrow");
-        expect(titleIcon(menu)).toContain("fa-bow-arrow");
-        expect(menu.find(".sheet-subtitle").text()).toBe("Which chore flies back to the board?");
-        menu.unmount();
-      }
-    });
-
-    it("names a Recall Power and wears its icon, with the same question", async () => {
-      const menu = openPostpone({ name: "Rewind", faIcon: "book-spells" });
-      expect(menu.find(".sheet-title").text()).toBe("Rewind");
-      expect(titleIcon(menu)).toContain("fa-book-spells");
-      expect(titleIcon(menu)).not.toContain("fa-bow-arrow");
-      expect(menu.find(".sheet-subtitle").text()).toBe("Which chore flies back to the board?");
-      await rowsOf(menu)[0].trigger("click");
-      expect(menu.find(".confirm-question").text()).toBe("Send it back? It stays unfinished.");
-    });
-
-    it("leaves the attack sheet alone", () => {
-      mounted = mount(XpBattleTaskMenu, {
-        props: { tasks: checklist(), enemyName: "Socktopus", damagePerTask: 50, recall: { name: "Rewind", faIcon: "book-spells" } },
+        props: { tasks: checklist(), enemyName: "Socktopus", damagePerTask: 50 },
+        attrs: { mode: "postpone" },
       });
       expect(mounted.find(".sheet-title").text()).toBe("Tackle!");
+      await rowsOf(mounted)[0].trigger("click");
+      expect(mounted.find(".confirm-question").text()).toBe("Did you finish it?");
+      jest.advanceTimersByTime(300);
+      await tapDone(mounted);
+      expect(mounted.emitted("task-complete")).toEqual([["t1"]]);
+      expect(mounted.emitted("task-pick")).toBeUndefined();
     });
   });
 });

@@ -16,7 +16,7 @@
  */
 import { useUserStore } from '@/lib/store/stores/user';
 import { ITEM_RULES, itemRule } from '@/lib/services/items/ItemRules';
-import { bombInPack, mpCostOf } from '@/lib/services/temples/ItemUse';
+import { REASON_NO_BOMBS, bombInPack, mpCostOf } from '@/lib/services/temples/ItemUse';
 import { heroMpBill } from '@/lib/services/stats/StatEffects';
 import { isItemUnlocked, unlockHintOf } from '@/lib/services/quests/ItemEffects';
 import {
@@ -51,6 +51,7 @@ export {
   SOUND_ITEM,
   SOUND_NO,
 } from './BattleEffects';
+export { REASON_NO_BOMBS } from '@/lib/services/temples/ItemUse';
 
 /** The engine calls an item can make (the effects' Pick). */
 export type BattleItemEngine = BattleEffectEngine;
@@ -81,7 +82,6 @@ export interface BattleItemCard {
 
 export const REASON_NOTHING = "Can't use that in a fight.";
 export const REASON_NOT_HELD = 'Hold it in a hand before a fight.';
-export const REASON_NO_BOMBS = 'Out of bombs.';
 
 /** The fight tools: each rule in ITEM_RULES with a `fight` effect, with its MP and that effect. Bottles is a container, not here. */
 export const BATTLE_ITEMS: Record<string, { mp: number; effect: BattleEffectId }> = Object.fromEntries(
@@ -172,7 +172,7 @@ export const describeBattleItem = (item: BattleItemLike | null | undefined, ctx:
   }
 
   const rule = battleRuleOf(name);
-  const isNoFightTool = role === 'none' || !rule;
+  const isNoFightTool = !rule;
   if (isNoFightTool) return { name, faIcon, mp: 0, effect: REASON_NOTHING, reason: REASON_NOTHING };
 
   const mp = heroMpCost(item, ctx.userId);
@@ -204,7 +204,7 @@ export const useBattleItem = (item: BattleItemLike, ctx: BattleItemContext): Bat
   const bomb = spendsBomb(name) ? bombInPack(ctx.userId) : null;
   const outcome = applyBattleEffect(rule.effect, ctx);
   if (outcome.ok && bomb) useUserStore().spendInventoryItem(ctx.userId, bomb.id);
-  const shouldChargeMp = outcome.ok && !outcome.needsTaskPick && mp > 0;
+  const shouldChargeMp = outcome.ok && mp > 0;
   if (shouldChargeMp) useUserStore().updateUserMP({ userId: ctx.userId, amount: -mp });
   return outcome;
 };

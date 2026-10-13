@@ -81,6 +81,9 @@ const definitionOf = (item: Partial<EquipmentItem>, catalog: EquipmentItem[]): E
 export const mpCostOf = (item: Partial<EquipmentItem>, definition?: EquipmentItem): number =>
   itemRule(definition?.name ?? item.name)?.mp ?? leadingMpCost(item.desc) ?? leadingMpCost(definition?.desc) ?? 0;
 
+/** The Bombs with no Bomb in the pack, in a temple and in a fight alike. */
+export const REASON_NO_BOMBS = 'Out of bombs.';
+
 /** What the Bombs spend: the pack's Bomb stack (merged by inventoryOf), or null when the pack holds none. */
 export const bombInPack = (userId: string): InventoryEntry | null =>
   inventoryOf(useUserStore().getUserById(userId)).find((entry) => entry.name === 'Bomb') ?? null;
@@ -131,7 +134,7 @@ const useBottles = (ctx: ItemUseContext): ItemOutcome => {
 
 const useBombs = (ctx: ItemUseContext): ItemOutcome => {
   const bomb = bombInPack(ctx.userId);
-  if (!bomb) return refuse('Out of bombs.');
+  if (!bomb) return refuse(REASON_NO_BOMBS);
 
   const system = TempleSystem.getInstance();
   const side = DIRECTIONS.find((direction) => ctx.exits[direction].locked);

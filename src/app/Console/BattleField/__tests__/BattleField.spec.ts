@@ -103,6 +103,25 @@ const SILVER_ARROW: BagItem = { name: "Silver Arrow", faIcon: "bow-arrow", desc:
 const CHRONOS_CLOCK: BagItem = { name: "Chronos' Clock", faIcon: "flux-capacitor", desc: "100MP | Manipulate time itself!" };
 const BOTTLES: BagItem = { name: "Bottles", faIcon: "flask-potion", desc: "Your potions." };
 const BOOK_OF_SPELLS: BagItem = { name: "Book Of Spells", faIcon: "book-spells", desc: "Your Powers." };
+const X_INVISIBILITY: BagItem = { name: "X's Invisibility", faIcon: "hat-wizard", desc: "15MP | Slip away unseen." };
+const TESLAS_BOLT: BagItem = { name: "Tesla's Bolt", faIcon: "bolt", desc: "5MP | Chores give back double MP." };
+const NIGHTS_LIGHT: BagItem = { name: "Night's Light", faIcon: "moon-stars", desc: "10MP | Each chore heals." };
+
+/** What a quest room's loader hands the page: the Socktopus, carrying the Sock Duty quest. */
+const questEncounter = () => ({
+  enemies: [
+    {
+      id: "b1", name: "Socktopus", type: "beast", isBoss: false, health: 100, maxHealth: 100,
+      attack: 10, defense: 5, speed: 8, attackCooldown: 3,
+      tasks: ["Sort socks", "Match pairs"].map((name, index) => ({ id: `t${index + 1}`, name, isCompleted: false })),
+    },
+  ],
+  rewards: { xp: 100, gp: 10, ap: 1 },
+  quest: { id: "q-socks", achievementName: "Sock Duty" },
+  roomKey: "Q0001",
+  label: "Socktopus",
+});
+const QUEST_ROOM = "/battle/hero-1/temple/shadow-temple/1F/0/1";
 
 /** An unlocked in-game Power (no AP asked) with a fight effect by preset name: Stop freezes, Rewind refills the clock. */
 const power = (name: string, mpCost: number): Ability =>
@@ -134,8 +153,9 @@ describe("BattleField: a free fight", () => {
   });
 
   /**
-   * Seeds the hero (with these tools in the hands: the page reads them once, when it mounts), mounts the page on a
-   * battle route and fires Ionic's view-enter like the router outlet would.
+   * Seeds the hero, mounts the page on a battle route, puts these tools in the hands and fires Ionic's view-enter like
+   * the router outlet would. The hands go on after the mount: the page reads them when the fight begins, so a cached
+   * page never fights with the hands it had last time.
    */
   const enterBattle = async (path: string, hands: { leftHand: BagItem[]; rightHand: BagItem[] } = { leftHand: [], rightHand: [] }) => {
     const pinia = createPinia();
@@ -148,7 +168,6 @@ describe("BattleField: a free fight", () => {
         gp: { wallet: 0, savings: 0, debt: 0, limit: 1000 },
       },
     });
-    userStore.setEquipment("hero-1", hands);
     const routes = Object.entries(routePaths).map(([name, path]) => ({ name, path, component: blank }));
     const router = createRouter({ history: createMemoryHistory(), routes });
     await router.push(path);
@@ -161,6 +180,7 @@ describe("BattleField: a free fight", () => {
     expect(vm.dialogText).toBe(""); // nothing starts until the view is entered
     expect(wrapper.find(".menu-item").exists()).toBe(false);
     expect(mockViewHooks.didEnter).toBeDefined();
+    userStore.setEquipment("hero-1", hands);
     mockViewHooks.didEnter?.();
     await flushPromises();
     /** One tap on the message box: finishes the typing, or moves on to the next line. */
@@ -491,6 +511,90 @@ describe("BattleField: a free fight", () => {
     await readUntilMenu();
     await wrapper.find("#attack").trigger("click");
     expect(wrapper.findAll(".battle-task-item").map((item) => item.text())).toEqual(["Sort socks", "Match pairs"]);
+  });
+
+  it("X's Invisibility runs the hero out of a quest fight with no parting strike", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0.5);
+    mockEncounter = questEncounter();
+    const { wrapper, router, userStore, vm, tap, useFromBag } = await enterBattle(QUEST_ROOM, {
+      leftHand: [X_INVISIBILITY],
+      rightHand: [],
+    });
+    const hero = userStore.users["hero-1"];
+    hero.stats.mp = { now: 50, max: 50 };
+    await tap();
+    await tap();
+
+    // One tap in the bag: the 15 MP are spent, the hero vanishes and Run Away follows by itself
+    await wrapper.find("#item").trigger("click");
+    await useFromBag(X_INVISIBILITY);
+    expect(hero.stats.mp.now).toBe(35);
+    const said: string[] = [vm.dialogText];
+    for (let taps = 0; taps < 8 && router.currentRoute.value.name !== "temple"; taps++) {
+      await tap();
+      said.push(vm.dialogText);
+      jest.advanceTimersByTime(ESCAPE_FADE_MS + 50);
+      await flushPromises();
+    }
+
+    expect(said).toContain("Max vanishes into the shadows...");
+    expect(said).toContain("Socktopus swings at empty air.");
+    expect(said).toContain("Got away safely!");
+    expect(said.join("|")).not.toMatch(/strikes as Max flees/);
+    expect(hero.stats.hp.now).toBe(30);
+    expect(router.currentRoute.value).toMatchObject({ name: "temple", params: { temple: "shadow-temple" } });
+    (Math.random as jest.Mock).mockRestore();
+  });
+
+  it("a chore in a quest fight gives a tenth of max MP back", async () => {
+    mockEncounter = questEncounter();
+    const { userStore, tap, attackWith } = await enterBattle(QUEST_ROOM);
+    const hero = userStore.users["hero-1"];
+    hero.stats.mp = { now: 50, max: 120 };
+    await tap();
+    await tap();
+
+    await attackWith("Sort socks");
+    expect(hero.stats.mp.now).toBe(50 + Math.max(1, Math.round(120 * 0.1)));
+    expect(hero.stats.hp.now).toBe(30); // no moonlight, no healing
+  });
+
+  it("a chore in a free fight gives nothing back", async () => {
+    const { userStore, tap, attackWith } = await enterBattle("/battle/hero-1/free/");
+    const hero = userStore.users["hero-1"];
+    hero.stats.mp = { now: 50, max: 120 };
+    hero.stats.hp = { now: 20, max: 30 };
+    await tap();
+    await tap();
+
+    await attackWith("Sort socks");
+    expect(hero.stats.mp.now).toBe(50);
+    expect(hero.stats.hp.now).toBe(20);
+  });
+
+  it("Tesla's Bolt doubles what a quest chore gives back and Night's Light makes it heal", async () => {
+    mockEncounter = questEncounter();
+    const { wrapper, userStore, tap, readUntilMenu, useFromBag, attackWith } = await enterBattle(QUEST_ROOM, {
+      leftHand: [TESLAS_BOLT],
+      rightHand: [NIGHTS_LIGHT],
+    });
+    const hero = userStore.users["hero-1"];
+    hero.stats.mp = { now: 50, max: 120 };
+    hero.stats.hp = { now: 10, max: 30 };
+    await tap();
+    await tap();
+
+    await wrapper.find("#item").trigger("click");
+    await useFromBag(TESLAS_BOLT);
+    await readUntilMenu();
+    await wrapper.find("#item").trigger("click");
+    await useFromBag(NIGHTS_LIGHT);
+    await readUntilMenu();
+    expect(hero.stats.mp.now).toBe(35); // 5 + 10 MP spent
+
+    await attackWith("Sort socks");
+    expect(hero.stats.mp.now).toBe(35 + 2 * 12);
+    expect(hero.stats.hp.now).toBe(10 + 2); // 5% of 30, rounded
   });
 
   it("Bottles in the bag opens the potion sheet and a drink heals", async () => {

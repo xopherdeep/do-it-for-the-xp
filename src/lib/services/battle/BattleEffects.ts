@@ -82,8 +82,6 @@ export interface BattleEffectContext {
   service: BattleEffectEngine;
   /** Effect ids already spent this fight (once-per-fight is per effect, whatever cast it); the page keeps one Set per fight. */
   usedThisFight: Set<BattleEffectId>;
-  /** Unused: no effect picks a chore any more. Kept until the page's chore-pick flow goes. */
-  taskId?: string;
 }
 
 export interface BattleEffectOutcome {
@@ -93,8 +91,6 @@ export interface BattleEffectOutcome {
   line: string;
   /** A play$fx key. */
   sound: string;
-  /** Unused: no effect picks a chore any more. Kept until the page's chore-pick flow goes. */
-  needsTaskPick?: boolean;
   /** A vanish: the getaway is armed, so the page runs Run Away next. */
   runsAway?: boolean;
 }

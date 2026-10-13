@@ -56,18 +56,15 @@
     </div>
 
     <!-- Overlays sit beside the shaking container so they never shake with it -->
-    <!-- Tackle = pick a chore from the beast's checklist; Recall (Silver Arrow, Rewind) borrows the same list to pick a chore to postpone -->
+    <!-- Tackle = pick a finished chore from the beast's checklist -->
     <transition name="sheet">
       <XpBattleTaskMenu
         v-if="sheet === 'task' && currentEnemy"
         :tasks="combatTasks"
         :enemy-name="currentEnemy.name"
         :damage-per-task="damagePerTask"
-        :mode="taskMenuMode"
-        :recall="recallBy"
         @cancel="closeSheet"
         @task-complete="finishCombatTask"
-        @task-pick="postponeTask"
       />
     </transition>
 
