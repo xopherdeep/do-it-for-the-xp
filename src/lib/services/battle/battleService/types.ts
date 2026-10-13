@@ -67,8 +67,8 @@ export interface BattleState {
   pendingStrikeBraced: boolean; // The waiting strike was met with a brace
 }
 
-/** Why a parting strike did not land: the Ninja's owed miss, Chronos' ice, Thor's Hammer, or trained agility. */
-export type PartingDodge = 'shadow' | 'frozen' | 'hammer' | 'agility';
+/** Why a parting strike did not land: X's Invisibility, the Ninja's owed miss, Chronos' ice, Thor's Hammer, or trained agility. */
+export type PartingDodge = 'vanish' | 'shadow' | 'frozen' | 'hammer' | 'agility';
 
 /** What cut a parting strike down: a brace the hero was already in, or a class that slips away (Thief, Ninja). */
 export type PartingSoftener = 'brace' | 'slip';

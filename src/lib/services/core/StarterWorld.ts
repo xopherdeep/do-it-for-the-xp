@@ -18,7 +18,12 @@ import { ShopItemType } from "@/lib/databases/ShopsDb";
 import type { ShopInterface } from "@/lib/databases/ShopsDb";
 import type { Ability } from "@/types/abilities";
 import { HYBRID_PRESETS, REAL_LIFE_PRESETS, TECH_MAGE_PRESETS, TIME_MAGE_PRESETS } from "@/lib/services/abilities/AbilityPresets";
-import { REAL_REWARD_PRESETS, rewardFromPreset } from "@/lib/services/shops/rewardPresets";
+import {
+  BASIC_CONSUMABLE_PRESETS,
+  REAL_REWARD_PRESETS,
+  consumableFromPreset,
+  rewardFromPreset,
+} from "@/lib/services/shops/rewardPresets";
 import { getAllShops } from "@/lib/engine/core/shopRegistry";
 import type { TimeOfDay } from "@/lib/engine/quests/QuestSchedule";
 
@@ -129,17 +134,30 @@ export const STARTER_ABILITIES: Ability[] = [
   ...HYBRID_PRESETS,
 ].map((preset) => ({ ...preset, isPreset: true }));
 
-/** Every ready-made real-life reward, stocked in the shops below */
-export const STARTER_ACCESSORIES = REAL_REWARD_PRESETS.map(rewardFromPreset);
+/** Ready-made consumables (in-game items) and real-life rewards, stocked in the shops below */
+export const STARTER_CONSUMABLES = BASIC_CONSUMABLE_PRESETS.map(consumableFromPreset);
+export const STARTER_REAL_REWARDS = REAL_REWARD_PRESETS.map(rewardFromPreset);
+export const STARTER_ACCESSORIES = [...STARTER_CONSUMABLES, ...STARTER_REAL_REWARDS];
 
 /**
- * Every shop in the registry, stocked: the hometown Market carries the whole reward catalogue, each
- * regional shop a rotating three, so a hero has a reason to travel.
+ * Every shop in the registry, stocked:
+ * - Hometown Market carries all basic consumables and real-life rewards.
+ * - Regional shops carry core consumables (Health Potion, Mana Potion) plus rotating rewards.
  */
 export const starterShops = (): ShopInterface[] => {
-  const rewards = STARTER_ACCESSORIES.map((item) => item.id as string);
+  const consumableIds = STARTER_CONSUMABLES.map((item) => item.id as string);
+  const realRewardIds = STARTER_REAL_REWARDS.map((item) => item.id as string);
+  const allIds = STARTER_ACCESSORIES.map((item) => item.id as string);
+
   return getAllShops().map((meta, index) => {
-    const stock = meta.id === "hometown-market" ? rewards : [0, 1, 2].map((n) => rewards[(index * 3 + n) % rewards.length]);
+    let stockIds: string[];
+    if (meta.id === "hometown-market") {
+      stockIds = allIds;
+    } else {
+      const baseConsumables = [consumableIds[0], consumableIds[1]];
+      const rotatingRewards = [0, 1, 2].map((n) => realRewardIds[(index * 3 + n) % realRewardIds.length]);
+      stockIds = [...baseConsumables, ...rotatingRewards];
+    }
     return {
       id: meta.id,
       name: meta.name,
@@ -147,7 +165,7 @@ export const starterShops = (): ShopInterface[] => {
       world: meta.world,
       icon: `fad fa-${meta.icon}`,
       clerkName: meta.clerkName,
-      items: stock.map((itemId) => ({ itemId, type: ShopItemType.Accessory })),
+      items: stockIds.map((itemId) => ({ itemId, type: ShopItemType.Accessory })),
     };
   });
 };

@@ -71,6 +71,8 @@ export interface PartingStrikeOwed {
   frozen: boolean;
   /** Thor's Hammer has a strike left to skip. */
   hammer: boolean;
+  /** X's Invisibility: the hero vanished before running. */
+  vanish: boolean;
 }
 
 export interface PartingStrikeInput {
@@ -101,14 +103,16 @@ export interface PartingStrike {
 
 /**
  * The strike a hero takes on the way out of a fight (docs/Quest-Rooms-Spec.md 5.6): one full strike from the
- * beast, softened by the brace factor when the hero was bracing or the class slips away. It misses when the
- * Ninja's first strike is still owed, the clock is frozen, a hammer skip is owed (checked in the order a real
- * strike checks them), or the agility roll falls under the dodge chance. Pure: the caller spends whatever was owed.
+ * beast, softened by the brace factor when the hero was bracing or the class slips away. It misses when the hero
+ * vanished (checked first, so nothing else owed is spent), the Ninja's first strike is still owed, the clock is
+ * frozen, a hammer skip is owed (checked in the order a real strike checks them), or the agility roll falls under
+ * the dodge chance. Pure: the caller spends whatever was owed.
  */
 export function partingStrike(input: PartingStrikeInput): PartingStrike {
   const { owed, passive } = input;
   let dodgedBy: PartingDodge | null = null;
-  if (owed.shadow) dodgedBy = 'shadow';
+  if (owed.vanish) dodgedBy = 'vanish';
+  else if (owed.shadow) dodgedBy = 'shadow';
   else if (owed.frozen) dodgedBy = 'frozen';
   else if (owed.hammer) dodgedBy = 'hammer';
   else if (input.dodgeRoll < partingDodgeChance(passive)) dodgedBy = 'agility';

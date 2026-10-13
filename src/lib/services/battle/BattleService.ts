@@ -93,6 +93,8 @@ export class BattleService {
   private grudge = 1;
   /** The beast's first strike of this fight still has to miss (Ninja). */
   private firstStrikeOwed = false;
+  /** The next getaway slips past the parting strike (X's Invisibility). */
+  private vanishOwed = false;
 
   constructor(options: BattleServiceOptions = {}) {
     this.userStore = useUserStore();
@@ -137,6 +139,8 @@ export class BattleService {
   public dispose(): void {
     this.stopAttackTimer();
     this.clearStrikeTimeout();
+    // A vanish the hero did not run on is gone with the fight
+    this.vanishOwed = false;
   }
 
   /**
@@ -197,6 +201,7 @@ export class BattleService {
     this.frozenUntil = 0;
     this.strikeSkips = 0;
     this.cooldownScale = 1;
+    this.vanishOwed = false;
     this.firstStrikeOwed = Boolean(this.passive.skipFirstStrike);
 
     // Store enemies in participants array
@@ -264,8 +269,8 @@ export class BattleService {
   /**
    * Run away. It always works (a run that could fail would trap a kid in a chore they cannot do right now),
    * and it costs one parting strike unless the fight is free (docs/Quest-Rooms-Spec.md 5.6). The strike is a full
-   * beast strike, softened when the hero was bracing or the class slips away (Thief, Ninja) and missed when the
-   * clock is frozen, a hammer skip or the Ninja's first strike is owed, or trained agility rolls under its dodge.
+   * beast strike, softened when the hero was bracing or the class slips away (Thief, Ninja) and missed when a
+   * vanish, the Ninja's first strike or a hammer skip is owed, the clock is frozen, or trained agility rolls under its dodge.
    */
   private handleRun(): BattleResult {
     if (this.state.pendingPlayerDamage > 0) {
@@ -308,7 +313,12 @@ export class BattleService {
       attack: enemy.attack,
       passive: this.passive,
       wasBracing,
-      owed: { shadow: this.firstStrikeOwed, frozen: this.isClockFrozen(), hammer: this.strikeSkips > 0 },
+      owed: {
+        shadow: this.firstStrikeOwed,
+        frozen: this.isClockFrozen(),
+        hammer: this.strikeSkips > 0,
+        vanish: this.vanishOwed,
+      },
       dodgeRoll: Math.random(),
       strikeRoll: Math.random(),
       grudge: this.grudge,
@@ -352,8 +362,9 @@ export class BattleService {
     this.battleCallbacks.onDamage?.('player', damage);
   }
 
-  /** A dodge that spends something (the Ninja's owed miss, a hammer skip) spends it; ice and agility keep nothing. */
+  /** A dodge that spends something (a vanish, the Ninja's owed miss, a hammer skip) spends it; ice and agility keep nothing. */
   private spendDodge(dodge: PartingDodge): void {
+    if (dodge === 'vanish') this.vanishOwed = false;
     if (dodge === 'shadow') this.firstStrikeOwed = false;
     if (dodge === 'hammer') this.strikeSkips--;
   }
@@ -561,6 +572,19 @@ export class BattleService {
   }
 
   /**
+   * Restart the running countdown at its full length (Gale's Wind): the bar is full again and the beast strikes
+   * one whole clock from now. Returns false, and changes nothing, when no clock is running or it stands under
+   * Chronos' ice (the ice already holds it).
+   */
+  public refillClock(): boolean {
+    const isClockStill = this.attackTimerInterval === null || this.isClockFrozen();
+    if (isClockStill) return false;
+    this.attackDeadline = Date.now() + this.state.attackDuration;
+    this.tick();
+    return true;
+  }
+
+  /**
    * Hold the clock where it is for `ms` (Chronos' Clock): the deadline moves out by the same amount,
    * the bar does not move, and the beast cannot strike until the ice melts. A Defend during the
    * freeze is answered with "frozen solid" and a fresh clock instead of a hit. A second freeze adds
@@ -593,27 +617,11 @@ export class BattleService {
   }
 
   /**
-   * Send an open chore back to the board (Silver Arrow). It leaves the fight's queue and the beast
-   * loses that chore's slice of health, so the chores that remain still end the fight exactly on the
-   * last one. The chore is never marked done: the page puts it back on the board as it was.
-   * Returns a copy of the chore, or null when it is unknown, already finished, or the last open
-   * chore (a fight needs one). Queues nothing; the clock keeps running as it was.
+   * The next Run Away slips past the parting strike (X's Invisibility); the page runs it right after. The getaway is
+   * otherwise a run like any other: a fight that carries a quest still earns the beast its grudge mark.
    */
-  public postponeTask(taskId: string): CombatTask | null {
-    const enemy = this.state.currentEnemy;
-    const index = this.state.combatTasks.findIndex((t) => t.id === taskId);
-    const task = index === -1 ? undefined : this.state.combatTasks[index];
-    const isChoreUnavailable = !enemy || !task || task.isCompleted;
-    if (isChoreUnavailable) return null;
-    if (openChores(this.state.combatTasks) <= 1) return null;
-
-    const slice = this.choreDamage(enemy, false);
-    this.state.combatTasks.splice(index, 1);
-    enemy.health = Math.max(1, enemy.health - slice);
-
-    this.battleCallbacks.onCombatTasksChange?.(this.state.combatTasks);
-    this.notifyEnemyHealthChange();
-    return { ...task };
+  public vanishNextRun(): void {
+    this.vanishOwed = true;
   }
 
   /**

@@ -18,6 +18,7 @@
         @skip="onSkip"
       />
     </ion-content>
+    <div class="app-version">v{{ version }}</div>
   </ion-page>
 </template>
 
@@ -30,6 +31,8 @@
   import Ionic from "@/lib/mixins/ionic";
   import { useTimers } from "@/hooks/useTimers";
   import { play$fx } from "@/assets/fx";
+  // The auto-bump workflow rewrites package.json's version on every push to master.
+  import packageInfo from "@/../package.json";
 
   export default defineComponent({
     name: "XpIntro",
@@ -123,6 +126,7 @@
       };
 
       return {
+        version: packageInfo.version,
         viewActive,
         splashScreens,
         onComplete,
@@ -159,6 +163,19 @@
 </script>
 
 <style scoped>
+  /* Above the splash overlay (z-index 1000), clear of the bottom-centre skip button. */
+  .app-version {
+    position: fixed;
+    right: 12px;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    z-index: 1001;
+    font-family: monospace;
+    font-size: 0.7rem;
+    color: rgba(255, 255, 255, 0.6);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+    pointer-events: none;
+  }
+
   .intro-container {
     max-width: 800px;
     margin: 0 auto;

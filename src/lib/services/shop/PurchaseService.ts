@@ -6,17 +6,21 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { purchaseNotification } from "@/lib/services/notifications/Notifications";
 import { notify } from "@/lib/services/notifications/notify";
 
+import { canCarry } from "@/lib/services/inventory/Storage";
+import { findPotionRule } from "@/lib/services/battle/BattlePotions";
+
 /**
  * The one place GP turns into a shop purchase.
  *
  * Shelf:       stockShelf() works out what a hero can buy from a shop today, and for how much.
- * Buy flow:    buyItem() charges the hero's wallet right away and writes a `pending`
- *              PurchaseLog entry, because the Game Master still has to hand the real thing over.
+ * Buy flow:    buyItem() charges the hero's wallet right away. Real-life items write a `pending`
+ *              PurchaseLog entry for Game Master delivery; in-game consumables are added directly
+ *              to the hero's bag and logged as `fulfilled`.
  * GM review:   fulfillPurchase() marks it delivered; refundPurchase() gives the GP back.
  *              Only `pending` entries can be reviewed, so nothing is ever paid or refunded twice.
  */
 
-export type PurchaseErrorCode = "invalid-item" | "unknown-hero" | "insufficient-funds";
+export type PurchaseErrorCode = "invalid-item" | "unknown-hero" | "insufficient-funds" | "bag-full";
 
 export class PurchaseError extends Error {
   constructor(public readonly code: PurchaseErrorCode, message: string) {
@@ -51,6 +55,9 @@ export interface PurchasableItem {
   id: string | number;
   name: string;
   price: number;
+  icon?: string;
+  type?: string;
+  tags?: string[];
 }
 
 /** The hero who is buying: their profile or just their id. */
@@ -64,7 +71,17 @@ export interface ShelfItem extends PurchasableItem {
   photo: string;
   /** Font Awesome duotone icon name ("film") or class ("fad fa-film"), or "": never an image address */
   icon: string;
+  type?: string;
+  tags?: string[];
 }
+
+/** Check whether an item is an in-game consumable (potion, ether, elixir, or tagged consumable) */
+export const isConsumableItem = (item: PurchasableItem): boolean => {
+  const isTagged = item.tags?.includes("consumable") || item.type === "virtual";
+  const isPotion = Boolean(findPotionRule(item.name));
+  const isEtherOrElixir = /(potion|ether|elixir)/i.test(item.name);
+  return isTagged || isPotion || isEtherOrElixir;
+};
 
 /**
  * What a shop offers a hero right now. `shopItems` are the slots the Game Master filled in the
@@ -105,6 +122,8 @@ export const stockShelf = (
       price,
       photo: accessory.imageUrl || "",
       icon: accessory.icon || "",
+      type: String(accessory.type || ""),
+      tags: accessory.tags ? [...accessory.tags] : [],
     });
   }
   return shelf;
@@ -131,8 +150,21 @@ const placeOrder = async (userId: string, item: PurchasableItem): Promise<Purcha
   }
 
   const userStore = useUserStore();
-  if (!userStore.users[userId]) {
+  const hero = userStore.users[userId];
+  if (!hero) {
     throw new PurchaseError("unknown-hero", `Hero ${userId} doesn't exist, so there is no wallet to charge.`);
+  }
+
+  const isConsumable = isConsumableItem(item);
+  const consumableRawItem = {
+    name: item.name,
+    type: "consumable",
+    faIcon: item.icon || "flask-potion",
+    qty: 1,
+  };
+
+  if (isConsumable && !canCarry(hero, consumableRawItem)) {
+    throw new PurchaseError("bag-full", `Your bag is full. Store something at home first.`);
   }
 
   // Check and charge in the same tick (updateUserGP changes the wallet before its first await),
@@ -142,11 +174,15 @@ const placeOrder = async (userId: string, item: PurchasableItem): Promise<Purcha
   if (price > 0) await userStore.updateUserGP({ userId, wallet: -price });
 
   try {
+    if (isConsumable) {
+      userStore.addInventoryItem(userId, consumableRawItem);
+    }
     return await getPurchaseLogDb().logPurchase({
       userId,
       itemId: String(item.id),
       itemName: item.name,
       price,
+      status: isConsumable ? "fulfilled" : "pending",
     });
   } catch (error) {
     // Nothing was recorded, so the Game Master would never learn what to deliver: give the GP back.

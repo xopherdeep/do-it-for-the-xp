@@ -158,15 +158,28 @@ export const purchaseReceipt = (voice: ShopVoice, itemName: string, words: Voice
     icon: 'gift',
   });
 
+/** The receipt for an in-game consumable: packed directly into the bag. */
+export const consumablePurchaseReceipt = (voice: ShopVoice, itemName: string, words: Voice = 'adventure'): RevealPromptOptions =>
+  shopNotice(voice, copyFor('shop.buy.consumableReceipt', words, { item: itemName }), {
+    sprite: 'chest',
+    sound: 'newItem',
+    label: 'Got it!',
+    icon: 'backpack',
+  });
+
 /** Why a purchase did not go through. `shortBy` is the GP missing when the wallet fell short, else null (a snag). Nothing was charged. */
 export function purchaseFailure(
   voice: ShopVoice,
   itemName: string,
   shortBy: number | null,
-  words: Voice = 'adventure'
+  words: Voice = 'adventure',
+  reasonCode?: string
 ): RevealPromptOptions {
   if (shortBy !== null) {
     return shopRefusal(voice, copyFor('shop.buy.short', words, { short: gold(shortBy), item: itemName }), 'coins');
+  }
+  if (reasonCode === 'bag-full') {
+    return shopRefusal(voice, copyFor('shop.buy.bagFull', words), 'bag');
   }
   return shopNotice(voice, copyFor('shop.buy.snag', words), { sound: 'error' });
 }

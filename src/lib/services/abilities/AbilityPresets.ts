@@ -86,7 +86,7 @@ export const TIME_MAGE_PRESETS: Ability[] = [
   {
     id: 'time-mage-rewind',
     name: 'Rewind',
-    description: 'Get a second chance at a task you failed or did poorly.',
+    description: "Turn back the beast's clock: it refills to full.",
     type: AbilityType.InGame,
     frequency: TimePeriod.Weekly,
     mpCost: 40,
@@ -97,7 +97,7 @@ export const TIME_MAGE_PRESETS: Ability[] = [
     icon: 'refreshOutline',
     prerequisites: ['time-mage-stop'],
     isPreset: true,
-    battleEffect: 'recall',
+    battleEffect: 'gust',
     effect: 'Retry a failed task with a +20% success bonus',
     characterRequirement: {
       level: 10,

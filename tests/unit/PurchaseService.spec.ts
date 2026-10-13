@@ -209,6 +209,21 @@ describe("PurchaseService", () => {
       expect(wallet()).toBe(60);
     });
 
+    it("puts consumable items directly into inventory and logs them fulfilled", async () => {
+      const potion = { id: "item-health-potion", name: "Health Potion", price: 50 };
+      const entry = await buyItem("hero-1", potion);
+
+      expect(entry).toMatchObject({
+        itemId: "item-health-potion",
+        itemName: "Health Potion",
+        price: 50,
+        status: "fulfilled",
+      });
+      expect(wallet()).toBe(50);
+      const inventory = store.users["hero-1"].inventory as Array<{ name: string; qty: number }>;
+      expect(inventory.some((i) => i.name === "Health Potion")).toBe(true);
+    });
+
     it("charges once when the buy button is double tapped", async () => {
       const [first, second] = await Promise.all([buyItem("hero-1", lego), buyItem("hero-1", lego)]);
 

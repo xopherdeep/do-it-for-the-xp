@@ -165,13 +165,13 @@ describe("the starter content", () => {
     expect(unique(ids(STARTER_ABILITIES))).toBe(true);
   });
 
-  it("stocks every registry shop, the Market with the whole reward catalogue and the rest with three each", () => {
+  it("stocks every registry shop, the Market with the whole catalogue and the rest with five items each (two consumables + three rewards)", () => {
     const shops = starterShops();
-    const rewards = new Set(ids(STARTER_ACCESSORIES));
+    const allCatalogue = new Set(ids(STARTER_ACCESSORIES));
     expect(ids(shops).sort()).toEqual(getAllShops().map((shop) => shop.id).sort());
     for (const shop of shops) {
-      expect(shop.items.length).toBe(shop.id === "hometown-market" ? rewards.size : 3);
-      for (const item of shop.items) expect(rewards.has(item.itemId)).toBe(true);
+      expect(shop.items.length).toBe(shop.id === "hometown-market" ? allCatalogue.size : 5);
+      for (const item of shop.items) expect(allCatalogue.has(item.itemId)).toBe(true);
     }
   });
 });

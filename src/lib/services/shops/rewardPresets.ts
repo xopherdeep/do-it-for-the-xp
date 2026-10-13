@@ -71,6 +71,63 @@ export const REAL_REWARD_PRESETS: readonly RewardPreset[] = [
   },
 ];
 
+export const BASIC_CONSUMABLE_PRESETS: readonly RewardPreset[] = [
+  {
+    id: "item-health-potion",
+    name: "Health Potion",
+    description: "A refreshing red elixir that restores 50 HP in battle.",
+    basePrice: 50,
+    rarity: Rarity.Common,
+    icon: "flask-round-potion",
+  },
+  {
+    id: "item-mana-potion",
+    name: "Mana Potion",
+    description: "A shimmering blue potion that restores 30 MP in battle.",
+    basePrice: 75,
+    rarity: Rarity.Common,
+    icon: "flask-potion",
+  },
+  {
+    id: "item-ether",
+    name: "Ether",
+    description: "A concentrated magical essence that restores 50 MP in battle.",
+    basePrice: 100,
+    rarity: Rarity.Uncommon,
+    icon: "sparkles",
+  },
+  {
+    id: "item-elixir",
+    name: "Elixir",
+    description: "A legendary golden brew that fully restores HP and MP in battle.",
+    basePrice: 200,
+    rarity: Rarity.Rare,
+    icon: "flask",
+  },
+];
+
+export const ALL_REWARD_PRESETS: readonly RewardPreset[] = [
+  ...BASIC_CONSUMABLE_PRESETS,
+  ...REAL_REWARD_PRESETS,
+];
+
+/** The item record a consumable preset becomes: an in-game consumable a hero buys into their backpack */
+export const consumableFromPreset = (preset: RewardPreset): Accessory => ({
+  id: preset.id,
+  name: preset.name,
+  description: preset.description,
+  basePrice: preset.basePrice,
+  rarity: preset.rarity,
+  icon: preset.icon,
+  url: "",
+  rewardCount: 0,
+  isLayaway: false,
+  type: AccessoryType.Virtual,
+  availableToMembers: [],
+  requiresApproval: false,
+  tags: ["consumable", "preset"],
+});
+
 /** The item record a preset becomes in the catalogue: a real-life reward a hero may buy as soon as a shop stocks it */
 export const rewardFromPreset = (preset: RewardPreset): Accessory => ({
   id: preset.id,
@@ -91,5 +148,5 @@ export const rewardFromPreset = (preset: RewardPreset): Accessory => ({
 /** Presets the catalogue does not hold yet (matched by id, so a renamed copy still counts as added) */
 export const presetsNotIn = (items: readonly Pick<Accessory, "id">[]): RewardPreset[] => {
   const held = new Set(items.map((item) => item.id));
-  return REAL_REWARD_PRESETS.filter((preset) => !held.has(preset.id));
+  return ALL_REWARD_PRESETS.filter((preset) => !held.has(preset.id));
 };

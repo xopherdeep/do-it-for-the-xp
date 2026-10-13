@@ -50,6 +50,8 @@ import AccessoriesDb, { accessoriesStorage } from "@/lib/databases/AccessoriesDb
 import {
   buyItem as purchaseItem,
   InsufficientFundsError,
+  PurchaseError,
+  isConsumableItem,
   stockShelf,
 } from "@/lib/services/shop/PurchaseService";
 import type { ShelfItem } from "@/lib/services/shop/PurchaseService";
@@ -66,6 +68,7 @@ import { announceBillPaid } from "@/lib/services/hometown/hospitalAdmission";
 import {
   atmNotice,
   clerkPrompt,
+  consumablePurchaseReceipt,
   purchaseFailure,
   purchaseReceipt,
   shopAccent,
@@ -390,8 +393,9 @@ export default defineComponent({
       } catch (error) {
         this.isBuying = false;
         const shortBy = error instanceof InsufficientFundsError ? error.shortBy : null;
-        if (shortBy === null) debug.error("Purchase failed:", error);
-        await this.reveal.ask(purchaseFailure(this.voice, item.name, shortBy, this.words));
+        const reasonCode = error instanceof PurchaseError ? error.code : undefined;
+        if (shortBy === null && reasonCode !== "bag-full") debug.error("Purchase failed:", error);
+        await this.reveal.ask(purchaseFailure(this.voice, item.name, shortBy, this.words, reasonCode));
         return;
       }
 
@@ -402,8 +406,12 @@ export default defineComponent({
       } finally {
         this.isBuying = false;
       }
-      // The chest rises with the receipt, over the shelf
-      await this.reveal.ask(purchaseReceipt(this.voice, item.name, this.words));
+      // Consumables are packed in the bag immediately; real-life goods await Game Master handover
+      const isConsumable = isConsumableItem(item);
+      const receiptPrompt = isConsumable
+        ? consumablePurchaseReceipt(this.voice, item.name, this.words)
+        : purchaseReceipt(this.voice, item.name, this.words);
+      await this.reveal.ask(receiptPrompt);
     }
   },
   mounted() {

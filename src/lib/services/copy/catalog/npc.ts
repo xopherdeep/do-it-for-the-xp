@@ -266,10 +266,20 @@ export const npc = {
     adventure: "Here you go: {item}! The Game Master will bring it to you.",
     classic: "{item} purchased. The Game Master will deliver it.",
   },
+  "shop.buy.consumableReceipt": {
+    simple: "{item} is in your backpack!",
+    adventure: "Here you go: {item}! It's packed safely in your bag.",
+    classic: "{item} purchased and placed in inventory.",
+  },
   "shop.buy.short": {
     simple: "You need {short} more for {item}.",
     adventure: "You need {short} more to buy {item}. Come back when your purse is fuller!",
     classic: "{item}: short by {short}.",
+  },
+  "shop.buy.bagFull": {
+    simple: "Your bag is full! Store something at home first.",
+    adventure: "Your bag is completely full! Store something at home before buying more.",
+    classic: "Bag full. Cannot carry item.",
   },
   "shop.buy.snag": {
     simple: "The till is stuck. Nothing was bought.",

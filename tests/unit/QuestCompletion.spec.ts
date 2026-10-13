@@ -11,6 +11,7 @@ import {
   rejectCompletion,
 } from "@/lib/services/quests/QuestCompletionService";
 import { useUserStore } from "@/lib/store/stores/user";
+import { onQuestPaid, type QuestPaid } from "@/lib/services/multiplayer/gameSignals";
 
 /**
  * The class's say on a board quest's pay (docs/Items-And-Classes-Contract.md, C): a Thief or Ninja
@@ -463,5 +464,74 @@ describe("the hunt bonus on a held win", () => {
     expect(result.paid.xp).toBe(38);
     expect(stats().xp.now).toBe(38);
     expect(result.entry.huntBonusXp).toBe(8);
+  });
+});
+
+/**
+ * Multiplayer listens for a quest that pays (services/multiplayer/gameSignals.ts). The signal comes after the rewards
+ * are in the pocket, once per payment: a held claim says nothing until the Game Master pays it.
+ */
+describe("the quest-paid signal", () => {
+  let heard: QuestPaid[];
+  let xpWhenHeard: number[];
+  let stop: () => void;
+
+  beforeEach(() => {
+    heard = [];
+    xpWhenHeard = [];
+    stop = onQuestPaid((paid) => {
+      heard.push(paid);
+      xpWhenHeard.push(stats().xp.now);
+    });
+  });
+  afterEach(() => stop());
+
+  it("a claim paid at once says so, with the owed XP, after the XP landed", async () => {
+    addHero("Warrior");
+    await completeQuest(quest(), HERO_ID, "claim");
+    expect(heard).toEqual([{ heroId: HERO_ID, questId: "q1", xp: 30, fight: false }]);
+    expect(xpWhenHeard).toEqual([30]);
+  });
+
+  it("a win paid at once is a fight and carries the hunt bonus", async () => {
+    addHero("Warrior");
+    useUserStore().users[HERO_ID].questEffects = { trustedUntil: new Date(Date.now() + 3600_000).toISOString() };
+    await completeQuest(quest(true), HERO_ID, "battle");
+    expect(heard).toEqual([{ heroId: HERO_ID, questId: "q1", xp: 38, fight: true }]);
+  });
+
+  it("a held claim says nothing", async () => {
+    addHero("Warrior");
+    await completeQuest(quest(true), HERO_ID, "claim");
+    expect(heard).toEqual([]);
+  });
+
+  it("the Game Master's approval says so once, and a second approval says nothing", async () => {
+    addHero("Warrior");
+    const held = await completeQuest(quest(true), HERO_ID, "claim");
+    await approveCompletion(held.entry.id, "gm-1");
+    await approveCompletion(held.entry.id, "gm-1");
+    expect(heard).toEqual([{ heroId: HERO_ID, questId: "q1", xp: 30, fight: false }]);
+    expect(xpWhenHeard).toEqual([30]);
+  });
+
+  it("an approved held win is a fight and pays the hunt bonus", async () => {
+    addHero("Warrior");
+    const held = await completeQuest(quest(true), HERO_ID, "battle");
+    await approveCompletion(held.entry.id, "gm-1");
+    expect(heard).toEqual([{ heroId: HERO_ID, questId: "q1", xp: 38, fight: true }]);
+  });
+
+  it("a rejection says nothing", async () => {
+    addHero("Warrior");
+    const held = await completeQuest(quest(true), HERO_ID, "claim");
+    await rejectCompletion(held.entry.id, "gm-1", "not done");
+    expect(heard).toEqual([]);
+  });
+
+  it("a win logged after the battle paid its own rewards is a fight", async () => {
+    addHero("Warrior");
+    await recordBattleCompletion(quest(), HERO_ID, { xp: 38, gp: 40, ap: 2 });
+    expect(heard).toEqual([{ heroId: HERO_ID, questId: "q1", xp: 38, fight: true }]);
   });
 });

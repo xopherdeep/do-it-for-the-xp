@@ -22,7 +22,7 @@ import {
   applyBattleEffect,
   battleEffectBlocked,
   heroPoints,
-  isBattleEffectId,
+  normalizeBattleEffect,
   refuse,
   type BattleEffectContext,
   type BattleEffectId,
@@ -34,13 +34,13 @@ export const PRESET_BATTLE_EFFECTS: Record<string, BattleEffectId> = {
   Haste: 'kindle',
   Slow: 'frost',
   Stop: 'time-stop',
-  Rewind: 'recall',
+  Rewind: 'gust',
   Debug: 'weaken',
   Overclock: 'stun',
   'System Restore': 'heal',
 };
 
-/** The Game Master's "In battle" dropdown: None, then the seven effects in table order. */
+/** The Game Master's "In battle" dropdown: None, then the eleven effects in table order. */
 export const BATTLE_EFFECT_OPTIONS: { value: BattleEffectId | 'none'; label: string }[] = [
   { value: 'none', label: 'None' },
   ...BATTLE_EFFECT_IDS.map((id) => ({ value: id, label: BATTLE_EFFECTS[id].label })),
@@ -59,12 +59,13 @@ export interface BattlePowerEntry {
 }
 
 /**
- * The Power's fight effect: its own `battleEffect` field, else the preset pick by exact name, else null. 'none' and
- * unknown values (bad data) are null, so a null is "not a battle Power" and never reaches `applyBattleEffect`.
+ * The Power's fight effect: its own `battleEffect` field, else the preset pick by exact name, else null. A stored
+ * `recall` reads as `gust`. 'none' and unknown values (bad data) are null, so a null is "not a battle Power" and never
+ * reaches `applyBattleEffect`.
  */
 export const battleEffectOf = (ability: Pick<Ability, 'name' | 'battleEffect'>): BattleEffectId | null => {
   const picked = ability.battleEffect ?? PRESET_BATTLE_EFFECTS[ability.name];
-  return isBattleEffectId(picked) ? picked : null;
+  return normalizeBattleEffect(picked);
 };
 
 /** Why the effect cannot be cast right now (used this fight, HP full, not enough MP), else null. */
@@ -95,8 +96,8 @@ export const battlePowers = (abilities: Ability[], ctx: BattleEffectContext, now
 
 /**
  * Cast a Power in a fight. Checks the once-per-fight rule and the MP first (no MP is spent on a refusal), runs the
- * effect, and charges the class-discounted MP only when it worked and needs no chore pick. A success line puts the
- * caster first ("Max casts Stop! ...", or "You cast Stop! ..." for a nameless hero). Recall answers `needsTaskPick` until it is called again with `ctx.taskId`.
+ * effect, and charges the class-discounted MP only when it worked. A success line puts the caster first
+ * ("Max casts Stop! ...", or "You cast Stop! ..." for a nameless hero).
  */
 export const castBattlePower = (ability: Ability, ctx: BattleEffectContext): BattleEffectOutcome => {
   const effect = battleEffectOf(ability);
@@ -108,8 +109,7 @@ export const castBattlePower = (ability: Ability, ctx: BattleEffectContext): Bat
   if (reason) return refuse(reason);
 
   const outcome = applyBattleEffect(effect, ctx);
-  const isCastIncomplete = !outcome.ok || outcome.needsTaskPick;
-  if (isCastIncomplete) return outcome;
+  if (!outcome.ok) return outcome;
 
   if (mp > 0) useUserStore().updateUserMP({ userId: ctx.userId, amount: -mp });
   const name = hero?.name?.nick || hero?.name?.first;

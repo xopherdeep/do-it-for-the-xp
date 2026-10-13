@@ -15,17 +15,37 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
   deployments: write
 
 jobs:
+  # Autobump: the HalloftheGods shared workflows the COMPASS plugins use. Each push to master gets
+  # a YY.M.D-MINS version written to package.json (shown on the start page), a "[skip ci]" commit and
+  # a vYY.M.D-MINS tag. The bump commit is pushed with GITHUB_TOKEN, so it does not trigger another run,
+  # which is why the deploy below waits for it and builds the bumped tip instead of the pushed sha.
+  get-version:
+    if: github.event_name == 'push'
+    uses: HalloftheGods/.github/.github/workflows/calculate-version.yml@main
+
+  bump:
+    needs: get-version
+    uses: HalloftheGods/.github/.github/workflows/wp-plugin-update.yml@main
+    with:
+      version_string: ${{ needs.get-version.outputs.version_string }}
+
   deploy:
+    needs: bump
+    # A skipped (manual run) or failed bump must not block the deploy.
+    if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
       HAS_CLOUDFLARE_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The branch tip, not github.sha, so the bump commit is in the build.
+          ref: ${{ github.ref }}
 
       - uses: pnpm/action-setup@v4
         with:

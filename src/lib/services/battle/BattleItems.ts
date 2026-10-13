@@ -80,7 +80,7 @@ export const BATTLE_ITEMS: Record<string, { mp: number; effect: BattleEffectId }
   'Ice Wand': { mp: 50, effect: 'frost' },
   "Chronos' Clock": { mp: 100, effect: 'time-stop' },
   "Thor's Hammer": { mp: 60, effect: 'stun' },
-  'Silver Arrow': { mp: 25, effect: 'recall' },
+  'Silver Arrow': { mp: 25, effect: 'pin' },
   "Sol's Flare": { mp: 100, effect: 'weaken' },
   'Fire Wand': { mp: 50, effect: 'kindle' },
 };

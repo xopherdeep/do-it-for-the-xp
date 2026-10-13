@@ -67,6 +67,7 @@ export const damageTakenLines = (heroName: string, damage: number, braced: boole
 export const fallenLines = (heroName: string): EngineMessage[] => [`${heroName} has fallen!`, 'You blacked out...'];
 
 const PARTING_DODGE_LINES: Record<PartingDodge, (enemy: Enemy, heroName: string) => string> = {
+  vanish: (enemy) => `${enemy.name} swings at empty air.`,
   shadow: shadowStrikeLine,
   frozen: frozenStrikeLine,
   hammer: stunnedStrikeLine,

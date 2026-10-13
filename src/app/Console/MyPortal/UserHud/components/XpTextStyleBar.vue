@@ -18,7 +18,7 @@
       </label>
     </div>
     <!-- Reading aloud needs a voice on the device; with none the switch is dimmed and this says why -->
-    <p v-if="isSimpleVoice && !canRead" class="text-style-note" data-test="no-voice-note">{{ t("speech.noVoice") }}</p>
+    <p v-if="isSimpleVoice && !canRead" class="text-style-note" data-test="no-voice-note">{{ noVoiceNote }}</p>
   </ion-toolbar>
 </template>
 
@@ -34,7 +34,8 @@ import { IonLabel, IonToggle, IonToolbar, actionSheetController } from "@ionic/v
 import { checkmark } from "ionicons/icons";
 import { play$fx } from "@/assets/fx";
 import { appSheet } from "@/components/organisms/XpApp/useAppSkin";
-import { useCopy, useReadingVoice } from "@/hooks/useVoice";
+import { useReadingVoice } from "@/hooks/useVoice";
+import { copyFor } from "@/lib/services/copy/copy";
 import { useUserStore } from "@/lib/store/stores/user";
 import {
   TEXT_STYLE_CHOICES,
@@ -50,13 +51,14 @@ import {
 const props = defineProps<{ user: { id?: string; [key: string]: any } }>();
 
 const userStore = useUserStore();
-const t = useCopy();
 const { canRead } = useReadingVoice();
 // The store's copy of the hero, so a change shows at once
 const hero = computed(() => (props.user?.id && userStore.users[props.user.id]) || props.user);
 const textStyle = computed<TextStyleChoice>(() => (isVoice(hero.value?.voice) ? hero.value.voice : "auto"));
 const activeVoice = computed(() => voiceFor(hero.value));
 const isSimpleVoice = computed(() => activeVoice.value === "simple");
+/** The note under a locked switch, in the voice of the hero whose profile this is */
+const noVoiceNote = computed(() => copyFor("speech.noVoice", activeVoice.value));
 const autoReadOn = computed(() => autoReadsFor(activeVoice.value, hero.value?.autoRead));
 
 /** What the button shows: "Auto: Simple" while the birthday decides, else the voice picked. */
