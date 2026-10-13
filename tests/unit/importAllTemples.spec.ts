@@ -2,6 +2,7 @@ import { TempleDb, type TempleInterface } from "@/lib/databases/TempleDb";
 import temples from "@/lib/engine/temples";
 import { importAllTempleLayouts, layoutSignature, planSeedSync, type ShippedTemple } from "@/lib/engine/core/dungeons/importAllTemples";
 import { auditTemple } from "@/lib/services/temples/templeAudit";
+import { isQuestRoom } from "@/lib/services/temples/questRooms";
 import debug from "@/lib/utils/debug";
 import backup from "./importAllTemples.backup.json";
 
@@ -235,6 +236,122 @@ describe("importAllTempleLayouts", () => {
     await sync({ "quiet-temple": shippedTemple(true) });
 
     expect(logged()).toHaveLength(1);
+  });
+});
+
+/**
+ * Quest Rooms (docs/Quest-Rooms-Spec.md section 12): the nine shipped temples were rebuilt with quest rooms. A device
+ * that holds the classic layout it was given before gets the rebuilt one only when nobody edited it.
+ */
+describe("the quest room rebuild reaching a family's device", () => {
+  let storage: ReturnType<typeof fakeStorage>;
+  let db: TempleDb;
+  const stored = async (id: string) => (await db.getTempleById(id)) as TempleInterface;
+  const rebuilt = temples as Record<string, ShippedTemple>;
+  const ids = Object.keys(rebuilt);
+
+  /** A shipped temple as the app handed it out before the rebuild: the same maze, combat rooms with a beast type and room pay */
+  const classicOf = (shipped: ShippedTemple): ShippedTemple => {
+    const rooms = JSON.parse(JSON.stringify(shipped.rooms)) as Record<string, { type: string; content?: Record<string, any> }>;
+    for (const room of Object.values(rooms)) {
+      if (!room.content?.quest) continue;
+      delete room.content.quest;
+      Object.assign(room.content, { monsterType: "small", xp: 5, gp: 3, ap: 1 });
+    }
+    return { entrance: shipped.entrance, maze: shipped.maze, rooms };
+  };
+
+  /** A device that took the classic layouts in, signed, and has not touched them */
+  const seedClassicDevice = async () => {
+    const classic = Object.fromEntries(ids.map((id) => [id, classicOf(rebuilt[id])]));
+    await importAllTempleLayouts({ db, shipped: classic });
+    return classic;
+  };
+
+  beforeEach(() => {
+    storage = fakeStorage();
+    db = new TempleDb(storage as never);
+  });
+
+  it("really changed every temple: each shipped layout has quest rooms its classic version does not", () => {
+    for (const id of ids) {
+      const quests = Object.values((rebuilt[id].rooms ?? {}) as Record<string, any>).filter(isQuestRoom);
+      expect(quests.length).toBeGreaterThanOrEqual(5);
+      expect(layoutSignature(rebuilt[id])).not.toBe(layoutSignature(classicOf(rebuilt[id])));
+      expect(Object.values((classicOf(rebuilt[id]).rooms ?? {}) as Record<string, any>).filter(isQuestRoom)).toHaveLength(0);
+    }
+  });
+
+  it("refreshes the untouched classic copies to the quest rooms, keeping each name, and leaves the mazes where they were", async () => {
+    const classic = await seedClassicDevice();
+    for (const id of ids) await db.setTemple({ ...(await stored(id)), customName: `${id} of the family` });
+    storage.set.mockClear();
+
+    const report = await importAllTempleLayouts({ db, shipped: rebuilt });
+
+    expect(Object.values(report)).toEqual(Array(9).fill("refresh"));
+    for (const id of ids) {
+      const record = await stored(id);
+      expect(record.dungeonLayout).toEqual(layoutOf(rebuilt[id]));
+      expect(record.dungeonLayout?.maze).toEqual(classic[id].maze);
+      expect(record.dungeonLayout?.entrance).toEqual(classic[id].entrance);
+      expect(record.seedSignature).toBe(layoutSignature(rebuilt[id]));
+      expect(record.customName).toBe(`${id} of the family`);
+    }
+    expect([...storage.data.keys()].sort()).toEqual([...ids].sort());
+
+    // and the next start has nothing left to do
+    storage.set.mockClear();
+    expect(Object.values(await importAllTempleLayouts({ db, shipped: rebuilt })).every((action) => action === "current")).toBe(true);
+    expect(storage.set).not.toHaveBeenCalled();
+  });
+
+  it("keeps a temple the Game Master edited, whole, and refreshes the ones beside it", async () => {
+    const classic = await seedClassicDevice();
+    const edited = layoutOf(classic["shadow-temple"]);
+    const monster = Object.values(edited.rooms as Record<string, any>).find((room) => room.type === "monster");
+    monster.content.monsterType = "Gravy Ghoul";
+    monster.content.xp = 40;
+    await db.setTemple({ ...(await stored("shadow-temple")), dungeonLayout: edited, customName: "Mia's kitchen" });
+    const before = JSON.stringify(await stored("shadow-temple"));
+
+    const report = await importAllTempleLayouts({ db, shipped: rebuilt });
+
+    expect(report["shadow-temple"]).toBe("edited");
+    expect(JSON.stringify(await stored("shadow-temple"))).toBe(before);
+    expect(Object.values((edited.rooms as Record<string, any>)).filter(isQuestRoom)).toHaveLength(0);
+    for (const id of ids.filter((other) => other !== "shadow-temple")) expect(report[id]).toBe("refresh");
+  });
+
+  it("keeps an edited copy that already has quest rooms when the shipped quests change", async () => {
+    await importAllTempleLayouts({ db, shipped: rebuilt });
+    const mine = layoutOf(rebuilt["earth-temple"]);
+    const room = Object.values(mine.rooms as Record<string, any>).find((candidate) => candidate.content?.quest);
+    room.content.quest.difficulty = 3; // the Game Master made one quest harder
+    await db.setTemple({ ...(await stored("earth-temple")), dungeonLayout: mine });
+    storage.set.mockClear();
+
+    const report = await importAllTempleLayouts({ db, shipped: { "earth-temple": classicOf(rebuilt["earth-temple"]) } });
+
+    expect(report["earth-temple"]).toBe("edited");
+    expect(storage.set).not.toHaveBeenCalled();
+    expect((await stored("earth-temple")).dungeonLayout).toEqual(mine);
+  });
+
+  it("keeps an old copy with no signature that the Game Master finished themselves, and refreshes one that cannot be finished", async () => {
+    const finished = layoutOf(classicOf(rebuilt["light-temple"]));
+    const unfinished = layoutOf(classicOf(rebuilt["ice-temple"]));
+    for (const room of Object.values(unfinished.rooms as Record<string, any>)) if (room.type === "boss") room.type = "monster";
+    await db.setTemple({ id: "light-temple", categoryIds: ["dungeon"], dungeonLayout: finished });
+    await db.setTemple({ id: "ice-temple", categoryIds: ["dungeon"], dungeonLayout: unfinished });
+    expect(auditTemple({ dungeonLayout: finished }).passed).toBe(true);
+    expect(auditTemple({ dungeonLayout: unfinished }).passed).toBe(false);
+
+    const report = await importAllTempleLayouts({ db, shipped: { "light-temple": rebuilt["light-temple"], "ice-temple": rebuilt["ice-temple"] } });
+
+    expect(report).toEqual({ "light-temple": "edited", "ice-temple": "refresh" });
+    expect((await stored("light-temple")).dungeonLayout).toEqual(finished);
+    expect((await stored("ice-temple")).dungeonLayout).toEqual(layoutOf(rebuilt["ice-temple"]));
   });
 });
 
