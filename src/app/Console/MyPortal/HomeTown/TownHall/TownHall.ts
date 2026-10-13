@@ -47,14 +47,8 @@ import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import { formatQuestName } from "@/lib/utils/format";
 import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 import { canAccessGameMaster } from "@/router/_Guards/gm.guard";
-import {
-  NATIVE_RETURN_URL,
-  authorizeUrl,
-  readLinkReturn,
-  strippedState,
-  strippedUrl,
-  townHallReturnUrl,
-} from "@/lib/services/townhall/townHallLink";
+import { NATIVE_RETURN_URL, authorizeUrl, townHallReturnUrl } from "@/lib/services/townhall/townHallLink";
+import { takeLinkReturn } from "@/lib/services/townhall/pendingReturn";
 import { SIGNUP_URL, TOWN_HALL_BOARDS, connectionName, townHallSiteUrl, type TownHallBoardSlug } from "@/lib/services/townhall/townHallSite";
 import { usesHashHistory } from "@/router/historyMode";
 import type { BoardInfo } from "@/lib/services/townhall/townHallFeed";
@@ -243,17 +237,15 @@ export default defineComponent({
     };
 
     /**
-     * Coming back from WordPress's "authorize this app" page, the new password rides in the address. It leaves the address
-     * bar and the history first (the address and the route vue-router remembers for this entry), before anything is awaited,
-     * then the clerk checks it and says how it went.
+     * Coming back from WordPress's "authorize this app" page, the new password rode in the address. The app took it out of
+     * the address bar and the history when it started (pendingReturn.ts, before the router read the address); the clerk
+     * checks it here and says how it went.
      */
     const finishLinkReturn = async () => {
-      const search = window.location.search;
-      const returning = readLinkReturn(search).kind !== "none";
-      if (returning) window.history.replaceState(strippedState(window.history.state), "", strippedUrl(window.location));
+      const search = takeLinkReturn();
       await loadLink();
       void posting.sendQueue();
-      if (!returning) return;
+      if (search === null) return;
       let result: LinkResult;
       try {
         result = await townHall.completeLink(search);

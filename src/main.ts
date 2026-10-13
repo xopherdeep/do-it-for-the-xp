@@ -57,6 +57,9 @@ import { useProStore } from '@/lib/store/stores/pro';
 // Capacitor (the phone apps)
 import { Capacitor } from '@capacitor/core';
 
+// Family Registration: WordPress's answer to the Town Hall (see pendingReturn.ts)
+import { captureTownHallReturn } from '@/lib/services/townhall/pendingReturn';
+
 // Title
 const TITLE = 'Do it for the XP';
 document.title = TITLE;
@@ -114,6 +117,10 @@ function listenForTownHallReturn() {
 
 
 function readyRouterMountApp() {
+  // WordPress sends the parent back with the new password in the address: it leaves the address bar and the history
+  // before the router is made, so vue-router never memorises it (its history reads the address when it is created)
+  captureTownHallReturn();
+
   const router = useRouter();
   const app = createApp(App)
     .component('vue3-autocounter', Vue3AutoCounter)
