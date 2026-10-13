@@ -179,7 +179,8 @@ export function purchaseFailure(
     return shopRefusal(voice, copyFor('shop.buy.short', words, { short: gold(shortBy), item: itemName }), 'coins');
   }
   if (reasonCode === 'bag-full') {
-    return shopRefusal(voice, copyFor('shop.buy.bagFull', words), 'bag');
+    // There is no bag sprite: the chest stands in for the hero's full bag
+    return shopRefusal(voice, copyFor('shop.buy.bagFull', words), 'chest');
   }
   return shopNotice(voice, copyFor('shop.buy.snag', words), { sound: 'error' });
 }
