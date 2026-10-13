@@ -4,14 +4,6 @@
       <ion-menu-button @click="$fx.ui[$fx.theme.ui].select.play()" />
       <ion-icon :ios="fingerPrintOutline" :md="fingerPrintSharp" class="fa-2x ml-2" />
     </template>
-    <template #actions>
-      <ion-button @click="isRetroView = !isRetroView" class="view-toggle-btn">
-        <ion-icon :icon="isRetroView ? gridOutline : listOutline" slot="icon-only"></ion-icon>
-      </ion-button>
-      <ion-button @click="openBackupOptionsModal">
-        <ion-icon :icon="cloudDownloadOutline" slot="icon-only"></ion-icon>
-      </ion-button>
-    </template>
     <ion-refresher slot="fixed" @ionRefresh="handleRefresh($event)">
       <ion-refresher-content></ion-refresher-content>
     </ion-refresher>
@@ -34,9 +26,81 @@
         </ion-col>
       </ion-row>
 
-      <!-- Retro View (RPG Save Slots) -->
+      <!-- Retro View (Earthbound Save Slots) -->
       <div v-else class="retro-view md:hidden">
-        <XpRpgMenu :actions="retroMenuActions" :columns="1" @action-click="handleRetroAction" />
+        <div class="eb-window">
+          <div class="eb-window-header">
+            <span class="eb-window-title">Choose A Profile</span>
+            <span class="eb-window-sub">File Select</span>
+          </div>
+
+          <div class="eb-slots-list">
+            <div
+              v-for="(user, index) in users"
+              :key="user.id"
+              class="eb-file-slot"
+              role="button"
+              tabindex="0"
+              @click="selectProfile(user)"
+              @keydown.enter="selectProfile(user)"
+            >
+              <div class="eb-cursor" aria-hidden="true">&#9654;</div>
+              <div class="eb-slot-tag">0{{ index + 1 }}</div>
+              <div class="eb-slot-avatar-frame">
+                <img v-if="getUserAvatar(user)" :src="getUserAvatar(user)" :alt="user.name.nick" />
+                <i v-else class="fad fa-user-ninja"></i>
+              </div>
+              <div class="eb-slot-details">
+                <div class="eb-slot-name-row">
+                  <span class="eb-slot-hero-name">{{ user.name.nick }}</span>
+                  <span v-if="user.isAdult" class="gm-badge" title="Game Master">
+                    <i class="fad fa-crown" aria-hidden="true"></i>GM
+                  </span>
+                </div>
+                <div class="eb-slot-meta-row">
+                  <span class="eb-slot-class">
+                    <i :class="`fad fa-${getJobClassIcon(user)}`"></i>
+                    {{ user.jobClass || 'Hero' }}
+                  </span>
+                </div>
+              </div>
+              <div class="eb-slot-badge-column">
+                <div class="eb-lvl-pill">
+                  <small>LV</small>
+                  <span>{{ user?.stats?.level || 1 }}</span>
+                </div>
+                <div class="eb-gp-pill">
+                  <i class="fad fa-coins"></i>
+                  <span>{{ user?.stats?.gp?.wallet ?? 0 }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Start New Game Slot -->
+            <div
+              class="eb-file-slot eb-new-slot"
+              role="button"
+              tabindex="0"
+              @click="openNewProfileModal"
+              @keydown.enter="openNewProfileModal"
+            >
+              <div class="eb-cursor" aria-hidden="true">&#9654;</div>
+              <div class="eb-slot-tag"><i class="fad fa-sparkles"></i></div>
+              <div class="eb-slot-avatar-frame eb-new-avatar">
+                <i class="fad fa-plus"></i>
+              </div>
+              <div class="eb-slot-details">
+                <div class="eb-slot-hero-name">Start New Game</div>
+                <div class="eb-slot-meta-row">
+                  <span class="eb-slot-desc">Create a new hero profile</span>
+                </div>
+              </div>
+              <div class="eb-slot-badge-column">
+                <i class="fad fa-chevron-right eb-new-arrow"></i>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       <ion-row class="ion-no-padding hidden md:block">
         <ion-card v-show="!isLoading" class="max-w-4xl">
@@ -87,10 +151,25 @@
       </ion-row>
     </ion-grid>
 
+    <!-- Left FAB: Toggle Grid / List View -->
+    <ion-fab vertical="bottom" horizontal="start" slot="fixed" class="ion-no-border md:hidden retro-fab">
+      <ion-fab-button @click="isRetroView = !isRetroView">
+        <ion-icon :icon="isRetroView ? gridOutline : listOutline"></ion-icon>
+      </ion-fab-button>
+    </ion-fab>
+
+    <!-- Center FAB: Add Profile -->
     <ion-fab vertical="bottom" horizontal="center" slot="fixed" @click="openNewProfileModal"
       class="ion-no-border md:hidden fab-pulse">
       <ion-fab-button color="danger">
         <i class="fad fa-plus fa-2x"></i>
+      </ion-fab-button>
+    </ion-fab>
+
+    <!-- Right FAB: Backup Options -->
+    <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="ion-no-border md:hidden retro-fab">
+      <ion-fab-button @click="openBackupOptionsModal">
+        <ion-icon :icon="cloudDownloadOutline"></ion-icon>
       </ion-fab-button>
     </ion-fab>
 
@@ -673,14 +752,251 @@ ion-content {
   }
 }
 
-// Retro view - centered on screen
+// Retro view - Earthbound save slots
 .retro-view {
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  min-height: 60vh;
-  // padding-bottom: 80px; // Space for FAB
+  width: 100%;
+  padding-bottom: 96px; // Space for bottom FABs
+}
+
+.eb-window {
+  border-radius: 1px;
+  background-color: #280828;
+  color: #f7e8a8;
+  font-family: "Apple Kid", "StatusPlz", monospace;
+  box-shadow:
+    0 0 0 5px #383050,
+    0 0 0 10px #68d0b8,
+    0 0 0 12px #f7e8a8,
+    0 0 0 16px #3d3c55;
+  margin: 16px 16px 24px 16px;
+  width: calc(100% - 32px);
+  overflow: hidden;
+
+  .eb-window-header {
+    background: #383050;
+    padding: 8px 14px;
+    border-bottom: 3px solid #68d0b8;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    .eb-window-title {
+      font-family: "Twoson", "Apple Kid", sans-serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      color: #f7e8a8;
+      text-transform: uppercase;
+    }
+
+    .eb-window-sub {
+      font-family: "StatusPlz", monospace;
+      font-size: 0.8rem;
+      letter-spacing: 1.5px;
+      color: #68d0b8;
+      text-transform: uppercase;
+    }
+  }
+
+  .eb-slots-list {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .eb-file-slot {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-bottom: 2px dashed rgba(104, 208, 184, 0.25);
+    cursor: pointer;
+    position: relative;
+    background: transparent;
+    transition: background-color 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:hover,
+    &:focus-visible,
+    &:active {
+      background-color: rgba(255, 255, 255, 0.08);
+      outline: none;
+
+      .eb-cursor {
+        opacity: 1;
+        transform: translateX(2px);
+      }
+    }
+
+    .eb-cursor {
+      font-family: "Apple Kid", monospace;
+      font-size: 1.2rem;
+      color: #f7e8a8;
+      opacity: 0.3;
+      transition: opacity 0.15s ease, transform 0.15s ease;
+      width: 12px;
+      flex-shrink: 0;
+    }
+
+    .eb-slot-tag {
+      font-family: "StatusPlz", monospace;
+      font-size: 0.9rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: #68d0b8;
+      flex-shrink: 0;
+      min-width: 24px;
+      text-align: center;
+    }
+
+    .eb-slot-avatar-frame {
+      width: 44px;
+      height: 44px;
+      border-radius: 4px;
+      border: 2px solid #68d0b8;
+      background: #383050;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      flex-shrink: 0;
+      box-shadow: 0 0 0 1px #280828;
+
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        image-rendering: pixelated;
+      }
+
+      i {
+        font-size: 1.3rem;
+        color: #f7e8a8;
+      }
+
+      &.eb-new-avatar {
+        border-color: #f7e8a8;
+        background: #280828;
+
+        i {
+          color: #68d0b8;
+        }
+      }
+    }
+
+    .eb-slot-details {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+
+      .eb-slot-name-row {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .eb-slot-hero-name {
+        font-family: "Apple Kid", sans-serif;
+        font-size: 1.35rem;
+        font-weight: 700;
+        color: #ffffff;
+        letter-spacing: 1px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .eb-slot-meta-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-family: "StatusPlz", monospace;
+        font-size: 0.85rem;
+        color: #f7e8a8;
+        opacity: 0.9;
+      }
+
+      .eb-slot-desc {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.8rem;
+      }
+    }
+
+    .eb-slot-badge-column {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 2px;
+      flex-shrink: 0;
+
+      .eb-lvl-pill {
+        font-family: "Apple Kid", sans-serif;
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: #68d0b8;
+        display: flex;
+        align-items: baseline;
+        gap: 2px;
+
+        small {
+          font-size: 0.75rem;
+          opacity: 0.8;
+          letter-spacing: 1px;
+        }
+      }
+
+      .eb-gp-pill {
+        font-family: "Twoson", "Apple Kid", monospace;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #f7e8a8;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+
+        i {
+          font-size: 0.8rem;
+          color: #f59e0b;
+        }
+      }
+
+      .eb-new-arrow {
+        font-size: 1.2rem;
+        color: #68d0b8;
+      }
+    }
+  }
+}
+
+// Retro FAB controls (SNES / Earthbound arcade style)
+.retro-fab {
+  ion-fab-button {
+    --background: #280828;
+    --color: #f7e8a8;
+    --border-radius: 50%;
+    border: 3px solid #68d0b8;
+    box-shadow:
+      0 0 0 2px #383050,
+      0 4px 10px rgba(0, 0, 0, 0.6);
+    transition: transform 0.15s ease;
+
+    ion-icon {
+      font-size: 1.4rem;
+      color: #f7e8a8;
+    }
+
+    &:active {
+      transform: scale(0.92);
+    }
+  }
 }
 
 // Profile grid spacing

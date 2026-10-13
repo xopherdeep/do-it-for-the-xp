@@ -6,22 +6,28 @@
  *
  *   heal    Hospital   full HP                                HEAL_COST
  *   revive  Hospital   full HP and full MP                    REVIVE_COST
- *   room    Hotel      a night's sleep: full HP and full MP   ROOM_COST
+ *   room    Hotel      a night's sleep: full HP and full MP   roomCost(level), more as the hero grows
  *   bench   Hospital   a doze on the waiting-room bench: a quarter of max HP, free, once a day
+ *   bed     Home       a night in your own bed: full HP and full MP, free, once a day
  *
- * Fights leave damage behind, so a broke hero must never be stuck: the bench (quoteBenchRest) costs nothing and
- * asks only that a day has passed. A hero at 0 HP is not left to limp here: the Hospital admits them
- * (hospitalAdmission.ts), treats them like a revive and sends the bill.
+ * Fights leave damage behind, so a broke hero must never be stuck: the bench (quoteBenchRest) and the home bed
+ * (quoteBedRest) cost nothing and ask only that a day has passed. A hero at 0 HP is not left to limp here:
+ * the Hospital admits them (hospitalAdmission.ts), treats them like a revive and sends the bill.
  */
 
 export const HEAL_COST = 50;
 export const REVIVE_COST = 100;
-export const ROOM_COST = 10;
+/** The Hotel room is a base fee plus a fee per hero level: see roomCost(). */
+export const ROOM_BASE_COST = 10;
+export const ROOM_COST_PER_LEVEL = 5;
+/** The base fee, kept for the prompts' default; the Hotel charges roomCost(level). */
+export const ROOM_COST = ROOM_BASE_COST;
 /** Share of max HP a bench nap restores. */
 export const BENCH_REST_SHARE = 0.25;
 
 export type CareKind = "heal" | "revive" | "room";
 
+/** The flat prices; the room's entry is only its base fee, quoteCare() charges roomCost(level). */
 export const CARE_COSTS: Record<CareKind, number> = {
   heal: HEAL_COST,
   revive: REVIVE_COST,
@@ -60,6 +66,10 @@ const DEFAULT_MAX = 100;
 const finite = (n: unknown, fallback: number): number =>
   typeof n === "number" && Number.isFinite(n) ? n : fallback;
 
+/** What a night at the Hotel costs a hero of this level (a level under 1 pays as level 1). */
+export const roomCost = (level: number): number =>
+  ROOM_BASE_COST + ROOM_COST_PER_LEVEL * Math.max(1, Math.floor(finite(level, 1)));
+
 /** Reads a pool as { now, max }, with the same defaults the user store uses when it standardizes. */
 export function readPool(pool: Pool | number | null | undefined, topLevelMax?: number): { now: number; max: number } {
   const max = Math.max(0, finite(topLevelMax, finite(typeof pool === "object" && pool ? pool.max : undefined, DEFAULT_MAX)));
@@ -77,9 +87,10 @@ const gainTo = (pool: { now: number; max: number }, target: number): number =>
  * service would restore nothing (so the screen can say "You're already in perfect health").
  * Being short of GP is reported before being healthy only when something would be restored;
  * a hero with nothing to restore is told so even with an empty wallet.
+ * The room is priced by `level` (roomCost); the other services cost the same at any level.
  */
-export function quoteCare(kind: CareKind, stats: CareStats | null | undefined): CareQuote {
-  const cost = CARE_COSTS[kind];
+export function quoteCare(kind: CareKind, stats: CareStats | null | undefined, level = 1): CareQuote {
+  const cost = kind === "room" ? roomCost(level) : CARE_COSTS[kind];
   const hp = readPool(stats?.hp, stats?.maxHp);
   const mp = readPool(stats?.mp, stats?.maxMp);
   const wallet = finite(stats?.gp?.wallet, 0);
@@ -148,4 +159,35 @@ export function quoteBenchRest(
   if (hpGain <= 0) return { hpGain: 0, canRest: false, reason: "healthy" };
   if (benchRestedToday(benchRestAt, now)) return { hpGain, canRest: false, reason: "rested" };
   return { hpGain, canRest: true };
+}
+
+/** Why the home bed is refused. "healthy": HP and MP are full; "rested": the hero already slept today. */
+export type BedRefusal = "healthy" | "rested";
+
+export interface BedQuote {
+  hpGain: number;
+  mpGain: number;
+  canRest: boolean;
+  reason?: BedRefusal;
+}
+
+/**
+ * Quote a night in the hero's own bed. Pure.
+ * Restores all HP and MP, free, once per local day (the same day test as the bench). Refused with
+ * "healthy" when both are full and "rested" when the hero already slept today; full pools are reported
+ * first, because a rested hero with nothing to restore has nothing to gain either way.
+ */
+export function quoteBedRest(
+  stats: CareStats | null | undefined,
+  bedRestAt: string | null | undefined,
+  now: Date = new Date()
+): BedQuote {
+  const hp = readPool(stats?.hp, stats?.maxHp);
+  const mp = readPool(stats?.mp, stats?.maxMp);
+  const hpGain = gainTo(hp, hp.max);
+  const mpGain = gainTo(mp, mp.max);
+  const isFullyRested = hpGain <= 0 && mpGain <= 0;
+  if (isFullyRested) return { hpGain: 0, mpGain: 0, canRest: false, reason: "healthy" };
+  if (benchRestedToday(bedRestAt, now)) return { hpGain, mpGain, canRest: false, reason: "rested" };
+  return { hpGain, mpGain, canRest: true };
 }

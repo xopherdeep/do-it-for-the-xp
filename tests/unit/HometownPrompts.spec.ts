@@ -125,12 +125,16 @@ describe("the concierge", () => {
     expect(prompt.choices.map((choice) => choice.label)).toEqual(["Pay & Rest", "Not tonight"]);
   });
 
+  it("asks the quote's price when the Hotel passes one", () => {
+    expect(roomConfirmPrompt("adventure", 50).lines[0]).toBe("A night's rest is 50 GP and restores you fully. Check in?");
+  });
+
   it("turns a guest away in the words the screen always used", () => {
     expect(roomRefusalLine(quoteCare("room", { hp: { now: 5, max: 5 }, mp: { now: 5, max: 5 }, gp: { wallet: 50 } }))).toBe(
       "*smiles* You look perfectly rested already! The room will be here when you need it."
     );
     expect(roomRefusalLine(quoteCare("room", { hp: { now: 1, max: 5 }, gp: { wallet: 2 } }))).toBe(
-      "*checks the register* A room is ₲10 a night, and your wallet is short. Do come back."
+      "*checks the register* A room is ₲15 a night, and your wallet is short. Do come back."
     );
   });
 

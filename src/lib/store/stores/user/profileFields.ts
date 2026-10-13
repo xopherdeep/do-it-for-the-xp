@@ -182,6 +182,15 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     persistUser(userId);
   }
 
+  /** Stamp the hero's last night in their own bed (ISO), so the home bed is once a day. */
+  function setBedRestAt(userId: string, bedRestAt: string | null) {
+    const user = users[userId];
+    if (!user) return;
+    user.bedRestAt = bedRestAt;
+    if (currentUser.id === userId) syncCurrentUser(user);
+    persistUser(userId);
+  }
+
   function setQuestEffects(userId: string, effects: object) {
     const user = users[userId];
     if (!user) return;
@@ -324,6 +333,7 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     buyStorageTier,
     setItemCooldown,
     setBenchRestAt,
+    setBedRestAt,
     setQuestEffects,
     unlockItem,
     setEquipment,

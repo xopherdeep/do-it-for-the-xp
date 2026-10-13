@@ -111,11 +111,11 @@ export const conciergeMenuPrompt = (lines: string[]): RevealPromptOptions => ({
   cancelId: 'stay',
 });
 
-/** The room's price and the question, with the bed rising. */
-export const roomConfirmPrompt = (voice: Voice = 'adventure'): RevealPromptOptions =>
+/** The room's price and the question, with the bed rising. `cost` is the quote's (roomCost by level); the base fee when none is given. */
+export const roomConfirmPrompt = (voice: Voice = 'adventure', cost: number = ROOM_COST): RevealPromptOptions =>
   yesNoOf(
     CONCIERGE,
-    copyFor('hotel.room.confirm', voice, { cost: ROOM_COST }),
+    copyFor('hotel.room.confirm', voice, { cost }),
     { yes: 'Pay & Rest', no: 'Not tonight', yesIcon: 'moon' },
     { accent: 'hotel', sprite: 'bed' }
   );

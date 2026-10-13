@@ -7,7 +7,7 @@ import { useUserActions } from "@/hooks/useUserActions";
 import ionic from "@/lib/mixins/ionic";
 import { alertController, modalController, toastController } from "@ionic/vue";
 import { arrowBack } from "ionicons/icons";
-import { readPool } from "@/lib/services/hometown/Lodging";
+import { quoteBedRest } from "@/lib/services/hometown/Lodging";
 import SaveAndQuitModal from "@/components/molecules/Modals/SaveAndQuitModal.vue";
 
 const requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
@@ -100,16 +100,11 @@ export default defineComponent({
     });
 
     const restInBed = async () => {
-      const stats = user.value?.stats;
-      const hp = readPool(stats?.hp, stats?.maxHp);
-      const mp = readPool(stats?.mp, stats?.maxMp);
-      const hpGain = Math.max(0, hp.max - hp.now);
-      const mpGain = Math.max(0, mp.max - mp.now);
-
-      const isFullyRested = hpGain <= 0 && mpGain <= 0;
-      if (isFullyRested) {
+      // Once a real day: quoteBedRest() decides, the store remembers the stamp.
+      const quote = quoteBedRest(user.value?.stats, user.value?.bedRestAt);
+      if (!quote.canRest) {
         const toast = await toastController.create({
-          message: "You are already fully rested!",
+          message: quote.reason === "rested" ? "You're not sleepy yet. Come back tomorrow." : "You are already fully rested!",
           duration: 2500,
           position: "top",
           cssClass: "rpg-toast",
@@ -120,7 +115,7 @@ export default defineComponent({
 
       const alert = await alertController.create({
         header: "Rest in Bed",
-        message: "Sleep in your cozy bed to restore all HP and MP for free?",
+        message: "Sleep in your cozy bed to restore all HP and MP? Once a day.",
         buttons: [
           {
             text: "Not now",
@@ -132,12 +127,13 @@ export default defineComponent({
             role: "confirm",
             cssClass: "alert-confirm",
             handler: async () => {
-              if (hpGain > 0) {
-                userStore.updateUserHP({ userId: userId as string, amount: hpGain });
+              if (quote.hpGain > 0) {
+                userStore.updateUserHP({ userId: userId as string, amount: quote.hpGain });
               }
-              if (mpGain > 0) {
-                userStore.updateUserMP({ userId: userId as string, amount: mpGain });
+              if (quote.mpGain > 0) {
+                userStore.updateUserMP({ userId: userId as string, amount: quote.mpGain });
               }
+              userStore.setBedRestAt(userId as string, new Date().toISOString());
               if (typeof (window as any).play$fx === "function") {
                 (window as any).play$fx("restoreAll");
               }

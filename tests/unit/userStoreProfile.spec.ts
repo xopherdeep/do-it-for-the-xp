@@ -214,6 +214,15 @@ describe("the bag, cooldowns, the hands, the look, the class", () => {
     expect(() => store.setItemCooldown("ghost", "Sword", null)).not.toThrow();
   });
 
+  it("stamps the bed rest, and clears it", () => {
+    const store = freshStore({ ava: {} });
+    store.setBedRestAt("ava", "2026-10-13T08:00:00.000Z");
+    expect(store.users.ava.bedRestAt).toBe("2026-10-13T08:00:00.000Z");
+    store.setBedRestAt("ava", null);
+    expect(store.users.ava.bedRestAt).toBeNull();
+    expect(() => store.setBedRestAt("ghost", "x")).not.toThrow();
+  });
+
   it("stamps the bench rest and replaces the quest effects with a copy", () => {
     const store = freshStore({ ava: {} });
     const effects = { snooze: { q1: 3 } };
@@ -425,6 +434,7 @@ describe("signing in, masquerading, loading", () => {
         "persistUser",
         "recordAPGain",
         "setAutoRead",
+        "setBedRestAt",
         "setBenchRestAt",
         "setEquipment",
         "setItemCooldown",

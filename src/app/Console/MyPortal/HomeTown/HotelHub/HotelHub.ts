@@ -167,16 +167,19 @@ export default defineComponent({
       else await this.handleCommunityEvents();
     },
 
-    /** Rent a Room: confirm the price, then charge the wallet and sleep off the night (full HP and MP). */
+    /**
+     * Rent a Room: the price grows with the hero's level. Confirm it, then charge the wallet and sleep off the
+     * night (full HP and MP).
+     */
     async handleRentRoom() {
-      const quote = quoteCare("room", this.user?.stats);
+      const quote = quoteCare("room", this.user?.stats, Number(this.user?.stats?.level) || 1);
       if (!quote.canPay) {
         this.play$fx("no");
         await this.reveal.ask(conciergeNotice(roomRefusalLine(quote, this.words)));
         return;
       }
 
-      const pick = await this.reveal.ask(roomConfirmPrompt(this.words));
+      const pick = await this.reveal.ask(roomConfirmPrompt(this.words, quote.cost));
       if (pick !== "yes") return;
       await this.rentRoom(quote);
     },

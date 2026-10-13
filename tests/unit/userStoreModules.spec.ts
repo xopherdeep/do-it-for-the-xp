@@ -242,6 +242,7 @@ describe("profileFields: the bag, cooldowns, hands", () => {
       "buyStorageTier",
       "setItemCooldown",
       "setBenchRestAt",
+      "setBedRestAt",
       "setQuestEffects",
       "unlockItem",
       "setEquipment",
@@ -263,6 +264,8 @@ describe("profileFields: the bag, cooldowns, hands", () => {
     persistUser.mockClear();
     setters.setBenchRestAt("ben", "x");
     expect(users.ben.benchRestAt).toBe("x");
+    setters.setBedRestAt("ben", "z");
+    expect(users.ben.bedRestAt).toBe("z");
     expect(syncCurrentUser).not.toHaveBeenCalled();
     expect(persistUser).toHaveBeenCalledWith("ben");
 

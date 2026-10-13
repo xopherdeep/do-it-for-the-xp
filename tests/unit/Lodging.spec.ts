@@ -3,11 +3,15 @@ import {
   benchRestedToday,
   CARE_COSTS,
   HEAL_COST,
+  quoteBedRest,
   quoteBenchRest,
   quoteCare,
   readPool,
   REVIVE_COST,
+  ROOM_BASE_COST,
   ROOM_COST,
+  ROOM_COST_PER_LEVEL,
+  roomCost,
 } from "@/lib/services/hometown/Lodging";
 
 const hero = (hp: number, mp: number, wallet: number, max = { hp: 42, mp: 20 }) => ({
@@ -16,12 +20,25 @@ const hero = (hp: number, mp: number, wallet: number, max = { hp: 42, mp: 20 }) 
   gp: { wallet, savings: 0, debt: 0, limit: 1000 },
 });
 
+const tired = { hp: { now: 10, max: 40 }, mp: { now: 0, max: 30 } };
+
 describe("Lodging price list", () => {
   it("publishes the three prices", () => {
     expect(HEAL_COST).toBe(50);
     expect(REVIVE_COST).toBe(100);
     expect(ROOM_COST).toBe(10);
     expect(CARE_COSTS).toEqual({ heal: 50, revive: 100, room: 10 });
+  });
+
+  it("prices the room by level", () => {
+    expect(ROOM_BASE_COST).toBe(10);
+    expect(ROOM_COST_PER_LEVEL).toBe(5);
+    expect(ROOM_COST).toBe(ROOM_BASE_COST);
+    expect(roomCost(1)).toBe(15);
+    expect(roomCost(8)).toBe(50);
+    expect(roomCost(0)).toBe(15);
+    expect(roomCost(8.9)).toBe(50);
+    expect(quoteCare("room", { ...tired, gp: { wallet: 100 } }, 8).cost).toBe(50);
   });
 });
 
@@ -38,12 +55,12 @@ describe("quoteCare", () => {
     });
   });
 
-  it("a night in a room fills HP and MP, inn-style, for 10 GP", () => {
-    expect(quoteCare("room", hero(0, 0, 10))).toEqual({
-      kind: "room", cost: 10, hpGain: 42, mpGain: 20, canPay: true,
+  it("a night in a room fills HP and MP, inn-style, for roomCost(1) GP", () => {
+    expect(quoteCare("room", hero(0, 0, roomCost(1)))).toEqual({
+      kind: "room", cost: 15, hpGain: 42, mpGain: 20, canPay: true,
     });
     // close to full: only the missing part
-    expect(quoteCare("room", hero(40, 20, 10))).toMatchObject({ hpGain: 2, mpGain: 0, canPay: true });
+    expect(quoteCare("room", hero(40, 20, roomCost(1)))).toMatchObject({ hpGain: 2, mpGain: 0, canPay: true });
   });
 
   it("refuses with 'poor' when the wallet is short", () => {
@@ -51,7 +68,7 @@ describe("quoteCare", () => {
       kind: "heal", cost: 50, hpGain: 41, mpGain: 0, canPay: false, reason: "poor",
     });
     expect(quoteCare("revive", hero(0, 0, 99)).reason).toBe("poor");
-    expect(quoteCare("room", hero(0, 0, 9)).reason).toBe("poor");
+    expect(quoteCare("room", hero(0, 0, roomCost(1) - 1)).reason).toBe("poor");
   });
 
   it("refuses with 'healthy' when nothing would change, even with an empty wallet", () => {
@@ -75,6 +92,28 @@ describe("quoteCare", () => {
     expect(quoteCare("heal", { hp: { now: 10, max: 60 } })).toMatchObject({ hpGain: 50, canPay: false, reason: "poor" });
     expect(quoteCare("room", undefined)).toMatchObject({ canPay: false, reason: "healthy" });
     expect(quoteCare("room", null)).toMatchObject({ canPay: false, reason: "healthy" });
+  });
+});
+
+describe("quoteBedRest: the home bed, once a local day", () => {
+  it("lets the hero sleep once a local day", () => {
+    expect(quoteBedRest(tired, null)).toEqual({ hpGain: 30, mpGain: 30, canRest: true });
+    const late = new Date(2026, 9, 13, 23, 59);
+    expect(quoteBedRest(tired, late.toISOString(), new Date(2026, 9, 13, 23, 59, 30)).reason).toBe("rested");
+    expect(quoteBedRest(tired, late.toISOString(), new Date(2026, 9, 14, 0, 1)).canRest).toBe(true);
+  });
+
+  it("keeps the gains in the refusal, so the screen can show what a night would give", () => {
+    const noon = new Date(2026, 9, 13, 12, 0, 0);
+    expect(quoteBedRest(tired, noon.toISOString(), noon)).toEqual({ hpGain: 30, mpGain: 30, canRest: false, reason: "rested" });
+  });
+
+  it("says healthy before rested", () => {
+    expect(quoteBedRest({ hp: { now: 40, max: 40 }, mp: { now: 30, max: 30 } }, new Date().toISOString()).reason).toBe("healthy");
+  });
+
+  it("is open when only MP is missing", () => {
+    expect(quoteBedRest({ hp: { now: 40, max: 40 }, mp: { now: 5, max: 30 } }, null)).toEqual({ hpGain: 0, mpGain: 25, canRest: true });
   });
 });
 
