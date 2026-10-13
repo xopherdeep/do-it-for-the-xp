@@ -52,6 +52,18 @@ const BACK_LABEL: Record<TimePeriod, string> = {
 /** Whole numbers stay whole; a fraction of AP shows one decimal */
 export const fmtAp = (n: number): string => String(Math.round(n * 10) / 10);
 
+/** Why a Power that is not ready says so: the AP still to earn, the MP it needs, when it is back, or just its state. */
+export const stateLineOf = (ability: Ability, status: AbilityStatus, earned: number, needed: number): string => {
+  const lines: Partial<Record<AbilityStatus, () => string>> = {
+    locked: () => (earned < needed ? `${fmtAp(needed - earned)} AP to go` : "Locked"),
+    unlocked: () => `Need ${ability.mpCost} MP`,
+    cooling: () => `Cooling · back ${BACK_LABEL[ability.frequency] ?? BACK_LABEL.flat}`,
+    used: () => "Used",
+    active: () => "Active",
+  };
+  return lines[status]?.() ?? "";
+};
+
 export interface PowerRow {
   id: string;
   name: string;
@@ -97,31 +109,8 @@ export const buildPowerRow = (
   const earned = snapshot.ap[AP_WINDOW[period] ?? "total"] ?? 0;
   const ratio = needed > 0 ? Math.min(earned / needed, 1) : 1;
 
-  let stateLine = "";
   // A Power that is still locked, cooling or short of MP keeps saying so; grounded speaks for the ones that were ready
-  if (groundedReason && status === "available") {
-    stateLine = groundedReason;
-  } else {
-    switch (status) {
-      case "locked":
-        stateLine = earned < needed ? `${fmtAp(needed - earned)} AP to go` : "Locked";
-        break;
-      case "unlocked":
-        stateLine = `Need ${ability.mpCost} MP`;
-        break;
-      case "cooling":
-        stateLine = `Cooling · back ${BACK_LABEL[ability.frequency] ?? BACK_LABEL.flat}`;
-        break;
-      case "used":
-        stateLine = "Used";
-        break;
-      case "active":
-        stateLine = "Active";
-        break;
-      default:
-        stateLine = "";
-    }
-  }
+  const stateLine = groundedReason && status === "available" ? groundedReason : stateLineOf(ability, status, earned, needed);
 
   const icon = ability.icon ?? "";
   return {

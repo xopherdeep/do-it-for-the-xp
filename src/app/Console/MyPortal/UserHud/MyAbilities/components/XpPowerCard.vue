@@ -3,6 +3,7 @@ import { computed } from "vue";
 import type { Ability, AbilityStatus, TimePeriod } from "@/types/abilities";
 import type { HeroAbilitySnapshot, HeroApWindows } from "@/lib/services/abilities/heroAbilityStatus";
 import type { BattlePowerCard } from "@/lib/services/battle/BattlePowers";
+import { stateLineOf } from "../powerRow";
 
 /**
  * One Power on the hero's My Powers page: what it is, how much AP it asks for and how far the hero has come,
@@ -57,18 +58,6 @@ const FREQUENCY_LABEL: Record<TimePeriod, string> = {
   flat: "anytime",
 };
 
-/** When a cooling Power is back, by how often it can be cast */
-const BACK_LABEL: Record<TimePeriod, string> = {
-  hourly: "in an hour",
-  daily: "tomorrow",
-  weekly: "next week",
-  monthly: "next month",
-  quarterly: "next quarter",
-  biannual: "in six months",
-  yearly: "next year",
-  flat: "soon",
-};
-
 /** Whole numbers stay whole; a fraction of AP shows one decimal */
 const fmt = (n: number): string => String(Math.round(n * 10) / 10);
 
@@ -97,20 +86,7 @@ const stateLine = computed(() => {
   if (props.battle) return props.battle.reason ?? "";
   // A Power that is still locked, cooling or short of MP keeps saying so; grounded speaks for the ones that were ready
   if (props.groundedReason && props.status === "available") return props.groundedReason;
-  switch (props.status) {
-    case "locked":
-      return earned.value < needed.value ? `${fmt(needed.value - earned.value)} AP to go` : "Locked";
-    case "unlocked":
-      return `Need ${props.ability.mpCost} MP`;
-    case "cooling":
-      return `Cooling · back ${BACK_LABEL[props.ability.frequency] ?? BACK_LABEL.flat}`;
-    case "used":
-      return "Used";
-    case "active":
-      return "Active";
-    default:
-      return "";
-  }
+  return stateLineOf(props.ability, props.status, earned.value, needed.value);
 });
 
 const canCast = computed(() => {

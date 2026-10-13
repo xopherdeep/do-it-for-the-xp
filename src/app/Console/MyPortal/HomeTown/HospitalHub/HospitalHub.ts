@@ -22,6 +22,10 @@ import {
 } from "@/lib/services/hometown/hometownPrompts";
 import { hospitalBillOf } from "@/lib/services/gp/wallet";
 
+/** The menu rows that end the conversation by walking away from the counter. */
+type WalkAway = "leave" | "patients" | "stats";
+const isWalkAway = (pick: NurseMenuId): pick is WalkAway => pick === "leave" || pick === "patients" || pick === "stats";
+
 export default defineComponent({
   props: ["userId"],
   name: "hospital-hub",
@@ -85,16 +89,8 @@ export default defineComponent({
         for (;;) {
           const pick = (await this.reveal.ask(nurseMenuPrompt(lines))) as NurseMenuId | "stay";
           if (pick === "stay") return;
-          if (pick === "leave") {
-            this.goBack();
-            return;
-          }
-          if (pick === "patients") {
-            this.openPatientsModal();
-            return;
-          }
-          if (pick === "stats") {
-            this.$router.push(`/my-portal/${this.userId}/hospital/stats`);
+          if (isWalkAway(pick)) {
+            this.walkAway(pick);
             return;
           }
           if (pick === "bench") await this.handleBenchRest();
@@ -104,6 +100,16 @@ export default defineComponent({
       } finally {
         this.isTalking = false;
       }
+    },
+
+    /** Leave the counter: out of the hospital, to the patients list, or to a hero's chart. */
+    walkAway(pick: WalkAway) {
+      const walks: Record<WalkAway, () => unknown> = {
+        leave: () => this.goBack(),
+        patients: () => this.openPatientsModal(),
+        stats: () => this.$router.push(`/my-portal/${this.userId}/hospital/stats`)
+      };
+      walks[pick]();
     },
 
     openPatientsModal() {

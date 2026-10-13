@@ -149,12 +149,8 @@ export default defineComponent({
         for (;;) {
           const pick = (await this.reveal.ask(conciergeMenuPrompt(lines))) as ConciergeMenuId | "stay";
           if (pick === "stay") return;
-          if (pick === "leave") {
-            this.goBack();
-            return;
-          }
-          if (pick === "events") {
-            await this.handleCommunityEvents();
+          if (pick !== "room") {
+            await this.walkAway(pick);
             return;
           }
           await this.handleRentRoom();
@@ -163,6 +159,12 @@ export default defineComponent({
       } finally {
         this.isTalking = false;
       }
+    },
+
+    /** Leave the desk: out of the hotel, or on to the Town Hall's notice board. */
+    async walkAway(pick: "leave" | "events") {
+      if (pick === "leave") this.goBack();
+      else await this.handleCommunityEvents();
     },
 
     /** Rent a Room: confirm the price, then charge the wallet and sleep off the night (full HP and MP). */

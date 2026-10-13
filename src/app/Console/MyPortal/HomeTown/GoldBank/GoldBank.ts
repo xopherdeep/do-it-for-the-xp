@@ -114,12 +114,8 @@ export default defineComponent({
         for (;;) {
           const pick = (await this.reveal.ask(bankMenuPrompt(lines, this.user?.stats?.gp))) as BankMenuId | "stay";
           if (pick === "stay") return;
-          if (pick === "leave") {
-            this.goBack();
-            return;
-          }
-          if (pick === "atm") {
-            this.openATM();
+          if (pick === "leave" || pick === "atm") {
+            this.walkAway(pick);
             return;
           }
           await this.runErrand(pick);
@@ -128,6 +124,12 @@ export default defineComponent({
       } finally {
         this.isTalking = false;
       }
+    },
+
+    /** Leave the counter: out of the bank, or over to the ATM. */
+    walkAway(pick: "leave" | "atm") {
+      if (pick === "leave") this.goBack();
+      else this.openATM();
     },
 
     /** One errand from the menu. */
@@ -187,8 +189,7 @@ export default defineComponent({
         ],
         cancelId: "no"
       });
-      if (pick !== "yes") return;
-      await this.sellStorage(needsSavings);
+      if (pick === "yes") await this.sellStorage(needsSavings);
     },
 
     /** The sale itself: the store re-checks the purse, so a refusal here is read out the same way. */

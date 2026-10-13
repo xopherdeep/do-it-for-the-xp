@@ -16,35 +16,27 @@ export interface ShopVoice {
   accent: string;
 }
 
+/** Each world's accent; the desert is the sands and the ice is the tundra. */
+const ACCENT_OF_WORLD = new Map<string, string>([
+  ['plains', 'plains'],
+  ['forest', 'forest'],
+  ['islands', 'islands'],
+  ['swamps', 'swamps'],
+  ['mountains', 'mountains'],
+  ['desert', 'sands'],
+  ['sands', 'sands'],
+  ['ice', 'tundra'],
+  ['tundra', 'tundra'],
+  ['clouds', 'clouds'],
+  ['moon', 'moon']
+]);
+
 /**
  * The accent of a shop that stands in this world: the region's own colour, or the general store's for Home Town, the
  * balloon (it follows the sky, not a region) and any world without a colour of its own.
  */
 export function shopAccent(world: string | null | undefined): string {
-  switch (String(world ?? '').trim().toLowerCase()) {
-    case 'plains':
-      return 'plains';
-    case 'forest':
-      return 'forest';
-    case 'islands':
-      return 'islands';
-    case 'swamps':
-      return 'swamps';
-    case 'mountains':
-      return 'mountains';
-    case 'desert':
-    case 'sands':
-      return 'sands';
-    case 'ice':
-    case 'tundra':
-      return 'tundra';
-    case 'clouds':
-      return 'clouds';
-    case 'moon':
-      return 'moon';
-    default:
-      return 'accessoryShop';
-  }
+  return ACCENT_OF_WORLD.get(String(world ?? '').trim().toLowerCase()) ?? 'accessoryShop';
 }
 
 /** The ids of the clerk's menu. */

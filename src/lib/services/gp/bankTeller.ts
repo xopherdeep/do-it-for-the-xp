@@ -58,31 +58,21 @@ export function bankReceipt(action: BankAction, before: GpPurse | null | undefin
   const after = move.gp;
   const room = Math.max(0, purse.limit - purse.wallet);
   const sums = { amount: gold(move.amount), wallet: gold(after.wallet), savings: gold(after.savings) };
-  let line = "";
-  switch (action) {
-    case "withdraw":
-      line = copyFor("bank.receipt.withdraw", voice, sums);
-      break;
-    case "deposit":
-      line = copyFor("bank.receipt.deposit", voice, sums);
-      break;
-    case "payDebt":
-      line = payDebtReceipt(purse, move, voice);
-      break;
-  }
-  switch (move.capped) {
-    case "wallet-full":
-      return `${line} ${copyFor("bank.cap.walletFull", voice, { room: gold(room) })}`;
-    case "savings":
-      return `${line} ${copyFor("bank.cap.savings", voice)}`;
-    case "wallet":
-      return `${line} ${copyFor("bank.cap.wallet", voice)}`;
-    case "debt":
-      // a hero who owed only the Hospital has no debt to clear: the receipt already says the bill is paid
-      return purse.debt > 0 ? `${line} ${copyFor("bank.cap.debt", voice)}` : line;
-    default:
-      return line;
-  }
+  const lineOf: Record<BankAction, () => string> = {
+    withdraw: () => copyFor("bank.receipt.withdraw", voice, sums),
+    deposit: () => copyFor("bank.receipt.deposit", voice, sums),
+    payDebt: () => payDebtReceipt(purse, move, voice)
+  };
+  const line = lineOf[action]?.() ?? "";
+  const noteOf: Partial<Record<BankMove["capped"], () => string>> = {
+    "wallet-full": () => copyFor("bank.cap.walletFull", voice, { room: gold(room) }),
+    savings: () => copyFor("bank.cap.savings", voice),
+    wallet: () => copyFor("bank.cap.wallet", voice),
+    // a hero who owed only the Hospital has no debt to clear: the receipt already says the bill is paid
+    debt: () => (purse.debt > 0 ? copyFor("bank.cap.debt", voice) : "")
+  };
+  const note = noteOf[move.capped]?.();
+  return note ? `${line} ${note}` : line;
 }
 
 // --- Storage: the Gold Bank sells room at home, tier by tier (services/inventory/Storage.ts) ------------------------

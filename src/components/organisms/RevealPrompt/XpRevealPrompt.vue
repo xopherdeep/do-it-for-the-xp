@@ -43,7 +43,7 @@
           </div>
 
           <!-- The speaker's line types out; a tap finishes it, the next tap turns to the next line -->
-          <div class="rp__text" data-cy="reveal-text" aria-live="polite" @click="advance">
+          <div class="rp__text" data-cy="reveal-text" role="button" aria-live="polite" @click="advance">
             <xp-typing-text
               ref="typing"
               :text="line"
@@ -103,7 +103,7 @@
                 :key="preset.label"
                 type="button"
                 class="rp__chip"
-                :class="{ 'is-on': amountValue === clamp(preset.value) }"
+                :class="{ 'is-on': amountValue === heldToRange(preset.value) }"
                 :disabled="!ready"
                 :data-cy="`reveal-preset-${preset.label}`"
                 @click.stop="setAmount(preset.value)"
@@ -260,11 +260,11 @@ const amountFloor = computed(() => (options.value.amount ? amountMin(options.val
 const amountCeiling = computed(() => (options.value.amount ? amountMax(options.value.amount) : 0));
 const unit = computed(() => options.value.amount?.unit ?? "GP");
 const presets = computed(() => options.value.amount?.presets ?? []);
-const clamp = (value: number): number => (options.value.amount ? clampAmount(value, options.value.amount) : value);
+const heldToRange = (value: number): number => (options.value.amount ? clampAmount(value, options.value.amount) : value);
 
 const setAmount = (value: number) => {
   if (!ready.value) return;
-  const next = clamp(value);
+  const next = heldToRange(value);
   if (next !== amountValue.value) play$fx("cursor");
   amountValue.value = next;
 };

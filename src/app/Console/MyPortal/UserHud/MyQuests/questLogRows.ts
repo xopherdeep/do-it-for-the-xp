@@ -109,16 +109,8 @@ export function subtitleOf(row: QuestListRow): string {
 
 /** The word at the end of a row that cannot be finished from here: Pending, Later, Tamed or "Done by Mia". */
 export function stateLabelOf(row: QuestListRow): string {
-  switch (row.status) {
-    case "pending":
-      return "Pending";
-    case "later":
-      return "Later";
-    case "done":
-      return row.statusLabel;
-    default:
-      return "";
-  }
+  const labels: Partial<Record<QuestListStatus, string>> = { pending: "Pending", later: "Later", done: row.statusLabel };
+  return labels[row.status] ?? "";
 }
 
 export interface BeastFace {

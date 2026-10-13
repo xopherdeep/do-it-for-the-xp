@@ -112,20 +112,14 @@ const openChestRuns = (): PixelRun[] => {
   return [...chestLidOpen(), ...chestMouth(), ...light, ...chestBody()];
 };
 
-/** The sprite for a name; built each time it is asked for, so a prompt can be drawn once and forgotten. */
-export const spriteFor = (name: RevealSpriteName): RevealSprite => {
-  switch (name) {
-    case 'chest':
-      return { runs: [...chestBody(), ...chestLidClosed()], width: CHEST_W, height: CHEST_H };
-    case 'chestOpen':
-      return { runs: openChestRuns(), width: CHEST_W, height: CHEST_H };
-    case 'coins':
-      return { runs: coinStackRuns(), width: COINS_W, height: COINS_H };
-    case 'tablet':
-      return { runs: tabletRuns(), width: TABLET_W, height: TABLET_H };
-    case 'heart':
-      return { runs: heartRuns(), width: HEART_W, height: HEART_H };
-    case 'bed':
-      return { runs: bedRuns(), width: BED_W, height: BED_H };
-  }
+const SPRITE_BUILDERS: Record<RevealSpriteName, () => RevealSprite> = {
+  chest: () => ({ runs: [...chestBody(), ...chestLidClosed()], width: CHEST_W, height: CHEST_H }),
+  chestOpen: () => ({ runs: openChestRuns(), width: CHEST_W, height: CHEST_H }),
+  coins: () => ({ runs: coinStackRuns(), width: COINS_W, height: COINS_H }),
+  tablet: () => ({ runs: tabletRuns(), width: TABLET_W, height: TABLET_H }),
+  heart: () => ({ runs: heartRuns(), width: HEART_W, height: HEART_H }),
+  bed: () => ({ runs: bedRuns(), width: BED_W, height: BED_H })
 };
+
+/** The sprite for a name; built each time it is asked for, so a prompt can be drawn once and forgotten. */
+export const spriteFor = (name: RevealSpriteName): RevealSprite => SPRITE_BUILDERS[name]();

@@ -86,9 +86,10 @@ export const nurseNotice = (line: string, sprite?: RevealPromptOptions['sprite']
   noticeOf(NURSE, line, { accent: 'hospital', sprite });
 
 // ---------------------------------------------------------------------------------------------------------------
-// The Hotel: the concierge
+// The Hotel
 // ---------------------------------------------------------------------------------------------------------------
 
+/** Who answers at the front desk. */
 export const CONCIERGE = 'Hotel Concierge';
 
 /** The ids of the concierge's menu. */

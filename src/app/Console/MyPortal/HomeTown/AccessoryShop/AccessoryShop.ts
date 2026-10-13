@@ -331,9 +331,8 @@ export default defineComponent({
     // the new limit takes effect at once (no delivery to wait on).
     async buyWallet() {
       const ware = this.walletWare;
-      const isPurchaseBlocked = !ware || this.isBuying;
+      const isPurchaseBlocked = !ware || this.isBuying || this.turnedAwayWhileClosed();
       if (isPurchaseBlocked) return;
-      if (this.turnedAwayWhileClosed()) return;
       const stats = this.userStore.users[this.heroId]?.stats;
       const pick = await this.reveal.ask(walletPitch(this.voice, ware, stats?.gp, Number(stats?.level) || 1, this.words));
       if (pick !== "yes") return;
@@ -341,12 +340,12 @@ export default defineComponent({
       // Time passed while the hero thought: the purse is read again before it is charged
       const fresh = this.userStore.users[this.heroId]?.stats;
       const result = buyWalletUpgrade(fresh?.gp, Number(fresh?.level) || 1);
-      if (!result.ok) {
+      if (result.ok) {
+        this.userStore.setWallet(this.heroId, result.gp);
+        await this.reveal.ask(walletReceipt(this.voice, result.offer.limit, this.words));
+      } else {
         await this.reveal.ask(shopRefusal(this.voice, walletRefusal(result, this.words), "coins"));
-        return;
       }
-      this.userStore.setWallet(this.heroId, result.gp);
-      await this.reveal.ask(walletReceipt(this.voice, result.offer.limit, this.words));
     },
     // The GP leaves the wallet now; the Game Master hands the real thing over later
     // (it shows up under Approvals > Accessories until they do). Nothing goes into the bag, so a full bag never matters here.
