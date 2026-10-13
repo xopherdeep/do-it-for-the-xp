@@ -15,7 +15,7 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { heroPassive } from "@/lib/services/stats/StatEffects";
 import debug from "@/lib/utils/debug";
 import XpEquipmentModal from "@/app/Console/MyPortal/UserHud/components/XpEquipmentModal.vue";
-import { resolveBattleContext } from "./battle/battleContext";
+import { resolveBattleContext, type BattleContext } from "./battle/battleContext";
 import { loadEncounter, type Encounter } from "./battle/encounterLoader";
 import { tackleIcon, type BattleMenuAction } from "./battle/battleMenu";
 import { clearBattleProgress, loadBattleProgress, pruneBattleProgress, saveBattleProgress } from "./battle/battleProgress";
@@ -81,6 +81,11 @@ export default defineComponent({
     const router = useRouter();
     const userStore = useUserStore();
     const ctx = resolveBattleContext(route, userStore.currentUser.id);
+    /**
+     * What the chores ticked off today are kept under: the quest when the fight carries one, so its board fight and its
+     * temple room share them (the dishes already scraped stay scraped), else the fight itself. Set once it has loaded.
+     */
+    let progressCtx: BattleContext = ctx;
 
     const bestiary = createBestiaryService();
     // shallowRef: the engine keeps its own reactive state; proxying the class would also break its private fields' types
@@ -330,7 +335,7 @@ export default defineComponent({
           combatTasks.value = tasks;
           choresDone.value = tasks.filter((task) => task.isCompleted).length;
           saveBattleProgress(
-            ctx,
+            progressCtx,
             tasks.filter((task) => task.isCompleted).map((task) => task.id)
           );
         },
@@ -343,7 +348,7 @@ export default defineComponent({
           battleStarted.value = false;
           closeSheet();
           stopNag();
-          clearBattleProgress(ctx);
+          clearBattleProgress(progressCtx);
           void outcome.celebrateVictory(engine.getAllEnemies(), {
             choresDone: choresDone.value,
             elapsedMs: startedAt ? Date.now() - startedAt : 0,
@@ -423,6 +428,9 @@ export default defineComponent({
 
         const loaded = await loadEncounter(ctx, bestiary);
         encounter.value = loaded;
+        if (loaded.quest) progressCtx = { ...ctx, kind: "quest", questId: String(loaded.quest.id) };
+        // Read before the engine arms the chores: arming reports an empty checklist, which clears the save
+        const remembered = loadBattleProgress(progressCtx);
         abilities = await loadAbilities();
         background.lockLayers({ bg1: toLayer(route.query.bg1), bg2: toLayer(route.query.bg2) });
         background.lockLayers(loaded.background);
@@ -435,7 +443,6 @@ export default defineComponent({
         await background.applyEnemy(loaded.enemies[0]);
 
         // Chores finished earlier today count: the beast is still hurt
-        const remembered = loadBattleProgress(ctx);
         const taskIds = new Set(engine.getCombatTasks().map((task) => task.id));
         const toRestore = remembered.filter((id) => taskIds.has(id));
         const restored = toRestore.length && toRestore.length < taskIds.size ? engine.restoreCompletedTasks(toRestore) : 0;

@@ -1,6 +1,6 @@
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import { getQuestLogDb, QuestLogEntry, QuestLogSource, QuestRewards } from "@/lib/databases/QuestLogDb";
-import { isTrustedHour } from "@/lib/engine/quests/QuestSchedule";
+import { isQuestOpenFor, isTrustedHour, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 import { bonusGp } from "@/lib/services/stats/ClassPassives";
 import { useUserStore, LevelUpInfo } from "@/lib/store/stores/user";
 
@@ -12,7 +12,8 @@ import { useUserStore, LevelUpInfo } from "@/lib/store/stores/user";
  * GM review:    approveCompletion() pays the held rewards; rejectCompletion() voids the entry
  *               so the quest re-opens for the hero.
  * Battle flow:  recordBattleCompletion() only writes the log entry, because BattleField
- *               already credits XP/GP/AP during its victory sequence.
+ *               already credits XP/GP/AP during its victory sequence. isQuestStillOpen() is the
+ *               window check a win reads first, so a window already used is never paid twice.
  *
  * The log keeps the quest's own rate; what the hero is paid is paidQuestRewards(): the same
  * XP and AP, and the GP with the class loot bonus on top (a Thief's or Ninja's +25%, see
@@ -91,6 +92,20 @@ export const completeQuest = async (
   const settled = await questLogDb.updateEntry(entry.id, { rewardsApplied: true });
   return { entry: settled || entry, levelUp, awaitingApproval, paid };
 };
+
+/**
+ * Whether the hero can still complete the quest at `now`, read from the quest log of EVERY hero: a shared quest
+ * (Team Effort, Rat Race) a sibling already cleared, or a window the hero used up on another screen (a claim, a
+ * pending one too), is closed, so a battle win that ends after it is not paid a second time. False when the quest is
+ * not due at `now`. The same rule the board and MyTask's claim read (QuestSchedule.getQuestProgressFor).
+ * @param effects The hero's item effects (snoozes, pull-ins), as the board read them
+ */
+export const isQuestStillOpen = async (
+  quest: Achievement,
+  userId: string,
+  now: Date = new Date(),
+  effects?: HeroQuestEffects
+): Promise<boolean> => isQuestOpenFor(quest, await getQuestLogDb().getEntries(), userId, now, effects);
 
 /** Battle victories already paid out; just record that the quest was finished. */
 export const recordBattleCompletion = (quest: Achievement, userId: string, rewards: QuestRewards) =>

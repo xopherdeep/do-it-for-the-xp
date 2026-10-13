@@ -5,7 +5,7 @@ import type { RouteLocationNormalizedLoaded, RouteLocationRaw } from "vue-router
  *
  * Every battle route carries the hero (`:userId`) so rewards, the HUD and the
  * return trip never depend on "whoever is current". Three kinds exist:
- *   quest  -> /battle/:userId/quest/:questId                 (from the Quest Log)
+ *   quest  -> /battle/:userId/quest/:questId                 (from the Quest Log, or a quest ambush; ?region=)
  *   temple -> /battle/:userId/temple/:templeId/:level/:x/:y  (from a temple room)
  *   free   -> /battle/:userId/free/:beastIds?                (room-editor test fights, random encounters)
  */
@@ -22,7 +22,10 @@ export interface BattleContext {
   /** Row in the temple maze */
   y?: number;
   beastIds: string[];
-  /** Free fights only: the world region the hero was exploring (WORLD_REGIONS id), "" when none. */
+  /**
+   * The world region the hero was exploring when the fight sprang (WORLD_REGIONS id): a random encounter's or a quest
+   * ambush's. The fight goes back there. Undefined when none.
+   */
   region?: string;
 }
 
@@ -96,11 +99,16 @@ export const resolveBattleContext = (
   };
 };
 
+/** The region page a fight that sprang on it goes back to, or undefined when it sprang anywhere else. */
+const regionRouteOf = (ctx: BattleContext): string | undefined =>
+  ctx.region ? WORLD_REGIONS[ctx.region]?.routeName : undefined;
+
 /** The screen a battle returns to after victory, escape or recovery. */
 export const battleReturnRoute = (ctx: BattleContext): RouteLocationRaw => {
   switch (ctx.kind) {
     case "quest":
-      return { name: "my-tasks", params: { userId: ctx.userId } };
+      // A quest ambush that sprang on a region page goes back to it; a fight picked from the Quest Log goes back there
+      return { name: regionRouteOf(ctx) || "my-tasks", params: { userId: ctx.userId } };
     case "temple":
       return {
         name: "temple",
@@ -114,18 +122,18 @@ export const battleReturnRoute = (ctx: BattleContext): RouteLocationRaw => {
         // Without it a reload on the battle page would put the hero back on 1F.
         ...(ctx.level ? { query: { level: ctx.level } } : {}),
       };
-    default: {
+    default:
       // A random encounter on a region page comes back to that page, anything else to the home town.
-      const region = ctx.region ? WORLD_REGIONS[ctx.region] : undefined;
-      return { name: region?.routeName || "home-town", params: { userId: ctx.userId } };
-    }
+      return { name: regionRouteOf(ctx) || "home-town", params: { userId: ctx.userId } };
   }
 };
 
 // Navigator helpers: the only way other screens should build a battle link.
-export const questBattleRoute = (userId: string, questId: string): RouteLocationRaw => ({
+/** A quest's fight; `region` (a quest ambush on a region page) is where the fight goes back to, instead of the Quest Log. */
+export const questBattleRoute = (userId: string, questId: string, region?: string): RouteLocationRaw => ({
   name: BATTLE_ROUTE_NAMES.quest,
   params: { userId, questId },
+  ...(region ? { query: { region } } : {}),
 });
 
 export const templeBattleRoute = (

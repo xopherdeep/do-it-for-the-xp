@@ -84,9 +84,12 @@ async function findQuestAmbush(heroId: string, profile: unknown, now: Date): Pro
 /** True when the hero said yes to OS alerts for ambushes. */
 const wantsAlerts = (): boolean => battleAlertsChoice() === "on";
 
-/** Where an encounter goes: the quest's battle when a quest sent it, else a free fight (from the region page, if any). */
+/**
+ * Where an encounter goes: the quest's battle when a quest sent it, else a free fight. Either one carries the region
+ * page it sprang on (if any), so the fight goes back there.
+ */
 const encounterRoute = (heroId: string, questId: string | undefined, region: string | undefined): RouteLocationRaw => {
-  if (questId) return questBattleRoute(heroId, questId);
+  if (questId) return questBattleRoute(heroId, questId, region);
   return region ? freeBattleRoute(heroId, [], region) : freeBattleRoute(heroId);
 };
 
@@ -196,9 +199,7 @@ async function onReturn(router: Router): Promise<void> {
     if (shouldDropAmbush) return;
 
     try {
-      await router.push(
-        ambush.questId ? questBattleRoute(ambush.heroId, ambush.questId) : freeBattleRoute(ambush.heroId, [], ambush.region)
-      );
+      await router.push(encounterRoute(ambush.heroId, ambush.questId, ambush.region));
     } catch (error) {
       debug.error("Ambush could not start a battle", error);
     }

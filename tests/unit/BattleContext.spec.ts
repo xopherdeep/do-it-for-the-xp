@@ -33,6 +33,19 @@ describe("battleContext", () => {
     expect(battleReturnRoute(ctx)).toEqual({ name: "my-tasks", params: { userId: "hero-1" } });
   });
 
+  it("a quest ambush that sprang on a region page returns to that page, not the Quest Log", () => {
+    const link = questBattleRoute("hero-1", "q-9", "ice");
+    expect(link).toEqual({ name: "battle-quest", params: { userId: "hero-1", questId: "q-9" }, query: { region: "ice" } });
+    const ctx = resolveBattleContext(route({ name: "battle-quest", params: { userId: "hero-1", questId: "q-9" }, query: { region: "ice" } }));
+    expect(ctx).toMatchObject({ kind: "quest", questId: "q-9", region: "ice" });
+    expect(battleReturnRoute(ctx)).toEqual({ name: "world-ice", params: { userId: "hero-1" } });
+  });
+
+  it("a quest battle with an unknown region still goes back to the Quest Log", () => {
+    const ctx = resolveBattleContext(route({ name: "battle-quest", params: { userId: "hero-1", questId: "q-9" }, query: { region: "atlantis" } }));
+    expect(battleReturnRoute(ctx)).toEqual({ name: "my-tasks", params: { userId: "hero-1" } });
+  });
+
   it("reads a temple battle with numeric coordinates and returns to the same room", () => {
     const ctx = resolveBattleContext(
       route({
@@ -84,6 +97,7 @@ describe("battleContext", () => {
 
   it("builds links that match the route table", () => {
     expect(questBattleRoute("h", "q")).toEqual({ name: "battle-quest", params: { userId: "h", questId: "q" } });
+    expect(questBattleRoute("h", "q", "")).toEqual({ name: "battle-quest", params: { userId: "h", questId: "q" } });
     expect(templeBattleRoute("h", "t", "1F", 3, 4)).toEqual({
       name: "battle-temple",
       params: { userId: "h", templeId: "t", level: "1F", x: "3", y: "4" },

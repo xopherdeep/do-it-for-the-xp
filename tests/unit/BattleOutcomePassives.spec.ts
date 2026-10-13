@@ -29,12 +29,19 @@ jest.mock("@/lib/services/core/StorageService", () => ({
   __esModule: true,
   default: { saveUsers: jest.fn().mockResolvedValue(undefined) },
 }));
+/** What the win wrote, in order: the quest log, the room and the board re-read */
+const mockSteps: string[] = [];
+const mockCompleteQuest = jest.fn();
+const mockRecordBattleCompletion = jest.fn();
+const mockIsQuestStillOpen = jest.fn();
 jest.mock("@/lib/services/quests/QuestCompletionService", () => ({
-  completeQuest: jest.fn().mockResolvedValue(undefined),
-  recordBattleCompletion: jest.fn().mockResolvedValue(undefined),
+  completeQuest: (...args: unknown[]) => mockCompleteQuest(...args),
+  recordBattleCompletion: (...args: unknown[]) => mockRecordBattleCompletion(...args),
+  isQuestStillOpen: (...args: unknown[]) => mockIsQuestStillOpen(...args),
 }));
+const mockTemples = { markRoomCleared: jest.fn(), refreshQuestRooms: jest.fn() };
 jest.mock("@/lib/engine/core/dungeons/TempleSystem", () => ({
-  TempleSystem: { getInstance: () => ({ markRoomCleared: jest.fn() }) },
+  TempleSystem: { getInstance: () => mockTemples },
 }));
 jest.mock("@/lib/utils/debug", () => ({
   __esModule: true,
@@ -73,11 +80,14 @@ const addHero = (jobClass: string) => {
 
 const stats = () => (useUserStore().getUserById(HERO_ID) as any).stats;
 
+/** The room a temple fight is fought in: column 0, row 1 of the shadow temple's first floor */
+const ROOM = { templeId: "shadow-temple", level: "1F", x: 0, y: 1 };
+
 /** celebrateVictory with every stage prop faked; `encounter` carries the quest (if any) and its rewards. */
-const rig = (kind: "free" | "quest", encounter: Partial<Encounter> | null) => {
+const rig = (kind: "free" | "quest" | "temple", encounter: Partial<Encounter> | null) => {
   const presentVictory = jest.fn().mockResolvedValue(undefined);
   const deps = {
-    ctx: { kind, userId: HERO_ID, questId: "q1" },
+    ctx: kind === "temple" ? { kind, userId: HERO_ID, beastIds: [], ...ROOM } : { kind, userId: HERO_ID, questId: "q1", beastIds: [] },
     encounter: ref(encounter as Encounter | null),
     dialog: { clear: jest.fn(), enqueue: jest.fn(), enableAppendMode: jest.fn(), disableAppendMode: jest.fn(), isVictoryMessage: ref(false) },
     audio: { playSound: jest.fn(), playVictory: jest.fn(), stopBgm: jest.fn() },
@@ -92,7 +102,7 @@ const rig = (kind: "free" | "quest", encounter: Partial<Encounter> | null) => {
 
 /** Rewards are paid before celebrateVictory's first await; a few microtasks are all the store needs. */
 const flush = async () => {
-  for (let i = 0; i < 5; i++) await Promise.resolve();
+  for (let i = 0; i < 10; i++) await Promise.resolve();
 };
 
 const questEncounter = (requiresApproval = false): Partial<Encounter> =>
@@ -103,10 +113,29 @@ const questEncounter = (requiresApproval = false): Partial<Encounter> =>
     quest: { id: "q1", achievementName: "Dishes", requiresApproval },
   } as unknown as Partial<Encounter>);
 
+/** Resets the quest log and temple fakes: an open window, a completion that logs, a claim that is held */
+const resetQuestFakes = () => {
+  mockSteps.length = 0;
+  mockIsQuestStillOpen.mockReset().mockResolvedValue(true);
+  mockRecordBattleCompletion.mockReset().mockImplementation(async () => {
+    mockSteps.push("log");
+  });
+  mockCompleteQuest.mockReset().mockImplementation(async () => {
+    mockSteps.push("log");
+    return { awaitingApproval: true, levelUp: null, paid: { xp: 0, gp: 40, ap: 2 } };
+  });
+  mockTemples.markRoomCleared.mockReset().mockImplementation(() => mockSteps.push("room"));
+  mockTemples.refreshQuestRooms.mockReset().mockImplementation(async () => {
+    mockSteps.push("board");
+    return null;
+  });
+};
+
 describe("useBattleOutcome: class passives on a win", () => {
   beforeEach(() => {
     jest.useFakeTimers();
     setActivePinia(createPinia());
+    resetQuestFakes();
   });
 
   afterEach(() => {
@@ -183,6 +212,151 @@ describe("useBattleOutcome: class passives on a win", () => {
 
     expect(stats().gp.wallet).toBe(0);
     expect(stats().ap.total).toBe(0);
+  });
+});
+
+/** The celebration after the pay: the strobe, the fold and the fade, up to the victory card. */
+const playCelebration = async () => {
+  for (let i = 0; i < 6; i++) {
+    await flush();
+    jest.advanceTimersByTime(1000);
+  }
+  await flush();
+};
+
+const roomQuestEncounter = (requiresApproval = false): Partial<Encounter> => ({
+  ...questEncounter(requiresApproval),
+  roomKey: "Q0001",
+});
+
+/**
+ * Win = complete (docs/Quest-Rooms-Spec.md 7.5): a quest room's win completes its quest. Paid now (or held for the
+ * Game Master) and logged, the room opens, and the run re-reads the board once the log has the win, so the room and
+ * the board agree. The log is read first: a window already used (a shared quest a sibling cleared) pays nothing twice.
+ */
+describe("useBattleOutcome: a quest room's win completes its quest", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    setActivePinia(createPinia());
+    resetQuestFakes();
+  });
+
+  afterEach(() => {
+    jest.useRealTimers();
+  });
+
+  it("pays the quest's rewards with the class bonus, logs the battle, opens the room, then re-reads the board", async () => {
+    addHero("Thief");
+    const encounter = roomQuestEncounter();
+    const { outcome } = rig("temple", encounter);
+    void outcome.celebrateVictory([beast()], { choresDone: 4, elapsedMs: 1000 });
+    await flush();
+
+    expect(stats().gp.wallet).toBe(50);
+    expect(stats().ap.total).toBe(2);
+    expect(mockIsQuestStillOpen).toHaveBeenCalledWith(encounter.quest, HERO_ID, expect.any(Date), undefined);
+    expect(mockRecordBattleCompletion).toHaveBeenCalledWith(encounter.quest, HERO_ID, { xp: 0, gp: 50, ap: 2 });
+    expect(mockCompleteQuest).not.toHaveBeenCalled();
+    expect(mockTemples.markRoomCleared).toHaveBeenCalledWith("shadow-temple", "1F", [1, 0], HERO_ID);
+    expect(mockTemples.refreshQuestRooms).toHaveBeenCalledWith("shadow-temple");
+    expect(mockSteps).toEqual(["log", "room", "board"]);
+  });
+
+  it("a quest that needs approval logs a pending claim, pays nothing, and still lets the hero through", async () => {
+    addHero("Thief");
+    const encounter = roomQuestEncounter(true);
+    const { outcome, presentVictory } = rig("temple", encounter);
+    void outcome.celebrateVictory([beast()], { choresDone: 4, elapsedMs: 1000 });
+    await flush();
+
+    expect(mockCompleteQuest).toHaveBeenCalledWith(encounter.quest, HERO_ID, "battle");
+    expect(mockRecordBattleCompletion).not.toHaveBeenCalled();
+    expect(stats().gp.wallet).toBe(0);
+    expect(stats().ap.total).toBe(0);
+    expect(mockSteps).toEqual(["log", "room", "board"]);
+
+    await playCelebration();
+    expect(presentVictory).toHaveBeenCalledWith(expect.objectContaining({ held: true, rewards: { xp: 0, gp: 40, ap: 2 } }));
+  });
+
+  it("an approval quest during Tesla's trusted hour is paid now, as a claim would be", async () => {
+    addHero("Warrior");
+    const hero = useUserStore().users[HERO_ID] as { questEffects?: { trustedUntil?: string } };
+    hero.questEffects = { trustedUntil: new Date(Date.now() + 60 * 60 * 1000).toISOString() };
+    const { outcome } = rig("temple", roomQuestEncounter(true));
+    void outcome.celebrateVictory([beast()], { choresDone: 4, elapsedMs: 1000 });
+    await flush();
+
+    expect(mockCompleteQuest).not.toHaveBeenCalled();
+    expect(mockRecordBattleCompletion).toHaveBeenCalled();
+    expect(stats().gp.wallet).toBe(40);
+  });
+
+  it("a window already used (a shared quest a sibling cleared) pays and logs nothing, and the room still opens", async () => {
+    addHero("Thief");
+    mockIsQuestStillOpen.mockResolvedValue(false);
+    const { outcome, presentVictory } = rig("temple", roomQuestEncounter());
+    void outcome.celebrateVictory([beast()], { choresDone: 4, elapsedMs: 1000 });
+    await flush();
+
+    expect(stats().gp.wallet).toBe(0);
+    expect(stats().ap.total).toBe(0);
+    expect(mockRecordBattleCompletion).not.toHaveBeenCalled();
+    expect(mockCompleteQuest).not.toHaveBeenCalled();
+    expect(mockSteps).toEqual(["room", "board"]);
+
+    await playCelebration();
+    expect(presentVictory).toHaveBeenCalledWith(expect.objectContaining({ held: false, rewards: { xp: 0, gp: 0, ap: 0 } }));
+  });
+
+  it("a board fight reads the whole log too, and touches no temple", async () => {
+    addHero("Warrior");
+    mockIsQuestStillOpen.mockResolvedValue(false);
+    const { outcome } = rig("quest", questEncounter());
+    void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+    await flush();
+
+    expect(stats().gp.wallet).toBe(0);
+    expect(mockRecordBattleCompletion).not.toHaveBeenCalled();
+    expect(mockTemples.markRoomCleared).not.toHaveBeenCalled();
+    expect(mockTemples.refreshQuestRooms).not.toHaveBeenCalled();
+  });
+
+  it("a log that cannot be read does not cost the hero the win: it pays as before", async () => {
+    addHero("Warrior");
+    mockIsQuestStillOpen.mockRejectedValue(new Error("storage is gone"));
+    const { outcome } = rig("temple", roomQuestEncounter());
+    void outcome.celebrateVictory([beast()], { choresDone: 4, elapsedMs: 1000 });
+    await flush();
+
+    expect(stats().gp.wallet).toBe(40);
+    expect(mockRecordBattleCompletion).toHaveBeenCalled();
+  });
+
+  it("a dormant or classic room pays the room and opens it, with no quest to log or board to re-read", async () => {
+    addHero("Warrior");
+    const { outcome } = rig("temple", { label: "Dish Goblin", enemies: [beast()], rewards: { xp: 5, gp: 6, ap: 1 }, roomKey: "Q0001" });
+    void outcome.celebrateVictory([beast()], { choresDone: 4, elapsedMs: 1000 });
+    await flush();
+
+    expect(stats().gp.wallet).toBe(6);
+    expect(mockIsQuestStillOpen).not.toHaveBeenCalled();
+    expect(mockRecordBattleCompletion).not.toHaveBeenCalled();
+    expect(mockTemples.markRoomCleared).toHaveBeenCalledWith("shadow-temple", "1F", [1, 0], HERO_ID);
+    expect(mockTemples.refreshQuestRooms).not.toHaveBeenCalled();
+  });
+
+  it("running from a quest room leaves the room sealed: the way on is still through the chore", () => {
+    addHero("Warrior");
+    const { outcome, deps } = rig("temple", roomQuestEncounter());
+    outcome.handleEscape();
+    const queued = (deps.dialog.enqueue as jest.Mock).mock.calls[0][0] as Array<() => void>;
+    queued[0]();
+    jest.advanceTimersByTime(1000);
+
+    expect(mockTemples.markRoomCleared).not.toHaveBeenCalled();
+    expect(mockRecordBattleCompletion).not.toHaveBeenCalled();
+    expect(deps.router.replace).toHaveBeenCalledWith(expect.objectContaining({ name: "temple" }));
   });
 });
 

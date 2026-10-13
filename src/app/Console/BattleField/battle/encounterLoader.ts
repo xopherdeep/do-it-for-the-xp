@@ -1,11 +1,24 @@
 import AchievementDb, { Achievement, achievementStorage } from "@/lib/databases/AchievementDb";
 import templeDb from "@/lib/databases/TempleDb";
 import type { QuestRewards } from "@/lib/databases/QuestLogDb";
+import type { Room } from "@/lib/engine/core/dungeons/types";
+import { readQuestBoard } from "@/lib/engine/core/dungeons/templeSystem/questRooms";
 import { createBestiaryService } from "@/lib/services/battle";
 import type { BestiaryService } from "@/lib/services/battle/BestiaryService";
-import type { Enemy } from "@/lib/services/battle/BattleService";
+import type { CombatTask, Enemy } from "@/lib/services/battle/BattleService";
+import { adoptLibraryBeast } from "@/lib/services/bestiary/librarySuggest";
+import { BEAST_LIBRARY } from "@/lib/services/core/beastLibrary";
 import { questRewards } from "@/lib/services/quests/QuestCompletionService";
+import { questAttackCooldown } from "@/lib/services/quests/questClock";
 import { isBossRoom } from "@/lib/services/temples/authoredDoors";
+import {
+  isQuestRoom,
+  questBeastId,
+  questTier,
+  roomQuestState,
+  tierAttackFactor,
+  type QuestTier,
+} from "@/lib/services/temples/questRooms";
 import { pickRoomBeast, standInMonster, templeElementFor, type StandInMonster } from "@/lib/services/temples/RoomBeast";
 import debug from "@/lib/utils/debug";
 import { WORLD_REGIONS, type BattleContext } from "./battleContext";
@@ -18,7 +31,9 @@ export interface Encounter {
   enemies: Enemy[];
   /** Game-Master-authored rewards; null means "use the formula". */
   rewards: QuestRewards | null;
+  /** The quest the fight completes: a board fight's, an ambush's, or the one a temple room holds for the hero */
   quest?: Achievement;
+  /** The temple room the fight is in; a quest room's fight carries its quest too */
   roomKey?: string;
   background?: { bg1?: number; bg2?: number };
   label: string;
@@ -58,20 +73,70 @@ const standInEnemy = ({ name, avatarId }: StandInMonster): Enemy => ({
   tasks: [],
 });
 
-/** A quest with no beast attached still deserves a monster: the chore itself. */
-const enemyFromQuest = (quest: Achievement): Enemy => ({
-  id: `quest-${quest.id}`,
-  name: quest.achievementName || "Unnamed Chore",
-  type: "beast",
-  isBoss: false,
-  health: 100,
-  maxHealth: 100,
-  attack: 10,
-  defense: 5,
-  speed: 8,
-  emoji: "👹",
-  tasks: [{ id: `${quest.id}-task`, name: quest.achievementName || "Finish the chore", isCompleted: false }],
-});
+/** The chore itself as the one move: for a quest whose beast has no checklist, or that has no beast. */
+const choreAsTasks = (quest: Achievement): CombatTask[] => [
+  { id: `${quest.id}-task`, name: quest.achievementName || "Finish the chore", isCompleted: false },
+];
+
+/**
+ * A library beast the family has not adopted yet fights as itself (the room screen shows it the same way, and the
+ * Game Master's quest form adopts it when the quest is saved). Null for an id the library does not know.
+ */
+const libraryEnemy = (beastId: string): Enemy | null => {
+  const entry = BEAST_LIBRARY.find((candidate) => String(candidate.id) === beastId);
+  if (!entry) return null;
+  const beast = adoptLibraryBeast(entry);
+  return {
+    id: String(beast.id),
+    name: beast.name,
+    type: "beast",
+    isBoss: false,
+    health: 100,
+    maxHealth: 100,
+    avatar: beast.avatar,
+    emoji: "👹",
+    attack: 10,
+    defense: 5,
+    speed: 8,
+    bg1: beast.bg1,
+    bg2: beast.bg2,
+    aspectRatio: beast.aspectRatio,
+    tasks: beast.checklist.map((name, index) => ({ id: `task-${index}`, name, isCompleted: false })),
+  };
+};
+
+/** The quest's beast (questBeastId: its own, else the library's suggestion): the family's, else the library's. */
+const loadQuestBeast = async (quest: Achievement, bestiary: BestiaryService): Promise<Enemy | null> => {
+  const beastId = questBeastId(quest);
+  if (!beastId) return null;
+  return (await bestiary.loadBeastById(beastId)) ?? libraryEnemy(beastId);
+};
+
+/**
+ * A quest's fight, the same from the board, an ambush or a temple room (docs/Quest-Rooms-Spec.md 5.1, 5.5, 7.4):
+ * - the quest's beast, or (no beast, or one nobody knows) the stand-in of its tier, which `standIn` names;
+ * - the beast's checklist as the attacks, or the quest's name when it has none;
+ * - the tier from the difficulty: a miniboss or a boss, hitting TIER_ATTACK_FACTOR harder;
+ * - the strike clock: the quest's minutes spread over the checklist (questAttackCooldown).
+ */
+const questFight = async (
+  quest: Achievement,
+  bestiary: BestiaryService,
+  standIn: (tier: QuestTier) => StandInMonster
+): Promise<{ enemy: Enemy; tier: QuestTier }> => {
+  const tier = questTier(quest.difficulty);
+  const beast = (await loadQuestBeast(quest, bestiary)) ?? standInEnemy(standIn(tier));
+  const tasks = beast.tasks?.length ? beast.tasks : choreAsTasks(quest);
+  const enemy: Enemy = {
+    ...beast,
+    type: tier === "monster" ? beast.type : tier,
+    isBoss: tier === "boss",
+    attack: (beast.attack || 10) * tierAttackFactor(tier),
+    attackCooldown: questAttackCooldown(quest, tasks.length),
+    tasks,
+  };
+  return { enemy, tier };
+};
 
 const loadQuestEncounter = async (ctx: BattleContext, bestiary: BestiaryService): Promise<Encounter> => {
   const quest = ctx.questId ? await getAchievementDb().getTaskById(ctx.questId) : null;
@@ -81,12 +146,10 @@ const loadQuestEncounter = async (ctx: BattleContext, bestiary: BestiaryService)
     return { enemies, rewards: null, label: labelFor(enemies) };
   }
 
-  const beastEnemy = quest.beastId ? await bestiary.loadBeastById(quest.beastId) : null;
-  // A beast with an empty checklist would otherwise be beaten with made-up attacks: the chore itself is the move
-  const isBeastWithoutChecklist = !!beastEnemy && !beastEnemy.tasks?.length;
-  if (isBeastWithoutChecklist) beastEnemy.tasks = enemyFromQuest(quest).tasks;
-  const enemies = [beastEnemy || enemyFromQuest(quest)];
-  return { enemies, rewards: questRewards(quest), quest, label: labelFor(enemies) };
+  // Off the board there is no temple: the stand-in is the tier's, named for no element
+  const { enemy, tier } = await questFight(quest, bestiary, (standInTier) => standInMonster({ type: standInTier }, ""));
+  const enemies = [enemy];
+  return { enemies, rewards: questRewards(quest), quest, label: labelFor(enemies), boss: tier === "boss" };
 };
 
 const findRoom = async (ctx: BattleContext) => {
@@ -117,6 +180,26 @@ const roomEnemy = async (
   return loaded || standInEnemy(standInMonster(found.room, element));
 };
 
+/**
+ * The quest a temple room holds for the hero (docs/Quest-Rooms-Spec.md 5.2), read from their board as the temple run
+ * reads it. Null leaves the room to today's fight: a classic room, a dormant one (no family quest fills its template),
+ * an empty lair, someone else's quest, or a board that cannot be read.
+ */
+const roomQuestFor = async (room: Room, heroId: string): Promise<Achievement | null> => {
+  if (!isQuestRoom(room)) return null;
+  const now = new Date();
+  const read = await readQuestBoard(heroId, now);
+  if (!read) return null;
+  try {
+    const state = roomQuestState(room, heroId, read.board, now, { effects: read.effects, liveQuests: read.liveQuests });
+    return state.resolution.kind === "quest" ? state.resolution.quest : null;
+  } catch (error) {
+    // The family's quests are their own data: one the rules cannot read leaves the room to the classic fight
+    debug.warn("Encounter: the room's quest could not be read; it fights as a classic room", error);
+    return null;
+  }
+};
+
 const loadTempleEncounter = async (ctx: BattleContext, bestiary: BestiaryService): Promise<Encounter> => {
   const found = await findRoom(ctx);
   if (!found) {
@@ -126,6 +209,28 @@ const loadTempleEncounter = async (ctx: BattleContext, bestiary: BestiaryService
   }
 
   const content = found.room.content || {};
+  const background = { bg1: content.bg1, bg2: content.bg2 };
+
+  // A quest room fights its quest: the room's own xp/gp/ap give way to the quest's rewards
+  const quest = await roomQuestFor(found.room, ctx.userId);
+  if (quest) {
+    const element = templeElementFor(ctx.templeId!, found.temple.element);
+    // A stand-in keeps the room's own name and the temple's element; its size is the quest's tier
+    const { enemy, tier } = await questFight(quest, bestiary, (standInTier) =>
+      standInMonster({ ...found.room, type: standInTier }, element)
+    );
+    const enemies = [enemy];
+    return {
+      enemies,
+      rewards: questRewards(quest),
+      quest,
+      roomKey: found.roomKey,
+      background,
+      label: labelFor(enemies),
+      boss: tier === "boss" || isBossRoom(found.room),
+    };
+  }
+
   const configured = await loadBeasts(bestiary, content.beasts || []);
   const enemies = configured.length ? configured : [await roomEnemy(ctx, found, bestiary)];
   const hasAuthoredRewards = [content.xp, content.gp, content.ap].some((value) => value !== undefined);
@@ -134,7 +239,7 @@ const loadTempleEncounter = async (ctx: BattleContext, bestiary: BestiaryService
     enemies,
     rewards: hasAuthoredRewards ? { xp: content.xp || 0, gp: content.gp || 0, ap: content.ap || 0 } : null,
     roomKey: found.roomKey,
-    background: { bg1: content.bg1, bg2: content.bg2 },
+    background,
     label: labelFor(enemies),
     boss: isBossRoom(found.room) || content.difficulty === "boss",
   };

@@ -4,6 +4,7 @@ import { defineComponent, nextTick } from "vue";
 import { createMemoryHistory, createRouter } from "vue-router";
 import BattleField from "../BattleField.vue";
 import { VICTORY_TIMINGS } from "../composables/useBattleOutcome";
+import { battleProgressKey } from "../battle/battleProgress";
 import { useUserStore } from "@/lib/store/stores/user";
 import { createCustomAbility } from "@/lib/services/abilities/AbilityPresets";
 import { AbilityType, TimePeriod, type Ability } from "@/hooks/abilities/abilityConstants";
@@ -67,6 +68,16 @@ jest.mock("@/lib/services/battle/BestiaryService", () => {
   };
 });
 
+// A test can hand the page the encounter a quest room loads (its quest and room); otherwise the real loader runs.
+let mockEncounter: unknown = null;
+jest.mock("../battle/encounterLoader", () => {
+  const actual = jest.requireActual("../battle/encounterLoader");
+  return {
+    ...actual,
+    loadEncounter: (...args: unknown[]) => (mockEncounter ? Promise.resolve(mockEncounter) : actual.loadEncounter(...args)),
+  };
+});
+
 // Mounting the whole Ionic page is slow on a cold or busy machine.
 jest.setTimeout(30000);
 
@@ -118,6 +129,7 @@ describe("BattleField: a free fight", () => {
   afterEach(() => {
     mounted?.unmount();
     mounted = undefined;
+    mockEncounter = null;
     jest.useRealTimers();
   });
 
@@ -261,6 +273,37 @@ describe("BattleField: a free fight", () => {
     await wrapper.find("[data-cy=victory-card]").trigger("click");
     await flushPromises();
     expect(router.currentRoute.value).toMatchObject({ name: "home-town", params: { userId: "hero-1" } });
+  });
+
+  it("a quest room's fight keeps the chores already ticked off in the quest's board fight: the beast is still hurt", async () => {
+    // The hero ticked "Sort socks" off in the quest's board fight earlier today, then ran
+    localStorage.setItem(
+      battleProgressKey({ kind: "quest", userId: "hero-1", questId: "q-socks", beastIds: [] }),
+      JSON.stringify(["t1"])
+    );
+    mockEncounter = {
+      enemies: [
+        {
+          id: "b1", name: "Socktopus", type: "beast", isBoss: false, health: 100, maxHealth: 100,
+          attack: 10, defense: 5, speed: 8, attackCooldown: 3,
+          tasks: ["Sort socks", "Match pairs"].map((name, index) => ({ id: `t${index + 1}`, name, isCompleted: false })),
+        },
+      ],
+      rewards: { xp: 100, gp: 10, ap: 1 },
+      quest: { id: "q-socks", achievementName: "Sock Duty" },
+      roomKey: "Q0001",
+      label: "Socktopus",
+    };
+    const { wrapper, vm, tap } = await enterBattle("/battle/hero-1/temple/shadow-temple/1F/0/1");
+
+    expect(vm.dialogText).toBe(INTRO);
+    await tap();
+    await tap();
+    expect(vm.dialogText).toBe("Socktopus is still hurt from earlier!");
+    await tap();
+    await tap();
+    expect(wrapper.find(".chores-left-label").text()).toBe("1 chore left");
+    expect(wrapper.find(".attack-timer-label").text()).toBe("3:00"); // one chore's share of the quest's clock
   });
 
   it("lets the beast strike when the clock runs out, lands the hit on dismiss, and gives the turn back", async () => {

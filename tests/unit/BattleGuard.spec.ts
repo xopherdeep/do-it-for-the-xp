@@ -440,11 +440,11 @@ describe("battle guard", () => {
       expect(mockBattleStore.resetBattleTimer).toHaveBeenCalledTimes(1);
     });
 
-    it("takes the encounter on a region page too", async () => {
+    it("takes the encounter on a region page too, and the fight comes back to that page", async () => {
       mockBoard.mockResolvedValue([openRow("q-dishes")]);
       const { router } = await spring("world-ice");
 
-      expect(router.push).toHaveBeenCalledWith(questBattleRoute("hero-1", "q-dishes"));
+      expect(router.push).toHaveBeenCalledWith(questBattleRoute("hero-1", "q-dishes", "ice"));
     });
 
     it("sends the quest with the oldest deadline first", async () => {
@@ -669,13 +669,13 @@ describe("battle guard", () => {
         expect(mockBridge.showAlert.mock.calls[0][0].title).toBe("⚔️ A beast blocks your path!");
       });
 
-      it("springs the quest's battle when the hero comes back", async () => {
+      it("springs the quest's battle when the hero comes back, from the page it sprang on", async () => {
         mockBoard.mockResolvedValue([openRow("q-dishes")]);
         const { router } = await springAway("world-forest");
         setVisibility("visible");
 
         expect(router.push).toHaveBeenCalledTimes(1);
-        expect(router.push).toHaveBeenCalledWith(questBattleRoute("hero-1", "q-dishes"));
+        expect(router.push).toHaveBeenCalledWith(questBattleRoute("hero-1", "q-dishes", "forest"));
         expect(mockBattleStore.pendingAmbush).toBeNull();
       });
     });

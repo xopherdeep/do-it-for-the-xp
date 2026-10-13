@@ -5,6 +5,7 @@ import {
   applyQuestRewards,
   approveCompletion,
   completeQuest,
+  isQuestStillOpen,
   paidQuestRewards,
 } from "@/lib/services/quests/QuestCompletionService";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -48,6 +49,7 @@ jest.mock("@/lib/databases/QuestLogDb", () => ({
       return entry;
     }),
     get: jest.fn(async (id: string) => log.find((candidate) => candidate.id === id) ?? null),
+    getEntries: jest.fn(async () => [...log]),
   }),
 }));
 
@@ -179,6 +181,74 @@ describe("approveCompletion", () => {
     await approveCompletion(held.entry.id, "gm-1");
     await approveCompletion(held.entry.id, "gm-1");
     expect(stats().gp.wallet).toBe(50);
+  });
+});
+
+/**
+ * A battle win completes its quest (docs/Quest-Rooms-Spec.md 7.5), and the log, not the screen the fight began on,
+ * says whether the window is still open: every hero's log, so a shared quest a sibling already cleared is not paid
+ * twice (5.4). The same rule MyTask's claim reads.
+ */
+describe("isQuestStillOpen", () => {
+  const SIBLING = "hero-2";
+  const NOW = new Date(2026, 9, 12, 15, 0, 0);
+  const dishes = (type: string, extra: Partial<Achievement> = {}): Achievement =>
+    ({
+      ...quest(),
+      id: "q-dishes",
+      type,
+      assignee: [HERO_ID, SIBLING],
+      basicSchedule: "daily",
+      startsOn: new Date(2026, 0, 1).toISOString(),
+      endsOn: "",
+      ...extra,
+    } as Achievement);
+  const logged = (userId: string, status: QuestLogEntry["status"] = "approved", at: Date = NOW) =>
+    log.push({
+      id: `entry-${log.length + 1}`,
+      questId: "q-dishes",
+      userId,
+      completedAt: at.toISOString(),
+      status,
+      source: "claim",
+      rewards: { xp: 30, gp: 40, ap: 2 },
+      rewardsApplied: status === "approved",
+    } as QuestLogEntry);
+
+  it("a quest nobody has done today is open", async () => {
+    expect(await isQuestStillOpen(dishes("individual"), HERO_ID, NOW)).toBe(true);
+  });
+
+  it("a Team Effort a sibling already cleared is closed for the hero: the window is used, nobody is paid twice", async () => {
+    logged(SIBLING);
+    expect(await isQuestStillOpen(dishes("collaborate"), HERO_ID, NOW)).toBe(false);
+    expect(await isQuestStillOpen(dishes("compete"), HERO_ID, NOW)).toBe(false);
+  });
+
+  it("a Solo Mission a sibling did is still the hero's to do", async () => {
+    logged(SIBLING);
+    expect(await isQuestStillOpen(dishes("individual"), HERO_ID, NOW)).toBe(true);
+  });
+
+  it("the hero's own clear or claim waiting for the Game Master uses the window up", async () => {
+    logged(HERO_ID, "pending");
+    expect(await isQuestStillOpen(dishes("individual"), HERO_ID, NOW)).toBe(false);
+  });
+
+  it("a rejected claim does not count, so the beast is back the same day", async () => {
+    logged(HERO_ID, "rejected");
+    logged(SIBLING, "rejected");
+    expect(await isQuestStillOpen(dishes("collaborate"), HERO_ID, NOW)).toBe(true);
+  });
+
+  it("yesterday's clear does not close today's window", async () => {
+    logged(HERO_ID, "approved", new Date(2026, 9, 11, 20, 0, 0));
+    expect(await isQuestStillOpen(dishes("individual"), HERO_ID, NOW)).toBe(true);
+  });
+
+  it("a quest that is not due today (ended) is not open", async () => {
+    const ended = dishes("individual", { endsOn: new Date(2026, 5, 1).toISOString() });
+    expect(await isQuestStillOpen(ended, HERO_ID, NOW)).toBe(false);
   });
 });
 
