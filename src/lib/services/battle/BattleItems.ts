@@ -4,7 +4,7 @@
  *
  * Rule zero: no item completes a chore. Each fight item points at one effect in BattleEffects (the table the
  * in-game Powers share): Ice Wand, Chronos' Clock and Fire Wand buy time, Thor's Hammer and Sol's Flare blunt
- * the beast, the Silver Arrow sends a chore back to the board unfinished. Any unlocked item in the bag can be
+ * the beast, the Silver Arrow pins it so it misses its next two strikes. Any unlocked item in the bag can be
  * used, held or not. Bottles and Goods open the potions, the Book Of Spells opens the Powers; everything else
  * "can't be used in a fight".
  *

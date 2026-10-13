@@ -94,7 +94,7 @@ const routePaths: Record<string, string> = {
   "game-over": "/game-over",
 };
 // What the page hands its template; the SFC shim types the instance as an empty component.
-type BattleVm = { dialogText: string; advanceDialog: () => void; postponeTask: (taskId: string) => void };
+type BattleVm = { dialogText: string; advanceDialog: () => void };
 type BagItem = { name: string; faIcon: string; desc: string };
 
 /** Bag items as the Equipment grid hands them over (the catalogue entries). */
@@ -104,7 +104,7 @@ const CHRONOS_CLOCK: BagItem = { name: "Chronos' Clock", faIcon: "flux-capacitor
 const BOTTLES: BagItem = { name: "Bottles", faIcon: "flask-potion", desc: "Your potions." };
 const BOOK_OF_SPELLS: BagItem = { name: "Book Of Spells", faIcon: "book-spells", desc: "Your Powers." };
 
-/** An unlocked in-game Power (no AP asked) with a fight effect by preset name: Stop freezes, Rewind recalls. */
+/** An unlocked in-game Power (no AP asked) with a fight effect by preset name: Stop freezes, Rewind refills the clock. */
 const power = (name: string, mpCost: number): Ability =>
   createCustomAbility({
     id: `power-${name.toLowerCase()}`,
@@ -436,7 +436,7 @@ describe("BattleField: a free fight", () => {
     expect(wrapper.find("#attack i").classes()).toContain("fa-fist-raised");
   });
 
-  it("Goods opens the bag; the Ice Wand buys ten minutes and the Silver Arrow sends a chore back unfinished", async () => {
+  it("Goods opens the bag; the Ice Wand buys ten minutes and the Silver Arrow pins the beast", async () => {
     const { wrapper, userStore, vm, tap, readUntilMenu, bag, bagOpen, bagCard, useFromBag, menu } =
       await enterBattle("/battle/hero-1/free/");
     const hero = userStore.users["hero-1"];
@@ -453,7 +453,7 @@ describe("BattleField: a free fight", () => {
     expect(bag().props("mode")).toBe("battle");
     expect(wrapper.find(".menu-item").exists()).toBe(false);
     expect(bagCard(ICE_WAND)).toMatchObject({ mp: 50, effect: "+10 minutes on the clock", reason: null });
-    expect(bagCard(SILVER_ARROW)).toMatchObject({ mp: 25, effect: "Sends one chore back to the board", reason: null });
+    expect(bagCard(SILVER_ARROW)).toMatchObject({ mp: 25, effect: "The beast misses its next two strikes", reason: null });
     const opensDirectly = bag().props("opensDirectly") as (item: BagItem) => boolean;
     expect([BOTTLES, BOOK_OF_SPELLS, ICE_WAND].map(opensDirectly)).toEqual([true, true, false]);
     // Its own close (the X, a swipe) puts the menu back; Goods opens it again
@@ -474,34 +474,18 @@ describe("BattleField: a free fight", () => {
     await readUntilMenu();
     expect(menu()).toEqual(["Tackle", "Defend", "Powers", "Goods", "Run Away"]);
 
-    // Silver Arrow: the task list opens to pick the chore, which flies back to the board unfinished
+    // Silver Arrow: it acts at once (no chore pick), 25 MP, one line, and every chore stays in the fight
     await wrapper.find("#item").trigger("click");
     await useFromBag(SILVER_ARROW);
     expect(bagOpen()).toBe(false);
-    expect(hero.stats.mp.now).toBe(70); // nothing is charged until a chore is picked
-    bag().vm.$emit("close"); // the modal reports its dismissal after the page closed it
-    await flushPromises();
-    const picker = wrapper.find("[data-cy=task-sheet]");
-    expect(picker.exists()).toBe(true);
-    expect(picker.find(".sheet-title").text()).toBe("Silver Arrow");
-    const row = wrapper.findAll(".battle-task-item").find((item) => item.text().includes("Sort socks"));
-    await row?.trigger("click");
-    expect(picker.find(".confirm-question").text()).toBe("Send it back? It stays unfinished.");
-    jest.advanceTimersByTime(300);
-    await wrapper.find("[data-cy=task-confirm]").trigger("click");
-    await flushPromises();
-
     expect(wrapper.find("[data-cy=task-sheet]").exists()).toBe(false);
-    expect(vm.dialogText).toBe("The chore flies back to the board.");
     expect(hero.stats.mp.now).toBe(45);
-    expect(wrapper.find(".chores-left-label").text()).toBe("1 task left");
+    expect(vm.dialogText).toBe("Socktopus is pinned! It will miss its next two strikes.");
+    expect(wrapper.find(".chores-left-label").text()).toBe("2 tasks left");
     expect(wrapper.find(".damage-popup").exists()).toBe(false); // not an attack
-    // Nothing was completed, so no chore is remembered as done for today
-    const progressKeys = Object.keys(localStorage).filter((key) => key.startsWith("xp_battle_progress:"));
-    expect(progressKeys).toEqual([]);
     await readUntilMenu();
     await wrapper.find("#attack").trigger("click");
-    expect(wrapper.findAll(".battle-task-item").map((item) => item.text())).toEqual(["Match pairs"]);
+    expect(wrapper.findAll(".battle-task-item").map((item) => item.text())).toEqual(["Sort socks", "Match pairs"]);
   });
 
   it("Bottles in the bag opens the potion sheet and a drink heals", async () => {
@@ -578,55 +562,8 @@ describe("BattleField: a free fight", () => {
     expect(bagCard(CHRONOS_CLOCK)?.reason).toBe("Already used this fight");
   });
 
-  it("cancelling the chore pick after Recall charges nothing", async () => {
-    const { wrapper, userStore, vm, tap, readUntilMenu, castPower, useFromBag } = await enterBattle("/battle/hero-1/free/");
-    const hero = userStore.users["hero-1"];
-    hero.stats.mp = { now: 120, max: 120 };
-    await tap();
-    await tap();
-
-    // Rewind asks which chore flies back, under its own name (not the Silver Arrow's); Back walks away from the pick
-    await castPower("Rewind");
-    const picker = wrapper.find("[data-cy=task-sheet]");
-    expect(picker.find(".sheet-title").text()).toBe("Rewind");
-    expect(picker.find(".sheet-title i").classes()).toContain("fa-book-spells");
-    expect(picker.find(".sheet-subtitle").text()).toBe("Which chore flies back to the board?");
-    await wrapper.find("[data-cy=task-back]").trigger("click");
-    await flushPromises();
-    expect(wrapper.find("[data-cy=task-sheet]").exists()).toBe(false);
-    expect(hero.stats.mp.now).toBe(120);
-    expect(wrapper.find(".chores-left-label").text()).toBe("2 tasks left");
-    expect(vm.dialogText).toBe("");
-
-    // The next Tackle starts fresh: the checklist is an attack again
-    await readUntilMenu();
-    await wrapper.find("#attack").trigger("click");
-    expect(wrapper.find("[data-cy=task-sheet] .sheet-title").text()).toBe("Tackle!");
-    await wrapper.find("[data-cy=task-back]").trigger("click");
-    // and the Silver Arrow's pick is the Silver Arrow's again
-    await wrapper.find("#item").trigger("click");
-    await useFromBag(SILVER_ARROW);
-    expect(wrapper.find("[data-cy=task-sheet] .sheet-title").text()).toBe("Silver Arrow");
-    await wrapper.find("[data-cy=task-back]").trigger("click");
-    expect(hero.stats.mp.now).toBe(120);
-
-    // Cast again, a chore picked: now it flies back and the MP is paid
-    await castPower("Rewind");
-    const row = wrapper.findAll(".battle-task-item").find((item) => item.text().includes("Sort socks"));
-    await row?.trigger("click");
-    jest.advanceTimersByTime(300);
-    await wrapper.find("[data-cy=task-confirm]").trigger("click");
-    await flushPromises();
-    expect(vm.dialogText).toBe("Max casts Rewind! The chore flies back to the board.");
-    expect(hero.stats.mp.now).toBe(100);
-    expect(wrapper.find(".chores-left-label").text()).toBe("1 task left");
-  });
-
-  it("a strike closes the bag and drops a Recall in flight", async () => {
-    const { wrapper, userStore, vm, tap, readUntilMenu, bagOpen, castPower, letTheBeastStrike } =
-      await enterBattle("/battle/hero-1/free/");
-    const hero = userStore.users["hero-1"];
-    hero.stats.mp = { now: 120, max: 120 };
+  it("a strike closes the bag", async () => {
+    const { wrapper, tap, readUntilMenu, bagOpen, letTheBeastStrike } = await enterBattle("/battle/hero-1/free/");
     jest.spyOn(Math, "random").mockReturnValue(0.5);
     await tap();
     await tap();
@@ -639,18 +576,6 @@ describe("BattleField: a free fight", () => {
     await tap();
     await tap(); // the hit lands
     await readUntilMenu();
-
-    // Rewind is waiting for its chore when the beast strikes: the pick closes and the cast is dropped
-    await castPower("Rewind");
-    expect(wrapper.find("[data-cy=task-sheet]").exists()).toBe(true);
-    await letTheBeastStrike();
-    expect(wrapper.find("[data-cy=task-sheet]").exists()).toBe(false);
-    // A pick that arrives late changes nothing and costs nothing
-    vm.postponeTask("t1");
-    await flushPromises();
-    expect(hero.stats.mp.now).toBe(120);
-    expect(wrapper.find(".chores-left-label").text()).toBe("2 tasks left");
-    expect(vm.dialogText).toBe("Socktopus attacks!");
     (Math.random as jest.Mock).mockRestore();
   });
 

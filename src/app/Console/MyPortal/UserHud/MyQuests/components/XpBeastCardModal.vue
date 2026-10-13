@@ -80,10 +80,7 @@
           v-for="step in shownSteps"
           :key="step.id"
           class="beast-step"
-          :class="[
-            { 'is-checked': step.checked },
-            tapped?.id === step.id ? (tapped.checked ? 'is-just-checked' : 'is-just-unchecked') : '',
-          ]"
+          :class="[{ 'is-checked': step.checked }, tapClass(step)]"
           :title="step.name"
           :chevron="false"
           role="checkbox"
@@ -96,7 +93,7 @@
               :class="['fad', step.checked ? 'fa-check-square' : 'fa-square', 'beast-step__box']"
               aria-hidden="true"
             ></i>
-            <span v-if="tapped?.id === step.id && tapped.checked" class="beast-step__spark" aria-hidden="true">
+            <span v-if="isJustChecked(step)" class="beast-step__spark" aria-hidden="true">
               <i></i><i></i><i></i><i></i>
             </span>
           </template>
@@ -267,6 +264,10 @@ const COMPLETE_ANIM_MS = 1400;
 let tapTimer = 0;
 let completeTimer = 0;
 
+const isJustChecked = (step: CardStep) => tapped.value?.id === step.id && tapped.value.checked;
+const isJustUnchecked = (step: CardStep) => tapped.value?.id === step.id && !tapped.value.checked;
+const tapClass = (step: CardStep) => ({ "is-just-checked": isJustChecked(step), "is-just-unchecked": isJustUnchecked(step) });
+
 const heroId = computed(() => String(props.userId));
 const ctx = computed(() => progressContext(heroId.value, props.quest.id));
 
@@ -384,7 +385,8 @@ onBeforeUnmount(stopBackdrop);
 const onStep = (step: CardStep) => {
   if (!actions.value.canCheck) return;
   const tap = tapStep(steps.value, step.id);
-  if (!tap.known) return;
+  const isNotOnTheList = !tap.known;
+  if (isNotOnTheList) return;
   steps.value = tap.steps;
   // The fight reads this record when it starts and writes it as its chores fall
   saveBattleProgress(ctx.value, checkedIds(tap.steps));
@@ -398,7 +400,8 @@ const onStep = (step: CardStep) => {
 
   justCompleted.value = false;
   timers.cancel(completeTimer);
-  if (!tap.completesList) return;
+  const isStillOpen = !tap.completesList;
+  if (isStillOpen) return;
   // The last step: let the check land, then light the list and the Claim button
   void nextTick(() => {
     justCompleted.value = true;
