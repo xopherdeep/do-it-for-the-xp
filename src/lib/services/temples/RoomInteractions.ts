@@ -24,10 +24,13 @@ import { jumpTrap, springTrap } from './roomInteractions/hazards';
 import { shopWares } from './roomInteractions/shop';
 import { publicRiddle, riddleFor } from './roomInteractions/puzzle';
 import { isChestEmptyIn, openGate, pickUp } from './roomInteractions/treasure';
-import { roomKind, SFX } from './roomInteractions/vocabulary';
+import { questRoomWordsFor } from './roomInteractions/questSheet';
+import { ENCOUNTER_LINES, roomKind, SFX } from './roomInteractions/vocabulary';
 import type { RoomAction, RoomContext, RoomOutcome, RoomSheet } from './roomInteractions/vocabulary';
 
 export { DIRECTIONS, roomKind, SFX } from './roomInteractions/vocabulary';
+export { backLabel, ownersLabel, questRoomStateFor, questRoomWords, questRoomWordsFor } from './roomInteractions/questSheet';
+export type { QuestRoomWords } from './roomInteractions/questSheet';
 export type {
   ClearedReward,
   Direction,
@@ -92,13 +95,6 @@ const spring = (
 };
 
 const spent = (ctx: RoomContext, topic: string): boolean => hasHappened(roomKey(ctx, topic));
-
-/** What a room with a beast in it says when the hero steps up to it; the beast's own name is the line under it. */
-const ENCOUNTER_LINES: Record<string, string> = {
-  monster: 'A Monster approaches!',
-  miniboss: 'A fierce foe blocks the way!',
-  boss: 'A Powerful Boss appears!',
-};
 
 /**
  * The action sheet for a room: a header in the temple's voice and the room's own actions.
@@ -224,13 +220,24 @@ export const roomActions = (given: Room | undefined, ctx: RoomContext): RoomShee
     case 'monster':
     case 'miniboss':
     case 'boss': {
+      const searchTheRoom = (): RoomAction[] =>
+        spent(ctx, 'search')
+          ? []
+          : [act('Search the room', () => hunt(ctx, 'search', 1 / 2, 2, 8, (gp) => `You found ${gp} GP in the mess.`, () => 'Nothing but the smell.'))];
+
+      // A room that holds a quest tells the truth about it (docs/Quest-Rooms-Spec.md 5.3): the quest's beast, the chore
+      // and when it is due, or why there is no fight. A classic room, a dormant one and a run with no board yet fall through.
+      const questWords = questRoomWordsFor(room, ctx);
+      if (questWords) {
+        const { header, subHeader, body, beastId, fight, search } = questWords;
+        const actions: RoomAction[] = [];
+        if (fight) actions.push(act('Fight', () => ({ intent: 'fight' })));
+        if (search) actions.push(...searchTheRoom());
+        return { ...sheet(header, actions, subHeader), body, beastId, ...(beastId ? { questBeast: true } : {}) };
+      }
+
       if (system.isRoomCleared(ctx.templeId, ctx.level, ctx.position)) {
-        return sheet(
-          'Nothing left here but the smell.',
-          spent(ctx, 'search')
-            ? []
-            : [act('Search the room', () => hunt(ctx, 'search', 1 / 2, 2, 8, (gp) => `You found ${gp} GP in the mess.`, () => 'Nothing but the smell.'))]
-        );
+        return sheet('Nothing left here but the smell.', searchTheRoom());
       }
       const beasts = room.content?.beasts;
       const beastId = Array.isArray(beasts) && beasts.length > 0 ? String(beasts[0]) : undefined;

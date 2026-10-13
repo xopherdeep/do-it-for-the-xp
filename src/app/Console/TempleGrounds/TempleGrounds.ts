@@ -223,6 +223,8 @@ export default defineComponent({
 
     // The beast of a combat room: the voxel monster, and the card its reveal shows
     const { isCombatRoomCleared, showVoxelMonster, activeMonster, getBeastCard: beastCard } = useRoomBeast({
+      props,
+      progressHeroId,
       currentRoom,
       currentPosition,
       currentLevel,

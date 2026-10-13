@@ -246,13 +246,15 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
       return;
     }
     // An encounter shows its beast: the picture and the name are looked up first, so they are there as the reveal opens
-    const beast = sheet.beastId ? await beastCard(sheet.beastId) : null;
-    const monsterSubtitle = beast?.name ?? (activeMonster.value ? activeMonster.value.name : sheet.subHeader);
+    const beast = sheet.beastId ? await beastCard(sheet.beastId, sheet.questBeast) : null;
+    // A sheet that words its own subtitle (a quest room's, even an empty one) keeps it; an encounter shows its beast's name
+    const monsterSubtitle = sheet.subHeader ?? beast?.name ?? (activeMonster.value ? activeMonster.value.name : undefined);
     const monsterArt = beast?.art ?? (activeMonster.value.avatar ? { src: activeMonster.value.avatar, alt: activeMonster.value.name, frame: 'beast' } : undefined);
     openChoiceReveal({
       kind: 'sheet',
       title: sheet.header,
       subtitle: monsterSubtitle,
+      body: sheet.body,
       art: monsterArt,
       choices: sheet.actions.map((action, index) => ({ id: String(index), label: action.label })),
       // "Leave" would sit under the entrance's "Leave Temple": the way back is "Back"

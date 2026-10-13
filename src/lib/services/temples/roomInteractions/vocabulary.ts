@@ -38,6 +38,8 @@ export interface RoomContext {
   position: [number, number];
   /** Dice. Tests pass a fixed one; the game uses Math.random. */
   rng?: () => number;
+  /** The clock a quest room's due times and return days are read against. Tests pass a fixed one. */
+  now?: Date;
 }
 
 /** A multiple-choice riddle as the screen shows it: the answer stays here. */
@@ -93,17 +95,29 @@ export interface RoomAction {
 
 export interface RoomSheet {
   header: string;
+  /** The line under the title. An encounter without one shows its beast's name; an empty string shows nothing. */
   subHeader?: string;
+  /** A line of its own under the subtitle: a quest room's chore, when it is due and when the beast is back */
+  body?: string;
   /** The room's own actions; the screen adds Cancel */
   actions: RoomAction[];
   /** An encounter's first beast (a Bestiary id): the screen looks up its picture and name for the reveal */
   beastId?: string;
+  /** `beastId` is a quest's beast: when the family's Bestiary does not hold it yet, the screen finds it in the library */
+  questBeast?: boolean;
   /**
    * A chest: the screen opens the chest itself instead of this sheet (a shut chest to open, or an open empty one).
    * The sheet's action is the same thing for a caller with no chest to show: `openChest` / `emptyChest`.
    */
   chest?: 'closed' | 'empty';
 }
+
+/** What a room with a beast in it says when the hero steps up to it, by tier; the beast's own name is the line under it. */
+export const ENCOUNTER_LINES: Record<string, string> = {
+  monster: 'A Monster approaches!',
+  miniboss: 'A fierce foe blocks the way!',
+  boss: 'A Powerful Boss appears!',
+};
 
 // --- room kinds and toast text ---------------------------------------------------------------------
 
