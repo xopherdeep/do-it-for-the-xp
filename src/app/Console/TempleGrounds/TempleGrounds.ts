@@ -16,6 +16,7 @@ import { useHeroEquipment } from '@/hooks/useHeroEquipment';
 import debug from '@/lib/utils/debug';
 import { useUserStore } from '@/lib/store/stores/user';
 import WeatherFX from '@/components/organisms/WeatherFX/WeatherFX.vue';
+import TempleFloor from './TempleFloor.vue';
 import TempleWalls from './TempleWalls.vue';
 import TempleChestReveal from './components/TempleChestReveal.vue';
 import TempleChoiceReveal from './components/TempleChoiceReveal.vue';
@@ -60,6 +61,7 @@ export default defineComponent({
   mixins: [ionic],
   components: {
     'weather-fx': WeatherFX,
+    'temple-floor': TempleFloor,
     'temple-walls': TempleWalls,
     'temple-chest-reveal': TempleChestReveal,
     'temple-choice-reveal': TempleChoiceReveal,

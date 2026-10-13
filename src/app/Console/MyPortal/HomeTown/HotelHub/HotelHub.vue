@@ -8,7 +8,7 @@
           />
         </ion-buttons>
         <ion-title>
-          Hotel
+          {{ hotelTitle }}
         </ion-title>
         <ion-buttons slot="end">
           <ion-button @click="openATM" color="rpg">
@@ -20,29 +20,6 @@
 
     <ion-content>
       <xp-loading v-if="isLoading" />
-      <ion-grid v-else>
-        <ion-row>
-          <ion-col
-            size="6"
-            v-for="item in items"
-            :key="item.id"
-            class="ion-no-padding"
-          >
-            <ion-card class="item ion-no-padding">
-              <ion-card-header>
-                <ion-card-subtitle
-                  v-if="item.title"
-                  v-html="sanitizeHtml(item.title.rendered)"
-                />
-              </ion-card-header>
-              <ion-img v-bind="getImgObj(item.featured_media)"></ion-img>
-
-              <ion-card-content class="ion-no-margin ion-no-padding">
-              </ion-card-content>
-            </ion-card>
-          </ion-col>
-        </ion-row>
-      </ion-grid>
       
       <!-- fab button to trigger dialog -->
       <ion-fab

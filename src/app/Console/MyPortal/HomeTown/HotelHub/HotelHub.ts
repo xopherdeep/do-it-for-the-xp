@@ -1,42 +1,14 @@
 import { defineComponent } from "vue";
 import ionic from "@/lib/mixins/ionic";
 
-import {
-  arrowBack,
-  chevronBack,
-  chevronForward,
-  stop,
-  play,
-  pause,
-  colorWand,
-  colorWandOutline,
-  lockClosedOutline,
-  lockOpenOutline,
-  sunnyOutline,
-  partlySunnyOutline,
-  moonOutline,
-  cloudyNightOutline,
-  fitnessOutline,
-  sparklesOutline,
-  keyOutline,
-  cartOutline,
-  starSharp,
-  storefrontOutline,
-  banOutline,
-  bedOutline,
-  bagOutline,
-} from "ionicons/icons";
 import { useBack } from "@/hooks/useBack";
-import { useItemFetcher } from "@/hooks/useItemFetcher";
 import { useCopy, useVoice } from "@/hooks/useVoice";
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
 import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
 import debug from "@/lib/utils/debug";
 import { useUserStore } from "@/lib/store/stores/user";
-// Import the ATM Modal component
 import ATMModal from "@/app/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
-// Import our new GPSystem
-import { getGPService } from '@/lib/services/gp';
+import { getGPService } from "@/lib/services/gp";
 import { quoteCare } from "@/lib/services/hometown/Lodging";
 import type { CareQuote } from "@/lib/services/hometown/Lodging";
 import {
@@ -48,43 +20,62 @@ import {
   roomRefusalLine,
   type ConciergeMenuId,
 } from "@/lib/services/hometown/hometownPrompts";
-import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
+import {
+  getHotelByWorld,
+  getHotelMetadata,
+  type HotelMetadata,
+} from "@/lib/engine/core/hotelRegistry";
 
 export default defineComponent({
-  props: ["userId"],
+  props: ["userId", "world"],
   name: "hotel-hub",
   mixins: [ionic],
   components: {
     XpRevealPrompt,
-    ATMModal
+    ATMModal,
   },
   data() {
     return {
       isLoading: false,
-      shelves: ['affordable'],
       /** The concierge is talking: the FAB waits until the conversation ends */
       isTalking: false,
       // ATM modal state
-      showAtm: false
+      showAtm: false,
     };
   },
   computed: {
     user() {
       return this.userStore.getUserById(this.userId);
     },
-    dialogBlocks() {
-      return [this.t("hotel.greet.welcome"), this.t("hotel.greet.amenities"), this.t("hotel.greet.ask")];
-    }
+    activeWorld(): string {
+      const propWorld = typeof this.world === "string" ? this.world : "";
+      const routeWorld = typeof this.$route?.params?.world === "string" ? this.$route.params.world : "";
+      return propWorld || routeWorld || "hometown";
+    },
+    hotelMeta(): HotelMetadata {
+      return getHotelByWorld(this.activeWorld) || getHotelMetadata("hometown-hotel");
+    },
+    hotelTitle(): string {
+      return this.hotelMeta.name;
+    },
+    clerkName(): string {
+      return this.hotelMeta.clerkName;
+    },
+    dialogBlocks(): string[] {
+      return [
+        this.t("hotel.greet.welcome", { hotel: this.hotelTitle }),
+        this.t("hotel.greet.amenities"),
+        this.t("hotel.greet.ask"),
+      ];
+    },
   },
   methods: {
-    // ATM methods
     openATM() {
       this.play$fx("select");
       this.showAtm = true;
     },
 
-    clickDeposit(data) {
-      // Use new GPSystem to handle deposits
+    clickDeposit(data: { gp?: number | string }) {
       const amount = Number(data.gp);
       if (amount > 0) {
         getGPService()
@@ -92,15 +83,13 @@ export default defineComponent({
           .then(() => {
             this.play$fx("coins");
           })
-          .catch(error => {
-            debug.log('Deposit error:', error.message);
-            // Potential UI feedback for error
+          .catch((error) => {
+            debug.log("Deposit error:", error.message);
           });
       }
     },
 
-    clickWithdraw(data) {
-      // Use new GPSystem to handle withdrawals
+    clickWithdraw(data: { gp?: number | string }) {
       const amount = Number(data.gp);
       if (amount > 0) {
         getGPService()
@@ -108,15 +97,13 @@ export default defineComponent({
           .then(() => {
             this.play$fx("coins");
           })
-          .catch(error => {
-            debug.log('Withdraw error:', error.message);
-            // Potential UI feedback for error
+          .catch((error) => {
+            debug.log("Withdraw error:", error.message);
           });
       }
     },
 
-    clickPayDebt(data) {
-      // Use new GPSystem to handle debt payments
+    clickPayDebt(data: { gp?: number | string }) {
       const amount = Number(data.gp);
       if (amount > 0) {
         getGPService()
@@ -124,21 +111,15 @@ export default defineComponent({
           .then(() => {
             this.play$fx("success");
           })
-          .catch(error => {
-            debug.log('Pay debt error:', error.message);
-            // Potential UI feedback for error
+          .catch((error) => {
+            debug.log("Pay debt error:", error.message);
           });
       }
     },
 
-    selectShelf($ev) {
-      this.shelves = $ev.detail.value
-    },
-
     /**
-     * The concierge's conversation, in the game's own dialog: his lines type out, then the menu. After each errand he
-     * asks if there is anything else, until the hero leaves (back out of the hotel), steps away (Escape) or goes to the
-     * Town Hall's notice board.
+     * The concierge's conversation, in the game's own dialog: lines type out, then the menu. After each errand,
+     * they ask if there is anything else until the hero leaves, steps away or views events.
      */
     async showHotelDialog() {
       if (this.isTalking) return;
@@ -147,7 +128,9 @@ export default defineComponent({
         this.play$fx("select");
         let lines = this.dialogBlocks;
         for (;;) {
-          const pick = (await this.reveal.ask(conciergeMenuPrompt(lines))) as ConciergeMenuId | "stay";
+          const pick = (await this.reveal.ask(
+            conciergeMenuPrompt(lines, this.clerkName)
+          )) as ConciergeMenuId | "stay";
           if (pick === "stay") return;
           if (pick !== "room") {
             await this.walkAway(pick);
@@ -168,18 +151,21 @@ export default defineComponent({
     },
 
     /**
-     * Rent a Room: the price grows with the hero's level. Confirm it, then charge the wallet and sleep off the
-     * night (full HP and MP).
+     * Rent a Room: price grows with the hero's level. Confirm it, charge the wallet, and restore full HP and MP.
      */
     async handleRentRoom() {
       const quote = quoteCare("room", this.user?.stats, Number(this.user?.stats?.level) || 1);
       if (!quote.canPay) {
         this.play$fx("no");
-        await this.reveal.ask(conciergeNotice(roomRefusalLine(quote, this.words)));
+        await this.reveal.ask(
+          conciergeNotice(roomRefusalLine(quote, this.words), undefined, this.clerkName)
+        );
         return;
       }
 
-      const pick = await this.reveal.ask(roomConfirmPrompt(this.words, quote.cost));
+      const pick = await this.reveal.ask(
+        roomConfirmPrompt(this.words, quote.cost, this.clerkName)
+      );
       if (pick !== "yes") return;
       await this.rentRoom(quote);
     },
@@ -193,50 +179,41 @@ export default defineComponent({
           this.userStore.updateUserMP({ userId: this.userId, amount: quote.mpGain });
         }
         this.play$fx("restoreAll");
-        // a short beat so the spinner reads as a night's sleep, not a glitch
-        await new Promise(resolve => setTimeout(resolve, 900));
+        // A short beat so the rest reads as a night's sleep, not an instant glitch
+        await new Promise((resolve) => setTimeout(resolve, 900));
       } finally {
         this.isLoading = false;
       }
 
       const stats = this.user?.stats;
-      await this.reveal.ask(conciergeNotice(roomReceiptLine(quote.cost, stats?.hp, stats?.mp, this.words), "bed"));
+      await this.reveal.ask(
+        conciergeNotice(
+          roomReceiptLine(quote.cost, stats?.hp, stats?.mp, this.words),
+          "bed",
+          this.clerkName
+        )
+      );
     },
 
-    /** Community Events: the notice board lives in the Town Hall. */
+    /** Community Events: notice board lives in Town Hall. */
     async handleCommunityEvents() {
-      const hasTownHall = this.$router.getRoutes().some(route => route.name === "town-hall");
+      const hasTownHall = this.$router.getRoutes().some((route) => route.name === "town-hall");
       if (hasTownHall) {
         this.play$fx("select");
         this.$router.push({ name: "town-hall", params: { userId: this.userId } });
         return;
       }
-      await this.reveal.ask(conciergeNotice(nothingOnTheBoard(this.words)));
+      await this.reveal.ask(
+        conciergeNotice(nothingOnTheBoard(this.words), undefined, this.clerkName)
+      );
     },
   },
-  setup(props) {
+  setup() {
     const userStore = useUserStore();
-    // Leaving goes back, or up to Home Town when the hotel was opened with no history behind it
     const { back: goBack } = useBack();
-    // The concierge talks, asks and answers in the game's own dialog, not in native alerts
     const reveal = useRevealPrompt();
-    // The concierge's words follow the hero's voice (simple, adventure or classic)
     const t = useCopy();
     const { voice: words } = useVoice();
-    const {
-      request,
-      items,
-      getItems,
-      getImgObj,
-      nTotalPages
-    } = useItemFetcher("xp_accessory", { per_page: 4 }, props.userId);
-
-    const customAlertOptions = {
-      header: 'Pizza Toppings',
-      subHeader: 'Select your toppings',
-      message: '$1.00 per topping',
-      translucent: true
-    };
 
     return {
       t,
@@ -245,36 +222,6 @@ export default defineComponent({
       userStore,
       reveal,
       prompt: reveal.prompt,
-      customAlertOptions,
-      storefrontOutline,
-      banOutline,
-      chevronBack,
-      chevronForward,
-      stop,
-      play,
-      pause,
-      arrowBack,
-      colorWand,
-      colorWandOutline,
-      lockClosedOutline,
-      lockOpenOutline,
-      bagOutline,
-      sunnyOutline,
-      partlySunnyOutline,
-      moonOutline,
-      cloudyNightOutline,
-      fitnessOutline,
-      sparklesOutline,
-      keyOutline,
-      cartOutline,
-      starSharp,
-      bedOutline,
-      request,
-      items,
-      getItems,
-      getImgObj,
-      nTotalPages,
-      sanitizeHtml,
     };
   },
 });

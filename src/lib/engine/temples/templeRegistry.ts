@@ -120,22 +120,23 @@ export const metadataFor = (templeId: string): TempleMetadata | undefined => {
   return TEMPLE_METADATA[templeId] || generatedMetadata.get(templeId);
 };
 
-/** Registry temple, else a `gen-` temple built from its TempleDb record, else the getTempleMetadata fallback. */
+/** Registry temple, else a custom/generated temple built from its TempleDb record, else the getTempleMetadata fallback. */
 export const metadataForAsync = async (templeId: string): Promise<TempleMetadata> => {
   const known = metadataFor(templeId);
   if (known) return known;
-  if (String(templeId).startsWith("gen-")) {
+  if (!TEMPLE_METADATA[templeId]) {
     try {
       const { TempleDb, templeStorage } = await import("@/lib/databases/TempleDb");
       const record = await new TempleDb(templeStorage).getTempleById(templeId);
       if (record) {
+        const isHouse = record.themeId === "home" || templeId === "moving-house";
         const meta: TempleMetadata = {
           id: templeId,
           name: record.customName || record.name || "Unknown Temple",
-          description: "A generated temple.",
+          description: record.customDescription || (isHouse ? "The old house, room by room." : "A custom temple."),
           world: record.themeId || "plains",
           element: record.element || "none",
-          icon: "fa-dungeon",
+          icon: isHouse ? "fa-home" : "fa-dungeon",
           color: "medium"
         };
         generatedMetadata.set(templeId, meta);
@@ -143,7 +144,7 @@ export const metadataForAsync = async (templeId: string): Promise<TempleMetadata
       }
     } catch (error) {
       // No TempleDb (tests, private mode): fall through to the unknown-temple fallback
-      debug.warn("[templeRegistry] could not load the generated temple", templeId, error);
+      debug.warn("[templeRegistry] could not load custom temple metadata", templeId, error);
     }
   }
   return getTempleMetadata(templeId);

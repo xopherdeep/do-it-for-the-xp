@@ -9,11 +9,11 @@ import { adoptLibraryBeast } from "@/lib/services/bestiary/librarySuggest";
  * reveal) and the battle both ask the rule below, so the beast the hero sees is the beast the hero fights.
  */
 
-/** The element a temple fights with: a generated temple carries its own; the nine shipped temples take it from their id. */
+/** The element a temple fights with: a generated or custom temple carries its own; the nine shipped temples take it from their id. */
 export const templeElementFor = (templeId: string, recordElement?: string): string => {
   const id = String(templeId || "");
-  const carriesOwnElement = id.startsWith("gen-") && recordElement && recordElement !== "none";
-  if (carriesOwnElement) return recordElement;
+  const isShipped = id.endsWith("-temple") && !id.startsWith("gen-");
+  if (!isShipped && recordElement && recordElement !== "none") return recordElement;
   return id.replace("-temple", "") || "wind";
 };
 

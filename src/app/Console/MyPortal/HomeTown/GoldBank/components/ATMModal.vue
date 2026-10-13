@@ -246,7 +246,7 @@
       };
 
       const errand = async (action: BankAction) => {
-        const ask = amountAsk(action, props.user?.stats?.gp, undefined, voice.value);
+        const ask = amountAsk(action, props.user?.stats?.gp, "ATM", voice.value);
         if ("refusal" in ask) {
           play$fx("no");
           await reveal.ask(noticePrompt(ask.refusal, undefined, "ATM"));

@@ -45,10 +45,10 @@ describe("the banker's menu", () => {
     expect(prompt.choices.some((choice) => choice.id === "stay")).toBe(false);
   });
 
-  it("gives the ATM its three money moves and a sign-off", () => {
+  it("gives the ATM its three money moves and a sign-off without a sprite animation", () => {
     const prompt = atmMenuPrompt(purse());
     expect(prompt.choices.map((choice) => choice.id)).toEqual(["deposit", "withdraw", "payDebt", "leave"]);
-    expect(prompt.sprite).toBe("coins");
+    expect(prompt.sprite).toBeUndefined();
     expect(prompt.cancelId).toBe("stay");
   });
 });
@@ -127,5 +127,12 @@ describe("the hero's own Gold app", () => {
     expect(ask.prompt).toMatchObject({ speaker: GOLD_APP, accent: "bank", sprite: "coins" });
     expect(ask.prompt.amount?.max).toBe(120);
     expect(noticePrompt("Done.", undefined, GOLD_APP)).toMatchObject({ speaker: GOLD_APP, accent: "atm" });
+  });
+
+  it("omits sprite and uses atm accent when amount is asked at the ATM", () => {
+    const ask = amountAsk("deposit", purse(), "ATM");
+    if ("refusal" in ask) throw new Error("expected a prompt");
+    expect(ask.prompt).toMatchObject({ speaker: "ATM", accent: "atm" });
+    expect(ask.prompt.sprite).toBeUndefined();
   });
 });

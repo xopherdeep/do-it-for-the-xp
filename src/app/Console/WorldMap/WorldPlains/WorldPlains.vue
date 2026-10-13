@@ -31,6 +31,9 @@
           <xp-draggable-spot screen="world-plains" spot-id="merchant" :default-x="47" :default-y="56">
             <xp-traveling-merchant world="plains" :size="100" />
           </xp-draggable-spot>
+          <xp-draggable-spot screen="world-plains" spot-id="hotel" :default-x="48" :default-y="26">
+            <xp-building-model building-id="hotel" world="plains" :size="105" />
+          </xp-draggable-spot>
         </div>
       </div>
       <div class="plains-weather-container">

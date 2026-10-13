@@ -1,4 +1,5 @@
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
+import { TEMPLE_METADATA } from '@/lib/engine/temples/templeRegistry';
 import type { TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
 import { isBossRoom } from '@/lib/services/temples/authoredDoors';
 import type { ExitKind, WallSide } from '../templeWalls';
@@ -67,8 +68,9 @@ export const useTempleLayout = (deps: TempleLayoutDeps) => {
     return coords;
   });
 
-  // Helper to get background images
+  // Helper to get background images: only shipped temples have pre-rendered assets
   const getBgImage = (xy: string) => {
+    if (!props.temple || !(props.temple in TEMPLE_METADATA)) return '';
     try {
       return require(`@/assets/images/backgrounds/${props.temple}/${xy}.webp`);
     } catch {

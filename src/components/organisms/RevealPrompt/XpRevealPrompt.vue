@@ -8,7 +8,7 @@
         :key="shown.key"
         ref="root"
         class="rp"
-        :class="[`glow-${glow}`, { 'has-sprite': Boolean(sprite), 'is-ready': ready, 'is-leaving': isLeaving }]"
+        :class="[`glow-${glow}`, { 'has-sprite': Boolean(sprite), 'is-ready': ready, 'is-leaving': isLeaving }, options.accent ? `accent-${options.accent}` : '']"
         :style="accentStyle"
         tabindex="-1"
         role="dialog"
@@ -486,6 +486,11 @@ $rp-ink: $reveal-ink;
 // No sprite: the room stays faintly there behind the dark, like the dungeon's room actions
 .rp:not(.has-sprite) .rp__backdrop {
   background: rgba(10, 2, 10, 0.62);
+}
+
+// At the ATM: keep the backdrop subtle so the themed kiosk interface remains visible
+.rp.accent-atm .rp__backdrop {
+  background: rgba(10, 2, 10, 0.25);
 }
 
 // ---------------------------------------------------------------------------------------------------------------

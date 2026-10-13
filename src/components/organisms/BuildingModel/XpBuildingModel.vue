@@ -28,6 +28,7 @@ import { useRoute, useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
 import { pegasusOfWorld } from "@/lib/services/temples/TemplePegasus";
 import { getShopMetadata } from "@/lib/engine/core/shopRegistry";
+import { getHotelByWorld } from "@/lib/engine/core/hotelRegistry";
 import XpLandmarkBadge from "@/components/atoms/Badge/XpLandmarkBadge.vue";
 import { useBuildingScene } from "./useBuildingScene";
 import { play$fx } from "@/assets/fx";
@@ -131,8 +132,16 @@ export default defineComponent({
       return Boolean(user?.stats?.pegasi?.[pegasus.value.index]);
     });
 
+    const isHotel = computed(() => {
+      const isNamedHotel = props.buildingId === "hotel";
+      const isSuffixHotel = props.buildingId.endsWith("-hotel");
+      return isNamedHotel || isSuffixHotel;
+    });
+
     const sceneBuildingId = computed(() => {
-      if (!isPegasus.value) return props.buildingId;
+      if (!isPegasus.value) {
+        return isHotel.value ? "hotel" : props.buildingId;
+      }
       const peg = pegasus.value;
       if (!peg) return "pegasus";
       const slug = peg.name.toLowerCase();
@@ -168,7 +177,7 @@ export default defineComponent({
         "front-door",
         "world-plains",
         "plains",
-      ].includes(props.buildingId) && !isPegasus.value;
+      ].includes(props.buildingId) && !isPegasus.value && !isHotel.value;
     });
 
     const displayName = computed(() => {
@@ -180,6 +189,10 @@ export default defineComponent({
           return stablePegasus.name;
         }
         return "Travel World";
+      }
+      if (isHotel.value) {
+        const hotelMeta = getHotelByWorld(activeWorld.value);
+        return hotelMeta?.badgeLabel || hotelMeta?.name || "Hotel";
       }
       if (HOMETOWN_NAMES[props.buildingId]) return HOMETOWN_NAMES[props.buildingId];
       const shopMeta = getShopMetadata(props.buildingId);
@@ -198,6 +211,9 @@ export default defineComponent({
           return "Fly to World Map";
         }
         return pegasus.value ? `${pegasus.value.name} is asleep` : "Locked in Temple";
+      }
+      if (isHotel.value) {
+        return "Pay to rest";
       }
       if (isBuilding("home-calendar", "calendar")) {
         return "View schedule";
@@ -293,7 +309,13 @@ export default defineComponent({
           router.push({ name: "hospital", params: { userId } });
           break;
         case "hotel":
-          router.push({ name: "hotel", params: { userId } });
+          router.push({
+            name: "hotel",
+            params: {
+              userId,
+              world: activeWorld.value || undefined,
+            },
+          });
           break;
         case "bank":
           router.push({ name: "bank", params: { userId } });
@@ -305,7 +327,17 @@ export default defineComponent({
         case "plains":
           router.push({ name: "world-plains", params: { userId } });
           break;
-        default:
+        default: {
+          if (isHotel.value) {
+            router.push({
+              name: "hotel",
+              params: {
+                userId,
+                world: activeWorld.value || undefined,
+              },
+            });
+            break;
+          }
           // Land world shop
           router.push({
             name: "shop",
@@ -315,6 +347,7 @@ export default defineComponent({
             },
           });
           break;
+        }
       }
     };
 

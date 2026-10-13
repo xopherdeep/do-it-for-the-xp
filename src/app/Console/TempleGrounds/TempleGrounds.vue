@@ -87,22 +87,30 @@
           <div
             v-for="(cell, colIndex) in row"
             :key="`cell-${rowIndex}-${colIndex}`"
+            class="temple-room-cell"
             :style="{
               position: 'absolute',
               top: `${rowIndex * tileHeight}px`,
               left: `${colIndex * tileWidth}px`,
               width: `${tileWidth}px`,
               height: `${tileHeight}px`,
-              backgroundImage: `url(${getBgImage(`[${rowIndex},${colIndex}]`)})`,
+              backgroundImage: getBgImage(`[${rowIndex},${colIndex}]`) ? `url(${getBgImage(`[${rowIndex},${colIndex}]`)})` : undefined,
               backgroundSize: 'cover',
               backgroundPosition: 'center'
             }"
           >
+            <!-- Procedural floor tile for rooms without a pre-rendered background image -->
+            <temple-floor
+              v-if="rooms[cell]?.type !== 'wall' && !getBgImage(`[${rowIndex},${colIndex}]`)"
+              :room="rooms[cell]"
+              :element="templeElement"
+              :temple="temple"
+            />
             <!-- Each room carries its own walls, doors and gates, so they scroll with the floor -->
             <temple-walls
               v-if="isNearHero(rowIndex, colIndex)"
               :exits="exitsAt(rowIndex, colIndex)"
-              :element="templeElement"
+              :element="temple === 'moving-house' ? 'home' : templeElement"
             />
           </div>
         </template>

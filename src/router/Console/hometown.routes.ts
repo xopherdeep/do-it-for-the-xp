@@ -59,7 +59,7 @@ export const HometownRoutes: Array<RouteRecordRaw> = [
   },
 
   {
-    path: "/hotel/:userId?/",
+    path: "/hotel/:userId?/:world?",
     name: "hotel",
     component: () => import("@/app/Console/MyPortal/HomeTown/HotelHub/HotelHub.vue"),
     props: true,

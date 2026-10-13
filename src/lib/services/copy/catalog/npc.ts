@@ -346,9 +346,9 @@ export const npc = {
 
   // ---- Hotel: the concierge -------------------------------------------------------------------------------------
   "hotel.greet.welcome": {
-    simple: "Welcome to the Grand Hotel!",
-    adventure: "Welcome to the Grand Hotel! I'm your concierge, at your service.",
-    classic: "Grand Hotel. How may I help?",
+    simple: "Welcome to {hotel}!",
+    adventure: "Welcome to {hotel}! I'm your concierge, at your service.",
+    classic: "{hotel}. How may I help?",
   },
   "hotel.greet.amenities": {
     simple: "You can rest in a room here.",

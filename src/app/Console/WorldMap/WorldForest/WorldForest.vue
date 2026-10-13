@@ -28,6 +28,9 @@
           <xp-draggable-spot screen="world-forest" spot-id="merchant" :default-x="64" :default-y="40">
             <xp-traveling-merchant world="forest" :size="100" />
           </xp-draggable-spot>
+          <xp-draggable-spot screen="world-forest" spot-id="hotel" :default-x="46" :default-y="28">
+            <xp-building-model building-id="hotel" world="forest" :size="105" />
+          </xp-draggable-spot>
         </div>
       </div>
       <div class="enchanted-forest">

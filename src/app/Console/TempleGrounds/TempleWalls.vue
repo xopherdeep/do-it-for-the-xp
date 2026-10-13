@@ -62,6 +62,7 @@ const CORNERS = ["nw", "ne", "sw", "se"];
   &--light  { --stone: #786446; --stone-dark: #4c3f2c; --metal: #dcb450; --metal-hi: #ffeb96; --glow: #fff0b4; }
   &--shadow, &--moon { --stone: #282038; --stone-dark: #161020; --metal: #968caa; --metal-hi: #dcd2f0; --glow: #aa6eff; }
   &--wind, &--storm { --stone: #5c4a5c; --stone-dark: #3a2c3a; --metal: #cd9646; --metal-hi: #fad78c; --glow: #fff2d0; }
+  &--home   { --stone: #4e3524; --stone-dark: #2e1c12; --metal: #c29547; --metal-hi: #f5d48a; --glow: #ffe6a0; }
 }
 
 .wall {

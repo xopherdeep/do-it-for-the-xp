@@ -28,6 +28,9 @@
           <xp-draggable-spot screen="world-ice" spot-id="merchant" :default-x="44" :default-y="40">
             <xp-traveling-merchant world="ice" :size="100" />
           </xp-draggable-spot>
+          <xp-draggable-spot screen="world-ice" spot-id="hotel" :default-x="24" :default-y="38">
+            <xp-building-model building-id="hotel" world="ice" :size="105" />
+          </xp-draggable-spot>
         </div>
       </div>
     </ion-content>

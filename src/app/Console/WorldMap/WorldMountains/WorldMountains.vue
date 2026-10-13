@@ -28,6 +28,9 @@
           <xp-draggable-spot screen="world-mountains" spot-id="merchant" :default-x="40" :default-y="58">
             <xp-traveling-merchant world="mountains" :size="100" />
           </xp-draggable-spot>
+          <xp-draggable-spot screen="world-mountains" spot-id="hotel" :default-x="28" :default-y="38">
+            <xp-building-model building-id="hotel" world="mountains" :size="105" />
+          </xp-draggable-spot>
         </div>
       </div>
       <div class="fire-container">

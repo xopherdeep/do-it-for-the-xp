@@ -16,6 +16,9 @@
           <xp-draggable-spot screen="world-islands" spot-id="merchant" :default-x="24" :default-y="71">
             <xp-traveling-merchant world="islands" :size="100" />
           </xp-draggable-spot>
+          <xp-draggable-spot screen="world-islands" spot-id="hotel" :default-x="68" :default-y="38">
+            <xp-building-model building-id="hotel" world="islands" :size="105" />
+          </xp-draggable-spot>
         </div>
       </div>
     </ion-content>

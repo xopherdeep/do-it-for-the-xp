@@ -36,10 +36,13 @@ export const useTempleMeta = (props: TempleGroundsProps) => {
   // Format the temple name for display
   // Registry temples and generated ones (gen-<slug>, from the TempleDb) share one metadata ref
   const templeMeta = ref<TempleMetadata | undefined>(metadataFor(props.temple));
-  const isGenerated = computed(() => String(props.temple || '').startsWith('gen-'));
+  const isGenerated = computed(() => {
+    const id = String(props.temple || '');
+    return id.startsWith('gen-') || id === 'moving-house' || !metadataFor(id);
+  });
   const resolveTempleMeta = (id: string) => {
     templeMeta.value = metadataFor(id);
-    if (id.startsWith('gen-')) {
+    if (!metadataFor(id)) {
       void metadataForAsync(id).then((meta) => { if (id === props.temple) templeMeta.value = meta; });
     }
   };

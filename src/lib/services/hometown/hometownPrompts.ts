@@ -104,8 +104,8 @@ export const conciergeMenuChoices = (): RevealChoice[] => [
 ];
 
 /** The concierge speaks and the menu follows. Escape steps away from the desk (`stay`). */
-export const conciergeMenuPrompt = (lines: string[]): RevealPromptOptions => ({
-  speaker: CONCIERGE,
+export const conciergeMenuPrompt = (lines: string[], speaker: string = CONCIERGE): RevealPromptOptions => ({
+  speaker,
   accent: 'hotel',
   lines,
   choices: conciergeMenuChoices(),
@@ -113,9 +113,13 @@ export const conciergeMenuPrompt = (lines: string[]): RevealPromptOptions => ({
 });
 
 /** The room's price and the question, with the bed rising. `cost` is the quote's (roomCost by level); the base fee when none is given. */
-export const roomConfirmPrompt = (voice: Voice = 'adventure', cost: number = ROOM_COST): RevealPromptOptions =>
+export const roomConfirmPrompt = (
+  voice: Voice = 'adventure',
+  cost: number = ROOM_COST,
+  speaker: string = CONCIERGE
+): RevealPromptOptions =>
   yesNoOf(
-    CONCIERGE,
+    speaker,
     copyFor('hotel.room.confirm', voice, { cost }),
     { yes: 'Pay & Rest', no: 'Not tonight', yesIcon: 'moon' },
     { accent: 'hotel', sprite: 'bed' }
@@ -140,8 +144,12 @@ export const roomReceiptLine = (
 };
 
 /** What the concierge says after the night or a refusal: his line, the bed rising for a night's rest. */
-export const conciergeNotice = (line: string, sprite?: RevealPromptOptions['sprite']): RevealPromptOptions =>
-  noticeOf(CONCIERGE, line, { accent: 'hotel', sprite });
+export const conciergeNotice = (
+  line: string,
+  sprite?: RevealPromptOptions['sprite'],
+  speaker: string = CONCIERGE
+): RevealPromptOptions =>
+  noticeOf(speaker, line, { accent: 'hotel', sprite });
 
 /** The concierge when the Town Hall's notice board is not on the map. */
 export const NOTHING_ON_THE_BOARD = 'Nothing on the board tonight.';

@@ -108,7 +108,11 @@ const NAMED_RULES: Record<string, ParentRule> = {
   // Home Town
   bank: toTown,
   hospital: toTown,
-  hotel: toTown,
+  hotel: ({ heroId, params }) => {
+    const world = firstText(params.world);
+    const hasRegionalWorld = Boolean(world) && world !== "hometown";
+    return hasRegionalWorld ? worldPageOf(heroId, world) : heroPage(heroId, "home-town");
+  },
   "town-hall": toTown,
   "town-hall-chat": ({ heroId }) => `/town-hall/${heroId}`,
   "view-stats": toTown,

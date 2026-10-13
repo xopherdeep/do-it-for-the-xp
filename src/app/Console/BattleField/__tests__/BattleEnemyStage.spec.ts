@@ -271,6 +271,22 @@ describe("BattleEnemyStage", () => {
       expect(wrapper!.find(".enemy-name").classes()).toContain("is-critical");
       expect(wrapper!.find(".enemy-sprite, .enemy-emoji").classes()).toContain("is-critical");
     });
+
+    it("speeds up the pulsation duration as time runs down and when critical", async () => {
+      show({ timerPercent: 100, timerCritical: false });
+      const timerRow = () => wrapper!.find(".attack-timer").attributes("style") || "";
+
+      expect(timerRow()).toContain("--pulse-duration: 1.6s");
+
+      await update({ timerPercent: 50 });
+      expect(timerRow()).toContain("--pulse-duration: 0.95s");
+
+      await update({ timerPercent: 0 });
+      expect(timerRow()).toContain("--pulse-duration: 0.3s");
+
+      await update({ timerPercent: 80, timerCritical: true });
+      expect(timerRow()).toContain("--pulse-duration: 0.3s");
+    });
   });
 
   describe("the entrance", () => {

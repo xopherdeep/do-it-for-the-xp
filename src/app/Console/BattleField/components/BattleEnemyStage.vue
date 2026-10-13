@@ -91,7 +91,13 @@
 
     <!-- The slot keeps its height while the clock is hidden, so the beast does not jump when the clock starts. -->
     <div v-if="enemy" class="attack-timer-slot">
-      <div v-if="timerVisible" class="attack-timer" :class="[`tone-${tone}`, { 'is-critical': timerCritical }]" role="timer">
+      <div
+        v-if="timerVisible"
+        class="attack-timer"
+        :class="[`tone-${tone}`, { 'is-critical': timerCritical }]"
+        :style="{ '--pulse-duration': `${pulseDurationSeconds}s` }"
+        role="timer"
+      >
         <i class="fad fa-claw-marks attack-timer-icon" aria-hidden="true"></i>
         <div class="attack-timer-bar" aria-hidden="true">
           <div class="attack-timer-fill" :style="{ '--fill': percent + '%' }"></div>
@@ -226,9 +232,27 @@ watch(
 
 // Attack clock ------------------------------------------------------------------------------------------------------
 
+const MAX_PULSE_DURATION_SECONDS = 1.6;
+const MIN_PULSE_DURATION_SECONDS = 0.3;
+
 const percent = computed(() =>
   Number.isFinite(props.timerPercent) ? Math.min(100, Math.max(0, props.timerPercent)) : 0
 );
+
+/**
+ * Pulsation speeds up as the clock runs down:
+ * Calm 1.6s rhythm at full clock (100%), accelerating to an intense 0.3s heartbeat as time gets low or critical.
+ */
+const pulseDurationSeconds = computed(() => {
+  const isAlarmed = props.timerCritical;
+  if (isAlarmed) return MIN_PULSE_DURATION_SECONDS;
+
+  const progressRatio = percent.value / 100;
+  const spread = MAX_PULSE_DURATION_SECONDS - MIN_PULSE_DURATION_SECONDS;
+  const computedDuration = MIN_PULSE_DURATION_SECONDS + progressRatio * spread;
+
+  return Number(computedDuration.toFixed(2));
+});
 
 /** Green above half, amber above a fifth, red below. The last ten seconds are red whatever the percentage says. */
 const tone = computed<"ok" | "warn" | "danger">(() => {
@@ -682,9 +706,8 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
   &.is-critical {
     box-shadow: 0 0 0 2px rgba(255, 107, 107, 0.85), 0 0 12px rgba(255, 107, 107, 0.55);
 
-    .attack-timer-fill,
     .attack-timer-label {
-      animation: timer-pulse 0.5s ease-in-out infinite alternate;
+      animation: timer-pulse var(--pulse-duration, 0.3s) ease-in-out infinite alternate;
     }
   }
 }
@@ -709,6 +732,8 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
   border: 2px solid rgba(247, 232, 168, 0.7);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.75);
+  box-shadow: 0 0 6px var(--tone-glow);
+  animation: timer-bar-pulse var(--pulse-duration, 1.6s) ease-in-out infinite alternate;
 }
 
 .attack-timer-fill {
@@ -719,6 +744,7 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
   background: linear-gradient(180deg, var(--tone-light) 0%, var(--tone-mid) 55%, var(--tone-deep) 100%);
   box-shadow: 0 0 8px var(--tone-glow);
   transition: width 0.4s ease-out; // a refill after a chore animates; the engine's 100 ms ticks glide through it
+  animation: timer-pulse var(--pulse-duration, 1.6s) ease-in-out infinite alternate;
 
   // Gloss
   &::after {
@@ -827,8 +853,27 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
 }
 
 @keyframes timer-pulse {
-  0% { filter: brightness(1); opacity: 1; }
-  100% { filter: brightness(1.5); opacity: 0.8; }
+  0% {
+    filter: brightness(1);
+    opacity: 0.88;
+    box-shadow: 0 0 4px var(--tone-glow);
+  }
+  100% {
+    filter: brightness(1.55);
+    opacity: 1;
+    box-shadow: 0 0 14px var(--tone-glow);
+  }
+}
+
+@keyframes timer-bar-pulse {
+  0% {
+    border-color: rgba(247, 232, 168, 0.55);
+    box-shadow: 0 0 2px var(--tone-glow);
+  }
+  100% {
+    border-color: rgba(247, 232, 168, 0.95);
+    box-shadow: 0 0 10px var(--tone-glow);
+  }
 }
 
 // No float, strobe, pulse, shake or pop. The fades stay and lose their drift.
@@ -838,8 +883,9 @@ $green: linear-gradient(150deg, #b9f6b4 0%, var(--xp-color-xp, #{$eb-color-mint-
   .enemy-placeholder,
   .enemy-sprite-container.victory-strobe,
   .chore-pip.is-popping,
-  .attack-timer.is-critical .attack-timer-fill,
-  .attack-timer.is-critical .attack-timer-label {
+  .attack-timer-bar,
+  .attack-timer-fill,
+  .attack-timer-label {
     animation: none;
   }
 

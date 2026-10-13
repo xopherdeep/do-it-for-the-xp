@@ -4,7 +4,7 @@
  * this only turns a purse into the prompt to show, so the bank screen and the ATM ask the same questions and the
  * wording is tested without a screen.
  */
-import { amountPresets, noticeOf, type RevealChoice, type RevealPromptOptions } from '@/components/organisms/RevealPrompt/revealPrompt';
+import { amountPresets, noticeOf, type RevealChoice, type RevealPromptOptions, type RevealSpriteName } from '@/components/organisms/RevealPrompt/revealPrompt';
 import { copyFor } from '@/lib/services/copy/copy';
 import type { Voice } from '@/lib/services/copy/voices';
 import { type BankAction, bankRefusal, gold } from './bankTeller';
@@ -46,12 +46,11 @@ export function bankMenuPrompt(lines: string[], gp: GpPurse | null | undefined):
   return { speaker: BANKER, accent: 'bank', lines, choices: bankMenuChoices(gp), cancelId: 'stay' };
 }
 
-/** The ATM's menu: the same three money moves, then sign off. */
+/** The ATM's menu: the same three money moves, then sign off. The ATM kiosk itself is the visual interface. */
 export function atmMenuPrompt(gp: GpPurse | null | undefined, voice: Voice = 'adventure'): RevealPromptOptions {
   return {
     speaker: 'ATM',
     accent: 'atm',
-    sprite: 'atm',
     lines: [copyFor('bank.ask.atmWelcome', voice)],
     choices: [
       { id: 'deposit', label: 'Deposit to Savings', icon: 'piggy-bank' },
@@ -104,7 +103,8 @@ export function amountAsk(
   action: BankAction,
   gp: GpPurse | null | undefined,
   speaker: string = BANKER,
-  voice: Voice = 'adventure'
+  voice: Voice = 'adventure',
+  sprite?: RevealSpriteName
 ): AmountAsk {
   const purse = normalizePurse(gp);
   const bill = hospitalBillOf(gp);
@@ -133,11 +133,14 @@ export function amountAsk(
   }
   const refusal = bankRefusal(action, gp, probe, voice);
   if (refusal) return { refusal };
+  const isAtm = speaker === 'ATM';
+  const resolvedSprite = sprite !== undefined ? sprite : (isAtm ? undefined : 'coins');
+  const accent = isAtm ? 'atm' : 'bank';
   return {
     prompt: {
       speaker,
-      accent: 'bank',
-      sprite: 'coins',
+      accent,
+      ...(resolvedSprite ? { sprite: resolvedSprite } : {}),
       lines: [line],
       amount: { min: 1, max, step: 1, presets: amountPresets(max) },
       choices: [
