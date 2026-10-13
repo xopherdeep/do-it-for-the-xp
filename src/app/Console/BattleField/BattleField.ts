@@ -34,7 +34,7 @@ import BattlePotionSheet from "./components/BattlePotionSheet.vue";
 import BattlePowersSheet from "./components/BattlePowersSheet.vue";
 import XpBattleTaskMenu from "./components/XpBattleTaskMenu.vue";
 import XpBattleRadialMenu from "./components/XpBattleRadialMenu.vue";
-import type { HeroAnimation, HeroLook } from "@/lib/hero-look/types";
+import type { HeroAnimation } from "@/lib/hero-look/types";
 import { useGameStore } from "@/lib/store/stores/game";
 import appConfig from "@/app.config";
 
