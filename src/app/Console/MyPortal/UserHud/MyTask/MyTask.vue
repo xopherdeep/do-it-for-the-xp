@@ -109,7 +109,8 @@
           </ion-toolbar>
         </ion-card>
 
-        <ion-fab :activated="userMenuActive" vertical="bottom" horizontal="center" slot="fixed" @click="focusUserMenu">
+        <ion-fab class="hero-fab" :activated="userMenuActive" vertical="bottom" horizontal="center" slot="fixed"
+          @click.capture="onFabTap" @click="focusUserMenu">
           <ion-fab-button color="light">
             <ion-img class="ion-no-padding" :src="$getUserAvatar(user)"></ion-img>
           </ion-fab-button>

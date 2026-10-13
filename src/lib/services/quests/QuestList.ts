@@ -1,4 +1,4 @@
-import { addDays, format, isSameDay, startOfDay } from "date-fns";
+import { addDays, differenceInCalendarDays, format, isSameDay, startOfDay } from "date-fns";
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { QuestRewards } from "@/lib/databases/QuestLogDb";
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
@@ -117,6 +117,25 @@ export const dueLabelFor = (due: Date | null, date: Date): string => {
   if (!due) return "Anytime";
   const clock = format(due, "h:mmaaa");
   return isSameDay(due, date) ? clock : `${dayLabelFor(due, date)} ${clock}`;
+};
+
+/**
+ * The quest card's due line, relative to `date`: today's reads as a bare clock ("6:00PM"); any other day names
+ * itself first. The next days read "Tomorrow" or "Yesterday", the rest of the coming week by weekday ("Fri 6:00PM",
+ * where the weekday cannot be mistaken), anything further out or further back with its date ("Sat 17 Oct 6:00PM").
+ * A weekly or custom quest is due on the last day of its window, so the day matters (QuestSchedule.deadlineDayOf).
+ */
+export const cardDueLabelFor = (due: Date, date: Date): string => {
+  const clock = format(due, "h:mma");
+  const daysAhead = differenceInCalendarDays(due, date);
+  const isToday = daysAhead === 0;
+  const isTomorrow = daysAhead === 1;
+  const isYesterday = daysAhead === -1;
+  if (isToday) return clock;
+  if (isTomorrow) return `Tomorrow ${clock}`;
+  if (isYesterday) return `Yesterday ${clock}`;
+  const isWithinTheWeek = daysAhead > 1 && daysAhead < 7;
+  return `${format(due, isWithinTheWeek ? "EEE" : "EEE d MMM")} ${clock}`;
 };
 
 /**

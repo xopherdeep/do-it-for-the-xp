@@ -8,6 +8,8 @@ import {
 } from "@ionic/vue";
 import { getQuestEngine } from "@/lib/engine/quests/QuestEngine";
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
+import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
+import { checkClaimWindow } from "@/lib/services/quests/QuestClaimGuard";
 import { completeQuest } from "@/lib/services/quests/QuestCompletionService";
 import type { CompletionResult } from "@/lib/services/quests/QuestCompletionService";
 import { questListCounts, questListFor } from "@/lib/services/quests/QuestList";
@@ -306,7 +308,19 @@ export default defineComponent({
       if (this.finishing) return;
       this.finishing = row.id;
       try {
-        const result = await completeQuest(row.quest, String(this.userId), "claim");
+        // The quest log is the source of truth, so a stale row can never pay out twice. Every hero's log: another
+        // assignee's clear of a shared quest (Team Effort, Rat Race) already used the window up
+        const heroId = String(this.userId);
+        const entries = await getQuestLogDb().getEntries();
+        const effects = (this as any).userStore.getUserById(this.userId)?.questEffects;
+        const check = checkClaimWindow(row.quest, entries, heroId, new Date(), effects);
+        if (!check.canClaim) {
+          // The row was out of date: show the board as the log has it
+          await this.loadBoard();
+          this.say(row.title, check.notice, 2200);
+          return;
+        }
+        const result = await completeQuest(row.quest, heroId, "claim");
         await this.loadBoard();
         this.announceDone(row, result);
       } catch {

@@ -2,6 +2,8 @@ import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import {
   assigneeOf,
+  cardDueLabelFor,
+  dueFor,
   dueLabelFor,
   newQuickTask,
   questListCounts,
@@ -219,6 +221,32 @@ describe("dueLabelFor", () => {
   it("reads yesterday and far-off days", () => {
     expect(dueLabelFor(new Date(2026, 9, 9, 8, 0), NOON)).toBe("Yesterday 8:00am");
     expect(dueLabelFor(new Date(2026, 10, 1, 8, 0), NOON)).toBe("Sun 1 Nov 8:00am");
+  });
+});
+
+describe("cardDueLabelFor", () => {
+  it("keeps today's due time a bare clock", () => {
+    expect(cardDueLabelFor(new Date(2026, 9, 10, 18, 0), NOON)).toBe("6:00PM");
+  });
+
+  it("names the due day for a quest that is not due today", () => {
+    // NOON is Saturday 2026-10-10: a weekly quest due next Friday, a custom one due in a fortnight, one a day late
+    expect(cardDueLabelFor(new Date(2026, 9, 11, 18, 0), NOON)).toBe("Tomorrow 6:00PM");
+    expect(cardDueLabelFor(new Date(2026, 9, 16, 18, 0), NOON)).toBe("Fri 6:00PM");
+    expect(cardDueLabelFor(new Date(2026, 9, 17, 18, 0), NOON)).toBe("Sat 17 Oct 6:00PM");
+    expect(cardDueLabelFor(new Date(2026, 9, 24, 9, 30), NOON)).toBe("Sat 24 Oct 9:30AM");
+    expect(cardDueLabelFor(new Date(2026, 9, 9, 18, 0), NOON)).toBe("Yesterday 6:00PM");
+    expect(cardDueLabelFor(new Date(2026, 9, 5, 18, 0), NOON)).toBe("Mon 5 Oct 6:00PM");
+  });
+
+  it("reads a weekly quest's due day off its deadline, the way the list row does", () => {
+    // A weekly quest with no listed weekdays is due on the last day of its Monday-to-Sunday week
+    const weekly = makeQuest({ id: "weekly", basicSchedule: "weekly", startsOn: "2026-10-05T00:00:00", dueByTime: "18:00" });
+    const wednesday = new Date(2026, 9, 7, 12, 0);
+    const due = dueFor(weekly, undefined, wednesday)!;
+    expect(cardDueLabelFor(due, wednesday)).toBe("Sun 6:00PM");
+    const [row] = questListFor("hero-1", wednesday, [onBoard(weekly)], {});
+    expect(row.dueLabel).toBe("Sun 11 Oct 6:00pm");
   });
 });
 

@@ -45,10 +45,13 @@ import { formatQuestName } from "@/lib/utils/format";
 import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 import { format, set } from "date-fns";
 import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
-import { DAY_TOKENS, effectiveDeadline, getQuestProgressFor, hasPendingClaimFor } from "@/lib/engine/quests/QuestSchedule";
+import { DAY_TOKENS, effectiveDeadline } from "@/lib/engine/quests/QuestSchedule";
+import { checkClaimWindow } from "@/lib/services/quests/QuestClaimGuard";
+import { cardDueLabelFor } from "@/lib/services/quests/QuestList";
 import { completeQuest, questRewards } from "@/lib/services/quests/QuestCompletionService";
 import type { CompletionResult } from "@/lib/services/quests/QuestCompletionService";
 import { questBattleRoute } from "@/app/Console/BattleField/battle/battleContext";
+import { isFabOpening } from "./fabOpening";
 
 // Define interfaces for the app
 interface Item {
@@ -90,16 +93,6 @@ const dueTimeToday = (dueByTime = ""): Date | null => {
   return set(new Date(), { hours, minutes, seconds: 0, milliseconds: 0 });
 };
 
-const resolveClaimNotice = (hasProgress: boolean, awaitingApproval: boolean): string => {
-  if (!hasProgress) {
-    return "This quest is not due right now.";
-  }
-  if (awaitingApproval) {
-    return "Your claim is waiting for the Game Master.";
-  }
-  return "You already tamed this quest.";
-};
-
 export default defineComponent({
   // boardStatus: 'open' | 'done' | 'notDue' as seen on the quest board the modal was opened from
   // pending: a claim in the current window is still waiting for the Game Master (a done quest then reads Pending, not Tamed)
@@ -130,6 +123,7 @@ export default defineComponent({
       isOpen: false,
       // slider: IonSlides,
       userMenuActive: false,
+      fabOpenedAt: 0, // when the fab's menu opened by itself, so a tap just after it goes to the primary action
       itemsDropped: [
         {
           label: "Potion",
@@ -207,13 +201,13 @@ export default defineComponent({
       if (this.isPending) return "fad fa-hourglass-half fa-lg";
       return this.isBeastQuest && !this.isDone ? "fad fa-swords fa-lg" : "fa fa-hand-holding-medical fa-lg";
     },
-    // Today's due time, after the hero's Ice Wand and Chronos' Clock
+    // The quest's due moment: today's due time, or the last day of a weekly or custom window, after the hero's Ice Wand and Chronos' Clock
     dueTime() {
       const effects = (this as any).user?.questEffects;
       return this.item ? effectiveDeadline(this.item, effects, new Date()) : dueTimeToday(this.item?.dueByTime);
     },
     dueLabel() {
-      return this.dueTime ? format(this.dueTime, "h:mma") : null;
+      return this.dueTime ? cardDueLabelFor(this.dueTime, new Date()) : null;
     },
     // Flip-clock target: only while the quest is still open and today's due time is ahead
     deadline() {
@@ -263,7 +257,19 @@ export default defineComponent({
       $fx.rpg[theme.rpg].fillPoints.currentTime = 0;
     },
     didPresent() {
-      this.timers.startTimeout(500, () => (this.userMenuActive = true));
+      this.timers.startTimeout(500, () => {
+        this.userMenuActive = true;
+        this.fabOpenedAt = Date.now();
+      });
+    },
+    // The avatar toggles the fab's menu. Just after the menu opened by itself that tap means "go": run the primary
+    // action (Fight!, Claim) instead of letting Ionic shut the menu again. Taps on the buttons themselves pass through.
+    onFabTap(ev: Event) {
+      const isAvatarTap = Boolean((ev.target as Element | null)?.closest?.("ion-fab-button"));
+      const isTapDuringOpening = isAvatarTap && isFabOpening(this.fabOpenedAt, Date.now());
+      if (!isTapDuringOpening) return;
+      ev.stopPropagation();
+      void this.clickClaim();
     },
     willPresent() {
       this.$fx.ui[this.$fx.theme.ui].openTask.play();
@@ -480,13 +486,12 @@ export default defineComponent({
         const entries = await getQuestLogDb().getEntries();
         // The hero's items (a snooze, a pull-in) count the same way the board counted them
         const effects = (this as any).user?.questEffects;
-        const now = new Date();
-        const progress = getQuestProgressFor(this.item, entries, heroId, now, effects);
-        if (!progress?.isOpen) {
+        const check = checkClaimWindow(this.item, entries, heroId, new Date(), effects);
+        if (!check.canClaim) {
           // The log says the window is used up already; show it the way the board would
-          this.claimed = Boolean(progress);
-          this.awaitingApproval = this.claimed && hasPendingClaimFor(this.item, entries, heroId, now, effects);
-          this.say(resolveClaimNotice(Boolean(progress), this.awaitingApproval));
+          this.claimed = check.isUsedUp;
+          this.awaitingApproval = check.awaitingApproval;
+          this.say(check.notice);
           return;
         }
         const result = await completeQuest(this.item, heroId, "claim");
