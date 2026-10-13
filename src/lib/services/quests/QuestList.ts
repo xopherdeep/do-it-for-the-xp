@@ -2,7 +2,7 @@ import { addDays, format, isSameDay, startOfDay } from "date-fns";
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { QuestRewards } from "@/lib/databases/QuestLogDb";
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
-import { effectiveDeadline, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
+import { effectiveDeadline, isSharedQuest, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 
 /**
  * The quest log as a plain to-do list. Pure: no storage, no Vue.
@@ -10,6 +10,7 @@ import { effectiveDeadline, type HeroQuestEffects } from "@/lib/engine/quests/Qu
  * `questListFor` turns the hero's quest board (system quests and ad-hoc tasks alike) into rows with
  * the assignee's nick, the due time, a status and the rewards, sorted the way a to-do list reads:
  * overdue -> due soon (open, earliest deadline first) -> later (not due yet) -> pending -> done.
+ * A shared quest another assignee cleared reads "Done by Mia".
  *
  * `newQuickTask` is the "Add task" shape: a one-off Achievement record assigned to one family member,
  * saved through AchievementDb like any quest the Game Master authors, so the Compendium shows it too.
@@ -29,6 +30,7 @@ export interface QuestListRow {
   /** "6:00pm", "Tomorrow 6:00pm", "Wed 14 Oct", "Anytime" */
   dueLabel: string;
   status: QuestListStatus;
+  /** STATUS_LABELS, or "Done by Mia" when other assignees cleared a shared quest without the hero */
   statusLabel: string;
   requiresApproval: boolean;
   rewards: QuestRewards;
@@ -92,17 +94,15 @@ export const assigneeOf = (
   return { assigneeId, assigneeName: others > 0 ? `${name} +${others}` : name };
 };
 
-/** A once quest is due on the day it starts, at its due time; recurring quests are due today at theirs. */
 const isOnce = (quest: Pick<Achievement, "basicSchedule">) => quest.basicSchedule === "once";
 
-/** When the quest is due as the hero sees it on `date`, or null when it has no due time. */
-export const dueFor = (quest: Achievement, effects: HeroQuestEffects | undefined, date: Date): Date | null => {
-  if (isOnce(quest)) {
-    const starts = parseDate(quest.startsOn);
-    return quest.dueByTime ? effectiveDeadline(quest, effects, starts || date) : null;
-  }
-  return effectiveDeadline(quest, effects, date);
-};
+/**
+ * When the quest is due as the hero sees it on `date`, or null when it has no due time: the one due-date rule
+ * the board and the alerts read (QuestSchedule.effectiveDeadline). A once quest is due on the day it starts, a
+ * window that spans several days on its last day, every other quest on `date`.
+ */
+export const dueFor = (quest: Achievement, effects: HeroQuestEffects | undefined, date: Date): Date | null =>
+  effectiveDeadline(quest, effects, date);
 
 /** The day in the hero's words, relative to `date`: "Today", "Tomorrow", "Yesterday" or "Wed 14 Oct". */
 export const dayLabelFor = (day: Date, date: Date): string => {
@@ -117,6 +117,19 @@ export const dueLabelFor = (due: Date | null, date: Date): string => {
   if (!due) return "Anytime";
   const clock = format(due, "h:mmaaa");
   return isSameDay(due, date) ? clock : `${dayLabelFor(due, date)} ${clock}`;
+};
+
+/**
+ * "Done by Mia" (or "Done by Mia +1") when the hero's window of a shared quest was filled by other assignees
+ * only; null otherwise, so the row keeps its own status label.
+ */
+export const doneByLabelFor = (item: QuestBoardItem, userId: string, users: FamilyMembers): string | null => {
+  const completers = (item.doneBy ?? []).map(String);
+  const others = completers.filter((id) => id !== String(userId));
+  const isClearedByOthersOnly = isSharedQuest(item.quest) && others.length > 0 && others.length === completers.length;
+  if (!isClearedByOthersOnly) return null;
+  const name = nickOf(users[others[0]], others[0]);
+  return others.length > 1 ? `Done by ${name} +${others.length - 1}` : `Done by ${name}`;
 };
 
 const statusOf = (item: QuestBoardItem, due: Date | null, date: Date): QuestListStatus | null => {
@@ -166,7 +179,7 @@ export const questListFor = (
       due,
       dueLabel: due || status !== "later" ? dueLabelFor(due, date) : dayLabelFor(parseDate(quest.startsOn) || date, date),
       status,
-      statusLabel: STATUS_LABELS[status],
+      statusLabel: (status === "done" && doneByLabelFor(item, userId, users)) || STATUS_LABELS[status],
       requiresApproval: Boolean(quest.requiresApproval),
       rewards: rewardsOf(quest),
       quest,

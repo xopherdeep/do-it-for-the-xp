@@ -28,8 +28,10 @@ export interface QuestAlert {
 
 /**
  * The alerts the board warrants at `now`: an overdue note for every open quest past its deadline, a
- * due-soon note for every open quest due within DUE_SOON_MS. Quests waiting on the Game Master, done
- * quests and quests not due today are left alone, and so is everything while Chronos' Clock holds time.
+ * due-soon note for every open quest due within DUE_SOON_MS. The deadline is the board's one due-date rule
+ * (effectiveDeadline: a weekly quest is due on its week's last day, not every evening of it). Quests waiting on
+ * the Game Master, done quests (a shared one another assignee cleared included) and quests not due today are
+ * left alone, and so is everything while Chronos' Clock holds time.
  */
 export const pickQuestAlerts = (
   board: readonly QuestBoardItem[],

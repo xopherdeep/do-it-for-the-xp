@@ -475,8 +475,9 @@ export default defineComponent({
       this.claiming = true;
       const heroId = String(this.userId);
       try {
-        // The quest log is the source of truth, so a stale modal can never pay out twice
-        const entries = await getQuestLogDb().getEntriesForUser(heroId);
+        // The quest log is the source of truth, so a stale modal can never pay out twice. Every hero's log:
+        // another assignee's clear of a shared quest (Team Effort, Rat Race) already used the window up
+        const entries = await getQuestLogDb().getEntries();
         // The hero's items (a snooze, a pull-in) count the same way the board counted them
         const effects = (this as any).user?.questEffects;
         const now = new Date();

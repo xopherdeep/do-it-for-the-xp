@@ -126,6 +126,15 @@ describe("questListFor", () => {
     expect(row.dueLabel).toBe("Thu 8 Oct 5:00pm");
   });
 
+  it("shows a weekly quest due on its week's last day and open until then", () => {
+    // The week runs Monday 5 to Sunday 11 Oct; the hero reads the list on Saturday noon, past 09:00
+    const quest = makeQuest({ id: "weekly", basicSchedule: "weekly", startsOn: "2026-10-05T00:00:00", dueByTime: "09:00" });
+    const [row] = questListFor("hero-1", NOON, [onBoard(quest)], users);
+    expect(row.status).toBe("open");
+    expect(row.due).toEqual(new Date(2026, 9, 11, 9, 0));
+    expect(row.dueLabel).toBe("Tomorrow 9:00am");
+  });
+
   it("honours the Ice Wand's extension on the due time", () => {
     const quest = makeQuest({ id: "extended", dueByTime: "09:00" });
     const effects = { extendedUntil: { extended: new Date(2026, 9, 10, 16, 0).toISOString() } };
@@ -152,6 +161,35 @@ describe("questListFor", () => {
       users
     );
     expect(questListCounts(rows)).toEqual({ overdue: 1, open: 1, later: 0, pending: 0, done: 1 });
+  });
+});
+
+describe("shared quests on the list", () => {
+  const team = (overrides: Partial<Achievement> = {}) =>
+    makeQuest({ type: "collaborate", assignee: ["hero-1", "hero-2"], ...overrides });
+  const doneBy = (item: QuestBoardItem, ids: string[]): QuestBoardItem => ({ ...item, doneBy: ids });
+
+  it("says who cleared a shared quest for the hero", () => {
+    const [row] = questListFor("hero-1", NOON, [doneBy(onBoard(team(), "done"), ["hero-2"])], users);
+    expect(row).toMatchObject({ status: "done", statusLabel: "Done by Zoe" });
+  });
+
+  it("names the first and counts the rest when several others cleared it", () => {
+    const race = team({ type: "compete", assignee: ["hero-1", "hero-2", "gm-1"] });
+    const [row] = questListFor("hero-1", NOON, [doneBy(onBoard(race, "done"), ["hero-2", "gm-1"])], users);
+    expect(row.statusLabel).toBe("Done by Zoe +1");
+  });
+
+  it("keeps Tamed when the hero helped clear it, and for every individual quest", () => {
+    const helped = questListFor("hero-1", NOON, [doneBy(onBoard(team(), "done"), ["hero-2", "hero-1"])], users);
+    expect(helped[0].statusLabel).toBe("Tamed");
+    const solo = questListFor("hero-1", NOON, [doneBy(onBoard(makeQuest(), "done"), ["hero-2"])], users);
+    expect(solo[0].statusLabel).toBe("Tamed");
+  });
+
+  it("keeps a shared claim that waits on the Game Master pending", () => {
+    const [row] = questListFor("hero-1", NOON, [doneBy(onBoard(team(), "done", { pending: true }), ["hero-2"])], users);
+    expect(row).toMatchObject({ status: "pending", statusLabel: "Pending the Game Master" });
   });
 });
 

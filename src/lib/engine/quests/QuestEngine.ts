@@ -5,6 +5,7 @@ import {
     hasPendingClaimFor,
     isDayOff,
     isQuestOverdue,
+    questCompletersFor,
     questMatchesSegment,
     questTimesOfDay,
     slotsFor,
@@ -122,7 +123,9 @@ class QuestEngine {
      * `pending` is set when a claim in the current window still waits for the Game Master; it counts
      * toward the allowance, so a done quest with `pending` is awaiting approval rather than tamed.
      * `effects` are the hero's own item effects (snoozes, pull-ins, extensions, a pause); `overdue` is set on an
-     * open quest whose deadline for that day has passed.
+     * open quest whose deadline has passed (QuestSchedule.effectiveDeadline: due on a window's last day).
+     * A shared quest (Team Effort, Rat Race) reads the same for every assignee: one hero's clear makes it done
+     * for all of them, and `doneBy` says who.
      */
     async getQuestBoardForUser(
         userId: string,
@@ -132,7 +135,8 @@ class QuestEngine {
     ): Promise<QuestBoardItem[]> {
         const [quests, entries] = await Promise.all([
             this.getQuestsForUser(userId, filter),
-            getQuestLogDb().getEntriesForUser(userId),
+            // Every hero's log: a shared quest counts its other assignees' clears (the rules filter by hero)
+            getQuestLogDb().getEntries(),
         ]);
         // Gale's Wind: a day off hides every chore
         if (isDayOff(effects, date)) return [];
@@ -141,7 +145,8 @@ class QuestEngine {
             const status: QuestBoardStatus = QuestEngine.resolveBoardStatus(progress);
             const pending = hasPendingClaimFor(quest, entries, userId, date, effects);
             const overdue = status === 'open' && isQuestOverdue(quest, effects, date);
-            return { quest, status, progress, pending, overdue, slots: slotsFor(quest, progress) };
+            const doneBy = questCompletersFor(quest, entries, userId, date, effects);
+            return { quest, status, progress, pending, overdue, doneBy, slots: slotsFor(quest, progress) };
         });
     }
 
@@ -165,8 +170,13 @@ export interface QuestBoardItem {
     progress: QuestProgress | null;
     /** The hero has a claim in the current window that the Game Master has not approved or rejected yet */
     pending: boolean;
-    /** Open, and its deadline on this day has passed (after the hero's Ice Wand and Chronos' Clock) */
+    /** Open, and its deadline has passed (on a window's last day, after the hero's Ice Wand and Chronos' Clock) */
     overdue: boolean;
+    /**
+     * The heroes whose completions fill the current window, in the order they did them: the hero (or nobody) for
+     * an individual quest, any assignee for a shared one. Set by getQuestBoardForUser; hand-built items may leave it out.
+     */
+    doneBy?: string[];
     /**
      * The quest's times of day and which are done in the current window (see QuestSchedule.slotsFor); empty for
      * a quest with no listed times. Always set by getQuestBoardForUser; hand-built items may leave it out.

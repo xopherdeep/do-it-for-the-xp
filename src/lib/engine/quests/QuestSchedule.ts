@@ -22,6 +22,8 @@ import type { QuestLogEntry } from "@/lib/databases/QuestLogDb";
  *   daily   -> one window per day, allowance 1
  *   weekly  -> one window per listed weekday (or the whole week with showDailyUntilComplete)
  *   custom  -> "customFrequency times every customPeriodNumber customPeriodType(s)"
+ * A shared quest (Team Effort, Rat Race) counts every assignee's completions in the window; the rest count the
+ * hero's own. A quest is due at its due time on its deadline day (deadlineDayOf): a window's last day.
  */
 export type QuestScheduleFields = Pick<
   Achievement,
@@ -36,6 +38,30 @@ export type QuestScheduleFields = Pick<
   | "endsOn"
   | "timesOfDay"
 >;
+
+/** What the schedule rules read off a quest; a record that leaves its schedule out reads as a daily quest. */
+export type QuestScheduleInput = Pick<QuestScheduleFields, "id"> & Partial<QuestScheduleFields>;
+
+/** What the due-date rule reads: the schedule and the due time. */
+export type QuestDeadlineFields = QuestScheduleInput & Pick<Achievement, "id" | "dueByTime">;
+
+/** Who a quest is for: its assignment type and its assignees. */
+export type QuestPartyFields = Partial<Pick<Achievement, "type" | "assignee">>;
+
+/**
+ * Team Effort (`collaborate`) and Rat Race (`compete`) are shared: one assignee's clear fills the window for every
+ * assignee, and only the hero who did it is paid. Solo, Rotate and Open Bounty quests count per hero.
+ */
+export const SHARED_QUEST_TYPES: readonly string[] = ["collaborate", "compete"];
+
+export const isSharedQuest = (quest: QuestPartyFields): boolean => SHARED_QUEST_TYPES.includes(String(quest.type ?? ""));
+
+/** The heroes whose completions fill this hero's window: every assignee of a shared quest, else the hero alone. */
+export const countedHeroesOf = (quest: QuestPartyFields, userId: string): string[] => {
+  const hero = String(userId);
+  if (!isSharedQuest(quest)) return [hero];
+  return [...new Set([hero, ...(quest.assignee ?? []).map(String)])];
+};
 
 /** The four parts of a day the calendar tabs (Morn / Noon / Even / Night) and a quest's times speak in. */
 export type TimeOfDay = "morning" | "noon" | "evening" | "night";
@@ -184,16 +210,38 @@ export const isSchedulePaused = (effects: HeroQuestEffects | undefined, now: Dat
 };
 
 /**
- * When the quest is late on `date`, after the hero's items: the Ice Wand's extension replaces the due time
- * while it lies ahead of it, and a pause that began before the deadline pushes it back by the time paused.
- * Null when the quest has no due time and no extension.
+ * The calendar day the quest's deadline falls on, seen from `date`. This is the one due-date rule: the board's
+ * `overdue`, the list, the due-soon and overdue alerts and the Ice Wand all read it through effectiveDeadline.
+ * - once: the day it starts (its only due day), else `date`'s day;
+ * - a window that spans several days (weekly without listed weekdays, custom periods): the window's last day,
+ *   or the day the quest ends when that comes first;
+ * - a one-day window (daily, a listed weekday, a Hook Shot pull-in) or no window at all: `date`'s day.
+ */
+export const deadlineDayOf = (quest: QuestDeadlineFields, effects: HeroQuestEffects | undefined, date: Date): Date => {
+  const day = startOfDay(date);
+  if (quest.basicSchedule === "once") {
+    const starts = parseDate(quest.startsOn);
+    return starts ? startOfDay(starts) : day;
+  }
+  const window = getEffectiveWindow(quest, effects, date);
+  if (!window) return day;
+  const lastDay = addDays(window.end, -1);
+  const ends = parseDate(quest.endsOn);
+  const endsBeforeLastDay = ends && startOfDay(ends) < lastDay;
+  return endsBeforeLastDay ? startOfDay(ends) : lastDay;
+};
+
+/**
+ * When the quest is late, seen from `date`, after the hero's items: the due time on the deadline day
+ * (deadlineDayOf), then the Ice Wand's extension replaces it while it lies ahead of it, and a pause that began
+ * before the deadline pushes it back by the time paused. Null when the quest has no due time and no extension.
  */
 export const effectiveDeadline = (
-  quest: Pick<Achievement, "id" | "dueByTime">,
+  quest: QuestDeadlineFields,
   effects: HeroQuestEffects | undefined,
   date: Date
 ): Date | null => {
-  let deadline = dueTimeOn(quest.dueByTime, date);
+  let deadline = dueTimeOn(quest.dueByTime, deadlineDayOf(quest, effects, date));
   const extended = parseDate(effects?.extendedUntil?.[quest.id]);
   const hasLaterExtension = extended && (!deadline || extended > deadline);
   if (hasLaterExtension) deadline = extended;
@@ -207,9 +255,9 @@ export const effectiveDeadline = (
   return deadline;
 };
 
-/** True when the quest's deadline on `now`'s day has passed and the clock is not paused. */
+/** True when the quest's deadline (effectiveDeadline, seen from `now`) has passed and the clock is not paused. */
 export const isQuestOverdue = (
-  quest: Pick<Achievement, "id" | "dueByTime">,
+  quest: QuestDeadlineFields,
   effects: HeroQuestEffects | undefined,
   now: Date
 ): boolean => {
@@ -218,7 +266,7 @@ export const isQuestOverdue = (
   return Boolean(deadline && now > deadline);
 };
 
-export const isQuestActiveOn = (quest: QuestScheduleFields, date: Date): boolean => {
+export const isQuestActiveOn = (quest: QuestScheduleInput, date: Date): boolean => {
   const day = startOfDay(date);
   const starts = parseDate(quest.startsOn);
   const isBeforeStart = starts && startOfDay(starts) > day;
@@ -254,7 +302,7 @@ const alignedStart = (anchor: Date, day: Date, span: number, unit: "day" | "mont
   return start;
 };
 
-const customWindow = (quest: QuestScheduleFields, day: Date, anchor: Date): QuestWindow => {
+const customWindow = (quest: QuestScheduleInput, day: Date, anchor: Date): QuestWindow => {
   const allowance = Math.max(1, quest.customFrequency || 1);
   const span = Math.max(1, quest.customPeriodNumber || 1);
   switch (quest.customPeriodType) {
@@ -278,7 +326,7 @@ const customWindow = (quest: QuestScheduleFields, day: Date, anchor: Date): Ques
 };
 
 /** The completion window containing `date`, or null when the quest is not due that day. */
-export const getQuestWindow = (quest: QuestScheduleFields, date: Date): QuestWindow | null => {
+export const getQuestWindow = (quest: QuestScheduleInput, date: Date): QuestWindow | null => {
   if (!isQuestActiveOn(quest, date)) return null;
   const day = startOfDay(date);
   const anchor = startOfDay(parseDate(quest.startsOn) || day);
@@ -311,7 +359,7 @@ export const getQuestWindow = (quest: QuestScheduleFields, date: Date): QuestWin
  * one-day window on a day it was pulled into although it was not due (Hook Shot).
  */
 export const getEffectiveWindow = (
-  quest: QuestScheduleFields,
+  quest: QuestScheduleInput,
   effects: HeroQuestEffects | undefined,
   date: Date
 ): QuestWindow | null => {
@@ -324,9 +372,14 @@ export const getEffectiveWindow = (
 
 const countsTowardAllowance = (entry: QuestLogEntry) => entry.status !== "rejected";
 
-/** The hero's log entry for this quest, completed inside the window (whatever its approval status). */
-const isEntryInWindow = (entry: QuestLogEntry, questId: string, userId: string, window: QuestWindow): boolean => {
-  const isUnrelatedEntry = entry.questId !== questId || entry.userId !== userId;
+/** One hero's id, or the heroes a shared quest counts (countedHeroesOf). */
+type HeroIds = string | readonly string[];
+
+const heroIdsOf = (heroes: HeroIds): string[] => (typeof heroes === "object" ? [...heroes] : [heroes]).map(String);
+
+/** A log entry for this quest by one of the heroes, completed inside the window (whatever its approval status). */
+const isEntryInWindow = (entry: QuestLogEntry, questId: string, heroes: readonly string[], window: QuestWindow): boolean => {
+  const isUnrelatedEntry = entry.questId !== questId || !heroes.includes(String(entry.userId));
   if (isUnrelatedEntry) return false;
   const completedAt = new Date(entry.completedAt);
   return completedAt >= window.start && completedAt < window.end;
@@ -335,19 +388,23 @@ const isEntryInWindow = (entry: QuestLogEntry, questId: string, userId: string, 
 export const countCompletionsInWindow = (
   entries: QuestLogEntry[],
   questId: string,
-  userId: string,
+  userId: HeroIds,
   window: QuestWindow
-): number =>
-  entries.filter((entry) => countsTowardAllowance(entry) && isEntryInWindow(entry, questId, userId, window)).length;
+): number => {
+  const heroes = heroIdsOf(userId);
+  return entries.filter((entry) => countsTowardAllowance(entry) && isEntryInWindow(entry, questId, heroes, window)).length;
+};
 
 /** Completions in the window that still wait for the Game Master to approve or reject them. */
 export const countPendingInWindow = (
   entries: QuestLogEntry[],
   questId: string,
-  userId: string,
+  userId: HeroIds,
   window: QuestWindow
-): number =>
-  entries.filter((entry) => entry.status === "pending" && isEntryInWindow(entry, questId, userId, window)).length;
+): number => {
+  const heroes = heroIdsOf(userId);
+  return entries.filter((entry) => entry.status === "pending" && isEntryInWindow(entry, questId, heroes, window)).length;
+};
 
 export interface QuestProgress {
   done: number;
@@ -355,8 +412,12 @@ export interface QuestProgress {
   isOpen: boolean;
 }
 
+/**
+ * How far the hero is through the window that contains `date`. A shared quest (isSharedQuest) counts every
+ * assignee's completions, so one hero's clear fills it for all of them; every other quest counts the hero's own.
+ */
 export const getQuestProgressFor = (
-  quest: QuestScheduleFields,
+  quest: QuestScheduleFields & QuestPartyFields,
   entries: QuestLogEntry[],
   userId: string,
   date: Date = new Date(),
@@ -364,28 +425,49 @@ export const getQuestProgressFor = (
 ): QuestProgress | null => {
   const window = getEffectiveWindow(quest, effects, date);
   if (!window) return null;
-  const done = countCompletionsInWindow(entries, quest.id, userId, window);
+  const done = countCompletionsInWindow(entries, quest.id, countedHeroesOf(quest, userId), window);
   return { done, allowance: window.allowance, isOpen: done < window.allowance };
 };
 
 /**
- * True when the hero has a claim waiting for the Game Master inside the window that contains `date`.
- * Pending claims count toward the allowance, so a used-up quest with a pending claim is "pending", not "tamed".
+ * True when the hero (or, for a shared quest, any assignee) has a claim waiting for the Game Master inside the
+ * window that contains `date`. Pending claims count toward the allowance, so a used-up quest with a pending
+ * claim is "pending", not "tamed".
  */
 export const hasPendingClaimFor = (
-  quest: QuestScheduleFields,
+  quest: QuestScheduleFields & QuestPartyFields,
   entries: QuestLogEntry[],
   userId: string,
   date: Date = new Date(),
   effects?: HeroQuestEffects
 ): boolean => {
   const window = getEffectiveWindow(quest, effects, date);
-  return window ? countPendingInWindow(entries, quest.id, userId, window) > 0 : false;
+  return window ? countPendingInWindow(entries, quest.id, countedHeroesOf(quest, userId), window) > 0 : false;
+};
+
+/**
+ * The heroes whose completions count toward this hero's window, in the order they did them: the hero alone
+ * (or nobody) for an individual quest, any of the assignees for a shared one. The list shows "Done by Mia" from it.
+ */
+export const questCompletersFor = (
+  quest: QuestScheduleFields & QuestPartyFields,
+  entries: QuestLogEntry[],
+  userId: string,
+  date: Date = new Date(),
+  effects?: HeroQuestEffects
+): string[] => {
+  const window = getEffectiveWindow(quest, effects, date);
+  if (!window) return [];
+  const heroes = countedHeroesOf(quest, userId);
+  const counted = entries
+    .filter((entry) => countsTowardAllowance(entry) && isEntryInWindow(entry, quest.id, heroes, window))
+    .sort((a, b) => new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime());
+  return [...new Set(counted.map((entry) => String(entry.userId)))];
 };
 
 /** True when the hero can still complete this quest on `date`. */
 export const isQuestOpenFor = (
-  quest: QuestScheduleFields,
+  quest: QuestScheduleFields & QuestPartyFields,
   entries: QuestLogEntry[],
   userId: string,
   date: Date = new Date(),

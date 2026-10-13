@@ -1,12 +1,17 @@
 import QuestEngine, { boardStatusInSegment, type QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import {
   countPendingInWindow,
+  deadlineDayOf,
+  effectiveDeadline,
   emptyBoardLine,
   getQuestWindow,
   hasPendingClaimFor,
   isQuestActiveOn,
   isQuestOpenFor,
+  isQuestOverdue,
+  isSharedQuest,
   getQuestProgressFor,
+  questCompletersFor,
   questMatchesSegment,
   questTimesOfDay,
   slotsFor,
@@ -19,8 +24,9 @@ import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { QuestLogEntry } from "@/lib/databases/QuestLogDb";
 
 // The quest board reads quests and the quest log from IndexedDB-backed storage; these specs feed it plain arrays.
+// The board reads every hero's log: a shared quest counts its other assignees' clears.
 const mockGetTasks = jest.fn();
-const mockGetEntriesForUser = jest.fn();
+const mockGetEntries = jest.fn();
 
 jest.mock("@/lib/databases/AchievementDb", () => ({
   __esModule: true,
@@ -33,7 +39,7 @@ jest.mock("@/lib/databases/AchievementDb", () => ({
 }));
 
 jest.mock("@/lib/databases/QuestLogDb", () => ({
-  getQuestLogDb: () => ({ getEntriesForUser: (userId: string) => mockGetEntriesForUser(userId) }),
+  getQuestLogDb: () => ({ getEntries: () => mockGetEntries() }),
 }));
 
 // Calendar facts used below: 2026-10-05 is a Monday, 2026-10-08 is a Thursday.
@@ -281,6 +287,142 @@ describe("QuestSchedule", () => {
       expect(countPendingInWindow(entries, "quest-1", "hero-1", window)).toBe(2);
     });
   });
+
+  describe("shared quests (Team Effort, Rat Race)", () => {
+    const now = at("2026-10-08T12:00:00");
+    const assigned = (type: string, overrides: Partial<QuestScheduleFields> = {}) => ({
+      ...makeQuest(overrides),
+      type,
+      assignee: ["hero-1", "hero-2"],
+    });
+    const miaToday = makeEntry("2026-10-08T08:00:00", { userId: "hero-2" });
+
+    it("calls Team Effort and Rat Race shared and every other type individual", () => {
+      expect(isSharedQuest({ type: "collaborate" })).toBe(true);
+      expect(isSharedQuest({ type: "compete" })).toBe(true);
+      for (const type of ["individual", "rotate", "asNeeded", "assigned", undefined]) {
+        expect(isSharedQuest({ type })).toBe(false);
+      }
+    });
+
+    it("fills a shared quest's window for every assignee when one of them clears it", () => {
+      for (const type of ["collaborate", "compete"]) {
+        const quest = assigned(type);
+        expect(getQuestProgressFor(quest, [miaToday], "hero-1", now)).toEqual({ done: 1, allowance: 1, isOpen: false });
+        expect(isQuestOpenFor(quest, [miaToday], "hero-2", now)).toBe(false);
+        expect(questCompletersFor(quest, [miaToday], "hero-1", now)).toEqual(["hero-2"]);
+      }
+    });
+
+    it("keeps every other type counting per hero, as before", () => {
+      for (const type of ["individual", "rotate", "asNeeded"]) {
+        const quest = assigned(type);
+        expect(isQuestOpenFor(quest, [miaToday], "hero-1", now)).toBe(true);
+        expect(isQuestOpenFor(quest, [miaToday], "hero-2", now)).toBe(false);
+        expect(questCompletersFor(quest, [miaToday], "hero-1", now)).toEqual([]);
+      }
+    });
+
+    it("ignores clears by heroes who are not assigned, rejected claims and other windows", () => {
+      const quest = assigned("collaborate");
+      expect(isQuestOpenFor(quest, [{ ...miaToday, userId: "hero-3" }], "hero-1", now)).toBe(true);
+      expect(isQuestOpenFor(quest, [{ ...miaToday, status: "rejected" }], "hero-1", now)).toBe(true);
+      expect(isQuestOpenFor(quest, [makeEntry("2026-10-07T08:00:00", { userId: "hero-2" })], "hero-1", now)).toBe(true);
+    });
+
+    it("shares a claim that waits on the Game Master, and only for a shared quest", () => {
+      const pending = { ...miaToday, status: "pending" as const };
+      expect(hasPendingClaimFor(assigned("collaborate"), [pending], "hero-1", now)).toBe(true);
+      expect(hasPendingClaimFor(assigned("individual"), [pending], "hero-1", now)).toBe(false);
+    });
+
+    it("lists who filled the window in the order they did it, the hero included", () => {
+      const quest = assigned("compete", {
+        basicSchedule: "custom",
+        customFrequency: 3,
+        customPeriodType: "week",
+        startsOn: "2026-10-05T00:00:00",
+      });
+      const entries = [
+        makeEntry("2026-10-08T09:00:00"),
+        makeEntry("2026-10-07T09:00:00", { userId: "hero-2" }),
+        makeEntry("2026-10-06T09:00:00", { userId: "hero-2" }),
+      ];
+      expect(getQuestProgressFor(quest, entries, "hero-1", now)).toEqual({ done: 3, allowance: 3, isOpen: false });
+      expect(questCompletersFor(quest, entries, "hero-1", now)).toEqual(["hero-2", "hero-1"]);
+    });
+  });
+
+  describe("the one due-date rule", () => {
+    // Weekly quests below start Monday 5 Oct 2026, so their week runs Monday 5 to Sunday 11
+    const weekly = (overrides: Partial<QuestScheduleFields> = {}) => ({
+      ...makeQuest({ basicSchedule: "weekly", startsOn: "2026-10-05T00:00:00", ...overrides }),
+      dueByTime: "18:00",
+    });
+
+    it("makes a quest whose window spans the week due on the window's last day", () => {
+      const quest = weekly();
+      expect(deadlineDayOf(quest, undefined, at("2026-10-07T19:00:00"))).toEqual(at("2026-10-11T00:00:00"));
+      expect(effectiveDeadline(quest, undefined, at("2026-10-07T19:00:00"))).toEqual(at("2026-10-11T18:00:00"));
+      const untilDone = weekly({ repeatOnDays: ["mon", "thu"], showDailyUntilComplete: true });
+      expect(effectiveDeadline(untilDone, undefined, at("2026-10-06T12:00:00"))).toEqual(at("2026-10-11T18:00:00"));
+    });
+
+    it("does not read a weekly quest overdue every evening of its week, only after the last day's time", () => {
+      const quest = weekly();
+      expect(isQuestOverdue(quest, undefined, at("2026-10-05T19:00:00"))).toBe(false);
+      expect(isQuestOverdue(quest, undefined, at("2026-10-07T19:00:00"))).toBe(false);
+      expect(isQuestOverdue(quest, undefined, at("2026-10-11T17:59:00"))).toBe(false);
+      expect(isQuestOverdue(quest, undefined, at("2026-10-11T18:30:00"))).toBe(true);
+      expect(isQuestOverdue(quest, undefined, at("2026-10-12T19:00:00"))).toBe(false); // a new week
+    });
+
+    it("keeps one-day windows (listed weekdays, daily) due on their own day", () => {
+      const monday = weekly({ repeatOnDays: ["mon"] });
+      expect(effectiveDeadline(monday, undefined, at("2026-10-05T09:00:00"))).toEqual(at("2026-10-05T18:00:00"));
+      expect(isQuestOverdue(monday, undefined, at("2026-10-05T17:00:00"))).toBe(false);
+      expect(isQuestOverdue(monday, undefined, at("2026-10-05T19:00:00"))).toBe(true);
+      const daily = { ...makeQuest(), dueByTime: "18:00" };
+      expect(effectiveDeadline(daily, undefined, at("2026-10-07T12:00:00"))).toEqual(at("2026-10-07T18:00:00"));
+      expect(isQuestOverdue(daily, undefined, at("2026-10-07T19:00:00"))).toBe(true);
+    });
+
+    it("puts a custom period's deadline on the period's last day", () => {
+      const custom = (overrides: Partial<QuestScheduleFields>, dueByTime: string) => ({
+        ...makeQuest({ basicSchedule: "custom", ...overrides }),
+        dueByTime,
+      });
+      const fortnight = custom({ customPeriodType: "week", customPeriodNumber: 2, startsOn: "2026-10-05T00:00:00" }, "09:00");
+      expect(effectiveDeadline(fortnight, undefined, at("2026-10-08T12:00:00"))).toEqual(at("2026-10-18T09:00:00"));
+      const monthly = custom({ customPeriodType: "month", startsOn: "2026-10-01T00:00:00" }, "20:00");
+      expect(effectiveDeadline(monthly, undefined, at("2026-10-08T12:00:00"))).toEqual(at("2026-10-31T20:00:00"));
+      const everyDay = custom({ customPeriodType: "day" }, "20:00");
+      expect(effectiveDeadline(everyDay, undefined, at("2026-10-08T12:00:00"))).toEqual(at("2026-10-08T20:00:00"));
+    });
+
+    it("brings the deadline in to the day the quest ends", () => {
+      const quest = weekly({ endsOn: "2026-10-08T00:00:00" });
+      expect(effectiveDeadline(quest, undefined, at("2026-10-06T12:00:00"))).toEqual(at("2026-10-08T18:00:00"));
+    });
+
+    it("makes a once quest due on the day it starts, and late on every day after", () => {
+      const once = { ...makeQuest({ basicSchedule: "once", startsOn: "2026-10-06T00:00:00" }), dueByTime: "17:00" };
+      expect(effectiveDeadline(once, undefined, at("2026-10-08T09:00:00"))).toEqual(at("2026-10-06T17:00:00"));
+      expect(isQuestOverdue(once, undefined, at("2026-10-08T09:00:00"))).toBe(true);
+    });
+
+    it("makes a day the Hook Shot pulled a quest into due that day", () => {
+      const effects = { pulledInOn: { "quest-1": "2026-10-08" } };
+      const monday = weekly({ repeatOnDays: ["mon"] });
+      expect(effectiveDeadline(monday, effects, at("2026-10-08T12:00:00"))).toEqual(at("2026-10-08T18:00:00"));
+    });
+
+    it("still lets the Ice Wand push the last day's deadline later", () => {
+      const effects = { extendedUntil: { "quest-1": at("2026-10-12T18:00:00").toISOString() } };
+      expect(effectiveDeadline(weekly(), effects, at("2026-10-07T12:00:00"))).toEqual(at("2026-10-12T18:00:00"));
+      expect(isQuestOverdue(weekly(), effects, at("2026-10-11T19:00:00"))).toBe(false);
+    });
+  });
 });
 
 describe("times of day", () => {
@@ -458,10 +600,10 @@ describe("QuestEngine board", () => {
       assignee: [hero],
     }) as unknown as Achievement;
 
-  const board = async (quests: Achievement[], entries: QuestLogEntry[]) => {
+  const board = async (quests: Achievement[], entries: QuestLogEntry[], date: Date = now) => {
     mockGetTasks.mockResolvedValue(quests);
-    mockGetEntriesForUser.mockResolvedValue(entries);
-    return new QuestEngine().getQuestBoardForUser(hero, now);
+    mockGetEntries.mockResolvedValue(entries);
+    return new QuestEngine().getQuestBoardForUser(hero, date);
   };
 
   it("marks a used-up quest whose claim awaits the Game Master as done and pending", async () => {
@@ -517,6 +659,29 @@ describe("QuestEngine board", () => {
     const draft = { ...quest("quest-2"), draft: true } as Achievement;
     const items = await board([quest("quest-1"), draft], []);
     expect(items.map(({ quest }) => quest.id)).toEqual(["quest-1"]);
+  });
+
+  it("clears a shared quest for every assignee and says who did it; a solo quest stays the hero's own", async () => {
+    const team = { ...quest("quest-1"), type: "collaborate", assignee: [hero, "hero-2"] } as Achievement;
+    const solo = { ...quest("quest-2"), type: "individual", assignee: [hero, "hero-2"] } as Achievement;
+    const items = await board(
+      [team, solo],
+      [
+        makeEntry("2026-10-08T08:00:00", { userId: "hero-2" }),
+        makeEntry("2026-10-08T08:00:00", { questId: "quest-2", userId: "hero-2" }),
+      ]
+    );
+    expect(items[0]).toMatchObject({ status: "done", pending: false, doneBy: ["hero-2"] });
+    expect(items[1]).toMatchObject({ status: "open", pending: false, doneBy: [] });
+  });
+
+  it("reads a weekly quest overdue only after the due time on its week's last day", async () => {
+    // The week runs Monday 5 to Sunday 11 Oct; `now` is Thursday noon, past the 10:00 due time
+    const chores = { ...quest("quest-1", { basicSchedule: "weekly", startsOn: "2026-10-05T00:00:00" }), dueByTime: "10:00" };
+    const [midWeek] = await board([chores as Achievement], []);
+    expect(midWeek).toMatchObject({ status: "open", overdue: false });
+    const [lastDay] = await board([chores as Achievement], [], at("2026-10-11T10:30:00"));
+    expect(lastDay).toMatchObject({ status: "open", overdue: true });
   });
 
   describe("calendar tabs", () => {

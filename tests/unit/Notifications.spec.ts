@@ -185,6 +185,17 @@ describe("questWatch.pickQuestAlerts", () => {
     expect(pickQuestAlerts([row(quest("soon", "12:30")), row(quest("late", "11:00"), { overdue: true })], paused, NOON, HERO)).toEqual([]);
   });
 
+  it("warns about a weekly quest only on its week's last day (the one due-date rule)", () => {
+    // The week runs Monday 5 to Sunday 11 Oct; NOON is Saturday 10, past the 11:00 due time
+    const weekly = { ...quest("chores", "11:00"), basicSchedule: "weekly", startsOn: new Date(2026, 9, 5).toISOString() };
+    const board = [row(weekly as QuestBoardItem["quest"])];
+    expect(pickQuestAlerts(board, undefined, NOON, HERO)).toEqual([]);
+    expect(remindersOf(board, undefined, NOON).map((r) => r.deadline)).toEqual([new Date(2026, 9, 11, 11, 0)]);
+    const kindsAt = (now: Date) => pickQuestAlerts(board, undefined, now, HERO).map((a) => a.notification.kind);
+    expect(kindsAt(new Date(2026, 9, 11, 10, 0))).toEqual(["quest-due"]);
+    expect(kindsAt(new Date(2026, 9, 11, 12, 0))).toEqual(["quest-overdue"]);
+  });
+
   it("lists device reminders for the open quests still ahead", () => {
     const reminders = remindersOf([row(quest("soon", "13:30", "Dishes")), row(quest("late", "11:00"), { overdue: true })], undefined, NOON);
     expect(reminders).toEqual([
