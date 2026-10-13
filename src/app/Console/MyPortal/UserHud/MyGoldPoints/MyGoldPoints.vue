@@ -92,6 +92,23 @@
                 slot="end"
               ></i>
             </ion-item>
+            <!-- What the Hospital is owed sits above the other debt; it is paid at the Gold Bank, where it lifts the grounding -->
+            <ion-item
+              v-if="user.stats.gp.hospitalBill > 0"
+              lines="none"
+              button
+              class="hospital-bill-row"
+              @click="openBank"
+            >
+              <ion-label>
+                Hospital bill:
+              </ion-label>
+              <xp-gp :gp="user.stats.gp.hospitalBill" />
+              <i
+                slot="end"
+                class="fad fa-hospital ion-float-right"
+              ></i>
+            </ion-item>
             <ion-item
               lines="none"
               button

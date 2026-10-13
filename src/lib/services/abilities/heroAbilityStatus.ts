@@ -18,6 +18,8 @@
  */
 import { AbilityStatus, TimePeriod } from "@/hooks/abilities/abilityConstants";
 import type { Ability } from "@/hooks/abilities/abilityConstants";
+import { isGrounded, type GpPurse } from "@/lib/services/gp/wallet";
+import { GROUNDED_REASON } from "@/lib/services/hometown/hospitalBill";
 import { classLevelsOf } from "@/lib/services/stats/ClassPassives";
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -34,6 +36,8 @@ export interface HeroAbilityProfile {
     mp?: unknown;
     /** `{ [className]: { level } }` */
     classes?: unknown;
+    /** The purse; `hospitalBill` above 0 grounds the hero (docs/Quest-Rooms-Spec.md 5.8). */
+    gp?: GpPurse | null;
   } | null;
 }
 
@@ -131,6 +135,13 @@ export const heroClassLevels = (hero: HeroAbilityProfile): Record<string, number
   if (hero?.jobClass) put(hero.jobClass, 1);
   return levels;
 };
+
+/**
+ * Why a grounded hero cannot cast, or null when they are free. Grounding is checked before everything else a cast asks
+ * (MP, cooldown, AP), but it does not touch the statuses below: the Power is still earned, the hero just may not use it.
+ */
+export const groundedReasonOf = (hero: HeroAbilityProfile): string | null =>
+  isGrounded(hero?.stats?.gp) ? GROUNDED_REASON : null;
 
 /** The numbers a Game Master can show beside the hero's name: level, MP now, AP per window, class levels. */
 export const heroAbilitySnapshot = (hero: HeroAbilityProfile, now: Date = new Date()): HeroAbilitySnapshot => {

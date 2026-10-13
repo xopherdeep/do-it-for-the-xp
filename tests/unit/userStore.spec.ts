@@ -171,7 +171,7 @@ describe("GP and the wallet", () => {
   it("starts a purse for a hero with no stats", async () => {
     const store = freshStore({ ava: {} });
     await store.updateUserGP({ userId: "ava", wallet: 40 });
-    expect(plain(store.users.ava.stats.gp)).toEqual({ wallet: 40, savings: 0, debt: 0, limit: 100 });
+    expect(plain(store.users.ava.stats.gp)).toEqual({ wallet: 40, savings: 0, debt: 0, hospitalBill: 0, limit: 100 });
     expect(mockSyncGP).toHaveBeenCalledWith("ava");
   });
 
@@ -190,7 +190,7 @@ describe("GP and the wallet", () => {
   it("gives stats that lack a purse the starting purse", async () => {
     const store = freshStore({ ava: { stats: { level: 3 } } });
     await store.updateUserGP({ userId: "ava", savings: 12 });
-    expect(plain(store.users.ava.stats)).toEqual({ level: 3, gp: { wallet: 0, savings: 12, debt: 0, limit: 100 } });
+    expect(plain(store.users.ava.stats)).toEqual({ level: 3, gp: { wallet: 0, savings: 12, debt: 0, hospitalBill: 0, limit: 100 } });
   });
 
   it("does nothing for an unknown hero", async () => {
@@ -203,14 +203,14 @@ describe("GP and the wallet", () => {
     const store = freshStore({ ava: { stats: { gp: { wallet: 10, savings: 20, debt: 3, limit: 100, extra: "kept" } } } });
     store.loginUser(store.users.ava);
     store.setWallet("ava", { wallet: "40" as unknown as number, limit: 300 });
-    expect(plain(store.users.ava.stats.gp)).toEqual({ wallet: 40, savings: 20, debt: 3, limit: 300, extra: "kept" });
+    expect(plain(store.users.ava.stats.gp)).toEqual({ wallet: 40, savings: 20, debt: 3, hospitalBill: 0, limit: 300, extra: "kept" });
     expect(store.currentUser.stats).toBe(store.users.ava.stats);
   });
 
   it("falls back to 0 for a broken number and to the starting limit", () => {
     const store = freshStore({ ava: {} });
     store.setWallet("ava", { wallet: Number.NaN, savings: undefined, limit: -5 });
-    expect(plain(store.users.ava.stats.gp)).toEqual({ wallet: 0, savings: 0, debt: 0, limit: 100 });
+    expect(plain(store.users.ava.stats.gp)).toEqual({ wallet: 0, savings: 0, debt: 0, hospitalBill: 0, limit: 100 });
     expect(() => store.setWallet("ghost", { wallet: 1 })).not.toThrow();
   });
 });

@@ -30,6 +30,8 @@ export interface GpPayload {
   wallet?: number;
   savings?: number;
   debt?: number;
+  /** A change to what the hero owes the Hospital (negative pays it down) */
+  hospitalBill?: number;
 }
 
 /** What recordAPGain is given: the hero, the AP, where it came from and (optionally) when */

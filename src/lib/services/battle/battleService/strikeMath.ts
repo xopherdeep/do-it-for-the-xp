@@ -1,11 +1,11 @@
-import type { BattlePassive, Enemy } from "./types";
+import type { BattlePassive, PartingDodge, PartingSoftener } from "./types";
 
 /** A strike costs about this share of the hero's max HP. */
 const STRIKE_SHARE_OF_MAX_HP = 0.12;
 /** The share of a strike a brace lets through when the class does not say otherwise. */
 const DEFAULT_BRACE_FACTOR = 0.5;
-/** Run Away never becomes a sure thing, however nimble the hero. */
-const RUN_CHANCE_CEILING = 0.95;
+/** However nimble the hero, agility never dodges more than this share of parting strikes (tunable). */
+export const PARTING_DODGE_CEILING = 0.5;
 
 /**
  * What one beast strike costs the hero: about 12% of their max HP, scaled by the beast's attack
@@ -42,22 +42,80 @@ export function resolvePassive(passive?: Partial<BattlePassive>): BattlePassive 
   };
 }
 
-/**
- * The odds of a clean getaway from `enemy` (0 to 1): the base by beast kind, the class's own run chance
- * for ordinary monsters, plus the trained agility bonus, never past RUN_CHANCE_CEILING. The roll against
- * it, and the free-fight "always escapes", stay with the caller.
- */
-export function escapeChanceAgainst(enemy: Enemy | null, passive: BattlePassive): number {
-  let escapeChance = 0.75;
-  if (enemy?.isBoss) {
-    escapeChance = 0.25;
-  } else if (enemy?.type === 'miniboss') {
-    escapeChance = 0.5;
-  } else if (typeof passive.runChance === 'number') {
-    escapeChance = passive.runChance;
-  }
+/** The chance trained agility alone dodges a parting strike: the bonus (1% a point), never past PARTING_DODGE_CEILING. */
+export function partingDodgeChance(passive: BattlePassive): number {
   const bonus = passive.runChanceBonus;
-  const hasRunBonus = Number.isFinite(bonus) && bonus > 0;
-  if (hasRunBonus) escapeChance = Math.min(RUN_CHANCE_CEILING, escapeChance + bonus);
-  return escapeChance;
+  const hasNoBonus = !Number.isFinite(bonus) || bonus <= 0;
+  if (hasNoBonus) return 0;
+  return Math.min(PARTING_DODGE_CEILING, bonus);
+}
+
+/**
+ * What softens the parting strike, if anything: a brace the hero was already in, or a class that slips away
+ * (`runChance` set: Thief, Assassin, Ninja). Either way the brace factor applies once; the two do not stack.
+ */
+export function partingStrikeSoftener(passive: BattlePassive, wasBracing: boolean): PartingSoftener | null {
+  if (wasBracing) return 'brace';
+  return typeof passive.runChance === 'number' ? 'slip' : null;
+}
+
+/** What the fight still owes the hero's getaway: each of these makes the parting strike miss. */
+export interface PartingStrikeOwed {
+  /** The Ninja's first strike of the fight, not yet spent. */
+  shadow: boolean;
+  /** The clock stands under Chronos' ice. */
+  frozen: boolean;
+  /** Thor's Hammer has a strike left to skip. */
+  hammer: boolean;
+}
+
+export interface PartingStrikeInput {
+  maxHp: number;
+  /** The hero's HP now, to tell whether the strike would empty it. */
+  hp: number;
+  /** The beast's attack. */
+  attack: number;
+  passive: BattlePassive;
+  wasBracing: boolean;
+  owed: PartingStrikeOwed;
+  /** A roll in [0, 1) against the agility dodge. */
+  dodgeRoll: number;
+  /** A roll in [0, 1) for the strike itself. */
+  strikeRoll: number;
+}
+
+export interface PartingStrike {
+  dodgedBy: PartingDodge | null;
+  /** What the strike is worth, floor and all, before any HP rule; 0 when it was dodged. */
+  damage: number;
+  softener: PartingSoftener | null;
+  /** The strike would take the hero's last HP (never true for a dodged one). */
+  emptied: boolean;
+}
+
+/**
+ * The strike a hero takes on the way out of a fight (docs/Quest-Rooms-Spec.md 5.6): one full strike from the
+ * beast, softened by the brace factor when the hero was bracing or the class slips away. It misses when the
+ * Ninja's first strike is still owed, the clock is frozen, a hammer skip is owed (checked in the order a real
+ * strike checks them), or the agility roll falls under the dodge chance. Pure: the caller spends whatever was owed.
+ */
+export function partingStrike(input: PartingStrikeInput): PartingStrike {
+  const { owed, passive } = input;
+  let dodgedBy: PartingDodge | null = null;
+  if (owed.shadow) dodgedBy = 'shadow';
+  else if (owed.frozen) dodgedBy = 'frozen';
+  else if (owed.hammer) dodgedBy = 'hammer';
+  else if (input.dodgeRoll < partingDodgeChance(passive)) dodgedBy = 'agility';
+  if (dodgedBy) return { dodgedBy, damage: 0, softener: null, emptied: false };
+
+  const softener = partingStrikeSoftener(passive, input.wasBracing);
+  const damage = strikeDamage(
+    input.maxHp,
+    input.attack,
+    softener !== null,
+    input.strikeRoll,
+    passive.braceFactor,
+    passive.strikeFactor
+  );
+  return { dodgedBy: null, damage, softener, emptied: damage >= input.hp };
 }

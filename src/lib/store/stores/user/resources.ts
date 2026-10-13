@@ -10,16 +10,18 @@ export const needsPointsObject = (stat: unknown): boolean => typeof stat !== 'ob
  * The caller writes them back and persists.
  */
 export function applyGpChange(existingStats: any, payload: GpPayload): any {
-  const { wallet, savings, debt } = payload;
+  const { wallet, savings, debt, hospitalBill } = payload;
 
-  const userStats = existingStats || { gp: { wallet: 0, savings: 0, debt: 0, limit: DEFAULT_WALLET_LIMIT } };
+  const userStats = existingStats || { gp: { wallet: 0, savings: 0, debt: 0, hospitalBill: 0, limit: DEFAULT_WALLET_LIMIT } };
 
   // Initialize stats if missing
-  if (!userStats.gp) userStats.gp = { wallet: 0, savings: 0, debt: 0, limit: DEFAULT_WALLET_LIMIT };
+  if (!userStats.gp) userStats.gp = { wallet: 0, savings: 0, debt: 0, hospitalBill: 0, limit: DEFAULT_WALLET_LIMIT };
 
   if (wallet !== undefined) userStats.gp.wallet = (userStats.gp.wallet || 0) + wallet;
   if (savings !== undefined) userStats.gp.savings = (userStats.gp.savings || 0) + savings;
   if (debt !== undefined) userStats.gp.debt = (userStats.gp.debt || 0) + debt;
+  // The Hospital's bill (docs/Quest-Rooms-Spec.md 5.8) never goes below 0: paying past it is not a credit
+  if (hospitalBill !== undefined) userStats.gp.hospitalBill = Math.max(0, (userStats.gp.hospitalBill || 0) + hospitalBill);
 
   // Wallet overflow protection: excess goes to savings (Earthbound-style ATM)
   const walletLimit = walletLimitOf(userStats.gp);
@@ -44,6 +46,7 @@ export function applyWallet(user: any, gp: GpPurse): any {
     wallet: Number(gp.wallet ?? current.wallet) || 0,
     savings: Number(gp.savings ?? current.savings) || 0,
     debt: Number(gp.debt ?? current.debt) || 0,
+    hospitalBill: Number(gp.hospitalBill ?? current.hospitalBill) || 0,
     limit: walletLimitOf({ limit: gp.limit ?? current.limit }),
   };
   return stats;

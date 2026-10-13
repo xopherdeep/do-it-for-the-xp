@@ -41,6 +41,7 @@ const show = (
     snapshot?: HeroAbilitySnapshot;
     casting?: boolean;
     battle?: BattlePowerCard;
+    groundedReason?: string | null;
   } = {}
 ) =>
   mount(XpPowerCard, {
@@ -171,5 +172,31 @@ describe("XpPowerCard", () => {
 
     await card.get("button.cast-btn").trigger("click");
     expect(card.emitted("cast")).toBeUndefined();
+  });
+
+  it("keeps Cast off and says why while the hero is grounded, even for a Power that was ready", async () => {
+    const card = show({ groundedReason: "Grounded: pay your hospital bill at the Gold Bank." });
+    const button = card.get("button.cast-btn");
+
+    expect(button.attributes("disabled")).toBeDefined();
+    expect(card.get(".power-state").text()).toBe("Grounded: pay your hospital bill at the Gold Bank.");
+    await button.trigger("click");
+    expect(card.emitted("cast")).toBeUndefined();
+  });
+
+  it("still says what a locked Power lacks while grounded", () => {
+    const card = show({
+      status: "locked",
+      unlocked: false,
+      snapshot: makeSnapshot({ daily: 7 }),
+      groundedReason: "Grounded: pay your hospital bill at the Gold Bank.",
+    });
+    expect(card.text()).toContain("3 AP to go");
+  });
+
+  it("does not ground a battle spell: a fight's Cast works whenever the battle has no reason", async () => {
+    const battle = { mp: 4, effect: "Heals 20 HP", reason: null } as unknown as BattlePowerCard;
+    const card = show({ battle, groundedReason: "Grounded: pay your hospital bill at the Gold Bank." });
+    expect(card.get("button.cast-btn").attributes("disabled")).toBeUndefined();
   });
 });

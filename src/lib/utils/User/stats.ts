@@ -8,6 +8,8 @@ interface XPStats {
 interface GPStats {
   limit: number;
   debt: number;
+  /** What the hero owes the Hospital; above 0 the hero is grounded (docs/Quest-Rooms-Spec.md 5.8) */
+  hospitalBill?: number;
   wallet: number;
   savings: number;
   ledger: Entry[]
@@ -102,6 +104,7 @@ export default class Stats {
       limit: gp?.limit || DEFAULT_WALLET_LIMIT,
       // Add calculated debt to existing debt (defaulting existing to 0 if nullish)
       debt: (Number(gp?.debt) || 0) + Number(debt),
+      hospitalBill: Math.max(0, Number(gp?.hospitalBill) || 0),
       wallet: gp?.wallet ?? 0,
       savings: gp?.savings ?? 100,
       ledger: gp?.ledger ?? [],

@@ -9,6 +9,9 @@ import { bed, close, heart, infinite, logOut, people, statsChart } from "ionicon
 import debug from "@/lib/utils/debug";
 import { HEAL_COST, quoteBenchRest, quoteCare, REVIVE_COST } from "@/lib/services/hometown/Lodging";
 import type { BenchQuote, CareKind, CareQuote } from "@/lib/services/hometown/Lodging";
+import { ADMITTED_QUERY, takeAdmissionReceipt } from "@/lib/services/hometown/hospitalAdmission";
+import { nurseAdmissionBlocks } from "@/lib/services/hometown/hospitalBill";
+import { hospitalBillOf } from "@/lib/services/gp/wallet";
 
 export default defineComponent({
   props: ["userId"],
@@ -26,7 +29,9 @@ export default defineComponent({
       currentDialogIndex: 0,
       currentDialogText: "",
       hasMoreDialog: true,
-      isTyping: false
+      isTyping: false,
+      /** What Nurse Joy reads when a hero is carried in; empty for an ordinary visit */
+      admissionBlocks: [] as string[]
     };
   },
   computed: {
@@ -88,6 +93,7 @@ export default defineComponent({
       ];
     },
     dialogBlocks() {
+      if (this.admissionBlocks.length) return this.admissionBlocks;
       return [
         "Welcome to the Hospital Hub! *adjusts stethoscope* I'm Nurse Joy. How are you feeling today?",
         "You look like you've had quite an adventure out there! We're here to help you recover and get back on your feet.",
@@ -99,7 +105,26 @@ export default defineComponent({
     // Set initial dialog text
     this.currentDialogText = this.dialogBlocks[0];
   },
+  // The router keeps this page alive, so a hero carried in from a lost fight arrives on the enter hook, not on mount
+  ionViewWillEnter() {
+    this.greetAdmittedHero();
+  },
   methods: {
+    /**
+     * A lost fight or a trap sends the hero here with ?admitted=1 (docs/Quest-Rooms-Spec.md 5.8): the treatment and the
+     * bill are already done, so Nurse Joy opens with the bill instead of the usual welcome. The cue is read once and
+     * taken off the address, so coming back to this page later gets the ordinary welcome.
+     */
+    greetAdmittedHero() {
+      if (this.$route.query[ADMITTED_QUERY] !== "1") return;
+      this.$router.replace({ name: "hospital", params: { userId: this.userId } });
+      const owed = hospitalBillOf(this.userStore.getUserById(this.userId)?.stats?.gp);
+      const blocks = nurseAdmissionBlocks(takeAdmissionReceipt(this.userId)?.charge ?? null, owed);
+      if (!blocks.length) return;
+      this.admissionBlocks = blocks;
+      this.showNurseDialog();
+    },
+
     showNurseDialog() {
       // Play a sound effect for immersion
       this.play$fx("select");
@@ -128,8 +153,9 @@ export default defineComponent({
         this.hasMoreDialog = this.currentDialogIndex < this.dialogBlocks.length - 1;
         this.isTyping = true;
       } else {
-        // End of dialog, close and show options
+        // End of dialog, close and show options; the next welcome is the ordinary one
         this.isDialogVisible = false;
+        this.admissionBlocks = [];
         this.showActionSheet();
       }
     },

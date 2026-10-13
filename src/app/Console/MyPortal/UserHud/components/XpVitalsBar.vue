@@ -21,16 +21,20 @@
         <i :class="`fad ${POINT_ICONS.mp.icon}`"></i>
       </div>
     </div>
+    <!-- Owes the Hospital: there is no HUD in a temple, so the chip sits on the seam between HP and MP -->
+    <xp-grounded-chip class="seam-chip" compact :stats="stats" />
   </div>
 </template>
 
 <script lang="ts">
 import { computed, defineComponent } from "vue";
 import { POINT_ICONS } from "@/constants";
+import XpGroundedChip from "./XpGroundedChip.vue";
 
 /** HP and MP on one hairline, for screens with no room for the full HUD (the temples). */
 export default defineComponent({
   name: "xp-vitals-bar",
+  components: { XpGroundedChip },
   props: {
     stats: { type: Object, required: true },
   },
@@ -48,6 +52,7 @@ export default defineComponent({
 
 <style lang="scss" scoped>
 .xp-vitals-bar {
+  position: relative;
   display: flex;
   width: 100%;
   height: 20px;
@@ -91,6 +96,14 @@ export default defineComponent({
         opacity: 0.7;
       }
     }
+  }
+
+  .seam-chip {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    z-index: 3;
+    transform: translate(-50%, -50%);
   }
 
   .hp .fill {

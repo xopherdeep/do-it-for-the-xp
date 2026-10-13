@@ -1,5 +1,5 @@
 import type { DialogLine, EngineMessage } from "@/app/Console/BattleField/battle/battleView";
-import type { Enemy } from "./types";
+import type { Enemy, PartingDodge, PartingSoftener } from "./types";
 
 /** A line that types out and moves on by itself, for results the hero does not need to tap through. */
 export const autoLine = (text: string): DialogLine => ({ text, auto: true });
@@ -17,12 +17,38 @@ export const stepsForwardLines = (enemy: Enemy, next: Enemy): EngineMessage[] =>
 
 export const bracesLines = (heroName: string): EngineMessage[] => [`${heroName} braces!`];
 
-export const runAwayLines = (): EngineMessage[] => [autoLine("Running away..."), "Got away safely!"];
-
-export const blockedPathLines = (enemy: Enemy | null): EngineMessage[] => [
-  "Couldn't escape!",
-  `${enemy?.name ?? 'The enemy'} blocks your path!`
+/**
+ * A run always works: the run, whatever the beast lands on the way out (see partingStrikeLines), then the getaway.
+ * A hero the strike sent to the Hospital did not get away safely, so `hasGotAway` is false and the line is left out.
+ */
+export const runAwayLines = (partingLines: EngineMessage[] = [], hasGotAway = true): EngineMessage[] => [
+  autoLine("Running away..."),
+  ...partingLines,
+  ...(hasGotAway ? ["Got away safely!"] : [])
 ];
+
+/**
+ * The parting strike that landed. `softener` says who took the edge off (a brace, or a Thief's slip) and
+ * `emptied` that the strike took the hero's last HP: they stagger away and wake up in the Hospital
+ * (docs/Quest-Rooms-Spec.md 5.6).
+ */
+export const partingStrikeLines = (
+  enemy: Enemy,
+  heroName: string,
+  damage: number,
+  softener: PartingSoftener | null,
+  emptied = false
+): EngineMessage[] => {
+  const lead = `${enemy.name} strikes as ${heroName} flees!`;
+  if (emptied) return [`${lead} ${heroName} staggers away... and wakes up in the Hospital.`];
+  if (softener === 'brace') return [`${lead} ${heroName} braced: only ${damage} damage!`];
+  if (softener === 'slip') return [`${lead} ${heroName} slips most of it: only ${damage} damage!`];
+  return [`${lead} ${heroName} takes ${damage} damage!`];
+};
+
+/** Trained agility: the parting strike finds nobody. */
+export const nimbleDodgeLine = (enemy: Enemy, heroName: string): string =>
+  `${enemy.name} lunges, but ${heroName} is too quick to catch!`;
 
 /** Why the first strike of a Ninja's fight misses. */
 export const shadowStrikeLine = (enemy: Enemy, heroName: string): string =>
@@ -39,3 +65,14 @@ export const damageTakenLines = (heroName: string, damage: number, braced: boole
 ];
 
 export const fallenLines = (heroName: string): EngineMessage[] => [`${heroName} has fallen!`, 'You blacked out...'];
+
+const PARTING_DODGE_LINES: Record<PartingDodge, (enemy: Enemy, heroName: string) => string> = {
+  shadow: shadowStrikeLine,
+  frozen: frozenStrikeLine,
+  hammer: stunnedStrikeLine,
+  agility: nimbleDodgeLine,
+};
+
+/** Why the parting strike missed, as the message box says it. */
+export const partingDodgeLine = (dodge: PartingDodge, enemy: Enemy, heroName: string): string =>
+  PARTING_DODGE_LINES[dodge](enemy, heroName);

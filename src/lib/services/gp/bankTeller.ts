@@ -2,7 +2,7 @@
  * What the Gold Bank teller says. The money rules live in wallet.ts; this turns their results into the toast copy
  * so the bank screen only has to show it. Pure, so the words can be tested without Ionic.
  */
-import { type BankMove, type GpPurse, normalizePurse } from "./wallet";
+import { type BankMove, type GpPurse, type Purse, normalizePurse } from "./wallet";
 
 export type BankAction = "withdraw" | "deposit" | "payDebt";
 
@@ -25,10 +25,23 @@ export function bankRefusal(action: BankAction, before: GpPurse | null | undefin
       if (purse.wallet <= 0) return "Your wallet is empty! Nothing to deposit.";
       return "Name an amount to deposit first.";
     case "payDebt":
-      if (purse.debt <= 0) return "You owe nothing. Debt-free!";
+      if (purse.debt <= 0 && purse.hospitalBill <= 0) return "You owe nothing. Debt-free!";
       if (purse.wallet <= 0) return "Your wallet is empty! Come back with some GP.";
       return "Name an amount to pay first.";
   }
+}
+
+/**
+ * The pay-down receipt. A hero who owed the Hospital sees the bill between wallet and debt, and a payment that brings
+ * the bill to 0 says they are free (the grounding lifts at that moment).
+ */
+function payDebtReceipt(before: Purse, move: BankMove): string {
+  const after = move.gp;
+  const paid = `${gold(move.amount)} paid.`;
+  const hadBill = before.hospitalBill > 0;
+  if (!hadBill) return `${paid} Wallet: ${gold(after.wallet)} | Debt: ${gold(after.debt)}.`;
+  const sums = `${paid} Wallet: ${gold(after.wallet)} | Bill: ${gold(after.hospitalBill)} | Debt: ${gold(after.debt)}.`;
+  return after.hospitalBill <= 0 ? `${sums} Bill paid. You're free!` : sums;
 }
 
 /** The receipt for a move that moved GP, with a note when the bank moved less than was asked for. */
@@ -45,7 +58,7 @@ export function bankReceipt(action: BankAction, before: GpPurse | null | undefin
       line = `${gold(move.amount)} deposited. Wallet: ${gold(after.wallet)} | Savings: ${gold(after.savings)}.`;
       break;
     case "payDebt":
-      line = `${gold(move.amount)} paid. Wallet: ${gold(after.wallet)} | Debt: ${gold(after.debt)}.`;
+      line = payDebtReceipt(purse, move);
       break;
   }
   switch (move.capped) {
@@ -56,7 +69,8 @@ export function bankReceipt(action: BankAction, before: GpPurse | null | undefin
     case "wallet":
       return `${line} That was everything in your wallet.`;
     case "debt":
-      return `${line} That clears your debt entirely!`;
+      // a hero who owed only the Hospital has no debt to clear: the receipt already says the bill is paid
+      return purse.debt > 0 ? `${line} That clears your debt entirely!` : line;
     default:
       return line;
   }

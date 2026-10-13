@@ -13,19 +13,20 @@ import { armCombatTasks, choreDamage, openChores } from "./battleService/combatT
 import {
   attacksLines,
   autoLine,
-  blockedPathLines,
   bracesLines,
   choreUsedLines,
   damageTakenLines,
   fallenLines,
   frozenStrikeLine,
+  partingDodgeLine,
+  partingStrikeLines,
   runAwayLines,
   shadowStrikeLine,
   stepsForwardLines,
   stunnedStrikeLine,
 } from "./battleService/dialogLines";
 import { activeUserOf, beginFightState, initialBattleState, nextLivingBeast, toBattleUser } from "./battleService/fightState";
-import { escapeChanceAgainst, resolvePassive, strikeDamage } from "./battleService/strikeMath";
+import { partingStrike, resolvePassive, strikeDamage } from "./battleService/strikeMath";
 import type {
   BattleCallbacks,
   BattlePassive,
@@ -33,7 +34,9 @@ import type {
   BattleServiceOptions,
   BattleState,
   CombatTask,
+  EscapeReport,
   Enemy,
+  PartingDodge,
   User,
 } from "./battleService/types";
 import type { EngineMessage } from "@/app/Console/BattleField/battle/battleView";
@@ -48,6 +51,9 @@ export type {
   BattleState,
   CombatTask,
   Enemy,
+  EscapeReport,
+  PartingDodge,
+  PartingSoftener,
   User,
 } from "./battleService/types";
 export { strikeDamage } from "./battleService/strikeMath";
@@ -67,8 +73,10 @@ export class BattleService {
   private state: BattleState;
   private battleCallbacks: BattleCallbacks = {};
   private alwaysEscapes: boolean;
+  /** The fight carries a quest; passed on in the escape report, for the grudge. */
+  private readonly carriesQuest: boolean;
   private attackTimerInterval: ReturnType<typeof setInterval> | null = null;
-  /** The beat between a Defend / failed Run and the strike it provokes. */
+  /** The beat between a Defend and the strike it provokes. */
   private strikeTimeout: ReturnType<typeof setTimeout> | null = null;
   /** Date.now() at which the clock runs dry. */
   private attackDeadline = 0;
@@ -86,6 +94,7 @@ export class BattleService {
   constructor(options: BattleServiceOptions = {}) {
     this.userStore = useUserStore();
     this.alwaysEscapes = Boolean(options.freeFight);
+    this.carriesQuest = Boolean(options.carriesQuest);
     this.passive = resolvePassive(options.passive);
     this.state = reactive(initialBattleState());
   }
@@ -235,29 +244,99 @@ export class BattleService {
   }
 
   /**
-   * Run away. Monsters let you go 75% of the time (90% for a Thief or Ninja), minibosses 50%,
-   * bosses 25%, plus the hero's trained agility (1% a point, and never past 95% in all); in a free
-   * fight the hero always gets away. A failed run costs exactly one free strike.
+   * Run away. It always works (a run that could fail would trap a kid in a chore they cannot do right now),
+   * and it costs one parting strike unless the fight is free (docs/Quest-Rooms-Spec.md 5.6). The strike is a full
+   * beast strike, softened when the hero was bracing or the class slips away (Thief, Ninja) and missed when the
+   * clock is frozen, a hammer skip or the Ninja's first strike is owed, or trained agility rolls under its dodge.
    */
   private handleRun(): BattleResult {
     if (this.state.pendingPlayerDamage > 0) {
       return { success: false, message: "A strike is already on its way" };
     }
 
-    const enemy = this.state.currentEnemy;
-    const escapeChance = escapeChanceAgainst(enemy, this.passive);
+    this.stopAttackTimer();
+    const escape = this.takePartingStrike();
+    return { success: true, message: "Escaped successfully", escape };
+  }
 
-    const canSlipAway = this.alwaysEscapes || Math.random() < escapeChance;
-    if (canSlipAway) {
-      this.stopAttackTimer();
+  /**
+   * The cost of leaving: rolls the parting strike, spends what it used up, hurts the hero and queues the lines
+   * (the run, the strike or why it missed, the getaway).
+   */
+  private takePartingStrike(): EscapeReport {
+    const free = this.alwaysEscapes;
+    const report: EscapeReport = {
+      free,
+      damage: 0,
+      dodgedBy: null,
+      softener: null,
+      emptied: false,
+      carriesQuest: this.carriesQuest,
+    };
+    const enemy = this.state.currentEnemy;
+    const hero = this.getActiveUser();
+    const owesNoStrike = free || !enemy || !hero;
+    if (owesNoStrike) {
       this.queueDialogMessages(runAwayLines());
-      return { success: true, message: "Escaped successfully" };
+      return report;
     }
 
-    this.queueDialogMessages(blockedPathLines(enemy));
-    this.stopAttackTimer();
-    this.endPlayerTurn();
-    return { success: false, message: "Failed to escape" };
+    const wasBracing = this.state.isDefending;
+    // The store is the truth about HP: a potion or a Power may have changed it since the fight began
+    const hp = this.heroHp(hero);
+    const strike = partingStrike({
+      maxHp: hero.stats.maxHp,
+      hp,
+      attack: enemy.attack,
+      passive: this.passive,
+      wasBracing,
+      owed: { shadow: this.firstStrikeOwed, frozen: this.isClockFrozen(), hammer: this.strikeSkips > 0 },
+      dodgeRoll: Math.random(),
+      strikeRoll: Math.random(),
+    });
+    // The brace was the hero's to spend, and the fight is over
+    if (wasBracing) this.setDefendingState(false);
+
+    if (strike.dodgedBy) {
+      this.spendDodge(strike.dodgedBy);
+      report.dodgedBy = strike.dodgedBy;
+      this.queueDialogMessages(runAwayLines([partingDodgeLine(strike.dodgedBy, enemy, hero.name)]));
+      return report;
+    }
+
+    // A strike that empties HP takes it to 0 (never below). The page admits the hero to the Hospital on the way out
+    // (docs/Quest-Rooms-Spec.md 5.8) when the report says `emptied`; that is not a lost fight, so no defeat callback fires.
+    const damage = Math.min(strike.damage, hp);
+    if (damage > 0) this.hurtHero(hero, damage);
+
+    report.damage = damage;
+    report.softener = strike.softener;
+    report.emptied = strike.emptied;
+    // A hero who woke up in the Hospital did not "get away safely": the getaway line is left out
+    this.queueDialogMessages(
+      runAwayLines(partingStrikeLines(enemy, hero.name, damage, strike.softener, strike.emptied), !strike.emptied)
+    );
+    return report;
+  }
+
+  /** The hero's HP right now: the store's, else the fight's own copy. */
+  private heroHp(hero: User): number {
+    const stored = this.userStore.users[hero.id]?.stats?.hp;
+    const now = typeof stored === 'object' ? stored?.now : stored;
+    return typeof now === 'number' && Number.isFinite(now) ? now : hero.stats.hp;
+  }
+
+  /** Take `damage` off the hero in the store and the fight's copy, and tell the page (the hit sound and shake). */
+  private hurtHero(hero: User, damage: number): void {
+    this.userStore.updateUserHP({ userId: hero.id, amount: -damage });
+    hero.stats.hp = Math.max(0, hero.stats.hp - damage);
+    this.battleCallbacks.onDamage?.('player', damage);
+  }
+
+  /** A dodge that spends something (the Ninja's owed miss, a hammer skip) spends it; ice and agility keep nothing. */
+  private spendDodge(dodge: PartingDodge): void {
+    if (dodge === 'shadow') this.firstStrikeOwed = false;
+    if (dodge === 'hammer') this.strikeSkips--;
   }
 
   /**

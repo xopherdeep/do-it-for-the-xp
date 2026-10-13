@@ -63,7 +63,7 @@ export const PILLARS: Record<PillarType, PillarConfig> = {
     currencyLabel: 'AP',
     description: 'Energy and attention',
     stats: {
-      agility: { name: 'Agility', description: 'Per point trained: +1% Run Away odds and +1 second per chore on the battle clock; 8 or more clears temple traps' },
+      agility: { name: 'Agility', description: 'Per point trained: +1% chance to dodge the parting strike when you run and +1 second per chore on the battle clock; 8 or more clears temple traps' },
       focus: { name: 'Focus', description: 'Steadies the mind. Flavour for now: it changes nothing yet' },
       flow: { name: 'Flow', description: 'Keeps you moving. Flavour for now: abilities have no AP cost yet' }
     }

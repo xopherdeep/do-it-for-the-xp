@@ -3,7 +3,9 @@ import type { Router } from "vue-router";
 import { TempleSystem } from "@/lib/engine/core/dungeons/TempleSystem";
 import type { QuestRewards } from "@/lib/databases/QuestLogDb";
 import { isTrustedHour, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
-import type { Enemy } from "@/lib/services/battle/BattleService";
+import type { Enemy, EscapeReport } from "@/lib/services/battle/BattleService";
+import { admitToHospital, hospitalRoute } from "@/lib/services/hometown/hospitalAdmission";
+import { CARRIED_TO_HOSPITAL_LINE } from "@/lib/services/hometown/hospitalBill";
 import { completeQuest, isQuestStillOpen, recordBattleCompletion } from "@/lib/services/quests/QuestCompletionService";
 import { classPassive, rewardsWithPassive, winRegen } from "@/lib/services/stats/ClassPassives";
 import { useUserStore, type ClassLevelUpInfo, type LevelUpInfo } from "@/lib/store/stores/user";
@@ -40,10 +42,6 @@ export interface FightStats {
 export const VICTORY_TIMINGS = { strobe: 1000, collapse: 750, fade: 1000 } as const;
 /** The beast fades before the hero walks away from an escape. */
 export const ESCAPE_FADE_MS = 700;
-/** A fallen hero wakes with this much HP: alive enough to walk to the Hospital, never stuck at 0. */
-export const LIMP_HOME_HP = 1;
-/** What the arena says once the hero has blacked out. */
-export const LIMP_HOME_LINE = `You limp back to town with ${LIMP_HOME_HP} HP. The Hospital can patch you up.`;
 
 const wait = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const capitalize = (value: string) => value.charAt(0).toUpperCase() + value.slice(1);
@@ -66,8 +64,8 @@ interface Settlement {
  * The hero's class has its say on the pay (docs/Items-And-Classes-Contract.md, C): a Thief's or
  * Ninja's +25% GP, a Monk's +1 AP, a Mage's or Sage's 10% MP back and a Paladin's 10% HP back.
  * Fights leave their damage behind: a win keeps whatever HP the beast left (plus the Paladin's
- * heal), and a defeat sends the hero limping home with LIMP_HOME_HP so the Hospital, the Hotel
- * and the free bench matter. Nothing here fills HP.
+ * heal), so the Hospital, the Hotel and the free bench matter. A defeat is the exception: 0 HP admits the hero to the
+ * Hospital (docs/Quest-Rooms-Spec.md 5.8), who is treated to full HP and MP and billed.
  * A win over a quest's beast completes the quest (docs/Quest-Rooms-Spec.md 7.5), from the board or a
  * temple room alike: held for the Game Master when the quest asks for approval, else paid and logged.
  * A temple room's win opens the room, and a quest room's run re-reads the board once the log has it.
@@ -180,14 +178,6 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     return { rewards, held: false, ...ups };
   };
 
-  /** A fallen hero is left at LIMP_HOME_HP, not 0: the Hospital (or a bench) does the rest. */
-  const limpHome = () => {
-    const stats = userStore.users[ctx.userId]?.stats;
-    if (!stats) return;
-    const now = stats.hp?.now ?? 0;
-    if (now < LIMP_HOME_HP) userStore.updateUserHP({ userId: ctx.userId, amount: LIMP_HOME_HP - now });
-  };
-
   const levelUpLines = (levelUp: LevelUpInfo | null, classLevelUp: ClassLevelUpInfo | null): DialogItem[] => {
     const lines: DialogItem[] = [];
     const user = userStore.users[ctx.userId];
@@ -260,25 +250,45 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
   };
 
   /**
-   * The service has already queued "has fallen / blacked out"; the hero is set on their feet with
-   * LIMP_HOME_HP at once (a reload mid-dialog must not leave them at 0), the arena says where to go,
-   * and the game-over splash walks them to the Hospital.
+   * The service has already queued "has fallen / blacked out". The hero is admitted at once (treated to full HP and MP
+   * and billed, so a reload mid-dialog never leaves them at 0), the arena says one line, and a tap walks them to the
+   * Hospital, where the nurse reads the bill. The quest the fight carried is untouched: its beast still lurks.
+   * A hero who somehow still has HP is not billed.
    */
   const handlePlayerDefeated = () => {
     audio.stopBgm();
     audio.playSound("die");
-    limpHome();
+    const isStillStanding = (userStore.users[ctx.userId]?.stats?.hp?.now ?? 0) > 0;
+    if (!isStillStanding) admitToHospital(ctx.userId, "battle");
     dialog.enqueue([
-      LIMP_HOME_LINE,
+      CARRIED_TO_HOSPITAL_LINE,
       () => {
-        limpHome();
-        void deps.router.replace({ name: "game-over" });
+        void deps.router.replace(hospitalRoute(ctx.userId));
       },
     ]);
   };
 
-  /** The service has already queued "Got away safely!"; the beast fades, then the hero leaves. */
-  const handleEscape = () => {
+  /**
+   * A parting strike that emptied HP (docs/Quest-Rooms-Spec.md 5.6): the service has already queued "...wakes up in the
+   * Hospital." (and no getaway line). The hero is admitted at once, so a reload mid-dialog never leaves them at 0, and a
+   * tap walks them to the Hospital, where the nurse reads the bill.
+   */
+  const handleCarriedOut = () => {
+    audio.stopBgm();
+    audio.playSound("die");
+    admitToHospital(ctx.userId, "run");
+    dialog.enqueue([() => void deps.router.replace(hospitalRoute(ctx.userId))]);
+  };
+
+  /**
+   * The service has already queued "Got away safely!"; the beast fades, then the hero leaves. When the parting strike
+   * emptied the hero's HP (`report.emptied`) the hero is carried to the Hospital instead.
+   */
+  const handleEscape = (report?: EscapeReport) => {
+    if (report?.emptied) {
+      handleCarriedOut();
+      return;
+    }
     dialog.enqueue([
       () => {
         deps.enemyAnimationClass.value = "fadeout";
@@ -287,5 +297,5 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
     ]);
   };
 
-  return { celebrateVictory, handlePlayerDefeated, handleEscape, leaveBattle, limpHome };
+  return { celebrateVictory, handlePlayerDefeated, handleEscape, leaveBattle };
 };

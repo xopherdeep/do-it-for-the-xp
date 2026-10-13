@@ -31,6 +31,8 @@
         <div class="avatar-anchor">
           <slot name="avatar"></slot>
         </div>
+        <!-- Owes the Hospital: grounded, and a tap goes to the Gold Bank (nothing shows for a free hero) -->
+        <xp-grounded-chip class="center-bottom" :stats="stats" />
       </div>
 
       <!-- RIGHT WING: MP -->
@@ -65,10 +67,11 @@
 import { defineComponent, computed } from "vue";
 import { POINT_ICONS } from "@/constants";
 import XpHudBar from "./XpHudBar.vue";
+import XpGroundedChip from "./XpGroundedChip.vue";
 
 export default defineComponent({
   name: "xp-main-hud",
-  components: { XpHudBar },
+  components: { XpHudBar, XpGroundedChip },
   props: {
     stats: {
       type: Object,

@@ -15,6 +15,7 @@ import {
   TECH_MAGE_PRESETS,
 } from "./AbilityPresets";
 import { useUserStore } from "@/lib/store/stores/user";
+import { isGrounded } from "@/lib/services/gp/wallet";
 import { format } from "date-fns";
 import { getCastLogDb, type CastLogEntry } from "@/lib/databases/CastLogDb";
 import { FAMILY_CHAT_ROOM, useChatStore } from "@/lib/store/stores/chat";
@@ -23,10 +24,11 @@ import { POWER_CAST_ALERT_ID, showAlert } from "@/lib/services/notifications/ale
 import debug from "@/lib/utils/debug";
 
 /**
- * What a cast came to: `mp` when the hero could not afford it, `unknown` when there is no such ability or hero.
+ * What a cast came to: `grounded` when the hero owes the Hospital (checked first), `mp` when the hero could not afford
+ * it, `unknown` when there is no such ability or hero.
  * A successful cast carries the Cast Log entry it left behind (absent only if the log could not be written).
  */
-export type UseAbilityResult = { ok: true; entry?: CastLogEntry } | { ok: false; reason: "mp" | "unknown" };
+export type UseAbilityResult = { ok: true; entry?: CastLogEntry } | { ok: false; reason: "grounded" | "mp" | "unknown" };
 
 /** The hero's MP right now, whether stats keep it as `{ now, max }` or a bare number. */
 const currentMp = (stats: { mp?: { now?: number } | number } | undefined): number => {
@@ -364,15 +366,19 @@ export class AbilityService {
   /**
    * Cast an ability: charge its MP cost to the hero through the user store, stamp `lastUsed`, and leave a
    * record the parent sees (Cast Log entry, Town Crier line, Game Master notifications, one OS alert).
-   * Refuses (and charges nothing) when the ability is unknown or the hero has less MP than it costs.
+   * Refuses (and charges nothing) when the hero is grounded by an unpaid hospital bill (docs/Quest-Rooms-Spec.md 5.8,
+   * checked before anything else), when the ability is unknown, or when the hero has less MP than it costs.
+   * Battle spells never pass through here, so a grounded hero keeps casting in a fight.
    */
   async useAbility(abilityId: string, userId: string): Promise<UseAbilityResult> {
+    const userStore = useUserStore();
+    const hero = userStore.users[userId];
+    if (isGrounded(hero?.stats?.gp)) return { ok: false, reason: "grounded" };
+
     const ability = await this.getAbilityById(abilityId);
     if (!ability) return { ok: false, reason: "unknown" };
 
     const cost = Math.max(0, Number(ability.mpCost) || 0);
-    const userStore = useUserStore();
-    const hero = userStore.users[userId];
     if (!hero) return { ok: false, reason: "unknown" };
 
     if (currentMp(hero.stats) < cost) return { ok: false, reason: "mp" };

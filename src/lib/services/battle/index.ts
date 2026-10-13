@@ -7,7 +7,8 @@ import { BestiaryService } from './BestiaryService';
 
 /**
  * Create a battle service instance
- * @param options `freeFight: true` for random encounters and Test Fight, where Run Away always works
+ * @param options `freeFight: true` for random encounters and Test Fight, where Run Away costs nothing (every other fight
+ *   takes one parting strike on the way out); `carriesQuest: true` for a fight that holds a quest
  */
 export const createBattleService = (options?: BattleServiceOptions): BattleService => {
   return new BattleService(options);

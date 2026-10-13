@@ -445,56 +445,268 @@ describe("BattleService", () => {
   });
 
   describe("Run Away", () => {
-    it("fails with the odds against it: exactly one free strike", () => {
-      jest.spyOn(Math, "random").mockReturnValue(0.9);
+    const setHeroHp = (hp: number) => {
+      (useUserStore().getUserById(HERO_ID) as any).stats.hp.now = hp;
+    };
+
+    it.each([
+      ["a monster", {}],
+      ["a miniboss", { type: "miniboss" }],
+      ["a boss", { isBoss: true }],
+    ])("always works against %s, whatever the roll", (_label, overrides) => {
+      for (const roll of [0, 0.25, 0.5, 0.75, 0.99]) {
+        jest.spyOn(Math, "random").mockReturnValue(roll);
+        const { service: s } = fight(makeEnemy(overrides as Partial<Enemy>));
+        s.startAttackTimer();
+        expect(s.handleBattleAction("run")).toMatchObject({ success: true, message: "Escaped successfully" });
+        s.dispose();
+        jest.restoreAllMocks();
+      }
+    });
+
+    it("has no failed-run path: nothing says 'Couldn't escape' and the hero never loses the move", () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.99);
+      const { service: s, lines } = fight(makeEnemy({ isBoss: true }));
+      s.startAttackTimer();
+      expect(s.handleBattleAction("run").success).toBe(true);
+      expect(textOf(lines).join(" ")).not.toMatch(/Couldn't escape|blocks your path/);
+      expect(s.isPlayerTurn()).toBe(true);
+    });
+
+    it("costs one strike on the way out, then the getaway: no second strike ever follows", () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.5);
       const { service: s, lines, cb } = fight();
       s.startAttackTimer();
 
-      expect(s.handleBattleAction("run")).toMatchObject({ success: false, message: "Failed to escape" });
-      expect(textOf(lines)).toEqual(["Couldn't escape!", "Socktopus blocks your path!"]);
-      expect(s.isPlayerTurn()).toBe(false);
+      const result = s.handleBattleAction("run");
 
-      jest.advanceTimersByTime(THREE_MINUTES * 5);
-      expect(cb.onAttack).toHaveBeenCalledTimes(1);
-      expect(textOf(lines).filter((text) => text === "Socktopus attacks!")).toHaveLength(1);
-      expect(s.hasPendingDamage()).toBe(true);
-    });
+      expect(result).toMatchObject({ success: true, message: "Escaped successfully" });
+      expect(lines).toEqual([
+        { text: "Running away...", auto: true },
+        "Socktopus strikes as Max flees! Max takes 4 damage!",
+        "Got away safely!",
+      ]);
+      expect(heroHp()).toBe(26);
+      expect(cb.onDamage).toHaveBeenCalledTimes(1);
+      expect(cb.onDamage).toHaveBeenCalledWith("player", 4);
+      expect(cb.onPlayerDefeated).not.toHaveBeenCalled();
 
-    it("gets away when the dice allow it", () => {
-      jest.spyOn(Math, "random").mockReturnValue(0.5);
-      const { service: s, lines } = fight();
-      s.startAttackTimer();
-
-      expect(s.handleBattleAction("run")).toEqual({ success: true, message: "Escaped successfully" });
-      expect(lines).toEqual([{ text: "Running away...", auto: true }, "Got away safely!"]);
       jest.advanceTimersByTime(THREE_MINUTES * 5);
       expect(s.hasPendingDamage()).toBe(false);
+      expect(cb.onAttack).not.toHaveBeenCalled();
+      expect(heroHp()).toBe(26);
     });
 
-    it.each([
-      ["a monster", {}, 0.74, true],
-      ["a monster", {}, 0.76, false],
-      ["a miniboss", { type: "miniboss" }, 0.49, true],
-      ["a miniboss", { type: "miniboss" }, 0.51, false],
-      ["a boss", { isBoss: true }, 0.24, true],
-      ["a boss", { isBoss: true }, 0.26, false],
-    ])("odds against %s: roll %p", (_label, overrides, roll, escapes) => {
-      jest.spyOn(Math, "random").mockReturnValue(roll);
-      const { service: s } = fight(makeEnemy(overrides as Partial<Enemy>));
-      expect(s.handleBattleAction("run").success).toBe(escapes);
-    });
-
-    it("always works in a free fight, even against a boss on a bad roll", () => {
-      jest.spyOn(Math, "random").mockReturnValue(0.9);
-      const { service: s } = fight(makeEnemy({ isBoss: true }), { freeFight: true });
-      expect(s.handleBattleAction("run").success).toBe(true);
-    });
-
-    it("always works after setFreeFight(true)", () => {
-      jest.spyOn(Math, "random").mockReturnValue(0.9);
+    it("reports the parting strike on the result, for the page", () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.5);
       const { service: s } = fight();
-      s.setFreeFight(true);
-      expect(s.handleBattleAction("run").success).toBe(true);
+      expect(s.handleBattleAction("run").escape).toEqual({
+        free: false,
+        damage: 4,
+        dodgedBy: null,
+        softener: null,
+        emptied: false,
+        carriesQuest: false,
+      });
+    });
+
+    it("hits a boss as hard as a boss hits: the strike is the beast's own", () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.5);
+      const { service: s } = fight(makeEnemy({ isBoss: true, attack: 20 }));
+      s.handleBattleAction("run");
+      expect(heroHp()).toBe(30 - strikeDamage(30, 20, false, 0.5));
+    });
+
+    describe("a free fight", () => {
+      it("takes nothing: no strike, no damage, no line about one", () => {
+        jest.spyOn(Math, "random").mockReturnValue(0.99);
+        const { service: s, lines, cb } = fight(makeEnemy({ isBoss: true }), { freeFight: true });
+        s.startAttackTimer();
+
+        const result = s.handleBattleAction("run");
+
+        expect(result).toMatchObject({ success: true, message: "Escaped successfully" });
+        expect(result.escape).toMatchObject({ free: true, damage: 0, dodgedBy: null, emptied: false });
+        expect(lines).toEqual([{ text: "Running away...", auto: true }, "Got away safely!"]);
+        expect(heroHp()).toBe(30);
+        expect(cb.onDamage).not.toHaveBeenCalled();
+      });
+
+      it("takes nothing after setFreeFight(true) either", () => {
+        const { service: s, lines } = fight();
+        s.setFreeFight(true);
+        expect(s.handleBattleAction("run").success).toBe(true);
+        expect(textOf(lines)).toEqual(["Running away...", "Got away safely!"]);
+        expect(heroHp()).toBe(30);
+      });
+    });
+
+    describe("softened", () => {
+      it("a Thief slips most of it: half the strike through the brace factor", () => {
+        jest.spyOn(Math, "random").mockReturnValue(0.5);
+        const { service: s, lines } = fight(makeEnemy(), { passive: classPassive("Thief") });
+        const result = s.handleBattleAction("run");
+        expect(heroHp()).toBe(28);
+        expect(textOf(lines)).toContain("Socktopus strikes as Max flees! Max slips most of it: only 2 damage!");
+        expect(result.escape).toMatchObject({ damage: 2, softener: "slip", dodgedBy: null });
+      });
+
+      it("a hero who was bracing gets the brace factor too, once even when the class slips away", () => {
+        jest.spyOn(Math, "random").mockReturnValue(0.5);
+        const { service: s, lines, cb } = fight(makeEnemy(), { passive: classPassive("Thief") });
+        s["setDefendingState"](true);
+
+        const result = s.handleBattleAction("run");
+
+        expect(heroHp()).toBe(28);
+        expect(textOf(lines)).toContain("Socktopus strikes as Max flees! Max braced: only 2 damage!");
+        expect(result.escape).toMatchObject({ damage: 2, softener: "brace" });
+        expect(s.isDefending()).toBe(false);
+        expect(cb.onDefendStateChange).toHaveBeenLastCalledWith(false);
+      });
+
+      it("a Warrior's wall lets a quarter of the parting strike through", () => {
+        jest.spyOn(Math, "random").mockReturnValue(0.5);
+        (useUserStore().getUserById(HERO_ID) as any).stats.hp = { now: 100, max: 100 };
+        const { service: s } = fight(makeEnemy(), { passive: classPassive("Warrior") });
+        s["setDefendingState"](true);
+        s.handleBattleAction("run");
+        expect(heroHp()).toBe(97);
+      });
+    });
+
+    describe("dodged", () => {
+      it("a Ninja's owed first strike hits only shadow, and nothing lands", () => {
+        jest.spyOn(Math, "random").mockReturnValue(0.5);
+        const { service: s, lines, cb } = fight(makeEnemy(), { passive: classPassive("Ninja") });
+        const result = s.handleBattleAction("run");
+        expect(heroHp()).toBe(30);
+        expect(textOf(lines)).toEqual([
+          "Running away...",
+          "Socktopus strikes at a shadow! Max is already elsewhere.",
+          "Got away safely!",
+        ]);
+        expect(cb.onDamage).not.toHaveBeenCalled();
+        expect(result.escape).toMatchObject({ damage: 0, dodgedBy: "shadow" });
+      });
+
+      it("a frozen clock (Chronos) keeps the beast from striking", () => {
+        const { service: s, lines } = fight();
+        s.startAttackTimer();
+        s.freezeClock(60_000);
+        const result = s.handleBattleAction("run");
+        expect(heroHp()).toBe(30);
+        expect(textOf(lines)).toContain("Socktopus is frozen solid and cannot strike!");
+        expect(result.escape).toMatchObject({ damage: 0, dodgedBy: "frozen" });
+      });
+
+      it("a Thor's Hammer skip is owed and used up", () => {
+        const { service: s, lines } = fight();
+        s.skipNextStrike();
+        const result = s.handleBattleAction("run");
+        expect(heroHp()).toBe(30);
+        expect(textOf(lines)).toContain("Socktopus is stunned and misses its strike!");
+        expect(s.getStrikeSkips()).toBe(0);
+        expect(result.escape).toMatchObject({ damage: 0, dodgedBy: "hammer" });
+      });
+
+      it("trained agility dodges when the roll falls under the bonus, and takes the hit when it does not", () => {
+        const nimble = { passive: { runChanceBonus: 0.2 } };
+
+        jest.spyOn(Math, "random").mockReturnValue(0.1);
+        const caught = fight(makeEnemy(), nimble);
+        const dodged = caught.service.handleBattleAction("run");
+        expect(heroHp()).toBe(30);
+        expect(textOf(caught.lines)).toContain("Socktopus lunges, but Max is too quick to catch!");
+        expect(dodged.escape).toMatchObject({ damage: 0, dodgedBy: "agility" });
+        caught.service.dispose();
+
+        jest.spyOn(Math, "random").mockReturnValue(0.3);
+        const missed = fight(makeEnemy(), nimble);
+        const hit = missed.service.handleBattleAction("run");
+        const expected = strikeDamage(30, 10, false, 0.3);
+        expect(heroHp()).toBe(30 - expected);
+        expect(hit.escape).toMatchObject({ damage: expected, dodgedBy: null });
+      });
+
+      it("agility never dodges more than half the time, however much is trained", () => {
+        jest.spyOn(Math, "random").mockReturnValue(0.6);
+        const { service: s } = fight(makeEnemy(), { passive: { runChanceBonus: 3 } });
+        expect(s.handleBattleAction("run").escape).toMatchObject({ dodgedBy: null });
+        expect(heroHp()).toBeLessThan(30);
+      });
+    });
+
+    describe("HP", () => {
+      it("takes the hero to 0 when the strike empties HP: the escape report sends them to the Hospital", () => {
+        jest.spyOn(Math, "random").mockReturnValue(0.5);
+        const { service: s, lines, cb } = fight();
+        setHeroHp(3); // the strike is 4; the store, not the stale fight copy, says how much HP is left
+
+        const result = s.handleBattleAction("run");
+
+        expect(heroHp()).toBe(0);
+        expect(cb.onDamage).toHaveBeenCalledWith("player", 3);
+        expect(cb.onPlayerDefeated).not.toHaveBeenCalled(); // the page reads the report; it is not a lost fight
+        expect(textOf(lines)).toContain("Socktopus strikes as Max flees! Max staggers away... and wakes up in the Hospital.");
+        expect(textOf(lines)).not.toContain("Got away safely!"); // a hero who woke up in the Hospital did not get away safely
+        expect(result).toMatchObject({ success: true });
+        expect(result.escape).toMatchObject({ damage: 3, emptied: true });
+      });
+
+      it("empties a hero already at 1 HP: any strike that lands is enough", () => {
+        jest.spyOn(Math, "random").mockReturnValue(0.5);
+        const { service: s, cb } = fight();
+        setHeroHp(1);
+        const result = s.handleBattleAction("run");
+        expect(heroHp()).toBe(0);
+        expect(cb.onDamage).toHaveBeenCalledWith("player", 1);
+        expect(result.escape).toMatchObject({ damage: 1, emptied: true });
+      });
+
+      it("says 'Got away safely!' when the strike left HP above 0", () => {
+        jest.spyOn(Math, "random").mockReturnValue(0.5);
+        const { service: s, lines } = fight();
+        s.handleBattleAction("run");
+        expect(textOf(lines)).toContain("Got away safely!");
+        expect(heroHp()).toBeGreaterThan(0);
+      });
+
+      it("a dodge costs nothing even at 1 HP, and is not 'emptied'", () => {
+        const { service: s } = fight();
+        setHeroHp(1);
+        s.skipNextStrike();
+        expect(s.handleBattleAction("run").escape).toMatchObject({ damage: 0, dodgedBy: "hammer", emptied: false });
+        expect(heroHp()).toBe(1);
+      });
+    });
+
+    describe("a fight that carries a quest", () => {
+      it("says so on the escape, for the grudge (a later slice), whether the strike landed or not", () => {
+        jest.spyOn(Math, "random").mockReturnValue(0.5);
+        const landed = fight(makeEnemy(), { carriesQuest: true });
+        expect(landed.service.handleBattleAction("run").escape).toMatchObject({ carriesQuest: true, damage: 4 });
+        landed.service.dispose();
+
+        const dodged = fight(makeEnemy(), { carriesQuest: true, passive: classPassive("Ninja") });
+        expect(dodged.service.handleBattleAction("run").escape).toMatchObject({ carriesQuest: true, damage: 0 });
+      });
+
+      it("a free fight never carries one", () => {
+        const { service: s } = fight(makeEnemy(), { freeFight: true });
+        expect(s.handleBattleAction("run").escape?.carriesQuest).toBe(false);
+      });
+    });
+
+    it("refuses while a strike is already on its way, and costs nothing", () => {
+      jest.spyOn(Math, "random").mockReturnValue(0.5);
+      const { service: s } = fight();
+      s.startAttackTimer();
+      jest.advanceTimersByTime(2 * THREE_MINUTES);
+      expect(s.hasPendingDamage()).toBe(true);
+
+      expect(s.handleBattleAction("run")).toEqual({ success: false, message: "A strike is already on its way" });
+      expect(heroHp()).toBe(30);
     });
   });
 
@@ -877,17 +1089,6 @@ describe("BattleService", () => {
       // An unbraced strike is the full 12 either way
       jest.advanceTimersByTime(2 * THREE_MINUTES);
       expect(s.getPendingDamage()).toBe(12);
-    });
-
-    it.each([
-      ["a monster", {}, 0.89, true],
-      ["a monster", {}, 0.91, false],
-      ["a miniboss", { type: "miniboss" }, 0.51, false],
-      ["a boss", { isBoss: true }, 0.26, false],
-    ])("Thief: 90%% odds against %s only (roll %p)", (_label, overrides, roll, escapes) => {
-      jest.spyOn(Math, "random").mockReturnValue(roll);
-      const { service: s } = fight(makeEnemy(overrides as Partial<Enemy>), { passive: classPassive("Thief") });
-      expect(s.handleBattleAction("run").success).toBe(escapes);
     });
 
     it("Monk: every chore earns one more minute, on top of the beast's cooldown and the Fire Wand", () => {

@@ -19,9 +19,11 @@ import {
   type BankMove,
   type Purse,
   depositToSavings,
-  payDownDebt,
+  hospitalBillOf,
+  payDownBills,
   withdrawFromSavings
 } from "@/lib/services/gp/wallet";
+import { announceBillPaid } from "@/lib/services/hometown/hospitalAdmission";
 import { type BankAction, bankReceipt, bankRefusal, gold } from "@/lib/services/gp/bankTeller";
 import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
 import ATMModal from "./components/ATMModal.vue";
@@ -73,8 +75,11 @@ export default defineComponent({
       return this.getUserById(this.userId)
     },
     dialogBlocks() {
+      const bill = hospitalBillOf(this.user?.stats?.gp);
       return [
         "Welcome to the Gold Bank! I'm the bank manager. How can I assist you with your finances today?",
+        // The Hospital's bill sits on its own line above the other debt; paying it to 0 lifts the grounding
+        ...(bill > 0 ? [`The Hospital says you owe ${gold(bill)}. Pay it down here and you're no longer grounded.`] : []),
         "We offer several banking services including deposits, withdrawals, and debt management.",
         // The bank does not sell wallets: it tells the hero how big theirs is and where a bigger one is sold
         `Your wallet holds ₲${walletLimitOf(this.user?.stats?.gp)}. ${shopHintFor(this.user?.stats?.gp)}`,
@@ -170,7 +175,7 @@ export default defineComponent({
               handler: () => { this.clickDeposit(); },
             },
             {
-              text: 'Pay down Debt',
+              text: hospitalBillOf(this.user?.stats?.gp) > 0 ? 'Pay Hospital Bill' : 'Pay down Debt',
               icon: removeCircleOutline,
               handler: () => { this.clickPayDebt(); },
             },
@@ -243,15 +248,18 @@ export default defineComponent({
     },
 
     async clickPayDebt() {
+      // The hospital bill is paid first, then any other debt (docs/Quest-Rooms-Spec.md 5.8)
       const { wallet, debt } = this.user.stats.gp
-      const probe = payDownDebt(this.user.stats.gp, wallet)
+      const bill = hospitalBillOf(this.user.stats.gp)
+      const probe = payDownBills(this.user.stats.gp, wallet)
       const refusal = bankRefusal("payDebt", this.user.stats.gp, probe)
       if (refusal) {
         this.play$fx("no");
         this.showToast(refusal)
         return
       }
-      await this.promptAmount(`Pay Down Debt (${gold(debt)})`, "Pay", Math.min(wallet, debt), this.payDebt)
+      const header = bill > 0 ? `Pay Hospital Bill (${gold(bill)})` : `Pay Down Debt (${gold(debt)})`
+      await this.promptAmount(header, "Pay", Math.min(wallet, bill + (debt || 0)), this.payDebt)
     },
 
     withdrawSavings({ gp }: GpAmount) {
@@ -263,7 +271,7 @@ export default defineComponent({
     },
 
     payDebt({ gp }: GpAmount) {
-      this.applyMove("payDebt", payDownDebt(this.user.stats.gp, Number(gp)))
+      this.applyMove("payDebt", payDownBills(this.user.stats.gp, Number(gp)))
     },
 
     /** Every money move ends here: refuse with a reason, or save the purse the rules computed and read the receipt. */
@@ -276,7 +284,12 @@ export default defineComponent({
         return
       }
       this.play$fx("select");
-      this.savePurse(move.gp, bankReceipt(action, before, move))
+      // The bill reaching 0 lifts the grounding at once; the family hears of it after the purse is saved
+      const clearsBill = hospitalBillOf(before) > 0 && hospitalBillOf(move.gp) === 0
+      const heroId = this.user.id
+      this.savePurse(move.gp, bankReceipt(action, before, move)).then(() => {
+        if (clearsBill) announceBillPaid(heroId)
+      })
     },
 
     savePurse(purse: Purse, message: string) {

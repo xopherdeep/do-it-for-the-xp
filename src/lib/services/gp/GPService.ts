@@ -1,6 +1,7 @@
 import debug from '@/lib/utils/debug';
 import { useUserStore } from '@/lib/store/stores/user';
 import StorageService from '@/lib/services/core/StorageService';
+import { hospitalBillOf } from '@/lib/services/gp/wallet';
 
 /**
  * GPService handles all GP (Gold Points) operations in the game
@@ -65,6 +66,16 @@ export class GPService {
     const userStore = this.getUserStore();
     const user = userStore.getUserById(userId);
     return user?.stats?.gp?.debt || 0;
+  }
+
+  /**
+   * Get what the hero still owes the Hospital (a bill above 0 means the hero is grounded)
+   * @param userId User ID
+   */
+  public getHospitalBill(userId: string): number {
+    const userStore = this.getUserStore();
+    const user = userStore.getUserById(userId);
+    return hospitalBillOf(user?.stats?.gp);
   }
 
   /**
@@ -133,6 +144,30 @@ export class GPService {
       userId,
       wallet: -amount,
       debt: -amount
+    });
+  }
+
+  /**
+   * Pay the hospital bill using wallet funds (docs/Quest-Rooms-Spec.md 5.8). The grounding lifts when it reaches 0.
+   */
+  public async payHospitalBillFromWallet(userId: string, amount: number): Promise<void> {
+    if (amount <= 0) {
+      throw new Error('Amount must be greater than 0');
+    }
+
+    if (amount > this.getWalletBalance(userId)) {
+      throw new Error('Insufficient funds in wallet');
+    }
+
+    if (amount > this.getHospitalBill(userId)) {
+      throw new Error('Amount exceeds hospital bill');
+    }
+
+    const userStore = this.getUserStore();
+    return userStore.updateUserGP({
+      userId,
+      wallet: -amount,
+      hospitalBill: -amount
     });
   }
 

@@ -12,6 +12,7 @@
       <p>
         {{ user.name.first }}
       </p>
+      <xp-grounded-forgive :user="user" />
     </ion-label>
     <ion-badge slot="end" color="none" fill="outline"> </ion-badge>
 
@@ -46,10 +47,12 @@ import { defineComponent } from "vue";
 import ionic from "@/lib/mixins/ionic";
 import { useUserStore } from "@/lib/store/stores/user";
 import { modalController, toastController } from "@ionic/vue";
+import XpGroundedForgive from "./XpGroundedForgive.vue";
 
 export default defineComponent({
   name: "xp-impersonate-profile",
   mixins: [ionic],
+  components: { XpGroundedForgive },
 
   computed: {
     usersAz() {

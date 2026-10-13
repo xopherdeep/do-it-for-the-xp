@@ -70,12 +70,12 @@ describe("classPassive", () => {
     expect(classPassive("Black Mage")).toEqual({ ...none, mpDiscount: 0.35, mpRegenOnWin: 0.1, blurb: "A deep MP discount; spells come easy." });
   });
 
-  it("Assassin runs from monsters 90% of the time and loots +30% GP", () => {
+  it("Assassin slips away like the Thief (a softer parting strike) and loots +30% GP", () => {
     expect(classPassive("Assassin")).toEqual({
       ...none,
       runChance: 0.9,
       gpBonus: 0.3,
-      blurb: "Slips away from almost anything, and pockets extra GP.",
+      blurb: "Slips away from anything (the parting strike on a Run lands at half), and pockets extra GP.",
     });
   });
 
@@ -112,6 +112,22 @@ describe("classPassive", () => {
       expect(Object.keys(classPassive(name)).sort()).toEqual(fields);
       expect(classPassive(name).strikeFactor).toBe(1);
       expect(classPassive(name).runChanceBonus).toBe(0);
+    });
+  });
+
+  it("the classes that slip away say what Run Away does for them now: the parting strike lands softer, no odds", () => {
+    ["Thief", "Assassin", "Ninja"].forEach((name) => {
+      expect(classPassive(name).runChance).not.toBeNull();
+      expect(classPassive(name).blurb).toMatch(/parting strike/i);
+      expect(classPassive(name).blurb).not.toMatch(/succeeds|odds|\d+%\s+against/i);
+    });
+    expect(classPassive("Thief").blurb).toBe("+25% GP from quests and chests; slips away, so the parting strike on a Run lands at half.");
+    expect(classPassive("Ninja").blurb).toContain("hits only shadow");
+  });
+
+  it("only the classes that slip away carry a run chance", () => {
+    ["Warrior", "Mage", "Monk", "Knight", "Berserker", "Paladin", "Sage", "Ranger", "Mystic"].forEach((name) => {
+      expect(classPassive(name).runChance).toBeNull();
     });
   });
 

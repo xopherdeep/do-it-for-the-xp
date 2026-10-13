@@ -11,7 +11,11 @@ import {
 } from "ionicons/icons";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useAbilitySystem } from "@/hooks/abilities/useAbilitySystem";
-import { computeHeroAbilityStatuses, heroAbilitySnapshot } from "@/lib/services/abilities/heroAbilityStatus";
+import {
+  computeHeroAbilityStatuses,
+  groundedReasonOf,
+  heroAbilitySnapshot,
+} from "@/lib/services/abilities/heroAbilityStatus";
 import { getCastLogDb, lastCastsOf } from "@/lib/databases/CastLogDb";
 import type { Ability } from "@/types/abilities";
 import { play$fx } from "@/assets/fx";
@@ -48,6 +52,8 @@ export default defineComponent({
     // Cooldowns and AP windows depend on the clock: it is read again on entering the page and after every cast
     const now = ref(new Date());
     const snapshot = computed(() => heroAbilitySnapshot(hero.value ?? {}, now.value));
+    // A hero who owes the Hospital cannot cast: every card keeps its Cast button disabled with this reason
+    const groundedReason = computed(() => groundedReasonOf(hero.value ?? {}));
     // The hero's own Cast Log decides the cooldowns: Power id to the ISO time of their newest cast
     const lastCasts = ref<Record<string, string>>({});
     const loadLastCasts = async () => {
@@ -90,7 +96,7 @@ export default defineComponent({
     const casting = ref("");
 
     const cast = async (abilityId: string) => {
-      const isCastBlocked = Boolean(casting.value) || !heroId.value;
+      const isCastBlocked = Boolean(casting.value) || !heroId.value || Boolean(groundedReason.value);
       if (isCastBlocked) return;
       const name = abilities.value.find((ability) => ability.id === abilityId)?.name ?? "Power";
       casting.value = abilityId;
@@ -136,6 +142,7 @@ export default defineComponent({
       heroId,
       hero,
       snapshot,
+      groundedReason,
       statuses,
       unlocks,
       filter,

@@ -173,7 +173,7 @@ describe("the profile sheet", () => {
     expect(statEffectLine("endurance", hero)).toBe("Trained 2: +6 max HP");
     expect(statEffectLine("defense", hero)).toBe("Trained 3: +3 max HP");
     expect(statEffectLine("guts", hero)).toBe("Trained 10: Defend blocks 10% more, +5 max HP");
-    expect(statEffectLine("agility", hero)).toBe("Trained 6: +6% Run Away odds, +6s per chore on the clock");
+    expect(statEffectLine("agility", hero)).toBe("Trained 6: +6% to dodge the parting strike when you run, +6s per chore on the clock");
     expect(statEffectLine("charisma", hero)).toBe("Trained 8: shop prices 8% off");
     expect(statEffectLine("intelligence", hero)).toBe("Trained 3: +1 max MP, MP costs 3% off");
     expect(statEffectLine("wisdom", hero)).toBe("Trained 2: +1 max MP");

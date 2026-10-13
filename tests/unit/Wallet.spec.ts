@@ -3,7 +3,12 @@ import {
   DEFAULT_WALLET_LIMIT,
   depositToSavings,
   nextWalletUpgrade,
+  hospitalBillOf,
+  isGrounded,
+  normalizePurse,
+  payDownBills,
   payDownDebt,
+  payHospitalBill,
   WALLET_TIERS,
   walletLimitOf,
   withdrawFromSavings,
@@ -34,7 +39,7 @@ describe("wallet upgrades", () => {
   it("leaves the wallet alone when savings cover it, and keeps the debt", () => {
     const result = buyWalletUpgrade({ limit: 100, wallet: 50, savings: 400, debt: 10 }, 5);
     expect(result.ok).toBe(true);
-    if (result.ok) expect(result.gp).toEqual({ limit: 300, savings: 250, wallet: 50, debt: 10 });
+    if (result.ok) expect(result.gp).toEqual({ limit: 300, savings: 250, wallet: 50, debt: 10, hospitalBill: 0 });
   });
 
   it("is locked under the tier's level, like Majora's Mask", () => {
@@ -77,5 +82,69 @@ describe("bank moves", () => {
   it("treats garbage amounts as nothing", () => {
     expect(withdrawFromSavings({ limit: 100, wallet: 0, savings: 50 }, NaN).amount).toBe(0);
     expect(depositToSavings({ wallet: 50 }, -10).amount).toBe(0);
+  });
+});
+
+describe("the hospital bill (docs/Quest-Rooms-Spec.md 5.8)", () => {
+  it("is its own field: a purse always carries it, and a broken value reads as nothing", () => {
+    expect(normalizePurse(undefined).hospitalBill).toBe(0);
+    expect(normalizePurse({ hospitalBill: 60 }).hospitalBill).toBe(60);
+    expect(normalizePurse({ hospitalBill: NaN }).hospitalBill).toBe(0);
+    expect(normalizePurse({ hospitalBill: -5 }).hospitalBill).toBe(0);
+    expect(hospitalBillOf({ hospitalBill: 60, debt: 5 })).toBe(60);
+  });
+
+  it("grounds a hero only while the bill is owed; plain debt never grounds", () => {
+    expect(isGrounded({ hospitalBill: 1 })).toBe(true);
+    expect(isGrounded({ hospitalBill: 0, debt: 500 })).toBe(false);
+    expect(isGrounded(undefined)).toBe(false);
+    expect(isGrounded(null)).toBe(false);
+  });
+
+  it("pays the bill from the wallet, capped by the wallet and by the bill", () => {
+    expect(payHospitalBill({ wallet: 40, hospitalBill: 60 }, 40)).toMatchObject({ amount: 40, capped: "none", billPaid: 40 });
+    expect(payHospitalBill({ wallet: 40, hospitalBill: 60 }, 40).gp).toMatchObject({ wallet: 0, hospitalBill: 20 });
+    expect(payHospitalBill({ wallet: 10, hospitalBill: 60 }, 40)).toMatchObject({ amount: 10, capped: "wallet" });
+    expect(payHospitalBill({ wallet: 90, hospitalBill: 60 }, 80)).toMatchObject({ amount: 60, capped: "bill" });
+    expect(payHospitalBill({ wallet: 90, hospitalBill: 60 }, 80).gp).toMatchObject({ wallet: 30, hospitalBill: 0 });
+  });
+
+  it("leaves the other debt and the savings alone when it pays the bill", () => {
+    const move = payHospitalBill({ wallet: 50, savings: 70, debt: 9, hospitalBill: 20 }, 50);
+    expect(move.gp).toMatchObject({ wallet: 30, savings: 70, debt: 9, hospitalBill: 0 });
+  });
+
+  it("lifts the grounding the moment the bill reaches 0", () => {
+    const purse = { wallet: 100, hospitalBill: 60 };
+    expect(isGrounded(purse)).toBe(true);
+    expect(isGrounded(payHospitalBill(purse, 59).gp)).toBe(true);
+    expect(isGrounded(payHospitalBill(purse, 60).gp)).toBe(false);
+  });
+
+  it("treats garbage amounts as nothing", () => {
+    expect(payHospitalBill({ wallet: 50, hospitalBill: 60 }, NaN).amount).toBe(0);
+    expect(payHospitalBill({ wallet: 50, hospitalBill: 60 }, -10).amount).toBe(0);
+  });
+
+  it("makes the bank pay the bill before the other debt", () => {
+    const move = payDownBills({ wallet: 80, debt: 30, hospitalBill: 60 }, 80);
+    expect(move.amount).toBe(80);
+    expect(move.billPaid).toBe(60);
+    expect(move.gp).toMatchObject({ wallet: 0, hospitalBill: 0, debt: 10 });
+  });
+
+  it("puts a small payment all on the bill, and a payment past the bill on the debt", () => {
+    expect(payDownBills({ wallet: 80, debt: 30, hospitalBill: 60 }, 25).gp).toMatchObject({ wallet: 55, hospitalBill: 35, debt: 30 });
+    expect(payDownBills({ wallet: 100, debt: 30, hospitalBill: 60 }, 100)).toMatchObject({ amount: 90, capped: "debt", billPaid: 60 });
+  });
+
+  it("pays plain debt as it always did when there is no bill", () => {
+    const move = payDownBills({ wallet: 50, debt: 20 }, 50);
+    expect(move).toMatchObject({ amount: 20, capped: "debt", billPaid: 0 });
+    expect(move.gp).toMatchObject({ wallet: 30, debt: 0, hospitalBill: 0 });
+  });
+
+  it("stops at the wallet", () => {
+    expect(payDownBills({ wallet: 10, debt: 30, hospitalBill: 60 }, 50)).toMatchObject({ amount: 10, capped: "wallet", billPaid: 10 });
   });
 });

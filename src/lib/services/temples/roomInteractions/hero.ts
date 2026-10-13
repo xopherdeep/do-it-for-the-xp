@@ -3,6 +3,7 @@
  * pay gold found in a temple). Everything goes through the Pinia user store.
  */
 import { useUserStore } from '@/lib/store/stores/user';
+import { admitToHospital } from '@/lib/services/hometown/hospitalAdmission';
 import { heroGold } from '@/lib/services/stats/StatEffects';
 
 /** A hero's HP or MP, whichever way the profile stores it (an object, or a number next to maxHp / maxMp). */
@@ -34,7 +35,10 @@ export const earnGold = (userId: string, amount: number): number => {
   return gp;
 };
 
-/** Take HP off a hero. A hero who drops to 0 is stood back up at full HP and reported defeated. */
+/**
+ * Take HP off a hero. A hero who drops to 0 is admitted to the Hospital at once (full HP and MP, the flat bill, the
+ * family told: docs/Quest-Rooms-Spec.md 5.8) and reported defeated, so the temple can carry them there.
+ */
 export const hurtHero = (userId: string, amount: number): { lost: number; defeated: boolean } => {
   const store = useUserStore();
   const before = readPoints(userId, 'hp').now;
@@ -42,8 +46,8 @@ export const hurtHero = (userId: string, amount: number): { lost: number; defeat
   const after = readPoints(userId, 'hp');
   if (alive) return { lost: before - after.now, defeated: false };
 
-  // The same as the battle: back to full HP first, then off to the game-over screen
-  store.updateUserHP({ userId, amount: after.max });
+  // The same as a lost battle: treated and billed first, so a reload never finds the hero at 0
+  admitToHospital(userId, 'trap');
   return { lost: before, defeated: true };
 };
 

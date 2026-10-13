@@ -2,7 +2,7 @@
  * Class passives: the one thing each hero class changes about the loop (docs/Items-And-Classes-Contract.md, C).
  *
  * Rule zero still holds: no class completes a chore. A passive changes the brace, the MP bill, the loot, the
- * escape odds, the clock or what a win restores. `classPassive(jobClass)` is the whole table as one typed
+ * parting strike of a Run Away, the clock or what a win restores. `classPassive(jobClass)` is the whole table as one typed
  * object; the engines read the field they care about and never spell a class name themselves. The hero's
  * trained stats lay over this table in `StatEffects.heroPassive` (docs/Stats-Contract.md).
  *
@@ -21,9 +21,12 @@ export interface ClassPassive {
   mpRegenOnWin: number;
   /** Extra share of GP from quests and chests. */
   gpBonus: number;
-  /** Run Away odds against a plain monster, or null to keep the beast's own odds. */
+  /**
+   * Set for the classes that slip away (Thief, Assassin, Ninja): the parting strike on a Run Away lands through the
+   * brace factor (half for them). Run Away itself always works, so the number is no longer read, only whether it is set.
+   */
   runChance: number | null;
-  /** Added to the Run Away odds against any beast; 0 for every class (trained agility raises it, see StatEffects). */
+  /** Share of parting strikes the hero dodges outright (capped in strikeMath); 0 for every class, trained agility raises it (see StatEffects). */
   runChanceBonus: number;
   /** Flat minutes added to what every chore earns on the clock. */
   cooldownMinutesBonus: number;
@@ -44,6 +47,7 @@ export const SAGE_MP_DISCOUNT = 0.5;
 export const WIN_MP_REGEN = 0.1;
 export const WIN_HP_REGEN = 0.1;
 export const THIEF_GP_BONUS = 0.25;
+/** Marks a class that slips away from the parting strike; the value itself is not read any more. */
 export const THIEF_RUN_CHANCE = 0.9;
 export const MONK_MINUTE = 1;
 export const MONK_AP = 1;
@@ -89,7 +93,7 @@ const PASSIVES: Record<string, Partial<ClassPassive>> = {
   Thief: {
     gpBonus: THIEF_GP_BONUS,
     runChance: THIEF_RUN_CHANCE,
-    blurb: '+25% GP from quests and chests; Run Away succeeds 90% against monsters.',
+    blurb: '+25% GP from quests and chests; slips away, so the parting strike on a Run lands at half.',
   },
   Monk: {
     cooldownMinutesBonus: MONK_MINUTE,
@@ -121,7 +125,7 @@ const PASSIVES: Record<string, Partial<ClassPassive>> = {
   Assassin: {
     runChance: THIEF_RUN_CHANCE,
     gpBonus: ASSASSIN_GP_BONUS,
-    blurb: 'Slips away from almost anything, and pockets extra GP.',
+    blurb: 'Slips away from anything (the parting strike on a Run lands at half), and pockets extra GP.',
   },
   Ranger: {
     gpBonus: RANGER_GP_BONUS,
@@ -148,7 +152,7 @@ const PASSIVES: Record<string, Partial<ClassPassive>> = {
     gpBonus: THIEF_GP_BONUS,
     runChance: THIEF_RUN_CHANCE,
     skipFirstStrike: true,
-    blurb: "A Thief's run and loot, and the beast's first strike of every fight hits only shadow.",
+    blurb: "A Thief's loot and slip-away, and the beast's first strike of every fight hits only shadow, a parting strike included.",
   },
   Sage: {
     mpDiscount: SAGE_MP_DISCOUNT,

@@ -28,6 +28,11 @@ export interface GpPurse {
   wallet?: number;
   savings?: number;
   debt?: number;
+  /**
+   * What the hero still owes the Hospital (docs/Quest-Rooms-Spec.md 5.8). Kept apart from `debt` so one number has one
+   * meaning: owed > 0 means the hero is grounded, whatever else they owe.
+   */
+  hospitalBill?: number;
   limit?: number;
 }
 
@@ -52,7 +57,23 @@ export function walletLimitOf(gp?: GpPurse | null): number {
 
 /** The purse with every field a number, the limit defaulted. */
 export function normalizePurse(gp?: GpPurse | null): Purse {
-  return { wallet: money(gp?.wallet), savings: money(gp?.savings), debt: money(gp?.debt), limit: walletLimitOf(gp) };
+  return {
+    wallet: money(gp?.wallet),
+    savings: money(gp?.savings),
+    debt: money(gp?.debt),
+    hospitalBill: money(gp?.hospitalBill),
+    limit: walletLimitOf(gp),
+  };
+}
+
+/** What the hero still owes the Hospital: a missing or broken value is nothing. */
+export function hospitalBillOf(gp?: GpPurse | null): number {
+  return money(gp?.hospitalBill);
+}
+
+/** Grounded means a hospital bill is unpaid. Plain debt never grounds; paying the bill to 0 lifts it at once. */
+export function isGrounded(gp?: GpPurse | null): boolean {
+  return hospitalBillOf(gp) > 0;
 }
 
 /** A bigger wallet costs half its size. */
@@ -105,7 +126,9 @@ export interface BankMove {
   /** What actually moved, after the limits */
   amount: number;
   /** Why less (or nothing) moved */
-  capped: "none" | "wallet-full" | "savings" | "wallet" | "debt";
+  capped: "none" | "wallet-full" | "savings" | "wallet" | "debt" | "bill";
+  /** How much of `amount` went to the hospital bill (only the pay-down moves set it) */
+  billPaid?: number;
 }
 
 const resolveWithdrawCap = (amount: number, wanted: number, room: number, savings: number): BankMove["capped"] => {
@@ -149,4 +172,37 @@ export function payDownDebt(gp: GpPurse | null | undefined, requested: number): 
   const amount = Math.min(wanted, purse.wallet, purse.debt);
   const capped = resolveDebtCap(amount, wanted, purse.debt, purse.wallet);
   return { gp: { ...purse, wallet: purse.wallet - amount, debt: purse.debt - amount }, amount, capped };
+}
+
+/**
+ * Pay the hospital bill from the wallet: never more than the wallet holds or the bill owed. Savings and other debt are
+ * untouched (savings come out through Withdraw first).
+ */
+export function payHospitalBill(gp: GpPurse | null | undefined, requested: number): BankMove {
+  const purse = normalizePurse(gp);
+  const wanted = money(requested);
+  const amount = Math.min(wanted, purse.wallet, purse.hospitalBill);
+  let capped: BankMove["capped"] = "none";
+  if (amount !== wanted) capped = purse.hospitalBill < purse.wallet ? "bill" : "wallet";
+  return {
+    gp: { ...purse, wallet: purse.wallet - amount, hospitalBill: purse.hospitalBill - amount },
+    amount,
+    capped,
+    billPaid: amount,
+  };
+}
+
+/**
+ * The bank's pay-down button: the hospital bill first, then any other debt, all from the wallet. A hero who owes only
+ * plain debt is paid exactly as `payDownDebt` does. `billPaid` says how much of the payment went to the bill.
+ */
+export function payDownBills(gp: GpPurse | null | undefined, requested: number): BankMove {
+  const wanted = money(requested);
+  const billMove = payHospitalBill(gp, wanted);
+  const debtMove = payDownDebt(billMove.gp, wanted - billMove.amount);
+  const amount = billMove.amount + debtMove.amount;
+  const owed = normalizePurse(gp);
+  let capped: BankMove["capped"] = "none";
+  if (amount !== wanted) capped = owed.hospitalBill + owed.debt < owed.wallet ? "debt" : "wallet";
+  return { gp: debtMove.gp, amount, capped, billPaid: billMove.amount };
 }

@@ -70,6 +70,11 @@ export default defineComponent({
       modal.present()
     },
 
+    /** The hospital bill is paid at the Gold Bank (grounding lifts when it reaches 0) */
+    openBank() {
+      void this.$router.push({ name: "bank", params: { userId: this.userId } });
+    },
+
     async clickPayDebt() {
       const alert = await alertController.create({
         header: "Pay Down Debt",

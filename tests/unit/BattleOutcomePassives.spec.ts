@@ -1,11 +1,6 @@
 import { createPinia, setActivePinia } from "pinia";
 import { ref } from "vue";
-import {
-  LIMP_HOME_HP,
-  LIMP_HOME_LINE,
-  useBattleOutcome,
-  type BattleOutcomeDeps,
-} from "@/app/Console/BattleField/composables/useBattleOutcome";
+import { useBattleOutcome, type BattleOutcomeDeps } from "@/app/Console/BattleField/composables/useBattleOutcome";
 import type { Encounter } from "@/app/Console/BattleField/battle/encounterLoader";
 import type { Enemy } from "@/lib/services/battle/BattleService";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -14,8 +9,8 @@ import { useUserStore } from "@/lib/store/stores/user";
  * The class's say on a win's pay (docs/Items-And-Classes-Contract.md, C), through useBattleOutcome's
  * celebrateVictory: the Thief's GP, the Monk's AP, the Mage's MP and the Paladin's HP. Rewards are paid the
  * moment the beast falls, so the store is checked right after the call; the celebration that follows runs on
- * timers the test never advances. Fights leave damage behind: a win does not fill HP, and a defeat leaves the
- * hero limping home with LIMP_HOME_HP, never 0.
+ * timers the test never advances. Fights leave damage behind: a win does not fill HP. A defeat admits the hero to
+ * the Hospital (BattleOutcomeDefeat.spec.ts).
  */
 
 jest.mock("@/lib/databases/ProfileDb", () => {
@@ -357,50 +352,5 @@ describe("useBattleOutcome: a quest room's win completes its quest", () => {
     expect(mockTemples.markRoomCleared).not.toHaveBeenCalled();
     expect(mockRecordBattleCompletion).not.toHaveBeenCalled();
     expect(deps.router.replace).toHaveBeenCalledWith(expect.objectContaining({ name: "temple" }));
-  });
-});
-
-describe("useBattleOutcome: a defeat", () => {
-  beforeEach(() => {
-    jest.useFakeTimers();
-    setActivePinia(createPinia());
-  });
-
-  afterEach(() => {
-    jest.useRealTimers();
-  });
-
-  /** The beast's last strike has landed: the hero is at 0 HP in the store, as BattleService leaves them. */
-  const knockOut = () => {
-    useUserStore().updateUserHP({ userId: HERO_ID, amount: -1000 });
-    expect(stats().hp.now).toBe(0);
-  };
-
-  it("sets the hero on their feet with 1 HP, says where to go and walks to the game-over splash", () => {
-    addHero("Warrior");
-    knockOut();
-    const { outcome, deps } = rig("free", { label: "Socktopus", enemies: [beast()] });
-
-    outcome.handlePlayerDefeated();
-
-    expect(LIMP_HOME_HP).toBe(1);
-    expect(stats().hp.now).toBe(1); // alive at once, before the dialog is tapped through
-    expect((deps.audio.stopBgm as jest.Mock)).toHaveBeenCalled();
-    expect((deps.audio.playSound as jest.Mock)).toHaveBeenCalledWith("die");
-
-    const queued = (deps.dialog.enqueue as jest.Mock).mock.calls[0][0] as Array<string | (() => void)>;
-    expect(queued[0]).toBe("You limp back to town with 1 HP. The Hospital can patch you up.");
-    expect(queued[0]).toBe(LIMP_HOME_LINE);
-    (queued[1] as () => void)();
-    expect(stats().hp.now).toBe(1);
-    expect(stats().mp.now).toBe(10); // MP is not touched
-    expect((deps.router.replace as jest.Mock)).toHaveBeenCalledWith({ name: "game-over" });
-  });
-
-  it("never heals a hero who somehow still has HP", () => {
-    addHero("Warrior");
-    const { outcome } = rig("free", { label: "Socktopus", enemies: [beast()] });
-    outcome.handlePlayerDefeated();
-    expect(stats().hp.now).toBe(20);
   });
 });

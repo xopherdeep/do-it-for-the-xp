@@ -9,8 +9,9 @@
  *   room    Hotel      a night's sleep: full HP and full MP   ROOM_COST
  *   bench   Hospital   a doze on the waiting-room bench: a quarter of max HP, free, once a day
  *
- * Fights leave damage behind and a defeat sends the hero home with 1 HP, so a broke hero must
- * never be stuck: the bench (quoteBenchRest) costs nothing and asks only that a day has passed.
+ * Fights leave damage behind, so a broke hero must never be stuck: the bench (quoteBenchRest) costs nothing and
+ * asks only that a day has passed. A hero at 0 HP is not left to limp here: the Hospital admits them
+ * (hospitalAdmission.ts), treats them like a revive and sends the bill.
  */
 
 export const HEAL_COST = 50;

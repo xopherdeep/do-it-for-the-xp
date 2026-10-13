@@ -15,6 +15,8 @@ import {
   type RoomOutcome,
   type Ware
 } from '@/lib/services/temples/RoomInteractions';
+import { hospitalRoute } from '@/lib/services/hometown/hospitalAdmission';
+import { CARRIED_TO_HOSPITAL_LINE } from '@/lib/services/hometown/hospitalBill';
 import { pegasusOfTemple, pegasusView } from '@/lib/services/temples/TemplePegasus';
 import type { useUserStore } from '@/lib/store/stores/user';
 import type { useChestReveal, useChoiceReveal, usePegasusReveal } from './templeReveals';
@@ -40,6 +42,9 @@ export interface RoomOutcomeDeps
   beastCard: ReturnType<typeof useRoomBeast>['getBeastCard'];
   activeMonster: ReturnType<typeof useRoomBeast>['activeMonster'];
 }
+
+/** How long the temple holds the "carried to the Hospital" line before the Hospital screen takes over */
+const CARRIED_TO_HOSPITAL_MS = 1800;
 
 // --- Room actions: what each room says and does lives in RoomInteractions ---------------------
 
@@ -160,9 +165,12 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
     if (shouldShowToast) say(message);
 
     if (outcome.defeated) {
-      // Same as losing a battle: HP is already back, the game-over screen takes over
+      // Same as losing a battle: the trap already admitted the hero (full HP and MP, billed). The temple says one line,
+      // then the Hospital screen takes over and the nurse reads the bill. The run is saved where the hero fell.
       fx('die');
-      void router.replace({ name: 'game-over' });
+      say(CARRIED_TO_HOSPITAL_LINE, CARRIED_TO_HOSPITAL_MS);
+      const heroId = String(progressHeroId ?? props.userId ?? userStore.currentUser.id);
+      timers.startTimeout(CARRIED_TO_HOSPITAL_MS, () => void router.replace(hospitalRoute(heroId)));
       return;
     }
 

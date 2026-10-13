@@ -125,6 +125,45 @@ describe("AbilityService.useAbility", () => {
   });
 });
 
+describe("AbilityService.useAbility, grounded (docs/Quest-Rooms-Spec.md 5.8)", () => {
+  const groundHero = (hospitalBill: number) => {
+    addHero({ mp: { now: 40, max: 40 }, gp: { wallet: 0, savings: 0, debt: 0, hospitalBill, limit: 1000 } });
+  };
+
+  it("refuses with reason grounded while a hospital bill is owed, charging and logging nothing", async () => {
+    groundHero(60);
+
+    await expect(service.useAbility("blink", HERO)).resolves.toEqual({ ok: false, reason: "grounded" });
+
+    expect(mp()).toBe(40);
+    expect(table.get("blink")?.lastUsed).toBeUndefined();
+    expect(fakeDb.setAbility).not.toHaveBeenCalled();
+    expect(logCast()).not.toHaveBeenCalled();
+    expect(postSystemLine()).not.toHaveBeenCalled();
+    expect(push()).not.toHaveBeenCalled();
+  });
+
+  it("checks the grounding before the MP: a grounded hero who is also out of MP is told they are grounded", async () => {
+    addHero({ mp: { now: 1, max: 40 }, gp: { wallet: 0, savings: 0, debt: 0, hospitalBill: 100, limit: 1000 } });
+    await expect(service.useAbility("blink", HERO)).resolves.toEqual({ ok: false, reason: "grounded" });
+  });
+
+  it("lifts the moment the bill reaches 0", async () => {
+    groundHero(60);
+    await expect(service.useAbility("blink", HERO)).resolves.toMatchObject({ ok: false, reason: "grounded" });
+
+    useUserStore().users[HERO].stats.gp.hospitalBill = 0;
+
+    await expect(service.useAbility("blink", HERO)).resolves.toMatchObject({ ok: true });
+    expect(mp()).toBe(32);
+  });
+
+  it("is not grounded by plain debt", async () => {
+    addHero({ mp: { now: 40, max: 40 }, gp: { wallet: 0, savings: 0, debt: 500, hospitalBill: 0, limit: 1000 } });
+    await expect(service.useAbility("blink", HERO)).resolves.toMatchObject({ ok: true });
+  });
+});
+
 describe("AbilityService.useAbility, the ledger", () => {
   it("logs one Cast Log entry with the MP the hero paid and returns it", async () => {
     addHero({ mp: { now: 10, max: 40 } });

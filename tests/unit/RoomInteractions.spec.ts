@@ -25,6 +25,16 @@ jest.mock("@/lib/services/core/StorageService", () => ({
   __esModule: true,
   default: { saveUsers: jest.fn().mockResolvedValue(undefined) },
 }));
+// A knocked-out hero is admitted to the Hospital, which tells the family; those outlets are doubles here.
+jest.mock("@/lib/store/stores/chat", () => ({
+  __esModule: true,
+  FAMILY_CHAT_ROOM: "family-chat",
+  useChatStore: () => ({ postSystemLine: jest.fn(async () => ({})) }),
+}));
+jest.mock("@/lib/store/stores/notifications", () => ({
+  __esModule: true,
+  useNotificationsStore: () => ({ push: jest.fn() }),
+}));
 jest.mock("@/lib/databases/TempleProgressDb", () => ({
   getTempleProgressDb: () => ({
     getProgress: () => Promise.resolve(null),
@@ -228,7 +238,7 @@ describe("traps", () => {
     expect(roomActions(room, ctx).header).toBe("A sprung trap. Quiet now.");
   });
 
-  it("sends a hero who drops to 0 HP to game over with their HP restored first", () => {
+  it("admits a hero who drops to 0 HP to the Hospital: full HP and MP, billed, instead of game over", () => {
     addHero({ hp: { now: 3, max: 50 } });
     const { room, ctx } = withRoom({ type: "trap" });
 
@@ -236,6 +246,26 @@ describe("traps", () => {
 
     expect(outcome.defeated).toBe(true);
     expect(hp()).toBe(50);
+    expect(mp()).toBe(40);
+    expect(wallet()).toBe(0); // the flat 100 came out of the 100 GP the hero carried
+    expect(hero().stats.gp.hospitalBill).toBe(0);
+  });
+
+  it("owes the rest of the bill and grounds a hero who cannot cover it", () => {
+    addHero({ hp: { now: 3, max: 50 }, gp: { wallet: 40, savings: 0, debt: 0, limit: 1000 } });
+    const { room, ctx } = withRoom({ type: "trap" });
+
+    expect(onEnterRoom(room, ctx)!.defeated).toBe(true);
+
+    expect(wallet()).toBe(0);
+    expect(hero().stats.gp.hospitalBill).toBe(60);
+    expect(hp()).toBe(50);
+  });
+
+  it("does not bill a hero who survives the trap", () => {
+    const { room, ctx } = withRoom({ type: "trap" });
+    expect(onEnterRoom(room, ctx)!.defeated).toBeUndefined();
+    expect(wallet()).toBe(100);
   });
 
   it("opens its sheet first when it can be dodged", () => {
@@ -351,6 +381,7 @@ describe("puzzles", () => {
 
     expect(answerRiddle(room, ctx, 0).defeated).toBe(true);
     expect(hp()).toBe(50);
+    expect(wallet()).toBe(0);
   });
 });
 

@@ -65,9 +65,36 @@ export interface BattleState {
   pendingStrikeBraced: boolean; // The waiting strike was met with a brace
 }
 
+/** Why a parting strike did not land: the Ninja's owed miss, Chronos' ice, Thor's Hammer, or trained agility. */
+export type PartingDodge = 'shadow' | 'frozen' | 'hammer' | 'agility';
+
+/** What cut a parting strike down: a brace the hero was already in, or a class that slips away (Thief, Ninja). */
+export type PartingSoftener = 'brace' | 'slip';
+
+/**
+ * How a getaway went (docs/Quest-Rooms-Spec.md 5.6). A run always works; this is what it cost, for the page.
+ * The seams the page reads: `carriesQuest` (the grudge mark) and `emptied` (the Hospital admits the hero on the way out).
+ */
+export interface EscapeReport {
+  /** A free fight: nothing to lose by leaving, so no parting strike was owed. */
+  free: boolean;
+  /** HP the parting strike took (0 when it was dodged or none was owed; never more than the hero had). */
+  damage: number;
+  /** What kept the strike from landing, or null when none did (or none was owed). */
+  dodgedBy: PartingDodge | null;
+  /** What softened the strike that did land, or null when it landed in full. */
+  softener: PartingSoftener | null;
+  /** The strike took the hero's last HP: they are at 0, and the page admits them to the Hospital (5.8). */
+  emptied: boolean;
+  /** The fight being left carries a quest. Leaving it earns the beast a grudge mark. */
+  carriesQuest: boolean;
+}
+
 export interface BattleResult {
   success: boolean;
   message: string;
+  /** Only on a Run Away that worked: what the getaway cost. */
+  escape?: EscapeReport;
 }
 
 /**
@@ -100,14 +127,19 @@ export type BattlePassive = Pick<
 
 export interface BattleServiceOptions {
   /**
-   * A free fight (random encounter, Test Fight): there is nothing to lose by leaving, so
-   * Run Away always works.
+   * A free fight (random encounter, Test Fight): there is nothing to lose by leaving, so Run Away
+   * costs nothing at all. Every other fight takes one parting strike first.
    */
   freeFight?: boolean;
   /**
-   * The hero's passive: how much of a strike lands at all and how much the brace lets through, the Run
-   * Away odds against monsters and what is added to them, extra minutes per chore and whether the beast's
-   * first strike misses. Anything left out keeps the default rule.
+   * The fight carries a quest (a quest from the board, or a quest room in a temple). The service
+   * only passes it on, in the escape report; the grudge it earns is not the engine's to keep.
+   */
+  carriesQuest?: boolean;
+  /**
+   * The hero's passive: how much of a strike lands at all and how much the brace lets through, whether
+   * the class slips away from the parting strike (Thief, Ninja) and the agility that dodges it, extra
+   * minutes per chore and whether the beast's first strike misses. Anything left out keeps the default rule.
    */
   passive?: Partial<BattlePassive>;
 }

@@ -1,12 +1,14 @@
 import {
   attacksLines,
   autoLine,
-  blockedPathLines,
   bracesLines,
   choreUsedLines,
   damageTakenLines,
   fallenLines,
   frozenStrikeLine,
+  nimbleDodgeLine,
+  partingDodgeLine,
+  partingStrikeLines,
   runAwayLines,
   shadowStrikeLine,
   stepsForwardLines,
@@ -55,9 +57,51 @@ describe("dialogLines (characterization)", () => {
     expect(runAwayLines()).toEqual([{ text: "Running away...", auto: true }, "Got away safely!"]);
   });
 
-  it("blockedPathLines names the beast, or 'The enemy' with none", () => {
-    expect(blockedPathLines(bunny)).toEqual(["Couldn't escape!", "Dust Bunny blocks your path!"]);
-    expect(blockedPathLines(null)).toEqual(["Couldn't escape!", "The enemy blocks your path!"]);
+  it("runAwayLines slips the parting strike's lines between the run and the getaway", () => {
+    expect(runAwayLines(["Dust Bunny strikes as Ada flees! Ada takes 4 damage!"])).toEqual([
+      { text: "Running away...", auto: true },
+      "Dust Bunny strikes as Ada flees! Ada takes 4 damage!",
+      "Got away safely!",
+    ]);
+  });
+
+  it("there is no 'Couldn't escape' line any more: a run cannot fail", () => {
+    const lines = jest.requireActual("@/lib/services/battle/battleService/dialogLines");
+    expect(lines.blockedPathLines).toBeUndefined();
+  });
+
+  it("partingStrikeLines says what the strike cost, and who softened it", () => {
+    expect(partingStrikeLines(bunny, "Ada", 4, null)).toEqual(["Dust Bunny strikes as Ada flees! Ada takes 4 damage!"]);
+    expect(partingStrikeLines(bunny, "Ada", 2, "brace")).toEqual([
+      "Dust Bunny strikes as Ada flees! Ada braced: only 2 damage!",
+    ]);
+    expect(partingStrikeLines(bunny, "Ada", 2, "slip")).toEqual([
+      "Dust Bunny strikes as Ada flees! Ada slips most of it: only 2 damage!",
+    ]);
+  });
+
+  it("partingStrikeLines says so when the strike emptied the hero's HP: they wake up in the Hospital", () => {
+    expect(partingStrikeLines(bunny, "Ada", 5, null, true)).toEqual([
+      "Dust Bunny strikes as Ada flees! Ada staggers away... and wakes up in the Hospital.",
+    ]);
+  });
+
+  it("runAwayLines leaves out the getaway when the hero ended up in the Hospital", () => {
+    expect(runAwayLines(["Ada staggers away... and wakes up in the Hospital."], false)).toEqual([
+      { text: "Running away...", auto: true },
+      "Ada staggers away... and wakes up in the Hospital.",
+    ]);
+  });
+
+  it("nimbleDodgeLine is the agility dodge", () => {
+    expect(nimbleDodgeLine(bunny, "Ada")).toBe("Dust Bunny lunges, but Ada is too quick to catch!");
+  });
+
+  it("partingDodgeLine says why the strike missed, by what dodged it", () => {
+    expect(partingDodgeLine("shadow", bunny, "Ada")).toBe(shadowStrikeLine(bunny, "Ada"));
+    expect(partingDodgeLine("frozen", bunny, "Ada")).toBe(frozenStrikeLine(bunny));
+    expect(partingDodgeLine("hammer", bunny, "Ada")).toBe(stunnedStrikeLine(bunny));
+    expect(partingDodgeLine("agility", bunny, "Ada")).toBe(nimbleDodgeLine(bunny, "Ada"));
   });
 
   it("explains each strike that does not land", () => {

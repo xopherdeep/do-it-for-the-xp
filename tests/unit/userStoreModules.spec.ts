@@ -147,15 +147,35 @@ describe("resources: HP, MP, GP", () => {
   });
 
   it("starts a purse when there are no stats, or stats without one", () => {
-    expect(applyGpChange(undefined, { userId: "ava", savings: 3 })).toEqual({ gp: { wallet: 0, savings: 3, debt: 0, limit: 100 } });
-    expect(applyGpChange({ level: 2 }, { userId: "ava", wallet: 3 })).toEqual({ level: 2, gp: { wallet: 3, savings: 0, debt: 0, limit: 100 } });
+    expect(applyGpChange(undefined, { userId: "ava", savings: 3 })).toEqual({
+      gp: { wallet: 0, savings: 3, debt: 0, hospitalBill: 0, limit: 100 },
+    });
+    expect(applyGpChange({ level: 2 }, { userId: "ava", wallet: 3 })).toEqual({
+      level: 2,
+      gp: { wallet: 3, savings: 0, debt: 0, hospitalBill: 0, limit: 100 },
+    });
+  });
+
+  it("moves the hospital bill apart from debt, and never lets it go below 0", () => {
+    const stats = applyGpChange({ gp: { wallet: 50, savings: 0, debt: 9, hospitalBill: 60 } }, { userId: "ava", wallet: -20, hospitalBill: -20 });
+    expect(stats.gp).toMatchObject({ wallet: 30, debt: 9, hospitalBill: 40 });
+    expect(applyGpChange(stats, { userId: "ava", hospitalBill: -500 }).gp.hospitalBill).toBe(0);
+    expect(applyGpChange({ gp: { wallet: 0 } }, { userId: "ava", hospitalBill: 100 }).gp.hospitalBill).toBe(100);
   });
 
   it("replaces the purse wholesale, coercing numbers and defaulting the limit", () => {
     const user = { stats: { gp: { wallet: 10, savings: 20, debt: 3, limit: 100, extra: "kept" } } };
     expect(applyWallet(user, { wallet: "40" as unknown as number, limit: 300 })).toBe(user.stats);
-    expect(user.stats.gp).toEqual({ wallet: 40, savings: 20, debt: 3, limit: 300, extra: "kept" });
-    expect(applyWallet({}, { wallet: Number.NaN, limit: -5 })).toEqual({ gp: { wallet: 0, savings: 0, debt: 0, limit: 100 } });
+    expect(user.stats.gp).toEqual({ wallet: 40, savings: 20, debt: 3, hospitalBill: 0, limit: 300, extra: "kept" });
+    expect(applyWallet({}, { wallet: Number.NaN, limit: -5 })).toEqual({ gp: { wallet: 0, savings: 0, debt: 0, hospitalBill: 0, limit: 100 } });
+  });
+
+  it("carries the hospital bill through a wholesale purse replacement", () => {
+    const user = { stats: { gp: { wallet: 10, savings: 20, debt: 3, hospitalBill: 60, limit: 100 } } };
+    applyWallet(user, { wallet: 0, hospitalBill: 35 });
+    expect(user.stats.gp.hospitalBill).toBe(35);
+    applyWallet(user, { wallet: 5 });
+    expect(user.stats.gp.hospitalBill).toBe(35);
   });
 });
 

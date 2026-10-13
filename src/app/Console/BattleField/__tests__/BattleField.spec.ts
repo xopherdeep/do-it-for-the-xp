@@ -3,7 +3,7 @@ import { createPinia, setActivePinia } from "pinia";
 import { defineComponent, nextTick } from "vue";
 import { createMemoryHistory, createRouter } from "vue-router";
 import BattleField from "../BattleField.vue";
-import { VICTORY_TIMINGS } from "../composables/useBattleOutcome";
+import { ESCAPE_FADE_MS, VICTORY_TIMINGS } from "../composables/useBattleOutcome";
 import { battleProgressKey } from "../battle/battleProgress";
 import { useUserStore } from "@/lib/store/stores/user";
 import { createCustomAbility } from "@/lib/services/abilities/AbilityPresets";
@@ -354,6 +354,64 @@ describe("BattleField: a free fight", () => {
     expect(vm.dialogText).toBe("Max braced: only 1 damage!");
     await readUntilMenu();
     expect(wrapper.find(".attack-timer-label").text()).toBe("6:00");
+    (Math.random as jest.Mock).mockRestore();
+  });
+
+  it("Run Away from a free fight takes nothing: the getaway, the fade, and the hero is home at full HP", async () => {
+    const { wrapper, router, userStore, vm, tap } = await enterBattle("/battle/hero-1/free/");
+    await tap();
+    await tap();
+
+    await wrapper.find("#run-away").trigger("click");
+    await wrapper.find("#run").trigger("click");
+    const said: string[] = [vm.dialogText];
+    for (let taps = 0; taps < 6 && router.currentRoute.value.name !== "home-town"; taps++) {
+      await tap();
+      said.push(vm.dialogText);
+      jest.advanceTimersByTime(ESCAPE_FADE_MS + 50);
+      await flushPromises();
+    }
+
+    expect(said.join("|")).toContain("Got away safely!");
+    expect(said.join("|")).not.toMatch(/strikes as Max flees/);
+    expect(userStore.users["hero-1"].stats.hp.now).toBe(30);
+    expect(router.currentRoute.value).toMatchObject({ name: "home-town", params: { userId: "hero-1" } });
+  });
+
+  it("Run Away from a quest fight always works and costs one parting strike on the way out", async () => {
+    jest.spyOn(Math, "random").mockReturnValue(0.5);
+    mockEncounter = {
+      enemies: [
+        {
+          id: "b1", name: "Socktopus", type: "beast", isBoss: true, health: 100, maxHealth: 100,
+          attack: 10, defense: 5, speed: 8, attackCooldown: 3,
+          tasks: ["Sort socks", "Match pairs"].map((name, index) => ({ id: `t${index + 1}`, name, isCompleted: false })),
+        },
+      ],
+      rewards: { xp: 100, gp: 10, ap: 1 },
+      quest: { id: "q-socks", achievementName: "Sock Duty" },
+      roomKey: "Q0001",
+      label: "Socktopus",
+    };
+    const { wrapper, router, userStore, vm, tap } = await enterBattle("/battle/hero-1/temple/shadow-temple/1F/0/1");
+    await tap();
+    await tap();
+
+    await wrapper.find("#run-away").trigger("click");
+    await wrapper.find("#run").trigger("click");
+    const said: string[] = [vm.dialogText];
+    for (let taps = 0; taps < 6 && router.currentRoute.value.name !== "temple"; taps++) {
+      await tap();
+      said.push(vm.dialogText);
+      jest.advanceTimersByTime(ESCAPE_FADE_MS + 50);
+      await flushPromises();
+    }
+
+    expect(said).toContain("Socktopus strikes as Max flees! Max takes 4 damage!");
+    expect(said).toContain("Got away safely!");
+    expect(said.join("|")).not.toMatch(/Couldn't escape/);
+    expect(userStore.users["hero-1"].stats.hp.now).toBe(26);
+    expect(router.currentRoute.value).toMatchObject({ name: "temple", params: { temple: "shadow-temple" } });
     (Math.random as jest.Mock).mockRestore();
   });
 

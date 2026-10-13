@@ -1,5 +1,5 @@
 import { bankReceipt, bankRefusal } from "@/lib/services/gp/bankTeller";
-import { depositToSavings, payDownDebt, withdrawFromSavings } from "@/lib/services/gp/wallet";
+import { depositToSavings, payDownBills, payDownDebt, withdrawFromSavings } from "@/lib/services/gp/wallet";
 
 describe("gold bank teller copy", () => {
   it("explains why nothing moved", () => {
@@ -37,5 +37,37 @@ describe("gold bank teller copy", () => {
     const purse = { wallet: 50, savings: 0, debt: 30, limit: 100 };
     expect(bankReceipt("payDebt", purse, payDownDebt(purse, 99))).toMatch(/clears your debt/i);
     expect(bankReceipt("deposit", purse, depositToSavings(purse, 99))).toMatch(/everything in your wallet/i);
+  });
+});
+
+describe("gold bank teller copy for the hospital bill", () => {
+  it("does not say 'owe nothing' to a hero who owes the Hospital", () => {
+    const broke = { wallet: 0, savings: 0, debt: 0, hospitalBill: 60, limit: 100 };
+    expect(bankRefusal("payDebt", broke, payDownBills(broke, 20))).toMatch(/wallet is empty/i);
+    const free = { wallet: 20, savings: 0, debt: 0, hospitalBill: 0, limit: 100 };
+    expect(bankRefusal("payDebt", free, payDownBills(free, 20))).toMatch(/owe nothing/i);
+  });
+
+  it("shows the bill in the receipt of a part payment", () => {
+    const purse = { wallet: 50, savings: 0, debt: 0, hospitalBill: 60, limit: 100 };
+    expect(bankReceipt("payDebt", purse, payDownBills(purse, 20))).toBe("₲20 paid. Wallet: ₲30 | Bill: ₲40 | Debt: ₲0.");
+  });
+
+  it("tells a hero the bill is paid and they are free", () => {
+    const purse = { wallet: 80, savings: 0, debt: 0, hospitalBill: 60, limit: 100 };
+    const line = bankReceipt("payDebt", purse, payDownBills(purse, 60));
+    expect(line).toBe("₲60 paid. Wallet: ₲20 | Bill: ₲0 | Debt: ₲0. Bill paid. You're free!");
+  });
+
+  it("notes the debt cleared as well when a big payment covers both", () => {
+    const purse = { wallet: 200, savings: 0, debt: 30, hospitalBill: 60, limit: 300 };
+    const line = bankReceipt("payDebt", purse, payDownBills(purse, 200));
+    expect(line).toMatch(/Bill paid\. You're free!/);
+    expect(line).toMatch(/clears your debt/i);
+  });
+
+  it("keeps the old receipt for a hero with no bill", () => {
+    const purse = { wallet: 50, savings: 0, debt: 30, hospitalBill: 0, limit: 100 };
+    expect(bankReceipt("payDebt", purse, payDownBills(purse, 10))).toBe("₲10 paid. Wallet: ₲40 | Debt: ₲20.");
   });
 });

@@ -167,7 +167,7 @@ export default defineComponent({
           "A Beast is a chore with a checklist. The Socktopus: sort the socks, match the pairs, put them away.",
           "In battle every checklist item is an attack. Finish them all and the Beast is defeated.",
           "Each Beast has a clock. Let it run out and the Beast strikes, and the hero loses HP.",
-          "Heroes can try to Run Away, but the chore stays on their quest board.",
+          "Heroes can always Run Away, but the Beast gets one parting strike as they go, and the chore stays on their quest board.",
         ],
       },
       // 2: HP/MP - THE STAKES

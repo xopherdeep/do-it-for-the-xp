@@ -24,6 +24,20 @@ const readUntilMenu = (maxTaps = 8) => {
   cy.get(".menu-item", { timeout: 10000 }).should("have.length", 5);
 };
 
+/** Taps through the box until it says `text` (a line types out, and a tap finishes it before the next tap moves on). */
+const tapUntilSays = (text, maxTaps = 8) => {
+  const step = (left) => {
+    cy.get("[data-cy=battle-dialog]", { timeout: 20000 }).then(($box) => {
+      if ($box.text().includes(text) || left === 0) return;
+      tapDialog();
+      cy.wait(350);
+      step(left - 1);
+    });
+  };
+  step(maxTaps);
+  cy.get("[data-cy=battle-dialog]", { timeout: 10000 }).should("contain", text);
+};
+
 /** Local "YYYY-MM-DD", the way the dialog's date field reads it. */
 const localKey = (date) =>
   `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
@@ -177,16 +191,19 @@ describe("Moving House pack", () => {
     cy.get("[data-cy=task-back]").click();
     cy.get("[data-cy=task-sheet]").should("not.exist");
 
-    // Run away cleanly. A quest fight is not a free fight, so the escape is a roll (75% for a monster): make it a sure one.
+    // Run away. A run always works; a quest fight is not a free fight, so one parting strike lands on the way out.
+    // A middling roll lands it every time (agility only dodges under its few percent).
     cy.window().then((win) => {
-      win.Math.random = () => 0.1;
+      win.Math.random = () => 0.5;
     });
     cy.get(".menu-item", { timeout: 10000 }).should("have.length", 5);
     cy.contains(".menu-item", "Run Away").click();
     cy.get(".dialog-prompt").should("contain", "Run away?");
     shot("10-run-confirm");
     cy.contains(".menu-item", /^\s*Run\s*$/).click();
-    cy.get("[data-cy=battle-dialog]", { timeout: 10000 }).should("contain", "Got away safely");
+    tapUntilSays("flees!");
+    shot("10a-parting-strike");
+    tapUntilSays("Got away safely");
     shot("10b-got-away");
     tapDialog();
     cy.location("pathname", { timeout: 30000 }).should("not.match", /^\/battle\//);
@@ -312,15 +329,15 @@ describe("Moving House pack", () => {
     cy.get("[data-cy=task-back]").click();
     cy.get("[data-cy=task-sheet]").should("not.exist");
 
-    // Run away cleanly (a sure roll), so the next test starts on a quiet map
+    // Run away (it always works, at the cost of one parting strike), so the next test starts on a quiet map
     cy.window().then((win) => {
-      win.Math.random = () => 0.1;
+      win.Math.random = () => 0.5;
     });
     cy.get(".menu-item", { timeout: 10000 }).should("have.length", 5);
     cy.contains(".menu-item", "Run Away").click();
     cy.get(".dialog-prompt").should("contain", "Run away?");
     cy.contains(".menu-item", /^\s*Run\s*$/).click();
-    cy.get("[data-cy=battle-dialog]", { timeout: 10000 }).should("contain", "Got away safely");
+    tapUntilSays("Got away safely");
     shot("22-home-got-away");
     tapDialog();
     cy.location("pathname", { timeout: 30000 }).should("not.match", /^\/battle\//);

@@ -1,22 +1,12 @@
 import {
-  escapeChanceAgainst,
+  PARTING_DODGE_CEILING,
+  partingDodgeChance,
+  partingStrike,
+  partingStrikeSoftener,
   resolvePassive,
   strikeDamage,
 } from "@/lib/services/battle/battleService/strikeMath";
-import type { BattlePassive, Enemy } from "@/lib/services/battle/battleService/types";
-
-const beast = (extra: Partial<Enemy> = {}): Enemy => ({
-  id: "b1",
-  name: "Dust Bunny",
-  type: "monster",
-  isBoss: false,
-  health: 10,
-  maxHealth: 10,
-  attack: 10,
-  defense: 1,
-  speed: 1,
-  ...extra,
-});
+import type { BattlePassive } from "@/lib/services/battle/battleService/types";
 
 const passiveOf = (extra: Partial<BattlePassive> = {}): BattlePassive => resolvePassive(extra);
 
@@ -77,33 +67,131 @@ describe("strikeMath (characterization)", () => {
     });
   });
 
-  describe("escapeChanceAgainst", () => {
-    it("is 75% against an ordinary monster, and with nobody on the field", () => {
-      expect(escapeChanceAgainst(beast(), passiveOf())).toBe(0.75);
-      expect(escapeChanceAgainst(null, passiveOf())).toBe(0.75);
+  describe("there is no escape roll left", () => {
+    it("retired the odds table: nothing here decides whether a run works", () => {
+      const strikeMath = jest.requireActual("@/lib/services/battle/battleService/strikeMath");
+      expect(strikeMath.escapeChanceAgainst).toBeUndefined();
+    });
+  });
+
+  describe("partingDodgeChance (agility)", () => {
+    it("is the trained bonus, a point being 1%", () => {
+      expect(partingDodgeChance(passiveOf())).toBe(0);
+      expect(partingDodgeChance(passiveOf({ runChanceBonus: 0.06 }))).toBe(0.06);
+      expect(partingDodgeChance(passiveOf({ runChanceBonus: 0.25 }))).toBe(0.25);
     });
 
-    it("is 25% against a boss and 50% against a miniboss", () => {
-      expect(escapeChanceAgainst(beast({ isBoss: true }), passiveOf())).toBe(0.25);
-      expect(escapeChanceAgainst(beast({ type: "miniboss" }), passiveOf())).toBe(0.5);
+    it("never passes the ceiling, 0.5", () => {
+      expect(PARTING_DODGE_CEILING).toBe(0.5);
+      expect(partingDodgeChance(passiveOf({ runChanceBonus: 0.9 }))).toBe(0.5);
     });
 
-    it("takes the class run chance for ordinary monsters only", () => {
-      const thief = passiveOf({ runChance: 0.9 });
-      expect(escapeChanceAgainst(beast(), thief)).toBe(0.9);
-      expect(escapeChanceAgainst(beast({ isBoss: true }), thief)).toBe(0.25);
-      expect(escapeChanceAgainst(beast({ type: "miniboss" }), thief)).toBe(0.5);
+    it("ignores a negative or non-finite bonus, and the class run chance does not feed it", () => {
+      expect(partingDodgeChance(passiveOf({ runChanceBonus: -0.5 }))).toBe(0);
+      expect(partingDodgeChance(passiveOf({ runChanceBonus: Number.NaN }))).toBe(0);
+      expect(partingDodgeChance(passiveOf({ runChance: 0.9 }))).toBe(0);
+    });
+  });
+
+  describe("partingStrikeSoftener", () => {
+    it("is nothing for a hero who was not bracing and has no slip-away class", () => {
+      expect(partingStrikeSoftener(passiveOf(), false)).toBeNull();
     });
 
-    it("adds the trained bonus and stops at 95%", () => {
-      expect(escapeChanceAgainst(beast(), passiveOf({ runChanceBonus: 0.1 }))).toBeCloseTo(0.85, 10);
-      expect(escapeChanceAgainst(beast(), passiveOf({ runChance: 0.9, runChanceBonus: 0.2 }))).toBe(0.95);
+    it("is the brace when the hero was bracing", () => {
+      expect(partingStrikeSoftener(passiveOf(), true)).toBe("brace");
     });
 
-    it("ignores a zero, negative or non-finite bonus", () => {
-      expect(escapeChanceAgainst(beast(), passiveOf({ runChanceBonus: 0 }))).toBe(0.75);
-      expect(escapeChanceAgainst(beast(), passiveOf({ runChanceBonus: -0.5 }))).toBe(0.75);
-      expect(escapeChanceAgainst(beast(), passiveOf({ runChanceBonus: Number.NaN }))).toBe(0.75);
+    it("is the slip when the class has a run chance (Thief, Ninja, Assassin)", () => {
+      expect(partingStrikeSoftener(passiveOf({ runChance: 0.9 }), false)).toBe("slip");
+    });
+
+    it("does not stack: a bracing Thief is softened once, and the brace gets the credit", () => {
+      expect(partingStrikeSoftener(passiveOf({ runChance: 0.9 }), true)).toBe("brace");
+    });
+  });
+
+  describe("partingStrike", () => {
+    const owed = { shadow: false, frozen: false, hammer: false };
+    const run = (extra: Partial<Parameters<typeof partingStrike>[0]> = {}) =>
+      partingStrike({
+        maxHp: 100,
+        hp: 100,
+        attack: 10,
+        passive: passiveOf(),
+        wasBracing: false,
+        owed,
+        dodgeRoll: 0.99,
+        strikeRoll: 0.5,
+        ...extra,
+      });
+
+    it("is one full strike: the same number a beast's strike costs", () => {
+      expect(run()).toEqual({ dodgedBy: null, damage: strikeDamage(100, 10, false, 0.5), softener: null, emptied: false });
+      expect(run().damage).toBe(12);
+    });
+
+    it("scales with the beast's attack and the roll, like any strike", () => {
+      expect(run({ attack: 15 }).damage).toBe(18);
+      expect(run({ strikeRoll: 0 }).damage).toBe(11);
+      expect(run({ strikeRoll: 1 }).damage).toBe(13);
+    });
+
+    it("lets only strikeFactor of it land (trained strength helps here too)", () => {
+      expect(run({ passive: passiveOf({ strikeFactor: 0.75 }) }).damage).toBe(9);
+    });
+
+    it("is softened by the brace factor when the hero was bracing: half, or a Warrior's quarter", () => {
+      expect(run({ wasBracing: true })).toMatchObject({ damage: 6, softener: "brace" });
+      expect(run({ wasBracing: true, passive: passiveOf({ braceFactor: 0.25 }) })).toMatchObject({ damage: 3, softener: "brace" });
+    });
+
+    it("is softened by the same factor for a class that slips away (Thief, Ninja), not stacked with a brace", () => {
+      expect(run({ passive: passiveOf({ runChance: 0.9 }) })).toMatchObject({ damage: 6, softener: "slip" });
+      expect(run({ passive: passiveOf({ runChance: 0.9 }), wasBracing: true })).toMatchObject({ damage: 6, softener: "brace" });
+    });
+
+    it("never costs less than 1 when it lands", () => {
+      expect(run({ maxHp: 1, hp: 1, wasBracing: true }).damage).toBe(1);
+    });
+
+    it.each([
+      ["a Ninja's owed first strike", { owed: { ...owed, shadow: true } }, "shadow"],
+      ["a frozen clock (Chronos)", { owed: { ...owed, frozen: true } }, "frozen"],
+      ["a Thor's Hammer skip", { owed: { ...owed, hammer: true } }, "hammer"],
+    ] as const)("is dodged by %s", (_label, extra, dodgedBy) => {
+      expect(run(extra)).toEqual({ dodgedBy, damage: 0, softener: null, emptied: false });
+    });
+
+    it("keeps the order a real strike does: the Ninja's shadow, then the ice, then the hammer", () => {
+      expect(run({ owed: { shadow: true, frozen: true, hammer: true } }).dodgedBy).toBe("shadow");
+      expect(run({ owed: { shadow: false, frozen: true, hammer: true } }).dodgedBy).toBe("frozen");
+    });
+
+    it("is dodged when the agility roll falls under the bonus, and lands when it does not", () => {
+      const nimble = passiveOf({ runChanceBonus: 0.2 });
+      expect(run({ passive: nimble, dodgeRoll: 0.19 })).toMatchObject({ dodgedBy: "agility", damage: 0 });
+      expect(run({ passive: nimble, dodgeRoll: 0.2 })).toMatchObject({ dodgedBy: null, damage: 12 });
+    });
+
+    it("never dodges on agility with nothing trained, whatever the roll", () => {
+      expect(run({ dodgeRoll: 0 }).dodgedBy).toBeNull();
+    });
+
+    it("caps the agility dodge at the ceiling: a roll of 0.6 always lands", () => {
+      const absurd = passiveOf({ runChanceBonus: 5 });
+      expect(run({ passive: absurd, dodgeRoll: 0.49 }).dodgedBy).toBe("agility");
+      expect(run({ passive: absurd, dodgeRoll: 0.6 }).dodgedBy).toBeNull();
+    });
+
+    it("says when the strike would have emptied HP, and still reports the full strike", () => {
+      expect(run({ hp: 12 })).toMatchObject({ damage: 12, emptied: true });
+      expect(run({ hp: 13 })).toMatchObject({ damage: 12, emptied: false });
+      expect(run({ hp: 1 })).toMatchObject({ emptied: true });
+    });
+
+    it("a dodged strike empties nothing, even at 1 HP", () => {
+      expect(run({ hp: 1, owed: { ...owed, frozen: true } })).toMatchObject({ dodgedBy: "frozen", emptied: false });
     });
   });
 });

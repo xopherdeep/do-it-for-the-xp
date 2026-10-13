@@ -9,7 +9,8 @@ import type { BattlePowerCard } from "@/lib/services/battle/BattlePowers";
  * what it costs to cast, and a Cast button that only works when the Power is available.
  * Presentational: the page owns the hero, the statuses and the casting; this card only says "cast" when tapped.
  * In a fight the page passes `battle`: the AP meter gives way to the MP and effect, the battle reason is the state
- * line, and Cast works whenever there is no reason.
+ * line, and Cast works whenever there is no reason. A grounded hero's Powers (outside a fight) keep their meters but
+ * never cast: `groundedReason` is the state line.
  */
 const props = withDefaults(
   defineProps<{
@@ -19,8 +20,10 @@ const props = withDefaults(
     snapshot: HeroAbilitySnapshot;
     casting?: boolean;
     battle?: BattlePowerCard;
+    /** Set while the hero owes the Hospital (docs/Quest-Rooms-Spec.md 5.8): Cast stays disabled and says why. Not used in a fight. */
+    groundedReason?: string | null;
   }>(),
-  { casting: false }
+  { casting: false, groundedReason: null }
 );
 
 const emit = defineEmits<{ (e: "cast", abilityId: string): void }>();
@@ -92,6 +95,8 @@ const costLine = computed(() =>
 /** The one line that says why the Power cannot be cast right now (none when it can) */
 const stateLine = computed(() => {
   if (props.battle) return props.battle.reason ?? "";
+  // A Power that is still locked, cooling or short of MP keeps saying so; grounded speaks for the ones that were ready
+  if (props.groundedReason && props.status === "available") return props.groundedReason;
   switch (props.status) {
     case "locked":
       return earned.value < needed.value ? `${fmt(needed.value - earned.value)} AP to go` : "Locked";
@@ -108,7 +113,10 @@ const stateLine = computed(() => {
   }
 });
 
-const canCast = computed(() => (props.battle ? !props.battle.reason : props.status === "available") && !props.casting);
+const canCast = computed(() => {
+  if (props.battle) return !props.battle.reason && !props.casting;
+  return props.status === "available" && !props.groundedReason && !props.casting;
+});
 
 const onCast = () => {
   if (canCast.value) emit("cast", props.ability.id);

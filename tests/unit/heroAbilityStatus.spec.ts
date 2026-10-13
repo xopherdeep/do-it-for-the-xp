@@ -5,6 +5,7 @@ import {
   computeHeroAbilityStatuses,
   heroAbilitySnapshot,
   heroApWindows,
+  groundedReasonOf,
   type HeroAbilityProfile,
 } from "@/lib/services/abilities/heroAbilityStatus";
 
@@ -354,5 +355,28 @@ describe("computeHeroAbilityStatuses: shape", () => {
       dear: AbilityStatus.Locked,
       thirsty: AbilityStatus.Unlocked,
     });
+  });
+});
+
+describe("grounded (docs/Quest-Rooms-Spec.md 5.8)", () => {
+  it("gives the reason while a hospital bill is owed, and nothing otherwise", () => {
+    expect(groundedReasonOf(hero({ gp: { wallet: 0, hospitalBill: 60 } }))).toBe(
+      "Grounded: pay your hospital bill at the Gold Bank."
+    );
+    expect(groundedReasonOf(hero({ gp: { wallet: 0, hospitalBill: 0, debt: 400 } }))).toBeNull();
+    expect(groundedReasonOf(hero())).toBeNull();
+    expect(groundedReasonOf({})).toBeNull();
+  });
+
+  it("lifts when the bill reaches 0", () => {
+    const profile = hero({ gp: { hospitalBill: 60 } });
+    expect(groundedReasonOf(profile)).not.toBeNull();
+    profile.stats!.gp = { hospitalBill: 0 };
+    expect(groundedReasonOf(profile)).toBeNull();
+  });
+
+  it("does not change what the statuses say: a grounded hero's Power still reads as earned", () => {
+    const grounded = hero({ gp: { hospitalBill: 60 }, mp: { now: 30, max: 30 } });
+    expect(statusOf(power({ id: "p", mpCost: 5 }), grounded)).toBe(AbilityStatus.Available);
   });
 });

@@ -2,6 +2,7 @@ import ionic from "@/lib/mixins/ionic";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useProStore } from "@/lib/store/stores/pro";
 import XpBonus from "./components/XpBonus.vue";
+import XpGroundedForgive from "./components/XpGroundedForgive.vue";
 import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
 import AchievementDb, {
   achievementStorage,
@@ -33,6 +34,7 @@ export default defineComponent({
     // XpDoThisNotThat,
     // XpTemples,
     XpStatBox,
+    XpGroundedForgive,
     RecycleScroller,
     XpDashboardGrid:
       require("@/components/molecules/StatGrid/XpDashboardGrid.vue").default,

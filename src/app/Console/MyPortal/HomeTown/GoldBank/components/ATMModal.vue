@@ -57,6 +57,21 @@
                 >₲{{ user.stats.gp.savings }}</ion-badge
               >
             </ion-item>
+            <!-- What the Hospital is owed: its own line above debt, and a reminder that the hero is grounded -->
+            <ion-item v-if="user.stats.gp.hospitalBill > 0" class="hospital-bill-line">
+              <i
+                class="fad fa-hospital fa-2x max-w-[40px]"
+                slot="start"
+                color="warning"
+              />
+              <ion-label>
+                Hospital Bill
+                <p>Grounded until it is paid</p>
+              </ion-label>
+              <ion-badge slot="end" color="danger"
+                >₲{{ user.stats.gp.hospitalBill }}</ion-badge
+              >
+            </ion-item>
             <ion-item>
               <i
                 class="fad fa-credit-card fa-2x max-w-[40px]"
@@ -215,10 +230,12 @@
       const presentPayDebtAlert = async () => {
         const wallet = props.user?.stats?.gp?.wallet || 0;
         const debt = props.user?.stats?.gp?.debt || 0;
-        const maxPay = Math.min(wallet, debt);
+        const bill = props.user?.stats?.gp?.hospitalBill || 0;
+        // The hospital bill is paid first, then any other debt
+        const maxPay = Math.min(wallet, debt + bill);
 
         const alert = await alertController.create({
-          header: "Pay Down Debt",
+          header: bill > 0 ? "Pay Hospital Bill" : "Pay Down Debt",
           inputs: [
             {
               name: "gp",
@@ -271,7 +288,7 @@
               },
             },
             {
-              text: "Pay Down Debt",
+              text: (props.user?.stats?.gp?.hospitalBill || 0) > 0 ? "Pay Hospital Bill" : "Pay Down Debt",
               icon: cardOutline,
               handler: () => {
                 timers.startTimeout(100, () => presentPayDebtAlert());

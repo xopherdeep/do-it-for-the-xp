@@ -327,6 +327,8 @@ export default defineComponent({
     const createEngine = () => {
       const engine = createBattleService({
         freeFight: ctx.kind === "free",
+        // Leaving a fight that carries a quest is what earns the beast a grudge mark
+        carriesQuest: Boolean(encounter.value?.quest),
         passive: heroPassive(userStore.users[ctx.userId]),
       });
       engine.registerCallbacks({
@@ -464,7 +466,7 @@ export default defineComponent({
       if (hasEscaped) {
         battleStarted.value = false;
         stopNag();
-        outcome.handleEscape();
+        outcome.handleEscape(result.escape);
       }
     };
 

@@ -53,6 +53,7 @@
           :status="statuses[ability.id] || 'locked'"
           :unlocked="Boolean(unlocks[ability.id])"
           :snapshot="snapshot"
+          :grounded-reason="groundedReason"
           :casting="casting === ability.id"
           @cast="cast"
         />

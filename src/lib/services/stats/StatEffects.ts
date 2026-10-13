@@ -56,7 +56,7 @@ export const STAT_RATES = {
   /** Intelligence: share taken off every MP cost per point, and the most it can take. */
   mpPerPoint: 0.01,
   mpCap: 0.25,
-  /** Agility: Run Away odds added per point, and the most it can add. */
+  /** Agility: chance to dodge the parting strike of a Run Away, added per point, and the most it can add. */
   runPerPoint: 0.01,
   runCap: 0.25,
   /** Agility: seconds added to every chore's clock per point, and the most it can add. */
@@ -87,7 +87,7 @@ export interface StatEffects {
   braceMultiplier: number;
   /** Share of every MP cost the hero pays after the class discount. Intelligence. */
   mpCostFactor: number;
-  /** Added to the Run Away odds against any beast. Agility. */
+  /** Share of parting strikes (on a Run Away) the hero dodges outright. Agility. */
   runChanceBonus: number;
   /** Seconds added to every chore's clock. Agility. */
   clockSecondsPerChore: number;
@@ -236,7 +236,7 @@ export const statEffectLine = (stat: string, hero: HeroLike | null | undefined):
     case 'wisdom':
       return `${lead}+${Math.floor(trained * growth.wisdomMultiplier)} max MP`;
     case 'agility':
-      return `${lead}+${pct(fx.runChanceBonus)} Run Away odds, +${fx.clockSecondsPerChore}s per chore on the clock`;
+      return `${lead}+${pct(fx.runChanceBonus)} to dodge the parting strike when you run, +${fx.clockSecondsPerChore}s per chore on the clock`;
     case 'awareness':
       return `${lead}+${pct(fx.goldMultiplier - 1)} temple gold`;
     case 'charisma':
