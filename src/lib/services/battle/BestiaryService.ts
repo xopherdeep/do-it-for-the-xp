@@ -147,6 +147,8 @@ export class BestiaryService {
       bg1: beast.bg1,
       bg2: beast.bg2,
       aspectRatio: beast.aspectRatio,
+      // Minutes per chore a pack's beast carries (the Moving House pack); the fight's clock reads it
+      ...(typeof beast.attackCooldown === 'number' && beast.attackCooldown > 0 ? { attackCooldown: beast.attackCooldown } : {}),
       tasks: beast.checklist ? beast.checklist.map((item: any, index: number) => ({
         id: item.id || `task-${index}`, // Use existing ID if available
         name: typeof item === 'string' ? item : (item.label || item.name || 'Unknown Task'),

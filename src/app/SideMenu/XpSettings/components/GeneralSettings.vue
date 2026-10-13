@@ -171,6 +171,20 @@
                 <p>Add ready-made quests, beasts, Powers, rewards and shops. What you made yourself stays</p>
               </ion-label>
             </ion-item>
+
+            <ion-item
+              button
+              :detail="false"
+              :disabled="isBackupBusy"
+              :style="canRestore() ? undefined : { opacity: 0.5 }"
+              @click="openMovingHouse"
+            >
+              <ion-icon slot="start" :icon="cubeOutline"></ion-icon>
+              <ion-label>
+                <h2>Moving House</h2>
+                <p>Add a quest pack for packing and moving your home, sized for each hero. What you made yourself stays</p>
+              </ion-label>
+            </ion-item>
           </ion-item-group>
 
           <ion-item-group>
@@ -217,6 +231,7 @@
 
         <!-- </ion-card-content> -->
       </ion-card>
+      <moving-house-modal :is-open="showMoving" @close="showMoving = false" />
     </ion-content>
   </ion-page>
 </template>
@@ -224,11 +239,12 @@
 <script lang="ts">
   import { defineComponent, ref } from "vue";
   import ionic from "@/lib/mixins/ionic";
-  import { arrowBack, cloudDownloadOutline, cloudUploadOutline, sparklesOutline } from "ionicons/icons";
+  import { arrowBack, cloudDownloadOutline, cloudUploadOutline, cubeOutline, sparklesOutline } from "ionicons/icons";
   import { alertController, loadingController, toastController } from "@ionic/vue";
   import backupService, { BackupFormatError } from "@/lib/services/core/BackupService";
   import type { BackupFile, BackupSummary, RestoreMode, RestoreResult } from "@/lib/services/core/BackupService";
   import { buildStarterWorld } from "@/lib/services/core/StarterWorld";
+  import MovingHouseModal from "./MovingHouseModal.vue";
   import { canManageFamily, RESTORE_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
 
   type AlertButton = string | { text: string; role?: string; handler?: () => void };
@@ -255,8 +271,18 @@
   export default defineComponent({
     name: "general-settings",
 
+    components: { MovingHouseModal },
     mixins: [ionic],
     methods: {
+      /** The Moving House pack is a merge like the starter world, so only a Game Master may build it */
+      openMovingHouse() {
+        if (!canManageFamily()) {
+          this.showGmOnlyToast();
+          return;
+        }
+        this.showMoving = true;
+      },
+
       saveGeneralSettings() {
         // In a real app, this would save to a database or local storage
         localStorage.setItem(
@@ -526,6 +552,7 @@
       );
       const isPremiumUser = ref(true); // In a real app, this would be determined by user's subscription
       const isBackupBusy = ref(false); // A backup or restore is running
+      const showMoving = ref(false); // The Moving House dialog is open
 
       // Initialize dark mode on component mount
       if (generalSettings.value.darkMode) {
@@ -536,11 +563,13 @@
         generalSettings,
         isPremiumUser,
         isBackupBusy,
+        showMoving,
         canRestore: () => canManageFamily(),
         arrowBack,
         cloudDownloadOutline,
         cloudUploadOutline,
         sparklesOutline,
+        cubeOutline,
       };
     },
   });
