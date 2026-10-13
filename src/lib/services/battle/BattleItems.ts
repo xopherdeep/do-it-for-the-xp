@@ -1,19 +1,22 @@
 /**
- * Battle items: what using an item from the bag does during a fight (docs/Items-And-Classes-Contract.md, A, and
- * docs/superpowers/specs/2026-10-12-battle-powers-and-bag-design.md, 3).
+ * Battle items: what using an item from the bag does during a fight (docs/Items-And-Classes-Contract.md, A,
+ * docs/superpowers/specs/2026-10-12-battle-powers-and-bag-design.md, 3, and
+ * docs/superpowers/specs/2026-10-13-equipment-rules-design.md, 5).
  *
- * Rule zero: no item completes a chore. Each fight item points at one effect in BattleEffects (the table the
- * in-game Powers share): Ice Wand, Chronos' Clock and Fire Wand buy time, Thor's Hammer and Sol's Flare blunt
- * the beast, the Silver Arrow pins it so it misses its next two strikes. Any unlocked item in the bag can be
- * used, held or not. Bottles and Goods open the potions, the Book Of Spells opens the Powers; everything else
- * "can't be used in a fight".
+ * Rule zero: no item completes a chore. Each fight tool points at one effect in BattleEffects (the table the
+ * in-game Powers share) and takes its price and effect from ItemRules by name: Ice Wand, Chronos' Clock, Fire Wand
+ * and Gale's Wind buy time, Thor's Hammer, Sol's Flare and the Bombs blunt the beast, the Silver Arrow pins it so it
+ * misses its next two strikes. Only a tool held in one of the two hands can be used. Potions still drink from the
+ * bag, Bottles and Goods open the potions, the Book Of Spells opens the Powers; everything else "can't be used in a
+ * fight". The Bombs spend a Bomb from the pack instead of MP.
  *
- * Like ItemUse.useItem this module never touches the screen: it spends MP in the Pinia user store, runs the
- * effect, and answers with a line, a sound and whether it worked. The page shows the bag, plays the sound and
+ * Like ItemUse.useItem this module never touches the screen: it spends MP (or a Bomb) in the Pinia user store, runs
+ * the effect, and answers with a line, a sound and whether it worked. The page shows the bag, plays the sound and
  * types the line. Items are recognised by name (profiles store plain copies of the catalogue).
  */
 import { useUserStore } from '@/lib/store/stores/user';
-import { mpCostOf } from '@/lib/services/temples/ItemUse';
+import { ITEM_RULES, itemRule } from '@/lib/services/items/ItemRules';
+import { bombInPack, mpCostOf } from '@/lib/services/temples/ItemUse';
 import { heroMpBill } from '@/lib/services/stats/StatEffects';
 import { isItemUnlocked, unlockHintOf } from '@/lib/services/quests/ItemEffects';
 import {
@@ -51,7 +54,10 @@ export {
 
 /** The engine calls an item can make (the effects' Pick). */
 export type BattleItemEngine = BattleEffectEngine;
-export type BattleItemContext = BattleEffectContext;
+export interface BattleItemContext extends BattleEffectContext {
+  /** The names of the tools in the hero's two hands. Absent means nothing is held. */
+  heldItems?: string[];
+}
 export type BattleItemOutcome = BattleEffectOutcome;
 
 /** An equipped item as the profile stores it: the catalogue entry without its `click`. */
@@ -74,16 +80,20 @@ export interface BattleItemCard {
 }
 
 export const REASON_NOTHING = "Can't use that in a fight.";
+export const REASON_NOT_HELD = 'Hold it in a hand before a fight.';
+export const REASON_NO_BOMBS = 'Out of bombs.';
 
-/** The table from the contract: each fight item's MP and the effect it runs. Bottles is a container, not here. */
-export const BATTLE_ITEMS: Record<string, { mp: number; effect: BattleEffectId }> = {
-  'Ice Wand': { mp: 50, effect: 'frost' },
-  "Chronos' Clock": { mp: 100, effect: 'time-stop' },
-  "Thor's Hammer": { mp: 60, effect: 'stun' },
-  'Silver Arrow': { mp: 25, effect: 'pin' },
-  "Sol's Flare": { mp: 100, effect: 'weaken' },
-  'Fire Wand': { mp: 50, effect: 'kindle' },
-};
+/** The fight tools: each rule in ITEM_RULES with a `fight` effect, with its MP and that effect. Bottles is a container, not here. */
+export const BATTLE_ITEMS: Record<string, { mp: number; effect: BattleEffectId }> = Object.fromEntries(
+  Object.entries(ITEM_RULES).flatMap(([name, rule]) => (rule.fight ? [[name, { mp: rule.mp, effect: rule.fight }]] : []))
+);
+
+/** The fight table's row for an item name, or undefined (a plain lookup would find "constructor"). */
+const battleRuleOf = (name: string): { mp: number; effect: BattleEffectId } | undefined =>
+  Object.prototype.hasOwnProperty.call(BATTLE_ITEMS, name) ? BATTLE_ITEMS[name] : undefined;
+
+/** Whether using the tool spends a Bomb from the pack (the Bombs). */
+const spendsBomb = (name: string): boolean => itemRule(name)?.consumes === 'Bomb';
 
 /** What tapping a bag item does in a fight: run an effect, open the potions, open the Powers, drink a potion, or nothing. */
 export type BattleBagRole = 'effect' | 'potions' | 'powers' | 'potion' | 'none';
@@ -99,24 +109,31 @@ const nameOf = (item: BattleItemLike): string => (typeof item.name === 'string' 
 /** Sort a bag item for the fight: a BATTLE_ITEMS name is an effect, Containers open sheets, Potions/Ethers are consumable directly. */
 export const battleBagRole = (item: BattleItemLike | null | undefined): BattleBagRole => {
   const name = item ? nameOf(item) : '';
-  if (BATTLE_ITEMS[name]) return 'effect';
+  if (battleRuleOf(name)) return 'effect';
   if (CONTAINERS[name.toLowerCase()]) return CONTAINERS[name.toLowerCase()];
   if (findPotionRule(name)) return 'potion';
   return 'none';
 };
 
-/** The item's MP cost in a fight: the number its description starts with, else the contract's table. */
-export const battleMpCost = (item: BattleItemLike): number => mpCostOf(item) || BATTLE_ITEMS[nameOf(item)]?.mp || 0;
+/** The item's list price in MP in a fight: the rules table by name, whatever an old stored description says (the Bombs and Bottles cost 0). */
+export const battleMpCost = (item: BattleItemLike): number => mpCostOf(item);
 
 /** What this hero pays for the item: the list price with their class discount (Mage 25%, Sage 50%) and trained intelligence taken. */
 export const heroMpCost = (item: BattleItemLike, userId: string): number =>
   heroMpBill(battleMpCost(item), useUserStore().getUserById(userId));
 
-/** Why a fight item cannot be used right now (locked, spent this fight, HP full, not enough MP), else null. */
+/**
+ * Why a fight tool cannot be used right now, else null. In this order: locked, not in a hand, spent this fight (or
+ * the engine says wait), out of bombs, not enough MP.
+ */
 const reasonOf = (name: string, effect: BattleEffectId, mp: number, ctx: BattleItemContext): string | null => {
   if (!isItemUnlocked(useUserStore().getUserById(ctx.userId), name)) return unlockHintOf(name);
+  const isInHand = ctx.heldItems?.includes(name) ?? false;
+  if (!isInHand) return REASON_NOT_HELD;
   const blocked = battleEffectBlocked(effect, ctx);
   if (blocked) return blocked;
+  const isOutOfBombs = spendsBomb(name) && !bombInPack(ctx.userId);
+  if (isOutOfBombs) return REASON_NO_BOMBS;
   const isShortOnMp = mp > 0 && heroPoints(ctx.userId, 'mp').now < mp;
   if (isShortOnMp) return REASON_NO_MP;
   return null;
@@ -154,15 +171,18 @@ export const describeBattleItem = (item: BattleItemLike | null | undefined, ctx:
     }
   }
 
-  if (role === 'none') return { name, faIcon, mp: 0, effect: REASON_NOTHING, reason: REASON_NOTHING };
+  const rule = battleRuleOf(name);
+  const isNoFightTool = role === 'none' || !rule;
+  if (isNoFightTool) return { name, faIcon, mp: 0, effect: REASON_NOTHING, reason: REASON_NOTHING };
 
-  const rule = BATTLE_ITEMS[name];
   const mp = heroMpCost(item, ctx.userId);
   return { name, faIcon, mp, effect: BATTLE_EFFECTS[rule.effect].label, reason: reasonOf(name, rule.effect, mp, ctx) };
 };
 
 /**
- * Use a fight item from the bag. Potions heal and restore. Combat items check locks, once-per-fight and MP first.
+ * Use a fight item from the bag. Potions heal and restore. A tool checks, in order, that it is unlocked and in a
+ * hand, that it is not spent this fight, that the pack has a Bomb (for the Bombs) and that the MP is there; then it
+ * runs its effect and pays: MP from the hero, or one Bomb from the pack.
  */
 export const useBattleItem = (item: BattleItemLike, ctx: BattleItemContext): BattleItemOutcome => {
   const name = nameOf(item) || 'That';
@@ -173,14 +193,17 @@ export const useBattleItem = (item: BattleItemLike, ctx: BattleItemContext): Bat
     return drinkPotion(ctx.userId, entryId);
   }
 
-  const rule = BATTLE_ITEMS[name];
+  const rule = battleRuleOf(name);
   if (!rule) return refuse(`${name}: ${REASON_NOTHING}`);
 
   const mp = heroMpCost(item, ctx.userId);
   const reason = reasonOf(name, rule.effect, mp, ctx);
   if (reason) return refuse(reason);
 
+  // reasonOf has checked the pack: a Bomb tool always finds its Bomb here
+  const bomb = spendsBomb(name) ? bombInPack(ctx.userId) : null;
   const outcome = applyBattleEffect(rule.effect, ctx);
+  if (outcome.ok && bomb) useUserStore().spendInventoryItem(ctx.userId, bomb.id);
   const shouldChargeMp = outcome.ok && !outcome.needsTaskPick && mp > 0;
   if (shouldChargeMp) useUserStore().updateUserMP({ userId: ctx.userId, amount: -mp });
   return outcome;

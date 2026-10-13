@@ -133,8 +133,11 @@ describe("BattleField: a free fight", () => {
     jest.useRealTimers();
   });
 
-  /** Seeds the hero, mounts the page on a battle route and fires Ionic's view-enter like the router outlet would. */
-  const enterBattle = async (path: string) => {
+  /**
+   * Seeds the hero (with these tools in the hands: the page reads them once, when it mounts), mounts the page on a
+   * battle route and fires Ionic's view-enter like the router outlet would.
+   */
+  const enterBattle = async (path: string, hands: { leftHand: BagItem[]; rightHand: BagItem[] } = { leftHand: [], rightHand: [] }) => {
     const pinia = createPinia();
     setActivePinia(pinia);
     const userStore = useUserStore();
@@ -145,6 +148,7 @@ describe("BattleField: a free fight", () => {
         gp: { wallet: 0, savings: 0, debt: 0, limit: 1000 },
       },
     });
+    userStore.setEquipment("hero-1", hands);
     const routes = Object.entries(routePaths).map(([name, path]) => ({ name, path, component: blank }));
     const router = createRouter({ history: createMemoryHistory(), routes });
     await router.push(path);
@@ -438,10 +442,9 @@ describe("BattleField: a free fight", () => {
 
   it("Goods opens the bag; the Ice Wand buys ten minutes and the Silver Arrow pins the beast", async () => {
     const { wrapper, userStore, vm, tap, readUntilMenu, bag, bagOpen, bagCard, useFromBag, menu } =
-      await enterBattle("/battle/hero-1/free/");
+      await enterBattle("/battle/hero-1/free/", { leftHand: [ICE_WAND], rightHand: [SILVER_ARROW] });
     const hero = userStore.users["hero-1"];
     hero.stats.mp = { now: 120, max: 120 };
-    userStore.setEquipment("hero-1", { leftHand: [ICE_WAND], rightHand: [SILVER_ARROW] });
     await tap();
     await tap(); // intro read: the clock is running
     expect(wrapper.find(".attack-timer-label").text()).toBe("6:00");
@@ -454,6 +457,8 @@ describe("BattleField: a free fight", () => {
     expect(wrapper.find(".menu-item").exists()).toBe(false);
     expect(bagCard(ICE_WAND)).toMatchObject({ mp: 10, effect: "+10 minutes on the clock", reason: null });
     expect(bagCard(SILVER_ARROW)).toMatchObject({ mp: 25, effect: "The beast misses its next two strikes", reason: null });
+    // Only the tools in the hands work: Chronos' Clock stays in the bag
+    expect(bagCard(CHRONOS_CLOCK)).toMatchObject({ mp: 20, reason: "Hold it in a hand before a fight." });
     const opensDirectly = bag().props("opensDirectly") as (item: BagItem) => boolean;
     expect([BOTTLES, BOOK_OF_SPELLS, ICE_WAND].map(opensDirectly)).toEqual([true, true, false]);
     // Its own close (the X, a swipe) puts the menu back; Goods opens it again
@@ -530,7 +535,10 @@ describe("BattleField: a free fight", () => {
   });
 
   it("Powers opens the sheet and a cast freezes the clock", async () => {
-    const { wrapper, userStore, vm, tap, readUntilMenu, bagCard, castPower } = await enterBattle("/battle/hero-1/free/");
+    const { wrapper, userStore, vm, tap, readUntilMenu, bagCard, castPower } = await enterBattle("/battle/hero-1/free/", {
+      leftHand: [CHRONOS_CLOCK],
+      rightHand: [],
+    });
     const hero = userStore.users["hero-1"];
     hero.stats.mp = { now: 120, max: 120 };
     await tap();

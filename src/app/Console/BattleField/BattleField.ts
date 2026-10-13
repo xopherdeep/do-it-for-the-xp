@@ -248,11 +248,12 @@ export default defineComponent({
       recallBy.value = null;
     };
 
-    /** What the hero may use right now: the engine, the hero and this fight's spent effects. */
+    /** What the hero may use right now: the engine, the hero, the tools in the two hands and this fight's spent effects. */
     const itemContext = (taskId?: string) => ({
       userId: ctx.userId,
       service: service.value as BattleService,
       usedThisFight,
+      heldItems: equipment.value.map((item) => String(item.name ?? "")),
       taskId,
     });
 
