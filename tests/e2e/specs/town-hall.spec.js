@@ -256,18 +256,42 @@ describe("Town Hall", () => {
     });
 
     it("coming back from WordPress with a new password links the family, takes the password out of the address, and offers Unlink", () => {
+      // The site is slow to check the password: the address must already be clean while the check is still pending
+      cy.intercept("GET", "**/wp/v2/users/me?context=edit*", { ...json({ name: "Mom" }), delay: 2000 }).as("meSlow");
       openRegistration(returnPath(LINK_QUERY));
+      cy.location("search", { timeout: 30000 }).should("eq", "");
+      cy.contains("[data-cy=reveal-text]", "Welcome, Mom!").should("not.exist");
       cy.contains("[data-cy=reveal-text]", "Welcome, Mom!", { timeout: 30000 });
       cy.url().should("not.contain", "password");
       cy.url().should("not.contain", "abcd");
       cy.location("search").should("eq", "");
-      cy.wait("@me").its("request.headers.authorization").should("eq", MOM_BASIC);
+      // vue-router writes history.state.current back to the entry's address when the app navigates on
+      cy.window().then((win) => {
+        expect(JSON.stringify(win.history.state)).to.not.contain("password");
+        expect(win.history.state.current).to.eq("/town-hall/gm-1");
+      });
+      cy.wait("@meSlow").its("request.headers.authorization").should("eq", MOM_BASIC);
       cy.screenshot("town-hall-08-registered", { capture: "viewport" });
       dismissNotice();
 
       openRegistrationQuestion();
       cy.contains("[data-cy=reveal-text]", "Your family is registered as Mom.", { timeout: 20000 });
       cy.contains("[data-cy=reveal-choice-unlink]", "Unlink this device").should("not.be.disabled");
+    });
+
+    it("leaving the Town Hall after the return and coming Back does not bring the password back or link again", () => {
+      openRegistration(returnPath(LINK_QUERY));
+      cy.contains("[data-cy=reveal-text]", "Welcome, Mom!", { timeout: 30000 });
+      dismissNotice();
+      cy.get("[data-cy=th-family-chat]").click();
+      cy.url({ timeout: 20000 }).should("match", /\/town-hall\/gm-1\/chat$/);
+      cy.go("back");
+      cy.get("[data-cy=th-tab-news]", { timeout: 20000 }).should("be.visible");
+      cy.location("search").should("eq", "");
+      cy.url().should("not.contain", "password");
+      cy.wait(1500); // a second link would ask the site again right after the page opens
+      cy.get("@me.all").should("have.length", 1);
+      cy.contains("[data-cy=reveal-text]", "Welcome, Mom!").should("not.exist");
     });
 
     it("a refusal at WordPress comes back as 'Maybe another time' and registers nothing", () => {

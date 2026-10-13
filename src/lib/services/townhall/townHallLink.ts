@@ -50,3 +50,16 @@ export function readLinkReturn(search: string): LinkReturn {
 export function strippedUrl(loc: PageLocation & { hash: string }): string {
   return `${loc.origin}${loc.pathname}${loc.hash}`;
 }
+
+/**
+ * `history.state` with the query taken out of the route vue-router keeps in `current` (path-routed builds: it holds the
+ * whole address). The router writes that route back to the entry's address when the app navigates on, so leaving it would
+ * put the password back in the address bar and the history, and Back would link a second time. A hash-routed build's
+ * `current` never held the query, so its state comes back unchanged in value.
+ */
+export function strippedState(state: unknown): unknown {
+  if (!state || typeof state !== "object") return state;
+  const current = (state as { current?: unknown }).current;
+  if (typeof current !== "string") return state;
+  return { ...state, current: current.replace(/\?[^#]*/, "") };
+}

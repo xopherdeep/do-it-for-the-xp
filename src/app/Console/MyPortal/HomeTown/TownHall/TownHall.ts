@@ -51,7 +51,7 @@ import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import { formatQuestName } from "@/lib/utils/format";
 import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 import { canAccessGameMaster } from "@/router/_Guards/gm.guard";
-import { authorizeUrl, readLinkReturn, strippedUrl, townHallReturnUrl } from "@/lib/services/townhall/townHallLink";
+import { authorizeUrl, readLinkReturn, strippedState, strippedUrl, townHallReturnUrl } from "@/lib/services/townhall/townHallLink";
 import { SIGNUP_URL, TOWN_HALL_BOARDS, connectionName, townHallSiteUrl, type TownHallBoardSlug } from "@/lib/services/townhall/townHallSite";
 import { usesHashHistory } from "@/router/historyMode";
 import type { BoardInfo } from "@/lib/services/townhall/townHallFeed";
@@ -212,12 +212,13 @@ export default defineComponent({
 
     /**
      * Coming back from WordPress's "authorize this app" page, the new password rides in the address. It leaves the address
-     * bar and the history first, before anything is awaited, then the clerk checks it and says how it went.
+     * bar and the history first (the address and the route vue-router remembers for this entry), before anything is awaited,
+     * then the clerk checks it and says how it went.
      */
     const finishLinkReturn = async () => {
       const search = window.location.search;
       const returning = readLinkReturn(search).kind !== "none";
-      if (returning) window.history.replaceState(window.history.state, "", strippedUrl(window.location));
+      if (returning) window.history.replaceState(strippedState(window.history.state), "", strippedUrl(window.location));
       await loadLink();
       if (!returning) return;
       let result: LinkResult;

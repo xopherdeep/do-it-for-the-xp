@@ -1,5 +1,5 @@
 import { TOWN_HALL_APP_ID } from "@/lib/services/townhall/townHallSite";
-import { authorizeUrl, readLinkReturn, strippedUrl, townHallReturnUrl } from "@/lib/services/townhall/townHallLink";
+import { authorizeUrl, readLinkReturn, strippedState, strippedUrl, townHallReturnUrl } from "@/lib/services/townhall/townHallLink";
 
 const loc = { origin: "https://app.forthexp.com", pathname: "/" };
 
@@ -90,5 +90,46 @@ describe("strippedUrl", () => {
 
   it("works with no route", () => {
     expect(strippedUrl({ ...loc, hash: "" })).toBe("https://app.forthexp.com/");
+  });
+});
+
+describe("strippedState", () => {
+  // vue-router 4 keeps the page's own address in history.state.current and writes it back to the entry when the app navigates on
+  const pathModeState = {
+    back: "/home",
+    current: "/town-hall/gm-1?site_url=https%3A%2F%2Fdoit.forthexp.com&user_login=mom&password=abcd+efgh",
+    forward: null,
+    position: 3,
+    replaced: true,
+    scroll: { left: 0, top: 12 },
+  };
+
+  it("takes the query out of the route vue-router remembers, and keeps the rest of the state", () => {
+    expect(strippedState(pathModeState)).toEqual({ ...pathModeState, current: "/town-hall/gm-1" });
+  });
+
+  it("keeps the fragment when the route has one", () => {
+    expect(strippedState({ ...pathModeState, current: "/town-hall/gm-1?password=abcd+efgh#top" })).toMatchObject({
+      current: "/town-hall/gm-1#top",
+    });
+  });
+
+  it("leaves the state of a hash-routed build alone, because its route never held the query", () => {
+    const hashModeState = { ...pathModeState, current: "/town-hall/gm-1" };
+    expect(strippedState(hashModeState)).toEqual(hashModeState);
+  });
+
+  it("does not change the state it was given", () => {
+    const before = JSON.stringify(pathModeState);
+    strippedState(pathModeState);
+    expect(JSON.stringify(pathModeState)).toBe(before);
+  });
+
+  it("passes through a state it does not know (none, or no route text)", () => {
+    expect(strippedState(null)).toBeNull();
+    expect(strippedState("a state")).toBe("a state");
+    const unknown = { position: 2 };
+    expect(strippedState(unknown)).toEqual(unknown);
+    expect(strippedState({ current: 7 })).toEqual({ current: 7 });
   });
 });
