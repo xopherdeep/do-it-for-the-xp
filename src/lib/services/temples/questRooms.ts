@@ -148,15 +148,24 @@ export function roomQuestIds(room: Partial<Room> | null | undefined): string[] {
  * The quest a room is known by: the biggest of the live (non-draft) quests it holds, ties to the one listed first.
  * Screens that need one quest to name or size a whole room ask for this.
  */
-export function headlineQuest(room: Partial<Room> | null | undefined, quests: readonly Achievement[]): Achievement | undefined {
-  const sizeOf = (quest: Achievement): number => Number(quest.difficulty) || 0;
-  const live = roomQuestIds(room).flatMap((id) => quests.find((quest) => String(quest.id) === id && !quest.draft) ?? []);
+export function headlineQuest(
+  room: Partial<Room> | null | undefined,
+  quests: readonly Achievement[]
+): Achievement | undefined {
+  const difficultyOf = (quest: Achievement): number => Number(quest.difficulty) || 0;
+  const held = roomQuestIds(room).flatMap(
+    (id) => quests.find((quest) => String(quest.id) === id && !quest.draft) ?? []
+  );
   // A later quest takes over only when it is strictly bigger, so ties stay with the one listed first
-  return live.reduce<Achievement | undefined>((headline, quest) => (!headline || sizeOf(quest) > sizeOf(headline) ? quest : headline), undefined);
+  return held.reduce<Achievement | undefined>(
+    (headline, quest) => (!headline || difficultyOf(quest) > difficultyOf(headline) ? quest : headline),
+    undefined
+  );
 }
 
 /** True for a room that holds a quest (or several) or a shipped quest template; a classic beast room is not one. */
-export const isQuestRoom = (room: Partial<Room>): boolean => roomQuestIds(room).length > 0 || Boolean(room.content?.quest);
+export const isQuestRoom = (room: Partial<Room>): boolean =>
+  roomQuestIds(room).length > 0 || Boolean(room.content?.quest);
 
 /**
  * What a room holds for one hero:
@@ -193,7 +202,7 @@ const readRow = (item?: QuestBoardItem): RowReading => {
 /** Which quest a template prefers: an open one, then a claim waiting, then a done one, then one that is away. */
 const PREFERENCE: Record<RowReading, number> = { lurking: 0, pending: 1, cleared: 2, away: 3 };
 
-/** One of the Game Master's picks: on the hero's board, else among the live quests (visible: no row; not visible: asleep). */
+/** One of the Game Master's picks: on the hero's board, else among the live quests (visible: no row; else asleep). */
 const resolvePick = (
   questId: string,
   heroId: string,
@@ -220,9 +229,10 @@ const resolvePicks = (
   liveQuests: readonly Achievement[]
 ): RoomQuestResolution | null => {
   const picks = ids.flatMap((id) => resolvePick(id, heroId, board, liveQuests) ?? []);
-  const forTheHero = picks.filter((pick): pick is Extract<RoomQuestResolution, { kind: "quest" }> => pick.kind === "quest");
+  const isForTheHero = (pick: RoomQuestResolution): pick is Extract<RoomQuestResolution, { kind: "quest" }> =>
+    pick.kind === "quest";
   // Array.sort is stable: two picks that read the same keep the order the room lists them in
-  const [best] = forTheHero.sort((a, b) => PREFERENCE[readRow(a.item)] - PREFERENCE[readRow(b.item)]);
+  const [best] = picks.filter(isForTheHero).sort((a, b) => PREFERENCE[readRow(a.item)] - PREFERENCE[readRow(b.item)]);
   return best ?? picks.find((pick) => pick.kind === "notYours") ?? null;
 };
 
