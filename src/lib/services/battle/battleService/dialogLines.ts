@@ -77,3 +77,25 @@ const PARTING_DODGE_LINES: Record<PartingDodge, (enemy: Enemy, heroName: string)
 /** Why the parting strike missed, as the message box says it. */
 export const partingDodgeLine = (dodge: PartingDodge, enemy: Enemy, heroName: string): string =>
   PARTING_DODGE_LINES[dodge](enemy, heroName);
+
+/** When the hero bribes the enemy with GP to escape safely without taking a parting strike. */
+export const bribeLines = (
+  enemy: Enemy,
+  heroName: string,
+  tier: "full" | "low",
+  cost: number
+): EngineMessage[] => {
+  if (tier === "full") {
+    return [
+      autoLine(`${heroName} bribed ${enemy.name} with ${cost} GP!`),
+      `${enemy.name} happily took the gold and let them pass!`,
+      "Got away safely!",
+    ];
+  }
+  return [
+    autoLine(`${heroName} tossed only ${cost} GP to ${enemy.name}!`),
+    `${enemy.name} snatched the coins with a glare and holds a grudge!`,
+    "Got away safely!",
+  ];
+};
+

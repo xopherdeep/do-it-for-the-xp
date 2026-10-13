@@ -70,7 +70,7 @@
       </div>
     </div>
 
-    <div v-if="enemy" class="chores">
+    <div v-if="enemy && !enemy.isThief" class="chores">
       <div class="chore-pips" aria-hidden="true">
         <template v-if="showPips">
           <span

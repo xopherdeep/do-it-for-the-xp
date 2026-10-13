@@ -26,7 +26,8 @@ import { useBattleAudio } from "./composables/useBattleAudio";
 import { useBattleBackground } from "./composables/useBattleBackground";
 import { useBattleDialog } from "./composables/useBattleDialog";
 import { useBattleFeedback } from "./composables/useBattleFeedback";
-import { useBattleOutcome } from "./composables/useBattleOutcome";
+import { useBattleOutcome, ESCAPE_FADE_MS } from "./composables/useBattleOutcome";
+import { stealFromHero } from "@/lib/services/battle/thiefEncounter";
 import BattleDialogBox from "./components/BattleDialogBox.vue";
 import BattleEnemyStage from "./components/BattleEnemyStage.vue";
 import BattleHeroCard from "./components/BattleHeroCard.vue";
@@ -410,6 +411,47 @@ export default defineComponent({
       ]);
     };
 
+    const startThiefEncounter = (enc: Encounter) => {
+      const thiefEnemy = enc.enemies[0];
+      currentEnemy.value = thiefEnemy;
+      showEnemy.value = true;
+      dialog.isVictoryMessage.value = false;
+      audio.startBattleBgm();
+
+      const theft = stealFromHero(ctx.userId, userStore);
+      const beastName = enc.label || "Thief Beast";
+
+      dialog.enqueue([
+        () => {
+          showEnemy.value = true;
+        },
+        `From the shadows leaps ${beastName}!`,
+        () => {
+          const hasStolenLoot = theft.stolenGp > 0 || Boolean(theft.stolenItemName);
+          if (hasStolenLoot) {
+            audio.playSound("damage");
+            feedback.heroHit();
+          }
+        },
+        ...(theft.stolenGp > 0
+          ? [`${beastName} snatched ${theft.stolenGp} GP from your wallet!`]
+          : []),
+        ...(theft.stolenItemName
+          ? [`${beastName} swiped a ${theft.stolenItemName} from your backpack!`]
+          : []),
+        ...(theft.hasEmptyPockets
+          ? [`${beastName} searched your pockets, but found nothing to take!`]
+          : []),
+        `${beastName} quickly dashed away into the night!`,
+        () => {
+          audio.stopBgm();
+          audio.playSound("cursor");
+          enemyAnimationClass.value = "fadeout";
+          window.setTimeout(() => void outcome.leaveBattle(), ESCAPE_FADE_MS);
+        },
+      ]);
+    };
+
     /** The Powers for this fight; without them (no abilities database yet, a read error) the fight still runs. */
     const loadAbilities = async (): Promise<Ability[]> => {
       try {
@@ -436,6 +478,12 @@ export default defineComponent({
 
         const loaded = await loadEncounter(ctx, bestiary);
         encounter.value = loaded;
+        if (loaded.thief) {
+          background.lockLayers(loaded.background);
+          await background.applyEnemy(loaded.enemies[0]);
+          startThiefEncounter(loaded);
+          return;
+        }
         if (loaded.quest) progressCtx = { ...ctx, kind: "quest", questId: String(loaded.quest.id) };
         // Read before the engine arms the chores: arming reports an empty checklist, which clears the save
         const remembered = loadBattleProgress(progressCtx);
@@ -463,12 +511,13 @@ export default defineComponent({
       }
     };
 
-    const act = (action: "defend" | "run") => {
+    const act = (action: "defend" | "run" | "bribe-full" | "bribe-low") => {
       const engine = service.value;
       const isBattleNotRunning = !engine || !battleStarted.value;
       if (isBattleNotRunning) return;
       const result = engine.handleBattleAction(action);
-      const hasEscaped = action === "run" && result.success;
+      const isEscapeAction = action === "run" || action === "bribe-full" || action === "bribe-low";
+      const hasEscaped = isEscapeAction && result.success;
       if (hasEscaped) {
         battleStarted.value = false;
         stopNag();
@@ -483,7 +532,10 @@ export default defineComponent({
 
     const menuActions = computed<BattleMenuAction[]>(() => {
       if (runConfirm.value) {
-        return [
+        const heroData = userStore.users[ctx.userId] ?? hero.value;
+        const heroGp = heroData?.stats?.gp ?? heroData?.gp;
+        const quotes = service.value?.getBribeQuotes(heroGp);
+        const actions: BattleMenuAction[] = [
           {
             id: "keep-fighting",
             label: "Keep fighting",
@@ -504,6 +556,34 @@ export default defineComponent({
             },
           },
         ];
+
+        if (quotes?.canAffordFull) {
+          actions.push({
+            id: "bribe-full",
+            label: `Bribe (${quotes.fullCost} GP)`,
+            faIcon: "coins",
+            click: () => {
+              audio.playSound("cursor");
+              runConfirm.value = false;
+              act("bribe-full");
+            },
+          });
+        }
+
+        if (quotes?.canAffordLow && quotes.lowCost < quotes.fullCost) {
+          actions.push({
+            id: "bribe-low",
+            label: `Cheap Bribe (${quotes.lowCost} GP)`,
+            faIcon: "badge-percent",
+            click: () => {
+              audio.playSound("cursor");
+              runConfirm.value = false;
+              act("bribe-low");
+            },
+          });
+        }
+
+        return actions;
       }
       return [
         {

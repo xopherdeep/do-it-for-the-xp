@@ -104,7 +104,24 @@
     </div>
 
     <!-- Run confirmation layout -->
-    <div v-else class="radial-cluster cluster-confirm" :class="{ 'is-open': isOpen }">
+    <div v-else class="radial-cluster cluster-confirm" :class="{ 'is-open': isOpen, 'has-bribe': Boolean(bribeFullAction) }">
+      <!-- TOP: Full Bribe -->
+      <div class="radial-slot slot-top" v-if="bribeFullAction">
+        <ion-button
+          shape="round"
+          color="warning"
+          class="battle-pill pill-bribe-full"
+          id="bribe-full"
+          data-cy="action-bribe-full"
+          :disabled="disabled"
+          @click="onActionClick(bribeFullAction)"
+        >
+          <xp-icon icon="coins" size="lg" class="pill-icon" />
+          <ion-label class="pill-label">{{ bribeFullAction.label }}</ion-label>
+        </ion-button>
+      </div>
+
+      <!-- LEFT: Keep fighting -->
       <div class="radial-slot slot-left" v-if="keepFightingAction">
         <ion-button
           shape="round"
@@ -131,8 +148,23 @@
         </ion-fab-button>
       </div>
 
-      <div class="radial-slot slot-right" v-if="confirmRunAction">
+      <div class="radial-slot slot-right">
         <ion-button
+          v-if="bribeLowAction"
+          shape="round"
+          color="secondary"
+          class="battle-pill pill-bribe-low"
+          id="bribe-low"
+          data-cy="action-bribe-low"
+          :disabled="disabled"
+          @click="onActionClick(bribeLowAction)"
+        >
+          <xp-icon icon="badge-percent" size="lg" class="pill-icon" />
+          <ion-label class="pill-label">{{ bribeLowAction.label }}</ion-label>
+        </ion-button>
+
+        <ion-button
+          v-if="confirmRunAction"
           shape="round"
           color="danger"
           class="battle-pill pill-run-confirm"
@@ -190,6 +222,8 @@ const runAction = computed(() => props.actions.find((action) => action.id === "r
 
 const keepFightingAction = computed(() => props.actions.find((action) => action.id === "keep-fighting"));
 const confirmRunAction = computed(() => props.actions.find((action) => action.id === "run"));
+const bribeFullAction = computed(() => props.actions.find((action) => action.id === "bribe-full"));
+const bribeLowAction = computed(() => props.actions.find((action) => action.id === "bribe-low"));
 
 const onActionClick = (action?: BattleMenuAction) => {
   if (!action || props.disabled) return;
@@ -292,6 +326,10 @@ const onCenterTap = () => {
 .cluster-confirm {
   justify-content: center;
   padding-top: 14px;
+
+  &.has-bribe {
+    padding-top: 38px;
+  }
 
   .slot-left {
     flex: 0 1 auto;

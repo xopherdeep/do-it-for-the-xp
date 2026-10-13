@@ -23,6 +23,8 @@ export interface Enemy {
   /** The grudge marks (1 to 3) this beast holds against the hero, for the stage to show; absent for none. */
   grudgeMarks?: number;
   tasks?: CombatTask[];
+  /** Special encounter flag: thief beast flees after stealing without chores or combat. */
+  isThief?: boolean;
 }
 
 export interface CombatTask {
@@ -90,7 +92,15 @@ export interface EscapeReport {
   emptied: boolean;
   /** The fight being left carries a quest. Leaving it earns the beast a grudge mark. */
   carriesQuest: boolean;
+  /** Whether the getaway was secured with a GP bribe. */
+  bribed?: boolean;
+  /** The tier of bribe used: full (no grudge) or low (discounted, incurs grudge). */
+  bribeTier?: "full" | "low";
+  /** GP paid to bribe the beast. */
+  bribeCost?: number;
 }
+
+export type BattleAction = "defend" | "run" | "bribe-full" | "bribe-low";
 
 export interface BattleResult {
   success: boolean;

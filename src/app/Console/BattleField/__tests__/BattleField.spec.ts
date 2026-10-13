@@ -442,6 +442,55 @@ describe("BattleField: a free fight", () => {
     (Math.random as jest.Mock).mockRestore();
   });
 
+  it("Bribe escape from a quest fight pays GP, avoids parting strike damage, and leaves safely", async () => {
+    mockEncounter = {
+      enemies: [
+        {
+          id: "b1",
+          name: "Socktopus",
+          type: "beast",
+          isBoss: false,
+          health: 100,
+          maxHealth: 100,
+          attack: 10,
+          defense: 5,
+          speed: 8,
+          attackCooldown: 3,
+          tasks: ["Sort socks"].map((name, index) => ({ id: `t${index + 1}`, name, isCompleted: false })),
+        },
+      ],
+      rewards: { xp: 100, gp: 10, ap: 1 },
+      quest: { id: "q-socks", achievementName: "Sock Duty" },
+      roomKey: "Q0001",
+      label: "Socktopus",
+    };
+    const { wrapper, router, userStore, vm, tap } = await enterBattle("/battle/hero-1/quest/q-socks");
+    userStore.users["hero-1"].stats.gp = { wallet: 100, savings: 50, debt: 0, hospitalBill: 0, limit: 1000 };
+    await tap();
+    await tap();
+
+    await wrapper.find("#run-away").trigger("click");
+    await flushPromises();
+    const bribeBtn = wrapper.find("#bribe-full");
+    expect(bribeBtn.exists()).toBe(true);
+    expect(bribeBtn.text()).toContain("Bribe (22 GP)");
+
+    await bribeBtn.trigger("click");
+    const said: string[] = [vm.dialogText];
+    for (let taps = 0; taps < 6 && router.currentRoute.value.name !== "my-tasks"; taps++) {
+      await tap();
+      said.push(vm.dialogText);
+      jest.advanceTimersByTime(ESCAPE_FADE_MS + 50);
+      await flushPromises();
+    }
+
+    expect(said.join("|")).toContain("bribed Socktopus with 22 GP!");
+    expect(said.join("|")).toContain("Got away safely!");
+    expect(said.join("|")).not.toMatch(/strikes as Max flees/);
+    expect(userStore.users["hero-1"].stats.hp.now).toBe(30);
+    expect(userStore.users["hero-1"].stats.gp.wallet).toBe(78);
+  });
+
   it("the menu reads Tackle, Defend, Powers, Goods, Run Away", async () => {
     const { wrapper, userStore, tap, menu } = await enterBattle("/battle/hero-1/free/");
     await tap();

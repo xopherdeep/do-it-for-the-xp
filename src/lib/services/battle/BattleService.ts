@@ -14,6 +14,7 @@ import {
   attacksLines,
   autoLine,
   bracesLines,
+  bribeLines,
   choreUsedLines,
   damageTakenLines,
   fallenLines,
@@ -27,7 +28,8 @@ import {
 } from "./battleService/dialogLines";
 import { activeUserOf, beginFightState, initialBattleState, nextLivingBeast, toBattleUser } from "./battleService/fightState";
 import { partingStrike, resolvePassive, strikeDamage } from "./battleService/strikeMath";
-import { MAX_GRUDGE_FACTOR } from "@/lib/services/battle/questGrudge";
+import { calculateBribeQuotes, type BribeQuotes, type BribeTier } from "./battleService/bribeMath";
+import { MAX_GRUDGE_FACTOR, marksOfFactor } from "@/lib/services/battle/questGrudge";
 import type {
   BattleCallbacks,
   BattlePassive,
@@ -243,9 +245,72 @@ export class BattleService {
         return this.handleDefend();
       case 'run':
         return this.handleRun();
+      case 'bribe-full':
+        return this.handleBribe('full');
+      case 'bribe-low':
+        return this.handleBribe('low');
       default:
         return { success: false, message: "Unhandled action" };
     }
+  }
+
+  /**
+   * What the current beast demands for full and discounted bribe escapes.
+   */
+  public getBribeQuotes(heroGp?: { wallet?: number; savings?: number } | null): BribeQuotes | null {
+    const hero = this.getActiveUser();
+    const enemy = this.state.currentEnemy;
+    if (!hero || !enemy) return null;
+    const user = this.userStore.getUserById(hero.id) || this.userStore.users[hero.id];
+    const storedGp = heroGp ?? user?.stats?.gp ?? user?.gp;
+    const marks = enemy.grudgeMarks ?? marksOfFactor(this.grudge);
+    return calculateBribeQuotes(enemy, storedGp, marks);
+  }
+
+  /**
+   * Escape via GP bribery:
+   * - full: pays formula cost, avoids parting strike, avoids grudge mark.
+   * - low: pays discounted cost, avoids parting strike, incurs grudge mark.
+   */
+  private handleBribe(tier: BribeTier): BattleResult {
+    if (this.state.pendingPlayerDamage > 0) {
+      return { success: false, message: "A strike is already on its way" };
+    }
+
+    const hero = this.getActiveUser();
+    const enemy = this.state.currentEnemy;
+    if (!hero || !enemy) {
+      return { success: false, message: "Cannot bribe without active combatants" };
+    }
+
+    const user = this.userStore.users[hero.id];
+    const storedGp = user?.stats?.gp || user?.gp;
+    const marks = enemy.grudgeMarks ?? marksOfFactor(this.grudge);
+    const quotes = calculateBribeQuotes(enemy, storedGp, marks);
+    const cost = tier === "full" ? quotes.fullCost : quotes.lowCost;
+    const canAfford = tier === "full" ? quotes.canAffordFull : quotes.canAffordLow;
+
+    if (!canAfford) {
+      return { success: false, message: "Not enough GP for bribe" };
+    }
+
+    this.userStore.updateUserGP({ userId: hero.id, wallet: -cost });
+    this.stopAttackTimer();
+
+    const escape: EscapeReport = {
+      free: false,
+      damage: 0,
+      dodgedBy: null,
+      softener: null,
+      emptied: false,
+      carriesQuest: this.carriesQuest,
+      bribed: true,
+      bribeTier: tier,
+      bribeCost: cost,
+    };
+
+    this.queueDialogMessages(bribeLines(enemy, hero.name, tier, cost));
+    return { success: true, message: "Escaped via bribe", escape };
   }
 
   /**

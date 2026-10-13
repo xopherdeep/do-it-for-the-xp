@@ -27,6 +27,8 @@ export interface BattleContext {
    * ambush's. The fight goes back there. Undefined when none.
    */
   region?: string;
+  /** Special encounter discriminator (e.g. 'thief') */
+  encounter?: string;
 }
 
 /**
@@ -96,6 +98,7 @@ export const resolveBattleContext = (
     y: toCoordinate(route.params.y),
     beastIds: Array.from(new Set(beastIds)),
     region: firstParam(route.query.region),
+    encounter: firstParam(route.query.encounter),
   };
 };
 
@@ -147,8 +150,16 @@ export const templeBattleRoute = (
   params: { userId, templeId, level, x: String(x), y: String(y) },
 });
 
-export const freeBattleRoute = (userId: string, beastIds: string[] = [], region?: string): RouteLocationRaw => ({
+export const freeBattleRoute = (
+  userId: string,
+  beastIds: string[] = [],
+  region?: string,
+  encounter?: string
+): RouteLocationRaw => ({
   name: BATTLE_ROUTE_NAMES.free,
   params: beastIds.length ? { userId, beastIds: beastIds.join(",") } : { userId },
-  ...(region ? { query: { region } } : {}),
+  query: {
+    ...(region ? { region } : {}),
+    ...(encounter ? { encounter } : {}),
+  },
 });

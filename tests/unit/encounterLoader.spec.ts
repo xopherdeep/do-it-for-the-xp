@@ -604,4 +604,21 @@ describe("loadEncounter for a quest from the board", () => {
     expect(encounter.quest).toBeUndefined();
     expect(encounter.enemies[0].name).toBe("Homework Hydra");
   });
+
+  it("loads a thief encounter when encounter is thief or beastId is beast-thief", async () => {
+    const bestiary = familyBestiary([]);
+    const ctx: BattleContext = {
+      kind: "free",
+      userId: "hero-1",
+      beastIds: [],
+      encounter: "thief",
+    };
+
+    const encounter = await loadEncounter(ctx, bestiary);
+
+    expect(encounter.thief).toBe(true);
+    expect(encounter.label).toBe("Thief Beast");
+    expect(encounter.enemies[0].id).toBe("beast-thief");
+    expect(encounter.enemies[0].tasks).toEqual([]);
+  });
 });

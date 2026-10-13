@@ -23,6 +23,7 @@ import TempleChoiceReveal from './components/TempleChoiceReveal.vue';
 import TempleDoorReveal from './components/TempleDoorReveal.vue';
 import TemplePegasusReveal from './components/TemplePegasusReveal.vue';
 import XpMonsterModel from '@/components/organisms/MonsterModel/XpMonsterModel.vue';
+import XpDungeonRoomModel from '@/components/organisms/DungeonRoomModel/XpDungeonRoomModel.vue';
 import { play$fx } from "@/assets/fx"
 import { useToast } from '@/hooks/useToast';
 import { TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
@@ -73,7 +74,8 @@ export default defineComponent({
     XpWorldMapModal,
     UserProfileModal,
     XpBottomNav,
-    XpMonsterModel
+    XpMonsterModel,
+    XpDungeonRoomModel
   },
   setup(props) {
     const userStore = useUserStore();

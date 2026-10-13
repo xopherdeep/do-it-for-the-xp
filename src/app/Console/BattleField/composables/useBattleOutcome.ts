@@ -299,6 +299,8 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
    * even when the parting strike was dodged or emptied the hero's HP. A free fight carries no quest and marks nothing.
    */
   const leaveGrudgeMark = (report?: EscapeReport) => {
+    const isAppeased = report?.bribed && report.bribeTier === "full";
+    if (isAppeased) return;
     const questId = report?.carriesQuest ? carriedQuestId() : null;
     if (questId) userStore.addQuestGrudge(ctx.userId, questId);
   };

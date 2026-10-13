@@ -270,4 +270,44 @@ describe("useBattleOutcome: a parting strike that empties HP (docs/Quest-Rooms-S
     expect(deps.router.replace).toHaveBeenCalledTimes(1);
     jest.useRealTimers();
   });
+
+  it("leaves no grudge mark when escape is a full bribe", () => {
+    addHero({ wallet: 100 }, 50);
+    const { outcome, deps } = rig("quest");
+    deps.encounter.value = { quest: { id: "q1", achievementName: "Dishes" }, enemies: [], rewards: null, label: "Dishes" } as unknown as Encounter;
+
+    outcome.handleEscape({
+      free: false,
+      damage: 0,
+      dodgedBy: null,
+      softener: null,
+      emptied: false,
+      carriesQuest: true,
+      bribed: true,
+      bribeTier: "full",
+      bribeCost: 25,
+    });
+    const grudges = (useUserStore().getUserById(HERO_ID) as any).questGrudges;
+    expect(grudges?.q1?.marks || 0).toBe(0);
+  });
+
+  it("leaves a grudge mark when escape is a low bribe", () => {
+    addHero({ wallet: 100 }, 50);
+    const { outcome, deps } = rig("quest");
+    deps.encounter.value = { quest: { id: "q1", achievementName: "Dishes" }, enemies: [], rewards: null, label: "Dishes" } as unknown as Encounter;
+
+    outcome.handleEscape({
+      free: false,
+      damage: 0,
+      dodgedBy: null,
+      softener: null,
+      emptied: false,
+      carriesQuest: true,
+      bribed: true,
+      bribeTier: "low",
+      bribeCost: 12,
+    });
+    const grudges = (useUserStore().getUserById(HERO_ID) as any).questGrudges;
+    expect(grudges?.q1?.marks).toBe(1);
+  });
 });

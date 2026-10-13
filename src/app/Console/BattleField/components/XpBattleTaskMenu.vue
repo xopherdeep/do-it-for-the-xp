@@ -211,7 +211,7 @@ $seam: rgba($eb-color-cream, 0.25);
 .sheet-title {
   margin: 0;
   font-family: "Apple Kid", "StatusPlz", sans-serif;
-  font-size: 1.4rem;
+  font-size: 1.55rem;
   font-weight: normal;
   line-height: 1.1;
   letter-spacing: 2px;
@@ -219,14 +219,14 @@ $seam: rgba($eb-color-cream, 0.25);
 
   i {
     margin-right: 10px;
-    font-size: 1.25rem;
+    font-size: 1.35rem;
   }
 }
 
 .sheet-subtitle {
   margin: 6px 0 0;
   font-family: "StatusPlz", monospace;
-  font-size: 0.95rem;
+  font-size: 1.05rem;
   line-height: 1.25;
   opacity: 0.85;
 }
@@ -253,7 +253,7 @@ $seam: rgba($eb-color-cream, 0.25);
   padding: 18px 8px;
   text-align: center;
   font-family: "Apple Kid", "StatusPlz", sans-serif;
-  font-size: 1.15rem;
+  font-size: 1.25rem;
   letter-spacing: 1px;
   opacity: 0.8;
 }
@@ -264,15 +264,15 @@ $seam: rgba($eb-color-cream, 0.25);
   align-items: center;
   gap: 12px;
   width: 100%;
-  min-height: 56px;
+  min-height: 58px;
   margin: 0;
-  padding: 10px 14px 10px 18px;
+  padding: 10px 14px 10px 16px;
   border: 2px solid rgba($eb-color-cream, 0.22);
   border-radius: 2px;
   background: rgba($eb-color-cream, 0.04);
   color: $eb-color-cream;
   font-family: "Apple Kid", "StatusPlz", sans-serif;
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   letter-spacing: 1px;
   text-align: left;
   cursor: pointer;
@@ -325,8 +325,8 @@ $seam: rgba($eb-color-cream, 0.25);
 
 .task-icon {
   flex: 0 0 auto;
-  width: 1.6rem;
-  font-size: 1.3rem;
+  width: 1.8rem;
+  font-size: 1.5rem;
   text-align: center;
   color: $eb-color-pale-yellow;
 }
@@ -335,7 +335,7 @@ $seam: rgba($eb-color-cream, 0.25);
 .task-name {
   flex: 1 1 auto;
   min-width: 0;
-  line-height: 1.2;
+  line-height: 1.25;
   white-space: normal;
   overflow-wrap: anywhere;
 }
@@ -366,7 +366,7 @@ $seam: rgba($eb-color-cream, 0.25);
   display: block;
   margin-bottom: 8px;
   font-family: "StatusPlz", sans-serif;
-  font-size: 1.05rem;
+  font-size: 1.15rem;
   line-height: 1.25;
 }
 
@@ -408,7 +408,7 @@ $seam: rgba($eb-color-cream, 0.25);
   background: $button-fill;
   color: $eb-color-cream;
   font-family: "Apple Kid", "StatusPlz", sans-serif;
-  font-size: 1.25rem;
+  font-size: 1.35rem;
   letter-spacing: 1px;
   line-height: 1.1;
   cursor: pointer;

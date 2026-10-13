@@ -22,6 +22,7 @@ export interface PendingAmbush {
   region?: string;
   at: number;
   questId?: string;
+  encounter?: string;
 }
 
 export const useBattleStore = defineStore('battle', () => {

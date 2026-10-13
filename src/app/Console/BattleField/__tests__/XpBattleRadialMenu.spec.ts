@@ -139,6 +139,37 @@ describe("XpBattleRadialMenu", () => {
     expect(actions[1].click).toHaveBeenCalledTimes(1);
   });
 
+  it("renders bribe actions in confirmation layout when available", async () => {
+    const fullBribeClick = jest.fn();
+    const lowBribeClick = jest.fn();
+    const actions: BattleMenuAction[] = [
+      { id: "keep-fighting", label: "Keep fighting", faIcon: "fist-raised", click: jest.fn() },
+      { id: "run", label: "Run", faIcon: "running", click: jest.fn() },
+      { id: "bribe-full", label: "Bribe (25 GP)", faIcon: "coins", click: fullBribeClick },
+      { id: "bribe-low", label: "Cheap Bribe (12 GP)", faIcon: "badge-percent", click: lowBribeClick },
+    ];
+
+    const wrapper = mount(XpBattleRadialMenu, {
+      props: { actions, prompt: "Run away?" },
+    });
+
+    const fullBtn = wrapper.find('[data-cy="action-bribe-full"]');
+    const lowBtn = wrapper.find('[data-cy="action-bribe-low"]');
+
+    expect(fullBtn.exists()).toBe(true);
+    expect(fullBtn.text()).toContain("Bribe (25 GP)");
+    expect(lowBtn.exists()).toBe(true);
+    expect(lowBtn.text()).toContain("Cheap Bribe (12 GP)");
+
+    await fullBtn.trigger("click");
+    expect(fullBribeClick).toHaveBeenCalledTimes(1);
+    expect(wrapper.emitted("action")?.[0]).toEqual(["bribe-full"]);
+
+    await lowBtn.trigger("click");
+    expect(lowBribeClick).toHaveBeenCalledTimes(1);
+    expect(wrapper.emitted("action")?.[1]).toEqual(["bribe-low"]);
+  });
+
   it("renders 3D voxel hero when heroLook is provided", () => {
     const actions = createMockActions();
     const wrapper = mount(XpBattleRadialMenu, {

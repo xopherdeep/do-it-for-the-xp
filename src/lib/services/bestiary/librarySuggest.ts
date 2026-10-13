@@ -37,6 +37,7 @@ const SYNONYMS: Record<string, string[]> = {
   pajamas: ["dressed"], pyjamas: ["dressed"], bedtime: ["bed", "sleep"], sleep: ["bed"], wake: ["alarm"], poop: ["scoop"],
   recycling: ["boxes", "recycle"], towels: ["towel"], toys: ["toy"], books: ["book", "bookshelf"], shoes: ["shoe"],
   socks: ["sock"], snow: ["shovel"], leaves: ["rake", "leaf"], phone: ["screen", "device"], tablet: ["screen", "device"],
+  lego: ["toy", "block", "brick"], legos: ["toy", "block", "brick"],
 };
 
 /** A word longer than `longerThan` letters that ends in `suffix`, so short words keep their last letters ("bus", "red") */

@@ -111,6 +111,7 @@ describe("the starter content", () => {
         "quest-dishes": ["evening"],
         "quest-homework": ["evening"],
         "quest-trash": ["evening"],
+        "quest-lego": ["evening"],
         "quest-reading": ["night"],
       });
     });

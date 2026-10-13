@@ -24,6 +24,7 @@ import {
 import { pickRoomBeast, standInMonster, templeElementFor, type StandInMonster } from "@/lib/services/temples/RoomBeast";
 import debug from "@/lib/utils/debug";
 import { WORLD_REGIONS, type BattleContext } from "./battleContext";
+import { THIEF_BEAST_ID, createThiefEnemy } from "@/lib/services/battle/thiefEncounter";
 
 /**
  * Everything the battle page needs to start a fight, resolved from a BattleContext.
@@ -46,6 +47,8 @@ export interface Encounter {
   label: string;
   /** A temple's boss room: the fight plays the boss theme and the boss victory song. */
   boss?: boolean;
+  /** Special thief encounter where the beast robs the hero and flees automatically. */
+  thief?: boolean;
 }
 
 let achievementDb: AchievementDb | null = null;
@@ -261,6 +264,18 @@ const loadTempleEncounter = async (ctx: BattleContext, bestiary: BestiaryService
 };
 
 const loadFreeEncounter = async (ctx: BattleContext, bestiary: BestiaryService): Promise<Encounter> => {
+  const isThief = ctx.encounter === "thief" || ctx.beastIds.includes(THIEF_BEAST_ID);
+  if (isThief) {
+    const thiefEnemy = createThiefEnemy();
+    return {
+      enemies: [thiefEnemy],
+      rewards: null,
+      label: thiefEnemy.name,
+      thief: true,
+      background: { bg1: thiefEnemy.bg1, bg2: thiefEnemy.bg2 },
+    };
+  }
+
   const configured = await loadBeasts(bestiary, ctx.beastIds);
   const element = ctx.region ? WORLD_REGIONS[ctx.region]?.element : undefined;
   const enemies = configured.length ? configured : await fallbackEnemies(bestiary, element);

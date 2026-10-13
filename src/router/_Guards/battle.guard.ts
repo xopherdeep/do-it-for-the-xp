@@ -19,6 +19,7 @@ import {
   type QuestAmbush,
 } from "@/lib/services/battle/questAmbush";
 import { hasNoEncounters } from "@/lib/services/quests/ItemEffects";
+import { isThiefRoll, THIEF_BEAST_ID } from "@/lib/services/battle/thiefEncounter";
 import {
   AMBUSH_ALERT_ID,
   alertPermission,
@@ -97,7 +98,13 @@ const wantsAlerts = (): boolean => battleAlertsChoice() === "on";
  * Where an encounter goes: the quest's battle when a quest sent it, else a free fight. Either one carries the region
  * page it sprang on (if any), so the fight goes back there.
  */
-const encounterRoute = (heroId: string, questId: string | undefined, region: string | undefined): RouteLocationRaw => {
+const encounterRoute = (
+  heroId: string,
+  questId: string | undefined,
+  region: string | undefined,
+  encounter?: string
+): RouteLocationRaw => {
+  if (encounter === "thief") return freeBattleRoute(heroId, [THIEF_BEAST_ID], region, "thief");
   if (questId) return questBattleRoute(heroId, questId, region);
   return region ? freeBattleRoute(heroId, [], region) : freeBattleRoute(heroId);
 };
@@ -162,6 +169,22 @@ async function onExplorationTick(router: Router): Promise<void> {
   // and returns to the page the hero left, home-town or the region.
   const region = regionForRoute(routeName);
 
+  const isThief = isThiefRoll();
+  if (isThief) {
+    if (!isHeroHere()) {
+      battleStore.setPendingAmbush({ heroId, region, at: Date.now(), encounter: "thief" });
+      if (wantsAlerts()) void showAlert(ambushAlert({ beastName: "Thief Beast" }));
+      return;
+    }
+
+    try {
+      await router.push(encounterRoute(heroId, undefined, region, "thief"));
+    } catch (error) {
+      debug.error("Random thief encounter could not start a battle", error);
+    }
+    return;
+  }
+
   const now = new Date();
   const ambush = await findQuestAmbush(heroId, heroProfile(userStore, heroId), now);
   // Look the beast up before the last look at where the hero is: nothing below waits, so the alert is never
@@ -212,7 +235,7 @@ async function onReturn(router: Router): Promise<void> {
     if (shouldDropAmbush) return;
 
     try {
-      await router.push(encounterRoute(ambush.heroId, ambush.questId, ambush.region));
+      await router.push(encounterRoute(ambush.heroId, ambush.questId, ambush.region, ambush.encounter));
     } catch (error) {
       debug.error("Ambush could not start a battle", error);
     }

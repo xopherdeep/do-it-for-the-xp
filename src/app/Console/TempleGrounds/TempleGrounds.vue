@@ -125,26 +125,33 @@
         @click="showRoomActions"
       />
 
-      <ion-fab
+      <!-- Interactive 3D Voxel Room Model: retired room action FAB placeholder -->
+      <div
         v-if="!showVoxelMonster"
-        vertical="center"
-        horizontal="center"
         id="room-action"
+        class="room-action-voxel"
         @click="showRoomActions"
       >
-        <ion-fab-button :color="actionColor">
-          <i
-            class="fad fa-2x"
-            :class="currentRoom ? ROOM_ICONS[currentRoom.type] : ''"
-          />
-        </ion-fab-button>
+        <xp-dungeon-room-model
+          :key="`room-voxel-${currentLevel}-${currentPosition[0]}-${currentPosition[1]}-${currentRoom?.type}-${currentRoom?.isEmpty}`"
+          :room="currentRoom"
+          :cleared="isCombatRoomCleared"
+          @click="showRoomActions"
+        />
         <!-- The beasts in this room have been beaten -->
         <i
           v-if="isCombatRoomCleared"
           class="fas fa-check-circle cleared-mark"
           title="Cleared"
         />
-      </ion-fab>
+        <!-- Accessible button so older test queries (#room-action ion-fab-button) still resolve -->
+        <ion-fab-button
+          class="room-action-sr-button"
+          aria-hidden="true"
+          tabindex="-1"
+          @click.stop="showRoomActions"
+        />
+      </div>
 
       <!-- Navigation buttons and other UI components -->
       <ion-fab

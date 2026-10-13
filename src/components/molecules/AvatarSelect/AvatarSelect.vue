@@ -73,7 +73,7 @@
     },
     setup(props: { avatar: number; bg1: number; bg2: number }) {
       // every NNN.webp in src/assets/images/beasts; tools/art/beasts.py prints the next numbers it writes
-      const nAvatars = 293;
+      const nAvatars = 294;
       const selectedAvatar = ref(props.avatar || 0);
       const backgroundInitialized = ref(false);
 

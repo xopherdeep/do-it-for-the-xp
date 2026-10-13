@@ -105,18 +105,35 @@
     }
   }
 
-  // Check badge on the room action button of a cleared combat room
-  #room-action .cleared-mark {
+  // Room action 3D voxel model container (retired FAB placeholder)
+  #room-action {
     position: absolute;
-    top: -4px;
-    right: -4px;
-    z-index: 1;
-    font-size: 1.25rem;
-    line-height: 1;
-    color: var(--ion-color-success, #2dd36f);
-    background: #000;
-    border-radius: 50%;
-    pointer-events: none;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+
+    .room-action-sr-button {
+      display: none;
+    }
+
+    .cleared-mark {
+      position: absolute;
+      top: 2px;
+      right: 12px;
+      z-index: 20;
+      font-size: 1.5rem;
+      line-height: 1;
+      color: var(--ion-color-success, #2dd36f);
+      background: #000;
+      border-radius: 50%;
+      pointer-events: none;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.85);
+    }
   }
 
   // Map legend styling

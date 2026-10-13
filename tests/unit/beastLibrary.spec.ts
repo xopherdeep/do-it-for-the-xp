@@ -34,11 +34,11 @@ describe("the beast library", () => {
   });
 
   it("seeds the whole library and the classic beasts into the starter world as plain beasts the quests can still find", () => {
-    expect(STARTER_BEASTS).toHaveLength(BEAST_LIBRARY.length + CLASSIC_BEASTS.length);
+    expect(STARTER_BEASTS).toHaveLength(BEAST_LIBRARY.length + CLASSIC_BEASTS.length + 1);
     expect(STARTER_BEASTS.slice(0, BEAST_LIBRARY.length).map((b) => b.id)).toEqual(BEAST_LIBRARY.map((b) => b.id));
-    expect(STARTER_BEASTS.slice(BEAST_LIBRARY.length).map((b) => b.id)).toEqual(CLASSIC_BEASTS.map((b) => b.id));
+    expect(STARTER_BEASTS.slice(BEAST_LIBRARY.length, BEAST_LIBRARY.length + CLASSIC_BEASTS.length).map((b) => b.id)).toEqual(CLASSIC_BEASTS.map((b) => b.id));
     expect(new Set(STARTER_BEASTS.map((b) => b.id)).size).toBe(STARTER_BEASTS.length);
-    expect(STARTER_BEASTS.slice(BEAST_LIBRARY.length).some((b) => "element" in b)).toBe(false);
+    expect(STARTER_BEASTS.slice(BEAST_LIBRARY.length, BEAST_LIBRARY.length + CLASSIC_BEASTS.length).some((b) => "element" in b)).toBe(false);
     for (const beast of STARTER_BEASTS) {
       expect(beast).not.toHaveProperty("chore");
       expect(beast).not.toHaveProperty("classic");

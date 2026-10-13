@@ -54,7 +54,23 @@ export const STARTER_CATEGORIES: AchievementCategoryInterface[] = [
  * art with names to be replaced (no element, and kept out of random encounters, so they are only ever chosen).
  * Stored as plain beasts; the library's chore, room and age stay in BEAST_LIBRARY for the Compendium to browse.
  */
-export const STARTER_BEASTS: Beast[] = [...BEAST_LIBRARY, ...CLASSIC_BEASTS].map(
+export const STARTER_LEGO_BEAST: Beast = {
+  id: "beast-lego-monster",
+  name: "Lego Monster",
+  element: "earth",
+  avatar: 294,
+  bg1: 183,
+  bg2: 217,
+  aspectRatio: 48,
+  checklist: [
+    "Gather the loose Lego bricks from the floor",
+    "Sort the bricks into the Lego bins",
+    "Check under the bed and rug for stragglers",
+    "Snap the bin lids shut",
+  ],
+};
+
+export const STARTER_BEASTS: Beast[] = [...BEAST_LIBRARY, ...CLASSIC_BEASTS, STARTER_LEGO_BEAST].map(
   ({ id, name, element, avatar, bg1, bg2, aspectRatio, checklist }) => ({
     id, name, ...(element ? { element } : {}), avatar, bg1, bg2, aspectRatio, checklist: [...checklist],
   })
@@ -95,6 +111,7 @@ const QUEST_SEEDS: QuestSeed[] = [
   { id: "quest-reading", name: "Study the Ancient Tomes", categoryId: "cat-tower", schedule: "daily", difficulty: 1, timesOfDay: ["night"] },
   { id: "quest-teeth", name: "Fend off the Fang Fairy", categoryId: "cat-upkeep", beastId: "beast-fang-fairy", schedule: "daily", difficulty: 1, timesOfDay: ["morning", "night"] },
   { id: "quest-pet", name: "Feed the Loyal Familiar", categoryId: "cat-upkeep", schedule: "daily", difficulty: 1, timesOfDay: ["morning", "evening"] },
+  { id: "quest-lego", name: "Dismantle the Lego Monster", categoryId: "cat-chamber", beastId: "beast-lego-monster", schedule: "daily", difficulty: 1, timesOfDay: ["evening"] },
 ];
 
 const questFromSeed = (seed: QuestSeed): Achievement => ({
