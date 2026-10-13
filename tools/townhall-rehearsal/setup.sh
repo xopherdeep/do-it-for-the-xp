@@ -10,7 +10,7 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-COMPOSE=(docker compose -f "$HERE/docker-compose.yml")
+COMPOSE=(docker compose --progress quiet -f "$HERE/docker-compose.yml")
 CREDS="$HERE/.rehearsal-credentials"
 
 NETWORK_URL="http://localhost:8090"
@@ -90,7 +90,9 @@ chmod 600 "$CREDS"
 say "Credentials: $CREDS"
 
 # --- 2. The network --------------------------------------------------------------------------
+JUST_INSTALLED=0
 if [ -z "$(wp db query "SHOW TABLES LIKE 'wp\\_site'" --skip-column-names)" ]; then
+  JUST_INSTALLED=1
   say "Installing the multisite network (subdirectory) at $NETWORK_URL ..."
   wp core multisite-install --url="$NETWORK_URL" --title="Do It For The XP (rehearsal)" \
     --admin_user="$NETWORK_ADMIN_USER" --admin_password="$NETWORK_ADMIN_PASSWORD" \
@@ -219,7 +221,8 @@ ensure_post "rehearsal-town-news" "Town news: the rehearsal hall is open" \
 
 # --- 6. Users --------------------------------------------------------------------------------
 # A fresh credentials file next to an existing network (the file was deleted): re-key the admin.
-if [ "$FRESH_CREDS" = 1 ] && wp user get "$NETWORK_ADMIN_USER" --field=ID --url="$NETWORK_URL" > /dev/null 2>&1; then
+if [ "$FRESH_CREDS" = 1 ] && [ "$JUST_INSTALLED" = 0 ] \
+  && wp user get "$NETWORK_ADMIN_USER" --field=ID --url="$NETWORK_URL" > /dev/null 2>&1; then
   say "Re-keying the network admin to the new credentials ..."
   wp user update "$NETWORK_ADMIN_USER" --user_pass="$NETWORK_ADMIN_PASSWORD" --skip-email --url="$NETWORK_URL" > /dev/null
 fi

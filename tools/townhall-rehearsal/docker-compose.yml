@@ -15,12 +15,12 @@ x-wordpress-env: &wordpress-env
   WORDPRESS_DB_PASSWORD: rehearsal-db
   WORDPRESS_DB_NAME: wordpress
   WORDPRESS_TABLE_PREFIX: wp_
+  WORDPRESS_DEBUG: "1"
   # Application Passwords over plain http need a "local" environment type. A subdirectory
   # network needs WP_ALLOW_MULTISITE; setup.sh adds the MULTISITE constants after the install.
   WORDPRESS_CONFIG_EXTRA: |
     define( 'WP_ENVIRONMENT_TYPE', 'local' );
     define( 'WP_ALLOW_MULTISITE', true );
-    define( 'WP_DEBUG', true );
     define( 'WP_DEBUG_LOG', true );
     define( 'WP_DEBUG_DISPLAY', false );
 
