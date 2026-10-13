@@ -12,12 +12,15 @@ import { buildHero, disposeHero } from "./voxel/build";
  * The builder's option tiles show the player's own hero with that option, drawn by ONE hidden WebGL renderer: a
  * phone only gives a page a handful of GL contexts, so a live canvas per tile would run out. Tiles ask `get`, which
  * answers from the cache or queues a draw; a few draws happen per animation frame so the screen never stalls.
+ * When drawing stops working (no WebGL, a draw that throws, a lost GL context) the thumbnailer gives up for good:
+ * `get` answers "" for everything, so each tile falls back to showing its option's name. A picture drawn from a lost
+ * context is blank (three.js skips the render without throwing), so the draw checks the context and throws instead.
  */
 
 export type ThumbDraw = (look: HeroLook, framing: SnapshotFraming, size: number) => string;
 
 export interface LookThumbnailer {
-  /** False once drawing is impossible (no WebGL, a lost context): the page falls back to 2D portraits */
+  /** False once drawing is impossible (no WebGL, a failed draw, a lost context); `get` then answers "" and the tiles show names */
   supported: Ref<boolean>;
   /** The picture as a data URL, or "" while it waits for its frame; reactive, so a tile re-renders when it lands */
   get(look: HeroLook, framing: SnapshotFraming, size?: number): string;
@@ -37,32 +40,42 @@ const DEFAULT_SIZE = 96;
 const PER_FRAME = 3;
 const CACHE_SIZE = 200;
 
-/** One renderer on a detached canvas and one lit scene; every look is built, shot and thrown away. null without WebGL */
-export const createThreeDraw = (): { draw: ThumbDraw; dispose: () => void } | null => {
+/**
+ * One renderer on a detached canvas and one lit scene; every look is built, shot and thrown away. null without WebGL.
+ * `onContextLost` is called when the browser takes the GL context away (a phone does that under memory pressure).
+ */
+export const createThreeDraw = (onContextLost?: () => void): { draw: ThumbDraw; dispose: () => void } | null => {
+  const canvas = document.createElement("canvas");
   let renderer: THREE.WebGLRenderer;
   try {
-    renderer = new THREE.WebGLRenderer({
-      canvas: document.createElement("canvas"),
-      alpha: true,
-      powerPreference: "low-power",
-    });
+    renderer = new THREE.WebGLRenderer({ canvas, alpha: true, powerPreference: "low-power" });
   } catch {
     return null;
   }
   const scene = new THREE.Scene();
   addHeroLights(scene);
 
+  const handleLost = (): void => onContextLost?.();
+  canvas.addEventListener("webglcontextlost", handleLost);
+
+  const isLost = (): boolean => renderer.getContext().isContextLost();
+
   return {
     draw: (look, framing, size) => {
+      // three.js renders nothing on a lost context and does not throw: a picture from one is blank, so refuse it
+      if (isLost()) throw new Error("WebGL context lost");
       const hero = buildHero(look);
       scene.add(hero);
       try {
-        return renderHeroSnapshot(renderer, scene, hero, size, framing);
+        const picture = renderHeroSnapshot(renderer, scene, hero, size, framing);
+        if (isLost()) throw new Error("WebGL context lost while drawing");
+        return picture;
       } finally {
         disposeHero(hero); // takes it out of the scene as well
       }
     },
     dispose: () => {
+      canvas.removeEventListener("webglcontextlost", handleLost);
       renderer.dispose();
       // dispose() leaves the context alive until the garbage collector comes; a phone cannot wait for that
       renderer.forceContextLoss();
@@ -109,7 +122,7 @@ export const createLookThumbnailer = (options: ThumbnailerOptions = {}): LookThu
 
   const drawer = (): ThumbDraw | null => {
     if (options.draw !== undefined) return options.draw;
-    if (three === undefined) three = createThreeDraw();
+    if (three === undefined) three = createThreeDraw(giveUp);
     return three ? three.draw : null;
   };
 

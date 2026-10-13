@@ -371,11 +371,6 @@ export default defineComponent({
           icon: "user-circle",
           link: `/my-portal/${heroId}/my-profile`,
         },
-        "my-look": {
-          name: "Hero Look",
-          icon: "tshirt",
-          link: `/my-portal/${heroId}/my-look`,
-        },
       };
 
       if (worlds[currentName]) {

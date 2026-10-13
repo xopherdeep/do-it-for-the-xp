@@ -72,7 +72,23 @@ export const lerpFrame = (from: Frame, to: Frame, t: number): Frame => {
 /** Fast start, soft landing: what a camera move wants */
 export const easeOutCubic = (t: number): number => 1 - Math.pow(1 - t, 3);
 
-export const addHeroLights = (scene: THREE.Scene): void => {
+/**
+ * Where a camera move stands `now` (seconds), having left `from` for `to` at `startedAt`: eased, and on the very last
+ * step exactly `to` (the same object) with `done` set so the caller can drop the move. Pure: the clock is the caller's.
+ */
+export const stepFrame = (
+  from: Frame,
+  to: Frame,
+  startedAt: number,
+  now: number,
+  duration = 0.3,
+): { frame: Frame; done: boolean } => {
+  const k = duration > 0 ? Math.min(1, Math.max(0, (now - startedAt) / duration)) : 1;
+  if (k >= 1) return { frame: to, done: true };
+  return { frame: lerpFrame(from, to, easeOutCubic(k)), done: false };
+};
+
+export const addHeroLights =(scene: THREE.Scene): void => {
   scene.add(new THREE.HemisphereLight(0xffffff, 0x8a7a6a, 1.7));
   const sun = new THREE.DirectionalLight(0xffffff, 2.2);
   sun.position.set(6, 12, 10);

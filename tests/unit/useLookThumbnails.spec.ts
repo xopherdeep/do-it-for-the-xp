@@ -18,14 +18,14 @@ import { DEFAULT_LOOK, type HeroLook } from "@/lib/hero-look/types";
  */
 
 /** `new THREE.WebGLRenderer` builds this fake when a spec sets it, and the real renderer (which jsdom cannot start) otherwise */
-let mockRenderer: (() => unknown) | null = null;
+let mockRenderer: ((options: { canvas: HTMLCanvasElement }) => unknown) | null = null;
 jest.mock("three", () => {
   const actual = jest.requireActual("three");
   return {
     __esModule: true,
     ...actual,
     WebGLRenderer: jest.fn(function (...args: unknown[]) {
-      return mockRenderer ? mockRenderer() : new actual.WebGLRenderer(...args);
+      return mockRenderer ? mockRenderer(args[0] as { canvas: HTMLCanvasElement }) : new actual.WebGLRenderer(...args);
     }),
   };
 });
@@ -54,6 +54,7 @@ const fakeRenderer = () => ({
   clear: jest.fn(),
   render: jest.fn(),
   readRenderTargetPixels: jest.fn(),
+  getContext: jest.fn((): { isContextLost: () => boolean } => ({ isContextLost: () => false })),
   dispose: jest.fn(),
   forceContextLoss: jest.fn(),
 });
@@ -227,6 +228,59 @@ describe("createLookThumbnailer", () => {
     expect(tile.value).toBe("data:image/png;fake");
   });
 
+  it("gives up and shows names when the context is lost", () => {
+    stubCanvas();
+    const renderer = fakeRenderer();
+    // three.js skips rendering on a lost context without throwing, so a blank picture must never be kept
+    renderer.getContext.mockReturnValue({ isContextLost: () => true });
+    mockRenderer = () => renderer;
+    const { schedule, flush, runs } = manualFrames();
+    const thumbs = createLookThumbnailer({ schedule });
+
+    expect(thumbs.get(DEFAULT_LOOK, "bust", 8)).toBe("");
+    expect(thumbs.get(look(2), "bust", 8)).toBe("");
+    flush();
+
+    expect(thumbs.supported.value).toBe(false);
+    expect(renderer.render).not.toHaveBeenCalled();
+    expect(renderer.readRenderTargetPixels).not.toHaveBeenCalled();
+    expect(runs).toHaveLength(0);
+    // Nothing was cached: every tile reads "" and shows its name
+    expect(thumbs.get(DEFAULT_LOOK, "bust", 8)).toBe("");
+    expect(thumbs.get(look(2), "bust", 8)).toBe("");
+    // The dead renderer is let go
+    expect(renderer.dispose).toHaveBeenCalledTimes(1);
+    expect(renderer.forceContextLoss).toHaveBeenCalledTimes(1);
+  });
+
+  it("gives up at once when the browser reports the context lost", () => {
+    stubCanvas();
+    const renderer = fakeRenderer();
+    let canvas!: HTMLCanvasElement;
+    mockRenderer = (options) => {
+      canvas = options.canvas;
+      return renderer;
+    };
+    const { schedule, flush } = manualFrames();
+    const thumbs = createLookThumbnailer({ schedule });
+
+    thumbs.get(DEFAULT_LOOK, "bust", 8);
+    thumbs.get(look(2), "bust", 8);
+    flush(); // draws both, which starts the renderer
+    thumbs.get(look(3), "bust", 8);
+    expect(thumbs.supported.value).toBe(true);
+    expect(thumbs.get(DEFAULT_LOOK, "bust", 8)).toBe("data:image/png;shot");
+
+    canvas.dispatchEvent(new Event("webglcontextlost"));
+
+    expect(thumbs.supported.value).toBe(false);
+    expect(renderer.dispose).toHaveBeenCalledTimes(1);
+    expect(renderer.forceContextLoss).toHaveBeenCalledTimes(1);
+    expect(thumbs.get(look(3), "bust", 8)).toBe("");
+    flush();
+    expect(renderer.render).toHaveBeenCalledTimes(2);
+  });
+
   it("reports unsupported in a browser with no WebGL", () => {
     mockRenderer = null;
     const { schedule, flush } = manualFrames();
@@ -255,6 +309,47 @@ describe("createThreeDraw", () => {
     };
 
     expect(createThreeDraw()).toBeNull();
+  });
+
+  it("throws instead of keeping a picture when the context is lost before or during the shot", () => {
+    stubCanvas();
+    const renderer = fakeRenderer();
+    let lost = true;
+    renderer.getContext.mockImplementation(() => ({ isContextLost: () => lost }));
+    mockRenderer = () => renderer;
+    const three = createThreeDraw()!;
+
+    expect(() => three.draw(DEFAULT_LOOK, "bust", 8)).toThrow(/lost/i);
+    expect(renderer.render).not.toHaveBeenCalled();
+
+    // Lost while the shot was being taken: what was read back is blank
+    lost = false;
+    renderer.render.mockImplementation(() => {
+      lost = true;
+    });
+    expect(() => three.draw(DEFAULT_LOOK, "bust", 8)).toThrow(/lost/i);
+
+    renderer.render.mockImplementation(() => undefined);
+    lost = false;
+    expect(three.draw(DEFAULT_LOOK, "bust", 8)).toBe("data:image/png;shot");
+  });
+
+  it("listens for a lost context on its canvas and stops listening on dispose", () => {
+    const renderer = fakeRenderer();
+    let canvas!: HTMLCanvasElement;
+    mockRenderer = (options) => {
+      canvas = options.canvas;
+      return renderer;
+    };
+    const onLost = jest.fn();
+    const three = createThreeDraw(onLost)!;
+
+    canvas.dispatchEvent(new Event("webglcontextlost"));
+    expect(onLost).toHaveBeenCalledTimes(1);
+
+    three.dispose();
+    canvas.dispatchEvent(new Event("webglcontextlost"));
+    expect(onLost).toHaveBeenCalledTimes(1);
   });
 
   it("draws every look with one renderer, takes each hero out of the scene, and frees the context on dispose", () => {

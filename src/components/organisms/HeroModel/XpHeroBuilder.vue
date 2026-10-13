@@ -49,6 +49,7 @@
         :allow-portrait="allowPortrait"
         @pick="pickStarter"
         @portrait="usePortrait"
+        @roll="rollLineup"
       />
 
       <div
@@ -183,10 +184,20 @@
   const heading = computed(() => (phase.value === "lineup" ? "Pick a starting hero" : "Build your hero"));
   const animation = computed<HeroAnimation>(() => (hopping.value ? "hop" : pose.value));
 
-  /** What the stage draws: bare-headed on Hair so the hair shows, wearing the real hat again for the cheer and the picture */
-  const shownLook = computed(() =>
-    withHands(saving.value ? draft.value : stageLook(draft.value, tab.value), props.equipment),
-  );
+  /**
+   * What the stage draws: bare-headed on Hair so the hair shows, wearing the real hat again for the cheer and the picture.
+   * It keeps its identity while nothing about the hero changes (a tab switch that leaves the head as it was): the live
+   * hero rebuilds whenever it gets a different look object, and a rebuild would cut the camera's ease short.
+   */
+  const shownLook = computed<HeroLook>((previous) => {
+    const next = withHands(saving.value ? draft.value : stageLook(draft.value, tab.value), props.equipment);
+    const unchanged =
+      !!previous &&
+      sameLook(previous, next) &&
+      previous.leftHand === next.leftHand &&
+      previous.rightHand === next.rightHand;
+    return unchanged ? previous : next;
+  });
 
   const dirty = computed(() => picked.value || !sameLook(draft.value, startLook));
 
@@ -213,11 +224,21 @@
     play$fx("select");
   };
 
-  const usePortrait = () => {
+  /** A changed build is thrown away by the portrait, so that asks first; a clean one goes at once */
+  const usePortrait = async () => {
     if (saving.value || left.value) return;
+    if (dirty.value) {
+      const leaving = await askToLeave();
+      // Done, or another way out, may have won while the question was open
+      if (!leaving || saving.value || left.value) return;
+    }
     play$fx("select");
     left.value = true;
     emit("portrait");
+  };
+
+  const rollLineup = () => {
+    play$fx("cursor");
   };
 
   const changeTab = (id: LookTabId) => {
@@ -289,6 +310,32 @@
     });
   };
 
+  /** The open "Leave without saving?" question, if any: asked twice (X and Android back, two quick taps), it is still one alert */
+  let pending: Promise<boolean> | null = null;
+
+  /** Asks whether to throw the changes away; true for "Leave". Makes no sound: each way out has its own */
+  const askToLeave = (): Promise<boolean> => {
+    if (pending) return pending;
+    const question = (async (): Promise<boolean> => {
+      const alert = await alertController.create({
+        header: "Leave without saving?",
+        buttons: [
+          { text: "Keep building", role: "cancel" },
+          { text: "Leave", role: "destructive" },
+        ],
+      });
+      await alert.present();
+      const { role } = await alert.onDidDismiss();
+      return role === "destructive";
+    })();
+    pending = question;
+    const settled = (): void => {
+      if (pending === question) pending = null;
+    };
+    question.then(settled, settled);
+    return question;
+  };
+
   /** Whether the screen may close: at once when nothing would be lost, else after the player says so */
   const confirmLeave = async (): Promise<boolean> => {
     if (left.value) return true;
@@ -298,17 +345,11 @@
       play$fx("closeMenu");
       return true;
     }
-    const alert = await alertController.create({
-      header: "Leave without saving?",
-      buttons: [
-        { text: "Keep building", role: "cancel" },
-        { text: "Leave", role: "destructive" },
-      ],
-    });
-    await alert.present();
-    const { role } = await alert.onDidDismiss();
-    if (role !== "destructive") return false;
-    play$fx("closeMenu");
+    const alreadyAsking = pending !== null;
+    const leaving = await askToLeave();
+    if (!leaving) return false;
+    // The sound belongs to the question: whoever asked first plays it, a second asker rides on the same answer
+    if (!alreadyAsking) play$fx("closeMenu");
     return true;
   };
 

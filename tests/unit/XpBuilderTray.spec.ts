@@ -41,6 +41,18 @@ const group = (wrapper: ReturnType<typeof show>["wrapper"], label: string) =>
   wrapper.findAll("[role=group]").find((el) => el.attributes("aria-label") === label)!;
 
 describe("XpBuilderTray", () => {
+  it("asks for the top tiles last so they draw first", () => {
+    // The thumbnailer draws the newest request first, so the tiles at the top of the grid are asked for last
+    const { thumbnails } = show({ tabId: "hair", mode: "style" });
+    const options = tabById("hair").styles!.options;
+    const asked = thumbnails.get.mock.calls.map((call) => (call as unknown as [HeroLook])[0].hair);
+
+    expect(asked).toHaveLength(options.length);
+    expect(asked[asked.length - 1]).toBe(options[0]);
+    expect(asked[0]).toBe(options[options.length - 1]);
+    expect(asked).toEqual([...options].reverse());
+  });
+
   it("fills Body with 18 face tiles and no switch", () => {
     const { wrapper, thumbnails } = show({ tabId: "body", mode: "style" });
 
@@ -51,8 +63,9 @@ describe("XpBuilderTray", () => {
 
     // Each tile is the player's own hero in that tone, framed on the face, at 96 pixels
     expect(thumbnails.get).toHaveBeenCalledTimes(18);
+    // (the tray asks bottom tile first, so the call for tile i is i-th from the end)
     tiles(wrapper).forEach((tile, i) => {
-      const call = thumbnails.get.mock.calls[i] as unknown[];
+      const call = thumbnails.get.mock.calls[17 - i] as unknown[];
       expect((call[0] as HeroLook).skin).toBe(tile.attributes("data-option"));
       expect(call[1]).toBe("bust");
       expect(call[2]).toBe(96);

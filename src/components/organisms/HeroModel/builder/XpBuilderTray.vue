@@ -150,13 +150,27 @@
     return (0.299 * r + 0.587 * g + 0.114 * b) / 255 > 0.5;
   };
 
-  /** The picture is "" until it is drawn (or without WebGL): the tile then shows the option's name, on its colour if it has one */
+  /**
+   * The picture is "" until it is drawn (or without WebGL): the tile then shows the option's name, on its colour if it has one.
+   * The thumbnailer draws the newest request first, so the pictures are asked for from the last tile to the first:
+   * the tiles at the top of the grid, which are on screen, draw first. The tiles themselves stay in reading order.
+   */
   const tiles = computed(() => {
     const styles = props.tab.styles;
     if (!styles) return [];
-    return styles.options.map((option) => {
+    const made: {
+      option: string;
+      label: string;
+      heading: string | undefined;
+      swatch: string | undefined;
+      lightSwatch: boolean;
+      src: string;
+      chosen: boolean;
+    }[] = [];
+    for (let index = styles.options.length - 1; index >= 0; index--) {
+      const option = styles.options[index];
       const swatch = optionSwatch(props.tab, option);
-      return {
+      made[index] = {
         option,
         label: optionLabel(props.tab, option),
         heading: styles.headings?.[option],
@@ -169,7 +183,8 @@
         ),
         chosen: props.modelValue[styles.key] === option,
       };
-    });
+    }
+    return made;
   });
 
   const change = (key: keyof HeroLook, value: string) => {

@@ -2,6 +2,7 @@ import { ref } from "vue";
 import { mount } from "@vue/test-utils";
 import XpStarterLineup from "@/components/organisms/HeroModel/builder/XpStarterLineup.vue";
 import { starterLineup, type Rng } from "@/components/organisms/HeroModel/lookEditor";
+import type { HeroLook } from "@/lib/hero-look/types";
 
 /**
  * The starter lineup in jsdom: nine random heroes for a brand-new profile, a roll button and, when allowed, a way
@@ -58,6 +59,26 @@ describe("XpStarterLineup", () => {
 
     expect(wrapper.emitted("pick")).toEqual([[expected[4]]]);
     expect(wrapper.emitted("portrait")).toBeUndefined();
+  });
+
+  it("asks for the top cards last so they draw first", () => {
+    const { thumbnails } = show({ rng: seeded(11) });
+    const expected = starterLineup(9, seeded(11));
+    const asked = thumbnails.get.mock.calls.map((call) => (call as unknown as [HeroLook])[0]);
+
+    expect(asked).toEqual([...expected].reverse());
+  });
+
+  it("tells the builder when it re-deals", async () => {
+    const { wrapper } = show({ rng: seeded(23) });
+    expect(wrapper.emitted("roll")).toBeUndefined();
+
+    await wrapper.find("[data-cy=starter-roll]").trigger("click");
+    expect(wrapper.emitted("roll")).toHaveLength(1);
+
+    await wrapper.find("[data-cy=starter-roll]").trigger("click");
+    expect(wrapper.emitted("roll")).toHaveLength(2);
+    expect(wrapper.emitted("pick")).toBeUndefined();
   });
 
   it("rolls nine new heroes", async () => {

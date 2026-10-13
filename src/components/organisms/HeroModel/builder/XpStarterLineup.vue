@@ -67,7 +67,7 @@
   /**
    * The starter lineup for a brand-new profile: nine random heroes in a 3 x 3 grid, a button that deals nine more
    * and, when the builder allows it, a way out to a 2D portrait. It only emits: `pick` with the chosen look,
-   * `portrait`. No Ionic, no sounds; the builder screen decides what each tap does.
+   * `portrait`, `roll` (a new deal). No Ionic, no sounds; the builder screen decides what each tap does.
    */
   const props = defineProps<{
     thumbnails: LookThumbnailer;
@@ -80,6 +80,7 @@
   const emit = defineEmits<{
     (e: "pick", look: HeroLook): void;
     (e: "portrait"): void;
+    (e: "roll"): void;
   }>();
 
   const COUNT = 9;
@@ -90,16 +91,22 @@
 
   const roll = () => {
     looks.value = starterLineup(COUNT, props.rng);
+    emit("roll");
   };
 
-  /** The picture is "" until it is drawn (or without WebGL): the card then shows "Hero 1" and so on */
-  const cards = computed(() =>
-    looks.value.map((look, index) => ({
-      look,
-      label: `Hero ${index + 1}`,
-      src: props.thumbnails.get(look, "full", CARD_SIZE),
-    })),
-  );
+  /**
+   * The picture is "" until it is drawn (or without WebGL): the card then shows "Hero 1" and so on. The thumbnailer
+   * draws the newest request first, so the pictures are asked for from the last card to the first and the top row,
+   * which the player looks at first, draws first. The cards stay in reading order.
+   */
+  const cards = computed(() => {
+    const made: { look: HeroLook; label: string; src: string }[] = [];
+    for (let index = looks.value.length - 1; index >= 0; index--) {
+      const look = looks.value[index];
+      made[index] = { look, label: `Hero ${index + 1}`, src: props.thumbnails.get(look, "full", CARD_SIZE) };
+    }
+    return made;
+  });
 </script>
 
 <style lang="scss" scoped>

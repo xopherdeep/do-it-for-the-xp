@@ -11,6 +11,7 @@ import {
   placeCamera,
   renderHeroSnapshot,
   stageFrame,
+  stepFrame,
 } from "@/components/organisms/HeroModel/heroCamera";
 import { buildHero } from "@/components/organisms/HeroModel/voxel/build";
 import { DEFAULT_LOOK } from "@/lib/hero-look/types";
@@ -42,6 +43,36 @@ describe("heroCamera frames", () => {
     expect(easeOutCubic(1)).toBe(1);
     expect(easeOutCubic(0.5)).toBeGreaterThan(0.5);
     expect(easeOutCubic(0.25)).toBeLessThan(easeOutCubic(0.75));
+  });
+
+  it("steps a frame toward its target and lands exactly", () => {
+    const from = { centerY: 8, height: 20 };
+    const to = { centerY: 12, height: 13, width: 11 };
+
+    const start = stepFrame(from, to, 0, 0);
+    expect(start.done).toBe(false);
+    expect(start.frame).toEqual({ centerY: 8, height: 20, width: FRAME_WIDTH });
+
+    const mid = stepFrame(from, to, 0, 0.15); // halfway through the default 0.3 seconds
+    expect(mid.done).toBe(false);
+    expect(mid.frame.centerY).toBeGreaterThan(8);
+    expect(mid.frame.centerY).toBeLessThan(12);
+    expect(mid.frame.height).toBeLessThan(20);
+    expect(mid.frame.height).toBeGreaterThan(13);
+    expect(mid.frame).toEqual(lerpFrame(from, to, easeOutCubic(0.5)));
+
+    const end = stepFrame(from, to, 0, 0.3);
+    expect(end.done).toBe(true);
+    expect(end.frame).toBe(to);
+
+    const late = stepFrame(from, to, 0, 9);
+    expect(late.done).toBe(true);
+    expect(late.frame).toBe(to);
+
+    // a time before the start stays on `from`, and a custom duration is honoured
+    expect(stepFrame(from, to, 5, 4).frame.centerY).toBe(8);
+    expect(stepFrame(from, to, 0, 0.5, 1).done).toBe(false);
+    expect(stepFrame(from, to, 0, 1, 1).done).toBe(true);
   });
 
   it("a narrower frame puts the camera closer on a square stage", () => {

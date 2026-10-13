@@ -4,16 +4,7 @@ import type { Ref } from "vue";
 import type { HeroAnimation, HeroLook } from "@/lib/hero-look/types";
 import { animateHero } from "./voxel/animate";
 import { buildHero, disposeHero } from "./voxel/build";
-import {
-  DEFAULT_YAW,
-  FOV,
-  addHeroLights,
-  easeOutCubic,
-  lerpFrame,
-  placeCamera,
-  renderHeroSnapshot,
-  stageFrame,
-} from "./heroCamera";
+import { DEFAULT_YAW, FOV, addHeroLights, placeCamera, renderHeroSnapshot, stageFrame, stepFrame } from "./heroCamera";
 import type { Frame, SnapshotFraming } from "./heroCamera";
 import debug from "@/lib/utils/debug";
 
@@ -53,7 +44,11 @@ export function useHeroScene(
   let scene: THREE.Scene | null = null;
   let camera: THREE.PerspectiveCamera | null = null;
   let hero: THREE.Group | null = null;
+  /** What the hero on stage was built from (see lookKey); a look that comes out the same builds nothing */
+  let builtKey: string | null = null;
   let frame: Frame = { centerY: 8, height: 20 };
+  /** The focus the camera is framed on or easing toward; null until the first frame */
+  let aimedFocus: SnapshotFraming | null = null;
   // The focus tween: the camera eases from tweenFrom to tweenTo, started at tweenStart (null when settled)
   let tweenFrom: Frame | null = null;
   let tweenTo: Frame | null = null;
@@ -87,29 +82,61 @@ export function useHeroScene(
     placeCamera(camera, frame, width / height);
   };
 
+  /** What a hero is built from: the look's content, whatever object it arrives in and in whatever key order */
+  const lookKey = (value: HeroLook): string => JSON.stringify(value, Object.keys(value).sort());
+
+  /**
+   * Point the camera at the hero for the current focus. When the focus changed, or an ease is already under way (the
+   * rebuilt hero may stand a little taller), it eases from wherever the camera is now; the first frame, and a stage
+   * that is not ticking (off screen), land at once. Places the camera when it lands but draws nothing.
+   */
+  const aimCamera = (): void => {
+    if (!hero || !camera) return;
+    const focus = options.focus?.value ?? "full";
+    const target = stageFrame(hero, focus);
+    const hadFrame = aimedFocus !== null;
+    const isMoving = tweenTo !== null;
+    const hasNewFocus = focus !== aimedFocus;
+    aimedFocus = focus;
+    if (running && hadFrame && (hasNewFocus || isMoving)) {
+      tweenFrom = frame; // from wherever the camera is now, so a change mid-move turns smoothly
+      tweenTo = target;
+      tweenStart = now();
+      return;
+    }
+    tweenFrom = tweenTo = null;
+    frame = target;
+    resize();
+  };
+
   const rebuild = (): void => {
     if (!scene) return;
+    // The look prop is replaced by equal copies (a tab switch re-derives it): the same hero is not worth a rebuild,
+    // which would also snap the camera and restart the pose
+    const key = lookKey(look.value);
+    if (hero && key === builtKey) return;
+    const isFirstHero = !hero;
     if (hero) {
       scene.remove(hero);
       disposeHero(hero);
     }
     hero = buildHero(look.value);
+    builtKey = key;
     hero.rotation.y = yaw;
     scene.add(hero);
-    frame = stageFrame(hero, options.focus?.value ?? "full");
-    tweenFrom = tweenTo = null; // a new hero snaps to the frame, there is nothing to ease from
-    resize();
-    t0 = now();
+    aimCamera();
+    // A new hero carries on from the pose's clock, so a hop in the air goes on smoothly; only the first one starts it
+    if (isFirstHero) t0 = now();
     render();
   };
 
   /** Move the camera along the focus tween; the last step lands exactly on the target frame */
   const stepCamera = (): void => {
     if (!tweenFrom || !tweenTo || !camera) return;
-    const k = Math.min(1, (now() - tweenStart) / FOCUS_EASE_SECONDS);
-    frame = k >= 1 ? tweenTo : lerpFrame(tweenFrom, tweenTo, easeOutCubic(k));
+    const step = stepFrame(tweenFrom, tweenTo, tweenStart, now(), FOCUS_EASE_SECONDS);
+    frame = step.frame;
     placeCamera(camera, frame, camera.aspect);
-    if (k >= 1) tweenFrom = tweenTo = null;
+    if (step.done) tweenFrom = tweenTo = null;
   };
 
   const render = (): void => {
@@ -280,17 +307,9 @@ export function useHeroScene(
   if (options.focus) {
     watch(options.focus, (focus) => {
       if (!hero || !camera) return; // the first rebuild frames the current focus
-      if (running) {
-        tweenFrom = frame; // from wherever the camera is now, so a change mid-move turns smoothly
-        tweenTo = stageFrame(hero, focus);
-        tweenStart = now();
-      } else {
-        // nothing ticks while off screen: land on the new frame at once
-        tweenFrom = tweenTo = null;
-        frame = stageFrame(hero, focus);
-        resize();
-        render();
-      }
+      if (focus === aimedFocus) return; // a rebuild in the same tick already aimed at it
+      aimCamera();
+      if (!running) render(); // nothing ticks while off screen
     });
   }
   onMounted(init);

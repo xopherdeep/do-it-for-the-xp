@@ -76,7 +76,7 @@ const REGION_SUBTITLE: Record<string, string> = {
 };
 
 const BATTLE_ROUTES = new Set(["battle-quest", "battle-temple", "battle-now", "battle-free"]);
-const PORTAL_ROUTES = new Set(["my-party", "my-profile", "my-look", "my-home-redirect", "my-portal"]);
+const PORTAL_ROUTES = new Set(["my-party", "my-profile", "my-home-redirect", "my-portal"]);
 
 const ELEMENTS = new Set(["wind", "fire", "ice", "water", "earth", "light", "shadow", "storm", "moon"]);
 

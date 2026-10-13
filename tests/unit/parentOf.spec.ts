@@ -70,7 +70,6 @@ describe("parentOf: heroes' pages", () => {
     ["cook-food", "craft-item", "storage", "calendar", "my-tasks", "my-abilities", "my-gold-points", "my-inventory", "my-profile"].forEach(
       (name) => expect(parentOf(route(name, `/${name}/${HERO}`, { userId: HERO }))).toBe(`/my-portal/${HERO}/my-home`),
     );
-    expect(parentOf(route("my-look", `/my-portal/${HERO}/my-look`, { userId: HERO }))).toBe(`/my-portal/${HERO}/my-profile`);
     expect(parentOf(route("my-party", `/my-portal/${HERO}/my-party`, { userId: HERO }))).toBe("/xp-profile");
   });
 

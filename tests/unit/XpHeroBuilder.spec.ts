@@ -97,6 +97,12 @@ const tick = async (ms: number) => {
   await nextTick();
 };
 
+/** Lets promises chained on an alert settle (no timers involved, so it is safe under the fake clock) */
+const settle = async () => {
+  for (let turn = 0; turn < 10; turn++) await Promise.resolve();
+  await nextTick();
+};
+
 /** An alert that is answered with `role` when it is dismissed */
 const answerAlertWith = (role: string) => {
   const present = jest.fn().mockResolvedValue(undefined);
@@ -196,6 +202,52 @@ describe("XpHeroBuilder", () => {
     expect(saved.hat).toBe("crown");
     expect("leftHand" in saved).toBe(false);
     expect("rightHand" in saved).toBe(false);
+  });
+
+  it("keeps the stage look when only the tab changes", async () => {
+    const wrapper = show({ look: withLook(), equipment: { leftHand: [{ faIcon: "fa-sword" }], rightHand: [] } });
+    const onBody = stageLook(wrapper);
+    expect(stage(wrapper).props("focus")).toBe("full");
+
+    // No hat to take off: the same hero is drawn, so the live hero is not rebuilt and the camera can ease
+    await tab(wrapper, "Face").trigger("click");
+    expect(stage(wrapper).props("focus")).toBe("bust");
+    expect(stageLook(wrapper)).toBe(onBody);
+
+    await tab(wrapper, "Hair").trigger("click");
+    expect(stageLook(wrapper)).toBe(onBody);
+    await tab(wrapper, "Outfit").trigger("click");
+    expect(stage(wrapper).props("focus")).toBe("full");
+    expect(stageLook(wrapper)).toBe(onBody);
+
+    // A pick is a new hero, and the new one keeps its identity through the next tab change
+    await tile(wrapper, "robe").trigger("click");
+    const picked = stageLook(wrapper);
+    expect(picked).not.toBe(onBody);
+    expect(picked.outfit).toBe("robe");
+    expect(picked.leftHand).toBe("fa-sword");
+    await tab(wrapper, "Face").trigger("click");
+    expect(stageLook(wrapper)).toBe(picked);
+
+    // New equipment changes the hands, so that is a new hero too
+    await wrapper.setProps({ equipment: { leftHand: [], rightHand: [{ faIcon: "fa-shield" }] } });
+    expect(stageLook(wrapper)).not.toBe(picked);
+    expect(stageLook(wrapper).rightHand).toBe("fa-shield");
+    expect(stageLook(wrapper).leftHand).toBeUndefined();
+  });
+
+  it("makes a new stage look when the hat comes off for Hair and goes back on", async () => {
+    const wrapper = show({ look: withLook({ hat: "crown" }) });
+    const wearing = stageLook(wrapper);
+
+    await tab(wrapper, "Hair").trigger("click");
+    const bare = stageLook(wrapper);
+    expect(bare).not.toBe(wearing);
+    expect(bare.hat).toBe("none");
+
+    await tab(wrapper, "Body").trigger("click");
+    expect(stageLook(wrapper)).not.toBe(bare);
+    expect(stageLook(wrapper).hat).toBe("crown");
   });
 
   it("undoes the last pick, and plays no when there is nothing left", async () => {
@@ -356,6 +408,39 @@ describe("XpHeroBuilder", () => {
     expect(mockAlertCreate).toHaveBeenCalledTimes(2);
   });
 
+  it("asks once when close is requested twice quickly", async () => {
+    const wrapper = show({ look: withLook() });
+    await tab(wrapper, "Hair").trigger("click");
+    await tile(wrapper, "bob").trigger("click");
+    sounds.mockClear();
+
+    // X and Android back, one after the other, before the alert has been answered
+    let answer!: (result: { role: string }) => void;
+    const dismissed = new Promise<{ role: string }>((resolve) => {
+      answer = resolve;
+    });
+    const present = jest.fn().mockResolvedValue(undefined);
+    mockAlertCreate.mockResolvedValue({ present, onDidDismiss: () => dismissed });
+
+    const first = leave(wrapper);
+    const second = leave(wrapper);
+    await settle();
+    expect(mockAlertCreate).toHaveBeenCalledTimes(1);
+    expect(present).toHaveBeenCalledTimes(1);
+
+    answer({ role: "destructive" });
+    await expect(first).resolves.toBe(true);
+    await expect(second).resolves.toBe(true);
+    expect(mockAlertCreate).toHaveBeenCalledTimes(1);
+    // One question, one click of the sound
+    expect(sounds.mock.calls).toEqual([["closeMenu"]]);
+
+    // Once the answer is in, the next request is a new question
+    answerAlertWith("cancel");
+    await expect(leave(wrapper)).resolves.toBe(false);
+    expect(mockAlertCreate).toHaveBeenCalledTimes(2);
+  });
+
   it("cannot be closed while saving", async () => {
     const wrapper = show({ look: withLook() });
     await tab(wrapper, "Hair").trigger("click");
@@ -421,6 +506,88 @@ describe("XpHeroBuilder", () => {
     // The lineup's own link does the same
     await lineupOn.find("[data-cy=look-use-portrait]").trigger("click");
     expect(lineupOn.emitted("portrait")).toHaveLength(1);
+  });
+
+  it("asks before swapping a changed hero for a portrait", async () => {
+    const wrapper = show({ look: withLook(), allowPortrait: true });
+    await tab(wrapper, "Hair").trigger("click");
+    await tile(wrapper, "bob").trigger("click");
+    sounds.mockClear();
+    const link = () => wrapper.find("[data-cy=look-use-portrait]");
+
+    // Keep building: the build stays and the portrait picker does not open
+    const present = answerAlertWith("cancel");
+    await link().trigger("click");
+    await settle();
+    expect(mockAlertCreate).toHaveBeenCalledTimes(1);
+    expect(mockAlertCreate.mock.calls[0][0]).toMatchObject({
+      header: "Leave without saving?",
+      buttons: [
+        { text: "Keep building", role: "cancel" },
+        { text: "Leave", role: "destructive" },
+      ],
+    });
+    expect(present).toHaveBeenCalledTimes(1);
+    expect(wrapper.emitted("portrait")).toBeUndefined();
+    expect(sounds).not.toHaveBeenCalled();
+    expect(draft(wrapper).hair).toBe("bob");
+
+    // Two quick taps share one question
+    let answer!: (result: { role: string }) => void;
+    const dismissed = new Promise<{ role: string }>((resolve) => {
+      answer = resolve;
+    });
+    mockAlertCreate.mockResolvedValue({ present: jest.fn().mockResolvedValue(undefined), onDidDismiss: () => dismissed });
+    await link().trigger("click");
+    await link().trigger("click");
+    await settle();
+    expect(mockAlertCreate).toHaveBeenCalledTimes(2);
+
+    // Leave: only now does the portrait picker open, once
+    answer({ role: "destructive" });
+    await settle();
+    expect(wrapper.emitted("portrait")).toHaveLength(1);
+    expect(sounds.mock.calls).toEqual([["select"]]);
+
+    // The look was handed off, so closing the screen asks nothing more
+    await expect(leave(wrapper)).resolves.toBe(true);
+    expect(mockAlertCreate).toHaveBeenCalledTimes(2);
+  });
+
+  it("hands a clean hero to the portrait picker without asking", async () => {
+    const wrapper = show({ look: withLook(), allowPortrait: true });
+    sounds.mockClear();
+
+    await wrapper.find("[data-cy=look-use-portrait]").trigger("click");
+
+    expect(mockAlertCreate).not.toHaveBeenCalled();
+    expect(wrapper.emitted("portrait")).toHaveLength(1);
+    expect(sounds.mock.calls).toEqual([["select"]]);
+  });
+
+  it("ignores the 2D link while saving", async () => {
+    const wrapper = show({ look: withLook(), allowPortrait: true });
+    await tab(wrapper, "Hair").trigger("click");
+    await tile(wrapper, "bob").trigger("click");
+    await done(wrapper).trigger("click");
+    sounds.mockClear();
+
+    await wrapper.find("[data-cy=look-use-portrait]").trigger("click");
+    await settle();
+
+    expect(mockAlertCreate).not.toHaveBeenCalled();
+    expect(wrapper.emitted("portrait")).toBeUndefined();
+    expect(sounds).not.toHaveBeenCalled();
+  });
+
+  it("plays cursor when the lineup re-deals", async () => {
+    const wrapper = show();
+    sounds.mockClear();
+
+    await wrapper.find("[data-cy=starter-roll]").trigger("click");
+
+    expect(sounds.mock.calls).toEqual([["cursor"]]);
+    expect(heroes(wrapper)).toHaveLength(9);
   });
 
   it("moves focus to the tray when the tab changes", async () => {
