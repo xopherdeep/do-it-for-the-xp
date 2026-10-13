@@ -15,23 +15,30 @@
  * an unfinished chore must never vanish from the board, so the due date shows in the summary and the list, not
  * as an expiry. When the move is closer than three weeks the pre-move phases are squeezed together, in order.
  */
-import { addDays, differenceInCalendarDays, format, startOfDay } from "date-fns";
+import { addDays, differenceInCalendarDays, startOfDay } from "date-fns";
 import type { Achievement, AchievementCategoryInterface } from "@/lib/databases/AchievementDb";
 import type { Beast } from "@/lib/databases/BestiaryDb";
-import { BACKUP_VERSION } from "@/lib/services/core/BackupService";
-import type { BackupEntry, BackupFile } from "@/lib/services/core/BackupService";
+import type { BackupFile } from "@/lib/services/core/BackupService";
 import type { TimeOfDay } from "@/lib/engine/quests/QuestSchedule";
+import {
+  PACK_BANDS,
+  cooldownOf,
+  dateKey,
+  heroBandFor,
+  packBackup,
+  parseLocalDate,
+  plural,
+  rewardsFor,
+} from "./packCommon";
+import type { PackBand, PackBeast, PackHero, PackRole } from "./packCommon";
+
+export { dateKey, parseLocalDate };
 
 /** How a hero plays: the little one (about 6), the kid (about 12), the grown-up; "out" sits the move out. */
-export type MovingBand = "little" | "kid" | "grownup";
-export type MovingRole = MovingBand | "out";
+export type MovingBand = PackBand;
+export type MovingRole = PackRole;
 
-export const MOVING_BANDS: readonly { id: MovingRole; label: string }[] = [
-  { id: "little", label: "Little" },
-  { id: "kid", label: "Kid" },
-  { id: "grownup", label: "Grown-up" },
-  { id: "out", label: "Sitting out" },
-];
+export const MOVING_BANDS = PACK_BANDS;
 
 export type MovingRoomId =
   | "bedroom" | "bathroom" | "kitchen" | "living" | "dining" | "laundry"
@@ -53,11 +60,7 @@ export const MOVING_ROOMS: readonly { id: MovingRoomId; label: string; counted?:
   { id: "pets", label: "Pets" },
 ];
 
-export interface MovingHero {
-  id: string;
-  name: string;
-  band: MovingRole;
-}
+export type MovingHero = PackHero;
 
 export interface MovingAnswers {
   /** The day of the move, "YYYY-MM-DD" */
@@ -75,17 +78,7 @@ export const DEFAULT_MOVING_ROOMS: Partial<Record<MovingRoomId, number>> = {
 };
 
 /** A hero's band from their profile: an adult is a grown-up; a child of 8 or younger is little, any older one a kid. */
-export const movingBandFor = (profile: { isAdult?: unknown; birthday?: unknown }, today: Date = new Date()): MovingBand => {
-  if (profile.isAdult === true) return "grownup";
-  const text = String(profile.birthday ?? "");
-  // A bare date is read as a local day, so the age does not shift with the time zone
-  const born = /^\d{4}-\d{2}-\d{2}$/.test(text) ? parseLocalDate(text) : new Date(text);
-  if (Number.isNaN(born.getTime())) return "kid";
-  let age = today.getFullYear() - born.getFullYear();
-  const hadBirthday = today.getMonth() > born.getMonth() || (today.getMonth() === born.getMonth() && today.getDate() >= born.getDate());
-  if (!hadBirthday) age -= 1;
-  return age <= 8 ? "little" : "kid";
-};
+export const movingBandFor = heroBandFor;
 
 // ---------------------------------------------------------------------------------------------------------------
 // The phases. Offsets are days from the move date: negative before, 0 the day itself, positive after.
@@ -280,9 +273,7 @@ export const MOVING_DAILIES: readonly DailyTemplate[] = [
 // The builder.
 
 /** A beast the pack adds; `attackCooldown` is the minutes a hero gets per checklist step */
-export interface MovingBeast extends Beast {
-  attackCooldown: number;
-}
+export type MovingBeast = PackBeast;
 
 /** One line of the quest list for the Game Master */
 export interface MovingPackRow {
@@ -314,15 +305,6 @@ export interface MovingPack {
   daysToMove: number;
 }
 
-/** Local midnight of a "YYYY-MM-DD" date; an unreadable one is today */
-export const parseLocalDate = (text: string | undefined): Date => {
-  const parts = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(text ?? ""));
-  if (!parts) return startOfDay(new Date());
-  return new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]));
-};
-
-export const dateKey = (date: Date): string => format(date, "yyyy-MM-dd");
-
 /** The same background spread for the same slug every time, so a reload replaces a beast with itself */
 const backgroundsFor = (slug: string): Pick<Beast, "bg1" | "bg2"> => {
   let hash = 7;
@@ -333,12 +315,7 @@ const backgroundsFor = (slug: string): Pick<Beast, "bg1" | "bg2"> => {
 
 const MAX_MINUTES = 180;
 
-const cooldownOf = (minutes: number, steps: number): number => Math.round((minutes / Math.max(1, steps)) * 10) / 10;
-
 const roundMinutes = (minutes: number): number => Math.min(MAX_MINUTES, Math.max(5, Math.round(minutes / 5) * 5));
-
-/** The Fibonacci scale's rewards, as the quest form sets them: d x 100 XP, d x 10 GP, d AP */
-const rewardsFor = (difficulty: number) => ({ xp: difficulty * 100, gp: difficulty * 10, ap: difficulty });
 
 const questRecord = (fields: {
   id: string;
@@ -470,24 +447,12 @@ export const buildMovingPack = (answers: MovingAnswers): MovingPack => {
   return { categories, beasts, quests, rows, heroCount: heroes.length, scale, daysToMove };
 };
 
-const entries = (records: readonly { id?: unknown }[]): BackupEntry[] =>
-  records.map((record) => ({ key: String(record.id), value: record }));
-
 /** The pack as a backup file for a merge restore; it names only categories, beasts and quests */
-export const movingPackBackup = (pack: MovingPack, now: Date = new Date()): BackupFile => ({
-  version: BACKUP_VERSION,
-  exportedAt: now.toISOString(),
-  stores: {
-    __achievementCategories: entries(pack.categories),
-    __beasts: entries(pack.beasts),
-    __achievements: entries(pack.quests),
-  },
-});
+export const movingPackBackup = (pack: MovingPack, now: Date = new Date()): BackupFile => packBackup(pack, now);
 
 /** "Added 52 quests and 24 beasts for 3 heroes. First up: ..." and a note when the move is near */
 export const movingPackSummary = (pack: MovingPack): string => {
   const first = pack.rows.find((row) => row.phase !== PHASE_BY_ID.camp.name)?.name ?? pack.rows[0]?.name;
-  const plural = (count: number, word: string): string => `${count} ${word}${count === 1 ? "" : "s"}`;
   const parts = [
     `Added ${plural(pack.quests.length, "quest")} and ${plural(pack.beasts.length, "beast")} for ${pack.heroCount} ${pack.heroCount === 1 ? "hero" : "heroes"}.`,
   ];

@@ -1,5 +1,6 @@
 // Moving House pack walk-through: a Game Master builds the pack in Settings, then a kid hero finds one of its
-// quests in the quest book and takes it into battle. Keeps a screenshot of every step.
+// quests in the quest book and takes it into battle. Then the Home chores pack on top of it: the dialog offers the
+// day after the move, and the chores reach each hero's board by age. Keeps a screenshot of every step.
 // Run (dev server on :8100 first):
 //   pnpm vue-cli-service test:e2e --headless --browser chrome --url http://localhost:8100 --spec tests/e2e/specs/moving-pack.spec.js
 
@@ -209,5 +210,137 @@ describe("Moving House pack", () => {
     cy.get("ion-card#move-keep-donate-trash-hero-1").should("not.exist");
     cy.get("ion-card#move-supplies").should("not.exist");
     shot("12-little-quest-book");
+  });
+
+  it("builds the Home chores pack from Settings, offering the day after the move", () => {
+    cy.visit("/", { timeout: 120000 });
+    cy.window({ timeout: 60000 }).should((win) => {
+      expect(win.__xp, "seam").to.be.an("object");
+    });
+    cy.window().then((win) => {
+      expect(win.__xp.loginUser("gm-1"), "Dad is signed in").to.eq(true);
+    });
+    cy.visit("/xp-settings/general", { timeout: 120000 });
+    cy.tapToWakeAudio();
+    cy.contains("ion-item", "Home chores", { timeout: 60000 }).then(($item) => $item[0].scrollIntoView({ block: "center" }));
+    // It sits next to Moving House, on screen above the bottom edge
+    cy.contains("ion-item", "Home chores").should(($item) => {
+      const box = $item[0].getBoundingClientRect();
+      expect(box.top, "row top").to.be.within(0, 700);
+    });
+    shot("13-settings-home-chores");
+    cy.contains("ion-item", "Home chores").click();
+
+    cy.get(".home-chores-modal", { timeout: 20000 }).should("be.visible");
+    // The Moving House pack is loaded (the move is two weeks out), so the first day is the day after it
+    cy.get(".home-chores-modal .home-date").should("be.visible").and("have.value", inDays(15));
+    shot("14-home-dialog-top");
+    cy.contains(".home-chores-modal .home-hero", "Dad").find("button.is-on").should("have.text", "Grown-up");
+    cy.contains(".home-chores-modal .home-hero", "Max").find("button.is-on").should("have.text", "Kid");
+    cy.contains(".home-chores-modal .home-hero", "Pip").find("button.is-on").should("have.text", "Little");
+
+    // Start today, so the chores are on the boards right away
+    cy.get(".home-chores-modal .home-date").clear().type(inDays(0)).should("have.value", inDays(0));
+    // The rooms are tick boxes and steppers: add a dog and see the count grow
+    cy.get(".home-chores-modal .home-preview").scrollIntoView().invoke("text").then((before) => {
+      cy.contains(".home-chores-modal .home-check", "Dog").click();
+      cy.get(".home-chores-modal .home-preview").invoke("text").should("not.eq", before);
+      cy.contains(".home-chores-modal .home-check", "Dog").click();
+      cy.get(".home-chores-modal .home-preview").invoke("text").should("eq", before);
+    });
+    cy.get(".home-chores-modal .home-preview").should("contain", "This builds");
+    shot("15-home-dialog-heroes");
+    cy.get(".home-chores-modal .home-build").should("be.visible").and("not.have.attr", "disabled");
+
+    cy.get(".home-chores-modal .home-build").click();
+    cy.get(".home-chores-modal .home-summary", { timeout: 30000 })
+      .should("be.visible")
+      .invoke("text")
+      .should("match", /^Added \d+ quests? and \d+ beasts? for 3 heroes, starting /);
+    cy.get(".home-chores-modal .home-summary").should("contain", "First up:");
+    shot("16-home-summary");
+
+    cy.window().then((win) => {
+      win.__beforeReload = true;
+    });
+    cy.contains(".home-chores-modal ion-button", "Reload app").click();
+    cy.window({ timeout: 60000 }).should((win) => {
+      expect(win.__beforeReload, "a fresh page").to.eq(undefined);
+      expect(win.__xp, "seam after reload").to.be.an("object");
+    });
+  });
+
+  it("puts the home chores on each hero's board by age and takes one into battle", () => {
+    cy.window().then((win) => {
+      expect(win.__xp.loginUser("hero-1"), "Max is signed in").to.eq(true);
+    });
+    cy.visit("/my-tasks/hero-1", { timeout: 120000 });
+    cy.tapToWakeAudio();
+    cy.contains("ion-title", "Quest Log", { timeout: 60000 }).should("exist");
+    // Max is a kid: his own and the shared chores are on his board, the grown-ups' are not
+    cy.get("ion-card#home-cupboard-kobold", { timeout: 30000 }).scrollIntoView().should("be.visible");
+    cy.get("ion-card#home-bed-basilisk").should("exist");
+    cy.get("ion-card#home-gravy-ghoul").should("not.exist");
+    cy.get("ion-card#home-grease-gorgon").should("not.exist");
+    shot("17-home-kid-board");
+    cy.get("ion-card#home-cupboard-kobold").click();
+
+    // The card shows quest names in title case
+    cy.contains("ion-modal ion-card-title", /unload the dishwasher/i, { timeout: 20000 }).should("exist");
+    cy.wait(800);
+    cy.get("ion-modal ion-fab-button").first().should("be.visible");
+    cy.contains("ion-modal ion-fab-list ion-button", "Fight!", { timeout: 20000 }).should("be.visible");
+    cy.wait(1200);
+    shot("18-home-quest-detail");
+    cy.contains("ion-modal ion-fab-list ion-button", "Fight!").should("not.have.attr", "disabled");
+    cy.contains("ion-modal ion-fab-list ion-button", "Fight!").click();
+
+    // The library beast's four chores are the attacks
+    cy.location("pathname", { timeout: 30000 }).should("match", /^\/battle\/hero-1\//);
+    cy.get(".battlefield", { timeout: 60000 }).should("exist");
+    cy.get(".enemy-name", { timeout: 30000 }).should("contain", "Cupboard Kobold");
+    cy.get("[data-cy=hero-card]").should("contain", "Max");
+    cy.wait(600);
+    shot("19-home-battle-intro");
+    readUntilMenu(4);
+    cy.get(".chores-left-label").should("have.text", "4 chores left");
+    cy.contains(".menu-item", "Tackle").click();
+    cy.get("[data-cy=task-sheet]", { timeout: 10000 }).should("be.visible");
+    cy.get(".battle-task-item").should("have.length", 4);
+    cy.contains(".battle-task-item", "Put away the plates and bowls").should("be.visible");
+    shot("20-home-battle-checklist");
+    cy.get("[data-cy=task-back]").click();
+    cy.get("[data-cy=task-sheet]").should("not.exist");
+
+    // Run away cleanly (a sure roll), so the next test starts on a quiet map
+    cy.window().then((win) => {
+      win.Math.random = () => 0.1;
+    });
+    cy.get(".menu-item", { timeout: 10000 }).should("have.length", 5);
+    cy.contains(".menu-item", "Run Away").click();
+    cy.get(".dialog-prompt").should("contain", "Run away?");
+    cy.contains(".menu-item", /^\s*Run\s*$/).click();
+    cy.get("[data-cy=battle-dialog]", { timeout: 10000 }).should("contain", "Got away safely");
+    shot("22-home-got-away");
+    tapDialog();
+    cy.location("pathname", { timeout: 30000 }).should("not.match", /^\/battle\//);
+  });
+
+  it("gives the little hero the little chores and not the kid's", () => {
+    cy.visit("/", { timeout: 120000 });
+    cy.window({ timeout: 60000 }).should((win) => {
+      expect(win.__xp, "seam").to.be.an("object");
+    });
+    cy.window().then((win) => {
+      expect(win.__xp.loginUser("hero-2"), "Pip is signed in").to.eq(true);
+    });
+    cy.visit("/my-tasks/hero-2", { timeout: 120000 });
+    cy.tapToWakeAudio();
+    cy.contains("ion-title", "Quest Log", { timeout: 60000 }).should("exist");
+    cy.get("ion-card#home-gravy-ghoul", { timeout: 30000 }).scrollIntoView().should("be.visible");
+    cy.get("ion-card#home-fang-fairy").should("exist");
+    cy.get("ion-card#home-cupboard-kobold").should("not.exist");
+    cy.get("ion-card#home-grease-gorgon").should("not.exist");
+    shot("21-home-little-board");
   });
 });
