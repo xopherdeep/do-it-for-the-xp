@@ -17,7 +17,7 @@ import type { Room } from '@/lib/engine/core/dungeons/types';
 import type { EquipmentItem } from '@/app/Console/MyPortal/UserHud/components/equipment/EquipmentItems';
 import { useUserStore } from '@/lib/store/stores/user';
 import { inventoryOf, type InventoryEntry } from '@/lib/services/inventory/Inventory';
-import { itemRule } from '@/lib/services/items/ItemRules';
+import { itemRule, type TempleUseId } from '@/lib/services/items/ItemRules';
 import { heroMpBill } from '@/lib/services/stats/StatEffects';
 import { isQuestRoom } from './questRooms';
 import {
@@ -149,10 +149,12 @@ const useIceWand = (ctx: ItemUseContext, cost: number): ItemOutcome => {
   const traps = DIRECTIONS.flatMap((direction) => {
     const near = ctx.exits[direction];
     const key = roomKey({ ...ctx, position: near.position }, 'trap');
-    const isLiveTrapNextDoor = !near.locked && roomKind(near.room) === 'trap' && !hasHappened(key);
+    const isTrapNextDoor = !near.locked && roomKind(near.room) === 'trap';
+    const isLiveTrapNextDoor = isTrapNextDoor && !hasHappened(key);
     return isLiveTrapNextDoor ? [key] : [];
   });
-  if (traps.length === 0) return { message: 'No trap nearby to freeze.' };
+  const hasTrapNextDoor = traps.length > 0;
+  if (!hasTrapNextDoor) return { message: 'No trap nearby to freeze.' };
 
   const poor = shortOnMp(ctx, cost);
   if (poor) return poor;
@@ -170,7 +172,8 @@ const useQuake = (ctx: ItemUseContext, cost: number): ItemOutcome => {
 
   const poor = shortOnMp(ctx, cost);
   if (poor) return poor;
-  if (system.revealSecrets(ctx.templeId, ctx.level) === 0) return { message: 'The ground shakes, but nothing is hidden on this floor.' };
+  const revealed = system.revealSecrets(ctx.templeId, ctx.level);
+  if (!revealed) return { message: 'The ground shakes, but nothing is hidden on this floor.' };
   spendMp(ctx, cost);
   return { message: 'The ground shakes. Hidden rooms appear on your map.', sound: SFX.secret, shake: true };
 };
@@ -234,6 +237,18 @@ const useHookShot = (ctx: ItemUseContext, cost: number): ItemOutcome => {
   return { message: 'Nothing to latch onto.' };
 };
 
+/** Each temple use of the rules table (ItemRules `temple`), by id. */
+const TEMPLE_USES: Record<TempleUseId, (ctx: ItemUseContext, cost: number) => ItemOutcome> = {
+  'map-compass': useLantern,
+  'bottle-spring': useBottles,
+  'blast-door': useBombs,
+  'reveal-secrets': useQuake,
+  'cross-pit': useHookShot,
+  'slip-out': useInvisibility,
+  'freeze-trap': useIceWand,
+  'moonlit-riddle': useNightsLight,
+};
+
 /**
  * Use an equipped item in a temple.
  * Navigation items and the Pegasus items run their click; a tool does its rule's temple use (the Lantern, the Bottles,
@@ -257,24 +272,6 @@ export const useItem = (item: Partial<EquipmentItem>, ctx: ItemUseContext): Item
   const rule = itemRule(name);
   if (!rule) return { message: `${name}: nothing happens here.` };
 
-  switch (rule.temple) {
-    case 'map-compass':
-      return useLantern(ctx, cost);
-    case 'bottle-spring':
-      return useBottles(ctx);
-    case 'blast-door':
-      return useBombs(ctx);
-    case 'reveal-secrets':
-      return useQuake(ctx, cost);
-    case 'cross-pit':
-      return useHookShot(ctx, cost);
-    case 'slip-out':
-      return useInvisibility(ctx, cost);
-    case 'freeze-trap':
-      return useIceWand(ctx, cost);
-    case 'moonlit-riddle':
-      return useNightsLight(ctx, cost);
-    default:
-      return { message: `${name} is for fights.` };
-  }
+  const templeUse = rule.temple && TEMPLE_USES[rule.temple];
+  return templeUse ? templeUse(ctx, cost) : { message: `${name} is for fights.` };
 };
