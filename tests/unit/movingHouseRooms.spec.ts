@@ -240,6 +240,16 @@ describe("houseCellsFor with a basement", () => {
     expect(none.some((cell) => cell.floor === "B1")).toBe(false);
   });
 
+  it("is a basement only while the storage chore exists, so no grown-up means no stairs down", () => {
+    const { cells: kidsOnly } = houseFor({ heroes: [TWELVE, SIX], floors: 2, basement: true });
+    expect(idsOf(kidsOnly)).not.toContain("basementStairs");
+    expect(idsOf(kidsOnly)).not.toContain("b1Landing");
+    expect(kidsOnly.some((cell) => cell.floor === "B1")).toBe(false);
+    expect(idsOf(kidsOnly)).not.toContain("storage");
+    // the small-key room falls through to the garage, whose kids' gear chore the pack still makes
+    expect(cellOf(kidsOnly, "garage")).toMatchObject({ zone: "wing", lockedFromParent: true });
+  });
+
   it("is a basement even under a house of one floor", () => {
     const { cells: flat } = houseFor({ basement: true });
     expect(cellOf(flat, "basementStairs").floor).toBe("1F");

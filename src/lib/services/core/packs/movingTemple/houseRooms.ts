@@ -138,8 +138,9 @@ export function houseCellsFor(pack: MovingPack, answers: MovingAnswers): HouseCe
   // The key guard: the kitchen; else the garage (its first chore, the rest at the workbench); else a packing pile
   const guard = kitchenIds.length ? "kitchen" : garageIds.length ? "garage" : shared("open-first").length ? "packingPile" : undefined;
 
-  // The small-key room: the first of the basement stairs, the garage (when it is not the guard) and the yard
-  const hasBasement = answers.basement === true && has("storage");
+  // The small-key room: the first of the basement stairs, the garage (when it is not the guard) and the yard.
+  // The basement is there for the storage chore, so with no chore to go down for there are no stairs either.
+  const hasBasement = answers.basement === true && storageIds.length > 0;
   const wing = hasBasement ? "basementStairs" : garageIds.length && guard !== "garage" ? "garage" : yardIds.length ? "yard" : undefined;
   const wingOf = (id: string): Partial<Pick<HouseCell, "zone" | "lockedFromParent">> => (id === wing ? { zone: "wing", lockedFromParent: true } : {});
 
