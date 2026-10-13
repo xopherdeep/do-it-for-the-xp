@@ -76,6 +76,14 @@ describe("applyQuestPick", () => {
     expect(room.sides).toBe(sides);
   });
 
+  it("turns a list room into a one-quest room: the pick replaces the list", () => {
+    const room: Room = { type: "monster", content: { questIds: ["mugs", "dishes"], beasts: ["b1"] } };
+    applyQuestPick(room, quest("mugs", 2));
+    expect(room.content?.questId).toBe("mugs");
+    expect(room.content).not.toHaveProperty("questIds");
+    expect(room.content?.beasts).toEqual(["b1"]);
+  });
+
   it("stores the id as text", () => {
     const room: Room = { type: "empty" };
     applyQuestPick(room, { id: 42, difficulty: 2 } as Achievement);
@@ -91,6 +99,15 @@ describe("releaseQuest", () => {
     };
     releaseQuest(room);
     expect(room.content).toEqual({ beasts: ["b1"], lockOnEnter: true });
+  });
+
+  it("takes a list of quests out too", () => {
+    const room: Room = { type: "monster", content: { questIds: ["mugs", "dishes"], questId: "mugs", beasts: ["b1"] } };
+    releaseQuest(room);
+    expect(room.content).toEqual({ beasts: ["b1"] });
+    const onlyList: Room = { type: "monster", content: { questIds: ["mugs", "dishes"] } };
+    releaseQuest(onlyList);
+    expect(onlyList.content).toEqual({});
   });
 
   it("does nothing to a room with no content or no quest", () => {
@@ -124,6 +141,16 @@ describe("describeRoomQuest", () => {
 
   it("is the quest the Game Master picked", () => {
     expect(describeRoomQuest({ type: "miniboss", content: { questId: "q1" } }, quests)).toEqual({ kind: "picked", quest: quests[0] });
+  });
+
+  it("is the biggest live quest a room lists", () => {
+    const listed = [quest("mugs", 3), quest("dishes", 13)];
+    expect(describeRoomQuest({ type: "boss", content: { questIds: ["mugs", "dishes"] } }, listed)).toEqual({ kind: "picked", quest: listed[1] });
+  });
+
+  it("flags a list whose quests are all gone or drafts, with the template when the room has one", () => {
+    expect(describeRoomQuest({ type: "monster", content: { questIds: ["gone", "wip"] } }, quests)).toEqual({ kind: "missing" });
+    expect(describeRoomQuest({ type: "monster", content: { questIds: ["gone"], quest: template } }, quests)).toEqual({ kind: "missing", template });
   });
 
   it("flags a pick whose quest was deleted or is only a draft, with the template when the room has one", () => {

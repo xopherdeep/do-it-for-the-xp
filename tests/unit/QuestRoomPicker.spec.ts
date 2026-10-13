@@ -350,6 +350,13 @@ describe("temple size", () => {
       expect(roomSizeShare(roomOf({ questId: "boss" }), quests)).toEqual({ difficulty: 13 });
     });
 
+    it("is the difficulty of the biggest live quest a room lists", () => {
+      const mugs = quest({ id: "mugs", difficulty: 3 });
+      const dishesBig = quest({ id: "dishes", difficulty: 13 });
+      expect(roomSizeShare(roomOf({ questIds: ["mugs", "dishes"] }), [mugs, dishesBig])).toEqual({ difficulty: 13 });
+      expect(roomSizeShare(roomOf({ questIds: ["mugs", "dishes"] }), [mugs, { ...dishesBig, draft: true }])).toEqual({ difficulty: 3 });
+    });
+
     it("counts a quest asleep for some hero too: the temple is the same size for everyone", () => {
       expect(roomSizeShare(roomOf({ questId: "dishes" }), [quest({ id: "dishes", assignee: ["hero-2"], difficulty: 3 })])).toEqual({ difficulty: 3 });
     });

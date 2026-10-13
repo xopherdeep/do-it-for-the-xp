@@ -99,6 +99,14 @@ describe("questRoomCells", () => {
     expect(symbols).not.toContain("a");
   });
 
+  it("finds a room that lists several quests, though it has no questId", () => {
+    const listed: QuestLayout = {
+      maze: [["l", "k"]],
+      rooms: { l: room("monster", { questIds: ["mugs", "dishes"] }), k: room("monster", { questIds: [] }) },
+    };
+    expect(questRoomCells(listed).map((cell) => cell.symbol)).toEqual(["l"]);
+  });
+
   it("reads every floor of a tower, and counts a token many cells share once for each cell", () => {
     const tower: QuestLayout = {
       maze: { "1F": [["M", "M"]], "2F": [["M", "_"]] },
@@ -163,6 +171,30 @@ describe("gmResolution", () => {
     const other = makeQuest("q-other", { beastId: "beast-socktopus" });
     const found = gmResolution(room("monster", { questId: "q-other", quest: template() }), [goblin, other]);
     expect(found).toMatchObject({ kind: "quest", quest: other, source: "questId" });
+  });
+});
+
+describe("gmResolution of a room that lists several quests", () => {
+  const mugs = makeQuest("mugs", { achievementName: "Collect the mugs", difficulty: 3 });
+  const dishes = makeQuest("dishes", { achievementName: "Wash the dishes", difficulty: 13 });
+
+  it("takes the biggest live quest the room lists, as its questId pick", () => {
+    expect(gmResolution(room("monster", { questIds: ["mugs", "dishes"] }), [mugs, dishes])).toEqual({
+      kind: "quest",
+      quest: dishes,
+      source: "questId",
+    });
+  });
+
+  it("skips a draft and a quest that is gone, and is an empty lair when none of them is live", () => {
+    const draft = makeQuest("dishes", { difficulty: 13, draft: true });
+    expect(gmResolution(room("monster", { questIds: ["mugs", "dishes", "gone"] }), [mugs, draft])).toMatchObject({ quest: mugs });
+    expect(gmResolution(room("monster", { questIds: ["gone", "dishes"] }), [draft])).toEqual({ kind: "emptyLair" });
+  });
+
+  it("falls back to the template when no listed quest is live", () => {
+    const withTemplate = room("monster", { questIds: ["gone"], quest: template({ beastId: "beast-socktopus" }) });
+    expect(gmResolution(withTemplate, [mugs, dishes])).toEqual({ kind: "dormant", template: withTemplate.content!.quest });
   });
 });
 
@@ -361,6 +393,46 @@ describe("buildTempleQuests", () => {
     });
     expect(view.rows[0].title).toBe("Load the dishwasher");
     expect(view.rows[0].moreQuests).toBe(1);
+  });
+
+  describe("a room that lists several quests", () => {
+    const mugs = makeQuest("mugs", { achievementName: "Collect the mugs", difficulty: 3 });
+    const dishes = makeQuest("dishes", { achievementName: "Wash the dishes", difficulty: 13 });
+    const listLayout: QuestLayout = {
+      maze: [["l"]],
+      rooms: { l: room("monster", { questIds: ["mugs", "dishes"] }) },
+    };
+
+    it("is one row named for its biggest quest, with the others counted and no tier mismatch", () => {
+      const view = build({ layout: listLayout, quests: [mugs, dishes], heroes: [] });
+      expect(view.rows).toHaveLength(1);
+      expect(view.rows[0]).toMatchObject({
+        kind: "quest",
+        title: "Wash the dishes",
+        quest: dishes,
+        moreQuests: 1,
+        mismatch: null,
+        difficulty: 13,
+      });
+    });
+
+    it("sizes the temple by the biggest quest the room lists", () => {
+      const view = build({ layout: listLayout, quests: [mugs, dishes], heroes: [] });
+      expect(view.size.total).toBe(13);
+    });
+
+    it("counts only the live quests as more: a draft or a missing one is not a quest the room holds", () => {
+      const draft = makeQuest("wip", { difficulty: 2, draft: true });
+      const lone: QuestLayout = { maze: [["l"]], rooms: { l: room("monster", { questIds: ["dishes", "mugs", "wip", "gone"] }) } };
+      const view = build({ layout: lone, quests: [mugs, dishes, draft], heroes: [] });
+      expect(view.rows[0].moreQuests).toBe(1);
+    });
+
+    it("still flags a quest-id room whose quest is bigger than the room", () => {
+      const single: QuestLayout = { maze: [["l"]], rooms: { l: room("monster", { questId: "dishes" }) } };
+      const row = build({ layout: single, quests: [mugs, dishes], heroes: [] }).rows[0];
+      expect(row.mismatch).toBe("Monster room holds a Boss quest (13)");
+    });
   });
 
   it("shows the approval badge and the quest's own difficulty name", () => {
