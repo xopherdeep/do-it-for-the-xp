@@ -93,8 +93,7 @@
     justify-content: center;
     height: 100%;
     width: 100%;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(8px);
+    background: rgba(0, 0, 0, 0.75);
   }
 
   .loading-card {

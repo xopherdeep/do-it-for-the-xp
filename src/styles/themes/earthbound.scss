@@ -1294,17 +1294,14 @@ ion-app {
     }
 
     &.xp-equipment-modal {
+      // Opaque, not frosted: a modal never blurs the page under it (styles/_frost.scss)
       &::part(content) {
-        background-color: transparent;
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
+        background-color: rgba(20, 6, 24, 0.92);
       }
 
       ion-header {
         ion-toolbar {
           --background: rgba(35, 8, 40, 0.85);
-          backdrop-filter: blur(8px);
-          -webkit-backdrop-filter: blur(8px);
           border-bottom: 1px solid rgba(255, 255, 255, 0.08);
         }
       }

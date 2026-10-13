@@ -282,8 +282,7 @@ export default defineComponent({
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(0, 0, 0, 0.4);
-    backdrop-filter: blur(10px);
+    background: rgba(0, 0, 0, 0.75);
     z-index: 5000;
     animation: fadeIn 0.3s ease-out;
   }
