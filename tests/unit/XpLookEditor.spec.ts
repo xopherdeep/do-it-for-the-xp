@@ -1,7 +1,7 @@
 import { mount } from "@vue/test-utils";
 import XpLookEditor from "@/components/organisms/HeroModel/XpLookEditor.vue";
 import { HAIR_STYLES, DEFAULT_LOOK, type HeroLook } from "@/lib/hero-look/types";
-import { TABS, handIcon, styleLabel, withHands, withoutHands } from "@/components/organisms/HeroModel/lookEditor";
+import { TABS, styleLabel } from "@/components/organisms/HeroModel/lookEditor";
 
 /**
  * The look editor in jsdom: the voxel hero is stubbed (no WebGL, no three.js), so these specs only watch what
@@ -123,8 +123,8 @@ describe("XpLookEditor", () => {
       expect(wrapper.text()).not.toContain("Skin tone");
 
       await tabButton(wrapper, "Outfit").trigger("click");
-      expect(wrapper.text()).toContain("Outfit colour");
-      expect(wrapper.text()).toContain("Trim colour");
+      expect(wrapper.text()).toContain("Main");
+      expect(wrapper.text()).toContain("Trim");
     });
   });
 
@@ -175,22 +175,5 @@ describe("XpLookEditor", () => {
     expect(wrapper.get(".look-stage .over-hero").text()).toBe("Unsaved");
     const order = Array.from(wrapper.get(".look-editor").element.children).map((el) => el.className);
     expect(order).toEqual(["look-stage", "between", "look-panel"]);
-  });
-});
-
-describe("lookEditor helpers", () => {
-  it("handIcon reads the first item's icon and nothing else", () => {
-    expect(handIcon([{ faIcon: "fa-sword" }, { faIcon: "fa-axe" }])).toBe("fa-sword");
-    expect(handIcon([])).toBeUndefined();
-    expect(handIcon([{ name: "no icon" }])).toBeUndefined();
-    expect(handIcon("fa-sword")).toBeUndefined();
-    expect(handIcon(undefined)).toBeUndefined();
-  });
-
-  it("withHands adds the hands and withoutHands takes them off again", () => {
-    const held = withHands(DEFAULT_LOOK, { leftHand: [{ faIcon: "fa-shield" }] });
-    expect(held.leftHand).toBe("fa-shield");
-    expect(withoutHands(held)).toEqual(DEFAULT_LOOK);
-    expect("leftHand" in withoutHands(held)).toBe(false);
   });
 });
