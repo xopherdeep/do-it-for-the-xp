@@ -38,6 +38,45 @@
         </section>
 
         <section class="moving-section">
+          <h3>Floors</h3>
+          <span class="moving-bands" role="radiogroup" aria-label="How many floors the home has">
+            <button
+              type="button"
+              role="radio"
+              data-cy="moving-floors-1"
+              :aria-checked="floors === 1"
+              :class="{ 'is-on': floors === 1 }"
+              @click="floors = 1"
+            >
+              1 floor
+            </button>
+            <button
+              type="button"
+              role="radio"
+              data-cy="moving-floors-2"
+              :aria-checked="floors === 2"
+              :class="{ 'is-on': floors === 2 }"
+              @click="floors = 2"
+            >
+              2 floors
+            </button>
+          </span>
+          <button
+            v-if="hasStorage"
+            type="button"
+            class="moving-check"
+            :class="{ 'is-on': basement }"
+            role="checkbox"
+            data-cy="moving-basement"
+            :aria-checked="basement"
+            @click="basement = !basement"
+          >
+            <i :class="['fad', basement ? 'fa-check-square' : 'fa-square']"></i>
+            Storage is a basement
+          </button>
+        </section>
+
+        <section class="moving-section">
           <h3>Who is playing</h3>
           <p v-if="!heroes.length" class="moving-note">Add heroes to the family first.</p>
           <div v-for="hero in heroes" :key="hero.id" class="moving-hero">
@@ -76,10 +115,11 @@
 
         <p class="moving-preview" aria-live="polite">
           <template v-if="canBuild">
-            This builds {{ preview.quests.length }} quests and {{ preview.beasts.length }} beasts<template v-if="previewTemple"> and a {{ previewTemple.rooms.length }}-room temple</template>.
+            This builds {{ preview.quests.length }} quests and {{ preview.beasts.length }} beasts<template v-if="previewTemple"> and a {{ floorsWord }} house temple with {{ previewTemple.rooms.length }} rooms</template>.
           </template>
           <template v-else>Pick a move date and at least one hero.</template>
         </p>
+        <p v-if="canBuild && templeFailed" class="moving-note" role="status">The temple could not be laid out for this house.</p>
         <p v-if="error" class="moving-error" role="alert">{{ error }}</p>
       </template>
 
@@ -123,6 +163,8 @@ import {
 } from "@/lib/services/core/packs/movingPack";
 import type { MovingAnswers, MovingRole, MovingRoomId } from "@/lib/services/core/packs/movingPack";
 import { buildMovingTemple, movingTempleBackup, movingTempleSummary } from "@/lib/services/core/packs/movingTemple";
+import type { MovingTemple } from "@/lib/services/core/packs/movingTemple";
+import { forgetOldHouseWalks } from "@/lib/services/core/packs/movingTempleReset";
 
 const props = defineProps<{ isOpen: boolean }>();
 const emit = defineEmits<{ (event: "close"): void }>();
@@ -137,6 +179,8 @@ const counts = reactive<Record<string, number>>({ ...DEFAULT_MOVING_ROOMS } as R
 const roles = reactive<Record<string, MovingRole>>({});
 // The old house goes in with the pack unless the family turns it off
 const wantsTemple = ref(true);
+const floors = ref<1 | 2>(1);
+const basement = ref(false);
 const summary = ref("");
 const error = ref("");
 const isBusy = ref(false);
@@ -166,14 +210,30 @@ watch(
   { immediate: true }
 );
 
+// A basement is a way to read the storage room, so it is asked only while storage is ticked
+const hasStorage = computed(() => (counts.storage || 0) > 0);
+
 const answers = computed<MovingAnswers>(() => ({
   moveDate: moveDate.value,
   rooms: { ...counts },
   heroes: heroes.value.map((hero) => ({ id: hero.id, name: hero.nick, band: roles[hero.id] ?? "kid" })),
+  floors: floors.value,
+  basement: basement.value && hasStorage.value,
 }));
 
 const preview = computed(() => buildMovingPack(answers.value));
-const previewTemple = computed(() => (wantsTemple.value ? buildMovingTemple(preview.value, answers.value) : null));
+// The matrix says every setup lays out, but a setup it missed throws: the preview then counts no temple and says so
+const previewBuild = computed((): { temple: MovingTemple | null; failed: boolean } => {
+  if (!wantsTemple.value) return { temple: null, failed: false };
+  try {
+    return { temple: buildMovingTemple(preview.value, answers.value), failed: false };
+  } catch {
+    return { temple: null, failed: true };
+  }
+});
+const previewTemple = computed(() => previewBuild.value.temple);
+const templeFailed = computed(() => previewBuild.value.failed);
+const floorsWord = computed(() => (previewTemple.value?.floors.includes("2F") ? "two-floor" : "one-floor"));
 const canBuild = computed(() => /^\d{4}-\d{2}-\d{2}$/.test(moveDate.value) && preview.value.heroCount > 0);
 
 const step = (room: MovingRoomId, by: number) => {
@@ -192,10 +252,13 @@ const build = async () => {
   error.value = "";
   try {
     const pack = buildMovingPack(answers.value);
+    // A setup that cannot be laid out throws here, before anything is forgotten or loaded, and shows in the error line
     const temple = wantsTemple.value ? buildMovingTemple(pack, answers.value) : null;
+    // The rooms of a rebuilt house moved, so no hero resumes a walk through the old plan
+    if (temple) await forgetOldHouseWalks(userStore.usersAz.map((hero) => String(hero.id)));
     await backupService.restoreBackup(movingTempleBackup(pack, temple), { mode: "merge" });
     play$fx("select");
-    summary.value = temple ? `${movingPackSummary(pack)} ${movingTempleSummary(temple)}` : movingPackSummary(pack);
+    summary.value = temple ? [movingPackSummary(pack), movingTempleSummary(temple)].join("\n") : movingPackSummary(pack);
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : String(caught);
   } finally {
@@ -222,6 +285,7 @@ const build = async () => {
 .moving-summary {
   font-size: 1.1rem;
   text-align: center;
+  white-space: pre-line;
 }
 
 .moving-note {
@@ -335,6 +399,10 @@ const build = async () => {
       border-color: #f7e8a8;
     }
   }
+}
+
+.moving-bands + .moving-check {
+  margin-top: 4px;
 }
 
 .moving-preview {
