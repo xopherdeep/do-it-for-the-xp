@@ -156,7 +156,7 @@ describe("the cards", () => {
   it("adds 'no due time: never ambushes' to a quest with no due time", () => {
     const [row] = buildPickerRows([quest({ dueByTime: "" })], [], users);
     expect(questCardOf(row).note).toBe(NEVER_AMBUSHES_NOTE);
-    expect(NEVER_AMBUSHES_NOTE).toBe("no due time: never ambushes");
+    expect(NEVER_AMBUSHES_NOTE).toBe("no due time: ambushes any time");
   });
 
   it("keeps a difficulty between the slider's steps as its number, and skips the missing parts", () => {

@@ -4,8 +4,9 @@
  * alert says about it. No storage, no Vue, nothing throws.
  *
  * An overdue quest is the board's one due-date rule (QuestSchedule.isQuestOverdue: a window's last day, the Ice
- * Wand's extension, Chronos' pause). A quest with no due time is never overdue, so it never ambushes; neither
- * does a quest with no beast, because the Game Master chose "No beast" or the library has none to suggest.
+ * Wand's extension, Chronos' pause). A quest with no due time is an "anytime" chore: it is always waiting, and
+ * ambushes after any overdue one. A quest with no beast never ambushes, because the Game Master chose
+ * "No beast" or the library has none to suggest.
  */
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
@@ -83,14 +84,16 @@ export function pickQuestAmbush(
   for (const { quest, status, pending } of board) {
     const isSettled = status !== "open" || pending || quest.draft;
     if (isSettled) continue;
-    if (!isQuestOverdue(quest, effects, now)) continue;
     if (isCoolingDown(grudges?.[String(quest.id)], nowMs, cooldownMs)) continue;
 
     const beastId = questBeastId(quest);
-    const deadline = effectiveDeadline(quest, effects, now);
-    const isUnarmed = !beastId || !deadline;
-    if (isUnarmed) continue;
+    const missedDeadline = effectiveDeadline(quest, effects, now);
+    const isAnytime = !missedDeadline;
+    const isLate = isQuestOverdue(quest, effects, now);
+    const isWaiting = isAnytime || isLate;
+    if (!beastId || !isWaiting) continue;
 
+    const deadline = missedDeadline ?? now;
     const isOlderThanBest = !best || deadline.getTime() < best.deadline.getTime();
     if (isOlderThanBest) best = { quest, beastId, deadline };
   }
@@ -156,6 +159,6 @@ export function ambushAlertCopy(names: { beastName?: string; questName?: string 
   const quest = names.questName?.trim();
   return {
     title: `⚔️ ${beastWithArticle(beast)} blocks your path!`,
-    body: quest ? `${quest} is overdue. Come back and fight!` : "Come back and fight!",
+    body: quest ? `${quest} is waiting. Come back and fight!` : "Come back and fight!",
   };
 }

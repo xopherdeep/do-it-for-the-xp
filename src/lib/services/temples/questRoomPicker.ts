@@ -143,7 +143,7 @@ export function dormantLine(template: Pick<RoomQuestTemplate, "beastId">, beasts
 }
 
 /** The note on a quest that has no due time (5.9). */
-export const NEVER_AMBUSHES_NOTE = "no due time: never ambushes";
+export const NEVER_AMBUSHES_NOTE = "no due time: ambushes any time";
 
 /** "Challenging 8" for a step of the slider, "8" for a value between the steps, "" when unset. */
 const difficultyText = (row: Pick<PickerRow, "difficulty" | "difficultyName">): string => {

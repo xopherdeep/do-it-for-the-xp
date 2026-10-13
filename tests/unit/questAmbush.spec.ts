@@ -75,9 +75,21 @@ describe("pickQuestAmbush", () => {
       expect(pickQuestAmbush([notYet], undefined, {}, new Date(2026, 9, 12, 18, 1, 0, 0))?.quest.id).toBe("q1");
     });
 
-    it("never ambushes for a quest with no due time", () => {
-      expect(pickQuestAmbush([openQuest("q1", { dueByTime: "" })], undefined, {}, NOW)).toBeNull();
-      expect(pickQuestAmbush([openQuest("q2", { dueByTime: "soon" })], undefined, {}, NOW)).toBeNull();
+    it("ambushes for an anytime quest (no due time, or one that cannot be read)", () => {
+      expect(pickQuestAmbush([openQuest("q1", { dueByTime: "" })], undefined, {}, NOW)?.quest.id).toBe("q1");
+      expect(pickQuestAmbush([openQuest("q2", { dueByTime: "soon" })], undefined, {}, NOW)?.quest.id).toBe("q2");
+    });
+
+    it("sends an overdue quest before an anytime one, whatever the board order", () => {
+      const anytime = openQuest("anytime", { dueByTime: "" });
+      const overdue = openQuest("overdue", { dueByTime: "08:00" });
+      expect(pickQuestAmbush([anytime, overdue], undefined, {}, NOW)?.quest.id).toBe("overdue");
+    });
+
+    it("rests an anytime quest for the cooldown after it ambushes", () => {
+      const anytime = openQuest("q1", { dueByTime: "" });
+      const grudges = { q1: { lastAmbushAt: NOW.getTime() - 60_000 } };
+      expect(pickQuestAmbush([anytime], undefined, grudges, NOW)).toBeNull();
     });
 
     it("leaves quests that are done, not due or waiting on the Game Master", () => {
@@ -333,7 +345,7 @@ describe("ambushAlertCopy", () => {
   it("names the beast and the chore", () => {
     expect(ambushAlertCopy({ beastName: "Dish Goblin", questName: "Load the dishwasher" })).toEqual({
       title: "⚔️ The Dish Goblin blocks your path!",
-      body: "Load the dishwasher is overdue. Come back and fight!",
+      body: "Load the dishwasher is waiting. Come back and fight!",
     });
   });
 

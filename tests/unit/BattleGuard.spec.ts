@@ -456,10 +456,9 @@ describe("battle guard", () => {
       expect(router.push).toHaveBeenCalledWith(questBattleRoute("hero-1", "oldest"));
     });
 
-    it("stays a free fight when nothing is overdue", async () => {
+    it("stays a free fight when nothing is overdue or anytime", async () => {
       mockBoard.mockResolvedValue([
         openRow("not-yet", { dueByTime: "18:00" }),
-        openRow("no-clock", { dueByTime: "" }),
         { ...openRow("done"), status: "done" },
         { ...openRow("waiting"), pending: true },
       ]);
@@ -467,6 +466,13 @@ describe("battle guard", () => {
 
       expect(router.push).toHaveBeenCalledWith(freeBattleRoute("hero-1"));
       expect(mockUserStore.setQuestGrudges).not.toHaveBeenCalled();
+    });
+
+    it("sends an anytime quest instead of a free fight", async () => {
+      mockBoard.mockResolvedValue([openRow("no-clock", { dueByTime: "" })]);
+      const { router } = await spring();
+
+      expect(router.push).toHaveBeenCalledWith(questBattleRoute("hero-1", "no-clock"));
     });
 
     it("stays a free fight when the overdue quest has no beast", async () => {
@@ -650,7 +656,7 @@ describe("battle guard", () => {
         expect(mockBridge.showAlert).toHaveBeenCalledWith({
           id: 7001,
           title: "⚔️ The Plate Gremlin blocks your path!",
-          body: "Load the dishwasher is overdue. Come back and fight!",
+          body: "Load the dishwasher is waiting. Come back and fight!",
         });
       });
 
@@ -670,7 +676,7 @@ describe("battle guard", () => {
         expect(mockBridge.showAlert).toHaveBeenCalledWith({
           id: 7001,
           title: "⚔️ A beast blocks your path!",
-          body: "Chore q-dishes is overdue. Come back and fight!",
+          body: "Chore q-dishes is waiting. Come back and fight!",
         });
       });
 
