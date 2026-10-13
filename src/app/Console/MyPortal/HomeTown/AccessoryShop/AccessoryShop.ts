@@ -333,14 +333,14 @@ export default defineComponent({
             text: filter.label,
             icon: filter.id === this.shelfFilter ? checkmark : undefined,
             handler: () => {
-              this.play$fx("select");
+              play$fx("select");
               this.setShelfFilter(filter.id);
             },
           })),
           { text: "Cancel", role: "cancel" },
         ],
       });
-      this.play$fx("openMenu");
+      play$fx("openMenu");
       await sheet.present();
     },
     closeModal(_itemId) {
