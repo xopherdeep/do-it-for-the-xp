@@ -10,7 +10,6 @@ import { changeBGM } from "@/lib/engine/audio/routeMusic";
 import { handleBgmGuard } from "@/router/_Guards/bgm.guard";
 import { canSetGameMaster, needsGameMasterPasscode, passcodeProblem } from "@/router/_Guards/gm.guard";
 import { FOOD_OPTIONS, JOB_CLASS_OPTIONS } from "@/constants";
-import { useTimers } from "@/hooks/useTimers";
 
 import { ProfileDb } from "@/lib/databases";
 import type { NewProfileForm } from "@/lib/databases/ProfileDb";
@@ -22,6 +21,7 @@ import InputSettings from "../../XpSettings/components/InputSettings.vue";
 import ionic from "@/lib/mixins/ionic";
 
 import XpGp from "@/components/atoms/Currency/XpGp.vue";
+import XpHeroFanfare from "@/components/organisms/HeroFanfare/XpHeroFanfare.vue";
 import GamerCard from "./GamerCard.vue"
 import Stats from "@/lib/utils/User/stats";
 import { profileToSave } from "@/lib/utils/User/user";
@@ -35,6 +35,7 @@ export const AddProfile = defineComponent({
   components: {
     InputSettings,
     XpGp,
+    XpHeroFanfare,
     GamerCard
   },
   methods: {
@@ -75,10 +76,18 @@ export const AddProfile = defineComponent({
       const profile = await profileToSave(this.storage, this.newProfile, this.$props.profile);
       await this.storage.setProfile(profile as NewProfileForm);
 
-      // Show success splash
-      this.showSuccessSplash = true;
+      // An edit has nothing to announce: back to the family
+      if (this.isEditing) {
+        this.play$fx('yes');
+        modalController.dismiss({ profileAdded: true });
+        return;
+      }
 
-      // Play Now, Let's Go! BGM
+      // A new hero joins the party: the reveal plays the stinger and its song, and hands back on its button
+      this.showFanfare = true;
+    },
+    // The reveal's big moment: the song for a new adventure starts under its stinger
+    playAdventureSong() {
       const rpgTheme = this.gameStore.theme?.rpg || 'earthbound';
       const BGM = this.audioStore.bgm?.$fx?.rpg?.[rpgTheme]?.BGM;
       const hasNowLetsGoTrack = BGM && BGM.nowLetsGo;
@@ -91,15 +100,11 @@ export const AddProfile = defineComponent({
           saveBookmark: false
         });
       }
-
-      // Play fanfare sound using the mixin method
-      this.play$fx('levelUp');
-
-      // Hide splash after 3 seconds
-      this.timers.startTimeout(3000, () => {
-        this.showSuccessSplash = false;
-        modalController.dismiss({ profileAdded: true });
-      });
+    },
+    // "Begin your adventure": the modal closes and the list of heroes reloads
+    finishFanfare() {
+      this.showFanfare = false;
+      modalController.dismiss({ profileAdded: true });
     }
   },
 
@@ -117,7 +122,6 @@ export const AddProfile = defineComponent({
 
     const storage = new ProfileDb(profileStorage);
     const userStore = useUserStore();
-    const timers = useTimers();
     const email = ref("");
     const passcode = ref("");
     // What the Game Master toggle is set to. Off unless someone turns it on, except for the first
@@ -148,6 +152,8 @@ export const AddProfile = defineComponent({
     // "Add Adult" / "Add Kid" pick the toggle's starting side for a new profile (isGameMaster still
     // holds it off when the person has no say). Applied once, before the first render.
     const isEditingProfile = () => Boolean(props.id || props.profile);
+    // An existing hero is being edited, not made (the props never change while the form is open)
+    const isEditing = isEditingProfile();
     const applyPresetGameMaster = () => {
       const hasNoPresetToApply = isEditingProfile() || typeof props.presetGameMaster !== "boolean";
       if (hasNoPresetToApply) return;
@@ -169,7 +175,8 @@ export const AddProfile = defineComponent({
     // What an existing hero holds: it lends the 3D hero its hands in the look builder
     const equipment = ref<Record<string, unknown> | undefined>(undefined);
     const gamerCard = ref<{ openAvatarPicker: () => void } | null>(null);
-    const showSuccessSplash = ref(false);
+    // The new-hero reveal is playing
+    const showFanfare = ref(false);
 
     const paddedIndex = computed(() =>
       avatarIndex.value.toString().padStart(3, "0")
@@ -384,11 +391,11 @@ export const AddProfile = defineComponent({
       toggleGoal,
       toggleReward,
       profileAdded,
-      showSuccessSplash,
+      showFanfare,
+      isEditing,
       requireAvatar,
       audioStore,
-      gameStore,
-      timers
+      gameStore
     };
   },
 });

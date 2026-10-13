@@ -14,7 +14,7 @@
           class="img-avatar"
         />
       </ion-avatar>
-      <p class="avatar-caption">Tap to change</p>
+      <p class="avatar-caption">{{ avatarCaption }}</p>
     </div>
 
     <!-- Name Section: Clear Typography Hierarchy -->
@@ -82,6 +82,7 @@
       :equipment="equipment"
       @close="isLookOpen = false"
       @save="saveLook"
+      @portrait="usePortrait"
     />
 
     <job-class-selector
@@ -131,6 +132,11 @@
         type: Object,
         default: undefined,
       },
+      /** The profile is an existing hero being edited, not one being made */
+      editing: {
+        type: Boolean,
+        default: false,
+      },
     },
     emits: [
       "update:avatarIndex",
@@ -155,10 +161,14 @@
       const isFoodSelectorOpen = ref(false);
       const isLookOpen = ref(false);
 
+      // A portrait was picked in this sitting: the hero uses a 2D face from now on
+      const portraitPicked = ref(false);
+
       // Form values that will be v-modeled from parent
       const avatarIndex = computed({
         get: () => parseInt(props.profile.avatar?.split("-")[0] || "1"),
         set: (value) => {
+          portraitPicked.value = true;
           emit("update:avatarIndex", value);
           // A portrait picked after a 3D face wins: the voxel picture goes, the look stays to build on
           if (props.profile.avatarImage) emit("update:avatarImage", undefined);
@@ -185,14 +195,34 @@
       );
       const hasVoxelFace = computed(() => !!props.profile.avatarImage);
 
+      // Which way the hero is made: a 3D face, or a portrait they picked now, or the only face an existing hero has
+      const usesPortrait = computed(() => {
+        if (hasVoxelFace.value) return false;
+        const storedHeroWithoutLook = props.editing && !props.profile.look;
+        return portraitPicked.value || storedHeroWithoutLook;
+      });
+
+      // The 3D builder comes first; a hero who already uses a portrait gets the portrait picker (the other way is one tap away)
       const openAvatarPicker = () => {
-        isAvatarSelectorOpen.value = true;
+        if (usesPortrait.value) isAvatarSelectorOpen.value = true;
+        else isLookOpen.value = true;
       };
+
+      const avatarCaption = computed(() => {
+        const hasMadeAFace = hasVoxelFace.value || usesPortrait.value || !!props.profile.look;
+        return hasMadeAFace ? "Tap to change" : "Tap to build your hero";
+      });
 
       // "Build my hero in 3D": the picker gives way to the look builder
       const buildHero = () => {
         isAvatarSelectorOpen.value = false;
         isLookOpen.value = true;
+      };
+
+      // "Use a 2D portrait instead": the look builder gives way to the picker
+      const usePortrait = () => {
+        isLookOpen.value = false;
+        isAvatarSelectorOpen.value = true;
       };
 
       const saveLook = (look: HeroLook, image?: string) => {
@@ -218,7 +248,9 @@
         currentAvatar,
         hasVoxelFace,
         openAvatarPicker,
+        avatarCaption,
         buildHero,
+        usePortrait,
         saveLook,
         isLookOpen,
         selectedJobIcon,

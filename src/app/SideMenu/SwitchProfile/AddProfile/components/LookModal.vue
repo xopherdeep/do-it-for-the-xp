@@ -36,17 +36,29 @@
       </div>
     </ion-content>
 
-    <!-- Everything you tap is under the thumb -->
+    <!-- Everything you tap is under the thumb: the two small ways out on top, the one big button last -->
     <ion-footer class="ion-no-border look-footer">
       <div class="look-dock">
-        <button
-          type="button"
-          class="look-reset"
-          @click="reset"
-        >
-          <i class="fad fa-undo"></i>
-          Reset
-        </button>
+        <div class="look-dock__row">
+          <button
+            type="button"
+            class="look-reset"
+            @click="reset"
+          >
+            <i class="fad fa-undo"></i>
+            Reset
+          </button>
+          <!-- The 2D way in: the profile keeps its portrait instead of a built hero -->
+          <button
+            type="button"
+            class="look-portrait"
+            data-cy="look-use-portrait"
+            @click="usePortrait"
+          >
+            <i class="fad fa-user-circle"></i>
+            Use a 2D portrait instead
+          </button>
+        </div>
         <button
           type="button"
           class="look-done"
@@ -74,6 +86,7 @@
    * The full-screen look builder for a profile that may not exist yet (the Add Profile flow). The page above is
    * the voxel hero and the options; the tab strip and the two buttons sit in the footer area, under the thumb.
    * It owns only a draft: "Looks good!" hands it back (`save`) with a picture of the hero, X throws it away.
+   * "Use a 2D portrait instead" (`portrait`) throws the draft away too and asks the page for the portrait picker.
    */
   const props = defineProps<{
     isOpen: boolean;
@@ -86,6 +99,7 @@
   const emit = defineEmits<{
     (e: "close"): void;
     (e: "save", look: HeroLook, image?: string): void;
+    (e: "portrait"): void;
   }>();
 
   const startLook = (): HeroLook => withoutHands(isHeroLook(props.look) ? { ...DEFAULT_LOOK, ...props.look } : { ...DEFAULT_LOOK });
@@ -105,6 +119,11 @@
   const reset = () => {
     play$fx("cursor");
     draft.value = { ...DEFAULT_LOOK };
+  };
+
+  const usePortrait = () => {
+    play$fx("select");
+    emit("portrait");
   };
 
   const done = async () => {
@@ -198,13 +217,20 @@
 
   .look-dock {
     display: flex;
-    align-items: stretch;
+    flex-direction: column;
     gap: 12px;
     padding: 12px 16px calc(12px + var(--ion-safe-area-bottom, 0px));
     background: $eb-color-dark-purple;
   }
 
+  .look-dock__row {
+    display: flex;
+    align-items: stretch;
+    gap: 10px;
+  }
+
   .look-reset,
+  .look-portrait,
   .look-done {
     min-height: 52px;
     padding: 8px 14px;
@@ -234,13 +260,26 @@
     }
   }
 
-  .look-reset {
-    flex: 0 0 auto;
-    min-width: 108px;
-    font-size: 1.05rem;
+  .look-reset,
+  .look-portrait {
     color: $eb-color-cream;
     background: $eb-color-medium-purple;
     box-shadow: 0 0 0 3px $eb-color-slate;
+  }
+
+  .look-reset {
+    flex: 0 0 auto;
+    min-width: 104px;
+    font-size: 1.05rem;
+  }
+
+  // The secondary way out: a plain box beside Reset, so the gold button below stays the one to press
+  .look-portrait {
+    flex: 1;
+    min-width: 0;
+    font-size: 0.95rem;
+    line-height: 1.1;
+    text-align: center;
   }
 
   .look-done {
