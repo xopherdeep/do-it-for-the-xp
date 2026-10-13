@@ -179,7 +179,6 @@
     cursor: pointer;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5),
       inset 0 0 20px rgba(var(--ion-color-primary-rgb), 0.1);
-    backdrop-filter: blur(8px);
 
     .dialog-content {
       color: #fff;

@@ -88,8 +88,8 @@ export default defineComponent({
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(5px);
+  /* An opaque scrim, not a blur: this sits over every page, and a blur over a page that frosts freezes iOS Safari */
+  background-color: rgba(8, 6, 14, 0.85);
   z-index: 99999; /* Top level */
   display: flex;
   flex-direction: column;
@@ -110,11 +110,23 @@ export default defineComponent({
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
-  box-shadow: 0 0 30px rgba(var(--ion-color-primary-rgb, 74, 144, 226), 0.3);
-  animation: pulse-border 2s infinite;
+  position: relative;
+  box-shadow: 0 0 10px rgba(var(--ion-color-primary-rgb, 74, 144, 226), 0.2);
   cursor: pointer;
   color: white;
   font-family: "Press Start 2P", cursive;
+}
+
+/* The pulsing glow is a layer that fades in and out: opacity runs on the compositor, an animated box-shadow repaints every frame */
+.permission-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: 0 0 25px rgba(var(--ion-color-primary-rgb, 74, 144, 226), 0.6);
+  opacity: 0;
+  pointer-events: none;
+  animation: pulse-glow 2s infinite;
 }
 
 .silent-option {
@@ -175,10 +187,9 @@ export default defineComponent({
 }
 
 /* Animations */
-@keyframes pulse-border {
-  0% { box-shadow: 0 0 10px rgba(var(--ion-color-primary-rgb), 0.2); }
-  50% { box-shadow: 0 0 25px rgba(var(--ion-color-primary-rgb), 0.6); }
-  100% { box-shadow: 0 0 10px rgba(var(--ion-color-primary-rgb), 0.2); }
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
 }
 
 @keyframes pulse-opacity {

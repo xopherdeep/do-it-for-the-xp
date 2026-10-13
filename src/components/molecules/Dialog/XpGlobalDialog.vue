@@ -206,7 +206,6 @@ export default defineComponent({
       padding: 1rem 1.25rem;
       position: relative;
       cursor: pointer;
-      backdrop-filter: blur(10px);
 
       .dialog-close {
         position: absolute;
