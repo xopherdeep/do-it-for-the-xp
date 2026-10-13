@@ -152,8 +152,8 @@
     </ion-grid>
 
     <!-- Left FAB: Toggle Grid / List View -->
-    <ion-fab vertical="bottom" horizontal="start" slot="fixed" class="ion-no-border md:hidden retro-fab">
-      <ion-fab-button @click="isRetroView = !isRetroView">
+    <ion-fab vertical="bottom" horizontal="start" slot="fixed" class="ion-no-border md:hidden">
+      <ion-fab-button color="light" @click="isRetroView = !isRetroView">
         <ion-icon :icon="isRetroView ? gridOutline : listOutline"></ion-icon>
       </ion-fab-button>
     </ion-fab>
@@ -167,8 +167,8 @@
     </ion-fab>
 
     <!-- Right FAB: Backup Options -->
-    <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="ion-no-border md:hidden retro-fab">
-      <ion-fab-button @click="openBackupOptionsModal">
+    <ion-fab vertical="bottom" horizontal="end" slot="fixed" class="ion-no-border md:hidden">
+      <ion-fab-button color="light" @click="openBackupOptionsModal">
         <ion-icon :icon="cloudDownloadOutline"></ion-icon>
       </ion-fab-button>
     </ion-fab>
@@ -972,29 +972,6 @@ ion-content {
         font-size: 1.2rem;
         color: #68d0b8;
       }
-    }
-  }
-}
-
-// Retro FAB controls (SNES / Earthbound arcade style)
-.retro-fab {
-  ion-fab-button {
-    --background: #280828;
-    --color: #f7e8a8;
-    --border-radius: 50%;
-    border: 3px solid #68d0b8;
-    box-shadow:
-      0 0 0 2px #383050,
-      0 4px 10px rgba(0, 0, 0, 0.6);
-    transition: transform 0.15s ease;
-
-    ion-icon {
-      font-size: 1.4rem;
-      color: #f7e8a8;
-    }
-
-    &:active {
-      transform: scale(0.92);
     }
   }
 }
