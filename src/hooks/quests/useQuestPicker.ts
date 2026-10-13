@@ -29,7 +29,7 @@ export function useQuestPicker(userId: string) {
   };
 
   /** An action sheet of quests (title and due time); resolves with the picked quest id, or null on cancel. */
-  const pickQuest = (choices: QuestBoardItem[], header: string): Promise<string | null> =>
+  const selectQuest = (choices: QuestBoardItem[], header: string): Promise<string | null> =>
     new Promise((resolve) => {
       const now = new Date();
       const buttons = choices.map((entry) => {
@@ -52,5 +52,5 @@ export function useQuestPicker(userId: string) {
         .catch(() => resolve(null));
     });
 
-  return { openQuests, pickQuest };
+  return { openQuests, selectQuest };
 }

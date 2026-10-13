@@ -63,14 +63,14 @@
           <ion-item>
             <ion-label>
               Trusted hour
-              <p>Tesla's Bolt lets a hero's claims skip the approval queue for 1 hour</p>
+              <p>The Trusted Hour Power lets a hero's claims skip the approval queue for 1 hour</p>
             </ion-label>
             <ion-toggle :checked="family.trustedHour" @ionChange="setFamily({ trustedHour: $event.detail.checked })"> </ion-toggle>
           </ion-item>
           <ion-item>
             <ion-label>
               Bedtime
-              <p>Night's Light lifts it for one night</p>
+              <p>When the family's night begins and ends</p>
             </ion-label>
             <ion-toggle :checked="family.bedtime.enabled" @ionChange="setBedtime({ enabled: $event.detail.checked })"> </ion-toggle>
           </ion-item>
@@ -79,13 +79,6 @@
             <input type="time" :value="family.bedtime.from" @change="setBedtime({ from: $event.target.value })" />
             <ion-label class="ion-text-end">To</ion-label>
             <input type="time" :value="family.bedtime.to" @change="setBedtime({ to: $event.target.value })" />
-          </ion-item>
-          <ion-item>
-            <ion-label>
-              Day-off broadcast
-              <p>Gale's Wind tells every Game Master</p>
-            </ion-label>
-            <ion-toggle :checked="family.dayOffBroadcast" @ionChange="setFamily({ dayOffBroadcast: $event.detail.checked })"> </ion-toggle>
           </ion-item>
         </ion-list>
       </ion-card>

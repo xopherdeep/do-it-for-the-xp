@@ -167,6 +167,29 @@
         </ion-item>
       </ion-list>
 
+      <ion-list v-if="ability.type === AbilityType.RealLife">
+        <ion-list-header>
+          <ion-label>Ability Effects</ion-label>
+        </ion-list-header>
+
+        <ion-item data-cy="ability-board-effect">
+          <ion-label>On the quest board</ion-label>
+          <ion-select
+            :value="boardEffectOfPower(ability) ?? 'none'"
+            @ionChange="ability.boardEffect = $event.detail?.value ?? $event.target?.value"
+            interface="popover"
+          >
+            <ion-select-option
+              v-for="option in POWER_BOARD_EFFECT_OPTIONS"
+              :key="option.value"
+              :value="option.value"
+            >
+              {{ option.label }}
+            </ion-select-option>
+          </ion-select>
+        </ion-item>
+      </ion-list>
+
       <ion-list v-if="ability.type === AbilityType.InGame">
         <ion-list-header>
           <ion-label>Character Requirements</ion-label>
@@ -323,6 +346,7 @@
     ABILITY_CLASSES,
   } from "@/hooks/abilities/abilityConstants";
   import { BATTLE_EFFECT_OPTIONS, battleEffectOf } from "@/lib/services/battle/BattlePowers";
+  import { POWER_BOARD_EFFECT_OPTIONS, boardEffectOfPower } from "@/lib/services/abilities/PowerBoardEffects";
   import debug from "@/lib/utils/debug";
 
   export default defineComponent({
@@ -610,6 +634,8 @@
         ABILITY_CLASSES,
         BATTLE_EFFECT_OPTIONS,
         battleEffectOf,
+        POWER_BOARD_EFFECT_OPTIONS,
+        boardEffectOfPower,
       };
     },
   });

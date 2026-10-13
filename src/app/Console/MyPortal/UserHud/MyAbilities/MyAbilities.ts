@@ -20,6 +20,8 @@ import {
 import { getCastLogDb, lastCastsOf } from "@/lib/databases/CastLogDb";
 import type { Ability } from "@/types/abilities";
 import { play$fx } from "@/assets/fx";
+import { useQuestPicker } from "@/hooks/quests/useQuestPicker";
+import { castWithBoardEffect } from "./boardCast";
 import { buildPowerRow, type PowerRow } from "./powerRow";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import XpAppBottomNav from "@/components/organisms/BottomNav/XpAppBottomNav.vue";
@@ -143,24 +145,38 @@ export default defineComponent({
       openId.value = openId.value === abilityId ? "" : abilityId;
     };
 
+    const say = async (message: string) => {
+      const toast = await toastController.create({
+        message,
+        cssClass: "rpg-toast",
+        position: "top",
+        duration: 1800,
+      });
+      await toast.present();
+    };
+
     const cast = async (abilityId: string) => {
-      const isCastBlocked = Boolean(casting.value) || !heroId.value || Boolean(groundedReason.value);
+      const ability = abilities.value.find((entry) => entry.id === abilityId);
+      const isCastBlocked = !ability || Boolean(casting.value) || !heroId.value || Boolean(groundedReason.value);
       if (isCastBlocked) return;
-      const name = abilities.value.find((ability) => ability.id === abilityId)?.name ?? "Power";
       casting.value = abilityId;
       try {
-        // A refusal (not enough MP, not available) is toasted by the composable
-        const result = await castPower(abilityId, heroId.value);
-        if (!result.ok) return;
-        play$fx("select");
+        // A Power that bends the quest board asks which quest first and lands its effect after the cast;
+        // a refusal of the cast itself (not enough MP, not available) is toasted by the composable
+        const { openQuests, selectQuest } = useQuestPicker(heroId.value);
+        const outcome = await castWithBoardEffect(ability, heroId.value, { openQuests, selectQuest, cast: castPower });
+        const wasRefused = outcome.status === "refused";
+        if (wasRefused) {
+          play$fx(outcome.sound ?? "no");
+          await say(outcome.line ?? "That cannot be cast right now.");
+          return;
+        }
+        // Backing out of the quest pick and a refused cast say nothing more
+        const wasCast = outcome.status === "cast";
+        if (!wasCast) return;
+        play$fx(outcome.sound ?? "select");
         await loadLastCasts();
-        const toast = await toastController.create({
-          message: t("powers.toast.cast", { name }),
-          cssClass: "rpg-toast",
-          position: "top",
-          duration: 1800,
-        });
-        await toast.present();
+        await say(outcome.line ?? t("powers.toast.cast", { name: ability.name }));
         now.value = new Date();
       } finally {
         casting.value = "";
