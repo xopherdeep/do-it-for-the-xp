@@ -182,6 +182,30 @@ describe("settle", () => {
     expect(settle(sending, { ok: false, code: "invalid" }).post.error).toBe("invalid");
   });
 
+  it("leaves a sent post alone when a second send comes back with an error", () => {
+    const sent = post({ status: "sent", remoteId: 77 });
+    expect(settle(sent, { ok: false, code: "offline" })).toEqual({ post: sent, unlink: false });
+    expect(settle(sent, { ok: false, code: "server" })).toEqual({ post: sent, unlink: false });
+    expect(settle(sent, { ok: false, code: "invalid", message: "Title is required" })).toEqual({
+      post: sent,
+      unlink: false,
+    });
+  });
+
+  it("leaves a post that is not sending alone when a stray ok arrives", () => {
+    for (const status of ["queued", "awaiting-gm", "rejected", "failed", "sent"] as const) {
+      const other = post({ status });
+      expect(settle(other, { ok: true, remoteId: 5 })).toEqual({ post: other, unlink: false });
+    }
+  });
+
+  it("does not ask to unlink for a stray unauthorized on a post that is not sending", () => {
+    for (const status of ["queued", "awaiting-gm", "rejected", "failed", "sent"] as const) {
+      const other = post({ status });
+      expect(settle(other, { ok: false, code: "unauthorized" })).toEqual({ post: other, unlink: false });
+    }
+  });
+
   it("does not change the post it was given", () => {
     const before = { ...sending };
     settle(sending, { ok: true, remoteId: 1 });

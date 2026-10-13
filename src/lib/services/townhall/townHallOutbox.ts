@@ -57,7 +57,7 @@ export function rejectPost(post: TownHallPost): TownHallPost {
   return post.status === "awaiting-gm" ? { ...post, status: "rejected" } : post;
 }
 
-/** A send begins. Only a queued post can. */
+/** A send begins. Only a queued post can. It keeps the last try's error, so the hero still sees it while the retry runs. */
 export function startSending(post: TownHallPost): TownHallPost {
   return post.status === "queued" ? { ...post, status: "sending" } : post;
 }
@@ -67,8 +67,11 @@ export function startSending(post: TownHallPost): TownHallPost {
  * queued (offline, server errors, a 404 from a Bug Net that is not active yet, a link the site no longer knows, an
  * account that may not post). Only text the site refuses fails the post, with the site's words so the hero can fix it.
  * `unlink` tells the caller to forget the family's link, because the site no longer accepts it.
+ * Only a post that is sending settles: a stray result for a post that already moved on (two sends in flight, a
+ * late answer for a post the Game Master rejected) changes nothing, so a sent post is never queued and sent twice.
  */
 export function settle(post: TownHallPost, result: SendResult): { post: TownHallPost; unlink: boolean } {
+  if (post.status !== "sending") return { post, unlink: false };
   if (result.ok) {
     const { error: _cleared, ...rest } = post;
     return { post: { ...rest, status: "sent", remoteId: result.remoteId }, unlink: false };
@@ -79,7 +82,7 @@ export function settle(post: TownHallPost, result: SendResult): { post: TownHall
   return { post: { ...post, status: "queued", error: result.code }, unlink: result.code === "unauthorized" };
 }
 
-/** On start, a post the closed app left sending goes back in the queue, so it is not stuck forever. */
+/** On start, a post the closed app left sending goes back in the queue, so it is not stuck forever (its error stays). */
 export function recover(posts: TownHallPost[]): TownHallPost[] {
   return posts.map((post) => (post.status === "sending" ? { ...post, status: "queued" } : post));
 }
