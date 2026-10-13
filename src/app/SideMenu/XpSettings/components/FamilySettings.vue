@@ -55,6 +55,8 @@
         </ion-list>
       </ion-card>
 
+      <xp-family-phones v-if="canManage" />
+
       <ion-card v-if="canManage" class="max-w-2xl family-items">
         <ion-card-header>
           <ion-card-title> Items </ion-card-title>
@@ -95,6 +97,7 @@ import { ProfileDb } from "@/lib/databases";
 import User from "@/lib/utils/User";
 import { alertController, modalController, toastController } from "@ionic/vue";
 import XpProfileItem from "./ProfileItem.vue";
+import XpFamilyPhones from "./XpFamilyPhones.vue";
 import AddProfile from "@/app/SideMenu/SwitchProfile/AddProfile/AddProfile.vue";
 import { useUserStore } from "@/lib/store/stores/user";
 import { canManageFamily, deleteProfileProblem, FAMILY_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
@@ -109,7 +112,7 @@ import {
 export default defineComponent({
   name: "xp-settings-family",
   mixins: [ionic],
-  components: { XpProfileItem },
+  components: { XpProfileItem, XpFamilyPhones },
   setup() {
     const lockFamily = ref(false);
     const toppings = [];

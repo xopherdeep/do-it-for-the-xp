@@ -1,10 +1,13 @@
 import { defineStore } from "pinia";
 import { computed, onScopeDispose, ref, watch } from "vue";
+import { AchievementDb, achievementStorage } from "@/lib/databases/AchievementDb";
 import { getFamilyEventsDb, type FamilyEventsState, type HomeStatus } from "@/lib/databases/FamilyEventsDb";
 import { ageGroupOf, type AgeGroup } from "@/lib/services/multiplayer/ageGroup";
+import { enqueue, resetSending, type QueuedEvent } from "@/lib/services/multiplayer/eventOutbox";
+import { questDoneEvent, type FamilyEvent } from "@/lib/services/multiplayer/familyEvents";
 import { bindFamily, familyProblem, getFamily, moveHome, removeHero, saveHero } from "@/lib/services/multiplayer/familyServer";
 import type { BindAnswer, FamilyProblem, ServerHero } from "@/lib/services/multiplayer/familyServer";
-import { onHeroRemoved } from "@/lib/services/multiplayer/gameSignals";
+import { onHeroRemoved, onQuestPaid, type QuestPaid } from "@/lib/services/multiplayer/gameSignals";
 import { cardOf } from "@/lib/services/multiplayer/heroCard";
 import { multiplayerEnabled } from "@/lib/services/multiplayer/multiplayerFlag";
 import { ensureIdentity } from "@/lib/services/pro/familyIdentity";
@@ -12,6 +15,8 @@ import type { TownHallAuth } from "@/lib/services/townhall/townHallClient";
 import { useTownHallStore } from "@/lib/store/stores/townHall";
 import { useUserStore } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
+import { createCardQueue } from "./family/familyCards";
+import { createFamilySender } from "./family/familySender";
 
 /** Where each answer of the site leaves this device: `created` and `home` both mean this device is the family's home */
 const HOME_OF_ANSWER: Record<BindAnswer, HomeStatus> = {
@@ -32,6 +37,24 @@ interface RegistrableHero {
   ageGroup: AgeGroup;
 }
 
+/** Sending waits this long after something is queued, so a burst of events goes in one request */
+const SEND_DELAY_MS = 5_000;
+/** A profile change queues its card this long after the last change */
+const CARDS_DELAY_MS = 2_000;
+
+/** The quest's difficulty for quest.done; 0 when the quest is gone or has none */
+const difficultyOf = async (questId: string): Promise<number> => {
+  try {
+    const quest = (await new AchievementDb(achievementStorage).get(questId)) as { difficulty?: unknown } | null;
+    const difficulty = Number(quest?.difficulty);
+    const isRated = Number.isFinite(difficulty) && difficulty > 0;
+    return isRated ? difficulty : 0;
+  } catch (error) {
+    debug.warn(`family: could not read quest ${questId}`, error);
+    return 0;
+  }
+};
+
 /**
  * The family on the server, seen from this device (multiplayer, part 1): whether this device is the family's home, the
  * heroes the site holds, and what went wrong last. Nothing in the game waits on it, and with the flag off it does
@@ -40,6 +63,12 @@ interface RegistrableHero {
  * `init()` loads what this device kept and starts the bind without waiting for the site, so a screen that awaits it
  * (a router guard) never waits for the network. `bind()` joins the bind that is running: await it when you need to
  * know `home`.
+ *
+ * Game events (MP12): while this device is the family's home, each hero's card goes in the send queue when it changes
+ * (`queueCards`, also 2 s after any profile change), a level up adds `hero.leveled`, and a paid quest adds `quest.done`.
+ * `flush()` sends the queue, one request at a time, 50 events per request; it runs after the start, 5 s after
+ * something is queued, when the browser comes back online and when the app comes back to the front. Nothing is queued
+ * or sent unless the flag is on and this device is home.
  */
 export const useFamilyStore = defineStore("family", () => {
   const townHall = useTownHallStore();
@@ -67,7 +96,8 @@ export const useFamilyStore = defineStore("family", () => {
     if (!loading) {
       loading = (async () => {
         const stored = await getFamilyEventsDb().getState();
-        state = stored;
+        // An event still marked sending was out when the app closed; its answer was never read, so it goes again
+        state = { ...stored, outbox: resetSending(stored.outbox) };
         home.value = stored.home;
         ageGroupPicks.value = { ...stored.ageGroupPicks };
       })().catch((error) => {
@@ -113,6 +143,72 @@ export const useFamilyStore = defineStore("family", () => {
     return found;
   }
 
+  // --- Game events: what goes in the send queue, and sending it (MP12) ---
+
+  /** Events are queued and sent only with the flag on, while this device is the family's home */
+  const canQueue = (): boolean => enabled.value && home.value === "home";
+
+  /** What the device keeps, loaded */
+  async function loaded(): Promise<FamilyEventsState> {
+    await load();
+    return state as FamilyEventsState;
+  }
+
+  const sender = createFamilySender({
+    maySend: canQueue,
+    auth: () => parentAuth.value,
+    kept: loaded,
+    update,
+    moved: () => setHome("home-elsewhere"),
+    refused: noteProblem,
+  });
+
+  /** Puts events in the send queue together with any other change (the cards sent), in one save; sends 5 s later */
+  async function queueEvents(events: FamilyEvent[], alsoChange: (current: FamilyEventsState) => Partial<FamilyEventsState> = () => ({})): Promise<void> {
+    const hasEvents = events.length > 0;
+    if (!hasEvents) return;
+    let isQueued = false;
+    await update((current) => {
+      // Checked again at the save: an answer that moved home away meanwhile queues nothing
+      const mayQueue = canQueue();
+      if (!mayQueue) return current;
+      isQueued = true;
+      const outbox = events.reduce<QueuedEvent[]>((queue, e) => enqueue(queue, e), current.outbox);
+      return { ...current, ...alsoChange(current), outbox };
+    });
+    if (isQueued) sender.sendIn(SEND_DELAY_MS);
+  }
+
+  const cards = createCardQueue({
+    mayQueue: canQueue,
+    auth: () => parentAuth.value,
+    lastCards: async () => (await loaded()).lastCards,
+    deviceId: async () => (await ensureIdentity()).deviceId,
+    profiles: () => Object.values(useUserStore().users),
+    ageGroupPick: (heroId) => ageGroupPicks.value[heroId],
+    queue: (events, sentCards) => queueEvents(events, (current) => ({ lastCards: { ...current.lastCards, ...sentCards } })),
+    failed: async (error) => {
+      await noteFailure(error);
+    },
+  });
+
+  /**
+   * A paid quest: quest.done with the quest's difficulty, never its name or category. A hero the site does not know
+   * (no nickname yet) sends nothing, since the site would refuse it.
+   */
+  async function queueQuestDone(paid: QuestPaid): Promise<void> {
+    const mayQueue = canQueue();
+    if (!mayQueue) return;
+    const isKnown = cards.isKnown(paid.heroId, (await loaded()).lastCards);
+    if (!isKnown) return;
+    const difficulty = await difficultyOf(paid.questId);
+    const { deviceId } = await ensureIdentity();
+    await queueEvents([questDoneEvent(paid.heroId, deviceId, { difficulty, xp: paid.xp, fight: paid.fight })]);
+  }
+
+  /** Sends what waits, one request at a time: a call while a send runs joins it */
+  const flush = (): Promise<void> => sender.flush();
+
   // --- Heroes ---
 
   /** The profiles with a nickname (Game Masters included), each with the age group it is registered under */
@@ -143,11 +239,13 @@ export const useFamilyStore = defineStore("family", () => {
     for (const hero of registrableHeroes()) {
       try {
         await saveHero(auth, hero.heroId, hero.nickname, hero.ageGroup);
+        cards.registered(hero.heroId);
       } catch (error) {
         const found = familyProblem(error);
         const isOneHeroOnly = found === "invalid";
         if (isOneHeroOnly) {
           debug.warn(`family: the site refused hero ${hero.heroId}`, error);
+          cards.refused(hero.heroId, hero.nickname);
           continue;
         }
         await noteFailure(error);
@@ -168,6 +266,7 @@ export const useFamilyStore = defineStore("family", () => {
     if (!canTellTheSite) return;
     try {
       await saveHero(auth, heroId, card.nickname, ageGroupOf(profile, group));
+      cards.registered(heroId);
     } catch (error) {
       await noteFailure(error);
     }
@@ -175,6 +274,7 @@ export const useFamilyStore = defineStore("family", () => {
 
   /** A profile was deleted: forget its card and pick here, and take the hero off the site while this device is home */
   async function forgetHero(heroId: string): Promise<void> {
+    cards.forget(heroId);
     try {
       await update((current) => ({
         ...current,
@@ -204,6 +304,9 @@ export const useFamilyStore = defineStore("family", () => {
       problem.value = null;
       await setHome(HOME_OF_ANSWER[answer] ?? "unknown");
       await registerHeroes();
+      // Home, and the site took the heroes: the cards that changed (all of them, the first time) go in the queue
+      const isHomeAndWell = home.value === "home" && problem.value === null;
+      if (isHomeAndWell) await cards.queueCards();
     } catch (error) {
       await noteFailure(error);
     }
@@ -241,15 +344,70 @@ export const useFamilyStore = defineStore("family", () => {
     await bind();
   }
 
+  /** Queues the hero cards that changed since the last ones sent; a running bind decides `home` first */
+  async function queueCards(): Promise<void> {
+    await binding;
+    await cards.queueCards();
+  }
+
   // --- Starting ---
 
-  let stopListening: (() => void) | null = null;
+  /** Everything init started listening to, stopped when the store goes */
+  const stops: (() => void)[] = [];
+  let cardsTimer: ReturnType<typeof setTimeout> | undefined;
   let started = false;
+  let disposed = false;
   let initPromise: Promise<void> | null = null;
 
+  /** A profile changed: its card is compared (and queued when it changed) 2 s after the last change */
+  function queueCardsSoon(): void {
+    if (disposed) return;
+    clearTimeout(cardsTimer);
+    cardsTimer = setTimeout(() => {
+      cardsTimer = undefined;
+      queueCards().catch((error) => debug.warn("family: could not queue the cards", error));
+    }, CARDS_DELAY_MS);
+  }
+
+  /** The browser is back online or the app is back in front: the connection may be back, so send what waits */
+  function sendEverythingNow(): void {
+    sender.sendEverything().catch((error) => debug.warn("family: could not send", error));
+  }
+
+  function onVisibilityChange(): void {
+    const isInFront = document.visibilityState === "visible";
+    if (isInFront) sendEverythingNow();
+  }
+
+  function listen(): void {
+    // Only an explicit profile delete removes a hero on the site: an empty roster while profiles load removes nothing
+    stops.push(
+      onHeroRemoved((heroId) => {
+        forgetHero(heroId).catch((error) => debug.warn("family: could not forget a removed hero", error));
+      })
+    );
+    stops.push(
+      onQuestPaid((paid) => {
+        queueQuestDone(paid).catch((error) => debug.warn("family: could not queue a paid quest", error));
+      })
+    );
+    stops.push(watch(() => useUserStore().users, () => queueCardsSoon(), { deep: true }));
+    const hasWindow = typeof window !== "undefined";
+    if (hasWindow) {
+      window.addEventListener("online", sendEverythingNow);
+      stops.push(() => window.removeEventListener("online", sendEverythingNow));
+    }
+    const hasDocument = typeof document !== "undefined";
+    if (hasDocument) {
+      document.addEventListener("visibilitychange", onVisibilityChange);
+      stops.push(() => document.removeEventListener("visibilitychange", onVisibilityChange));
+    }
+  }
+
   /**
-   * Loads what this device kept, starts listening for deleted profiles and starts the bind. Once; a second call is the
-   * same promise. With the flag off it does nothing. It does not wait for the site (see the note on the store).
+   * Loads what this device kept, starts listening (deleted profiles, paid quests, profile changes, the send moments)
+   * and starts the bind, then a send. Once; a second call is the same promise. With the flag off it does nothing. It
+   * does not wait for the site (see the note on the store).
    */
   function init(): Promise<void> {
     if (!initPromise) {
@@ -257,12 +415,11 @@ export const useFamilyStore = defineStore("family", () => {
         if (!enabled.value) return;
         await townHall.init();
         await load();
-        // Only an explicit profile delete removes a hero on the site: an empty roster while profiles load removes nothing
-        stopListening = onHeroRemoved((heroId) => {
-          forgetHero(heroId).catch((error) => debug.warn("family: could not forget a removed hero", error));
-        });
+        listen();
         started = true;
-        bind().catch((error) => debug.warn("family: the first bind failed", error));
+        bind()
+          .then(() => flush())
+          .catch((error) => debug.warn("family: the first bind or send failed", error));
       })().catch((error) => {
         initPromise = null;
         throw error;
@@ -281,8 +438,11 @@ export const useFamilyStore = defineStore("family", () => {
   );
 
   onScopeDispose(() => {
-    stopListening?.();
+    disposed = true;
+    stops.splice(0).forEach((stop) => stop());
+    sender.dispose();
+    clearTimeout(cardsTimer);
   });
 
-  return { home, heroes, problem, ageGroupPicks, enabled, parentAuth, init, bind, makeHome, registerHeroes, setAgeGroup };
+  return { home, heroes, problem, ageGroupPicks, enabled, parentAuth, init, bind, makeHome, registerHeroes, setAgeGroup, queueCards, flush };
 });

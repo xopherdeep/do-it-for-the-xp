@@ -988,7 +988,15 @@ ion-content {
   flex-direction: column;
 }
 
-// FAB pulse animation
+// FAB styling and pulse animation
+ion-fab-button {
+  --border-width: 0 !important;
+  --border-style: none !important;
+  --border-color: transparent !important;
+  border: none !important;
+  outline: none !important;
+}
+
 .fab-pulse {
   ion-fab-button {
     animation: fab-pulse 2s infinite;
