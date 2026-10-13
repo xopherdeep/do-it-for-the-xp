@@ -47,6 +47,11 @@ export interface Achievement {
   showDailyUntilComplete: boolean;
   // stats
   difficulty: number;
+  /**
+   * About how long the chore takes, in minutes: the length of the strike clock in a fight (questClock).
+   * Absent means "use the default for the difficulty" (`defaultMinutes`), so old records need no migration.
+   */
+  estimatedMinutes?: number;
   xp: number;
   gp: number;
   ap: number;

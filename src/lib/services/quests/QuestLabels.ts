@@ -1,5 +1,6 @@
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import { nickOf, type FamilyMember } from "@/lib/services/quests/QuestList";
+import { questTier, type QuestTier } from "@/lib/services/temples/questRooms";
 
 /**
  * Plain words for the Compendium's quest list and quest summary. Pure: no storage, no Vue.
@@ -46,6 +47,28 @@ export const DIFFICULTY_NAMES: Record<number, string> = {
   55: "Insane",
   89: "Legendary",
   144: "Mythical",
+};
+
+/** The names of the quest room tiers (the tier chip on the quest form and the quest picker). */
+export const TIER_NAMES: Record<QuestTier, string> = {
+  monster: "Monster",
+  miniboss: "Miniboss",
+  boss: "Boss",
+};
+
+/** The tier chip for a difficulty: "Monster" (1-2), "Miniboss" (3-5) or "Boss" (8 and up). */
+export const tierLabel = (difficulty?: number): string => TIER_NAMES[questTier(difficulty)];
+
+/** How long a chore takes, in words: "5 min", "1 hr", "1 hr 30 min". Empty for a missing or non-positive estimate. */
+export const minutesLabel = (minutes?: number): string => {
+  const value = Number(minutes);
+  const isEstimateMissing = !Number.isFinite(value) || value <= 0;
+  if (isEstimateMissing) return "";
+  const total = Math.max(1, Math.round(value));
+  const hours = Math.floor(total / 60);
+  const rest = total % 60;
+  if (!hours) return `${rest} min`;
+  return rest ? `${hours} hr ${rest} min` : `${hours} hr`;
 };
 
 const DAY_ORDER = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"];

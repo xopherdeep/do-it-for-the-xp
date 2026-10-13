@@ -3,12 +3,14 @@ import {
   assigneeLabel,
   difficultyLabel,
   formatPoints,
+  minutesLabel,
   partyHint,
   priorityHint,
   questSubtitle,
   questTypeHint,
   scheduleLabel,
   statusIconLabels,
+  tierLabel,
 } from "@/lib/services/quests/QuestLabels";
 
 const users = [
@@ -152,5 +154,53 @@ describe("formatPoints", () => {
   it("shows nothing-ish values as 0", () => {
     expect(formatPoints(undefined)).toBe("0");
     expect(formatPoints(NaN)).toBe("0");
+  });
+});
+
+describe("tierLabel", () => {
+  it("names the room a difficulty makes", () => {
+    expect(tierLabel(1)).toBe("Monster");
+    expect(tierLabel(2)).toBe("Monster");
+    expect(tierLabel(3)).toBe("Miniboss");
+    expect(tierLabel(5)).toBe("Miniboss");
+    expect(tierLabel(8)).toBe("Boss");
+    expect(tierLabel(13)).toBe("Boss");
+  });
+
+  it("rounds a legacy in-between value down, like the room does", () => {
+    expect(tierLabel(4)).toBe("Miniboss");
+    expect(tierLabel(7)).toBe("Miniboss");
+    expect(tierLabel(9)).toBe("Boss");
+  });
+
+  it("calls an unset difficulty a Monster, the smallest tier", () => {
+    expect(tierLabel(undefined)).toBe("Monster");
+    expect(tierLabel(0)).toBe("Monster");
+  });
+});
+
+describe("minutesLabel", () => {
+  it("says minutes under an hour", () => {
+    expect(minutesLabel(5)).toBe("5 min");
+    expect(minutesLabel(45)).toBe("45 min");
+    expect(minutesLabel(59)).toBe("59 min");
+  });
+
+  it("says hours and minutes from an hour up", () => {
+    expect(minutesLabel(60)).toBe("1 hr");
+    expect(minutesLabel(90)).toBe("1 hr 30 min");
+    expect(minutesLabel(120)).toBe("2 hr");
+  });
+
+  it("rounds a fractional estimate to the minute, never below 1", () => {
+    expect(minutesLabel(2.6)).toBe("3 min");
+    expect(minutesLabel(0.2)).toBe("1 min");
+  });
+
+  it("shows nothing for a missing or broken estimate", () => {
+    expect(minutesLabel(undefined)).toBe("");
+    expect(minutesLabel(0)).toBe("");
+    expect(minutesLabel(NaN)).toBe("");
+    expect(minutesLabel(-5)).toBe("");
   });
 });
