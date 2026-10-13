@@ -90,7 +90,11 @@ export function planHouse(cells: readonly HouseCell[], seed: string): HousePlan 
     return undefined;
   };
 
-  /** The last resort: walk the placed cells of the cell's own zone breadth first from its parent, and take the first free side */
+  /**
+   * The last resort: walk the placed cells of the parent's zone breadth first from the parent, and take the first free
+   * side. A link cell (its zone differs from its parent's, like the locked wing hung off the hall) walks the zone it
+   * links from, since there is nothing of its own zone to walk; any other cell walks its own, which is the same one.
+   */
   const spotNear = (cell: HouseCell, parent: PlacedCell): { anchor: PlacedCell; spot: [number, number] } | undefined => {
     const queue = [parent];
     const seen = new Set(queue);
@@ -100,7 +104,7 @@ export function planHouse(cells: readonly HouseCell[], seed: string): HousePlan 
       if (spot) return { anchor, spot };
       for (const direction of DIRECTIONS) {
         const next = at(cell, anchor.row + STEP[direction][0], anchor.col + STEP[direction][1]);
-        if (next && next.cell.zone === cell.zone && !seen.has(next)) {
+        if (next && next.cell.zone === parent.cell.zone && !seen.has(next)) {
           seen.add(next);
           queue.push(next);
         }
@@ -135,7 +139,8 @@ export function planHouse(cells: readonly HouseCell[], seed: string): HousePlan 
         put(cell, spot[0], spot[1], parent.cell.id);
         continue;
       }
-      const near = spotNear(cell, parent);
+      // The Boss Key only ever sits behind its guard, so the junk drawer does not wander off looking for a side
+      const near = cell.kind === "masterKey" ? undefined : spotNear(cell, parent);
       if (!near) throw noRoom(cell);
       put(cell, near.spot[0], near.spot[1], near.anchor.cell.id);
     }

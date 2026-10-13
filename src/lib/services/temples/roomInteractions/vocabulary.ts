@@ -47,6 +47,8 @@ export interface Riddle {
   id: string;
   question: string;
   choices: string[];
+  /** Choices (by index) Night's Light faded this visit: the screen leaves them out */
+  faded?: number[];
 }
 
 export interface Ware {

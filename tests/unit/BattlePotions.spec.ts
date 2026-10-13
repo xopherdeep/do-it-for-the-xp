@@ -162,6 +162,22 @@ describe("BattlePotions", () => {
       expect(hpNow()).toBe(10);
     });
 
+    it("a bottled Spring Water heals 10 and a Silver Water restores 10 MP", () => {
+      addHero([
+        { name: "Spring Water", kind: "consumable", qty: 1, source: "fixture-temple" },
+        { name: "Silver Water", kind: "consumable", qty: 1, source: "fixture-temple" },
+      ]);
+      expect(potionShelf(HERO_ID).map((card) => [card.name, card.effect])).toEqual([
+        ["Silver Water", "Restores 10 MP"],
+        ["Spring Water", "Restores 10 HP"],
+      ]);
+      expect(drinkPotion(HERO_ID, "spring-water")).toEqual({ ok: true, line: "You drink a Spring Water: +10 HP", sound: SOUND_HEAL });
+      expect(hpNow()).toBe(20);
+      expect(drinkPotion(HERO_ID, "silver-water").line).toBe("You drink a Silver Water: +10 MP");
+      expect(mpNow()).toBe(10);
+      expect(potionShelf(HERO_ID)).toEqual([]);
+    });
+
     it("gains stop at max, and the line says what was gained", () => {
       addHero([{ name: "Health Potion" }], { now: 90, max: 100 });
       expect(drinkPotion(HERO_ID, "health-potion").line).toBe("You drink a Health Potion: +10 HP");

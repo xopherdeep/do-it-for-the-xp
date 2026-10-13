@@ -177,6 +177,11 @@ export function houseCellsFor(pack: MovingPack, answers: MovingAnswers): HouseCe
     add({ id: "office", name: "Home office", ...where(["upHall"], "EWN"), questIds: officeIds });
   };
 
+  /** The junk drawer goes in right after its guard, while the guard still has free sides to hang it on */
+  const addDrawerAfter = (room: string): void => {
+    if (guard === room) add({ id: "drawer", name: "Junk drawer", kind: "masterKey", parents: [room], prefer: "NEWS", zone: "drawer" });
+  };
+
   // The cells, in the order they are placed. The driveway is fixed: the porch, the van, the last look, the keys.
   add({ id: "porch", name: "Front porch", kind: "entrance", at: [8, 4] });
   add({ id: "van", name: "The moving van", kind: "boss", parents: ["porch"], zone: "driveway", at: [8, 3], questIds: [VAN_QUEST] });
@@ -191,16 +196,18 @@ export function houseCellsFor(pack: MovingPack, answers: MovingAnswers): HouseCe
   add({ id: "compass", name: "China cabinet", kind: "compass", parents: ["dining", "living", "hall"], prefer: "WNE" });
   add({ id: "pantry", name: "Pantry", parents: ["dining", "hall"], prefer: "NEW", questIds: kitchenIds.slice(1) });
   add({ id: "kitchen", name: "Kitchen", kind: "guard", parents: ["pantry", "dining", "hall"], prefer: "NEW", questIds: kitchenIds.slice(0, 1) });
+  addDrawerAfter("kitchen");
   add({
     id: "garage", name: "Garage", kind: guard === "garage" ? "guard" : "quest", parents: ["pantry", "hall"], prefer: "EWN",
     questIds: guard === "garage" ? garageIds.slice(0, 1) : garageIds, ...wingOf("garage"),
   });
+  addDrawerAfter("garage");
   add({ id: "workbench", name: "Workbench", parents: ["garage"], prefer: "NEW", questIds: guard === "garage" ? garageIds.slice(1) : [] });
   add({
     id: "packingPile", name: "Packing pile", kind: "guard", parents: ["hall"], prefer: "NEW",
     questIds: guard === "packingPile" ? shared("open-first") : [],
   });
-  if (guard) add({ id: "drawer", name: "Junk drawer", kind: "masterKey", parents: [guard], prefer: "NEWS", zone: "drawer" });
+  addDrawerAfter("packingPile");
   add({ id: "laundry", name: "Laundry room", parents: ["pantry", "dining", "hall"], prefer: "WNE", questIds: laundryIds });
   add({ id: "yard", name: "Back yard", parents: ["pantry", "dining", "living", "hall"], prefer: "NEW", questIds: yardIds, ...wingOf("yard") });
   add({ id: "pets", name: "Pet corner", parents: ["living", "hall"], prefer: "SWN", questIds: petsIds });

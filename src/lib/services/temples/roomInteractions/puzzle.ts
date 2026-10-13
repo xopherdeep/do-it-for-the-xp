@@ -61,7 +61,12 @@ const RIDDLES: Record<string, RiddleDef> = {
 
 export const riddleFor = (room: Room): RiddleDef => RIDDLES[String(room.content?.puzzleType)] ?? RIDDLES.generic;
 
-export const publicRiddle = ({ id, question, choices }: RiddleDef): Riddle => ({ id, question, choices: [...choices] });
+/** The riddle as the screen shows it, never its answer. Under Night's Light (`moonlit`) the first wrong choice fades. */
+export const publicRiddle = ({ id, question, choices, answer }: RiddleDef, moonlit = false): Riddle => {
+  const shown: Riddle = { id, question, choices: [...choices] };
+  if (moonlit) shown.faded = [choices.findIndex((_, index) => index !== answer)];
+  return shown;
+};
 
 /** Answer the room's riddle with the index of a choice. */
 export const answerRiddle = (room: Room, ctx: RoomContext, choice: number): RoomOutcome => {

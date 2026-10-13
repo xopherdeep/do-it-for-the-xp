@@ -7,23 +7,27 @@
  *
  * Items live on the profile as plain copies (no functions), so an item is recognised by its icon, or its
  * name, against the live catalog from useEquipmentItems(), which is also where a navigation item's `click` is.
+ * What a tool does here is its rule's `temple` use (ItemRules), by name; a tool without one is for fights.
+ *
+ * Rule zero: no tool completes a chore. A temple use opens the way (a door, a map, a seal, a riddle), nothing more.
  */
 import { DungeonManager } from '@/lib/engine/core/dungeons/DungeonManager';
 import { TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
 import type { Room } from '@/lib/engine/core/dungeons/types';
 import type { EquipmentItem } from '@/app/Console/MyPortal/UserHud/components/equipment/EquipmentItems';
 import { useUserStore } from '@/lib/store/stores/user';
+import { inventoryOf, type InventoryEntry } from '@/lib/services/inventory/Inventory';
 import { itemRule } from '@/lib/services/items/ItemRules';
 import { heroMpBill } from '@/lib/services/stats/StatEffects';
+import { isQuestRoom } from './questRooms';
 import {
   DIRECTIONS,
   SFX,
-  healHero,
   hasHappened,
   readPoints,
   rememberOnce,
+  roomKey,
   roomKind,
-  templeKey,
   type Exits,
   type RoomContext,
   type RoomOutcome,
@@ -55,21 +59,14 @@ export const handLabel = (item: { name?: string } | null | undefined, side: 'Lef
   item?.name ? shortItemName(item.name) : side;
 
 const NAVIGATION_ITEMS = ['My Quests', 'Book Of Spells', 'Goods', 'Wallet', 'Portal Home'];
-const BATTLE_ITEMS = ['Fire Wand', 'Ice Wand', "Sol's Flare", "Tesla's Bolt", "Gaia's Quake", "Thor's Hammer", 'Silver Arrow'];
-const SOON_ITEMS = ['Pegasus Boots', 'Wind Whistle', "Chronos' Clock", "Night's Light", "Gale's Wind", "X's Invisibility"];
-
-/** MP costs for items whose description does not name one. */
-const DEFAULT_MP_COST: Record<string, number> = { Lantern: 10, Bombs: 15 };
+/** The Pegasus gifts: their click works on any screen (a menu style, the Pegasus modal) and the hero stays here */
+const PEGASUS_ITEMS = ['Pegasus Boots', 'Wind Whistle'];
 
 /** "25MP | A precise arrow..." -> 25 */
 const leadingMpCost = (desc: unknown): number | undefined => {
   const match = typeof desc === 'string' ? desc.match(/^\s*(\d+)\s*MP\b/i) : null;
   return match ? Number(match[1]) : undefined;
 };
-
-/** The item's description without its "25MP | " prefix. */
-const plainDesc = (desc: unknown): string =>
-  typeof desc === 'string' ? desc.replace(/^\s*\d+\s*(MP|HP)\s*\|\s*/i, '').trim() : '';
 
 /** The catalog entry for a stored item: by icon first, then by name. */
 const definitionOf = (item: Partial<EquipmentItem>, catalog: EquipmentItem[]): EquipmentItem | undefined =>
@@ -78,14 +75,14 @@ const definitionOf = (item: Partial<EquipmentItem>, catalog: EquipmentItem[]): E
 
 /**
  * What using the item costs in MP: the rules table by name, even when it says 0 (an old stored copy's description
- * is ignored), else the number a description starts with, else the table above, else nothing.
+ * is ignored), else the number a description starts with, else nothing.
  */
 export const mpCostOf = (item: Partial<EquipmentItem>, definition?: EquipmentItem): number =>
-  itemRule(definition?.name ?? item.name)?.mp ??
-  leadingMpCost(item.desc) ??
-  leadingMpCost(definition?.desc) ??
-  DEFAULT_MP_COST[definition?.name ?? item.name ?? ''] ??
-  0;
+  itemRule(definition?.name ?? item.name)?.mp ?? leadingMpCost(item.desc) ?? leadingMpCost(definition?.desc) ?? 0;
+
+/** What the Bombs spend: the pack's Bomb stack (merged by inventoryOf), or null when the pack holds none. */
+export const bombInPack = (userId: string): InventoryEntry | null =>
+  inventoryOf(useUserStore().getUserById(userId)).find((entry) => entry.name === 'Bomb') ?? null;
 
 const refuse = (message: string): ItemOutcome => ({ message, sound: SFX.error });
 
@@ -113,19 +110,25 @@ const useLantern = (ctx: ItemUseContext, cost: number): ItemOutcome => {
   return { message: 'The lantern shows the way: map and compass revealed.', sound: SFX.secret };
 };
 
+/** What a spring bottles as: a 10 HP or 10 MP drink (BattlePotions), never the spring's full measure. */
+const SPRING_WATERS: Record<string, string> = { health: 'Spring Water', mana: 'Silver Water' };
+
 const useBottles = (ctx: ItemUseContext): ItemOutcome => {
-  const key = templeKey(ctx.userId, ctx.templeId, 'bottles');
-  if (hasHappened(key)) return { message: 'Your bottles are empty.' };
+  const water = SPRING_WATERS[roomKind(ctx.room)];
+  const hasSpringToBottle = Boolean(water) && !hasHappened(roomKey(ctx, 'spring'));
+  if (!hasSpringToBottle) return { message: 'No spring here to bottle.' };
 
-  const { now, max } = readPoints(ctx.userId, 'hp');
-  if (now >= max) return { message: 'No need for a swig. Your HP is full.' };
-
-  rememberOnce(key);
-  const gain = healHero(ctx.userId, Math.max(1, Math.round(max * 0.25)));
-  return { message: `You drink from the bottles: +${gain} HP`, sound: SFX.restoreHP };
+  // A full bag leaves the spring as it was, to drink or to bottle later
+  const bottled = useUserStore().addInventoryItem(ctx.userId, { name: water, kind: 'consumable', qty: 1, source: ctx.templeId });
+  if (!bottled) return refuse('Your bag is full.');
+  rememberOnce(roomKey(ctx, 'spring'));
+  return { message: `You bottle the spring: ${water} is in your bag.`, sound: SFX.takeItem };
 };
 
-const useBombs = (ctx: ItemUseContext, cost: number): ItemOutcome => {
+const useBombs = (ctx: ItemUseContext): ItemOutcome => {
+  const bomb = bombInPack(ctx.userId);
+  if (!bomb) return refuse('Out of bombs.');
+
   const system = TempleSystem.getInstance();
   const side = DIRECTIONS.find((direction) => ctx.exits[direction].locked);
   if (!side) return { message: 'Nothing to blow up here.' };
@@ -136,11 +139,71 @@ const useBombs = (ctx: ItemUseContext, cost: number): ItemOutcome => {
     return refuse('The seal holds. Bombs will not help until the fight is won.');
   }
 
+  if (!system.openDoorSide(ctx.templeId, ctx.position, side, ctx.level)) return { message: 'Nothing to blow up here.' };
+  useUserStore().spendInventoryItem(ctx.userId, bomb.id);
+  return { message: `Boom! The ${side} door blows open.`, sound: SFX.damage, shake: true };
+};
+
+/** Traps bite the moment the hero walks in, so the wand reaches into the rooms next door: every open side's live trap. */
+const useIceWand = (ctx: ItemUseContext, cost: number): ItemOutcome => {
+  const traps = DIRECTIONS.flatMap((direction) => {
+    const near = ctx.exits[direction];
+    const key = roomKey({ ...ctx, position: near.position }, 'trap');
+    const isLiveTrapNextDoor = !near.locked && roomKind(near.room) === 'trap' && !hasHappened(key);
+    return isLiveTrapNextDoor ? [key] : [];
+  });
+  if (traps.length === 0) return { message: 'No trap nearby to freeze.' };
+
   const poor = shortOnMp(ctx, cost);
   if (poor) return poor;
-  if (!system.openDoorSide(ctx.templeId, ctx.position, side, ctx.level)) return { message: 'Nothing to blow up here.' };
   spendMp(ctx, cost);
-  return { message: `Boom! The ${side} door blows open.`, sound: SFX.damage, shake: true };
+  // A frozen trap counts as sprung for the rest of the visit: no bite, no sheet (onEnterRoom)
+  traps.forEach((key) => rememberOnce(key));
+  return { message: 'Frost spreads into the next room: the trap is frozen.', sound: SFX.secret };
+};
+
+/** Gaia's Quake: once a floor per visit, its secret rooms go on the map (TempleSystem.revealSecrets). */
+const useQuake = (ctx: ItemUseContext, cost: number): ItemOutcome => {
+  const system = TempleSystem.getInstance();
+  const isFloorShown = Boolean(system.getTempleState(ctx.templeId)?.revealedSecretFloors?.has(ctx.level));
+  if (isFloorShown) return { message: 'Hidden rooms on this floor are already on your map.' };
+
+  const poor = shortOnMp(ctx, cost);
+  if (poor) return poor;
+  if (system.revealSecrets(ctx.templeId, ctx.level) === 0) return { message: 'The ground shakes, but nothing is hidden on this floor.' };
+  spendMp(ctx, cost);
+  return { message: 'The ground shakes. Hidden rooms appear on your map.', sound: SFX.secret, shake: true };
+};
+
+/** Night's Light: the riddle of this room shows one wrong answer less every time it opens this visit (publicRiddle). */
+const useNightsLight = (ctx: ItemUseContext, cost: number): ItemOutcome => {
+  const isUnsolvedPuzzle = roomKind(ctx.room) === 'puzzle' && !hasHappened(roomKey(ctx, 'puzzle'));
+  if (!isUnsolvedPuzzle) return { message: 'No glyphs here to read.' };
+  if (hasHappened(roomKey(ctx, 'moonlit'))) return { message: 'The moonlight already rests here.' };
+
+  const poor = shortOnMp(ctx, cost);
+  if (poor) return poor;
+  spendMp(ctx, cost);
+  rememberOnce(roomKey(ctx, 'moonlit'));
+  return { message: 'Moonlight settles on the glyphs: one answer fades.' };
+};
+
+/** X's Invisibility: out of a free fight's sealed room without the fight. The beast stays unbeaten (TempleSystem.slipOut). */
+const useInvisibility = (ctx: ItemUseContext, cost: number): ItemOutcome => {
+  const system = TempleSystem.getInstance();
+  const isUnbeatenFight = Boolean(ctx.room.content?.lockOnEnter) && !system.isRoomCleared(ctx.templeId, ctx.level, ctx.position);
+  if (!isUnbeatenFight) return { message: 'Nothing here to slip past.' };
+  // A quest's beast is the chore itself: no tool skips it
+  if (isQuestRoom(ctx.room)) return refuse('This beast holds a quest. It sees you.');
+  // Slipped already: the doors stand open until the hero walks back in, so there is nothing to pay for twice
+  const isSealShut = DIRECTIONS.every((direction) => ctx.room.locked?.[direction]);
+  if (!isSealShut) return { message: 'Nothing here to slip past.' };
+
+  const poor = shortOnMp(ctx, cost);
+  if (poor) return poor;
+  spendMp(ctx, cost);
+  system.slipOut(ctx.templeId, ctx.level, ctx.position);
+  return { message: 'You slip away unseen. The doors open.' };
 };
 
 const HAZARDS = ['pit', 'void'];
@@ -173,38 +236,45 @@ const useHookShot = (ctx: ItemUseContext, cost: number): ItemOutcome => {
 
 /**
  * Use an equipped item in a temple.
- * Navigation items run their click; the Lantern, Bottles, Bombs and Hook Shot work in the dungeon;
- * the battle items point at the battle screen; the rest are still on their way. The MP bill is the
- * item's list price with the hero's class discount (Mage 25%, Sage 50%) and trained intelligence taken.
+ * Navigation items and the Pegasus items run their click; a tool does its rule's temple use (the Lantern, the Bottles,
+ * the Bombs, Gaia's Quake, the Hook Shot, X's Invisibility, the Ice Wand, Night's Light) and anything else with a rule
+ * is for fights. MP is charged only when the use works; the bill is the item's list price with the hero's class
+ * discount (Mage 25%, Sage 50%) and trained intelligence taken.
  */
 export const useItem = (item: Partial<EquipmentItem>, ctx: ItemUseContext): ItemOutcome => {
   const definition = definitionOf(item, ctx.catalog);
   const name = definition?.name ?? item.name ?? 'That';
   const cost = heroMpBill(mpCostOf(item, definition), useUserStore().getUserById(ctx.userId));
 
-  if (NAVIGATION_ITEMS.includes(name)) {
+  const isNavigation = NAVIGATION_ITEMS.includes(name);
+  const runsItsClick = isNavigation || PEGASUS_ITEMS.includes(name);
+  if (runsItsClick) {
     if (typeof definition?.click !== 'function') return refuse(`${name} is out of reach right now.`);
     definition.click();
-    return { navigated: true };
+    return isNavigation ? { navigated: true } : {};
   }
 
-  switch (name) {
-    case 'Lantern':
+  const rule = itemRule(name);
+  if (!rule) return { message: `${name}: nothing happens here.` };
+
+  switch (rule.temple) {
+    case 'map-compass':
       return useLantern(ctx, cost);
-    case 'Bottles':
+    case 'bottle-spring':
       return useBottles(ctx);
-    case 'Bombs':
-      return useBombs(ctx, cost);
-    case 'Hook Shot':
+    case 'blast-door':
+      return useBombs(ctx);
+    case 'reveal-secrets':
+      return useQuake(ctx, cost);
+    case 'cross-pit':
       return useHookShot(ctx, cost);
+    case 'slip-out':
+      return useInvisibility(ctx, cost);
+    case 'freeze-trap':
+      return useIceWand(ctx, cost);
+    case 'moonlit-riddle':
+      return useNightsLight(ctx, cost);
+    default:
+      return { message: `${name} is for fights.` };
   }
-
-  if (BATTLE_ITEMS.includes(name)) return { message: `${name} wants a fight: use it in battle.` };
-
-  if (SOON_ITEMS.includes(name)) {
-    const desc = plainDesc(item.desc || definition?.desc);
-    return { message: `${desc ? `${desc} ` : ''}(coming soon)` };
-  }
-
-  return { message: `${name}: nothing happens here.` };
 };

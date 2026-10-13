@@ -1,6 +1,7 @@
 /**
  * The shop room: the wares on offer and buying one. Prices are what this hero pays (trained charisma takes
- * 1% off a point, up to 20%, docs/Stats-Contract.md); a special item sells once per visit.
+ * 1% off a point, up to 20%, docs/Stats-Contract.md); a special item sells once per visit, Bombs as often as the
+ * hero likes (the Bombs in a hand spend them, ItemUse).
  */
 import type { Room } from '@/lib/engine/core/dungeons/types';
 import { useUserStore } from '@/lib/store/stores/user';
@@ -14,6 +15,8 @@ import type { RoomContext, RoomOutcome, Ware } from './vocabulary';
 const POTION_ID = 'potion-of-vigor';
 const POTION_PRICE = 15;
 const POTION_HEAL = 20;
+const BOMB_ID = 'bomb';
+const BOMB_PRICE = 20;
 const SPECIAL_DEFAULT_PRICE = 50;
 const BAG_FULL = 'Your bag is full. Store something at home first.';
 
@@ -25,6 +28,7 @@ export const shopWares = (room: Room, ctx: RoomContext): Ware[] => {
   const hero = useUserStore().getUserById(ctx.userId);
   const wares: Ware[] = [
     { id: POTION_ID, name: 'Potion of Vigor', price: shopPrice(POTION_PRICE, hero), blurb: `restore ${POTION_HEAL} HP` },
+    { id: BOMB_ID, name: 'Bomb', price: shopPrice(BOMB_PRICE, hero), blurb: 'blows open a locked door' },
   ];
   const special = room.content?.specialItem;
   const hasSpecialItem = typeof special === 'string' && special;
@@ -54,6 +58,14 @@ export const buyWare = (room: Room, ctx: RoomContext, wareId: string): RoomOutco
     void store.updateUserGP({ userId: ctx.userId, wallet: -ware.price });
     const healed = healHero(ctx.userId, POTION_HEAL);
     return { message: `Potion of Vigor: +${healed} HP`, sound: SFX.buy };
+  }
+
+  if (ware.id === BOMB_ID) {
+    // Into the pack before any GP changes hands: a full bag takes nothing and charges nothing
+    const bomb = { name: 'Bomb', kind: 'consumable', faIcon: 'bomb', qty: 1, source: ctx.templeId };
+    if (!store.addInventoryItem(ctx.userId, bomb)) return { message: BAG_FULL, sound: SFX.error };
+    void store.updateUserGP({ userId: ctx.userId, wallet: -ware.price });
+    return { message: 'A Bomb is in your bag.', sound: SFX.buy };
   }
 
   const special = ware.id.slice('special:'.length);

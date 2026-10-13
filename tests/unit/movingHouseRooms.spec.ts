@@ -3,9 +3,10 @@
  * and which of the pack's quests it holds. Pure; the next step places these cells on a grid.
  */
 import { DEFAULT_MOVING_ROOMS, buildMovingPack } from "@/lib/services/core/packs/movingPack";
-import type { MovingAnswers, MovingHero, MovingRoomId } from "@/lib/services/core/packs/movingPack";
+import type { MovingHero } from "@/lib/services/core/packs/movingPack";
 import { houseCellsFor } from "@/lib/services/core/packs/movingTemple/houseRooms";
 import type { HouseCell } from "@/lib/services/core/packs/movingTemple/houseRooms";
+import { PARENT, SETUPS, SIX, TWELVE, answers, houseFor, roomsWithout } from "./movingHouseFixtures";
 
 jest.mock("@/lib/databases/AbilitiesDb", () => ({ __esModule: true, abilitiesStorage: { sentinel: "abilities" } }));
 jest.mock("@/lib/databases/AccessoriesDb", () => ({
@@ -36,62 +37,12 @@ jest.mock("@/lib/services/core/StorageService", () => ({ __esModule: true, defau
 jest.mock("@/router/_Guards/gm.guard", () => ({ __esModule: true, canManageFamily: () => true, RESTORE_GM_ONLY_MESSAGE: "GM only" }));
 jest.mock("@/lib/store/stores/user", () => ({ __esModule: true, useUserStore: () => ({ loadUsers: jest.fn() }) }));
 
-const PARENT: MovingHero = { id: "dad", name: "Dad", band: "grownup" };
-const TWELVE: MovingHero = { id: "twelve", name: "Twelve", band: "kid" };
-const SIX: MovingHero = { id: "six", name: "Six", band: "little" };
-
-const answers = (extra: Partial<MovingAnswers> = {}): MovingAnswers => ({
-  moveDate: "2026-11-20",
-  today: "2026-10-01",
-  rooms: { ...DEFAULT_MOVING_ROOMS },
-  heroes: [PARENT, TWELVE, SIX],
-  ...extra,
-});
-
-const roomsWithout = (...gone: MovingRoomId[]): Partial<Record<MovingRoomId, number>> => {
-  const rooms = { ...DEFAULT_MOVING_ROOMS };
-  for (const room of gone) delete rooms[room];
-  return rooms;
-};
-
-/** The pack and the house cells for a family, the way the setup builds them */
-const houseFor = (extra: Partial<MovingAnswers> = {}) => {
-  const given = answers(extra);
-  const pack = buildMovingPack(given);
-  return { pack, cells: houseCellsFor(pack, given)! };
-};
-
 const cellOf = (cells: HouseCell[], id: string): HouseCell => {
   const found = cells.find((cell) => cell.id === id);
   if (!found) throw new Error(`no cell ${id}`);
   return found;
 };
 const idsOf = (cells: HouseCell[]): string[] => cells.map((cell) => cell.id);
-
-/** Setups that shape the house differently: floors, basement, ticked rooms, who plays */
-const EVERYTHING: Partial<Record<MovingRoomId, number>> = {
-  bedroom: 8, bathroom: 5, kitchen: 1, living: 1, dining: 1, laundry: 1, storage: 1, garage: 1, yard: 1, guest: 4, office: 1, pets: 1,
-};
-const SETUPS: [string, Partial<MovingAnswers>][] = [
-  ["the default home", {}],
-  ["two floors", { floors: 2 }],
-  ["two floors and a basement", { floors: 2, basement: true }],
-  ["a basement under a one-floor house", { basement: true }],
-  ["two floors and no bedrooms", { floors: 2, rooms: { ...DEFAULT_MOVING_ROOMS, bedroom: 0 } }],
-  ["no kitchen", { rooms: roomsWithout("kitchen") }],
-  ["no kitchen and no garage", { floors: 2, rooms: roomsWithout("kitchen", "garage") }],
-  ["no kitchen, garage or yard, with a basement", { basement: true, rooms: roomsWithout("kitchen", "garage", "yard") }],
-  ["nothing ticked", { rooms: {} }],
-  ["only the little one", { heroes: [SIX] }],
-  ["only grown-ups", { floors: 2, heroes: [PARENT, { id: "mom", name: "Mom", band: "grownup" }] }],
-  ["a sitting-out hero", { heroes: [PARENT, { id: "baby", name: "Baby", band: "out" }, TWELVE] }],
-  ["every room, two floors, a basement, six heroes", {
-    floors: 2,
-    basement: true,
-    rooms: EVERYTHING,
-    heroes: [PARENT, { id: "mom", name: "Mom", band: "grownup" }, TWELVE, SIX, { id: "teen", name: "Teen", band: "kid" }, { id: "tot", name: "Tot", band: "little" }],
-  }],
-];
 
 describe("houseCellsFor the default home on one floor", () => {
   const { cells } = houseFor();
@@ -361,6 +312,18 @@ describe("houseCellsFor names", () => {
       "move-keep-donate-trash-twelve", "move-books-kid-twelve", "move-backpack-kid-twelve",
       "move-toy-triage-six", "move-dust-bunny-hunt-six",
     ]));
+  });
+});
+
+describe("houseCellsFor lists the junk drawer", () => {
+  it.each([
+    ["kitchen", {}],
+    ["garage", { rooms: roomsWithout("kitchen") }],
+    ["packingPile", { rooms: roomsWithout("kitchen", "garage") }],
+  ] as const)("right after its guard, the %s, before any other cell is placed", (guard, extra) => {
+    const ids = idsOf(houseFor(extra).cells);
+    expect(cellOf(houseFor(extra).cells, "drawer").parents).toEqual([guard]);
+    expect(ids.indexOf("drawer")).toBe(ids.indexOf(guard) + 1);
   });
 });
 

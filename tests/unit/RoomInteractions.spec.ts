@@ -6,10 +6,13 @@ import {
   buyWare,
   clearTemple,
   onEnterRoom,
+  readExits,
   resetVisitMemory,
   roomActions,
+  type RoomContext,
   type RoomOutcome,
 } from "@/lib/services/temples/RoomInteractions";
+import { bombInPack, useItem } from "@/lib/services/temples/ItemUse";
 import { useUserStore } from "@/lib/store/stores/user";
 import { addHero, contextAt, dice, dungeons, enter, hero, hp, makeTemple, mp, temples, wallet } from "./templeFixtures";
 
@@ -57,6 +60,10 @@ const withRoom = (room: Room, extra: Record<string, Room> = {}) => {
 
 const labels = (sheet: { actions: Array<{ label: string }> }) => sheet.actions.map((action) => action.label);
 const run = async (sheet: ReturnType<typeof roomActions>, index = 0): Promise<RoomOutcome> => sheet.actions[index].run();
+
+/** Tap a tool in the hand, as the temple footer does: a stored copy, no live catalog needed. */
+const useTool = (name: string, room: Room, ctx: RoomContext) =>
+  useItem({ name }, { ...ctx, room, exits: readExits(ctx.templeId, ctx.level, ctx.position), catalog: [] });
 
 describe("the sheet of every room type", () => {
   const types: Array<[string, Room, string, string[]]> = [
@@ -332,6 +339,19 @@ describe("puzzles", () => {
     expect(outcome.riddle).toMatchObject({ id: "stonePillars", choices: expect.any(Array) });
     expect(outcome.riddle!.choices).toHaveLength(3);
     expect(outcome.riddle).not.toHaveProperty("answer");
+    expect(outcome.riddle).not.toHaveProperty("faded");
+  });
+
+  it("fades one wrong answer under Night's Light, every time the riddle opens this visit", async () => {
+    const { room, ctx } = lockedCorridor();
+    useTool("Night's Light", room, ctx);
+
+    const riddle = (await run(roomActions(room, ctx))).riddle!;
+
+    expect(riddle.choices).toHaveLength(3); // the screen leaves the faded one out
+    expect(riddle.faded).toEqual([0]); // stonePillars: the answer is 2, the first wrong one fades
+    expect((await run(roomActions(room, ctx))).riddle!.faded).toEqual([0]);
+    expect(mp()).toBe(0);
   });
 
   it("falls back to a generic riddle for a puzzle it does not know", async () => {
@@ -397,16 +417,29 @@ describe("shops", () => {
     expect(outcome.gp).toBe(100);
     expect(outcome.wares).toEqual([
       expect.objectContaining({ id: "potion-of-vigor", name: "Potion of Vigor", price: 15 }),
+      { id: "bomb", name: "Bomb", price: 20, blurb: "blows open a locked door" },
       expect.objectContaining({ id: "special:EarthquakeScroll", name: "Earthquake Scroll", price: 50 }),
     ]);
   });
 
-  it("always sells the potion, even in a shop with no special item", async () => {
+  it("always sells the potion and Bombs, even in a shop with no special item", async () => {
     const { room, ctx } = withRoom({ type: "shop" });
 
     const outcome = await run(roomActions(room, ctx));
 
-    expect(outcome.wares!.map((ware) => ware.id)).toEqual(["potion-of-vigor"]);
+    expect(outcome.wares!.map((ware) => ware.id)).toEqual(["potion-of-vigor", "bomb"]);
+  });
+
+  it("sells Bombs into the pack, one at a time and as often as the hero likes", () => {
+    const { id, room, ctx } = shop();
+
+    expect(buyWare(room, ctx, "bomb")).toEqual({ message: "A Bomb is in your bag.", sound: "buyItem" });
+    expect(wallet()).toBe(80);
+    expect(hero().inventory).toEqual([expect.objectContaining({ name: "Bomb", qty: 1, source: id })]);
+
+    expect(buyWare(room, ctx, "bomb").sound).toBe("buyItem");
+    expect(wallet()).toBe(60);
+    expect(bombInPack(hero().id)?.qty).toBe(2);
   });
 
   it("sells a potion that heals 20 HP now", () => {
@@ -483,6 +516,26 @@ describe("shops", () => {
       expect(buyWare(room, ctx, "special:EarthquakeScroll").sound).toBe("error");
       expect(wallet()).toBe(100);
       expect(hero().storage).toHaveLength(10);
+    });
+
+    it("keeps the GP when a Bomb will not fit", () => {
+      const { room, ctx } = shop();
+      fullBag();
+
+      expect(buyWare(room, ctx, "bomb")).toEqual({ message: "Your bag is full. Store something at home first.", sound: "error" });
+      expect(wallet()).toBe(100);
+      expect(hero().inventory).toHaveLength(20);
+      expect(bombInPack(hero().id)).toBeNull();
+    });
+
+    it("adds a Bomb to a Bomb stack the full bag already holds", () => {
+      const { room, ctx } = shop();
+      fullBag();
+      hero().inventory[0] = { name: "Bomb", kind: "consumable", qty: 1 };
+
+      expect(buyWare(room, ctx, "bomb").sound).toBe("buyItem");
+      expect(wallet()).toBe(80);
+      expect(bombInPack(hero().id)?.qty).toBe(2);
     });
 
     it("still sells the Potion of Vigor, which is drunk on the spot and needs no room", () => {
@@ -856,6 +909,38 @@ describe("secret chambers, saves and pick-ups", () => {
 
     temples.moveToPosition(id, [0, 1], "east");
     expect(temples.getRoomVisibility(id, [0, 1])).toBe(MapVisibility.FULL_DETAILS);
+  });
+
+  it("shows on the map, unvisited, once Gaia's Quake has shaken the floor", () => {
+    const id = makeTemple({ E: { type: "entrance" }, S: { type: "secret" } }, [["E", "S"]]);
+    enter(id, [0, 0]);
+    const state = temples.getTempleState(id)!;
+
+    useTool("Gaia's Quake", dungeons.getRoom(id, [0, 0])!, contextAt(id, [0, 0]));
+
+    // revealed without the map; it shows once the map is held
+    expect(temples.getRoomVisibility(id, [0, 1])).toBe(MapVisibility.NONE);
+    state.hasMap = true;
+    expect(temples.getRoomVisibility(id, [0, 1])).not.toBe(MapVisibility.NONE);
+    expect(temples.getRoomVisibility(id, [0, 1])).toBe(MapVisibility.LAYOUT_ONLY);
+    state.hasCompass = true;
+    expect(temples.shouldShowRoomDetails(id, [0, 1])).toBe(true);
+    expect(temples.hasVisited(id, [0, 1])).toBe(false);
+  });
+
+  it("counts the secret rooms a floor still hides, once a visit", () => {
+    const id = makeTemple(
+      { E: { type: "entrance" }, S: { type: "secret" }, T: { type: "secret" } },
+      { "1F": [["E", "S", "T"]], "2F": [["E", "S"]] }
+    );
+    enter(id, [0, 0]);
+    temples.moveToPosition(id, [0, 1], "east"); // one of them stood in already
+
+    expect(temples.revealSecrets(id, "1F")).toBe(1);
+    expect(temples.revealSecrets(id, "1F")).toBe(0);
+    expect(temples.revealSecrets(id, "2F")).toBe(1);
+    expect(temples.revealSecrets(id, "3F")).toBe(0);
+    expect(temples.revealSecrets("no-such-temple", "1F")).toBe(0);
   });
 
   it("saves the journey", async () => {

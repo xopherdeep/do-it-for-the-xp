@@ -31,6 +31,9 @@ export const POTIONS: Record<string, PotionRule> = {
   'Hi-Potion': { hp: 50, effect: 'Restores 50 HP' },
   'X-Potion': { hp: 100, effect: 'Restores 100 HP' },
   'Mega Potion': { hp: 200, effect: 'Restores 200 HP' },
+  /** What the Bottles take from a temple spring (ItemUse): a spring's small measure, never a potion's. */
+  'Spring Water': { hp: 10, effect: 'Restores 10 HP' },
+  'Silver Water': { mp: 10, effect: 'Restores 10 MP' },
 };
 
 /** Match a potion rule by name, case-insensitively and handling spacing/hyphens. */

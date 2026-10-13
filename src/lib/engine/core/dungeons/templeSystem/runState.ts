@@ -40,6 +40,8 @@ export interface TempleState {
   takenFromChests?: Set<string>;
   /** Key items the temple handed out; kept across blood moons */
   keyItems?: string[];
+  /** Floors whose secret rooms Gaia's Quake put on the map (revealSecrets). Not saved: it lasts the visit */
+  revealedSecretFloors?: Set<string>;
   timesCleared?: number;
   bloodMoons?: number;
   /** ISO time of the blood moon the Game Master scheduled next; carried so a save does not lose it */

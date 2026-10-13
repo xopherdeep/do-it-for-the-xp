@@ -144,6 +144,14 @@ export class TempleSystem {
     return runState.isRoomCleared(this.runs, templeId, level, position);
   }
 
+  /**
+   * X's Invisibility: the doors a fight sealed open without the fight. The room is not cleared (and its quest room
+   * state is not touched), so walking back in seals it again.
+   */
+  public slipOut(templeId: string, level: string, position: [number, number]): void {
+    this.unsealRoom(templeId, level, position);
+  }
+
   // --- Quest rooms follow the hero's quest board (docs/Quest-Rooms-Spec.md 7.1; templeSystem/questRooms.ts) ---
 
   /**
@@ -393,6 +401,15 @@ export class TempleSystem {
   /** Reveal the whole temple to the hero: the map and the compass. */
   public grantMapAndCompass(templeId: string): boolean {
     return visibility.grantMapAndCompass(this.runs, templeId);
+  }
+
+  /**
+   * Gaia's Quake: the secret rooms of `level` the hero has not stood in go on the map for the rest of the visit (not
+   * saved); they show once the hero holds the map.
+   * @returns How many it revealed: 0 when the floor hides none, or was revealed already
+   */
+  public revealSecrets(templeId: string, level: string): number {
+    return visibility.revealSecrets(this.runs, templeId, level);
   }
 
   /** One more key in the hero's hand. */

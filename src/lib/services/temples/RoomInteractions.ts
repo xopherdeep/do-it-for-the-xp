@@ -42,7 +42,7 @@ export type {
   RoomSheet,
   Ware,
 } from './roomInteractions/vocabulary';
-export { hasHappened, randomInt, rememberOnce, resetVisitMemory, templeKey } from './roomInteractions/visitMemory';
+export { hasHappened, randomInt, rememberOnce, resetVisitMemory, roomKey, templeKey } from './roomInteractions/visitMemory';
 export { earnGold, healHero, hurtHero, readGold, readPoints, restoreMana } from './roomInteractions/hero';
 export { doorActions, readExits } from './roomInteractions/travel';
 export type { Exit, Exits } from './roomInteractions/travel';
@@ -189,7 +189,7 @@ export const roomActions = (given: Room | undefined, ctx: RoomContext): RoomShee
     case 'puzzle': {
       if (spent(ctx, 'puzzle')) return sheet('The glyphs have faded.');
       return sheet('Glyphs cover the wall.', [
-        act('Study the glyphs', () => ({ intent: 'riddle', riddle: publicRiddle(riddleFor(room)) })),
+        act('Study the glyphs', () => ({ intent: 'riddle', riddle: publicRiddle(riddleFor(room), spent(ctx, 'moonlit')) })),
       ]);
     }
 

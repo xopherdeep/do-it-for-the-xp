@@ -5,6 +5,36 @@
 import { DIRECTIONS, STEP } from "@/lib/engine/dungeons/generator";
 import type { HouseCell } from "@/lib/services/core/packs/movingTemple/houseRooms";
 import { HOUSE_FRAME, planHouse, type HousePlan, type PlacedCell } from "@/lib/services/core/packs/movingTemple/housePlanner";
+import { SETUPS, houseFor } from "./movingHouseFixtures";
+
+jest.mock("@/lib/databases/AbilitiesDb", () => ({ __esModule: true, abilitiesStorage: { sentinel: "abilities" } }));
+jest.mock("@/lib/databases/AccessoriesDb", () => ({
+  __esModule: true,
+  accessoriesStorage: { sentinel: "accessories" },
+  AccessoryType: { RealLife: "real", Virtual: "virtual" },
+  Rarity: { Common: 0, Uncommon: 1, Rare: 2, Epic: 3, Legendary: 4 },
+}));
+jest.mock("@/lib/databases/AchievementDb", () => ({
+  __esModule: true,
+  achievementStorage: { sentinel: "achievements" },
+  achievementCategoryStorage: { sentinel: "achievementCategories" },
+}));
+jest.mock("@/lib/databases/BestiaryDb", () => ({ __esModule: true, beastStorage: { sentinel: "beasts" } }));
+jest.mock("@/lib/databases/ChatDb", () => ({ __esModule: true, chatStorage: { sentinel: "chat" } }));
+jest.mock("@/lib/databases/DosDontsDb", () => ({ __esModule: true, dosDontsStorage: { sentinel: "dosDonts" } }));
+jest.mock("@/lib/databases/profileStorage", () => ({ __esModule: true, profileStorage: { sentinel: "profiles" } }));
+jest.mock("@/lib/databases/PurchaseLogDb", () => ({ __esModule: true, purchaseLogStorage: { sentinel: "purchaseLog" } }));
+jest.mock("@/lib/databases/QuestLogDb", () => ({ __esModule: true, questLogStorage: { sentinel: "questLog" } }));
+jest.mock("@/lib/databases/ShopsDb", () => ({
+  __esModule: true,
+  shopStorage: { sentinel: "shops" },
+  ShopItemType: { Ability: 0, Accessory: 1 },
+}));
+jest.mock("@/lib/databases/TempleDb", () => ({ __esModule: true, templeStorage: { sentinel: "temples" } }));
+jest.mock("@/lib/databases/TempleProgressDb", () => ({ __esModule: true, templeProgressStorage: { sentinel: "templeProgress" } }));
+jest.mock("@/lib/services/core/StorageService", () => ({ __esModule: true, default: { saveProfiles: jest.fn() } }));
+jest.mock("@/router/_Guards/gm.guard", () => ({ __esModule: true, canManageFamily: () => true, RESTORE_GM_ONLY_MESSAGE: "GM only" }));
+jest.mock("@/lib/store/stores/user", () => ({ __esModule: true, useUserStore: () => ({ loadUsers: jest.fn() }) }));
 
 /** A cell with only what a test cares about; everything else is a plain fight room on the ground floor */
 const cell = (id: string, overrides: Partial<HouseCell> = {}): HouseCell => ({
@@ -268,7 +298,26 @@ describe("planHouse", () => {
       expect(placedOf(plan, "extra")).toMatchObject({ row: north.row - 1, col: north.col, via: "n" });
     });
 
-    it("crosses only cells of its own zone", () => {
+    it("walks the cells of the zone a link cell comes from, so the locked wing finds a side of the house", () => {
+      const plan = planHouse(
+        [
+          porchAt(4, 4),
+          cell("hall", { at: [3, 4] }),
+          cell("north", { at: [2, 4] }),
+          cell("east", { at: [3, 5] }),
+          cell("van", { at: [3, 3], zone: "driveway" }),
+          cell("garage", { parents: ["hall"], prefer: ["west", "east"], zone: "wing", lockedFromParent: true }),
+        ],
+        "seed",
+      );
+      // The hall is boxed in, so the walk goes hall, north (its first house neighbour), and takes north's own north side
+      const north = placedOf(plan, "north");
+      const garage = placedOf(plan, "garage");
+      expect(garage).toMatchObject({ row: north.row - 1, col: north.col, via: "north" });
+      expect(touching(plan, garage).map((placed) => placed.cell.id)).toEqual(["north"]);
+    });
+
+    it("never moves the junk drawer away from its guard", () => {
       const cells = [
         porchAt(0, 0),
         cell("south", { at: [1, 0] }),
@@ -296,6 +345,41 @@ describe("planHouse", () => {
       expect(() => planHouse([porchAt(4, 4), cell("twin", { name: "Twin spot", at: [4, 4] })], "seed")).toThrow(
         "The house has no room for Twin spot",
       );
+    });
+  });
+
+  describe("the real house", () => {
+    const SEEDS = ["gen-move-house", "a", "b", "c"];
+    const HOUSES = SETUPS.map(([label, extra]) => [label, houseFor(extra).cells] as const);
+    const CASES = HOUSES.flatMap(([label, cells]) => SEEDS.map((seed) => [`${label}, seed ${seed}`, cells, seed] as const));
+
+    it.each(CASES)("%s", (_label, cells, seed) => {
+      const plan = planHouse(cells, seed);
+      expect(plan.cells).toHaveLength(cells.length);
+
+      // Every floor fits the frame
+      expect(plan.rows).toBeLessThanOrEqual(HOUSE_FRAME);
+      expect(plan.cols).toBeLessThanOrEqual(HOUSE_FRAME);
+      for (const placed of plan.cells) {
+        expect(placed.row).toBeGreaterThanOrEqual(0);
+        expect(placed.col).toBeGreaterThanOrEqual(0);
+        expect(placed.row).toBeLessThan(plan.rows);
+        expect(placed.col).toBeLessThan(plan.cols);
+      }
+
+      // The junk drawer touches only the guard it hangs off
+      for (const drawer of plan.cells.filter((placed) => placed.cell.kind === "masterKey")) {
+        expect(drawer.via).toBe(drawer.cell.parents[0]);
+        expect(touching(plan, drawer).map((placed) => placed.cell.id)).toEqual([drawer.via]);
+      }
+
+      // The locked wing touches only the cell it was placed beside
+      for (const wing of plan.cells.filter((placed) => placed.cell.zone === "wing")) {
+        expect(touching(plan, wing).map((placed) => placed.cell.id)).toEqual([wing.via]);
+      }
+
+      // The van touches only the porch and Last look
+      expect(touching(plan, placedOf(plan, "van")).map((placed) => placed.cell.id).sort()).toEqual(["lastLook", "porch"]);
     });
   });
 });

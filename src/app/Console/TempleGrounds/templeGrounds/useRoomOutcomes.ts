@@ -129,7 +129,10 @@ export const useRoomOutcomes = (deps: RoomOutcomeDeps) => {
       kind: 'riddle',
       title: 'The Glyphs',
       body: riddle.question,
-      choices: riddle.choices.map((label, index) => ({ id: String(index), label })),
+      // Night's Light faded a wrong answer: its button is left out, the others keep their index as id
+      choices: riddle.choices
+        .map((label, index) => ({ id: String(index), label }))
+        .filter((choice) => !riddle.faded?.includes(Number(choice.id))),
       onChoose: (id) => {
         void applyOutcome(answerRiddle(room, ctx, Number(id)));
       },

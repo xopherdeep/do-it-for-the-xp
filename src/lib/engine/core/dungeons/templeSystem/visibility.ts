@@ -3,8 +3,9 @@
  * TempleSystem's map methods delegate here; each one documents its contract.
  */
 
+import { roomPositionKey } from '../DungeonManager';
 import { hasVisited } from './runState';
-import type { TempleRuns } from './runState';
+import type { TempleRuns, TempleState } from './runState';
 
 // Map Visibility Types
 export enum MapVisibility {
@@ -21,6 +22,36 @@ export function grantMapAndCompass(runs: TempleRuns, templeId: string): boolean 
   templeState.hasCompass = true;
   runs.queueSave(templeId);
   return true;
+}
+
+/** Gaia's Quake shook the floor the hero stands on: its secret rooms are on the map, visited or not. */
+const isFloorRevealed = (templeState: TempleState): boolean =>
+  Boolean(templeState.revealedSecretFloors?.has(templeState.currentLevel));
+
+/**
+ * Gaia's Quake: put the secret rooms of `level` the hero has not stood in on the map for the rest of the visit
+ * (not saved). They show once the hero holds the map, as every room does.
+ * @returns How many it revealed: 0 when the floor hides none, or was revealed already (nothing is remembered then)
+ */
+export function revealSecrets(runs: TempleRuns, templeId: string, level: string): number {
+  const templeState = runs.templeStates[templeId];
+  const isAlreadyRevealed = !templeState || Boolean(templeState.revealedSecretFloors?.has(level));
+  if (isAlreadyRevealed) return 0;
+
+  let hidden = 0;
+  runs.dungeonManager.getMazeGrid(templeId, level).forEach((row, r) => {
+    row.forEach((_, c) => {
+      const position: [number, number] = [r, c];
+      const visited = runs.dungeonManager.hasVisited(templeId, position, level) || templeState.visitedRooms.has(roomPositionKey(level, position));
+      const isHiddenSecret = runs.dungeonManager.getRoom(templeId, position, level)?.type === 'secret' && !visited;
+      if (isHiddenSecret) hidden++;
+    });
+  });
+  if (hidden === 0) return 0;
+
+  if (!templeState.revealedSecretFloors) templeState.revealedSecretFloors = new Set<string>();
+  templeState.revealedSecretFloors.add(level);
+  return hidden;
 }
 
 export function getRoomVisibility(runs: TempleRuns, templeId: string, position: [number, number]): MapVisibility {
@@ -41,8 +72,8 @@ export function getRoomVisibility(runs: TempleRuns, templeId: string, position: 
   // Check if room has been visited
   const isVisited = hasVisited(runs, templeId, position);
 
-  // A secret chamber stays off the map, compass or not, until the hero has stood in it
-  const isHiddenSecret = room?.type === 'secret' && !isVisited;
+  // A secret chamber stays off the map, compass or not, until the hero has stood in it or Gaia's Quake shook the floor
+  const isHiddenSecret = room?.type === 'secret' && !isVisited && !isFloorRevealed(templeState);
   if (isHiddenSecret) return MapVisibility.NONE;
   
   // Return full details if the room is visited or player has compass
@@ -61,7 +92,8 @@ export function shouldShowRoomDetails(runs: TempleRuns, templeId: string, positi
   if (hasNoMap) return false;
 
   const visited = hasVisited(runs, templeId, position);
-  const isHiddenSecret = !visited && runs.dungeonManager.getRoom(templeId, position, templeState.currentLevel)?.type === 'secret';
+  const isHiddenSecret =
+    !visited && !isFloorRevealed(templeState) && runs.dungeonManager.getRoom(templeId, position, templeState.currentLevel)?.type === 'secret';
   if (isHiddenSecret) return false;
   
   return templeState.hasCompass || visited;
