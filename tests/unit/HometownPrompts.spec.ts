@@ -16,12 +16,15 @@ import {
   conciergeMenuPrompt,
   conciergeNotice,
   courierLatePrompt,
+  forbiddenPrompt,
   linkResultNotice,
   linkedStatusPrompt,
   nurseMenuChoices,
   nurseMenuPrompt,
   nurseNotice,
   phoneAppRegistrationNotice,
+  postedNotice,
+  registerAgainPrompt,
   registrationPrompt,
   roomConfirmPrompt,
   roomReceiptLine,
@@ -276,5 +279,58 @@ describe("the clerk's Family Registration", () => {
       accent: "townHall",
       lines: ["For now, register from the web version of the game. The phone app will learn it soon."],
     });
+  });
+});
+
+describe("the clerk's posting lines", () => {
+  it("says what happens to a post just kept, in the clerk's voice, with the stone tablet rising", () => {
+    const lines = {
+      "to-gm": "*pins it to the desk* Your Game Master will read it first.",
+      "to-site": "*stamps it* Sent! It shows up once it's approved.",
+      bug: "*files it carefully* Thanks! The developers will see it.",
+      "on-file-hero": "*files it* I'll keep it until your Game Master registers the family.",
+      "on-file-gm": "*files it* I'll send it once your family is registered.",
+    } as const;
+    for (const [outcome, line] of Object.entries(lines)) {
+      expect(postedNotice(outcome as keyof typeof lines)).toMatchObject({
+        speaker: CLERK,
+        accent: "townHall",
+        sprite: "tablet",
+        lines: [line],
+        cancelId: "ok",
+      });
+    }
+  });
+
+  it("says the family must register again, to anyone", () => {
+    expect(registerAgainPrompt()).toMatchObject({
+      speaker: CLERK,
+      accent: "townHall",
+      lines: ["The Town Hall no longer recognizes your family. Your Game Master needs to register again."],
+      cancelId: "ok",
+    });
+  });
+
+  it("offers a Game Master to redo a registration that is not finished, or never mind", () => {
+    const prompt = forbiddenPrompt(true);
+    expect(prompt).toMatchObject({
+      speaker: CLERK,
+      accent: "townHall",
+      sprite: "tablet",
+      lines: ["Your registration isn't finished. Shall we redo it?"],
+      cancelId: "never",
+    });
+    expect(prompt.choices.map((choice) => [choice.id, choice.label, choice.icon])).toEqual([
+      ["redo", "Redo it", "file-signature"],
+      ["never", "Never mind", "times"],
+    ]);
+    expect(prompt.choices[1].tone).toBe("ghost");
+  });
+
+  it("tells a hero to ask the Game Master, with nothing to redo", () => {
+    const prompt = forbiddenPrompt(false);
+    expect(prompt.lines).toEqual(["Your family's registration isn't finished. Ask your Game Master."]);
+    expect(prompt.choices.map((choice) => choice.id)).toEqual(["ok"]);
+    expect(prompt.cancelId).toBe("ok");
   });
 });

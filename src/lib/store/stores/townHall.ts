@@ -8,6 +8,7 @@ import { fetchBoards } from "@/lib/services/townhall/townHallFeed";
 import { readLinkReturn, type LinkReturn } from "@/lib/services/townhall/townHallLink";
 import {
   approvePost,
+  canDismiss,
   editPost,
   newPost,
   recover,
@@ -19,7 +20,7 @@ import {
 } from "@/lib/services/townhall/townHallOutbox";
 import { bugEnvironment, draftProblem, requestFor, type PostDraft, type PostRequest } from "@/lib/services/townhall/townHallPosts";
 import { appVersion, hostNonce, townHallSiteUrl, type TownHallBoardSlug } from "@/lib/services/townhall/townHallSite";
-import type { PostStatus, TownHallLink, TownHallPost } from "@/lib/services/townhall/townHallTypes";
+import type { TownHallLink, TownHallPost } from "@/lib/services/townhall/townHallTypes";
 
 /** What coming back from WordPress's "authorize this app" page came to: nothing there, turned down, or a checked link. */
 export type LinkResult = "linked" | "rejected" | "none" | "failed";
@@ -59,9 +60,6 @@ interface FlushRun {
   /** The site's board ids, read when the first topic needs them. */
   boardIds: BoardIds | null;
 }
-
-/** The posts a hero or a Game Master may clear from their list. A post waiting, queued or in the air stays. */
-const DISMISSABLE: ReadonlySet<PostStatus> = new Set<PostStatus>(["rejected", "failed", "sent"]);
 
 /** What a send that did not come back with a post: the site's refusal as it is, anything else as a server error. */
 function failureOf(error: unknown): SendResult {
@@ -289,8 +287,8 @@ export const useTownHallStore = defineStore("townHall", () => {
   async function dismiss(id: string): Promise<void> {
     await init();
     const current = posts.value.find((post) => post.id === id);
-    const canDismiss = current !== undefined && DISMISSABLE.has(current.status);
-    if (!canDismiss) return;
+    const mayDismiss = current !== undefined && canDismiss(current);
+    if (!mayDismiss) return;
     posts.value = posts.value.filter((post) => post.id !== id);
     await persistPosts();
   }

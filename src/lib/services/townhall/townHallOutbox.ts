@@ -92,6 +92,44 @@ export function sendable(posts: TownHallPost[]): TownHallPost[] {
   return posts.filter((post) => post.status === "queued").sort((a, b) => a.createdAt - b.createdAt);
 }
 
+/** The posts a hero or a Game Master may clear from their list. A post waiting, queued or in the air stays. */
+const DISMISSABLE: ReadonlySet<PostStatus> = new Set<PostStatus>(["rejected", "failed", "sent"]);
+
+/** Whether the post may be cleared from the list: the Game Master turned it down, the site refused it, or it is sent. */
+export function canDismiss(post: TownHallPost): boolean {
+  return DISMISSABLE.has(post.status);
+}
+
+const WAITING_LABELS: Record<PostStatus, string> = {
+  "awaiting-gm": "Waiting for your Game Master",
+  rejected: "Not approved",
+  queued: "Waiting to send",
+  sending: "Waiting to send",
+  failed: "Couldn't send",
+  sent: "Sent",
+};
+
+/** What the hero reads on a post that is not on the site yet: what it waits for, or the site's words when it was refused. */
+export function waitingLabel(post: TownHallPost): string {
+  const label = WAITING_LABELS[post.status];
+  const hasReason = post.status === "failed" && Boolean(post.error);
+  return hasReason ? `${label}: ${post.error}` : label;
+}
+
+/** What the clerk tells a hero who has just posted: the line to say (hometownPrompts `postedNotice`). */
+export type PostedOutcome = "to-gm" | "to-site" | "bug" | "on-file-hero" | "on-file-gm";
+
+/**
+ * How a post that was just kept goes on. A post awaiting the Game Master goes to the Game Master, linked or not. Any
+ * other waits for a registration the family lacks (on file, and whose it is to register), or goes out: a bug report to
+ * the developers, a Game Master's topic or comment to the site.
+ */
+export function postedOutcome(post: TownHallPost, linked: boolean, isGameMaster: boolean): PostedOutcome {
+  if (post.status === "awaiting-gm") return "to-gm";
+  if (!linked) return isGameMaster ? "on-file-gm" : "on-file-hero";
+  return post.kind === "bug" ? "bug" : "to-site";
+}
+
 /** A hero's posts the site does not have yet (waiting, queued, sending, rejected, failed), newest first. */
 export function waitingFor(posts: TownHallPost[], heroId: string): TownHallPost[] {
   return posts

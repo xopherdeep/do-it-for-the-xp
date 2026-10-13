@@ -11,6 +11,7 @@ import {
 } from '@/components/organisms/RevealPrompt/revealPrompt';
 import { copyFor } from '@/lib/services/copy/copy';
 import type { Voice } from '@/lib/services/copy/voices';
+import type { PostedOutcome } from '@/lib/services/townhall/townHallOutbox';
 import { HEAL_COST, REVIVE_COST, ROOM_COST } from './Lodging';
 import type { BenchQuote, CareKind, CareQuote } from './Lodging';
 
@@ -261,3 +262,38 @@ export const unlinkResultNotice = (result: 'forgotten' | 'removed-here-only'): R
 /** The phone app cannot register the family yet (removed when it can). */
 export const phoneAppRegistrationNotice = (): RevealPromptOptions =>
   clerkNotice('For now, register from the web version of the game. The phone app will learn it soon.');
+
+// ---------------------------------------------------------------------------------------------------------------
+// The Town Hall: writing posts (what the clerk says once a post is kept, and when the site turns the family away)
+// ---------------------------------------------------------------------------------------------------------------
+
+const POSTED_LINES: Record<PostedOutcome, string> = {
+  'to-gm': '*pins it to the desk* Your Game Master will read it first.',
+  'to-site': "*stamps it* Sent! It shows up once it's approved.",
+  bug: '*files it carefully* Thanks! The developers will see it.',
+  'on-file-hero': "*files it* I'll keep it until your Game Master registers the family.",
+  'on-file-gm': "*files it* I'll send it once your family is registered.",
+};
+
+/** What the clerk says once a post is kept: where it goes next, or that it waits for the family to be registered. */
+export const postedNotice = (outcome: PostedOutcome): RevealPromptOptions => clerkNotice(POSTED_LINES[outcome]);
+
+/** The site no longer accepts the family's registration (the link was given up). */
+export const registerAgainPrompt = (): RevealPromptOptions =>
+  clerkNotice('The Town Hall no longer recognizes your family. Your Game Master needs to register again.');
+
+/** The site knows the family but its account may not post. A Game Master may redo the registration; a hero is sent to them. */
+export const forbiddenPrompt = (isGameMaster: boolean): RevealPromptOptions => {
+  if (!isGameMaster) return clerkNotice("Your family's registration isn't finished. Ask your Game Master.");
+  return {
+    speaker: CLERK,
+    accent: 'townHall',
+    sprite: 'tablet',
+    lines: ["Your registration isn't finished. Shall we redo it?"],
+    choices: [
+      { id: 'redo', label: 'Redo it', icon: 'file-signature', tone: 'primary' },
+      { id: 'never', label: 'Never mind', icon: 'times', tone: 'ghost' },
+    ],
+    cancelId: 'never',
+  };
+};

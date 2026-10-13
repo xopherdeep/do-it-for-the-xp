@@ -1,13 +1,16 @@
 import {
   approvePost,
+  canDismiss,
   editPost,
   newPost,
+  postedOutcome,
   recover,
   rejectPost,
   sendable,
   settle,
   startSending,
   waitingFor,
+  waitingLabel,
 } from "@/lib/services/townhall/townHallOutbox";
 import type { PostDraft } from "@/lib/services/townhall/townHallPosts";
 import type { TownHallPost } from "@/lib/services/townhall/townHallTypes";
@@ -255,6 +258,62 @@ describe("waitingFor", () => {
     ];
     expect(waitingFor(posts, "hero-1").map((p) => p.id)).toEqual(["new", "bad", "no", "old"]);
     expect(posts[0].id).toBe("old");
+  });
+});
+
+describe("canDismiss", () => {
+  it("lets a rejected, failed or sent post be cleared and keeps every other post", () => {
+    const dismissable = (["awaiting-gm", "queued", "sending", "sent", "rejected", "failed"] as const).filter((status) =>
+      canDismiss(post({ status })),
+    );
+    expect(dismissable).toEqual(["sent", "rejected", "failed"]);
+  });
+});
+
+describe("waitingLabel", () => {
+  it("says what each post waits for, in the words the hero reads", () => {
+    expect(waitingLabel(post({ status: "awaiting-gm" }))).toBe("Waiting for your Game Master");
+    expect(waitingLabel(post({ status: "rejected" }))).toBe("Not approved");
+    expect(waitingLabel(post({ status: "queued" }))).toBe("Waiting to send");
+    expect(waitingLabel(post({ status: "sending" }))).toBe("Waiting to send");
+    expect(waitingLabel(post({ status: "sent" }))).toBe("Sent");
+  });
+
+  it("gives the site's words for a post it refused", () => {
+    expect(waitingLabel(post({ status: "failed", error: "Title is required" }))).toBe("Couldn't send: Title is required");
+  });
+
+  it("keeps a retried post's old error to itself: it only waits to send", () => {
+    expect(waitingLabel(post({ status: "queued", error: "offline" }))).toBe("Waiting to send");
+  });
+
+  it("does not leave the reason blank when a failed post has none", () => {
+    expect(waitingLabel(post({ status: "failed" }))).toBe("Couldn't send");
+  });
+});
+
+describe("postedOutcome", () => {
+  const kept = (over: Partial<TownHallPost>) => post(over);
+
+  it("tells a hero's topic or comment it waits for the Game Master, linked or not", () => {
+    expect(postedOutcome(kept({ status: "awaiting-gm" }), true, false)).toBe("to-gm");
+    expect(postedOutcome(kept({ status: "awaiting-gm", kind: "comment" }), false, false)).toBe("to-gm");
+  });
+
+  it("tells a registered Game Master their own topic or comment goes to the site", () => {
+    expect(postedOutcome(kept({ status: "queued" }), true, true)).toBe("to-site");
+    expect(postedOutcome(kept({ status: "queued", kind: "comment" }), true, true)).toBe("to-site");
+  });
+
+  it("tells anyone of a registered family that a bug report goes to the developers", () => {
+    expect(postedOutcome(kept({ status: "queued", kind: "bug" }), true, false)).toBe("bug");
+    expect(postedOutcome(kept({ status: "queued", kind: "bug" }), true, true)).toBe("bug");
+  });
+
+  it("keeps a post on file while the family is not registered, and says who registers it", () => {
+    expect(postedOutcome(kept({ status: "queued", kind: "bug" }), false, false)).toBe("on-file-hero");
+    expect(postedOutcome(kept({ status: "queued" }), false, true)).toBe("on-file-gm");
+    expect(postedOutcome(kept({ status: "queued", kind: "bug" }), false, true)).toBe("on-file-gm");
   });
 });
 

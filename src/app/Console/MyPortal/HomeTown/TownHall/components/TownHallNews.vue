@@ -41,6 +41,16 @@
             Comments
             <ion-icon slot="end" :icon="isOpen(news.id) ? chevronUpOutline : chatbubblesOutline"></ion-icon>
           </ion-button>
+          <ion-button
+            size="small"
+            fill="clear"
+            color="rpg"
+            data-cy="th-comment"
+            @click="emit('comment', { postId: news.id, title: plainText(news.title) })"
+          >
+            Add comment
+            <ion-icon slot="end" :icon="createOutline"></ion-icon>
+          </ion-button>
           <ion-button size="small" fill="clear" color="rpg" @click="openPost(news.link)">
             Read more
             <ion-icon slot="end" :icon="arrowForwardOutline"></ion-icon>
@@ -73,16 +83,16 @@
 <script setup lang="ts">
 import { onMounted, reactive, ref } from "vue";
 import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, IonChip, IonIcon, IonImg, IonLabel, IonNote } from "@ionic/vue";
-import { arrowForwardOutline, chatbubblesOutline, chevronUpOutline } from "ionicons/icons";
+import { arrowForwardOutline, chatbubblesOutline, chevronUpOutline, createOutline } from "ionicons/icons";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import { fetchComments, fetchNews, type CommentItem, type NewsItem } from "@/lib/services/townhall/townHallFeed";
 import debug from "@/lib/utils/debug";
 import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
-import { formatTownDate } from "./townHallShared";
+import { formatTownDate, plainText, type CommentTarget } from "./townHallShared";
 import { useTownHallLoad } from "./useTownHallLoad";
 
-/** The news, a page at a time, each post with its comments a tap away. The Patch Notes have their own tab. */
-const emit = defineEmits<{ (event: "trouble"): void }>();
+/** The news, a page at a time, each post with its comments a tap away (and a way to add one). The Patch Notes have their own tab. */
+const emit = defineEmits<{ (event: "trouble"): void; (event: "comment", target: CommentTarget): void }>();
 
 const items = ref<NewsItem[]>([]);
 const page = ref(1);

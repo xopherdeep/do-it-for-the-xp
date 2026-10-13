@@ -1,5 +1,8 @@
 <template>
   <div class="th-board">
+    <!-- The hero's own posts the site does not have yet come first, whether or not the Board has arrived -->
+    <town-hall-waiting :posts="waiting" @dismiss="emit('dismiss', $event)" @edit="emit('edit', $event)" />
+
     <xp-loading v-if="loading && !topics.length" />
 
     <ion-card v-else-if="failed && !topics.length" class="th-late" data-cy="th-late">
@@ -32,6 +35,18 @@
         </ion-card-header>
         <ion-card-content>
           <div v-html="sanitizeHtml(topic.content)"></div>
+          <div class="th-post__actions">
+            <ion-button
+              size="small"
+              fill="clear"
+              color="rpg"
+              data-cy="th-comment"
+              @click="emit('comment', { postId: topic.id, title: plainText(topic.title) })"
+            >
+              Reply
+              <ion-icon slot="end" :icon="arrowUndoOutline"></ion-icon>
+            </ion-button>
+          </div>
         </ion-card-content>
       </ion-card>
 
@@ -44,20 +59,36 @@
 
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from "vue";
-import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle } from "@ionic/vue";
+import { IonButton, IonCard, IonCardContent, IonCardHeader, IonCardSubtitle, IonCardTitle, IonIcon } from "@ionic/vue";
+import { arrowUndoOutline } from "ionicons/icons";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import { fetchBoards, fetchTopics, type BoardInfo, type TopicItem } from "@/lib/services/townhall/townHallFeed";
 import type { TownHallBoardSlug } from "@/lib/services/townhall/townHallSite";
+import type { TownHallPost } from "@/lib/services/townhall/townHallTypes";
 import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
-import { formatTownDate } from "./townHallShared";
+import TownHallWaiting from "./TownHallWaiting.vue";
+import { formatTownDate, plainText, type CommentTarget } from "./townHallShared";
 import { useTownHallLoad } from "./useTownHallLoad";
 
 /**
- * One board's topics, a page at a time. The component reads the boards itself (it needs the board's id) and tells the
- * page which of them the site has, so the page can put the picker in its footer.
+ * One board's topics, a page at a time, under the hero's own posts the site does not have yet. The component reads the
+ * boards itself (it needs the board's id) and tells the page which of them the site has, so the page can put the picker
+ * in its footer. A reply, and clearing or fixing a waiting post, are the page's to do.
  */
-const props = defineProps<{ boardSlug: TownHallBoardSlug }>();
-const emit = defineEmits<{ (event: "trouble"): void; (event: "boards", boards: BoardInfo[]): void }>();
+interface BoardProps {
+  boardSlug: TownHallBoardSlug;
+  waiting: TownHallPost[];
+}
+interface BoardEmits {
+  (event: "trouble"): void;
+  (event: "boards", boards: BoardInfo[]): void;
+  (event: "comment", target: CommentTarget): void;
+  (event: "dismiss", id: string): void;
+  (event: "edit", post: TownHallPost): void;
+}
+
+const props = defineProps<BoardProps>();
+const emit = defineEmits<BoardEmits>();
 
 const boards = ref<BoardInfo[]>([]);
 const topics = ref<TopicItem[]>([]);

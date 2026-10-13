@@ -29,11 +29,7 @@ import {
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
 import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
 import { Capacitor } from "@capacitor/core";
-import { useVoice } from "@/hooks/useVoice";
 import {
-  CLERK_ERRANDS,
-  clerkMenuPrompt,
-  comingSoonPrompt,
   courierLatePrompt,
   linkResultNotice,
   linkedStatusPrompt,
@@ -57,9 +53,11 @@ import { usesHashHistory } from "@/router/historyMode";
 import type { BoardInfo } from "@/lib/services/townhall/townHallFeed";
 import TownHallNews from "./components/TownHallNews.vue";
 import TownHallBoard from "./components/TownHallBoard.vue";
+import TownHallCompose from "./components/TownHallCompose.vue";
 import TownHallEvents from "./components/TownHallEvents.vue";
 import TownHallUpdates from "./components/TownHallUpdates.vue";
 import type { TownEvent, TownHallTab, TownStats } from "./components/townHallShared";
+import { useTownHallPosting } from "./components/useTownHallPosting";
 
 /** How many days ahead the events board looks */
 const EVENT_HORIZON_DAYS = 7;
@@ -95,6 +93,7 @@ export default defineComponent({
     XpRevealPrompt,
     TownHallNews,
     TownHallBoard,
+    TownHallCompose,
     TownHallEvents,
     TownHallUpdates,
   },
@@ -186,7 +185,26 @@ export default defineComponent({
     });
 
     const reveal = useRevealPrompt();
-    const { voice } = useVoice();
+
+    // The clerk's counter: the menu, the compose sheet, the hero's waiting list, and sending the queue whenever there is a chance to
+    const heroName = () => {
+      const name = userStore.getUserById(props.userId)?.name;
+      return name?.nick || name?.first || "A hero";
+    };
+    const posting = useTownHallPosting({
+      store: townHall,
+      reveal,
+      userId: () => props.userId,
+      heroName,
+      isGameMaster: () => canAccessGameMaster(),
+      route: () => router.currentRoute.value.path,
+      currentBoard: () => boardSlug.value,
+      registerFamily: () => registerFamily(),
+      redoRegistration: async () => {
+        await townHall.unlink();
+        await registerFamily();
+      },
+    });
 
     // The courier is late: the clerk says so and offers to ask again. One answer at a time, whatever else is talking.
     const newsTab = ref<TownHallTab | null>(null);
@@ -220,6 +238,7 @@ export default defineComponent({
       const returning = readLinkReturn(search).kind !== "none";
       if (returning) window.history.replaceState(strippedState(window.history.state), "", strippedUrl(window.location));
       await loadLink();
+      void posting.sendQueue();
       if (!returning) return;
       let result: LinkResult;
       try {
@@ -229,6 +248,8 @@ export default defineComponent({
         result = "failed";
       }
       if (result === "none") return;
+      // Posts kept before the family was registered go out now, while the clerk talks
+      if (result === "linked") void posting.sendQueue();
       await reveal.ask(linkResultNotice(result, townHall.activeLink?.displayName));
     };
 
@@ -266,15 +287,6 @@ export default defineComponent({
       if (pick === "have") await goToAuthorizePage();
     };
 
-    // The clerk takes the errand in the game's own dialog; the board cannot post any of them yet
-    const talkToClerk = async () => {
-      const pick = await reveal.ask(clerkMenuPrompt(canAccessGameMaster(), voice.value));
-      if (pick === "never") return;
-      if (pick === "registration") return registerFamily();
-      const what = CLERK_ERRANDS[pick as keyof typeof CLERK_ERRANDS];
-      if (what) await reveal.ask(comingSoonPrompt(what, voice.value));
-    };
-
     const openFamilyChat = () => router.push({ name: "town-hall-chat", params: { userId: props.userId } });
 
     onMounted(loadQuestBoard);
@@ -290,7 +302,17 @@ export default defineComponent({
       groupedEvents,
       stats,
       onTrouble,
-      talkToClerk,
+      waiting: posting.waiting,
+      composeSpec: posting.composeSpec,
+      composeOpen: posting.composeOpen,
+      composeSending: posting.sending,
+      composeTrouble: posting.trouble,
+      openComment: posting.openComment,
+      openEdit: posting.openEdit,
+      closeCompose: posting.closeCompose,
+      openClerkMenu: posting.openClerkMenu,
+      sendDraft: posting.sendDraft,
+      dismissPost: posting.dismissPost,
       openFamilyChat,
       newsTab,
       boardTab,

@@ -3,6 +3,7 @@ $th-purple: #280828;
 $th-cream: #e7e6b3;
 $th-yellow: #f7e8a8;
 $th-minty: #68d0b8;
+$th-rose: #ffb4b4;
 
 .town-hall {
   // The tabs and the board picker: a dark menu bar under the page, ringed in the same mint as the cards
@@ -117,6 +118,50 @@ $th-minty: #68d0b8;
 
   .th-more {
     margin: 1rem 1.25rem 0;
+  }
+
+  // The hero's own posts the site does not have yet, above the Board
+  .th-waiting__body {
+    margin: 0 0 8px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    // Long posts show their first lines only
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .th-waiting__status {
+    --background: transparent;
+    --color: #{$th-cream};
+    margin: 0;
+    height: auto;
+    min-height: 32px;
+    border: 1px solid $th-minty;
+
+    ion-label {
+      white-space: normal;
+    }
+
+    &.is-awaiting-gm {
+      --color: #{$th-yellow};
+      border-color: $th-yellow;
+    }
+
+    &.is-rejected,
+    &.is-failed {
+      --color: #{$th-rose};
+      border-color: $th-rose;
+    }
+  }
+
+  .th-waiting__actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 8px;
   }
 
   // What WordPress sends can hold images and embeds wider than a phone

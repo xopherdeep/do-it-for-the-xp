@@ -18,14 +18,24 @@
     <ion-content>
       <!-- Each tab loads the first time it is opened, then stays (and keeps its place) while another is shown -->
       <div class="th-body">
-        <town-hall-news v-if="isOpened('news')" v-show="selectedTab === 'news'" ref="newsTab" @trouble="onTrouble('news')" />
+        <town-hall-news
+          v-if="isOpened('news')"
+          v-show="selectedTab === 'news'"
+          ref="newsTab"
+          @trouble="onTrouble('news')"
+          @comment="openComment"
+        />
         <town-hall-board
           v-if="isOpened('board')"
           v-show="selectedTab === 'board'"
           ref="boardTab"
           :board-slug="boardSlug"
+          :waiting="waiting"
           @boards="onBoards"
           @trouble="onTrouble('board')"
+          @comment="openComment"
+          @dismiss="dismissPost"
+          @edit="openEdit"
         />
         <town-hall-events v-if="isOpened('events')" v-show="selectedTab === 'events'" ref="eventsTab" :groups="groupedEvents" />
         <town-hall-updates
@@ -39,7 +49,7 @@
 
       <!-- The clerk takes errands: the button sits just above the tabs -->
       <ion-fab vertical="bottom" horizontal="center" slot="fixed">
-        <ion-fab-button color="rpg" data-cy="th-clerk" aria-label="Talk to the clerk" @click="talkToClerk">
+        <ion-fab-button color="rpg" data-cy="th-clerk" aria-label="Talk to the clerk" @click="openClerkMenu">
           <ion-icon :icon="addOutline"></ion-icon>
         </ion-fab-button>
       </ion-fab>
@@ -70,6 +80,22 @@
         </ion-segment>
       </ion-toolbar>
     </ion-footer>
+
+    <!-- Writing a topic, a comment or a bug report: the sheet keeps its last words until it opens again -->
+    <town-hall-compose
+      v-if="composeSpec"
+      :kind="composeSpec.kind"
+      :board="composeSpec.board"
+      :post-id="composeSpec.postId"
+      :replying-to="composeSpec.replyingTo"
+      :initial="composeSpec.initial"
+      :boards="boards"
+      :is-open="composeOpen"
+      :sending="composeSending"
+      :trouble="composeTrouble"
+      @send="sendDraft"
+      @close="closeCompose"
+    />
 
     <!-- The clerk's dialog: the game's own prompt, not a native sheet or toast -->
     <xp-reveal-prompt :prompt="prompt" @respond="respond" />
