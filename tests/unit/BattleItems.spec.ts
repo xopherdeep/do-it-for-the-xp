@@ -105,35 +105,36 @@ describe("BattleItems", () => {
   });
 
   describe("MP costs", () => {
-    it("read the number the description starts with, else the contract's table", () => {
-      expect(battleMpCost(ICE_WAND)).toBe(50);
-      expect(battleMpCost(stored("Ice Wand", "wand-magic ice"))).toBe(50);
-      expect(battleMpCost(stored("Thor's Hammer", "hammer-war"))).toBe(60);
+    it("come from the rules table by name, whatever the stored description says", () => {
+      expect(battleMpCost(ICE_WAND)).toBe(10);
+      expect(battleMpCost(stored("Ice Wand", "wand-magic ice"))).toBe(10);
+      expect(battleMpCost(stored("Thor's Hammer", "hammer-war"))).toBe(15);
+      expect(battleMpCost(CHRONOS)).toBe(20);
       expect(battleMpCost(BOTTLES)).toBe(0);
       expect(battleMpCost(stored("Pegasus Boots", "boot"))).toBe(0);
     });
 
     it("a Mage pays 25% less and a Sage half; the list price itself does not move", () => {
       (useUserStore().getUserById(HERO_ID) as any).jobClass = "Mage";
-      expect(battleMpCost(ICE_WAND)).toBe(50);
-      expect(heroMpCost(ICE_WAND, HERO_ID)).toBe(37);
-      expect(describeBattleItem(ICE_WAND, ctx)?.mp).toBe(37);
-      useBattleItem(ICE_WAND, ctx);
-      expect(mpNow()).toBe(263);
+      expect(battleMpCost(CHRONOS)).toBe(20);
+      expect(heroMpCost(CHRONOS, HERO_ID)).toBe(15);
+      expect(describeBattleItem(CHRONOS, ctx)?.mp).toBe(15);
+      useBattleItem(CHRONOS, ctx);
+      expect(mpNow()).toBe(285);
 
       (useUserStore().getUserById(HERO_ID) as any).jobClass = "Sage";
-      expect(heroMpCost(CHRONOS, HERO_ID)).toBe(50);
+      expect(heroMpCost(ICE_WAND, HERO_ID)).toBe(5);
       expect(heroMpCost(BOTTLES, HERO_ID)).toBe(0);
-      expect(heroMpCost(ICE_WAND, "nobody")).toBe(50);
+      expect(heroMpCost(CHRONOS, "nobody")).toBe(20);
     });
 
-    it("the discount is taken before the MP check, so a Mage with 40 MP can swing a 50 MP wand", () => {
+    it("the discount is taken before the MP check, so a Mage with 20 MP can loose a 25 MP arrow", () => {
       (useUserStore().getUserById(HERO_ID) as any).jobClass = "Mage";
-      (useUserStore().getUserById(HERO_ID) as any).stats.mp.now = 40;
-      expect(describeBattleItem(ICE_WAND, ctx)?.reason).toBeNull();
-      expect(useBattleItem(ICE_WAND, ctx).ok).toBe(true);
-      expect(mpNow()).toBe(3);
-      expect(describeBattleItem(ICE_WAND, { ...ctx, usedThisFight: new Set<BattleEffectId>() })?.reason).toBe(REASON_NO_MP);
+      (useUserStore().getUserById(HERO_ID) as any).stats.mp.now = 20;
+      expect(describeBattleItem(ARROW, ctx)?.reason).toBeNull();
+      expect(useBattleItem(ARROW, ctx).ok).toBe(true);
+      expect(mpNow()).toBe(2);
+      expect(describeBattleItem(ARROW, { ...ctx, usedThisFight: new Set<BattleEffectId>() })?.reason).toBe(REASON_NO_MP);
     });
 
     it("the table matches the contract", () => {
@@ -149,11 +150,11 @@ describe("BattleItems", () => {
   });
 
   describe("Ice Wand", () => {
-    it("adds 10 minutes to the clock for 50 MP", () => {
+    it("adds 10 minutes to the clock for 10 MP", () => {
       const out = useBattleItem(ICE_WAND, ctx);
       expect(service.extendClock).toHaveBeenCalledWith(ICE_WAND_MS);
       expect(out).toEqual({ ok: true, line: "Ice creeps over the clock: +10 minutes!", sound: SOUND_ITEM });
-      expect(mpNow()).toBe(250);
+      expect(mpNow()).toBe(290);
     });
 
     it("works once per fight", () => {
@@ -161,7 +162,7 @@ describe("BattleItems", () => {
       expect(useBattleItem(ICE_WAND, ctx)).toEqual({ ok: false, line: REASON_USED, sound: SOUND_NO });
       expect(describeBattleItem(ICE_WAND, ctx)?.reason).toBe(REASON_USED);
       expect(service.extendClock).toHaveBeenCalledTimes(1);
-      expect(mpNow()).toBe(250);
+      expect(mpNow()).toBe(290);
     });
 
     it("spends nothing when the clock is not running", () => {
@@ -172,26 +173,26 @@ describe("BattleItems", () => {
   });
 
   describe("Chronos' Clock", () => {
-    it("freezes the clock for 15 minutes for 100 MP, once per fight", () => {
+    it("freezes the clock for 15 minutes for 20 MP, once per fight", () => {
       const out = useBattleItem(CHRONOS, ctx);
       expect(service.freezeClock).toHaveBeenCalledWith(CHRONOS_FREEZE_MS);
       expect(out).toEqual({ ok: true, line: "Time stands still for 15 minutes!", sound: SOUND_ITEM });
-      expect(mpNow()).toBe(200);
+      expect(mpNow()).toBe(280);
       expect(ctx.usedThisFight.has("time-stop")).toBe(true);
 
       expect(useBattleItem(CHRONOS, ctx)).toEqual({ ok: false, line: REASON_USED, sound: SOUND_NO });
       expect(service.freezeClock).toHaveBeenCalledTimes(1);
-      expect(mpNow()).toBe(200);
+      expect(mpNow()).toBe(280);
       expect(describeBattleItem(CHRONOS, ctx)?.reason).toBe(REASON_USED);
     });
   });
 
   describe("Thor's Hammer", () => {
-    it("stuns the beast so it skips its next strike, for 60 MP", () => {
+    it("stuns the beast so it skips its next strike, for 15 MP", () => {
       const out = useBattleItem(HAMMER, ctx);
       expect(service.skipNextStrike).toHaveBeenCalledTimes(1);
       expect(out).toEqual({ ok: true, line: "Socktopus is stunned! It will miss its next strike.", sound: SOUND_ITEM });
-      expect(mpNow()).toBe(240);
+      expect(mpNow()).toBe(285);
     });
   });
 
@@ -205,22 +206,22 @@ describe("BattleItems", () => {
   });
 
   describe("Sol's Flare", () => {
-    it("halves the beast's attack for 100 MP, once per fight", () => {
+    it("halves the beast's attack for 20 MP, once per fight", () => {
       const out = useBattleItem(FLARE, ctx);
       expect(service.weakenEnemy).toHaveBeenCalledWith(SOL_FLARE_FACTOR);
       expect(out).toEqual({ ok: true, line: "The sun blazes! Socktopus's attack is halved.", sound: SOUND_ITEM });
-      expect(mpNow()).toBe(200);
+      expect(mpNow()).toBe(280);
       expect(useBattleItem(FLARE, ctx).line).toBe(REASON_USED);
       expect(service.weakenEnemy).toHaveBeenCalledTimes(1);
     });
   });
 
   describe("Fire Wand", () => {
-    it("makes every chore earn 1.5x the minutes for 50 MP, once per fight", () => {
+    it("makes every chore earn 1.5x the minutes for 10 MP, once per fight", () => {
       const out = useBattleItem(FIRE_WAND, ctx);
       expect(service.scaleCooldown).toHaveBeenCalledWith(FIRE_WAND_FACTOR);
       expect(out).toEqual({ ok: true, line: "The fuse burns slow: every chore earns 1.5x the minutes!", sound: SOUND_ITEM });
-      expect(mpNow()).toBe(250);
+      expect(mpNow()).toBe(290);
       expect(useBattleItem(FIRE_WAND, ctx).line).toBe(REASON_USED);
       expect(service.scaleCooldown).toHaveBeenCalledTimes(1);
     });
@@ -256,19 +257,19 @@ describe("BattleItems", () => {
   describe("not enough MP", () => {
     it("refuses before touching the engine and shows the reason on the sheet", () => {
       setActivePinia(createPinia());
-      addHero(40);
-      expect(useBattleItem(ICE_WAND, ctx)).toEqual({ ok: false, line: REASON_NO_MP, sound: SOUND_NO });
-      expect(service.extendClock).not.toHaveBeenCalled();
-      expect(mpNow()).toBe(40);
-      expect(describeBattleItem(ICE_WAND, ctx)).toEqual({
-        name: "Ice Wand",
-        faIcon: "wand-magic ice",
-        mp: 50,
-        effect: "+10 minutes on the clock",
+      addHero(15);
+      expect(useBattleItem(CHRONOS, ctx)).toEqual({ ok: false, line: REASON_NO_MP, sound: SOUND_NO });
+      expect(service.freezeClock).not.toHaveBeenCalled();
+      expect(mpNow()).toBe(15);
+      expect(describeBattleItem(CHRONOS, ctx)).toEqual({
+        name: "Chronos' Clock",
+        faIcon: "flux-capacitor",
+        mp: 20,
+        effect: "Pauses the clock for 15 minutes",
         reason: REASON_NO_MP,
       });
-      // The arrow costs 25: still within reach
-      expect(describeBattleItem(ARROW, ctx)?.reason).toBeNull();
+      // The Ice Wand costs 10: still within reach
+      expect(describeBattleItem(ICE_WAND, ctx)?.reason).toBeNull();
       expect(describeBattleItem(BOTTLES, ctx)?.reason).toBeNull();
     });
   });

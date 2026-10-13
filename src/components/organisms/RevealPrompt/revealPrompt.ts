@@ -5,7 +5,7 @@
  */
 
 /** The pictures that can rise in the light above the dialog (revealSprites.ts). */
-export type RevealSpriteName = 'chest' | 'chestOpen' | 'coins' | 'tablet' | 'heart' | 'bed';
+export type RevealSpriteName = 'chest' | 'chestOpen' | 'coins' | 'tablet' | 'heart' | 'bed' | 'atm';
 
 /** The colour of the light behind the sprite. */
 export type RevealGlow = 'gold' | 'sky' | 'mint' | 'rose' | 'amber';

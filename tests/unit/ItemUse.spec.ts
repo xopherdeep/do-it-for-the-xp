@@ -91,18 +91,25 @@ describe("hand slots", () => {
 });
 
 describe("what an item costs", () => {
-  it("reads the MP the description starts with", () => {
-    expect(mpCostOf(BOMBS)).toBe(40);
-    expect(mpCostOf(stored("Silver Arrow", "bow-arrow", "25MP | A precise magical arrow."))).toBe(25);
-  });
-
-  it("falls back to the table for the Lantern and the Bombs, and to nothing for the rest", () => {
-    expect(mpCostOf(stored("Lantern", "flashlight"))).toBe(10);
-    expect(mpCostOf(stored("Bombs", "bomb"))).toBe(15);
+  it("reads the rules table by name, whatever the description says", () => {
+    expect(mpCostOf(BOMBS)).toBe(0);
+    expect(mpCostOf(stored("Silver Arrow", "bow-arrow", "10MP | A precise magical arrow."))).toBe(25);
+    expect(mpCostOf(stored("Lantern", "flashlight"))).toBe(5);
     expect(mpCostOf(BOTTLES)).toBe(0);
   });
 
-  it("asks the live definition when the stored copy lost its description", () => {
+  it("prices a stored old copy by the table, not its description", () => {
+    expect(mpCostOf({ name: "Ice Wand", desc: "50MP | Freeze distractions in their tracks." })).toBe(10);
+    expect(mpCostOf({ name: "Bombs", desc: "40MP | Blast through tough obstacles!" })).toBe(0);
+  });
+
+  it("reads the number the description starts with for an item the table does not know", () => {
+    expect(mpCostOf(stored("Rubber Duck", "duck", "7MP | Quacks."))).toBe(7);
+    expect(mpCostOf(stored("Pegasus Boots", "boot"))).toBe(0);
+  });
+
+  it("asks the live definition for the name when the stored copy lost it", () => {
+    expect(mpCostOf({ faIcon: "flashlight", desc: "" }, LANTERN)).toBe(5);
     expect(mpCostOf(stored("Lantern", "flashlight"), LANTERN)).toBe(5);
   });
 });
@@ -138,7 +145,7 @@ describe("navigation items", () => {
 });
 
 describe("Lantern", () => {
-  it("shows the temple: map and compass for this hero, for the MP its description names", () => {
+  it("shows the temple: map and compass for this hero, for the MP the table names", () => {
     const id = hall();
 
     const outcome = useItem(LANTERN, itemContext(id, [0, 0]));
@@ -154,8 +161,8 @@ describe("Lantern", () => {
     expect(mp()).toBe(57);
 
     useUserStore().users[HERO].jobClass = "Sage";
-    useItem(stored("Lantern", "flashlight"), itemContext(hall(), [0, 0], { catalog: [] })); // 10 MP -> 5
-    expect(mp()).toBe(52);
+    useItem(stored("Lantern", "flashlight"), itemContext(hall(), [0, 0], { catalog: [] })); // 5 MP -> 2
+    expect(mp()).toBe(55);
   });
 
   it("a Mage with 3 MP can still light a 5 MP lantern: the discount applies before the refusal", () => {
@@ -168,12 +175,12 @@ describe("Lantern", () => {
     expect(mp()).toBe(0);
   });
 
-  it("costs 10 MP when nothing says otherwise", () => {
+  it("costs 5 MP from the table even when the stored copy says nothing, or something old", () => {
     const id = hall();
 
-    useItem(stored("Lantern", "flashlight"), itemContext(id, [0, 0], { catalog: [] }));
+    useItem(stored("Lantern", "flashlight", "50MP | Illuminate dark areas."), itemContext(id, [0, 0], { catalog: [] }));
 
-    expect(mp()).toBe(50);
+    expect(mp()).toBe(55);
   });
 
   it("refuses a hero short on MP and shows nothing", () => {
@@ -239,7 +246,7 @@ describe("Bombs", () => {
 
     expect(outcome).toMatchObject({ message: "Boom! The east door blows open.", sound: "damage", shake: true });
     expect(dungeons.getRoom(id, [0, 1])!.locked!.east).toBe(false);
-    expect(mp()).toBe(20);
+    expect(mp()).toBe(60); // a Bomb costs no MP
   });
 
   it("take the first locked side, going clockwise from north", () => {
@@ -260,15 +267,16 @@ describe("Bombs", () => {
     expect(mp()).toBe(60);
   });
 
-  it("are refused for lack of MP, leaving the door shut", () => {
-    addHero({ mp: { now: 39, max: 80 } });
+  it("need no MP: a hero with none left can still blow a door", () => {
+    addHero({ mp: { now: 0, max: 80 } });
     const id = lockedHall();
     enter(id, [0, 1]);
 
     const outcome = useItem(BOMBS, itemContext(id, [0, 1]));
 
-    expect(outcome).toEqual({ message: "Not enough MP", sound: "error" });
-    expect(dungeons.getRoom(id, [0, 1])!.locked!.east).toBe(true);
+    expect(outcome).toMatchObject({ message: "Boom! The east door blows open." });
+    expect(dungeons.getRoom(id, [0, 1])!.locked!.east).toBe(false);
+    expect(mp()).toBe(0);
   });
 
   it("cannot break the seal of a fight that is still on", () => {
@@ -293,7 +301,7 @@ describe("Hook Shot", () => {
 
     expect(outcome).toMatchObject({ moved: true });
     expect(temples.getTempleState(id)!.currentPosition).toEqual([0, 2]);
-    expect(mp()).toBe(45);
+    expect(mp()).toBe(55);
   });
 
   it("crosses a void as well", () => {
@@ -327,7 +335,7 @@ describe("Hook Shot", () => {
   });
 
   it("is refused for lack of MP", () => {
-    addHero({ mp: { now: 14, max: 80 } });
+    addHero({ mp: { now: 4, max: 80 } });
     const id = makeTemple({ E: { type: "entrance" }, P: { type: "pit" }, G: { type: "empty" } }, [["E", "P", "G"]]);
     enter(id, [0, 0]);
 

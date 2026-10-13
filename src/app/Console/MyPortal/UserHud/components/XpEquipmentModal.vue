@@ -57,7 +57,7 @@
     <item-info-modal
       v-if="selectedItem"
       :is-open="itemInfoOpen"
-      :item="selectedItem"
+      :item="infoItem"
       :is-equipped="isSelectedItemEquipped"
       :left-hand-slots="leftHandSlots"
       :right-hand-slots="rightHandSlots"
@@ -93,6 +93,7 @@
   import { play$fx } from "@/assets/fx";
   import { isItemUnlocked, unlockHintOf } from "@/lib/services/quests/ItemEffects";
   import type { BattleItemCard } from "@/lib/services/battle/BattleItems";
+  import { describeItem, itemRule } from "@/lib/services/items/ItemRules";
 
   export default defineComponent({
     name: "xp-equipment-modal",
@@ -251,6 +252,13 @@
           classSelectorOpen.value = false;
         }
       );
+
+      // The card reads the rules table, not the text a hero's old copy of the item stored; the grid and the dock keep their items
+      const infoItem = computed(() => {
+        const item = selectedItem.value;
+        if (!item) return null;
+        return { ...item, desc: describeItem(item.name) ?? item.desc, mpCost: itemRule(item.name)?.mp ?? item.mpCost };
+      });
 
       const selectedBattleCard = computed(() =>
         isBattle.value && props.battleCard && selectedItem.value ? props.battleCard(selectedItem.value) : null
@@ -425,6 +433,7 @@
         specialItems,
         itemInfoOpen,
         selectedItem,
+        infoItem,
         equippedItemsArray,
         lockedItemsArray,
         lockHint,

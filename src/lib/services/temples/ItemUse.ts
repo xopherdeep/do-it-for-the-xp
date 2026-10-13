@@ -13,6 +13,7 @@ import { TempleSystem } from '@/lib/engine/core/dungeons/TempleSystem';
 import type { Room } from '@/lib/engine/core/dungeons/types';
 import type { EquipmentItem } from '@/app/Console/MyPortal/UserHud/components/equipment/EquipmentItems';
 import { useUserStore } from '@/lib/store/stores/user';
+import { itemRule } from '@/lib/services/items/ItemRules';
 import { heroMpBill } from '@/lib/services/stats/StatEffects';
 import {
   DIRECTIONS,
@@ -75,9 +76,16 @@ const definitionOf = (item: Partial<EquipmentItem>, catalog: EquipmentItem[]): E
   catalog.find((entry) => item.faIcon && entry.faIcon === item.faIcon) ??
   catalog.find((entry) => item.name && entry.name === item.name);
 
-/** What using the item costs in MP: the number its description starts with, else the table above, else nothing. */
+/**
+ * What using the item costs in MP: the rules table by name, even when it says 0 (an old stored copy's description
+ * is ignored), else the number a description starts with, else the table above, else nothing.
+ */
 export const mpCostOf = (item: Partial<EquipmentItem>, definition?: EquipmentItem): number =>
-  leadingMpCost(item.desc) ?? leadingMpCost(definition?.desc) ?? DEFAULT_MP_COST[definition?.name ?? item.name ?? ''] ?? 0;
+  itemRule(definition?.name ?? item.name)?.mp ??
+  leadingMpCost(item.desc) ??
+  leadingMpCost(definition?.desc) ??
+  DEFAULT_MP_COST[definition?.name ?? item.name ?? ''] ??
+  0;
 
 const refuse = (message: string): ItemOutcome => ({ message, sound: SFX.error });
 

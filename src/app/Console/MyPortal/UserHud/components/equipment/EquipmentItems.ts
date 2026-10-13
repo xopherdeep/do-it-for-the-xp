@@ -1,5 +1,6 @@
 import { useRouter, useRoute } from "vue-router";
 import { useGameStore } from "@/lib/store/stores/game";
+import { describeItem, itemRule } from "@/lib/services/items/ItemRules";
 
 export interface EquipmentItem {
   faIcon: string;
@@ -11,6 +12,14 @@ export interface EquipmentItem {
   click?: () => void;
   isPegasusItem?: boolean;  // Marks items unlocked via Pegasus liberation
 }
+
+/** A tool's catalogue entry: its text and MP come from the rules table (ItemRules) by name, never typed twice. */
+const tool = (faIcon: string, name: string): EquipmentItem => ({
+  faIcon,
+  name,
+  desc: describeItem(name) ?? "",
+  mpCost: itemRule(name)?.mp,
+});
 
 export function useEquipmentItems(callbacks?: { onOpenPegasusModal?: () => void }) {
   const router = useRouter();
@@ -76,77 +85,18 @@ export function useEquipmentItems(callbacks?: { onOpenPegasusModal?: () => void 
         router.push({ name: "my-gold-points", params: { userId } });
       },
     },
-    {
-      faIcon: "bow-arrow",
-      name: "Silver Arrow",
-      desc: "25MP | A precise magical arrow that instantly removes one task from your battle queue.",
-      mpCost: 25
-    },
-    {
-      faIcon: "expand-alt",
-      name: "Hook Shot",
-      desc: "15MP | Quickly grab distant objectives and bring them into focus. Moves a future task to your current day.",
-      mpCost: 15
-    },
-    {
-      faIcon: "bomb",
-      name: "Bombs",
-      desc: "40MP | Blast through tough obstacles! Breaks down one large task into three smaller, manageable pieces.",
-      mpCost: 40
-    },
-    {
-      faIcon: "hammer-war",
-      name: "Thor's Hammer",
-      desc: "60MP | A mighty hammer that smashes through the toughest challenges. Completes 50% of any single task.",
-      mpCost: 60
-    },
-    {
-      faIcon: "flashlight",
-      name: "Lantern",
-      desc: "5MP | Illuminate dark areas to reveal hidden tasks. Shows all forgotten or overdue responsibilities.",
-      mpCost: 5
-    },
+    tool("bow-arrow", "Silver Arrow"),
+    tool("expand-alt", "Hook Shot"),
+    tool("bomb", "Bombs"),
+    tool("hammer-war", "Thor's Hammer"),
+    tool("flashlight", "Lantern"),
 
-    {
-      faIcon: "flame",
-      name: "Sol's Flare",
-      desc: "100MP | Unleash the power of the sun! All tasks take 100HP damage, making them easier to complete.",
-      mpCost: 100
-    },
-    {
-      faIcon: "bolt",
-      name: "Tesla's Bolt",
-      desc: "100MP | Channel lightning energy for 1hr, allowing instant task completion. Takes 2hr to recharge.",
-      mpCost: 100,
-      rechargeTime: "2hr"
-    },
-    {
-      faIcon: "wave-sine",
-      name: "Gaia's Quake",
-      desc: "100MP | Shake up your task list! Randomly reorders all tasks for a fresh perspective. Takes 24hr to recharge.",
-      mpCost: 100,
-      rechargeTime: "24hr"
-    },
-    {
-      faIcon: "flux-capacitor",
-      name: "Chronos' Clock",
-      desc: "100MP | Manipulate time itself! Pause all task timers for 1hr, giving you extra time to complete them.",
-      mpCost: 100
-    },
-    {
-      faIcon: "moon-stars",
-      name: "Night's Light",
-      desc: "100MP | Harness lunar energy to remove bedtime restrictions for one night. Takes 3 days to recharge.",
-      mpCost: 100,
-      rechargeTime: "3 days"
-    },
-    {
-      faIcon: "wind",
-      name: "Gale's Wind",
-      desc: "300MP | Summon a powerful wind that blows away all chore tasks for 24 hours. Takes 7 days to recharge.",
-      mpCost: 300,
-      rechargeTime: "7 days"
-    },
+    tool("flame", "Sol's Flare"),
+    tool("bolt", "Tesla's Bolt"),
+    tool("wave-sine", "Gaia's Quake"),
+    tool("flux-capacitor", "Chronos' Clock"),
+    tool("moon-stars", "Night's Light"),
+    tool("wind", "Gale's Wind"),
     // {
     //   faIcon: "shield-virus",
     //   name: "Yve's Shield",
@@ -154,36 +104,16 @@ export function useEquipmentItems(callbacks?: { onOpenPegasusModal?: () => void 
     //   mpCost: 300,
     //   rechargeTime: "2 days"
     // },
-    {
-      faIcon: "hat-wizard",
-      name: "X's Invisibility",
-      desc: "300MP | Don the cloak of invisibility to avoid random task encounters for 24 hours. Takes 2 days to recharge.",
-      mpCost: 300,
-      rechargeTime: "2 days"
-    },
-    {
-      faIcon: "wand-magic fire",
-      name: "Fire Wand",
-      desc: "50MP | Channel fire magic to burn away small obstacles. Reduces the time needed for quick tasks by 50%.",
-      mpCost: 50
-    },
-    {
-      faIcon: "wand-magic ice",
-      name: "Ice Wand",
-      desc: "50MP | Freeze distractions in their tracks, allowing better focus. Extends task deadlines by 24 hours.",
-      mpCost: 50
-    },
+    tool("hat-wizard", "X's Invisibility"),
+    tool("wand-magic fire", "Fire Wand"),
+    tool("wand-magic ice", "Ice Wand"),
     // {
     //   faIcon: "staff fire",
     //   name: "Flame Staff",
     //   desc: "75MP | A powerful staff that amplifies fire magic. Reduces the difficulty of challenging tasks by 30%.",
     //   mpCost: 75
     // },
-    {
-      faIcon: "flask-potion",
-      name: "Bottles",
-      desc: "Store and access your potions and ethers. Health potions restore 50HP, while ethers restore 30MP each.",
-    },
+    tool("flask-potion", "Bottles"),
     {
       name: "Portal Home",
       faIcon: "portal-enter",

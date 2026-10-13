@@ -12,6 +12,7 @@
 import { addHours, endOfDay, format } from "date-fns";
 import type { EquipmentItem } from "@/app/Console/MyPortal/UserHud/components/equipment/EquipmentItems";
 import { ITEM_METADATA } from "@/lib/engine/core/items/itemRegistry";
+import { ITEM_RULES } from "@/lib/services/items/ItemRules";
 import { getQuestEngine, type QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import { dayKeyOf, effectiveDeadline, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -79,9 +80,9 @@ const EFFECTS: Record<string, BoardEffect> = {
   "Gale's Wind": { kind: "instant", cost: 300, cooldownMs: 7 * DAY, describe: "Blows away chore pressure for 24 hours." },
 };
 
-/** Items with a board effect the Game Master can unlock for a hero from the Compendium. */
+/** The tools the Game Master can unlock for a hero from the Compendium: every item with a rule, but the ones a hero always has. */
 export const unlockableItemNames = (): string[] =>
-  Object.keys(EFFECTS).filter((itemName) => !ALWAYS_UNLOCKED.includes(itemName));
+  Object.keys(ITEM_RULES).filter((itemName) => !ALWAYS_UNLOCKED.includes(itemName));
 
 /** What the item does on the quest board. Navigation items, Bottles and battle-only items do nothing here. */
 export const boardEffectOf = (itemName: string | undefined): BoardEffect => EFFECTS[itemName ?? ""] ?? NONE;
@@ -257,15 +258,22 @@ export const applyBoardEffect = async (
 
 // --- locks -----------------------------------------------------------------------------------------
 
-/** The hero always has these: the pages, the potions and the little light. */
-export const ALWAYS_UNLOCKED = ["My Quests", "Book Of Spells", "Goods", "Wallet", "Portal Home", "Bottles", "Lantern"];
+/** The hero always has these: the pages, the potions, the little light and the Bombs (they still need Bombs in the pack). */
+export const ALWAYS_UNLOCKED = ["My Quests", "Book Of Spells", "Goods", "Wallet", "Portal Home", "Bottles", "Lantern", "Bombs"];
 
 /**
- * Which freed Pegasus (index into stats.pegasi, the order of XpWorldMapModal) unlocks a Pegasus item: Aura gifts
- * the Pegasus Boots. The Wind Whistle is not here: it unlocks only from the Wind Temple's chest (CHEST_ALIASES),
- * so freeing a Pegasus, Ventus included, never hands it over.
+ * Which freed Pegasus (index into stats.pegasi, the order of XpWorldMapModal) gifts an item: Ventus the Gale's
+ * Wind, Ignis Thor's Hammer, Sol the Sol's Flare, Aura the Pegasus Boots, Umbra Chronos' Clock. The Wind Whistle
+ * is not here: it unlocks only from the Wind Temple's chest (CHEST_ALIASES), so freeing a Pegasus, Ventus
+ * included, never hands it over.
  */
-const PEGASUS_INDEX: Record<string, number> = { "Pegasus Boots": 3 };
+const PEGASUS_INDEX: Record<string, number> = {
+  "Gale's Wind": 0,
+  "Thor's Hammer": 1,
+  "Sol's Flare": 2,
+  "Pegasus Boots": 3,
+  "Chronos' Clock": 8,
+};
 
 /** Temple chest items (templeRegistry) that are a board item by another name. */
 const CHEST_ALIASES: Record<string, string> = {
@@ -274,6 +282,10 @@ const CHEST_ALIASES: Record<string, string> = {
   "Lightning Rod": "Tesla's Bolt",
   "Gaia's Hammer": "Gaia's Quake",
   "Lunar Pendant": "Night's Light",
+  "Trident of Tides": "Hook Shot",
+  "Flame Shield": "Fire Wand",
+  "Dawnbreaker Bow": "Silver Arrow",
+  "Void Dagger": "X's Invisibility",
 };
 
 /** Which temple's chest holds each board item, for the unlock hint. */
@@ -283,6 +295,10 @@ const CHEST_TEMPLE: Record<string, string> = {
   "Tesla's Bolt": "Storm Temple",
   "Gaia's Quake": "Earth Temple",
   "Night's Light": "Moon Temple",
+  "Hook Shot": "Water Temple",
+  "Fire Wand": "Fire Temple",
+  "Silver Arrow": "Light Temple",
+  "X's Invisibility": "Shadow Temple",
 };
 
 /** The names a chest item unlocks on the hero: itself, and the board item it stands for. */
@@ -308,17 +324,15 @@ export const isItemUnlocked = (
 
 const PEGASUS_NAMES = ["Ventus", "Ignis", "Sol", "Aura", "Terra", "Glacie", "Aqua", "Venenum", "Umbra"];
 
-/** How the hero earns a locked item, from the item registry's unlock event when it knows the item. */
+/** How the hero earns a locked item: a freed Pegasus's gift first, else the item registry's unlock event when it knows the item. */
 export const unlockHintOf = (itemName: string): string => {
+  const gift = PEGASUS_INDEX[itemName];
+  if (gift !== undefined) return `Locked: free ${PEGASUS_NAMES[gift]} the Pegasus to earn ${itemName}.`;
   const meta = Object.values(ITEM_METADATA).find((entry) => entry.name === itemName);
   const event = meta?.unlockEvent ?? "";
-  // An item with a chest of its own (the Wind Whistle) is earned there, whatever its registry event says
+  // The registry names a Pegasus for an item that has none here (the Wind Whistle has a chest of its own)
   const isEarnedFromPegasus = event.startsWith("pegasus:") && !CHEST_TEMPLE[itemName];
-  if (isEarnedFromPegasus) {
-    const index = PEGASUS_INDEX[itemName];
-    const pegasus = index !== undefined ? PEGASUS_NAMES[index] : event.slice("pegasus:".length);
-    return `Locked: free ${pegasus} the Pegasus to earn ${itemName}.`;
-  }
+  if (isEarnedFromPegasus) return `Locked: free ${event.slice("pegasus:".length)} the Pegasus to earn ${itemName}.`;
   if (event === "purchase") return `Locked: ${itemName} is for sale in a shop.`;
   const isEarnedFromChest = event.startsWith("dungeon:") || Boolean(CHEST_TEMPLE[itemName]);
   if (isEarnedFromChest) {

@@ -148,7 +148,7 @@ describe("XpEquipmentModal in battle mode", () => {
   });
 
   it("battle mode: the card shows the effect line instead of the catalogue lore, equip mode keeps the lore", async () => {
-    const lore = "Freeze distractions in their tracks";
+    const lore = "Freezes the traps next to you";
     mounted = await battle();
     await iceWandTile(mounted).trigger("click");
     const info = mounted.findComponent(ItemInfoModal);
@@ -248,6 +248,20 @@ describe("XpEquipmentModal in battle mode", () => {
     await mounted.find(".equipment-slot.has-item").trigger("click");
     expect(mounted.findComponent(ItemInfoModal).props("isOpen")).toBe(true);
     expect(mounted.findComponent(ItemInfoModal).text()).toContain("+10 minutes on the clock");
+  });
+
+  it("the card reads the rules table, not the text an old stored copy kept", async () => {
+    const oldCopy = { ...heldIce, desc: "50MP | Freeze distractions in their tracks.", mpCost: 50 } as EquipmentItem;
+    mounted = await battle({ equipment: [oldCopy] });
+
+    await mounted.find(".equipment-slot.has-item").trigger("click");
+
+    expect(mounted.findComponent(ItemInfoModal).props("item")).toMatchObject({
+      name: "Ice Wand",
+      desc: "10MP | Temple: Freezes the traps next to you. Fight: +10 minutes on the clock.",
+      mpCost: 10,
+    });
+    expect(oldCopy.desc).toBe("50MP | Freeze distractions in their tracks."); // the dock keeps its item
   });
 
   it("Use emits once on a double tap", async () => {

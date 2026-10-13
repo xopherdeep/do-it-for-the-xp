@@ -152,10 +152,10 @@ const RELICS: Record<string, { icon: string; blurb: string }> = {
   "Gaia's Hammer": { icon: 'hammer-war', blurb: "A relic of the Earth Temple. Equip it as Gaia's Quake." },
   'Lunar Pendant': { icon: 'moon-stars', blurb: "A relic of the Moon Temple. Equip it as Night's Light." },
   'Moon Shard': { icon: 'moon', blurb: 'A sliver of moonlight, cold to the touch.' },
-  'Void Dagger': { icon: 'dagger', blurb: 'A relic of the Shadow Temple.' },
-  'Trident of Tides': { icon: 'water', blurb: 'A relic of the Water Temple.' },
-  'Flame Shield': { icon: 'shield', blurb: 'A relic of the Fire Temple.' },
-  'Dawnbreaker Bow': { icon: 'bow-arrow', blurb: 'A relic of the Light Temple.' },
+  'Void Dagger': { icon: 'dagger', blurb: "A relic of the Shadow Temple. Equip it as X's Invisibility." },
+  'Trident of Tides': { icon: 'water', blurb: 'A relic of the Water Temple. Equip it as the Hook Shot.' },
+  'Flame Shield': { icon: 'shield', blurb: 'A relic of the Fire Temple. Equip it as the Fire Wand.' },
+  'Dawnbreaker Bow': { icon: 'bow-arrow', blurb: 'A relic of the Light Temple. Equip it as the Silver Arrow.' },
 };
 
 /** "golden key" -> "Golden Key": loot names are stored lowercase, the chest shows them properly. */

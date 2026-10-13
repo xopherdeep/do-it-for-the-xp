@@ -52,9 +52,9 @@ function stubSite() {
   ).as("comments");
 }
 
-function openTownHall(heroId, fixture = "town-hall-backup.json") {
+function openTownHall(heroId, fixture = "town-hall-backup.json", subpage = "") {
   cy.seedWorld(fixture, heroId);
-  cy.visit(`/town-hall/${heroId}`, { timeout: 120000 });
+  cy.visit(`/town-hall/${heroId}${subpage}`, { timeout: 120000 });
   cy.tapToWakeAudio();
 }
 
@@ -116,6 +116,26 @@ describe("Town Hall", () => {
     cy.get("[data-cy=th-tab-updates]", { timeout: 30000 }).click();
     cy.contains("[data-cy=th-no-patch-notes]", "No patch notes yet", { timeout: 20000 });
     cy.get("[data-cy=th-stats]").should("be.visible");
+  });
+
+  it("the header button opens Family Chat, and its close button returns to the Town Hall", () => {
+    openTownHall("hero-1");
+    cy.get("[data-cy=th-family-chat]", { timeout: 30000 }).click();
+    cy.url({ timeout: 20000 }).should("match", /\/town-hall\/hero-1\/chat$/);
+    cy.contains(".xp-chat ion-title", "Family Chat", { timeout: 20000 }).should("be.visible");
+    cy.screenshot("town-hall-07-family-chat", { capture: "viewport" });
+    cy.get(".xp-chat .xp-close-button").click();
+    cy.url({ timeout: 20000 }).should("match", /\/town-hall\/hero-1\/?$/);
+    cy.get("[data-cy=th-tab-news]", { timeout: 20000 }).should("be.visible");
+  });
+
+  it("a Family Chat link opened cold shows Family Chat, and its close button goes up to the Town Hall", () => {
+    openTownHall("hero-1", "town-hall-backup.json", "/chat");
+    cy.contains(".xp-chat ion-title", "Family Chat", { timeout: 30000 }).should("be.visible");
+    cy.get("[data-cy=th-tab-news]").should("not.exist");
+    cy.get(".xp-chat .xp-close-button").click();
+    cy.url({ timeout: 20000 }).should("match", /\/town-hall\/hero-1\/?$/);
+    cy.get("[data-cy=th-tab-news]", { timeout: 20000 }).should("be.visible");
   });
 
   it("the clerk offers Family Registration to a Game Master, not to a hero", () => {

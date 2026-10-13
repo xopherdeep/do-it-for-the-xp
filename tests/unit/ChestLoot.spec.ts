@@ -106,6 +106,14 @@ describe("lootFace", () => {
     expect(lootFace("compass")).toMatchObject({ name: "Compass", tier: "key" });
   });
 
+  it("tells which tool a relic is equipped as", () => {
+    expect(lootFace("Flame Shield").blurb).toBe("A relic of the Fire Temple. Equip it as the Fire Wand.");
+    expect(lootFace("Trident of Tides").blurb).toBe("A relic of the Water Temple. Equip it as the Hook Shot.");
+    expect(lootFace("Dawnbreaker Bow").blurb).toBe("A relic of the Light Temple. Equip it as the Silver Arrow.");
+    expect(lootFace("Void Dagger").blurb).toBe("A relic of the Shadow Temple. Equip it as X's Invisibility.");
+    expect(lootFace("Flame Shield")).toMatchObject({ tier: "relic" });
+  });
+
   it("shows anything else title-cased as a plain item", () => {
     expect(lootFace("golden feather")).toMatchObject({ name: "Golden Feather", icon: "gift", tier: "item" });
   });

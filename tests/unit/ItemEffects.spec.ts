@@ -18,8 +18,10 @@ import {
   hasNoEncounters,
   isItemUnlocked,
   unlockHintOf,
+  unlockableItemNames,
   unlocksFromChest,
 } from "@/lib/services/quests/ItemEffects";
+import { ITEM_RULES } from "@/lib/services/items/ItemRules";
 import { freeTemplePegasus } from "@/lib/services/temples/TemplePegasus";
 import { useUserStore } from "@/lib/store/stores/user";
 
@@ -322,9 +324,10 @@ describe("locks", () => {
     expect(isItemUnlocked(undefined, "Ice Wand")).toBe(true);
   });
 
-  it("locks everything but the pages, Bottles and the Lantern on a new profile", () => {
+  it("locks everything but the pages, Bottles, the Lantern and the Bombs on a new profile", () => {
     const fresh = { unlockedItems: [] as string[] };
     for (const name of ALWAYS_UNLOCKED) expect(isItemUnlocked(fresh, name)).toBe(true);
+    expect(isItemUnlocked({ unlockedItems: [] }, "Bombs")).toBe(true);
     expect(isItemUnlocked(fresh, "Ice Wand")).toBe(false);
     expect(isItemUnlocked(fresh, "Wind Whistle")).toBe(false);
     expect(isItemUnlocked({ unlockedItems: ["Ice Wand"] }, "Ice Wand")).toBe(true);
@@ -337,6 +340,20 @@ describe("locks", () => {
     const ventus = Array(9).fill(false);
     ventus[0] = true;
     expect(isItemUnlocked({ unlockedItems: [], stats: { pegasi: ventus } }, "Pegasus Boots")).toBe(false);
+  });
+
+  it("counts each freed Pegasus as the unlock of the item it gifts", () => {
+    const freed = (index: number) => ({
+      unlockedItems: [] as string[],
+      stats: { pegasi: Array.from({ length: 9 }, (_, slot) => slot === index) },
+    });
+    expect(isItemUnlocked(freed(0), "Gale's Wind")).toBe(true); // Ventus
+    expect(isItemUnlocked(freed(1), "Thor's Hammer")).toBe(true); // Ignis
+    expect(isItemUnlocked(freed(2), "Sol's Flare")).toBe(true); // Sol
+    expect(isItemUnlocked(freed(3), "Pegasus Boots")).toBe(true); // Aura
+    expect(isItemUnlocked(freed(8), "Chronos' Clock")).toBe(true); // Umbra
+    expect(isItemUnlocked(freed(1), "Sol's Flare")).toBe(false);
+    expect(isItemUnlocked(freed(8), "Thor's Hammer")).toBe(false);
   });
 
   it("the Wind Whistle is locked until the Wind Temple's chest unlocks it: no freed Pegasus does", () => {
@@ -354,7 +371,11 @@ describe("locks", () => {
   it("maps a temple chest item to the board item it stands for", () => {
     expect(unlocksFromChest("Pegasus Whistle")).toEqual(["Pegasus Whistle", "Wind Whistle"]);
     expect(unlocksFromChest("Frost Wand")).toEqual(["Frost Wand", "Ice Wand"]);
-    expect(unlocksFromChest("Void Dagger")).toEqual(["Void Dagger"]);
+    expect(unlocksFromChest("Void Dagger")).toEqual(["Void Dagger", "X's Invisibility"]);
+    expect(unlocksFromChest("Trident of Tides")).toEqual(["Trident of Tides", "Hook Shot"]);
+    expect(unlocksFromChest("Flame Shield")).toEqual(["Flame Shield", "Fire Wand"]);
+    expect(unlocksFromChest("Dawnbreaker Bow")).toEqual(["Dawnbreaker Bow", "Silver Arrow"]);
+    expect(unlocksFromChest("Moon Shard")).toEqual(["Moon Shard"]);
   });
 
   it("hints how an item is earned", () => {
@@ -362,6 +383,25 @@ describe("locks", () => {
     expect(unlockHintOf("Pegasus Boots")).toMatch(/free Aura/);
     expect(unlockHintOf("Ice Wand")).toBe("Locked: Ice Wand waits in a chest in the Ice Temple.");
     expect(unlockHintOf("Bombs")).toMatch(/temple chest or a shop/);
+  });
+
+  it("hints each relic's temple and each Pegasus gift", () => {
+    expect(unlockHintOf("Silver Arrow")).toBe("Locked: Silver Arrow waits in a chest in the Light Temple.");
+    expect(unlockHintOf("Hook Shot")).toBe("Locked: Hook Shot waits in a chest in the Water Temple.");
+    expect(unlockHintOf("Fire Wand")).toBe("Locked: Fire Wand waits in a chest in the Fire Temple.");
+    expect(unlockHintOf("X's Invisibility")).toBe("Locked: X's Invisibility waits in a chest in the Shadow Temple.");
+    expect(unlockHintOf("Chronos' Clock")).toBe("Locked: free Umbra the Pegasus to earn Chronos' Clock.");
+    expect(unlockHintOf("Gale's Wind")).toBe("Locked: free Ventus the Pegasus to earn Gale's Wind.");
+    expect(unlockHintOf("Thor's Hammer")).toBe("Locked: free Ignis the Pegasus to earn Thor's Hammer.");
+    expect(unlockHintOf("Sol's Flare")).toBe("Locked: free Sol the Pegasus to earn Sol's Flare.");
+  });
+
+  it("lists the tools the Game Master can unlock: every rule but the ones a hero always has", () => {
+    const names = unlockableItemNames();
+    expect(names).toEqual(Object.keys(ITEM_RULES).filter((name) => !ALWAYS_UNLOCKED.includes(name)));
+    expect(names).toContain("Ice Wand");
+    expect(names).toContain("Chronos' Clock");
+    for (const name of ["Lantern", "Bottles", "Bombs"]) expect(names).not.toContain(name);
   });
 
   it("the store unlocks on a new profile and leaves a legacy profile whole", () => {

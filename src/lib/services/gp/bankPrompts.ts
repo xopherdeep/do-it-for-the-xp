@@ -51,7 +51,7 @@ export function atmMenuPrompt(gp: GpPurse | null | undefined, voice: Voice = 'ad
   return {
     speaker: 'ATM',
     accent: 'atm',
-    sprite: 'coins',
+    sprite: 'atm',
     lines: [copyFor('bank.ask.atmWelcome', voice)],
     choices: [
       { id: 'deposit', label: 'Deposit to Savings', icon: 'piggy-bank' },

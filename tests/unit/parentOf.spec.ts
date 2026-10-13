@@ -54,6 +54,10 @@ describe("parentOf: heroes' pages", () => {
     });
   });
 
+  it("sends Family Chat, opened from the Town Hall, back to the Town Hall", () => {
+    expect(parentOf(route("town-hall-chat", `/town-hall/${HERO}/chat`, { userId: HERO }))).toBe(`/town-hall/${HERO}`);
+  });
+
   it("sends a temple to the region it stands in, and an unknown temple to the world map", () => {
     expect(parentOf(route("temple", "/temple/water-temple/hero-1", { temple: "water-temple", userId: HERO }))).toBe(
       `/my-portal/${HERO}/islands`,
@@ -242,6 +246,13 @@ describe("parentOf: the route table", () => {
         at = parentOf({ name: next.name, path: next.path, params: next.params }, { heroId: HERO });
       }
     });
+  });
+
+  it("opens Family Chat at /town-hall/:userId/chat, not the Town Hall", () => {
+    const chat = router.resolve(`/town-hall/${HERO}/chat`);
+    expect(chat.name).toBe("town-hall-chat");
+    expect(chat.params.userId).toBe(HERO);
+    expect(router.resolve(`/town-hall/${HERO}`).name).toBe("town-hall");
   });
 
   it("leaves only the tops of stacks without a parent", () => {

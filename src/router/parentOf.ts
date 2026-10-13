@@ -110,6 +110,7 @@ const NAMED_RULES: Record<string, ParentRule> = {
   hospital: toTown,
   hotel: toTown,
   "town-hall": toTown,
+  "town-hall-chat": ({ heroId }) => `/town-hall/${heroId}`,
   "view-stats": toTown,
   // My Home
   "cook-food": toHome,
