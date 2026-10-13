@@ -79,6 +79,9 @@
             </ion-range>
           </div>
         </ion-item>
+
+        <!-- What the difficulty also decides (tier chip, how long): filled by the Why tab -->
+        <slot name="after-difficulty" />
       </ion-item-group>
 
       <!-- Points to Award -->

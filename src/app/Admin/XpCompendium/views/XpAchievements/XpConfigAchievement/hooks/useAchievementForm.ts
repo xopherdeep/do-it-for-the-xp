@@ -29,6 +29,9 @@ import { formatQuestName } from "@/lib/utils/format";
 import debug from "@/lib/utils/debug";
 import { withoutEmptyTimes } from "./timesOfDayEditor";
 import { useProStore } from "@/lib/store/stores/pro";
+import { withoutUnsetMinutes } from "@/lib/services/quests/questFormRules";
+import { useQuestEffort } from "./useQuestEffort";
+import { useBeastSuggestion } from "./useBeastSuggestion";
 
 export const sortCategoryByName = (a: any, b: any) => {
   const nameA = a.name.toLowerCase();
@@ -430,6 +433,15 @@ export function useAchievementForm() {
     return isStrategyComplete.value && isPartyComplete.value;
   });
 
+  // The Why tab's tier chip and minutes, and the How tab's suggested beast (docs/Quest-Rooms-Spec.md section 9)
+  const effort = useQuestEffort(achievement);
+  const { applySuggestedBeast, resetPick, ...suggestionForTabs } = useBeastSuggestion({
+    achievement,
+    beasts,
+    bestiaryDb,
+    isLive: isValidAdventure,
+  });
+
   const getValidationMessage = () => {
     const messages: string[] = [];
     if (!achievement.value.achievementName?.trim())
@@ -459,6 +471,7 @@ export function useAchievementForm() {
   // Actions
   const loadData = async (routeId?: string) => {
     loading.value = true;
+    resetPick();
     try {
       // Update ID if provided
       if (routeId) {
@@ -520,6 +533,9 @@ export function useAchievementForm() {
     }
   };
 
+  /** What goes to storage: no empty times of day, no unusable minutes */
+  const questForStorage = () => withoutUnsetMinutes(withoutEmptyTimes(achievement.value));
+
   // Debounced Autosave. An incomplete quest is saved as a draft, which heroes never see
   // (QuestEngine.filterQuests); it goes live by itself the moment it is complete.
   const autosave = debounce(async () => {
@@ -537,7 +553,8 @@ export function useAchievementForm() {
         achievement.value.achievementName
       );
       achievement.value.draft = !isValidAdventure.value;
-      await achievementDb.setTask(withoutEmptyTimes(achievement.value));
+      await applySuggestedBeast();
+      await achievementDb.setTask(questForStorage());
       // Taken after the edits above, so they don't trigger another save
       lastSavedState.value = JSON.stringify(achievement.value);
       saveState.value = achievement.value.draft ? "draft" : "saved";
@@ -579,7 +596,8 @@ export function useAchievementForm() {
       achievement.value.achievementName
     );
     achievement.value.draft = false;
-    await achievementDb.setTask(withoutEmptyTimes(achievement.value));
+    await applySuggestedBeast();
+    await achievementDb.setTask(questForStorage());
     lastSavedState.value = JSON.stringify(achievement.value);
     saveState.value = "saved";
     const toast = await toastController.create({
@@ -653,6 +671,8 @@ export function useAchievementForm() {
     fibonacciArray,
     fibonacciDescriptions,
     displayFibonacciValue,
+    ...effort,
+    ...suggestionForTabs,
     segments,
     achievementTypes,
     assignmentTypes,
@@ -736,7 +756,7 @@ export function useAchievementForm() {
           (ids) => {
             achievement.value.beastId = ids[0] || "";
             // Immediately save when a beast is selected to prevent loss during route transitions
-            achievementDb.setTask(withoutEmptyTimes(achievement.value));
+            achievementDb.setTask(questForStorage());
           }
         );
         router.push({ name: "xp-bestiary-select" });

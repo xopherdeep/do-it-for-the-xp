@@ -24,6 +24,11 @@ export interface Achievement {
   bonusAchievement: boolean;
   requiresApproval: boolean;
   beastId?: string;
+  /**
+   * The Game Master chose "no beast" on the quest form: the library stops suggesting one for this quest
+   * (questFormRules). True while the quest has no beast of its own; absent or false lets the form suggest.
+   */
+  noBeast?: boolean;
   subAchievementIds?: string[];
   // assignment
   type: string;

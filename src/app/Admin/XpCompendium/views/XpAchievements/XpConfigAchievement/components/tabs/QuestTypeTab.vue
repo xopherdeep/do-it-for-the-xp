@@ -122,12 +122,60 @@
 
           <!-- SIMPLE ERRAND -->
           <div v-if="adventureType === 'simple'" class="dynamic-section simple-section text-center">
-            <div class="empty-state">
+            <!-- The library's suggestion for a quest with no beast; the quest takes it when it is saved -->
+            <div v-if="suggestedBeast" class="suggestion-card" data-test="beast-suggestion">
+              <div class="suggestion-main">
+                <img
+                  v-if="portraitUrl(suggestedBeast)"
+                  :src="portraitUrl(suggestedBeast)"
+                  :alt="suggestedBeast.name"
+                  class="suggestion-portrait"
+                />
+                <i v-else class="fad fa-dragon suggestion-portrait suggestion-portrait-empty"></i>
+                <div class="suggestion-text">
+                  <span class="suggestion-kicker">Suggested beast</span>
+                  <strong class="suggestion-name" data-test="suggested-name">{{ suggestedBeast.name }}</strong>
+                  <span class="suggestion-hint">It joins your bestiary when the quest is saved, and the quest becomes a fight.</span>
+                </div>
+              </div>
+              <div class="suggestion-actions">
+                <ion-button fill="outline" color="primary" data-test="beast-change" @click="isChanging = !isChanging">
+                  Change
+                </ion-button>
+                <ion-button fill="clear" color="medium" data-test="beast-none" @click="decline">
+                  No beast
+                </ion-button>
+              </div>
+              <div v-if="isChanging" class="suggestion-list">
+                <button
+                  v-for="entry in otherSuggestions"
+                  :key="String(entry.id)"
+                  type="button"
+                  class="suggestion-option"
+                  @click="choose(entry)"
+                >
+                  <img v-if="portraitUrl(entry)" :src="portraitUrl(entry)" alt="" class="suggestion-option-portrait" />
+                  <span class="suggestion-option-text">
+                    <strong>{{ entry.name }}</strong>
+                    <span v-if="'chore' in entry">{{ entry.chore }}</span>
+                  </span>
+                </button>
+                <button type="button" class="suggestion-option suggestion-browse" @click="browseBestiary">
+                  <i class="fad fa-paw-claws"></i>
+                  <span class="suggestion-option-text"><strong>Choose from my bestiary</strong></span>
+                </button>
+              </div>
+            </div>
+
+            <div v-else class="empty-state">
               <i class="fad fa-feather-alt fa-4x mb-3 text-success"></i>
               <h3>Peaceful Errand</h3>
               <p>
                 No threats detected. This is a skill challenge or simple chore.
               </p>
+              <ion-button v-if="isBeastDeclined" fill="clear" color="medium" data-test="beast-allow" @click="restoreSuggestion">
+                Suggest a beast
+              </ion-button>
             </div>
           </div>
         </div>
@@ -159,6 +207,7 @@ import { AchievementFormInjectionKey } from "../../hooks/useAchievementForm";
 import { generateFullBeast } from "@/lib/services/ai/GeminiService";
 import { useProStore } from "@/lib/store/stores/pro";
 import BestiaryDb, { beastStorage, Beast } from "@/lib/databases/BestiaryDb";
+import type { LibraryEntry } from "@/lib/services/bestiary/librarySuggest";
 
 const {
   achievement,
@@ -168,6 +217,12 @@ const {
   beasts,
   achievements,
   loadData,
+  suggestedBeast,
+  beastSuggestions,
+  isBeastDeclined,
+  selectSuggestion,
+  dismissSuggestion,
+  restoreSuggestion,
 } = inject(AchievementFormInjectionKey)!;
 
 const router = useRouter();
@@ -178,6 +233,36 @@ const isGeneratingBeast = ref(false);
 // Dynamic avatar count (will be updated when we add dynamic avatar support)
 const MAX_AVATARS = 73;
 const MAX_BACKGROUNDS = 328;
+
+// "Change" opens the other library beasts that fit the quest's name
+const isChanging = ref(false);
+const otherSuggestions = computed(() =>
+  beastSuggestions.value.filter((entry) => String(entry.id) !== String(suggestedBeast.value?.id))
+);
+
+const portraitUrl = (entry: LibraryEntry): string | null => {
+  if (!entry.avatar) return null;
+  try {
+    return require(`@/assets/images/beasts/${entry.avatar.toString().padStart(3, "0")}.webp`);
+  } catch {
+    return null; // no picture for this number: the card shows the dragon icon
+  }
+};
+
+const choose = async (entry: LibraryEntry) => {
+  isChanging.value = false;
+  await selectSuggestion(entry);
+};
+
+const decline = () => {
+  isChanging.value = false;
+  dismissSuggestion();
+};
+
+const browseBestiary = () => {
+  isChanging.value = false;
+  adventureType.value = "beast";
+};
 
 const createBeast = () => {
   router.push({ name: "xp-create-update-beast" });
@@ -549,5 +634,128 @@ const generateBeastWithAI = async () => {
   flex-wrap: wrap;
   gap: 12px;
   justify-content: center;
+}
+
+/* Suggested beast */
+.suggestion-card {
+  text-align: left;
+  background: rgba(var(--ion-color-step-50-rgb), 0.5);
+  border-radius: 16px;
+  border: 2px solid rgba(var(--ion-color-danger-rgb), 0.45);
+  padding: 16px;
+}
+
+.suggestion-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.suggestion-portrait {
+  flex: 0 0 72px;
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+
+  &.suggestion-portrait-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: var(--ion-color-danger);
+  }
+}
+
+.suggestion-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.suggestion-kicker {
+  font-family: "Press Start 2P";
+  font-size: 0.55rem;
+  text-transform: uppercase;
+  color: var(--ion-color-medium);
+}
+
+.suggestion-name {
+  font-family: var(--xp-font-heading);
+  font-size: 1.2rem;
+}
+
+.suggestion-hint {
+  font-size: 0.75rem;
+  color: var(--ion-color-medium);
+  line-height: 1.25;
+}
+
+.suggestion-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+
+  ion-button {
+    flex: 1;
+    margin: 0;
+    min-height: 44px;
+  }
+}
+
+.suggestion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.suggestion-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 52px;
+  padding: 6px 10px;
+  text-align: left;
+  color: inherit;
+  font: inherit;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  cursor: pointer;
+
+  &:hover,
+  &:focus-visible {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: var(--ion-color-primary);
+  }
+
+  i {
+    width: 40px;
+    text-align: center;
+    font-size: 1.4rem;
+  }
+}
+
+.suggestion-option-portrait {
+  flex: 0 0 40px;
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.suggestion-option-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+
+  span {
+    font-size: 0.75rem;
+    color: var(--ion-color-medium);
+  }
 }
 </style>
