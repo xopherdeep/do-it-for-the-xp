@@ -31,9 +31,13 @@ import debug from "@/lib/utils/debug";
  * between beasts, quests and temples; a backup must never do that.)
  *
  * Restore: validate the whole file first (a malformed file touches nothing), snapshot the stores it
- * will replace, then clear and refill them one by one in BACKUP_STORES order. If any write fails,
- * every store touched so far is put back from the snapshot. Only after the last store is written
- * do the post-restore steps run: refresh anything mirrored elsewhere, then reload the user store.
+ * will change, then write them one by one in BACKUP_STORES order. If any write fails, every store
+ * touched so far is put back from the snapshot. Only after the last store is written do the
+ * post-restore steps run: refresh anything mirrored elsewhere, then reload the user store.
+ *
+ * Two modes. "replace" (the default, a normal backup restore) clears each store in the file and refills
+ * it. "merge" (the starter world) clears nothing: it writes the file's records under their keys, so a
+ * record the file owns is replaced and every other record in the store stays.
  */
 
 export const BACKUP_VERSION = 1;
@@ -146,7 +150,16 @@ export interface BackupSummary {
   untouched: string[];
 }
 
+/** "replace" empties each store in the file first; "merge" only writes the file's records and keeps the rest */
+export type RestoreMode = "replace" | "merge";
+
+export interface RestoreOptions {
+  /** Defaults to "replace" */
+  mode?: RestoreMode;
+}
+
 export interface RestoreResult extends BackupSummary {
+  mode: RestoreMode;
   /** False when the data was restored but the user store could not be refreshed; reload the app */
   usersReloaded: boolean;
 }
@@ -182,8 +195,7 @@ const readEntries = async (storage: BackupStorage): Promise<BackupEntry[]> => {
   return entries;
 };
 
-const replaceEntries = async (storage: BackupStorage, entries: readonly BackupEntry[]): Promise<void> => {
-  await storage.clear();
+const writeEntries = async (storage: BackupStorage, entries: readonly BackupEntry[]): Promise<void> => {
   for (let start = 0; start < entries.length; start += WRITE_BATCH_SIZE) {
     const batch = entries.slice(start, start + WRITE_BATCH_SIZE);
     // allSettled, not all: after one write fails, its siblings must finish before the rollback starts
@@ -191,6 +203,11 @@ const replaceEntries = async (storage: BackupStorage, entries: readonly BackupEn
     const failed = results.find((result): result is PromiseRejectedResult => result.status === "rejected");
     if (failed) throw failed.reason;
   }
+};
+
+const replaceEntries = async (storage: BackupStorage, entries: readonly BackupEntry[]): Promise<void> => {
+  await storage.clear();
+  await writeEntries(storage, entries);
 };
 
 const parseEntries = (store: string, entries: unknown): BackupEntry[] => {
@@ -343,10 +360,13 @@ export class BackupService {
 
   /**
    * Replaces the contents of every store in the backup, in BACKUP_STORES order, keeping every key.
-   * Stores the file does not mention are left alone. Throws BackupFormatError (nothing touched) for
-   * a bad file, or BackupStorageError when a store fails (the earlier stores are put back first).
+   * With `{ mode: "merge" }` it instead writes the backup's records into the stores and keeps every
+   * record the backup does not carry. Stores the file does not mention are left alone either way.
+   * Throws BackupFormatError (nothing touched) for a bad file, or BackupStorageError when a store
+   * fails (the earlier stores are put back first).
    */
-  async restoreBackup(input: string | BackupFile): Promise<RestoreResult> {
+  async restoreBackup(input: string | BackupFile, options: RestoreOptions = {}): Promise<RestoreResult> {
+    const mode: RestoreMode = options.mode ?? "replace";
     // 0. Restore replaces everyone's data: only a Game Master may run it (backing up stays open)
     if (!this.canRestore()) throw new BackupPermissionError();
 
@@ -370,12 +390,13 @@ export class BackupService {
       }
     }
 
-    // 3. Clear and refill store by store
+    // 3. Clear and refill store by store (merge: write over the same keys and keep the rest)
     const touched: BackupStoreDef[] = [];
+    const writeStore = mode === "merge" ? writeEntries : replaceEntries;
     try {
       for (const store of plan) {
         touched.push(store);
-        await replaceEntries(store.storage, backup.stores[store.name]);
+        await writeStore(store.storage, backup.stores[store.name]);
       }
     } catch (error) {
       const failed = touched[touched.length - 1];
@@ -393,7 +414,8 @@ export class BackupService {
     for (const store of plan) {
       if (!store.afterRestore) continue;
       try {
-        await store.afterRestore(backup.stores[store.name]);
+        // A merge leaves other records in the store, and a mirror wants the store's whole contents
+        await store.afterRestore(mode === "merge" ? await readEntries(store.storage) : backup.stores[store.name]);
       } catch (error) {
         debug.error(`Backup restore: post-restore step for ${store.name} failed`, error);
       }
@@ -405,7 +427,7 @@ export class BackupService {
       usersReloaded = false;
       debug.error("Backup restore: reloading the user store failed", error);
     }
-    return { ...summary, usersReloaded };
+    return { ...summary, mode, usersReloaded };
   }
 
   /** Puts the touched stores back from the snapshots, newest first. Returns the labels of stores that could not be put back. */

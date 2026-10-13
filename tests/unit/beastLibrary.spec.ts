@@ -1,4 +1,5 @@
 import { BEAST_LIBRARY } from "@/lib/services/core/beastLibrary";
+import { CLASSIC_BEASTS } from "@/lib/services/core/classicBeasts";
 import { STARTER_BEASTS, STARTER_QUESTS } from "@/lib/services/core/StarterWorld";
 import { TOTAL_BEAST_AVATARS } from "@/lib/services/battle/BestiaryService";
 import { getAllWorlds } from "@/lib/engine/core/worldRegistry";
@@ -29,9 +30,17 @@ describe("the beast library", () => {
     }
   });
 
-  it("seeds the whole library into the starter world as plain beasts the quests can still find", () => {
-    expect(STARTER_BEASTS).toHaveLength(BEAST_LIBRARY.length);
-    expect(STARTER_BEASTS[0]).not.toHaveProperty("chore");
+  it("seeds the whole library and the classic beasts into the starter world as plain beasts the quests can still find", () => {
+    expect(STARTER_BEASTS).toHaveLength(BEAST_LIBRARY.length + CLASSIC_BEASTS.length);
+    expect(STARTER_BEASTS.slice(0, BEAST_LIBRARY.length).map((b) => b.id)).toEqual(BEAST_LIBRARY.map((b) => b.id));
+    expect(STARTER_BEASTS.slice(BEAST_LIBRARY.length).map((b) => b.id)).toEqual(CLASSIC_BEASTS.map((b) => b.id));
+    expect(new Set(STARTER_BEASTS.map((b) => b.id)).size).toBe(STARTER_BEASTS.length);
+    expect(STARTER_BEASTS.slice(BEAST_LIBRARY.length).some((b) => "element" in b)).toBe(false);
+    for (const beast of STARTER_BEASTS) {
+      expect(beast).not.toHaveProperty("chore");
+      expect(beast).not.toHaveProperty("classic");
+      expect(beast).not.toHaveProperty("slug");
+    }
     const ids = new Set(STARTER_BEASTS.map((b) => b.id));
     for (const quest of STARTER_QUESTS) if (quest.beastId) expect(ids.has(quest.beastId)).toBe(true);
   });

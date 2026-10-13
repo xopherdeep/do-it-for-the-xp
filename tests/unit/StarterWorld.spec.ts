@@ -9,7 +9,9 @@ import {
   buildStarterWorld,
   starterShops,
 } from "@/lib/services/core/StarterWorld";
+import { isClassicBeastId } from "@/lib/services/core/classicBeasts";
 import { BACKUP_STORES, BackupService } from "@/lib/services/core/BackupService";
+import type { BackupStorage, BackupStoreDef } from "@/lib/services/core/BackupService";
 import { getAllShops } from "@/lib/engine/core/shopRegistry";
 import { TIMES_OF_DAY, getQuestWindow, questMatchesSegment, questTimesOfDay } from "@/lib/engine/quests/QuestSchedule";
 
@@ -151,7 +153,9 @@ describe("the starter content", () => {
       expect(beast.avatar).toBeLessThanOrEqual(TOTAL_BEAST_AVATARS);
       expect(beast.bg1).toBeLessThanOrEqual(325);
       expect(beast.bg2).toBeLessThanOrEqual(325);
-      expect(beast.element).toBeTruthy();
+      // The chore library is tied to a region; the classic beasts deliberately have no element
+      if (isClassicBeastId(beast.id)) expect(beast).not.toHaveProperty("element");
+      else expect(beast.element).toBeTruthy();
     }
   });
 
@@ -169,5 +173,86 @@ describe("the starter content", () => {
       expect(shop.items.length).toBe(shop.id === "hometown-market" ? rewards.size : 3);
       for (const item of shop.items) expect(rewards.has(item.itemId)).toBe(true);
     }
+  });
+});
+
+describe("loading the starter world over a family's own content", () => {
+  /** In-memory Ionic Storage stand-in, enough for BackupService */
+  const memory = (seed: Record<string, unknown> = {}) => {
+    const data = new Map<string, unknown>(Object.entries(seed));
+    return {
+      data,
+      create: async () => undefined,
+      forEach: async (callback: (value: unknown, key: string, index: number) => unknown) => {
+        let index = 0;
+        for (const [key, value] of Array.from(data.entries())) {
+          if (callback(JSON.parse(JSON.stringify(value)), key, index++) !== undefined) return;
+        }
+      },
+      set: async (key: string, value: unknown) => {
+        data.set(key, JSON.parse(JSON.stringify(value)));
+      },
+      clear: async () => {
+        data.clear();
+      },
+    };
+  };
+
+  const family = {
+    __achievementCategories: { "cat-kids": { id: "cat-kids", name: "The Kids' Own Chores" } },
+    __beasts: {
+      "beast-made-by-the-kids": { id: "beast-made-by-the-kids", name: "Moanin Ronan's Cousin", avatar: 50, checklist: ["Hum"] },
+      "beast-dish-goblin": { id: "beast-dish-goblin", name: "Edited Goblin", avatar: 12, checklist: [] },
+    },
+    __achievements: {
+      "quest-kids-own": { id: "quest-kids-own", achievementName: "Feed the dragon", categoryId: "cat-kids", beastId: "beast-made-by-the-kids" },
+      "quest-socks": { id: "quest-socks", achievementName: "Edited socks quest" },
+    },
+    __abilities: { "my-power": { id: "my-power", name: "Movie Night Pass" } },
+    __accessories: { "my-reward": { id: "my-reward", name: "Ice Cream Trip" } },
+    __shops: { "my-shop": { id: "my-shop", name: "Grandma's Stall", items: [] } },
+  };
+
+  const load = async () => {
+    const stores = Object.fromEntries(STARTER_WORLD_STORES.map((name) => [name, memory(family[name])]));
+    const defs: BackupStoreDef[] = BACKUP_STORES.map((def) =>
+      stores[def.name] ? { ...def, storage: stores[def.name] as unknown as BackupStorage } : def
+    );
+    const service = new BackupService(defs, jest.fn(), () => true);
+    const result = await service.restoreBackup(buildStarterWorld(), { mode: "merge" });
+    return { stores, service, result };
+  };
+
+  it("keeps every beast, quest, category, Power, reward and shop the family made", async () => {
+    const { stores } = await load();
+    const kept = (store: keyof typeof family, id: string) => stores[store].data.get(id);
+    expect(kept("__beasts", "beast-made-by-the-kids")).toEqual(family.__beasts["beast-made-by-the-kids"]);
+    expect(kept("__achievements", "quest-kids-own")).toEqual(family.__achievements["quest-kids-own"]);
+    expect(kept("__achievementCategories", "cat-kids")).toEqual(family.__achievementCategories["cat-kids"]);
+    expect(kept("__abilities", "my-power")).toEqual(family.__abilities["my-power"]);
+    expect(kept("__accessories", "my-reward")).toEqual(family.__accessories["my-reward"]);
+    expect(kept("__shops", "my-shop")).toEqual(family.__shops["my-shop"]);
+  });
+
+  it("adds the whole starter world, classic beasts included, and resets only the ids it owns", async () => {
+    const { stores, result } = await load();
+    const beasts = stores.__beasts.data;
+    expect(beasts.size).toBe(STARTER_BEASTS.length + 1);
+    for (const beast of STARTER_BEASTS) expect(beasts.has(String(beast.id))).toBe(true);
+    expect(beasts.get("beast-classic-050")).toMatchObject({ name: "Moanin Ronan", avatar: 50 });
+    expect(beasts.get("beast-dish-goblin")).toMatchObject({ name: "Dish Goblin" });
+    expect(stores.__achievements.data.get("quest-socks")).toMatchObject({ achievementName: "Tame the Socktopus" });
+    expect(stores.__achievements.data.size).toBe(STARTER_QUESTS.length + 1);
+    expect(result.mode).toBe("merge");
+  });
+
+  it("can be loaded again without adding a second copy of anything", async () => {
+    const { stores, service } = await load();
+    const sizes = () => STARTER_WORLD_STORES.map((name) => stores[name].data.size);
+    const before = sizes();
+
+    await service.restoreBackup(buildStarterWorld(), { mode: "merge" });
+
+    expect(sizes()).toEqual(before);
   });
 });

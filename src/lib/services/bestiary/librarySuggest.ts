@@ -1,10 +1,26 @@
 /**
  * The beast library as suggestions: which library beasts fit a quest a Game Master is writing, and how one
  * of them becomes a beast in the family's bestiary. Pure: the screens call these and store the result.
+ *
+ * The library is the hundred chore beasts plus the classic beasts (the family's original monster art). Classic
+ * beasts have no chore, room or age band, so they show up when browsing, searching by name and adopting, and in
+ * suggestions only by a name the family has given them.
  */
 import type { Beast } from "@/lib/databases/BestiaryDb";
 import { BEAST_LIBRARY } from "@/lib/services/core/beastLibrary";
 import type { LibraryBeast } from "@/lib/services/core/beastLibrary";
+import { CLASSIC_BEASTS } from "@/lib/services/core/classicBeasts";
+import type { ClassicBeast } from "@/lib/services/core/classicBeasts";
+
+/** Anything the family can pick from the library: a chore beast or a classic one */
+export type LibraryEntry = LibraryBeast | ClassicBeast;
+
+const LIBRARY_ENTRIES: readonly LibraryEntry[] = [...BEAST_LIBRARY, ...CLASSIC_BEASTS];
+
+export const isClassicBeast = (beast: LibraryEntry): beast is ClassicBeast => "classic" in beast;
+
+/** "Classic Beast 012": a name waiting to be replaced says nothing about the beast, so it is not matched */
+const PLACEHOLDER_NAME = /^Classic Beast \d+$/;
 
 const STOPWORDS = new Set([
   "the", "a", "an", "your", "my", "our", "up", "out", "of", "in", "on", "to", "and", "for", "with", "from", "into",
@@ -46,11 +62,17 @@ const expand = (words: string[]): string[] =>
 
 const WEIGHTS = { chore: 3, name: 2, checklist: 1 } as const;
 
+/** What a phrase is matched against: a chore beast by chore, name and task list; a classic one only by a real name */
+const matchFields = (beast: LibraryEntry): Record<keyof typeof WEIGHTS, string[]> =>
+  isClassicBeast(beast)
+    ? { chore: [], name: PLACEHOLDER_NAME.test(beast.name) ? [] : keywords(beast.name), checklist: [] }
+    : { chore: keywords(beast.chore), name: keywords(beast.name), checklist: keywords(beast.checklist.join(" ")) };
+
 /** How well a library beast fits a phrase: chore words count most, its name next, its task list a little */
-export const matchScore = (beast: LibraryBeast, text: string): number => {
+export const matchScore = (beast: LibraryEntry, text: string): number => {
   const wanted = expand(keywords(text));
   if (!wanted.length) return 0;
-  const fields = { chore: keywords(beast.chore), name: keywords(beast.name), checklist: keywords(beast.checklist.join(" ")) };
+  const fields = matchFields(beast);
   return wanted.reduce((score, word) => {
     if (fields.chore.includes(word)) return score + WEIGHTS.chore;
     if (fields.name.includes(word)) return score + WEIGHTS.name;
@@ -63,15 +85,24 @@ export interface LibraryFilter {
   text?: string;
   room?: string;
   age?: LibraryBeast["age"];
+  /** True: only the classic beasts. False: only the chore beasts. Left out: both */
+  classic?: boolean;
   /** Beast ids already in the family's bestiary, left out of the results */
   exclude?: Iterable<string>;
 }
 
+/** The room and age filters only fit chore beasts, so asking for either leaves the classic beasts out */
+const fitsFilter = (beast: LibraryEntry, filter: LibraryFilter, skip: ReadonlySet<string>): boolean =>
+  !skip.has(String(beast.id)) &&
+  (!filter.room || beast.room === filter.room) &&
+  (!filter.age || beast.age === filter.age) &&
+  (filter.classic === undefined || isClassicBeast(beast) === filter.classic);
+
 /** The library beasts that fit a quest name (or any phrase), best first; nothing when nothing fits */
-export const suggestBeasts = (text: string, limit = 6, filter: Omit<LibraryFilter, "text"> = {}): LibraryBeast[] => {
+export const suggestBeasts = (text: string, limit = 6, filter: Omit<LibraryFilter, "text"> = {}): LibraryEntry[] => {
   const skip = new Set(filter.exclude ?? []);
-  return BEAST_LIBRARY
-    .filter((b) => !skip.has(String(b.id)) && (!filter.room || b.room === filter.room) && (!filter.age || b.age === filter.age))
+  return LIBRARY_ENTRIES
+    .filter((b) => fitsFilter(b, filter, skip))
     .map((beast, order) => ({ beast, order, score: matchScore(beast, text) }))
     .filter((m) => m.score > 0)
     .sort((a, b) => b.score - a.score || a.order - b.order)
@@ -79,15 +110,17 @@ export const suggestBeasts = (text: string, limit = 6, filter: Omit<LibraryFilte
     .map((m) => m.beast);
 };
 
-/** The library to browse: a text search over name, chore and task list, narrowed by room and age band */
-export const browseLibrary = (filter: LibraryFilter = {}): LibraryBeast[] => {
+/** What a text search reads: a classic beast's task list is the same filler for all of them, so only its name counts */
+const searchableText = (beast: LibraryEntry): string[] =>
+  isClassicBeast(beast) ? [beast.name] : [beast.name, beast.chore, ...beast.checklist];
+
+/** The library to browse: a text search over name, chore and task list, narrowed by room, age band and kind */
+export const browseLibrary = (filter: LibraryFilter = {}): LibraryEntry[] => {
   const skip = new Set(filter.exclude ?? []);
   const needle = filter.text?.trim().toLowerCase() ?? "";
-  return BEAST_LIBRARY.filter((b) =>
-    !skip.has(String(b.id)) &&
-    (!filter.room || b.room === filter.room) &&
-    (!filter.age || b.age === filter.age) &&
-    (!needle || [b.name, b.chore, ...b.checklist].some((s) => s.toLowerCase().includes(needle))));
+  return LIBRARY_ENTRIES.filter((b) =>
+    fitsFilter(b, filter, skip) &&
+    (!needle || searchableText(b).some((s) => s.toLowerCase().includes(needle))));
 };
 
 /** Every room the library covers, in library order */
@@ -97,10 +130,10 @@ export const libraryRooms = (): string[] => Array.from(new Set(BEAST_LIBRARY.map
  * A library beast as the family's own: the same id every time, so adopting it twice updates rather than
  * duplicates, and only the fields the bestiary stores.
  */
-export const adoptLibraryBeast = (beast: LibraryBeast): Beast => ({
+export const adoptLibraryBeast = (beast: LibraryEntry): Beast => ({
   id: beast.id,
   name: beast.name,
-  element: beast.element,
+  ...(beast.element ? { element: beast.element } : {}),
   avatar: beast.avatar,
   ...(beast.variantAvatar ? { variantAvatar: beast.variantAvatar } : {}),
   bg1: beast.bg1,

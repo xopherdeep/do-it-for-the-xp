@@ -168,7 +168,7 @@
               <ion-icon slot="start" :icon="sparklesOutline"></ion-icon>
               <ion-label>
                 <h2>Load the starter world</h2>
-                <p>Fill the Compendium with ready-made quests, beasts, Powers, rewards and shops. Profiles stay as they are</p>
+                <p>Add ready-made quests, beasts, Powers, rewards and shops. What you made yourself stays</p>
               </ion-label>
             </ion-item>
           </ion-item-group>
@@ -227,7 +227,7 @@
   import { arrowBack, cloudDownloadOutline, cloudUploadOutline, sparklesOutline } from "ionicons/icons";
   import { alertController, loadingController, toastController } from "@ionic/vue";
   import backupService, { BackupFormatError } from "@/lib/services/core/BackupService";
-  import type { BackupFile, BackupSummary, RestoreResult } from "@/lib/services/core/BackupService";
+  import type { BackupFile, BackupSummary, RestoreMode, RestoreResult } from "@/lib/services/core/BackupService";
   import { buildStarterWorld } from "@/lib/services/core/StarterWorld";
   import { canManageFamily, RESTORE_GM_ONLY_MESSAGE } from "@/router/_Guards/gm.guard";
 
@@ -432,7 +432,7 @@
         await alert.present();
       },
 
-      /** The starter world names only the content stores, so the family's profiles and logs are never touched */
+      /** A merge: the starter world adds its own records and keeps every other one; profiles and logs are not in it */
       async confirmStarterWorld() {
         if (!canManageFamily()) {
           this.showGmOnlyToast();
@@ -441,14 +441,13 @@
         const alert = await alertController.create({
           header: "Load the starter world?",
           message:
-            "This replaces the quest categories, bestiary, quests, Powers, rewards and shop stock with a ready-made set. Every quest is an open bounty, so your heroes can claim them right away. Profiles, temples, logs and chat are left as they are. This cannot be undone.",
+            "This adds a ready-made set of quests, beasts (the classic monsters too), Powers, rewards and shop stock. Everything you made yourself is kept; only the starter's own entries are reset if you changed them. Every quest is an open bounty, so your heroes can claim them right away. Profiles, temples, logs and chat are not touched.",
           buttons: [
             { text: "Cancel", role: "cancel" },
             {
               text: "Load starter world",
-              role: "destructive",
               handler: () => {
-                this.runRestore(buildStarterWorld(), "the starter world");
+                this.runRestore(buildStarterWorld(), "the starter world", "merge");
               },
             },
           ],
@@ -457,11 +456,11 @@
       },
 
       /** `source` names what was loaded in the done dialog; a file is named by the date it was made */
-      async runRestore(backup: BackupFile, source?: string) {
+      async runRestore(backup: BackupFile, source?: string, mode: RestoreMode = "replace") {
         try {
           const result = await this.withLoading(
-            "Restoring your data...",
-            () => backupService.restoreBackup(backup)
+            mode === "merge" ? "Adding to your data..." : "Restoring your data...",
+            () => backupService.restoreBackup(backup, { mode })
           );
           await this.showRestoreDone(result, source);
         } catch (error) {
@@ -472,7 +471,9 @@
       /** Caches and open screens still hold the old data, so the only button reloads the app */
       async showRestoreDone(result: RestoreResult, source?: string) {
         const notes = [
-          `Restored ${result.total} entries from ${source ?? `the backup made ${formatBackupDate(result.exportedAt)}`}.`,
+          result.mode === "merge"
+            ? `Added ${result.total} entries from ${source ?? "the file"}. Everything else you made was kept.`
+            : `Restored ${result.total} entries from ${source ?? `the backup made ${formatBackupDate(result.exportedAt)}`}.`,
         ];
         if (result.untouched.length) {
           notes.push(

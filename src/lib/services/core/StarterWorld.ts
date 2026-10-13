@@ -2,16 +2,18 @@
  * The starter world: a ready-made Compendium a Game Master can load from Settings to try the game
  * (or to test it on a phone) without authoring anything first.
  *
- * It is shaped as a backup file (BackupService) that names only the game-content stores, so restoring
- * it fills the quest categories, bestiary, quests, abilities, accessories and shops and leaves every
- * profile, log, temple and chat exactly as it is. Every quest is an open bounty, so it shows for any
- * hero the family already has.
+ * It is shaped as a backup file (BackupService) that names only the game-content stores. Load it with
+ * restoreBackup(world, { mode: "merge" }): it adds its quest categories, beasts, quests, abilities,
+ * accessories and shops, replaces only records whose id it owns, and keeps every other record the family
+ * made. Profiles, logs, temples and chat are not in it at all. Every quest is an open bounty, so it shows
+ * for any hero the family already has.
  */
 import { BACKUP_VERSION } from "./BackupService";
 import type { BackupEntry, BackupFile } from "./BackupService";
 import type { Achievement, AchievementCategoryInterface } from "@/lib/databases/AchievementDb";
 import type { Beast } from "@/lib/databases/BestiaryDb";
 import { BEAST_LIBRARY } from "./beastLibrary";
+import { CLASSIC_BEASTS } from "./classicBeasts";
 import { ShopItemType } from "@/lib/databases/ShopsDb";
 import type { ShopInterface } from "@/lib/databases/ShopsDb";
 import type { Ability } from "@/types/abilities";
@@ -43,12 +45,15 @@ export const STARTER_CATEGORIES: AchievementCategoryInterface[] = [
 
 /**
  * The whole beast library (tools/art/beast_roster.json): one beast per common chore with its task list, each tied
- * to a region element so random encounters there pick it. Stored as plain beasts; the library's chore, room and age
- * stay in BEAST_LIBRARY for the Compendium to browse.
+ * to a region element so random encounters there pick it; then the classic beasts, the family's original monster
+ * art with names to be replaced (no element, and kept out of random encounters, so they are only ever chosen).
+ * Stored as plain beasts; the library's chore, room and age stay in BEAST_LIBRARY for the Compendium to browse.
  */
-export const STARTER_BEASTS: Beast[] = BEAST_LIBRARY.map(({ id, name, element, avatar, bg1, bg2, aspectRatio, checklist }) => ({
-  id, name, element, avatar, bg1, bg2, aspectRatio, checklist: [...checklist],
-}));
+export const STARTER_BEASTS: Beast[] = [...BEAST_LIBRARY, ...CLASSIC_BEASTS].map(
+  ({ id, name, element, avatar, bg1, bg2, aspectRatio, checklist }) => ({
+    id, name, ...(element ? { element } : {}), avatar, bg1, bg2, aspectRatio, checklist: [...checklist],
+  })
+);
 
 interface QuestSeed {
   id: string;

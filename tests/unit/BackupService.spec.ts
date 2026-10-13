@@ -699,6 +699,101 @@ describe("restoreBackup", () => {
   });
 });
 
+describe("restoreBackup in merge mode", () => {
+  const familyBeast = { id: "beast-made-by-the-kids", name: "Moanin Ronan's Cousin", avatar: 50, checklist: ["Hum"] };
+  const oldDishGoblin = { id: "beast-dish-goblin", name: "Edited Goblin", avatar: 12, checklist: [] };
+  const starterBeasts = backupOf({
+    __beasts: [
+      ["beast-dish-goblin", { id: "beast-dish-goblin", name: "Dish Goblin", avatar: 104, checklist: ["Scrape"] }],
+      ["beast-classic-050", { id: "beast-classic-050", name: "Moanin Ronan", avatar: 50, checklist: ["Get ready"] }],
+    ],
+  });
+
+  it("adds the file's records, replaces the ones it owns by id and keeps every other record", async () => {
+    const { service, fakes, log } = makeWorld({
+      __beasts: { [familyBeast.id]: familyBeast, "beast-dish-goblin": oldDishGoblin },
+      __questLog: { oldEntry: { id: "oldEntry" } },
+    });
+
+    const result = await service.restoreBackup(starterBeasts, { mode: "merge" });
+
+    expect(fakes.__beasts.contents()).toEqual({
+      [familyBeast.id]: familyBeast,
+      "beast-dish-goblin": { id: "beast-dish-goblin", name: "Dish Goblin", avatar: 104, checklist: ["Scrape"] },
+      "beast-classic-050": { id: "beast-classic-050", name: "Moanin Ronan", avatar: 50, checklist: ["Get ready"] },
+    });
+    expect(fakes.__questLog.contents()).toEqual({ oldEntry: { id: "oldEntry" } });
+    expect(log.some((line) => line.endsWith(":clear"))).toBe(false);
+    expect(result).toMatchObject({ mode: "merge", total: 2, usersReloaded: true, stores: [{ name: "__beasts", count: 2 }] });
+  });
+
+  it("does nothing to a store the file lists with no records, where a replace would empty it", async () => {
+    const merged = makeWorld({ __beasts: { [familyBeast.id]: familyBeast } });
+    await merged.service.restoreBackup(backupOf({ __beasts: [] }), { mode: "merge" });
+    expect(merged.fakes.__beasts.contents()).toEqual({ [familyBeast.id]: familyBeast });
+
+    const replaced = makeWorld({ __beasts: { [familyBeast.id]: familyBeast } });
+    await replaced.service.restoreBackup(backupOf({ __beasts: [] }));
+    expect(replaced.fakes.__beasts.contents()).toEqual({});
+  });
+
+  it("is still a replace by default: the same file empties the store first", async () => {
+    const seed = { __beasts: { [familyBeast.id]: familyBeast, "beast-dish-goblin": oldDishGoblin } };
+    const byDefault = makeWorld(seed);
+    const explicit = makeWorld(seed);
+
+    const result = await byDefault.service.restoreBackup(starterBeasts);
+    await explicit.service.restoreBackup(starterBeasts, { mode: "replace" });
+
+    expect(result.mode).toBe("replace");
+    expect(Object.keys(byDefault.fakes.__beasts.contents()).sort()).toEqual(["beast-classic-050", "beast-dish-goblin"]);
+    expect(explicit.fakes.__beasts.contents()).toEqual(byDefault.fakes.__beasts.contents());
+    expect(byDefault.log).toContain("beasts:clear");
+  });
+
+  it("puts the store back exactly as it was, family records included, when a write fails", async () => {
+    const seed = { __beasts: { [familyBeast.id]: familyBeast, "beast-dish-goblin": oldDishGoblin } };
+    const { service, fakes, reloadUsers } = makeWorld(seed);
+    fakes.__beasts.failSetOnCall = 2;
+
+    const error = await service.restoreBackup(starterBeasts, { mode: "merge" }).catch((caught) => caught);
+
+    expect(error).toMatchObject({ store: "__beasts", dataIntact: true });
+    expect(fakes.__beasts.contents()).toEqual(seed.__beasts);
+    expect(reloadUsers).not.toHaveBeenCalled();
+  });
+
+  it("hands a store's afterRestore hook the whole store, since a mirror wants everything, not only the new records", async () => {
+    const { service, defs } = makeWorld({ __profiles: { kept: hero("kept"), p1: hero("old p1") } });
+    const mirrored: Array<readonly { key: string; value: unknown }[]> = [];
+    defs[0].afterRestore = async (entries) => {
+      mirrored.push(entries);
+    };
+
+    await service.restoreBackup(backupOf({ __profiles: [["p1", hero("p1")]] }), { mode: "merge" });
+
+    expect(mirrored).toHaveLength(1);
+    expect(mirrored[0]).toHaveLength(2);
+    expect(mirrored[0]).toEqual(
+      expect.arrayContaining([
+        { key: "kept", value: hero("kept") },
+        { key: "p1", value: hero("p1") },
+      ])
+    );
+  });
+
+  it("is Game Master only, like any restore, and a bad file touches nothing", async () => {
+    const seed = { __beasts: { [familyBeast.id]: familyBeast } };
+    const { defs, fakes, service } = makeWorld(seed);
+
+    await expect(new BackupService(defs, jest.fn(), () => false).restoreBackup(starterBeasts, { mode: "merge" })).rejects.toBeInstanceOf(
+      BackupPermissionError
+    );
+    await expect(service.restoreBackup("not json", { mode: "merge" })).rejects.toBeInstanceOf(BackupFormatError);
+    expect(fakes.__beasts.contents()).toEqual(seed.__beasts);
+  });
+});
+
 describe("against a real Ionic Storage (localStorage driver)", () => {
   // The fakes above encode assumptions about Storage: forEach(value, key), create() being safe to call
   // again, clear() emptying only its own database. This pins them to the real class.
@@ -731,6 +826,22 @@ describe("against a real Ionic Storage (localStorage driver)", () => {
     expect(await keysOf(bystander)).toEqual(["untouched"]);
     expect(await keysOf(source)).toEqual(["hero-1:temple-1", "p1"]);
     expect(reload).toHaveBeenCalledTimes(1);
+  });
+
+  it("merges into a real storage: same keys replaced, other keys kept", async () => {
+    const target = await open("__backupSpecMerge");
+    await target.set("family", { id: "family" });
+    await target.set("owned", { id: "owned", name: "old" });
+    const registry: BackupStoreDef[] = [{ name: "__beasts", label: "Bestiary", storage: target }];
+
+    await new BackupService(registry, jest.fn()).restoreBackup(
+      backupOf({ __beasts: [["owned", { id: "owned", name: "new" }], ["added", { id: "added" }]] }),
+      { mode: "merge" }
+    );
+
+    expect(await keysOf(target)).toEqual(["added", "family", "owned"]);
+    expect(await target.get("owned")).toEqual({ id: "owned", name: "new" });
+    expect(await target.get("family")).toEqual({ id: "family" });
   });
 
   it("opens a storage that nobody has called create() on yet", async () => {

@@ -1,6 +1,7 @@
 import BestiaryDb, { beastStorage, type Beast } from "@/lib/databases/BestiaryDb";
 import { Enemy } from './BattleService';
 import debug from "@/lib/utils/debug";
+import { isClassicBeastId } from "@/lib/services/core/classicBeasts";
 
 export const TOTAL_BEAST_AVATARS = 293; // NNN.webp files in src/assets/images/beasts (tools/art/beasts.py draws the newer ones)
 export const MAX_BG_INDEX = 325;
@@ -70,14 +71,16 @@ export class BestiaryService {
 
   /**
    * Load a random beast from the bestiary
-   * @param element When given, pick among the beasts tagged with it (all beasts if none are)
+   * @param element When given, pick among the beasts tagged with it (all beasts if none are).
+   *   Classic beasts are never drawn: they are only fought where a Game Master chose them.
    * @returns A random beast converted to an Enemy object, or null if none available
    */
   public async loadRandomBeast(element?: string): Promise<Enemy | null> {
     try {
-      const all = await this.bestiary.getBeasts();
-      const isBestiaryEmpty = !all || all.length === 0;
-      if (isBestiaryEmpty) return null;
+      const stored = await this.bestiary.getBeasts();
+      const all = (stored ?? []).filter((b: Beast) => !isClassicBeastId(b.id));
+      const isPoolEmpty = all.length === 0;
+      if (isPoolEmpty) return null;
       const native = element ? all.filter((b: any) => b.element === element) : [];
       const beasts = native.length ? native : all;
 

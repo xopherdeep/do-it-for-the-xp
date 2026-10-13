@@ -1,5 +1,6 @@
 import type { Beast } from "@/lib/databases/BestiaryDb";
 import type { Room } from "@/lib/engine/core/dungeons/types";
+import { isClassicBeastId } from "@/lib/services/core/classicBeasts";
 
 /**
  * Which beast lives in a temple's combat room. The room screen (the voxel monster and the "A Monster approaches!"
@@ -111,7 +112,7 @@ const squash = (text: string): string => text.toLowerCase().replace(/[-_ ]/g, ""
  * The bestiary beast that lives in a combat room: the same answer for the room screen and the battle.
  *  1. an authored beast (content.beasts[0]) is that beast, or null when the bestiary no longer has it (no substitute)
  *  2. a monsterType other than "small" is the first beast whose name contains it
- *  3. otherwise the temple element's beasts, indexed by (row + col) % count
+ *  3. otherwise the temple element's beasts, indexed by (row + col) % count (never a classic beast: those are only authored in)
  *  4. null: the caller shows the stand-in
  */
 export const pickRoomBeast = (room: Room, element: string, row: number, col: number, beasts: Beast[]): Beast | null => {
@@ -125,6 +126,6 @@ export const pickRoomBeast = (room: Room, element: string, row: number, col: num
     if (typeMatch) return typeMatch;
   }
 
-  const native = beasts.filter((b) => b.element === element);
+  const native = beasts.filter((b) => b.element === element && !isClassicBeastId(b.id));
   return native.length ? native[(row + col) % native.length] : null;
 };
