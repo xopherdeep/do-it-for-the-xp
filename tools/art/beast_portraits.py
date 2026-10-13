@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Painted chore beasts for the starter bestiary. Each entry of tools/art/beast_roster.json (slug, name, chore,
-element, checklist, look) is drawn by Gemini's image model in one of three storybook styles, one square take per
+element, theme, checklist, look) is drawn by Gemini's image model in one of three storybook styles, one square take per
 call, on a flat white ground that is then keyed out. Takes land in tools/art/out/beasts (raw renders in raw/);
 nothing in src changes until --install.
 
@@ -333,15 +333,17 @@ def emit_ts():
               "weed-wyrm": (12, 266), "trash-troll": (301, 55), "crumb-gremlin": (170, 9), "homework-hydra": (230, 140),
               "bed-basilisk": (120, 288), "fang-fairy": (60, 190)}
     def bg(slug, salt): return picked[slug][salt - 1] if slug in picked else zlib.crc32(f"{slug}:{salt}".encode()) % 327
-    lines = ['import type { Beast } from "@/lib/databases/BestiaryDb";', "",
+    lines = ['import type { Beast } from "@/lib/databases/BestiaryDb";',
+             'import type { TempleTheme } from "@/lib/services/temples/templeThemes";', "",
              "/** Starter beast library: one beast per common chore, drawn by tools/art/beast_portraits.py from",
              " *  tools/art/beast_roster.json. Generated: edit the roster and re-run --emit-ts. */",
              "export interface LibraryBeast extends Beast {", "  slug: string;", "  chore: string;", "  room: string;",
-             '  age: "little" | "kid" | "teen";', "  /** A second look for the same beast (NNN.webp), for elite or shadow encounters */",
+             '  age: "little" | "kid" | "teen";', "  /** The temple this chore belongs to (its own field: `element` is an art choice) */",
+             "  theme: TempleTheme;", "  /** A second look for the same beast (NNN.webp), for elite or shadow encounters */",
              "  variantAvatar?: number;", "}", "", "export const BEAST_LIBRARY: LibraryBeast[] = ["]
     for b in rows:
         lines.append("  " + json.dumps({"id": f"beast-{b['slug']}", "slug": b["slug"], "name": b["name"], "chore": b["chore"],
-                                        "room": b["room"], "age": b["age"], "element": b["element"], "avatar": nums[b["slug"]],
+                                        "room": b["room"], "age": b["age"], "element": b["element"], "theme": b["theme"], "avatar": nums[b["slug"]],
                                         **({"variantAvatar": variants[b["slug"]]} if b["slug"] in variants else {}),
                                         "bg1": bg(b["slug"], 1), "bg2": bg(b["slug"], 2), "aspectRatio": 48,
                                         "checklist": b["checklist"]}, ensure_ascii=False) + ",")

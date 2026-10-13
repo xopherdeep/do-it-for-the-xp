@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid'
 import DbStorageApi from './DbStorageApi';
 import debug from '@/lib/utils/debug';
+import type { TempleTheme } from '@/lib/services/temples/templeThemes';
 
 import { Drivers, Storage } from "@ionic/storage";
 import { toastController } from '@ionic/vue';
@@ -28,6 +29,7 @@ export interface Beast {
   bg2?: number;            // Background layer 2 for earthbound battle backgrounds
   aspectRatio?: number;    // Aspect ratio for battle background display
   element?: string;        // Region element (worldRegistry): random encounters there prefer beasts of it
+  theme?: TempleTheme;     // The temple whose chores this beast belongs to (not the art element); copied from the library
 }
 
 export interface BackgroundPreset {

@@ -11,6 +11,7 @@ import { BEAST_LIBRARY } from "@/lib/services/core/beastLibrary";
 import type { LibraryBeast } from "@/lib/services/core/beastLibrary";
 import { CLASSIC_BEASTS } from "@/lib/services/core/classicBeasts";
 import type { ClassicBeast } from "@/lib/services/core/classicBeasts";
+import type { TempleTheme } from "@/lib/services/temples/templeThemes";
 
 /** Anything the family can pick from the library: a chore beast or a classic one */
 export type LibraryEntry = LibraryBeast | ClassicBeast;
@@ -85,17 +86,20 @@ export interface LibraryFilter {
   text?: string;
   room?: string;
   age?: LibraryBeast["age"];
+  /** Only the chore beasts of this temple theme (kitchen is "shadow"); the classic beasts have no theme */
+  theme?: TempleTheme;
   /** True: only the classic beasts. False: only the chore beasts. Left out: both */
   classic?: boolean;
   /** Beast ids already in the family's bestiary, left out of the results */
   exclude?: Iterable<string>;
 }
 
-/** The room and age filters only fit chore beasts, so asking for either leaves the classic beasts out */
+/** The room, age and theme filters only fit chore beasts, so asking for any of them leaves the classic beasts out */
 const fitsFilter = (beast: LibraryEntry, filter: LibraryFilter, skip: ReadonlySet<string>): boolean =>
   !skip.has(String(beast.id)) &&
   (!filter.room || beast.room === filter.room) &&
   (!filter.age || beast.age === filter.age) &&
+  (!filter.theme || (!isClassicBeast(beast) && beast.theme === filter.theme)) &&
   (filter.classic === undefined || isClassicBeast(beast) === filter.classic);
 
 /** The library beasts that fit a quest name (or any phrase), best first; nothing when nothing fits */
@@ -114,7 +118,7 @@ export const suggestBeasts = (text: string, limit = 6, filter: Omit<LibraryFilte
 const searchableText = (beast: LibraryEntry): string[] =>
   isClassicBeast(beast) ? [beast.name] : [beast.name, beast.chore, ...beast.checklist];
 
-/** The library to browse: a text search over name, chore and task list, narrowed by room, age band and kind */
+/** The library to browse: a text search over name, chore and task list, narrowed by room, age band, theme and kind */
 export const browseLibrary = (filter: LibraryFilter = {}): LibraryEntry[] => {
   const skip = new Set(filter.exclude ?? []);
   const needle = filter.text?.trim().toLowerCase() ?? "";
@@ -134,6 +138,7 @@ export const adoptLibraryBeast = (beast: LibraryEntry): Beast => ({
   id: beast.id,
   name: beast.name,
   ...(beast.element ? { element: beast.element } : {}),
+  ...(beast.theme ? { theme: beast.theme } : {}),
   avatar: beast.avatar,
   ...(beast.variantAvatar ? { variantAvatar: beast.variantAvatar } : {}),
   bg1: beast.bg1,
@@ -141,3 +146,13 @@ export const adoptLibraryBeast = (beast: LibraryEntry): Beast => ({
   aspectRatio: beast.aspectRatio,
   checklist: [...beast.checklist],
 });
+
+const LIBRARY_BY_ID: ReadonlyMap<string, LibraryEntry> = new Map(LIBRARY_ENTRIES.map((b) => [String(b.id), b]));
+
+/**
+ * The temple theme of a beast in the family's bestiary: its own `theme`, or else the library's for the same id.
+ * A beast adopted before themes existed has none stored, and the starter world seeds plain beasts, so this is how
+ * the temple editor tells the theme of any library beast the family owns. A custom beast has none.
+ */
+export const beastTheme = (beast: Pick<Beast, "id" | "theme">): TempleTheme | undefined =>
+  beast.theme ?? LIBRARY_BY_ID.get(String(beast.id))?.theme;

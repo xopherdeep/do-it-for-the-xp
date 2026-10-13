@@ -1,5 +1,6 @@
 import {
   adoptLibraryBeast,
+  beastTheme,
   browseLibrary,
   isClassicBeast,
   keywords,
@@ -106,5 +107,56 @@ describe("library suggestions for a quest", () => {
     expect(adopted).not.toHaveProperty("variantAvatar");
     expect(adopted.checklist).toEqual(ronan.checklist);
     expect(adopted.checklist).not.toBe(ronan.checklist);
+  });
+
+  it("browses one temple theme at a time, chore beasts only", () => {
+    const shadow = browseLibrary({ theme: "shadow" });
+    expect(shadow).toHaveLength(12);
+    expect(shadow.every((b) => !isClassicBeast(b) && b.theme === "shadow")).toBe(true);
+    expect(names(shadow)).toEqual(expect.arrayContaining(["Dish Goblin", "Trash Troll"]));
+    expect(browseLibrary({ theme: "water" }).every((b) => !isClassicBeast(b) && b.room === "bathroom")).toBe(true);
+    expect(browseLibrary({ theme: "storm", classic: true })).toEqual([]);
+  });
+
+  it("keeps the classic beasts out of every theme filter", () => {
+    for (const theme of ["wind", "earth", "water", "fire", "ice", "light", "shadow", "moon", "storm"] as const) {
+      expect(browseLibrary({ theme }).some(isClassicBeast)).toBe(false);
+    }
+    expect(browseLibrary({ theme: "moon", text: "classic" })).toEqual([]);
+    expect(browseLibrary({ theme: "moon", text: "ronan" })).toEqual([]);
+  });
+
+  it("combines the theme with text, room, age and the beasts the family already has", () => {
+    expect(names(browseLibrary({ theme: "shadow", text: "dish" }))).toEqual(
+      expect.arrayContaining(["Dish Goblin", "Suds Serpent"]));
+    expect(browseLibrary({ theme: "shadow", text: "dish" }).every((b) => b.theme === "shadow")).toBe(true);
+    expect(browseLibrary({ theme: "shadow", room: "bathroom" })).toEqual([]);
+    expect(browseLibrary({ theme: "shadow", age: "little" }).every((b) => b.theme === "shadow" && b.age === "little")).toBe(true);
+    const dish = BEAST_LIBRARY.find((b) => b.name === "Dish Goblin")!;
+    expect(names(browseLibrary({ theme: "shadow", exclude: [String(dish.id)] }))).not.toContain("Dish Goblin");
+    expect(browseLibrary({ theme: "shadow", exclude: [String(dish.id)] })).toHaveLength(11);
+  });
+
+  it("suggests only inside a theme when asked", () => {
+    expect(names(suggestBeasts("Load the dishwasher", 3, { theme: "shadow" }))[0]).toBe("Dish Goblin");
+    expect(names(suggestBeasts("Load the dishwasher", 6, { theme: "ice" }))).not.toContain("Dish Goblin");
+    expect(suggestBeasts("Brush your teeth", 6, { theme: "ice" }).every((b) => !isClassicBeast(b) && b.theme === "ice")).toBe(true);
+    expect(suggestBeasts("Ronan", 6, { theme: "moon" })).toEqual([]);
+    expect(names(suggestBeasts("Brush your teeth", 1, { theme: "moon" }))).toEqual(["Fang Fairy"]);
+  });
+
+  it("copies the theme when a library beast is adopted, and gives a classic beast none", () => {
+    const dish = BEAST_LIBRARY.find((b) => b.name === "Dish Goblin")!;
+    expect(adoptLibraryBeast(dish)).toMatchObject({ id: "beast-dish-goblin", element: "water", theme: "shadow" });
+    for (const beast of BEAST_LIBRARY) expect(adoptLibraryBeast(beast).theme).toBe(beast.theme);
+    expect(adoptLibraryBeast(CLASSIC_BEASTS[0])).not.toHaveProperty("theme");
+  });
+
+  it("reads the theme of a beast the family owns from the beast, or else from the library by id", () => {
+    expect(beastTheme({ id: "beast-dish-goblin" })).toBe("shadow");
+    expect(beastTheme({ id: "beast-dish-goblin", theme: "fire" })).toBe("fire");
+    expect(beastTheme({ id: "beast-classic-050" })).toBeUndefined();
+    expect(beastTheme({ id: "a-custom-beast" })).toBeUndefined();
+    expect(beastTheme({})).toBeUndefined();
   });
 });
