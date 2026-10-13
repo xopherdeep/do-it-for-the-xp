@@ -22,7 +22,6 @@ import {
   nurseMenuChoices,
   nurseMenuPrompt,
   nurseNotice,
-  phoneAppRegistrationNotice,
   postedNotice,
   registerAgainPrompt,
   registrationPrompt,
@@ -271,14 +270,6 @@ describe("the clerk's Family Registration", () => {
     expect(unlinkResultNotice("removed-here-only").lines).toEqual([
       '*tears up the card* Done here. To finish, remove "Do It For The XP" from your profile on doit.forthexp.com.',
     ]);
-  });
-
-  it("tells the phone app to register from the web version for now", () => {
-    expect(phoneAppRegistrationNotice()).toMatchObject({
-      speaker: CLERK,
-      accent: "townHall",
-      lines: ["For now, register from the web version of the game. The phone app will learn it soon."],
-    });
   });
 });
 

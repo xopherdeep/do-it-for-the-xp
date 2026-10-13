@@ -29,11 +29,11 @@ import {
 import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
 import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
 import { Capacitor } from "@capacitor/core";
+import { Browser } from "@capacitor/browser";
 import {
   courierLatePrompt,
   linkResultNotice,
   linkedStatusPrompt,
-  phoneAppRegistrationNotice,
   registrationPrompt,
   unlinkResultNotice,
   type RegistrationMenuId,
@@ -47,7 +47,14 @@ import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
 import { formatQuestName } from "@/lib/utils/format";
 import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 import { canAccessGameMaster } from "@/router/_Guards/gm.guard";
-import { authorizeUrl, readLinkReturn, strippedState, strippedUrl, townHallReturnUrl } from "@/lib/services/townhall/townHallLink";
+import {
+  NATIVE_RETURN_URL,
+  authorizeUrl,
+  readLinkReturn,
+  strippedState,
+  strippedUrl,
+  townHallReturnUrl,
+} from "@/lib/services/townhall/townHallLink";
 import { SIGNUP_URL, TOWN_HALL_BOARDS, connectionName, townHallSiteUrl, type TownHallBoardSlug } from "@/lib/services/townhall/townHallSite";
 import { usesHashHistory } from "@/router/historyMode";
 import type { BoardInfo } from "@/lib/services/townhall/townHallFeed";
@@ -228,6 +235,13 @@ export default defineComponent({
       }
     };
 
+    /** The clerk says how the registration went; posts kept before the family was registered go out while she talks */
+    const announceLink = async (result: LinkResult) => {
+      if (result === "none") return;
+      if (result === "linked") void posting.sendQueue();
+      await reveal.ask(linkResultNotice(result, townHall.activeLink?.displayName));
+    };
+
     /**
      * Coming back from WordPress's "authorize this app" page, the new password rides in the address. It leaves the address
      * bar and the history first (the address and the route vue-router remembers for this entry), before anything is awaited,
@@ -247,25 +261,40 @@ export default defineComponent({
         debug.error("Town Hall could not finish the registration:", err);
         result = "failed";
       }
-      if (result === "none") return;
-      // Posts kept before the family was registered go out now, while the clerk talks
-      if (result === "linked") void posting.sendQueue();
-      await reveal.ask(linkResultNotice(result, townHall.activeLink?.displayName));
+      await announceLink(result);
     };
 
-    /** "I have an account": the web version leaves for the site's authorize page, which sends the parent back here */
+    // The phone apps get the parent back from outside the page (main.ts hands what the app was opened with to the store),
+    // so the clerk follows the store's result. The web version announces its own return above and has nothing to follow.
+    if (Capacitor.isNativePlatform()) {
+      watch(
+        () => townHall.lastLinkResult,
+        (result) => {
+          if (result) void announceLink(result);
+        }
+      );
+    }
+
+    /**
+     * "I have an account": the web version leaves for the site's authorize page, which sends the parent back here. A phone
+     * app opens the page in the system browser instead and WordPress sends the parent back through the app's own address.
+     */
     const goToAuthorizePage = async () => {
-      if (Capacitor.isNativePlatform()) {
-        await reveal.ask(phoneAppRegistrationNotice());
+      const site = townHallSiteUrl();
+      const appName = connectionName(navigator.userAgent, Capacitor.getPlatform());
+      if (!Capacitor.isNativePlatform()) {
+        const returnUrl = townHallReturnUrl(props.userId, window.location, usesHashHistory());
+        window.location.assign(authorizeUrl({ site, appName, returnUrl }));
         return;
       }
-      window.location.assign(
-        authorizeUrl({
-          site: townHallSiteUrl(),
-          appName: connectionName(navigator.userAgent, Capacitor.getPlatform()),
-          returnUrl: townHallReturnUrl(props.userId, window.location, usesHashHistory()),
-        })
-      );
+      // The last result stays in the store, and a return that came to the same thing again would not be noticed
+      townHall.lastLinkResult = null;
+      try {
+        await Browser.open({ url: authorizeUrl({ site, appName, returnUrl: NATIVE_RETURN_URL }) });
+      } catch (err) {
+        debug.error("Town Hall could not open the registration page:", err);
+        await announceLink("failed");
+      }
     };
 
     /** A registered family sees whom it is registered as and may unlink this device; an unregistered one is asked to register */

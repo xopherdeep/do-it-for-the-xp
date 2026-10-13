@@ -54,6 +54,9 @@ import { startInstallWatch } from '@/lib/services/pwa/installApp';
 import { createPinia } from 'pinia';
 import { useProStore } from '@/lib/store/stores/pro';
 
+// Capacitor (the phone apps)
+import { Capacitor } from '@capacitor/core';
+
 // Title
 const TITLE = 'Do it for the XP';
 document.title = TITLE;
@@ -91,6 +94,23 @@ preventIOSZoom();
 
 // Catch Chrome's install prompt before the side menu exists; see installApp.ts
 startInstallWatch();
+
+// Phone apps: WordPress sends the parent back from the in-app browser through the app's own address (see nativeReturn.ts).
+// Registered once; the store keeps the result and the Town Hall page, when it is open, has the clerk say how it went.
+function listenForTownHallReturn() {
+  if (!Capacitor.isNativePlatform()) return;
+  Promise.all([import('@/lib/services/townhall/nativeReturn'), import('@/lib/store/stores/townHall')])
+    .then(([{ listenForTownHallReturn: listen }, { useTownHallStore }]) =>
+      listen((search) => {
+        const townHall = useTownHallStore();
+        townHall.completeLink(search).catch((error) => {
+          debug.error('Town Hall could not finish the registration:', error);
+          townHall.lastLinkResult = 'failed';
+        });
+      })
+    )
+    .catch((error) => debug.warn('The Town Hall return is unavailable', error));
+}
 
 
 function readyRouterMountApp() {
@@ -141,6 +161,9 @@ function readyRouterMountApp() {
 
   // XP Pro: load the cached license and recheck it when the offline rules say so (never blocks the app)
   useProStore().init().catch(() => undefined);
+
+  // Family registration from the phone apps comes back through the app's own address
+  listenForTownHallReturn();
 
   // Initialize the AbilitySystem
   const abilitiesDb = new AbilitiesDb(abilitiesStorage);

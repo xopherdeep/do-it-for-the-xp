@@ -1,5 +1,13 @@
 import { TOWN_HALL_APP_ID } from "@/lib/services/townhall/townHallSite";
-import { authorizeUrl, readLinkReturn, strippedState, strippedUrl, townHallReturnUrl } from "@/lib/services/townhall/townHallLink";
+import {
+  NATIVE_RETURN_URL,
+  authorizeUrl,
+  readLinkReturn,
+  searchOf,
+  strippedState,
+  strippedUrl,
+  townHallReturnUrl,
+} from "@/lib/services/townhall/townHallLink";
 
 const loc = { origin: "https://app.forthexp.com", pathname: "/" };
 
@@ -131,5 +139,38 @@ describe("strippedState", () => {
     const unknown = { position: 2 };
     expect(strippedState(unknown)).toEqual(unknown);
     expect(strippedState({ current: 7 })).toEqual({ current: 7 });
+  });
+});
+
+describe("NATIVE_RETURN_URL", () => {
+  it("is the phone apps' own address, which the system hands back to the app", () => {
+    expect(NATIVE_RETURN_URL).toBe("com.forthexp.doit://town-hall");
+  });
+
+  it("is what WordPress is asked to send the parent back to from a phone app", () => {
+    const u = new URL(authorizeUrl({ site: "https://doit.forthexp.com", appName: "Do It For The XP – Android app", returnUrl: NATIVE_RETURN_URL }));
+    expect(u.searchParams.get("success_url")).toBe("com.forthexp.doit://town-hall");
+    expect(u.searchParams.get("reject_url")).toBe("com.forthexp.doit://town-hall");
+  });
+});
+
+describe("searchOf", () => {
+  it("reads a link out of the app's own address, decoding + as a space", () => {
+    const url = "com.forthexp.doit://town-hall?site_url=https%3A%2F%2Fdoit.forthexp.com&user_login=mom&password=a+b";
+    expect(readLinkReturn(searchOf(url))).toEqual({ kind: "linked", siteUrl: "https://doit.forthexp.com", userLogin: "mom", appPassword: "a b" });
+  });
+
+  it("reads a rejection", () => {
+    expect(readLinkReturn(searchOf("com.forthexp.doit://town-hall?success=false"))).toEqual({ kind: "rejected" });
+  });
+
+  it("keeps the query up to a fragment and leaves the fragment out", () => {
+    expect(searchOf("com.forthexp.doit://town-hall?success=false#top")).toBe("?success=false");
+  });
+
+  it("is empty for an address with no query", () => {
+    expect(searchOf("com.forthexp.doit://town-hall")).toBe("");
+    expect(searchOf("com.forthexp.doit://town-hall#?success=false")).toBe("");
+    expect(readLinkReturn(searchOf("com.forthexp.doit://town-hall"))).toEqual({ kind: "none" });
   });
 });

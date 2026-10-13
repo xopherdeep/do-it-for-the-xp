@@ -15,6 +15,12 @@ interface PageLocation {
   pathname: string;
 }
 
+/**
+ * Where WordPress sends the parent back to from a phone app: the app's own address (the iOS URL type and the Android intent
+ * filter both claim it), which the system browser hands to the app as an `appUrlOpen` event.
+ */
+export const NATIVE_RETURN_URL = "com.forthexp.doit://town-hall";
+
 /** The Town Hall for the hero on screen: the address WordPress sends the parent back to. */
 export function townHallReturnUrl(userId: string, loc: PageLocation, hash: boolean): string {
   const route = `/town-hall/${encodeURIComponent(userId)}`;
@@ -44,6 +50,15 @@ export function readLinkReturn(search: string): LinkReturn {
   if (siteUrl && userLogin && appPassword) return { kind: "linked", siteUrl, userLogin, appPassword };
   if (params.get("success") === "false") return { kind: "rejected" };
   return { kind: "none" };
+}
+
+/** The query of an address (`?a=b`, no fragment; empty when it has none), in the shape `readLinkReturn` reads. */
+export function searchOf(url: string): string {
+  const start = url.indexOf("?");
+  if (start < 0) return "";
+  const fragment = url.indexOf("#");
+  if (fragment >= 0 && fragment < start) return "";
+  return fragment < 0 ? url.slice(start) : url.slice(start, fragment);
 }
 
 /** The page address without the query, so the password leaves the address bar and the history. */

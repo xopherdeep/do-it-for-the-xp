@@ -259,10 +259,6 @@ export const unlinkResultNotice = (result: 'forgotten' | 'removed-here-only'): R
       : '*tears up the card* Done here. To finish, remove "Do It For The XP" from your profile on doit.forthexp.com.'
   );
 
-/** The phone app cannot register the family yet (removed when it can). */
-export const phoneAppRegistrationNotice = (): RevealPromptOptions =>
-  clerkNotice('For now, register from the web version of the game. The phone app will learn it soon.');
-
 // ---------------------------------------------------------------------------------------------------------------
 // The Town Hall: writing posts (what the clerk says once a post is kept, and when the site turns the family away)
 // ---------------------------------------------------------------------------------------------------------------
