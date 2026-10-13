@@ -1,27 +1,31 @@
 /**
- * The Moving Day temple: the old house as a dungeon. The pack's quests become the rooms (one combat room per room the
- * family ticks, a bedroom per hero, the kitchen guarding the key to the van, "Load the Van" as the boss), and the temple
- * rides in the same merge load as the pack, under an id that is the same every time.
+ * The Old House temple record: the Moving House pack's floor plan turned into the temple the game loads (tokens, a
+ * rooms table, the locked wing, the stairs, the entrance). A matrix of homes and families proves the solver and the
+ * audit accept every house, and the record rides in the pack's merge load under an id that is the same every time.
  */
 import {
   DEFAULT_MOVING_ROOMS,
   buildMovingPack,
   movingPackBackup,
 } from "@/lib/services/core/packs/movingPack";
-import type { MovingAnswers, MovingHero } from "@/lib/services/core/packs/movingPack";
+import type { MovingAnswers, MovingHero, MovingRoomId } from "@/lib/services/core/packs/movingPack";
 import {
   MOVING_TEMPLE_ID,
   buildMovingTemple,
   movingTempleBackup,
   movingTempleSummary,
 } from "@/lib/services/core/packs/movingTemple";
+import type { MovingTemple } from "@/lib/services/core/packs/movingTemple";
+import { houseCellsFor, type HouseFloor } from "@/lib/services/core/packs/movingTemple/houseRooms";
 import { auditTemple } from "@/lib/services/temples/templeAudit";
-import { TEMPLE_FULL_SIZE, questTier } from "@/lib/services/temples/questRooms";
-import { buildTempleGraph, solveTemple } from "@/lib/engine/dungeons/generator";
+import { questTier } from "@/lib/services/temples/questRooms";
+import { buildTempleGraph, solveTemple, type GraphRoom, type TempleGraph } from "@/lib/engine/dungeons/generator";
 import { registerTempleRecord } from "@/lib/engine/core/dungeons/TempleAdapter";
 import { DungeonManager } from "@/lib/engine/core/dungeons/DungeonManager";
 import { BackupService } from "@/lib/services/core/BackupService";
 import type { BackupStorage, BackupStoreDef } from "@/lib/services/core/BackupService";
+import type { Room } from "@/lib/engine/core/dungeons/types";
+import { PARENT, SIX, TWELVE, answers } from "./movingHouseFixtures";
 
 jest.mock("@/lib/databases/AbilitiesDb", () => ({ __esModule: true, abilitiesStorage: { sentinel: "abilities" } }));
 jest.mock("@/lib/databases/AccessoriesDb", () => ({
@@ -52,199 +56,371 @@ jest.mock("@/lib/services/core/StorageService", () => ({ __esModule: true, defau
 jest.mock("@/router/_Guards/gm.guard", () => ({ __esModule: true, canManageFamily: () => true, RESTORE_GM_ONLY_MESSAGE: "GM only" }));
 jest.mock("@/lib/store/stores/user", () => ({ __esModule: true, useUserStore: () => ({ loadUsers: jest.fn() }) }));
 
-const PARENT: MovingHero = { id: "dad", name: "Dad", band: "grownup" };
-const TWELVE: MovingHero = { id: "twelve", name: "Twelve", band: "kid" };
-const SIX: MovingHero = { id: "six", name: "Six", band: "little" };
+const MOM: MovingHero = { id: "mom", name: "Mom", band: "grownup" };
+const TEEN: MovingHero = { id: "teen", name: "Teen", band: "kid" };
+const TOT: MovingHero = { id: "tot", name: "Tot", band: "little" };
 
-const answers = (extra: Partial<MovingAnswers> = {}): MovingAnswers => ({
-  moveDate: "2026-11-20",
-  today: "2026-10-01",
-  rooms: { ...DEFAULT_MOVING_ROOMS },
-  heroes: [PARENT, TWELVE, SIX],
-  ...extra,
-});
+const UNPACK = "cat-move-unpack";
+
+/** The floors of a house, bottom to top */
+const FLOOR_ORDER: HouseFloor[] = ["B1", "1F", "2F"];
 
 const templeFor = (extra: Partial<MovingAnswers> = {}) => {
   const given = answers(extra);
   const pack = buildMovingPack(given);
-  return { pack, temple: buildMovingTemple(pack, given)! };
+  return { given, pack, temple: buildMovingTemple(pack, given)! };
 };
 
-/** The quest ids the temple's rooms hold, in a stable order */
-const heldIds = (temple: NonNullable<ReturnType<typeof buildMovingTemple>>): string[] => temple.rooms.map((room) => room.questId).sort();
+/** The room table entry for a maze cell: the floor, the row and the column of the shared frame */
+const roomAt = (temple: MovingTemple, floor: string, row: number, col: number): Room => {
+  const layout = temple.record.dungeonLayout!;
+  const maze = layout.maze as Record<string, string[][]>;
+  return layout.rooms[maze[floor][row][col]];
+};
 
-describe("buildMovingTemple for a typical home", () => {
-  const { pack, temple } = templeFor();
+/** The room of the graph with this name in the house */
+const graphRoomNamed = (graph: TempleGraph, name: string): GraphRoom => {
+  const found = [...graph.rooms.values()].find((room) => room.room.content?.name === name);
+  if (!found) throw new Error(`no room named ${name}`);
+  return found;
+};
+
+/** The names of the rooms a room has a walking door into */
+const neighboursOf = (graph: TempleGraph, room: GraphRoom): string[] =>
+  (graph.out.get(room.key) ?? [])
+    .filter((door) => door.kind === "door")
+    .map((door) => String(graph.rooms.get(door.to)!.room.content?.name))
+    .sort();
+
+/** The token and the room table entry of the room with this name */
+const recordNamed = (temple: MovingTemple, name: string): { token: string; room: Room } => {
+  const entry = Object.entries(temple.record.dungeonLayout!.rooms).find(([, room]) => room.content?.name === name);
+  if (!entry) throw new Error(`no room named ${name}`);
+  return { token: entry[0], room: entry[1] };
+};
+
+// ---------------------------------------------------------------------------------------------------------------
+// The matrix: floors x basement x ticked rooms x families
+
+const ROOM_SETS: [string, Partial<Record<MovingRoomId, number>>][] = [
+  ["the default rooms", { ...DEFAULT_MOVING_ROOMS }],
+  ["every room at its most", {
+    bedroom: 8, bathroom: 5, kitchen: 1, living: 1, dining: 1, laundry: 1, storage: 1, garage: 1, yard: 1, guest: 4, office: 1, pets: 1,
+  }],
+  ["only a kitchen", { kitchen: 1 }],
+  ["only one bedroom", { bedroom: 1 }],
+  ["nothing ticked", {}],
+];
+
+const FAMILIES: [string, MovingHero[]][] = [
+  ["Dad, Twelve and Six", [PARENT, TWELVE, SIX]],
+  ["Six alone", [SIX]],
+  ["two grown-ups and four kids", [PARENT, MOM, TWELVE, SIX, TEEN, TOT]],
+  ["Dad alone", [PARENT]],
+];
+
+const MATRIX: [string, Partial<MovingAnswers>][] = ([1, 2] as const).flatMap((floors) =>
+  [false, true].flatMap((basement) =>
+    ROOM_SETS.flatMap(([roomsLabel, rooms]) =>
+      FAMILIES.map(([familyLabel, heroes]): [string, Partial<MovingAnswers>] => [
+        `${floors} floor${floors > 1 ? "s" : ""}${basement ? " and a basement" : ""}, ${roomsLabel}, ${familyLabel}`,
+        { floors, basement, rooms, heroes },
+      ]),
+    ),
+  ),
+);
+
+describe("every house the setup can make", () => {
+  const built = new Map<string, ReturnType<typeof templeFor> & { graph: TempleGraph }>();
+  const houseOf = (label: string, extra: Partial<MovingAnswers>) => {
+    if (!built.has(label)) {
+      const house = templeFor(extra);
+      built.set(label, { ...house, graph: buildTempleGraph(house.temple.record.dungeonLayout!) });
+    }
+    return built.get(label)!;
+  };
+
+  it.each(MATRIX)("%s: can be finished, and the audit passes", (label, extra) => {
+    const { temple } = houseOf(label, extra);
+    const solved = solveTemple(temple.record.dungeonLayout!);
+    expect(solved.reasons).toEqual([]);
+    expect(solved.solvable).toBe(true);
+    expect(auditTemple(temple.record).passed).toBe(true);
+  });
+
+  it.each(MATRIX)("%s: lists its floors bottom to top, each within 9x9, and enters on the porch", (label, extra) => {
+    const { temple } = houseOf(label, extra);
+    const layout = temple.record.dungeonLayout!;
+    const maze = layout.maze as Record<string, string[][]>;
+    expect(Object.keys(maze)).toEqual(temple.floors);
+    expect(FLOOR_ORDER.filter((floor) => temple.floors.includes(floor))).toEqual(temple.floors);
+    for (const grid of Object.values(maze)) {
+      expect(grid.length).toBeLessThanOrEqual(9);
+      for (const line of grid) expect(line.length).toBeLessThanOrEqual(9);
+    }
+    const [floorIndex, row, col] = layout.entrance;
+    expect(temple.floors[floorIndex]).toBe("1F");
+    expect(roomAt(temple, "1F", row, col)).toEqual({ type: "entrance", visited: true, content: { name: "Front porch" } });
+  });
+
+  it.each(MATRIX)("%s: seals only the key guard and the van, each on one quest", (label, extra) => {
+    const { temple, graph } = houseOf(label, extra);
+    const sealed = [...graph.rooms.values()].filter((room) => room.room.content?.lockOnEnter);
+    expect(sealed.map((room) => room.kind).sort()).toEqual(["boss", "miniboss"]);
+    const guard = temple.rooms.find((room) => room.guardsKey)!;
+    expect(sealed.find((room) => room.kind === "miniboss")!.room.content!.questIds).toEqual(guard.questIds);
+    expect(guard.questIds).toHaveLength(1);
+    expect(sealed.find((room) => room.kind === "boss")!.room.content!.questIds).toEqual(["move-load-van"]);
+  });
+
+  it.each(MATRIX)("%s: holds every old-house quest of the pack in exactly one room, and no unpack quest", (label, extra) => {
+    const { pack, graph } = houseOf(label, extra);
+    const questById = new Map(pack.quests.map((quest) => [String(quest.id), quest]));
+    const held = [...graph.rooms.values()].flatMap((room) => (room.room.content?.questIds ?? []) as string[]);
+    for (const id of held) {
+      expect(questById.has(id)).toBe(true);
+      expect(questById.get(id)!.categoryId).not.toBe(UNPACK);
+    }
+    const oldHouse = pack.quests.filter((quest) => quest.categoryId !== UNPACK).map((quest) => String(quest.id));
+    expect([...held].sort()).toEqual(oldHouse.sort());
+  });
+
+  it.each(MATRIX)("%s: locks the one door into the quiet wing, from the room it was placed beside", (label, extra) => {
+    const { given, pack, graph } = houseOf(label, extra);
+    const wing = houseCellsFor(pack, given)!.find((cell) => cell.lockedFromParent);
+    const lockedDoors = graph.doors.filter((door) => door.lock === "small");
+    const keyChests = [...graph.rooms.values()].filter((room) => room.smallKeys > 0);
+    if (!wing) {
+      expect(lockedDoors).toEqual([]);
+      expect(keyChests).toEqual([]);
+      return;
+    }
+    const wingRoom = graphRoomNamed(graph, wing.name);
+    const doorsIn = graph.doors.filter((door) => door.to === wingRoom.key && door.kind === "door");
+    expect(doorsIn.map((door) => door.lock)).toEqual(["small"]);
+    expect(lockedDoors).toEqual(doorsIn);
+    expect(keyChests.map((room) => room.room.content?.name)).toEqual(["Under the couch cushions"]);
+  });
+
+  it.each(MATRIX)("%s: sends every flight of stairs to its twin on the next floor", (label, extra) => {
+    const { temple, graph } = houseOf(label, extra);
+    const flights = [...graph.rooms.values()].filter((room) => room.kind === "stairs-up" || room.kind === "stairs-down");
+    expect(flights).toHaveLength(2 * (temple.floors.length - 1));
+    for (const stairs of flights) {
+      const { targetLevel, targetCoords } = stairs.room.content!;
+      const step = stairs.kind === "stairs-up" ? 1 : -1;
+      expect(temple.floors.indexOf(targetLevel as HouseFloor) - temple.floors.indexOf(stairs.ref.floor as HouseFloor)).toBe(step);
+      expect(targetCoords).toEqual({ x: stairs.ref.col, y: stairs.ref.row });
+      const twin = graph.rooms.get(`${targetLevel}:${stairs.ref.row},${stairs.ref.col}`)!;
+      expect(twin.kind).toBe(stairs.kind === "stairs-up" ? "stairs-down" : "stairs-up");
+      expect(twin.room.content!.targetLevel).toBe(stairs.ref.floor);
+    }
+  });
+
+  it.each(MATRIX)("%s: gives every room a token of its own, the generator's way", (label, extra) => {
+    const { temple } = houseOf(label, extra);
+    const layout = temple.record.dungeonLayout!;
+    const cells = Object.values(layout.maze as Record<string, string[][]>).flat(2).filter((token) => token !== "_");
+    expect(new Set(cells).size).toBe(cells.length);
+    expect(Object.keys(layout.rooms).sort()).toEqual(["_", ...cells].sort());
+    for (const token of cells) expect(token).toMatch(/^[A-Za-z0-9]\d{3}$/);
+    expect(layout.rooms._).toEqual({ type: "wall" });
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// One house up close
+
+describe("the default home on two floors", () => {
+  const { given, pack, temple } = templeFor({ floors: 2 });
+  const graph = buildTempleGraph(temple.record.dungeonLayout!);
   const questById = new Map(pack.quests.map((quest) => [String(quest.id), quest]));
 
   it("is one temple under an id that is the same every time", () => {
     expect(MOVING_TEMPLE_ID).toBe("gen-move-house");
-    expect(temple.record.id).toBe(MOVING_TEMPLE_ID);
-    expect(temple.record.name).toBe("The Old House");
-    expect(temple.record.customName).toBe("The Old House");
-    expect(temple.record.dungeonLayout!.entrance).toEqual([0, 2, 0]);
+    expect(temple.record).toMatchObject({
+      id: MOVING_TEMPLE_ID,
+      name: "The Old House",
+      customName: "The Old House",
+      themeId: "home",
+      element: "earth",
+      generated: true,
+      categoryIds: [],
+      level: 1,
+    });
+    expect(temple.floors).toEqual(["1F", "2F"]);
   });
 
-  it("holds a real quest of the pack in every combat room, each quest once", () => {
-    const rooms = temple.record.dungeonLayout!.rooms;
-    const questRooms = Object.values(rooms).filter((room) => room.content?.questId);
-    expect(questRooms).toHaveLength(temple.rooms.length);
-    const ids = questRooms.map((room) => String(room.content!.questId));
-    expect(new Set(ids).size).toBe(ids.length);
-    for (const id of ids) expect(questById.has(id)).toBe(true);
-    expect(ids.sort()).toEqual(heldIds(temple));
-    // a quest room is not a classic beast room
-    for (const room of questRooms) {
-      expect(room.content!.beasts).toBeUndefined();
-      expect(room.content!.monsterType).toBeUndefined();
-      expect(["monster", "miniboss", "boss"]).toContain(room.type);
+  it("names the key guard in the description", () => {
+    expect(temple.record.customDescription).toBe(
+      "The old house, room by room. Every room holds the packing quests for it, and the key to the van is in the junk drawer behind the kitchen.",
+    );
+  });
+
+  it("gives each hero a quest in at least three rooms", () => {
+    for (const hero of given.heroes) {
+      const theirs = temple.rooms.filter((room) => room.questIds.some((id) => questById.get(id)!.assignee.includes(hero.id)));
+      expect(theirs.length).toBeGreaterThanOrEqual(3);
     }
   });
 
-  it("walks the house room by room: a bedroom per hero, the ticked rooms, the kitchen as the miniboss, the van as the boss", () => {
-    const quests = heldIds(temple);
-    expect(quests).toEqual(
-      [
-        "move-closet-grownup-dad",
-        "move-dresser-kid-twelve",
-        "move-toys-little-six",
-        "move-storage",
-        "move-garage",
-        "move-yard",
-        "move-living-dining",
-        "move-dishes",
-        "move-bathrooms",
-        "move-laundry",
-        "move-open-first",
-        "move-walkthrough",
-        "move-load-van",
-      ].sort()
-    );
-    const byQuest = new Map(temple.rooms.map((room) => [room.questId, room]));
-    expect(byQuest.get("move-load-van")).toMatchObject({ type: "boss", tier: "boss", difficulty: 13 });
-    expect(byQuest.get("move-dishes")).toMatchObject({ type: "miniboss", guardsKey: true });
-    expect(temple.rooms.filter((room) => room.guardsKey)).toHaveLength(1);
-    expect(byQuest.get("move-toys-little-six")).toMatchObject({ type: "monster", tier: "monster", difficulty: 2 });
-    expect(byQuest.get("move-dresser-kid-twelve")).toMatchObject({ type: "miniboss", tier: "miniboss", difficulty: 5 });
+  it("runs the driveway off the porch: the van, then Last look, then the keys", () => {
+    expect(neighboursOf(graph, graphRoomNamed(graph, "The moving van"))).toEqual(["Front porch", "Last look"]);
+    expect(neighboursOf(graph, graphRoomNamed(graph, "Last look"))).toEqual(["Keys to the New House", "The moving van"]);
+    expect(neighboursOf(graph, graphRoomNamed(graph, "Keys to the New House"))).toEqual(["Last look"]);
   });
 
-  it("takes each room's type from the quest's tier, with one boss and the weightiest jobs as sealed minibosses", () => {
+  it("keeps the junk drawer behind the kitchen alone", () => {
+    expect(neighboursOf(graph, graphRoomNamed(graph, "Junk drawer"))).toEqual(["Kitchen"]);
+  });
+
+  it("lists the quest, guard and boss rooms in plan order, each at its biggest quest", () => {
+    expect(temple.rooms.map((room) => room.id)).toEqual([
+      "van", "lastLook", "hall", "living", "dining", "pantry", "kitchen", "garage", "laundry", "yard", "bath", "storage",
+      "bedroom-main", "bedroom-1", "bedroom-2",
+    ]);
+    expect(temple.rooms.find((room) => room.id === "kitchen")).toEqual({
+      id: "kitchen",
+      label: "Kitchen",
+      floor: "1F",
+      questIds: ["move-dishes"],
+      names: ["Wrap the Dishes and Pans"],
+      type: "miniboss",
+      tier: "boss",
+      difficulty: 13,
+      guardsKey: true,
+    });
+    expect(temple.rooms.find((room) => room.id === "van")).toMatchObject({ type: "boss", label: "The moving van", difficulty: 13, guardsKey: false });
     for (const room of temple.rooms) {
-      const quest = questById.get(room.questId)!;
-      expect(room.difficulty).toBe(quest.difficulty);
-      expect(room.tier).toBe(questTier(quest.difficulty));
-      if (room.type === "boss") expect(room.questId).toBe("move-load-van");
-      else if (room.tier === "monster") expect(room.type).toBe("monster");
-      else expect(room.type).toBe("miniboss");
+      const difficulties = room.questIds.map((id) => Number(questById.get(id)!.difficulty));
+      expect(room.difficulty).toBe(Math.max(...difficulties));
+      expect(room.tier).toBe(questTier(room.difficulty));
+      expect(room.names).toEqual(room.questIds.map((id) => questById.get(id)!.achievementName));
+      if (room.id !== "van" && !room.guardsKey) expect(room.type).toBe("monster");
     }
-    const rooms = temple.record.dungeonLayout!.rooms;
-    for (const room of Object.values(rooms)) {
-      if (room.type === "miniboss" || room.type === "boss") expect(room.content!.lockOnEnter).toBe(true);
-    }
-  });
-
-  it("is a full temple: the audit passes every check and the size is 21 or more", () => {
-    const rooms = temple.record.dungeonLayout!.rooms;
-    const sizeOf = (room: { content?: Record<string, any> }) => {
-      const id = room.content?.questId;
-      return id ? Number(questById.get(String(id))!.difficulty) : null;
-    };
-    const result = auditTemple(temple.record, { sizeOf });
-    expect(result.checks.filter((check) => !check.ok)).toEqual([]);
-    expect(result.passed).toBe(true);
-    expect(result.checks.map((check) => check.id)).toEqual(["entrance", "exit", "boss", "bossKey", "masterRoom", "map", "compass", "size"]);
-    expect(temple.size).toBeGreaterThanOrEqual(TEMPLE_FULL_SIZE);
     expect(temple.size).toBe(temple.rooms.reduce((sum, room) => sum + room.difficulty, 0));
-    expect(Object.keys(rooms).length).toBeGreaterThan(temple.rooms.length);
   });
 
-  it("can be finished: the solver finds no broken rule", () => {
-    const solved = solveTemple(temple.record.dungeonLayout!);
-    expect(solved.reasons).toEqual([]);
-    expect(solved.solvable).toBe(true);
-    const kinds = solved.criticalPath.map((ref) => buildTempleGraph(temple.record.dungeonLayout!).rooms.get(`${ref.floor}:${ref.row},${ref.col}`)!.kind);
-    expect(kinds.indexOf("miniboss")).toBeLessThan(kinds.indexOf("boss"));
-  });
-
-  it("keeps the master key behind the kitchen and the boss behind one locked door", () => {
-    const layout = temple.record.dungeonLayout!;
-    const graph = buildTempleGraph(layout);
-    const rooms = [...graph.rooms.values()];
-    const kitchen = rooms.find((room) => room.room.content?.questId === "move-dishes")!;
-    const keyRoom = rooms.find((room) => room.masterKey)!;
-    const around = graph.out.get(keyRoom.key)!.map((door) => door.to);
-    expect(around).toEqual([kitchen.key]);
-    // the doors into the boss from the rest of the temple (the Master Room behind it is not the rest of the temple)
-    const bossDoors = graph.doors.filter(
-      (door) => graph.rooms.get(door.to)!.kind === "boss" && graph.rooms.get(door.from)!.kind !== "master" && door.kind === "door"
-    );
-    expect(bossDoors.map((door) => door.lock)).toEqual(["master"]);
-    expect(layout.rooms[graph.rooms.get(bossDoors[0].to)!.token].locked).toEqual({ master: true });
+  it("lists the rooms floor by floor in the after-summary", () => {
+    const lines = movingTempleSummary(temple).split("\n");
+    expect(lines).toEqual([
+      `The Old House is open in Hometown: a two-floor house with ${temple.rooms.length} rooms of packing, size ${temple.size}. Take the van keys from the junk drawer behind the kitchen, then load the van.`,
+      "Downstairs: Front hall, Living room, Dining room, Pantry, Kitchen, Garage, Laundry room, Back yard, Bathroom, Storage room",
+      "Upstairs: Dad's bedroom, Twelve's bedroom, Six's bedroom",
+      "Driveway: The moving van, Last look",
+    ]);
   });
 
   it("registers with the engine the way a saved temple does, and still passes the audit", () => {
     const dungeon = registerTempleRecord(MOVING_TEMPLE_ID, temple.record, { force: true })!;
     expect(dungeon).toBeDefined();
     expect(DungeonManager.getInstance().getDungeon(MOVING_TEMPLE_ID)).toBeDefined();
-    const questRooms = Object.values(dungeon.rooms).filter((room) => room.content?.questId);
-    expect(questRooms).toHaveLength(temple.rooms.length);
     expect(auditTemple({ dungeonLayout: { maze: dungeon.maze, rooms: dungeon.rooms as any } }).passed).toBe(true);
   });
 });
 
-describe("the rooms follow the ticked rooms", () => {
-  const held = (extra: Partial<MovingAnswers>) => heldIds(templeFor(extra).temple);
+describe("the cells as rooms", () => {
+  const { temple } = templeFor({ floors: 2, basement: true, rooms: { ...DEFAULT_MOVING_ROOMS, office: 1 } });
 
-  it("adds a room for each room the family ticks and none for the rest", () => {
-    const base = held({ rooms: { kitchen: 1 } });
-    expect(base).not.toContain("move-garage");
-    expect(base).not.toContain("move-storage");
-    expect(base).not.toContain("move-bathrooms");
-    expect(base).not.toContain("move-closet-grownup-dad");
-    expect(base).toContain("move-dishes");
-    const more = held({ rooms: { kitchen: 1, garage: 1, office: 1, pets: 1, guest: 2, storage: 1, laundry: 1 } });
-    expect(more).toEqual(expect.arrayContaining(["move-garage", "move-office", "move-pets", "move-guest-room", "move-storage", "move-laundry"]));
-    expect(held({ rooms: { yard: 1 } })).toContain("move-yard");
+  it("writes each kind of cell as the room the temple screen knows", () => {
+    const expected: [string, string, Room][] = [
+      ["Front porch", "E", { type: "entrance", visited: true, content: { name: "Front porch" } }],
+      ["Kitchen", "b", { type: "miniboss", content: { name: "Kitchen", questIds: ["move-dishes"], difficulty: "hard", lockOnEnter: true } }],
+      ["The moving van", "B", {
+        type: "boss", content: { name: "The moving van", questIds: ["move-load-van"], difficulty: "boss", lockOnEnter: true }, locked: { master: true },
+      }],
+      ["Keys to the New House", "O", { type: "master", content: { name: "Keys to the New House", chest: "dungeon", dungeon: "Pegasus", pegasus: true } }],
+      ["Junk drawer", "K", { type: "loot", content: { name: "Junk drawer", chest: "dungeon", dungeon: "master-key" } }],
+      ["Under the couch cushions", "k", { type: "loot", content: { name: "Under the couch cushions", chest: "dungeon", dungeon: "key" } }],
+      ["Coat closet", "O", { type: "loot", content: { name: "Coat closet", chest: "dungeon", dungeon: "map" } }],
+      ["China cabinet", "O", { type: "loot", content: { name: "China cabinet", chest: "dungeon", dungeon: "compass" } }],
+      ["Sleeping bags", "C", { type: "camp", content: { name: "Sleeping bags", healthPoints: 15 } }],
+      ["Medicine cabinet", "H", { type: "health", content: { name: "Medicine cabinet", healthPoints: 15 } }],
+      ["Upstairs hall", "V", { type: "save", content: { name: "Upstairs hall" } }],
+      ["Forgotten box", "O", { type: "loot", content: { name: "Forgotten box", chest: "consumable", items: ["potion"] } }],
+      ["Home office", "S", { type: "monster", content: { name: "Home office", questIds: ["move-office", "move-paperwork"], difficulty: "normal" } }],
+    ];
+    for (const [name, char, room] of expected) {
+      const found = recordNamed(temple, name);
+      expect(found.room).toEqual(name === "Under the couch cushions" ? { ...room, locked: { west: true } } : room);
+      expect(found.token[0]).toBe(char);
+    }
   });
 
-  it("makes a bedroom for each hero who plays, with their own quest", () => {
-    const ids = held({ rooms: { bedroom: 3 } });
-    expect(ids).toEqual(expect.arrayContaining(["move-closet-grownup-dad", "move-dresser-kid-twelve", "move-toys-little-six"]));
-    const out = held({ rooms: { bedroom: 3 }, heroes: [PARENT, TWELVE, { ...SIX, band: "out" }] });
-    expect(out).not.toContain("move-toys-little-six");
-    expect(out).toContain("move-dresser-kid-twelve");
-    const noBedrooms = held({ rooms: { kitchen: 1 } });
-    expect(noBedrooms.some((id) => /closet|dresser|toys-little/.test(id))).toBe(false);
-    const mom: MovingHero = { id: "mom", name: "Mom", band: "grownup" };
-    expect(held({ rooms: { bedroom: 4 }, heroes: [PARENT, mom, TWELVE, SIX] })).toEqual(
-      expect.arrayContaining(["move-closet-grownup-dad", "move-closet-grownup-mom"])
-    );
+  it("locks the door into the wing on the room it was placed beside, which need not be its first parent", () => {
+    // The basement stairs hang off the front hall, but no side of the hall touched nothing else, so the plan put them by the couch
+    const graph = buildTempleGraph(temple.record.dungeonLayout!);
+    const stairs = graphRoomNamed(graph, "Basement stairs");
+    const doorsIn = graph.doors.filter((door) => door.to === stairs.key && door.kind === "door");
+    expect(doorsIn).toHaveLength(1);
+    expect(doorsIn[0]).toMatchObject({ lock: "small", direction: "west" });
+    expect(graph.rooms.get(doorsIn[0].from)!.room.content!.name).toBe("Under the couch cushions");
+    const locked = Object.values(temple.record.dungeonLayout!.rooms).filter((room) => room.locked);
+    expect(locked.map((room) => [room.content!.name, room.locked])).toEqual([
+      ["Under the couch cushions", { west: true }],
+      ["The moving van", { master: true }],
+    ]);
   });
 
-  it("shares one room between the living and the dining room", () => {
-    expect(held({ rooms: { living: 1 } })).toContain("move-living-dining");
-    expect(held({ rooms: { dining: 1 } })).toContain("move-living-dining");
-    const both = held({ rooms: { living: 1, dining: 1 } });
-    expect(both.filter((id) => id === "move-living-dining")).toHaveLength(1);
+  it("writes the stairs with the floor and the cell of their twin", () => {
+    const up = recordNamed(temple, "Stairs up");
+    const landing = recordNamed(temple, "Landing");
+    expect(up.token[0]).toBe("U");
+    expect(landing.token[0]).toBe("D");
+    expect(up.room).toMatchObject({ type: "stairs-up", content: { targetLevel: "2F" } });
+    expect(landing.room).toMatchObject({ type: "stairs-down", content: { targetLevel: "1F" } });
+    expect(up.room.content!.targetCoords).toEqual(landing.room.content!.targetCoords);
+    const down = recordNamed(temple, "Basement stairs");
+    const basement = recordNamed(temple, "Basement");
+    expect(down.room).toMatchObject({ type: "stairs-down", content: { targetLevel: "B1" } });
+    expect(basement.room).toMatchObject({ type: "stairs-up", content: { targetLevel: "1F" } });
+    expect(temple.record.dungeonLayout!.entrance[0]).toBe(1);
   });
 
-  it("picks the garage to guard the key when there is no kitchen, and the Open First Box when there is neither", () => {
+  it("writes a room of small chores as an easy fight", () => {
+    const { temple: six } = templeFor({ heroes: [SIX] });
+    const bathroom = recordNamed(six, "Bathroom");
+    expect(bathroom.room).toEqual({ type: "monster", content: { name: "Bathroom", questIds: ["move-daily-teeth"], difficulty: "easy" } });
+    expect(bathroom.token[0]).toBe("s");
+  });
+
+  it("names the garage, then the packing pile, as the key guard when there is no kitchen", () => {
     const garage = templeFor({ rooms: { garage: 1 } }).temple;
-    expect(garage.rooms.find((room) => room.guardsKey)!.questId).toBe("move-garage");
+    expect(garage.rooms.find((room) => room.guardsKey)).toMatchObject({ id: "garage", questIds: ["move-garage"] });
+    expect(garage.record.customDescription).toMatch(/in the junk drawer behind the garage\.$/);
     const bare = templeFor({ rooms: {} }).temple;
-    expect(bare.rooms.find((room) => room.guardsKey)!.questId).toBe("move-open-first");
-    expect(auditTemple(bare.record).passed).toBe(true);
-    expect(solveTemple(bare.record.dungeonLayout!).reasons).toEqual([]);
+    expect(bare.rooms.find((room) => room.guardsKey)).toMatchObject({ id: "packingPile", questIds: ["move-open-first"] });
+    expect(movingTempleSummary(bare)).toContain("Take the van keys from the junk drawer behind the packing pile, then load the van.");
+  });
+});
+
+describe("the summary of other houses", () => {
+  it("lists a one-floor house as Rooms, with the basement on a line of its own", () => {
+    const { temple } = templeFor({ basement: true });
+    const lines = movingTempleSummary(temple).split("\n");
+    expect(lines[0]).toMatch(/^The Old House is open in Hometown: a one-floor house with \d+ rooms of packing, size \d+\. /);
+    expect(lines.slice(1)).toEqual([
+      "Basement: Storage",
+      "Rooms: Front hall, Living room, Dining room, Pantry, Kitchen, Garage, Laundry room, Back yard, Bathroom, Dad's bedroom, Twelve's bedroom, Six's bedroom",
+      "Driveway: The moving van, Last look",
+    ]);
+  });
+});
+
+describe("loading the temple", () => {
+  it("is the same every time for the same answers, whatever the move date", () => {
+    const given = answers({ floors: 2, basement: true });
+    const later = { ...given, moveDate: "2027-02-01" };
+    expect(buildMovingTemple(buildMovingPack(later), later)).toEqual(buildMovingTemple(buildMovingPack(given), given));
+    expect(templeFor().temple).toEqual(templeFor().temple);
   });
 
-  it("falls back to the quest the band has: a family of kids has no grown-up kitchen job, only the mugs", () => {
-    const kids = templeFor({ rooms: { kitchen: 1, garage: 1, storage: 1 }, heroes: [TWELVE, SIX] }).temple;
-    const ids = heldIds(kids);
-    expect(ids).toContain("move-mugs");
-    expect(ids).toContain("move-garage-gear");
-    expect(ids).not.toContain("move-storage");
-    expect(ids).not.toContain("move-dishes");
-    expect(kids.rooms.find((room) => room.guardsKey)!.questId).toBe("move-mugs");
+  it("seeds the plan with the answers that shape the house, never the date", () => {
+    const { temple } = templeFor({ heroes: [PARENT, { id: "baby", name: "Baby", band: "out" }, TWELVE, SIX] });
+    expect(temple.record.seed).toBe(
+      'moving-day:{"rooms":{"bathroom":2,"bedroom":3,"dining":1,"garage":1,"kitchen":1,"laundry":1,"living":1,"storage":1,"yard":1},' +
+        '"floors":1,"basement":false,"heroes":[["dad","grownup"],["twelve","kid"],["six","little"]]}',
+    );
   });
 
   it("builds nothing when no hero plays", () => {
@@ -252,32 +428,6 @@ describe("the rooms follow the ticked rooms", () => {
     expect(buildMovingTemple(buildMovingPack(given), given)).toBeNull();
     const out = answers({ heroes: [{ ...PARENT, band: "out" }] });
     expect(buildMovingTemple(buildMovingPack(out), out)).toBeNull();
-  });
-
-  it("stays finishable and wide enough as the home grows to the most rooms and heroes", () => {
-    const heroes: MovingHero[] = [PARENT, TWELVE, SIX, { id: "mom", name: "Mom", band: "grownup" }, { id: "kid2", name: "Kid2", band: "kid" }, { id: "little2", name: "Little2", band: "little" }];
-    const rooms = { bedroom: 8, bathroom: 5, kitchen: 1, living: 1, dining: 1, laundry: 1, storage: 1, garage: 1, yard: 1, guest: 4, office: 1, pets: 1 };
-    const { temple } = templeFor({ rooms, heroes });
-    expect(temple.rooms.length).toBeGreaterThan(18);
-    expect(auditTemple(temple.record).passed).toBe(true);
-    expect(solveTemple(temple.record.dungeonLayout!).reasons).toEqual([]);
-    const tokens = Object.keys(temple.record.dungeonLayout!.rooms);
-    expect(new Set(tokens).size).toBe(tokens.length);
-  });
-});
-
-describe("loading the temple", () => {
-  it("is the same every time for the same answers, whatever the move date", () => {
-    expect(templeFor().temple).toEqual(templeFor().temple);
-    expect(templeFor({ moveDate: "2027-02-01" }).temple.record).toEqual(templeFor().temple.record);
-  });
-
-  it("says where it is in the after-summary", () => {
-    const { temple } = templeFor();
-    const line = movingTempleSummary(temple);
-    expect(line).toContain("The Old House");
-    expect(line).toMatch(/\b13 rooms\b/);
-    expect(line).toContain("Hometown");
   });
 
   it("rides in the pack's backup file under __temples, beside the pack's own stores", () => {
