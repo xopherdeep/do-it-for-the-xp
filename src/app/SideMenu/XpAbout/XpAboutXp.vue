@@ -18,7 +18,7 @@
       <div class="xp-theme-background h-full flex items-center justify-center">
         <i class="fad fa-hand-holding-seedling fa-10x"></i>
         <!-- FAB button to trigger the dialog -->
-        <ion-fab vertical="bottom" horizontal="center" slot="fixed">
+        <ion-fab v-show="!isDialogVisible" vertical="bottom" horizontal="center" slot="fixed">
           <ion-fab-button @click="showXpDialog">
             <i class="fad fa-hand-holding-seedling fa-lg"></i>
           </ion-fab-button>
@@ -49,9 +49,6 @@
             class="xp-text"
             :has-more-text="hasMoreDialog"
           />
-        </div>
-        <div v-if="hasMoreDialog" class="dialog-indicator">
-          <i class="fad fa-chevron-down blink"></i>
         </div>
       </ion-card>
     </div>

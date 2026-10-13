@@ -60,6 +60,7 @@
         </div>
       </div>
 
+      <div v-if="bonusLine" class="victory-bonus" data-test="hunt-bonus">{{ bonusLine }}</div>
       <div v-if="card.held" class="victory-held">Waiting for the Game Master</div>
       <div class="victory-footer">Tap to continue ▼</div>
     </div>
@@ -116,6 +117,13 @@ const targetOf = (stat: Stat): number => {
 
 /** Fast first, slow last: the number races up and settles. */
 const easeOut = (progress: number): number => 1 - Math.pow(1 - progress, 3);
+
+/** "Hunt bonus +30 XP": what winning the fight added to the XP tile; a held quest is paid it once approved. */
+const bonusLine = computed(() => {
+  const bonus = Math.round(Number(props.card.huntBonusXp));
+  if (!(bonus > 0)) return "";
+  return props.card.held ? `Hunt bonus +${bonus} XP once approved` : `Hunt bonus +${bonus} XP`;
+});
 
 const tiles = computed(() =>
   TILES.map(({ stat, label, icon }) => {
@@ -689,6 +697,15 @@ $vc-star-colors: #f7e8a8, #ffffff, $eb-color-sky-blue, $eb-color-mint-green, $vc
   50% {
     opacity: 1;
   }
+}
+
+.victory-bonus {
+  margin: 10px 0 0;
+  font-family: "StatusPlz", monospace;
+  font-size: 0.95rem;
+  line-height: 1.2;
+  letter-spacing: 0.04em;
+  color: $eb-color-pale-yellow;
 }
 
 .victory-footer {

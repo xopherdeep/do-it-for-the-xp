@@ -428,6 +428,9 @@
       </ion-toolbar> -->
     </ion-footer>
     </template>
+
+    <!-- The savings and debt questions: the game's own prompt, not native alerts -->
+    <xp-reveal-prompt :prompt="prompt" @respond="reveal.respond" />
   </ion-page>
 </template>
 

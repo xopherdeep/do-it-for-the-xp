@@ -88,13 +88,8 @@
       </ion-toolbar>
     </ion-footer>
 
-    <xp-npc-dialog
-      v-model:open="isTalking"
-      :speaker="shopkeeper"
-      :lines="clerkLines"
-      icon="fad fa-store-alt"
-      @done="clerkMenu"
-    />
+    <!-- The clerk, the wallet and the receipts speak in the game's own dialog, in the shop's colours -->
+    <xp-reveal-prompt :prompt="prompt" @respond="reveal.respond" />
 
     <!-- Item Inspection and Purchase Modal -->
     <shop-item-modal

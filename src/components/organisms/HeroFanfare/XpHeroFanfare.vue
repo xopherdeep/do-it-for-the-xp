@@ -81,11 +81,11 @@
           class="hero-fanfare__title"
           data-cy="hero-fanfare-line"
         >
-          <span>{{ LINE.slice(0, typed) }}</span
+          <span>{{ lineText.slice(0, typed) }}</span
           ><span
             class="hero-fanfare__ghost"
             aria-hidden="true"
-          >{{ LINE.slice(typed) }}</span>
+          >{{ lineText.slice(typed) }}</span>
         </h2>
 
         <div
@@ -105,6 +105,12 @@
             ></i>
             the {{ jobClass }}
           </p>
+          <p
+            v-else-if="subtitle"
+            class="hero-fanfare__class"
+          >
+            {{ subtitle }}
+          </p>
         </div>
 
         <div class="hero-fanfare__actions">
@@ -116,7 +122,7 @@
             data-cy="hero-fanfare-begin"
             @click.stop="press"
           >
-            Begin your adventure
+            {{ actionText }}
             <i
               class="fas fa-caret-right"
               aria-hidden="true"
@@ -147,16 +153,31 @@ import XpConfettiBurst from "./XpConfettiBurst.vue";
  * end shows all of it at once; at the end a tap anywhere, or the button, is `done`. Reduced motion: the hero idles, no
  * burst, one gentle sparkle. The page owns `open` and does whatever comes after `done`.
  */
-const props = defineProps<{
-  open: boolean;
-  /** The name the party will know the hero by */
-  name: string;
-  jobClass?: string;
-  /** The 3D hero; without it (or without WebGL) the portrait stands in */
-  look?: HeroLook | null;
-  /** The face for a hero who is not drawn in 3D: a picture of their look, or their preset portrait */
-  portrait?: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    open: boolean;
+    /** The name the party will know the hero or quest by */
+    name: string;
+    jobClass?: string;
+    /** Optional subtitle line (e.g. beast name or quest details) */
+    subtitle?: string;
+    /** Header banner announcement line */
+    title?: string;
+    /** Button action prompt label */
+    actionText?: string;
+    /** FX sound played on burst */
+    sound?: string;
+    /** The 3D hero; without it (or without WebGL) the portrait stands in */
+    look?: HeroLook | null;
+    /** The face for a hero/beast: a picture of their look, or their preset portrait */
+    portrait?: string;
+  }>(),
+  {
+    title: "A new hero joins the party!",
+    actionText: "Begin your adventure",
+    sound: "levelUp",
+  }
+);
 
 const emit = defineEmits<{
   /** The reveal's big moment: the stinger plays now, so the page may start the song */
@@ -166,7 +187,7 @@ const emit = defineEmits<{
 
 type Phase = "dark" | "burst" | "typing" | "card" | "ready";
 
-const LINE = "A new hero joins the party!";
+const lineText = computed(() => props.title);
 
 /** The glow pulses three times, harder each time, then the shape bursts into colour */
 const CHARGE_AT_MS = [520, 840, 1160];
@@ -180,7 +201,7 @@ const READY_AFTER_MS = 520;
 const VICTORY_MS = 1800;
 /** A tap on the screen right after the end is the tap that skipped to it: it must not also leave */
 const LEAVE_TAP_GUARD_MS = 500;
-const SPARK_COUNT = 14;
+const SPARK_COUNT = 24;
 
 const timers = useTimers();
 const root = ref<HTMLElement | null>(null);
@@ -214,14 +235,14 @@ const webglWorks = (): boolean => {
   }
 };
 
-/** Sparks fly out of the hero in a ring: angle and reach step by the golden ratio so neighbours differ. */
+/** Sparks fly out in a ring: angle and reach step by the golden ratio so neighbours differ. */
 const sparkStyle = (n: number) => {
   const turn = (n * 0.618034) % 1;
   return {
     "--spark-angle": `${turn * 360}deg`,
-    "--spark-reach": `${90 + ((n * 37) % 70)}px`,
-    "--spark-delay": `${(n % 5) * 30}ms`,
-    "--spark-size": `${0.7 + ((n * 0.382) % 1) * 0.8}rem`,
+    "--spark-reach": `${110 + ((n * 43) % 95)}px`,
+    "--spark-delay": `${(n % 6) * 25}ms`,
+    "--spark-size": `${0.85 + ((n * 0.382) % 1) * 0.95}rem`,
   };
 };
 
@@ -235,7 +256,7 @@ const focusButton = () => nextTick(() => (beginButton.value ?? root.value)?.focu
 const announce = () => {
   if (burstDone) return;
   burstDone = true;
-  play$fx("levelUp");
+  play$fx(props.sound || "levelUp");
   emit("burst");
 };
 
@@ -267,7 +288,7 @@ const showCard = () => {
 
 const typeNext = () => {
   typed.value += 1;
-  if (typed.value < LINE.length) {
+  if (typed.value < lineText.value.length) {
     later(TYPE_EVERY_MS, typeNext);
     return;
   }
@@ -281,7 +302,7 @@ const settle = () => {
   // The hop in progress is not cut short: the dance follows it
   if (isStillHopping) later(VICTORY_MS / 2, () => (animation.value = "dance"));
   charge.value = 3;
-  typed.value = LINE.length;
+  typed.value = lineText.value.length;
   cardShown.value = true;
   phase.value = "ready";
   readyAt = performance.now();

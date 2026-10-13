@@ -295,7 +295,7 @@ describe("Quest rooms: a temple full of real chores", () => {
       expect(stats.gp.wallet, "wallet before the fight").to.eq(20);
     });
     fightFromTheRoom();
-    cy.get(".chores-left-label").should("have.text", "4 chores left");
+    cy.get(".chores-left-label").should("have.text", "4 tasks left");
     cy.get(".attack-timer-label").should("contain", ":");
     shot("05-fight-begins");
 
@@ -303,7 +303,7 @@ describe("Quest rooms: a temple full of real chores", () => {
       finishChore(chore);
       if (index < CHORES.length - 1) {
         const left = CHORES.length - 1 - index;
-        cy.get(".chores-left-label", { timeout: 5000 }).should("have.text", `${left} ${left === 1 ? "chore" : "chores"} left`);
+        cy.get(".chores-left-label", { timeout: 5000 }).should("have.text", `${left} ${left === 1 ? "task" : "tasks"} left`);
         readUntilMenu();
       }
     });

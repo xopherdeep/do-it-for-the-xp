@@ -27,9 +27,11 @@ import {
 
 /** CSS pixels per cell of the confetti canvas: chunky on a phone, and a few thousand cells to draw in all */
 const CELL = 3;
-const FIRST_PER_EDGE = 60;
-const SECOND_PER_EDGE = 30;
-const SECOND_WAVE_MS = 520;
+const FIRST_PER_EDGE = 80;
+const SECOND_PER_EDGE = 45;
+const THIRD_PER_EDGE = 30;
+const SECOND_WAVE_MS = 480;
+const THIRD_WAVE_MS = 960;
 /** The loop never outlives this, whatever happens to the chips */
 const SAFETY_MS = 9000;
 
@@ -41,6 +43,7 @@ let frame = 0;
 let lastTime = 0;
 let safetyTimer = 0;
 let secondWaveTimer = 0;
+let thirdWaveTimer = 0;
 let size = { width: 0, height: 0 };
 
 const reducedMotion = (): boolean =>
@@ -103,6 +106,7 @@ const stop = () => {
   frame = 0;
   timers.cancel(safetyTimer);
   timers.cancel(secondWaveTimer);
+  timers.cancel(thirdWaveTimer);
   chips = [];
   clearCanvas();
 };
@@ -136,6 +140,10 @@ const burst = () => {
   start();
   secondWaveTimer = timers.startTimeout(SECOND_WAVE_MS, () => {
     chips = chips.concat(burstFromEdges(size, SECOND_PER_EDGE, chips.length));
+    start();
+  });
+  thirdWaveTimer = timers.startTimeout(THIRD_WAVE_MS, () => {
+    chips = chips.concat(burstFromEdges(size, THIRD_PER_EDGE, chips.length));
     start();
   });
   timers.cancel(safetyTimer);

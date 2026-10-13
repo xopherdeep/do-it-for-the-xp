@@ -47,7 +47,7 @@ describe("Battle Field", () => {
     cy.get("[data-cy=battle-dialog]").should("contain", "From the dark forces of chaos comes Socktopus!!!");
     shot("02-intro-read");
     readUntilMenu(3);
-    cy.get(".chores-left-label").should("have.text", "3 chores left");
+    cy.get(".chores-left-label").should("have.text", "3 tasks left");
     cy.get(".attack-timer-label").should("contain", ":");
     shot("03-menu");
 
@@ -57,7 +57,7 @@ describe("Battle Field", () => {
     shot("04-checklist-confirm");
     cy.get("[data-cy=task-confirm]").click();
     cy.get("[data-cy=task-sheet]").should("not.exist");
-    cy.get(".chores-left-label", { timeout: 5000 }).should("have.text", "2 chores left");
+    cy.get(".chores-left-label", { timeout: 5000 }).should("have.text", "2 tasks left");
     shot("05-chore-done");
     readUntilMenu();
 
@@ -84,7 +84,7 @@ describe("Battle Field", () => {
     // Two more chores win the fight; rewards land at once and the victory card counts them up.
     finishChore("Match the pairs");
     cy.get("[data-cy=task-confirm]").click();
-    cy.get(".chores-left-label", { timeout: 5000 }).should("have.text", "1 chore left");
+    cy.get(".chores-left-label", { timeout: 5000 }).should("have.text", "1 task left");
     readUntilMenu();
     finishChore("Put them away");
     cy.get("[data-cy=task-confirm]").click();

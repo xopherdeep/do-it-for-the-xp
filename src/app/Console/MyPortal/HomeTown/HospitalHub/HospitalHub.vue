@@ -19,39 +19,15 @@
       <xp-loading v-if="isLoading" /> 
       
       <!-- FAB button to trigger the nurse dialog -->
-      <ion-fab vertical="bottom" horizontal="center" slot="fixed">
+      <ion-fab v-show="!isTalking" vertical="bottom" horizontal="center" slot="fixed">
         <ion-fab-button @click="showNurseDialog">
           <i class="fad fa-stethoscope fa-lg"></i>
         </ion-fab-button>
       </ion-fab>
     </ion-content>
 
-    <!-- Custom Nurse Dialog (RPG style) -->
-    <div class="nurse-dialog-overlay" v-if="isDialogVisible" role="button" tabindex="0" @click="advanceDialog"
-      @keydown.enter="advanceDialog" @keydown.space.prevent="advanceDialog">
-      <ion-card class="nurse-dialog-box">
-        <ion-card-title class="dialog-header">
-          <i class="fad fa-user-nurse fa-lg mr-2"></i>
-          <span>Nurse Joy</span>
-        </ion-card-title>
-        <div class="dialog-content">
-          <xp-typing-text
-            ref="nurseDialogText"
-            :text="currentDialogText"
-            :speed="30"
-            :auto-start="true"
-            :sound-theme="$fx.theme.rpg"
-            sound-type="text"
-            @typing-complete="onTypingComplete"
-            class="nurse-text"
-            hasMoreText="hasMoreDialog"
-          />
-        </div>
-        <div v-if="hasMoreDialog" class="dialog-indicator">
-          <i class="fad fa-chevron-down blink"></i>
-        </div>
-      </ion-card>
-    </div>
+    <!-- Nurse Joy's dialog, offers and receipts: the game's own prompt, not native alerts -->
+    <xp-reveal-prompt :prompt="prompt" @respond="reveal.respond" />
 
     <!-- Patient Modal -->
     <ion-modal ref="patientsModal" :is-open="isModalOpen" @did-dismiss="closePatientsModal">

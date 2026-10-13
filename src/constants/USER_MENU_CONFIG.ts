@@ -10,7 +10,7 @@ export const USER_MENU_CONFIG = {
     id: "wallet"
   },
   quests: {
-    label: "Quests",
+    label: "Beast Log",
     icon: "fa-book-dead",
     id: "staff"
   },

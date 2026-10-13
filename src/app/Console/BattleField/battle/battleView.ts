@@ -32,6 +32,8 @@ export interface VictoryCardState {
   /** The Game Master approves this quest before the loot lands: tiles count up locked, no level-up lines. */
   held: boolean;
   levelUp?: { from: number; to: number };
+  /** The XP of `rewards.xp` that is the hunt bonus (a quest won by fighting it), for the "Hunt bonus +30 XP" line. */
+  huntBonusXp?: number;
 }
 
 /** A line for the message box; `auto` lines move on by themselves once typed (chore results), tap-gated lines wait. */

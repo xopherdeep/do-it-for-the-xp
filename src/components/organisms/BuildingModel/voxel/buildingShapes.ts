@@ -118,21 +118,52 @@ const hospitalBoxes = (): Box[] => [
   b(-0.6, 13, -0.6, 1.2, 1.2, 1.2, "#ff1744"),
 ];
 
-/** Hotel Hub: Multi-story RPG inn with balconies, warm amber windows, green canopy */
+/** Hotel Hub: Red flashy grand hotel with red brick facade, neon marquee sign, gold trims, glowing windows & rooftop spire */
 const hotelBoxes = (): Box[] => [
-  b(-6, 0, -6, 12, 1.2, 12, "#424242"),
-  b(-5.5, 1.2, -5.5, 11, 4, 11, "#5d4037"),
-  b(-1.8, 1.2, 5.51, 3.6, 3.5, 0.2, "#ffb300"),
-  b(-3, 4.5, 4.5, 6, 0.8, 3, "#2e7d32"),
-  b(-5, 5.2, -5, 10, 3.5, 10, "#8d6e63"),
-  b(-4, 8.7, -4, 8, 3, 8, "#a1887f"),
-  b(-4.8, 5.5, 5.01, 3, 1.5, 1.2, "#3e2723"),
-  b(1.8, 5.5, 5.01, 3, 1.5, 1.2, "#3e2723"),
-  b(-3.5, 2.5, 5.51, 1.5, 1.5, 0.1, "#fff176"),
-  b(2, 2.5, 5.51, 1.5, 1.5, 0.1, "#fff176"),
-  b(-4.5, 11.7, -4.5, 9, 1.5, 9, "#1b5e20"),
-  b(-3, 13.2, -3, 6, 1.2, 6, "#2e7d32"),
-  b(-1.5, 14.4, -1.5, 3, 0.8, 3, "#388e3c"),
+  // Foundation & red carpet entrance
+  b(-6, 0, -6, 12, 1.2, 12, "#212121"),
+  b(-2, 0.4, 4.5, 4, 0.3, 2.5, "#d50000"),
+  // Ground floor - deep crimson facade
+  b(-5.5, 1.2, -5.5, 11, 4.2, 11, "#b71c1c"),
+  // Grand entrance doors (gold trimmed with glass)
+  b(-2, 1.2, 5.51, 4, 3.6, 0.2, "#ffd700"),
+  b(-1.6, 1.4, 5.53, 3.2, 3.2, 0.1, "#ffe082"),
+  // Flashy marquee entrance canopy with bright ruby & gold striping
+  b(-3.5, 4.6, 4.2, 7, 0.8, 3.2, "#ff1744"),
+  b(-3.2, 4.4, 4.2, 6.4, 0.3, 3.4, "#ffd700"),
+  b(-3.5, 4.9, 7.21, 7, 0.4, 0.2, "#ffea00"),
+  // Ground floor glowing display windows with neon border
+  b(-4.5, 2.2, 5.51, 1.8, 2.2, 0.1, "#ff5252"),
+  b(-4.3, 2.4, 5.52, 1.4, 1.8, 0.1, "#fff9c4"),
+  b(2.7, 2.2, 5.51, 1.8, 2.2, 0.1, "#ff5252"),
+  b(2.9, 2.4, 5.52, 1.4, 1.8, 0.1, "#fff9c4"),
+  // Second tier - vibrant crimson tower body
+  b(-5, 5.4, -5, 10, 4, 10, "#c62828"),
+  // Second floor gold balcony and railings
+  b(-4.8, 5.6, 5.01, 3.2, 1.6, 1.2, "#ffd700"),
+  b(1.6, 5.6, 5.01, 3.2, 1.6, 1.2, "#ffd700"),
+  // Glowing hotel suite windows
+  b(-4.2, 6.8, 5.02, 2, 2, 0.1, "#ffff8d"),
+  b(2.2, 6.8, 5.02, 2, 2, 0.1, "#ffff8d"),
+  b(-1, 6.8, 5.02, 2, 2, 0.1, "#ffff8d"),
+  // Third tier - penthouses in radiant scarlet
+  b(-4.2, 9.4, -4.2, 8.4, 3.2, 8.4, "#d32f2f"),
+  b(-3.2, 10, 4.21, 1.8, 1.8, 0.1, "#ffff8d"),
+  b(1.4, 10, 4.21, 1.8, 1.8, 0.1, "#ffff8d"),
+  b(-0.9, 10, 4.21, 1.8, 1.8, 0.1, "#ffff8d"),
+  // Roof cornices & decorative neon parapets
+  b(-4.6, 12.6, -4.6, 9.2, 1.2, 9.2, "#b71c1c"),
+  b(-4.8, 13.2, -4.8, 9.6, 0.4, 9.6, "#ffd700"),
+  // Rooftop luxury penthouse terrace
+  b(-3.2, 13.8, -3.2, 6.4, 1.4, 6.4, "#e53935"),
+  // Glowing rooftop "HOTEL" neon marquee letter bar / sign board
+  b(-3, 15.2, 2.2, 6, 1.6, 0.6, "#ff1744"),
+  b(-2.6, 15.4, 2.81, 5.2, 1.2, 0.2, "#ffd700"),
+  b(-2.2, 15.7, 2.95, 4.4, 0.6, 0.1, "#ffffff"),
+  // Rooftop beacon spire with gold orb & gleaming crimson light
+  b(-0.6, 15.2, -1, 1.2, 3, 1.2, "#ffd700"),
+  b(-0.4, 18.2, -0.8, 0.8, 1.2, 0.8, "#ff1744"),
+  b(-0.2, 19.4, -0.6, 0.4, 0.8, 0.4, "#ffea00"),
 ];
 
 /** Gold Bank: Classical marble bank with columns, golden vault door and pediment emblem */

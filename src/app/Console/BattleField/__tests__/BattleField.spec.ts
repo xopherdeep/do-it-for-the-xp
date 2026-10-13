@@ -235,7 +235,7 @@ describe("BattleField: a free fight", () => {
     expect(wrapper.findAll(".menu-item").map((button) => button.text())).toEqual(["Tackle", "Defend", "Powers", "Goods", "Run Away"]);
     expect(wrapper.find("#attack i").classes()).toContain("fa-axe"); // the warrior tackles with an axe
     expect(wrapper.find(".dialog-prompt").text()).toBe("Do its chores to win!");
-    expect(chores()).toBe("2 chores left");
+    expect(chores()).toBe("2 tasks left");
     expect(clock().text()).toBe("6:00"); // three minutes a chore
     expect(wrapper.find("ion-alert").exists()).toBe(false);
 
@@ -244,7 +244,7 @@ describe("BattleField: a free fight", () => {
     expect(wrapper.find(".damage-popup").text()).toBe("-50");
     expect(mockPlaySound).toHaveBeenCalledWith("attack");
     expect(mockPlaySound).toHaveBeenCalledWith("enemyDamage");
-    expect(chores()).toBe("1 chore left");
+    expect(chores()).toBe("1 task left");
     expect(clock().text()).toBe("3:00"); // every chore earns a fresh clock
     expect(vm.dialogText).toBe("Max used Sort socks! Socktopus took 50 damage!");
     await tap(); // finish typing: the result line moves on by itself
@@ -305,7 +305,7 @@ describe("BattleField: a free fight", () => {
     expect(vm.dialogText).toBe("Socktopus is still hurt from earlier!");
     await tap();
     await tap();
-    expect(wrapper.find(".chores-left-label").text()).toBe("1 chore left");
+    expect(wrapper.find(".chores-left-label").text()).toBe("1 task left");
     expect(wrapper.find(".attack-timer-label").text()).toBe("3:00"); // one chore's share of the quest's clock
   });
 
@@ -494,7 +494,7 @@ describe("BattleField: a free fight", () => {
     expect(wrapper.find("[data-cy=task-sheet]").exists()).toBe(false);
     expect(vm.dialogText).toBe("The chore flies back to the board.");
     expect(hero.stats.mp.now).toBe(45);
-    expect(wrapper.find(".chores-left-label").text()).toBe("1 chore left");
+    expect(wrapper.find(".chores-left-label").text()).toBe("1 task left");
     expect(wrapper.find(".damage-popup").exists()).toBe(false); // not an attack
     // Nothing was completed, so no chore is remembered as done for today
     const progressKeys = Object.keys(localStorage).filter((key) => key.startsWith("xp_battle_progress:"));
@@ -595,7 +595,7 @@ describe("BattleField: a free fight", () => {
     await flushPromises();
     expect(wrapper.find("[data-cy=task-sheet]").exists()).toBe(false);
     expect(hero.stats.mp.now).toBe(120);
-    expect(wrapper.find(".chores-left-label").text()).toBe("2 chores left");
+    expect(wrapper.find(".chores-left-label").text()).toBe("2 tasks left");
     expect(vm.dialogText).toBe("");
 
     // The next Tackle starts fresh: the checklist is an attack again
@@ -619,7 +619,7 @@ describe("BattleField: a free fight", () => {
     await flushPromises();
     expect(vm.dialogText).toBe("Max casts Rewind! The chore flies back to the board.");
     expect(hero.stats.mp.now).toBe(100);
-    expect(wrapper.find(".chores-left-label").text()).toBe("1 chore left");
+    expect(wrapper.find(".chores-left-label").text()).toBe("1 task left");
   });
 
   it("a strike closes the bag and drops a Recall in flight", async () => {
@@ -649,7 +649,7 @@ describe("BattleField: a free fight", () => {
     vm.postponeTask("t1");
     await flushPromises();
     expect(hero.stats.mp.now).toBe(120);
-    expect(wrapper.find(".chores-left-label").text()).toBe("2 chores left");
+    expect(wrapper.find(".chores-left-label").text()).toBe("2 tasks left");
     expect(vm.dialogText).toBe("Socktopus attacks!");
     (Math.random as jest.Mock).mockRestore();
   });

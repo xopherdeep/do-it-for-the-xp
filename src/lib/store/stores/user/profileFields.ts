@@ -1,7 +1,17 @@
 import type { HeroLook } from '@/lib/hero-look/types';
 import { addGrudgeMark, clearGrudgeMarks, marksFor } from '@/lib/services/battle/questGrudge';
-import { toEntry } from '@/lib/services/inventory/Inventory';
+import {
+  canCarry,
+  moveToBag,
+  moveToStorage,
+  rowsAfterTaking,
+  storagePurchase,
+  type BagAndStorage,
+  type StoragePurchase
+} from '@/lib/services/inventory/Storage';
+import { isVoice, type Voice } from '@/lib/services/copy/voices';
 import { classLevelsOf, isClassUnlocked } from '@/lib/services/stats/ClassPassives';
+import type { GpPayload } from './types';
 
 /** The hero's bag with a copy of `item` added at the end (a profile with no bag starts one). */
 export function inventoryWithItem(user: any, item: unknown): any[] {
@@ -14,27 +24,7 @@ export function inventoryWithItem(user: any, item: unknown): any[] {
  * Returns null, spending nothing, when the pack holds fewer than `qty`.
  */
 export function inventoryAfterSpend(inventory: any[], entryId: string, qty: number): any[] | null {
-  const entries = inventory.map((row: unknown) => toEntry(row));
-  const held = entries.reduce((sum: number, entry: { id: string, qty: number } | null) => (entry?.id === entryId ? sum + entry.qty : sum), 0);
-  if (held < qty) return null;
-
-  let left = qty;
-  const next: any[] = [];
-  inventory.forEach((row: any, index: number) => {
-    const entry = entries[index];
-    const shouldKeepRow = left <= 0 || entry?.id !== entryId;
-    if (shouldKeepRow) {
-      next.push(row);
-      return;
-    }
-    const taken = Math.min(left, entry.qty);
-    left -= taken;
-    if (entry.qty > taken) {
-      const key = row.qty == null && row.quantity != null ? 'quantity' : 'qty';
-      next.push({ ...row, [key]: entry.qty - taken });
-    }
-  });
-  return next;
+  return rowsAfterTaking(inventory, entryId, qty);
 }
 
 /** The hero's item cooldowns with one item's ready time set (ISO), or cleared when `readyAt` is null. */
@@ -51,29 +41,43 @@ export function equipmentWith(user: any, equipment: { leftHand: any[]; rightHand
   return { ...(user.equipment || {}), leftHand: plain(equipment.leftHand), rightHand: plain(equipment.rightHand) };
 }
 
-/** What the profile setters need from the store: its state and its save. */
+/** The hero's storage (`user.storage`, the same raw shape as the bag) with a copy of `item` added at the end. */
+export function storageWithItem(user: any, item: unknown): any[] {
+  return [...(Array.isArray(user.storage) ? user.storage : []), JSON.parse(JSON.stringify(item))];
+}
+
+/** What the profile setters need from the store: its state, its save and the GP move the Gold Bank charges through. */
 export interface ProfileFieldsDeps {
   users: Record<string, any>;
   currentUser: { id: string | null };
   persistUser: (userId: string) => void;
   syncCurrentUser: (userData: any) => void;
+  /** The store's updateUserGP: the wallet moves before its first await, the save is not waited for. */
+  updateUserGP: (payload: GpPayload) => unknown;
 }
+
+/** What buying a storage tier did: the sale (tier, slots, price), or why not. `hero` means there is no such hero. */
+export type StorageBuyResult = StoragePurchase | { ok: false; reason: 'hero' };
 
 /**
  * The store's setters for the plain fields of a profile (bag, cooldowns, bench rest, quest effects, unlocked
  * items, hands, look, class, grudge marks). The state they edit stays in the store; they get it through `deps`.
  */
 export function createProfileSetters(deps: ProfileFieldsDeps) {
-  const { users, currentUser, persistUser, syncCurrentUser } = deps;
+  const { users, currentUser, persistUser, syncCurrentUser, updateUserGP } = deps;
 
   /**
-   * Put an item in the hero's bag, e.g. what a temple shop sold. Kept on the profile (and so in ProfileDb).
-   * Returns false when there is no such hero.
+   * Put an item with the hero: in the bag, or in storage when the bag has no room for a new stack and storage is bought
+   * (Storage.ts canCarry). Kept on the profile (and so in ProfileDb). Returns false, adding nothing, when there is no such
+   * hero or both are full: the caller checks first (canCarry) so it never takes GP or empties a chest for nothing.
    */
   function addInventoryItem(userId: string, item: { name: string, source?: string, [key: string]: any }): boolean {
     const user = users[userId];
     if (!user) return false;
-    user.inventory = inventoryWithItem(user, item);
+    const place = canCarry(user, item);
+    if (!place) return false;
+    if (place === 'storage') user.storage = storageWithItem(user, item);
+    else user.inventory = inventoryWithItem(user, item);
     if (currentUser.id === userId) syncCurrentUser(user);
     persistUser(userId);
     return true;
@@ -94,6 +98,63 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     if (currentUser.id === userId) syncCurrentUser(user);
     persistUser(userId);
     return true;
+  }
+
+  /** Save the bag and the storage a move handed back. */
+  function saveMove(userId: string, user: any, moved: BagAndStorage) {
+    user.inventory = moved.inventory;
+    user.storage = moved.storage;
+    if (currentUser.id === userId) syncCurrentUser(user);
+    persistUser(userId);
+  }
+
+  /**
+   * Move `qty` of a bag stack (all of it when `qty` is left out) into the hero's storage. Moves nothing and returns false
+   * when there is no such hero or stack, `qty` is more than the stack holds, it is a key item, storage is locked, or it
+   * is full (Storage.ts moveToStorage).
+   */
+  function storeItem(userId: string, entryId: string, qty?: number): boolean {
+    const user = users[userId];
+    if (!user) return false;
+    const moved = moveToStorage(user, entryId, qty);
+    if (!moved) return false;
+    saveMove(userId, user, moved);
+    return true;
+  }
+
+  /**
+   * Move `qty` of a stored stack (all of it when `qty` is left out) back into the hero's bag. Moves nothing and returns
+   * false when there is no such hero or stack, `qty` is more than the stack holds, or the bag has no room for it
+   * (Storage.ts moveToBag).
+   */
+  function takeItem(userId: string, entryId: string, qty?: number): boolean {
+    const user = users[userId];
+    if (!user) return false;
+    const moved = moveToBag(user, entryId, qty);
+    if (!moved) return false;
+    saveMove(userId, user, moved);
+    return true;
+  }
+
+  /**
+   * Buy the next storage tier at the Gold Bank, paid from the WALLET. With `useSavings` the rest of a price the wallet
+   * cannot cover comes out of the savings (the bank offers that); without it savings are never touched. Charges nothing
+   * and returns `{ ok: false, reason }` when the money is short (`gp`: `short` GP missing from the wallet, `canTopUp` when
+   * savings would cover it, `shortAll` still missing with them), the hero holds the biggest storage (`max`) or there is no
+   * such hero (`hero`); otherwise `{ ok: true, tier, slots, price, fromWallet, fromSavings }`.
+   */
+  function buyStorageTier(userId: string, useSavings = false): StorageBuyResult {
+    const user = users[userId];
+    if (!user) return { ok: false, reason: 'hero' };
+    const purse = user.stats?.gp;
+    const sale = storagePurchase(user, Number(purse?.wallet) || 0, Number(purse?.savings) || 0, useSavings);
+    if (!sale.ok) return sale;
+    // The purse moves before updateUserGP's first await; the save is not waited for
+    void updateUserGP({ userId, wallet: -sale.fromWallet, ...(sale.fromSavings ? { savings: -sale.fromSavings } : {}) });
+    user.storageTier = sale.tier;
+    if (currentUser.id === userId) syncCurrentUser(user);
+    persistUser(userId);
+    return sale;
   }
 
   /**
@@ -227,9 +288,40 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     persistUser(userId);
   }
 
+  /**
+   * The hero's "Text style" (the voice their screens read in, services/copy/voices.ts): one of the three voices, or null
+   * for Auto, where the birthday decides. Returns false, changing nothing, when there is no such hero or the voice is
+   * not one of the three.
+   */
+  function setVoice(userId: string, voice: Voice | null): boolean {
+    const user = users[userId];
+    const isUnknownChoice = !user || (voice !== null && !isVoice(voice));
+    if (isUnknownChoice) return false;
+    // Auto clears the field to undefined (not deleted) so syncCurrentUser's assign clears it on currentUser too
+    user.voice = voice === null ? undefined : voice;
+    const isCurrentHero = currentUser.id === userId;
+    if (isCurrentHero) syncCurrentUser(user);
+    persistUser(userId);
+    return true;
+  }
+
+  /** Whether the simple voice reads lines aloud on its own for this hero (the speaker button always works). */
+  function setAutoRead(userId: string, autoRead: boolean) {
+    const user = users[userId];
+    const hasNoHero = !user;
+    if (hasNoHero) return;
+    user.autoRead = autoRead === true;
+    const isCurrentHero = currentUser.id === userId;
+    if (isCurrentHero) syncCurrentUser(user);
+    persistUser(userId);
+  }
+
   return {
     addInventoryItem,
     spendInventoryItem,
+    storeItem,
+    takeItem,
+    buyStorageTier,
     setItemCooldown,
     setBenchRestAt,
     setQuestEffects,
@@ -239,6 +331,8 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     setJobClass,
     addQuestGrudge,
     clearQuestGrudge,
-    setQuestGrudges
+    setQuestGrudges,
+    setVoice,
+    setAutoRead
   };
 }

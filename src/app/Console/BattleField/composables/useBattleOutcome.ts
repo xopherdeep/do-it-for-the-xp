@@ -11,7 +11,7 @@ import { classPassive, rewardsWithPassive, winRegen } from "@/lib/services/stats
 import { useUserStore, type ClassLevelUpInfo, type LevelUpInfo } from "@/lib/store/stores/user";
 import debug from "@/lib/utils/debug";
 import { battleReturnRoute, type BattleContext } from "../battle/battleContext";
-import { resolveRewards } from "../battle/battleRewards";
+import { huntBonusXpFor, resolveRewards } from "../battle/battleRewards";
 import type { EnemyAnimation, VictoryCardState } from "../battle/battleView";
 import type { Encounter } from "../battle/encounterLoader";
 import type { BattleAudio } from "./useBattleAudio";
@@ -247,6 +247,9 @@ export const useBattleOutcome = (deps: BattleOutcomeDeps) => {
       choresDone: stats.choresDone,
       elapsedMs: stats.elapsedMs,
       held,
+      // What the win added to the XP tile: paid now, or (a held quest) paid when the Game Master approves. Nothing for a
+      // quest already done
+      huntBonusXp: rewards.xp > 0 ? huntBonusXpFor(encounter, defeated, ctx.kind) : 0,
       levelUp: leveled && levelUp ? { from: levelUp.oldLevel, to: levelUp.newLevel } : undefined,
     });
 

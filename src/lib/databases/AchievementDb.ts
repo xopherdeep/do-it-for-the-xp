@@ -64,6 +64,8 @@ export interface Achievement {
   adventureType: string;
   /** Saved while still incomplete in the Compendium: heroes never see a draft (QuestEngine.filterQuests) */
   draft?: boolean;
+  /** The hero who made the quest with the Quest Wizard (questWizard.ts). Absent on quests from the Compendium or a pack. */
+  createdBy?: string;
 }
 
 export interface AchievementCategoryInterface {

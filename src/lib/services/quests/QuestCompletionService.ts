@@ -1,6 +1,7 @@
 import type { Achievement } from "@/lib/databases/AchievementDb";
 import { getQuestLogDb, QuestLogEntry, QuestLogSource, QuestRewards } from "@/lib/databases/QuestLogDb";
 import { countedHeroesOf, isQuestOpenFor, isTrustedHour, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
+import { huntBonusXpOn, withHuntBonus } from "@/lib/services/quests/huntBonus";
 import { bonusGp } from "@/lib/services/stats/ClassPassives";
 import { useUserStore, LevelUpInfo } from "@/lib/store/stores/user";
 
@@ -19,6 +20,8 @@ import { useUserStore, LevelUpInfo } from "@/lib/store/stores/user";
  * XP and AP, and the GP with the class loot bonus on top (a Thief's or Ninja's +25%, see
  * docs/Items-And-Classes-Contract.md, C). Screens print the paid line, not the board's.
  * AP is stamped at the entry's completedAt, so a next-morning approval lands on the day the chore was done.
+ * A hold from a WON fight (source "battle") carries the hunt bonus XP on its entry (huntBonus.ts); the approval pays it
+ * on top, once. A claim never earns it.
  *
  * Logging a completion also ends the grudge (docs/Quest-Rooms-Spec.md 5.7): a claim, held or paid, and a battle win
  * clear the hero's marks on the quest, and a shared quest clears them for every assignee. A later rejection does not
@@ -88,6 +91,9 @@ export const completeQuest = async (
   const awaitingApproval =
     Boolean(quest.requiresApproval) && !isTrustedHour(useUserStore().users[userId]?.questEffects, new Date());
   const questLogDb = getQuestLogDb();
+  // A quest finished by winning its fight earns the hunt bonus; a claim never does. Held, it is written on the hold and
+  // the Game Master's approval pays it; paid at once, it goes into the pocket with the rest.
+  const huntBonusXp = source === "battle" ? huntBonusXpOn(rewards.xp) : 0;
 
   const entry = await questLogDb.logCompletion({
     questId: quest.id,
@@ -96,13 +102,16 @@ export const completeQuest = async (
     status: awaitingApproval ? "pending" : "approved",
     source,
     rewards,
+    ...(huntBonusXp > 0 ? { huntBonusXp } : {}),
   });
   clearGrudges(quest, userId);
 
-  if (awaitingApproval) return { entry, levelUp: null, awaitingApproval, paid: rewards };
+  // The held line is what the hero will be paid once the Game Master says yes
+  const owed = { ...rewards, xp: rewards.xp + huntBonusXp };
+  if (awaitingApproval) return { entry, levelUp: null, awaitingApproval, paid: owed };
 
-  const paid = paidQuestRewards(userId, rewards);
-  const levelUp = applyQuestRewards(userId, rewards, `quest:${quest.id}`);
+  const paid = paidQuestRewards(userId, owed);
+  const levelUp = applyQuestRewards(userId, owed, `quest:${quest.id}`);
   const settled = await questLogDb.updateEntry(entry.id, { rewardsApplied: true });
   return { entry: settled || entry, levelUp, awaitingApproval, paid };
 };
@@ -158,7 +167,9 @@ const reviewEntry = async (
 
 export const approveCompletion = (entryId: string, reviewerId?: string): Promise<QuestLogEntry | null> =>
   reviewEntry(entryId, (entry) => {
-    if (!entry.rewardsApplied) applyQuestRewards(entry.userId, entry.rewards, `quest:${entry.questId}`, entry.completedAt);
+    // The quest's rate, and the hunt bonus a won fight wrote on the hold: paid here, once (a second approval finds the
+    // entry already approved and pays nothing)
+    if (!entry.rewardsApplied) applyQuestRewards(entry.userId, withHuntBonus(entry), `quest:${entry.questId}`, entry.completedAt);
     return getQuestLogDb().updateEntry(entryId, {
       status: "approved",
       rewardsApplied: true,

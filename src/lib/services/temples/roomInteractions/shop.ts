@@ -4,6 +4,7 @@
  */
 import type { Room } from '@/lib/engine/core/dungeons/types';
 import { useUserStore } from '@/lib/store/stores/user';
+import { canCarry } from '@/lib/services/inventory/Storage';
 import { shopPrice } from '@/lib/services/stats/StatEffects';
 import { healHero, readGold, readPoints } from './hero';
 import { hasHappened, rememberOnce, roomKey } from './visitMemory';
@@ -14,6 +15,7 @@ const POTION_ID = 'potion-of-vigor';
 const POTION_PRICE = 15;
 const POTION_HEAL = 20;
 const SPECIAL_DEFAULT_PRICE = 50;
+const BAG_FULL = 'Your bag is full. Store something at home first.';
 
 /**
  * The wares on offer in a shop room, with what the hero already bought taken off the shelf. Prices are
@@ -55,15 +57,19 @@ export const buyWare = (room: Room, ctx: RoomContext, wareId: string): RoomOutco
   }
 
   const special = ware.id.slice('special:'.length);
-  void store.updateUserGP({ userId: ctx.userId, wallet: -ware.price });
   const consumable = /(potion|ether)$/i.test(ware.name) || /elixir/i.test(ware.name);
-  store.addInventoryItem(ctx.userId, {
+  const item = {
     name: special,
     source: ctx.templeId,
     type: consumable ? 'consumable' : 'material',
     faIcon: consumable ? 'flask-potion' : 'gem',
     ...(ware.blurb ? { description: ware.blurb } : {}),
-  });
+  };
+  // Room is checked before any GP changes hands: a full bag and full storage take nothing and charge nothing
+  if (!canCarry(store.getUserById(ctx.userId), item) || !store.addInventoryItem(ctx.userId, item)) {
+    return { message: BAG_FULL, sound: SFX.error };
+  }
+  void store.updateUserGP({ userId: ctx.userId, wallet: -ware.price });
   rememberOnce(roomKey(ctx, `bought:${special}`));
   return { message: `${ware.name} is in your bag.`, sound: SFX.buy };
 };

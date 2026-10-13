@@ -233,10 +233,13 @@ describe("profileFields: the bag, cooldowns, hands", () => {
     const currentUser = { id: "ava" as string | null };
     const persistUser = jest.fn();
     const syncCurrentUser = jest.fn();
-    const setters = createProfileSetters({ users, currentUser, persistUser, syncCurrentUser });
+    const setters = createProfileSetters({ users, currentUser, persistUser, syncCurrentUser, updateUserGP: jest.fn() });
     expect(Object.keys(setters)).toEqual([
       "addInventoryItem",
       "spendInventoryItem",
+      "storeItem",
+      "takeItem",
+      "buyStorageTier",
       "setItemCooldown",
       "setBenchRestAt",
       "setQuestEffects",
@@ -247,6 +250,8 @@ describe("profileFields: the bag, cooldowns, hands", () => {
       "addQuestGrudge",
       "clearQuestGrudge",
       "setQuestGrudges",
+      "setVoice",
+      "setAutoRead",
     ]);
 
     expect(setters.unlockItem("ava", "Shield")).toBe(true);
@@ -273,7 +278,7 @@ describe("grudge setters (docs/Quest-Rooms-Spec.md 5.7)", () => {
     const currentUser = { id: signedIn };
     const persistUser = jest.fn();
     const syncCurrentUser = jest.fn();
-    const setters = createProfileSetters({ users, currentUser, persistUser, syncCurrentUser });
+    const setters = createProfileSetters({ users, currentUser, persistUser, syncCurrentUser, updateUserGP: jest.fn() });
     return { setters, persistUser, syncCurrentUser };
   };
 

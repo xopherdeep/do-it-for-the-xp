@@ -1,68 +1,61 @@
-@use "@/styles/themes/earthbound.scss" as *;
+// Calendar: a phone app on the XpApp kit (accent: calendar green). The kit styles the header, the grouped agenda rows,
+// the chips, the empty state and the search strip; this file only holds what is specific to the page.
 
+// Icon-only button in the app bar and the day navigation
+.app-icon-btn {
+  width: 32px;
+  padding: 0;
+  font-size: 0.95rem;
+}
+
+// A tamed or pending quest steps back; its status chip stays bright
 .my-calendar {
-  --background: var(--ion-background-color);
-
-  .quest-list {
-    padding: 10px;
-
-    .item {
-      margin-bottom: 12px;
-      border: 1px solid rgba(var(--ion-color-success-rgb), 0.2);
-      background: rgba(var(--ion-color-light-rgb), 0.1);
-      border-radius: 12px;
-      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
-
-      ion-card-title {
-        font-family: "Press Start 2P", cursive;
-        font-size: 0.9rem;
-        color: var(--ion-color-success);
-      }
-
-      ion-card-subtitle {
-        font-size: 0.8rem;
-        color: var(--ion-color-medium);
-        display: flex;
-        align-items: center;
-        gap: 5px;
-      }
+  .is-tamed,
+  .is-pending {
+    :deep(.xp-app-row__tile),
+    :deep(.xp-app-row__title),
+    :deep(.xp-app-row__subtitle),
+    :deep(.xp-app-chip--xp),
+    :deep(.xp-app-chip--gp),
+    :deep(.xp-app-chip--ap) {
+      opacity: 0.55;
     }
-
-    .quest-rewards {
-      display: flex;
-      gap: 10px;
-      margin-top: 5px;
-
-      ion-badge {
-        font-size: 0.7rem;
-        padding: 5px 8px;
-        border-radius: 5px;
-      }
-    }
-  }
-
-  .no-chores {
-    @include eb-box();
-    // The ring shadows reach 16px outside the box; the list's overflow clips them without this margin
-    margin: 20px;
-    padding: 18px 14px;
-    text-align: center;
-    font-family: "StatusPlz", "Press Start 2P", cursive;
-    font-size: 1rem;
-    line-height: 1.4;
   }
 }
 
+// The search strip, the day navigation and the dock sit together: no Ionic footer shadow between them
 .calendar-footer {
   background: transparent;
 
-  .calendar-subtoolbar {
-    --min-height: 40px;
-    padding: 0 4px;
+  &::before {
+    display: none;
   }
 }
 
-.calendar-subtoolbar {
-  --min-height: 48px;
-  padding: 0 4px;
+// Previous day | the date | next day
+.day-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+
+  &__label {
+    display: inline-flex;
+    flex: 1 1 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-width: 0;
+    color: var(--xp-app-text);
+    font-family: var(--xp-app-font-title);
+    font-size: 0.95rem;
+    letter-spacing: 0.3px;
+    text-align: center;
+    text-transform: var(--xp-app-title-transform);
+  }
+}
+
+// The FAB sits over the bottom of the agenda: leave room so the last row can scroll clear of it
+.my-calendar::part(scroll) {
+  padding-bottom: 88px;
 }

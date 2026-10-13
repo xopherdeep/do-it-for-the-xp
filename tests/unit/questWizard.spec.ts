@@ -1,0 +1,393 @@
+import { BEAST_LIBRARY } from "@/lib/services/core/beastLibrary";
+import { prefillQueryFor, questPrefill } from "@/lib/services/quests/questPrefill";
+import {
+  addStep,
+  buildWizardQuest,
+  canAdvance,
+  choreTiles,
+  clampDifficulty,
+  cleanSteps,
+  COMMON_CHORES,
+  defaultChore,
+  draftProblem,
+  dropStep,
+  HERO_QUESTS_CATEGORY,
+  KID_MAX_DIFFICULTY,
+  newDraft,
+  pickChore,
+  rewardsOf,
+  searchChores,
+  setWhen,
+  sizesFor,
+  toggleDay,
+  toggleHero,
+  typeChore,
+  weekdayOf,
+  whenLine,
+  wizardCategory,
+  wizardSteps,
+} from "@/lib/services/quests/questWizard";
+import type { BuildContext, WizardDraft } from "@/lib/services/quests/questWizard";
+import { saveWizardQuest } from "@/lib/services/quests/questWizardSave";
+
+const bySlug = (slug: string) => {
+  const entry = BEAST_LIBRARY.find((beast) => beast.slug === slug);
+  if (!entry) throw new Error(`no library beast ${slug}`);
+  return entry;
+};
+
+// Wed 14 Oct 2026, local noon
+const TODAY = new Date(2026, 9, 14, 12, 0);
+
+const kidCtx: BuildContext = {
+  isGm: false,
+  creatorId: "kid-1",
+  categoryId: HERO_QUESTS_CATEGORY.id,
+  familyBeasts: [],
+  questId: "quest-abcdef123456",
+  today: TODAY,
+};
+const gmCtx: BuildContext = { ...kidCtx, isGm: true, creatorId: "gm-1" };
+
+const picked = (slug: string, over: Partial<WizardDraft> = {}, isGm = false): WizardDraft => ({
+  ...pickChore(newDraft({ isGm, heroId: isGm ? "gm-1" : "kid-1", today: TODAY }), bySlug(slug)),
+  ...over,
+});
+
+describe("the wizard's screens", () => {
+  it("gives a Game Master the Who screen and a hero none", () => {
+    expect(wizardSteps(true)).toEqual(["what", "steps", "when", "size", "who", "ready"]);
+    expect(wizardSteps(false)).toEqual(["what", "steps", "when", "size", "ready"]);
+  });
+
+  it("blocks Next only on the screen that names the quest", () => {
+    expect(canAdvance("what", { name: "" })).toBe(false);
+    expect(canAdvance("what", { name: "  " })).toBe(false);
+    expect(canAdvance("what", { name: "Make the bed" })).toBe(true);
+    for (const step of ["steps", "when", "size", "who", "ready"] as const) expect(canAdvance(step, { name: "" })).toBe(true);
+  });
+});
+
+describe("sizes", () => {
+  it("offers a hero Tiny to Big, 1 2 3 5, and a Game Master Boss 8 and Mega 13 as well", () => {
+    expect(sizesFor(false).map((s) => [s.label, s.id])).toEqual([["Tiny", 1], ["Small", 2], ["Medium", 3], ["Big", 5]]);
+    expect(sizesFor(true).map((s) => s.id)).toEqual([1, 2, 3, 5, 8, 13]);
+    expect(KID_MAX_DIFFICULTY).toBe(5);
+  });
+
+  it("pays the Compendium's rewards: 100 XP, 10 GP and 1 AP per point", () => {
+    expect(rewardsOf(3)).toEqual({ xp: 300, gp: 30, ap: 3 });
+    expect(rewardsOf(13)).toEqual({ xp: 1300, gp: 130, ap: 13 });
+  });
+
+  it("snaps a stray number to the nearest size the person may pick", () => {
+    expect(clampDifficulty(13, false)).toBe(5);
+    expect(clampDifficulty(8, false)).toBe(5);
+    expect(clampDifficulty(4, false)).toBe(3);
+    expect(clampDifficulty(13, true)).toBe(13);
+    expect(clampDifficulty(Number.NaN, false)).toBe(2);
+  });
+});
+
+describe("the chore tiles", () => {
+  it("lists every chore beast once, never a classic one", () => {
+    const tiles = choreTiles("kid");
+    expect(tiles).toHaveLength(BEAST_LIBRARY.length);
+    expect(new Set(tiles.map((t) => t.id)).size).toBe(BEAST_LIBRARY.length);
+  });
+
+  it("puts the hero's own age band first, and the most common chores first inside it", () => {
+    const little = choreTiles("little");
+    const littleCount = BEAST_LIBRARY.filter((b) => b.age === "little").length;
+    expect(little.slice(0, littleCount).every((b) => b.age === "little")).toBe(true);
+    expect(little[0].slug).toBe("bed-basilisk");
+
+    const kid = choreTiles("kid");
+    expect(kid[0].age).toBe("kid");
+    expect(kid.slice(-1)[0].age).toBe("little");
+
+    const grownup = choreTiles("grownup");
+    expect(grownup[0].age).toBe("teen");
+  });
+
+  it("only names chores that exist in the library", () => {
+    const slugs = new Set(BEAST_LIBRARY.map((b) => b.slug));
+    for (const slug of COMMON_CHORES) expect(slugs.has(slug)).toBe(true);
+  });
+
+  it("finds a chore by the words a person types, and nothing for a blank field", () => {
+    expect(searchChores("dishwasher").map((e) => e.name)).toContain("Dish Goblin");
+    expect(searchChores("teeth")[0].name).toBe("Fang Fairy");
+    expect(searchChores("   ")).toEqual([]);
+    expect(searchChores("zzzzqx")).toEqual([]);
+  });
+});
+
+describe("typing a chore", () => {
+  const blank = newDraft({ isGm: false, heroId: "kid-1", today: TODAY });
+
+  it("takes the beast the library suggests and its steps", () => {
+    const draft = typeChore(blank, "brush my teeth");
+    expect(draft.entry?.name).toBe("Fang Fairy");
+    expect(draft.steps).toEqual([...bySlug("fang-fairy").checklist]);
+    expect(draft.isOwn).toBe(true);
+    expect(draft.name).toBe("brush my teeth");
+  });
+
+  it("falls back to the default beast with no steps when nothing fits", () => {
+    const draft = typeChore(blank, "juggle flaming torches");
+    expect(draft.entry?.id).toBe(defaultChore().id);
+    expect(draft.entry?.slug).toBe("mess-hog");
+    expect(draft.steps).toEqual([]);
+  });
+
+  it("keeps the steps already edited while the same beast fits", () => {
+    const first = addStep(typeChore(blank, "brush teeth"), "Floss too");
+    const second = typeChore(first, "brush my teeth now");
+    expect(second.steps).toContain("Floss too");
+  });
+
+  it("holds no beast for an empty name", () => {
+    const draft = typeChore(typeChore(blank, "brush teeth"), "");
+    expect(draft.entry).toBeNull();
+    expect(draftProblem(draft)).toMatch(/chore/);
+  });
+
+  it("is a different matter from a picked tile, which brings its own name and steps", () => {
+    const draft = pickChore(blank, bySlug("dish-goblin"));
+    expect(draft.name).toBe("Load the dishwasher");
+    expect(draft.steps).toEqual([...bySlug("dish-goblin").checklist]);
+    expect(draft.isOwn).toBe(false);
+    // a copy: dropping a step does not touch the library
+    expect(dropStep(draft, 0).steps).toHaveLength(draft.steps.length - 1);
+    expect(bySlug("dish-goblin").checklist).toHaveLength(draft.steps.length);
+  });
+});
+
+describe("steps", () => {
+  it("trims, drops blanks and repeats, and keeps a sensible count", () => {
+    expect(cleanSteps(["  Wash  the cups ", "", "Wash the cups", "Dry"])).toEqual(["Wash the cups", "Dry"]);
+    expect(cleanSteps(Array.from({ length: 30 }, (_, i) => `step ${i}`))).toHaveLength(12);
+  });
+
+  it("adds a step and drops one by place", () => {
+    const base = picked("bed-basilisk");
+    const added = addStep(base, "Fluff the pillow");
+    expect(added.steps.slice(-1)[0]).toBe("Fluff the pillow");
+    expect(dropStep(added, added.steps.length - 1).steps).toEqual(base.steps);
+    expect(addStep(base, "   ").steps).toEqual(base.steps);
+  });
+});
+
+describe("the draft's defaults and the Calendar's prefill", () => {
+  it("starts on today, anytime, Small, the hero alone, and approval for a hero", () => {
+    const draft = newDraft({ isGm: false, heroId: "kid-1", today: TODAY });
+    expect(draft).toMatchObject({ when: "today", time: "anytime", difficulty: 2, heroIds: ["kid-1"], day: "2026-10-14", requiresApproval: true });
+    expect(newDraft({ isGm: true, heroId: "gm-1", today: TODAY }).requiresApproval).toBe(false);
+  });
+
+  it("takes the day and part of the day the Calendar was showing", () => {
+    const prefill = questPrefill(prefillQueryFor(new Date(2026, 9, 16), "evening", "kid-1"));
+    const draft = newDraft({ isGm: false, heroId: "kid-1", prefill, today: TODAY });
+    expect(draft.day).toBe("2026-10-16");
+    expect(draft.time).toBe("evening");
+    expect(draft.heroIds).toEqual(["kid-1"]);
+  });
+
+  it("lets a Game Master make the quest for the hero whose Calendar it is, but a hero only for themself", () => {
+    const prefill = questPrefill(prefillQueryFor(TODAY, "all", "kid-2"));
+    expect(newDraft({ isGm: true, heroId: "gm-1", prefill, today: TODAY }).heroIds).toEqual(["kid-2"]);
+    expect(newDraft({ isGm: false, heroId: "kid-1", prefill, today: TODAY }).heroIds).toEqual(["kid-1"]);
+  });
+
+  it("ignores a prefill it cannot read", () => {
+    const draft = newDraft({ isGm: false, heroId: "kid-1", prefill: questPrefill({ day: "tomorrow", time: "teatime" }), today: TODAY });
+    expect(draft).toMatchObject({ day: "2026-10-14", time: "anytime" });
+  });
+});
+
+describe("when", () => {
+  it("ticks the start day's weekday when Some days is picked, and never lets the last one go", () => {
+    const draft = setWhen(picked("bed-basilisk"), "days");
+    expect(weekdayOf("2026-10-14")).toBe("wed");
+    expect(draft.days).toEqual(["wed"]);
+    expect(toggleDay(draft, "wed").days).toEqual(["wed"]);
+    expect(toggleDay(toggleDay(draft, "mon"), "fri").days).toEqual(["mon", "wed", "fri"]);
+    expect(toggleDay(toggleDay(draft, "mon"), "wed").days).toEqual(["mon"]);
+  });
+
+  it("reads the schedule back in a line", () => {
+    const base = picked("bed-basilisk");
+    expect(whenLine(base, TODAY)).toBe("Today");
+    expect(whenLine({ ...base, time: "morning" }, TODAY)).toBe("Today · Morning");
+    expect(whenLine({ ...base, when: "daily", time: "night" }, TODAY)).toBe("Every day · Night");
+    expect(whenLine({ ...base, when: "days", days: ["mon", "wed"] }, TODAY)).toBe("Mon · Wed");
+    expect(whenLine({ ...base, day: "2026-10-16" }, TODAY)).toBe("Fri 16 Oct");
+  });
+});
+
+describe("building the quest", () => {
+  it("saves a one-time beast quest the way the Compendium form would", () => {
+    const { quest, beast } = buildWizardQuest(picked("dish-goblin", { difficulty: 3, time: "evening" }), kidCtx);
+    expect(quest).toMatchObject({
+      id: "quest-abcdef123456",
+      achievementName: "Load The Dishwasher",
+      categoryId: "cat-hero-quests",
+      beastId: "beast-dish-goblin",
+      adventureType: "beast",
+      noBeast: false,
+      basicSchedule: "once",
+      scheduleType: "basic",
+      showDailyUntilComplete: false,
+      repeatOnDays: [],
+      timesOfDay: ["evening"],
+      difficulty: 3,
+      xp: 300,
+      gp: 30,
+      ap: 3,
+      type: "individual",
+      draft: false,
+      bonusAchievement: false,
+      subAchievementIds: [],
+      endsOn: "",
+    });
+    expect(new Date(quest.startsOn).getTime()).toBe(new Date(2026, 9, 14).getTime());
+    // the library beast joins the family's bestiary with its steps
+    expect(beast?.id).toBe("beast-dish-goblin");
+    expect(beast?.checklist).toEqual([...bySlug("dish-goblin").checklist]);
+  });
+
+  it("never overwrites a beast the family already has", () => {
+    const { quest, beast } = buildWizardQuest(picked("dish-goblin"), { ...kidCtx, familyBeasts: [{ id: "beast-dish-goblin" }] });
+    expect(beast).toBeNull();
+    expect(quest.beastId).toBe("beast-dish-goblin");
+  });
+
+  it("leaves the part of the day off for Anytime", () => {
+    const { quest } = buildWizardQuest(picked("bed-basilisk"), kidCtx);
+    expect(quest.timesOfDay).toBeUndefined();
+  });
+
+  it("makes a daily quest that shows until it is done", () => {
+    const { quest } = buildWizardQuest(picked("bed-basilisk", { when: "daily", time: "morning" }), kidCtx);
+    expect(quest).toMatchObject({ basicSchedule: "daily", showDailyUntilComplete: true, repeatOnDays: [], timesOfDay: ["morning"] });
+  });
+
+  it("makes a weekly quest on the ticked days", () => {
+    const draft = toggleDay(setWhen(picked("bed-basilisk"), "days"), "mon");
+    const { quest } = buildWizardQuest(draft, kidCtx);
+    expect(quest).toMatchObject({ basicSchedule: "weekly", showDailyUntilComplete: false, repeatOnDays: ["mon", "wed"] });
+  });
+
+  it("falls back to the start day's weekday when no day is ticked", () => {
+    const { quest } = buildWizardQuest(picked("bed-basilisk", { when: "days", days: [] }), kidCtx);
+    expect(quest.repeatOnDays).toEqual(["wed"]);
+  });
+
+  it("saves a hero's edited steps as the family's own copy of the beast, leaving the library's alone", () => {
+    const draft = addStep(picked("dish-goblin"), "Say thank you to the dishwasher");
+    const { quest, beast } = buildWizardQuest(draft, kidCtx);
+    expect(beast?.id).toBe("beast-dish-goblin-quest-ab");
+    expect(quest.beastId).toBe(beast?.id);
+    expect(beast?.name).toBe("Dish Goblin");
+    expect(beast?.avatar).toBe(bySlug("dish-goblin").avatar);
+    expect(beast?.checklist.slice(-1)[0]).toBe("Say thank you to the dishwasher");
+    expect(bySlug("dish-goblin").checklist).not.toContain("Say thank you to the dishwasher");
+  });
+
+  it("gives a chore the library does not know the default beast and the one step of itself", () => {
+    const draft = typeChore(newDraft({ isGm: false, heroId: "kid-1", today: TODAY }), "juggle flaming torches");
+    const { quest, beast } = buildWizardQuest(draft, kidCtx);
+    expect(quest.achievementName).toBe("Juggle Flaming Torches");
+    expect(quest.adventureType).toBe("beast");
+    expect(beast?.name).toBe("Mess Hog");
+    expect(beast?.checklist).toEqual([]);
+    expect(quest.beastId).toBe(beast?.id);
+  });
+
+  it("refuses a quest with no name", () => {
+    expect(() => buildWizardQuest(newDraft({ isGm: false, heroId: "kid-1", today: TODAY }), kidCtx)).toThrow(/name/);
+  });
+});
+
+describe("how a hero's quest is protected", () => {
+  it("is for that hero alone, whoever the draft says", () => {
+    const draft = picked("bed-basilisk", { heroIds: ["kid-2", "gm-1"] });
+    expect(buildWizardQuest(draft, kidCtx).quest.assignee).toEqual(["kid-1"]);
+  });
+
+  it("is never bigger than Big, whatever the draft says", () => {
+    const { quest } = buildWizardQuest(picked("bed-basilisk", { difficulty: 13 }), kidCtx);
+    expect(quest).toMatchObject({ difficulty: 5, xp: 500, gp: 50, ap: 5 });
+  });
+
+  it("always needs the Game Master's approval, whatever the draft says", () => {
+    const { quest } = buildWizardQuest(picked("bed-basilisk", { requiresApproval: false }), kidCtx);
+    expect(quest.requiresApproval).toBe(true);
+  });
+
+  it("records the hero who made it", () => {
+    expect(buildWizardQuest(picked("bed-basilisk"), kidCtx).quest.createdBy).toBe("kid-1");
+  });
+});
+
+describe("what a Game Master may do", () => {
+  it("picks any heroes, any size and whether the quest needs approval", () => {
+    const draft = toggleHero(picked("bed-basilisk", { difficulty: 13, heroIds: ["kid-1"] }, true), "kid-2");
+    const { quest } = buildWizardQuest(draft, gmCtx);
+    expect(quest).toMatchObject({ assignee: ["kid-1", "kid-2"], difficulty: 13, xp: 1300, requiresApproval: false, createdBy: "gm-1" });
+    expect(buildWizardQuest({ ...draft, requiresApproval: true }, gmCtx).quest.requiresApproval).toBe(true);
+  });
+
+  it("falls back to themself when no hero is ticked", () => {
+    const draft = picked("bed-basilisk", { heroIds: [] }, true);
+    expect(buildWizardQuest(draft, gmCtx).quest.assignee).toEqual(["gm-1"]);
+  });
+});
+
+describe("the Hero Quests category", () => {
+  it("is created once, then reused", () => {
+    expect(wizardCategory([{ id: "cat-chamber" }])).toEqual({ id: "cat-hero-quests", create: HERO_QUESTS_CATEGORY });
+    expect(wizardCategory([{ id: "cat-hero-quests" }])).toEqual({ id: "cat-hero-quests", create: null });
+  });
+});
+
+describe("saving", () => {
+  const stores = (over: { categories?: unknown[]; beasts?: unknown[] } = {}) => {
+    const calls: string[] = [];
+    return {
+      calls,
+      stores: {
+        categoryDb: {
+          getAll: jest.fn(async () => over.categories ?? [undefined]),
+          setCategory: jest.fn(async (category: { id: string }) => void calls.push(`category:${category.id}`)),
+        },
+        bestiaryDb: {
+          getBeasts: jest.fn(async () => over.beasts ?? []),
+          setBeast: jest.fn(async (beast: { id: string }) => void calls.push(`beast:${beast.id}`)),
+        },
+        achievementDb: { setTask: jest.fn(async (quest: { id: string }) => void calls.push(`quest:${quest.id}`)) },
+      },
+    };
+  };
+
+  it("writes the category, then the beast, then the quest", async () => {
+    const { calls, stores: fake } = stores();
+    const quest = await saveWizardQuest(picked("bed-basilisk"), { isGm: false, creatorId: "kid-1", questId: "q1", today: TODAY }, fake as never);
+    expect(calls).toEqual(["category:cat-hero-quests", "beast:beast-bed-basilisk", "quest:q1"]);
+    expect(quest.categoryId).toBe("cat-hero-quests");
+  });
+
+  it("adds neither a category nor a beast the family already has", async () => {
+    const { calls, stores: fake } = stores({ categories: [{ id: "cat-hero-quests" }], beasts: [{ id: "beast-bed-basilisk" }] });
+    await saveWizardQuest(picked("bed-basilisk"), { isGm: false, creatorId: "kid-1", questId: "q2", today: TODAY }, fake as never);
+    expect(calls).toEqual(["quest:q2"]);
+  });
+
+  it("writes nothing for a quest with no name", async () => {
+    const { calls, stores: fake } = stores();
+    const blank = newDraft({ isGm: false, heroId: "kid-1", today: TODAY });
+    await expect(saveWizardQuest(blank, { isGm: false, creatorId: "kid-1" }, fake as never)).rejects.toThrow(/name/);
+    expect(calls).toEqual([]);
+  });
+});

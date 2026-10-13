@@ -1,3 +1,7 @@
+// The hero's Quest Log app (Beast Log, purple): rows of the phone apps kit, the Board grouped by due window and the List flat.
+// Colours, frames and fonts come from the kit tokens (`.xp-app--retro` / `.xp-app--modern`, _xp-app.scss).
+
+// The page loader wears the app's green
 :root{
   --color-light: #017b32d2;
   --color-medium: #31b666e3;
@@ -8,279 +12,82 @@
 }
 
 .my-quests {
-  ion-card {
-    &.item {
-      margin: 1em;
-      // 100% view height - header - footer toolbar - padding / 2 
-      // height: calc((100vh - 120px - 110px - 5em) / 2);
-      border-radius: 0 0 65px 65px;
-      box-shadow: 
-      rgb(0 0 0 / 20%) 0px 3px 1px -2px,
-      rgb(0 0 0 / 14%) 0px 2px 2px 0px,
-      rgb(0 0 0 / 12%) 0px 1px 5px 0px;
-
-      ion-img {
-        margin: .5em auto;
-        object-fit: fill;
-        // transform: scale(1.15);
-        img {
-          margin: 1em auto;
-          object-fit: fill;
-          max-width: 95%;
-        }
-      }
-    }
-  }
+  --quest-late: #ff6b5e;
+  --quest-pending: #f2c14e;
 }
 
-// Quest cards: reward badges plus the "Tamed" / "Pending" states for quests already claimed
-ion-card.item {
-  .quest-rewards {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 4px;
-
-    ion-badge {
-      margin: 4px 0;
-    }
+.my-tasks {
+  // The List's Add task button floats over the last rows: leave room under them
+  &.view-list::part(scroll) {
+    padding-bottom: 88px;
   }
 
-  .tamed-ribbon,
-  .pending-ribbon {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 4px;
-    padding: 2px 0;
-    font-size: 0.75rem;
-    font-weight: bold;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+  .quest-sections {
+    padding: 4px 0;
   }
 
-  .tamed-ribbon {
-    background: var(--ion-color-success);
-    color: var(--ion-color-success-contrast);
-  }
-
-  // Claimed, but the Game Master has not approved it yet
-  .pending-ribbon {
-    background: var(--ion-color-warning);
-    color: var(--ion-color-warning-contrast);
-  }
-
-  &.is-tamed > :not(.tamed-ribbon),
-  &.is-pending > :not(.pending-ribbon) {
-    opacity: 0.55;
-  }
-}
-
-.total-pages{
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-
-}
-
-ion-modal{
-  ion-content{
-    // height: calc( 100vh - 44px - 80px )
-  }
-
-  ion-img{
-    // height: 35vh;
-  }
-}
-// The view switch in the header: Board | List, with the count of what still needs doing
-.view-toolbar {
-  ion-segment-button {
-    position: relative;
-    font-family: "StatusPlz", monospace;
-    letter-spacing: 0.04em;
-
-    i {
-      margin-right: 0.4em;
+  // The kit rows are children of this page's sections: their own markup is reached through :deep.
+  .quest-log-row {
+    // A long quest name wraps onto a second line instead of losing its end behind the Done button
+    :deep(.xp-app-row__title) {
+      display: -webkit-box;
+      overflow: hidden;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      white-space: normal;
     }
 
-    .tab-count {
-      position: absolute;
-      top: 2px;
-      right: 4px;
-      font-size: 0.6rem;
-      padding: 2px 5px;
-      border-radius: 0;
+    // Late: the due time and the tile turn red; the Overdue section label says it too
+    &.is-overdue :deep(.xp-app-row__subtitle) {
+      color: var(--quest-late);
     }
-  }
-}
 
-// The List view: one boxed RPG row per quest, in the style of My Goods
-.my-tasks.view-list {
-  --padding-top: 0.5rem;
-  --padding-bottom: 5rem; // room for the Add task button
-}
+    &.is-overdue :deep(.xp-app-row__tile) {
+      --fa-primary-color: var(--quest-late);
+      --fa-secondary-color: var(--quest-late);
 
-.quest-list {
-  background: transparent;
-  padding: 0 0.5rem;
-}
-
-.quest-row {
-  --background: rgba(var(--ion-color-rpg-contrast-rgb), 0.85);
-  --color: var(--ion-color-rpg);
-  --padding-start: 0.75rem;
-  --inner-padding-end: 0.75rem;
-  --min-height: 3.5rem;
-  margin-bottom: 0.5rem;
-  border: 3px solid var(--ion-color-rpg);
-  border-radius: 0;
-  box-shadow: inset 0 0 0 2px var(--ion-color-rpg-contrast), 4px 4px 0 rgba(0, 0, 0, 0.5);
-
-  .quest-row-icon {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 2.5rem;
-    height: 2.5rem;
-    margin-right: 0.75rem;
-    border: 2px solid var(--ion-color-rpg);
-    background: rgba(var(--ion-color-rpg-rgb), 0.08);
-  }
-
-  .quest-row-name {
-    font-family: "StatusPlz", monospace;
-    font-size: 1rem;
-    letter-spacing: 0.02em;
-    margin: 0;
-    white-space: normal;
-  }
-
-  // Assignee (avatar and nick), due time, and the approval shield
-  .quest-row-meta {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 0.35rem;
-    margin: 0.2rem 0 0;
-    font-size: 0.8rem;
-    opacity: 0.9;
-    white-space: normal;
-
-    ion-icon {
-      vertical-align: middle;
+      color: var(--quest-late);
     }
-  }
 
-  .quest-row-avatar {
-    width: 1.25rem;
-    height: 1.25rem;
-    object-fit: cover;
-    border: 1px solid var(--ion-color-rpg);
-    background: rgba(var(--ion-color-rpg-rgb), 0.15);
-  }
-
-  .quest-row-who {
-    font-weight: bold;
-  }
-
-  .quest-row-due {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.2rem;
-  }
-
-  .quest-row-approval {
-    color: var(--ion-color-warning);
-  }
-
-  .quest-row-rewards,
-  .quest-row-state {
-    margin: 0.15rem 0 0;
-    font-size: 0.75rem;
-    opacity: 0.8;
-    white-space: normal;
-
-    span + span::before {
-      content: " · ";
-    }
-  }
-
-  .quest-row-state {
-    color: var(--ion-color-warning);
-    font-weight: bold;
-    opacity: 1;
-  }
-
-  .quest-row-done {
-    --border-radius: 0;
-    font-family: "StatusPlz", monospace;
-    margin: 0;
-  }
-
-  .quest-row-status {
-    font-family: "StatusPlz", monospace;
-    font-size: 0.75rem;
-    padding: 0.3rem 0.5rem;
-    border-radius: 0;
-    border: 2px solid var(--ion-color-rpg);
-  }
-
-  &[data-status="overdue"] {
-    border-color: var(--ion-color-danger);
-
-    .quest-row-icon,
-    .quest-row-due {
-      color: var(--ion-color-danger);
-    }
-  }
-
-  &[data-status="open"] .quest-row-icon { color: var(--ion-color-success); }
-  &[data-status="later"] .quest-row-icon { color: var(--ion-color-tertiary); }
-  &[data-status="pending"] .quest-row-icon { color: var(--ion-color-warning); }
-
-  &[data-status="done"] {
-    .quest-row-icon { color: var(--ion-color-medium); }
-
-    .quest-row-name,
-    .quest-row-meta,
-    .quest-row-rewards {
+    // Used up (waiting on the Game Master, or tamed): the row steps back, its state stays readable
+    &.is-tamed :deep(.xp-app-row__tile),
+    &.is-tamed :deep(.xp-app-row__body),
+    &.is-pending :deep(.xp-app-row__tile),
+    &.is-pending :deep(.xp-app-row__body) {
       opacity: 0.55;
     }
 
-    .quest-row-name {
+    &.is-tamed :deep(.xp-app-row__title) {
       text-decoration: line-through;
     }
   }
-}
 
-.quest-list-empty {
-  margin: 3rem 1.5rem;
-  padding: 1.5rem 1rem;
-  text-align: center;
-  border: 3px solid var(--ion-color-rpg);
-  background: rgba(var(--ion-color-rpg-contrast-rgb), 0.85);
-  color: var(--ion-color-rpg);
-  box-shadow: inset 0 0 0 2px var(--ion-color-rpg-contrast), 4px 4px 0 rgba(0, 0, 0, 0.5);
-
-  i {
-    opacity: 0.6;
+  .quest-section--overdue :deep(.xp-app-section__label) {
+    color: var(--quest-late);
   }
 
-  p {
-    font-family: "StatusPlz", monospace;
-    margin: 1rem 0 0;
-    line-height: 1.5;
+  // The word at the end of a row that cannot be finished from here
+  .quest-state {
+    font-family: var(--xp-app-font-title);
+    font-size: 0.72rem;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+
+    &.tamed-ribbon {
+      color: var(--xp-app-accent);
+    }
+
+    &.pending-ribbon {
+      color: var(--quest-pending);
+    }
+  }
+
+  .quest-done-btn {
+    min-width: 76px;
   }
 }
 
+// Search sits above the dock (thumb reach); the dock itself switches Board and List and stays as it is
 .quests-footer {
   background: transparent;
-
-  .quests-subtoolbar {
-    --min-height: 38px;
-    padding: 0 4px;
-    font-size: 0.8rem;
-    font-family: "StatusPlz", monospace;
-  }
 }

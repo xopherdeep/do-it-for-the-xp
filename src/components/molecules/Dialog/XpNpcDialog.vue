@@ -92,7 +92,8 @@ const advance = () => {
 </script>
 
 <style lang="scss" scoped>
-// Same box as the Gold Bank's: the theme draws the frame, the name line and the text
+@use "@/styles/themes/earthbound.scss" as *;
+
 .npc-dialog-overlay {
   position: fixed;
   top: 0;
@@ -102,27 +103,39 @@ const advance = () => {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  padding: 1rem;
+  padding: 1rem 1rem max(1rem, env(safe-area-inset-bottom));
+  background: rgba(10, 2, 10, 0.45);
+  backdrop-filter: blur(2px);
   z-index: 100000;
+  cursor: pointer;
 }
 
 .npc-dialog-box {
   width: 100%;
-  max-width: 600px;
+  max-width: 520px;
+  margin: 0;
+  border-radius: 4px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
 
   .dialog-header {
     display: flex;
     align-items: center;
+    padding: 8px 14px;
+    font-family: $eb-font-status;
+    font-size: 1.05rem;
+    color: #ffd84a;
+    border-bottom: 1px solid rgba(231, 230, 179, 0.22);
+    margin: 0;
   }
 
   .dialog-content {
-    padding: 1rem;
-    min-height: 80px;
+    padding: 10px 14px 12px;
+    min-height: 48px;
   }
 }
 
 .npc-text {
-  font-size: 1.1rem;
-  line-height: 1.5;
+  font-size: 1.05rem;
+  line-height: 1.45;
 }
 </style>

@@ -1,25 +1,24 @@
 import { defineComponent } from 'vue';
 import { useUserStore } from '@/lib/store/stores/user';
+import { useCopy } from '@/hooks/useVoice';
 import ionic from '@/lib/mixins/ionic';
 
 // Only import the icons that are actually used
 import {
-  addCircleOutline,
-  removeCircleOutline, // Added missing icon
   close,
-  arrowBack,
-  chevronBack,
-  chevronForward,
   restaurantOutline,
-  fastFoodOutline, // Added missing icon
+  fastFoodOutline,
   heartOutline,
   pizzaOutline,
   iceCreamOutline,
   cartOutline,
+  storefrontOutline,
 } from 'ionicons/icons';
 import { actionSheetController } from '@ionic/vue';
 import XpAppBottomNav from "@/components/organisms/BottomNav/XpAppBottomNav.vue";
 import type { AppNavTab } from "@/components/organisms/BottomNav/appBottomNav";
+import { appSheet, useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
+import { FOOD_OPTIONS } from "@/constants/FOOD_OPTIONS";
 
 const FOOD_TABS: AppNavTab[] = [
   { id: "all", label: "All", ionIcon: restaurantOutline },
@@ -30,15 +29,34 @@ const FOOD_TABS: AppNavTab[] = [
   { id: "ingredient", label: "Pantry", ionIcon: cartOutline },
 ];
 
+type FoodCategory = 'meal' | 'snack' | 'dessert' | 'ingredient';
+
 // Mock Data Interface
 interface FoodItem {
   id: string;
   name: string;
   description: string;
   imageUrl: string;
-  category: 'meal' | 'snack' | 'dessert' | 'ingredient';
+  category: FoodCategory;
   // Optional: ingredients, recipe steps, cooking time etc.
 }
+
+interface FoodSection {
+  id: FoodCategory;
+  label: string;
+  foods: FoodItem[];
+}
+
+// The kitchen lists its foods in these groups, in this order
+const FOOD_GROUPS: { id: FoodCategory; label: string; tag: string; icon: string }[] = [
+  { id: 'meal', label: 'Meals', tag: 'Meal', icon: 'utensils' },
+  { id: 'snack', label: 'Snacks', tag: 'Snack', icon: 'cookie' },
+  { id: 'dessert', label: 'Desserts', tag: 'Dessert', icon: 'ice-cream' },
+  { id: 'ingredient', label: 'Pantry', tag: 'Pantry', icon: 'carrot' },
+];
+
+// "Cookies" and "Cookie" are the same sprite: match the profile's food list on the singular name
+const singular = (name: string): string => name.trim().toLowerCase().replace(/s$/, '');
 
 export default defineComponent({
   props: ['userId'],
@@ -105,84 +123,82 @@ export default defineComponent({
     foodTabs(): AppNavTab[] {
       return FOOD_TABS;
     },
+    // The route params that keep the kitchen's links with this hero (the page may be opened without an id)
+    heroParams(): { userId?: string } {
+      const id = String(this.userId || this.userStore.currentUser?.id || '');
+      return id ? { userId: id } : {};
+    },
+    // The filtered foods, grouped by kind of food (only the groups that hold something)
+    foodSections(): FoodSection[] {
+      return FOOD_GROUPS
+        .map(({ id, label }) => ({ id, label, foods: this.filteredFoods.filter(food => food.category === id) }))
+        .filter(section => section.foods.length > 0);
+    },
+    foodsMeta(): string {
+      const count = this.filteredFoods.length;
+      return `${count} ${count === 1 ? 'item' : 'items'}`;
+    },
+    emptyText(): string {
+      if (this.selectedCategory === 'favorites' && !this.userFavoriteFood) {
+        return this.t('kitchen.empty.noFavorite');
+      }
+      return this.t('kitchen.empty.none');
+    },
   },
   methods: {
-    selectCategory($event: CustomEvent) {
-      this.selectedCategory = $event.detail.value;
-    },
+    // The kitchen's FAB (the same button the town's buildings use): every option leads somewhere real
     async presentActionSheet() {
-      // Example action sheet for food items
       const actionSheet = await actionSheetController.create({
+        ...appSheet("kitchen"),
         header: 'Kitchen Actions',
-        cssClass: 'my-custom-class', // Optional custom styling
+        subHeader: this.t('kitchen.menu.sub'),
         buttons: [
           {
-            text: 'Cook Something',
-            icon: restaurantOutline, // Use a relevant icon
-            handler: () => {
-              // Implement cooking logic
-            },
+            text: 'Feast Decree',
+            icon: restaurantOutline,
+            handler: () => this.openFeastDecree(),
           },
           {
-            text: 'Add New Recipe',
-            icon: addCircleOutline,
-            handler: () => {
-              // Implement recipe addition logic
-            },
-          },
-          {
-            text: 'View Grocery List',
-            icon: cartOutline,
-            handler: () => {
-              // Implement grocery list navigation
-            },
+            text: 'Buy a Treat at the Market',
+            icon: storefrontOutline,
+            handler: () => this.openMarket(),
           },
           {
             text: 'Cancel',
             icon: close,
             role: 'cancel',
-            handler: () => {
-              // Just close the action sheet
-            },
           },
         ],
       });
       await actionSheet.present();
     },
-    // Helper to get image source, handling potential missing images
-    getFoodImageUrl(imageUrl: string): string {
-      // Basic check, replace with actual placeholder logic if needed
-      return imageUrl || '/assets/placeholder-food.png';
-    }
-  },
-  mounted() {
-    // Optional: Play a sound effect when entering the kitchen
-    // this.$fx.ui[this.$fx.theme.ui].openPage.play() // Example sound
+    // Feast Decree ("Choose what the family cooks for dinner one night") is a real-life Power: it is cast on the Powers page
+    openFeastDecree() {
+      this.$router.push({ name: 'my-abilities', params: this.heroParams });
+    },
+    // The hometown Market stocks the real-life treats (Frost Treat and the rest of the reward catalogue), bought with GP
+    openMarket() {
+      this.$router.push({ name: 'shop', params: this.heroParams });
+    },
+    // The row's sprite: the Font Awesome icon the profile's food picker uses for it, else one for its kind of food
+    foodIcon(food: FoodItem): string {
+      const match = FOOD_OPTIONS.find(option => singular(option.value) === singular(food.name));
+      return match?.icon ?? FOOD_GROUPS.find(group => group.id === food.category)?.icon ?? 'utensils';
+    },
+    categoryLabel(category: FoodCategory): string {
+      return FOOD_GROUPS.find(group => group.id === category)?.tag ?? category;
+    },
+    // True for the food the hero named as their favourite in their profile
+    isFavorite(food: FoodItem): boolean {
+      const favorite = this.userFavoriteFood;
+      return !!favorite && food.name.toLowerCase() === favorite.toLowerCase();
+    },
   },
   setup() {
-    const customAlertOptions = {
-      header: 'Food Categories',
-      subHeader: 'Select which foods to view',
-      message: 'Filter by category or view all.',
-      translucent: true,
-    };
+    // The phone-app skin follows the Retro / Modern toggle of the profile
+    const { rootClass, rootStyle } = useAppSkin('kitchen');
+    const t = useCopy();
 
-    // Return icons needed in the template
-    return {
-      customAlertOptions,
-      chevronBack, // Keep if used elsewhere, maybe not needed now
-      chevronForward, // Keep if used elsewhere, maybe not needed now
-      arrowBack,
-      addCircleOutline,
-      removeCircleOutline, // Keep if used elsewhere, maybe not needed now
-      close,
-      fastFoodOutline, // Icon for the FAB
-      restaurantOutline,
-      heartOutline,
-      pizzaOutline,
-      iceCreamOutline,
-      cartOutline,
-      // Add any other icons used directly in the template here
-    };
+    return { rootClass, rootStyle, t };
   },
 });

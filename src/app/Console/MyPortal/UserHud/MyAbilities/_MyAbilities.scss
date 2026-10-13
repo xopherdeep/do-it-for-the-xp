@@ -1,167 +1,77 @@
-@use "@/styles/themes/earthbound.scss" as *;
+// The hero's Powers app (Spells, blue like MP): rows of the phone apps kit, Privileges first and then Spells.
+// Colours, frames and fonts come from the kit tokens (`.xp-app--retro` / `.xp-app--modern`, _xp-app.scss).
 
-// The hero's Powers: one boxed card per Power, Privileges first and then Spells
 .my-abilities {
+  // ion-content sets its own font on everything inside: the skin's body font (StatusPlz in Retro) takes it back
+  font-family: var(--xp-app-font-body);
+
   .powers-list {
-    display: flex;
-    flex-direction: column;
     padding: 4px 0;
   }
 
-  .powers-empty {
-    @include eb-box();
-    margin: 20px;
-    padding: 20px;
-    text-align: center;
-    font-family: $eb-font-status, sans-serif;
-    line-height: 1.5;
+  // The kit rows are children of this page's sections: their own markup is reached through :deep.
+  .power-row {
+    // A tapped row opens in place: the one-line description wraps
+    &.is-open :deep(.xp-app-row__subtitle) {
+      overflow: visible;
+      text-overflow: clip;
+      white-space: normal;
+    }
 
-    p {
-      margin: 0;
+    // A Power that is still locked sits a little dimmer than one that can be cast; the AP meter stays readable
+    &.is-locked :deep(.xp-app-row__tile),
+    &.is-locked :deep(.xp-app-row__title) {
+      opacity: 0.6;
     }
   }
 
-  // The card is a child component: its own markup is reached through :deep.
-  // The ring shadow of an eb-box reaches 16px outside it, hence the 20px margin.
-  :deep(.power-card) {
-    @include eb-box();
+  // The AP meter: a thin bar right under the description, with what it reads on one small line below
+  .power-ap {
+    flex: 1 0 100%;
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    margin: 20px;
-    padding: 14px;
-    font-family: $eb-font-status, sans-serif;
+    gap: 3px;
+    margin-bottom: 2px;
+  }
 
-    .power-head {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
+  .power-meter {
+    height: 4px;
+    overflow: hidden;
+    background: var(--xp-app-line);
+    border-radius: var(--xp-app-radius-chip);
+  }
 
-    .power-icon {
-      flex: 0 0 auto;
-      width: 2.4rem;
-      font-size: 2rem;
-      text-align: center;
-      color: $eb-color-pale-yellow;
-    }
+  .power-meter-fill {
+    height: 100%;
+    background: var(--xp-color-ap, #7fd0f0);
+    border-radius: inherit;
+    transition: width 0.3s steps(8);
+  }
 
-    .power-title {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 6px;
-      min-width: 0;
-    }
+  .power-ap-text {
+    color: var(--xp-color-ap, #7fd0f0);
+    font-family: var(--xp-app-font-title);
+    font-size: 0.68rem;
+    letter-spacing: 0.3px;
+    line-height: 1.2;
+    text-transform: var(--xp-app-title-transform);
+  }
 
-    .power-name {
-      margin: 0;
-      font-size: 1.1rem;
-      line-height: 1.2;
-      color: $eb-color-pale-yellow;
-      overflow-wrap: anywhere;
-    }
+  // Why the Power cannot be cast right now (Need 5 MP, Cooling, a Hospital bill ...)
+  .power-state {
+    flex: 1 0 100%;
+    margin: 2px 0 0;
+    color: var(--xp-app-text-dim);
+    font-size: 0.72rem;
+    line-height: 1.25;
+  }
 
-    .power-chip {
-      padding: 2px 8px;
-      font-size: 0.7rem;
-      letter-spacing: 0.05em;
-      text-transform: uppercase;
-      color: $eb-color-dark-purple;
-      background: $eb-color-minty-blue;
-    }
-
-    &.type-in-game .power-chip {
-      background: $eb-color-sky-blue;
-    }
-
-    .power-desc {
-      margin: 0;
-      font-size: 0.9rem;
-      line-height: 1.4;
-      color: $eb-color-cream;
-    }
-
-    .power-ap-line {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 8px;
-      font-size: 0.85rem;
-    }
-
-    .power-need,
-    .power-ap-text {
-      color: var(--xp-color-ap);
-    }
-
-    .power-ap-text {
-      white-space: nowrap;
-    }
-
-    .power-meter {
-      height: 10px;
-      margin-top: 4px;
-      background: $eb-color-medium-purple;
-      border: 2px solid $eb-color-slate;
-    }
-
-    .power-meter-fill {
-      height: 100%;
-      background: var(--xp-color-ap);
-      transition: width 0.3s steps(8);
-    }
-
-    .power-cost {
-      margin: 0;
-      font-size: 0.85rem;
-      color: var(--xp-color-mp);
-    }
-
-    .power-foot {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .power-state {
-      margin: 0;
-      font-size: 0.85rem;
-      color: $eb-color-cream;
-    }
-
-    .cast-btn {
-      margin-left: auto;
-      min-width: 96px;
-      min-height: 48px;
-      padding: 0 20px;
-      border: 0;
-      font-family: $eb-font-status, sans-serif;
-      font-size: 1rem;
-      color: var(--ion-color-rpg-contrast);
-      background: var(--ion-color-rpg);
-      box-shadow: 0 0 0 3px $eb-color-slate;
-
-      &:active:not(:disabled) {
-        background: var(--ion-color-rpg-tint);
-      }
-
-      &:disabled {
-        opacity: 0.4;
-      }
-    }
-
-    // A Power that cannot be cast yet sits a little dimmer than one that can
-    &.status-locked {
-      .power-icon,
-      .power-name {
-        opacity: 0.7;
-      }
-    }
+  .cast-btn {
+    min-width: 64px;
   }
 }
 
+// Search sits above the dock (thumb reach); the dock itself is the filter and stays as it is
 .abilities-footer {
   background: transparent;
 }

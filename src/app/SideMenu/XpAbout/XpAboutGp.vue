@@ -15,7 +15,7 @@
       <div class="gp-theme-background h-full flex items-center justify-center">
         <i class="fad fa-hand-holding-usd fa-10x"></i>
         <!-- FAB button to trigger the dialog -->
-        <ion-fab vertical="bottom" horizontal="center" slot="fixed">
+        <ion-fab v-show="!isDialogVisible" vertical="bottom" horizontal="center" slot="fixed">
           <ion-fab-button color="warning" @click="showGpDialog">
             <i class="fad fa-hand-holding-usd fa-lg"></i>
           </ion-fab-button>
@@ -46,9 +46,6 @@
             class="gp-text"
             :has-more-text="hasMoreDialog"
           />
-        </div>
-        <div v-if="hasMoreDialog" class="dialog-indicator">
-          <i class="fad fa-chevron-down blink"></i>
         </div>
       </ion-card>
     </div>

@@ -5,7 +5,8 @@ import {
   resolveBattleContext,
   templeBattleRoute,
 } from "@/app/Console/BattleField/battle/battleContext";
-import { formulaRewards, resolveRewards, sumRewards } from "@/app/Console/BattleField/battle/battleRewards";
+import { formulaRewards, huntBonusXpFor, resolveRewards, sumRewards } from "@/app/Console/BattleField/battle/battleRewards";
+import { HUNT_BONUS_XP } from "@/app/Console/MyPortal/UserHud/MyQuests/beastCard";
 import type { Enemy } from "@/lib/services/battle/BattleService";
 
 const route = (overrides: Record<string, unknown>) =>
@@ -129,5 +130,48 @@ describe("battleRewards", () => {
       ap: 2,
     });
     expect(sumRewards([])).toEqual({ xp: 0, gp: 0, ap: 0 });
+  });
+
+  describe("the hunt bonus", () => {
+    const quest = (overrides: Record<string, unknown> = {}) => ({ id: "q-socks", requiresApproval: false, ...overrides }) as never;
+    const questFight = (rewards: { xp: number; gp: number; ap: number } | null, overrides: Record<string, unknown> = {}) =>
+      ({ enemies: [], rewards, quest: quest(overrides), label: "x" }) as never;
+
+    it("pays the shared bonus on the XP of a quest won by fighting it, and only on the XP", () => {
+      const authored = { xp: 120, gp: 30, ap: 2 };
+      expect(HUNT_BONUS_XP).toBe(0.25);
+      expect(resolveRewards(questFight(authored), [enemy()], "quest")).toEqual({ xp: 150, gp: 30, ap: 2 });
+      expect(huntBonusXpFor(questFight(authored), [enemy()], "quest")).toBe(30);
+    });
+
+    it("rounds to whole XP", () => {
+      expect(resolveRewards(questFight({ xp: 10, gp: 0, ap: 0 }), [enemy()], "quest").xp).toBe(13);
+      expect(resolveRewards(questFight({ xp: 1, gp: 0, ap: 0 }), [enemy()], "quest").xp).toBe(1);
+    });
+
+    it("applies to a temple quest room too, on the quest's own rewards", () => {
+      expect(resolveRewards(questFight({ xp: 200, gp: 20, ap: 2 }), [enemy()], "temple")).toEqual({ xp: 250, gp: 20, ap: 2 });
+    });
+
+    it("adds it to the formula when a quest fight has no authored rewards", () => {
+      expect(resolveRewards(questFight(null), [enemy()], "quest")).toEqual({ xp: 63, gp: 25, ap: 1 });
+    });
+
+    it("pays no bonus for a free fight or a fight with no quest behind it", () => {
+      const authored = { xp: 120, gp: 30, ap: 2 };
+      expect(resolveRewards({ enemies: [], rewards: null, quest: quest(), label: "x" } as never, [enemy()], "free")).toEqual({ xp: 0, gp: 0, ap: 1 });
+      expect(resolveRewards({ enemies: [], rewards: authored, label: "x" }, [enemy()], "quest")).toEqual(authored);
+      expect(huntBonusXpFor(null, [enemy()], "quest")).toBe(0);
+    });
+
+    it("counts a quest the Game Master approves too: the held card shows it and the approval pays it", () => {
+      const authored = { xp: 120, gp: 30, ap: 2 };
+      expect(resolveRewards(questFight(authored, { requiresApproval: true }), [enemy()], "quest")).toEqual({ xp: 150, gp: 30, ap: 2 });
+      expect(huntBonusXpFor(questFight(authored, { requiresApproval: true }), [enemy()], "quest")).toBe(30);
+    });
+
+    it("pays no bonus on a quest that pays no XP", () => {
+      expect(huntBonusXpFor(questFight({ xp: 0, gp: 5, ap: 1 }), [enemy()], "quest")).toBe(0);
+    });
   });
 });

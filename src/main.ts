@@ -18,6 +18,11 @@ import XpStageModel from './components/organisms/StageModel/XpStageModel.vue'
 import XpTravelingMerchant from './components/organisms/TravelingMerchant/XpTravelingMerchant.vue'
 import XpDraggableSpot from './components/organisms/DraggableSpot/XpDraggableSpot.vue'
 import XpAppBottomNav from './components/organisms/BottomNav/XpAppBottomNav.vue'
+import XpAppHeader from './components/organisms/XpApp/XpAppHeader.vue'
+import XpAppSection from './components/organisms/XpApp/XpAppSection.vue'
+import XpAppRow from './components/organisms/XpApp/XpAppRow.vue'
+import XpAppChip from './components/organisms/XpApp/XpAppChip.vue'
+import XpAppEmpty from './components/organisms/XpApp/XpAppEmpty.vue'
 
 import 'vue-virtual-scroller/dist/vue-virtual-scroller.css';
 import VueVirtualScroller from 'vue-virtual-scroller';
@@ -33,6 +38,9 @@ import { AudioEnginePlugin } from './lib/engine/audio/plugin';
 
 // GP System
 import { GPService } from './lib/services/gp';
+
+// Analytics
+import { startAnalytics } from './lib/services/analytics/analytics';
 
 // Ability System
 import { AbilityService } from '@/lib/services/abilities';
@@ -95,6 +103,11 @@ function readyRouterMountApp() {
     .component('xp-traveling-merchant', XpTravelingMerchant)
     .component('xp-draggable-spot', XpDraggableSpot)
     .component('xp-app-bottom-nav', XpAppBottomNav)
+    .component('xp-app-header', XpAppHeader)
+    .component('xp-app-section', XpAppSection)
+    .component('xp-app-row', XpAppRow)
+    .component('xp-app-chip', XpAppChip)
+    .component('xp-app-empty', XpAppEmpty)
     // .component('RecycleScroller', RecycleScroller)
     .use(VueVirtualScroller)
     .use(Countdown)
@@ -115,6 +128,9 @@ function readyRouterMountApp() {
   router.afterEach((to) => {
     document.title = (to.meta?.title as string) || TITLE;
   });
+
+  // Google Analytics (G-5KV3PXQGH6), production builds only
+  startAnalytics(router);
 
   // Initialize the GPSystem// Initialize Services
   GPService.initialize();

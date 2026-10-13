@@ -7,7 +7,7 @@
     @click="onTap"
   >
     <!-- One tap finishes the line, the next moves on: the box owns the tap, the typing atom does not -->
-    <div class="dialog-content" v-if="text || accumulatedLines.length" aria-live="polite">
+    <div ref="content" class="dialog-content" v-if="text || accumulatedLines.length" aria-live="polite">
       <!-- Earthbound-style stacked lines (level ups) -->
       <div v-if="isAppendMode && accumulatedLines.length" class="accumulated-lines">
         <div v-for="(line, index) in accumulatedLines" :key="index" class="accumulated-line">{{ line }}</div>
@@ -31,7 +31,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from "vue";
+import { onBeforeUnmount, ref, watch } from "vue";
 import XpTypingText from "@/components/atoms/TypingText/XpTypingText.vue";
 import XpRpgMenu from "@/components/molecules/RpgMenu/XpRpgMenu.vue";
 import type { BattleMenuAction } from "../battle/battleMenu";
@@ -57,6 +57,25 @@ const emit = defineEmits<{
 }>();
 
 const typing = ref<{ completeTyping?: () => void } | null>(null);
+const content = ref<HTMLElement | null>(null);
+
+/** Level-up lines and typed text grow downward; keep the newest line in view. */
+const scrollToBottom = () => {
+  const box = content.value;
+  if (box) box.scrollTop = box.scrollHeight;
+};
+
+const growthObserver = typeof MutationObserver === "undefined" ? null : new MutationObserver(scrollToBottom);
+const watchGrowth = (box: HTMLElement | null) => {
+  growthObserver?.disconnect();
+  if (!box) return;
+  growthObserver?.observe(box, { childList: true, subtree: true, characterData: true });
+  scrollToBottom();
+};
+
+watch(content, watchGrowth);
+watch(() => [props.text, props.accumulatedLines.length], scrollToBottom, { flush: "post" });
+onBeforeUnmount(() => growthObserver?.disconnect());
 
 /** Taps advance the text; menu taps bubble up here too, and must not count as a dismiss. */
 const onTap = () => {

@@ -153,7 +153,7 @@ describe("Grudge marks", () => {
       cy.get("[data-cy=task-confirm]").click();
       if (index < 2) {
         const left = 2 - index;
-        cy.get(".chores-left-label", { timeout: 5000 }).should("have.text", `${left} ${left === 1 ? "chore" : "chores"} left`);
+        cy.get(".chores-left-label", { timeout: 5000 }).should("have.text", `${left} ${left === 1 ? "task" : "tasks"} left`);
         readUntilMenu();
       }
     });

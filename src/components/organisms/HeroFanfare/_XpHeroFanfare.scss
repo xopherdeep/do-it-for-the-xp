@@ -113,13 +113,13 @@ $hf-ink: $reveal-ink;
 }
 
 .hero-fanfare__rays {
-  @include reveal-rays(640px);
+  @include reveal-rays(800px);
   left: 50%;
   top: 50%;
 }
 
 .hero-fanfare__flash {
-  @include reveal-flash(110px);
+  @include reveal-flash(160px);
   z-index: 4;
   left: 50%;
   top: 50%;

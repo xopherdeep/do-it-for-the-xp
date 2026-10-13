@@ -2,9 +2,10 @@
  * What the quest packs (Moving House, Home chores) share: how a hero plays, local dates, the Fibonacci rewards, the
  * strike clock and the backup file a pack is loaded from. Pure: no storage, no Vue.
  */
-import { format, startOfDay } from "date-fns";
+import { format } from "date-fns";
 import type { Beast } from "@/lib/databases/BestiaryDb";
 import { BACKUP_VERSION } from "@/lib/services/core/BackupService";
+import { heroAgeOf, parseLocalDate } from "./heroAge";
 import type { BackupEntry, BackupFile } from "@/lib/services/core/BackupService";
 
 /** How a hero plays: the little one (about 6), the kid (about 12), the grown-up; "out" sits the pack out. */
@@ -29,25 +30,17 @@ export interface PackBeast extends Beast {
   attackCooldown: number;
 }
 
-/** Local midnight of a "YYYY-MM-DD" date; an unreadable one is today */
-export const parseLocalDate = (text: string | undefined): Date => {
-  const parts = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(text ?? ""));
-  if (!parts) return startOfDay(new Date());
-  return new Date(Number(parts[1]), Number(parts[2]) - 1, Number(parts[3]));
-};
+export { parseLocalDate };
 
 export const dateKey = (date: Date): string => format(date, "yyyy-MM-dd");
 
 /** A hero's band from their profile: an adult is a grown-up; a child of 8 or younger is little, any older one a kid. */
 export const heroBandFor = (profile: { isAdult?: unknown; birthday?: unknown }, today: Date = new Date()): PackBand => {
-  if (profile.isAdult === true) return "grownup";
-  const text = String(profile.birthday ?? "");
-  // A bare date is read as a local day, so the age does not shift with the time zone
-  const born = /^\d{4}-\d{2}-\d{2}$/.test(text) ? parseLocalDate(text) : new Date(text);
-  if (Number.isNaN(born.getTime())) return "kid";
-  let age = today.getFullYear() - born.getFullYear();
-  const hadBirthday = today.getMonth() > born.getMonth() || (today.getMonth() === born.getMonth() && today.getDate() >= born.getDate());
-  if (!hadBirthday) age -= 1;
+  const isAdult = profile.isAdult === true;
+  if (isAdult) return "grownup";
+  const age = heroAgeOf(profile, today);
+  const hasNoBirthday = age === null;
+  if (hasNoBirthday) return "kid";
   return age <= 8 ? "little" : "kid";
 };
 

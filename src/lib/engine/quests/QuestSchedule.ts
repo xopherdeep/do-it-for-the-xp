@@ -10,6 +10,8 @@ import {
   startOfDay,
 } from "date-fns";
 import type { Achievement } from "@/lib/databases/AchievementDb";
+import { copyFor } from "@/lib/services/copy/copy";
+import type { Voice } from "@/lib/services/copy/voices";
 import type { QuestLogEntry } from "@/lib/databases/QuestLogDb";
 
 /**
@@ -103,14 +105,8 @@ export const questMatchesSegment = (
 ): boolean => segment === "all" || questTimesOfDay(quest).includes(segment);
 
 /** The one centred line a calendar tab shows when it lists no chores. */
-export const emptyBoardLine = (segment: "all" | TimeOfDay): string =>
-  ({
-    all: "No chores today.",
-    morning: "No chores this morning.",
-    noon: "No chores this afternoon.",
-    evening: "No chores this evening.",
-    night: "No chores tonight.",
-  })[segment] ?? "No chores today.";
+export const emptyBoardLine = (segment: "all" | TimeOfDay, voice: Voice = "adventure"): string =>
+  copyFor(`calendar.empty.${segment}`, voice);
 
 /** One of a timed quest's times of day and whether the hero has done it in the current window. */
 export interface QuestSlot {

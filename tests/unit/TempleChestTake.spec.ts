@@ -10,7 +10,7 @@ import { useUserStore } from "@/lib/store/stores/user";
 import { ChestSystem } from "@/lib/engine/core/dungeons/ChestSystem";
 import type { Room } from "@/lib/engine/core/dungeons/types";
 import { isChestEmptyIn, roomActions } from "@/lib/services/temples/RoomInteractions";
-import { HERO, addHero, contextAt, dungeons, makeTemple, temples } from "./templeFixtures";
+import { HERO, addHero, contextAt, dungeons, hero, makeTemple, temples } from "./templeFixtures";
 
 // The hero's saves, in memory: what one visit writes, the next one reads back
 const mockSaves = new Map<string, unknown>();
@@ -244,5 +244,81 @@ describe("taking from a chest through the temple screen's hook: only what was ti
     expect(temples.isTempleCleared(chest.id)).toBe(false);
     expect(chest.rows()).toEqual(["Pegasus Whistle"]);
     chest.done();
+  });
+
+  describe("when the hero has no room (the bag holds 20 stacks)", () => {
+    const things = (n: number, prefix = "thing") => Array.from({ length: n }, (_, i) => ({ id: `${prefix}-${i}`, name: `${prefix} ${i}`, qty: 1 }));
+    const fillBag = (extra: object = {}) => Object.assign(hero(), { inventory: things(20), ...extra });
+
+    it("leaves the supplies in the chest, tells the hero, and does not empty the chest", async () => {
+      fillBag();
+      const chest = await play(supplies);
+
+      chest.take(["potion", "ether"]);
+
+      expect(hero().inventory).toHaveLength(20);
+      expect(chest.rows()).toEqual(["potion", "ether"]);
+      expect(roomAt(chest.id).content?.items).toEqual(["potion", "ether"]);
+      expect(isChestEmptyIn(roomAt(chest.id))).toBe(false);
+      expect(chest.messages).toEqual(["Your bag is full. Potion, Ether stay in the chest. Store something at home first."]);
+
+      // ... and a free slot later lets the hero come back for them
+      hero().inventory.pop();
+      chest.take(["potion"]);
+      expect(hero().inventory).toHaveLength(20);
+      expect(chest.rows()).toEqual(["ether"]);
+      chest.done();
+    });
+
+    it("takes the gold and leaves only what does not fit", async () => {
+      fillBag();
+      const chest = await play(lootChest);
+      const before = (hero().stats.gp as { wallet: number }).wallet;
+
+      chest.take(["gold:20", "potion"]);
+
+      expect((hero().stats.gp as { wallet: number }).wallet).toBeGreaterThan(before);
+      expect(chest.rows()).toEqual(["potion", "ether"]);
+      expect(roomAt(chest.id).content?.gold).toBeUndefined();
+      expect(chest.messages[0]).toMatch(/^Collected: \d+ GP\. Your bag is full\. Potion stays in the chest\./);
+      chest.done();
+    });
+
+    it("adds to a stack the bag already holds, which needs no slot", async () => {
+      fillBag({ inventory: [...things(19), { id: "potion", name: "Potion", qty: 2 }] });
+      const chest = await play(supplies);
+
+      chest.take(["potion"]);
+
+      expect(hero().inventory).toHaveLength(21);
+      expect(chest.rows()).toEqual(["ether"]);
+      expect(chest.messages).toEqual(["Collected: Potion"]);
+      chest.done();
+    });
+
+    it("puts the supplies in storage when the hero has bought it", async () => {
+      fillBag({ storageTier: 1, storage: [] });
+      const chest = await play(supplies);
+
+      chest.take(["potion", "ether"]);
+
+      expect(hero().inventory).toHaveLength(20);
+      expect(hero().storage.map((row: { name: string }) => row.name)).toEqual(["potion", "ether"]);
+      expect(isChestEmptyIn(roomAt(chest.id))).toBe(true);
+      expect(chest.messages).toEqual(["Collected: Potion, Ether"]);
+      chest.done();
+    });
+
+    it("still takes a key when the bag is full: temple keys stay on the hero and fill no slot", async () => {
+      fillBag();
+      const chest = await play({ type: "loot", content: { chest: "dungeon", dungeon: "key" } } as Room);
+
+      chest.take(["key"]);
+
+      expect(isChestEmptyIn(roomAt(chest.id))).toBe(true);
+      expect(chest.messages).toEqual([expect.stringMatching(/^Collected: .*key/i)]);
+      expect(hero().inventory).toHaveLength(20);
+      chest.done();
+    });
   });
 });

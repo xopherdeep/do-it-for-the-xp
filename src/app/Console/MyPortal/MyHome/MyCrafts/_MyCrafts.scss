@@ -1,39 +1,27 @@
-:root{
-  --color-light: var(--ion-color-primary-tint);
-  --color-medium: var(--ion-color-primary-shade);
-  --color-dark: var(--ion-color-primary);
-  --color-darkest: var(--ion-color-primary-shade);
-  --animation-speed: 4s;
-  --animation-loop: infinite;
-}
-
-.my-foods{
-  ion-card {
-    &.item {
-      margin: 1em;
-      // 100% view height - header - footer toolbar - padding / 2 
-      height: calc((100vh - 120px - 110px - 50px - 5em) / 2);
-      border-radius: 0 0 65px 65px;
-      box-shadow: 
-      rgb(0 0 0 / 20%) 0px 3px 1px -2px,
-      rgb(0 0 0 / 14%) 0px 2px 2px 0px,
-      rgb(0 0 0 / 12%) 0px 1px 5px 0px;
-
-      ion-img {
-      margin: .5em auto;
-        object-fit: fill;
-        transform: scale(1.15);
-      }
-    }
-  }
-
-}
+// The Workbench app: the look comes from the XpApp kit (src/components/organisms/XpApp/_xp-app.scss), the page
+// only places what the kit leaves open.
 
 .crafts-footer {
   background: transparent;
+}
 
-  .crafts-subtoolbar {
-    --min-height: 40px;
-    padding: 0 4px;
+.my-crafts {
+  // The last row stays clear of the options FAB.
+  &__content::part(scroll) {
+    padding-bottom: 88px;
   }
+
+  &__more {
+    display: flex;
+    justify-content: center;
+    padding: 4px 12px 12px;
+  }
+}
+
+// The options FAB (the same one the buildings carry) takes the accent of the app.
+.crafts-fab {
+  --background: var(--xp-app-accent);
+  --color: var(--xp-app-on-accent);
+  --fa-primary-color: var(--xp-app-on-accent);
+  --fa-secondary-color: var(--xp-app-on-accent);
 }

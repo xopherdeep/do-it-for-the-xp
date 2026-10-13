@@ -1,12 +1,18 @@
 <template>
-  <ion-page>
+  <ion-page :class="rootClass" :style="rootStyle">
     <ion-header>
-      <ion-toolbar color="danger">
-        <ion-buttons slot="start">
-          <xp-back-button />
-          <xp-icon icon="backpack" size="lg" class="ml-2" />
-        </ion-buttons>
-        <ion-title>My Goods</ion-title>
+      <ion-toolbar>
+        <xp-app-header
+          class="goods-header"
+          :class="{ 'is-full': isBagFull }"
+          title="My Goods"
+          icon="backpack"
+          :meta="meta"
+        >
+          <template #start>
+            <xp-back-button />
+          </template>
+        </xp-app-header>
       </ion-toolbar>
     </ion-header>
 

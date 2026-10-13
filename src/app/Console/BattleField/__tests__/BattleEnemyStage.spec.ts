@@ -92,20 +92,20 @@ describe("BattleEnemyStage", () => {
       expect(wrapper!.find(".enemy-name").text()).toBe("Dust Bunny Boss");
     });
 
-    it("says how many chores are left, in the singular for one", async () => {
+    it("says how many tasks are left, in the singular for one", async () => {
       show({ choresTotal: 3, choresLeft: 3 });
-      expect(wrapper!.find(".chores-left-label").text()).toBe("3 chores left");
+      expect(wrapper!.find(".chores-left-label").text()).toBe("3 tasks left");
 
       await update({ choresLeft: 1 });
-      expect(wrapper!.find(".chores-left-label").text()).toBe("1 chore left");
+      expect(wrapper!.find(".chores-left-label").text()).toBe("1 task left");
 
       await update({ choresLeft: 0 });
-      expect(wrapper!.find(".chores-left-label").text()).toBe("0 chores left");
+      expect(wrapper!.find(".chores-left-label").text()).toBe("0 tasks left");
     });
 
     it("keeps nonsense counts from reaching the screen", () => {
       show({ choresTotal: Number.NaN, choresLeft: -4 });
-      expect(wrapper!.find(".chores-left-label").text()).toBe("0 chores left");
+      expect(wrapper!.find(".chores-left-label").text()).toBe("0 tasks left");
     });
 
     it("draws one pip per chore, finished ones green with a check", async () => {
@@ -126,7 +126,7 @@ describe("BattleEnemyStage", () => {
       expect(wrapper!.findAll(".chore-pip")).toHaveLength(0);
       expect(wrapper!.find(".chore-bar").exists()).toBe(true);
       expect(wrapper!.find(".chore-bar-fill").attributes("style")).toContain("61.5");
-      expect(wrapper!.find(".chores-left-label").text()).toBe("5 chores left");
+      expect(wrapper!.find(".chores-left-label").text()).toBe("5 tasks left");
     });
 
     it("still uses pips at exactly twelve chores", () => {

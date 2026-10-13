@@ -178,7 +178,7 @@ describe("Moving House pack", () => {
     shot("08-battle-intro");
     cy.get("[data-cy=battle-dialog]").should("contain", "Sorting Chimera");
     readUntilMenu(4);
-    cy.get(".chores-left-label").should("have.text", "5 chores left");
+    cy.get(".chores-left-label").should("have.text", "5 tasks left");
     cy.get(".attack-timer-label").should("contain", ":");
 
     shot("08b-battle-menu");
@@ -320,7 +320,7 @@ describe("Moving House pack", () => {
     cy.wait(600);
     shot("19-home-battle-intro");
     readUntilMenu(4);
-    cy.get(".chores-left-label").should("have.text", "4 chores left");
+    cy.get(".chores-left-label").should("have.text", "4 tasks left");
     cy.contains(".menu-item", "Tackle").click();
     cy.get("[data-cy=task-sheet]", { timeout: 10000 }).should("be.visible");
     cy.get(".battle-task-item").should("have.length", 4);

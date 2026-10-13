@@ -443,6 +443,57 @@ describe("shops", () => {
     expect(hero().inventory).toHaveLength(1);
   });
 
+  describe("when the hero's bag is full", () => {
+    const fullBag = (extra: object = {}) =>
+      Object.assign(hero(), { inventory: Array.from({ length: 20 }, (_, i) => ({ id: `thing-${i}`, name: `Thing ${i}`, qty: 1 })), ...extra });
+
+    it("tells the hero to store something and charges nothing, so the item can still be bought later", () => {
+      const { room, ctx } = shop();
+      fullBag();
+
+      expect(buyWare(room, ctx, "special:EarthquakeScroll")).toEqual({
+        message: "Your bag is full. Store something at home first.",
+        sound: "error",
+      });
+      expect(wallet()).toBe(100);
+      expect(hero().inventory).toHaveLength(20);
+      expect(hero().storage).toBeUndefined();
+
+      // not sold out: a free slot and the hero can buy it
+      hero().inventory.pop();
+      expect(buyWare(room, ctx, "special:EarthquakeScroll")).toMatchObject({ sound: "buyItem" });
+      expect(wallet()).toBe(50);
+      expect(hero().inventory).toHaveLength(20);
+    });
+
+    it("puts the item in storage when the hero has bought it and it has room", () => {
+      const { room, ctx } = shop();
+      fullBag({ storageTier: 1, storage: [] });
+
+      expect(buyWare(room, ctx, "special:EarthquakeScroll")).toMatchObject({ sound: "buyItem" });
+      expect(wallet()).toBe(50);
+      expect(hero().inventory).toHaveLength(20);
+      expect(hero().storage).toEqual([expect.objectContaining({ name: "EarthquakeScroll", type: "material" })]);
+    });
+
+    it("refuses when storage is full too", () => {
+      const { room, ctx } = shop();
+      fullBag({ storageTier: 1, storage: Array.from({ length: 10 }, (_, i) => ({ id: `stored-${i}`, name: `Stored ${i}` })) });
+
+      expect(buyWare(room, ctx, "special:EarthquakeScroll").sound).toBe("error");
+      expect(wallet()).toBe(100);
+      expect(hero().storage).toHaveLength(10);
+    });
+
+    it("still sells the Potion of Vigor, which is drunk on the spot and needs no room", () => {
+      const { room, ctx } = shop();
+      fullBag();
+
+      expect(buyWare(room, ctx, "potion-of-vigor")).toMatchObject({ message: "Potion of Vigor: +20 HP", sound: "buyItem" });
+      expect(wallet()).toBe(85);
+    });
+  });
+
   it("refuses a hero who cannot pay", () => {
     addHero({ gp: { wallet: 10, savings: 0, debt: 0, limit: 1000 } });
     const { room, ctx } = shop();

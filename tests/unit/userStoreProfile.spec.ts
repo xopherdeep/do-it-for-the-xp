@@ -82,6 +82,129 @@ describe("the bag, cooldowns, the hands, the look, the class", () => {
     expect(plain(store.users.ava.inventory)).toEqual([{ id: "potion", name: "Potion", qty: 2 }]);
   });
 
+  describe("the bag's 20 stacks, storage and the Gold Bank (docs: epic #1264)", () => {
+    /** A bag of `n` different one-off items */
+    const stacks = (n: number) => Array.from({ length: n }, (_, i) => ({ id: `thing-${i}`, name: `Thing ${i}`, qty: 1 }));
+    const purse = (wallet: number) => ({ gp: { wallet, savings: 500, debt: 0, hospitalBill: 0, limit: 1000 } });
+
+    it("puts an item in storage when the bag has no room for a new stack, and in the bag for a stack it holds", () => {
+      const store = freshStore({ ava: { inventory: stacks(20), storage: [], storageTier: 1 } });
+
+      expect(store.addInventoryItem("ava", { name: "Thing 3" })).toBe(true);
+      expect(plain(store.users.ava.inventory)).toHaveLength(21);
+      expect(plain(store.users.ava.storage)).toEqual([]);
+
+      expect(store.addInventoryItem("ava", { name: "Ether" })).toBe(true);
+      expect(plain(store.users.ava.storage)).toEqual([{ name: "Ether" }]);
+      expect(plain(store.users.ava.inventory)).toHaveLength(21);
+    });
+
+    it("adds nothing and says false when the bag is full and storage is locked or full", () => {
+      const locked = freshStore({ ava: { inventory: stacks(20) } });
+      expect(locked.addInventoryItem("ava", { name: "Ether" })).toBe(false);
+      expect(plain(locked.users.ava.inventory)).toEqual(stacks(20));
+      expect(locked.users.ava.storage).toBeUndefined();
+
+      const full = freshStore({ ava: { inventory: stacks(20), storageTier: 1, storage: stacks(10).map((row) => ({ ...row, id: `s-${row.id}`, name: `S${row.name}` })) } });
+      expect(full.addInventoryItem("ava", { name: "Ether" })).toBe(false);
+      expect(plain(full.users.ava.storage)).toHaveLength(10);
+    });
+
+    it("still takes a key when the bag is full: keys ride along and are not counted", () => {
+      const store = freshStore({ ava: { inventory: stacks(20) } });
+      expect(store.addInventoryItem("ava", { name: "Small Key", type: "key" })).toBe(true);
+      expect(plain(store.users.ava.inventory)).toHaveLength(21);
+    });
+
+    it("stores part of a stack and takes it back, mirroring the signed-in hero and saving each time", () => {
+      const store = freshStore({
+        ava: { inventory: [{ id: "potion", name: "Potion", qty: 5 }], storageTier: 1 },
+        ben: {},
+      });
+      store.loginUser(store.users.ava);
+      mockSetProfile.mockClear();
+
+      expect(store.storeItem("ava", "potion", 2)).toBe(true);
+      expect(plain(store.users.ava.inventory)).toEqual([{ id: "potion", name: "Potion", qty: 3 }]);
+      expect(plain(store.users.ava.storage)).toEqual([{ id: "potion", name: "Potion", qty: 2 }]);
+      expect((store.currentUser as any).storage).toEqual(plain(store.users.ava.storage));
+
+      expect(store.takeItem("ava", "potion")).toBe(true);
+      expect(plain(store.users.ava.storage)).toEqual([]);
+      expect(plain(store.users.ava.inventory)).toEqual([{ id: "potion", name: "Potion", qty: 5 }]);
+      return Promise.resolve().then(() => expect(mockSetProfile).toHaveBeenCalled());
+    });
+
+    it("moves nothing for a ghost, a locked storage, a key, a missing stack, too many, or no room", () => {
+      const store = freshStore({
+        ava: { inventory: [{ id: "potion", name: "Potion", qty: 2 }, { id: "boss-key", name: "Boss Key", kind: "key" }] },
+        ben: { inventory: stacks(20), storageTier: 1, storage: [{ id: "ether", name: "Ether", qty: 1 }] },
+      });
+      const before = plain(store.users.ava);
+
+      expect(store.storeItem("ghost", "potion")).toBe(false);
+      expect(store.storeItem("ava", "potion")).toBe(false); // locked
+      store.users.ava.storageTier = 1;
+      expect(store.storeItem("ava", "boss-key")).toBe(false);
+      expect(store.storeItem("ava", "elixir")).toBe(false);
+      expect(store.storeItem("ava", "potion", 3)).toBe(false);
+      expect(store.takeItem("ghost", "ether")).toBe(false);
+      expect(store.takeItem("ben", "ether")).toBe(false); // the bag is full of other stacks
+      expect(plain(store.users.ava)).toEqual({ ...before, storageTier: 1 });
+      expect(plain(store.users.ben.storage)).toEqual([{ id: "ether", name: "Ether", qty: 1 }]);
+    });
+
+    it("buys the tiers in turn out of the wallet, never the savings, and unlocks storage on the first", async () => {
+      const store = freshStore({ ava: { stats: purse(1000) } });
+
+      expect(store.buyStorageTier("ava")).toEqual({ ok: true, tier: 1, slots: 10, price: 100, fromWallet: 100, fromSavings: 0 });
+      expect(store.users.ava.storageTier).toBe(1);
+      expect(store.users.ava.stats.gp).toMatchObject({ wallet: 900, savings: 500 });
+
+      expect(store.buyStorageTier("ava")).toMatchObject({ ok: true, tier: 2, slots: 20, price: 250 });
+      expect(store.buyStorageTier("ava")).toMatchObject({ ok: true, tier: 3, slots: 40, price: 500 });
+      expect(store.users.ava.stats.gp.wallet).toBe(150);
+      expect(store.users.ava.storageTier).toBe(3);
+    });
+
+    it("tops up from savings only when asked: wallet first, then savings for the rest", () => {
+      const store = freshStore({ ava: { stats: purse(40) }, ben: { stats: purse(40) } });
+
+      // not asked: the savings stay put and nothing is bought
+      expect(store.buyStorageTier("ava")).toMatchObject({ ok: false, reason: "gp", short: 60, canTopUp: true });
+      expect(store.users.ava.storageTier).toBeUndefined();
+      expect(store.users.ava.stats.gp).toMatchObject({ wallet: 40, savings: 500 });
+
+      expect(store.buyStorageTier("ava", true)).toEqual({ ok: true, tier: 1, slots: 10, price: 100, fromWallet: 40, fromSavings: 60 });
+      expect(store.users.ava.storageTier).toBe(1);
+      expect(store.users.ava.stats.gp).toMatchObject({ wallet: 0, savings: 440 });
+
+      // a wallet that covers it alone leaves the savings alone, asked or not
+      const rich = freshStore({ cy: { stats: purse(150) } });
+      expect(rich.buyStorageTier("cy", true)).toMatchObject({ ok: true, fromWallet: 100, fromSavings: 0 });
+      expect(rich.users.cy.stats.gp).toMatchObject({ wallet: 50, savings: 500 });
+    });
+
+    it("refuses with savings and all when even they fall short, charging nothing", () => {
+      const store = freshStore({ ava: { stats: { gp: { wallet: 10, savings: 20, debt: 0, hospitalBill: 0, limit: 1000 } } } });
+      expect(store.buyStorageTier("ava", true)).toMatchObject({ ok: false, reason: "gp", short: 90, canTopUp: false, shortAll: 70 });
+      expect(store.users.ava.storageTier).toBeUndefined();
+      expect(store.users.ava.stats.gp).toMatchObject({ wallet: 10, savings: 20 });
+    });
+
+    it("refuses when the wallet is short (savings do not pay), at the biggest storage, and for a ghost", () => {
+      const store = freshStore({ ava: { stats: purse(60) }, ben: { stats: purse(5000), storageTier: 4 } });
+
+      expect(store.buyStorageTier("ava")).toEqual({ ok: false, reason: "gp", tier: 1, slots: 10, price: 100, short: 40, canTopUp: true, shortAll: 0 });
+      expect(store.users.ava.storageTier).toBeUndefined();
+      expect(store.users.ava.stats.gp.wallet).toBe(60);
+
+      expect(store.buyStorageTier("ben")).toEqual({ ok: false, reason: "max" });
+      expect(store.users.ben.stats.gp.wallet).toBe(5000);
+      expect(store.buyStorageTier("ghost")).toEqual({ ok: false, reason: "hero" });
+    });
+  });
+
   it("sets and clears an item cooldown", () => {
     const store = freshStore({ ava: { itemCooldowns: { Sword: "a" } } });
     store.setItemCooldown("ava", "Shield", "2026-10-12T00:00:00.000Z");
@@ -289,6 +412,7 @@ describe("signing in, masquerading, loading", () => {
         "addInventoryItem",
         "addQuestGrudge",
         "addUser",
+        "buyStorageTier",
         "checkClassUnlocks",
         "clearQuestGrudge",
         "currentUser",
@@ -300,6 +424,7 @@ describe("signing in, masquerading, loading", () => {
         "logoutUser",
         "persistUser",
         "recordAPGain",
+        "setAutoRead",
         "setBenchRestAt",
         "setEquipment",
         "setItemCooldown",
@@ -307,9 +432,12 @@ describe("signing in, masquerading, loading", () => {
         "setLook",
         "setQuestEffects",
         "setQuestGrudges",
+        "setVoice",
         "setWallet",
         "spendInventoryItem",
         "stopImpersonating",
+        "storeItem",
+        "takeItem",
         "unlockClass",
         "unlockItem",
         "unlockPegasus",

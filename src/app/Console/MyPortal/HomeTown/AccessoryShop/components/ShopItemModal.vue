@@ -55,7 +55,7 @@
           @click.stop="$emit('buy', item)"
         >
           <template v-if="canAfford">
-            <i class="fad fa-bag-shopping" />
+            <i class="fad fa-shopping-bag" />
             Buy Item ({{ item.price }} GP)
           </template>
           <template v-else>

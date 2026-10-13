@@ -200,7 +200,7 @@ const left = computed(() => wholeCount(props.choresLeft));
 const done = computed(() => Math.max(0, total.value - left.value));
 const showPips = computed(() => total.value <= MAX_PIPS);
 const donePercent = computed(() => (total.value ? Math.min(100, (done.value / total.value) * 100) : 0));
-const choresLabel = computed(() => `${left.value} ${left.value === 1 ? "chore" : "chores"} left`);
+const choresLabel = computed(() => `${left.value} ${left.value === 1 ? "task" : "tasks"} left`);
 
 // Pips fill from the left, so finishing a chore flips the pip at index `done`. Remember which ones just flipped.
 const popFrom = ref(0);

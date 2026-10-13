@@ -1,7 +1,7 @@
 <!-- 
   ATM Modal
   This component represents an ATM modal that allows users to view their account summary and perform banking actions such as depositing, withdrawing, and paying down debt.
-  It uses Ionic components for the modal, action sheet, and alerts.
+  It uses Ionic components for the modal and the game's reveal prompt (menu, amount stepper) for its questions.
   The modal is designed to be responsive and user-friendly, with a focus on providing a seamless banking experience.
   The component is styled with SCSS and includes animations for a smooth user experience.
   The ATM modal is a part of a larger application and interacts with user data to display account information.
@@ -94,36 +94,35 @@
       </ion-card>
       <i class="fad fa-hand-holding-usd fa-8x text-center mt-8 mx-auto"></i>
 
-      <!-- FAB to show action sheet -->
+      <!-- FAB to show the ATM's menu -->
       <ion-fab vertical="bottom" horizontal="center" slot="fixed">
         <ion-fab-button @click="showActions" color="warning">
           <i class="fad fa-calculator-alt fa-2x"></i>
         </ion-fab-button>
       </ion-fab>
     </ion-content>
+
+    <!-- The ATM's questions, in the game's dialog; it rises above the modal -->
+    <xp-reveal-prompt :prompt="prompt" @respond="reveal.respond" />
   </ion-modal>
 </template>
 
 <script lang="ts">
   import { defineComponent, PropType, onMounted, watch, ref } from "vue";
-  import {
-    closeOutline,
-    cashOutline,
-    walletOutline,
-    alertOutline,
-    arrowUpCircleOutline,
-    arrowDownCircleOutline,
-    cardOutline,
-    logOutOutline,
-  } from "ionicons/icons";
-  import { actionSheetController, alertController } from "@ionic/vue";
+  import { closeOutline } from "ionicons/icons";
   import Ionic from "@/lib/mixins/ionic";
   import { play$fx } from "@/assets/fx";
   import { useTimers } from "@/hooks/useTimers";
+  import { useVoice } from "@/hooks/useVoice";
+  import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
+  import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
+  import { amountAsk, atmMenuPrompt, noticePrompt } from "@/lib/services/gp/bankPrompts";
+  import type { BankAction } from "@/lib/services/gp/bankTeller";
 
   export default defineComponent({
     name: "ATMModal",
     mixins: [Ionic],
+    components: { XpRevealPrompt },
     props: {
       isOpen: {
         type: Boolean,
@@ -138,6 +137,10 @@
     setup(props, { emit }) {
       const modal = ref<any>(null);
       const timers = useTimers();
+      // The ATM asks in the game's own dialog, not in native sheets and alerts
+      const reveal = useRevealPrompt();
+      // The ATM's words follow the hero's voice
+      const { voice } = useVoice();
 
       // Dismiss the modal
       const dismiss = async () => {
@@ -149,174 +152,39 @@
         emit("update:isOpen", false);
       };
 
-      const handleDeposit = (data: any) => {
-        const amount = Number(data.gp); // Ensure it's a number
-        if (amount > 0) {
-          emit("deposit", { gp: amount });
+      /**
+       * How much: the stepper reaches what the move can take. The bank screen makes the move and reads the receipt, so
+       * the ATM only hands the amount over; when the move would move nothing, the teller says why.
+       */
+      const errand = async (action: BankAction) => {
+        const ask = amountAsk(action, props.user?.stats?.gp, undefined, voice.value);
+        if ("refusal" in ask) {
+          play$fx("no");
+          await reveal.ask(noticePrompt(ask.refusal, undefined, "ATM"));
+          return;
         }
+        const { id, amount } = await reveal.askAmount(ask.prompt);
+        if (id !== "ok" || !amount) return;
+        emit(action, { gp: amount });
       };
 
-      const handleWithdraw = (data: any) => {
-        const amount = Number(data.gp); // Ensure it's a number
-        if (amount > 0) {
-          emit("withdraw", { gp: amount });
-        }
-      };
-
-      const handlePayDebt = (data: any) => {
-        const amount = Number(data.gp); // Ensure it's a number
-        if (amount > 0) {
-          emit("payDebt", { gp: amount });
-        }
-      };
-
-      const presentDepositAlert = async () => {
-        const alert = await alertController.create({
-          header: "Deposit to Savings",
-          inputs: [
-            {
-              name: "gp",
-              type: "number",
-              placeholder: "Enter GP amount",
-              min: 1,
-              max: props.user?.stats?.gp?.wallet || 0,
-            },
-          ],
-          buttons: [
-            {
-              text: "Cancel",
-              role: "cancel",
-            },
-            {
-              text: "Deposit",
-              handler: (data) => handleDeposit(data),
-            },
-          ],
-        });
-        await alert.present();
-      };
-
-      const presentWithdrawAlert = async () => {
-        const savings = props.user?.stats?.gp?.savings || 0;
-        const wallet = props.user?.stats?.gp?.wallet || 0;
-        const limit = props.user?.stats?.gp?.limit || 0;
-        const maxWithdraw = Math.min(savings, limit - wallet); // Can't withdraw more than fits in wallet limit
-
-        const alert = await alertController.create({
-          header: "Withdraw from Savings",
-          inputs: [
-            {
-              name: "gp",
-              type: "number",
-              placeholder: "Enter GP amount",
-              min: 1,
-              max: maxWithdraw,
-            },
-          ],
-          buttons: [
-            {
-              text: "Cancel",
-              role: "cancel",
-            },
-            {
-              text: "Withdraw",
-              handler: (data) => handleWithdraw(data),
-            },
-          ],
-        });
-        await alert.present();
-      };
-
-      const presentPayDebtAlert = async () => {
-        const wallet = props.user?.stats?.gp?.wallet || 0;
-        const debt = props.user?.stats?.gp?.debt || 0;
-        const bill = props.user?.stats?.gp?.hospitalBill || 0;
-        // The hospital bill is paid first, then any other debt
-        const maxPay = Math.min(wallet, debt + bill);
-
-        const alert = await alertController.create({
-          header: bill > 0 ? "Pay Hospital Bill" : "Pay Down Debt",
-          inputs: [
-            {
-              name: "gp",
-              type: "number",
-              placeholder: "Enter GP amount",
-              min: 1,
-              max: maxPay,
-            },
-          ],
-          buttons: [
-            {
-              text: "Cancel",
-              role: "cancel",
-            },
-            {
-              text: "Pay",
-              handler: (data) => handlePayDebt(data),
-            },
-          ],
-        });
-        await alert.present();
-      };
-
-      // Flag to prevent double-opening of the Action Sheet
+      // Flag to prevent double-opening of the menu
       const isMenuOpen = ref(false);
 
-      // Show action sheet with banking options
+      // The ATM's menu: deposit, withdraw, pay down, sign off
       const showActions = async () => {
         if (isMenuOpen.value) return;
         isMenuOpen.value = true;
-
-        const actionSheet = await actionSheetController.create({
-          header: "ATM Options",
-          cssClass: "atm-action-sheet",
-          mode: "ios",
-          buttons: [
-            {
-              text: "Deposit to Savings",
-              icon: arrowUpCircleOutline,
-              handler: () => {
-                // Action sheet auto-dismisses
-                timers.startTimeout(100, () => presentDepositAlert());
-              },
-            },
-            {
-              text: "Withdraw from Savings",
-              icon: arrowDownCircleOutline,
-              handler: () => {
-                timers.startTimeout(100, () => presentWithdrawAlert());
-              },
-            },
-            {
-              text: (props.user?.stats?.gp?.hospitalBill || 0) > 0 ? "Pay Hospital Bill" : "Pay Down Debt",
-              icon: cardOutline,
-              handler: () => {
-                timers.startTimeout(100, () => presentPayDebtAlert());
-              },
-            },
-            {
-              text: "Sign Off",
-              icon: logOutOutline,
-              handler: () => {
-                dismiss();
-              },
-            },
-            {
-              text: "Cancel",
-              icon: closeOutline,
-              role: "cancel",
-            },
-          ],
-        });
-
-        await actionSheet.present();
-
-        // Reset guard when sheet closes
-        await actionSheet.onDidDismiss();
-        isMenuOpen.value = false;
+        try {
+          const pick = await reveal.ask(atmMenuPrompt(props.user?.stats?.gp, voice.value));
+          if (pick === "leave") await dismiss();
+          else if (pick === "deposit" || pick === "withdraw" || pick === "payDebt") await errand(pick);
+        } finally {
+          isMenuOpen.value = false;
+        }
       };
 
-      // Present action sheet on modal open
+      // Present the menu on modal open
       onMounted(() => {
         if (props.isOpen) {
           timers.startTimeout(500, () => {
@@ -333,6 +201,8 @@
             timers.startTimeout(500, () => {
               showActions();
             }); // Same delay as onMounted for consistency
+          } else {
+            reveal.dismiss();
           }
         }
       );
@@ -342,14 +212,9 @@
         onDismiss,
         showActions,
         closeOutline,
-        cashOutline,
-        walletOutline,
-        alertOutline,
-        arrowUpCircleOutline,
-        arrowDownCircleOutline,
-        cardOutline,
-        logOutOutline,
         modal,
+        reveal,
+        prompt: reveal.prompt,
       };
     },
   });

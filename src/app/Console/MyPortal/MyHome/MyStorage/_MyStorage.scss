@@ -1,8 +1,19 @@
+// The Storage app: the look comes from the XpApp kit (src/components/organisms/XpApp/_xp-app.scss), the page
+// only places what the kit leaves open.
+
 .storage-footer {
   background: transparent;
+}
 
-  .storage-subtoolbar {
-    --min-height: 40px;
-    padding: 0 4px;
-  }
+// The last row stays clear of the options FAB.
+.my-storage ion-content.accessory-shop::part(scroll) {
+  padding-bottom: 88px;
+}
+
+// The options FAB (the same one the buildings carry) takes the accent of the app.
+.storage-fab {
+  --background: var(--xp-app-accent);
+  --color: var(--xp-app-on-accent);
+  --fa-primary-color: var(--xp-app-on-accent);
+  --fa-secondary-color: var(--xp-app-on-accent);
 }

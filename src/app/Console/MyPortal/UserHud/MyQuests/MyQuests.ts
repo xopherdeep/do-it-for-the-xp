@@ -3,7 +3,6 @@ import ionic from "@/lib/mixins/ionic";
 import {
   actionSheetController,
   alertController,
-  IonicSlides,
   toastController,
 } from "@ionic/vue";
 import { getQuestEngine } from "@/lib/engine/quests/QuestEngine";
@@ -12,45 +11,31 @@ import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
 import { checkClaimWindow } from "@/lib/services/quests/QuestClaimGuard";
 import { completeQuest } from "@/lib/services/quests/QuestCompletionService";
 import type { CompletionResult } from "@/lib/services/quests/QuestCompletionService";
-import { questListCounts, questListFor } from "@/lib/services/quests/QuestList";
+import { nickOf, questListCounts, questListFor } from "@/lib/services/quests/QuestList";
 import type { QuestListRow, QuestListStatus } from "@/lib/services/quests/QuestList";
 import type { Achievement } from "@/lib/databases/AchievementDb";
-import {
-  ribbonOutline,
-  arrowBack,
-  chevronBack,
-  chevronForward,
-  stop,
-  play,
-  pause,
-  colorWand,
-  colorWandOutline,
-  lockClosedOutline,
-  lockOpenOutline,
-  sunnyOutline,
-  partlySunnyOutline,
-  moonOutline,
-  cloudyNightOutline,
-  medalOutline,
-  bagOutline,
-  checkmarkDone,
-  hourglassOutline,
-  add,
-  shieldCheckmarkOutline,
-} from "ionicons/icons";
+import { BestiaryDb, beastStorage } from "@/lib/databases/BestiaryDb";
+import type { Beast } from "@/lib/databases/BestiaryDb";
+import { arrowBack, checkmarkDone, close } from "ionicons/icons";
+import { play$fx } from "@/assets/fx";
 import { useGameStore } from "@/lib/store/stores/game";
 import { useUserStore } from "@/lib/store/stores/user";
 
-import MyTask from "../MyTask/MyTask.vue";
+import XpBeastCardModal from "./components/XpBeastCardModal.vue";
 import XpQuickTaskModal from "./components/XpQuickTaskModal.vue";
+import XpQuestWizardModal from "./components/XpQuestWizardModal.vue";
+import { questLogActions } from "./questLogActions";
+import type { QuestLogActionId } from "./questLogActions";
+import { prefillQueryFor, questPrefill } from "@/lib/services/quests/questPrefill";
 import XpAppBottomNav from "@/components/organisms/BottomNav/XpAppBottomNav.vue";
 import type { AppNavTab } from "@/components/organisms/BottomNav/appBottomNav";
-// import { useSwiper } from "swiper/vue";
-import { Controller, Navigation, Swiper as SwiperClass } from "swiper";
-import { formatQuestName } from "@/lib/utils/format";
-import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
+import { appSheet, useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
+import { beastPortraitUrl } from "@/app/Admin/XpCompendium/views/XpTemples/components/XpTempleCreator/components/beastPortrait";
 import debug from "@/lib/utils/debug";
 import { useTimers } from "@/hooks/useTimers";
+import { useCopy } from "@/hooks/useVoice";
+import { sectionsByWindow, toLogRow } from "./questLogRows";
+import type { QuestLogRow } from "./questLogRows";
 
 // The quest log has two faces: the card board (the RPG view) and the plain to-do list
 type QuestLogView = "board" | "list";
@@ -64,42 +49,25 @@ const savedView = (): QuestLogView => {
   }
 };
 
-// The boxed icon at the head of a list row, per status
-const ROW_ICONS: Record<QuestListStatus, string> = {
-  overdue: "fad fa-alarm-exclamation",
-  open: "fad fa-scroll",
-  later: "fad fa-calendar-day",
-  pending: "fad fa-hourglass-half",
-  done: "fad fa-check-double",
-};
-
-const ROW_COLORS: Record<QuestListStatus, string> = {
-  overdue: "danger",
-  open: "success",
-  later: "tertiary",
-  pending: "warning",
-  done: "medium",
-};
-
 export default defineComponent({
   props: ["userId"],
   name: "my-quests",
   components: {
-    MyTask,
+    XpBeastCardModal,
     XpQuickTaskModal,
+    XpQuestWizardModal,
     XpAppBottomNav,
   },
   data() {
     return {
       activeModal: 0,
+      // the row whose quest the beast card shows, kept so a reload underneath can't pull the card away
+      activeRow: null as QuestListRow | null,
       view: savedView() as QuestLogView,
       addOpen: false,
+      wizardOpen: false,
       // the list row whose Done tap is being recorded, so a double tap can't claim twice
       finishing: "",
-      swiperNavigation: {
-        nextEl: "#swiper-forward",
-        prevEl: "#swiper-back",
-      },
     };
   },
   mixins: [ionic],
@@ -119,40 +87,7 @@ export default defineComponent({
       },
       set(text) {
         this.params.search = text;
-        this.params.page = 1;
       },
-    },
-    // Open quests first, then the ones already tamed; quests that are not due stay hidden
-    filteredTasks(): QuestBoardItem[] {
-      const shown = this.board.filter(({ status }) => status !== "notDue");
-      return [
-        ...shown.filter(({ status }) => status === "open"),
-        ...shown.filter(({ status }) => status === "done"),
-      ];
-    },
-    // Paginated tasks for the swiper
-    tasks() {
-      const start = (this.params.page - 1) * this.params.per_page;
-      const end = start + this.params.per_page;
-      return this.filteredTasks.slice(start, end);
-    },
-    nTotalTasks() {
-      return this.filteredTasks.length;
-    },
-    nTotalPages() {
-      return Math.ceil(this.nTotalTasks / this.params.per_page) || 1;
-    },
-    hasNextPage() {
-      return this.params.page < this.nTotalPages;
-    },
-    pageNumbers() {
-      const min = (this.params.page - 1) * this.params.per_page + 1;
-      const max = Math.min(this.params.page * this.params.per_page, this.nTotalTasks);
-      return { min: this.nTotalTasks === 0 ? 0 : min, max };
-    },
-    // Alias for page to use in template
-    page() {
-      return this.params.page;
     },
     // The board as a plain to-do list: every quest with its assignee, due time and status
     listRows(): QuestListRow[] {
@@ -172,19 +107,46 @@ export default defineComponent({
         { id: "list", label: "List", faIcon: "tasks", badge: this.todoCount },
       ];
     },
-    listEmptyLine(): string {
-      return this.params.search
-        ? "No quest answers to that name."
-        : "Nothing on the list. Tap + to post a task.";
+    // The app bar's meta: what still needs doing
+    headerMeta(): string {
+      return this.isLoading ? "" : `${this.todoCount} due`;
+    },
+    // The rows as the app draws them: the Board in due windows, the List as one flat group
+    sections(): { key: string; label: string; rows: QuestLogRow[] }[] {
+      const hero = String(this.userId);
+      const context = {
+        beasts: this.familyBeasts,
+        heroNick: nickOf((this as any).userStore.users[hero], hero),
+        portraitUrl: beastPortraitUrl,
+      };
+      const draw = (rows: QuestListRow[]) => rows.map((row) => toLogRow(row, context));
+      if (this.view === "list") {
+        return this.listRows.length ? [{ key: "list", label: "", rows: draw(this.listRows) }] : [];
+      }
+      return sectionsByWindow(this.listRows, new Date()).map(({ key, label, rows }) => ({ key, label, rows: draw(rows) }));
+    },
+    // The Quest Wizard opens on today for the hero whose log this is
+    wizardPrefill(): ReturnType<typeof questPrefill> {
+      return questPrefill(prefillQueryFor(new Date(), "all", String(this.userId)));
+    },
+    emptyLine(): string {
+      if (this.params.search) return this.t("quests.empty.search");
+      return this.view === "list" ? this.t("quests.empty.list") : this.t("quests.empty.board");
     },
   },
   methods: {
     clickItem(item: any) {
       this.activeModal = item.id;
     },
-    // A claim made in the modal changes today's board, so reload it once the modal closes
+    // A row tap, Board or List: the quest's beast card opens (the List's Done button still marks it done in one tap)
+    openRow(row: QuestLogRow) {
+      this.activeRow = row.source;
+      this.clickItem(row.source.quest);
+    },
+    // A claim made on the card changes today's board, so reload it once the card closes
     onTaskDismissed() {
       this.activeModal = 0;
+      this.activeRow = null;
       void this.loadBoard();
     },
     isModalOpen(id: any) {
@@ -193,18 +155,6 @@ export default defineComponent({
     clickComplete() {
       this.activeModal = 0;
       this.presentAlertMultipleButtons();
-    },
-    slidePrev() {
-      if (this.params.page > 1) this.params.page--;
-    },
-    slideNext() {
-      if (this.params.page < this.nTotalPages) this.params.page++;
-    },
-    // Get tasks for a specific page number (for swiper slides)
-    getTasksForPage(pageNum: number) {
-      const start = (pageNum - 1) * this.params.per_page;
-      const end = start + this.params.per_page;
-      return this.filteredTasks.slice(start, end);
     },
     async presentAlertMultipleButtons() {
       const alert = await alertController.create({
@@ -215,25 +165,6 @@ export default defineComponent({
         buttons: ["Collect Loot"],
       });
       return alert.present();
-    },
-    getFeaturedImg(item: any) {
-      const hasFeaturedImage = Boolean(item.localImage || item.imageUrl);
-      if (hasFeaturedImage) {
-        return {
-          src: item.localImage || item.imageUrl,
-          alt: item.achievementName,
-        };
-      }
-      return {
-        src: "",
-        alt: item.achievementName,
-      };
-    },
-    searchChanged() {
-      if (this.controlledSwiper) {
-        this.controlledSwiper.slideTo(0);
-      }
-      this.params.page = 1;
     },
     resetTextSound() {
       this.$fx.rpg[this.$fx.theme.rpg].text.pause();
@@ -249,8 +180,8 @@ export default defineComponent({
     },
 
     // --- the List view ---
+    // The dock's v-model has already set the view when this fires, so the choice is always saved
     onViewChange(view: QuestLogView) {
-      if (view === this.view) return;
       this.view = view;
       try {
         localStorage.setItem(VIEW_KEY, view);
@@ -270,48 +201,23 @@ export default defineComponent({
         debug.warn("[MyQuests] could not remember the quest log view", error);
       }
     },
-    rowIcon(row: QuestListRow): string {
-      return ROW_ICONS[row.status];
-    },
-    rowColor(row: QuestListRow): string {
-      return ROW_COLORS[row.status];
-    },
-    // The assignee's picture: the snapshot of their look, else their avatar
-    avatarFor(id: string | null): string {
-      if (!id) return "";
-      return (this as any).$getUserAvatar((this as any).userStore.users[id]) || "";
-    },
-    tapRow(row: QuestListRow) {
-      switch (row.status) {
-        case "open":
-        case "overdue":
-          return this.confirmDone(row);
-        case "pending":
-          return this.say("Pending the Game Master", `${row.title} waits for approval.`);
-        case "later":
-          return this.say("Not due yet", `${row.title} is due ${row.dueLabel}.`);
-        default:
-          return this.say("Already tamed", row.title);
-      }
-    },
     // One tap, one confirm sheet, then the quest goes through completeQuest like a claim from the card
     async confirmDone(row: QuestListRow) {
       const { xp, gp, ap } = row.rewards;
       const sheet = await actionSheetController.create({
+        ...appSheet("quests"),
         header: row.title,
-        subHeader: row.requiresApproval
-          ? "The Game Master must approve this one; the loot waits."
-          : `+${xp} XP · +${gp} GP · +${ap} AP`,
+        subHeader: row.requiresApproval ? this.t("quests.done.approvalNote") : this.t("beastCard.toast.loot", { xp, gp, ap }),
         buttons: [
           {
-            text: row.requiresApproval ? "Done, send for approval" : "Done!",
+            text: row.requiresApproval ? this.t("quests.done.sendButton") : this.t("quests.done.button"),
             icon: checkmarkDone,
             handler: () => {
               void this.finishRow(row);
             },
           },
           {
-            text: "Not yet",
+            text: this.t("quests.done.notYet"),
             role: "cancel",
             handler: () => {
               this.$fx.ui[this.$fx.theme.ui].no.play();
@@ -342,7 +248,7 @@ export default defineComponent({
         await this.loadBoard();
         this.announceDone(row, result);
       } catch {
-        this.say("The quest log did not respond. Try again.", undefined, 2200);
+        this.say(this.t("beastCard.error.log"), undefined, 2200);
       } finally {
         this.finishing = "";
       }
@@ -350,17 +256,17 @@ export default defineComponent({
     announceDone(row: QuestListRow, { awaitingApproval, levelUp, paid }: CompletionResult) {
       const nick = (this as any).userStore.getUserById(this.userId)?.name?.nick || "The hero";
       if (awaitingApproval) {
-        this.say("Pending the Game Master", `${nick} sent ${row.title} for approval.`, 2200);
+        this.say(this.t("quests.toast.pending"), this.t("quests.toast.pendingBody", { nick, quest: row.title }), 2200);
         return;
       }
       this.$fx.ui[this.$fx.theme.ui].select.play();
       const { xp, gp, ap } = paid ?? row.rewards;
-      this.say(`${nick} tamed ${row.title}!`, `+${xp} XP · +${gp} GP · +${ap} AP`);
+      this.say(this.t("beastCard.toast.tamed", { nick, quest: row.title }), this.t("beastCard.toast.loot", { xp, gp, ap }));
       if (!levelUp?.didLevelUp) return;
       const { newLevel } = levelUp;
       this.timers.startTimeout(2000, () => {
         this.$fx.rpg[this.$fx.theme.rpg].levelUp.play();
-        this.say(`LEVEL UP! Now level ${newLevel}`, nick, 2400);
+        this.say(this.t("beastCard.toast.levelUp", { level: newLevel }), nick, 2400);
       }); // let the rewards toast clear first
     },
     async say(header: string, message?: string, duration = 2000) {
@@ -373,9 +279,34 @@ export default defineComponent({
       });
       await toast.present();
     },
-    openAddTask() {
-      this.$fx.ui[this.$fx.theme.ui].openMenu.play();
+    // The FAB's sheet: a new quest through the wizard, or the small to-do form
+    async presentActionSheet() {
+      const sheet = await actionSheetController.create({
+        ...appSheet("quests"),
+        header: "Beast Log",
+        buttons: [
+          ...questLogActions().map(({ id, text }) => ({
+            text,
+            handler: () => {
+              this.runAction(id);
+            },
+          })),
+          { text: "Cancel", icon: close, role: "cancel" },
+        ],
+      });
+      play$fx("openMenu");
+      await sheet.present();
+    },
+    runAction(id: QuestLogActionId) {
+      if (id === "new-quest") {
+        this.wizardOpen = true;
+        return;
+      }
       this.addOpen = true;
+    },
+    // A quest made with the wizard is on the board as soon as it is saved; reload so it shows with its status
+    onQuestSaved() {
+      void this.loadBoard();
     },
     // A new task is on the board as soon as it is saved; reload so it shows with its status
     onTaskSaved(task: Achievement) {
@@ -383,25 +314,23 @@ export default defineComponent({
       const forMe = (task.assignee || []).map(String).includes(String(this.userId));
       const first = task.assignee?.[0];
       const who = forMe ? "" : ` for ${(first && (this as any).userStore.users[first]?.name?.nick) || "a hero"}`;
-      this.say("Task posted", `${task.achievementName}${who}`);
+      this.say(this.t("quests.toast.taskPosted"), `${task.achievementName}${who}`);
     },
   },
   setup(props) {
     const gameStore = useGameStore();
     const userStore = useUserStore();
     const timers = useTimers();
-    const controlledSwiper = ref<SwiperClass | null>(null);
-    const setControlledSwiper = (swiper: SwiperClass) => {
-      controlledSwiper.value = swiper;
-    };
+    const t = useCopy();
+    const { rootClass, rootStyle } = useAppSkin("quests");
 
     const board = ref<QuestBoardItem[]>([]);
     const isLoading = ref(true);
+    // The family's own beasts: the tile of a quest wears its beast's portrait
+    const familyBeasts = ref<Beast[]>([]);
 
     const params = reactive({
-      page: 1,
       search: "",
-      per_page: 4,
     });
 
     // Only the newest request may update the board, so a slow reload can't overwrite a fresher one
@@ -420,43 +349,34 @@ export default defineComponent({
       }
     };
 
-    onMounted(loadBoard);
+    const loadBeasts = async () => {
+      try {
+        familyBeasts.value = await new BestiaryDb(beastStorage).getBeasts();
+      } catch (error) {
+        // the tiles fall back to the library's portraits and the status icons
+        debug.warn("[MyQuests] could not read the bestiary", error);
+      }
+    };
+
+    onMounted(() => {
+      void loadBeasts();
+      return loadBoard();
+    });
     watch(() => params.search, loadBoard);
 
     return {
       gameStore,
       userStore,
       timers,
+      t,
       params,
       board,
       loadBoard,
       isLoading,
-      controlledSwiper,
-      setControlledSwiper,
-      modules: [IonicSlides, Navigation, Controller],
-      chevronBack,
-      chevronForward,
-      stop,
-      play,
-      pause,
+      familyBeasts,
+      rootClass,
+      rootStyle,
       arrowBack,
-      colorWand,
-      colorWandOutline,
-      lockClosedOutline,
-      lockOpenOutline,
-      bagOutline,
-      sunnyOutline,
-      partlySunnyOutline,
-      moonOutline,
-      cloudyNightOutline,
-      medalOutline,
-      ribbonOutline,
-      checkmarkDone,
-      hourglassOutline,
-      add,
-      shieldCheckmarkOutline,
-      formatQuestName,
-      sanitizeHtml,
     };
   },
 });

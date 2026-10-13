@@ -1,4 +1,14 @@
-import { bankReceipt, bankRefusal } from "@/lib/services/gp/bankTeller";
+import {
+  STORAGE_MAXED,
+  bankReceipt,
+  bankRefusal,
+  storageOffer,
+  storageQuestion,
+  storageReceipt,
+  storageRefusal,
+  storageTopUpQuestion,
+} from "@/lib/services/gp/bankTeller";
+import { nextStorageTier, storagePurchase } from "@/lib/services/inventory/Storage";
 import { depositToSavings, payDownBills, payDownDebt, withdrawFromSavings } from "@/lib/services/gp/wallet";
 
 describe("gold bank teller copy", () => {
@@ -69,5 +79,57 @@ describe("gold bank teller copy for the hospital bill", () => {
   it("keeps the old receipt for a hero with no bill", () => {
     const purse = { wallet: 50, savings: 0, debt: 30, hospitalBill: 0, limit: 100 };
     expect(bankReceipt("payDebt", purse, payDownBills(purse, 10))).toBe("₲10 paid. Wallet: ₲40 | Debt: ₲20.");
+  });
+});
+
+describe("the banker's storage counter", () => {
+  it("offers the Storage Box first and bigger storage after, with slots and price", () => {
+    expect(storageOffer(nextStorageTier({})!)).toBe("Storage Box: 10 slots for 100 GP");
+    expect(storageOffer(nextStorageTier({ storageTier: 1 })!)).toBe("Bigger storage: 20 slots for 250 GP");
+    expect(storageOffer(nextStorageTier({ storageTier: 2 })!)).toBe("Bigger storage: 40 slots for 500 GP");
+    expect(storageOffer(nextStorageTier({ storageTier: 3 })!)).toBe("Bigger storage: 80 slots for 1000 GP");
+  });
+
+  it("asks in the banker's voice", () => {
+    expect(storageQuestion(nextStorageTier({})!)).toBe("A Storage Box holds 10 things. 100 GP?");
+    expect(storageQuestion(nextStorageTier({ storageTier: 1 })!)).toBe("Bigger storage holds 20 things. 250 GP?");
+  });
+
+  it("offers the savings when the wallet is short and they would cover the rest", () => {
+    const sale = storagePurchase({}, 40, 300);
+    if (sale.ok || sale.reason !== "gp") throw new Error("expected a short wallet");
+    expect(sale.canTopUp).toBe(true);
+    expect(storageTopUpQuestion(sale)).toBe("Your wallet is 60 GP short. Take the rest from your savings?");
+  });
+
+  it("says how much more is needed when even the savings fall short", () => {
+    const sale = storagePurchase({}, 60, 10);
+    expect(storageRefusal(sale)).toBe("You are 30 GP short, savings and all. Come back when you have more!");
+  });
+
+  it("says the storage is as big as it gets at the top tier", () => {
+    expect(STORAGE_MAXED).toBe("Your storage is as big as it gets.");
+    expect(storageRefusal(storagePurchase({ storageTier: 4 }, 99999))).toBe(STORAGE_MAXED);
+  });
+
+  it("is silent when the sale goes through, and reads the new size out", () => {
+    const first = storagePurchase({}, 100);
+    expect(storageRefusal(first)).toBeNull();
+    if (!first.ok) throw new Error("expected a sale");
+    expect(storageReceipt(first)).toBe("You got a Storage Box! 10 slots");
+
+    const bigger = storagePurchase({ storageTier: 1 }, 250);
+    if (!bigger.ok) throw new Error("expected a sale");
+    expect(storageReceipt(bigger)).toBe("Your storage grew to 20 slots!");
+  });
+
+  it("says so when part of the price came out of the savings", () => {
+    const sale = storagePurchase({}, 40, 300, true);
+    if (!sale.ok) throw new Error("expected a sale");
+    expect(storageReceipt(sale)).toBe("You got a Storage Box! 10 slots (60 GP came out of your savings.)");
+  });
+
+  it("does not know a hero who is not there", () => {
+    expect(storageRefusal({ ok: false, reason: "hero" })).toBe("I can't find your account.");
   });
 });

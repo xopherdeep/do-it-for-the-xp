@@ -18,6 +18,8 @@
           <xp-close-button size="lg" color="light" @click="dismiss" />
         </ion-buttons>
       </ion-toolbar>
+      <!-- Text style: the voice the game's words read in (Auto picks it from the birthday) -->
+      <xp-text-style-bar v-if="user?.id" :user="user" />
     </ion-header>
 
     <ion-content class="icon-colors bg-slide bg-slide-dark">
@@ -217,6 +219,7 @@ import {
 import { JOB_CLASS_OPTIONS, FOOD_OPTIONS, POINT_ICONS, PILLARS, type PillarType } from "@/constants";
 import AvatarSelector from "@/app/SideMenu/SwitchProfile/AddProfile/components/AvatarSelector.vue";
 import XpStatSelectorModal from "./XpStatSelectorModal.vue";
+import XpTextStyleBar from "./XpTextStyleBar.vue";
 import XpProfileStatBox from "@/components/molecules/ProfileStatBox/XpProfileStatBox.vue";
 import XpCloseButton from "@/components/atoms/CloseButton/XpCloseButton.vue";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -256,6 +259,7 @@ export default defineComponent({
     IonToggle,
     AvatarSelector,
     XpStatSelectorModal,
+    XpTextStyleBar,
     XpProfileStatBox,
     XpCloseButton,
     XpHeroBuilderModal

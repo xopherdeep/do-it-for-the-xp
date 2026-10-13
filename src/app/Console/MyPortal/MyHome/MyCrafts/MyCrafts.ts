@@ -2,67 +2,30 @@ import { defineComponent as dC, ref, computed } from "vue";
 import {
   IonPage,
   IonContent,
-  IonButton,
-  IonIcon,
   IonHeader,
   IonToolbar,
-  IonButtons,
-  IonTitle,
-  IonSegment,
-  IonSegmentButton,
-  IonGrid,
-  IonRow,
-  IonCol,
-  IonCard,
-  IonCardHeader,
-  IonCardSubtitle,
-  IonImg,
-  IonCardContent,
+  IonActionSheet,
   IonFab,
   IonFabButton,
-  IonActionSheet,
   IonFooter,
-  IonSearchbar
-
 } from "@ionic/vue";
 import { useRouter } from "vue-router";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useItemFetcher } from "@/hooks/useItemFetcher";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
+import { appSheet, useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
+import { useCopy } from "@/hooks/useVoice";
 
 import {
-  calendarOutline,
-  addCircleOutline,
-  removeCircleOutline,
+  archiveOutline,
   close,
-  arrowBack,
-  chevronBack,
-  chevronForward,
-  stop,
-  play,
-  pause,
-  colorWand,
   colorWandOutline,
-  lockClosedOutline,
-  lockOpenOutline,
-  sunnyOutline,
-  partlySunnyOutline,
-  moonOutline,
-  cloudyNightOutline,
-  fitnessOutline,
   sparklesOutline,
   keyOutline,
-  cartOutline,
-  starSharp,
-  storefrontOutline,
-  banOutline,
-  bagOutline,
   cubeOutline,
-  bookOutline,
-  videocamOutline,
   appsOutline,
-  bedOutline
+  bedOutline,
 } from "ionicons/icons";
 import XpAppBottomNav from "@/components/organisms/BottomNav/XpAppBottomNav.vue";
 import type { AppNavTab } from "@/components/organisms/BottomNav/appBottomNav";
@@ -75,6 +38,14 @@ const WORKBENCH_TABS: AppNavTab[] = [
   { id: "key", label: "Key", ionIcon: keyOutline },
 ];
 
+/** The rendered HTML the server sends as plain text (entities decoded, tags dropped) for a row title or subtitle. */
+const plainText = (html?: string | null): string => {
+  const clean = sanitizeHtml(html);
+  if (!clean) return "";
+  const doc = new DOMParser().parseFromString(clean, "text/html");
+  return (doc.body.textContent || "").replace(/\s+/g, " ").trim();
+};
+
 export default dC({
   name: "my-crafts",
   props: ["userId"],
@@ -83,30 +54,20 @@ export default dC({
     XpAppBottomNav,
     IonPage,
     IonContent,
-    IonButton,
-    IonIcon,
     IonHeader,
     IonToolbar,
-    IonButtons,
-    IonTitle,
-    IonGrid,
-    IonRow,
-    IonCol,
-    IonCard,
-    IonCardHeader,
-    IonCardSubtitle,
-    IonImg,
-    IonCardContent,
+    IonActionSheet,
     IonFab,
     IonFabButton,
-    IonActionSheet,
     IonFooter,
-    IonSearchbar
   },
   setup(props) {
     const router = useRouter();
     const userStore = useUserStore();
     const user = computed(() => userStore.getUserById(props.userId));
+    const t = useCopy();
+    const { rootClass, rootStyle } = useAppSkin("workbench");
+    const sheetAttrs = appSheet("workbench");
 
     // Initialize Fetcher with default params from original data
     const fetcher = useItemFetcher("xp_accessory", {
@@ -118,7 +79,6 @@ export default dC({
     const isLoading = fetcher.isLoading;
     const request = fetcher.request;
     const actionSheetOpen = ref(false);
-    const shelves = ref(['affordable']);
     const activeTab = ref("all");
 
     const onTabChange = (val: string) => {
@@ -127,8 +87,12 @@ export default dC({
       request.params.page = 1;
     };
 
-    const segmentChanged = () => {
-      // console.log("Segment changed", ev);
+    const onSearch = () => {
+      request.params.page = 1;
+    };
+
+    const loadMore = () => {
+      request.params.page++;
     };
 
     const handleInventoryClick = () => {
@@ -140,12 +104,58 @@ export default dC({
       })
     };
 
-    const customAlertOptions = {
-      header: 'View Quests',
-      subHeader: 'Select what quests to view',
-      message: '',
-      translucent: true
+    const handleStorageClick = () => {
+      router.push({
+        name: 'storage',
+        params: {
+          userId: props.userId
+        }
+      })
     };
+
+    // Every option goes somewhere: the bag with the crafting materials, or the Storage app at home.
+    const actionSheetButtons = [
+      {
+        text: 'Materials Inventory',
+        icon: cubeOutline,
+        handler: handleInventoryClick,
+      },
+      {
+        text: 'Open Storage',
+        icon: archiveOutline,
+        handler: handleStorageClick,
+      },
+      {
+        text: 'Cancel',
+        icon: close,
+        role: 'cancel',
+      },
+    ];
+
+    // The list scrolls: every page loaded so far, one after the other.
+    const listItems = computed<any[]>(() => {
+      const pages = Math.max(1, Number(request.params.page) || 1);
+      const rows: any[] = [];
+      for (let page = 1; page <= pages; page++) {
+        rows.push(...fetcher.getSlideItems(page));
+      }
+      return rows;
+    });
+
+    const itemTitle = (item: any) => plainText(item?.title?.rendered) || "Unnamed item";
+    const itemSubtitle = (item: any) => plainText(item?.excerpt?.rendered);
+    const itemImage = (item: any) => fetcher.getImgObj(item?.featured_media)?.src || "";
+
+    const hasSearch = computed(() => Boolean(String(request.params.search || "").trim()));
+    const sectionLabel = computed(() => {
+      const tab = WORKBENCH_TABS.find((entry) => entry.id === activeTab.value);
+      return !tab || tab.id === "all" ? "On the bench" : tab.label;
+    });
+    const metaText = computed(() => {
+      const total = fetcher.nTotalItems.value || listItems.value.length;
+      return total ? `${total} ${total === 1 ? "item" : "items"}` : "";
+    });
+    const emptyText = computed(() => t(hasSearch.value ? "workbench.empty.search" : "workbench.empty.bare"));
 
     return {
       // Fetcher
@@ -153,50 +163,31 @@ export default dC({
       isLoading,
       request,
 
+      // Skin
+      rootClass,
+      rootStyle,
+      sheetAttrs,
+
       // Local State
       user,
       actionSheetOpen,
-      shelves,
+      actionSheetButtons,
       activeTab,
       workbenchTabs: WORKBENCH_TABS,
       onTabChange,
-      segmentChanged,
+      onSearch,
+      loadMore,
       handleInventoryClick,
-      customAlertOptions,
+      handleStorageClick,
 
-      // Icons
-      calendarOutline,
-      storefrontOutline,
-      banOutline,
-      chevronBack,
-      chevronForward,
-      stop,
-      play,
-      pause,
-      arrowBack,
-      colorWand,
-      colorWandOutline,
-      lockClosedOutline,
-      lockOpenOutline,
-      bagOutline,
-      sunnyOutline,
-      partlySunnyOutline,
-      moonOutline,
-      cloudyNightOutline,
-      fitnessOutline,
-      sparklesOutline,
-      keyOutline,
-      cartOutline,
-      starSharp,
-      addCircleOutline,
-      removeCircleOutline,
-      close,
-      cubeOutline,
-      bookOutline,
-      videocamOutline,
-      appsOutline,
-      bedOutline,
-      sanitizeHtml,
+      // List
+      listItems,
+      itemTitle,
+      itemSubtitle,
+      itemImage,
+      sectionLabel,
+      metaText,
+      emptyText,
     };
   },
 });

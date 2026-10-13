@@ -92,6 +92,9 @@ export const useUserStore = defineStore('user', () => {
   const {
     addInventoryItem,
     spendInventoryItem,
+    storeItem,
+    takeItem,
+    buyStorageTier,
     setItemCooldown,
     setBenchRestAt,
     setQuestEffects,
@@ -101,8 +104,10 @@ export const useUserStore = defineStore('user', () => {
     setJobClass,
     addQuestGrudge,
     clearQuestGrudge,
-    setQuestGrudges
-  } = createProfileSetters({ users, currentUser, persistUser, syncCurrentUser });
+    setQuestGrudges,
+    setVoice,
+    setAutoRead
+  } = createProfileSetters({ users, currentUser, persistUser, syncCurrentUser, updateUserGP });
 
   async function loadUsers() {
     try {
@@ -469,6 +474,9 @@ export const useUserStore = defineStore('user', () => {
     updateUserMP,
     addInventoryItem,
     spendInventoryItem,
+    storeItem,
+    takeItem,
+    buyStorageTier,
     setItemCooldown,
     setBenchRestAt,
     setQuestEffects,
@@ -486,6 +494,8 @@ export const useUserStore = defineStore('user', () => {
     addQuestGrudge,
     clearQuestGrudge,
     setQuestGrudges,
+    setVoice,
+    setAutoRead,
     persistUser,
     getAPInTimeRange,
     impersonateUser,

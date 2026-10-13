@@ -15,7 +15,7 @@
       <div class="ap-theme-background h-full flex items-center justify-center">
         <i class="fad fa-hand-holding-magic fa-10x"></i> AP
         <!-- FAB button to trigger the dialog -->
-        <ion-fab vertical="bottom" horizontal="center" slot="fixed">
+        <ion-fab v-show="!isDialogVisible" vertical="bottom" horizontal="center" slot="fixed">
           <ion-fab-button color="tertiary" @click="showApDialog">
             <i class="fad fa-hand-holding-magic fa-lg"></i>
           </ion-fab-button>
@@ -46,9 +46,6 @@
             class="ap-text"
             :has-more-text="hasMoreDialog"
           />
-        </div>
-        <div v-if="hasMoreDialog" class="dialog-indicator">
-          <i class="fad fa-chevron-down blink"></i>
         </div>
       </ion-card>
     </div>

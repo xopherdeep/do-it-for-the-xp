@@ -46,6 +46,7 @@
       
       <!-- fab button to trigger dialog -->
       <ion-fab
+        v-show="!isTalking"
         vertical="bottom"
         horizontal="center"
         slot="fixed"
@@ -56,32 +57,8 @@
       </ion-fab>
     </ion-content>
 
-    <!-- Custom Concierge Dialog (RPG style) -->
-    <div class="concierge-dialog-overlay" v-if="isDialogVisible" role="button" tabindex="0" @click="advanceDialog"
-      @keydown.enter="advanceDialog" @keydown.space.prevent="advanceDialog">
-      <ion-card class="concierge-dialog-box">
-        <ion-card-title class="dialog-header">
-          <i class="fad fa-concierge-bell fa-lg mr-2"></i>
-          <span>Hotel Concierge</span>
-        </ion-card-title>
-        <div class="dialog-content">
-          <xp-typing-text
-            ref="conciergeDialogText"
-            :text="currentDialogText"
-            :speed="30"
-            :auto-start="true"
-            :sound-theme="$fx.theme.rpg"
-            sound-type="text"
-            @typing-complete="onTypingComplete"
-            class="concierge-text"
-            :has-more-text="hasMoreDialog"
-          />
-        </div>
-        <div v-if="hasMoreDialog" class="dialog-indicator">
-          <i class="fad fa-chevron-down blink"></i>
-        </div>
-      </ion-card>
-    </div>
+    <!-- The concierge's dialog, offers and receipts: the game's own prompt, not native alerts -->
+    <xp-reveal-prompt :prompt="prompt" @respond="reveal.respond" />
 
     <!-- ATM Modal Component -->
     <ATMModal

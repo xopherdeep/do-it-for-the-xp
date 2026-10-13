@@ -265,6 +265,17 @@ describe("BattleVictoryCard", () => {
       expect(card.find(".victory-levelup").text()).toBe("LEVEL UP! Lv 3 → 4");
     });
 
+    it("names the hunt bonus the win added to the XP, and only then", () => {
+      expect(show({ card: makeCard() }).find('[data-test="hunt-bonus"]').exists()).toBe(false);
+      wrapper?.unmount();
+      expect(show({ card: makeCard({ huntBonusXp: 30 }) }).find('[data-test="hunt-bonus"]').text()).toBe("Hunt bonus +30 XP");
+      wrapper?.unmount();
+      // A held quest is paid it once the Game Master approves
+      expect(show({ card: makeCard({ huntBonusXp: 30, held: true }) }).find('[data-test="hunt-bonus"]').text()).toBe(
+        "Hunt bonus +30 XP once approved"
+      );
+    });
+
     it("holds the loot for the Game Master: locked tiles and a waiting ribbon, still counting", async () => {
       const card = show({ card: makeCard({ held: true }) });
       expect(card.find(".victory-held").text()).toBe("Waiting for the Game Master");

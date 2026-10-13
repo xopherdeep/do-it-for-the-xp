@@ -67,8 +67,8 @@ export interface PickerRow {
   /** assigneeLabel: "Mia, Sam", "Anyone" */
   heroes: string;
   requiresApproval: boolean;
-  /** The quest has no due time, so the ambush at its due interval never comes for it (5.9) */
-  neverAmbushes: boolean;
+  /** The quest has no due time, so it ambushes at any random encounter (5.9) */
+  isAnytime: boolean;
 }
 
 /** A quest has a due time when the time picker holds a readable clock time (the rule the deadline reads). */
@@ -96,7 +96,7 @@ export function pickerRowOf(quest: Achievement, beasts: readonly Beast[], users:
     schedule: scheduleLabel(quest),
     heroes: assigneeLabel(quest, [...users]),
     requiresApproval: Boolean(quest.requiresApproval),
-    neverAmbushes: !hasDueTime(quest),
+    isAnytime: !hasDueTime(quest),
   };
 }
 
@@ -131,7 +131,7 @@ export interface QuestCard {
   /** "Daily · Mia, Sam" */
   when: string;
   approval: boolean;
-  /** "no due time: never ambushes" */
+  /** "no due time: ambushes any time" */
   note?: string;
 }
 
@@ -143,7 +143,9 @@ export function dormantLine(template: Pick<RoomQuestTemplate, "beastId">, beasts
 }
 
 /** The note on a quest that has no due time (5.9). */
-export const NEVER_AMBUSHES_NOTE = "no due time: ambushes any time";
+export const ANYTIME_AMBUSH_NOTE = "no due time: ambushes any time";
+/** Backwards compatible alias */
+export const NEVER_AMBUSHES_NOTE = ANYTIME_AMBUSH_NOTE;
 
 /** "Challenging 8" for a step of the slider, "8" for a value between the steps, "" when unset. */
 const difficultyText = (row: Pick<PickerRow, "difficulty" | "difficultyName">): string => {
@@ -163,7 +165,7 @@ export function questCardOf(row: PickerRow): QuestCard {
     facts: [difficultyText(row), row.beastName].filter(Boolean).join(" · "),
     when: [row.schedule, row.heroes].filter(Boolean).join(" · "),
     approval: row.requiresApproval,
-    note: row.neverAmbushes ? NEVER_AMBUSHES_NOTE : undefined,
+    note: row.isAnytime ? ANYTIME_AMBUSH_NOTE : undefined,
   };
 }
 

@@ -11,6 +11,7 @@ import {
 } from "ionicons/icons";
 import { useUserStore } from "@/lib/store/stores/user";
 import { useAbilitySystem } from "@/hooks/abilities/useAbilitySystem";
+import { useCopy } from "@/hooks/useVoice";
 import {
   computeHeroAbilityStatuses,
   groundedReasonOf,
@@ -19,10 +20,11 @@ import {
 import { getCastLogDb, lastCastsOf } from "@/lib/databases/CastLogDb";
 import type { Ability } from "@/types/abilities";
 import { play$fx } from "@/assets/fx";
-import XpPowerCard from "./components/XpPowerCard.vue";
+import { buildPowerRow, type PowerRow } from "./powerRow";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
 import XpAppBottomNav from "@/components/organisms/BottomNav/XpAppBottomNav.vue";
 import type { AppNavTab } from "@/components/organisms/BottomNav/appBottomNav";
+import { useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
 
 /** The tabs of the Powers page: everything, the two kinds, and whether the hero has earned them yet */
 export type PowerFilter = "all" | "real-life" | "in-game" | "unlocked" | "locked";
@@ -40,6 +42,15 @@ const POWER_TABS: AppNavTab[] = [
 /** Privileges (real-life) come before Spells (in-game) */
 const TYPE_ORDER: Record<string, number> = { "real-life": 0, "in-game": 1 };
 
+/** The section headers of the list: Privileges first, then Spells */
+const GROUP_LABEL: Record<string, string> = { "real-life": "Privileges", "in-game": "Spells" };
+
+export interface PowerGroup {
+  type: string;
+  label: string;
+  rows: PowerRow[];
+}
+
 const byTypeThenName = (a: Ability, b: Ability): number =>
   (TYPE_ORDER[a.type] ?? 2) - (TYPE_ORDER[b.type] ?? 2) || a.name.localeCompare(b.name);
 
@@ -48,12 +59,14 @@ export default defineComponent({
   name: "my-abilities",
   components: {
     XpLoading,
-    XpPowerCard,
     XpAppBottomNav,
   },
   mixins: [ionic],
   setup(props) {
     const userStore = useUserStore();
+    const t = useCopy();
+    // The phone app skin (Retro / Modern follows the profile toggle) with the purple Spells accent
+    const { rootClass, rootStyle } = useAppSkin("spells");
     const { abilities, isLoading, isInitialized, useAbility: castPower, refresh } = useAbilitySystem();
 
     // The hero is the route's user, or whoever is playing when the route names no one
@@ -106,6 +119,30 @@ export default defineComponent({
     // The Power being cast right now, so a double tap cannot charge the MP twice
     const casting = ref("");
 
+    // One row per visible Power, grouped under Privileges and Spells (the list is already sorted that way)
+    const groups = computed<PowerGroup[]>(() => {
+      const result: PowerGroup[] = [];
+      visible.value.forEach((ability) => {
+        const row = buildPowerRow(ability, statuses.value[ability.id] || "locked", snapshot.value, {
+          groundedReason: groundedReason.value,
+          casting: casting.value === ability.id,
+        });
+        const last = result[result.length - 1];
+        if (last && last.type === ability.type) last.rows.push(row);
+        else result.push({ type: ability.type, label: GROUP_LABEL[ability.type] ?? "Powers", rows: [row] });
+      });
+      return result;
+    });
+
+    // The hero's MP, as the app bar's meta
+    const mpMeta = computed(() => (hero.value ? `${Math.floor(snapshot.value.mp)} MP` : ""));
+
+    // A tapped row opens in place: the one-line description shows in full
+    const openId = ref("");
+    const toggleOpen = (abilityId: string) => {
+      openId.value = openId.value === abilityId ? "" : abilityId;
+    };
+
     const cast = async (abilityId: string) => {
       const isCastBlocked = Boolean(casting.value) || !heroId.value || Boolean(groundedReason.value);
       if (isCastBlocked) return;
@@ -118,7 +155,7 @@ export default defineComponent({
         play$fx("select");
         await loadLastCasts();
         const toast = await toastController.create({
-          message: `Cast! ${name}`,
+          message: t("powers.toast.cast", { name }),
           cssClass: "rpg-toast",
           position: "top",
           duration: 1800,
@@ -156,6 +193,13 @@ export default defineComponent({
       groundedReason,
       statuses,
       unlocks,
+      rootClass,
+      rootStyle,
+      t,
+      groups,
+      mpMeta,
+      openId,
+      toggleOpen,
       filter,
       search,
       visible,

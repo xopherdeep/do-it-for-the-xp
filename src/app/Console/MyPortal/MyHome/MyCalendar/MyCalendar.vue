@@ -1,95 +1,87 @@
 <template>
-  <ion-page>
+  <ion-page :class="rootClass" :style="rootStyle">
     <ion-header>
-      <ion-toolbar class="rpg-box">
-        <ion-buttons slot="start">
-          <xp-back-button></xp-back-button>
-          <ion-icon :icon="calendarOutline" slot="icon-only" />
-        </ion-buttons>
-        <ion-title>
-          {{ calendarTitle }}
-        </ion-title>
-        <ion-buttons slot="end">
-          <ion-button @click="openAddQuest" color="light" fill="clear" slot="icon-only">
-            <ion-icon :icon="addCircleOutline" />
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-      <ion-toolbar class="calendar-subtoolbar">
-        <ion-searchbar
-          color="light"
-          :debounce="500"
-          @ionChange="filterQuests"
-          v-model="searchQuery"
-          placeholder="Search Daily Quests..."
-        ></ion-searchbar>
+      <ion-toolbar>
+        <xp-app-header title="Calendar" icon="calendar-alt" :meta="dueMeta">
+          <template #start>
+            <xp-back-button />
+          </template>
+          <template #end>
+            <!-- Every player can start a quest: the + opens the Quest Wizard on the day and time on screen -->
+            <button type="button" class="xp-app-btn xp-app-btn--ghost app-icon-btn" aria-label="New quest"
+              data-test="add-quest" @click="openAddQuest">
+              <i class="fad fa-plus" aria-hidden="true" />
+            </button>
+          </template>
+        </xp-app-header>
       </ion-toolbar>
     </ion-header>
 
-    <ion-content class="my-calendar" :fullscreen="true">
+    <ion-content class="my-calendar">
       <ion-refresher slot="fixed" @ionRefresh="loadLocalQuests"></ion-refresher>
       <xp-loading v-if="isLoading" />
 
-      <div v-else class="quest-list">
-        <ion-grid v-if="filteredQuests.length > 0">
-          <ion-row>
-            <ion-col size="12" v-for="{ quest: item, status, pending } in filteredQuests" :key="item.id"
-              class="ion-no-padding">
-              <ion-card @click="activeModal = item.id" button class="item"
-                :class="{ 'is-tamed': status === 'done' && !pending, 'is-pending': status === 'done' && pending }">
-                <ion-card-header>
-                  <ion-card-title v-html="sanitizeHtml(formatQuestName(item.achievementName || 'Untitled Quest'))"></ion-card-title>
-                  <ion-card-subtitle v-if="item.dueByTime">
-                    <i class="fal fa-clock"></i> {{ item.dueByTime }}
-                  </ion-card-subtitle>
-                </ion-card-header>
-                <ion-card-content>
-                  <div class="quest-rewards">
-                    <!-- A used-up quest whose claim still waits for the Game Master is Pending, not Tamed -->
-                    <ion-badge color="warning" class="pending-badge" v-if="status === 'done' && pending">
-                      <ion-icon :icon="hourglassOutline" /> Pending
-                    </ion-badge>
-                    <ion-badge color="success" class="tamed-badge" v-else-if="status === 'done'">
-                      <ion-icon :icon="checkmarkDone" /> Tamed
-                    </ion-badge>
-                    <ion-badge color="success" v-if="item.xp">{{ item.xp }} XP</ion-badge>
-                    <ion-badge color="warning" v-if="item.gp">{{ item.gp }} GP</ion-badge>
-                    <ion-badge color="tertiary" v-if="item.ap">{{ item.ap }} AP</ion-badge>
-                  </div>
-                </ion-card-content>
-              </ion-card>
+      <template v-else>
+        <!-- The agenda: the day's quests as rows, grouped by time of day (the Morn / Noon / Eve / Night tabs filter it) -->
+        <xp-app-section v-for="group in agenda" :key="group.id" :label="group.label">
+          <xp-app-row v-for="entry in group.items" :key="entry.quest.id" :title="questTitle(entry.quest)"
+            :subtitle="dueLine(entry.quest)" :icon="rowIcon(entry, group.id)"
+            :class="{ 'is-tamed': entry.status === 'done' && !entry.pending, 'is-pending': entry.status === 'done' && entry.pending }"
+            @click="activeModal = entry.quest.id">
+            <template v-if="hasChips(entry)" #chips>
+              <!-- A used-up quest whose claim still waits for the Game Master is Pending, not Tamed -->
+              <xp-app-chip v-if="entry.status === 'done' && entry.pending" kind="tag" value="Pending" />
+              <xp-app-chip v-else-if="entry.status === 'done'" kind="tag" value="Tamed" />
+              <xp-app-chip v-if="entry.quest.xp" kind="xp" :value="entry.quest.xp" />
+              <xp-app-chip v-if="entry.quest.gp" kind="gp" :value="entry.quest.gp" />
+              <xp-app-chip v-if="entry.quest.ap" kind="ap" :value="entry.quest.ap" />
+            </template>
+          </xp-app-row>
+        </xp-app-section>
 
-              <MyTask @didDismiss="onTaskDismissed" :item="item" :boardStatus="claimStatus(status)" :pending="pending"
-                :userId="heroId" v-if="activeModal == item.id" />
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-        <div v-else class="no-chores" data-test="no-chores">{{ emptyLine }}</div>
-      </div>
+        <xp-app-empty v-if="!filteredQuests.length" icon="calendar-check" :text="emptyLine" data-test="no-chores" />
+      </template>
 
-      <ion-fab vertical="bottom" horizontal="center" slot="fixed" @click.stop="presentActionSheet">
-        <ion-fab-button>
-          <ion-icon :icon="calendarOutline"></ion-icon>
+      <!-- A tap on a row opens the quest's bestiary entry: the beast, its checklist, and Hunt / Claim -->
+      <XpBeastCardModal v-if="activeEntry" @didDismiss="onTaskDismissed" :quest="activeEntry.quest"
+        :status="cardStatus(activeEntry)" :due="cardDue(activeEntry.quest)" :dueLabel="cardDueLabel(activeEntry.quest)"
+        :userId="heroId" />
+
+      <!-- The Quest Wizard: a new quest for this day and part of the day; it is on the board once it is saved -->
+      <XpQuestWizardModal :open="wizardOpen" :prefill="wizardPrefill" @close="wizardOpen = false"
+        @saved="onQuestSaved" />
+
+      <!-- FAB (the same one the town's buildings and the Gold Bank use) to open the calendar's actions -->
+      <ion-fab vertical="bottom" horizontal="center" slot="fixed">
+        <ion-fab-button color="warning" aria-label="Calendar actions" data-test="calendar-fab" @click="presentActionSheet">
+          <i class="fad fa-calendar-star fa-2x"></i>
         </ion-fab-button>
       </ion-fab>
     </ion-content>
+
     <ion-footer class="calendar-footer">
-      <ion-toolbar color="secondary" class="calendar-subtoolbar">
-        <ion-grid>
-          <ion-row>
-            <ion-col>
-              <ion-button @click="prevDay" color="light" expand="block" size="small">
-                <ion-icon :icon="chevronBack" slot="icon-only" />
-              </ion-button>
-            </ion-col>
-            <ion-col>
-              <ion-button @click="nextDay" color="light" expand="block" size="small">
-                <ion-icon :icon="chevronForward" slot="icon-only" />
-              </ion-button>
-            </ion-col>
-          </ion-row>
-        </ion-grid>
-      </ion-toolbar>
+      <div class="xp-app-bar">
+        <label class="xp-app-search">
+          <i class="fad fa-search" aria-hidden="true"></i>
+          <input v-model="searchQuery" type="search" placeholder="Search Daily Quests..." aria-label="Search daily quests"
+            autocomplete="off" enterkeyhint="search" />
+        </label>
+        <!-- Day navigation -->
+        <div class="day-nav">
+          <button type="button" class="xp-app-btn xp-app-btn--ghost app-icon-btn" aria-label="Previous day"
+            @click="prevDay">
+            <i class="fad fa-chevron-left" aria-hidden="true" />
+          </button>
+          <span class="day-nav__label" aria-live="polite">
+            {{ calendarTitle }}
+            <xp-app-chip v-if="isSelectedToday" kind="tag" value="Today" />
+          </span>
+          <button type="button" class="xp-app-btn xp-app-btn--ghost app-icon-btn" aria-label="Next day"
+            @click="nextDay">
+            <i class="fad fa-chevron-right" aria-hidden="true" />
+          </button>
+        </div>
+      </div>
 
       <xp-app-bottom-nav
         :tabs="calendarTabs"
@@ -109,57 +101,46 @@ import {
   defineComponent,
   watch
 } from "vue";
+import { useRouter } from "vue-router";
 import {
   IonPage,
   IonHeader,
   IonToolbar,
-  IonButtons,
-  IonIcon,
-  IonTitle,
   IonContent,
+  IonFooter,
+  IonRefresher,
   IonFab,
   IonFabButton,
-  IonFooter,
-  IonGrid,
-  IonRow,
-  IonCol,
-  IonSearchbar,
-  IonButton,
-  IonCard,
-  IonCardHeader,
-  IonCardTitle,
-  IonCardSubtitle,
-  IonCardContent,
-  IonBadge,
-  IonRefresher,
   actionSheetController,
+  onIonViewWillEnter,
 } from "@ionic/vue";
-import {
-  calendarOutline,
-  addCircleOutline,
-  removeCircleOutline,
-  close,
-  chevronBack,
-  chevronForward,
-  checkmarkDone,
-  hourglassOutline,
-} from "ionicons/icons";
-import { isToday } from "date-fns";
-import MyTask from "../../UserHud/MyTask/MyTask.vue";
+import { calendarOutline, close } from "ionicons/icons";
+import { format, isToday } from "date-fns";
+import XpBeastCardModal from "../../UserHud/MyQuests/components/XpBeastCardModal.vue";
+import XpQuestWizardModal from "../../UserHud/MyQuests/components/XpQuestWizardModal.vue";
+import { calendarCardStatus } from "../../UserHud/MyQuests/beastCard";
+import type { BeastCardStatus } from "../../UserHud/MyQuests/beastCard";
 import XpAppBottomNav from "@/components/organisms/BottomNav/XpAppBottomNav.vue";
 import type { AppNavTab } from "@/components/organisms/BottomNav/appBottomNav";
+import { appSheet, useAppSkin } from "@/components/organisms/XpApp/useAppSkin";
 import { formatQuestName } from "@/lib/utils/format";
 import { sanitizeHtml } from "@/lib/utils/sanitizeHtml";
 import { boardStatusInSegment, getQuestEngine } from "@/lib/engine/quests/QuestEngine";
-import type { QuestBoardItem, QuestBoardStatus } from "@/lib/engine/quests/QuestEngine";
-import { emptyBoardLine } from "@/lib/engine/quests/QuestSchedule";
+import type { QuestBoardItem } from "@/lib/engine/quests/QuestEngine";
+import { dueTimeOn, emptyBoardLine, questTimesOfDay } from "@/lib/engine/quests/QuestSchedule";
 import type { TimeOfDay } from "@/lib/engine/quests/QuestSchedule";
 import { useUserStore } from "@/lib/store/stores/user";
+import { useVoice } from "@/hooks/useVoice";
+import { prefillQueryFor, questPrefill } from "@/lib/services/quests/questPrefill";
+import { play$fx } from "@/assets/fx";
+import { calendarActions, questLogRoute } from "./calendarActions";
+import type { CalendarActionId } from "./calendarActions";
+import type { Achievement } from "@/lib/databases/AchievementDb";
 
 defineComponent({
   name: "MyCalendar",
   components: {
-    MyTask,
+    XpBeastCardModal,
     XpAppBottomNav,
   }
 });
@@ -168,6 +149,10 @@ const props = defineProps<{
   userId?: string | number;
 }>();
 const userStore = useUserStore();
+const { voice } = useVoice();
+const router = useRouter();
+// The phone-app skin follows the Retro / Modern toggle of the profile
+const { rootClass, rootStyle } = useAppSkin("calendar");
 // /calendar/:userId? may be opened without an id (the router hands over "" for it), so fall back to the active profile
 const heroId = computed(() => String(props.userId || userStore.currentUser.id || ""));
 
@@ -219,7 +204,69 @@ const filteredQuests = computed(() => {
   ];
 });
 
-const emptyLine = computed(() => emptyBoardLine(activeSegment.value));
+const emptyLine = computed(() => emptyBoardLine(activeSegment.value, voice.value));
+
+type AgendaEntry = (typeof filteredQuests.value)[number];
+type AgendaGroupId = TimeOfDay | "anytime";
+
+const AGENDA_GROUPS: { id: AgendaGroupId; label: string; icon: string }[] = [
+  { id: "morning", label: "Morning", icon: "sun" },
+  { id: "noon", label: "Noon", icon: "cloud-sun" },
+  { id: "evening", label: "Evening", icon: "cloud-moon" },
+  { id: "night", label: "Night", icon: "moon-stars" },
+  { id: "anytime", label: "Anytime", icon: "scroll" },
+];
+
+// The agenda groups the day's quests by time of day: under a time tab that is the one group, under All a quest sits in
+// the first part of the day it is timed for (an untimed one is "Anytime"). Open quests stay ahead of tamed ones.
+const agenda = computed(() => {
+  const groups = new Map<AgendaGroupId, AgendaEntry[]>();
+  for (const entry of filteredQuests.value) {
+    const slot: AgendaGroupId =
+      activeSegment.value !== "all" ? activeSegment.value : questTimesOfDay(entry.quest)[0] ?? "anytime";
+    groups.set(slot, [...(groups.get(slot) ?? []), entry]);
+  }
+  return AGENDA_GROUPS.filter(({ id }) => groups.has(id)).map(({ id, label }) => ({
+    id,
+    label,
+    items: groups.get(id) ?? []
+  }));
+});
+
+// "4 due" in the app bar: what is still open on this day
+const dueMeta = computed(() => {
+  const open = filteredQuests.value.filter(({ status }) => status === "open").length;
+  if (open) return `${open} due`;
+  return filteredQuests.value.length ? "All done" : undefined;
+});
+
+const isSelectedToday = computed(() => isToday(selectedDate.value));
+
+// The quest the hero tapped: its beast card opens
+const activeEntry = computed(() =>
+  activeModal.value ? filteredQuests.value.find(({ quest }) => String(quest.id) === String(activeModal.value)) : undefined
+);
+
+// Quest names are plain text; anything markup in a name is dropped, not shown
+const questTitle = (quest: Achievement): string => {
+  const name = formatQuestName(quest.achievementName || "Untitled Quest");
+  return new DOMParser().parseFromString(sanitizeHtml(name), "text/html").body.textContent ?? "";
+};
+
+const dueLine = (quest: Achievement): string => {
+  if (!quest.dueByTime) return "";
+  const due = dueTimeOn(quest.dueByTime, selectedDate.value);
+  return `Due ${due ? format(due, "h:mm a") : quest.dueByTime}`;
+};
+
+// Tamed and pending quests wear a status icon; an open one wears the sun or moon of its part of the day
+const rowIcon = ({ status, pending }: AgendaEntry, groupId: AgendaGroupId): string => {
+  if (status === "done") return pending ? "hourglass-half" : "check-circle";
+  return AGENDA_GROUPS.find(({ id }) => id === groupId)?.icon ?? "scroll";
+};
+
+const hasChips = ({ quest, status }: AgendaEntry): boolean =>
+  status === "done" || Boolean(quest.xp || quest.gp || quest.ap);
 
 // Methods
 const fetchBoard = async () => {
@@ -241,11 +288,18 @@ const loadLocalQuests = async (event?: any) => {
   }
 };
 
-// Claiming stamps the quest done right now, so on any other day it can only be viewed
-const claimStatus = (status: QuestBoardStatus): QuestBoardStatus =>
-  status === "open" && !isToday(selectedDate.value) ? "notDue" : status;
+// The beast card's view of the row. Claiming stamps the quest done right now, so on any other day it can only be viewed
+const cardStatus = ({ status, pending }: AgendaEntry): BeastCardStatus =>
+  calendarCardStatus(status, Boolean(pending), isToday(selectedDate.value));
 
-// A claim made in the modal changes the board, so reload it once the modal closes
+// The due clock of the card: the quest's due time on the day shown, worded like the rows
+const cardDue = (quest: Achievement): Date | null => dueTimeOn(quest.dueByTime, selectedDate.value);
+const cardDueLabel = (quest: Achievement): string => {
+  const due = cardDue(quest);
+  return due ? format(due, "h:mm a") : "";
+};
+
+// A claim made on the card changes the board, so reload it once the card closes
 const onTaskDismissed = () => {
   activeModal.value = 0;
   void fetchBoard();
@@ -265,28 +319,43 @@ const prevDay = () => {
   selectedDate.value = prev;
 };
 
-const filterQuests = () => {
-  // Computed property handles this automatically
-};
+// Every player can start a quest. The Quest Wizard opens on the day and part of the day on screen (a hero's quest waits
+// for the Game Master's approval; the rules live in questWizard.ts)
+const wizardOpen = ref(false);
+const wizardPrefill = computed(() =>
+  questPrefill(prefillQueryFor(selectedDate.value, activeSegment.value, heroId.value))
+);
 
 const openAddQuest = () => {
-  // Logic to open admin/create quest
+  play$fx("openMenu");
+  wizardOpen.value = true;
+};
+
+// The new quest shows on the board as soon as it is saved (when it is due on the day on screen)
+const onQuestSaved = () => {
+  void fetchBoard();
+};
+
+const runAction = (id: CalendarActionId) => {
+  if (id === "new-quest") return openAddQuest();
+  if (id === "today") {
+    selectedDate.value = new Date();
+    return;
+  }
+  void router.push(questLogRoute(heroId.value));
 };
 
 const presentActionSheet = async () => {
   const actionSheet = await actionSheetController.create({
-    header: "Daily Agenda Actions",
+    ...appSheet("calendar"),
+    header: "Daily Agenda",
     buttons: [
-      {
-        text: "Add New Quest",
-        icon: addCircleOutline,
-        handler: openAddQuest,
-      },
-      {
-        text: "Request Time Off",
-        icon: removeCircleOutline,
-        handler: () => { },
-      },
+      ...calendarActions({ isToday: isSelectedToday.value }).map(({ id, text }) => ({
+        text,
+        handler: () => {
+          runAction(id);
+        },
+      })),
       {
         text: "Cancel",
         icon: close,
@@ -294,19 +363,17 @@ const presentActionSheet = async () => {
       },
     ],
   });
+  play$fx("openMenu");
   await actionSheet.present();
 };
 
 // Lifecycle
+// Back from the quest form (or another page) the board may have changed: a quest just saved shows on its day.
+// Reads quietly (no spinner); the first entry just reads the board a second time, which costs nothing.
 onMounted(loadLocalQuests);
+onIonViewWillEnter(() => {
+  void fetchBoard();
+});
 </script>
 
 <style lang="scss" src="./_MyCalendar.scss" scoped></style>
-<style scoped>
-.item.is-tamed ion-card-header,
-.item.is-tamed .quest-rewards ion-badge:not(.tamed-badge),
-.item.is-pending ion-card-header,
-.item.is-pending .quest-rewards ion-badge:not(.pending-badge) {
-  opacity: 0.55;
-}
-</style>

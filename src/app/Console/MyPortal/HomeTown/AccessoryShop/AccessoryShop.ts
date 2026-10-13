@@ -22,20 +22,18 @@ import {
   cartOutline,
   starSharp,
   storefrontOutline,
-  banOutline,
-  bagOutline,
-  cashOutline
+  banOutline
 } from "ionicons/icons";
-import { actionSheetController, alertController, modalController, onIonViewWillEnter, toastController } from "@ionic/vue";
+import { modalController, onIonViewWillEnter } from "@ionic/vue";
 import debug from "@/lib/utils/debug";
 import { play$fx } from "@/assets/fx";
 // Import ATM Modal component
 import ATMModal from "@/app/Console/MyPortal/HomeTown/GoldBank/components/ATMModal.vue";
-import XpNpcDialog from "@/components/molecules/Dialog/XpNpcDialog.vue";
+import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
+import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
+import { useCopy, useVoice } from "@/hooks/useVoice";
 import ShopShelfSlider from "./components/ShopShelfSlider.vue";
 import ShopItemModal from "./components/ShopItemModal.vue";
-// Import the GPSystem
-import { getGPService } from '@/lib/services/gp';
 import { useUserStore } from "@/lib/store/stores/user";
 import shopsDb, {
   ShopInterface,
@@ -53,25 +51,38 @@ import {
   stockShelf,
 } from "@/lib/services/shop/PurchaseService";
 import type { ShelfItem } from "@/lib/services/shop/PurchaseService";
-import { buyWalletUpgrade } from "@/lib/services/gp/wallet";
-import type { WalletUpgradeResult } from "@/lib/services/gp/wallet";
+import {
+  buyWalletUpgrade,
+  depositToSavings,
+  hospitalBillOf,
+  payDownBills,
+  withdrawFromSavings,
+} from "@/lib/services/gp/wallet";
 import { gold, walletOfferAt } from "@/lib/services/gp/walletShops";
+import { type BankAction, bankReceipt, bankRefusal } from "@/lib/services/gp/bankTeller";
+import { announceBillPaid } from "@/lib/services/hometown/hospitalAdmission";
+import {
+  atmNotice,
+  clerkPrompt,
+  purchaseFailure,
+  purchaseReceipt,
+  shopAccent,
+  shopRefusal,
+  walletPitch,
+  walletReceipt,
+  walletRefusal,
+  type ShopVoice,
+} from "@/lib/services/shop/shopPrompts";
 import { shopDiscountLabel, shopPrice } from "@/lib/services/stats/StatEffects";
-import { rpgToastOptions } from "@/hooks/useToast";
 import { SHOP_METADATA } from "@/lib/engine/core/shopRegistry";
 import { WORLD_METADATA, worldColor } from "@/lib/engine/core/worldRegistry";
 import { merchantWorldOn } from "@/lib/services/shops/travelingMerchant";
 import { parentOf } from "@/router/parentOf";
 
-const resolveUpgradeFailureMessage = (result: Extract<WalletUpgradeResult, { ok: false }>): string => {
-  if (result.reason === "poor") {
-    return `Not enough GP! You are ${gold(result.short)} short, savings and all.`;
-  }
-  if (result.reason === "locked") {
-    return `LVL ${result.offer?.minLevel} needed.`;
-  }
-  return "You already carry the biggest wallet there is.";
-};
+/** What the ATM hands over: the amount picked on its stepper */
+interface GpAmount {
+  gp?: number | string;
+}
 
 // The general store you reach from Home Town; also where an unknown shop id ends up.
 const DEFAULT_SHOP_ID = "hometown-market";
@@ -103,7 +114,7 @@ export default defineComponent({
   name: "accessory-shop",
   components: {
     ATMModal,
-    XpNpcDialog,
+    XpRevealPrompt,
     ShopShelfSlider,
     ShopItemModal,
   },
@@ -111,7 +122,7 @@ export default defineComponent({
   data() {
     return {
       showAtm: false,
-      // The clerk's conversation box (the FAB, or being turned away at a shut door)
+      // The clerk is talking (the FAB, or being turned away at a shut door): the FAB does nothing until it ends
       isTalking: false,
       // Map shop IDs to background image paths
       shopBackgrounds: {
@@ -190,25 +201,29 @@ export default defineComponent({
     shopColor(): string {
       return worldColor(this.shopWorld);
     },
+    // Who speaks at the counter, and the colour of their box: the region's own, or the general store's
+    voice(): ShopVoice {
+      return { shopkeeper: this.shopkeeper, accent: shopAccent(this.shopWorld) };
+    },
     // What the clerk says while the doors are shut.
     closedLine(): string {
-      return `Sorry, we're closed right now. ${this.opensAt}.`;
+      return this.t("shop.closed", { opensAt: this.opensAt });
     },
     // What the clerk says when you talk to them: the greeting, a word on your charm, how to shop.
     clerkLines(): string[] {
       if (!this.isOpen) return [this.closedLine];
       const lines = [this.shopGreeting];
       if (this.charismaDiscount) {
-        lines.push(`My, what charm! Everything's ${this.charismaDiscount} for you, and the tags already show it.`);
+        lines.push(this.t("shop.charm", { discount: this.charismaDiscount }));
       }
       if (this.walletWare?.status === "for-sale") {
-        lines.push(`That wallet up front holds more GP than yours. Have a look if your purse is bursting.`);
+        lines.push(this.t("shop.walletUp"));
       }
       if (this.isTraveling) {
         const where = WORLD_METADATA[this.shopWorld]?.name || "these parts";
-        lines.push(`I'm only in ${where} today. Tomorrow? Wherever the wind takes my balloon!`);
+        lines.push(this.t("shop.traveling", { where }));
       }
-      lines.push("Swipe along the shelf, and tap anything for a closer look.");
+      lines.push(this.t("shop.swipe"));
       return lines;
     },
     shopBackgroundUrl(): string {
@@ -237,20 +252,19 @@ export default defineComponent({
   methods: {
     talkToClerk() {
       this.play$fx("select");
-      this.isTalking = true;
+      return this.converse();
     },
-    // After the last line, the clerk asks what you want, like the bank manager does.
-    async clerkMenu() {
-      if (!this.isOpen) return;
-      const sheet = await actionSheetController.create({
-        header: `${this.shopkeeper}: "What'll it be?"`,
-        cssClass: "atm-action-sheet",
-        buttons: [
-          { text: "Browse the shelves", icon: bagOutline, role: "cancel" },
-          { text: "Use the ATM", icon: cashOutline, handler: () => this.openATM() },
-        ],
-      });
-      await sheet.present();
+    // The clerk's lines type out in the game's own dialog, then the menu: browse, or the ATM. Behind a shut door the
+    // clerk says when the shop opens and that is all.
+    async converse() {
+      if (this.isTalking) return;
+      this.isTalking = true;
+      try {
+        const pick = await this.reveal.ask(clerkPrompt(this.voice, this.clerkLines, this.isOpen));
+        if (pick === "atm" && this.isOpen) this.openATM();
+      } finally {
+        this.isTalking = false;
+      }
     },
     // ATM methods
     openATM() {
@@ -258,46 +272,41 @@ export default defineComponent({
       this.showAtm = true;
     },
 
-    clickDeposit(data) {
-      const amount = Number(data.gp);
-      if (amount > 0) {
-        getGPService()
-          .depositToSavings(this.heroId, amount)
-          .then(() => {
-            this.play$fx("coins");
-          })
-          .catch(error => {
-            debug.log('Deposit error:', error.message);
-          });
-      }
+    clickDeposit(data: GpAmount) {
+      return this.atmErrand("deposit", data);
     },
 
-    clickWithdraw(data) {
-      const amount = Number(data.gp);
-      if (amount > 0) {
-        getGPService()
-          .withdrawFromSavings(this.heroId, amount)
-          .then(() => {
-            this.play$fx("coins");
-          })
-          .catch(error => {
-            debug.log('Withdraw error:', error.message);
-          });
-      }
+    clickWithdraw(data: GpAmount) {
+      return this.atmErrand("withdraw", data);
     },
 
-    clickPayDebt(data) {
-      const amount = Number(data.gp);
-      if (amount > 0) {
-        getGPService()
-          .payDebtFromWallet(this.heroId, amount)
-          .then(() => {
-            this.play$fx("success");
-          })
-          .catch(error => {
-            debug.log('Pay debt error:', error.message);
-          });
+    clickPayDebt(data: GpAmount) {
+      return this.atmErrand("payDebt", data);
+    },
+
+    // The ATM asks how much (on its stepper) and hands the amount over; the move and its receipt are the shop's,
+    // by the same rules as the Gold Bank: a refusal says why, and paying the Hospital's bill to 0 lifts the grounding.
+    async atmErrand(action: BankAction, data: GpAmount) {
+      const amount = Number(data?.gp);
+      const hero = this.user;
+      if (!(amount > 0) || !hero?.stats) return;
+      const before = hero.stats.gp;
+      const move =
+        action === "withdraw"
+          ? withdrawFromSavings(before, amount)
+          : action === "deposit"
+            ? depositToSavings(before, amount)
+            : payDownBills(before, amount);
+      const refusal = bankRefusal(action, before, move, this.words);
+      if (refusal) {
+        await this.reveal.ask(atmNotice(this.voice, refusal, { sound: "no" }));
+        return;
       }
+      const clearsBill = hospitalBillOf(before) > 0 && hospitalBillOf(move.gp) === 0;
+      const receipt = bankReceipt(action, before, move, this.words);
+      this.userStore.setWallet(this.heroId, move.gp);
+      if (clearsBill) announceBillPaid(this.heroId);
+      await this.reveal.ask(atmNotice(this.voice, receipt, { sprite: "coins", sound: action === "payDebt" ? "success" : "coins" }));
     },
 
     selectShelf($ev) {
@@ -308,73 +317,39 @@ export default defineComponent({
       return modalController.dismiss(null, 'cancel');
       // this.$refs[`modal-${itemId}`].$el.dismiss(null, 'cancel');
     },
-    // Every toast is the RPG message box in the middle of the screen, with an X (src/hooks/useToast.ts).
-    async showToast(message: string) {
-      const toast = await toastController.create(rpgToastOptions(message, 3000));
-      await toast.present();
-    },
-    failureMessage(error: unknown, item: ShelfItem): string {
-      if (error instanceof InsufficientFundsError) {
-        return `Not enough GP! You need ${error.shortBy} more to buy ${item.name}.`;
-      }
-      debug.error("Purchase failed:", error);
-      return "Something went wrong, so nothing was bought. Please try again.";
-    },
-    rpgToast(message: string) {
-      return this.showToast(message);
-    },
     // The Game Master's hours (Compendium > Economy > Shops > Hours): behind a shut door the clerk says when the
     // shop opens and nothing is sold, even if the hour struck while an item was open on screen.
     turnedAwayWhileClosed(): boolean {
       if (this.isOpen) return false;
       this.play$fx("no");
       this.closeInspect();
-      this.isTalking = true;
+      void this.converse();
       return true;
     },
     // The shop's own ware, not something the Game Master stocked: the next wallet size, sold here and only here.
-    // Pays out of savings first, then the wallet, and the new limit takes effect at once (no delivery to wait on).
+    // The shopkeeper pitches it (or says why not), the hero says yes, and it pays out of savings first, then the wallet;
+    // the new limit takes effect at once (no delivery to wait on).
     async buyWallet() {
       const ware = this.walletWare;
       const isPurchaseBlocked = !ware || this.isBuying;
       if (isPurchaseBlocked) return;
       if (this.turnedAwayWhileClosed()) return;
-      if (!ware.offer) {
-        this.play$fx("no");
-        void this.rpgToast(ware.status === "owned" ? `${ware.note} ${ware.hint}` : ware.note);
-        return;
-      }
-      if (ware.status === "locked") {
-        this.play$fx("no");
-        void this.rpgToast(`${this.shopkeeper}: "Come back at level ${ware.offer.minLevel}, kid."`);
-        return;
-      }
-      const alert = await alertController.create({
-        header: ware.name,
-        message: `${this.shopkeeper}: "Holds ${gold(ware.offer.limit)}. That'll be ${gold(ware.offer.price)}, out of your savings first."`,
-        buttons: [
-          { text: "No thanks", role: "cancel" },
-          { text: `Buy for ${gold(ware.offer.price)}`, role: "confirm" },
-        ],
-      });
-      await alert.present();
-      const { role } = await alert.onDidDismiss();
-      if (role !== "confirm") return;
+      const stats = this.userStore.users[this.heroId]?.stats;
+      const pick = await this.reveal.ask(walletPitch(this.voice, ware, stats?.gp, Number(stats?.level) || 1, this.words));
+      if (pick !== "yes") return;
 
-      const hero = this.userStore.users[this.heroId];
-      const result = buyWalletUpgrade(hero?.stats?.gp, Number(hero?.stats?.level) || 1);
+      // Time passed while the hero thought: the purse is read again before it is charged
+      const fresh = this.userStore.users[this.heroId]?.stats;
+      const result = buyWalletUpgrade(fresh?.gp, Number(fresh?.level) || 1);
       if (!result.ok) {
-        this.play$fx("no");
-        const why = resolveUpgradeFailureMessage(result);
-        void this.rpgToast(why);
+        await this.reveal.ask(shopRefusal(this.voice, walletRefusal(result, this.words), "coins"));
         return;
       }
       this.userStore.setWallet(this.heroId, result.gp);
-      this.play$fx("levelUp");
-      void this.rpgToast(`Your wallet now holds ${gold(result.offer.limit)}!`);
+      await this.reveal.ask(walletReceipt(this.voice, result.offer.limit, this.words));
     },
     // The GP leaves the wallet now; the Game Master hands the real thing over later
-    // (it shows up under Approvals > Accessories until they do).
+    // (it shows up under Approvals > Accessories until they do). Nothing goes into the bag, so a full bag never matters here.
     async buyItem(item: ShelfItem) {
       if (this.isBuying) return;
       if (this.turnedAwayWhileClosed()) return;
@@ -383,19 +358,21 @@ export default defineComponent({
         await purchaseItem(this.heroId, item);
       } catch (error) {
         this.isBuying = false;
-        this.play$fx("error");
-        void this.showToast(this.failureMessage(error, item));
+        const shortBy = error instanceof InsufficientFundsError ? error.shortBy : null;
+        if (shortBy === null) debug.error("Purchase failed:", error);
+        await this.reveal.ask(purchaseFailure(this.voice, item.name, shortBy, this.words));
         return;
       }
 
       try {
         this.play$fx("buyItem");
-        void this.showToast("Bought! The Game Master will deliver it.");
         this.closeInspect();
         await modalController.dismiss(null, "confirm").catch(() => false);
       } finally {
         this.isBuying = false;
       }
+      // The chest rises with the receipt, over the shelf
+      await this.reveal.ask(purchaseReceipt(this.voice, item.name, this.words));
     }
   },
   mounted() {
@@ -404,6 +381,11 @@ export default defineComponent({
   setup(props) {
     const userStore = useUserStore();
     const accessoriesDb = new AccessoriesDb(accessoriesStorage);
+    // The clerk, the wallet and the receipts speak in the game's own dialog, not in native alerts and sheets
+    const reveal = useRevealPrompt();
+    // The clerk's words follow the hero's voice (simple, adventure or classic); `voice` here is the shopkeeper
+    const t = useCopy();
+    const { voice: words } = useVoice();
 
     // Shops reached from the world map are opened without a hero id, so fall back to whoever is playing.
     const heroId = computed(() => String(props.userId || userStore.currentUser.id || ""));
@@ -518,6 +500,10 @@ export default defineComponent({
     };
 
     return {
+      t,
+      words,
+      reveal,
+      prompt: reveal.prompt,
       customAlertOptions,
       storefrontOutline,
       banOutline,
@@ -531,7 +517,6 @@ export default defineComponent({
       colorWandOutline,
       lockClosedOutline,
       lockOpenOutline,
-      bagOutline,
       sunnyOutline,
       partlySunnyOutline,
       moonOutline,
@@ -541,8 +526,6 @@ export default defineComponent({
       keyOutline,
       cartOutline,
       starSharp,
-      // Add cashOutline for ATM button
-      cashOutline,
       userStore,
       heroId,
       wallet,

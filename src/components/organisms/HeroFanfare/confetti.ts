@@ -43,7 +43,7 @@ export const CONFETTI_COLORS = [
 ];
 
 /** The most chips alive at once: plenty to fill a phone, light enough for any of them */
-export const CHIP_CAP = 360;
+export const CHIP_CAP = 480;
 
 /** Cells per second squared, and the slowest a chip ever falls (paper, not stones) */
 const GRAVITY = 78;

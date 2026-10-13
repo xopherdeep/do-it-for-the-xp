@@ -144,11 +144,14 @@
 
       <!-- Floating Action Button for Quick Actions -->
       <ion-fab vertical="bottom" horizontal="center" slot="fixed">
-        <ion-fab-button color="primary" @click="presentActionSheet">
+        <ion-fab-button color="primary" @click="talkToClerk">
           <ion-icon :icon="addOutline"></ion-icon>
         </ion-fab-button>
       </ion-fab>
     </ion-content>
+
+    <!-- The clerk's dialog: the game's own prompt, not a native sheet or toast -->
+    <xp-reveal-prompt :prompt="prompt" @respond="respond" />
   </ion-page>
 </template>
 
@@ -182,8 +185,6 @@ import {
   IonButton,
   IonInfiniteScroll,
   IonInfiniteScrollContent,
-  actionSheetController,
-  toastController,
 } from "@ionic/vue";
 import {
   businessOutline,
@@ -191,11 +192,13 @@ import {
   calendarOutline,
   megaphoneOutline,
   addOutline,
-  bugOutline,
-  bulbOutline,
   arrowForwardOutline,
 } from "ionicons/icons";
 import XpLoading from "@/components/molecules/Loading/XpLoading.vue";
+import XpRevealPrompt from "@/components/organisms/RevealPrompt/XpRevealPrompt.vue";
+import { useRevealPrompt } from "@/components/organisms/RevealPrompt/useRevealPrompt";
+import { useVoice } from "@/hooks/useVoice";
+import { CLERK_ERRANDS, clerkMenuPrompt, comingSoonPrompt } from "@/lib/services/hometown/hometownPrompts";
 import debug from "@/lib/utils/debug";
 import Ionic from "@/lib/mixins/ionic";
 import { useUserStore } from "@/lib/store/stores/user";
@@ -293,6 +296,7 @@ export default defineComponent({
     IonInfiniteScroll,
     IonInfiniteScrollContent,
     XpLoading,
+    XpRevealPrompt,
   },
   mixins: [Ionic],
   props: {
@@ -459,49 +463,14 @@ export default defineComponent({
     });
     const hasEvents = computed(() => events.value.length > 0);
 
-    const comingSoon = async (what: string) => {
-      const toast = await toastController.create({
-        message: `${what}: coming soon`,
-        duration: 2000,
-        position: "top",
-        cssClass: "rpg-toast",
-      });
-      await toast.present();
-    };
-
-    const submitAnnouncement = () => comingSoon("Announcements");
-    const reportBug = () => comingSoon("Bug reports");
-    const suggestFeature = () => comingSoon("Feature suggestions");
-
-    const presentActionSheet = async () => {
-      const actionSheet = await actionSheetController.create({
-        header: "Town Hall Actions",
-        mode: "ios",
-        buttons: [
-          {
-            text: "Submit Announcement",
-            icon: megaphoneOutline,
-            handler: submitAnnouncement,
-          },
-          {
-            text: "Report Bug",
-            icon: bugOutline,
-            handler: reportBug,
-          },
-          {
-            text: "Suggest Feature",
-            icon: bulbOutline,
-            handler: suggestFeature,
-          },
-          {
-            text: "Cancel",
-            icon: "close",
-            role: "cancel",
-          },
-        ],
-      });
-
-      await actionSheet.present();
+    // The clerk takes the errand in the game's own dialog; the board cannot post any of them yet
+    const reveal = useRevealPrompt();
+    const { voice } = useVoice();
+    const talkToClerk = async () => {
+      const pick = await reveal.ask(clerkMenuPrompt(voice.value));
+      if (pick === "never") return;
+      const what = CLERK_ERRANDS[pick as keyof typeof CLERK_ERRANDS];
+      if (what) await reveal.ask(comingSoonPrompt(what, voice.value));
     };
 
     // Fetch WordPress posts when component is mounted
@@ -524,18 +493,15 @@ export default defineComponent({
       loadMorePosts,
       formatDate,
       openPost,
-      submitAnnouncement,
-      reportBug,
-      suggestFeature,
-      presentActionSheet,
+      talkToClerk,
+      prompt: reveal.prompt,
+      respond: reveal.respond,
       // Icons
       businessOutline,
       newspaperOutline,
       calendarOutline,
       megaphoneOutline,
       addOutline,
-      bugOutline,
-      bulbOutline,
       arrowForwardOutline,
       sanitizeHtml,
     };

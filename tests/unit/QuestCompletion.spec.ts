@@ -389,3 +389,79 @@ describe("a completion clears the grudge", () => {
     expect((useUserStore().getUserById(HERO_ID) as any).questGrudges).toBeUndefined();
   });
 });
+
+/**
+ * The hunt bonus (services/quests/huntBonus.ts) survives the Game Master's approval: a quest that went on hold from a
+ * WON fight (source "battle") carries +25% XP on its entry and the approval pays it on top, once. A claim from the
+ * beast card never earns it.
+ */
+describe("the hunt bonus on a held win", () => {
+  it("writes the bonus on a hold from a won fight, and pays nothing yet", async () => {
+    addHero("Warrior");
+    const held = await completeQuest(quest(true), HERO_ID, "battle"); // 30 XP -> +8 (7.5 rounds up)
+    expect(held.awaitingApproval).toBe(true);
+    expect(held.entry).toMatchObject({ source: "battle", status: "pending", huntBonusXp: 8 });
+    expect(held.entry.rewards).toEqual({ xp: 30, gp: 40, ap: 2 }); // the log keeps the quest's own rate
+    expect(held.paid.xp).toBe(38); // what it will pay once approved
+    expect(stats().xp.now).toBe(0);
+  });
+
+  it("pays the quest's XP plus the bonus when the Game Master approves it, GP and AP as posted", async () => {
+    addHero("Warrior");
+    const held = await completeQuest(quest(true), HERO_ID, "battle");
+    const approved = await approveCompletion(held.entry.id, "gm-1");
+    expect(approved?.status).toBe("approved");
+    expect(stats().xp.now).toBe(38);
+    expect(stats().gp.wallet).toBe(40);
+    expect(stats().ap.total).toBe(2);
+  });
+
+  it("pays it once: approving twice, or rejecting afterwards, adds nothing", async () => {
+    addHero("Warrior");
+    const held = await completeQuest(quest(true), HERO_ID, "battle");
+    await approveCompletion(held.entry.id, "gm-1");
+    await approveCompletion(held.entry.id, "gm-1");
+    await rejectCompletion(held.entry.id, "gm-1");
+    expect(stats().xp.now).toBe(38);
+  });
+
+  it("pays no bonus when the Game Master rejects the win", async () => {
+    addHero("Warrior");
+    const held = await completeQuest(quest(true), HERO_ID, "battle");
+    await rejectCompletion(held.entry.id, "gm-1", "not done");
+    expect(stats().xp.now).toBe(0);
+  });
+
+  it("gives a claim from the card no bonus, held or paid", async () => {
+    addHero("Warrior");
+    const held = await completeQuest(quest(true), HERO_ID, "claim");
+    expect(held.entry.huntBonusXp).toBeUndefined();
+    await approveCompletion(held.entry.id, "gm-1");
+    expect(stats().xp.now).toBe(30);
+
+    const paid = await completeQuest(quest(), HERO_ID, "claim");
+    expect(paid.entry.huntBonusXp).toBeUndefined();
+    expect(paid.paid.xp).toBe(30);
+  });
+
+  it("an entry from before the bonus (no field) pays the plain rate on approval", async () => {
+    addHero("Warrior");
+    const held = await completeQuest(quest(true), HERO_ID, "battle");
+    delete (held.entry as { huntBonusXp?: number }).huntBonusXp;
+    await approveCompletion(held.entry.id, "gm-1");
+    expect(stats().xp.now).toBe(30);
+  });
+
+  it("a win that is paid at once through completeQuest (a trusted hour began) pockets the bonus now", async () => {
+    addHero("Warrior");
+    const trusted = {
+      ...quest(true),
+    } as Achievement;
+    useUserStore().users[HERO_ID].questEffects = { trustedUntil: new Date(Date.now() + 3600_000).toISOString() };
+    const result = await completeQuest(trusted, HERO_ID, "battle");
+    expect(result.awaitingApproval).toBe(false);
+    expect(result.paid.xp).toBe(38);
+    expect(stats().xp.now).toBe(38);
+    expect(result.entry.huntBonusXp).toBe(8);
+  });
+});

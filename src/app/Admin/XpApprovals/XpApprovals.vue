@@ -49,7 +49,7 @@
                   Submitted by {{ heroName(entry.userId) }}
                   <ion-note>{{ formatDate(entry.completedAt) }}</ion-note>
                 </p>
-                <p class="rewards">{{ xpApText(entry.rewards) }}</p>
+                <p class="rewards">{{ xpApText(withHuntBonus(entry)) }}</p>
               </ion-label>
               <ion-badge color="warning" slot="end">
                 <xp-gp :gp="entry.rewards.gp" />
@@ -162,6 +162,7 @@
   import debug from "@/lib/utils/debug";
   import { getQuestLogDb } from "@/lib/databases/QuestLogDb";
   import type { QuestLogEntry, QuestRewards } from "@/lib/databases/QuestLogDb";
+  import { withHuntBonus } from "@/lib/services/quests/huntBonus";
   import { getPurchaseLogDb } from "@/lib/databases/PurchaseLogDb";
   import type { PurchaseLogEntry } from "@/lib/databases/PurchaseLogDb";
   import {
@@ -281,7 +282,7 @@
             userId: entry.userId,
             at: entry.completedAt,
             good: entry.status === "approved",
-            detail: entry.status === "approved" ? rewardLine(entry.rewards) : "",
+            detail: entry.status === "approved" ? rewardLine(withHuntBonus(entry)) : "",
             note: entry.note,
             badge: statusBadge(entry.status),
           })
@@ -424,7 +425,7 @@
         const alert = await alertController.create({
           header: "Approve Quest",
           message: `Approve "${entry.questName}" for ${hero}? They will earn ${rewardLine(
-            entry.rewards
+            withHuntBonus(entry)
           )}.`,
           buttons: [
             {
@@ -446,7 +447,7 @@
                     };
                   }
                   // The log keeps the board's rate; the toast says what was paid (class GP bonus included)
-                  const paid = rewardLine(paidQuestRewards(approved.userId, approved.rewards));
+                  const paid = rewardLine(paidQuestRewards(approved.userId, withHuntBonus(approved)));
                   notify(approvedNotification(approved.userId, approved, paid));
                   return {
                     message: `Approved! ${hero} earned ${paid}`,
@@ -604,6 +605,7 @@
         heroAvatar,
         formatDate,
         xpApText,
+        withHuntBonus,
         approveItem,
         rejectItem,
         fulfilItem,

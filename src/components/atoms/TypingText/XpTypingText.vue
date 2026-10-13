@@ -3,8 +3,8 @@
     <slot v-if="showSlot"></slot>
     <span v-else v-html="sanitizeHtml(displayedText)"></span>
     <span v-if="isTyping && cursorVisible" class="typing-cursor">|</span>
-    <!-- Only show the caret when typing is complete and there's more text to read -->
-    <i v-if="!isTyping && hasMoreText" class="fad fa-caret-down fa-2x float-right mt-3 animate-bounce" />
+    <!-- Only show the continue marker when typing is complete and there's more text to read -->
+    <span v-if="!isTyping && hasMoreText" class="typing-more-marker" aria-hidden="true">&#9660;</span>
   </span>
 </template>
 
@@ -292,6 +292,26 @@ export default defineComponent({
     display: inline-block;
     animation: blink 0.7s infinite;
     margin-left: 2px;
+  }
+
+  .typing-more-marker {
+    display: inline-block;
+    margin-left: 6px;
+    font-size: 0.85em;
+    color: #ffd84a;
+    vertical-align: baseline;
+    animation: marker-bounce 0.9s ease-in-out infinite;
+  }
+}
+
+@keyframes marker-bounce {
+  0%, 100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(3px);
+    opacity: 0.5;
   }
 }
 

@@ -350,6 +350,8 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     
     // What the message lists: each item by its proper name, the gold as it was paid
     const collected: string[] = [];
+    // What the hero had no room for: it stays in the chest, so they can come back for it
+    const leftBehind: string[] = [];
 
     // Process each selected item
     selectedItems.forEach(item => {
@@ -362,6 +364,15 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
         return;
       }
       
+      // Restoratives go in the bag as consumables (My Goods files them under Consumables), or in storage when the bag
+      // is full; with neither having room, the chest keeps them
+      if (userId && /^(potion|ether)$|elixir/i.test(item)) {
+        const isInBag = useUserStore().addInventoryItem(userId, { name: item, type: 'consumable', faIcon: 'flask-potion', qty: 1 });
+        if (isInBag) collected.push(lootFace(item).name);
+        else leftBehind.push(item);
+        return;
+      }
+
       collected.push(lootFace(item).name);
 
       // Handle special items by updating both local refs AND the temple system state
@@ -381,9 +392,6 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
         // Update the temple system state directly
         const state = templeSystem.getTempleState(templeId);
         if (state) state.hasCompass = true;
-      } else if (userId && /^(potion|ether)$|elixir/i.test(item)) {
-        // Restoratives go in the bag as consumables, so My Goods files them under Consumables
-        useUserStore().addInventoryItem(userId, { name: item, type: 'consumable', faIcon: 'flask-potion', qty: 1 });
       } else {
         // The Pegasus chest behind the boss: the egg frees the world's Pegasus and clears the temple. The egg is the
         // chest's whole prize token: it unlocks no item (the Wind Temple's whistle is a row of its own).
@@ -402,9 +410,17 @@ export function useTemple(templeId: string, startPosition?: [number, number], st
     templeSystem.saveProgress(templeId);
     
     // Out of the chest: it is empty (and stays so) only once nothing is left in it; the rest waits for the next visit
-    templeSystem.takeFromChest(templeId, currentLevel.value, currentPosition.value, selectedItems);
+    const taken = selectedItems.filter((item) => !leftBehind.includes(item));
+    if (taken.length) templeSystem.takeFromChest(templeId, currentLevel.value, currentPosition.value, taken);
     
     // Generate a message about what was collected; a freed Pegasus is the news
+    if (leftBehind.length) {
+      const left = leftBehind.map((item) => lootFace(item).name).join(', ');
+      const gathered = collected.length ? `Collected: ${collected.join(', ')}. ` : '';
+      const stays = leftBehind.length > 1 ? 'stay' : 'stays';
+      displayMessage(freed ?? `${gathered}Your bag is full. ${left} ${stays} in the chest. Store something at home first.`, 3500);
+      return;
+    }
     displayMessage(freed ?? `Collected: ${collected.join(', ')}`, 3000);
   };
   

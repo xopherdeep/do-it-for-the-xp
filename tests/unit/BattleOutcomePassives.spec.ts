@@ -100,6 +100,14 @@ const flush = async () => {
   for (let i = 0; i < 10; i++) await Promise.resolve();
 };
 
+/** The celebration's strobe, collapse and fade are timers; let them all run so the victory card is presented. */
+const runTimers = async () => {
+  for (let i = 0; i < 12; i++) {
+    jest.advanceTimersByTime(2000);
+    await flush();
+  }
+};
+
 const questEncounter = (requiresApproval = false): Partial<Encounter> =>
   ({
     label: "Dishes",
@@ -167,6 +175,39 @@ describe("useBattleOutcome: class passives on a win", () => {
 
     expect(stats().gp.wallet).toBe(50);
     expect(stats().ap.total).toBe(2);
+  });
+
+  it("pays the hunt bonus on the XP of a quest tamed in battle, and says so on the victory card", async () => {
+    addHero("Warrior");
+    const encounter = { ...questEncounter(), rewards: { xp: 120, gp: 40, ap: 2 } };
+    const { outcome, presentVictory } = rig("quest", encounter);
+    void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+    await flush();
+
+    expect(stats().xp.now).toBe(150); // 120 + 25%
+    expect(stats().gp.wallet).toBe(40); // GP and AP are the quest's own
+    expect(stats().ap.total).toBe(2);
+    expect(mockRecordBattleCompletion).toHaveBeenCalledWith(encounter.quest, HERO_ID, { xp: 150, gp: 40, ap: 2 });
+
+    await runTimers();
+    expect(presentVictory).toHaveBeenCalledWith(
+      expect.objectContaining({ rewards: { xp: 150, gp: 40, ap: 2 }, huntBonusXp: 30, held: false })
+    );
+  });
+
+  it("a quest the Game Master approves is held with the bonus counted on the card; nothing is paid yet", async () => {
+    addHero("Warrior");
+    const encounter = { ...questEncounter(true), rewards: { xp: 120, gp: 40, ap: 2 } };
+    const { outcome, presentVictory } = rig("quest", encounter);
+    void outcome.celebrateVictory([beast()], { choresDone: 2, elapsedMs: 1000 });
+    await flush();
+    await runTimers();
+
+    expect(mockCompleteQuest).toHaveBeenCalledWith(encounter.quest, HERO_ID, "battle");
+    expect(stats().xp.now).toBe(0);
+    expect(presentVictory).toHaveBeenCalledWith(
+      expect.objectContaining({ held: true, rewards: { xp: 150, gp: 40, ap: 2 }, huntBonusXp: 30 })
+    );
   });
 
   it("a Mage gets 10% of max MP back on a win and keeps the damage taken; a Paladin heals 10% HP", async () => {

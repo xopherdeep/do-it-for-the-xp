@@ -84,14 +84,14 @@ describe("buildPickerRows", () => {
       schedule: "Daily",
       heroes: "Mia",
       requiresApproval: true,
-      neverAmbushes: false,
+      isAnytime: false,
     });
     expect(row.avatar).toBe(libraryBeast("dish-goblin").avatar);
   });
 
-  it("says a quest with no due time never ambushes, and one with a due time does", () => {
+  it("says a quest with no due time is anytime, and one with a due time is not", () => {
     const rows = buildPickerRows([quest({ id: "a", dueByTime: "" }), quest({ id: "b", dueByTime: "07:30" })], [], users);
-    expect(rows.map((row) => [row.id, row.neverAmbushes])).toEqual([
+    expect(rows.map((row) => [row.id, row.isAnytime])).toEqual([
       ["a", true],
       ["b", false],
     ]);

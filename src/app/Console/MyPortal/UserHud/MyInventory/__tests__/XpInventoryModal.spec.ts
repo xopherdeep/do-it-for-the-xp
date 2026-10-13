@@ -4,8 +4,17 @@ import XpInventoryModal from "../XpInventoryModal.vue";
 import XpInventorySheet from "../XpInventorySheet.vue";
 import { useUserStore } from "@/lib/store/stores/user";
 
+// The toast the Store button shows when the storage is full: a spy, so the spec can read what was asked for
+const mockToastCreate = jest.fn();
+jest.mock("@ionic/vue", () => ({
+  ...jest.requireActual("@ionic/vue"),
+  toastController: { create: (options: unknown) => mockToastCreate(options) },
+}));
+
 describe("XpInventoryModal & XpInventorySheet", () => {
   beforeEach(() => {
+    mockToastCreate.mockReset();
+    mockToastCreate.mockResolvedValue({ present: jest.fn() });
     const pinia = createPinia();
     setActivePinia(pinia);
     const userStore = useUserStore();
@@ -111,6 +120,140 @@ describe("XpInventoryModal & XpInventorySheet", () => {
     await iceWandRow?.trigger("click");
     expect(wrapper.emitted("use-item")).toBeTruthy();
     expect(wrapper.emitted("use-item")?.[0][0]).toMatchObject({ name: "Ice Wand" });
+  });
+
+  describe("on the phone apps kit", () => {
+    const mountSheet = (props: Record<string, unknown> = {}) =>
+      mount(XpInventorySheet, { props: { userId: "hero-1", ...props } });
+
+    it("groups the All tab into sections by kind, with the item name, a kind subtitle and the quantity", () => {
+      const wrapper = mountSheet();
+
+      const labels = wrapper.findAll(".xp-app-section__label").map((label) => label.text());
+      expect(labels).toEqual(["Potions", "Keys"]);
+
+      const potionRow = wrapper.find('.goods-row[data-kind="consumable"]');
+      expect(potionRow.find(".xp-app-row__title").text()).toBe("Health Potion");
+      expect(potionRow.find(".xp-app-row__subtitle").text()).toBe("Potion");
+      expect(potionRow.find(".goods-qty").text()).toBe("×3");
+      expect(potionRow.find(".goods-use-btn").exists()).toBe(false);
+    });
+
+    it("shows one list without section headers on a single-kind tab", async () => {
+      const wrapper = mountSheet();
+
+      await wrapper.find('.xp-bottom-nav__button[aria-label="Keys"]').trigger("click");
+
+      expect(wrapper.findAll(".xp-app-section__label")).toHaveLength(0);
+      const rows = wrapper.findAll(".goods-row");
+      expect(rows).toHaveLength(1);
+      expect(rows[0].text()).toContain("Old Key");
+    });
+
+    it("uses the blurb of an item as its subtitle", () => {
+      const wrapper = mountSheet({
+        equipment: [{ name: "Ice Wand", faIcon: "wand-magic ice", qty: 1, desc: "Freeze enemies" }],
+      });
+
+      const wandRow = wrapper.findAll(".goods-row").find((row) => row.text().includes("Ice Wand"));
+      expect(wandRow?.find(".xp-app-row__subtitle").text()).toBe("Freeze enemies");
+    });
+
+    it("emits select-item when a row is tapped outside of battle", async () => {
+      const wrapper = mountSheet();
+
+      await wrapper.find('.goods-row[data-kind="key"]').trigger("click");
+
+      expect(wrapper.emitted("select-item")).toHaveLength(1);
+      expect(wrapper.emitted("select-item")?.[0][0]).toMatchObject({ name: "Old Key" });
+      expect(wrapper.emitted("use-item")).toBeUndefined();
+    });
+
+    it("emits use-item once from the Use button in battle, and leaves a refused item alone", async () => {
+      const battleCard = (item: any) =>
+        item.name === "Health Potion"
+          ? { name: item.name, faIcon: "flask", mp: 0, effect: "Restores 50 HP", reason: "HP is already full" }
+          : { name: item.name, faIcon: "key", mp: 20, effect: "Opens a door", reason: null };
+      const wrapper = mountSheet({ mode: "battle", battleCard });
+
+      const keyRow = wrapper.find('.goods-row[data-kind="key"]');
+      expect(keyRow.text()).toContain("20 MP");
+      await keyRow.find(".goods-use-btn").trigger("click");
+      expect(wrapper.emitted("use-item")).toHaveLength(1);
+      expect(wrapper.emitted("use-item")?.[0][0]).toMatchObject({ name: "Old Key" });
+
+      const potionRow = wrapper.find('.goods-row[data-kind="consumable"]');
+      expect(potionRow.classes()).toContain("is-disabled");
+      expect(potionRow.find(".goods-reason").text()).toBe("HP is already full");
+      expect(potionRow.find(".goods-use-btn").attributes("disabled")).toBeDefined();
+      await potionRow.trigger("click");
+      expect(wrapper.emitted("use-item")).toHaveLength(1);
+    });
+
+    describe("the Store button", () => {
+      const unlockStorage = (tier = 1, storage: unknown[] = []) => {
+        const hero = useUserStore().users["hero-1"] as any;
+        hero.storageTier = tier;
+        hero.storage = storage;
+      };
+
+      it("is not there while the storage is locked", () => {
+        const wrapper = mountSheet();
+
+        expect(wrapper.find(".goods-store-btn").exists()).toBe(false);
+      });
+
+      it("sits on every row but the keys once the storage is bought, and not in a fight", () => {
+        unlockStorage();
+        const wrapper = mountSheet();
+
+        expect(wrapper.find('.goods-row[data-kind="consumable"] .goods-store-btn').exists()).toBe(true);
+        expect(wrapper.find('.goods-row[data-kind="key"] .goods-store-btn').exists()).toBe(false);
+
+        const inFight = mountSheet({ mode: "battle", battleCard: () => null });
+        expect(inFight.find(".goods-store-btn").exists()).toBe(false);
+        expect(inFight.find(".goods-use-btn").exists()).toBe(true);
+      });
+
+      it("moves the whole stack to the storage without opening the item", async () => {
+        unlockStorage();
+        const wrapper = mountSheet();
+
+        await wrapper.find('.goods-row[data-kind="consumable"] .goods-store-btn').trigger("click");
+
+        const hero = useUserStore().users["hero-1"] as any;
+        expect(hero.inventory.map((row: any) => row.name)).toEqual(["Old Key"]);
+        expect(hero.storage).toEqual([expect.objectContaining({ name: "Health Potion", qty: 3 })]);
+        expect(wrapper.find('.goods-row[data-kind="consumable"]').exists()).toBe(false);
+        expect(wrapper.emitted("select-item")).toBeUndefined();
+        expect(mockToastCreate).not.toHaveBeenCalled();
+      });
+
+      it("tells the hero with a toast when the storage is full and keeps the stack in the bag", async () => {
+        const tenStacks = Array.from({ length: 10 }, (_, index) => ({ name: `Stored ${index}`, kind: "material", qty: 1 }));
+        unlockStorage(1, tenStacks);
+        const wrapper = mountSheet();
+
+        await wrapper.find('.goods-row[data-kind="consumable"] .goods-store-btn').trigger("click");
+        await Promise.resolve();
+
+        const hero = useUserStore().users["hero-1"] as any;
+        expect(hero.inventory.map((row: any) => row.name)).toContain("Health Potion");
+        expect(hero.storage).toHaveLength(10);
+        expect(mockToastCreate).toHaveBeenCalledWith(
+          expect.objectContaining({ cssClass: "rpg-toast", position: "middle", message: expect.stringContaining("storage is full") })
+        );
+      });
+    });
+
+    it("shows the empty state when the pack holds nothing", () => {
+      const userStore = useUserStore();
+      userStore.users["hero-1"].inventory = [];
+      const wrapper = mountSheet();
+
+      expect(wrapper.find(".goods-row").exists()).toBe(false);
+      expect(wrapper.find(".xp-app-empty").text()).toContain("Your pack is empty");
+    });
   });
 
   it("allows potions and ethers to be used in battle via describeBattleItem and useBattleItem", async () => {

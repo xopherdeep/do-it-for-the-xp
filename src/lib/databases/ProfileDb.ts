@@ -57,8 +57,16 @@ export interface NewProfileForm {
   equipment?: Equipment;
   quests?: Quest[];
   inventory?: InventoryItem[];
+  /** What the hero keeps in storage, the same raw shape as `inventory` (Storage.ts). Missing on old profiles: empty. */
+  storage?: InventoryItem[];
+  /** The storage tier bought at the Gold Bank (0 = locked). Missing on old profiles: locked. */
+  storageTier?: number;
   /** Equipment items the hero has unlocked (names). Missing on profiles that predate the locks: they hold everything. */
   unlockedItems?: string[];
+  /** The "Text style" the hero picked in the profile (services/copy/voices.ts). Missing is Auto: the birthday decides. */
+  voice?: 'simple' | 'adventure' | 'classic';
+  /** Whether the simple voice reads lines aloud on its own. Missing is on; the speaker button always works. */
+  autoRead?: boolean;
 }
 
 export class ProfileDb extends DbStorageApi {
