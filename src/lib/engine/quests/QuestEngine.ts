@@ -138,7 +138,7 @@ class QuestEngine {
             // Every hero's log: a shared quest counts its other assignees' clears (the rules filter by hero)
             getQuestLogDb().getEntries(),
         ]);
-        // Gale's Wind: a day off hides every chore
+        // An old saved day off hides every chore (nothing writes one now; the Quiet Day Power only stops ambushes)
         if (isDayOff(effects, date)) return [];
         return quests.map((quest) => {
             const progress = getQuestProgressFor(quest, entries, userId, date, effects);
@@ -170,7 +170,7 @@ export interface QuestBoardItem {
     progress: QuestProgress | null;
     /** The hero has a claim in the current window that the Game Master has not approved or rejected yet */
     pending: boolean;
-    /** Open, and its deadline has passed (on a window's last day, after the hero's Ice Wand and Chronos' Clock) */
+    /** Open, and its deadline has passed (on a window's last day, after the hero's Extra Time Power and any old saved pause) */
     overdue: boolean;
     /**
      * The heroes whose completions fill the current window, in the order they did them: the hero (or nobody) for

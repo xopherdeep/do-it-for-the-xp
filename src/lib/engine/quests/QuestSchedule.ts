@@ -140,25 +140,27 @@ const parseDate = (value?: string): Date | null => {
 };
 
 /**
- * What a hero's equipped items did to their own schedule (see services/quests/ItemEffects.ts). Stored on the
+ * What a hero's real-life Powers did to their own schedule (services/abilities/PowerBoardEffects.ts). Stored on the
  * profile as `questEffects`; the Game Master's quests are never changed, only how this hero's board reads them.
+ * Items no longer write any of it (equipment rules, 2026-10-13); the fields an old save may still hold stay
+ * readable, and every one of them is timed, so it runs out by itself.
  */
 export interface HeroQuestEffects {
-  /** Ice Wand: quest id -> ISO deadline that replaces the quest's due time while it lies ahead of it */
+  /** The Extra Time Power: quest id -> ISO deadline that replaces the quest's due time while it lies ahead of it */
   extendedUntil?: Record<string, string>;
-  /** Silver Arrow: quest id -> the day (yyyy-MM-dd) the quest was snoozed on; it is not due that day */
+  /** The Snooze Power: quest id -> the day (yyyy-MM-dd) the quest was snoozed on; it is not due that day */
   snoozedOn?: Record<string, string>;
-  /** Hook Shot: quest id -> the day (yyyy-MM-dd) a quest that was not due got pulled into */
+  /** Old saves only (the Hook Shot used to write it): quest id -> the day (yyyy-MM-dd) a quest that was not due got pulled into */
   pulledInOn?: Record<string, string>;
-  /** Chronos' Clock: every deadline stands still between these two moments */
+  /** Old saves only (Chronos' Clock used to write it): every deadline stands still between these two moments */
   pause?: { from: string; until: string };
-  /** X's Invisibility: no random encounters until this moment */
+  /** The Quiet Day Power (old saves: X's Invisibility): no random encounters until this moment */
   noEncountersUntil?: string;
-  /** Tesla's Bolt: claims skip the approval queue until this moment (only when the Game Master allows a trusted hour) */
+  /** The Trusted Hour Power: claims skip the approval queue until this moment (only when the Game Master allows a trusted hour) */
   trustedUntil?: string;
-  /** Night's Light: the bedtime night (yyyy-MM-dd it began on) that is lifted */
+  /** Old saves only (Night's Light used to write it): the bedtime night (yyyy-MM-dd it began on) that is lifted */
   bedtimeLiftedOn?: string;
-  /** Gale's Wind: the board shows no chores until this moment */
+  /** Old saves only (Gale's Wind used to write it): the board shows no chores until this moment */
   dayOffUntil?: string;
 }
 
@@ -186,19 +188,19 @@ export const dueTimeOn = (dueByTime: string | undefined, date: Date): Date | nul
   return set(date, { hours, minutes, seconds: 0, milliseconds: 0 });
 };
 
-/** True while Tesla's Bolt keeps the trusted hour, so claims are paid without the Game Master's approval. */
+/** True while the Trusted Hour Power keeps the trusted hour, so claims are paid without the Game Master's approval. */
 export const isTrustedHour = (effects: HeroQuestEffects | undefined, now: Date): boolean => {
   const until = parseDate(effects?.trustedUntil);
   return Boolean(until && now < until);
 };
 
-/** True while Gale's Wind holds the day off and the board hides every chore. */
+/** True while an old saved day off (nothing writes one now) holds, and the board hides every chore. */
 export const isDayOff = (effects: HeroQuestEffects | undefined, now: Date): boolean => {
   const until = parseDate(effects?.dayOffUntil);
   return Boolean(until && now < until);
 };
 
-/** True while Chronos' Clock holds every deadline still. */
+/** True while an old saved pause (nothing writes one now) holds every deadline still. */
 export const isSchedulePaused = (effects: HeroQuestEffects | undefined, now: Date): boolean => {
   const from = parseDate(effects?.pause?.from);
   const until = parseDate(effects?.pause?.until);
@@ -207,11 +209,11 @@ export const isSchedulePaused = (effects: HeroQuestEffects | undefined, now: Dat
 
 /**
  * The calendar day the quest's deadline falls on, seen from `date`. This is the one due-date rule: the board's
- * `overdue`, the list, the due-soon and overdue alerts and the Ice Wand all read it through effectiveDeadline.
+ * `overdue`, the list, the due-soon and overdue alerts and the Extra Time Power all read it through effectiveDeadline.
  * - once: the day it starts (its only due day), else `date`'s day;
  * - a window that spans several days (weekly without listed weekdays, custom periods): the window's last day,
  *   or the day the quest ends when that comes first;
- * - a one-day window (daily, a listed weekday, a Hook Shot pull-in) or no window at all: `date`'s day.
+ * - a one-day window (daily, a listed weekday, an old saved pull-in) or no window at all: `date`'s day.
  */
 export const deadlineDayOf = (quest: QuestDeadlineFields, effects: HeroQuestEffects | undefined, date: Date): Date => {
   const day = startOfDay(date);
@@ -229,8 +231,8 @@ export const deadlineDayOf = (quest: QuestDeadlineFields, effects: HeroQuestEffe
 
 /**
  * When the quest is late, seen from `date`, after the hero's items: the due time on the deadline day
- * (deadlineDayOf), then the Ice Wand's extension replaces it while it lies ahead of it, and a pause that began
- * before the deadline pushes it back by the time paused. Null when the quest has no due time and no extension.
+ * (deadlineDayOf), then the Extra Time Power's extension replaces it while it lies ahead of it, and an old saved
+ * pause that began before the deadline pushes it back by the time paused. Null when the quest has no due time and no extension.
  */
 export const effectiveDeadline = (
   quest: QuestDeadlineFields,
@@ -351,8 +353,8 @@ export const getQuestWindow = (quest: QuestScheduleInput, date: Date): QuestWind
 };
 
 /**
- * The quest's window on `date` as this hero sees it: gone on the day it was snoozed (Silver Arrow), and a
- * one-day window on a day it was pulled into although it was not due (Hook Shot).
+ * The quest's window on `date` as this hero sees it: gone on the day it was snoozed (the Snooze Power), and a
+ * one-day window on a day it was pulled into although it was not due (an old saved pull-in).
  */
 export const getEffectiveWindow = (
   quest: QuestScheduleInput,

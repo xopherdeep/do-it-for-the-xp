@@ -411,16 +411,30 @@ describe("QuestSchedule", () => {
       expect(isQuestOverdue(once, undefined, at("2026-10-08T09:00:00"))).toBe(true);
     });
 
-    it("makes a day the Hook Shot pulled a quest into due that day", () => {
+    it("makes a day an old saved pull-in brought a quest into due that day", () => {
       const effects = { pulledInOn: { "quest-1": "2026-10-08" } };
       const monday = weekly({ repeatOnDays: ["mon"] });
       expect(effectiveDeadline(monday, effects, at("2026-10-08T12:00:00"))).toEqual(at("2026-10-08T18:00:00"));
     });
 
-    it("still lets the Ice Wand push the last day's deadline later", () => {
+    it("still lets Extra Time push the last day's deadline later", () => {
       const effects = { extendedUntil: { "quest-1": at("2026-10-12T18:00:00").toISOString() } };
       expect(effectiveDeadline(weekly(), effects, at("2026-10-07T12:00:00"))).toEqual(at("2026-10-12T18:00:00"));
       expect(isQuestOverdue(weekly(), effects, at("2026-10-11T19:00:00"))).toBe(false);
+    });
+
+    it("still reads an old saved pause: it moves a deadline that falls after it began and keeps the quest on time while it holds", () => {
+      // Chronos' Clock wrote this once and nothing does now; a profile keeps it until it is overwritten
+      const daily = { ...makeQuest(), dueByTime: "18:00" };
+      const pause = { from: at("2026-10-07T17:00:00").toISOString(), until: at("2026-10-07T19:00:00").toISOString() };
+      expect(effectiveDeadline(daily, { pause }, at("2026-10-07T12:00:00"))).toEqual(at("2026-10-07T20:00:00"));
+      expect(isQuestOverdue(daily, { pause }, at("2026-10-07T18:30:00"))).toBe(false); // the clock stands still
+      expect(isQuestOverdue(daily, { pause }, at("2026-10-07T19:30:00"))).toBe(false); // due at 20:00 now
+      expect(isQuestOverdue(daily, { pause }, at("2026-10-07T20:30:00"))).toBe(true);
+      // A pause that began after the deadline leaves it alone
+      const later = { from: at("2026-10-07T19:00:00").toISOString(), until: at("2026-10-07T21:00:00").toISOString() };
+      expect(effectiveDeadline(daily, { pause: later }, at("2026-10-07T12:00:00"))).toEqual(at("2026-10-07T18:00:00"));
+      expect(isQuestOverdue(daily, { pause: later }, at("2026-10-07T18:30:00"))).toBe(true);
     });
   });
 });

@@ -2,14 +2,16 @@ import { getFamilySettingsDb } from "@/lib/databases/FamilySettingsDb";
 import { dayKeyOf, type HeroQuestEffects } from "@/lib/engine/quests/QuestSchedule";
 
 /**
- * What the Game Master lets the items do (docs/Items-And-Classes-Contract.md, B): Tesla's Bolt needs
- * `trustedHour`, Night's Light needs a bedtime, Gale's Wind tells the Game Master when `dayOffBroadcast` is on.
+ * What the Game Master lets the family do (docs/Items-And-Classes-Contract.md, B). Items no longer bend the
+ * quest board, so only `trustedHour` is live: the Trusted Hour Power refuses to cast unless it is on. The
+ * bedtime locks nothing (`isBedtimeNow` has no caller) and `dayOffBroadcast` is hidden in the settings screen
+ * (Gale's Wind used to read it); their stored values stay.
  */
 export interface FamilySettings {
-  /** Tesla's Bolt may open a trusted hour: claims skip the approval queue */
+  /** The Trusted Hour Power may open a trusted hour: claims skip the approval queue */
   trustedHour: boolean;
   bedtime: { enabled: boolean; /** "HH:mm" */ from: string; /** "HH:mm" */ to: string };
-  /** Gale's Wind sends every Game Master a note */
+  /** Old: Gale's Wind sent every Game Master a note. Nothing reads it now; the settings screen hides it. */
   dayOffBroadcast: boolean;
 }
 
@@ -56,11 +58,11 @@ export const bedtimeNightOf = (settings: FamilySettings, now: Date): string => {
   return dayKeyOf(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
 };
 
-/** Night's Light has lifted the bedtime for the night that `now` falls in. */
+/** An old saved Night's Light has lifted the bedtime for the night that `now` falls in (nothing writes one now). */
 export const bedtimeLifted = (settings: FamilySettings, effects: HeroQuestEffects | undefined, now: Date): boolean =>
   Boolean(effects?.bedtimeLiftedOn) && effects?.bedtimeLiftedOn === bedtimeNightOf(settings, now);
 
-/** True between the bedtime's two clocks (it may run past midnight) unless Night's Light lifted this night. */
+/** True between the bedtime's two clocks (it may run past midnight) unless an old saved lift covers this night. */
 export const isBedtimeNow = (settings: FamilySettings, now: Date, effects?: HeroQuestEffects): boolean => {
   if (!settings.bedtime.enabled) return false;
   const from = minutesOf(settings.bedtime.from);

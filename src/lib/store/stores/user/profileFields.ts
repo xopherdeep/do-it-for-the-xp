@@ -158,8 +158,8 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
   }
 
   /**
-   * When an equipped item is ready again on the board (ISO), or null to clear it. Kept on the profile as
-   * `itemCooldowns[name]` (see services/quests/ItemEffects.ts).
+   * When an item is ready again (ISO), or null to clear it. Kept on the profile as `itemCooldowns[name]`. Nothing
+   * sets a cooldown now that items are in-game only (equipment rules, 2026-10-13); old saves may still hold some.
    */
   function setItemCooldown(userId: string, itemName: string, readyAt: string | null) {
     const user = users[userId];
@@ -169,10 +169,6 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     persistUser(userId);
   }
 
-  /**
-   * What the hero's items did to their quest board: extensions, snoozes, pull-ins, a pause, the cloak
-   * (HeroQuestEffects). Replaces the whole record; the board reads it back.
-   */
   /** Stamp the hero's last free nap on the Hospital bench (ISO), so the bench is once a day. */
   function setBenchRestAt(userId: string, benchRestAt: string | null) {
     const user = users[userId];
@@ -191,6 +187,12 @@ export function createProfileSetters(deps: ProfileFieldsDeps) {
     persistUser(userId);
   }
 
+  /**
+   * What the hero's real-life Powers did to their quest board: extra time, snoozes, a quiet day, a trusted hour
+   * (HeroQuestEffects, written by services/abilities/PowerBoardEffects.ts). Old saves may still hold a pull-in, a
+   * pause or a day off an item once wrote; they stay readable and run out. Replaces the whole record; the board
+   * reads it back.
+   */
   function setQuestEffects(userId: string, effects: object) {
     const user = users[userId];
     if (!user) return;
