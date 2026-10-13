@@ -101,6 +101,10 @@ export default defineComponent({
       type: String,
       default: "Tap to travel",
     },
+    navigateOnClick: {
+      type: Boolean,
+      default: true,
+    },
   },
   emits: ["click"],
   setup(props, { emit }) {
@@ -114,7 +118,8 @@ export default defineComponent({
     });
 
     const displayName = computed(() => {
-      if (props.label) return props.label;
+      const hasCustomLabel = Boolean(props.label);
+      if (hasCustomLabel) return props.label;
       return STAGE_NAMES[props.stageId] || props.stageId;
     });
 
@@ -136,9 +141,10 @@ export default defineComponent({
       }
       emit("click", props.stageId);
 
-      const userId = route.params.userId;
-      if (!userId) return;
+      const canNavigate = Boolean(props.navigateOnClick && route.params.userId);
+      if (!canNavigate) return;
 
+      const userId = route.params.userId;
       const targetRoute = STAGE_ROUTES[props.stageId] || "world-plains";
       router.push({
         name: targetRoute,
