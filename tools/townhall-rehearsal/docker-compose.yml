@@ -34,7 +34,8 @@ x-wordpress-volumes: &wordpress-volumes
 services:
   db:
     image: mariadb:11
-    restart: unless-stopped
+    # A throwaway: it never comes back by itself after a reboot
+    restart: "no"
     environment:
       MARIADB_DATABASE: wordpress
       MARIADB_USER: wordpress
@@ -50,12 +51,13 @@ services:
 
   wordpress:
     image: wordpress:php8.2-apache
-    restart: unless-stopped
+    restart: "no"
     depends_on:
       db:
         condition: service_healthy
+    # This machine only: the rehearsal's test accounts and passwords never face the network
     ports:
-      - "8090:80"
+      - "127.0.0.1:8090:80"
     environment: *wordpress-env
     volumes: *wordpress-volumes
 
