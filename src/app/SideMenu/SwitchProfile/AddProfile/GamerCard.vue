@@ -76,13 +76,14 @@
       @build="buildHero"
     />
 
-    <look-modal
+    <xp-hero-builder-modal
       :is-open="isLookOpen"
       :look="profile?.look"
       :equipment="equipment"
-      @close="isLookOpen = false"
+      :allow-portrait="true"
       @save="saveLook"
       @portrait="usePortrait"
+      @close="isLookOpen = false"
     />
 
     <job-class-selector
@@ -110,14 +111,14 @@
   import { heroAvatarSrc } from "@/lib/hero-look/look";
   import type { HeroLook } from "@/lib/hero-look/types";
   import AvatarSelector from "./components/AvatarSelector.vue";
-  import LookModal from "./components/LookModal.vue";
+  import XpHeroBuilderModal from "@/components/organisms/HeroModel/XpHeroBuilderModal.vue";
   import JobClassSelector from "./components/JobClassSelector.vue";
   import FoodSelector from "./components/FoodSelector.vue";
 
   export default defineComponent({
     components: {
       AvatarSelector,
-      LookModal,
+      XpHeroBuilderModal,
       JobClassSelector,
       FoodSelector,
     },

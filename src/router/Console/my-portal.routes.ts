@@ -78,16 +78,8 @@ const MyPortalRoutes = [{
     component: () => import('@/app/Console/MyPortal/UserProfile/UserProfile.vue'),
     props: true
   },
-  {
-    path: 'my-look',
-    name: 'my-look',
-    meta: {
-      faIcon: "tshirt",
-      hideUserFab: true,
-    },
-    component: () => import('@/app/Console/MyPortal/UserProfile/MyLook/MyLook.vue'),
-    props: true
-  },
+  // The My Look page is retired: the hero builder opens over My Profile; old links and bookmarks land there
+  { path: "my-look", redirect: (to) => ({ name: "my-profile", params: to.params }) },
   ...WorldMapRoutes
   ],
 }];

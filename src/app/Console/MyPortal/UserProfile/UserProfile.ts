@@ -1,7 +1,8 @@
-import { defineComponent, PropType, computed } from "vue";
-import { useRouter } from "vue-router";
+import { defineComponent, PropType, computed, toRef } from "vue";
 import { useUserStore } from "@/lib/store/stores/user";
+import { useHeroBuilder } from "@/hooks/useHeroBuilder";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
+import XpHeroBuilderModal from "@/components/organisms/HeroModel/XpHeroBuilderModal.vue";
 import { JOB_CLASS_OPTIONS, FOOD_OPTIONS, PILLARS } from "@/constants";
 import {
   IonButton,
@@ -171,7 +172,8 @@ export default defineComponent({
     IonImg,
     IonBadge,
     IonProgressBar,
-    IonChip
+    IonChip,
+    XpHeroBuilderModal
   },
 
   setup(props) {
@@ -193,10 +195,15 @@ export default defineComponent({
       () => heroAvatarSrc(user.value, requireAvatar) || requireAvatar("./001-gamer.svg")
     );
 
-    const router = useRouter();
-    const openMyLook = () => {
-      router.push({ name: "my-look", params: { userId: props.userId } });
-    };
+    // My Look opens the hero builder over the page (destructured so the template sees the refs unwrapped)
+    const {
+      isOpen: isBuilderOpen,
+      open: openMyLook,
+      close: closeBuilder,
+      look: builderLook,
+      equipment: builderEquipment,
+      save: saveBuilderLook,
+    } = useHeroBuilder(toRef(props, "userId"));
 
     // Helper to get class icon
     const getClassIcon = (className: string | undefined): string => {
@@ -246,7 +253,12 @@ export default defineComponent({
       user,
       requireAvatar,
       avatarSrc,
+      isBuilderOpen,
       openMyLook,
+      closeBuilder,
+      builderLook,
+      builderEquipment,
+      saveBuilderLook,
       $requireAvatar: requireAvatar,
       modalController,
       getClassIcon,

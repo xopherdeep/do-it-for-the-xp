@@ -222,6 +222,15 @@
         </ion-card-content>
       </ion-card>
     </ion-content>
+
+    <!-- My Look: the full-screen hero builder, over this page -->
+    <xp-hero-builder-modal
+      :is-open="isBuilderOpen"
+      :look="builderLook"
+      :equipment="builderEquipment"
+      @save="saveBuilderLook"
+      @close="closeBuilder"
+    />
   </ion-page>
 </template>
 

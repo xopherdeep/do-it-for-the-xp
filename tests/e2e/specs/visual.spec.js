@@ -461,7 +461,7 @@ describe("Visual baseline: profiles", () => {
     openNewProfile();
     // The avatar opens the 3D builder directly (before 893414e6 it went through the portrait picker's "Build my hero in 3D")
     cy.get("#avatar-trigger").click({ force: true });
-    cy.get("ion-modal.look-modal canvas", { timeout: 60000 }).should("exist");
+    cy.get("ion-modal.hero-builder [data-cy=starter-hero] img", { timeout: 60000 }).should("have.length", 9);
     shot("11-add-profile-look", 2500);
   });
 
@@ -496,7 +496,6 @@ const PAGES = [
   ["31-my-abilities", HERO_ID, `/my-abilities/${HERO_ID}`],
   ["32-my-gold", HERO_ID, `/my-gold-points/${HERO_ID}`],
   ["33-my-profile", HERO_ID, `/my-portal/${HERO_ID}/my-profile`],
-  ["34-my-look", HERO_ID, `/my-portal/${HERO_ID}/my-look`],
   ["35-shop", HERO_ID, `/shop/wrecked-ship/${HERO_ID}`],
   ["36-bank", HERO_ID, `/bank/${HERO_ID}`],
   ["37-hospital", HERO_ID, `/hospital/${HERO_ID}`],
@@ -545,6 +544,14 @@ describe("Visual baseline: overlays on the hero's portal", () => {
     tap(".xp-bottom-nav button[aria-label='Hero Profile']");
     cy.get("ion-modal.user-profile-modal .profile-content", { timeout: 20000 }).should("be.visible");
     shot("15-profile-modal", 1500);
+  });
+
+  screen("34 my look: the builder over my profile", () => {
+    seed(HERO_ID);
+    go(`/my-portal/${HERO_ID}/my-profile`);
+    tap(".my-look-button");
+    cy.get("ion-modal.hero-builder [data-cy=starter-hero] img", { timeout: 60000 }).should("have.length", 9);
+    shot("34-my-look", 2500);
   });
 
   screen("41 class codex", () => {

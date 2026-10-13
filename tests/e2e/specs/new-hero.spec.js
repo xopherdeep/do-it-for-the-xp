@@ -1,4 +1,4 @@
-// New hero: the add-profile form starts in the 3D builder (with "Use a 2D portrait instead" one tap away), and saving a
+// New hero: the add-profile form starts in the 3D hero builder, on its starter lineup (with "Use a 2D portrait instead" one tap away), and saving a
 // new hero plays the reveal: the hero as a glowing shape, a burst of colour and confetti from every edge, a dance.
 // Screenshots (390x844) land in tests/e2e/screenshots/new-hero.spec.js.
 const routerOf = (win) => win.document.querySelector("#app").__vue_app__.config.globalProperties.$router;
@@ -58,10 +58,16 @@ const buildAndSave = (name, { reduceMotion = false } = {}) => {
   cy.get("ion-input.rpg-input").first().find("input").type(name, { force: true });
   fillForm({ favoriteFood: "Pizza", favoriteThing: "Space", jobClass: "Mage" });
   cy.get("#avatar-trigger").click({ force: true });
-  cy.get("ion-modal.look-modal canvas", { timeout: 60000 }).should("exist");
+  // A new hero starts on the lineup: pick a starting hero, then Done (it plays a victory pose for 800ms before it saves)
+  cy.get("ion-modal.hero-builder [data-cy=starter-hero] img", { timeout: 60000 }).should("have.length", 9);
+  cy.wait(800);
+  cy.get("[data-cy=starter-hero]").first().click({ force: true });
+  cy.get("ion-modal.hero-builder canvas", { timeout: 60000 }).should("exist");
+  cy.get("[data-cy=builder-done]", { timeout: 20000 }).should("be.visible");
   cy.wait(1800);
-  cy.get("ion-modal.look-modal .look-done").click({ force: true });
-  cy.get("ion-modal.look-modal", { timeout: 10000 }).should("have.class", "overlay-hidden");
+  cy.get("[data-cy=builder-done]").click({ force: true });
+  cy.wait(1200);
+  cy.get("ion-modal.hero-builder", { timeout: 10000 }).should("have.class", "overlay-hidden");
   cy.get(".gamer-card .main-avatar.has-voxel", { timeout: 20000 }).should("exist");
   // The reveal reads the setting when it starts: flip it just before Save
   if (reduceMotion) emulateMotion("reduce");
@@ -87,7 +93,7 @@ describe("New hero", () => {
 
     // Tapping the avatar opens the 3D builder first
     cy.get("#avatar-trigger").click({ force: true });
-    cy.get("ion-modal.look-modal canvas", { timeout: 60000 }).should("exist");
+    cy.get("ion-modal.hero-builder [data-cy=starter-hero] img", { timeout: 60000 }).should("have.length", 9);
     cy.get("ion-modal.face-modal").should("have.class", "overlay-hidden");
     shot("02-builder", 2500);
 

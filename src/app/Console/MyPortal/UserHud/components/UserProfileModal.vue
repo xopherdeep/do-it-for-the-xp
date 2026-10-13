@@ -174,6 +174,10 @@
       </div>
     </ion-content>
 
+    <!-- My Look: the full-screen hero builder stacks over this sheet -->
+    <xp-hero-builder-modal :is-open="isBuilderOpen" :look="builderLook" :equipment="builderEquipment"
+      @save="saveBuilderLook" @close="closeBuilder" />
+
     <!-- Avatar Selector Modal -->
     <avatar-selector v-model="selectedAvatarIndex" :is-open="isAvatarSelectorOpen" :max-avatar-index="maxAvatarIndex"
       @close="isAvatarSelectorOpen = false" @selected="onAvatarSelected" :fullscreen="true" />
@@ -224,8 +228,9 @@ import { heroApWindows } from "@/lib/services/abilities/heroAbilityStatus";
 import { statEffectLine, statTotal } from "@/lib/services/stats/StatEffects";
 
 // Avatar helper using require.context
-import { useRouter } from "vue-router";
 import { heroAvatarSrc } from "@/lib/hero-look/look";
+import { useHeroBuilder } from "@/hooks/useHeroBuilder";
+import XpHeroBuilderModal from "@/components/organisms/HeroModel/XpHeroBuilderModal.vue";
 const $requireAvatar = require.context("@/assets/images/avatars/", false, /\.svg$/);
 
 export default defineComponent({
@@ -252,7 +257,8 @@ export default defineComponent({
     AvatarSelector,
     XpStatSelectorModal,
     XpProfileStatBox,
-    XpCloseButton
+    XpCloseButton,
+    XpHeroBuilderModal
   },
   props: {
     isOpen: {
@@ -266,7 +272,6 @@ export default defineComponent({
   },
   emits: ['close'],
   setup(props) {
-    const router = useRouter();
     const userStore = useUserStore();
     const gameStore = useGameStore();
     const modal = ref<any>(null);
@@ -306,11 +311,15 @@ export default defineComponent({
     // The hero's picture: the saved voxel snapshot when there is one, else the chosen SVG
     const avatarSrc = computed(() => heroAvatarSrc(props.user, (key: string) => $requireAvatar(key)));
 
-    // My Look: close this sheet and open the dressing room
-    const openMyLook = () => {
-      modal.value?.$el?.dismiss?.();
-      router.push({ name: "my-look", params: { userId: props.user?.id } });
-    };
+    // My Look: the hero builder stacks over this sheet (destructured so the template sees the refs unwrapped)
+    const {
+      isOpen: isBuilderOpen,
+      open: openMyLook,
+      close: closeBuilder,
+      look: builderLook,
+      equipment: builderEquipment,
+      save: saveBuilderLook,
+    } = useHeroBuilder(computed(() => props.user?.id));
 
     const openAvatarSelector = () => {
       selectedAvatarIndex.value = getCurrentAvatarIndex();
@@ -647,7 +656,12 @@ export default defineComponent({
 
     return {
       avatarSrc,
+      isBuilderOpen,
       openMyLook,
+      closeBuilder,
+      builderLook,
+      builderEquipment,
+      saveBuilderLook,
       // Constants
       POINT_ICONS,
       maxAvatarIndex,
