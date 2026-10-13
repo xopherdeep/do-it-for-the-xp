@@ -6,6 +6,7 @@ import { getTownHallDb } from "@/lib/databases/TownHallDb";
 import { townHallFetch, TownHallError, type TownHallAuth } from "@/lib/services/townhall/townHallClient";
 import { fetchBoards } from "@/lib/services/townhall/townHallFeed";
 import { readLinkReturn, type LinkReturn } from "@/lib/services/townhall/townHallLink";
+import { claimLinkState, rememberLinkState } from "@/lib/services/townhall/townHallLinkState";
 import {
   approvePost,
   canDismiss,
@@ -157,9 +158,14 @@ export const useTownHallStore = defineStore("townHall", () => {
     }
   }
 
-  /** Check the new password with the configured Town Hall site and keep it. A refusal or a dead connection stores nothing. */
+  /**
+   * Check the new password with the configured Town Hall site and keep it. A refusal or a dead connection stores nothing.
+   * A link that replaces another asks the site to delete the old connection (with the old sign-in, best effort), so the
+   * parent's profile does not collect connections nobody uses.
+   */
   async function checkAndStore(ret: Extract<LinkReturn, { kind: "linked" }>): Promise<"linked" | "failed"> {
     if (!isTownHallSite(ret.siteUrl)) return "failed";
+    const previous = activeLink.value;
     const withAuth = basicAuthOf(ret);
     let name: unknown;
     try {
@@ -180,16 +186,30 @@ export const useTownHallStore = defineStore("townHall", () => {
     };
     await getTownHallDb().saveLink(next);
     link.value = next;
+    const replacesConnection = previous?.appPasswordUuid !== undefined && previous.appPasswordUuid !== uuid;
+    if (previous && replacesConnection) await removeFromSite(previous);
     return "linked";
   }
 
   /**
-   * Take what WordPress appended to the return address (`window.location.search`, read by the page, which also takes it
-   * out of the address bar). A new link is checked before it is kept.
+   * A Game Master leaves for the authorize page: remember a one-shot state for the return to bring back (see
+   * townHallLinkState.ts) and forget the last result, so a return that comes to the same thing again is noticed.
+   */
+  async function beginLink(heroId: string): Promise<string> {
+    lastLinkResult.value = null;
+    return rememberLinkState(heroId);
+  }
+
+  /**
+   * Take what came back on the return address (pendingReturn.ts on the web, the app's own address in the phone apps).
+   * Only a return that brings back the state this device handed out, while it is fresh, counts, and only once; any other
+   * (crafted, stale, replayed) comes to `none`: nothing is asked, kept or said. A new link is checked before it is kept.
    */
   async function completeLink(search: string): Promise<LinkResult> {
     const ret = readLinkReturn(search);
     if (ret.kind === "none") return "none";
+    const asked = await claimLinkState(ret.state);
+    if (!asked) return "none";
     let result: LinkResult = "rejected";
     if (ret.kind === "linked") {
       await init();
@@ -408,6 +428,7 @@ export const useTownHallStore = defineStore("townHall", () => {
     isLinked,
     signedInThroughWebsite,
     init,
+    beginLink,
     completeLink,
     unlink,
     forgetLink,

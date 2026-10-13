@@ -36,22 +36,40 @@ describe("townHallReturnUrl", () => {
 describe("authorizeUrl", () => {
   const returnUrl = "https://app.forthexp.com/#/town-hall/gm-1";
 
+  const state = "0b6f3c1e-4d2a-4e8b-9f10-2a3b4c5d6e7f";
+
   it("builds the authorize URL", () => {
-    const u = new URL(authorizeUrl({ site: "https://doit.forthexp.com", appName: "Do It For The XP – Chrome on Android", returnUrl }));
+    const u = new URL(authorizeUrl({ site: "https://doit.forthexp.com", appName: "Do It For The XP – Chrome on Android", returnUrl, state }));
     expect(u.origin + u.pathname).toBe("https://doit.forthexp.com/wp-admin/authorize-application.php");
     expect(u.searchParams.get("app_name")).toBe("Do It For The XP – Chrome on Android");
     expect(u.searchParams.get("app_id")).toBe(TOWN_HALL_APP_ID);
-    expect(u.searchParams.get("success_url")).toBe("https://app.forthexp.com/#/town-hall/gm-1");
-    expect(u.searchParams.get("reject_url")).toBe("https://app.forthexp.com/#/town-hall/gm-1");
+  });
+
+  it("carries the one-shot state back on success, where WordPress appends its answer after it", () => {
+    const u = new URL(authorizeUrl({ site: "https://doit.forthexp.com", appName: "x", returnUrl, state }));
+    expect(u.searchParams.get("success_url")).toBe(`https://app.forthexp.com/#/town-hall/gm-1?th_state=${state}`);
+  });
+
+  it("builds the reject address itself, with the state and success=false (WordPress adds nothing to a reject_url it is given)", () => {
+    const u = new URL(authorizeUrl({ site: "https://doit.forthexp.com", appName: "x", returnUrl, state }));
+    const reject = u.searchParams.get("reject_url") ?? "";
+    expect(reject).toBe(`https://app.forthexp.com/#/town-hall/gm-1?th_state=${state}&success=false`);
+    expect(readLinkReturn(captureLinkReturn(new URL(reject))?.search ?? "")).toEqual({ kind: "rejected", state });
+  });
+
+  it("puts the state on a path-routed return address too", () => {
+    const u = new URL(authorizeUrl({ site: "https://doit.forthexp.com", appName: "x", returnUrl: "https://app.forthexp.com/town-hall/gm-1", state }));
+    expect(u.searchParams.get("success_url")).toBe(`https://app.forthexp.com/town-hall/gm-1?th_state=${state}`);
+    expect(u.searchParams.get("reject_url")).toBe(`https://app.forthexp.com/town-hall/gm-1?th_state=${state}&success=false`);
   });
 
   it("does not double the slash when the site ends with one", () => {
-    const u = new URL(authorizeUrl({ site: "https://doit.forthexp.com/", appName: "x", returnUrl }));
+    const u = new URL(authorizeUrl({ site: "https://doit.forthexp.com/", appName: "x", returnUrl, state }));
     expect(u.origin + u.pathname).toBe("https://doit.forthexp.com/wp-admin/authorize-application.php");
   });
 
   it("keeps a site that lives in a sub-directory", () => {
-    const u = new URL(authorizeUrl({ site: "https://www.forthexp.com/doit", appName: "x", returnUrl }));
+    const u = new URL(authorizeUrl({ site: "https://www.forthexp.com/doit", appName: "x", returnUrl, state }));
     expect(u.origin + u.pathname).toBe("https://www.forthexp.com/doit/wp-admin/authorize-application.php");
   });
 });
@@ -137,10 +155,23 @@ describe("NATIVE_RETURN_URL", () => {
     expect(NATIVE_RETURN_URL).toBe("com.forthexp.doit://town-hall");
   });
 
-  it("is what WordPress is asked to send the parent back to from a phone app", () => {
-    const u = new URL(authorizeUrl({ site: "https://doit.forthexp.com", appName: "Do It For The XP – Android app", returnUrl: NATIVE_RETURN_URL }));
-    expect(u.searchParams.get("success_url")).toBe("com.forthexp.doit://town-hall");
-    expect(u.searchParams.get("reject_url")).toBe("com.forthexp.doit://town-hall");
+  it("is what WordPress is asked to send the parent back to from a phone app, with the state", () => {
+    const u = new URL(
+      authorizeUrl({ site: "https://doit.forthexp.com", appName: "Do It For The XP – Android app", returnUrl: NATIVE_RETURN_URL, state: "s-1" })
+    );
+    expect(u.searchParams.get("success_url")).toBe("com.forthexp.doit://town-hall?th_state=s-1");
+    expect(u.searchParams.get("reject_url")).toBe("com.forthexp.doit://town-hall?th_state=s-1&success=false");
+  });
+
+  it("reads WordPress's answer on the app's own address, appended after the state", () => {
+    const back = authAppReturn("com.forthexp.doit://town-hall?th_state=s-1", "https://doit.forthexp.com", "mom", "ab cd");
+    expect(readLinkReturn(searchOf(back))).toEqual({
+      kind: "linked",
+      siteUrl: "https://doit.forthexp.com",
+      userLogin: "mom",
+      appPassword: "ab cd",
+      state: "s-1",
+    });
   });
 });
 

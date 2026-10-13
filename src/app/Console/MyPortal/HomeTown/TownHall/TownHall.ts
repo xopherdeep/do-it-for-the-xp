@@ -268,21 +268,25 @@ export default defineComponent({
     }
 
     /**
-     * "I have an account": the web version leaves for the site's authorize page, which sends the parent back here. A phone
-     * app opens the page in the system browser instead and WordPress sends the parent back through the app's own address.
+     * "I have an account" (a Game Master's errand): the device remembers a one-shot state, which the return must bring back
+     * to count. The web version leaves for the site's authorize page, which sends the parent back here. A phone app opens
+     * the page in the system browser instead and WordPress sends the parent back through the app's own address.
      */
     const goToAuthorizePage = async () => {
+      if (!canAccessGameMaster()) return;
       const site = townHallSiteUrl();
       const appName = connectionName(navigator.userAgent, Capacitor.getPlatform());
-      if (!Capacitor.isNativePlatform()) {
-        const returnUrl = townHallReturnUrl(props.userId, window.location, usesHashHistory());
-        window.location.assign(authorizeUrl({ site, appName, returnUrl }));
-        return;
-      }
-      // The last result stays in the store, and a return that came to the same thing again would not be noticed
-      townHall.lastLinkResult = null;
       try {
-        await Browser.open({ url: authorizeUrl({ site, appName, returnUrl: NATIVE_RETURN_URL }) });
+        const state = await townHall.beginLink(props.userId);
+        const returnUrl = Capacitor.isNativePlatform()
+          ? NATIVE_RETURN_URL
+          : townHallReturnUrl(props.userId, window.location, usesHashHistory());
+        const url = authorizeUrl({ site, appName, returnUrl, state });
+        if (!Capacitor.isNativePlatform()) {
+          window.location.assign(url);
+          return;
+        }
+        await Browser.open({ url });
       } catch (err) {
         debug.error("Town Hall could not open the registration page:", err);
         await announceLink("failed");

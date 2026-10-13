@@ -5,6 +5,7 @@ import { townHallFetch, TownHallError } from "@/lib/services/townhall/townHallCl
 import type { PostDraft } from "@/lib/services/townhall/townHallPosts";
 import { appVersion } from "@/lib/services/townhall/townHallSite";
 import type { TownHallLink, TownHallPost } from "@/lib/services/townhall/townHallTypes";
+import { LINK_STATE_KEY, LINK_STATE_TTL_MS, newLinkState } from "@/lib/services/townhall/townHallLinkState";
 
 const mockDb = {
   getLink: jest.fn(),
@@ -20,10 +21,22 @@ jest.mock("@/lib/services/townhall/townHallClient", () => {
   return { __esModule: true, TownHallError: actual.TownHallError, townHallFetch: jest.fn() };
 });
 
+let mockNative = false;
 jest.mock("@capacitor/core", () => {
   const actual = jest.requireActual("@capacitor/core");
-  return { ...actual, Capacitor: { ...actual.Capacitor, getPlatform: () => "web" } };
+  return { ...actual, Capacitor: { ...actual.Capacitor, getPlatform: () => "web", isNativePlatform: () => mockNative } };
 });
+
+/** The phone apps keep the registration's state in Preferences (plain functions: resetAllMocks must not wipe them). */
+const mockPreferences = new Map<string, string>();
+jest.mock("@capacitor/preferences", () => ({
+  __esModule: true,
+  Preferences: {
+    get: async ({ key }: { key: string }) => ({ value: mockPreferences.get(key) ?? null }),
+    set: async ({ key, value }: { key: string; value: string }) => void mockPreferences.set(key, value),
+    remove: async ({ key }: { key: string }) => void mockPreferences.delete(key),
+  },
+}));
 
 jest.mock("uuid", () => {
   let made = 0;
@@ -38,9 +51,15 @@ const PASSWORD = "AbCd EfGh IjKl MnOp QrSt UvWx";
 
 const BASIC = { kind: "basic", userLogin: LOGIN, appPassword: PASSWORD };
 
-/** What WordPress appends to the return URL: spaces in the password come as "+", which URLSearchParams decodes. */
+/** The one-shot state this device handed WordPress when the Game Master left for the authorize page. */
+const STATE = "state-1";
+
+/** The device remembers a state, as the Town Hall does on its way to the authorize page. */
+const expectReturn = (state = STATE, at = Date.now()) => sessionStorage.setItem(LINK_STATE_KEY, JSON.stringify(newLinkState("gm-1", at, state)));
+
+/** What comes back on the return URL: the state, then WordPress's answer (URLSearchParams turns spaces into "+" and back). */
 const linkedQuery = (over: Record<string, string> = {}) =>
-  `?${new URLSearchParams({ site_url: SITE, user_login: LOGIN, password: PASSWORD, ...over })}`;
+  `?${new URLSearchParams({ th_state: STATE, site_url: SITE, user_login: LOGIN, password: PASSWORD, ...over })}`;
 
 const storedLink = (over: Partial<TownHallLink> = {}): TownHallLink => ({
   siteUrl: SITE,
@@ -157,12 +176,17 @@ describe("town hall store", () => {
     mockDb.saveLink.mockResolvedValue(undefined);
     mockDb.clearLink.mockResolvedValue(undefined);
     mockDb.savePosts.mockResolvedValue(undefined);
+    mockNative = false;
+    mockPreferences.clear();
+    sessionStorage.clear();
   });
   afterEach(() => {
     window.wpApiSettings = undefined;
   });
 
   describe("completeLink", () => {
+    beforeEach(() => expectReturn());
+
     it("checks the new password, reads the connection's id and stores the link", async () => {
       siteAnswers();
       const store = useTownHallStore();
@@ -239,10 +263,10 @@ describe("town hall store", () => {
       expect(store.link?.displayName).toBe(LOGIN);
     });
 
-    it("answers rejected for success=false, with no request and nothing stored", async () => {
+    it("answers rejected for success=false with the state, with no request and nothing stored", async () => {
       const store = useTownHallStore();
 
-      expect(await store.completeLink("?success=false")).toBe("rejected");
+      expect(await store.completeLink(`?th_state=${STATE}&success=false`)).toBe("rejected");
 
       expect(fetchMock).not.toHaveBeenCalled();
       expect(mockDb.saveLink).not.toHaveBeenCalled();
@@ -308,6 +332,165 @@ describe("town hall store", () => {
       expect(await linking).toBe("linked");
       expect(store.link?.userLogin).toBe(LOGIN);
       expect(store.auth).toEqual(BASIC);
+    });
+  });
+
+  describe("completeLink accepts only the return this device asked for (the one-shot state)", () => {
+    const nothingHappened = (store: ReturnType<typeof useTownHallStore>) => {
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(mockDb.saveLink).not.toHaveBeenCalled();
+      expect(store.link).toBeNull();
+      expect(store.lastLinkResult).toBeNull();
+    };
+
+    it("ignores a return with no state: no request, nothing stored, nothing said", async () => {
+      siteAnswers();
+      expectReturn();
+      const store = useTownHallStore();
+
+      const { th_state: _state, ...withoutState } = Object.fromEntries(new URLSearchParams(linkedQuery()));
+      expect(await store.completeLink(`?${new URLSearchParams(withoutState)}`)).toBe("none");
+
+      nothingHappened(store);
+    });
+
+    it("ignores a return with someone else's state, and the parent's own return still links after it", async () => {
+      siteAnswers();
+      expectReturn();
+      const store = useTownHallStore();
+
+      expect(await store.completeLink(linkedQuery({ th_state: "crafted" }))).toBe("none");
+      nothingHappened(store);
+
+      expect(await store.completeLink(linkedQuery())).toBe("linked");
+    });
+
+    it("ignores a return when this device never left for the site (a crafted link)", async () => {
+      siteAnswers();
+      const store = useTownHallStore();
+
+      expect(await store.completeLink(linkedQuery())).toBe("none");
+
+      nothingHappened(store);
+    });
+
+    it("ignores a return that comes back after the state expired", async () => {
+      siteAnswers();
+      expectReturn(STATE, Date.now() - LINK_STATE_TTL_MS - 1);
+      const store = useTownHallStore();
+
+      expect(await store.completeLink(linkedQuery())).toBe("none");
+
+      nothingHappened(store);
+      expect(sessionStorage.getItem(LINK_STATE_KEY)).toBeNull();
+    });
+
+    it("ignores the same return a second time (replayed): the state is used up", async () => {
+      siteAnswers();
+      expectReturn();
+      const store = useTownHallStore();
+      expect(await store.completeLink(linkedQuery())).toBe("linked");
+      fetchMock.mockClear();
+      mockDb.saveLink.mockClear();
+
+      expect(await store.completeLink(linkedQuery({ user_login: "stranger", password: "xxxx" }))).toBe("none");
+
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(mockDb.saveLink).not.toHaveBeenCalled();
+      expect(store.link?.userLogin).toBe(LOGIN);
+    });
+
+    it("ignores a refusal without the state, so 'Maybe another time' is never said for nothing", async () => {
+      expectReturn();
+      const store = useTownHallStore();
+
+      expect(await store.completeLink("?success=false")).toBe("none");
+      expect(await store.completeLink("?th_state=crafted&success=false")).toBe("none");
+
+      expect(store.lastLinkResult).toBeNull();
+    });
+
+    it("phone apps: claims the state the app kept in Preferences before it was killed", async () => {
+      mockNative = true;
+      mockPreferences.set(LINK_STATE_KEY, JSON.stringify(newLinkState("gm-1", Date.now(), "native-state")));
+      siteAnswers();
+      const store = useTownHallStore();
+
+      expect(await store.completeLink(linkedQuery({ th_state: "web-state" }))).toBe("none");
+      expect(await store.completeLink(linkedQuery({ th_state: "native-state" }))).toBe("linked");
+
+      expect(mockPreferences.has(LINK_STATE_KEY)).toBe(false);
+      expect(store.link?.userLogin).toBe(LOGIN);
+    });
+
+    it("beginLink remembers a state for the Town Hall to put on the authorize page's addresses, and clears the last result", async () => {
+      const store = useTownHallStore();
+      store.lastLinkResult = "failed";
+
+      const state = await store.beginLink("gm-1");
+
+      expect(store.lastLinkResult).toBeNull();
+      expect(JSON.parse(sessionStorage.getItem(LINK_STATE_KEY) ?? "null")).toMatchObject({ state, heroId: "gm-1" });
+      siteAnswers();
+      expect(await store.completeLink(linkedQuery({ th_state: state }))).toBe("linked");
+    });
+  });
+
+  describe("linking again", () => {
+    beforeEach(() => expectReturn());
+
+    const siteWithConnection = (uuid: string) => {
+      fetchMock.mockImplementation(async (path: string) => {
+        const answer = path === "wp/v2/users/me" ? { name: "Mom" } : path.endsWith("/introspect") ? { uuid } : { deleted: true };
+        return { data: answer, headers: { get: () => null } };
+      });
+    };
+
+    it("removes the previous connection from the site with the previous sign-in, once the new one is kept", async () => {
+      mockDb.getLink.mockResolvedValue(storedLink({ userLogin: "old@example.com", appPassword: "old pass", appPasswordUuid: "u-old" }));
+      siteWithConnection("u-new");
+      const store = useTownHallStore();
+
+      expect(await store.completeLink(linkedQuery())).toBe("linked");
+
+      const removal = requests().find((request) => request.method === "DELETE");
+      expect(removal).toEqual(
+        expect.objectContaining({
+          path: "wp/v2/users/me/application-passwords/u-old",
+          auth: { kind: "basic", userLogin: "old@example.com", appPassword: "old pass" },
+        })
+      );
+      expect(store.link?.appPasswordUuid).toBe("u-new");
+    });
+
+    it("still links when the site will not remove the previous connection", async () => {
+      mockDb.getLink.mockResolvedValue(storedLink({ appPasswordUuid: "u-old" }));
+      fetchMock.mockImplementation(async (path: string, req: { method?: string }) => {
+        if (req?.method === "DELETE") throw new TownHallError("unauthorized", "revoked", 401);
+        const answer = path === "wp/v2/users/me" ? { name: "Mom" } : { uuid: "u-new" };
+        return { data: answer, headers: { get: () => null } };
+      });
+      const store = useTownHallStore();
+
+      expect(await store.completeLink(linkedQuery())).toBe("linked");
+      expect(store.link?.appPasswordUuid).toBe("u-new");
+    });
+
+    it("leaves the connection alone when the site hands back the same one, or the old one has no id", async () => {
+      mockDb.getLink.mockResolvedValue(storedLink({ appPasswordUuid: "u-1" }));
+      siteWithConnection("u-1");
+      const store = useTownHallStore();
+      expect(await store.completeLink(linkedQuery())).toBe("linked");
+      expect(requests().some((request) => request.method === "DELETE")).toBe(false);
+    });
+
+    it("never sends a link kept for another site to this one", async () => {
+      mockDb.getLink.mockResolvedValue(storedLink({ siteUrl: "http://localhost:8090/doit", appPasswordUuid: "u-other" }));
+      siteWithConnection("u-new");
+      const store = useTownHallStore();
+
+      expect(await store.completeLink(linkedQuery())).toBe("linked");
+      expect(requests().some((request) => request.method === "DELETE")).toBe(false);
     });
   });
 

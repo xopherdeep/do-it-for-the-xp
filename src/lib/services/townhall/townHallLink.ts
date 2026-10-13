@@ -39,13 +39,22 @@ export function townHallReturnUrl(userId: string, loc: PageLocation, hash: boole
   return hash ? `${loc.origin}${loc.pathname}#${route}` : `${loc.origin}${route}`;
 }
 
-/** WordPress's authorize page; success and reject both come back to the Town Hall. */
-export function authorizeUrl(opts: { site: string; appName: string; returnUrl: string }): string {
+/** An address with more query on its end, the way WordPress's approve button adds its own (after a route, in hash mode). */
+function withQuery(url: string, query: Record<string, string>): string {
+  return `${url}${url.includes("?") ? "&" : "?"}${new URLSearchParams(query)}`;
+}
+
+/**
+ * WordPress's authorize page; success and reject both come back to the Town Hall carrying the one-shot `state`. WordPress
+ * appends its answer to success_url; reject_url it uses as given (it adds `success=false` only to one it makes itself), so
+ * the app makes it with `success=false` already on.
+ */
+export function authorizeUrl(opts: { site: string; appName: string; returnUrl: string; state: string }): string {
   const params = new URLSearchParams({
     app_name: opts.appName,
     app_id: TOWN_HALL_APP_ID,
-    success_url: opts.returnUrl,
-    reject_url: opts.returnUrl,
+    success_url: withQuery(opts.returnUrl, { [LINK_STATE_PARAM]: opts.state }),
+    reject_url: withQuery(opts.returnUrl, { [LINK_STATE_PARAM]: opts.state, success: "false" }),
   });
   return `${opts.site.replace(/\/+$/, "")}/wp-admin/authorize-application.php?${params}`;
 }
